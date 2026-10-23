@@ -8,7 +8,8 @@
  */
 import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { retrievalMode } from '../retrieval-join.js';
+import { retrievalFilteredEnabled, retrievalMode } from '../retrieval-join.js';
+import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
 
 type Injection = { category: string; content: string; priority: number };
 interface Scenario {
@@ -180,7 +181,7 @@ describe('the crisis read decides the budget', () => {
     expect(contents(out)).toContain(MEMORY);
   });
 
-  it('a soft check counts as a crisis too', async () => {
+  it('a soft check alone keeps the casual budget processTurn filtered the turn at', async () => {
     vi.stubEnv('RETRIEVAL_FILTERED', 'on');
     const out = await turn({
       userText: 'ok',
@@ -189,7 +190,7 @@ describe('the crisis read decides the budget', () => {
       memories: [MEMORY],
       crisis: { isCrisis: false, softCheck: true },
     });
-    expect(contents(out)).toContain(MEMORY);
+    expect(contents(out)).not.toContain(MEMORY);
   });
 
   it('no crisis: the casual budget leaves the memory out', async () => {
@@ -208,7 +209,36 @@ describe('retrievalMode: crisis versus emotional', () => {
 
   it('the same words with a crisis read, or a kept crisis injection, are crisis mode', () => {
     expect(retrievalMode([], words, { isCrisis: true }).mode).toBe('crisis');
-    expect(retrievalMode([], words, { softCheck: true }).mode).toBe('crisis');
+    expect(retrievalMode([], words, { isCrisis: false, softCheck: true }).mode).toBe('emotional');
     expect(retrievalMode([SAFETY(0)], words).mode).toBe('crisis');
+  });
+});
+
+describe('on a crisis turn the crisis guidance comes first', () => {
+  it('safety and crisis_response stay ahead of an admitted memory', async () => {
+    vi.stubEnv('RETRIEVAL_FILTERED', 'on');
+    const crisisResponse = {
+      category: 'crisis_response',
+      priority: 98,
+      content: '[CRISIS SUPPORT] Validate first. Resource if appropriate: 988.',
+    };
+    const out = await turn({
+      userText: CRISIS_TEXT,
+      kept: [SAFETY(0), crisisResponse],
+      memories: [MEMORY],
+      crisis: { isCrisis: true },
+    });
+    const at = (c: string) => out.findIndex((i) => i.category === c || i.content === c);
+    expect(at(MEMORY)).toBeGreaterThan(-1);
+    expect(at('safety')).toBeLessThan(at(MEMORY));
+    expect(at('crisis_response')).toBeLessThan(at(MEMORY));
+  });
+});
+
+describe('RETRIEVAL_FILTERED ships off', () => {
+  it('defaults to off in the manifest, and unset means off', () => {
+    expect(FLAG_MANIFEST.RETRIEVAL_FILTERED.default).toBe('off');
+    expect(retrievalFilteredEnabled({})).toBe(false);
+    expect(retrievalFilteredEnabled({ RETRIEVAL_FILTERED: 'on' })).toBe(true);
   });
 });

@@ -10,8 +10,10 @@
  * it is (nothing re-filtered, nothing deduplicated against a memory), and
  * the memories are admitted through filterInjections into the budget the kept
  * list leaves, in the turn's mode. The turn counts as a crisis when a safety
- * or crisis injection was kept or the crisis read flagged it (a crisis or a
- * soft check, so a classifier-only crisis gets the crisis budget too).
+ * or crisis injection was kept or the crisis read says isCrisis (so a
+ * classifier-only crisis gets the crisis budget too). A soft check alone
+ * does not: processTurn filtered that turn at its own (casual) budget, and
+ * at 1,500 characters the later cut lands mid-memory.
  * Off: appended after the filter, as before.
  *
  * @module agents/voice-agent/retrieval-join
@@ -41,6 +43,7 @@ export interface FilterTurn {
 /** The turn's crisis read (process-turn.ts result.crisis), as far as this module reads it. */
 export interface CrisisRead {
   isCrisis?: boolean;
+  /** Read but not used: a soft check alone keeps the turn's own budget. */
   softCheck?: boolean;
 }
 
@@ -51,7 +54,7 @@ export function retrievalMode(
   crisis?: CrisisRead
 ): { mode: ConversationMode; crisisDetected: boolean } {
   const crisisDetected =
-    Boolean(crisis?.isCrisis || crisis?.softCheck) ||
+    Boolean(crisis?.isCrisis) ||
     kept.some((i) => i.category === 'safety' || i.category === 'crisis_response');
   const mode = detectConversationMode(turn.userText, turn.emotionalIntensity, crisisDetected);
   return { mode, crisisDetected };
