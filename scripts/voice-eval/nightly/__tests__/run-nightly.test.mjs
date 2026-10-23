@@ -94,6 +94,17 @@ describe.skipIf(process.platform !== 'darwin')('run-nightly.sh (stubbed)', () =>
     expect(sb.out('laneA.log').match(/TIMEOUT timer s1 after 2s/g)).toHaveLength(2);
   }, 30_000);
 
+  it('a timed-out call whose child ignores TERM is still killed', async () => {
+    const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
+    // the child ignores TERM; run.sh itself dies on TERM, so only the KILL step stops the child
+    const sb = sandbox([line, ''], { runSh: "(trap '' TERM; exec sleep 47) & wait" });
+    await exited(run(sb, { NIGHTLY_CALL_MAX_S: '2' }));
+    await sleep(500);
+    const left = spawnSync('pgrep', ['-f', 'sleep 47']).stdout.toString().trim();
+    if (left) spawnSync('pkill', ['-f', 'sleep 47']);
+    expect(left).toBe('');
+  }, 30_000);
+
   it('a call that finishes in time is not touched by its watchdog', async () => {
     const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
     const sb = sandbox([line, ''], { runSh: 'sleep 1' });

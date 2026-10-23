@@ -128,7 +128,7 @@ do_deploy() {
 }
 # One lane file: "ENV | scenario | label | uid | capability" per line.
 lane() {
-  local file=$1 llog=$2 envs sc label uid cap rc name cpid wpid
+  local file=$1 llog=$2 envs sc label uid cap rc name cpid wpid tflag
   name=$(basename "$file" .txt)
   while IFS='|' read -r envs sc label uid cap; do
     envs=$(trim "$envs"); sc=$(trim "${sc:-}"); label=$(trim "${label:-}"); uid=$(trim "${uid:-}")
@@ -148,12 +148,16 @@ lane() {
       exec "$EVAL/run.sh" dev "$sc" "$TAG$label" ${uid:+"$uid"}
     ) > "$OUT/runlogs/$sc-$TAG$label.out" 2>&1 < /dev/null &
     cpid=$!
-    { sleep "$CALL_MAX_S" && say "TIMEOUT $sc $label after ${CALL_MAX_S}s" >> "$llog" \
+    tflag=$OUT/runlogs/.timeout-$cpid
+    { sleep "$CALL_MAX_S" && : > "$tflag" && say "TIMEOUT $sc $label after ${CALL_MAX_S}s" >> "$llog" \
       && stop_jobs "$cpid"; } 2> /dev/null &
     wpid=$!
     wait "$cpid"
     rc=$?
-    pkill -P "$wpid" 2> /dev/null; kill "$wpid" 2> /dev/null; wait "$wpid" 2> /dev/null
+    # A timed-out call dies on TERM before stop_jobs reaches its KILL step: let the
+    # watchdog finish, or a child that ignores TERM outlives it.
+    if [ -e "$tflag" ]; then wait "$wpid" 2> /dev/null; rm -f "$tflag"
+    else pkill -P "$wpid" 2> /dev/null; kill "$wpid" 2> /dev/null; wait "$wpid" 2> /dev/null; fi
     say "END $sc $label rc=$rc" >> "$llog"
   done < "$file"
   say "LANE DONE" >> "$llog"
