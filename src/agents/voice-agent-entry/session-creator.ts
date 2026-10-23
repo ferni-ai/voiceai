@@ -175,6 +175,13 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     `[voice-agent-entry] ⚡ Parallel module loads complete in ${Date.now() - parallelLoadStart}ms\n`
   );
 
+  // The gateway TTS speaks in this voice while the call is still this persona (spoken-voice.ts)
+  userData.sessionVoice = {
+    personaId: sessionPersona.id,
+    voiceId: effectiveVoiceId,
+    localized: isLocalizedVoice,
+  };
+
   // Create TTS
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tts: any = voiceManager.createPersonaAwareTTS(sessionPersona.name, {

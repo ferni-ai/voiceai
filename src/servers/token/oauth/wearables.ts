@@ -292,11 +292,8 @@ export async function saveTokens(
   try {
     const store = getTokenStore(provider);
     const encrypted = encryptData(tokensWithTimestamp);
-    await store.setImmediate(userId, {
-      encrypted,
-      provider,
-      updated_at: Date.now(),
-    });
+    const grant = { encrypted, provider, updated_at: Date.now() };
+    await store.setImmediate(userId, grant, { safeWithoutRead: true }); // a new grant
     log.info({ provider, userId: userId.substring(0, 8) }, 'Saved wearable OAuth tokens');
   } catch (err) {
     log.error(
