@@ -66,11 +66,15 @@ const VAD_SILENCE_MS = 350;
 const POLL_MS = 25;
 
 /**
- * PAUSE_HOLD_PHONE_CAP: `graceMs` of wordless "speaking" still counts (ink's
- * first words for a real restart come within it); a hold that has heard no
- * new words ends by `maxMs`.
+ * PAUSE_HOLD_PHONE_CAP. A "speaking" state counts as the caller going on for
+ * `graceMs` with no words: a real restart's first words come within it. Its
+ * length comes from prod phone TURN_METRICS, 10-17..22, n=347: speech end to
+ * the final transcript p90 612 ms, p99 907 ms (web: 0). Interim words aren't
+ * logged, so the bound is a first segment of up to ~1.1 s plus that p99.
+ * A hold that has heard no new words and no live speech ends `maxMs` after
+ * the turn ended (or after the reply was ready, if that came later).
  */
-export const PHONE_HOLD = { graceMs: 700, maxMs: 1300 } as const;
+export const PHONE_HOLD = { graceMs: 2000, maxMs: 1300 } as const;
 
 type Env = Record<string, string | undefined>;
 
@@ -81,22 +85,38 @@ export function phoneHoldOn(phone: boolean | undefined, env: Env = process.env):
 
 /**
  * Whether a phone caller's "speaking" state means they went on: it brought new
- * words, or it is still young enough that its words may be on the way.
+ * words after it began, or it is still young enough that its words may be on
+ * the way.
  */
 export function phoneCallerSpeaking(
   speaking: boolean,
   speakingSince: number | undefined,
-  wordsAt: number,
+  newWordsAt: number | undefined,
   now: number
 ): boolean {
   if (!speaking) return false;
   const since = speakingSince ?? now;
-  return wordsAt >= since || now - since < PHONE_HOLD.graceMs;
+  return (newWordsAt !== undefined && newWordsAt >= since) || now - since < PHONE_HOLD.graceMs;
 }
 
-/** A phone hold's settings: the short cap until the caller says something new. */
-export function phoneHoldConfig(cfg: PauseHoldConfig, newWords: boolean): PauseHoldConfig {
-  return newWords ? cfg : { ...cfg, maxMs: Math.min(cfg.maxMs, PHONE_HOLD.maxMs) };
+const wordsOf = (text: string): string[] =>
+  text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}'\s]/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+/**
+ * Whether `text` says something beyond `turn`, the transcript that ended the
+ * turn: not a re-cased, re-punctuated or shorter re-send of it.
+ */
+export function hasNewWords(text: string, turn: string): boolean {
+  const words = wordsOf(text);
+  const said = wordsOf(turn);
+  if (words.length === 0) return false;
+  const isPrefix = (a: string[], b: string[]): boolean => a.every((w, i) => b[i] === w);
+  if (isPrefix(words, said)) return false; // the same words, or fewer
+  return !isPrefix(said, words) || words.length > said.length;
 }
 
 function num(raw: string | undefined, fallback: number, min: number): number {
@@ -191,18 +211,36 @@ interface HoldState {
   callerSpeaking: boolean;
   /** When the caller's current "speaking" state began. */
   speakingSince: number | undefined;
+  /** When the last held reply was released, until Ferni is heard. */
+  releasedAt: number | undefined;
   agentSpeaking: boolean;
-  /** The turn whose reply is waiting for its first audio (committed at `at`); null when none is held. */
-  armed: { stoppedAt: number; at: number } | null;
+  /**
+   * The turn whose reply is waiting for its first audio: committed at `at` on
+   * `words`, real new words since at `newWordsAt`. Null when none is held.
+   */
+  armed: { stoppedAt: number; at: number; words: string; newWordsAt?: number } | null;
+  /** The caller is on the phone (logged); undefined when not known. */
+  caller: boolean | undefined;
   /** PAUSE_HOLD_PHONE_CAP is on for this phone caller. */
   phone: boolean;
 }
 
-/** The caller and cap this poll goes by: a phone hold reads speech by its words. */
-function holdView(st: HoldState, cfg: PauseHoldConfig, now: number): [boolean, PauseHoldConfig] {
-  if (!st.phone || !st.armed) return [st.callerSpeaking, cfg];
-  const speaking = phoneCallerSpeaking(st.callerSpeaking, st.speakingSince, st.wordsAt, now);
-  return [speaking, phoneHoldConfig(cfg, st.wordsAt > st.armed.at)];
+/** How the session logs the caller. */
+function callerFields(st: HoldState): Record<string, unknown> {
+  const caller = st.caller === undefined ? 'unknown' : st.caller ? 'phone' : 'web';
+  return st.phone ? { caller, phoneRule: true } : { caller };
+}
+
+/** The wait this poll gives: a phone hold reads speech by its words. */
+function waitNow(st: HoldState, cfg: PauseHoldConfig, held: HeldReply, now: number): number {
+  const turn = st.armed;
+  if (!st.phone || !turn) return pauseHoldWaitMs(held, st.callerSpeaking, now, cfg);
+  const speaking = phoneCallerSpeaking(st.callerSpeaking, st.speakingSince, turn.newWordsAt, now);
+  const wait = pauseHoldWaitMs(held, speaking, now, cfg);
+  // A caller who is going on, or said something new, gets the full hold
+  if (speaking || turn.newWordsAt !== undefined) return wait;
+  const capLeft = Math.max(held.heldSince, turn.at) + PHONE_HOLD.maxMs - now;
+  return Math.max(0, Math.min(wait, capLeft));
 }
 
 /** Hold one reply's first audio as the session's state says. */
@@ -217,11 +255,7 @@ async function holdFirstAudio(
   const turn = st.armed;
   if (!turn) return;
   const held: HeldReply = { stoppedAt: turn.stoppedAt, heldSince: start };
-  const waitMs = (): number => {
-    const now = Date.now();
-    const [speaking, c] = holdView(st, cfg, now);
-    return pauseHoldWaitMs(held, speaking, now, c);
-  };
+  const waitMs = (): number => waitNow(st, cfg, held, Date.now());
   let ms = waitMs();
   while (ms > 0) {
     // eslint-disable-next-line no-await-in-loop -- polling the live session state
@@ -231,7 +265,8 @@ async function holdFirstAudio(
   }
   const heldMs = Date.now() - start;
   const quietMs = Date.now() - turn.stoppedAt;
-  log.info({ sessionId, heldMs, quietMs, ...(st.phone && { phone: true }) }, 'PAUSE_HOLD_RELEASED');
+  st.releasedAt = Date.now();
+  log.info({ sessionId, heldMs, quietMs, ...callerFields(st) }, 'PAUSE_HOLD_RELEASED');
   for (const listener of releaseListeners) {
     try {
       listener(sessionId, heldMs);
@@ -248,9 +283,9 @@ function onCommit(st: HoldState, cfg: PauseHoldConfig, sessionId: string): void 
   const stop = st.stoppedAt;
   st.stoppedAt = undefined;
   const hold = stop !== undefined && hesitantCommit(st.words, leadMs, cfg);
-  st.armed = hold ? { stoppedAt: stop, at: Date.now() } : null;
+  st.armed = hold ? { stoppedAt: stop, at: Date.now(), words: st.words } : null;
   const stopToCommitMs = stop === undefined ? null : Date.now() - stop;
-  log.info({ sessionId, leadMs, hold, stopToCommitMs }, 'PAUSE_HOLD');
+  log.info({ sessionId, leadMs, hold, stopToCommitMs, ...callerFields(st) }, 'PAUSE_HOLD');
 }
 
 /** Install the hold on a live session. Returns a detach, or null when off. */
@@ -271,6 +306,8 @@ export function attachPauseHold(
     speakingSince: undefined,
     agentSpeaking: false,
     armed: null,
+    releasedAt: undefined,
+    caller: phone,
     phone: phoneHoldOn(phone, env),
   };
   const onTranscript = (ev: unknown): void => {
@@ -278,6 +315,9 @@ export function attachPauseHold(
     if (!text || text === st.words) return;
     st.words = text;
     st.wordsAt = Date.now();
+    if (st.armed && st.armed.newWordsAt === undefined && hasNewWords(text, st.armed.words)) {
+      st.armed.newWordsAt = st.wordsAt;
+    }
     // Words over Ferni (a backchannel) don't open a turn a reply should wait for.
     if (!st.agentSpeaking) st.turnOpen = true;
   };
@@ -300,6 +340,12 @@ export function attachPauseHold(
   const onAgentState = (ev: unknown): void => {
     const state = (ev as { newState?: string } | undefined)?.newState;
     st.agentSpeaking = state === 'speaking';
+    if (state === 'speaking' && st.releasedAt !== undefined) {
+      // What the caller hears: the SDK may still hold the audio (its pause on caller speech)
+      const audibleMs = Date.now() - st.releasedAt;
+      log.info({ sessionId, audibleMs, ...callerFields(st) }, 'PAUSE_HOLD_AUDIBLE');
+      st.releasedAt = undefined;
+    }
     if (state === 'speaking') st.armed = null;
     else if (state === 'thinking' && st.turnOpen) onCommit(st, cfg, sessionId);
   };
