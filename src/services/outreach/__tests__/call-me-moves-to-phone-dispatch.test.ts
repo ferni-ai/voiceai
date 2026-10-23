@@ -132,6 +132,26 @@ describe('a "call me" that moves to the phone', () => {
     expect(verifyOnBehalfDispatch(raw.replace(CONVERSATION, 'conv_other'), SECRET)).toBe(false);
   });
 
+  it('two moves placed at once each keep their own reference and dial (no per-user slot)', async () => {
+    const asking = (conversationId: string) =>
+      callUserAdapter.call({
+        userId: 'seth-uid',
+        phoneNumber: PHONE,
+        message: 'Calling like you asked.',
+        personaId: 'ferni',
+        handover: { conversationId },
+      });
+    const [one, two] = await Promise.all([asking('conv_one'), asking('conv_two')]);
+    expect(one.dial).toBeDefined();
+    expect(two.dial).toBeDefined();
+    expect(one.dial).not.toBe(two.dial);
+    await vi.waitFor(() => expect(dispatches).toHaveLength(2));
+    const movedFrom = dispatches.map(
+      (d) => (JSON.parse(d.metadata) as { movedFrom?: string }).movedFrom
+    );
+    expect(movedFrom.sort()).toEqual(['conv_one', 'conv_two']);
+  });
+
   it('a dial nobody answers comes back as no_answer, not as a call that happened', async () => {
     phoneDoes = 480;
     const result = await ask({ conversationId: CONVERSATION });

@@ -81,10 +81,11 @@ function seedDroppedCall(lastTurnAgoMs = 25_000, ended = false, extraTurns = 0):
 
 let n = 0;
 const nextSession = () => `session-AJ_test-${++n}`;
-const { setProactiveSessionContext, clearProactiveSessionContext } =
+const { setProactiveSessionContext, clearProactiveSessionContext, getProactiveSessionContext } =
   await import('../../../intelligence/context-builders/external/proactive-session-context.js');
-const { movedFromOf, parseJobMetadata } =
+const { movedFromOf, parseJobMetadata, setupCallTypeContexts } =
   await import('../../voice-agent-entry/metadata-parser.js');
+const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
 
 const moments = () =>
   directedText.mock.calls.map((c) => (c[1] as unknown as { moment: string }).moment);
@@ -107,9 +108,11 @@ beforeEach(() => {
   store.conversations = [];
   store.turns.clear();
   process.env.RESUME_AFTER_DROP = 'on';
+  process.env.CALL_ME_MOVES_TO_PHONE = 'on';
 });
 afterEach(() => {
   delete process.env.RESUME_AFTER_DROP;
+  delete process.env.CALL_ME_MOVES_TO_PHONE;
   sessions.splice(0).forEach(clearProactiveSessionContext);
 });
 
@@ -149,6 +152,16 @@ describe('a phone call a "call me" moved from the app', () => {
     expect(line).not.toMatch(/dropped/i);
   });
 
+  it('flag off: a moved context reads nothing and restores nothing', async () => {
+    delete process.env.CALL_ME_MOVES_TO_PHONE;
+    const sessionId = movedPhoneCall({ userId: 'user-1', conversationId: 'conv_app' });
+    store.turns.set('conv_app', [{ role: 'user', content: 'hi', timestamp: ago(1_000) }]);
+    const { agent, committed } = fakeAgent();
+    await greetingOrResume(sessionId, { personaId: 'ferni', agent }, undefined);
+    expect(getConversationTurns).not.toHaveBeenCalled();
+    expect(committed).toEqual([]);
+  });
+
   it('a proactive call that was not moved is unchanged: nothing read, nothing restored', async () => {
     const sessionId = nextSession();
     sessions.push(sessionId);
@@ -161,15 +174,23 @@ describe('a phone call a "call me" moved from the app', () => {
 });
 
 describe('the dispatch reference (metadata-parser movedFromOf)', () => {
+  const raw = (o: object) => JSON.stringify(o);
   it('takes the signed user and a plain conversation id, nothing else', () => {
-    expect(movedFromOf({ userId: 'u1', movedFrom: 'conv_176_abc' })).toEqual({
+    expect(movedFromOf(raw({ userId: 'u1', movedFrom: 'conv_176_abc' }))).toEqual({
       userId: 'u1',
       conversationId: 'conv_176_abc',
     });
     for (const movedFrom of ['../u2/conversations/x', 'a/b', '', 'x'.repeat(200), 42]) {
-      expect(movedFromOf({ userId: 'u1', movedFrom })).toBeUndefined();
+      expect(movedFromOf(raw({ userId: 'u1', movedFrom }))).toBeUndefined();
     }
-    expect(movedFromOf({ movedFrom: 'conv_176_abc' })).toBeUndefined();
+    expect(movedFromOf(raw({ movedFrom: 'conv_176_abc' }))).toBeUndefined();
+    expect(movedFromOf('{not json')).toBeUndefined();
+    expect(movedFromOf(undefined)).toBeUndefined();
+  });
+
+  it('flag off: no reference is read at all', () => {
+    delete process.env.CALL_ME_MOVES_TO_PHONE;
+    expect(movedFromOf(raw({ userId: 'u1', movedFrom: 'conv_176_abc' }))).toBeUndefined();
   });
 });
 
@@ -204,5 +225,48 @@ describe('the startup log of a dispatch', () => {
     for (const secret of ['divorce', 'Denver', 'conv_1761234567890_abc123']) {
       expect(logged).not.toContain(secret);
     }
+  });
+});
+
+describe('the reference comes only from the signed job metadata', () => {
+  const SECRET = 'lk-test-secret';
+  const job = {
+    type: 'proactive_outreach',
+    callId: 'c1',
+    userId: 'user-1',
+    persona_id: 'ferni',
+    triggerType: 'promise',
+    triggerReason: 'They asked you to call them.',
+  };
+  let prior: string | undefined;
+  beforeEach(() => {
+    prior = process.env.LIVEKIT_API_SECRET;
+    process.env.LIVEKIT_API_SECRET = SECRET;
+  });
+  afterEach(() => {
+    if (prior === undefined) delete process.env.LIVEKIT_API_SECRET;
+    else process.env.LIVEKIT_API_SECRET = prior;
+  });
+
+  it('signed movedFrom: the phone call is pointed at that conversation', async () => {
+    const sessionId = nextSession();
+    sessions.push(sessionId);
+    const raw = JSON.stringify(signDispatch({ ...job, movedFrom: 'conv_app' }, SECRET));
+    await setupCallTypeContexts(JSON.parse(raw), 'proactive_outreach', sessionId, undefined, raw);
+    expect(getProactiveSessionContext(sessionId)?.movedFrom).toEqual({
+      userId: 'user-1',
+      conversationId: 'conv_app',
+    });
+  });
+
+  it('room metadata carrying userId and movedFrom is ignored: it is not signed', async () => {
+    const sessionId = nextSession();
+    sessions.push(sessionId);
+    const raw = JSON.stringify(signDispatch(job, SECRET)); // signed, no movedFrom
+    // parseJobMetadata merges room metadata over the job's: what setupCallTypeContexts gets
+    const merged = { ...JSON.parse(raw), userId: 'someone-else', movedFrom: 'conv_theirs' };
+    await setupCallTypeContexts(merged, 'proactive_outreach', sessionId, undefined, raw);
+    expect(getProactiveSessionContext(sessionId)).toBeDefined(); // the signed call itself is set up
+    expect(getProactiveSessionContext(sessionId)?.movedFrom).toBeUndefined();
   });
 });

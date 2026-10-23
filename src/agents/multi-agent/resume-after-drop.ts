@@ -178,6 +178,7 @@ export async function restoreMovedTurns(
   agent: HistoryAgent | undefined,
   now: number = Date.now()
 ): Promise<{ moved: boolean; turns: number }> {
+  if (!flagOn('CALL_ME_MOVES_TO_PHONE')) return { moved: false, turns: 0 };
   const { getProactiveSessionContext } =
     await import('../../intelligence/context-builders/external/proactive-session-context.js');
   const from = getProactiveSessionContext(sessionId)?.movedFrom;

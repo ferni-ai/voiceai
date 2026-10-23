@@ -18,7 +18,13 @@ import { definitions } from '../../../telephony/index.js';
 import type { ToolContext } from '../../../../registry/types.js';
 import { registerVoiceCallbackHandler } from '../../../simple-utilities/voice-callbacks.js';
 import type { VoiceCallback } from '../../../simple-utilities/voice-callbacks.js';
-import { RINGING_HAND_OVER, setPhoneMoveEnd, TRYING_PHONE } from '../call-me-moves-to-phone.js';
+import {
+  ALREADY_RINGING,
+  RINGING_HAND_OVER,
+  setPhoneMoveEnd,
+  TRYING_PHONE,
+} from '../call-me-moves-to-phone.js';
+import { CALLING_LATER, CALLING_VOICE_MESSAGE } from '../call-placed-reply.js';
 import {
   setCallUserPort,
   type CallUserRequest,
@@ -204,6 +210,43 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
     expect(requests[0].handover).toEqual({ conversationId: undefined });
     settle('answered');
     await vi.advanceTimersByTimeAsync(0);
+  });
+});
+
+describe('one "call me" in flight per call (CALL_ME_MOVES_TO_PHONE=on)', () => {
+  it('two at once in one call: one dial; the second is told it is already ringing, never "Calling you now."', async () => {
+    const { session } = appCall();
+    const { dial, settle } = pendingDial();
+    portReturning({ success: true, status: 'initiated', live: true, dial });
+
+    const replies = await Promise.all([ask(session), ask(session)]);
+    expect(requests).toHaveLength(1); // no second dial
+    expect(replies).toEqual([RINGING_HAND_OVER, ALREADY_RINGING]);
+
+    settle('no_answer'); // that dial ended: the line is free again
+    await vi.waitFor(() => expect(spoken).toHaveLength(1));
+    portReturning({ success: true, status: 'initiated', live: true, dial: pendingDial().dial });
+    expect(await replyAtOnce(ask(session))).toBe(RINGING_HAND_OVER);
+    expect(requests).toHaveLength(2);
+  });
+
+  it('keyed by the call, not the AgentSession: a persona swapped in mid-ring cannot place a second dial', async () => {
+    const { dial } = pendingDial();
+    portReturning({ success: true, status: 'initiated', live: true, dial });
+    const services = { sessionId: 'call-1', realtimeConversationId: CONVERSATION };
+    const first = ask(appSession(), { userId: USER, services });
+    const second = ask(appSession(), { userId: USER, services });
+    expect(await Promise.all([first, second])).toEqual([TRYING_PHONE, ALREADY_RINGING]);
+    expect(requests).toHaveLength(1);
+  });
+
+  it('no live dial (a recorded message, or held for calling hours): the honest line, and the line is free', async () => {
+    const { session } = appCall();
+    portReturning({ success: true, status: 'initiated' });
+    expect(await ask(session)).toBe(CALLING_VOICE_MESSAGE);
+    portReturning({ success: true, status: 'scheduled' });
+    expect(await ask(session)).toBe(CALLING_LATER);
+    expect(requests).toHaveLength(2);
   });
 });
 

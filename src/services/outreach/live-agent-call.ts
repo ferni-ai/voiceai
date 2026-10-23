@@ -13,6 +13,7 @@
  *
  * @module services/outreach/live-agent-call
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { flagOn } from '../../config/env-flag.js';
 import { runBackground } from '../../utils/background-task.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -93,24 +94,20 @@ export function liveCallReason(message: string, asked = true): string {
  * phone is answered (call-user-adapter.ts, call-me-moves-to-phone.ts).
  */
 export interface PhoneMove {
+  userId: string;
   conversationId?: string;
   dial?: Promise<CallOutcome>;
 }
 
-const moves = new Map<string, PhoneMove>();
+/**
+ * The move travels with its own request (async context), never in a per-user
+ * slot: two "call me"s placed at once each get their own reference and dial.
+ */
+const moves = new AsyncLocalStorage<PhoneMove>();
 
-/** Places the call with `move` waiting for this user's live dial; it never outlives `place`. */
-export async function movingToPhone<T>(
-  userId: string,
-  move: PhoneMove,
-  place: () => Promise<T>
-): Promise<T> {
-  moves.set(userId, move);
-  try {
-    return await place();
-  } finally {
-    if (moves.get(userId) === move) moves.delete(userId);
-  }
+/** Places the call with `move` waiting for the live dial `place` makes; it never outlives `place`. */
+export async function movingToPhone<T>(move: PhoneMove, place: () => Promise<T>): Promise<T> {
+  return moves.run(move, place);
 }
 
 /**
@@ -122,8 +119,9 @@ export function placeLiveAgentCall(
   record: RecordOutcome
 ): { success: true; callId: string; status: 'initiated'; live: true } {
   const asked = call.reason === USER_REQUESTED_CALL;
-  const move = asked ? moves.get(call.userId) : undefined;
-  if (move) moves.delete(call.userId);
+  const store = asked ? moves.getStore() : undefined;
+  // Its own user's request, and one dial per move
+  const move = store?.userId === call.userId && !store.dial ? store : undefined;
   const trigger = {
     kind: asked ? ('promise' as const) : ('follow_up' as const),
     reason: liveCallReason(call.message, asked),

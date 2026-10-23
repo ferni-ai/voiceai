@@ -14,6 +14,7 @@ import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { errorClass } from '../../utils/error-class.js';
 import { jobMetadataLine } from './startup-log.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -40,12 +41,21 @@ const INBOUND_ACCOUNT_FIELDS = [
 /**
  * The app call a signed "call me" dispatch moved from (CALL_ME_MOVES_TO_PHONE,
  * live-agent-call.ts): ids only, never its text. The turns are read from this
- * user's own memory store (resume-after-drop.ts restoreMovedTurns).
+ * user's own memory store (resume-after-drop.ts restoreMovedTurns). Read from
+ * the raw job metadata the signature covers, never the object parseJobMetadata
+ * merged room metadata into: room metadata is not signed.
  */
 export function movedFromOf(
-  metadata: Record<string, unknown>
+  rawJobMetadata: string | undefined
 ): { userId: string; conversationId: string } | undefined {
-  const { userId, movedFrom } = metadata;
+  if (!flagOn('CALL_ME_MOVES_TO_PHONE') || !rawJobMetadata) return undefined;
+  let signed: Record<string, unknown>;
+  try {
+    signed = JSON.parse(rawJobMetadata) as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+  const { userId, movedFrom } = signed;
   if (typeof userId !== 'string' || !userId || typeof movedFrom !== 'string') return undefined;
   return /^[\w-]{1,128}$/.test(movedFrom) ? { userId, conversationId: movedFrom } : undefined;
 }
@@ -316,7 +326,7 @@ export async function setupCallTypeContexts(
       const { setProactiveSessionContext } =
         await import('../../intelligence/context-builders/external/proactive-session-context.js');
 
-      const movedFrom = movedFromOf(metadata); // CALL_ME_MOVES_TO_PHONE
+      const movedFrom = movedFromOf(rawJobMetadata); // CALL_ME_MOVES_TO_PHONE
       const proactiveContext = {
         triggerType: ((metadata.triggerType as string) ||
           'silence') as import('../../intelligence/context-builders/external/proactive-session-context.js').ProactiveTriggerType,
