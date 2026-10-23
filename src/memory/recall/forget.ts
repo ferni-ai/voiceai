@@ -17,15 +17,15 @@
  * which removes all of this too. A topic that would cover a large share of
  * what Ferni knows is not applied; the caller is asked to narrow it.
  *
- * With FORGET_EVERY_READER=on it reaches beyond recall: every registered
- * context builder, the inline turn context and the greeting read the profile
- * and this call's userData through filtered views (prompt-view.ts), and the
- * system prompt, greeting history, single-agent awareness, handoff summary,
- * the relationship and recall tools, hybrid search, UnifiedStore.recall,
- * entity surfacing and recall notes check it (forget-every-reader.ts). Not
- * covered: session priming's Firestore reads of call summaries, the proactive
- * opener's lastSessionSummary, and stored transcripts read by anything but
- * episode quotes.
+ * With FORGET_EVERY_READER=on it reaches beyond recall: the inline turn
+ * context and the greeting read the profile and this call's userData through
+ * filtered views (prompt-view.ts), and the system prompt, greeting history,
+ * single-agent awareness, handoff summary, the relationship and recall tools,
+ * hybrid search, UnifiedStore.recall, entity surfacing, recall notes (taken
+ * out at once on a forget: onForget), the proactive call's opener and
+ * proactive check-ins check it (forget-every-reader.ts). Not covered:
+ * session priming's Firestore reads of call summaries, and stored transcripts
+ * read by anything but episode quotes; the flag's text lists the accepted gaps.
  *
  * @module memory/recall/forget
  */
