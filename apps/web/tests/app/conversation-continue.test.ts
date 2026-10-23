@@ -4,6 +4,8 @@
  * the hang-up, so a call never ends on crisis risk or while the caller is
  * still talking. Every message goes through the real handleDataMessage.
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/ui/message.ui.js', () => ({
@@ -17,6 +19,7 @@ import {
   holdEndDisconnect,
   MAX_END_HOLD_MS,
   scheduleEndDisconnect,
+  watchGoodbyeCeremony,
 } from '../../src/app/conversation-continue.js';
 import { CALL_WRAP_UP_STORAGE_KEY } from '../../src/config/call-wrap-up-flag.js';
 import { appState } from '../../src/state/app.state.js';
@@ -133,6 +136,29 @@ describe('conversation_continue after conversation_end', () => {
     expect(continues).not.toHaveBeenCalled(); // a hold never reopens the call
     vi.advanceTimersByTime(500);
     expect(disconnects).toHaveBeenCalledTimes(1);
+  });
+
+  it('a continue during the goodbye ceremony stops it before it disconnects', async () => {
+    const stopped = watchGoodbyeCeremony();
+    const pausing = stopped.pause(400);
+    vi.advanceTimersByTime(200);
+    deliver({ type: 'conversation_continue', reason: 'crisis_hold' });
+    vi.advanceTimersByTime(200);
+    expect(await pausing).toBe(true); // app.ts returns before performStandardDisconnect
+
+    const calm = watchGoodbyeCeremony(); // a later goodbye: no continue during it
+    const pausingCalm = calm.pause(400);
+    vi.advanceTimersByTime(400);
+    expect(await pausingCalm).toBe(false);
+  });
+
+  it('app.ts stops its ceremony on the pause (pinned to the source)', () => {
+    const app = readFileSync(join(__dirname, '..', '..', 'src', 'app.ts'), 'utf8');
+    const ceremony = app.slice(app.indexOf('private async performGoodbyeCeremony'));
+    const pause = ceremony.indexOf('if (await ceremony.pause(400)) return;');
+    expect(ceremony.indexOf('const ceremony = watchGoodbyeCeremony();')).toBeGreaterThan(0);
+    expect(pause).toBeGreaterThan(0);
+    expect(pause).toBeLessThan(ceremony.indexOf('await this.performStandardDisconnect(true)'));
   });
 
   it('a later goodbye on the same call still hangs up', () => {

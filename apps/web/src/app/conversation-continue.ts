@@ -18,13 +18,17 @@
  * reopens the call; it only gives the caller's words time to land.
  *
  * data-message-handlers.ts schedules its hang-up through scheduleEndDisconnect
- * so this module can cancel it.
+ * so this module can cancel it. With VITE_CALL_WRAP_UP on, that hang-up runs
+ * the goodbye ceremony first (app.ts performGoodbyeCeremony, ~1.9 s); a
+ * continue during it stops the ceremony before it disconnects
+ * (watchGoodbyeCeremony).
  *
  * @module app/conversation-continue
  */
 
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import { messageUI } from '../ui/message.ui.js';
+import { presenceUI } from '../ui/presence.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { noteConversationContinue } from './call-end-paths.js';
 
@@ -121,8 +125,32 @@ export function routeConversationContinue(message: unknown): boolean {
   return true;
 }
 
+/** conversation_continue messages so far, for a goodbye ceremony already under way. */
+let continues = 0;
+
+/**
+ * For app.ts's goodbye ceremony: `pause(ms)` waits, then says whether the
+ * agent took its goodbye back since the ceremony began. If so the ceremony
+ * stops before it disconnects, and the avatar comes back from settling.
+ */
+export function watchGoodbyeCeremony(): { pause: (ms: number) => Promise<boolean> } {
+  const since = continues;
+  return {
+    pause: async (ms) => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, ms);
+      });
+      if (continues === since) return false;
+      log.info('Goodbye ceremony stopped: the agent took its goodbye back');
+      presenceUI.resetFromSettling();
+      return true;
+    },
+  };
+}
+
 /** `conversation_continue` arrived: the call carries on. */
 export function handleConversationContinue(event: ConversationContinueEvent): void {
+  continues++;
   const cancelled = cancelEndDisconnect();
   log.info('Conversation continues after goodbye:', { reason: event.reason, cancelled });
   noteConversationContinue();
