@@ -99,13 +99,14 @@ final class AliveRenderTests: XCTestCase {
         XCTAssertGreaterThan(j, 40, "but the eyes are still there")
     }
 
-    /// A lid cap is solid white, in light and dark mode, for every persona
-    /// (Seth, 2026-10-23: "use white rather than transparent, similar to the
-    /// web app"). It was the page's colour (51f3fe702), which on the dark page
-    /// (#14110e) vanished and read as see-through; before that, a darker shade
-    /// of the face (40d4177f46). On the orb, not cut out of it: opaque where
-    /// the face was.
-    func testALidIsWhite() throws {
+    /// A lid cap is solid, one colour per theme, for every persona (Seth,
+    /// 2026-10-23: "use white rather than transparent, similar to the web
+    /// app"; then "in dark mode, pure white is a bit too much"): pure white in
+    /// light mode, warm ivory #E6DFD4 in dark mode, as the web (#2550). It was
+    /// the page's colour (51f3fe702), which on the dark page (#14110e)
+    /// vanished and read as see-through; before that, a darker shade of the
+    /// face (40d4177f46). On the orb, not cut out of it: opaque where the face was.
+    func testALidIsTheThemesCapColour() throws {
         for dark in [false, true] {
             for (name, body, light) in [("ferni", ferni, ferniLight), ("maya", maya, mayaLight)] {
                 let mode = dark ? "dark" : "light"
@@ -118,8 +119,15 @@ final class AliveRenderTests: XCTestCase {
                 for y in [y0 + 4, y0 + 8] {
                     let lid = a.px(x, y), face = b.px(x, y)
                     let got = [lid.r, lid.g, lid.b].map { $0 * 255 }
-                    XCTAssertLessThanOrEqual(got.map { 255 - $0 }.max() ?? 255, Self.whiteLevels,
-                                             "\(name) \(mode) row \(y): lid \(got) isn't white")
+                    if dark {
+                        let off = zip(got, Self.ivory).map { abs($0 - $1) }.max() ?? 255
+                        XCTAssertLessThanOrEqual(off, Self.ivoryLevels, "\(name) dark row \(y): lid \(got) isn't ivory \(Self.ivory)")
+                        let luma = 0.2126 * lid.r + 0.7152 * lid.g + 0.0722 * lid.b
+                        XCTAssertTrue(Self.darkBand.contains(luma), "\(name) dark row \(y): lid luminance \(luma) outside \(Self.darkBand)")
+                    } else {
+                        XCTAssertLessThanOrEqual(got.map { 255 - $0 }.max() ?? 255, Self.whiteLevels,
+                                                 "\(name) light row \(y): lid \(got) isn't white")
+                    }
                     let fromFace = abs(lid.r - face.r) + abs(lid.g - face.g) + abs(lid.b - face.b)
                     XCTAssertGreaterThan(fromFace, 0.15, "\(name) \(mode): the lid isn't the face's colour")
                     XCTAssertEqual(lid.a, 1, accuracy: 0.01, "\(name) \(mode): on the orb, not cut out of it")
@@ -128,29 +136,50 @@ final class AliveRenderTests: XCTestCase {
         }
     }
 
-    /// Levels (of 255) a lid may sit from pure white: the dither and rounding.
+    /// Levels (of 255) a light-mode lid may sit from pure white: the dither and rounding.
     static let whiteLevels = 3.0
+    /// The dark-mode cap, #E6DFD4 (the web's, #2550), and how many levels a lid may sit from it.
+    static let ivory = [230.0, 223, 212]
+    static let ivoryLevels = 4.0
+    /// The dark cap's luminance: soft against the dark page, but still a cap (not white, not the room).
+    static let darkBand: OpenRange = OpenRange(0.6, 0.95)
 
-    /// The caps are white in both themes; the evening tint warms them as it
-    /// does the page, and at every hour they still read as white (luminance
-    /// 0.92 or more).
-    func testTheCapsStayWhiteAllDay() {
+    /// The caps are a constant per theme; the evening tint warms them as it
+    /// does the page. At every hour the light caps still read as white
+    /// (luminance 0.92 or more) and the dark caps stay in their band.
+    func testTheCapsKeepTheirColourAllDay() {
         for dark in [false, true] {
             var u = AliveUniforms()
             u.light(dark: dark, roomTop: .zero, roomBottom: .zero)
-            XCTAssertEqual(SIMD3(u.cap.x, u.cap.y, u.cap.z), SIMD3<Float>(1, 1, 1), "white before any tint")
+            let base = SIMD3(u.cap.x, u.cap.y, u.cap.z)
+            let want0 = dark ? SIMD3<Float>(230, 223, 212) / 255 : SIMD3<Float>(1, 1, 1)
+            for (got, w) in zip([base.x, base.y, base.z], [want0.x, want0.y, want0.z]) {
+                XCTAssertEqual(got, w, accuracy: 0.5 / 255, "\(dark ? "dark" : "light") before any tint: \(base)")
+            }
             for hour in 0..<24 {
                 var t = u
                 let light = RoomLight(hour: hour)
                 t.roomLight(light)
-                let luma = 0.2126 * t.cap.x + 0.7152 * t.cap.y + 0.0722 * t.cap.z
-                XCTAssertGreaterThanOrEqual(luma, 0.92, "\(dark ? "dark" : "light") \(hour):00: \(t.cap)")
+                let luma = Double(0.2126 * t.cap.x + 0.7152 * t.cap.y + 0.0722 * t.cap.z)
+                if dark {
+                    XCTAssertTrue(Self.darkBand.contains(luma), "dark \(hour):00: luminance \(luma) outside \(Self.darkBand)")
+                } else {
+                    XCTAssertGreaterThanOrEqual(luma, 0.92, "light \(hour):00: \(t.cap)")
+                }
                 let op = Float(light.tintOpacity(dark: dark))
                 let tint = SIMD3<Float>(Float(light.tintRGB.x), Float(light.tintRGB.y), Float(light.tintRGB.z))
-                let want = SIMD3<Float>(1, 1, 1) * (1 - op) + tint * op
+                let want = base * (1 - op) + tint * op
                 for (got, w) in zip([t.cap.x, t.cap.y, t.cap.z], [want.x, want.y, want.z]) { XCTAssertEqual(got, w, accuracy: 1e-5) }
             }
         }
+    }
+
+    /// An open interval: lo < x < hi.
+    struct OpenRange: CustomStringConvertible {
+        let lo: Double, hi: Double
+        init(_ lo: Double, _ hi: Double) { self.lo = lo; self.hi = hi }
+        func contains(_ x: Double) -> Bool { x > lo && x < hi }
+        var description: String { "(\(lo), \(hi))" }
     }
 
     func testAWinkClosesOnlyOneEye() throws {

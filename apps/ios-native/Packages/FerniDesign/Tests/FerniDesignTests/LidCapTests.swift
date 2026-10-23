@@ -40,11 +40,12 @@ final class LidCapTests: XCTestCase {
     static func opaque(_ r: Render, _ x: Int, _ y: Int) -> Bool { r.bytes[(y * r.w + x) * 4 + 3] == 255 }
 
     /// How many levels (of 255, the largest channel) an opaque pixel sits from
-    /// pure white (the lid caps' colour, Seth 2026-10-23).
-    static func levelsFromWhite(_ r: Render, _ x: Int, _ y: Int) -> Double {
-        let page = [255.0, 255, 255]
+    /// its theme's cap colour (Seth 2026-10-23; the web, #2550): pure white in
+    /// light mode, warm ivory #E6DFD4 in dark. The bytes are BGRA.
+    static func levelsFromCap(_ r: Render, _ x: Int, _ y: Int) -> Double {
+        let cap = r.u.res.w > 0.5 ? [212.0, 223, 230] : [255.0, 255, 255]
         let i = (y * r.w + x) * 4
-        return (0..<3).map { abs(Double(r.bytes[i + $0]) - page[$0]) }.max() ?? 0
+        return (0..<3).map { abs(Double(r.bytes[i + $0]) - cap[$0]) }.max() ?? 0
     }
 
     /// Is pixel (x, y) within an eye's ellipse, grown by `grow`? The eyes sit at
@@ -210,17 +211,18 @@ final class LidCapTests: XCTestCase {
                 let scale = Double(r.u.bg0.w), px = Double(r.u.fill.w) * scale * Double(r.u.body.w) * 5 / (25 - scale * scale).squareRoot()
                 let box = AliveShader.lidBox, web = (1 - (box - box * face.capTop)) * px
                 XCTAssertEqual(Double(lidEnd - first), web, accuracy: 4, "\(id) \(mode): the lid comes \(lidEnd - first) px down; the web's \(Int(web))")
-                // The lid is white; the face beside its edge is not.
-                let off = Self.levelsFromWhite(r, x, max(first, lidEnd - 5))
-                XCTAssertLessThanOrEqual(off, 3, "\(id) \(mode): the lid is \(off) levels from white")
+                // The lid is the theme's cap colour; the face beside its edge is not.
+                let capLevels = dark ? 4.0 : 3.0
+                let off = Self.levelsFromCap(r, x, max(first, lidEnd - 5))
+                XCTAssertLessThanOrEqual(off, capLevels, "\(id) \(mode): the lid is \(off) levels from the cap colour")
                 let lid = Self.luma(r, x, lidEnd - 5), body = Self.luma(r, x, lidEnd + 5)
                 XCTAssertGreaterThan(abs(body - lid), Self.lidStep, "\(id) \(mode): lid \(lid) against body \(body) at its edge")
                 if bottom {
                     let lidStart = try XCTUnwrap((first...last).reversed().first { !lidded($0) }, id)
                     let webBottom = (1 - (box - box * face.capBottom)) * px
                     XCTAssertEqual(Double(last - lidStart), webBottom, accuracy: 4, "\(id) \(mode): the bottom lid comes \(last - lidStart) px up")
-                    let offBottom = Self.levelsFromWhite(r, x, min(last, lidStart + 5))
-                    XCTAssertLessThanOrEqual(offBottom, 3, "\(id) \(mode): the bottom lid is \(offBottom) levels from white")
+                    let offBottom = Self.levelsFromCap(r, x, min(last, lidStart + 5))
+                    XCTAssertLessThanOrEqual(offBottom, capLevels, "\(id) \(mode): the bottom lid is \(offBottom) levels from the cap colour")
                 }
             }
         }

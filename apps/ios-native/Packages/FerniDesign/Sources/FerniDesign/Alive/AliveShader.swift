@@ -26,7 +26,7 @@ public struct AliveUniforms: Equatable, Sendable {
     public var poke = SIMD4<Float>(0, 0.3, 0.95, 0)    // where Ferni was touched (dir), amount
     public var tear = SIMD4<Float>(0, 0, 0, 0)         // tear progress left/right, alpha left/right
     public var caps = SIMD4<Float>(0, 0, 0, 0)         // lid cap top, lid cap bottom (web control point / 100), the pitch the face rests at, eye spacing (0: 0.36)
-    public var cap = SIMD4<Float>(1, 1, 1, 0)          // the lid caps' colour ON SCREEN (sRGB, not linear): white, warmed by the evening tint, -
+    public var cap = SIMD4<Float>(1, 1, 1, 0)          // the lid caps' colour ON SCREEN (sRGB, not linear): white (light) or ivory #E6DFD4 (dark), warmed by the evening tint, -
 
     public init() {}
 
@@ -345,11 +345,11 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
       }
       col = mix(col, float3(dot(col, float3(0.2126, 0.7152, 0.0722))), 0.08);
       col = gamma(aces(col));
-      // The lid caps, worked out above: solid white in light and dark mode alike, never the
-      // room's or the page's colour (Seth, 2026-10-23: "use white rather than transparent";
-      // a page-colour cap vanished on the dark page and read as see-through). Given on screen
-      // (sRGB, white warmed only by the evening tint) and mixed past the tone curve, so it is
-      // white exactly. It replaces the face's colour inside the silhouette only: alpha is
+      // The lid caps, worked out above: solid, one constant per theme, never the room's or
+      // the page's colour (Seth, 2026-10-23: "use white rather than transparent"; a page-colour
+      // cap vanished on the dark page and read as see-through). White in light mode, warm ivory
+      // #E6DFD4 in dark mode (as the web, #2550). Given on screen (sRGB, warmed only by the
+      // evening tint) and mixed past the tone curve, so it lands exactly. It replaces the face's colour inside the silhouette only: alpha is
       // untouched, the outline stays round, and the edge blends over two pixels each side
       // (fwT, fwB).
       if (mat < 3.5) col = mix(col, u.cap.xyz, capped);
