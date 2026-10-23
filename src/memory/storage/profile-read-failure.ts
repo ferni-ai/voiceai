@@ -19,7 +19,9 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import type { UserProfile } from '../../types/user-profile.js';
+import { isValidUserProfile } from '../type-guards.js';
 
 const UNSAVED = Symbol.for('ferni.profileReadFailed');
 
@@ -31,24 +33,44 @@ export class UnsavedProfileError extends Error {
   }
 }
 
-/** A stored doc exists but isn't a valid profile; `stored` is what was read. */
+/**
+ * A stored doc exists but isn't a valid profile. The error names the bad fields and never
+ * carries the doc: loggers and Sentry serialise errors, and a profile holds private data.
+ */
 export class InvalidStoredProfileError extends Error {
   override readonly name = 'InvalidStoredProfileError';
   constructor(
     readonly userId: string,
-    readonly stored: Record<string, unknown>
+    readonly invalidFields: string[]
   ) {
-    super(`stored profile for ${userId} is not a valid profile`);
+    super(`stored profile for ${userId} is not a valid profile (${invalidFields.join(', ')})`);
   }
 }
 
-/** Log what is wrong with a stored profile doc and build the error to throw. */
+/** What was read, for repairedProfile only; held off the error so it can't be serialised. */
+const storedDocs = new WeakMap<InvalidStoredProfileError, Record<string, unknown>>();
+const CHECKED_FIELDS = [
+  'name',
+  'email',
+  'phone',
+  'firstContact',
+  'lastContact',
+  'createdAt',
+  'updatedAt',
+];
+
+/** Log which fields are wrong (names, never values) and build the error to throw. */
 export function invalidStoredProfile(userId: string, stored: unknown): InvalidStoredProfileError {
   const data = (stored && typeof stored === 'object' ? stored : {}) as Record<string, unknown>;
-  const { id, name, createdAt } = data;
-  const sample = { userId, hasId: !!id, hasName: !!name, hasCreatedAt: !!createdAt };
-  getLogger().error({ ...sample, dataKeys: Object.keys(data) }, 'Invalid user profile data');
-  return new InvalidStoredProfileError(userId, data);
+  const invalidFields = [
+    ...(typeof data.id === 'string' ? [] : ['id']),
+    ...CHECKED_FIELDS.filter((f) => f in data && !isValidUserProfile({ id: userId, [f]: data[f] })),
+  ];
+  const fields = { userId, invalidFields, dataKeys: Object.keys(data) };
+  getLogger().error(fields, 'Invalid user profile data');
+  const error = new InvalidStoredProfileError(userId, invalidFields);
+  storedDocs.set(error, data);
+  return error;
 }
 
 export function isUnsavedProfile(profile: unknown): boolean {
@@ -74,8 +96,12 @@ export async function unsavedStandIn(
   return Object.assign(createUserProfile(userId, name), { [UNSAVED]: true });
 }
 
-/** A stored doc missing required fields: defaults underneath, everything stored kept on top. */
+/**
+ * A stored doc missing required fields: defaults underneath, everything stored kept on top.
+ * Token fields are left out (saveProfile never writes them, so the stored ones stay).
+ */
 export async function repairedProfile(error: InvalidStoredProfileError): Promise<UserProfile> {
+  const stored = withoutProfileTokenFields(storedDocs.get(error) ?? {});
   const { createUserProfile } = await import('../../types/user-profile.js');
-  return { ...createUserProfile(error.userId), ...error.stored, id: error.userId } as UserProfile;
+  return { ...createUserProfile(error.userId), ...stored, id: error.userId } as UserProfile;
 }
