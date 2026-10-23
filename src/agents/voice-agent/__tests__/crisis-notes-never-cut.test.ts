@@ -1,6 +1,6 @@
 /**
  * #2618: the pushed turn-context note is cut to MAX_PUSHED_CONTEXT_CHARS, and
- * that cut must never reach crisis guidance. Drives the real handleUserTurn
+ * that cut must never reach crisis or safety guidance (safety-note.ts). Drives the real handleUserTurn
  * through the real createTurnContextPusher; only processTurn, memory retrieval
  * and unified intelligence are stubbed (as in the #2568 verify harness).
  */
@@ -60,7 +60,8 @@ const { handleUserTurn } = await import('../turn-handler.js');
 const { createTurnContextPusher } = await import('../../multi-agent/turn-intelligence.js');
 const { MAX_PUSHED_CONTEXT_CHARS, TURN_CONTEXT_HEADER } =
   await import('../../multi-agent/turn-context-header.js');
-const { pushedNotesText, safetyNoteId } = await import('../../multi-agent/safety-notes.js');
+const { pushedNotesText } = await import('../../multi-agent/pushed-notes.js');
+const { addSafetyNote } = await import('../../processors/turn-processor/safety-note.js');
 
 /** Runs one turn; returns the scratch notes the hook built and the note pushed to the agent. */
 async function run(s: Scenario, userText = "I don't see the point of any of it anymore") {
@@ -165,13 +166,15 @@ describe('crisis guidance survives the pushed-context cut (#2618)', () => {
     expect(body).toContain(SAFETY.content);
     expect(body.startsWith(guidance)).toBe(true);
     expect(body.indexOf(SAFETY.content)).toBeLessThan(body.indexOf(CORRELATIONS_HEADER));
+    // Only the safety guidance moves ahead: the other injections stay behind the correlations.
+    expect(body.slice(0, body.indexOf(CORRELATIONS_HEADER))).not.toContain('[IDENTITY]');
     // The remainder still gets what budget is left, so the note stays bounded.
     expect(body).toContain(CORRELATIONS_HEADER);
     expect(body.length).toBeLessThanOrEqual(MAX_PUSHED_CONTEXT_CHARS);
   });
 
   it('a soft-check turn keeps safety_soft_check whole and first', async () => {
-    const softGuidance = `${SOFT_CRISIS_CHECK}\n4. ${'Stay gentle. '.repeat(40)}`;
+    const softGuidance = `${SOFT_CRISIS_CHECK}\n4. ${'Stay gentle. '.repeat(40).trim()}`;
     const s: Scenario = {
       name: 'soft',
       intensity: 0.1,
@@ -204,19 +207,74 @@ describe('crisis guidance survives the pushed-context cut (#2618)', () => {
   it.each([
     ['over budget', [CONTEXT], [MEMORIES]],
     ['under budget', [CONTEXT], ['[MEMORY] They are moving to Denver.']],
-    ['protected categories, no crisis', [SAFETY, IDENTITY], [MEMORIES]],
-  ])('a non-crisis turn is cut exactly as before (%s)', async (name, kept, memories) => {
-    const s: Scenario = { name, kept, memories, intensity: 0.3, correlations: CORRELATIONS };
-    const { scratchNotes, body } = await run(s, 'what should i do about the move?');
-    expect(body).toBe(scratchNotes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS));
+    ['essential categories, no safety guidance', [IDENTITY, CONTEXT], [MEMORIES]],
+  ])(
+    'a turn with no safety guidance is cut exactly as before (%s)',
+    async (name, kept, memories) => {
+      const s: Scenario = { name, kept, memories, intensity: 0.3, correlations: CORRELATIONS };
+      const { scratchNotes, body } = await run(s, 'what should i do about the move?');
+      expect(body).toBe(scratchNotes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS));
+    }
+  );
+
+  it('a non-crisis turn carrying safety guidance keeps it whole and first', async () => {
+    const s: Scenario = {
+      name: 'escalation',
+      kept: [CONTEXT, SAFETY],
+      memories: [MEMORIES],
+      intensity: 0.3,
+      correlations: CORRELATIONS,
+    };
+    const { body } = await run(s, 'what should i do about the move?');
+    expect(body.startsWith(SAFETY.content)).toBe(true);
+    expect(body.length).toBeLessThanOrEqual(MAX_PUSHED_CONTEXT_CHARS);
+  });
+
+  it('safety guidance still waiting is carried whole ahead of a later note (PREEMPT_STABLE_CONTEXT)', async () => {
+    vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'on');
+    const guidance = buildCrisisGuidance(LONG_CRISIS as never);
+    const warning = pad('[EARLY WARNING ACTIVE]', 600);
+    let call = 0;
+    const hook = async (scratch: llm.ChatContext) => {
+      if (++call === 1) {
+        // As in a real turn: the correlations note lands before the safety guidance.
+        scratch.addMessage({ role: 'system', content: pad(CORRELATIONS_HEADER, 1065) });
+        addSafetyNote(scratch, guidance);
+        addSafetyNote(scratch, SAFETY.content);
+        addSafetyNote(scratch, warning);
+      } else {
+        scratch.addMessage({ role: 'system', content: MEMORIES });
+      }
+    };
+    let pushed = '';
+    const agentCtx = llm.ChatContext.empty();
+    const agent = {
+      get chatCtx() {
+        return agentCtx;
+      },
+      updateChatCtx: async (c: { items: Array<{ textContent?: string }> }) => {
+        pushed =
+          c.items.map((i) => i.textContent ?? '').find((t) => t.startsWith(TURN_CONTEXT_HEADER)) ??
+          '';
+      },
+    };
+    const pusher = createTurnContextPusher(hook as never, agent as never);
+    await pusher.onAgentState('thinking'); // not listening: turn 1's note waits
+    await pusher.onFinalTranscript('I cannot do this anymore');
+    await pusher.onFinalTranscript('anyway how was your day');
+    await pusher.onAgentState('listening');
+    vi.unstubAllEnvs();
+    const body = pushed.slice(TURN_CONTEXT_HEADER.length + 1);
+    // The three safety notes alone are over the cap: all kept whole, the later note dropped.
+    expect(body).toBe([guidance, SAFETY.content, warning].join('\n\n'));
   });
 
   it('safety notes over the cap are all kept whole and the rest is dropped', () => {
     const big = 'g'.repeat(MAX_PUSHED_CONTEXT_CHARS + 100);
     const notes = [
-      { id: 'ctx', text: 'correlations' },
-      { id: safetyNoteId(), text: big },
-      { id: safetyNoteId(), text: 'safety' },
+      { text: 'correlations' },
+      { safety: true, text: big },
+      { safety: true, text: 'safety' },
     ];
     expect(pushedNotesText(notes)).toBe(`${big}\n\nsafety`);
   });

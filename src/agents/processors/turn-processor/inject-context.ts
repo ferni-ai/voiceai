@@ -7,10 +7,9 @@
 
 import type { llm } from '@livekit/agents';
 import { withRevivedIntelligence } from '../../../intelligence/revived/revived-intelligence.js';
-import { DEDUP_PROTECTED_CATEGORIES } from '../../../intelligence/utils/injection-filter.js';
-import { safetyNoteId } from '../../multi-agent/safety-notes.js';
 import { MAX_PUSHED_CONTEXT_CHARS } from '../../multi-agent/turn-context-header.js';
 import type { TurnProcessorResult } from '../types.js';
+import { isSafetyCategory, safetyExtra } from './safety-note.js';
 
 /**
  * Inject turn processing results into the LLM context
@@ -52,16 +51,15 @@ export function injectTurnContext(
     process.stderr.write(`${'='.repeat(80)}\n\n`);
   }
 
-  // On a crisis or soft-check turn the protected guidance is its own note, ahead
-  // of the rest, so the pushed-note cut keeps it whole (#2618, safety-notes.ts).
-  const safetyTurn = Boolean(result.crisis?.isCrisis || result.crisis?.softCheck);
-  const isSafety = (inj: { category: string }): boolean =>
-    safetyTurn && DEDUP_PROTECTED_CATEGORIES.has(inj.category);
+  // Crisis or safety guidance is its own marked note, ahead of the rest: never
+  // held for a later reply, and never cut from the pushed note (#2618, pushed-notes.ts).
   const join = (list: typeof injections): string => list.map((inj) => inj.content).join('\n\n');
-  const safety = injections.filter(isSafety);
-  const rest = injections.filter((inj) => !isSafety(inj));
-  if (safety.length > 0)
-    turnCtx.addMessage({ role: 'user', content: join(safety), id: safetyNoteId() });
+  const safety = injections.filter((inj) => isSafetyCategory(inj.category));
+  const rest = injections.filter((inj) => !isSafetyCategory(inj.category));
+  const categories = safety.map((inj) => inj.category);
+  if (safety.length > 0) {
+    turnCtx.addMessage({ role: 'user', content: join(safety), extra: safetyExtra(categories) });
+  }
   if (rest.length > 0) turnCtx.addMessage({ role: 'user', content: join(rest) });
 }
 

@@ -168,7 +168,6 @@ import {
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { buildProactiveOutreachPayload } from './proactive-outreach-message.js';
 import * as followUpGate from './commitment-follow-up-gate.js';
-import { crisisOverrideNote } from '../multi-agent/safety-notes.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
 import {
@@ -571,7 +570,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
   try {
     // Import the turn processor (cached after first load)
-    const { processTurn, injectTurnContext, getCelebrationEvents } =
+    const { processTurn, injectTurnContext, getCelebrationEvents, addSafetyNote } =
       await import('../processors/index.js');
 
     // Build turn context - cast userData to UserData for processor compatibility
@@ -1349,7 +1348,15 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
         indicators: result.crisis.indicators,
       });
 
-      turnCtx.addMessage(crisisOverrideNote(result.crisis.suggestedResponse)); // kept whole (#2618)
+      addSafetyNote(
+        turnCtx,
+        `[CRITICAL SAFETY OVERRIDE]
+The user appears to be in crisis. You MUST respond with the following crisis response.
+Do NOT deviate from this response. User safety is the absolute priority.
+
+REQUIRED RESPONSE:
+${result.crisis.suggestedResponse}`
+      );
 
       try {
         await sendDataMessage('crisis_detected', {
