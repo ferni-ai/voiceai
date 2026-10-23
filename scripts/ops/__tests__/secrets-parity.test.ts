@@ -16,8 +16,9 @@ import {
   exitCode,
   newSealer,
   parseAllowlist,
-  parseSecretNames,
+  parseSecrets,
   render,
+  snapshotOf,
   type Snapshot,
 } from '../secrets-parity-lib.js';
 
@@ -40,9 +41,9 @@ function boot(commit: string, flags: Record<string, string>, env: Record<string,
   const head = { parts: 2, commit, hash: `h-${commit}` };
   return [
     '{"level":30,"msg":"token_at_rest_kid=whatever"}',
-    `EFFECTIVE_SETTINGS ${JSON.stringify({ part: 1, ...head, flags, env: {} })}`,
+    `[2026-10-23T09:00:00.000Z] [worker] EFFECTIVE_SETTINGS ${JSON.stringify({ part: 1, ...head, flags, env: {} })}`,
     '[voice-agent-entry] Using Cartesia Cascade',
-    `EFFECTIVE_SETTINGS ${JSON.stringify({ part: 2, ...head, flags: {}, env })}`,
+    `[2026-10-23T09:00:00.001Z] [worker] EFFECTIVE_SETTINGS ${JSON.stringify({ part: 2, ...head, flags: {}, env })}`,
   ].join('\n');
 }
 
@@ -98,19 +99,23 @@ const FIXTURES = {
   ),
 };
 
+/** Secrets were last changed before the fixture boots (09:00:00). */
+const UPDATED = '2026-10-23T08:59:00.000Z';
+
 const ALLOW = JSON.stringify({ keys: { '*_API_KEY': 'per project' } });
 
 function snap(label: string, seal = newSealer()): Snapshot {
-  const names = parseSecretNames(
+  const secrets = parseSecrets(
     JSON.stringify({
       secrets: FIXTURES[`${label}.secrets.json` as 'dev.secrets.json'].secrets.map((name) => ({
         name,
+        updatedAt: UPDATED,
       })),
     })
   );
   const c = new BootCollector(isFlag, seal);
   for (const line of FIXTURES[`${label}.logs.txt` as 'dev.logs.txt'].split('\n')) c.add(line);
-  return { label, names: new Set(names), ...c.result() };
+  return snapshotOf(label, secrets, c.result());
 }
 
 function pair() {
@@ -150,6 +155,7 @@ describe('compare', () => {
       name: 'CASCADE_TURN_DETECTION',
       status: 'differs',
       allowlisted: false,
+      guarded: true,
     });
   });
 
@@ -159,7 +165,12 @@ describe('compare', () => {
 
   it('lists a key set on both but read by neither build as unread, which does not fail', () => {
     const same = compare(dev, dev, allow, isFlag);
-    expect(same).toContainEqual({ name: 'DEV_ONLY_THING', status: 'unread', allowlisted: false });
+    expect(same).toContainEqual({
+      name: 'DEV_ONLY_THING',
+      status: 'unread',
+      allowlisted: false,
+      guarded: false,
+    });
   });
 
   it('exits 1 on drift and 0 once both sides agree', () => {
@@ -170,14 +181,14 @@ describe('compare', () => {
   it('exits 2 when a non-allowlisted value is hidden, or a boot log is missing', () => {
     const none = parseAllowlist('{"keys":{}}', [], isFlag);
     expect(exitCode(compare(dev, dev, none, isFlag), dev, dev)).toBe(2);
-    const blind = { ...dev, commit: null, values: new Map() };
+    const blind = { ...dev, commit: null, values: new Map(), problems: ['no boot'] };
     expect(exitCode([], dev, blind)).toBe(2);
   });
 
   it('gives different digests for the same value in two runs', () => {
     const a = snap('dev').values.get('FERNI_VOICE_ID');
     const b = snap('dev').values.get('FERNI_VOICE_ID');
-    expect(a?.token).toMatch(/^[0-9a-f]{64}$/);
+    expect(typeof a === 'object' && a.token).toMatch(/^[0-9a-f]{64}$/);
     expect(a).not.toEqual(b);
   });
 });
@@ -214,7 +225,7 @@ describe('no value reaches the output', () => {
       join(dir, file),
       typeof body === 'string'
         ? body
-        : JSON.stringify({ secrets: body.secrets.map((name) => ({ name })) })
+        : JSON.stringify({ secrets: body.secrets.map((name) => ({ name, updatedAt: UPDATED })) })
     );
   }
   writeFileSync(join(dir, 'allow.json'), ALLOW);

@@ -8,6 +8,10 @@
  * key made fresh for each run, so digests can't be reversed or compared across runs. The
  * report prints names, counts and flag words only, never a digest.
  *
+ * The check fails closed: a key on one side only, a value set on one side and unset on the
+ * other, or a voice id or flag it couldn't compare is never CLEAN, and neither is a boot it
+ * can't trust (missing, older than the latest secret change, or followed by a partial one).
+ *
  * @module scripts/ops/secrets-parity-lib
  */
 import { createHmac, randomBytes } from 'node:crypto';
@@ -17,12 +21,15 @@ export const FLAG_STATES: ReadonlySet<string> = new Set(['on', 'off', 'shadow', 
 /** Persona voice ids. Never allowlisted: a voice that differs between dev and prod is drift. */
 export const VOICE_ID = /_VOICE_ID$/;
 
-/** What effective-settings.ts prints in place of a value it won't show. */
-const HIDDEN: ReadonlySet<string> = new Set(['<set>', '<unset>']);
 const PREFIX = 'EFFECTIVE_SETTINGS ';
+/** Log lines start `[2026-10-23T09:13:50.178Z] [worker] ...`. */
+const STAMP = /^\[(\d{4}-\d\d-\d\dT[\d:.]+Z)\]/;
 
-/** A sealed value: `token` compares (`=word` or the HMAC); `state` only for a flag word. null = hidden. */
-export type Sealed = { readonly token: string; readonly state?: string } | null;
+/**
+ * A sealed value: `token` compares (`=word` or the HMAC) and `state` is set only for a flag
+ * word. `set` / `unset`: the boot log printed `<set>` / `<unset>` instead of the value.
+ */
+export type Sealed = { readonly token: string; readonly state?: string } | 'set' | 'unset';
 export type Sealer = (value: string) => string;
 type IsFlag = (name: string) => boolean;
 
@@ -32,8 +39,14 @@ export function newSealer(): Sealer {
   return (value) => createHmac('sha256', key).update(value).digest('hex');
 }
 
-/** Names from `lk agent secrets --json` (`{secrets: [{name, kind, createdAt, updatedAt}]}`). */
-export function parseSecretNames(json: string): string[] {
+export interface Secrets {
+  readonly names: string[];
+  /** Latest `updatedAt` (ms) among the agent's secrets, null when none is given. */
+  readonly newest: number | null;
+}
+
+/** `lk agent secrets --json`: `{secrets: [{name, kind, createdAt, updatedAt}]}`. No values. */
+export function parseSecrets(json: string): Secrets {
   let list: unknown;
   try {
     list = (JSON.parse(json) as { secrets?: unknown }).secrets;
@@ -41,20 +54,43 @@ export function parseSecretNames(json: string): string[] {
     throw new Error('lk agent secrets --json did not return JSON'); // never echo the input
   }
   if (!Array.isArray(list)) throw new Error('lk agent secrets --json returned no "secrets" list');
-  return list.map((s: { name?: unknown }) => s.name).filter((n) => typeof n === 'string');
+  const rows = list as Array<{ name?: unknown; updatedAt?: unknown }>;
+  const times = rows.map((s) => Date.parse(String(s.updatedAt))).filter((t) => !Number.isNaN(t));
+  return {
+    names: rows.map((s) => s.name).filter((n): n is string => typeof n === 'string'),
+    newest: times.length ? Math.max(...times) : null,
+  };
 }
 
-type Boot = { commit: string; parts: number; seen: Map<number, Map<string, Sealed>> };
+/** One process's boot: the parts of its EFFECTIVE_SETTINGS lines, in log order. */
+interface Boot {
+  readonly id: string;
+  readonly commit: string;
+  readonly parts: number;
+  readonly first: number; // log position of its first line
+  readonly at: number | null; // timestamp of its first line
+  readonly seen: Map<number, Map<string, Sealed>>;
+  done: number | null; // log position where its last part arrived
+}
+
+export interface BootResult {
+  readonly commit: string | null;
+  readonly values: Map<string, Sealed>;
+  readonly at: number | null;
+  /** A boot with other settings started after the chosen one and never finished logging. */
+  readonly partialNewer: boolean;
+}
 
 /**
  * Collects `EFFECTIVE_SETTINGS {...}` boot lines from a log stream, sealing each value as it
- * arrives; other lines are ignored. A boot is complete once all its parts are in, and the last
- * boot to complete wins (a restart after update-secrets logs a new one).
+ * arrives; other lines are ignored. The boot that finished logging last wins, so a rollback to
+ * earlier settings (same commit and hash as an older boot) is read as the newest. A part that
+ * repeats while its boot is still logging is a second instance of the same boot and is dropped.
  */
 export class BootCollector {
-  private readonly boots = new Map<string, Boot>();
-  private readonly done = new Set<string>();
-  private latest: Boot | undefined;
+  private readonly boots: Boot[] = [];
+  private readonly current = new Map<string, Boot>();
+  private position = 0;
 
   constructor(
     private readonly isFlag: IsFlag,
@@ -64,18 +100,34 @@ export class BootCollector {
   add(line: string): void {
     const at = line.indexOf(PREFIX);
     if (at < 0) return;
-    let p: Record<string, unknown>;
+    let p: Record<string, unknown> | null;
     try {
-      p = JSON.parse(line.slice(at + PREFIX.length)) as Record<string, unknown>;
+      p = JSON.parse(line.slice(at + PREFIX.length)) as Record<string, unknown> | null;
     } catch {
       return;
     }
+    if (!p || typeof p !== 'object') return;
     const { part, parts, commit, hash } = p;
     if (typeof part !== 'number' || typeof parts !== 'number' || typeof hash !== 'string') return;
+    const position = ++this.position;
     const id = `${String(commit)}|${hash}`;
-    const boot = this.boots.get(id) ?? { commit: String(commit), parts, seen: new Map() };
-    this.boots.set(id, boot);
-    if (boot.seen.has(part)) return; // another instance of the same boot
+    let boot = this.current.get(id);
+    if (!boot || boot.done !== null) {
+      const stamp = STAMP.exec(line)?.[1];
+      boot = {
+        id,
+        commit: String(commit),
+        parts,
+        first: position,
+        done: null,
+        seen: new Map(),
+        at: stamp ? Date.parse(stamp) : null,
+      };
+      this.current.set(id, boot);
+      this.boots.push(boot);
+    } else if (boot.seen.has(part)) {
+      return;
+    }
     const values = new Map<string, Sealed>();
     for (const section of [p.flags, p.env]) {
       for (const [name, raw] of Object.entries((section ?? {}) as Record<string, unknown>)) {
@@ -83,34 +135,65 @@ export class BootCollector {
       }
     }
     boot.seen.set(part, values);
-    if (boot.seen.size === boot.parts) {
-      this.done.add(id);
-      this.latest = boot;
-    }
+    if (boot.seen.size === boot.parts) boot.done = position;
   }
 
-  get complete(): boolean {
-    return this.latest !== undefined;
-  }
-
-  /** The latest complete boot's commit and values, and how many distinct boots completed. */
-  result(): { commit: string | null; values: Map<string, Sealed>; boots: number } {
+  result(): BootResult {
+    const done = this.boots.filter((b) => b.done !== null);
+    const chosen = done.sort((a, b) => (a.done ?? 0) - (b.done ?? 0))[done.length - 1];
     const values = new Map<string, Sealed>();
-    for (const part of this.latest?.seen.values() ?? [])
-      for (const [k, v] of part) values.set(k, v);
-    return { commit: this.latest?.commit ?? null, values, boots: this.done.size };
+    for (const part of chosen?.seen.values() ?? []) for (const [k, v] of part) values.set(k, v);
+    const partialNewer = this.boots.some(
+      (b) => b.done === null && b.id !== chosen?.id && b.first > (chosen?.first ?? 0)
+    );
+    return { commit: chosen?.commit ?? null, values, at: chosen?.at ?? null, partialNewer };
   }
 
   private sealOne(name: string, value: string): Sealed {
-    if (HIDDEN.has(value)) return null;
+    if (value === '<set>') return 'set';
+    if (value === '<unset>') return 'unset';
     const word = value.toLowerCase();
     if (this.isFlag(name) && FLAG_STATES.has(word)) return { token: `=${word}`, state: word };
     return { token: this.seal(value) };
   }
 }
 
-/** Keys not compared by value (`NAME`, `PREFIX_*` or `*_SUFFIX`), each with its reason. */
-export type Allowlist = ReadonlyArray<{ readonly pattern: string; readonly reason: string }>;
+/** One agent: keys set on it, its latest boot, and why that boot can't be trusted (if so). */
+export interface Snapshot {
+  readonly label: string;
+  readonly names: ReadonlySet<string>;
+  readonly commit: string | null;
+  readonly values: ReadonlyMap<string, Sealed>;
+  readonly problems: readonly string[];
+}
+
+export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): Snapshot {
+  const problems: string[] = [];
+  if (boot.commit === null) problems.push('no complete boot settings found in the log');
+  if (boot.partialNewer) problems.push('a newer boot is only partly logged; read the log again');
+  if (boot.commit !== null && boot.at === null) problems.push('boot time unknown');
+  if (boot.at !== null && secrets.newest !== null && boot.at < secrets.newest) {
+    problems.push('the boot read is older than the latest secret change');
+  }
+  return {
+    label,
+    names: new Set(secrets.names),
+    commit: boot.commit,
+    values: boot.values,
+    problems,
+  };
+}
+
+type Entry = { readonly pattern: string; readonly reason: string };
+
+/**
+ * `keys`: not compared by value (expected to differ, or hidden from the boot log).
+ * `onlyOn`: may be set on that agent alone. Neither can cover a voice id or a flag.
+ */
+export interface Allowlist {
+  readonly keys: readonly Entry[];
+  readonly onlyOn: { readonly dev: readonly Entry[]; readonly prod: readonly Entry[] };
+}
 
 function matches(pattern: string, name: string): boolean {
   if (pattern.endsWith('*')) return name.startsWith(pattern.slice(0, -1));
@@ -119,83 +202,115 @@ function matches(pattern: string, name: string): boolean {
 }
 
 /**
- * Reads `{"keys": {"PATTERN": "reason"}}`. Refuses an entry without a reason, or one that covers
- * a persona voice id or a flag among `names` (pass the flag manifest plus every key seen).
+ * Reads `{"keys": {PATTERN: reason}, "onlyOn": {"dev": {...}, "prod": {...}}}` (patterns `NAME`,
+ * `PREFIX_*`, `*_SUFFIX`). Refuses an entry without a reason or one that covers a voice id or a
+ * flag among `names` (pass the flag manifest plus every key seen).
  */
 export function parseAllowlist(json: string, names: Iterable<string>, isFlag: IsFlag): Allowlist {
-  const keys = (JSON.parse(json) as { keys?: Record<string, string> }).keys ?? {};
+  type File = { keys?: Record<string, string>; onlyOn?: Record<string, Record<string, string>> };
+  let file: File;
+  try {
+    file = JSON.parse(json) as File;
+  } catch {
+    throw new Error('allowlist is not valid JSON');
+  }
   const probes = [...names, 'ANY_PERSONA_VOICE_ID'];
-  return Object.entries(keys).map(([pattern, reason]) => {
-    if (!reason?.trim()) throw new Error(`allowlist: ${pattern} has no reason`);
-    const hit = probes.find((n) => matches(pattern, n) && (VOICE_ID.test(n) || isFlag(n)));
-    if (hit)
-      throw new Error(`allowlist: ${pattern} covers ${hit}; voice ids and flags must be compared`);
-    return { pattern, reason };
-  });
+  const entries = (map: Record<string, string> = {}): Entry[] =>
+    Object.entries(map).map(([pattern, reason]) => {
+      if (!reason?.trim()) throw new Error(`allowlist: ${pattern} has no reason`);
+      const hit = probes.find((n) => matches(pattern, n) && (VOICE_ID.test(n) || isFlag(n)));
+      if (hit)
+        throw new Error(
+          `allowlist: ${pattern} covers ${hit}; voice ids and flags must be compared`
+        );
+      return { pattern, reason };
+    });
+  return {
+    keys: entries(file.keys),
+    onlyOn: { dev: entries(file.onlyOn?.dev), prod: entries(file.onlyOn?.prod) },
+  };
 }
 
-export type Status = 'only-dev' | 'only-prod' | 'differs' | 'not-comparable' | 'unread';
+export type Status =
+  'only-dev' | 'only-prod' | 'presence' | 'differs' | 'not-comparable' | 'unread';
 
 export interface Row {
   readonly name: string;
   readonly status: Status;
   readonly allowlisted: boolean;
+  /** A voice id or a flag: never allowlisted, and must be compared. */
+  readonly guarded: boolean;
   /** Both flag words, only for a flag whose two values are on/off/shadow/live. */
   readonly states?: { readonly dev: string; readonly prod: string };
 }
 
-/** One agent: keys set on it (`lk agent secrets`) and its latest boot (commit null = none found). */
-export interface Snapshot {
-  readonly label: string;
-  readonly names: ReadonlySet<string>;
-  readonly commit: string | null;
-  readonly values: ReadonlyMap<string, Sealed>;
-  readonly boots: number;
+function statusOf(name: string, dev: Snapshot, prod: Snapshot): Status | undefined {
+  if (!prod.names.has(name)) return 'only-dev';
+  if (!dev.names.has(name)) return 'only-prod';
+  const d = dev.values.get(name);
+  const p = prod.values.get(name);
+  if (typeof d === 'object' && typeof p === 'object')
+    return d.token === p.token ? undefined : 'differs';
+  if (d === undefined && p === undefined)
+    return dev.commit && prod.commit ? 'unread' : 'not-comparable';
+  if (d !== undefined && p !== undefined && (d === 'unset') !== (p === 'unset')) return 'presence';
+  return 'not-comparable';
 }
 
 /** One row per key that differs or can't be checked; keys equal on both sides are left out. */
 export function compare(dev: Snapshot, prod: Snapshot, allow: Allowlist, isFlag: IsFlag): Row[] {
   const rows: Row[] = [];
+  const listed = (list: readonly Entry[], name: string) =>
+    list.some((e) => matches(e.pattern, name));
   for (const name of [...new Set([...dev.names, ...prod.names])].sort()) {
-    const d = dev.values.get(name);
-    const p = prod.values.get(name);
-    let status: Status | undefined;
-    if (!prod.names.has(name)) status = 'only-dev';
-    else if (!dev.names.has(name)) status = 'only-prod';
-    else if (d && p) status = d.token === p.token ? undefined : 'differs';
-    else if (d === undefined && p === undefined && dev.commit && prod.commit) status = 'unread';
-    else status = 'not-comparable';
+    const status = statusOf(name, dev, prod);
     if (!status) continue;
     const guarded = isFlag(name) || VOICE_ID.test(name);
-    const allowlisted = !guarded && allow.some((e) => matches(e.pattern, name));
-    const states = isFlag(name) && d?.state && p?.state ? { dev: d.state, prod: p.state } : null;
-    rows.push({ name, status, allowlisted, ...(states ? { states } : {}) });
+    // `presence` and `unread` are never allowlisted; a key on one side needs an onlyOn entry.
+    const pool =
+      status === 'only-dev'
+        ? allow.onlyOn.dev
+        : status === 'only-prod'
+          ? allow.onlyOn.prod
+          : status === 'differs' || status === 'not-comparable'
+            ? allow.keys
+            : [];
+    const allowlisted = !guarded && listed(pool, name);
+    const d = dev.values.get(name);
+    const p = prod.values.get(name);
+    const states =
+      isFlag(name) && typeof d === 'object' && typeof p === 'object' && d.state && p.state
+        ? { dev: d.state, prod: p.state }
+        : null;
+    rows.push({ name, status, allowlisted, guarded, ...(states ? { states } : {}) });
   }
   return rows;
 }
 
-/** 0 clean, 1 drift, 2 a value couldn't be compared and isn't allowlisted. Unread keys don't count. */
+const DRIFT: ReadonlySet<Status> = new Set(['only-dev', 'only-prod', 'presence', 'differs']);
+
+/** 0 clean, 1 drift, 2 something couldn't be compared or a boot can't be trusted. */
 export function exitCode(rows: readonly Row[], dev: Snapshot, prod: Snapshot): 0 | 1 | 2 {
-  const open = rows.filter((r) => !r.allowlisted && r.status !== 'unread');
-  if (open.some((r) => r.status !== 'not-comparable')) return 1;
-  return open.length > 0 || dev.commit === null || prod.commit === null ? 2 : 0;
+  const open = rows.filter((r) => !r.allowlisted && (r.status !== 'unread' || r.guarded));
+  if (open.some((r) => DRIFT.has(r.status))) return 1;
+  return open.length > 0 || dev.problems.length > 0 || prod.problems.length > 0 ? 2 : 0;
 }
 
 const TITLE: Record<Status, string> = {
   'only-dev': 'Only on dev',
   'only-prod': 'Only on prod',
+  presence: 'Set on one side, unset on the other',
   differs: 'Values differ',
   'not-comparable': 'Cannot compare (value hidden in the boot log), not allowlisted',
-  unread: 'Set on both, read by neither build (not in the boot log; candidates to remove)',
+  unread: 'Set on both, read by neither build (voice ids and flags here fail the check)',
 };
 
 /** The report: names, counts and flag words only. Safe to paste into a PR. */
 export function render(rows: readonly Row[], dev: Snapshot, prod: Snapshot): string {
   const head = (s: Snapshot) =>
-    `- ${s.label}: ${s.names.size} keys; ` +
-    (s.commit === null
-      ? 'NO boot settings found, values not compared'
-      : `boot settings of ${s.commit.slice(0, 9)}${s.boots > 1 ? ` (${s.boots} boots, latest used)` : ''}`);
+    [`- ${s.label}: ${s.names.size} keys; boot settings of ${s.commit?.slice(0, 9) ?? 'none'}`]
+      .concat(s.problems.map((p) => `  ! ${s.label}: ${p}`))
+      .join('\n');
   const out = ['## Secrets parity: dev vs prod', '', head(dev), head(prod), ''];
   for (const status of Object.keys(TITLE) as Status[]) {
     const names = rows
@@ -204,7 +319,7 @@ export function render(rows: readonly Row[], dev: Snapshot, prod: Snapshot): str
     out.push(`${TITLE[status]} (${names.length})${names.length ? `: ${names.join(', ')}` : ''}`);
   }
   const code = exitCode(rows, dev, prod);
-  out.push(`Allowlisted, not compared: ${rows.filter((r) => r.allowlisted).length} keys`, '');
+  out.push(`Allowlisted: ${rows.filter((r) => r.allowlisted).length} keys`, '');
   out.push(`Result: ${['CLEAN', 'DRIFT', 'CANNOT VERIFY'][code]} (exit ${code})`);
   return out.join('\n');
 }

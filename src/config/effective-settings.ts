@@ -11,6 +11,7 @@
  * @module config/effective-settings
  */
 import { createHash } from 'node:crypto';
+import { ENV_CLASSIFICATION } from './env-classification.js';
 import { ENV_READ_NAMES } from './env-read-names.generated.js';
 import { FLAG_MANIFEST, type FlagName } from './flag-manifest.js';
 
@@ -57,11 +58,12 @@ const PRINTABLE: ReadonlyMap<string, RegExp> = new Map([
 /**
  * Persona voice ids (`MAYA_SANTOS_VOICE_ID`, …) print too: they pick a voice, they don't
  * unlock anything, and scripts/ops/secrets-parity.ts compares them between dev and prod
- * (prod Maya once ran on a meditation voice for weeks). Vendor ids are UUIDs or short
- * alphanumerics; anything else shows as `<set>`.
+ * (prod Maya once ran on a meditation voice for weeks). Only names env-classification.ts
+ * classes as config, and only UUID-shaped values (Cartesia voice ids); anything else is `<set>`.
  */
 const VOICE_ID_NAME = /^[A-Z0-9_]+_VOICE_ID$/;
-const VOICE_ID_VALUE = /^[A-Za-z0-9-]{8,64}$/;
+const VOICE_ID_VALUE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isVoiceId = (name: string) => VOICE_ID_NAME.test(name) && ENV_CLASSIFICATION[name] === 'config';
 
 /**
  * Words a flag may show: `on`, `off` and the other words the manifest uses as
@@ -91,7 +93,7 @@ function flagValue(name: FlagName, env: Env): string {
 function envValue(name: string, env: Env): string {
   const raw = env[name]?.trim();
   if (!raw) return UNSET;
-  const shape = PRINTABLE.get(name) ?? (VOICE_ID_NAME.test(name) ? VOICE_ID_VALUE : undefined);
+  const shape = PRINTABLE.get(name) ?? (isVoiceId(name) ? VOICE_ID_VALUE : undefined);
   if (!shape || SECRET_NAME.test(name)) return SET;
   return shape.test(raw) ? raw : SET;
 }

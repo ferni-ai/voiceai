@@ -9,7 +9,7 @@
  *   pnpm ops:secrets-parity --dev-project ferni-dev --dev-config "$PWD/livekit.toml" \
  *     --prod-project ferni-prod --prod-config "$PWD/livekit.prod-cloud.toml"
  *
- * Exit 0 clean, 1 drift, 2 something couldn't be compared. `--fixtures <dir>` reads
+ * Exit 0 clean, 1 drift, 2 something couldn't be compared or a boot can't be trusted. `--fixtures <dir>` reads
  * {dev,prod}.secrets.json and {dev,prod}.logs.txt instead of calling lk (tests).
  *
  * @module scripts/ops/secrets-parity
@@ -27,10 +27,11 @@ import {
   exitCode,
   newSealer,
   parseAllowlist,
-  parseSecretNames,
+  parseSecrets,
   render,
+  snapshotOf,
   type Sealer,
-  type Snapshot,
+  type Secrets,
 } from './secrets-parity-lib.js';
 
 const isFlag = (name: string): boolean => Object.hasOwn(FLAG_MANIFEST, name);
@@ -39,36 +40,41 @@ type Target = { label: 'dev' | 'prod'; project?: string; config?: string };
 
 const lkArgs = (t: Target) => ['--project', t.project ?? '', '--config', t.config ?? ''];
 
-/** Secret names of one agent. lk's own output is never echoed, only which call failed. */
-async function lkNames(t: Target): Promise<string[]> {
+/** Secret names and update times of one agent. lk's output is never echoed, only which call failed. */
+async function lkSecrets(t: Target): Promise<Secrets> {
   try {
     const args = ['agent', 'secrets', ...lkArgs(t), '--json'];
     const { stdout } = await promisify(execFile)('lk', args, { maxBuffer: 64 << 20 });
-    return parseSecretNames(stdout);
+    return parseSecrets(stdout);
   } catch {
     throw new Error(`lk agent secrets failed for ${t.label} (${lkArgs(t).join(' ')})`);
   }
 }
 
-/** Streams `lk agent logs` until a boot is complete (plus 3 s for other instances) or timeout. */
+/**
+ * Reads `lk agent logs` to the end of its backlog: lk replays the deployment's log in a burst,
+ * then tails live. Stops once no line has arrived for IDLE_MS after the first, or at the timeout.
+ */
+const IDLE_MS = 3000;
 function lkBoot(t: Target, collector: BootCollector, timeoutMs: number): Promise<void> {
   const child = spawn('lk', ['agent', 'logs', ...lkArgs(t)], {
     stdio: ['ignore', 'pipe', 'ignore'],
   });
   const lines = createInterface({ input: child.stdout });
   return new Promise((done) => {
-    let grace: NodeJS.Timeout | undefined;
+    let idle: NodeJS.Timeout | undefined;
     const timer = setTimeout(stop, timeoutMs);
     function stop() {
       clearTimeout(timer);
-      clearTimeout(grace);
+      clearTimeout(idle);
       lines.close();
       child.kill();
       done();
     }
     lines.on('line', (line) => {
       collector.add(line); // keeps only sealed EFFECTIVE_SETTINGS values; other lines are dropped
-      if (collector.complete && !grace) grace = setTimeout(stop, 3000);
+      clearTimeout(idle);
+      idle = setTimeout(stop, IDLE_MS);
     });
     child.on('exit', stop).on('error', stop);
   });
@@ -77,13 +83,10 @@ function lkBoot(t: Target, collector: BootCollector, timeoutMs: number): Promise
 async function snapshot(t: Target, seal: Sealer, fixtures: string | undefined, ms: number) {
   const collector = new BootCollector(isFlag, seal);
   const read = (ext: string) => readFileSync(join(fixtures ?? '', `${t.label}.${ext}`), 'utf8');
-  const names = fixtures ? parseSecretNames(read('secrets.json')) : await lkNames(t);
-  if (fixtures)
-    read('logs.txt')
-      .split('\n')
-      .forEach((line) => collector.add(line));
+  const secrets = fixtures ? parseSecrets(read('secrets.json')) : await lkSecrets(t);
+  if (fixtures) for (const line of read('logs.txt').split('\n')) collector.add(line);
   else await lkBoot(t, collector, ms);
-  return { label: t.label, names: new Set(names), ...collector.result() } satisfies Snapshot;
+  return snapshotOf(t.label, secrets, collector.result());
 }
 
 async function main(): Promise<number> {
@@ -99,7 +102,7 @@ async function main(): Promise<number> {
         type: 'string',
         default: fileURLToPath(new URL('secrets-parity-allowlist.json', import.meta.url)),
       },
-      'log-timeout': { type: 'string', default: '60' },
+      'log-timeout': { type: 'string', default: '90' },
     },
   });
   const fixtures = o.fixtures ? resolve(o.fixtures) : undefined;

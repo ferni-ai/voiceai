@@ -92,8 +92,11 @@ pnpm ops:secrets-parity --dev-project ferni-dev --dev-config $R/livekit.toml \
 - It compares key names, and values by a per-run HMAC, using each agent's
   `EFFECTIVE_SETTINGS` boot lines (LiveKit never returns secret values). It
   prints names, counts and flag words only, never a value.
-- Exit 0 clean, 1 drift (keys on one side only, or values that differ), 2 a
-  value it couldn't compare that isn't in `scripts/ops/secrets-parity-allowlist.json`.
+- Exit 0 clean; 1 drift (a key on one side only, set on one side and unset on
+  the other, or a value that differs); 2 it can't verify (a hidden value not in
+  `scripts/ops/secrets-parity-allowlist.json`, a voice id or flag it couldn't
+  compare, or a boot older than the latest secret change). A key that belongs
+  on one agent only goes under `onlyOn` in the allowlist, with a reason.
 - Paste its summary into the release PR and explain every listed key. A
   differing `*_VOICE_ID` is a wrong voice in prod: fix it before promoting.
   Voice ids and flags can't be allowlisted.
