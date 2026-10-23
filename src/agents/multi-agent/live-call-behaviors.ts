@@ -314,11 +314,14 @@ export interface TurnSoundsInput {
 }
 
 /**
- * Backchannel clips ("mm-hmm") and the turn-opening sound. Returns the clip
- * player, or null when it could not start.
+ * Backchannel clips ("mm-hmm"), the turn-opening sound, and the tool activity
+ * signal to the apps. Returns the clip player, or null when it could not start.
  */
 export async function startTurnSounds(input: TurnSoundsInput) {
   const { room, session, sessionId, cleanupFunctions } = input;
+  // TOOL_ACTIVITY_SIGNAL: on every call, whatever the clip track or TOOL_HUM do.
+  const { startToolActivitySignal } = await import('../integrations/tool-activity-signal.js');
+  cleanupFunctions.push(startToolActivitySignal(session as unknown as voice.AgentSession, room));
   const { startBackchannelClips } = await import('../integrations/clip-player.js');
   const { getCachedAudioForPersona } = await import('../shared/conversational-audio-cache.js');
   const clips = await startBackchannelClips(
