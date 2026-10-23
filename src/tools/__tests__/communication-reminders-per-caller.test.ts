@@ -123,4 +123,52 @@ describe('reminders per caller', () => {
     );
     expect(communicationCallersHeld()).toBe(before + 1);
   });
+
+  it.each(['unknown', 'anonymous', 'Anonymous', ' unknown ', 'anon', 'default', ''])(
+    'a placeholder or blank caller %j gets no reminder owner: refused, nothing filed or listed',
+    async (id) => {
+      const opts = as(id || undefined);
+      expect(await remind('my court date', opts)).toMatch(/can't set that reminder/);
+      expect(
+        await tools.scheduleReminder.execute(
+          { reminderText: 'my court date', when: 'in 2 hours' },
+          opts
+        )
+      ).toMatch(/can't set that reminder/);
+      for (const bucket of [
+        'unknown',
+        'anonymous',
+        'Anonymous',
+        ' unknown ',
+        'anon',
+        'default',
+        '',
+      ]) {
+        expect(getPendingReminders(bucket).map((r) => r.message)).not.toContain('my court date');
+      }
+      expect(await list(opts)).not.toContain('court date');
+    }
+  );
+
+  it("a summary for a caller with no id never lists reminders filed under 'unknown' or 'anonymous'", async () => {
+    for (const bucket of ['unknown', 'anonymous']) {
+      await createReminder({
+        userId: bucket,
+        message: `seeded under ${bucket}`,
+        subject: 'x',
+        scheduledFor: new Date(Date.now() + 3_600_000),
+        timezone: 'Etc/UTC',
+        deliveryMethod: 'in_app',
+        deliveryAddress: '',
+        createdBy: 'alex',
+      });
+      expect(getPendingReminders(bucket).map((r) => r.message)).toContain(`seeded under ${bucket}`);
+    }
+    for (const opts of [as(undefined), as('unknown'), as('anonymous'), as('')]) {
+      const text = await summary(opts);
+      expect(text).not.toContain('seeded under unknown');
+      expect(text).not.toContain('seeded under anonymous');
+      expect(await list(opts)).not.toContain('seeded under');
+    }
+  });
 });
