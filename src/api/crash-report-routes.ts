@@ -60,7 +60,6 @@ async function handleCrashReport(req: IncomingMessage, res: ServerResponse): Pro
   if (!report) return;
 
   try {
-
     // Generate crash ID
     const crashId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const receivedAt = new Date().toISOString();
@@ -126,7 +125,6 @@ async function handleDisconnectDiagnostic(
   if (!diagnostic) return;
 
   try {
-
     // Generate ID
     const id = `disconnect_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const receivedAt = new Date().toISOString();

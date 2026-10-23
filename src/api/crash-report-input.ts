@@ -18,8 +18,8 @@ export const CRASH_REPORT_MAX_BODY_BYTES = 64 * 1024;
 /** Largest `customData`, measured as JSON. */
 export const CRASH_CUSTOM_DATA_MAX_CHARS = 4000;
 
-const text = (max: number) => z.string().max(max);
-const optText = (max: number) => text(max).optional();
+const text = (max: number): z.ZodString => z.string().max(max);
+const optText = (max: number): z.ZodOptional<z.ZodString> => text(max).optional();
 // JSON turns NaN into null, so a browser measurement may arrive as null.
 const optNum = z.number().finite().nullish();
 const count = z.number().int().min(0).max(1_000_000);
@@ -119,7 +119,11 @@ export async function readValidatedBody<T>(
   } catch (error) {
     if (!res.headersSent) {
       const tooLarge = error instanceof BodyTooLargeError;
-      sendError(res, tooLarge ? 'Request body too large' : 'Invalid JSON body', tooLarge ? 413 : 400);
+      sendError(
+        res,
+        tooLarge ? 'Request body too large' : 'Invalid JSON body',
+        tooLarge ? 413 : 400
+      );
     }
     return null;
   }
