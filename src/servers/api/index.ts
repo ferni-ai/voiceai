@@ -324,8 +324,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname)))
-    return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;
@@ -864,12 +863,13 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Answer cards (the /a/:id page; APPROVALS_PAGE)
     if (await handleAnswerCardRoutes(req, res, pathname)) return;
 
+    // Feature flags routes
     if (pathname.startsWith('/api/flags')) {
       const handled = await handleFeatureFlagsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 
-    // Feedback, reported replies (POST /api/reports), call telemetry (POST /api/call-telemetry)
+    // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
     if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
     if (await handleReplyReportRoutes(req, res, pathname)) return;
     if (await handleCallTelemetryRoutes(req, res, pathname)) return;
@@ -895,7 +895,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Commands routes
     if (pathname.startsWith('/api/commands')) {
       const handled = await handleCommandsRoutes(req, res, pathname);
       if (handled) return;

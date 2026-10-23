@@ -1,18 +1,8 @@
 /**
- * POST /api/call-telemetry: how a call sounded on the phone, from the iPhone
- * app. One route, two kinds (call-telemetry-input.ts): a per-call `summary` at
- * hang-up, and a `feltOff` report when the person taps "That felt off".
- *
- * Copies POST /api/reports: any verified Firebase user (anonymous included),
- * uid only from the token, per-person rate limits plus a Firestore daily quota,
- * a strict body capped at 16 KB, admin-only storage. Behind CALL_TELEMETRY:
- * `off` answers 404 as if the route did not exist, `reports` takes felt-off
- * only, `on` takes both. Every room must be this person's (livekit_room_claims,
- * kept 4 h by /token): someone else's is 403, an expired claim is accepted with
- * roomVerified false. Logs never carry the note or room names.
- *
- * Summaries are validated and rate limited, then handed to `recordSummary`,
- * which drops them until the BigQuery table lands (spec PR S2).
+ * POST /api/call-telemetry (docs/api/call-telemetry.md), copying POST /api/reports:
+ * verified uid from the token, per-person limits plus a Firestore daily quota,
+ * a strict body capped at 16 KB, admin-only storage, and every room must be the
+ * caller's /token claim. Logs never carry the note or room names.
  *
  * @module api/call-telemetry/call-telemetry-routes
  */
@@ -25,38 +15,21 @@ import { rateLimit, requireAuth } from '../auth-middleware.js';
 import { BodyTooLargeError } from '../bounded-body.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from '../helpers.js';
 import { takeReplyReportQuota } from '../reply-reports/reply-report-quota.js';
-import {
-  CALL_TELEMETRY_LIMITS,
-  callTelemetryBodySchema,
-  type CallTelemetryBody,
-  type SummaryBody,
-} from './call-telemetry-input.js';
-import {
-  callTelemetryMode,
-  feltOffRecord,
-  FELT_OFF_COLLECTION,
-  FELT_OFF_PER_DAY,
-  FELT_OFF_QUOTA_COLLECTION,
-  type CallTelemetryMode,
-} from './call-telemetry-store.js';
+import { CALL_TELEMETRY_LIMITS, callTelemetryBodySchema } from './call-telemetry-input.js';
+import type { CallTelemetryBody, SummaryBody } from './call-telemetry-input.js';
+import * as felt from './call-telemetry-store.js';
 
 const log = createLogger({ module: 'CallTelemetry' });
 
 export const CALL_TELEMETRY_PATH = '/api/call-telemetry';
 
-export interface CallTelemetryCaller {
-  userId: string;
-}
-
-export type RoomHolder = 'mine' | 'theirs' | 'unclaimed';
-
 export interface CallTelemetryDeps {
   /** Verify the caller, or answer 401 and return null. */
-  authenticate: (req: IncomingMessage, res: ServerResponse) => Promise<CallTelemetryCaller | null>;
+  authenticate: (req: IncomingMessage, res: ServerResponse) => Promise<{ userId: string } | null>;
   getDb: () => Firestore | null;
   now: () => number;
-  mode: () => CallTelemetryMode;
-  roomHolder: (db: Firestore, room: string, uid: string, now: number) => Promise<RoomHolder>;
+  mode: () => felt.CallTelemetryMode;
+  roomHolder: (db: Firestore, room: string, uid: string, now: number) => Promise<string>;
   recordSummary: (uid: string, summary: SummaryBody) => Promise<void>;
 }
 
@@ -64,23 +37,15 @@ const defaultDeps: CallTelemetryDeps = {
   authenticate: requireAuth,
   getDb: getFirestoreDb,
   now: Date.now,
-  mode: () => callTelemetryMode(),
+  mode: () => felt.callTelemetryMode(),
   roomHolder: roomClaimHolder,
   recordSummary: async () => {}, // the BigQuery write is spec PR S2
 };
 
-/** true when every room is the caller's, false when some claim expired, null when one is someone else's. */
-async function roomsVerified(
-  deps: CallTelemetryDeps,
-  db: Firestore,
-  rooms: string[],
-  uid: string,
-  now: number
-): Promise<boolean | null> {
-  const holders = await Promise.all(rooms.map(async (r) => deps.roomHolder(db, r, uid, now)));
-  if (holders.includes('theirs')) return null;
-  return holders.every((h) => h === 'mine');
-}
+const LIMITS = {
+  summary: { keyPrefix: 'call-telemetry', maxRequests: 20, windowMs: 3_600_000 },
+  feltOff: { keyPrefix: 'call-felt-off', maxRequests: 5, windowMs: 60_000 },
+} as const;
 
 /** The validated body, or null once a 400 or 413 has been sent. */
 async function readBody(
@@ -112,25 +77,20 @@ async function store(
   body: CallTelemetryBody
 ): Promise<void> {
   const now = deps.now();
-  const verified = await roomsVerified(deps, db, body.rooms, uid, now);
-  if (verified === null) return sendError(res, 'Forbidden', 403);
+  const holders = await Promise.all(body.rooms.map(async (r) => deps.roomHolder(db, r, uid, now)));
+  if (holders.includes('theirs')) return sendError(res, 'Forbidden', 403);
   if (body.kind === 'summary') {
     await deps.recordSummary(uid, body);
     return sendJSON(res, { ok: true }, 202);
   }
-  if (!(await takeReplyReportQuota(db, uid, now, FELT_OFF_PER_DAY, FELT_OFF_QUOTA_COLLECTION))) {
-    return sendError(res, 'Too many reports today', 429);
-  }
-  const ref = db.collection(FELT_OFF_COLLECTION).doc();
-  await ref.set(feltOffRecord(uid, body, verified, now));
-  log.info({ reportId: ref.id, roomVerified: verified }, 'Call felt off');
+  const allowed = await takeReplyReportQuota(db, uid, now, felt.PER_DAY, felt.QUOTA_COLLECTION);
+  if (!allowed) return sendError(res, 'Too many reports today', 429);
+  const roomVerified = holders.every((h) => h === 'mine');
+  const ref = db.collection(felt.COLLECTION).doc();
+  await ref.set(felt.feltOffRecord(uid, body, roomVerified, now));
+  log.info({ reportId: ref.id, roomVerified }, 'Call felt off');
   sendJSON(res, { ok: true, id: ref.id }, 201);
 }
-
-const LIMITS = {
-  summary: { keyPrefix: 'call-telemetry', maxRequests: 20, windowMs: 3_600_000 },
-  feltOff: { keyPrefix: 'call-felt-off', maxRequests: 5, windowMs: 60_000 },
-} as const;
 
 export async function handleCallTelemetryRoutes(
   req: IncomingMessage,
@@ -139,32 +99,20 @@ export async function handleCallTelemetryRoutes(
   deps: CallTelemetryDeps = defaultDeps
 ): Promise<boolean> {
   if (pathname !== CALL_TELEMETRY_PATH) return false;
+  const answer = (status: number, message: string): true => (sendError(res, message, status), true);
   const mode = deps.mode();
-  if (mode === 'off') {
-    sendError(res, 'Not found', 404);
-    return true;
-  }
+  if (mode === 'off') return answer(404, 'Not found'); // as if the route did not exist
   if (handleCorsPreflightIfNeeded(req, res)) return true;
-  if (req.method !== 'POST') {
-    sendError(res, 'Method not allowed', 405);
-    return true;
-  }
+  if (req.method !== 'POST') return answer(405, 'Method not allowed');
   const caller = await deps.authenticate(req, res);
   if (!caller) return true;
   const body = await readBody(req, res);
   if (!body) return true;
-  if (body.kind === 'summary' && mode !== 'on') {
-    sendError(res, 'Not found', 404);
-    return true;
-  }
+  if (body.kind === 'summary' && mode !== 'on') return answer(404, 'Not found');
   const keyGenerator = (): string => `user:${caller.userId}`;
   if (rateLimit(req, res, { ...LIMITS[body.kind], keyGenerator })) return true;
-
   const db = deps.getDb();
-  if (!db) {
-    sendError(res, 'Call telemetry is unavailable right now', 503);
-    return true;
-  }
+  if (!db) return answer(503, 'Call telemetry is unavailable right now');
   try {
     await store(res, deps, db, caller.userId, body);
   } catch (error) {
