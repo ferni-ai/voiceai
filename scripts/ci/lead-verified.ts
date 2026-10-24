@@ -11,6 +11,9 @@
  * edited or not, quoted or not) blocks every PASS posted at or before it. Prose PASSes,
  * reviews and auto-merge text never verify. CI runs this from main, never the PR's copy.
  *   node --experimental-strip-types scripts/ci/lead-verified.ts <pr>...
+ * Merge groups (QUEUE_REF): the repo squashes queue entries, so the queued PRs are the
+ * "(#N)" titles of the commits above main, plus the PR the ref names. Each is judged on its
+ * current head; a commit with no PR number blocks the group.
  * Env: PR_NUMBER (+ PR_HEAD) or QUEUE_REF; REPO, LEAD_VERIFIED_AUTHORS, MAIN_REF,
  * LEAD_VERIFIED_ENFORCE=1. Docs: docs/ci/ci-inventory.md.
  */
@@ -59,6 +62,8 @@ export type Git = {
   mergeTree(a: string, b: string): Merge;
   treeOf(sha: string): string;
   diffPaths(treeA: string, treeB: string): string[];
+  /** Subjects of the commits above main, up to `ref`. */
+  queued(ref: string): string[];
 };
 export type Result = { verdict: 'VERIFIED' | 'NOT_VERIFIED'; reason: string };
 /** A PASS names one full SHA; a FAIL blocks whatever it names. */
@@ -105,6 +110,21 @@ export function parseQueueRef(ref: string): { base: string; pr: number; sha: str
   return m ? { base: m[1], pr: Number(m[2]), sha: m[3] } : null;
 }
 
+/** PR numbers a merge group covers: the ref's PR plus each "(#N)" squash title; the rest is unnamed. */
+export function queueMembers(
+  tail: number,
+  subjects: string[]
+): { members: number[]; unnamed: string[] } {
+  const members = new Set([tail]);
+  const unnamed: string[] = [];
+  for (const s of subjects) {
+    const m = /\(#(\d+)\)\s*$/.exec(s);
+    if (m) members.add(Number(m[1]));
+    else unnamed.push(s);
+  }
+  return { members: [...members], unnamed };
+}
+
 function evidence(pr: PullRequest, allowed: Set<string>, notes: string[]): Event[] {
   const events: Event[] = [];
   for (const s of pr.statuses) {
@@ -147,7 +167,9 @@ type Opts = { authors?: string[]; maxDepth?: number };
 /** Evaluate a PR's head. `git` is needed only for carry-forward (iii). */
 export function evaluate(pr: PullRequest, git: Git | null, opts: Opts = {}): Result {
   const head = pr.headSha.toLowerCase();
-  const allowed = new Set((opts.authors ?? DEFAULT_AUTHORS).map((a) => a.toLowerCase()));
+  // Blank entries (LEAD_VERIFIED_AUTHORS=",") would match a null author; none left means the default.
+  const listed = (opts.authors ?? []).map((a) => a.trim().toLowerCase()).filter(Boolean);
+  const allowed = new Set(listed.length ? listed : DEFAULT_AUTHORS.map((a) => a.toLowerCase()));
   const notes: string[] = [];
   const events = evidence(pr, allowed, notes);
   const parentsOf = new Map(
@@ -243,6 +265,10 @@ export function gitOps(cwd: string, mainRef = 'origin/main'): Git {
     },
     treeOf: (sha) => out(['rev-parse', `${sha}^{tree}`]),
     diffPaths: (a, b) => out(['diff', '--name-only', a, b]).split('\n').filter(Boolean),
+    queued: (ref) =>
+      out(['log', '--format=%s', `${mainRef}..${ref}`])
+        .split('\n')
+        .filter(Boolean),
   };
 }
 
@@ -306,55 +332,134 @@ function loadPull(repo: string, n: number): PullRequest {
   return toPullRequest(n, { pull, commits, comments, reviews, inline, statuses });
 }
 
+type Row = { pr: string; head: string; verdict: string; reason: string };
+const reasonOf = (err: unknown) => `could not evaluate: ${(err as Error).message.split('\n')[0]}`;
+const FETCH_MAIN = '+refs/heads/main:refs/remotes/origin/main';
+
+/** One PR on its current head, or on `sha` when the event names one (a pull_request run). */
+function checkPr(
+  repo: string,
+  n: number,
+  sha: string | undefined,
+  authors: string[],
+  mainRef: string
+): Row {
+  let head = sha ? short(sha) : '';
+  let verdict = 'ERROR';
+  let reason = '';
+  try {
+    // Fetched as objects for merge-tree only: never checked out, never run.
+    const pull = `+refs/pull/${n}/head:refs/lead-verified/pr-${n}`;
+    execFileSync('git', ['fetch', '-q', '--no-tags', 'origin', pull, FETCH_MAIN]);
+    const pr = loadPull(repo, n);
+    head = short(pr.headSha);
+    if (sha && sha.toLowerCase() !== pr.headSha) {
+      [verdict, reason] = ['NOT_VERIFIED', `PR head is now ${head}, not ${short(sha)}`];
+    } else {
+      ({ verdict, reason } = evaluate(pr, gitOps(process.cwd(), mainRef), { authors }));
+    }
+  } catch (err) {
+    reason = reasonOf(err);
+  }
+  return { pr: `PR #${n}`, head, verdict, reason };
+}
+
+/** A merge group: every PR it covers must verify on its own current head. */
+function checkQueue(repo: string, ref: string, authors: string[], mainRef: string): Row[] {
+  const queued = parseQueueRef(ref);
+  if (!queued) {
+    return [
+      {
+        pr: 'merge queue',
+        head: '',
+        verdict: 'NOT_VERIFIED',
+        reason: `no PR number in merge-group ref ${ref}`,
+      },
+    ];
+  }
+  try {
+    const name = ref.trim().replace(/^refs\/heads\//, '');
+    execFileSync('git', [
+      'fetch',
+      '-q',
+      '--no-tags',
+      'origin',
+      `+refs/heads/${name}:refs/lead-verified/queue`,
+      FETCH_MAIN,
+    ]);
+    const subjects = gitOps(process.cwd(), mainRef).queued('refs/lead-verified/queue');
+    const { members, unnamed } = queueMembers(queued.pr, subjects);
+    const rows = members.map((n) => checkPr(repo, n, undefined, authors, mainRef));
+    if (unnamed.length) {
+      rows.push({
+        pr: 'merge queue',
+        head: '',
+        verdict: 'NOT_VERIFIED',
+        reason: `queued commit names no PR: ${unnamed.join('; ')}`,
+      });
+    }
+    return rows;
+  } catch (err) {
+    return [{ pr: 'merge queue', head: '', verdict: 'ERROR', reason: reasonOf(err) }];
+  }
+}
+
 function main(): void {
   const env = process.env;
   const repo = env.REPO || env.GITHUB_REPOSITORY || 'ferni-ai/voiceai';
   const authors = (env.LEAD_VERIFIED_AUTHORS || DEFAULT_AUTHORS.join(',')).split(',');
   const enforce = env.LEAD_VERIFIED_ENFORCE === '1';
+  const mainRef = env.MAIN_REF || 'origin/main';
   const title = `Lead verified (${enforce ? 'ENFORCED' : 'report-only'})`;
   const say = (level: string, msg: string) => console.log(`::${level} title=${title}::${msg}`);
 
-  // The PR number and the head SHA under test arrive as data; no PR code runs.
+  // The PR numbers and the head SHA under test arrive as data; no PR code runs.
+  const rows: Row[] = env.QUEUE_REF
+    ? checkQueue(
+        repo,
+        env.QUEUE_REF,
+        authors.map((a) => a.trim()),
+        mainRef
+      )
+    : [];
   const prs: { n: number; sha?: string }[] = process.argv.slice(2).map((a) => ({ n: Number(a) }));
   if (env.PR_NUMBER) prs.push({ n: Number(env.PR_NUMBER), sha: env.PR_HEAD || undefined });
-  const queued = env.QUEUE_REF ? parseQueueRef(env.QUEUE_REF) : null;
-  if (queued) prs.push({ n: queued.pr, sha: queued.sha });
-  else if (env.QUEUE_REF) say('warning', `no PR number in merge-group ref ${env.QUEUE_REF}`);
-  if (prs.length === 0) say('warning', 'no PR number given (argument, PR_NUMBER or QUEUE_REF)');
-
-  const rows: string[] = [];
-  let failed = prs.length === 0;
-  for (const { n, sha } of prs) {
-    let head = sha ? short(sha) : '';
-    let verdict = 'ERROR';
-    let reason: string;
-    try {
-      // Fetched as objects for merge-tree only: never checked out, never run.
-      const pull = `+refs/pull/${n}/head:refs/lead-verified/pr-${n}`;
-      const main = '+refs/heads/main:refs/remotes/origin/main';
-      execFileSync('git', ['fetch', '-q', '--no-tags', 'origin', pull, main]);
-      const pr = loadPull(repo, n);
-      head = short(pr.headSha);
-      if (sha && sha.toLowerCase() !== pr.headSha) {
-        [verdict, reason] = ['NOT_VERIFIED', `PR head is now ${head}, not ${short(sha)}`];
-      } else {
-        const git = gitOps(process.cwd(), env.MAIN_REF || 'origin/main');
-        ({ verdict, reason } = evaluate(pr, git, { authors: authors.map((a) => a.trim()) }));
-      }
-    } catch (err) {
-      reason = `could not evaluate: ${(err as Error).message.split('\n')[0]}`;
-    }
-    if (verdict !== 'VERIFIED') failed = true;
-    say(verdict === 'VERIFIED' ? 'notice' : 'warning', `PR #${n} ${head}: ${verdict}: ${reason}`);
-    rows.push(`| #${n} | \`${head}\` | ${verdict} | ${tableCell(reason)} |`);
+  for (const { n, sha } of prs)
+    rows.push(
+      checkPr(
+        repo,
+        n,
+        sha,
+        authors.map((a) => a.trim()),
+        mainRef
+      )
+    );
+  if (rows.length === 0) {
+    rows.push({
+      pr: 'event',
+      head: '',
+      verdict: 'NOT_VERIFIED',
+      reason: 'no PR number given (argument, PR_NUMBER or QUEUE_REF)',
+    });
+  }
+  for (const r of rows) {
+    say(
+      r.verdict === 'VERIFIED' ? 'notice' : 'warning',
+      `${r.pr} ${r.head}: ${r.verdict}: ${r.reason}`
+    );
   }
 
   const summary = [`### ${title}`, '', '| PR | head | verdict | reason |', '| - | - | - | - |']
-    .concat(rows, '', 'How to mark a PR verified: docs/ci/ci-inventory.md (lead-verified.yml).', '')
+    .concat(
+      rows.map((r) => `| ${r.pr} | \`${r.head}\` | ${r.verdict} | ${tableCell(r.reason)} |`),
+      '',
+      'How to mark a PR verified: docs/ci/ci-inventory.md (lead-verified.yml).',
+      ''
+    )
     .join('\n');
   if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, summary);
   else console.log(summary);
-  if (enforce && failed) process.exit(1);
+  if (enforce && rows.some((r) => r.verdict !== 'VERIFIED')) process.exit(1);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

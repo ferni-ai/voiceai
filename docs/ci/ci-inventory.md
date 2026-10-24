@@ -119,6 +119,13 @@ comment, review or inline comment, blocks every PASS posted at or before it: kee
 words out of a PASS summary. A new push needs a new verdict, except a pure "merge main
 in" (no conflict, no extra edit), which carries the verdict forward.
 
+**Merge groups.** The repo squashes queue entries, so a queue commit has one parent and
+its PRs are the `(#N)` titles of the commits above main, plus the PR the ref names. Each
+PR is judged on its current head. A commit with no PR number blocks the group. Known
+gaps: a PR whose head moves after queueing is judged on the new head, not the queued one,
+and the PR can still rewrite its own judge until #2547 lands. `issue_comment` runs log a
+verdict but do not update the PR check, so re-run the check after a new verdict.
+
 ### design-system.yml
 
 **Purpose:** Validate design tokens, build packages

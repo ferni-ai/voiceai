@@ -3,8 +3,8 @@
  * pure "merge main in" on top of a verified SHA. The merge-tree cases run real git
  * in a throwaway repo; nothing touches the network.
  */
-import { execFileSync } from 'child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { execFileSync, spawnSync } from 'child_process';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -13,6 +13,7 @@ import {
   gitOps,
   markers,
   parseQueueRef,
+  queueMembers,
   tableCell,
   toPullRequest,
   type Comment,
