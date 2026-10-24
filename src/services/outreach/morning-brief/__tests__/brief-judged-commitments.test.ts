@@ -23,7 +23,7 @@ vi.mock('../../../superhuman/commitment-follow-up.js', async (orig) => ({
 
 const { readDay } = await import('../default-deps.js');
 const { judgedCommitmentDocs } = await import('../../../superhuman/judged-commitments.js');
-const { requestedFields } = await import('../../../superhuman/commitment-single-writer.js');
+const { requestedFieldsFor } = await import('../../../superhuman/commitment-single-writer.js');
 
 const NOW = new Date('2026-10-18T13:05:00Z');
 /** The brief carries commitments only with MORNING_BRIEF_COMMITMENTS on (default-deps.ts). */
@@ -74,12 +74,9 @@ describe('morning brief commitments', () => {
   it('flag on: a row the caller asked a tool for reads as on main, unless about a forgotten person', async () => {
     process.env.COMMITMENT_SINGLE_WRITER = 'on';
     // As recordCommitment writes them mid-call with the flag on.
+    const tag = await requestedFieldsFor('u1', { COMMITMENT_SINGLE_WRITER: 'on' });
     const asked = (id: string, statement: string, personInvolved?: string) =>
-      row(id, {
-        statement,
-        personInvolved,
-        ...requestedFields({ COMMITMENT_SINGLE_WRITER: 'on' }),
-      });
+      row(id, { statement, personInvolved, ...tag });
     // The forgotten one first, so the brief's limit of two can't hide a leak.
     h.rows = [
       asked('asked-forgotten', 'I need to call my sister about the trip', 'Mindy'),

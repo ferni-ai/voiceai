@@ -40,11 +40,16 @@ export const REQUESTED_SOURCE = 'user-request';
  * What a tool adds to the row it writes. Flag off: nothing, so the row is as on
  * main. Flag on: a tag, so the readers that hide the regex-era rows still show
  * what the caller asked for by name, even when the after-call judge missed it.
+ * Decided per person, as the readers decide (singleWriterFor), not from the
+ * mid-call env: if the cohort read at call start timed out, the env says off
+ * while the readers say on, and an untagged row would be hidden.
  */
-export function requestedFields(env: Record<string, string | undefined> = process.env): {
-  source?: typeof REQUESTED_SOURCE;
-} {
-  return isCommitmentSingleWriterOn(env) ? { source: REQUESTED_SOURCE } : {};
+export async function requestedFieldsFor(
+  userId: string,
+  env: Record<string, string | undefined> = process.env,
+  store?: CohortStore
+): Promise<{ source?: typeof REQUESTED_SOURCE }> {
+  return (await singleWriterFor(userId, env, store)) ? { source: REQUESTED_SOURCE } : {};
 }
 
 /** A stored row the after-call judge wrote. */

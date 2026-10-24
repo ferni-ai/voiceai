@@ -59,6 +59,7 @@ const { trackCommitmentDef } = await import('../tools/domains/proactive/index.js
 const { loadActiveCommitmentsOrThrow, commitmentCache } =
   await import('../services/superhuman/commitment-store.js');
 const { loadCallCheckIns } = await import('../services/superhuman/commitment-follow-up.js');
+const { forgetFlagCache } = await import('../services/platform/cohort-flags.js');
 
 const UID = 'u-writer';
 const START = new Date('2026-10-20T15:00:00Z');
@@ -110,6 +111,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   delete process.env.COMMITMENT_SINGLE_WRITER;
+  delete process.env.COHORT_FLAGS;
+  forgetFlagCache();
 });
 
 describe('the per-turn context builder', () => {
@@ -159,6 +162,45 @@ describe('a commitment the caller asks a tool for', () => {
     await track()({ summary: 'send Jen the deck by Friday', type: 'promise' });
     expect((await loadActiveCommitmentsOrThrow(UID)).map((c) => c.summary)).toEqual([
       'send Jen the deck by Friday',
+    ]);
+  });
+});
+
+/**
+ * The tool decides per person, as the readers do (singleWriterFor), not from
+ * the mid-call env: when the cohort read at call start times out (400 ms) or
+ * is skipped, the env says off while the person's own value is on.
+ */
+describe('a tool row, when the call env and the person disagree', () => {
+  const personSays = (value: 'on' | 'off') => {
+    process.env.COHORT_FLAGS = 'on';
+    fs.store.set(`feature_flag_overrides/${UID}`, { flags: { COMMITMENT_SINGLE_WRITER: value } });
+  };
+
+  it('env off, person on: tagged, so the readers that hide legacy rows still show it', async () => {
+    personSays('on');
+    await record()(DECK);
+    await track()({ summary: 'book the dentist for Friday', type: 'promise' });
+    const tagged = rows()
+      .filter((r) => r.source === 'user-request')
+      .map((r) => r.summary);
+    expect(tagged.sort()).toEqual(['book the dentist for Friday', 'send Jen the deck']);
+    expect((await loadActiveCommitmentsOrThrow(UID)).map((c) => c.summary).sort()).toEqual([
+      'book the dentist for Friday',
+      'send Jen the deck',
+    ]);
+  });
+
+  it('env on, person off: stored as on main, and shown with the legacy row', async () => {
+    process.env.COMMITMENT_SINGLE_WRITER = 'on';
+    personSays('off');
+    await record()(DECK);
+    await track()({ summary: 'book the dentist for Friday', type: 'promise' });
+    expect(rows().filter((r) => 'source' in r)).toEqual([]);
+    expect((await loadActiveCommitmentsOrThrow(UID)).map((c) => c.summary).sort()).toEqual([
+      'book the dentist for Friday',
+      'send Jen the deck',
+      'sign off now',
     ]);
   });
 });
