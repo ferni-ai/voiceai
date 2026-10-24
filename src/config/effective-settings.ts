@@ -63,7 +63,8 @@ const PRINTABLE: ReadonlyMap<string, RegExp> = new Map([
  */
 const VOICE_ID_NAME = /^[A-Z0-9_]+_VOICE_ID$/;
 const VOICE_ID_VALUE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const isVoiceId = (name: string) => VOICE_ID_NAME.test(name) && ENV_CLASSIFICATION[name] === 'config';
+const isVoiceId = (name: string) =>
+  VOICE_ID_NAME.test(name) && ENV_CLASSIFICATION[name] === 'config';
 
 /**
  * Words a flag may show: `on`, `off` and the other words the manifest uses as
@@ -83,7 +84,7 @@ const FLAG_WORDS: ReadonlySet<string> = new Set([
 ]);
 
 /** A flag's resolved value: its env value lower-cased, or the manifest default when unset. */
-function flagValue(name: FlagName, env: Env): string {
+export function flagValue(name: FlagName, env: Env): string {
   const raw = env[name]?.trim().toLowerCase();
   if (!raw) return FLAG_MANIFEST[name].default;
   return FLAG_WORDS.has(raw) ? raw : SET;
@@ -106,6 +107,12 @@ function hashOf(map: Readonly<Record<string, string>>): string {
   return createHash('sha256').update(JSON.stringify(sorted)).digest('hex').slice(0, 16);
 }
 
+/** The commit this process was built from (build-sha.ts), as the boot line prints it. */
+export function buildCommit(env: Env = process.env): string {
+  const commit = env.BUILD_SHA?.trim() ?? '';
+  return commit ? (PRINTABLE.get('BUILD_SHA')?.test(commit) ? commit : SET) : 'unknown';
+}
+
 export function effectiveSettings(env: Env = process.env): EffectiveSettings {
   const flags: Record<string, string> = {};
   for (const name of Object.keys(FLAG_MANIFEST) as FlagName[]) {
@@ -124,9 +131,8 @@ export function effectiveSettings(env: Env = process.env): EffectiveSettings {
     Object.entries({ ...flags, ...envMap }).filter(([, v]) => v !== SET && v !== UNSET)
   );
 
-  const commit = env.BUILD_SHA?.trim() ?? '';
   return {
-    commit: commit ? (PRINTABLE.get('BUILD_SHA')?.test(commit) ? commit : SET) : 'unknown',
+    commit: buildCommit(env),
     hash: hashOf(printed),
     flags,
     env: envMap,
