@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { errorFields } from '../../../utils/error-class.js';
 import type { SemanticRouter } from '../router.js';
 import { createSemanticRouter, routeUserInput } from '../router.js';
 import type {
@@ -36,11 +37,7 @@ import { recordRoutingEvent, recordRoutingOutcome } from './routing-analytics.js
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
 
 // Phase 5: Adversarial Defense - sanitize inputs before routing
-import {
-  sanitizeInput,
-  shouldBlockInput,
-  recordDefenseStats,
-} from '../defense/index.js';
+import { sanitizeInput, shouldBlockInput, recordDefenseStats } from '../defense/index.js';
 import { hasDomainMapping, executeDomainTool } from '../domain-bridge/index.js';
 
 // SOTA Integration - 4 "Better Than Human" learning systems
@@ -221,7 +218,7 @@ export async function startSemanticRouting(
   userText: string,
   context: RoutingContext
 ): Promise<TurnRouterResult> {
-  log.info({ userText, enabled: isRoutingEnabled() }, '🎯 Semantic routing started');
+  log.info({ userTextLength: userText.length, enabled: isRoutingEnabled() }, '🎯 Semantic routing started');
 
   if (!isRoutingEnabled()) {
     log.warn('⚠️ Semantic routing DISABLED - will fall back to JSON workaround');
@@ -242,7 +239,7 @@ export async function startSemanticRouting(
     const latencyMs = Math.round(performance.now() - startTime);
     log.warn(
       {
-        userText: userText.slice(0, 50),
+        userTextLength: userText.length,
         threats: sanitizationResult.threats.map((t) => t.type),
         riskScore: sanitizationResult.riskScore,
         latencyMs,
@@ -316,7 +313,10 @@ export async function startSemanticRouting(
       log.debug({ error: String(sotaError) }, 'SOTA pre-routing skipped (non-fatal)');
     }
 
-    log.info({ userText, sanitizedText }, '🔍 Routing user input (using sanitized text)');
+    log.info(
+      { userTextLength: userText.length, sanitizedLength: sanitizedText.length },
+      '🔍 Routing user input (using sanitized text)'
+    );
     // Map conversation history to expected format (or skip if types mismatch)
     const mappedHistory = context.conversationHistory?.map((turn) => ({
       role: turn.role as 'user' | 'assistant',
@@ -375,7 +375,7 @@ export async function startSemanticRouting(
       recordConversation(context.userId, context.sessionId, userText, latencyMs);
 
       log.info(
-        { userText: userText.slice(0, 50), confidence: topMatch?.confidence || 0 },
+        { userTextLength: userText.length, confidence: topMatch?.confidence || 0 },
         '💬 SEMANTIC → CONVERSATION (no tool needed, LLM handles naturally)'
       );
 
@@ -561,7 +561,7 @@ export async function startSemanticRouting(
     }
 
     // No matches at all - pure conversation
-    log.info({ userText: userText.slice(0, 50) }, '💬 SEMANTIC → NO MATCH (pure conversation)');
+    log.info({ userTextLength: userText.length }, '💬 SEMANTIC → NO MATCH (pure conversation)');
 
     return {
       attempted: true,
@@ -575,10 +575,7 @@ export async function startSemanticRouting(
     };
   } catch (error) {
     const latencyMs = Math.round(performance.now() - startTime);
-    log.warn(
-      { error: String(error) },
-      '❌ SEMANTIC → ROUTING ERROR (falling back to JSON workaround)'
-    );
+    log.warn(errorFields(error), '❌ SEMANTIC → ROUTING ERROR (falling back to JSON workaround)');
     recordRoutingError(context.userId, context.sessionId, userText, String(error), latencyMs);
     // No analytics event ID in error case since we failed before recording
     // sotaResult may be undefined if error occurred before SOTA pre-routing
@@ -938,7 +935,7 @@ export function logRoutingSummary(
 
   log.info(
     {
-      input: userText.slice(0, 50),
+      inputLength: userText.length,
       path: result.routingPath,
       toolId: result.toolId,
       confidence: result.confidence?.toFixed(2),

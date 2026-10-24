@@ -260,7 +260,7 @@ export class GoalPlanner {
 
       log.info(
         {
-          goal: userGoal.slice(0, 50),
+          goalLength: userGoal.length,
           stepCount: plan.steps.length,
           confidence: plan.confidence,
           durationMs: performance.now() - startTime,
@@ -533,7 +533,7 @@ Respond ONLY with valid JSON:`;
 
     log.info(
       {
-        goal: plan.goal.slice(0, 50),
+        goalLength: plan.goal.length,
         status: state.status,
         completed: state.completedSteps.length,
         failed: state.failedSteps.length,

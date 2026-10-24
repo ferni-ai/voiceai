@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { errorFields } from '../../../../utils/error-class.js';
 import {
   GEMINI_MODEL,
   GEMINI_TEMPERATURE_LOW,
@@ -191,10 +192,9 @@ export class LLMFallbackRouter {
       ]);
 
       const parsed = this.parseSelectionResponse(response, candidates);
-
       log.info(
         {
-          input: userInput.slice(0, 50),
+          inputLength: userInput.length,
           selected: parsed.selectedToolId,
           confidence: parsed.confidence,
           needsClarification: parsed.needsClarification,
@@ -209,7 +209,7 @@ export class LLMFallbackRouter {
         wasTriggered: true,
       };
     } catch (error) {
-      log.error({ error }, 'LLM fallback failed');
+      log.error(errorFields(error), 'LLM fallback failed');
 
       // Fall back to top semantic candidate
       return {

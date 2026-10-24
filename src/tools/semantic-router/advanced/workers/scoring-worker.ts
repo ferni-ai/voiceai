@@ -315,7 +315,7 @@ export class ScoringWorker {
     // Log if native path was used
     if (isBatchToolScoringNativeAvailable() && profilesArray.length >= 5) {
       log.debug(
-        { query: normalizedQuery.slice(0, 50), profileCount: profilesArray.length },
+        { queryLength: normalizedQuery.length, profileCount: profilesArray.length },
         '🦀 Rust-accelerated tool scoring'
       );
     }
