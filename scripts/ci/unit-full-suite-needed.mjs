@@ -48,7 +48,8 @@ export function changedFiles(root = process.cwd(), base = 'HEAD^1') {
 
 /** The first repo-relative path that matches a trigger, as vitest matches it, or undefined. */
 export function firstTrigger(files, triggers, root = process.cwd()) {
-  const isMatch = vitestPicomatch()(triggers);
+  // vitest matches triggers with { dot: true }, so dot directories count too.
+  const isMatch = vitestPicomatch()(triggers, { dot: true });
   return files.find((file) => isMatch(resolve(root, file)));
 }
 

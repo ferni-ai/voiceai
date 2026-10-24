@@ -32,6 +32,9 @@ describe('which changed files make vitest --changed run the whole unit suite', (
     ['tsconfig.json', true],
     ['src/tests/setup.ts', true],
     ['src/personas/bundles/ferni/prompt.md', true],
+    // Inside dot directories: vitest matches with { dot: true } (verify of #2715).
+    ['src/personas/bundles/.templates/sage/persona.manifest.json', true],
+    ['src/personas/bundles/shared/.backups-2026-01-18/voice-guidance.md', true],
     ['src/agents/shared/call-launch-hint.ts', false],
     ['src/agents/shared/__tests__/call-launch-hint.test.ts', false],
     ['docs/decisions/register.md', false],
