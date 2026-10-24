@@ -35,7 +35,7 @@ export const BQ_ENUMS = {
   reason: [
     ...['no-hash-secret', 'no-verified-phone', 'recently-sent', 'sms-off', 'opted-out'],
     ...['send-failed', 'bad-number', 'quiet-hours', 'needs-consent'],
-    ...['consent-unknown', 'paused'],
+    ...['consent-unknown', 'paused', 'focus-held'],
     ...['fallback_from_in_app', 'fallback_from_sms', 'fallback_from_voice_call'],
   ],
   // turn_metrics (agents/shared/turn-receipt.ts)

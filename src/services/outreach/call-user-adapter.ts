@@ -31,6 +31,7 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'no-verified-phone': "there's no verified phone number on your account",
   'no-hash-secret': "texting isn't set up here",
   'send-failed': "the text didn't go through",
+  'focus-held': "your Focus is on, so it'll come when that ends",
 };
 
 /** No second immediate text within a minute: a loop can't spam the owner. */
