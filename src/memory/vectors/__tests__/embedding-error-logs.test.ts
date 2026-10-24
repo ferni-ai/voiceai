@@ -1,7 +1,8 @@
 /**
- * A failed embedding request must log what failed, never what was embedded: the
- * provider's error carries the response body, and that can echo the text sent
- * (a caller's fact) back. Only the error class is logged.
+ * A refused embedding request must name what failed, never what was embedded: the
+ * response body can echo the text sent (a caller's fact) back. The error keeps
+ * the numeric HTTP status and a fixed message; the log line carries its class and
+ * status only.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,10 +41,20 @@ describe('embedding provider error logs', () => {
 
   it.each(providers)('%s logs the error class, not the response body', async (_name, make) => {
     vi.stubGlobal('fetch', echoingFetch());
-    await expect(make().embedBatch([SENTINEL])).rejects.toThrow();
-    const errors = logged.filter((args) => JSON.stringify(args).includes('"error"'));
-    expect(errors).toHaveLength(1);
+    const thrown = (await make()
+      .embedBatch([SENTINEL])
+      .then(
+        () => undefined,
+        (e: unknown) => e
+      )) as Error & { status?: number };
+    expect(thrown).toBeInstanceOf(Error);
+    expect(thrown.message).not.toContain(SENTINEL);
+    expect(thrown.message).toMatch(/API error: 400$/);
+    expect(thrown.status).toBe(400);
     expect(JSON.stringify(logged)).not.toContain(SENTINEL);
-    expect(errors[0][0]).toEqual({ error: 'Error' });
+    expect(logged.map(([fields]) => fields)).toContainEqual({
+      error: 'EmbeddingApiError',
+      status: 400,
+    });
   });
 });

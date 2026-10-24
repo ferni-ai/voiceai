@@ -19,7 +19,8 @@ import {
   hashContent,
   type CoalescerStats,
 } from '../../utils/request-coalescer.js';
-import { errorClass } from '../../utils/error-class.js';
+import { errorFields } from '../../utils/error-class.js';
+import { EmbeddingApiError } from './embedding-api-error.js';
 import { getLogger } from '../../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import {
@@ -184,8 +185,6 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
         });
 
         if (!response.ok) {
-          const error = await response.text();
-
           // Retry on rate limit (429) errors
           if (response.status === 429 && retryCount < MAX_RETRIES) {
             getLogger().warn(
@@ -197,7 +196,7 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
             return this.embedBatch(texts, retryCount + 1);
           }
 
-          throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+          throw new EmbeddingApiError('OpenAI', response.status);
         }
 
         const data = (await response.json()) as {
@@ -220,7 +219,7 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
         return results;
       });
     } catch (error) {
-      getLogger().error({ error: errorClass(error) }, 'Embedding failed');
+      getLogger().error(errorFields(error), 'Embedding failed');
       throw error;
     }
   }
@@ -323,8 +322,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
         });
 
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Google AI API error: ${response.status} - ${error}`);
+          throw new EmbeddingApiError('Google AI', response.status);
         }
 
         const data = (await response.json()) as {
@@ -343,7 +341,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
         return results;
       });
     } catch (error) {
-      getLogger().error({ error: errorClass(error) }, 'Google embedding failed');
+      getLogger().error(errorFields(error), 'Google embedding failed');
       throw error;
     }
   }
@@ -445,8 +443,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
             });
             const response = await postWithBackoff(url, { method: 'POST', headers, body });
             if (!response.ok) {
-              const error = await response.text();
-              throw new Error(`Vertex AI API error: ${response.status} - ${error}`);
+              throw new EmbeddingApiError('Vertex AI', response.status);
             }
             const data = (await response.json()) as {
               predictions: Array<{ embeddings: { values: number[] } }>;
@@ -466,7 +463,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
       getLogger().debug(`Generated ${validTexts.length} Vertex AI embeddings (${this._model})`);
       return results;
     } catch (error) {
-      getLogger().error({ error: errorClass(error) }, 'Vertex AI embedding failed');
+      getLogger().error(errorFields(error), 'Vertex AI embedding failed');
       throw error;
     }
   }

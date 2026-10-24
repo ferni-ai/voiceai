@@ -17,6 +17,7 @@ vi.mock('../../embeddings.js', () => ({
   embed: async () => {
     const error = new Error(`400 could not embed ${SENTINEL}, retry`);
     error.name = 'VertexEchoError';
+    Object.assign(error, { status: 503 });
     throw error;
   },
 }));
@@ -33,6 +34,9 @@ describe('UnifiedMemoryStoreFacade.store embedding failure', () => {
     await store.store({ userId: 'u1', type: 'fact', content: SENTINEL } as never);
 
     expect(JSON.stringify(logged)).not.toContain(SENTINEL);
-    expect(logged).toContainEqual([{ error: 'VertexEchoError' }, 'Failed to generate embedding']);
+    expect(logged).toContainEqual([
+      { error: 'VertexEchoError', status: 503 },
+      'Failed to generate embedding',
+    ]);
   });
 });

@@ -14,7 +14,7 @@
  */
 
 import type { RetrievalRole } from '../vectors/retrieval-embeddings.js';
-import { errorClass } from '../../utils/error-class.js';
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SemanticRecall' });
@@ -181,7 +181,7 @@ export function createSemanticIndex(
             built = true;
           },
           (error: unknown) =>
-            log.warn({ error: errorClass(error), items: items.length }, 'Recall index not built')
+            log.warn({ ...errorFields(error), items: items.length }, 'Recall index not built')
         );
 
   // One search at a time; what it finds joins the index for later matches().
@@ -194,7 +194,7 @@ export function createSemanticIndex(
           for (const f of found)
             if (f.vector?.length && !vectors.has(f.id)) vectors.set(f.id, f.vector);
         },
-        (error: unknown) => log.debug({ error: errorClass(error) }, 'Nearest items not found')
+        (error: unknown) => log.debug(errorFields(error), 'Nearest items not found')
       )
       .finally(() => {
         searching = false;
@@ -209,7 +209,7 @@ export function createSemanticIndex(
           if (job.turn === turn && vector?.length) latest = { turn: job.turn, vector };
           if (vector?.length) search(vector);
         },
-        (error: unknown) => log.debug({ error: errorClass(error) }, 'Turn not embedded')
+        (error: unknown) => log.debug(errorFields(error), 'Turn not embedded')
       )
       .finally(() => {
         inFlight = false;

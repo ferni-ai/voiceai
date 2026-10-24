@@ -19,6 +19,7 @@ import { createSemanticIndex, type RetrievalEmbedder } from '../semantic-recall.
 const SENTINEL = 'my sister Dolores has stage-three lupus';
 
 class VertexEchoError extends Error {
+  readonly status = 429;
   readonly body = `{"error":"invalid input ${SENTINEL}"}`;
   constructor() {
     super(`400 could not embed ${SENTINEL}, retry`);
@@ -29,13 +30,16 @@ class VertexEchoError extends Error {
 const failing: RetrievalEmbedder = async () => {
   throw new VertexEchoError();
 };
-const settle = () => new Promise((r) => setTimeout(r, 0));
+const settle = () =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
+  });
 
-/** Every logged call, as one string, with the error class it must carry. */
+/** Nothing logged holds the fact; the error's class and numeric status are logged. */
 function expectOnlyTheClass() {
   expect(JSON.stringify(logged)).not.toContain(SENTINEL);
-  expect(logged.some(([fields]) => (fields as { error?: string })?.error === 'VertexEchoError')).toBe(
-    true
+  expect(logged.map(([fields]) => fields)).toContainEqual(
+    expect.objectContaining({ error: 'VertexEchoError', status: 429 })
   );
 }
 

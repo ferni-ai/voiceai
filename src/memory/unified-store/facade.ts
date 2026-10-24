@@ -10,7 +10,7 @@
  * @module memory/unified-store/facade
  */
 
-import { errorClass } from '../../utils/error-class.js';
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { v4 as uuidv4 } from 'uuid';
 import { embed } from '../embeddings.js';
@@ -172,7 +172,7 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
 
     if (embedding.length === 0) {
       embedding = await embed(input.content).catch((error: unknown) => {
-        log.warn({ error: errorClass(error) }, 'Failed to generate embedding');
+        log.warn(errorFields(error), 'Failed to generate embedding');
         return [];
       });
     }

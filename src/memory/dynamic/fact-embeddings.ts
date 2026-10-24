@@ -12,7 +12,7 @@
 
 import { FieldValue } from '@google-cloud/firestore';
 import { withTimeout } from '../../utils/async.js';
-import { errorClass } from '../../utils/error-class.js';
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   defaultEmbedder,
@@ -65,7 +65,7 @@ export async function withFactEmbeddings(
         : f
     );
   } catch (error) {
-    log.warn({ error: errorClass(error), facts: facts.length }, 'Facts written without vectors');
+    log.warn({ ...errorFields(error), facts: facts.length }, 'Facts written without vectors');
     return facts;
   }
 }
