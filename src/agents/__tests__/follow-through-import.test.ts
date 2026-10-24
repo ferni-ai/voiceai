@@ -33,15 +33,16 @@ function fakeDb(): Firestore {
       path: `${path}/${id}`,
       collection: (n: string) => coll(`${path}/${id}/${n}`),
     }),
-    where: (field: string, _op: string, value: unknown) => ({
-      limit: () => ({
-        get: async () => ({
-          docs: [...h.docs.keys()]
-            .filter((p) => p.startsWith(`${path}/`) && h.docs.get(p)?.[field] === value)
-            .map(snap),
-        }),
-      }),
-    }),
+    where: (field: string, op: string, value: unknown) => {
+      const hit = (v: unknown) => (op === 'in' ? (value as unknown[]).includes(v) : v === value);
+      const get = async () => ({
+        docs: [...h.docs.keys()]
+          .filter((p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
+          .filter((p) => hit(h.docs.get(p)?.[field]))
+          .map(snap),
+      });
+      return { get, limit: () => ({ get }) };
+    },
   });
   return {
     collection: (name: string) => coll(name),
@@ -61,6 +62,12 @@ const { rememberDispatchIdentity } = await import('../voice-agent-entry/caller-r
 const { setOutboundCallContext } =
   await import('../../intelligence/context-builders/external/outbound-call-context.js');
 const { importFollowUpsAfterCall } = await import('../follow-through-import.js');
+const { createFollowUpStore } = await import('../../services/stores/follow-through-store.js');
+const { createFollowUpSources } = await import('../../services/stores/follow-through-sources.js');
+const { toDateObservations } = await import('../../intelligence/world-model/dates/extract.js');
+const { recordDates } = await import('../../intelligence/world-model/dates/store.js');
+const { createMemoryWorldFactStore } =
+  await import('../../intelligence/world-model/temporal/__tests__/memory-store.js');
 
 const NOW = Date.parse('2026-10-17T15:00:00.000Z');
 const DAY = 86_400_000;
@@ -284,5 +291,96 @@ describe('BOOKENDS: timed one-time dates come in with eventAt, per person', () =
     }
     const date = followUps('owner-1').find((f) => f.kind === 'date');
     expect(date?.salience).toMatchObject({ heavy: false, sensitive: false });
+  });
+});
+
+describe('BOOKENDS: a time said differently on a later call moves the bookend (#2527)', () => {
+  // Sat 2026-10-17 09:00 in Denver (MDT, UTC-6): "friday" is 10-23, "monday" 10-19.
+  let facts = createMemoryWorldFactStore();
+  const say = (when: string, correction = false) =>
+    recordDates(
+      'owner-1',
+      toDateObservations(
+        [{ who: 'self', what: 'biopsy', kind: 'medical', when, recurring: false, past: false, correction, unsure: false, confidence: 0.9 }], // prettier-ignore
+        { sessionId: 's1', observedAt: new Date(NOW).toISOString(), callDate: '2026-10-17' }
+      ),
+      facts,
+      '2026-10-17'
+    );
+  const cohorts = {
+    cohortsFor: async () => [{ id: 'seth', enabled: true, flags: { FOLLOW_THROUGH_IMPORT: 'on', BOOKENDS: 'on' } }], // prettier-ignore
+    overridesFor: async () => ({}),
+  };
+  const importNow = (store = createFollowUpStore(fakeDb())) =>
+    importFollowUpsAfterCall(call('owner-1', 's-move'), {
+      env: { COHORT_FLAGS: 'on' },
+      cohorts,
+      verifiedOwner: () => true,
+      now: () => new Date(NOW),
+      stores: () => ({ store, sources: createFollowUpSources(fakeDb(), { facts }) }),
+    });
+  /** [status, eventAt] of each date follow-up. */
+  const bookends = () =>
+    followUps('owner-1')
+      .filter((f) => f.kind === 'date')
+      .map((f) => [f.status, f.eventAt]);
+
+  beforeEach(() => {
+    delete process.env.FOLLOW_THROUGH_IMPORT;
+    facts = createMemoryWorldFactStore();
+  });
+
+  it('"friday at 3pm", then "friday at 4pm": one bookend, now at 16:00', async () => {
+    await say('friday at 3pm');
+    await importNow();
+    expect(bookends()).toEqual([['open', '2026-10-23T21:00:00.000Z']]);
+    await say('friday at 4pm');
+    expect(facts.all('owner-1')).toMatchObject([{ eventDate: '2026-10-23', at: '16:00' }]);
+    await importNow();
+    expect(bookends()).toEqual([['open', '2026-10-23T22:00:00.000Z']]);
+  });
+
+  it('then just "friday": it stays at 16:00', async () => {
+    await say('friday at 4pm');
+    await importNow();
+    await say('friday');
+    await importNow();
+    expect(facts.all('owner-1')).toMatchObject([{ eventDate: '2026-10-23', at: '16:00' }]);
+    expect(bookends()).toEqual([['open', '2026-10-23T22:00:00.000Z']]);
+  });
+
+  it('a correction to 4pm moves it to 16:00', async () => {
+    await say('friday at 3pm');
+    await importNow();
+    await say('friday at 4pm', true);
+    await importNow();
+    expect(bookends()).toEqual([['open', '2026-10-23T22:00:00.000Z']]);
+  });
+
+  it('a time that is no longer clear ("friday at 12am") takes the time off it', async () => {
+    await say('friday at 3pm');
+    await importNow();
+    await say('friday at 12am');
+    await importNow();
+    expect(facts.all('owner-1')[0]).not.toHaveProperty('at');
+    expect(bookends()).toEqual([['open', null]]);
+  });
+
+  it('a new day releases the old bookend and makes one on the new day', async () => {
+    await say('friday at 3pm');
+    await importNow();
+    await say('monday at 3pm');
+    await importNow();
+    expect(bookends().sort()).toEqual([
+      ['open', '2026-10-19T21:00:00.000Z'],
+      ['released', '2026-10-23T21:00:00.000Z'],
+    ]);
+  });
+
+  it('when the live follow-ups cannot be read, no bookend comes in at all', async () => {
+    await say('friday at 3pm');
+    const store = createFollowUpStore(fakeDb());
+    await importNow({ ...store, live: async () => Promise.reject(new Error('down')) });
+    expect(bookends()).toEqual([]);
   });
 });

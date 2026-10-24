@@ -38,7 +38,7 @@ export type {
   SourceItem,
   SourceOptions,
 } from './ports.js';
-export { bookendSourceItems, type BookendDateFact } from './bookend-source.js';
+export { bookendSourceItems, bookendUpdates, type BookendDateFact } from './bookend-source.js';
 export { importFollowUps, type ImportResult } from './import-follow-ups.js';
 export {
   deferredCallOutcome,

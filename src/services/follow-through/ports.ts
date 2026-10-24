@@ -58,11 +58,16 @@ export interface SourceItem extends SourceBrainFields {
   readonly repeat: NewFollowUp['repeat'];
   readonly source: NewFollowUp['source'];
   readonly zone?: string;
+  /** Bookends: the date it was made from is closed or gone, so the follow-up is released. */
+  readonly gone?: true;
 }
 
 export interface SourceOptions {
-  /** BOOKENDS on for this person: timed one-time dates come in too, read in this zone. */
-  readonly bookends?: { readonly zone: string };
+  /**
+   * BOOKENDS on for this person: timed one-time dates come in too, read in this zone.
+   * `made`: the facts live bookends were made from; each comes back as it is now.
+   */
+  readonly bookends?: { readonly zone: string; readonly made?: readonly string[] };
 }
 
 export interface FollowUpSources {

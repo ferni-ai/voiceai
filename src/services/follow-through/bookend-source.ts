@@ -60,39 +60,66 @@ function eventInstant(day: string, at: string, zone: string): Date | null {
   return zonedWallTimeToUtc({ year, month, day: dayOfMonth, hour, minute }, zone);
 }
 
+/** When the fact's bookend happens, passed or not; null when it can't have one. */
+function bookendInstant(f: BookendDateFact, zone: string): Date | null {
+  if (f.validTo !== null || f.origin !== 'dates' || f.recurrence !== 'once') return null;
+  if (!BOOKEND_KINDS.has(f.kind ?? '') || f.needsConfirmation || !f.eventDate || !f.at) return null;
+  return eventInstant(f.eventDate, f.at, zone);
+}
+
+function itemOf(f: BookendDateFact, eventAt: Date | null, opts: BookendSourceOptions): SourceItem {
+  const kind = f.kind ?? '';
+  const text = f.subject === 'self' ? f.value : `${f.subject}'s ${f.value}`;
+  const heavy = opts.heavy(text);
+  const salience: Salience = {
+    weight: WEIGHT[kind] ?? WEIGHT.event,
+    heavy,
+    // Health is sensitive even when the words read light ("checkup").
+    sensitive: heavy || kind === 'medical',
+    by: 'rule',
+    v: 1,
+  };
+  return {
+    kind: 'date' as const,
+    text,
+    dueAt: null,
+    repeat: null,
+    source: { store: 'world_facts', ref: f.id },
+    eventAt: eventAt?.toISOString() ?? null,
+    eventPrecision: eventAt ? ('time' as const) : ('none' as const),
+    askType: 'how-did-it-go' as const,
+    salience,
+  };
+}
+
 /** One follow-up source item per date fact a bookend can be built around. */
 export function bookendSourceItems(
   facts: readonly BookendDateFact[],
   opts: BookendSourceOptions
 ): SourceItem[] {
   return facts.flatMap((f) => {
-    const kind = f.kind ?? '';
-    if (f.validTo !== null || f.origin !== 'dates' || f.recurrence !== 'once') return [];
-    if (!BOOKEND_KINDS.has(kind) || f.needsConfirmation || !f.eventDate || !f.at) return [];
-    const eventAt = eventInstant(f.eventDate, f.at, opts.zone);
+    const eventAt = bookendInstant(f, opts.zone);
     if (!eventAt || eventAt.getTime() <= opts.now.getTime()) return [];
-    const text = f.subject === 'self' ? f.value : `${f.subject}'s ${f.value}`;
-    const heavy = opts.heavy(text);
-    const salience: Salience = {
-      weight: WEIGHT[kind],
-      heavy,
-      // Health is sensitive even when the words read light ("checkup").
-      sensitive: heavy || kind === 'medical',
-      by: 'rule',
-      v: 1,
-    };
-    return [
-      {
-        kind: 'date' as const,
-        text,
-        dueAt: null,
-        repeat: null,
-        source: { store: 'world_facts', ref: f.id },
-        eventAt: eventAt.toISOString(),
-        eventPrecision: 'time' as const,
-        askType: 'how-did-it-go' as const,
-        salience,
-      },
-    ];
+    return [itemOf(f, eventAt, opts)];
+  });
+}
+
+/**
+ * What each bookend already made from a fact (`made`: fact ids) should say now, so a
+ * time said differently on a later call moves it: the fact's time now, or eventAt null
+ * when it no longer has one to trust (dropped, or to be confirmed). A fact that is
+ * closed, forgotten or gone gives `gone`, but only when `facts` is all of them.
+ */
+export function bookendUpdates(
+  facts: readonly BookendDateFact[],
+  made: readonly string[],
+  opts: BookendSourceOptions & { readonly complete: boolean }
+): SourceItem[] {
+  return made.flatMap((ref) => {
+    const f = facts.find((x) => x.id === ref);
+    if (f) return [itemOf(f, bookendInstant(f, opts.zone), opts)];
+    if (!opts.complete) return [];
+    const source = { store: 'world_facts', ref };
+    return [{ kind: 'date' as const, text: '', dueAt: null, repeat: null, source, gone: true as const }]; // prettier-ignore
   });
 }

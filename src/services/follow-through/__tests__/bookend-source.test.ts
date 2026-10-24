@@ -6,7 +6,7 @@ import {
   type DateMention,
 } from '../../../intelligence/world-model/dates/extract.js';
 import { planDates, type DateFact } from '../../../intelligence/world-model/dates/store.js';
-import { bookendSourceItems, type BookendDateFact } from '../bookend-source.js';
+import { bookendSourceItems, bookendUpdates, type BookendDateFact } from '../bookend-source.js';
 
 const ET = 'America/New_York';
 /** Tuesday 2026-10-20, 10:00 in New York (EDT, UTC-4). */
@@ -123,5 +123,34 @@ describe('bookendSourceItems', () => {
       { ...timed, id: 'feb', eventDate: '2027-02-30' },
     ];
     expect(itemsFor(bad)).toEqual([]);
+  });
+});
+
+describe('bookendUpdates: a bookend already made keeps up with its fact', () => {
+  const [timed] = factsFrom(mention({}));
+  const update = (facts: readonly BookendDateFact[], complete = true) =>
+    bookendUpdates(facts, [timed.id], { zone: ET, now: TUE_10_ET, heavy, complete });
+
+  it('a new time on the same fact gives the new instant', () => {
+    expect(update([{ ...timed, at: '16:00' }])).toMatchObject([
+      { source: { ref: timed.id }, eventAt: '2026-10-22T20:00:00.000Z', eventPrecision: 'time' },
+    ]);
+  });
+
+  it('even once it has passed, so the after-ask is about the real time', () => {
+    const past = bookendUpdates([timed], [timed.id], { zone: ET, now: new Date('2026-10-23T00:00:00.000Z'), heavy, complete: true }); // prettier-ignore
+    expect(past[0].eventAt).toBe('2026-10-22T19:00:00.000Z');
+  });
+
+  it.each([
+    ['no time any more', { at: undefined }],
+    ['a day to confirm', { needsConfirmation: true }],
+  ])('%s: eventAt null', (_, over) => {
+    expect(update([{ ...timed, ...over }])).toMatchObject([{ eventAt: null, eventPrecision: 'none' }]); // prettier-ignore
+  });
+
+  it('a fact no longer open is gone; unknown when the facts are not all of them', () => {
+    expect(update([])).toMatchObject([{ source: { store: 'world_facts', ref: timed.id }, gone: true }]); // prettier-ignore
+    expect(update([], false)).toEqual([]);
   });
 });

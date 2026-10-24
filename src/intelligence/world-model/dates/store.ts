@@ -6,7 +6,8 @@
  * One store means one erasure path (eraseUserRecord deletes the user doc
  * recursively). Nothing reads these dates during a call yet.
  *
- * The same date heard again is refreshed; a yearly date (a birthday) or a
+ * The same date heard again is refreshed, and its time of day follows the newer
+ * words (timeHeardAgain); a yearly date (a birthday) or a
  * correction replaces the one on file for that person and kind; a one-time
  * date heard with a new day while the old day is still ahead is a reschedule
  * and replaces it too. An old one-time date that has passed stays, since the
@@ -19,6 +20,7 @@ import type { ResolutionPlan } from '../temporal/resolve.js';
 import { createFirestoreWorldFactStore, type WorldFactStore } from '../temporal/store.js';
 import { subjectKeyOf, type TemporalFact } from '../temporal/types.js';
 import type { DateObservation } from './extract.js';
+import { mentionsTime } from './strict-time.js';
 
 /** A stored fact, with the date fields when dates-that-matter wrote it. */
 export type DateFact = TemporalFact & Partial<Omit<DateObservation, keyof TemporalFact>>;
@@ -44,6 +46,20 @@ function sameThing(f: DateFact, o: DateObservation): boolean {
 }
 
 /**
+ * The time of day a date heard again should have, as a bookend is built on it (#2527):
+ * the newer words' time when they give one plainly; none when they change it doubtfully
+ * or muddle it (a correction, or any other word about a time); the old one only when
+ * they say nothing about a time ("Friday" after "Friday at 3pm"). Undefined: unchanged.
+ */
+function timeHeardAgain(f: DateFact, o: DateObservation): string | null | undefined {
+  if (o.at === f.at) return undefined;
+  if (o.at !== undefined)
+    return o.needsConfirmation ? (f.at === undefined ? undefined : null) : o.at;
+  if (f.at === undefined) return undefined;
+  return o.replaces !== undefined || mentionsTime(o.when) ? null : undefined;
+}
+
+/**
  * What a call's dates do to the facts on file (pure). callDay is the call's day
  * in the caller's timezone; without it, the UTC day it was observed.
  */
@@ -62,7 +78,10 @@ export function planDates(
     );
     if (heard) {
       const confidence = Math.max(heard.confidence, o.confidence);
-      plan.refresh.push({ id: heard.id, observedAt: o.observedAt, confidence });
+      const at = timeHeardAgain(heard, o);
+      plan.refresh.push({ id: heard.id, observedAt: o.observedAt, confidence, ...(at === undefined ? {} : { at }) }); // prettier-ignore
+      // A later mention in the same call compares with this one's time.
+      if (at !== undefined) live[live.indexOf(heard)] = { ...heard, at: at ?? undefined };
       continue;
     }
     const today = callDay ?? o.observedAt.slice(0, 10);

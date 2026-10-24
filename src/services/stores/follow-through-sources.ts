@@ -24,12 +24,14 @@
 import type { Firestore } from '@google-cloud/firestore';
 import {
   bookendSourceItems,
+  bookendUpdates,
   type BookendDateFact,
   type FollowUpSources,
   type SourceItem,
 } from '../follow-through/index.js';
 import {
   createFirestoreWorldFactStore,
+  MAX_OPEN_FACTS,
   type WorldFactStore,
 } from '../../intelligence/world-model/temporal/store.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
@@ -137,11 +139,20 @@ async function timedDates(
   facts: WorldFactStore,
   userId: string,
   forgotten: readonly string[],
-  opts: { zone: string; now: Date; heavy: (text: string) => boolean }
+  opts: { zone: string; made?: readonly string[]; now: Date; heavy: (text: string) => boolean }
 ): Promise<SourceItem[]> {
   const open = (await facts.listOpen(userId)) as BookendDateFact[];
   const kept = open.filter((f) => !isForgotten(`${f.subject} ${f.value}`, forgotten));
-  return bookendSourceItems(kept, opts);
+  const made = opts.made ?? [];
+  // A full page may have left a fact out: none counts as gone then.
+  const complete = open.length < MAX_OPEN_FACTS;
+  return [
+    ...bookendSourceItems(
+      kept.filter((f) => !made.includes(f.id)),
+      opts
+    ),
+    ...bookendUpdates(kept, made, { ...opts, complete }),
+  ];
 }
 
 export interface FollowUpSourceDeps {

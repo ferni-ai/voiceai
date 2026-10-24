@@ -279,5 +279,23 @@ describe('follow-through sources', () => {
       expect(await sources().itemsFor('u1', NOW, BOOKENDS)).toEqual([]);
       expect(facts.listOpen).toHaveBeenCalledTimes(1);
     });
+
+    it('a bookend already made comes back as its fact is now, once; one with no fact is gone', async () => {
+      const made = { bookends: { zone: 'America/New_York', made: ['wd_1', 'wd_9'] } };
+      const items = await sources().itemsFor('u1', NOW, made);
+      expect(items.map((i) => [i.source.ref, i.eventAt ?? null, i.gone ?? false])).toEqual([
+        ['wd_2', '2026-10-14T19:00:00.000Z', false],
+        ['wd_1', '2026-10-14T19:00:00.000Z', false],
+        ['wd_9', null, true],
+      ]);
+    });
+
+    it('a full page of facts may have left one out, so none is called gone', async () => {
+      const page = Array.from({ length: 200 }, (_, i) => fact(`wd_${i + 10}`, `visit ${i}`));
+      facts.listOpen.mockResolvedValueOnce(page);
+      const made = { bookends: { zone: 'America/New_York', made: ['wd_9'] } };
+      const items = await sources().itemsFor('u1', NOW, made);
+      expect(items.filter((i) => i.source.ref === 'wd_9')).toEqual([]);
+    });
   });
 });

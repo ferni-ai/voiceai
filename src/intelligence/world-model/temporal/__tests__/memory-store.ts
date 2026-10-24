@@ -28,9 +28,13 @@ export function createMemoryWorldFactStore(): WorldFactStore & {
         const old = m.get(id);
         if (old) m.set(id, { ...old, validTo, supersededBy });
       }
-      for (const { id, observedAt, confidence } of plan.refresh) {
+      for (const { id, observedAt, confidence, at } of plan.refresh) {
         const old = m.get(id);
-        if (old) m.set(id, { ...old, observedAt, confidence });
+        if (!old) continue;
+        const next: TemporalFact & { at?: string } = { ...old, observedAt, confidence };
+        if (at === null) delete next.at;
+        else if (at !== undefined) next.at = at;
+        m.set(id, next);
       }
     },
     all(userId) {
