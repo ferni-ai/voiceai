@@ -1284,7 +1284,7 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
-export { aboutForgotten } from './recall/forget-every-reader.js';
+export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { peopleOf } from './recall/people.js';

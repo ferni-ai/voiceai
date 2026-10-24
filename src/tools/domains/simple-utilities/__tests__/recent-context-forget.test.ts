@@ -13,6 +13,20 @@ const history = vi.hoisted(() => ({
   get: (async () => ({ sessions: [] })) as (userId: string) => Promise<unknown>,
 }));
 
+// The real read (no test seam) goes through forget-topics-source; tests drive its Firestore read.
+const prodRead = vi.hoisted(() => ({
+  fn: (async () => []) as (userId: string) => Promise<string[] | null>,
+}));
+vi.mock('../../../../memory/recall/forget.js', async (original) => {
+  const real = await original<typeof import('../../../../memory/recall/forget.js')>();
+  return {
+    ...real,
+    forgottenTopicsOrNull: (
+      userId: string,
+      store?: import('../../../../memory/recall/forget.js').ForgetStore
+    ) => (store ? real.forgottenTopicsOrNull(userId, store) : prodRead.fn(userId)),
+  };
+});
 vi.mock('../../../../services/superhuman/semantic-intelligence/promise-keeper.js', () => ({
   recordReminderPromise: vi.fn(async () => {}),
 }));
@@ -43,6 +57,7 @@ import {
   forgottenTopicsOrNull,
   type ForgetStore,
 } from '../../../../memory/recall/forget.js';
+import { resetForgetTopicsSource } from '../../../../memory/recall/forget-topics-source.js';
 import { essentialsToolDefinitions } from '../essentials-tools.js';
 import { setRecentContextTopicsReader } from '../recent-context-forget.js';
 
@@ -82,6 +97,9 @@ const SESSIONS = {
 };
 
 afterEach(() => {
+  vi.useRealTimers();
+  resetForgetTopicsSource();
+  prodRead.fn = async () => [];
   setRecentContextTopicsReader(undefined);
   memories.contents = [];
   history.get = async () => ({ sessions: [] });
@@ -180,4 +198,25 @@ describe('recentContext and forgotten topics', () => {
     expect(said).toContain("I can't pull up our past conversations right now");
     expect(said).not.toMatch(/divorce|garden/);
   });
+
+  it('the real read is bounded: a hung read uses the last topics read, or fails closed', async () => {
+    // No test seam: the tool reads through forgottenWithin (300 ms, then the last topics read).
+    history.get = async () => SESSIONS;
+    const userId = 'u-2719-bounded';
+    vi.useFakeTimers({ toFake: ['Date'], now: 5_000_000 });
+    prodRead.fn = async () => ['divorce'];
+    expect(await recentContext(userId).execute({ timeframe: 'all-time' })).not.toContain(
+      'divorce papers'
+    );
+
+    vi.setSystemTime(5_000_000 + 60_000); // the cached read is stale
+    prodRead.fn = () => new Promise<never>(() => {}); // Firestore never answers
+    const late = await recentContext(userId).execute({ timeframe: 'all-time' });
+    expect(late).toContain('garden');
+    expect(late).not.toContain('divorce papers');
+
+    const none = await recentContext('u-2719-bounded-new').execute({ timeframe: 'all-time' });
+    expect(none).toContain("I can't pull up our past conversations right now");
+    expect(none).not.toMatch(/divorce|garden/);
+  }, 5_000);
 });

@@ -26,6 +26,7 @@ import {
   aboutForgotten,
   forgottenCheck,
   forgottenCheckNow,
+  forgottenWithin,
   snapshotTopics,
 } from '../forget-every-reader.js';
 
@@ -117,9 +118,43 @@ describe('aboutForgotten: names match whole words', () => {
     expect(aboutForgotten("Mark's birthday is Friday", ['Mark'])).toBe(true);
   });
 
+  it('a name with an "s" or inside a hyphenated word still counts, "marked" still does not', () => {
+    // #2719 verifier: these showed with the name forgotten.
+    expect(aboutForgotten('Marks birthday party is Saturday', ['Mark'])).toBe(true);
+    expect(aboutForgotten('Danas lawyer called back', ['Dana'])).toBe(true);
+    expect(aboutForgotten('dinner with mark-and-jen', ['Mark'])).toBe(true);
+    expect(aboutForgotten('marked the calendar for Friday', ['Mark'])).toBe(false);
+  });
+
   it('a topic that is not a name still matches other forms', () => {
     expect(aboutForgotten('the weddings this summer', ['sister wedding'])).toBe(false);
     expect(aboutForgotten("my sister's weddings", ['sister wedding'])).toBe(true);
     expect(aboutForgotten('divorcing was hard', ['divorce'])).toBe(true);
+  });
+});
+
+describe('forgottenWithin: bounded, and unflagged', () => {
+  it('works with the flag off, and a hung read falls back to the last topics read', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'off');
+    vi.useFakeTimers({ now: 3_000_000 });
+    read.fn.mockResolvedValueOnce(['Biscuit']);
+    expect((await forgottenWithin(U, 'test'))?.('Biscuit chewed it')).toBe(true);
+    vi.setSystemTime(3_000_000 + 60_000); // stale
+    read.fn.mockImplementationOnce(() => new Promise<never>(() => {})); // never answers
+    const got = forgottenWithin(U, 'test');
+    await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
+    const check = (await got)!;
+    expect(check('Biscuit chewed it')).toBe(true);
+    expect(check('training for Boston')).toBe(false);
+    expect(forgetReadStats()).toMatchObject({ timeouts: 1, fallbacks: 1 });
+  });
+
+  it('a hung read with nothing known fails closed (null)', async () => {
+    vi.useFakeTimers();
+    read.fn.mockImplementation(() => new Promise<never>(() => {}));
+    const got = forgottenWithin(U, 'test');
+    await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
+    expect(await got).toBeNull();
+    expect(forgetReadStats()).toMatchObject({ timeouts: 1, failClosed: 1 });
   });
 });

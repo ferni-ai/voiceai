@@ -15,7 +15,8 @@
  * fail closed only with no source) and those forgotten in this process.
  *
  * The match is the shared one (isForgotten), with one tightening: a name in
- * a topic ("Mark") must appear in the memory as that whole word, so
+ * a topic ("Mark") must appear in the memory as that whole word, or with an
+ * "s" ("Marks birthday"), hyphenated words read apart ("mark-and-jen"), so
  * forgetting Mark no longer hides "marked" (isForgotten stems memory words).
  *
  * @module memory/recall/forget-every-reader
@@ -58,7 +59,16 @@ function sentenceCase(topic: string): string | undefined {
   return [words[0]!.toLowerCase(), ...words.slice(1)].join(' ');
 }
 
-/** isForgotten, with every likely name in the topic required as a whole word of the text. */
+/** The text's words, hyphenated ones both joined ("markandjen") and apart ("mark", "jen"). */
+function wholeWords(text: string): Set<string> {
+  const apart = text.replace(/[-\u2010\u2011\u2013]/g, ' ');
+  return new Set(foldedWords(`${text} ${apart}`).map((f) => f.word));
+}
+
+/**
+ * isForgotten, with every likely name in the topic required as a whole word
+ * of the text, or that word with an "s" ("Marks birthday", "Danas lawyer").
+ */
 export function aboutForgotten(text: string, topics: readonly string[]): boolean {
   let whole: Set<string> | undefined;
   return topics.some((t) => {
@@ -66,8 +76,8 @@ export function aboutForgotten(text: string, topics: readonly string[]): boolean
     if (!isForgotten(text, [t]) && !(lower && isForgotten(text, [lower]))) return false;
     const names = namesOf(t);
     if (names.length === 0) return true;
-    whole ??= new Set(foldedWords(text).map((f) => f.word));
-    return names.every((n) => whole!.has(n));
+    whole ??= wholeWords(text);
+    return names.every((n) => whole!.has(n) || whole!.has(`${n}s`));
   });
 }
 
@@ -89,6 +99,19 @@ export async function forgottenCheck(
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
   return checkFor(userId, await topicsWithin(userId, reader));
+}
+
+/**
+ * The check for a reader that fails closed without the flag (recentContext,
+ * #2719): the same topics, waited for at most READ_TIMEOUT_MS (then the last
+ * known), or null when there is no source at all.
+ */
+export async function forgottenWithin(
+  userId: string,
+  reader: string
+): Promise<ForgottenCheck | null> {
+  const stored = await topicsWithin(userId, reader);
+  return stored === null ? null : checkFor(userId, stored);
 }
 
 /**
