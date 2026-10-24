@@ -4,7 +4,7 @@
  */
 import type { ServerResponse } from 'http';
 import { describe, expect, it, vi } from 'vitest';
-import { isValidVoiceId } from '../../../config/voice-ids.js';
+import { FERNI_CALM_B_VOICE_ID, isValidVoiceId, VOICE_IDS } from '../../../config/voice-ids.js';
 import {
   CUSTOM_AGENT_VOICE_CATALOG,
   DEFAULT_CUSTOM_AGENT_VOICE_ID,
@@ -38,6 +38,9 @@ describe('the custom-agent voice catalog', () => {
     for (const v of CUSTOM_AGENT_VOICE_CATALOG) {
       expect(isForbiddenCustomAgentVoiceId(v.voiceId), v.name).toBe(false);
     }
+    // Both of Ferni's voices: the live one and calm B, its rollback outside VOICE_IDS.
+    expect(isForbiddenCustomAgentVoiceId(VOICE_IDS.FERNI)).toBe(true);
+    expect(isForbiddenCustomAgentVoiceId(FERNI_CALM_B_VOICE_ID)).toBe(true);
   });
 
   it('offers a woman and a man for every accent', () => {
