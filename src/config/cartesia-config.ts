@@ -20,7 +20,7 @@ const log = createLogger({ module: 'CartesiaConfig' });
 export { CARTESIA_MODEL, DEFAULT_VOICE_IDS, getVoiceIdForPersona, VOICE_IDS } from './voice-ids.js';
 
 // Import for local use
-import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from './voice-ids.js';
+import { CARTESIA_MODEL, DEFAULT_VOICE_IDS, getVoiceIdForPersona } from './voice-ids.js';
 
 // ============================================================================
 // ADDITIONAL UTILITIES
@@ -37,11 +37,11 @@ export function isValidVoiceId(voiceId: string): boolean {
 
 /**
  * Get a default voice configuration for fallback scenarios.
- * Uses Ferni's voice as the default.
+ * Uses Ferni's live voice (FERNI_VOICE_ID when set) as the default.
  */
 export function getDefaultVoiceConfig(): { voiceId: string; model: string; provider: string } {
   return {
-    voiceId: DEFAULT_VOICE_IDS.FERNI,
+    voiceId: getVoiceIdForPersona('ferni'),
     model: CARTESIA_MODEL,
     provider: 'cartesia',
   };
