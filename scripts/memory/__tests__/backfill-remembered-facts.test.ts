@@ -5,20 +5,26 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   backfill,
   databaseRefusal,
-  defaultCursorFile,
-  fileCursor,
+  main,
   type BackfillDeps,
   type BackfillOptions,
   type MemorySource,
 } from '../backfill-remembered-facts.js';
+import {
+  defaultCursorFile,
+  fileCursor,
+  firestoreMemorySource,
+} from '../backfill-remembered-facts-io.js';
+import type { Firestore } from '@google-cloud/firestore';
 import type { SecretModel } from '../../../src/memory/secret-check.js';
 import type { FactDocWrite } from '../../../src/memory/dynamic/remembered-facts.js';
+import { forgetTopic, type ForgetStore } from '../../../src/memory/recall/forget.js';
 
 /**
  * memories in memory, in path order, and the dynamic_facts the run creates.
  * Seeds: 2 users x 3 remembered facts, plus one of each kind that is left out.
  */
-function fakeStore(topics: Record<string, string[] | null> = {}) {
+function fakeStore(topics: Record<string, string[] | null | Error> = {}) {
   const memories = new Map<string, Record<string, unknown>>();
   for (let i = 0; i < 6; i++) {
     const path = `bogle_users/test-user-${i % 2}/memories/mem_${i}`;
@@ -40,9 +46,16 @@ function fakeStore(topics: Record<string, string[] | null> = {}) {
       return paths.slice(0, size).map((path) => ({ path, data: { ...memories.get(path) } }));
     },
     create,
-    forgottenTopics: async (userId) => (userId in topics ? topics[userId]! : []),
+    forgottenTopics: async (userId) => {
+      const t = userId in topics ? topics[userId] : [];
+      if (t instanceof Error) throw t;
+      return t;
+    },
+    existing: vi.fn(async (userId: string, ids: string[]) => {
+      return new Set(ids.filter((id) => facts.has(`bogle_users/${userId}/dynamic_facts/${id}`)));
+    }),
   };
-  return { facts, create, source, memories };
+  return { facts, create, source, memories, topics };
 }
 
 /** The secret-check model: a clear no unless the text is in `secrets`. */
@@ -53,7 +66,7 @@ const fakeModel = (secrets: string[] = []) =>
 
 function harness(
   opts: Partial<BackfillOptions> = {},
-  topics: Record<string, string[] | null> = {}
+  topics: Record<string, string[] | null | Error> = {}
 ) {
   const store = fakeStore(topics);
   let saved: string | undefined;
@@ -88,13 +101,14 @@ describe('backfill-remembered-facts', () => {
       notKept: 1,
       notMember: 0,
       forgotten: 0,
+      unreadUsers: 0,
+      existing: 0,
       toCheck: 6,
       secret: 0,
       unchecked: 0,
       toWrite: 0,
       noVector: 0,
       created: 0,
-      existing: 0,
       failed: 0,
       requests: 0,
     });
@@ -117,7 +131,33 @@ describe('backfill-remembered-facts', () => {
     // A fresh run (no cursor) over facts already there: all found, none written over.
     const again = harness();
     for (const [p, d] of h.facts) again.facts.set(p, d);
-    expect(await again.run()).toMatchObject({ created: 0, existing: 6 });
+    expect(await again.run()).toMatchObject({ toCheck: 0, created: 0, existing: 6 });
+    // Found before the model call: a rerun re-sends nothing to the model or the embedder
+    expect(again.secretModel).not.toHaveBeenCalled();
+    expect(again.embed).not.toHaveBeenCalled();
+    expect(again.create).not.toHaveBeenCalled();
+  });
+
+  it('a fact already there (live or forgotten one by one) is never sent to the model, embedded or written over', async () => {
+    const h = harness();
+    await h.run({ limit: 4 });
+    const [path] = [...h.facts.keys()];
+    h.facts.set(path!, { value: 'forgotten', forgottenAt: '2026-10-01' });
+    const sent = h.secretModel.mock.calls.length;
+    const again = harness();
+    for (const [p, d] of h.facts) again.facts.set(p, d);
+    expect(await again.run()).toMatchObject({ existing: h.facts.size, created: 6 - h.facts.size });
+    expect(again.secretModel).toHaveBeenCalledTimes(6 - sent);
+    expect(again.facts.get(path!)).toEqual({ value: 'forgotten', forgottenAt: '2026-10-01' });
+  });
+
+  it('when the existing facts cannot be read, nothing is sent and the cursor holds', async () => {
+    const h = harness();
+    h.source.existing = async () => Promise.reject(new Error('unavailable'));
+    expect(await h.run()).toMatchObject({ failed: 6, toCheck: 0, created: 0 });
+    expect(h.secretModel).not.toHaveBeenCalled();
+    expect(h.embed).not.toHaveBeenCalled();
+    expect(h.cursor.write).not.toHaveBeenCalled();
   });
 
   it('resumes after the saved cursor', async () => {
@@ -144,44 +184,83 @@ describe('backfill-remembered-facts', () => {
   });
 });
 
-describe('backfill-remembered-facts: forgotten', () => {
+describe('backfill-remembered-facts: forgotten, always (no flag)', () => {
   const DANA = 'my sister Dana is moving to Denver';
+  const DIVORCE = 'the divorce papers are with my lawyer';
   const withDana = (h: ReturnType<typeof harness>) => {
     h.memories.set('bogle_users/test-user-0/memories/mem_dana', { content: DANA, type: 'summary' });
     return h;
   };
   const written = (h: ReturnType<typeof harness>) => [...h.facts.values()].map((d) => d.value);
+  const embedded = (h: ReturnType<typeof harness>) => h.embed.mock.calls.flatMap(([t]) => t).join(' '); // prettier-ignore
+  const sent = (h: ReturnType<typeof harness>) => h.secretModel.mock.calls.map(([, t]) => t).join(' '); // prettier-ignore
   afterEach(() => vi.unstubAllEnvs());
 
-  it('FORGET_EVERY_READER: a memory about a forgotten topic is never embedded or written', async () => {
-    vi.stubEnv('FORGET_EVERY_READER', 'on');
+  it.each(['on', 'off', undefined])(
+    'FORGET_EVERY_READER=%s: a fact forgotten with the real forgetTopic is never checked, embedded or written',
+    async (flag) => {
+      if (flag !== undefined) vi.stubEnv('FORGET_EVERY_READER', flag);
+      else vi.stubEnv('FORGET_EVERY_READER', '');
+      const h = harness();
+      h.memories.set('bogle_users/test-user-0/memories/mem_div', { content: DIVORCE, type: 'summary' }); // prettier-ignore
+      // The 10-24 repro: the fact lived only in memories, so forgetTopic marked nothing
+      const store: ForgetStore = {
+        facts: async () => [],
+        markForgotten: async () => {},
+        addTopic: async (u, topic) => void (h.topics[u] = [...((h.topics[u] as string[]) ?? []), topic]), // prettier-ignore
+        topics: async () => [],
+      };
+      expect(await forgetTopic('test-user-0', 'the divorce', store)).toEqual({ kind: 'forgotten', marked: 0 }); // prettier-ignore
+      expect(await h.run()).toMatchObject({ forgotten: 1, toWrite: 6, created: 6, failed: 0 });
+      expect(written(h)).not.toContain(DIVORCE);
+      expect(embedded(h)).not.toMatch(/divorce/);
+      expect(sent(h)).not.toMatch(/divorce/);
+    }
+  );
+
+  it("a name forgotten with forgetTopic: what forgetTopic itself would have marked stays out ('marked')", async () => {
+    const h = harness();
+    const MARKED = 'I marked the calendar for the trip';
+    h.memories.set('bogle_users/test-user-0/memories/mem_mark', { content: MARKED, type: 'summary' }); // prettier-ignore
+    const store: ForgetStore = {
+      facts: async () => [],
+      markForgotten: async () => {},
+      addTopic: async (u, topic) => void (h.topics[u] = [topic]),
+      topics: async () => [],
+    };
+    await forgetTopic('test-user-0', 'Mark', store);
+    expect(await h.run()).toMatchObject({ forgotten: 1, created: 6 });
+    expect(written(h)).not.toContain(MARKED);
+  });
+
+  it("a forgotten topic leaves the user's other facts and other users alone", async () => {
     const h = withDana(harness({}, { 'test-user-0': ['dana'] }));
     expect(await h.run()).toMatchObject({ forgotten: 1, toWrite: 6, created: 6, failed: 0 });
     expect(written(h)).not.toContain(DANA);
-    expect(h.embed.mock.calls.flatMap(([texts]) => texts).join(' ')).not.toMatch(/Dana/);
+    expect(embedded(h)).not.toMatch(/Dana/);
   });
 
-  it('FORGET_EVERY_READER: a dry run counts it too, still reading nothing but topics', async () => {
-    vi.stubEnv('FORGET_EVERY_READER', 'on');
+  it('a dry run counts it too', async () => {
     const h = withDana(harness({ dryRun: true }, { 'test-user-0': ['dana'] }));
     expect(await h.run()).toMatchObject({ forgotten: 1, toCheck: 6, toWrite: 0, created: 0 });
     expect(h.embed).not.toHaveBeenCalled();
   });
 
-  it('FORGET_EVERY_READER: a user whose topics cannot be read is skipped (fails closed)', async () => {
-    vi.stubEnv('FORGET_EVERY_READER', 'on');
-    const h = harness({}, { 'test-user-1': null });
-    expect(await h.run()).toMatchObject({ forgotten: 3, created: 3 });
-    expect([...h.facts.keys()].every((p) => p.startsWith('bogle_users/test-user-0/'))).toBe(true);
-  });
+  it.each([
+    ['unreadable', null],
+    ['a failed read', new Error('deadline exceeded')],
+  ])(
+    'topics %s: the whole user is skipped, counted, and the cursor holds (fails closed)',
+    async (_, t) => {
+      const h = withDana(harness({}, { 'test-user-0': t }));
+      expect(await h.run()).toMatchObject({ unreadUsers: 1, forgotten: 5, created: 3 });
+      expect([...h.facts.keys()].every((p) => p.startsWith('bogle_users/test-user-1/'))).toBe(true);
+      expect(sent(h)).not.toMatch(/Dana|number 0|number 2|number 4/);
+      expect(h.cursor.write).not.toHaveBeenCalled();
+    }
+  );
 
-  it('flag off: topics are not consulted and the run is unchanged', async () => {
-    const h = withDana(harness({}, { 'test-user-0': ['dana'], 'test-user-1': null }));
-    expect(await h.run()).toMatchObject({ forgotten: 0, toWrite: 7, created: 7 });
-    expect(written(h)).toContain(DANA);
-  });
-
-  it('a memory marked forgottenAt is never copied, flag or not', async () => {
+  it('a memory marked forgottenAt is never copied', async () => {
     const h = harness();
     h.memories.set('bogle_users/test-user-0/memories/mem_gone', { content: DANA, type: 'summary', forgottenAt: '2026-10-01' }); // prettier-ignore
     expect(await h.run()).toMatchObject({ forgotten: 1, created: 6 });
@@ -283,6 +362,19 @@ describe('backfill-remembered-facts: the model secret check (#2514 secret-check.
     expect(most).toBe(4);
   });
 
+  it('each verdict stays with its own fact when the model answers out of order', async () => {
+    const h = withDoor(harness({ batch: 20 }));
+    // The first text sent answers last; only the door text is a secret
+    let sentSoFar = 0;
+    const model = vi.fn<SecretModel>(async (_p, content) => {
+      await new Promise((r) => setTimeout(r, 40 - 5 * sentSoFar++));
+      return content.includes('side gate') ? '{"secret":true}' : '{"secret":false}';
+    });
+    expect(await h.run({}, { secretCheck: { model, timeoutMs: 500 } })).toMatchObject({ secret: 1, created: 6 }); // prettier-ignore
+    expect([...h.facts.values()].map((d) => d.value)).not.toContain(DOOR);
+    expect(embeddedText(h)).not.toContain('side gate');
+  });
+
   it('logs counts only: no fact text reaches the log', async () => {
     const lines: string[] = [];
     const h = withDoor(harness());
@@ -314,6 +406,12 @@ describe('backfill-remembered-facts: the cursor file', () => {
   let dir = '';
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
   const fileFor = (uid?: string) => join(dir, defaultCursorFile('ferni-dev', uid));
+
+  it('the default file is per database and per --uid', () => {
+    expect(defaultCursorFile('ferni-dev')).not.toBe(defaultCursorFile('ferni-staging'));
+    expect(defaultCursorFile('ferni-dev', 'u1')).not.toBe(defaultCursorFile('ferni-staging', 'u1'));
+    expect(defaultCursorFile('ferni-dev', 'u1')).not.toBe(defaultCursorFile('ferni-dev', 'u2'));
+  });
 
   it('a --uid trial does not move the full run, which then writes every user', async () => {
     dir = mkdtempSync(join(tmpdir(), 'backfill-cursor-'));
@@ -355,5 +453,90 @@ describe('backfill-remembered-facts: the cursor file', () => {
     expect(resumed).toMatchObject({ created: 6 - first, existing: 0 });
     expect(h.create).toHaveBeenCalledTimes(6); // nothing created twice
     expect(h.secretModel).toHaveBeenCalledTimes(6); // nothing checked twice
+  });
+});
+
+describe('backfill-remembered-facts: main() exit codes', () => {
+  let dir = '';
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+  const ENV = { GOOGLE_CLOUD_PROJECT: 'test-project' };
+  const runMain = (
+    h: ReturnType<typeof harness>,
+    extra: string[] = [],
+    env: Record<string, string | undefined> = ENV
+  ) => {
+    // prettier-ignore
+    dir ||= mkdtempSync(join(tmpdir(), 'backfill-main-'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { cursor: _c, ...connected } = h.deps;
+    const argv = ['--database=ferni-dev', '--dry-run=false', '--rate=1000', `--cursor=${join(dir, 'c')}`, ...extra]; // prettier-ignore
+    return main(argv, env, () => connected);
+  };
+
+  it('0 when everything is written, and a rerun (all existing) is 0 too', async () => {
+    const h = harness();
+    expect(await runMain(h)).toBe(0);
+    expect(h.facts.size).toBe(6);
+    expect(await runMain(h, ['--restart'])).toBe(0);
+    expect(h.create).toHaveBeenCalledTimes(6);
+  });
+
+  it.each<[string, (h: ReturnType<typeof harness>) => void]>([
+    ['a fact left unchecked', (h) => void (h.deps.secretCheck = { model: async () => 'maybe', timeoutMs: 20 })], // prettier-ignore
+    ['a fact with no vector', (h) => void (h.deps.embed = async () => Promise.reject(new Error('down')))], // prettier-ignore
+    ['a failed create', (h) => void (h.source.create = async () => Promise.reject(new Error('x')))],
+    ['a user whose topics cannot be read', (h) => void (h.topics['test-user-1'] = null)],
+    ['existing facts that cannot be read', (h) => void (h.source.existing = async () => Promise.reject(new Error('x')))], // prettier-ignore
+  ])('1 with %s', async (_, breakIt) => {
+    const h = harness();
+    breakIt(h);
+    expect(await runMain(h)).toBe(1);
+  });
+
+  it('1 on a refusal or a missing project, touching nothing', async () => {
+    const refused = harness();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await main(['--database=(default)'], ENV, () => refused.deps)).toBe(1);
+    expect(await main(['--database=ferni-dev'], {}, () => refused.deps)).toBe(1);
+    expect(refused.source.existing).not.toHaveBeenCalled();
+  });
+});
+
+describe('backfill-remembered-facts: the Firestore source reads --database', () => {
+  /** Just the paths the source walks: docs by path, as --database holds them. */
+  function fakeDb(docs: Record<string, Record<string, unknown>>) {
+    const ref = (path: string): Record<string, unknown> => ({
+      path,
+      id: path.split('/').pop(),
+      collection: (name: string) => ({ doc: (id: string) => ref(`${path}/${name}/${id}`) }),
+      get: async () => ({ exists: path in docs, data: () => docs[path] }),
+    });
+    const getAll = vi.fn(
+      async (...refs: Array<{ path: string; id: string } | object>) =>
+      (refs.filter((r) => 'path' in r) as Array<{ path: string; id: string }>).map((r) => ({ id: r.id, exists: r.path in docs })) // prettier-ignore
+    );
+    const db = { collection: (name: string) => ({ doc: (id: string) => ref(`${name}/${id}`) }), getAll }; // prettier-ignore
+    return { db: db as unknown as Firestore, getAll };
+  }
+
+  it("forgotten topics come from the user's memory_state/forgotten (malformed reads as null)", async () => {
+    const { db } = fakeDb({
+      'bogle_users/u1/memory_state/forgotten': { topics: ['dana'] },
+      'bogle_users/u2/memory_state/forgotten': { topics: 'dana' },
+    });
+    const source = firestoreMemorySource(db);
+    expect(await source.forgottenTopics('u1')).toEqual(['dana']);
+    expect(await source.forgottenTopics('u2')).toBeNull();
+    expect(await source.forgottenTopics('u3')).toEqual([]);
+  });
+
+  it("existing: which ids are already in the user's dynamic_facts", async () => {
+    const { db, getAll } = fakeDb({ 'bogle_users/u1/dynamic_facts/a': { value: 'x' } });
+    expect(await firestoreMemorySource(db).existing('u1', ['a', 'b'])).toEqual(new Set(['a']));
+    expect(getAll.mock.calls[0]!.at(-1)).toEqual({ fieldMask: [] }); // reads no fact text
   });
 });
