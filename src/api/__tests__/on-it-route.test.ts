@@ -16,6 +16,12 @@ import {
   openErrands,
 } from '../../services/on-it/__tests__/fixtures.js';
 
+// Read once when auth-middleware loads, so set before the router is imported.
+vi.hoisted(() => {
+  process.env.API_KEYS = 'svc-key-synthetic';
+  process.env.ADMIN_API_KEYS = 'admin-key-synthetic';
+});
+
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
     token.startsWith('tok-')
@@ -152,6 +158,17 @@ describe('GET /api/on-it', () => {
     expect(res.status).toBe(401);
     expect(stores.reads).toEqual([]);
   });
+
+  it.each(['svc-key-synthetic', 'admin-key-synthetic'])(
+    '401 for an API key (%s): it names no one, so nothing is read',
+    async (key) => {
+      const res = await fetch(`${base}/api/on-it`, { headers: { 'x-api-key': key } });
+
+      expect(res.status).toBe(401);
+      expect(await res.text()).not.toContain('sections');
+      expect(stores.reads).toEqual([]);
+    }
+  );
 
   it("the caller's four sections, with no contact detail, recipient or tool id", async () => {
     const { res, body, text } = await get();
