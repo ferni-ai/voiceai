@@ -14,7 +14,7 @@ import {
 } from '../../config/voice-ids.js';
 import { voiceHonorsProsodyTags, voiceHonorsVolumeTag } from '../../config/voice-capabilities.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { VOICED_TAKES } from './reaction-clips.js';
+import { BACKCHANNEL_TAKES, VOICED_TAKES } from './reaction-clips.js';
 
 const log = createLogger({ module: 'VoicedTakeRender' });
 
@@ -27,6 +27,22 @@ export function voicedPresenceEnabled(env: Record<string, string | undefined> = 
 export function voicedTakeTexts(already: readonly string[] = []): string[] {
   if (!voicedPresenceEnabled()) return [];
   return [...new Set(Object.values(VOICED_TAKES).flat())].filter((t) => !already.includes(t));
+}
+
+/**
+ * BACKCHANNEL_TIMING=on (backchannel-timing.ts): the backchannel bag's takes to
+ * render alongside `already`; none with the flag off, so nothing new renders.
+ */
+export function backchannelTakeTexts(
+  already: readonly string[] = [],
+  env: Record<string, string | undefined> = process.env
+): string[] {
+  if (env.BACKCHANNEL_TIMING !== 'on') return [];
+  const all = [
+    ...Object.values(BACKCHANNEL_TAKES.soft),
+    ...Object.values(BACKCHANNEL_TAKES.bright),
+  ];
+  return [...new Set(all.flat())].filter((t) => !already.includes(t));
 }
 
 /** The transcript to send for this voice: tags it honors kept, every other tag stripped. */
@@ -100,4 +116,20 @@ export async function renderVoicedTake(text: string, voiceId: string): Promise<A
     log.warn({ error: String(error), text }, 'voiced take render failed');
   }
   return null;
+}
+
+/**
+ * A backchannel take past this, trimmed, is not cached (a later warm renders it
+ * again): no longer than today's plain clips, 720 ms with their lead silence
+ * (p50 across 10 persona voices); a long "mm-hm" is the one talked over.
+ */
+export const BACKCHANNEL_TAKE_MAX_MS = 800;
+
+/** renderVoicedTake for a backchannel take: null when it runs past BACKCHANNEL_TAKE_MAX_MS. */
+export async function renderBackchannelTake(
+  text: string,
+  voiceId: string
+): Promise<ArrayBuffer | null> {
+  const pcm = await renderVoicedTake(text, voiceId);
+  return pcm && pcm.byteLength <= (RATE * 2 * BACKCHANNEL_TAKE_MAX_MS) / 1000 ? pcm : null;
 }
