@@ -337,10 +337,10 @@ function isPersonKey(key: string, preserveDevSettings = true): boolean {
  * After clearAllUserData, keep this page from writing the person's data back
  * before it reloads. Modules still starting up do write: the milestones init,
  * on a timer, saved ferni-milestones again between sign-out's clear and the
- * reload (menu-e2e run 40105651631). Only for a page on its way out; returns
- * the undo, for tests.
+ * reload (menu-e2e run 40105651631). Pass the same preserveDevSettings as the
+ * clear. Only for a page on its way out; returns the undo, for tests.
  */
-export function sealUserData(): () => void {
+export function sealUserData(preserveDevSettings = true): () => void {
   // Storage.prototype in a browser; wherever setItem really lives otherwise.
   let owner: object | null = localStorage;
   while (owner && !Object.prototype.hasOwnProperty.call(owner, 'setItem'))
@@ -352,7 +352,7 @@ export function sealUserData(): () => void {
   Object.defineProperty(target, 'setItem', {
     ...original,
     value: function (this: Storage, key: string, value: string): void {
-      if (this === localStorage && isPersonKey(key)) return;
+      if (this === localStorage && isPersonKey(key, preserveDevSettings)) return;
       setItem.call(this, key, value);
     },
   });
