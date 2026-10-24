@@ -11,7 +11,52 @@ interface TaggedPattern {
   tag: PatternTag;
   /** An attempt underway or means in hand: the reply leads with 911. */
   imminent?: true;
+  /**
+   * The words name the means themselves, so a softened read ("... lol", "i used to keep pills
+   * right here") is not a signal that PLAN_OR_MEANS_PATTERNS can escalate on the same words.
+   */
+  namesMeans?: true;
 }
+
+/** Tools called guns are not the means: "my nail gun is in my hand". */
+const TOOL_GUN = String.raw`(?<!\b(?:nail|glue|water|nerf|toy|heat|staple|spray|paint|caulk|caulking|squirt|bb|airsoft|paintball|grease|massage|label|price|tattoo|foam|bubble|glitter|radar|speed|scan|scanner|barcode) )`;
+
+/**
+ * #2697 building blocks. Each form must end its clause (or run on with "and", "now"...):
+ * "i have the rope right here" counts, "the rope right here for the tent" does not.
+ */
+const MEANS = String.raw`(?:pills|meds|tablets|${TOOL_GUN}gun|pistol|rope|noose|razor|blades?)`;
+const WHERE = String.raw`(?:right here|in my hands?|in front of me)(?: (?:right here|in my hands?|in front of me|right now))?`;
+const PILLS_TAKEN = String.raw`(?:them|em|these|those|every (?:last |single )?(?:one|pill)(?: i have)?|all of (?:them|em|these|those|the pills|my pills)|(?:all )?(?:the|my) (?:pills|meds|tablets)|(?:these |those )?(?:pills|meds|tablets)|the (?:whole|entire) bottle|everything|a (?:bottle|handful)(?: of (?:pills|meds|tablets|them|sleeping pills|painkillers))?)`;
+const CLAUSE_END = String.raw`(?= *(?:$|[.!?,;]|and\b|but\b|now\b|right now\b|ready\b|loaded\b|it'?s\b|already\b|just now\b))`;
+const SELF_HARM_DONE = String.raw`(?:bleeding|blood everywhere|overdos\w*|took (?:all )?(?:the|my) (?:pills|meds)|took them all|swallowed (?:them|the|all|my)|(?:pills|meds) are (?:working|kicking in)|noose|the rope (?:held|is around)|cut my wrists?)`;
+const DID_IT = String.raw`\bi (?:just |finally |actually |already )?(?:did it|went through with it)\b`;
+
+/** "i have the pills right here", "got the gun in my hand", "the razor is right here". */
+const IMMINENT_MEANS_IN_HAND = new RegExp(
+  String.raw`(?:\b(?:i|i'?ve|i'?m|i have|i got)\b|(?:^|[.!?,] ?)got\b)[^.!?]{0,25}\b${MEANS}\b[^.!?]{0,30}\b${WHERE}\b${CLAUSE_END}` +
+    String.raw`|\b${MEANS}\b[^.!?]{0,30}\bin my hands?\b${CLAUSE_END}` +
+    String.raw`|\b(?:my|the|these|all the) ${MEANS} (?:are|is) ${WHERE}\b${CLAUSE_END}`
+);
+/** "i'm taking them now", "i'm about to take them all now". */
+const IMMINENT_TAKING_NOW = new RegExp(
+  String.raw`\b(?:i'?m|i am) (?:taking|takin|swallowing|downing) ${PILLS_TAKEN}(?: all)? (?:now|right now)\b${CLAUSE_END}` +
+    String.raw`|\b(?:i'?m )?(?:going to|about to) (?:take|swallow) ${PILLS_TAKEN}(?: all)? (?:now|right now)\b${CLAUSE_END}`
+);
+/**
+ * A dose, for the past tense: "them all", "the whole bottle", "a handful", "everything", a number.
+ * Seth's call on #2697: "i took my meds" and "yes i took them" are medication check-ins, so a past
+ * dose needs one of these to read imminent on the patterns (the classifier still reads the rest).
+ */
+const DOSE_TAKEN = String.raw`(?:(?:them|em|these|those) all|all of (?:them|em|these|those|the pills|my pills|my meds)|all (?:the|my) (?:pills|meds|tablets)|the (?:whole|entire) bottle|everything|every (?:last |single )?(?:one|pill)|a (?:bottle|handful|bunch|whole bottle)(?: of (?:pills|meds|tablets|them|sleeping pills|painkillers))?|(?:like |about |maybe |over )?(?:[2-9]\d|\d{3}) (?:of (?:them|em|my pills|my meds)|pills|tablets))`;
+/** "i swallowed a handful of pills", "just took them all", "i already took all of them". */
+const IMMINENT_TOOK = new RegExp(
+  String.raw`(?:\bi(?:'ve| have)? |^|[.!?,] ?)(?:(?:already|just) )?(?:took|swallowed|downed|taken) ${DOSE_TAKEN}\b${CLAUSE_END}`
+);
+/** "i did it" / "i went through with it" beside an overdose or self-harm already done. */
+const IMMINENT_DID_IT = new RegExp(
+  String.raw`\b${SELF_HARM_DONE}[\s\S]{0,60}${DID_IT}|${DID_IT}[\s\S]{0,60}\b${SELF_HARM_DONE}`
+);
 
 /**
  * Explicit crisis indicators - immediate red flags.
@@ -98,7 +143,7 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
   { re: /\bkms\b|\bunalive (myself|me)\b|\bsewer ?slide\b/, tag: 'suicidal' },
   // Means in hand or an attempt underway.
   {
-    re: /\b(took|taken|swallowed|downed) (like |about |maybe |over |almost )?([2-9]\d|\d{3}|a (bunch|handful|lot|whole bottle)|all|too many|the (whole|entire|rest of the) (bottle|pack))\b[^.!?]{0,25}\b(pills|meds|medication|tablets)\b/,
+    re: /\b(took|taken|swallowed|downed) (like |about |maybe |over |almost )?([2-9]\d|\d{3}|a (bunch|handful|lot|whole bottle)|all|too many|the (whole|entire|rest of the) (bottle|pack))\b[^.!?]{0,25}\b(pills|meds|medication|tablets|tylenol|advil|ibuprofen|acetaminophen|paracetamol|aspirin|benadryl|xanax|ambien|oxy(codone|contin)?|percocet|vicodin|sleeping pills|painkillers|insulin|lithium|seroquel|klonopin|valium)\b/,
     tag: 'suicidal',
     imminent: true,
   },
@@ -117,9 +162,30 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
     imminent: true,
   },
+  // #2697 verifier recall: more ways to say the means are on the body.
+  {
+    re: /\bnoose (is )?(around|on) my neck\b|\b(gun|pistol|revolver) (is )?(pointed|aimed) at my (head|chest|temple|face)\b|\b(knife|blade|razor) (to|against|on) my (wrists?|throat|neck)\b|\bloaded (gun|pistol|revolver)\b[^.!?]{0,20}\b(next to me|in my lap|in my hand)\b/,
+    tag: 'suicidal',
+    imminent: true,
+    namesMeans: true,
+  },
   {
     re: /\b(gun|pistol|revolver)\b[^.!?]{0,40}\b(in my lap|in my mouth|to my head)\b|\bloaded and (it'?s )?(sitting )?(in my lap|next to me|in my hand)\b/,
     tag: 'suicidal',
+    imminent: true,
+  },
+  // #2697: means in hand, or taking or having taken them now, said plainly with no ideation
+  // words ("i have the pills right here and i'm taking them now"). Recall first: medication
+  // talk that ends the same way ("i'm taking my pills now") reads the same; that is accepted.
+  { re: IMMINENT_MEANS_IN_HAND, tag: 'suicidal', imminent: true, namesMeans: true },
+  { re: IMMINENT_TAKING_NOW, tag: 'suicidal', imminent: true, namesMeans: true },
+  { re: IMMINENT_TOOK, tag: 'suicidal', imminent: true, namesMeans: true },
+  { re: IMMINENT_DID_IT, tag: 'suicidal', imminent: true, namesMeans: true },
+  // Self-harm underway, said as it happens. Ahead of the self-harm tier, whose first match ends the
+  // scan without the imminent read.
+  {
+    re: /\b(i'm|i am) (cutting|burning) (myself|my (wrists?|arms?|thighs?|legs|skin)) (right )?now\b/,
+    tag: 'self_harm',
     imminent: true,
   },
   {
@@ -319,10 +385,17 @@ export const PASSIVE_IDEATION_PATTERNS: TaggedPattern[] = [
  * treated as explicit: ideation with a plan is the clearest marker of
  * imminent risk.
  */
+/**
+ * Means at hand. Beside the caller's own unsoftened risk words an attempt can start now, so the
+ * reply leads with 911 (#2697): "i want to die and i have the pills right here".
+ */
+export const MEANS_AT_HAND_PATTERN =
+  /\b(pills|gun|rope|razor|blade|knot)\b[^.!?]{0,25}\b(ready|in my hand|in my lap|loaded|next to me|right here)\b/;
+
 export const PLAN_OR_MEANS_PATTERNS = [
   /\btonight'?s the night\b|\b(do|doing) it (tonight|tomorrow|this weekend|when|after|once|before)\b|\bit'?s happening (tonight|tomorrow)\b/,
   /\b(have|got|holding|bought|saved( up)?|stockpiled|counted out)\b[^.!?]{0,25}\b(pills|meds|bottles|a gun|the gun|a rope|the rope|a razor|the razor|blades?|enough)\b/,
-  /\b(pills|gun|rope|razor|blade|knot)\b[^.!?]{0,25}\b(ready|in my hand|in my lap|loaded|next to me|right here)\b/,
+  MEANS_AT_HAND_PATTERN,
   /\btested the knot\b|\bpicked (out )?(the|a) (spot|place|date|day|time)\b|\bset a date\b/,
 ];
 

@@ -25,7 +25,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
+import { meansAtHandImminent } from './crisis-means-at-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import {
+  HIGH_DISTRESS_VOICE_EMOTIONS,
+  MODERATE_DISTRESS_VOICE_EMOTIONS,
+  SEVERITY,
+} from './crisis-severity.js';
 import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
@@ -83,20 +89,6 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
 }
 
-/** Patterns that indicate high distress from voice */
-const HIGH_DISTRESS_VOICE_EMOTIONS = [
-  'distressed',
-  'panicked',
-  'desperate',
-  'hopeless',
-  'suicidal',
-];
-
-/** Patterns that indicate moderate distress requiring care */
-const MODERATE_DISTRESS_VOICE_EMOTIONS = ['anxious', 'sad', 'hurt', 'scared', 'overwhelmed'];
-
-const SEVERITY = { explicit: 0.9, passive: 0.75, implicit: 0.6, block: 0.85, crisis: 0.7 } as const;
-
 // ============================================================================
 // CRISIS DETECTION
 // ============================================================================
@@ -120,9 +112,12 @@ function scoreText(text: string): TextScore {
   let severity = 0;
   let implicitHits = 0;
   let language: 'en' | 'es' | undefined;
-  const add = (indicator: string, level: number): void => {
+  // A plan escalates this, not softened words that name their own means ("pills here lol").
+  let signalSeverity = 0;
+  const add = (indicator: string, level: number, signal = true): void => {
     if (!indicators.includes(indicator)) indicators.push(indicator);
     severity = Math.max(severity, level);
+    if (signal) signalSeverity = Math.max(signalSeverity, level);
   };
 
   // Spans already softened: a second pattern matching the same words
@@ -132,7 +127,7 @@ function scoreText(text: string): TextScore {
   let softSelf = false;
   let tierSoft = false;
   let hardSelf = false;
-  for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
+  for (const { re, tag, imminent, namesMeans } of EXPLICIT_CRISIS_PATTERNS) {
     const match = re.exec(text);
     if (!match) continue;
     const start = match.index;
@@ -151,7 +146,8 @@ function scoreText(text: string): TextScore {
       implicitHits++;
       softSelf = tierSoft = true;
     } else if (modifier) {
-      add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
+      const frame = modifier === 'history' ? 'crisis_history' : `${modifier}_frame`;
+      add(frame, SEVERITY.passive, namesMeans !== true);
       hardSelf = true;
     } else {
       hardSelf = true;
@@ -198,7 +194,7 @@ function scoreText(text: string): TextScore {
 
   // A negation or idiom alone ("I'd never take the pills I have") is not a
   // signal a plan can escalate.
-  const genuineSignal = severity >= SEVERITY.passive || implicitHits > softenedHits;
+  const genuineSignal = signalSeverity >= SEVERITY.passive || implicitHits > softenedHits;
   if (
     genuineSignal &&
     severity < SEVERITY.explicit &&
@@ -207,6 +203,9 @@ function scoreText(text: string): TextScore {
     hardSelf = true;
     add('plan_or_means', SEVERITY.explicit);
   }
+
+  // The caller's own risk words with the means at hand lead with 911 (#2697).
+  if (meansAtHandImminent(text, indicators, softened)) add('imminent_danger', SEVERITY.explicit);
 
   // A worry about someone else outranks the caller's own words only when those are negated,
   // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill
