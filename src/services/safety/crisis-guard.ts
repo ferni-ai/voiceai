@@ -25,12 +25,17 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
+import { meansAtHandImminent } from './crisis-means-at-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import {
+  HIGH_DISTRESS_VOICE_EMOTIONS,
+  MODERATE_DISTRESS_VOICE_EMOTIONS,
+  SEVERITY,
+} from './crisis-severity.js';
 import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
-  MEANS_AT_HAND_PATTERN,
   PASSIVE_IDEATION_PATTERNS,
   PLAN_OR_MEANS_PATTERNS,
   SESSION_CONTEXT_PATTERNS,
@@ -84,20 +89,6 @@ export interface CrisisDetectionOptions {
   recentMessages?: readonly string[];
 }
 
-/** Patterns that indicate high distress from voice */
-const HIGH_DISTRESS_VOICE_EMOTIONS = [
-  'distressed',
-  'panicked',
-  'desperate',
-  'hopeless',
-  'suicidal',
-];
-
-/** Patterns that indicate moderate distress requiring care */
-const MODERATE_DISTRESS_VOICE_EMOTIONS = ['anxious', 'sad', 'hurt', 'scared', 'overwhelmed'];
-
-const SEVERITY = { explicit: 0.9, passive: 0.75, implicit: 0.6, block: 0.85, crisis: 0.7 } as const;
-
 // ============================================================================
 // CRISIS DETECTION
 // ============================================================================
@@ -121,8 +112,7 @@ function scoreText(text: string): TextScore {
   let severity = 0;
   let implicitHits = 0;
   let language: 'en' | 'es' | undefined;
-  // What a plan can escalate: severity, less softened reads of words that name the means
-  // themselves ("i have the pills right here lol" is not a signal beside its own pills).
+  // A plan escalates this, not softened words that name their own means ("pills here lol").
   let signalSeverity = 0;
   const add = (indicator: string, level: number, signal = true): void => {
     if (!indicators.includes(indicator)) indicators.push(indicator);
@@ -214,16 +204,8 @@ function scoreText(text: string): TextScore {
     add('plan_or_means', SEVERITY.explicit);
   }
 
-  // The caller's own unsoftened risk words with the means at hand: the reply leads with 911
-  // (#2697). Severity is already explicit; only the script changes. Means inside softened words
-  // ("i used to have the gun in my hand every night") keep the level they had and add nothing.
-  const hardExplicit =
-    indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means');
-  const means = MEANS_AT_HAND_PATTERN.exec(text);
-  const meansOwn =
-    means !== null &&
-    !softened.some(([s, e]) => means.index < e && means.index + means[0].length > s);
-  if (hardExplicit && meansOwn) add('imminent_danger', SEVERITY.explicit);
+  // The caller's own risk words with the means at hand lead with 911 (#2697).
+  if (meansAtHandImminent(text, indicators, softened)) add('imminent_danger', SEVERITY.explicit);
 
   // A worry about someone else outranks the caller's own words only when those are negated,
   // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill

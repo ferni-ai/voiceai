@@ -7,7 +7,7 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
-import { detectCrisis, IN_DANGER_NOW } from '../../../services/safety/crisis-guard.js';
+import { IN_DANGER_NOW, scoreCrisisLanguage } from '../../../services/safety/index.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
@@ -172,7 +172,7 @@ export function assessSafety(text: string): SafetyAssessment {
   }
 
   // Means in hand or an attempt underway (the crisis guard's imminent forms, #2697): none above.
-  if (detectCrisis(text).indicators.includes('imminent_danger')) flags.push(IMMINENT_FLAG);
+  if (scoreCrisisLanguage(text).indicators.includes('imminent_danger')) flags.push(IMMINENT_FLAG);
 
   let concernCount = 0;
   for (const indicator of CONCERNING_INDICATORS) {
