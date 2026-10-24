@@ -34,8 +34,17 @@ import { createSoundSignal, liveReactionKind, withSoundSignal } from './sound-si
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { avatarListenSignalsEnabled } from '../realtime/listen-turn-signals.js';
 import { backchannelTimingEnabled, timedLivePlay } from './backchannel-timing.js';
+import {
+  createSoundGate,
+  liveSoundKind,
+  soundConductorMode,
+  type ConductedSound,
+  type SoundGate,
+} from './sound-conductor.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
+
+type Opts = { pauseStartedAt?: number };
 
 const CLIP_RATE = 24000;
 const MIX_RATE = 48000;
@@ -166,7 +175,8 @@ const BACKCHANNEL_VOLUME = 0.75;
  * mixer-free track (direct-clip-track.ts, ~56 ms to the wire instead of
  * ~650); presence sounds and the tool hum stay on the mixer track, except
  * VOICED_PRESENCE takes (voiced-presence.ts), which play direct. One clip at a
- * time across both, and one lastPlayedAt for all of them.
+ * time across both, and one lastPlayedAt for all of them. SOUND_CONDUCTOR:
+ * every clip on either track asks the call's conductor first (sound-conductor.ts).
  */
 export async function startBackchannelClips(
   room: Room,
@@ -185,6 +195,8 @@ export async function startBackchannelClips(
   wireDelayMs: () => number;
   /** playClip for the turn-opening clip: reports it as an 'opener' (CLIENT_SIGNALS_V2). */
   openerClip: (text: string) => boolean;
+  /** playClip for the slow-turn "Mm" (slow-turn-sound.ts), conducted as its own kind. */
+  slowTurnClip: (text: string) => boolean;
   /** What live backchanneling needs (live-backchanneling-integration.ts). */
   live: {
     playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
@@ -207,14 +219,22 @@ export async function startBackchannelClips(
   const wireDelayMs = (): number => (direct ? directWireMs() : mixerWireMs());
   // CLIENT_SIGNALS_V2: sound_played for every non-speech clip (sound-signal.ts); null when off.
   const sound = createSoundSignal(createDataMessageSender(room));
+  const gate = createSoundGate(soundConductorMode());
   const stopPresence = startPresenceSounds(
     session,
     player,
     () => direct?.playing ?? false,
     personaId,
-    (kind) => sound?.(kind, mixerWireMs())
+    (kind) => sound?.(kind, mixerWireMs()),
+    gate
   );
-  const stopToolHum = startToolHum(session, player, undefined, undefined, (onDirect) =>
+  // The synthesized hum on the mixer; a voiced take is conducted in voiced-presence.ts.
+  const humPlayer = {
+    play: (pcm: ArrayBuffer, volume?: number) =>
+      gate('tool_hum', 'hum', () => player.play(pcm, volume)),
+    stop: () => player.stop(),
+  };
+  const stopToolHum = startToolHum(session, humPlayer, undefined, undefined, (onDirect) =>
     sound?.('hum', onDirect ? directWireMs() : mixerWireMs())
   );
   const voiced = startVoicedPresence({
@@ -224,13 +244,17 @@ export async function startBackchannelClips(
     getClip,
     personaId,
     onSound: (kind) => sound?.(kind, directWireMs()),
+    gate,
   });
-  const playAt = (volume: () => number) => (text: string, opts?: { pauseStartedAt?: number }) => {
+  // `kind` unset: a live reaction, a laugh or a backchannel by its clip.
+  const playAt = (volume: () => number, kind?: ConductedSound) => (text: string, opts?: Opts) => {
     const pcm = getClip(text, personaId());
     if (pcm === null) return false;
-    const played = direct
-      ? !player.playing && direct.play(pcm, volume(), text, opts?.pauseStartedAt)
-      : player.play(pcm, volume());
+    const played = gate(kind ?? liveSoundKind(text), text, () =>
+      direct
+        ? !player.playing && direct.play(pcm, volume(), text, opts?.pauseStartedAt)
+        : player.play(pcm, volume())
+    );
     if (!played) return false;
     lastPlayedAt = Date.now();
     recordQuirk(sessionIdOf(session), {
@@ -261,7 +285,13 @@ export async function startBackchannelClips(
     lastPlayedAt: () => lastPlayedAt,
     cancelFresh,
     wireDelayMs,
-    openerClip: withSoundSignal(playClip, sound, () => 'opener', wireDelayMs),
+    openerClip: withSoundSignal(
+      playAt(() => BACKCHANNEL_VOLUME, 'opener'),
+      sound,
+      () => 'opener',
+      wireDelayMs
+    ),
+    slowTurnClip: playAt(() => BACKCHANNEL_VOLUME, 'slow_turn'),
     live: { playClip: livePlayClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();
@@ -287,7 +317,8 @@ function startPresenceSounds(
   player: ClipPlayer,
   otherTrackBusy: () => boolean = () => false,
   personaId: () => string = () => 'ferni',
-  onSound: (kind: 'hum' | 'breath') => void = () => {}
+  onSound: (kind: 'hum' | 'breath') => void = () => {},
+  gate: SoundGate = (_kind, _clip, play) => play()
 ): () => void {
   // VOICED_PRESENCE: no whistle or snore until researched; voiced-presence.ts fills the quiet.
   if (!presenceSoundsEnabled() || voicedPresenceEnabled()) return () => {};
@@ -302,7 +333,7 @@ function startPresenceSounds(
     pcm: ArrayBuffer,
     quietMs: number
   ): boolean => {
-    const ok = !otherTrackBusy() && player.play(pcm, WHISTLE_VOLUME);
+    const ok = !otherTrackBusy() && gate('presence', kind, () => player.play(pcm, WHISTLE_VOLUME));
     if (ok) {
       endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
       log.info({ kind }, `PRESENCE_SOUND ${kind}`);

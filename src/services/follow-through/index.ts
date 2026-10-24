@@ -57,6 +57,7 @@ export { closeFromSource } from './close-from-source.js';
 export {
   toHeldItem,
   whatFerniHolds,
+  withoutContactDetails,
   MAX_HELD,
   type HeldItem,
   type HeldKind,

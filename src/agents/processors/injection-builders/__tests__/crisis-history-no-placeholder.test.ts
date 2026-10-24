@@ -1,0 +1,150 @@
+/**
+ * PRIVACY (#2678): crisis history is read only under the caller's own id.
+ *
+ * buildCrisisHistoryInjection was handed `services.userId || 'unknown'`, so a
+ * caller with no id was shown the newest crisis in bogle_users/unknown/
+ * crisis_signals, someone else's, as their own ("This user had a difficult
+ * moment..."). It now refuses a missing or placeholder id before any read: no id,
+ * no history. anon: and member callers read only their own.
+ *
+ * Crisis DETECTION is unchanged: performSafetyCheck reads the live text, and its
+ * user id only labels the log, so a caller with no id who says a crisis line gets
+ * exactly the injections main gave them.
+ */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const fake = vi.hoisted(() => {
+  // bogle_users/{uid}/{collection} -> docs; `reads` records every query's owner.
+  const stores = new Map<string, Array<Record<string, unknown>>>();
+  const reads: string[] = [];
+  const docsOf = (uid: string, name: string) => {
+    const key = `${uid}/${name}`;
+    if (!stores.has(key)) stores.set(key, []);
+    return stores.get(key)!;
+  };
+  const query = (uid: string, docs: Array<Record<string, unknown>>) => {
+    let rows = [...docs];
+    const chain = {
+      where: (field: string, _op: string, value: string) => {
+        rows = rows.filter((d) => String(d[field]) >= value);
+        return chain;
+      },
+      orderBy: (field: string, dir: 'asc' | 'desc') => {
+        rows.sort((a, b) => String(a[field]).localeCompare(String(b[field])));
+        if (dir === 'desc') rows.reverse();
+        return chain;
+      },
+      limit: (n: number) => {
+        rows = rows.slice(0, n);
+        return chain;
+      },
+      get: async () => {
+        reads.push(uid);
+        return { docs: rows.map((d) => ({ data: () => structuredClone(d) })) };
+      },
+      add: async (doc: Record<string, unknown>) => {
+        docs.push(doc);
+      },
+    };
+    return chain;
+  };
+  const db = {
+    collection: () => ({
+      doc: (uid: string) => ({ collection: (name: string) => query(uid, docsOf(uid, name)) }),
+    }),
+  };
+  return { db, reads };
+});
+const safetyUsers = vi.hoisted(() => [] as string[]);
+
+vi.mock('../../../../services/superhuman/firestore-utils.js', () => ({
+  getFirestoreDb: () => fake.db,
+}));
+vi.mock('../../../../services/safety/index.js', async (orig) => {
+  const real = await orig<typeof import('../../../../services/safety/index.js')>();
+  return {
+    ...real,
+    performSafetyCheck: (text: string, context: { userId: string }) => {
+      safetyUsers.push(context.userId);
+      return real.performSafetyCheck(text, context as never);
+    },
+  };
+});
+
+const { detectCrisisSignals, logCrisisSignal } = await import(
+  '../../../../services/human-transfer/index.js'
+);
+const { buildCrisisHistoryInjection } = await import('../better-than-human-builders.js');
+const { buildSafetyInjections } = await import('../safety-coaching-builders.js');
+
+const CRISIS_LINE = "I want to kill myself. I've got the pills right here.";
+
+/** A crisis-level signal from yesterday, written by the live writer. */
+async function hadCrisisYesterday(userId: string): Promise<void> {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(Date.now() - 86_400_000);
+  await logCrisisSignal(userId, detectCrisisSignals(CRISIS_LINE), CRISIS_LINE, 'session-earlier');
+  vi.useRealTimers();
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  fake.reads.length = 0;
+  safetyUsers.length = 0;
+});
+
+describe('crisis history: no id, no history; everyone else only their own', () => {
+  it('a caller with no id or a placeholder id gets none, and no shared bucket is read', async () => {
+    for (const shared of ['unknown', 'anonymous', 'anon', 'session', 'gateway']) {
+      await hadCrisisYesterday(shared);
+    }
+    fake.reads.length = 0;
+    for (const id of [undefined, '', '  ', 'unknown', ' Unknown ', 'anonymous', 'anon', 'gateway']) {
+      expect(await buildCrisisHistoryInjection(id)).toBeNull();
+    }
+    expect(fake.reads).toEqual([]);
+  });
+
+  it("a member's own crisis still follows up, and only theirs", async () => {
+    await hadCrisisYesterday('uid-member');
+    const injection = await buildCrisisHistoryInjection('uid-member');
+    expect(injection?.category).toBe('crisis_follow_up');
+    expect(injection?.content).toContain('had a difficult moment 1 day(s) ago');
+    expect(fake.reads).toEqual(['uid-member']);
+    expect(await buildCrisisHistoryInjection('uid-other-member')).toBeNull();
+  });
+
+  it('an anon: caller gets their own history, never another anon: caller\'s', async () => {
+    await hadCrisisYesterday('anon:caller-a');
+    expect((await buildCrisisHistoryInjection('anon:caller-a'))?.category).toBe('crisis_follow_up');
+    expect(await buildCrisisHistoryInjection('anon:caller-b')).toBeNull();
+  });
+});
+
+describe('crisis detection on the live turn is unchanged', () => {
+  const ctx = (services: Record<string, unknown>) =>
+    ({
+      userText: CRISIS_LINE,
+      services,
+      userData: { relationshipStage: 'friend' },
+      persona: { id: 'ferni' },
+    }) as never;
+
+  it('a caller with no id saying a crisis line gets the full crisis response main gave', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0); // the response picks its wording at random
+    const noId = await buildSafetyInjections(ctx({ sessionId: 'session-AJ_x-1761200000000' }));
+    // main's input for the same caller: `services.userId || 'unknown'`
+    const onMain = await buildSafetyInjections(ctx({ userId: 'unknown' }));
+    expect(noId.map((i) => i.category)).toEqual(['safety', 'crisis_response']);
+    expect(noId).toEqual(onMain);
+    expect(noId).toEqual(await buildSafetyInjections(ctx({ userId: 'uid-member' })));
+  });
+
+  it('the safety check never runs under a shared placeholder id', async () => {
+    await buildSafetyInjections(ctx({ sessionId: 's1' }));
+    await buildSafetyInjections(ctx({ userId: 'uid-member', sessionId: 's1' }));
+    expect(safetyUsers[0]).toMatch(/^anon:/);
+    expect(safetyUsers[1]).toBe('uid-member');
+  });
+});

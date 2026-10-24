@@ -330,6 +330,9 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
+    // The spoken backchannel path stays quiet while clips play (clip-mode.ts).
+    const { noteUsesClips } = await import('../../speech/live-backchanneling/clip-mode.js');
+    cleanupFunctions.push(noteUsesClips(sessionId));
     const { attachTurnOpeningSound, earlyOpeningWaitMs, turnOpeningSoundEnabled } =
       await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
@@ -370,7 +373,10 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     // SLOW_TURN_SOUND: one "Mm" on a slow turn nothing else filled (slow-turn-sound.ts).
     if (flagOn('SLOW_TURN_SOUND')) {
       const { attachSlowTurnSoundToCall } = await import('../integrations/slow-turn-wiring.js');
-      cleanupFunctions.push(attachSlowTurnSoundToCall(session, sessionId, clips, input.personaId));
+      const slowClips = { ...clips, playClip: clips.slowTurnClip }; // conducted as 'slow_turn'
+      cleanupFunctions.push(
+        attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
+      );
     }
     // A backchannel is a move too, on the reply whose answer it is heard in.
     const play = clips.playClip;

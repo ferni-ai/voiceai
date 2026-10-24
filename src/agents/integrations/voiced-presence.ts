@@ -24,6 +24,7 @@ import { recordedWhistleId, takeTuneId, tuneAudio, tuneKind } from './presence-t
 import { namedTuneFor, presenceSoundsHeld, tunePlayed } from '../../services/session/tune-state.js';
 import { stayQuietOn } from '../shared/call-farewell.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
+import type { ConductedSound, SoundGate } from './sound-conductor.js';
 
 export { voicedPresenceEnabled };
 
@@ -114,6 +115,8 @@ export interface VoicedPresenceOptions {
   personaId: () => string;
   /** A quiet-window sound started: the yawn is 'breath', a hum, whistle or tune 'hum' (sound-signal.ts). */
   onSound?: (kind: 'hum' | 'breath') => void;
+  /** SOUND_CONDUCTOR: asked before each take plays (sound-conductor.ts); unset plays as before. */
+  gate?: SoundGate;
   env?: Record<string, string | undefined>;
   rng?: () => number;
   now?: () => Date;
@@ -143,8 +146,10 @@ function shared(opts: VoicedPresenceOptions, direct: VoicedTrack) {
   const { session, rng = Math.random } = opts;
   const caller = (): CallerData | undefined => session.userData as CallerData | undefined;
   const picker = createTakePicker((text) => opts.getClip(text, opts.personaId()), rng);
-  const play = (take: Take, volume: number): boolean => {
-    if (opts.mixerBusy() || !direct.play(take.pcm, volume, take.text)) return false;
+  const gate: SoundGate = opts.gate ?? ((_kind, _clip, playIt) => playIt());
+  const play = (take: Take, volume: number, kind: ConductedSound): boolean => {
+    const go = () => !opts.mixerBusy() && direct.play(take.pcm, volume, take.text);
+    if (!gate(kind, take.text, go)) return false;
     picker.played(take);
     return true;
   };
@@ -153,7 +158,7 @@ function shared(opts: VoicedPresenceOptions, direct: VoicedTrack) {
   const env = opts.env ?? process.env; // NAMED_TUNE
   const onSound = opts.onSound ?? (() => {});
   const busy = opts.mixerBusy;
-  return { session, direct, picker, rng, caller, play, mood, getTake, env, busy, onSound };
+  return { session, direct, picker, rng, caller, play, mood, getTake, env, busy, onSound, gate };
 }
 type Voiced = ReturnType<typeof shared>;
 
@@ -167,7 +172,7 @@ function toolHum(v: Voiced): VoicedHum {
     },
     play: (pcm, volume = 1) => {
       const take = picked.get(pcm);
-      return take !== undefined && v.play(take, volume);
+      return take !== undefined && v.play(take, volume, 'tool_hum');
     },
     stop: () => v.direct.stop(),
   };
@@ -181,8 +186,9 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
   /** A recorded whistle on the direct track; false if none is ready or a clip is playing. */
   const whistle = (): boolean => {
     const pcm = whistles?.next();
-    if (!pcm || v.busy()) return false;
-    if (!v.direct.play(pcm, IDLE_VOLUME, RECORDED + (presenceClipName(pcm) ?? 'unknown')))
+    if (!pcm) return false;
+    const label = RECORDED + (presenceClipName(pcm) ?? 'unknown');
+    if (!v.gate('presence', label, () => !v.busy() && v.direct.play(pcm, IDLE_VOLUME, label)))
       return false;
     endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
     const id = recordedWhistleId(pcm);
@@ -193,7 +199,9 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
   const named = (): boolean => {
     const id = namedTuneFor(sessionId(), v.env);
     const tune = id ? tuneAudio(id, v.getTake) : null;
-    if (!id || !tune || v.busy() || !v.direct.play(tune.pcm, IDLE_VOLUME, tune.label)) return false;
+    if (!id || !tune) return false;
+    const go = () => !v.busy() && v.direct.play(tune.pcm, IDLE_VOLUME, tune.label);
+    if (!v.gate('presence', tune.label, go)) return false;
     endsAt = Date.now() + tune.pcm.byteLength / 48;
     tunePlayed(sessionId(), id, tuneKind(id), v.env);
     return true;
@@ -218,7 +226,7 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
         return true;
       const pick = v.picker.take(category);
       const take = pick ?? v.picker.take('thinking-hum');
-      if (!take || !v.play(take, IDLE_VOLUME)) return false;
+      if (!take || !v.play(take, IDLE_VOLUME, 'presence')) return false;
       if (take.category === 'morning-yawn') yawned = true;
       else tunePlayed(sessionId(), takeTuneId(take.category, take.index), 'hum', v.env);
       endsAt = Date.now() + take.pcm.byteLength / 48; // 24 kHz s16le

@@ -113,6 +113,22 @@ describe('follow-through sources', () => {
     expect(items[0].dueAt).toBe(new Date(NOW.getTime() + DAY).toISOString());
   });
 
+  it('COMMITMENT_SINGLE_WRITER: a judged row about a forgotten person stays out, even when only its person names them', async () => {
+    process.env.COMMITMENT_SINGLE_WRITER = 'on';
+    try {
+      const judged = (id: string, person: string) => {
+        const c = commitment(id, 'call your sister tomorrow');
+        return { id, data: { ...c.data, source: 'after-call-llm', person } };
+      };
+      h.commitments = [judged('j1', 'Mindy'), judged('j2', 'Rosa'), commitment('old', 'I need to call the bank today')]; // prettier-ignore
+      h.forgotten = ['mindy'];
+      const items = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
+      expect(items.map((i) => i.source.ref)).toEqual(['j2']);
+    } finally {
+      delete process.env.COMMITMENT_SINGLE_WRITER;
+    }
+  });
+
   it('brings in threads from the last calls', async () => {
     h.summaries = [
       { id: 's1', data: { followUpItems: ['how the interview went', ' '], callerProvenance: 1 } },
