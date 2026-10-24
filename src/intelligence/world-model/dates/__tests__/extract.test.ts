@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildDatesPrompt, parseDateMentions, toDateObservations } from '../extract.js';
+import { buildDatesPrompt, parseDateMentions, timeDoubts, toDateObservations } from '../extract.js';
 
 const CALL = { sessionId: 's1', observedAt: '2026-10-11T19:00:00.000Z', callDate: '2026-10-11' };
 
@@ -188,5 +188,36 @@ describe('toDateObservations: words against the model reading', () => {
       CALL
     );
     expect(o).toMatchObject({ eventDate: '2026-10-14', needsConfirmation: false });
+  });
+});
+
+describe('timeDoubts: the mentions toDateObservations drops, kept to take a time off (#2527)', () => {
+  // Saturday 2026-10-24: "friday" is 10-30.
+  const call = { sessionId: 's1', observedAt: '2026-10-24T14:00:00.000Z', callDate: '2026-10-24' };
+  const said = (when: string, over: Record<string, unknown> = {}) => ({
+    who: 'self', what: 'biopsy', kind: 'medical' as const, when, recurring: false, past: false,
+    correction: false, unsure: false, confidence: 0.9, ...over,
+  }); // prettier-ignore
+
+  it.each(['friday at 4pm EST', 'friday, not sure what time', 'sometime friday'])(
+    '"%s" is dropped as a date and kept as a doubt on friday',
+    (when) => {
+      expect(toDateObservations([said(when)], call)).toEqual([]);
+      const [d, ...more] = timeDoubts([said(when)], call);
+      expect(more).toEqual([]);
+      expect(d).toMatchObject({ subject: 'self', subjectKind: 'self', value: 'biopsy', kind: 'medical', recurrence: 'once' }); // prettier-ignore
+      expect(d.days).toContain('2026-10-30');
+    }
+  );
+
+  it('a mention that makes a date, or one with no day anywhere in it, is no doubt', () => {
+    expect(timeDoubts([said('friday at 3pm')], call)).toEqual([]);
+    expect(timeDoubts([said('sometime friday', { guess: '2026-10-30' })], call)).toEqual([]);
+    expect(timeDoubts([said('not sure when')], call)).toEqual([]);
+  });
+
+  it('only the last mention of a date counts, as for dates', () => {
+    expect(timeDoubts([said('sometime friday'), said('friday at 3pm')], call)).toEqual([]);
+    expect(timeDoubts([said('friday at 3pm'), said('sometime friday')], call)).toHaveLength(1);
   });
 });

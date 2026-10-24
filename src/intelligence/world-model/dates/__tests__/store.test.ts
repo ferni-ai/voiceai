@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { DateObservation } from '../extract.js';
+import type { DateObservation, TimeDoubt } from '../extract.js';
 import { planDates, type DateFact } from '../store.js';
 
 const AT = '2026-10-11T19:00:00.000Z';
@@ -127,9 +127,13 @@ describe('planDates: the time of a date heard again (#2527)', () => {
     expect(lastAt(refreshOf([onFile()], [corrected]))).toBe('16:00');
   });
 
-  it('"friday at 3pm", then just "friday": the time stays', () => {
+  it('"friday at 3pm", then just "friday": the time is dropped (fail-safe: only the same time again keeps it)', () => {
     const refresh = refreshOf([onFile()], [biopsy({ at: undefined, when: 'friday' })]);
-    expect(refresh).toEqual([{ id: 'b1', observedAt: AT, confidence: 0.9 }]);
+    expect(refresh).toEqual([{ id: 'b1', observedAt: AT, confidence: 0.9, at: null }]);
+  });
+
+  it('the same time again, but doubtful (unsure, low confidence), drops it too', () => {
+    expect(lastAt(refreshOf([onFile()], [biopsy({ needsConfirmation: true })]))).toBeNull();
   });
 
   it('the same time again changes nothing', () => {
@@ -162,7 +166,62 @@ describe('planDates: the time of a date heard again (#2527)', () => {
   it('within one call the last mention wins', () => {
     const at4 = biopsy({ at: '16:00', when: 'friday at 4pm' });
     const at3 = biopsy({ at: '15:00', when: 'friday at 3pm' });
-    expect(lastAt(refreshOf([onFile()], [at4, biopsy({ at: undefined, when: 'friday' })]))).toBe('16:00'); // prettier-ignore
+    expect(lastAt(refreshOf([onFile()], [at4, biopsy({ at: undefined, when: 'friday' })]))).toBeNull(); // prettier-ignore
     expect(lastAt(refreshOf([onFile()], [at4, at3]))).toBe('15:00');
+  });
+});
+
+describe('planDates: a dropped mention that names a timed date takes its time off (TimeDoubt, #2527)', () => {
+  const said = () =>
+    obs({ value: 'biopsy', subject: 'self', subjectKind: 'self', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-23', at: '15:00', when: 'friday at 3pm' }); // prettier-ignore
+  const timed = (over: Partial<DateFact> = {}): DateFact => ({
+    ...said(),
+    id: 'b1',
+    subjectKey: 'self',
+    validFrom: AT,
+    validTo: null,
+    ...over,
+  });
+  const doubt = (over: Partial<TimeDoubt> = {}): TimeDoubt => ({
+    subject: 'self',
+    subjectKind: 'self',
+    value: 'biopsy',
+    kind: 'medical',
+    recurrence: 'once',
+    days: ['2026-10-23'],
+    ...over, // prettier-ignore
+  });
+
+  it('on file: one refresh drops the time and changes nothing else', () => {
+    const plan = planDates([timed()], [], ids, '2026-10-20', [doubt()]);
+    expect(plan).toEqual({ create: [], close: [], refresh: [{ id: 'b1', observedAt: AT, confidence: 0.9, at: null }] }); // prettier-ignore
+  });
+
+  it.each<[string, Partial<TimeDoubt>, Partial<DateFact>]>([
+    ['another day', { days: ['2026-10-26'] }, {}],
+    ['another thing', { value: 'dentist' }, {}],
+    ['another person', { subject: 'Mindy', subjectKind: 'person' }, {}],
+    ['no time on file', {}, { at: undefined }],
+    ['a closed date', {}, { validTo: AT }],
+  ])('%s: nothing', (_, d, f) => {
+    expect(planDates([timed(f)], [], ids, '2026-10-20', [doubt(d)]).refresh).toEqual([]);
+  });
+
+  it('made this call: the new fact is created without its time', () => {
+    const plan = planDates([], [said()], ids, '2026-10-20', [doubt()]);
+    expect(plan.create).toHaveLength(1);
+    expect(plan.create[0]).not.toHaveProperty('at');
+    expect(plan.refresh).toEqual([]);
+  });
+
+  it('heard again this call with its time: the doubt still wins, on the one refresh', () => {
+    const plan = planDates([timed()], [said()], ids, '2026-10-20', [doubt()]);
+    expect(plan.refresh).toEqual([{ id: 'b1', observedAt: AT, confidence: 0.9, at: null }]);
+  });
+
+  it('a yearly date matches by month and day', () => {
+    const birthday = timed({ recurrence: 'yearly', kind: 'birthday', value: 'birthday', monthDay: '10-23' }); // prettier-ignore
+    const d = doubt({ recurrence: 'yearly', kind: 'birthday', value: 'birthday', days: ['2027-10-23'] }); // prettier-ignore
+    expect(planDates([birthday], [], ids, '2026-10-20', [d]).refresh).toHaveLength(1);
   });
 });

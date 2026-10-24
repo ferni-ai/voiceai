@@ -1,5 +1,6 @@
 import type { Firestore } from '@google-cloud/firestore';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DateMention } from '../../intelligence/world-model/dates/extract.js';
 
 // The real importer, sources and store run on this fake; only the stores the
 // sources read through their own modules (commitments, summaries, forgotten
@@ -64,7 +65,8 @@ const { setOutboundCallContext } =
 const { importFollowUpsAfterCall } = await import('../follow-through-import.js');
 const { createFollowUpStore } = await import('../../services/stores/follow-through-store.js');
 const { createFollowUpSources } = await import('../../services/stores/follow-through-sources.js');
-const { toDateObservations } = await import('../../intelligence/world-model/dates/extract.js');
+const { timeDoubts, toDateObservations } =
+  await import('../../intelligence/world-model/dates/extract.js');
 const { recordDates } = await import('../../intelligence/world-model/dates/store.js');
 const { createMemoryWorldFactStore } =
   await import('../../intelligence/world-model/temporal/__tests__/memory-store.js');
@@ -297,16 +299,16 @@ describe('BOOKENDS: timed one-time dates come in with eventAt, per person', () =
 describe('BOOKENDS: a time said differently on a later call moves the bookend (#2527)', () => {
   // Sat 2026-10-17 09:00 in Denver (MDT, UTC-6): "friday" is 10-23, "monday" 10-19.
   let facts = createMemoryWorldFactStore();
-  const say = (when: string, correction = false) =>
-    recordDates(
-      'owner-1',
-      toDateObservations(
-        [{ who: 'self', what: 'biopsy', kind: 'medical', when, recurring: false, past: false, correction, unsure: false, confidence: 0.9 }], // prettier-ignore
-        { sessionId: 's1', observedAt: new Date(NOW).toISOString(), callDate: '2026-10-17' }
-      ),
-      facts,
-      '2026-10-17'
-    );
+  /** One call's mention of the biopsy, stored as after-call.ts stores it: dates and doubts. */
+  const say = (when: string, over: boolean | Partial<DateMention> = {}) => {
+    const mention: DateMention = { who: 'self', what: 'biopsy', kind: 'medical', when, recurring: false, past: false, correction: false, unsure: false, confidence: 0.9, ...(typeof over === 'boolean' ? { correction: over } : over) }; // prettier-ignore
+    const call = {
+      sessionId: 's1',
+      observedAt: new Date(NOW).toISOString(),
+      callDate: '2026-10-17',
+    };
+    return recordDates('owner-1', toDateObservations([mention], call), facts, '2026-10-17', timeDoubts([mention], call)); // prettier-ignore
+  };
   const cohorts = {
     cohortsFor: async () => [{ id: 'seth', enabled: true, flags: { FOLLOW_THROUGH_IMPORT: 'on', BOOKENDS: 'on' } }], // prettier-ignore
     overridesFor: async () => ({}),
@@ -340,13 +342,61 @@ describe('BOOKENDS: a time said differently on a later call moves the bookend (#
     expect(bookends()).toEqual([['open', '2026-10-23T22:00:00.000Z']]);
   });
 
-  it('then just "friday": it stays at 16:00', async () => {
-    await say('friday at 4pm');
+  /** The biopsy's one fact (still Friday, never closed) and its one bookend, with the time each has now. */
+  const now = () => {
+    const [fact, ...more] = facts.all('owner-1');
+    expect(more).toEqual([]);
+    expect(fact).toMatchObject({ eventDate: '2026-10-23', validTo: null });
+    const [bookend, ...others] = followUps('owner-1').filter((f) => f.kind === 'date');
+    expect(others).toEqual([]);
+    expect(bookend).toMatchObject({ status: 'open', eventPrecision: bookend.eventAt ? 'time' : 'none' }); // prettier-ignore
+    return [(fact as { at?: string }).at ?? null, bookend.eventAt];
+  };
+
+  it('"friday at 3pm", then "friday at 3pm" again: it stays at 15:00', async () => {
+    await say('friday at 3pm');
     await importNow();
-    await say('friday');
+    await say('friday at 3pm');
     await importNow();
-    expect(facts.all('owner-1')).toMatchObject([{ eventDate: '2026-10-23', at: '16:00' }]);
-    expect(bookends()).toEqual([['open', '2026-10-23T22:00:00.000Z']]);
+    expect(now()).toEqual(['15:00', '2026-10-23T21:00:00.000Z']);
+  });
+
+  // Fail-safe (Seth, 2026-10-24): a time survives only when the newest mention says it again.
+  it.each<[string, Partial<DateMention>]>([
+    ['friday', {}],
+    ['this friday', {}],
+    ['friday', { unsure: true }],
+    ['friday at 3pm', { unsure: true }],
+    ['friday at 3pm', { guess: '2026-10-24' }],
+    ['friday', { correction: true }],
+    // Dropped by the day reader before planning (TimeDoubt), with no guess to fall back on...
+    ['friday at 4pm EST', {}],
+    ['friday, not sure what time', {}],
+    ['sometime friday', {}],
+    // ...and with one: kept, to confirm, on the guessed day.
+    ['friday at 4pm EST', { guess: '2026-10-23' }],
+    ['sometime friday', { guess: '2026-10-23' }],
+  ])('"friday at 3pm", then "%s" %j: the time comes off it and the bookend', async (when, over) => {
+    await say('friday at 3pm');
+    await importNow();
+    expect(now()).toEqual(['15:00', '2026-10-23T21:00:00.000Z']);
+    await say(when, over);
+    await importNow();
+    expect(now()).toEqual([null, null]);
+    // A plain time on a later call brings it back.
+    await say('friday at 11am');
+    await importNow();
+    expect(now()).toEqual(['11:00', '2026-10-23T17:00:00.000Z']);
+  });
+
+  it('a dropped mention of another day, or of another thing, leaves the time alone', async () => {
+    await say('friday at 3pm');
+    await importNow();
+    await say('sometime monday');
+    await say('sometime friday', { what: 'dentist' });
+    await say('sometime friday', { who: 'Mindy' });
+    await importNow();
+    expect(now()).toEqual(['15:00', '2026-10-23T21:00:00.000Z']);
   });
 
   it('a correction to 4pm moves it to 16:00', async () => {

@@ -17,7 +17,7 @@ import { flagOn } from '../../../config/env-flag.js';
 import { isDay, type WorldObservation } from '../temporal/types.js';
 import type { CallMoment } from '../extraction/extraction-prompt.js';
 import { strictTimeOfDay, type StrictTime } from './strict-time.js';
-import { daysBetween, nextOccurrence, resolveWhen } from './timex.js';
+import { daysBetween, nextOccurrence, resolveWhen, type Resolved } from './timex.js';
 
 /** True when DATES_THAT_MATTER=on. Off by default. */
 export function datesThatMatterOn(env: Record<string, string | undefined> = process.env): boolean {
@@ -173,21 +173,35 @@ function timeOn(m: DateMention, day: string, callDate: string): StrictTime | nul
   return time && resolveWhen(time.rest, callDate, m.past)?.date === day ? time : null;
 }
 
+/** The last mention of each date in the call: a later one (a correction) wins. */
+function lastMentions(mentions: readonly DateMention[]): DateMention[] {
+  const last = new Map<string, DateMention>();
+  for (const m of mentions) last.set(key(m), m);
+  return [...last.values()];
+}
+
+/** The day a mention's words give, else the model's guess; no day when neither does. */
+function dayOf(
+  m: DateMention,
+  callDate: string
+): { resolved: Resolved | null; guess: string | null; day: string | null } {
+  const resolved = resolveWhen(m.when, callDate, m.past);
+  const guess = resolved ? null : plausibleGuess(m.guess, callDate);
+  return { resolved, guess, day: resolved?.date ?? guess };
+}
+
 /**
  * Resolves each mention against the call's date; a later mention of the same
- * date (a correction) wins. Mentions whose day can't be found are dropped.
+ * date (a correction) wins. Mentions whose day can't be found are dropped
+ * (timeDoubts keeps what they say about a time).
  */
 export function toDateObservations(
   mentions: readonly DateMention[],
   call: { sessionId: string; observedAt: string; callDate: string }
 ): DateObservation[] {
-  const last = new Map<string, DateMention>();
-  for (const m of mentions) last.set(key(m), m);
   const out: DateObservation[] = [];
-  for (const m of last.values()) {
-    const resolved = resolveWhen(m.when, call.callDate, m.past);
-    const guess = resolved ? null : plausibleGuess(m.guess, call.callDate);
-    const day = resolved?.date ?? guess;
+  for (const m of lastMentions(mentions)) {
+    const { resolved, guess, day } = dayOf(m, call.callDate);
     if (!day) continue;
     const yearly = yearlyKind(m);
     // The model's own reading disagrees with the words (it may know a month said earlier): ask.
@@ -218,4 +232,51 @@ export function toDateObservations(
     });
   }
   return out;
+}
+
+/**
+ * A mention toDateObservations dropped: its words give no day the day reader takes whole,
+ * and the model gave no usable guess ("friday at 4pm EST", "sometime friday", "friday, not
+ * sure what time"). It makes no date, but it is still the newest word on one, so a timed
+ * date it names loses its time (dates/store.ts): a stored time is kept only while the
+ * newest mention says it again (#2527).
+ */
+export interface TimeDoubt {
+  subject: string;
+  subjectKind: 'self' | 'person';
+  value: string;
+  kind: DateKind;
+  recurrence: 'yearly' | 'once';
+  /** Every day one to three words in a row of `when` read as ("friday" in "sometime friday"). */
+  days: string[];
+}
+
+/** The dropped mentions that read as a day somewhere in their words; see TimeDoubt. */
+export function timeDoubts(
+  mentions: readonly DateMention[],
+  call: { callDate: string }
+): TimeDoubt[] {
+  return lastMentions(mentions).flatMap((m) => {
+    if (dayOf(m, call.callDate).day) return [];
+    const words = m.when
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean);
+    const days = new Set<string>();
+    for (let i = 0; i < words.length; i++)
+      for (let n = 1; n <= 3 && i + n <= words.length; n++) {
+        const day = resolveWhen(words.slice(i, i + n).join(' '), call.callDate, m.past)?.date;
+        if (day) days.add(day);
+      }
+    if (days.size === 0) return [];
+    const doubt: TimeDoubt = {
+      subject: m.who,
+      subjectKind: m.who === 'self' ? 'self' : 'person',
+      value: m.what,
+      kind: m.kind,
+      recurrence: yearlyKind(m) ? 'yearly' : 'once',
+      days: [...days],
+    };
+    return [doubt];
+  });
 }

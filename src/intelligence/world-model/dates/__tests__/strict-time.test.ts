@@ -35,6 +35,9 @@ describe('strictTimeOfDay: only forms with one reading', () => {
     ['12 noon', '12:00'],
     ['twelve noon', '12:00'],
     ['tomorrow morning at 9am', '09:00'],
+    ['tomorrow morning at 2am', '02:00'],
+    ['friday night at 11pm', '23:00'],
+    ['late friday at 10pm', '22:00'],
     ['this afternoon at 4pm', '16:00'],
     ['tonight at 9pm', '21:00'],
   ])('%s is %s', (text, at) => {
@@ -46,6 +49,8 @@ describe('strictTimeOfDay: only forms with one reading', () => {
     ['12:30am', '00:30'],
     ['midnight', '00:00'],
     ['12 midnight', '00:00'],
+    ['tomorrow night at 12am', '00:00'],
+    ['late friday at 12:30am', '00:30'],
   ])('%s is %s, marked midnight', (text, at) => {
     expect(strictTimeOfDay(text)).toMatchObject({ at, midnight: true });
   });
@@ -63,6 +68,12 @@ describe('strictTimeOfDay: only forms with one reading', () => {
     // Hedged, zoned, an alternative, another thing's time, or a part of the day that disagrees.
     'around 3pm', 'about 3pm', '3pm-ish', '3pm or so', 'not at 3pm', 'no later than 3pm', '3pm EST',
     '3pm, or 4', 'leave at 1pm for the appointment', 'tomorrow morning at 3pm', 'tonight at 9am', '３pm, 4pm',
+    // A cue three words off counts as much as one next to it.
+    'probably the friday 3pm', '3pm on friday maybe', 'they moved it friday 3pm', 'pushed it, friday 3pm',
+    // 1am to 4am with a night word: which day's small hours? Midnight is confirmed instead.
+    'tomorrow night at 2am', 'tonight at 1am', 'friday night at 4am', 'late on friday at 3am', 'overnight 2am',
+    // A hedge, a question, a range by any other mark.
+    '~3pm', '3pm?', '3—4pm', '3 — 4pm', '3~4pm', '3 & 4pm', '3+4pm',
   ])('%s gives no time', (text) => {
     expect(strictTimeOfDay(text)).toBeNull();
   }); // prettier-ignore
@@ -211,7 +222,7 @@ describe('strictTimeOfDay: two times in the words give none', () => {
 
 /**
  * Every Blocking and non-blocking input from the ferni-verifier rounds on #2527
- * (2abdace5f, 0f58dd70d, e9a305453): [when, the right time, or null when only no time is right].
+ * (2abdace5f, 0f58dd70d, e9a305453, fcb2a6897): [when, the right time, or null when only no time is right].
  */
 const VERIFIER_INPUTS: ReadonlyArray<readonly [string, string | null]> = [
   // Round 1.
@@ -267,6 +278,19 @@ const VERIFIER_INPUTS: ReadonlyArray<readonly [string, string | null]> = [
   ['12 am', '00:00'], ['12a.m.', '00:00'], ['12:59am', '00:59'], ['07:00', '07:00'], ['00:30', '00:30'],
   ['3 p.m.', '15:00'], ['3P.M.', '15:00'], ['3 p. m.', '15:00'], ['3pm.', '15:00'], ['11:59 p.m.', '23:59'],
   ['3pm 15:00', '15:00'],
+  // Round 4 (fcb2a6897), Blocking: a night with a small-hours time; a time withdrawn (store.test.ts and
+  // follow-through-import.test.ts follow those through the store and the bookend).
+  ['tomorrow night at 2am', null], ['tomorrow night 1am', null], ['tomorrow night at 3 am', null],
+  ['tomorrow at 2am at night', null], ['tomorrow 2am night', null], ['tonight at 2am', null],
+  ['friday at 4pm EST', null], ['friday, not sure what time', null], ['sometime friday', null],
+  // Round 4, non-blocking: zones, a change of mind, another thing's time, ranges, hedges.
+  ['the 2pm bus to the clinic', null], ['3pm London', null], ['3pm UK', null], ['3pm Hawaii', null],
+  ['3pm HST', null], ['3pm AEST', null], ['3pm New York', null], ['3pm local', null], ['3pm Z', null],
+  ['3pm, wait, 4', null], ['3pm actually 4', null], ['3pm sorry 4', null], ['3pm cancelled', null],
+  ['doors 6pm', null], ['3pm room 4', null], ['circa 3pm', null], ['3pm tbc', null],
+  ['friday 3—4pm', null], ['3 — 4pm', null], ['3~4pm', null], ['3 & 4pm', null], ['3+4pm', null],
+  ['friday ~3pm', null], ['friday 3pm?', null], ['~3pm', null], ['3pm?', null],
+  ['friday at 3:30pm', '15:30'], ['sunday at 1:30am', '01:30'],
 ]; // prettier-ignore
 
 describe('every input a verifier tried ends right or with no time', () => {
@@ -279,10 +303,10 @@ describe('every input a verifier tried ends right or with no time', () => {
     }
   });
 
-  it('is not vacuous: 43 of the 47 with a right time give it (the other 4 give none)', () => {
-    const none = new Set(['at 5.30pm tomorrow', 'at 12.15am', '3 : 30pm', '3pm 15:00']);
+  it('is not vacuous: 44 of the 49 with a right time give it (the other 5 give none)', () => {
+    const none = new Set(['at 5.30pm tomorrow', 'at 12.15am', '3 : 30pm', '3pm 15:00', 'friday at 3pm room 12']); // prettier-ignore
     const timed = VERIFIER_INPUTS.filter(([w, right]) => right !== null && !none.has(w));
-    expect(timed).toHaveLength(43);
+    expect(timed).toHaveLength(44);
     for (const [when, right] of timed) expect(strictTimeOfDay(when)?.at, when).toBe(right);
   });
 

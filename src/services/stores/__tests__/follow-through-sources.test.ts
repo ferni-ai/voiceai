@@ -290,6 +290,16 @@ describe('follow-through sources', () => {
       ]);
     });
 
+    it('a bookend made from a fact since forgotten is gone, not kept on its time', async () => {
+      h.forgotten = ['therapy'];
+      const made = { bookends: { zone: 'America/New_York', made: ['wd_2'] } };
+      const items = await sources().itemsFor('u1', NOW, made);
+      expect(items.map((i) => [i.source.ref, i.eventAt ?? null, i.gone ?? false])).toEqual([
+        ['wd_1', '2026-10-14T19:00:00.000Z', false],
+        ['wd_2', null, true],
+      ]);
+    });
+
     it('a full page of facts may have left one out, so none is called gone', async () => {
       const page = Array.from({ length: 200 }, (_, i) => fact(`wd_${i + 10}`, `visit ${i}`));
       facts.listOpen.mockResolvedValueOnce(page);

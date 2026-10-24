@@ -103,4 +103,28 @@ describe('the dates-that-matter after-call task', () => {
     ).rejects.toThrow('down');
     expect(s.plans).toEqual([]);
   });
+
+  describe('a mention with no day the reader takes takes the time off a timed date (TimeDoubt, #2527)', () => {
+    const surgery = {
+      id: 'wd_1', subject: 'Mindy', subjectKind: 'person', subjectKey: 'person:mindy', attribute: 'event', value: 'surgery',
+      eventDate: '2026-10-15', at: '15:00', when: 'thursday at 3pm', observedAt: '2026-10-10T12:00:00.000Z', confidence: 0.9,
+      validFrom: '2026-10-10T12:00:00.000Z', validTo: null, origin: 'dates', kind: 'medical', recurrence: 'once',
+      needsConfirmation: false, source: { kind: 'turn', sessionId: 's0' },
+    }; // prettier-ignore
+    const reply = JSON.stringify({ dates: [{ who: 'Mindy', what: 'surgery', kind: 'medical', when: 'sometime Thursday', confidence: 0.9 }] }); // prettier-ignore
+    const timedStore = () => ({ ...store(), listOpen: async () => [surgery as never] });
+    const dropsTime = [{ id: 'wd_1', observedAt: surgery.observedAt, confidence: 0.9, at: null }];
+
+    it('drops the time and writes nothing else', async () => {
+      const s = timedStore();
+      await extractDatesAfterCall(ctx, { llm: async () => reply, store: s, topics: async () => [], env: ON }); // prettier-ignore
+      expect(s.plans).toEqual([{ create: [], close: [], refresh: dropsTime }]);
+    });
+
+    it('drops it even when the forgotten topics are unreadable: that writes nothing new', async () => {
+      const s = timedStore();
+      await extractDatesAfterCall(ctx, { llm: async () => reply, store: s, topics: async () => null, env: ON }); // prettier-ignore
+      expect(s.plans).toEqual([{ create: [], close: [], refresh: dropsTime }]);
+    });
+  });
 });

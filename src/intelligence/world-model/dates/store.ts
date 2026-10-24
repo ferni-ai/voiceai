@@ -6,8 +6,8 @@
  * One store means one erasure path (eraseUserRecord deletes the user doc
  * recursively). Nothing reads these dates during a call yet.
  *
- * The same date heard again is refreshed, and its time of day follows the newer
- * words (timeHeardAgain); a yearly date (a birthday) or a
+ * The same date heard again is refreshed, and keeps its time of day only when the
+ * newer words say that time again (timeHeardAgain); a yearly date (a birthday) or a
  * correction replaces the one on file for that person and kind; a one-time
  * date heard with a new day while the old day is still ahead is a reschedule
  * and replaces it too. An old one-time date that has passed stays, since the
@@ -19,8 +19,7 @@ import { forgetTokens } from '../../../memory/index.js';
 import type { ResolutionPlan } from '../temporal/resolve.js';
 import { createFirestoreWorldFactStore, type WorldFactStore } from '../temporal/store.js';
 import { subjectKeyOf, type TemporalFact } from '../temporal/types.js';
-import type { DateObservation } from './extract.js';
-import { mentionsTime } from './strict-time.js';
+import type { DateObservation, TimeDoubt } from './extract.js';
 
 /** A stored fact, with the date fields when dates-that-matter wrote it. */
 export type DateFact = TemporalFact & Partial<Omit<DateObservation, keyof TemporalFact>>;
@@ -34,7 +33,10 @@ const newDateId = (): string => `wd_${Date.now().toString(36)}_${(counter += 1).
  * birthday are two dates. A fact without a recurrence (the world extractor's) matches only
  * the same words: its "birthday" is replaced by the yearly one, its "birthday party" isn't.
  */
-function sameThing(f: DateFact, o: DateObservation): boolean {
+function sameThing(
+  f: DateFact,
+  o: Pick<DateObservation, 'subject' | 'subjectKind' | 'recurrence' | 'kind' | 'value'>
+): boolean {
   if (f.attribute !== 'event' || f.subjectKey !== subjectKeyOf(o) || f.by === 'ferni') return false;
   if (f.recurrence !== undefined && f.recurrence !== o.recurrence) return false;
   if (o.recurrence === 'yearly' && f.recurrence === 'yearly' && f.kind === o.kind) return true;
@@ -46,17 +48,41 @@ function sameThing(f: DateFact, o: DateObservation): boolean {
 }
 
 /**
- * The time of day a date heard again should have, as a bookend is built on it (#2527):
- * the newer words' time when they give one plainly; none when they change it doubtfully
- * or muddle it (a correction, or any other word about a time); the old one only when
- * they say nothing about a time ("Friday" after "Friday at 3pm"). Undefined: unchanged.
+ * The time of day a date heard again should have, as a bookend is built on it (#2527).
+ * Fail-safe: a stored time survives only when the newest mention says the same time,
+ * plainly. A new plain time replaces it ("friday at 4pm"); anything else drops it: no
+ * time ("friday", "sometime friday"), a doubtful one (unsure, a midnight, the model's
+ * own day), or a correction without one. Fewer timed reminders, never a stale one.
+ * Undefined: unchanged.
  */
 function timeHeardAgain(f: DateFact, o: DateObservation): string | null | undefined {
-  if (o.at === f.at) return undefined;
-  if (o.at !== undefined)
-    return o.needsConfirmation ? (f.at === undefined ? undefined : null) : o.at;
-  if (f.at === undefined) return undefined;
-  return o.replaces !== undefined || mentionsTime(o.when) ? null : undefined;
+  if (o.at !== undefined && !o.needsConfirmation) return o.at === f.at ? undefined : o.at;
+  return f.at === undefined ? undefined : null;
+}
+
+/**
+ * A dropped mention (TimeDoubt) that names a timed date and its day takes the time off
+ * it, as a mention without a time would: "sometime friday" after "friday at 3pm".
+ */
+function dropDoubtedTimes(
+  plan: ResolutionPlan,
+  live: readonly DateFact[],
+  doubts: readonly TimeDoubt[]
+): void {
+  for (const d of doubts)
+    for (const f of live) {
+      const day = (x: string): string => (d.recurrence === 'yearly' ? x.slice(5) : x);
+      const onFile = d.recurrence === 'yearly' ? f.monthDay : f.eventDate;
+      if (f.at === undefined || !d.days.some((x) => day(x) === onFile) || !sameThing(f, d))
+        continue;
+      // Made this call: it is ours to change. On file: a refresh drops it.
+      if (plan.create.includes(f)) delete f.at;
+      else {
+        const heard = plan.refresh.find((r) => r.id === f.id);
+        if (heard) heard.at = null;
+        else plan.refresh.push({ id: f.id, observedAt: f.observedAt, confidence: f.confidence, at: null }); // prettier-ignore
+      }
+    }
 }
 
 /**
@@ -67,7 +93,8 @@ export function planDates(
   open: readonly DateFact[],
   observations: readonly DateObservation[],
   newId: () => string = newDateId,
-  callDay?: string
+  callDay?: string,
+  doubts: readonly TimeDoubt[] = []
 ): ResolutionPlan {
   const plan: ResolutionPlan = { create: [], close: [], refresh: [] };
   const live = open.filter((f) => f.validTo === null);
@@ -106,6 +133,7 @@ export function planDates(
     plan.create.push(fact);
     live.push(fact);
   }
+  dropDoubtedTimes(plan, live, doubts);
   return plan;
 }
 
@@ -114,10 +142,11 @@ export async function recordDates(
   userId: string,
   observations: readonly DateObservation[],
   store: WorldFactStore = createFirestoreWorldFactStore(),
-  callDay?: string
+  callDay?: string,
+  doubts: readonly TimeDoubt[] = []
 ): Promise<{ created: number; closed: number; refreshed: number }> {
-  if (observations.length === 0) return { created: 0, closed: 0, refreshed: 0 };
-  const plan = planDates(await store.listOpen(userId), observations, newDateId, callDay);
+  if (observations.length + doubts.length === 0) return { created: 0, closed: 0, refreshed: 0 };
+  const plan = planDates(await store.listOpen(userId), observations, newDateId, callDay, doubts);
   await store.apply(userId, plan);
   return { created: plan.create.length, closed: plan.close.length, refreshed: plan.refresh.length };
 }

@@ -14,9 +14,11 @@
  * Everything else gives null: a bare hour ("at 3"), "5.30", "5 30", "three
  * o'clock", a range ("2-4pm"), "10 to 5pm", and any words with two times in them
  * ("9am, 10am", even "3pm, which is 15:00"). So does a time with a hedge, a zone or
- * an alternative near it ("not at 3pm", "around 3pm", "3pm EST", "3pm, or 4"), one
- * for something else ("leave at 1pm"), and one a part of the day contradicts
- * ("tomorrow morning at 3pm").
+ * an alternative near it ("not at 3pm", "around 3pm", "3pm EST", "3pm, or 4"), a bare
+ * number just after it ("3pm, wait, 4", "3pm room 4"), one for something else ("leave
+ * at 1pm"), one a part of the day contradicts ("tomorrow morning at 3pm"), and a night
+ * word with 1am to 4am ("tomorrow night at 2am": which day's small hours?). A "~" or a
+ * "?" is a hedge ("~3pm", "3pm?").
  *
  * @module intelligence/world-model/dates/strict-time
  */
@@ -47,7 +49,8 @@ const LOOSE = new RegExp(
 /**
  * Words that make a time near them (3 words either side) not the plain time of the
  * thing: a hedge or a limit, a zone or a place, an alternative, a doubt, another time
- * it used to be, or something else that happens then (leaving, a call).
+ * it used to be or a change of mind, or something else that happens then (leaving, a
+ * call, a bus, the doors).
  */
 const CUES: ReadonlySet<string> = new Set(
   (
@@ -56,8 +59,10 @@ const CUES: ReadonlySet<string> = new Set(
     'think guess unsure unless latest earliest sometime past every each daily instead used ' +
     'originally initially supposed moved pushed changed rescheduled hour hours minutes ' +
     'time zone in est edt cst cdt mst mdt pst pdt et ct mt pt gmt bst utc cet cest ist jst ' +
-    'eastern central mountain pacific leave leaving left depart departing head heading drive ' +
-    'driving pick pickup arrive arriving call calling remind wake'
+    'eastern central mountain pacific london uk hawaii hst aest aedt york local z zulu ' +
+    'leave leaving left depart departing head heading drive driving pick pickup arrive ' +
+    'arriving call calling remind wake bus train flight doors wait actually sorry cancelled ' +
+    'canceled circa tbc tba tbd'
   ).split(' ')
 );
 
@@ -66,7 +71,10 @@ const PARTS: ReadonlyArray<[RegExp, (hour: number) => boolean]> = [
   [/\bmorning\b/, (h) => h < 12],
   [/\bafternoon\b/, (h) => h >= 12 && h < 18],
   [/\bevening\b/, (h) => h >= 16],
-  [/\b(?:tonight|night)\b/, (h) => h >= 18 || h < 5],
+  // 1am to 4am with a night word could be either day's small hours ("tomorrow night at
+  // 2am" is the day after tomorrow), so it gives none. Midnight is confirmed instead.
+  [/\b(?:tonight|night|nights|overnight)\b/, (h) => h >= 18 || h === 0],
+  [/\blate\b/, (h) => h === 0 || h > 4],
 ];
 
 const tokens = (s: string): string[] => s.split(/[^a-z0-9']+/).filter(Boolean);
@@ -75,8 +83,8 @@ const NUMBER =
   '\\d|\\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|half|quarter)';
 /** Words that make a time the edge of something ("before 3pm", "2 to 4pm", "10 to 5pm"). */
 const EDGE = '(?:to|till|til|until|through|thru|past|after|before|by|from|between|and|or|-|–)';
-/** Not part of a longer number or a range: no number, dot, colon or edge word just before... */
-const NOT_AFTER = `(?<!(?:${NUMBER})[\\s.,:;/'-]*)(?<!\\b${EDGE}\\s*)(?<![-–]\\s*)`;
+/** Not part of a longer number or a range: no number (then a dot, a colon, a dash, "&", "+"...) or edge word just before... */
+const NOT_AFTER = `(?<!(?:${NUMBER})[\\s.,:;/'&+–—-]*)(?<!\\b${EDGE}\\s*)(?<![-–]\\s*)`;
 /** ...and no number, edge word or am/pm just after. */
 const NOT_BEFORE = `(?![\\s.,:;/-]*\\d)(?!\\s*${EDGE}\\s*(?:${NUMBER}))(?!\\s*[ap]m\\b)`;
 
@@ -104,27 +112,21 @@ const normalise = (text: string): string =>
     .replace(/\s+/g, ' ')
     .replace(/(?<![a-z])([ap])\. ?m\b\.?/g, '$1m');
 
-/** True when `text` says anything about a time of day, however loosely ("4pm", "at 4", "an hour later", "in the morning"). */
-export function mentionsTime(text: string): boolean {
-  const words = normalise(text);
-  if (words.search(LOOSE) >= 0 || PARTS.some(([part]) => part.test(words))) return true;
-  return tokens(words).some((w) => CUES.has(w) && !['in', 'by', 'or', 'not', 'no'].includes(w));
-}
-
 /** The one time of day `text` names, or null when it names none, or more than one. */
 export function strictTimeOfDay(text: string): StrictTime | null {
   const words = normalise(text);
   // A digit in another script ("３pm") is a number the rules can't see.
   if (/\p{Nd}/u.test(words.replace(/\d/g, ''))) return null;
+  // "~3pm", "3pm?", "3~4pm": a hedge, a question or a range, not the time.
+  if (/[~?]/.test(words)) return null;
   const loose = [...words.matchAll(LOOSE)];
   if (loose.length !== 1) return null;
   const start = loose[0].index ?? 0;
   const end = start + loose[0][0].length;
-  const near = [
-    ...tokens(words.slice(0, start)).slice(-3),
-    ...tokens(words.slice(end)).slice(0, 3),
-  ];
-  if (near.some((w) => CUES.has(w))) return null;
+  const after = tokens(words.slice(end)).slice(0, 3);
+  if ([...tokens(words.slice(0, start)).slice(-3), ...after].some((w) => CUES.has(w))) return null;
+  // A bare number just after may be the time it became ("3pm, wait, 4", "3pm room 4").
+  if (after.some((w) => /^\d+$/.test(w))) return null;
   const found: Array<{ at: string; start: number; end: number; midnight: boolean }> = [];
   for (const [pattern, read] of RULES) {
     const guarded = new RegExp(`${NOT_AFTER}${pattern.source}${NOT_BEFORE}`, 'g');
