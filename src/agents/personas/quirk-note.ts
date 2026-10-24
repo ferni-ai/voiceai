@@ -130,9 +130,11 @@ export function quirkTurnNote(
   if (!quirkAwarenessEnabled(env)) return '';
   const events = quirkEvents(sessionId);
   const candidates = candidatesFor(events, lastReplyAt(chatCtx), words, turn.now ?? Date.now());
-  // The snore's punchline is for the caller's next turn only, used or not.
-  const ownIt = events.some((x) => x.ownIt);
-  for (const x of events) x.ownIt = false;
+  // The snore's punchline is for the caller's next turn only, used or not. A reply Ferni
+  // starts himself (a check-in, no caller words) leaves it for when they speak.
+  const spoke = words.trim() !== '';
+  const ownIt = spoke && events.some((x) => x.ownIt);
+  if (spoke) for (const x of events) x.ownIt = false;
   if (candidates.length === 0) return '';
   const { e, asked } = candidates.sort((a, b) => rank(a) - rank(b) || b.e.at - a.e.at)[0];
   const why = e.reason ? ` (${e.reason})` : '';

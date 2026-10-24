@@ -328,7 +328,8 @@ function startSnore(v: Voiced): () => void {
   const play = (quietMs: number): boolean => {
     const sid = sessionIdOf(v);
     if (presenceSoundsHeld(sid, v.env)) return false; // NAMED_TUNE: "stop that"
-    if (sid && (shouldSkipGenerateReply(sid) || (getStateMetrics(sid)?.activeToolCount ?? 0) > 0))
+    // No session: the handoff and tool checks can't run, so no snore
+    if (!sid || shouldSkipGenerateReply(sid) || (getStateMetrics(sid)?.activeToolCount ?? 0) > 0)
       return false;
     const pcm = snores.next();
     if (!pcm) return false;

@@ -7,6 +7,7 @@
  * own it out loud, once, never when they sound upset. Off, nothing changes.
  */
 import { EventEmitter } from 'node:events';
+import { callTune } from '../../../services/session/tune-state.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm, voice } from '@livekit/agents';
 
@@ -143,6 +144,20 @@ describe('the long-quiet snore, flag on', () => {
     expect(snore!.reason).toContain('quiet for about 19 seconds');
   });
 
+  it('never after the caller asked him to stop (NAMED_TUNE), and a control call does snore', () => {
+    const held = call();
+    callTune(held.sessionId).record.soundsOff = true;
+    start(held.session, { ...ON, NAMED_TUNE: 'on' });
+    held.warmUp();
+    vi.advanceTimersByTime(60_000);
+    expect(snores()).toHaveLength(0);
+    const control = call();
+    start(control.session, { ...ON, NAMED_TUNE: 'on' });
+    control.warmUp();
+    vi.advanceTimersByTime(SNORE_AT);
+    expect(snores()).toHaveLength(1);
+  });
+
   it('never on a heavy moment', () => {
     const { session, warmUp } = call({ voiceEmotion: { primary: 'sad' } });
     start(session, ON);
@@ -257,6 +272,12 @@ describe('the snore punchline', () => {
     expect(first).toContain('mock snore');
     expect(first).toContain('was I snoring');
     expect(note('anyway, where were we')).not.toContain('was I snoring');
+  });
+
+  it('a reply Ferni starts himself (no caller words) keeps it for when they speak', () => {
+    const { note } = snored();
+    expect(note('')).not.toContain('was I snoring');
+    expect(note('ha, sorry, I zoned out')).toContain('was I snoring');
   });
 
   it('never when the caller sounds upset: their words or their voice', () => {
