@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
+import { minorCareOn, sharedId, userHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'relationship-network' });
 
@@ -506,6 +507,7 @@ export async function loadNetwork(userId: string): Promise<RelationshipPerson[]>
 }
 
 export async function savePerson(person: RelationshipPerson): Promise<void> {
+  if (userHeld(person.userId) || (minorCareOn() && sharedId(person.userId))) return; // MINOR_CARE
   const db = getFirestoreDb();
   if (db) {
     await db
@@ -531,7 +533,6 @@ export async function savePerson(person: RelationshipPerson): Promise<void> {
     person.mentionCount === 1 ? 'create' : 'update'
   );
 
-  // Update cache
   const network = networkCache.get(person.userId) || [];
   const idx = network.findIndex((p) => p.id === person.id);
   if (idx >= 0) {
@@ -585,7 +586,6 @@ export async function recordMention(
     return existing;
   }
 
-  // Create new person
   const newPerson: RelationshipPerson = {
     id: `person_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     userId,
