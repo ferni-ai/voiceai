@@ -37,6 +37,16 @@ const agentState = (session: EventEmitter, newState: string) =>
 
 const message = (text: string) => llm.ChatMessage.create({ role: 'user', content: text });
 
+/** A turn's build that takes `ms(text)` and leaves a note saying what it was for. */
+const noteHook = (ms: (text: string) => number) =>
+  vi.fn<UserTurnHook>(async (ctx, msg) => {
+    await pause(ms(msg.textContent ?? ''));
+    ctx.addMessage({ role: 'user', content: `NOTE for ${msg.textContent}` });
+  });
+
+const contextText = (agent: ReturnType<typeof makeAgent>): string =>
+  agent.chatCtx.items.map((item) => (item as { textContent?: string }).textContent ?? '').join('\n');
+
 beforeEach(() => resetTurnPipelineWarm()); // every test is a fresh process
 
 describe('firstTurnDeferRelease', () => {
@@ -153,6 +163,69 @@ describe('FIRST_TURN_DEFER_RELEASE=reply_end', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('two segments of turn 1 still building when turn 2 starts push one note, the turn\'s last', async () => {
+    const session = new EventEmitter();
+    const hook = noteHook(() => 800);
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: REPLY_END });
+    finalTranscript(session, 'turn one words');
+    finalTranscript(session, 'and more'); // both held, then both build
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1500);
+    agentState(session, 'listening');
+    await pause(300);
+    finalTranscript(session, 'yeah');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1200);
+    agentState(session, 'listening');
+    await vi.waitFor(() => expect(contextText(agent)).toContain('NOTE for turn one words and more'), {
+      timeout: 1000,
+    });
+    expect(contextText(agent)).not.toMatch(/NOTE for turn one words(?! and more)/);
+    await detach();
+  });
+
+  it('a turn-1 note whose build ends after turn 2 is ready is pushed with it, not lost', async () => {
+    const session = new EventEmitter();
+    const hook = noteHook((text) => (text === 'yeah' ? 50 : 1200));
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: REPLY_END });
+    finalTranscript(session, 'turn one words');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1500);
+    agentState(session, 'listening');
+    await pause(300);
+    finalTranscript(session, 'yeah'); // its build is quick; turn 1's is still slow
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1600); // turn 1's build has ended by now, during turn 2's reply
+    agentState(session, 'listening');
+    await vi.waitFor(() => expect(contextText(agent)).toContain('NOTE for turn one words'), {
+      timeout: 1000,
+    });
+    await detach();
+  });
+
+  it('flag off, as on main: a turn-1 note superseded by turn 2 is dropped, not carried', async () => {
+    const session = new EventEmitter();
+    const hook = noteHook(() => 800);
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: {} });
+    finalTranscript(session, 'turn one words');
+    agentState(session, 'thinking'); // the turn ended
+    await pause(300);
+    finalTranscript(session, 'yeah');
+    agentState(session, 'speaking');
+    await pause(1200);
+    agentState(session, 'listening');
+    await pause(50);
+    expect(contextText(agent)).not.toContain('NOTE for turn one words');
+    await detach();
   });
 
   it('a crisis decision mid-reply still releases at once', async () => {

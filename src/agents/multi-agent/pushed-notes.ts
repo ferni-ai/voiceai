@@ -71,6 +71,25 @@ export function withHeldSafety(held: readonly string[], notes: readonly TurnNote
   return [...carried, ...notes];
 }
 
+/**
+ * The notes waiting for the next push: the fresh ones first, since they are the
+ * newest and the budget cuts the end. With `keep`, what was already waiting
+ * stays too (a released turn-1 note a later turn's words overtook); else it is
+ * replaced, as before.
+ * Safety guidance still waiting is never replaced (#2642).
+ */
+export function queuedNotes(
+  queued: readonly TurnNote[],
+  fresh: readonly TurnNote[],
+  keep: boolean
+): TurnNote[] {
+  const rest = keep ? queued.filter((note) => !note.safety) : [];
+  return withHeldSafety(
+    queued.filter((note) => note.safety).map((note) => note.text),
+    [...fresh, ...rest]
+  );
+}
+
 /** The key, in a pushed note's `extra`, of its safety guidance, whole. */
 export const TURN_CONTEXT_SAFETY = 'turnContextSafety';
 

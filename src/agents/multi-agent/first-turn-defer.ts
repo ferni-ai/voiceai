@@ -25,8 +25,8 @@
  * (the default) 600 ms into it; `reply_end` when it ends or is interrupted
  * (the agent leaves 'speaking'), so the build's stalls (531-777 ms on dev,
  * 2026-10-22) land while Ferni listens instead of cutting into its audio. Its
- * note still reaches turn 2 unless a later turn's words come first: the
- * pusher then carries it into the next push (createTurnContextPusher).
+ * note still reaches turn 2 unless turn 2's words come first: the pusher then
+ * merges it into the next push (createTurnContextPusher).
  *
  * Safety work is never deferred. The same build also runs crisis detection
  * and sends its signals (the crisis override note, `crisis_detected` to the
