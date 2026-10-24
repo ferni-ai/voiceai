@@ -96,12 +96,11 @@ export async function initializeRelationship(
   return engine;
 }
 
-/**
- * Clear engine from cache (for testing or cleanup)
- */
-export function clearRelationshipEngine(userId: string, personaId: string): void {
-  const key = `${userId}_${personaId}`;
-  engineCache.delete(key);
+/** Clear a cached engine (tests, cleanup); with no persona, all of the user's (MINOR_CARE purge) */
+export function clearRelationshipEngine(userId: string, personaId?: string): void {
+  for (const [key, engine] of engineCache)
+    if (engine.getMemory().userId === userId && (!personaId || key === `${userId}_${personaId}`))
+      engineCache.delete(key);
 }
 
 /**
