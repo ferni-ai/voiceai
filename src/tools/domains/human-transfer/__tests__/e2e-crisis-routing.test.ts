@@ -372,7 +372,7 @@ describe('Integration: buildHumanTransferInjections', () => {
     expect(crisisInjection).not.toBeNull();
     if (crisisInjection) {
       expect(crisisInjection.priority).toBeGreaterThanOrEqual(88);
-      expect(crisisInjection.category).toBe('better_than_human');
+      expect(crisisInjection.category).toBe('crisis_transfer'); // a safety category (safety-note.ts)
       expect(crisisInjection.content).toBeDefined();
     }
   });

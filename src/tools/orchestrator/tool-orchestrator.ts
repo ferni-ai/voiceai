@@ -32,6 +32,7 @@
  * });
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { isFtisEnabled } from '../../config/tool-config.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -49,6 +50,7 @@ import { initializeHierarchicalClassifier } from '../semantic-router/advanced/in
 
 // Internal modules (extracted for modularity)
 import { getDefaultConfig } from './orchestrator-config.js';
+import { isProtectedTool } from './persona-tool-policy.js';
 import {
   fetchAlwaysAvailableTools,
   fetchContextualTools,
@@ -292,10 +294,12 @@ export class UnifiedToolOrchestrator {
       }
     }
 
-    // Apply request-level force exclude
+    // Apply request-level force exclude. PERSONA_TOOL_POLICY: never a protected tool,
+    // even from a list worked out before the registry loaded its domain
     if (request.forceExclude?.length) {
+      const policyOn = flagOn('PERSONA_TOOL_POLICY');
       for (const toolId of request.forceExclude) {
-        delete allTools[toolId];
+        if (!policyOn || !isProtectedTool(toolId)) delete allTools[toolId];
       }
     }
 

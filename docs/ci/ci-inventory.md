@@ -28,7 +28,8 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 **Jobs:**
 - `lint` - TypeScript type check + ESLint
-- `test-unit` - Unit tests with coverage
+- `test-unit-shard` - Unit tests with coverage, four vitest shards ("Unit Tests (n/4)")
+- `test-unit` - The required "Unit Tests" check: passes only when every shard passed
 - `test-integration` - Integration tests
 - `test-agi-features` - AGI feature tests
 - `build` - Backend + design system + frontend

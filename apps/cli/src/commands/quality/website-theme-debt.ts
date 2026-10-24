@@ -132,8 +132,8 @@ export function colourLiterals(text: string): string[] {
 
 const isOpaque = (c: string): boolean => c.startsWith('#') || /,1$/.test(c);
 
-const DARK_SELECTOR = /\.theme--dark\b(?!\))|\[data-theme=["']?dark|\.dark-mode\b/;
-const DARK_MEDIA = /prefers-color-scheme\s*:\s*dark/;
+export const DARK_SELECTOR = /\.theme--dark\b(?!\))|\[data-theme=["']?dark|\.dark-mode\b/;
+export const DARK_MEDIA = /prefers-color-scheme\s*:\s*dark/;
 const DATA_THEME_DARK = /\[data-theme=["']?dark["']?\]/;
 /** A custom property declaration: name and value. */
 const CUSTOM_PROP = /(?:^|[;{\s])--([\w-]+)\s*:([^;{}]*)/g;
