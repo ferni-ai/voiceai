@@ -1,5 +1,12 @@
+import { setImmediate } from 'node:timers';
+import * as timersPromises from 'node:timers/promises';
 import { llm } from '@livekit/agents';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('node:timers/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:timers/promises')>();
+  return { ...actual, setImmediate: vi.fn(actual.setImmediate) };
+});
 import {
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
@@ -29,6 +36,40 @@ describe('resolveTurnIntelligenceMode', () => {
 });
 
 describe('createTurnIntelligenceHook', () => {
+  it('lets the event loop run before the build, so its cold steps are not one block', async () => {
+    vi.stubEnv('FIRST_TURN_DEFER_RELEASE', 'reply_end');
+    try {
+      const order: string[] = [];
+      const handle = vi.fn(async () => {
+        order.push('build');
+      });
+      const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
+      await hook(llm.ChatContext.empty(), userMessage('warm the imports')); // later imports: no I/O
+      order.length = 0;
+
+      setImmediate(() => order.push('loop ran'));
+      await hook(llm.ChatContext.empty(), userMessage('long day'));
+      expect(order).toEqual(['loop ran', 'build']);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('yields to the event loop only when FIRST_TURN_DEFER_RELEASE=reply_end; flag off matches main', async () => {
+    const yielded = vi.mocked(timersPromises.setImmediate);
+    const handle = vi.fn(async () => {});
+    const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
+    vi.stubEnv('FIRST_TURN_DEFER_RELEASE', '');
+    try {
+      await hook(llm.ChatContext.empty(), userMessage('warm the imports'));
+      yielded.mockClear();
+      await hook(llm.ChatContext.empty(), userMessage('long day'));
+      expect(yielded).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('hands the turn to the turn handler with the session context', async () => {
     const handle = vi.fn().mockResolvedValue(undefined);
     const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
@@ -185,7 +226,9 @@ describe('turn context pusher', () => {
     const { createTurnContextPusher } = await import('../turn-intelligence.js');
     const agent = makeAgent();
     let releaseFirst: () => void = () => {};
-    const firstDone = new Promise<void>((resolve) => (releaseFirst = resolve));
+    const firstDone = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
     let call = 0;
     const hook = vi.fn(async (turnCtx: llm.ChatContext, message: llm.ChatMessage) => {
       if (++call === 1) await firstDone; // the first run (partial turn) is slow

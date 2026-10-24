@@ -14,6 +14,7 @@
  *
  * @module agents/multi-agent/pushed-notes
  */
+import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { MAX_PUSHED_CONTEXT_CHARS } from './turn-context-header.js';
 
@@ -24,6 +25,15 @@ export interface TurnNote {
   safety?: boolean;
   text: string;
 }
+
+/** The notes a turn's pass added to its chat context, in order; empty ones dropped. */
+export const turnNotes = (items: readonly object[]): TurnNote[] =>
+  items
+    .map((item) => ({
+      safety: carriesSafety(item as never),
+      text: (item as { textContent?: string }).textContent?.trim() ?? '',
+    }))
+    .filter((note) => note.text !== '');
 
 /** The safety guidance among these notes, whole, in order. */
 export const safetyText = (notes: readonly TurnNote[]): string =>
@@ -59,6 +69,25 @@ export function withHeldSafety(held: readonly string[], notes: readonly TurnNote
   const fresh = new Set(notes.filter((note) => note.safety).map((note) => note.text));
   const carried = held.filter((text) => !fresh.has(text)).map((text) => ({ safety: true, text }));
   return [...carried, ...notes];
+}
+
+/**
+ * The notes waiting for the next push: the fresh ones first, since they are the
+ * newest and the budget cuts the end. With `keep`, what was already waiting
+ * stays too (a released turn-1 note a later turn's words overtook); else it is
+ * replaced, as before.
+ * Safety guidance still waiting is never replaced (#2642).
+ */
+export function queuedNotes(
+  queued: readonly TurnNote[],
+  fresh: readonly TurnNote[],
+  keep: boolean
+): TurnNote[] {
+  const rest = keep ? queued.filter((note) => !note.safety) : [];
+  return withHeldSafety(
+    queued.filter((note) => note.safety).map((note) => note.text),
+    [...fresh, ...rest]
+  );
 }
 
 /** The key, in a pushed note's `extra`, of its safety guidance, whole. */

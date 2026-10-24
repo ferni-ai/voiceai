@@ -15,6 +15,7 @@
  * @module agents/multi-agent/turn-intelligence
  */
 
+import { setImmediate as yieldToLoop } from 'node:timers/promises';
 import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
@@ -33,6 +34,7 @@ import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
+import { firstTurnDeferRelease, replyEndRelease } from './first-turn-release.js';
 import {
   deferFirstTurn,
   firstTurnDeferEnabled,
@@ -41,13 +43,15 @@ import {
   turnPipelineWarm,
 } from './first-turn-defer.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
-import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
 import {
   pushedNotesText,
+  queuedNotes,
   safetyOnlyNote,
+  safetyText,
   TURN_CONTEXT_SAFETY,
-  withHeldSafety,
+  turnNotes,
+  type TurnNote,
 } from './pushed-notes.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
@@ -111,9 +115,12 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       const { startVoicePatterns } =
         await import('../../conversation/humanization/voice-pattern-session.js');
       await startVoicePatterns(deps.services.sessionId, deps.services.userId);
+      // Yield between cold steps: back to back they starved the audio pump (LOOP_STALL).
+      if (replyEndRelease()) await yieldToLoop();
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
+      if (replyEndRelease()) await yieldToLoop();
       const userData = deps.userData as UserData & {
         turnCount?: number;
         userSpeakingStartTime?: number;
@@ -336,8 +343,12 @@ interface ContextAgent {
  * question. Appended at the end, it was dropped as stale 122 times in 112 turns
  * (some turns pushed twice): the per-turn context reached no reply.
  */
-export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent) {
-  let pending: string | null = null;
+export function createTurnContextPusher(
+  hook: UserTurnHook,
+  agent: ContextAgent,
+  { carryAcrossTurns = false }: { carryAcrossTurns?: boolean } = {} // a deferred turn 1
+) {
+  let queued: TurnNote[] = []; // what waits for the next push, see queuedNotes
   let pushedId: string | null = null;
   let turnText = '';
   let run = 0;
@@ -345,21 +356,21 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
   let userSpeaking = false;
 
   let pendingFor = '';
-  let pendingSafety: string[] = []; // its crisis or safety notes (safety-note.ts), whole
+  let turnNo = 0;
+  const lastRunOf = new Map<number, number>(); // a turn's latest run
 
   const tryPush = async (): Promise<void> => {
-    if (!pending || !agentListening || userSpeaking) return;
+    if (queued.length === 0 || !agentListening || userSpeaking) return;
+    const safety = safetyText(queued); // its crisis or safety notes (safety-note.ts), whole
     // PREEMPT_STABLE_CONTEXT: wait out a preemptive reply, unless it carries safety guidance.
     const retry = () => void tryPush();
-    if (pendingSafety.length === 0 && heldForPreemptive(agent, 'turn-context', retry)) return;
-    const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
-    const safety = pendingSafety.join('\n\n');
+    if (!safety && heldForPreemptive(agent, 'turn-context', retry)) return;
+    const content = `${TURN_CONTEXT_HEADER}\n${pushedNotesText(queued)}`; // safety first, never cut (#2618)
     const extra = {
       [TURN_CONTEXT_FOR]: pendingFor,
       ...(safety && { [TURN_CONTEXT_SAFETY]: safety }),
     };
-    pending = null;
-    pendingSafety = [];
+    queued = [];
     try {
       const chatCtx = agent.chatCtx.copy();
       if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
@@ -390,25 +401,29 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     /** A final transcript segment; segments of one turn accumulate. */
     async onFinalTranscript(transcript: string): Promise<void> {
       if (!transcript.trim()) return;
+      if (!turnText) turnNo++; // the last turn ended: its reply cleared turnText
       turnText = `${turnText} ${transcript.trim()}`.trim();
       const forText = turnText;
       const mine = ++run;
+      const turn = turnNo;
+      lastRunOf.set(turn, mine);
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
       await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
-      if (mine !== run) return; // a later segment of this turn superseded it
-      const notes = scratch.items
-        .map((item) => ({
-          safety: carriesSafety(item as never),
-          text: (item as { textContent?: string }).textContent?.trim() ?? '',
-        }))
-        .filter((note) => note.text !== '');
+      const notes = turnNotes(scratch.items);
+      if (mine !== run) {
+        // A later segment of this turn rebuilds the turn: only the last run may carry on.
+        if (carryAcrossTurns && lastRunOf.get(turn) === mine) {
+          if (queued.length === 0) pendingFor = forText;
+          queued = queuedNotes(queued, notes, true);
+          await tryPush();
+        } else log.info({ notes: notes.length }, 'Superseded turn context dropped');
+        return;
+      }
       if (notes.length === 0) return;
-      // Safety guidance still waiting goes ahead of a later note, never replaced by it (#2642).
-      const all = withHeldSafety(pendingSafety, notes);
-      pending = pushedNotesText(all); // safety guidance first and never cut (#2618)
-      pendingSafety = all.filter((note) => note.safety).map((note) => note.text);
+      if (!carryAcrossTurns && queued.some((note) => !note.safety)) log.info('Unpushed note replaced');
       pendingFor = forText;
+      queued = queuedNotes(queued, notes, carryAcrossTurns);
       await tryPush();
     },
 
@@ -445,10 +460,13 @@ export function attachTurnContextPusher(
   const deferral =
     firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
       ? deferFirstTurn(hook, {
+          releaseOn: firstTurnDeferRelease(env),
           voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
         })
       : undefined;
-  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
+  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent, {
+    carryAcrossTurns: deferral !== undefined,
+  });
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
   const onTranscript = (event: unknown) => {
     const evt = event as { transcript?: string; isFinal?: boolean };
