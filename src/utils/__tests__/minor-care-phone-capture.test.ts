@@ -199,6 +199,16 @@ describe('MINOR_CARE: an anonymous phone caller who said "I\'m only 14."', () =>
     else expect(people.length).toBe(1);
   });
 
+  // No session reaches savePerson and a placeholder id is never bound to one, so userHeld can't
+  // see a minor behind it: with the flag on, a placeholder id keeps no person at all.
+  it.each(['on', 'off'])('a placeholder id keeps no person while MINOR_CARE is %s', async (flag) => {
+    vi.stubEnv('MINOR_CARE', flag);
+    await recordMention('anonymous', { name: 'Jess', type: 'acquaintance', context: RILEY });
+    const people = written.filter((p) => p.includes('/relationship_network/'));
+    if (flag === 'on') expect(people).toEqual([]);
+    else expect(people.length).toBe(1);
+  });
+
   it('the note tells Ferni not to promise to remember', () => {
     // On the dev call Ferni said "I will remember Riley, Jess, and Lincoln High for next time."
     expect(MINOR_CARE_NOTE).toMatch(/never (?:say|promise) you'll remember/i);
