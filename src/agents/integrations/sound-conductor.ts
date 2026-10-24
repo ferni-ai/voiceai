@@ -33,7 +33,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'SoundConductor' });
 
 export type ConductedSound =
-  'backchannel' | 'opener' | 'laugh' | 'presence' | 'tool_hum' | 'slow_turn';
+  'backchannel' | 'opener' | 'laugh' | 'presence' | 'snore' | 'tool_hum' | 'slow_turn';
 
 export type SoundConductorMode = 'off' | 'shadow' | 'on';
 
@@ -62,6 +62,8 @@ export const SOUND_BUDGET_PER_MIN: Readonly<Record<ConductedSound, number>> = {
   laugh: 1,
   // Hum/whistle/yawn are once a call already (0 repeats in LIVE.md); this is a backstop.
   presence: 1,
+  // VOICED_QUIRKS: once a call after a long quiet, so a whistle in the same quiet stretch never blocks it.
+  snore: 1,
   // TOOL_HUM_MAX_PER_CALL is 2, never two tool runs in a row; prod logged 3 in 17 days.
   tool_hum: 1,
   // At most one per slow turn; two a minute is already every other reply.
