@@ -6,7 +6,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryWorldFactStore } from '../../temporal/__tests__/memory-store.js';
-import { buildCommitmentJudgePrompt, parseJudgedCommitments } from '../commitment-judge.js';
+import { judgedCommitmentDocs } from '../../../../services/superhuman/judged-commitments.js';
+import {
+  buildCommitmentJudgePrompt,
+  judgeCallCommitments,
+  parseJudgedCommitments,
+} from '../commitment-judge.js';
 
 const { extractWorldAfterCall } = await import('../register.js');
 
@@ -193,5 +198,29 @@ describe('after the call', () => {
     await extractWorldAfterCall(call, { env: base, llm: model(), cohorts: cohorts('on'), ...on.deps }); // prettier-ignore
     expect(on.legacy).not.toHaveBeenCalled();
     expect(on.judged).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Gemini's own replies in the #1985 verify, replayed: `person` held a word the caller
+// never said ("training", "the car" that only Ferni said), and both plans were dropped.
+describe('real plans the judge tagged with an unsaid person', () => {
+  const replay = (ask: string, said: string, reply: object) => {
+    const turns = [
+      { role: 'assistant', content: ask },
+      { role: 'user', content: said },
+    ];
+    return judgeCallCommitments(turns, call, async () => JSON.stringify({ commitments: [reply] }));
+  };
+  const plan = { isCommitment: true, sensitive: false, confidence: 1 };
+
+  it('are stored, without the person', async () => {
+    const run = await replay("How's training going?", "Good, I'm going to run five miles on Saturday.", { ...plan, statement: 'run five miles on Saturday', quote: 'run five miles on Saturday', person: 'training', due: '2026-10-11' }); // prettier-ignore
+    const car = await replay("How's the car?", "I'm taking it in for an oil change on Wednesday.", { ...plan, statement: 'taking it in for an oil change on Wednesday', quote: 'taking it in for an oil change on Wednesday', person: 'the car' }); // prettier-ignore
+    const ctx = { userId: 'u1', sessionId: 's1', now: call.startedAt.getTime(), timezone: call.timezone }; // prettier-ignore
+    const docs = judgedCommitmentDocs([...run, ...car], ctx);
+    expect(docs.map((d) => [d.statement, d.person])).toEqual([
+      ['run five miles on Saturday', undefined],
+      ['taking it in for an oil change on Wednesday', undefined],
+    ]);
   });
 });
