@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { roleTable, themeRoles, tokenize } from '../tokenize-colours.js';
+import { rootAliases, roleTable, themeRoles, tokenize } from '../tokenize-colours.js';
 
 const roles = themeRoles();
 const table = roleTable(roles);
@@ -73,6 +73,66 @@ describe('website colour codemod', () => {
       '<style>\n.a { color: var(--color-text-secondary); }\n</style>\n<p style="background: var(--color-surface-sunken)">{{ title }}</p>'
     );
     expect(out.changes.map((c) => c.line)).toEqual([2, 4]);
+  });
+
+  describe('page aliases', () => {
+    const aliases = rootAliases(
+      '@media (prefers-color-scheme: dark) { :root:root { --page-ink: #f4efe6; --page-card: #2a241f; --page-peter: #8bc4cf; } }'
+    );
+    const page = (text: string) => tokenize(text, table, false, aliases);
+
+    it('reads the aliases a stylesheet declares', () => {
+      expect([...aliases]).toEqual([
+        ['--page-ink', '#f4efe6'],
+        ['--page-card', '#2a241f'],
+        ['--page-peter', '#8bc4cf'],
+      ]);
+    });
+
+    it('swaps the whole var() when the role matches the literal in light and the alias in dark', () => {
+      const out = page(
+        '.a { color: var(--page-ink, #2C2520); background: var(--page-card, white) }'
+      );
+      expect(out.text).toBe(
+        '.a { color: var(--color-text-primary); background: var(--color-surface-raised) }'
+      );
+      expect(out.unmatched).toEqual([]);
+    });
+
+    it('keeps the var() when no role matches both themes', () => {
+      // --color-text-primary matches #2c2520 in light, but its dark value is not #8bc4cf.
+      const out = page('.a { color: var(--page-peter, #2c2520) }');
+      expect(out.text).toBe('.a { color: var(--page-peter, #2c2520) }');
+      expect(out.unmatched[0]?.reason).toBe('var() fallback');
+    });
+
+    it('swaps a page variable that matches a role in both themes', () => {
+      const surfaces = rootAliases(
+        '@media (prefers-color-scheme: dark) { :root:root { --ferni: #a5c99a; --peter: #8bc4cf; --ink: #f4efe6; --muted: #ffffff; } }'
+      );
+      const njk = [
+        '<style>',
+        ':root { --ferni: var(--color-ferni, #4a6741); --peter: #3a6b73; --ink: #2c2520; --muted: #5c544a; --soft: #6b635a; }',
+        '.c { color: var(--muted); caret-color: var(--soft); }',
+        '.a { color: var(--ferni); border-color: var(--peter); }',
+        '.b { background: linear-gradient(var(--ink), white); color: var(--ink); }',
+        '</style>',
+      ].join('\n');
+      const out = tokenize(njk, table, true, surfaces);
+      expect(out.text.split('\n').slice(2, 5)).toEqual([
+        // --muted is text-secondary in light but not in dark; --soft has no dark value.
+        '.c { color: var(--muted); caret-color: var(--soft); }',
+        // brand-text comes before ferni-text (same values); peter-text is a text role, so a border keeps var(--peter).
+        '.a { color: var(--color-brand-text); border-color: var(--peter); }',
+        '.b { background: linear-gradient(var(--ink), white); color: var(--color-text-primary); }',
+      ]);
+    });
+
+    it('keeps an alias nobody declares, and one in a dark-context rule', () => {
+      const input =
+        '.a { color: var(--page-sand, #2c2520) }\n.theme--dark .b { color: var(--page-ink, #2c2520) }';
+      expect(page(input).text).toBe(input);
+    });
   });
 
   it('fails when a candidate role is missing from semantic-colors.json', () => {
