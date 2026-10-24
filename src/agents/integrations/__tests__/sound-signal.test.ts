@@ -45,8 +45,9 @@ const { startBackchannelClips } = await import('../clip-player.js');
 const { startTurnSounds } = await import('../../multi-agent/live-call-behaviors.js');
 const { LAUGH_CLIP } = await import('../backchannel-policy.js');
 const { VOICED_TAKES } = await import('../../shared/reaction-clips.js');
+const { createSoundSignal, soundLabel } = await import('../sound-signal.js');
 
-type Msg = { type: string; kind?: string; wireDelayMs?: number };
+type Msg = { type: string; kind?: string; wireDelayMs?: number; label?: string };
 let sent: Msg[] = [];
 const room = {
   localParticipant: {
@@ -107,8 +108,8 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     expect(clips!.live.playClip(LAUGH_CLIP)).toBe(true);
     expect(clips!.live.playClip('Mm-hmm')).toBe(true);
     expect(sounds()).toEqual([
-      { type: 'sound_played', kind: 'laugh', wireDelayMs: 650 },
-      { type: 'sound_played', kind: 'mm-hmm', wireDelayMs: 650 },
+      { type: 'sound_played', kind: 'laugh', wireDelayMs: 650, label: 'laughter' },
+      { type: 'sound_played', kind: 'mm-hmm', wireDelayMs: 650, label: 'Mm-hmm' },
     ]);
     expect(sent.some((m) => m.type === 'backchannel_played')).toBe(false);
   });
@@ -141,7 +142,9 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     agent('thinking');
     expect(sounds()).toEqual([]);
     vi.advanceTimersByTime(700);
-    expect(sounds()).toEqual([{ type: 'sound_played', kind: 'opener', wireDelayMs: 650 }]);
+    expect(sounds()).toEqual([
+      { type: 'sound_played', kind: 'opener', wireDelayMs: 650, label: expect.any(String) },
+    ]);
   });
 
   it('presence sounds on the mixer: a whistle or hum is hum, the snore is breath', async () => {
@@ -165,7 +168,9 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     tool('c1');
     expect(sounds()).toEqual([]);
     vi.advanceTimersByTime(1300);
-    expect(sounds()).toEqual([{ type: 'sound_played', kind: 'hum', wireDelayMs: 650 }]);
+    expect(sounds()).toEqual([
+      { type: 'sound_played', kind: 'hum', wireDelayMs: 650, label: 'tool hum' },
+    ]);
   });
 
   it('voiced presence: the quiet-window hum is hum, the morning yawn breath, both direct', async () => {
@@ -183,9 +188,45 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     await start(afternoon.session);
     afternoon.warmUp();
     vi.advanceTimersByTime(8000);
+    // The label is the take that played, tags dropped.
     expect(sounds()).toEqual([
-      { type: 'sound_played', kind: 'breath', wireDelayMs: 57 },
-      { type: 'sound_played', kind: 'hum', wireDelayMs: 57 },
+      {
+        type: 'sound_played',
+        kind: 'breath',
+        wireDelayMs: 57,
+        label: soundLabel(direct.labels[0]!),
+      },
+      { type: 'sound_played', kind: 'hum', wireDelayMs: 57, label: soundLabel(direct.labels[1]!) },
+    ]);
+    expect(sounds()[0]!.label).not.toMatch(/[<>[\]]/);
+  });
+});
+
+describe('sound_played label', () => {
+  it('names the take a variation picked, not only the clip asked for', async () => {
+    vi.stubEnv('VOICED_PRESENCE', 'on');
+    vi.spyOn(Math, 'random').mockReturnValue(0.99); // the last take in the pool
+    const clips = await start();
+    expect(clips!.live.playClip(LAUGH_CLIP)).toBe(true);
+    const take = direct.labels.at(-1)!;
+    expect(take).not.toBe(LAUGH_CLIP);
+    expect(sounds()).toEqual([
+      { type: 'sound_played', kind: 'laugh', wireDelayMs: 57, label: soundLabel(take) },
+    ]);
+  });
+
+  it('drops TTS tags, reads [laughter] as a word, caps the length, and leaves an empty label out', () => {
+    expect(soundLabel('<emotion value="happy"/>[laughter] oh man.')).toBe('laughter oh man.');
+    expect(soundLabel('x'.repeat(60))).toHaveLength(40);
+    const out: Array<[string, unknown]> = [];
+    const send = createSoundSignal(async (type, payload) => void out.push([type, payload]), {
+      CLIENT_SIGNALS_V2: 'on',
+    })!;
+    send('hum', 10.4, '<volume ratio="0.6"/>');
+    send('hum', 10.4);
+    expect(out).toEqual([
+      ['sound_played', { kind: 'hum', wireDelayMs: 10 }],
+      ['sound_played', { kind: 'hum', wireDelayMs: 10 }],
     ]);
   });
 });

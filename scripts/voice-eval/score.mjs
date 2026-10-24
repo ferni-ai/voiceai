@@ -12,12 +12,17 @@
 //   backchannels ("mm-hm"); long ones are interruptions. presence: when the
 //   mid-turn clips start relative to the caller's pause, and how many land on
 //   their next phrase.
+// Sounds: every non-speech sound by kind, where each landed (a caller pause,
+//   their words, Ferni's own speech, just before a reply, or silence over
+//   2.5 s after the caller stopped), and the same clip again within 60 s
+//   (sounds.mjs). Thresholds start WARN-only (nightly/capabilities.json).
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compareToTargets, computeHumanness } from './humanness.mjs';
 import { presenceOfRuns } from './presence.mjs';
+import { placeSounds, poolSoundMetrics, soundMetrics } from './sounds.mjs';
 import { checksFor } from './transcript-checks.mjs';
 
 const STOCK_OPENER = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b/i;
@@ -61,6 +66,7 @@ const overlaps = []; // caller talking over the agent (converse.mjs @backchannel
 const users = new Set();
 
 const runs = [];
+const soundRuns = [];
 // How well the agent heard the scripted caller, and whether it heard itself.
 const stt = { edits: 0, refWords: 0 };
 const echo = { phantomCallerCaptions: 0, selfInterruptions: 0, phantoms: [] };
@@ -70,6 +76,7 @@ const scenarioDir = join(dirname(fileURLToPath(import.meta.url)), 'scenarios');
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
   runs.push(run);
+  soundRuns.push(soundMetrics(placeSounds(run)));
   if (run.meta?.uid) users.add(run.meta.uid);
   const checks = checksFor(run, scenarioDir);
   if (checks) {
@@ -229,6 +236,8 @@ const score = {
   humanness: computeHumanness(runs, { callerName: process.env.EVAL_CALLER_NAME ?? 'Sam' }),
   // Mid-turn backchannels against the caller's pauses (presence.mjs).
   presence: presenceOfRuns(runs),
+  // Ferni's non-speech sounds and where they landed (sounds.mjs).
+  sounds: poolSoundMetrics(soundRuns),
   replyTexts: replies,
 };
 const targetsFile =
