@@ -69,6 +69,7 @@ import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { coordinatedSay } from '../../speech/coordination/session-integration.js';
 import { directedText, type Cue } from '../../speech/direction/index.js';
 import { watchReopenIdle } from './reopen-idle.js';
+import { crisisReadsExpected } from './goodbye-read.js';
 import {
   clearSessionClosing,
   isSessionClosing,
@@ -319,6 +320,8 @@ export async function attachCallWrapUp(
       sessionId: call.sessionId,
       setTimer: call.setTimer,
       clearTimer: call.clearTimer,
+      // After a reopen a goodbye ends only on its clean crisis read, when reads run
+      readsExpected: () => crisisReadsExpected(call.env),
       onIdle: () =>
         void wrapUpCall(wrap, 'idle_after_goodbye').catch((error: unknown) =>
           log.error(
