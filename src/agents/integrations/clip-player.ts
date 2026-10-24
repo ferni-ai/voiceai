@@ -33,6 +33,7 @@ import { withBackchannelSignal } from './backchannel-signal.js';
 import { createSoundSignal, liveReactionKind, withSoundSignal } from './sound-signal.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { avatarListenSignalsEnabled } from '../realtime/listen-turn-signals.js';
+import { noteClipCut, withTimelineSounds } from '../shared/call-timeline.js';
 import { backchannelTimingEnabled, timedLivePlay } from './backchannel-timing.js';
 import {
   createSoundGate,
@@ -221,7 +222,10 @@ export async function startBackchannelClips(
   const wireDelayMs = (): number => (direct ? directWireMs() : mixerWireMs());
   // CLIENT_SIGNALS_V2: sound_played for every non-speech clip (sound-signal.ts); null when off.
   const sound = createSoundSignal(createDataMessageSender(room));
-  const gate = createSoundGate(soundConductorMode());
+  // CALL_TIMELINE: every clip that plays is recorded at the gate (call-timeline.ts).
+  const gate = withTimelineSounds(session, createSoundGate(soundConductorMode()), () =>
+    sessionIdOf(session)
+  );
   const stopPresence = startPresenceSounds(
     session,
     player,
@@ -268,7 +272,11 @@ export async function startBackchannelClips(
     return true;
   };
   const playClip = playAt(() => BACKCHANNEL_VOLUME);
-  const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
+  const cancelFresh = (): boolean => {
+    const cut = direct?.cancelIfFresh() ?? false;
+    if (cut) noteClipCut(session, 'pause_ended');
+    return cut;
+  };
   // Live backchannels and laughs (not the turn-opening "Mm") tell the avatar they played.
   // VOICED_PRESENCE varies the live picks; the signal wraps the variation so
   // its kind follows the requested clip (a laugh take still signals 'laugh').
