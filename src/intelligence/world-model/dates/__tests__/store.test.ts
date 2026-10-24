@@ -95,3 +95,74 @@ describe('planDates', () => {
     expect(plan.create).toHaveLength(1);
   });
 });
+
+describe('planDates: the time of a date heard again (#2527)', () => {
+  const biopsy = (over: Partial<DateObservation> = {}) =>
+    obs({ value: 'biopsy', subject: 'self', subjectKind: 'self', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-23', at: '15:00', when: 'friday at 3pm', ...over }); // prettier-ignore
+  const onFile = (over: Partial<DateFact> = {}): DateFact => ({
+    ...biopsy(),
+    id: 'b1',
+    subjectKey: 'self',
+    validFrom: AT,
+    validTo: null,
+    ...over,
+  });
+  /** The one refresh a call makes, and that it makes nothing else: the day stays as it was. */
+  const refreshOf = (open: DateFact[], heard: DateObservation[]) => {
+    const plan = planDates(open, heard, ids);
+    expect(plan.create).toEqual([]);
+    expect(plan.close).toEqual([]);
+    expect(new Set(plan.refresh.map((r) => r.id))).toEqual(new Set(['b1']));
+    return plan.refresh;
+  };
+  const lastAt = (refresh: ReturnType<typeof refreshOf>) =>
+    refresh.reduce<string | null | undefined>((at, r) => ('at' in r ? r.at : at), undefined);
+
+  it('"friday at 3pm", then "friday at 4pm": the time follows the newer words', () => {
+    expect(lastAt(refreshOf([onFile()], [biopsy({ at: '16:00', when: 'friday at 4pm' })]))).toBe('16:00'); // prettier-ignore
+  });
+
+  it('a correction gives the new time too', () => {
+    const corrected = biopsy({ at: '16:00', when: 'friday at 4pm', replaces: { attribute: 'event', priorValue: 'biopsy' } }); // prettier-ignore
+    expect(lastAt(refreshOf([onFile()], [corrected]))).toBe('16:00');
+  });
+
+  it('"friday at 3pm", then just "friday": the time stays', () => {
+    const refresh = refreshOf([onFile()], [biopsy({ at: undefined, when: 'friday' })]);
+    expect(refresh).toEqual([{ id: 'b1', observedAt: AT, confidence: 0.9 }]);
+  });
+
+  it('the same time again changes nothing', () => {
+    expect(refreshOf([onFile()], [biopsy()])).toEqual([{ id: 'b1', observedAt: AT, confidence: 0.9 }]); // prettier-ignore
+  });
+
+  it.each([
+    ['friday afternoon', {}],
+    ['friday at 4', {}],
+    ['friday, an hour later', {}],
+    ['moved it to 4pm', {}],
+    ['friday', { replaces: { attribute: 'event', priorValue: 'biopsy' } }],
+  ])('"%s" with no time read: the old time is dropped, the day kept', (when, over) => {
+    expect(lastAt(refreshOf([onFile()], [biopsy({ at: undefined, when, ...over })]))).toBeNull();
+  });
+
+  it('a new time that needs confirming (a midnight) drops the old one instead of taking it', () => {
+    const midnight = biopsy({ at: '00:00', when: 'friday at 12am', needsConfirmation: true });
+    expect(lastAt(refreshOf([onFile()], [midnight]))).toBeNull();
+    // ...and is not added where there was none.
+    expect(refreshOf([onFile({ at: undefined })], [midnight])).toEqual([{ id: 'b1', observedAt: AT, confidence: 0.9 }]); // prettier-ignore
+  });
+
+  it('a time said where there was none is kept', () => {
+    expect(lastAt(refreshOf([onFile({ at: undefined, when: 'friday' })], [biopsy()]))).toBe(
+      '15:00'
+    );
+  });
+
+  it('within one call the last mention wins', () => {
+    const at4 = biopsy({ at: '16:00', when: 'friday at 4pm' });
+    const at3 = biopsy({ at: '15:00', when: 'friday at 3pm' });
+    expect(lastAt(refreshOf([onFile()], [at4, biopsy({ at: undefined, when: 'friday' })]))).toBe('16:00'); // prettier-ignore
+    expect(lastAt(refreshOf([onFile()], [at4, at3]))).toBe('15:00');
+  });
+});

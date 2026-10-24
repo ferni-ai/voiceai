@@ -31,7 +31,14 @@ export {
 export type { FollowUpAsker } from './ports.js';
 export { isQuietHour, rightMoment, type Moment } from './right-moment.js';
 export { closeFromReply, type ReplyVerdict } from './close-from-reply.js';
-export type { FollowUpSources, FollowUpStore, NewFollowUp, SourceItem } from './ports.js';
+export type {
+  FollowUpSources,
+  FollowUpStore,
+  NewFollowUp,
+  SourceItem,
+  SourceOptions,
+} from './ports.js';
+export { bookendSourceItems, bookendUpdates, type BookendDateFact } from './bookend-source.js';
 export { importFollowUps, type ImportResult } from './import-follow-ups.js';
 export {
   deferredCallOutcome,

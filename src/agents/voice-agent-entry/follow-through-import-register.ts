@@ -8,6 +8,7 @@
  *
  * @module agents/voice-agent-entry/follow-through-import-register
  */
+import { isLightTopic } from '../../api/home/light-topic.js';
 import { registerAfterCallTask } from '../../services/session/after-call-tasks.js';
 import { FOLLOW_THROUGH_IMPORT_TASK, importFollowUpsAfterCall } from '../follow-through-import.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
@@ -18,11 +19,14 @@ export function ownerOnTheLine(sessionId: string): boolean {
   return sessionIsVerifiedOwner(sessionId) && !outboundPartiesFor(sessionId);
 }
 
+/** Bookends: the Home Screen's heavy-topic test (light-topic.ts), handed down a layer. */
+const isHeavy = (text: string): boolean => !isLightTopic(text);
+
 // Four reads (forgotten topics, reminders, commitments, summaries) and one transaction per item.
 registerAfterCallTask(
   FOLLOW_THROUGH_IMPORT_TASK,
   async (ctx) => {
-    await importFollowUpsAfterCall(ctx, { verifiedOwner: ownerOnTheLine });
+    await importFollowUpsAfterCall(ctx, { verifiedOwner: ownerOnTheLine, heavy: isHeavy });
   },
   { timeoutMs: 20_000 }
 );

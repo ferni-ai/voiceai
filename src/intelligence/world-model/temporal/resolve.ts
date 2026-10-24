@@ -26,7 +26,8 @@ export type SupersedeJudge = (obs: WorldObservation, open: TemporalFact[]) => Pr
 export interface ResolutionPlan {
   create: TemporalFact[];
   close: Array<{ id: string; validTo: string; supersededBy: string }>;
-  refresh: Array<{ id: string; observedAt: string; confidence: number }>;
+  /** `at` (dates only, dates/store.ts): the time of day the fact now has; null drops it. */
+  refresh: Array<{ id: string; observedAt: string; confidence: number; at?: string | null }>;
 }
 
 export interface ResolveOptions {
