@@ -11,6 +11,7 @@
  *
  * @module config/flags/index.generated
  */
+export { ACTION_CLAIM_BARE_WILL } from './ACTION_CLAIM_BARE_WILL.js';
 export { ATTUNE_LEDGER } from './ATTUNE_LEDGER.js';
 export { BARGE_IN_FAST_STOP } from './BARGE_IN_FAST_STOP.js';
 export { BARGE_IN_SOFT_PAUSE } from './BARGE_IN_SOFT_PAUSE.js';
