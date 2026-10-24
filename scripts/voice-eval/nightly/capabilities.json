@@ -94,6 +94,12 @@
         { "id": "not-fired", "metric": "callsNotMatching", "pattern": "timer (?:just )?went off|time'?s up|timer'?s (?:up|done)", "better": "lower", "warn": 0, "fail": 0, "why": "the timer goes off and Ferni says so" }
       ]
     },
+    "tool-choice": {
+      "label": "Tool choice (offline, frozen set)", "scenarios": [],
+      "checks": [
+        { "id": "right-or-equivalent", "metric": "toolChoiceRate", "better": "higher", "warn": 0.8, "fail": 0.78, "maxDrop": 0.02, "why": "eval-choice.ts, 2+ seeds pooled (choice-score.mjs); 10-22: ee11522d9 74.9%, 8981d4f03 73.6%" }
+      ]
+    },
     "tool-health": {
       "label": "Tool health", "scenarios": [],
       "checks": [
