@@ -28,9 +28,8 @@ import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
-// Import superhuman services
+import { requestedFields } from '../../../services/superhuman/index.js';
 import {
-  detectCommitment,
   saveCommitment,
   loadUserCommitments,
   updateCommitmentStatus,
@@ -112,6 +111,7 @@ const trackCommitmentDef: ToolDefinition = {
             status: 'active',
             followUpCount: 0,
             topic: context,
+            ...requestedFields(), // shown with COMMITMENT_SINGLE_WRITER on (mid-call env)
           });
           if (notActionable) return 'Not tracked: that is a goodbye or a pleasantry.';
           let response = `**Got it. I'll remember this.** ✓\n\n`;

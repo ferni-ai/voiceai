@@ -121,6 +121,8 @@ export const COHORT_FLAGS = [
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
+  // Read per call, never at boot: as applied mid-call, envForCaller after it, flagForUser on the UI server.
+  'COMMITMENT_SINGLE_WRITER',
   // Read on each caller final and each gated outbound tool call (outreach-confirm.ts), never cached.
   'OUTREACH_SERVER_CONFIRM',
   // The UI server's deliver-reminders job reads both per person, through flagForUser

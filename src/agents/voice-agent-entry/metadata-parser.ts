@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { errorClass } from '../../utils/error-class.js';
 import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -38,6 +39,30 @@ const INBOUND_ACCOUNT_FIELDS = [
   'accessLevel',
   'allowedPersonas',
 ] as const;
+
+/**
+ * A signed "call me" dispatch moving an app call to the phone (`callMove`,
+ * CALL_ME_MOVES_TO_PHONE, live-agent-call.ts), and the app call it moved from
+ * when it has one (`movedFrom`, absent while memory is held): ids only, never its text. The turns are read from this
+ * user's own memory store (resume-after-drop.ts restoreMovedTurns). Read from
+ * the raw job metadata the signature covers, never the object parseJobMetadata
+ * merged room metadata into: room metadata is not signed.
+ */
+export function movedFromOf(
+  rawJobMetadata: string | undefined
+): { userId: string; conversationId?: string } | undefined {
+  if (!flagOn('CALL_ME_MOVES_TO_PHONE') || !rawJobMetadata) return undefined;
+  let signed: Record<string, unknown>;
+  try {
+    signed = JSON.parse(rawJobMetadata) as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+  const { userId, movedFrom, callMove } = signed;
+  if (callMove !== true || typeof userId !== 'string' || !userId) return undefined;
+  const plainId = typeof movedFrom === 'string' && /^[\w-]{1,128}$/.test(movedFrom);
+  return plainId ? { userId, conversationId: movedFrom } : { userId };
+}
 
 /**
  * Parse job and room metadata from the LiveKit job context.
@@ -308,6 +333,7 @@ export async function setupCallTypeContexts(
       const { setProactiveSessionContext } =
         await import('../../intelligence/context-builders/external/proactive-session-context.js');
 
+      const movedFrom = movedFromOf(rawJobMetadata); // CALL_ME_MOVES_TO_PHONE
       const proactiveContext = {
         triggerType: ((metadata.triggerType as string) ||
           'silence') as import('../../intelligence/context-builders/external/proactive-session-context.js').ProactiveTriggerType,
@@ -325,6 +351,7 @@ export async function setupCallTypeContexts(
         suggestedOpener: metadata.suggestedOpener as string | undefined,
         avoidances: metadata.avoidances as string[] | undefined,
         initiatingPersona: (metadata.persona_id as string) || 'ferni',
+        ...(movedFrom && { movedFrom }),
       };
 
       setProactiveSessionContext(sessionId, proactiveContext);

@@ -23,6 +23,7 @@ import {
   type CommitmentType,
   type CommitmentStatus,
 } from '../../../services/superhuman/commitment-keeper.js';
+import { requestedFields } from '../../../services/superhuman/index.js';
 
 const log = getLogger();
 
@@ -126,6 +127,8 @@ const recordCommitmentDef: ToolDefinition = {
             followUpAfter: targetDateMs || now + 3 * 24 * 60 * 60 * 1000,
             status: 'active' as const,
             followUpCount: 0,
+            // Asked for by name: still shown with COMMITMENT_SINGLE_WRITER on (mid-call env).
+            ...requestedFields(),
           });
 
           // Build a human-friendly response
