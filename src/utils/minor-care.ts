@@ -311,7 +311,7 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
 }
 
 export const MINOR_CARE_NOTE =
-  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner.]";
+  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]";
 
 /**
  * The note for this reply: flag on, the caller sounds under 18 and isn't a
