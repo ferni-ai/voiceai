@@ -25,12 +25,20 @@ public final class CallSession {
 
     public private(set) var phase: Phase = .idle
     public private(set) var agentActivity: AgentSignals.AgentActivity?
-    public private(set) var isFerniSpeaking = false
     public private(set) var isUserSpeaking = false
-    public private(set) var expression: AvatarExpression = .neutral
+    /// Ferni's face for this call: pose, expression and the feedback they ask for.
+    public let avatar: AvatarModel
+    /// Ferni's voice level, fed by the room on the audio thread, read per frame.
+    public let agentLevel: AudioLevelMeter
     public private(set) var isMuted = false
+    /// A phone call or Siri has the audio; the call resumes when it's done.
+    public private(set) var isOnHold = false
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
+    /// Whether this phone has ever had a call go live (Home's first-visit hello).
+    public private(set) var hasTalked: Bool
+    private let defaults: UserDefaults
+    private static let hasTalkedKey = "ferni.call.hasTalked"
 
     public typealias FetchToken = @Sendable (_ personaID: String) async throws -> CallToken
 
@@ -39,6 +47,9 @@ public final class CallSession {
     private let audio: any CallAudio
     private let agentTimeout: Duration
     private var room: (any VoiceRoom)?
+    private let lifecycle: (any CallLifecycle)?
+    private var callID: UUID?
+    private var callBegan = ContinuousClock.now
     private var agentHere = false
     private var callTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
@@ -48,14 +59,28 @@ public final class CallSession {
         fetchToken: @escaping FetchToken,
         makeRoom: @escaping @Sendable () -> any VoiceRoom,
         audio: any CallAudio,
-        agentTimeout: Duration = .seconds(10)
+        avatar: AvatarModel = AvatarModel(),
+        lifecycle: (any CallLifecycle)? = nil,
+        agentLevel: AudioLevelMeter = AudioLevelMeter(),
+        agentTimeout: Duration = .seconds(10),
+        defaults: UserDefaults = .standard
     ) {
+        self.defaults = defaults
+        hasTalked = defaults.bool(forKey: Self.hasTalkedKey)
+        self.avatar = avatar
+        self.lifecycle = lifecycle
+        self.agentLevel = agentLevel
         self.fetchToken = fetchToken
         self.makeRoom = makeRoom
         self.audio = audio
         self.agentTimeout = agentTimeout
         Task { [weak self, interruptions = audio.interruptions] in
             for await interruption in interruptions { await self?.handle(interruption) }
+        }
+        if let lifecycle {
+            Task { [weak self] in
+                for await request in lifecycle.requests { await self?.handle(request) }
+            }
         }
     }
 
@@ -70,7 +95,15 @@ public final class CallSession {
     public func start(personaID: String = "ferni") {
         guard !isActive else { return }
         self.personaID = personaID
-        callTask = Task { await run(rejoining: false) }
+        avatar.send(.connectTapped)
+        let id = UUID()
+        callID = id
+        callBegan = .now
+        callTask = Task {
+            // The system's call UI; the call still works if it refuses.
+            try? await lifecycle?.begin(id: id, name: PersonaRegistry.get(personaID).name)
+            await run(rejoining: false)
+        }
     }
 
     /// Hang up. Safe to call at any point, including while still connecting.
@@ -79,15 +112,60 @@ public final class CallSession {
         callTask = nil
         await leaveRoom()
         phase = .ended
+        avatar.send(.ended)
+        isOnHold = false
+        if let id = callID {
+            callID = nil
+            await lifecycle?.ended(id: id, failed: false)
+        }
+    }
+
+    /// Tap Ferni while Ferni is talking: ask the agent to stop now (its
+    /// `user_interrupt` handler, the web's tap-to-interrupt). Only while speaking.
+    @discardableResult
+    public func interrupt() async -> Bool {
+        guard avatar.pose == .speaking, let room else { return false }
+        let ms = Int(Date().timeIntervalSince1970 * 1000)
+        do {
+            try await room.send(Data(#"{"type":"user_interrupt","timestamp":\#(ms)}"#.utf8))
+            return true
+        } catch {
+            log.error("Interrupt not sent: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
     }
 
     public func toggleMute() async {
-        isMuted.toggle()
+        if await setMuted(!isMuted), let id = callID { await lifecycle?.setMuted(id: id, muted: isMuted) }
+    }
+
+    private func setMuted(_ muted: Bool) async -> Bool {
+        guard muted != isMuted else { return true }
+        isMuted = muted
         do {
-            try await room?.setMicrophone(enabled: !isMuted)
+            try await room?.setMicrophone(enabled: !muted)
+            return true
         } catch {
-            isMuted.toggle()
+            isMuted = !muted
             log.error("Mute change failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// The Lock Screen's end button, AirPods mute, the system call UI.
+    private func handle(_ request: LifecycleRequest) async {
+        switch request {
+        case .end:
+            // An end in the first seconds, before Ferni is even on the line, is the
+            // system refusing the call (the Simulator does this): carry on without it.
+            let refusal = phase != .live && phase != .reconnecting && ContinuousClock.now - callBegan < .seconds(2)
+            if refusal {
+                log.error("The system ended the call before it connected; continuing without it")
+                callID = nil
+            } else if isActive {
+                await end()
+            }
+        case .mute(let muted): _ = await setMuted(muted)
         }
     }
 
@@ -105,7 +183,15 @@ public final class CallSession {
             if Task.isCancelled { return }
             switch await join() {
             case .joined:
-                if !Task.isCancelled { phase = .live }
+                if !Task.isCancelled {
+                    phase = .live
+                    if !rejoining, let id = callID { lifecycle?.connected(id: id) }
+                    if !hasTalked {
+                        hasTalked = true
+                        defaults.set(true, forKey: Self.hasTalkedKey)
+                    }
+                }
+                if rejoining { avatar.send(.reconnected) }
                 return
             case .ferniMissing:
                 log.error("Ferni didn't join (attempt \(attempt))")
@@ -162,13 +248,18 @@ public final class CallSession {
         await leaving?.disconnect()
         audio.deactivate()
         agentActivity = nil
-        isFerniSpeaking = false
         isUserSpeaking = false
-        expression = .neutral
+        agentLevel.reset()
     }
 
     private func fail(_ problem: CallProblem) {
         phase = .failed(problem)
+        avatar.send(.failed)
+        isOnHold = false
+        if let id = callID {
+            callID = nil
+            Task { await lifecycle?.ended(id: id, failed: true) }
+        }
     }
 
     // MARK: - Events
@@ -178,6 +269,7 @@ public final class CallSession {
         switch event {
         case .agentJoined(let attributes):
             agentHere = true
+            avatar.send(.agentJoined)
             apply(attributes)
         case .agentAttributes(let attributes):
             apply(attributes)
@@ -192,17 +284,23 @@ public final class CallSession {
             case .ended?, .paused?: isUserSpeaking = false
             case nil: break
             }
-            if let result = ExpressionEventMapper.shared.processMessage(json) { expression = result.expression }
+            if let result = ExpressionEventMapper.shared.processMessage(json) {
+                let hold = RemoteDuration.seconds(result.hold ?? result.duration)
+                avatar.send(.expression(result.expression, hold: hold))
+            }
         case .caption(let chunk):
             captions.apply(chunk)
         case .reconnecting:
             if phase == .live { phase = .reconnecting }
+            avatar.send(.reconnecting)
         case .reconnected:
             if phase == .reconnecting { phase = .live }
+            avatar.send(.reconnected)
         case .disconnected(let byUs):
             guard !byUs, phase == .live || phase == .reconnecting else { return }
             // The network or server dropped the call: rejoin once with a fresh room.
             room = nil
+            avatar.send(.reconnecting)
             callTask = Task {
                 await leaveRoom()
                 await run(rejoining: true)
@@ -213,18 +311,17 @@ public final class CallSession {
     private func apply(_ attributes: [String: String]) {
         guard let activity = AgentSignals.agentActivity(from: attributes) else { return }
         agentActivity = activity
-        let face = AgentSignals.avatar(for: activity, current: expression)
-        isFerniSpeaking = face.isSpeaking
-        expression = face.expression
+        avatar.send(.agentState(activity))
     }
 
     private func handle(_ interruption: AudioInterruption) async {
         guard let room else { return }
         switch interruption {
         case .began:
-            // The system has the mic (a phone call, Siri); nothing to send.
-            log.info("Audio interrupted")
+            // The system has the mic (a phone call, Siri): Ferni waits.
+            isOnHold = true
         case .ended(let shouldResume):
+            isOnHold = false
             guard shouldResume else { return }
             try? audio.activate()
             try? await room.setMicrophone(enabled: !isMuted)

@@ -360,7 +360,7 @@ async function handleUpdateProfile(
 
   try {
     const store = await getStore();
-    let profile = await store.getProfile(userId);
+    let profile = await store.getProfileForWrite(userId); // a failed read throws, never resets
 
     if (!profile) {
       // Create new profile using the proper factory function

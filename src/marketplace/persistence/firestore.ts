@@ -110,6 +110,7 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
 
     try {
       const admin = (await import('firebase-admin')).default;
+      const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
       if (admin.apps.length === 0) {
         admin.initializeApp({
@@ -117,7 +118,7 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
         });
       }
 
-      this.db = admin.firestore();
+      this.db = getAdminFirestore();
       this.initialized = true;
       log.info('Firestore marketplace store initialized');
     } catch (error) {

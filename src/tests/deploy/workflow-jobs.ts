@@ -55,9 +55,16 @@ export function jobs(workflow: string): Job[] {
 function expandMatrix(name: string, text: string): string[] {
   const m = /\$\{\{ matrix\.(\w+) \}\}/.exec(name);
   if (!m) return [name];
-  const values = new RegExp(`^ +${m[1]}: \\[([^\\]]*)\\]$`, 'm').exec(text)?.[1].split(/,\s*/);
+  const literal = new RegExp(`^ +${m[1]}: \\[([^\\]]*)\\]$`, 'm').exec(text)?.[1].split(/,\s*/);
+  // A matrix built by an expression (`${{ fromJSON(cond && '[1, 2]' || '[1]') }}`)
+  // reports the union of the lists it can pick.
+  const expr = new RegExp(`^ +${m[1]}: \\$\\{\\{(.*)\\}\\}$`, 'm').exec(text)?.[1];
+  const picked = expr
+    ? [...new Set([...expr.matchAll(/'\[([^\]]*)\]'/g)].flatMap((l) => l[1].split(/,\s*/)))]
+    : undefined;
+  const values = (literal ?? picked)?.map((v) => v.trim()).filter(Boolean);
   if (!values?.length) throw new Error(`${name}: matrix.${m[1]} values not found`);
-  return values.map((v) => name.replace(m[0], v.trim()));
+  return values.map((v) => name.replace(m[0], v));
 }
 
 /**

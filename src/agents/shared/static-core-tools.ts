@@ -7,7 +7,12 @@
 
 import { createHash } from 'node:crypto';
 import type { voice } from '@livekit/agents';
+import { flagOn } from '../../config/env-flag.js';
 import { STATIC_CORE_TOOLS, isTeammateTool } from '../../config/tool-config.js';
+import {
+  forbiddenToolsFor,
+  withoutForbiddenTools,
+} from '../../tools/orchestrator/persona-tool-policy.js';
 import { isFindableTool } from '../../tools/dynamic-loader/findable-domains.js';
 import type { FoundTool, ToolPinner } from '../../tools/retrieval/find-tools-tool.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -93,7 +98,8 @@ export async function staticCoreTools(
   }
   const unavailable = STATIC_CORE_TOOLS.filter((name) => !(name in core));
   log.info({ core: Object.keys(core).length, unavailable }, 'TOOL_CORE_STATIC set');
-  return core;
+  if (!flagOn('PERSONA_TOOL_POLICY')) return core; // off: no extra await, as before
+  return withoutForbiddenTools(core, await forbiddenToolsFor(ctx.agentId));
 }
 
 /**

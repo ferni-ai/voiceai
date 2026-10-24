@@ -34,9 +34,17 @@ import { holdOutOfMemory } from './arrival-grounding.js';
 import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
 import { familyArrival, familyDeparture } from './family-table.js';
 export { calmGreeting } from './greeting-direction.js';
-// Predictive handoff - pre-briefings for specialist personas
-import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
-import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
+import { markBriefingUsed } from '../../services/automation/predictive-handoff.js';
+import {
+  ARRIVAL_GAP_MS,
+  handoffFastArrival,
+  preBriefSpecialist,
+  startEarly,
+} from './handoff-fast-arrival.js';
+import {
+  armArrivalCooldown,
+  disarmArrivalCooldown,
+} from '../../speech/coordination/arrival-cooldown.js';
 
 const log = getLogger();
 
@@ -313,7 +321,7 @@ export class AgentOrchestrator {
     log.info(
       {
         targetPersonaId: request.targetPersonaId,
-        reason: request.reason,
+        reasonChars: request.reason?.length ?? 0,
         currentState: {
           activeAgentId: this.activeAgentId,
           agentsMapSize: this.agents.size,
@@ -370,6 +378,30 @@ export class AgentOrchestrator {
       : null;
     // HANDOFF_TALK_THROUGH: the caller may talk through the goodbye (handoff-talk-through.ts)
     const talk = isSwappable(currentAgent) ? talkThroughFor(currentAgent, this.sessionId) : null;
+    const swap = singleSessionHandoffs() && isSwappable(currentAgent) ? currentAgent : null;
+    const spawnNext = async () => {
+      const { preBriefing, summary } = await preBriefSpecialist(
+        this.userId,
+        request.targetPersonaId,
+        request.conversationSummary
+      );
+      const briefed = await briefing; // bounded (handoff-brief.ts), and mostly done by now
+      const agent = await this.spawnAgent(request.targetPersonaId, {
+        room: this.room,
+        userParticipant: this.userParticipant,
+        conversationSummary: withBrief(briefed, summary),
+        recentMessages: request.recentMessages,
+        userName: request.userName,
+        isHandoff: true,
+        previousPersonaId,
+        callSession: swap?.session,
+      });
+      return { newAgent: agent, briefed, preBriefing };
+    };
+    // HANDOFF_FAST_ARRIVAL: the teammate is set up while the goodbye plays (handoff-fast-arrival.ts)
+    const fast = swap !== null && handoffFastArrival();
+    if (fast) armArrivalCooldown(ARRIVAL_GAP_MS);
+    const early = fast ? startEarly(spawnNext) : null;
     try {
       const step1Start = Date.now(); // STEP 1: Let old agent say goodbye naturally
       log.info(
@@ -389,7 +421,6 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 2/5] Closing old agent...'
       );
       diag.entry(`🎭 Closing ${previousPersonaId}`);
-      const swap = singleSessionHandoffs() && isSwappable(currentAgent) ? currentAgent : null;
       if (!swap) await this.removeAgent(currentAgent.id); // swapped out below instead
       log.info(
         { personaId: previousPersonaId, durationMs: Date.now() - step2Start },
@@ -403,60 +434,7 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 3/5] Spawning new agent...'
       );
 
-      // 🧠 PREDICTIVE HANDOFF: Fetch pre-briefing for the specialist
-      let preBriefing: PreBriefing | null = null;
-      let enhancedSummary = request.conversationSummary;
-      if (this.userId) {
-        try {
-          preBriefing = await getPreBriefing(
-            this.userId,
-            request.targetPersonaId as Parameters<typeof getPreBriefing>[1]
-          );
-          if (preBriefing) {
-            // Enhance the conversation summary with pre-briefing context
-            const briefingContext = [
-              `[PRE-BRIEFING FROM FERNI TEAM]`,
-              preBriefing.context,
-              preBriefing.suggestedApproach
-                ? `Suggested approach: ${preBriefing.suggestedApproach}`
-                : '',
-              preBriefing.relevantHistory.length > 0
-                ? `Relevant history: ${preBriefing.relevantHistory.join('; ')}`
-                : '',
-            ]
-              .filter(Boolean)
-              .join('\n');
-
-            enhancedSummary = enhancedSummary
-              ? `${briefingContext}\n\n${enhancedSummary}`
-              : briefingContext;
-
-            log.info(
-              {
-                userId: this.userId,
-                targetPersona: request.targetPersonaId,
-                briefingId: preBriefing.id,
-              },
-              '🧠 [PREDICTIVE] Pre-briefing applied to handoff context'
-            );
-          }
-        } catch (err) {
-          // Non-critical - continue without pre-briefing
-          log.debug({ error: String(err) }, 'Pre-briefing fetch skipped');
-        }
-      }
-
-      const briefed = await briefing; // bounded (handoff-brief.ts), and mostly done by now
-      const newAgent = await this.spawnAgent(request.targetPersonaId, {
-        room: this.room,
-        userParticipant: this.userParticipant,
-        conversationSummary: withBrief(briefed, enhancedSummary),
-        recentMessages: request.recentMessages,
-        userName: request.userName,
-        isHandoff: true,
-        previousPersonaId,
-        callSession: swap?.session,
-      });
+      const { newAgent, briefed, preBriefing } = await (early ?? spawnNext());
       const forget = (persona: { id: string }) => this.agents.delete(persona.id);
       if (swap) await swapPersona(swap, newAgent, forget, request.onAgentReady);
       log.info(
@@ -530,11 +508,18 @@ export class AgentOrchestrator {
       };
     } catch (error) {
       talk?.abandon();
+      // HANDOFF_FAST_ARRIVAL: a teammate set up early that never came on must stop listening
+      void early
+        ?.then(async ({ newAgent }) => {
+          if (this.activeAgentId === newAgent.id) return;
+          this.agents.delete(newAgent.id);
+          await (newAgent as { release?: () => Promise<void> }).release?.();
+        })
+        .catch(() => undefined);
       const durationMs = Date.now() - startTime;
       log.error(
         {
-          error: String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+          error, // its frames too; the safe logger cuts the message (error-text.ts)
           from: previousPersonaId,
           to: request.targetPersonaId,
           durationMs,
@@ -562,6 +547,7 @@ export class AgentOrchestrator {
         durationMs,
       };
     } finally {
+      if (fast) disarmArrivalCooldown();
       this.handoffInProgress = false;
     }
   }
@@ -729,7 +715,7 @@ export class AgentOrchestrator {
       );
     } catch (err) {
       log.warn(
-        { error: String(err), stack: err instanceof Error ? err.stack : undefined },
+        { error: err },
         '🎭 [removeAgent] ⚠️ Error during agent cleanup'
       );
     }

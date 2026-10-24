@@ -16,6 +16,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../../tools/registry/index.js';
 import type { ToolContext, ToolDefinition } from '../../tools/registry/types.js';
 import { initializeToolRegistry } from '../../tools/registry/loader.js';
+import { registerMessagingConsent } from '../messaging/consent.js';
 
 const log = getLogger().child({ module: 'tool-service' });
 
@@ -254,6 +255,7 @@ app.post('/ferni.tools.v1.ToolService/Health', (_req, res) => {
 async function main() {
   const port = parseInt(process.env.PORT || '50051', 10);
 
+  registerMessagingConsent(); // the tools ask it through utils/consent-port.ts
   log.info('Initializing tool registry...');
   await initializeToolRegistry({ lazyLoading: false });
 

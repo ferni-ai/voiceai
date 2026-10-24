@@ -13,11 +13,12 @@
  * NOTE: Also delegates to the unified ConversationFeedbackStore for
  * cross-system analytics.
  */
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createFeedbackPrompt } from '../feedback/index.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'PredictiveInsightFeedbackStore' });
 
@@ -56,7 +57,7 @@ export async function recordPredictiveInsightFeedback(
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const id = `pif_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     // Store under the user profile for easy retrieval/aggregation

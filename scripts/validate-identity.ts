@@ -12,8 +12,9 @@
  */
 
 import { Firestore } from '@google-cloud/firestore';
+import { getFirestoreDatabase } from '../src/config/environment.js';
 
-const db = new Firestore({ projectId: 'johnb-2025' });
+const db = new Firestore({ projectId: 'johnb-2025', databaseId: getFirestoreDatabase() });
 
 interface ValidationResult {
   check: string;

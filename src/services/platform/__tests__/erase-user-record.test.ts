@@ -158,6 +158,16 @@ describe('eraseUserRecord', () => {
     ]);
   });
 
+  it("erases the person's queued intelligence events, which hold their words", async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'intelligence_queue');
+    const { db, docs } = fakeFirestore({
+      'intelligence_queue/q1': { userId: 'u-1', status: 'pending' },
+      'intelligence_queue/q2': { userId: 'u-2', status: 'pending' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()]).toEqual(['intelligence_queue/q2']);
+  });
+
   it('throws when anything survives, so no caller reports an erasure that did not happen', async () => {
     const { db } = fakeFirestore(
       { 'users/u-1/journal/j1': {}, 'contact_relationships/r1': { userId: 'u-1' } },

@@ -33,6 +33,16 @@ describe('vector store owner rule (fail safe)', () => {
     expect(ownerId('anonymous')).toBeUndefined();
   });
 
+  it('refuses every placeholder owner, in any case, but keeps a unique session id', () => {
+    for (const id of ['shared', 'default', 'unknown', 'Anonymous', ' SHARED ']) {
+      expect(ownerId(id), id).toBeUndefined();
+      expect(ownedBy(doc(id.trim()), { userId: id }), id).toBe(false);
+    }
+    // An anon: id only ever matches documents under that same id.
+    expect(ownerId('anon:3f2a')).toBe('anon:3f2a');
+    expect(ownedBy(doc('alice'), { userId: 'anon:3f2a' })).toBe(false);
+  });
+
   it('the in-memory fallback applies it too', () => {
     const cache = new FallbackCache();
     for (const [id, userId] of [

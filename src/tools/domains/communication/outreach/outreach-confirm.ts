@@ -28,6 +28,13 @@ import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
+import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
+import {
+  gateInFamily,
+  settleThenSend,
+  type ConfirmGate,
+  type Execute,
+} from './outreach-server-confirm.js';
 
 const log = getLogger();
 
@@ -62,9 +69,9 @@ const GATED = Symbol.for('ferni.outbound-confirm');
 
 type SessionEvent =
   { kind: 'caller'; text: string; agentSpeaking: boolean } | { kind: 'tool'; callIds: string[] };
-type ConfirmEvent = SessionEvent & { seq: number };
+export type ConfirmEvent = SessionEvent & { seq: number };
 
-interface PendingAction {
+export interface PendingAction {
   toolId: string;
   userId: string;
   spec: ConfirmSpec;
@@ -73,15 +80,22 @@ interface PendingAction {
   callId: string;
   createdSeq: number;
   expiresAt: number;
+  /** OUTREACH_SERVER_CONFIRM: who it reaches and how to send it as read back (outreach-confirm-family.ts). */
+  server?: Kin & { readBack: string; send: () => Promise<unknown> };
   /** The owner's first name, lower-case, from the call's user data: a yes may address them. */
   owner?: string[];
 }
 
-interface SessionLog {
+export interface SessionLog {
   seq: number;
   events: ConfirmEvent[];
   pending?: PendingAction;
   speakerIsOwner?: () => boolean; // false: the person on the line is not the account owner
+  // OUTREACH_SERVER_CONFIRM: the action last sent on a yes, the yes waiting to settle, and how
+  // the model hears what the server did (the live call installs it).
+  sent?: Kin & { readBack: string; expiresAt: number };
+  settle?: ReturnType<typeof setTimeout>;
+  note?: (text: string) => void;
 }
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
@@ -288,18 +302,22 @@ function continues(
 /**
  * Listeners for a live AgentSession: the caller's final transcripts and tool
  * outputs. If `speakerIsOwner` returns false, no reply on this call confirms.
+ * `note` tells the model what the server sent on a yes (OUTREACH_SERVER_CONFIRM).
  */
 export function outreachConfirmListeners(
   session: { agentState?: string },
-  speakerIsOwner?: () => boolean
+  speakerIsOwner?: () => boolean,
+  note?: (text: string) => void
 ) {
   if (speakerIsOwner) logFor(session).speakerIsOwner = speakerIsOwner;
+  if (note) logFor(session).note = note;
   return {
     onTranscript: (event: unknown) => {
       const e = event as { transcript?: string; isFinal?: boolean };
       if (!e.isFinal || !e.transcript?.trim()) return;
       const agentSpeaking = session.agentState === 'speaking';
       record(session, { kind: 'caller', text: e.transcript, agentSpeaking });
+      if (serverConfirmOn()) settleThenSend(serverGate, session, logFor(session));
     },
     onToolsExecuted: (event: unknown) => {
       const calls = (event as { functionCalls?: Array<{ callId?: string }> }).functionCalls ?? [];
@@ -328,6 +346,17 @@ export interface ConfirmSpec {
   sameAction?: (stored: Record<string, unknown>, next: Record<string, unknown>) => boolean;
 }
 
+/** What OUTREACH_SERVER_CONFIRM's half (outreach-server-confirm.ts) borrows from this gate. */
+const serverGate: ConfirmGate = {
+  confirmationState,
+  ownerKnown,
+  isClearNo,
+  ownerFirstNames,
+  windowMs: CONFIRM_WINDOW_MS,
+  planOnly: PLAN_ONLY,
+  planned: PLANNED,
+};
+
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
   if ((def as unknown as Record<symbol, unknown>)[GATED]) return def;
@@ -335,8 +364,8 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
     ...def,
     create: (ctx: ToolContext): Tool => {
       const tool = def.create(ctx);
-      type Execute = (a: unknown, o?: unknown) => Promise<unknown>;
       const execute = (tool as { execute: Execute }).execute.bind(tool);
+      const gate = { gate: serverGate, toolId: def.id, spec, execute };
       const gated = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
         if (spec.applies && !spec.applies(args)) return execute(args, opts);
         if (isSyntheticUserId(ctx.userId)) {
@@ -356,6 +385,8 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }
+        if (serverConfirmOn())
+          return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
         const { pending } = entry;
         if (
           pending &&
