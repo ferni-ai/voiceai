@@ -10,6 +10,8 @@
 
 const GREETINGS = ['hey', 'hi', 'hiya', 'hello', 'oh'];
 const GREETING_WORD = /^(?:hey|hi|hiya|hello|oh)\s+/i;
+/** NAME_GATE_V2: "Oh hey Sam," rose 7.7 st on Ferni's voice, a full stop after it 8.2 (2026-10-24). */
+const OH_HEY = /^(?:oh|ah|well|okay|ok),?\s+(?:hey|hi|hiya|hello)\s+/i;
 /** Words that open a new clause after ", Sam,": the name was addressing them. */
 const CLAUSE_START = new Set(
   (
@@ -19,6 +21,18 @@ const CLAUSE_START = new Set(
     'please trust believe go take tell just'
   ).split(' ')
 );
+/**
+ * NAME_GATE_V2: the clause starters CLAUSE_START misses. Mid-call, the gate let
+ * these through in a simulation over 915 logged names (", Sam, and that sounds
+ * hard", "See you later, Sam, have a good one"; 2026-10-24 prosody report).
+ */
+const CLAUSE_START_V2 = new Set([
+  ...CLAUSE_START,
+  ...(
+    "and have catch let especially still sometimes same not don't between enjoy keep get " +
+    'sleep rest drive good stay remember glad hope sorry talk see'
+  ).split(' '),
+]);
 /** "my friend, Sam" renames someone; it doesn't address the caller. */
 const APPOSITIVE = new RegExp(
   `\\b(?:my|your|his|her|their|our|the|a|an|this|that)\\s+(?:[\\p{L}'’-]+\\s+)?(?:${(
@@ -90,6 +104,70 @@ export interface Vocative {
   /** Where the name itself starts and ends (inside start..end). */
   nameAt: number;
   nameEnd: number;
+  /**
+   * NAME_GATE_V2 only. How the name sits: closing a clause (", Sam."), between
+   * two (", Sam, I'm"), after a hello ("Hey Sam,"), after "Oh" or "Oh hey", or
+   * opening its sentence ("Sam, really?").
+   */
+  shape?: 'tail' | 'pivot' | 'greeting' | 'oh' | 'ohhey' | 'lead';
+  /** NAME_GATE_V2 only: its sentence ends in "?" (null while that end is still to come). */
+  asks?: boolean | null;
+}
+
+/**
+ * NAME_GATE_V2: whether the sentence holding the name, which ends at or after
+ * `from`, asks something; null while its end may still be on its way.
+ */
+function sentenceAsks(text: string, from: number, final: boolean): boolean | null {
+  const end = /[.!?…]+(?=$|[\s"'’)\]<[])/.exec(text.slice(from));
+  if (!end) return final ? false : null;
+  if (end[0].includes('?')) return true;
+  return final || from + end.index + end[0].length < text.length ? false : null;
+}
+
+/** NAME_GATE_V2: "Alex, Sam, and Jo" lists people; "I hear you, Sam, and" addresses them. */
+function listsPeople(clause: string, after: string): boolean {
+  const words = clause.trim().split(/\s+/);
+  const last = words[words.length - 1] ?? '';
+  const named = words.length > 1 && /^\p{Lu}/u.test(last) && last !== 'I';
+  if (named && !CALENDAR.has(last.toLowerCase())) return true;
+  const next = after.match(/^,\s*and\s+([\p{L}'’]+)/iu)?.[1] ?? '';
+  return /^\p{Lu}/u.test(next) && !/^I(?:['’]|$)/u.test(next);
+}
+
+/**
+ * Whether `word` after ", Sam," opens a clause that addressed them; null while
+ * the word after "and" (which tells "Alex, Sam, and Jo" from "Sam, and I'm
+ * sorry") is still to come. `after` is the text from the comma after the name.
+ */
+function opensClause(
+  word: string,
+  clause: string,
+  after: string,
+  final: boolean,
+  v2: boolean
+): boolean | null {
+  if (CLAUSE_START.has(word)) return true;
+  if (!v2 || !CLAUSE_START_V2.has(word)) return false;
+  if (word === 'and' && !final && !/^,\s*and\s+[\p{L}'’]+[^\p{L}'’]/u.test(after)) return null;
+  return !listsPeople(clause, after);
+}
+
+/** NAME_GATE_V2: how a found name sits, read back from the stretch it takes. */
+function withShape(v: Vocative, text: string, final: boolean): Vocative {
+  const shape: Vocative['shape'] =
+    v.with === ','
+      ? 'pivot'
+      : v.capNext
+        ? v.start < v.nameAt
+          ? 'greeting'
+          : 'lead'
+        : text.charAt(v.start) === ','
+          ? 'tail'
+          : /\b(?:hey|hi|hiya|hello)\s+$/i.test(text.slice(0, v.nameAt))
+            ? 'ohhey'
+            : 'oh';
+  return { ...v, shape, asks: sentenceAsks(text, v.nameEnd, final) };
 }
 
 /**
@@ -116,7 +194,8 @@ function sentenceStarts(text: string): Array<{ at: number; afterQuestion: boolea
 export function findVocatives(
   text: string,
   name: string,
-  final: boolean
+  final: boolean,
+  v2 = false
 ): { found: Vocative[]; undecidedAt: number | null } {
   const found: Vocative[] = [];
   let undecidedAt: number | null = null;
@@ -200,7 +279,9 @@ export function findVocatives(
       undecided(at);
       continue;
     }
-    if (CLAUSE_START.has(word)) {
+    const opens = opensClause(word, clause, text.slice(end), final, v2);
+    if (opens === null) undecided(at);
+    if (opens) {
       found.push({
         start: at,
         end: end + 1,
@@ -224,7 +305,8 @@ export function findVocatives(
       undecided(s); // "", "He", "Hey": a greeting may still be coming
       continue;
     }
-    const greet = rest.match(GREETING_WORD)?.[0] ?? '';
+    const greet =
+      (v2 ? rest.match(OH_HEY)?.[0] : undefined) ?? rest.match(GREETING_WORD)?.[0] ?? '';
     rest = rest.slice(greet.length);
     if (partialName(rest)) {
       undecided(s);
@@ -252,8 +334,9 @@ export function findVocatives(
       if (!ADDRESSING.has(word)) continue; // "Will, you did great"; not "Rich, that's the word"
     }
     if (CALENDAR.has(name.toLowerCase()) && inCalendarList(text, nameAt, end)) continue;
-    if (/^oh\s/i.test(greet)) {
-      // "Oh Sam, that's awful" -> "Oh, that's awful": the "Oh" is the reaction, not a hello.
+    if (/^(?:oh|ah|well|okay|ok)\b/i.test(greet)) {
+      // "Oh Sam, that's awful" -> "Oh, that's awful": the "Oh" is the reaction, not a hello
+      // (NAME_GATE_V2: "Oh hey Sam, how's" -> "Oh hey, how's").
       found.push({ start: nameAt - 1, end, with: '', capNext: false, nameAt, nameEnd: end });
       continue;
     }
@@ -275,7 +358,7 @@ export function findVocatives(
   const merged: Vocative[] = []; // a stretch found from both sides counts once
   for (const v of found)
     if (!merged.length || v.start >= merged[merged.length - 1].end) merged.push(v);
-  return { found: merged, undecidedAt };
+  return { found: v2 ? merged.map((v) => withShape(v, text, final)) : merged, undecidedAt };
 }
 
 /**
