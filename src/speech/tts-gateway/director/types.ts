@@ -81,6 +81,8 @@ export interface TurnContext {
   /** Rapport 0-1, for the laughter rules; their default when absent. */
   comfortLevel?: number;
   laughGate?: LaughGate; // on a reply to the caller (reply-caller-turn.ts)
+  /** The caller's name as the session has it (NAME_FALLING_SPLIT, name-intonation.ts). */
+  userName?: string;
 }
 
 /** The Director's only output: one per LLM reply. */

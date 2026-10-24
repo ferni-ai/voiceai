@@ -56,6 +56,49 @@ describe('fallingVocative', () => {
   });
 });
 
+describe('fallingVocative with NAME_FALLING_SPLIT', () => {
+  const split = { name: 'Seth' };
+
+  it.each([
+    ['Oh hey Seth, how was the run?', 'Hey Seth. How was the run?'],
+    ['Ah, hey Seth, good to hear you.', 'Hey Seth. Good to hear you.'],
+    ["Well, hi Seth, what's new?", "Hi Seth. What's new?"],
+    ["Okay hey Seth, what's up?", "Hey Seth. What's up?"],
+    ['Oh, morning Seth, sleep okay?', 'Hey Seth. Morning. Sleep okay?'],
+  ])('drops the reaction word before a hello with the name: %s', (input, expected) => {
+    expect(fallingVocative(input, false, split)).toBe(expected);
+    expect(fallingVocative(input, false)).toBe(input);
+  });
+
+  it.each([
+    ['Seth, good to hear your voice.', 'Seth. Good to hear your voice.'],
+    ["Seth, morning. How'd you sleep?", "Seth. Morning. How'd you sleep?"],
+    ["Seth — how's it going?", "Seth. How's it going?"],
+  ])('ends a name that opens the reply on its own sentence: %s', (input, expected) => {
+    expect(fallingVocative(input, false, split)).toBe(expected);
+    expect(fallingVocative(input, false)).toBe(input);
+  });
+
+  it.each([
+    'Seth. Good to hear you.',
+    "Seth's here.",
+    'Sethany, hi.',
+    "Oh hey, that's cool.",
+    "Oh, that's rough.",
+    'Well, I think so.',
+    'Sam, good to hear you.',
+  ])('leaves other openings alone: %s', (input) => {
+    expect(fallingVocative(input, false, split)).toBe(input);
+  });
+
+  it('waits while a reaction word or the name may still open the reply', () => {
+    for (const partial of ['O', 'Oh', 'Oh,', 'Oh ', 'Oh he', 'Se', 'Seth', 'Seth, ']) {
+      expect(fallingVocative(partial, false, split)).toBe(WAIT);
+    }
+    expect(fallingVocative('Seth,', true, split)).toBe('Seth.');
+  });
+});
+
 /** A reply stream that records what would be sent to Cartesia. */
 class FakeReply implements ReplyStream {
   pushes: string[] = [];

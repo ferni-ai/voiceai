@@ -459,3 +459,47 @@ describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
     expect(timing.maxHoldMs).toBe(50); // a later comma, then the name itself until its next letter
   });
 });
+
+describe('NAME_FALLING_SPLIT', () => {
+  const tokens = (t: string): string[] => t.split(/(?=\s)/);
+  const on = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'on' };
+  const off = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'off' };
+
+  it('ends a kept name that runs on into "and ..." (", Sam, and" was never found)', async () => {
+    const said = tokens('That sounds like a lot, Sam, and you handled it well.');
+    expect(await run(said, [], off)).toBe('That sounds like a lot, Sam, and you handled it well.');
+    expect(await run(said, [], on)).toBe('That sounds like a lot, Sam. And you handled it well.');
+    const bye = tokens('Catch you later, Sam, have a good one.');
+    expect(await run(bye, callWith(2, 'ok bye!'), on)).toBe(
+      'Catch you later, Sam. Have a good one.'
+    );
+  });
+
+  it('drops a mid-call name before "and ..." instead of keeping it', async () => {
+    const said = tokens('I hear you, Sam, and that sounds hard.');
+    expect(await run(said, callWith(2), off)).toBe('I hear you, Sam, and that sounds hard.');
+    expect(await run(said, callWith(2), on)).toBe('I hear you, and that sounds hard.');
+  });
+
+  it('drops the hello with the name, streamed mid-call ("Hey Sam, morning.")', async () => {
+    const said = tokens('Hey Sam, morning.');
+    expect(await run(said, callWith(2), off)).toBe('Hey, morning.');
+    expect(await run(said, callWith(2), on)).toBe('Morning.');
+  });
+
+  it('drops the comma with a sentence-final name, streamed mid-call', async () => {
+    const said = tokens("That's rough, Sam.");
+    expect(await run(said, callWith(2), off)).toBe("That's rough,.");
+    expect(await run(said, callWith(2), on)).toBe("That's rough.");
+  });
+
+  it('keeps the hello when the name stays, and "Oh" when it goes', async () => {
+    // (the TTS gateway says it "Hey Sam. Morning.", name-intonation.ts)
+    expect(await run(tokens('Hey Sam, morning.'), [], on)).toBe('Hey Sam, morning.');
+    expect(await run(tokens("Oh Sam, that's awful."), callWith(2), on)).toBe("Oh, that's awful.");
+    expect(await run(tokens("Hey, that's wild."), callWith(2), on)).toBe("Hey, that's wild.");
+    expect(await run(tokens('Me, Sam, and Jo went.'), callWith(2), on)).toBe(
+      'Me, Sam, and Jo went.'
+    );
+  });
+});

@@ -155,3 +155,15 @@ export function findCallerName(
 export function extractCallerName(text: string, opts?: { anchored?: boolean }): string | null {
   return findCallerName(text, opts)?.name ?? null;
 }
+
+/** The caller's first name as said ("Seth" from "seth ford"); null if there isn't a usable one. */
+export function firstNameOf(userName: unknown): string | null {
+  if (typeof userName !== 'string') return null;
+  const first = userName.trim().split(/\s+/)[0] ?? '';
+  if (first.length < 2 || !/^\p{L}[\p{L}'’-]*$/u.test(first)) return null;
+  // "O'Neil", "McKenzie" as written; "SETH" and "seth" become "Seth".
+  if (first !== first.toLowerCase() && first !== first.toUpperCase()) return first;
+  return first
+    .toLowerCase()
+    .replace(/(^|['’-])(\p{L})/gu, (_, p: string, c: string) => p + c.toUpperCase());
+}

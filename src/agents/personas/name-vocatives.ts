@@ -19,6 +19,27 @@ const CLAUSE_START = new Set(
     'please trust believe go take tell just'
   ).split(' ')
 );
+/**
+ * NAME_FALLING_SPLIT: more words that open a clause after ", Sam,". Without
+ * them ", Sam, and you handled it well" was never found, so mid-call it kept
+ * the name and a kept name ran on: "a lot, | Sam, and you..." rose 4.41 st,
+ * "a lot, | Sam. | And you..." 1.44 st (voiceai-evidence/name-intonation-2026-10-24).
+ */
+const CLAUSE_START_SPLIT = new Set(
+  "and have catch let hope keep enjoy get talk see stay don't".split(' ')
+);
+/**
+ * Whether `word` opens a clause after ", Sam," for NAME_FALLING_SPLIT; null
+ * while the word after "and" is still to come. "and" followed by a capital is
+ * a list ("Me, Sam, and Jo went", "Sam, and I"), not a new clause.
+ */
+function splitClauseStart(word: string, after: string, final: boolean): boolean | null {
+  if (!CLAUSE_START_SPLIT.has(word)) return false;
+  if (word !== 'and') return true;
+  const next = /^\s*,\s*and\s+(\S)/i.exec(after);
+  if (!next) return final ? false : null;
+  return !/\p{Lu}/u.test(next[1]);
+}
 /** "my friend, Sam" renames someone; it doesn't address the caller. */
 const APPOSITIVE = new RegExp(
   `\\b(?:my|your|his|her|their|our|the|a|an|this|that)\\s+(?:[\\p{L}'’-]+\\s+)?(?:${(
@@ -112,11 +133,13 @@ function sentenceStarts(text: string): Array<{ at: number; afterQuestion: boolea
  * Vocative uses of `name` in `text`, and the first position whose answer
  * still depends on text not here yet (null when everything is decided).
  * `final`: no more text is coming, so the end of `text` ends the reply.
+ * `split`: NAME_FALLING_SPLIT's wider clause starts (CLAUSE_START_SPLIT).
  */
 export function findVocatives(
   text: string,
   name: string,
-  final: boolean
+  final: boolean,
+  split = false
 ): { found: Vocative[]; undecidedAt: number | null } {
   const found: Vocative[] = [];
   let undecidedAt: number | null = null;
@@ -200,7 +223,10 @@ export function findVocatives(
       undecided(at);
       continue;
     }
-    if (CLAUSE_START.has(word)) {
+    const opens =
+      CLAUSE_START.has(word) || (split && splitClauseStart(word, text.slice(end), final));
+    if (opens === null) undecided(at);
+    else if (opens) {
       found.push({
         start: at,
         end: end + 1,
