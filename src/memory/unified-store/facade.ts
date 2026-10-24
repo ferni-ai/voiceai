@@ -297,7 +297,7 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
         queryEmbedding = await embed(query.query);
         debug.embeddingTimeMs = Date.now() - embedStart;
       } catch (error) {
-        log.warn({ error: String(error) }, 'Failed to generate query embedding');
+        log.warn(errorFields(error), 'Failed to generate query embedding');
       }
     }
 
@@ -382,7 +382,7 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
     log.debug(
       {
         userId: query.userId,
-        query: query.query.slice(0, 50),
+        queryLength: query.query.length,
         resultsCount: filteredResults.length,
         queryTimeMs: result.queryTimeMs,
       },
