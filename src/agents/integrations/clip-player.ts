@@ -320,7 +320,7 @@ function startPresenceSounds(
   onSound: (kind: 'hum' | 'breath') => void = () => {},
   gate: SoundGate = (_kind, _clip, play) => play()
 ): () => void {
-  // VOICED_PRESENCE: no whistle or snore until researched; voiced-presence.ts fills the quiet.
+  // VOICED_PRESENCE: voiced-presence.ts fills the quiet (its snore is VOICED_QUIRKS's long-quiet slot).
   if (!presenceSoundsEnabled() || voicedPresenceEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
