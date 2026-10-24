@@ -33,9 +33,28 @@ export async function singleWriterFor(
   return own === undefined ? isCommitmentSingleWriterOn(env) : own === 'on';
 }
 
+/** `source` on a row the caller asked for through a tool ("remind me to send Jen the deck"). */
+export const REQUESTED_SOURCE = 'user-request';
+
+/**
+ * What a tool adds to the row it writes. Flag off: nothing, so the row is as on
+ * main. Flag on: a tag, so the readers that hide the regex-era rows still show
+ * what the caller asked for by name, even when the after-call judge missed it.
+ */
+export function requestedFields(env: Record<string, string | undefined> = process.env): {
+  source?: typeof REQUESTED_SOURCE;
+} {
+  return isCommitmentSingleWriterOn(env) ? { source: REQUESTED_SOURCE } : {};
+}
+
 /** A stored row the after-call judge wrote. */
 export function isJudgedRow(d: Record<string, unknown>): boolean {
   return d.source === JUDGED_SOURCE;
+}
+
+/** A row readers show with the flag on: the judge's, or one the caller asked a tool for. */
+export function isSingleWriterRow(d: Record<string, unknown>): boolean {
+  return isJudgedRow(d) || d.source === REQUESTED_SOURCE;
 }
 
 /** All a row says about whom and what: a resolved statement may not name the person. */
@@ -49,8 +68,9 @@ export type ForgetListLoader = (userId: string) => Promise<string[] | null>;
 
 /**
  * Which stored rows this person may be shown. Flag off: all (as before).
- * Flag on: only judged rows, and none about a topic they asked Ferni to
- * forget, person field included; none at all when that list can't be read.
+ * Flag on: only judged rows and rows a tool wrote at their request, and none
+ * about a topic they asked Ferni to forget, person field included; none at all
+ * when that list can't be read.
  */
 export async function shownRows(
   userId: string,
@@ -60,5 +80,5 @@ export async function shownRows(
   if (!judgedOnly) return () => true;
   const topics = await forgotten(userId);
   if (topics === null) return () => false;
-  return (d) => isJudgedRow(d) && !isForgotten(judgedRowText(d), topics);
+  return (d) => isSingleWriterRow(d) && !isForgotten(judgedRowText(d), topics);
 }

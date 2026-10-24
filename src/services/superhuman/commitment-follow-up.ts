@@ -22,6 +22,7 @@ import {
 import {
   isCommitmentSingleWriterOn,
   isJudgedRow,
+  isSingleWriterRow,
   shownRows,
   type ForgetListLoader,
 } from './commitment-single-writer.js';
@@ -102,7 +103,8 @@ export interface OpenCommitmentOptions {
 /**
  * The line to ask about, or null when the row shouldn't be. `judgedOnly`
  * (COMMITMENT_SINGLE_WRITER on for this person) keeps only rows the after-call
- * judge wrote. Those were judged with the whole call, so the line cleanup
+ * judge wrote and rows a tool wrote at the caller's request; the latter read as
+ * on main. Judged rows were judged with the whole call, so the line cleanup
  * meant for the regex captures doesn't apply to them ("text Mindy back").
  * Without `withContext`, a captured line that needs context to make sense is null.
  */
@@ -111,7 +113,7 @@ function askableLine(
   opts: OpenCommitmentOptions
 ): CommitmentLine | null {
   const judged = isJudgedRow(d);
-  if (opts.judgedOnly === true && !judged) return null;
+  if (opts.judgedOnly === true && !isSingleWriterRow(d)) return null;
   const said = String(d.statement ?? d.summary ?? '')
     .slice(0, MAX_CHARS)
     .trim();

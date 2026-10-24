@@ -1,7 +1,9 @@
 /**
- * The morning brief's commitments under COMMITMENT_SINGLE_WRITER: only rows
- * the after-call judge wrote, and none about a forgotten person, even one
- * named only in the person field. Flag off: as before.
+ * The morning brief's commitments under COMMITMENT_SINGLE_WRITER. Judged
+ * commitments are call-only: since #2128 the span guard never calls an item
+ * safe to send, so the writer stores every one `sensitive: true` and the brief
+ * gets none, an ordinary plan included. The rows here are built by the real
+ * writer (judgedCommitmentDocs). Flag off: legacy rows read as on main.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,6 +22,8 @@ vi.mock('../../../superhuman/commitment-follow-up.js', async (orig) => ({
 }));
 
 const { readDay } = await import('../default-deps.js');
+const { judgedCommitmentDocs } = await import('../../../superhuman/judged-commitments.js');
+const { requestedFields } = await import('../../../superhuman/commitment-single-writer.js');
 
 const NOW = new Date('2026-10-18T13:05:00Z');
 /** The brief carries commitments only with MORNING_BRIEF_COMMITMENTS on (default-deps.ts). */
@@ -28,11 +32,17 @@ const row = (id: string, data: Record<string, unknown>) => ({
   id,
   data: { status: 'active', createdAt: NOW.getTime() - 86_400_000, ...data },
 });
-const ROWS = [
-  row('legacy', { statement: 'I need to call the bank about that charge' }),
-  row('judged-kept', { statement: 'text Rosa back', source: 'after-call-llm', person: 'Rosa' }),
-  row('judged-forgotten', { statement: 'call your sister tomorrow', source: 'after-call-llm', person: 'Mindy' }), // prettier-ignore
-];
+/** What the after-call writer stores for these sure, ordinary plans (no money, no credential). */
+const judged = (...items: Array<{ statement: string; person?: string }>) =>
+  judgedCommitmentDocs(
+    items.map((i) => ({ ...i, quote: i.statement, isCommitment: true, sensitive: false, confidence: 0.95 })), // prettier-ignore
+    { userId: 'u1', sessionId: 's1', now: NOW.getTime() - 86_400_000, timezone: 'America/Chicago' }
+  ).map((data, i) => ({ id: `judged-${i}`, data }));
+const LEGACY = row('legacy', { statement: 'I need to call the bank about that charge' });
+const [ROSA, FORGOTTEN] = judged(
+  { statement: 'text Rosa back', person: 'Rosa' },
+  { statement: 'call your sister tomorrow', person: 'Mindy' }
+);
 
 afterEach(() => {
   delete process.env.COMMITMENT_SINGLE_WRITER;
@@ -40,30 +50,50 @@ afterEach(() => {
 });
 
 describe('morning brief commitments', () => {
-  it('flag off: open commitments as the old rules keep them, judged or not (the brief names two)', async () => {
-    h.rows = ROWS;
-    const day = await readDay('u1', {}, 'America/Chicago', NOW, ENV);
-    // The legacy line is cleaned up as every reader does (commitment-quality.ts).
-    expect(day.commitments).toEqual(['call the bank about that charge', 'text Rosa back']);
-    // A judged row says who it is about in its statement ("call your sister tomorrow (Mindy)"),
-    // so even with the flag off the forget check sees a forgotten person.
-    h.rows = [ROWS[2]];
-    expect((await readDay('u1', {}, 'America/Chicago', NOW, ENV)).commitments).toEqual([]);
-    h.forgotten = [];
-    expect((await readDay('u1', {}, 'America/Chicago', NOW, ENV)).commitments).toEqual(['call your sister tomorrow (Mindy)']); // prettier-ignore
+  it('the writer stores judged rows as it does in prod: sensitive, so call-only', () => {
+    expect([ROSA.data, FORGOTTEN.data]).toMatchObject([
+      { source: 'after-call-llm', sensitive: true, statement: 'text Rosa back' },
+      { source: 'after-call-llm', sensitive: true, person: 'Mindy' },
+    ]);
   });
 
-  it('flag on: only judged rows, and none about a forgotten person in the person field', async () => {
-    process.env.COMMITMENT_SINGLE_WRITER = 'on';
-    // The forgotten one first, so the brief's limit of two can't hide a leak.
-    h.rows = [ROWS[2], ROWS[0], ROWS[1]];
+  it('flag off: legacy rows as the old rules keep them; judged rows never reach the brief', async () => {
+    h.rows = [LEGACY, ROSA, FORGOTTEN];
     const day = await readDay('u1', {}, 'America/Chicago', NOW, ENV);
-    expect(day.commitments).toEqual(['text Rosa back']);
+    // The legacy line is cleaned up as every reader does (commitment-quality.ts).
+    expect(day.commitments).toEqual(['call the bank about that charge']);
+  });
+
+  it('flag on: the brief gets none of the judged rows, the ordinary plan included', async () => {
+    process.env.COMMITMENT_SINGLE_WRITER = 'on';
+    h.forgotten = [];
+    h.rows = [ROSA, LEGACY, FORGOTTEN];
+    expect((await readDay('u1', {}, 'America/Chicago', NOW, ENV)).commitments).toEqual([]);
+  });
+
+  it('flag on: a row the caller asked a tool for reads as on main, unless about a forgotten person', async () => {
+    process.env.COMMITMENT_SINGLE_WRITER = 'on';
+    // As recordCommitment writes them mid-call with the flag on.
+    const asked = (id: string, statement: string, personInvolved?: string) =>
+      row(id, {
+        statement,
+        personInvolved,
+        ...requestedFields({ COMMITMENT_SINGLE_WRITER: 'on' }),
+      });
+    // The forgotten one first, so the brief's limit of two can't hide a leak.
+    h.rows = [
+      asked('asked-forgotten', 'I need to call my sister about the trip', 'Mindy'),
+      asked('asked-deck', 'I need to send Jen the deck tomorrow'),
+      LEGACY,
+      ROSA,
+    ];
+    const day = await readDay('u1', {}, 'America/Chicago', NOW, ENV);
+    expect(day.commitments).toEqual(['send Jen the deck tomorrow']);
   });
 
   it('flag on, forget list unreadable: none', async () => {
     process.env.COMMITMENT_SINGLE_WRITER = 'on';
-    h.rows = ROWS;
+    h.rows = [LEGACY, ROSA, FORGOTTEN];
     h.forgotten = null;
     expect((await readDay('u1', {}, 'America/Chicago', NOW, ENV)).commitments).toEqual([]);
   });
