@@ -165,6 +165,21 @@ describe('a phone call a "call me" moved from the app', () => {
     expect(line).not.toMatch(/dropped/i);
   });
 
+  it('a failed read of the app call is still a moved call: no "dropped" opener', async () => {
+    seedDroppedCall(5_000); // the app call is still open, so a drop lookup would find it
+    const sessionId = movedPhoneCall(APP_CALL);
+    await vi.waitFor(() => expect(getConversationTurns).toHaveBeenCalledTimes(1)); // drop lookup
+    getConversationTurns.mockRejectedValueOnce(new Error('firestore unavailable'));
+    const { agent, committed } = fakeAgent();
+
+    const line = await greetingOrResume(sessionId, { personaId: 'ferni', agent }, undefined);
+
+    expect(getConversationTurns).toHaveBeenCalledTimes(2);
+    expect(committed).toEqual([]);
+    expect(moments()).not.toContain('resume_after_drop');
+    expect(line).not.toMatch(/dropped/i);
+  });
+
   it('flag off: a moved context reads nothing and restores nothing', async () => {
     delete process.env.CALL_ME_MOVES_TO_PHONE;
     const sessionId = movedPhoneCall({ userId: 'user-1', conversationId: 'conv_app' });

@@ -184,7 +184,13 @@ export async function restoreMovedTurns(
   const from = getProactiveSessionContext(sessionId)?.movedFrom;
   if (!from) return { moved: false, turns: 0 };
   if (!from.conversationId) return { moved: true, turns: 0 }; // memory held: start fresh
-  const read = getConversationTurns(from.userId, from.conversationId, MAX_TURNS_READ);
+  // A failed read is still a moved call: thrown, the caller would read it as a drop
+  const read = getConversationTurns(from.userId, from.conversationId, MAX_TURNS_READ).catch(
+    (error: unknown) => {
+      log.warn({ error: String(error), sessionId }, 'Moved-call turns not read, carrying on fresh');
+      return [] as ConversationTurn[];
+    }
+  );
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<ConversationTurn[]>((resolve) => {
     timer = setTimeout(() => resolve([]), LOOKUP_WAIT_MS);
