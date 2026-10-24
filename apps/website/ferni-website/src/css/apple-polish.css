@@ -1437,7 +1437,7 @@ body {
   .no-print { display: none !important; }
   
   body {
-    background: var(--color-surface-raised);
+    background: white;
     color: black;
   }
   
@@ -1446,7 +1446,7 @@ body {
   .glass,
   .glass-dark,
   .glass-subtle {
-    background: var(--color-surface-raised);
+    background: white;
     backdrop-filter: none;
   }
 }

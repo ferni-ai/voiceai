@@ -1352,7 +1352,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__cta {
-  background: var(--color-surface-raised);
+  background: white;
   /* --color-text turns cream in dark mode; this button stays white in both */
   color: var(--color-text-dark);
 }
@@ -1424,7 +1424,7 @@ button {
 }
 
 .final-cta .btn--primary {
-  background: var(--color-surface-raised);
+  background: white;
   /* --color-text turns cream in dark mode; this button stays white in both */
   color: var(--color-text-dark);
 }
