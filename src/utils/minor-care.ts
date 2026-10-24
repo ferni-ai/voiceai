@@ -296,6 +296,19 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
 }
 
 /**
+ * Every writer's one check (MINOR_CARE on): this session is held, any of this user's sessions
+ * is, or the id is a placeholder that can't be bound to a session (userHeld can't see it).
+ */
+export function writeHeld(
+  userId: string | undefined,
+  sessionId?: string,
+  env: Env = process.env
+): boolean {
+  if (!minorCareOn(env)) return false;
+  return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
+}
+
+/**
  * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
  * true for any of this user's sessions, from either detector. Never refreshes a session, so a
  * timer can't keep a hold alive past IDLE_MS.
