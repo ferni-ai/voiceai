@@ -1242,7 +1242,9 @@ jobs:
   overlay-gallery:
     name: Overlay Gallery (visual + contrast)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 10
+    # 10 cut the suite off mid-run (#2391): an install on a cache miss plus the
+    # two axe sweeps (every menu panel, two themes, retried once in CI) need more.
+    timeout-minutes: 20
     needs: setup
     if: github.event_name == 'pull_request' && needs.setup.outputs.web != 'false'
     steps:
