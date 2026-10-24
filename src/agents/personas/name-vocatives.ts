@@ -106,8 +106,8 @@ export interface Vocative {
   nameEnd: number;
   /**
    * NAME_GATE_V2 only. How the name sits: closing a clause (", Sam."), between
-   * two (", Sam, I'm"), after a hello ("Hey Sam,"), after "Oh", or opening its
-   * sentence ("Sam, really?").
+   * two (", Sam, I'm"), after a hello ("Hey Sam,"), after "Oh" or "Oh hey", or
+   * opening its sentence ("Sam, really?").
    */
   shape?: 'tail' | 'pivot' | 'greeting' | 'oh' | 'ohhey' | 'lead';
   /** NAME_GATE_V2 only: its sentence ends in "?" (null while that end is still to come). */
@@ -133,6 +133,41 @@ function listsPeople(clause: string, after: string): boolean {
   if (named && !CALENDAR.has(last.toLowerCase())) return true;
   const next = after.match(/^,\s*and\s+([\p{L}'’]+)/iu)?.[1] ?? '';
   return /^\p{Lu}/u.test(next) && !/^I(?:['’]|$)/u.test(next);
+}
+
+/**
+ * Whether `word` after ", Sam," opens a clause that addressed them; null while
+ * the word after "and" (which tells "Alex, Sam, and Jo" from "Sam, and I'm
+ * sorry") is still to come. `after` is the text from the comma after the name.
+ */
+function opensClause(
+  word: string,
+  clause: string,
+  after: string,
+  final: boolean,
+  v2: boolean
+): boolean | null {
+  if (CLAUSE_START.has(word)) return true;
+  if (!v2 || !CLAUSE_START_V2.has(word)) return false;
+  if (word === 'and' && !final && !/^,\s*and\s+[\p{L}'’]+[^\p{L}'’]/u.test(after)) return null;
+  return !listsPeople(clause, after);
+}
+
+/** NAME_GATE_V2: how a found name sits, read back from the stretch it takes. */
+function withShape(v: Vocative, text: string, final: boolean): Vocative {
+  const shape: Vocative['shape'] =
+    v.with === ','
+      ? 'pivot'
+      : v.capNext
+        ? v.start < v.nameAt
+          ? 'greeting'
+          : 'lead'
+        : text.charAt(v.start) === ','
+          ? 'tail'
+          : /\b(?:hey|hi|hiya|hello)\s+$/i.test(text.slice(0, v.nameAt))
+            ? 'ohhey'
+            : 'oh';
+  return { ...v, shape, asks: sentenceAsks(text, v.nameEnd, final) };
 }
 
 /**
@@ -234,8 +269,7 @@ export function findVocatives(
       // "What got you through? Honestly, Faith." may be the word answering it.
       if (wordName && /\?[^.!?]*$/.test(text.slice(0, at))) continue;
 
-      const tail: Vocative = { start: at, end, with: '', capNext: false, nameAt, nameEnd: end };
-      found.push(v2 ? { ...tail, shape: 'tail', asks: sentenceAsks(text, end, final) } : tail);
+      found.push({ start: at, end, with: '', capNext: false, nameAt, nameEnd: end });
       continue;
     }
     if (text.charAt(end) !== ',') continue;
@@ -245,17 +279,10 @@ export function findVocatives(
       undecided(at);
       continue;
     }
-    const opens = v2 ? CLAUSE_START_V2.has(word) : CLAUSE_START.has(word);
-    if (opens && v2 && !CLAUSE_START.has(word)) {
-      // The word after "and" decides "Alex, Sam, and Jo" from "Sam, and I'm sorry".
-      if (word === 'and' && !final && !/^,\s*and\s+[\p{L}'’]+[^\p{L}'’]/u.test(text.slice(end))) {
-        undecided(at);
-        continue;
-      }
-      if (listsPeople(clause, text.slice(end))) continue;
-    }
+    const opens = opensClause(word, clause, text.slice(end), final, v2);
+    if (opens === null) undecided(at);
     if (opens) {
-      const pivot: Vocative = {
+      found.push({
         start: at,
         end: end + 1,
         with: ',',
@@ -263,8 +290,7 @@ export function findVocatives(
         fallAt: end,
         nameAt,
         nameEnd: end,
-      };
-      found.push(v2 ? { ...pivot, shape: 'pivot', asks: sentenceAsks(text, end, final) } : pivot);
+      });
     }
   }
 
@@ -279,8 +305,8 @@ export function findVocatives(
       undecided(s); // "", "He", "Hey": a greeting may still be coming
       continue;
     }
-    const ohHey = v2 ? (rest.match(OH_HEY)?.[0] ?? '') : '';
-    const greet = ohHey || (rest.match(GREETING_WORD)?.[0] ?? '');
+    const greet =
+      (v2 ? rest.match(OH_HEY)?.[0] : undefined) ?? rest.match(GREETING_WORD)?.[0] ?? '';
     rest = rest.slice(greet.length);
     if (partialName(rest)) {
       undecided(s);
@@ -308,19 +334,10 @@ export function findVocatives(
       if (!ADDRESSING.has(word)) continue; // "Will, you did great"; not "Rich, that's the word"
     }
     if (CALENDAR.has(name.toLowerCase()) && inCalendarList(text, nameAt, end)) continue;
-    const asks = v2 ? { asks: sentenceAsks(text, end, final) } : {};
-    if (ohHey || /^oh\s/i.test(greet)) {
-      // "Oh Sam, that's awful" -> "Oh, that's awful": the "Oh" is the reaction, not a hello.
-      // ("Oh hey Sam, how's" -> "Oh hey, how's".)
-      const oh: Vocative = {
-        start: nameAt - 1,
-        end,
-        with: '',
-        capNext: false,
-        nameAt,
-        nameEnd: end,
-      };
-      found.push(v2 ? { ...oh, shape: ohHey ? 'ohhey' : 'oh', ...asks } : oh);
+    if (/^(?:oh|ah|well|okay|ok)\b/i.test(greet)) {
+      // "Oh Sam, that's awful" -> "Oh, that's awful": the "Oh" is the reaction, not a hello
+      // (NAME_GATE_V2: "Oh hey Sam, how's" -> "Oh hey, how's").
+      found.push({ start: nameAt - 1, end, with: '', capNext: false, nameAt, nameEnd: end });
       continue;
     }
     // The name goes with its comma or dash (a hello before it goes too: "Hey Sam,"
@@ -335,14 +352,13 @@ export function findVocatives(
       fallAt: runsOn ? end : undefined,
       nameAt,
       nameEnd: end,
-      ...(v2 ? { shape: greet ? ('greeting' as const) : ('lead' as const), ...asks } : {}),
     });
   }
   found.sort((a, b) => a.start - b.start);
   const merged: Vocative[] = []; // a stretch found from both sides counts once
   for (const v of found)
     if (!merged.length || v.start >= merged[merged.length - 1].end) merged.push(v);
-  return { found: merged, undecidedAt };
+  return { found: v2 ? merged.map((v) => withShape(v, text, final)) : merged, undecidedAt };
 }
 
 /**

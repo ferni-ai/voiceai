@@ -98,6 +98,9 @@ const spoken = (t: string): boolean => SPOKEN.test(t.replace(/<[^>]*>|\[[^\]]*\]
 
 type Chunk = llm.ChatChunk | string | object;
 
+/** Whether this reply may say the name, and how NAME_GATE_V2 and the falling delivery shape it. */
+type GateSettings = { allowed: boolean; falling: boolean; v2: boolean };
+
 /**
  * NAME_GATE_V2: whether this name sits in a question the voice would end on a
  * rise. With the falling delivery, a hello ("Hey Sam,") and a name between
@@ -114,15 +117,27 @@ function inQuestion(v: Vocative, falling: boolean): boolean | null {
  * caller's goodbye or the interval, else the first that closes a goodbye
  * ("Talk soon, Sam."); with NAME_GATE_V2 never one in a question.
  */
-function mayKeep(
-  v: Vocative,
-  before: string,
-  gate: { allowed: boolean; falling: boolean; v2: boolean }
-): boolean {
+function mayKeep(v: Vocative, before: string, gate: GateSettings): boolean {
   if (!gate.allowed && !GOODBYE_BEFORE_NAME.test(before)) return false;
   if (!gate.v2) return true;
   // "Oh hey Sam" rises whatever follows it (7.7 st; 8.2 with a full stop after the name).
   return v.shape !== 'ohhey' && inQuestion(v, gate.falling) !== true;
+}
+
+/** NAME_GATE_V2: a name that may stay waits until its sentence shows whether it asks. */
+function waitsToAsk(v: Vocative, before: string, keptOne: boolean, gate: GateSettings): boolean {
+  if (!gate.v2 || keptOne || inQuestion(v, gate.falling) !== null) return false;
+  return gate.allowed || GOODBYE_BEFORE_NAME.test(before);
+}
+
+/** The gate's settings for one reply. */
+function gateFor(history: readonly HistoryItem[], name: string, env: Env): GateSettings {
+  const v2 = flagOn('NAME_GATE_V2', env);
+  return {
+    allowed: mayUseName(history, name, v2),
+    falling: flagOn('NAME_FALLING_INTONATION', env),
+    v2,
+  };
 }
 
 /**
@@ -213,10 +228,8 @@ export function withNameGate(
   if (!name || !flagOn('NAME_GATE', env)) return input;
   const caller = lastCallerWords(history);
   if (ASKS_OWN_NAME.test(caller) || GIVES_NAME.test(caller)) return input;
-  const v2 = flagOn('NAME_GATE_V2', env);
-  const allowed = mayUseName(history, name, v2);
-  const falling = flagOn('NAME_FALLING_INTONATION', env);
-  const gate = { allowed, falling, v2 };
+  const gate = gateFor(history, name, env);
+  const { allowed, falling, v2 } = gate;
   const now = opts.now ?? Date.now;
   let raw = '';
   let sent = '';
@@ -291,16 +304,10 @@ export function withNameGate(
     if (keep) keptOne = true;
     return keep;
   };
-  /** NAME_GATE_V2: a name that may stay waits until its sentence shows whether it asks. */
-  const awaitsQuestion = (v: Vocative): boolean =>
-    v2 &&
-    !keptOne &&
-    inQuestion(v, falling) === null &&
-    (allowed || GOODBYE_BEFORE_NAME.test(raw.slice(0, v.nameAt)));
+  const waits = (v: Vocative): boolean => waitsToAsk(v, raw.slice(0, v.nameAt), keptOne, gate);
 
   const render = (final: boolean): string => {
     const result = findVocatives(raw, name, final, v2);
-    const waiting: Vocative[] = [];
     const found: Vocative[] = [];
     for (const v of result.found) {
       const d = decided.get(v.nameAt);
@@ -317,8 +324,7 @@ export function withNameGate(
       }
       // It starts in text that went out undecided: drop only what is still to come.
       const clipped = clip(v);
-      if (clipped && awaitsQuestion(v)) {
-        waiting.push(clipped);
+      if (clipped && waits(v)) {
         found.push(clipped);
         continue;
       }
@@ -334,9 +340,7 @@ export function withNameGate(
       if (v.start < upTo && v.end > upTo) {
         upTo = Math.max(sentRaw, v.start); // waits whole
       }
-      if (waiting.includes(v) || (!decided.has(v.nameAt) && awaitsQuestion(v))) {
-        upTo = Math.min(upTo, Math.max(sentRaw, v.start));
-      }
+      if (!decided.has(v.nameAt) && waits(v)) upTo = Math.min(upTo, Math.max(sentRaw, v.start));
     }
     const done = found.filter((v) => v.end <= upTo);
     for (const v of done) {
@@ -435,14 +439,13 @@ export function nameGateText(
   if (!name || !flagOn('NAME_GATE', env) || !flagOn('NAME_GATE_V2', env)) return text;
   const caller = lastCallerWords(history);
   if (ASKS_OWN_NAME.test(caller) || GIVES_NAME.test(caller)) return text;
-  const falling = flagOn('NAME_FALLING_INTONATION', env);
-  const gate = { allowed: mayUseName(history, name, true), falling, v2: true };
+  const gate = gateFor(history, name, env);
   const { found } = findVocatives(text, name, true, true);
   const out = applyVocatives(
     text,
     found,
     (v) => mayKeep(v, text.slice(0, v.nameAt), gate),
-    falling
+    gate.falling
   );
   return LETTER.test(out) ? out : text;
 }

@@ -154,9 +154,9 @@ export async function createCallSession(
   if (modelProvider.speaksNatively?.()) {
     routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
   }
-  // NAME_GATE_V2: scripted say() lines get the name gate (agents/personas/scripted-name-gate.ts); after
-  // the native-audio route, so a line is gated before the model is asked to say it.
-  gateScriptedSay(session as unknown as Parameters<typeof gateScriptedSay>[0]);
+  // NAME_GATE_V2: scripted say() lines get the name gate (personas/scripted-name-gate.ts),
+  // after the native-audio route, so a line is gated before the model is asked to say it.
+  gateScriptedSay(session);
 
   return session;
 }

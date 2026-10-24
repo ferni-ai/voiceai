@@ -26,8 +26,9 @@ interface SayingSession {
 }
 
 /** Route a session's say() text through the name gate, as the call stands when it is said. */
-export function gateScriptedSay(session: SayingSession, env: Env = process.env): void {
+export function gateScriptedSay(target: object, env: Env = process.env): void {
   if (!flagOn('NAME_GATE_V2', env)) return;
+  const session = target as SayingSession;
   const say = session.say.bind(session);
   session.say = (text, options) => {
     if (typeof text !== 'string') return say(text, options);

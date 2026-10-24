@@ -471,7 +471,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
   }
   // NAME_GATE_V2: scripted say() lines get the name gate (agents/personas/scripted-name-gate.ts).
-  if (session) gateScriptedSay(session as unknown as Parameters<typeof gateScriptedSay>[0]);
+  if (session) gateScriptedSay(session);
 
   // Add cleanup handler for retry counter WeakMap
   const { clearRetryCounter } = await import('../shared/sanitizer/index.js');
