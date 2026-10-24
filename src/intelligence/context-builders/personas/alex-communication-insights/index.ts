@@ -54,6 +54,7 @@ import type {
   MemoryContext,
   UserStateSnapshot,
 } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:alex-communication-insights' });
 
@@ -266,7 +267,7 @@ async function buildAlexCommunicationInsightsContext(
   if (!isAlex) return injections;
 
   const userId = input.services?.userId || 'anonymous';
-  if (userId === 'anonymous') return injections;
+  if (!isMemberIdentity(userId)) return injections;
 
   const turnCount = input.userData?.turnCount ?? 0;
   const sessionId = input.services?.sessionId || userId;

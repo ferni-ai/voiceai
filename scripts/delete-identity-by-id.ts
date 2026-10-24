@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 config({ quiet: true });
 
 import admin from 'firebase-admin';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 // Initialize Firebase if not already done
 if (!admin.apps.length) {
@@ -11,7 +12,7 @@ if (!admin.apps.length) {
   });
 }
 
-const db = admin.firestore();
+const db = getAdminFirestore();
 const id = process.argv[2] || 'sponsored_1768055737952_g4sj28';
 const phone = process.argv[3] || '+15551234567';
 

@@ -14,12 +14,14 @@ const control = vi.hoisted(() => ({
   ]),
   forgetRemembered: vi.fn(async (_u: string, id: string) => id === 'f1'),
   correctRemembered: vi.fn(async (_u: string, _id: string, value: unknown) =>
-    typeof value === 'string' && value
-      ? {
-          kind: 'corrected' as const,
-          fact: { id: 'f2', subject: 'Biscuit', detail: `breed: ${value}`, fromYou: true },
-        }
-      : { kind: 'invalid' as const, reason: 'value is empty' }
+    value === '5512'
+      ? { kind: 'not-kept' as const, reason: 'credential' as const }
+      : typeof value === 'string' && value
+        ? {
+            kind: 'corrected' as const,
+            fact: { id: 'f2', subject: 'Biscuit', detail: `breed: ${value}`, fromYou: true },
+          }
+        : { kind: 'invalid' as const, reason: 'value is empty' }
   ),
 }));
 vi.mock('../../memory/recall/memory-control.js', () => control);
@@ -125,6 +127,16 @@ describe('/api/memories/remembered', () => {
       body: JSON.stringify({ value: '' }),
     });
     expect(empty.status).toBe(400);
+  });
+
+  it('answers 200 with not-kept when the correction was a code (the fact is gone, nothing to retry)', async () => {
+    const res = await fetch(`${base}/api/memories/remembered/f1`, {
+      method: 'PATCH',
+      headers: asUser,
+      body: JSON.stringify({ value: '5512' }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true, status: 'not-kept', reason: 'credential' });
   });
 
   it('leaves other paths and methods to other routes', async () => {

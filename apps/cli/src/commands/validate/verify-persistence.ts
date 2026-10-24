@@ -14,6 +14,7 @@
  */
 
 import { Firestore } from '@google-cloud/firestore';
+import { getFirestoreDatabase } from '../../../../../src/config/environment.js';
 
 // Colors for console output
 const GREEN = '\x1b[32m';
@@ -88,7 +89,7 @@ async function main() {
   let db: Firestore;
   try {
     const startConnect = Date.now();
-    db = new Firestore({ projectId });
+    db = new Firestore({ projectId, databaseId: getFirestoreDatabase() });
     
     // Test connection by listing collections
     await db.listCollections();

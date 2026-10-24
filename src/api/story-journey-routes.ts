@@ -7,7 +7,7 @@
  * @module StoryJourneyRoutes
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -108,7 +108,7 @@ export async function handleStoryJourneyRoutes(
     // SECURITY: Use authenticated userId
     const { userId } = auth;
     try {
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const doc = await db.collection('story_journeys').doc(userId).get();
 
       if (!doc.exists) {
@@ -149,7 +149,7 @@ export async function handleStoryJourneyRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const journey: Partial<StoryJourney> = {
         userId,
         updatedAt: new Date(),
@@ -185,7 +185,7 @@ export async function handleStoryJourneyRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const docRef = db.collection('story_journeys').doc(userId);
       const doc = await docRef.get();
 
@@ -231,7 +231,7 @@ export async function handleStoryJourneyRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const docRef = db.collection('story_journeys').doc(userId);
       const doc = await docRef.get();
 
@@ -293,7 +293,7 @@ export async function handleStoryJourneyRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const docRef = db.collection('story_journeys').doc(userId);
       const doc = await docRef.get();
 

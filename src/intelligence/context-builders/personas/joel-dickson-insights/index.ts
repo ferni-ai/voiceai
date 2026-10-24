@@ -36,6 +36,7 @@ import { buildFinancialBehavioralContext } from './financial-behavioral-context.
 import { buildLifeWisdomContext } from './life-wisdom-context.js';
 import { getSession } from './session.js';
 import type { ConversationContext, JoelInsightData } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:joel-dickson-insights' });
 
@@ -247,7 +248,7 @@ async function buildLifeMentorInsightsContext(
     const context = detectConversationContext(input.userText);
 
     let insightData: JoelInsightData | undefined;
-    if (userId !== 'anonymous') {
+    if (isMemberIdentity(userId)) {
       try {
         insightData = await fetchJoelInsightData(userId);
       } catch (e) {

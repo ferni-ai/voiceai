@@ -22,6 +22,8 @@ import { presenceClipName, presenceClipPickers, type ClipPicker } from './presen
 import type { HumPlayer } from './tool-hum.js';
 import { recordedWhistleId, takeTuneId, tuneAudio, tuneKind } from './presence-tune.js';
 import { namedTuneFor, presenceSoundsHeld, tunePlayed } from '../../services/session/tune-state.js';
+import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceSilenceIsHeavy } from './presence-heavy.js';
 
 export { voicedPresenceEnabled };
 
@@ -110,6 +112,8 @@ export interface VoicedPresenceOptions {
   mixerBusy: () => boolean;
   getClip: (text: string, personaId: string) => ArrayBuffer | null;
   personaId: () => string;
+  /** A quiet-window sound started: the yawn is 'breath', a hum, whistle or tune 'hum' (sound-signal.ts). */
+  onSound?: (kind: 'hum' | 'breath') => void;
   env?: Record<string, string | undefined>;
   rng?: () => number;
   now?: () => Date;
@@ -147,7 +151,9 @@ function shared(opts: VoicedPresenceOptions, direct: VoicedTrack) {
   const mood = (): string | undefined => caller()?.voiceEmotion?.primary;
   const getTake = (text: string): ArrayBuffer | null => opts.getClip(text, opts.personaId());
   const env = opts.env ?? process.env; // NAMED_TUNE
-  return { session, direct, picker, rng, caller, play, mood, getTake, env, busy: opts.mixerBusy };
+  const onSound = opts.onSound ?? (() => {});
+  const busy = opts.mixerBusy;
+  return { session, direct, picker, rng, caller, play, mood, getTake, env, busy, onSound };
 }
 type Voiced = ReturnType<typeof shared>;
 
@@ -192,8 +198,15 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
     tunePlayed(sessionId(), id, tuneKind(id), v.env);
     return true;
   };
+  // Report what started (sound-signal.ts): only a yawn flips `yawned`.
+  const report = (play: () => boolean) => (): boolean => {
+    const before = yawned;
+    const ok = play();
+    if (ok) v.onSound(yawned !== before ? 'breath' : 'hum');
+    return ok;
+  };
   const watcher = createPresenceWatcher({
-    play: () => {
+    play: report(() => {
       // NAMED_TUNE: they asked him to stop whistling and humming.
       if (presenceSoundsHeld(sessionId(), v.env)) return false;
       // Never the profile's own zone: a phone caller gets one only as its verified owner (phone-parity.ts).
@@ -210,13 +223,16 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
       else tunePlayed(sessionId(), takeTuneId(take.category, take.index), 'hum', v.env);
       endsAt = Date.now() + take.pcm.byteLength / 48; // 24 kHz s16le
       return true;
-    },
+    }),
     // Only our own sound, never a backchannel that started after it ended.
     stop: () => {
       if (Date.now() < endsAt) v.direct.stop();
       endsAt = 0;
     },
     mood: v.mood,
+    // Hard news, venting or crisis risk lately, or the goodbyes said: no sound (presence-heavy.ts).
+    serious: () => presenceSilenceIsHeavy(v.session),
+    quiet: () => stayQuietOn(v.session),
     rng: v.rng,
   });
   const onAgent = (ev: { newState?: string }): void => watcher.onAgentState(ev.newState ?? '');

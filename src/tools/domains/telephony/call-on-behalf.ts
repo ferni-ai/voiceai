@@ -488,10 +488,9 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         if (!compliance.passed) {
           log.warn({ issues: compliance.issues }, 'Compliance check failed');
-          return (
-            `I can't make this call because: ${compliance.issues.join(', ')}. ` +
-            `Could you help me resolve these issues?`
-          );
+          // A result marked failed, so a confirmed call that didn't ring is never "placed".
+          const why = `I can't make this call because: ${compliance.issues.join(', ')}.`;
+          return { success: false, error: `${why} Could you help me resolve these issues?` };
         }
 
         // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
@@ -506,11 +505,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         );
       } catch (error) {
         log.error({ error: String(error), contactQuery, purpose }, 'Failed to initiate call');
-
-        return (
-          `Sorry, I ran into a problem trying to call ${contactQuery}. ` +
-          `Would you like me to try again, or is there another way I can help?`
-        );
+        const sorry = `Sorry, I ran into a problem trying to call ${contactQuery}.`;
+        return { success: false, error: `${sorry} Would you like me to try again?` };
       }
     },
   });

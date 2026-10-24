@@ -589,10 +589,8 @@ export function createPlaidTools() {
         const PLAID_LINK_BASE_URL = process.env.PLAID_LINK_BASE_URL || '';
         const secureLink = `${PLAID_LINK_BASE_URL}?token=${linkToken}&user=${userId}`;
 
-        // Send via chosen method
         let sendResult: string;
         if (deliveryMethod === 'sms') {
-          // Import would happen at top - using inline fetch for SMS here
           const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
           const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
           const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
@@ -602,6 +600,9 @@ export function createPlaidTools() {
           }
 
           const formattedTo = contact.startsWith('+') ? contact : `+1${contact.replace(/\D/g, '')}`;
+          const { consentBlocks } = await import('../../../utils/consent-port.js');
+          if (await consentBlocks(formattedTo, 'sms', true))
+            return 'That number asked not to get texts from me. Could you give me an email address instead?';
 
           try {
             const response = await fetch(
@@ -628,7 +629,6 @@ export function createPlaidTools() {
             sendResult = 'failed';
           }
         } else {
-          // Email via SendGrid
           const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
 
           if (!SENDGRID_API_KEY) {

@@ -7,6 +7,7 @@
  * @module services/outreach/proactive-channels/default-deps
  */
 
+import { consentBlocks } from '../../messaging/consent.js';
 import { sendGuardedText } from '../guarded-text.js';
 import { saveInAppMessage } from '../unified-delivery.js';
 import { resolveVerifiedPhone } from '../user-reach.js';
@@ -45,6 +46,7 @@ export function defaultProactiveDeps(): ProactiveDeps {
       return outcome.sent;
     },
     canCall: () => canPlaceCalls(),
-    placeCall: async (userId, phone, trigger) => placeSelfCall(userId, phone, trigger),
+    placeCall: async (userId, phone, trigger) =>
+      (await consentBlocks(phone, 'call', true)) ? 'failed' : placeSelfCall(userId, phone, trigger),
   };
 }

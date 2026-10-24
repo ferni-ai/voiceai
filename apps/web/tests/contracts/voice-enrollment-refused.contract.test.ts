@@ -19,6 +19,12 @@ vi.mock('firebase-admin', () => {
   };
   return { default: { apps: [], initializeApp: unavailable, firestore: unavailable } };
 });
+// The voice stores reach Firestore through getAdminFirestore(); it is unavailable too.
+vi.mock('../../../../src/utils/firebase-admin-app.js', () => ({
+  getAdminFirestore: (): never => {
+    throw new Error('no Firebase in this test');
+  },
+}));
 vi.mock('../../../../src/memory/redis-cache.js', () => ({ getRedisCache: () => null }));
 
 import { enrollmentSessionsMemory } from '../../../../src/api/voice-auth/helpers.js';

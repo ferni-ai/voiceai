@@ -6,13 +6,14 @@
  */
 
 import type { VectorRecallStore } from '../../memory/recall/stored-fact-vectors.js';
-import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import { snapshotTopics } from '../../memory/recall/forget-every-reader.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
 /** Reads the collections the live pipeline writes. Plain queries, but for nearest (a vector index). */
 export const firestoreRecallStore: VectorRecallStore = {
-  // Null when unreadable: the snapshot then fails closed (session-recall.ts).
-  forgotten: async (userId) => forgottenTopicsOrNull(userId),
+  // Null when unreadable: the snapshot then fails closed (session-recall.ts). With
+  // FORGET_EVERY_READER the read is shared with the other readers (forget-every-reader.ts).
+  forgotten: async (userId) => snapshotTopics(userId),
   async facts(userId) {
     const db = getFirestoreDb();
     if (!db) return [];

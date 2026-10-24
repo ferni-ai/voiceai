@@ -32,6 +32,8 @@ vi.mock('../../services/trust-systems/unified-persistence.js', async (orig) => (
 }));
 const profiles = vi.hoisted(() => ({
   getProfile: vi.fn(async (userId: string): Promise<unknown> => ({ userId, name: 'Sam' })),
+  getProfileForWrite: vi.fn(async (userId: string): Promise<unknown> => ({ userId, name: 'Sam' })),
+  getProfileStrict: vi.fn(async (userId: string): Promise<unknown> => ({ userId, name: 'Sam' })),
   saveProfile: vi.fn(async () => undefined),
   saveSummary: vi.fn(async () => undefined),
 }));

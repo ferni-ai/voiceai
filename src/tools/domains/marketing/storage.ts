@@ -12,8 +12,8 @@ import { encryptData, decryptData } from '../../../servers/shared/encryption.js'
 // Helper to get Firestore instance
 async function getFirestoreDb() {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    return getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    return getAdminFirestore();
   } catch {
     return null;
   }

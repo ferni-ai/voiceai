@@ -136,7 +136,7 @@ async function createTip(ctx: RequestContext): Promise<ResponseContext> {
       userId,
       amountCents,
       type: 'tip',
-      metadata: { tip_id: tip.id, message: message || '' },
+      metadata: { tip_id: tip.id, message: tip.held ? '' : message || '' }, // MINOR_CARE: no note
     });
 
     return {
