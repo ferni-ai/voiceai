@@ -1,13 +1,14 @@
 /**
  * Wires a TurnReceiptRecorder (turn-receipt.ts) to a live AgentSession: one
  * recorder per session, fed by the session's events, the TTS gateway's first
- * audio and pause-hold releases, and found by llmNode, withTurnReminder and the
- * barge-in paths through the note* calls.
+ * audio and pause-hold releases, the holds reported to turn-timing.ts, and found
+ * by llmNode, withTurnReminder and the barge-in paths through the note* calls.
  *
  * @module agents/shared/turn-receipt-session
  */
 import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
 import { onPauseHoldReleased } from '../../speech/output-control/pause-hold.js';
+import { onTurnTiming } from '../../speech/output-control/turn-timing.js';
 import {
   interruptionModeInUse,
   speechPausedForCaller,
@@ -111,8 +112,11 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     ['close', () => rec.flush()],
   ];
   for (const [event, handler] of handlers) session.on(event, handler);
-  const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs) => {
-    if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs);
+  const offAudio = onGatewayFirstAudio((sessionId, ttfbMs, pushMs, holds) => {
+    if (sessionId === opts.sessionId) rec.onGatewayAudio(ttfbMs, pushMs, holds);
+  });
+  const offTiming = onTurnTiming((sessionId, kind, ms) => {
+    if (sessionId === opts.sessionId) rec.onTiming(kind, ms);
   });
   const offHold = onPauseHoldReleased((sessionId, heldMs) => {
     if (sessionId === opts.sessionId) rec.onPauseHold(heldMs);
@@ -120,6 +124,7 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
   return () => {
     offAudio();
     offHold();
+    offTiming();
     rec.flush();
     for (const [event, handler] of handlers) session.off(event, handler);
     recorders.delete(session);

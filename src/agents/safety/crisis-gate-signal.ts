@@ -25,10 +25,13 @@ export function signalCrisisDecision(session: unknown, action: string | undefine
 }
 
 const pendingVerdicts = new WeakMap<object, Promise<unknown>>();
+/** The session each pending verdict holds a reply on, for its TURN_RECEIPT (crisis-hold-timing.ts). */
+const verdictSessions = new WeakMap<Promise<unknown>, object>();
 
 /** The classifier holds this reply until `verdict` settles: no casual sound meanwhile. */
 export function noteCrisisVerdictPending(session: object, verdict: Promise<unknown>): void {
   pendingVerdicts.set(session, verdict);
+  verdictSessions.set(verdict, session);
   const clear = (): void => {
     if (pendingVerdicts.get(session) === verdict) pendingVerdicts.delete(session);
   };
@@ -37,3 +40,7 @@ export function noteCrisisVerdictPending(session: object, verdict: Promise<unkno
 
 export const crisisVerdictPending = (session: object): Promise<unknown> | null =>
   pendingVerdicts.get(session) ?? null;
+
+/** The session a verdict holds a reply on (noteCrisisVerdictPending), if any. */
+export const sessionHeldBy = (verdict: Promise<unknown>): object | undefined =>
+  verdictSessions.get(verdict);

@@ -38,7 +38,12 @@ import {
 } from './follow-through-opener.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
-import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
+import {
+  installFinishedTurnEndpointing,
+  installUnfinishedTurnHold,
+  reportUnfinishedTurnHolds,
+} from './unfinished-turn.js';
+import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
 import {
   holdsStandDown,
@@ -186,7 +191,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // the model already waits through unfinished thoughts (turn-detector-sole.ts).
   const sole = holdsStandDown(session);
   if (!sole) {
-    installUnfinishedTurnHold(session);
+    if (installUnfinishedTurnHold(session)) reportUnfinishedTurnHolds(session, sessionId);
     // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
     const detach = installFinishedTurnEndpointing(
       session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
@@ -341,6 +346,11 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
     cleanupFunctions.push(() => forgetLaughs(sessionId));
     const earlyWaitMs = earlyOpeningWaitMs();
+    // A clip heard before the reply ("Mm"): the TURN_RECEIPT's firstAnyAudioMs counts it.
+    const heard = (played: boolean): boolean => {
+      if (played) noteTurnTiming(sessionId, 'openerAudio', clips.wireDelayMs());
+      return played;
+    };
     if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
@@ -350,7 +360,7 @@ export async function startTurnSounds(input: TurnSoundsInput) {
             // LAUGH_CAP: the reply a clip opens must not open with a laugh too (laugh-ledger.ts).
             // openerClip: the same clip, reported as 'opener' (CLIENT_SIGNALS_V2, sound-signal.ts).
             playClip: (text) => {
-              const played = clips.openerClip(text);
+              const played = heard(clips.openerClip(text));
               if (played) noteTurnOpened(sessionId);
               return played;
             },
@@ -373,7 +383,8 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     // SLOW_TURN_SOUND: one "Mm" on a slow turn nothing else filled (slow-turn-sound.ts).
     if (flagOn('SLOW_TURN_SOUND')) {
       const { attachSlowTurnSoundToCall } = await import('../integrations/slow-turn-wiring.js');
-      const slowClips = { ...clips, playClip: clips.slowTurnClip }; // conducted as 'slow_turn'
+      const slowTurnClip = (text: string) => heard(clips.slowTurnClip(text));
+      const slowClips = { ...clips, playClip: slowTurnClip }; // conducted as 'slow_turn'
       cleanupFunctions.push(
         attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
       );
