@@ -120,9 +120,17 @@ jobs:
       voice-eval: ${{ steps.queue.outputs.tested == 'true' && 'false' || steps.voice-eval.outputs.matched }}
       # the web app, design system or brand changed (Overlay Gallery)
       web: ${{ steps.web.outputs.matched }}
+      # 'false' only when this PR's diff hits none of vitest.config.unit.ts's
+      # forceRerunTriggers, so `vitest --changed` runs just the affected unit tests
+      # (see test-unit-shard). Empty on other events.
+      unit-full-suite: ${{ steps.unit-full.outputs.needed }}
     steps:
+      # Two commits on a pull request (the merge commit and its base) for the unit
+      # trigger check below; the pr-changes steps list files through the API.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Did code change?
         id: code
@@ -173,6 +181,18 @@ jobs:
             exit 1
           fi
           echo "✅ node_modules verified"
+
+      # `vitest --changed` runs the WHOLE unit suite when the diff touches one of
+      # vitest.config.unit.ts's forceRerunTriggers (a persona bundle or other data
+      # file under src/, package.json, the lockfile, tsconfig). One shard can't run
+      # ~2,200 files in its 25 min: #2508 edited three persona JSONs and was
+      # cancelled at the timeout three times with no failing test. Such a PR gets
+      # the four shards of a full run instead. The script asks vitest for the
+      # triggers and matches with vitest's picomatch; any failure says 'true'.
+      - name: Will the affected unit tests be the whole suite?
+        id: unit-full
+        if: github.event_name == 'pull_request' && (steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true')
+        run: node scripts/ci/unit-full-suite-needed.mjs HEAD^1 || echo "needed=true" >> "$GITHUB_OUTPUT"
 
       - name: Save node_modules cache
         if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
@@ -251,7 +271,9 @@ jobs:
   # "Unit Tests" check that branch protection, queue-tested and required-checks.sh
   # read. vitest shards by a hash of each file's path, so every file runs in
   # exactly one shard. A pull request runs only the affected tests, so the matrix
-  # is just shard 1 there: shards 2-4 are never created and take no runner.
+  # is just shard 1 there: shards 2-4 are never created and take no runner. When
+  # the affected tests are the whole suite (setup's unit-full-suite), a PR gets
+  # all four, as a full run does.
   test-unit-shard:
     name: Unit Tests (${{ matrix.shard }}/4)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
@@ -265,11 +287,12 @@ jobs:
         # [1, 2, 3, 4] on a full run, [1] on a pull request that runs only the
         # affected tests. The condition is FULL_SUITE's below and must stay the same
         # (merge-queue-jobs.test.ts pins it, and the Unit Tests gate checks the count).
-        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')) && '[1, 2, 3, 4]' || '[1]') }}
+        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false') && '[1, 2, 3, 4]' || '[1]') }}
     env:
       # 'true' when this run tests the whole suite: every event but a pull request,
-      # and a pull request labelled ci:full-tests.
-      FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') }}
+      # a pull request labelled ci:full-tests, and one whose diff makes `--changed`
+      # run everything anyway (`!= 'false'`: a missing answer runs all four).
+      FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' }}
     # Every leg reports the same two values, so it doesn't matter which one wins.
     outputs:
       full-suite: ${{ env.FULL_SUITE }}
