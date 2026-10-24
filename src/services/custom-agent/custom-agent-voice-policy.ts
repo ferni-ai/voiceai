@@ -15,7 +15,9 @@
  */
 
 import {
+  FERNI_CALM_A_VOICE_ID,
   FERNI_CALM_B_VOICE_ID,
+  FERNI_CALM_C_VOICE_ID,
   getVoiceIdForPersona,
   isValidVoiceId,
   LESTER_PRO_V3_VOICE_ID,
@@ -63,7 +65,9 @@ export function isForbiddenCustomAgentVoiceId(voiceId: string): boolean {
   if (RETIRED_CLONE_VOICE_IDS.has(voiceId)) return true;
   const personaVoices = new Set<string>([
     ...Object.values(VOICE_IDS),
+    FERNI_CALM_A_VOICE_ID,
     FERNI_CALM_B_VOICE_ID,
+    FERNI_CALM_C_VOICE_ID,
     LESTER_PRO_V3_VOICE_ID,
     ...PERSONA_IDS.map((id) => getVoiceIdForPersona(id)),
   ]);

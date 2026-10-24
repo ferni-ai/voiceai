@@ -13,7 +13,9 @@ import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  FERNI_CALM_A_VOICE_ID,
   FERNI_CALM_B_VOICE_ID,
+  FERNI_CALM_C_VOICE_ID,
   LESTER_PRO_V3_VOICE_ID,
   RETIRED_CLONE_VOICE_IDS,
   VOICE_IDS,
@@ -42,7 +44,9 @@ const RETIRED = [...RETIRED_CLONE_VOICE_IDS][0]!;
 const STOCK = '694f9389-aac1-45b6-b726-9d9369183238'; // Cartesia "Sarah"
 const PERSONA_AND_CLONE_IDS = [
   ...Object.values(VOICE_IDS),
+  FERNI_CALM_A_VOICE_ID,
   FERNI_CALM_B_VOICE_ID,
+  FERNI_CALM_C_VOICE_ID,
   LESTER_PRO_V3_VOICE_ID,
   ...RETIRED_CLONE_VOICE_IDS,
 ];
@@ -136,7 +140,13 @@ describe('developer voice catalog', () => {
 
 describe('voice preview (TTS)', () => {
   it("refuses Nayan's voice and a retired clone, without calling the provider", async () => {
-    for (const id of [NAYAN, RETIRED, FERNI_CALM_B_VOICE_ID]) {
+    for (const id of [
+      NAYAN,
+      RETIRED,
+      FERNI_CALM_A_VOICE_ID,
+      FERNI_CALM_B_VOICE_ID,
+      FERNI_CALM_C_VOICE_ID,
+    ]) {
       expect((await preview(id)).status).toBe(400);
     }
     expect(fetchSpy).not.toHaveBeenCalled();
