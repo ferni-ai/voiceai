@@ -30,6 +30,7 @@ import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
+  MEANS_AT_HAND_PATTERN,
   PASSIVE_IDEATION_PATTERNS,
   PLAN_OR_MEANS_PATTERNS,
   SESSION_CONTEXT_PATTERNS,
@@ -120,9 +121,13 @@ function scoreText(text: string): TextScore {
   let severity = 0;
   let implicitHits = 0;
   let language: 'en' | 'es' | undefined;
-  const add = (indicator: string, level: number): void => {
+  // What a plan can escalate: severity, less softened reads of words that name the means
+  // themselves ("i have the pills right here lol" is not a signal beside its own pills).
+  let signalSeverity = 0;
+  const add = (indicator: string, level: number, signal = true): void => {
     if (!indicators.includes(indicator)) indicators.push(indicator);
     severity = Math.max(severity, level);
+    if (signal) signalSeverity = Math.max(signalSeverity, level);
   };
 
   // Spans already softened: a second pattern matching the same words
@@ -132,7 +137,7 @@ function scoreText(text: string): TextScore {
   let softSelf = false;
   let tierSoft = false;
   let hardSelf = false;
-  for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
+  for (const { re, tag, imminent, namesMeans } of EXPLICIT_CRISIS_PATTERNS) {
     const match = re.exec(text);
     if (!match) continue;
     const start = match.index;
@@ -151,7 +156,8 @@ function scoreText(text: string): TextScore {
       implicitHits++;
       softSelf = tierSoft = true;
     } else if (modifier) {
-      add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
+      const frame = modifier === 'history' ? 'crisis_history' : `${modifier}_frame`;
+      add(frame, SEVERITY.passive, namesMeans !== true);
       hardSelf = true;
     } else {
       hardSelf = true;
@@ -198,7 +204,7 @@ function scoreText(text: string): TextScore {
 
   // A negation or idiom alone ("I'd never take the pills I have") is not a
   // signal a plan can escalate.
-  const genuineSignal = severity >= SEVERITY.passive || implicitHits > softenedHits;
+  const genuineSignal = signalSeverity >= SEVERITY.passive || implicitHits > softenedHits;
   if (
     genuineSignal &&
     severity < SEVERITY.explicit &&
@@ -207,6 +213,17 @@ function scoreText(text: string): TextScore {
     hardSelf = true;
     add('plan_or_means', SEVERITY.explicit);
   }
+
+  // The caller's own unsoftened risk words with the means at hand: the reply leads with 911
+  // (#2697). Severity is already explicit; only the script changes. Means inside softened words
+  // ("i used to have the gun in my hand every night") keep the level they had and add nothing.
+  const hardExplicit =
+    indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means');
+  const means = MEANS_AT_HAND_PATTERN.exec(text);
+  const meansOwn =
+    means !== null &&
+    !softened.some(([s, e]) => means.index < e && means.index + means[0].length > s);
+  if (hardExplicit && meansOwn) add('imminent_danger', SEVERITY.explicit);
 
   // A worry about someone else outranks the caller's own words only when those are negated,
   // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill

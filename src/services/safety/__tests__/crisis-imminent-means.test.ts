@@ -37,13 +37,12 @@ const IMMINENT_MEANS = [
   "i'm swallowing the pills now",
   "i'm taking the whole bottle now",
   "i'm about to take them all now",
-  'i already took them',
   'i just took all the pills',
   'i already swallowed the whole bottle',
-  'i swallowed them',
   'i swallowed a handful of pills',
   'just took them all',
-  "i've taken them, it's done",
+  'i already took all of them',
+  "i've taken every last one",
   'i did it, i took the pills',
   'i finally did it. there is blood everywhere',
   'the pills are working, i did it',
@@ -103,10 +102,122 @@ describe('imminent means in hand: the patterns alone', () => {
   });
 });
 
+/**
+ * Seth's call on #2697: a past dose needs a dose word (all, whole bottle, handful, a number) to
+ * read imminent on the patterns. These are how people answer a medication check-in, so they stay
+ * as on main; the classifier still reads them when it answers.
+ */
+const MEDICATION_CHECK_IN = [
+  'i already took them',
+  'i swallowed them',
+  "i've taken them, it's done",
+  'i took my meds',
+  'i already took my meds',
+  'did you take your meds? yes i took them.',
+  'i just took them.',
+  'i took them, it is fine',
+];
+
+describe('a past dose with no dose word is a medication check-in', () => {
+  it.each(MEDICATION_CHECK_IN)('"%s" is not an imminent read', (text) => {
+    expect(detectCrisis(text).indicators).not.toContain('imminent_danger');
+    expect(assessSafety(text).level).toBe('safe');
+  });
+});
+
 describe('benign look-alikes stay as on main', () => {
   it.each(BENIGN_LOOKALIKES)('"%s" is not an imminent read', (text) => {
     expect(detectCrisis(text).indicators).not.toContain('imminent_danger');
     expect(assessSafety(text).level).toBe('safe');
+  });
+
+  it.each([
+    'my nail gun is in my hand, fixing the deck',
+    'the glue gun is in my hand',
+    'water gun in my hands, the kids are winning',
+  ])('a tool called a gun is not the means: "%s"', (text) => {
+    expect(detectCrisis(text).indicators).not.toContain('imminent_danger');
+    expect(assessSafety(text).level).toBe('safe');
+  });
+
+  it('a real gun in hand still is', () => {
+    expect(detectCrisis('the gun is in my hand').indicators).toContain('imminent_danger');
+  });
+});
+
+/** Ending words already read as a crisis, with the means at hand: was the 988 script, now 911. */
+const ENDING_WORDS_WITH_MEANS = [
+  'i want to die and i have the pills right here',
+  "I have the pills in my hand right now and I'm going to take all of them",
+  'theres a razor next to me and im about to start again, i cant stop',
+  "i'm going to kill myself, the gun is loaded",
+];
+
+describe('ending words beside the means at hand', () => {
+  it.each(ENDING_WORDS_WITH_MEANS)('"%s" leads with 911', (text) => {
+    const { found, guard } = imminentScript(text);
+    expect(found.subject).toBe('self');
+    expect(found.indicators).toContain('imminent_danger');
+    expect(guard.replacementResponse).toContain(IN_DANGER_NOW);
+  });
+
+  it.each([
+    "i don't want to die, the pills are right here for my headache",
+    'my sister wants to die and has the pills right here',
+    'i want to die of embarrassment, my notes are right here',
+  ])('softened, someone else\'s or everyday words do not: "%s"', (text) => {
+    expect(detectCrisis(text).indicators).not.toContain('imminent_danger');
+  });
+});
+
+describe('a softened read of the means is not its own plan', () => {
+  // Found by the #2697 verifier: the means words were softened as a joke or the past, then the
+  // plan tier escalated on those same words and the new means rule made it imminent.
+  it.each([
+    "i have the pills right here and i'm taking them now lol",
+    "i have the pills right here and i'm taking them now jk",
+    'i used to keep pills right here',
+    // Round-2 verifier: the means-on-the-body forms added for #2697 name the means too.
+    'i have the gun pointed at my head lol',
+  ])('"%s" keeps its frame and gets no script', (text) => {
+    const found = detectCrisis(text);
+    expect(found.indicators).not.toContain('imminent_danger');
+    expect(found.indicators).not.toContain('plan_or_means');
+    expect(guardFromDetection(found).replacementResponse ?? '').not.toContain(IN_DANGER_NOW);
+  });
+
+  it('words softened before #2697 keep the level they had on main, with no 911 lead', () => {
+    const found = detectCrisis('i used to have the gun in my hand every night');
+    expect(found.severity).toBe(0.9);
+    expect(found.indicators).toContain('crisis_history');
+    expect(found.indicators).not.toContain('imminent_danger');
+  });
+});
+
+/** Found by the #2697 verifier: imminent wordings that still scored 0 or missed the 911 lead. */
+const VERIFIER_RECALL = [
+  "i'm swallowing pills right now",
+  "i'm taking these pills right now",
+  'im takin them now',
+  'i have the pills right here n im taking em now',
+  'i took 40 tylenol',
+  'i took a whole bottle of tylenol',
+  'the gun is pointed at my head',
+  "i've got a loaded gun next to me",
+  "i'm holding a knife to my wrist",
+  'the noose is around my neck',
+  "i'm cutting myself right now",
+  'i am going to take every pill i have right now',
+  // Labelled block in crisis-test-blind.ts; scored 0 on main.
+  'i swallowed a bunch of tylenol an hour ago and now im scared but i dont want to go to the er',
+];
+
+describe('verifier recall gaps', () => {
+  it.each(VERIFIER_RECALL)('"%s" gets the imminent script', (text) => {
+    const { found, guard } = imminentScript(text);
+    expect(found.subject).toBe('self');
+    expect(found.indicators).toContain('imminent_danger');
+    expect(guard.replacementResponse).toContain(IN_DANGER_NOW);
   });
 });
 
