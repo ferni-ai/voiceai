@@ -189,7 +189,8 @@ describe('planDates: a dropped mention that names a timed date takes its time of
     kind: 'medical',
     recurrence: 'once',
     days: ['2026-10-23'],
-    ...over, // prettier-ignore
+    anyDay: false,
+    ...over,
   });
 
   it('on file: one refresh drops the time and changes nothing else', () => {
@@ -203,6 +204,7 @@ describe('planDates: a dropped mention that names a timed date takes its time of
     ['another person', { subject: 'Mindy', subjectKind: 'person' }, {}],
     ['no time on file', {}, { at: undefined }],
     ['a closed date', {}, { validTo: AT }],
+    ['another thing, even with no day', { value: 'dentist', days: [], anyDay: true }, {}],
   ])('%s: nothing', (_, d, f) => {
     expect(planDates([timed(f)], [], ids, '2026-10-20', [doubt(d)]).refresh).toEqual([]);
   });
@@ -219,9 +221,186 @@ describe('planDates: a dropped mention that names a timed date takes its time of
     expect(plan.refresh).toEqual([{ id: 'b1', observedAt: AT, confidence: 0.9, at: null }]);
   });
 
+  it('a correction or doubt with no day ("moved it, not sure when") takes the time off every day of it', () => {
+    const later = timed({ id: 'b2', eventDate: '2026-11-06' });
+    const plan = planDates([timed(), later], [], ids, '2026-10-20', [doubt({ days: [], anyDay: true })]); // prettier-ignore
+    expect(plan.refresh.map((r) => [r.id, r.at])).toEqual([
+      ['b1', null],
+      ['b2', null],
+    ]);
+  });
+
   it('a yearly date matches by month and day', () => {
     const birthday = timed({ recurrence: 'yearly', kind: 'birthday', value: 'birthday', monthDay: '10-23' }); // prettier-ignore
     const d = doubt({ recurrence: 'yearly', kind: 'birthday', value: 'birthday', days: ['2027-10-23'] }); // prettier-ignore
     expect(planDates([birthday], [], ids, '2026-10-20', [d]).refresh).toHaveLength(1);
+  });
+});
+
+describe('planDates: a time is written only onto the one fact the words are (#2527, round 6)', () => {
+  const appt = (
+    id: string,
+    value: string,
+    at: string | undefined,
+    over: Partial<DateFact> = {}
+  ): DateFact => ({
+    ...obs({ value, subject: 'self', subjectKind: 'self', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-23', at, when: 'friday' }), // prettier-ignore
+    id,
+    subjectKey: 'self',
+    validFrom: AT,
+    validTo: null,
+    ...over,
+  });
+  const said = (value: string, at: string | undefined, over: Partial<DateObservation> = {}) =>
+    obs({ value, subject: 'self', subjectKind: 'self', kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: '2026-10-23', at, when: `friday at ${at}`, ...over }); // prettier-ignore
+  const times = (plan: ReturnType<typeof planDates>) =>
+    Object.fromEntries(plan.refresh.filter((r) => 'at' in r).map((r) => [r.id, r.at]));
+
+  it('doctor 3pm + dentist 10am, then "appointment friday at 10am": both cleared, neither moved', () => {
+    const open = [
+      appt('doc', 'doctor appointment', '15:00'),
+      appt('den', 'dentist appointment', '10:00'),
+    ];
+    const plan = planDates(open, [said('appointment', '10:00')], ids);
+    expect(times(plan)).toEqual({ doc: null, den: null });
+    expect(plan.create).toEqual([]);
+    expect(plan.close).toEqual([]);
+    // The day is main's: the first match is heard, as before.
+    expect(plan.refresh[0]).toMatchObject({ id: 'doc', observedAt: AT, confidence: 0.9 });
+  });
+
+  it('dentist only, 10am, then "appointment friday at 3pm": cleared, not moved', () => {
+    const plan = planDates([appt('den', 'dentist appointment', '10:00')], [said('appointment', '15:00')], ids); // prettier-ignore
+    expect(times(plan)).toEqual({ den: null });
+  });
+
+  it('...and the other way round: "dentist appointment" said for a fact stored as "appointment"', () => {
+    const plan = planDates([appt('a', 'appointment', '10:00')], [said('dentist appointment', '15:00')], ids); // prettier-ignore
+    expect(times(plan)).toEqual({ a: null });
+  });
+
+  it('two facts on the day with the very same words give the new time to neither', () => {
+    const open = [
+      appt('x', 'doctor appointment', '15:00'),
+      appt('y', 'doctor appointment', undefined),
+    ];
+    expect(times(planDates(open, [said('doctor appointment', '16:00')], ids))).toEqual({ x: null });
+  });
+
+  it('exactly one fact, the same words: the new time is written', () => {
+    const open = [
+      appt('doc', 'doctor appointment', '15:00'),
+      appt('den', 'dentist appointment', '10:00'),
+    ];
+    expect(times(planDates(open, [said('dentist appointment', '11:00')], ids))).toEqual({
+      den: '11:00',
+    });
+  });
+
+  it('a fact on another day is not a candidate', () => {
+    const open = [appt('doc', 'doctor appointment', '15:00', { eventDate: '2026-10-30' }), appt('den', 'dentist appointment', '10:00')]; // prettier-ignore
+    expect(times(planDates(open, [said('dentist appointment', '11:00')], ids))).toEqual({
+      den: '11:00',
+    });
+  });
+
+  it("does not change the caller's facts", () => {
+    const open = [appt('doc', 'doctor appointment', '15:00')];
+    planDates(open, [said('appointment', '10:00')], ids);
+    expect(open[0].at).toBe('15:00');
+  });
+});
+
+describe('planDates: property, a time is only ever deleted or said (#2527)', () => {
+  /** Seeded, so a failure replays. */
+  function rng(seed: number) {
+    let x = seed;
+    return () => (x = (x * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+  }
+  const VALUES = [
+    'appointment',
+    'doctor appointment',
+    'dentist appointment',
+    'biopsy',
+    'the biopsy',
+    'mri',
+  ];
+  const DAYS = ['2026-10-23', '2026-10-26', '2026-10-30'];
+  const TIMES = [undefined, undefined, '10:00', '15:00'];
+  const WHO: Array<[string, 'self' | 'person']> = [
+    ['self', 'self'],
+    ['Mindy', 'person'],
+  ];
+  const words = (v: string): string => v.replace(/^the /, '').split(' ').sort().join(' ');
+  const stripAt = <T extends object>(x: T): T => {
+    const { at: _at, ...rest } = x as T & { at?: unknown };
+    return rest as T;
+  };
+
+  it('over 3,000 random plans: create and close are the timeless plan, and every time written is one said for exactly that fact', () => {
+    let deleted = 0;
+    let written = 0;
+    for (let seed = 1; seed <= 3000; seed++) {
+      const r = rng(seed);
+      const pick = <T>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
+      const open: DateFact[] = Array.from({ length: 1 + Math.floor(r() * 4) }, (_, i) => {
+        const [subject, subjectKind] = pick(WHO);
+        return {
+          ...obs({ subject, subjectKind, value: pick(VALUES), kind: 'medical', recurrence: 'once', monthDay: undefined, eventDate: pick(DAYS), at: pick(TIMES), when: 'w' }), // prettier-ignore
+          id: `f${i}`,
+          subjectKey: subjectKind === 'self' ? 'self' : 'person:mindy',
+          validFrom: AT,
+          validTo: r() < 0.1 ? AT : null,
+        };
+      });
+      const said = Array.from({ length: 1 + Math.floor(r() * 3) }, () => {
+        const [subject, subjectKind] = pick(WHO);
+        return obs({
+          subject, subjectKind, value: pick(VALUES), kind: 'medical', recurrence: 'once', monthDay: undefined,
+          eventDate: pick(DAYS), at: pick(TIMES), when: 'w', needsConfirmation: r() < 0.3,
+          observedAt: '2026-10-21T12:00:00.000Z', confidence: 0.5 + r() / 2,
+          ...(r() < 0.2 ? { replaces: { attribute: 'event' as const, priorValue: 'x' } } : {}),
+        }); // prettier-ignore
+      });
+      const doubts: TimeDoubt[] = r() < 0.5 ? [] : [{ subject: 'self', subjectKind: 'self', value: pick(VALUES), kind: 'medical', recurrence: 'once', days: [pick(DAYS)], anyDay: r() < 0.3 }]; // prettier-ignore
+      const before = JSON.stringify(open);
+      let n = 0;
+      const plan = planDates(open, said, () => `n${(n += 1)}`, '2026-10-21', doubts);
+      n = 0;
+      const timeless = planDates(open.map(stripAt), said.map(stripAt), () => `n${(n += 1)}`, '2026-10-21'); // prettier-ignore
+      const ctx = JSON.stringify({ seed, open, said, doubts });
+      expect(JSON.stringify(open), ctx).toBe(before);
+      // Days, closes and new facts are exactly the plan without any time: times move nothing.
+      expect(plan.close, ctx).toEqual(timeless.close);
+      expect(plan.create.map(stripAt), ctx).toEqual(timeless.create);
+      // Every refresh of the timeless plan is there, with the same observedAt and confidence...
+      const core = plan.refresh.filter((x) => timeless.refresh.some((t) => t.id === x.id && t.observedAt === x.observedAt && t.confidence === x.confidence)); // prettier-ignore
+      expect(core.map(stripAt), ctx).toEqual(timeless.refresh);
+      // ...and any other only deletes a time, leaving observedAt and confidence as on file.
+      for (const x of plan.refresh.filter((y) => !core.includes(y))) {
+        const f = open.find((o) => o.id === x.id);
+        expect(x, ctx).toEqual({ id: x.id, observedAt: f?.observedAt, confidence: f?.confidence, at: null }); // prettier-ignore
+      }
+      // A created fact's time is its own words' time, or none.
+      for (const c of plan.create as DateFact[]) {
+        const from = said.find((o) => o.value === c.value && o.eventDate === c.eventDate && o.subject === c.subject); // prettier-ignore
+        if (c.at !== undefined) expect([from?.at, ...said.map((o) => o.at)], ctx).toContain(c.at);
+      }
+      // A time written onto a fact on file was said plainly for that fact's own words, on its day,
+      // with no other live fact of the thing on that day.
+      for (const x of plan.refresh) {
+        if (x.at === null) deleted += 1;
+        if (typeof x.at !== 'string') continue;
+        written += 1;
+        const f = open.find((o) => o.id === x.id);
+        const sayer = said.filter((o) => o.at === x.at && !o.needsConfirmation && o.eventDate === f?.eventDate && o.subject === f?.subject && words(o.value) === words(f?.value ?? '')); // prettier-ignore
+        expect(sayer.length, ctx).toBeGreaterThan(0);
+        const rivals = open.filter((o) => o.validTo === null && o.id !== f?.id && o.eventDate === f?.eventDate && o.subject === f?.subject && sayer.some((s) => s.value.split(' ').some((w) => o.value.includes(w)))); // prettier-ignore
+        expect(rivals, ctx).toEqual([]);
+      }
+    }
+    // Not vacuous: both kinds happened, many times.
+    expect(deleted).toBeGreaterThan(300);
+    expect(written).toBeGreaterThan(100);
   });
 });

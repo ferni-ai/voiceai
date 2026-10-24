@@ -249,9 +249,14 @@ export interface TimeDoubt {
   recurrence: 'yearly' | 'once';
   /** Every day one to three words in a row of `when` read as ("friday" in "sometime friday"). */
   days: string[];
+  /**
+   * A correction, or an unsure mention with no day in it ("moved it, not sure when", "TBD"):
+   * every timed date for the same thing loses its time, whatever its day.
+   */
+  anyDay: boolean;
 }
 
-/** The dropped mentions that read as a day somewhere in their words; see TimeDoubt. */
+/** The dropped mentions that read as a day somewhere in their words, or correct or doubt one with none; see TimeDoubt. */
 export function timeDoubts(
   mentions: readonly DateMention[],
   call: { callDate: string }
@@ -268,7 +273,8 @@ export function timeDoubts(
         const day = resolveWhen(words.slice(i, i + n).join(' '), call.callDate, m.past)?.date;
         if (day) days.add(day);
       }
-    if (days.size === 0) return [];
+    const anyDay = m.correction || (m.unsure && days.size === 0);
+    if (days.size === 0 && !anyDay) return [];
     const doubt: TimeDoubt = {
       subject: m.who,
       subjectKind: m.who === 'self' ? 'self' : 'person',
@@ -276,6 +282,7 @@ export function timeDoubts(
       kind: m.kind,
       recurrence: yearlyKind(m) ? 'yearly' : 'once',
       days: [...days],
+      anyDay,
     };
     return [doubt];
   });

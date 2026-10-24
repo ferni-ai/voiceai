@@ -216,6 +216,21 @@ describe('timeDoubts: the mentions toDateObservations drops, kept to take a time
     expect(timeDoubts([said('not sure when')], call)).toEqual([]);
   });
 
+  it('a correction, or an unsure mention, with no day in it doubts every day ("moved it, not sure when")', () => {
+    for (const [when, over] of [['not sure when', { correction: true }], ['TBD', { unsure: true }], ['moved it, not sure when', { correction: true, unsure: true }]] as const) // prettier-ignore
+      expect(timeDoubts([said(when, over)], call), when).toEqual([expect.objectContaining({ days: [], anyDay: true, value: 'biopsy' })]); // prettier-ignore
+    // Plain, it says nothing about any date.
+    expect(timeDoubts([said('TBD')], call)).toEqual([]);
+    // A correction doubts every day even when it names one; a plain mention only the one it names.
+    expect(timeDoubts([said('sometime friday', { correction: true })], call)[0]).toMatchObject({ anyDay: true }); // prettier-ignore
+    expect(timeDoubts([said('sometime friday')], call)[0]).toMatchObject({ anyDay: false });
+  });
+
+  it('reads a day from up to three words in a row ("christmas eve", not "christmas")', () => {
+    const [d] = timeDoubts([said('sometime christmas eve')], call);
+    expect(d.days).toContain('2026-12-24');
+  });
+
   it('only the last mention of a date counts, as for dates', () => {
     expect(timeDoubts([said('sometime friday'), said('friday at 3pm')], call)).toEqual([]);
     expect(timeDoubts([said('friday at 3pm'), said('sometime friday')], call)).toHaveLength(1);

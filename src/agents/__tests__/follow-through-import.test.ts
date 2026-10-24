@@ -376,6 +376,11 @@ describe('BOOKENDS: a time said differently on a later call moves the bookend (#
     // ...and with one: kept, to confirm, on the guessed day.
     ['friday at 4pm EST', { guess: '2026-10-23' }],
     ['sometime friday', { guess: '2026-10-23' }],
+    // A correction or a doubt with no day at all (round 6): "moved it, not sure when".
+    ['not sure when', { correction: true }],
+    ['moved it, not sure when', { correction: true }],
+    ['TBD', { unsure: true, correction: true }],
+    ['TBD', { unsure: true }],
   ])('"friday at 3pm", then "%s" %j: the time comes off it and the bookend', async (when, over) => {
     await say('friday at 3pm');
     await importNow();
@@ -387,6 +392,66 @@ describe('BOOKENDS: a time said differently on a later call moves the bookend (#
     await say('friday at 11am');
     await importNow();
     expect(now()).toEqual(['11:00', '2026-10-23T17:00:00.000Z']);
+  });
+
+  it('a plain mention with no day ("not sure when") leaves the time alone', async () => {
+    await say('friday at 3pm');
+    await importNow();
+    await say('not sure when');
+    await importNow();
+    expect(now()).toEqual(['15:00', '2026-10-23T21:00:00.000Z']);
+  });
+
+  /** [what, at, eventAt] of each open date and its live bookend. */
+  const all = () =>
+    (
+      facts.all('owner-1') as Array<{
+        id: string;
+        value: string;
+        at?: string;
+        validTo: string | null;
+      }>
+    )
+      .filter((f) => f.validTo === null)
+      .map((f) => [
+        f.value,
+        f.at ?? null,
+        followUps('owner-1').find((u) => (u.source as { ref?: string }).ref === f.id)?.eventAt ??
+          null,
+      ]) // prettier-ignore
+      .sort();
+
+  it('doctor 3pm + dentist 10am, then "appointment friday at 10am": both cleared, neither moved', async () => {
+    await say('friday at 3pm', { what: 'doctor appointment' });
+    await say('friday at 10am', { what: 'dentist appointment' });
+    await importNow();
+    expect(all()).toEqual([
+      ['dentist appointment', '10:00', '2026-10-23T16:00:00.000Z'],
+      ['doctor appointment', '15:00', '2026-10-23T21:00:00.000Z'],
+    ]);
+    await say('friday at 10am', { what: 'appointment' });
+    await importNow();
+    expect(all()).toEqual([
+      ['dentist appointment', null, null],
+      ['doctor appointment', null, null],
+    ]);
+  });
+
+  it('dentist only, 10am, then "appointment friday at 3pm": cleared, not moved', async () => {
+    await say('friday at 10am', { what: 'dentist appointment' });
+    await importNow();
+    await say('friday at 3pm', { what: 'appointment' });
+    await importNow();
+    expect(all()).toEqual([['dentist appointment', null, null]]);
+  });
+
+  it('"sometime christmas eve" takes the time off a christmas-eve date (a two-word day)', async () => {
+    await say('christmas eve at 7pm');
+    await importNow();
+    expect(bookends()).toEqual([['open', '2026-12-25T02:00:00.000Z']]);
+    await say('sometime christmas eve');
+    await importNow();
+    expect(bookends()).toEqual([['open', null]]);
   });
 
   it('a dropped mention of another day, or of another thing, leaves the time alone', async () => {

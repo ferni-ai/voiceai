@@ -47,6 +47,14 @@ function sameThing(
   return a.every((w) => b.includes(w)) || b.every((w) => a.includes(w));
 }
 
+/** sameThing, and not only in part: the same words ("appointment" is only part of "dentist appointment"). */
+function sameWords(f: DateFact, o: DateObservation): boolean {
+  if (o.recurrence === 'yearly' && f.recurrence === 'yearly' && f.kind === o.kind) return true;
+  const a = new Set(forgetTokens(f.value));
+  const b = new Set(forgetTokens(o.value));
+  return a.size === b.size && [...a].every((w) => b.has(w));
+}
+
 /**
  * The time of day a date heard again should have, as a bookend is built on it (#2527).
  * Fail-safe: a stored time survives only when the newest mention says the same time,
@@ -61,28 +69,41 @@ function timeHeardAgain(f: DateFact, o: DateObservation): string | null | undefi
 }
 
 /**
- * A dropped mention (TimeDoubt) that names a timed date and its day takes the time off
- * it, as a mention without a time would: "sometime friday" after "friday at 3pm".
+ * Sets a live fact's time (null drops it). One made this call is ours to change in place;
+ * one on file changes by its refresh, the last one if the call already has one, so a
+ * later refresh can't put back the time.
  */
-function dropDoubtedTimes(
-  plan: ResolutionPlan,
-  live: readonly DateFact[],
-  doubts: readonly TimeDoubt[]
-): void {
-  for (const d of doubts)
-    for (const f of live) {
-      const day = (x: string): string => (d.recurrence === 'yearly' ? x.slice(5) : x);
-      const onFile = d.recurrence === 'yearly' ? f.monthDay : f.eventDate;
-      if (f.at === undefined || !d.days.some((x) => day(x) === onFile) || !sameThing(f, d))
-        continue;
-      // Made this call: it is ours to change. On file: a refresh drops it.
-      if (plan.create.includes(f)) delete f.at;
-      else {
-        const heard = plan.refresh.find((r) => r.id === f.id);
-        if (heard) heard.at = null;
-        else plan.refresh.push({ id: f.id, observedAt: f.observedAt, confidence: f.confidence, at: null }); // prettier-ignore
-      }
-    }
+function retime(plan: ResolutionPlan, f: DateFact, at: string | null): void {
+  if (at === null) delete f.at;
+  else f.at = at;
+  if (plan.create.includes(f)) return;
+  const heard = plan.refresh.filter((r) => r.id === f.id).at(-1);
+  if (heard) heard.at = at;
+  else plan.refresh.push({ id: f.id, observedAt: f.observedAt, confidence: f.confidence, at });
+}
+
+/** True when a dropped mention (TimeDoubt) names this fact: same thing, and its day or any day. */
+function doubted(f: DateFact, d: TimeDoubt): boolean {
+  const day = (x: string): string => (d.recurrence === 'yearly' ? x.slice(5) : x);
+  const onFile = d.recurrence === 'yearly' ? f.monthDay : f.eventDate;
+  return (d.anyDay || d.days.some((x) => day(x) === onFile)) && sameThing(f, d);
+}
+
+/**
+ * A date heard again on its day: the first match is refreshed, as before #2527. A time is
+ * written only onto the one fact these words are; when two are on the day ("appointment",
+ * with the doctor's and the dentist's) or the words are only a part of its words, every
+ * one loses its time instead.
+ */
+function heardAgain(plan: ResolutionPlan, onDay: readonly DateFact[], o: DateObservation): void {
+  const [heard] = onDay;
+  const confidence = Math.max(heard.confidence, o.confidence);
+  plan.refresh.push({ id: heard.id, observedAt: o.observedAt, confidence });
+  const sole = onDay.length === 1 && sameWords(heard, o);
+  for (const f of onDay) {
+    const at = sole ? timeHeardAgain(f, o) : f.at === undefined ? undefined : null;
+    if (at !== undefined) retime(plan, f, at);
+  }
 }
 
 /**
@@ -97,18 +118,15 @@ export function planDates(
   doubts: readonly TimeDoubt[] = []
 ): ResolutionPlan {
   const plan: ResolutionPlan = { create: [], close: [], refresh: [] };
-  const live = open.filter((f) => f.validTo === null);
+  // Copies: a time changed here is seen by a later mention in the same call, and the caller's facts stay as they were.
+  const live = open.filter((f) => f.validTo === null).map((f) => ({ ...f }));
   for (const o of observations) {
     const same = live.filter((f) => sameThing(f, o));
-    const heard = same.find((f) =>
+    const onDay = same.filter((f) =>
       o.recurrence === 'yearly' ? f.monthDay === o.monthDay : f.eventDate === o.eventDate
     );
-    if (heard) {
-      const confidence = Math.max(heard.confidence, o.confidence);
-      const at = timeHeardAgain(heard, o);
-      plan.refresh.push({ id: heard.id, observedAt: o.observedAt, confidence, ...(at === undefined ? {} : { at }) }); // prettier-ignore
-      // A later mention in the same call compares with this one's time.
-      if (at !== undefined) live[live.indexOf(heard)] = { ...heard, at: at ?? undefined };
+    if (onDay.length > 0) {
+      heardAgain(plan, onDay, o);
       continue;
     }
     const today = callDay ?? o.observedAt.slice(0, 10);
@@ -133,7 +151,7 @@ export function planDates(
     plan.create.push(fact);
     live.push(fact);
   }
-  dropDoubtedTimes(plan, live, doubts);
+  for (const d of doubts) for (const f of live) if (f.at !== undefined && doubted(f, d)) retime(plan, f, null); // prettier-ignore
   return plan;
 }
 
