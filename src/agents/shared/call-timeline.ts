@@ -68,9 +68,14 @@ export const writeTimelineDoc: TimelineWrite = async (uid, conv, docId, data) =>
   await conversation.collection('timeline').doc(docId).set(data);
 };
 
+/** Recorders started in this process; part of each recorder's doc key. */
+let recorders = 0;
+
 export class CallTimeline {
   readonly events: TimelineEvent[] = [];
   readonly startedAtMs: number;
+  /** This recorder's prefix: a handoff keeps the call's sessionId and starts a second recorder. */
+  readonly docKey: string;
   private readonly now: () => number;
   private written = 0; // events already in a stored chunk
   private dropped = 0;
@@ -82,6 +87,7 @@ export class CallTimeline {
   constructor(readonly opts: TimelineOptions) {
     this.now = opts.now ?? Date.now;
     this.startedAtMs = this.now();
+    this.docKey = `${opts.sessionId}.${++recorders}`;
   }
 
   /** ms since the recorder started. */
@@ -159,7 +165,7 @@ export class CallTimeline {
     const chunks = Math.ceil(total / CHUNK_EVENTS);
     for (let c = Math.floor(this.written / CHUNK_EVENTS); c < chunks; c++) {
       const events = this.events.slice(c * CHUNK_EVENTS, (c + 1) * CHUNK_EVENTS);
-      const id = timelineDocId(sessionId, `chunk-${String(c).padStart(3, '0')}`);
+      const id = timelineDocId(this.docKey, `chunk-${String(c).padStart(3, '0')}`);
       await write(userId, conv, id, { v: 1, chunk: c, events });
     }
     const byKind: Record<string, number> = {};
@@ -168,7 +174,7 @@ export class CallTimeline {
     const ids = { v: 1, sessionId, jobId, roomName, conversationId: conv, buildSha, chunks };
     const end = { endedAtMs: this.ended?.atMs ?? null, endReason: this.ended?.reason ?? null };
     const counts = { events: total, dropped: this.dropped, byKind };
-    await write(userId, conv, timelineDocId(sessionId, 'meta'), {
+    await write(userId, conv, timelineDocId(this.docKey, 'meta'), {
       ...ids,
       startedAtMs: this.startedAtMs,
       ...end,
@@ -181,11 +187,12 @@ export class CallTimeline {
 }
 
 /**
- * A timeline doc's id: the session first, so a handoff that starts a new session in the
- * same conversation writes its own chunks instead of overwriting the first persona's.
+ * A timeline doc's id: the recorder's key first. A handoff that starts a new agent
+ * session keeps the call's sessionId, so the key also counts recorders, and each one
+ * writes its own chunks instead of overwriting the first persona's.
  */
-export function timelineDocId(sessionId: string, name: string): string {
-  return `${sessionId.replace(/[^\w-]/g, '_')}.${name}`;
+export function timelineDocId(key: string, name: string): string {
+  return `${key.replace(/[^\w.-]/g, '_')}.${name}`;
 }
 
 // The call's recorder by session object (clip player, barge-in) or id (TTS, resume logs).

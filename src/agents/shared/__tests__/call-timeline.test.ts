@@ -63,7 +63,7 @@ const firestoreUtils = await import('../../../utils/firestore-utils.js');
 
 const MEMBER = 'uid_timeline_member_01';
 /** A timeline doc id without its session prefix (timelineDocId). */
-const docName = (id: string): string => id.slice(id.indexOf('.') + 1);
+const docName = (id: string): string => id.slice(id.lastIndexOf('.') + 1);
 const GENERATED = 'Oh, my mistake, I mixed Sean up with someone else from last week.';
 const HEARD = 'Oh, my mistake,';
 
@@ -256,10 +256,25 @@ describe('CALL_TIMELINE', () => {
 
   it('on: two sessions in one conversation (a handoff) never overwrite each other', async () => {
     vi.stubEnv('CALL_TIMELINE', 'on');
-    const first = (await scriptedCall('tl-first', MEMBER)).writes.map((w) => w.docId);
-    const second = (await scriptedCall('tl-second', MEMBER)).writes.map((w) => w.docId);
+    // A handoff keeps the call's sessionId and attaches a second recorder
+    const first = (await scriptedCall('tl-handoff', MEMBER)).writes.map((w) => w.docId);
+    const second = (await scriptedCall('tl-handoff', MEMBER)).writes.map((w) => w.docId);
     expect(first.length).toBeGreaterThan(0);
     expect(second.filter((id) => first.includes(id))).toEqual([]);
+  });
+
+  it('on: nothing written while another session of this user is held (MINOR_CARE)', async () => {
+    vi.stubEnv('CALL_TIMELINE', 'on');
+    vi.stubEnv('MINOR_CARE', 'on');
+    const { bindSessionUser, heldAfter, resetMinorCare } =
+      await import('../../../utils/minor-care.js');
+    try {
+      bindSessionUser('tl-other-call', MEMBER);
+      expect(heldAfter('tl-other-call', "I'm only 14.", { userId: MEMBER })).toBe(true);
+      expect((await scriptedCall('tl-held-user', MEMBER)).writes).toEqual([]);
+    } finally {
+      resetMinorCare();
+    }
   });
 
   it('on: a non-member caller (anonymous) writes nothing', async () => {
@@ -373,7 +388,10 @@ describe('CALL_TIMELINE', () => {
     session.emit('close', { reason: 'user_initiated' });
     await timelineFor(session)!.flush();
     const base = `/bogle_users/${MEMBER}/conversations/conv_ud/timeline`;
-    expect(paths).toEqual([`${base}/tl-live-on.chunk-000`, `${base}/tl-live-on.meta`]);
+    expect(paths.map((p) => p.replace(/tl-live-on\.\d+\./, 'tl-live-on.N.'))).toEqual([
+      `${base}/tl-live-on.N.chunk-000`,
+      `${base}/tl-live-on.N.meta`,
+    ]);
     const events = writes[0]!.events as Array<Record<string, unknown>>;
     expect(events.find((e) => e.kind === 'tool_call')).toMatchObject({
       speaker: 'maya-santos',
