@@ -39,6 +39,7 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { guestsPresent } from './room-guests.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { callMeAddressesTeam, callMeVocativeEnabled } from '../../utils/call-me-vocative.js';
 
 const log = createLogger({ module: 'NameCorrection' });
 
@@ -205,6 +206,16 @@ const sameName = (name: string, current: string | undefined): boolean =>
   name.toLowerCase() === current?.split(/\s+/)[0].toLowerCase();
 
 /**
+ * Whether these words may carry their name: not with a guest in the room, where
+ * "I'm David" may be the guest (room-guests.ts), and with CALL_ME_VOCATIVE=on
+ * not in "call me Fern", which says Ferni's name, not theirs (call-me-vocative.ts).
+ */
+const listensForName = (session: object, words: string, env: Env): boolean =>
+  !!words &&
+  !guestsPresent(session, env) &&
+  !(callMeVocativeEnabled(env) && callMeAddressesTeam(words));
+
+/**
  * The name note for this reply, or ''. On the turn the caller gives a new
  * name it also renames them (rename above). Idempotent: the preemptive and
  * final requests of one turn rename once.
@@ -220,9 +231,9 @@ export function nameCorrectionNote(
   if (!user) return '';
   const known = corrected.get(session);
   const current = known?.name ?? user.userName;
-  // With a guest in the room, "I'm David" may be the guest (room-guests.ts).
-  const listen = callerWords && !guestsPresent(session, env);
-  const name = listen ? statedName(callerWords, current, lastAgentLine(chatCtx)) : null;
+  const name = listensForName(session, callerWords, env)
+    ? statedName(callerWords, current, lastAgentLine(chatCtx))
+    : null;
   if (name && !sameName(name, current)) {
     corrected.set(session, { name, was: known?.was ?? current });
     rename(user, name, deps);

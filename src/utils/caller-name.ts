@@ -28,6 +28,7 @@
 
 import { flagOn, type Env } from '../config/env-flag.js';
 import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from './teammate-talk.js';
+import { callMeVocativeEnabled, isTeamVocative } from './call-me-vocative.js';
 
 export function nameCaptureStrict(env: Env = process.env): boolean {
   return flagOn('NAME_CAPTURE_STRICT', env);
@@ -85,6 +86,8 @@ const CUES: readonly RegExp[] = [
   String.raw`\bi go by\s+`,
   String.raw`\bthis is\s+`,
 ].map((cue) => new RegExp(cue + WORD, 'giu'));
+/** The "call me <Name>" cue: with CALL_ME_VOCATIVE=on, "call me Fern" is Ferni's name, not theirs. */
+const CALL_ME_CUE = CUES[2];
 /** "Seth here", "Seth speaking" opening the line (after any greeting). */
 const HERE = new RegExp(String.raw`^\s*${WORD}\s+(?:here|speaking)\b`, 'gu');
 /** "[Ff]erni|...": a team name in either first-letter case, for a case-sensitive pattern. */
@@ -118,11 +121,13 @@ function possessive(text: string, end: number): boolean {
 }
 
 function firstMatch(text: string, re: RegExp, anchored: boolean): CallerNameMatch | null {
+  const vocative = re === CALL_ME_CUE && callMeVocativeEnabled();
   for (const m of text.matchAll(re)) {
     const start = m.index ?? 0;
     if (anchored && text.slice(0, start).trim() !== '') return null;
     const name = m[1];
     if (!acceptsSpokenName(name) || possessive(text, start + m[0].length)) continue;
+    if (vocative && isTeamVocative(name)) continue;
     return { name, phrase: m[0].replace(/^[\s.!?,]+/, '').trim() };
   }
   return null;
