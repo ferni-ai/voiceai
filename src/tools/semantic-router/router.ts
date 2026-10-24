@@ -19,16 +19,13 @@
  * @module tools/semantic-router/router
  */
 
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getRequestCoalescer, hashContent } from '../../utils/request-coalescer.js';
 import { getToolRegistry, type SemanticToolRegistry } from './registry.js';
 import { runCombinedMatching, normalizeText } from './matcher.js';
 import { extractToolArguments } from './argument-extractor.js';
-import {
-  getGeminiConfidenceBoost,
-  isGeminiProblemPhrase,
-  isUsingGemini,
-} from './integration/config.js';
+import { getGeminiConfidenceBoost, isUsingGemini } from './integration/config.js';
 import type {
   SemanticRouterConfig,
   SemanticRouterResult,
@@ -649,7 +646,10 @@ export class SemanticRouter {
       };
       return executionResult;
     } catch (error) {
-      log.error({ error, toolId, args }, 'Tool execution failed');
+      log.error(
+        { ...errorFields(error), toolId, argKeys: Object.keys(args) },
+        'Tool execution failed'
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

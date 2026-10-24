@@ -61,16 +61,21 @@ const dump = () =>
     v instanceof Error ? { name: v.name, message: v.message, stack: v.stack } : v
   );
 
-/** Every logged call that carries the given length field. */
-const lengthFields = (field: string) =>
+/** What replaced the text in each row's log field: the length, or for a tool call the arg names. */
+const REPLACEMENT: Record<string, unknown> = { argKeys: ['query', 'city'] };
+
+/** Every logged call that carries the row's replacement field. */
+const replacementFields = (field: string) =>
   logged.filter(
-    ([fields]) => (fields as Record<string, unknown> | undefined)?.[field] === TEXT.length
+    ([fields]) =>
+      JSON.stringify((fields as Record<string, unknown> | undefined)?.[field]) ===
+      JSON.stringify(REPLACEMENT[field] ?? TEXT.length)
   );
 
 const match = { toolId: 'play_music', confidence: 0.6 };
 
 /** A router whose one tool matches TEXT below 1.0, so the Gemini boost changes the confidence. */
-function boostedRouter(): SemanticRouter {
+function boostedRouter(execute: () => Promise<unknown> = async () => ({})): SemanticRouter {
   const registry = new SemanticToolRegistry();
   registry.register({
     id: 'play_music',
@@ -81,7 +86,7 @@ function boostedRouter(): SemanticRouter {
     triggers: { patterns: [], keywords: ['play', 'music', 'song'] },
     examples: ['play some music'],
     arguments: [],
-    execute: async () => ({}),
+    execute,
   } as never);
   return new SemanticRouter({ enabledLayers: ['pattern', 'keyword'] }, registry);
 }
@@ -89,6 +94,11 @@ const routingResult = {
   matches: [match],
   action: { type: 'execute' },
 } as never;
+
+/** A tool that fails with a message quoting its arguments, as a validation error does. */
+const failingTool = async () => {
+  throw new Error(`invalid argument: ${SENTINEL}`);
+};
 
 const entryPoints: Array<[string, string, () => Promise<unknown>]> = [
   ['SemanticRouter.route (Gemini boost)', 'inputLength', () => boostedRouter().route(TEXT)],
@@ -137,6 +147,15 @@ const entryPoints: Array<[string, string, () => Promise<unknown>]> = [
       } as never),
   ],
   [
+    'SemanticRouter.execute (tool failure)',
+    'argKeys',
+    () =>
+      boostedRouter(failingTool).execute('play_music', { query: TEXT, city: SENTINEL }, {
+        userId: 'u1',
+        sessionId: 's1',
+      } as never),
+  ],
+  [
     'orchestrator.route (decision logs)',
     'inputLength',
     () => new IntelligentRouterOrchestrator({ logMetrics: true }).route(TEXT),
@@ -161,11 +180,14 @@ describe('router user-text logs', () => {
     logged.length = 0;
   });
 
-  it.each(entryPoints)('%s logs the length, never the words', async (_name, field, call) => {
-    await call().catch(() => undefined); // a failing downstream must not hide a leak
-    expect(logged.length).toBeGreaterThan(0);
-    expect(dump()).not.toContain(SENTINEL);
-    expect(dump()).not.toContain('play some music');
-    expect(lengthFields(field).length).toBeGreaterThan(0);
-  });
+  it.each(entryPoints)(
+    '%s logs the length (or arg names), never the words',
+    async (_name, field, call) => {
+      await call().catch(() => undefined); // a failing downstream must not hide a leak
+      expect(logged.length).toBeGreaterThan(0);
+      expect(dump()).not.toContain(SENTINEL);
+      expect(dump()).not.toContain('play some music');
+      expect(replacementFields(field).length).toBeGreaterThan(0);
+    }
+  );
 });
