@@ -17,6 +17,7 @@ import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
+import { movingToPhone, type PhoneMove } from './live-agent-call.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
 
@@ -63,15 +64,22 @@ export const callUserAdapter: CallUserPort = {
     const outcome = await sendGuardedText(t);
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
   },
-  call: ({ userId, phoneNumber, message, personaId }) =>
-    scheduleProactiveCall({
-      userId,
-      phoneNumber,
-      message,
-      ssml: `<speak>${escapeXml(message)}</speak>`,
-      personaId,
-      reason: 'user_requested_call',
-    }),
+  call: async ({ userId, phoneNumber, message, personaId, handover }) => {
+    const place = () =>
+      scheduleProactiveCall({
+        userId,
+        phoneNumber,
+        message,
+        ssml: `<speak>${escapeXml(message)}</speak>`,
+        personaId,
+        reason: 'user_requested_call',
+      });
+    if (!handover) return place();
+    // CALL_ME_MOVES_TO_PHONE: the app call's id rides the dispatch; the live dial comes back
+    const move: PhoneMove = { userId, conversationId: handover.conversationId };
+    const result = await movingToPhone(move, place);
+    return move.dial ? { ...result, dial: move.dial } : result;
+  },
 };
 
 /** Install the adapter; safe to call on every call. */
