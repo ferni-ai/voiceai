@@ -120,6 +120,7 @@ import {
   memoryHeld,
   resetMinorCare,
   setVerifiedOwnerCheck,
+  writeHeld,
 } from '../minor-care.js';
 import { fastCapture } from '../../memory/dynamic/fast-capture.js';
 import {
@@ -301,6 +302,22 @@ describe('MINOR_CARE: an anonymous phone caller who said "I\'m only 14."', () =>
     await storeUserPreferences(userId, preferences);
     if (c === 'held') expect(storedFor(userId)).toEqual([]);
     else expect(storedFor(userId)).toContain(`/user_preferences/${userId}`);
+  });
+
+  it('writeHeld: session, user or placeholder id, and only with the flag on', () => {
+    const { sessionId, userId } = phoneCall('held');
+    expect(writeHeld(undefined, sessionId)).toBe(true); // the session
+    expect(writeHeld(userId)).toBe(true); // any of this user's sessions
+    expect(writeHeld('anonymous')).toBe(true); // a placeholder no session binds
+    expect(writeHeld('uid_someone_else', 'session-other')).toBe(false);
+    vi.stubEnv('MINOR_CARE', 'off');
+    expect(writeHeld('anonymous', sessionId)).toBe(false);
+  });
+
+  it('a placeholder id keeps no stated preference while MINOR_CARE is on', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    await storeUserPreferences('anonymous', extractPreferences('I love the Eagles.'));
+    expect(written.filter((p) => p.includes('/user_preferences/'))).toEqual([]);
   });
 
   it.each(CASES)('data capture saves no person or contact when held (%s)', async (c) => {

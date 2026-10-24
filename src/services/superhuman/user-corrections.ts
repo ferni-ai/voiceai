@@ -11,7 +11,7 @@
 
 import { Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
-import { userHeld } from '../../utils/minor-care.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import {
   onUserCorrectionChange,
   onImplicitPreferenceChange,
@@ -202,7 +202,7 @@ export async function recordCorrection(
     personaId?: string;
   }
 ): Promise<string> {
-  if (userHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
+  if (writeHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
   try {
     const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const category = categorizeCorrection(correction.whatFerniSaid, correction.whatUserCorrected);
@@ -356,7 +356,7 @@ export async function recordImplicitPreference(
   userId: string,
   preference: Omit<ImplicitPreferenceEntity, 'firstObserved' | 'lastConfirmed' | 'contradicted'>
 ): Promise<string> {
-  if (userHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
+  if (writeHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
   try {
     const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const now = new Date().toISOString();

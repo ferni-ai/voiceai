@@ -9,7 +9,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { getFirestoreDb, toSafeDate } from '../utils/firestore-utils.js';
-import { userHeld } from '../utils/minor-care.js';
+import { writeHeld } from '../utils/minor-care.js';
 import type { ExtractedPreference } from '../intelligence/tracking/preferences.js';
 
 const log = createLogger({ module: 'UserPreferencesStore' });
@@ -53,7 +53,7 @@ export async function storeUserPreferences(
   preferences: ExtractedPreference[]
 ): Promise<void> {
   // MINOR_CARE: nothing kept (not even cached) for a held caller under 18 (minor-care.ts).
-  if (!userId || preferences.length === 0 || userHeld(userId)) return;
+  if (!userId || preferences.length === 0 || writeHeld(userId)) return;
 
   const db = getFirestoreDb();
   if (!db) {
