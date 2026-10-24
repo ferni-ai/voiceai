@@ -12,8 +12,11 @@
  * - "noon", "12 noon"; "midnight", "12 midnight".
  *
  * Everything else gives null: a bare hour ("at 3"), "5.30", "5 30", "three
- * o'clock", a range ("2-4pm"), "10 to 5pm", "before 3pm", and two different
- * times ("3pm or 4pm").
+ * o'clock", a range ("2-4pm"), "10 to 5pm", and any words with two times in them
+ * ("9am, 10am", even "3pm, which is 15:00"). So does a time with a hedge, a zone or
+ * an alternative near it ("not at 3pm", "around 3pm", "3pm EST", "3pm, or 4"), one
+ * for something else ("leave at 1pm"), and one a part of the day contradicts
+ * ("tomorrow morning at 3pm").
  *
  * @module intelligence/world-model/dates/strict-time
  */
@@ -28,6 +31,45 @@ export interface StrictTime {
 }
 
 const pad = (n: number): string => String(n).padStart(2, '0');
+
+const HOUR = '(?:\\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)';
+/**
+ * Anything that looks like a time of day, read loosely: "9am", "9.30", "9:30", "noon",
+ * "at 9", "9 o'clock". Each is counted before any is trusted, so a rule below that
+ * refuses one ("9am" in "9am, 10am") can't hide it and let the other through.
+ */
+const LOOSE = new RegExp(
+  `(?:\\bat )?(?:${HOUR}(?: ?[:.] ?\\d{2})? ?[ap]m\\b|\\d{1,2} ?[:.] ?\\d{2}|` +
+    `(?:\\b(?:12|twelve) ?)?\\b(?:noon|midday|midnight)\\b|${HOUR} ?o' ?clock\\b|\\bat ${HOUR}\\b)`,
+  'g'
+);
+
+/**
+ * Words that make a time near them (3 words either side) not the plain time of the
+ * thing: a hedge or a limit, a zone or a place, an alternative, a doubt, another time
+ * it used to be, or something else that happens then (leaving, a call).
+ */
+const CUES: ReadonlySet<string> = new Set(
+  (
+    "not no never isn't won't don't can't later earlier than before after by until till til " +
+    'around about approximately approx roughly ish maybe perhaps probably possibly or either ' +
+    'think guess unsure unless latest earliest sometime past every each daily instead used ' +
+    'originally initially supposed moved pushed changed rescheduled hour hours minutes ' +
+    'time zone in est edt cst cdt mst mdt pst pdt et ct mt pt gmt bst utc cet cest ist jst ' +
+    'eastern central mountain pacific leave leaving left depart departing head heading drive ' +
+    'driving pick pickup arrive arriving call calling remind wake'
+  ).split(' ')
+);
+
+/** A part of the day, and the hours it can be. */
+const PARTS: ReadonlyArray<[RegExp, (hour: number) => boolean]> = [
+  [/\bmorning\b/, (h) => h < 12],
+  [/\bafternoon\b/, (h) => h >= 12 && h < 18],
+  [/\bevening\b/, (h) => h >= 16],
+  [/\b(?:tonight|night)\b/, (h) => h >= 18 || h < 5],
+];
+
+const tokens = (s: string): string[] => s.split(/[^a-z0-9']+/).filter(Boolean);
 
 const NUMBER =
   '\\d|\\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|half|quarter)';
@@ -51,34 +93,56 @@ const RULES: ReadonlyArray<[RegExp, (m: RegExpExecArray) => string | null]> = [
   [/\b(?:(?:12|twelve) ?)?midnight\b/, () => '00:00'],
 ]; // prettier-ignore
 
-/** An "at", "around" or "about" just before a time goes with it. */
-const LEAD_IN = /(?:\b(?:at|around|about)\s+)+$/;
+/** An "at" just before a time goes with it. */
+const LEAD_IN = /(?:\bat\s+)+$/;
+
+/** Lower case, one space, "p.m." as "pm". */
+const normalise = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[’`]/g, "'")
+    .replace(/\s+/g, ' ')
+    .replace(/(?<![a-z])([ap])\. ?m\b\.?/g, '$1m');
+
+/** True when `text` says anything about a time of day, however loosely ("4pm", "at 4", "an hour later", "in the morning"). */
+export function mentionsTime(text: string): boolean {
+  const words = normalise(text);
+  if (words.search(LOOSE) >= 0 || PARTS.some(([part]) => part.test(words))) return true;
+  return tokens(words).some((w) => CUES.has(w) && !['in', 'by', 'or', 'not', 'no'].includes(w));
+}
 
 /** The one time of day `text` names, or null when it names none, or more than one. */
 export function strictTimeOfDay(text: string): StrictTime | null {
-  const words = text
-    .toLowerCase()
-    .replace(/[’`]/g, "'")
-    .replace(/(?<![a-z])([ap])\. ?m\b\.?/g, '$1m');
+  const words = normalise(text);
+  // A digit in another script ("３pm") is a number the rules can't see.
+  if (/\p{Nd}/u.test(words.replace(/\d/g, ''))) return null;
+  const loose = [...words.matchAll(LOOSE)];
+  if (loose.length !== 1) return null;
+  const start = loose[0].index ?? 0;
+  const end = start + loose[0][0].length;
+  const near = [
+    ...tokens(words.slice(0, start)).slice(-3),
+    ...tokens(words.slice(end)).slice(0, 3),
+  ];
+  if (near.some((w) => CUES.has(w))) return null;
   const found: Array<{ at: string; start: number; end: number; midnight: boolean }> = [];
   for (const [pattern, read] of RULES) {
     const guarded = new RegExp(`${NOT_AFTER}${pattern.source}${NOT_BEFORE}`, 'g');
     for (const m of words.matchAll(guarded)) {
       const at = read(m);
-      const start = m.index ?? 0;
-      if (!at || found.some((f) => start < f.end && f.start < start + m[0].length)) continue;
-      found.push({ at, start, end: start + m[0].length, midnight: at.startsWith('00:') && !/^0/.test(m[0]) }); // prettier-ignore
+      const from = m.index ?? 0;
+      if (at) found.push({ at, start: from, end: from + m[0].length, midnight: at.startsWith('00:') && !/^0/.test(m[0]) }); // prettier-ignore
     }
   }
-  if (found.length === 0 || new Set(found.map((f) => f.at)).size > 1) return null;
-  let rest = words;
-  for (const f of [...found].sort((a, b) => b.start - a.start)) {
-    const before = rest.slice(0, f.start).replace(LEAD_IN, '');
-    rest = `${before} ${rest.slice(f.end)}`;
-  }
+  // The one loose time must be the one strict time: a rule that refused it gives none.
+  if (found.length !== 1) return null;
+  const [f] = found;
+  const hour = Number(f.at.slice(0, 2));
+  if (PARTS.some(([part, fits]) => part.test(words) && !fits(hour))) return null;
+  const before = words.slice(0, f.start).replace(LEAD_IN, '');
   return {
-    at: found[0].at,
-    midnight: found.some((f) => f.midnight),
-    rest: rest.replace(/\s+/g, ' ').trim(),
+    at: f.at,
+    midnight: f.midnight,
+    rest: `${before} ${words.slice(f.end)}`.replace(/\s+/g, ' ').trim(),
   };
 }
