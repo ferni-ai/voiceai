@@ -55,7 +55,7 @@ export function logVoiceConfiguration(): void {
     {
       model: CARTESIA_MODEL,
       voices: {
-        ferni: DEFAULT_VOICE_IDS.FERNI,
+        ferni: getVoiceIdForPersona('ferni'),
         peterJohn: DEFAULT_VOICE_IDS.PETER_JOHN,
         alexChen: DEFAULT_VOICE_IDS.ALEX_CHEN,
         mayaSantos: DEFAULT_VOICE_IDS.MAYA_SANTOS,
