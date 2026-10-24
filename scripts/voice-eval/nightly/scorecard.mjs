@@ -112,6 +112,13 @@ export function metric(check, runs, caps) {
       const den = sum(t.map((x) => x[of] ?? 0));
       return { value: den ? round(sum(t.map((x) => x[hit] ?? 0)) / den) : null, n: den };
     }
+    case 'sounds': {
+      // A count from score.mjs `sounds` (sounds.mjs), summed over the runs that measured it.
+      const xs = runs
+        .map((r) => r.score?.sounds?.[check.field])
+        .filter((x) => typeof x === 'number');
+      return { value: xs.length ? sum(xs) : null, n: xs.length };
+    }
     case 'toolErrors': {
       const s = rows(runs);
       return { value: s.length ? sum(s.map((x) => x.tool_errors ?? 0)) : null, n: s.length };

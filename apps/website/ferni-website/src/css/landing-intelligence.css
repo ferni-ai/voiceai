@@ -434,7 +434,7 @@
 }
 
 .special-offer-banner__cta {
-  background: white;
+  background: var(--color-surface-raised);
   color: var(--color-ferni, var(--color-ferni));
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);

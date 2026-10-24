@@ -53,8 +53,13 @@ export const DOC_COLLECTIONS = [
   'ecobee_tokens',
   'apple_calendar_tokens',
 ] as const;
-/** Per-user subcollection docs (bogle_users/{uid}/plaid_tokens/data). */
-export const DOC_GROUPS = ['plaid_tokens'] as const;
+/**
+ * Per-user subcollection docs: bogle_users/{uid}/plaid_tokens/data and
+ * bogle_users/{uid}/smart_home/{hue,lifx,sonos} (homekit and _setup_state hold no tokens).
+ */
+export const DOC_GROUPS = ['plaid_tokens', 'smart_home'] as const;
+/** Token maps nested in a subcollection doc: users/{uid}/calendar_providers/outlook.tokens. */
+export const NESTED_GROUP_FIELDS = [{ group: 'calendar_providers', field: 'tokens' }] as const;
 /** Token maps kept on the profile doc (bogle_users/{uid}.<field>). */
 export const PROFILE_FIELDS = ['linkedInTokens', 'biometricTokens'] as const;
 /** Already-sealed stores the servers write: evidence for which key they use. */
@@ -65,7 +70,9 @@ export const KEY_PROBE_COLLECTIONS = [
 ];
 
 /** Written by the stores beside the tokens; not secret, stays readable. */
-const BOOKKEEPING = new Set(['updatedAt', '_updatedAt', '_userId']);
+const BOOKKEEPING = new Set(['updatedAt', '_updatedAt', '_userId', 'connectedAt']);
+/** Fields holding a secret: the OAuth names, plus LIFX `token` and the Hue bridge `username`. */
+const TOKEN_KEYS = [...PLAINTEXT_TOKEN_KEYS, 'token', 'username'];
 
 export interface Counts {
   scanned: number;
@@ -110,8 +117,12 @@ const newCounts = (): Counts => ({
   failureCodes: {},
 });
 
+/** Plaintext secret fields; `enc_` values are already encrypted (services/platform/privacy-crypto). */
 const plaintextKeysOf = (record: Json) =>
-  PLAINTEXT_TOKEN_KEYS.filter((k) => typeof record[k] === 'string' && record[k] !== '');
+  TOKEN_KEYS.filter((k) => {
+    const v = record[k];
+    return typeof v === 'string' && v !== '' && !v.startsWith('enc_');
+  });
 
 /** A real AES-GCM envelope, as opposed to the plain JSON encryptData writes with no key. */
 const envelopeOf = (record: Json): string | undefined =>
@@ -274,6 +285,15 @@ export async function runEncryptIntegrationTokens(
     const snaps = await db.collection('bogle_users').where(field, '!=', null).get();
     for (const snap of snaps.docs) {
       consider(counts, snap, snap.data()[field], (r, k) => ({ [field]: fieldValue(r, k) }));
+    }
+  }
+  for (const { group, field } of NESTED_GROUP_FIELDS) {
+    const counts = (result[`${group}.${field}`] = newCounts());
+    // No where(): a collection-group inequality filter needs an index; these groups are small.
+    for (const snap of (await db.collectionGroup(group).get()).docs) {
+      const value = snap.data()[field];
+      if (value === null || typeof value !== 'object') continue;
+      consider(counts, snap, value, (r, k) => ({ [field]: fieldValue(r, k) }));
     }
   }
   if (!apply) return result;

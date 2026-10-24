@@ -19,6 +19,7 @@ import type { TopicExtractionResult } from '../../intelligence/topic-tracker.js'
 import { createIntelligentCurator, type IntelligentRecommendation } from './intelligent-curator.js';
 import { getCreativeDNA } from './creative-dna.js';
 import { getCreativeYouPersistence } from './persistence.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = getLogger();
@@ -93,6 +94,7 @@ export function recordConversationTopics(
   topics: string[],
   sessionId: string
 ): void {
+  if (memoryHeld(sessionId) || userHeld(userId)) return; // MINOR_CARE: not even cached
   // Update in-memory cache immediately (for fast access)
   const cached = userTopicCache.get(userId) || {
     topics: [],
