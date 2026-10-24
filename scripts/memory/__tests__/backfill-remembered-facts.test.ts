@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -312,6 +312,25 @@ describe('backfill-remembered-facts: forgotten, always (no flag)', () => {
     }
   );
 
+  it("a forget mid-batch that only the readers' match (aboutForgotten) catches is not written either", async () => {
+    const h = harness({ batch: 20 });
+    const DIVORCING = 'we are divorcing and the papers are filed'; // isForgotten alone misses it
+    h.memories.set('bogle_users/test-user-0/memories/mem_about', { content: DIVORCING, type: 'summary' }); // prettier-ignore
+    const model = fakeModel();
+    const secretCheck = {
+      model: (async (p, t, s) => {
+        if (t.includes('divorcing')) h.topics['test-user-0'] = ['Divorce papers'];
+        return model(p, t, s);
+      }) satisfies SecretModel,
+    };
+    expect(await h.run({}, { secretCheck })).toMatchObject({
+      toWrite: 7,
+      forgotten: 1,
+      created: 6,
+    });
+    expect(written(h)).not.toContain(DIVORCING);
+  });
+
   it("a forget between batches keeps the fact from the next batch's model call (read fresh per batch)", async () => {
     const h = withDana(harness()); // batch 2: mem_dana is in the third group
     const create = h.source.create;
@@ -598,7 +617,6 @@ describe('backfill-remembered-facts: main() exit codes', () => {
 
   it.each<[string, (h: ReturnType<typeof harness>) => void]>([
     ['a fact left unchecked', (h) => void (h.deps.secretCheck = { model: pastWarmUp(async () => 'maybe') })], // prettier-ignore
-    ['a failed warm-up', (h) => void (h.deps.secretCheck = { model: async () => 'maybe' })],
     ['a fact with no vector', (h) => void (h.deps.embed = async () => Promise.reject(new Error('down')))], // prettier-ignore
     ['a failed create', (h) => void (h.source.create = async () => Promise.reject(new Error('x')))],
     ['a user whose topics cannot be read', (h) => void (h.topics['test-user-1'] = null)],
@@ -607,6 +625,18 @@ describe('backfill-remembered-facts: main() exit codes', () => {
     const h = harness();
     breakIt(h);
     expect(await runMain(h)).toBe(1);
+  });
+
+  it('1 with a failed warm-up: no fact is sent to the model and no cursor is saved', async () => {
+    const h = harness();
+    const model = vi.fn<SecretModel>(async () => 'maybe');
+    h.deps.secretCheck = { model };
+    expect(await runMain(h)).toBe(1);
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(checks(model)).toBe(0);
+    expect(existsSync(join(dir, 'c'))).toBe(false);
+    expect(h.embed).not.toHaveBeenCalled();
+    expect(h.create).not.toHaveBeenCalled();
   });
 
   /** A new process: its first 4 calls (the warm-up and the first checks) take past the live 1000 ms. */
