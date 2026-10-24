@@ -14,7 +14,10 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { openSealedOrRaw, sealTokens } from '../../../utils/token-at-rest.js';
+import { sealTokens } from '../../../utils/token-at-rest.js';
+import { openSmartHomeCredentials } from '../../../services/smart-home/user-credentials.js';
+import { assertNoEncryptedValues, hueSaveInput, lifxSaveInput } from './smart-home-guards.js';
+import { HUE_NEEDS_REMOTE_ACCESS } from '../../../services/smart-home/hue-remote-access.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
@@ -107,7 +110,7 @@ export async function getCredentials<T>(userId: string, integration: string): Pr
       .get();
 
     if (!doc.exists) return null;
-    return openSealedOrRaw<T>(doc.data(), `smart_home/${integration}`);
+    return await openSmartHomeCredentials<T>(userId, integration, doc.data());
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
@@ -120,6 +123,7 @@ export async function saveCredentials<T extends object>(
   credentials: T
 ): Promise<void> {
   try {
+    assertNoEncryptedValues(credentials); // never seal (or later decrypt) a submitted enc_ value
     const existing = (await getCredentials<Record<string, unknown>>(userId, integration)) ?? {};
     const ref = getSmartHomeCollection().doc(userId).collection('smart_home').doc(integration);
     await ref.set(sealTokens({ ...existing, ...credentials })); // replaced whole: no plaintext left
@@ -156,36 +160,16 @@ async function handleHueStatus(
   try {
     const credentials = await getCredentials<HueCredentials>(userId, 'hue');
 
-    if (!credentials?.bridgeIp || !credentials?.username) {
+    // No server-side call to the bridge: it is on the home LAN (see hue-remote-access).
+    if (!credentials?.username) {
       sendJson(res, 200, { connected: false });
       return;
     }
-
-    // Try to get lights
-    const response = await fetch(
-      `http://${credentials.bridgeIp}/api/${credentials.username}/lights`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-
-    if (!response.ok) {
-      sendJson(res, 200, { connected: false, error: 'Bridge not reachable' });
-      return;
-    }
-
-    const lights = (await response.json()) as Record<
-      string,
-      { name: string; state: { on: boolean } }
-    >;
-    const lightList = Object.entries(lights).map(([_id, light]) => ({
-      name: light.name,
-      on: light.state.on,
-    }));
-
     sendJson(res, 200, {
-      connected: true,
-      bridgeIp: credentials.bridgeIp,
-      lightCount: lightList.length,
-      lights: lightList.slice(0, 5),
+      connected: false,
+      saved: true,
+      needsRemoteAccess: true,
+      message: HUE_NEEDS_REMOTE_ACCESS,
     });
   } catch (error) {
     log.error({ error, userId }, 'Hue status check failed');
@@ -195,19 +179,15 @@ async function handleHueStatus(
 
 async function handleHueSave(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, bridgeIp, username } = body as {
-      userId: string;
-      bridgeIp: string;
-      username: string;
-    };
-
-    if (!userId || !bridgeIp || !username) {
-      sendError(res, 400, 'userId, bridgeIp, and username required');
+    const input = hueSaveInput(getUserId(req), await parseBody(req));
+    if ('error' in input) {
+      sendError(res, input.status, input.error);
       return;
     }
-
-    await saveCredentials(userId, 'hue', { bridgeIp, username });
+    await saveCredentials(input.userId, 'hue', {
+      bridgeIp: input.bridgeIp,
+      username: input.username,
+    });
     sendJson(res, 200, { success: true });
   } catch (error) {
     log.error({ error }, 'Hue save failed');
@@ -288,15 +268,12 @@ async function handleLifxStatus(
 
 async function handleLifxSave(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, token } = body as { userId: string; token: string };
-
-    if (!userId || !token) {
-      sendError(res, 400, 'userId and token required');
+    const input = lifxSaveInput(getUserId(req), await parseBody(req));
+    if ('error' in input) {
+      sendError(res, input.status, input.error);
       return;
     }
-
-    await saveCredentials(userId, 'lifx', { token });
+    await saveCredentials(input.userId, 'lifx', { token: input.token });
     sendJson(res, 200, { success: true });
   } catch (error) {
     log.error({ error }, 'LIFX save failed');
@@ -486,7 +463,7 @@ async function handleSonosStatus(
 
     if (data.households.length > 0) {
       const groupsRes = await fetch(
-        `https://api.ws.sonos.com/control/api/v1/households/${data.households[0].id}/groups`,
+        `https://api.ws.sonos.com/control/api/v1/households/${encodeURIComponent(data.households[0].id)}/groups`,
         {
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
           signal: AbortSignal.timeout(10000),
@@ -876,23 +853,20 @@ async function handleHomeKitCommandComplete(
   res: ServerResponse
 ): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, commandId, success, error } = body as {
-      userId: string;
-      commandId: string;
-      success: boolean;
-      error?: string;
-    };
-
-    if (!userId || !commandId) {
-      sendError(res, 400, 'userId and commandId required');
+    // The caller verified at the door (bindVerifiedIdentity checks the bearer
+    // token); body.userId is ignored, so no one can complete another user's commands.
+    const userId = getUserId(req);
+    if (!userId) {
+      sendError(res, 401, 'Authentication required');
       return;
     }
-
-    // Validate auth
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      sendError(res, 401, 'Authentication required');
+    const { commandId, success, error } = (await parseBody(req)) as {
+      commandId?: unknown;
+      success?: boolean;
+      error?: string;
+    };
+    if (typeof commandId !== 'string' || !commandId || commandId.includes('/')) {
+      sendError(res, 400, 'commandId required');
       return;
     }
 
