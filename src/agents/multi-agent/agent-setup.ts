@@ -18,6 +18,7 @@
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
+import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -1417,6 +1418,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
         userId,
         persona: () => userData.personaId ?? persona.id,
         phoneCaller: config.phoneCaller,
+      })
+    );
+    // CALL_TIMELINE: the whole call in order, sounds and cut replies included (call-timeline.ts)
+    cleanupFunctions.push(
+      attachCallTimeline(session as never, {
+        sessionId,
+        userId,
+        conversationId: () => services.realtimeConversationId,
+        persona: () => userData.personaId ?? persona.id,
+        roomName: room.name,
       })
     );
 

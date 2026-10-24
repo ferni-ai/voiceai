@@ -55,6 +55,7 @@ import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gate
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { noteGeneratedReply } from './call-timeline.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -975,8 +976,7 @@ export async function wrappedTtsNode(
           sessionId,
         });
 
-        // 🔍 E2E TRACE [4/4]: What actually goes to TTS (spoken to user)
-        // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
+        // 🔍 E2E TRACE [4/4]: what goes to TTS (truncateForLog respects LOG_FULL_RESPONSES)
         const streamDurationMs = Date.now() - streamStartTime;
         log.info(
           {
@@ -990,6 +990,7 @@ export async function wrappedTtsNode(
           },
           `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}" (${chunkCount} chunks in ${streamDurationMs}ms)`
         );
+        noteGeneratedReply(sessionId, ttsOutputBuffer); // CALL_TIMELINE: generated vs heard
       }
     },
   });
