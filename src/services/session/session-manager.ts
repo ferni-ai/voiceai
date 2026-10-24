@@ -1773,8 +1773,7 @@ export async function createSessionServices(
           }
 
           if (summary?.callerProvenance || summary?.keyPoints?.length) {
-            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
-            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
+            (await import('./last-summary.js')).applyLastSummary(updatedProfile, summary); // #2744
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
             const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler

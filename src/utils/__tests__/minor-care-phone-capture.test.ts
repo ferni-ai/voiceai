@@ -7,6 +7,11 @@
  * deep extraction worker (12 dynamic_facts, 8 dynamic_entities), knowledge capture (4
  * entity-store entities) and the relationship network (Riley, Jess).
  *
+ * The writers #2729 missed hold the same way: corrections and implicit preferences, stated
+ * preferences, data capture (entity store, contacts, contact_relationships), FRIEND_REPAIR,
+ * the relationship engine and personality profile behind recordUnifiedMoment, Creative You topics
+ * and BTH signals.
+ *
  * Each case runs the real writer with only storage faked, after the real detector read the
  * caller's words the way the phone path does (session-init binds the anon user,
  * transcript-handler calls heldAfter), and checks the same writer still stores for a verified
@@ -30,7 +35,7 @@ const fakeDb = vi.hoisted(() => {
         set: async () => void written.push(path),
         add: async () => {
           written.push(path);
-          return { id: 'auto' };
+          return ref(`${path}/auto`);
         },
         update: async () => void written.push(path),
       } as Record<string | symbol, unknown>,
@@ -61,6 +66,8 @@ vi.mock('../../memory/knowledge-graph/extractors/index.js', () => ({
 vi.mock('../../memory/entity-store/integration.js', () => ({
   initializeEntityStore: async () => undefined,
   isEntityStoreReady: () => true,
+  capturePersonEntity: async (userId: string) =>
+    void written.push(`entity_store/${userId}/capture`),
 }));
 vi.mock('../../memory/entity-store/entity-resolver.js', () => ({
   resolvePerson: async (userId: string) => {
@@ -82,6 +89,27 @@ vi.mock('../../memory/firestore-vector-store/index.js', () => ({
 vi.mock('../../services/data-layer/hooks/superhuman-hooks.js', () => ({
   onRelationshipNetworkChange: async () => undefined,
 }));
+// Corrections: the admin Firestore and the semantic index are storage.
+vi.mock('../firebase-admin-app.js', async (orig) => ({
+  ...(await orig<object>()),
+  getAdminFirestore: () => fakeDb,
+}));
+vi.mock('../../services/data-layer/hooks/learning-hooks.js', () => ({
+  onUserCorrectionChange: async (userId: string) => void written.push(`semantic/${userId}`),
+  onImplicitPreferenceChange: async (userId: string) => void written.push(`semantic/${userId}`),
+}));
+// Data capture: the contact stores are storage.
+vi.mock('../../services/contacts.js', () => ({
+  findContact: async () => null,
+  updateContact: () => undefined,
+  createContact: async (userId: string) => {
+    written.push(`contacts/${userId}`);
+    return { id: 'c1' };
+  },
+}));
+vi.mock('../../services/contacts/contact-relationship-service.js', () => ({
+  upsertContact: async (userId: string) => void written.push(`contact_relationships/${userId}`),
+}));
 
 import { getFirestoreDb } from '../firestore-utils.js';
 import { getFirestoreDb as superhumanDb } from '../../services/superhuman/firestore-utils.js';
@@ -92,6 +120,7 @@ import {
   memoryHeld,
   resetMinorCare,
   setVerifiedOwnerCheck,
+  writeHeld,
 } from '../minor-care.js';
 import { fastCapture } from '../../memory/dynamic/fast-capture.js';
 import {
@@ -103,6 +132,26 @@ import {
   initializeKnowledgeCapture,
 } from '../../memory/knowledge-graph/services/knowledge-capture.js';
 import { recordMention } from '../../services/superhuman/relationship-network.js';
+import { recordCallerCorrection } from '../../agents/processors/turn-processor/caller-correction.js';
+import { userCorrections } from '../../services/superhuman/user-corrections.js';
+import { storeUserPreferences } from '../../services/user-preferences-store.js';
+import { extractPreferences } from '../../intelligence/tracking/preferences.js';
+import { processDataCapture } from '../../intelligence/data-capture/index.js';
+import { recordFriendRepair, type RepairStore } from '../../agents/personas/friend-repair.js';
+import { recordUnifiedMoment } from '../../personality/bridge/personality-bridge.js';
+import {
+  clearAllRelationshipEngines,
+  getRelationshipEngine,
+  initializeRelationship,
+} from '../../intelligence/relationship/index.js';
+import { createPersonalityService } from '../../personality/v2/index.js';
+import { recordConversationTopics } from '../../services/creative-you/conversation-integration.js';
+import { getCreativeYouPersistence } from '../../services/creative-you/persistence.js';
+import {
+  flushBTHSignalQueue,
+  logBTHSignal,
+  resetBTHSignalLogger,
+} from '../../services/analytics/bth-signal-logger.js';
 
 type Case = 'held' | 'owner' | 'off';
 const CASES: Case[] = ['held', 'owner', 'off'];
@@ -138,8 +187,21 @@ beforeEach(() => {
 });
 afterEach(() => {
   resetMinorCare();
+  resetBTHSignalLogger();
+  clearAllRelationshipEngines();
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
+
+/** Fire-and-forget writers: wait for the write when one is expected, else a moment for none. */
+async function settled(userId: string, expectWrite: boolean): Promise<string[]> {
+  if (expectWrite) await vi.waitFor(() => expect(storedFor(userId).length).toBeGreaterThan(0));
+  else
+    await new Promise((r) => {
+      setTimeout(r, 25);
+    });
+  return storedFor(userId);
+}
 
 describe('MINOR_CARE: an anonymous phone caller who said "I\'m only 14."', () => {
   it.each(CASES)('fastCapture queues no deep extraction when held (%s)', async (c) => {
@@ -201,12 +263,141 @@ describe('MINOR_CARE: an anonymous phone caller who said "I\'m only 14."', () =>
 
   // No session reaches savePerson and a placeholder id is never bound to one, so userHeld can't
   // see a minor behind it: with the flag on, a placeholder id keeps no person at all.
-  it.each(['on', 'off'])('a placeholder id keeps no person while MINOR_CARE is %s', async (flag) => {
-    vi.stubEnv('MINOR_CARE', flag);
-    await recordMention('anonymous', { name: 'Jess', type: 'acquaintance', context: RILEY });
-    const people = written.filter((p) => p.includes('/relationship_network/'));
-    if (flag === 'on') expect(people).toEqual([]);
-    else expect(people.length).toBe(1);
+  it.each(['on', 'off'])(
+    'a placeholder id keeps no person while MINOR_CARE is %s',
+    async (flag) => {
+      vi.stubEnv('MINOR_CARE', flag);
+      await recordMention('anonymous', { name: 'Jess', type: 'acquaintance', context: RILEY });
+      const people = written.filter((p) => p.includes('/relationship_network/'));
+      if (flag === 'on') expect(people).toEqual([]);
+      else expect(people.length).toBe(1);
+    }
+  );
+
+  it.each(CASES)('a correction of Ferni keeps nothing when held (%s)', async (c) => {
+    const { sessionId, userId } = phoneCall(c);
+    const said = 'Actually, Riley is my best friend, not Jess.';
+    await recordCallerCorrection(userId, said, 'So Jess is your best friend?', 'ferni', sessionId);
+    if (c === 'held') expect(storedFor(userId)).toEqual([]);
+    else expect(storedFor(userId).join()).toContain(`bogle_users/${userId}/corrections`);
+  });
+
+  it.each(CASES)('an implicit preference keeps nothing when held (%s)', async (c) => {
+    const { userId } = phoneCall(c);
+    // turn-learning.ts's detectImplicitPreferences writes through this
+    await userCorrections.recordImplicitPreference(userId, {
+      preference: 'i usually text riley after school',
+      category: 'other',
+      evidence: ['I usually text Riley after school.'],
+      confidence: 0.7,
+    });
+    if (c === 'held') expect(storedFor(userId)).toEqual([]);
+    else expect(storedFor(userId).join()).toContain(`${userId}/implicit_preferences`);
+  });
+
+  it.each(CASES)('a stated preference keeps nothing when held (%s)', async (c) => {
+    const { userId } = phoneCall(c);
+    const preferences = extractPreferences("I'm allergic to peanuts and I love the Eagles.");
+    expect(preferences.length).toBeGreaterThan(0);
+    await storeUserPreferences(userId, preferences);
+    if (c === 'held') expect(storedFor(userId)).toEqual([]);
+    else expect(storedFor(userId)).toContain(`/user_preferences/${userId}`);
+  });
+
+  it('writeHeld: session, user or placeholder id, and only with the flag on', () => {
+    const { sessionId, userId } = phoneCall('held');
+    expect(writeHeld(undefined, sessionId)).toBe(true); // the session
+    expect(writeHeld(userId)).toBe(true); // any of this user's sessions
+    expect(writeHeld('anonymous')).toBe(true); // a placeholder no session binds
+    expect(writeHeld('uid_someone_else', 'session-other')).toBe(false);
+    vi.stubEnv('MINOR_CARE', 'off');
+    expect(writeHeld('anonymous', sessionId)).toBe(false);
+  });
+
+  it('a placeholder id keeps no stated preference while MINOR_CARE is on', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    await storeUserPreferences('anonymous', extractPreferences('I love the Eagles.'));
+    expect(written.filter((p) => p.includes('/user_preferences/'))).toEqual([]);
+  });
+
+  it.each(CASES)('data capture saves no person or contact when held (%s)', async (c) => {
+    const { sessionId, userId } = phoneCall(c);
+    const transcript = "My mom's number is 555-123-4567.";
+    const result = await processDataCapture({ transcript, userId, sessionId });
+    const stored = await settled(userId, c !== 'held');
+    if (c === 'held') {
+      expect(stored).toEqual([]);
+      expect(result.suggestedAcknowledgment).toBeUndefined(); // no "I'll remember" either
+    } else {
+      expect(stored).toEqual(expect.arrayContaining([`entity_store/${userId}/capture`]));
+      await vi.waitFor(() => expect(storedFor(userId)).toContain(`contacts/${userId}`));
+      await vi.waitFor(() =>
+        expect(storedFor(userId)).toContain(`contact_relationships/${userId}`)
+      );
+    }
+  });
+
+  it.each(CASES)('FRIEND_REPAIR keeps no correction when held (%s)', async (c) => {
+    const { sessionId, userId } = phoneCall(c);
+    vi.stubEnv('FRIEND_REPAIR', 'on');
+    const store: RepairStore = {
+      facts: async () => [],
+      add: async (uid) => (written.push(`bogle_users/${uid}/corrections`), 'c1'),
+      retire: async () => undefined,
+      recent: async () => [],
+    };
+    const ferni = ['So your sister in Denver is getting married, that is huge.'];
+    const said = "Ha, no, it's my brother in Denver, not my sister.";
+    const id = await recordFriendRepair({ userId, said, ferni, callId: sessionId }, store);
+    if (c === 'held') expect([id, storedFor(userId)]).toEqual([null, []]);
+    else expect(storedFor(userId)).toEqual([`bogle_users/${userId}/corrections`]);
+  });
+
+  it.each(CASES)('the relationship engine keeps no moment when held (%s)', async (c) => {
+    const { userId } = phoneCall(c);
+    await initializeRelationship(userId, 'ferni');
+    await recordUnifiedMoment({
+      userId,
+      personaId: 'ferni',
+      type: 'vulnerability',
+      message: RILEY,
+    });
+    const moments = getRelationshipEngine(userId, 'ferni')?.getMemory().sharedMoments ?? [];
+    expect(moments.length).toBe(c === 'held' ? 0 : 1);
+  });
+
+  it.each(CASES)('the personality profile is not saved when held (%s)', async (c) => {
+    const { userId } = phoneCall(c);
+    // personality-context.ts and recordUnifiedMoment both record through this service
+    await createPersonalityService().recordMoment({ userId, personaId: 'ferni', message: RILEY });
+    const profiles = storedFor(userId).filter((p) => p.includes('/personality_profiles/'));
+    if (c === 'held') expect(profiles).toEqual([]);
+    else expect(profiles.length).toBe(1);
+  });
+
+  it.each(CASES)('Creative You keeps no topic when held (%s)', async (c) => {
+    const { sessionId, userId } = phoneCall(c);
+    vi.spyOn(getCreativeYouPersistence(), 'saveTopicHistory').mockImplementation(
+      async (uid: string) => void written.push(`topic_history/${uid}`)
+    );
+    recordConversationTopics(userId, ['friendship', 'school'], sessionId);
+    const stored = await settled(userId, c !== 'held');
+    expect(stored).toEqual(c === 'held' ? [] : [`topic_history/${userId}`]);
+  });
+
+  it.each(CASES)('BTH signals for the caller are not written when held (%s)', async (c) => {
+    const { sessionId, userId } = phoneCall(c);
+    const payload = { signalType: 'concern_detected', intensity: 0.9 };
+    logBTHSignal({
+      userId,
+      sessionId,
+      personaId: 'ferni',
+      signalType: 'concern_detected',
+      payload,
+    });
+    await flushBTHSignalQueue();
+    const signals = storedFor(userId).filter((p) => p.includes('/bth_signals/'));
+    expect(signals.length).toBe(c === 'held' ? 0 : 1);
   });
 
   it('the note tells Ferni not to promise to remember', () => {

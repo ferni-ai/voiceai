@@ -12,7 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
-import { minorCareOn, sharedId, userHeld } from '../../utils/minor-care.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'relationship-network' });
 
@@ -507,7 +507,7 @@ export async function loadNetwork(userId: string): Promise<RelationshipPerson[]>
 }
 
 export async function savePerson(person: RelationshipPerson): Promise<void> {
-  if (userHeld(person.userId) || (minorCareOn() && sharedId(person.userId))) return; // MINOR_CARE
+  if (writeHeld(person.userId)) return; // MINOR_CARE
   const db = getFirestoreDb();
   if (db) {
     await db

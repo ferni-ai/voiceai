@@ -55,6 +55,11 @@ vi.mock('../../services/engagement/engagement-store.js', async (orig) => ({
   getEngagementStore: async () => engagement,
 }));
 
+const semantic = vi.hoisted(() => ({ cleared: [] as (string | undefined)[] }));
+vi.mock('../../services/superhuman/semantic-intelligence/index.js', () => ({
+  clearSemanticIntelligenceCache: (userId?: string) => void semantic.cleared.push(userId),
+}));
+
 import { purgeHeldUser } from '../../agents/voice-agent/minor-care-purge.js';
 import {
   purgeUnifiedUser,
@@ -77,6 +82,10 @@ import {
   markDirty,
   markUserLoaded,
 } from '../../intelligence/predictive/persistence.js';
+import {
+  getRelationshipEngine,
+  initializeRelationship,
+} from '../../intelligence/relationship/engine.js';
 import {
   bindSessionUser,
   heldAfter,
@@ -139,8 +148,14 @@ describe('placeholder ids and other users', () => {
     const a = caller();
     const b = caller();
     await saveGameMemory(b.userId, { totalGamesPlayed: 2 } as never);
+    await initializeRelationship(a.userId, 'ferni');
+    await initializeRelationship(b.userId, 'ferni');
     a.hold();
+    semantic.cleared.length = 0;
     purgeHeldUser(a.userId);
+    expect(semantic.cleared).toEqual([a.userId]); // only theirs, never every user's
+    expect(getRelationshipEngine(a.userId, 'ferni')).toBeUndefined();
+    expect(getRelationshipEngine(b.userId, 'ferni')).toBeDefined();
     expect(userHeld(a.userId)).toBe(true);
     expect(userHeld(b.userId)).toBe(false);
     expect(getCachedGameMemory(b.userId)).not.toBeNull();
@@ -182,6 +197,31 @@ describe('purge: every store drops the user and their loaded markers', () => {
     await saveSystemData(who.userId, 'boundaries', { topics: ['after'] });
     expect(writesFor(who.userId).length).toBe(1);
   });
+});
+
+describe('relationship engine: phrases recorded during the held call', () => {
+  // recordMoment keeps the caller's phrase in the cached engine; a held call's cleanup never
+  // ends its session, so a later call from the same id (hold lapsed) would save it
+  it.each([false, true])(
+    'a later call saves none of them once purged (purged: %s)',
+    async (purged) => {
+      const who = caller();
+      const held = await initializeRelationship(who.userId, 'ferni');
+      held.startSession();
+      held.recordMoment('vulnerability', 'opened up about a fight', {
+        userPhrase: 'my best friend Riley and I had a fight',
+      });
+      who.hold();
+      if (purged) purgeHeldUser(who.userId);
+      await vi.advanceTimersByTimeAsync(HOLD_LAPSES_MS);
+      const later = await initializeRelationship(who.userId, 'ferni'); // the next call
+      later.startSession();
+      await later.endSession('neutral', []);
+      const saved = JSON.stringify(writesFor(who.userId).map((w) => w.data));
+      expect(writesFor(who.userId).length).toBeGreaterThan(0); // the later call did save
+      expect(saved.includes('Riley')).toBe(!purged);
+    }
+  );
 });
 
 describe('a store never writes a user it has not loaded in this process', () => {

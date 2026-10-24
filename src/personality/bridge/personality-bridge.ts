@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { userHeld } from '../../utils/minor-care.js';
 import type { SharedMomentType } from '../../intelligence/relationship/types.js';
 import type { VoiceFeatures } from '../domain/interfaces/voice-analyzer.js';
 import type { PersonalityDomainEvent } from '../domain/model/personality-profile.js';
@@ -126,7 +127,8 @@ export async function recordUnifiedMoment(
         const { getRelationshipEngine } = await import('../../intelligence/relationship/index.js');
         const engine = getRelationshipEngine(userId, personaId);
 
-        if (engine) {
+        // MINOR_CARE: a held caller's words never enter the cached engine, which a later call saves
+        if (engine && !userHeld(userId)) {
           engine.recordMoment(type, message.slice(0, 200), {
             userPhrase: details?.userPhrase ?? message.slice(0, 200),
             significance: details?.significance ?? emotionalIntensity ?? 0.5,
