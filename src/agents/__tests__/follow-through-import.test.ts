@@ -364,6 +364,7 @@ describe('BOOKENDS: a time said differently on a later call moves the bookend (#
     await importNow();
     expect(facts.all('owner-1')[0]).not.toHaveProperty('at');
     expect(bookends()).toEqual([['open', null]]);
+    expect(followUps('owner-1').find((f) => f.kind === 'date')?.eventPrecision).toBe('none');
   });
 
   it('a new day releases the old bookend and makes one on the new day', async () => {
