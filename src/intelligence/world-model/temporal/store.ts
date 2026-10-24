@@ -7,7 +7,7 @@
  * @module intelligence/world-model/temporal/store
  */
 
-import type { Firestore } from '@google-cloud/firestore';
+import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import type { ResolutionPlan } from './resolve.js';
 import type { TemporalFact } from './types.js';
@@ -49,8 +49,9 @@ export function createFirestoreWorldFactStore(
       for (const { id, validTo, supersededBy } of plan.close) {
         batch.update(col.doc(id), { validTo, supersededBy });
       }
-      for (const { id, observedAt, confidence } of plan.refresh) {
-        batch.update(col.doc(id), { observedAt, confidence });
+      for (const { id, observedAt, confidence, at } of plan.refresh) {
+        const time = at === undefined ? {} : { at: at ?? FieldValue.delete() };
+        batch.update(col.doc(id), { observedAt, confidence, ...time });
       }
       await batch.commit();
     },

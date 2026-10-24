@@ -2,6 +2,7 @@
  * Supersession rules and what the after-call sink refuses to store.
  */
 
+import { FieldValue } from '@google-cloud/firestore';
 import { describe, expect, it, vi } from 'vitest';
 import { recordWorldObservations } from '../ingest.js';
 import { planResolution, type SupersedeJudge } from '../resolve.js';
@@ -247,5 +248,33 @@ describe('createFirestoreWorldFactStore', () => {
     expect(ops[0][1]).toBe('bogle_users/u1/world_facts');
     const written = ops.find(([op]) => op === 'set')?.[2] as Record<string, unknown>;
     expect(Object.values(written)).not.toContain(undefined);
+  });
+
+  it("a refresh writes a date's time only when it changed, and deletes one dropped", async () => {
+    const updates: Array<[string, Record<string, unknown>]> = [];
+    const sub = { doc: (id: string) => id };
+    const db = {
+      collection: () => ({ doc: () => ({ collection: () => sub }) }),
+      batch: () => ({
+        set: () => {},
+        update: (id: string, data: Record<string, unknown>) => updates.push([id, data]),
+        commit: async () => {},
+      }),
+    };
+    await createFirestoreWorldFactStore(() => db as never).apply('u1', {
+      create: [],
+      close: [],
+      refresh: [
+        { id: 'same', observedAt: 'T', confidence: 0.9 },
+        { id: 'moved', observedAt: 'T', confidence: 0.9, at: '16:00' },
+        { id: 'dropped', observedAt: 'T', confidence: 0.9, at: null },
+      ],
+    });
+    expect(updates.slice(0, 2)).toEqual([
+      ['same', { observedAt: 'T', confidence: 0.9 }],
+      ['moved', { observedAt: 'T', confidence: 0.9, at: '16:00' }],
+    ]);
+    const dropped = updates[2][1].at;
+    expect(dropped instanceof FieldValue && dropped.isEqual(FieldValue.delete())).toBe(true);
   });
 });

@@ -28,8 +28,10 @@ import {
   buildDatesPrompt,
   datesThatMatterOn,
   parseDateMentions,
+  timeDoubts,
   toDateObservations,
   type DateObservation,
+  type TimeDoubt,
 } from './extract.js';
 import { recordDates } from './store.js';
 
@@ -59,19 +61,20 @@ export interface DatesDeps {
   cohorts?: CohortStore;
 }
 
-/** The call's dates, resolved against its date in the caller's timezone. */
+/**
+ * The call's dates, resolved against its date in the caller's timezone, and the
+ * mentions with no day of their own that still take a time off one (TimeDoubt).
+ */
 export async function datesFromCall(
   ctx: Omit<DatesCall, 'userId'>,
   model: ExtractionLlm = llm
-): Promise<DateObservation[]> {
-  if (!ctx.turns.some((t) => t.role === 'user' && t.content?.trim())) return [];
+): Promise<{ dates: DateObservation[]; doubts: TimeDoubt[] }> {
+  if (!ctx.turns.some((t) => t.role === 'user' && t.content?.trim())) return { dates: [], doubts: [] }; // prettier-ignore
   const moment = callMomentFor(ctx.startedAt, ctx.timezone ?? 'UTC');
   const reply = await model(buildDatesPrompt(transcriptOf([...ctx.turns]), moment));
-  return toDateObservations(parseDateMentions(reply), {
-    sessionId: ctx.sessionId,
-    observedAt: ctx.startedAt.toISOString(),
-    callDate: moment.date,
-  });
+  const mentions = parseDateMentions(reply);
+  const call = { sessionId: ctx.sessionId, observedAt: ctx.startedAt.toISOString(), callDate: moment.date }; // prettier-ignore
+  return { dates: toDateObservations(mentions, call), doubts: timeDoubts(mentions, call) };
 }
 
 /** The task body; exported so tests can run it with a fake model and store. */
@@ -80,22 +83,24 @@ export async function extractDatesAfterCall(ctx: DatesCall, deps: DatesDeps = {}
   // DATES_THAT_MATTER as this caller's call had it: process.env may hold the next caller's.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!datesThatMatterOn(env)) return;
-  const dates = await datesFromCall(ctx, deps.llm);
-  if (dates.length === 0) return;
+  const { dates, doubts } = await datesFromCall(ctx, deps.llm);
+  if (dates.length + doubts.length === 0) return;
   // What they asked Ferni to forget on this call is not written down after it.
-  // Unreadable topics (null) could hide one of them, so nothing is stored this call.
+  // Unreadable topics (null) could hide one of them, so no date is stored this call.
   const topics = await (deps.topics ?? forgottenTopicsOrNull)(ctx.userId);
+  const callDay = callMomentFor(ctx.startedAt, ctx.timezone ?? 'UTC').date;
   if (topics === null) {
     log.warn({ sessionId: ctx.sessionId, found: dates.length }, 'DATES_SKIPPED_TOPICS_UNREADABLE');
+    // A time still comes off a date (TimeDoubt): that writes nothing new about anyone.
+    await recordDates(ctx.userId, [], deps.store, callDay, doubts);
     return;
   }
   const kept = dates.filter(
     (d) => !isForgotten([d.subject, d.relation, d.value, d.source.quote].join(' '), topics)
   );
-  const callDay = callMomentFor(ctx.startedAt, ctx.timezone ?? 'UTC').date;
-  const result = await recordDates(ctx.userId, kept, deps.store, callDay);
+  const result = await recordDates(ctx.userId, kept, deps.store, callDay, doubts);
   log.info(
-    { sessionId: ctx.sessionId, found: dates.length, ...result, toConfirm: kept.filter((d) => d.needsConfirmation).length },
+    { sessionId: ctx.sessionId, found: dates.length, doubts: doubts.length, ...result, toConfirm: kept.filter((d) => d.needsConfirmation).length },
     'DATES_RECORDED'
   ); // prettier-ignore
 }

@@ -1,6 +1,7 @@
 /**
  * The after-call task that brings a call's reminders, commitments and
- * threads into follow-ups (services/follow-through/import-follow-ups.ts),
+ * threads (and, with BOOKENDS on, timed one-time dates) into follow-ups
+ * (services/follow-through/import-follow-ups.ts),
  * for the verified owner of the account only. FOLLOW_THROUGH_IMPORT=on (the
  * agent's, or the caller's through a cohort) turns it on; off, it returns
  * before any store read.
@@ -48,6 +49,8 @@ export interface ImportTaskDeps {
   verifiedOwner?: (sessionId: string) => boolean;
   /** Null where there is no Firestore (local dev without credentials). */
   stores?: () => { store: FollowUpStore; sources: FollowUpSources } | null;
+  /** BOOKENDS: true when a date's words are heavy (!isLightTopic). Unset: every one is. */
+  heavy?: (text: string) => boolean;
   now?: () => Date;
 }
 
@@ -55,9 +58,12 @@ export type ImportTaskOutcome =
   | { imported: true; result: ImportResult }
   | { imported: false; reason: 'flag-off' | 'not-owner' | 'no-zone' | 'no-store' };
 
-function firestoreStores(): { store: FollowUpStore; sources: FollowUpSources } | null {
+function firestoreStores(
+  heavy?: (text: string) => boolean
+): { store: FollowUpStore; sources: FollowUpSources } | null {
   const db = getFirestoreDb();
-  return db ? { store: createFollowUpStore(db), sources: createFollowUpSources(db) } : null;
+  if (!db) return null;
+  return { store: createFollowUpStore(db), sources: createFollowUpSources(db, { heavy }) };
 }
 
 /** An account id that belongs to one real person, not a placeholder, anonymous or eval id. */
@@ -83,9 +89,12 @@ export async function importFollowUpsAfterCall(
     log.info({ sessionId: ctx.sessionId }, 'Follow-up import skipped: caller zone unknown');
     return { imported: false, reason: 'no-zone' };
   }
-  const stores = (deps.stores ?? firestoreStores)();
+  const stores = deps.stores ? deps.stores() : firestoreStores(deps.heavy);
   if (!stores) return { imported: false, reason: 'no-store' };
   const now = (deps.now ?? (() => new Date()))();
-  const result = await importFollowUps(ctx.userId, ctx.timezone, stores.sources, stores.store, now);
+  // BOOKENDS, as this caller's call had it: timed one-time dates come in with eventAt.
+  const bookends = flagOn('BOOKENDS', env);
+  const { sources, store } = stores;
+  const result = await importFollowUps(ctx.userId, ctx.timezone, sources, store, now, { bookends });
   return { imported: true, result };
 }
