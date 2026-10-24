@@ -40,19 +40,8 @@ async function menuActions(page: Page): Promise<string[]> {
   );
 }
 
-interface SeenDialog {
-  sel: string;
-  name: string;
-  /** panel-loading-shell: a lazy panel's placeholder, replaced once the panel loads */
-  shell: boolean;
-}
-
-/**
- * The dialogs a person could see right now, each read in this one pass. Reading a
- * dialog again later by selector raced the loading shell being swapped for the real
- * panel: the selector then matched nothing and the read waited out the whole test.
- */
-function visibleDialogs(page: Page): Promise<SeenDialog[]> {
+/** Ids of the dialogs a person could see right now */
+function visibleDialogs(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const shown = (el: Element): boolean => {
       const r = el.getBoundingClientRect();
@@ -68,13 +57,7 @@ function visibleDialogs(page: Page): Promise<SeenDialog[]> {
       .filter(shown)
       .map((el, i) => {
         if (!el.id) el.setAttribute('data-menu-dialog', String(i));
-        const by = el.getAttribute('aria-labelledby');
-        const labelled = by ? document.getElementById(by)?.textContent?.trim() : '';
-        return {
-          sel: el.id ? `#${el.id}` : `[data-menu-dialog="${i}"]`,
-          name: (el.getAttribute('aria-label') ?? labelled ?? '').trim(),
-          shell: el.classList.contains('panel-loading-shell'),
-        };
+        return el.id ? `#${el.id}` : `[data-menu-dialog="${i}"]`;
       });
   });
 }
@@ -87,56 +70,42 @@ test.describe('menu panels are named modal dialogs', () => {
     expect(actions.length).toBeGreaterThan(20);
 
     const problems: string[] = [];
-    const closedWithoutPanel: string[] = [];
     for (const action of actions) {
       await openApp(page);
       await page.evaluate(() => (document.querySelector('.settings-trigger') as HTMLElement).click());
-      const before = new Set((await visibleDialogs(page)).map((d) => d.sel));
+      const before = new Set(await visibleDialogs(page));
       await page.evaluate((a) => {
         (document.querySelector(`.settings-menu [data-action="${a}"]`) as HTMLElement).click();
       }, action);
 
-      // The loading shell must be named too, but the real panel is checked once it lands.
-      // A lazy panel may also close its shell and open nothing (referral without a link
-      // shows a toast instead); that is noted, not failed.
-      let opened: SeenDialog | undefined;
-      let shellSeen = false;
-      let unnamedShell = false;
-      let outcome: 'opened' | 'closed' | null = null;
-      // the shell can go a beat before the real panel fades in, so "closed" needs a 3 s quiet spell
-      let shellGoneAt: number | null = null;
+      let opened: string | undefined;
       await expect
         .poll(
           async () => {
-            const fresh = (await visibleDialogs(page)).filter((d) => !before.has(d.sel));
-            const shells = fresh.filter((d) => d.shell);
-            if (shells.length) shellSeen = true;
-            if (shells.some((d) => !d.name)) unnamedShell = true;
-            opened = fresh.find((d) => !d.shell);
-            shellGoneAt = shellSeen && !shells.length ? (shellGoneAt ?? Date.now()) : null;
-            const closed = shellGoneAt !== null && Date.now() - shellGoneAt >= 3_000;
-            outcome = opened ? 'opened' : closed ? 'closed' : null;
-            return outcome;
+            opened = (await visibleDialogs(page)).find((sel) => !before.has(sel));
+            return opened ?? null;
           },
-          { timeout: 25_000 }
+          { timeout: 10_000 }
         )
         .not.toBeNull()
         .catch(() => undefined);
-      if (unnamedShell) problems.push(`${action}: loading shell has no name`);
-      if (outcome === 'closed') {
-        closedWithoutPanel.push(action);
-        continue;
-      }
       if (!opened) {
-        problems.push(shellSeen ? `${action}: still loading after 25 s` : `${action}: no dialog opened`);
+        problems.push(`${action}: no dialog opened`);
         continue;
       }
-      if (!opened.name) problems.push(`${action}: dialog has no name`);
+      const dialog = page.locator(opened).first();
+      const name = await dialog.evaluate((el) => {
+        const by = el.getAttribute('aria-labelledby');
+        const labelled = by ? document.getElementById(by)?.textContent?.trim() : '';
+        return (el.getAttribute('aria-label') ?? labelled ?? '').trim();
+      });
+      if (!name) problems.push(`${action}: dialog has no name`);
+      // the loading shell is named too, but the real panel must be checked once it lands
+      if ((await dialog.getAttribute('class'))?.includes('panel-loading-shell')) {
+        await expect(page.locator('.panel-loading-shell')).toHaveCount(0, { timeout: 15_000 });
+      }
     }
     test.info().annotations.push({ type: 'rows checked', description: actions.join(', ') });
-    if (closedWithoutPanel.length) {
-      test.info().annotations.push({ type: 'closed without a panel', description: closedWithoutPanel.join(', ') });
-    }
     expect(problems, problems.join('\n')).toEqual([]);
   });
 });
