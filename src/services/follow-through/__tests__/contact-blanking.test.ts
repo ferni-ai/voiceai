@@ -6,7 +6,7 @@
  * shows someone's number in the app. All data is synthetic.
  */
 import { describe, expect, it } from 'vitest';
-import { withoutContactDetails } from '../holding.js';
+import { WINDOW, withoutContactDetails } from '../holding.js';
 
 const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   // Brackets: the area code goes with the number, and no stray bracket is left.
@@ -60,6 +60,40 @@ const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   ['email jo_lee99 at example dot io please', 'email an email address please'],
   ['email jo@example.com the form', 'email an email address the form'],
   ['call 415 555 0132 or Vet@Example.COM', 'call a number or an email address'],
+  // Emails: a written dot after a plain "at", a spaced or fullwidth "@", any ending.
+  ['email jane at gmail.com', 'email an email address'],
+  ['email jane at mail.example.co.uk today', 'email an email address today'],
+  ['email jane @ gmail.com today', 'email an email address today'],
+  ['email jane@ gmail.com', 'email an email address'],
+  ['email jane＠gmail.com', 'email an email address'],
+  ['email jane ＠ gmail．com', 'email an email address'],
+  ['email jo at example dot tv', 'email an email address'],
+  ['email jo at example dot xyz', 'email an email address'],
+  ['email jo at example dot app', 'email an email address'],
+  ['email jo at example dot ai', 'email an email address'],
+  ['email jo at example dot dev', 'email an email address'],
+  ['email jo at example dot co', 'email an email address'],
+  ['email jo at example dot studio', 'email an email address'],
+  ['email jo (at) example (dot) shop', 'email an email address'],
+  ["email o'brien at gmail dot com", 'email an email address'],
+  ['email Sarah at google dot com', 'email an email address'],
+  // Phones: any dash, a slash, an underscore or a backslash between the groups.
+  ['call 415/555/0132', 'call a number'],
+  ['call 415–555–0132', 'call a number'],
+  ['call 415—555—0132 now', 'call a number now'],
+  ['call 415‐555‐0132', 'call a number'],
+  ['call 415−555−0132', 'call a number'],
+  ['call 415_555_0132', 'call a number'],
+  ['call 415 \\ 555 \\ 0132', 'call a number'],
+  ['call 415\\555\\0132', 'call a number'],
+  ['call (415)/555/0132', 'call a number'],
+  // Said digits: "o" for zero, and groups split by ";" or a dash.
+  ['four one five five five five o one seven seven', 'a number'],
+  ['call four one five; five five five; oh one three two', 'call a number'],
+  ['call four one five – five five five – o one three two', 'call a number'],
+  // A year counts when the said digits aren't a count.
+  ['call five five five 2026', 'call a number'],
+  ['call four one five 555 2026', 'call a number'],
 ];
 
 const MUST_NOT_BLANK: readonly string[] = [
@@ -114,6 +148,32 @@ const MUST_NOT_BLANK: readonly string[] = [
   'the deal at example.com ends friday',
   'chapter 7 of nine',
   'call mom at 7',
+  // A company at a domain is where someone is, not an address.
+  "he's at amazon dot com",
+  'she’s at google dot com now',
+  "mom's at work dot com today",
+  'lunch at netflix dot com',
+  'job interview at google dot com',
+  'met Sarah at google dot com',
+  'saw Jo at example dot com',
+  'the deal at example.com ends friday',
+  'look at jane dot com',
+  'polka dot dress at the shop',
+  'meet at noon dot then lunch',
+  'meet @ 5.30',
+  // A count with a year after it.
+  'steps one, two, three, 2026 plan',
+  'steps one, two, three, 2026',
+  'three two one, 2026 here we go',
+  'at five o’clock',
+  "at five o'clock",
+  // Slashed dates and ranges with dashes.
+  'on 11/05/2026',
+  'from 11/05/2026 to 11/12/2026',
+  'on 2026/11/05',
+  'dentist 2026–10–22',
+  'pages 100–250',
+  'tickets 3/4',
 ];
 
 describe('withoutContactDetails', () => {
@@ -128,5 +188,36 @@ describe('withoutContactDetails', () => {
 
   it.each(MUST_NOT_BLANK)('leaves %j as written', (input) => {
     expect(withoutContactDetails(input)).toBe(input);
+  });
+
+  it('blanks a number or address in a long text wherever the windows end', () => {
+    const filler = 'we talked about the garden and the weather for a while ';
+    for (const contact of [
+      '415 555 0132',
+      'jo dot lee at example dot com',
+      'four one five five five five o one seven seven',
+    ]) {
+      for (let pad = WINDOW - 60; pad <= WINDOW + 10; pad += 7) {
+        const lead = filler.repeat(Math.ceil(pad / filler.length)).slice(0, pad);
+        const text = `${lead} call ${contact} soon`;
+        const out = withoutContactDetails(text);
+        expect(out).not.toMatch(/\p{Nd}/u);
+        expect(out).not.toMatch(/\b(?:jo|lee|example|seven)\b/);
+      }
+    }
+  });
+
+  // Each of these took seconds on a 100k text before the window cap and the
+  // one-attempt-per-run patterns; now each is a few ms.
+  it.each([
+    ['said dots', 'dot '.repeat(25_000)],
+    ['one run of letters', 'a'.repeat(100_000)],
+    ['dotted letters', 'a.'.repeat(50_000)],
+    ['brackets after a digit', `1${'('.repeat(99_999)}`],
+    ['at and dot', 'x at y dot '.repeat(9_000)],
+  ])('stays linear on 100k chars of %s', (_name, text) => {
+    const start = performance.now();
+    withoutContactDetails(text);
+    expect(performance.now() - start).toBeLessThan(1_000);
   });
 });
