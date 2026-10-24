@@ -3,7 +3,7 @@
  * credential is dropped (credentialCategory); free text keeps its words and loses only the
  * secret (redactCredentials). All values here are fake.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { credentialCategory, luhnValid, type CredentialCategory } from '../spoken-credential.js';
 import {
   redactCredentials,
@@ -12,6 +12,9 @@ import {
   REDACTED,
 } from '../credential-redaction.js';
 
+beforeEach(() => {
+  vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'on');
+});
 afterEach(() => {
   vi.unstubAllEnvs();
 });

@@ -3,7 +3,7 @@
  * summary, a journal entry, a commitment. The secret is replaced by `[redacted]` and every
  * other word kept. It asks the same predicate facts are dropped by (`credentialCategory`), so
  * "my password is hunter2" loses "hunter2" and "I forgot my password" stays as said.
- * SPOKEN_CREDENTIAL_FILTER=off is the kill switch.
+ * SPOKEN_CREDENTIAL_FILTER is off by default; set it on to redact.
  *
  * @module memory/credential-redaction
  */
@@ -147,8 +147,8 @@ function redactText(text: string): string {
 /**
  * Free text the caller said or typed (a transcript turn, a summary, a journal entry, a
  * commitment), with each credential replaced by `[redacted]` and the rest kept. Facts with
- * a key are dropped whole instead (`withoutSpokenCredentials`). SPOKEN_CREDENTIAL_FILTER=off
- * (the kill switch) returns the text untouched.
+ * a key are dropped whole instead (`withoutSpokenCredentials`). With
+ * SPOKEN_CREDENTIAL_FILTER off (the default) the text is returned untouched.
  */
 export function redactCredentials(text: string): string {
   if (typeof text !== 'string' || !text || !spokenCredentialFilterOn()) return text;
