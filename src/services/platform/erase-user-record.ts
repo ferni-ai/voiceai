@@ -145,6 +145,9 @@ export async function eraseUserRecord(
   keyed: readonly KeyedStore[] = KEYED_STORES
 ): Promise<void> {
   assertErasableUserId(userId);
+  // Outreach held in memory goes before and after the sweep, refused from then on (a live session)
+  const { eraseUserOutreachData } = await import('../outreach/outreach-intelligence.js');
+  await eraseUserOutreachData(userId);
   const db = firestore ?? defaultDb();
   // Gathered first: the sweep erases the records the keys are read from
   const keys = keyed.length > 0 ? await gatherKeys(db, userId, keyed) : null;
@@ -184,6 +187,7 @@ export async function eraseUserRecord(
   for (const tier of [1, 2]) {
     await runPhase([...keyedJobs(tier), ...uidJobs(userId, tier)], userId);
   }
+  await eraseUserOutreachData(userId);
 }
 
 /**
