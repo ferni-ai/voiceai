@@ -218,7 +218,10 @@ export async function startSemanticRouting(
   userText: string,
   context: RoutingContext
 ): Promise<TurnRouterResult> {
-  log.info({ userTextLength: userText.length, enabled: isRoutingEnabled() }, '🎯 Semantic routing started');
+  log.info(
+    { userTextLength: userText.length, enabled: isRoutingEnabled() },
+    '🎯 Semantic routing started'
+  );
 
   if (!isRoutingEnabled()) {
     log.warn('⚠️ Semantic routing DISABLED - will fall back to JSON workaround');
@@ -226,7 +229,6 @@ export async function startSemanticRouting(
   }
 
   const startTime = performance.now();
-
   // =========================================================================
   // PHASE 5: ADVERSARIAL DEFENSE - Sanitize input before routing
   // Protects against prompt injection, homoglyphs, and malicious inputs
@@ -281,7 +283,6 @@ export async function startSemanticRouting(
 
   try {
     await getRouter(); // Ensure router is initialized
-
     // =========================================================================
     // SOTA PRE-ROUTING: Apply learning enhancements before routing
     // - Select optimal routing strategy (Thompson Sampling)
@@ -310,7 +311,7 @@ export async function startSemanticRouting(
         '🧠 SOTA pre-routing applied'
       );
     } catch (sotaError) {
-      log.debug({ error: String(sotaError) }, 'SOTA pre-routing skipped (non-fatal)');
+      log.debug(errorFields(sotaError), 'SOTA pre-routing skipped (non-fatal)');
     }
 
     log.info(
@@ -473,7 +474,7 @@ export async function startSemanticRouting(
           }
 
           log.warn(
-            { toolId: topMatch.toolId, error: executeResult.error },
+            { toolId: topMatch.toolId, errorLength: executeResult.error?.length },
             '⚠️ SEMANTIC → EXECUTION FAILED (falling back to JSON workaround)'
           );
         }
@@ -492,7 +493,7 @@ export async function startSemanticRouting(
         };
       } catch (execError) {
         log.warn(
-          { error: String(execError) },
+          errorFields(execError),
           '❌ SEMANTIC → EXECUTION ERROR (falling back to JSON workaround)'
         );
         recordRoutingError(
@@ -602,7 +603,6 @@ async function executeMatchedTool(
   context: RoutingContext
 ): Promise<{ success: boolean; naturalResponse: string; error?: string }> {
   const toolId = match.toolId;
-
   // ==========================================================================
   // DOMAIN BRIDGE: Execute real domain tool if mapping exists
   // ==========================================================================
@@ -643,7 +643,7 @@ async function executeMatchedTool(
       {
         semanticToolId: toolId,
         success: result.success,
-        responsePreview: result.naturalResponse?.slice(0, 100),
+        responseLength: result.naturalResponse?.length,
       },
       '🔗 Domain bridge execution complete'
     );
@@ -710,13 +710,16 @@ async function executeMatchedTool(
     // Handle both ToolExecutionResult and SemanticRoutingResult
     if (isToolExecutionResult(result)) {
       if (result.success) {
-        log.info({ toolId, naturalResponse: result.naturalResponse }, 'Tool executed successfully');
+        log.info(
+          { toolId, responseLength: result.naturalResponse?.length },
+          'Tool executed successfully'
+        );
         return {
           success: true,
           naturalResponse: result.naturalResponse ?? '',
         };
       } else {
-        log.warn({ toolId, error: result.error }, 'Tool execution returned failure');
+        log.warn({ toolId, errorLength: result.error?.length }, 'Tool execution returned failure');
         return {
           success: false,
           naturalResponse: result.naturalResponse ?? '',
@@ -732,7 +735,7 @@ async function executeMatchedTool(
       naturalResponse: `Routing to ${result.tool}`,
     };
   } catch (error) {
-    log.error({ toolId, error: String(error) }, 'Tool execution threw error');
+    log.error({ toolId, ...errorFields(error) }, 'Tool execution threw error');
     return {
       success: false,
       naturalResponse: '',

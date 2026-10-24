@@ -186,7 +186,7 @@ export async function applySOTAPreRouting(context: SOTARoutingContext): Promise<
       isColdStart,
     };
   } catch (error) {
-    log.warn({ error: String(error) }, 'SOTA pre-routing failed, using defaults');
+    log.warn(errorFields(error), 'SOTA pre-routing failed, using defaults');
     return {
       strategy: {
         strategy: 'balanced',
@@ -347,7 +347,7 @@ export function recordSOTAOutcome(outcome: SOTAOutcome, routeResult?: SemanticRo
           metadata: { userId, sessionId },
         })
         .catch((err) => {
-          log.debug({ error: String(err) }, 'Failed to add correction to learning engine');
+          log.debug(errorFields(err), 'Failed to add correction to learning engine');
         });
 
       log.info(
@@ -368,7 +368,7 @@ export function recordSOTAOutcome(outcome: SOTAOutcome, routeResult?: SemanticRo
       'SOTA outcome recorded'
     );
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to record SOTA outcome');
+    log.warn(errorFields(error), 'Failed to record SOTA outcome');
   }
 }
 

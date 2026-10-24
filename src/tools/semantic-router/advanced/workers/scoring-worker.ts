@@ -134,7 +134,7 @@ export class ScoringWorker {
 
     if (foundHighConfidence) {
       log.debug(
-        { query, topTool: results[0]?.toolId },
+        { queryLength: query.length, topTool: results[0]?.toolId },
         'Early termination - high confidence match'
       );
     }

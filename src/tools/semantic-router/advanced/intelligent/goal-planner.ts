@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { errorFields } from '../../../../utils/error-class.js';
 import { GEMINI_MODEL, LLM_TIMEOUT_MS } from '../../../../config/gemini-config.js';
 
 const log = createLogger({ module: 'goal-planner' });
@@ -255,7 +256,6 @@ export class GoalPlanner {
           setTimeout(() => reject(new Error('Planning timeout')), this.config.planningTimeoutMs);
         }),
       ]);
-
       const plan = this.parsePlanResponse(response, userGoal, availableTools);
 
       log.info(
@@ -270,7 +270,7 @@ export class GoalPlanner {
 
       return plan;
     } catch (error) {
-      log.error({ error }, 'Plan creation failed, using heuristic');
+      log.error(errorFields(error), 'Plan creation failed, using heuristic');
       return this.heuristicPlan(userGoal, availableTools);
     }
   }
@@ -405,7 +405,7 @@ Respond ONLY with valid JSON:`;
         createdAt: new Date(),
       };
     } catch (error) {
-      log.warn({ error }, 'Failed to parse plan response');
+      log.warn(errorFields(error), 'Failed to parse plan response');
       return this.heuristicPlan(userGoal, availableTools);
     }
   }
