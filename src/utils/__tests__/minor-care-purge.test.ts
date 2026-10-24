@@ -62,6 +62,23 @@ vi.mock('../../services/superhuman/semantic-intelligence/index.js', () => ({
 
 import { purgeHeldUser } from '../../agents/voice-agent/minor-care-purge.js';
 import {
+  getThinkingRecordsForPersistence,
+  loadThinkingRecords,
+} from '../../services/trust-systems/between-session-thinking.js';
+import {
+  getCuriosityProfileForPersistence,
+  loadCuriosityProfile,
+} from '../../services/trust-systems/curiosity-memory.js';
+import {
+  getPersonaGrowthForPersistence,
+  loadPersonaGrowthProfile,
+} from '../../services/trust-systems/persona-growth.js';
+import {
+  getTonalProfileForPersistence,
+  loadTonalProfile,
+} from '../../services/trust-systems/tonal-memory.js';
+import { getUserGraph, recordMention } from '../../services/social-graph/index.js';
+import {
   purgeUnifiedUser,
   saveSystemData,
 } from '../../services/trust-systems/unified-persistence.js';
@@ -222,6 +239,37 @@ describe('relationship engine: phrases recorded during the held call', () => {
       expect(saved.includes('Riley')).toBe(!purged);
     }
   );
+});
+
+describe("caches a later call saves: the caller's quotes and the people they mentioned", () => {
+  /** What each cache holds for a user: thinking, curiosity, growth, tonal, social graph. */
+  const held = (userId: string) => [
+    getThinkingRecordsForPersistence(userId).length > 0,
+    getCuriosityProfileForPersistence(userId) !== null,
+    getPersonaGrowthForPersistence(userId, 'ferni') !== null,
+    getTonalProfileForPersistence(userId) !== null,
+    getUserGraph(userId) !== undefined,
+  ];
+  const fill = (userId: string) => {
+    const at = new Date();
+    loadThinkingRecords(userId, [{ id: `t-${userId}`, createdAt: at }] as never);
+    loadCuriosityProfile(userId, { userId, mentions: [], lastUpdated: at } as never);
+    loadPersonaGrowthProfile(userId, 'ferni', { growthRecords: [], lastUpdated: at } as never);
+    loadTonalProfile(userId, { userId, patterns: [], lastUpdated: at } as never);
+    recordMention(userId, 'Jess', 'my best friend Jess moved away', -0.4);
+  };
+
+  it("purge drops all five for the held caller and none of another caller's", () => {
+    const a = caller();
+    const b = caller();
+    fill(a.userId);
+    fill(b.userId);
+    expect(held(a.userId)).toEqual([true, true, true, true, true]);
+    a.hold();
+    purgeHeldUser(a.userId);
+    expect(held(a.userId)).toEqual([false, false, false, false, false]);
+    expect(held(b.userId)).toEqual([true, true, true, true, true]);
+  });
 });
 
 describe('a store never writes a user it has not loaded in this process', () => {

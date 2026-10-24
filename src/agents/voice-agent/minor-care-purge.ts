@@ -15,6 +15,11 @@ import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
 import { clearRelationshipEngine } from '../../intelligence/relationship/engine.js';
+import { clearUserThinking } from '../../services/trust-systems/between-session-thinking.js';
+import { clearUserMentions } from '../../services/trust-systems/curiosity-memory.js';
+import { clearAllUserGrowth } from '../../services/trust-systems/persona-growth.js';
+import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js';
+import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -42,6 +47,13 @@ export function purgeHeldUser(userId: string): void {
     ['predictive loaded markers', forgetLoadedUser],
     // recordMoment keeps the caller's phrases; endSession on a later call would save them
     ['relationship engines', (id) => clearRelationshipEngine(id)],
+    // The caller's quotes, kept in memory and saved by a later call's cleanup when nothing
+    // stored replaces them (a held caller's first calls have nothing stored)
+    ['between-session thinking', clearUserThinking],
+    ['curiosity memory', clearUserMentions],
+    ['persona growth', clearAllUserGrowth],
+    ['tonal memory', clearTonalProfile],
+    ['social graph', clearSocialGraph],
     // threads, open loops, commitments…: buffered before the age statement, saved by a later call
     ['semantic intelligence', (id) => clearSemanticIntelligenceCache(id)],
   ];
