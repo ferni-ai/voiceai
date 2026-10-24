@@ -184,7 +184,7 @@ describe('the long-quiet snore, flag on', () => {
     expect(snores()).toHaveLength(0);
   });
 
-  it('asks the sound conductor like the other presence sounds', () => {
+  it('asks the sound conductor as its own kind, snore', () => {
     const { session, warmUp } = call();
     const asked: string[] = [];
     start(session, ON, {
@@ -195,7 +195,7 @@ describe('the long-quiet snore, flag on', () => {
     });
     warmUp();
     vi.advanceTimersByTime(60_000);
-    expect(asked.filter((a) => a.startsWith('presence:recorded-snore:'))).toHaveLength(1);
+    expect(asked.filter((a) => a.startsWith('snore:recorded-snore:'))).toHaveLength(1);
     expect(snores()).toHaveLength(0); // blocked: nothing on the wire
   });
 });

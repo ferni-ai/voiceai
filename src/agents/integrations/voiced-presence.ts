@@ -333,7 +333,7 @@ function startSnore(v: Voiced): () => void {
     const pcm = snores.next();
     if (!pcm) return false;
     const label = SNORE + (presenceClipName(pcm) ?? 'unknown');
-    if (!v.gate('presence', label, () => !v.busy() && v.direct.play(pcm, IDLE_VOLUME, label)))
+    if (!v.gate('snore', label, () => !v.busy() && v.direct.play(pcm, IDLE_VOLUME, label)))
       return false;
     endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
     v.onSound('breath'); // a snore reads as a breath (sound-signal.ts)
