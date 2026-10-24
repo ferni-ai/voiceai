@@ -20,7 +20,7 @@ import {
   type CoalescerStats,
 } from '../../utils/request-coalescer.js';
 import { errorFields } from '../../utils/error-class.js';
-import { EmbeddingApiError } from './embedding-api-error.js';
+import { EmbeddingApiError } from '../../utils/embedding-api-error.js';
 import { getLogger } from '../../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import {
