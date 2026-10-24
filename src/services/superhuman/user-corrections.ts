@@ -11,6 +11,7 @@
 
 import { Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
+import { userHeld } from '../../utils/minor-care.js';
 import {
   onUserCorrectionChange,
   onImplicitPreferenceChange,
@@ -201,6 +202,7 @@ export async function recordCorrection(
     personaId?: string;
   }
 ): Promise<string> {
+  if (userHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
   try {
     const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const category = categorizeCorrection(correction.whatFerniSaid, correction.whatUserCorrected);
@@ -212,7 +214,6 @@ export async function recordCorrection(
       appliedToMemory: false,
     };
 
-    // Save to Firestore
     const ref = await db.collection(`bogle_users/${userId}/corrections`).add({
       ...correctionData,
       createdAt: Timestamp.now(),
@@ -221,7 +222,6 @@ export async function recordCorrection(
     // Index to semantic memory (so we can search for past corrections)
     await onUserCorrectionChange(userId, ref.id, correctionData, 'create');
 
-    // Mark as applied to memory
     await ref.update({ appliedToMemory: true });
 
     log.info({ userId, category, personaId: correction.personaId }, 'User correction recorded');
@@ -356,11 +356,10 @@ export async function recordImplicitPreference(
   userId: string,
   preference: Omit<ImplicitPreferenceEntity, 'firstObserved' | 'lastConfirmed' | 'contradicted'>
 ): Promise<string> {
+  if (userHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
   try {
     const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const now = new Date().toISOString();
-
-    // Check if this preference already exists
     const existing = await db
       .collection(`bogle_users/${userId}/implicit_preferences`)
       .where('preference', '==', preference.preference)
