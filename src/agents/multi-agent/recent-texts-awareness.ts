@@ -11,6 +11,7 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { TextKind } from '../../services/outreach/checkin-replies.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import type { RecentText, RecentTextsStore } from '../../services/outreach/recent-texts.js';
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
@@ -153,7 +154,7 @@ export async function recentTextsBlock(
   deps: RecentTextsDeps = {}
 ): Promise<string> {
   if (!flagOn('CALL_KNOWS_RECENT_TEXTS', deps.env ?? process.env)) return '';
-  if (!userId || userId === 'anonymous') return '';
+  if (!isMemberIdentity(userId)) return '';
   if (!ownerOnLine(sessionId, phoneCall)) return '';
   // Imported here so the greeting's import of this module stays light.
   const { outboundPartiesFor } = await import('../shared/outbound-opener.js');
