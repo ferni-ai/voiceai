@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { flagOn, type Env } from '../config/env-flag.js';
 import { DONE_DAYS, buildOnIt } from '../services/on-it/on-it.js';
+import { errorClass } from '../utils/error-class.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { sendJSON } from './helpers.js';
@@ -45,7 +46,8 @@ export async function handleOnIt(
     ]);
     sendJSON(res, buildOnIt({ userId, live, changed, errands, forgotten, now }));
   } catch (error) {
-    log.error({ error: String(error), userId }, "Could not read what Ferni's on");
+    // The class only: a store error's message can quote the person's item text.
+    log.error({ error: errorClass(error), userId }, "Could not read what Ferni's on");
     sendJSON(res, { error: "Couldn't load this right now" }, 503);
   }
   return true;

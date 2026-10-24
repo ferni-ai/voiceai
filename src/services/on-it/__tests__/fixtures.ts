@@ -47,6 +47,8 @@ export const NEVER_SHOWN = [
   '415-555-0132',
   '4155550199',
   'linda@example.com',
+  '415 555 0177',
+  'a@example.com',
   'Linda',
   'contact-abc',
   'Bright Smile',
@@ -96,7 +98,11 @@ export function changedFollowUps(userId = 'uid-A'): FollowUp[] {
       source: { store: 'outreach_confirm', ref: 'ref-1' },
       action: { tool: 'reachOut', contactId: 'contact-abc', outcome: 'sent' },
     }),
-    closed('done-own', { status: 'done', text: 'book the vet', closedAt: at(-2) }),
+    closed('done-own', {
+      status: 'done',
+      text: 'book the vet, call 415 555 0177 or a@example.com',
+      closedAt: at(-2),
+    }),
     closed('done-skipped', {
       status: 'released',
       kind: 'promise',

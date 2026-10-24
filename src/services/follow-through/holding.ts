@@ -66,8 +66,11 @@ const SOURCE: Readonly<Record<string, HeldSource>> = {
   outreach_confirm: 'on-behalf',
 };
 
-/** A run of digits with phone punctuation between them (7+ digits are blanked). */
-const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
+/**
+ * A run of digits with phone punctuation between them (7+ digits are blanked).
+ * A leading "(415)" goes with it, so no stray bracket is left behind.
+ */
+const PHONE_LIKE = /\+?(?:\(\d{1,4}\)\s?)?\d[\d\s().-]{5,}\d/g;
 /** A whole match that is only an ISO date (real month and day) is a date, not a number. */
 const DATE_ONLY = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
 /** ...or a date and an hour, when the text goes on ":mm" ("2026-10-22 8:30"). */

@@ -80,7 +80,7 @@ describe('buildOnIt', () => {
       'Alex found an opening and would like your okay to book it.'
     );
     expect(rowsOf(view, 'done').map((r) => r.line)).toEqual([
-      'Done: book the vet',
+      'Done: book the vet, call a number or an email address',
       'Sent the message you asked me to send.',
       "I didn't send it. You said not this time.",
     ]);
@@ -161,6 +161,25 @@ describe('buildOnIt', () => {
     expect(view.sections.map((s) => s.id)).toEqual(['waitingOnYou', 'holding', 'done']);
     expect(JSON.stringify(view)).not.toContain('errand:');
     expect(JSON.stringify(view)).not.toContain('b-held');
+  });
+
+  it("another person's rows are left out of every section, even when a store returns them", () => {
+    const other = <T extends { id: string; userId: string }>(f: T): T => ({
+      ...f,
+      id: `b-${f.id}`,
+      userId: 'uid-B',
+    });
+    const view = buildOnIt(
+      input({
+        live: [...liveFollowUps(), ...liveFollowUps().map(other)],
+        changed: [...changedFollowUps(), ...changedFollowUps().map(other)],
+        errands: [...openErrands(), ...openErrands().map(other)],
+      })
+    );
+
+    const ids = view.sections.flatMap((s) => s.rows.map((r) => r.id));
+    expect(ids).toEqual(buildOnIt(input()).sections.flatMap((s) => s.rows.map((r) => r.id)));
+    expect(ids.some((id) => id.includes(':b-'))).toBe(false);
   });
 
   it('nothing open and nothing closed lately gives no sections', () => {

@@ -25,12 +25,29 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
   isVerifiedToken: (r: unknown) => r !== null && typeof r === 'object',
 }));
 
+const routeLog = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+  debug: vi.fn(),
+}));
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/safe-logger.js')>();
+  return {
+    ...actual,
+    createLogger: (bindings: Record<string, unknown>) =>
+      bindings.module === 'on-it-route' ? routeLog : actual.createLogger(bindings),
+  };
+});
+
 const stores = vi.hoisted(() => ({
   reads: [] as string[],
   live: new Map<string, FollowUp[]>(),
   changed: new Map<string, FollowUp[]>(),
   errands: new Map<string, Errand[]>() as Map<string, Errand[]> | null,
   fail: '' as '' | 'live' | 'changed' | 'errands' | 'forgotten',
+  /** When set, the live read throws an error whose message is this text. */
+  failMessage: '',
 }));
 vi.mock('../on-it-deps.js', () => ({
   firestoreOnItDeps: async () => {
@@ -41,6 +58,7 @@ vi.mock('../on-it-deps.js', () => ({
     return {
       live: async (userId: string) => {
         stores.reads.push(userId);
+        if (stores.failMessage) throw new Error(stores.failMessage);
         return read('live', stores.live.get(userId) ?? []);
       },
       changed: async (userId: string) => read('changed', stores.changed.get(userId) ?? []),
@@ -81,6 +99,8 @@ beforeEach(() => {
   vi.stubEnv('FERNI_ON_IT', 'on');
   stores.reads = [];
   stores.fail = '';
+  stores.failMessage = '';
+  for (const fn of Object.values(routeLog)) fn.mockClear();
   stores.live = new Map([
     ['uid-A', liveFollowUps('uid-A')],
     ['uid-B', liveFollowUps('uid-B').map((f) => ({ ...f, text: `B secret ${f.id}` }))],
@@ -172,6 +192,20 @@ describe('GET /api/on-it', () => {
 
     expect(res.status).toBe(503);
     expect(body.sections).toBeUndefined();
+  });
+
+  it("a failed read logs the error's class, never the item text its message quotes", async () => {
+    const sentinel = 'SENTINEL pick up the biopsy results';
+    stores.live.set('uid-A', [{ ...liveFollowUps('uid-A')[0], text: sentinel }]);
+    stores.failMessage = `could not decode row: ${sentinel}`;
+
+    const { res } = await get();
+
+    expect(res.status).toBe(503);
+    expect(routeLog.error).toHaveBeenCalledTimes(1);
+    expect(routeLog.error.mock.calls[0]?.[0]).toMatchObject({ error: 'Error' });
+    const logged = Object.values(routeLog).flatMap((fn) => fn.mock.calls);
+    expect(JSON.stringify(logged)).not.toContain('SENTINEL');
   });
 
   it('errands off: 200 without the doing section', async () => {
