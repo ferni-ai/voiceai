@@ -83,6 +83,7 @@ export class CallTimeline {
   private pending: { text: string; atMs: number; speaker: string } | null = null;
   private chain: Promise<void> = Promise.resolve();
   private readonly personas = new Set<string>();
+  private held = false; // MINOR_CARE: once seen, for the rest of this recorder
 
   constructor(readonly opts: TimelineOptions) {
     this.now = opts.now ?? Date.now;
@@ -95,9 +96,24 @@ export class CallTimeline {
     return Math.round(this.now() - this.startedAtMs);
   }
 
+  /**
+   * MINOR_CARE: once this call is seen held, drop what's buffered and keep nothing more, even if
+   * the hold lifts later in the call (a caller verified as the owner after saying their age).
+   * memoryHeld per event is a map lookup; userHeld (a scan) only at write time.
+   */
+  private latchHeld(atWrite = false): boolean {
+    const { sessionId, userId } = this.opts;
+    if (this.held || !(memoryHeld(sessionId) || (atWrite && userHeld(userId)))) return this.held;
+    this.held = true;
+    this.events.length = 0;
+    this.pending = null;
+    return true;
+  }
+
   /** Never throws: callers sit on the reply path. */
   add(input: TimelineInput, atMs = this.now()): void {
     try {
+      if (this.latchHeld()) return;
       if (this.events.length >= MAX_EVENTS && input.kind !== 'call_end') return void this.dropped++;
       const speaker = input.speaker ?? this.opts.persona();
       if (speaker !== 'caller' && speaker !== 'system') this.personas.add(speaker);
@@ -113,7 +129,7 @@ export class CallTimeline {
 
   /** The reply text at the TTS hand-off, held until LiveKit commits what was heard. */
   generated(text: string): void {
-    if (!text.trim()) return;
+    if (!text.trim() || this.latchHeld()) return;
     this.unheard();
     this.pending = { text, atMs: this.now(), speaker: this.opts.persona() };
   }
@@ -159,7 +175,7 @@ export class CallTimeline {
     if (total === this.written) return; // nothing new (the end adds call_end)
     const conv = conversationId();
     // As turns are stored: a member with a conversation, and never while memory is held.
-    if (!isMemberIdentity(userId) || !conv || memoryHeld(sessionId) || userHeld(userId)) {
+    if (!isMemberIdentity(userId) || !conv || this.latchHeld(true)) {
       return log.info({ sessionId, events: total }, 'CALL_TIMELINE skipped');
     }
     const chunks = Math.ceil(total / CHUNK_EVENTS);
