@@ -296,6 +296,19 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
 }
 
 /**
+ * Every writer's one check (MINOR_CARE on): this session is held, any of this user's sessions
+ * is, or the id is a placeholder that can't be bound to a session (userHeld can't see it).
+ */
+export function writeHeld(
+  userId: string | undefined,
+  sessionId?: string,
+  env: Env = process.env
+): boolean {
+  if (!minorCareOn(env)) return false;
+  return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
+}
+
+/**
  * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
  * true for any of this user's sessions, from either detector. Never refreshes a session, so a
  * timer can't keep a hold alive past IDLE_MS.
@@ -311,7 +324,7 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
 }
 
 export const MINOR_CARE_NOTE =
-  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner.]";
+  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]";
 
 /**
  * The note for this reply: flag on, the caller sounds under 18 and isn't a

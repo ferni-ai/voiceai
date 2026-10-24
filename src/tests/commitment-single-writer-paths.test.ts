@@ -59,6 +59,8 @@ const { trackCommitmentDef } = await import('../tools/domains/proactive/index.js
 const { loadActiveCommitmentsOrThrow, commitmentCache } =
   await import('../services/superhuman/commitment-store.js');
 const { loadCallCheckIns } = await import('../services/superhuman/commitment-follow-up.js');
+const { forgetFlagCache } = await import('../services/platform/cohort-flags.js');
+const { firestoreCohortStore } = await import('../services/platform/cohort-firestore.js');
 
 const UID = 'u-writer';
 const START = new Date('2026-10-20T15:00:00Z');
@@ -110,6 +112,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   delete process.env.COMMITMENT_SINGLE_WRITER;
+  delete process.env.COHORT_FLAGS;
+  forgetFlagCache();
 });
 
 describe('the per-turn context builder', () => {
@@ -160,5 +164,72 @@ describe('a commitment the caller asks a tool for', () => {
     expect((await loadActiveCommitmentsOrThrow(UID)).map((c) => c.summary)).toEqual([
       'send Jen the deck by Friday',
     ]);
+  });
+});
+
+/**
+ * The tool tags when the call's env or the person's own value is on: the
+ * readers decide per person (singleWriterFor), but the call-start cohort read
+ * may time out (400 ms) and the next call's check-in reads the env.
+ */
+describe('a tool row, when the call env and the person disagree', () => {
+  const personSays = (value: 'on' | 'off') => {
+    process.env.COHORT_FLAGS = 'on';
+    fs.store.set(`feature_flag_overrides/${UID}`, { flags: { COMMITMENT_SINGLE_WRITER: value } });
+  };
+  const tagged = () =>
+    rows()
+      .filter((r) => r.source === 'user-request')
+      .map((r) => r.summary)
+      .sort();
+
+  it('env off, person on: tagged, so the readers that hide legacy rows still show it', async () => {
+    personSays('on');
+    await record()(DECK);
+    await track()({ summary: 'book the dentist for Friday', type: 'promise' });
+    expect(tagged()).toEqual(['book the dentist for Friday', 'send Jen the deck']);
+    expect((await loadActiveCommitmentsOrThrow(UID)).map((c) => c.summary).sort()).toEqual([
+      'book the dentist for Friday',
+      'send Jen the deck',
+    ]);
+  });
+
+  it('env on, person off: tagged too, so a check-in that reads the env still asks', async () => {
+    process.env.COMMITMENT_SINGLE_WRITER = 'on';
+    personSays('off');
+    await record()(DECK);
+    await track()({ summary: 'book the dentist for Friday', type: 'promise' });
+    expect(tagged()).toEqual(['book the dentist for Friday', 'send Jen the deck']);
+    // The person's readers are off: every row reads as on main, the tag changes nothing.
+    expect((await loadActiveCommitmentsOrThrow(UID)).map((c) => c.summary).sort()).toEqual([
+      'book the dentist for Friday',
+      'send Jen the deck',
+      'sign off now',
+    ]);
+    // The next call's cohort read fails again, so its check-in goes by the env (on).
+    const asked = (await loadCallCheckIns(UID, undefined, LATER)).map((c) => c.statement);
+    expect(asked).toContain('send Jen the deck tomorrow');
+  });
+
+  it('a slow cohort read holds the tool at most ~400 ms, and the env decides', async () => {
+    personSays('on');
+    const slow = vi.spyOn(firestoreCohortStore, 'overridesFor').mockImplementation(
+      () =>
+        new Promise((r) => {
+          setTimeout(() => r({ COMMITMENT_SINGLE_WRITER: 'on' }), 3000);
+        })
+    );
+    try {
+      const t0 = performance.now();
+      expect(await record()(DECK)).toMatch(/^Got it/);
+      expect(performance.now() - t0).toBeLessThan(450);
+      expect(slow).toHaveBeenCalled();
+      // Stored as on main: the env says off and the person's value came too late.
+      const stored = rows().find((r) => r.summary === 'send Jen the deck');
+      expect(stored).toBeDefined();
+      expect(stored).not.toHaveProperty('source');
+    } finally {
+      slow.mockRestore();
+    }
   });
 });

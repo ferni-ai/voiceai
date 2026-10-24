@@ -51,6 +51,7 @@ import {
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
+import { attachCallTimeline } from '../shared/call-timeline-session.js';
 import { addRecallNote, type RecallAgent } from './recall-note.js';
 
 const log = getLogger();
@@ -70,6 +71,8 @@ export interface LiveCallBehaviorsInput {
 
 export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   const { session, sessionEventHandlers, cleanupFunctions, sessionId, userId } = input;
+  // CALL_TIMELINE: the whole call in order, sounds and cut replies too (call-timeline.ts)
+  cleanupFunctions.push(attachCallTimeline(session as never, { sessionId, userId }));
   const sessionWithEvents = input.sessionWithEvents as {
     on: (event: string, handler: Handler) => void;
   };
