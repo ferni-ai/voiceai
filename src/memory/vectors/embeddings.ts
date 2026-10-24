@@ -19,6 +19,7 @@ import {
   hashContent,
   type CoalescerStats,
 } from '../../utils/request-coalescer.js';
+import { errorClass } from '../../utils/error-class.js';
 import { getLogger } from '../../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import {
@@ -35,33 +36,19 @@ export type { RustEmbeddingVector as EmbeddingVectorLike };
 // CIRCUIT BREAKERS (Redis-backed for cross-instance coordination)
 // ============================================================================
 
-// Start with local breakers, upgrade to Redis async
-let openaiEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('openai-embeddings', {
-  failureThreshold: 5,
-  resetTimeout: 30000,
-  successThreshold: 2,
-});
+const BREAKER_CONFIG = { failureThreshold: 5, resetTimeout: 30000, successThreshold: 2 };
 
-let googleEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('google-embeddings', {
-  failureThreshold: 5,
-  resetTimeout: 30000,
-  successThreshold: 2,
-});
+// Start with local breakers, upgrade to Redis async
+let openaiEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('openai-embeddings', BREAKER_CONFIG);
+
+let googleEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('google-embeddings', BREAKER_CONFIG);
 
 // Upgrade to Redis-backed breakers (non-blocking)
 // When one instance hits OpenAI rate limits, ALL instances back off
 void (async () => {
   try {
-    openaiEmbeddingBreaker = await getRedisCircuitBreakerAsync('openai-embeddings', {
-      failureThreshold: 5,
-      resetTimeout: 30000,
-      successThreshold: 2,
-    });
-    googleEmbeddingBreaker = await getRedisCircuitBreakerAsync('google-embeddings', {
-      failureThreshold: 5,
-      resetTimeout: 30000,
-      successThreshold: 2,
-    });
+    openaiEmbeddingBreaker = await getRedisCircuitBreakerAsync('openai-embeddings', BREAKER_CONFIG);
+    googleEmbeddingBreaker = await getRedisCircuitBreakerAsync('google-embeddings', BREAKER_CONFIG);
     getLogger().debug('Embedding circuit breakers upgraded to Redis-backed');
   } catch {
     // Keep using local breakers
@@ -233,7 +220,7 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
         return results;
       });
     } catch (error) {
-      getLogger().error(`Embedding error: ${error}`);
+      getLogger().error({ error: errorClass(error) }, 'Embedding failed');
       throw error;
     }
   }
@@ -356,7 +343,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
         return results;
       });
     } catch (error) {
-      getLogger().error(`Google embedding error: ${error}`);
+      getLogger().error({ error: errorClass(error) }, 'Google embedding failed');
       throw error;
     }
   }
@@ -479,7 +466,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
       getLogger().debug(`Generated ${validTexts.length} Vertex AI embeddings (${this._model})`);
       return results;
     } catch (error) {
-      getLogger().error(`Vertex AI embedding error: ${error}`);
+      getLogger().error({ error: errorClass(error) }, 'Vertex AI embedding failed');
       throw error;
     }
   }
