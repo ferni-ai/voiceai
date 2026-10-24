@@ -33,7 +33,8 @@ const { getCustomAgent } =
   await import('../../../services/custom-agent/custom-agent-persistence-service.js');
 
 const RETIRED = '3ebcd114-d280-4eed-a238-b9323a6b8e52'; // RETIRED_CLONE_VOICE_IDS
-const FERNI = '2e7f8a26-1627-4d66-88dc-293c297c1619'; // VOICE_IDS.FERNI
+const FERNI = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc'; // VOICE_IDS.FERNI since 2026-10-20
+const CALM_B = '2e7f8a26-1627-4d66-88dc-293c297c1619'; // FERNI_CALM_B_VOICE_ID, the rollback
 const STOCK = '694f9389-aac1-45b6-b726-9d9369183238';
 const DEFAULT = '69092565-1c93-4a88-9f2c-ac8cddaf9f65'; // Janice, DEFAULT_CUSTOM_AGENT_VOICE_ID
 
@@ -149,7 +150,7 @@ describe('PUT /api/custom-agents/:id', () => {
 
 describe('PUT /api/custom-agents/:id/voice/select-premade', () => {
   it('refuses an id that is not a stock library voice, without marking anything ready', async () => {
-    for (const id of ['cartesia-friendly-female', RETIRED, FERNI]) {
+    for (const id of ['cartesia-friendly-female', RETIRED, FERNI, CALM_B]) {
       const { status, body } = await selectPremade(id);
       expect(status).toBe(400);
       expect(body.error).toBe('unknown_voice');
@@ -173,6 +174,7 @@ describe('the runtime voice', () => {
     expect(await withVoice({ type: 'selected', voiceId: RETIRED, status: 'ready' })).toBe(DEFAULT);
     expect(await withVoice({ type: 'cloned', voiceId: RETIRED, status: 'ready' })).toBe(DEFAULT);
     expect(await withVoice({ type: 'selected', voiceId: FERNI, status: 'ready' })).toBe(DEFAULT);
+    expect(await withVoice({ type: 'selected', voiceId: CALM_B, status: 'ready' })).toBe(DEFAULT);
   });
 
   it("keeps a stock voice and the agent's own finished clone", async () => {

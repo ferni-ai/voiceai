@@ -42,13 +42,49 @@ const words = (t) =>
     .match(/[a-z']+/g) ?? [];
 const contentWords = (t) => new Set(words(t).filter((w) => w.length >= 5 && !STOP.has(w)));
 
-/** A growing or corrected caption of one utterance shares at least half its start. */
+const captionKey = (t) =>
+  t
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Whether the next caption is the previous utterance growing ("I'm" → "I'm
+ * 34.") or having its tail revised by STT, rather than a new utterance. A new
+ * utterance restarts short ("I'm 34." → "I"), so a shared first letter is not
+ * enough: the next caption must extend the previous one, or share at least
+ * half of the longer of the two (prod 2026-10-23: "I teach 9th grade" erased
+ * "I'm 34." and the judge never saw the caller's age).
+ */
 function sameUtterance(prev, next) {
-  const a = prev.toLowerCase();
-  const b = next.toLowerCase();
+  const a = captionKey(prev);
+  const b = captionKey(next);
+  if (!a || !b) return false;
+  if (b.startsWith(a)) return true;
   let i = 0;
   while (i < a.length && i < b.length && a[i] === b[i]) i++;
-  return i > 0 && i >= Math.min(a.length, b.length) / 2;
+  return i >= Math.max(a.length, b.length) / 2;
+}
+
+// A caption this soon after a longer one it is the start of is an interim
+// delivered out of order, not a new line: "That's all." then "That" 1 ms later.
+// A real new line comes a second or more after the last caption (2026-10-23 runs).
+const STALE_MS = 300;
+
+function withoutStaleCaptions(events) {
+  let prev = null;
+  return events.filter((e) => {
+    if (e.who !== 'user') {
+      prev = null;
+      return true;
+    }
+    const a = prev ? captionKey(prev.text) : '';
+    const b = captionKey(e.text);
+    const stale = prev && e.t - prev.t < STALE_MS && b.length < a.length && a.startsWith(b);
+    if (!stale) prev = e;
+    return !stale;
+  });
 }
 
 /**
@@ -61,7 +97,7 @@ export function turnsOf(run, { greeting = false } = {}) {
   const firstUserAt = run.userSpeech?.[0]?.[0] ?? 0;
   const turns = [];
   let segs = []; // the current caller turn's separate utterances
-  for (const e of run.events ?? []) {
+  for (const e of withoutStaleCaptions(run.events ?? [])) {
     const isGreeting = e.who === 'agent' && e.t <= firstUserAt;
     if (isGreeting && !greeting) continue;
     const last = turns[turns.length - 1];
