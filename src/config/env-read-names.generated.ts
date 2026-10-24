@@ -16,6 +16,7 @@
  * @module config/env-read-names.generated
  */
 export const ENV_READ_NAMES: readonly string[] = `
+  ACTION_CLAIM_BARE_WILL
   ACTION_CLAIM_GUARD
   ACTION_CLAIM_PAST
   ACTION_CLAIM_STREAM
