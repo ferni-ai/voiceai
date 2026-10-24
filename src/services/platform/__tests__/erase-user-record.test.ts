@@ -185,6 +185,21 @@ describe('eraseUserRecord', () => {
     expect(docs.has('users/u-1/calendar_events/e1')).toBe(false);
   });
 
+  it('erases "That felt off" reports and their daily quota (api/call-telemetry)', async () => {
+    const stores = ERASED_STORES.filter((s) =>
+      ['call_felt_off', 'call_felt_off_quota'].includes(s.collection)
+    );
+    const { db, docs } = fakeFirestore({
+      'call_felt_off/r1': { uid: 'u-1', note: 'cut out twice' },
+      'call_felt_off/r2': { uid: 'u-2' },
+      'call_felt_off_quota/u-1': { day: '2026-10-22' },
+      'call_felt_off_quota/u-2': { day: '2026-10-22' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect(await findUserRecordRemnants(db, 'u-1', stores)).toEqual([]);
+    expect([...docs.keys()].sort()).toEqual(['call_felt_off/r2', 'call_felt_off_quota/u-2']);
+  });
+
   it.each(['', 'a/b', 'u-1/dynamic_facts', '.', '..'])(
     'refuses %j without touching Firestore (a "/" would address another path)',
     async (badId) => {
