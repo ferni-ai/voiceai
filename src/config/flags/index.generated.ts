@@ -11,6 +11,7 @@
  *
  * @module config/flags/index.generated
  */
+export { SELF_VOICE_GATE } from './SELF_VOICE_GATE.js';
 export { ATTUNE_LEDGER } from './ATTUNE_LEDGER.js';
 export { BARGE_IN_FAST_STOP } from './BARGE_IN_FAST_STOP.js';
 export { BARGE_IN_SOFT_PAUSE } from './BARGE_IN_SOFT_PAUSE.js';

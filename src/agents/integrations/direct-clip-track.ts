@@ -31,6 +31,7 @@ import {
 } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
 import { logVoicedTake } from './voiced-presence.js';
+import { tapClipSource } from '../multi-agent/self-voice-gate/session-gate.js';
 
 const log = createLogger({ module: 'DirectClipTrack' });
 
@@ -115,7 +116,7 @@ export class DirectClipTrack {
 
   constructor(
     private readonly onWire: (wire: ClipWire) => void = () => {},
-    private readonly source: AudioSource = new AudioSource(RATE, 1, DIRECT_CAPACITY_MS)
+    readonly source: AudioSource = new AudioSource(RATE, 1, DIRECT_CAPACITY_MS)
   ) {}
 
   /** Publish the track and start feeding it. */
@@ -285,6 +286,7 @@ export async function startDirectClips(
     await track.close();
     return null;
   }
+  tapClipSource(session, track.source); // SELF_VOICE_GATE: clips are Ferni's voice too
   const onUser = (ev: { newState?: string }): void => {
     if (ev.newState === 'speaking' && track.cancelIfFresh())
       log.info({ by: 'vad' }, 'CLIP_CANCELLED');
