@@ -7,6 +7,10 @@ import {
   buildGraph,
   check,
   compare,
+  enforcement,
+  newViolations,
+  ORCHESTRATION_ENFORCED_FROM,
+  orchestrationHint,
   placementOf,
   scoreboard,
   toBaseline,
@@ -141,6 +145,160 @@ describe('architecture gate: what the graph sees', () => {
       'src/app/main.ts': 'export const x = 1;\n',
     });
     expect(vs).toEqual([]);
+  });
+});
+
+describe('architecture gate: orchestration reaches contexts through their index.ts', () => {
+  it('catches L4 and L5 importing a context file other than its index.ts', () => {
+    const vs = violations({
+      'src/pipeline/turn.ts': "import { recall } from '../memory/recall/engine.js';\n",
+      'src/app/route.ts': "export async function h() { return import('../affect/deep/arc.js'); }\n",
+      'src/memory/recall/engine.ts': 'export const recall = 1;\n',
+      'src/affect/deep/arc.ts': 'export {};\n',
+    });
+    expect(rules(vs)).toEqual([
+      'orchestration-internal src/app/route.ts -> src/affect/deep/arc.ts',
+      'orchestration-internal src/pipeline/turn.ts -> src/memory/recall/engine.ts',
+    ]);
+  });
+
+  it("allows the context's index.ts, the kernel and adapters", () => {
+    expect(
+      violations({
+        'src/pipeline/turn.ts': [
+          "import { recall } from '../memory/index.js';",
+          "import { arc } from '../affect';",
+          "import { K } from '../kernel/user.js';",
+          "import { db } from '../adapters/db.js';",
+        ].join('\n'),
+        'src/memory/index.ts': 'export const recall = 1;\n',
+        'src/affect/index.ts': 'export const arc = 1;\n',
+        'src/kernel/user.ts': 'export const K = 1;\n',
+        'src/adapters/db.ts': 'export const db = 1;\n',
+      })
+    ).toEqual([]);
+  });
+
+  it('files a type-only reach-through under type-orchestration-internal', () => {
+    const vs = violations({
+      'src/pipeline/turn.ts': "import type { Fact } from '../memory/recall/types.js';\n",
+      'src/memory/recall/types.ts': 'export type Fact = 1;\n',
+    });
+    expect(rules(vs)).toEqual(['type-orchestration-internal src/pipeline/turn.ts -> src/memory/recall/types.ts']);
+  });
+
+  it('fails a new reach-through against a baseline that grandfathers an old one', () => {
+    const files = {
+      'src/pipeline/old.ts': "import { recall } from '../memory/recall/engine.js';\n",
+      'src/memory/recall/engine.ts': 'export const recall = 1;\n',
+    };
+    const base = toBaseline(violations(files));
+    expect(base['orchestration-internal']).toEqual(['src/pipeline/old.ts -> src/memory/recall/engine.ts']);
+    const now = violations({ ...files, 'src/pipeline/new.ts': "import { recall } from '../memory/recall/engine.js';\n" });
+    expect(compare(base, now).added.map((v) => `${v.rule} ${v.from}`)).toEqual(['orchestration-internal src/pipeline/new.ts']);
+  });
+
+  it('counts reach-throughs per target context on the scoreboard', () => {
+    const graph = buildGraph(
+      repo({ 'src/pipeline/a.ts': "import '../memory/deep/b.js';\n", 'src/memory/deep/b.ts': 'export {};\n' })
+    );
+    const board = scoreboard(graph.files, graph.edges, check(graph, MAP), MAP);
+    expect(board).toMatch(/\| L4 → L3 \| 1 \| 0 \|/);
+    expect(board).toMatch(/\| memory \| 1 \| 0 \| 0 \| 0 \| 0 \| 1 \|/);
+  });
+});
+
+describe('architecture gate: only what the change adds fails (merge-base comparison)', () => {
+  const v = (from: string, to: string, rule: Violation['rule'] = 'orchestration-internal'): Violation => ({ rule, from, to, line: 1 });
+  const same = (p: string): string => p;
+
+  it('passes edges the base already had, and fails a new one', () => {
+    const base = [v('src/a.ts', 'src/m/x.ts')];
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts')], base, same)).toEqual([]);
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts'), v('src/a.ts', 'src/m/y.ts')], base, same)).toEqual([
+      v('src/a.ts', 'src/m/y.ts'),
+    ]);
+  });
+
+  it('keeps the edges of a moved file, and of an import of a moved file', () => {
+    const base = [v('src/a.ts', 'src/m/x.ts')];
+    const renamed = (p: string): string => ({ 'src/moved/a.ts': 'src/a.ts', 'src/m/z.ts': 'src/m/x.ts' })[p] ?? p;
+    expect(newViolations([v('src/moved/a.ts', 'src/m/z.ts')], base, renamed)).toEqual([]);
+  });
+
+  it('treats an import moved from one file to another as moved, once', () => {
+    const base = [v('src/big.ts', 'src/m/x.ts')];
+    const isNew = (p: string): string | null => (p === 'src/part.ts' ? null : p);
+    expect(newViolations([v('src/part.ts', 'src/m/x.ts')], base, isNew)).toEqual([]); // split out of big.ts
+    expect(newViolations([v('src/part.ts', 'src/m/x.ts'), v('src/other.ts', 'src/m/x.ts')], base, isNew)).toEqual([
+      v('src/other.ts', 'src/m/x.ts'),
+    ]);
+  });
+
+  it('passes an import turned type-only: type-X is known when the base had X on the same edge', () => {
+    const base = [v('src/a.ts', 'src/m/x.ts', 'upward')];
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts', 'type-upward')], base, same)).toEqual([]);
+    // the other way round is not free: a type-only edge turned runtime is new runtime coupling
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts', 'upward')], [v('src/a.ts', 'src/m/x.ts', 'type-upward')], same)).toHaveLength(1);
+  });
+
+  it('fails every violation of a new file that no removed edge accounts for', () => {
+    expect(newViolations([v('src/new.ts', 'src/m/x.ts', 'upward')], [], (p) => (p === 'src/new.ts' ? null : p))).toHaveLength(1);
+  });
+});
+
+describe('architecture gate: orchestration-internal warns until its enforcement date', () => {
+  const v = (rule: Violation['rule']): Violation => ({ rule, from: 'src/pipeline/a.ts', to: 'src/memory/x.ts', line: 1 });
+  const added = [v('orchestration-internal'), v('type-orchestration-internal'), v('upward')];
+
+  it('is pinned to 2026-10-30', () => {
+    expect(ORCHESTRATION_ENFORCED_FROM).toBe('2026-10-30');
+  });
+
+  it('warns the day before: orchestration imports are warnings, every other rule still fails', () => {
+    const r = enforcement(added, '2026-10-29');
+    expect(r.warnings.map((x) => x.rule)).toEqual(['orchestration-internal', 'type-orchestration-internal']);
+    expect(r.errors.map((x) => x.rule)).toEqual(['upward']);
+  });
+
+  it('fails from the date itself, and after', () => {
+    for (const day of ['2026-10-30', '2026-11-15']) {
+      const r = enforcement(added, day);
+      expect(r.warnings, day).toEqual([]);
+      expect(r.errors.map((x) => x.rule), day).toEqual(['orchestration-internal', 'type-orchestration-internal', 'upward']);
+    }
+  });
+});
+
+describe('architecture gate: orchestration entry points', () => {
+  it('accepts a sub-folder index.ts as an entry into the context', () => {
+    expect(
+      violations({
+        'src/pipeline/turn.ts': "import { recall } from '../memory/recall/index.js';\n",
+        'src/memory/recall/index.ts': 'export const recall = 1;\n',
+      })
+    ).toEqual([]);
+  });
+
+  it('suggests the narrowest existing entry, or says there is none', () => {
+    const r = repo({
+      'src/memory/index.ts': 'export {};\n'.repeat(40),
+      'src/memory/recall/index.ts': 'export {};\n',
+      'src/memory/recall/engine.ts': 'export {};\n',
+      'src/memory/recall/deep/leaf.ts': 'export {};\n',
+      'src/memory/store/file.ts': 'export {};\n',
+      'src/affect/arc/inner.ts': 'export {};\n',
+    });
+    expect(orchestrationHint('src/memory/recall/engine.ts', r, MAP)).toBe(
+      'import src/memory/recall/index.ts instead (export what you need there)'
+    );
+    expect(orchestrationHint('src/memory/recall/deep/leaf.ts', r, MAP)).toMatch(
+      /^src\/memory\/recall\/deep\/ has no index\.ts; import the nearest entry, src\/memory\/recall\/index\.ts/
+    );
+    expect(orchestrationHint('src/memory/store/file.ts', r, MAP)).toMatch(
+      /the nearest entry is the 41-line src\/memory\/index\.ts: add src\/memory\/store\/index\.ts/
+    );
+    expect(orchestrationHint('src/affect/arc/inner.ts', r, MAP)).toMatch(/^no index\.ts between src\/affect\/arc\/ and src\/affect\//);
   });
 });
 
