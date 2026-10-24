@@ -24,14 +24,14 @@ const DROPPED = metric({
   completionTokens: 0,
 });
 
-function recorder() {
+function recorder(env: Record<string, string> = {}) {
   const receipts: TurnReceipt[] = [];
   const rec = new TurnReceiptRecorder({
     sessionId: 'RM_llm',
     userId: undefined,
     persona: () => 'ferni',
     emit: (r) => receipts.push(r),
-    env: {},
+    env,
   });
   rec.onMetric({ type: 'eou_metrics', endOfUtteranceDelayMs: 300, transcriptionDelayMs: 90 });
   const end = (): TurnReceipt => {
@@ -102,6 +102,27 @@ describe('TURN_RECEIPT llm metric', () => {
     expect(r.prompt.requests).toBe(2);
     expect(r.prompt.sections).toEqual(expected.prompt.sections);
     expect(r.prompt.totalTokensEst).toBe(expected.prompt.totalTokensEst);
+  });
+
+  it('on a tool turn, lane and tool schema come from the reported request too', () => {
+    const { rec, end } = recorder({ CASCADE_FAST_LANE: 'on' });
+    const said = [{ type: 'message', role: 'user', textContent: 'hello there' }];
+    rec.onRequest(said as never, 90, 111);
+    rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
+    rec.onRequest([{ type: 'function_call', name: 'getWeather' }], 113, 999); // after the tool
+    rec.onMetric({ ...metric({ ttftMs: 500, promptTokens: 13_500 }) });
+    const r = end();
+    expect(r.prompt.lane).toEqual({ lane: 'fast', reason: 'chat' });
+    expect(r.tools).toMatchObject({ offered: 90, schemaChars: 111 });
+  });
+
+  it("a metric from before the first request of its turn still reports that turn's own request", () => {
+    const { rec, end } = recorder();
+    rec.onMetric({ ...metric({ ttftMs: 300, promptTokens: 12_000 }) }); // an earlier turn's reply
+    rec.onRequest([], 113);
+    const r = end();
+    expect(r.tokens?.prompt).toBe(12_000);
+    expect(r.tools.offered).toBe(113);
   });
 
   it('a reply the caller cut beats an earlier dropped one', () => {

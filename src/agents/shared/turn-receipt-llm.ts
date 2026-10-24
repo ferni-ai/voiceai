@@ -42,12 +42,14 @@ export function replyMetric(kept: LlmMetric | undefined, next: LlmMetric): LlmMe
  * it measures (requestOf, taken now: the metric arrived when that request ended).
  */
 export function keepLlm(
-  turn: RequestView & { llm?: LlmMetric; llmRequest?: RequestView },
+  turn: RequestView & { llm?: LlmMetric; llmRequest?: RequestView; requests: number },
   next: LlmMetric
 ): void {
   if (replyMetric(turn.llm, next) !== next) return;
   turn.llm = next;
-  turn.llmRequest = requestOf(turn);
+  // Before this turn's first request, the metric is from an earlier turn's request:
+  // the turn's own request is then reported, as before this change.
+  if (turn.requests > 0) turn.llmRequest = requestOf(turn);
 }
 
 /**
