@@ -18,6 +18,7 @@ import type {
   ReferralResource,
   ReferralTarget,
 } from './types.js';
+import { referralResources } from './referral-resources.js';
 
 const log = createLogger({ module: 'HumanReferral' });
 
@@ -460,6 +461,7 @@ export function analyzeReferralNeed(
     relationshipStage?: string;
   } = { userId: '' }
 ): HumanReferralResult {
+  const matched: Array<(typeof REFERRAL_TRIGGERS)[0]> = [];
   let highestUrgency: 'low' | 'medium' | 'high' | 'immediate' = 'low';
   let bestMatch: (typeof REFERRAL_TRIGGERS)[0] | null = null;
   let maxConfidence = 0;
@@ -472,7 +474,7 @@ export function analyzeReferralNeed(
         highestUrgency = trigger.urgency;
       }
 
-      // Track best match
+      matched.push(trigger);
       if (trigger.confidence > maxConfidence) {
         maxConfidence = trigger.confidence;
         bestMatch = trigger;
@@ -480,7 +482,6 @@ export function analyzeReferralNeed(
     }
   }
 
-  // If no match found
   if (!bestMatch) {
     return {
       shouldRefer: false,
@@ -501,8 +502,7 @@ export function analyzeReferralNeed(
 
   const shouldRefer = maxConfidence >= 0.5;
 
-  // Get resources and framing
-  const resources = REFERRAL_RESOURCES[bestMatch.target] || [];
+  const resources = referralResources(REFERRAL_RESOURCES, highestUrgency, bestMatch, matched);
   const framings = REFERRAL_FRAMINGS[bestMatch.reason] || [];
   const suggestedFraming = framings[Math.floor(Math.random() * framings.length)] || null;
 

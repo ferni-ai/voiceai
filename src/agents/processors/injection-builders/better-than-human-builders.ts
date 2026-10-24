@@ -16,6 +16,7 @@
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import { flagOn } from '../../../config/env-flag.js';
+import { isSharedPlaceholderId } from '../../../utils/synthetic-user.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
@@ -435,10 +436,12 @@ async function withinBudget<T>(work: Promise<T>, fallback: T, ms: number): Promi
 
 /**
  * Build crisis history context injection for users who had recent crisis.
+ * PRIVACY: no id or a placeholder id reads nothing; a shared bucket holds other callers' crises.
  */
 export async function buildCrisisHistoryInjection(
-  userId: string
+  userId: string | undefined
 ): Promise<ContextInjection | null> {
+  if (userId === undefined || isSharedPlaceholderId(userId)) return null;
   try {
     const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
 
