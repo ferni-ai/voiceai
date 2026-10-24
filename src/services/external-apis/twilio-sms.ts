@@ -22,9 +22,9 @@ const twilioCircuitBreaker = getCircuitBreaker('twilio-sms', {
 let twilioClient: ReturnType<typeof import('twilio')> | null = null;
 
 /**
- * Get or create the Twilio client
+ * Get or create the Twilio client (null when Twilio is not configured)
  */
-async function getTwilioClient() {
+export async function getTwilioClient() {
   if (twilioClient) return twilioClient;
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID;

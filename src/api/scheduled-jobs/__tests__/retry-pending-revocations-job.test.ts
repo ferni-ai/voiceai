@@ -27,6 +27,7 @@ describe('retry-pending-revocations job', () => {
       job: 'retry-pending-revocations',
       revoked: 1,
       retrying: 1,
+      twilio: { skipped: 'flag-off' }, // TWILIO_ERASE_ON_DELETE is off by default
     });
   });
 

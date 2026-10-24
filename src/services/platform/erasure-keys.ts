@@ -42,6 +42,8 @@ export interface ErasureKeys {
   sponsoredIdentityIds: string[];
   /** Kept for billing to close once the profiles holding them are gone */
   stripeCustomerIds: string[];
+  /** The person's phones (E.164): verified, or a linked phone profile's; none another sign-in linked */
+  phones: string[];
 }
 
 /** The document id the waitlist and user_profiles writers derive from an email (waitlist-routes.ts) */
@@ -83,7 +85,7 @@ async function phoneProfiles(
   userId: string,
   phones: string[],
   providers: string[]
-): Promise<Snap[]> {
+): Promise<{ profiles: Snap[]; shared: Set<string> }> {
   const byPhone = await Promise.all(
     phones.map(async (phone) => db.collection('bogle_users').doc(`${PHONE_PROFILE}${phone}`).get())
   );
@@ -94,17 +96,19 @@ async function phoneProfiles(
     )
   );
   const found = new Map<string, Snap>();
+  const shared = new Set<string>();
   // A proven phone's profile stays in scope with its record gone (an earlier attempt
   // erased it), so a retry still reaches what is left under it
   for (const snap of [...byPhone, ...byAuth.flatMap((s) => s.docs)]) {
     if (snap.id === userId) continue;
     if (linkedElsewhere(snap, userId)) {
+      shared.add(snap.id.slice(PHONE_PROFILE.length));
       log.warn({ userId }, 'Phone profile linked to another sign-in; not erased with this account');
       continue;
     }
     found.set(snap.id, snap);
   }
-  return [...found.values()];
+  return { profiles: [...found.values()], shared };
 }
 
 const stripeIds = (snaps: Snap[]): string[] =>
@@ -138,7 +142,7 @@ export async function gatherErasureKeys(db: Db, userId: string): Promise<Erasure
     ].map((p) => (p ? normalizePhoneNumber(p) : undefined))
   ).filter((p) => E164.test(p));
   const providers = unique(['default', ...(user?.providerData.map((p) => p.providerId) ?? [])]);
-  const linked = await phoneProfiles(db, userId, phones, providers);
+  const { profiles: linked, shared } = await phoneProfiles(db, userId, phones, providers);
   const linkedUserIds = linked.map((s) => s.id);
 
   const [emailGrants, sponsored] = await Promise.all([
@@ -159,6 +163,12 @@ export async function gatherErasureKeys(db: Db, userId: string): Promise<Erasure
     emails,
     sponsoredIdentityIds: sponsored.flatMap((s) => s.docs.map((d) => d.id)),
     stripeCustomerIds: stripeIds([record, garden, ...grants.docs, ...owned, ...linked]),
+    phones: unique([
+      ...phones.filter((p) => !shared.has(p)),
+      ...linkedUserIds
+        .filter((id) => id.startsWith(PHONE_PROFILE))
+        .map((id) => id.slice(PHONE_PROFILE.length)),
+    ]).filter((p) => E164.test(p)),
   };
 }
 

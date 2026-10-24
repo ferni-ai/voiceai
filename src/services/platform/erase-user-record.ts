@@ -24,6 +24,7 @@ import {
   keepStripeCustomersForCleanup,
   type ErasureKeys,
 } from './erasure-keys.js';
+import { queueTwilioErasure, startTwilioErasure } from './twilio-erasure.js';
 import { ERASED_STORES, storeLabel, type OwnedStore } from './user-stores.js';
 
 const log = createLogger({ module: 'erase-user-record' });
@@ -142,6 +143,7 @@ export async function eraseUserRecord(
   linked.forEach(assertErasableUserId);
   // BQ_ERASURE: their BigQuery rows go in a later batch, after the streaming buffer (bq-erasure.ts)
   if (flagOn('BQ_ERASURE')) await queueBqErasure(db, [userId, ...linked]);
+  const twilio = await queueTwilio(db, keys);
   const uidJobs = (uid: string, tier: number): Job[] =>
     stores
       .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)
@@ -173,6 +175,22 @@ export async function eraseUserRecord(
   }
   for (const tier of [1, 2]) {
     await runPhase([...keyedJobs(tier), ...uidJobs(userId, tier)], userId);
+  }
+  // Not awaited: Twilio never holds up or fails the erasure; the job retries what is left
+  if (twilio.length > 0) void startTwilioErasure(db, twilio);
+}
+
+/**
+ * TWILIO_ERASE_ON_DELETE: queue the verified phones for their Twilio texts and calls,
+ * before the records they are read from go. A failure is logged, never thrown.
+ */
+async function queueTwilio(db: Db, keys: ErasureKeys | null): Promise<string[]> {
+  if (!keys || keys.phones.length === 0 || !flagOn('TWILIO_ERASE_ON_DELETE')) return [];
+  try {
+    return await queueTwilioErasure(db, keys.phones);
+  } catch (error) {
+    log.error({ error: String(error), userId: keys.userId }, 'Twilio erasure not queued');
+    return [];
   }
 }
 

@@ -140,6 +140,7 @@ const keysFor = (over: Partial<ErasureKeys> = {}): ErasureKeys => ({
   emails: [],
   sponsoredIdentityIds: [],
   stripeCustomerIds: [],
+  phones: [],
   ...over,
 });
 
@@ -338,6 +339,7 @@ describe('gatherErasureKeys', () => {
     ]);
     expect(keys.sponsoredIdentityIds).toEqual(['si-1']);
     expect(keys.stripeCustomerIds).toEqual(['cus_1']);
+    expect(keys.phones.sort()).toEqual(['+15550000001', '+15550000002', '+15550000003']);
   });
 
   it('a phone profile that linked another sign-in is not erased, even on the verified number', async () => {
@@ -349,7 +351,9 @@ describe('gatherErasureKeys', () => {
         linkedIdentifiers: ['auth:default:u-1', 'auth:google.com:u-2'],
       },
     });
-    expect((await gatherErasureKeys(db, 'u-1')).linkedUserIds).toEqual([]);
+    const keys = await gatherErasureKeys(db, 'u-1');
+    expect(keys.linkedUserIds).toEqual([]);
+    expect(keys.phones).toEqual([]); // their Twilio records are someone else's too
   });
 });
 
