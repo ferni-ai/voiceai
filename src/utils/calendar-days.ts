@@ -36,3 +36,12 @@ export function calendarDaysSince(
   const b = calendarDateUtc(new Date(now).getTime(), timeZone);
   return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, Math.round((b - a) / DAY_MS)) : 0;
 }
+
+/** A calendar-day count (calendarDaysSince) as a friend would say it: "yesterday", "4 days ago". */
+export function daysAgoInWords(days: number): string {
+  if (days === 0) return 'earlier today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `about ${Math.round(days / 7)} weeks ago`;
+  return 'a while ago';
+}
