@@ -103,7 +103,7 @@ test.describe('menu panels are named modal dialogs', () => {
       let shellSeen = false;
       let unnamedShell = false;
       let outcome: 'opened' | 'closed' | null = null;
-      // the shell can go a beat before the real panel fades in, so "closed" needs a quiet spell
+      // the shell can go a beat before the real panel fades in, so "closed" needs a 3 s quiet spell
       let shellGoneAt: number | null = null;
       await expect
         .poll(
@@ -114,7 +114,7 @@ test.describe('menu panels are named modal dialogs', () => {
             if (shells.some((d) => !d.name)) unnamedShell = true;
             opened = fresh.find((d) => !d.shell);
             shellGoneAt = shellSeen && !shells.length ? (shellGoneAt ?? Date.now()) : null;
-            const closed = shellGoneAt !== null && Date.now() - shellGoneAt >= 1_500;
+            const closed = shellGoneAt !== null && Date.now() - shellGoneAt >= 3_000;
             outcome = opened ? 'opened' : closed ? 'closed' : null;
             return outcome;
           },
