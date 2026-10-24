@@ -61,6 +61,12 @@ describe('which judged candidates are kept', () => {
     expect(keepJudged(j({ statement: 'take it in tomorrow', person: 'the car' }))).toBe(true);
   });
 
+  it('a "his" or "hers" needs who, like "her" and "him"', () => {
+    expect(keepJudged(j({ statement: 'return his drill this weekend', person: undefined }))).toBe(false); // prettier-ignore
+    expect(keepJudged(j({ statement: 'give hers back on Friday', person: undefined }))).toBe(false);
+    expect(keepJudged(j({ statement: 'return his drill this weekend', person: 'Carlos' }))).toBe(true); // prettier-ignore
+  });
+
   it('keeps an "it" no one named when the rest says the plan; never a bare one', () => {
     const it_ = (statement: string) => keepJudged(j({ statement, person: undefined }));
     // #1985 verify: after "How's the car?", only Ferni said what "it" is.
@@ -71,6 +77,8 @@ describe('which judged candidates are kept', () => {
 
   it('a "them" or "\'em" needs who or what too', () => {
     expect(keepJudged(j({ statement: "tell 'em on Monday", person: undefined }))).toBe(false);
+    // Gemini, 3/3 (#2723 verify): "em" as the person names no one.
+    expect(keepJudged(j({ statement: 'tell em on Monday', person: 'em' }))).toBe(false);
     expect(keepJudged(j({ statement: "tell 'em on Monday", person: 'the Hendersons' }))).toBe(true);
     expect(keepJudged(j({ statement: 'clear them out Saturday morning', person: undefined }))).toBe(false); // prettier-ignore
     expect(keepJudged(j({ statement: 'clear them out Saturday morning', person: 'the gutters' }))).toBe(true); // prettier-ignore

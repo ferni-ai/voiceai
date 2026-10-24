@@ -64,8 +64,8 @@ export interface GuardedItem {
   sensitive?: boolean;
 }
 
-/** A pronoun only a person resolves: "call her tomorrow" is said back with who she is. */
-export const NEEDS_PERSON = /(?<![\p{L}'])(?:him|her|'?em)(?![\p{L}])/iu;
+/** A pronoun only a person resolves: "call her tomorrow", "return his drill" need who. */
+export const NEEDS_PERSON = /(?<![\p{L}'])(?:him|his|her|hers|'?em)(?![\p{L}])/iu;
 
 /** Why items were not stored, counted: never their words. */
 export type DropCounts = Partial<Record<DropReason | 'directive', number>>;
@@ -90,7 +90,7 @@ export function screenJudged<T extends GuardedItem>(
     let screened = screenCommitment(j, callerTurns);
     // A "person" the caller never said is the model's word ("training", or "the car" when
     // only Ferni said car): it is dropped, not the plan, unless the plan needs who a
-    // "her" or "him" is. keepJudged then decides whether the plan can be said back.
+    // "her", "his" or "him" is. keepJudged then decides whether the plan can be said back.
     if (
       !screened.keep &&
       screened.reason === 'person-not-said' &&
