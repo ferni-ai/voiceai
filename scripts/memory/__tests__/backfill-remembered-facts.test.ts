@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  BACKFILL_CHECK_TIMEOUT_MS,
+  WARM_UP_TEXT,
   backfill,
   databaseRefusal,
   main,
@@ -16,7 +18,7 @@ import {
   firestoreMemorySource,
 } from '../backfill-remembered-facts-io.js';
 import type { Firestore } from '@google-cloud/firestore';
-import type { SecretModel } from '../../../src/memory/secret-check.js';
+import { SECRET_CHECK_TIMEOUT_MS, type SecretModel } from '../../../src/memory/secret-check.js';
 import type { FactDocWrite } from '../../../src/memory/dynamic/remembered-facts.js';
 import { forgetTopic, type ForgetStore } from '../../../src/memory/recall/forget.js';
 
@@ -63,6 +65,15 @@ const fakeModel = (secrets: string[] = []) =>
   vi.fn<SecretModel>(async (_p, content) =>
     secrets.some((t) => content.includes(t)) ? '{"secret":true}' : '{"secret":false}'
   );
+const isWarmUp = (content: string) => content.includes(WARM_UP_TEXT);
+/** The model calls about facts: every run's first call is the synthetic warm-up. */
+const checks = (m: { mock: { calls: Array<Parameters<SecretModel>> } }) =>
+  m.mock.calls.filter(([, content]) => !isWarmUp(content)).length;
+/** `model` for every fact; the warm-up gets a clear no. */
+const pastWarmUp =
+  (model: SecretModel): SecretModel =>
+  (p, content, signal) =>
+    isWarmUp(content) ? Promise.resolve('{"secret":false}') : model(p, content, signal);
 
 function harness(
   opts: Partial<BackfillOptions> = {},
@@ -143,11 +154,11 @@ describe('backfill-remembered-facts', () => {
     await h.run({ limit: 4 });
     const [path] = [...h.facts.keys()];
     h.facts.set(path!, { value: 'forgotten', forgottenAt: '2026-10-01' });
-    const sent = h.secretModel.mock.calls.length;
+    const sent = checks(h.secretModel);
     const again = harness();
     for (const [p, d] of h.facts) again.facts.set(p, d);
     expect(await again.run()).toMatchObject({ existing: h.facts.size, created: 6 - h.facts.size });
-    expect(again.secretModel).toHaveBeenCalledTimes(6 - sent);
+    expect(checks(again.secretModel)).toBe(6 - sent);
     expect(again.facts.get(path!)).toEqual({ value: 'forgotten', forgottenAt: '2026-10-01' });
   });
 
@@ -266,6 +277,76 @@ describe('backfill-remembered-facts: forgotten, always (no flag)', () => {
     expect(await h.run()).toMatchObject({ forgotten: 1, created: 6 });
     expect(written(h)).not.toContain(DANA);
   });
+
+  it.each([
+    // The readers' match, not forgetTopic's: a capital read as a name, then not stemmed
+    ['Divorce papers', 'we are divorcing and the papers are filed'],
+    ['Moving to Denver', 'moved to Denver last spring'],
+  ])(
+    'topic %j: aboutForgotten keeps out %j, which isForgotten alone misses',
+    async (topic, content) => {
+      const h = harness({}, { 'test-user-0': [topic] });
+      h.memories.set('bogle_users/test-user-0/memories/mem_about', { content, type: 'summary' });
+      expect(await h.run()).toMatchObject({ forgotten: 1, created: 6 });
+      expect(written(h)).not.toContain(content);
+      expect(sent(h)).not.toContain(content);
+    }
+  );
+
+  it.each(['the model call', 'the embedding'])(
+    'a forget that lands during %s marks nothing, yet the fact is not written (read again before the create)',
+    async (during) => {
+      const h = withDana(harness({ batch: 20 })); // one group: one model call and one embedding
+      const forgetDana = (text: string) => {
+        if (text.includes('Dana')) h.topics['test-user-0'] = ['dana'];
+      };
+      const model = fakeModel();
+      const embed = vi.fn(async (texts: string[]) => texts.map(() => new Array(768).fill(0.01)));
+      const deps: Partial<BackfillDeps> = {
+        secretCheck: { model: during === 'the model call' ? (p, t, s) => (forgetDana(t), model(p, t, s)) : model }, // prettier-ignore
+        embed: during === 'the embedding' ? async (t) => (t.forEach(forgetDana), embed(t)) : embed, // prettier-ignore
+      };
+      expect(await h.run({}, deps)).toMatchObject({ toWrite: 7, forgotten: 1, created: 6, failed: 0 }); // prettier-ignore
+      expect(written(h)).not.toContain(DANA);
+      expect(h.cursor.write).toHaveBeenCalled(); // forgotten is final, not a retry
+    }
+  );
+
+  it("a forget between batches keeps the fact from the next batch's model call (read fresh per batch)", async () => {
+    const h = withDana(harness()); // batch 2: mem_dana is in the third group
+    const create = h.source.create;
+    h.source.create = async (userId, doc) => {
+      h.topics['test-user-0'] = ['dana'];
+      return create(userId, doc);
+    };
+    expect(await h.run()).toMatchObject({ forgotten: 1, created: 6 });
+    expect(sent(h)).not.toMatch(/Dana/);
+    expect(embedded(h)).not.toMatch(/Dana/);
+  });
+
+  it('topics unreadable at the read before the create: that user is skipped from there on, and the cursor holds', async () => {
+    const h = withDana(harness({ batch: 20 }));
+    let reads = 0;
+    h.source.forgottenTopics = async (u) => (u === 'test-user-0' && reads++ > 0 ? null : []);
+    expect(await h.run()).toMatchObject({ unreadUsers: 1, forgotten: 4, created: 3, failed: 0 });
+    expect([...h.facts.keys()].every((p) => p.startsWith('bogle_users/test-user-1/'))).toBe(true);
+    expect(h.cursor.write).not.toHaveBeenCalled();
+  });
+
+  it('a user whose topics could not be read is skipped for the rest of the run, not read again in a later batch', async () => {
+    const h = withDana(harness()); // batch 2: test-user-0's memories span three groups
+    const read = vi.fn(async (u: string) => {
+      if (u === 'test-user-0' && read.mock.calls.filter(([x]) => x === u).length === 1) {
+        throw new Error('deadline exceeded'); // the first read only; a later read would succeed
+      }
+      return [];
+    });
+    h.source.forgottenTopics = read;
+    expect(await h.run()).toMatchObject({ unreadUsers: 1, forgotten: 5, created: 3 });
+    expect(read.mock.calls.filter(([u]) => u === 'test-user-0')).toHaveLength(1);
+    expect([...h.facts.keys()].every((p) => p.startsWith('bogle_users/test-user-1/'))).toBe(true);
+    expect(sent(h)).not.toMatch(/Dana|number 0|number 2|number 4/);
+  });
 });
 
 describe('backfill-remembered-facts: only members, never a credential', () => {
@@ -294,7 +375,7 @@ describe('backfill-remembered-facts: only members, never a credential', () => {
       expect(h.embed.mock.calls.flatMap(([texts]) => texts).join(' ')).not.toContain(content);
       // The word rules caught it: the model is never asked (#2514 order)
       expect(h.secretModel.mock.calls.map(([, input]) => input).join(' ')).not.toContain(content.slice(0, 8)); // prettier-ignore
-      expect(h.secretModel).toHaveBeenCalledTimes(6);
+      expect(checks(h.secretModel)).toBe(6);
     }
   );
 });
@@ -325,17 +406,19 @@ describe('backfill-remembered-facts: the model secret check (#2514 secret-check.
     expect([...h.facts.values()].map((d) => d.value)).toContain(DOOR);
   });
 
-  const noAnswer: Array<[string, SecretModel | undefined]> = [
+  const noAnswer: Array<[string, SecretModel]> = [
     ['a timeout', () => new Promise<string>(() => {})],
     ['an error', async () => Promise.reject(new Error('vertex 503'))],
     ['an unclear reply', async () => 'maybe?'],
-    ['no model', undefined],
   ];
   it.each(noAnswer)(
     '%s: unchecked, nothing embedded or written (fails closed)',
     async (_, model) => {
       const h = harness();
-      expect(await h.run({}, { secretCheck: { model, timeoutMs: 20 } })).toMatchObject({
+      expect(
+        await h.run({}, { secretCheck: { model: pastWarmUp(model), timeoutMs: 20 } })
+      ).toMatchObject({
+        // prettier-ignore
         toCheck: 6,
         unchecked: 6,
         toWrite: 0,
@@ -346,6 +429,33 @@ describe('backfill-remembered-facts: the model secret check (#2514 secret-check.
       expect(h.cursor.write).not.toHaveBeenCalled(); // a rerun retries them
     }
   );
+
+  const noWarmUp: Array<[string, SecretModel | undefined]> = [
+    ...noAnswer,
+    ['a secret', async () => '{"secret":true}'],
+    ['no model', undefined],
+  ];
+  it.each(noWarmUp)(
+    'the warm-up gets %s: the run stops before any fact is checked, embedded or written',
+    async (_, model) => {
+      const h = harness();
+      const spy = model && vi.fn(model);
+      await expect(h.run({}, { secretCheck: { model: spy, timeoutMs: 20 } })).rejects.toThrow(/warm-up/); // prettier-ignore
+      if (spy) expect(spy.mock.calls.map(([, t]) => isWarmUp(t))).toEqual([true]);
+      expect(h.embed).not.toHaveBeenCalled();
+      expect(h.create).not.toHaveBeenCalled();
+      expect(h.cursor.write).not.toHaveBeenCalled();
+    }
+  );
+
+  it('one warm-up per run, synthetic, before the first fact is checked', async () => {
+    const h = harness(); // batch 2: three groups, three rounds of checks
+    expect(await h.run()).toMatchObject({ created: 6 });
+    const calls = h.secretModel.mock.calls.map(([, t]) => t);
+    expect(calls.filter(isWarmUp)).toHaveLength(1);
+    expect(isWarmUp(calls[0]!)).toBe(true);
+    expect(calls).toHaveLength(7);
+  });
 
   it('at most 4 model calls at once', async () => {
     const h = harness({ batch: 20 }); // one group: all 6 checked together
@@ -358,7 +468,7 @@ describe('backfill-remembered-facts: the model secret check (#2514 secret-check.
       return '{"secret":false}';
     });
     expect(await h.run({}, { secretCheck: { model } })).toMatchObject({ created: 6 });
-    expect(model).toHaveBeenCalledTimes(6);
+    expect(checks(model)).toBe(6);
     expect(most).toBe(4);
   });
 
@@ -452,7 +562,7 @@ describe('backfill-remembered-facts: the cursor file', () => {
     const resumed = await h.run({}, { cursor: cursor() });
     expect(resumed).toMatchObject({ created: 6 - first, existing: 0 });
     expect(h.create).toHaveBeenCalledTimes(6); // nothing created twice
-    expect(h.secretModel).toHaveBeenCalledTimes(6); // nothing checked twice
+    expect(checks(h.secretModel)).toBe(6); // nothing checked twice
   });
 });
 
@@ -460,6 +570,7 @@ describe('backfill-remembered-facts: main() exit codes', () => {
   let dir = '';
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
+    dir = ''; // a new one per test: a cursor written into a removed dir would fail every later test
     vi.restoreAllMocks();
   });
   const ENV = { GOOGLE_CLOUD_PROJECT: 'test-project' };
@@ -486,7 +597,8 @@ describe('backfill-remembered-facts: main() exit codes', () => {
   });
 
   it.each<[string, (h: ReturnType<typeof harness>) => void]>([
-    ['a fact left unchecked', (h) => void (h.deps.secretCheck = { model: async () => 'maybe', timeoutMs: 20 })], // prettier-ignore
+    ['a fact left unchecked', (h) => void (h.deps.secretCheck = { model: pastWarmUp(async () => 'maybe') })], // prettier-ignore
+    ['a failed warm-up', (h) => void (h.deps.secretCheck = { model: async () => 'maybe' })],
     ['a fact with no vector', (h) => void (h.deps.embed = async () => Promise.reject(new Error('down')))], // prettier-ignore
     ['a failed create', (h) => void (h.source.create = async () => Promise.reject(new Error('x')))],
     ['a user whose topics cannot be read', (h) => void (h.topics['test-user-1'] = null)],
@@ -497,12 +609,44 @@ describe('backfill-remembered-facts: main() exit codes', () => {
     expect(await runMain(h)).toBe(1);
   });
 
+  /** A new process: its first 4 calls (the warm-up and the first checks) take past the live 1000 ms. */
+  const coldModel = () => {
+    let n = 0;
+    return vi.fn<SecretModel>(async () => {
+      if (n++ < 4) await new Promise((r) => setTimeout(r, SECRET_CHECK_TIMEOUT_MS + 150));
+      return '{"secret":false}';
+    });
+  };
+
+  it('a cold model: the backfill timeout (default 5000 ms) waits it out, so one run writes everything', async () => {
+    expect(BACKFILL_CHECK_TIMEOUT_MS).toBe(5000);
+    const h = harness();
+    const model = coldModel();
+    h.deps.secretCheck = { model };
+    expect(await runMain(h)).toBe(0);
+    expect(h.facts.size).toBe(6);
+    expect(checks(model)).toBe(6);
+    expect(await runMain(h)).toBe(0); // and the rerun has nothing left
+    expect(checks(model)).toBe(6);
+  });
+
+  it('a cold model with the live 1000 ms timeout does not finish (why the backfill has its own)', async () => {
+    const h = harness();
+    h.deps.secretCheck = { model: coldModel() };
+    expect(await runMain(h, [`--check-timeout-ms=${SECRET_CHECK_TIMEOUT_MS}`])).toBe(1);
+    expect(h.facts.size).toBe(0);
+  });
+
   it('1 on a refusal or a missing project, touching nothing', async () => {
     const refused = harness();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await main(['--database=(default)'], ENV, () => refused.deps)).toBe(1);
     expect(await main(['--database=ferni-dev'], {}, () => refused.deps)).toBe(1);
+    for (const t of ['0', '-5', 'soon']) {
+      expect(await main(['--database=ferni-dev', `--check-timeout-ms=${t}`], ENV, () => refused.deps)).toBe(1); // prettier-ignore
+    }
     expect(refused.source.existing).not.toHaveBeenCalled();
+    expect(refused.secretModel).not.toHaveBeenCalled();
   });
 });
 

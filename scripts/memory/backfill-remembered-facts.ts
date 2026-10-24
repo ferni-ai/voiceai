@@ -15,16 +15,24 @@
  *
  * Forgotten, always (no flag): every memory here predates the forget that covers it,
  * and forgetTopic only marks the fact collections, so each user's recorded topics are
- * read (forget.ts readForgottenTopics, fresh per batch) and a memory about one is never
- * checked, embedded or written. forgetTopic's own match (isForgotten over factText) and
- * the readers' (aboutForgotten) both count. A user whose topics can't be read is skipped
- * whole (unreadUsers). Account erasure deletes the memories with the record; there is
- * no forget-everything marker to honour.
+ * read (forget.ts readForgottenTopics) and a memory about one is never checked, embedded
+ * or written. They are read fresh per batch before the model call, and again after the
+ * embedding just before the create (the live write's order), so a forget that lands
+ * mid-batch marks nothing yet still keeps the fact out. forgetTopic's own match
+ * (isForgotten over factText) and the readers' (aboutForgotten) both count. A user whose
+ * topics can't be read, at either read, is skipped whole for the rest of the run
+ * (unreadUsers). Account erasure deletes the memories with the record; there is no
+ * forget-everything marker to honour.
  *
  * What the word rules let through gets the live write's model check (secret-check.ts
  * readSecret, at most 4 at once) and is embedded and written only on a clear no: a
  * timeout, error, unclear reply or missing model counts unchecked. A fact whose vector
  * can't be made counts noVector and is not written, so a rerun can still embed it.
+ * Each run is a new process, and its first calls are the slow ones (cold client and
+ * token: 823-1294 ms on Vertex 10-24, against the live 1000 ms), so a run warms the
+ * model with one synthetic call before the first check and stops (exit 1) if that gets
+ * no clear no, and waits --check-timeout-ms (5000) per check: latency costs an operator
+ * script nothing, and a timeout still fails closed.
  *
  * Dry run by default (reads and counts; no model calls, embedding, writes or cursor):
  * toCheck is how many model calls a real run makes. Logs counts only, never fact text.
@@ -33,6 +41,7 @@
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 LLM_CLASSIFICATION_MODEL=<agent's> GEMINI_LOCATION=<agent's> \
  *     npx tsx scripts/memory/backfill-remembered-facts.ts --database=ferni-dev \
  *     [--dry-run=false] [--rate=5] [--batch=20] [--limit=N] [--uid=<id>] [--cursor=<file>] [--restart]
+ *     [--check-timeout-ms=5000]
  *   The model and region are read as the agent reads them (config/gemini-config.ts), from
  *   this shell: set them to the agent's values; the first log line shows both.
  *   (default) also needs --confirm-prod, with FIRESTORE_DATABASE unset. Resumable: each
@@ -68,6 +77,10 @@ import {
 const ALREADY_EXISTS = 6;
 /** Secret-check model calls in flight at once. */
 const CHECK_CONCURRENCY = 4;
+/** The backfill's wait per secret check (--check-timeout-ms); the live write keeps SECRET_CHECK_TIMEOUT_MS. */
+export const BACKFILL_CHECK_TIMEOUT_MS = 5000;
+/** The warm-up's text: synthetic, about no one, a clear no. */
+export const WARM_UP_TEXT = 'remember that my favourite colour is green';
 
 export interface MemoryDoc {
   /** bogle_users/{uid}/memories/{id} */
@@ -118,7 +131,7 @@ export interface BackfillCounts {
   /** Empty, or a credential (rememberedFactDoc). */
   notKept: number;
   notMember: number; // a placeholder, anon: or onbehalf: id is one bucket for many callers
-  /** Marked forgottenAt, about a forgotten topic, or its user's topics unreadable. */
+  /** Marked forgottenAt, about a forgotten topic (at either read), or its user's topics unreadable. */
   forgotten: number;
   /** Users whose forgotten topics couldn't be read: none of their memories is copied. */
   unreadUsers: number;
@@ -187,7 +200,14 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
   let nextAt = 0;
   let after = opts.dryRun ? undefined : deps.cursor.read();
   let held = false; // a batch left something to retry: the cursor stays before it
+  let warmed = false;
   const unread = new Set<string>(); // skipped whole for the rest of the run
+  /** The user's topics, read now; null (and skipped whole from here on) when unreadable. */
+  const readTopics = async (userId: string): Promise<string[] | null> => {
+    const topics = await deps.source.forgottenTopics(userId).catch((): null => null);
+    if (topics === null) unread.add(userId);
+    return topics;
+  };
   const pageSize = Math.max(opts.batch * 10, 200);
   const at = new Date(now()).toISOString();
 
@@ -201,7 +221,7 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
       const retry = leftToRetry(c);
       const todo: Todo[] = [];
       const reads = new Map<string, Promise<string[] | null>>(); // read fresh each batch
-      const topicsOf = (u: string) => reads.get(u) ?? reads.set(u, deps.source.forgottenTopics(u).catch((): null => null)).get(u)!; // prettier-ignore
+      const topicsOf = (u: string) => reads.get(u) ?? reads.set(u, readTopics(u)).get(u)!;
       for (const doc of group) {
         c.scanned++;
         const [, userId = '', , memoryId = ''] = doc.path.split('/');
@@ -213,8 +233,7 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
           c.notMember++;
           continue;
         }
-        const topics = unread.has(userId) ? null : await topicsOf(userId);
-        if (topics === null) unread.add(userId); // fails closed: the whole user waits
+        const topics = unread.has(userId) ? null : await topicsOf(userId); // null: the whole user waits
         const fact = rememberedFactDoc({ fact: String(doc.data.content ?? ''), memoryId }, at);
         if (topics === null || doc.data.forgottenAt != null) c.forgotten++;
         else if (!fact) c.notKept++;
@@ -225,6 +244,8 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
       const fresh = await notWritten(todo, deps.source, c);
       c.toCheck += fresh.length;
       if (!opts.dryRun && fresh.length > 0) {
+        if (!warmed) await warmUp(deps.secretCheck);
+        warmed = true;
         const verdicts = await readSecrets(fresh.map((t) => String(t.doc.data.value)), deps.secretCheck); // prettier-ignore
         c.secret += verdicts.filter((r) => r === 'secret').length;
         c.unchecked += verdicts.filter((r) => r === 'failed').length;
@@ -240,10 +261,21 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
             { enabled: true, embed: deps.embed, model: async () => model ?? '' }
           );
           // Created without a vector it would stay so: a create-only rerun finds it existing
-          const ready = clear
+          const withVector = clear
             .map((t, j) => ({ userId: t.userId, doc: { id: t.doc.id, data: embedded[j] } }))
             .filter((t) => t.doc.data.embedding !== undefined);
-          c.noVector += clear.length - ready.length;
+          c.noVector += clear.length - withVector.length;
+          // Read again after the embedding (the live write's order): a forget during the
+          // model call or the embedding marked nothing for these facts
+          const reread = new Map<string, Promise<string[] | null>>();
+          const latest = (u: string) => reread.get(u) ?? reread.set(u, unread.has(u) ? Promise.resolve(null) : readTopics(u)).get(u)!; // prettier-ignore
+          const topicsNow = await Promise.all(withVector.map((t) => latest(t.userId)));
+          const ready = withVector.filter((t, j) => {
+            const topics = topicsNow[j];
+            return topics !== null && !aboutTopics(t.doc, topics);
+          });
+          c.forgotten += withVector.length - ready.length;
+          c.unreadUsers = unread.size;
           const results = await Promise.allSettled(
             ready.map((t) => deps.source.create(t.userId, t.doc))
           );
@@ -277,6 +309,14 @@ async function notWritten(todo: Todo[], source: MemorySource, c: BackfillCounts)
     else if (known.has(t.doc.id)) c.existing++;
     return known?.has(t.doc.id) === false;
   });
+}
+
+/** One synthetic check before the first real one; anything but a clear no stops the run. */
+async function warmUp(deps: SecretCheckDeps | undefined): Promise<void> {
+  const read = await readSecret(WARM_UP_TEXT, deps);
+  if (read === 'clear') return;
+  const why = read === 'secret' ? 'read its synthetic text as a secret' : 'got no answer';
+  throw new Error(`Secret-check warm-up ${why}: nothing checked or written; check the model and region, then rerun.`); // prettier-ignore
 }
 
 /** readSecret for each text (word rules already passed), at most CHECK_CONCURRENCY at once. */
@@ -318,16 +358,20 @@ export async function main(
       limit: limit === undefined ? undefined : Number(limit),
       uid: arg(argv, 'uid'),
     };
+    const checkTimeoutMs = Number(arg(argv, 'check-timeout-ms') ?? BACKFILL_CHECK_TIMEOUT_MS);
     const badLimit = opts.limit !== undefined && !(opts.limit > 0);
-    if (!(opts.rate > 0) || !(opts.batch > 0 && opts.batch <= 100) || badLimit) {
-      throw new Error('--rate and --limit must be > 0, --batch 1..100');
+    const badTimeout = !(checkTimeoutMs > 0);
+    if (!(opts.rate > 0) || !(opts.batch > 0 && opts.batch <= 100) || badLimit || badTimeout) {
+      throw new Error('--rate, --limit and --check-timeout-ms must be > 0, --batch 1..100');
     }
     const file = arg(argv, 'cursor') ?? defaultCursorFile(database, opts.uid);
     const log = (counts: Record<string, unknown>) =>
       console.log(JSON.stringify({ database, dryRun: opts.dryRun, ...counts }));
-    log({ secretModel: CLASSIFICATION_MODEL, geminiLocation: GEMINI_LOCATION });
+    log({ secretModel: CLASSIFICATION_MODEL, geminiLocation: GEMINI_LOCATION, checkTimeoutMs });
+    const connected = open(projectId, database, opts.uid);
     const counts = await backfill(opts, {
-      ...open(projectId, database, opts.uid),
+      ...connected,
+      secretCheck: { ...connected.secretCheck, timeoutMs: checkTimeoutMs },
       cursor: fileCursor(file, opts.uid, argv.includes('--restart')),
       log,
     });
