@@ -192,7 +192,7 @@ interface Rule {
 }
 const w = (src: string): RegExp => new RegExp(`(?:^| )(?:${src})(?= |$)`, 'g');
 const NOT_A_SECRET_CODE = new Set(
-  'zip zip4 area postal post postcode country calling promo promotional discount coupon dress qr bar gift tax source morse color colour zone time'.split(' ') // prettier-ignore
+  'zip zip4 area postal post postcode country calling promo promotional discount coupon dress qr bar gift tax source morse color colour zone'.split(' ') // prettier-ignore
 );
 const RULES: readonly Rule[] = [
   { category: 'one-time-code', words: w('one time (?:code|passcode|password|pin)|otp|2fa|mfa|two factor(?: code)?|verification code|authentication code|auth code|login code|security code'), minDigits: 3 }, // prettier-ignore

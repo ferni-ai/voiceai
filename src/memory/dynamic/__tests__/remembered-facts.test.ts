@@ -4,7 +4,7 @@
  * every fact is, ranked at least as high as an extracted fact, erased with the
  * account.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Documents by path, for the production store and account erasure.
 const fs = vi.hoisted(() => {
@@ -55,6 +55,7 @@ import {
   type FactDocWrite,
   type RememberedFactStore,
 } from '../remembered-facts.js';
+import { useSecretModel } from '../../secret-check.js';
 import { firestoreRememberedFactStore as firestore } from '../../storage/remembered-fact-store.js';
 import { forgetTopic, type ForgetStore } from '../../recall/forget.js';
 import { loadRecallSnapshot, recallForTurn } from '../../recall/session-recall.js';
@@ -77,6 +78,8 @@ function memoryStore() {
   return { facts, store, create };
 }
 
+// The model's secret read (remembered-facts-secret.test.ts) clears every fact here
+beforeEach(() => useSecretModel(async () => '{"secret":false}'));
 afterEach(() => {
   vi.unstubAllEnvs();
   fs.docs.clear();
