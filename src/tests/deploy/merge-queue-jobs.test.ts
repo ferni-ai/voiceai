@@ -158,4 +158,20 @@ describe('the unit shards cover the whole suite on a full run', () => {
     expect(Number(runs)).toBe(shards.length);
     expect(Number(gate)).toBe(shards.length);
   });
+
+  // A cancelled or skipped required check counts as passed, so the gate must run
+  // whatever the shards did and turn red unless every one succeeded.
+  const gateJob = /^ {2}test-unit:\n([\s\S]*?)(?=^ {2}[\w-]+:\n)/m.exec(ci)?.[1] ?? '';
+
+  it('the Unit Tests gate still runs when a shard fails or is cancelled', () => {
+    expect(gateJob).toMatch(/^ {4}needs: \[setup, test-unit-shard\]$/m);
+    expect(gateJob).toMatch(/^ {4}if: always\(\) && /m);
+  });
+
+  it('the Unit Tests gate fails unless setup and every shard succeeded', () => {
+    expect(gateJob).toMatch(
+      // `exit 1` inside this branch: no line between `then` and it may be the branch's `fi`.
+      /if \[ "\$SETUP" != success \] \|\| \[ "\$SHARDS" != success \]; then\n(?:(?! *fi\n).*\n)*? +exit 1\n +fi\n/
+    );
+  });
 });

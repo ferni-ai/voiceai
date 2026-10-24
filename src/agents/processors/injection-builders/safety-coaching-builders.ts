@@ -23,6 +23,7 @@ import {
 // Static imports for performance (TIER 1-2)
 import { performSafetyCheck } from '../../../services/safety/index.js';
 import { buildScientificCoachingContext } from '../../../intelligence/context-builders/coaching/scientific-coaching.js';
+import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 import { getCoachingContextForLLM, analyzeForCoaching } from '../../../services/coaching/index.js';
 
 import type { InjectionBuilderContext, ScientificCoachingInjectionResult } from './types.js';
@@ -79,8 +80,9 @@ export async function buildSafetyInjections(
     const safetyRelationship =
       relationshipMap[userData.relationshipStage || 'building'] || 'building';
 
+    // Detection reads the live text; the id only labels the log. Never a shared 'unknown'.
     const safetyResult = performSafetyCheck(userText, {
-      userId: services.userId || 'unknown',
+      userId: callerIdFor(services.userId, services.sessionId),
       personaId: persona.id,
       relationshipStage: safetyRelationship,
       userName: services.userProfile?.name,
@@ -170,8 +172,9 @@ export async function buildScientificCoachingInjections(
             : 'exploring';
     }
 
+    // PRIVACY: never 'unknown': that pooled every id-less caller's distortions (ant_patterns/unknown).
     const result = await buildScientificCoachingContext({
-      userId: services.userId || 'unknown',
+      userId: callerIdFor(services.userId, services.sessionId),
       userMessage: userText,
       personaId: persona.id,
       topic: currentTopic,
@@ -239,7 +242,8 @@ export async function buildLifeCoachingInjections(
     const coachingPersona = COACHING_PERSONA_MAP[persona.id] || 'ferni';
 
     // Analyze user message for coaching opportunities
-    const coachingAnalysis = analyzeForCoaching(services.userId || 'unknown', userText, {
+    const caller = callerIdFor(services.userId, services.sessionId); // never a shared 'unknown'
+    const coachingAnalysis = analyzeForCoaching(caller, userText, {
       currentPersona: coachingPersona,
     });
 
@@ -258,7 +262,7 @@ export async function buildLifeCoachingInjections(
     }
 
     // Get comprehensive coaching context for LLM
-    const coachingContext = getCoachingContextForLLM(services.userId || 'unknown', {
+    const coachingContext = getCoachingContextForLLM(caller, {
       currentPersona: coachingPersona,
       userMessage: userText,
     });

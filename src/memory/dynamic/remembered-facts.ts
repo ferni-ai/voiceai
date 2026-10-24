@@ -11,6 +11,8 @@
  * write (fact-embeddings.ts, RECALL_VECTOR_INDEX). A fact holding a credential is
  * never written, whatever SPOKEN_CREDENTIAL_FILTER says (spoken-credential.ts, and
  * credential-shapes.ts for a whole sentence), and only a member's fact is written.
+ * What those word rules let through is read by a model before it is embedded or
+ * stored, and kept only on a clear no (secret-check.ts; fails closed).
  *
  * One document per fact text (factDocId), created and never overwritten: the
  * same thing remembered twice is one fact, and a fact the caller forgot
@@ -31,7 +33,9 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { errorClass } from '../../utils/error-class.js';
 import { credentialInText } from '../credential-shapes.js';
+import { readSecret, type SecretCheckDeps } from '../secret-check.js';
 import { forgottenCheck } from '../recall/forget-every-reader.js';
 import { credentialCategory, logCredentialDrops } from '../spoken-credential.js';
 import { factDocId } from './extraction-firestore-docs.js';
@@ -105,6 +109,7 @@ export function useRememberedFactStore(store: RememberedFactStore | null): void 
 export interface RememberToRecallDeps {
   store?: RememberedFactStore;
   embedding?: FactEmbeddingDeps;
+  secretCheck?: SecretCheckDeps;
   env?: Env;
   now?: () => Date;
 }
@@ -123,6 +128,12 @@ export async function rememberToRecall(
   try {
     const doc = rememberedFactDoc(r, (deps.now?.() ?? new Date()).toISOString());
     if (!doc) return false;
+    // The word rules miss phrasings (#2514): nothing reaches the embedder or the store without a clear no
+    const secret = await readSecret(String(doc.data.value), deps.secretCheck);
+    if (secret !== 'clear') {
+      if (secret === 'secret') log.info('Remembered fact holds a secret: not written for recall');
+      return false;
+    }
     const [data] = await withFactEmbeddings([doc.data], deps.embedding);
     const store = deps.store ?? registered;
     // Checked after the embedding: a forget during it marked nothing for this fact
@@ -137,7 +148,7 @@ export async function rememberToRecall(
     }
     return (await store.create(userId, [{ id: doc.id, data }])) > 0;
   } catch (error) {
-    log.warn({ error: String(error) }, 'Remembered fact not written for recall');
+    log.warn({ error: errorClass(error) }, 'Remembered fact not written for recall');
     return false;
   }
 }

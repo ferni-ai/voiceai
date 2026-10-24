@@ -88,6 +88,9 @@ export interface ProactiveSessionContext {
 
   /** Persona initiating (usually Ferni) */
   initiatingPersona: string;
+
+  /** The app call a "call me" moved from (CALL_ME_MOVES_TO_PHONE): read from this user's store */
+  movedFrom?: { userId: string; conversationId?: string };
 }
 
 // In-memory store for proactive session contexts (set by outreach engine)

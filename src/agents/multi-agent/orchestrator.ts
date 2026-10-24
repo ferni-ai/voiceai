@@ -26,11 +26,11 @@ import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { isProactiveCall } from './greeting-direction.js';
 import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
 import { holdOutOfMemory } from './arrival-grounding.js';
+import { warmIncomingPersona } from '../model-provider/handoff-cache-warm.js';
 import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
 import { familyArrival, familyDeparture } from './family-table.js';
 export { calmGreeting } from './greeting-direction.js';
@@ -249,8 +249,7 @@ export class AgentOrchestrator {
     try {
       // A call Ferni placed waits for the phone to be picked up. One for someone opens
       // with who it is and who it's for, never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
-        await import('../shared/outbound-opener.js');
+      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
@@ -262,13 +261,12 @@ export class AgentOrchestrator {
         if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
-        // A proactive call to Ferni's own user waits for the pickup too.
-        if (await isProactiveCall(this.sessionId)) {
-          const answered = await waitForCallAnswered(this.room, this.userParticipant);
-          if (!answered) {
-            log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
-            return;
-          }
+        // A proactive call to Ferni's own user waits for the pickup too (a moved one is screened).
+        const { proactivePickedUp } = await import('../shared/line-screen.js');
+        const { room, userParticipant: phone, sessionId } = this;
+        if ((await proactivePickedUp(room, phone, agent, sessionId)) === false) {
+          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+          return;
         }
         const userData = agent.userData as UserData | undefined;
         greeting = await greetingOrResume(this.sessionId, agent, userData); // RESUME_AFTER_DROP
@@ -321,7 +319,7 @@ export class AgentOrchestrator {
     log.info(
       {
         targetPersonaId: request.targetPersonaId,
-        reason: request.reason,
+        reasonChars: request.reason?.length ?? 0,
         currentState: {
           activeAgentId: this.activeAgentId,
           agentsMapSize: this.agents.size,
@@ -447,10 +445,10 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 3/5] ✅ New agent spawned'
       );
 
-      // STEP 4: Switch active agent
-      const step4Start = Date.now();
+      const step4Start = Date.now(); // STEP 4: Switch active agent
       log.info({ newAgentId: newAgent.id }, '🎭 [HANDOFF STEP 4/5] Setting new agent as active...');
       this.setActiveAgent(newAgent.id);
+      void warmIncomingPersona(newAgent.session); // HANDOFF_CACHE_WARM, never waited on
       log.info(
         { activeAgentId: this.activeAgentId, durationMs: Date.now() - step4Start },
         '🎭 [HANDOFF STEP 4/5] ✅ Active agent switched'
@@ -491,7 +489,6 @@ export class AgentOrchestrator {
         `🎭 Handoff complete: ${previousPersonaId} → ${request.targetPersonaId} (${durationMs}ms)`
       );
 
-      // Notify callback
       this.onHandoffComplete?.(previousPersonaId, request.targetPersonaId);
 
       // 🧠 PREDICTIVE HANDOFF: Mark pre-briefing as used (non-blocking)
@@ -519,8 +516,7 @@ export class AgentOrchestrator {
       const durationMs = Date.now() - startTime;
       log.error(
         {
-          error: String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+          error, // its frames too; the safe logger cuts the message (error-text.ts)
           from: previousPersonaId,
           to: request.targetPersonaId,
           durationMs,
@@ -716,7 +712,7 @@ export class AgentOrchestrator {
       );
     } catch (err) {
       log.warn(
-        { error: String(err), stack: err instanceof Error ? err.stack : undefined },
+        { error: err },
         '🎭 [removeAgent] ⚠️ Error during agent cleanup'
       );
     }

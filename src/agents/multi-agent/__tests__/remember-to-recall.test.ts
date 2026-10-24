@@ -46,6 +46,13 @@ vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
 vi.mock('../../../services/unified-memory-service.js', () => ({
   getUnifiedMemoryService: () => ({ write: async () => ({ success: true, memoryId: 'mem_1' }) }),
 }));
+// The secret check's model (remember-secret-check.test.ts) clears every fact here
+vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../config/gemini-config.js')>()),
+  getGeminiClient: async () => ({
+    models: { generateContent: async () => ({ text: '{"secret":false}' }) },
+  }),
+}));
 
 // The agent process wires the Firestore fact store (gce/job-executor.ts loads this).
 import '../../remembered-fact-store-register.js';

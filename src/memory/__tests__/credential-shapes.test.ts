@@ -17,6 +17,11 @@ describe('credentialInText', () => {
     ['my social is 123456789', 'id-number'],
     ['AWS secret is AKIAIOSFODNN7EXAMPLE', 'api-key'],
     ['the answer to my security question is Fluffy', 'security-answer'],
+    // Plain words after "password is" are the password (no digits, nothing spelled)
+    ['my email password is marmalade', 'password'],
+    ['the netflix password is maple pancake', 'password'],
+    // "screen time" is no longer a code that isn't a secret (#2514 round 2)
+    ['the screen time code on her tablet is 9 0 2 2', 'access-code'],
   ])('%s: %s', (text, category) => {
     expect(credentialInText(text)).toBe(category);
   });
@@ -30,6 +35,8 @@ describe('credentialInText', () => {
     'I use a password manager',
     'my credit card bill is due on the 15th',
     'the gate code changed last week',
+    'my password is on a sticky note',
+    'I turned on screen time for the kids',
   ])('none in: %s', (text) => {
     expect(credentialInText(text)).toBeNull();
   });

@@ -166,7 +166,10 @@ export async function initWorldAwareness(
     interests.location = ipLocation.regionCode
       ? `${ipLocation.city}, ${ipLocation.regionCode}`
       : ipLocation.city;
-    log.info({ location: interests.location }, '📍 Using IP-detected location for world awareness');
+    log.info(
+      { hasLocation: Boolean(interests.location) },
+      '📍 Using IP-detected location for world awareness'
+    );
   }
 
   // Get timezone if available (from contactInfo or customData)
@@ -200,7 +203,7 @@ export async function initWorldAwareness(
     const localTeams = getLocalTeams(ipLocation.city, ipLocation.regionCode);
     if (localTeams.length > 0) {
       interests.favoriteTeams = localTeams.slice(0, 3); // Top 3 local teams
-      log.info({ teams: interests.favoriteTeams }, '🏈 Suggested local teams from IP location');
+      log.info({ teams: interests.favoriteTeams?.length ?? 0 }, '🏈 Suggested local teams from IP location');
     }
   }
 

@@ -373,7 +373,10 @@ export async function startTurnSounds(input: TurnSoundsInput) {
     // SLOW_TURN_SOUND: one "Mm" on a slow turn nothing else filled (slow-turn-sound.ts).
     if (flagOn('SLOW_TURN_SOUND')) {
       const { attachSlowTurnSoundToCall } = await import('../integrations/slow-turn-wiring.js');
-      cleanupFunctions.push(attachSlowTurnSoundToCall(session, sessionId, clips, input.personaId));
+      const slowClips = { ...clips, playClip: clips.slowTurnClip }; // conducted as 'slow_turn'
+      cleanupFunctions.push(
+        attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
+      );
     }
     // A backchannel is a move too, on the reply whose answer it is heard in.
     const play = clips.playClip;

@@ -5,13 +5,14 @@
  * a fact remembered while a forget is reading lands unmarked but is never recalled
  * later in the same call (stored-fact-vectors.ts nearest reads topics forgotten here).
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   rememberedFactDoc,
   rememberToRecall,
   type FactDocWrite,
   type RememberedFactStore,
 } from '../remembered-facts.js';
+import { useSecretModel } from '../../secret-check.js';
 import { forgetTopic, type ForgetStore } from '../../recall/forget.js';
 import { loadRecallSnapshot } from '../../recall/session-recall.js';
 import {
@@ -34,6 +35,8 @@ function memoryStore() {
   return { facts, store, create };
 }
 
+// The model's secret read (remembered-facts-secret.test.ts) clears every fact here
+beforeEach(() => useSecretModel(async () => '{"secret":false}'));
 afterEach(() => vi.unstubAllEnvs());
 
 /** One or more forms per credential category; none is in the eval lead's sweep. */
