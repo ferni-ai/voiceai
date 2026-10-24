@@ -144,6 +144,14 @@ describe('the long-quiet snore, flag on', () => {
     expect(snore!.reason).toContain('quiet for about 19 seconds');
   });
 
+  it('never without a session id: nowhere to record it, so nothing to own', () => {
+    const { session, warmUp } = call({ services: {} });
+    start(session, ON);
+    warmUp();
+    vi.advanceTimersByTime(60_000);
+    expect(snores()).toHaveLength(0);
+  });
+
   it('never after the caller asked him to stop (NAMED_TUNE), and a control call does snore', () => {
     const held = call();
     callTune(held.sessionId).record.soundsOff = true;
@@ -278,6 +286,18 @@ describe('the snore punchline', () => {
     const { note } = snored();
     expect(note('')).not.toContain('was I snoring');
     expect(note('ha, sorry, I zoned out')).toContain('was I snoring');
+  });
+
+  it('after his check-in reply (newer than the snore), the caller still gets it once', () => {
+    const { sessionId, note } = snored();
+    expect(note('')).not.toContain('was I snoring');
+    vi.advanceTimersByTime(2_000);
+    const checkInAt = Date.now(); // the check-in is committed to the chat
+    vi.advanceTimersByTime(3_000);
+    const reply = (words: string) =>
+      quirkTurnNote(sessionId, chatAfter(checkInAt, words), words, {}, ON);
+    expect(reply('ha, sorry, I zoned out')).toContain('was I snoring');
+    expect(reply('anyway, where were we')).toBe('');
   });
 
   it('never when the caller sounds upset: their words or their voice', () => {

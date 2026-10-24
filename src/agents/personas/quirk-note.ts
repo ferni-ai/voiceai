@@ -83,7 +83,8 @@ function candidatesFor(
   const out: Candidate[] = [];
   for (const e of events) {
     if (!isNotable(e.kind) || now - e.at > ASK_WINDOW_MS) continue;
-    const fresh = e.at > since;
+    // A snore waiting on its punchline outlives his check-in reply until the caller speaks
+    const fresh = e.at > since || !!e.ownIt;
     const asked = MENTIONS[e.kind].test(words);
     if (asked) e.landed = 'mentioned';
     else if (fresh && laughed && e.kind !== 'laugh' && !e.landed) e.landed = 'laughed';
