@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
 import {
   NO_EARLIER_CONVERSATION,
+  rememberToRecall,
   searchEarlierConversations,
   thisCallOf,
 } from '../../../services/memory/index.js';
@@ -204,7 +205,6 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           return REMEMBERED_THIS_CALL;
         }
 
-        // Write to unified memory service
         const result = await memoryService.write({
           userId,
           content: fact,
@@ -219,6 +219,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
           void announceMemorySaved({ sessionId, userId, id: result.memoryId, fact, category });
+          void rememberToRecall(userId, { fact, memoryId: result.memoryId, category, sessionId });
           return REMEMBERED;
         }
         // Never an empty result (tool-output-guard.ts): say whether it was kept
