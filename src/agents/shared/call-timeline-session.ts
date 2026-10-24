@@ -38,25 +38,38 @@ interface Ev {
   };
 }
 
-function jobId(): string | undefined {
+/** The LiveKit job and room of this call; none in tests. */
+function jobFields(): { jobId?: string; roomName?: string } {
   try {
-    return getJobContext().job.id;
+    const ctx = getJobContext();
+    return { jobId: ctx.job.id, roomName: ctx.room.name };
   } catch {
-    return undefined; // no job (tests)
+    return {};
   }
 }
+
+type SessionData = { personaId?: string; services?: { realtimeConversationId?: string } };
+type AttachOptions = Omit<TimelineOptions, 'conversationId' | 'persona'> &
+  Partial<Pick<TimelineOptions, 'conversationId' | 'persona'>>;
 
 /**
  * CALL_TIMELINE=on: start the call's timeline on this session. Returns the
  * detach, which records the end, writes what is left and stops listening.
  */
 export function attachCallTimeline(
-  session: EventSource,
-  opts: TimelineOptions,
+  session: EventSource & { userData?: unknown },
+  opts: AttachOptions,
   env: Env = process.env
 ): () => void {
   if (!flagOn('CALL_TIMELINE', env)) return () => {};
-  const tl = new CallTimeline({ jobId: jobId(), buildSha: env.BUILD_SHA, ...opts });
+  // Read when needed: the conversation starts in the background, a swap changes the persona.
+  const data = () => session.userData as SessionData | undefined;
+  const tl = new CallTimeline({
+    ...{ ...jobFields(), buildSha: env.BUILD_SHA },
+    conversationId: () => data()?.services?.realtimeConversationId,
+    persona: () => data()?.personaId ?? 'ferni',
+    ...opts,
+  });
   const unregister = registerTimeline(session, tl);
   // SDK speaking times are epoch seconds; the timeline counts ms from its start.
   const rel = (s?: number) => (s === undefined ? undefined : Math.round(s * 1000 - tl.startedAtMs));

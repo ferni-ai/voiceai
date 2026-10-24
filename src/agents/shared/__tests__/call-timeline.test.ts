@@ -53,6 +53,7 @@ const { attachCallTimeline } = await import('../call-timeline-session.js');
 const { timelineFor, writeTimelineDoc, CHUNK_EVENTS, soundKindOf } =
   await import('../call-timeline.js');
 const { voicedHumFor } = await import('../../integrations/voiced-presence.js');
+const { installLiveCallBehaviors } = await import('../../multi-agent/live-call-behaviors.js');
 const { VOICED_TAKES } = await import('../reaction-clips.js');
 const { noteBargeIn } = await import('../turn-receipt-session.js');
 const { startBackchannelClips } = await import('../../integrations/clip-player.js');
@@ -325,6 +326,49 @@ describe('CALL_TIMELINE', () => {
     expect(ev.f).toEqual({ sound: 'hum', source: 'tool_hum', take: 'thinking-hum' });
     expect(VOICED_TAKES['thinking-hum']).toContain(ev.text);
     await clips.close();
+  });
+
+  it('production wiring: installLiveCallBehaviors attaches it; conversation and persona come from userData', async () => {
+    const live = async (sessionId: string) => {
+      const session = Object.assign(fakeSession(sessionId), { interrupt: () => undefined });
+      session.userData = {
+        services: { sessionId, realtimeConversationId: 'conv_ud' },
+        personaId: 'maya-santos',
+      };
+      const cleanupFunctions: Array<() => void> = [];
+      installLiveCallBehaviors({
+        session: session as never,
+        sessionWithEvents: session as never,
+        sessionEventHandlers: [],
+        cleanupFunctions,
+        sessionId,
+        userId: MEMBER,
+      });
+      return { session, cleanupFunctions };
+    };
+    expect(timelineFor((await live('tl-live-off')).session)).toBeUndefined();
+
+    vi.stubEnv('CALL_TIMELINE', 'on');
+    const paths: string[] = [];
+    const writes: Array<Record<string, unknown>> = [];
+    const ref = (path: string): Record<string, unknown> => ({
+      collection: (name: string) => ref(`${path}/${name}`),
+      doc: (id: string) => ref(`${path}/${id}`),
+      set: async (data: Record<string, unknown>) => void (paths.push(path), writes.push(data)),
+    });
+    const db = ref('') as unknown as ReturnType<typeof firestoreUtils.getFirestoreDb>;
+    vi.mocked(firestoreUtils.getFirestoreDb).mockReturnValueOnce(db).mockReturnValueOnce(db);
+    const { session } = await live('tl-live-on');
+    session.emit('function_tools_executed', { functionCalls: [{ name: 'getWeather' }] });
+    session.emit('close', { reason: 'user_initiated' });
+    await timelineFor(session)!.flush();
+    const base = `/bogle_users/${MEMBER}/conversations/conv_ud/timeline`;
+    expect(paths).toEqual([`${base}/chunk-000`, `${base}/meta`]);
+    const events = writes[0]!.events as Array<Record<string, unknown>>;
+    expect(events.find((e) => e.kind === 'tool_call')).toMatchObject({
+      speaker: 'maya-santos',
+      text: 'getWeather',
+    });
   });
 
   it('writes under bogle_users/{uid}/conversations/{conv}/timeline', async () => {

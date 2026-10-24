@@ -966,8 +966,7 @@ export async function wrappedTtsNode(
           sessionId,
         });
 
-        // Estimate LLM output tokens (~4 chars per token)
-        const estimatedOutputTokens = Math.ceil(totalCharacters / 4);
+        const estimatedOutputTokens = Math.ceil(totalCharacters / 4); // LLM tokens, ~4 chars each
         finops.recordLLMCost({
           model: GEMINI_MODEL, // From centralized config
           inputTokens: 0,
