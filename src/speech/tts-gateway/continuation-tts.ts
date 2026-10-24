@@ -139,7 +139,12 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     opts;
   const trimLead = opts.trimLeadSilence ?? leadSilenceTrimEnabled();
   // NAME_FALLING_INTONATION: an opening "Hey Seth, ..." becomes "Hey Seth." on its own piece.
-  const reader = withFallingVocative(textStream, process.env, opts.callerName).getReader();
+  // NAME_FALLING_SPLIT: a held opening keeps the first-piece wait running from the LLM's text.
+  let textIn: number | undefined;
+  const reader = withFallingVocative(textStream, process.env, opts.callerName, {
+    onText: (at) => (textIn ??= at),
+    holdMs: opts.firstChunkWaitMs ?? FIRST_CHUNK_WAIT_MS,
+  }).getReader();
   let stopped = false;
   // Contexts in play order; the feed writes to the last one.
   const replies: ReplyStream[] = [reply];
@@ -254,7 +259,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
         if (value) {
           if (!heardText) {
             heardText = true;
-            firstTextAt = Date.now();
+            firstTextAt = textIn ?? Date.now();
             opts.onStage?.('text');
           }
           buffer += value;

@@ -28,17 +28,58 @@ const CLAUSE_START = new Set(
 const CLAUSE_START_SPLIT = new Set(
   "and have catch let hope keep enjoy get talk see stay don't".split(' ')
 );
+/** After ", Sam, and": a new clause ("and you handled it"), not a noun phrase ("and the kids"). */
+const AND_CLAUSE = new Set(
+  (
+    "you you're you've you'll you'd i i'm i've i'll i'd it it's that that's we we're we'll " +
+    "let let's have keep hope enjoy get take tell call text thanks thank don't remember make go come"
+  ).split(' ')
+);
+/** A hello before ", Sam,": the hello would be left alone ("Hey, and welcome back!"). */
+const HELLO_ONLY = /^\s*(?:(?:oh|ah|well|okay|ok),?\s+)?(?:hey|hi|hiya|hello)(?:\s+there)?\s*$/i;
+/** A goodbye before ", Sam, and": the name already falls inside it (2026-10-24 F01, X4). */
+const GOODBYE_LEAD =
+  /^\s*(?:take care|see you(?: later| soon| tomorrow)?|bye(?:-bye)?|goodbye|talk (?:to you )?soon|good ?night|sleep well)\s*$/i;
+/** `text` ends inside an open quote ('"Thanks' / '“Thanks'). */
+const inQuote = (text: string): boolean =>
+  (text.match(/"/g)?.length ?? 0) % 2 === 1 || text.lastIndexOf('“') > text.lastIndexOf('”');
+/** Words before a list item: "to Jo, Sam, and", "with you, Sam, and". */
+const LIST_LEAD = new Set('to with and between like from for than'.split(' '));
+const OBJECT = new Set('me him her them us'.split(' '));
+
 /**
- * Whether `word` opens a clause after ", Sam," for NAME_FALLING_SPLIT; null
- * while the word after "and" is still to come. "and" followed by a capital is
- * a list ("Me, Sam, and Jo went", "Sam, and I"), not a new clause.
+ * Whether `word` after ", Sam," opens a clause that addresses the caller, for
+ * NAME_FALLING_SPLIT; null while the text that decides it is still to come.
+ * Anything less clear is left as it was: a list ("Say hi to Jo, Sam, and the
+ * kids", "It was me, Sam, and the dog", "Alex, Sam, and I went"), a hello
+ * before the name ("Hey, Sam, and welcome back!"), a short goodbye before
+ * "and" ("Take care, Sam, and"), words inside a quote ('"Thanks, Sam, and
+ * good luck," she said'). ", Sam, and I ..." is a clause only after a whole
+ * clause or a discourse word ("I hear you, Sam, and I mean it", "Thanks, Sam,
+ * and I mean it"), never after a name or noun that opens the sentence.
  */
-function splitClauseStart(word: string, after: string, final: boolean): boolean | null {
-  if (!CLAUSE_START_SPLIT.has(word)) return false;
+function splitClauseStart(
+  word: string,
+  clause: string,
+  before: string,
+  after: string,
+  final: boolean
+): boolean | null {
+  if (!CLAUSE_START_SPLIT.has(word) || HELLO_ONLY.test(clause) || inQuote(before)) return false;
+  const words = clause.trim().split(/\s+/);
+  const last = words[words.length - 1] ?? '';
+  const capital = /^\p{Lu}/u.test(last);
+  if (
+    OBJECT.has(last.toLowerCase()) ||
+    LIST_LEAD.has((words[words.length - 2] ?? '').toLowerCase())
+  )
+    return false;
+  if (capital && (words.length > 1 || !DISCOURSE.has(last.toLowerCase()))) return false;
   if (word !== 'and') return true;
-  const next = /^\s*,\s*and\s+(\S)/i.exec(after);
-  if (!next) return final ? false : null;
-  return !/\p{Lu}/u.test(next[1]);
+  if (GOODBYE_LEAD.test(clause)) return false;
+  const next = /^\s*,\s*and\s+([\p{L}'’]+)([\s\S]?)/u.exec(after);
+  if (!next || (next[2] === '' && !final)) return final ? false : null;
+  return AND_CLAUSE.has(next[1].toLowerCase().replace('’', "'"));
 }
 /** "my friend, Sam" renames someone; it doesn't address the caller. */
 const APPOSITIVE = new RegExp(
@@ -224,7 +265,8 @@ export function findVocatives(
       continue;
     }
     const opens =
-      CLAUSE_START.has(word) || (split && splitClauseStart(word, text.slice(end), final));
+      CLAUSE_START.has(word) ||
+      (split && splitClauseStart(word, clause, before, text.slice(end), final));
     if (opens === null) undecided(at);
     else if (opens) {
       found.push({

@@ -33,14 +33,11 @@
  * " Sam, ..." -> "Hey, ...". A sentence-final name after a comma that already
  * went out leaves the comma: "Did I miss something,?" (#1413 latency).
  *
- * NAME_FALLING_SPLIT: ", Sam, and ..." (and have, catch, let, ...) is found
- * too (name-vocatives.ts), so a kept name ends its sentence ("Take care, Sam.
- * And let me know.") and a dropped one goes. A hello word or a comma waits
- * when the name after it would be dropped, so it goes with the name: streamed
- * mid-call, "Hey Sam, morning." said "Hey, morning." and now says "Morning.",
- * and "That's rough, Sam." said "That's rough,." (the TTS piece "That's
- * rough," ended on a comma) and now says "That's rough.". The TTS gateway
- * holds an opening hello for name-intonation.ts anyway.
+ * NAME_FALLING_SPLIT: ", Sam, and you ..." (and have, catch, let, ...) is
+ * found too when it clearly addresses the caller (name-vocatives.ts), so a
+ * kept name ends its sentence ("That's a lot, Sam. And you handled it.") and
+ * a dropped one goes. A kept name ends its sentence even when the comma before
+ * it already went out. Nothing waits any longer than without the flag.
  *
  * NAME_GATE=off turns it off.
  *
@@ -196,12 +193,10 @@ export function withNameGate(
     const letters = m[1].toLowerCase();
     if (letters && !GREETING_WORDS.some((g) => g.startsWith(letters))) return false;
     if (letters && name.toLowerCase().startsWith(letters)) return false;
-    const hello = /^\s*(hey|hi|hiya|hello|oh)\b/i.exec(raw.slice(from).replace(/^[\s,—–;:]*/, ''));
-    // NAME_FALLING_SPLIT: a hello waits for a name that goes, and goes with it ("Oh, that's" keeps Oh).
-    const waits = split && (keptOne || !allowed);
-    if (hello || letters) return !waits || 'oh'.startsWith((hello?.[1] ?? letters).toLowerCase());
+    if (/^\s*(?:hey|hi|hiya|hello|oh)\b/i.test(raw.slice(from).replace(/^[\s,—–;:]*/, '')))
+      return true;
+    if (letters) return true; // "He", "Hel": a hello word on its way
     if (allowed && !decidedAny) return true;
-    if (waits) return false;
     // The first clause break continuation-tts could cut on: 12+ spoken characters
     // through it, and no earlier break that long.
     const spokenTo = (end: number): number =>

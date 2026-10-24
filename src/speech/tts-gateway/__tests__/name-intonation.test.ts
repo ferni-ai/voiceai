@@ -80,6 +80,10 @@ describe('fallingVocative with NAME_FALLING_SPLIT', () => {
   });
 
   it.each([
+    'Seth, Jo and I went.',
+    'Seth, Jo, Mia, and I went.',
+    'Seth, and the kids, are coming.',
+    'Oh hey Seth, Jo, and Mia!',
     'Seth. Good to hear you.',
     "Seth's here.",
     'Sethany, hi.',
@@ -89,6 +93,31 @@ describe('fallingVocative with NAME_FALLING_SPLIT', () => {
     'Sam, good to hear you.',
   ])('leaves other openings alone: %s', (input) => {
     expect(fallingVocative(input, false, split)).toBe(input);
+  });
+
+  it('changes nothing for another name, or when the caller has none', () => {
+    expect(fallingVocative('Oh hey Sam, how was the run?', false, split)).toBe(
+      'Oh hey Sam, how was the run?'
+    );
+    expect(fallingVocative('Oh hey Seth, how was it?', false, { name: null })).toBe(
+      'Oh hey Seth, how was it?'
+    );
+  });
+
+  it.each([
+    ['Hey, morning.', 'Morning.'],
+    ["Hey morning, how'd you sleep?", "Morning, how'd you sleep?"],
+    ['Hi, good evening.', 'Good evening.'],
+  ])('drops a hello the name gate left before a greeting: %s', (input, expected) => {
+    expect(fallingVocative(input, false, split)).toBe(expected);
+    expect(fallingVocative(input, false)).toBe(input);
+  });
+
+  it('keeps a hello before other words', () => {
+    expect(fallingVocative('Hey, mornings are rough.', false, split)).toBe(
+      'Hey, mornings are rough.'
+    );
+    expect(fallingVocative('Hey, mor', false, split)).toBe(WAIT);
   });
 
   it('waits while a reaction word or the name may still open the reply', () => {
@@ -185,6 +214,56 @@ describe('NAME_FALLING_INTONATION on the continuation path', () => {
 
 describe('withFallingVocative', () => {
   afterEach(() => vi.unstubAllEnvs());
+
+  const on = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'on' };
+  /** Pieces in, with when each piece came out (ms after the first went in). */
+  async function timed(pieces: Array<[number, string]>, onText?: (at: number) => void) {
+    const t0 = Date.now();
+    const input = new ReadableStream<string>({
+      async start(c) {
+        for (const [at, p] of pieces) {
+          await new Promise((r) => {
+            setTimeout(r, Math.max(0, at - (Date.now() - t0)));
+          });
+          c.enqueue(p);
+        }
+        c.close();
+      },
+    });
+    const out: Array<[number, string]> = [];
+    for await (const p of withFallingVocative(input, on, 'Seth', { onText, holdMs: 50 }))
+      out.push([Date.now() - t0, p]);
+    return out;
+  }
+
+  it('lets a hold only NAME_FALLING_SPLIT asked for go as main would, after holdMs', async () => {
+    const out = await timed([
+      [0, 'Okay,'],
+      [200, " let's go."],
+    ]);
+    expect(out.map(([, p]) => p).join('')).toBe("Okay, let's go.");
+    expect(out[0][1]).toBe('Okay,');
+    expect(out[0][0]).toBeLessThan(150);
+  });
+
+  it("reports when the reply's text began only for the split's own holds", async () => {
+    const seen: number[] = [];
+    await timed(
+      [
+        [0, 'Okay,'],
+        [20, ' sure.'],
+      ],
+      (at) => seen.push(at)
+    );
+    await timed(
+      [
+        [0, 'Hey'],
+        [20, ' Seth, hi.'],
+      ],
+      (at) => seen.push(at)
+    );
+    expect(seen).toHaveLength(1);
+  });
 
   it('returns the same stream when the flag is off', () => {
     const stream = textStream(['Hey Seth, hi.']);

@@ -12,11 +12,11 @@ import { gatePieces, pushesFor } from './name-push-corpus.js';
 /** LLM-like tokens: each word with the space before it. */
 const tokens = (t: string): string[] => t.split(/(?=\s)/);
 
-/** A reply as a call voices it at hello: the name gate, then the continuation path. */
-async function hello(reply: string, split: 'on' | 'off'): Promise<string[]> {
+/** A reply as a call voices it: the name gate (hello or mid-call), then the continuation path. */
+async function voiced(reply: string, split: 'on' | 'off', hello = true): Promise<string[]> {
   vi.stubEnv('NAME_FALLING_SPLIT', split);
   const env = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: split };
-  return pushesFor(await gatePieces(tokens(reply), 'Seth', true, env), 'Seth');
+  return pushesFor(await gatePieces(tokens(reply), 'Seth', hello, env), 'Seth');
 }
 
 describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
@@ -31,11 +31,6 @@ describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
       ['That sounds like a lot, ', 'Seth. ', 'And you handled it well. '],
     ],
     [
-      'Take care, Seth, and let me know how it goes.',
-      ['Take care, Seth, ', 'and let me know how it goes. '],
-      ['Take care, Seth. ', 'And let me know how it goes. '],
-    ],
-    [
       'Catch you later, Seth, have a good one.',
       ['Catch you later, ', 'Seth, have a good one. '],
       ['Catch you later, ', 'Seth. ', 'Have a good one. '],
@@ -46,18 +41,13 @@ describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
       ['Hey Seth. ', 'How was the run? '],
     ],
   ])('%s', async (reply, off, on) => {
-    expect(await hello(reply, 'off')).toEqual(off);
-    expect(await hello(reply, 'on')).toEqual(on);
+    expect(await voiced(reply, 'off')).toEqual(off);
+    expect(await voiced(reply, 'on')).toEqual(on);
   });
 
-  it.each([
-    ['Catch you later, Seth.', ['Catch you later, ', 'Seth. ']],
-    ["That's rough, Seth.", ["That's rough, ", 'Seth. ']],
-    ["Seth, morning. How'd you sleep?", ['Seth. ', 'Morning. ', "How'd you sleep? "]],
-    ["Hey Seth, how's it going?", ['Hey Seth. ', "How's it going? "]],
-  ])('leaves shapes that already fall as they are: %s', async (reply, pushes) => {
-    expect(await hello(reply, 'off')).toEqual(pushes);
-    expect(await hello(reply, 'on')).toEqual(pushes);
+  it('drops the hello the gate left when it dropped the name mid-call', async () => {
+    expect(await voiced('Hey Seth, morning.', 'off', false)).toEqual(['Hey, morning. ']);
+    expect(await voiced('Hey Seth, morning.', 'on', false)).toEqual(['Morning. ']);
   });
 
   it('ends a name-first opening that skipped the name gate (session.say)', async () => {
@@ -67,6 +57,68 @@ describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
     vi.stubEnv('NAME_FALLING_SPLIT', 'on');
     expect(await pushesFor(said, 'Seth')).toEqual(['Seth. ', 'Good to hear your voice. ']);
     expect(await pushesFor(said)).toEqual(['Seth, good to hear your voice. ']);
+  });
+
+  it.each([
+    // Shapes that already fall.
+    'Catch you later, Seth.',
+    "That's rough, Seth.",
+    "Seth, morning. How'd you sleep?",
+    "Hey Seth, how's it going?",
+    // A short goodbye before ", Seth, and": the name falls inside the first push already.
+    'Take care, Seth, and let me know how it goes.',
+    'See you, Seth, and say hi to Jo.',
+    'Bye, Seth, and thanks again.',
+    'Good night, Seth, and sleep well.',
+    'Talk soon, Seth, and good luck tomorrow.',
+    // Lists and appositions: the name is not (clearly) said to the caller.
+    'Say hi to Jo, Seth, and the kids for me.',
+    'Invite Jo, Seth, and her sister.',
+    'I saw Jo, Seth, and the kids.',
+    'It was me, Seth, and the dog.',
+    'Remember Tom, Seth, and his boat?',
+    'Between you, Seth, and me, it is fine.',
+    'Thanks to you, Seth, and the whole team.',
+    'Me, Seth, and Jo went.',
+    'Jo, Seth, and I went to the lake.',
+    'We invited Mom, Seth, and the neighbors.',
+    'Dinner with Jo, Seth, and the twins was fun.',
+    'Like Jo, Seth, and everyone else, you deserve a break.',
+    'I packed snacks for Jo, Seth, and the kids.',
+    'It is between Tom, Seth, and Ali now.',
+    'Tell Jo, Seth, and Ali I said hi.',
+    'She called him, Seth, and then hung up.',
+    'Ask them, Seth, and see what they say.',
+    'I hear you, Seth, and the kids too.',
+    'My friend, Seth, and I went.',
+    'Our coach, Seth, and his wife came.',
+    'The new guy, Seth, and his dog moved in.',
+    'Seth, Jo, and the kids are here.',
+    'You, Seth, and Jo are the best.',
+    'It was between you, Seth, and I.',
+    'It was me, Seth, and it was over.',
+    'Mom, Seth, and the kids are coming.',
+    'Alex, Seth, and I went.',
+    'Grandma, Seth, and the dog are asleep.',
+    '"Thanks, Seth, and good luck," she said.',
+    '"Thanks, Seth, and you take care," she said.',
+    // A hello before the name: dropping the name would strand it ("Hey, and welcome back!").
+    'Hey, Seth, and welcome back!',
+    'Hi, Seth, and thanks for calling.',
+    'Hey there, Seth, and welcome!',
+    'Hey, Seth, keep it up!',
+    // Another name than the caller's.
+    'Oh hey Sam, how was the run?',
+    // The caller greeted as one of several (round-2 verify).
+    'Oh hey, Seth, and Jo!',
+    'Oh hey Seth, Jo, and Mia!',
+    'Oh hi Seth, Jo, and everyone, welcome.',
+    'Ah hey Seth, Jo, and I were just talking.',
+    'Oh hey Seth, and thanks for calling.',
+  ])('leaves it as main sends it, at hello and mid-call: %s', async (reply) => {
+    for (const hello of [true, false]) {
+      expect(await voiced(reply, 'on', hello)).toEqual(await voiced(reply, 'off', hello));
+    }
   });
 });
 
@@ -83,31 +135,37 @@ class TimedReply implements ReplyStream {
 }
 
 const processor = getSSMLProcessor();
-/** Between LLM tokens, and timer slack on a loaded CI runner. */
-const GAP = 30;
-const SLACK = 40;
+/** Between LLM tokens; a hold of one token is 60 ms, so a 15 ms tolerance catches it. */
+const GAP = 60;
+const TOLERANCE = 15;
+const MID_CALL = [
+  { role: 'user', textContent: 'hi' },
+  { role: 'assistant', textContent: 'Hello there.' },
+  { role: 'user', textContent: 'so anyway' },
+];
 
-/** The first push of `reply` streamed a token every GAP ms through gate and gateway, and when. */
-async function firstPush(
+/** The first push of `reply`, its tokens `gaps[i]` ms apart, through gate and gateway. */
+async function firstPushOnce(
   reply: string,
-  history: Array<{ role: string; textContent: string }>,
-  split: 'on' | 'off'
+  hello: boolean,
+  split: 'on' | 'off',
+  gap: (i: number) => number
 ): Promise<{ at: number; text: string }> {
   vi.stubEnv('NAME_FALLING_SPLIT', split);
   const t0 = Date.now();
   const llm = new ReadableStream<string>({
     async start(c) {
-      for (const tok of tokens(reply)) {
+      for (const [i, tok] of tokens(reply).entries()) {
         c.enqueue(tok);
         await new Promise((r) => {
-          setTimeout(r, GAP);
+          setTimeout(r, gap(i));
         });
       }
       c.close();
     },
   });
   const env = { NAME_GATE: 'on', NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: split };
-  const gated = withNameGate(llm, { name: 'Seth', history, env });
+  const gated = withNameGate(llm, { name: 'Seth', history: hello ? [] : MID_CALL, env });
   const out = new TimedReply(t0);
   const stream = createContinuationTTS({
     textStream: gated as unknown as ReadableStream<string>,
@@ -131,33 +189,61 @@ async function firstPush(
   return out.pushes[0];
 }
 
-const MID_CALL = [
-  { role: 'user', textContent: 'hi' },
-  { role: 'assistant', textContent: 'Hello there.' },
-  { role: 'user', textContent: 'so anyway' },
-];
+/** The median of three runs, against timer noise. */
+async function firstPush(
+  reply: string,
+  hello: boolean,
+  split: 'on' | 'off',
+  gap: (i: number) => number = () => GAP
+): Promise<{ at: number; text: string }> {
+  const runs = [];
+  for (let i = 0; i < 3; i++) runs.push(await firstPushOnce(reply, hello, split, gap));
+  runs.sort((a, b) => a.at - b.at);
+  return runs[1];
+}
 
 describe('NAME_FALLING_SPLIT latency', () => {
   beforeEach(() => vi.stubEnv('NAME_FALLING_INTONATION', 'on'));
   afterEach(() => vi.unstubAllEnvs());
 
   it.each([
-    ['Oh hey Seth, how was the run?', []],
-    ['Seth, good to hear your voice.', []],
-    ['That sounds like a lot, Seth, and you handled it well.', []],
-    ["Hey Seth, morning. How's it going?", MID_CALL],
-    ["That's rough, Seth. Long shift?", MID_CALL],
-  ])('first audio waits at most one more token: %s', async (reply, history) => {
-    const off = await firstPush(reply, history, 'off');
-    const on = await firstPush(reply, history, 'on');
-    expect(on.at).toBeLessThanOrEqual(off.at + GAP + SLACK);
+    ['That sounds really hard, and I am here for it.', false],
+    ['That sounds really hard, and I am here for it.', true],
+    ["Okay, let's go over it together.", true],
+    ['Well, I did not see that coming.', true],
+    ['Oh, that is rough.', true],
+    ["Hey, that's wild, honestly.", false],
+    ['Hey there, how was the walk today?', true],
+    ['Sure thing, I can do that.', false],
+  ])('a reply without the name goes out exactly when it did: %s', async (reply, hello) => {
+    const off = await firstPush(reply, hello, 'off');
+    const on = await firstPush(reply, hello, 'on');
+    expect(on.text).toBe(off.text);
+    expect(Math.abs(on.at - off.at)).toBeLessThan(TOLERANCE);
   });
 
-  it('a reply without the name goes out as before', async () => {
-    const reply = 'That sounds really hard, and I am here for it.';
-    const off = await firstPush(reply, MID_CALL, 'off');
-    const on = await firstPush(reply, MID_CALL, 'on');
+  it('a slow model: a held "Okay," goes no later than it did', async () => {
+    const slow = (i: number): number => (i === 0 ? 250 : GAP);
+    const off = await firstPush("Okay, let's go over it together.", true, 'off', slow);
+    const on = await firstPush("Okay, let's go over it together.", true, 'on', slow);
     expect(on.text).toBe(off.text);
-    expect(Math.abs(on.at - off.at)).toBeLessThan(SLACK);
+    expect(Math.abs(on.at - off.at)).toBeLessThan(TOLERANCE);
   });
+
+  it.each([
+    ['That sounds like a lot, Seth, and you handled it well.', false],
+    ['That sounds like a lot, Seth, and you handled it well.', true],
+    ['Catch you later, Seth, have a good one.', true],
+    ['Seth, good to hear your voice.', true],
+    ['Oh hey Seth, how was the run?', true],
+  ])(
+    'a name reply waits at most the name token, never cut mid-phrase: %s',
+    async (reply, hello) => {
+      const off = await firstPush(reply, hello, 'off');
+      const on = await firstPush(reply, hello, 'on');
+      expect(on.at).toBeLessThanOrEqual(off.at + GAP + TOLERANCE);
+      // Cut where main cut it (at 60 ms a token main's own word cut may go first) or at a phrase end.
+      if (on.text !== off.text) expect(on.text).toMatch(/[,.!?] $/);
+    }
+  );
 });

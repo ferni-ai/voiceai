@@ -39,7 +39,7 @@ describe('NAME_FALLING_SPLIT off', () => {
     }
     expect(changed).toEqual(
       expect.arrayContaining([
-        'Take care, Seth, and let me know how it goes.',
+        "Seth, morning. How'd you sleep?",
         'Oh hey Seth, how was the run?',
         'See you later, Sam, have a good one.',
         'I hear you, Sam, and that sounds hard.',
