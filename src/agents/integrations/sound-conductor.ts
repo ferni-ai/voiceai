@@ -87,10 +87,15 @@ export interface SoundDecision {
 
 /** "Mm", "Mm-hmm", "Mhm", "Hmm" are one sound; "Yeah", "Yeh" another. */
 export function soundFamily(clip: string): string {
-  const letters = clip
-    .replace(/<[^>]*>/g, '')
-    .toLowerCase()
-    .replace(/[^a-z]/g, '');
+  // Strip SSML tags until stable. The result is only a lookup key (never HTML), and
+  // the [^a-z] pass below drops any stray "<", but a single-pass strip trips CodeQL's
+  // incomplete-multi-character-sanitization rule.
+  let untagged = clip;
+  for (let prev = ''; prev !== untagged;) {
+    prev = untagged;
+    untagged = untagged.replace(/<[^>]*>/g, '');
+  }
+  const letters = untagged.toLowerCase().replace(/[^a-z]/g, '');
   if (/^h?m+(?:h+m+)*$/.test(letters)) return 'mm';
   if (/^ye+a*h+$/.test(letters)) return 'yeah';
   return letters;
