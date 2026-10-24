@@ -12,7 +12,11 @@ import { sessionHeldBy } from './crisis-gate-signal.js';
 /** A reply held on `verdict` was released: the ms its first words waited (0: none held). */
 export function noteCrisisHold(verdict: Promise<unknown>, firstHeldAt: number): number {
   const delayedMs = firstHeldAt ? Date.now() - firstHeldAt : 0;
-  const session = sessionHeldBy(verdict) as { userData?: unknown } | undefined;
-  noteTurnTiming(sessionIdIn(session?.userData), 'crisis', delayedMs);
+  try {
+    const session = sessionHeldBy(verdict) as { userData?: unknown } | undefined;
+    noteTurnTiming(sessionIdIn(session?.userData), 'crisis', delayedMs);
+  } catch {
+    // A session without userData throws on read: the held reply still goes out
+  }
   return delayedMs;
 }
