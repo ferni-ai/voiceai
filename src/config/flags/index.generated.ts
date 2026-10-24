@@ -45,4 +45,5 @@ export { SPOKEN_PUNCTUATION_NORMALIZE } from './SPOKEN_PUNCTUATION_NORMALIZE.js'
 export { THIRD_PARTY_SELF_HARM } from './THIRD_PARTY_SELF_HARM.js';
 export { TOOL_ACK_WIDE } from './TOOL_ACK_WIDE.js';
 export { TURN_METRICS_BQ } from './TURN_METRICS_BQ.js';
+export { VOICED_QUIRKS } from './VOICED_QUIRKS.js';
 export {};
