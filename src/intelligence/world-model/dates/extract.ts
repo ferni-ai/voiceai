@@ -16,6 +16,7 @@
 import { flagOn } from '../../../config/env-flag.js';
 import { isDay, type WorldObservation } from '../temporal/types.js';
 import type { CallMoment } from '../extraction/extraction-prompt.js';
+import { strictTimeOfDay, type StrictTime } from './strict-time.js';
 import { daysBetween, nextOccurrence, resolveWhen } from './timex.js';
 
 /** True when DATES_THAT_MATTER=on. Off by default. */
@@ -73,7 +74,7 @@ export interface DateObservation extends WorldObservation {
   monthDay?: string;
   /** The caller's words for when. */
   when: string;
-  /** HH:MM in the caller's zone, when the words named a time ("biopsy at 3"). */
+  /** HH:MM in the caller's zone, when the words named one time strictly ("Friday at 3pm"). */
   at?: string;
   /** Ambiguous, unsure or resolved by the model: ask before relying on it. */
   needsConfirmation: boolean;
@@ -87,7 +88,7 @@ Return JSON only: {"dates": [ ... ]}. Each item:
 - relation: how they relate to the caller ("mother", "coworker"), if said
 - what: a short plain phrase ("birthday", "knee surgery", "interview at Stripe")
 - kind: one of ${DATE_KINDS.join(', ')}
-- when: the CALLER's exact words for the day, copied, not computed ("the 14th", "next Thursday", "October 3rd", "tomorrow"); if they named the month anywhere in the call, include it ("December 19th", not "the 19th"); if they named a time, include it ("Tuesday at 3", "the 14th at 10am")
+- when: the CALLER's exact words for the day, copied, not computed ("the 14th", "next Thursday", "October 3rd", "tomorrow"); if they named the month anywhere in the call, include it ("December 19th", not "the 19th")
 - guess: your own YYYY-MM-DD for that day
 - recurring: true for a date that comes back every year (a birthday, an anniversary, the day someone died); false for a one-time thing (a birthday party this Saturday is one-time)
 - past: true if it already happened
@@ -164,6 +165,15 @@ function plausibleGuess(guess: string | undefined, callDate: string): string | n
 }
 
 /**
+ * The time said with a day timex read from the words. It never moves the day: it rides
+ * only on a day the words give without it ("12 noon" is no 12th).
+ */
+function timeOn(m: DateMention, day: string, callDate: string): StrictTime | null {
+  const time = strictTimeOfDay(m.when);
+  return time && resolveWhen(time.rest, callDate, m.past)?.date === day ? time : null;
+}
+
+/**
  * Resolves each mention against the call's date; a later mention of the same
  * date (a correction) wins. Mentions whose day can't be found are dropped.
  */
@@ -185,6 +195,7 @@ export function toDateObservations(
     const disagree = other !== null && (yearly ? other.slice(5) !== day.slice(5) : other !== day);
     const doubtful = Boolean(resolved?.ambiguous || guess || m.unsure || disagree);
     const confidence = Math.round(m.confidence * (doubtful ? 0.7 : 1) * 100) / 100;
+    const time = resolved ? timeOn(m, day, call.callDate) : null;
     out.push({
       subject: m.who,
       subjectKind: m.who === 'self' ? 'self' : 'person',
@@ -200,8 +211,9 @@ export function toDateObservations(
       recurrence: yearly ? 'yearly' : 'once',
       ...(yearly ? { monthDay: day.slice(5) } : {}),
       when: m.when,
-      ...(resolved?.at ? { at: resolved.at } : {}),
-      needsConfirmation: doubtful || confidence < 0.7,
+      ...(time ? { at: time.at } : {}),
+      // Which night a midnight is, is easy to get wrong.
+      needsConfirmation: doubtful || confidence < 0.7 || time?.midnight === true,
       ...(m.correction ? { replaces: { attribute: 'event', priorValue: m.what } } : {}),
     });
   }

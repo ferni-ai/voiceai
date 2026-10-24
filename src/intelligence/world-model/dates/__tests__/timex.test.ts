@@ -31,6 +31,7 @@ describe('resolveWhen: relative to the call', () => {
     ['tomorrow', '2026-10-12'],
     ['the day after tomorrow', '2026-10-13'],
     ['Friday morning', '2026-10-16'],
+    ['thursday at 3pm', '2026-10-15'],
     ['in two weeks', '2026-10-25'],
     ['in a couple of weeks', '2026-10-25'],
     ['a week from Tuesday', '2026-10-20'],
@@ -51,119 +52,6 @@ describe('resolveWhen: relative to the call', () => {
     expect(resolveWhen('next month', SUN)).toBeNull();
     expect(resolveWhen('sometime in June', SUN)).toBeNull();
     expect(resolveWhen('soon', SUN)).toBeNull();
-  });
-});
-
-describe('resolveWhen: the time of day, kept beside the day', () => {
-  it.each([
-    ['thursday at 3pm', '2026-10-15', '15:00'],
-    ['Thursday at 3', '2026-10-15', '15:00'],
-    ['the 14th at 15:00', '2026-10-14', '15:00'],
-    ["October 14th at three o'clock", '2026-10-14', '15:00'],
-    ['Friday at noon', '2026-10-16', '12:00'],
-    ['tomorrow at 9:30 a.m.', '2026-10-12', '09:30'],
-    // No day said: the call's own day ("biopsy at 3").
-    ['at 3', SUN, '15:00'],
-  ])('%s said on Sun Oct 11 is %s at %s', (when, day, at) => {
-    expect(resolveWhen(when, SUN)).toEqual({ date: day, ambiguous: false, at });
-  });
-
-  // The rule for an hour with no am or pm: 7 to 11 morning, 12 noon, 1 to 6 afternoon,
-  // unless the words say which part of the day.
-  it.each([
-    ['at 3', '15:00'],
-    ['at 6', '18:00'],
-    ['at 7', '07:00'],
-    ['at 11', '11:00'],
-    ['at 12', '12:00'],
-    ['at 3 in the morning', '03:00'],
-    ['tonight at 8', '20:00'],
-    ['at 10 in the evening', '22:00'],
-    ['3 in the morning', '03:00'],
-    ['8 tonight', '20:00'],
-    ['5 in the afternoon', '17:00'],
-  ])('%s is %s', (when, at) => {
-    expect(resolveWhen(when, SUN)?.at).toBe(at);
-  });
-
-  it('gives no time when none was said, and never reads a day as an hour', () => {
-    expect(resolveWhen('the 14th', SUN)).toEqual({ date: '2026-10-14', ambiguous: false });
-    expect(resolveWhen('on the 3rd', SUN)).not.toHaveProperty('at');
-    // An hour before a part of the day is that day's hour, never "the 3rd".
-    expect(resolveWhen('3 in the morning', SUN)).toEqual({
-      date: SUN,
-      ambiguous: false,
-      at: '03:00',
-    });
-    expect(resolveWhen('Friday morning', SUN)).toEqual({ date: '2026-10-16', ambiguous: false });
-  });
-});
-
-describe('resolveWhen: times that must not be guessed wrong (they feed reminders)', () => {
-  it('reads minutes after a dot as minutes, never as "the 30th"', () => {
-    expect(resolveWhen('at 5.30', SUN)).toEqual({ date: SUN, ambiguous: false, at: '17:30' });
-    expect(resolveWhen('Thursday at 9.30', SUN)).toEqual({
-      date: '2026-10-15',
-      ambiguous: false,
-      at: '09:30',
-    });
-    expect(resolveWhen('5.30pm', SUN)?.at).toBe('17:30');
-    expect(resolveWhen('at 9.30 in the morning', SUN)?.at).toBe('09:30');
-    expect(resolveWhen('at 17.30', SUN)?.at).toBe('17:30');
-  });
-
-  it.each(['10.30.2026', 'on 30.10', 'at 10.30.2026', 'at 1.10.26', 'at 5.3', 'at 5.60', 'at 3:3', '10.11 in the morning'])(
-    '%s is no time and no day',
-    (when) => {
-      expect(resolveWhen(when, SUN)).toBeNull();
-    }
-  ); // prettier-ignore
-
-  it('an hour run into a date is the date, not a time', () => {
-    expect(resolveWhen('at 3/14', SUN)).toEqual({ date: '2027-03-14', ambiguous: false });
-  });
-
-  // Midnight is the end of the day it was said with, and is always confirmed.
-  it.each([
-    ['tonight at 12', '2026-10-12', '00:00'],
-    ['12 at night', '2026-10-12', '00:00'],
-    ['at 12 at night', '2026-10-12', '00:00'],
-    ['12am', '2026-10-12', '00:00'],
-    ['midnight', '2026-10-12', '00:00'],
-    ['at 12:30am', '2026-10-12', '00:30'],
-    ['tonight at 12:30', '2026-10-12', '00:30'],
-    ['Friday night at 12', '2026-10-17', '00:00'],
-  ])('%s said Sun Oct 11 is %s at %s, to confirm', (when, date, at) => {
-    expect(resolveWhen(when, SUN)).toEqual({ date, ambiguous: true, at });
-  });
-
-  it.each([
-    ['at 12', '12:00'],
-    ['12pm', '12:00'],
-    ['noon', '12:00'],
-    // Zero-padded is 24-hour, and a literal 00:30 is not shifted.
-    ['at 01:00', '01:00'],
-    ['at 00:30', '00:30'],
-    ['at 1:00', '13:00'],
-    // A range is its start.
-    ['2-4pm', '14:00'],
-    ['11-1pm', '11:00'],
-    ['12-2pm', '12:00'],
-    ['10-11am', '10:00'],
-  ])('%s said Sun Oct 11 is that day at %s', (when, at) => {
-    expect(resolveWhen(when, SUN)).toEqual({ date: SUN, ambiguous: false, at });
-  });
-
-  it('gives up on "10 to 5pm" (4:50, or 10 until 5?)', () => {
-    expect(resolveWhen('10 to 5pm', SUN)).toBeNull();
-  });
-
-  it('keeps the day under a part of the day it has no word for', () => {
-    expect(resolveWhen('tomorrow afternoon', SUN)).toEqual({
-      date: '2026-10-12',
-      ambiguous: false,
-    });
-    expect(resolveWhen('tomorrow in the evening', SUN)?.date).toBe('2026-10-12');
   });
 });
 

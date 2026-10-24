@@ -1,7 +1,7 @@
 /**
  * Dates that matter as a follow-up source for Bookends (ENGAGEMENT-SPEC §2.3,
  * PR B1): a one-time medical visit or event the caller gave a time for
- * ("biopsy Tuesday at 3") becomes a follow-up that knows when the thing
+ * ("biopsy Tuesday at 3pm") becomes a follow-up that knows when the thing
  * happens (eventAt, to the minute), what to ask after it, and how heavy it is.
  *
  * Only what a bookend can be built around comes through: once, medical or

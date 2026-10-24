@@ -17,7 +17,7 @@ const mention = (over: Partial<DateMention>): DateMention => ({
   who: 'self',
   what: 'biopsy',
   kind: 'medical',
-  when: 'at 3',
+  when: 'Thursday at 3pm',
   recurring: false,
   past: false,
   correction: false,
@@ -37,9 +37,9 @@ const itemsFor = (facts: readonly BookendDateFact[], now = TUE_10_ET) =>
   bookendSourceItems(facts, { zone: ET, now, heavy });
 
 describe('bookendSourceItems', () => {
-  it('"biopsy at 3" said Tue 10:00 ET happens Tue 19:00Z, asked after, heavy', () => {
+  it('"biopsy Thursday at 3pm" said Tue 10:00 ET happens Thu 19:00Z, asked after, heavy', () => {
     const facts = factsFrom(mention({}));
-    expect(facts[0]).toMatchObject({ eventDate: '2026-10-20', at: '15:00' });
+    expect(facts[0]).toMatchObject({ eventDate: '2026-10-22', at: '15:00' });
 
     expect(itemsFor(facts)).toEqual([
       {
@@ -48,7 +48,7 @@ describe('bookendSourceItems', () => {
         dueAt: null,
         repeat: null,
         source: { store: 'world_facts', ref: 'wd_1' },
-        eventAt: '2026-10-20T19:00:00.000Z',
+        eventAt: '2026-10-22T19:00:00.000Z',
         eventPrecision: 'time',
         askType: 'how-did-it-go',
         salience: { weight: 0.9, heavy: true, sensitive: true, by: 'rule', v: 1 },
@@ -82,7 +82,7 @@ describe('bookendSourceItems', () => {
   });
 
   it('a yearly birthday is no source, even with a time', () => {
-    const facts = factsFrom(mention({ who: 'mom', what: 'birthday', kind: 'birthday', recurring: true, when: 'the 24th at 3' })); // prettier-ignore
+    const facts = factsFrom(mention({ who: 'mom', what: 'birthday', kind: 'birthday', recurring: true, when: 'the 24th at 3pm' })); // prettier-ignore
     expect(facts[0]).toMatchObject({ recurrence: 'yearly', at: '15:00' });
     expect(itemsFor(facts)).toEqual([]);
   });
@@ -96,27 +96,23 @@ describe('bookendSourceItems', () => {
       { ...timed, id: 'yearly', recurrence: 'yearly' },
     ];
     expect(itemsFor(facts)).toEqual([]);
-    expect(itemsFor([timed], new Date('2026-10-20T19:00:00.000Z'))).toEqual([]);
+    expect(itemsFor([timed], new Date('2026-10-22T19:00:00.000Z'))).toEqual([]);
   });
 
-  it('"at 5.30" is 17:30 that day; midnight is asked before it is used', () => {
-    const [dotted, midnight] = factsFrom(
-      mention({ when: 'at 5.30' }),
-      mention({ what: 'scan', when: 'tonight at 12' })
+  it('a time the day reader could misread gives no bookend; midnight is asked first', () => {
+    const [misread, bare, midnight] = factsFrom(
+      mention({ when: 'Friday at 3:30pm' }),
+      mention({ what: 'x-ray', when: 'at 5.30', guess: '2026-10-20' }),
+      mention({ what: 'scan', when: '12am on friday' })
     );
-    expect(dotted).toMatchObject({
-      eventDate: '2026-10-20',
-      at: '17:30',
-      needsConfirmation: false,
-    });
+    expect(misread).not.toHaveProperty('at');
+    expect(bare).not.toHaveProperty('at');
     expect(midnight).toMatchObject({
-      eventDate: '2026-10-21',
+      eventDate: '2026-10-23',
       at: '00:00',
       needsConfirmation: true,
     });
-    expect(itemsFor([dotted, midnight]).map((i) => i.eventAt)).toEqual([
-      '2026-10-20T21:30:00.000Z',
-    ]);
+    expect(itemsFor([misread, bare, midnight])).toEqual([]);
   });
 
   it('refuses a time or day out of range instead of rolling it over', () => {
