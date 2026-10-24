@@ -26,6 +26,7 @@ import {
   type ToolView,
 } from './turn-input-tokens.js';
 import { eotCallFrom } from './turn-receipt-eot.js';
+import { noteOfferedTools, withTurnMetricsBq } from './turn-receipt-bq.js';
 import { turnDetectionInUse } from './turn-patience.js';
 
 // One recorder per AgentSession, so llmNode and withTurnReminder can find it.
@@ -51,6 +52,7 @@ export function noteRequest(
 ): void {
   const functionTools = tools.functionTools ?? {};
   const schemaChars = measuringTokens.has(session) ? toolSchemaChars(functionTools) : undefined;
+  noteOfferedTools(Object.keys(functionTools));
   recorders
     .get(session)
     ?.onRequest(request.items as ItemView[], Object.keys(functionTools).length, schemaChars);
@@ -66,7 +68,8 @@ interface EventSource {
  * emits a turn still open and stops listening.
  */
 export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOptions): () => void {
-  const emit = opts.emit ?? logReceipt;
+  // TURN_METRICS_BQ: each receipt also queues its turn_metrics row (turn-receipt-bq.ts)
+  const emit = withTurnMetricsBq(opts.emit ?? logReceipt, opts.userId, opts.env);
   const tokensOn = turnTokenReceiptEnabled(opts.env);
   const rec = new TurnReceiptRecorder({
     handling: () => ({
