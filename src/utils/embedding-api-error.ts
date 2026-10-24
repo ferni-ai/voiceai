@@ -3,7 +3,7 @@
  * on purpose: it can echo the text that was embedded (a caller's fact), and an
  * error's message ends up in logs. The status is kept, as a number, for ops.
  *
- * @module memory/vectors/embedding-api-error
+ * @module utils/embedding-api-error
  */
 export class EmbeddingApiError extends Error {
   constructor(
