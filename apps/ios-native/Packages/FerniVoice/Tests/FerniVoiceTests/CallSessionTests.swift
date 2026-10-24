@@ -34,6 +34,8 @@ final class CallSessionTests: XCTestCase {
             micStates.append(enabled)
             order?.steps.append("mic \(enabled)")
         }
+        private(set) var sent: [Data] = []
+        func send(_ data: Data) async throws { sent.append(data) }
         func disconnect() async {
             disconnects += 1
             continuation.finish()
@@ -291,6 +293,25 @@ final class CallSessionTests: XCTestCase {
         await until(session.captions.lines.count == 2)
         XCTAssertEqual(session.captions.lines.map(\.text), ["Hey, good to hear you.", "Hi"])
         XCTAssertEqual(session.captions.lines.map(\.speaker), [.ferni, .you])
+    }
+
+    func testTappingFerniInterruptsOnlyWhileFerniIsTalking() async throws {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        let quiet = await session.interrupt()
+        XCTAssertFalse(quiet, "nothing to interrupt while Ferni listens")
+        XCTAssertTrue(rooms.made[0].sent.isEmpty)
+
+        rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
+        await until(session.avatar.pose == .speaking)
+        let sent = await session.interrupt()
+        XCTAssertTrue(sent)
+        let message = try XCTUnwrap(rooms.made[0].sent.first)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: message) as? [String: Any])
+        XCTAssertEqual(json["type"] as? String, "user_interrupt")
+        XCTAssertNotNil(json["timestamp"] as? Int)
     }
 
     func testMuteTurnsTheMicOffAndOn() async {
