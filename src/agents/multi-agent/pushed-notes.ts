@@ -24,14 +24,17 @@ export interface TurnNote {
   /** It carries crisis or safety guidance (safety-note.ts carriesSafety). */
   safety?: boolean;
   text: string;
+  /** The turn whose build wrote it. */
+  turn?: number;
 }
 
 /** The notes a turn's pass added to its chat context, in order; empty ones dropped. */
-export const turnNotes = (items: readonly object[]): TurnNote[] =>
+export const turnNotes = (items: readonly object[], turn?: number): TurnNote[] =>
   items
     .map((item) => ({
       safety: carriesSafety(item as never),
       text: (item as { textContent?: string }).textContent?.trim() ?? '',
+      turn,
     }))
     .filter((note) => note.text !== '');
 
@@ -72,18 +75,19 @@ export function withHeldSafety(held: readonly string[], notes: readonly TurnNote
 }
 
 /**
- * The notes waiting for the next push: the fresh ones first, since they are the
- * newest and the budget cuts the end. With `keep`, what was already waiting
- * stays too (a released turn-1 note a later turn's words overtook); else it is
- * replaced, as before.
- * Safety guidance still waiting is never replaced (#2642).
+ * The notes waiting for the next push. The fresh ones come first, as the newest,
+ * so the budget cuts the end. A turn's fresh notes replace its own older ones.
+ * With `keep`, the other turns' notes already waiting stay (a released turn-1
+ * note that turn 2's words overtook, #2642-style carry). Else they are replaced,
+ * as before. Safety guidance still waiting is never replaced (#2642).
  */
 export function queuedNotes(
   queued: readonly TurnNote[],
   fresh: readonly TurnNote[],
   keep: boolean
 ): TurnNote[] {
-  const rest = keep ? queued.filter((note) => !note.safety) : [];
+  const turns = new Set(fresh.map((note) => note.turn));
+  const rest = keep ? queued.filter((note) => !note.safety && !turns.has(note.turn)) : [];
   return withHeldSafety(
     queued.filter((note) => note.safety).map((note) => note.text),
     [...fresh, ...rest]

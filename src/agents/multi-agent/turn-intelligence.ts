@@ -346,30 +346,32 @@ interface ContextAgent {
 export function createTurnContextPusher(
   hook: UserTurnHook,
   agent: ContextAgent,
-  { carryAcrossTurns = false }: { carryAcrossTurns?: boolean } = {} // a deferred turn 1
+  { carryAcrossTurns = false }: { carryAcrossTurns?: boolean } = {} // reply_end, deferred turn 1
 ) {
   let queued: TurnNote[] = []; // what waits for the next push, see queuedNotes
+  let lastPushed: TurnNote[] = []; // what the chat context holds now
+  let lastPushedFor = '';
   let pushedId: string | null = null;
   let turnText = '';
   let run = 0;
   let agentListening = true;
   let userSpeaking = false;
-
   let pendingFor = '';
   let turnNo = 0;
   const lastRunOf = new Map<number, number>(); // a turn's latest run
 
   const tryPush = async (): Promise<void> => {
     if (queued.length === 0 || !agentListening || userSpeaking) return;
-    const safety = safetyText(queued); // its crisis or safety notes (safety-note.ts), whole
     // PREEMPT_STABLE_CONTEXT: wait out a preemptive reply, unless it carries safety guidance.
     const retry = () => void tryPush();
-    if (!safety && heldForPreemptive(agent, 'turn-context', retry)) return;
-    const content = `${TURN_CONTEXT_HEADER}\n${pushedNotesText(queued)}`; // safety first, never cut (#2618)
+    if (!safetyText(queued) && heldForPreemptive(agent, 'turn-context', retry)) return;
+    const content = `${TURN_CONTEXT_HEADER}\n${pushedNotesText(queued)}`;
+    const safety = safetyText(queued); // its crisis or safety notes (safety-note.ts), whole
     const extra = {
       [TURN_CONTEXT_FOR]: pendingFor,
       ...(safety && { [TURN_CONTEXT_SAFETY]: safety }),
     };
+    lastPushed = queued; lastPushedFor = pendingFor;
     queued = [];
     try {
       const chatCtx = agent.chatCtx.copy();
@@ -405,23 +407,22 @@ export function createTurnContextPusher(
       turnText = `${turnText} ${transcript.trim()}`.trim();
       const forText = turnText;
       const mine = ++run;
-      const turn = turnNo;
-      lastRunOf.set(turn, mine);
+      const turn = turnNo; lastRunOf.set(turn, mine);
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
       await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
-      const notes = turnNotes(scratch.items);
+      const notes = turnNotes(scratch.items, turn);
       if (mine !== run) {
-        // A later segment of this turn rebuilds the turn: only the last run may carry on.
-        if (carryAcrossTurns && lastRunOf.get(turn) === mine) {
-          if (queued.length === 0) pendingFor = forText;
-          queued = queuedNotes(queued, notes, true);
+        // A later segment rebuilds this turn: only turn 1's last run carries on.
+        if (carryAcrossTurns && turn === 1 && lastRunOf.get(turn) === mine) {
+          if (queued.length === 0) pendingFor = lastPushedFor || forText;
+          queued = queuedNotes(notes, queued.length > 0 ? queued : lastPushed, true);
           await tryPush();
         } else log.info({ notes: notes.length }, 'Superseded turn context dropped');
         return;
       }
       if (notes.length === 0) return;
-      if (!carryAcrossTurns && queued.some((note) => !note.safety)) log.info('Unpushed note replaced');
+      if (!carryAcrossTurns && queued.some((n) => !n.safety)) log.info('Unpushed note replaced');
       pendingFor = forText;
       queued = queuedNotes(queued, notes, carryAcrossTurns);
       await tryPush();
@@ -464,9 +465,8 @@ export function attachTurnContextPusher(
           voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
         })
       : undefined;
-  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent, {
-    carryAcrossTurns: deferral !== undefined,
-  });
+  const carryAcrossTurns = deferral !== undefined && replyEndRelease(env);
+  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent, { carryAcrossTurns });
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
   const onTranscript = (event: unknown) => {
     const evt = event as { transcript?: string; isFinal?: boolean };
