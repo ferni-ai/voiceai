@@ -1019,6 +1019,12 @@ jobs:
       - name: Firestore database ratchet
         run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
 
+      # Blocking. A firebase deploy of the index file must not delete a TTL policy, field
+      # override or composite that prod or dev has. Diffs firestore.indexes.json against the
+      # checked-in gcloud listings in scripts/ci/fixtures/firestore-indexes/. ~2 s.
+      - name: Firestore index drift
+        run: pnpm tsx scripts/ci/firestore-indexes-drift.ts
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
