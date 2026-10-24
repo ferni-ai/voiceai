@@ -55,6 +55,11 @@ vi.mock('../../services/engagement/engagement-store.js', async (orig) => ({
   getEngagementStore: async () => engagement,
 }));
 
+const semantic = vi.hoisted(() => ({ cleared: [] as (string | undefined)[] }));
+vi.mock('../../services/superhuman/semantic-intelligence/index.js', () => ({
+  clearSemanticIntelligenceCache: (userId?: string) => void semantic.cleared.push(userId),
+}));
+
 import { purgeHeldUser } from '../../agents/voice-agent/minor-care-purge.js';
 import {
   purgeUnifiedUser,
@@ -146,7 +151,9 @@ describe('placeholder ids and other users', () => {
     await initializeRelationship(a.userId, 'ferni');
     await initializeRelationship(b.userId, 'ferni');
     a.hold();
+    semantic.cleared.length = 0;
     purgeHeldUser(a.userId);
+    expect(semantic.cleared).toEqual([a.userId]); // only theirs, never every user's
     expect(getRelationshipEngine(a.userId, 'ferni')).toBeUndefined();
     expect(getRelationshipEngine(b.userId, 'ferni')).toBeDefined();
     expect(userHeld(a.userId)).toBe(true);
