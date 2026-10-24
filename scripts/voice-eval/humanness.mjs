@@ -8,6 +8,7 @@
 //
 // Text patterns are deliberately plain-word and word-bounded (see
 // substring-classifier-pitfalls): "now" must not match "know".
+import { weaveSounds } from './sounds.mjs';
 
 const DONT_KNOW =
   /\b(i don'?t know|i do not know|i'?m not (really )?sure|no idea|beats me|i dunno|i couldn'?t tell you)\b/i;
@@ -56,8 +57,11 @@ function sameUtterance(prev, next) {
  * What Ferni says before the caller speaks is dropped, since it would skew the
  * per-turn numbers; pass { greeting: true } to keep it as a turn marked
  * greeting (the judge needs it: COACH_FOLLOW_THROUGH asks its question there).
+ * With { sounds: true } (or { sounds: { name, readWav, speech } }) Ferni's
+ * non-speech sounds are woven in where they played (sounds.mjs weaveSounds):
+ * inline as "[Ferni: mm-hm]", or as { who: 'sound' } lines.
  */
-export function turnsOf(run, { greeting = false } = {}) {
+export function turnsOf(run, { greeting = false, sounds = false } = {}) {
   const firstUserAt = run.userSpeech?.[0]?.[0] ?? 0;
   const turns = [];
   let segs = []; // the current caller turn's separate utterances
@@ -75,6 +79,7 @@ export function turnsOf(run, { greeting = false } = {}) {
         else segs.push(e.text);
         last.text = segs.join(' ');
       }
+      last.snaps?.push({ t: e.t, text: last.text });
     } else {
       turns.push(
         isGreeting
@@ -82,9 +87,10 @@ export function turnsOf(run, { greeting = false } = {}) {
           : { who: e.who, text: e.text, t: e.t }
       );
       segs = [e.text];
+      if (sounds) turns[turns.length - 1].snaps = [{ t: e.t, text: e.text }];
     }
   }
-  return turns;
+  return sounds ? weaveSounds(turns, run, sounds === true ? {} : sounds) : turns;
 }
 
 const rate = (xs, f) =>
