@@ -49,6 +49,11 @@ final class AppModel {
     let team: TeamStore
     var isShowingSettings = false
     var isAskingConsent = false
+    var isShowingCallMore = false
+    /// Ferni's words in the caption area; off leaves only who's doing what.
+    var showCaptions = UserDefaults.standard.object(forKey: "ferni.captions") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showCaptions, forKey: "ferni.captions") }
+    }
 
     /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
     func talk() {
@@ -81,6 +86,7 @@ final class AppModel {
             makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
             audio: SystemCallAudio(),
             avatar: AvatarModel(play: Self.play),
+            lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
             agentLevel: level
         )
     }

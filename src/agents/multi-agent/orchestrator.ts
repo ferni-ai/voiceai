@@ -318,7 +318,7 @@ export class AgentOrchestrator {
     log.info(
       {
         targetPersonaId: request.targetPersonaId,
-        reason: request.reason,
+        reasonChars: request.reason?.length ?? 0,
         currentState: {
           activeAgentId: this.activeAgentId,
           agentsMapSize: this.agents.size,
@@ -516,8 +516,7 @@ export class AgentOrchestrator {
       const durationMs = Date.now() - startTime;
       log.error(
         {
-          error: String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+          error, // its frames too; the safe logger cuts the message (error-text.ts)
           from: previousPersonaId,
           to: request.targetPersonaId,
           durationMs,
@@ -713,7 +712,7 @@ export class AgentOrchestrator {
       );
     } catch (err) {
       log.warn(
-        { error: String(err), stack: err instanceof Error ? err.stack : undefined },
+        { error: err },
         '🎭 [removeAgent] ⚠️ Error during agent cleanup'
       );
     }

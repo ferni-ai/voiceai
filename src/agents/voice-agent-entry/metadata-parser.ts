@@ -13,6 +13,7 @@ import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatc
 import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { errorClass } from '../../utils/error-class.js';
+import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 import { flagOn } from '../../config/env-flag.js';
 
@@ -189,7 +190,7 @@ export async function setupCallTypeContexts(
         metadata.user_id = metadata.userId;
       }
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${errorText(error)}\n`);
     }
   }
 
@@ -260,7 +261,7 @@ export async function setupCallTypeContexts(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${errorText(error)}\n`);
     }
   }
 
@@ -358,7 +359,7 @@ export async function setupCallTypeContexts(
         `[voice-agent-entry] 📞 Proactive session context set for sessionId: ${sessionId}\n`
       );
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${errorText(error)}\n`);
     }
   }
 }

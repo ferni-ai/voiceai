@@ -32,6 +32,7 @@ import type { log } from '@livekit/agents';
 import pino from 'pino';
 
 import { redactLogDestination, redactPinoLogger } from './log-redaction.js';
+import { redactErrorValue } from './error-text.js';
 
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
@@ -95,7 +96,7 @@ function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>())
   }
 
   if (value instanceof Error) {
-    return serializeError(value);
+    return redactErrorValue(value); // any field: never the text an error quotes (error-text.ts)
   }
 
   if (depth >= MAX_LOG_DEPTH) {
@@ -136,15 +137,10 @@ function processBindings(bindings: Record<string, unknown>): Record<string, unkn
 
   const withErrors: Record<string, unknown> = { ...bindings };
 
-  // Check if there's an 'error' key that needs serialization
-  if ('error' in withErrors && withErrors.error instanceof Error) {
-    withErrors.error = serializeError(withErrors.error);
-  }
-
-  // Also check for 'err' key (pino convention)
-  if ('err' in withErrors && withErrors.err instanceof Error) {
-    withErrors.err = serializeError(withErrors.err);
-  }
+  // err / error: name, message cut at its first quote, code, frames and cause only
+  // (error-text.ts). A parse error quotes the caller text it choked on.
+  if ('error' in withErrors) withErrors.error = redactErrorValue(withErrors.error);
+  if ('err' in withErrors) withErrors.err = redactErrorValue(withErrors.err);
 
   return sanitizeForLog(withErrors) as Record<string, unknown>;
 }
@@ -202,7 +198,7 @@ function appLogger(): pino.Logger {
     pino(
       {
         level: process.env.LOG_LEVEL || 'info',
-        serializers: { error: pino.stdSerializers.err },
+        serializers: { error: redactErrorValue, err: redactErrorValue },
       },
       appStream()
     )
