@@ -27,7 +27,13 @@ import { flagOn, type Env } from '../config/env-flag.js';
 import { createLogger, type FallbackLogger } from '../utils/safe-logger.js';
 
 export type CredentialCategory =
-  'access-code' | 'password' | 'pin' | 'security-answer' | 'one-time-code' | 'combination';
+  | 'access-code'
+  | 'password'
+  | 'pin'
+  | 'security-answer'
+  | 'one-time-code'
+  | 'combination'
+  | IdentifierCategory;
 
 export function spokenCredentialFilterOn(env: Env = process.env): boolean {
   return flagOn('SPOKEN_CREDENTIAL_FILTER', env);
@@ -191,6 +197,8 @@ function withoutContext(
 export function credentialCategory(key: string, value: string): CredentialCategory | null {
   const keyPhrase = words(key).join(' ');
   const valueWords = words(value);
+  const identifier = identifierCategory(keyPhrase, value, valueWords);
+  if (identifier) return identifier;
   const phrase = `${keyPhrase} ${valueWords.join(' ')}`;
   if (ABOUT_SECRET.test(phrase) || (POSTAL_PIN.test(phrase) && !PIN_OWNER.test(phrase)))
     return null;
@@ -258,3 +266,140 @@ export function logCredentialDrops(
   log ??= createLogger({ module: 'spoken-credential' });
   log.info({ writer, count, categories: dropped }, 'Did not store a spoken credential');
 }
+
+// ---------------------------------------------------------------------------
+// Identifiers (#2385). Free text is redacted with this predicate in credential-redaction.ts.
+// ---------------------------------------------------------------------------
+
+/**
+ * Secrets that are not codes or passwords: a card number (Luhn-checked), a Social
+ * Security number, a bank account or routing number (ABA-checked), an API key or token.
+ * A mother's maiden name given as one counts as a security answer.
+ */
+export type IdentifierCategory = 'card-number' | 'ssn' | 'bank-account' | 'api-key';
+
+/** Luhn checksum over a run of digits. */
+export function luhnValid(digits: string): boolean {
+  let sum = 0;
+  for (let i = 0; i < digits.length; i++) {
+    let d = Number(digits[digits.length - 1 - i]);
+    if (i % 2 === 1) d = d * 2 > 9 ? d * 2 - 9 : d * 2;
+    sum += d;
+  }
+  return /^\d{13,19}$/.test(digits) && sum % 10 === 0;
+}
+
+const ABA_WEIGHTS = [3, 7, 1] as const;
+const abaValid = (d: string): boolean =>
+  /^\d{9}$/.test(d) &&
+  [...d].reduce((s, c, i) => s + Number(c) * (ABA_WEIGHTS[i % 3] ?? 0), 0) % 10 === 0;
+
+/** Never issued: area 000, 666 or 9xx, group 00, serial 0000. */
+const ssnValid = (d: string): boolean => /^(?!000|666|9)\d{3}(?!00)\d{2}(?!0000)\d{4}$/.test(d);
+
+/** Secrets recognised by shape alone, wherever they appear. */
+const CARD = /(?<![\w-])[2-6](?:[ -]?\d){12,18}(?![\w-])/g;
+const SSN = /(?<![\w-])\d{3}-\d{2}-\d{4}(?![\w-])/g;
+const API_KEY =
+  /\b(?:(?:sk|rk)[-_](?:live[-_]|test[-_]|proj[-_]|ant[-_])?[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_\w{30,}|AKIA[0-9A-Z]{16}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[\w-]{35}|eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,})/g;
+
+export interface Span {
+  start: number;
+  end: number;
+}
+
+/** Card numbers, dashed SSNs and API keys in `text`, by shape and checksum. */
+export function shapedSecrets(text: string): Array<Span & { category: IdentifierCategory }> {
+  const found: Array<Span & { category: IdentifierCategory }> = [];
+  for (const m of text.matchAll(CARD)) {
+    // A card read out with its CVV after it: try the whole run, then the usual lengths
+    const at = m.index ?? 0;
+    const digitEnds = [...m[0]].flatMap((c, i) => (/\d/.test(c) ? [i + 1] : []));
+    const len = [digitEnds.length, 16, 15].find(
+      (n) => n <= digitEnds.length && luhnValid(m[0].replace(/\D/g, '').slice(0, n))
+    );
+    if (len !== undefined)
+      found.push({ start: at, end: at + (digitEnds[len - 1] ?? 0), category: 'card-number' });
+  }
+  for (const m of text.matchAll(SSN)) {
+    if (ssnValid(m[0].replace(/\D/g, ''))) {
+      found.push({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length, category: 'ssn' });
+    }
+  }
+  for (const m of text.matchAll(API_KEY)) {
+    found.push({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length, category: 'api-key' });
+  }
+  return found;
+}
+
+/** Words that name an identifier; the secret is what follows the last of them. */
+export const IDENTIFIER_WORDS = new Set(
+  (
+    'ssn social security routing aba bank checking savings account acct number no api access auth ' +
+    'bearer refresh secret session personal client key keys token tokens mothers mother moms mom mums mum maiden name'
+  ).split(' ')
+);
+const digitsOnly = (rest: readonly string[]): string =>
+  rest.length > 0 && rest.every((w) => /^\d+$/.test(w)) ? rest.join('') : '';
+
+const IDENTIFIER_RULES: ReadonlyArray<{
+  category: CredentialCategory;
+  context: RegExp;
+  secret: (rest: readonly string[]) => boolean;
+}> = [
+  {
+    category: 'ssn',
+    context: term('ssn|social security(?: number| no)?|social(?: number)?'),
+    secret: (rest) => ssnValid(digitsOnly(rest)),
+  },
+  {
+    category: 'bank-account',
+    context: term('routing(?: number| no)?|aba(?: number)?'),
+    secret: (rest) => abaValid(digitsOnly(rest)),
+  },
+  {
+    category: 'bank-account',
+    context: term(
+      '(?:bank|checking|savings) account(?: number| no)?|account (?:number|no)|acct(?: number| no)?'
+    ),
+    secret: (rest) => /^\d{4,17}$/.test(digitsOnly(rest)),
+  },
+  {
+    category: 'api-key',
+    context: term(
+      '(?:api|access|auth|bearer|refresh|secret|session|personal access) (?:key|keys|token|tokens)|api secret|client secret|token'
+    ),
+    secret: (rest) => {
+      const joined = rest.join('');
+      return (
+        rest.length <= 6 &&
+        !rest.some((w) => DESCRIBES.has(w)) &&
+        joined.length >= 16 &&
+        /\d/.test(joined) &&
+        /\p{L}/u.test(joined)
+      );
+    },
+  },
+  {
+    category: 'security-answer',
+    context: term('(?:mothers|mother|moms|mom|mums|mum) maiden name'),
+    secret: (rest) => looksLikeSecretWords(rest, 3),
+  },
+];
+
+/** A shaped secret anywhere in the value, or an identifier named in the key or value. */
+function identifierCategory(
+  keyPhrase: string,
+  value: string,
+  valueWords: readonly string[]
+): CredentialCategory | null {
+  const shaped = shapedSecrets(value)[0];
+  if (shaped !== undefined) return shaped.category;
+  const phrase = `${keyPhrase} ${valueWords.join(' ')}`;
+  const last = valueWords.reduce((at, w, i) => (IDENTIFIER_WORDS.has(w) ? i : at), -1);
+  const rest = valueWords.slice(last + 1).filter((w) => !FILLER.has(w));
+  return IDENTIFIER_RULES.find((r) => r.context.test(phrase) && r.secret(rest))?.category ?? null;
+}
+
+/** What the predicate reads text with, so the free-text redactor reads it the same way. */
+export const VOCABULARY = { words, stripped, CREDENTIAL_WORDS, SET_TO, DIGIT_WORDS, TEENS, TENS };

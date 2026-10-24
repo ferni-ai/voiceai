@@ -32,6 +32,7 @@ import {
   recordCacheHit,
   recordCacheMiss,
 } from './entity-cache.js';
+import { redactCredentialsIn } from '../credential-redaction.js';
 
 const log = createLogger({ module: 'entity-store:storage' });
 
@@ -78,13 +79,11 @@ async function getEntitiesRef(userId: string) {
   return db.collection(ENTITY_STORE_COLLECTION).doc(userId).collection(ENTITIES_SUBCOLLECTION);
 }
 
-/**
- * Create a new entity
- */
-export async function createEntity(userId: string, entity: Omit<Entity, 'id'>): Promise<Entity> {
+/** Create a new entity */
+export async function createEntity(userId: string, input: Omit<Entity, 'id'>): Promise<Entity> {
+  const entity = redactCredentialsIn(input); // every field below reads the redacted copy
   const ref = await getEntitiesRef(userId);
   const docRef = ref.doc();
-
   const fullEntity: Entity = {
     ...entity,
     id: docRef.id,
@@ -162,7 +161,7 @@ export async function updateEntity(
   if (!existing.exists) return null;
 
   const updateData = {
-    ...updates,
+    ...redactCredentialsIn(updates),
     updatedAt: new Date(),
   };
 
@@ -386,11 +385,11 @@ async function getMentionsRef(userId: string) {
  */
 export async function createMention(
   userId: string,
-  mention: Omit<Mention, 'id'>
+  input: Omit<Mention, 'id'>
 ): Promise<Mention> {
+  const mention = redactCredentialsIn(input); // every field below reads the redacted copy
   const ref = await getMentionsRef(userId);
   const docRef = ref.doc();
-
   const fullMention: Mention = {
     ...mention,
     id: docRef.id,

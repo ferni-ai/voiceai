@@ -307,7 +307,7 @@ describe('dropSpokenCredentials', () => {
 });
 
 describe('spokenCredentialFilterOn', () => {
-  it('is off unless set', () => {
+  it('is off unless switched on (an experiment, off by default)', () => {
     expect(spokenCredentialFilterOn({})).toBe(false);
     expect(spokenCredentialFilterOn({ SPOKEN_CREDENTIAL_FILTER: 'on' })).toBe(true);
     expect(spokenCredentialFilterOn({ SPOKEN_CREDENTIAL_FILTER: 'off' })).toBe(false);

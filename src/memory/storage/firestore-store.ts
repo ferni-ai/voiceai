@@ -28,6 +28,7 @@ import {
   isValidKeyMoment,
   isValidFinancialGoal,
 } from '../type-guards.js';
+import { redactCredentialsIn } from '../credential-redaction.js';
 
 // ============================================================================
 // TYPES
@@ -310,8 +311,7 @@ export class FirestoreStore extends MemoryStore {
         .doc(userId)
         .collection('summaries')
         .doc(summary.id);
-
-      await summaryRef.set(cleanForFirestore(this.serializeForFirestore(summary)));
+      await summaryRef.set(cleanForFirestore(redactCredentialsIn(this.serializeForFirestore(summary))));
       getLogger().debug(`Saved summary: ${summary.id}`);
     } catch (error) {
       getLogger().error(`saveSummary error: ${error}`);
