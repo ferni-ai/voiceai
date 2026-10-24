@@ -142,6 +142,14 @@ export const VOICE_IDS = {
  */
 export const FERNI_CALM_B_VOICE_ID = '2e7f8a26-1627-4d66-88dc-293c297c1619';
 
+/**
+ * The other two calm clones cut in the same 2026-10-16 round (spares A and C): copies of
+ * Ferni's own voice that no persona speaks in. A custom agent must not sound like Ferni
+ * either, so they are forbidden exactly like calm B.
+ */
+export const FERNI_CALM_A_VOICE_ID = '24a60cd5-9428-453d-8a95-92f50567f32e';
+export const FERNI_CALM_C_VOICE_ID = '5b13b172-56f9-4821-887a-a943fe949830';
+
 /** Lester Nare (Pro) V3, Ferni's voice 2026-10-03 to 10-04: a PVC that ignores <emotion>/<speed>. */
 export const LESTER_PRO_V3_VOICE_ID = 'ebaf7477-b6ae-417e-be54-19e6176777ea';
 

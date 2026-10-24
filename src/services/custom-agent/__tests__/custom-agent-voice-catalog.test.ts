@@ -4,7 +4,13 @@
  */
 import type { ServerResponse } from 'http';
 import { describe, expect, it, vi } from 'vitest';
-import { FERNI_CALM_B_VOICE_ID, isValidVoiceId, VOICE_IDS } from '../../../config/voice-ids.js';
+import {
+  FERNI_CALM_A_VOICE_ID,
+  FERNI_CALM_B_VOICE_ID,
+  FERNI_CALM_C_VOICE_ID,
+  isValidVoiceId,
+  VOICE_IDS,
+} from '../../../config/voice-ids.js';
 import {
   CUSTOM_AGENT_VOICE_CATALOG,
   DEFAULT_CUSTOM_AGENT_VOICE_ID,
@@ -41,6 +47,18 @@ describe('the custom-agent voice catalog', () => {
     // Both of Ferni's voices: the live one and calm B, its rollback outside VOICE_IDS.
     expect(isForbiddenCustomAgentVoiceId(VOICE_IDS.FERNI)).toBe(true);
     expect(isForbiddenCustomAgentVoiceId(FERNI_CALM_B_VOICE_ID)).toBe(true);
+  });
+
+  it("forbids every calm clone of Ferni's own voice, spares A and C included, even as a ready clone", () => {
+    expect(FERNI_CALM_A_VOICE_ID).toBe('24a60cd5-9428-453d-8a95-92f50567f32e');
+    expect(FERNI_CALM_C_VOICE_ID).toBe('5b13b172-56f9-4821-887a-a943fe949830');
+    for (const voiceId of [FERNI_CALM_A_VOICE_ID, FERNI_CALM_B_VOICE_ID, FERNI_CALM_C_VOICE_ID]) {
+      expect(isForbiddenCustomAgentVoiceId(voiceId), voiceId).toBe(true);
+      expect(customAgentVoiceAllowed({ type: 'cloned', voiceId, status: 'ready' }), voiceId).toBe(
+        false
+      );
+      expect(isStockCustomAgentVoiceId(voiceId), voiceId).toBe(false);
+    }
   });
 
   it('offers a woman and a man for every accent', () => {
