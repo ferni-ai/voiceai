@@ -150,6 +150,20 @@ describe('the unit shards cover the whole suite on a full run', () => {
     expect(matrix?.[1]).toBe(full?.[1]);
   });
 
+  // A PR whose diff hits a vitest forceRerunTriggers file runs the whole suite under
+  // `--changed`; on one shard that timed out (#2508). Setup's answer must widen the
+  // matrix, and only an explicit 'false' may narrow it (an empty output runs four).
+  it('gives a PR four shards when setup says --changed will run the whole suite', () => {
+    expect(full?.[1]).toBe(
+      "github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false'"
+    );
+    const setup = /^ {2}setup:\n([\s\S]*?)(?=^ {2}[\w-]+:\n)/m.exec(ci)?.[1] ?? '';
+    expect(setup).toMatch(/^ {6}unit-full-suite: \$\{\{ steps\.unit-full\.outputs\.needed \}\}$/m);
+    expect(setup).toMatch(
+      /^ {8}id: unit-full\n(?: {8}.*\n)*? {8}run: node scripts\/ci\/unit-full-suite-needed\.mjs HEAD\^1 \|\| echo "needed=true" >> "\$GITHUB_OUTPUT"$/m
+    );
+  });
+
   it('creates as many shards as each one divides the suite into, and the gate expects that many', () => {
     const shards = matrix?.[2].split(/,\s*/) ?? [];
     const runs = /--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/.exec(ci)?.[1];
