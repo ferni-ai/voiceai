@@ -96,7 +96,11 @@ export async function loadWellbeingData(userId: string): Promise<WellbeingData> 
   }
 
   const sorted = [...snapshots].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  const current = profile?.current ?? sorted[0] ?? null;
+  // The profile's pointer lags behind snapshots written after it (the after-call task writes
+  // a snapshot without moving the pointer), so the newer of the two is the current state.
+  const latest = sorted[0] ?? null;
+  const pointed = profile?.current ?? null;
+  const current = pointed && (!latest || pointed.timestamp >= latest.timestamp) ? pointed : latest;
   return { profile, snapshots: sorted, current };
 }
 
