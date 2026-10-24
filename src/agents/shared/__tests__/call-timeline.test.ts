@@ -248,6 +248,34 @@ describe('CALL_TIMELINE', () => {
     expect(writes).toEqual([]);
   });
 
+  it('on: a hold that lifts mid-call (verified as the owner later) still writes nothing', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const { CallTimeline } = await import('../call-timeline.js');
+    const written: string[] = [];
+    let owner = false;
+    minorCare.setVerifiedOwnerCheck(() => owner);
+    const tl = new CallTimeline({
+      sessionId: 'tl-lifts',
+      userId: MEMBER,
+      conversationId: () => 'conv-lifts',
+      persona: () => 'ferni',
+      write: async (_uid, _conv, docId) => void written.push(docId),
+    });
+    tl.add({ kind: 'caller_final', speaker: 'caller', text: 'hey Ferni' });
+    minorCare.noteCallerWords('tl-lifts', "I'm 14 years old");
+    expect(minorCare.memoryHeld('tl-lifts')).toBe(true);
+    tl.add({ kind: 'caller_final', speaker: 'caller', text: 'my best friend and I had a fight' });
+    tl.generated('Oh man, a fight with your best friend.');
+    owner = true; // phone verification lands after the age statement: the hold lifts
+    expect(minorCare.memoryHeld('tl-lifts')).toBe(false);
+    tl.heard('Oh man, a fight with your best friend.', false);
+    tl.add({ kind: 'caller_final', speaker: 'caller', text: 'yeah it was about school' });
+    tl.end('user_initiated');
+    await tl.flush();
+    expect(written).toEqual([]);
+    expect(tl.events).toEqual([]);
+  });
+
   it('on: an on-behalf call (the third party is not our user) writes nothing', async () => {
     vi.stubEnv('CALL_TIMELINE', 'on');
     const { writes } = await scriptedCall('tl-onbehalf', 'onbehalf:call_123');
