@@ -392,7 +392,7 @@ export class SemanticRouter {
       try {
         queryEmbedding = await this.embeddingProvider.embed(inputText);
       } catch (error) {
-        log.warn({ error }, 'Failed to get query embedding, proceeding without');
+        log.warn(errorFields(error), 'Failed to get query embedding, proceeding without');
       }
     }
 
@@ -482,7 +482,7 @@ export class SemanticRouter {
     if (this.config.debug) {
       log.debug(
         {
-          input: inputText,
+          inputLength: inputText.length,
           intent: matchResult.intent,
           topMatch: matchResult.matches[0]?.toolId,
           topConfidence: matchResult.matches[0]?.confidence,
@@ -647,7 +647,7 @@ export class SemanticRouter {
       return executionResult;
     } catch (error) {
       log.error(
-        { ...errorFields(error), toolId, argKeys: Object.keys(args) },
+        { ...errorFields(error), toolId, argKeys: Object.keys(args ?? {}) },
         'Tool execution failed'
       );
       return {

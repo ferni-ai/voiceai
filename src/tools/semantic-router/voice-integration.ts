@@ -578,7 +578,7 @@ async function loadCachedEmbeddingsAsync(embeddingProvider: EmbeddingProvider): 
     }
   } catch (error) {
     log.warn(
-      { error: String(error) },
+      errorFields(error),
       'Failed to load cached embeddings - falling back to pattern/keyword routing'
     );
   }
@@ -614,10 +614,7 @@ export async function routeVoiceInput(
     try {
       detectedLocale = await autoDetectAndLoadLocale(inputText);
       if (detectedLocale !== 'en') {
-        log.debug(
-          { detectedLocale, inputLength: inputText.length },
-          'Language auto-detected'
-        );
+        log.debug({ detectedLocale, inputLength: inputText.length }, 'Language auto-detected');
       }
     } catch {
       // Fall back to English on error
@@ -885,7 +882,7 @@ export async function routeVoiceInput(
         {
           toolId: action.toolId,
           confidence: action.confidence,
-          args: action.args,
+          argKeys: Object.keys(action.args ?? {}),
         },
         'Auto-executing tool'
       );
@@ -926,7 +923,7 @@ export async function routeVoiceInput(
           await import('../../agents/shared/sanitizer/index.js');
         markToolExecutedBySemanticRouter(context.sessionId, action.toolId);
       } catch (err) {
-        log.warn({ error: String(err) }, 'Failed to mark tool as executed for deduplication');
+        log.warn(errorFields(err), 'Failed to mark tool as executed for deduplication');
       }
 
       // Update deep context with tool result
@@ -945,7 +942,7 @@ export async function routeVoiceInput(
         actualToolUsed: action.toolId,
         wasCorrection: false,
         wasSuccess: toolResult.success,
-      }).catch((err) => log.warn({ error: String(err) }, 'Failed to record outcome'));
+      }).catch((err) => log.warn(errorFields(err), 'Failed to record outcome'));
 
       // Generate routing explanation (transparency)
       // Parse match reason string for explanation factors
@@ -1565,7 +1562,7 @@ export async function recordToolExecutionOutcome(
       try {
         await handleExplicitCorrection('anonymous', '', toolId, intendedToolId);
       } catch (error) {
-        log.debug({ error: String(error) }, 'Failed to record correction for learning');
+        log.debug(errorFields(error), 'Failed to record correction for learning');
       }
     }
   } else if (!success) {
@@ -1573,7 +1570,7 @@ export async function recordToolExecutionOutcome(
       {
         sessionId,
         toolId,
-        errorMessage: outcome.errorMessage,
+        errorMessageLength: outcome.errorMessage?.length,
         failureRate: ((stats.failureCount / stats.totalExecutions) * 100).toFixed(1) + '%',
       },
       '❌ Tool execution failed'

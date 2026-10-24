@@ -48,7 +48,11 @@ vi.mock('../embedding-providers.js', async (importOriginal) => ({
 
 import { SemanticRouter } from '../router.js';
 import { SemanticToolRegistry } from '../registry.js';
-import { routeVoiceInput, recordUserCorrection } from '../voice-integration.js';
+import {
+  routeVoiceInput,
+  recordToolExecutionOutcome,
+  recordUserCorrection,
+} from '../voice-integration.js';
 import { handleExplicitCorrection, recordOutcome } from '../advanced/learning-loop.js';
 import { recordCorrection } from '../advanced/feedback-store.js';
 import { IntelligentRouterOrchestrator } from '../advanced/intelligent/orchestrator.js';
@@ -62,7 +66,11 @@ const dump = () =>
   );
 
 /** What replaced the text in each row's log field: the length, or for a tool call the arg names. */
-const REPLACEMENT: Record<string, unknown> = { argKeys: ['query', 'city'] };
+const REPLACEMENT: Record<string, unknown> = {
+  argKeys: ['query', 'city'],
+  error: 'Error',
+  errorMessageLength: SENTINEL.length,
+};
 
 /** Every logged call that carries the row's replacement field. */
 const replacementFields = (field: string) =>
@@ -75,7 +83,10 @@ const replacementFields = (field: string) =>
 const match = { toolId: 'play_music', confidence: 0.6 };
 
 /** A router whose one tool matches TEXT below 1.0, so the Gemini boost changes the confidence. */
-function boostedRouter(execute: () => Promise<unknown> = async () => ({})): SemanticRouter {
+function boostedRouter(
+  execute: () => Promise<unknown> = async () => ({}),
+  config: Record<string, unknown> = {}
+): SemanticRouter {
   const registry = new SemanticToolRegistry();
   registry.register({
     id: 'play_music',
@@ -88,7 +99,10 @@ function boostedRouter(execute: () => Promise<unknown> = async () => ({})): Sema
     arguments: [],
     execute,
   } as never);
-  return new SemanticRouter({ enabledLayers: ['pattern', 'keyword'] }, registry);
+  return new SemanticRouter(
+    { enabledLayers: ['pattern', 'keyword'], ...config } as never,
+    registry
+  );
 }
 const routingResult = {
   matches: [match],
@@ -156,6 +170,63 @@ const entryPoints: Array<[string, string, () => Promise<unknown>]> = [
       } as never),
   ],
   [
+    'SemanticRouter.route (debug routing result)',
+    'inputLength',
+    () => boostedRouter(undefined, { debug: true }).route(TEXT),
+  ],
+  [
+    'SemanticRouter.route (embedding failure)',
+    'error',
+    async () => {
+      const router = boostedRouter(undefined, {
+        enabledLayers: ['pattern', 'keyword', 'embedding'],
+      });
+      await router.initialize({
+        modelName: 'test',
+        dimensions: 4,
+        embed: async () => {
+          throw new Error(`embedding refused: ${SENTINEL}`);
+        },
+        embedBatch: async (texts: string[]) => texts.map(() => [0.1, 0.2, 0.3, 0.4]),
+      });
+      return router.route(TEXT);
+    },
+  ],
+  [
+    'routeVoiceInput (auto-execute)',
+    'argKeys',
+    async () => {
+      vi.spyOn(SemanticRouter.prototype, 'route').mockResolvedValue({
+        matches: [{ toolId: 'play_music', confidence: 0.99 }],
+        action: {
+          type: 'execute',
+          toolId: 'play_music',
+          args: { query: TEXT, city: SENTINEL },
+          confidence: 0.99,
+        },
+      } as never);
+      return routeVoiceInput(TEXT, {
+        userId: 'u1',
+        sessionId: 's1',
+        conversationHistory: [],
+        recentTools: [],
+      } as never);
+    },
+  ],
+  [
+    'recordToolExecutionOutcome (failure)',
+    'errorMessageLength',
+    () =>
+      recordToolExecutionOutcome('s1', {
+        toolId: 'play_music',
+        success: false,
+        wasCorrection: false,
+        executionTimeMs: 5,
+        routingConfidence: 0.9,
+        errorMessage: SENTINEL,
+      }),
+  ],
+  [
     'orchestrator.route (decision logs)',
     'inputLength',
     () => new IntelligentRouterOrchestrator({ logMetrics: true }).route(TEXT),
@@ -177,6 +248,7 @@ const entryPoints: Array<[string, string, () => Promise<unknown>]> = [
 
 describe('router user-text logs', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     logged.length = 0;
   });
 
@@ -190,4 +262,43 @@ describe('router user-text logs', () => {
       expect(replacementFields(field).length).toBeGreaterThan(0);
     }
   );
+  it('execute() with missing args still returns a failure result, not a rejection', async () => {
+    for (const args of [undefined, null]) {
+      const result = await boostedRouter(failingTool).execute(
+        'play_music',
+        args as never,
+        { userId: 'u1', sessionId: 's1' } as never
+      );
+      expect(result.success).toBe(false);
+    }
+    expect(dump()).not.toContain(SENTINEL);
+  });
+
+  // The row above only proves a length field exists somewhere in the flow: pin each
+  // message to the real length so a wrong value (not just the text) turns it red.
+  it.each([
+    ['Learned from correction', 'inputLength'],
+    ['Explicit correction processed', 'phraseLength'],
+    ['User correction recorded', 'inputLength'],
+    ['Correction recorded', 'inputLength'],
+  ])('%s logs %s equal to the real length', async (message, field) => {
+    await recordOutcome(
+      {
+        userId: 'u1',
+        sessionId: 's1',
+        inputText: TEXT,
+        routingResult,
+        conversationHistory: [],
+        recentTools: [],
+      } as never,
+      { actualToolUsed: 'play_music', wasCorrection: true, wasSuccess: true } as never
+    );
+    await recordUserCorrection('u1', TEXT, 'check_calendar', 'play_music');
+    await handleExplicitCorrection('u1', TEXT, 'check_calendar', 'play_music');
+    const lines = logged.filter(([, msg]) => msg === message);
+    expect(lines.length).toBeGreaterThan(0);
+    for (const [fields] of lines) {
+      expect((fields as Record<string, unknown>)[field]).toBe(TEXT.length);
+    }
+  });
 });
