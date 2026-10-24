@@ -6,7 +6,9 @@
  * narrate it. So: the most notable one, done since his last reply or brought
  * up by the caller within a few minutes; never breaths, sighs or "mm-hm"s.
  * Reading the caller's words here also marks a quirk as landed.
- * QUIRK_AWARENESS=on.
+ * QUIRK_AWARENESS=on. A VOICED_QUIRKS snore is the one he owns unasked: the
+ * caller's next turn gets one line to own it lightly, once, and never when
+ * they sound upset (their voice, venting, hard news, crisis risk).
  *
  * @module agents/personas/quirk-note
  */
@@ -20,7 +22,9 @@ import {
   type QuirkEvent,
   type QuirkKind,
 } from '../../services/session/quirk-log.js';
-import { callerLaughed } from './turn-extras.js';
+import { callIsGrave } from '../integrations/presence-heavy.js';
+import { isHeavyMood } from '../integrations/presence-watcher.js';
+import { callerLaughed, callerVenting } from './turn-extras.js';
 
 /** How long after a quirk the caller can still bring it up and get the note. */
 export const ASK_WINDOW_MS = 3 * 60_000;
@@ -30,6 +34,7 @@ const MENTIONS: Record<string, RegExp> = {
   snore: /\b(?:snor\w*|asleep|fell asleep|falling asleep|dozed?|dozing|nap(?:ping)?|zzz+)\b/i,
   whistle: /\b(?:whistl\w*|that tune|that song)\b/i,
   hum: /\b(?:hum|humm\w*|hummed|that tune|that song)\b/i,
+  yawn: /\b(?:yawn\w*)\b/i,
   laugh: /\b(?:laugh\w*|chuckl\w*|giggl\w*)\b/i,
 };
 
@@ -41,6 +46,8 @@ function what(e: QuirkEvent): string {
       return 'You whistled a few bars to yourself in the quiet';
     case 'hum':
       return 'You hummed a little tune to yourself in the quiet';
+    case 'yawn':
+      return 'You let out a big yawn in the quiet';
     default:
       return e.source === 'director'
         ? `You laughed out loud at the ${e.where === 'after' ? 'end' : 'start'} of a reply just now`
@@ -89,6 +96,25 @@ function candidatesFor(
 const rank = (c: Candidate): number =>
   (c.asked ? 0 : 10) + NOTABLE_QUIRKS.indexOf(c.e.kind as QuirkKind);
 
+const OWN_IT =
+  'They just spoke after it: own it lightly in a few words before you answer (something like oh, was I snoring? sorry, long day), just this once, then carry on.';
+
+/** This turn: how the caller sounds (`careful` is a crisis turn, turn-request.ts), and when. */
+export interface QuirkTurn {
+  mood?: string;
+  careful?: boolean;
+  now?: number;
+}
+
+function upset(sessionId: string | undefined, words: string, turn: QuirkTurn): boolean {
+  return (
+    !!turn.careful ||
+    isHeavyMood(turn.mood) ||
+    callerVenting(words) ||
+    callIsGrave(sessionId, [words])
+  );
+}
+
 /**
  * The note for this reply, or '' (flag off, nothing notable since his last
  * reply, nothing the caller is asking about). `words` are the caller's words
@@ -98,16 +124,23 @@ export function quirkTurnNote(
   sessionId: string | undefined,
   chatCtx: llm.ChatContext,
   words: string,
-  now: number = Date.now(),
+  turn: QuirkTurn = {},
   env: Record<string, string | undefined> = process.env
 ): string {
   if (!quirkAwarenessEnabled(env)) return '';
-  const candidates = candidatesFor(quirkEvents(sessionId), lastReplyAt(chatCtx), words, now);
+  const events = quirkEvents(sessionId);
+  const candidates = candidatesFor(events, lastReplyAt(chatCtx), words, turn.now ?? Date.now());
+  // The snore's punchline is for the caller's next turn only, used or not.
+  const ownIt = events.some((x) => x.ownIt);
+  for (const x of events) x.ownIt = false;
   if (candidates.length === 0) return '';
   const { e, asked } = candidates.sort((a, b) => rank(a) - rank(b) || b.e.at - a.e.at)[0];
   const why = e.reason ? ` (${e.reason})` : '';
+  const punchline = ownIt && e.kind === 'snore' && !asked && !upset(sessionId, words, turn);
   const tail = asked
     ? "They seem to be asking about it: own it playfully, say why if they want to know, and don't deny it or explain it away."
-    : "If they bring it up, own it playfully; don't announce it yourself.";
+    : punchline
+      ? OWN_IT
+      : "If they bring it up, own it playfully; don't announce it yourself.";
   return `[${what(e)}${why}. ${tail}]`;
 }
