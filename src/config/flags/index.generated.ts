@@ -29,6 +29,7 @@ export { FOCUS_HOLD } from './FOCUS_HOLD.js';
 export { FORGET_EVERY_READER } from './FORGET_EVERY_READER.js';
 export { HANDOFF_CACHE_WARM } from './HANDOFF_CACHE_WARM.js';
 export { HANDOFF_FAST_ARRIVAL } from './HANDOFF_FAST_ARRIVAL.js';
+export { KEEP_LAST_SUMMARY } from './KEEP_LAST_SUMMARY.js';
 export { LAUGH_CAP } from './LAUGH_CAP.js';
 export { PAUSE_HOLD_PHONE_CAP } from './PAUSE_HOLD_PHONE_CAP.js';
 export { PERSONA_SPEAKING_ATTRIBUTE } from './PERSONA_SPEAKING_ATTRIBUTE.js';
