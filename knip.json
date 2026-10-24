@@ -1,0 +1,44 @@
+{
+  "$schema": "https://unpkg.com/knip@6.12.0/schema.json",
+  "ignoreWorkspaces": ["apps/*", "packages/*", "design-system"],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "src/agent.ts!",
+        "src/servers/api/index.ts!",
+        "src/workers/outreach-worker.ts!",
+        "src/services/context-service/server.ts!",
+        "src/services/tool-service/server.ts!",
+        "src/services/persona-service/server.ts!",
+        "src/services/pubsub/worker-main.ts!",
+        "src/workers/server.ts!",
+        "src/agents/gce/job-child.ts!",
+        "src/workers/audio-analysis-worker-thread.ts!",
+        "src/services/voice/speaker-embedding-worker-thread.ts!",
+        "src/tools/domains/*/index.ts!",
+        "src/personas/bundles/*/*.ts!",
+        "src/api/scheduled-jobs/*.ts!",
+        "src/jobs/*.ts!",
+        "src/cli/**/*.ts",
+        "src/scripts/**/*.ts",
+        "scripts/**/*.{ts,mts,mjs}",
+        "src/**/__tests__/**/*.ts",
+        "src/**/*.test.ts",
+        "src/tests/**/*.ts",
+        "src/e2e/**/*.ts",
+        "tests/**/*.ts",
+        "e2e/**/*.ts"
+      ],
+      "project": [
+        "src/**/*.ts!",
+        "!src/**/__tests__/**!",
+        "!src/**/*.test.ts!",
+        "!src/tests/**!",
+        "!src/e2e/**!"
+      ]
+    }
+  },
+  "ignoreDependencies": [".*"],
+  "ignoreBinaries": [".*"],
+  "ignoreUnresolved": [".*"]
+}
