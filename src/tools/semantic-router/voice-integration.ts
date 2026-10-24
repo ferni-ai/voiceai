@@ -615,7 +615,7 @@ export async function routeVoiceInput(
       detectedLocale = await autoDetectAndLoadLocale(inputText);
       if (detectedLocale !== 'en') {
         log.debug(
-          { detectedLocale, inputText: inputText.substring(0, 50) },
+          { detectedLocale, inputLength: inputText.length },
           'Language auto-detected'
         );
       }
@@ -1300,7 +1300,7 @@ export async function recordUserCorrection(
 ): Promise<void> {
   await handleExplicitCorrection(userId, inputText, wrongTool, correctTool);
   log.info(
-    { userId, from: wrongTool, to: correctTool, input: inputText.substring(0, 30) },
+    { userId, from: wrongTool, to: correctTool, inputLength: inputText.length },
     'User correction recorded'
   );
 }

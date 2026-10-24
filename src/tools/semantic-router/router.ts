@@ -424,7 +424,7 @@ export class SemanticRouter {
                 toolId: match.toolId,
                 originalConfidence: match.confidence.toFixed(3),
                 boostedConfidence: boostedConfidence.toFixed(3),
-                input: inputText.slice(0, 50),
+                inputLength: inputText.length,
               },
               '🚀 Gemini problem phrase - boosting confidence'
             );
