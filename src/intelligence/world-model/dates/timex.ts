@@ -230,10 +230,11 @@ const hourOf = (w: string): number => (/^\d/.test(w) ? Number(w) : HOUR_WORDS.in
  * An hour said with no am or pm, read the way people book things: 7 to 11 are
  * the morning, 12 is noon, and 1 to 6 are the afternoon, so "biopsy at 3" is
  * 15:00, not 03:00. Words for part of the day win: "3 in the morning" is
- * 03:00, "8 tonight" is 20:00.
+ * 03:00, "8 tonight" is 20:00. 12 with a part of the day other than the
+ * afternoon ("12 at night", "tonight at 12", "12 in the morning") is midnight.
  */
 function bookableHour(h: number, words: string): number {
-  if (h === 12) return 12;
+  if (h === 12) return /\b(?:morning|evening|night|tonight)\b/.test(words) ? 0 : 12;
   if (/\b(?:afternoon|evening|night|tonight)\b/.test(words)) return h + 12;
   if (/\bmorning\b/.test(words)) return h;
   return h <= 6 ? h + 12 : h;
@@ -242,43 +243,67 @@ function bookableHour(h: number, words: string): number {
 const hhmm = (h: number, m: number): string | null =>
   h >= 0 && h <= 23 && m >= 0 && m <= 59 ? `${pad(h)}:${pad(m)}` : null;
 
+/** am/pm hour to 24-hour: 12am is 0, 12pm is 12. */
+const meridiem = (h: number, ampm: string): number => (h % 12) + (ampm === 'pm' ? 12 : 0);
+
+/** Not straight after a digit, dot, colon or slash: "11" in "10.11" or "10:11" is no hour. */
+const FREE = '(?<![\\d.:/])';
+
 /**
- * The time of day in `when`, and the words without it. "3pm" and "3:30 pm";
- * "15:00" and "3:30"; "three o'clock"; "noon"; a bare hour only after "at"
- * ("at 3") or before a part of the day ("3 in the morning", "8 tonight"),
- * since "on the 3rd" is a day.
+ * The time of day in `when`, and the words without it. "3pm", "3:30 pm" and
+ * "5.30pm"; "15:00" and "3:30"; "at 5.30"; "three o'clock"; "noon"; a bare
+ * hour only after "at" ("at 3") or before a part of the day ("3 in the
+ * morning", "8 tonight"), since "on the 3rd" is a day. A range ("2-4pm") is
+ * its start. `midnight`: the words meant 12 at night, which is the next day's 00:00.
  */
-export function timeOfDay(when: string): { at: string; rest: string } | null {
+export function timeOfDay(when: string): { at: string; rest: string; midnight: boolean } | null {
   const words = when
     .toLowerCase()
     .replace(/[’`]/g, "'")
     .replace(/\b([ap])\.m\.?/g, '$1m');
+  // "15:00", "3:30", "5.30": 1 to 12 read as bookable, and a zero-padded hour is 24-hour ("01:00").
+  const clock = (m: RegExpExecArray): string | null => {
+    const h = Number(m[1]);
+    const literal = h < 1 || h > 12 || m[1].startsWith('0');
+    return hhmm(literal ? h : bookableHour(h, words), Number(m[2]));
+  };
   const rules: Array<[RegExp, (m: RegExpExecArray) => string | null]> = [
-    [/\b(\d{1,2})(?::(\d{2}))? ?(am|pm)\b/, (m) => {
+    // "2-4pm", "11-1pm": the start, in the end's half of the day unless it is past the end.
+    // Not "10 to 5pm", which may be 4:50.
+    [new RegExp(`${FREE}\\b(\\d{1,2})(?::(\\d{2}))? ?[-–] ?(\\d{1,2})(?::\\d{2})? ?(am|pm)\\b`), (m) => {
+      const [h, end] = [Number(m[1]), Number(m[3])];
+      if (h < 1 || h > 12 || end < 1 || end > 12) return null;
+      const flip = h % 12 > end % 12 ? (m[4] === 'pm' ? 'am' : 'pm') : m[4];
+      return hhmm(meridiem(h, flip), Number(m[2] ?? 0));
+    }],
+    [new RegExp(`${FREE}\\b(\\d{1,2})(?:[:.](\\d{2}))? ?(am|pm)\\b`), (m) => {
       const h = Number(m[1]);
       if (h < 1 || h > 12) return null;
-      return hhmm((h % 12) + (m[3] === 'pm' ? 12 : 0), Number(m[2] ?? 0));
+      return hhmm(meridiem(h, m[3]), Number(m[2] ?? 0));
     }],
-    [/\b(\d{1,2}):(\d{2})\b/, (m) => {
-      const h = Number(m[1]);
-      return hhmm(h >= 1 && h <= 12 ? bookableHour(h, words) : h, Number(m[2]));
-    }],
-    [new RegExp(`\\b${HOUR} o'?clock\\b`), (m) => hhmm(bookableHour(hourOf(m[1]), words), 0)],
-    [new RegExp(`\\b${HOUR} (?:in the (?:morning|afternoon|evening)|at night|tonight)\\b`), (m) => {
+    [/\b(\d{1,2}):(\d{2})\b/, clock],
+    // "at 5.30": minutes after a dot, only after "at" ("10.30.2026" and "30.10" are dates).
+    [/(?<=\bat )(\d{1,2})\.(\d{2})\b(?![.:/]?\d)/, clock],
+    [new RegExp(`${FREE}\\b${HOUR} o'?clock\\b`), (m) => hhmm(bookableHour(hourOf(m[1]), words), 0)],
+    [new RegExp(`${FREE}\\b${HOUR} (?:in the (?:morning|afternoon|evening)|at night|tonight)\\b`), (m) => {
       const h = hourOf(m[1]);
       return h >= 1 && h <= 12 ? hhmm(bookableHour(h, words), 0) : null;
     }],
-    [new RegExp(`\\bat ${HOUR}\\b(?![/:\\d])`), (m) => {
+    [new RegExp(`\\bat ${HOUR}\\b(?![/:\\d]|\\.\\d)`), (m) => {
       const h = hourOf(m[1]);
       return h >= 1 && h <= 12 ? hhmm(bookableHour(h, words), 0) : null;
     }],
     [/\b(?:noon|midday)\b/, () => '12:00'],
+    [/\bmidnight\b/, () => '00:00'],
   ]; // prettier-ignore
   for (const [pattern, read] of rules) {
     const m = pattern.exec(words);
     const at = m && read(m);
-    if (m && at)
-      return { at, rest: `${words.slice(0, m.index)} ${words.slice(m.index + m[0].length)}` };
+    if (m && at) {
+      const rest = `${words.slice(0, m.index)} ${words.slice(m.index + m[0].length)}`;
+      // 00:xx from the words "12", "12am" or "midnight"; a literal "00:30" is just that.
+      return { at, rest, midnight: at.startsWith('00:') && !m[0].startsWith('0') };
+    }
   }
   return null;
 }
@@ -295,7 +320,11 @@ export function resolveWhen(when: string, anchor: string, past = false): Resolve
   const said = normaliseWhen(time ? time.rest : when);
   const dayless = !said || /^(?:in )?(?:morning|afternoon|evening|night)$/.test(said);
   const day = time && dayless ? { date: anchor, ambiguous: false } : resolveDay(said, anchor, past);
-  return day && time ? { ...day, at: time.at } : day;
+  if (!day || !time) return day;
+  // Midnight ends the day it was said with: "tonight at 12" on the 20th is the 21st at 00:00.
+  // Which night is easy to get wrong, so it is always confirmed.
+  if (time.midnight) return { date: addDays(day.date, 1), ambiguous: true, at: time.at };
+  return { ...day, at: time.at };
 }
 
 function resolveDay(said: string, anchor: string, past: boolean): Resolved | null {

@@ -98,4 +98,34 @@ describe('bookendSourceItems', () => {
     expect(itemsFor(facts)).toEqual([]);
     expect(itemsFor([timed], new Date('2026-10-20T19:00:00.000Z'))).toEqual([]);
   });
+
+  it('"at 5.30" is 17:30 that day; midnight is asked before it is used', () => {
+    const [dotted, midnight] = factsFrom(
+      mention({ when: 'at 5.30' }),
+      mention({ what: 'scan', when: 'tonight at 12' })
+    );
+    expect(dotted).toMatchObject({
+      eventDate: '2026-10-20',
+      at: '17:30',
+      needsConfirmation: false,
+    });
+    expect(midnight).toMatchObject({
+      eventDate: '2026-10-21',
+      at: '00:00',
+      needsConfirmation: true,
+    });
+    expect(itemsFor([dotted, midnight]).map((i) => i.eventAt)).toEqual([
+      '2026-10-20T21:30:00.000Z',
+    ]);
+  });
+
+  it('refuses a time or day out of range instead of rolling it over', () => {
+    const [timed] = factsFrom(mention({}));
+    const bad: BookendDateFact[] = [
+      { ...timed, id: 'late', at: '24:60' },
+      { ...timed, id: 'month', eventDate: '2026-13-40' },
+      { ...timed, id: 'feb', eventDate: '2027-02-30' },
+    ];
+    expect(itemsFor(bad)).toEqual([]);
+  });
 });

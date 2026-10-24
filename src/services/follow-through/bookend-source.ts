@@ -54,6 +54,9 @@ function eventInstant(day: string, at: string, zone: string): Date | null {
   const t = /^(\d{2}):(\d{2})$/.exec(at);
   if (!d || !t) return null;
   const [year, month, dayOfMonth, hour, minute] = [d[1], d[2], d[3], t[1], t[2]].map(Number);
+  // Out of range ("24:60", "2026-13-40") would roll over to another instant.
+  const real = new Date(Date.UTC(year, month - 1, dayOfMonth)).toISOString().slice(0, 10) === day;
+  if (!real || hour > 23 || minute > 59) return null;
   return zonedWallTimeToUtc({ year, month, day: dayOfMonth, hour, minute }, zone);
 }
 

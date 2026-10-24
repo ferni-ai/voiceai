@@ -99,6 +99,74 @@ describe('resolveWhen: the time of day, kept beside the day', () => {
   });
 });
 
+describe('resolveWhen: times that must not be guessed wrong (they feed reminders)', () => {
+  it('reads minutes after a dot as minutes, never as "the 30th"', () => {
+    expect(resolveWhen('at 5.30', SUN)).toEqual({ date: SUN, ambiguous: false, at: '17:30' });
+    expect(resolveWhen('Thursday at 9.30', SUN)).toEqual({
+      date: '2026-10-15',
+      ambiguous: false,
+      at: '09:30',
+    });
+    expect(resolveWhen('5.30pm', SUN)?.at).toBe('17:30');
+    expect(resolveWhen('at 9.30 in the morning', SUN)?.at).toBe('09:30');
+    expect(resolveWhen('at 17.30', SUN)?.at).toBe('17:30');
+  });
+
+  it.each(['10.30.2026', 'on 30.10', 'at 10.30.2026', 'at 1.10.26', 'at 5.3', 'at 5.60', 'at 3:3', '10.11 in the morning'])(
+    '%s is no time and no day',
+    (when) => {
+      expect(resolveWhen(when, SUN)).toBeNull();
+    }
+  ); // prettier-ignore
+
+  it('an hour run into a date is the date, not a time', () => {
+    expect(resolveWhen('at 3/14', SUN)).toEqual({ date: '2027-03-14', ambiguous: false });
+  });
+
+  // Midnight is the end of the day it was said with, and is always confirmed.
+  it.each([
+    ['tonight at 12', '2026-10-12', '00:00'],
+    ['12 at night', '2026-10-12', '00:00'],
+    ['at 12 at night', '2026-10-12', '00:00'],
+    ['12am', '2026-10-12', '00:00'],
+    ['midnight', '2026-10-12', '00:00'],
+    ['at 12:30am', '2026-10-12', '00:30'],
+    ['tonight at 12:30', '2026-10-12', '00:30'],
+    ['Friday night at 12', '2026-10-17', '00:00'],
+  ])('%s said Sun Oct 11 is %s at %s, to confirm', (when, date, at) => {
+    expect(resolveWhen(when, SUN)).toEqual({ date, ambiguous: true, at });
+  });
+
+  it.each([
+    ['at 12', '12:00'],
+    ['12pm', '12:00'],
+    ['noon', '12:00'],
+    // Zero-padded is 24-hour, and a literal 00:30 is not shifted.
+    ['at 01:00', '01:00'],
+    ['at 00:30', '00:30'],
+    ['at 1:00', '13:00'],
+    // A range is its start.
+    ['2-4pm', '14:00'],
+    ['11-1pm', '11:00'],
+    ['12-2pm', '12:00'],
+    ['10-11am', '10:00'],
+  ])('%s said Sun Oct 11 is that day at %s', (when, at) => {
+    expect(resolveWhen(when, SUN)).toEqual({ date: SUN, ambiguous: false, at });
+  });
+
+  it('gives up on "10 to 5pm" (4:50, or 10 until 5?)', () => {
+    expect(resolveWhen('10 to 5pm', SUN)).toBeNull();
+  });
+
+  it('keeps the day under a part of the day it has no word for', () => {
+    expect(resolveWhen('tomorrow afternoon', SUN)).toEqual({
+      date: '2026-10-12',
+      ambiguous: false,
+    });
+    expect(resolveWhen('tomorrow in the evening', SUN)?.date).toBe('2026-10-12');
+  });
+});
+
 describe('resolveWhen: the hard cases', () => {
   it('"the 3rd" near a month end is next month, not this one', () => {
     expect(resolveWhen('the 3rd', '2026-10-30')).toEqual({ date: '2026-11-03', ambiguous: false });
