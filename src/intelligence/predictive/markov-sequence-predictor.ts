@@ -21,7 +21,8 @@ import {
   loadMarkovState,
   saveMarkovState,
   markDirty,
-  isUserLoaded,
+  startLoad,
+  loadFailed,
   markUserLoaded,
   type MarkovPersistenceData,
 } from './persistence.js';
@@ -418,12 +419,9 @@ function getOrCreateProfile(userId: string): UserPatternProfile {
       priorStrength: CONFIG.COMMUNITY_PRIOR_WEIGHT,
     };
     userProfiles.set(userId, profile);
-
-    // Async load from Firestore (don't block)
-    if (!isUserLoaded(userId, 'markov')) {
-      void loadUserProfileFromFirestore(userId);
-    }
   }
+  // Load from Firestore (async): a failed load is retried on a later access, with backoff
+  if (startLoad(userId, 'markov')) void loadUserProfileFromFirestore(userId);
 
   return profile;
 }
@@ -470,7 +468,7 @@ async function loadUserProfileFromFirestore(userId: string): Promise<void> {
     markUserLoaded(userId, 'markov');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load Markov profile');
-    markUserLoaded(userId, 'markov'); // Don't retry
+    loadFailed(userId, 'markov'); // not loaded: nothing is written until a load succeeds
   }
 }
 

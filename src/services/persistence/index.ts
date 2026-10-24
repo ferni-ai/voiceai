@@ -163,7 +163,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   // In-memory cache
   const cache = new Map<string, T>();
   const dirty = new Set<string>();
-  const intervalName = `persistence-sync-${collection}`;
+  const intervalName = `persistence-sync-${collection}/${documentId}`; // one per store, never shared
   const tainted = new Set<string>(); // held once: dropped on every set and sync from then on
   const held = (userId: string): boolean =>
     (tainted.has(userId) || holdWrites(userId)) &&

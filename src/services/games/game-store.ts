@@ -21,7 +21,20 @@ const log = getLogger();
 // In-memory cache for quick access
 const gameMemoryCache = new Map<string, GameMemory>();
 const musicMemoryCache = new Map<string, MusicMemory>();
-const fromStorage = new Set<string>(); // profile read in this process: only those are written
+// Each kind read from storage in this process (a failed read doesn't count): only those are written
+const gameLoaded = new Set<string>();
+const musicLoaded = new Set<string>();
+/** The memories a write may send: only kinds read from storage here (the rest would replace it) */
+const loadedMemories = (userId: string) => ({
+  gameMemory: gameLoaded.has(userId) ? gameMemoryCache.get(userId) : undefined,
+  musicMemory: musicLoaded.has(userId) ? musicMemoryCache.get(userId) : undefined,
+});
+const warned = new Set<string>();
+/** A write refused because the user was never loaded: logged once per user, never silent. */
+function notLoaded(userId: string): void {
+  if (warned.has(userId) || !warned.add(userId)) return;
+  log.warn({ userId }, '🎮 Game memory not written: never loaded from storage in this process');
+}
 
 // Track dirty state for debounced saves
 const dirtyUsers = new Set<string>();
@@ -37,8 +50,9 @@ let saveTimer: NodeJS.Timeout | null = null;
  */
 export async function loadGameMemory(userId: string): Promise<GameMemory> {
   // Check cache first
+  // Cached, but never read from storage: read it now, or a later write is refused
   const cached = gameMemoryCache.get(userId);
-  if (cached) {
+  if (cached && gameLoaded.has(userId)) {
     log.debug({ userId }, '🎮 Loaded game memory from cache');
     return cached;
   }
@@ -47,7 +61,7 @@ export async function loadGameMemory(userId: string): Promise<GameMemory> {
     const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
-    fromStorage.add(userId);
+    gameLoaded.add(userId);
     if (profile.gameMemory) {
       gameMemoryCache.set(userId, profile.gameMemory);
       log.info(
@@ -60,9 +74,9 @@ export async function loadGameMemory(userId: string): Promise<GameMemory> {
     log.warn({ error, userId }, '🎮 Failed to load game memory from Firestore');
   }
 
-  // Return empty memory
-  const emptyMemory = createEmptyGameMemory();
-  gameMemoryCache.set(userId, emptyMemory);
+  // Nothing stored: cached. The read failed: not cached, so the next load reads storage again
+  const emptyMemory = cached ?? createEmptyGameMemory();
+  if (gameLoaded.has(userId)) gameMemoryCache.set(userId, emptyMemory);
   return emptyMemory;
 }
 
@@ -72,7 +86,7 @@ export async function loadGameMemory(userId: string): Promise<GameMemory> {
 export async function loadMusicMemory(userId: string): Promise<MusicMemory | null> {
   // Check cache first
   const cached = musicMemoryCache.get(userId);
-  if (cached) {
+  if (cached && musicLoaded.has(userId)) {
     return cached;
   }
 
@@ -80,7 +94,7 @@ export async function loadMusicMemory(userId: string): Promise<MusicMemory | nul
     const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
-    fromStorage.add(userId);
+    musicLoaded.add(userId);
     if (profile.musicMemory) {
       musicMemoryCache.set(userId, profile.musicMemory);
       return profile.musicMemory;
@@ -142,7 +156,8 @@ export function purgeGameMemory(userId: string): void {
   dirtyUsers.delete(userId);
   gameMemoryCache.delete(userId);
   musicMemoryCache.delete(userId);
-  fromStorage.delete(userId); // the next session reloads before it writes
+  gameLoaded.delete(userId); // the next session reloads before it writes
+  musicLoaded.delete(userId);
 }
 
 /**
@@ -167,12 +182,13 @@ async function flushDirtyUsers(): Promise<void> {
         purgeGameMemory(userId); // MINOR_CARE: a held caller under 18's game and music memory
         continue;
       }
-      if (!fromStorage.has(userId)) continue; // never loaded here: it would replace stored state
+      const { gameMemory, musicMemory } = loadedMemories(userId);
+      if (!gameMemory && !musicMemory) {
+        notLoaded(userId); // never loaded here: it would replace stored state
+        continue;
+      }
       try {
         const profile = await store.getProfile(userId);
-
-        const gameMemory = gameMemoryCache.get(userId);
-        const musicMemory = musicMemoryCache.get(userId);
 
         if (gameMemory) {
           profile.gameMemory = gameMemory;
@@ -203,11 +219,9 @@ export async function forceSaveGameMemory(userId: string): Promise<void> {
   // Clear from pending; never written for a held caller under 18 (MINOR_CARE)
   dirtyUsers.delete(userId);
   if (userHeld(userId)) return purgeGameMemory(userId);
-  if (!fromStorage.has(userId)) return; // never loaded here: it would replace stored state
-  const gameMemory = gameMemoryCache.get(userId);
-  const musicMemory = musicMemoryCache.get(userId);
-
+  const { gameMemory, musicMemory } = loadedMemories(userId); // only kinds read from storage
   if (!gameMemory && !musicMemory) {
+    if (gameMemoryCache.has(userId) || musicMemoryCache.has(userId)) notLoaded(userId);
     return;
   }
 

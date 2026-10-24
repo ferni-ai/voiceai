@@ -13,6 +13,8 @@ const stored = vi.hoisted(() => [] as { path: string; data: unknown }[]);
 const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 const failReads = vi.hoisted(() => new Set<string>());
 const reads = vi.hoisted(() => [] as string[]);
+/** While `gate.p` is set, every read is recorded and then waits for it (a read still in flight). */
+const gate = vi.hoisted(() => ({ p: null as Promise<void> | null }));
 
 /** A fake Firestore that records every write (path and data) and serves `docs`. */
 const fakeDb = vi.hoisted(() => {
@@ -25,6 +27,7 @@ const fakeDb = vi.hoisted(() => {
         doc: (id = 'auto') => ref(`${path}/${id}`),
         get: async () => {
           reads.push(path);
+          if (gate.p) await gate.p;
           if ([...failReads].some((f) => path.includes(f))) throw new Error('unavailable');
           const doc = docs.get(path);
           return doc ? { exists: true, data: () => structuredClone(doc) } : empty;
@@ -69,8 +72,11 @@ import {
 } from '../../services/games/game-store.js';
 import {
   ensureProfileLoaded,
+  flushMusicLearning,
   isMusicLearningLoaded,
+  saveProfile as saveMusicProfile,
 } from '../../audio/music-learning-persistence.js';
+import { getUserProfile as musicProfile } from '../../audio/music-user-learning.js';
 import {
   flushDirtyUsers,
   isUserLoaded,
@@ -114,6 +120,7 @@ afterAll(() => {
 beforeEach(() => {
   stored.length = 0;
   reads.length = 0;
+  gate.p = null;
   failReads.clear();
   engagement.saveProfile.mockClear();
 });
@@ -235,5 +242,39 @@ describe('Decision: purge during a live owner session', () => {
     expect(JSON.stringify(w?.data)).toContain('stored');
     expect(JSON.stringify(w?.data)).toContain('owner change');
     expect(JSON.stringify(w?.data)).not.toContain('from the held call');
+  });
+});
+
+describe('a save waiting on its load, while the caller is held and purged', () => {
+  const music = (userId: string) => writesFor(userId).filter((w) => w.path.includes('music_learning'));
+  /** A music save made before any load waits on a read that is still in flight. */
+  async function race(hold: boolean, lapse = false) {
+    const who = caller();
+    let release!: () => void;
+    gate.p = new Promise<void>((r) => (release = r));
+    musicProfile(who.userId).totalTransitions = 5; // learned during the call
+    saveMusicProfile(who.userId);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(reads.some((p) => p.includes(who.userId) && p.includes('music_learning'))).toBe(true);
+    if (hold) {
+      who.hold();
+      purgeHeldUser(who.userId);
+    }
+    if (lapse) await vi.advanceTimersByTimeAsync(HOLD_LAPSES_MS);
+    release();
+    gate.p = null;
+    for (let i = 0; i < 20; i++) await vi.advanceTimersByTimeAsync(60_000);
+    await flushMusicLearning(who.userId).catch(() => undefined);
+    return music(who.userId);
+  }
+
+  it('not held: the waiting save is written once the read lands', async () => {
+    expect((await race(false)).length).toBeGreaterThan(0);
+  });
+  it('held and purged while it waits: nothing is written when the read lands', async () => {
+    expect(await race(true)).toEqual([]);
+  });
+  it('held and purged, hold lapses before the read lands: nothing from the held call is written', async () => {
+    expect(JSON.stringify(await race(true, true))).not.toContain('"totalTransitions":5');
   });
 });

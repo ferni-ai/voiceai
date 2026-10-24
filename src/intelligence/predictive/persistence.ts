@@ -123,20 +123,14 @@ const loadedUsers = new Set<string>();
 /** Active flush locks to prevent concurrent writes per user */
 const flushLocks = new Map<string, Promise<void>>();
 
-/**
- * Execute with lock to prevent concurrent flushes for the same user
- */
+/** Execute with lock to prevent concurrent flushes for the same user */
 async function withFlushLock(userId: string, fn: () => Promise<void>): Promise<void> {
   // Wait for any existing flush to complete
   const existingLock = flushLocks.get(userId);
-  if (existingLock) {
-    await existingLock;
-  }
+  if (existingLock) await existingLock;
 
   // Create new lock and execute
-  const lockPromise = fn().finally(() => {
-    flushLocks.delete(userId);
-  });
+  const lockPromise = fn().finally(() => flushLocks.delete(userId));
   flushLocks.set(userId, lockPromise);
 
   return lockPromise;
@@ -154,10 +148,10 @@ function holdSave(userId: string, model: PredictiveModel): boolean {
   return true;
 }
 
-/** Null means nothing stored; a read error also answers null, but holds back the model's saves. */
+/** Null means nothing stored. A read error throws (the model retries later) and holds back saves. */
 async function loadModelState<T>(userId: string, model: PredictiveModel): Promise<T | null> {
   const firestore = getFirestoreDb();
-  if (!firestore) return null;
+  if (!firestore) throw new Error('Firestore unavailable'); // not loaded, so never written
   const key = `${userId}/${model}`;
   try {
     const doc = await firestore
@@ -171,7 +165,7 @@ async function loadModelState<T>(userId: string, model: PredictiveModel): Promis
   } catch (error) {
     readFailed.add(key);
     log.warn({ error: String(error), userId, model }, 'Failed to load predictive state');
-    return null;
+    throw error; // a failed read never counts as loaded: the model retries it with backoff
   }
 }
 
@@ -179,9 +173,7 @@ async function loadModelState<T>(userId: string, model: PredictiveModel): Promis
 // MARKOV PERSISTENCE
 // ============================================================================
 
-/**
- * Save Markov model state to Firestore
- */
+/** Save Markov model state to Firestore */
 export async function saveMarkovState(userId: string, data: MarkovPersistenceData): Promise<void> {
   if (holdSave(userId, 'markov')) return;
   const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
@@ -217,9 +209,7 @@ export async function loadMarkovState(userId: string): Promise<MarkovPersistence
 // TIME SERIES PERSISTENCE
 // ============================================================================
 
-/**
- * Save time series model state to Firestore
- */
+/** Save time series model state to Firestore */
 export async function saveTimeSeriesState(
   userId: string,
   data: TimeSeriesPersistenceData
@@ -276,9 +266,7 @@ export async function loadTimeSeriesState(
 // REINFORCEMENT LEARNING PERSISTENCE
 // ============================================================================
 
-/**
- * Save reinforcement learning state to Firestore
- */
+/** Save reinforcement learning state to Firestore */
 export async function saveReinforcementState(
   userId: string,
   data: ReinforcementPersistenceData
@@ -301,9 +289,7 @@ export async function saveReinforcementState(
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recentPredictions: Record<string, PredictionTrackingData> = {};
     for (const [key, pred] of Object.entries(data.predictions)) {
-      if (pred.timestamp > thirtyDaysAgo) {
-        recentPredictions[key] = pred;
-      }
+      if (pred.timestamp > thirtyDaysAgo) recentPredictions[key] = pred;
     }
 
     // Keep only recent outreach history (last 90 days)
@@ -341,9 +327,7 @@ export async function loadReinforcementState(
 // COMMUNITY PATTERNS PERSISTENCE
 // ============================================================================
 
-/**
- * Save community-wide patterns (aggregated, anonymous)
- */
+/** Save community-wide patterns (aggregated, anonymous) */
 export async function saveCommunityPatterns(data: MarkovPersistenceData): Promise<void> {
   const firestore = getFirestoreDb();
   if (!firestore) return;
@@ -363,9 +347,7 @@ export async function saveCommunityPatterns(data: MarkovPersistenceData): Promis
   }
 }
 
-/**
- * Load community-wide patterns
- */
+/** Load community-wide patterns */
 export async function loadCommunityPatterns(): Promise<MarkovPersistenceData | null> {
   const firestore = getFirestoreDb();
   if (!firestore) return null;
@@ -398,16 +380,41 @@ export function isUserLoaded(userId: string, model: PredictiveModel): boolean {
   return loadedUsers.has(`${userId}/${model}`);
 }
 
-/** Mark a model loaded for the user, unless its last read errored (a later load retries). */
+/** After a successful read only (a failed load calls loadFailed); ignored if the last read errored. */
 export function markUserLoaded(userId: string, model: PredictiveModel): void {
-  if (!readFailed.has(`${userId}/${model}`)) loadedUsers.add(`${userId}/${model}`);
+  if (readFailed.has(`${userId}/${model}`)) return;
+  loadedUsers.add(`${userId}/${model}`);
+  loadRetry.delete(`${userId}/${model}`);
+}
+
+/** `${userId}/${model}` -> failed loads, and when the next may start (Infinity: one in flight) */
+const loadRetry = new Map<string, { fails: number; next: number }>();
+
+/** True when this model should load the user now: not loaded, none in flight, past backoff. */
+export function startLoad(userId: string, model: PredictiveModel): boolean {
+  const key = `${userId}/${model}`;
+  const retry = loadRetry.get(key) ?? { fails: 0, next: 0 };
+  if (loadedUsers.has(key) || Date.now() < retry.next) return false;
+  loadRetry.set(key, { ...retry, next: Infinity });
+  return true;
+}
+
+/** A failed load is retried on a later access, 30 s x 2^fails apart (at most 30 min). */
+export function loadFailed(userId: string, model: PredictiveModel): void {
+  const fails = (loadRetry.get(`${userId}/${model}`)?.fails ?? 0) + 1;
+  const next = Date.now() + Math.min(30_000 * 2 ** fails, 30 * 60_000);
+  loadRetry.set(`${userId}/${model}`, { fails, next });
 }
 
 /** MINOR_CARE purge: the next session reloads from storage before anything is written. */
 export function forgetLoadedUser(userId: string): void {
-  for (const key of loadedUsers) if (key.startsWith(`${userId}/`)) loadedUsers.delete(key);
+  for (const set of [loadedUsers, loadRetry])
+    for (const key of set.keys()) if (key.startsWith(`${userId}/`)) set.delete(key);
   dirtyUsers.delete(userId);
 }
+
+const anyLoaded = (userId: string): boolean =>
+  (['markov', 'time_series', 'reinforcement'] as const).some((m) => isUserLoaded(userId, m));
 
 /** Saves for each model whose stored state was loaded here: saving another would replace it. */
 function loadedSaves(
@@ -426,11 +433,7 @@ function loadedSaves(
   ];
 }
 
-/**
- * Flush all dirty users to Firestore
- *
- * Called periodically by scheduled job or on shutdown.
- */
+/** Flush all dirty users to Firestore (called periodically by scheduled job or on shutdown) */
 export async function flushDirtyUsers(
   getMarkovData: (userId: string) => MarkovPersistenceData | null,
   getTimeSeriesData: (userId: string) => TimeSeriesPersistenceData | null,
@@ -442,6 +445,7 @@ export async function flushDirtyUsers(
 
   for (const userId of Array.from(dirtyUsers)) {
     if (now - (lastFlushTime.get(userId) ?? 0) < FLUSH_INTERVAL_MS) continue; // too soon
+    if (!anyLoaded(userId)) continue; // kept dirty until a model loads: never dropped unwritten
 
     try {
       await Promise.all(
@@ -457,17 +461,12 @@ export async function flushDirtyUsers(
     }
   }
 
-  if (flushed > 0) {
-    log.info({ flushed, errors }, 'Flushed dirty ML state to Firestore');
-  }
+  if (flushed > 0) log.info({ flushed, errors }, 'Flushed dirty ML state to Firestore');
 
   return { flushed, errors };
 }
 
-/**
- * Force flush a specific user (e.g., on session end)
- * Uses lock to prevent concurrent writes to the same user's data.
- */
+/** Force flush a user (e.g., on session end), locked against concurrent writes for that user */
 export async function forceFlushUser(
   userId: string,
   getMarkovData: (userId: string) => MarkovPersistenceData | null,
@@ -475,6 +474,7 @@ export async function forceFlushUser(
   getReinforcementData: (userId: string) => ReinforcementPersistenceData | null
 ): Promise<void> {
   return withFlushLock(userId, async () => {
+    if (!anyLoaded(userId)) return; // nothing read here to write: the user stays dirty
     await Promise.all(loadedSaves(userId, getMarkovData, getTimeSeriesData, getReinforcementData));
 
     dirtyUsers.delete(userId);
@@ -506,9 +506,7 @@ export function initializePersistence(
   log.info('🧠 Predictive ML persistence initialized');
 }
 
-/**
- * Shutdown persistence layer (flush remaining data)
- */
+/** Shutdown persistence layer (flush remaining data) */
 export async function shutdownPersistence(
   getMarkovData: (userId: string) => MarkovPersistenceData | null,
   getTimeSeriesData: (userId: string) => TimeSeriesPersistenceData | null,

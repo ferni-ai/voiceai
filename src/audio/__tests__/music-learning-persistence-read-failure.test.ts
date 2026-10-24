@@ -135,6 +135,24 @@ describe('music learning reads', () => {
     });
   });
 
+  it('a save before any load waits for the read, then writes (never dropped)', async () => {
+    getUserProfile(USER).totalTransitions = 1; // learned before the session load ran
+    await flushMusicLearning(USER);
+
+    expect(isMusicLearningLoaded(USER)).toBe(true);
+    expect(firestore.docs.get(PROFILE_PATH)).toMatchObject({ userId: USER, totalTransitions: 1 });
+  });
+
+  it('a save waiting on a read that fails is refused, so storage keeps its data', async () => {
+    firestore.docs.set(PROFILE_PATH, structuredClone(storedProfile));
+    firestore.failReads.match = new RegExp(`^${PROFILE_PATH}$`);
+    getUserProfile(USER).totalTransitions = 1;
+    await flushMusicLearning(USER);
+
+    expect(isMusicLearningLoaded(USER)).toBe(false);
+    expect(firestore.docs.get(PROFILE_PATH)).toEqual(storedProfile);
+  });
+
   it('a later read that succeeds allows saving again', async () => {
     firestore.docs.set(PROFILE_PATH, structuredClone(storedProfile));
     firestore.failReads.match = new RegExp(`^${PROFILE_PATH}$`);

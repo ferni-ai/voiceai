@@ -165,7 +165,7 @@ export function purgeMusicLearning(userId: string): void {
   clearHeldMemories(userId);
   loadedProfileUsers.delete(userId); // the next session reloads before it writes
   loadedMemoryUsers.delete(userId);
-  profilePersistence?.clearCache(userId); // never creates a store (they share one interval name)
+  profilePersistence?.clearCache(userId); // never creates a store just to clear it
   memoryPersistence?.clearCache(userId);
 }
 
@@ -201,12 +201,53 @@ function getMemoryPersistence(): PersistenceStore<PersistedMusicMemories> {
 // CORE API
 // ============================================================================
 
-/**
- * Ensure user's transition profile is loaded from persistence
- */
-export async function ensureProfileLoaded(userId: string): Promise<void> {
-  if (loadedProfileUsers.has(userId)) return;
+const loads = new Map<string, Promise<void>>();
+/** One load per user and kind at a time: a save waiting on it and the caller share it. */
+function loadOnce(key: string, load: () => Promise<void>): Promise<void> {
+  const running = loads.get(key) ?? load().finally(() => loads.delete(key));
+  loads.set(key, running);
+  return running;
+}
+const warned = new Set<string>();
+/** A save that waited for the load, and it still is not loaded: logged once, never silent. */
+function notLoaded(userId: string, what: string): void {
+  if (warned.has(`${what}:${userId}`) || !warned.add(`${what}:${userId}`)) return;
+  log.warn({ userId, what }, 'Music learning not written: not loaded from storage in this process');
+}
 
+/**
+ * When a save may write. A failed read refuses it (the stored data is unread, never written over;
+ * a later successful load lifts that). A user not read yet waits for the load (started here, or
+ * the one in flight) and is then decided again, so an early save is neither dropped nor written
+ * over stored data. Resolves true once the user's stored state is read.
+ */
+async function readyToSave(
+  userId: string,
+  kind: 'profile' | 'memories',
+  ensureLoaded: (userId: string) => Promise<void>
+): Promise<boolean> {
+  const [loaded, failed] =
+    kind === 'profile'
+      ? [loadedProfileUsers, failedProfileUsers]
+      : [loadedMemoryUsers, failedMemoryUsers];
+  if (failed.has(userId)) {
+    log.warn({ userId, kind }, `Music ${kind} read failed; not saving over the stored copy`);
+    return false;
+  }
+  if (loaded.has(userId)) return true;
+  await ensureLoaded(userId);
+  if (loaded.has(userId) || failed.has(userId)) return readyToSave(userId, kind, ensureLoaded);
+  notLoaded(userId, kind);
+  return false;
+}
+
+/** Ensure user's transition profile is loaded from persistence */
+export function ensureProfileLoaded(userId: string): Promise<void> {
+  if (loadedProfileUsers.has(userId)) return Promise.resolve();
+  return loadOnce(`profile:${userId}`, () => loadProfile(userId));
+}
+
+async function loadProfile(userId: string): Promise<void> {
   try {
     const data = await getProfilePersistence().load(userId, { strict: true });
     if (data) {
@@ -225,12 +266,13 @@ export async function ensureProfileLoaded(userId: string): Promise<void> {
   }
 }
 
-/**
- * Ensure user's music memories are loaded from persistence
- */
-export async function ensureMemoriesLoaded(userId: string): Promise<void> {
-  if (loadedMemoryUsers.has(userId)) return;
+/** Ensure user's music memories are loaded from persistence */
+export function ensureMemoriesLoaded(userId: string): Promise<void> {
+  if (loadedMemoryUsers.has(userId)) return Promise.resolve();
+  return loadOnce(`memories:${userId}`, () => loadMemories(userId));
+}
 
+async function loadMemories(userId: string): Promise<void> {
   try {
     const data = await getMemoryPersistence().load(userId, { strict: true });
     if (data) {
@@ -266,15 +308,13 @@ export function isMusicLearningLoaded(userId: string): boolean {
   return loadedProfileUsers.has(userId);
 }
 
-/**
- * Save user's transition profile (queued for batch write)
- */
+/** Save user's transition profile (queued for batch write, once it is safe to write) */
 export function saveProfile(userId: string): void {
-  if (failedProfileUsers.has(userId)) {
-    log.warn({ userId }, 'Music profile read failed; not saving over it');
-    return;
-  }
-  if (!loadedProfileUsers.has(userId)) return; // never loaded here: it would replace stored state
+  void queueProfile(userId);
+}
+
+async function queueProfile(userId: string): Promise<void> {
+  if (!(await readyToSave(userId, 'profile', ensureProfileLoaded))) return;
   try {
     const profile = exportUserProfile(userId);
     if (profile) {
@@ -287,15 +327,13 @@ export function saveProfile(userId: string): void {
   }
 }
 
-/**
- * Save user's music memories (queued for batch write)
- */
+/** Save user's music memories (queued for batch write, once it is safe to write) */
 export function saveMemories(userId: string): void {
-  if (failedMemoryUsers.has(userId)) {
-    log.warn({ userId }, 'Music memories read failed; not saving over them');
-    return;
-  }
-  if (!loadedMemoryUsers.has(userId)) return; // never loaded here: it would replace stored state
+  void queueMemories(userId);
+}
+
+async function queueMemories(userId: string): Promise<void> {
+  if (!(await readyToSave(userId, 'memories', ensureMemoriesLoaded))) return;
   try {
     const memories = exportUserMusicMemories(userId);
     if (memories.memories.length > 0 || memories.preferences.length > 0) {
@@ -323,8 +361,7 @@ export function saveMusicLearning(userId: string): void {
  * Save and flush immediately (use on session end)
  */
 export async function flushMusicLearning(userId: string): Promise<void> {
-  saveProfile(userId);
-  saveMemories(userId);
+  await Promise.all([queueProfile(userId), queueMemories(userId)]); // a pending load is awaited
 
   await Promise.all([
     getProfilePersistence().flushUser(userId),

@@ -702,9 +702,7 @@ export function getRecentTextureSummary(userId: string, personaId: string): stri
 // PERSISTENCE
 // ============================================================================
 
-/**
- * Load texture profile from persistence
- */
+/** Load texture profile from persistence */
 export function loadTextureProfile(
   userId: string,
   personaId: string,
@@ -729,9 +727,7 @@ export function loadTextureProfile(
   );
 }
 
-/**
- * Get texture profile for persistence
- */
+/** Get texture profile for persistence */
 export function getTextureProfileForPersistence(
   userId: string,
   personaId: string
@@ -739,11 +735,15 @@ export function getTextureProfileForPersistence(
   return profiles.get(`${userId}:${personaId}`) || null;
 }
 
-/**
- * Clear texture data for a user (for testing)
- */
+/** Clear texture data for a user (for testing) */
 export function clearUserTexture(userId: string, personaId: string): void {
   profiles.delete(`${userId}:${personaId}`);
+  sessionStates.delete(userId);
+}
+
+/** MINOR_CARE purge: this user's texture with every persona, and their session state */
+export function clearAllUserTextures(userId: string): void {
+  for (const key of profiles.keys()) if (key.startsWith(`${userId}:`)) profiles.delete(key);
   sessionStates.delete(userId);
 }
 

@@ -86,8 +86,8 @@ describe('predictive model reads', () => {
     storeDoc(seriesPath(), storedSeries);
     firestore.failReads.match = new RegExp(`^${BASE}/${user}/predictive_ml/`);
 
-    expect(await loadMarkovState(user)).toBeNull();
-    expect(await loadTimeSeriesState(user)).toBeNull();
+    await expect(loadMarkovState(user)).rejects.toThrow(); // not "nothing stored": the model retries
+    await expect(loadTimeSeriesState(user)).rejects.toThrow();
     markUserLoaded(user, 'markov');
     markUserLoaded(user, 'time_series');
     expect(isUserLoaded(user, 'markov')).toBe(false);
@@ -129,7 +129,7 @@ describe('predictive model reads', () => {
   it('a later read that succeeds allows saving again', async () => {
     storeDoc(markovPath(), markov(41));
     firestore.failReads.match = new RegExp(`^${markovPath()}$`);
-    await loadMarkovState(user);
+    await expect(loadMarkovState(user)).rejects.toThrow();
     await saveMarkovState(user, markov(0));
     expect(firestore.docs.get(markovPath())).toMatchObject({ totalObservations: 41 });
 
