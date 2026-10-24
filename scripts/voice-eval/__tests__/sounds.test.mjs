@@ -137,7 +137,7 @@ describe('the woven transcript', () => {
     const woven = turnsOf(run, { greeting: true, sounds: true });
     expect(woven).toHaveLength(plain.length);
     expect(woven.filter((t) => t.text.includes('[')).map((t) => [t.who, t.text])).toEqual([
-      ['user', 'I teach 9th grade at Lincoln High. [Ferni: mm-hm]'],
+      ['user', "I'm 34. I teach 9th grade at Lincoln High. [Ferni: mm-hm]"],
       [
         'user',
         'My best friend Riley and I had a fight today and I feel kind of awful. [Ferni: mm-hm]',
@@ -163,7 +163,7 @@ describe('the woven transcript', () => {
     expect(text).toContain(
       'My best friend Riley and I [Ferni: "Right."] had a fight today and I feel kind of awful. [Ferni: "Yeahh."]'
     );
-    expect(text).toContain('I teach 9th grade at Lincoln High. [Ferni: "Mm-hmm."]');
+    expect(text).toContain('I\'m 34. I teach 9th grade at Lincoln High. [Ferni: "Mm-hmm."]');
     const ninth = text.findIndex((t) => t.startsWith('Ninth grade, wow'));
     expect(text.slice(ninth, ninth + 3)).toEqual([
       expect.stringMatching(/^Ninth grade, wow/),
