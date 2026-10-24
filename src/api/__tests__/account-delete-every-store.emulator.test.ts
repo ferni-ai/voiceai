@@ -79,6 +79,7 @@ const MUST_ERASE = [
   'engagement_profiles/{uid}',
   'bogle_users/{uid}/summaries',
   'bogle_users/{uid}/conversations',
+  'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/wellbeing_snapshots',

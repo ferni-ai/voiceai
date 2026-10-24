@@ -141,8 +141,8 @@ export interface VoicedPresenceOptions {
   mixerBusy: () => boolean;
   getClip: (text: string, personaId: string) => ArrayBuffer | null;
   personaId: () => string;
-  /** A quiet-window sound started: the yawn is 'breath', a hum, whistle or tune 'hum' (sound-signal.ts). */
-  onSound?: (kind: 'hum' | 'breath') => void;
+  /** A quiet-window sound started: the yawn is 'breath', a hum, whistle or tune 'hum' (sound-signal.ts); `label` names the take or tune. */
+  onSound?: (kind: 'hum' | 'breath', label: string) => void;
   /** SOUND_CONDUCTOR: asked before each take plays (sound-conductor.ts); unset plays as before. */
   gate?: SoundGate;
   env?: Record<string, string | undefined>;
@@ -254,18 +254,20 @@ function watchQuiet(
 function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () => void {
   let yawned = false;
   let endsAt = 0;
+  let label = ''; // what the last quiet-window sound was: a take, a recording or a tune
   const sessionId = (): string | undefined => sessionIdOf(v);
   /** A recorded whistle on the direct track; false if none is ready or a clip is playing. */
   const whistle = (quietMs: number): boolean => {
     const pcm = whistles?.next();
     if (!pcm) return false;
-    const label = RECORDED + (presenceClipName(pcm) ?? 'unknown');
-    if (!v.gate('presence', label, () => !v.busy() && v.direct.play(pcm, IDLE_VOLUME, label)))
+    const clip = RECORDED + (presenceClipName(pcm) ?? 'unknown');
+    if (!v.gate('presence', clip, () => !v.busy() && v.direct.play(pcm, IDLE_VOLUME, clip)))
       return false;
+    label = clip;
     endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
     const id = recordedWhistleId(pcm);
     if (id) tunePlayed(sessionId(), id, 'whistle', v.env); // NAMED_TUNE
-    recordVoiced(v, 'whistle', id ?? label, quietMs);
+    recordVoiced(v, 'whistle', id ?? clip, quietMs);
     return true;
   };
   /** NAMED_TUNE: the tune this caller named, if it can play. */
@@ -275,6 +277,7 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
     if (!id || !tune) return false;
     const go = () => !v.busy() && v.direct.play(tune.pcm, IDLE_VOLUME, tune.label);
     if (!v.gate('presence', tune.label, go)) return false;
+    label = tune.label;
     endsAt = Date.now() + tune.pcm.byteLength / 48;
     tunePlayed(sessionId(), id, tuneKind(id), v.env);
     recordVoiced(v, tuneKind(id), id, quietMs);
@@ -286,7 +289,7 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
     (quietMs: number): boolean => {
       const before = yawned;
       const ok = play(quietMs);
-      if (ok) v.onSound(yawned !== before ? 'breath' : 'hum');
+      if (ok) v.onSound(yawned !== before ? 'breath' : 'hum', label);
       return ok;
     };
   return watchQuiet(v, {
@@ -303,6 +306,7 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
       const pick = v.picker.take(category);
       const take = pick ?? v.picker.take('thinking-hum');
       if (!take || !v.play(take, IDLE_VOLUME, 'presence')) return false;
+      label = take.text;
       const tune = takeTuneId(take.category, take.index);
       if (take.category === 'morning-yawn') yawned = true;
       else tunePlayed(sessionId(), tune, 'hum', v.env);
@@ -337,7 +341,7 @@ function startSnore(v: Voiced): () => void {
     if (!v.gate('snore', label, () => !v.busy() && v.direct.play(pcm, IDLE_VOLUME, label)))
       return false;
     endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
-    v.onSound('breath'); // a snore reads as a breath (sound-signal.ts)
+    v.onSound('breath', label); // a snore reads as a breath (sound-signal.ts)
     recordVoiced(v, 'snore', label, quietMs);
     return true;
   };

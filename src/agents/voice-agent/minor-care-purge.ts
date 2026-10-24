@@ -14,6 +14,7 @@ import { purgeMusicLearning } from '../../audio/music-learning-persistence.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
+import { clearRelationshipEngine } from '../../intelligence/relationship/engine.js';
 import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -38,6 +39,8 @@ export function purgeHeldUser(userId: string): void {
     ['time-series model', clearTimeSeries],
     ['reinforcement model', clearReinforcement],
     ['predictive loaded markers', forgetLoadedUser],
+    // recordMoment keeps the caller's phrases; endSession on a later call would save them
+    ['relationship engines', (id) => clearRelationshipEngine(id)],
   ];
   for (const [name, purge] of purges) {
     try {

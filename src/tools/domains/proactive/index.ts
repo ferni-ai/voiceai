@@ -28,7 +28,7 @@ import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
-import { requestedFields } from '../../../services/superhuman/index.js';
+import { requestedFieldsFor } from '../../../services/superhuman/index.js';
 import {
   saveCommitment,
   loadUserCommitments,
@@ -111,7 +111,7 @@ const trackCommitmentDef: ToolDefinition = {
             status: 'active',
             followUpCount: 0,
             topic: context,
-            ...requestedFields(), // shown with COMMITMENT_SINGLE_WRITER on (mid-call env)
+            ...(await requestedFieldsFor(ctx.userId)), // shown with COMMITMENT_SINGLE_WRITER on, per person
           });
           if (notActionable) return 'Not tracked: that is a goodbye or a pleasantry.';
           let response = `**Got it. I'll remember this.** ✓\n\n`;

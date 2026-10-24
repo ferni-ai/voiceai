@@ -1,0 +1,513 @@
+{
+  "_note": "Caller caption events trimmed from real eval runs (2026-10-23): each caption repeats the whole growing utterance; a new utterance restarts short. Read by caller-captions.test.mjs.",
+  "adult": {
+    "source": "minor-care-adult-mc1.json",
+    "userSpeech": [
+      [10174, 10865],
+      [22182, 25256]
+    ],
+    "events": [
+      {
+        "who": "agent",
+        "text": "Hi Sam, it is Ferni. How is your morning going so far?",
+        "t": 8464
+      },
+      {
+        "who": "user",
+        "text": "Hey",
+        "t": 11601
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 11721
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 11727
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 12139
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 12145
+      },
+      {
+        "who": "agent",
+        "text": "Morning is off to a pretty good start here, just trying to figure out how I managed to kill another fern. What are you up to today?",
+        "t": 20390
+      },
+      {
+        "who": "user",
+        "text": "I",
+        "t": 23276
+      },
+      {
+        "who": "user",
+        "text": "I'm",
+        "t": 23291
+      },
+      {
+        "who": "user",
+        "text": "I'm 34.",
+        "t": 23312
+      },
+      {
+        "who": "user",
+        "text": "I'm 34.",
+        "t": 23342
+      },
+      {
+        "who": "user",
+        "text": "I'm 34.",
+        "t": 23475
+      },
+      {
+        "who": "user",
+        "text": "I'm 34.",
+        "t": 23502
+      },
+      {
+        "who": "user",
+        "text": "I",
+        "t": 24556
+      },
+      {
+        "who": "user",
+        "text": "I teach",
+        "t": 24848
+      },
+      {
+        "who": "user",
+        "text": "I teach 9",
+        "t": 25180
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th",
+        "t": 25202
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th grade",
+        "t": 25506
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th grade at",
+        "t": 25677
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th grade at Lincoln",
+        "t": 25832
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th grade at Lincoln High.",
+        "t": 25861
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th grade at Lincoln High.",
+        "t": 25862
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th grade at Lincoln High.",
+        "t": 26157
+      },
+      {
+        "who": "user",
+        "text": "I teach 9th grade at Lincoln High.",
+        "t": 26161
+      },
+      {
+        "who": "agent",
+        "text": "Ninth grade, wow. That's, uh, the year everyone's figuring out how gravity works again, or at least how to trip over nothing in the hallway.",
+        "t": 36756
+      }
+    ]
+  },
+  "fourteen": {
+    "source": "minor-care-14-mc1.json",
+    "userSpeech": [
+      [10428, 11126],
+      [23081, 26313]
+    ],
+    "events": [
+      {
+        "who": "agent",
+        "text": "Hi Sam, it's Ferni. Good morning, how are you holding up today?",
+        "t": 8622
+      },
+      {
+        "who": "user",
+        "text": "Hey",
+        "t": 11482
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 11608
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 11608
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 12217
+      },
+      {
+        "who": "user",
+        "text": "Hey Ferni.",
+        "t": 12225
+      },
+      {
+        "who": "agent",
+        "text": "Morning. I'm doing all right, just watching the clouds roll in over the ridge and waiting for the coffee to finish. How's your Saturday shaping up?",
+        "t": 21360
+      },
+      {
+        "who": "user",
+        "text": "I",
+        "t": 24447
+      },
+      {
+        "who": "user",
+        "text": "I'm only",
+        "t": 24469
+      },
+      {
+        "who": "user",
+        "text": "I'm only 14",
+        "t": 24494
+      },
+      {
+        "who": "user",
+        "text": "I'm only 14.",
+        "t": 24531
+      },
+      {
+        "who": "user",
+        "text": "I'm only 14.",
+        "t": 24534
+      },
+      {
+        "who": "user",
+        "text": "I'm only 14.",
+        "t": 24679
+      },
+      {
+        "who": "user",
+        "text": "I'm only 14.",
+        "t": 24690
+      },
+      {
+        "who": "user",
+        "text": "I'",
+        "t": 25886
+      },
+      {
+        "who": "user",
+        "text": "I'm in",
+        "t": 25905
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9",
+        "t": 26348
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th",
+        "t": 26366
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade",
+        "t": 26511
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade at Lincoln High",
+        "t": 26530
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade at Lincoln High.",
+        "t": 26560
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade at Lincoln High.",
+        "t": 26565
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade at Lincoln High.",
+        "t": 26671
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade at Lincoln High.",
+        "t": 26839
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade at Lincoln High.",
+        "t": 27037
+      },
+      {
+        "who": "user",
+        "text": "I'm in 9th grade at Lincoln High.",
+        "t": 27046
+      },
+      {
+        "who": "agent",
+        "text": "Fourteen, huh. Ninth grade at Lincoln can be a lot, especially on a Saturday morning when you're probably supposed to be sleeping in.",
+        "t": 36344
+      }
+    ]
+  },
+  "biscuit": {
+    "source": "long-day-n1023s1.json",
+    "userSpeech": [[45045, 50820]],
+    "events": [
+      {
+        "who": "agent",
+        "text": "You don't even have to look at it right now.",
+        "t": 43006
+      },
+      {
+        "who": "user",
+        "text": "Oh",
+        "t": 46662
+      },
+      {
+        "who": "user",
+        "text": "Oh, and",
+        "t": 46993
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit",
+        "t": 47486
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed",
+        "t": 47813
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up",
+        "t": 48004
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up my",
+        "t": 48107
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up my phone",
+        "t": 48529
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up my phone charger",
+        "t": 48563
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up my phone charger this morning.",
+        "t": 48583
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up my phone charger this morning.",
+        "t": 48603
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up my phone charger this morning.",
+        "t": 49098
+      },
+      {
+        "who": "user",
+        "text": "Oh, and biscuit chewed up my phone charger this morning.",
+        "t": 49098
+      },
+      {
+        "who": "user",
+        "text": "So",
+        "t": 50994
+      },
+      {
+        "who": "user",
+        "text": "So, that was",
+        "t": 51014
+      },
+      {
+        "who": "user",
+        "text": "So, that was fun.",
+        "t": 51043
+      },
+      {
+        "who": "user",
+        "text": "So, that was fun.",
+        "t": 51047
+      },
+      {
+        "who": "user",
+        "text": "So, that was fun.",
+        "t": 51263
+      },
+      {
+        "who": "user",
+        "text": "So, that was fun.",
+        "t": 51270
+      },
+      {
+        "who": "agent",
+        "text": "Of course a dog would pick a phone charger to chew on, right when everything else is piling up.",
+        "t": 59771
+      }
+    ]
+  },
+  "stale": {
+    "source": "overlap-handoff-n1023s1.json",
+    "userSpeech": [[176292, 182780]],
+    "events": [
+      {
+        "who": "agent",
+        "text": "First things first, let's get the guest list locked down. Once you know exactly how many people are coming, it makes choosing the venue and planning the food a whole lot easier.",
+        "t": 173323
+      },
+      {
+        "who": "user",
+        "text": "Thanks",
+        "t": 177521
+      },
+      {
+        "who": "user",
+        "text": "Thanks.",
+        "t": 177553
+      },
+      {
+        "who": "user",
+        "text": "Thanks.",
+        "t": 177553
+      },
+      {
+        "who": "user",
+        "text": "Thanks.",
+        "t": 178371
+      },
+      {
+        "who": "user",
+        "text": "Thanks. Jordan",
+        "t": 178580
+      },
+      {
+        "who": "user",
+        "text": "Thanks. Jordan.",
+        "t": 178674
+      },
+      {
+        "who": "user",
+        "text": "Thanks. Jordan.",
+        "t": 178753
+      },
+      {
+        "who": "user",
+        "text": "Thanks. Jordan.",
+        "t": 178834
+      },
+      {
+        "who": "user",
+        "text": "Thanks. Jordan.",
+        "t": 178835
+      },
+      {
+        "who": "user",
+        "text": "That's all",
+        "t": 181464
+      },
+      {
+        "who": "user",
+        "text": "That's all.",
+        "t": 181464
+      },
+      {
+        "who": "user",
+        "text": "That's all.",
+        "t": 181465
+      },
+      {
+        "who": "user",
+        "text": "That",
+        "t": 181465
+      },
+      {
+        "who": "user",
+        "text": "That's all.",
+        "t": 181749
+      },
+      {
+        "who": "user",
+        "text": "That's all.",
+        "t": 181838
+      },
+      {
+        "who": "user",
+        "text": "That's all.",
+        "t": 182443
+      },
+      {
+        "who": "user",
+        "text": "That's all.",
+        "t": 182525
+      },
+      {
+        "who": "user",
+        "text": "for",
+        "t": 182782
+      },
+      {
+        "who": "user",
+        "text": "for now.",
+        "t": 182919
+      },
+      {
+        "who": "user",
+        "text": "for now.",
+        "t": 182919
+      },
+      {
+        "who": "user",
+        "text": "for now.",
+        "t": 183349
+      },
+      {
+        "who": "user",
+        "text": "for now.",
+        "t": 183349
+      },
+      {
+        "who": "agent",
+        "text": "Sounds like a plan. Have fun pulling it all together for her, and talk to you soon.",
+        "t": 189407
+      }
+    ]
+  }
+}

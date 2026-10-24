@@ -46,7 +46,7 @@ import {
   initializeMultilingualEmbeddings,
 } from './i18n/index.js';
 import type { SemanticToolDefinition, EmbeddingProvider } from './types.js';
-
+import { errorFields } from '../../utils/error-class.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Import embedding worker integration (background processing + Rust SIMD)
@@ -241,7 +241,7 @@ export async function warmStartSession(context: WarmStartContext): Promise<{
     };
   } catch (error) {
     log.warn(
-      { error: String(error), sessionId: context.sessionId },
+      { ...errorFields(error), sessionId: context.sessionId },
       'Warm-start failed (non-fatal, will use cold start)'
     );
     return {
