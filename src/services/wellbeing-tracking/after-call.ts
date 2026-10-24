@@ -17,6 +17,7 @@
 import { envForCaller, type CohortStore } from '../platform/cohort-flags.js';
 import { callLLM } from '../llm-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import { persistSnapshot } from './persistence.js';
 import type { WellbeingDimensions, WellbeingSnapshot } from './index.js';
 
@@ -101,7 +102,7 @@ export async function recordWellbeingAfterCall(
   ctx: WellbeingCall,
   deps: WellbeingDeps = {}
 ): Promise<void> {
-  if (!ctx.userId || ctx.userId === 'anonymous') return;
+  if (!isMemberIdentity(ctx.userId)) return;
   // This caller's flags: process.env may already hold the next caller's.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!wellbeingAfterCallOn(env)) return;
