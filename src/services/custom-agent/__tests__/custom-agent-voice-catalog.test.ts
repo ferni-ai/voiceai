@@ -49,6 +49,15 @@ describe('the custom-agent voice catalog', () => {
     expect(isForbiddenCustomAgentVoiceId(FERNI_CALM_B_VOICE_ID)).toBe(true);
   });
 
+  it('forbids calm A, B and C however the id is cased or padded', () => {
+    for (const id of [FERNI_CALM_A_VOICE_ID, FERNI_CALM_B_VOICE_ID, FERNI_CALM_C_VOICE_ID]) {
+      for (const variant of [id.toUpperCase(), ` ${id} `, `\n${id.toUpperCase()}\t`]) {
+        expect(isForbiddenCustomAgentVoiceId(variant), JSON.stringify(variant)).toBe(true);
+      }
+    }
+    expect(isForbiddenCustomAgentVoiceId(VOICE_IDS.FERNI.toUpperCase())).toBe(true);
+  });
+
   it("forbids every calm clone of Ferni's own voice, spares A and C included, even as a ready clone", () => {
     expect(FERNI_CALM_A_VOICE_ID).toBe('24a60cd5-9428-453d-8a95-92f50567f32e');
     expect(FERNI_CALM_C_VOICE_ID).toBe('5b13b172-56f9-4821-887a-a943fe949830');
