@@ -22,7 +22,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compareToTargets, computeHumanness } from './humanness.mjs';
 import { presenceOfRuns } from './presence.mjs';
-import { placeSounds, poolSoundMetrics, soundMetrics } from './sounds.mjs';
+import { cutSoundsOf, placeSounds, poolSoundMetrics, soundMetrics } from './sounds.mjs';
 import { checksFor } from './transcript-checks.mjs';
 
 const STOCK_OPENER = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b/i;
@@ -76,7 +76,7 @@ const scenarioDir = join(dirname(fileURLToPath(import.meta.url)), 'scenarios');
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
   runs.push(run);
-  soundRuns.push(soundMetrics(placeSounds(run)));
+  soundRuns.push(soundMetrics(placeSounds(run), { cut: cutSoundsOf(run).length }));
   if (run.meta?.uid) users.add(run.meta.uid);
   const checks = checksFor(run, scenarioDir);
   if (checks) {

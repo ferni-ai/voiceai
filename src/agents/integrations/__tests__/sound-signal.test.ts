@@ -158,6 +158,23 @@ describe('sound_played, CLIENT_SIGNALS_V2 on', () => {
     expect(sounds().map((m) => m.kind)).toEqual(['hum']);
     vi.advanceTimersByTime(20000);
     expect(sounds().map((m) => m.kind)).toEqual(['hum', 'breath']);
+    expect(sounds().map((m) => m.label)).toEqual(['whistle', 'snore']);
+  });
+
+  it('a recorded presence clip on the mixer is labelled recorded-<kind>:<file>, whole', async () => {
+    vi.stubEnv('PRESENCE_SOUNDS', 'on');
+    vi.stubEnv('PRESENCE_SNORE', 'on');
+    vi.stubEnv('PRESENCE_SOUND_ASSETS', 'on');
+    vi.useFakeTimers();
+    const { session, warmUp } = fakeSession();
+    await start(session);
+    warmUp();
+    vi.advanceTimersByTime(8000);
+    vi.advanceTimersByTime(20000);
+    expect(sounds().map((m) => m.label)).toEqual([
+      expect.stringMatching(/^recorded-whistle:[a-z0-9_-]+\.wav$/),
+      expect.stringMatching(/^recorded-snore:[a-z0-9_-]+\.wav$/),
+    ]);
   });
 
   it('the tool hum is hum, on the mixer estimate', async () => {
@@ -217,7 +234,7 @@ describe('sound_played label', () => {
 
   it('drops TTS tags, reads [laughter] as a word, caps the length, and leaves an empty label out', () => {
     expect(soundLabel('<emotion value="happy"/>[laughter] oh man.')).toBe('laughter oh man.');
-    expect(soundLabel('x'.repeat(60))).toHaveLength(40);
+    expect(soundLabel('x'.repeat(80))).toHaveLength(64);
     const out: Array<[string, unknown]> = [];
     const send = createSoundSignal(async (type, payload) => void out.push([type, payload]), {
       CLIENT_SIGNALS_V2: 'on',

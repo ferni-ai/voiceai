@@ -6,7 +6,11 @@
 // `sound_played { kind, wireDelayMs, label }` (CLIENT_SIGNALS_V2, every kind)
 // or else `backchannel_played { kind, wireDelayMs }` (live backchannels only),
 // each matched to the side-track audio segment the harness heard. A side-track
-// segment with no message is still a sound the caller heard, kind 'sound'.
+// segment with no message is still a sound the caller heard, kind 'sound'. A
+// message with no audio was cut before it was heard (22 of 280 on dev runs,
+// 2026-10-24): it is left out, or the judge would read "[Ferni: mm-hm, over
+// their words]" for a sound nobody heard. Only a run with no side track
+// recorded at all falls back to the message time.
 //
 // Placement, on the harness clock (what the listener hears):
 //   over-ferni     during Ferni's own speech
@@ -30,8 +34,8 @@ const PLACES = ['pause', 'mid-utterance', 'silence', 'over-ferni', 'before-reply
 
 const isSide = (t) => /background/i.test(t.name);
 
-/** The sounds the caller heard, in order: [{ t, kind, label, source }]. */
-export function soundsOf(run) {
+/** Signalled and recorded sounds: { heard: [{ t, kind, label, source }], cut: [...] }. */
+function matchSounds(run) {
   const msgs = (run.data ?? []).map((d) => ({ t: d.t, p: d.payload ?? {} }));
   const v2 = msgs.filter((m) => m.p.type === 'sound_played');
   // With both flags on a live backchannel sends both messages: one sound.
@@ -40,25 +44,34 @@ export function soundsOf(run) {
     .filter(isSide)
     .flatMap((t) => (t.voice ?? []).map(([s]) => s))
     .sort((a, b) => a - b);
+  const recorded = (run.tracks ?? []).some(isSide);
   const used = new Set();
   const out = [];
+  const cut = [];
   for (const { t, p } of events) {
     const heard = t + (p.wireDelayMs ?? 0);
     // The message goes out as play() is accepted; the audio follows.
     const i = segs.findIndex((s, j) => !used.has(j) && s >= t - 300 && s <= heard + 1500);
     if (i >= 0) used.add(i);
-    out.push({
+    const sound = {
       t: i >= 0 ? segs[i] : heard,
       kind: p.kind === 'backchannel' ? 'mm-hmm' : (p.kind ?? 'sound'),
       label: typeof p.label === 'string' && p.label ? p.label : null,
       source: p.type,
-    });
+    };
+    (i >= 0 || !recorded ? out : cut).push(sound);
   }
   segs.forEach((s, j) => {
     if (!used.has(j)) out.push({ t: s, kind: 'sound', label: null, source: 'track' });
   });
-  return out.sort((a, b) => a.t - b.t);
+  return { heard: out.sort((a, b) => a.t - b.t), cut };
 }
+
+/** The sounds the caller heard, in order: [{ t, kind, label, source }]. */
+export const soundsOf = (run) => matchSounds(run).heard;
+
+/** Signalled sounds with no side-track audio in a run that recorded the side tracks: cut before heard. */
+export const cutSoundsOf = (run) => matchSounds(run).cut;
 
 /** The caller's speech intervals: mic phrases when readable ({ precise: true }), else the scripted turns. */
 export function callerSpeechOf(run, readWav = readWavPcm) {
@@ -114,7 +127,7 @@ export function repeatsOf(placed) {
 }
 
 /** One run's sound counts for score.mjs. */
-export function soundMetrics(placed) {
+export function soundMetrics(placed, { cut = 0 } = {}) {
   const byKind = {};
   for (const s of placed) byKind[s.kind] = (byKind[s.kind] ?? 0) + 1;
   const reactions = Object.fromEntries(PLACES.map((p) => [p, 0]));
@@ -132,6 +145,8 @@ export function soundMetrics(placed) {
     // Null without labels (sound_played before 2026-10-24, or backchannel_played only): unmeasured, not 0.
     repeats: placed.some((s) => s.label) ? repeatsOf(placed).length : null,
     repeatedLabels: [...new Set(repeatsOf(placed).map((s) => s.label))],
+    // Signalled but never heard (cutSoundsOf): not placed, not in the transcript.
+    cutBeforeHeard: cut,
   };
 }
 
@@ -248,5 +263,6 @@ export function poolSoundMetrics(list) {
     overCaller: list.every((m) => m.overCaller !== null) ? sum('overCaller') : null,
     repeats: list.some((m) => m.repeats !== null) ? sum('repeats') : null,
     repeatedLabels: [...new Set(list.flatMap((m) => m.repeatedLabels))],
+    cutBeforeHeard: sum('cutBeforeHeard'),
   };
 }

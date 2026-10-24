@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { turnsOf } from '../humanness.mjs';
 import { promptFor, transcriptOf } from '../judge.mjs';
 import { metric } from '../nightly/scorecard.mjs';
-import { placeSounds, poolSoundMetrics, soundMetrics, soundsOf } from '../sounds.mjs';
+import { cutSoundsOf, placeSounds, poolSoundMetrics, soundMetrics, soundsOf } from '../sounds.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const real = () =>
@@ -24,8 +24,12 @@ function v2(extra = []) {
     t: d.t,
     payload: { ...d.payload, type: 'sound_played', kind: 'mm-hmm', label: labels[i] },
   }));
-  for (const [t, kind, label] of extra)
+  // Each added sound is heard: its audio on the reactions track.
+  const side = run.tracks.find((t) => /background_reactions/.test(t.name));
+  for (const [t, kind, label] of extra) {
     run.data.push({ t, payload: { type: 'sound_played', kind, wireDelayMs: 0, label } });
+    side.voice.push([t, t + 400]);
+  }
   return run;
 }
 
@@ -72,6 +76,57 @@ describe('soundsOf and placement on the real run (backchannel_played, no mic)', 
       overCaller: null, // the scripted turns can't tell a phrase pause from their words
       repeats: null, // no labels: unmeasured, not 0
     });
+  });
+});
+
+describe('signalled sounds the caller never heard', () => {
+  // long-day-fl04: backchannel_played at 26265, every side track silent 26.0-27.5 s.
+  const cutRun = () =>
+    JSON.parse(readFileSync(join(HERE, 'fixtures', 'sounds-long-day-cut.json'), 'utf8'));
+
+  it('drops a message with no side-track audio when the side tracks were recorded', () => {
+    const run = cutRun();
+    expect(cutSoundsOf(run).map((s) => [s.t, s.kind])).toEqual([[26265, 'mm-hmm']]);
+    expect(soundsOf(run).map((s) => s.t)).toEqual([9983, 11393, 44033, 45303, 64103]);
+    const manager = turnsOf(run, { sounds: true }).find((t) => /My manager/.test(t.text));
+    expect(manager.text).not.toContain('[');
+    const m = soundMetrics(placeSounds(run), { cut: cutSoundsOf(run).length });
+    expect(m).toMatchObject({ total: 5, cutBeforeHeard: 1, intoSilence: 0 });
+    expect(m.reactions['mid-utterance']).toBe(2);
+  });
+
+  it('keeps the message time only for a run with no side track recorded', () => {
+    const run = cutRun();
+    run.tracks = run.tracks.filter((t) => !/background/.test(t.name));
+    expect(cutSoundsOf(run)).toEqual([]);
+    expect(soundsOf(run).map((s) => s.t)).toEqual([9918, 26265, 43972, 63870]);
+  });
+});
+
+describe('one clip, two messages', () => {
+  /** Each backchannel_played also sent as sound_played (both CLIENT_SIGNALS_V2 and AVATAR_LISTEN_SIGNALS on). */
+  const both = (run) => {
+    const twins = run.data.map((d) => ({
+      t: d.t,
+      payload: { ...d.payload, type: 'sound_played', kind: 'mm-hmm', label: 'Mm-hmm.' },
+    }));
+    return { ...run, data: [...run.data, ...twins] };
+  };
+
+  it('counts once with the side tracks recorded', () => {
+    const run = both(real());
+    expect(soundsOf(run).filter((s) => s.source !== 'track')).toHaveLength(2);
+    expect(cutSoundsOf(run)).toEqual([]);
+    expect(soundMetrics(placeSounds(run)).total).toBe(3);
+  });
+
+  it('counts once with no side track to match against', () => {
+    const run = both(real());
+    run.tracks = run.tracks.filter((t) => !/background/.test(t.name));
+    expect(soundsOf(run).map((s) => [s.t, s.source])).toEqual([
+      [25606, 'sound_played'],
+      [44165, 'sound_played'],
+    ]);
   });
 });
 

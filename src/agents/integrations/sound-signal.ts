@@ -32,14 +32,14 @@ export type SoundKind = 'laugh' | 'mm-hmm' | 'hum' | 'opener' | 'breath' | 'sigh
 /** Report that a clip of `kind` started; `wireDelayMs` is read at that moment. */
 export type SoundPlayed = (kind: SoundKind, wireDelayMs: number, label?: string) => void;
 
-/** A clip's text as a label: TTS tags dropped, "[laughter]" read as "laughter", at most 40 chars. */
+/** A clip's text as a label: TTS tags dropped, "[laughter]" read as "laughter", at most 64 chars (a recording's file name fits whole). */
 export function soundLabel(text: string): string {
   return text
     .replace(/<[^>]*>/g, '')
     .replace(/\[([^\]]*)\]/g, '$1')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 40);
+    .slice(0, 64);
 }
 
 export function clientSignalsV2Enabled(

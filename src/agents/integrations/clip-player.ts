@@ -346,8 +346,9 @@ function startPresenceSounds(
     if (ok) {
       endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
       log.info({ kind }, `PRESENCE_SOUND ${kind}`);
-      // A whistle reads as a hum (sound-signal.ts); the label names it, by its recording when it has one.
-      onSound(kind === 'snore' ? 'breath' : 'hum', presenceClipName(pcm) ?? kind);
+      // A whistle reads as a hum (sound-signal.ts); the label names it, and its recording when it has one.
+      const file = presenceClipName(pcm);
+      onSound(kind === 'snore' ? 'breath' : 'hum', file ? `recorded-${kind}:${file}` : kind);
       const secs = Math.round(quietMs / 1000);
       const voice = mood() ? `, their voice sounding ${mood()}` : '';
       recordQuirk(sessionIdOf(session), {
