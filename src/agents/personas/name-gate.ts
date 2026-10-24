@@ -33,6 +33,15 @@
  * " Sam, ..." -> "Hey, ...". A sentence-final name after a comma that already
  * went out leaves the comma: "Did I miss something,?" (#1413 latency).
  *
+ * NAME_FALLING_SPLIT: ", Sam, and ..." (and have, catch, let, ...) is found
+ * too (name-vocatives.ts), so a kept name ends its sentence ("Take care, Sam.
+ * And let me know.") and a dropped one goes. A hello word or a comma waits
+ * when the name after it would be dropped, so it goes with the name: streamed
+ * mid-call, "Hey Sam, morning." said "Hey, morning." and now says "Morning.",
+ * and "That's rough, Sam." said "That's rough,." (the TTS piece "That's
+ * rough," ended on a comma) and now says "That's rough.". The TTS gateway
+ * holds an opening hello for name-intonation.ts anyway.
+ *
  * NAME_GATE=off turns it off.
  *
  * @module agents/personas/name-gate
@@ -47,6 +56,8 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { applyVocatives, findVocatives, LETTER, type Vocative } from './name-vocatives.js';
 
 export { applyVocatives, findVocatives, type Vocative } from './name-vocatives.js';
+// The TTS gateway needs the same first name (speech/tts-gateway/name-intonation.ts).
+export { firstNameOf } from '../../utils/caller-name.js';
 
 const log = createLogger({ module: 'NameGate' });
 
@@ -108,18 +119,6 @@ function contentOf(chunk: Chunk): string | undefined {
   return undefined; // tool calls, usage, flush sentinels: not reply text
 }
 
-/** The caller's first name as said ("Seth" from "seth ford"); null if there isn't a usable one. */
-export function firstNameOf(userName: unknown): string | null {
-  if (typeof userName !== 'string') return null;
-  const first = userName.trim().split(/\s+/)[0] ?? '';
-  if (first.length < 2 || !/^\p{L}[\p{L}'’-]*$/u.test(first)) return null;
-  // "O'Neil", "McKenzie" as written; "SETH" and "seth" become "Seth".
-  if (first !== first.toLowerCase() && first !== first.toUpperCase()) return first;
-  return first
-    .toLowerCase()
-    .replace(/(^|['’-])(\p{L})/gu, (_, p: string, c: string) => p + c.toUpperCase());
-}
-
 const messagesOf = (items: readonly HistoryItem[]): HistoryItem[] =>
   items.filter(
     (i) =>
@@ -167,6 +166,7 @@ export function withNameGate(
   if (ASKS_OWN_NAME.test(caller) || GIVES_NAME.test(caller)) return input;
   const allowed = mayUseName(history, name);
   const falling = flagOn('NAME_FALLING_INTONATION', env);
+  const split = flagOn('NAME_FALLING_SPLIT', env);
   const now = opts.now ?? Date.now;
   let raw = '';
   let sent = '';
@@ -196,10 +196,12 @@ export function withNameGate(
     const letters = m[1].toLowerCase();
     if (letters && !GREETING_WORDS.some((g) => g.startsWith(letters))) return false;
     if (letters && name.toLowerCase().startsWith(letters)) return false;
-    if (/^\s*(?:hey|hi|hiya|hello|oh)\b/i.test(raw.slice(from).replace(/^[\s,—–;:]*/, '')))
-      return true;
-    if (letters) return true; // "He", "Hel": a hello word on its way
+    const hello = /^\s*(hey|hi|hiya|hello|oh)\b/i.exec(raw.slice(from).replace(/^[\s,—–;:]*/, ''));
+    // NAME_FALLING_SPLIT: a hello waits for a name that goes, and goes with it ("Oh, that's" keeps Oh).
+    const waits = split && (keptOne || !allowed);
+    if (hello || letters) return !waits || 'oh'.startsWith((hello?.[1] ?? letters).toLowerCase());
     if (allowed && !decidedAny) return true;
+    if (waits) return false;
     // The first clause break continuation-tts could cut on: 12+ spoken characters
     // through it, and no earlier break that long.
     const spokenTo = (end: number): number =>
@@ -224,8 +226,10 @@ export function withNameGate(
     const spaceSent = start === v.nameAt && spaces > 0;
     const after = (i: number): number => i + (raw.slice(i).match(/^\s*/)?.[0].length ?? 0);
     const plain = { ...v, start, with: '', capNext: false, fallAt: undefined };
-    // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out).
-    if (v.with === ',') return { ...plain, end: spaceSent ? after(v.end) : v.end };
+    // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out). NAME_FALLING_SPLIT:
+    // kept, it still ends its sentence ("Yes, Sam. I'm") though the comma before it went out.
+    const fallAt = split ? v.fallAt : undefined;
+    if (v.with === ',') return { ...plain, fallAt, end: spaceSent ? after(v.end) : v.end };
     // "Hey"/"Oh" went out: "Hey, how" (space still to come) or "Hey how" (it went too).
     if (v.capNext || /\b(?:hey|hi|hiya|hello|oh)\s+$/i.test(raw.slice(0, v.nameAt))) {
       const tail = raw.slice(v.nameEnd).match(/^(?:\s*[,—–;:])?\s*/)?.[0].length ?? 0;
@@ -245,7 +249,7 @@ export function withNameGate(
   };
 
   const render = (final: boolean): string => {
-    const result = findVocatives(raw, name, final);
+    const result = findVocatives(raw, name, final, split);
     const found: Vocative[] = [];
     for (const v of result.found) {
       const d = decided.get(v.nameAt);
