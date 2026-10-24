@@ -108,6 +108,13 @@ export const COHORT_FLAGS = [
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
   'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
+  // Latency A/Bs, one arm per eval caller. Each reply's guard (action-claim-guard.ts:242)
+  // and each preemptive turn's hold (preempt-stable-context.ts) read process.env.
+  'ACTION_CLAIM_STREAM',
+  'PREEMPT_STABLE_CONTEXT',
+  // The warm after the greeting (after-greeting.ts) and at each handoff (handoff-cache-warm.ts).
+  'CACHE_WARM_PRIMARY',
+  'HANDOFF_CACHE_WARM',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
@@ -139,6 +146,7 @@ const ON_OFF: readonly string[] = ['on', 'off'];
 const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
   TURN_LENGTH: ['learned', 'off'],
   TURN_TEXTURE: ['learned', 'off'],
+  PREEMPT_STABLE_CONTEXT: ['on', 'defer', 'off'],
 };
 
 /** Values a cohort or override may give this flag: on/off, or the flag's own modes. */

@@ -49,7 +49,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:FERNI_VOICE_ID|2e7f8a26-1627-4d66-88dc-293c297c1619}",
+    "voice_id": "${env:FERNI_VOICE_ID|fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc}",
     "model": "sonic-3.6-2026-08-27",
     "default_emotion": "affectionate",
     "emotion_range": [
