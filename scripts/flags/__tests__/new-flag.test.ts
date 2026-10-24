@@ -2,9 +2,18 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { flagFileSource, parseNewFlag, writeNewFlag } from '../new-flag.js';
+import { parseFlagFile } from '../legacy-parse.js';
+import { DEFAULT_EXPERIMENT_DAYS, ISSUE_TBD } from '../../../src/config/flag-lifecycle.js';
+import {
+  EXPERIMENT_DAYS,
+  flagFileSource,
+  ISSUE_PLACEHOLDER,
+  parseNewFlag,
+  writeNewFlag,
+} from '../new-flag.js';
 
 const args = ['ZZ_PROBE', '--default', 'off', '--owner', 'platform', '--kind', 'experiment'];
+const TODAY = new Date('2026-10-23T12:00:00Z');
 
 function fakeRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'new-flag-'));
@@ -18,12 +27,14 @@ function fakeRoot(): string {
 
 describe('flags:new', () => {
   it('parses a flag and rejects bad input', () => {
-    expect(parseNewFlag([...args, '--note', 'on: probe'])).toEqual({
+    expect(parseNewFlag([...args, '--note', 'on: probe'], TODAY)).toEqual({
       name: 'ZZ_PROBE',
       default: 'off',
       owner: 'platform',
       kind: 'experiment',
       note: 'on: probe',
+      expires: '2027-01-21',
+      issue: 'TBD',
     });
     expect(() => parseNewFlag(['zz_probe', ...args.slice(1)])).toThrow(/UPPER_SNAKE_CASE/);
     expect(() =>
@@ -35,15 +46,52 @@ describe('flags:new', () => {
   });
 
   it('writes the one-file-per-flag shape', () => {
-    expect(flagFileSource({ ...parseNewFlag(args), note: 'on: a\n  probe line two ' })).toBe(
+    expect(flagFileSource({ ...parseNewFlag(args, TODAY), note: 'on: a\n  probe line two ' })).toBe(
       "import type { FlagSpec } from '../flag-spec.js';\n\n" +
         '// on: a\n// probe line two\n' +
         'export const ZZ_PROBE = {\n' +
         "  default: 'off',\n" +
         "  owner: 'platform',\n" +
         "  kind: 'experiment',\n" +
+        "  expires: '2027-01-21',\n" +
+        "  issue: 'TBD',\n" +
         '} as const satisfies FlagSpec;\n'
     );
+  });
+
+  it("uses flag-lifecycle.ts's defaults", () => {
+    expect([EXPERIMENT_DAYS, ISSUE_PLACEHOLDER]).toEqual([DEFAULT_EXPERIMENT_DAYS, ISSUE_TBD]);
+  });
+
+  it('gives only experiments an expiry, takes explicit lifecycle values, and parses them back', () => {
+    const config = parseNewFlag(
+      ['ZZ_MODE', '--default', 'stt', '--owner', 'voice', '--kind', 'config'],
+      TODAY
+    );
+    expect(config.expires).toBeUndefined();
+    expect(config.issue).toBeUndefined();
+    const flag = parseNewFlag(
+      [...args, '--expires', '2026-12-01', '--issue', '#2555', '--context', "the caller's call"],
+      TODAY
+    );
+    expect(flag).toMatchObject({
+      expires: '2026-12-01',
+      issue: '#2555',
+      context: "the caller's call",
+    });
+    expect(() => parseNewFlag([...args, '--expires', 'next week'], TODAY)).toThrow(
+      /--expires YYYY-MM-DD/
+    );
+    const text = flagFileSource(flag);
+    expect(text).toContain("  context: 'the caller\\'s call',\n");
+    expect(parseFlagFile('ZZ_PROBE.ts', text).spec).toEqual({
+      default: 'off',
+      owner: 'platform',
+      kind: 'experiment',
+      expires: '2026-12-01',
+      issue: '#2555',
+      context: "the caller's call",
+    });
   });
 
   it('writes src/config/flags/NAME.ts and refuses a name that exists', () => {

@@ -383,6 +383,7 @@
     "rollout:presets": "npx tsx apps/cli/src/commands/deploy/rollout.ts presets",
     "flags:gen": "UPDATE_FLAG_INDEX=1 vitest run --config vitest.config.unit.ts src/config/__tests__/flag-index.test.ts",
     "flags:new": "npx tsx scripts/flags/new-flag.ts",
+    "flags:expiry": "npx tsx scripts/flags/expiry.ts",
     "flags:dump": "npx tsx scripts/flags/dump.ts",
     "flags:move": "npx tsx scripts/flags/move-to-files.ts",
     "flags:migrate": "npx tsx scripts/flags/migrate-branch.ts",

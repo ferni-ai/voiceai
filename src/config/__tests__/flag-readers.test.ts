@@ -39,7 +39,7 @@ const NOT_A_READER = [
   /\.(test|spec|d)\.ts$/,
   /\.generated\.ts$/,
   /^config\/flags\//,
-  /^config\/(flag-manifest|flag-manifest-entries|flag-manifest-blocks|env-classification)\.ts$/,
+  /^config\/(flag-manifest|flag-manifest-entries|flag-manifest-blocks|flag-lifecycle-backfill|env-classification)\.ts$/,
 ];
 
 interface SourceFile {

@@ -6,7 +6,10 @@
  */
 import ts from 'typescript';
 
-export type Spec = Record<'default' | 'owner' | 'kind', string>;
+export type Spec = Record<'default' | 'owner' | 'kind', string> &
+  Partial<Record<(typeof LIFECYCLE)[number], string>>;
+/** Optional lifecycle fields (src/config/flag-lifecycle.ts): free text, carried as-is. */
+const LIFECYCLE = ['expires', 'issue', 'context'] as const;
 
 /** A node's own whole lines (first comment line .. past its newline) and its comments, verbatim. */
 interface Attached {
@@ -82,11 +85,14 @@ function readSpec(text: string, file: string, node: ts.Expression): Spec {
       }
     }
   }
-  const keys = Object.keys(spec).sort().join();
-  if (keys !== 'default,kind,owner' || Object.values(spec).some((v) => !/^[\w.-]+$/.test(v))) {
+  const isLife = (k: string): boolean => (LIFECYCLE as readonly string[]).includes(k);
+  const core = Object.keys(spec).filter((k) => !isLife(k));
+  const plain = core.every((k) => /^[\w.-]+$/.test(spec[k]!));
+  if (core.sort().join() !== 'default,kind,owner' || !plain) {
     fail(file, text, node.pos, `not a { default, owner, kind } of plain strings`);
   }
-  return { default: spec.default, owner: spec.owner, kind: spec.kind };
+  const life = Object.fromEntries(LIFECYCLE.filter((k) => k in spec).map((k) => [k, spec[k]!]));
+  return { default: spec.default!, owner: spec.owner!, kind: spec.kind!, ...life };
 }
 
 /** The object or array literal a declaration holds, under any `as const` / `satisfies`. */

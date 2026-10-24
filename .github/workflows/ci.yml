@@ -1010,6 +1010,11 @@ jobs:
       - name: Quality ratchet
         run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
 
+      # Blocks only a PR that adds or edits an experiment flag without a future expires; expired
+      # and TBD experiments are warning annotations here and a nightly issue (flag-expiry.yml). ~2 s.
+      - name: Flag expiry
+        run: pnpm flags:expiry
+
       # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
       - name: Architecture gate
         run: pnpm quality:arch
