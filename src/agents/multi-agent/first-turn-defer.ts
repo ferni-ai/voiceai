@@ -25,7 +25,8 @@
  * (the default) 600 ms into it; `reply_end` when it ends or is interrupted
  * (the agent leaves 'speaking'), so the build's stalls (531-777 ms on dev,
  * 2026-10-22) land while Ferni listens instead of cutting into its audio. Its
- * note still reaches turn 2: the pusher only adds it while Ferni listens.
+ * note still reaches turn 2 unless a later turn's words come first: the
+ * pusher then carries it into the next push (createTurnContextPusher).
  *
  * Safety work is never deferred. The same build also runs crisis detection
  * and sends its signals (the crisis override note, `crisis_detected` to the
@@ -47,6 +48,7 @@ import { setImmediate } from 'node:timers';
 import { flagOn } from '../../config/env-flag.js';
 import { getProviderIdSync } from '../../config/model-provider-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { type FirstTurnRelease } from './first-turn-release.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import {
   resolveCrisisGuardMode,
@@ -70,18 +72,6 @@ export const SESSION_END_WAIT_MS = 3000;
  * From #1084 (FIRST_TURN_CALM), which this supersedes.
  */
 export const SPEAKING_SETTLE_MS = 600;
-
-/** What lifts the hold once Ferni replies: 600 ms into the reply, or its end. */
-export type FirstTurnRelease = 'settle' | 'reply_end';
-
-/** FIRST_TURN_DEFER_RELEASE: `reply_end`, or `settle` (the default) for anything else. */
-export function firstTurnDeferRelease(
-  env: Record<string, string | undefined> = process.env
-): FirstTurnRelease {
-  return env.FIRST_TURN_DEFER_RELEASE?.trim().toLowerCase() === 'reply_end'
-    ? 'reply_end'
-    : 'settle';
-}
 
 /**
  * Once the turn pipeline has run in a process it is warm: later calls' first

@@ -14,6 +14,7 @@
  *
  * @module agents/multi-agent/pushed-notes
  */
+import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { MAX_PUSHED_CONTEXT_CHARS } from './turn-context-header.js';
 
@@ -24,6 +25,15 @@ export interface TurnNote {
   safety?: boolean;
   text: string;
 }
+
+/** The notes a turn's pass added to its chat context, in order; empty ones dropped. */
+export const turnNotes = (items: readonly object[]): TurnNote[] =>
+  items
+    .map((item) => ({
+      safety: carriesSafety(item as never),
+      text: (item as { textContent?: string }).textContent?.trim() ?? '',
+    }))
+    .filter((note) => note.text !== '');
 
 /** The safety guidance among these notes, whole, in order. */
 export const safetyText = (notes: readonly TurnNote[]): string =>

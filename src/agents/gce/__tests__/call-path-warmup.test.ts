@@ -139,15 +139,21 @@ describe('warmCallPath', () => {
     expect(registry.getVoiceId('jordan-taylor')).toBe(BUNDLE_VOICE);
   });
 
-  it('builds the Vertex client, which the first turn otherwise builds mid-reply', async () => {
+  it('builds the Vertex client only with FIRST_TURN_DEFER_RELEASE=reply_end, as the turn-1 build needs', async () => {
     vi.resetModules();
     const warmVertexClient = vi.fn(async () => true);
     vi.doMock('../../../services/llm-utils.js', () => ({ warmVertexClient }));
     try {
       const { warmCallPath } = await import('../call-path-warmup.js');
+      vi.stubEnv('FIRST_TURN_DEFER_RELEASE', '');
+      await warmCallPath(() => undefined, []);
+      expect(warmVertexClient).not.toHaveBeenCalled(); // flag off: as on main
+
+      vi.stubEnv('FIRST_TURN_DEFER_RELEASE', 'reply_end');
       await warmCallPath(() => undefined, []);
       expect(warmVertexClient).toHaveBeenCalledTimes(1);
     } finally {
+      vi.unstubAllEnvs();
       vi.doUnmock('../../../services/llm-utils.js');
       vi.resetModules();
     }

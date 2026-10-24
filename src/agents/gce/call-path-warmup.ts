@@ -37,6 +37,7 @@ import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { LogFn } from './warmup.js';
+import { replyEndRelease } from '../multi-agent/first-turn-release.js';
 
 /** The modules a call runs through, relative to this file, without extension. */
 export const CALL_PATH = [
@@ -120,11 +121,15 @@ export async function warmCallPath(
     }
     await setImmediate();
   }
-  try {
-    const { warmVertexClient } = await import('../../services/llm-utils.js');
-    if (!(await warmVertexClient())) failed++;
-  } catch {
-    failed++;
+  // The turn-1 build's Vertex client, built mid-reply without this; only when its
+  // build runs after the reply (FIRST_TURN_DEFER_RELEASE=reply_end).
+  if (replyEndRelease()) {
+    try {
+      const { warmVertexClient } = await import('../../services/llm-utils.js');
+      if (!(await warmVertexClient())) failed++;
+    } catch {
+      failed++;
+    }
   }
   try {
     const { isNativeAudioAvailable } =

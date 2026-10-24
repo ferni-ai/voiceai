@@ -34,22 +34,23 @@ import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
+import { firstTurnDeferRelease, replyEndRelease } from './first-turn-release.js';
 import {
   deferFirstTurn,
   firstTurnDeferEnabled,
-  firstTurnDeferRelease,
   hadUserTurn,
   noteUserTurn,
   turnPipelineWarm,
 } from './first-turn-defer.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
-import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
 import {
   pushedNotesText,
   safetyOnlyNote,
   TURN_CONTEXT_SAFETY,
+  turnNotes,
   withHeldSafety,
+  type TurnNote,
 } from './pushed-notes.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
@@ -115,11 +116,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       await startVoicePatterns(deps.services.sessionId, deps.services.userId);
       // Yield between steps: on a cold turn each is a block of its own, and
       // back to back they starved the reply's audio pump (LOOP_STALL).
-      await yieldToLoop();
+      if (replyEndRelease()) await yieldToLoop();
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
-      await yieldToLoop();
+      if (replyEndRelease()) await yieldToLoop();
       const userData = deps.userData as UserData & {
         turnCount?: number;
         userSpeakingStartTime?: number;
@@ -352,6 +353,8 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
 
   let pendingFor = '';
   let pendingSafety: string[] = []; // its crisis or safety notes (safety-note.ts), whole
+  let carried: TurnNote[] = []; // a turn's notes, once a later turn's words came in: the next push
+  let turnNo = 0;
 
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
@@ -396,22 +399,26 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     /** A final transcript segment; segments of one turn accumulate. */
     async onFinalTranscript(transcript: string): Promise<void> {
       if (!transcript.trim()) return;
+      if (!turnText) turnNo++; // the last turn ended: its reply cleared turnText
       turnText = `${turnText} ${transcript.trim()}`.trim();
       const forText = turnText;
       const mine = ++run;
+      const turn = turnNo;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
       await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
-      if (mine !== run) return; // a later segment of this turn superseded it
-      const notes = scratch.items
-        .map((item) => ({
-          safety: carriesSafety(item as never),
-          text: (item as { textContent?: string }).textContent?.trim() ?? '',
-        }))
-        .filter((note) => note.text !== '');
-      if (notes.length === 0) return;
+      const notes = turnNotes(scratch.items);
+      if (mine !== run) {
+        // A later segment of this turn builds the whole turn again: this note is stale.
+        if (turn === turnNo) log.info({ notes: notes.length }, 'Turn context superseded, dropped');
+        else carried.push(...notes);
+        return;
+      }
+      const fresh = [...carried.splice(0), ...notes];
+      if (fresh.length === 0) return;
       // Safety guidance still waiting goes ahead of a later note, never replaced by it (#2642).
-      const all = withHeldSafety(pendingSafety, notes);
+      const all = withHeldSafety(pendingSafety, fresh);
+      if (pending !== null) log.info('Unpushed turn context replaced by a newer note');
       pending = pushedNotesText(all); // safety guidance first and never cut (#2618)
       pendingSafety = all.filter((note) => note.safety).map((note) => note.text);
       pendingFor = forText;

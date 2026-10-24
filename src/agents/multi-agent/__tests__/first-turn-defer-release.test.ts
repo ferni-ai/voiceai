@@ -6,12 +6,8 @@
 import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  deferFirstTurn,
-  firstTurnDeferRelease,
-  resetTurnPipelineWarm,
-  SPEAKING_SETTLE_MS,
-} from '../first-turn-defer.js';
+import { deferFirstTurn, resetTurnPipelineWarm, SPEAKING_SETTLE_MS } from '../first-turn-defer.js';
+import { firstTurnDeferRelease } from '../first-turn-release.js';
 import { attachTurnContextPusher, type UserTurnHook } from '../turn-intelligence.js';
 
 const ON = { FIRST_TURN_DEFER_BACKGROUND: 'on' };
@@ -71,17 +67,47 @@ describe('FIRST_TURN_DEFER_RELEASE=reply_end', () => {
     await detach();
   });
 
-  it('an interrupted reply releases on the interruption', async () => {
+  it('an interrupted reply releases on the interruption, well before the 6 s bound', async () => {
     const hook = vi.fn<UserTurnHook>(async () => {});
     const deferral = deferFirstTurn(hook, { releaseOn: 'reply_end' });
     deferral.onFinalTranscript('so anyway');
-    const done = deferral.hook(llm.ChatContext.empty(), message('so anyway'));
+    void deferral.hook(llm.ChatContext.empty(), message('so anyway'));
     deferral.onAgentState('speaking');
     await pause(10);
     expect(hook).not.toHaveBeenCalled();
     deferral.onAgentState('listening'); // the caller barged in: the SDK's interruption
-    await done;
-    expect(hook).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1), { timeout: 500 });
+    await deferral.dispose();
+  });
+
+  it('a released turn-1 note survives turn 2 starting while its build still runs', async () => {
+    // The verifier's timeline: an 800 ms build, a 1.5 s reply, turn 2's words 300 ms after it ends.
+    const session = new EventEmitter();
+    const hook = vi.fn<UserTurnHook>(async (ctx, msg) => {
+      await pause(800);
+      ctx.addMessage({ role: 'user', content: `NOTE for ${msg.textContent}` });
+    });
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: REPLY_END });
+    finalTranscript(session, 'turn one words');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1500);
+    agentState(session, 'listening'); // releases turn 1's build, which runs to 800 ms
+    await pause(300);
+    finalTranscript(session, 'yeah'); // turn 2 starts before turn 1's note is ready
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1200);
+    agentState(session, 'listening'); // turn 2's note is pushed here
+    await vi.waitFor(
+      () => {
+        const texts = agent.chatCtx.items.map((item) => (item as { textContent?: string }).textContent ?? '');
+        expect(texts.join('\n')).toContain('NOTE for turn one words');
+      },
+      { timeout: 1000 }
+    );
+    await detach();
   });
 
   it('is not released by the end of the greeting, spoken before turn 1', async () => {
