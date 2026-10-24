@@ -11,7 +11,7 @@
  */
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { memoryHeld } from '../../utils/minor-care.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { SoundKind as Heard } from '../integrations/sound-signal.js';
 import { VOICED_TAKES } from './reaction-clips.js';
@@ -153,13 +153,14 @@ export class CallTimeline {
     if (total === this.written) return; // nothing new (the end adds call_end)
     const conv = conversationId();
     // As turns are stored: a member with a conversation, and never while memory is held.
-    if (!isMemberIdentity(userId) || !conv || memoryHeld(sessionId)) {
+    if (!isMemberIdentity(userId) || !conv || memoryHeld(sessionId) || userHeld(userId)) {
       return log.info({ sessionId, events: total }, 'CALL_TIMELINE skipped');
     }
     const chunks = Math.ceil(total / CHUNK_EVENTS);
     for (let c = Math.floor(this.written / CHUNK_EVENTS); c < chunks; c++) {
       const events = this.events.slice(c * CHUNK_EVENTS, (c + 1) * CHUNK_EVENTS);
-      await write(userId, conv, `chunk-${String(c).padStart(3, '0')}`, { v: 1, chunk: c, events });
+      const id = timelineDocId(sessionId, `chunk-${String(c).padStart(3, '0')}`);
+      await write(userId, conv, id, { v: 1, chunk: c, events });
     }
     const byKind: Record<string, number> = {};
     for (const e of this.events) byKind[e.kind] = (byKind[e.kind] ?? 0) + 1;
@@ -167,7 +168,7 @@ export class CallTimeline {
     const ids = { v: 1, sessionId, jobId, roomName, conversationId: conv, buildSha, chunks };
     const end = { endedAtMs: this.ended?.atMs ?? null, endReason: this.ended?.reason ?? null };
     const counts = { events: total, dropped: this.dropped, byKind };
-    await write(userId, conv, 'meta', {
+    await write(userId, conv, timelineDocId(sessionId, 'meta'), {
       ...ids,
       startedAtMs: this.startedAtMs,
       ...end,
@@ -177,6 +178,14 @@ export class CallTimeline {
     this.written = total;
     log.info({ sessionId, events: total, chunks }, 'CALL_TIMELINE written');
   }
+}
+
+/**
+ * A timeline doc's id: the session first, so a handoff that starts a new session in the
+ * same conversation writes its own chunks instead of overwriting the first persona's.
+ */
+export function timelineDocId(sessionId: string, name: string): string {
+  return `${sessionId.replace(/[^\w-]/g, '_')}.${name}`;
 }
 
 // The call's recorder by session object (clip player, barge-in) or id (TTS, resume logs).

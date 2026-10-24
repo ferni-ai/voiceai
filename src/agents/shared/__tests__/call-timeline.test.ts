@@ -62,6 +62,8 @@ const minorCare = await import('../../../utils/minor-care.js');
 const firestoreUtils = await import('../../../utils/firestore-utils.js');
 
 const MEMBER = 'uid_timeline_member_01';
+/** A timeline doc id without its session prefix (timelineDocId). */
+const docName = (id: string): string => id.slice(id.indexOf('.') + 1);
 const GENERATED = 'Oh, my mistake, I mixed Sean up with someone else from last week.';
 const HEARD = 'Oh, my mistake,';
 
@@ -152,7 +154,7 @@ describe('CALL_TIMELINE', () => {
     vi.stubEnv('CALL_TIMELINE', 'on');
     const { writes } = await scriptedCall('tl-on', MEMBER);
 
-    expect(writes.map((w) => w.docId)).toEqual(['chunk-000', 'meta']);
+    expect(writes.map((w) => docName(w.docId))).toEqual(['chunk-000', 'meta']);
     expect(writes.every((w) => w.uid === MEMBER && w.conv === 'conv_1')).toBe(true);
     const events = writes[0]!.data.events as Array<Record<string, unknown>>;
     expect(events.map((e) => e.kind)).toEqual([
@@ -252,6 +254,14 @@ describe('CALL_TIMELINE', () => {
     expect(writes).toEqual([]);
   });
 
+  it('on: two sessions in one conversation (a handoff) never overwrite each other', async () => {
+    vi.stubEnv('CALL_TIMELINE', 'on');
+    const first = (await scriptedCall('tl-first', MEMBER)).writes.map((w) => w.docId);
+    const second = (await scriptedCall('tl-second', MEMBER)).writes.map((w) => w.docId);
+    expect(first.length).toBeGreaterThan(0);
+    expect(second.filter((id) => first.includes(id))).toEqual([]);
+  });
+
   it('on: a non-member caller (anonymous) writes nothing', async () => {
     vi.stubEnv('CALL_TIMELINE', 'on');
     expect((await scriptedCall('tl-anon', 'anon:abc123')).writes).toEqual([]);
@@ -275,12 +285,12 @@ describe('CALL_TIMELINE', () => {
       for (let i = 0; i < CHUNK_EVENTS + 5; i++)
         session.emit('user_state_changed', { newState: i % 2 ? 'speaking' : 'listening' });
       await vi.advanceTimersByTimeAsync(60_000);
-      expect(writes.map((w) => w.docId)).toEqual(['chunk-000', 'chunk-001', 'meta']);
+      expect(writes.map((w) => docName(w.docId))).toEqual(['chunk-000', 'chunk-001', 'meta']);
       await vi.advanceTimersByTimeAsync(60_000);
       expect(writes).toHaveLength(3); // nothing new
       session.emit('user_input_transcribed', { transcript: 'still here', isFinal: true });
       await vi.advanceTimersByTimeAsync(60_000);
-      expect(writes.slice(3).map((w) => w.docId)).toEqual(['chunk-001', 'meta']);
+      expect(writes.slice(3).map((w) => docName(w.docId))).toEqual(['chunk-001', 'meta']);
       detach();
     } finally {
       vi.useRealTimers();
@@ -363,7 +373,7 @@ describe('CALL_TIMELINE', () => {
     session.emit('close', { reason: 'user_initiated' });
     await timelineFor(session)!.flush();
     const base = `/bogle_users/${MEMBER}/conversations/conv_ud/timeline`;
-    expect(paths).toEqual([`${base}/chunk-000`, `${base}/meta`]);
+    expect(paths).toEqual([`${base}/tl-live-on.chunk-000`, `${base}/tl-live-on.meta`]);
     const events = writes[0]!.events as Array<Record<string, unknown>>;
     expect(events.find((e) => e.kind === 'tool_call')).toMatchObject({
       speaker: 'maya-santos',
