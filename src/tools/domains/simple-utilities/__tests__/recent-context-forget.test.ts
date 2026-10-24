@@ -199,8 +199,8 @@ describe('recentContext and forgotten topics', () => {
     expect(said).not.toMatch(/divorce|garden/);
   });
 
-  it('the real read is bounded: a hung read uses the last topics read, or fails closed', async () => {
-    // No test seam: the tool reads through forgottenWithin (300 ms, then the last topics read).
+  it('the real read is bounded: a hung read says nothing from memory, last-known or not', async () => {
+    // No test seam: the tool reads through forgottenWithin (300 ms, else fail closed).
     history.get = async () => SESSIONS;
     const userId = 'u-2719-bounded';
     vi.useFakeTimers({ toFake: ['Date'], now: 5_000_000 });
@@ -211,9 +211,10 @@ describe('recentContext and forgotten topics', () => {
 
     vi.setSystemTime(5_000_000 + 60_000); // the cached read is stale
     prodRead.fn = () => new Promise<never>(() => {}); // Firestore never answers
+    // A topic could have been forgotten since in another process: the old list isn't trusted.
     const late = await recentContext(userId).execute({ timeframe: 'all-time' });
-    expect(late).toContain('garden');
-    expect(late).not.toContain('divorce papers');
+    expect(late).toContain("I can't pull up our past conversations right now");
+    expect(late).not.toMatch(/divorce|garden/);
 
     const none = await recentContext('u-2719-bounded-new').execute({ timeframe: 'all-time' });
     expect(none).toContain("I can't pull up our past conversations right now");

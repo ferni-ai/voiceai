@@ -26,7 +26,7 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { foldedWords } from './forget-tokens.js';
 import { scrubProfile } from './forget-profile.js';
-import { readTopics, topicsNow, topicsWithin } from './forget-topics-source.js';
+import { readTopics, topicsFreshWithin, topicsNow, topicsWithin } from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';
 
 export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
@@ -103,14 +103,11 @@ export async function forgottenCheck(
 
 /**
  * The check for a reader that fails closed without the flag (recentContext,
- * #2719): the same topics, waited for at most READ_TIMEOUT_MS (then the last
- * known), or null when there is no source at all.
+ * #2719): the shared read, waited for at most READ_TIMEOUT_MS, or null when it
+ * is late or failed. No last-known fallback until #2623 bounds its age.
  */
-export async function forgottenWithin(
-  userId: string,
-  reader: string
-): Promise<ForgottenCheck | null> {
-  const stored = await topicsWithin(userId, reader);
+export async function forgottenWithin(userId: string): Promise<ForgottenCheck | null> {
+  const stored = await topicsFreshWithin(userId);
   return stored === null ? null : checkFor(userId, stored);
 }
 

@@ -134,25 +134,24 @@ describe('aboutForgotten: names match whole words', () => {
 });
 
 describe('forgottenWithin: bounded, and unflagged', () => {
-  it('works with the flag off, and a hung read falls back to the last topics read', async () => {
+  it('works with the flag off; a hung read fails closed even with a last-known list', async () => {
+    // #2727: the last-known list has no age bound yet (#2623), so a late read must not use it.
     vi.stubEnv('FORGET_EVERY_READER', 'off');
     vi.useFakeTimers({ now: 3_000_000 });
     read.fn.mockResolvedValueOnce(['Biscuit']);
-    expect((await forgottenWithin(U, 'test'))?.('Biscuit chewed it')).toBe(true);
+    expect((await forgottenWithin(U))?.('Biscuit chewed it')).toBe(true);
     vi.setSystemTime(3_000_000 + 60_000); // stale
     read.fn.mockImplementationOnce(() => new Promise<never>(() => {})); // never answers
-    const got = forgottenWithin(U, 'test');
+    const got = forgottenWithin(U);
     await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
-    const check = (await got)!;
-    expect(check('Biscuit chewed it')).toBe(true);
-    expect(check('training for Boston')).toBe(false);
-    expect(forgetReadStats()).toMatchObject({ timeouts: 1, fallbacks: 1 });
+    expect(await got).toBeNull();
+    expect(forgetReadStats()).toMatchObject({ timeouts: 1, fallbacks: 0, failClosed: 1 });
   });
 
   it('a hung read with nothing known fails closed (null)', async () => {
     vi.useFakeTimers();
     read.fn.mockImplementation(() => new Promise<never>(() => {}));
-    const got = forgottenWithin(U, 'test');
+    const got = forgottenWithin(U);
     await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
     expect(await got).toBeNull();
     expect(forgetReadStats()).toMatchObject({ timeouts: 1, failClosed: 1 });
