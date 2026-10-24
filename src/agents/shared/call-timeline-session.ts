@@ -93,7 +93,7 @@ export function attachCallTimeline(
   };
   for (const [event, handler] of Object.entries(handlers)) session.on(event, handler);
   const offHold = onPauseHoldReleased((sessionId, heldMs) => {
-    const endMs = (opts.now ?? Date.now)() - tl.startedAtMs;
+    const endMs = tl.msNow();
     const hold = { kind: 'pause_hold', speaker: 'system', f: { heldMs } } as const;
     if (sessionId === opts.sessionId) tl.add({ ...hold, startMs: endMs - heldMs, endMs });
   });

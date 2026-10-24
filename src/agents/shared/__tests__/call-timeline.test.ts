@@ -50,7 +50,10 @@ vi.mock('../../../speech/tts-gateway/index.js', async (importOriginal) => ({
 }));
 
 const { attachCallTimeline } = await import('../call-timeline-session.js');
-const { timelineFor, writeTimelineDoc, CHUNK_EVENTS } = await import('../call-timeline.js');
+const { timelineFor, writeTimelineDoc, CHUNK_EVENTS, soundKindOf } =
+  await import('../call-timeline.js');
+const { voicedHumFor } = await import('../../integrations/voiced-presence.js');
+const { VOICED_TAKES } = await import('../reaction-clips.js');
 const { noteBargeIn } = await import('../turn-receipt-session.js');
 const { startBackchannelClips } = await import('../../integrations/clip-player.js');
 const { wrappedTtsNode } = await import('../tts-wrapper.js');
@@ -164,7 +167,13 @@ describe('CALL_TIMELINE', () => {
     const tMs = events.map((e) => e.tMs as number);
     expect(tMs).toEqual([...tMs].sort((a, b) => a - b));
     expect(events[0]).toMatchObject({ speaker: 'caller', text: 'Who is Sean?' });
-    expect(events[1]).toMatchObject({ speaker: 'ferni', text: 'Mhm' });
+    // the clip text the gate got (sound_played's label), what it is, and when it started
+    expect(events[1]).toMatchObject({
+      speaker: 'ferni',
+      text: 'Mhm',
+      startMs: events[1]!.tMs,
+      f: { sound: 'mm-hmm', source: 'backchannel' },
+    });
     expect(events[2]).toMatchObject({ speaker: 'caller', f: { by: 'adaptive' } });
     expect(events[3]).toMatchObject({
       speaker: 'ferni',
@@ -173,7 +182,11 @@ describe('CALL_TIMELINE', () => {
       cut: true,
     });
     expect(events[4]).toMatchObject({ f: { by: 'pause_ended' } });
-    expect(events[5]).toMatchObject({ text: 'Mm' });
+    expect(events[5]).toMatchObject({
+      text: 'Mm',
+      startMs: events[5]!.tMs,
+      f: { sound: 'opener', source: 'opener' },
+    });
     expect(events[6]).toMatchObject({ speaker: 'system', text: 'participant_disconnected' });
 
     const meta = writes[1]!.data;
@@ -271,6 +284,47 @@ describe('CALL_TIMELINE', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('names each sound as a judge hears it: by its take first, then by the gate', () => {
+    const t = VOICED_TAKES;
+    expect(soundKindOf('presence', t['morning-yawn'][0])).toBe('breath');
+    expect(soundKindOf('presence', t['content-sigh'][0])).toBe('sigh');
+    expect(soundKindOf('presence', t['thinking-hum'][0])).toBe('hum');
+    expect(soundKindOf('backchannel', t.mmhm[1])).toBe('mm-hmm');
+    expect(soundKindOf('backchannel', t.surprised[0])).toBe('laugh');
+    expect(soundKindOf('laugh', '[laughter]')).toBe('laugh');
+    expect(soundKindOf('presence', 'recorded-whistle:sunday')).toBe('whistle');
+    expect(soundKindOf('presence', 'whistle')).toBe('whistle');
+    expect(soundKindOf('presence', 'snore')).toBe('breath');
+    expect(soundKindOf('presence', 'hum')).toBe('hum');
+    expect(soundKindOf('tool_hum', 'hum')).toBe('hum');
+    expect(soundKindOf('opener', 'Yeah')).toBe('opener');
+    expect(soundKindOf('slow_turn', 'Hmm')).toBe('opener');
+  });
+
+  it('on: a voiced take (the tool hum) is recorded with its take and category', async () => {
+    vi.stubEnv('CALL_TIMELINE', 'on');
+    vi.stubEnv('VOICED_PRESENCE', 'on');
+    const session = fakeSession('tl-voiced');
+    const writes: Write[] = [];
+    attachCallTimeline(session as never, {
+      sessionId: 'tl-voiced',
+      userId: MEMBER,
+      conversationId: () => 'conv_1',
+      persona: () => 'ferni',
+      write: async (uid, conv, docId, data) =>
+        void writes.push({ uid, conv, docId, data: asRecord(data) }),
+    });
+    const clips = (await startBackchannelClips({} as never, session as never, () => 'ferni', pcm))!;
+    const hum = voicedHumFor(session)!;
+    const take = hum.next()!;
+    expect(hum.play(take, 0.35)).toBe(true);
+    const ev = timelineFor(session)!.events.at(-1)!;
+    expect(ev).toMatchObject({ kind: 'sound', startMs: ev.tMs });
+    expect(ev.f).toEqual({ sound: 'hum', source: 'tool_hum', take: 'thinking-hum' });
+    expect(VOICED_TAKES['thinking-hum']).toContain(ev.text);
+    await clips.close();
   });
 
   it('writes under bogle_users/{uid}/conversations/{conv}/timeline', async () => {

@@ -13,6 +13,8 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { memoryHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import type { SoundKind as Heard } from '../integrations/sound-signal.js';
+import { VOICED_TAKES } from './reaction-clips.js';
 
 const log = createLogger({ module: 'CallTimeline' });
 
@@ -80,6 +82,11 @@ export class CallTimeline {
   constructor(readonly opts: TimelineOptions) {
     this.now = opts.now ?? Date.now;
     this.startedAtMs = this.now();
+  }
+
+  /** ms since the recorder started. */
+  msNow(): number {
+    return Math.round(this.now() - this.startedAtMs);
   }
 
   /** Never throws: callers sit on the reply path. */
@@ -198,18 +205,42 @@ export function noteGeneratedReply(sessionId: string | undefined, text: string):
   }
 }
 
-const SOUND_KINDS: Record<string, TimelineKind> = {
+const EVENT_KINDS: Record<string, TimelineKind> = {
   backchannel: 'backchannel',
   opener: 'opener_sound',
   laugh: 'laugh',
 };
+/** sound-signal.ts's kinds, plus whistle; by the take's category first, then by the gate. */
+const BY_TAKE: Record<string, Heard | 'whistle'> = {
+  ...{ 'morning-yawn': 'breath', 'content-sigh': 'sigh', laugh: 'laugh', surprised: 'laugh' },
+  ...{ mmhm: 'mm-hmm', aww: 'mm-hmm', recognition: 'mm-hmm', 'thinking-hum': 'hum' },
+};
+const BY_GATE: Record<string, Heard> = {
+  backchannel: 'mm-hmm',
+  opener: 'opener',
+  laugh: 'laugh',
+};
+const TAKES = new Map(
+  Object.entries(VOICED_TAKES).flatMap(([category, takes]) => takes.map((t) => [t, category]))
+);
+
+/** What a judge hears a clip as: laugh, mm-hmm, hum, opener, breath, sigh or whistle. */
+export function soundKindOf(gateKind: string, clip: string): Heard | 'whistle' {
+  const byTake = BY_TAKE[TAKES.get(clip) ?? ''];
+  if (byTake) return byTake;
+  if (clip === 'whistle' || clip.startsWith('recorded-whistle:')) return 'whistle';
+  if (clip === 'snore') return 'breath';
+  return BY_GATE[gateKind] ?? (gateKind === 'slow_turn' ? 'opener' : 'hum');
+}
 
 type Gate<K extends string> = (kind: K, clip: string, play: () => boolean) => boolean;
 
 /**
  * The clip player's sound gate, recording each clip that played: every
  * backchannel, laugh, opener, presence sound and tool hum passes through it.
- * Looked up per clip, so a player started before the timeline still records.
+ * `text` is the clip text the gate was given (the same label sound_played
+ * carries); startMs is when play() was accepted. Looked up per clip, so a
+ * player started before the timeline still records.
  */
 export function withTimelineSounds<K extends string>(
   session: object,
@@ -218,13 +249,14 @@ export function withTimelineSounds<K extends string>(
 ): Gate<K> {
   return (kind, label, play) => {
     if (!gate(kind, label, play)) return false;
-    const sound = SOUND_KINDS[kind];
-    const f = sound ? undefined : { sound: kind };
-    (timelineFor(session) ?? timelineFor(sessionId()))?.add({
-      kind: sound ?? 'sound',
-      text: label,
-      f,
-    });
+    const tl = timelineFor(session) ?? timelineFor(sessionId());
+    const take = TAKES.get(label);
+    const f = { sound: soundKindOf(kind, label), source: kind, ...(take && { take }) };
+    const startMs = tl?.msNow() ?? 0; // the event's own time, so tMs === startMs
+    tl?.add(
+      { kind: EVENT_KINDS[kind] ?? 'sound', text: label, startMs, f },
+      tl.startedAtMs + startMs
+    );
     return true;
   };
 }
