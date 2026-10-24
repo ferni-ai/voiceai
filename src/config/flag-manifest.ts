@@ -60,6 +60,8 @@ const LEGACY_FLAG_MANIFEST = {
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: a call knows the texts Ferni sent the member in the last 6 h (recent-texts-awareness.ts)
+  CALL_KNOWS_RECENT_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
   CARTESIA_STREAMING_TTS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
