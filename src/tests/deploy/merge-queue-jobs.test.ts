@@ -1,9 +1,10 @@
 /**
- * The merge queue builds 8 groups at once and each group's checks have 90
- * minutes. Jobs that no required check needs competed with the required ones
- * for runners on every group (a macOS iOS build among them), so they run on
- * the push to main instead, and a failed push run opens a main-red issue
- * (nightly-health.yml). This checks, by simulating merge_group and push:
+ * The merge queue builds up to 4 groups at once (max_entries_to_build in
+ * ruleset 24473177; up to 8 entries merge together) and each group's checks
+ * have 90 minutes. Jobs that no required check needs competed with the
+ * required ones for runners on every group (a macOS iOS build among them), so
+ * they run on the push to main instead, and a failed push run opens a main-red
+ * issue (nightly-health.yml). This checks, by simulating merge_group and push:
  * - every required check still comes from the same job, and nothing that job
  *   needs is skipped in the queue;
  * - no job skipped in the queue reports a required check name (a skipped job
@@ -61,6 +62,16 @@ describe('the merge queue runs the required checks and only those', () => {
     expect(queued).toEqual(expect.arrayContaining(['ci.yml', 'build.yml', 'menu-e2e.yml']));
     expect(all.length).toBeGreaterThan(20);
     expect(inQueue.size).toBeGreaterThan(8);
+  });
+
+  it('reads an expression-built matrix (the unit shards) as every value it can pick', () => {
+    const shard = all.find((j) => j.workflow === 'ci.yml' && j.id === 'test-unit-shard');
+    expect(shard?.checks).toEqual([
+      'Unit Tests (1/4)',
+      'Unit Tests (2/4)',
+      'Unit Tests (3/4)',
+      'Unit Tests (4/4)',
+    ]);
   });
 
   it.each(Object.entries(REQUIRED))('%s comes from %s, which runs in the queue', (check, from) => {
@@ -121,5 +132,46 @@ describe('the merge queue runs the required checks and only those', () => {
       expect(health).toMatch(new RegExp(`report-main:[\\s\\S]*"${name}"`));
     }
     expect(health).toMatch(/report-main:[\s\S]*workflow_run\.event == 'push'/);
+  });
+});
+
+// The unit shard matrix and FULL_SUITE are two copies of one condition. If they
+// drift, a full run can create one shard that runs --shard=1/4 and the Unit Tests
+// gate passes on a quarter of the suite (the gate also checks the count at run time).
+describe('the unit shards cover the whole suite on a full run', () => {
+  const ci = readFileSync(join(__dirname, '..', '..', '..', '.github/workflows/ci.yml'), 'utf8');
+  const matrix =
+    /^ {8}shard: \$\{\{ fromJSON\(\((.+)\) && '\[([^\]]*)\]' \|\| '\[1\]'\) \}\}$/m.exec(ci);
+  const full = /^ {6}FULL_SUITE: \$\{\{ (.+) \}\}$/m.exec(ci);
+
+  it('builds the matrix from exactly the FULL_SUITE condition', () => {
+    expect(matrix?.[1]).toBeTruthy();
+    expect(full?.[1]).toBeTruthy();
+    expect(matrix?.[1]).toBe(full?.[1]);
+  });
+
+  it('creates as many shards as each one divides the suite into, and the gate expects that many', () => {
+    const shards = matrix?.[2].split(/,\s*/) ?? [];
+    const runs = /--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/.exec(ci)?.[1];
+    const gate = /^ +true\) want=(\d+) ;;$/m.exec(ci)?.[1];
+    expect(shards).toEqual(['1', '2', '3', '4']);
+    expect(Number(runs)).toBe(shards.length);
+    expect(Number(gate)).toBe(shards.length);
+  });
+
+  // A cancelled or skipped required check counts as passed, so the gate must run
+  // whatever the shards did and turn red unless every one succeeded.
+  const gateJob = /^ {2}test-unit:\n([\s\S]*?)(?=^ {2}[\w-]+:\n)/m.exec(ci)?.[1] ?? '';
+
+  it('the Unit Tests gate still runs when a shard fails or is cancelled', () => {
+    expect(gateJob).toMatch(/^ {4}needs: \[setup, test-unit-shard\]$/m);
+    expect(gateJob).toMatch(/^ {4}if: always\(\) && /m);
+  });
+
+  it('the Unit Tests gate fails unless setup and every shard succeeded', () => {
+    expect(gateJob).toMatch(
+      // `exit 1` inside this branch: no line between `then` and it may be the branch's `fi`.
+      /if \[ "\$SETUP" != success \] \|\| \[ "\$SHARDS" != success \]; then\n(?:(?! *fi\n).*\n)*? +exit 1\n +fi\n/
+    );
   });
 });

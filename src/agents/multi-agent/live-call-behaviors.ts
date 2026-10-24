@@ -11,6 +11,7 @@ import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utiliti
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -329,6 +330,9 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
+    // The spoken backchannel path stays quiet while clips play (clip-mode.ts).
+    const { noteUsesClips } = await import('../../speech/live-backchanneling/clip-mode.js');
+    cleanupFunctions.push(noteUsesClips(sessionId));
     const { attachTurnOpeningSound, earlyOpeningWaitMs, turnOpeningSoundEnabled } =
       await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
@@ -344,8 +348,9 @@ export async function startTurnSounds(input: TurnSoundsInput) {
           {
             ...clips,
             // LAUGH_CAP: the reply a clip opens must not open with a laugh too (laugh-ledger.ts).
+            // openerClip: the same clip, reported as 'opener' (CLIENT_SIGNALS_V2, sound-signal.ts).
             playClip: (text) => {
-              const played = clips.playClip(text);
+              const played = clips.openerClip(text);
               if (played) noteTurnOpened(sessionId);
               return played;
             },
@@ -363,6 +368,14 @@ export async function startTurnSounds(input: TurnSoundsInput) {
                 holdReply: (ms) => holdReplyAudio(sessionId, ms),
               }
         )
+      );
+    }
+    // SLOW_TURN_SOUND: one "Mm" on a slow turn nothing else filled (slow-turn-sound.ts).
+    if (flagOn('SLOW_TURN_SOUND')) {
+      const { attachSlowTurnSoundToCall } = await import('../integrations/slow-turn-wiring.js');
+      const slowClips = { ...clips, playClip: clips.slowTurnClip }; // conducted as 'slow_turn'
+      cleanupFunctions.push(
+        attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
       );
     }
     // A backchannel is a move too, on the reply whose answer it is heard in.

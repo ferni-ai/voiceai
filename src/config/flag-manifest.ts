@@ -410,6 +410,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches, and sends at most TURN_MEMORY_MAX_INJECT (default 3) memories a turn (turn-memory-scale.ts)
   // on (with TURN_MEMORY_RRF_SCALE): per-turn memories pass a runner-up margin, and a model judge when TURN_MEMORY_RERANK_TIMEOUT_MS > 0 (turn-memory-rerank.ts)
   TURN_MEMORY_RERANK: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with TURN_MEMORY_RERANK): the judge runs in the background and its picks join the next caller turn's memories (turn-memory-pending.ts)
+  TURN_MEMORY_JUDGE_ASYNC: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },

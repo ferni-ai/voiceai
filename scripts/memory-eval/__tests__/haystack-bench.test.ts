@@ -19,6 +19,8 @@ import {
   haystackTurns,
   savedAt,
   scoreHaystack,
+  turnHalf,
+  type FollowUps,
   seededRandom,
   wilson,
   withCi,
@@ -65,10 +67,11 @@ vi.mock('../../../src/memory/entity-store/storage.js', () => ({
   findEntityByAlias: async () => null,
   searchEntities: async () => [],
 }));
-const judge = vi.hoisted(() => ({ replies: new Map<string, { text: string; ms: number }>(), unanswered: new Set<string>() })); // prettier-ignore
+const judge = vi.hoisted(() => ({ replies: new Map<string, { text: string; ms: number }>(), unanswered: new Set<string>(), calls: 0 })); // prettier-ignore
 vi.mock('../../../src/config/generative-model.js', () => ({
   getGenerativeModel: async () => ({
     generateContent: async (prompt: string) => {
+      judge.calls++;
       const reply = judge.replies.get(prompt);
       if (!reply) {
         judge.unanswered.add(prompt);
@@ -87,6 +90,7 @@ vi.mock('../../../src/memory/retrieval/cross-encoder.js', () => ({
 import type { HybridSearchResult } from '../../../src/memory/retrieval/hybrid-search.js';
 import { runHybridSearchWithTimeout } from '../../../src/memory/retrieval/hybrid-search-timeout-stats.js';
 import { retrieveForTurn } from '../../../src/memory/retrieval/turn-memory-retrieval.js';
+import { settleTurnMemoryJudges } from '../../../src/memory/retrieval/turn-memory-pending.js';
 import { gateTurnMemories } from '../../../src/memory/retrieval/turn-memory-rerank.js';
 import {
   MIN_TURN_MEMORY_COSINE,
@@ -209,7 +213,7 @@ async function rerankRows(label: string, runs: Run[], kindOf: (id: string) => Me
   const env = { TURN_MEMORY_RRF_SCALE: 'on', TURN_MEMORY_RERANK: 'on' };
   const gateMs = runs.map((r) => {
     const t0 = performance.now();
-    for (let k = 0; k < 100; k++) void gateTurnMemories(r.results, r.turn.text, true, { rerankMs: 0, rerankingApplied: false }, env); // prettier-ignore
+    for (let k = 0; k < 100; k++) void gateTurnMemories(r.results, { transcript: r.turn.text }, true, { rerankMs: 0, rerankingApplied: false }, env); // prettier-ignore
     const t1 = performance.now();
     for (let k = 0; k < 100; k++) scaleTurnMemories(r.results);
     return Math.max(0, t1 - t0 - (performance.now() - t1)) / 100;
@@ -241,6 +245,102 @@ async function rerankRows(label: string, runs: Run[], kindOf: (id: string) => Me
   return { rows, answered: judged.filter((j) => j.judged).length, late, asked: asked.length };
 }
 
+/** A held-out first turn, the follow-up on the same subject, and a turn that changes the subject. */
+type Pair = { userId: string; first: HaystackTurn; next: string; other: HaystackTurn };
+
+function followUpPairs(callers: BenchCaller[], cases: HaystackCases, size: number): Pair[] {
+  const followUps = JSON.parse(readFileSync(new URL('../fixtures/haystack-followups.json', import.meta.url), 'utf8')) as FollowUps; // prettier-ignore
+  const pairs: Pair[] = [];
+  for (const caller of callers) {
+    const turns = haystackTurns(caller, cases);
+    const smallTalk = turns.filter((t) => t.kind === 'small-talk');
+    (followUps.callers[caller.name] ?? []).forEach(([text, next], i) => {
+      const first = turns.find((t) => t.text === text);
+      if (!first || turnHalf(text) !== 'held-out') return;
+      // The subject changes to another labelled subject or to small talk, alternately.
+      const elsewhere = turns.filter((t) => t.expect.length > 0 && !t.expect.some((e) => first.expect.includes(e))); // prettier-ignore
+      const pool = i % 2 === 0 ? elsewhere : smallTalk;
+      pairs.push({ userId: `${caller.name}@${size}`, first, next, other: pool[i % pool.length] as HaystackTurn }); // prettier-ignore
+    });
+  }
+  return pairs;
+}
+
+const ASYNC_ENV = [
+  'TURN_MEMORY_RERANK',
+  'TURN_MEMORY_RERANK_TIMEOUT_MS',
+  'TURN_MEMORY_JUDGE_ASYNC',
+];
+
+/** Turn 2 then turn 3 of one session per pair, through retrieveForTurn; the judge is back before turn 3. */
+async function twoTurns(pairs: Pair[], judgeAsync: boolean, second: (p: Pair) => string) {
+  ASYNC_ENV.forEach((k, i) => vi.stubEnv(k, ['on', '0', judgeAsync ? 'on' : 'off'][i] as string));
+  const out: Array<[string[], string[]]> = [];
+  let next = 0;
+  const worker = async () => {
+    for (let i = next++; i < pairs.length; i = next++) {
+      const p = pairs[i] as Pair;
+      const sessionId = `haystack-${++session}`;
+      const ask = async (transcript: string, turnNumber: number) => (await retrieveForTurn({ userId: p.userId, sessionId, transcript, turnNumber })).memories.map((m) => m.id); // prettier-ignore
+      const first = await ask(p.first.text, 2);
+      await settleTurnMemoryJudges(sessionId);
+      out[i] = [first, await ask(second(p), 3)];
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  for (const k of ASYNC_ENV) vi.stubEnv(k, '');
+  return out;
+}
+
+/**
+ * Gate alone against gate + async judge over a 2-turn window of held-out
+ * pairs: precision and recall over both turns' memories against the first
+ * turn's labels, the superseded fact on update pairs, and what the carried
+ * picks put into a turn that changed the subject.
+ */
+async function asyncRows(
+  label: string,
+  pairs: Pair[],
+  runs: Run[],
+  kindOf: (id: string) => MemoryKind
+) {
+  const gate = await twoTurns(pairs, false, (p) => p.next);
+  const carried = await twoTurns(pairs, true, (p) => p.next);
+  const gateShift = await twoTurns(pairs, false, (p) => p.other.text);
+  const carriedShift = await twoTurns(pairs, true, (p) => p.other.text);
+  const callsBefore = judge.calls;
+  await realPath(runs, { TURN_MEMORY_RERANK: 'on', TURN_MEMORY_JUDGE_ASYNC: 'on' });
+  await settleTurnMemoryJudges();
+  const perTurn = (judge.calls - callsBefore) / runs.length;
+  // Turn t is the gate's answer whether or not the judge runs behind it.
+  expect(carried.map(([first]) => first)).toEqual(gate.map(([first]) => first));
+  let wrong = 0;
+  let extra = 0;
+  carriedShift.forEach(([, ids], i) => {
+    const added = ids.filter((id) => !(gateShift[i] as [string[], string[]])[1].includes(id));
+    extra += added.length;
+    wrong += added.filter((id) => !(pairs[i] as Pair).other.expect.includes(id)).length;
+  });
+  const row = (name: string, out: Array<[string[], string[]]>) => {
+    let sent = 0, right = 0, labelled = 0, found = 0, updates = 0, stale = 0; // prettier-ignore
+    out.forEach(([a, b], i) => {
+      const expected = (pairs[i] as Pair).first.expect;
+      const window = [...new Set([...a, ...b])];
+      sent += window.length;
+      right += window.filter((id) => expected.includes(id)).length;
+      labelled += expected.length;
+      found += expected.filter((id) => window.includes(id)).length;
+      if ((pairs[i] as Pair).first.kind !== 'update') return;
+      updates++;
+      if (window.some((id) => kindOf(id) === 'stale')) stale++;
+    });
+    const shift = name.startsWith('gate +') ? `${wrong} wrong of ${extra} carried, ${pairs.length} pairs` : '-'; // prettier-ignore
+    const calls = name.startsWith('gate +') ? perTurn.toFixed(2) : '0';
+    return `| ${label} | ${name} | ${pairs.length} | ${sent} | ${withCi(right, sent)} | ${withCi(found, labelled)} | ${stale}/${updates} | ${shift} | ${calls} |`; // prettier-ignore
+  };
+  return [row('gate alone', gate), row('gate + async judge', carried)];
+}
+
 describe.skipIf(!vectorsFile)('haystack bench', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -257,6 +357,7 @@ describe.skipIf(!vectorsFile)('haystack bench', () => {
     const rows: Parameters<typeof tables>[0] = [];
     const checks: string[] = [];
     const rerank: string[] = [];
+    const asyncTable: string[] = [];
     for (const size of SIZES) {
       const { runs, kinds, sizes } = await runSize(callers, cases, size);
       const kindOf = (id: string) => kinds.get(id) ?? 'generic';
@@ -269,10 +370,12 @@ describe.skipIf(!vectorsFile)('haystack bench', () => {
         const byCap = new Map(CAPS.map((cap) => [cap, scoreHaystack(runs.map((r) => ({ turn: r.turn, found: sent(r.results, floor, cap) })), kindOf)] as const)); // prettier-ignore
         rows.push({ size, label, floor, byCap });
       }
+      const carry = await asyncRows(label, followUpPairs(callers, cases, size), runs, kindOf);
       if (process.env.HAYSTACK_JUDGE_PROMPTS_OUT) {
         await realPath(runs, { TURN_MEMORY_RERANK: 'on', TURN_MEMORY_RERANK_TIMEOUT_MS: '5000' });
         continue; // recording prompts only: haystack-bench.ts asks the model, then runs again
       }
+      asyncTable.push(...carry);
       const r = await rerankRows(label, runs, kindOf);
       checks.push(`${label}: judge (real retrieveForTurn, replayed replies) answered ${r.answered}/${r.asked} turns it was asked about, ${r.late} over 5000 ms`); // prettier-ignore
       // A judge with no reply falls back to the gate, which would pass for the judge here.
@@ -285,7 +388,8 @@ describe.skipIf(!vectorsFile)('haystack bench', () => {
     }
     const turns = haystackTurns(callers[0] as BenchCaller, cases).length;
     const rerankTable = `### TURN_MEMORY_RERANK (cap 3 after the stage)\n\nsmall talk / backchannel = share of those turns that got any memory; stale = update turns that got the superseded fact; added = ms the stage adds to retrieveForTurn, p50 / p95 (the gate: measured in-process; the judge: wall time of the model call from this machine).\n\n| store | arm | sent | precision | recall | small talk | backchannel | stale on update | added ms p50 / p95 |\n|---|---|---|---|---|---|---|---|---|\n${rerank.join('\n')}\n`; // prettier-ignore
-    const report = `${tables(rows)}\n\n${rerankTable}\n### Production-path check\n\n${checks.map((c) => `- ${c}`).join('\n')}\n`; // prettier-ignore
+    const carryTable = `### TURN_MEMORY_JUDGE_ASYNC: 2-turn window, held-out pairs\n\nTurn t gets the gate's pick, the judge runs behind it, turn t+1 (a follow-up on the same subject, fixtures/haystack-followups.json) gets the gate's pick plus the carried picks. Precision and recall are over both turns' memories against turn t's labels; held-out = turnHalf(turn t). topic change = pending picks that reached a turn on another subject or small talk instead of the follow-up. judge calls = background judge calls per caller turn over every bench turn (labelled, small talk, updates, backchannels).\n\n| store | arm | pairs | sent | precision | recall | stale on update | topic change | judge calls / turn |\n|---|---|---|---|---|---|---|---|---|\n${asyncTable.join('\n')}\n`; // prettier-ignore
+    const report = `${tables(rows)}\n\n${rerankTable}\n${carryTable}\n### Production-path check\n\n${checks.map((c) => `- ${c}`).join('\n')}\n`; // prettier-ignore
     console.log(`\n${callers.length} callers, ${turns}+ turns each\n${report}`);
     if (process.env.HAYSTACK_RESULTS_OUT) writeFileSync(process.env.HAYSTACK_RESULTS_OUT, report);
   }, 3_600_000);
