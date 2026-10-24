@@ -14,12 +14,14 @@
  * Among completed requests the first wins: on a tool turn that is the request the
  * caller waited on. Among cut ones the last wins: a dropped preemptive request
  * comes before the reply the caller cut. Metrics arrive when a stream ends, so
- * the request in flight at that moment is the one they measure; the receipt takes
- * its tools from it.
+ * the request in flight at that moment is the one they measure. The receipt takes
+ * its prompt, tools, director notes and lane from that same request (requestOf,
+ * captured when the metric is kept), so one receipt never mixes two requests.
  *
  * @module agents/shared/turn-receipt-llm
  */
 import type { LlmMetric } from './turn-metrics.js';
+import type { PromptSection } from './prompt-sections.js';
 
 /** 2: ran to completion with usage, 1: cut but billed, 0: no usage. */
 function rank(m: LlmMetric): number {
@@ -36,6 +38,19 @@ export function replyMetric(kept: LlmMetric | undefined, next: LlmMetric): LlmMe
 }
 
 /**
+ * Keeps `next` as the turn's metric when it outranks the kept one, with the request
+ * it measures (requestOf, taken now: the metric arrived when that request ended).
+ */
+export function keepLlm(
+  turn: RequestView & { llm?: LlmMetric; llmRequest?: RequestView },
+  next: LlmMetric
+): void {
+  if (replyMetric(turn.llm, next) !== next) return;
+  turn.llm = next;
+  turn.llmRequest = requestOf(turn);
+}
+
+/**
  * Thinking tokens: the plugin's reasoningTokens when it breaks them out, else
  * total − prompt − completion (Gemini's totalTokenCount includes thoughts). Null
  * when the metric carries no total.
@@ -46,23 +61,27 @@ export function thoughtTokens(m: LlmMetric): number | null {
   return Math.max(0, m.totalTokens - m.promptTokens - m.completionTokens);
 }
 
-interface RequestTools {
-  offered: number | null;
-  schemaChars?: number;
-}
-
-/** The tools of the request the kept metric measures, else (none yet) the last request's. */
-export function replyTools(turn: {
-  llmTools?: RequestTools;
+/** What the receipt reports about one request: its prompt, tools, director notes and lane. */
+export interface RequestView {
+  sections: PromptSection[] | null;
+  lane: { lane: 'fast' | 'main'; reason: string } | null;
+  director: { offered: number; kept: number; droppedIdx: number[] };
   toolsOffered: number | null;
   toolSchemaChars?: number;
-}): { offered: number | null; schemaChars: number | null } {
-  const kept = turn.llmTools;
-  const from =
-    kept !== undefined && kept.offered !== null
-      ? kept
-      : { offered: turn.toolsOffered, schemaChars: turn.toolSchemaChars };
-  return { offered: from.offered, schemaChars: from.schemaChars ?? null };
+}
+
+/** The request the turn's latest state describes. */
+export const requestOf = (turn: RequestView): RequestView => ({
+  sections: turn.sections,
+  lane: turn.lane,
+  director: turn.director,
+  toolsOffered: turn.toolsOffered,
+  toolSchemaChars: turn.toolSchemaChars,
+});
+
+/** The request the reported metric measures, else (none kept yet) the latest one. */
+export function replyRequest(turn: RequestView & { llmRequest?: RequestView }): RequestView {
+  return turn.llmRequest ?? requestOf(turn);
 }
 
 export interface TokensField {

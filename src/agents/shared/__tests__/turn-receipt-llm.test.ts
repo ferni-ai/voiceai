@@ -75,6 +75,35 @@ describe('TURN_RECEIPT llm metric', () => {
     expect(r.tools.offered).toBe(90);
   });
 
+  it('on a tool turn, prompt, tools and director all come from the request the tokens are from', () => {
+    const message = (chars: number) => ({
+      type: 'message',
+      role: 'user',
+      content: ['x'.repeat(chars)],
+    });
+    // Baseline: the tool call's request alone.
+    const alone = recorder();
+    alone.rec.onReminder({ reminder: 'r', directorNotes: 'd', offered: 2, droppedIdx: [1] });
+    alone.rec.onRequest([message(400)], 90);
+    alone.rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
+    const expected = alone.end();
+
+    const { rec, end } = recorder();
+    rec.onReminder({ reminder: 'r', directorNotes: 'd', offered: 2, droppedIdx: [1] });
+    rec.onRequest([message(400)], 90); // the tool call's request, with a director note
+    rec.onMetric({ ...metric({ ttftMs: 700, promptTokens: 13_000 }) });
+    rec.onRequest([message(4_000)], 113); // the reply after the tool: bigger prompt, no note
+    rec.onMetric({ ...metric({ ttftMs: 500, promptTokens: 13_500 }) });
+    const r = end();
+    expect(r.tokens?.prompt).toBe(13_000);
+    expect(r.timing.llmTtftMs).toBe(700);
+    expect(r.tools.offered).toBe(90);
+    expect(r.director).toEqual({ offered: 2, kept: 1, droppedIdx: [1] });
+    expect(r.prompt.requests).toBe(2);
+    expect(r.prompt.sections).toEqual(expected.prompt.sections);
+    expect(r.prompt.totalTokensEst).toBe(expected.prompt.totalTokensEst);
+  });
+
   it('a reply the caller cut beats an earlier dropped one', () => {
     const { rec, end } = recorder();
     rec.onRequest([], 90);
@@ -101,6 +130,12 @@ describe('replyMetric / thoughtTokens', () => {
     expect(replyMetric(cut, done)).toBe(done);
     expect(replyMetric(done, cut)).toBe(done);
     expect(replyMetric(done, metric({}))).toBe(done);
+  });
+
+  it('among cut ones the last wins', () => {
+    const first = metric({ cancelled: true, ttftMs: 800 });
+    const last = metric({ cancelled: true, ttftMs: 900 });
+    expect(replyMetric(first, last)).toBe(last);
   });
 
   it('prefers the plugin reasoning count, else total minus prompt and completion', () => {
