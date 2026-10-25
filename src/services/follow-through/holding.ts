@@ -93,6 +93,12 @@ const DATE_HOUR = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]) \d{1,2}$/;
 const DATE_SLASHED =
   /^(?:(?:0?[1-9]|[12]\d|3[01])\/(?:0?[1-9]|[12]\d|3[01])\/(?:\d{2}|\d{4})|\d{4}\/(?:0?[1-9]|1[0-2])\/(?:0?[1-9]|[12]\d|3[01]))$/;
 
+/** Dates or years joined by a range dash or slash: "2026/2027", "2026-10-24–2026-10-30". */
+const MONTH = '(?:0?[1-9]|1[0-2])';
+const DAY = '(?:0?[1-9]|[12]\\d|3[01])';
+const DATE_PART = `(?:(?:19|20)\\d{2}(?:[-/]${MONTH}[-/]${DAY})?|${DAY}/${DAY}/(?:\\d{4}|\\d{2}))`;
+const DATE_RANGE = new RegExp(`^${DATE_PART}(?:\\s*[-/]\\s*${DATE_PART})+$`);
+
 /**
  * Starts only where a run of non-space starts (or right after an "@"): one
  * attempt per run keeps it linear, and the leftmost match is the same.
@@ -101,7 +107,7 @@ const EMAIL_LIKE =
   /(?<![^\s@\uFF20\uFE6B])[^\s@\uFF20\uFE6B]+[@\uFF20\uFE6B][^\s@\uFF20\uFE6B]+[.\uFF0E\u3002\uFF61][^\s@\uFF20\uFE6B]+/gu;
 /** "jane @ gmail.com": a spaced "@" needs a lettered ending, so "meet @ 5.30" stays. */
 const SPACED_EMAIL =
-  /(?<!\S)[^\s@\uFF20\uFE6B]+(?:\s+[@\uFF20\uFE6B]\s*|[@\uFF20\uFE6B]\s+)[\p{L}\p{N}-]+(?:[.\uFF0E\u3002\uFF61][\p{L}\p{N}-]+)*[.\uFF0E\u3002\uFF61]\p{L}{2,}(?![\p{L}\p{N}])/gu;
+  /(?<!\S)(?<local>[^\s@\uFF20\uFE6B]+)(?:\s+[@\uFF20\uFE6B]\s*|[@\uFF20\uFE6B]\s+)[\p{L}\p{N}-]+(?:[.\uFF0E\u3002\uFF61][\p{L}\p{N}-]+)*[.\uFF0E\u3002\uFF61]\p{L}{2,}(?![\p{L}\p{N}])/gu;
 
 const DIGIT_WORDS = 'zero one two three four five six seven eight nine'.split(' ');
 /** A digit said out loud, by value; "oh" and "o" are zero. */
@@ -122,56 +128,120 @@ const YEAR = /^(?:19|20)\d{2}$/;
 
 /**
  * An address said out loud: "jo dot lee at example dot com", "jo (at) example.com",
- * "jane at gmail.com". The ending after a said "dot" is any short word but a few
- * that only prose puts there ("dot com party" still ends in "com"); a written dot
- * after a plain " at " takes a listed ending only. The domain can't be a word
- * like "the", the name can't be a word that leads into "at" in a sentence, and
- * the name can't follow "met", "the" and the like, so "meet at the dot com
- * party", "met Sarah at google dot com" and "the deal at example.com" stay prose.
+ * "jane at gmail.com". After a plain " at " the ending is a listed one, said
+ * ("dot com") or written (".com"); only "(at)"/"[at]" takes any short ending.
+ * Which form matched is in the groups, for blankSaidEmail to judge.
  */
 const LABEL = "[\\p{L}\\p{N}][\\p{L}\\p{N}_%+\\-'’]*";
 const SAID_DOT = '(?:\\s+dot\\s+|\\s*[([]dot[)\\]]\\s*)';
 const ANY_DOT = `(?:${SAID_DOT}|\\.)`;
-const TLD = '(?:com|org|net|edu|gov|io|co|us|uk|ca|au|de|fr|me|ai|app|dev|info|biz|tv|xyz)';
+const TLD =
+  '(?:com|org|net|edu|gov|io|co|us|uk|ca|au|nz|ie|de|fr|es|nl|se|ch|jp|me|ai|app|dev|info|biz|tv|xyz|fm|ly|gg|online|tech)';
 const SAID_TLD =
-  '(?!(?:the|and|but|then|than|for|with|from|was|were|of|or|on|he|she|we|they|you|his|her|our|your|their|here|there|when|where|what|party|launch|office|map|page|line|time|day|days)(?![\\p{L}\\p{N}]))\\p{L}{2,6}';
+  '(?!(?:the|and|but|then|than|for|with|from|was|were|of|or|on|he|she|we|they|you|his|her|our|your|their|here|there|when|where|what|party|launch|office|map|page|line|time|day|days|zero|one|two|three|four|five|six|seven|eight|nine|oh)(?![\\p{L}\\p{N}]))\\p{L}{2,6}';
 const NOT_A_DOMAIN = '(?!(?:the|a|an|this|that|my|your|our|his|her|their|its)\\b)';
 const SPELLED_EMAIL = new RegExp(
-  `(?<![\\p{L}\\p{N}._%+\\-'’])${LABEL}(?:${ANY_DOT}${LABEL}){0,6}` +
-    `(?:\\s*[([]at[)\\]]\\s*${NOT_A_DOMAIN}(?:${LABEL}${ANY_DOT}){1,6}(?:${TLD}|${SAID_TLD})` +
-    `|\\s+at\\s+${NOT_A_DOMAIN}(?:${LABEL}${ANY_DOT}){0,6}${LABEL}(?:${SAID_DOT}${SAID_TLD}|\\.${TLD}))` +
+  `(?<![\\p{L}\\p{N}._%+\\-'’])(?<local>${LABEL}(?:${ANY_DOT}${LABEL}){0,6})` +
+    `(?:\\s*[([]at[)\\]]\\s*${NOT_A_DOMAIN}(?<bracketed>(?:${LABEL}${ANY_DOT}){1,6}(?:${TLD}|${SAID_TLD}))` +
+    `|\\s+at\\s+${NOT_A_DOMAIN}(?<said>(?:${LABEL}${ANY_DOT}){0,6}${LABEL}${SAID_DOT}${TLD})` +
+    `|\\s+at\\s+${NOT_A_DOMAIN}(?<written>${LABEL}(?:\\.${LABEL}){0,5}\\.${TLD}))` +
     '(?![\\p{L}\\p{N}])',
   'giu'
 );
 
-const PLAIN_AT = /^([\p{L}\p{N}_%+'’-]+)\s+at\s/iu;
 /** "he's", "mom's": a name with 's is a sentence, not an address. */
 const CONTRACTION = /['’](?:s|m|re)$/u;
-const LEADS_INTO_AT = new Set(
+/**
+ * A first word that is never someone's address: it leads into "at" in a
+ * sentence ("look at", "lunch at"), or is a pronoun or a little word ("email
+ * her at ...", "send it to us at ...").
+ */
+const NOT_A_NAME = new Set(
   (
     'look looking looked meet meeting met see seen be is am are was were been stay staying ' +
     'work works working worked live lives living shop shopping arrive arriving arrived ' +
     'stop stopping eat eating sign signed order ordered buy bought find found check go ' +
     'went get got it them me us him her you here there out up in home sale ' +
     'i he she we they lunch dinner breakfast brunch coffee drinks party interview job ' +
-    'jobs office event launch class call talk demo meetup'
+    'jobs office event launch class call talk demo meetup ' +
+    'and or but with to for from of on by as so the a an this that these those my your ' +
+    'his our their its cc bcc email mail write text send reach ping contact message'
   ).split(' ')
 );
-/** A word before the name that makes it someone or something in a sentence. */
+/** A word before a one-word name that makes it someone in a sentence ("met Sarah at ..."). */
 const BEFORE_A_NAME = new Set(
   (
-    'the a an this that these those my your his her our their its ' +
-    'met meet meeting saw see seeing seen visit visited visiting with and'
+    'the a an this that these those my your his our their its ' +
+    'met meet meeting saw see seeing seen visit visited visiting'
   ).split(' ')
 );
+/** Where people keep a mail account: "jane at gmail.com" is an address, "shoes at zappos.com" a shop. */
+const MAIL_HOSTS = new Set(
+  (
+    'gmail googlemail yahoo ymail rocketmail hotmail outlook live msn icloud me mac aol ' +
+    'proton protonmail pm fastmail hey gmx zoho yandex mail tutanota tuta comcast verizon att sbcglobal'
+  ).split(' ')
+);
+const FIRST_LABEL = /^[\p{L}\p{N}_%+'’-]+/u;
+const ONE_WORD = /^[\p{L}'’-]+$/u;
 const LAST_WORD = /([\p{L}'’]+)\s+$/u;
 
-function blankSaidEmail(m: string, offset: number, whole: string): string {
-  const name = PLAIN_AT.exec(m)?.[1]?.toLowerCase();
-  if (!name) return 'an email address';
-  if (LEADS_INTO_AT.has(name) || CONTRACTION.test(name)) return m;
+/** The first word of an address-shaped match, lowercased. */
+const firstLabel = (s: string): string =>
+  FIRST_LABEL.exec(s.replace(/^[^\p{L}\p{N}]+/u, ''))?.[0]?.toLowerCase() ?? '';
+
+/** Keeps a one-word name that a word before makes part of a sentence. */
+function nameInSentence(local: string, offset: number, whole: string): boolean {
+  if (!ONE_WORD.test(local)) return false;
+  if (CONTRACTION.test(local)) return true;
   const before = LAST_WORD.exec(whole.slice(Math.max(0, offset - 24), offset))?.[1];
-  return before && BEFORE_A_NAME.has(before.toLowerCase()) ? m : 'an email address';
+  return before !== undefined && BEFORE_A_NAME.has(before.toLowerCase());
+}
+
+/** null keeps the match as prose. */
+function blankSaidEmail(m: RegExpExecArray, whole: string): string | null {
+  const g = m.groups ?? {};
+  const local = g.local ?? '';
+  if (g.bracketed !== undefined) return 'an email address';
+  if (NOT_A_NAME.has(firstLabel(local)) || nameInSentence(local, m.index, whole)) return null;
+  // A written dot after a plain "at" is a shop or a workplace ("deals at target.com")
+  // unless the domain is a mail host or the name is shaped like an address.
+  if (g.written !== undefined && !MAIL_HOSTS.has(firstLabel(g.written)) && ONE_WORD.test(local))
+    return null;
+  return 'an email address';
+}
+
+function blankSpacedEmail(m: RegExpExecArray, whole: string): string | null {
+  const local = (m.groups?.local ?? '').replace(/^[^\p{L}\p{N}]+/u, '');
+  if (NOT_A_NAME.has(firstLabel(local)) || nameInSentence(local, m.index, whole)) return null;
+  return 'an email address';
+}
+
+/**
+ * Replaces each match `decide` blanks. A match it keeps uses up only its first
+ * word: the search goes on from the next one, so in "email her at jo dot me at
+ * gmail dot com" the kept "her at jo dot me" doesn't hide "jo dot me at gmail dot com".
+ */
+function replaceAddresses(
+  text: string,
+  re: RegExp,
+  decide: (m: RegExpExecArray, whole: string) => string | null
+): string {
+  let out = '';
+  let last = 0;
+  re.lastIndex = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const blank = decide(m, text);
+    if (blank === null) {
+      const first = /^[^\s]*?[\p{L}\p{N}]+/u.exec(m[0])?.[0].length ?? 1;
+      re.lastIndex = m.index + first;
+      continue;
+    }
+    out += text.slice(last, m.index) + blank;
+    last = m.index + m[0].length;
+    re.lastIndex = last;
+  }
+  return out + text.slice(last);
 }
 
 const count = (text: string, re: RegExp): number => text.match(re)?.length ?? 0;
@@ -182,7 +252,8 @@ function blankPhone(m: string, core: string, ext: string, offset: number, whole:
   const kept = (): string => core + ext.replace(PHONE_LIKE, blankPhone);
   const unbracketed = core.replace(LEADING_OPEN, '');
   const dashed = unbracketed.replace(ANY_DASH, '-');
-  if (DATE_ONLY.test(dashed) || DATE_SLASHED.test(unbracketed)) return kept();
+  if (DATE_ONLY.test(dashed) || DATE_SLASHED.test(unbracketed) || DATE_RANGE.test(dashed))
+    return kept();
   if (DATE_HOUR.test(dashed) && !ext && whole[offset + m.length] === ':') return m;
   // Any other run of 7+ digits goes, however long: two numbers side by side, or
   // a number next to a date, are blanked whole rather than shown.
@@ -192,79 +263,51 @@ function blankPhone(m: string, core: string, ext: string, offset: number, whole:
   return keepOpen ? `${core[0]}a number` : 'a number';
 }
 
-/** "one, two, three": each said digit one up (or one down) from the last. */
+/** "one, two, three" or "three, two, one": counting up from one, or down to one. */
 function isCount(values: readonly number[]): boolean {
   const [first = 0, second = 0] = values;
   const step = second - first;
-  return (
-    (step === 1 || step === -1) &&
-    values.every((v, i) => i === 0 || v - (values[i - 1] ?? v) === step)
-  );
+  const steady = values.every((v, i) => i === 0 || v - (values[i - 1] ?? v) === step);
+  return steady && ((step === 1 && first === 1) || (step === -1 && values.at(-1) === 1));
 }
 
 function blankSpelled(m: string): string {
   const tokens = m.split(SPELLED_SPLIT).filter(Boolean);
   const said = tokens.flatMap((t) => DIGIT_VALUE.get(t.toLowerCase()) ?? []);
   if (said.length < 3) return m;
-  // A count with a year after it ("steps one, two, three, 2026") isn't a number.
+  // A count isn't a number, nor is a year after one ("steps one, two, three, 2026");
+  // "four five six 2026" is.
   const counting = isCount(said);
-  const digits = tokens.reduce(
-    (n, t) => n + (DIGIT_VALUE.has(t.toLowerCase()) ? 1 : counting && YEAR.test(t) ? 0 : t.length),
-    0
-  );
+  let digits = said.length;
+  let numerals = 0;
+  for (const t of tokens) {
+    if (DIGIT_VALUE.has(t.toLowerCase()) || (counting && YEAR.test(t))) continue;
+    digits += t.length;
+    numerals += t.length;
+  }
+  if (counting && numerals === 0) return m;
   return digits >= 7 ? 'a number' : m;
 }
 
-function blankWindow(text: string): string {
+/**
+ * Phone-shaped runs are matched over the whole text first, and one is kept only
+ * when all of it is a date, a date range or a date-time, so a date-shaped run
+ * inside a longer number can never split that number and leave part of it
+ * showing. Every pattern tries at most once per word (or run of non-space)
+ * and repeats a bounded number of times, so a long text costs linear time.
+ */
+export function withoutContactDetails(text: string): string {
+  const addresses = replaceAddresses(
+    text.replace(EMAIL_LIKE, 'an email address'),
+    SPACED_EMAIL,
+    blankSpacedEmail
+  );
   return (
-    text
-      .replace(EMAIL_LIKE, 'an email address')
-      .replace(SPACED_EMAIL, 'an email address')
-      .replace(SPELLED_EMAIL, blankSaidEmail)
+    replaceAddresses(addresses, SPELLED_EMAIL, blankSaidEmail)
       // Said digits first, so "four one five 555 0132" goes whole, not as "four one five a number".
       .replace(SPELLED_NUMBER, blankSpelled)
       .replace(PHONE_LIKE, blankPhone)
   );
-}
-
-/**
- * The patterns run on at most WINDOW chars at a time, so a long text costs
- * linear time however it is built. A window ends between two ordinary words
- * (never "at", "dot", a digit word or anything with a digit), so no number or
- * address is ever cut in two; only a text with no such gap in its last half
- * window is cut hard.
- */
-export const WINDOW = 2000;
-const CONTACT_WORD = new RegExp(`^(?:at|dot|x|ext|extension|${DIGIT_WORD})$`, 'iu');
-const WORD_BEFORE = /(\p{L}+)$/u;
-const WORD_AFTER = /^(\p{L}+)(?![\p{N}@\uFF20\uFE6B])/u;
-
-function windowEnd(text: string, from: number): number {
-  const limit = from + WINDOW;
-  for (let i = limit; i > from + WINDOW / 2; i--) {
-    if (!/\s/u.test(text.charAt(i))) continue;
-    const before = WORD_BEFORE.exec(text.slice(i - 24, i))?.[1];
-    const after = WORD_AFTER.exec(text.slice(i + 1, i + 25))?.[1];
-    if (before && after && !CONTACT_WORD.test(before) && !CONTACT_WORD.test(after)) return i;
-  }
-  return limit;
-}
-
-/**
- * Phone-shaped runs are matched over the whole window first, and one is kept
- * only when all of it is a date or a date-time, so a date-shaped run inside a
- * longer number can never split that number and leave part of it showing.
- */
-export function withoutContactDetails(text: string): string {
-  if (text.length <= WINDOW) return blankWindow(text);
-  let out = '';
-  let from = 0;
-  while (text.length - from > WINDOW) {
-    const end = windowEnd(text, from);
-    out += blankWindow(text.slice(from, end));
-    from = end;
-  }
-  return out + blankWindow(text.slice(from));
 }
 
 /**

@@ -6,7 +6,7 @@
  * shows someone's number in the app. All data is synthetic.
  */
 import { describe, expect, it } from 'vitest';
-import { WINDOW, withoutContactDetails } from '../holding.js';
+import { withoutContactDetails } from '../holding.js';
 
 const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   // Brackets: the area code goes with the number, and no stray bracket is left.
@@ -60,6 +60,9 @@ const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   ['email jo_lee99 at example dot io please', 'email an email address please'],
   ['email jo@example.com the form', 'email an email address the form'],
   ['call 415 555 0132 or Vet@Example.COM', 'call a number or an email address'],
+  // A match kept as prose doesn't hide the address after it.
+  ['email her at jo dot me at gmail dot com', 'email her at an email address'],
+  ['met Sarah at jo dot kim at gmail dot com', 'met Sarah at an email address'],
   // Emails: a written dot after a plain "at", a spaced or fullwidth "@", any ending.
   ['email jane at gmail.com', 'email an email address'],
   ['email jane at mail.example.co.uk today', 'email an email address today'],
@@ -73,7 +76,6 @@ const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   ['email jo at example dot ai', 'email an email address'],
   ['email jo at example dot dev', 'email an email address'],
   ['email jo at example dot co', 'email an email address'],
-  ['email jo at example dot studio', 'email an email address'],
   ['email jo (at) example (dot) shop', 'email an email address'],
   ["email o'brien at gmail dot com", 'email an email address'],
   ['email Sarah at google dot com', 'email an email address'],
@@ -94,6 +96,72 @@ const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   // A year counts when the said digits aren't a count.
   ['call five five five 2026', 'call a number'],
   ['call four one five 555 2026', 'call a number'],
+];
+
+/**
+ * The leak floor: each of these was blanked by #2716 (bee3589df) and must stay
+ * blanked. The first ones were let through by a guard or a match that used up
+ * the name ("her at ana dot ruiz" hid "ana dot ruiz at gmail dot com").
+ */
+const LEAK_FLOOR: ReadonlyArray<readonly [string, string]> = [
+  ['send the deck to anna and kofi at gmail dot com', 'send the deck to anna and an email address'],
+  ['cc with kofi at gmail dot com', 'cc with an email address'],
+  ['lunch with kofi at gmail dot com', 'lunch with an email address'],
+  ['email her at ana dot ruiz at gmail dot com', 'email her at an email address'],
+  ['call him at jo dot kim at yahoo dot com', 'call him at an email address'],
+  ['write to us at sales dot team at acme dot com', 'write to us at an email address'],
+  ['reach me at jo at gmail dot com', 'reach me at an email address'],
+  ['contact us at info at acme dot com today', 'contact us at an email address today'],
+  ['look at jo dot lee at example dot com', 'look at an email address'],
+  // Said digits that don't count up from one (or down to one) are a number, year or not.
+  ['four five six 2026', 'a number'],
+  ['nine eight seven 2024', 'a number'],
+  ['two three four five six seven 2026', 'a number'],
+  ['zero one two 2026', 'a number'],
+  ['five four three 2026', 'a number'],
+  ['one two three 2026 0132', 'a number'],
+  // A said digit is never a domain ending, so the number before "(at)" still goes whole.
+  ['call 415 555 0132 (at) six dot two', 'call a number (at) six dot two'],
+];
+
+/**
+ * The keep floor: main before #2716 left each of these as written, and none is
+ * a contact, so they stay as written.
+ */
+const KEEP_FLOOR: readonly string[] = [
+  // A shop or workplace at a written domain, with no address before "at".
+  'Bought shoes at zappos.com',
+  'got tickets at ticketmaster.com for friday',
+  'booked rooms at hotels.com',
+  'ordered flowers at ftd.com for mom',
+  'found deals at target.com',
+  'interns at apple.com start monday',
+  'students at mit.edu got in',
+  'lunch @ cafe.co tomorrow',
+  'dinner @ noodle.bar friday',
+  // A said "dot" that isn't a domain.
+  'She looked great at polka dot night',
+  'mortgage rates at six dot two percent',
+  'we upgrade at three dot oh',
+  'release at two dot one dot three',
+  'We grabbed tea at bluebottle dot cafe',
+  'good at math dot period',
+  'kids at grandma dot dot dot',
+  // "or at", "and at": no name before "at", so no address.
+  'find us online or at acme dot com',
+  'tickets are sold here and at acme dot com',
+  // Years and date ranges.
+  'the 2026/2027 school year',
+  'fiscal 2025/2026 budget',
+  'the 1999–2000 season',
+  'trip 2026-10-24–2026-10-30',
+  'trip 10/24/2026-10/30/2026',
+  'trip 10/24/2026 – 10/30/2026',
+  // Counting, with or without a year.
+  'remember steps three two one, 2027 kickoff',
+  'one, two, three, 2026, 2027',
+  'seven six five four three two one liftoff',
+  'one two three four five six seven eight',
 ];
 
 const MUST_NOT_BLANK: readonly string[] = [
@@ -190,34 +258,57 @@ describe('withoutContactDetails', () => {
     expect(withoutContactDetails(input)).toBe(input);
   });
 
-  it('blanks a number or address in a long text wherever the windows end', () => {
-    const filler = 'we talked about the garden and the weather for a while ';
+  it.each(LEAK_FLOOR)('still blanks %j, as #2716 did', (input, expected) => {
+    expect(withoutContactDetails(input)).toBe(expected);
+  });
+
+  it.each(KEEP_FLOOR)('leaves %j as main did', (input) => {
+    expect(withoutContactDetails(input)).toBe(input);
+  });
+
+  // A long text is matched whole: nothing is cut, so a contact anywhere in it
+  // goes, whatever surrounds it (no gap between words, emoji, CJK).
+  it.each([
+    ['words', 'we talked about the garden and the weather for a while '],
+    ['emoji', '🙂🌿🙂🌿'],
+    ['cjk', '中さんによろしく'],
+    ['dashes', '— – — '],
+    ['caps', 'OK! SURE! '],
+  ])('blanks a contact at any offset in a long text of %s', (_name, filler) => {
     for (const contact of [
       '415 555 0132',
       'jo dot lee at example dot com',
+      'jane @ gmail.com',
       'four one five five five five o one seven seven',
     ]) {
-      for (let pad = WINDOW - 60; pad <= WINDOW + 10; pad += 7) {
+      for (let pad = 1_900; pad <= 2_110; pad += 5) {
         const lead = filler.repeat(Math.ceil(pad / filler.length)).slice(0, pad);
-        const text = `${lead} call ${contact} soon`;
-        const out = withoutContactDetails(text);
+        const out = withoutContactDetails(`${lead} call ${contact} soon`);
         expect(out).not.toMatch(/\p{Nd}/u);
-        expect(out).not.toMatch(/\b(?:jo|lee|example|seven)\b/);
+        expect(out).not.toMatch(/\b(?:jo|lee|example|jane|gmail|seven)\b/);
       }
     }
   });
 
-  // Each of these took seconds on a 100k text before the window cap and the
-  // one-attempt-per-run patterns; now each is a few ms.
+  // Each of these took seconds on a 100k text before every pattern tried at most
+  // once per word with bounded repeats; now each is a few ms.
   it.each([
     ['said dots', 'dot '.repeat(25_000)],
     ['one run of letters', 'a'.repeat(100_000)],
     ['dotted letters', 'a.'.repeat(50_000)],
     ['brackets after a digit', `1${'('.repeat(99_999)}`],
     ['at and dot', 'x at y dot '.repeat(9_000)],
-  ])('stays linear on 100k chars of %s', (_name, text) => {
-    const start = performance.now();
-    withoutContactDetails(text);
-    expect(performance.now() - start).toBeLessThan(1_000);
-  });
+    ['a dotted name', 'jo dot '.repeat(14_300)],
+    ['kept addresses', 'lunch at netflix dot com '.repeat(4_000)],
+    ['spaced @', 'a @ '.repeat(25_000)],
+    ['said digits', 'one '.repeat(25_000)],
+  ])(
+    'stays linear on 100k chars of %s',
+    (_name, text) => {
+      const start = performance.now();
+      withoutContactDetails(text);
+      expect(performance.now() - start).toBeLessThan(1_000);
+    },
+    30_000
+  );
 });
