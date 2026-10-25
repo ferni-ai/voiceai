@@ -456,6 +456,7 @@ const LEGACY_FLAG_MANIFEST = {
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: after a call, one wellbeing snapshot from what the caller said (wellbeing-tracking/after-call.ts)
   WELLBEING_AFTER_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  WELLBEING_FIELD_ESTIMATES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_FACTS_IN_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },

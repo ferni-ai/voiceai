@@ -16,6 +16,12 @@ import type {
   WellbeingProfile,
   WellbeingSnapshot,
 } from '../services/wellbeing-tracking/index.js';
+import {
+  estimateWellbeing,
+  type Direction,
+  type WellbeingEstimates,
+} from '../services/wellbeing-tracking/state-model.js';
+import { flagOn } from '../config/env-flag.js';
 
 /** Longest window any wellbeing route reads (the "quarter" trend). */
 export const MAX_WELLBEING_DAYS = 90;
@@ -26,6 +32,26 @@ export interface WellbeingData {
   snapshots: WellbeingSnapshot[];
   /** The latest snapshot, or null when the user has no wellbeing data. */
   current: WellbeingSnapshot | null;
+  /** Per field, the recency-weighted estimate; only read when WELLBEING_FIELD_ESTIMATES is on. */
+  estimates?: WellbeingEstimates;
+}
+
+/** The panel's fields, and the stored dimension each one reads. */
+const PANEL_FIELDS = {
+  mood: 'mood',
+  energy: 'energy',
+  anxiety: 'worry',
+  connection: 'loneliness',
+  purpose: 'meaningfulness',
+  sleep: 'sleepQuality',
+} as const;
+type PanelField = keyof typeof PANEL_FIELDS;
+
+/** When a field last came up, how often, and which way it is going (null: not enough history). */
+export interface PanelFieldInfo {
+  asOf: string;
+  observations: number;
+  direction: Direction | null;
 }
 
 export interface DashboardCurrentState {
@@ -36,6 +62,8 @@ export interface DashboardCurrentState {
   purpose: number | null;
   sleep: number | null;
   lastUpdated: string;
+  /** Present only with WELLBEING_FIELD_ESTIMATES on. null: nobody has talked about that field. */
+  fields?: Record<PanelField, PanelFieldInfo | null>;
 }
 
 export interface DashboardResponse {
@@ -101,7 +129,35 @@ export async function loadWellbeingData(userId: string): Promise<WellbeingData> 
   const latest = sorted[0] ?? null;
   const pointed = profile?.current ?? null;
   const current = pointed && (!latest || pointed.timestamp >= latest.timestamp) ? pointed : latest;
-  return { profile, snapshots: sorted, current };
+  if (!flagOn('WELLBEING_FIELD_ESTIMATES')) return { profile, snapshots: sorted, current };
+  // The saved profile joins the estimate as one more (decayed) observation, never as the answer.
+  const all = profile?.current ? [...sorted, profile.current] : sorted;
+  return { profile, snapshots: sorted, current, estimates: estimateWellbeing(all, new Date()) };
+}
+
+const FLIPPED: Record<Direction, Direction> = {
+  rising: 'falling',
+  falling: 'rising',
+  steady: 'steady',
+};
+
+/** Each panel field from its estimate; connection is shown as 1 minus loneliness. */
+function panelFields(estimates: WellbeingEstimates): Record<PanelField, PanelFieldInfo | null> {
+  const out = {} as Record<PanelField, PanelFieldInfo | null>;
+  for (const field of Object.keys(PANEL_FIELDS) as PanelField[]) {
+    const e = estimates[PANEL_FIELDS[field]];
+    if (!e) {
+      out[field] = null;
+      continue;
+    }
+    const invert = field === 'connection';
+    out[field] = {
+      asOf: e.asOf,
+      observations: e.observations,
+      direction: invert && e.direction ? FLIPPED[e.direction] : e.direction,
+    };
+  }
+  return out;
 }
 
 function dim(
@@ -202,6 +258,7 @@ export function buildDashboardResponse(
     sleep: dim(d, 'sleepQuality'),
     lastUpdated: data.current.timestamp.toISOString(),
   };
+  if (data.estimates) currentState.fields = panelFields(data.estimates);
 
   return {
     userId,
