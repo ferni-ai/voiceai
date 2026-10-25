@@ -19,8 +19,8 @@
  * @module intelligence/world-model/temporal/in-call
  */
 
-import { forgetTokens, isForgotten } from '../../../memory/index.js';
-import type { TemporalFact } from './types.js';
+import { forgetTokens, isForgotten, worldFactText } from '../../../memory/index.js';
+import { AVOID_THREAD, avoidedTopics, type TemporalFact } from './types.js';
 
 /** True when WORLD_FACTS_IN_CALL=on. Off by default. */
 export function isWorldFactsInCallOn(
@@ -52,7 +52,6 @@ export interface InCallOptions {
 }
 
 const DAY_MS = 86_400_000;
-const AVOID = /^avoid:\s*/i;
 /** Words that name a slot, not a value: "work" alone doesn't name the old job. */
 const GENERIC = new Set(
   'work job live lived home house place school started start moved move new old'.split(' ')
@@ -96,12 +95,6 @@ function dayName(day: string): string {
   const part = (o: Intl.DateTimeFormatOptions) =>
     at.toLocaleDateString('en-US', { ...o, timeZone: 'UTC' });
   return `${part({ weekday: 'short' })} ${part({ month: 'short', day: 'numeric' })}`;
-}
-
-function aboutText(f: TemporalFact): string {
-  return [f.subject, f.relation, f.attribute, f.value, f.replaced, f.source?.quote]
-    .filter(Boolean)
-    .join(' ');
 }
 
 /** The caller just named the value this fact replaced ("how's Acme?" after "started at Beta"). */
@@ -176,10 +169,7 @@ function subjectOf(f: TemporalFact, userName: string | undefined): string {
 export function worldFactLines(facts: readonly TemporalFact[], opts: InCallOptions): string[] {
   const tz = zone(opts.timeZone);
   const today = dayOf(opts.now, tz);
-  const avoid = facts
-    .filter((f) => f.attribute === 'thread' && AVOID.test(f.value))
-    .map((f) => f.value.replace(AVOID, ''));
-  const hidden = [...(opts.forgotten ?? []), ...avoid];
+  const hidden = [...(opts.forgotten ?? []), ...avoidedTopics(facts)];
   const old = oldNames(facts.filter((f) => f.validTo === null));
   const picks = facts
     .filter(
@@ -187,8 +177,8 @@ export function worldFactLines(facts: readonly TemporalFact[], opts: InCallOptio
         f.validTo === null &&
         (f.by ?? 'caller') === 'caller' &&
         f.confidence >= MIN_CONFIDENCE &&
-        !AVOID.test(f.value) &&
-        !isForgotten(aboutText(f), hidden) &&
+        !AVOID_THREAD.test(f.value) &&
+        !isForgotten(worldFactText(f), hidden) &&
         !aboutOldState(f, old)
     )
     .map((f) => pick(f, today, opts.words))

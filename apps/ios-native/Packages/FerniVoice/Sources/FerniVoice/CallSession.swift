@@ -33,6 +33,10 @@ public final class CallSession {
     public private(set) var isMuted = false
     /// A phone call or Siri has the audio; the call resumes when it's done.
     public private(set) var isOnHold = false
+    /// When the latest call began (what it taught Ferni is learned after this).
+    public private(set) var startedAt: Date?
+    /// The room of the latest call (a report's session id).
+    public private(set) var roomName: String?
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
     /// Whether this phone has ever had a call go live (Home's first-visit hello).
@@ -99,6 +103,7 @@ public final class CallSession {
         let id = UUID()
         callID = id
         callBegan = .now
+        startedAt = .now
         callTask = Task {
             // The system's call UI; the call still works if it refuses.
             try? await lifecycle?.begin(id: id, name: PersonaRegistry.get(personaID).name)
@@ -133,6 +138,15 @@ public final class CallSession {
             log.error("Interrupt not sent: \(error.localizedDescription, privacy: .public)")
             return false
         }
+    }
+
+    /// A different person: the last call's outcome and its "I'll remember"
+    /// anchor don't carry over. A call in progress is left alone.
+    public func forgetLastCall() {
+        guard !isActive else { return }
+        startedAt = nil
+        phase = .idle
+        captions.clear()
     }
 
     public func toggleMute() async {
@@ -213,6 +227,7 @@ public final class CallSession {
         }
         let room = makeRoom()
         self.room = room
+        roomName = token.room
         agentHere = false
         eventsTask = Task { [weak self] in
             for await event in room.events { self?.handle(event, from: room) }

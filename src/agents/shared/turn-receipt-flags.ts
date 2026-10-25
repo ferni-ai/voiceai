@@ -38,6 +38,7 @@ export const RECEIPT_FLAGS = [
   'BARGE_IN_FAST_STOP',
   'BARGE_IN_SOFT_PAUSE',
   'SOUND_CONDUCTOR',
+  'QUICK_SHORTCUTS_REAL_ONLY',
 ] as const satisfies readonly FlagName[];
 
 /** Numeric knobs read straight from env: shown only as a plain number. */
