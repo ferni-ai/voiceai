@@ -16,6 +16,10 @@ import {
 } from '../inbound-call-context.js';
 
 const CLAIM = /notif\w*[^.\n]{0,40}\bcalls?\b|supervised access/i;
+// The source scan also catches comments that describe 'supervised' as notifying the
+// sponsor, like the old "'supervised' (the sponsor gets notifications)" on ACCESS_LEVELS.
+const SOURCE_CLAIM =
+  /notif\w*[^.\n]{0,40}\bcalls?\b|supervised access|supervised[^\n]{0,40}notif|sponsor\w*\s+(?:gets|receives)\s+notif/i;
 
 const caller = (accessLevel: InboundCallContext['accessLevel']): InboundCallContext => ({
   callSid: 'CA-test',
@@ -83,7 +87,7 @@ describe('inbound call prompt never claims the sponsor is notified', () => {
           readFileSync(path, 'utf8')
             .split('\n')
             .forEach((line, n) => {
-              if (CLAIM.test(line)) hits.push(`${path}:${n + 1}: ${line.trim()}`);
+              if (SOURCE_CLAIM.test(line)) hits.push(`${path}:${n + 1}: ${line.trim()}`);
             });
         }
       }
