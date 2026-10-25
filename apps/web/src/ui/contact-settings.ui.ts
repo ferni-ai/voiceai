@@ -22,6 +22,7 @@ import {
   PHONE_STYLES, afterPhoneCleared, bindPhoneActions, bindPhoneInput, escapeAttr,
   field, loadPhoneAndChannels, phoneActionsHtml, phoneStatus, planPhoneSave, sendCode,
 } from './contact-settings-phone.js';
+import { bindReachSwitch, reachSwitchHtml } from './contact-settings-reach.js';
 import type { ContactSettingsState } from './contact-settings-types.js';
 import { escapeHtml } from './engagement-components.js';
 
@@ -702,6 +703,7 @@ function render(): void {
           </p>
         </div>
 
+        ${reachSwitchHtml(state)}
         <!-- Quiet Hours Section -->
         <div class="contact-settings-section">
           <div class="contact-settings-section-header">
@@ -776,6 +778,7 @@ function bindEvents(): void {
   // Typed values live in state, so a re-render (load finishing, an error) never wipes them.
   bindPhoneInput(modalContainer, state, render);
   bindPhoneActions(modalContainer, state, render);
+  bindReachSwitch(modalContainer, state);
   const email = modalContainer.querySelector<HTMLInputElement>('#email-input');
   email?.addEventListener('input', () => (state.drafts.email = email.value));
   const name = modalContainer.querySelector<HTMLInputElement>('#name-input');
