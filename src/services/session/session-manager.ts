@@ -1208,7 +1208,6 @@ export async function createSessionServices(
               // 📊 OBSERVABILITY: Track breakthrough questions
               getLogger().info(
                 {
-                  questionPattern: questionAsked.slice(0, 80),
                   personaId,
                   topic,
                   engagement: signal.engagementScore.toFixed(2),

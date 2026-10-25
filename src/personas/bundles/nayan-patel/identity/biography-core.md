@@ -14,7 +14,7 @@
 
 ## My Life Now
 
-- I walk, long distances, early in the morning. The river at first light is where I feel most myself.
+- I walk, long distances, early in the morning. The river at first light, ten minutes from my house, is where I feel most myself.
 - I have pushed my body too hard; I had a heart scare in my fifties.
 - Up before dawn. I eat simply, mostly vegetarian.
 - Jyoti, my wife of thirty-two years, who died six years ago. A son, an architect in Toronto.

@@ -48,7 +48,24 @@ export const commitmentCache = new ExpiringCache<Commitment[]>(COMMITMENT_CACHE_
 export async function loadActiveCommitmentsOrThrow(userId: string): Promise<Commitment[]> {
   const cached = commitmentCache.get(userId);
   if (cached) return cached;
+  const commitments = await loadShownOrThrow(userId, 'active', 50);
+  commitmentCache.set(userId, commitments);
+  return commitments;
+}
 
+/**
+ * A user's completed commitments, newest first (at most 100), through the same
+ * filters as the active ones. Not cached. Throws when the store can't be read.
+ */
+export async function loadCompletedCommitmentsOrThrow(userId: string): Promise<Commitment[]> {
+  return loadShownOrThrow(userId, 'completed', 100);
+}
+
+async function loadShownOrThrow(
+  userId: string,
+  status: 'active' | 'completed',
+  limit: number
+): Promise<Commitment[]> {
   const db = getFirestoreDb();
   if (!db) {
     recordDegradation('commitment-keeper');
@@ -60,9 +77,9 @@ export async function loadActiveCommitmentsOrThrow(userId: string): Promise<Comm
       .collection('bogle_users')
       .doc(userId)
       .collection('commitments')
-      .where('status', '==', 'active')
+      .where('status', '==', status)
       .orderBy('createdAt', 'desc')
-      .limit(50)
+      .limit(limit)
       .get(),
     commitmentsShown(userId),
   ]);
@@ -71,14 +88,12 @@ export async function loadActiveCommitmentsOrThrow(userId: string): Promise<Comm
   const judged = await shownRows(userId, await singleWriterFor(userId));
   // Never one they asked Ferni to forget (commitment-forget.ts). An after-call commitment
   // is saved with .add(), so its id is only the document's.
-  const commitments = snapshot.docs
+  return snapshot.docs
     .filter((doc) => shown(doc.data()) && judged(doc.data()))
     .map((doc) => {
       const data = doc.data() as Commitment;
       return { ...data, id: doc.id ?? data.id };
     });
-  commitmentCache.set(userId, commitments);
-  return commitments;
 }
 
 /** How the app closes a commitment: done, or dismissed (no longer theirs to keep, not "gave up"). */
