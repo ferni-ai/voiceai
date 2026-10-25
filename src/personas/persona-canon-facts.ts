@@ -58,13 +58,18 @@ export function canonBundle(personaId: string): string | null {
   return CANON_BUNDLES.find((b) => b === key || b.split('-')[0] === key) ?? null;
 }
 
+/** A loss (Nayan's late wife): canon.json says raise it only if asked, in the past tense. */
+const GRIEF = /\b(?:died|late|passed)\b/i;
+export const ONLY_IF_ASKED = '(only if asked, past tense)';
+
 /** The one line, from the facts any source gives. */
 export function canonFactsLine(facts: CanonFacts): string {
   const known = (value: string): boolean => value !== NONE_MENTIONED;
+  const partner = GRIEF.test(facts.partner) ? `${facts.partner} ${ONLY_IF_ASKED}` : facts.partner;
   const parts = [
     facts.pronouns,
     known(facts.age) ? `age ${facts.age}` : '',
-    known(facts.partner) ? `partner: ${facts.partner}` : '',
+    known(facts.partner) ? `partner: ${partner}` : '',
     known(facts.pets) ? `pets: ${facts.pets}` : '',
     known(facts.home) ? `home: ${facts.home}` : '',
     `work: ${facts.work}`,

@@ -22,6 +22,7 @@ import {
   CANON_FACTS_FILE,
   CANON_FACTS_TOKENS,
   NONE_MENTIONED,
+  ONLY_IF_ASKED,
   canonFactsLine,
   withCanonFacts,
   type CanonFacts,
@@ -166,6 +167,17 @@ describe('the facts line in the live persona prompt', () => {
   afterEach(() => {
     delete process.env['PERSONA_CANON_FACTS'];
     delete process.env['PROMPT_MODE'];
+  });
+
+  // canon.json: "Don't bring her up unprompted, and speak of her in the past tense."
+  it("Nayan's line says his late wife comes up only if asked, in the past tense", () => {
+    const nayan = canonFactsLine(facts('nayan-patel'));
+    expect(nayan).toContain(`partner: Jyoti, your wife, died six years ago ${ONLY_IF_ASKED};`);
+    expect(ONLY_IF_ASKED).toMatch(/only if asked/);
+    expect(ONLY_IF_ASKED).toMatch(/past tense/);
+    for (const b of CANON_BUNDLES.filter((x) => x !== 'nayan-patel')) {
+      expect(canonFactsLine(facts(b)), b).not.toContain(ONLY_IF_ASKED);
+    }
   });
 
   const jordan = canonFactsLine(facts('jordan-taylor'));
