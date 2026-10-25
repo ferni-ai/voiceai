@@ -1,5 +1,5 @@
 /**
- * POST /api/jobs/waitlist-wave   (Mon and Thu 17:00 UTC; ?dryRun=true; WAITLIST_WAVES)
+ * POST /api/jobs/waitlist-wave   (Mon and Thu 17:00 UTC; ?apply=true to admit; WAITLIST_WAVES)
  *
  * Lets the next wave in (services/waitlist/wave.ts). Off unless the UI server
  * has WAITLIST_WAVES=on; until then every run answers flag-off. The wave id is
@@ -50,12 +50,10 @@ export async function handleWaitlistWave(
   res: ServerResponse,
   run = runWaitlistWaveJob
 ): Promise<void> {
-  // prettier-ignore
-  const dryRun = ['true', '1'].includes(
-    new URL(req.url ?? '/', 'http://localhost').searchParams.get('dryRun') ?? ''
-  );
+  // A dry run unless ?apply=true: a bare scheduler POST admits nobody.
+  const apply = new URL(req.url ?? '/', 'http://localhost').searchParams.get('apply') === 'true';
   try {
-    sendJson(res, 200, { success: true, job: 'waitlist-wave', ...(await run({ dryRun })) }); // prettier-ignore
+    sendJson(res, 200, { success: true, job: 'waitlist-wave', ...(await run({ dryRun: !apply })) }); // prettier-ignore
   } catch (error) {
     log.error({ error: String(error) }, 'Waitlist wave failed');
     sendJson(res, 500, { success: false, job: 'waitlist-wave', error: 'wave_failed' }); // detail stays in the log

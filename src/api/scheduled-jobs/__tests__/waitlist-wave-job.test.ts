@@ -10,6 +10,7 @@ import { memoryWaveStore } from '../../../services/waitlist/__tests__/memory-wav
 import { joinWaitlist } from '../../../services/waitlist/join.js';
 import { JOB_PATHS } from '../index.js';
 import { handleWaitlistWave, runWaitlistWaveJob } from '../waitlist-jobs.js';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 const NOW = new Date('2026-10-22T17:00:00Z');
 
@@ -33,6 +34,32 @@ describe('waitlist-wave job', () => {
     });
     const out = await runWaitlistWaveJob({ dryRun: false, env: { WAITLIST_WAVES: 'on' }, deps, now: NOW }); // prettier-ignore
     expect(out).toMatchObject({ waveId: '2026-10-22', wave: 1, admitted: 1 });
+  });
+
+  it('a bare POST is a dry run: it admits nobody', async () => {
+    const q = memoryStore();
+    await joinWaitlist(q.store, { email: 'pat@example.com', verified: true, source: 't', now: new Date('2026-10-01') }); // prettier-ignore
+    const w = memoryWaveStore(q.docs);
+    const seen: boolean[] = [];
+    const run = (opts: { dryRun: boolean }) => {
+      seen.push(opts.dryRun);
+      return runWaitlistWaveJob({ ...opts, env: { WAITLIST_WAVES: 'on' }, now: NOW, deps: async (now, dryRun) => ({ store: w.store, guard: async () => ({ state: 'ok', costUsd: 1, costDay: null, errorRate: 0, reasons: [] }), now, dryRun }) }); // prettier-ignore
+    };
+    const res = { writeHead: () => undefined, end: () => undefined };
+    await handleWaitlistWave({ url: '/api/jobs/waitlist-wave' } as IncomingMessage, res as unknown as ServerResponse, run); // prettier-ignore
+    await handleWaitlistWave({ url: '/api/jobs/waitlist-wave?apply=true' } as IncomingMessage, res as unknown as ServerResponse, run); // prettier-ignore
+    expect(seen).toEqual([true, false]);
+  });
+
+  it('a bare POST writes no wave and admits no one', async () => {
+    const q = memoryStore();
+    await joinWaitlist(q.store, { email: 'pat@example.com', verified: true, source: 't', now: new Date('2026-10-01') }); // prettier-ignore
+    const w = memoryWaveStore(q.docs);
+    const deps = async (now: Date, dryRun: boolean): Promise<WaveDeps> => ({ store: w.store, guard: async () => ({ state: 'ok', costUsd: 1, costDay: null, errorRate: 0, reasons: [] }), now, dryRun }); // prettier-ignore
+    const res = { writeHead: () => undefined, end: () => undefined };
+    await handleWaitlistWave({ url: '/api/jobs/waitlist-wave' } as IncomingMessage, res as unknown as ServerResponse, (opts) => runWaitlistWaveJob({ ...opts, env: { WAITLIST_WAVES: 'on' }, now: NOW, deps })); // prettier-ignore
+    expect(w.waves.size).toBe(0);
+    expect([...q.docs.values()].some((d) => d.status === 'admitted')).toBe(false);
   });
 
   it('a failure answers 500 with a generic error, never the exception text', async () => {
