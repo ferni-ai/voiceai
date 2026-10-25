@@ -67,6 +67,7 @@ import {
   type CallResult,
   type CallTranscript,
 } from './arc-lib.js';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 // ---- frozen clock: each call happens at 18:00 UTC on its own day ----------
 const RealDate = Date;
@@ -91,7 +92,7 @@ const quiet = { debug: () => undefined };
 const project = process.env.GOOGLE_CLOUD_PROJECT ?? 'johnb-2025';
 const ai = new GoogleGenAI({ vertexai: true, project, location: 'global' });
 const MODEL = process.env.ARC_MODEL ?? 'gemini-3.5-flash';
-const JUDGE = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+const JUDGE = judgeModel();
 
 type Content = { role: 'user' | 'model'; parts: Array<{ text: string }> };
 
@@ -111,7 +112,10 @@ async function generate(
           ...(system ? { systemInstruction: system } : {}),
           maxOutputTokens,
           temperature,
-          ...(model.includes('pro') ? {} : { thinkingConfig: minimalThinkingFor(model) }),
+          // The judge thinks at its model's default, the setting the Flash/Pro check measured.
+          ...(model === JUDGE || model.includes('pro')
+            ? {}
+            : { thinkingConfig: minimalThinkingFor(model) }),
         },
       });
       return (res.text ?? '').trim();

@@ -24,6 +24,7 @@ import { llm } from '@livekit/agents';
 
 import { spoken, type Line } from './simulate.js';
 import { generate, type Content } from './vertex.js';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 interface Persona {
   id: string;
@@ -174,7 +175,7 @@ async function judge(lines: Line[]): Promise<Record<string, unknown>> {
     .map((l) => `${l.who === 'agent' ? 'Ferni' : 'Caller'}: ${spoken(l.text)}`)
     .join('\n');
   const text = await generate({
-    model: process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview',
+    model: judgeModel(),
     system: 'You are a careful judge of conversations.',
     contents: [{ role: 'user', parts: [{ text: `${JUDGE}\n\nCALL:\n${call}` }] }],
     temperature: 0.2,
