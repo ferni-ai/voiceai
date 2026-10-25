@@ -1,23 +1,18 @@
 /**
- * An answer stored under a nearby date doesn't restart its follow-up (memory
- * audit 2026-10-25, after #2856). The asked state was keyed on the event's
- * day, so an answer stored under ANOTHER day (re-dated to the call day, "the
- * other day" read another way, another zone's day) was a new subject+day pair
- * and was asked about again. A one-time date of the same person within
- * SAME_EVENT_DAYS of one asked about lately now counts as already asked;
- * other events, and yearly dates, are their own thing. Made-up people only.
+ * An answer stored under a nearby date doesn't restart its follow-up, and a
+ * different event of the same person is still asked (memory audit 2026-10-25,
+ * after #2856; same-event.ts). Made-up people only.
  */
 import { describe, expect, it, vi } from 'vitest';
 import { planResolution, type SupersedeJudge } from '../../temporal/resolve.js';
-import { createFirestoreWorldFactStore, type WorldFactStore } from '../../temporal/store.js';
-import type { TemporalFact, WorldObservation } from '../../temporal/types.js';
 import {
-  createDatesRecall,
-  dueDate,
-  QUIET_DAYS,
-  SAME_EVENT_DAYS,
-  type RaisableDate,
-} from '../recall.js';
+  createFirestoreWorldFactStore,
+  markFactRaised,
+  type WorldFactStore,
+} from '../../temporal/store.js';
+import type { TemporalFact, WorldObservation } from '../../temporal/types.js';
+import { createDatesRecall, dueDate, QUIET_DAYS, type RaisableDate } from '../recall.js';
+import { SAME_EVENT_DAYS } from '../same-event.js';
 
 const U = 'u1';
 const TODAY = '2026-10-25';
@@ -40,13 +35,25 @@ function fact(over: Partial<RaisableDate>): RaisableDate {
     validFrom: `${ago(6)}T18:00:00Z`,
     validTo: null,
     confidence: 0.7,
-    source: { kind: 'summary', sessionId: 's1' },
+    source: { kind: 'summary', sessionId: 'call-0' },
     ...over,
   };
 }
 
-/** Dinner with Sam on D = ago(2), asked about yesterday and closed by its answer. */
-const ASKED = fact({ id: 'a', validTo: 'closed', raisedOn: ago(1), raisedAs: 'passed' });
+/** Asked about yesterday in call-1 ("how did it go?"), and closed. */
+const asked = (over: Partial<RaisableDate>): RaisableDate =>
+  fact({
+    id: 'a',
+    validTo: 'closed',
+    raisedOn: ago(1),
+    raisedAs: 'passed',
+    raisedIn: 'call-1',
+    ...over,
+  });
+
+/** Told in a call other than the one that asked. */
+const later = (over: Partial<RaisableDate>): RaisableDate =>
+  fact({ id: 'b', source: { kind: 'summary', sessionId: 'call-2' }, ...over });
 
 /** A world store with the Firestore contract: open facts, and raised ones open or closed. */
 function worldStore() {
@@ -62,142 +69,224 @@ function worldStore() {
       for (const r of plan.refresh) Object.assign(docs.get(r.id)!, r);
     },
   };
-  const mark = async (_u: string, id: string, day: string, moment: string) => {
-    Object.assign(docs.get(id)!, { raisedOn: day, raisedAs: moment });
-  };
-  return { docs, store, mark };
-}
-
-function obs(value: string, eventDate: string, at: string): WorldObservation {
-  return {
-    subject: 'Sam',
-    subjectKind: 'person',
-    relation: 'friend',
-    attribute: 'event',
-    value,
-    eventDate,
-    observedAt: at,
-    confidence: 0.6,
-    source: { kind: 'summary', sessionId: `s-${at}` },
-  };
+  return { docs, store };
 }
 
 let n = 0;
 const newId = () => `wf_${++n}`;
 
-describe('an answer stored under a nearby date', () => {
-  it('is not asked again (the audit chain, through the store)', async () => {
+describe('the same event, stored again under a nearby date, is asked once', () => {
+  it('the audit chain: answers re-dated to D+1 and to the call day, one closing nothing', async () => {
     const w = worldStore();
-    const told = async (o: WorldObservation, judge?: SupersedeJudge) =>
+    const obs = (value: string, eventDate: string, at: string, sessionId: string) =>
+      ({
+        subject: 'Sam',
+        subjectKind: 'person',
+        relation: 'friend',
+        attribute: 'event',
+        value,
+        eventDate,
+        observedAt: at,
+        confidence: 0.6,
+        source: { kind: 'summary', sessionId },
+      }) satisfies WorldObservation;
+    const told = async (o: WorldObservation, judge: SupersedeJudge) =>
       w.store.apply(U, await planResolution(await w.store.listOpen(U), [o], { newId, judge }));
     /** One call: the fact id it raises (marked raised, as when the note is given), or null. */
-    const call = async (at: string): Promise<string | null> => {
-      const ids: string[] = [];
+    const call = async (at: string, sessionId: string): Promise<string | null> => {
       const dates = createDatesRecall({
         userId: U,
+        sessionId,
         store: w.store,
-        mark: async (u, id, day, moment) => (ids.push(id), w.mark(u, id, day, moment)),
+        mark: (u, id, day, moment, session) =>
+          markFactRaised(u, id, day, moment, session, () => fakeDb(w.docs)),
         forgotten: async () => [],
         now: () => new Date(at),
       });
       await dates.ready;
-      if (dates.note()) dates.raised();
-      await Promise.resolve();
-      return ids[0] ?? null;
+      const note = dates.note();
+      if (note) dates.raised();
+      await new Promise<void>((r) => {
+        setTimeout(r, 0);
+      });
+      return note ? [...w.docs.values()].find((f) => f.raisedOn === at.slice(0, 10))!.id : null;
     };
 
-    // Told on the 21st: dinner with Sam on the 23rd (fact A).
-    await told(obs('dinner', '2026-10-23', '2026-10-21T18:00:00Z'));
+    // Told on the 20th: dinner with Sam on the 23rd (fact A, D).
+    await told(obs('dinner', '2026-10-23', '2026-10-20T18:00:00Z', 'call-0'), async () => []);
     const a = [...w.docs.values()][0];
-    // Call 1, the 24th: "how did dinner with Sam go?"
-    expect(await call('2026-10-24T14:40:00Z')).toBe(a.id);
-    // The answer is stored as fact B under the call's day, closing A.
+    // Call 1, the 25th (D+2): "how did dinner with Sam go?"
+    expect(await call('2026-10-25T14:40:00Z', 'call-1')).toBe(a.id);
+    expect(w.docs.get(a.id)).toMatchObject({ raisedAs: 'passed', raisedIn: 'call-1' });
+    // In that call: "it went great" re-dated to D+1, closing A ...
     const closeAll: SupersedeJudge = async (_o, open) => open.map((f) => f.id);
-    await told(obs('dinner went well', '2026-10-24', '2026-10-24T14:41:00Z'), closeAll);
-    const b = [...w.docs.values()].find((f) => f.id !== a.id)!;
-    expect(w.docs.get(a.id)).toMatchObject({ raisedOn: '2026-10-24', raisedAs: 'passed' });
-    expect(w.docs.get(a.id)!.validTo).not.toBeNull();
-    expect(b).toMatchObject({ eventDate: '2026-10-24', validTo: null });
-    expect(b.raisedOn).toBeUndefined(); // a new subject+day pair: never asked, on its own
+    await told(obs('went great', '2026-10-24', '2026-10-25T14:41:00Z', 'call-1'), closeAll);
+    // ... and "pretty well", dated the call day, closing nothing.
+    await told(obs('pretty well', '2026-10-25', '2026-10-25T14:42:00Z', 'call-1'), async () => []);
+    const open = (await w.store.listOpen(U)).filter((f) => f.subjectKey === 'person:sam');
+    expect(open.map((f) => f.eventDate).sort()).toEqual(['2026-10-24', '2026-10-25']);
+    expect(open.every((f) => f.raisedOn === undefined)).toBe(true); // new subject+day pairs
 
-    // Call 2, the next day: B is a passed date that was never raised. Nothing is asked.
-    expect(await call('2026-10-25T13:01:00Z')).toBeNull();
-    expect(b.raisedOn).toBeUndefined();
+    // Calls 2 and 3, the next days: nothing more about Sam's dinner.
+    expect(await call('2026-10-26T13:01:00Z', 'call-2')).toBeNull();
+    expect(await call('2026-10-27T13:01:00Z', 'call-3')).toBeNull();
   });
 
-  it.each([
-    ['the next day (D+1)', 1],
-    ['the call day (D+2)', 0],
-  ])('re-dated to %s: not asked, and its id is reported', (_label, daysAgo) => {
-    const answer = fact({ id: 'b', value: 'dinner went well', eventDate: ago(daysAgo) });
-    expect(dueDate([answer], TODAY)?.id).toBe('b'); // without the asked fact it would be raised
+  it('(a) chain: an answer told in a later call that closes the asked fact', () => {
+    const answer = later({ value: 'evening was lovely', eventDate: ago(1), supersedes: ['a'] });
+    expect(dueDate([answer], TODAY)?.id).toBe('b'); // on its own it would be raised
     const onSameEvent = vi.fn();
-    expect(dueDate([ASKED, answer], TODAY, { onSameEvent })).toBeNull();
+    expect(dueDate([asked({}), answer], TODAY, { onSameEvent })).toBeNull();
     expect(onSameEvent).toHaveBeenCalledWith('b');
   });
 
-  it(`matches up to ${SAME_EVENT_DAYS} days either side, and not past that`, () => {
-    const at = (gap: number) => fact({ id: 'b', eventDate: ago(2 + gap) });
-    expect(dueDate([ASKED, at(SAME_EVENT_DAYS)], TODAY)).toBeNull();
-    expect(dueDate([ASKED, at(SAME_EVENT_DAYS + 1)], TODAY)?.id).toBe('b');
+  it('(b) told in the asking call, by its session; or, for an older raise, by its day', () => {
+    const answer = (over: Partial<RaisableDate>) =>
+      fact({ id: 'b', value: 'pretty well', eventDate: ago(1), ...over });
+    const inCall = answer({ source: { kind: 'summary', sessionId: 'call-1' } });
+    expect(dueDate([asked({}), inCall], TODAY)).toBeNull();
+    expect(
+      dueDate([asked({}), later({ value: 'pretty well', eventDate: ago(1) })], TODAY)?.id
+    ).toBe('b');
+    // No raisedIn: told on the raise day, in the caller's zone (9 pm in New York is UTC tomorrow).
+    const old = asked({ raisedIn: undefined, raisedOn: ago(1) });
+    const evening = answer({ observedAt: `${ago(0)}T01:00:00Z` });
+    expect(dueDate([old, evening], TODAY)?.id).toBe('b');
+    expect(dueDate([old, evening], TODAY, { timeZone: 'America/New_York' })).toBeNull();
+  });
+
+  it(`(c) same kind and words within ${SAME_EVENT_DAYS} days, from any call`, () => {
+    const job = asked({ value: 'job interview', kind: 'event' });
+    const at = (gap: number) => later({ value: 'interview went great', eventDate: ago(2 + gap) });
+    expect(dueDate([job, at(1)], TODAY)).toBeNull();
+    expect(dueDate([job, at(SAME_EVENT_DAYS)], TODAY)).toBeNull();
+    expect(dueDate([job, at(SAME_EVENT_DAYS + 1)], TODAY)?.id).toBe('b');
+    // The same words under another kind are another thing.
+    const medical = later({ value: 'interview', kind: 'medical', eventDate: ago(1) });
+    expect(dueDate([job, medical], TODAY)?.id).toBe('b');
   });
 
   it('only counts asks within the quiet window', () => {
-    const asked = (days: number) => ({ ...ASKED, raisedOn: ago(days) });
-    const answer = fact({ id: 'b', eventDate: ago(1) });
-    expect(dueDate([asked(QUIET_DAYS - 1), answer], TODAY)).toBeNull();
-    expect(dueDate([asked(QUIET_DAYS), answer], TODAY)?.id).toBe('b');
+    const answer = later({ eventDate: ago(1) }); // "dinner" again
+    expect(dueDate([asked({ raisedOn: ago(QUIET_DAYS - 1) }), answer], TODAY)).toBeNull();
+    expect(dueDate([asked({ raisedOn: ago(QUIET_DAYS) }), answer], TODAY)?.id).toBe('b');
   });
 });
 
-describe('other events of the same person are their own thing', () => {
-  it('an event 10 days after the asked one is asked', () => {
-    const asked = { ...ASKED, eventDate: ago(12), raisedOn: ago(11) };
-    const later = fact({ id: 'c', value: 'job interview', eventDate: ago(2) });
-    expect(dueDate([asked, later], TODAY)?.id).toBe('c');
-  });
-
-  it('a birthday is never matched to a nearby ask, only its own asked state', () => {
-    const mom = { subject: 'Mom', relation: 'mom', subjectKey: 'person:mom' };
-    const call = (eventDate: string, raisedOn: string) =>
-      fact({ ...mom, id: 'p', value: 'phone call', eventDate, validTo: 'closed', raisedOn });
-    const birthday = (daysAhead: number) =>
+describe('a different event of the same person is still asked', () => {
+  const mom = { subject: 'Mom', relation: 'mom', subjectKey: 'person:mom' };
+  const self = {
+    subject: 'self',
+    subjectKind: 'self' as const,
+    relation: undefined,
+    subjectKey: 'self',
+  };
+  const kim = { subject: 'Kim', relation: 'sister', subjectKey: 'person:kim' };
+  const cases: Array<[string, RaisableDate, RaisableDate]> = [
+    [
+      "mom's surgery, then her follow-up appointment (told in the asking call)",
+      asked({ ...mom, value: 'knee surgery', kind: 'medical' }),
       fact({
         ...mom,
-        id: 'bd',
+        id: 'b',
+        value: 'follow-up appointment',
+        kind: 'medical',
+        eventDate: ago(-1),
+        source: { kind: 'summary', sessionId: 'call-1' },
+      }),
+    ],
+    [
+      "Sam's birthday, then his interview the next day",
+      asked({
         value: 'birthday',
         kind: 'birthday',
         recurrence: 'yearly',
-        monthDay: ago(-daysAhead).slice(5),
-        eventDate: ago(-daysAhead),
-      });
-    // Five days after the ask about her phone call.
-    expect(dueDate([call(ago(4), ago(3)), birthday(2)], TODAY)?.id).toBe('bd');
-    // Two days after the call itself: within SAME_EVENT_DAYS, still its own thing.
-    expect(dueDate([call(ago(1), TODAY), birthday(1)], TODAY)?.id).toBe('bd');
-    // Its own asked state still applies: asked "soon" already, not again as "soon".
-    const askedSoon = { ...birthday(1), raisedOn: ago(1), raisedAs: 'soon' as const };
+        monthDay: ago(1).slice(5),
+        eventDate: ago(1),
+        raisedAs: 'today',
+      }),
+      later({ value: 'job interview', kind: 'event', eventDate: ago(0) }),
+    ],
+    [
+      "sister's wedding, then her honeymoon",
+      asked({ ...kim, value: 'wedding', kind: 'event', eventDate: ago(3) }),
+      later({ ...kim, value: 'honeymoon', kind: 'event', eventDate: ago(1) }),
+    ],
+    [
+      "the caller's dentist visit, then their interview",
+      asked({ ...self, value: 'dentist appointment', kind: 'medical' }),
+      later({ ...self, value: 'job interview', kind: 'event', eventDate: ago(1) }),
+    ],
+    [
+      "Kim's move, then her housewarming",
+      asked({ ...kim, value: 'moving into the new apartment', kind: 'event' }),
+      later({ ...kim, value: 'housewarming party', kind: 'event', eventDate: ago(1) }),
+    ],
+    [
+      'dinner with Sam, then his concert',
+      asked({ value: 'dinner', kind: 'event' }),
+      later({ value: 'concert', kind: 'event', eventDate: ago(0) }),
+    ],
+  ];
+
+  it.each(cases)('%s', (_label, prior, next) => {
+    expect(dueDate([prior, next], TODAY)?.id).toBe('b');
+  });
+
+  it('an event 10 days after the asked one', () => {
+    const prior = asked({ eventDate: ago(12), raisedOn: ago(11) });
+    expect(dueDate([prior, later({ eventDate: ago(2) })], TODAY)?.id).toBe('b');
+  });
+
+  it('a birthday is never matched to an ask, only by its own asked state', () => {
+    // Same words, no kind to tell them apart, within SAME_EVENT_DAYS: only the exemption keeps it.
+    const party = asked({ ...mom, value: 'birthday dinner', eventDate: ago(0) });
+    const birthday = fact({
+      ...mom,
+      id: 'bd',
+      value: 'birthday',
+      kind: 'birthday',
+      recurrence: 'yearly',
+      monthDay: ago(-1).slice(5),
+      eventDate: ago(-1),
+      source: { kind: 'summary', sessionId: 'call-1' },
+    });
+    expect(dueDate([party, birthday], TODAY)?.id).toBe('bd');
+    const askedSoon = { ...birthday, raisedOn: ago(1), raisedAs: 'soon' as const };
     expect(dueDate([askedSoon], TODAY)).toBeNull();
   });
 
   it('someone else asked about yesterday does not block Sam', () => {
-    const kim = { ...ASKED, id: 'k', subject: 'Kim', subjectKey: 'person:kim' };
-    expect(dueDate([kim, fact({ id: 's', eventDate: ago(1) })], TODAY)?.id).toBe('s');
+    const kimAsked = asked({ ...kim, value: 'dinner' });
+    expect(dueDate([kimAsked, later({ eventDate: ago(1) })], TODAY)?.id).toBe('b');
   });
 
   it('treats case and spacing in the subject key as one person', () => {
-    const spaced = fact({ id: 's', subjectKey: 'person:Sam ', eventDate: ago(1) });
-    expect(dueDate([spaced], TODAY)?.id).toBe('s');
-    expect(dueDate([ASKED, spaced], TODAY)).toBeNull();
+    const spaced = later({ subjectKey: 'person:Sam ', eventDate: ago(1) });
+    expect(dueDate([spaced], TODAY)?.id).toBe('b');
+    expect(dueDate([asked({}), spaced], TODAY)).toBeNull();
   });
 
-  it("still allows the same fact's other moment: soon, then how it went", () => {
-    const asked = fact({ id: 'a', eventDate: ago(2), raisedOn: ago(3), raisedAs: 'soon' });
-    expect(dueDate([asked], TODAY)).toMatchObject({ id: 'a', moment: 'passed' });
+  it('"soon" still leaves "how did it go?", for the fact and for one that replaced it', () => {
+    const soon = { raisedOn: ago(3), raisedAs: 'soon' as const, validTo: null };
+    expect(dueDate([asked({ ...soon })], TODAY)).toMatchObject({ id: 'a', moment: 'passed' });
+    const replaced = asked({ ...soon, validTo: 'closed', supersededBy: 'b' });
+    const answer = fact({ id: 'b', value: 'nervous about dinner', supersedes: ['a'] });
+    expect(dueDate([replaced, answer], TODAY)).toMatchObject({ id: 'b', moment: 'passed' });
   });
 });
 
-describe('loading what was asked lately', () => {
+/** Enough Firestore for markFactRaised: update() lands on the in-memory doc. */
+function fakeDb(docs: Map<string, TemporalFact>) {
+  const doc = (id: string) => ({
+    update: async (data: Partial<TemporalFact>) => void Object.assign(docs.get(id)!, data),
+  });
+  return {
+    collection: () => ({ doc: () => ({ collection: () => ({ doc }) }) }),
+  } as never;
+}
+
+describe('loading and marking what was asked', () => {
   it('reads raised facts from the window start, newest first, bounded', async () => {
     const calls: unknown[][] = [];
     const chain = {
@@ -227,5 +316,18 @@ describe('loading what was asked lately', () => {
     });
     await recall.ready;
     expect(since).toHaveBeenCalledWith(U, ago(QUIET_DAYS - 1));
+  });
+
+  it('a raise records its session only when the call has one', async () => {
+    const docs = new Map([['a', fact({ id: 'a' })]]);
+    await markFactRaised(U, 'a', TODAY, 'passed', 'call-9', () => fakeDb(docs));
+    expect(docs.get('a')).toMatchObject({
+      raisedOn: TODAY,
+      raisedAs: 'passed',
+      raisedIn: 'call-9',
+    });
+    docs.set('c', fact({ id: 'c' }));
+    await markFactRaised(U, 'c', TODAY, 'passed', undefined, () => fakeDb(docs));
+    expect(docs.get('c')).not.toHaveProperty('raisedIn');
   });
 });
