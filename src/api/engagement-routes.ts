@@ -60,6 +60,7 @@ import {
   handleFollowThroughUpcoming,
   isFollowThroughUpcomingRoute,
 } from './follow-through-upcoming-route.js';
+import { handleOnIt, isOnItRoute } from './on-it-route.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
@@ -97,6 +98,8 @@ function isEngagementRoute(pathname: string): boolean {
   if (GROUP_TWILIO_CALLBACK_PATHS.has(pathname)) return false;
   // Flag off, the follow-through list isn't claimed, so it 404s like any unknown path
   if (isFollowThroughUpcomingRoute(pathname)) return true;
+  // Same for "Ferni's on it" (FERNI_ON_IT)
+  if (isOnItRoute(pathname)) return true;
   return ENGAGEMENT_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
@@ -162,6 +165,11 @@ export async function handleEngagementRoutes(
 
   // What Ferni's holding (follow-through-upcoming-route.ts)
   if (await handleFollowThroughUpcoming(req, res, pathname)) {
+    return true;
+  }
+
+  // What Ferni is holding and doing, "Ferni's on it" (on-it-route.ts)
+  if (await handleOnIt(req, res, pathname)) {
     return true;
   }
 

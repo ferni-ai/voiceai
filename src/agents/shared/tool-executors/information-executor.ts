@@ -77,7 +77,7 @@ async function execute(
     const { getCurrentWeather } = await import('../../../tools/domains/information/weather.js');
     const location = (args.location as string) || (args.city as string) || 'current';
 
-    log.info({ location, toolId: fn }, '🌤️ Getting current weather');
+    log.info({ hasLocation: Boolean(location), toolId: fn }, '🌤️ Getting current weather');
     return getCurrentWeather(location);
   }
 
@@ -87,7 +87,7 @@ async function execute(
     const location = (args.location as string) || (args.city as string) || 'current';
     const days = (args.days as number) || 5;
 
-    log.info({ location, days, toolId: fn }, '📅 Getting weather forecast');
+    log.info({ hasLocation: Boolean(location), days, toolId: fn }, '📅 Getting weather forecast');
     return getWeatherForecast(location, days);
   }
 
@@ -140,7 +140,7 @@ async function execute(
     const query = args.query as string;
     const category = args.category as string;
 
-    log.info({ topic, query, category }, '📰 News search requested');
+    log.info({ hasTopic: Boolean(topic), queryChars: query?.length ?? 0, category }, '📰 News search requested');
 
     let newsText: string;
     if (topic === 'tech' || topic === 'technology') {

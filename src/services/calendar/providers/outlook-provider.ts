@@ -43,6 +43,7 @@ const SCOPES = ['openid', 'profile', 'offline_access', 'User.Read', 'Calendars.R
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { openTokens, sealTokensForMerge } from '../../../utils/token-at-rest.js';
 
 let db: FirestoreType | null = null;
 // FIX: Promise-based singleton to prevent race condition
@@ -650,9 +651,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
         .get();
 
       if (!doc.exists) return null;
-
-      const data = doc.data();
-      return data?.tokens || null;
+      return openTokens<MicrosoftTokens>(doc.data()?.tokens, 'calendar_providers/outlook');
     } catch {
       return null;
     }
@@ -674,7 +673,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
             displayName: tokens.displayName,
             syncEnabled: true,
             syncDirection: 'two-way',
-            tokens,
+            tokens: sealTokensForMerge(tokens), // the merge deletes any old plaintext keys
             lastSyncedAt: null,
           }),
           { merge: true }

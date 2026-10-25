@@ -11,7 +11,7 @@
  */
 
 import type { UserProfile } from '../../types/user-profile.js';
-import { buildUserAwareness } from '../voice-agent/phases/user-awareness.js';
+import { awarenessKind, buildUserAwareness } from '../voice-agent/phases/user-awareness.js';
 import { profileForPrompt } from '../../memory/recall/forget-every-reader.js';
 
 /**
@@ -58,7 +58,9 @@ export function injectUserAwareness(opts: {
     process.stderr.write(
       `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${facts.length} facts):\n`
     );
-    facts.forEach((fact, i) => process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`));
+    facts.forEach((f, i) =>
+      process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${awarenessKind(f)}\n`)
+    );
   } else {
     process.stderr.write(
       `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`
