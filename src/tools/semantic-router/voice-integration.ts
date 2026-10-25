@@ -867,9 +867,17 @@ export async function routeVoiceInput(
       entityCount: deepContext.entities.size,
     };
 
-    // If we resolved pronouns, log it
+    // If we resolved pronouns, log which ones: the values are the caller's words, and
+    // "the result" carries the last tool's whole output, so only its length is logged
     if (Object.keys(resolvedPronouns).length > 0) {
-      log.debug({ resolvedPronouns, toolId }, 'Pronouns resolved');
+      log.debug(
+        {
+          pronouns: Object.keys(resolvedPronouns),
+          resultLength: resolvedPronouns.result?.length,
+          toolId,
+        },
+        'Pronouns resolved'
+      );
     }
   }
   const { action } = routingResult;

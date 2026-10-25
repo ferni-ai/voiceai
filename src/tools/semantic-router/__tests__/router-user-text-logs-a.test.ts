@@ -46,6 +46,7 @@ vi.mock('../embedding-providers.js', async (importOriginal) => ({
   }),
 }));
 
+import { updateContextWithToolResult } from '../advanced/deep-context.js';
 import { SemanticRouter } from '../router.js';
 import { SemanticToolRegistry } from '../registry.js';
 import {
@@ -300,5 +301,49 @@ describe('router user-text logs', () => {
     for (const [fields] of lines) {
       expect((fields as Record<string, unknown>)[field]).toBe(TEXT.length);
     }
+  });
+  describe('"Pronouns resolved" (two turns in one session)', () => {
+    const NAME = 'Zebedeekins';
+    const calendarRoute = {
+      matches: [{ toolId: 'calendar_create_event', confidence: 0.5 }],
+      action: { type: 'conversation', reason: 'test' },
+    } as never;
+    const turn = (sessionId: string, text: string) =>
+      routeVoiceInput(text, {
+        userId: 'u1',
+        sessionId,
+        conversationHistory: [],
+        recentTools: [],
+      } as never);
+    const lowered = () => dump().toLowerCase();
+    const pronounLines = () => logged.filter(([, msg]) => msg === 'Pronouns resolved');
+
+    it('logs which pronoun resolved, never the name it resolved to', async () => {
+      vi.spyOn(SemanticRouter.prototype, 'route').mockResolvedValue(calendarRoute);
+      await turn('pn1', `I need to talk to ${NAME} about my sister ${NAME} and her diagnosis`);
+      await turn('pn1', 'remind me to call her tomorrow');
+      expect(pronounLines().length).toBeGreaterThan(0); // not vacuous: the pronoun path ran
+      expect((pronounLines()[0][0] as { pronouns: string[] }).pronouns).toContain('her');
+      expect(lowered()).not.toContain(NAME.toLowerCase());
+    });
+
+    it('logs the length of "the result", never its output', async () => {
+      vi.spyOn(SemanticRouter.prototype, 'route').mockResolvedValue(calendarRoute);
+      const output = { events: [`dinner with ${NAME}`] };
+      await turn('pn2', 'what is on my calendar');
+      updateContextWithToolResult(
+        'pn2',
+        'calendar_list_events',
+        { success: true, data: output } as never,
+        1
+      );
+      await turn('pn2', 'remind me to share the result');
+      const line = pronounLines().find(([f]) =>
+        (f as { pronouns: string[] }).pronouns.includes('result')
+      );
+      expect(line).toBeDefined();
+      expect((line![0] as { resultLength: number }).resultLength).toBeGreaterThan(0);
+      expect(lowered()).not.toContain(NAME.toLowerCase());
+    });
   });
 });
