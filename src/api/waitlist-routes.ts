@@ -37,6 +37,8 @@ import {
 import { addSigninToWaitlist, keepWaitlistReferral, offeredReferral } from './waitlist-record.js';
 import { handleWaitlistQueueRoutes, QUEUE_ROUTE_PATHS } from './waitlist-queue-routes.js';
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
+import { getEmailSender, type OutgoingEmail } from '../services/email-transport/index.js';
+import { unsubscribeMailbox } from '../services/communication-service.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -164,7 +166,8 @@ export async function handleWaitlistRoutes(
   }
 
   try {
-    if (QUEUE_ROUTE_PATHS.has(pathname) && (await handleWaitlistQueueRoutes(req, res, pathname))) return true; // /me, /join
+    if (QUEUE_ROUTE_PATHS.has(pathname) && (await handleWaitlistQueueRoutes(req, res, pathname)))
+      return true; // /me, /join
     // POST /api/waitlist - Add email to waitlist
     if (pathname === '/api/waitlist' && req.method === 'POST') {
       return await handleSignup(req, res);
@@ -614,17 +617,26 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
   .map((e) => e.trim())
   .filter(Boolean);
 
+/** True when the app transport (EMAIL_PROVIDER: SendGrid or the Workspace) can send. */
+function waitlistMailReady(what: string): boolean {
+  const ready = getEmailSender().isConfigured();
+  if (!ready) log.debug({ what }, 'Email not configured, skipping');
+  return ready;
+}
+
+/** Send through the app transport. Never throws; a failure is logged (no addresses). */
+async function sendWaitlistMail(what: string, email: OutgoingEmail): Promise<boolean> {
+  const res = await getEmailSender().send(email);
+  if (res.ok) log.info({ what, provider: res.provider }, 'Waitlist email sent');
+  else log.warn({ what, provider: res.provider, status: res.status, error: res.error }, 'Waitlist email failed'); // prettier-ignore
+  return res.ok;
+}
+
 /**
  * Send notification to admin when someone joins the waitlist
  */
 async function notifyAdminOfSignup(email: string, source: string, phone?: string): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) {
-    log.debug('SendGrid not configured, skipping admin notification');
-    return;
-  }
+  if (!waitlistMailReady('admin notification')) return;
 
   const approveUrl = buildApprovalUrl(email);
 
@@ -701,35 +713,14 @@ APPROVE NOW: ${approveUrl}
 
 View waitlist: https://ferni.ai/admin/waitlist/`;
 
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${sendgridApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: ADMIN_NOTIFICATION_EMAILS.map((e) => ({ email: e })) }],
-        from: { email: fromEmail, name: 'Ferni Waitlist' },
-        subject,
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: html },
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      log.info(
-        { adminEmail: ADMIN_NOTIFICATION_EMAILS },
-        'Admin notification sent for waitlist signup'
-      );
-    } else {
-      log.warn({ status: response.status }, 'Failed to send admin notification');
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Error sending admin notification');
-  }
+  await sendWaitlistMail('admin notification', {
+    to: ADMIN_NOTIFICATION_EMAILS,
+    fromName: 'Ferni Waitlist',
+    subject,
+    text,
+    html,
+    kind: 'transactional',
+  });
 }
 
 // ============================================================================
@@ -959,10 +950,7 @@ async function notifyAdminOfWelcomeCall(
   callSid: string,
   usedCartesiaVoice: boolean
 ): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) return;
+  if (!waitlistMailReady('welcome call notice')) return;
 
   const voiceType = usedCartesiaVoice ? "Ferni's real voice (Cartesia)" : 'Twilio fallback voice';
 
@@ -1007,18 +995,12 @@ async function notifyAdminOfWelcomeCall(
 </body>
 </html>`;
 
-  await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${sendgridApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: ADMIN_NOTIFICATION_EMAILS.map((e) => ({ email: e })) }],
-      from: { email: fromEmail, name: 'Ferni' },
-      subject: `📞 ✅ Welcome Call Made: ${email}`,
-      content: [{ type: 'text/html', value: html }],
-    }),
+  await sendWaitlistMail('welcome call notice', {
+    to: ADMIN_NOTIFICATION_EMAILS,
+    fromName: 'Ferni',
+    subject: `📞 ✅ Welcome Call Made: ${email}`,
+    html,
+    kind: 'transactional',
   });
 }
 
@@ -1030,10 +1012,7 @@ async function notifyAdminOfWelcomeCallFailure(
   phone: string,
   error: string
 ): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) return;
+  if (!waitlistMailReady('welcome call failure notice')) return;
 
   const html = `
 <!DOCTYPE html>
@@ -1075,18 +1054,12 @@ async function notifyAdminOfWelcomeCallFailure(
 </body>
 </html>`;
 
-  await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${sendgridApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: ADMIN_NOTIFICATION_EMAILS.map((e) => ({ email: e })) }],
-      from: { email: fromEmail, name: 'Ferni' },
-      subject: `⚠️ Welcome Call Failed: ${email}`,
-      content: [{ type: 'text/html', value: html }],
-    }),
+  await sendWaitlistMail('welcome call failure notice', {
+    to: ADMIN_NOTIFICATION_EMAILS,
+    fromName: 'Ferni',
+    subject: `⚠️ Welcome Call Failed: ${email}`,
+    html,
+    kind: 'transactional',
   });
 }
 
@@ -1094,13 +1067,7 @@ async function notifyAdminOfWelcomeCallFailure(
  * Send welcome email when no phone provided
  */
 async function sendWelcomeEmail(email: string): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) {
-    log.debug('SendGrid not configured, skipping welcome email');
-    return;
-  }
+  if (!waitlistMailReady('welcome email')) return;
 
   const appUrl = 'https://app.ferni.ai';
 
@@ -1156,32 +1123,14 @@ Open Ferni: ${appUrl}
 
 Just reply if you need anything. I'm here. 🌱`;
 
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${sendgridApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email }] }],
-        from: { email: fromEmail, name: 'Ferni' },
-        subject: "You're in! Welcome to Ferni 🌿",
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: html },
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      log.info({ email: hashEmail(email) }, 'Welcome email sent');
-    } else {
-      log.warn({ status: response.status }, 'Failed to send welcome email');
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Error sending welcome email');
-  }
+  await sendWaitlistMail('welcome email', {
+    to: email,
+    fromName: 'Ferni',
+    subject: "You're in! Welcome to Ferni 🌿",
+    text,
+    html,
+    kind: 'transactional',
+  });
 }
 
 /**
@@ -1300,13 +1249,7 @@ function getPersonalSignoff(): { name: string; role: string | null } {
  * Send newsletter subscription confirmation email with deep personalization
  */
 async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) {
-    log.debug('SendGrid not configured, skipping newsletter welcome email');
-    return;
-  }
+  if (!waitlistMailReady('newsletter welcome')) return;
 
   // Deep personalization elements
   const firstName = extractNameFromEmail(email);
@@ -1425,35 +1368,16 @@ ferni.ai - Building AI that feels human`;
   // Personalized subject line
   const subject = firstName ? `Welcome to Ferni, ${firstName}` : 'Welcome to Ferni';
 
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${sendgridApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email }] }],
-        from: { email: fromEmail, name: 'Ferni' },
-        subject,
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: html },
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      log.info(
-        { email: hashEmail(email), personalized: !!firstName },
-        'Newsletter welcome email sent'
-      );
-    } else {
-      log.warn({ status: response.status }, 'Failed to send newsletter welcome email');
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Error sending newsletter welcome email');
-  }
+  // A newsletter is mail they can opt out of: 'bulk', with a List-Unsubscribe mailto
+  await sendWaitlistMail('newsletter welcome', {
+    to: email,
+    fromName: 'Ferni',
+    subject,
+    text,
+    html,
+    kind: 'bulk',
+    unsubscribe: { mailto: unsubscribeMailbox() },
+  });
 }
 
 /**

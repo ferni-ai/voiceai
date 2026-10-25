@@ -1,0 +1,168 @@
+/**
+ * Waitlist email goes through the email port (EMAIL_PROVIDER: SendGrid by
+ * default, the ferni.ai Workspace under gmail), not a raw SendGrid fetch: the
+ * admin signup notice, the newsletter welcome, the welcome email, and the
+ * welcome-call notices. Driven through the real routes with a stubbed port.
+ */
+import { Readable } from 'node:stream';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { EmailSender, EmailSendResult, OutgoingEmail } from '../../types/email-sender.js';
+
+const { store, port, call } = vi.hoisted(() => ({
+  store: new Map<string, Map<string, Record<string, unknown>>>(),
+  port: {
+    sent: [] as OutgoingEmail[],
+    configured: true,
+    result: { ok: true, provider: 'gmail', messageId: 'm-1' } as EmailSendResult,
+  },
+  call: { success: true, message: '' },
+}));
+const coll = (name: string) => store.get(name) ?? store.set(name, new Map()).get(name)!;
+const fakeDb = {
+  collection: (name: string) => ({
+    doc: (id: string) => ({
+      get: async () => ({ exists: coll(name).has(id), data: () => coll(name).get(id) }),
+      create: async (data: Record<string, unknown>) => {
+        if (coll(name).has(id)) throw Object.assign(new Error('exists'), { code: 6 });
+        coll(name).set(id, data);
+      },
+      set: async (data: Record<string, unknown>, opts?: { merge?: boolean }) =>
+        void coll(name).set(id, opts?.merge ? { ...coll(name).get(id), ...data } : data),
+      update: async (data: Record<string, unknown>) =>
+        void coll(name).set(id, { ...coll(name).get(id), ...data }),
+    }),
+    where: () => ({
+      limit: () => ({ get: async () => ({ empty: true, docs: [] }) }),
+      get: async () => ({ docs: [] }),
+    }),
+  }),
+};
+vi.mock('firebase-admin', () => ({ default: { apps: [{}] } }));
+vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => fakeDb, FieldValue: {} }));
+vi.mock('../../utils/firestore-utils.js', async (orig) => ({
+  ...(await orig<object>()),
+  getFirestoreDb: () => fakeDb,
+}));
+vi.mock('../auth-middleware.js', () => ({ rateLimit: () => false, requireAdmin: () => true }));
+vi.mock('../../services/voice/voice-call.js', () => ({
+  callWithPersonaVoice: async () => ({ ...call, callSid: 'CA1', usedCartesiaVoice: true }),
+}));
+vi.mock('../../services/email-transport/index.js', async (orig) => ({
+  ...(await orig<object>()),
+  getEmailSender: (): EmailSender => ({
+    provider: 'gmail',
+    isConfigured: () => port.configured,
+    send: async (email) => {
+      port.sent.push(email);
+      return port.result;
+    },
+  }),
+}));
+
+const { handleWaitlistRoutes } = await import('../waitlist-routes.js');
+
+const fetchSpy = vi.fn(async () => new Response('{}', { status: 202 }));
+const sendGridCalls = () =>
+  fetchSpy.mock.calls.filter((args: unknown[]) => String(args[0]).includes('api.sendgrid.com'));
+const docId = (e: string) => Buffer.from(e).toString('base64').replace(/[/+=]/g, '_');
+
+async function post(url: string, body: Record<string, unknown>): Promise<number> {
+  const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), {
+    url,
+    method: 'POST',
+    headers: { host: 'localhost', 'content-type': 'application/json' },
+    socket: { remoteAddress: `198.51.100.${Math.floor(Math.random() * 200)}` },
+  });
+  let status = 0;
+  const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: () => {} };
+  await handleWaitlistRoutes(req as never, res as never);
+  return status;
+}
+
+beforeEach(() => {
+  store.clear();
+  port.sent.length = 0;
+  port.configured = true;
+  port.result = { ok: true, provider: 'gmail', messageId: 'm-1' };
+  call.success = true;
+  call.message = '';
+  fetchSpy.mockClear();
+  vi.stubGlobal('fetch', fetchSpy);
+  vi.stubEnv('SENDGRID_API_KEY', 'sg-key-that-must-not-be-used');
+  vi.stubEnv('EMAIL_FROM', 'admin@ferni.ai');
+});
+
+describe('waitlist email through the port', () => {
+  it('a landing signup sends the admin notice as transactional mail to the admin list', async () => {
+    expect(await post('/api/waitlist', { email: 'new@example.com', source: 'landing' })).toBe(200);
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    expect(port.sent[0]).toMatchObject({
+      to: ['noreply@ferni.ai', 'admin@ferni.ai'],
+      kind: 'transactional',
+      fromName: 'Ferni Waitlist',
+      subject: '🌿 New Waitlist Signup: new@example.com',
+    });
+    expect(port.sent[0]!.text).toContain('Source: landing');
+    expect(sendGridCalls()).toHaveLength(0);
+  });
+
+  it('a newsletter signup also sends the welcome as bulk mail with an unsubscribe mailto', async () => {
+    await post('/api/waitlist', { email: 'reader@example.com', source: 'newsletter' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(2));
+    const welcome = port.sent.find((e) => e.to === 'reader@example.com');
+    expect(welcome).toMatchObject({
+      kind: 'bulk',
+      unsubscribe: { mailto: 'admin@ferni.ai' },
+      fromName: 'Ferni',
+    });
+    expect(welcome!.subject).toMatch(/^Welcome to Ferni/);
+    expect(sendGridCalls()).toHaveLength(0);
+  });
+
+  it('approving someone with no phone sends the welcome email', async () => {
+    coll('waitlist').set(docId('fresh@example.com'), { email: 'fresh@example.com', status: 'pending' }); // prettier-ignore
+    expect(await post('/api/waitlist/approve', { email: 'fresh@example.com' })).toBe(200);
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    expect(port.sent[0]).toMatchObject({
+      to: 'fresh@example.com',
+      kind: 'transactional',
+      subject: "You're in! Welcome to Ferni 🌿",
+    });
+    expect(sendGridCalls()).toHaveLength(0);
+  });
+
+  it('a welcome call that went through notifies the admins', async () => {
+    coll('waitlist').set(docId('caller@example.com'), { email: 'caller@example.com', status: 'pending', phone: '+15550001111' }); // prettier-ignore
+    await post('/api/waitlist/approve', { email: 'caller@example.com' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    expect(port.sent[0]).toMatchObject({
+      to: ['noreply@ferni.ai', 'admin@ferni.ai'],
+      kind: 'transactional',
+      subject: '📞 ✅ Welcome Call Made: caller@example.com',
+    });
+    expect(sendGridCalls()).toHaveLength(0);
+  });
+
+  it('a failed welcome call notifies the admins of the failure', async () => {
+    call.success = false;
+    call.message = 'no answer';
+    coll('waitlist').set(docId('miss@example.com'), { email: 'miss@example.com', status: 'pending', phone: '+15550002222' }); // prettier-ignore
+    await post('/api/waitlist/approve', { email: 'miss@example.com' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    expect(port.sent[0]).toMatchObject({
+      kind: 'transactional',
+      subject: '⚠️ Welcome Call Failed: miss@example.com',
+    });
+    expect(port.sent[0]!.html).toContain('Error: no answer');
+  });
+
+  it('with the port unconfigured nothing is sent, even with a SendGrid key set', async () => {
+    port.configured = false;
+    await post('/api/waitlist', { email: 'quiet@example.com', source: 'newsletter' });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    expect(port.sent).toHaveLength(0);
+    expect(sendGridCalls()).toHaveLength(0);
+  });
+});
