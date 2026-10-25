@@ -17,7 +17,9 @@
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCallOptedOut } from './call-retry.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { consentBlocks, type ConsentDeps } from '../messaging/consent.js';
+import { mayReachForOwner } from '../messaging/consent-grants.js';
+import { isOwnVerifiedPhone } from './guarded-text.js';
 
 const log = createLogger({ module: 'FirstDialOptOut' });
 
@@ -41,9 +43,9 @@ export async function assertNotOptedOut(
 ): Promise<void> {
   // MESSAGING_PIPELINE: the one consent record (call_opt_outs as its fallback). Someone
   // other than the owner must have agreed to calls; unknown is not enough.
-  const own = async (): Promise<boolean> =>
+  const own = async (deps: ConsentDeps): Promise<boolean> =>
     ownerUserId !== undefined &&
-    (await import('./guarded-text.js')).isOwnVerifiedPhone(ownerUserId, phone);
+    mayReachForOwner(ownerUserId, phone, 'call', isOwnVerifiedPhone, deps);
   const refused = await consentBlocks(phone, 'call', own);
   if (refused) throw new RecipientOptedOutError(refused === 'needs-consent');
   // MINOR_CARE_SHARED_HOLD: not to a number (or for a member) a call held under 18; a deferred

@@ -73,6 +73,7 @@ describe('what is copied', () => {
   it('copies none of the excluded stores, phone_mappings first among them', () => {
     const copied = COPIED_STORES.map(storeLabel);
     expect(copied).not.toContain('phone_mappings[userId]');
+    expect(copied).not.toContain('consent[grants.{uid}]'); // a contact's record, not the person's
     for (const label of Object.keys(EXCLUDED_STORES)) expect(copied).not.toContain(label);
     expect(copied.length + Object.keys(EXCLUDED_STORES).length).toBe(labels.length);
   });

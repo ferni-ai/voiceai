@@ -21,7 +21,9 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { consentBlocks, writeOptOut } from '../messaging/consent.js';
+import { consentBlocks, writeOptOut, type ConsentDeps } from '../messaging/consent.js';
+import { mayReachForOwner } from '../messaging/consent-grants.js';
+import { isOwnVerifiedPhone } from './guarded-text.js';
 import { phoneHash } from './checkin-replies.js';
 import {
   onBehalfDispatchFor,
@@ -331,8 +333,8 @@ export async function placeCallRetry(
     return { success: false, error: 'No SIP trunk for a conversational call' };
   }
   // MESSAGING_PIPELINE: a third party must have agreed to calls (needs-consent otherwise).
-  const own = async (): Promise<boolean> =>
-    (await import('./guarded-text.js')).isOwnVerifiedPhone(ownerUserId, call.contact.phone);
+  const own = async (deps: ConsentDeps): Promise<boolean> =>
+    mayReachForOwner(ownerUserId, call.contact.phone, 'call', isOwnVerifiedPhone, deps);
   const refused = await consentBlocks(call.contact.phone, 'call', own);
   if (refused || (await isCallOptedOut(call.contact.phone))) {
     return { success: false, error: 'Recipient asked not to be called' };

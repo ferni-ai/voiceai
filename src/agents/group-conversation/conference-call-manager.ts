@@ -525,8 +525,8 @@ export class ConferenceCallManager extends EventEmitter {
     relationship?: string,
     introduction?: string
   ): Promise<{ success: boolean; callSid?: string; error?: string }> {
-    const { consentBlocks } = await import('../../services/messaging/consent.js');
-    const refused = await consentBlocks(phoneNumber, 'call', true); // MESSAGING_PIPELINE opt-outs
+    const { thirdPartyRefusal } = await import('../../services/messaging/consent-grants.js');
+    const refused = await thirdPartyRefusal(this.config.userId, phoneNumber, 'call'); // MESSAGING_PIPELINE
     if (refused) return { success: false, error: `Not calling: ${refused}` };
     if (!this.config.twilio || !this.twilioClient) {
       log.warn('📞 Twilio not configured - simulating call');

@@ -31,6 +31,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
   registerConsentCheck,
+  registerGrantChecks,
   type ConsentBlock,
   type ConsentChannel,
 } from '../../utils/consent-port.js';
@@ -137,7 +138,7 @@ function unpaused(doc: Record<string, unknown> | undefined): Record<string, unkn
 }
 
 /** Every channel in one transaction, so a STOP for texts and calls never lands half-written. */
-async function writeConsent(
+export async function writeConsent(
   hash: string,
   channels: readonly ConsentChannel[],
   state: Exclude<ConsentState, 'unknown'>,
@@ -282,15 +283,16 @@ export async function recordInboundSmsConsent(
  * Null when `channel` to `phone` is allowed, else why not. With the flag off,
  * always null (each sender keeps its own checks). Fails closed: a number that
  * can't be hashed, or a store that can't be read, refuses. `allowUnknown` is
- * asked only when the phone's consent is unknown. For texts it is "is this the
- * owner's own verified number?" (a function, asked only then): a third party
- * must have opted in. Calls pass true: a call to someone else already needs the owner's confirmation
- * (OUTBOUND_CONFIRM), so only an opt-out stops it.
+ * asked whenever no opt-out is on record: "is this the owner's own verified
+ * number, or does the sender hold their own grant?" (a function, asked only
+ * then; consent-grants.ts mayReachForOwner). Shared transport senders pass true: they
+ * can't tell who they reach, so they stop only at an opt-out, and the caller
+ * that knows does the third-party check.
  */
 export async function consentBlocks(
   phone: string,
   channel: ConsentChannel,
-  allowUnknown: boolean | (() => Promise<boolean>),
+  allowUnknown: boolean | ((deps: ConsentDeps) => Promise<boolean>),
   deps: ConsentDeps = defaultConsentDeps()
 ): Promise<ConsentBlock | null> {
   if (!messagingPipelineOn(deps.env)) return null;
@@ -301,8 +303,8 @@ export async function consentBlocks(
     const { state } = (await readConsent(hash, deps))[channel];
     if (state === 'opted-out') return 'opted-out';
     if (channel === 'call' && (await deps.store.legacyCallOptOut(e164))) return 'opted-out';
-    if (state === 'opted-in') return null;
-    if (typeof allowUnknown === 'boolean' ? allowUnknown : await allowUnknown()) return null;
+    // A global opt-in (the contact's START) grants nobody: third parties need their own grant.
+    if (typeof allowUnknown === 'boolean' ? allowUnknown : await allowUnknown(deps)) return null;
     return 'needs-consent';
   } catch (error) {
     log.warn({ error: String(error), channel }, 'Consent not readable; not sending');
@@ -355,4 +357,11 @@ export function registerMessagingConsent(): void {
   registerConsentCheck((phone, channel, allowUnknown, env) =>
     consentBlocks(phone, channel, allowUnknown, { ...defaultConsentDeps(), env })
   );
+  // consent-grants.ts imports this module, so it loads on first use.
+  registerGrantChecks({
+    thirdPartyRefusal: async (owner, phone, channel, isOwn) =>
+      (await import('./consent-grants.js')).thirdPartyRefusal(owner, phone, channel, isOwn),
+    recordOwnerAttestation: async (phone, channel, uid) =>
+      (await import('./consent-grants.js')).recordOwnerAttestation(phone, channel, uid),
+  });
 }
