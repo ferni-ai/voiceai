@@ -2803,6 +2803,25 @@
     "density": "SPARSE_ALL",
     "fields": [
       {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/dynamic_facts/indexes/CICAgPihvJIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
         "fieldPath": "status",
         "order": "ASCENDING"
       },
@@ -4174,6 +4193,26 @@
       }
     ],
     "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgPiBrZ8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "salience",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/entities/indexes/CICAgPiwuJ8K",
     "queryScope": "COLLECTION",
     "state": "READY"
   },

@@ -3260,6 +3260,26 @@
         "order": "ASCENDING"
       },
       {
+        "fieldPath": "salience",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/entities/indexes/CICAgITs5ZkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
         "fieldPath": "sent_at",
         "order": "ASCENDING"
       },

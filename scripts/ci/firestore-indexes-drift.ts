@@ -81,7 +81,54 @@ interface ApiField {
   ttlConfig?: unknown;
 }
 export type Listing = { composite: ApiIndex[]; fields: ApiField[]; ttls: ApiField[] };
-export type Drift = { wouldDelete: string[]; wouldCreate: string[] };
+export type Drift = {
+  wouldDelete: string[];
+  wouldCreate: string[];
+  /** Would-deletes that UNDECLARABLE_TTLS names, matched exactly against the listing. */
+  allowedDelete: string[];
+  /** UNDECLARABLE_TTLS entries the listing no longer matches; these fail the check too. */
+  staleAllow: string[];
+};
+
+/** `<collectionGroup>.<fieldPath>` → the policy's expirationOffset, or null for none. */
+export type TtlAllowList = Record<string, string | null>;
+
+/**
+ * TTL policies that one database has and the index file cannot carry. The check reports
+ * them as allowed would-deletes instead of failing. Keyed to the live listing
+ * (`gcloud firestore fields ttls list --database=ferni-dev`, read-only, 2026-10-25); each
+ * entry must match a live policy exactly (same offset, not declared in the file) or the
+ * check fails, so the list cannot outlive the policies.
+ *
+ * Why they stay out of the file: firebase.json deploys this one file to BOTH databases,
+ * and firebase-tools (15.10) only knows `ttl: boolean`. Its patchField() sends
+ * `ttlConfig: {}`, which has no expirationOffset.
+ * - The 8 with an offset: declaring them would create offset-less policies in prod, and
+ *   prod would delete every document whose timestamp has already passed (a year of
+ *   ai_email_log, all of health_checks, ...).
+ * - The 4 without one: dev-first rollouts. Declaring them would switch them on in prod at
+ *   the next index deploy, which needs Seth's OK. Move each into the file (and out of
+ *   here) once prod has the policy.
+ * A ferni-dev index deploy offers these for deletion: answer no, and never pass --force.
+ */
+export const UNDECLARABLE_TTLS: Record<string, TtlAllowList> = {
+  'ferni-dev': {
+    // Retention with an offset, added on dev 2026-10-22/23.
+    'ai_email_log.timestamp': '31536000s',
+    'anomaly_alerts.detected_at': '7776000s',
+    'automation_queue.created_at': '7776000s',
+    'bq_cost_log.timestamp': '7776000s',
+    'health_checks.timestamp': '2592000s',
+    'optimization_cycles.startTime': '7776000s',
+    'team_notifications.createdAt': '7776000s',
+    'ttl_offset_probe.createdAt': '86400s',
+    // Expire-at fields, on dev first; prod has none of these yet.
+    '_rate_limits.expiresAt': null,
+    'intelligence_queue.expireAt': null,
+    'minor_care_holds.expireAt': null,
+    'security_events.expireAt': null,
+  },
+};
 
 const groupOf = (name: string): string => name.split('/collectionGroups/')[1].split('/')[0];
 const fieldOf = (name: string): string => name.split('/fields/')[1];
@@ -150,10 +197,18 @@ function fieldMatches(field: ApiField, spec: SpecField): boolean {
 const describeOverride = (group: string, path: string, ttl: boolean, indexes: string[]) =>
   `field override ${group}.${path}${ttl ? ' [TTL policy]' : ''} indexes=[${indexes.join(', ') || 'none (exempt)'}]`;
 
-/** What a deploy of `file` would do to the database `listing` describes. */
-export function computeDrift(file: IndexFile, listing: Listing): Drift {
+const ttlOffset = (field: ApiField): string | null =>
+  (field.ttlConfig as { expirationOffset?: string } | undefined)?.expirationOffset ?? null;
+
+/**
+ * What a deploy of `file` would do to the database `listing` describes. `allow` names
+ * TTL policies the file cannot carry (UNDECLARABLE_TTLS for that database).
+ */
+export function computeDrift(file: IndexFile, listing: Listing, allow: TtlAllowList = {}): Drift {
   const wouldDelete: string[] = [];
   const wouldCreate: string[] = [];
+  const allowedDelete: string[] = [];
+  const allowUsed = new Set<string>();
 
   for (const index of listing.composite) {
     if (!file.indexes.some((spec) => compositeMatches(index, spec)))
@@ -182,7 +237,13 @@ export function computeDrift(file: IndexFile, listing: Listing): Drift {
       liveIndexes(field)
     );
     if (!spec) {
-      wouldDelete.push(name);
+      const key = `${groupOf(field.name)}.${fieldOf(field.name)}`;
+      const allowed =
+        Object.hasOwn(allow, key) && Boolean(field.ttlConfig) && ttlOffset(field) === allow[key];
+      if (allowed) {
+        allowUsed.add(key);
+        allowedDelete.push(`${name} offset=${allow[key] ?? 'none'}`);
+      } else wouldDelete.push(name);
       continue;
     }
     if (fieldMatches(field, spec)) continue;
@@ -203,7 +264,15 @@ export function computeDrift(file: IndexFile, listing: Listing): Drift {
         describeOverride(spec.collectionGroup, spec.fieldPath, Boolean(spec.ttl), specIndexes(spec))
       );
   }
-  return { wouldDelete: wouldDelete.sort(), wouldCreate: wouldCreate.sort() };
+  const staleAllow = Object.keys(allow)
+    .filter((key) => !allowUsed.has(key))
+    .map((key) => `${key} offset=${allow[key] ?? 'none'}`);
+  return {
+    wouldDelete: wouldDelete.sort(),
+    wouldCreate: wouldCreate.sort(),
+    allowedDelete: allowedDelete.sort(),
+    staleAllow: staleAllow.sort(),
+  };
 }
 
 /** The report a run prints; ok is false when the deploy would delete anything. */
@@ -219,12 +288,24 @@ export function report(
     `  would create (${drift.wouldCreate.length}):`,
     ...drift.wouldCreate.map((d) => `    + ${d}`),
   ];
-  const ok = drift.wouldDelete.length === 0;
-  if (!ok)
+  if (drift.allowedDelete.length)
+    lines.push(
+      `  would delete, allowed: TTL policies the file cannot carry (${drift.allowedDelete.length}; answer no at the prompt, never --force):`,
+      ...drift.allowedDelete.map((d) => `    ~ ${d}`)
+    );
+  if (drift.staleAllow.length)
+    lines.push(
+      `  stale UNDECLARABLE_TTLS entries (${drift.staleAllow.length}; gone, offset changed, or now in the file):`,
+      ...drift.staleAllow.map((d) => `    ! ${d}`)
+    );
+  const ok = drift.wouldDelete.length === 0 && drift.staleAllow.length === 0;
+  if (drift.wouldDelete.length)
     lines.push(
       `  FAIL: a deploy of this file would delete ${drift.wouldDelete.length} item(s) from ${database}.`,
       '  Add them to the index file (or refresh the fixture if they were removed on purpose).'
     );
+  if (drift.staleAllow.length)
+    lines.push('  FAIL: update UNDECLARABLE_TTLS in scripts/ci/firestore-indexes-drift.ts.');
   return { ok, text: lines.join('\n') };
 }
 
@@ -271,7 +352,8 @@ function main(): void {
     const dir = fixtureDir(database);
     const listing = live ? listLive(database, write ? dir : undefined) : readListing(dir);
     const source = live ? `live listing (${PROJECT})` : `fixture ${dir.slice(REPO.length + 1)}`;
-    const { ok, text } = report(database, source, computeDrift(file, listing));
+    const allow = UNDECLARABLE_TTLS[database] ?? {};
+    const { ok, text } = report(database, source, computeDrift(file, listing, allow));
     console.log(text);
     failed ||= !ok;
   }
