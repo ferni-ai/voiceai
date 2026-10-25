@@ -856,6 +856,8 @@ describe('after a reopen (#2291)', () => {
     expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(1);
     expect(c.appConnected).toBe(true);
 
+    // Its clean read starts first, as in onUserTurnCompleted: after a reopen the end needs it
+    await trackCrisisRead(c.id, 'okay, bye!', Promise.resolve({ risk: 'none' }));
     c.say('user', 'okay, bye!'); // fresh, after Ferni's goodbye: both said, it ends
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(2);
@@ -873,6 +875,7 @@ describe('after a reopen (#2291)', () => {
     await c.advance(60_000);
     expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(1);
 
+    await trackCrisisRead(c.id, 'okay, bye!', Promise.resolve({ risk: 'none' })); // read clean
     c.goodbyes();
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(2);

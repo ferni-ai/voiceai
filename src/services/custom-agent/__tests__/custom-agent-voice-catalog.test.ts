@@ -2,6 +2,7 @@
  * The voices people can pick for their own agent are real, distinct, never a Ferni
  * persona's or a retired clone's, and are exactly what select-premade accepts.
  */
+import { existsSync, readdirSync } from 'fs';
 import type { ServerResponse } from 'http';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -25,6 +26,7 @@ import {
 } from '../custom-agent-voice-policy.js';
 import { handleListVoices } from '../../../api/custom-agent/voice-routes.js';
 
+const PREVIEWS = new URL('../../../../apps/web/public/sounds/voice-library/', import.meta.url);
 const ARCHIVED_CHILD = '2ee87190-8f84-4925-97da-e52547f9462c'; // the old list's "Dr. Chen"
 
 describe('the custom-agent voice catalog', () => {
@@ -38,6 +40,15 @@ describe('the custom-agent voice catalog', () => {
       expect(isValidVoiceId(v.voiceId), v.name).toBe(true);
       expect(v.description.length, v.name).toBeGreaterThan(10);
     }
+  });
+
+  it('has a web preview clip for every voice, and none for voices it dropped', () => {
+    const ids = CUSTOM_AGENT_VOICE_CATALOG.map((v) => v.voiceId);
+    for (const v of CUSTOM_AGENT_VOICE_CATALOG) {
+      expect(existsSync(new URL(`${v.voiceId}.mp3`, PREVIEWS)), v.name).toBe(true);
+    }
+    const files = readdirSync(PREVIEWS).filter((f) => f.endsWith('.mp3'));
+    expect(files.map((f) => f.replace(/\.mp3$/, '')).sort()).toEqual([...ids].sort());
   });
 
   it("never offers a Ferni persona's voice or a retired clone", () => {
