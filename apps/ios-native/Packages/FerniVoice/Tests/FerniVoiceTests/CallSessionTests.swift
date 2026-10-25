@@ -461,6 +461,18 @@ final class CallSessionTests: XCTestCase {
         await session.end()
     }
 
+    /// Crisis mode is on by default (Seth, 2026-10-23): a phone that never set
+    /// the flag turns serious at the crisis level.
+    func testCrisisModeIsOnByDefault() async {
+        let session = makeSession() // a fresh suite: the flag was never set
+        session.start()
+        await until(session.phase == .live)
+        send(Self.crisisLevel, to: session)
+        await until(session.concern == .crisis)
+        XCTAssertTrue(session.showsHelpNow)
+        await session.end()
+    }
+
     /// The crisis guard taking over the reply (crisis_detected) is the crisis level.
     func testTheCrisisGuardTakingOverIsTheCrisisLevel() async {
         let session = makeSession(defaults: crisisMode(true))
@@ -493,10 +505,10 @@ final class CallSessionTests: XCTestCase {
         await session.end()
     }
 
-    /// With the flag off (the default), the same messages change nothing but
-    /// the face, as before.
+    /// With the flag off (an explicit NO), the same messages change nothing
+    /// but the face, as before.
     func testWithCrisisModeOffNothingChanges() async {
-        let session = makeSession() // a fresh suite: the flag was never set
+        let session = makeSession(defaults: crisisMode(false))
         session.start()
         await until(session.phase == .live)
         send(Self.crisisLevel, to: session)
@@ -711,6 +723,45 @@ final class CallSessionTests: XCTestCase {
 
     /// Design audit P1-3: each caption line from Ferni's side says who said it,
     /// so after a handoff the screen can name Maya's words as hers.
+    /// Trust panel T2: the chip names whose voice you hear. A handoff that
+    /// completes moves the call at once, the voice on Maya's first words.
+    func testTheVoiceMovesOnTheTeammatesFirstWords() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        XCTAssertEqual(session.voicePersonaID, "ferni")
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"maya-santos","timestamp":2}"#.utf8)))
+        await until(session.personaID == "maya")
+        XCTAssertEqual(session.voicePersonaID, "ferni", "not heard yet")
+        XCTAssertEqual(CallTruth.of(session).line, "Ferni's bringing in Maya…")
+        room.send(.caption(CaptionChunk(streamID: "s1", segmentID: "g1", speaker: .you, text: "Hi", isFinal: true)))
+        await until(!session.captions.lines.isEmpty)
+        XCTAssertEqual(session.voicePersonaID, "ferni", "your words aren't hers")
+        room.send(.caption(CaptionChunk(streamID: "s2", segmentID: "g2", speaker: .ferni, text: "Hi! Which days?", isFinal: true)))
+        await until(session.voicePersonaID == "maya")
+        XCTAssertEqual(CallTruth.of(session).chipPersonaID, "maya")
+    }
+
+    /// Her speaking turn moves the voice too, before any caption.
+    func testHerSpeakingTurnMovesTheVoice() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"maya-santos","timestamp":2}"#.utf8)))
+        await until(session.personaID == "maya")
+        room.send(.agentAttributes(["lk.agent.state": "thinking"]))
+        await until(session.agentActivity == .thinking)
+        XCTAssertEqual(session.voicePersonaID, "ferni")
+        room.send(.agentAttributes(["lk.agent.state": "speaking"]))
+        await until(session.voicePersonaID == "maya")
+        await session.end()
+        session.start(personaID: "jordan")
+        XCTAssertEqual(session.voicePersonaID, "jordan", "a new call starts with whoever you called")
+        await session.end()
+    }
+
     func testCaptionsRememberWhoSaidThem() async {
         let session = makeSession()
         session.start()

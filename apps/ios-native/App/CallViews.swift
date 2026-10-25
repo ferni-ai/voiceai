@@ -94,20 +94,21 @@ struct CallAvatar: View {
 /// Who you're talking with, small, at the top of a call.
 struct NameChip: View {
     let personaID: String
-    /// Who it says: in a handoff, the new name waits until the teammate has
-    /// the middle of the stage (design audit P1-3: it said Maya ~2.5 s early,
-    /// while Ferni was still in front).
-    @State private var shown: String?
     /// For a few seconds after a handoff at accessibility sizes, the chip says
     /// "Maya joined" with her dot: there the captions keep their two lines for
     /// words (critic M-F).
     @State private var justJoined = false
+    /// Who the chip named last, to tell a handoff from the first name.
+    @State private var named: String?
     @Environment(\.dynamicTypeSize) private var typeSize
 
     static let joinedSeconds = 4.0
 
     var body: some View {
-        let persona = PersonaRegistry.get(shown ?? personaID)
+        // Whose voice you hear (CallTruth): in a handoff it changes on the
+        // teammate's first words, never on a timer (trust panel T2: it said
+        // Ferni for ~2 s while Maya talked).
+        let persona = PersonaRegistry.get(personaID)
         let marks = justJoined && typeSize.isAccessibilitySize
         HStack(spacing: 6) {
             if marks {
@@ -124,13 +125,11 @@ struct NameChip: View {
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("call.nameChip")
+            .animation(.easeOut(duration: 0.25), value: personaID)
             .task(id: personaID) {
-                let handoff = shown.map { $0 != personaID } ?? false
-                if let from = shown, from != personaID {
-                    try? await Task.sleep(for: .seconds(AliveRig.handoffSeconds(from: WindowPersona(personaId: from))))
-                    guard !Task.isCancelled else { return }
-                }
-                withAnimation(.easeOut(duration: 0.25)) { shown = personaID; justJoined = handoff }
+                let handoff = named.map { $0 != personaID } ?? false
+                named = personaID
+                withAnimation(.easeOut(duration: 0.25)) { justJoined = handoff }
                 guard handoff else { return }
                 try? await Task.sleep(for: .seconds(Self.joinedSeconds))
                 guard !Task.isCancelled else { return }
@@ -177,7 +176,7 @@ struct CallCaptions: View {
                     }
               }
             }
-            if let state = Self.state(call, name: name) {
+            if let state = Self.state(call) {
                 HStack(spacing: FerniSpace.breath) {
                     Text(state)
                     if call.avatar.pose == .thinking { ThinkingDots() }
@@ -196,8 +195,6 @@ struct CallCaptions: View {
         }
         .animation(.easeOut(duration: 0.2), value: lines)
     }
-
-    private var name: String { PersonaRegistry.get(call.avatar.personaID).name }
 
     /// The lines on screen: the last three, or two at accessibility sizes,
     /// where three no longer fit above the controls. There a join doesn't take
@@ -223,23 +220,9 @@ struct CallCaptions: View {
         return labelled
     }
 
-    /// Nil while Ferni is talking: the words say it.
-    static func state(_ call: CallSession, name: String) -> String? {
-        switch call.phase {
-        case .connecting: return String(localized: "Calling \(name)…")
-        case .waitingForFerni: return String(localized: "\(name)'s on the way…")
-        case .reconnecting: return String(localized: "Reconnecting…")
-        case .live:
-            if call.isOnHold { return String(localized: "On hold") }
-            if call.isMuted { return String(localized: "You're muted") }
-            switch call.avatar.pose {
-            case .speaking: return nil
-            case .thinking: return String(localized: "\(name)'s thinking")
-            default: return String(localized: "\(name)'s listening")
-            }
-        default: return nil
-        }
-    }
+    /// Nil while Ferni is talking: the words say it. One truth with the chip
+    /// and the Lock Screen (CallTruth).
+    static func state(_ call: CallSession) -> String? { CallTruth.of(call).line }
 }
 
 /// Whose words follow: a dot in the teammate's colour and their name.

@@ -102,7 +102,7 @@ final class HelpLinksUITests: XCTestCase {
     // MARK: - Crisis mode (trust panel R16)
 
     private func crisisCall(modeOn: Bool) -> XCUIApplication {
-        let app = XCUIApplication.ferni(.crisisDuringTool, extra: (modeOn ? ["-ferni.call.crisisMode", "YES"] : []) + ["-FerniStoreData", "YES"])
+        let app = XCUIApplication.ferni(.crisisDuringTool, extra: ["-ferni.call.crisisMode", modeOn ? "YES" : "NO", "-FerniStoreData", "YES"])
         XCTAssertTrue(Screen.crisisDuringTool.ready(in: app).waitForExistence(timeout: 20))
         return app
     }
@@ -139,7 +139,7 @@ final class HelpLinksUITests: XCTestCase {
         attachScreenshot("crisis-after")
     }
 
-    /// Off (the default): the same call looks as every call does. No 988
+    /// Off (an explicit NO): the same call looks as every call does. No 988
     /// row, and after End the remember card and the usual goodbye.
     func testWithCrisisModeOffTheSameCallIsUnchanged() {
         let app = crisisCall(modeOn: false)

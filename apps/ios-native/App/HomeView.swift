@@ -44,7 +44,7 @@ struct HomeView: View {
                     if beside {
                         HStack(alignment: .center, spacing: FerniSpace.silence) {
                             VStack(spacing: FerniSpace.rest) {
-                                NameChip(personaID: call.avatar.personaID)
+                                NameChip(personaID: CallTruth.of(call).chipPersonaID)
                                 avatar(call: call, size: 320)
                                 if call.showsHelpNow { HelpNowRow() }
                             }
@@ -119,7 +119,7 @@ struct HomeView: View {
             // up under the status bar with the captions (design audit P2 #19).
             .safeAreaInset(edge: .top, spacing: 0) {
                 if inCall && !beside {
-                    NameChip(personaID: call.avatar.personaID)
+                    NameChip(personaID: CallTruth.of(call).chipPersonaID)
                         .padding(.vertical, FerniSpace.breath)
                         .frame(maxWidth: .infinity)
                         .background { TimelineView(.everyMinute) { RoomFade(date: HomeClock.time($0.date), from: .top) } }

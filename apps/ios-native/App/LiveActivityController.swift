@@ -15,31 +15,18 @@ final class LiveActivityController {
     private var latest: CallActivityAttributes.ContentState?
 
     /// What the activity should show for the call right now; nil when there's no call.
+    /// One truth with the call screen's state line and name chip (CallTruth).
     static func content(for call: CallSession) -> CallActivityAttributes.ContentState? {
-        content(phase: call.phase, onHold: call.isOnHold, pose: call.avatar.pose, personaID: call.avatar.personaID, muted: call.isMuted)
+        CallTruth.of(call).activity
     }
 
+    /// - Parameter voicePersonaID: whose voice the caller hears; `personaID` when nil.
     static func content(
-        phase: CallSession.Phase, onHold: Bool, pose: AvatarPose, personaID: String, muted: Bool = false
+        phase: CallSession.Phase, onHold: Bool, pose: AvatarPose, personaID: String, muted: Bool = false,
+        voicePersonaID: String? = nil
     ) -> CallActivityAttributes.ContentState? {
-        let state: CallActivityState
-        switch phase {
-        case .connecting: state = .calling
-        case .waitingForFerni: state = .arriving
-        // Ferni never came: say so on the Lock Screen too, then end there.
-        case .failed(.ferniDidNotJoin): state = .couldNotJoin
-        case .reconnecting: state = .reconnecting
-        case .live:
-            if onHold { state = .onHold } else {
-                switch pose {
-                case .speaking: state = .speaking
-                case .thinking: state = .thinking
-                default: state = .listening
-                }
-            }
-        default: return nil
-        }
-        return .init(state: state, personaID: personaID, personaName: PersonaRegistry.get(personaID).name, muted: muted)
+        CallTruth.of(phase: phase, onHold: onHold, muted: muted, pose: pose,
+                     personaID: personaID, voicePersonaID: voicePersonaID ?? personaID).activity
     }
 
     /// What the activity shows once the call is over: a short goodbye from the
