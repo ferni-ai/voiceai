@@ -34,7 +34,7 @@ import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/f
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
-import { yieldIfReplyEnd } from './first-turn-release.js';
+import { yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
@@ -106,11 +106,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       const { startVoicePatterns } =
         await import('../../conversation/humanization/voice-pattern-session.js');
       await startVoicePatterns(deps.services.sessionId, deps.services.userId);
-      await yieldIfReplyEnd(); // between cold steps: back to back they starve the audio pump
+      await yieldIfFirstTurnWarm(); // between cold steps: back to back they starve the audio pump
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
-      await yieldIfReplyEnd();
+      await yieldIfFirstTurnWarm();
       const userData = deps.userData as UserData & {
         turnCount?: number;
         userSpeakingStartTime?: number;
@@ -393,10 +393,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
       await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
-      if (mine !== run) {
-        log.info('Superseded turn context dropped'); // a later segment or turn superseded it
-        return;
-      }
+      if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
         .map((item) => ({
           safety: carriesSafety(item as never),

@@ -101,9 +101,6 @@ describe('warmCallPath and the first turn', () => {
   it('loads every lazy import of processTurn and its context builders', async () => {
     const loaded = await warmedTargets();
     const files = [
-      // turn-intelligence.ts's own steps before the build, then the turn handler's
-      'agents/multi-agent/turn-intelligence.ts',
-      'agents/voice-agent/turn-handler.ts',
       'agents/processors/turn-processor/process-turn.ts',
       'agents/processors/turn-processor/context-injections.ts',
       'agents/processors/cached-modules.ts',
@@ -139,17 +136,17 @@ describe('warmCallPath', () => {
     expect(registry.getVoiceId('jordan-taylor')).toBe(BUNDLE_VOICE);
   });
 
-  it('builds the Vertex client only with FIRST_TURN_DEFER_RELEASE=reply_end, as the turn-1 build needs', async () => {
+  it('builds the Vertex client only with FIRST_TURN_WARM on', async () => {
     vi.resetModules();
     const warmVertexClient = vi.fn(async () => true);
     vi.doMock('../../../services/llm-utils.js', () => ({ warmVertexClient }));
     try {
       const { warmCallPath } = await import('../call-path-warmup.js');
-      vi.stubEnv('FIRST_TURN_DEFER_RELEASE', '');
+      vi.stubEnv('FIRST_TURN_WARM', '');
       await warmCallPath(() => undefined, []);
       expect(warmVertexClient).not.toHaveBeenCalled(); // flag off: as on main
 
-      vi.stubEnv('FIRST_TURN_DEFER_RELEASE', 'reply_end');
+      vi.stubEnv('FIRST_TURN_WARM', 'on');
       await warmCallPath(() => undefined, []);
       expect(warmVertexClient).toHaveBeenCalledTimes(1);
     } finally {

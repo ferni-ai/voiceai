@@ -21,13 +21,6 @@
  * token, and its note reaches turn 2 as before. MAX_DEFER_MS bounds the wait
  * when turn 1 gets no spoken reply. Turns 2+ are never deferred.
  *
- * FIRST_TURN_DEFER_RELEASE picks when Ferni's reply lifts the hold: `settle`
- * (the default) 600 ms into it; `reply_end` when it ends or is interrupted
- * (the agent leaves 'speaking'), so the build's stalls (531-777 ms on dev,
- * 2026-10-22) land while Ferni listens instead of cutting into its audio. Its
- * note reaches turn 2 only if turn 2's words do not arrive before the build
- * ends: then the pusher drops it, as on main (known limitation, see the PR).
- *
  * Safety work is never deferred. The same build also runs crisis detection
  * and sends its signals (the crisis override note, `crisis_detected` to the
  * app, the outreach crisis signal, the emotional state cache), so the hold
@@ -48,7 +41,6 @@ import { setImmediate } from 'node:timers';
 import { flagOn } from '../../config/env-flag.js';
 import { getProviderIdSync } from '../../config/model-provider-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { firstTurnDeferRelease, type FirstTurnRelease } from './first-turn-release.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import {
   resolveCrisisGuardMode,
@@ -119,7 +111,7 @@ export interface FirstTurnDeferral {
   hook: UserTurnHook;
   /** Feed each non-empty final transcript as it arrives, before the pusher sees it. */
   onFinalTranscript: (transcript: string) => void;
-  /** Feed every agent state change; Ferni's reply to turn 1 releases it (FirstTurnRelease). */
+  /** Feed every agent state change; 'speaking' after turn 1 began releases it. */
   onAgentState: (newState: string | undefined) => void;
   /** Feed CrisisGate's decisions; anything but 'pass' releases turn 1 at once. */
   onCrisisDecision: (action: string | undefined) => void;
@@ -137,7 +129,6 @@ export function deferFirstTurn(
     maxDeferMs?: number;
     endWaitMs?: number;
     settleMs?: number;
-    releaseOn?: FirstTurnRelease;
     voiceEmotion?: () => unknown;
     safetySignal?: (text: string, voiceEmotion: unknown) => boolean;
   } = {}
@@ -146,7 +137,6 @@ export function deferFirstTurn(
     maxDeferMs = MAX_DEFER_MS,
     endWaitMs = SESSION_END_WAIT_MS,
     settleMs = SPEAKING_SETTLE_MS,
-    releaseOn = 'settle',
     voiceEmotion = () => undefined,
     safetySignal = hasSafetySignal,
   } = options;
@@ -157,7 +147,6 @@ export function deferFirstTurn(
   let firstTurnSegments = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let settle: ReturnType<typeof setTimeout> | undefined;
-  let replying = false;
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => {
     release = resolve;
@@ -171,12 +160,6 @@ export function deferFirstTurn(
     // Nothing was held when no turn-1 words arrived (e.g. a session ending at the greeting).
     if (armedAt) log.info({ reason, waitedMs: Date.now() - armedAt }, 'FIRST_TURN_DEFER released');
     release();
-  };
-
-  const armTimeout = (): void => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(() => open('timeout'), maxDeferMs);
-    timer.unref?.();
   };
 
   return {
@@ -200,7 +183,8 @@ export function deferFirstTurn(
       firstTurnSegments++;
       if (!armedAt) {
         armedAt = Date.now();
-        armTimeout();
+        timer = setTimeout(() => open('timeout'), maxDeferMs);
+        timer.unref?.();
       }
       try {
         if (safetySignal(transcript, voiceEmotion())) open('safety');
@@ -211,18 +195,6 @@ export function deferFirstTurn(
     },
     onAgentState(newState) {
       if (!armedAt || released) return;
-      if (releaseOn === 'reply_end') {
-        // Hold while Ferni speaks; leaving 'speaking' (the reply's end, or an
-        // interruption) releases. The bound restarts with the reply, so it
-        // fires into the reply's audio only when the reply runs past it.
-        if (newState !== 'speaking') {
-          if (replying) open('reply_end');
-        } else if (!replying) {
-          replying = true;
-          armTimeout();
-        }
-        return;
-      }
       // Ferni has started the reply: let its audio queue first. A reply that
       // already ended (any other state) needs no settle.
       if (newState === 'speaking' && !settle) {
@@ -267,7 +239,6 @@ export function deferralForSession(
 ): FirstTurnDeferral | undefined {
   return firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
     ? deferFirstTurn(hook, {
-        releaseOn: firstTurnDeferRelease(env),
         voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
       })
     : undefined;
