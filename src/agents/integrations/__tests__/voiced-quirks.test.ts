@@ -50,7 +50,7 @@ vi.mock('../direct-clip-track.js', async (importOriginal) => ({
 const { startVoicedPresence } = await import('../voiced-presence.js');
 const { startBackchannelClips } = await import('../clip-player.js');
 const { quirkEvents } = await import('../../../services/session/quirk-log.js');
-const { quirkTurnNote } = await import('../../personas/quirk-note.js');
+const { ASK_WINDOW_MS, quirkTurnNote } = await import('../../personas/quirk-note.js');
 const { withTurnReminder } = await import('../../personas/turn-request.js');
 const { markHandoffStarted } = await import('../../../handoff/unified-state.js');
 const { initializeSanitizerIntegration, notifyToolStarted } =
@@ -242,7 +242,7 @@ describe('he owns what he did', () => {
       env
     );
     expect(note).toContain('You whistled a few bars');
-    expect(note).toContain('own it playfully');
+    expect(note).toContain('own it plainly as yours');
   });
 
   it('a voiced hum and a morning yawn are recorded with their take', () => {
@@ -323,5 +323,105 @@ describe('the live path: clip player to the next reply request', () => {
     const chat = chatAfter(replyAt, 'mm sorry, I was just thinking');
     const sent = (withTurnReminder(chat, session).items.at(-1) as llm.ChatMessage).textContent;
     expect(sent).toContain('was I snoring');
+  });
+});
+
+describe('he owns only a sound that played (the playback record)', () => {
+  const ask = (sessionId: string, replyAt: number, words: string, env: Record<string, string>) =>
+    quirkTurnNote(sessionId, chatAfter(replyAt, words), words, {}, env);
+
+  it('a snore the conductor blocked is not recorded, so "did you just snore?" is told it was not him', () => {
+    const blocked = call();
+    start(blocked.session, ON, {
+      gate: (_k: string, clip: string, play: () => boolean) => !isSnore(clip) && play(),
+    });
+    blocked.warmUp();
+    const replyAt = Date.now();
+    vi.advanceTimersByTime(60_000);
+    expect(snores()).toHaveLength(0); // nothing on the wire
+    expect(quirkEvents(blocked.sessionId).map((e) => e.kind)).not.toContain('snore');
+    const note = ask(blocked.sessionId, replyAt, 'Wait, did you just snore?', ON);
+    expect(note).not.toContain('mock snore');
+    expect(note).not.toContain('own it');
+    expect(note).toContain("whether that snore was you: it wasn't");
+    expect(note).toContain('What played from you was a hum, not a snore.'); // the quiet-window hum did play
+
+    const played = call(); // control: the same call with the snore on the wire
+    start(played.session, ON);
+    played.warmUp();
+    const at = Date.now();
+    vi.advanceTimersByTime(SNORE_AT);
+    expect(snores()).toHaveLength(1);
+    const owned = ask(played.sessionId, at, 'Wait, did you just snore?', ON);
+    expect(owned).toContain('mock snore');
+    expect(owned).toContain('own it plainly as yours');
+    expect(owned).not.toContain("it wasn't");
+  });
+
+  it('nothing played at all: "it wasn\'t you", never an invitation to own it', () => {
+    const quiet = call();
+    const note = ask(quiet.sessionId, Date.now(), 'Okay, I am back. Wait, did you just snore?', ON);
+    expect(quirkEvents(quiet.sessionId)).toEqual([]);
+    expect(note).toContain('Nothing like that played from you in the last few minutes.');
+    expect(note).not.toMatch(/own it/i);
+  });
+
+  it('a sound older than the window is not owned', () => {
+    const c = call();
+    start(c.session, ON);
+    c.warmUp();
+    vi.advanceTimersByTime(SNORE_AT);
+    expect(snores()).toHaveLength(1);
+    vi.advanceTimersByTime(ASK_WINDOW_MS + 1);
+    const note = ask(c.sessionId, Date.now() - 1, 'were you snoring earlier?', ON);
+    expect(note).not.toContain('mock snore');
+    expect(note).toContain('Nothing like that played from you in the last few minutes.');
+  });
+
+  it('owning one: plainly, a joke is fine, no made-up cause', () => {
+    const c = call();
+    start(c.session, { ...ON, PRESENCE_SOUND_ASSETS: 'on' });
+    c.warmUp();
+    const replyAt = Date.now();
+    vi.advanceTimersByTime(5_000);
+    expect(quirkEvents(c.sessionId)[0]).toMatchObject({ kind: 'whistle' });
+    const note = ask(c.sessionId, replyAt, 'were you just whistling?', ON);
+    expect(note).toContain('You whistled a few bars');
+    expect(note).toContain("don't deny it or make up a cause (the coffee, the house, the line)");
+    expect(note).not.toContain('say why');
+  });
+
+  it('"is that you?" about a melody while a whistle is in the record: owned, not denied', () => {
+    const c = call();
+    start(c.session, { ...ON, PRESENCE_SOUND_ASSETS: 'on' });
+    c.warmUp();
+    const replyAt = Date.now();
+    vi.advanceTimersByTime(5_000);
+    const note = ask(c.sessionId, replyAt, 'is that you? what a melody', ON);
+    expect(note).toContain('You whistled a few bars');
+    expect(note).not.toContain("it wasn't");
+  });
+
+  it('with TOOL_HUM on, the record cannot vouch for a hum: no "it wasn\'t you"', () => {
+    const c = call();
+    expect(ask(c.sessionId, Date.now(), 'were you humming?', { ...ON, TOOL_HUM: 'on' })).toBe('');
+    expect(ask(c.sessionId, Date.now(), 'were you humming?', ON)).toContain("it wasn't");
+  });
+
+  it('VOICED_QUIRKS off: no "it wasn\'t you" note, and the asked line is as before', () => {
+    const off = { ...BASE, PRESENCE_SNORE: 'on' };
+    const quiet = call();
+    expect(ask(quiet.sessionId, Date.now(), 'did you just snore?', off)).toBe('');
+    const c = call();
+    start(c.session, off); // QUIRK_AWARENESS on, voiced records off: nothing logged
+    c.warmUp();
+    vi.advanceTimersByTime(60_000);
+    expect(ask(c.sessionId, Date.now(), 'were you humming?', off)).toBe('');
+  });
+
+  it('never on a crisis turn', () => {
+    const c = call();
+    const words = 'did you just snore?';
+    expect(quirkTurnNote(c.sessionId, chatAfter(0, words), words, { careful: true }, ON)).toBe('');
   });
 });

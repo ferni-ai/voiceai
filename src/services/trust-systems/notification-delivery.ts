@@ -303,6 +303,7 @@ export async function deliverVoice(
 
     const result = await callWithPersonaVoice(phone, item.message, personaId, {
       fallbackToTwilioVoice: true,
+      ownerUid: item.userId,
       userId: item.userId,
     });
 
@@ -343,7 +344,6 @@ export async function deliverToUser(
   item: OutreachItem,
   config: UserChannelConfig
 ): Promise<DeliveryResult> {
-  // Try preferred channel first
   const preferredResult = await tryChannel(item, config, config.preferredChannel);
   if (preferredResult.success) {
     return preferredResult;

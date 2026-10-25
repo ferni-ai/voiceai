@@ -10123,9 +10123,10 @@
     "title": "Kleine Dinge, an die ich mich erinnere",
     "subtitle": "Damit du es nicht tun musst",
     "emptyTitle": "Noch nichts eingerichtet",
-    "emptySubtitle": "Soll ich dich jeden Morgen begrüßen? Dich ans Dehnen erinnern? Das kann ich gerne machen.",
+    "emptySubtitle": "Erzähl mir, was du regelmäßig machen möchtest, und ich speichere es hier.",
     "emptyButton": "Zeig mir ein paar Ideen",
     "addNew": "Etwas Neues hinzufügen",
+    "notRunningYet": "Ich bewahre sie hier für dich auf. Sie laufen noch nicht von selbst.",
     "triggers": {
       "dailyAt": "Jeden Tag um {time}",
       "dailyUnset": "Jeden Tag zu einer bestimmten Zeit",

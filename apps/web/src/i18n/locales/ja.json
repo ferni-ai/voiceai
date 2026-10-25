@@ -10123,9 +10123,10 @@
     "title": "私が覚えている、ささやかなこと",
     "subtitle": "あなたが覚えておかなくてもいいように",
     "emptyTitle": "まだ何も設定されていません",
-    "emptySubtitle": "毎朝の挨拶や、ストレッチのリマインダーなど、何でもお手伝いしますよ。",
+    "emptySubtitle": "定期的にしたいことを教えてください。ここに保存しておきます。",
     "emptyButton": "アイデアを見る",
     "addNew": "新しく追加する",
+    "notRunningYet": "ここに保存しています。まだ自動では動きません。",
     "triggers": {
       "dailyAt": "毎日{time}に",
       "dailyUnset": "毎日決まった時間に",

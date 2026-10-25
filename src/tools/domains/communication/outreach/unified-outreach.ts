@@ -145,7 +145,6 @@ function detectIntent(purpose: string): OutreachIntent {
 // ============================================================================
 
 function needsConversation(intent: OutreachIntent, purpose: string): boolean {
-  // Intents that need real dialogue
   const conversationalIntents: OutreachIntent[] = [
     'check_in',
     'ask_question',
@@ -418,6 +417,7 @@ async function executeOutreach(
 
       const result = await callWithPersonaVoice(contact.phone, message, personaId, {
         fallbackToTwilioVoice: true,
+        ownerUid: userId,
         userId,
       });
 

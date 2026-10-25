@@ -129,6 +129,11 @@ export class WrapUp {
     private readonly timeoutMs = TIMEOUT_MS
   ) {}
 
+  /** The call carried hard news, grief, illness, a crisis or real distress; it stays so. */
+  readsHeavy(): boolean {
+    return this.heavy;
+  }
+
   /** Ferni finished a reply: read what was decided from the call so far. Never throws. */
   async observe(lines: Line[]): Promise<void> {
     if (this.offered) {

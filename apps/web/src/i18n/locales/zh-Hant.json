@@ -10123,9 +10123,10 @@
     "title": "我幫你記住的小事",
     "subtitle": "讓你不用操心",
     "emptyTitle": "目前還沒有任何設定",
-    "emptySubtitle": "想要我每天早上向你問好？還是提醒你伸展身體？我都可以幫忙喔。",
+    "emptySubtitle": "告訴我你想定期做的事，我會把它存在這裡。",
     "emptyButton": "看看有哪些靈感",
     "addNew": "新增項目",
+    "notRunningYet": "我把它們存在這裡。它們還不會自動執行。",
     "triggers": {
       "dailyAt": "每天 {time}",
       "dailyUnset": "每天的固定時間",

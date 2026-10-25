@@ -10123,9 +10123,10 @@
     "title": "내가 기억하는 소소한 것들",
     "subtitle": "당신이 신경 쓰지 않아도 되도록요",
     "emptyTitle": "아직 설정된 것이 없어요",
-    "emptySubtitle": "매일 아침 인사를 건네거나, 스트레칭할 시간이라고 알려드릴까요? 무엇이든 말씀해 주세요.",
+    "emptySubtitle": "꾸준히 하고 싶은 일을 말씀해 주세요. 여기에 저장해 둘게요.",
     "emptyButton": "몇 가지 아이디어 보기",
     "addNew": "새로 추가하기",
+    "notRunningYet": "여기에 저장해 두었어요. 아직 저절로 실행되지는 않아요.",
     "triggers": {
       "dailyAt": "매일 {time}에",
       "dailyUnset": "매일 정해진 시간에",

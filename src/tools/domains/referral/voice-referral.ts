@@ -167,6 +167,7 @@ export async function makeVoiceReferralCall(params: {
   try {
     const result = await callWithPersonaVoice(recipientPhone, message, 'ferni', {
       fallbackToTwilioVoice: true,
+      ownerUid: referrerId, // MESSAGING_PIPELINE: the recipient needs a grant from the referrer
       userId: referrerId, // MINOR_CARE_SHARED_HOLD: a held referrer's account stops it
       ssml: {
         callType: ssmlCallType,
@@ -176,7 +177,6 @@ export async function makeVoiceReferralCall(params: {
     });
 
     if (result.success) {
-      // Track the referral
       await trackVoiceReferral({
         referrerId,
         referrerName,
@@ -317,7 +317,6 @@ export async function getReferralHistory(referrerId: string): Promise<VoiceRefer
       });
     }
 
-    // Update cache
     referralCache.set(referrerId, referrals);
     return referrals;
   } catch (error) {
@@ -510,7 +509,6 @@ export async function makeConversationalReferralCall(params: {
   const { referrerId, referrerName, recipientName, recipientPhone, personalNote, occasion } =
     params;
 
-  // Check if conversational calls are configured
   if (!isConversationalCallsConfigured()) {
     log.info('Conversational calls not configured, falling back to simple voice message');
     return makeVoiceReferralCall({
@@ -529,6 +527,7 @@ export async function makeConversationalReferralCall(params: {
   );
 
   const callContext: OutboundCallContext = {
+    userId: referrerId, // whose call it is (MESSAGING_PIPELINE: the recipient needs their grant)
     trigger: {
       id: `ref_${Date.now()}`,
       type: 'personal_share',
@@ -556,13 +555,14 @@ export async function makeConversationalReferralCall(params: {
         "Be warm but not pushy - it's okay if they're not interested",
         "If they're curious, explain what I do without using 'AI' or technical terms",
       ],
-      maxDuration: 5, // Keep intro calls short
+      maxDuration: 5,
     },
     persona: 'ferni',
   };
 
   try {
     const call = await makeConversationalCall(callContext);
+    if (!call.success) return { success: false, error: call.error }; // refused: nothing to track
 
     // Track the referral
     await trackVoiceReferral({
