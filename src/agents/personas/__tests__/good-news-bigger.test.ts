@@ -71,6 +71,13 @@ describe('goodNewsNote', () => {
     expect(goodNewsNote('I got the job!', ['I got the job!'], { crisis: true }, ON)).toBe('');
   });
 
+  it('the note reacts in his own words and never says their news back', () => {
+    expect(GOOD_NEWS_NOTE).not.toMatch(/in their words|their own words|name (the|it|what)/i);
+    expect(GOOD_NEWS_NOTE).toMatch(/in your own words/);
+    expect(GOOD_NEWS_NOTE).toMatch(/Never say their news back to them/);
+    expect(GOOD_NEWS_NOTE).toMatch(/no repeating their sentence or its key words/);
+  });
+
   it('the note asks for one question about the moment, no advice and no pivot', () => {
     expect(GOOD_NEWS_NOTE).toMatch(/one question about the moment/);
     expect(GOOD_NEWS_NOTE).toMatch(/No advice, nothing about you/);
