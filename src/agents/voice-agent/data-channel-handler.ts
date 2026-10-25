@@ -38,6 +38,7 @@ import { getSessionAdapter } from '../shared/handoff/coordinator-adapter.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { sayGameStartSnag } from './game-start-snag.js';
 import { isTextGameType } from '../../services/games/text-game-types.js';
+import { publishGameAck, type GameStartRequest } from './game-start-ack.js';
 // Centralized generateReply gateway - NEVER use session.generateReply directly!
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // Safe fire-and-forget for non-critical async operations
@@ -349,43 +350,6 @@ async function handleHandoffRequest(
     await sendAck(false, String(handoffErr));
     await sendFailure(String(handoffErr));
   }
-}
-
-/** What the picker sends: the request id is new, so an older app sends none. */
-interface GameStartRequest {
-  gameType: string;
-  requestId?: unknown;
-}
-
-/**
- * The app's id for this request, echoed in the ack so the app can tell which tap
- * it answers. Only a short string is echoed; anything else (an older app) gets none.
- */
-function requestIdOf(message: GameStartRequest): string | undefined {
-  const { requestId } = message;
-  return typeof requestId === 'string' && requestId.length > 0 && requestId.length <= 64
-    ? requestId
-    : undefined;
-}
-
-/** Why a game didn't start, for the app (it shows the same toast for both). */
-type GameStartFailure = 'unknown_game' | 'start_failed';
-
-async function publishGameAck(
-  room: Room,
-  type: 'game_start_ack' | 'text_game_start_ack',
-  message: GameStartRequest,
-  fields:
-    { success: true; message: string } | { success: false; reason: GameStartFailure; error: string }
-): Promise<void> {
-  const ack = JSON.stringify({
-    type,
-    gameType: message.gameType,
-    requestId: requestIdOf(message), // dropped by JSON.stringify when the app sent none
-    ...fields,
-    timestamp: Date.now(),
-  });
-  await room.localParticipant?.publishData(new TextEncoder().encode(ack), { reliable: true });
 }
 
 /**
