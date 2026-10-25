@@ -22,10 +22,14 @@ import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js'
 import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
-import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
+import { recordSharedHold } from '../../services/safety/minor-care-shared-hold.js';
+import { ownerSessionFor, setOnUserHeld, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'minor-care-purge' });
+
+// MINOR_CARE_SHARED_HOLD: a session newly held for its user writes the shared record (no words)
+setOnUserHeld((userId) => void recordSharedHold(userId));
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -35,6 +39,7 @@ const log = createLogger({ module: 'minor-care-purge' });
  */
 export function purgeHeldUser(userId: string): void {
   if (sharedId(userId)) return log.warn('MINOR_CARE purge skipped: a shared or placeholder id');
+  void recordSharedHold(userId); // held for IDLE_MS from the call's end, in every process
   const ownerSession = ownerSessionFor(userId);
   if (ownerSession)
     log.info({ ownerSession }, 'MINOR_CARE purged while an owner session was live; it will reload');

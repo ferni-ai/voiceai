@@ -17,6 +17,7 @@
 import { createHmac } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { sharedHeld } from '../safety/minor-care-shared-hold.js';
 
 const log = createLogger({ module: 'checkin-replies' });
 
@@ -167,6 +168,12 @@ export async function recordCheckinReply(
   try {
     const match = matchCheckin(await deps.store.forPhoneHash(hash), now);
     if (!match) return null;
+    // MINOR_CARE_SHARED_HOLD: a caller held under 18 (in any process): their reply isn't kept
+    const phoneId = `phone:${toE164(from) ?? from}`;
+    if ((await sharedHeld(match.userId, deps.env)) || (await sharedHeld(phoneId, deps.env))) {
+      log.info({ checkinId: match.id }, 'Check-in reply not kept: MINOR_CARE hold');
+      return null;
+    }
     await deps.store.addReply(match.id, replyId, { body, receivedAt: now.toISOString() });
     log.info({ checkinId: match.id, phoneLast4: last4(from) }, 'Check-in reply recorded');
     return match.id;

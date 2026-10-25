@@ -48,6 +48,7 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { reportText } from './outreach-bq.js';
+import { sharedHeld } from '../safety/minor-care-shared-hold.js';
 import {
   consentBlocks,
   defaultConsentDeps,
@@ -106,6 +107,7 @@ export type TextSkip =
   | 'opted-out'
   | 'consent-unknown'
   | 'paused'
+  | 'held' // MINOR_CARE_SHARED_HOLD: no text they didn't ask for right now
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -231,6 +233,7 @@ export async function sendGuardedText(
     return reportText(t.userId, t.kind, { sent: false, reason });
   };
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
+  if (!t.askedNow && (await sharedHeld(t.userId, deps.env))) return skip('held');
   const storedId = recordUserId(t.userId, deps.env);
   if (!storedId) return skip('no-verified-phone');
 
@@ -313,7 +316,7 @@ export interface OnBehalfText {
 }
 
 export type OnBehalfSkip =
-  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off'>
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'held'>
   | 'bad-number'
   | 'needs-consent'
   | 'quiet-hours';

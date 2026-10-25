@@ -210,7 +210,7 @@ const likely = new Map<string, number>();
 /** Past this many, sessions idle longer than IDLE_MS go, least recently used first. */
 const MAX_SESSIONS = 500;
 /** Longer than any call plus its after-call work: a session this idle can't still be writing. */
-const IDLE_MS = 6 * 60 * 60 * 1000;
+export const IDLE_MS = 6 * 60 * 60 * 1000;
 let ownerCheck: (sessionId: string) => boolean = () => false;
 /** sessionId -> its userId (session start, and every detector call that knows it), for userHeld. */
 const sessionUsers = new Map<string, string>();
@@ -228,6 +228,29 @@ function evictIdle(): void {
   for (const [sessionId, used] of likely) {
     if (likely.size <= MAX_SESSIONS || used >= cutoff) return;
     likely.delete(sessionId);
+  }
+}
+
+/** Told once when a session becomes held for its bound user (minor-care-purge.ts: the shared record). */
+let onUserHeld: (userId: string) => void = () => {};
+/** Sessions whose hold was announced, bounded like `likely`. */
+const announced = new Set<string>();
+
+export function setOnUserHeld(listener: (userId: string) => void): void {
+  onUserHeld = listener;
+}
+
+/** This session is held and bound to a user: tell the listener, once per session. Never throws. */
+function announceHold(sessionId: string): void {
+  const userId = sessionUsers.get(sessionId);
+  if (!userId || announced.has(sessionId) || !likely.has(sessionId)) return;
+  if (ownerExempt(sessionId)) return;
+  announced.add(sessionId);
+  if (announced.size > MAX_SESSIONS) announced.delete(announced.values().next().value!);
+  try {
+    onUserHeld(userId);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'MINOR_CARE hold listener failed');
   }
 }
 
@@ -267,6 +290,7 @@ export function noteCallerWords(
   touch(sessionId);
   if (likely.size > MAX_SESSIONS) evictIdle();
   log.info({ sessionId }, 'MINOR_CARE likely minor');
+  announceHold(sessionId);
   return true;
 }
 
@@ -302,6 +326,7 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
     if (sessionUsers.size <= MAX_SESSION_USERS) break;
     if (!likely.has(s)) sessionUsers.delete(s);
   }
+  announceHold(sessionId);
 }
 
 /**
@@ -385,5 +410,6 @@ export function resetMinorCare(): void {
   shadowLogged.clear();
   likely.clear();
   sessionUsers.clear();
+  announced.clear();
   ownerCheck = () => false;
 }

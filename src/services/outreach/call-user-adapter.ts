@@ -31,6 +31,7 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
   'no-hash-secret': "texting isn't set up here",
+  held: "I'm holding off on texts for now",
   'send-failed': "the text didn't go through",
 };
 

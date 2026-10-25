@@ -19,6 +19,7 @@ import type { PersonaId } from '../../personas/types.js';
 import type { EngagementChannel, InboundRouteDecision } from './types.js';
 import { getActiveThread, getOrCreateThread, addMessage } from './thread-manager.js';
 import { getConversationBridgeContext } from '../outreach/conversation-context-bridge.js';
+import { sharedHeld } from '../safety/minor-care-shared-hold.js';
 
 const log = createLogger({ module: 'InboundRouter' });
 
@@ -233,6 +234,13 @@ export async function handleInboundSMS(
 
   // Check if user wants to talk
   const callIntent = detectCallIntent(body);
+  const responseMessage = callIntent ? `I'd love to talk. Let me call you now...` : undefined;
+
+  // MINOR_CARE_SHARED_HOLD: a caller held under 18 (in any process) is answered, nothing kept
+  if ((await sharedHeld(userId)) || (await sharedHeld(`phone:${fromPhone}`))) {
+    log.info({ userId, agentId: routeDecision.agentId }, 'Inbound SMS not kept: MINOR_CARE hold');
+    return { routeDecision, shouldInitiateCall: callIntent, responseMessage };
+  }
 
   // Get or create thread
   const thread = await getOrCreateThread(userId, 'sms', routeDecision.agentId, {
@@ -262,11 +270,7 @@ export async function handleInboundSMS(
     '📥 Inbound SMS processed'
   );
 
-  return {
-    routeDecision,
-    shouldInitiateCall: callIntent,
-    responseMessage: callIntent ? `I'd love to talk. Let me call you now...` : undefined,
-  };
+  return { routeDecision, shouldInitiateCall: callIntent, responseMessage };
 }
 
 /**

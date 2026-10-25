@@ -138,6 +138,7 @@ describe('what is copied', () => {
         "user_gifts/{uid}",
         "profiles/{uid}",
         "feature_flag_overrides/{uid}",
+        "minor_care_holds/{uid}",
         "apple_health_status/{uid}",
         "apple_health_data/{uid}",
         "analytics_users/{uid}",
