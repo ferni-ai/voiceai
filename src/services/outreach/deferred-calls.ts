@@ -87,10 +87,16 @@ export function deferredCallReply(
   );
 }
 
+/**
+ * `quietAllDay`: the guard's input, kept when their saved window covers all their call hours
+ * (QUIET_HOURS_FROM_PREFS, decision.none). The call then waits for their next day and is
+ * dropped, not held again, if the window still covers it all (executeDueDeferredCalls).
+ */
 export async function deferCall(
   userId: string,
   call: DeferredCall,
-  decision: CallHoursDecision
+  decision: CallHoursDecision,
+  quietAllDay?: CallHoursInput
 ): Promise<Deferral> {
   const id = `deferred_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const deferral = { id, at: decision.at, timezone: decision.timezone };
@@ -110,6 +116,7 @@ export async function deferCall(
         timezone: decision.timezone,
         timezoneSource: decision.source,
         createdAt: new Date().toISOString(),
+        ...(quietAllDay && { quietAllDay }),
       })
     );
   recent.set(id, deferral);
@@ -129,8 +136,13 @@ export async function holdForCallHours(
 ): Promise<Deferral | undefined> {
   if (!isCallHoursGuardOn()) return undefined;
   const userAsked = call.kind === 'proactive' && call.request.reason === USER_REQUESTED_CALL;
-  const decision = await checkCallHours({ ...recipient, ...(userAsked && { userAsked }) });
-  return decision.allowed ? undefined : deferCall(userId, call, decision);
+  const input = { ...recipient, ...(userAsked && { userAsked }) };
+  const decision = await checkCallHours(input);
+  if (decision.allowed) return undefined;
+  // Quiet all day: no call today, one more look on their next day (never a call at `at`, past it).
+  if (decision.recheckAt)
+    return deferCall(userId, call, { ...decision, at: decision.recheckAt }, input);
+  return deferCall(userId, call, decision);
 }
 
 /** The last ten digits, so "+13035550100" and "303-555-0100" match. */
@@ -257,6 +269,8 @@ export interface DeferredCallsRunResult {
   rescheduled: number;
   failed: number;
   missed: number;
+  /** Dropped at the re-check: their saved window still covers all their call hours. */
+  quietAllDay?: number;
 }
 
 /** The new deferral's id when the call-hours guard held it again, else undefined (it rang). */
@@ -270,6 +284,12 @@ async function place(userId: string, call: DeferredCall): Promise<string | undef
   const result = await scheduleProactiveCall({ ...call.request, userId });
   if (!result.success) throw new Error(result.error ?? 'proactive call failed');
   return undefined;
+}
+
+/** Held for a saved window over all their call hours, and still so now: drop it. */
+async function stillQuietAllDay(data: Record<string, unknown>, now = new Date()): Promise<boolean> {
+  const input = data.quietAllDay as CallHoursInput | undefined;
+  return !!input && !!(await checkCallHours({ ...input, now })).none;
 }
 
 /** Place the deferred calls that are due. Run by the execute-scheduled-outreach job. */
@@ -290,20 +310,31 @@ export async function executeDueDeferredCalls(
     now: opts.now,
     limit: opts.limit ?? 10,
   });
-  const result = { due: claim.due, placed: 0, rescheduled: 0, failed: 0, missed: claim.late };
+  const result: DeferredCallsRunResult = {
+    due: claim.due,
+    placed: 0,
+    rescheduled: 0,
+    failed: 0,
+    missed: claim.late,
+  };
   for (const item of claim.lateItems) {
     logPromiseOutcome('deferred-call', deferredCallOutcome('missed'), { userId: item.userId });
   }
   for (const item of claim.claimed) {
     const call = item.data as unknown as DeferredCall;
-    let status: 'placed' | 'rescheduled' | 'failed' = 'placed';
+    let status: 'placed' | 'rescheduled' | 'failed' | 'quiet-all-day' = 'placed';
     let heldAs: string | undefined;
     try {
-      // Owner from the document's path, not the stored request.
-      heldAs = await place(item.userId, call);
-      // Still outside their hours (prod 2026-10-18 02:39Z, 8:39pm in Denver): held, not placed.
-      if (heldAs) status = 'rescheduled';
-      result[heldAs ? 'rescheduled' : 'placed']++;
+      if (await stillQuietAllDay(item.data, opts.now)) {
+        status = 'quiet-all-day';
+        result.quietAllDay = (result.quietAllDay ?? 0) + 1;
+      } else {
+        // Owner from the document's path, not the stored request.
+        heldAs = await place(item.userId, call);
+        // Still outside their hours (prod 2026-10-18 02:39Z, 8:39pm in Denver): held, not placed.
+        if (heldAs) status = 'rescheduled';
+        result[heldAs ? 'rescheduled' : 'placed']++;
+      }
     } catch (error) {
       status = 'failed';
       result.failed++;

@@ -55,6 +55,8 @@ export interface CallHoursDecision {
   at: Date;
   /** No moment clears call hours and the saved window (it covers them all); `at` is past it. */
   none?: true;
+  /** With `none`: when to look again, the first moment call hours allow on their next day. */
+  recheckAt?: Date;
   timezone: string;
   source: TimezoneSource;
 }
@@ -188,5 +190,10 @@ export async function checkCallHours(input: CallHoursInput): Promise<CallHoursDe
   // Additive: this guard's own decision as before, and also the saved window, in its own zone.
   const { at, found } = openingWith(now, (t) => nextCallableTime(t, zones, quiet), saved);
   const allowed = at.getTime() === now.getTime();
-  return { allowed, at, timezone: zones[0], source, ...(!found && { none: true as const }) };
+  const decision = { allowed, at, timezone: zones[0], source };
+  if (found) return decision;
+  // No call today: deferred-calls.ts looks once more when call hours open on their next day.
+  const minute = Math.floor(now.getTime() / 60_000) * 60_000;
+  const midnight = new Date(minute + (DAY_MIN - localMinutes(now, zones[0])) * 60_000);
+  return { ...decision, none: true, recheckAt: nextCallableTime(midnight, zones, quiet) };
 }
