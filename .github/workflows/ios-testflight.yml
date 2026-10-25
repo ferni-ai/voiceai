@@ -20,8 +20,34 @@ permissions:
   contents: read
 
 jobs:
+  # Refuses before the reviewer is asked while any open issue is labelled
+  # `blocks-testflight` (e.g. #2868: known bugs landed on main by the iOS train).
+  # Fails closed if the issues can't be read.
+  blockers:
+    name: No open TestFlight blockers
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: read
+    steps:
+      - name: Check blocks-testflight issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          open=$(gh issue list -R "$REPO" --label blocks-testflight --state open --json number,title \
+            --jq '.[] | "#\(.number) \(.title)"') || { echo "::error::could not read blocker issues; refusing"; exit 1; }
+          if [ -n "$open" ]; then
+            echo "::error::TestFlight is blocked until these issues close:"
+            echo "$open"
+            exit 1
+          fi
+          echo "no open blocks-testflight issues"
+
   testflight:
     name: Archive and upload to TestFlight
+    needs: blockers
     if: github.ref == 'refs/heads/main'
     runs-on: macos-latest
     timeout-minutes: 60
