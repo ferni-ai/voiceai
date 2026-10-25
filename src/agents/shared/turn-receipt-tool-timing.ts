@@ -20,10 +20,31 @@
  * - `timing.handoffSteps`: llm-handoff.ts's voiceSwitch event, lock and start
  *   messages, to split the handoff's wait between the tool and the goodbye.
  *
+ * These hooks run inside the SDK's tool start (SpeechHandle._itemAdded loops its
+ * callbacks with no catch), llmNode and the session's events, so none of them
+ * may throw: each is guarded, clocks are read inside the guard, and the first
+ * failure is logged once at debug. A receipt that can't be timed loses these
+ * fields, never the turn.
+ *
  * @module agents/shared/turn-receipt-tool-timing
  */
 import type { TurnTimingKind } from '../../speech/output-control/turn-timing.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type { EouMetric, LlmMetric } from './turn-metrics.js';
+
+const log = createLogger({ module: 'TurnReceiptToolTiming' });
+let failureLogged = false;
+
+/** Receipt bookkeeping never throws into the agent (see the module doc). */
+function safely(fn: () => void): void {
+  try {
+    fn();
+  } catch (error) {
+    if (failureLogged) return;
+    failureLogged = true;
+    log.debug({ error: String(error) }, 'tool-turn receipt timing skipped');
+  }
+}
 
 /** Kept per turn: room for preemptive + 5 requests, and a few tools. */
 const MAX_ENTRIES = 8;
@@ -54,44 +75,61 @@ export const isStepKind = (kind: TurnTimingKind): kind is StepKind =>
   kind === 'ackClip' || kind.startsWith('handoff');
 
 /** turn-timing.ts: an ack clip (`ms` until it reaches the wire) or a handoff step. */
-export function noteStep(s: ToolSteps, kind: StepKind, ms: number, now: number): void {
-  if (kind === 'ackClip') s.ackClipAt ??= now + Math.max(0, ms);
-  else s.handoff[kind] ??= now;
+export function noteStep(s: ToolSteps, kind: StepKind, ms: number, now: () => number): void {
+  safely(() => {
+    if (kind === 'ackClip') s.ackClipAt ??= now() + Math.max(0, ms);
+    else s.handoff[kind] ??= now();
+  });
 }
 
 /** An llm_metrics on the turn. */
 export function noteRequestMetric(s: ToolSteps, m: LlmMetric): void {
-  if (m.timestamp === undefined || s.requests.length >= MAX_ENTRIES) return;
-  const durationMs = Math.max(0, m.durationMs ?? 0);
-  s.requests.push({
-    startAt: m.timestamp - durationMs,
-    ttftMs: m.ttftMs >= 0 ? m.ttftMs : null, // -1: no token before the stream closed
-    durationMs,
-    cancelled: m.cancelled === true,
+  safely(() => {
+    if (m.timestamp === undefined || s.requests.length >= MAX_ENTRIES) return;
+    const durationMs = Math.max(0, m.durationMs ?? 0);
+    s.requests.push({
+      startAt: m.timestamp - durationMs,
+      ttftMs: m.ttftMs >= 0 ? m.ttftMs : null, // -1: no token before the stream closed
+      durationMs,
+      cancelled: m.cancelled === true,
+    });
   });
 }
 
 /** llmNode sent a request: the first after a tool started is the answer's. */
-export function noteRequestSent(s: ToolSteps, now: number): void {
-  if (s.runs.size > 0) s.afterToolRequestAt ??= now;
+export function noteRequestSent(s: ToolSteps, now: () => number): void {
+  safely(() => {
+    if (s.runs.size > 0) s.afterToolRequestAt ??= now();
+  });
 }
 
 /** A tool started (`name` given) or returned its result. */
-export function noteToolRun(s: ToolSteps, callId: string, name: string | undefined, now: number) {
-  const run = s.runs.get(callId);
-  if (name === undefined) {
-    if (run) run.endAt ??= now;
-  } else if (!run && s.runs.size < MAX_ENTRIES) s.runs.set(callId, { name, startAt: now });
+export function noteToolRun(
+  s: ToolSteps,
+  callId: string,
+  name: string | undefined,
+  now: () => number
+): void {
+  safely(() => {
+    const run = s.runs.get(callId);
+    if (name === undefined) {
+      if (run) run.endAt ??= now();
+    } else if (!run && s.runs.size < MAX_ENTRIES) s.runs.set(callId, { name, startAt: now() });
+  });
 }
 
 /** function_tools_executed: every tool on the step has returned. */
-export function endToolRuns(s: ToolSteps, now: number): void {
-  for (const run of s.runs.values()) run.endAt ??= now;
+export function endToolRuns(s: ToolSteps, now: () => number): void {
+  safely(() => {
+    for (const run of s.runs.values()) run.endAt ??= now();
+  });
 }
 
 /** Ferni's audio started: after a request sent after the tools, that is the answer. */
-export function noteSpeaking(s: ToolSteps, now: number): void {
-  if (s.afterToolRequestAt !== undefined) s.answerAt ??= now;
+export function noteSpeaking(s: ToolSteps, now: () => number): void {
+  safely(() => {
+    if (s.afterToolRequestAt !== undefined) s.answerAt ??= now();
+  });
 }
 
 interface ItemLike {
@@ -110,22 +148,41 @@ export function watchToolRuns(
   handle: SpeechLike | undefined,
   onRun: (callId: string, name?: string) => void
 ): void {
-  if (!handle?._addItemAddedCallback) return;
-  const onItem = (item: ItemLike) => {
-    if (!item?.callId) return;
-    if (item.type === 'function_call') onRun(item.callId, item.name ?? '?');
-    else if (item.type === 'function_call_output') onRun(item.callId);
-  };
-  handle._addItemAddedCallback(onItem);
-  handle.addDoneCallback?.(() => handle._removeItemAddedCallback?.(onItem));
+  safely(() => {
+    if (!handle?._addItemAddedCallback) return;
+    const onItem = (item: ItemLike): void =>
+      safely(() => {
+        if (!item?.callId) return;
+        if (item.type === 'function_call') onRun(item.callId, item.name ?? '?');
+        else if (item.type === 'function_call_output') onRun(item.callId);
+      });
+    handle._addItemAddedCallback(onItem);
+    handle.addDoneCallback?.(() => safely(() => handle._removeItemAddedCallback?.(onItem)));
+  });
 }
 
 const round = (n: number): number => Math.round(n);
 
-/** The receipt with its tool-turn fields (see the module doc). */
-export function withToolTiming<
-  R extends { timing: object; tools: object; audio: { firstAnyAudioMs: number | null } },
->(turn: { eou?: EouMetric; steps: ToolSteps }, r: R) {
+export interface RequestField {
+  startMs: number | null;
+  ttftMs: number | null;
+  durationMs: number;
+  cancelled?: true;
+}
+export interface ToolFields {
+  requests: RequestField[];
+  handoffSteps: {
+    eventMs: number | null;
+    lockMs: number | null;
+    publishedMs: number | null;
+  } | null;
+  runs: Array<{ name: string; startMs: number | null; endMs: number | null }>;
+  execMs: Record<string, number>;
+  answerAudioMs: number | null;
+  ackClipMs: number | null;
+}
+
+function toolFields(turn: { eou?: EouMetric; steps: ToolSteps }): ToolFields {
   const s = turn.steps;
   const stop = turn.eou?.lastSpeakingTimeMs ?? 0;
   const at = (t: number | undefined): number | null =>
@@ -136,39 +193,52 @@ export function withToolTiming<
     if (run.endAt !== undefined)
       execMs[run.name] = (execMs[run.name] ?? 0) + run.endAt - run.startAt;
   }
-  const handoffSteps = Object.keys(s.handoff).length
-    ? {
-        eventMs: at(s.handoff.handoffEvent),
-        lockMs: at(s.handoff.handoffLock),
-        publishedMs: at(s.handoff.handoffPublished),
-      }
-    : null;
-  const ackClipMs = at(s.ackClipAt);
-  const firstAny = [r.audio.firstAnyAudioMs, ackClipMs].filter((n): n is number => n !== null);
+  return {
+    requests: [...s.requests]
+      .sort((a, b) => a.startAt - b.startAt)
+      .map((q) => ({
+        startMs: at(q.startAt),
+        ttftMs: q.ttftMs === null ? null : round(q.ttftMs),
+        durationMs: round(q.durationMs),
+        ...(q.cancelled ? { cancelled: true as const } : {}),
+      })),
+    handoffSteps: Object.keys(s.handoff).length
+      ? {
+          eventMs: at(s.handoff.handoffEvent),
+          lockMs: at(s.handoff.handoffLock),
+          publishedMs: at(s.handoff.handoffPublished),
+        }
+      : null,
+    runs: runs.map((run) => ({ name: run.name, startMs: at(run.startAt), endMs: at(run.endAt) })),
+    execMs,
+    answerAudioMs: at(s.answerAt),
+    ackClipMs: at(s.ackClipAt),
+  };
+}
+
+/** The receipt with its tool-turn fields (see the module doc); empty ones if they can't be built. */
+export function withToolTiming<
+  R extends { timing: object; tools: object; audio: { firstAnyAudioMs: number | null } },
+>(turn: { eou?: EouMetric; steps: ToolSteps }, r: R) {
+  let f: ToolFields = {
+    requests: [],
+    handoffSteps: null,
+    runs: [],
+    execMs: {},
+    answerAudioMs: null,
+    ackClipMs: null,
+  };
+  safely(() => (f = toolFields(turn)));
+  const firstAny = [r.audio.firstAnyAudioMs, f.ackClipMs].filter((n): n is number => n !== null);
   return {
     ...r,
-    timing: {
-      ...r.timing,
-      requests: [...s.requests]
-        .sort((a, b) => a.startAt - b.startAt)
-        .map((q) => ({
-          startMs: at(q.startAt),
-          ttftMs: q.ttftMs === null ? null : round(q.ttftMs),
-          durationMs: round(q.durationMs),
-          ...(q.cancelled ? { cancelled: true } : {}),
-        })),
-      handoffSteps,
-    },
-    tools: {
-      ...r.tools,
-      runs: runs.map((run) => ({ name: run.name, startMs: at(run.startAt), endMs: at(run.endAt) })),
-      execMs,
-    },
+    timing: { ...r.timing, requests: f.requests, handoffSteps: f.handoffSteps },
+    tools: { ...r.tools, runs: f.runs, execMs: f.execMs },
     audio: {
       ...r.audio,
       firstAnyAudioMs: firstAny.length ? Math.min(...firstAny) : null,
-      answerAudioMs: at(s.answerAt),
-      ackClipMs,
+      answerAudioMs: f.answerAudioMs,
+      ackClipMs: f.ackClipMs,
     },
   };
 }

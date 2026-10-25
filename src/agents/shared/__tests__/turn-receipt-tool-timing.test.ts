@@ -9,7 +9,7 @@ import { llm, voice } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
 import { attachTurnReceipts, noteRequest } from '../turn-receipt-session.js';
 import type { TurnReceipt } from '../turn-receipt.js';
-import { noteTurnTiming } from '../../../speech/output-control/turn-timing.js';
+import { noteTurnTiming, onTurnTiming } from '../../../speech/output-control/turn-timing.js';
 
 const CALLER = 'whats the weather in Janesville for Jane Doe at 555-0100';
 
@@ -17,13 +17,17 @@ function call() {
   const session = new EventEmitter();
   const receipts: TurnReceipt[] = [];
   let t = 1_000_000;
+  let clockBroken = false;
   const stop = t;
   const detach = attachTurnReceipts(session as never, {
     sessionId: 'RM_tools',
     userId: 'voice-eval-x',
     persona: () => 'ferni',
     emit: (r) => receipts.push(r),
-    now: () => t,
+    now: () => {
+      if (clockBroken) throw new Error('clock exploded');
+      return t;
+    },
     env: {},
   });
   const at = (ms: number) => (t = stop + ms); // ms after the caller stopped
@@ -78,7 +82,21 @@ function call() {
     });
     state('listening');
   };
-  return { receipts, detach, at, state, request, llmDone, commit, speech, tool, reply };
+  const breakClock = (broken: boolean) => (clockBroken = broken);
+  return {
+    session,
+    receipts,
+    detach,
+    at,
+    state,
+    request,
+    llmDone,
+    commit,
+    speech,
+    tool,
+    reply,
+    breakClock,
+  };
 }
 
 describe('TURN_RECEIPT tool-turn timing', () => {
@@ -174,5 +192,89 @@ describe('TURN_RECEIPT tool-turn timing', () => {
     expect(r.audio.ackClipMs).toBe(1290);
     expect(r.audio.firstAnyAudioMs).toBe(1290); // the clip was heard before the reply
     expect(r.timing.firstAudioMs).toBe(2000);
+  });
+});
+
+describe('TURN_RECEIPT tool-turn timing stays bounded and out of the way', () => {
+  it('caps requests[] and tools.runs[] at 8 each, however many a turn has', () => {
+    const c = call();
+    c.commit();
+    for (let i = 0; i < 12; i++) c.llmDone(150 + i * 100, 500, 80);
+    c.request();
+    const handle = c.speech();
+    for (let i = 0; i < 12; i++) {
+      c.at(1000 + i * 10);
+      handle._itemAdded([
+        llm.FunctionCall.create({ callId: `c${i}`, name: `tool${i}`, args: '{}' }),
+      ]);
+      c.at(1005 + i * 10);
+      handle._itemAdded([
+        llm.FunctionCallOutput.create({
+          callId: `c${i}`,
+          name: `tool${i}`,
+          output: 'x',
+          isError: false,
+        }),
+      ]);
+    }
+    c.at(2000);
+    c.state('speaking');
+    c.reply();
+    const r = c.receipts[0];
+    expect(r.timing.requests).toHaveLength(8);
+    expect(r.tools.runs).toHaveLength(8);
+    expect(Object.keys(r.tools.execMs)).toHaveLength(8);
+    expect(r.tools.runs[7]).toEqual({ name: 'tool7', startMs: 1070, endMs: 1075 });
+  });
+
+  it('a throwing clock or turn-timing listener breaks neither tool start nor the turn', () => {
+    // A listener ahead of the receipt's own, which throws on every mark.
+    const offBad = onTurnTiming(() => {
+      throw new Error('listener exploded');
+    });
+    try {
+      const c = call();
+      c.commit();
+      c.request();
+      const handle = c.speech();
+      // The SDK's next tool-start callback (tool-hum.ts registers one like it).
+      const seen: string[] = [];
+      handle._addItemAddedCallback((item) => seen.push(item.type));
+      const fc = llm.FunctionCall.create({ callId: 'c1', name: 'getWeather', args: '{}' });
+      const out = llm.FunctionCallOutput.create({
+        callId: 'c1',
+        name: 'getWeather',
+        output: 'x',
+        isError: false,
+      });
+
+      c.breakClock(true);
+      expect(() => handle._itemAdded([fc])).not.toThrow(); // agent_activity onToolExecutionStarted
+      expect(() => noteTurnTiming('RM_tools', 'handoffEvent', 0)).not.toThrow();
+      expect(() => handle._itemAdded([out])).not.toThrow();
+      expect(() =>
+        c.session.emit('function_tools_executed', {
+          functionCalls: [fc],
+          functionCallOutputs: [out],
+        })
+      ).not.toThrow();
+      expect(seen).toEqual(['function_call', 'function_call_output']); // the tool still ran
+      c.breakClock(false);
+
+      c.at(1300);
+      noteTurnTiming('RM_tools', 'handoffLock', 0); // reaches the receipt past the bad listener
+      c.request();
+      c.at(2000);
+      c.state('speaking');
+      c.reply();
+      expect(c.receipts).toHaveLength(1); // the turn completed
+      const r = c.receipts[0];
+      expect(r.tools.called).toEqual(['getWeather']);
+      expect(r.tools.runs).toEqual([]); // its start couldn't be timed, so it is left out
+      expect(r.timing.handoffSteps).toEqual({ eventMs: null, lockMs: 1300, publishedMs: null });
+      expect(r.timing.firstAudioMs).toBe(2000);
+    } finally {
+      offBad();
+    }
   });
 });

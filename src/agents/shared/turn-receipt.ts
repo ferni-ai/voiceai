@@ -226,7 +226,7 @@ export class TurnReceiptRecorder {
   /** A hold or opening clip this turn (turn-timing.ts); an unfinished turn's is claimed at its commit. */
   onTiming(kind: TurnTimingKind, heldMs: number): void {
     if (kind === 'unfinishedTurn') this.pendingHold.note(heldMs);
-    else if (steps.isStepKind(kind)) steps.noteStep(this.open().steps, kind, heldMs, this.now());
+    else if (steps.isStepKind(kind)) steps.noteStep(this.open().steps, kind, heldMs, this.now);
     else timed.noteTiming(this.open(), kind, heldMs, this.now());
   }
 
@@ -258,7 +258,7 @@ export class TurnReceiptRecorder {
     const note = this.reminder;
     this.reminder = null;
     turn.requests += 1;
-    steps.noteRequestSent(turn.steps, this.now());
+    steps.noteRequestSent(turn.steps, this.now);
     turn.sections = promptSections(items, note ?? undefined);
     turn.toolsOffered = toolsOffered;
     turn.toolSchemaChars = schemaChars;
@@ -322,7 +322,7 @@ export class TurnReceiptRecorder {
 
   /** A tool started running (`name` given) or returned (turn-receipt-tool-timing.ts). */
   readonly onToolRun = (callId: string, name?: string): void =>
-    steps.noteToolRun(this.open().steps, callId, name, this.now());
+    steps.noteToolRun(this.open().steps, callId, name, this.now);
   onToolsExecuted(ev: {
     functionCalls?: Array<{ name?: string }>;
     functionCallOutputs?: Array<{ isError?: boolean } | undefined>;
@@ -330,7 +330,7 @@ export class TurnReceiptRecorder {
     const turn = this.open();
     turn.called.push(...(ev.functionCalls ?? []).map((c) => c.name ?? '?'));
     turn.toolErrors += (ev.functionCallOutputs ?? []).filter((o) => o?.isError).length;
-    steps.endToolRuns(turn.steps, this.now());
+    steps.endToolRuns(turn.steps, this.now);
     turn.replied = true;
   }
 
@@ -341,7 +341,7 @@ export class TurnReceiptRecorder {
       if (this.turn?.speakingAt === undefined) this.releaseCut(); // this turn's own audio
       const turn = this.open();
       turn.speakingAt ??= this.now();
-      steps.noteSpeaking(turn.steps, this.now());
+      steps.noteSpeaking(turn.steps, this.now);
       turn.replied = true;
     }
     if (state !== 'listening' || !this.turn?.replied) return;
