@@ -1,0 +1,99 @@
+name: Crisis Sweep
+
+# A PR that can change crisis scoring must lower no crisis read vs main. The
+# crisis lane is recall-first: patterns are only ever added, and lowering a
+# labelled read is Seth's call (label crisis:lowering-approved).
+#
+# No `paths:` filter: should this become a required check, a filtered workflow
+# never reports and the PR waits forever (ci.yml). The sweep job is gated with a
+# job-level `if:` instead; a skipped job reports success. labeled/unlabeled
+# re-run it, so adding or removing the approval label takes effect.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  changes:
+    name: Detect Crisis Scoring Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      crisis: ${{ steps.crisis.outputs.matched }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions
+      # The scoring code (detectCrisis + assessSafety and everything they import
+      # that can change a read), the crisis personas and turn handling, the
+      # fixtures, the sweep itself and this workflow.
+      - id: crisis
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(src/services/safety/|src/agents/personas/crisis|src/agents/processors/turn-processor/turn-crisis|src/tools/domains/life-coaching-shared/safety-guards\.ts$|src/utils/(safety-whole-word|phrase-match)|src/agents/__tests__/fixtures/crisis-|src/services/superhuman/validation/crisis-test-cases\.ts$|src/services/wellbeing-tracking/__tests__/crisis-|scripts/crisis-eval/|\.github/workflows/crisis-sweep\.yml$)'
+
+  sweep:
+    name: Crisis Sweep (no lowered reads)
+    needs: changes
+    if: needs.changes.outputs.crisis != 'false' && !contains(github.event.pull_request.labels.*.name, 'crisis:lowering-approved')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      # The PR's merge commit: HEAD is main with the PR applied, HEAD^1 is main.
+      # Comparing those two trees is exactly what merging the PR does to the reads.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Saved by ci.yml's setup job under the same key; install when it isn't there yet.
+      - name: Restore node_modules cache
+        id: nm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      # The base tree's scoring code imports pino, so it borrows the head's node_modules.
+      - name: Extract the base tree
+        run: |
+          base="$RUNNER_TEMP/crisis-base"
+          mkdir -p "$base"
+          git archive HEAD^1 src scripts package.json tsconfig.json | tar -x -C "$base"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$base/node_modules"
+          echo "Base: $(git rev-parse HEAD^1)"
+
+      - name: Sweep every crisis fixture line, base vs head
+        run: |
+          if ! npx tsx scripts/crisis-eval/sweep-lowerings.ts --base-dir "$RUNNER_TEMP/crisis-base" --head-dir "$GITHUB_WORKSPACE"; then
+            echo "::error title=Crisis reads lowered::This PR lowers crisis reads vs main (listed above). Restore them, or Seth approves the lowering with the PR label crisis:lowering-approved."
+            exit 1
+          fi
