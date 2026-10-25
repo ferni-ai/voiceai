@@ -71,7 +71,12 @@ describe.skipIf(!emulator)('crisis_events: export and account deletion', () => {
     await db.doc(`bogle_users/${uid}`).set({ linkedIdentifiers: [linked] });
     for (const p of [verified, linked]) await db.doc(`bogle_users/${p}`).set({ name: 'Caller' });
     await db.doc(`bogle_users/${theirs}`).set({ linkedIdentifiers: [`auth:default:${someone}`] });
-    for (const id of [uid, verified, linked, theirs, someone]) await record(id);
+    // Linked to this sign-in and to another one: that person's too, so neither exported nor erased
+    const shared = `phone:+1559${n}`;
+    await db
+      .doc(`bogle_users/${shared}`)
+      .set({ linkedIdentifiers: [`auth:default:${uid}`, 'auth:google.com:another-sign-in'] });
+    for (const id of [uid, verified, linked, theirs, someone, shared]) await record(id);
 
     const out = await exportUserRecords(uid, undefined, db);
     const rows = out.crisis_events as Array<Record<string, unknown>>;
@@ -100,6 +105,8 @@ describe.skipIf(!emulator)('crisis_events: export and account deletion', () => {
     await eraseUserRecord(uid, db);
 
     expect(await eventsOf(uid, verified, linked)).toEqual([]);
-    expect((await eventsOf(theirs, someone)).sort()).toEqual([theirs, someone].sort());
+    expect((await eventsOf(theirs, someone, shared)).sort()).toEqual(
+      [theirs, someone, shared].sort()
+    );
   }, 60_000);
 });

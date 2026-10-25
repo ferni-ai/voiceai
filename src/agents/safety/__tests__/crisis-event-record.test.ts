@@ -8,25 +8,72 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
+import { setImmediate as tick } from 'node:timers/promises';
+
+/** Every recorder dependency can be made to throw, with the caller's words in the error */
+const boom = vi.hoisted(() => ({ on: false, words: 'I want to kill myself tonight' }));
+const thrower = (): never => {
+  throw new Error(boom.words);
+};
+vi.mock('../../../utils/minor-care.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../utils/minor-care.js')>();
+  return {
+    ...real,
+    writeHeld: (...a: Parameters<typeof real.writeHeld>) =>
+      boom.on ? thrower() : real.writeHeld(...a),
+  };
+});
+vi.mock('../../../services/identity/member-identity.js', async (importOriginal) => {
+  const real =
+    await importOriginal<typeof import('../../../services/identity/member-identity.js')>();
+  return {
+    ...real,
+    isMemberIdentity: (id: string | undefined | null) =>
+      boom.on ? thrower() : real.isMemberIdentity(id),
+  };
+});
+/** Everything any logger in these modules was given */
+const logged = vi.hoisted(() => [] as unknown[]);
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
+  const capture = <T extends object>(logger: T): T =>
+    new Proxy(logger, {
+      get: (target, prop, receiver) => {
+        const value = Reflect.get(target, prop, receiver);
+        if (typeof value !== 'function') return value;
+        return (...args: unknown[]) => {
+          logged.push(args);
+          return (value as (...a: unknown[]) => unknown).apply(target, args);
+        };
+      },
+    });
+  return {
+    ...real,
+    createLogger: (...args: Parameters<typeof real.createLogger>) =>
+      capture(real.createLogger(...args)),
+  };
+});
 
 const added = vi.hoisted(() => [] as Array<{ collection: string; doc: Record<string, unknown> }>);
-const addFails = vi.hoisted(() => ({ on: false }));
+const addFails = vi.hoisted(() => ({ on: false, code: 'unavailable' as unknown }));
 vi.mock('../../../utils/firebase-admin-app.js', () => ({
   getAdminFirestore: () => ({
     collection: (collection: string) => ({
       add: vi.fn(async (doc: Record<string, unknown>) => {
-        if (addFails.on)
-          throw Object.assign(new Error('crisis_events/x: unavailable'), { code: 'unavailable' });
+        if (addFails.on || boom.on)
+          throw Object.assign(new Error(`crisis_events/x: ${boom.words}`), { code: addFails.code });
         added.push({ collection, doc });
         return { id: `e${added.length}` };
       }),
     }),
   }),
 }));
-const slack = vi.hoisted(() => vi.fn());
-vi.mock('../../../services/integrations/slack-notifications.js', () => ({
-  getSlackNotifications: () => ({ notify: slack }),
-  notifyDDoSAlert: slack,
+/** The real Slack crisis alert, at both its entry points: never called */
+const slack = vi.hoisted(() => ({ notify: vi.fn(), crisis: vi.fn() }));
+vi.mock('../../../services/integrations/slack-notifications.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getSlackNotifications: () => ({ notify: slack.notify, notifyCrisisAlert: slack.crisis }),
+  notifyCrisisAlert: slack.crisis,
 }));
 
 import {
@@ -37,7 +84,7 @@ import { CRISIS_EVENT_RETENTION_MS, recordCrisisEvent } from '../../../services/
 import { heldAfter, resetMinorCare } from '../../../utils/minor-care.js';
 import { gatedReply } from '../../personas/crisis-gate.js';
 import { resetCrisisEventRecords } from '../crisis-event-record.js';
-import { signalCrisisDecision } from '../crisis-gate-signal.js';
+import { CRISIS_GATE_SIGNAL, signalCrisisDecision } from '../crisis-gate-signal.js';
 
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
@@ -92,22 +139,36 @@ async function speak(
 }
 
 const settle = async (): Promise<void> => {
-  for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+  for (let i = 0; i < 5; i++) await tick();
   await vi.dynamicImportSettled();
-  for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+  for (let i = 0; i < 5; i++) await tick();
+};
+const fetchSpy = vi.fn();
+const noWords = (value: unknown): void => {
+  const text = JSON.stringify(value).toLowerCase();
+  for (const word of ['kill', 'myself', 'tonight']) expect(text).not.toContain(word);
 };
 
 beforeEach(() => {
   added.length = 0;
+  logged.length = 0;
   addFails.on = false;
-  slack.mockReset();
+  addFails.code = 'unavailable';
+  boom.on = false;
+  slack.notify.mockReset();
+  slack.crisis.mockReset();
+  fetchSpy.mockReset();
+  vi.stubGlobal('fetch', fetchSpy);
   resetCrisisEventRecords();
   resetCrisisClassifierCache();
   resetMinorCare();
   vi.stubEnv('CRISIS_EVENT_RECORD', 'on');
   vi.stubEnv('MINOR_CARE', 'off');
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 describe('CRISIS_EVENT_RECORD on', () => {
   it('a crisis call gives exactly one record, with no words and no alert', async () => {
@@ -133,7 +194,10 @@ describe('CRISIS_EVENT_RECORD on', () => {
     const text = JSON.stringify(doc).toLowerCase();
     for (const word of ['kill', 'myself', 'tonight', 'die', '988'])
       expect(text).not.toContain(word);
-    expect(slack).not.toHaveBeenCalled();
+    expect(slack.crisis).not.toHaveBeenCalled();
+    expect(slack.notify).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    noWords(logged);
   });
 
   it.each([
@@ -212,18 +276,24 @@ describe('CRISIS_EVENT_RECORD on', () => {
     expect(added).toHaveLength(0);
   });
 
-  it('a failed write is logged and never thrown', async () => {
-    addFails.on = true;
-    await expect(
-      recordCrisisEvent({
-        userId: 'synthetic-user-1',
-        crisisType: 'self_harm',
-        severity: 'high',
-        reader: 'pattern',
-        resourcesProvided: true,
-      })
-    ).resolves.toBeUndefined();
-  });
+  it.each([['unavailable'], ['I want to kill myself tonight'], [{ said: boom.words }]])(
+    'a failed write quoting the caller is logged without the words, never thrown (code %j)',
+    async (code) => {
+      addFails.on = true;
+      addFails.code = code;
+      await expect(
+        recordCrisisEvent({
+          userId: 'synthetic-user-1',
+          crisisType: 'self_harm',
+          severity: 'high',
+          reader: 'pattern',
+          resourcesProvided: true,
+        })
+      ).resolves.toBeUndefined();
+      expect(JSON.stringify(logged)).toContain('Crisis event not stored');
+      noWords(logged);
+    }
+  );
 
   it('stores only the named fields, whatever a caller passes', async () => {
     await recordCrisisEvent({
@@ -253,5 +323,51 @@ describe('CRISIS_EVENT_RECORD shadow and off', () => {
     await settle();
     expect(said).toContain('988');
     expect(added).toHaveLength(0);
+  });
+});
+
+describe('the recorder can never touch the crisis reply', () => {
+  const reply = async (env: Record<string, string>, text: string, generate?: CrisisGenerateFn) => {
+    const session = { ...call(), emit: vi.fn() };
+    const said = await speak(session, text, env, generate);
+    return { said, session };
+  };
+  const IMMINENT: CrisisGenerateFn = async () => '{"risk":"imminent","subject":"self"}';
+  const BRIDGE = 'im parked on the bridge, engine off, just sitting here deciding';
+
+  it.each([
+    ['patterns', PATTERNS_ONLY, SAID, undefined],
+    ['classifier', LIVE, BRIDGE, IMMINENT],
+  ])(
+    'every dependency throwing (%s): the script is byte-identical, signalled, and nothing leaks',
+    async (_name, env, text, generate) => {
+      vi.stubEnv('CRISIS_EVENT_RECORD', '');
+      const main = await reply(env, text, generate);
+      resetCrisisClassifierCache();
+      vi.stubEnv('CRISIS_EVENT_RECORD', 'on');
+      vi.stubEnv('MINOR_CARE', 'on');
+      boom.on = true;
+      const head = await reply(env, text, generate);
+      await settle();
+      expect(head.said).toBe(main.said);
+      expect(head.said).toMatch(/988|911/);
+      // The signal still goes out, so whatever follows the recorder in the hook still runs
+      expect(head.session.emit).toHaveBeenCalledWith(CRISIS_GATE_SIGNAL, { action: 'replace' });
+      expect(added).toHaveLength(0);
+      expect(JSON.stringify(logged)).toContain('Crisis event check failed');
+      noWords(logged);
+    }
+  );
+
+  it('the writer throwing: the script is the same, and the record is only lost', async () => {
+    vi.stubEnv('CRISIS_EVENT_RECORD', '');
+    const main = await reply(PATTERNS_ONLY, SAID);
+    vi.stubEnv('CRISIS_EVENT_RECORD', 'on');
+    addFails.on = true;
+    const head = await reply(PATTERNS_ONLY, SAID);
+    await settle();
+    expect(head.said).toBe(main.said);
+    expect(added).toHaveLength(0);
+    noWords(logged);
   });
 });

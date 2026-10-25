@@ -297,8 +297,10 @@ export async function recordCrisisEvent(
     await db.collection(CRISIS_EVENTS_COLLECTION).add(removeUndefined(stored));
     log.info({ userId, sessionId, severity, reader }, 'Crisis event recorded');
   } catch (error) {
-    const code = (error as { code?: unknown } | null)?.code;
-    log.error({ userId, sessionId, code: String(code ?? 'unknown') }, 'Crisis event not stored');
+    // The code only, and only when it looks like one: a message can quote the caller
+    const code = String((error as { code?: unknown } | null)?.code ?? '');
+    const safe = /^[\w.-]{1,40}$/.test(code) ? code : 'unknown';
+    log.error({ userId, sessionId, code: safe }, 'Crisis event not stored');
   }
 }
 

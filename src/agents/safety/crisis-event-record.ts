@@ -13,6 +13,7 @@
  * @module agents/safety/crisis-event-record
  */
 
+import { setImmediate } from 'node:timers';
 import { flagModeOf } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import type { CrisisSeverity, CrisisType } from '../../services/safety/crisis-detection.js';
@@ -42,7 +43,7 @@ export const replaceKind = (
 ): CrisisEventKind | undefined => (decision?.action === 'replace' ? decision.kind : undefined);
 
 const MAX_CALLS = 5000;
-/** Calls already recorded (or checked), oldest first. */
+/** Calls already recorded (or shadow-logged), oldest first. */
 const recordedCalls = new Set<string>();
 
 const PERSONA_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
@@ -61,8 +62,9 @@ function idsOf(session: unknown): { sessionId?: string; userId?: string; persona
 }
 
 /**
- * Told of every crisis decision (crisis-gate-signal.ts). Returns at once and
- * never throws: the record is written on a later tick.
+ * Told of every crisis decision (crisis-gate-signal.ts, late-words.ts). Returns at once and
+ * can never throw into the reply: every check runs on a later tick, inside a catch that logs
+ * the reader alone (an error's message could quote the caller).
  */
 export function recordCrisisOnCall(
   session: unknown,
@@ -71,21 +73,28 @@ export function recordCrisisOnCall(
   kind?: CrisisEventKind
 ): void {
   if (action !== 'replace') return;
+  setImmediate(() => {
+    try {
+      recordOnce(session, reader, kind);
+    } catch {
+      log.warn({ reader }, 'Crisis event check failed, not recorded');
+    }
+  });
+}
+
+function recordOnce(session: unknown, reader: CrisisReader, kind?: CrisisEventKind): void {
   const mode = flagModeOf('CRISIS_EVENT_RECORD');
   if (mode === 'off') return;
   const ids = idsOf(session);
   if (!ids.sessionId || recordedCalls.has(ids.sessionId)) return;
+  const at = { sessionId: ids.sessionId, reader };
+  // Checked again on a later replace: the call may have no member id yet
+  if (!isMemberIdentity(ids.userId))
+    return log.info(at, 'Crisis event: no member id, not recorded');
+  if (writeHeld(ids.userId, ids.sessionId))
+    return log.info(at, 'Crisis event: MINOR_CARE hold, not recorded');
   recordedCalls.add(ids.sessionId);
   if (recordedCalls.size > MAX_CALLS) recordedCalls.delete(recordedCalls.values().next().value!);
-  const at = { sessionId: ids.sessionId, reader };
-  if (!isMemberIdentity(ids.userId)) {
-    log.info(at, 'Crisis event: no member id, not recorded');
-    return;
-  }
-  if (writeHeld(ids.userId, ids.sessionId)) {
-    log.info(at, 'Crisis event: MINOR_CARE hold, not recorded');
-    return;
-  }
   const { crisisType, severity } = kind ?? { crisisType: 'suicidal_ideation', severity: 'high' };
   if (mode === 'shadow')
     return log.info({ ...at, severity }, 'Crisis event (shadow): would record');
@@ -97,12 +106,10 @@ export function recordCrisisOnCall(
     reader,
     resourcesProvided: true,
   };
-  setImmediate(() => {
-    import('../../services/safety/index.js')
-      .then(async ({ recordCrisisEvent }) => recordCrisisEvent(event))
-      // recordCrisisEvent never throws; this is the module failing to load
-      .catch(() => log.warn(at, 'Crisis event not recorded: safety module unavailable'));
-  });
+  import('../../services/safety/index.js')
+    .then(async ({ recordCrisisEvent }) => recordCrisisEvent(event))
+    // recordCrisisEvent never throws; this is the module failing to load
+    .catch(() => log.warn(at, 'Crisis event not recorded: safety module unavailable'));
 }
 
 /** For tests. */
