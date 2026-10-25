@@ -7,10 +7,13 @@
  * offers it once, warmly: no security language, no claim the old print ever
  * worked. "Sure" runs the existing enrollment flow; "Not now" or the close
  * button is remembered on this device, so the card does not come back.
+ * While Recognizing You is hidden (config/menu-visibility.ts) the card never
+ * shows: "Sure" would open a panel the app keeps closed.
  *
  * @module VoiceReenrollCard
  */
 
+import { isPanelVisible } from '../config/menu-visibility.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import type { VoiceProfile } from '../services/voice-auth.service.js';
@@ -41,8 +44,12 @@ function rememberAnswer(answer: 'accepted' | 'dismissed'): void {
   }
 }
 
-/** True when the server asked for re-enrollment and this device hasn't answered yet. */
+/**
+ * True when the server asked for re-enrollment, this device hasn't answered
+ * yet, and Recognizing You (the panel "Sure" opens) is visible.
+ */
 export function shouldOfferVoiceReenroll(profile: VoiceProfile): boolean {
+  if (!isPanelVisible('voice-id')) return false;
   return profile.enrolled && profile.needsReenrollment === true && !wasAnswered();
 }
 
