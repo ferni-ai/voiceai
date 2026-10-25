@@ -952,56 +952,11 @@ export async function saveRoutingEvent(event: PersistedRoutingEvent): Promise<vo
       .doc(event.id)
       .set({
         ...cleanForFirestore({ ...stored, timestamp: event.timestamp }),
-        // A Date, which Firestore stores as the Timestamp a TTL policy reads
-        // (cleanForFirestore would turn it into a string)
+        // A Date, stored as the Timestamp a TTL policy reads (cleanForFirestore makes strings)
         expireAt: new Date(event.timestamp.getTime() + ROUTING_EVENT_RETENTION_MS),
       });
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to persist routing event');
-  }
-}
-
-/**
- * Load routing events from Firestore
- */
-export async function loadRoutingEvents(options: {
-  date: string; // YYYY-MM-DD
-  userId?: string;
-  limit?: number;
-}): Promise<PersistedRoutingEvent[]> {
-  if (!firestoreInstance) {
-    return [];
-  }
-
-  try {
-    let query = firestoreInstance
-      .collection(COLLECTIONS.ROUTING_EVENTS)
-      .doc(options.date)
-      .collection('events') as unknown as Query;
-
-    if (options.userId) {
-      query = query.where('userId', '==', options.userId);
-    }
-
-    query = query.orderBy('timestamp', 'desc');
-
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const snapshot = await query.get();
-
-    return snapshot.docs.map((doc) => {
-      const data = doc.data()!;
-      return {
-        ...data,
-        id: doc.id,
-        timestamp: (data.timestamp as { toDate?: () => Date })?.toDate?.() || new Date(),
-      } as PersistedRoutingEvent;
-    });
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Failed to load routing events');
-    return [];
   }
 }
 
@@ -1442,14 +1397,6 @@ export class FirestorePersistence {
   // Routing Events
   async saveRoutingEvent(event: PersistedRoutingEvent): Promise<void> {
     return saveRoutingEvent(event);
-  }
-
-  async loadRoutingEvents(options: {
-    date: string;
-    userId?: string;
-    limit?: number;
-  }): Promise<PersistedRoutingEvent[]> {
-    return loadRoutingEvents(options);
   }
 
   // A/B Tests
