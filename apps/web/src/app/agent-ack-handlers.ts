@@ -3,9 +3,9 @@
  *
  * The voice agent answers some requests with an `*_ack` data message and tells
  * the app when it could not start team mode. Until these were handled, the app
- * showed success while the agent had failed: it opens the game board and says
- * "Starting..." right after publishing the request, and nothing corrected that
- * when the agent answered `success: false`.
+ * showed success while the agent had failed: the picker opens the game board
+ * right after publishing the request, and nothing corrected that when the agent
+ * answered `success: false`. Its "Starting..." toast now waits for `success: true`.
  *
  * Senders (the payload shapes below come from there):
  * - src/agents/voice-agent/data-channel-handler.ts: *_ack messages
@@ -21,7 +21,7 @@ import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('AgentAcks');
 
-/** Acks the app listens for. Only a failed one (`success: false`) changes the UI. */
+/** Acks the app listens for. A failed one undoes what the UI did; a game start confirms it. */
 const ACK_TYPES = new Set([
   'game_start_ack',
   'text_game_start_ack',
@@ -36,21 +36,37 @@ const ACK_TYPES = new Set([
 /** How long after the app opened a game board an ack failure may still close it. */
 const GAME_START_WINDOW_MS = 60_000;
 
-let lastGameStart: { gameType: string; at: number } | null = null;
+let lastGameStart: { gameType: string; gameName: unknown; at: number } | null = null;
 
-// The game picker opens the board optimistically; remember what it opened so a
-// failed ack can take back that one game and no other.
+// The game picker opens the board optimistically; remember what it opened so the
+// agent's ack can confirm, or take back, that one game and no other.
 document.addEventListener('ferni:game-started', (event) => {
-  const gameType = (event as CustomEvent<{ gameType?: unknown }>).detail?.gameType;
-  if (typeof gameType === 'string') lastGameStart = { gameType, at: Date.now() };
+  const detail = (event as CustomEvent<{ gameType?: unknown; gameName?: unknown }>).detail;
+  const gameType = detail?.gameType;
+  if (typeof gameType === 'string') {
+    lastGameStart = { gameType, gameName: detail?.gameName, at: Date.now() };
+  }
 });
 
-function undoGameStart(gameType: unknown): void {
+/** The picker's start of this game, if it is still waiting for the agent's answer. */
+function takeGameStart(gameType: unknown): typeof lastGameStart {
   const started = lastGameStart;
-  if (started && started.gameType === gameType && Date.now() - started.at < GAME_START_WINDOW_MS) {
-    lastGameStart = null;
+  if (!started || started.gameType !== gameType) return null;
+  lastGameStart = null;
+  return Date.now() - started.at < GAME_START_WINDOW_MS ? started : null;
+}
+
+function undoGameStart(gameType: unknown): void {
+  if (takeGameStart(gameType)) {
     document.dispatchEvent(new CustomEvent('ferni:game-ended', { detail: { gameType } }));
   }
+}
+
+/** "Starting <game>..." only once the agent has said the game started. */
+function confirmGameStart(type: string, message: DataMessage): void {
+  if (type !== 'game_start_ack' && type !== 'text_game_start_ack') return;
+  const name = takeGameStart(message['gameType'])?.gameName;
+  if (typeof name === 'string') toast.success(t('gamePicker.starting', { game: name }));
 }
 
 /**
@@ -104,7 +120,7 @@ export function handleAgentAckMessage(message: DataMessage): boolean {
     return true;
   }
   if (!ACK_TYPES.has(type)) return false;
-  // A success ack matches what the UI already shows; only a failure needs the user.
   if (message['success'] === false) handleFailedAck(type, message);
+  else if (message['success'] === true) confirmGameStart(type, message);
   return true;
 }

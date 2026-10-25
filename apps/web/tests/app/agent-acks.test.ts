@@ -13,12 +13,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const toastCalls = vi.hoisted(() => ({
   error: [] as string[],
   info: [] as string[],
+  success: [] as string[],
 }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({
   toast: {
     error: (message: string) => toastCalls.error.push(message),
     info: (message: string) => toastCalls.info.push(message),
-    success: vi.fn(),
+    success: (message: string) => toastCalls.success.push(message),
     warning: vi.fn(),
   },
 }));
@@ -75,6 +76,7 @@ const pickerOpensBoard = (gameType: string): void =>
 beforeEach(() => {
   toastCalls.error.length = 0;
   toastCalls.info.length = 0;
+  toastCalls.success.length = 0;
   published.length = 0;
 });
 
@@ -122,6 +124,16 @@ describe('a game that failed to start', () => {
 
     expect(boardIsOpen()).toBe(true);
     expect(toastCalls.error).toEqual([]);
+    // The picker's "Starting..." waits for this ack, and shows once.
+    expect(toastCalls.success).toEqual(['Starting tic-tac-toe...']);
+    deliver(ack('game_start_ack', { gameType: 'tic-tac-toe', success: true }));
+    expect(toastCalls.success).toHaveLength(1);
+  });
+
+  it('says nothing for a started game the picker did not ask for', () => {
+    pickerOpensBoard('20-questions');
+    deliver(ack('game_start_ack', { gameType: 'tic-tac-toe', success: true }));
+    expect(toastCalls.success).toEqual([]);
   });
 });
 
