@@ -33,7 +33,7 @@ let base: string;
 let db: Firestore;
 /**
  * A signed-up user: their record (bogle_users/{uid}) exists, as a call's session start or
- * the app makes it. A write for a uid with no record and no insights is dropped (erased).
+ * the app makes it. A write for a uid with no record is dropped (erased).
  */
 const newUser = async (): Promise<string> => {
   const uid = `u-${Math.random().toString(36).slice(2)}`;
@@ -336,10 +336,16 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
     };
   };
 
-  /** Every transaction attempt reads and writes as usual, then loses to contention (ABORTED). */
+  const CODE_NAMES: Record<number, string> = {
+    3: 'INVALID_ARGUMENT',
+    7: 'PERMISSION_DENIED',
+    10: 'ABORTED: Transaction lock timeout',
+  };
+  /** Every transaction attempt reads and writes as usual, then fails with `code` (ABORTED: contention). */
   const failTransactions = (
     firestore: NonNullable<ReturnType<Agent['firestoreUtils']['getFirestoreDb']>>,
-    failFirst = Infinity
+    failFirst = Infinity,
+    code = 10
   ) => {
     const realRun = firestore.runTransaction.bind(firestore);
     const attempts = { count: 0 };
@@ -348,7 +354,7 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
         attempts.count += 1;
         const result = await update(tx);
         if (attempts.count <= failFirst)
-          throw Object.assign(new Error('10 ABORTED: Transaction lock timeout'), { code: 10 });
+          throw Object.assign(new Error(`${code} ${CODE_NAMES[code]}`), { code });
         return result;
       }, options)
     );
@@ -459,6 +465,46 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
     expect(JSON.stringify(storeLog.info.mock.calls)).not.toContain('Walks');
     expect(storeLog.warn).not.toHaveBeenCalled();
   }, 30_000);
+
+  for (const code of [7, 3]) {
+    it(`a permanent error (${CODE_NAMES[code]}) is tried once, not retried`, async () => {
+      const uid = await newUser();
+      const agent = await agentProcess();
+      const firestore = agent.firestoreUtils.getFirestoreDb();
+      if (!firestore) throw new Error('no Firestore client');
+      const { attempts, spy } = failTransactions(firestore, Infinity, code);
+
+      agent.insights.addCrossPersonaInsight(uid, walksNote);
+      await agent.store.insightWritesSettled();
+
+      expect(attempts.count).toBe(1); // neither the SDK nor BACKGROUND_RETRY tries again
+      expect(storeLogOf(agent).warn).toHaveBeenCalledWith(
+        { code, tries: 1, userId: uid },
+        'Team insight write failed'
+      );
+      expect((await docOf(uid).get()).exists).toBe(false);
+      spy.mockRestore();
+    }, 60_000);
+  }
+
+  /**
+   * #2833 verifier, item 4: an erasure partway through (the record deleted first, the
+   * documents under it not yet) leaves an insights document with no record. A write then
+   * must not add to it: before, the document's being there let every write in.
+   */
+  it('an insights document whose record is gone gets no write', async () => {
+    const uid = await newUser();
+    await docOf(uid).set({ insights: [insightAt('insight_left', 60_000)], _userId: uid });
+    await db.doc(`bogle_users/${uid}`).delete();
+    const agent = await agentProcess();
+
+    await agent.share(uid, 'surfacePatternInsight', mayaNotices('Walks after dinner stick'));
+    expect((await storedOf(uid)).map((i) => i.id)).toEqual(['insight_left']);
+    expect(storeLogOf(agent).info).toHaveBeenCalledWith(
+      { userId: uid },
+      'Team insight write dropped: no user record'
+    );
+  });
 
   it('a user whose record exists but has no insights yet gets the write, as before', async () => {
     const uid = await newUser();

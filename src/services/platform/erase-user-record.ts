@@ -92,7 +92,12 @@ async function eraseStore(db: Db, store: OwnedStore, userId: string): Promise<vo
   const collection = db.collection(store.collection);
   if ('mapKey' in store) return eraseEntries(db, store, userId);
   if ('doc' in store) {
-    await db.recursiveDelete(collection.doc(userId));
+    // The record first: a write still running checks it in its own transaction and stops
+    // (insight-store.ts). Deleted after its children, it let a write that read it in between
+    // recreate a child (#2833). recursiveDelete still clears a missing doc's subcollections.
+    const ref = collection.doc(userId);
+    await ref.delete();
+    await db.recursiveDelete(ref);
     return;
   }
   const query = collection.where(store.field, '==', userId).limit(PAGE);

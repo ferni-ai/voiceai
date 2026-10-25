@@ -81,6 +81,8 @@ beforeEach(() => {
   user = `user-${++userSeq}`;
   firestore.docs.clear();
   firestore.failReads.match = null;
+  // A signed-up user: their record exists (a call's session start makes it)
+  firestore.docs.set(`bogle_users/${user}`, { id: user });
 });
 
 describe('cross-persona insight reads', () => {
@@ -98,8 +100,6 @@ describe('cross-persona insight reads', () => {
   });
 
   it('a missing document still saves new insights', async () => {
-    // The user's record exists (a call's session start makes it); only their insights don't
-    firestore.docs.set(`bogle_users/${user}`, { id: user });
     await loadInsights(user);
     await addInsight('new');
 
@@ -125,6 +125,16 @@ describe('cross-persona insight reads', () => {
     await addInsight('mine');
 
     expect(storedIds()).toEqual(['insight_stored', 'mine']);
+  });
+
+  it('a stored document whose record is gone (an erasure partway) gets no write', async () => {
+    firestore.docs.set(docPath(), { insights: [storedInsight()], lastScannedAt: 1 });
+    firestore.docs.delete(`bogle_users/${user}`);
+
+    await loadInsights(user);
+    await addInsight('after-erasure-began');
+
+    expect(storedIds()).toEqual(['insight_stored']);
   });
 
   it("the app's read failing is an error, not an empty list", async () => {
