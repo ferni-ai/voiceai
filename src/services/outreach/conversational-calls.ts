@@ -19,7 +19,7 @@ import { consentBlocks } from '../messaging/consent.js';
 import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
-import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
+import { placeLiveAgentCall, ringsWithLiveAgent, USER_REQUESTED_CALL } from './live-agent-call.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 
@@ -147,13 +147,13 @@ function getPersonaVoiceSettings(personaId: string): VoiceSettings {
   return settings[personaId] || settings['ferni'];
 }
 
-// ============================================================================
-// CALL SCHEDULING
-// ============================================================================
+// --- CALL SCHEDULING ---
 
-/**
- * Schedule a proactive outreach call
- */
+/** MINOR_CARE_SHARED_HOLD: an account or number a call held under 18. "Call me" (their own) still rings. */
+const heldCall = (c: { userId: string; phoneNumber: string; reason?: string }) =>
+  c.reason === USER_REQUESTED_CALL ? false : heldSender(c.userId, c.phoneNumber);
+
+/** Schedule a proactive outreach call */
 export async function scheduleProactiveCall(request: ProactiveCallRequest): Promise<CallResult> {
   const {
     userId,
@@ -175,6 +175,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
+    if (await heldCall(request)) return { success: false, error: 'Not calling: held' };
     // MESSAGING_PIPELINE: every proactive call stops at a call opt-out. A call-hours hold is
     // re-checked when placed (deferred-calls.ts); no job ever dials a stored quiet-hours call.
     const refused = await consentBlocks(normalizedPhone, 'call', true);
@@ -234,9 +235,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
   }
 }
 
-/**
- * Initiate an outbound call using Twilio + LiveKit
- */
+/** Initiate an outbound call using Twilio + LiveKit */
 async function initiateCall(
   call: ScheduledCall,
   options: {
@@ -246,6 +245,10 @@ async function initiateCall(
   }
 ): Promise<CallResult> {
   try {
+    if (await heldCall(call)) {
+      await updateCallStatus(call.id, 'cancelled'); // MINOR_CARE_SHARED_HOLD, re-checked at the dial
+      return { success: false, error: 'Not calling: held' };
+    }
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
     if (await ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
 
@@ -709,8 +712,6 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
   if (!userId || !phoneNumber || !message) {
     return { success: false, error: 'Missing required fields: userId, phoneNumber, or message' };
   }
-  // MINOR_CARE_SHARED_HOLD: no proactive call to an account or number a call held under 18
-  if (await heldSender(userId, phoneNumber)) return { success: false, error: 'Not calling: held' };
 
   return scheduleProactiveCall({
     userId,

@@ -270,9 +270,7 @@ export interface PersonaCallOptions {
 }
 
 /**
- * Make an outbound call using any persona's Cartesia voice
- *
- * This works by:
+ * Make an outbound call using any persona's Cartesia voice. This works by:
  * 1. Looking up the persona's voice ID from the registry
  * 2. Generating audio with Cartesia TTS
  * 3. Uploading to GCS for public access (if configured)
@@ -296,6 +294,9 @@ export async function callWithPersonaVoice(
   const { consentBlocks } = await import('../messaging/consent.js'); // MESSAGING_PIPELINE
   const refused = await consentBlocks(e164Phone, 'call', true); // opt-outs, every caller
   if (refused) return { success: false, message: `Not calling: ${refused}` };
+  const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
+  if (await heldSender(undefined, e164Phone))
+    return { success: false, message: 'Not calling: held' };
 
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"
@@ -310,8 +311,7 @@ export async function callWithPersonaVoice(
   const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 
   if (CARTESIA_API_KEY) {
-    // Cartesia uses plain text with punctuation for pacing
-    // For outbound calls, use upbeat/positivity emotion to sound warm and engaged
+    // Plain text with punctuation for pacing; upbeat for outbound calls, warm and engaged
     const audioBuffer = await generatePersonaVoice(message, personaId, {
       emotion: 'positivity', // More upbeat for outbound calls
       speed: 1.05, // Slightly faster, more energetic

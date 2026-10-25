@@ -46,6 +46,10 @@ export async function assertNotOptedOut(
     (await import('./guarded-text.js')).isOwnVerifiedPhone(ownerUserId, phone);
   const refused = await consentBlocks(phone, 'call', own);
   if (refused) throw new RecipientOptedOutError(refused === 'needs-consent');
+  // MINOR_CARE_SHARED_HOLD: not to a number (or for a member) a call held under 18; a deferred
+  // call is checked again when it is placed (it comes back through here)
+  const { heldSender } = await import('./checkin-replies.js');
+  if (await heldSender(ownerUserId, phone)) throw new Error('Not calling: held (MINOR_CARE)');
   if (!flagOn('ON_BEHALF_DNC_CHECK')) return;
   if (!(await isOptedOut(phone))) return;
   log.info('On-behalf call not placed: the number is on the do-not-call list');

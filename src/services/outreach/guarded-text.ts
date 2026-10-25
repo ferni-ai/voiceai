@@ -394,7 +394,6 @@ export async function sendOnBehalfText(
     personaId: t.personaId ?? 'ferni',
     userId: storedId,
     outreachId: t.refId,
-    askedNow: true, // a member asked for it in the call
   });
   if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
@@ -443,7 +442,6 @@ export async function textOnBehalf(
     personaId: t.personaId ?? 'ferni',
     userId: t.senderUserId,
     outreachId: t.refId,
-    askedNow: true,
   });
   return result.success ? { sent: true } : { sent: false, reason: 'send-failed' };
 }
