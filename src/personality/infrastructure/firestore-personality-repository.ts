@@ -19,7 +19,7 @@ import { EmotionalPattern } from '../domain/model/emotional-pattern.js';
 import { VulnerabilityDeposit } from '../domain/model/vulnerability-deposit.js';
 import { GrowthMilestone } from '../domain/model/growth-milestone.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { userHeld } from '../../utils/minor-care.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'FirestorePersonalityRepository' });
 
@@ -119,7 +119,7 @@ export class FirestorePersonalityRepository implements PersonalityRepository {
   }
 
   async saveProfile(profile: PersonalityProfile): Promise<void> {
-    if (userHeld(profile.userId)) return; // MINOR_CARE: nothing kept for a held caller under 18
+    if (writeHeld(profile.userId)) return; // MINOR_CARE: held caller under 18, or a placeholder id
     const db = await getDb();
     if (!db) return;
 
