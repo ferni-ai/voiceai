@@ -48,7 +48,7 @@ const STYLES = `
   position: fixed;
   inset: 0;
   z-index: var(--z-system);
-  background: var(--color-bg-primary, #0a0a0f);
+  background: var(--color-background-primary, #14110e);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -77,7 +77,7 @@ const STYLES = `
   width: 100px;
   height: 100px;
   margin: 0 auto var(--space-lg, 1.618rem);
-  border-radius: var(--radius-xl, 18px);
+  border-radius: var(--radius-full, 50%); /* round, like the avatar everywhere else */
   background: transparent;
   display: flex;
   align-items: center;
@@ -89,7 +89,7 @@ const STYLES = `
 .sign-in-gate-logo img {
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--radius-full, 50%);
   object-fit: cover;
 }
 

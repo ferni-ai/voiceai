@@ -15,7 +15,7 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
-import { clearAllUserData, exportLocalStorage } from '../config/storage-keys.js';
+import { clearAllUserData, exportLocalStorage, sealUserData } from '../config/storage-keys.js';
 import { getAuthToken, initAuth } from './firebase-auth.service.js';
 import { signOutReleasingPush } from './push-preference.js';
 import { ritualsService } from './rituals.service.js';
@@ -251,6 +251,10 @@ class DataExportService {
 
   private clearLocalData(): void {
     clearAllUserData(false); // false = don't preserve dev settings
+    // Both callers leave for '/' 1.5 s later. Until then nothing still running on
+    // this page (a module's start-up save, a pending write) may put the deleted
+    // data back, as one did after sign-out's clear (menu-e2e run 40105651631).
+    sealUserData(false);
     ritualsService.clearAll();
   }
 

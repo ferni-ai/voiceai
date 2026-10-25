@@ -18,7 +18,6 @@ import { personaCognitiveQuirks } from '../cognitive-quirks.js';
 import { PETER_MOMENTS } from '../../personality/moments/peter-moments.js';
 import { PERSONA_EVOLUTION_STORIES } from '../../services/team-engagement/evolution-stories.js';
 import { personaFingerprints } from '../../services/evalops/persona-fingerprints.js';
-import { PERSONA_FINGERPRINTS } from '../../speech/adaptive-ssml/alive-voice/persona-fingerprints.js';
 
 const REAL_PERSON =
   /Carolyn|Magellan|Sadhguru|\bIsha\b|Chamundi|Adiyogi|Kailash|Mysore|motorcycle|Royal Enfield|Bogle|Dickson|Lynch|Wellington|Dunkin|Taco Bell|I founded Vanguard|at Vanguard|\bVanguard\b/i;
@@ -45,7 +44,6 @@ const MODULES: Record<string, unknown> = {
   'personality/moments/peter-moments': PETER_MOMENTS,
   'team-engagement/evolution-stories': PERSONA_EVOLUTION_STORIES,
   'evalops/persona-fingerprints': personaFingerprints,
-  'alive-voice/persona-fingerprints': PERSONA_FINGERPRINTS,
 };
 
 describe('shared persona lines carry no real-person identity', () => {

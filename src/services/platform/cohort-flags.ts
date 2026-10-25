@@ -30,6 +30,7 @@
  */
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import {
   firestoreCohortStore,
   firestoreFlagHolders,
@@ -49,6 +50,9 @@ export const COHORT_FLAGS = [
   'RECALL_PEOPLE',
   'RECALL_EPISODES',
   'RECALL_RARE_WORDS',
+  // Recall hook build, after applyCallerFlags. The fact writer may read the next caller's
+  // value, which only decides whether a fact is stored with its vector (fact-embeddings.ts).
+  'RECALL_VECTOR_INDEX',
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
   'OPENER_FOLLOW_UP',
@@ -67,8 +71,7 @@ export const COHORT_FLAGS = [
   // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
   'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
-  // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
-  // (docs/runbooks/cohort-rollout.md has the read sites).
+  // Read at setup, a turn or a handoff, after applyCallerFlags (docs/runbooks/cohort-rollout.md).
   'CALL_WRAP_UP',
   'WRAP_UP',
   'SHORT_GOODBYE',
@@ -84,6 +87,7 @@ export const COHORT_FLAGS = [
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
   'OPEN_LOOPS_IN_CONTEXT',
+  'FIRST_CALL_INTRO', // read at the hello and each turn (greeting-direction, first-call-rapport)
   // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
   'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
@@ -103,10 +107,19 @@ export const COHORT_FLAGS = [
   'TURN_TEXTURE',
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
+  'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
+  // Latency A/Bs, one arm per eval caller. Each reply's guard (action-claim-guard.ts:242)
+  // and each preemptive turn's hold (preempt-stable-context.ts) read process.env.
+  'ACTION_CLAIM_STREAM',
+  'PREEMPT_STABLE_CONTEXT',
+  // The warm after the greeting (after-greeting.ts) and at each handoff (handoff-cache-warm.ts).
+  'CACHE_WARM_PRIMARY',
+  'HANDOFF_CACHE_WARM',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
+  'WELLBEING_AFTER_CALL',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
   'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
@@ -116,11 +129,16 @@ export const COHORT_FLAGS = [
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
+  // Read per call, never at boot: as applied mid-call, envForCaller after it, flagForUser on the UI server.
+  'COMMITMENT_SINGLE_WRITER',
+  // Read on each caller final and each gated outbound tool call (outreach-confirm.ts), never cached.
+  'OUTREACH_SERVER_CONFIRM',
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
   'REMINDER_SMS_DEFAULT',
   'REMINDER_IN_APP_PUSH',
   'WEB_PUSH_DELIVERY', // web server, per person (flagForUser): pushes, after-call ask
+  'FOCUS_HOLD', // web server, per person (personFlagOn): POST /api/me/focus (api/routes/focus.ts)
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -129,6 +147,7 @@ const ON_OFF: readonly string[] = ['on', 'off'];
 const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
   TURN_LENGTH: ['learned', 'off'],
   TURN_TEXTURE: ['learned', 'off'],
+  PREEMPT_STABLE_CONTEXT: ['on', 'defer', 'off'],
 };
 
 /** Values a cohort or override may give this flag: on/off, or the flag's own modes. */
@@ -143,6 +162,7 @@ export function cohortFlagValues(flag: string): readonly string[] {
  */
 export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   RECALL_EPISODES: ['SEMANTIC_RECALL'],
+  RECALL_VECTOR_INDEX: ['SEMANTIC_RECALL'],
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
   FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'], // texts send follow-ups the import wrote
   OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote
@@ -279,7 +299,7 @@ export async function envForCaller(
   const env = opts.env ?? process.env;
   const own: Record<string, string | undefined> = { ...env };
   for (const [k, v] of agentValues) own[k] = v;
-  if (!cohortFlagsEnabled(env) || !userId || userId === 'anonymous') return own;
+  if (!cohortFlagsEnabled(env) || !isMemberIdentity(userId)) return own;
   try {
     return { ...own, ...(await resolveCallerFlags(userId, opts.store)) };
   } catch (error) {
@@ -304,7 +324,7 @@ export async function applyCallerFlags(
     return [];
   }
   // The previous caller's flags go back to the agent's own even if this caller has none.
-  if (!userId || userId === 'anonymous') return applyFlags({}, env);
+  if (!isMemberIdentity(userId)) return applyFlags({}, env);
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const caller = await Promise.race([

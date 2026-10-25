@@ -27,6 +27,7 @@ import {
 import { TURN_STYLE_REMINDER } from './turn-style.js';
 import { burstLine } from './vocal-bursts.js';
 import { withHeavyMoment } from './heavy-turn.js';
+import { withLaughCap } from './laugh-ledger.js';
 import { SCRIPT_FREE_BASE, scriptFreeShapeFor } from './script-free.js';
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -53,7 +54,8 @@ export function styleFor(
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
   const told = withRecent(withOwnStory(sig, said, state), said, chatCtx);
   const quiet = withQuiet(told, said, chatCtx);
-  const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
+  const marked = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
+  const shaped = withLaughCap(session, said, marked); // LAUGH_CAP: no laugh line it would strip
   const troubled = withCrisisRisk(session, said, withCallTrouble(session, said, shaped, source));
   const { turn, burst } = shapeFor(session, said, troubled, shaped, plain);
   // At the moment the reply is asked for: what live mode would have had (shadow too).

@@ -22,6 +22,7 @@ import {
   type SpeakerChangeEvent,
 } from '../../services/voice/voice-speaker-change.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { errorClass } from '../../utils/error-class.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { prefetchUserCommitments } from '../../services/superhuman/commitment-prefetch.js';
 import { createSpeakerChangePrompter, listenForSpeakerCheckReplies } from './speaker-check.js';
@@ -33,7 +34,9 @@ import {
   startReturningCaller,
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
+import { newAnonymousId } from '../../services/identity/anonymous-session-id.js';
 import { isVerifiedIdentification } from '../../services/identity/verified-caller.js';
+import { deviceNameGuardEnabled, isDeviceOrHandleName } from './device-name-guard.js';
 
 // ============================================================================
 // TYPES
@@ -76,6 +79,8 @@ function isRealName(name: string | undefined): boolean {
   if (/^[a-f0-9-]{36}$/i.test(name)) return false;
   // Filter out "anonymous", "guest", etc.
   if (/^(anonymous|guest|visitor|unknown)$/i.test(name)) return false;
+  // "iphone", "guest-ab12cd", "Seth's iPhone": a device or a handle, not a name (#2061)
+  if (deviceNameGuardEnabled() && isDeviceOrHandleName(name)) return false;
   return true;
 }
 
@@ -139,9 +144,9 @@ export async function identifyUser(
 
       diag.user('User identified', {
         userId,
-        userName: userName || '(unknown - will ask)',
+        hasName: Boolean(userName), // never the name: on a call placed for them, the contact's
         source: identificationSource,
-        metadataNameFiltered: metadataName && !isRealName(metadataName),
+        metadataNameFiltered: Boolean(metadataName) && !isRealName(metadataName),
       });
 
       // Not awaited. Turn 1's live-superhuman step reads these commitments under
@@ -162,7 +167,7 @@ export async function identifyUser(
       setupSpeakerChangeDetection(sessionId, userId, room);
     }
   } catch (e) {
-    diag.warn('User identification failed', { error: String(e) });
+    diag.warn('User identification failed', { error: errorClass(e), chars: jobMetadata?.length });
   }
 
   // A phone caller is who their verified number says, or nobody (caller-recognition.ts).
@@ -206,7 +211,12 @@ export async function identifyUser(
   });
 
   return {
-    userId,
+    // PRIVACY: a caller nobody named (no dispatch metadata, a failed lookup, or a number that
+    // names no account) gets their own per-call anon: id, like every other stranger. Left
+    // undefined, every later `userId || 'anonymous'` put them in one profile shared by all of
+    // them, read back into the next such call. Minted after the returning-caller lookup, which
+    // still sees what it saw before.
+    userId: userId || newAnonymousId(),
     userName,
     identificationSource,
     userAccent,
@@ -262,8 +272,8 @@ async function startIdentitySession(
 
       if (ipLocation?.city) {
         diag.session('📍 IP location detected', {
-          city: ipLocation.city,
-          region: ipLocation.regionCode,
+          hasCity: true, // never the city
+          hasRegion: Boolean(ipLocation.regionCode),
         });
       }
 
@@ -379,15 +389,15 @@ async function detectUserAccent(
       // Priority 1: Explicit accent preference from user settings
       if (metadata.preferredAccent && isValidAccent(metadata.preferredAccent)) {
         userAccent = metadata.preferredAccent;
-        diag.session('🌍 Using user-selected accent', { accent: userAccent });
+        diag.session('🌍 Using user-selected accent', { hasAccent: Boolean(userAccent) });
       }
       // Priority 2: Detect from user's locale
       else if (metadata.locale) {
         const detection = detectAccentFromLocale(metadata.locale);
         userAccent = detection.accent;
         diag.session('🌍 Accent detected from locale', {
-          locale: metadata.locale,
-          accent: userAccent,
+          hasLocale: Boolean(metadata.locale),
+          hasAccent: Boolean(userAccent),
           confidence: detection.confidence,
         });
       }
@@ -396,15 +406,15 @@ async function detectUserAccent(
         const detection = detectAccentFromLocales(metadata.locales);
         userAccent = detection.accent;
         diag.session('🌍 Accent detected from locales', {
-          locales: metadata.locales,
-          accent: userAccent,
+          locales: metadata.locales?.length ?? 0,
+          hasAccent: Boolean(userAccent),
           confidence: detection.confidence,
         });
       }
     }
   } catch (accentErr) {
     diag.debug('Accent detection failed (using default American)', {
-      error: String(accentErr),
+      error: errorClass(accentErr),
     });
   }
 

@@ -11,6 +11,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 import { AgentRole } from '../personas/index.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
+import { loadOrThrow } from './persistence/read-guard.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { loadWebPush } from './web-push-loader.js';
 import { claimEndpoint, getEndpointOwner, releaseEndpoint } from './push-endpoint-owners.js';
@@ -135,6 +136,7 @@ class PushNotificationsBackendService {
     // Initialize persistence stores
     this.subscriptionStore = createPersistenceStore<UserSubscriptionsData>({
       collection: 'push_subscriptions',
+      holdWrites: () => false, // MINOR_CARE opt-out: a device endpoint
       syncIntervalMs: 10000, // Sync every 10 seconds
       maxPendingChanges: 50,
     });
@@ -199,10 +201,9 @@ class PushNotificationsBackendService {
     }
   }
 
-  /** Fresh from Firestore: the API server writes subscriptions, other processes send. */
+  /** Fresh from Firestore (other processes send). A failed read throws, so [] means none. */
   private async loadSubscriptions(userId: string): Promise<PushSubscription[]> {
-    const persisted = await this.subscriptionStore?.load(userId, { fresh: true });
-    return persisted?.subscriptions ?? [];
+    return (await loadOrThrow(this.subscriptionStore, userId, 'push'))?.subscriptions ?? [];
   }
 
   /**
@@ -212,10 +213,9 @@ class PushNotificationsBackendService {
   async registerSubscription(subscription: PushSubscription): Promise<void> {
     await this.initialize();
     const { endpoint, keys, userId } = subscription;
+    const userSubs = await this.loadSubscriptions(userId); // a failed read stops before claiming
     const previousOwner = await claimEndpoint(endpoint, keys, userId);
-    if (previousOwner) await this.removeSubscription(previousOwner, endpoint);
-
-    const userSubs = await this.loadSubscriptions(subscription.userId);
+    if (previousOwner) await this.removeSubscription(previousOwner, endpoint).catch(() => {});
     if (!userSubs.some((s) => s.endpoint === subscription.endpoint)) {
       userSubs.push(subscription);
       this.subscriptions.set(subscription.userId, userSubs);
@@ -233,13 +233,13 @@ class PushNotificationsBackendService {
    */
   async removeSubscription(userId: string, endpoint: string): Promise<void> {
     await this.initialize();
-    const filtered = (await this.loadSubscriptions(userId)).filter((s) => s.endpoint !== endpoint);
-    if (filtered.length > 0) {
-      this.subscriptions.set(userId, filtered);
+    // Never a whole-doc delete; a write only when a list that was read held the endpoint
+    const subs = await this.loadSubscriptions(userId);
+    const filtered = subs.filter((s) => s.endpoint !== endpoint);
+    if (filtered.length > 0) this.subscriptions.set(userId, filtered);
+    else this.subscriptions.delete(userId);
+    if (filtered.length < subs.length) {
       await this.subscriptionStore?.setImmediate(userId, { subscriptions: filtered });
-    } else {
-      this.subscriptions.delete(userId);
-      await this.subscriptionStore?.delete(userId);
     }
     await releaseEndpoint(endpoint, userId);
 
@@ -251,7 +251,7 @@ class PushNotificationsBackendService {
    */
   async sendNotification(userId: string, payload: PushNotificationPayload): Promise<boolean> {
     await this.initialize();
-    const userSubs = await this.loadSubscriptions(userId);
+    const userSubs = await this.loadSubscriptions(userId).catch(() => []); // failed read: none
     // Their iPhone too, over APNs, while IOS_PUSH is on for them (ios-push.ts). Never throws.
     const iphone = sendIosPush(userId, payload);
     if (userSubs.length === 0) {
@@ -279,8 +279,7 @@ class PushNotificationsBackendService {
           sent = true;
         }
       } catch (error) {
-        // Never the endpoint or the error object: web-push's error carries the
-        // endpoint, and whoever holds an endpoint (with its keys) can push to it.
+        // Never the endpoint or error object: web-push's error carries the endpoint (pushable)
         const statusCode = (error as { statusCode?: unknown } | null)?.statusCode;
         getLogger().warn(
           { userId, platform: sub.platform, statusCode },
@@ -289,7 +288,7 @@ class PushNotificationsBackendService {
 
         // Gone (404/410): the browser dropped it, so stop sending to it
         if (this.isSubscriptionExpired(error)) {
-          await this.removeSubscription(userId, sub.endpoint);
+          await this.removeSubscription(userId, sub.endpoint).catch(() => {}); // read failed
         }
       }
     }
@@ -355,7 +354,7 @@ class PushNotificationsBackendService {
             : new Date(notification.scheduledFor),
       };
     }
-    this.scheduledStore?.set('global', { notifications });
+    this.scheduledStore?.set('global', { notifications }, { safeWithoutRead: true });
   }
 
   /**

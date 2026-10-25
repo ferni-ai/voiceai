@@ -50,6 +50,7 @@ interface GmailSendTokens {
 
 const store = createPersistenceStore<{ encrypted: string; updated_at: number }>({
   collection: 'gmail_send_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // bogle_users/{uid}/gmail_send_tokens/data
   syncIntervalMs: 2000,
@@ -81,7 +82,8 @@ async function loadTokens(userId: string, strict = false): Promise<GmailSendToke
 }
 
 async function saveTokens(userId: string, tokens: GmailSendTokens): Promise<void> {
-  await store.setImmediate(userId, { encrypted: encryptData(tokens), updated_at: Date.now() });
+  const grant = { encrypted: encryptData(tokens), updated_at: Date.now() };
+  await store.setImmediate(userId, grant, { safeWithoutRead: true }); // never built on a read
 }
 
 /** The email claim of an id_token received straight from Google's token endpoint over TLS. */

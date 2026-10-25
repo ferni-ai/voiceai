@@ -9,6 +9,7 @@
  * Not a gate. Not a fee. An invitation to participate in mutual success.
  */
 
+import { userHeld } from '../../utils/minor-care.js';
 import {
   THANK_YOU_MESSAGES,
   VALUE_CAPTURE_PROMPTS,
@@ -168,6 +169,7 @@ export async function detect(params: {
           contributed: false,
           conversationId,
           createdAt: new Date(),
+          ...(userHeld(userId) ? { held: true } : {}), // MINOR_CARE: decided now, kept for good
         };
 
         // Cache and persist
@@ -182,7 +184,8 @@ export async function detect(params: {
           status: 'detected',
           createdAt: event.createdAt.toISOString(),
         };
-        await saveValueEvent(userId, record);
+        // MINOR_CARE: detected from what a held caller said, so never stored (payments still are)
+        if (!event.held) await saveValueEvent(userId, record);
 
         log.info(
           {
@@ -224,13 +227,14 @@ export async function recordContribution(params: {
     throw new Error('Value event not found');
   }
 
+  // A webhook retry records the same contribution again: count it once
+  if (!event.contributed) {
+    totalValueCapturedCents += amountCents;
+    contributionCount++;
+  }
   event.contributionCents = amountCents;
   event.contributed = true;
-  event.contributedAt = new Date();
-
-  // Update totals
-  totalValueCapturedCents += amountCents;
-  contributionCount++;
+  event.contributedAt ??= new Date();
 
   // Persist the update. Omit optional fields entirely rather than setting
   // them to `undefined` — Firestore rejects `undefined` anywhere in the
@@ -247,6 +251,7 @@ export async function recordContribution(params: {
     status: 'contributed',
     createdAt: event.createdAt.toISOString(),
     contributedAt: event.contributedAt.toISOString(),
+    ...(event.held ? { held: true } : {}),
   };
   await saveValueEvent(event.userId, record);
 

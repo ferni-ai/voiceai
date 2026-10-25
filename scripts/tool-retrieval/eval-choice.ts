@@ -2,7 +2,7 @@
  * Tool-choice accuracy: does the production model call the right tool when it
  * gets the tool set a live turn would send?
  *
- * For each spoken test request (out/generated-test.json, never indexed), build
+ * For each spoken test request (fixtures/choice-test-v1.json, never indexed), build
  * the live turn's tool set (core + per-turn retrieval, src/tools/retrieval),
  * send it to the production model with Ferni's character prompt, and record
  * the tool it calls. When it calls findTools, run the lookup and the model's
@@ -18,8 +18,11 @@
  *
  * usage: [TOOL_SET=today|core] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
  * Writes scripts/tool-retrieval/out/choice-<label>.json and prints a summary.
+ * Score 2+ seeds (the same seeds for both builds) with choice-score.mjs: pooled rate, floor,
+ * paired diff. Its --out file, saved as <night>/tool-choice.json, is the nightly scorecard's
+ * tool-choice capability.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -42,6 +45,7 @@ import { capToolsToLimit, getEssentialTools } from '../../src/config/tool-config
 import { DEFAULT_ESSENTIAL_DOMAINS } from '../../src/tools/dynamic-loader/index.js';
 import { updateAgentTools } from '../../src/agents/shared/tool-updater.js';
 import { staticCoreCallTools } from '../../src/agents/shared/static-core-tools.js';
+import { loadTestSet } from './test-set.mjs';
 
 const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
@@ -153,13 +157,12 @@ const genai = new GoogleGenAI({
   location: 'global',
 });
 
+// The frozen, reviewed test set (test-set.mjs): the same 2,375 rows as the out/generated-test.json
+// behind the September runs, in the same order, so seeds draw the same requests.
 // Deterministic sample.
-const all = (
-  JSON.parse(readFileSync('scripts/tool-retrieval/out/generated-test.json', 'utf8')) as Array<{
-    query: string;
-    tool: string;
-  }>
-).filter((item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool));
+const all = (loadTestSet() as Array<{ query: string; tool: string }>).filter(
+  (item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool)
+);
 let s = seed;
 const rand = (): number => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
 const sample = [...all].sort(() => rand() - 0.5).slice(0, n);
@@ -179,6 +182,8 @@ interface Row {
   afterFindMs?: number;
   /** A different tool than the label that does the user's job about as well (judged). */
   sufficient?: boolean;
+  /** The judge failed, so sufficient is false: an unjudged miss still counts as a miss. */
+  judgeError?: boolean;
   error?: string;
 }
 
@@ -192,7 +197,7 @@ The intended tool was ${gold}: ${describe(gold)}
 The assistant called ${got}: ${describe(got)}
 Would ${got} serve this user's request about as well as the intended tool? Be strict: a loosely related tool does not count. Answer JSON {"verdict":"yes"|"no"}`;
   const r = await genai.models.generateContent({
-    model: 'gemini-3.5-flash',
+    model: process.env.CHOICE_JUDGE_MODEL || 'gemini-3.5-flash',
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
       responseMimeType: 'application/json',
@@ -291,7 +296,12 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
       );
     }
     if (row.final && row.final !== item.tool && row.final !== FIND_TOOLS) {
-      row.sufficient = await judge(item.query, item.tool, row.final);
+      // The choice is already known to be a miss; a judge failure (429, bad JSON) must not turn it
+      // into an errored row, which choice-score drops: only misses would vanish and the rate rise.
+      row.sufficient = await judge(item.query, item.tool, row.final).catch(() => {
+        row.judgeError = true;
+        return false;
+      });
     }
   } catch (error) {
     row.error = String(error).slice(0, 200);
@@ -306,6 +316,7 @@ for (let i = 0; i < sample.length; i += CONCURRENCY) {
   process.stderr.write(`\r${rows.length}/${sample.length}`);
 }
 process.stderr.write('\n');
+mkdirSync('scripts/tool-retrieval/out', { recursive: true });
 writeFileSync(`scripts/tool-retrieval/out/choice-${label}.json`, JSON.stringify(rows, null, 1));
 
 const ok = rows.filter((r) => !r.error);
@@ -318,6 +329,8 @@ console.log(
       model: MODEL,
       n: ok.length,
       errors: rows.length - ok.length,
+      // Misses the judge couldn't rule on, scored as misses: a broken judge shows here.
+      judgeErrors: ok.filter((r) => r.judgeError).length,
       labelSent: pct(ok.filter((r) => r.labelSent).length),
       calledLabel: pct(ok.filter((r) => r.final === r.label).length),
       calledLabelOrEquivalent: pct(ok.filter((r) => r.final === r.label || r.sufficient).length),

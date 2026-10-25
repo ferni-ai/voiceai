@@ -235,7 +235,10 @@ async function executeDomainTool(
       log.error({ toolId, domain: domainName }, 'Tool missing execute');
       return "I couldn't run that action right now.";
     }
-    const result = await tool.execute(args);
+    // LiveKit's tool options carry the caller in ctx.userData.userId; routed with
+    // none, tools that key data by caller saw nobody (calendar/index.ts routedContext).
+    const opts = { ctx: { userData: { userId: ctx.userId } }, toolCallId: `dynamic:${toolId}` };
+    const result: unknown = await Reflect.apply(tool.execute, tool, [args, opts]);
 
     log.info(
       { toolId, domain: domainName, argsKeys: Object.keys(args) },

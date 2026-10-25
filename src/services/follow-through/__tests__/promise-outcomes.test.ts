@@ -60,6 +60,7 @@ describe('each executor maps to the design table', () => {
       ['quiet-hours', 'held', 'quiet-hours'],
       ['rate-gap', 'held', 'rate-gap'],
       ['opted-out', 'failed', 'opted-out'],
+      ['needs-consent', 'failed', 'needs-consent'],
       ['bad-number', 'failed', 'bad-number'],
       ['missed', 'failed', 'missed-window'],
       ['retrying', 'pending', 'provider-error'],
@@ -83,6 +84,12 @@ describe('each executor maps to the design table', () => {
     expect(followUpTextOutcome('sent')).toEqual({ outcome: 'done' });
     expect(followUpTextOutcome('expired')).toEqual({ outcome: 'failed', reason: 'missed-window' });
     expect(followUpTextOutcome('recently-sent')).toEqual({ outcome: 'held', reason: 'rate-gap' });
+    // Retried by the sender, so held rather than failed('unknown').
+    expect(followUpTextOutcome('consent-unknown')).toEqual({
+      outcome: 'held',
+      reason: 'store-error',
+    });
+    expect(followUpTextOutcome('paused')).toEqual({ outcome: 'held', reason: 'awaiting-yes' });
     for (const r of ['opted-out', 'no-verified-phone', 'send-failed']) {
       expect(followUpTextOutcome(r)).toEqual({ outcome: 'failed', reason: r });
     }

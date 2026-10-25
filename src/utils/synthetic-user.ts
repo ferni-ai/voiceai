@@ -31,6 +31,17 @@
 /** The production Firestore project, where synthetic owners must not be written. */
 export const PROD_FIRESTORE_PROJECT = 'johnb-2025';
 
+/**
+ * Prod's database inside PROD_FIRESTORE_PROJECT. Other databases in the project
+ * (ferni-dev) are not prod: harness users may write there.
+ */
+export const PROD_FIRESTORE_DATABASE = '(default)';
+
+/** Whether a project + database pair is prod's data. The one place that decides. */
+export function isProdFirestore(project: string, database: string): boolean {
+  return project === PROD_FIRESTORE_PROJECT && database === PROD_FIRESTORE_DATABASE;
+}
+
 /** Harness owner id prefixes the write guard and the purge act on. An allowlist. */
 export const SYNTHETIC_OWNER_PREFIXES = [
   'voice-eval-',
@@ -67,7 +78,23 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
   'shared',
   'default',
   'unknown',
+  'anon', // `ctx.userId || 'anon'`: a bare prefix-less fallback, not a minted anon:<id>
+  'session',
+  'gateway', // the Tier-0 tool gateway's build ctx
+  'gateway-recovery',
 ]);
+
+/**
+ * Whether this id is one of the buckets everyone without an id falls into:
+ * missing, blank, or a placeholder. Narrower than namesNoAccount: an anon: or
+ * onbehalf: id is minted per call, so it is nobody's account and no two calls
+ * get the same one.
+ */
+export function isSharedPlaceholderId(userId: string | undefined | null): boolean {
+  if (typeof userId !== 'string') return true;
+  const id = userId.trim().toLowerCase();
+  return !id || PLACEHOLDER_IDS.has(id);
+}
 
 /** Whether this user id belongs to a test harness rather than a real person. */
 export function isSyntheticUserId(userId: string | undefined | null): boolean {

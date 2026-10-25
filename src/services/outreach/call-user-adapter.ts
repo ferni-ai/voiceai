@@ -17,6 +17,7 @@ import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
+import { movingToPhone, type PhoneMove } from './live-agent-call.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
 
@@ -24,6 +25,8 @@ import { userReach } from './user-reach.js';
 const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'quiet-hours': "it's quiet hours where you are",
   'opted-out': 'you replied STOP to my texts',
+  'consent-unknown': "I couldn't check your text settings just now",
+  paused: 'you sounded like you might want fewer texts, so I held off',
   'sms-off': 'texts are turned off in your settings',
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
@@ -50,19 +53,33 @@ export const callUserAdapter: CallUserPort = {
       return { sent: false, reason: HELD['quiet-hours'] };
     }
     const refId = `${Date.now()}`;
-    const t = { userId, body, kind: 'message' as const, refId, minGapMs: OWNER_TEXT_GAP_MS };
+    const t = {
+      userId,
+      body,
+      kind: 'message' as const,
+      refId,
+      minGapMs: OWNER_TEXT_GAP_MS,
+      askedNow,
+    };
     const outcome = await sendGuardedText(t);
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
   },
-  call: ({ userId, phoneNumber, message, personaId }) =>
-    scheduleProactiveCall({
-      userId,
-      phoneNumber,
-      message,
-      ssml: `<speak>${escapeXml(message)}</speak>`,
-      personaId,
-      reason: 'user_requested_call',
-    }),
+  call: async ({ userId, phoneNumber, message, personaId, handover }) => {
+    const place = () =>
+      scheduleProactiveCall({
+        userId,
+        phoneNumber,
+        message,
+        ssml: `<speak>${escapeXml(message)}</speak>`,
+        personaId,
+        reason: 'user_requested_call',
+      });
+    if (!handover) return place();
+    // CALL_ME_MOVES_TO_PHONE: the app call's id rides the dispatch; the live dial comes back
+    const move: PhoneMove = { userId, conversationId: handover.conversationId };
+    const result = await movingToPhone(move, place);
+    return move.dial ? { ...result, dial: move.dial } : result;
+  },
 };
 
 /** Install the adapter; safe to call on every call. */

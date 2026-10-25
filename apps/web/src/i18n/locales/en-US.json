@@ -6025,7 +6025,8 @@
     "minutesShort": "{minutes}m",
     "hoursMinutesShort": "{hours}h {minutes}m",
     "percentChange": "{change}%",
-    "moreEvents": "+{count} more"
+    "moreEvents": "+{count} more",
+    "weekRegion": "This week, day by day"
   },
   "storyArcs": {
     "firstLaunch": {
@@ -7267,21 +7268,6 @@
     "milestone": "Milestone"
   },
   "voiceLibrary": {
-    "emma": {
-      "description": "Warm and friendly voice, perfect for supportive conversations"
-    },
-    "james": {
-      "description": "Clear and professional voice, ideal for mentors and advisors"
-    },
-    "sarah": {
-      "description": "Gentle and soothing voice, great for legacy personas"
-    },
-    "alex": {
-      "description": "Energetic and motivating voice, perfect for coaches"
-    },
-    "morgan": {
-      "description": "Calm and balanced voice, suitable for any persona type"
-    },
     "tags": {
       "warm": "Warm",
       "friendly": "Friendly",
@@ -7297,6 +7283,19 @@
       "calm": "Calm",
       "balanced": "Balanced",
       "neutral": "Neutral"
+    },
+    "loading": "Loading voices...",
+    "loadFailed": "Couldn't load the voices. Close this and try again.",
+    "playSample": "Play a sample of {name}",
+    "gender": {
+      "female": "Woman",
+      "male": "Man"
+    },
+    "accent": {
+      "american": "American",
+      "british": "British",
+      "australian": "Australian",
+      "indian": "Indian English"
     }
   },
   "agentTypes": {
@@ -8855,7 +8854,8 @@
     },
     "durationMinutes": "{minutes}m",
     "durationHoursMinutes": "{hours}h {minutes}m",
-    "durationHours": "{hours}h"
+    "durationHours": "{hours}h",
+    "sessionsRegion": "Our past conversations"
   },
   "outreachPrefs": {
     "eyebrow": "Stay in touch",
@@ -10317,6 +10317,7 @@
     "deletingAccount": "Deleting your account...",
     "accountDeleted": "Your account is deleted. Take care.",
     "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "credentialNotKept": "Ferni doesn't keep codes or passwords, so that one is gone.",
     "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
@@ -10798,7 +10799,8 @@
     "comingSoon": "More options coming soon.",
     "status": {
       "active": "Active"
-    }
+    },
+    "itemsRegion": "Things you can choose"
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"
@@ -10878,6 +10880,14 @@
     "connectingCancel": "Connecting. Tap to cancel",
     "connectingNow": "Connecting…",
     "tapToCancel": "Tap to cancel"
+  },
+  "callRoom": {
+    "connecting": "Connecting",
+    "listening": "{name}'s listening",
+    "talking": "{name}'s talking",
+    "muted": "You're muted",
+    "end": "End",
+    "backHint": "Tap End to hang up"
   },
   "analyticsDashboard": {
     "title": "Your Journey",
@@ -11194,6 +11204,22 @@
   },
   "panelShell": {
     "gettingReady": "One moment, I'm getting this ready for you"
+  },
+  "promises": {
+    "title": "Promises",
+    "subtitle": "What I'm keeping an eye on, and what happened",
+    "done": "Done",
+    "released": "You let this go",
+    "expired": "Let go after a while",
+    "waitingOnYou": "Waiting for your yes",
+    "failed": "Didn't go through",
+    "texted": "I texted you about this",
+    "asked": "I asked you about this",
+    "whenever": "Whenever it fits",
+    "dueNow": "Due now",
+    "comingUp": "Coming up",
+    "loadFailed": "I couldn't load these just now.",
+    "none": "Nothing open right now."
   },
   "waitlistScreen": {
     "title": "You’re on the list",

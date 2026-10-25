@@ -43,6 +43,7 @@ const PLAID_BASE_URL =
 // reads accept legacy plaintext until the encrypt-integration-tokens migration runs.
 const tokenStore = createPersistenceStore<Record<string, unknown>>({
   collection: 'plaid_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // Per-user storage
   syncIntervalMs: 2000,
@@ -117,7 +118,7 @@ export async function storeToken(
 
   // Persist to Firestore
   try {
-    await tokenStore.setImmediate(userId, sealTokensForMerge(data));
+    await tokenStore.setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
     log.info(
       { userId: userId.substring(0, 8), institution: institution?.name || 'Unknown' },
       'Stored Plaid token'

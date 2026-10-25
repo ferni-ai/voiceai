@@ -21,6 +21,7 @@
  *
  * @module agents/multi-agent/unfinished-turn
  */
+import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
 import { isBackchannel, words } from './barge-in-fastpath.js';
 import { TURN_KEEPER_GRACE_MS } from './turn-keeper.js';
 
@@ -96,6 +97,22 @@ export function installUnfinishedTurnHold(
   if (env.UNFINISHED_TURN_HOLD === 'off') return false;
   (session as UnfinishedTurnHoldSession).unfinishedTurnHoldMs = unfinishedTurnHoldMs;
   return true;
+}
+
+/**
+ * Tell the TURN_RECEIPT each hold decision (0: answered at once). The receipt times a
+ * hold from the decision to the commit that follows it (turn-receipt-timing.ts), so a
+ * hold the caller cut short by going on is not counted as one that ran out.
+ */
+export function reportUnfinishedTurnHolds(session: object, sessionId: string): void {
+  const held = session as UnfinishedTurnHoldSession;
+  const decide = held.unfinishedTurnHoldMs;
+  if (!decide) return;
+  held.unfinishedTurnHoldMs = (transcript) => {
+    const ms = decide(transcript);
+    noteTurnTiming(sessionId, 'unfinishedTurn', ms);
+    return ms;
+  };
 }
 
 /**

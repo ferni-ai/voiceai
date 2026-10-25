@@ -68,7 +68,8 @@ describe('calendar claims', () => {
       await check(streamOf(...parts), [ASK], toolsWith('createCalendarEvent'))
     );
     expect(text).not.toMatch(/on your calendar/);
-    expect(text).toBe("It isn't booked yet, though. Should I go ahead and book it? Anything else?");
+    // Nothing came before the claim, so its line opens the reply with no "though" (sweep 2026-10-21).
+    expect(text).toBe("It isn't booked yet. Should I go ahead and book it? Anything else?");
   });
 
   it('a calendar read before the claim is not a create: the claim is still held (#1547 sequence)', async () => {
@@ -86,7 +87,7 @@ describe('calendar claims', () => {
       await check(streamOf(...parts), items, toolsWith('getCalendarToday', 'createCalendarEvent'))
     );
     expect(text).not.toMatch(/on your calendar/);
-    expect(text).toContain("It isn't booked yet, though.");
+    expect(text).toContain("It isn't booked yet. Should I go ahead and book it?");
   });
 
   it('a not-connected read under any calendar tool name is a refusal, not a booking', async () => {
@@ -180,6 +181,6 @@ describe('calendar claims', () => {
         toolsWith('getCalendarToday', 'createCalendarEvent')
       )
     );
-    expect(text).toContain("It isn't booked yet, though.");
+    expect(text).toContain("It isn't booked yet. Should I go ahead and book it?");
   });
 });

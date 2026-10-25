@@ -1,6 +1,6 @@
 {
   "name": "Ferni",
-  "tagline": "The coach that actually listens",
+  "tagline": "The friend who actually listens",
   "description": "Six brilliant minds who remember what matters to you, hear what you're not saying, and show up at 2am with the same presence as noon. Better than human.",
   "url": "https://ferni.ai",
   "appUrl": "https://app.ferni.ai",
@@ -24,7 +24,7 @@
   },
 
   "hero": {
-    "eyebrow": "Meet Your AI Coach",
+    "eyebrow": "Meet Ferni",
     "headline": "Better than",
     "headlineAccent": "human.",
     "subhead": "Finally, someone who actually listens.",
@@ -102,7 +102,7 @@
       "id": "ferni",
       "name": "Ferni",
       "initials": "FE",
-      "role": "Life Coach",
+      "role": "Friend & Guide",
       "bio": "Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.",
       "sampleQuote": "I noticed you said 'fine' three times this week. What's actually going on?",
       "traits": ["Present", "Warm", "Perceptive"],
@@ -123,7 +123,7 @@
       "name": "Peter",
       "initials": "PL",
       "role": "Research & Discovery",
-      "bio": "Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.",
+      "bio": "Helps you spot patterns in your money, habits and time, from what you share. Turns numbers into insights that actually change behavior.",
       "sampleQuote": "You spend 23 hours a month on things you said don't matter to you. Want to see?",
       "traits": ["Analytical", "Curious", "Honest"],
       "color": "#3a6b73"
@@ -168,7 +168,7 @@
     },
     {
       "question": "How does the phone calling work?",
-      "answer": "Simply call 1 (888) 598-3952 from any phone. No app needed, no sign-up required. Ferni will recognize your number and remember your previous conversations automatically."
+      "answer": "Simply call 1 (888) 598-3952 from any phone. No app needed, no sign-up required. For now, each phone call starts fresh. If you'd like Ferni to remember you from one conversation to the next, talk in the app while you're signed in."
     },
     {
       "question": "Is my conversation private?",

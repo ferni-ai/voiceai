@@ -88,7 +88,12 @@ export interface ProactiveDeps {
   sendInApp: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
   /** A number they proved is theirs (user-reach.ts resolveVerifiedPhone), if any. */
   verifiedPhone: (userId: string, user: Record<string, unknown>) => Promise<string | undefined>;
-  sendSms: (phone: string, text: string) => Promise<boolean>;
+  /**
+   * Texts trigger.text through the guarded sender, which resolves the verified
+   * number itself; false when it didn't go (a STOP since the opt-out read, a text
+   * moments ago, a send failure), and the words go to the app instead.
+   */
+  sendSms: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
   /** What comes due today in their world; absent when the server has no world model. */
   worldDue?: (userId: string, timeZone?: string) => Promise<WorldDueItem[]>;
   /** Rings their verified phone (self-call.ts); absent or false canCall: no calls. */
@@ -186,7 +191,7 @@ async function deliver(
   deps: ProactiveDeps
 ): Promise<Delivered> {
   if (channel === 'sms' && phone) {
-    const sent = await deps.sendSms(phone, trigger.text).catch((error: unknown) => {
+    const sent = await deps.sendSms(userId, trigger).catch((error: unknown) => {
       log.warn({ error: String(error), userId }, 'Proactive text failed');
       return false;
     });

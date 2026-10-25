@@ -52,6 +52,8 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_RARE_WORDS: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with SEMANTIC_RECALL): facts are stored with their vectors, and recall finds older ones by meaning (stored-fact-vectors.ts)
+  RECALL_VECTOR_INDEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECENT_CALL_RESTRAINT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shows "I'll remember" in the app after a fact is stored
   REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -60,6 +62,8 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: reminders go by text to the verified phone, via guarded-text (reminder-sms-flag.ts, reminder-reach.ts)
   REMINDER_SMS_DEFAULT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: setReminder saves only a time the caller said, and a new time for the same thing moves it (reminder-time-heard.ts)
+  REMINDER_TIME_FROM_CALLER: { default: 'off', owner: 'tools', kind: 'experiment' },
   REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -67,7 +71,7 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 
-/** STYLE_PROFILE .. TOOL_REQUIRES_ENV */
+/** STYLE_PROFILE .. TTFW_METRIC */
 export const FLAGS_STYLE_TO_TOOL = {
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -77,6 +81,9 @@ export const FLAGS_STYLE_TO_TOOL = {
   // off: teammates unlock with conversations and streaks; on: every teammate is on every team (team-by-need-flag.ts)
   TEAM_BY_NEED: { default: 'off', owner: 'tools', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the hello reads a commitment's or topic's day with the deterministic resolver
+  // ("on the 30th", "in two weeks") instead of word lists (understanding/temporal, #2452)
+  TEMPORAL_RESOLVER: { default: 'off', owner: 'voice', kind: 'experiment' },
   THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
@@ -90,6 +97,14 @@ export const FLAGS_STYLE_TO_TOOL = {
   TOOLS_SAME_TURN: { default: 'off', owner: 'tools', kind: 'experiment' },
   // callUser places a real call to the verified phone; off keeps the honest stub
   TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // that call rings with the persona's live agent (LiveKit SIP), not Twilio <Say>
+  CALL_USER_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // every other call to the user's own verified phone rings live too (live-agent-call.ts)
+  CALL_PROACTIVE_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // callUser's reply says whether the persona or a recorded message rang (call-placed-reply.ts)
+  CALL_PLACED_HONEST_REPLY: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // an answered "call me" from the app ends the app call; the phone agent carries on (call-me-moves-to-phone.ts)
+  CALL_ME_MOVES_TO_PHONE: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_EMPTY_RESULT_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
@@ -97,6 +112,8 @@ export const FLAGS_STYLE_TO_TOOL = {
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
   // a tool whose requiresEnv keys are unset is not registered (tools/registry/tool-availability.ts)
   TOOL_REQUIRES_ENV: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  // one "Time to first word" line per call: where a launch's wait goes (agents/shared/time-to-first-word.ts)
+  TTFW_METRIC: { default: 'off', owner: 'platform', kind: 'config' },
 } as const satisfies Record<string, FlagSpec>;
 
 /** USE_NATIVE_AUDIO .. VOICE_HUMANIZATION_DISABLED */

@@ -19,7 +19,9 @@ import type {
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import { conversationDaysFor } from './conversation-days.js';
+import { forgetCallStartReads, readUserRootOnce } from '../../utils/call-start-reads.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
+import { invalidStoredProfile, refuseUnsaved } from './profile-read-failure.js';
 import {
   isValidUserProfile,
   isValidConversationSummary,
@@ -194,40 +196,28 @@ export class FirestoreStore extends MemoryStore {
   // ============================================================================
 
   async getProfile(userId: string): Promise<UserProfile | null> {
-    const db = await this.ensureInitialized();
-
+    await this.ensureInitialized();
     try {
-      const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
-      const [doc, days] = await Promise.all([docRef.get(), conversationDaysFor(docRef)]);
-
-      const data = doc.exists ? doc.data() : undefined;
-      if (!data) return null;
-
-      const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
-      if (!isValidUserProfile(hydrated)) {
-        // FIX: Enhanced logging with data sample for debugging data corruption
-        getLogger().error(
-          {
-            userId,
-            hasId: !!hydrated?.id,
-            hasName: !!hydrated?.name,
-            hasCreatedAt: !!hydrated?.createdAt,
-            dataKeys: Object.keys(hydrated || {}),
-          },
-          'Invalid user profile data from Firestore - potential data corruption'
-        );
-        return null;
-      }
-      return hydrated;
+      return await this.getProfileStrict(userId);
     } catch (error) {
       getLogger().error(`getProfile error: ${error}`);
       return null;
     }
   }
 
-  async saveProfile(profile: UserProfile): Promise<void> {
-    const db = await this.ensureInitialized();
+  /** A failed read, or a stored doc that isn't a valid profile, throws; null only when no doc. */
+  override async getProfileStrict(userId: string): Promise<UserProfile | null> {
+    const docRef = (await this.ensureInitialized()).collection(this.USERS_COLLECTION).doc(userId);
+    const [data, days] = await readUserRootOnce(userId, docRef, conversationDaysFor);
+    if (!data) return null;
+    const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
+    if (isValidUserProfile(hydrated)) return hydrated;
+    throw invalidStoredProfile(userId, hydrated);
+  }
 
+  async saveProfile(profile: UserProfile): Promise<void> {
+    refuseUnsaved(profile); // a stand-in built after a failed read never overwrites stored data
+    const db = await this.ensureInitialized();
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
       // conversationDays is derived on load; token fields are written only by profile-token-field.
@@ -235,6 +225,7 @@ export class FirestoreStore extends MemoryStore {
       const serialized = this.serializeForFirestore(stored);
 
       await docRef.set(cleanForFirestore(serialized), { merge: true });
+      forgetCallStartReads(profile.id); // later call-start readers see this write
       getLogger().debug(`Saved profile: ${profile.id}`);
     } catch (error) {
       getLogger().error(`saveProfile error: ${error}`);
@@ -248,6 +239,7 @@ export class FirestoreStore extends MemoryStore {
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
       await docRef.delete();
+      forgetCallStartReads(userId);
       return true;
     } catch (error) {
       getLogger().error(`deleteProfile error: ${error}`);
@@ -553,13 +545,11 @@ export class FirestoreStore extends MemoryStore {
     const { createIfMissing = false, maxRetries = 3 } = options;
 
     try {
-      // Import Firestore for transaction support
       const { Firestore } = await import('@google-cloud/firestore');
       const db = this.db as unknown as InstanceType<typeof Firestore>;
 
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
 
-      // Run transaction
       const result = await db.runTransaction(
         async (transaction) => {
           const doc = await transaction.get(docRef);
@@ -585,7 +575,6 @@ export class FirestoreStore extends MemoryStore {
             currentProfile = createUserProfile(userId);
           }
 
-          // Apply the update
           const updatedProfile = await updater(currentProfile);
 
           // Ensure updatedAt is set
@@ -600,6 +589,7 @@ export class FirestoreStore extends MemoryStore {
         },
         { maxAttempts: maxRetries }
       );
+      forgetCallStartReads(userId);
 
       if (result) {
         getLogger().debug(`Atomic update completed for profile: ${userId}`);

@@ -35,6 +35,7 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
 // plaintext shape until the encrypt-integration-tokens migration has run.
 const tokenStore = createPersistenceStore<Record<string, unknown>>({
   collection: 'spotify_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'main',
   useRootCollection: true,
   syncIntervalMs: 1000, // Quick sync for token updates
@@ -124,7 +125,7 @@ export async function saveTokens(
 
   // Persist to Firestore (write-through)
   try {
-    await tokenStore.setImmediate('global', sealTokensForMerge(data));
+    await tokenStore.setImmediate('global', sealTokensForMerge(data), { safeWithoutRead: true });
     log.info('Saved Spotify tokens to Firestore');
   } catch (err) {
     log.warn({ error: (err as Error).message }, 'Could not save Spotify tokens to Firestore');

@@ -91,8 +91,8 @@ async function commitmentDoc(
   userId: string,
   commitmentId: string
 ): Promise<FirebaseFirestore.DocumentReference> {
-  const { getFirestore } = await import('firebase-admin/firestore');
-  return getFirestore()
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  return getAdminFirestore()
     .collection('bogle_users')
     .doc(userId)
     .collection('commitments')

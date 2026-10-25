@@ -5,7 +5,7 @@
     "direction": "ltr"
   },
   "hero": {
-    "eyebrow": "Conoce a tu Coach de IA",
+    "eyebrow": "Conoce a Ferni",
     "headline": "Mejor que",
     "headlineAccent": "humano.",
     "subhead": "Por fin, alguien que realmente escucha.",
@@ -42,7 +42,7 @@
     "sectionTitle": "Conoce al Equipo",
     "sectionSubtitle": "Seis mentes brillantes trabajando juntas para ti",
     "ferni": {
-      "role": "Coach de Vida",
+      "role": "Amigo y Guía",
       "bio": "Tu punto de contacto principal. Hace las preguntas que desbloquean perspicacia, celebra cada victoria y te conecta con el especialista adecuado cuando lo necesitas.",
       "sampleQuote": "Noté que dijiste 'bien' tres veces esta semana. ¿Qué está pasando realmente?"
     },
@@ -53,7 +53,7 @@
     },
     "peter": {
       "role": "Investigación y Descubrimiento",
-      "bio": "Detecta patrones que nadie más ve en tus gastos, hábitos y calendario. Convierte datos en perspicacia que realmente cambia comportamientos.",
+      "bio": "Te ayuda a ver patrones en tu dinero, tus hábitos y tu tiempo, a partir de lo que compartes. Convierte los números en ideas que realmente cambian comportamientos.",
       "sampleQuote": "Gastas 23 horas al mes en cosas que dijiste no te importan. ¿Quieres ver?"
     },
     "alex": {
@@ -132,7 +132,7 @@
       },
       {
         "question": "¿Cómo funciona la llamada telefónica?",
-        "answer": "Simplemente llama al 1 (888) 598-3952 desde cualquier teléfono. No necesitas app, no necesitas registrarte. Ferni reconocerá tu número y recordará tus conversaciones anteriores automáticamente."
+        "answer": "Simplemente llama al 1 (888) 598-3952 desde cualquier teléfono. No necesitas app, no necesitas registrarte. Por ahora, cada llamada empieza de cero. Si quieres que Ferni te recuerde de una conversación a otra, habla con Ferni en la app con tu sesión iniciada."
       },
       {
         "question": "¿Mi conversación es privada?",

@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   describeNeed,
+  databaseOf,
   diffIndexes,
   type IndexFile,
   type IndexNeed,
@@ -55,13 +56,10 @@ const KNOWN_UNINDEXED = new Set([
   'src/intelligence/surfacing/proactive-surfacing-engine.ts surfaced_content (status asc, priority desc)',
   'src/intelligence/surfacing/proactive-surfacing-engine.ts unified_entities (type asc, salience asc)',
   'src/memory/dynamic/voice-context-capture.ts voice_contexts (sessionId asc, turnNumber desc)',
-  'src/memory/entity-store/consolidation.ts entities (userId asc, lastSeen asc)',
   'src/memory/entity-store/store.ts entities (userId asc, lastSeen desc)',
   'src/services/admin-activity.ts admin_activity_log (type asc, timestamp desc)',
-  'src/services/admin/admin-activity.ts admin_activity_log (type asc, timestamp desc)',
   'src/services/analytics/outreach-analytics.ts outreach_events (userId asc, timestamp desc)',
   'src/services/automation/audit-log.ts audit_log (status asc, canUndo asc, executedAt desc)',
-  'src/services/automation/content-curator.ts content_recommendations (deliveredAt asc, scheduledFor asc)',
   'src/services/automation/insight-action-bridge.ts action_executions (ruleId asc, status asc, createdAt asc)',
   'src/services/automation/trust-level-system.ts pending_actions (status asc, expiresAt asc)',
   'src/services/better-than-human-validation/production-telemetry.ts bth_production_events (capability asc, timestamp asc)',
@@ -295,6 +293,19 @@ describe('diffIndexes (check-indexes.ts)', () => {
       notReady: [],
       undeclared: [],
     });
+  });
+
+  it('reads a ferni-dev listing the same way, and names its database', () => {
+    const dev = {
+      ...prodRow('reminders'),
+      name: prodRow('reminders').name.replace('(default)', 'ferni-dev'),
+    };
+    expect(diffIndexes(repo, [dev]).missing).toEqual(
+      diffIndexes(repo, [prodRow('reminders')]).missing
+    );
+    expect(databaseOf(dev)).toBe('ferni-dev');
+    expect(databaseOf(prodRow('reminders'))).toBe('(default)');
+    expect(databaseOf(repo[0])).toBeUndefined();
   });
 
   it('reports one still building, and counts prod-only ones apart', () => {

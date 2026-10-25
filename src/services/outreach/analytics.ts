@@ -11,6 +11,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { getBetterThanHumanTelemetry } from '../analytics/better-than-human-telemetry.js';
 import type { OutreachDecision, OutreachTriggerType } from './decision-engine.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 const log = getLogger().child({ module: 'outreach-analytics' });
 
@@ -169,8 +170,7 @@ export function recordResponseEvent(params: {
   userResponses.push(event);
   responseEvents.set(params.userId, userResponses);
 
-  // Invalidate caches
-  userAnalyticsCache.delete(params.userId);
+  userAnalyticsCache.delete(params.userId); // the caches are stale now
   globalAnalyticsCache = null;
 
   log.debug(
@@ -178,8 +178,8 @@ export function recordResponseEvent(params: {
     'Recorded response event'
   );
 
-  // Bridge into Better-Than-Human telemetry (response loop)
-  if (params.userId !== 'unknown' && params.responseType !== 'no_response') {
+  // Better-Than-Human telemetry (response loop), for members only
+  if (isMemberIdentity(params.userId) && params.responseType !== 'no_response') {
     getBetterThanHumanTelemetry().trackOutreachResponse({
       userId: params.userId,
       outreachId: params.outreachId,

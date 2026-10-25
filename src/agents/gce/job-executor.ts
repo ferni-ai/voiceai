@@ -14,6 +14,7 @@ import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
 import { watchCallLoop } from '../shared/loop-watch.js';
+import { watchTimeToFirstWord } from '../shared/time-to-first-word.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
 import { emptyRoomGraceMs } from './empty-room-grace.js';
 // Work that runs after each call ends (extraction, person model): registered once per process.
@@ -28,6 +29,8 @@ import '../voice-agent-entry/returning-caller-register.js';
 import '../voice-agent-entry/sms-owner-register.js';
 // A caller's own cohort flags for code that runs after their call (config/person-flag.ts).
 import '../person-flag-register.js';
+// What a caller asks Ferni to remember, written where recall reads it (REMEMBER_TO_RECALL).
+import '../remembered-fact-store-register.js';
 
 // ============================================================================
 // TYPES
@@ -159,6 +162,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   }
 
   const room = new Room();
+  // TTFW_METRIC: one "Time to first word" line per call; a no-op when off.
+  const ttfw = watchTimeToFirstWord(room, jobId);
   const closeEvent = new EventEmitter();
   let connected = false;
   let shutdown = false;
@@ -284,6 +289,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
   const onConnect = () => {
     connected = true;
+    ttfw.agentJoined();
     log('Room connected', { jobId });
   };
 
@@ -373,6 +379,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     throw error;
   } finally {
     finishLoopWatch();
+    ttfw.finish();
     runningContexts.delete(jobId);
     clearTimeout(sessionTimeout);
     if (emptyRoomTimer) clearTimeout(emptyRoomTimer);

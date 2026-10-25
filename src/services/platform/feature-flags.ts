@@ -11,9 +11,10 @@
  * @module FeatureFlags
  */
 
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'FeatureFlags' });
 
@@ -216,7 +217,7 @@ export async function setFlag(flagId: TrustFlagId, config: Partial<FlagConfig>):
 
   // Persist to Firestore
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     await db
       .collection('feature_flags')
       .doc(flagId)
@@ -338,7 +339,7 @@ export async function initializeFeatureFlags(): Promise<void> {
   if (cacheInitialized) return;
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const snapshot = await db.collection('feature_flags').get();
 
     for (const doc of snapshot.docs) {

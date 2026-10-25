@@ -37,6 +37,7 @@ import {
 } from '@google-cloud/firestore';
 import { cleanForFirestore } from './firestore-utils.js';
 import { createLogger } from './safe-logger.js';
+import { getFirestoreDatabase } from '../config/environment.js';
 
 const log = createLogger({ module: 'SafeFirestore' });
 
@@ -197,7 +198,7 @@ export function getDb(): Firestore | null {
 
   try {
     // Use @google-cloud/firestore directly for better typing
-    cachedDb = new Firestore();
+    cachedDb = new Firestore({ databaseId: getFirestoreDatabase() });
     initialized = true;
     log.debug('Firestore instance initialized');
     return cachedDb;

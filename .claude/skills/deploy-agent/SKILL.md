@@ -44,12 +44,13 @@ live() { G=$(lk agent versions --project $P --config $C 2>/dev/null | awk -F'│
  && cp docker/Dockerfile.agent ./Dockerfile \
  && { lk agent deploy --project $P --config $C -y . > $LOG 2>&1; rm -f Dockerfile .build-sha; } \
  && ! grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" $LOG \
- && ! grep "unable to deploy agent" $LOG | grep -qv "bufio.Scanner" \
+ && ! { grep "unable to deploy agent" $LOG | grep -v "bufio.Scanner" | grep -q .; } \
  && for i in $(seq 1 16); do live && break; sleep 15; done \
  && live \
  && echo DEPLOYED $(git rev-parse HEAD)
 ```
 - `unable to deploy agent: bufio.Scanner: token too long` at the end is harmless.
+- The check pipes into `grep -q .` instead of `grep -qv`: some greps (ugrep, which Claude Code shells use as `grep`) return 0 for `-qv` on empty input, so a clean deploy read as failed (2026-10-22, both dev and prod).
 - Any other `unable to deploy agent: …` (for example `stream error … INTERNAL_ERROR`)
   means the upload failed, even though `lk` exits 0. LiveKit's log lines aren't proof
   either way: after the harmless bufio message there's no "Completed deployment" line.
@@ -81,9 +82,25 @@ lk agent update-secrets --project $P --config $C --secrets "FLAG=on" --secrets "
 - It restarts the agent, so check rooms are empty first.
 - When turning a flag on in prod, record the change in the PR that added the flag.
 
-Check for drift between dev and prod before a prod deploy:
-`lk agent secrets --project <p> --config <c>` lists names only. Compare the
-two lists and explain any difference.
+## Before promoting to prod: secrets parity
+Run the parity check first. It is read-only (`lk agent secrets` + `lk agent logs`):
+```bash
+R=$(git rev-parse --show-toplevel)
+pnpm ops:secrets-parity --dev-project ferni-dev --dev-config $R/livekit.toml \
+  --prod-project ferni-prod --prod-config $R/livekit.prod-cloud.toml
+```
+- It compares key names, and values by a per-run HMAC, using each agent's
+  `EFFECTIVE_SETTINGS` boot lines (LiveKit never returns secret values). It
+  prints names, counts and flag words only, never a value.
+- Exit 0 clean; 1 drift (a key on one side only, set on one side and unset on
+  the other, or a value that differs); 2 it can't verify (a hidden value not in
+  `scripts/ops/secrets-parity-allowlist.json`, a voice id or flag it couldn't
+  compare, or a boot older than the latest secret change). Voice ids can't be
+  compared until both agents run a build with #2590 (voice ids in the boot log). A key that belongs
+  on one agent only goes under `onlyOn` in the allowlist, with a reason.
+- Paste its summary into the release PR and explain every listed key. A
+  differing `*_VOICE_ID` is a wrong voice in prod: fix it before promoting.
+  Voice ids and flags can't be allowlisted.
 
 ## Roll back
 ```bash

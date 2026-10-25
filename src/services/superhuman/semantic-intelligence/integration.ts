@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { writeHeld } from '../../../utils/minor-care.js';
 import { runBackground } from '../../../utils/background-task.js';
 
 // Import all 6 semantic intelligence systems
@@ -178,18 +179,15 @@ export interface AgentAdviceContext {
 /**
  * Process a user turn through all semantic intelligence systems.
  *
- * This is the main entry point called from turn-handler.ts.
- * It extracts relevant data and feeds it to each system in parallel.
+ * Entry point from turn-handler.ts: feeds the turn to each system in parallel.
  *
  * IMPORTANT: This runs as fire-and-forget to not block turn processing.
  */
 export async function processSemanticIntelligence(data: TurnSemanticData): Promise<void> {
   const { userId, userText, topic, textEmotion, textEmotionIntensity } = data;
 
-  if (!isMemberIdentity(userId)) {
-    log.debug({ userId }, '⏭️ Skipping semantic intelligence for anonymous user');
-    return; // Skip for anonymous users
-  }
+  // Anonymous users, and MINOR_CARE: a caller under 18 by their own words (every system writes)
+  if (!isMemberIdentity(userId) || writeHeld(userId, data.sessionId)) return;
 
   // V4.1: Log when semantic intelligence runs (helps debug data capture issues)
   log.info(
@@ -1451,7 +1449,7 @@ function extractKeyConcepts(text: string): string[] {
  * This pre-loads Firestore data into memory caches for faster context building.
  */
 export async function warmupSemanticIntelligence(userId: string): Promise<void> {
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return;
   }
 

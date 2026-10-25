@@ -59,6 +59,12 @@ vi.mock('firebase-admin', () => {
   return { default: { apps: [] as unknown[], initializeApp: () => {}, firestore, auth } };
 });
 
+// The scripts reach Firestore through getAdminFirestore(); it serves the same fake.
+vi.mock('../../src/utils/firebase-admin-app.js', async () => {
+  const admin = (await import('firebase-admin')).default;
+  return { getAdminFirestore: () => admin.firestore() };
+});
+
 const { main, unlinkReason } = await import('../unlink-unverified-publishers.js');
 const node = ['node', 'script.ts'];
 

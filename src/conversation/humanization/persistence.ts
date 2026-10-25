@@ -109,7 +109,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
       }
     }
 
-    firestoreInstance = admin.firestore();
+    firestoreInstance = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     logger.info('Firebase initialized for humanization persistence');
     return firestoreInstance;
   } catch (error) {

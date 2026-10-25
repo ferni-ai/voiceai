@@ -9,6 +9,18 @@ import { bqHash } from '../../analytics/bq-events.js';
 
 vi.mock('../../identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => false }));
 
+const order = vi.hoisted(() => [] as string[]);
+vi.mock('../../outreach/outreach-intelligence.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  eraseUserOutreachData: vi.fn(async (uid: string) => {
+    order.push(`drop outreach ${uid}`);
+    await new Promise((r) => {
+      setTimeout(r, 5);
+    }); // a held write in flight, waited out
+    order.push('dropped');
+  }),
+}));
+
 const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
@@ -158,6 +170,16 @@ describe('eraseUserRecord', () => {
     ]);
   });
 
+  it("erases the person's queued intelligence events, which hold their words", async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'intelligence_queue');
+    const { db, docs } = fakeFirestore({
+      'intelligence_queue/q1': { userId: 'u-1', status: 'pending' },
+      'intelligence_queue/q2': { userId: 'u-2', status: 'pending' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()]).toEqual(['intelligence_queue/q2']);
+  });
+
   it('throws when anything survives, so no caller reports an erasure that did not happen', async () => {
     const { db } = fakeFirestore(
       { 'users/u-1/journal/j1': {}, 'contact_relationships/r1': { userId: 'u-1' } },
@@ -217,5 +239,38 @@ describe('eraseUserRecord', () => {
 
   it('fails loudly when Firebase Admin is unavailable instead of skipping the erase', async () => {
     await expect(eraseUserRecord('u-1')).rejects.toThrow('Firebase Admin is not initialized');
+  });
+});
+
+describe('eraseUserRecord and outreach held in memory', () => {
+  beforeEach(() => {
+    order.length = 0;
+  });
+
+  it('drops it before the sweep and again after it, waiting for each drop', async () => {
+    const { db, raw } = seedTwoUsers();
+    const realDelete = raw.recursiveDelete.getMockImplementation();
+    raw.recursiveDelete.mockImplementation(async (ref: { path: string }) => {
+      order.push('sweep');
+      await realDelete?.(ref);
+    });
+
+    await eraseUserRecord('u-1', db, STORES, []);
+
+    expect(order.slice(0, 2)).toEqual(['drop outreach u-1', 'dropped']);
+    expect(order.slice(-2)).toEqual(['drop outreach u-1', 'dropped']);
+    const sweeps = order.slice(2, -2);
+    expect(sweeps.length).toBeGreaterThan(0);
+    expect(sweeps.every((step) => step === 'sweep')).toBe(true);
+  });
+
+  it('a failing drop before the sweep fails the erase and nothing is erased', async () => {
+    const { db, raw, docs } = seedTwoUsers();
+    const { eraseUserOutreachData } = await import('../../outreach/outreach-intelligence.js');
+    vi.mocked(eraseUserOutreachData).mockRejectedValueOnce(new Error('outreach store down'));
+
+    await expect(eraseUserRecord('u-1', db, STORES, [])).rejects.toThrow('outreach store down');
+    expect(raw.recursiveDelete).not.toHaveBeenCalled();
+    expect(docs.has('bogle_users/u-1/dynamic_facts/f1')).toBe(true);
   });
 });
