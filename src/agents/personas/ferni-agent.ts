@@ -30,6 +30,7 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { dropLeadingSaidBy } from './said-by.js';
+import { withCutReplyCheck } from './cut-reply-guard.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
@@ -684,7 +685,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const sessionId = (this.session.userData?.services as { sessionId?: string } | undefined)
       ?.sessionId;
-    const model = async (request: llm.ChatContext) => {
+    const ask = async (request: llm.ChatContext) => {
       const ctx = withCallerTurn(request);
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
       const text = withToolMarkupStrip(
@@ -693,6 +694,8 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       );
       return withActionClaimCheck(text, ctx, tools, this.session.userData) as never;
     };
+    // CUT_REPLY_IN_HISTORY: no near-copy of a reply the caller just cut off (cut-reply-guard.ts)
+    const model = withCutReplyCheck(this.session, ask, sessionId);
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;
   }
