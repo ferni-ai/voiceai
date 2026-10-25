@@ -8,6 +8,8 @@
  */
 
 export const CRISIS_GATE_SIGNAL = 'crisis_gate_decision';
+import type { CrisisReader } from '../../services/safety/index.js';
+import { recordCrisisOnCall, type CrisisEventKind } from './crisis-event-record.js';
 
 const crisisSessions = new WeakSet<object>();
 
@@ -17,8 +19,13 @@ export function crisisDecidedOn(session: unknown): boolean {
 }
 
 /** Emits { action } on the session for any decision but 'pass'. */
-export function signalCrisisDecision(session: unknown, action: string | undefined): void {
+export function signalCrisisDecision(
+  session: unknown,
+  action: string | undefined,
+  from: { reader: CrisisReader; kind?: CrisisEventKind } = { reader: 'pattern' }
+): void {
   if (!action || action === 'pass') return;
+  recordCrisisOnCall(session, action, from.reader, from.kind); // CRISIS_EVENT_RECORD: a later tick, never awaited
   if (typeof session === 'object' && session !== null) crisisSessions.add(session);
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });

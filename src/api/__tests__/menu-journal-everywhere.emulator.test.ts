@@ -17,6 +17,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 // the tools and the executor read through them, so this file swaps the real ones back in.
 vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
+// The export looks up proven phone profiles (erasure-keys.ts): no Firebase user here
+vi.mock('../../services/identity/firebase-auth.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/identity/firebase-auth.js')>()),
+  getFirebaseUserOrThrow: async () => null,
+}));
 vi.mock('../../utils/firestore-utils.js', async () => {
   const actual = await vi.importActual<typeof import('../../utils/firestore-utils.js')>(
     '../../utils/firestore-utils.js'
