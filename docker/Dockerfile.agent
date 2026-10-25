@@ -164,8 +164,9 @@ COPY scripts/generate-tool-tiers.js ./scripts/
 # (dev, 2026-10-05: esbuild error, step exit 0, version marked Available).
 # gen:lists writes the gitignored flag barrel and env-name list (build-fast.ts writes
 # them too; this keeps the step visible). The install above ran before src/ existed,
-# so its postinstall could not.
-RUN rm -rf dist && pnpm gen:lists && pnpm run build:fast && \
+# so its postinstall could not. Its own RUN: agent-builder-run.test.ts runs the next one.
+RUN pnpm gen:lists
+RUN rm -rf dist && pnpm run build:fast && \
     echo "=== Copying JSON config files ===" && \
     mkdir -p dist/agents/shared/sanitizer/config && \
     cp src/agents/shared/sanitizer/config/tool-patterns.json dist/agents/shared/sanitizer/config/ && \
