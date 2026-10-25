@@ -3,7 +3,7 @@
  * state. Memory Lane ignored a failed response and showed "no memories yet";
  * Team Insights swallowed the failure and returned an empty list plus a made-up
  * `budgetOnTrack: true`, so its error state never appeared, and Refresh still
- * toasted "updated".
+ * toasted "updated". Team Insights' loaded state is pinned here too.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -107,6 +107,34 @@ describe('Team Insights', () => {
     await teamInsightsUI.refresh();
 
     expect(shown('.team-insights-empty')).toBe('block');
+    expect(shown('.team-insights-error')).toBe('none');
+  });
+
+  it('an insight from the server shows as a card, not the empty or error state', async () => {
+    const insight = {
+      id: 'insight_1',
+      source: 'maya',
+      category: 'behavior_pattern',
+      summary: 'Walks after dinner stick.',
+      content: 'Walks after dinner stick. | Context: it keeps coming up',
+      priority: 'normal',
+      createdAt: Date.now() - 60_000,
+      isNew: false,
+    };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ insights: [insight], teamStatus: null }),
+    });
+    const { teamInsightsUI } = await load<Panel>('../../src/ui/team-insights.ui.js');
+
+    teamInsightsUI.init();
+    await teamInsightsUI.refresh();
+
+    expect(shown('.team-insights-list')).toBe('flex');
+    const card = document.querySelector('.team-insight-card[data-insight-id="insight_1"]');
+    expect(card?.querySelector('.insight-context')?.textContent).toBe('Walks after dinner stick.');
+    expect(shown('.team-insights-empty')).toBe('none');
     expect(shown('.team-insights-error')).toBe('none');
   });
 });

@@ -8,6 +8,10 @@
  * and contact_relationships all survived it. The stores outside the two records were
  * found by reading every top-level collection production code writes with a uid.
  *
+ * Stores split into partitions (ab_tests/{test}/assignments, the router's
+ * semantic_router_events/{day}/events) are listed in erase-other-keys.ts, which lists
+ * the partitions first; the export reads the router's in user-records-export.ts.
+ *
  * @module services/platform/user-stores
  */
 

@@ -155,11 +155,11 @@ const UPCOMING_PATTERNS = [
   /(?:my|the) (.+?) is (?:tomorrow|next week|coming up|on \w+day)/i,
 ];
 
-// ============================================================================
-// IN-MEMORY STORE
-// ============================================================================
+// In-memory store
 
 const profiles = new Map<string, ThinkingOfYouProfile>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetThinkingOfYouUser = (userId: string): boolean => profiles.delete(userId);
 
 function getOrCreateProfile(userId: string): ThinkingOfYouProfile {
   let profile = profiles.get(userId);

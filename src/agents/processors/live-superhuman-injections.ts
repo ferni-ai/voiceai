@@ -991,14 +991,12 @@ async function loadCommitmentE2EAsync(
   }
 }
 
-/**
- * Load Commitment Progress check (Phase 13)
- * Detects when user mentions progress on existing commitments
- */
+/** Load Commitment Progress check (Phase 13): the user mentions progress on a commitment. */
 async function loadCommitmentProgressAsync(
   ctx: LiveSuperhumanContext
 ): Promise<ProgressUpdateResult | null> {
   try {
+    if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: completion memory
     const { checkProgressE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
 
     const result = await checkProgressE2E({

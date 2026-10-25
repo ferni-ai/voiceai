@@ -21,6 +21,9 @@ import { clearAllUserGrowth } from '../../services/trust-systems/persona-growth.
 import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js';
 import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
+import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.js';
+import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
+import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
 import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
@@ -73,6 +76,12 @@ export function purgeHeldUser(userId: string, sessionId?: string): void {
     ['social graph', clearSocialGraph],
     // threads, open loops, commitments…: buffered before the age statement, saved by a later call
     ['semantic intelligence', (id) => clearSemanticIntelligenceCache(id)],
+    // boundaries, growth, inside jokes, small wins, life events…: saved by a later call's cleanup
+    ['trust systems', clearTrustSystemsUser],
+    // topics they mentioned, buffered with a debounced save; a later call's cleanup flushes it
+    ['personality resonance', clearResonanceUser],
+    // the relationship arc (first words, key moments), cached 5 min and saved by a later call
+    ['relationship arc', clearArcCache],
     // quotes, people, avoided topics: the builder feeds them every turn; a later call's end saves them
     ['deep understanding', clearDeepUnderstandingUser],
   ];

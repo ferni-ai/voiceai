@@ -33,15 +33,10 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({
   }),
 }));
 
-vi.mock('../../data-export.js', () => ({
-  getDataExportService: () => ({
-    deleteAllData: async () => {
-      throw Object.assign(new Error(`No document to update: waitlist/${FAKE_EMAIL}`), {
-        code: 5,
-      });
-    },
-  }),
-}));
+const deleteAllData = vi.hoisted(() => vi.fn());
+vi.mock('../../data-export.js', () => ({ getDataExportService: () => ({ deleteAllData }) }));
+const deleteFirebaseUser = vi.hoisted(() => vi.fn());
+vi.mock('../../identity/firebase-auth.js', () => ({ deleteFirebaseUser }));
 
 import { processAppleNotification } from '../apple-signin-notifications.js';
 
@@ -50,6 +45,10 @@ describe('Apple account-delete failure', () => {
     vi.stubEnv('APPLE_SIGNIN_SERVICES_ID', 'com.example.services');
     updates.length = 0;
     Object.values(logged).forEach((fn) => fn.mockClear());
+    deleteAllData.mockRejectedValue(
+      Object.assign(new Error(`No document to update: waitlist/${FAKE_EMAIL}`), { code: 5 })
+    );
+    deleteFirebaseUser.mockResolvedValue(true);
   });
 
   it('logs, stores and returns the error code, never the message', async () => {
@@ -65,5 +64,18 @@ describe('Apple account-delete failure', () => {
     expect(lines).toContain('Error:5'); // the failure is still reported
     expect(lines).not.toContain(FAKE_EMAIL);
     expect(lines).not.toContain('No document to update');
+  });
+
+  it("logs a failed Firebase user deletion's code, never its message", async () => {
+    deleteAllData.mockResolvedValue({});
+    deleteFirebaseUser.mockRejectedValue(
+      Object.assign(new Error(`could not delete ${FAKE_EMAIL}`), { code: 'auth/internal-error' })
+    );
+    expect(await processAppleNotification('signed.jwt.token')).toMatchObject({ success: true });
+    expect(logged.warn).toHaveBeenCalledWith(
+      { error: 'Error:auth/internal-error', userId: 'u-1...' },
+      'Firebase user deletion failed (non-fatal)'
+    );
+    expect(JSON.stringify(logged.warn.mock.calls)).not.toContain(FAKE_EMAIL);
   });
 });
