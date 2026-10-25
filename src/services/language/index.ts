@@ -53,4 +53,5 @@ export {
   canSpeakLanguageLive,
   languageNotLiveMessage,
   currentCallLanguageMessage,
+  languageHelpListMessage,
 } from './live-capability.js';

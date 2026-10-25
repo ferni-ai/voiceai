@@ -910,7 +910,7 @@ export function languageService() {
         if (!parsed) {
           return {
             success: false,
-            error: `I'm not sure which language "${languageCode}" is. On calls I can only talk in English for now.`,
+            error: `I'm not sure which language ${languageCode} is. Could you say it another way?`,
           };
         }
 

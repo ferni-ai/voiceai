@@ -192,8 +192,9 @@ describe('Language Service', () => {
       expect(currentCallLanguageMessage('en', 'English')).toBe("We're speaking English.");
       const es = currentCallLanguageMessage('es', 'Spanish');
       expect(es).not.toMatch(/speaking Spanish/i);
-      expect(es).toMatch(/English-only/);
-      expect(es).toMatch(/Spanish noted/);
+      expect(es).toBe(
+        "We're speaking English. Calls are English only for now. I remember you'd like Spanish, though."
+      );
     });
   });
 
@@ -205,8 +206,9 @@ describe('Language Service', () => {
 
       expect(result.success).toBe(true);
       expect(result.confirmationMessage).not.toMatch(/speak Spanish now|now speak/i);
-      expect(result.confirmationMessage).toMatch(/only talk in English/);
-      expect(result.confirmationMessage).toMatch(/like Spanish/);
+      expect(result.confirmationMessage).toBe(
+        "I can't do Spanish out loud yet. Calls are English only for now. But I'll remember you'd like it. Want a few Spanish words to practise in the meantime?"
+      );
       expect(mockFirestoreSet).toHaveBeenCalledWith(
         expect.objectContaining({ preferences: expect.objectContaining({ spokenLanguage: 'es' }) }),
         { merge: true }

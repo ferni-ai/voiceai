@@ -2163,7 +2163,7 @@ export async function executeLegacyFallback(
       '🗣️ Set spoken language'
     );
     if (!targetLanguage) {
-      return `Which language would you like? On calls I can only talk in English for now, but I'll note your preference.`;
+      return `Which language would you like? I only speak English on calls for now, but I'll remember it.`;
     }
     const { languageService } = await import('../../../services/language/index.js');
     const result = await languageService().setLanguage(
@@ -2172,17 +2172,16 @@ export async function executeLegacyFallback(
       ctx.sessionId
     );
     if (result.success) {
-      return result.confirmationMessage || `Noted, ${targetLanguage}.`;
+      return result.confirmationMessage || `I'll remember you'd like ${targetLanguage}.`;
     }
-    return result.error || `I couldn't switch to that language.`;
+    return result.error || `I couldn't save that language.`;
   }
 
   if (fnLower === 'listsupportedlanguages' || fnLower === 'getsupportedlanguages') {
     log.info({ userId: ctx.userId }, '🗣️ List supported languages');
-    const { languageService } = await import('../../../services/language/index.js');
-    const languages = await languageService().getSupportedLanguages();
-    const formatted = languages.map((l) => l.displayName).join(', ');
-    return `On calls I can only talk in English for now. I can help with words and phrases in: ${formatted}.`;
+    const { getSupportedLanguagesList, languageHelpListMessage } =
+      await import('../../../services/language/index.js');
+    return languageHelpListMessage(getSupportedLanguagesList());
   }
 
   if (fnLower === 'getcurrentlanguage' || fnLower === 'getspokenlanguage') {

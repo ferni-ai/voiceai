@@ -64,6 +64,7 @@ vi.mock('../../../../services/language/index.js', async () => {
     canSpeakLanguageLive: actual.canSpeakLanguageLive,
     languageNotLiveMessage: actual.languageNotLiveMessage,
     currentCallLanguageMessage: actual.currentCallLanguageMessage,
+    languageHelpListMessage: actual.languageHelpListMessage,
     parseLanguageName: (lang: string) => mockParseLanguageName(lang),
     setSessionLanguage: (sessionId: string, lang: string, userId?: string) =>
       mockSetSessionLanguage(sessionId, lang, userId),
@@ -74,6 +75,11 @@ vi.mock('../../../../services/language/index.js', async () => {
     getSessionLanguageState: (sessionId: string) => mockGetSessionLanguageState(sessionId),
   };
 });
+
+/** Spoken by Ferni: no semicolons, colons or parentheses. */
+function expectSpeakable(text: unknown) {
+  expect(String(text)).not.toMatch(/[;:()]/);
+}
 
 // Import after mocks
 import type { ToolContext, ToolDefinition, Tool } from '../../../registry/types.js';
@@ -146,6 +152,18 @@ describe('Language Tools', () => {
       expect(toolIds).toContain('getCurrentLanguage');
     });
 
+    it('no description the model reads claims Ferni can speak another language', () => {
+      for (const def of languageToolDefinitions) {
+        const tool = def.create(mockContext) as unknown as { description: string };
+        for (const text of [def.description, tool.description]) {
+          expect(text).toMatch(/English only for now/);
+          expect(text).not.toMatch(
+            /Ferni can speak|you can speak|languages supported by|spoken language for|respond in the new language|current spoken language/i
+          );
+        }
+      }
+    });
+
     it('should have settings domain', async () => {
       toolDefinitions.forEach((t) => {
         expect(t.domain).toBe('settings');
@@ -170,9 +188,11 @@ describe('Language Tools', () => {
       expect(mockSetSessionLanguage).toHaveBeenCalledWith('test-user-123', 'es', 'test-user-123');
       expect(mockPersistUserLanguagePreference).toHaveBeenCalledWith('test-user-123', 'es');
       expect(result).not.toMatch(/now speak|switched to Spanish|language switched/i);
-      expect(result).toMatch(/only talk in English on calls/);
-      expect(result).toMatch(/noted you'd like Spanish/);
-      expect(result).toMatch(/Spanish words or phrases/);
+      expect(result).toMatch(/can't do Spanish out loud yet/);
+      expect(result).toMatch(/English only for now/);
+      expect(result).toMatch(/remember you'd like it/);
+      expect(result).toMatch(/Spanish words to practise/);
+      expectSpeakable(result);
     });
 
     it('English: confirmation unchanged', async () => {
@@ -186,9 +206,7 @@ describe('Language Tools', () => {
 
       const result = await setLanguageTool.execute({ language: 'English' });
 
-      expect(result).toBe(
-        "Language switched to English (English). I'll now speak to you in English."
-      );
+      expect(result).toBe("Language switched to English. I'll now speak to you in English.");
       expect(mockPersistUserLanguagePreference).toHaveBeenCalledWith('test-user-123', 'en');
     });
 
@@ -229,7 +247,7 @@ describe('Language Tools', () => {
       const result = await setLanguageTool.execute({ language: 'Chinese' });
 
       expect(result).not.toMatch(/switched/i);
-      expect(result).toMatch(/noted you'd like Chinese/);
+      expect(result).toMatch(/can't do Chinese out loud yet/);
     });
   });
 
@@ -253,8 +271,10 @@ describe('Language Tools', () => {
     it('says calls are English-only instead of offering to switch', async () => {
       const result = await listLanguagesTool.execute({});
 
-      expect(result).toContain('only talk in English');
-      expect(result).not.toMatch(/I'll switch|I can speak many/i);
+      expect(result).toBe(
+        "I only speak English on calls for now. I can help with words and phrases in Spanish, French, and Japanese. Tell me which one you'd like and I'll remember it."
+      );
+      expectSpeakable(result);
     });
   });
 
@@ -277,7 +297,10 @@ describe('Language Tools', () => {
 
       expect(result).toContain('Spanish');
       expect(result).not.toMatch(/speaking (in )?Spanish/i);
-      expect(result).toMatch(/speaking English/);
+      expect(result).toBe(
+        "We're speaking English. Calls are English only for now. I remember you'd like Spanish, though."
+      );
+      expectSpeakable(result);
     });
 
     it('should indicate auto-detection when applicable', async () => {
@@ -295,7 +318,9 @@ describe('Language Tools', () => {
       const result = await getCurrentLanguageTool.execute({});
 
       expect(result).toContain('Japanese');
-      expect(result).toContain('detected');
+      expect(result).toMatch(/hear some Japanese in how you were talking/);
+      expect(result).not.toMatch(/remember you'd like/);
+      expectSpeakable(result);
     });
 
     it('should default to English when no session state', async () => {
@@ -318,7 +343,7 @@ describe('Language Tools', () => {
 
       const result = await tool.execute({ language: 'Spanish' });
 
-      expect(result).toContain('trouble switching');
+      expect(result).toContain('trouble saving');
       expect(result).toContain('English');
     });
 
