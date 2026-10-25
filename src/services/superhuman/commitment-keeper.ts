@@ -555,10 +555,7 @@ export async function updateCommitmentStatus(
   }
 }
 
-/**
- * Trigger team celebration when a significant commitment is completed.
- * Fire-and-forget - doesn't block the main flow.
- */
+/** Team celebration when a significant commitment is completed; fire-and-forget. */
 async function triggerCommitmentCelebration(userId: string, commitment: Commitment): Promise<void> {
   try {
     const { onCommitmentMilestone } =
