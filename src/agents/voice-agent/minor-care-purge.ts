@@ -25,10 +25,25 @@ import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.
 import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
-import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
+import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
+import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
+import { ownerSessionFor, sessionPhone, setOnUserHeld, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'minor-care-purge' });
+
+/**
+ * MINOR_CARE_SHARED_HOLD: the shared record (no words) for the user, and for the caller's number
+ * (keyed by its hash), since a text from that number resolves to whatever account the number
+ * names, not the call's anon: or account id. A phone: id is its own number.
+ */
+export function shareHold(userId: string, sessionId?: string): void {
+  void recordSharedHold(userId);
+  const phone = (sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1];
+  const phoneId = phoneHoldId(phone);
+  if (phoneId) void recordSharedHold(phoneId);
+}
+setOnUserHeld(shareHold);
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -36,8 +51,9 @@ const log = createLogger({ module: 'minor-care-purge' });
  * A live verified owner session for the same user is purged too: it reloads before its next write,
  * so it loses at most unsaved in-memory updates, never stored data. Never throws.
  */
-export function purgeHeldUser(userId: string): void {
+export function purgeHeldUser(userId: string, sessionId?: string): void {
   if (sharedId(userId)) return log.warn('MINOR_CARE purge skipped: a shared or placeholder id');
+  shareHold(userId, sessionId); // held for IDLE_MS from the call's end, in every process
   const ownerSession = ownerSessionFor(userId);
   if (ownerSession)
     log.info({ ownerSession }, 'MINOR_CARE purged while an owner session was live; it will reload');

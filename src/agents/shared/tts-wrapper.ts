@@ -989,7 +989,7 @@ export async function wrappedTtsNode(
           },
           `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}" (${chunkCount} chunks in ${streamDurationMs}ms)`
         );
-        noteGeneratedReply(sessionId, ttsOutputBuffer); // CALL_TIMELINE: generated vs heard
+        noteGeneratedReply(sessionId, ttsOutputBuffer, options.session); // CALL_TIMELINE, CUT_REPLY
       }
     },
   });

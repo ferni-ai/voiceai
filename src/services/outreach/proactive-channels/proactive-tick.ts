@@ -29,6 +29,7 @@ import { usersWithFlag } from '../../platform/cohort-flags.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
+import { savedQuietHours } from '../quiet-hours.js';
 import type { WorldDueItem } from './more-triggers.js';
 import { collectTriggers } from './triggers.js';
 import { PONDERED_NOTES_FLAG, ponderedTriggers } from './pondered-triggers.js';
@@ -315,11 +316,13 @@ async function runForUser(
   if (trigger.weight === 'meaningful' && !canCall) {
     log.info({ userId, sourceId: trigger.sourceId }, 'No SIP trunk here, so no call');
   }
+  const savedQuiet = savedQuietHours(user);
   const input = {
     trigger,
     now,
     prefs: user.outreachPreferences,
     timezone: timezoneOf(user),
+    ...(savedQuiet && { savedQuiet }),
     verifiedPhone,
     lastTalkedAt: lastTalkedAt(user),
     canCall,

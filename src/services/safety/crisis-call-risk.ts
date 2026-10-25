@@ -182,6 +182,18 @@ export function crisisRiskThisCall(sessionId: string, latest?: string, now = Dat
   return [...reads.keys()].some((t) => t !== turn);
 }
 
+/**
+ * Risk noted on this call, without reads in flight. For a note built into a
+ * request (PHRASE_LOOP_GUARD, told-this-call.ts): the reply gate starts this
+ * turn's read before the request is built, so it is always in flight then; a
+ * read that finds risk notes it, and every request with crisis guidance is
+ * built after that (crisis-gate.ts).
+ */
+export function crisisRiskNoted(sessionId: string, now = Date.now()): boolean {
+  const at = risky.get(sessionId);
+  return at !== undefined && now - at <= TTL_MS;
+}
+
 /** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */
 export function explainCrisisTurn(sessionId: string | undefined, latest: string): void {
   if (sessionId) notesOf(sessionId).explained.add(turnOf(latest));

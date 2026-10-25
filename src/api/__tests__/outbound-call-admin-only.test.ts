@@ -67,10 +67,15 @@ function response(): ServerResponse & { status?: number } {
 
 const body = { user: { id: 'u-1', name: 'Test Person', phone: '+15555550123' }, message: 'hi' };
 
-async function call(method: string, path: string, headers: Record<string, string> = {}) {
+async function call(
+  method: string,
+  path: string,
+  headers: Record<string, string> = {},
+  sent: unknown = body
+) {
   const res = response();
   const handled = await handleOutboundCallRoutes(
-    request(method, path, headers, method === 'POST' ? body : undefined),
+    request(method, path, headers, method === 'POST' ? sent : undefined),
     res,
     path
   );
@@ -110,5 +115,44 @@ describe('outbound-call routes are admin-only', () => {
   it('keeps health open', async () => {
     const { status } = await call('GET', '/api/outbound-call/health');
     expect(status).toBe(200);
+  });
+});
+
+describe('an admin-initiated call is placed for a named user, with provenance', () => {
+  const admin = { 'x-api-key': 'test-admin-key' };
+  it('the named user is the owner (the owner rule applies to them) and the admin is recorded', async () => {
+    await call('POST', '/api/outbound-call/initiate', admin, { ...body, userId: 'owner-9' });
+    expect(calls.makeConversationalCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'owner-9',
+        reason: expect.stringMatching(/^admin-initiated by .+: outbound_call$/),
+      })
+    );
+  });
+
+  it('with no userId, the callee in user.id is the owner (the rich proactive shape)', async () => {
+    await call('POST', '/api/outbound-call/initiate', admin);
+    expect(calls.makeConversationalCall).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u-1' })
+    );
+  });
+
+  it('with no user named, nothing is placed', async () => {
+    const { user: _u, ...noOwner } = body;
+    const { status } = await call('POST', '/api/outbound-call/initiate', admin, {
+      ...noOwner,
+      user: { name: 'Test Person', phone: '+15555550123' },
+    });
+    expect(status).toBe(400);
+    expect(calls.makeConversationalCall).not.toHaveBeenCalled();
+  });
+
+  it("a refusal (the named user's consent rule) is reported, not claimed as placed", async () => {
+    calls.makeConversationalCall.mockResolvedValueOnce({
+      success: false,
+      error: 'Not calling: needs-consent',
+    } as never);
+    const { status } = await call('POST', '/api/outbound-call/initiate', admin);
+    expect(status).toBe(409);
   });
 });

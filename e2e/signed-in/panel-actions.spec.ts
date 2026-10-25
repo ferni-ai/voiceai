@@ -30,7 +30,8 @@ test.beforeEach(async ({ page }) => {
 test('notifications: a changed preference is saved and survives a reload', async ({ page }) => {
   const problems = watchProblems(page);
   let panel = await openPanel(page, 'notifications');
-  const pref = () => panel.locator('input[data-pref="ritualReminders"]');
+  // Milestone Celebrations: read before a milestone is sent (Daily Practice Reminders is gone, read by nothing)
+  const pref = () => panel.locator('input[data-outreach="milestoneNotifications"]');
   const was = await pref().isChecked();
   await pref().setChecked(!was);
   await expect(pref()).toHaveAccessibleName(/\S/); // a named switch, not a blank one
@@ -131,9 +132,10 @@ test('every control in every panel has a name', async ({ page }) => {
     'family-callers',
     'all-connections',
     'theme',
-    'billing',
+    'cognitive',
     'export',
     'share-ferni',
+    'support-ferni',
     'help',
   ];
   for (const action of panels) {
