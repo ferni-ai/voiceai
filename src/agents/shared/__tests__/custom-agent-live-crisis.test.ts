@@ -10,7 +10,7 @@
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it, vi } from 'vitest';
-import { liveCallPersona } from '../../../services/custom-agent/custom-agent-live-prompt.js';
+import { liveCallPersona } from '../../../services/custom-agent/custom-agent-live-persona.js';
 import { customAgentToPersonaConfig } from '../../../services/custom-agent/custom-agent-runtime-service.js';
 import { liveAgent } from '../../../services/custom-agent/__tests__/fixtures/live-agent.js';
 import { gatedReply } from '../../personas/crisis-gate.js';

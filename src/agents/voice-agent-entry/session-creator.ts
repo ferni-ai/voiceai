@@ -13,7 +13,7 @@ import type { VoiceDeps } from '../voice-agent/phases/index.js';
 import type { UserLocation } from './types.js';
 import { USE_TOOL_GATEWAY } from './constants.js';
 import { createLightweightVoiceAgentRef } from './voice-agent-ref.js';
-import { isLiveCustomAgent } from '../shared/custom-agent-live.js';
+import { resolveSessionVoice } from './session-voice.js';
 import { attachTurnMetrics } from '../shared/turn-metrics.js';
 import { createLogger as createTurnMetricsLogger } from '../../utils/safe-logger.js';
 
@@ -137,29 +137,11 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   // =========================================================================
   // VOICE LOCALIZATION (International Accent Support)
   // =========================================================================
-  const { getDefaultVoiceConfig } = await import('../../config/cartesia-config.js');
-  const defaultVoice = getDefaultVoiceConfig();
-  const voiceConfig = sessionPersona.voice || defaultVoice;
-  let effectiveVoiceId = voiceConfig.voiceId;
-  let isLocalizedVoice = false;
-
-  // A live custom agent keeps its own voice: localizing would localize Ferni's (custom-agent-live.ts)
-  if (userAccent && userAccent !== 'american' && !isLiveCustomAgent(sessionPersona)) {
-    try {
-      const { getLocalizedVoiceId } =
-        await import('../../services/voice/cartesia-voice-localization.js');
-      const localizationResult = await getLocalizedVoiceId(sessionPersona.id, userAccent as import('../../config/voice-accents.js').EnglishAccent);
-      effectiveVoiceId = localizationResult.voiceId;
-      isLocalizedVoice = localizationResult.isLocalized;
-      process.stderr.write(
-        `[voice-agent-entry] 🌍 Voice localized: ${userAccent ? 'yes' : 'no'} (cached: ${localizationResult.cached})\n`
-      );
-    } catch (locErr) {
-      process.stderr.write(
-        `[voice-agent-entry] Voice localization failed (non-fatal): ${locErr}\n`
-      );
-    }
-  }
+  // A live custom agent keeps its own voice (session-voice.ts)
+  const { voiceConfig, effectiveVoiceId, isLocalizedVoice } = await resolveSessionVoice(
+    sessionPersona,
+    userAccent
+  );
 
   // ⚡ OPTIMIZATION: Parallelize independent module loads
   process.stderr.write(`[voice-agent-entry] ⚡ Starting parallel module loads...\n`);

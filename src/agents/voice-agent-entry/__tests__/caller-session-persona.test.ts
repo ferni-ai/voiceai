@@ -73,7 +73,7 @@ const { personaForCaller } = await import('../../../services/custom-agent/custom
 const { customAgentToPersonaConfig } =
   await import('../../../services/custom-agent/custom-agent-runtime-service.js');
 const { liveCallPersona } =
-  await import('../../../services/custom-agent/custom-agent-live-prompt.js');
+  await import('../../../services/custom-agent/custom-agent-live-persona.js');
 
 const e2e = { resourceLoading: () => undefined, resourceLoaded: () => undefined } as never;
 
@@ -113,7 +113,7 @@ describe('callerSessionPersona with CUSTOM_AGENT_LIVE on', () => {
     expect(persona.name).toBe(AGENT_NAME);
     expect(persona.personality.warmth).toBe(0.9);
     expect(persona.personality.traits).toEqual(['patient', 'wry']);
-    expect(persona.stories?.map((s) => s.content)).toContain(AGENT_MEMORY);
+    expect(persona.stories).toBeUndefined(); // memories reach the model only in the prompt
     expect(persona.voice.voiceId).toBe(STOCK_VOICE_ID); // SESSION_OWN_VOICE reads this
     expect(isLiveCustomAgent(persona)).toBe(true);
 
@@ -121,6 +121,7 @@ describe('callerSessionPersona with CUSTOM_AGENT_LIVE on', () => {
     expect(prompt).toBe(persona.systemPrompt);
     expect(prompt).toContain('<character_profile>');
     expect(prompt).toContain(AGENT_DESCRIPTION);
+    expect(prompt).toContain(AGENT_MEMORY);
     expect(prompt).not.toContain('PROMPT:');
   });
 

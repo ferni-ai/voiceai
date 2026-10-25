@@ -39,7 +39,18 @@ export function liveAgent(overrides: Partial<CustomAgent> = {}): CustomAgent {
       values: ['family', 'craft'],
     },
     memories: {
-      stories: [{ id: 's1', type: 'story', content: AGENT_MEMORY }],
+      stories: [
+        {
+          id: 's1',
+          type: 'story',
+          content: AGENT_MEMORY,
+          themes: [],
+          emotions: [],
+          keywords: [],
+          createdAt: new Date('2026-10-01T00:00:00Z'),
+          updatedAt: new Date('2026-10-01T00:00:00Z'),
+        },
+      ],
       wisdom: [],
       sharedMoments: [],
     },

@@ -10,7 +10,8 @@
  *   the check the token routes make); anyone else, or a failed load, gets the
  *   default persona, logged with ids only;
  * - an owned agent loads with its personality, memories and stock voice, and a
- *   prompt that keeps the owner's text as data (custom-agent-live-prompt.ts).
+ *   prompt that keeps the owner's text as data (custom-agent-live-prompt.ts), on an
+ *   allowlisted persona that carries no raw owner text (custom-agent-live-persona.ts).
  *
  * The loaded persona is remembered here (a WeakMap, so nothing outlives the call):
  * loadCallerPrompt takes its prompt, session-creator skips accent localization
@@ -66,7 +67,7 @@ const productionDeps: LiveCustomAgentDeps = {
       await import('../../services/custom-agent/custom-agent-runtime-service.js')
     ).loadCustomAgentAsPersona(agentId, userId),
   liveCallPersona: async (loaded) =>
-    (await import('../../services/custom-agent/custom-agent-live-prompt.js')).liveCallPersona(
+    (await import('../../services/custom-agent/custom-agent-live-persona.js')).liveCallPersona(
       loaded
     ),
 };
