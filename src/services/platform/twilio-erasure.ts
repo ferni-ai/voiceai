@@ -7,7 +7,8 @@
  * pending_twilio_erasures/{hmac(phone)} = { encrypted phone, createdAt, attempts,
  * nextAttemptAt } before Firestore is erased, starts a run in the background once it
  * has been, and the retry-pending-revocations job (every 15 min) retries what is left,
- * with backoff. A doc goes once a run finds nothing left to delete. Logs counts only,
+ * with backoff. A doc goes only once a run finds nothing left to delete (one whose phone
+ * won't decrypt is kept and logged as TWILIO_ERASURE_UNDECRYPTABLE). Logs counts only,
  * never a number.
  *
  * Only a record whose to and from are exactly the person's phone and a Ferni number is
@@ -218,7 +219,8 @@ export interface TwilioErasureReport extends Counts {
   due: number;
   done: number;
   retrying: number;
-  dropped: number;
+  /** Kept: the phone couldn't be decrypted (TWILIO_ERASURE_UNDECRYPTABLE) */
+  undecryptable: number;
 }
 
 type Doc = FirebaseFirestore.DocumentSnapshot;
@@ -233,14 +235,11 @@ async function settle(
   report.due++;
   const data = doc.data() ?? {};
   const phone = decryptData<{ phone?: string }>(String(data.encrypted ?? ''))?.phone;
-  if (!phone) {
-    report.dropped++;
-    await doc.ref.delete();
-    return;
-  }
+  // Undecryptable (a rotated or missing key): kept and backed off like any failure, never dropped
+  if (!phone) report.undecryptable++;
   let complete = false;
   try {
-    complete = deps !== null && (await erasePhone(phone, deps, report));
+    complete = !!phone && deps !== null && (await erasePhone(phone, deps, report));
   } catch (error) {
     log.warn({ error: status(error) ?? (error as Error)?.name }, 'Twilio erasure run failed');
   }
@@ -253,7 +252,9 @@ async function settle(
   const attempts = (typeof data.attempts === 'number' ? data.attempts : 0) + 1;
   const backoff = Math.min(FIRST_RETRY_MS * 2 ** (attempts - 1), MAX_RETRY_MS);
   await doc.ref.update({ attempts, nextAttemptAt: now + backoff });
-  if (now - Number(data.createdAt) > OVERDUE_MS) log.error({ attempts }, 'TWILIO_ERASURE_OVERDUE');
+  // A doc with no createdAt can't be shown to be recent, so it counts as overdue
+  const createdAt = typeof data.createdAt === 'number' ? data.createdAt : 0;
+  if (now - createdAt > OVERDUE_MS) log.error({ attempts }, 'TWILIO_ERASURE_OVERDUE');
 }
 
 /**
@@ -270,7 +271,7 @@ export async function retryPendingTwilioErasures(
     due: 0,
     done: 0,
     retrying: 0,
-    dropped: 0,
+    undecryptable: 0,
     failed: 0,
     ...zero,
   };
@@ -289,6 +290,8 @@ export async function retryPendingTwilioErasures(
   for (const doc of docs) {
     await settle(doc, deps, report, now); // eslint-disable-line no-await-in-loop -- one phone at a time
   }
+  if (report.undecryptable > 0)
+    log.error({ undecryptable: report.undecryptable }, 'TWILIO_ERASURE_UNDECRYPTABLE');
   log.info({ ...report }, 'Twilio records erased');
   return report;
 }
