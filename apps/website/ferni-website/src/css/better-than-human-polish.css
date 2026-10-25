@@ -380,7 +380,7 @@ h3 + p {
   background: rgba(250, 248, 245, 0.92);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-top: 0.5px solid rgba(44, 37, 32, 0.1);
+  border-top: 0.5px solid var(--color-border-medium);
   transform: translateY(100%);
   opacity: 0;
   transition:

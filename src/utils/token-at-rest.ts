@@ -94,6 +94,16 @@ export function openTokens<T>(stored: unknown, store: string): T | null {
   return opened;
 }
 
+/**
+ * For stores whose docs are not always token-shaped (smart_home also holds
+ * HomeKit config): a sealed doc is opened, anything else is returned as stored.
+ */
+export function openSealedOrRaw<T>(stored: unknown, store: string): T | null {
+  if (stored === null || typeof stored !== 'object') return null;
+  if (typeof (stored as Partial<SealedTokens>).encrypted !== 'string') return stored as T;
+  return openTokens<T>(stored, store);
+}
+
 /** The boot line the web server and the agent log, for comparing their keys. */
 export function tokenKeyIdLine(): string {
   return `token_at_rest_kid=${tokenKeyId()} source=${resolveTokenKey().source}`;

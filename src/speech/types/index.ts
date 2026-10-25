@@ -363,11 +363,6 @@ export type { ProsodyGuidance, TtsContextState, TurnProsodyRecord } from '../tts
 
 export type { CognitiveSpeechContext, SpeechAdjustments } from '../cognitive-speech.js';
 
-export type {
-  CognitiveSpeechInput,
-  CognitiveSpeechResult,
-} from '../cognitive-speech-integration.js';
-
 // ============================================================================
 // AUTHENTIC THINKING TYPES
 // ============================================================================

@@ -9,6 +9,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
+    // Contract tests import root src/config, which needs the gitignored generated lists.
+    globalSetup: ['../../src/config/__tests__/generate-lists-setup.ts'],
     include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
     coverage: {
       provider: 'v8',

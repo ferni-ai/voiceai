@@ -52,6 +52,9 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'dynamic_relationships',
     'emotional_arcs',
     'energy_readings',
+    // facts the person told, written by the memory tools (memory-executor.ts,
+    // legacy-fallback-executor.ts) and erased by forget.ts; not in the 2026-10 listings (#2366)
+    'extracted_facts',
     'ferni_commitments',
     'follow_through',
     'follow_up_actions',
@@ -227,6 +230,15 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
 ];
 
 /**
+ * Stores kept in one partition per day, read in every partition by the owner field.
+ * semantic_router_events/{YYYY-MM-DD}/events: which tool the router picked for each of the
+ * person's turns, how sure it was and how long it took, never the words (routing-analytics.ts).
+ */
+export const PARTITIONED_STORES = [
+  { collection: 'semantic_router_events', sub: 'events', field: 'userId' },
+] as const;
+
+/**
  * Stores a menu panel reads or the voice agent writes (menu audit 2026-10-12). The
  * export must carry each one; menu-export.emulator.test.ts fails when it doesn't.
  */
@@ -256,23 +268,34 @@ export const KNOWN_USER_STORES: readonly string[] = [
 /**
  * Top-level fields a store keeps although the secret filter drops their name, because
  * there they are the person's data, not a credential (#2336). Only at a document's top
- * level, only where listed, and only under the exact name (session_id, SESSION_ID or Key
- * is still dropped): the same name nested in a value, or a `key` in any other
- * store, is still dropped, and a kept field holding a credential-looking value is too.
+ * level, only where listed, and only under the exact name (Key or KEY is still dropped):
+ * the same name nested in a value, or a `key` in any other store, is still dropped, and a
+ * kept field holding a credential-looking value is too.
  *
- * - sessionId, in every store: the call a record came from. Where an exported store has
- *   one it is the voice agent's call (room) id; it opens nothing without the person's
- *   own sign-in, and no exported store keeps a sign-in session.
  * - key, in dynamic_facts: the fact's attribute ("Biscuit | breed = golden retriever").
+ *
+ * Session references (sessionId, sessionIds, firstSessionId, ...) need no entry: the
+ * secret filter no longer drops them anywhere (#2366).
  */
-const KEPT_IN_EVERY_STORE = ['sessionId'] as const;
 const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
   'bogle_users/{uid}/dynamic_facts': ['key'],
 };
 
-function keptFields(label: string): readonly string[] {
-  return [...KEPT_IN_EVERY_STORE, ...(KEPT_FIELDS[label] ?? [])];
-}
+/**
+ * Top-level fields that are maps keyed by the person's or the model's own words, so a short
+ * key like "pin", "code" or "access" there is data (#2366). A credential's name (bankToken,
+ * apiKey) is still dropped there, and the values still go through the value filter.
+ *
+ * The profile docs (bogle_users/{uid}, users/{uid}) are exported whole, filtered by name and
+ * value, not projected to a field allowlist: UserProfile has ~600 fields and hundreds of
+ * writers, too many to list here (#2366).
+ *
+ * - attributes, in dynamic_entities: whatever the model heard about the person or thing
+ *   ({role: 'manager', pin: 'the blue one'}), written by deep-extraction-worker.ts.
+ */
+const DATA_MAPS: Readonly<Record<string, readonly string[]>> = {
+  'bogle_users/{uid}/dynamic_entities': ['attributes'],
+};
 
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(fields.filter((f) => f in data).map((f) => [f, data[f]]));
@@ -322,6 +345,29 @@ function storesFor(userId: string): Store[] {
 }
 
 /**
+ * The partitions holding the person's documents, one store each under one label. The days
+ * are listed, then all counted at once: reading every day in turn could outlast the deadline.
+ */
+async function partitionStores(reader: BoundedReader, userId: string): Promise<Store[]> {
+  const perStore = await Promise.all(
+    PARTITIONED_STORES.map(async (p) => {
+      const where = { field: p.field, equals: userId };
+      const paths = (await reader.listDocIds(p.collection)).map(
+        (d) => `${p.collection}/${d}/${p.sub}`
+      );
+      const counts = await Promise.all(
+        paths.map(async (path) => reader.countCollection(path, { where }))
+      );
+      const label = `${p.collection}/*/${p.sub}`;
+      return paths
+        .filter((_, i) => (counts[i] ?? 0) > 0)
+        .map((path): Store => ({ label, kind: 'collection', path, where }));
+    })
+  );
+  return perStore.flat();
+}
+
+/**
  * Every record kept for this person, as stored. Keys are store paths
  * ("users/{uid}/calendar_events"), values the documents with their ids. All reads go
  * through one BoundedReader on the request's budget and stop at its first limit.
@@ -335,10 +381,11 @@ export async function exportUserRecords(
   const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
   const plain = (store: Store, doc: ReadDoc): Plain => {
     const fields = store.kind === 'collection' ? store.fields : undefined;
-    return toPlain(fields ? pick(doc.data, fields) : doc.data, budget, keptFields(store.label));
+    const data = fields ? pick(doc.data, fields) : doc.data;
+    return toPlain(data, budget, KEPT_FIELDS[store.label], DATA_MAPS[store.label]);
   };
   const out: Record<string, Plain> = {};
-  for (const store of storesFor(userId)) {
+  for (const store of [...storesFor(userId), ...(await partitionStores(reader, userId))]) {
     if (store.kind === 'doc') {
       const doc = await reader.readDoc(store.path);
       if (doc) out[store.label] = plain(store, doc);
@@ -352,7 +399,9 @@ export async function exportUserRecords(
       id: d.id,
       ...(plain(store, d) as Record<string, Plain>),
     }));
-    if (rows.length > 0) out[store.label] = rows;
+    // A partitioned store's days share one label
+    const earlier = out[store.label];
+    if (rows.length > 0) out[store.label] = [...(Array.isArray(earlier) ? earlier : []), ...rows];
   }
   return out;
 }
@@ -365,7 +414,7 @@ export async function countUserRecords(
 ): Promise<number> {
   const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
   let count = 0;
-  for (const store of storesFor(userId)) {
+  for (const store of [...storesFor(userId), ...(await partitionStores(reader, userId))]) {
     if (store.kind === 'doc') count += (await reader.docExists(store.path)) ? 1 : 0;
     else count += await reader.countCollection(store.path, { where: store.where });
   }

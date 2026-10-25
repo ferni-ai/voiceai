@@ -9,6 +9,7 @@
  * signupDate = now. They now wait for the load and decide from the profile.
  */
 
+import { isUnsavedProfile } from '../../memory/storage/profile-read-failure.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import {
   checkTrialStatus,
@@ -34,6 +35,13 @@ interface ProfileHolder {
   userProfile: UserProfile | null;
 }
 
+/** After a failed profile read the caller is unknown, not new: no trial, no fresh arc. */
+function unread(userId: string, services: ProfileHolder): boolean {
+  if (!isUnsavedProfile(services.userProfile)) return false;
+  diag.session('Profile unread this call: no new-user trial or onboarding', { userId });
+  return true;
+}
+
 /** Trial check in the background; fills trialState and resolves with it. */
 export async function runTrialCheck(
   userId: string,
@@ -42,7 +50,9 @@ export async function runTrialCheck(
   trialState: SessionTrialState
 ): Promise<SessionTrialState> {
   try {
-    if (!(await returningOnceLoaded(services, initFlag))) {
+    const returning = await returningOnceLoaded(services, initFlag);
+    if (unread(userId, services)) return trialState;
+    if (!returning) {
       // New user - check eligibility and start trial
       const eligible = await isEligibleForTrial(userId);
       if (eligible) {
@@ -78,7 +88,9 @@ export async function runOnboardingArc(
   initFlag: boolean
 ): Promise<void> {
   try {
-    if (!(await returningOnceLoaded(services, initFlag))) {
+    const returning = await returningOnceLoaded(services, initFlag);
+    if (unread(userId, services)) return;
+    if (!returning) {
       await initializeOnboarding(userId, { name: userName || services.userProfile?.name });
       diag.session('Onboarding arc initialized for new user', { userId });
     } else {

@@ -14,6 +14,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateStreamTwiml, getTwilioStreamBridge } from './twilio-stream-bridge.js';
@@ -179,6 +180,16 @@ export async function makeConversationalCall(
     };
   }
 
+  // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
+  const refused = await ownerRefusal(request.userId, request.phone, 'call');
+  if (refused) return { success: false, message: `Not calling: ${refused}`, error: 'OPTED_OUT' };
+  // MINOR_CARE_SHARED_HOLD: checks the number it dials (step 4), not the raw string
+  const cleanPhone = request.phone.replace(/\D/g, '');
+  const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+  const { heldSender } = await import('../outreach/checkin-replies.js');
+  if (await heldSender(request.userId, e164Phone))
+    return { success: false, message: 'Not calling: held', error: 'HELD' };
+
   const personaId = request.personaId || 'ferni';
   const personaName = getPersonaDisplayName(personaId);
   const callId = generateCallId();
@@ -246,10 +257,7 @@ export async function makeConversationalCall(
       },
     });
 
-    // 4. Initiate the Twilio call
-    const cleanPhone = request.phone.replace(/\D/g, '');
-    const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-
+    // 4. Initiate the Twilio call (to e164Phone, the number the hold checked)
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`,
       {

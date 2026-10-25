@@ -20,6 +20,20 @@ import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import { toE164 } from './checkin-replies.js';
 import { consentFromPrefs } from './outreach-consent.js';
+import { flagOn } from '../../config/env-flag.js';
+
+/**
+ * A sponsor typed this number; it isn't proven to be the holder's. With
+ * MESSAGING_PIPELINE on it counts as the account's own only once the holder
+ * verified it themselves (phoneVerifiedAt on the sponsored identity, set by a
+ * texted-code check); until then no outbound treats it as theirs.
+ */
+export function sponsoredPhoneOf(data: Record<string, unknown> | undefined): string | undefined {
+  const phone = data?.phoneNumber;
+  if (typeof phone !== 'string') return undefined;
+  if (flagOn('MESSAGING_PIPELINE') && typeof data?.phoneVerifiedAt !== 'string') return undefined;
+  return phone;
+}
 
 const E164 = /^\+[1-9]\d{7,14}$/;
 
@@ -58,8 +72,7 @@ export const accountPhoneSources: VerifiedPhoneSources = {
     const db = getFirestoreDb();
     if (!db) return undefined;
     const doc = await db.collection('sponsored_identities').doc(userId).get();
-    const phone: unknown = doc.exists ? doc.data()?.phoneNumber : undefined;
-    return typeof phone === 'string' ? phone : undefined;
+    return sponsoredPhoneOf(doc.exists ? doc.data() : undefined);
   },
   async authPhone(uid) {
     return (await getFirebaseUser(uid))?.phoneNumber ?? undefined;

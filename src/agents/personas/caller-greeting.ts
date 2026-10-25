@@ -18,7 +18,8 @@
  *
  * onlyPleasantries: the stricter reading for the caller's first words after Ferni's
  * opener. They are a non-answer only when nothing is left once greetings, saying who
- * it is and pleasantries ("pretty good", "how are you") are taken out.
+ * it is ("Seth here") and pleasantries ("good thanks", "doing well", "you too") are
+ * taken out.
  *
  * sharedWords: what two lines have in common once names and small talk are set
  * aside (greeting-claim.ts).
@@ -137,26 +138,59 @@ export function sharedWords(a: string, b: string, exclude: string[] = []): strin
   return [...contentWords(a)].filter((w) => keep(w) && inB.has(stem(w)));
 }
 
-/** Greetings, saying who it is and pleasantries, longest first: what a hello is made of. */
+/** How they say they are: "doing well", "I'm doing great" (#2414). */
+const DOING = ['well', 'good', 'great', 'alright', 'all right', 'fine', 'okay', 'ok'].flatMap(
+  (how) => [`i'm doing ${how}`, `im doing ${how}`, `i am doing ${how}`, `doing ${how}`]
+);
+/** Greetings, saying who it is and pleasantries: what a hello is made of. A phrase goes
+ * before any shorter one inside it ("how are you doing" before "how are you"). */
 const PLEASANTRY_PHRASES = [
   "how's it going",
   'how is it going',
+  'how are you doing',
   'how are you',
+  'how you doing',
+  'how about you',
+  'and you',
+  'and yourself',
   "what's up",
   'good morning',
   'good afternoon',
   'good evening',
   'pretty good',
+  'not too bad',
   'not bad',
+  "can't complain",
+  'cant complain',
+  'cannot complain',
+  'same old',
   "i'm good",
   'im good',
+  "i'm well",
+  'im well',
+  ...DOING,
+  'thank you for asking',
+  'thanks for asking',
+  'thank you so much',
+  'thank you',
+  'thanks so much',
+  'to you too',
+  'same to you',
+  'you too',
   "it's me",
   'it is me',
   'this is me',
   'me again',
 ];
-const PLEASANTRY_WORDS = new Set('hi hey hello hiya yo oh good again there'.split(' '));
+const PLEASANTRY_WORDS = new Set(
+  'hi hey hello hiya yo oh good great morning afternoon evening again there thanks'.split(' ')
+);
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Saying who it is by name, longest first: "it's Seth here", "it's Seth", "Seth here". */
+const selfId = (name: string): string[] => [
+  ...["it's ", 'it is ', 'this is '].flatMap((pre) => [`${pre}${name} here`, `${pre}${name}`]),
+  `${name} here`,
+];
 
 /** The name Ferni's opener greets them by ("Hey Seth. Did you..."), or undefined. */
 export function addresseeOf(line: string): string | undefined {
@@ -171,10 +205,7 @@ export function addresseeOf(line: string): string | undefined {
 export function onlyPleasantries(said: string, callerName?: string): boolean {
   let text = ` ${said.toLowerCase().replace(/’/g, "'")} `;
   const name = callerName?.toLowerCase();
-  for (const phrase of [
-    ...(name ? [`it's ${name}`, `it is ${name}`, `this is ${name}`] : []),
-    ...PLEASANTRY_PHRASES,
-  ])
+  for (const phrase of [...(name ? selfId(name) : []), ...PLEASANTRY_PHRASES])
     text = text.replace(new RegExp(`(?<![a-z'])${escape(phrase)}(?![a-z'])`, 'g'), ' ');
   const left = text.match(/[a-z']+/g) ?? [];
   return left.every((w) => PLEASANTRY_WORDS.has(w) || isVocative(w) || w === name);

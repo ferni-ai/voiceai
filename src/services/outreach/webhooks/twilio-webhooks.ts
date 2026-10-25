@@ -23,6 +23,7 @@ import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/i
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
+import { heldSender } from '../checkin-replies.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -409,11 +410,7 @@ export async function handleInboundSMSWebhook(
 
   if (isMemberIdentity(userId)) log.info({ userId, from: From }, 'SMS response attributed to user');
 
-  // =========================================================================
-  // ML TIMING LEARNING - Check if this is a response from a known contact
-  // =========================================================================
-  // If the inbound message is from a phone number we've sent TO (a contact),
-  // update the ML timing model to record that they responded.
+  // ML TIMING LEARNING: a reply from a number we texted (a contact) updates the timing model.
   try {
     const contactLookup = await findContactByPhone(From);
     if (contactLookup) {
@@ -442,12 +439,12 @@ export async function handleInboundSMSWebhook(
     );
   }
 
-  // =========================================================================
-  // BIDIRECTIONAL ROUTING - Route to appropriate agent
-  // =========================================================================
+  // BIDIRECTIONAL ROUTING: to the right agent
   if (isMemberIdentity(userId)) {
     try {
-      const routeResult = await routeInboundSMS(userId, From, Body, said?.kind === 'maybe-opt-out');
+      const stop = said?.kind === 'maybe-opt-out';
+      const held = await heldSender(userId, From); // MINOR_CARE_SHARED_HOLD: answered, not kept
+      const routeResult = await routeInboundSMS(userId, From, Body, stop, held);
 
       log.info(
         {

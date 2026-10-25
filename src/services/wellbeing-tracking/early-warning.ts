@@ -8,6 +8,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { mentionsAny } from '../../utils/phrase-match.js';
+import { renderWarningInjection } from './warning-injection.js';
 import type { WellbeingDimensions, WellbeingProfile } from './index.js';
 
 const log = getLogger().child({ module: 'early-warning' });
@@ -209,11 +211,7 @@ const WARNING_PATTERNS: WarningPattern[] = [
         observation: 'Avoidance behaviors mentioned',
         detector: (_profile, context) => {
           const avoidanceWords = ['avoiding', "can't face", 'too scared', 'what if'];
-          return (
-            context?.recentMessages?.some((m) =>
-              avoidanceWords.some((w) => m.toLowerCase().includes(w))
-            ) ?? false
-          );
+          return mentionsAny(context?.recentMessages, avoidanceWords);
         },
       },
     ],
@@ -248,10 +246,7 @@ const WARNING_PATTERNS: WarningPattern[] = [
         observation: 'Doubting professional effectiveness',
         detector: (_profile, context) => {
           const doubts = ['pointless', 'waste of time', 'not making a difference', 'why bother'];
-          return (
-            context?.recentMessages?.some((m) => doubts.some((d) => m.toLowerCase().includes(d))) ??
-            false
-          );
+          return mentionsAny(context?.recentMessages, doubts);
         },
       },
       {
@@ -274,11 +269,7 @@ const WARNING_PATTERNS: WarningPattern[] = [
             'falling behind',
             'overwhelmed',
           ];
-          return (
-            context?.recentMessages?.some((m) =>
-              indicators.some((i) => m.toLowerCase().includes(i))
-            ) ?? false
-          );
+          return mentionsAny(context?.recentMessages, indicators);
         },
       },
     ],
@@ -303,11 +294,7 @@ const WARNING_PATTERNS: WarningPattern[] = [
         observation: 'Social withdrawal behaviors',
         detector: (_profile, context) => {
           const indicators = ["haven't seen anyone", 'staying home', "don't want to talk", 'alone'];
-          return (
-            context?.recentMessages?.some((m) =>
-              indicators.some((i) => m.toLowerCase().includes(i))
-            ) ?? false
-          );
+          return mentionsAny(context?.recentMessages, indicators);
         },
       },
       {
@@ -358,11 +345,7 @@ const WARNING_PATTERNS: WarningPattern[] = [
         observation: 'Sleep problems mentioned in conversation',
         detector: (_profile, context) => {
           const indicators = ["can't sleep", 'insomnia', 'waking up', 'nightmares', 'exhausted'];
-          return (
-            context?.recentMessages?.some((m) =>
-              indicators.some((i) => m.toLowerCase().includes(i))
-            ) ?? false
-          );
+          return mentionsAny(context?.recentMessages, indicators);
         },
       },
     ],
@@ -394,11 +377,7 @@ const WARNING_PATTERNS: WarningPattern[] = [
             'give up',
             "can't go on",
           ];
-          return (
-            context?.recentMessages?.some((m) =>
-              indicators.some((i) => m.toLowerCase().includes(i))
-            ) ?? false
-          );
+          return mentionsAny(context?.recentMessages, indicators);
         },
       },
       {
@@ -431,11 +410,7 @@ const WARNING_PATTERNS: WarningPattern[] = [
             'want to die',
             'kill myself',
           ];
-          return (
-            context?.recentMessages?.some((m) =>
-              indicators.some((i) => m.toLowerCase().includes(i))
-            ) ?? false
-          );
+          return mentionsAny(context?.recentMessages, indicators);
         },
       },
       {
@@ -687,25 +662,10 @@ export function getActiveWarnings(userId: string): EarlyWarning[] {
 }
 
 /**
- * Get warning context for LLM.
+ * Get warning context for LLM (crisis_risk first; see warning-injection.ts).
  */
 export function getWarningContextInjection(userId: string): string {
-  const active = getActiveWarnings(userId);
-  if (active.length === 0) return '';
-
-  // Get most severe warning
-  const mostSevere = active.sort(
-    (a, b) => severityLevel(b.severity) - severityLevel(a.severity)
-  )[0];
-
-  return `[⚠️ EARLY WARNING ACTIVE]
-Type: ${formatWarningType(mostSevere.type)}
-Severity: ${mostSevere.severity.toUpperCase()}
-
-Guidance for you:
-${mostSevere.recommendations.forFerni.map((r) => `- ${r}`).join('\n')}
-
-${mostSevere.recommendations.suggestProfessional ? '⚡ Consider gently suggesting professional support' : ''}`;
+  return renderWarningInjection(getActiveWarnings(userId));
 }
 
 /**
@@ -786,20 +746,6 @@ function selectRecommendations(all: string[], severity: WarningSeverity): string
   // Return more recommendations for more severe warnings
   const count = severity === 'urgent' ? 4 : severity === 'concern' ? 3 : 2;
   return all.slice(0, count);
-}
-
-function formatWarningType(type: WarningType): string {
-  const names: Record<WarningType, string> = {
-    depression_risk: 'Depression Risk',
-    anxiety_spike: 'Anxiety Spike',
-    burnout_trajectory: 'Burnout Trajectory',
-    isolation_pattern: 'Isolation Pattern',
-    sleep_deterioration: 'Sleep Deterioration',
-    motivation_collapse: 'Motivation Collapse',
-    hopelessness_pattern: 'Hopelessness Pattern',
-    crisis_risk: 'Crisis Risk',
-  };
-  return names[type] || type;
 }
 
 // ============================================================================

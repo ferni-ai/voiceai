@@ -16,6 +16,7 @@ import {
 import type { PersonaConfig } from '../../personas/types.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
 import { memoryHeld } from '../../utils/minor-care.js';
+import { purgeHeldUser } from './minor-care-purge.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
 import { onCognitiveSessionEnd } from '../../services/cognitive-session-hooks.js';
 import { endConversation as endConversationState } from '../../services/conversation-state.js';
@@ -1437,10 +1438,8 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   }
 
   // ================================================================
-  // GROUP 9: SUPERHUMAN ENGINE CLEANUP (per-user state)
-  // ================================================================
-  // Clean up superhuman conversation engines (evolving jokes, emotional memory,
-  // linguistic mirroring, vulnerability matching, etc.)
+  // GROUP 9: SUPERHUMAN ENGINE CLEANUP (per-user state): evolving jokes, emotional memory,
+  // linguistic mirroring, vulnerability matching, etc.
   if (userId) {
     try {
       const { clearAllSuperhumanEngines } = await import('../../conversation/superhuman/index.js');
@@ -1453,6 +1452,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     }
   }
 
+  if (held && userId) purgeHeldUser(userId, sessionId); // MINOR_CARE: last, nothing re-fills
   const totalDuration = Date.now() - cleanupStart;
   diag.session('✅ Session cleanup complete', { totalDurationMs: totalDuration });
 }

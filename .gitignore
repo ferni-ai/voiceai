@@ -187,6 +187,9 @@ voice-embeddings/*.pt
 # Test audio output artifacts
 test_higgs_output.wav
 .worktrees/
+# Claude Code agent worktrees created inside a checkout (isolation: worktree).
+# Untracked, they make the deploy checkout look dirty and block the nightly sweep's deploy.
+.claude/worktrees/
 
 # Real LinkedIn OAuth tokens — the .example template stays tracked.
 # apps/website/ferni-website/.env.linkedin held a live 350-char access token
@@ -231,3 +234,9 @@ __pycache__/
 # Website computed-style diff (e2e/website-style-diff.spec.ts)
 apps/website/ferni-website/_site-base/
 apps/website/ferni-website/style-diff-report/
+
+# Generated at install, typecheck, build and test time by src/config/generated-lists.ts
+# (pnpm gen:lists). Committing them made flag and env-read PRs conflict in the merge
+# queue, which ignores the union merge driver.
+src/config/flags/index.generated.ts
+src/config/env-read-names.generated.ts

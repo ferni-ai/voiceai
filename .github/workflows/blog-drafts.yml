@@ -4,10 +4,13 @@ name: Blog Drafts
 # checked by the brand gate and the live check (check-post.ts --live) and then
 # the editorial judge (judge-post.ts: Claude, a different model family from the
 # Gemini drafter, scoring six dimensions; its scorecard goes in the PR body):
-# - It passes all three: the PR opens ready for review, labelled blog-auto, with
-#   auto-merge armed. The merge queue lands it once CI is green, and the merge
-#   to main deploys the site.
-# - It fails any of them: the PR opens as a draft labelled blog-draft, auto-merge
+# - A developer post (whats-new) that passes all three opens ready for review,
+#   labelled blog-auto, with auto-merge armed. The merge queue lands it once CI
+#   is green, and the merge to main deploys developers.ferni.ai.
+# - A consumer post (ferni.ai) that passes all three opens ready for review,
+#   labelled blog-needs-approval, with auto-merge OFF. It publishes only when
+#   the owner adds the blog-approved label (blog-approval.yml).
+# - A post that fails any of them opens as a draft labelled blog-draft, auto-merge
 #   is not armed, and the job fails. It publishes only if a person fixes and merges it.
 # Consumer posts also get a hero image from scripts/blog/hero-image.ts (Gemini
 # image generation, "Nano Banana", on Vertex AI); a consumer post without one
@@ -197,7 +200,8 @@ jobs:
             --out "$RUNNER_TEMP/judge.md"
 
       # REST for the branch, the file and the PR; `gh pr merge --auto` (GraphQL)
-      # arms auto-merge. The repo uses a merge queue, so no merge method flag.
+      # arms auto-merge for developer posts. The repo uses a merge queue, so no
+      # merge method flag. Consumer posts wait for blog-approval.yml.
       - name: Open the PR
         if: steps.draft.outputs.status == 'written'
         env:
@@ -206,6 +210,7 @@ jobs:
           HERO: ${{ steps.hero.outcome }}
           HERO_REASON: ${{ steps.hero.outputs.reason }}
           PASSED: ${{ steps.gate.outcome == 'success' && steps.hero.outcome != 'failure' && steps.judge.outcome == 'success' }}
+          CONSUMER: ${{ !contains(steps.draft.outputs.path, '/developers-portal/') }}
           HAS_PR_TOKEN: ${{ secrets.BLOG_PR_TOKEN != '' }}
           GH_TOKEN: ${{ secrets.BLOG_PR_TOKEN || github.token }}
         run: |
@@ -218,8 +223,10 @@ jobs:
           if gh api "repos/$REPO/git/ref/heads/$branch" > /dev/null 2>&1; then
             branch="$branch-$GITHUB_RUN_ID"
           fi
-          if [ "$PASSED" = true ]; then
-            label=blog-auto color=2e7d32 about='A drafted blog post that passed the gates and the judge and merges itself'
+          if [ "$PASSED" = true ] && [ "$CONSUMER" = true ]; then
+            label=blog-needs-approval color=fbca04 about='A drafted ferni.ai post that passed the judge; publishes when the owner adds blog-approved'
+          elif [ "$PASSED" = true ]; then
+            label=blog-auto color=2e7d32 about='A drafted developer post that passed the gates and the judge and merges itself'
           else
             label=blog-draft color=4a6741 about='A drafted blog post that failed a gate; a person must fix it'
           fi
@@ -248,7 +255,9 @@ jobs:
           {
             echo "A drafted **$TYPE** post: **$title** (\`$file\`)."
             echo
-            if [ "$PASSED" = true ]; then
+            if [ "$PASSED" = true ] && [ "$CONSUMER" = true ]; then
+              echo "It passed the brand gate, the live check and the editorial judge. **It waits for the owner:** auto-merge is off until a repo admin adds the \`blog-approved\` label, which arms it for the commit approved. To stop it, close this PR."
+            elif [ "$PASSED" = true ]; then
               echo "It passed the brand gate, the live check and the editorial judge, so auto-merge is armed and it publishes once CI is green. To stop it, disable auto-merge or close this PR."
             else
               echo "**It failed the brand gate, the live check, the editorial judge or the hero image**, so this PR is a draft and auto-merge is off. The judge's reasons are below; the [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID) has the gate's rule codes only, so run \`pnpm tsx scripts/blog/check-post.ts $file --live --details\` locally for its details. Fix the post, mark the PR ready and merge it, or close it."
@@ -290,6 +299,10 @@ jobs:
             echo "::error::The $TYPE draft failed the brand gate, the live check, the judge or the hero image. Opened #$pr as a draft, not armed."
             echo "Opened #$pr from $branch as a draft: it failed a gate, so it won't publish" >> "$GITHUB_STEP_SUMMARY"
             exit 1
+          fi
+          if [ "$CONSUMER" = true ]; then
+            echo "Opened #$pr from $branch; it publishes when the owner adds blog-approved" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
           gh pr merge "$pr" --auto --repo "$REPO"
           echo "Opened #$pr from $branch with auto-merge armed" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -353,6 +366,11 @@ jobs:
             drafts=$(gh pr list --repo "$REPO" --label blog-draft --state open \
               --json number,title --jq '.[] | "- #\(.number) \(.title)"')
             echo "${drafts:-None open.}"
+            echo
+            echo "### Posts waiting for the owner's blog-approved label"
+            waiting=$(gh pr list --repo "$REPO" --label blog-needs-approval --state open \
+              --json number,title --jq '.[] | "- #\(.number) \(.title)"')
+            echo "${waiting:-None open.}"
             echo
             echo "A draft that failed the brand gate or the live check is a draft PR without auto-merge; it publishes only if a person fixes and merges it. This issue closes itself on the next weekly run that succeeds."
           } > "$RUNNER_TEMP/issue.md"

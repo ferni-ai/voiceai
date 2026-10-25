@@ -108,10 +108,18 @@ export const COHORT_FLAGS = [
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
   'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
+  // Latency A/Bs, one arm per eval caller. Each reply's guard (action-claim-guard.ts:242)
+  // and each preemptive turn's hold (preempt-stable-context.ts) read process.env.
+  'ACTION_CLAIM_STREAM',
+  'PREEMPT_STABLE_CONTEXT',
+  // The warm after the greeting (after-greeting.ts) and at each handoff (handoff-cache-warm.ts).
+  'CACHE_WARM_PRIMARY',
+  'HANDOFF_CACHE_WARM',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
+  'WELLBEING_AFTER_CALL',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
   'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
@@ -121,11 +129,16 @@ export const COHORT_FLAGS = [
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
+  // Read per call, never at boot: as applied mid-call, envForCaller after it, flagForUser on the UI server.
+  'COMMITMENT_SINGLE_WRITER',
+  // Read on each caller final and each gated outbound tool call (outreach-confirm.ts), never cached.
+  'OUTREACH_SERVER_CONFIRM',
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
   'REMINDER_SMS_DEFAULT',
   'REMINDER_IN_APP_PUSH',
   'WEB_PUSH_DELIVERY', // web server, per person (flagForUser): pushes, after-call ask
+  'FOCUS_HOLD', // web server, per person (personFlagOn): POST /api/me/focus (api/routes/focus.ts)
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -134,6 +147,7 @@ const ON_OFF: readonly string[] = ['on', 'off'];
 const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
   TURN_LENGTH: ['learned', 'off'],
   TURN_TEXTURE: ['learned', 'off'],
+  PREEMPT_STABLE_CONTEXT: ['on', 'defer', 'off'],
 };
 
 /** Values a cohort or override may give this flag: on/off, or the flag's own modes. */

@@ -57,6 +57,18 @@ describe('topicOnlyQuery', () => {
     expect(q).not.toContain('thirteen');
   });
 
+  it('removes a phone number in other digits or with other dashes', () => {
+    for (const phone of [
+      '415–555–0134',
+      '415—555—0134',
+      '415_555_0134',
+      '٤١٥٥٥٥٠١٣٤',
+      '٤١٥-٥٥٥-٠١٣٤',
+    ]) {
+      expect(topicOnlyQuery(`budgeting tips call ${phone}`, [])).toBe('budgeting tips call');
+    }
+  });
+
   it('keeps short numbers that are part of a topic', () => {
     expect(topicOnlyQuery('couch to 5k week 3', [])).toBe('couch to 5k week 3');
   });

@@ -23,7 +23,9 @@ const w = vi.hoisted(() => ({
   lifecycle: vi.fn(async () => undefined),
   socialGraph: vi.fn(async () => undefined),
   resonance: vi.fn(async () => undefined),
+  purge: vi.fn(),
 }));
+vi.mock('../../agents/voice-agent/minor-care-purge.js', () => ({ purgeHeldUser: w.purge }));
 vi.mock('../../services/trust-systems/index.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   onSessionEnd: w.trust,
@@ -67,7 +69,10 @@ vi.mock('../../services/async-events/index.js', async (orig) => ({
 }));
 vi.mock('../../services/session/session-lifecycle-hooks.js', async (orig) => {
   const real = await orig<Record<string, unknown>>();
-  return { ...real, sessionLifecycle: { ...(real.sessionLifecycle as object), onEnd: w.lifecycle } };
+  return {
+    ...real,
+    sessionLifecycle: { ...(real.sessionLifecycle as object), onEnd: w.lifecycle },
+  };
 });
 vi.mock('../../services/session/session-end-cleanup.js', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
@@ -78,7 +83,10 @@ vi.mock('../../personas/shared/personality-resonance-store.js', async (orig) => 
   flushResonanceProfile: w.resonance,
 }));
 
-import { handleSessionCleanup, type CleanupContext } from '../../agents/voice-agent/cleanup-handler.js';
+import {
+  handleSessionCleanup,
+  type CleanupContext,
+} from '../../agents/voice-agent/cleanup-handler.js';
 import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck } from '../minor-care.js';
 import type { SessionServices } from '../../services/types.js';
 import type { PersonaConfig } from '../../personas/types.js';
@@ -141,6 +149,10 @@ describe('cleanup-handler: held caller under 18', { timeout: BUDGET_MS + 10_000 
     expect(seen[key]).toEqual([]);
   });
 
+  it('every per-user store purges the user, last (minor-care-purge.ts)', () => {
+    expect(seen.purge).toEqual([[run.userId, run.sessionId]]);
+  });
+
   it('capability tracking is discarded instead', () => {
     expect(seen.discard).toEqual([[`${run.userId}-${run.sessionId}`]]);
   });
@@ -183,6 +195,7 @@ describe.each<Case>(['owner', 'off'])(
       expect(w.emitEnd).toHaveBeenCalledWith(expect.objectContaining({ userId }));
       expect(w.sessionEnded).toHaveBeenCalledWith(userId, { save: true });
       expect(w.lifecycle).toHaveBeenCalledWith(userId, sessionId, expect.anything());
+      expect(w.purge).not.toHaveBeenCalled();
     });
   }
 );

@@ -33,6 +33,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { searchEntitiesBM25, type BM25SearchResult } from './bm25-search.js';
 import { searchMemories, type SemanticSearchResult } from './semantic-memory-search.js';
+import { forgottenCheck, remembered } from '../recall/forget-every-reader.js';
 import {
   fuseSearchResults,
   reciprocalRankFusion,
@@ -76,6 +77,8 @@ export interface HybridSearchOptions {
    * no memories at all. Unset: wait for every leg.
    */
   legDeadlineMs?: number;
+  /** Put each vector result's saved date in metadata.timestamp (ISO), for the per-turn judge */
+  withTimestamps?: boolean;
 }
 
 /**
@@ -159,6 +162,7 @@ export async function hybridSearch(
     skipBM25 = false,
     skipVector = false,
     legDeadlineMs,
+    withTimestamps = false,
   } = options;
 
   const metrics: HybridSearchMetrics = {
@@ -228,6 +232,7 @@ export async function hybridSearch(
         const { results: vectorResults } = await searchMemories(query, userId, {
           topK: topK * 2,
           minScore: 0.3,
+          ...(withTimestamps && { includeTimestamp: true }),
         });
 
         metrics.vectorLatencyMs = Date.now() - vectorStart;
@@ -247,7 +252,7 @@ export async function hybridSearch(
                 type: 'memory' as const,
                 sources: ['vector'],
                 scoreBreakdown: { vector: r.score },
-                metadata: { source: r.source, sourceId: r.sourceId },
+                metadata: { source: r.source, sourceId: r.sourceId, ...(r.timestamp && { timestamp: r.timestamp }) }, // prettier-ignore
               },
               source: 'vector',
             }))
@@ -339,6 +344,7 @@ export async function hybridSearch(
   // another they took ~280 ms against a 245 ms limit, so retrieval timed out
   // on 103 of 103 dev turns. Merge in a fixed order for stable fusion.
   const legs = { bm25: bm25ListsRun, vector: vectorListsRun, entity: entityListsRun };
+  const forgottenRun = forgottenCheck(userId); // FORGET_EVERY_READER: the keyword legs too
   const late = new Set(Object.keys(legs));
   for (const [name, leg] of Object.entries(legs)) {
     const finished = (): boolean => late.delete(name);
@@ -349,8 +355,9 @@ export async function hybridSearch(
   else if (!(await settlesWithin(allLegs, legDeadlineMs))) {
     log.info({ userId, legDeadlineMs, dropped: [...late] }, 'HYBRID_LEG_DROPPED');
   }
+  const forgotten = await forgottenRun;
   for (const lists of [bm25Lists, vectorLists, entityLists]) {
-    for (const [source, list] of lists) rankedLists.set(source, list);
+    for (const [source, list] of lists) rankedLists.set(source, remembered(list, forgotten));
   }
 
   // 4. RECIPROCAL RANK FUSION

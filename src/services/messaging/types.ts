@@ -20,7 +20,7 @@ export const REASON_CODES = [
   ...['ok', 'requested-time', 'no-verified-phone', 'needs-consent', 'no-anchor', 'bad-channel'],
   ...['opted-out', 'sms-off', 'crisis-quiet', 'quiet-hours', 'outside-window', 'no-timezone'],
   ...['over-budget', 'duplicate', 'recently-sent', 'transactional-rate', 'reply-rate'],
-  ...['requested-rate', 'too-many-destinations'],
+  ...['requested-rate', 'too-many-destinations', 'focus-hold'],
 ] as const;
 export type ReasonCode = (typeof REASON_CODES)[number];
 
@@ -59,6 +59,9 @@ export interface LedgerEntry {
   readonly destination?: string; // the phone hash it went to
 }
 
+/** What the person said their iOS Focus is for (they name it; the app can't tell). */
+export type FocusKind = 'sleep' | 'work' | 'other';
+
 export interface LocalWindow {
   readonly startMin: number; // minutes after local midnight; end before start wraps
   readonly endMin: number;
@@ -80,6 +83,13 @@ export interface PolicyCtx {
   readonly verifiedRecipient: boolean; // the owner's verified number, never one the model passed
   readonly lastInboundAt?: Date; // their last text to us
   readonly isFirstContact: boolean;
+  /** A live Focus hold (messaging/focus.ts focusHold): what Ferni starts waits until capUntil. */
+  readonly focus?: {
+    readonly held: true;
+    readonly kind: FocusKind;
+    readonly remindersThrough: boolean; // reminders they timed themselves still go
+    readonly capUntil: Date;
+  };
 }
 
 export interface Decision {

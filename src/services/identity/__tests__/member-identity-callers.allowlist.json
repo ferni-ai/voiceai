@@ -6,6 +6,12 @@
     "reason": "isRealName checks a spoken NAME against placeholder words ('guest', 'anonymous'), not a user id."
   },
   {
+    "file": "agents/personas/caller-name-known.ts",
+    "count": 1,
+    "category": "non-user-id",
+    "reason": "PLACEHOLDERS lists display-name placeholders ('the user', 'Visitor', 'anonymous') that are not the caller's NAME; it is never compared with a user id."
+  },
+  {
     "file": "agents/personas/ferni-state.ts",
     "count": 1,
     "category": "non-user-id",
@@ -83,6 +89,12 @@
     "count": 1,
     "category": "enum",
     "reason": "Compares the Firebase sign-in provider enum ('anonymous' provider), not a user id: an anonymous Firebase user never counts as verified."
+  },
+  {
+    "file": "services/platform/erasure-keys.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "SIGN_IN_PROVIDERS lists Firebase sign-in provider ids ('anonymous' provider) used to find auth:{provider}:{uid} links to erase, not a user id."
   },
   {
     "file": "services/world-awareness/session-integration.ts",

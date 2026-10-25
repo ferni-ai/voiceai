@@ -94,10 +94,8 @@ export {
   type ParallelExecutionResult,
 } from './parallel-turn-executor.js';
 
-// Session Optimizations - Memory prewarm, tool parallelization, dedup cache, speculative prefetch
+// Session Optimizations - Tool parallelization, dedup cache, speculative prefetch
 export {
-  // Memory prewarm
-  prewarmUserEmbeddings,
   // Tool parallelization
   executeToolsParallel,
   // Memory deduplication cache
@@ -109,8 +107,7 @@ export {
   startSpeculativePrefetch,
   getSpeculativePrefetch,
   clearSpeculativePrefetch,
-  // Combined session optimization
-  optimizeSessionStart,
+  // Session cleanup
   cleanupSessionOptimizations,
 } from './session-optimizations.js';
 
