@@ -39,7 +39,7 @@ import {
   onBehalfNotSent,
   textOnBehalf,
 } from '../../../../services/outreach/guarded-text.js';
-import { thirdPartyRefusal } from '../../../../services/messaging/consent-grants.js';
+import { thirdPartyRefusal } from '../../../../utils/consent-port.js';
 import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 

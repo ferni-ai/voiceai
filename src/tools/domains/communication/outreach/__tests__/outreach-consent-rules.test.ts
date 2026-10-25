@@ -53,6 +53,7 @@ import { phoneHash } from '../../../../../services/outreach/checkin-replies.js';
 import type { ToolContext } from '../../../../registry/types.js';
 import { getOutreachToolDefinitions } from '../index.js';
 import { outreachConfirmListeners } from '../outreach-confirm.js';
+import { registerMessagingConsent } from '../../../../../services/messaging/consent.js';
 
 const PAT = '+12025550177';
 const ctx: ToolContext = { userId: 'owner-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
@@ -77,6 +78,7 @@ async function confirmedReachOut(args: Record<string, unknown>): Promise<string>
 beforeEach(() => {
   fake.db = fakeConsentDb();
   member.value = false;
+  registerMessagingConsent(); // as each process entry does (utils/consent-port.ts)
   resetMemoryTexts();
   vi.stubEnv('MESSAGING_PIPELINE', 'on');
   vi.stubEnv('LOG_HASH_SECRET', 'test-secret');

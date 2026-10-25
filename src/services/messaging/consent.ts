@@ -31,6 +31,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
   registerConsentCheck,
+  registerGrantChecks,
   type ConsentBlock,
   type ConsentChannel,
 } from '../../utils/consent-port.js';
@@ -356,4 +357,11 @@ export function registerMessagingConsent(): void {
   registerConsentCheck((phone, channel, allowUnknown, env) =>
     consentBlocks(phone, channel, allowUnknown, { ...defaultConsentDeps(), env })
   );
+  // consent-grants.ts imports this module, so it loads on first use.
+  registerGrantChecks({
+    thirdPartyRefusal: async (owner, phone, channel, isOwn) =>
+      (await import('./consent-grants.js')).thirdPartyRefusal(owner, phone, channel, isOwn),
+    recordOwnerAttestation: async (phone, channel, uid) =>
+      (await import('./consent-grants.js')).recordOwnerAttestation(phone, channel, uid),
+  });
 }

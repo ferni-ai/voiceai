@@ -24,6 +24,7 @@
  * @module tools/domains/communication/outreach/outreach-confirm
  */
 
+import { flagOn } from '../../../../config/env-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
@@ -366,10 +367,8 @@ const CALL_CHANNELS = ['call', 'voicemail', 'conversation'];
 async function attestOnConfirm(userId: string, args: Record<string, unknown>): Promise<void> {
   const planned = (args as { [PLANNED]?: Planned })[PLANNED];
   if (!planned?.to || planned.channel === 'email') return;
-  const { messagingPipelineOn } = await import('../../../../services/messaging/consent.js');
-  if (!messagingPipelineOn()) return;
-  const { recordOwnerAttestation } =
-    await import('../../../../services/messaging/consent-grants.js');
+  if (!flagOn('MESSAGING_PIPELINE')) return;
+  const { recordOwnerAttestation } = await import('../../../../utils/consent-port.js');
   const channel = CALL_CHANNELS.includes(planned.channel) ? 'call' : 'sms';
   await recordOwnerAttestation(planned.to, channel, userId);
 }
