@@ -59,6 +59,19 @@ export function regressions(base: ErrorBaseline, now: ErrorBaseline): string[] {
     });
 }
 
+/** ESLint's stderr line when eslint-suppressions.json suppresses something that no longer occurs. */
+const STALE = 'There are suppressions left that do not occur anymore';
+
+/**
+ * Suppressions nothing needs any more. Left in place, a file's next new violation slips in under
+ * the old count, so the suppression baseline (eslint-suppressions.json) would never shrink.
+ */
+export function staleSuppressions(stderr: string): string[] {
+  return stderr.includes(STALE)
+    ? ['eslint-suppressions.json suppresses violations that are gone: run `npx eslint --prune-suppressions <the files you fixed>` and commit it.']
+    : [];
+}
+
 /** The baseline with every file lowered to today's count (never raised). */
 export function lowered(base: ErrorBaseline, now: ErrorBaseline): ErrorBaseline {
   return Object.fromEntries(
@@ -83,8 +96,8 @@ function productionFiles(): string[] {
   return ROOTS.flatMap((root) => walk(join(ROOT, root), [])).filter((file) => !TEST.test(file));
 }
 
-/** Runs ESLint over every production file and returns per-file results. */
-function lint(files: string[]): EslintFile[] {
+/** Runs ESLint over every production file and returns per-file results plus its stderr. */
+function lint(files: string[]): { results: EslintFile[]; stderr: string } {
   // Run ESLint's binary directly, not through `npx`: npx joins the paths into one shell
   // argument (about 214 KB), which Linux rejects (E2BIG). Spawned directly, each path is its own argument.
   const cache = join(ROOT, 'node_modules/.cache/eslint-coverage');
@@ -98,23 +111,23 @@ function lint(files: string[]): EslintFile[] {
   if (!run.stdout) {
     throw new Error(`eslint produced no output (status ${run.status}, signal ${run.signal}): ${run.error?.message ?? run.stderr}`);
   }
-  return JSON.parse(run.stdout) as EslintFile[];
+  return { results: JSON.parse(run.stdout) as EslintFile[], stderr: run.stderr ?? '' };
 }
 
-function measure(): { errors: ErrorBaseline; warnings: number; ignored: string[] } {
-  const results = lint(productionFiles());
+function measure(): { errors: ErrorBaseline; warnings: number; ignored: string[]; stale: string[] } {
+  const { results, stderr } = lint(productionFiles());
   const errors: ErrorBaseline = {};
   let warnings = 0;
   for (const file of results) {
     warnings += file.warningCount;
     if (file.errorCount > 0) errors[relative(ROOT, file.filePath)] = file.errorCount;
   }
-  return { errors, warnings, ignored: ignoredFiles(results).map((file) => relative(ROOT, file)) };
+  return { errors, warnings, ignored: ignoredFiles(results).map((file) => relative(ROOT, file)), stale: staleSuppressions(stderr) };
 }
 
 function main(): void {
   const args = process.argv.slice(2);
-  const { errors, warnings, ignored } = measure();
+  const { errors, warnings, ignored, stale } = measure();
   const total = Object.values(errors).reduce((sum, n) => sum + n, 0);
   const baseline: ErrorBaseline = existsSync(BASELINE) ? JSON.parse(readFileSync(BASELINE, 'utf8')) : {};
 
@@ -128,6 +141,7 @@ function main(): void {
   const problems = [
     ...ignored.map((file) => `${file}: eslint skipped this file (matched an ignore pattern), so it is not checked. Remove the ignore or move the file.`),
     ...regressions(baseline, errors),
+    ...stale,
   ];
   console.log(`Lint coverage: ${Object.keys(errors).length} files with ${total} errors (baseline ${Object.values(baseline).reduce((s, n) => s + n, 0)}), ${warnings} warnings (not gated).`);
   if (problems.length > 0) {

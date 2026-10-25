@@ -14,7 +14,7 @@ import {
 } from '../voice-capabilities.js';
 import {
   DEFAULT_CARTESIA_MODEL,
-  LEGACY_FERNI_IVC_VOICE_ID,
+  FERNI_CALM_B_VOICE_ID,
   LESTER_PRO_V3_VOICE_ID,
   VOICE_IDS,
 } from '../voice-ids.js';
@@ -49,7 +49,7 @@ describe('voiceHonorsProsodyTags', () => {
   });
 
   it('returns true for the legacy Ferni instant clone', () => {
-    expect(voiceHonorsProsodyTags(LEGACY_FERNI_IVC_VOICE_ID)).toBe(true);
+    expect(voiceHonorsProsodyTags(FERNI_CALM_B_VOICE_ID)).toBe(true);
   });
 
   it('returns true for other persona voices and unknown ids', () => {
@@ -72,7 +72,7 @@ describe('voiceHonorsVolumeTag', () => {
   });
 
   it('returns true for instant clones and unknown ids', () => {
-    expect(voiceHonorsVolumeTag(LEGACY_FERNI_IVC_VOICE_ID)).toBe(true);
+    expect(voiceHonorsVolumeTag(FERNI_CALM_B_VOICE_ID)).toBe(true);
     expect(voiceHonorsVolumeTag('anything')).toBe(true);
   });
 });
@@ -105,8 +105,8 @@ describe('Ferni PVC + pinned Cartesia model', () => {
   });
 
   it('non-PVC voices are not Pro clones and have no fine-tune list', () => {
-    expect(isProVoiceClone(LEGACY_FERNI_IVC_VOICE_ID)).toBe(false);
-    expect(pvcFineTunedModels(LEGACY_FERNI_IVC_VOICE_ID)).toBeUndefined();
+    expect(isProVoiceClone(FERNI_CALM_B_VOICE_ID)).toBe(false);
+    expect(pvcFineTunedModels(FERNI_CALM_B_VOICE_ID)).toBeUndefined();
   });
 });
 
@@ -117,7 +117,7 @@ describe('voiceMedianF0Hz', () => {
   });
 
   it('is undefined for a voice nobody measured (the renderer keeps its default)', () => {
-    expect(voiceMedianF0Hz(LEGACY_FERNI_IVC_VOICE_ID)).toBeUndefined();
+    expect(voiceMedianF0Hz(FERNI_CALM_B_VOICE_ID)).toBeUndefined();
     expect(voiceMedianF0Hz('not-a-voice')).toBeUndefined();
   });
 });

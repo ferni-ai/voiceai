@@ -16,6 +16,7 @@
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import { flagOn } from '../../../config/env-flag.js';
+import { isSharedPlaceholderId } from '../../../utils/synthetic-user.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
@@ -404,11 +405,8 @@ export async function buildHumanTransferInjections(
       reason: decision.reason.slice(0, 100),
     });
 
-    return {
-      category: 'better_than_human',
-      content,
-      priority,
-    };
+    const crisis = decision.type === 'crisis_immediate' || decision.type === 'crisis_support';
+    return { category: crisis ? 'crisis_transfer' : 'better_than_human', content, priority };
   } catch (error) {
     diag.debug('Human transfer injection skipped', { error: String(error) });
     return null;
@@ -438,10 +436,12 @@ async function withinBudget<T>(work: Promise<T>, fallback: T, ms: number): Promi
 
 /**
  * Build crisis history context injection for users who had recent crisis.
+ * PRIVACY: no id or a placeholder id reads nothing; a shared bucket holds other callers' crises.
  */
 export async function buildCrisisHistoryInjection(
-  userId: string
+  userId: string | undefined
 ): Promise<ContextInjection | null> {
+  if (userId === undefined || isSharedPlaceholderId(userId)) return null;
   try {
     const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
 
@@ -482,11 +482,7 @@ export async function buildCrisisHistoryInjection(
       escalationType: lastCrisis.escalationType,
     });
 
-    return {
-      category: 'better_than_human',
-      content: sections.join('\n'),
-      priority: 85,
-    };
+    return { category: 'crisis_follow_up', content: sections.join('\n'), priority: 85 };
   } catch (error) {
     diag.debug('Crisis history injection skipped', { error: String(error) });
     return null;

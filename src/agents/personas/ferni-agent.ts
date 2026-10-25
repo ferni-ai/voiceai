@@ -700,7 +700,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
 
   /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
-  private readonly openerGate = new OpenerGate();
+  private readonly openerGate = new OpenerGate().forSession(() => this.session);
 
   /**
    * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.

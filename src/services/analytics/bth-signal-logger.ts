@@ -13,6 +13,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore, getFirestoreDb } from '../../utils/firestore-utils.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'BTHSignalLogger' });
 
@@ -125,6 +126,7 @@ async function flushToFirestore(): Promise<void> {
   // Group by userId for batch writes ( Firestore batch is per-collection)
   const byUser = new Map<string, QueuedSignal[]>();
   for (const item of toFlush) {
+    if (writeHeld(item.params.userId, item.params.sessionId)) continue; // MINOR_CARE
     const list = byUser.get(item.params.userId) ?? [];
     list.push(item);
     byUser.set(item.params.userId, list);

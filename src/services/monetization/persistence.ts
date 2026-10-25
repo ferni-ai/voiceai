@@ -210,7 +210,7 @@ export async function saveTip(userId: string, given: TipRecord): Promise<void> {
     data.lastTipAt = tip.completedAt;
   }
 
-  tipStore!.set(userId, data);
+  await tipStore!.setImmediate(userId, data); // a failed read rejects: webhook 500, Stripe retries
 }
 
 // ============================================================================
@@ -247,7 +247,7 @@ export async function saveValueEvent(userId: string, given: ValueCaptureRecord):
     data.eventCount = data.events.filter((e) => e.status === 'contributed').length;
   }
 
-  valueCaptureStore!.set(userId, data);
+  await valueCaptureStore!.setImmediate(userId, data); // a payment: written now or rejected
 }
 
 // ============================================================================
@@ -278,7 +278,7 @@ export async function saveFundContribution(
   data.totalContributedCents += contribution.amountCents;
   data.conversationsSponsored += contribution.conversationsSponsored;
 
-  userFundStore!.set(userId, data);
+  await userFundStore!.setImmediate(userId, data); // a payment: written now or rejected
 
   // Also update global stats
   await updateGlobalFundStats(contribution.amountCents, contribution.conversationsSponsored);

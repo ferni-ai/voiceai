@@ -171,7 +171,7 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
 const MAX_COMPANION_CHARS = 400;
 
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
-function normalizeInput(input: CrisisClassifierInput): {
+export function normalizeInput(input: CrisisClassifierInput): {
   latest: string;
   earlier: string[];
   companion?: string;

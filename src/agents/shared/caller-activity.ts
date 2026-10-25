@@ -22,7 +22,7 @@ import {
   onCrisisReadStarted,
 } from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { callerSignsOff } from './call-farewell.js';
+import { callerSignsOff, containsLine } from './call-farewell.js';
 
 const log = createLogger({ module: 'caller-activity' });
 
@@ -45,6 +45,8 @@ type SetTimer = (fn: () => void, ms: number) => unknown;
 export interface CallerWords {
   text: string;
   final: boolean;
+  /** The turn's conversation item (it follows the turn's STT finals, sometimes by seconds). */
+  item?: boolean;
 }
 
 export interface CallerWatch {
@@ -81,7 +83,7 @@ export function watchCaller(agentSession: object): CallerWatch {
   const onItem = ({ item }: { item?: { role?: string; textContent?: string } }): void => {
     if (item?.role !== 'user' || !item.textContent) return;
     interim = '';
-    emit({ text: item.textContent, final: true });
+    emit({ text: item.textContent, final: true, item: true });
   };
   const onUser = (ev: { newState?: string }): void => {
     speaking = ev.newState === 'speaking';
@@ -111,6 +113,12 @@ export function watchCaller(agentSession: object): CallerWatch {
 export interface TurnReads {
   /** A final caller line heard since start whose crisis read hasn't settled (bounded). */
   pending: () => boolean;
+  /**
+   * The latest final line's read: still `waiting`, `settled` (it started and
+   * finished; risk it found is noted by crisis-call-risk.ts), or `timed_out`
+   * (no settled read within TURN_READ_WAIT_MS).
+   */
+  outcome: () => 'idle' | 'waiting' | 'settled' | 'timed_out';
   stop: () => void;
 }
 
@@ -118,6 +126,12 @@ export interface TurnReads {
  * From now on, after each final caller line, wait for that turn's crisis read
  * to start and settle, at most TURN_READ_WAIT_MS. `onReadStart` runs when it
  * starts (the app is told to hold its hang-up, wrap-up-window.ts).
+ *
+ * Only a read of the words waited on counts (its text contains the line, as
+ * whole words): a late read of an earlier turn is not this one's. A
+ * conversation item that contains STT finals still waiting on their item is
+ * those finals' turn, not a new wait: LiveKit adds it once the turn's read has
+ * already started (crisis-gate.ts, onUserTurnCompleted).
  */
 export function awaitTurnReads(opts: {
   sessionId: string;
@@ -126,32 +140,53 @@ export function awaitTurnReads(opts: {
   onReadStart?: () => void;
 }): TurnReads {
   const { sessionId } = opts;
-  let waiting = false;
+  let state: ReturnType<TurnReads['outcome']> = 'idle';
   let readSeen = false;
   let turn = 0;
-  const offWords = opts.caller?.onWords(({ final }) => {
+  let line = '';
+  /** STT finals whose turn's conversation item hasn't arrived. */
+  let finals: string[] = [];
+  const check = (): void => {
+    if (state === 'waiting' && readSeen && !crisisReadInFlight(sessionId)) state = 'settled';
+  };
+  const offWords = opts.caller?.onWords(({ text, final, item }) => {
     if (!final) return;
-    waiting = true;
+    if (item) {
+      const left = finals.filter((f) => !containsLine(text, f));
+      const sameTurn = left.length < finals.length;
+      finals = left;
+      if (sameTurn) return;
+    } else {
+      finals = [...finals, text];
+    }
+    line = text;
+    state = 'waiting';
     readSeen = false;
     const mine = ++turn;
     opts.setTimer(() => {
-      if (mine === turn) waiting = false;
+      check();
+      if (mine === turn && state === 'waiting') state = 'timed_out';
     }, TURN_READ_WAIT_MS);
   });
-  const offRead = onCrisisReadStarted((id) => {
-    if (id !== sessionId || !waiting) return;
+  const offRead = onCrisisReadStarted((id, read) => {
+    if (id !== sessionId || state !== 'waiting') return;
+    if (!containsLine(read, line)) return; // another turn's read
     readSeen = true;
     opts.onReadStart?.();
   });
   return {
     pending: () => {
-      if (waiting && readSeen && !crisisReadInFlight(sessionId)) waiting = false;
-      return waiting;
+      check();
+      return state === 'waiting';
+    },
+    outcome: () => {
+      check();
+      return state;
     },
     stop: () => {
       offWords?.();
       offRead();
-      waiting = false;
+      state = 'idle';
     },
   };
 }

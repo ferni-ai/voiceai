@@ -11,6 +11,7 @@
  * @module config/effective-settings
  */
 import { createHash } from 'node:crypto';
+import { ENV_CLASSIFICATION } from './env-classification.js';
 import { ENV_READ_NAMES } from './env-read-names.generated.js';
 import { FLAG_MANIFEST, type FlagName } from './flag-manifest.js';
 
@@ -55,6 +56,17 @@ const PRINTABLE: ReadonlyMap<string, RegExp> = new Map([
 ]);
 
 /**
+ * Persona voice ids (`MAYA_SANTOS_VOICE_ID`, …) print too: they pick a voice, they don't
+ * unlock anything, and scripts/ops/secrets-parity.ts compares them between dev and prod
+ * (prod Maya once ran on a meditation voice for weeks). Only names env-classification.ts
+ * classes as config, and only UUID-shaped values (Cartesia voice ids); anything else is `<set>`.
+ */
+const VOICE_ID_NAME = /^[A-Z0-9_]+_VOICE_ID$/;
+const VOICE_ID_VALUE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isVoiceId = (name: string) =>
+  VOICE_ID_NAME.test(name) && ENV_CLASSIFICATION[name] === 'config';
+
+/**
  * Words a flag may show: `on`, `off` and the other words the manifest uses as
  * defaults. Any other value is a secret-shaped risk and shows as `<set>`. A new
  * mode word appears here once PR 2 classifies it.
@@ -72,7 +84,7 @@ const FLAG_WORDS: ReadonlySet<string> = new Set([
 ]);
 
 /** A flag's resolved value: its env value lower-cased, or the manifest default when unset. */
-function flagValue(name: FlagName, env: Env): string {
+export function flagValue(name: FlagName, env: Env): string {
   const raw = env[name]?.trim().toLowerCase();
   if (!raw) return FLAG_MANIFEST[name].default;
   return FLAG_WORDS.has(raw) ? raw : SET;
@@ -82,7 +94,7 @@ function flagValue(name: FlagName, env: Env): string {
 function envValue(name: string, env: Env): string {
   const raw = env[name]?.trim();
   if (!raw) return UNSET;
-  const shape = PRINTABLE.get(name);
+  const shape = PRINTABLE.get(name) ?? (isVoiceId(name) ? VOICE_ID_VALUE : undefined);
   if (!shape || SECRET_NAME.test(name)) return SET;
   return shape.test(raw) ? raw : SET;
 }
@@ -93,6 +105,12 @@ function hashOf(map: Readonly<Record<string, string>>): string {
     .sort()
     .map((k) => [k, map[k]]);
   return createHash('sha256').update(JSON.stringify(sorted)).digest('hex').slice(0, 16);
+}
+
+/** The commit this process was built from (build-sha.ts), as the boot line prints it. */
+export function buildCommit(env: Env = process.env): string {
+  const commit = env.BUILD_SHA?.trim() ?? '';
+  return commit ? (PRINTABLE.get('BUILD_SHA')?.test(commit) ? commit : SET) : 'unknown';
 }
 
 export function effectiveSettings(env: Env = process.env): EffectiveSettings {
@@ -113,9 +131,8 @@ export function effectiveSettings(env: Env = process.env): EffectiveSettings {
     Object.entries({ ...flags, ...envMap }).filter(([, v]) => v !== SET && v !== UNSET)
   );
 
-  const commit = env.BUILD_SHA?.trim() ?? '';
   return {
-    commit: commit ? (PRINTABLE.get('BUILD_SHA')?.test(commit) ? commit : SET) : 'unknown',
+    commit: buildCommit(env),
     hash: hashOf(printed),
     flags,
     env: envMap,

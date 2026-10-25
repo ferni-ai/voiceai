@@ -174,7 +174,10 @@ export function withTurnReminder(
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session, process.env, words),
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
-    quirkTurnNote(sessionId, chatCtx, words),
+    quirkTurnNote(sessionId, chatCtx, words, {
+      mood: callerOf(session)?.voiceEmotion?.primary,
+      careful: crisis,
+    }),
     // NAMED_TUNE=on: they noticed the whistle (name it?), or asked him to stop (named-tune-note.ts).
     tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
     state.note,
@@ -193,7 +196,9 @@ export function withTurnReminder(
     }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call; RETURNING_CALLER=on: not for one who may
     // have called before; "forget me", or the topic hint once they confirm (returning-caller.ts)
-    inReturningCallerFlow(sessionId) ? '' : firstCallNote(chatCtx, session, words, process.env, plain),
+    inReturningCallerFlow(sessionId)
+      ? ''
+      : firstCallNote(chatCtx, session, words, process.env, plain),
     returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
       statedName(w, undefined, a)
     ),
@@ -273,6 +278,7 @@ interface CallerData {
   personaId?: string;
   userName?: string;
   callerTimezone?: string;
+  voiceEmotion?: { primary?: string };
 }
 const callerOf = (session: object): CallerData | undefined =>
   (session as { userData?: unknown }).userData as CallerData | undefined;
@@ -358,7 +364,7 @@ export async function toolsForTurn(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
-  else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
+  else withSameTurnTools(session, chatCtx, toolCtx, state.agent); // TOOLS_SAME_TURN: topic tools
   const view = unlockViewFor(session.userData);
   const sessionId = sessionIdOf(session.userData);
   // Not a verified owner (an anon: caller included): nothing that reaches other people.

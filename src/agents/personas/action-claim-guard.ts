@@ -78,6 +78,7 @@ import {
 } from './call-narration.js';
 import { kindsRunThisTurn, offerFor, promisedAction } from './action-promises.js';
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
+import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
@@ -209,13 +210,15 @@ export async function withActionClaimCheck<T>(
   env: Env = process.env
 ): Promise<T> {
   const who = typeof caller === 'string' ? { personaId: caller } : caller;
+  // How long the first words wait here, for the TURN_RECEIPT (turn-timing.ts).
+  const firstWords = turnHoldTimer(sessionIdIn(caller), 'actionClaim');
   // Asked "how did it go with my dad?": where that requested call stands, read alongside the reply.
   const words = lastCallerWords(chatCtx);
   const calls = who.calls ?? firestoreCallRecords;
   const asked = actionClaimGuardEnabled(env)
     ? askedCallLookup(words, who.userId, calls)
     : undefined;
-  const checked = await checkActionClaims(reply, chatCtx, tools, env, asked);
+  const checked = await checkActionClaims(reply, chatCtx, tools, env, asked, firstWords);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }
 
@@ -225,7 +228,8 @@ async function checkActionClaims<T>(
   chatCtx: { items: readonly unknown[] },
   tools: { functionTools?: Record<string, unknown> },
   env: Env,
-  askedLookup?: Promise<AskedCallStatus>
+  askedLookup?: Promise<AskedCallStatus>,
+  firstWords?: ReturnType<typeof turnHoldTimer>
 ): Promise<T> {
   const stream = await reply;
   // Either way the reply is also tapped for "I'll check" with no tool call (announced-check.ts).
@@ -309,8 +313,10 @@ async function checkActionClaims<T>(
   const clauseSafe = clauseSafeFor(ahead('call'), unheard, (c) => ACTION_TALK.test(plain(c)));
   let id = '';
   let stringChunks = true;
-  const out = (text: string): Chunk =>
-    stringChunks ? text : { id, delta: { role: 'assistant', content: text } };
+  const out = (text: string): Chunk => {
+    firstWords?.stop(); // the first words out of the guard
+    return stringChunks ? text : { id, delta: { role: 'assistant', content: text } };
+  };
   const guarded = new ReadableStream<Chunk>({
     async start(controller) {
       let pending = '';
@@ -451,6 +457,7 @@ async function checkActionClaims<T>(
             stringChunks = false;
             id = (chunk as llm.ChatChunk).id ?? id;
           }
+          if (content) firstWords?.start(); // the model's first words in
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
