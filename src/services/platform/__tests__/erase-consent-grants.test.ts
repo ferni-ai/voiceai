@@ -88,6 +88,19 @@ describe('account erasure: consent grants', () => {
     expect(await findUserRecordRemnants(db, 'owner-b', ENTRIES_IN_OTHERS_DOCS)).toEqual([LABEL]);
   });
 
+  it("removes owner A's open consent ask (asks.{uid}); the contact's STOP stays", async () => {
+    const ASKS = 'consent[asks.{uid}]';
+    expect(ERASED_STORES.map(storeLabel)).toContain(ASKS);
+    const ask = { at: '2026-10-20T00:00:00.000Z', channels: ['sms'], ref: 'ask-1' };
+    const { db, docs } = fakeFirestore({
+      'consent/hash-mom': { call: { state: 'opted-out' }, asks: { 'owner-a': ask } },
+    });
+    expect(await findUserRecordRemnants(db, 'owner-a', ENTRIES_IN_OTHERS_DOCS)).toEqual([ASKS]);
+    await eraseUserRecord('owner-a', db, ENTRIES_IN_OTHERS_DOCS, []);
+    expect(docs.get('consent/hash-mom')).toEqual({ call: { state: 'opted-out' }, asks: {} });
+    expect(await findUserRecordRemnants(db, 'owner-a', ENTRIES_IN_OTHERS_DOCS)).toEqual([]);
+  });
+
   it('refuses a uid that would address a deeper key, logging the error code only', async () => {
     const { db, docs } = seeded();
     const before = structuredClone([...docs.entries()]);

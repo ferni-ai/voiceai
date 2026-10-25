@@ -523,7 +523,7 @@ export class ConferenceCallManager extends EventEmitter {
     relationship?: string,
     introduction?: string
   ): Promise<{ success: boolean; callSid?: string; error?: string }> {
-    const { thirdPartyRefusal } = await import('../../services/messaging/consent-grants.js');
+    const { thirdPartyRefusal } = await import('../../services/messaging/consent-reach.js');
     const { directSendHeld } = await import('../../services/communication-service.js');
     if (await directSendHeld(phoneNumber, 'call', { userId: this.config.userId }))
       return { success: false, error: 'Not calling: held' }; // MINOR_CARE_SHARED_HOLD

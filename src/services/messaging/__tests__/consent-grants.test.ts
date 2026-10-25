@@ -1,17 +1,25 @@
 /**
- * A third party's consent is a grant for one owner: a friends-and-family
- * owner's attestation, never over an opt-out, and a global STOP beats it.
+ * How a third party's consent becomes 'in': their YES to a consent ask, or a
+ * friends-and-family owner's attestation; and the consent ask itself, the one
+ * allowed first message (owner-confirmed, once per contact per 30 days).
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryConsentStore } from './memory-consent.js';
+
+// Pat is one of each owner's contacts here; consent-ask-guards.test.ts covers strangers.
+vi.mock('../owner-contacts.js', () => ({ ownerKnowsNumber: async () => true }));
 import {
+  claimConsentAsk,
+  consentAskText,
   hasGrant,
-  mayReachForOwner,
+  isConsentYes,
+  recordContactYes,
   recordOwnerAttestation,
-  thirdPartyRefusal,
 } from '../consent-grants.js';
+import { mayReachForOwner, thirdPartyRefusal } from '../consent-reach.js';
+import { sendConsentAsk } from '../consent-ask.js';
 import { readConsent, recordInboundSmsConsent, writeOptOut, type ConsentDeps } from '../consent.js';
-import { phoneHash } from '../../outreach/checkin-replies.js';
+import { phoneHash, type StoredCheckin } from '../../outreach/checkin-replies.js';
 import type { TextDeps, TextStore } from '../../outreach/guarded-text.js';
 
 const PAT = '+12025550188';
@@ -26,6 +34,179 @@ beforeEach(() => {
   now = new Date('2026-10-18T16:00:00Z');
   m = memoryConsentStore();
   deps = { env, store: m.store, now: () => now };
+});
+
+describe('isConsentYes: exact single words', () => {
+  it.each(['YES', 'yes.', 'Y', 'ok', 'Sure!', ' OK '])('%s is a yes', (b) =>
+    expect(isConsentYes(b)).toBe(true)
+  );
+  it.each(['yes please', 'yesterday', 'okay then', 'not sure', 'y not', 'ok?? who is this'])(
+    '%s is not',
+    (b) => expect(isConsentYes(b)).toBe(false)
+  );
+});
+
+/** Texts sent to Pat (feature_checkins), as the YES check reads them. */
+let texts: StoredCheckin[] = [];
+const sentToPat = (refId: string, userId: string, at = now): void => {
+  texts.push({
+    id: refId,
+    userId,
+    sessionId: refId,
+    refId,
+    sentAt: at.toISOString(),
+    question: 'q',
+    status: 'sent',
+    phoneLast4: '0188',
+    phoneHash: HASH,
+    kind: 'on-behalf',
+  });
+};
+/** The owner's consent ask goes out (claimed, then sent). */
+const askFrom = async (owner: string): Promise<void> => {
+  await claimConsentAsk(HASH, owner, deps, `ask-${owner}`);
+  sentToPat(`ask-${owner}`, owner);
+};
+let sidN = 0;
+const reply = async (body: string, sid = `SM${String(++sidN).padStart(10, '0')}`) =>
+  recordContactYes(
+    PAT,
+    body,
+    sid,
+    deps,
+    async () => texts,
+    async () => true
+  );
+beforeEach(() => {
+  texts = [];
+});
+
+describe('isConsentYes: a question or a spelled-out yes is not consent', () => {
+  const table: Array<[string, boolean]> = [
+    ['yes', true],
+    ['Yes', true],
+    ['YES!', true],
+    ['ok', true],
+    ['sure', true],
+    ['y', true],
+    ['y e s', true],
+    // "Yes?" to an unexpected text means "who is this?"
+    ['yes?', false],
+    ['Yes?', false],
+    ['ok?', false],
+    ['Y?', false],
+    ['¿yes?', false],
+    ['¿yes', false],
+    ['y.e.s', false],
+    ['y-e-s', false],
+    ['yes, stop', false],
+    ['Yes STOP', false],
+    ['no yes', false],
+    ['yesterday', false],
+    ['who is this? yes', false],
+    ['ye s', false],
+    ['yes please', false], // the documented set is the bare word only
+    // round 2: an allowlist, so every question mark and symbol is out, in any script
+    ['yes❓', false],
+    ['yes ❓', false],
+    ['yes‽', false],
+    ['yes\u061F', false], // Arabic question mark
+    ['yes\u037E', false], // Greek question mark
+    ['yes⁇', false],
+    ['ok ⁉️', false],
+    ['yes!?', false],
+    ['yes 🙂', false],
+    ['sí', false],
+    ['Yes.', true],
+    ['YES!!', true],
+    ['ok,', true],
+    ['yes 👍', true],
+    ['ＹＥＳ', true], // full-width, folded by NFKC
+  ];
+  it.each(table)('%j -> %s', (body, yes) => expect(isConsentYes(body)).toBe(yes));
+
+  it('a "yes?" to an open ask grants nothing', async () => {
+    await askFrom('owner-1');
+    expect(await reply('yes?')).toBeNull();
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false);
+  });
+});
+
+describe('recordContactYes with MESSAGING_PIPELINE off', () => {
+  it('a leftover ask and a "yes": no grant, and nothing read or written', async () => {
+    await askFrom('owner-1');
+    const before = structuredClone(m.docs.get(HASH));
+    const read = vi.spyOn(m.store, 'read');
+    const apply = vi.spyOn(m.store, 'apply');
+    const legacy = vi.spyOn(m.store, 'legacySmsOptOut');
+    const textsTo = vi.fn(async () => texts);
+    const off = { ...deps, env: { ...env, MESSAGING_PIPELINE: 'off' } };
+    expect(
+      await recordContactYes(PAT, 'yes', 'SMflagoff0001', off, textsTo, async () => true)
+    ).toBeNull();
+    expect([read, apply, legacy, textsTo].map((f) => f.mock.calls.length)).toEqual([0, 0, 0, 0]);
+    expect(m.docs.get(HASH)).toEqual(before);
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false);
+  });
+});
+
+describe('recordContactYes', () => {
+  it('a YES to an open consent ask turns texts in (contact-yes) and closes the ask', async () => {
+    await askFrom('owner-1');
+    expect(await reply('Yes')).toEqual(['sms']);
+    expect((m.docs.get(HASH)?.grants as Record<string, unknown>)['owner-1']).toMatchObject({
+      sms: { source: 'contact-yes' },
+    });
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(true);
+    expect((await readConsent(HASH, deps)).sms.state).toBe('unknown'); // global: only their STOP/START
+    expect(m.docs.get(HASH)?.asks).toBeUndefined();
+  });
+
+  it('a YES with no ask, or to one older than 30 days, changes nothing', async () => {
+    expect(await reply('yes')).toBeNull();
+    await askFrom('owner-1');
+    now = new Date(now.getTime() + 31 * DAY);
+    expect(await reply('yes')).toBeNull();
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false);
+  });
+
+  it('a YES never undoes a STOP', async () => {
+    await askFrom('owner-1');
+    await writeOptOut(HASH, 'sms', 'inbound-sms', deps);
+    await reply('yes');
+    expect((await readConsent(HASH, deps)).sms.state).toBe('opted-out');
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false); // nothing waits for a START
+  });
+
+  it('cross-owner "ok": after another text to Pat, a reply answers that one, not the ask', async () => {
+    await askFrom('seth');
+    now = new Date(now.getTime() + 60 * 60 * 1000);
+    sentToPat('user-b-text', 'user-b'); // user B (granted some other way) texts Pat
+    expect(await reply('ok')).toBeNull();
+    expect(await hasGrant(HASH, 'seth', 'sms', deps)).toBe(false);
+    expect(await hasGrant(HASH, 'user-b', 'sms', deps)).toBe(false);
+  });
+
+  it('a YES more than 48 hours after the ask changes nothing', async () => {
+    await askFrom('seth');
+    now = new Date(now.getTime() + 49 * 60 * 60 * 1000);
+    expect(await reply('yes')).toBeNull();
+    expect(await hasGrant(HASH, 'seth', 'sms', deps)).toBe(false);
+  });
+
+  it('a replayed webhook (same MessageSid) grants nothing, even to a later ask', async () => {
+    await askFrom('seth');
+    expect(await reply('yes', 'SMreplay000001')).toEqual(['sms']);
+    now = new Date(now.getTime() + 31 * DAY);
+    await askFrom('user-b');
+    expect(await reply('yes', 'SMreplay000001')).toBeNull();
+    expect(await hasGrant(HASH, 'user-b', 'sms', deps)).toBe(false);
+  });
+
+  it('a YES with no MessageSid is not trusted', async () => {
+    await askFrom('seth');
+    expect(await recordContactYes(PAT, 'yes', undefined, deps, async () => texts)).toBeNull();
+  });
 });
 
 describe('recordOwnerAttestation', () => {
@@ -47,6 +228,109 @@ describe('recordOwnerAttestation', () => {
   it('never over an opt-out', async () => {
     await writeOptOut(HASH, 'sms', 'inbound-sms', deps);
     expect(await recordOwnerAttestation(PAT, 'sms', 'owner-1', deps, async () => true)).toBe(false);
+  });
+});
+
+describe('sendConsentAsk', () => {
+  const send = vi.fn(async () => ({ success: true, messageSid: 'SM1' }));
+  const text = (): TextDeps => ({
+    env,
+    store: {
+      forUser: async () => [],
+      forPhoneHash: async () => [],
+      add: async (r: StoredCheckin) => (texts.push({ ...r, id: r.refId ?? 'x' }), 'id'),
+      lock: async () => true,
+      lockedAt: async () => undefined,
+      unlock: async () => undefined,
+      sponsoredPhone: async () => undefined,
+      isOptedOut: async () => false,
+      consentDoc: async (h: string) => m.store.read(h),
+      userDoc: async () => ({ displayName: 'Seth Example' }),
+      legacySmsChannels: async () => undefined,
+    } as unknown as TextStore,
+    authPhone: async () => '+12025550100', // the owner's own number, not Pat's
+    send,
+    now: () => now,
+  });
+  const ask = { senderUserId: 'owner-1', toPhone: PAT, refId: 'ask-1', zone: 'America/New_York' };
+  beforeEach(() => send.mockClear());
+
+  it('end to end: the ask goes, Pat replies YES, owner-1 holds the grant', async () => {
+    await sendConsentAsk({ ...ask, ownerConfirmed: true }, { text: text(), consent: deps });
+    expect(await reply('YES')).toEqual(['sms']);
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(true);
+  });
+
+  it('sends once, with the owner named, when the owner confirmed it', async () => {
+    expect(
+      await sendConsentAsk({ ...ask, ownerConfirmed: true }, { text: text(), consent: deps })
+    ).toEqual({
+      sent: true,
+    });
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ to: PAT, body: consentAskText('Seth') })
+    );
+  });
+
+  it('blocked on a repeat within 30 days, allowed again after', async () => {
+    const d = { text: text(), consent: deps };
+    await sendConsentAsk({ ...ask, ownerConfirmed: true }, d);
+    expect(await sendConsentAsk({ ...ask, ownerConfirmed: true }, d)).toEqual({
+      sent: false,
+      reason: 'asked-recently',
+    });
+    now = new Date(now.getTime() + 31 * DAY + 60 * 60 * 1000);
+    expect(await sendConsentAsk({ ...ask, ownerConfirmed: true }, d)).toEqual({ sent: true });
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+
+  it('blocked without the owner confirming it', async () => {
+    expect(
+      await sendConsentAsk({ ...ask, ownerConfirmed: false }, { text: text(), consent: deps })
+    ).toEqual({
+      sent: false,
+      reason: 'not-confirmed',
+    });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('a third-party text that is not the ask is still held (the claim is what lets the ask through)', async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    const out = await sendOnBehalfText(
+      { senderUserId: 'owner-1', toPhone: PAT, body: 'hi', refId: 'x', zone: 'America/New_York' },
+      { ...text(), consent: deps }
+    );
+    expect(out).toEqual({ sent: false, reason: 'needs-consent' });
+    const forged = await sendOnBehalfText(
+      {
+        senderUserId: 'owner-1',
+        toPhone: PAT,
+        body: 'hi',
+        refId: 'y',
+        zone: 'America/New_York',
+        consentAskClaim: 'made-up',
+      },
+      { ...text(), consent: deps }
+    );
+    expect(forged).toEqual({ sent: false, reason: 'needs-consent' });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('a send that does not go gives the ask back, so it can be retried', async () => {
+    send.mockResolvedValueOnce({ success: false, messageSid: '' } as never);
+    const d = { text: text(), consent: deps };
+    expect((await sendConsentAsk({ ...ask, ownerConfirmed: true }, d)).sent).toBe(false);
+    expect(await sendConsentAsk({ ...ask, ownerConfirmed: true }, d)).toEqual({ sent: true });
+  });
+
+  it('never to a number that opted out', async () => {
+    await writeOptOut(HASH, 'sms', 'inbound-sms', deps);
+    expect(
+      await sendConsentAsk({ ...ask, ownerConfirmed: true }, { text: text(), consent: deps })
+    ).toEqual({
+      sent: false,
+      reason: 'opted-out',
+    });
   });
 });
 
@@ -117,6 +401,19 @@ describe('consent is given for one owner, and a STOP beats it', () => {
     expect(await thirdPartyRefusal('seth', PAT, 'call', notOwn, deps)).toBeNull();
   });
 
+  it("Mom's YES to Seth's ask covers Seth, not user B", async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    await askFrom('seth');
+    await reply('YES');
+    expect(await sendOnBehalfText(textFor('user-b'), textDeps())).toEqual({
+      sent: false,
+      reason: 'needs-consent',
+    });
+    expect(await sendOnBehalfText(textFor('seth'), textDeps())).toEqual({ sent: true });
+    // Their own yes to the ask already introduced Ferni: no attestation intro.
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ body: 'hi' }));
+  });
+
   it("a real STOP from Mom (texts only) beats Seth's text AND call grants", async () => {
     const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
     await recordOwnerAttestation(PAT, 'sms', 'seth', deps, async () => true);
@@ -134,6 +431,14 @@ describe('consent is given for one owner, and a STOP beats it', () => {
     expect(await thirdPartyRefusal('seth', PAT, 'call', notOwn, deps)).toBe('opted-out');
     expect(await mayReachForOwner('seth', PAT, 'call', notOwn, deps)).toBe(false);
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it("user B can't ride on Seth's open consent ask", async () => {
+    const { sendOnBehalfText } = await import('../../outreach/guarded-text.js');
+    const claim = (await claimConsentAsk(HASH, 'seth', deps)) as string;
+    expect(
+      await sendOnBehalfText({ ...textFor('user-b'), consentAskClaim: claim }, textDeps())
+    ).toEqual({ sent: false, reason: 'needs-consent' });
   });
 
   it("Seth's own number is still callable after his own text STOP", async () => {

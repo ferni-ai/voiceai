@@ -151,6 +151,7 @@ export function initializeDeliveryServices(config: DeliveryConfig): void {
 import { sendSMS, isSMSDeliveryAvailable, type SMSMessage } from './sms-delivery.js';
 import { sendEmail, isEmailDeliveryAvailable } from './email-delivery.js';
 import { sendPushNotification, isPushNotificationsAvailable } from './push-notifications.js';
+import { hasPushDevice } from './push-reach.js';
 import { getFirestoreClient } from '../firestore-persistence.js';
 import { sharedHeld } from '../minor-care-shared-hold.js';
 import { heldSender } from '../checkin-replies.js';
@@ -172,6 +173,8 @@ export interface DeliverOutreachResult {
   channel: string;
   messageId?: string;
   error?: string;
+  /** No push device registered: nothing was tried, so there's no attempt to record. */
+  unreachable?: true;
 }
 
 /**
@@ -237,6 +240,9 @@ export async function deliverOutreach(
         };
 
       case 'push':
+        if (!(await hasPushDevice(userId))) {
+          return { success: false, channel, error: 'No push device registered', unreachable: true };
+        }
         if (!isPushNotificationsAvailable()) {
           return { success: false, channel, error: 'Push notifications not available' };
         }

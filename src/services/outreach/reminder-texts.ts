@@ -33,7 +33,7 @@ import {
   type GuardedTextOutcome,
 } from '../scheduling/reminder-text-guard.js';
 import { toE164 } from './checkin-replies.js';
-import { mayReachForOwner } from '../messaging/consent-grants.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import {
   defaultTextDeps,
   isOwnVerifiedPhone,
