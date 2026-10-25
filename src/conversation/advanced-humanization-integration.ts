@@ -496,7 +496,7 @@ export function recordAgentResponse(sessionId: string, response: string): void {
     import('../services/superhuman/semantic-intelligence/integration.js')
       .then(({ trackFerniCommitments }) => {
         // Fire-and-forget: track commitments asynchronously
-        void trackFerniCommitments(state.config.userId, response, {});
+        void trackFerniCommitments(state.config.userId, response, { sessionId });
       })
       .catch((err) => {
         // Non-critical - don't block on this

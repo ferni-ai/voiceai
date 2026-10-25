@@ -14,6 +14,7 @@ import { llm } from '@livekit/agents';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { judgeCommitment } from '../../../utils/commitment-quality.js';
+import { MINOR_CARE_NOT_SAVED, writeHeld } from '../../../utils/minor-care.js';
 import {
   detectCommitment,
   saveCommitment,
@@ -131,6 +132,7 @@ const recordCommitmentDef: ToolDefinition = {
             ...(await requestedFieldsFor(ctx.userId)),
           });
 
+          if (writeHeld(ctx.userId)) return MINOR_CARE_NOT_SAVED; // the save held too: no promise
           // Build a human-friendly response
           let response = `Got it - I'll remember that you ${summary}`;
 
