@@ -22,6 +22,7 @@ import {
 } from '../../intelligence/index.js';
 import { learnTemporalPattern } from '../../intelligence/context-builders/intelligence/temporal-intelligence.js';
 import { recordSharedMoment } from '../../intelligence/context-builders/relationship/deep-relationship.js';
+import { questionShapeOf, safeTopic } from '../../intelligence/collective/community-labels.js';
 import { recordTrustSystemsData } from './index.js';
 
 // Capability learning - track engagement with surfaced capabilities
@@ -375,21 +376,27 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
         );
 
       if (isBreakthroughMoment) {
-        // Extract the question pattern from the last few injections that might have triggered this
-        const questionPattern =
-          ctx.injections.find((i) => i.content.includes('?'))?.content.slice(0, 100) ||
-          'open_question';
-        const topic =
-          ctx.injections.find((i) => i.category === 'topics')?.content?.split(' ')[0] || 'general';
+        // Community learning is shared with every caller, so it gets labels only: the
+        // shape of the question that may have triggered this (injections can carry the
+        // caller's memories), a fixed topic name, and a fixed context, never their words.
+        const questionPattern = questionShapeOf(
+          ctx.injections.find((i) => i.content.includes('?'))?.content
+        );
+        const topic = safeTopic(
+          ctx.injections.find((i) => i.category === 'topics')?.content?.split(' ')[0]
+        );
 
         recordBreakthroughForLearning(
           ctx.personaId,
           topic,
           questionPattern,
-          ctx.userText.slice(0, 200),
+          'breakthrough',
           ctx.emotionalResult.intensity // engagement lift
         );
-        logger.debug({ topic, intensity: ctx.emotionalResult.intensity }, '💡 Breakthrough recorded');
+        logger.debug(
+          { topic, intensity: ctx.emotionalResult.intensity },
+          '💡 Breakthrough recorded'
+        );
       }
 
       // 📚 CAPABILITY LEARNING: Track user engagement with surfaced capabilities

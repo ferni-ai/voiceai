@@ -73,6 +73,7 @@ import { getDefenseStats } from '../tools/semantic-router/defense/index.js';
 import { getOnlineLearningStats } from '../tools/semantic-router/learning/online-learning-loop.js';
 import { getAggregateRoutingStats } from '../tools/semantic-router/integration/routing-observability.js';
 import { getAgentEvolution } from '../intelligence/agent-evolution.js';
+import { questionShapeOf, safeTopic } from '../intelligence/collective/community-labels.js';
 import {
   getAllCircuitStats,
   getAllClientStats,
@@ -425,10 +426,8 @@ async function getRedisMetrics() {
   return metrics;
 }
 
-/**
- * Get collective learning & intelligence metrics
- */
-function getIntelligenceMetrics() {
+/** Collective learning metrics: totals for anyone signed in, the top lists for admins only */
+function getIntelligenceMetrics(isAdmin: boolean) {
   // Get community insights metrics
   const communityInsights = getCommunityInsights();
   const insightsStats = communityInsights.getStats();
@@ -436,15 +435,26 @@ function getIntelligenceMetrics() {
 
   // Get scheduler status
   const schedulerStatus = getCollectiveLearningSchedulerStatus();
+  const totals = {
+    scheduler: { isRunning: schedulerStatus.isRunning, uptimeMs: schedulerStatus.uptimeMs },
+    communityInsights: {
+      totalPatterns: insightsStats.totalPatterns,
+      totalEffectiveQuestions: insightsStats.totalEffectiveQuestions,
+      totalStoryResonance: insightsStats.totalStoryResonance,
+      avgPatternConfidence: insightsStats.avgPatternConfidence,
+    },
+    timestamp: new Date().toISOString(),
+  };
+  if (!isAdmin) return totals;
 
   // Calculate derived metrics - top breakthrough questions
   const topQuestions = insightsData.effectiveQuestions
     .sort((a, b) => b.avgBreakthroughRate - a.avgBreakthroughRate)
     .slice(0, 5)
     .map((q) => ({
-      pattern: q.questionPattern.slice(0, 100),
+      pattern: questionShapeOf(q.questionPattern),
       personaId: q.personaId,
-      topic: q.topic,
+      topic: safeTopic(q.topic),
       breakthroughRate: `${(q.avgBreakthroughRate * 100).toFixed(1)}%`,
       sampleSize: q.sampleSize,
     }));
@@ -464,7 +474,7 @@ function getIntelligenceMetrics() {
   // Response pattern insights - extract strategy effectiveness
   const topPatterns = insightsData.patterns.slice(0, 5).map((p) => ({
     id: p.id,
-    context: p.context,
+    context: { ...p.context, topic: p.context.topic && safeTopic(p.context.topic) },
     topStrategy: p.strategies[0]
       ? {
           type: p.strategies[0].type,
@@ -475,20 +485,10 @@ function getIntelligenceMetrics() {
   }));
 
   return {
-    scheduler: {
-      isRunning: schedulerStatus.isRunning,
-      uptimeMs: schedulerStatus.uptimeMs,
-    },
-    communityInsights: {
-      totalPatterns: insightsStats.totalPatterns,
-      totalEffectiveQuestions: insightsStats.totalEffectiveQuestions,
-      totalStoryResonance: insightsStats.totalStoryResonance,
-      avgPatternConfidence: insightsStats.avgPatternConfidence,
-    },
+    ...totals,
     topBreakthroughQuestions: topQuestions,
     topResonatingStories: topStories,
     topResponsePatterns: topPatterns,
-    timestamp: new Date().toISOString(),
   };
 }
 
@@ -528,15 +528,13 @@ export async function handleObservabilityRoutes(
     return true;
   }
 
-  // Writes (clear) and the routing dashboard (every caller's routes) require admin access
-  if (req.method === 'POST' || pathname === '/api/observability/routing-dashboard') {
-    const auth = await requireAdmin(req, res);
-    if (!auth) return true;
-  } else {
-    // Read operations require basic auth
-    const auth = await requireAuth(req, res, { allowDevMode: true });
-    if (!auth) return true;
-  }
+  // Writes (clear) and the routing dashboard (every caller's routes) require admin access;
+  // other reads require a sign-in, and `viewer` decides what per-caller rows they may see
+  const viewer =
+    req.method === 'POST' || pathname === '/api/observability/routing-dashboard'
+      ? await requireAdmin(req, res)
+      : await requireAuth(req, res, { allowDevMode: true });
+  if (!viewer) return true;
 
   const url = new URL(req.url || '', `http://${req.headers.host}`);
   const windowMinutes = getWindowMinutes(url);
@@ -722,10 +720,9 @@ export async function handleObservabilityRoutes(
       return true;
     }
 
-    // GET /api/observability/intelligence - Collective learning & intelligence metrics
+    // GET /api/observability/intelligence - totals; top lists (labels only) for admins
     if (pathname === '/api/observability/intelligence' && req.method === 'GET') {
-      const intelligenceData = getIntelligenceMetrics();
-      sendJSON(res, intelligenceData);
+      sendJSON(res, getIntelligenceMetrics(viewer.isAdmin));
       return true;
     }
 

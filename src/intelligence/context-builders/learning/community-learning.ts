@@ -73,7 +73,7 @@ async function buildCommunityLearningContext(
       injections.push(
         createHintInjection(
           'community_question',
-          `[BREAKTHROUGH QUESTION: "${question.question}" has ` +
+          `[BREAKTHROUGH QUESTION: ${question.question} has ` +
             `${(question.expectedBreakthroughRate * 100).toFixed(0)}% breakthrough rate ` +
             `in ${question.bestContext} context. Consider using it if natural.]`
         )
