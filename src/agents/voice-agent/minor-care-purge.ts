@@ -21,6 +21,7 @@ import { clearAllUserGrowth } from '../../services/trust-systems/persona-growth.
 import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js';
 import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
+import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
 import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -56,6 +57,8 @@ export function purgeHeldUser(userId: string): void {
     ['social graph', clearSocialGraph],
     // threads, open loops, commitments…: buffered before the age statement, saved by a later call
     ['semantic intelligence', (id) => clearSemanticIntelligenceCache(id)],
+    // quotes, people, avoided topics: the builder feeds them every turn; a later call's end saves them
+    ['deep understanding', clearDeepUnderstandingUser],
   ];
   for (const [name, purge] of purges) {
     try {
