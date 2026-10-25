@@ -8,8 +8,9 @@ import { Readable } from 'node:stream';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EmailSender, EmailSendResult, OutgoingEmail } from '../../types/email-sender.js';
 
-const { store, port, call } = vi.hoisted(() => ({
+const { store, port, call, quota } = vi.hoisted(() => ({
   store: new Map<string, Map<string, Record<string, unknown>>>(),
+  quota: { fail: false, chain: Promise.resolve() as Promise<unknown> },
   port: {
     sent: [] as OutgoingEmail[],
     configured: true,
@@ -18,7 +19,16 @@ const { store, port, call } = vi.hoisted(() => ({
   call: { success: true, message: '' },
 }));
 const coll = (name: string) => store.get(name) ?? store.set(name, new Map()).get(name)!;
+type Ref = { get: () => Promise<unknown>; set: (d: Record<string, unknown>, o?: object) => Promise<void> }; // prettier-ignore
 const fakeDb = {
+  // The waitlist email quota counts in a transaction
+  // (one at a time, as Firestore's retries make them look to each caller)
+  runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
+    if (quota.fail) throw new Error('firestore unavailable');
+    const run = quota.chain.then(() => fn({ get: (ref: Ref) => ref.get(), set: (ref: Ref, d: Record<string, unknown>, o?: object) => ref.set(d, o) })); // prettier-ignore
+    quota.chain = run.catch(() => undefined);
+    return run;
+  },
   collection: (name: string) => ({
     doc: (id: string) => ({
       get: async () => ({ exists: coll(name).has(id), data: () => coll(name).get(id) }),
@@ -86,6 +96,7 @@ beforeEach(() => {
   port.result = { ok: true, provider: 'gmail', messageId: 'm-1' };
   call.success = true;
   call.message = '';
+  quota.fail = false;
   fetchSpy.mockClear();
   vi.stubGlobal('fetch', fetchSpy);
   vi.stubEnv('SENDGRID_API_KEY', 'sg-key-that-must-not-be-used');
@@ -164,5 +175,47 @@ describe('waitlist email through the port', () => {
     });
     expect(port.sent).toHaveLength(0);
     expect(sendGridCalls()).toHaveLength(0);
+  });
+});
+
+describe('the daily cap on waitlist email', () => {
+  const today = () => new Date().toISOString().slice(0, 10);
+  const signedUp = (e: string) => coll('waitlist').get(docId(e));
+
+  it('counts each recipient against the day, under the cap it sends', async () => {
+    await post('/api/waitlist', { email: 'counted@example.com', source: 'newsletter' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(2));
+    // admin notice (2 recipients) + newsletter welcome (1)
+    expect(coll('ops_email_quota').get(today())).toMatchObject({ waitlist: 3 });
+  });
+
+  it('at the cap nothing is sent and the signup still succeeds', async () => {
+    vi.stubEnv('WAITLIST_EMAIL_DAILY_LIMIT', '5');
+    coll('ops_email_quota').set(today(), { waitlist: 5 });
+    expect(await post('/api/waitlist', { email: 'late@example.com', source: 'newsletter' })).toBe(200); // prettier-ignore
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    expect(port.sent).toHaveLength(0);
+    expect(signedUp('late@example.com')).toMatchObject({ status: 'pending' });
+    expect(coll('ops_email_quota').get(today())).toMatchObject({ waitlist: 5 });
+  });
+
+  it('a send that would cross the cap is skipped while one that fits goes out', async () => {
+    vi.stubEnv('WAITLIST_EMAIL_DAILY_LIMIT', '1');
+    await post('/api/waitlist', { email: 'edge@example.com', source: 'newsletter' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    // the 2-recipient admin notice does not fit in 1; the 1-recipient welcome does
+    expect(port.sent[0]!.to).toBe('edge@example.com');
+  });
+
+  it('when the counter fails it sends nothing (fail closed) and the signup succeeds', async () => {
+    quota.fail = true;
+    expect(await post('/api/waitlist', { email: 'down@example.com', source: 'newsletter' })).toBe(200); // prettier-ignore
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    expect(port.sent).toHaveLength(0);
+    expect(signedUp('down@example.com')).toMatchObject({ status: 'pending' });
   });
 });

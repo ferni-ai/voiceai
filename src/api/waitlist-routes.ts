@@ -39,6 +39,7 @@ import { handleWaitlistQueueRoutes, QUEUE_ROUTE_PATHS } from './waitlist-queue-r
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 import { getEmailSender, type OutgoingEmail } from '../services/email-transport/index.js';
 import { unsubscribeMailbox } from '../services/communication-service.js';
+import { waitlistEmailAllowed } from './waitlist-email-quota.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -626,6 +627,10 @@ function waitlistMailReady(what: string): boolean {
 
 /** Send through the app transport. Never throws; a failure is logged (no addresses). */
 async function sendWaitlistMail(what: string, email: OutgoingEmail): Promise<boolean> {
+  ensureFirebaseInitialized();
+  const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
+  const recipients = Array.isArray(email.to) ? email.to.length : 1;
+  if (!(await waitlistEmailAllowed(getAdminFirestore, what, recipients))) return false;
   const res = await getEmailSender().send(email);
   if (res.ok) log.info({ what, provider: res.provider }, 'Waitlist email sent');
   else log.warn({ what, provider: res.provider, status: res.status, error: res.error }, 'Waitlist email failed'); // prettier-ignore
