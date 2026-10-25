@@ -19,6 +19,7 @@
  */
 
 import type { DocumentReference, Firestore } from '@google-cloud/firestore';
+import { retry, type RetryOptions } from '../../utils/async.js';
 import { userHeld } from '../../utils/minor-care.js';
 import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -30,8 +31,10 @@ const log = createLogger({ module: 'cross-persona-insight-store' });
 /** One change to a user's insight list. Pure: a transaction may run it more than once. */
 export type InsightChange = (stored: CrossPersonaInsight[]) => CrossPersonaInsight[];
 
+const recordFor = (db: Firestore, userId: string): DocumentReference =>
+  db.collection('bogle_users').doc(userId);
 const docFor = (db: Firestore, userId: string): DocumentReference =>
-  db.collection('bogle_users').doc(userId).collection('team_insights').doc('data');
+  recordFor(db, userId).collection('team_insights').doc('data');
 
 function listOf(data: unknown): CrossPersonaInsight[] {
   const insights = (data as { insights?: unknown } | null | undefined)?.insights;
@@ -94,29 +97,64 @@ export async function readStoredInsights(
 
 const inFlight = new Set<Promise<unknown>>();
 
+/** gRPC codes worth another try: DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED, ABORTED, INTERNAL, UNAVAILABLE */
+const TRANSIENT = new Set([4, 8, 10, 13, 14]);
+const grpcCode = (error: unknown): number | undefined => {
+  const { code } = (error ?? {}) as { code?: unknown };
+  return typeof code === 'number' ? code : undefined;
+};
+
+/**
+ * A background write (add, consume, expiry) that fails on a transient error is tried again,
+ * a bounded number of times: the SDK's own transaction attempts (5) run inside each of these
+ * 3 tries. acknowledge (the app's route) doesn't retry here: its caller is told.
+ */
+export const BACKGROUND_RETRY: RetryOptions = {
+  maxRetries: 2,
+  initialDelay: 250,
+  maxDelay: 1_000,
+  shouldRetry: (error) => TRANSIENT.has(grpcCode(error) ?? -1),
+};
+
 /**
  * Applies one change to the stored list in a transaction, so a concurrent writer's
- * insights are kept. Never writes for a caller MINOR_CARE holds, or a shared id.
- * Rejects when the write fails (already logged).
+ * insights are kept. Never writes for a caller MINOR_CARE holds, a shared id, or an
+ * erased account: when the user record (bogle_users/{uid}) and this document are both
+ * gone, the write is dropped. Account erasure deletes both; the scheduled jobs read the
+ * missing record the same way (ponder-job.ts). Read in the transaction, so a process still
+ * running after the erasure (a live call, a scan) can't recreate the document.
+ * `background`: retried with BACKGROUND_RETRY. Rejects when the write fails; the failure
+ * is logged once, by its code, never with the insight's words.
  */
 export async function changeStoredInsights(
   db: Firestore | null,
   userId: string,
-  change: InsightChange
+  change: InsightChange,
+  options: { background?: boolean } = {}
 ): Promise<void> {
   if (!db || isSharedPlaceholderId(userId) || userHeld(userId)) return;
+  const record = recordFor(db, userId);
   const ref = docFor(db, userId);
+  let tries = 0;
 
-  const write = db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const insights = change(listOf(snap.data()));
-    const doc = { insights, lastScannedAt: Date.now(), _updatedAt: new Date().toISOString() };
-    // Plain JSON, as the app receives it: no undefined anywhere, Dates as ISO strings
-    const plain = JSON.parse(JSON.stringify({ ...doc, _userId: userId })) as object;
-    tx.set(ref, plain, { merge: true });
+  const once = async (): Promise<boolean> => {
+    tries += 1;
+    return db.runTransaction(async (tx) => {
+      const [user, snap] = await Promise.all([tx.get(record), tx.get(ref)]);
+      if (!user.exists && !snap.exists) return false; // erased
+      const insights = change(listOf(snap.data()));
+      const doc = { insights, lastScannedAt: Date.now(), _updatedAt: new Date().toISOString() };
+      // Plain JSON, as the app receives it: no undefined anywhere, Dates as ISO strings
+      const plain = JSON.parse(JSON.stringify({ ...doc, _userId: userId })) as object;
+      tx.set(ref, plain, { merge: true });
+      return true;
+    });
+  };
+  const write = (options.background ? retry(once, BACKGROUND_RETRY) : once()).then((written) => {
+    if (!written) log.info({ userId }, 'Team insight write dropped: no user record');
   });
   const settled = write.catch((error: unknown) => {
-    log.warn({ error: String(error), userId }, 'Team insight write failed');
+    log.warn({ code: grpcCode(error) ?? 'none', tries, userId }, 'Team insight write failed');
   });
   inFlight.add(settled);
   void settled.finally(() => inFlight.delete(settled));

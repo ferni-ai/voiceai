@@ -98,6 +98,8 @@ describe('cross-persona insight reads', () => {
   });
 
   it('a missing document still saves new insights', async () => {
+    // The user's record exists (a call's session start makes it); only their insights don't
+    firestore.docs.set(`bogle_users/${user}`, { id: user });
     await loadInsights(user);
     await addInsight('new');
 
