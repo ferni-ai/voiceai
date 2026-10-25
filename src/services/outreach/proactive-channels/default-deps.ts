@@ -7,7 +7,7 @@
  * @module services/outreach/proactive-channels/default-deps
  */
 
-import { consentBlocks } from '../../messaging/consent.js';
+import { ownerRefusal } from '../../messaging/consent-reach.js';
 import { heldSender } from '../checkin-replies.js';
 import { sendGuardedText } from '../guarded-text.js';
 import { saveInAppMessage } from '../unified-delivery.js';
@@ -49,7 +49,7 @@ export function defaultProactiveDeps(): ProactiveDeps {
     canCall: () => canPlaceCalls(),
     // MINOR_CARE_SHARED_HOLD: never ring an account or a number a call held under 18
     placeCall: async (userId, phone, trigger) =>
-      (await consentBlocks(phone, 'call', true)) || (await heldSender(userId, phone))
+      (await ownerRefusal(userId, phone, 'call')) || (await heldSender(userId, phone))
         ? 'failed'
         : placeSelfCall(userId, phone, trigger),
   };

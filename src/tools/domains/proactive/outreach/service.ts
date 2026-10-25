@@ -64,6 +64,7 @@ async function makePhoneCall(
   try {
     const result = await callWithPersonaVoice(phone, message, personaId, {
       fallbackToTwilioVoice: true,
+      ownerUid: userId,
       userId,
     });
     if (result.success) return { success: true, callSid: result.callSid };
@@ -119,12 +120,10 @@ export async function setUserContactInfo(
   userId: string,
   info: Partial<UserContactInfo>
 ): Promise<void> {
-  // Update local cache
   const existing = userContactCache.get(userId) || {};
   const updated = { ...existing, ...info };
   userContactCache.set(userId, updated);
 
-  // Persist to user profile in Firestore
   try {
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
@@ -165,7 +164,6 @@ async function savedContactInfo(userId: string): Promise<UserContactInfo | undef
   const cached = userContactCache.get(userId);
   if (cached) return cached;
 
-  // Load from profile if not in cache
   try {
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);

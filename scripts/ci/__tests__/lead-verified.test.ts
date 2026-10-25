@@ -3,8 +3,8 @@
  * pure "merge main in" on top of a verified SHA. The merge-tree cases run real git
  * in a throwaway repo; nothing touches the network.
  */
-import { execFileSync } from 'child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { execFileSync, spawnSync } from 'child_process';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -13,6 +13,7 @@ import {
   gitOps,
   markers,
   parseQueueRef,
+  queueMembers,
   tableCell,
   toPullRequest,
   type Comment,
@@ -22,10 +23,11 @@ import {
   type Status,
 } from '../lead-verified.js';
 
+const VERIFIER = 'ferni-verifier[bot]';
 const HEAD = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 const OLD = 'ffeeddccbbaa99887766554433221100ffeeddcc';
 
-const comment = (body: string, at = '2026-10-22T12:00:00Z', author = 'sethdford'): Comment => ({
+const comment = (body: string, at = '2026-10-22T12:00:00Z', author = VERIFIER): Comment => ({
   author,
   createdAt: at,
   body,
@@ -33,7 +35,7 @@ const comment = (body: string, at = '2026-10-22T12:00:00Z', author = 'sethdford'
 const status = (
   sha: string,
   state: string,
-  creator = 'sethdford',
+  creator = VERIFIER,
   at = '2026-10-22T12:00:00Z'
 ): Status => ({
   sha,
@@ -73,7 +75,7 @@ describe('direct evidence on the head', () => {
       null
     );
     expect(r.verdict).toBe('VERIFIED');
-    expect(r.reason).toContain('PASS comment by sethdford');
+    expect(r.reason).toContain('PASS comment by ferni-verifier[bot]');
   });
 
   it('bound marker with a short (9-hex) prefix of the head → NOT_VERIFIED', () => {
@@ -101,6 +103,17 @@ describe('direct evidence on the head', () => {
     expect(r.verdict).toBe('NOT_VERIFIED');
     expect(r.reason).toContain(HEAD.slice(0, 9));
   });
+
+  it.each(['sethdford', 'ferni-agent[bot]'])(
+    'only ferni-verifier[bot] counts by default: a PASS by %s does not verify',
+    (who) => {
+      const c = comment(`RESULT_verifier=PASS sha=${HEAD}`, undefined, who);
+      expect(evaluate(pr({ comments: [c] }), null).verdict).toBe('NOT_VERIFIED');
+      expect(evaluate(pr({ statuses: [status(HEAD, 'success', who)] }), null).verdict).toBe(
+        'NOT_VERIFIED'
+      );
+    }
+  );
 
   it('bound PASS from an author not on the list → NOT_VERIFIED', () => {
     const c = comment(`RESULT_verifier=PASS sha=${HEAD}`, undefined, 'someone-else');
@@ -162,67 +175,138 @@ describe('direct evidence on the head', () => {
     const r = evaluate(pr({ statuses: [status(HEAD, 'success'), late] }), null);
     expect(r.verdict).toBe('NOT_VERIFIED');
   });
+
+  it('a failure status from any creator blocks', () => {
+    const late = status(HEAD, 'failure', 'someone-else', '2026-10-22T13:00:00Z');
+    const r = evaluate(pr({ statuses: [status(HEAD, 'success'), late] }), null);
+    expect(r.verdict).toBe('NOT_VERIFIED');
+  });
+
+  it("a different 40-hex SHA sharing the head's 9-char prefix → NOT_VERIFIED", () => {
+    const twin = HEAD.slice(0, 9) + 'f'.repeat(31);
+    const r = evaluate(pr({ comments: [comment(`RESULT_verifier=PASS sha=${twin}`)] }), null);
+    expect(r.verdict).toBe('NOT_VERIFIED');
+  });
+
+  it.each([
+    ['quoted', `> RESULT_verifier=PASS sha=${HEAD}\nquoting the bot`],
+    ['fenced', 'Once fixed, post:\n```\nRESULT_verifier=PASS sha=' + HEAD + '\n```'],
+    ['mid-sentence', `Do NOT post RESULT_verifier=PASS sha=${HEAD} until it is fixed`],
+    ['inline code', `\`RESULT_verifier=PASS sha=${HEAD}\``],
+    ['indented code', `    RESULT_verifier=PASS sha=${HEAD}`],
+  ])('a %s marker does not verify', (_, body) => {
+    expect(evaluate(pr({ comments: [comment(body)] }), null).verdict).toBe('NOT_VERIFIED');
+  });
+
+  it('the marker after a closed fence still verifies', () => {
+    const body = '```\nlog\n```\nRESULT_verifier=PASS sha=' + HEAD;
+    expect(evaluate(pr({ comments: [comment(body)] }), null).verdict).toBe('VERIFIED');
+  });
+
+  it.each([
+    'RESULT_verifier=FAIL',
+    'Verdict: FAIL - migration drops rows',
+    'verdict: fail',
+    'RESULT_verifier: FAIL',
+    'Verification FAILED on the rerun',
+    `FAIL ${HEAD}`,
+    `RESULT_verifier=FAIL sha=${OLD}`,
+  ])('FAIL "%s" (any SHA or none) after the PASS → NOT_VERIFIED', (body) => {
+    const pass = comment(`RESULT_verifier=PASS sha=${HEAD}`, '2026-10-22T12:00:00Z');
+    const later = comment(body, '2026-10-22T13:00:00Z', 'some-reviewer');
+    expect(evaluate(pr({ comments: [pass, later] }), null).verdict).toBe('NOT_VERIFIED');
+  });
+
+  it('a FAIL in the same comment as a bound PASS → NOT_VERIFIED', () => {
+    const body = `RESULT_verifier=PASS sha=${HEAD}\n\nUPDATE: Verdict: FAIL after a rerun`;
+    expect(evaluate(pr({ comments: [comment(body)] }), null).verdict).toBe('NOT_VERIFIED');
+  });
+
+  it('wording that is not a FAIL marker does not block', () => {
+    const pass = comment(`RESULT_verifier=PASS sha=${HEAD}`, '2026-10-22T12:00:00Z');
+    const later = comment('Verdict: failing test was a flake, fixed', '2026-10-22T13:00:00Z');
+    expect(evaluate(pr({ comments: [pass, later] }), null).verdict).toBe('VERIFIED');
+  });
 });
 
 describe('markers', () => {
-  it('reads bound markers, prose verdicts and SHA tokens', () => {
-    expect(markers('Verdict: Reject')).toEqual({ bound: [], pass: false, fail: false, shas: [] });
-    expect(markers(`RESULT_verifier=FAIL sha=${HEAD.toUpperCase()}`).bound).toEqual([
-      { kind: 'fail', sha: HEAD },
-    ]);
-    expect(markers('tests pass')).toMatchObject({ pass: false });
+  it('reads bound PASS lines, prose verdicts, FAILs and SHA tokens', () => {
+    expect(markers('Verdict: Reject')).toEqual({
+      passShas: [],
+      prosePass: false,
+      fail: false,
+      shas: [],
+    });
+    expect(markers(`RESULT_verifier=PASS sha=${HEAD.toUpperCase()}`).passShas).toEqual([HEAD]);
+    expect(markers('tests pass')).toMatchObject({ prosePass: false, fail: false });
   });
 });
 
 describe('REST payloads (toPullRequest)', () => {
+  const user = { login: VERIFIER };
+  const marker = `RESULT_verifier=PASS sha=${HEAD}`;
+  const [t0, t1, t2] = ['2026-10-22T12:00:00Z', '2026-10-22T13:00:00Z', '2026-10-22T14:00:00Z'];
   const raw = (over: Partial<RawPull> = {}): RawPull => ({
     pull: { head: { sha: HEAD } },
     commits: [{ sha: HEAD, parents: [{ sha: OLD }] }],
     comments: [],
     reviews: [],
+    inline: [],
     statuses: {},
     ...over,
   });
+  const verdict = (r: RawPull) => evaluate(toPullRequest(1, r), null).verdict;
+  const pass = { user, created_at: t0, updated_at: t0, body: marker };
 
   it('an auto-merge (arm) reason with a bound PASS does not verify', () => {
-    const marker = `RESULT_verifier=PASS sha=${HEAD}`;
-    const auto_merge = {
-      enabled_by: { login: 'sethdford' },
-      commit_title: marker,
-      commit_message: marker,
-    };
-    const r = evaluate(toPullRequest(1, raw({ pull: { head: { sha: HEAD }, auto_merge } })), null);
-    expect(r.verdict).toBe('NOT_VERIFIED');
+    const auto_merge = { enabled_by: user, commit_title: marker, commit_message: marker };
+    expect(verdict(raw({ pull: { head: { sha: HEAD }, auto_merge } }))).toBe('NOT_VERIFIED');
   });
 
-  it('comments, reviews and statuses map to evidence', () => {
-    const user = { login: 'sethdford' };
-    const marker = `RESULT_verifier=PASS sha=${HEAD}`;
-    const at = '2026-10-22T12:00:00Z';
-    const viaReview = raw({ reviews: [{ user, submitted_at: at, body: marker }] });
-    expect(evaluate(toPullRequest(1, viaReview), null).verdict).toBe('VERIFIED');
-    const viaComment = raw({ comments: [{ user, created_at: at, body: marker }] });
-    expect(evaluate(toPullRequest(1, viaComment), null).verdict).toBe('VERIFIED');
-    const s = { context: 'lead-verify', state: 'success', creator: user, created_at: at };
-    expect(evaluate(toPullRequest(1, raw({ statuses: { [HEAD]: [s] } })), null).verdict).toBe(
-      'VERIFIED'
+  it('an unedited PR comment and a status verify; a review never does', () => {
+    expect(verdict(raw({ comments: [pass] }))).toBe('VERIFIED');
+    const s = { context: 'lead-verify', state: 'success', creator: user, created_at: t0 };
+    expect(verdict(raw({ statuses: { [HEAD]: [s] } }))).toBe('VERIFIED');
+    expect(verdict(raw({ reviews: [{ user, submitted_at: t0, body: marker }] }))).toBe(
+      'NOT_VERIFIED'
     );
+  });
+
+  it('an edited PASS comment does not verify', () => {
+    expect(verdict(raw({ comments: [{ ...pass, updated_at: t2 }] }))).toBe('NOT_VERIFIED');
+  });
+
+  it('an edited FAIL still blocks, at its edit time', () => {
+    const fail = { user, created_at: t0, updated_at: t2, body: 'RESULT_verifier=FAIL' };
+    const pass1 = { ...pass, created_at: t1, updated_at: t1 };
+    expect(verdict(raw({ comments: [pass1, fail] }))).toBe('NOT_VERIFIED');
+  });
+
+  it('a FAIL in an inline review comment or a review blocks', () => {
+    const fail = { user: { login: 'x' }, created_at: t1, body: 'Verdict: FAIL' };
+    expect(verdict(raw({ comments: [pass], inline: [fail] }))).toBe('NOT_VERIFIED');
+    const review = { user: { login: 'x' }, submitted_at: t1, body: 'Verdict: FAIL' };
+    expect(verdict(raw({ comments: [pass], reviews: [review] }))).toBe('NOT_VERIFIED');
   });
 });
 
 describe('workflow runs trusted code', () => {
   const wf = readFileSync(join(__dirname, '../../../.github/workflows/lead-verified.yml'), 'utf8');
 
-  it('checks out the base SHA (main in the queue), never the PR head', () => {
+  it('checks out main (never the PR or its base) without persisted credentials', () => {
     const refs = wf.split('\n').filter((l) => /^\s*ref:/.test(l));
-    expect(refs).toEqual(["          ref: ${{ github.event.pull_request.base.sha || 'main' }}"]);
+    expect(refs).toEqual(['          ref: main']);
     expect(wf.match(/actions\/checkout@/g)).toHaveLength(1);
+    expect(wf).toContain('persist-credentials: false');
+    expect(wf).toMatch(/actions\/checkout@[0-9a-f]{40} /);
   });
 
-  it('passes the head SHA only as data and runs the checked-out evaluator', () => {
+  it('re-runs on evidence changes and passes the head only as data', () => {
+    expect(wf).toMatch(/issue_comment:\n\s+types: \[created, edited, deleted\]/);
+    expect(wf).toMatch(/types: \[opened, synchronize, reopened, edited\]/);
     expect(wf).toContain('PR_HEAD: ${{ github.event.pull_request.head.sha }}');
     expect(wf).toContain('node --experimental-strip-types scripts/ci/lead-verified.ts');
-    expect(wf).not.toMatch(/refs\/pull\/|head_ref\s*}}\s*$|git (checkout|switch)/m);
+    expect(wf).not.toMatch(/refs\/pull\/|git (checkout|switch)/);
   });
 });
 
@@ -329,6 +413,29 @@ describe('carry-forward (merge main in)', () => {
     expect(evaluate(p, git).verdict).toBe('VERIFIED');
   });
 
+  it('a failure status on the verified SHA, two merges back, blocks the chain', () => {
+    sh('switch', '-q', '-C', 'chainfail', verified);
+    sh('merge', '-q', '--no-edit', 'main');
+    const first = sh('rev-parse', 'HEAD');
+    sh('switch', '-q', 'main');
+    write('e.txt', 'e\n');
+    commit('main once more');
+    sh('switch', '-q', 'chainfail');
+    sh('merge', '-q', '--no-edit', 'main');
+    const head = sh('rev-parse', 'HEAD');
+    const p = prAt(verified, head);
+    p.commits.push({ sha: first, parents: parents(first) });
+    expect(evaluate(p, git).verdict).toBe('VERIFIED');
+    p.statuses.push({
+      sha: verified,
+      context: 'lead-verify',
+      state: 'failure',
+      creator: 'sethdford',
+      createdAt: '2026-10-22T13:00:00Z',
+    });
+    expect(evaluate(p, git).verdict).toBe('NOT_VERIFIED');
+  });
+
   it('main-merge plus an extra edit → NOT_VERIFIED, naming the file', () => {
     sh('switch', '-q', '-C', 'extra', verified);
     sh('merge', '-q', '--no-edit', 'main');
@@ -382,6 +489,6 @@ describe('carry-forward (merge main in)', () => {
     p.comments.push(comment(`RESULT_verifier=FAIL sha=${head}`, '2026-10-22T13:00:00Z'));
     const r = evaluate(p, git);
     expect(r.verdict).toBe('NOT_VERIFIED');
-    expect(r.reason).toContain('FAIL by sethdford');
+    expect(r.reason).toContain('FAIL by ferni-verifier[bot]');
   });
 });

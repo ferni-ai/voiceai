@@ -24,7 +24,7 @@
 import { voice, type llm } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { synthHum } from './presence-sounds.js';
-import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceCallEnding } from './presence-closing.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import { isHeavyMood } from './presence-watcher.js';
 import { voicedHumFor, voicedPresenceEnabled, type VoicedHum } from './voiced-presence.js';
@@ -172,7 +172,7 @@ export function startToolHum(
       (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
         ?.primary,
     serious: () => presenceSilenceIsHeavy(session),
-    quiet: () => stayQuietOn(session),
+    quiet: () => presenceCallEnding(session),
   });
 
   const onSpeech = (ev: voice.SpeechCreatedEvent) => {

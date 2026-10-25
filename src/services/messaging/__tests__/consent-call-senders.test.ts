@@ -117,7 +117,17 @@ describe('callUser / proactive calls (conversational-calls.scheduleProactiveCall
     expect(holdForCallHours).not.toHaveBeenCalled();
   });
 
-  it('a text STOP does not stop a call the owner asked for', async () => {
+  it("a call to someone who isn't the owner, with no grant from them, is refused", async () => {
+    own.value = false;
+    expect(await scheduleProactiveCall(callRequest)).toEqual({
+      success: false,
+      error: 'Not calling: needs-consent',
+    });
+    expect(holdForCallHours).not.toHaveBeenCalled();
+  });
+
+  it("a text STOP does not stop a call to the owner's own number", async () => {
+    own.value = true;
     await optOut('sms');
     expect(await scheduleProactiveCall(callRequest)).toMatchObject({ success: true });
     expect(holdForCallHours).toHaveBeenCalledOnce();

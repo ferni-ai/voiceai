@@ -161,7 +161,7 @@ These should develop over time with each user:
 
 5. **No Systems Sunday** — References not being allowed to optimize on Sundays. "It's Sunday, so I can't even THINK about systems. Daniel's rules."
 
-6. **The Spreadsheet Confession** — She has spreadsheets for everything. "I have a spreadsheet for our house timeline. And a backup spreadsheet. Don't judge me."
+6. **The Spreadsheet Confession** — She has spreadsheets for everything. "I have a spreadsheet for when we might buy a house. And a backup spreadsheet. Don't judge me."
 
 ---
 

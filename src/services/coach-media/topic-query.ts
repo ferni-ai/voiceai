@@ -42,7 +42,10 @@ const STREET =
 const LOCATED =
   /\b(live|lives|living|moved|move|based|located|staying)\s+(in|at|to|near|by)\s+(?:[\p{L}'-]+\s*){1,2}/giu;
 // Any word holding 3+ digits ("jakeford99" is caught as a handle), and longer digit runs.
-const DIGITS = /\b[\p{L}]*\d{3,}[\p{L}\d]*\b|\+?\d(?:[\s()/.-]*\d){4,}/gu;
+// Digits of any script, and any dash, slash, underscore or backslash between them: NFKC
+// leaves Arabic-Indic digits and en dashes as they are, and this goes to a search engine.
+const DIGITS =
+  /(?<![\p{L}\p{N}_])\p{L}*\p{Nd}{3,}[\p{L}\p{Nd}]*(?![\p{L}\p{N}_])|\+?\p{Nd}(?:[\s()/._\\\-\u2010-\u2015\u2212\uFE58\uFE63]*\p{Nd}){4,}/gu;
 const QUOTED = /"[^"]*"|“[^”]*”|‘[^’]*’/g;
 // "a friend named mike", "a dog called biscuit": the word after is a name; both go,
 // so a second pass finds nothing to take.

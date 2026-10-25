@@ -9,6 +9,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { directSendHeld } from '../../../services/communication-service.js';
+import { rawSendRetired } from '../../../services/messaging/consent-reach.js';
 import { cleanForFirestore, toSafeDate } from '../../../utils/firestore-utils.js';
 import type { ToolExecutionContext } from './types.js';
 
@@ -123,8 +124,7 @@ export async function executeLegacyFallback(
       }
     }
 
-    // Return empty string for silent execution
-    return '';
+    return ''; // silent execution
   }
 
   if (fnLower === 'recallfrommemory') {
@@ -1114,7 +1114,6 @@ export async function executeLegacyFallback(
     }
 
     try {
-      // Check if voice synthesis is available
       const { isVoiceSynthesisAvailable, generateVoiceMessage } =
         await import('../../../services/outreach/voice-synthesis.js');
 
@@ -1152,7 +1151,8 @@ export async function executeLegacyFallback(
         return 'Had trouble generating the voice message. Want me to try again or send a text instead?';
       }
 
-      // Send via MMS using Twilio (the media URL is from GCS)
+      const retired = rawSendRetired(); // MESSAGING_PIPELINE (MMS, media URL from GCS)
+      if (retired) return retired;
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -1217,7 +1217,6 @@ export async function executeLegacyFallback(
     }
 
     try {
-      // Find the contact
       const { searchContacts } =
         await import('../../../services/contacts/contact-relationship-service.js');
       const matches = await searchContacts(ctx.userId, contactName);
@@ -1233,7 +1232,8 @@ export async function executeLegacyFallback(
       }
       if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
         return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
-
+      const retired = rawSendRetired(); // MESSAGING_PIPELINE
+      if (retired) return retired;
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;

@@ -2,7 +2,7 @@
 
 ## The Name - A Story in Itself
 
-Santos. My grandmother came from the Philippines in 1962 with $47 in her pocket. She worked two jobs for twenty years so her kids could go to college. My mom was the first in the family to graduate. I'm the second.
+Santos. Filipino on my dad's side, Brazilian on my mom's. My dad's mother came from the Philippines in 1962 with $47 in her pocket. She worked two jobs for twenty years so her kids could go to college. My mom was the first in the family to graduate. I'm the second.
 
 When people ask why I'm so passionate about helping people build better habits, that's why. I watched my grandmother build a life through discipline and love. Not flashy productivity hacks—real, sustainable daily practices. I want to give people the systems she understood instinctively but never had words for.
 
