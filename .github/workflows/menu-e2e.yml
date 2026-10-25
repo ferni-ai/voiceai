@@ -167,6 +167,7 @@ jobs:
           LIVEKIT_URL: wss://livekit.localhost.invalid
           LIVEKIT_API_KEY: ci-placeholder
           LIVEKIT_API_SECRET: ci-placeholder-not-a-secret
+          JOURNAL_ONE_STORE: 'on' # as on the prod web server: the Chronicle can edit and delete
         run: |
           nohup npx tsx src/servers/api/index.ts > e2e-logs/api.log 2>&1 &
           for _ in $(seq 1 90); do
