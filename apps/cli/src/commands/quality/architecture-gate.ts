@@ -321,10 +321,10 @@ export function orchestrationHint(to: string, root: string, map: Record<string, 
 
 /**
  * orchestration-internal warns (a CI annotation, no failure) before this day and fails from
- * it (UTC). The week gives the ~30 open PRs that add such imports time to add or import an
- * index.ts. Hard-coded on purpose: the switch needs no follow-up PR.
+ * it (UTC). Two weeks from 2026-10-25 give the open PRs that add such imports time to add or
+ * import an index.ts. Hard-coded on purpose: the switch needs no follow-up PR.
  */
-export const ORCHESTRATION_ENFORCED_FROM = '2026-10-30';
+export const ORCHESTRATION_ENFORCED_FROM = '2026-11-08';
 
 /** Splits added violations into failures and warnings on `today` (YYYY-MM-DD, UTC). */
 export function enforcement(added: Violation[], today: string): { errors: Violation[]; warnings: Violation[] } {

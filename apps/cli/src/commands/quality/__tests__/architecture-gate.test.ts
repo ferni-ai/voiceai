@@ -251,18 +251,18 @@ describe('architecture gate: orchestration-internal warns until its enforcement 
   const v = (rule: Violation['rule']): Violation => ({ rule, from: 'src/pipeline/a.ts', to: 'src/memory/x.ts', line: 1 });
   const added = [v('orchestration-internal'), v('type-orchestration-internal'), v('upward')];
 
-  it('is pinned to 2026-10-30', () => {
-    expect(ORCHESTRATION_ENFORCED_FROM).toBe('2026-10-30');
+  it('is pinned to 2026-11-08', () => {
+    expect(ORCHESTRATION_ENFORCED_FROM).toBe('2026-11-08');
   });
 
   it('warns the day before: orchestration imports are warnings, every other rule still fails', () => {
-    const r = enforcement(added, '2026-10-29');
+    const r = enforcement(added, '2026-11-07');
     expect(r.warnings.map((x) => x.rule)).toEqual(['orchestration-internal', 'type-orchestration-internal']);
     expect(r.errors.map((x) => x.rule)).toEqual(['upward']);
   });
 
   it('fails from the date itself, and after', () => {
-    for (const day of ['2026-10-30', '2026-11-15']) {
+    for (const day of ['2026-11-08', '2026-11-09', '2026-12-01']) {
       const r = enforcement(added, day);
       expect(r.warnings, day).toEqual([]);
       expect(r.errors.map((x) => x.rule), day).toEqual(['orchestration-internal', 'type-orchestration-internal', 'upward']);
