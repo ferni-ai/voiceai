@@ -163,6 +163,9 @@ const LEAK_FLOOR: ReadonlyArray<readonly [string, string]> = [
   ['one two three 2026 0132', 'a number'],
   // A said digit is never a domain ending, so the number before "(at)" still goes whole.
   ['call 415 555 0132 (at) six dot two', 'call a number (at) six dot two'],
+  // A year counts after any count: "one two three 2026" is seven digits.
+  ['one two three 2026', 'a number'],
+  ['one two three 1999', 'a number'],
   // Round 3's verify: #2716 blanked each of these, and 5852dc045's prose
   // exemptions (a determiner before the name, a spoken mail host, a group noun,
   // a count with a year) let them through.
@@ -249,12 +252,14 @@ const LEAK_FLOOR: ReadonlyArray<readonly [string, string]> = [
  * Declared over-blanks: main before #2716 left each of these as written, and
  * each is blanked now, on purpose. Any "<word> at <domain>" shape is an address,
  * whatever comes before it (a name-side exemption always let a real one
- * through), an "@" with a domain is never prose, seven said digits are a number
- * unless a year follows exactly "one, two, three", and two bare years joined by
+ * through), an "@" with a domain is never prose, seven said digits are a number,
+ * a year's included ("one, two, three, 2026"), and two bare years joined by
  * a dash are a number. An over-blank only hides text from the app; a leak
  * shows someone's address.
  */
 const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
+  ['steps one, two, three, 2026 plan', 'steps a number plan'],
+  ['steps one, two, three, 2026', 'steps a number'],
   ['remember steps three two one, 2027 kickoff', 'remember steps a number kickoff'],
   ['one, two, three, 2026, 2027', 'a number'],
   ['Bought shoes at zappos.com', 'Bought an email address'],
@@ -365,9 +370,6 @@ const KEEP_FLOOR: readonly string[] = [
   'kids at grandma dot dot dot',
   'kids at grandma dot dot dot later',
   'good at math dot dot dot later',
-  // The one count a year may follow: exactly "one, two, three".
-  'one two three 2026',
-  'one two three 1999',
   // Years and date ranges.
   'the 2026/2027 school year',
   'fiscal 2025/2026 budget',
@@ -430,8 +432,6 @@ const MUST_NOT_BLANK: readonly string[] = [
   'meet at noon dot then lunch',
   'meet @ 5.30',
   // A count with a year after it.
-  'steps one, two, three, 2026 plan',
-  'steps one, two, three, 2026',
   'at five o’clock',
   "at five o'clock",
   // Slashed dates and ranges with dashes.
@@ -520,6 +520,26 @@ describe('withoutContactDetails', () => {
     expect(out.length).toBeLessThanOrEqual(MAX_TEXT + 2);
     expect(out).not.toMatch(/\p{Nd}|\bjo\b|gmail/u);
     expect(out.startsWith('we talked about the garden')).toBe(true);
+  });
+
+  // A contact can span any run of space or punctuation; the cut never falls inside one.
+  const SPANNING: readonly string[] = [
+    `five five five${' '.repeat(200)}0199`,
+    `ana at${' '.repeat(200)}gmail dot com`,
+    `ana${'\n'.repeat(150)}at gmail dot com`,
+    `jo dot${'\t'.repeat(120)}lee at gmail dot com`,
+    `four one five;${' '.repeat(300)}five five five; oh one three two`,
+    `415 ${' - '.repeat(80)} 555 ${'.'.repeat(100)} 0132`,
+    `kofi ＠${' '.repeat(100)}acme dot io`,
+    `jo (at)${' '.repeat(100)}acme dot io`,
+  ];
+  it.each(SPANNING)('never shows any part of %j at any offset around MAX_TEXT', (contact) => {
+    const filler = 'we talked about the garden and the weather for a while '.repeat(60);
+    for (let pad = MAX_TEXT - 450; pad <= MAX_TEXT + 20; pad++) {
+      const out = withoutContactDetails(`${filler.slice(0, pad)} call ${contact} soon`);
+      expect(out).not.toMatch(/\p{N}/u);
+      expect(out).not.toMatch(/\b(?:ana|jo|lee|kofi|gmail|acme|four|five|one|three|two|oh)\b/iu);
+    }
   });
 
   it('shows only "…" for a long text with no clear gap', () => {

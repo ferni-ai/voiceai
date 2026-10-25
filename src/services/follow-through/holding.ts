@@ -144,7 +144,6 @@ const SPELLED_NUMBER = new RegExp(
   'giu'
 );
 const SPELLED_SPLIT = new RegExp(SPELLED_SEP, 'u');
-const YEAR = /^(?:19|20)\d{2}$/;
 
 /**
  * An address said out loud: "jo dot lee at example dot com", "jo (at) example.com",
@@ -229,27 +228,11 @@ function blankPhone(m: string, core: string, ext: string, offset: number, whole:
   return keepOpen ? `${core[0]}a number` : 'a number';
 }
 
-/**
- * The one count a year may follow: "one, two, three", then the year straight
- * after it ("steps one, two, three, 2026"). Any other year's digits count.
- */
-function countedYear(tokens: readonly string[]): number {
-  const said = tokens.flatMap((t, i) => (DIGIT_VALUE.has(t.toLowerCase()) ? [i] : []));
-  const [a = -1, b = -1, c = -1] = said;
-  const isOneTwoThree =
-    said.length === 3 &&
-    [a, b, c].map((i) => DIGIT_VALUE.get(tokens[i]?.toLowerCase() ?? '')).join() === '1,2,3';
-  return isOneTwoThree && YEAR.test(tokens[c + 1] ?? '') ? c + 1 : -1;
-}
-
 function blankSpelled(m: string): string {
   const tokens = m.split(SPELLED_SPLIT).filter(Boolean);
   if (tokens.filter((t) => DIGIT_VALUE.has(t.toLowerCase())).length < 3) return m;
-  const year = countedYear(tokens);
-  const digits = tokens.reduce(
-    (n, t, i) => n + (DIGIT_VALUE.has(t.toLowerCase()) ? 1 : i === year ? 0 : t.length),
-    0
-  );
+  // Every digit counts, a year's too: "one two three 2026" is seven digits.
+  const digits = tokens.reduce((n, t) => n + (DIGIT_VALUE.has(t.toLowerCase()) ? 1 : t.length), 0);
   return digits >= 7 ? 'a number' : m;
 }
 
@@ -268,30 +251,35 @@ function blankAll(text: string): string {
  * The longest text blanked whole. Held items are one line each: a reminder's
  * message, a commitment's statement, a thread from a call, an errand's goal.
  * None of those stores caps its text, so this does: past it, the text is cut
- * at a gap with no digit, "@", "at", "dot", said digit or extension word
- * within CUT_CLEAR chars either side, so no contact is ever cut in two, and
- * the rest is dropped. A text with no such gap shows only "…".
+ * and the rest dropped. The cut falls only between two words that are both
+ * clear of any contact (no digit or "@", not "at", "dot", a said digit or an
+ * extension word), however much space or punctuation lies between them. Every
+ * pattern joins its words with at least one such contact word ("ana at gmail",
+ * "five five five ... 0199", "jo dot lee"), so a contact is never cut in two,
+ * whatever run of space it spans. A text with no such pair shows only "…".
  */
 export const MAX_TEXT = 2000;
-const CUT_CLEAR = 32;
-const CONTACTISH = new RegExp(
-  `[\\p{Nd}@\uFF20\uFE6B]|(?<![\\p{L}\\p{N}])(?:at|dot|x|ext|extension|${DIGIT_WORD})(?![\\p{L}\\p{N}])`,
-  'giu'
-);
+/** A word: letters, digits, "@" and apostrophes; anything else only separates words. */
+const WORD = /[\p{L}\p{N}@\uFF20\uFE6B'’]+/gu;
+const CONTACT_WORD = new RegExp(`^(?:at|dot|x|ext|extension|${DIGIT_WORD})$`, 'iu');
+const isContactWord = (w: string): boolean =>
+  /[\p{N}@\uFF20\uFE6B]/u.test(w) || CONTACT_WORD.test(w);
 
-/** The last whitespace at or before MAX_TEXT with no contact-like token near it, or -1. */
+/** The last whitespace at or before MAX_TEXT between two words clear of any contact, or -1. */
 function safeCut(text: string): number {
-  const head = text.slice(0, MAX_TEXT + CUT_CLEAR);
-  const near = new Uint8Array(head.length + 1);
-  for (const m of head.matchAll(CONTACTISH)) {
-    const from = Math.max(0, m.index - CUT_CLEAR);
-    const to = Math.min(head.length, m.index + m[0].length + CUT_CLEAR);
-    near.fill(1, from, to + 1);
+  let cut = -1;
+  let prev: RegExpExecArray | null = null;
+  WORD.lastIndex = 0;
+  for (let m = WORD.exec(text); m; m = WORD.exec(text)) {
+    if (prev && !isContactWord(prev[0]) && !isContactWord(m[0])) {
+      const gap = prev.index + prev[0].length;
+      const space = text.slice(gap, Math.min(m.index, MAX_TEXT + 1)).search(/\s/u);
+      if (space >= 0) cut = gap + space;
+    }
+    if (m.index > MAX_TEXT) break;
+    prev = m;
   }
-  for (let i = Math.min(MAX_TEXT, head.length - 1); i > 0; i--) {
-    if (near[i] === 0 && /\s/u.test(head.charAt(i))) return i;
-  }
-  return -1;
+  return cut;
 }
 
 /**
