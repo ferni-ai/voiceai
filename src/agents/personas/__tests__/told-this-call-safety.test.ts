@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Director, type Line } from '../director-notes.js';
+import { isSafetyLine } from '../phrase-loops.js';
 import { formatTold, keptTold, toldThisCall } from '../told-this-call.js';
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 
@@ -68,5 +69,29 @@ describe('told-this-call never tells the model to drop safety wording (#2797)', 
 
     noteCrisisRisk('director-call');
     expect(director.told()).not.toContain(DONT_SAY);
+  });
+});
+
+describe('safety lines the scripts do not word are never quoted (SAFETY_TOPIC)', () => {
+  // Paraphrases from the #2804 verify that the script match alone missed.
+  const paraphrases = [
+    'Do you have a plan to hurt yourself tonight?',
+    'You can call or text 988 any time, day or night.',
+    'Is there someone with you right now who can stay close?',
+    "I want to make sure you're okay and not in any danger tonight, are you safe?",
+  ];
+
+  it('flags each paraphrase, and leaves an ordinary line quotable', () => {
+    for (const line of paraphrases) expect(isSafetyLine(line), line).toBe(true);
+    expect(isSafetyLine(ORDINARY)).toBe(false);
+  });
+
+  it('never quotes one said twice, with no crisis risk noted', () => {
+    for (const line of paraphrases) {
+      const lines = [user('hey'), ferni(`Okay. ${line}`), user('hm'), ferni(`Alright. ${line}`)];
+      const told = toldThisCall(lines);
+      expect(formatTold(told), line).toContain(line.slice(0, 20)); // precondition: recorded
+      expect(formatTold(keptTold(told, keepAll)), line).not.toContain(line.slice(0, 20));
+    }
   });
 });
