@@ -268,6 +268,9 @@ describe('NAME_FALLING_SPLIT latency', () => {
     ["Hey, morning! How'd you sleep?", false],
     ["Hey, morning! How'd you sleep?", true],
     ['Hi, good morning, how are you?', false],
+    // "Oh" is a reaction, never held as a hello.
+    ["Oh hey, that's cool.", false],
+    ["Oh hey, that's cool.", true],
   ])('a reply without the name goes out exactly when it did: %s', async (reply, hello) => {
     const off = await firstPush(reply, hello, 'off');
     const on = await firstPush(reply, hello, 'on');
@@ -295,6 +298,22 @@ describe('NAME_FALLING_SPLIT latency', () => {
     expect(on.text).toBe(off.text);
     expect(Math.abs(on.at - off.at)).toBeLessThan(TOLERANCE);
   });
+
+  // Round 3 blocker 1: a mid-call hello was held until the next sentence when the name ended its own.
+  it.each([
+    ['Hey Seth! Good to hear you.', false],
+    ['Hey Seth. How was the run?', false],
+    ['Hey Seth? You there?', false],
+    ['Hey Seth! Long time.', false],
+  ])(
+    'a name that ends its sentence: the hello goes as and when it did: %s',
+    async (reply, hello) => {
+      const off = await firstPush(reply, hello, 'off');
+      const on = await firstPush(reply, hello, 'on');
+      expect(on.text).toBe(off.text);
+      expect(Math.abs(on.at - off.at)).toBeLessThan(TOLERANCE);
+    }
+  );
 
   it.each([
     ["Hey Seth, morning. How'd you sleep?", false],

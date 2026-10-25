@@ -187,6 +187,8 @@ export function withNameGate(
   let sent = '';
   /** raw[0, sentRaw) has gone out, as decided then. */
   let sentRaw = 0;
+  /** NAME_FALLING_SPLIT: where sentRaw would be without the hello hold ("Hey" goes at once). */
+  let helloSentRaw = 0;
   /** Vocatives settled so far, by where the name starts: what is dropped, and whether it stays. */
   /** undefined: as found; null: the name went out, nothing to drop; else the clipped stretch. */
   const decided = new Map<number, { keep: boolean; clipped: Vocative | null | undefined }>();
@@ -203,15 +205,16 @@ export function withNameGate(
    * Whether held text may go out undecided: a hello word always (the name is
    * dropped after it), a comma when first audio may be waiting on it (the
    * reply's first clause break with 12+ letters before it) or at hello before
-   * any name (the first one is kept anyway).
+   * any name (the first one is kept anyway). `asMain`: as if NAME_FALLING_SPLIT
+   * held no hello.
    */
-  const releasable = (from: number, decidedAny: boolean): boolean => {
+  const releasable = (from: number, decidedAny: boolean, asMain = false): boolean => {
     const m = raw.slice(from).match(RELEASABLE);
     if (!m) return false; // the name itself is arriving
     const letters = m[1].toLowerCase();
     if (letters && !GREETING_WORDS.some((g) => g.startsWith(letters))) return false;
     if (letters && name.toLowerCase().startsWith(letters)) return false;
-    if (holdHello && !spoken(sent) && holdsHello(raw.slice(from), letters)) return false;
+    if (!asMain && holdHello && !spoken(sent) && holdsHello(raw.slice(from), letters)) return false;
     if (/^\s*(?:hey|hi|hiya|hello|oh)\b/i.test(raw.slice(from).replace(/^[\s,—–;:]*/, '')))
       return true;
     if (letters) return true; // "He", "Hel": a hello word on its way
@@ -274,6 +277,11 @@ export function withNameGate(
         else if (d.clipped) found.push(d.clipped);
         continue;
       }
+      // NAME_FALLING_SPLIT: a held hello waits only for a name with a comma or dash after it.
+      // "Hey Sam! Good" goes as without the hold ("Hey! Good"), and as soon.
+      if (v.start >= sentRaw && v.start < helloSentRaw && !/^\s*[,—–]/.test(raw.slice(v.nameEnd))) {
+        sentRaw = helloSentRaw;
+      }
       if (v.start >= sentRaw) {
         found.push(v);
         continue;
@@ -285,6 +293,13 @@ export function withNameGate(
       if (clipped) found.push(clipped);
     }
     let upTo = final ? raw.length : Math.max(sentRaw, result.undecidedAt ?? raw.length);
+    // NAME_FALLING_SPLIT: how far the text would have gone without the hello hold.
+    if (holdHello && !final && !spoken(sent)) {
+      const from = Math.max(helloSentRaw, upTo);
+      if (from < raw.length && releasable(from, keptOne || decided.size > 0, true)) {
+        helloSentRaw = raw.length;
+      }
+    }
     if (!final && upTo < raw.length && releasable(upTo, keptOne || decided.size > 0)) {
       upTo = raw.length;
     }
