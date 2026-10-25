@@ -53,10 +53,7 @@ import {
   uxQualityMetrics,
 } from '../services/observability/index.js';
 // Superhuman activation metrics (moved to services layer for architecture compliance)
-import {
-  getSuperhumanActivationEvents,
-  getSuperhumanActivationStats,
-} from '../services/observability/superhuman-events.js';
+import { getSuperhumanActivationView } from '../services/observability/superhuman-events.js';
 import { getMetrics as getCallQualityMetrics } from '../services/analytics/call-quality-monitor.js';
 // Re-export for backward compatibility with existing importers
 export {
@@ -912,17 +909,12 @@ export async function handleObservabilityRoutes(
       return true;
     }
 
-    // GET /api/observability/superhuman - Superhuman capability activation metrics
+    // GET /api/observability/superhuman - activation totals; per-call rows name the caller,
+    // so only an admin sees everyone's and anyone else sees their own
     if (pathname === '/api/observability/superhuman' && req.method === 'GET') {
-      const limitParam = url.searchParams.get('limit');
-      const limit = limitParam ? parseInt(limitParam, 10) : 50;
-      const events = getSuperhumanActivationEvents(limit);
-      const stats = getSuperhumanActivationStats();
-
+      const limit = parsePositiveInt(url.searchParams.get('limit'), 50, 100);
       sendJSON(res, {
-        stats,
-        recentEvents: events,
-        count: events.length,
+        ...getSuperhumanActivationView(viewer, limit),
         collectedAt: new Date().toISOString(),
       });
       return true;
