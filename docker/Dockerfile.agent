@@ -319,6 +319,14 @@ RUN ln -sf /app/dist/ferni-bundle/ferni /usr/local/bin/ferni && \
     chmod +x /app/dist/ferni-bundle/ferni /app/dist/ferni-bundle/ferni.js && \
     echo "Ferni CLI installed:" && ferni --version || echo "(version check skipped)"
 
+# The commit this image was built from, read at boot (src/config/build-sha.ts) for
+# the EFFECTIVE_SETTINGS line and the Sentry release. lk agent deploy passes no
+# build args, so the deploy-agent chain writes `git rev-parse HEAD` to .build-sha.
+# package.json gives the COPY a source when .build-sha is absent (a local or Cloud
+# Build image), where the boot line says "unknown". Last, so only this layer changes.
+COPY package.json .build-sh[a] /tmp/build-meta/
+RUN { cp /tmp/build-meta/.build-sha /app/.build-sha 2>/dev/null || true; } && rm -rf /tmp/build-meta
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV PERSONA_ID=ferni

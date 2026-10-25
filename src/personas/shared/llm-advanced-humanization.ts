@@ -160,7 +160,7 @@ Example tone: "There's something you're circling. I can wait."`,
 
   aftercare: {
     holding: `The user just shared something heavy or emotionally intense.
-Generate a BRIEF response that holds space without rushing to fix.
+Generate a BRIEF response that stays with them without rushing to fix.
 Include SSML pauses. This is a moment to BE with them, not solve.
 Example tone: "That was a lot. Let's just be here for a moment."`,
 
@@ -196,7 +196,7 @@ Example tone: "One thing at a time. What's first?"`,
     acknowledgment: `The user shared something that deserves simple acknowledgment.
 Generate a VERY brief (2-5 words max) acknowledgment.
 Include SSML if needed.
-Examples: "I hear you." "Yeah." "That's real."`,
+Examples: "Yeah." "Oof." "That's real."`,
 
     validation: `The user needs validation that their feelings make sense.
 Generate a BRIEF validating response.

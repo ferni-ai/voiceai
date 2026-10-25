@@ -42,9 +42,9 @@ function getAcknowledgmentBeforeAdvice(emotion: string): string {
       'I understand why this feels scary...',
     ],
     sadness: [
-      'That sounds really hard...',
+      'Oh, man...',
       "I can hear the heaviness in what you're sharing...",
-      "It's okay to feel sad about this...",
+      'Yeah. That one hurts...',
     ],
     frustration: [
       "I can understand why you'd be frustrated...",

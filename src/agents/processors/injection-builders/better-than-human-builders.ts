@@ -15,6 +15,8 @@
  */
 
 import { diag } from '../../../services/diagnostic-logger.js';
+import { flagOn } from '../../../config/env-flag.js';
+import { isSharedPlaceholderId } from '../../../utils/synthetic-user.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
@@ -371,7 +373,8 @@ export async function buildAmbientModeInjections(userId: string): Promise<Contex
  */
 export async function buildHumanTransferInjections(
   userText: string,
-  userId?: string
+  userId?: string,
+  sessionId?: string
 ): Promise<ContextInjection | null> {
   try {
     const { humanTransfer, buildTransferAwarenessContext, logCrisisSignal } =
@@ -380,7 +383,7 @@ export async function buildHumanTransferInjections(
     const signals = humanTransfer.detectCrisisSignals(userText);
 
     if (userId && signals.severity > 0) {
-      logCrisisSignal(userId, signals, userText).catch((err: Error) => {
+      logCrisisSignal(userId, signals, userText, sessionId).catch((err: Error) => {
         diag.debug('Crisis signal logging failed', { error: String(err) });
       });
     }
@@ -402,11 +405,8 @@ export async function buildHumanTransferInjections(
       reason: decision.reason.slice(0, 100),
     });
 
-    return {
-      category: 'better_than_human',
-      content,
-      priority,
-    };
+    const crisis = decision.type === 'crisis_immediate' || decision.type === 'crisis_support';
+    return { category: crisis ? 'crisis_transfer' : 'better_than_human', content, priority };
   } catch (error) {
     diag.debug('Human transfer injection skipped', { error: String(error) });
     return null;
@@ -418,16 +418,39 @@ export async function buildHumanTransferInjections(
 // Priority: 85
 // ============================================================================
 
+/** How long a turn waits for the crisis check under CALL_START_TRIM. */
+export const CRISIS_READ_BUDGET_MS = 150;
+
+/** `work`'s result, or `fallback` after `ms`; the timer is cleared either way. */
+async function withinBudget<T>(work: Promise<T>, fallback: T, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const budget = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  try {
+    return await Promise.race([work, budget]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Build crisis history context injection for users who had recent crisis.
+ * PRIVACY: no id or a placeholder id reads nothing; a shared bucket holds other callers' crises.
  */
 export async function buildCrisisHistoryInjection(
-  userId: string
+  userId: string | undefined
 ): Promise<ContextInjection | null> {
+  if (userId === undefined || isSharedPlaceholderId(userId)) return null;
   try {
     const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
 
-    const { hasCrisis, lastCrisis } = await hadRecentCrisis(userId, 7);
+    // CALL_START_TRIM: a slow read no longer holds the turn; it keeps loading and
+    // the next turn uses it (hadRecentCrisis keeps the answer for a minute).
+    const check = hadRecentCrisis(userId, 7);
+    const { hasCrisis, lastCrisis } = flagOn('CALL_START_TRIM')
+      ? await withinBudget(check, { hasCrisis: false }, CRISIS_READ_BUDGET_MS)
+      : await check;
 
     if (!hasCrisis || !lastCrisis) {
       return null;
@@ -459,11 +482,7 @@ export async function buildCrisisHistoryInjection(
       escalationType: lastCrisis.escalationType,
     });
 
-    return {
-      category: 'better_than_human',
-      content: sections.join('\n'),
-      priority: 85,
-    };
+    return { category: 'crisis_follow_up', content: sections.join('\n'), priority: 85 };
   } catch (error) {
     diag.debug('Crisis history injection skipped', { error: String(error) });
     return null;

@@ -228,7 +228,12 @@ async function main(): Promise<void> {
   console.log(`\nMemory (reuse with --memory): ${join(dir, `memory-${stamp}.json`)}`);
 }
 
-main().catch((error: unknown) => {
-  console.error(String(error));
-  process.exitCode = 1;
-});
+// Exit explicitly: the memory modules leave timers and gRPC channels open, so
+// the process would otherwise never end, even after an error.
+main().then(
+  () => process.exit(),
+  (error: unknown) => {
+    console.error(String(error));
+    process.exit(1);
+  }
+);

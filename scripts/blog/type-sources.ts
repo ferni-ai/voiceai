@@ -1,6 +1,7 @@
 /** Which facts each post type is grounded in. */
 
 import { HOUSE_FACTS, docSource, fetchMergedPrs, type GhRunner, type Source } from './grounding.js';
+import { liveOnly } from './live-check.js';
 import { personaSources, type LetterPersona } from './team-letter.js';
 import type { PostType } from './post-types.js';
 
@@ -10,6 +11,8 @@ export interface SourceContext {
   gh: GhRunner;
   /** ISO date: PRs merged on or after it count. */
   since: string;
+  /** YYYY-MM-DD: for the live check's settling period. */
+  today: string;
   persona: LetterPersona;
 }
 
@@ -18,10 +21,12 @@ const KINDS = { any: /./, noticeable: /^(?:feat|fix|perf)\b/, feature: /^feat\b/
 const BRAND_OVERVIEW = { fromHeading: '# 1. Brand Overview', maxChars: 3000 };
 const LESS_ALONE = 'apps/website/ferni-website/src/blog/ai-should-make-you-feel-less-alone.md';
 
+/** Merged PRs of a kind that are live (live-check.ts): developer posts publish with no person reviewing them. */
 function prs(ctx: SourceContext, limit: number, kind: keyof typeof KINDS): Source[] {
-  return fetchMergedPrs(ctx.since, ctx.repo, ctx.gh)
-    .filter((pr) => KINDS[kind].test(pr.title))
-    .slice(0, limit);
+  const candidates = fetchMergedPrs(ctx.since, ctx.repo, ctx.gh).filter((pr) =>
+    KINDS[kind].test(pr.title)
+  );
+  return liveOnly(candidates, ctx, limit);
 }
 
 /** The sources for a type. An empty list of PRs means there is nothing to write about. */

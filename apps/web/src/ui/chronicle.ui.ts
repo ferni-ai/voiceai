@@ -20,7 +20,8 @@ import { soundUI } from './sound.ui.js';
 import { escapeHtml } from './engagement-components.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { connectionService } from '../services/connection.service.js';
-import { formatDate, t } from '../i18n/index.js';
+import { t } from '../i18n/index.js';
+import * as entriesUi from './chronicle-entries.ui.js';
 
 const log = createLogger('ChronicleUI');
 
@@ -35,26 +36,17 @@ interface JournalEntry {
   themes?: string[];
   createdAt: string;
   source: 'voice' | 'text' | 'auto';
+  editable: boolean;
 }
 
-interface JournalInsight {
-  id: string;
-  type: 'streak' | 'mood' | 'growth' | 'pattern' | 'memory';
-  title: string;
-  description: string;
-  value?: string | number;
-  icon: string;
-}
+type JournalInsight = entriesUi.ChronicleInsight;
 
 interface ChronicleData {
   greeting: string;
   timeContext: TimeContext;
   entries: JournalEntry[];
   insights: JournalInsight[];
-  memories: JournalEntry[]; // Featured memories to resurface
-  streak: number;
-  totalEntries: number;
-  loadFailed?: boolean; // the journal couldn't be loaded: show that, not an empty Chronicle
+  loadError?: entriesUi.LoadError; // the journal couldn't be loaded: show that, not an empty Chronicle
 }
 
 type TimeContext = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -87,7 +79,6 @@ const ICONS = {
   mic: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>`,
   user: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`,
   sparkles: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>`,
-  flame: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`,
   messageCircle: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>`,
   trendUp: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
   heart: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
@@ -97,7 +88,6 @@ const ICONS = {
   brain: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.54"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.54"/></svg>`,
   sunrise: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>`,
   moon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`,
-  quote: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>`,
 };
 
 // ============================================================================
@@ -991,7 +981,7 @@ function createContainer(): HTMLElement {
           ${ICONS.close}
         </button>
       </header>
-      <div class="chronicle-content" id="chronicle-content">
+      <div class="chronicle-content" id="chronicle-content" data-state="loading" aria-busy="true">
         <div class="chronicle-loading">
           <div class="chronicle-loading-spinner"></div>
           <p>${t('chronicle.loading')}</p>
@@ -1131,12 +1121,12 @@ function getGreeting(timeContext: TimeContext): string {
 async function loadData(): Promise<ChronicleData> {
   const timeContext = getTimeContext();
   const greeting = getGreeting(timeContext);
+  const userId = getUserId();
+  let result = null;
 
   try {
-    // Try to load real journal data
-    const userId = getUserId();
     if (userId) {
-      const result = await apiGet<{
+      result = await entriesUi.withDeadline(apiGet<{
         recentEntries: Array<{
           id: string;
           content: string;
@@ -1145,12 +1135,9 @@ async function loadData(): Promise<ChronicleData> {
           mood?: string;
           audioUrl?: string;
           themes?: string[];
+          editable?: boolean;
         }>;
-        insights: Array<{
-          icon: string;
-          title: string;
-          text: string;
-        }>;
+        insights: JournalInsight[];
         prompts: Array<{
           id: string;
           category: string;
@@ -1160,15 +1147,14 @@ async function loadData(): Promise<ChronicleData> {
         }>;
         stats: {
           totalEntries: number;
-          currentStreak: number;
           averageMood?: string;
           moodTrend?: 'improving' | 'declining' | 'stable';
           entriesThisWeek: number;
           topThemes: string[];
         };
-      }>(`/api/journal/chronicle?userId=${encodeURIComponent(userId)}`);
+      }>(entriesUi.chroniclePath(userId)));
 
-      if (result.ok && result.data) {
+      if (result?.ok && Array.isArray(result.data?.recentEntries)) {
         // Transform API response to ChronicleData format
         const transformedEntries: JournalEntry[] = (result.data.recentEntries || []).map(
           (e) => ({
@@ -1178,46 +1164,20 @@ async function loadData(): Promise<ChronicleData> {
             themes: e.themes,
             createdAt: e.createdAt,
             source: e.type === 'voice' ? 'voice' : 'text',
+            editable: e.editable === true,
           })
         );
-
-        const transformedInsights: JournalInsight[] = (result.data.insights || []).map(
-          (insight, idx) => ({
-            id: `insight-${idx}`,
-            type: 'pattern' as const,
-            title: insight.title,
-            description: insight.text,
-            icon: ICONS[insight.icon as keyof typeof ICONS] || ICONS.sparkles,
-          })
-        );
-
-        return {
-          greeting,
-          timeContext,
-          entries: transformedEntries,
-          insights: transformedInsights,
-          memories: transformedEntries.slice(0, 3),
-          streak: result.data.stats?.currentStreak || 0,
-          totalEntries: result.data.stats?.totalEntries || 0,
-        };
+        const insights = entriesUi.knownInsights(result.data.insights);
+        return { greeting, timeContext, entries: transformedEntries, insights };
       }
     }
   } catch (error) {
     log.warn({ error }, 'Failed to load chronicle data');
   }
 
-  // Signed out: an empty Chronicle. Signed in and here: the load failed, so say so.
-  const loadFailed = Boolean(getUserId());
-  return {
-    greeting,
-    timeContext,
-    entries: [],
-    insights: [],
-    memories: [],
-    streak: 0,
-    totalEntries: 0,
-    loadFailed,
-  };
+  // Signed out, offline, an error, the wrong shape or no answer in time: say which
+  const loadError = userId ? entriesUi.loadErrorOf(result) : 'signedOut';
+  return { greeting, timeContext, entries: [], insights: [], loadError };
 }
 
 function getJournalPrompts(): string[] {
@@ -1235,32 +1195,26 @@ function render(): void {
   const content = container.querySelector('#chronicle-content');
   if (!content) return;
 
-  const { greeting, insights, memories, totalEntries } = state.data;
-  if (state.data.loadFailed) {
-    const message = `<p class="chronicle-empty-description">${t('chronicle.loadFailed')}</p>`;
-    content.innerHTML = `<div class="chronicle-empty" role="alert" data-state="error">${message}</div>`;
+  const { greeting, insights, entries, loadError } = state.data;
+  content.removeAttribute('aria-busy');
+  content.setAttribute('data-state', loadError ? 'error' : entries.length ? 'ready' : 'empty');
+  if (loadError) {
+    const retry = `<button class="chronicle-action-card" id="chronicle-retry">${t('common.retry')}</button>`;
+    content.innerHTML = `<div class="chronicle-empty" role="alert">
+      <p class="chronicle-empty-description">${entriesUi.loadErrorCopy(loadError)}</p>
+      ${loadError === 'signedOut' ? '' : retry}</div>`;
+    content.querySelector('#chronicle-retry')?.addEventListener('click', () => void refreshData());
     return;
   }
 
   // If no entries yet, show empty state
-  if (totalEntries === 0) {
+  if (entries.length === 0) {
     content.innerHTML = renderEmptyState(greeting);
     setupContentListeners();
     return;
   }
 
   content.innerHTML = `
-    <!-- Stats Row -->
-    <div class="chronicle-stats">
-      <div class="chronicle-stat">
-        <div class="chronicle-stat-icon">${ICONS.book}</div>
-        <div>
-          <div class="chronicle-stat-value">${totalEntries}</div>
-          <div class="chronicle-stat-label">${t('chronicle.entries')}</div>
-        </div>
-      </div>
-    </div>
-
     <!-- Action Cards -->
     <div class="chronicle-actions">
       <button class="chronicle-action-card" id="action-capture">
@@ -1286,20 +1240,12 @@ function render(): void {
           ${insights.map((insight) => renderInsightCard(insight)).join('')}
         </div>
       </section>
-    ` : `<p class="chronicle-empty-description" data-state="empty">${t('chronicle.noPatternsYet')}</p>`}
-    
-    <!-- Memory Section -->
-    ${memories.length > 0 && memories[0] ? `
-      <section class="chronicle-section">
-        <div class="chronicle-section-header">
-          <span class="chronicle-section-icon">${ICONS.heart}</span>
-          <h3 class="chronicle-section-title">${t('chronicle.fromYourPast')}</h3>
-        </div>
-        ${renderMemoryCard(memories[0])}
-      </section>
-    ` : ''}
+    ` : `<p class="chronicle-empty-description chronicle-no-patterns">${t('chronicle.noPatternsYet')}</p>`}
+    <div id="chronicle-entries"></div>
   `;
 
+  const list = content.querySelector('#chronicle-entries');
+  if (list) entriesUi.mountEntries(list, entries, render); // back to empty once the last goes
   setupContentListeners();
 }
 
@@ -1308,7 +1254,7 @@ function renderEmptyState(greeting: string): string {
     <div class="chronicle-empty">
       <div class="chronicle-empty-icon">${ICONS.book}</div>
       <h3 class="chronicle-empty-title">${greeting}</h3>
-      <p class="chronicle-empty-description">${t('chronicle.emptyDescription')}</p>
+      <p class="chronicle-empty-description">${t('chronicle.emptyHowItFills')}</p>
     </div>
 
     <!-- Action Cards -->
@@ -1317,11 +1263,6 @@ function renderEmptyState(greeting: string): string {
         <div class="chronicle-action-icon">${ICONS.pen}</div>
         <h3 class="chronicle-action-title">${t('chronicle.captureActionTitle')}</h3>
         <p class="chronicle-action-description">${t('chronicle.captureActionDescription')}</p>
-      </button>
-      <button class="chronicle-action-card" id="action-voice">
-        <div class="chronicle-action-icon">${ICONS.mic}</div>
-        <h3 class="chronicle-action-title">${t('chronicle.speakYourMind')}</h3>
-        <p class="chronicle-action-description">${t('chronicle.speakYourMindDescription')}</p>
       </button>
     </div>
 
@@ -1348,32 +1289,12 @@ function renderEmptyState(greeting: string): string {
 }
 
 function renderInsightCard(insight: JournalInsight): string {
-  const isFullWidth = insight.type === 'memory' || insight.type === 'growth';
+  const { title, text } = entriesUi.insightCopy(insight);
   return `
-    <div class="chronicle-insight-card ${isFullWidth ? 'full-width' : ''}">
-      <div class="chronicle-insight-icon">${insight.icon}</div>
-      <h4 class="chronicle-insight-title">${escapeHtml(insight.title)}</h4>
-      <p class="chronicle-insight-description">${escapeHtml(insight.description)}</p>
-    </div>
-  `;
-}
-
-function renderMemoryCard(entry: JournalEntry): string {
-  const date = new Date(entry.createdAt);
-  const dateStr = formatDate(date, {
-    month: 'long',
-    day: 'numeric',
-    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
-  });
-
-  // Truncate long entries
-  const content = entry.content.length > 300 ? entry.content.slice(0, 300) + '...' : entry.content;
-
-  return `
-    <div class="chronicle-memory-card">
-      <div class="chronicle-memory-quote">${ICONS.quote}</div>
-      <p class="chronicle-memory-content">${t('chronicle.quoted', { text: escapeHtml(content) })}</p>
-      <p class="chronicle-memory-date">${dateStr}</p>
+    <div class="chronicle-insight-card">
+      <div class="chronicle-insight-icon">${ICONS[insight.icon as keyof typeof ICONS] ?? ICONS.sparkles}</div>
+      <h4 class="chronicle-insight-title">${title}</h4>
+      <p class="chronicle-insight-description">${text}</p>
     </div>
   `;
 }
@@ -1384,7 +1305,6 @@ function setupContentListeners(): void {
   // Action buttons
   container.querySelector('#action-capture')?.addEventListener('click', () => openPanel('capture'));
   container.querySelector('#action-converse')?.addEventListener('click', () => openPanel('converse'));
-  container.querySelector('#action-voice')?.addEventListener('click', switchToVoice);
 }
 
 // ============================================================================
@@ -1520,7 +1440,7 @@ function switchToVoice(): void {
 function getConversationWelcome(): string {
   const timeContext = state.data?.timeContext || 'evening';
 
-  if (!state.data?.totalEntries) return t('chronicle.welcome.empty');
+  if (!state.data?.entries.length) return t('chronicle.welcome.empty');
 
   return pickVariant(`chronicle.welcome.${timeContext}`, 2);
 }

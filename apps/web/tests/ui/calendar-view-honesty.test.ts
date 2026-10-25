@@ -98,3 +98,41 @@ describe('stats', () => {
     expect(html).toContain('50%');
   });
 });
+
+describe('server text in the practice view is escaped', () => {
+  const HOSTILE = '<img src=x onerror="alert(1)"><script>alert(2)</script>';
+
+  /** innerHTML of the rendered view, parsed as the browser would. */
+  function rendered(): HTMLElement {
+    const host = document.createElement('div');
+    host.innerHTML = view.renderPracticeView();
+    return host;
+  }
+
+  it('renders team insights as text, never as markup', () => {
+    view.practiceViewData = apiView({
+      crossPersonaInsights: [{ persona: 'ferni', type: 'notice', message: HOSTILE }],
+    });
+    const host = rendered();
+    expect(host.querySelector('img, script')).toBeNull();
+    expect(host.textContent).toContain('<script>alert(2)</script>');
+  });
+
+  it('keeps a hostile persona name out of the style attribute', () => {
+    view.practiceViewData = apiView({
+      crossPersonaInsights: [{ persona: 'x);}</style><b>p', type: 'notice', message: 'hi' }],
+    });
+    const host = rendered();
+    expect(host.querySelector('b, style')).toBeNull();
+    expect(host.innerHTML).not.toContain('--color-x)');
+  });
+
+  it('renders the pattern notice as text', () => {
+    view.practiceViewData = apiView({
+      mayaNotices: { message: HOSTILE, type: 'observation', confidence: 0.8 },
+    });
+    const host = rendered();
+    expect(host.querySelector('img, script')).toBeNull();
+    expect(host.textContent).toContain('onerror="alert(1)"');
+  });
+});

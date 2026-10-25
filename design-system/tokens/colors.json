@@ -15,7 +15,10 @@
         "tertiary": "#2a241f",
         "elevated": "#352e28",
         "glass": "rgba(244, 239, 230, 0.06)",
-        "overlay": "rgba(20, 17, 14, 0.92)"
+        "overlay": "rgba(20, 17, 14, 0.92)",
+        "subtle": "#1e1a16",
+        "hover": "#2a241f",
+        "_subtleNote": "Surface steps for chips, wells and hover states, the secondary and tertiary steps of this palette. Muted text passes AA on both (6.4:1, 5.6:1)."
       },
 
       "glass": {
@@ -108,7 +111,9 @@
         "glow": "rgba(142, 174, 122, 0.28)",
         "subtle": "rgba(142, 174, 122, 0.12)",
         "text": "#8eae7a",
-        "_textNote": "Sage is the action in both themes. 5.4:1 on #352e28, 7.6:1 on #14110e. Ink #14110e on the sage fill is 7.6:1. Gold is a highlight, not the button."
+        "_textNote": "Sage is the action in both themes. 5.4:1 on #352e28, 7.6:1 on #14110e. Ink #14110e on the sage fill is 7.6:1. Gold is a highlight, not the button.",
+        "secondary": "#8eae7a",
+        "_secondaryNote": "Second accent for text, icons, borders and badges. Was never defined, so the web app fell back to off-palette lime #7cb36b. Palette sage: 5.4:1 on #352e28, 7.6:1 on #14110e; fills take on-accent ink."
       },
       "semantic": {
         "success": "#6bc48f",
@@ -179,7 +184,10 @@
         "tertiary": "#ebe6df",
         "elevated": "#fffdfb",
         "glass": "rgba(139, 119, 91, 0.03)",
-        "overlay": "rgba(250, 248, 245, 0.95)"
+        "overlay": "rgba(250, 248, 245, 0.95)",
+        "subtle": "#f5f2ed",
+        "hover": "#ebe6df",
+        "_subtleNote": "Cream surface steps for chips, wells and hover states, the secondary and tertiary steps of this palette. Muted text passes AA on both (5.3:1, 4.8:1)."
       },
 
       "glass": {
@@ -272,7 +280,9 @@
         "glow": "rgba(61, 90, 69, 0.15)",
         "subtle": "rgba(61, 90, 69, 0.05)",
         "text": "#3D5A45",
-        "_textNote": "Same as primary for light theme - good contrast on light backgrounds"
+        "_textNote": "Same as primary for light theme - good contrast on light backgrounds",
+        "secondary": "#4a6741",
+        "_secondaryNote": "Second accent for text, icons, borders and badges (Ferni forest). 5.1:1 on #ebe6df, 6.3:1 on #fffdfb; white on the fill is 6.3:1."
       },
       "semantic": {
         "success": "#3d7a52",

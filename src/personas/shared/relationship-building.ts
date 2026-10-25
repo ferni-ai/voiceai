@@ -223,10 +223,10 @@ export function getDeepeningQuestion(stage: RelationshipStage): string {
 export const ACKNOWLEDGMENTS = {
   // When they share something personal
   personalSharing: [
-    'Thank you for sharing that. <break time="200ms"/>That means a lot.',
+    'That means a lot. <break time="200ms"/>',
     'I appreciate you telling me that. <break time="200ms"/>',
     'That\'s real. <break time="200ms"/>Thank you for trusting me with it.',
-    'I hear you. <break time="200ms"/>Thank you for being open.',
+    'Yeah. <break time="200ms"/>That\'s real.',
   ],
 
   // When they express emotion

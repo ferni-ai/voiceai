@@ -44,10 +44,6 @@ export {
   pushNotifications,
   initializePushNotifications,
   isPushNotificationsAvailable,
-  registerPushToken,
-  removePushToken,
-  getUserTokens,
-  hasPushEnabled,
   sendPushNotification,
   sendBulkPushNotifications,
   generatePersonaNotification,
@@ -56,7 +52,6 @@ export {
   type PushNotification,
   type PushAction,
   type PushDeliveryResult,
-  type UserPushToken,
   type PushDeliveryRecord,
 } from './push-notifications.js';
 

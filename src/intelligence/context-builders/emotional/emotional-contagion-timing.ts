@@ -81,7 +81,7 @@ const PROCESSING_PHRASES = {
   ],
 
   // For sadness - gentle receiving
-  sadness: ['...oh.', '[softly] ...yeah.', '...I hear you.', "[pause] ...that's hard."],
+  sadness: ['...oh.', '[softly] ...yeah.', '...oh, man.', "[pause] ...that's hard."],
 
   // For frustration - validate before solving
   frustration: [
@@ -146,7 +146,7 @@ Ask what they need.`,
 Meet vulnerability with warmth, not solutions.`,
 
   default: `Reflect their emotion back before responding to content.
-A brief acknowledgment - "I hear you" - creates connection
+A brief, real reaction (not a stock phrase) creates connection
 before you say anything else.`,
 };
 
@@ -334,7 +334,7 @@ export const emotionalContagionTimingBuilder: ContextBuilder = {
     ];
 
     if (timing.holdSpace) {
-      lines.push('**Hold Space:**');
+      lines.push('**Stay With Them:**');
       lines.push('This is a vulnerable moment. Your first response should be brief.');
       lines.push('Let them feel heard before you say more.');
       lines.push('');

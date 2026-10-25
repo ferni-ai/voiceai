@@ -118,28 +118,27 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
 
 export async function handleWaitlist(args: string[], deps: UsersAdminDeps): Promise<void> {
   const [subcommand = 'status', target] = args;
-  const script = 'approve-waitlist-user.ts';
+  const script = 'waitlist-admin.ts';
+  const project = ['--project', deps.projectId ?? 'johnb-2025'];
   switch (subcommand) {
     case 'list':
-      return runScript(deps, script, ['--list', `--limit=${flagValue(args, 'limit', '20')}`]);
+      return runScript(deps, script, ['list', ...project, `--limit=${flagValue(args, 'limit', '20')}`, `--status=${flagValue(args, 'status', 'pending')}`]); // prettier-ignore
     case 'approve':
-      if (requireArg(target, 'ferni waitlist approve <email>')) {
-        runScript(deps, script, [`--email=${target}`]);
+      if (requireArg(target, 'ferni waitlist approve <email> [--apply]')) {
+        runScript(deps, script, ['approve', target, ...project, ...(args.includes('--apply') ? ['--apply'] : [])]); // prettier-ignore
       }
       return;
     case 'stats':
-      return runScript(deps, script, ['--stats']);
+    case 'status':
+      return runScript(deps, script, ['stats', ...project]);
     case 'export':
-      return runScript(deps, script, [
-        '--export',
-        `--output=${flagValue(args, 'output', 'waitlist-export.csv')}`,
-      ]);
+      return runScript(deps, script, ['export', ...project, `--output=${flagValue(args, 'output', 'waitlist-export.csv')}`]); // prettier-ignore
     default:
-      console.log(`Waitlist Commands:
+      console.log(`Waitlist Commands (read prod Firestore; approve is a dry run without --apply):
 
-  ferni waitlist list [--limit=N]    List pending waitlist users
-  ferni waitlist approve <email>     Approve a user
-  ferni waitlist stats               Show waitlist statistics
-  ferni waitlist export [--output=F] Export waitlist to CSV`);
+  ferni waitlist list [--limit=N] [--status=S|all]  List entries, emails masked (default: pending)
+  ferni waitlist approve <email> [--apply]          Approve; they get in on their next sign-in
+  ferni waitlist stats                              Counts by status and source
+  ferni waitlist export [--output=F]                Export the waitlist to CSV`);
   }
 }

@@ -603,7 +603,7 @@ export function createPlaidTools() {
           }
 
           const formattedTo = contact.startsWith('+') ? contact : `+1${contact.replace(/\D/g, '')}`;
-          const { ownerRefusal } = await import('../../../services/messaging/consent-grants.js');
+          const { ownerRefusal } = await import('../../../utils/consent-port.js');
           if (await ownerRefusal(userId, formattedTo, 'sms'))
             return 'That number asked not to get texts from me. Could you give me an email address instead?';
 

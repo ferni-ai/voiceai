@@ -13,6 +13,7 @@ const generateDailyBriefing = vi.fn(async () => ({
   suggestions: ['Leave a little early for the 2pm.'],
 }));
 const getUserContactInfo = vi.fn(async () => ({ timezone: 'America/New_York' }));
+const listTokenUsers = vi.fn(async () => ['user-tok', 'test-qa', 'cal-test-1']);
 
 vi.mock('../../../services/push-notifications.js', () => ({
   getPushNotificationsService: () => ({ sendNotification }),
@@ -30,16 +31,16 @@ vi.mock('../../../services/calendar/calendar-intelligence.js', () => ({
 vi.mock('../../../services/outreach/user-contact.js', () => ({
   getUserContactInfo,
 }));
+vi.mock('../../../services/identity/google-calendar-token-store.js', () => ({
+  listTokenUsers,
+}));
 
 describe('checkAndSendMorningBriefings', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     sendNotification.mockResolvedValue(true);
-    const {
-      setBriefingNow,
-      setBriefingClaimStore,
-      setBriefingUserIds,
-    } = await import('../calendar-briefing-job.js');
+    const { setBriefingNow, setBriefingClaimStore, setBriefingUserIds } =
+      await import('../calendar-briefing-job.js');
     // 7:15 in America/New_York
     setBriefingNow(() => new Date('2026-10-06T11:15:00.000Z'));
     setBriefingUserIds(['user-alex']);
@@ -82,6 +83,28 @@ describe('checkAndSendMorningBriefings', () => {
         data: expect.objectContaining({ action: 'open_calendar' }),
       })
     );
+  });
+
+  it('reads users from the per-user token store, leaving test accounts out', async () => {
+    const { checkAndSendMorningBriefings, setBriefingUserIds } =
+      await import('../calendar-briefing-job.js');
+    setBriefingUserIds(null);
+
+    const report = await checkAndSendMorningBriefings();
+
+    expect(listTokenUsers).toHaveBeenCalledTimes(1);
+    expect(report).toMatchObject({ checked: 1, sent: 1 });
+    expect(sendNotification).toHaveBeenCalledTimes(1);
+    expect(sendNotification).toHaveBeenCalledWith('user-tok', expect.anything());
+  });
+
+  it('skips people who get the morning text brief, and says why', async () => {
+    const { checkAndSendMorningBriefings } = await import('../calendar-briefing-job.js');
+
+    const report = await checkAndSendMorningBriefings({ skipUsers: ['user-alex'] });
+
+    expect(report).toMatchObject({ sent: 0, skipped: 1, reasons: { 'morning-brief-user': 1 } });
+    expect(sendNotification).not.toHaveBeenCalled();
   });
 
   it('uses the user timezone for the briefing date key', async () => {

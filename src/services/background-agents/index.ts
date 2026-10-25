@@ -30,8 +30,11 @@ export async function initializeBackgroundDelivery(): Promise<void> {
   log.info('🚀 Initializing background agents delivery services...');
 
   try {
-    // Initialize email delivery if SendGrid configured
-    if (process.env.SENDGRID_API_KEY) {
+    const { sendsViaWorkspace } = await import('../outreach/delivery/email-delivery.js');
+    // EMAIL_PROVIDER=gmail: email-delivery sends through the Workspace port and needs no init.
+    if (sendsViaWorkspace()) {
+      log.info('✅ Email delivery via Workspace (gmail)');
+    } else if (process.env.SENDGRID_API_KEY) {
       const { initializeEmailDelivery } = await import('../outreach/delivery/email-delivery.js');
       initializeEmailDelivery({
         provider: 'sendgrid',
@@ -120,9 +123,4 @@ export {
   type ResearchRequest,
   type ResearchResult as ExecutorResearchResult,
   type ResearchFinding,
-  // Reservations (Jordan's domain)
-  executeReservationTask,
-  queueReservationTask,
-  type ReservationRequest,
-  type ReservationResult as ExecutorReservationResult,
 } from './executors/index.js';

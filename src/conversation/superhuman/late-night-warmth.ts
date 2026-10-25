@@ -291,7 +291,7 @@ export function formatLateNightContextForPrompt(context: LateNightContext): stri
 
   if (behaviors.emphasizeListening) {
     lines.push('- Emphasize listening over advice');
-    lines.push('- Ask questions, hold space, be present');
+    lines.push('- Ask questions, stay with them, be present');
   }
 
   if (behaviors.offerGrounding) {

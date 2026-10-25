@@ -191,7 +191,7 @@ export function getAnticipatedNeed(signals: VoiceSignals): AnticipatedNeed | nul
       anticipated: 'Entering emotional territory',
       checkQuestion: 'You sound different than you did a minute ago. What shifted?',
       confidence: 0.8,
-      ifConfirmed: 'Slow down, hold space',
+      ifConfirmed: 'Slow down, stay with them',
       ifDenied: 'Trust their read, stay present',
     });
   }
@@ -202,7 +202,7 @@ export function getAnticipatedNeed(signals: VoiceSignals): AnticipatedNeed | nul
       anticipated: 'Pulling back or tired',
       checkQuestion: "I notice you're being more brief. Should we pause here?",
       confidence: 0.6,
-      ifConfirmed: 'Offer to hold space or end',
+      ifConfirmed: 'Ask if they want to keep going or stop',
       ifDenied: 'Check if something specific',
     });
   }

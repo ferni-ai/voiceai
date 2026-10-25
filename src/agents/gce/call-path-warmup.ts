@@ -18,6 +18,16 @@
  * native audio module. It runs during startup warmup, before the worker
  * connects, so no caller shares the loop with it.
  *
+ * TURN_PATH does the same for the per-turn context build (turn-intelligence.ts),
+ * which lazy-loads its own modules on a process's first turn. On dev
+ * (2026-10-21 sweep, one process per call) every call's first build took
+ * 0.7-4.6 s against ~0.5 s for later turns; the excess was event-loop stall
+ * (LOOP_STALL summed to 1.6-4.0 s in the four builds that passed the turn
+ * handler's 2.5 s hard timeout and lost their memory and intelligence notes).
+ * Locally, a warmed child's first turn still loaded 209 modules (Vertex SDK,
+ * trust-and-identity, the behavioral context builder, knowledge graph,
+ * coaching services); with TURN_PATH it loads 10.
+ *
  * @module agents/gce/call-path-warmup
  */
 import { readFile } from 'node:fs/promises';
@@ -40,6 +50,29 @@ export const CALL_PATH = [
   '../model-provider/after-greeting',
 ];
 
+/**
+ * The per-turn context build's modules, relative to this file, without
+ * extension: turn-intelligence.ts runs turn-handler.ts, which runs processTurn,
+ * and their builders lazy-load the rest.
+ */
+export const TURN_PATH = [
+  '../multi-agent/turn-intelligence',
+  '../voice-agent/turn-handler',
+  '../processors/turn-processor/process-turn',
+  '../processors/turn-processor/context-injections',
+  '../processors/cached-modules',
+  '../processors/injection-builders/better-than-human-builders',
+  '../../intelligence/context-builders/coaching/scientific-coaching',
+  '../../services/llm-utils',
+];
+
+/** Everything a warmed process loads before it takes a call. */
+export const WARM_PATH = [...CALL_PATH, ...TURN_PATH];
+
+/** Loads one module; tests pass a recorder instead of importing. */
+export type ModuleLoader = (target: string) => Promise<unknown>;
+const importModule: ModuleLoader = async (target) => import(target);
+
 /** The string-literal specifiers of `import('...')` calls in a module's source. */
 export function dynamicImportSpecifiers(source: string): string[] {
   const found = new Set<string>();
@@ -53,10 +86,14 @@ export function quietProcessReport(): void {
   if (report) report.excludeNetwork = true;
 }
 
-/** Import the call path's dynamic imports and the native audio module. Never throws. */
+/**
+ * Import the call path's and the turn build's dynamic imports and the native
+ * audio module, and load the bundle voices. Never throws.
+ */
 export async function warmCallPath(
   log: LogFn,
-  files: readonly string[] = CALL_PATH
+  files: readonly string[] = WARM_PATH,
+  load: ModuleLoader = importModule
 ): Promise<{ modules: number; failed: number; durationMs: number }> {
   quietProcessReport();
   const started = Date.now();
@@ -76,7 +113,7 @@ export async function warmCallPath(
   let failed = 0;
   for (const target of targets) {
     try {
-      await import(target);
+      await load(target);
     } catch {
       failed++;
     }
@@ -86,6 +123,14 @@ export async function warmCallPath(
     const { isNativeAudioAvailable } =
       await import('../../speech/audio-prosody/native-analyzer.js');
     isNativeAudioAvailable();
+  } catch {
+    failed++;
+  }
+  // Bundle voices, before the call path's first getVoiceId would settle for the
+  // hardcoded fallbacks (voice-registry.ts).
+  try {
+    const { initializeVoiceRegistry } = await import('../../personas/voice-registry.js');
+    await initializeVoiceRegistry();
   } catch {
     failed++;
   }

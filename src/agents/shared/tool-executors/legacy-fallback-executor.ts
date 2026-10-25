@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { rawSendRetired } from '../../../services/messaging/consent-grants.js';
+import { rawSendRetired } from '../../../services/messaging/consent-reach.js';
 import { cleanForFirestore, toSafeDate } from '../../../utils/firestore-utils.js';
 import type { ToolExecutionContext } from './types.js';
 
@@ -44,8 +44,8 @@ export async function executeLegacyFallback(
     // Try to persist to Firestore WITH EMBEDDING for semantic recall
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Generate embedding for semantic recall later
         let embedding: number[] | null = null;
@@ -123,8 +123,7 @@ export async function executeLegacyFallback(
       }
     }
 
-    // Return empty string for silent execution
-    return '';
+    return ''; // silent execution
   }
 
   if (fnLower === 'recallfrommemory') {
@@ -166,8 +165,8 @@ export async function executeLegacyFallback(
         });
 
         // 2. Also get recent facts from Firestore for recency boost
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         interface MemoryItem {
           content: string;
@@ -336,8 +335,8 @@ export async function executeLegacyFallback(
 
         // Fallback to basic text search if semantic fails
         try {
-          const { getFirestore } = await import('firebase-admin/firestore');
-          const db = getFirestore();
+          const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+          const db = getAdminFirestore();
           const factsSnapshot = await db
             .collection('bogle_users')
             .doc(ctx.userId)
@@ -385,8 +384,8 @@ export async function executeLegacyFallback(
     log.info({ memory, confirmationType, userId: ctx.userId }, '💪 Reinforcing memory');
 
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       // Find the memory and boost its confidence
       const snapshot = await db
@@ -445,8 +444,8 @@ export async function executeLegacyFallback(
     // If we have userId, try to update in Firestore
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Generate new embedding for semantic search
         let newEmbedding: number[] | null = null;
@@ -512,55 +511,8 @@ export async function executeLegacyFallback(
     return '';
   }
 
-  if (fnLower === 'forgetmemory') {
-    const topic = args.topic as string;
-    const whatToForget = args.whatToForget as string;
-    const target = topic || whatToForget;
-
-    if (!target) {
-      return 'What would you like me to forget?';
-    }
-
-    log.info({ target, userId: ctx.userId }, '🗑️ Forgetting memory');
-
-    // If we have userId, try to remove from Firestore
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const snapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('extracted_facts')
-          .get();
-
-        const targetLower = target.toLowerCase();
-        const docsToDelete = snapshot.docs.filter((doc) => {
-          const data = doc.data();
-          return (data.fact || data.content || '').toLowerCase().includes(targetLower);
-        });
-
-        if (docsToDelete.length > 0) {
-          const batch = db.batch();
-          docsToDelete.forEach((doc) => batch.delete(doc.ref));
-          await batch.commit();
-
-          log.info(
-            { userId: ctx.userId, deleted: docsToDelete.length },
-            '✅ Memories deleted from Firestore'
-          );
-          return `I've forgotten about that. Your privacy matters.`;
-        }
-
-        return `I didn't find specific memories about "${target}" to remove.`;
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Memory deletion from Firestore failed');
-      }
-    }
-
-    return { forgotten: true, topic: target, message: `I'll forget about that.` };
-  }
+  // forgetmemory is handled by memoryExecutor (memory-executor.ts), which always
+  // answers, so a branch here was unreachable.
 
   if (fnLower === 'getrelationshipsummary') {
     log.info({ userId: ctx.userId }, '📊 Getting relationship summary');
@@ -568,8 +520,8 @@ export async function executeLegacyFallback(
     // If we have userId, try to get real relationship data
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Get user profile
         const profileDoc = await db.collection('bogle_users').doc(ctx.userId).get();
@@ -857,8 +809,8 @@ export async function executeLegacyFallback(
     // Store habit in Firestore with behavior science structure
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitId = `habit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         await db
@@ -910,8 +862,8 @@ export async function executeLegacyFallback(
     // Update habit tracking in Firestore
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Find the habit by name
         const habitsSnapshot = await db
@@ -985,8 +937,8 @@ export async function executeLegacyFallback(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitsSnapshot = await db
           .collection('bogle_users')
@@ -1018,8 +970,8 @@ export async function executeLegacyFallback(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitsSnapshot = await db
           .collection('bogle_users')
@@ -1841,8 +1793,8 @@ export async function executeLegacyFallback(
     // Store as memory
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
         await db
           .collection('bogle_users')
           .doc(ctx.userId)
@@ -1867,8 +1819,8 @@ export async function executeLegacyFallback(
     log.info({ search }, '📝 Getting notes');
     if (!ctx.userId) return "I'll need to know who you are to get your notes.";
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
       const notesSnapshot = await db
         .collection('bogle_users')
         .doc(ctx.userId)

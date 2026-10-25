@@ -44,7 +44,7 @@ export const LAYER_MAP: Record<string, string> = {
   // every context, so they are pipeline steps, not a context of their own.
   'src/agents': 'L4',
   ...under('src', 'L4', ['context', 'runtime', 'handoff', 'intelligence/context-builders']),
-  ...under('src/services', 'L4', ['session', 'session-manager', 'session-ext', 'di', 'outreach']),
+  ...under('src/services', 'L4', ['session', 'session-manager', 'session-ext', 'di', 'outreach', 'messaging']),
   // Flags live in L4: an L3 import of a flag module is debt (have L4 pass the decision in).
   ...under('src/config', 'L4', ['feature-flags.ts', 'voice-humanization-flags.ts', 'linkedin-flag.ts']),
   ...under('src/config', 'L4', ['assistant-actions-flag.ts', 'call-opening-flag.ts', 'gmail-send-flag.ts']),
@@ -55,13 +55,14 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/services', 'L3:identity', ['persona', 'persona-service', 'cameo', 'custom-agent']),
   ...under('src/speech', 'L3:perception', ['audio-prosody', 'fft-analyzer', 'voice-biomarkers', 'human-listening-pipeline']),
   ...under('src/speech', 'L3:perception', ['audio-processing', 'audio-dsp', 'ambient-reactivity']),
-  ...under('src', 'L3:perception', ['intelligence/detectors', 'services/biometrics', 'services/multimodal']),
+  ...under('src', 'L3:perception', ['intelligence/detectors', 'services/biometrics']),
   'src/memory': 'L3:memory',
   ...under('src', 'L3:memory', ['intelligence/memory-intelligence', 'intelligence/superhuman-memory', 'conversation/conversational-memory']),
   ...under('src', 'L3:memory', ['conversation/proactive-memory', 'services/memory', 'services/memory-lane', 'services/visual-memory', 'services/voice-memory']),
   ...under('src', 'L3:understanding', ['intelligence', 'conversation']),
+  'src/understanding': 'L3:understanding', // the turn reading (schema, readers, teacher)
   ...under('src/services', 'L3:understanding', ['context-awareness', 'semantic', 'cognitive-intelligence', 'intelligence', 'conversation-thread']),
-  ...under('src/services', 'L3:understanding', ['world-awareness', 'scientific-knowledge', 'language']),
+  ...under('src/services', 'L3:understanding', ['world-awareness', 'language']),
   ...under('src/conversation', 'L3:affect', ['emotional-arc', 'concern-detection']),
   ...under('src/services', 'L3:affect', ['emotion-analysis', 'wellbeing-tracking', 'somatic-intelligence', 'vibe']),
   ...under('src/intelligence', 'L3:judgment', ['triggers', 'proactive', 'surfacing', 'pondering']),
@@ -92,7 +93,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/memory', 'L1', ['storage', 'vectors', 'firestore-vector-store', 'spanner-graph']),
   ...under('src/services', 'L1', ['redis', 'cache', 'persistence', 'stores', 'data', 'data-layer', 'llm', 'tts', 'pubsub']),
   ...under('src/services', 'L1', ['external-apis', 'apple', 'linkedin', 'observability', 'analytics', 'performance']),
-  ...under('src/services', 'L1', ['self-healing', 'async-events', 'webhooks', 'core']),
+  ...under('src/services', 'L1', ['self-healing', 'async-events', 'webhooks', 'email-transport']),
   ...under('src/utils', 'L1', ['firebase-admin-app.ts', 'firestore-query.ts', 'firestore-utils.ts', 'safe-firestore.ts']),
   ...under('src/utils', 'L1', ['transformers-loader.ts', 'native-binding-guard.ts']),
 

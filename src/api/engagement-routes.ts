@@ -41,7 +41,10 @@ import { handleGroupCoachingRoutes } from './routes/group-coaching.js';
 import { handleGrowthRoutes } from './routes/growth.js';
 import { handleMemoriesRoutes } from './routes/memories.js';
 import { handleRememberedRoutes } from './routes/remembered.js';
+import { handleCallRememberedRoute } from './routes/call-remembered.js';
 import { handleKnownRoutes } from './routes/known.js';
+import { handleFocusRoute } from './routes/focus.js';
+import { handlePromisesRoutes } from './routes/promises.js';
 import { handlePredictionsRoutes } from './routes/predictions.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleRitualsRoutes } from './routes/rituals.js';
@@ -53,6 +56,11 @@ import { handleQuizRoutes } from './routes/quiz.js';
 import { handleSemanticIntelligenceRoutes } from './semantic-intelligence-routes.js';
 import { handleVideoSessionRoutes } from './routes/video-sessions.js';
 import { handleWearableRoutes } from './routes/wearable.js';
+import {
+  handleFollowThroughUpcoming,
+  isFollowThroughUpcomingRoute,
+} from './follow-through-upcoming-route.js';
+import { handleOnIt, isOnItRoute } from './on-it-route.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
@@ -77,6 +85,8 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/team-insights',
   '/api/life-context',
   '/api/semantic-intelligence',
+  '/api/promises', // What Ferni is following through on (PROMISES_PANEL)
+  '/api/me/focus', // Quiet while you focus (FOCUS_HOLD, per person)
 ];
 
 /**
@@ -86,6 +96,10 @@ function isEngagementRoute(pathname: string): boolean {
   // Twilio's conference-call callbacks carry a signature, not a user: the group
   // router (group-conversation-routes.ts) admits them on that signature alone.
   if (GROUP_TWILIO_CALLBACK_PATHS.has(pathname)) return false;
+  // Flag off, the follow-through list isn't claimed, so it 404s like any unknown path
+  if (isFollowThroughUpcomingRoute(pathname)) return true;
+  // Same for "Ferni's on it" (FERNI_ON_IT)
+  if (isOnItRoute(pathname)) return true;
   return ENGAGEMENT_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
@@ -149,6 +163,16 @@ export async function handleEngagementRoutes(
     return true;
   }
 
+  // What Ferni's holding (follow-through-upcoming-route.ts)
+  if (await handleFollowThroughUpcoming(req, res, pathname)) {
+    return true;
+  }
+
+  // What Ferni is holding and doing, "Ferni's on it" (on-it-route.ts)
+  if (await handleOnIt(req, res, pathname)) {
+    return true;
+  }
+
   // Analytics
   if (await handleAnalyticsRoutes(req, res, pathname, parsedUrl)) {
     return true;
@@ -164,6 +188,11 @@ export async function handleEngagementRoutes(
     return true;
   }
 
+  // What Ferni kept from the call that just ended (the app's "I'll remember" card)
+  if (await handleCallRememberedRoute(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
   // Cognitive Memories
   if (await handleMemoriesRoutes(req, res, pathname, parsedUrl)) {
     return true;
@@ -176,6 +205,16 @@ export async function handleEngagementRoutes(
 
   // What Ferni knows, every store in one view (MEMORY_VIEW=on)
   if (await handleKnownRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // The person's iOS Focus: hold what Ferni starts until it ends (FOCUS_HOLD)
+  if (await handleFocusRoute(req, res, pathname)) {
+    return true;
+  }
+
+  // What Ferni is following through on, and what happened (PROMISES_PANEL=on)
+  if (await handlePromisesRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

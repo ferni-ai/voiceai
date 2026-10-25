@@ -38,7 +38,7 @@ import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
 import { withActionClaimCheck } from './action-claim-guard.js';
-import { withCallerTurn } from './caller-turn.js';
+import { noteReplyCallerTurn, withCallerTurn } from './caller-turn.js';
 import { logToolMarkup, withToolMarkupStrip } from '../shared/tool-markup-strip.js';
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
@@ -680,7 +680,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    fillEmptyToolOutputs(chatCtx, this.session);
+    fillEmptyToolOutputs(noteReplyCallerTurn(this, chatCtx), this.session); // for the TTS context
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const sessionId = (this.session.userData?.services as { sessionId?: string } | undefined)
       ?.sessionId;
@@ -691,7 +691,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
         super.llmNode(ctx, tools, modelSettings),
         logToolMarkup('llm', sessionId)
       );
-      return withActionClaimCheck(text, ctx, tools, this.session.userData?.personaId) as never;
+      return withActionClaimCheck(text, ctx, tools, this.session.userData) as never;
     };
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;
@@ -700,7 +700,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
 
   /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
-  private readonly openerGate = new OpenerGate();
+  private readonly openerGate = new OpenerGate().forSession(() => this.session);
 
   /**
    * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.

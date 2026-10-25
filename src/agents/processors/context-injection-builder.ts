@@ -408,8 +408,8 @@ export async function buildContextInjections(
       behavioralFallback,
       'buildIntegratedContext'
     ),
-    buildHumanTransferInjections(userText, services.userId),
-    buildCrisisHistoryInjection(services.userId || 'unknown'),
+    buildHumanTransferInjections(userText, services.userId, services.sessionId),
+    buildCrisisHistoryInjection(services.userId),
   ]);
 
   // ============================================================================

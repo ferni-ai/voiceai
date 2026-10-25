@@ -77,7 +77,7 @@ function detectQuieterThanUsual(
     const reflections = [
       'You seem a bit quieter today than usual. Everything okay?',
       "I've noticed you're being more brief today. No pressure—just checking in.",
-      "You seem more reserved today. I'm here if you want to talk, or we can just keep it light.",
+      'You seem more reserved today. We can keep it light.',
     ];
 
     return {
@@ -191,8 +191,7 @@ function detectOpeningUp(
     return {
       type: 'opening_up',
       observation: `Emotional intensity ${emotionalIntensity.toFixed(2)} vs historical avg ${avgHistoricalIntensity.toFixed(2)}`,
-      reflection:
-        "Thank you for sharing that with me. I can tell this is something you don't talk about lightly.",
+      reflection: "That's a big thing to say out loud. You don't usually go there.",
       confidence: 0.75,
     };
   }

@@ -15,11 +15,34 @@
  * a big hug", "it's ringing a bell", "I'll remind you to breathe"). Clauses are
  * read on their own, so a "?" in another clause never excuses a claim.
  *
+ * Also claims: ordering a ride ("I've ordered you an Uber"), a booking reported
+ * done ("Done, it's in your diary.", not a read-back of what is already there),
+ * and Ferni saying he called emergency services (emergency-claim.ts, #1553).
+ *
  * @module agents/personas/action-claims
  */
 
-export type ActionKind = 'call' | 'send' | 'schedule' | 'reminder' | 'save';
-export const ACTION_KINDS: readonly ActionKind[] = ['call', 'send', 'schedule', 'reminder', 'save'];
+import { flagOn, type Env } from '../../config/env-flag.js';
+import {
+  ANECDOTE,
+  CLAUSE_CONDITION,
+  CONDITION,
+  EMERGENCY_CALLED,
+  EMERGENCY_CLAUSES,
+  HELP_COMING,
+  OFFER_OR_NOT,
+} from './emergency-claim.js';
+
+export type ActionKind = 'call' | 'send' | 'ride' | 'schedule' | 'reminder' | 'save';
+/** In match order: a ride ("I've booked you an Uber") is read before a booking. */
+export const ACTION_KINDS: readonly ActionKind[] = [
+  'call',
+  'send',
+  'ride',
+  'schedule',
+  'reminder',
+  'save',
+];
 
 const HAVE = "\\b(?:i've|i have|we've|i just|i've just|i already|i've already)";
 const DOING = "\\b(?:i'm|i am|we're)(?: just| now| already)?";
@@ -41,6 +64,8 @@ const DIALED = `(?:${WHO}|${NUMBER})`;
 /** The whole sentence is only the action, its target and "now": "Calling her now.", "Okay, dialing." */
 const BARE = (verbs: string, now = NOW): RegExp =>
   new RegExp(`${LEAD}${verbs}(?: ${DIALED})?(?: ${now})${TAIL}`);
+
+const VEHICLE = '(?:uber|lyft|cab|taxi|ride|car)\\b(?! keys?\\b)';
 
 /** Read on each clause: Ferni as the actor, a person in the caller's world (or their number) as the object. */
 const CLAIMS: Record<ActionKind, RegExp[]> = {
@@ -79,6 +104,17 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
     ),
     new RegExp(`\\b(?:shot|dropped) ${WHO} a (?:text|message|note|email|line)`),
   ],
+  ride: [
+    new RegExp(
+      `${HAVE} (?:ordered|booked|requested|arranged) (?:you |for you )?(?:an?|the|your) ${VEHICLE}`
+    ),
+    new RegExp(`${HAVE} (?:got|called|sent) you (?:an?|the) ${VEHICLE}`),
+    new RegExp(
+      `${DOING} (?:ordering|booking|requesting|arranging) (?:you |for you )?(?:an?|the|your) ${VEHICLE}`
+    ),
+    new RegExp(`${DOING} (?:getting|calling|sending) you (?:an?|the) ${VEHICLE}`),
+    /\byour (?:uber|lyft|cab|taxi|ride|car|driver)(?: is|'s) (?:on (?:its|the|their) way|coming|booked|ordered|arriving|outside|(?:\w+ )?minutes? away)\b/,
+  ],
   schedule: [
     new RegExp(`${HAVE} (?:booked|scheduled|reserved) (?:it|that|this|the|a|an|your|you|${WHO})`),
     new RegExp(
@@ -87,6 +123,7 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
     new RegExp(
       `${HAVE} (?:got|have) (?:it|that|this) (?:on|to|in) (?:your|the) (?:calendar|schedule|diary)\\b`
     ),
+    /\b(?:it's|it is|that's|that is) (?:been added to|been put (?:in|on|into)|now (?:in|on)) your (?:calendar|diary|schedule)\b/,
     new RegExp(
       `${DOING} (?:booking|scheduling|reserving) (?:it|that|this|the|a|an|your|you)\\b(?! to\\b)`
     ),
@@ -110,7 +147,14 @@ const WHOLE: Record<ActionKind, RegExp[]> = {
     BARE('(?:texting|sending it)'),
     new RegExp(`${LEAD}(?:just sent(?: it)?|message sent|text sent|email sent|sent it)\\W*$`),
   ],
-  schedule: [new RegExp(`${LEAD}(?:booked|you're all booked)\\W*$`)],
+  ride: [],
+  schedule: [
+    new RegExp(`${LEAD}(?:booked|you're all booked)\\W*$`),
+    // Only with a word saying it was just done: "It's on your calendar for Friday" may be a read-back.
+    new RegExp(
+      `${LEAD}(?:done|all done|all set|booked|sorted|there we go|there you go)\\W+(?:it's|it is|that's|that is)(?: now| all)? (?:in|on) your (?:calendar|diary|schedule)(?: for [^?]*)?\\W*$`
+    ),
+  ],
   reminder: [new RegExp(`${LEAD}(?:your )?(?:reminder|timer|alarm)(?:'s| is) (?:all )?set\\W*$`)],
   save: [new RegExp(`${LEAD}(?:saved|(?:it's|that's) (?:been )?saved)\\W*$`)],
 };
@@ -121,44 +165,245 @@ const NOT_A_CLAIM =
 
 /** Ferni's own life, or an idiom: not an action in this call. */
 const NOT_AN_ACTION =
-  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit|before|plenty of times|many times|a few times|so many times|too)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b(?! number)|\bcalling (?:you|them|him|her) out\b/;
+  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit|before|plenty of times|many times|a few times|so many times|too)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b(?! number)|\bcalling (?:you|them|him|her) out\b|\bfor my\b|\b(?:a lot of|lots of|plenty of|tons of|so many|a bunch of|dozens of|hundreds of)\b/;
+
+/**
+ * Before the verb in its clause: a hedge or supposition, so it may not have happened
+ * ("let's say I've booked it"). Only in the clause: "hopefully that works, I've booked it" reports.
+ */
+const HEDGED =
+  /\b(?:if|unless|whether|imagine|suppose|supposing|pretend|let's say|what if|in case|assuming|maybe|perhaps|probably|hopefully|i hope|i wish|by the time)\b/;
+/** Just before the verb: words for someone else to say ("tell them I've booked it", "say: done"). */
+const REPORTED =
+  /\b(?:(?:tell|telling|told|text|texting) (?:her|him|them|everyone|people|your \w+|the \w+)(?: that)?|(?:say|saying|says|said|write|writing)(?: that|\s*:)|something like)\W*$/;
 
 /** A capitalised word inside a clause is a name: read it as "her" (the patterns are lower case). */
 const names = (text: string): string =>
-  text.replace(/([a-z,;:]\s+)(?!I\b|I'|I’)[A-Z][a-z]+\b(?!['’])/g, '$1her');
+  text.replace(/([a-z,;:]\s+)(?!I\b|I'|I’|(?:Uber|Lyft)\b)[A-Z][a-z]+\b(?!['’])/g, '$1her');
 
 /** Anywhere in the sentence: it's about feelings, not an action ("that's saved, in my heart"). */
 const FIGURATIVE =
   /\bin (?:my|your|our) (?:heart|head|memory|mind|imagination|dreams)\b|\bin spirit\b|\binto the universe\b/;
 
-const normalize = (text: string): string =>
-  names(text.replace(/"[^"]*"|“[^”]*”/g, ' ')) // a message's words, quoted: never Ferni's claim
+// A message's words: never Ferni's claim. ‘…’ may hold apostrophes (‘I’ve booked it’).
+const unquoted = (text: string): string => text.replace(/"[^"]*"|“[^”]*”|‘.*?’(?![a-z])/gi, ' ');
+const flat = (text: string): string =>
+  text
     .toLowerCase()
     .replace(/[‘’ʼ`]/g, "'")
     .replace(/\s+/g, ' ')
     .trim();
+const normalize = (text: string): string => flat(names(unquoted(text)));
 
-/** The kind of action one sentence claims was done or is under way, or null. */
-export function claimedAction(sentence: string): ActionKind | null {
+const CLAUSES = /[,;:—–]| - /;
+
+/**
+ * Whether one sentence reports emergency services called ('called') or help
+ * coming ('coming'), or null. Either way it is a call claim (emergency-claim.ts).
+ */
+export function emergencyClaim(sentence: string): 'called' | 'coming' | null {
+  // Before names(): "the Fire Department" must not read as "the fire her".
+  const text = flat(unquoted(sentence)).replace(/^(?:and |but |so )/, '');
+  if (FIGURATIVE.test(text) || CONDITION.test(text)) return null;
+  for (const raw of text.split(EMERGENCY_CLAUSES)) {
+    const clause = raw.trim();
+    if (!clause || clause.includes('?') || ANECDOTE.test(clause)) continue;
+    if (CLAUSE_CONDITION.test(clause)) continue;
+    /** A claim, unless an offer or negation comes before its verb. */
+    const said = (re: RegExp): boolean => {
+      const at = re.exec(clause)?.index;
+      return at !== undefined && !OFFER_OR_NOT.test(clause.slice(0, at + 1));
+    };
+    if (EMERGENCY_CALLED.some(said)) return 'called';
+    if (HELP_COMING.some(said)) return 'coming';
+  }
+  return null;
+}
+
+/**
+ * The rest of a sentence once its emergency claim is cut ("..., start chest
+ * compressions."), or ''. A piece that claims another action is cut too.
+ */
+export function emergencyRemainder(sentence: string): string {
+  const kept = sentence
+    .split(/[,;:—–]\s*|\s+-\s+|\s+(?:and|so|but|then)\s+/i)
+    .map((piece) => piece.trim().replace(/^(?:and|so|but|then)\s+/i, ''))
+    .filter(
+      (piece) =>
+        piece !== '' &&
+        emergencyClaim(piece) === null &&
+        claimedAction(piece) === null &&
+        !/^(?:okay|ok|alright|all right|right|sure|yes|yep|on it|i'?m on it|hang on|hold on)\W*$/i.test(
+          piece
+        )
+    );
+  if (kept.length === 0) return '';
+  const text = kept.join(', ').replace(/[\s,]+$/, '');
+  const ended = /[.!?]$/.test(text) ? text : `${text}.`;
+  return ended.charAt(0).toUpperCase() + ended.slice(1);
+}
+
+/**
+ * "I'll call now." with no one named (ACTION_CLAIM_BARE_WILL). Prod call 2026-10-24
+ * (#2735): after the call tool held the call until 9:00 AM their time, Ferni said
+ * "Ah, got it, early riser, I'll call now." and the held line never went out,
+ * because the pattern above needs a person or number before "now".
+ */
+const BARE_WILL_CALL = new RegExp(
+  `\\b(?:let me|i'm going to|i'm gonna|i'll) (?:call|ring|dial|phone) ${NOW}`
+);
+
+export function actionClaimBareWillEnabled(env: Env = process.env): boolean {
+  return flagOn('ACTION_CLAIM_BARE_WILL', env);
+}
+
+/**
+ * The kind of action one sentence claims was done or is under way, or null.
+ *
+ * Dev sweep 2026-10-21 (overlap-handoff): asked "What should I do first?",
+ * Jordan's planning reply was read as a booking and "It isn't booked yet,
+ * though. Should I go ahead and book it?" went out in its place. "We're
+ * booking the venue" is Ferni and the caller planning together, so "we" counts
+ * only when the action is done for the caller ("we've booked you a table").
+ * Words after a supposition ("if", "let's say"), a hedge ("maybe") or a cue to
+ * say them ("tell them") are not a report either.
+ */
+export function claimedAction(sentence: string, env: Env = process.env): ActionKind | null {
   const text = normalize(sentence);
+  const bareWill = actionClaimBareWillEnabled(env);
   if (FIGURATIVE.test(text)) return null;
+  if (emergencyClaim(sentence) === 'called') return 'call';
   const whole = text.replace(/[—–]/g, ',');
   if (!NOT_A_CLAIM.test(whole) && !NOT_AN_ACTION.test(whole)) {
     const kind = ACTION_KINDS.find((k) => WHOLE[k].some((re) => re.test(whole)));
     if (kind) return kind;
   }
-  for (const raw of text.split(/[,;:—–]| - /)) {
+  let from = 0;
+  for (const raw of text.split(CLAUSES)) {
+    const start = text.indexOf(raw, from);
+    from = start + raw.length;
     const clause = raw.trim();
     if (!clause || NOT_A_CLAIM.test(clause) || NOT_AN_ACTION.test(clause)) continue;
-    const kind = ACTION_KINDS.find((k) => CLAIMS[k].some((re) => re.test(clause)));
+    const before = text.slice(0, start + raw.indexOf(clause));
+    /** A report: Ferni's own words, said as done, by "I" (or "we" doing it for the caller). */
+    const reports = (re: RegExp): boolean => {
+      const m = re.exec(clause);
+      if (!m) return false;
+      const lead = clause.slice(0, m.index);
+      if (HEDGED.test(lead) || REPORTED.test(before + lead)) return false;
+      return !/^we/.test(m[0]) || /\byour?\b/.test(m[0]);
+    };
+    const kind = ACTION_KINDS.find((k) => CLAIMS[k].some(reports));
+    if (kind) return kind;
+    if (bareWill && reports(BARE_WILL_CALL)) return 'call';
+  }
+  return null;
+}
+
+/**
+ * A plain past report by Ferni of an action in the caller's world: "I booked it.", "I sent it.",
+ * "I called her.", "I set the reminder.", "I added it to your calendar." (ACTION_CLAIM_PAST).
+ * Plain past is also how Ferni tells his own life, so the guard asks this only when a tool of
+ * the kind was open and none ran (action-claim-guard.ts).
+ */
+const I_DID = '\\bi (?:already |also |just )?';
+const PAST: Record<ActionKind, RegExp[]> = {
+  // Not "called her out", "called him off", "called him a genius".
+  call: [
+    new RegExp(`${I_DID}(?:called|rang|phoned|dialed|dialled) ${DIALED}(?! (?:out|off|an?)\\b)`),
+  ],
+  send: [
+    new RegExp(
+      `${I_DID}(?:sent|texted|messaged|emailed) (?:it|that|this|the (?:text|message|email|note|invite|link)|${WHO})(?! back\\b)`
+    ),
+  ],
+  ride: [new RegExp(`${I_DID}(?:ordered|booked|called|got) you (?:an?|the) ${VEHICLE}`)],
+  schedule: [
+    new RegExp(
+      `${I_DID}(?:booked|scheduled|reserved) (?:it|that|this|you|your \\w+|the (?:\\w+ )?(?:table|appointment|reservation|meeting|room|slot|session))\\b(?! out\\b| to\\b)`
+    ),
+    new RegExp(
+      `${I_DID}(?:added|put) (?:it|that|this|the \\w+) (?:on|to|in|into) your (?:calendar|schedule|diary)\\b`
+    ),
+  ],
+  reminder: [
+    new RegExp(
+      `${I_DID}(?:set|added|created) (?:a|the|your|that|an) (?:\\w+ ){0,2}(?:reminder|timer|alarm)\\b`
+    ),
+  ],
+  save: [new RegExp(`${I_DID}(?:saved|stored|logged|noted) (?:it|that|this|those)\\b`)],
+};
+/** Ferni's own life anywhere in the sentence: "for my sister", "a friend of mine", "once". */
+const OWN_LIFE = /\b(?:my|myself|mine|once|usually|always|sometimes|whenever)\b/;
+/** A dated past: "in 2019", "back in June", "when we went to Paris". */
+const DATED =
+  /\b(?:in|since) (?:19|20)\d\d\b|\bback in\b|\bwhen (?:we|i) (?:went|were|was|lived|moved|visited)\b/;
+/** Taken back at the end: "I called her, but I did not." */
+const DENIED = /\bbut i (?:did not|didn't|have not|haven't|never did)\W*$/;
+/** Someone else's words just before the verb: "you said I called her", "they think I sent it". */
+const THEY_SAY =
+  /\b(?:you|they|she|he|we|people|someone|somebody) (?:said|say|says|think|thinks|thought|told me|claim|claims|claimed|mentioned|heard)(?: that)?\s*$/;
+/** Supposing it happened: "Say I booked it, then what?". */
+const SUPPOSE_PAST = /^(?:(?:so|okay|well) )?say\b|\bwhat if\b/;
+/** A habit in the claim's clause: "I set an alarm every night". */
+const HABIT = /\bevery (?:night|morning|day|week|year|time)\b/;
+
+/** The kind of action a plain past sentence reports Ferni did, or null (ACTION_CLAIM_PAST). */
+export function pastClaim(sentence: string): ActionKind | null {
+  const text = normalize(sentence);
+  if (FIGURATIVE.test(text) || OWN_LIFE.test(text) || NOT_AN_ACTION.test(text)) return null;
+  if (DATED.test(text) || DENIED.test(text)) return null;
+  let from = 0;
+  for (const raw of text.split(CLAUSES)) {
+    const start = text.indexOf(raw, from);
+    from = start + raw.length;
+    const clause = raw.trim();
+    if (!clause || NOT_A_CLAIM.test(clause) || HABIT.test(clause)) continue;
+    const before = text.slice(0, start + raw.indexOf(clause));
+    /** Unlike the claims above, a hedge anywhere before the verb counts: "if I booked it, ...". */
+    const reports = (re: RegExp): boolean => {
+      const m = re.exec(clause);
+      if (!m) return false;
+      const lead = before + clause.slice(0, m.index);
+      return (
+        !HEDGED.test(lead) &&
+        !REPORTED.test(lead) &&
+        !THEY_SAY.test(lead) &&
+        !SUPPOSE_PAST.test(lead)
+      );
+    };
+    const kind = ACTION_KINDS.find((k) => PAST[k].some(reports));
     if (kind) return kind;
   }
   return null;
 }
 
+const ACK = 'okay|ok|alright|all right|sure|great|perfect|got it|you got it|yep|yes|yeah';
+const ON_IT = new RegExp(
+  `^(?:${ACK}|i'm on it|on it|consider it done|will do|wish me luck|here goes|here we go|leave it (?:to|with) me)$`
+);
+/**
+ * A sentence of only "I'm on it", "wish me luck" and the like: no action named,
+ * so not a claim by itself, but on the caller's yes to a call it says the call
+ * is under way (action-claim-guard.ts). Owner call 2026-10-18: "All right, I'm
+ * on it, wish me luck" and no call tool ran.
+ */
+export function bareOnIt(sentence: string): boolean {
+  const parts = sentence
+    .toLowerCase()
+    .replace(/[‘’ʼ`]/g, "'")
+    .split(/[^a-z' ]+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return (
+    parts.every((p) => ON_IT.test(p)) && parts.some((p) => !new RegExp(`^(?:${ACK})$`).test(p))
+  );
+}
+
 /** Tool names by the kind of action they carry out (lower case). */
 const TOOL_KINDS: Record<ActionKind, RegExp> = {
   call: /^(?:callonbehalf|callandconverse|quickcall|reachout|multioutreach|makephonecall|backgroundcall|invitefriendbycall|calluser|callcontact|haveferni?call|callforconversation|call_make|telephony_call)$/,
+  ride: /^(?:requestride|scheduleride|bookride|book_ride|request_ride)$/,
   send: /^(?:reachout|multioutreach|quicktext|quickemail|send\w*|backgroundfollowup|post\w*|sms_send|message_send)$/,
   schedule:
     // A read (getCalendarToday, getUpcomingAppointments) is not a schedule action, so its reply never counts as one (#1547).

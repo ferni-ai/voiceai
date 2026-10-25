@@ -695,8 +695,7 @@ export function identifyGrowthEdges(userId: string): GrowthEdge[] {
  */
 function generateEntryPoint(topic: AvoidedTopic): string {
   const entryPoints: Record<string, string> = {
-    father:
-      "You've mentioned your dad a few times. I'm here if you ever want to explore that more.",
+    father: "You've mentioned your dad a few times. What's he like?",
     mother: "It sounds like your relationship with your mom is complex. No rush, but I'm curious.",
     childhood: "The past has a way of staying with us. What's one memory that still feels alive?",
     'past relationships':
@@ -717,7 +716,7 @@ function generateEntryPoint(topic: AvoidedTopic): string {
     }
   }
 
-  return `You've touched on ${topic.topic} before. I'm here when you're ready to explore it.`;
+  return `You've brought up ${topic.topic} a couple of times now.`;
 }
 
 /**
@@ -815,12 +814,12 @@ export function importResistanceProfile(profile: ResistanceProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all resistance detection state (for testing)
- */
+export const forgetResistanceUser = (userId: string): boolean => profiles.delete(userId);
+
+/** Reset all resistance detection state (for testing) */
 export function resetResistanceDetection(): void {
   profiles.clear();
 }

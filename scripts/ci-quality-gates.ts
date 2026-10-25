@@ -20,6 +20,7 @@
 import { execFileSync, spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { loadAllowlist, scanRepo } from './check-privacy-claims.js';
 
 // ============================================================================
 // CONFIGURATION - These are the HARD LIMITS that fail CI
@@ -376,6 +377,28 @@ function checkArchitecture(limits: typeof THRESHOLDS): CheckResult {
   };
 }
 
+/**
+ * Privacy promises Ferni can't keep (scripts/check-privacy-claims.ts). Here as
+ * well as in the unit suite because a website-only PR skips the unit tests.
+ */
+function checkPrivacyClaims(): CheckResult {
+  const root = process.cwd();
+  const findings = scanRepo(root, loadAllowlist(root));
+  for (const f of findings.slice(0, 10)) {
+    process.stdout.write(`  ${f.file}:${f.line} [${f.id}]\n`);
+  }
+  return {
+    name: 'False Privacy Claims',
+    passed: findings.length === 0,
+    value: findings.length,
+    threshold: 0,
+    message:
+      findings.length === 0
+        ? 'None found'
+        : `${findings.length} found; run pnpm tsx scripts/check-privacy-claims.ts`,
+  };
+}
+
 // ============================================================================
 // MAIN
 // ============================================================================
@@ -413,6 +436,9 @@ function runAllChecks(strict: boolean): GateResults {
 
   process.stdout.write(colors.dim + 'Checking architecture layers...\n' + colors.reset);
   checks.push(checkArchitecture(limits));
+
+  process.stdout.write(colors.dim + 'Checking privacy claims...\n' + colors.reset);
+  checks.push(checkPrivacyClaims());
 
   // Print results
   process.stdout.write(

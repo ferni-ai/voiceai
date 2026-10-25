@@ -2,8 +2,8 @@
  * Sending this call's pick, the follow-up it schedules (through the real
  * commitment-tracking store over an in-memory Firestore, read back by the
  * same processCommitments the follow-up builder runs every turn), and the
- * answer stored as a preference. SMS, the app inbox, user lookup and the card
- * store are mocked; the card goes through the real normalizeCardInput.
+ * answer stored as a preference. The guarded sender (its guards run in
+ * pick-delivery-guard.test.ts), the app inbox, user lookup and the card store are mocked; the card goes through the real normalizeCardInput.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,8 +35,9 @@ vi.mock('../../data-layer/integrations/index.js', () => ({
   deindexCommitment: vi.fn(),
 }));
 
-const sendSMS = vi.fn(async () => 'SM1');
-vi.mock('../../communication-service.js', () => ({ sendSMS }));
+type Texted = { userId: string; body: string; kind: string; refId: string };
+const sendGuardedText = vi.fn(async (_t: Texted) => ({ sent: true }) as const);
+vi.mock('../../outreach/guarded-text.js', () => ({ sendGuardedText }));
 const userReach = vi.fn();
 vi.mock('../../outreach/user-reach.js', () => ({ userReach }));
 const saveInAppMessage = vi.fn(async () => ({ success: true, channel: 'in_app' }));
@@ -143,9 +144,13 @@ describe('deliverPick', () => {
 
     expect(said).toContain('Texted it');
     expect(userReach).toHaveBeenCalledWith('user-1', 'sms', { standingOptIn: false });
-    expect(sendSMS).toHaveBeenCalledTimes(1);
-    const [to, body] = sendSMS.mock.calls[0] as unknown as [string, string];
-    expect(to).toBe('+14155550134');
+    expect(sendGuardedText).toHaveBeenCalledTimes(1);
+    const { userId, kind, refId, body } = sendGuardedText.mock.calls[0][0];
+    expect({ userId, kind, refId }).toEqual({
+      userId: 'user-1',
+      kind: 'coach-media',
+      refId: 'pick-1',
+    });
     expect(body).toContain('https://www.youtube.com/watch?v=vid1');
     expect(body).toContain('(8 minutes)');
     expect(body).not.toContain('\n');
@@ -220,7 +225,7 @@ describe('deliverPick', () => {
       pick: { kind: 'video', url: 'https://www.youtube.com/watch?v=vid1', length: '8 minutes' },
     });
     expect(JSON.stringify(card)).not.toMatch(/ignore previous instructions|javascript:/i);
-    expect(sendSMS).not.toHaveBeenCalled();
+    expect(sendGuardedText).not.toHaveBeenCalled();
     expect(docs.size).toBe(1);
   });
 
@@ -235,20 +240,20 @@ describe('deliverPick', () => {
     userReach.mockResolvedValueOnce({ reason: 'no_verified_phone' });
     expect(await deliverPick(session, 'user-1', 'text', 'ferni')).toContain('no verified number');
 
-    expect(sendSMS).not.toHaveBeenCalled();
+    expect(sendGuardedText).not.toHaveBeenCalled();
     expect(docs.size).toBe(0);
   });
 
   it('caps texts per call and schedules nothing when the text fails', async () => {
     const session = {};
     rememberPick(session, PICK);
-    sendSMS.mockRejectedValueOnce(new Error('twilio down'));
+    sendGuardedText.mockRejectedValueOnce(new Error('twilio down'));
     expect(await deliverPick(session, 'user-1', 'text', 'ferni')).toContain("didn't go through");
     expect(docs.size).toBe(0);
     for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
       await deliverPick(session, 'user-1', 'text', 'ferni');
     expect(await deliverPick(session, 'user-1', 'text', 'ferni')).toContain('Already texted');
-    expect(sendSMS).toHaveBeenCalledTimes(1 + MAX_TEXTS_PER_CALL);
+    expect(sendGuardedText).toHaveBeenCalledTimes(1 + MAX_TEXTS_PER_CALL);
   });
 });
 
@@ -259,7 +264,7 @@ describe('texting safely', () => {
     const said = await Promise.all(
       [1, 2, 3, 4].map(async () => deliverPick(session, 'user-1', 'text', 'ferni'))
     );
-    expect(sendSMS).toHaveBeenCalledTimes(MAX_TEXTS_PER_CALL);
+    expect(sendGuardedText).toHaveBeenCalledTimes(MAX_TEXTS_PER_CALL);
     expect(said.filter((r) => r.includes('Already texted'))).toHaveLength(4 - MAX_TEXTS_PER_CALL);
   });
 
@@ -272,7 +277,7 @@ describe('texting safely', () => {
     const session = {};
     rememberPick(session, { ...PICK, candidate });
     await deliverPick(session, 'user-1', 'text', 'ferni');
-    const body = (sendSMS.mock.calls[0] as unknown as [string, string])[1];
+    const { body } = sendGuardedText.mock.calls[0][0];
     expect(body).toMatch(/^From Ferni, the video we talked about: "/);
     expect(body).not.toMatch(/900|0100|evil\.example|\n/);
     const title = /"([^"]*)"/.exec(body)![1];
@@ -301,7 +306,7 @@ describe('texting safely', () => {
     for (const how of ['text', 'app'] as const)
       expect(await deliverPick(session, 'user-1', how, 'ferni')).toContain(says);
     expect(budget.get('texts:user-1') ?? 0).toBe(textsUsed);
-    expect(sendSMS).not.toHaveBeenCalled();
+    expect(sendGuardedText).not.toHaveBeenCalled();
     expect(saveInAppMessage).not.toHaveBeenCalled();
     expect([...docs.keys()].some((k) => k.includes('/commitments/'))).toBe(false);
     // Nothing was used: once cards save, the call still has both of its app sends.
@@ -337,7 +342,7 @@ describe('texting safely', () => {
     expect(await deliverPick(session, 'user-1', 'app', 'ferni')).toContain(
       "isn't one Ferni can send"
     );
-    expect(sendSMS).not.toHaveBeenCalled();
+    expect(sendGuardedText).not.toHaveBeenCalled();
     expect(saveInAppMessage).not.toHaveBeenCalled();
     expect(smsBody({ ...PICK.candidate, title: '' }, 'https://youtu.be/x')).toContain('"this one"');
   });
@@ -351,7 +356,7 @@ describe('send caps and what resurfaces later', () => {
     await deliverPick(session, 'user-1', 'text', 'ferni');
     await deliverPick(session, 'user-1', 'text', 'ferni');
     expect(saveInAppMessage).toHaveBeenCalledTimes(MAX_TEXTS_PER_CALL);
-    expect(sendSMS).toHaveBeenCalledTimes(2);
+    expect(sendGuardedText).toHaveBeenCalledTimes(2);
   });
 
   it('caps texts per user per day, across calls', async () => {
@@ -361,7 +366,7 @@ describe('send caps and what resurfaces later', () => {
       for (let i = 0; i < MAX_TEXTS_PER_CALL; i++)
         said.push(await deliverPick(session, 'user-1', 'text', 'ferni'));
     }
-    expect(sendSMS).toHaveBeenCalledTimes(TEXTS_PER_USER_PER_DAY);
+    expect(sendGuardedText).toHaveBeenCalledTimes(TEXTS_PER_USER_PER_DAY);
     expect(said.at(-1)).toContain('as many texts as Ferni sends someone in a day');
   });
 
@@ -449,4 +454,14 @@ describe('recordPickFeedback', () => {
     await recordPickFeedback('user-1', { helped: 'yes' }, []);
     expect(storeUserPreferences).not.toHaveBeenCalled();
   });
+
+  it.each(['anon:3b0e7c1e', 'onbehalf:call-1'])(
+    'stores nothing about a non-member (%s), even with a sent pick to attach it to',
+    async (userId) => {
+      picks.set('pick-3', { id: 'pick-3', sentVia: 'app', helped: null });
+      const reply = await recordPickFeedback(userId, { helped: 'yes', whatMattered: 'short' }, []);
+      expect(reply).toBe('Noted for this call only.');
+      expect(storeUserPreferences).not.toHaveBeenCalled();
+    }
+  );
 });

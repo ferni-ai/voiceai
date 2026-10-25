@@ -23,7 +23,11 @@ the later id wins. Their own overrides come last and beat every cohort. A disabl
 counts for nothing. Anyone in no cohort gets the agent's own values.
 
 Only switches in `COHORT_FLAGS` can be set: behaviour, never infrastructure or secrets.
-Anything else is dropped and logged. Values are `on` or `off`.
+Anything else is dropped and logged. Values are `on` or `off`, except `TURN_LENGTH` and
+`TURN_TEXTURE`, which take `learned` or `off`, and `PREEMPT_STABLE_CONTEXT`, which also
+takes `defer`. The latency switches (`ACTION_CLAIM_STREAM`, `PREEMPT_STABLE_CONTEXT`,
+`CACHE_WARM_PRIMARY`, `HANDOFF_CACHE_WARM`) are here so a dev A/B can give each eval
+caller its arm and run both arms in the same hour.
 
 ## Audiences (cohort ids)
 
@@ -84,6 +88,9 @@ work reads the flag with `envForCaller(userId)` (#1690), which goes back to the 
 It does not read `process.env`. The same applies to anything outside a call: the API server's
 scheduled jobs resolve the person's flags with `resolveCallerFlags` and need `COHORT_FLAGS=on`
 on that server.
+Code below `services/platform` in the layers (memory stores, capabilities) asks
+`personFlagOn(userId, FLAG)` (`src/config/person-flag.ts`) instead: the agent answers it with
+`callerFlag`, the UI server with `flagForUser`. The person's own value beats the process's.
 
 **Adding a flag to `COHORT_FLAGS`.** Find every read (`rg -w FLAG src`). Add the flag only if
 each read happens after `applyCallerFlags`: at agent setup, on a turn, at a handoff, or after

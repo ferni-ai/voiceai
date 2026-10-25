@@ -398,8 +398,8 @@ export async function executeOutreach(
 async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push'): Promise<boolean> {
   try {
     // Get user profile via Firestore directly (avoid circular dependency)
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
     const userDoc = await db.collection('bogle_users').doc(item.userId).get();
     const profile = userDoc.exists ? userDoc.data() : null;
 
@@ -445,14 +445,9 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
       }
 
       case 'push': {
-        // Use the outreach delivery push notification service
-        const { sendPushNotification, hasPushEnabled } =
-          await import('../outreach/delivery/push-notifications.js');
-
-        if (!hasPushEnabled(item.userId)) {
-          log.debug({ userId: item.userId }, 'Push not enabled for user');
-          return false;
-        }
+        // Without a device token this reports not sent; native devices are reached
+        // through the push service (push-notifications.ts, push-devices.ts).
+        const { sendPushNotification } = await import('../outreach/delivery/push-notifications.js');
 
         // Format push notification using persona's style
         const formatted = formatPushNotification(personaId, item.message, {

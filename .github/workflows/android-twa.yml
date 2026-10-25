@@ -1,0 +1,233 @@
+name: Android app (TWA)
+
+# Builds the Play bundle for apps/android-twa, the Trusted Web Activity that
+# wraps https://app.ferni.ai.
+#
+# - build: every trigger, pull requests included. Never sees a secret and
+#   always produces an UNSIGNED bundle.
+# - sign: main only (push or dispatch), inside the protected android-signing
+#   environment, which holds the ANDROID_UPLOAD_* secrets
+#   (scripts/android/make-upload-key.sh). Signs the built bundle with jarsigner,
+#   builds a universal APK with bundletool (pinned by SHA-256) for installing on
+#   a device, and fails if vars.ANDROID_CERT_SHA256 doesn't list the key, since
+#   then the app opens with a browser bar. No repository code runs next to the key.
+# - play-internal: dispatch from main with "upload_to_play" ticked, inside the
+#   protected play-release environment.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/android-twa/**'
+      - '.github/workflows/android-twa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/android-twa/**'
+      - '.github/workflows/android-twa.yml'
+  workflow_dispatch:
+    inputs:
+      upload_to_play:
+        description: 'Upload the signed bundle to the Play internal track (needs play-release approval)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-twa-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build unsigned bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/android-twa
+    env:
+      # Play needs a higher versionCode on every upload; the run number only grows.
+      TWA_VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Before any ./gradlew: the wrapper jar must match a published Gradle release.
+      - name: Validate the Gradle wrapper
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: 'platforms;android-36 build-tools;36.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          validate-wrappers: true
+
+      - name: Build release bundle
+        run: ./gradlew --no-daemon --stacktrace bundleRelease
+
+      - name: Check the bundle
+        run: |
+          set -euo pipefail
+          aab=app/build/outputs/bundle/release/app-release.aab
+          test -s "$aab" || { echo "::error::$aab was not produced"; exit 1; }
+          unzip -p "$aab" base/manifest/AndroidManifest.xml > /dev/null
+          if jarsigner -verify "$aab" 2>&1 | grep -q 'jar is unsigned'; then
+            echo "Bundle is unsigned, as it must be here."
+          else
+            echo "::error::The build job must produce an unsigned bundle"; exit 1
+          fi
+          {
+            echo "### Android bundle"
+            echo "- versionCode: $TWA_VERSION_CODE"
+            echo "- signed: false (signing runs only on main, in android-signing)"
+            echo "- size: $(stat -c %s "$aab") bytes"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: ferni-android-${{ github.run_number }}-unsigned
+          path: apps/android-twa/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
+
+  sign:
+    name: Sign with the upload key
+    needs: build
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: android-signing
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: ferni-android-${{ github.run_number }}-unsigned
+          path: bundle
+
+      - name: Sign the bundle
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for v in KEYSTORE_B64 ANDROID_UPLOAD_KEYSTORE_PASSWORD KEY_ALIAS ANDROID_UPLOAD_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "::error::android-signing is missing a secret ($v). Run scripts/android/make-upload-key.sh."
+              exit 1
+            fi
+          done
+          keystore="$RUNNER_TEMP/upload.p12"
+          trap 'rm -f "$keystore"' EXIT
+          (umask 077 && printf '%s' "$KEYSTORE_B64" | base64 --decode > "$keystore")
+          jarsigner -keystore "$keystore" -storetype PKCS12 \
+            -storepass:env ANDROID_UPLOAD_KEYSTORE_PASSWORD -keypass:env ANDROID_UPLOAD_KEY_PASSWORD \
+            -sigalg SHA256withRSA -digestalg SHA-256 \
+            bundle/app-release.aab "$KEY_ALIAS" > /dev/null
+          jarsigner -verify bundle/app-release.aab | grep -q 'jar verified'
+          keytool -printcert -jarfile bundle/app-release.aab | grep -E 'SHA256:' | sed 's/^/Upload key /'
+          echo "- signed with the upload key" >> "$GITHUB_STEP_SUMMARY"
+
+      # A universal APK signed with the same key, for installing on a device
+      # before Play has the app. It also proves the website trusts this key:
+      # Chrome opens the app full screen only when the signing certificate is in
+      # https://app.ferni.ai/.well-known/assetlinks.json, which is built from
+      # vars.ANDROID_CERT_SHA256.
+      - name: Universal APK, and check assetlinks lists its key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+          BUNDLETOOL_URL: https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
+          BUNDLETOOL_SHA256: a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/apk"
+          (umask 077 && mkdir -p "$work")
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSL -o "$work/bundletool.jar" "$BUNDLETOOL_URL"
+          echo "$BUNDLETOOL_SHA256  $work/bundletool.jar" | sha256sum -c -
+          (umask 077 && printf '%s' "$KEYSTORE_B64" | base64 --decode > "$work/upload.p12" \
+            && printf '%s' "$ANDROID_UPLOAD_KEYSTORE_PASSWORD" > "$work/store.pw" \
+            && printf '%s' "$ANDROID_UPLOAD_KEY_PASSWORD" > "$work/key.pw")
+          java -jar "$work/bundletool.jar" build-apks --mode=universal \
+            --bundle=bundle/app-release.aab --output="$work/ferni.apks" \
+            --ks="$work/upload.p12" --ks-pass="file:$work/store.pw" \
+            --ks-key-alias="$KEY_ALIAS" --key-pass="file:$work/key.pw"
+          unzip -p "$work/ferni.apks" universal.apk > bundle/ferni-universal.apk
+
+          apksigner="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner -type f | sort -V | tail -1)"
+          "$apksigner" verify bundle/ferni-universal.apk
+          # Newer apksigner prefixes the line ("Signer (minSdkVersion=...): certificate
+          # SHA-256 digest: <hex>"), so take the 64 hex digits, not a field.
+          signed="$("$apksigner" verify --print-certs bundle/ferni-universal.apk \
+            | sed -n 's/.*SHA-256 digest: *\([0-9a-fA-F]\{64\}\).*/\1/p' | head -1 | tr 'a-f' 'A-F')"
+          listed="$(printf '%s' "$ANDROID_CERT_SHA256" | tr -d ' :' | tr ',' '\n' | tr 'a-f' 'A-F')"
+          if [ -z "$signed" ] || ! printf '%s\n' "$listed" | grep -qx "$signed"; then
+            echo "::error::The APK's certificate ($signed) is not in vars.ANDROID_CERT_SHA256, so assetlinks.json won't list it and the app would open with a browser bar. Add the upload key's SHA-256 (scripts/android/make-upload-key.sh prints it)."
+            exit 1
+          fi
+          echo "- universal APK signed by $signed, which assetlinks lists" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload signed bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: ferni-android-${{ github.run_number }}-signed
+          path: |
+            bundle/app-release.aab
+            bundle/ferni-universal.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  play-internal:
+    name: Upload to Play internal track
+    needs: sign
+    # Manual, from main, ticked, and a reviewer approves play-release.
+    # Play also needs the first bundle uploaded by hand.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.upload_to_play
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: play-release
+    steps:
+      - name: Require the Play service account
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON is not set in play-release; nothing was uploaded."
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: ferni-android-${{ github.run_number }}-signed
+          path: bundle
+
+      - name: Upload to the internal track
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ai.ferni.app
+          releaseFiles: bundle/app-release.aab
+          track: internal
+          # A Play app that has never been published only accepts draft releases.
+          status: draft

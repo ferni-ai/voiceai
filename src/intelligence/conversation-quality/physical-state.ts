@@ -81,7 +81,7 @@ const PERSONA_PHYSICAL_NOTES: Record<
     morning: { engaged: 'Good morning energy. This feels productive.' },
     postLunch: { note: 'Taking a mindful moment after lunch.' },
     afternoon: { long: 'Afternoons are good for reflection and planning.' },
-    evening: { engaged: 'Winding down but still here for you.' },
+    evening: { engaged: 'Winding down, but still in it.' },
     lateNight: {
       short: 'Late night honesty is sometimes the best kind.',
       long: "It's getting late, but I'm glad we're talking.",

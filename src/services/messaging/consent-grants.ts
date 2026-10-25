@@ -30,20 +30,16 @@ import {
   phoneHash,
   phoneHashKeyVersion,
   toE164,
-  type Env,
   type StoredCheckin,
 } from '../outreach/checkin-replies.js';
-import { isCohortMember } from '../platform/cohort-flags.js';
+import { isCohortMember } from '../platform/cohort-membership.js';
 import {
-  consentBlocks,
   defaultConsentDeps,
-  messagingPipelineOn,
-  normalizeReply,
   readConsent,
-  type ConsentBlock,
   type ConsentChannel,
   type ConsentDeps,
 } from './consent.js';
+import { normalizeSms } from './sms-keywords.js';
 
 const log = createLogger({ module: 'messaging-consent-grants' });
 
@@ -52,7 +48,7 @@ export const CONSENT_ASK_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const YES_WORDS: ReadonlySet<string> = new Set(['yes', 'y', 'ok', 'sure']);
 
 /** YES, Y, OK or SURE as the whole message (any case, punctuation stripped), never inside one. */
-export const isConsentYes = (body: string): boolean => YES_WORDS.has(normalizeReply(body));
+export const isConsentYes = (body: string): boolean => YES_WORDS.has(normalizeSms(body));
 
 interface ConsentAsk {
   at: string;
@@ -245,7 +241,7 @@ export async function recordOwnerAttestation(
   ownerUid: string,
   deps: ConsentDeps = defaultConsentDeps(),
   isMember: (uid: string) => Promise<boolean> = async (uid) =>
-    isCohortMember(uid, FRIENDS_AND_FAMILY)
+    isCohortMember(FRIENDS_AND_FAMILY, uid)
 ): Promise<boolean> {
   const e164 = toE164(phone);
   const hash = e164 ? phoneHash(e164, deps.env) : null;
@@ -275,104 +271,4 @@ export async function isOwnerAttested(
 export function ownerFirstName(userDoc: Record<string, unknown> | undefined): string {
   const name = [userDoc?.displayName, userDoc?.name].find((n) => typeof n === 'string' && n);
   return typeof name === 'string' ? (name.trim().split(/\s+/)[0] ?? name) : 'your friend';
-}
-
-/** Is `phone` the owner's own verified number? (guarded-text's isOwnVerifiedPhone; pass it when imported.) */
-export type OwnNumberCheck = (ownerUid: string, phone: string) => Promise<boolean>;
-const defaultIsOwn: OwnNumberCheck = async (uid, phone) =>
-  (await import('../outreach/guarded-text.js')).isOwnVerifiedPhone(uid, phone);
-
-/** Did this phone opt out of anything (a plain STOP, or "stop calling")? */
-async function anyGlobalOptOut(hash: string, deps: ConsentDeps): Promise<boolean> {
-  const { sms, call } = await readConsent(hash, deps);
-  return sms.state === 'opted-out' || call.state === 'opted-out';
-}
-
-/**
- * May `ownerUid` reach this phone when nothing global forbids it? Yes for the
- * owner's own verified number, or with their own grant for `channel`. A grant
- * never outlives the contact's own opt-out: a plain STOP (texts only) also
- * ends every owner's call grant, since it beats every grant.
- */
-export async function mayReachForOwner(
-  ownerUid: string,
-  phone: string,
-  channel: ConsentChannel,
-  isOwn: OwnNumberCheck = defaultIsOwn,
-  deps: ConsentDeps = defaultConsentDeps()
-): Promise<boolean> {
-  if (await isOwn(ownerUid, phone)) return true;
-  const hash = phoneHash(phone, deps.env);
-  if (hash === null || (await anyGlobalOptOut(hash, deps))) return false;
-  return hasGrant(hash, ownerUid, channel, deps);
-}
-
-/**
- * For a caller that knows it is reaching someone for an owner: null when
- * `channel` to `phone` may go, else why not. A global opt-out refuses; the
- * owner's own number, or the owner's own grant, lets it go; else needs-consent.
- */
-export async function thirdPartyRefusal(
-  ownerUid: string,
-  phone: string,
-  channel: ConsentChannel,
-  isOwn: OwnNumberCheck = defaultIsOwn,
-  deps: ConsentDeps = defaultConsentDeps()
-): Promise<ConsentBlock | null> {
-  const block = await consentBlocks(
-    phone,
-    channel,
-    async (d) => mayReachForOwner(ownerUid, phone, channel, isOwn, d),
-    deps
-  );
-  if (block !== 'needs-consent') return block;
-  const hash = phoneHash(phone, deps.env);
-  return hash !== null && (await anyGlobalOptOut(hash, deps)) ? 'opted-out' : block;
-}
-
-/** The sender's own text grant, or their live consent-ask claim (the one ask may go). */
-export async function grantedOrAsked(
-  hash: string,
-  senderUid: string,
-  claim: string | undefined,
-  deps: ConsentDeps = defaultConsentDeps()
-): Promise<boolean> {
-  if (claim !== undefined && (await holdsConsentAsk(hash, claim, senderUid, deps))) return true;
-  return hasGrant(hash, senderUid, 'sms', deps);
-}
-
-/**
- * For a shared sender that is told who it acts for: refuse unless `phone` is
- * that owner's own verified number or the owner holds their own grant, and
- * always on an opt-out. No owner given: refused unless the contact opted in
- * to nobody in particular, i.e. always for a third party (fails closed).
- */
-export async function ownerRefusal(
-  ownerUid: string | undefined,
-  phone: string,
-  channel: ConsentChannel
-): Promise<ConsentBlock | null> {
-  return ownerUid
-    ? thirdPartyRefusal(ownerUid, phone, channel)
-    : consentBlocks(phone, channel, false);
-}
-
-/** What a tool tells the model when a call was refused, so Ferni says so honestly. */
-export const notCalling = (why: ConsentBlock): string =>
-  why === 'opted-out'
-    ? "I can't call that number: it asked not to be called."
-    : why === 'needs-consent'
-      ? "I can't call that number yet: they haven't said yes to calls from me for you."
-      : "I can't place that call right now.";
-
-/**
- * The executor-path raw senders (communication- and legacy-fallback-executor)
- * text through Twilio directly, with none of the guards. With MESSAGING_PIPELINE
- * on they refuse outright instead of relying on OUTBOUND_CONFIRM alone; the
- * gated tools (reachOut, sendTextMessage) are the way to text someone.
- */
-export function rawSendRetired(env: Env = process.env): string | null {
-  return messagingPipelineOn(env)
-    ? 'Nothing was sent: I text people only through the guarded path. Ask me to reach out to them instead.'
-    : null;
 }

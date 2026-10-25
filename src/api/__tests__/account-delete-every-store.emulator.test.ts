@@ -11,7 +11,8 @@
  *
  * Stores keyed by something other than the uid are seeded the way their writers key them:
  * the waitlist and access grants by email, the sponsored phone index by identity, A/B test
- * assignments under each test, and tool-call telemetry shared by many people in one doc.
+ * assignments under each test, the router's turn events under each day, and tool-call
+ * telemetry shared by many people in one doc.
  */
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -79,6 +80,7 @@ const MUST_ERASE = [
   'engagement_profiles/{uid}',
   'bogle_users/{uid}/summaries',
   'bogle_users/{uid}/conversations',
+  'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/wellbeing_snapshots',
@@ -194,6 +196,9 @@ async function seedOtherKeys(uid: string, email: string, phone: string): Promise
     db.doc('ab_tests/t-tone').set({ name: 'tone test' }), // shared by everyone in the test
     db.doc(`ab_tests/t-tone/assignments/${uid}`).set({ userId: uid, testId: 't-tone' }),
     db.doc(`ab_tests/t-pace/assignments/${uid}`).set({ userId: uid, testId: 't-pace' }),
+    // The router's turn events: one partition per day, the day documents never written
+    db.doc(`semantic_router_events/2026-03-01/events/ev-${uid}`).set({ userId: uid }),
+    db.doc(`semantic_router_events/2026-10-24/events/ev-${uid}`).set({ userId: uid }),
   ]);
   return [email, emailDocId(email), phone, identity.id];
 }

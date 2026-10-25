@@ -166,7 +166,7 @@ const RELATABLE_MOMENTS: Record<string, string[]> = {
     'I understand that deeply.',
   ],
   energetic: ['Oh my gosh, same!', 'I know EXACTLY what you mean!', "Yes! I've felt that too!"],
-  calm: ['I understand.', 'That makes sense to me.', 'I hear you.'],
+  calm: ['I understand.', 'That makes sense to me.', 'Yeah.'],
 };
 
 // ============================================================================

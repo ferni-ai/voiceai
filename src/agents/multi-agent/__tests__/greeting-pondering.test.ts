@@ -36,13 +36,16 @@ function doc(path: string): unknown {
   };
 }
 function collection(path: string): unknown {
+  const atLeast: Array<[string, unknown]> = []; // where(field, '>=', value)
   const query = {
+    where: (field: string, _op: '>=', value: unknown) => (atLeast.push([field, value]), query),
     orderBy: () => query,
     limit: () => query,
     get: async () => {
       reads.push(path);
       const rows = Object.entries(docs)
         .filter(([k]) => k.startsWith(`${path}/`))
+        .filter(([, d]) => atLeast.every(([f, v]) => String(d[f]) >= String(v)))
         .map(([, data]) => ({ data: () => data }));
       return { docs: rows };
     },
@@ -121,20 +124,17 @@ describe('opening on a pondered follow-up', () => {
     expect(reads).toEqual([]);
   });
 
-  it('opens plainly within two weeks of a crisis signal, not after', async () => {
-    docs = {
-      ...due(),
-      'crisis_signals/u1': { lastSignalAt: new Date(Date.now() - 3 * 86_400_000) },
-    };
+  it('opens plainly within two weeks of a crisis-level signal, not after', async () => {
+    // As logCrisisSignal writes it (human-transfer/index.ts)
+    const crisis = (daysAgo: number) => ({
+      timestamp: new Date(Date.now() - daysAgo * 86_400_000).toISOString(),
+      signals: { suicidalIdeation: true, severity: 8 },
+    });
+    docs = { ...due(), 'bogle_users/u1/crisis_signals/c1': crisis(3) };
     await greet({ calls: 5 });
     expect(lastRequest().facts[ASK]).toBeUndefined();
 
-    docs = {
-      ...due(),
-      'bogle_users/u1/crisis_history/e1': {
-        timestamp: new Date(Date.now() - 20 * 86_400_000).toISOString(),
-      },
-    };
+    docs = { ...due(), 'bogle_users/u1/crisis_signals/c1': crisis(20) };
     await greet({ calls: 5 });
     expect(lastRequest().facts[ASK]).toBe('How is your martial arts training going?');
   });

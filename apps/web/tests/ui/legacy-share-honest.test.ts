@@ -100,6 +100,7 @@ describe('Legacy family sharing', () => {
   let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = [];
 
   beforeEach(() => {
+    vi.stubEnv('VITE_CUSTOM_AGENTS_UI', 'true'); // My Creations is behind this flag
     toasts.calls = [];
     logged.calls = [];
     consoleSpies = (['log', 'info', 'debug', 'warn', 'error'] as const).map((m) =>

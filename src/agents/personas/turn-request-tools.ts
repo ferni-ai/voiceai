@@ -14,9 +14,15 @@ import {
   latestUserText,
   toolRetrievalMode,
 } from '../../tools/retrieval/turn-tool-retrieval.js';
-import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
+import {
+  signalToolCallRequested,
+  signalToolNames,
+} from '../voice-agent/empty-response-watchdog.js';
 import { filterCaptionStream, type Caption } from './caption-filter.js';
 import { tapSpokenBursts } from './vocal-bursts.js';
+
+/** For toolsForTurn: this turn's topic tools go into its request (TOOLS_SAME_TURN). */
+export { withSameTurnTools } from './same-turn-tools.js';
 
 /** Live tool retrieval waits this long for the pick before falling back (see toolsForTurn). */
 const LIVE_PICK_WAIT_MS = 150;
@@ -89,12 +95,18 @@ export function tapToolCalls<T>(
 ): ReadableStream<T> | null {
   if (!reply) return reply;
   let signalled = false;
+  const seen = new Set<string>();
   return reply.pipeThrough(
     new TransformStream<T, T>({
       transform(chunk, controller) {
-        if (!signalled && hasToolCalls(chunk)) {
-          signalled = true;
-          signalToolCallRequested(session);
+        const names = toolCallNames(chunk);
+        const fresh = names.filter((name) => !seen.has(name));
+        fresh.forEach((name) => seen.add(name));
+        if (names.length && !signalled) {
+          signalled = true; // once per reply: the watchdogs hold their clocks on it
+          signalToolCallRequested(session, names);
+        } else if (fresh.length) {
+          signalToolNames(session, fresh); // a later tool, e.g. endCall after a look-up
         }
         controller.enqueue(chunk);
       },
@@ -103,8 +115,21 @@ export function tapToolCalls<T>(
 }
 
 /** LiveKit runs only `function_call` entries (generation.js), so only those count. */
-function hasToolCalls(chunk: unknown): boolean {
-  if (typeof chunk !== 'object') return false;
-  const delta = (chunk as { delta?: { toolCalls?: Array<{ type?: string }> } } | null)?.delta;
-  return delta?.toolCalls?.some((call) => call.type === 'function_call') ?? false;
+function toolCallNames(chunk: unknown): string[] {
+  const calls = (chunk as { delta?: { toolCalls?: Array<{ type?: string; name?: string }> } })
+    ?.delta?.toolCalls;
+  return (calls ?? []).filter((c) => c.type === 'function_call').map((c) => c.name ?? '');
+}
+
+/**
+ * TOOL_CORE_STATIC: tools findTools added to the agent mid-reply go into the
+ * reply's own tool context, which the SDK runs the reply's next step against.
+ */
+export function withPinnedTools(toolCtx: llm.ToolContext, agent: object | undefined): void {
+  const own = (agent as { toolCtx?: llm.ToolContext } | undefined)?.toolCtx?.functionTools;
+  if (!own) return;
+  const added = Object.entries(own)
+    .filter(([name]) => !(name in toolCtx.functionTools))
+    .map(([, tool]) => tool);
+  if (added.length > 0) toolCtx.updateTools([...toolCtx.tools, ...added]);
 }

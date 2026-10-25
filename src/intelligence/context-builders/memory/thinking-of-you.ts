@@ -456,7 +456,7 @@ function getPersonaVoice(personaId: string, _callback: MemoryCallback): string {
 "I've been curious about the outcome of that situation you mentioned."`,
 
     'nayan-patel': `Nayan approaches it with gentle presence:
-"I've been holding space for what you shared. Would you like to talk more about it?"`,
+"I've been thinking about what you shared. Want to pick it back up?"`,
   };
 
   return voices[personaId] || voices.ferni;

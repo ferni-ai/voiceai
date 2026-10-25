@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
+  anticipateSystem,
   ANTICIPATE_SYSTEM,
   anticipationLog,
   keptAfterSimulation,
@@ -25,6 +26,13 @@ import {
   type DeliberationMode,
 } from './deliberation-anticipate.js';
 import type { Line } from './director-notes.js';
+import { castFor, directorSeesScene, FERNI_CAST, verbS, type Cast } from './director-cast.js';
+import { erodesGuard, guardRuleFor } from './director-guard.js';
+import {
+  castFor as castFromSheet,
+  directorDirects,
+  directsDeliberationSystem,
+} from './director-directs.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
 import { callerMove } from './turn-shape.js';
@@ -65,21 +73,28 @@ const MAX_CONDITION_CHARS = 60;
 
 export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
-export const DELIBERATION_SYSTEM = `You are Ferni's private thoughts during a live phone call with someone he cares about. Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) answers in real time. You have a little longer. Think it over carefully and privately, then keep AT MOST ONE thing he might bring up in the next turn or two, and only if it is worth more than what he would say anyway:
+/** The system prompt for a Cast (director-cast.ts); FERNI_CAST gives the one prod sends. */
+export const deliberationSystem = (c: Cast): string =>
+  `You are ${c.name}'s private thoughts during a live phone call with someone ${c.p.subject} ${verbS(c, 'care')} about. ${c.name}${c.brief ? ` (${c.brief})` : ''} answers in real time. You have a little longer. Think it over carefully and privately, then keep AT MOST ONE thing ${c.p.subject} might bring up in the next turn or two, and only if it is worth more than what ${c.p.subject} would say anyway:
 - insight: something true about their situation that they have not put into words
 - question: a better question than the obvious one, the one that gets at what matters to them
-- connection: two things they said (on this call, or in what Ferni remembers) that bear on each other
+- connection: two things they said (on this call, or in what ${c.name} remembers) that bear on each other
 - reframe: a truer or kinder way to see what they described
 Ground it in what they actually said and name the detail. Never invent facts, history or people. No diagnoses, clinical labels or therapy-speak, no advice they did not ask for dressed up as insight, no flattery: honest the way a good friend is.
+${guardRuleFor(c, { thought: true })}
 Return JSON only, either {"kind":"none"} or {"kind":"insight"|"question"|"connection"|"reframe","note":"the thought, under 22 words","confidence":0.0-1.0,"whyNow":"under 12 words","doNotUseIf":"when bringing it up would be wrong, under 10 words"}`;
+export const DELIBERATION_SYSTEM = deliberationSystem(FERNI_CAST);
 
 const KINDS = new Set<ThoughtKind>(['insight', 'question', 'connection', 'reframe']);
 /** A label is not a friend's thought, and a wrong one does harm. */
 const DIAGNOSIS =
   /\b(depress(?:ed|ion)|anxiety disorder|ptsd|trauma(?:tic|tized)?|adhd|bipolar|ocd|narcissis(?:t|tic|m)|codependen\w*|attachment style|gaslight\w*|disorder|diagnos\w*|therap(?:y|ist)|burn(?:ed )?out|toxic|enabling)\b/i;
 
-/** The model's JSON as a usable thought, or null (none, malformed, unsure, a label, too long). */
-export function parseThought(reply: string): Thought | null {
+/**
+ * The model's JSON as a usable thought, or null (none, malformed, unsure, a
+ * label, too long, or against a boundary, honesty or tool truth: director-guard.ts).
+ */
+export function parseThought(reply: string, sessionId?: string): Thought | null {
   const json = reply.match(/\{[\s\S]*\}/)?.[0];
   if (!json) return null;
   try {
@@ -88,6 +103,7 @@ export function parseThought(reply: string): Thought | null {
     const confidence = typeof p.confidence === 'number' ? p.confidence : 0;
     if (!KINDS.has(p.kind as ThoughtKind) || !note || note.length > MAX_THOUGHT_CHARS) return null;
     if (confidence < MIN_CONFIDENCE || DIAGNOSIS.test(note)) return null;
+    if (erodesGuard(note, sessionId)) return null;
     return {
       kind: p.kind as ThoughtKind,
       note,
@@ -142,15 +158,18 @@ export function buildDeliberationPrompt(
   lines: Line[],
   memory: string,
   userName?: string,
-  mind = ''
+  mind = '',
+  /** DIRECTOR_SEES_SCENE or DIRECTOR_DIRECTS on: the persona speaking; each of their lines is labelled with who said it. */
+  speaking?: string
 ): string {
   const who = userName || 'Them';
+  const assistant = (l: Line): string => (speaking ? (l.by ?? speaking) : 'Ferni');
   const call = lines
     .slice(-16)
-    .map((l) => `${l.speaker === 'ferni' ? 'Ferni' : who}: ${l.text}`)
+    .map((l) => `${l.speaker === 'ferni' ? assistant(l) : who}: ${l.text}`)
     .join('\n');
   const known = memory.trim()
-    ? `What Ferni remembers that may bear on it:\n${memory.trim().slice(0, 1200)}\n\n`
+    ? `What ${speaking ?? 'Ferni'} remembers that may bear on it:\n${memory.trim().slice(0, 1200)}\n\n`
     : '';
   const how = mind.trim()
     ? `How they tend to be, from earlier calls:\n${mind.trim().slice(0, 600)}\n\n`
@@ -201,7 +220,9 @@ export class Deliberator {
     lines: Line[],
     understanding: Understanding | null,
     memory = '',
-    mind = ''
+    mind = '',
+    /** DIRECTOR_SEES_SCENE or DIRECTOR_DIRECTS on: the persona on the call, whose thoughts these are. */
+    personaId?: string
   ): Promise<void> {
     this.turn++;
     if (this.offered) {
@@ -222,25 +243,46 @@ export class Deliberator {
     const ready = this.turn - this.lastOfferedTurn >= SPACING_TURNS - 1;
     if (this.running || this.thought || !ready || this.turn <= this.heldUntil) return;
     if (this.stats.runs >= MAX_RUNS || !carriesWeight(lastCallerTurn(lines), understanding)) return;
-    return this.deliberate(this.promptFor(lines, memory, mind));
+    return this.deliberate(async (cast) => {
+      // DIRECTOR_DIRECTS=on: the persona's own thought, framed from its sheet
+      // (director-directs.ts). The anticipate arm keeps its own instructions.
+      if (directorDirects() && this.opts.mode !== 'anticipate') {
+        const own = await castFromSheet(personaId);
+        const prompt = this.promptFor(lines, memory, mind, own.name);
+        return { system: directsDeliberationSystem(own), prompt };
+      }
+      return {
+        system: this.systemFor(cast),
+        prompt: this.promptFor(lines, memory, mind, cast?.name),
+      };
+    }, personaId);
   }
 
   /** How they tend to be (theory of mind) only informs the anticipate arm. */
-  private promptFor(lines: Line[], memory: string, mind: string): string {
+  private promptFor(lines: Line[], memory: string, mind: string, speaking?: string): string {
     const how = this.opts.mode === 'anticipate' ? mind : '';
-    return buildDeliberationPrompt(lines, memory, this.opts.userName, how);
+    return buildDeliberationPrompt(lines, memory, this.opts.userName, how, speaking);
+  }
+
+  /** Ferni's prompt as prod sends it, or (DIRECTOR_SEES_SCENE=on) one framed for `cast`. */
+  private systemFor(cast?: Cast): string {
+    if (this.opts.mode === 'anticipate') return cast ? anticipateSystem(cast) : ANTICIPATE_SYSTEM;
+    return cast ? deliberationSystem(cast) : DELIBERATION_SYSTEM;
   }
 
   /** The thought in a reply and, in the anticipate arm, what the simulation weighed (labels only). */
   private read(text: string): { t: Thought | null; labels: Record<string, unknown> } {
-    const t = parseThought(text);
+    const t = parseThought(text, this.opts.sessionId);
     if (this.opts.mode !== 'anticipate') return { t, labels: { mode: 'reflect' } };
     const a = parseAnticipation(text);
     if (t && a && landsBadly(a)) this.stats.landsBadly++;
     return { t: keptAfterSimulation(t, a), labels: { mode: 'anticipate', ...anticipationLog(a) } };
   }
 
-  private async deliberate(prompt: string): Promise<void> {
+  private async deliberate(
+    request: (cast?: Cast) => Promise<{ system: string; prompt: string }>,
+    personaId?: string
+  ): Promise<void> {
     this.running = true;
     this.stats.runs++;
     const startedTurn = this.turn;
@@ -252,7 +294,9 @@ export class Deliberator {
         controller.signal.addEventListener('abort', () => reject(new Error('timeout')));
       });
       aborted.catch(() => undefined);
-      const system = this.opts.mode === 'anticipate' ? ANTICIPATE_SYSTEM : DELIBERATION_SYSTEM;
+      // DIRECTOR_SEES_SCENE=on: framed for the persona on the call (director-cast.ts).
+      const framed = personaId !== undefined && directorSeesScene();
+      const { system, prompt } = await request(framed ? await castFor(personaId) : undefined);
       const { text, usage } = await Promise.race([
         this.opts.think(system, prompt, controller.signal),
         aborted,

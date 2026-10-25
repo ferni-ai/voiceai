@@ -10,15 +10,15 @@
  */
 
 // --- ORCHESTRATION (context builder + formatter) ---
-
 export * from './superhuman-service.js';
 
 // --- VALIDATION (benchmark tests + runner) ---
-
 export * from './validation/index.js';
 
-// --- RE-EXPORTS ---
+// --- FORGET REQUESTS over stored commitments (every reader applies them) ---
+export * from './commitment-forget.js';
 
+// --- RE-EXPORTS ---
 // Commitment Keeper
 export {
   buildCommitmentContext,
@@ -961,8 +961,7 @@ export {
   type SpiralStage,
   type StageIndicator,
 } from './developmental-stage-awareness.js';
-export {
-  isCommitmentCaptureOn,
-  recordCallerCommitments,
-  type CaptureDeps,
-} from './after-call-commitments.js';
+export { isCommitmentCaptureOn, recordCallerCommitments } from './after-call-commitments.js';
+export type { CaptureDeps } from './after-call-commitments.js';
+export * from './judged-commitments.js';
+export * from './commitment-single-writer.js';

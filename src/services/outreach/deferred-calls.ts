@@ -19,6 +19,11 @@ import {
   type CallHoursDecision,
   type CallHoursInput,
 } from './call-hours-guard.js';
+import {
+  deferredCallOutcome,
+  logPromiseJobRun,
+  logPromiseOutcome,
+} from '../follow-through/index.js';
 
 const log = createLogger({ module: 'DeferredCalls' });
 
@@ -34,6 +39,8 @@ export interface Deferral {
   id: string;
   at: Date;
   timezone: string;
+  /** Who the waiting call is to, as stored (pendingCallTo only). */
+  contactName?: string;
 }
 
 // The on-behalf tool reads this back to tell the user when the call will happen.
@@ -45,7 +52,7 @@ export function heldCallReply(contactName: string): string {
 }
 
 /** When a held call rings, in the recipient's time: "later today at 9:00 AM", "tomorrow at …". */
-function spokenWhen(at: Date, timeZone: string, now: Date): string {
+export function spokenWhen(at: Date, timeZone: string, now: Date): string {
   const day = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone }).format(d);
   const time = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' });
   const tomorrow = day(new Date(now.getTime() + 86_400_000));
@@ -141,10 +148,19 @@ export async function pendingCallTo(
 ): Promise<Deferral | undefined> {
   const want = lastTen(phone);
   if (want.length < 7) return undefined;
+  return (await pendingCalls(userId, now)).find((call) => call.phone === want);
+}
+
+/** Every on-behalf call of the user's still waiting for its hour, soonest first. */
+export async function pendingCalls(
+  userId: string,
+  now = new Date()
+): Promise<Array<Deferral & { phone: string }>> {
+  const waiting: Array<Deferral & { phone: string }> = [];
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
-    if (!db) return undefined;
+    if (!db) return waiting;
     const snap = await db
       .collection('bogle_users')
       .doc(userId)
@@ -156,17 +172,37 @@ export async function pendingCallTo(
         scheduledFor?: string;
         timezone?: string;
       };
-      if (data.kind !== 'on_behalf' || lastTen(data.request?.resolvedContact?.phone) !== want)
-        continue;
+      if (data.kind !== 'on_behalf') continue;
       const at = new Date(data.scheduledFor ?? '');
       // Too late to be placed (executeDueDeferredCalls drops it): not waiting any more.
       if (Number.isNaN(at.getTime()) || now.getTime() - at.getTime() > LATE_AFTER_MS) continue;
-      return { id: doc.id, at, timezone: data.timezone || 'UTC' };
+      const { request } = data;
+      const contactName = request?.resolvedContact?.name || request?.contactQuery;
+      const phone = lastTen(request?.resolvedContact?.phone);
+      waiting.push({ id: doc.id, at, timezone: data.timezone || 'UTC', contactName, phone });
     }
   } catch (error) {
     log.warn({ userId, error: String(error) }, 'Could not read pending deferred calls');
   }
-  return undefined;
+  return waiting.sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+/**
+ * The other calls still set, each by name, so a reply about one call can't be
+ * taken for another (owner call 2026-10-18: asked to call his sister, Ferni
+ * said the call was "already scheduled for nine", which was his mom's).
+ */
+export function otherCallsLine(
+  others: readonly Deferral[],
+  now = new Date(),
+  except?: string
+): string {
+  const set = others.filter((call) => call.id !== except && call.contactName);
+  if (set.length === 0) return '';
+  const each = set.map(
+    (call) => `the call to ${call.contactName} ${spokenWhen(call.at, call.timezone, now)}`
+  );
+  return ` Separately, still set and unchanged: ${each.join('; ')} (their time).`;
 }
 
 /**
@@ -179,20 +215,36 @@ export async function placeOrHold(
   request: OnBehalfCallRequest,
   place: (request: OnBehalfCallRequest) => Promise<string>,
   now = new Date()
-): Promise<{ callId?: string; held?: string }> {
+): Promise<{ callId?: string; held?: string; others?: string }> {
   const name = request.resolvedContact?.name || request.contactQuery;
-  const waiting = await pendingCallTo(request.userId, request.resolvedContact?.phone, now);
-  if (waiting) return { held: alreadySetReply(name, waiting, now) };
+  const want = lastTen(request.resolvedContact?.phone);
+  const all = await pendingCalls(request.userId, now);
+  const waiting = want.length >= 7 ? all.find((call) => call.phone === want) : undefined;
+  const others = all.filter((call) => call !== waiting);
+  if (waiting) return { held: alreadySetReply(name, waiting, now) + otherCallsLine(others, now) };
   const callId = await place(request);
-  return { callId, held: deferredCallReply(callId, name, request.purpose, now) };
+  const held = deferredCallReply(callId, name, request.purpose, now);
+  const also = otherCallsLine(others, now, callId);
+  return { callId, held: held && held + also, others: also };
 }
 
-/** A call to this person is already set: nothing new dialed, and when the set one rings. */
+/**
+ * A call to this number is already set: nothing new dialed, and when the set
+ * one rings. Named by the waiting call's own contact, so a request for someone
+ * else at that number is never told their call is set.
+ */
 export function alreadySetReply(contactName: string, waiting: Deferral, now = new Date()): string {
+  const when = `${spokenWhen(waiting.at, waiting.timezone, now)} their time`;
+  const setFor = waiting.contactName?.trim();
+  if (setFor && setFor.toLowerCase() !== contactName.trim().toLowerCase()) {
+    return (
+      `Nothing was dialed yet: that number already has a call set, the call to ${setFor} ` +
+      `${when}, so nothing new was set up for ${contactName}. Check the number with the caller.`
+    );
+  }
   return (
-    `Nothing was dialed yet: a call to ${contactName} is already set for ` +
-    `${spokenWhen(waiting.at, waiting.timezone, now)} their time, so I didn't set up another. ` +
-    `Tell the caller it's already on the way then.`
+    `Nothing was dialed yet: a call to ${contactName} is already set for ${when}, so I ` +
+    `didn't set up another. Tell the caller it's already on the way then.`
   );
 }
 
@@ -237,9 +289,12 @@ export async function executeDueDeferredCalls(
     limit: opts.limit ?? 10,
   });
   const result = { due: claim.due, placed: 0, rescheduled: 0, failed: 0, missed: claim.late };
+  for (const item of claim.lateItems) {
+    logPromiseOutcome('deferred-call', deferredCallOutcome('missed'), { userId: item.userId });
+  }
   for (const item of claim.claimed) {
     const call = item.data as unknown as DeferredCall;
-    let status = 'placed';
+    let status: 'placed' | 'rescheduled' | 'failed' = 'placed';
     let heldAs: string | undefined;
     try {
       // Owner from the document's path, not the stored request.
@@ -252,6 +307,7 @@ export async function executeDueDeferredCalls(
       result.failed++;
       log.warn({ userId: item.userId, error: String(error) }, 'Deferred call failed');
     }
+    logPromiseOutcome('deferred-call', deferredCallOutcome(status), { userId: item.userId });
     await db
       .collection('bogle_users')
       .doc(item.userId)
@@ -265,5 +321,12 @@ export async function executeDueDeferredCalls(
       });
   }
   if (result.due > 0) log.info(result, 'Deferred calls run');
+  logPromiseJobRun('deferred-calls', {
+    due: result.due,
+    done: result.placed,
+    failed: result.failed,
+    held: result.rescheduled,
+    missed: result.missed,
+  });
   return result;
 }

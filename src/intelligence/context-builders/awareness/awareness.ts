@@ -117,7 +117,7 @@ const FERNI_AWARENESS_PROFILE: AwarenessProfile = {
       'Just be here with them.',
       "This moment doesn't need fixing.",
       'Sometimes presence is enough.',
-      'Hold space for this.',
+      'Let it sit. No need to fill the quiet.',
     ],
   },
 };

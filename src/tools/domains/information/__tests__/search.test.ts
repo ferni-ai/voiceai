@@ -30,3 +30,40 @@ describe('searchWeb with nothing found', () => {
     expect(await searchWeb('Zion')).toBe('Zion National Park is in Utah. (via Wikipedia)');
   });
 });
+
+describe('searchWeb failure shape, NO_INVENTED_INTERNALS', () => {
+  const prev = process.env.NO_INVENTED_INTERNALS;
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (prev === undefined) delete process.env.NO_INVENTED_INTERNALS;
+    else process.env.NO_INVENTED_INTERNALS = prev;
+  });
+
+  it('off: the failure text as before', async () => {
+    delete process.env.NO_INVENTED_INTERNALS;
+    respond({ AbstractText: '', RelatedTopics: [] });
+    const out = await searchWeb('baseball game tonight');
+    expect(out).toMatch(/^No results for "baseball game tonight"\./);
+    expect(out).not.toMatch(/status:/);
+  });
+
+  it('on: an explicit status and the no-fill-in rule, for nothing found and for a failure', async () => {
+    process.env.NO_INVENTED_INTERNALS = 'on';
+    respond({ AbstractText: '', RelatedTopics: [] });
+    const none = await searchWeb('baseball game tonight');
+    expect(none).toMatch(/^\[status: no_results\] No results for/);
+    expect(none).toMatch(/don't guess at why, or describe how your search works/);
+    vi.restoreAllMocks();
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'));
+    expect(await searchWeb('score')).toMatch(/^\[status: error\] The search didn't work/);
+    vi.restoreAllMocks();
+    respond({}, false);
+    expect(await searchWeb('score')).toMatch(/^\[status: error\] I couldn't search/);
+  });
+
+  it('on: a found answer is untouched', async () => {
+    process.env.NO_INVENTED_INTERNALS = 'on';
+    respond({ AbstractText: 'Zion National Park is in Utah.', AbstractSource: 'Wikipedia' });
+    expect(await searchWeb('Zion')).toBe('Zion National Park is in Utah. (via Wikipedia)');
+  });
+});

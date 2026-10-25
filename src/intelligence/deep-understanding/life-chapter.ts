@@ -664,7 +664,7 @@ function identifyChapterNeeds(profile: ChapterProfile, text: string, emotions: s
   // Chapter-specific needs
   const chapterNeeds: Partial<Record<ChapterType, LifeChapter['needs']>> = {
     career_transition: {
-      validation: ["It's okay to want more", 'Your feelings are valid'],
+      validation: ["It's okay to want more", 'Wanting out is not ingratitude'],
       permission: ['To explore', 'To leave', 'To prioritize yourself'],
       guidance: ['What steps to take', 'How to think about this'],
       witnessing: ['The fear', 'The excitement', 'The uncertainty'],
@@ -694,7 +694,7 @@ function identifyChapterNeeds(profile: ChapterProfile, text: string, emotions: s
       witnessing: ['The search', 'Who you are becoming'],
     },
     grief_processing: {
-      validation: ['Grief has no timeline', 'All feelings are valid'],
+      validation: ['Grief has no timeline', "There's no right way to do this"],
       permission: ['To grieve in your way', 'To feel joy too', 'To take time'],
       guidance: ['How to hold grief', 'Supporting yourself'],
       witnessing: ['Their memory', 'Your love', 'The loss'],
@@ -722,7 +722,7 @@ function buildChapterGuidance(profile: ChapterProfile): ChapterAnalysis['guidanc
 
   const chapterApproaches: Partial<Record<ChapterType, string>> = {
     career_transition: 'Explore the desire without rushing to solutions. Honor the complexity.',
-    relationship_ending: "Hold space for grief. Don't try to fix or move past too quickly.",
+    relationship_ending: "Let the grief be there. Don't try to fix or move past too quickly.",
     healing_journey: "Celebrate small wins. Don't push pace. Affirm their agency in healing.",
     midlife_reflection: "Take the questions seriously. Don't minimize the search for meaning.",
     identity_exploration: 'Be curious, not directive. Reflect back what you see without judging.',
@@ -867,12 +867,12 @@ export function importChapterProfile(profile: ChapterProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all life chapter awareness state (for testing)
- */
+export const forgetChapterUser = (userId: string): boolean => profiles.delete(userId);
+
+/** Reset all life chapter awareness state (for testing) */
 export function resetLifeChapterAwareness(): void {
   profiles.clear();
 }

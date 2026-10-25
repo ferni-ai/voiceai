@@ -528,8 +528,8 @@ export async function handleObservabilityRoutes(
     return true;
   }
 
-  // Write operations (clear) require admin access
-  if (req.method === 'POST') {
+  // Writes (clear) and the routing dashboard (every caller's routes) require admin access
+  if (req.method === 'POST' || pathname === '/api/observability/routing-dashboard') {
     const auth = await requireAdmin(req, res);
     if (!auth) return true;
   } else {
@@ -893,7 +893,7 @@ export async function handleObservabilityRoutes(
           // Recent routing decisions (for table)
           recentRoutes: recentRoutes.map((r) => ({
             timestamp: r.timestamp.toISOString(),
-            userInput: r.userInput.slice(0, 50),
+            inputLength: r.inputLength,
             toolId: r.toolId,
             confidence: r.confidence,
             matchPath: r.matchPath,

@@ -488,29 +488,25 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         if (!compliance.passed) {
           log.warn({ issues: compliance.issues }, 'Compliance check failed');
-          return (
-            `I can't make this call because: ${compliance.issues.join(', ')}. ` +
-            `Could you help me resolve these issues?`
-          );
+          // A result marked failed, so a confirmed call that didn't ring is never "placed".
+          const why = `I can't make this call because: ${compliance.issues.join(', ')}.`;
+          return { success: false, error: `${why} Could you help me resolve these issues?` };
         }
 
         // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
         const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
-        const { callId, held } = await placeOrHold(request, initiateOnBehalfCall);
+        const { callId, held, others = '' } = await placeOrHold(request, initiateOnBehalfCall);
         if (held) return held;
         log.info({ callId, contactName: contact.name, purpose }, 'Call initiated successfully');
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
           `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
-          `I'll let you know how it goes once the call is complete.`
+          `I'll let you know how it goes once the call is complete.${others}`
         );
       } catch (error) {
         log.error({ error: String(error), contactQuery, purpose }, 'Failed to initiate call');
-
-        return (
-          `Sorry, I ran into a problem trying to call ${contactQuery}. ` +
-          `Would you like me to try again, or is there another way I can help?`
-        );
+        const sorry = `Sorry, I ran into a problem trying to call ${contactQuery}.`;
+        return { success: false, error: `${sorry} Would you like me to try again?` };
       }
     },
   });

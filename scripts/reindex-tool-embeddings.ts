@@ -14,7 +14,7 @@
  */
 
 import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 const COLLECTION = 'semantic_router_tool_embeddings';
 const TARGET_MODEL = 'gemini-embedding-001';
@@ -34,7 +34,7 @@ function initFirebase(): FirebaseFirestore.Firestore {
   if (getApps().length === 0) {
     initializeApp({ projectId });
   }
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 async function embed(text: string): Promise<number[]> {

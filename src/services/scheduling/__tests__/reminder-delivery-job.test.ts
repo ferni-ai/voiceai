@@ -6,7 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Row = { id: string; userId: string; data: Record<string, unknown> };
 let rows: Row[] = [];
-const deliverReminder = vi.fn(async (_reminder: { id: string; deliveryMethod: string }) => true);
+type Outcome = 'sent' | 'in_app' | 'in_app_unnotified' | 'held' | 'failed';
+const deliverReminder = vi.fn(
+  async (
+    _reminder: { id: string; deliveryMethod: string },
+    _opts?: { textOn?: boolean; notifyInApp?: unknown }
+  ): Promise<Outcome> => 'sent'
+);
 
 /** Enough of Firestore for the job's query and its claim transaction. */
 function fakeDb() {
@@ -56,7 +62,15 @@ vi.mock('../../outreach/unified-delivery.js', () => ({
 }));
 vi.mock('../reminder-scheduler.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../reminder-scheduler.js')>()),
-  deliverReminder,
+  deliverReminderOutcome: deliverReminder,
+}));
+// The log lines only; the outcome mapping is the real one.
+const logPromiseOutcome = vi.fn();
+const logPromiseJobRun = vi.fn();
+vi.mock('../../follow-through/promise-outcomes.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../follow-through/promise-outcomes.js')>()),
+  logPromiseOutcome,
+  logPromiseJobRun,
 }));
 
 const { deliverDueReminders, deliveryChannelFor, MISSED_AFTER_MS } =
@@ -82,7 +96,9 @@ const reminder = (id: string, data: Record<string, unknown>): Row => ({
 beforeEach(() => {
   rows = [];
   smsUp = true;
-  deliverReminder.mockReset().mockResolvedValue(true);
+  deliverReminder.mockReset().mockResolvedValue('sent');
+  logPromiseOutcome.mockClear();
+  logPromiseJobRun.mockClear();
 });
 
 describe('deliverDueReminders', () => {
@@ -124,10 +140,35 @@ describe('deliverDueReminders', () => {
         deliveryAddress: '',
       }),
     ];
+    deliverReminder.mockResolvedValueOnce('in_app');
     const result = await deliverDueReminders({ now: NOW });
 
-    expect(result).toMatchObject({ delivered: 1, rerouted: 1 });
+    expect(result).toMatchObject({ delivered: 1, rerouted: 1, pushed: 1, texted: 0 });
     expect(deliverReminder.mock.calls[0][0]).toMatchObject({ deliveryMethod: 'in_app' });
+  });
+
+  it('an in-app reminder nobody was told about is not delivered', async () => {
+    deliverReminder.mockResolvedValueOnce('in_app_unnotified');
+    rows = [reminder('inbox', { scheduledFor: at(-60_000), deliveryMethod: 'in_app' })];
+    const result = await deliverDueReminders({ now: NOW });
+    expect(result).toMatchObject({ delivered: 0, inboxOnly: 1, failed: 0 });
+  });
+
+  it('with texts on for the owner, a text reminder with no phone of its own goes to the guard', async () => {
+    rows = [
+      reminder('app', {
+        scheduledFor: at(-60_000),
+        deliveryMethod: 'voice_message',
+        deliveryAddress: 'voice:u1',
+      }),
+    ];
+    const textOn = vi.fn(async (uid: string) => uid === 'u1');
+    const notifyInApp = vi.fn(async () => true);
+    const result = await deliverDueReminders({ now: NOW, reach: { textOn, notifyInApp } });
+    expect(textOn).toHaveBeenCalledWith('u1');
+    expect(deliverReminder.mock.calls[0][0]).toMatchObject({ deliveryMethod: 'voice_message' });
+    expect(deliverReminder.mock.calls[0][1]).toEqual({ textOn: true, notifyInApp });
+    expect(result).toMatchObject({ delivered: 1, texted: 1, rerouted: 0 });
   });
 
   it('sends in-app when this server has no Twilio credentials', async () => {
@@ -146,7 +187,7 @@ describe('deliverDueReminders', () => {
   });
 
   it('counts a failed delivery', async () => {
-    deliverReminder.mockResolvedValueOnce(false);
+    deliverReminder.mockResolvedValueOnce('failed');
     rows = [reminder('due', { scheduledFor: at(-60_000) })];
     expect(await deliverDueReminders({ now: NOW })).toMatchObject({ delivered: 0, failed: 1 });
   });
@@ -161,6 +202,76 @@ describe('deliverDueReminders', () => {
     expect(result).toMatchObject({ due: 2, missed: 1, rerouted: 1, delivered: 0, dryRun: true });
     expect(deliverReminder).not.toHaveBeenCalled();
     expect(rows.map((r) => r.data.status)).toEqual(['pending', 'pending']);
+  });
+});
+
+describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
+  it('one outcome per reminder: delivered done, failed send-failed, late missed-window', async () => {
+    deliverReminder.mockImplementation(async (r) => (r.id === 'ok' ? 'sent' : 'failed'));
+    rows = [
+      reminder('ok', { scheduledFor: at(-60_000) }),
+      reminder('bad', { scheduledFor: at(-30_000) }),
+      reminder('stale', { scheduledFor: at(-MISSED_AFTER_MS - 60_000) }),
+    ];
+    await deliverDueReminders({ now: NOW });
+
+    expect(logPromiseOutcome.mock.calls).toEqual(
+      expect.arrayContaining([
+        ['reminder', { outcome: 'done' }, { reminderId: 'ok' }],
+        ['reminder', { outcome: 'failed', reason: 'send-failed' }, { reminderId: 'bad' }],
+        ['reminder', { outcome: 'failed', reason: 'missed-window' }, { reminderId: 'stale' }],
+      ])
+    );
+    expect(logPromiseOutcome).toHaveBeenCalledTimes(3);
+    expect(logPromiseJobRun).toHaveBeenCalledWith('deliver-reminders', {
+      due: 3,
+      done: 1,
+      failed: 1,
+      held: 0,
+      missed: 1,
+    });
+  });
+
+  it('an inbox row no one was told about logs missed, never done; a held text logs quiet-hours', async () => {
+    deliverReminder.mockImplementation(async (r) =>
+      r.id === 'inbox' ? 'in_app_unnotified' : 'held'
+    );
+    rows = [
+      reminder('inbox', { scheduledFor: at(-60_000) }),
+      reminder('quiet', { scheduledFor: at(-30_000) }),
+    ];
+    await deliverDueReminders({ now: NOW });
+
+    expect(logPromiseOutcome.mock.calls).toEqual(
+      expect.arrayContaining([
+        ['reminder', { outcome: 'failed', reason: 'missed-window' }, { reminderId: 'inbox' }],
+        ['reminder', { outcome: 'held', reason: 'quiet-hours' }, { reminderId: 'quiet' }],
+      ])
+    );
+    expect(logPromiseOutcome).toHaveBeenCalledTimes(2);
+    expect(logPromiseJobRun).toHaveBeenCalledWith('deliver-reminders', {
+      due: 2,
+      done: 0,
+      failed: 0,
+      held: 1,
+      missed: 1,
+    });
+  });
+
+  it('logs a run with nothing due, and nothing on a dry run', async () => {
+    await deliverDueReminders({ now: NOW });
+    expect(logPromiseJobRun).toHaveBeenCalledWith('deliver-reminders', {
+      due: 0,
+      done: 0,
+      failed: 0,
+      held: 0,
+      missed: 0,
+    });
+    logPromiseJobRun.mockClear();
+    rows = [reminder('due', { scheduledFor: at(-60_000) })];
+    await deliverDueReminders({ now: NOW, dryRun: true });
+    expect(logPromiseJobRun).not.toHaveBeenCalled();
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
   });
 });
 
@@ -182,6 +293,14 @@ describe('deliveryChannelFor', () => {
   it('falls back to in-app when it cannot', () => {
     expect(deliveryChannelFor(r('voice_message', '[invalid]'))).toBe('in_app');
     expect(deliveryChannelFor(r('email', ''))).toBe('in_app');
+    expect(deliveryChannelFor(r('call', 'voice:u1'), undefined, true)).toBe('in_app');
+  });
+
+  it("with texts on, keeps a text reminder's channel for the guard to resolve", () => {
+    expect(deliveryChannelFor(r('voice_message', 'voice:u1'), undefined, true)).toBe(
+      'voice_message'
+    );
+    expect(deliveryChannelFor(r('voice_message', 'voice:u1'), undefined, false)).toBe('in_app');
   });
 });
 

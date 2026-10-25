@@ -16,8 +16,11 @@ import {
   watchProblems,
 } from './support';
 
-/** data-action of each row in the mobile sheet (apps/web/src/ui/mobile-bottom-sheet.ui.ts) */
-const ACTIONS = ['settings', 'team', 'music', 'calendar', 'history', 'people', 'insights'];
+/**
+ * data-action of each row in the mobile sheet (apps/web/src/ui/mobile-bottom-sheet.ui.ts).
+ * No "music": Music Together is hidden (apps/web/src/config/menu-visibility.ts).
+ */
+const ACTIONS = ['settings', 'team', 'calendar', 'history', 'people', 'insights'];
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, await createUser());

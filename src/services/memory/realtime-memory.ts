@@ -21,6 +21,7 @@ import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { recordFallback, recordSuccess } from '../observability/firestore-monitor.js';
+import { fallbackCallSummary } from './call-summary-fallback.js';
 
 const log = getLogger().child({ module: 'realtime-memory' });
 
@@ -303,7 +304,7 @@ export async function getRecentConversations(
           ? (data.endedAt as { toDate?: () => Date })?.toDate?.() ||
             new Date(data.endedAt as string)
           : undefined,
-        turnCount: (data.turnCount as number) || 0,
+        turnCount: Number.isFinite(data.turnCount) ? (data.turnCount as number) : 0,
         summarized: (data.summarized as boolean) || false,
         summary: data.summary as string | undefined,
       };
@@ -378,23 +379,8 @@ export async function getLastConversationContext(userId: string): Promise<{
   };
 }
 
-/**
- * Build a summary from recent turns (fallback if no LLM summary)
- */
-export function buildQuickSummary(turns: ConversationTurn[]): string {
-  const userTurns = turns.filter((t) => t.role === 'user');
-  if (userTurns.length === 0) return '';
-
-  // Get the last 3 user messages, truncated
-  const topics = userTurns.slice(-3).map((t) =>
-    t.content
-      .slice(0, 60)
-      .replace(/[.!?]+$/, '')
-      .trim()
-  );
-
-  return `Discussed: ${topics.join('; ')}`;
-}
+/** A summary from recent turns (fallback if no LLM summary); filler lines never count. */
+export const buildQuickSummary = fallbackCallSummary;
 
 // ============================================================================
 // SUMMARIZATION HELPERS
@@ -420,10 +406,10 @@ export async function getUnsummarizedConversations(
 
     return snapshot.docs
       .map((doc) => ({
-        userId: (doc.ref.parent.parent as { id?: string } | null)?.id || 'unknown',
+        userId: (doc.ref.parent.parent as { id?: string } | null)?.id,
         conversationId: doc.id,
       }))
-      .filter((item) => item.userId !== 'unknown');
+      .filter((item): item is { userId: string; conversationId: string } => !!item.userId);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get unsummarized conversations');
     return [];
@@ -431,12 +417,14 @@ export async function getUnsummarizedConversations(
 }
 
 /**
- * Mark conversation as summarized and update user profile
+ * Mark conversation as summarized and update user profile. `profile: false` leaves the
+ * profile's lastConversationSummary alone: a fallback must never replace the LLM summary.
  */
 export async function markSummarized(
   userId: string,
   conversationId: string,
-  summary: string
+  summary: string,
+  { profile = true }: { profile?: boolean } = {}
 ): Promise<void> {
   const firestore = await getFirestore();
   if (!firestore) return;
@@ -457,18 +445,15 @@ export async function markSummarized(
       );
 
     // Also update the user's lastConversationSummary
-    await firestore
-      .collection('bogle_users')
-      .doc(userId)
-      .update(
-        cleanForFirestore({
-          lastConversationSummary: summary,
-          lastContact: new Date(),
-        })
-      );
+    if (profile) {
+      await firestore
+        .collection('bogle_users')
+        .doc(userId)
+        .update(cleanForFirestore({ lastConversationSummary: summary, lastContact: new Date() }));
+    }
 
     log.info(
-      { userId, conversationId, summaryPreview: summary.slice(0, 50) },
+      { userId, conversationId, profile, summaryPreview: summary.slice(0, 50) },
       '✅ Conversation summarized'
     );
   } catch (error) {
@@ -489,12 +474,13 @@ export async function summarizeConversationAsync(
 
     if (turns.length < 2) {
       // Too short to summarize meaningfully
-      await markSummarized(userId, conversationId, 'Brief conversation');
+      await markSummarized(userId, conversationId, 'Brief conversation', { profile: false });
       return;
     }
 
-    // Try LLM summarization
-    let summary: string;
+    // Only the LLM's key points may replace the profile's summary. This runs after the
+    // session-end save, so a fallback written here overwrote that save's summary (#1469).
+    let summary = '';
     try {
       const { summarizeWithLLM } = await import('../../memory/index.js');
       const { createSummarizationLLMCaller } = await import('../llm-utils.js');
@@ -506,13 +492,16 @@ export async function summarizeConversationAsync(
         llmCaller
       );
 
-      summary = result.keyPoints?.slice(0, 2).join('; ') || buildQuickSummary(turns);
+      summary = (result.keyPoints ?? []).slice(0, 2).join('; ');
     } catch {
-      // Fallback to quick summary
-      summary = buildQuickSummary(turns);
+      // No LLM summary: the conversation keeps a fallback, the profile keeps its own
     }
 
-    await markSummarized(userId, conversationId, summary);
+    if (summary) await markSummarized(userId, conversationId, summary);
+    else {
+      const fallback = buildQuickSummary(turns) || 'Brief conversation';
+      await markSummarized(userId, conversationId, fallback, { profile: false });
+    }
   } catch (error) {
     log.error({ error: String(error), userId, conversationId }, 'Async summarization failed');
   }

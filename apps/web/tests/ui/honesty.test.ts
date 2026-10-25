@@ -153,6 +153,7 @@ describe('Music sources', () => {
 
 describe('a failed request shows an honest error, never stand-in content', () => {
   it('Sanctuary: Ferni says the reply failed instead of a canned answer', async () => {
+    vi.stubEnv('VITE_SANCTUARY_CHAT', 'true'); // the chat step is off by default (sanctuary-chat-flag.ts)
     const { startPractice, close } = await import('../../src/ui/practice-experience.ui.js');
     startPractice({ id: 'something-new', name: 'Something new', description: '', category: 'test' });
     document.querySelector<HTMLElement>('#nav-next')?.click(); // intro -> chat
@@ -172,6 +173,7 @@ describe('a failed request shows an honest error, never stand-in content', () =>
       expect(document.body.textContent).not.toContain(t(`practiceExperience.fallback.default.option${n}`));
     }
     close();
+    vi.unstubAllEnvs();
   });
 
   it('Knowledge Quiz: no generic questions when the quiz fails to load', async () => {
@@ -227,9 +229,9 @@ describe('a failed request shows an honest error, never stand-in content', () =>
     });
     const { openChronicle, close } = await import('../../src/ui/chronicle.ui.js');
     openChronicle();
-    await vi.waitFor(() => expect(document.querySelector('.chronicle-stats')).not.toBeNull());
+    await vi.waitFor(() => expect(document.querySelector('[data-state="ready"]')).not.toBeNull());
 
-    expect(document.querySelector('#chronicle-content [data-state="empty"]')?.textContent).toBe(
+    expect(document.querySelector('#chronicle-content .chronicle-no-patterns')?.textContent).toBe(
       t('chronicle.noPatternsYet')
     );
     expect(document.body.textContent).not.toContain(t('chronicle.defaultInsights.startJourney.title'));
@@ -246,14 +248,16 @@ describe('a failed request shows an honest error, never stand-in content', () =>
         insights: [],
         prompts: [],
         stats: { totalEntries: 1, currentStreak: 5, entriesThisWeek: 1, topThemes: [] },
+        insights: [{ icon: 'flame', title: '5-Day Streak', text: 'A full week of reflection.' }],
       },
     });
     const { openChronicle, close } = await import('../../src/ui/chronicle.ui.js');
     openChronicle();
-    await vi.waitFor(() => expect(document.querySelector('.chronicle-stats')).not.toBeNull());
+    await vi.waitFor(() => expect(document.querySelector('[data-state="ready"]')).not.toBeNull());
 
     expect(document.body.textContent).not.toContain(t('chronicle.dayStreak'));
-    expectHonest(visibleText(document.querySelector('.chronicle-stats') as HTMLElement));
+    expect(document.body.textContent).not.toMatch(/streak/i);
+    expectHonest(visibleText(document.querySelector('#chronicle-content') as HTMLElement));
     close();
   });
 });

@@ -76,6 +76,12 @@ function webDataOf(out: string): { note: string; result: string; sources: string
 
 let principal = 0;
 const nextCaller = () => `user:test-${++principal}-${Date.now()}`;
+let isolation = 0;
+/**
+ * A rate-limit key no other test uses. Not Date.now(): two tests in the same
+ * millisecond got the same key, so one inherited the other's spent bucket.
+ */
+const isolatedKey = (key: string) => `${key}:isolated-${++isolation}-${Date.now()}`;
 
 beforeEach(() => {
   circuitBreaker.resetAll();
@@ -249,7 +255,7 @@ describe('spend caps', () => {
     vi.stubEnv('SEARCH_MAX_PER_DAY', '3');
     const dayCosts: number[] = [];
     const original = rateLimiter.checkShared.bind(rateLimiter);
-    const isolatedDay = `${DAY_KEY}:isolated-${Date.now()}`;
+    const isolatedDay = isolatedKey(DAY_KEY);
     vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) => {
       if (key === DAY_KEY) dayCosts.push(cost ?? 1);
       return original(key === DAY_KEY ? isolatedDay : key, max, windowMs, cost);
@@ -300,12 +306,41 @@ describe('spend caps', () => {
     expect(searchPrincipal(undefined)).toBe(ANONYMOUS);
   });
 
+  describe('VERIFIED_CALLER_ALLOWANCE (verified-caller.ts)', () => {
+    const ON = { VERIFIED_CALLER_ALLOWANCE: 'on' };
+    const OFF = {};
+    const caller = (userId: string, verifiedCaller?: boolean) => ({
+      ctx: { userData: { userId, verifiedCaller } },
+    });
+
+    it("on: a verified caller gets their own hour, an unverified one shares the strangers'", () => {
+      expect(searchPrincipal(caller('uid-1', true), ON)).toBe('user:uid-1');
+      // Account-shaped id, but the server never verified it: no hour of its own.
+      expect(searchPrincipal(caller('uid-1', false), ON)).toBe(ANONYMOUS);
+      expect(searchPrincipal(caller('anon:1f0c', false), ON)).toBe(ANONYMOUS);
+      expect(searchPrincipal({ ctx: { userData: { verifiedCaller: true } } }, ON)).toBe(ANONYMOUS);
+    });
+
+    it('off: unchanged, the id shape decides whatever the signal says', () => {
+      expect(searchPrincipal(caller('uid-1', false), OFF)).toBe('user:uid-1');
+      expect(searchPrincipal(caller('uid-1', true), OFF)).toBe('user:uid-1');
+      expect(searchPrincipal(caller('anon:1f0c', true), OFF)).toBe(ANONYMOUS);
+      expect(searchPrincipal(caller('device:abc123'), OFF)).toBe(ANONYMOUS);
+    });
+
+    it('the same unverified caller: own hour with the flag off, the shared one with it on', () => {
+      const unverified = caller('Kx9fQ2firebaseUid', false);
+      expect(searchPrincipal(unverified, OFF)).toBe('user:Kx9fQ2firebaseUid');
+      expect(searchPrincipal(unverified, ON)).toBe(ANONYMOUS);
+    });
+  });
+
   it('gives a verified uid its own hour while anon: and device: callers share one', async () => {
     vi.stubEnv('SEARCH_MAX_ANON_PER_HOUR', '2');
     vi.stubEnv('SEARCH_MAX_PER_PERSON_HOUR', '5');
     const original = rateLimiter.checkShared.bind(rateLimiter);
     const anonKey = `${PERSON_KEY}:${ANONYMOUS}`;
-    const isolated = `${anonKey}:isolated-${Date.now()}`;
+    const isolated = isolatedKey(anonKey);
     vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) =>
       original(key === anonKey ? isolated : key, max, windowMs, cost)
     );
@@ -326,7 +361,7 @@ describe('spend caps', () => {
     // The shared anonymous bucket lives on its own key here so reruns start empty.
     const original = rateLimiter.checkShared.bind(rateLimiter);
     const anonKey = `${PERSON_KEY}:${ANONYMOUS}`;
-    const isolated = `${anonKey}:isolated-${Date.now()}`;
+    const isolated = isolatedKey(anonKey);
     const anonLimits: number[] = [];
     vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) => {
       if (key === anonKey) anonLimits.push(max);

@@ -10,6 +10,7 @@
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../../utils/interval-manager.js';
+import { openTokens, sealTokensForMerge } from '../../../utils/token-at-rest.js';
 
 const log = createLogger({ module: 'Spotify' });
 
@@ -28,10 +29,13 @@ interface SpotifyTokenData {
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
 
-// Firestore-backed persistence store for Spotify tokens
-// Uses root collection since tokens are global (not per-user)
-const tokenStore = createPersistenceStore<SpotifyTokenData>({
+// Firestore-backed persistence store for Spotify tokens (spotify_tokens/global).
+// Uses root collection since tokens are global (not per-user). The document
+// holds the tokens sealed (utils/token-at-rest); reads still accept the legacy
+// plaintext shape until the encrypt-integration-tokens migration has run.
+const tokenStore = createPersistenceStore<Record<string, unknown>>({
   collection: 'spotify_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'main',
   useRootCollection: true,
   syncIntervalMs: 1000, // Quick sync for token updates
@@ -86,7 +90,7 @@ export function getRefreshToken(): string | null {
  */
 export async function loadTokens(): Promise<void> {
   try {
-    const data = await tokenStore.get('global');
+    const data = openTokens<SpotifyTokenData>(await tokenStore.get('global'), 'spotify_tokens');
     if (data) {
       cachedTokenData = data;
       log.info('Loaded Spotify tokens from Firestore');
@@ -121,7 +125,7 @@ export async function saveTokens(
 
   // Persist to Firestore (write-through)
   try {
-    await tokenStore.setImmediate('global', data);
+    await tokenStore.setImmediate('global', sealTokensForMerge(data), { safeWithoutRead: true });
     log.info('Saved Spotify tokens to Firestore');
   } catch (err) {
     log.warn({ error: (err as Error).message }, 'Could not save Spotify tokens to Firestore');

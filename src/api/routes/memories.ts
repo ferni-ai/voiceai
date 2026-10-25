@@ -15,15 +15,8 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { API_ERRORS } from '../error-messages.js';
 import { requireUserId, sendError, sendJSON, sendJSONCached } from '../helpers.js';
-import {
-  type AnyRecord,
-  type Pattern,
-  type UIMemory,
-  calculateConfidence,
-  formatMemoryContent,
-  getPersonaName,
-  mapMemoryTypeToUIType,
-} from './types.js';
+import { forgetLearned, isFactId, learnedMemories } from './learned-facts.js';
+import { type AnyRecord, type Pattern, type UIMemory, getPersonaName } from './types.js';
 
 const log = createLogger({ module: 'MemoriesAPI' });
 
@@ -125,25 +118,13 @@ export async function handleGetCognitiveMemories(
   if (!userId) return;
 
   try {
-    const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
     const { getStore } = await import('../../memory/store-factory.js');
     const { extractLearnedMemories } = await import('../../services/memory/learned-memories.js');
 
-    const rawMemories = (await getAllUserMemories(userId)) as unknown as AnyRecord[];
+    // personaMemories is on almost no real profile; the facts recall uses are.
+    const learned = await learnedMemories(userId);
     const store = await getStore();
     const userProfile = (await store.getProfile(userId)) as unknown as AnyRecord | null;
-
-    // Transform persona memories
-    const personaMemories: UIMemory[] = rawMemories.map((m) => ({
-      id: m.id as string,
-      type: mapMemoryTypeToUIType(m.type as string),
-      content: formatMemoryContent(m),
-      confidence: calculateConfidence(m),
-      source: getPersonaName(m.personaId as string),
-      learnedAt: validIso(m.createdAt),
-      personaId: m.personaId as string,
-      sourceType: 'persona_memory',
-    }));
 
     // Extract from profile
     let profileMemories: UIMemory[] = [];
@@ -172,12 +153,12 @@ export async function handleGetCognitiveMemories(
     }
 
     // Deduplicate
-    const seenContent = new Set(personaMemories.map((m) => m.content.toLowerCase()));
+    const seenContent = new Set(learned.map((m) => m.content.toLowerCase()));
     const uniqueProfileMemories = profileMemories.filter(
       (m) => !seenContent.has(m.content.toLowerCase())
     );
 
-    const allMemories = [...personaMemories, ...uniqueProfileMemories];
+    const allMemories = [...learned, ...uniqueProfileMemories];
     allMemories.sort((a, b) => {
       if (b.confidence !== a.confidence) return b.confidence - a.confidence;
       return (Date.parse(b.learnedAt ?? '') || 0) - (Date.parse(a.learnedAt ?? '') || 0);
@@ -193,7 +174,7 @@ export async function handleGetCognitiveMemories(
 
     const totalInteractions = (userProfile?.totalConversations as number) || 0;
 
-    // Not cacheable: a browser-cached list would still show a memory the user just forgot.
+    // Not browser-cacheable: it would still show a memory the user just forgot.
     sendJSON(res, {
       memories: allMemories,
       patterns: uniquePatterns,
@@ -217,13 +198,15 @@ export async function handleDeleteMemory(
   const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
 
+  if (!isFactId(memoryId)) {
+    sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
+    return;
+  }
   try {
-    // The "what I've learned" list is persona memories (profile memories are not
-    // stored anywhere), so a miss here is "not found" - never a silent success.
-    const { forget } = await import('../../services/memory/persona-memories.js');
-    if (await forget(memoryId, userId)) {
+    // The listed facts are recall's, so forgetting one is gone from the next call too.
+    if (await forgetLearned(userId, memoryId)) {
       log.info({ memoryId, userId }, 'Memory deleted');
-      sendJSON(res, { success: true, memoryId, source: 'persona_memory' });
+      sendJSON(res, { success: true, memoryId, source: 'remembered' });
     } else {
       sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
     }

@@ -5,6 +5,12 @@
  * lives in Firestore (create-if-absent) so multiple UI-server instances send
  * one briefing per user per local day.
  *
+ * Users come from the per-user token store (listTokenUsers). This job used to
+ * scan the root google_calendar_tokens collection, which nothing writes any
+ * more, and logged `checked: 0` 333 times in 30 days (2026-10-18). People who
+ * get Alex's text brief (outreach/morning-brief) are passed in as skipUsers so
+ * they get one brief a morning, not two.
+ *
  * @module tasks/scheduled/calendar-briefing-job
  */
 
@@ -22,17 +28,24 @@ import {
   type NotificationType,
 } from '../../services/push-notifications.js';
 import { getUserContactInfo } from '../../services/outreach/user-contact.js';
+import { listTokenUsers } from '../../services/identity/google-calendar-token-store.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'CalendarBriefingJob' });
 
-const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';
 const MORNING_BRIEFING_HOUR = 7;
 
+/** One claim per user, local day and kind; the push brief keeps its old doc id. */
+export type BriefingKind = 'calendar-morning' | 'morning-brief';
+
 export interface BriefingClaimStore {
-  claim(userId: string, dateKey: string): Promise<boolean>;
-  release(userId: string, dateKey: string): Promise<void>;
+  claim(userId: string, dateKey: string, kind?: BriefingKind): Promise<boolean>;
+  release(userId: string, dateKey: string, kind?: BriefingKind): Promise<void>;
 }
+
+const claimDocId = (dateKey: string, kind: BriefingKind = 'calendar-morning'): string =>
+  kind === 'calendar-morning' ? dateKey : `${dateKey}-${kind}`;
 
 let nowProvider: () => Date = () => new Date();
 let claimStore: BriefingClaimStore | null = null;
@@ -54,7 +67,7 @@ export function setBriefingClaimStore(store: BriefingClaimStore | null): void {
   claimStore = store;
 }
 
-/** Test-only: skip the calendar-token collection scan. */
+/** Test-only: skip the calendar-token store read. */
 export function setBriefingUserIds(userIds: string[] | null): void {
   testUserIds = userIds;
 }
@@ -103,7 +116,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
     return db;
   } catch (error) {
@@ -116,11 +129,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 async function getAllUserIdsWithCalendar(): Promise<string[]> {
   if (testUserIds) return testUserIds;
   try {
-    const firestore = await getFirestore();
-    if (!firestore) return [];
-    const snapshot = await firestore.collection(OAUTH_TOKENS_COLLECTION).get();
-    const userIds: string[] = [];
-    snapshot.forEach((doc) => userIds.push(doc.id));
+    const userIds = await listTokenUsers();
     return userIds.filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to query users with calendar');
@@ -173,19 +182,19 @@ async function firestoreClaimStore(): Promise<BriefingClaimStore | null> {
   const firestore = await getFirestore();
   if (!firestore) return null;
   return {
-    async claim(userId, dateKey) {
+    async claim(userId, dateKey, kind = 'calendar-morning') {
       const ref = firestore
         .collection('bogle_users')
         .doc(userId)
         .collection('briefings')
-        .doc(dateKey);
+        .doc(claimDocId(dateKey, kind));
       try {
         await firestore.runTransaction(async (tx) => {
           const snap = await tx.get(ref);
           if (snap.exists) {
             throw new Error('already-claimed');
           }
-          tx.create(ref, { sentAt: nowProvider(), kind: 'calendar-morning' });
+          tx.create(ref, { sentAt: nowProvider(), kind });
         });
         return true;
       } catch (error) {
@@ -194,12 +203,12 @@ async function firestoreClaimStore(): Promise<BriefingClaimStore | null> {
         return false;
       }
     },
-    async release(userId, dateKey) {
+    async release(userId, dateKey, kind) {
       const ref = firestore
         .collection('bogle_users')
         .doc(userId)
         .collection('briefings')
-        .doc(dateKey);
+        .doc(claimDocId(dateKey, kind));
       await ref.delete().catch((error: unknown) => {
         log.warn({ userId, dateKey, error: String(error) }, 'Failed to release briefing claim');
       });
@@ -207,19 +216,25 @@ async function firestoreClaimStore(): Promise<BriefingClaimStore | null> {
   };
 }
 
-async function resolveClaimStore(): Promise<BriefingClaimStore | null> {
+/** The once-per-local-day claims (Firestore, or the test store). Null without Firestore. */
+export async function resolveClaimStore(): Promise<BriefingClaimStore | null> {
   if (claimStore) return claimStore;
   return firestoreClaimStore();
 }
 
-export async function checkAndSendMorningBriefings(): Promise<{
-  checked: number;
-  sent: number;
-  skipped: number;
-}> {
+/** skipUsers: people Alex texts the brief to, so they don't get this one too. */
+export async function checkAndSendMorningBriefings(
+  opts: { skipUsers?: readonly string[] } = {}
+): Promise<{ checked: number; sent: number; skipped: number; reasons: Record<string, number> }> {
   let checked = 0;
   let sent = 0;
   let skipped = 0;
+  // Why each user was skipped, so a run that sends nothing says why.
+  const reasons: Record<string, number> = {};
+  const skip = (reason: string): void => {
+    skipped++;
+    reasons[reason] = (reasons[reason] ?? 0) + 1;
+  };
 
   try {
     const userIds = await getAllUserIdsWithCalendar();
@@ -228,28 +243,32 @@ export async function checkAndSendMorningBriefings(): Promise<{
     for (const userId of userIds) {
       checked++;
       try {
+        if (opts.skipUsers?.includes(userId)) {
+          skip('morning-brief-user');
+          continue;
+        }
         const userTz = await getUserTimezone(userId);
         const userHour = getCurrentHourInTimezone(userTz);
         if (userHour !== MORNING_BRIEFING_HOUR) {
-          skipped++;
+          skip('not-7am');
           continue;
         }
 
         const dateKey = formatDateInTimezone(userTz);
         if (!store) {
-          skipped++;
+          skip('no-claim-store');
           continue;
         }
         const claimed = await store.claim(userId, dateKey);
         if (!claimed) {
-          skipped++;
+          skip('already-sent');
           continue;
         }
 
         const canSend = canSendOutreach(userId);
         if (!canSend) {
           await store.release(userId, dateKey);
-          skipped++;
+          skip('outreach-limit');
           continue;
         }
 
@@ -257,7 +276,7 @@ export async function checkAndSendMorningBriefings(): Promise<{
         const overview = await getDayOverview(userId, nowProvider());
         if (overview.totalMeetings === 0) {
           await store.release(userId, dateKey);
-          skipped++;
+          skip('no-meetings');
           continue;
         }
 
@@ -265,7 +284,7 @@ export async function checkAndSendMorningBriefings(): Promise<{
         const briefing = connected ? await generateDailyBriefing(userId, nowProvider()) : null;
         if (connected && !briefing) {
           await store.release(userId, dateKey);
-          skipped++;
+          skip('no-briefing');
           continue;
         }
 
@@ -283,7 +302,7 @@ export async function checkAndSendMorningBriefings(): Promise<{
 
         if (!notificationSent) {
           await store.release(userId, dateKey);
-          skipped++;
+          skip('no-push');
           continue;
         }
 
@@ -294,11 +313,11 @@ export async function checkAndSendMorningBriefings(): Promise<{
       }
     }
 
-    log.info({ checked, sent, skipped }, 'Morning briefing check complete');
-    return { checked, sent, skipped };
+    log.info({ checked, sent, skipped, reasons }, 'Morning briefing check complete');
+    return { checked, sent, skipped, reasons };
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to run briefing job');
-    return { checked, sent, skipped };
+    return { checked, sent, skipped, reasons };
   }
 }
 

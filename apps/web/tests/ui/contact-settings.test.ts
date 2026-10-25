@@ -582,6 +582,42 @@ describe('Contact Settings UI', () => {
       expect(dialog?.getAttribute('role')).toBe('dialog');
     });
 
+    it('is named by its heading (aria-labelledby resolves)', async () => {
+      await openContactSettings();
+      const dialog = findModalDialog();
+      const id = dialog?.getAttribute('aria-labelledby');
+      expect(id).toBeTruthy();
+      const heading = document.getElementById(id as string);
+      expect(heading?.tagName).toBe('H2');
+      expect(heading?.textContent?.trim()).toBeTruthy();
+    });
+
+    it('starts on the first field with a mouse and keyboard, and keeps it through the load', async () => {
+      const matchMedia = vi.spyOn(window, 'matchMedia').mockImplementation(
+        (query: string) => ({ matches: query === '(pointer: fine)', media: query }) as MediaQueryList
+      );
+      await openContactSettings(); // resolves after the load re-renders the form
+      expect(document.activeElement?.id).toBe('phone-input');
+      matchMedia.mockRestore();
+    });
+
+    it('does not pop the keyboard on touch', async () => {
+      const matchMedia = vi.spyOn(window, 'matchMedia').mockImplementation(
+        (query: string) => ({ matches: false, media: query }) as MediaQueryList
+      );
+      await openContactSettings();
+      expect(document.activeElement?.tagName).not.toBe('INPUT');
+      matchMedia.mockRestore();
+    });
+
+    it('keeps Save and Later in view: the footer is sticky inside the scrolling card', async () => {
+      await openContactSettings();
+      const css = [...document.querySelectorAll('style')].map((el) => el.textContent ?? '').join('\n');
+      const rule = css.match(/\.contact-settings-actions\s*\{([^}]*)\}/)?.[1] ?? '';
+      expect(rule).toMatch(/position:\s*sticky/);
+      expect(rule).toMatch(/bottom:\s*0/);
+    });
+
     it('should have labeled inputs', async () => {
       await openContactSettings();
       await new Promise((r) => setTimeout(r, 100));
@@ -737,7 +773,10 @@ describe('Contact Settings UI', () => {
     it('once verified, turning on Texts saves sms consent for check-ins', async () => {
       contextWith(NO_PHONE);
       const { outreachService } = await import('../../src/services/outreach.service.js');
-      vi.spyOn(outreachService, 'verifyPhone').mockResolvedValue({ success: true, message: 'Phone verified' });
+      vi.spyOn(outreachService, 'verifyPhone').mockResolvedValue({
+        success: true,
+        message: 'Phone verified',
+      });
       await openContactSettings();
       await tick(20);
       expect(document.querySelector('#checkin-channels')).toBeNull(); // not before verification
@@ -757,13 +796,19 @@ describe('Contact Settings UI', () => {
         texts.dispatchEvent(new Event('change'));
       }
       await tick(20);
-      expect(posts('/api/outreach/preferences')).toEqual([{ preferences: { allowedChannels: ['sms'] } }]);
+      expect(posts('/api/outreach/preferences')).toEqual([
+        { preferences: { allowedChannels: ['sms'], disclosureVersion: '2026-10-18' } },
+      ]);
     });
 
     it('shows the saved channels for an already-verified number', async () => {
       mockApiGet.mockImplementation(async (url: string) => {
         if (url.includes('/api/user/contact')) {
-          return { ok: true, status: 200, data: { success: true, contactInfo: { verifiedPhone: '+15552017497' } } };
+          return {
+            ok: true,
+            status: 200,
+            data: { success: true, contactInfo: { verifiedPhone: '+15552017497' } },
+          };
         }
         if (url.includes('/api/outreach/preferences')) {
           return { ok: true, status: 200, data: { success: true, allowedChannels: ['call'] } };
@@ -776,6 +821,40 @@ describe('Contact Settings UI', () => {
       expect(document.querySelector('#phone-verified-badge')?.hasAttribute('hidden')).toBe(false);
       expect(document.querySelector<HTMLInputElement>('[data-channel="call"]')?.checked).toBe(true);
       expect(document.querySelector<HTMLInputElement>('[data-channel="sms"]')?.checked).toBe(false);
+    });
+
+    it('shows what texts and calls mean beside each box, and Texts starts unchecked', async () => {
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (url.includes('/api/user/contact')) {
+          return {
+            ok: true,
+            status: 200,
+            data: { success: true, contactInfo: { verifiedPhone: '+15552017497' } },
+          };
+        }
+        if (url.includes('/api/outreach/preferences')) {
+          return { ok: true, status: 200, data: { success: true, allowedChannels: [] } };
+        }
+        return { ok: true, status: 200, data: {} };
+      });
+      await openContactSettings();
+      await tick(20);
+
+      const texts = document.querySelector<HTMLInputElement>('[data-channel="sms"]');
+      expect(texts?.checked).toBe(false);
+      expect(texts?.getAttribute('aria-describedby')).toBe('sms-disclosure');
+      const sms = document.querySelector('#sms-disclosure')?.textContent ?? '';
+      expect(sms).toContain('up to 3 a day');
+      expect(sms).toContain('Msg & data rates may apply.');
+      expect(sms).toContain('Reply STOP to cancel, HELP for help.');
+      const terms = document.querySelector<HTMLAnchorElement>('#sms-disclosure a');
+      expect(terms?.textContent).toBe('SMS terms');
+      expect(terms?.getAttribute('href')).toBe('https://ferni.ai/sms-consent');
+      expect(terms?.target).toBe('_blank');
+      expect(terms?.rel).toContain('noopener');
+      expect(document.querySelector('#call-disclosure')?.textContent).toContain(
+        'only call this number when you ask'
+      );
     });
   });
 
@@ -816,7 +895,10 @@ describe('Contact Settings UI', () => {
     it('a wrong code is not a verified number', async () => {
       loads(null, []);
       const { outreachService } = await import('../../src/services/outreach.service.js');
-      vi.spyOn(outreachService, 'verifyPhone').mockResolvedValue({ success: false, error: 'Invalid code' });
+      vi.spyOn(outreachService, 'verifyPhone').mockResolvedValue({
+        success: false,
+        error: 'Invalid code',
+      });
       await codeSentFor('5552017497');
       await enterCode('000000');
 
@@ -879,7 +961,9 @@ describe('Contact Settings UI', () => {
         texts.dispatchEvent(new Event('change'));
       }
       await tick(20);
-      expect(posts('/api/outreach/preferences')).toEqual([{ preferences: { allowedChannels: [] } }]);
+      expect(posts('/api/outreach/preferences')).toEqual([
+        { preferences: { allowedChannels: [], disclosureVersion: '2026-10-18' } },
+      ]);
     });
 
     it('while a code is pending you can get a new one or change the number', async () => {

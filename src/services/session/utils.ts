@@ -7,6 +7,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { fallbackCallSummary } from '../memory/call-summary-fallback.js';
 
 /**
  * Execute a promise with a timeout
@@ -85,11 +86,8 @@ export function generateFallbackSummary(
   }
 
   // Fall back to extracting from user turns
-  const userTurns = turns.filter((t) => t.role === 'user');
-  if (userTurns.length > 0) {
-    const topics = userTurns.slice(-3).map((t) => t.content.slice(0, 50).replace(/[.!?]+$/, ''));
-    return `Discussed: ${topics.join('; ')}`;
-  }
+  const said = fallbackCallSummary(turns, 50); // '' when the caller said only filler
+  if (said) return said;
 
   // Last resort
   if (turns.length > 0) {

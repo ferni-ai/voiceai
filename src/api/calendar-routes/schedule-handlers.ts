@@ -24,6 +24,8 @@ import { getAmbientCalendarContext } from '../../services/calendar/ambient-calen
 
 const log = getLogger();
 
+const NOT_CONNECTED = "No calendar is connected. Ferni's own list is shown.";
+
 /**
  * GET /api/calendar/today - Get today's schedule
  */
@@ -34,27 +36,16 @@ export async function handleToday(
 ): Promise<void> {
   try {
     const connected = await isConnected(userId);
-
-    if (!connected) {
-      // Ferni's own list still counts: name it, labelled, not a silent empty day (#1547).
-      const events = (await getDayOverview(userId, new Date())).events;
-      sendJson(res, {
-        connected: false,
-        overview: null,
-        ferniList: events.map(formatEventForApi),
-        message: "No calendar is connected. Ferni's own list is shown.",
-      });
-      return;
-    }
-
     const today = new Date();
     const overview = await getDayOverview(userId, today);
-    const events = await getEventsForDay(userId, today);
-
+    // Not connected: the day is Ferni's own list. It still goes in `overview`, which the
+    // What's Ahead panel reads (a null overview showed the panel's error state), and is
+    // named in `ferniList` for the calendar tools (#1547).
+    const events = connected ? await getEventsForDay(userId, today) : overview.events;
     const formattedEvents = events.map(formatEventForApi);
 
     sendJson(res, {
-      connected: true,
+      connected,
       overview: {
         date: overview.date,
         totalMeetings: overview.totalMeetings,
@@ -64,6 +55,7 @@ export async function handleToday(
         hasBackToBack: overview.hasBackToBack,
         events: formattedEvents,
       },
+      ...(connected ? {} : { ferniList: formattedEvents, message: NOT_CONNECTED }),
     });
   } catch (error) {
     log.error({ error, userId }, 'Failed to get today calendar');
@@ -259,20 +251,7 @@ export async function handleWeek(
 ): Promise<void> {
   try {
     const connected = await isConnected(userId);
-
-    if (!connected) {
-      const days = (await getWeekOverview(userId, new Date())).days;
-      sendJson(res, {
-        connected: false,
-        overview: null,
-        ferniList: days.flatMap((day) => day.events).map(formatEventForApi),
-        message: "No calendar is connected. Ferni's own list is shown.",
-      });
-      return;
-    }
-
-    const today = new Date();
-    const overview = await getWeekOverview(userId, today);
+    const overview = await getWeekOverview(userId, new Date());
 
     const formattedDays = overview.days.map((day) => ({
       date: day.date,
@@ -284,14 +263,18 @@ export async function handleWeek(
       events: day.events.map(formatEventForApi),
     }));
 
+    // Not connected: the week is Ferni's own list, in `overview` as well (see handleToday)
     sendJson(res, {
-      connected: true,
+      connected,
       overview: {
         days: formattedDays,
         totalMeetings: overview.totalMeetings,
         busiestDay: overview.busiestDay,
         lightestDay: overview.lightestDay,
       },
+      ...(connected
+        ? {}
+        : { ferniList: formattedDays.flatMap((day) => day.events), message: NOT_CONNECTED }),
     });
   } catch (error) {
     log.error({ error, userId }, 'Failed to get week calendar');

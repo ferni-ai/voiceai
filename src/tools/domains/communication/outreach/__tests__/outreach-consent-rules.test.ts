@@ -17,9 +17,8 @@ vi.mock('../../../../../utils/firestore-utils.js', async (orig) => ({
   getFirestoreDb: () => fake.db.db,
 }));
 const member = vi.hoisted(() => ({ value: false }));
-vi.mock('../../../../../services/platform/cohort-flags.js', async (orig) => ({
-  ...(await orig<typeof import('../../../../../services/platform/cohort-flags.js')>()),
-  isCohortMember: async (_uid: string, cohort: string) =>
+vi.mock('../../../../../services/platform/cohort-membership.js', () => ({
+  isCohortMember: async (cohort: string, _uid: string) =>
     cohort === 'friends-and-family' && member.value,
 }));
 vi.mock('../../../../../services/outreach/guarded-text.js', async (orig) => {
@@ -54,6 +53,7 @@ import { phoneHash } from '../../../../../services/outreach/checkin-replies.js';
 import type { ToolContext } from '../../../../registry/types.js';
 import { getOutreachToolDefinitions } from '../index.js';
 import { outreachConfirmListeners } from '../outreach-confirm.js';
+import { registerMessagingConsent } from '../../../../../services/messaging/consent.js';
 
 const PAT = '+12025550177';
 const ctx: ToolContext = { userId: 'owner-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
@@ -78,6 +78,7 @@ async function confirmedReachOut(args: Record<string, unknown>): Promise<string>
 beforeEach(() => {
   fake.db = fakeConsentDb();
   member.value = false;
+  registerMessagingConsent(); // as each process entry does (utils/consent-port.ts)
   resetMemoryTexts();
   vi.stubEnv('MESSAGING_PIPELINE', 'on');
   vi.stubEnv('LOG_HASH_SECRET', 'test-secret');

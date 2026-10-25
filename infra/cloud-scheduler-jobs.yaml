@@ -131,6 +131,17 @@ data:
         minBackoffDuration: "60s"
         maxBackoffDuration: "300s"
 
+    - name: bq-erasure
+      description: "Delete erased accounts' rows from BigQuery ferni_events (after the streaming buffer)"
+      schedule: "30 3 * * *"  # 3:30 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/bq-erasure"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+        maxBackoffDuration: "300s"
+
     # ==========================================================================
     # HEALTH & MONITORING JOBS
     # ==========================================================================
@@ -152,13 +163,15 @@ data:
 
     # ==========================================================================
     # CALENDAR MORNING BRIEFING (D9)
-    # Every 15 min across 05:00–11:00 UTC so 7am local fires in each zone.
-    # Deduped per user/day in Firestore. Do not apply this YAML here.
+    # Every 15 min, all day: the push brief goes at 7am and Alex's text brief
+    # (MORNING_BRIEF) at 8am in each person's zone, and a UTC morning window
+    # missed US Central and Pacific mornings. Deduped per user/day in
+    # Firestore. Do not apply this YAML here.
     # ==========================================================================
 
     - name: calendar-morning-briefing
-      description: "Alex morning calendar briefing (one push per user per local day)"
-      schedule: "*/15 5-11 * * *"
+      description: "Alex morning briefing (one per user per local day)"
+      schedule: "*/15 * * * *"
       timezone: "Etc/UTC"
       uri: "https://app.ferni.ai/api/jobs/calendar-briefing"
       httpMethod: POST

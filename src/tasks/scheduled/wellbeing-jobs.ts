@@ -379,8 +379,8 @@ export async function runThinkingOfYouOutreach(): Promise<{
       await import('../../services/trust-systems/thinking-of-you.js');
 
     // Get all users with significant shares (potential outreach targets)
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     // Get recent active users (last 30 days)
     const thirtyDaysAgo = new Date();

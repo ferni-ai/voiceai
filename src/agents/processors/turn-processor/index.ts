@@ -8,6 +8,7 @@
 // Main entry points
 export { processTurn } from './process-turn.js';
 export { injectTurnContext, getCelebrationEvents } from './inject-context.js';
+export { addSafetyNote } from './safety-note.js';
 
 // Context injection building
 export { buildContextInjections } from './context-injections.js';

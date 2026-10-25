@@ -10,6 +10,7 @@
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { openTokens, sealTokensForMerge } from '../../../utils/token-at-rest.js';
 
 const log = createLogger({ module: 'Plaid' });
 
@@ -38,9 +39,11 @@ const PLAID_BASE_URL =
   }[PLAID_ENV] || 'https://sandbox.plaid.com';
 
 // Firestore-backed persistence store for Plaid tokens
-// Stores under bogle_users/{userId}/plaid_tokens/data
-const tokenStore = createPersistenceStore<PlaidTokenData>({
+// Stores under bogle_users/{userId}/plaid_tokens/data, sealed (utils/token-at-rest);
+// reads accept legacy plaintext until the encrypt-integration-tokens migration runs.
+const tokenStore = createPersistenceStore<Record<string, unknown>>({
   collection: 'plaid_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // Per-user storage
   syncIntervalMs: 2000,
@@ -79,7 +82,7 @@ export async function loadTokensForUser(userId: string): Promise<PlaidTokenData 
   }
 
   try {
-    const data = await tokenStore.get(userId);
+    const data = openTokens<PlaidTokenData>(await tokenStore.get(userId), 'plaid_tokens');
     if (data) {
       plaidAccessTokens.set(userId, data);
       log.info({ userId: userId.substring(0, 8) }, 'Loaded Plaid token from Firestore');
@@ -115,7 +118,7 @@ export async function storeToken(
 
   // Persist to Firestore
   try {
-    await tokenStore.setImmediate(userId, data);
+    await tokenStore.setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
     log.info(
       { userId: userId.substring(0, 8), institution: institution?.name || 'Unknown' },
       'Stored Plaid token'

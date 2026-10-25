@@ -36,6 +36,7 @@ import { buildFinancialBehavioralContext } from './financial-behavioral-context.
 import { buildLifeWisdomContext } from './life-wisdom-context.js';
 import { getSession } from './session.js';
 import type { ConversationContext, JoelInsightData } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:joel-dickson-insights' });
 
@@ -199,7 +200,7 @@ function buildJoelBriefing(
 
   if (context.emotionalTone === 'stressed') {
     lines.push('[STRESS DETECTED]: Slow down. Listen more than advise. Validate first.');
-    lines.push("Use: 'That sounds really hard. Tell me more about what's weighing on you.'");
+    lines.push('Say something real and short, then let them keep going.');
   } else if (context.emotionalTone === 'curious') {
     lines.push('[CURIOSITY DETECTED]: Match their energy! Get excited with them.');
     lines.push("[laughs] 'Oh! Now THIS is interesting...'");
@@ -247,7 +248,7 @@ async function buildLifeMentorInsightsContext(
     const context = detectConversationContext(input.userText);
 
     let insightData: JoelInsightData | undefined;
-    if (userId !== 'anonymous') {
+    if (isMemberIdentity(userId)) {
       try {
         insightData = await fetchJoelInsightData(userId);
       } catch (e) {

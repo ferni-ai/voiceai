@@ -107,7 +107,11 @@ export function restingToneTags(
   personaId: string | undefined,
   emotionLever: DirectorMode,
   env: Env = process.env,
-  lift?: { readonly bright: boolean; cap: (speed: number | undefined) => number | undefined }
+  lift?: {
+    readonly bright: boolean;
+    cap: (speed: number | undefined) => number | undefined;
+    sent: (prosody: SSMLProsodyConfig) => void;
+  }
 ): (prosody: SSMLProsodyConfig) => string {
   if (personaId !== 'ferni') return render;
   const resting = emotionLever === 'live' ? ferniRestingEmotion(env) : undefined;
@@ -116,7 +120,9 @@ export function restingToneTags(
     const takes =
       resting !== undefined && RESTING_PICKS.has(prosody.emotion) && (!lift || lift.bright);
     const speed = lift ? lift.cap(prosody.speed) : prosody.speed;
-    return render({ ...prosody, speed, ...(takes ? { emotion: resting } : {}) });
+    const sent = { ...prosody, speed, ...(takes ? { emotion: resting } : {}) };
+    lift?.sent(sent);
+    return render(sent);
   };
 }
 

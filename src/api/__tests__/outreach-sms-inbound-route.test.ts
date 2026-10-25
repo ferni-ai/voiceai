@@ -9,7 +9,11 @@ vi.mock('../../services/outreach/webhooks/index.js', async (importOriginal) => (
   handleInboundSMSWebhook,
 }));
 const recordInboundSmsConsent = vi.hoisted(() => vi.fn(async () => null));
-vi.mock('../../services/outreach/checkin-replies.js', () => ({ recordCheckinReply }));
+// Partial: the route's imports (proactive opt-outs via guarded-text) read other exports at load.
+vi.mock('../../services/outreach/checkin-replies.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/outreach/checkin-replies.js')>()),
+  recordCheckinReply,
+}));
 vi.mock('../../services/messaging/consent.js', () => ({ recordInboundSmsConsent }));
 const recordContactYes = vi.hoisted(() => vi.fn(async () => null));
 vi.mock('../../services/messaging/consent-grants.js', () => ({ recordContactYes }));

@@ -27,6 +27,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isActionableCommitment } from '../../utils/commitment-quality.js';
 import {
   detectCommitment,
   saveCommitment,
@@ -41,6 +42,7 @@ import {
   type CommitmentType,
 } from './commitment-keeper.js';
 import { storeMemory, type PersonaId } from '../../memory/cross-persona/index.js';
+import { isCommitmentSingleWriterOn } from './commitment-single-writer.js';
 
 const log = createLogger({ module: 'CommitmentKeeperE2E' });
 
@@ -167,9 +169,7 @@ const DEFAULT_CONFIG: CommitmentE2EConfig = {
 
 let config: CommitmentE2EConfig = { ...DEFAULT_CONFIG };
 
-/**
- * Update configuration
- */
+/** Update configuration */
 export function setCommitmentE2EConfig(newConfig: Partial<CommitmentE2EConfig>): void {
   config = { ...config, ...newConfig };
 }
@@ -197,14 +197,16 @@ export async function detectCommitmentE2E(input: CommitmentE2EInput): Promise<Co
   const startTime = Date.now();
 
   try {
-    // 1. Run base detection
     const detection = detectCommitment(input.transcript, input.userId, {
       topic: input.topic,
       personMentioned: input.mentionedEntities?.[0],
       emotionalIntensity: input.emotionalContext?.intensity,
     });
 
-    if (!detection.detected || detection.confidence < config.minDetectionConfidence) {
+    // A goodbye or "call her tomorrow" is not kept (saveCommitment checks the same).
+    const actionable = isActionableCommitment(detection.commitment?.statement ?? '');
+    const judgedOnly = isCommitmentSingleWriterOn(); // COMMITMENT_SINGLE_WRITER: the judge stores
+    if (judgedOnly || !actionable || detection.confidence < config.minDetectionConfidence) {
       return {
         detected: false,
         confidence: detection.confidence,
@@ -213,14 +215,12 @@ export async function detectCommitmentE2E(input: CommitmentE2EInput): Promise<Co
       };
     }
 
-    // 2. Enhance with emotional weight
     let emotionalWeight = detection.commitment?.emotionalWeight || 0.5;
     if (input.emotionalContext) {
       // Higher emotional context = more significant commitment
       emotionalWeight = Math.min(1.0, emotionalWeight + input.emotionalContext.intensity * 0.2);
     }
 
-    // 3. Build the commitment object
     const commitmentData: Omit<Commitment, 'id'> = {
       userId: input.userId,
       statement: detection.commitment!.statement,
@@ -238,13 +238,10 @@ export async function detectCommitmentE2E(input: CommitmentE2EInput): Promise<Co
       followUpCount: 0,
     };
 
-    // 4. Save the commitment
     const { commitment: saved } = await saveCommitment(commitmentData);
 
-    // 5. Generate acknowledgment
     const acknowledgment = generateAcknowledgment(saved, detection.confidence);
 
-    // 6. Link to memory if enabled
     if (config.enableMemoryLinking) {
       await linkCommitmentToMemory(input.userId, saved, input.personaId);
     }
@@ -713,7 +710,7 @@ export async function getCommitmentStats(userId: string): Promise<{
     ).length;
     const completed = commitments.filter((c) => c.status === 'completed').length;
     const abandoned = commitments.filter((c) => c.status === 'abandoned').length;
-    const total = commitments.length;
+    const total = commitments.filter((c) => c.status !== 'dismissed').length; // a dismissal isn't a miss
 
     const completionRate = total > 0 ? completed / total : 0;
     const avgEmotionalWeight =

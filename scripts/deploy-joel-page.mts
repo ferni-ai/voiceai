@@ -7,7 +7,7 @@
  */
 
 import { generateAgentPage, type AgentPageConfig } from '../src/services/page-generator/index.js';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 
 // Initialize Firebase Admin if not already done
@@ -90,7 +90,7 @@ async function deploy() {
   // Check if we can deploy to Firestore
   let deployed = false;
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const siteData = {
       userId: 'system',
@@ -103,6 +103,7 @@ async function deploy() {
       files: {
         'index.html': result.html,
       },
+      kind: 'generated',
       updatedAt: new Date().toISOString(),
       analytics: {
         views: 0,

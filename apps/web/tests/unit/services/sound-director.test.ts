@@ -226,11 +226,17 @@ describe('the Sound setting (sound.ui mute)', () => {
     expect(run(director, [handoff])).toEqual(['handoff']);
   });
 
-  it('flag off: mute stays in memory only, as before', async () => {
+  it('flag off: muting also persists across a reload (Sound Effects is a saved toggle)', async () => {
+    // It used to live in a module variable, so every reload played sounds again.
     await freshDirector();
     const { soundUI } = await import('../../../src/ui/sound.ui.js');
     expect(soundUI.toggleMute()).toBe(true);
-    expect(localStorage.getItem('ferni:sound')).toBeNull();
+    expect(localStorage.getItem('ferni:sound')).toBe('off');
+
+    await freshDirector(); // a reload: fresh modules, same storage
+    const reloaded = (await import('../../../src/ui/sound.ui.js')).soundUI;
+    expect(reloaded.getMuted()).toBe(true);
+    expect(reloaded.toggleMute()).toBe(false);
 
     await freshDirector();
     expect((await import('../../../src/ui/sound.ui.js')).soundUI.getMuted()).toBe(false);

@@ -14,7 +14,9 @@ import {
 } from '../../services/life-automation.service.js';
 import { t } from '../../i18n/index.js';
 import { createLogger } from '../../utils/logger.js';
+import { getIdeaIcon } from '../icons/idea-icons.js';
 import { showRoutineBuilder } from './routine-builder.ui.js';
+import { escapeHtml } from './escape-html.js';
 
 const log = createLogger('IdeasGallery');
 
@@ -209,7 +211,7 @@ const styles = `
   
   .ideas-category:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .ideas-category.active {
@@ -269,7 +271,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    color: var(--color-ferni-on-primary, #fff);
     flex-shrink: 0;
   }
   
@@ -324,7 +326,7 @@ const styles = `
     border-radius: var(--radius-full, 9999px);
     font-size: 11px;
     font-weight: 600;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     margin-right: var(--space-2, 8px);
   }
   
@@ -458,8 +460,8 @@ export class IdeasGallery {
         ${this.categories
           .map(
             (cat) => `
-          <button class="ideas-category ${this.selectedCategory === cat.category ? 'active' : ''}" data-category="${cat.category}">
-            ${this.getCategoryLabel(cat.category)}
+          <button class="ideas-category ${this.selectedCategory === cat.category ? 'active' : ''}" data-category="${escapeHtml(cat.category)}">
+            ${escapeHtml(this.getCategoryLabel(cat.category))}
           </button>
         `
           )
@@ -490,20 +492,20 @@ export class IdeasGallery {
 
   private renderIdeaCard(template: WorkflowTemplate, showFeatured = false): string {
     return `
-      <button class="idea-card" data-template-id="${template.id}">
+      <button class="idea-card" data-template-id="${escapeHtml(template.id)}">
         <div class="idea-card__header">
-          <div class="idea-card__icon">${template.icon}</div>
+          <div class="idea-card__icon" aria-hidden="true">${getIdeaIcon(template.icon, 22)}</div>
           <div class="idea-card__info">
-            <div class="idea-card__name">${this.escapeHtml(template.name)}</div>
-            <div class="idea-card__time">${t('ideasGallery.timeToSetup', { time: template.estimatedTimeToSetup })}</div>
+            <div class="idea-card__name">${escapeHtml(template.name)}</div>
+            <div class="idea-card__time">${escapeHtml(t('ideasGallery.timeToSetup', { time: template.estimatedTimeToSetup }))}</div>
           </div>
         </div>
-        <p class="idea-card__description">${this.escapeHtml(template.description)}</p>
+        <p class="idea-card__description">${escapeHtml(template.description)}</p>
         <div class="idea-card__tags">
           ${showFeatured ? `<span class="idea-card__featured">${ICONS.star} ${t('ideasGallery.popular')}</span>` : ''}
           ${template.tags
             .slice(0, 2)
-            .map((tag) => `<span class="idea-card__tag">${tag}</span>`)
+            .map((tag) => `<span class="idea-card__tag">${escapeHtml(tag)}</span>`)
             .join('')}
         </div>
       </button>
@@ -602,11 +604,6 @@ export class IdeasGallery {
     showRoutineBuilder(template);
   }
 
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }
 
 // ============================================================================

@@ -1,0 +1,95 @@
+name: Deploy Developers Portal
+
+# Deploys apps/website/developers-portal (Eleventy) to the ferni-developers
+# Firebase Hosting site, which serves developers.ferni.ai, whenever a push to
+# main changes it. The weekly whats-new blog post lands there, so without this
+# a merged post stayed unpublished until someone ran `pnpm deploy:developers`.
+# Same auth and action as the landing deploy in deploy-firebase.yml.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/website/developers-portal/**'
+      - '.github/workflows/deploy-developers.yml'
+  workflow_dispatch:
+
+# One deploy at a time, and a rollout is never cut off midway. GitHub keeps only
+# the newest pending run; it checks out a later main, so it includes the
+# changes of any run it replaced.
+concurrency:
+  group: deploy-developers
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy developers.ferni.ai
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Not a pnpm workspace package: it has its own package-lock.json.
+      - name: Install dependencies
+        working-directory: apps/website/developers-portal
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        working-directory: apps/website/developers-portal
+        run: npm run build
+
+      # Checks the build in _site (links, the spec the explorer loads).
+      # Node 22 loads a bare directory argument as a module ("Cannot find
+      # module .../__tests__"), so name the files with a glob. A glob that
+      # matches nothing runs 0 tests and passes, so `ls` fails the step first
+      # when there is no test file.
+      - name: Test the build
+        working-directory: apps/website/developers-portal
+        run: |
+          ls __tests__/*.test.js
+          node --test '__tests__/*.test.js'
+
+      - name: Deploy to Firebase (ferni-developers)
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0, the commit v0 points to
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          channelId: live
+          target: ferni-developers
+          entryPoint: ./apps/website/developers-portal
+
+      - name: Health check
+        id: health
+        run: |
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://developers.ferni.ai/ || true)
+            if [ "$code" = 200 ]; then
+              echo "healthy=true" >> "$GITHUB_OUTPUT"
+              echo "developers.ferni.ai is healthy" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $code, retrying"
+            sleep 10
+          done
+          echo "healthy=false" >> "$GITHUB_OUTPUT"
+          echo "::error::developers.ferni.ai did not return 200 after the deploy"
+          exit 1
+
+      - name: Rollback on health check failure
+        if: failure() && steps.health.outputs.healthy == 'false'
+        working-directory: apps/website/developers-portal
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          npm install -g firebase-tools
+          firebase hosting:rollback --site ferni-developers --confirm

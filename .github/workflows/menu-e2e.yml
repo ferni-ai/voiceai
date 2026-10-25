@@ -1,0 +1,243 @@
+name: Menu E2E
+
+# The menu's merge gate (Seth, 2026-10-17). Before this, the menu's emulator
+# contract tests and the signed-in walk ran only nightly: OPTIONAL_CI=off skipped
+# them on every PR, and the required Unit Tests job passes each
+# `describe.skipIf(!emulator)` contract test as skipped.
+#
+#   L1  every src/api/__tests__/menu-*.emulator.test.ts, plus account deletion:
+#       the voice writer, then the route the panel calls, on a Firestore emulator.
+#   L2  the signed-in walk (e2e/signed-in/, playwright.menu-e2e.config.ts) on
+#       desktop and a phone, against Auth + Firestore emulators, the API server
+#       and Vite. Three shards so it fits well inside the merge queue's timeout.
+#
+# Both fail if any test was skipped (scripts/ci/menu-e2e-no-skips.mjs). Tests that
+# skip on purpose (hidden panels, one-screen-size controls) are left out by name
+# in playwright.menu-e2e.config.ts.
+#
+# The required check is the last job, "Menu E2E". It always reports: success when
+# the change can't touch the menu (the other jobs skip), else the L1 and L2 result.
+# Not OPTIONAL_CI-gated, on purpose. Hosted runners only (public repo); no secrets:
+# the emulators run demo projects and the LiveKit values are placeholders.
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+# One run per PR (a new push cancels the old one); each merge-queue entry has its
+# own ref and always finishes.
+concurrency:
+  group: menu-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  FIREBASE_TOOLS_VERSION: '15.10.0'
+
+jobs:
+  changes:
+    name: Did the menu change?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      menu: ${{ steps.menu.outputs.matched }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # The web app, the API and the layers under it (the same trees the signed-in
+      # walk follows), the menu tests themselves, and this gate's own files.
+      - id: menu
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/web/|src/(api|servers|services|memory|config|types|utils)/|e2e/signed-in/|playwright\.(signed-in|menu-e2e)\.config\.ts$|firebase\.json$|firestore\.(rules|indexes\.json)$|package\.json$|pnpm-lock\.yaml$|scripts/ci/menu-e2e-no-skips\.mjs$|\.github/workflows/menu-e2e\.yml$|\.github/actions/)'
+          merge-group: 'true'
+
+  contracts:
+    name: Menu contracts (L1)
+    needs: changes
+    if: needs.changes.outputs.menu == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          frozen-lockfile: 'true'
+
+      - name: Setup Java (the Firestore emulator)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # As data-layer-e2e.yml's nightly does: Firestore only, demo-project, :8080
+      - name: Start Firestore emulator
+        run: |
+          nohup npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" emulators:start \
+            --only firestore:ferni-dev --project demo-project > emulator.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -s -o /dev/null http://localhost:8080/ && echo "Emulator up after ${i}s" && exit 0
+            sleep 1
+          done
+          cat emulator.log
+          echo "::error::Firestore emulator did not start"; exit 1
+
+      - name: Run the menu contract tests
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          GCLOUD_PROJECT: demo-project
+          NODE_ENV: test
+          GOOGLE_API_KEY: ''
+          SKIP_EMBEDDING: 'true'
+        run: |
+          shopt -s nullglob
+          files=(src/api/__tests__/menu-*.emulator.test.ts src/api/__tests__/account-delete-every-store.emulator.test.ts)
+          echo "${#files[@]} contract test files"
+          [ "${#files[@]}" -gt 1 ] || { echo "::error::No menu contract tests found"; exit 1; }
+          pnpm exec vitest run "${files[@]}" \
+            --reporter=default --reporter=json --outputFile.json=menu-contracts.json
+
+      - name: Every contract test ran (none skipped)
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/menu-e2e-no-skips.mjs vitest menu-contracts.json
+
+  walk:
+    name: Menu walk (L2) ${{ matrix.shard }}/3
+    needs: changes
+    if: needs.changes.outputs.menu == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      PROJECT_ID: demo-ferni
+      FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+      E2E_BASE_URL: http://localhost:3004
+      MENU_E2E_JSON: menu-walk-${{ matrix.shard }}.json
+    # The stack below is signed-in-e2e.yml's, step for step.
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          frozen-lockfile: 'true'
+
+      - name: Setup Java (the Firebase emulators)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start Firebase emulators
+        run: |
+          mkdir -p e2e-logs
+          nohup npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" emulators:start \
+            --only auth,firestore:ferni-dev --project "$PROJECT_ID" > e2e-logs/emulators.log 2>&1 &
+          for _ in $(seq 1 90); do
+            curl -sf http://127.0.0.1:8080 >/dev/null && curl -sf http://127.0.0.1:9099 >/dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::Firebase emulators did not start"; tail -50 e2e-logs/emulators.log; exit 1
+
+      - name: Start API server
+        env:
+          PORT: '3002'
+          NODE_ENV: development
+          GOOGLE_CLOUD_PROJECT: ${{ env.PROJECT_ID }}
+          GCLOUD_PROJECT: ${{ env.PROJECT_ID }}
+          FIREBASE_PROJECT_ID: ${{ env.PROJECT_ID }}
+          # Placeholders: the walk never starts a voice session
+          LIVEKIT_URL: wss://livekit.localhost.invalid
+          LIVEKIT_API_KEY: ci-placeholder
+          LIVEKIT_API_SECRET: ci-placeholder-not-a-secret
+          JOURNAL_ONE_STORE: 'on' # as on the prod web server: the Chronicle can edit and delete
+        run: |
+          nohup npx tsx src/servers/api/index.ts > e2e-logs/api.log 2>&1 &
+          for _ in $(seq 1 90); do
+            curl -s -o /dev/null http://localhost:3002/api/ecobee/status && exit 0
+            sleep 2
+          done
+          echo "::error::API server did not start"; tail -80 e2e-logs/api.log; exit 1
+
+      - name: Start web app (emulator sign-in)
+        working-directory: apps/web
+        run: |
+          cat > .env.development.local <<'EOF'
+          VITE_USE_FIREBASE_EMULATORS=true
+          VITE_FIREBASE_API_KEY=emulator-only-not-a-real-key
+          VITE_FIREBASE_AUTH_DOMAIN=demo-ferni.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID=demo-ferni
+          VITE_FIREBASE_STORAGE_BUCKET=demo-ferni.appspot.com
+          VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+          VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+          EOF
+          nohup pnpm exec vite --port 3004 --strictPort > ../../e2e-logs/web.log 2>&1 &
+          for _ in $(seq 1 90); do
+            curl -sf http://localhost:3004 >/dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::Web app did not start"; tail -50 ../../e2e-logs/web.log; exit 1
+
+      - name: Run the signed-in walk (shard ${{ matrix.shard }}/3)
+        run: pnpm exec playwright test -c playwright.menu-e2e.config.ts --shard=${{ matrix.shard }}/3
+
+      - name: Every walk test ran (none skipped)
+        if: ${{ !cancelled() }}
+        run: node scripts/ci/menu-e2e-no-skips.mjs playwright "$MENU_E2E_JSON"
+
+      - name: Upload report, traces and server logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: menu-walk-${{ matrix.shard }}
+          path: |
+            playwright-report-menu-e2e/
+            test-results/
+            e2e-logs/
+            ${{ env.MENU_E2E_JSON }}
+          retention-days: 7
+
+  # The one check to require. A job-level `if: always()` makes it report on every
+  # PR and queue entry, so unrelated changes are never left waiting for it.
+  gate:
+    name: Menu E2E
+    needs: [changes, contracts, walk]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verdict
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          MENU: ${{ needs.changes.outputs.menu }}
+          CONTRACTS: ${{ needs.contracts.result }}
+          WALK: ${{ needs.walk.result }}
+        run: |
+          echo "changes=$CHANGES menu=$MENU contracts=$CONTRACTS walk=$WALK"
+          if [ "$CHANGES" != "success" ]; then
+            echo "::error::Could not tell whether the menu changed ($CHANGES)"; exit 1
+          fi
+          if [ "$MENU" != "true" ]; then
+            echo "Nothing the menu depends on changed: L1 and L2 skipped"; exit 0
+          fi
+          if [ "$CONTRACTS" != "success" ] || [ "$WALK" != "success" ]; then
+            echo "::error::Menu contracts: $CONTRACTS, menu walk: $WALK"; exit 1
+          fi
+          echo "Menu contracts and walk passed, with no skipped tests"

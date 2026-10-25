@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { ownerRefusal } from '../../messaging/consent-grants.js';
+import { ownerRefusal } from '../../../utils/consent-port.js';
 import type {
   ConciergeTarget,
   ConciergeResult,

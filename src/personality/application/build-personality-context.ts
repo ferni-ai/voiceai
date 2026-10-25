@@ -496,7 +496,7 @@ export class BuildPersonalityContext {
 
     // Should hold space warning
     if (data.shouldHoldSpace) {
-      sections.push('🤫 HOLD SPACE - This is a moment for presence, not words.');
+      sections.push('🤫 STAY WITH THEM - This is a moment for presence, not words.');
       sections.push('');
     }
 

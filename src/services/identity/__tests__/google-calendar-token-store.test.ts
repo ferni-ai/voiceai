@@ -6,17 +6,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const storeGet = vi.fn<(userId: string) => Promise<{ encrypted: string } | null>>();
+const storeLoad =
+  vi.fn<(userId: string, options?: { fresh?: boolean; strict?: boolean }) => Promise<unknown>>();
 
 vi.mock('../../persistence/index.js', () => ({
   createPersistenceStore: () => ({
     get: (userId: string) => storeGet(userId),
+    load: (userId: string, options?: { fresh?: boolean; strict?: boolean }) =>
+      storeLoad(userId, options),
     setImmediate: vi.fn().mockResolvedValue(undefined),
     delete: vi.fn().mockResolvedValue(undefined),
     shutdown: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
-const { getTokens, saveTokens, removeTokens, shutdownTokenStore } =
+const { getTokens, readTokensFresh, saveTokens, removeTokens, shutdownTokenStore } =
   await import('../google-calendar-token-store.js');
 
 const TOKENS = { access_token: 'at', refresh_token: 'rt', expires_at: 1_900_000_000_000 };
@@ -76,5 +80,29 @@ describe('google-calendar-token-store getTokens', () => {
     expect(await getTokens('user-has')).toMatchObject(TOKENS);
     expect(await getTokens('user-has')).toMatchObject(TOKENS);
     expect(storeGet).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('google-calendar-token-store readTokensFresh', () => {
+  beforeEach(async () => {
+    await shutdownTokenStore();
+    storeGet.mockReset();
+    storeLoad.mockReset();
+  });
+
+  it('reads Firestore past a remembered miss (a token saved on another instance)', async () => {
+    storeGet.mockResolvedValue(null);
+    expect(await getTokens('user-elsewhere')).toBeNull(); // miss remembered for 60 s
+    // Another instance connects the calendar.
+    storeLoad.mockResolvedValue({ encrypted: JSON.stringify(TOKENS) });
+
+    expect(await getTokens('user-elsewhere')).toBeNull();
+    expect(await readTokensFresh('user-elsewhere')).toMatchObject({ refresh_token: 'rt' });
+    expect(storeLoad).toHaveBeenCalledWith('user-elsewhere', { fresh: true, strict: true });
+  });
+
+  it('throws when Firestore cannot be read', async () => {
+    storeLoad.mockRejectedValue(new Error('unavailable'));
+    await expect(readTokensFresh('user-down')).rejects.toThrow('unavailable');
   });
 });

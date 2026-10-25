@@ -159,7 +159,7 @@ export function logJsonDetected(
     metadata: { args },
   });
 
-  log.info({ sessionId, fn, args }, '🔧 JSON-FC: JSON function call detected in LLM output');
+  log.info({ sessionId, fn, argKeys: Object.keys(args) }, '🔧 JSON-FC: call in LLM output');
 }
 
 /**
@@ -254,7 +254,7 @@ export function logLeakageDetected(
       sessionId,
       pattern,
       suggestedTool,
-      responsePreview: responsePreview.slice(0, 80),
+      responseChars: responsePreview.length,
       turnNumber,
     },
     '🚨 LEAKAGE: Gemini spoke instead of calling tool'
@@ -289,7 +289,7 @@ export function logRetryTriggered(
   });
 
   log.info(
-    { sessionId, attempt, suggestedTool, originalMessage: originalMessage.slice(0, 50) },
+    { sessionId, attempt, suggestedTool, messageChars: originalMessage.length },
     '🔄 RETRY: Retry triggered for failed tool call'
   );
 }
@@ -411,7 +411,7 @@ export function getSessionMetrics(sessionId: string): {
  */
 export function logToolCallStart(sessionId: string, userMessage: string): void {
   log.debug(
-    { sessionId, userMessage: userMessage.slice(0, 50) },
+    { sessionId, messageChars: userMessage.length },
     '🎯 Processing user message for potential tool call'
   );
 }

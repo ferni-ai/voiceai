@@ -18,11 +18,9 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getCEOCoachingState, getRecentWins, saveWeeklyReview } from './storage.js';
 // Cross-Domain: Calendar integration
-import {
-  getEventsForDay,
-  hasAnyProviderConnected,
-  type CalendarEvent,
-} from '../../../services/calendar/index.js';
+import { getEventsForDay, type CalendarEvent } from '../../../services/calendar/index.js';
+import { isConnected } from '../../../services/calendar/calendar-service.js';
+import { describeFerniList } from '../../../services/calendar/ferni-list.js';
 
 const log = getLogger();
 
@@ -44,16 +42,16 @@ function formatTime(date: Date): string {
 /**
  * Get calendar events for today, formatted for briefing
  */
-async function getTodayCalendarSummary(userId: string): Promise<string | null> {
+export async function getTodayCalendarSummary(userId: string): Promise<string | null> {
   try {
-    // Check if user has any calendar connected
-    const hasCalendar = await hasAnyProviderConnected(userId);
-    if (!hasCalendar) {
-      return null; // No calendar connected
-    }
-
     const today = new Date();
     const events = await getEventsForDay(userId, today);
+
+    // No calendar connected: Ferni's own list still counts, labelled; an empty list says nothing (#1547).
+    if (!(await isConnected(userId))) {
+      const onList = describeFerniList(events);
+      return onList ? `No calendar is connected. On Ferni's own list today: ${onList}.` : null;
+    }
 
     if (events.length === 0) {
       return 'No meetings scheduled today. Clear calendar for deep work!';

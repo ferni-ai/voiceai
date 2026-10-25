@@ -69,7 +69,7 @@ const TEMPORAL_PHRASES = {
       "There's something different—you're being more real with me.",
     ],
     less_open: [
-      "You seem more guarded today. That's okay. I'm here when you're ready.",
+      "You seem more guarded today. That's fine.",
       'Taking things slower today? I respect that.',
       "You're holding back a bit. No pressure—take your time.",
     ],

@@ -28,7 +28,8 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 **Jobs:**
 - `lint` - TypeScript type check + ESLint
-- `test-unit` - Unit tests with coverage
+- `test-unit-shard` - Unit tests with coverage, four vitest shards ("Unit Tests (n/4)")
+- `test-unit` - The required "Unit Tests" check: passes only when every shard passed
 - `test-integration` - Integration tests
 - `test-agi-features` - AGI feature tests
 - `build` - Backend + design system + frontend
@@ -53,8 +54,8 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 | Property | Value |
 |----------|-------|
-| Trigger | Push to main, manual |
-| Runner | ubuntu-latest |
+| Trigger | push to main whose tree the merge queue tested; CI success on a push to main (workflow_run); manual |
+| Runner | ubuntu-24.04, one job |
 | Duration | ~15 min |
 
 ### deploy-firebase.yml
@@ -96,6 +97,23 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 | Duration | ~8 min |
 
 ## Quality Workflows
+
+### lead-verified.yml (report-only)
+
+**Purpose:** Report whether the exact code a PR merges was independently verified
+(rules: `scripts/ci/lead-verified.ts`, run from the base branch, never the PR's copy).
+Runs on PRs and merge_group and always passes. Enforcing it (the commented
+`LEAD_VERIFIED_ENFORCE` switch plus a required check) needs Seth's OK.
+
+**How a verifier marks a PR verified.** Verify the PR's current head, then run
+`scripts/ci/post-lead-verify.sh <pr> <head-sha> pass|fail "<what you ran>"`. It refuses
+any SHA that is not the head, posts the `lead-verify` status, and comments
+`RESULT_verifier=PASS sha=<40-hex head>` (or `FAIL`). Writing that comment by hand also
+counts. Prose verdicts ("Verdict: PASS on 1a2b3c4d5") and auto-merge text never verify:
+the summary lists prose PASSes as unbound, and a prose FAIL naming the head still blocks.
+Only `sethdford` and `ferni-agent[bot]` count (`LEAD_VERIFIED_AUTHORS`). A later FAIL on
+the same or a later SHA overrides a PASS. A new push needs a new verdict, except a pure
+"merge main in" (no conflict, no extra edit), which carries the verdict forward.
 
 ### design-system.yml
 

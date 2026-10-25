@@ -58,17 +58,40 @@ async function loadActiveCommitments(userId: string): Promise<string | null> {
 
     // Filter active and overdue commitments
     const active = allCommitments.filter((c) => c.status === 'active');
-    const overdue = active.filter((c) => c.targetDate && c.targetDate < now);
+    // PROACTIVE_COOLDOWN: a commitment checked in on in the last 3 days is not offered again.
+    const { checkInsDue } =
+      await import('../../../services/superhuman/commitment-checkin-cooldown.js');
+    const overdue = await checkInsDue(
+      userId,
+      active.filter((c) => c.targetDate && c.targetDate < now),
+      (c) => c.summary || c.statement,
+      { record: true }
+    );
     const upcoming = active.filter((c) => !c.targetDate || c.targetDate >= now);
 
     if (overdue.length === 0 && upcoming.length === 0) return null;
+    // A call Ferni was asked to make and hasn't completed is never asked about (call-status.ts).
+    const { callStatusNote, ferniCallsFor } =
+      await import('../../../services/outreach/call-status.js');
+    const calls = await ferniCallsFor(
+      userId,
+      active.map((c) => c.summary),
+      now
+    );
+    const note = (summary: string): string => {
+      const call = calls.get(summary);
+      return call ? ` ${callStatusNote(call)}` : '';
+    };
 
     const parts: string[] = [];
 
     if (overdue.length > 0) {
       const overdueList = overdue
         .slice(0, 3)
-        .map((c) => `• "${c.summary}" (${c.type}, ${getDaysAgo(c.targetDate)} days overdue)`)
+        .map(
+          (c) =>
+            `• "${c.summary}" (${c.type}, ${getDaysAgo(c.targetDate)} days overdue)${note(c.summary)}`
+        )
         .join('\n');
       parts.push(
         `🚨 OVERDUE COMMITMENTS (${overdue.length}):\n${overdueList}\nGently check in: "How's that [commitment] going? No pressure, just thinking of you."`
@@ -78,7 +101,7 @@ async function loadActiveCommitments(userId: string): Promise<string | null> {
     if (upcoming.length > 0 && overdue.length < 3) {
       const activeList = upcoming
         .slice(0, 3 - overdue.length)
-        .map((c) => `• "${c.summary}" (${c.type})`)
+        .map((c) => `• "${c.summary}" (${c.type})${note(c.summary)}`)
         .join('\n');
       parts.push(
         `📝 ACTIVE COMMITMENTS (${upcoming.length}):\n${activeList}\nYou can naturally reference these if relevant.`

@@ -14,6 +14,7 @@
  */
 
 import type { RetrievalRole } from '../vectors/retrieval-embeddings.js';
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SemanticRecall' });
@@ -28,13 +29,22 @@ export function semanticRecallEnabled(
 export type RetrievalEmbedder = (texts: string[], role: RetrievalRole) => Promise<number[][]>;
 
 /** The default embedding provider, loaded on first use. */
-const defaultEmbedder: RetrievalEmbedder = async (texts, role) =>
+export const defaultEmbedder: RetrievalEmbedder = async (texts, role) =>
   (await import('../vectors/retrieval-embeddings.js')).embedForRetrieval(texts, role);
+
+/** The default provider's model name, stored beside each vector (stored-fact-vectors.ts). */
+export const defaultEmbeddingModel = async (): Promise<string> =>
+  (await import('../vectors/retrieval-embeddings.js')).retrievalModel();
 
 export interface RecallItem {
   id: string;
   text: string;
+  /** Stored with the item (RECALL_VECTOR_INDEX): used as it is, never embedded again. */
+  vector?: number[];
 }
+
+/** More items for the index, found from a turn's embedding; never waited on. */
+export type NearestItems = (queryVector: number[]) => Promise<RecallItem[]>;
 
 export interface SemanticIndex {
   /** Resolves once every item is embedded (or embedding failed: then nothing matches). */
@@ -142,29 +152,54 @@ export function standouts(
 
 export function createSemanticIndex(
   items: RecallItem[],
-  embed: RetrievalEmbedder = defaultEmbedder
+  embed: RetrievalEmbedder = defaultEmbedder,
+  nearest?: NearestItems
 ): SemanticIndex {
   const vectors = new Map<string, number[]>();
   let anchors: number[][] = [];
+  let built = false;
+  let searching = false;
   let turn = 0;
   let latest: { turn: number; vector: number[] } | undefined;
   let inFlight = false;
   let queued: { turn: number; text: string } | undefined;
   let lastObserved = '';
 
+  // Only items without a stored vector are embedded; with none stored, all of them, as before.
+  const fresh = items.filter((i) => !i.vector?.length);
+  const at = new Map(fresh.map((item, i) => [item, i]));
   const ready =
     items.length === 0
       ? Promise.resolve()
-      : embed([...items.map((i) => i.text), ...ANCHORS], 'document').then(
+      : embed([...fresh.map((i) => i.text), ...ANCHORS], 'document').then(
           (vs) => {
-            items.forEach((item, i) => {
-              if (vs[i]?.length) vectors.set(item.id, vs[i]);
+            items.forEach((item) => {
+              const v = item.vector?.length ? item.vector : vs[at.get(item) ?? -1];
+              if (v?.length) vectors.set(item.id, v);
             });
-            anchors = vs.slice(items.length).filter((v) => v?.length);
+            anchors = vs.slice(fresh.length).filter((v) => v?.length);
+            built = true;
           },
           (error: unknown) =>
-            log.warn({ error: String(error), items: items.length }, 'Recall index not built')
+            log.warn({ ...errorFields(error), items: items.length }, 'Recall index not built')
         );
+
+  // One search at a time; what it finds joins the index for later matches().
+  const search = (vector: number[]): void => {
+    if (!nearest || searching || !built) return;
+    searching = true;
+    nearest(vector)
+      .then(
+        (found) => {
+          for (const f of found)
+            if (f.vector?.length && !vectors.has(f.id)) vectors.set(f.id, f.vector);
+        },
+        (error: unknown) => log.debug(errorFields(error), 'Nearest items not found')
+      )
+      .finally(() => {
+        searching = false;
+      });
+  };
 
   const run = (job: { turn: number; text: string }): void => {
     inFlight = true;
@@ -172,8 +207,9 @@ export function createSemanticIndex(
       .then(
         ([vector]) => {
           if (job.turn === turn && vector?.length) latest = { turn: job.turn, vector };
+          if (vector?.length) search(vector);
         },
-        (error: unknown) => log.debug({ error: String(error) }, 'Turn not embedded')
+        (error: unknown) => log.debug(errorFields(error), 'Turn not embedded')
       )
       .finally(() => {
         inFlight = false;

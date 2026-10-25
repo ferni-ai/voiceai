@@ -15,7 +15,7 @@
  */
 
 import { generateMultiAdvisorPage, type MultiAdvisorPageConfig } from '../src/services/page-generator/index.js';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -136,7 +136,7 @@ async function deploy() {
 
   if (!isDryRun && !isLocal) {
     try {
-      const db = getFirestore();
+      const db = getAdminFirestore();
 
       siteId = `financial-legends-${Date.now()}`;
       url = `https://ferni.ai/sites/${siteId}`;
@@ -153,6 +153,7 @@ async function deploy() {
         files: {
           'index.html': result.html,
         },
+        kind: 'generated',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         analytics: {

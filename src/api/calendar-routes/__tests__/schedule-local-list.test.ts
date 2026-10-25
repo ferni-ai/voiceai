@@ -47,20 +47,25 @@ function fakeResponse() {
 }
 
 describe('schedule API with no calendar connected', () => {
-  it('today lists Ferni\'s own list as connected: false, not an empty overview', async () => {
+  it("today lists Ferni's own list as connected: false, not an empty overview", async () => {
     const fake = fakeResponse();
     await handleToday({} as never, fake as never, 'user-1');
     const body = JSON.parse(fake.get().body);
     expect(body.connected).toBe(false);
     expect(body.ferniList.map((e: { title: string }) => e.title)).toEqual(['Lunch with Sam']);
     expect(body.message).toMatch(/Ferni's own list/);
+    // The What's Ahead panel reads overview.events; a null overview showed its error state
+    expect(body.overview.events.map((e: { title: string }) => e.title)).toEqual(['Lunch with Sam']);
   });
 
-  it('week lists Ferni\'s own list the same way', async () => {
+  it("week lists Ferni's own list the same way", async () => {
     const fake = fakeResponse();
     await handleWeek({} as never, fake as never, 'user-1');
     const body = JSON.parse(fake.get().body);
     expect(body.connected).toBe(false);
     expect(body.ferniList.map((e: { title: string }) => e.title)).toEqual(['Lunch with Sam']);
+    expect(body.overview.days[0].events.map((e: { title: string }) => e.title)).toEqual([
+      'Lunch with Sam',
+    ]);
   });
 });

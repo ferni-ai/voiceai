@@ -12,11 +12,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CartesiaTTSProvider } from '../../providers/cartesia.js';
 import { CartesiaSocket } from '../../providers/cartesia-socket.js';
-import { callerBright, forgetLiftTurns } from '../emotion-lift.js';
+import { callerBright, emotionLift, forgetLiftTurns } from '../emotion-lift.js';
+import { leverModes } from '../gate.js';
 import { resetFerniRestingVoiceWarnings } from '../ferni-resting-voice.js';
 import { resetPersonaDeliveryCache } from '../persona-delivery.js';
 import { directSpeech } from '../reply-director.js';
 import { DirectorSessions } from '../session-state.js';
+
+const liftLog = vi.hoisted(() => vi.fn());
+vi.mock('../../../../utils/safe-logger.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../utils/safe-logger.js')>();
+  return {
+    ...actual,
+    createLogger: (bindings: { module?: string }) =>
+      bindings.module === 'EmotionLift'
+        ? { info: liftLog, warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+        : actual.createLogger(bindings),
+  };
+});
 
 const CALM_B = '2e7f8a26-1627-4d66-88dc-293c297c1619';
 const PLAIN = { SPEECH_DIRECTOR: 'live' };
@@ -32,6 +45,7 @@ beforeEach(() => {
   resetFerniRestingVoiceWarnings();
   resetPersonaDeliveryCache();
   forgetLiftTurns('lift');
+  liftLog.mockClear();
   vi.spyOn(CartesiaSocket.prototype, 'send').mockImplementation(async (_id, request) => {
     sent.push(request as (typeof sent)[number]);
   });
@@ -399,4 +413,52 @@ describe('callerBright', () => {
     'can you check thursday',
     undefined,
   ])('%s is not bright', (said) => expect(callerBright(said)).toBe(false));
+});
+
+describe('EMOTION_LIFT log line: one per reply, why, and never the caller text', () => {
+  const lastLine = () => liftLog.mock.calls.at(-1)?.[0] as Record<string, unknown> | undefined;
+
+  it.each([
+    ['That is so great, congrats!', GOOD, 'lifted', true],
+    ['I checked the calendar for Thursday.', 'can you check thursday', 'caller_not_bright', false],
+    ['I checked the calendar for Thursday.', '', 'no_caller_text', false],
+    ['Ha, that is so funny.', 'my dad died lol', 'heavy_moment', false],
+    ["I'm so sorry, that is a lot.", GOOD, 'first_clause_hard', false],
+    ['Oh no, what happened?', GOOD, 'first_clause_wary', false],
+    ['<emotion value="calm"/>Okay, breathe.', GOOD, 'authored_careful', false],
+  ])('%s (caller: %s) logs reason %s', async (text, caller, reason, lifted) => {
+    await speakAll(text, LIFT, { caller });
+    expect(liftLog).toHaveBeenCalledTimes(1);
+    expect(lastLine()).toMatchObject({ reason, lifted, callerTextLen: caller.length });
+    expect(JSON.stringify(lastLine())).not.toContain(caller || '\u0000');
+  });
+
+  it('logs what the opening actually sent', async () => {
+    await speakAll('That is so great, congrats!', LIFT, { caller: GOOD });
+    expect(lastLine()).toMatchObject({ sentEmotion: 'excited', sentSpeed: 1.08 });
+  });
+
+  it('a reply rendered twice still logs once', () => {
+    const lift = emotionLift(
+      { personaId: 'ferni', voiceId: CALM_B, env: LIFT, turnContext: { userRequest: GOOD } },
+      {},
+      leverModes(LIFT)
+    );
+    lift?.decide({ openingText: 'Congrats! ' });
+    lift?.sent({ emotion: 'excited' });
+    lift?.sent({ emotion: 'excited' });
+    expect(liftLog).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs nothing with the flag off', async () => {
+    await speakAll('That is so great, congrats!', LIVELY, { caller: GOOD });
+    expect(liftLog).not.toHaveBeenCalled();
+  });
+
+  it('logs once even when no live lever renders an opening tag', async () => {
+    const env = { ...LIFT, SPEECH_DIRECTOR_EMOTION: 'shadow', SPEECH_DIRECTOR_PACING: 'shadow' };
+    await speakAll('That is so great, congrats!', env, { caller: GOOD });
+    expect(liftLog).toHaveBeenCalledTimes(1);
+    expect(lastLine()).toMatchObject({ lifted: true, sentEmotion: undefined });
+  });
 });

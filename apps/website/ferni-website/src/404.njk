@@ -1,7 +1,8 @@
 ---
 layout: layouts/story-brand.njk
-title: "{{ 'errorPage.title' | t }}"
-description: "{{ 'errorPage.subtitle' | t }}"
+eleventyComputed:
+  title: "{{ 'errorPage.title' | t }}"
+  description: "{{ 'errorPage.subtitle' | t }}"
 permalink: /404.html
 ---
 

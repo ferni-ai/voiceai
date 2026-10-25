@@ -79,6 +79,10 @@ import { schedulingExecutor } from '../../../agents/shared/tool-executors/schedu
 import { createCommunicationTools } from '../../../tools/domains/communication/communication-tools.js';
 import { executeCall } from '../../background-agents/executors/call-executor.js';
 import { createMultiOutreachTool } from '../../../tools/domains/communication/outreach/multi-outreach.js';
+import { registerMessagingConsent } from '../consent.js';
+
+// The senders below L4 ask utils/consent-port.ts; register it as each process entry does.
+registerMessagingConsent();
 
 const MOM = '+12025550177';
 const twilioCalls = () =>

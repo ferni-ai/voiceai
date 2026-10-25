@@ -739,7 +739,7 @@ export function generateRelationalInsights(userId: string): RelationalInsight[] 
           suggestedApproach: tension.approachSuggestion,
           confidence: tension.avoidanceLevel,
           shouldSurface: tension.readinessSignals.length > 0,
-          surfacePhrase: `I've noticed you've been circling around something with ${person.specificRole}. No pressure, but I'm here when you're ready.`,
+          surfacePhrase: `I've noticed you've been circling around something with ${person.specificRole}. No pressure. Want to get into it?`,
         });
       }
     }
@@ -826,12 +826,12 @@ export function importRelationalNetwork(network: RelationalNetwork): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all relational network state (for testing)
- */
+export const forgetRelationalUser = (userId: string): boolean => networks.delete(userId);
+
+/** Reset all relational network state (for testing) */
 export function resetRelationalNetwork(): void {
   networks.clear();
 }

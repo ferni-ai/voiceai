@@ -1,0 +1,60 @@
+{
+  "displayName": "Ferni promise job stopped running",
+  "documentation": {
+    "mimeType": "text/markdown",
+    "content": "A per-minute job that keeps Ferni's promises has logged no `PROMISE_JOB_RUN` line for 10 minutes. Every run logs one, with nothing due too, so silence means the scheduler stopped calling it, the server is down, or the job's query throws before it can log (the missing `deferred_calls` index failed this way every minute for weeks). Jobs: execute-scheduled-outreach (logs `scheduled-outreach` and `deferred-calls`) and deliver-reminders, both Cloud Scheduler every minute on app.ferni.ai. Check `gcloud scheduler jobs list --project johnb-2025 --location us-central1` and the job's error log. The follow-through job is left out: FOLLOW_THROUGH_JOB is off and it has no scheduler entry. Needs the log metric `promise_job_runs` (monitoring/promise/promise-job-runs-metric.json). Promise-ledger design, alert policy 3."
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "No deferred-calls run for 10 minutes",
+      "conditionAbsent": {
+        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/promise_job_runs\" AND metric.labels.job=\"deferred-calls\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": ["metric.label.job"]
+          }
+        ],
+        "duration": "600s"
+      }
+    },
+    {
+      "displayName": "No scheduled-outreach run for 10 minutes",
+      "conditionAbsent": {
+        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/promise_job_runs\" AND metric.labels.job=\"scheduled-outreach\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": ["metric.label.job"]
+          }
+        ],
+        "duration": "600s"
+      }
+    },
+    {
+      "displayName": "No deliver-reminders run for 10 minutes",
+      "conditionAbsent": {
+        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/promise_job_runs\" AND metric.labels.job=\"deliver-reminders\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": ["metric.label.job"]
+          }
+        ],
+        "duration": "600s"
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "notificationChannels": ["projects/johnb-2025/notificationChannels/497418305396229287"],
+  "enabled": true
+}

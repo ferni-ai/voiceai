@@ -18,6 +18,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { findCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 
 // ============================================================================
 // FAREWELL SUMMARY - "What to Remember Next Time"
@@ -221,14 +222,7 @@ function buildRelationshipNotes(
 
 export interface SmallDetail {
   type:
-    | 'user_name'
-    | 'person_name'
-    | 'pet_name'
-    | 'place'
-    | 'company'
-    | 'date'
-    | 'amount'
-    | 'other';
+    'user_name' | 'person_name' | 'pet_name' | 'place' | 'company' | 'date' | 'amount' | 'other';
   value: string;
   context: string;
   extractedAt: Date;
@@ -242,68 +236,35 @@ export function extractSmallDetails(text: string): SmallDetail[] {
   const now = new Date();
 
   // USER'S OWN NAME - "My name is Seth", "I'm Seth", "Call me Seth"
-  const userNamePatterns = [
-    /my name(?:'s| is)\s+([A-Z][a-z]+)/gi, // "my name is Seth", "my name's Seth"
-    /(?:^|\s)I'm\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "I'm Seth" (not "I'm happy")
-    /call me\s+([A-Z][a-z]+)/gi, // "call me Seth"
-    /(?:^|\s)(?:I am|name's)\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "I am Seth"
-    /^([A-Z][a-z]+)\s+here(?:\s|,|\.|\!|$)/gi, // "Seth here"
-    /this is\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "this is Seth"
-    /(?:^|\s)it's\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "it's Seth" (intro style)
-  ];
+  // NAME_CAPTURE_STRICT=on: the shared extractor (utils/caller-name.ts). Off: the legacy
+  // patterns, whose i flag lets [A-Z] match "not" in "my name's not showing".
+  const strict = nameCaptureStrict();
+  const own = strict ? findCallerName(text) : null;
+  if (own)
+    details.push({ type: 'user_name', value: own.name, context: own.phrase, extractedAt: now });
+  const userNamePatterns = strict
+    ? []
+    : [
+        /my name(?:'s| is)\s+([A-Z][a-z]+)/gi, // "my name is Seth", "my name's Seth"
+        /(?:^|\s)I'm\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "I'm Seth" (not "I'm happy")
+        /call me\s+([A-Z][a-z]+)/gi, // "call me Seth"
+        /(?:^|\s)(?:I am|name's)\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "I am Seth"
+        /^([A-Z][a-z]+)\s+here(?:\s|,|\.|\!|$)/gi, // "Seth here"
+        /this is\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "this is Seth"
+        /(?:^|\s)it's\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "it's Seth" (intro style)
+      ];
 
   // Filter out common words that aren't names
-  const notNames = new Set([
-    'Good',
-    'Fine',
-    'Great',
-    'Happy',
-    'Sad',
-    'Worried',
-    'Excited',
-    'Tired',
-    'Sorry',
-    'Sure',
-    'Thanks',
-    'Hello',
-    'Hey',
-    'Hi',
-    'Well',
-    'Just',
-    'Really',
-    'Going',
-    'Looking',
-    'Thinking',
-    'Wondering',
-    'Calling',
-    'Speaking',
-    'Here',
-    'Ready',
-    'Done',
-    'Back',
-    'New',
-    'Young',
-    'Old',
-    'Busy',
-    'Free',
-  ]);
+  const notNames = new Set(
+    'Good Fine Great Happy Sad Worried Excited Tired Sorry Sure Thanks Hello Hey Hi Well Just Really Going Looking Thinking Wondering Calling Speaking Here Ready Done Back New Young Old Busy Free'.split(
+      ' '
+    )
+  );
 
-  // CRITICAL: Never confuse persona names with user names!
-  // When user says "Hi Maya" after Maya introduces herself, that's NOT the user's name
-  const personaNames = new Set([
-    'Ferni',
-    'Maya',
-    'Peter',
-    'Alex',
-    'Jordan',
-    'Nayan',
-    // Full names too
-    'Santos',
-    'Chen',
-    'Taylor',
-    'John',
-    'Patel',
-  ]);
+  // CRITICAL: Never confuse persona names with user names ("Hi Maya" is not the user's name)
+  const personaNames = new Set(
+    'Ferni Maya Peter Alex Jordan Nayan Santos Chen Taylor John Patel'.split(' ')
+  );
 
   for (const pattern of userNamePatterns) {
     const matches = text.matchAll(pattern);
@@ -631,7 +592,7 @@ const PERSONA_PHYSICAL_NOTES: Record<
     morning: { engaged: 'Good morning energy. This feels productive.' },
     postLunch: { note: 'Taking a mindful moment after lunch.' },
     afternoon: { long: 'Afternoons are good for reflection and planning.' },
-    evening: { engaged: 'Winding down but still here for you.' },
+    evening: { engaged: 'Winding down, but still in it.' },
     lateNight: {
       short: 'Late night honesty is sometimes the best kind.',
       long: "It's getting late, but I'm glad we're talking.",

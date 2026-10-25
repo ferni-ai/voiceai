@@ -170,7 +170,9 @@ describe('Proactive Date Awareness', () => {
 
     expect(insights.length).toBe(1);
     expect(insights[0].context.tone).toBe('gentle');
-    expect(insights[0].naturalPhrase).toContain("I'm here");
+    expect(insights[0].naturalPhrase).toContain('anniversary of losing Dad');
+    // character.md: Ferni doesn't offer to listen or say he's there for them
+    expect(insights[0].naturalPhrase).not.toMatch(/I'm here|here for you/);
   });
 
   it('should not surface dates outside window', () => {

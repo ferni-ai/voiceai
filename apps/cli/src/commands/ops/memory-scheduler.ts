@@ -80,6 +80,7 @@ interface SchedulerJob {
   minBackoff?: string;
   maxBackoff?: string;
   timeout?: string;
+  noHeaders?: boolean;
 }
 
 function getMemoryJobs(): SchedulerJob[] {
@@ -239,9 +240,13 @@ async function createOrUpdateJob(
     `--time-zone="${job.timezone}"`,
     `--uri="${job.uri}"`,
     `--http-method=${job.httpMethod}`,
-    action === 'update'
-      ? `--update-headers="Content-Type=application/json,X-CloudScheduler=true"`
-      : `--headers="Content-Type=application/json,X-CloudScheduler=true"`,
+    ...(job.noHeaders
+      ? []
+      : [
+          action === 'update'
+            ? `--update-headers="Content-Type=application/json,X-CloudScheduler=true"`
+            : `--headers="Content-Type=application/json,X-CloudScheduler=true"`,
+        ]),
     `--oidc-service-account-email="${CONFIG.serviceAccount}"`,
     `--description="${job.description}"`,
   ];

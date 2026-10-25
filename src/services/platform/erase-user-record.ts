@@ -13,15 +13,18 @@
  * @module services/platform/erase-user-record
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { queueBqErasure } from '../analytics/bq-erasure.js';
 import { KEYED_STORES, type KeyedStore } from './erase-other-keys.js';
 import {
   gatherErasureKeys,
   keepStripeCustomersForCleanup,
   type ErasureKeys,
 } from './erasure-keys.js';
+import { erasureErrorCode } from './erasure-step.js';
 import { ERASED_STORES, storeLabel, type OwnedStore } from './user-stores.js';
 
 const log = createLogger({ module: 'erase-user-record' });
@@ -101,18 +104,27 @@ const KEY_TIER = new Map([
   [`${USER_RECORDS_COLLECTION}/{uid}`, 2],
 ]);
 
-/** Erase every job, then check them all; throws naming whatever is left */
+/**
+ * Erase every job, then check them all; throws naming whatever is left. Logs store
+ * labels and error codes only: a Firestore error's message can carry the document
+ * path it failed on, which for a phone profile or an email-keyed store is the phone
+ * number or the (base64) email.
+ */
 async function runPhase(jobs: readonly Job[], userId: string): Promise<void> {
   const results = await Promise.allSettled(jobs.map(async (job) => job.erase()));
   const errors = jobs.filter((job, i) => {
     const result = results[i];
     if (result?.status !== 'rejected') return false;
-    log.warn({ error: String(result.reason), userId, store: job.label }, 'Store not erased');
+    log.warn(
+      { error: erasureErrorCode(result.reason), userId, store: job.label },
+      'Store not erased'
+    );
     return true;
   });
   const left = await Promise.all(jobs.map(async (job) => job.remains()));
   const stuck = new Set([...errors, ...jobs.filter((_, i) => left[i])].map((job) => job.label));
   if (stuck.size > 0) {
+    log.warn({ userId, stores: [...stuck] }, 'User record not fully erased');
     throw new Error(`User record not fully erased: ${[...stuck].join(',')}`);
   }
 }
@@ -133,11 +145,16 @@ export async function eraseUserRecord(
   keyed: readonly KeyedStore[] = KEYED_STORES
 ): Promise<void> {
   assertErasableUserId(userId);
+  // Outreach held in memory goes before and after the sweep, refused from then on (a live session)
+  const { eraseUserOutreachData } = await import('../outreach/outreach-intelligence.js');
+  await eraseUserOutreachData(userId);
   const db = firestore ?? defaultDb();
   // Gathered first: the sweep erases the records the keys are read from
   const keys = keyed.length > 0 ? await gatherKeys(db, userId, keyed) : null;
   const linked = keys?.linkedUserIds ?? [];
   linked.forEach(assertErasableUserId);
+  // BQ_ERASURE: their BigQuery rows go in a later batch, after the streaming buffer (bq-erasure.ts)
+  if (flagOn('BQ_ERASURE')) await queueBqErasure(db, [userId, ...linked]);
   const uidJobs = (uid: string, tier: number): Job[] =>
     stores
       .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)
@@ -170,6 +187,7 @@ export async function eraseUserRecord(
   for (const tier of [1, 2]) {
     await runPhase([...keyedJobs(tier), ...uidJobs(userId, tier)], userId);
   }
+  await eraseUserOutreachData(userId);
 }
 
 /**
@@ -188,7 +206,7 @@ async function gatherKeys(
     return keys;
   } catch (error) {
     log.error(
-      { error: String(error), userId },
+      { error: erasureErrorCode(error), userId },
       "Couldn't read the keys to erase by; nothing erased"
     );
     const labels = keyed.map((k) => k.label).join(',');
@@ -198,5 +216,5 @@ async function gatherKeys(
 
 function defaultDb(): Db {
   if (!ensureFirebaseAdmin()) throw new Error('Firebase Admin is not initialized');
-  return getFirestore();
+  return getAdminFirestore();
 }

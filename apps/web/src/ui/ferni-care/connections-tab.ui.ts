@@ -110,6 +110,6 @@ export async function showCareConnections(
   content.innerHTML = renderCareConnections(rows);
   content.querySelector('[data-action="open-connections"]')?.addEventListener('click', () => {
     closeDashboard();
-    openEverythingConnected();
+    void openEverythingConnected();
   });
 }

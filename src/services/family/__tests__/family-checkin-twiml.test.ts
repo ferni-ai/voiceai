@@ -22,9 +22,9 @@ const spoken = [...twiml.matchAll(/<Say[^>]*>([^<]*)<\/Say>/g)].map((m) =>
 );
 
 describe('family check-in TwiML', () => {
-  it("opens as Seth's AI friend and asks one question before listening", () => {
+  it('opens by name, without "AI friend", and asks one question before listening', () => {
     expect(spoken[0]).toBe(
-      "Good evening Doug, it's Ferni, Seth's AI friend. Seth asked me to check in on you. Is now an okay time?"
+      "Good evening Doug, it's Ferni. Seth asked me to check in on you. Is now an okay time?"
     );
     expect(twiml.indexOf('<Gather')).toBeGreaterThan(twiml.indexOf(spoken[0].slice(0, 20)));
     expect(twiml).not.toMatch(/How are you doing today/);

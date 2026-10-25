@@ -64,7 +64,7 @@ export const familyMessagesContextBuilder: ContextBuilder = {
         {
           userId,
           messageCount: pendingMessages.length,
-          fromNames: pendingMessages.map((m) => m.fromName),
+          senders: new Set(pendingMessages.map((m) => m.fromName)).size,
         },
         '📬 Found pending family messages'
       );

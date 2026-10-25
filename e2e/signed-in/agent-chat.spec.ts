@@ -18,6 +18,8 @@ async function opens(page: Page, control: Locator, what: string) {
   return newPanel(page, before, what);
 }
 
+test.skip(true, 'Meet More Friends (the marketplace) is hidden: apps/web/src/config/menu-visibility.ts');
+
 test.beforeEach(async ({ page }, info) => {
   test.skip(info.project.name === 'mobile', 'no marketplace button on phones');
   await signIn(page, await createUser());

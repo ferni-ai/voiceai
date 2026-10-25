@@ -17,6 +17,7 @@
 
 import { DURATION } from '../config/animation-constants.js';
 import { isLegacySharingOn } from '../config/legacy-sharing-flag.js';
+import { isCustomAgentsUiOn } from '../config/custom-agents-ui-flag.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { formatDate, formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
@@ -178,13 +179,12 @@ function ensureModalExists(): HTMLElement {
           <button class="marketplace-tab" data-tab="installed">
             ${t('marketplace.tabs.yourTeam')}
           </button>
-          <button class="marketplace-tab" data-tab="creations">
+          ${isCustomAgentsUiOn() ? `<button class="marketplace-tab" data-tab="creations">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
             ${t('marketplace.tabs.myCreations')}
-          </button>
+          </button>` : ''}
         </div>
 
         <div class="marketplace-search" data-tab-content="browse">
@@ -233,7 +233,7 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="marketplace-footer">
-        <a href="https://ferni.ai/creators" target="_blank" rel="noopener noreferrer" class="marketplace-creator-link">
+        <a href="https://ferni.ai/marketplace" target="_blank" rel="noopener noreferrer" class="marketplace-creator-link">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/>
             <path d="M5 3v4"/><path d="M3 5h4"/>
@@ -1436,30 +1436,6 @@ function renderTeamNarrative(): string {
                 <span class="leader-title">${t('marketplace.team.ferniRole')}</span>
                 <p class="leader-bio">${t('marketplace.team.ferniDesc')}</p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="leadership-section">
-          <span class="leadership-label">${t('marketplace.team.coFounders')}</span>
-          <div class="leadership-grid cofounders">
-            <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" data-persona="claude" style="${getAvatarStyle('claude')}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-              </div>
-              <span class="cofounder-name">${t('teamNarrative.claude')}</span>
-            </div>
-            <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" data-persona="gemini" style="${getAvatarStyle('gemini')}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-              </div>
-              <span class="cofounder-name">${t('teamNarrative.gemini')}</span>
-            </div>
-            <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" data-persona="gpt" style="${getAvatarStyle('gpt')}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073z"/></svg>
-              </div>
-              <span class="cofounder-name">${t('teamNarrative.gpt')}</span>
             </div>
           </div>
         </div>

@@ -15,6 +15,7 @@
 import crypto from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import { activityCheckin } from './apple-health-checkin.js';
 import {
   onSleepPatternChange,
   onWorkoutChange,
@@ -327,17 +328,11 @@ async function storeDailyActivity(
     .doc(activity.date)
     .set(cleanForFirestore({ activity }), { merge: true });
 
-  // Index to semantic memory for wellness tracking
+  // Index to semantic memory for wellness tracking, with no made-up scores
   void onWellnessCheckinChange(
     userId,
     `activity_${activity.date}`,
-    {
-      mood: 5, // Default - actual mood comes from check-ins
-      energy: Math.min(10, Math.round((activity.activeEnergyBurned || 0) / 50)),
-      notes: `Active calories: ${activity.activeEnergyBurned || 0}, Exercise: ${activity.appleExerciseTime || 0} min`,
-      stressLevel: undefined,
-      timestamp: activity.date,
-    },
+    activityCheckin(activity),
     'update'
   );
 }

@@ -6,7 +6,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FollowUp } from '../../../services/follow-through/index.js';
-import { followUp } from '../../../services/follow-through/__tests__/fixtures.js';
+import { followUp as fixture } from '../../../services/follow-through/__tests__/fixtures.js';
 import type { CheckinRecord, StoredCheckin } from '../../../services/outreach/checkin-replies.js';
 import type { FollowUpTextDeps } from '../../../services/outreach/follow-up-texts.js';
 import {
@@ -25,6 +25,10 @@ import { JOB_PATHS } from '../index.js';
 import { forgetFlagCache } from '../../../services/platform/cohort-flags.js';
 
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
+
+/** One the caller asked for on a call; reminder-store imports are the reminder job's to text. */
+const followUp = (over: Partial<FollowUp> = {}): FollowUp =>
+  fixture({ source: { store: 'summaries', ref: 's1:0' }, ...over });
 const ON = { FOLLOW_THROUGH_JOB: 'on' };
 const PHONE = '+15550000000'; // fictional
 
@@ -61,6 +65,7 @@ function textWorld(clock: { now: Date }) {
     },
     sponsoredPhone: async () => undefined,
     isOptedOut: async () => false,
+    consentDoc: async () => undefined,
     userDoc: async () => undefined,
     legacySmsChannels: async () => undefined,
   };
@@ -85,6 +90,7 @@ function world(due: FollowUp[], cohort: string[] = ['u1']) {
       cohort.includes(u) ? { FOLLOW_THROUGH_TEXTS: 'on' } : {}
     ),
     sendText: (t) => sendGuardedText(t, texts.textDeps),
+    forgotten: async () => [],
   };
   const run = (dryRun = false) =>
     runFollowThroughJob({ dryRun, env: ON, deps: async () => deps, now: clock.now });

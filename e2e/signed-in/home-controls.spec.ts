@@ -24,7 +24,7 @@ const OPENERS: Record<string, string> = {
   'daily practice': '#engagementTriggerBtn',
   predictions: '#predictionsTriggerBtn',
   'team insights': '#insightsTriggerBtn',
-  'add more agents': '#marketplaceBtn',
+  // No "add more agents": the marketplace is hidden (apps/web/src/config/menu-visibility.ts)
 };
 
 test.beforeEach(async ({ page }) => {

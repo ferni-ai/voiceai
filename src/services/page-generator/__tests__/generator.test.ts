@@ -359,24 +359,18 @@ describe('Page Generator', () => {
       expect(result.html).toContain('data-theme="dark"');
     });
 
-    it('should inject custom CSS if provided', async () => {
+    // Generated pages run on the app's origin: raw CSS/JS from a config would
+    // be publisher-written script there, so the templates have no slot for it.
+    it('does not emit raw custom CSS or JS from a config', async () => {
       const config = {
         ...validConfig,
         customCss: '.custom-class { color: red; }',
-      };
-      const result = await generateAgentPage(config);
-
-      expect(result.html).toContain('.custom-class { color: red; }');
-    });
-
-    it('should inject custom JS if provided', async () => {
-      const config = {
-        ...validConfig,
         customJs: 'console.log("Hello from custom JS");',
-      };
+      } as AgentPageConfig;
       const result = await generateAgentPage(config);
 
-      expect(result.html).toContain('console.log("Hello from custom JS")');
+      expect(result.html).not.toContain('.custom-class');
+      expect(result.html).not.toContain('Hello from custom JS');
     });
   });
 
@@ -433,7 +427,7 @@ describe('Deployment Configuration', () => {
 
     // Dev uses a relative token endpoint (proxy forwards /token to the token
     // server) but the dev LiveKit project URL
-    expect(result.html).toContain("'/token'");
+    expect(result.html).toContain('tokenServerUrl: "/token"');
     expect(result.html).toContain('dev-8sm1ba0z.livekit.cloud');
   });
 
@@ -441,7 +435,7 @@ describe('Deployment Configuration', () => {
     const result = await generateAgentPage(validConfig);
 
     // Production uses relative URL for token endpoint (works on any host)
-    expect(result.html).toContain("'/token'");
+    expect(result.html).toContain('tokenServerUrl: "/token"');
     expect(result.html).toContain('test-rvg91u1z.livekit.cloud');
   });
 

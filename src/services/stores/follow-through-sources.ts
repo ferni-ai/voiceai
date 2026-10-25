@@ -5,7 +5,10 @@
  * - pending reminders (bogle_users/{uid}/reminders, status 'pending');
  * - open commitments (bogle_users/{uid}/commitments), parsed by the same
  *   rules the call check-in uses, so sign-offs like "I need to go" stay out;
- * - follow-up items from the last calls' summaries.
+ * - follow-up items from the last calls' summaries, only from summaries
+ *   checked against the caller's own lines (callerProvenance) and without the
+ *   items the assistant raised or the caller disputed: the same rule the
+ *   recall threads use (memory/recall/session-recall.ts).
  *
  * Anything about a topic the caller asked Ferni to forget is left out. When
  * that list can't be read, the commitments and call threads (raw words) are
@@ -18,9 +21,10 @@
 import type { Firestore } from '@google-cloud/firestore';
 import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
+import { judgedRowText, singleWriterFor } from '../superhuman/commitment-single-writer.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
-import { isForgotten } from '../../memory/recall/session-recall.js';
+import { CALLER_PROVENANCE, isForgotten, undisputed } from '../../memory/recall/session-recall.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -67,9 +71,13 @@ async function openCommitments(
   forgotten: readonly string[]
 ): Promise<SourceItem[]> {
   const docs = await firestoreCommitmentStore.active(userId);
+  const judgedOnly = await singleWriterFor(userId);
   return docs.flatMap((d) => {
-    const c = toOpenCommitment(d.id, d.data);
-    if (!c || isForgotten(c.statement, forgotten)) return [];
+    const c = toOpenCommitment(d.id, d.data, { judgedOnly });
+    // A judged row's resolved statement may not name the person: check its person too.
+    if (!c || isForgotten(judgedOnly ? judgedRowText(d.data) : c.statement, forgotten)) return [];
+    // A money or credential item is raised only on a call, never in a follow-through text.
+    if (c.sensitive) return [];
     return [
       {
         kind: 'commitment' as const,
@@ -89,11 +97,17 @@ async function lastCallThreads(
 ): Promise<SourceItem[]> {
   const { docs } = await readCallSummaries(db, userId, { limit: SUMMARIES });
   return docs.flatMap((d) => {
-    const raw: unknown = d.data().followUpItems;
-    const items: unknown[] = Array.isArray(raw) ? raw : [];
+    const data = d.data();
+    // A thread is theirs only if the summary checked it against their own lines;
+    // a legacy summary with no check is treated as unchecked and left out
+    if (data.callerProvenance !== CALLER_PROVENANCE) return [];
+    const items: unknown[] = Array.isArray(data.followUpItems) ? data.followUpItems : [];
+    // Minus what Ferni raised or they disputed; the ref keeps the stored index, so ids stay put
+    const theirs = undisputed(data).followUpItems;
+    const kept = new Set(Array.isArray(theirs) ? theirs : []);
     return items.flatMap((item, i) => {
       const text = String(item).trim();
-      if (!text || isForgotten(text, forgotten)) return [];
+      if (!text || !kept.has(item) || isForgotten(text, forgotten)) return [];
       return [
         {
           kind: 'thread' as const,

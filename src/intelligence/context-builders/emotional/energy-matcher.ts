@@ -273,7 +273,7 @@ function generateEnergyGuidance(
         'BE PRESENT, NOT PERFORMATIVE:',
         '- Minimal words, maximum presence',
         '- Long pauses are okay',
-        '- No fixing, just holding space',
+        '- No fixing, just keep them company',
         '- Speak as if physically sitting with them in the quiet'
       );
       break;

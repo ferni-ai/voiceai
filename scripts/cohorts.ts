@@ -11,7 +11,7 @@
  *   create <cohort> --description "<text>"    a new cohort, enabled, no flags
  *   add-member <cohort> --uid <uid> | --email <email>
  *   remove-member <cohort> --uid <uid> | --email <email>
- *   set-flag <cohort> FLAG on|off             FLAG from COHORT_FLAGS
+ *   set-flag <cohort> FLAG on|off             FLAG from COHORT_FLAGS (TURN_LENGTH/TEXTURE: learned|off)
  *   unset-flag <cohort> FLAG
  *   enable|disable <cohort>                   a whole cohort on or off (off is the fast kill)
  *   percent <cohort> <0-100>                  also a stable sample of every caller (0: members only)
@@ -23,8 +23,10 @@
  * emails other than the one given, and nothing from the environment.
  */
 import { pathToFileURL } from 'node:url';
+import { getFirestoreDatabase } from '../src/config/environment.js';
 import {
   COHORT_FLAGS,
+  cohortFlagValues,
   missingPrerequisites,
   resolveCallerFlags,
 } from '../src/services/platform/cohort-flags.js';
@@ -116,8 +118,10 @@ export function cohortFlag(flag: string | undefined): string {
   return flag;
 }
 
-function onOff(v: string | undefined): 'on' | 'off' {
-  if (v !== 'on' && v !== 'off') throw new Error(`value must be on or off, not ${v ?? '(none)'}`);
+function flagValue(flag: string, v: string | undefined): string {
+  const values = cohortFlagValues(flag);
+  if (!v || !values.includes(v))
+    throw new Error(`${flag} must be ${values.join(' or ')}, not ${v ?? '(none)'}`);
   return v;
 }
 
@@ -142,7 +146,7 @@ export function planWrites(a: Args, uid: string | undefined, now: string): Write
     case 'remove-member':
       return cohort({}, { removeMembers: [needUid()] });
     case 'set-flag':
-      return cohort({ [`flags.${cohortFlag(second)}`]: onOff(third) });
+      return cohort({ [`flags.${cohortFlag(second)}`]: flagValue(cohortFlag(second), third) });
     case 'unset-flag':
       return cohort({}, { deleteFields: [`flags.${cohortFlag(second)}`] });
     case 'enable':
@@ -155,7 +159,7 @@ export function planWrites(a: Args, uid: string | undefined, now: string): Write
       return p === 0 ? cohort({}, { deleteFields: ['percent'] }) : cohort({ percent: p });
     }
     case 'override':
-      return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'merge', fields: { flags: { [cohortFlag(first)]: onOff(second) }, updatedAt: now } }]; // prettier-ignore
+      return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'merge', fields: { flags: { [cohortFlag(first)]: flagValue(cohortFlag(first), second) }, updatedAt: now } }]; // prettier-ignore
     case 'clear-override':
       return [{ collection: 'feature_flag_overrides', doc: needUid(), kind: 'update', fields: { updatedAt: now }, deleteFields: [`flags.${cohortFlag(first)}`] }]; // prettier-ignore
     default:
@@ -254,7 +258,7 @@ async function firebaseStore(project: string): Promise<AdminStore> {
   const { FieldValue, getFirestore } = await import('firebase-admin/firestore');
   const { getAuth } = await import('firebase-admin/auth');
   const app = initializeApp({ projectId: project, credential: applicationDefault() }, `cohorts-${project}`); // prettier-ignore
-  const db = getFirestore(app);
+  const db = getFirestore(app, getFirestoreDatabase());
   const cohorts = db.collection('feature_cohorts');
   const withId = (d: { id: string; data: () => unknown }) => ({ id: d.id, ...(d.data() as CohortDoc) }); // prettier-ignore
   return {

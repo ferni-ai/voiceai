@@ -657,7 +657,7 @@ export class UnifiedAnalyzer {
   private getMismatchSurfacePhrase(type: MismatchSignal['type']): string {
     const phrases: Record<string, string[]> = {
       masking_negative: [
-        "I hear you saying you're okay, but... I'm here if there's more you want to share.",
+        "You say you're okay, but you don't quite sound it. What's up?",
         "You don't have to be 'fine' with me. What's really going on?",
         'Something in your voice tells me there might be more to the story.',
       ],
@@ -671,7 +671,7 @@ export class UnifiedAnalyzer {
       ],
       suppressing: [
         "I sense there might be some weight on your shoulders. We can talk about it if you'd like.",
-        "No pressure, but I'm here if you want to share what's really on your mind.",
+        "No pressure. What's actually on your mind?",
       ],
     };
 

@@ -6,7 +6,8 @@
  * times were told they were on the waitlist.
  */
 export function waitlistRateLimit(pathname: string): { maxRequests: number; keyPrefix: string } {
-  if (pathname === '/api/waitlist') return { maxRequests: 5, keyPrefix: 'waitlist:signup' };
+  // Joining is a sign-up too (the join route also needs a verified sign-in)
+  if (pathname === '/api/waitlist' || pathname === '/api/waitlist/join') return { maxRequests: 5, keyPrefix: 'waitlist:signup' }; // prettier-ignore
   if (pathname === '/api/waitlist/check') return { maxRequests: 60, keyPrefix: 'waitlist:check' };
   return { maxRequests: 20, keyPrefix: 'waitlist:other' };
 }

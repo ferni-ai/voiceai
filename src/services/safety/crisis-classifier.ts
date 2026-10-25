@@ -30,6 +30,7 @@ import {
   needsPlainRead,
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
+import { trackCrisisRead } from './crisis-call-risk.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -168,7 +169,7 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
 const MAX_COMPANION_CHARS = 400;
 
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
-function normalizeInput(input: CrisisClassifierInput): {
+export function normalizeInput(input: CrisisClassifierInput): {
   latest: string;
   earlier: string[];
   companion?: string;
@@ -267,6 +268,8 @@ export interface StartCrisisClassifierOptions {
    * verdict is kept with the turn's other reads (turnVerdicts).
    */
   scope?: string;
+  /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
+  call?: string;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -429,10 +432,13 @@ export function startCrisisClassifier(
     normalized.companion ?? '',
     prompt.length,
   ]);
+  // What each call's reads found, and which are in flight (crisis-call-risk.ts).
+  const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
   const shared = cachedRun(key, startedAt);
   if (shared) {
-    if (options.scope) rememberRead(options.scope, input, startedAt, shared.verdict);
-    return { mode, verdict: shared.verdict };
+    const verdict = own(shared.verdict);
+    if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
+    return { mode, verdict };
   }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
@@ -464,10 +470,10 @@ export function startCrisisClassifier(
     );
     return v;
   });
-  const run = { mode, verdict };
-  rememberRun(key, startedAt, run);
-  if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
-  return run;
+  rememberRun(key, startedAt, { mode, verdict });
+  const turn = own(verdict);
+  if (options.scope) rememberRead(options.scope, input, startedAt, turn);
+  return { mode, verdict: turn };
 }
 
 export default {

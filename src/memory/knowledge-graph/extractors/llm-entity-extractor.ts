@@ -11,6 +11,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getExtractionModel, TEMP_CLASSIFICATION } from '../../../config/gemini-config.js';
 import type { EntityType } from '../../entity-store/types.js';
+import { keepRealEntities } from '../../entity-hygiene.js';
 
 const log = createLogger({ module: 'LLMEntityExtractor' });
 
@@ -215,9 +216,22 @@ async function getGeminiModel() {
 }
 
 /**
- * Extract entities from a conversation transcript using LLM
+ * Extract entities from a conversation transcript using LLM. With ENTITY_HYGIENE on, names
+ * that are no one and nothing in the caller's life are dropped first (entity-hygiene.ts).
  */
 export async function extractEntities(
+  transcript: string,
+  context: ExtractionContext
+): Promise<ExtractionResult> {
+  const result = await extractAll(transcript, context);
+  const { kept, dropped } = keepRealEntities(result.entities, process.env, transcript);
+  if (dropped.length > 0) {
+    log.info({ userId: context.userId, dropped: dropped.length }, 'Junk entities not stored');
+  }
+  return { ...result, entities: kept };
+}
+
+async function extractAll(
   transcript: string,
   context: ExtractionContext
 ): Promise<ExtractionResult> {

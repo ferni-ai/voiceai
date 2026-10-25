@@ -40,6 +40,7 @@ import {
 } from '../../index.js';
 import { BuilderCategory } from '../../core/categories.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { heldAfter } from '../../../../utils/minor-care.js';
 import type { DetectedEnergy, FirstMeetingData } from './types.js';
 import { recordFirstMeeting, loadRelationshipArcData } from './storage.js';
 
@@ -333,7 +334,13 @@ export const firstMeetingMagicBuilder: ContextBuilder = {
     );
 
     // Store first meeting data if this is turn 1
-    if (turnCount === 1 && userId && userText) {
+    // MINOR_CARE: a turn-1 "I'm 15" holds before their first words are kept
+    if (
+      turnCount === 1 &&
+      userId &&
+      userText &&
+      !heldAfter(services?.sessionId, userText, { userId })
+    ) {
       const observations: string[] = [];
       if (userText.includes('...') || userText.includes('um')) {
         observations.push('hesitation in opening');

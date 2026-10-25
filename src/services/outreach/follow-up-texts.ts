@@ -4,7 +4,10 @@
  *
  * Each run asks who may have FOLLOW_THROUGH_TEXTS on, then per person:
  * reads their own flags first (nothing is read or written for anyone who
- * isn't opted in), expires their stale follow-ups, and texts the oldest one
+ * isn't opted in), then the topics they asked Ferni to forget: a due
+ * follow-up about one is closed as forgotten and never texted, and when the
+ * list can't be read nothing is sent to them this run (fail closed). Then it
+ * expires their stale follow-ups and texts the oldest one
  * whose right moment is `text-now`. It claims the follow-up (saves it
  * surfaced, compare-and-set) before sending, so a call that raised it a
  * moment earlier wins and no text goes; if the sender holds the text, the
@@ -19,11 +22,16 @@
  */
 import {
   apply,
+  followUpTextOutcome,
+  logPromiseJobRun,
+  logPromiseOutcome,
   rightMoment,
   type FollowUp,
   type FollowUpEvent,
   type FollowUpStore,
+  type PromiseJobCounts,
 } from '../follow-through/index.js';
+import { isForgotten } from '../../memory/recall/session-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'follow-up-texts' });
@@ -55,6 +63,8 @@ export interface FollowUpTextDeps {
     refId: string;
     minGapMs: number;
   }) => Promise<{ sent: boolean; reason?: string }>;
+  /** Topics they asked Ferni to forget (forget.ts forgottenTopicsOrNull); null when unreadable. */
+  forgotten: (userId: string) => Promise<string[] | null>;
 }
 
 export interface FollowUpTextReport {
@@ -69,8 +79,22 @@ export interface FollowUpTextReport {
   notInCohort: number;
   held: Record<string, number>;
   lostSaves: number;
+  /** Due follow-ups closed (or, in a dry run, that would be) because their topic was forgotten. */
+  forgotten: number;
+  /** People sent nothing because their forgotten topics couldn't be read. */
+  forgottenUnreadable: number;
   /** People whose turn failed (a flag or store read threw); the run went on. */
   errors: number;
+}
+
+/** The run in PROMISE_JOB_RUN terms: a skip the sender will retry is held, the rest failed. */
+export function followUpJobCounts(r: FollowUpTextReport): PromiseJobCounts {
+  const counts = { due: r.scanned, done: r.sent, failed: 0, held: 0, missed: r.expired };
+  for (const [reason, n] of Object.entries(r.held)) {
+    if (followUpTextOutcome(reason).outcome === 'held') counts.held += n;
+    else counts.failed += n;
+  }
+  return counts;
 }
 
 async function record(
@@ -87,7 +111,11 @@ async function record(
   return store.save(next.data, f.updatedAt);
 }
 
-/** Their follow-ups due at or before now, oldest first. */
+/**
+ * Their follow-ups due at or before now, oldest first. A follow-up imported
+ * from a reminder is left out: the reminder job (reminder-delivery-job.ts)
+ * already texts it, once, with the same words, so texting it here sent it twice.
+ */
 async function dueFor(
   store: FollowUpTextDeps['store'],
   userId: string,
@@ -95,7 +123,7 @@ async function dueFor(
 ): Promise<FollowUp[]> {
   const at = now.toISOString();
   return (await store.live(userId))
-    .filter((f) => f.dueAt !== null && f.dueAt <= at)
+    .filter((f) => f.dueAt !== null && f.dueAt <= at && f.source.store !== 'reminders')
     .sort((a, b) => (a.dueAt ?? '').localeCompare(b.dueAt ?? ''));
 }
 
@@ -123,13 +151,48 @@ async function textOne(
     refId: pick.id,
     minGapMs: FOLLOW_UP_GAP_MS,
   });
+  const reason = outcome.sent ? 'sent' : (outcome.reason ?? 'unknown');
+  logPromiseOutcome('follow-through-text', followUpTextOutcome(reason), { followUpId: pick.id });
   if (outcome.sent) {
     report.sent++;
     return;
   }
-  const reason = outcome.reason ?? 'unknown';
   report.held[reason] = (report.held[reason] ?? 0) + 1;
   if (!(await deps.store.save(pick, claimed.data.updatedAt))) report.lostSaves++;
+}
+
+/** Their forgotten topics, or null (logged with a fixed reason) when unreadable. */
+async function forgottenOf(deps: FollowUpTextDeps, userId: string): Promise<string[] | null> {
+  const topics = await deps.forgotten(userId).catch(() => null);
+  if (!topics)
+    log.warn({ reason: 'forgotten-unreadable' }, 'Follow-up texts: none for this person');
+  return topics;
+}
+
+/** Close due follow-ups about a forgotten topic; the rest, still to consider. */
+async function dropForgotten(
+  deps: FollowUpTextDeps,
+  due: FollowUp[],
+  topics: string[],
+  opts: { now: Date; dryRun: boolean },
+  report: FollowUpTextReport
+): Promise<FollowUp[]> {
+  const keep: FollowUp[] = [];
+  for (const f of due) {
+    if (!isForgotten(f.text, topics)) {
+      keep.push(f);
+      continue;
+    }
+    const event: FollowUpEvent = { type: 'release', reason: 'forgotten' };
+    if (opts.dryRun) report.forgotten++;
+    else if (await record(deps.store, f, event, opts.now)) {
+      report.forgotten++;
+      logPromiseOutcome('follow-through-text', followUpTextOutcome('forgotten'), {
+        followUpId: f.id,
+      });
+    } else report.lostSaves++;
+  }
+  return keep;
 }
 
 async function forPerson(
@@ -143,13 +206,24 @@ async function forPerson(
     report.notInCohort++;
     return;
   }
+  const topics = await forgottenOf(deps, userId);
+  if (!topics) {
+    report.forgottenUnreadable++;
+    return;
+  }
   const { now, dryRun } = opts;
-  const due = await dueFor(deps.store, userId, now);
-  report.scanned += due.length;
+  const allDue = await dueFor(deps.store, userId, now);
+  report.scanned += allDue.length;
+  const due = await dropForgotten(deps, allDue, topics, opts, report);
   const moments = due.map((f) => ({ f, moment: rightMoment(f, now) }));
   for (const { f } of moments.filter((m) => m.moment === 'expire')) {
-    if (dryRun || (await record(deps.store, f, { type: 'expire' }, now))) report.expired++;
-    else report.lostSaves++;
+    if (dryRun) report.expired++;
+    else if (await record(deps.store, f, { type: 'expire' }, now)) {
+      report.expired++;
+      logPromiseOutcome('follow-through-text', followUpTextOutcome('expired'), {
+        followUpId: f.id,
+      });
+    } else report.lostSaves++;
   }
   const pick = moments.find((m) => m.moment === 'text-now')?.f;
   if (!pick) return;
@@ -177,6 +251,8 @@ export async function sendDueFollowUpTexts(
     notInCohort: 0,
     held: {},
     lostSaves: 0,
+    forgotten: 0,
+    forgottenUnreadable: 0,
     errors: 0,
   };
   for (const userId of people) {
@@ -188,5 +264,6 @@ export async function sendDueFollowUpTexts(
     }
   }
   log.info({ ...report, dryRun: run.dryRun }, 'Follow-up texts run');
+  if (!run.dryRun) logPromiseJobRun('follow-through', followUpJobCounts(report));
   return report;
 }

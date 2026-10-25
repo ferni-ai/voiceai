@@ -15,9 +15,10 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { ownerRefusal } from '../messaging/consent-grants.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
+import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 
@@ -58,7 +59,7 @@ export interface CallResult {
     | 'no_answer'
     | 'failed';
   error?: string;
-  // Extended result properties for active calls
+  live?: boolean; // the persona's live agent rang (live-agent-call.ts), not a Twilio <Say>
   context?: OutboundCallContext;
   initiatedAt?: string;
   answeredAt?: string;
@@ -169,16 +170,12 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
   const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   try {
-    // Validate phone number format
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
-    // MESSAGING_PIPELINE: callUser and every proactive call reach only the member's own number
-    // or one they hold a call grant for, and stop at an opt-out. A call
-    // the call-hours guard holds comes back through here when it is placed (deferred-calls.ts),
-    // so it is checked again then. A quiet-hours call saved to scheduled_calls below is not
-    // dialled later by anything (no job reads pending scheduled_calls), so there is no later dial.
+    // MESSAGING_PIPELINE: the member's own number or one they hold a call grant for, never past an
+    // opt-out. A call-hours hold is re-checked when placed (deferred-calls.ts), never stale.
     const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
@@ -196,10 +193,8 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;
 
-    // Enhance SSML for natural delivery
     const enhancedSSML = enhanceSSMLForCall(ssml, personaId);
 
-    // Store scheduled call in Firestore
     const scheduledCall: ScheduledCall = {
       id: callId,
       userId,
@@ -250,10 +245,9 @@ async function initiateCall(
   }
 ): Promise<CallResult> {
   try {
-    // Update status
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
+    if (await ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
 
-    // Check if Twilio is configured
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
@@ -295,7 +289,6 @@ async function initiateCall(
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
     });
 
-    // Update with Twilio SID
     await updateCallStatus(call.id, 'in_progress', {
       twilioSid: twilioCall.sid,
     });
@@ -309,7 +302,6 @@ async function initiateCall(
   } catch (error) {
     log.error({ error: String(error), callId: call.id }, 'Failed to initiate call');
 
-    // Update attempt count
     const attempts = call.attempts + 1;
     if (attempts < call.maxAttempts) {
       await updateCallStatus(call.id, 'pending', { attempts });

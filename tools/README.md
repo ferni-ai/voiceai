@@ -8,38 +8,8 @@
 
 | Tool | Status | Description |
 |------|--------|-------------|
-| **VS Code Extension** | 🔨 Scaffold | IntelliSense, preview, deploy for VS Code |
 | **Discord Bot** | 🔨 Scaffold | Manage agents from Discord |
 | **CLI Launch Commands** | ✅ Ready | Automated launch workflows |
-
----
-
-## VS Code Extension
-
-Build, preview, and deploy voice AI agents directly from VS Code.
-
-### Features
-- IntelliSense for `persona.manifest.json`
-- Voice preview for selected text
-- Agent tree view in sidebar
-- One-click preview and deploy
-
-### Development
-
-```bash
-cd tools/vscode-extension
-npm install
-npm run compile
-```
-
-Press F5 in VS Code to launch extension development host.
-
-### Commands
-| Command | Shortcut | Description |
-|---------|----------|-------------|
-| `Ferni: Start Preview` | `Cmd+Shift+P` | Start preview server |
-| `Ferni: Deploy Agent` | `Cmd+Shift+D` | Deploy to production |
-| `Ferni: Preview Voice` | `Cmd+Shift+V` | Hear selected text |
 
 ---
 
@@ -182,13 +152,6 @@ Automatically syncs the agent starter template to the public repo.
 ```
 tools/
 ├── README.md                 # This file
-├── vscode-extension/
-│   ├── src/
-│   │   └── extension.ts      # Main extension code
-│   ├── snippets/
-│   │   ├── json.json         # JSON snippets
-│   │   └── markdown.json     # Markdown snippets
-│   └── package.json
 ├── discord-bot/
 │   ├── src/
 │   │   └── index.ts          # Bot implementation
@@ -201,7 +164,6 @@ tools/
 
 ## Related Documentation
 
-- **VS Code Extension Spec:** `docs/specs/VSCODE-EXTENSION.md`
 - **Discord Bot Spec:** `docs/specs/DISCORD-BOT.md`
 - **Live Playground Spec:** `docs/specs/LIVE-PLAYGROUND.md`
 - **GitHub Template Spec:** `docs/specs/GITHUB-TEMPLATE-REPO.md`

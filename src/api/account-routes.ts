@@ -5,6 +5,8 @@
  * - GET /api/account - Get account info
  * - DELETE /api/account - Delete account (GDPR)
  * - PUT /api/account/profile - Update profile info
+ * - POST /api/account/apple-authorization - Keep a Sign in with Apple grant to revoke on delete
+ * - GET|POST|DELETE /api/account/processing-consent - Third-party processing consent
  *
  * @module AccountRoutes
  */
@@ -12,17 +14,26 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getStore } from '../memory/store-factory.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
+import {
+  exchangeAuthorizationCode,
+  revokeAppleSignIn,
+  type SiwaClient,
+} from '../services/apple/siwa-tokens.js';
 import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
 import { eraseMusicalSocialData } from '../services/musical-you/social.js';
 import { eraseSocialChallengesFor } from '../services/social/challenges.js';
 import { eraseSocialStatsFor } from '../services/social/leaderboards.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
+import { eraseDevicesFor } from '../services/push-devices.js';
 import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { eraseConsentFor } from '../services/processing-consent.js';
+import { erasureErrorCode } from '../services/platform/erasure-step.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
+import { handleProcessingConsent } from './processing-consent-routes.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -61,6 +72,11 @@ export async function handleAccountRoutes(
   const method = req.method || 'GET';
 
   try {
+    // GET|POST|DELETE /api/account/processing-consent - third-party processing consent
+    if (pathname === '/api/account/processing-consent') {
+      return await handleProcessingConsent(req, res, auth);
+    }
+
     // GET /api/account - Get account info
     if (pathname === '/api/account' && method === 'GET') {
       return await handleGetAccount(res, userId, auth.firebaseUid);
@@ -74,6 +90,11 @@ export async function handleAccountRoutes(
     // PUT /api/account/profile - Update profile
     if (pathname === '/api/account/profile' && method === 'PUT') {
       return await handleUpdateProfile(req, res, userId);
+    }
+
+    // POST /api/account/apple-authorization - Sign in with Apple code, kept to revoke on delete
+    if (pathname === '/api/account/apple-authorization' && method === 'POST') {
+      return await handleAppleAuthorization(req, res, auth.firebaseUid);
     }
 
     // Route not found
@@ -161,17 +182,19 @@ async function handleGetAccount(
 
 /**
  * Records about the user kept outside their own documents (keyed by an
- * endpoint hash, an OAuth state hash, an Apple transaction id, a challenge id
+ * endpoint or device-token hash, an OAuth state hash, an Apple transaction id, a challenge id
  * or a leaderboard), so the deleteAllData sweep can't reach them. Challenge
  * sweeps also free the other party's open-challenge slot.
  */
 const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promise<unknown>]> = [
   ['push_subscriptions', erasePushRecordsFor],
+  ['push_devices', eraseDevicesFor],
   ['oauth_link_states', deleteOAuthLinkStatesFor],
   ['apple_transaction_owners', tombstoneTransactionOwnersFor],
   ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
   ['social_challenges', eraseSocialChallengesFor],
   ['social_user_stats', eraseSocialStatsFor],
+  ['processing_consent', eraseConsentFor],
 ];
 
 /** Best effort: every sweep runs; returns the names of those that failed. */
@@ -180,7 +203,10 @@ async function eraseLinkedRecords(userId: string): Promise<string[]> {
   return LINKED_RECORDS.flatMap(([name], i) => {
     const result = results[i];
     if (result?.status !== 'rejected') return [];
-    log.error({ error: String(result.reason), userId, records: name }, 'Records left behind');
+    log.error(
+      { error: erasureErrorCode(result.reason), userId, records: name },
+      'Records left behind'
+    );
     return [name];
   });
 }
@@ -231,11 +257,17 @@ async function handleDeleteAccount(
     const { getDataExportService } = await import('../services/data-export.js');
     await getDataExportService().deleteAllData(userId);
   } catch (error) {
-    log.error({ error, userId }, 'Account deletion failed while erasing data');
+    log.error(
+      { error: erasureErrorCode(error), userId },
+      'Account deletion failed while erasing data'
+    );
     sendError(res, "Couldn't delete your account. Nothing was closed. Try again?", 500);
     return true;
   }
 
+  // Before the Firebase user goes: Apple's grant to this app is revoked (5.1.1(v)).
+  // Never throws; a failure is logged and the deletion goes on.
+  const appleSignIn = await revokeAppleSignIn(userId);
   const failures = await eraseLinkedRecords(userId);
 
   const firebaseDeleted = firebaseUid ? await deleteFirebaseUser(firebaseUid) : false;
@@ -252,8 +284,59 @@ async function handleDeleteAccount(
         ? 'Your account and all associated data have been deleted.'
         : "Your account is deleted, but some records couldn't be removed.",
     deletedAt: new Date().toISOString(),
-    details: { dataDeleted: true, firebaseDeleted, failures },
+    details: { dataDeleted: true, firebaseDeleted, failures, appleSignIn },
   });
+  return true;
+}
+
+const AUTH_CODE = /^[A-Za-z0-9._-]{1,1024}$/;
+const EXCHANGE_STATUS = { rejected: 400, not_linked: 403, no_refresh_token: 502 } as const;
+
+/**
+ * POST /api/account/apple-authorization { authorizationCode, client?: 'native' | 'web' }
+ *
+ * After a Sign in with Apple, the app sends Apple's one-time code; the server
+ * trades it for a refresh token (siwa-tokens.ts) so DELETE /api/account can
+ * revoke it. 200 { stored: false, reason: 'not_configured' } while the Sign in
+ * with Apple key isn't set.
+ */
+async function handleAppleAuthorization(
+  req: IncomingMessage,
+  res: ServerResponse,
+  firebaseUid?: string
+): Promise<boolean> {
+  if (!firebaseUid) {
+    sendError(res, 'Sign in with Apple first', 403);
+    return true;
+  }
+  if (rateLimit(req, res, { maxRequests: 10, windowMs: 600_000, keyPrefix: 'apple-auth' })) {
+    return true;
+  }
+  const body = await parseJsonBody<{ authorizationCode?: unknown; client?: unknown }>(req);
+  const client: SiwaClient | null =
+    body.client === undefined || body.client === 'native'
+      ? 'native'
+      : body.client === 'web'
+        ? 'web'
+        : null;
+  if (typeof body.authorizationCode !== 'string' || !AUTH_CODE.test(body.authorizationCode)) {
+    sendError(res, 'authorizationCode is required', 400);
+    return true;
+  }
+  if (!client) {
+    sendError(res, "client must be 'native' or 'web'", 400);
+    return true;
+  }
+  const result = await exchangeAuthorizationCode(firebaseUid, body.authorizationCode, client);
+  if (result.stored || result.reason === 'not_configured') {
+    sendJson(res, result);
+  } else {
+    sendError(
+      res,
+      `Apple authorization not kept: ${result.reason}`,
+      EXCHANGE_STATUS[result.reason]
+    );
+  }
   return true;
 }
 
@@ -280,7 +363,7 @@ async function handleUpdateProfile(
 
   try {
     const store = await getStore();
-    let profile = await store.getProfile(userId);
+    let profile = await store.getProfileForWrite(userId); // a failed read throws, never resets
 
     if (!profile) {
       // Create new profile using the proper factory function

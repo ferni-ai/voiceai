@@ -131,4 +131,58 @@ describe('searchFlights tool with FLIGHT_PROVIDER=ignav', () => {
 
     expect(reply).toContain('189 EUR');
   });
+
+  it('labels the Google Flights link as a search, not a booking', async () => {
+    const tools = await loadTools();
+
+    const reply = await tools.searchFlights.execute(
+      {
+        origin: 'BOS',
+        destination: 'DEN',
+        departureDate: 'next Friday',
+        passengers: 1,
+        cabinClass: 'economy',
+      },
+      ctx
+    );
+
+    expect(reply).toContain('Search at: https://www.google.com/flights?q=BOS+to+DEN');
+    expect(reply).not.toContain('Book at:');
+  });
+
+  it('keeps "Book at:" on hotel replies, since hotel links are provider booking URLs', async () => {
+    vi.stubEnv('BOOKING_AFFILIATE_ID', 'test-affiliate');
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          result: [
+            {
+              hotel_id: 'h1',
+              hotel_name: 'Hotel Test',
+              review_score: 8.4,
+              min_total_price: 480,
+              hotel_facilities: 'Wifi,Pool',
+              url: 'https://www.booking.com/hotel/test.html',
+            },
+          ],
+        }),
+        { status: 200 }
+      )
+    );
+    const tools = await loadTools();
+
+    const reply = await tools.searchHotels.execute(
+      {
+        destination: 'Lisbon',
+        checkIn: 'next Friday',
+        checkOut: 'next Sunday',
+        guests: 2,
+        rooms: 1,
+      },
+      ctx
+    );
+
+    expect(reply).toContain('Book at: https://www.booking.com/hotel/test.html');
+    expect(reply).not.toContain('Search at:');
+  });
 });

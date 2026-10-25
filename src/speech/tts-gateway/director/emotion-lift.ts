@@ -47,6 +47,7 @@
  */
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { isHeavyMoment } from '../../adaptive-ssml/heavy-moment.js';
 import { layerDelivery, type Delivery, type DeliveryLayers } from './attune.js';
@@ -61,16 +62,22 @@ import {
 } from './emotion.js';
 import { ferniRestingSpeed } from './ferni-resting-voice.js';
 import { deliveryFromManifest } from './persona-delivery.js';
+import type { SSMLProsodyConfig } from '../types.js';
 import type { LeverModes } from './types.js';
+
+const log = createLogger({ module: 'EmotionLift' });
 
 /** A laughter cue Ferni wrote (raw-cues.ts LAUGHTER_CUE, plus Cartesia's own [laughter]). */
 const LAUGHTER = /\[(?:laugh\w*|chuckl\w*|warm laugh|big laugh)\]/i;
 /** The caller laughed. */
 const CALLER_LAUGH =
   /\b(?:ha(?:ha)+|he(?:he)+|lol+|lmao|rofl|hilarious|crack(?:ed|ing) up|(?:crying|dying) laughing)\b|[\u{1F602}\u{1F923}]/iu;
-/** The caller brings good news. */
+/**
+ * The caller brings good news, theirs or someone's they love ("my friend got
+ * the job"). Also GOOD_NEWS_BIGGER's vocabulary (callerGoodNews).
+ */
 const GOOD_NEWS =
-  /\b(?:good news|great news|(?:we're|we are|i'm|i am|just got|got) engaged|getting married|got married|i got (?:it|in|the (?:job|offer|part|apartment|house))|got (?:in|accepted|promoted|the job)|passed (?:my|the) (?:exam|test|bar|boards|driving test)|(?:i|we) won|closed on (?:the|our|a) (?:house|home|apartment|place)|bought a (?:house|home|place)|nailed it|so excited|so happy|can'?t wait)\b/i;
+  /\b(?:good news|great news|best news|(?:we're|we are|i'm|i am|just got|got) engaged|getting married|got married|i got (?:it|in|the (?:job|offer|part|apartment|house))|got (?:in|accepted|promoted|the (?:job|offer|role|promotion|raise|scholarship)|a (?:raise|promotion|scholarship))|passed (?:my|the|her|his) (?:exam|test|bar|boards|driving test)|graduated|(?:i|we) won|won (?:the|first)|first place|made the (?:team|cut|finals)|landed (?:the|a|my) (?:job|role|client|deal|contract|offer)|(?:finally )?finished (?:my|the|our) (?:first )?(?:marathon|race|thesis|dissertation|degree|book|novel)|pulled it off|closed on (?:the|our|a) (?:house|home|apartment|place)|bought a (?:house|home|place)|nailed it|so excited|so happy|can'?t wait)\b/i;
 /** The caller says something is funny: with a laugh, that is bright content. */
 const FUNNY = /\b(?:funny|funniest|hilarious|so good|best (?:thing|part))\b/i;
 /** Weak praise next to a sarcasm marker, either side: "lol great", "great, of course". */
@@ -136,6 +143,34 @@ export function callerBright(said: string | undefined): boolean {
   return readValence(t) === 'bright';
 }
 
+/** Mixed news: a win with a "but" ("I got promoted but my mom is sick"). */
+const MIXED = /\b(?:but|though|although|except|however)\b/i;
+/** Not news yet: "if I get in", "hoping I passed". */
+const NOT_YET = /\b(?:if|hope|hoping|wish|whether|praying|fingers crossed)\b/i;
+/** Irony markers SARCASM misses when no weak praise is near ("yeah right, I got promoted"). */
+const IRONY = /\b(?:yeah,? right|as if|lol|lmao|whatever)\b/i;
+/** "got in" that is not getting in: "got in the car", "got in trouble". */
+const GOT_INTO = /\bgot in (?:the|a|an|my|his|her|their|our|trouble|line)\b/i;
+
+/** Any of these caller turns is a heavy moment or has bad-news words (idioms aside). */
+export function callerHeavyLately(turns: ReadonlyArray<string | undefined>): boolean {
+  return strongHeavy(turns) || turns.some((t) => !!t && CALLER_BAD.test(unidiom(t)));
+}
+
+/**
+ * GOOD_NEWS_BIGGER: the caller's turn is good news, read conservatively. A
+ * bright turn (callerBright) whose words are news, with no "but", nothing
+ * hoped for, no irony, and no heavy or bad turn among the caller's last
+ * LIFT_LOOKBACK (`earlier` is their turns before this one, oldest first).
+ */
+export function callerGoodNews(said: string | undefined, earlier: readonly string[] = []): boolean {
+  if (!said || !callerBright(said)) return false;
+  const t = plain(said);
+  if (!GOOD_NEWS.test(t) || GOT_INTO.test(t)) return false;
+  if (MIXED.test(t) || NOT_YET.test(t) || IRONY.test(t)) return false;
+  return !callerHeavyLately([...earlier.slice(-(LIFT_LOOKBACK - 1)), said]);
+}
+
 /** What the lift knows before Ferni speaks. */
 export interface LiftContext {
   /** The caller's current turn is bright (callerBright). */
@@ -146,12 +181,26 @@ export interface LiftContext {
   cues: { readonly authoredEmotion?: string };
   /** Tags the voice will honour on a later push (live levers, not a Pro clone). */
   tags: { emotion: boolean; pacing: boolean };
+  /** For the EMOTION_LIFT log line: never the caller's words, only their length and source. */
+  report: { sessionId?: string; callerTextLen: number; callerTextIsThisTurn: boolean };
 }
+
+/** Why a reply was or was not lifted (the EMOTION_LIFT log line). */
+export type LiftReason =
+  | 'lifted'
+  | 'authored_careful'
+  | 'first_clause_hard'
+  | 'first_clause_wary'
+  | 'heavy_moment'
+  | 'no_caller_text'
+  | 'caller_not_bright'
+  | 'director_careful';
 
 interface Reading {
   valence: Valence;
   lifted: boolean;
   careful: boolean;
+  reason: LiftReason;
 }
 
 /** One reply's lift: decided at the opening, read by the pace, the tag renderer and each push. */
@@ -161,6 +210,7 @@ export class EmotionLift {
   private careful = false;
   private reading: Reading | undefined;
   private downgraded = false;
+  private logged = false;
   /** The Director's own pace for this reply, without the lift (a downgrade's pace). */
   private ownSpeed = 1;
 
@@ -183,10 +233,23 @@ export class EmotionLift {
       base === 'heavy' || CLAUSE_HEAVY.test(clause) || ER.test(clause) || strongHeavy([clause]);
     const authored = toStableEmotion(this.context.cues.authoredEmotion);
     const wary = NEGATED.test(clause) || SHOCK.test(clause); // "oh no", "not funny": bad news ahead
-    const careful =
-      heavy || wary || this.context.callerHeavy || (!!authored && CAREFUL.has(authored));
+    const authoredCareful = !!authored && CAREFUL.has(authored);
+    const careful = heavy || wary || this.context.callerHeavy || authoredCareful;
     const lifted = this.context.callerBright && !careful;
-    return { valence: lifted ? 'bright' : base, lifted, careful };
+    const reason = this.why(lifted, { authoredCareful, heavy, wary });
+    return { valence: lifted ? 'bright' : base, lifted, careful, reason };
+  }
+
+  private why(
+    lifted: boolean,
+    c: { authoredCareful: boolean; heavy: boolean; wary: boolean }
+  ): LiftReason {
+    if (lifted) return 'lifted';
+    if (c.authoredCareful) return 'authored_careful';
+    if (c.heavy) return 'first_clause_hard';
+    if (c.wary) return 'first_clause_wary';
+    if (this.context.callerHeavy) return 'heavy_moment';
+    return this.context.report.callerTextLen === 0 ? 'no_caller_text' : 'caller_not_bright';
   }
 
   /**
@@ -200,6 +263,8 @@ export class EmotionLift {
     const decision = decideEmotion({ ...input, valence: reading.valence });
     this.careful = reading.careful || CAREFUL.has(decision.emotion);
     this.bright = reading.lifted && !this.careful;
+    // No live lever renders an opening tag (engine.ts openingTags): log what was decided now.
+    if (!this.context.tags.emotion && !this.context.tags.pacing) this.sent({});
     if (this.bright && decision.emotion === 'curious')
       return { emotion: 'content', source: 'lift' };
     const carried = decision.source === 'previous' && decision.emotion === 'sympathetic';
@@ -216,6 +281,30 @@ export class EmotionLift {
     if (speed === undefined || !this.bright) return own;
     const persona = deliveryFromManifest('ferni', { default_speed: speed });
     return layerDelivery({ ...layers, persona }, pacingLive); // every push is capped (push, cap)
+  }
+
+  /**
+   * One EMOTION_LIFT line per reply, with what the opening actually sends
+   * (called by the tag renderer, ferni-resting-voice.ts).
+   */
+  sent(prosody: SSMLProsodyConfig): void {
+    if (this.logged) return;
+    this.logged = true;
+    const { report } = this.context;
+    const decided = this.reading?.reason;
+    log.info(
+      {
+        sessionId: report.sessionId,
+        lifted: this.lifted,
+        // A lifted reading the Director then voiced careful (its own tag or hint).
+        reason: decided === 'lifted' && !this.lifted ? 'director_careful' : decided,
+        sentEmotion: prosody.emotion,
+        sentSpeed: prosody.speed,
+        callerTextLen: report.callerTextLen,
+        callerTextIsThisTurn: report.callerTextIsThisTurn,
+      },
+      'EMOTION_LIFT'
+    );
   }
 
   /** A lifted reply's speed, never above FERNI_VOICE_SPEED (when set) or 1.2; others untouched. */
@@ -287,7 +376,7 @@ export interface LiftOptions {
   personaId?: string;
   sessionId?: string;
   voiceId: string;
-  turnContext?: { userRequest?: string };
+  turnContext?: { userRequest?: string; callerTurnFresh?: boolean };
   env?: Env;
 }
 
@@ -304,11 +393,16 @@ export function emotionLift(
   const honours = voiceHonorsProsodyTags(opts.voiceId);
   const context: LiftContext = {
     callerBright: callerBright(said),
-    callerHeavy: strongHeavy(turns) || turns.some((t) => !!t && CALLER_BAD.test(unidiom(t))),
+    callerHeavy: callerHeavyLately(turns),
     cues,
     tags: {
       emotion: honours && modes.emotion === 'live',
       pacing: honours && modes.pacing === 'live',
+    },
+    report: {
+      sessionId: opts.sessionId,
+      callerTextLen: said?.trim().length ?? 0,
+      callerTextIsThisTurn: opts.turnContext?.callerTurnFresh === true,
     },
   };
   return new EmotionLift(context, ferniRestingSpeed(env));

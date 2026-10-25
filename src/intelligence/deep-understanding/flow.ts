@@ -647,7 +647,7 @@ function buildTransition(
         timing: 'user_initiated',
         technique: 'Affirm and leave door open',
         phrases: [
-          "Thank you for sharing all of that. I'm here whenever.",
+          'Good talk. Go easy on yourself.',
           'This was meaningful. Take care of yourself.',
           "I'm glad we talked. Until next time.",
         ],
@@ -753,7 +753,7 @@ export function formatFlowForPrompt(analysis: FlowAnalysis): string {
   lines.push(`Reason: ${analysis.state.reasoning}`);
 
   if (analysis.state.userSignals.includes('opening_up')) {
-    lines.push("They're opening up. Hold space, don't push.");
+    lines.push("They're opening up. Stay with them, don't push.");
   }
 
   if (analysis.state.userSignals.includes('reaching_capacity')) {
@@ -790,12 +790,12 @@ export function importFlowProfile(profile: FlowProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all conversational flow state (for testing)
- */
+export const forgetFlowUser = (userId: string): boolean => userProfiles.delete(userId);
+
+/** Reset all conversational flow state (for testing) */
 export function resetConversationalFlow(): void {
   userProfiles.clear();
   sessionStates.clear();

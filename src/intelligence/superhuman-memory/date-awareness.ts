@@ -111,8 +111,8 @@ function generateDateInsight(date: ImportantDate, daysUntil: number): ProactiveI
       // Handle with extra care
       if (isToday) {
         naturalPhrase = date.relatedPerson
-          ? `I know today marks the anniversary of losing ${date.relatedPerson}. I'm here if you want to talk, or we can talk about something else entirely.`
-          : `I know this is a difficult day. I'm here for you.`;
+          ? `Today's the anniversary of losing ${date.relatedPerson}. Thinking of you. We can talk about them, or anything else.`
+          : `I know today's a hard one. Thinking of you.`;
         priority = 'high';
         tone = 'gentle';
       } else if (daysUntil <= 3) {

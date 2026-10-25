@@ -1,0 +1,19 @@
+{
+  "suite": "offline: crisis pattern guard + session recall (no model)",
+  "update": "pnpm tsx scripts/eval-gate/offline.ts --write-baseline",
+  "measuredOn": "d16e899b4",
+  "metrics": {
+    "crisis_guard.heldout.recall": { "value": 1, "maxDrop": 0 },
+    "crisis_guard.heldout.false_positives": { "value": 0, "maxRise": 0 },
+    "crisis_guard.heldout.block_recall": { "value": 1, "maxDrop": 0 },
+    "crisis_guard.blind.recall": { "value": 0.2667, "maxDrop": 0 },
+    "crisis_guard.blind.false_positives": { "value": 0, "maxRise": 0 },
+    "crisis_guard.blind.block_recall": { "value": 0.2, "maxDrop": 0 },
+    "crisis_guard.contextual.recall": { "value": 0.2143, "maxDrop": 0 },
+    "crisis_guard.contextual.false_positives": { "value": 0, "maxRise": 0 },
+    "crisis_guard.relay.recall": { "value": 0.1205, "maxDrop": 0 },
+    "crisis_guard.relay.false_positives": { "value": 0, "maxRise": 0 },
+    "session_recall.golden.recall_at_5": { "value": 1, "maxDrop": 0 },
+    "session_recall.golden.cases_perfect": { "value": 12, "maxDrop": 0 }
+  }
+}

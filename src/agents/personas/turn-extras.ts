@@ -103,6 +103,8 @@ export interface TurnSignals {
    * (ferni-state.ts). Undefined when his state has no say.
    */
   ownStory?: boolean;
+  /** SELF_SHARE_WHEN_ASKED=on: asked about him, but a short answer without a story (ferni-state.ts). */
+  selfBrief?: boolean;
   /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
   recent?: RecentTurns;
   /** DIRECTOR_ANSWER_TURN_GUARD=on: they just answered his question (answer-turn.ts). */
@@ -111,8 +113,12 @@ export interface TurnSignals {
   quiet?: boolean;
   /** FERNI_PLAYFUL=on and Ferni speaking (ferni-playful.ts). */
   playful?: boolean;
+  /** FERNI_PLAYFUL: false when this call had its playful line too recently (ferni-playful-turn.ts). */
+  playfulLine?: boolean;
   /** TROUBLES_TALK=on: a trouble on this turn or just before it (troubles-talk.ts); unset when off. */
   trouble?: boolean;
+  /** Crisis risk noted on this call (crisis-call-risk.ts, turn-holds.ts): no thinking aloud. */
+  crisisRisk?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -194,7 +200,11 @@ export function extrasFor(
         : move === 'share' && shape === 'answer'
           ? 0.2
           : 0;
-    if (p && rng() < p) {
+    // Live, "hm, let me think how to put this" came right after self-harm talk: not in the
+    // moments LAUGH_ALONG keeps out of, nor while careful or on a call with crisis risk.
+    // Drawn first either way, so the draws after it are unchanged.
+    const hushed = heavy || venting || signals.trouble === true || signals.crisisRisk === true;
+    if (p && rng() < p && !hushed) {
       out.lines.push(THINK_ALOUD);
       out.fired.push('think_aloud');
     }

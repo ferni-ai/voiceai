@@ -5,7 +5,7 @@ category: action
 icon: lightbulb
 ---
 
-Let's brainstorm together. This is a safe space for any idea - no judgment, just exploration.
+Let's brainstorm together. Any idea goes - no judgment, just exploration.
 
 What's on your mind? Share the challenge, question, or opportunity you're thinking about.
 

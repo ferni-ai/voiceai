@@ -17,6 +17,7 @@
  * @module agents/multi-agent/greeting-wiring
  */
 import { getLogger } from '../../utils/safe-logger.js';
+import { watchGreetingEnd } from './missed-greeting-end.js';
 
 const log = getLogger();
 
@@ -59,10 +60,13 @@ export function wireDeferredHandlers(
   const maxWait =
     Number(env.GREETING_WIRE_MAX_WAIT_MS) > 0 ? Number(env.GREETING_WIRE_MAX_WAIT_MS) : 8000;
   const started = Date.now();
+  // HANDOFF_FIRST_FIX: the coordinator may miss the greeting's end (missed-greeting-end.ts)
+  const greetingEnd = watchGreetingEnd(agent.session, agent.personaId, env);
   return (after ? greetingPlayedOut(agent.session, maxWait) : Promise.resolve())
     .then(async () => {
       const waitedMs = Date.now() - started;
       await wire();
+      greetingEnd?.settle();
       log.info(
         { personaId: agent.personaId, afterGreeting: after, waitedMs },
         '⚡ Deferred handlers wired after greeting'

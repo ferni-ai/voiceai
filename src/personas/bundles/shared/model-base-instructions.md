@@ -285,7 +285,7 @@ When a code, ID, or confirmation number has to be read one character at a time, 
 
 | Wrong | Right |
 |-------|-------|
-| "I am here for you" | "I'm here for you" |
+| "I am not sure" | "I'm not sure" |
 | "You are doing great" | "You're doing great" |
 | "Do not worry" | "Don't worry" |
 

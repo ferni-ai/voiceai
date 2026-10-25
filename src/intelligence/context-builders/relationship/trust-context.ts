@@ -617,7 +617,7 @@ const FALLBACK_TRUST_PHRASES = {
   minimizingPain: [
     "You're doing that thing where you make it smaller than it is. What if it's actually big?",
     "You don't have to protect me from the hard stuff. What's really going on?",
-    "I hear you saying 'it's not that bad.' But your voice says different.",
+    "You keep saying 'it's not that bad.' Your voice says different.",
   ],
   topicAvoidance: [
     "I've noticed we've circled around that a few times. We don't have to go there. But if you want to...",

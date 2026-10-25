@@ -1,5 +1,5 @@
 /**
- * The brand gate: what a draft must not do before a person reviews it. Pure:
+ * The brand gate: what a draft must not do to be published. Pure:
  * the caller passes the word lists and the grounding text.
  */
 
@@ -9,7 +9,7 @@ import { RETIRED_STACK } from './brand-terms.js';
 
 type Rule = 'front-matter' | 'em-dash' | 'ellipsis' | 'forbidden-word' | 'retired-stack';
 export interface GateIssue {
-  rule: Rule | 'real-claim' | 'number' | 'length';
+  rule: Rule | 'real-claim' | 'number' | 'length' | 'not-live' | 'unsafe-link' | 'unsafe-html';
   message: string;
 }
 

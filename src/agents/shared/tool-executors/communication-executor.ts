@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { rawSendRetired } from '../../../services/messaging/consent-grants.js';
+import { rawSendRetired } from '../../../services/messaging/consent-reach.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'CommunicationExecutor' });

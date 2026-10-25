@@ -16,9 +16,9 @@
 import { t } from '../i18n/index.js'; import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { soundUI } from './sound.ui.js';
-import { messageUI } from './message.ui.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { fetchHubData, type BackgroundResult, type HubLoad, type OpenThread, type TrackedItem } from './ferni-hub-data.js';
-import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js';
+import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js'; import { mountPromisesSection } from './hub-promises.ui.js'; import { bindTrackedActions, trackedActionsHtml } from './ferni-hub-tracked.js';
 import {
   PERSONA_ICONS,
   SECTION_ICONS,
@@ -28,10 +28,7 @@ import {
 
 const log = createLogger('FerniHub');
 
-// ============================================================================
 // STATE
-// ============================================================================
-
 let container: HTMLElement | null = null;
 let isVisible = false;
 let hubData: HubLoad | null = null;
@@ -81,7 +78,7 @@ function createContainer(): HTMLElement {
         <div class="ferni-hub-greeting">
           <span class="ferni-hub-wave">${SECTION_ICONS.hand}</span>
           <div>
-            <h1>${t('ui.yourDay')}</h1>
+            <h1 id="ferni-hub-title">${t('ui.yourDay')}</h1>
             <p class="ferni-hub-subtitle">${t('ui.subtitle')}</p>
           </div>
         </div>
@@ -111,7 +108,8 @@ function createContainer(): HTMLElement {
     </div>
   `;
 
-  // Event listeners
+  // Event listeners. A modal dialog: named, Escape closes it, dialog-focus moves focus in and traps Tab
+  asModalDialog(overlay.querySelector('.ferni-hub-panel') as HTMLElement, { labelledBy: 'ferni-hub-title' }, () => overlay.classList.contains('visible'), hide);
   overlay.querySelector('.ferni-hub-backdrop')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-close')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-talk-btn')?.addEventListener('click', () => {
@@ -162,8 +160,8 @@ function renderContent({ state, data }: HubLoad): void {
 
   content.innerHTML = sections.join('');
 
-  // Add event listeners to cards
   attachCardListeners();
+  void mountPromisesSection(content); // PROMISES_PANEL: what Ferni is keeping an eye on (hub-promises.ui.ts)
 }
 
 function renderWhileYouWereAway(results: BackgroundResult[]): string {
@@ -261,6 +259,7 @@ function renderTrackedItems(items: TrackedItem[]): string {
             <span class="ferni-hub-card-persona">${persona.name} is tracking</span>
             ${dueText ? `<span class="ferni-hub-card-due">${dueText}</span>` : ''}
           </div>
+          ${trackedActionsHtml(item.id)}
         </div>
       </div>
     `;
@@ -337,14 +336,8 @@ function attachCardListeners(): void {
     });
   });
 
-  // Result cards - show details
-  container?.querySelectorAll('.ferni-hub-result-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      const resultId = card.getAttribute('data-result-id');
-      log.debug({ resultId }, 'Result card clicked');
-      // Could expand to show more details
-    });
-  });
+  // On Your Mind: Done / Dismiss (ferni-hub-tracked.ts)
+  if (container) bindTrackedActions(container);
 }
 
 // ============================================================================
@@ -510,7 +503,7 @@ function addStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
       animation: wave 1.5s ease-in-out infinite;
     }
 
@@ -544,7 +537,7 @@ function addStyles(): void {
       height: 40px;
       border-radius: 50%;
       border: none;
-      background: var(--color-background-subtle, #f5f0eb);
+      background: var(--color-background-subtle);
       color: var(--color-text-secondary);
       cursor: pointer;
       display: flex;
@@ -554,7 +547,7 @@ function addStyles(): void {
     }
 
     .ferni-hub-close:hover {
-      background: var(--color-background-muted, #ebe5df);
+      background: var(--color-background-hover);
       transform: scale(1.05);
     }
 
@@ -618,7 +611,7 @@ function addStyles(): void {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .ferni-hub-section-icon svg {
@@ -739,7 +732,7 @@ function addStyles(): void {
       font-size: 0.75rem;
       padding: 4px 8px;
       background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
-      color: var(--color-ferni);
+      color: var(--color-ferni-on-surface);
       border-radius: var(--radius-full, 100px);
       display: inline-flex;
       align-items: center;
@@ -778,7 +771,7 @@ function addStyles(): void {
 
     .ferni-hub-continue-btn {
       font-size: 0.8125rem;
-      color: var(--color-ferni);
+      color: var(--color-ferni-on-surface);
       font-weight: 500;
       opacity: 0;
       transition: opacity ${DURATION.FAST}ms;
@@ -864,7 +857,7 @@ function addStyles(): void {
       width: 64px;
       height: 64px;
       margin: 0 auto var(--space-4);
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .ferni-hub-empty-icon svg {

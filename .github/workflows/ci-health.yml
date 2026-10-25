@@ -1,7 +1,8 @@
 name: CI Health
 
 # Daily: a CI job failing on many different PRs is one shared problem.
-# Opens or updates a `ci-health` issue for it (scripts/ci/ci-health.sh).
+# Opens or updates a `ci-health` issue for it (scripts/ci/ci-health.sh), and
+# posts the day's CI speed numbers on the `ci-speed` issue (scripts/ci/ci-speed.mjs).
 on:
   schedule:
     - cron: '17 7 * * *'
@@ -35,3 +36,22 @@ jobs:
           MIN_PRS: ${{ inputs.min_prs || '5' }}
           SINCE_HOURS: ${{ inputs.since_hours || '24' }}
         run: scripts/ci/ci-health.sh
+
+      # One comment a day on the open `ci-speed` issue: runner waits, queue time
+      # and failure rate, PR open-to-merge (scripts/ci/ci-speed.mjs). Trend, not alert.
+      - name: CI speed report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          rc=0
+          node scripts/ci/ci-speed.mjs --hours 24 > ci-speed.md || rc=$?
+          cat ci-speed.md >> "$GITHUB_STEP_SUMMARY"
+          # 1: more than half the runs couldn't be read. Keep the report here, don't post it.
+          [ "$rc" -eq 0 ] || exit "$rc"
+          issue=$(gh issue list -R "$REPO" --state open --label ci-speed --limit 1 --json number --jq '.[0].number // empty')
+          if [ -z "$issue" ]; then
+            gh issue create -R "$REPO" --title "CI speed, daily" --label ci-speed --body-file ci-speed.md
+          else
+            gh issue comment "$issue" -R "$REPO" --body-file ci-speed.md
+          fi

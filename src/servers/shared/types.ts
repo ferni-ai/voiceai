@@ -3,6 +3,7 @@
  */
 
 import type { IncomingMessage, ServerResponse as HttpServerResponse } from 'http';
+import type { CallLaunch } from '../../types/call-launch.js';
 
 /**
  * Extended request with parsed URL and body
@@ -132,6 +133,8 @@ export interface RoomMetadata {
   persona_id: string;
   device_id?: string;
   firebase_uid?: string;
+  /** true: /token verified a signed-in (not anonymous) Firebase account for firebase_uid */
+  firebase_account?: boolean;
   user_name?: string;
   user_email?: string;
   is_demo?: boolean;
@@ -149,6 +152,8 @@ export interface RoomMetadata {
   regionCode?: string;
   /** The caller's IANA time zone (browser), e.g. 'America/New_York'. */
   timezone?: string;
+  /** Where the call was started from, checked by /token (CALL_LAUNCH_CONTEXT). */
+  launch?: CallLaunch;
 }
 
 /**

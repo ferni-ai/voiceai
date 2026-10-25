@@ -74,11 +74,11 @@ export function fromSavedContact(contact: Contact): ContactRelationship {
     relationship: relationshipGroup(contact.relationship),
     notes: contact.notes || contact.nicknames?.join(', ') || undefined,
     importantDates: contact.birthday ? [{ date: contact.birthday, type: 'birthday' }] : [],
-    // Nothing has been recorded with this person yet: no interactions, the default score
+    // Nothing has been recorded with this person yet: no interactions, no score, and no
+    // "last time you talked" unless the contact really carries one
     firstInteraction: createdAt,
-    lastInteraction: contact.lastContactedAt ? new Date(contact.lastContactedAt) : createdAt,
+    lastInteraction: contact.lastContactedAt ? new Date(contact.lastContactedAt) : undefined,
     interactionCount: 0,
-    strengthScore: 50,
     topics: [],
     recentContext: [],
     createdAt,

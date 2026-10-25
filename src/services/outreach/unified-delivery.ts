@@ -15,6 +15,7 @@
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { resolveFirebaseProjectId } from '../../utils/firebase-admin-app.js';
 import type { GeneratedContent, OutreachType } from './llm-content-generator.js';
 
 const log = createLogger({ module: 'UnifiedDelivery' });
@@ -114,9 +115,8 @@ async function loadCredentials(): Promise<Credentials> {
     };
     log.info('FCM credentials loaded from env vars');
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GCP_PROJECT_ID) {
-    // Use application default credentials
     credentials.fcm = {
-      projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'ferni-prod',
+      projectId: resolveFirebaseProjectId() ?? '',
       privateKey: '', // Will use applicationDefault() instead
       clientEmail: '',
     };
@@ -223,7 +223,7 @@ async function deliverSMS(
   if (!phone) {
     return { success: false, channel: 'sms', error: 'No phone number provided' };
   }
-  const { ownerRefusal } = await import('../messaging/consent-grants.js'); // MESSAGING_PIPELINE
+  const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE
   const refused = await ownerRefusal(userId, phone, 'sms'); // own number, or the owner's grant
   if (refused) return { success: false, channel: 'sms', error: `Not sent: ${refused}` };
 
@@ -351,7 +351,7 @@ async function deliverVoiceCall(
       userId,
       name: undefined, // Will be fetched from profile in the scheduler
       daysSinceSignup: 0, // Not critical for immediate calls
-      conversationCount: 0,
+      // conversationCount omitted: unknown here, so the writer is told no number
       engagementLevel: 'medium' as const,
     };
 
@@ -385,15 +385,20 @@ async function deliverVoiceCall(
   }
 }
 
-/**
- * Deliver via Push Notification using FCM
- */
+/** Deliver via push: browsers when WEB_PUSH_DELIVERY is on (web-push-delivery.ts), FCM, then in-app. */
 async function deliverPush(
   userId: string,
   content: GeneratedContent,
   outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
+  const note = { ...content, kind: outreachType, triggerId };
+  if (await (await import('./web-push-delivery.js')).sendOutreachWebPush(userId, note)) {
+    const messageId = `webpush-${Date.now()}`;
+    await recordDelivery(userId, 'push', messageId, outreachType, triggerId);
+    return { success: true, channel: 'push', messageId };
+  }
+
   const creds = await loadCredentials();
   if (!creds.fcm) {
     // Fall back to in-app
@@ -464,11 +469,6 @@ async function deliverPush(
   }
 }
 
-/**
- * Deliver via In-App Message (Firestore)
- *
- * This is the fallback for all channels and always works.
- */
 /**
  * Save a message for the app's proactive-messages panel
  * (GET /api/outreach/pending-messages). Kept for 7 days.

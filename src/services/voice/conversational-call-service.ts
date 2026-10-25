@@ -14,7 +14,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { ownerRefusal } from '../messaging/consent-grants.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateStreamTwiml, getTwilioStreamBridge } from './twilio-stream-bridge.js';

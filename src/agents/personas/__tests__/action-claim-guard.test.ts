@@ -10,8 +10,15 @@ import { initializeLogger, llm, voice } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { actionInPlay, honestLine, withActionClaimCheck } from '../action-claim-guard.js';
-import { callActions, claimedAction, kindsOfTool, type ActionKind } from '../action-claims.js';
+import { actionInPlay, withActionClaimCheck } from '../action-claim-guard.js';
+import { honestLine } from '../honest-line.js';
+import {
+  bareOnIt,
+  callActions,
+  claimedAction,
+  kindsOfTool,
+  type ActionKind,
+} from '../action-claims.js';
 import { PersonaVoiceAgent } from '../ferni-agent.js';
 import { withTurnStyleReminder } from '../turn-style.js';
 
@@ -436,10 +443,14 @@ describe('withActionClaimCheck', () => {
 
   it('ACTION_CLAIM_GUARD=off (and the announced-check log and caller voice guard off) returns the very same stream', async () => {
     const stream = streamOf(...CLAIM);
-    const off = { ACTION_CLAIM_GUARD: 'off', ANNOUNCED_CHECK_LOG: 'off', CALLER_VOICE_GUARD: 'off' };
-    expect(await withActionClaimCheck(Promise.resolve(stream), ctx(ASK), toolsWith(), undefined, off)).toBe(
-      stream
-    );
+    const off = {
+      ACTION_CLAIM_GUARD: 'off',
+      ANNOUNCED_CHECK_LOG: 'off',
+      CALLER_VOICE_GUARD: 'off',
+    };
+    expect(
+      await withActionClaimCheck(Promise.resolve(stream), ctx(ASK), toolsWith(), undefined, off)
+    ).toBe(stream);
   });
 });
 
@@ -775,6 +786,29 @@ describe('prod call 2026-10-16: "dialing her now" while the call waits for a yes
     );
     expect(out.map((c) => c.delta?.content ?? '').join('')).toBe('');
     expect(out[0].delta?.toolCalls?.[0].name).toBe('callOnBehalf');
+  });
+
+  // Owner call 2026-10-18: on a yes, "All right, I'm on it... wish me luck." and no call tool ran.
+  it('"I\'m on it" on the yes with no call: dropped, and Ferni asks again', async () => {
+    const items = [...asked, said(NOT_YET), user('Yes.')];
+    const reply = "All right, I'm on it\u2026 wish me luck.";
+    expect(await textOf(await check(streamOf(reply), items, tools))).toBe(NOT_YET);
+    // With the call in the reply, it goes with no words: the tool's result is spoken next.
+    const out = await chunksOf(
+      await check(streamOf("I'm on it. ", toolCall('callOnBehalf')), items, tools)
+    );
+    expect(out.map((c) => c.delta?.content ?? '').join('')).toBe('');
+    expect(out[0].delta?.toolCalls?.[0].name).toBe('callOnBehalf');
+  });
+
+  it('"I\'m on it" stands when no call is waiting on this yes', async () => {
+    const notYes = [...asked, said(NOT_YET), user('Thanks, buddy.')];
+    expect(await textOf(await check(streamOf("I'm on it."), notYes, tools))).toBe("I'm on it.");
+    const noCall = [user('Can you remember that for me?'), user('Yes.')];
+    expect(await textOf(await check(streamOf("I'm on it."), noCall, tools))).toBe("I'm on it.");
+    expect(bareOnIt('Okay.')).toBe(false);
+    expect(bareOnIt('On it!')).toBe(true);
+    expect(bareOnIt("I'm on it, and it was lovely.")).toBe(false);
   });
 
   it('once the call went through, the claim stands', async () => {

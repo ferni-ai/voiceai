@@ -24,21 +24,11 @@ describe('useVertexAI', () => {
     expect(useVertexAI({ USE_VERTEX_AI: 'false' })).toBe(false);
   });
 
-  it('ignores the per-provider names nothing set', () => {
-    expect(
-      useVertexAI({
-        USE_VERTEX_AI: 'false',
-        GEMINI_LIVE_USE_VERTEX_AI: 'true',
-        GEMMA3N_USE_VERTEX_AI: 'true',
-      })
-    ).toBe(false);
-  });
-
   it('is the only place src/ reads the Vertex switch', () => {
     const readers = sourceFiles(SRC)
       .filter((file) => !file.endsWith(join('config', 'vertex-flag.ts')))
       .filter((file) =>
-        /env(?:\.|\[['"])(?:USE_VERTEX_AI|GEMINI_LIVE_USE_VERTEX_AI|GEMMA3N_USE_VERTEX_AI)\b/.test(
+        /env(?:\.|\[['"])USE_VERTEX_AI\b/.test(
           readFileSync(file, 'utf8')
         )
       )

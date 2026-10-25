@@ -19,12 +19,18 @@ import {
   type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
 import { isOwnVerifiedPhone, ON_BEHALF_GAP_MS, textOnBehalf } from './guarded-text.js';
-import { thirdPartyRefusal } from '../messaging/consent-grants.js';
+import { thirdPartyRefusal } from '../messaging/consent-reach.js';
 import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
 import { makeConversationalCall } from './conversational-calls.js';
 import type { OutboundCallContext } from './conversational-calls.js';
+import {
+  logPromiseJobRun,
+  logPromiseOutcome,
+  scheduledOutreachOutcome,
+  type OutreachEnd,
+} from '../follow-through/index.js';
 
 const log = createLogger({ module: 'ScheduledOutreachExecutor' });
 
@@ -76,10 +82,15 @@ async function toMemberThemself(
   return isOwnVerifiedPhone(userId, target.resolvedPhone).catch(() => false);
 }
 
-/**
- * Execute a single scheduled outreach
- */
-export async function executeScheduledOutreach(outreach: ScheduledOutreach): Promise<void> {
+/** Execute a single scheduled outreach, and log how it ended (PROMISE_OUTCOME). */
+export async function executeScheduledOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
+  const end = await runOutreach(outreach);
+  const ids = { userId: outreach.userId, id: outreach.id };
+  logPromiseOutcome('scheduled-outreach', scheduledOutreachOutcome(end), ids);
+  return end;
+}
+
+async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
   const { userId, personaId, target, id } = outreach;
   const outreachId = `sched_exec_${id}`;
 
@@ -94,7 +105,7 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
       error: 'expired-while-held',
     });
     log.info({ userId, id }, 'Held scheduled outreach expired');
-    return;
+    return 'expired-while-held';
   }
 
   // Mark as executing
@@ -118,7 +129,7 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
         heldAt: new Date(),
       });
       log.info({ userId, id, channel: channelUsed }, 'Scheduled outreach to someone else held');
-      return;
+      return 'held-for-approval';
     }
 
     // Execute based on channel
@@ -145,7 +156,8 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
           channel: channelUsed,
           error: `skipped: ${refused}`,
         });
-        return;
+        // An unreadable consent record is not a stop: it ends like the text sender's send-failed.
+        return refused === 'unverifiable' ? 'failed' : refused;
       }
 
       if (channelUsed === 'conversation') {
@@ -185,13 +197,13 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
         // Held, not dropped: it goes out when their morning starts.
         await patchOutreach(userId, id, { status: 'pending', scheduledFor: sent.until });
         log.info({ userId, id, until: sent.until.toISOString() }, 'Scheduled text held');
-        return;
+        return 'quiet-hours';
       }
       if (!sent.sent && sent.reason === 'recently-sent') {
         // Another text to them just went (or is going): this one waits out the gap.
         const scheduledFor = new Date(Date.now() + ON_BEHALF_GAP_MS);
         await patchOutreach(userId, id, { status: 'pending', scheduledFor });
-        return;
+        return 'rate-gap';
       }
       if (!sent.sent && FINAL_SKIPS.has(sent.reason)) {
         // A STOP or a bad number: trying again would be wrong, not unlucky.
@@ -201,7 +213,7 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
           error: `skipped: ${sent.reason}`,
         });
         log.info({ userId, id, reason: sent.reason }, 'Scheduled text skipped');
-        return;
+        return sent.reason as 'opted-out' | 'needs-consent' | 'bad-number'; // the FINAL_SKIPS
       }
       success = sent.sent;
       errorMsg = sent.sent ? undefined : sent.reason;
@@ -223,7 +235,8 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
     }
 
     // Update status
-    await updateOutreachStatus(userId, id, success ? 'completed' : 'failed', {
+    const end = success ? 'completed' : 'failed';
+    await updateOutreachStatus(userId, id, end, {
       success,
       channel: channelUsed,
       error: errorMsg,
@@ -240,6 +253,7 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
         '⚠️ Scheduled outreach failed'
       );
     }
+    return end;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     log.error(
@@ -249,12 +263,12 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
 
     // Check if we should retry
     const { shouldRetry } = await incrementRetry(userId, id);
-    if (!shouldRetry) {
-      await updateOutreachStatus(userId, id, 'failed', {
-        success: false,
-        error: errorMsg,
-      });
-    }
+    if (shouldRetry) return 'retrying';
+    await updateOutreachStatus(userId, id, 'failed', {
+      success: false,
+      error: errorMsg,
+    });
+    return 'error';
   }
 }
 
@@ -338,13 +352,23 @@ export async function executeDueScheduledOutreach(
     dryRun: opts.dryRun === true,
   };
   if (opts.dryRun) return result;
+  for (const item of claim.lateItems) {
+    const ids = { userId: item.userId, id: item.id };
+    logPromiseOutcome('scheduled-outreach', scheduledOutreachOutcome('missed'), ids);
+  }
+  const counts = { due: result.due, done: 0, failed: 0, held: 0, missed: result.missed };
   for (const item of claim.claimed) {
     // executeScheduledOutreach records completed/failed itself.
     // Owner from the document's path, not its userId field.
-    await executeScheduledOutreach({ ...outreachFromDoc(item.id, item.data), userId: item.userId });
+    const outreach = { ...outreachFromDoc(item.id, item.data), userId: item.userId };
+    const { outcome } = scheduledOutreachOutcome(await executeScheduledOutreach(outreach));
+    if (outcome === 'done') counts.done++;
+    else if (outcome === 'failed') counts.failed++;
+    else counts.held++; // held, or pending again for a retry
     result.executed++;
   }
   if (result.due > 0) log.info(result, 'Scheduled outreach run');
+  logPromiseJobRun('scheduled-outreach', counts);
   return result;
 }
 

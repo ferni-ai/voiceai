@@ -12,7 +12,8 @@
  * @module services/platform/bounded-reader
  */
 
-import { FieldPath, getFirestore } from 'firebase-admin/firestore';
+import { FieldPath } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 export type ExportLimitReason =
   'docs' | 'bytes' | 'reads' | 'time' | 'busy' | 'rate' | 'unavailable';
@@ -145,7 +146,7 @@ export async function openExportDb(
   if (firestore) return firestore;
   const { ensureFirebaseAdmin } = await import('../identity/firebase-auth.js');
   if (!ensureFirebaseAdmin()) throw new Error('Firebase Admin is not initialized');
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 export class BoundedReader {
@@ -192,6 +193,13 @@ export class BoundedReader {
       : this.db.collection(path);
     const snap = await beforeDeadline(base.count().get(), this.budget);
     return snap.data().count;
+  }
+
+  /** The ids of a collection's documents, with those that only hold subcollections: one read */
+  async listDocIds(path: string): Promise<string[]> {
+    this.budget.beginRead();
+    const refs = await beforeDeadline(this.db.collection(path).listDocuments(), this.budget);
+    return refs.map((ref) => ref.id);
   }
 
   /** Whether a document exists: one read, its bytes reserved like any other */

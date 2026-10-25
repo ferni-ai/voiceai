@@ -338,7 +338,7 @@ async function getLifeTransitionsPhrases(
 
   // Dual emotions
   if (context.hasDualEmotions) {
-    phrases.push('Hold space for both/and - they can feel excited AND scared');
+    phrases.push('Leave room for both - they can feel excited AND scared');
   }
 
   return phrases;
@@ -436,7 +436,7 @@ async function buildLifeCoachingContext(input: ContextBuilderInput): Promise<Con
       case 'difficultConversations': {
         title = 'DIFFICULT CONVERSATIONS';
         betterThanHuman =
-          'Infinite patience to practice. Your superpower: safe space to rehearse the hard stuff.';
+          'Infinite patience to practice. Your superpower: endless room to rehearse the hard stuff.';
         phrases = await getDifficultConversationsPhrases(personaId, {
           isPreparing:
             textLower.includes('need to talk') || textLower.includes('have a conversation'),
@@ -453,7 +453,7 @@ async function buildLifeCoachingContext(input: ContextBuilderInput): Promise<Con
       }
       case 'lifeTransitions': {
         title = 'LIFE TRANSITIONS';
-        betterThanHuman = 'Honor dual emotions. Your superpower: holding space for contradictions.';
+        betterThanHuman = 'Honor dual emotions. Your superpower: letting contradictions sit side by side.';
         phrases = await getLifeTransitionsPhrases(personaId, {
           stage:
             textLower.includes('ending') || textLower.includes('leaving')

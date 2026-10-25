@@ -17,6 +17,9 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
+import { refuseUnadmitted } from '../../../api/admission.js';
+import { demoPersonaFor, personaForCaller } from './token-persona-owner.js';
+import { callLaunchFor, launchPersona } from './call-launch-param.js';
 import { handleDemoClaim } from './demo-claim.js';
 import { handleDemoSessionUpdate } from './demo-session-update.js';
 
@@ -34,6 +37,7 @@ import {
 
 // Developer Platform: marketplace registry for persona→publisher lookup
 import { getAgentAsync } from '../../../marketplace/registry.js';
+import { isSignedInAccount } from '../../../services/identity/verified-caller.js';
 
 const log = createLogger({ module: 'TokenRoutes' });
 
@@ -168,8 +172,8 @@ export async function handleTokenRoutes(
   if (pathname === '/demo-token') {
     const ip = getClientIp(req);
 
-    // Get persona_id from query params (defaults to 'ferni' for backwards compatibility)
-    const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
+    // persona_id defaults to 'ferni'; no one is signed in, so a custom agent id becomes Ferni.
+    const personaId = await demoPersonaFor(parsedUrl);
 
     // Every demo counts against the limit: persona_id is the caller's choice, so it can't exempt one
     const allowed = await reserveDemoSession(ip);
@@ -322,9 +326,9 @@ export async function handleTokenRoutes(
     // The caller's IANA time zone from the browser, so Ferni knows their local time.
     const timezoneParam = parsedUrl.searchParams.get('timezone');
     const timezone = isValidTimeZone(timezoneParam) ? timezoneParam : undefined;
-    // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
     let verifiedEmail: string | undefined; // from the verified token, never the query string
+    let firebaseAccount = false; // a signed-in account, not an anonymous Firebase user
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -332,7 +336,7 @@ export async function handleTokenRoutes(
       return true;
     }
 
-    const selectedPersona = persona_id || 'ferni';
+    const requestedPersona = persona_id || 'ferni';
 
     try {
       // SECURITY: Require verified Firebase auth before issuing LiveKit tokens.
@@ -352,6 +356,7 @@ export async function handleTokenRoutes(
       }
 
       let firebaseUid: string;
+      let isAdmin = false;
       try {
         const { verifyFirebaseToken, isVerifiedToken } =
           await import('../../../services/identity/firebase-auth.js');
@@ -362,16 +367,10 @@ export async function handleTokenRoutes(
           res.end(JSON.stringify({ error: 'Invalid or expired authentication token' }));
           return true;
         }
-        if (
-          firebase_uid_param &&
-          firebase_uid_param !== verified.uid &&
-          verified.claims.admin !== true
-        ) {
+        isAdmin = verified.claims.admin === true;
+        if (firebase_uid_param && firebase_uid_param !== verified.uid && !isAdmin) {
           log.warn(
-            {
-              claimed: firebase_uid_param.substring(0, 8),
-              actual: verified.uid.substring(0, 8),
-            },
+            { claimed: firebase_uid_param.substring(0, 8), actual: verified.uid.substring(0, 8) },
             'SECURITY: /token rejected — firebase_uid does not match authenticated user'
           );
           res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -380,6 +379,7 @@ export async function handleTokenRoutes(
         }
         firebaseUid = verified.uid;
         verifiedEmail = verified.emailVerified ? verified.email : undefined;
+        firebaseAccount = isSignedInAccount(verified.signInProvider); // verified-caller.ts
         log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
       } catch (firebaseErr) {
         log.error({ error: String(firebaseErr) }, 'Firebase auth verification failed for /token');
@@ -387,9 +387,16 @@ export async function handleTokenRoutes(
         res.end(JSON.stringify({ error: 'Authentication service unavailable' }));
         return true;
       }
+      // WAITLIST_GATE=on: only admitted people get a voice session (the demo route stays open)
+      if (await refuseUnadmitted({ uid: firebaseUid, email: verifiedEmail, isAdmin }, res))
+        return true;
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
+      // CALL_LAUNCH_CONTEXT: where the call was started from; a practice run asks for Alex.
+      const launch = await callLaunchFor(parsedUrl.searchParams.get('from'), firebaseUid);
+      const persona = launchPersona(launch, requestedPersona);
+      // A custom agent id must be the caller's own, else the call is with Ferni.
+      const selectedPersona = await personaForCaller(persona, firebaseUid);
 
-      // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
         {
           room,
@@ -402,15 +409,7 @@ export async function handleTokenRoutes(
         '🧠 [MEMORY-AUDIT] Token endpoint identity chain'
       );
 
-      // 🌍 INTERNATIONAL ACCENT SUPPORT
-      // Priority order:
-      // 1. Explicit accent parameter from frontend (user's saved preference)
-      // 2. User's saved accent preference from Firestore profile (if authenticated)
-      // 3. Geo-detected accent from IP/locale
-      // 4. Default to 'american'
-
-      // Try to load user's saved accent AND location from profile if authenticated
-      // "Better than Human" - We remember your accent preference AND location
+      // Accent: the explicit parameter, then the saved profile preference, then geo, then 'american'
       let savedAccent: string | undefined;
       let savedLocation:
         | {
@@ -454,8 +453,7 @@ export async function handleTokenRoutes(
         }
       }
 
-      // Detect geo/accent (fallback if no explicit or saved preference)
-      // Priority: saved location (browser-gps/manual) > IP geolocation > timezone inference
+      // Geo/accent fallback: saved location (gps/manual) > IP geolocation > timezone inference
       let geoData = {
         locale: 'en-US',
         locales: ['en-US'],
@@ -526,23 +524,20 @@ export async function handleTokenRoutes(
         'Generated token with geo'
       );
 
-      // Pre-warm LLM content cache (fire-and-forget, before session starts)
       prewarmLLMContentForPersona(selectedPersona, firebaseUid || undefined);
 
-      // ⚡ OPTIMIZATION: Pre-fetch user data while token is being prepared
-      // This starts loading profile, trust, insights BEFORE session starts
+      // ⚡ Pre-fetch profile, trust and insights while the token is prepared, before the session
       if (firebaseUid) {
         prefetchUserData(firebaseUid, selectedPersona);
       }
 
-      // 🔗 Developer Platform: Look up publisher for marketplace personas
-      // This enables MCP server loading and webhook dispatch for custom personas
+      // 🔗 Developer Platform: the publisher enables MCP servers and webhooks for custom personas
       const publisherId = await getPublisherIdForPersona(selectedPersona);
 
-      // Build room metadata (shared type — also passed to agent dispatch inside createRoomWithAgent)
       const roomMetadata: RoomMetadata = {
         user_name: username,
         firebase_uid: firebaseUid || undefined,
+        firebase_account: firebaseAccount || undefined,
         user_email: verifiedEmail,
         device_id: device_id || undefined,
         persona_id: selectedPersona,
@@ -557,6 +552,7 @@ export async function handleTokenRoutes(
         city: geoData.city,
         regionCode: geoData.regionCode,
         timezone,
+        ...(launch && { launch }), // only with CALL_LAUNCH_CONTEXT: off, the metadata is as before
       };
 
       const token = await createToken({

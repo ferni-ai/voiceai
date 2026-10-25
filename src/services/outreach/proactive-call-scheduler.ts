@@ -14,7 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { ownerRefusal } from '../messaging/consent-grants.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import {
   isConversationalCallsConfigured,
   makeConversationalCall,

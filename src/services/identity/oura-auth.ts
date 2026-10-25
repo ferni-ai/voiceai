@@ -15,6 +15,7 @@
 import crypto from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
 import type { OuraTokens, OuraTokenResponse, OuraResult } from './oura-types.js';
 
 const log = createLogger({ module: 'oura-auth' });
@@ -284,7 +285,7 @@ async function storeTokens(userId: string, tokens: OuraTokens): Promise<void> {
       .doc(userId)
       .set(
         cleanForFirestore({
-          ...tokens,
+          ...sealTokens(tokens),
           updatedAt: new Date().toISOString(),
         })
       );
@@ -308,7 +309,8 @@ async function getTokens(userId: string): Promise<OuraTokens | null> {
     const doc = await db.collection(FIRESTORE_COLLECTION).doc(userId).get();
     if (!doc.exists) return null;
 
-    const data = doc.data() as OuraTokens;
+    const data = openTokens<OuraTokens>(doc.data(), FIRESTORE_COLLECTION);
+    if (!data) return null;
     tokenCache.set(userId, data);
     return data;
   } catch (error) {

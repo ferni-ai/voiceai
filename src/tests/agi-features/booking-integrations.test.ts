@@ -19,14 +19,6 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 import {
-  searchRestaurants,
-  checkAvailability,
-  bookReservation,
-  getReservations,
-  type Restaurant,
-  type ReservationRequest,
-} from '../../services/integrations/restaurant-booking.js';
-import {
   getRideEstimates,
   bookRide,
   getRideHistory,
@@ -41,53 +33,6 @@ describe('Booking Integrations', () => {
     mockFirestoreDb._clear();
     vi.clearAllMocks();
     mockFetch.mockReset();
-  });
-
-  describe('Restaurant Booking', () => {
-    it('should return results for restaurant search', async () => {
-      mockFetch.mockResolvedValue({ ok: true, json: async () => ({ businesses: [] }) });
-      const results = await searchRestaurants('pizza', 'San Francisco');
-      expect(Array.isArray(results)).toBe(true);
-    });
-
-    it('should check availability', async () => {
-      const restaurant: Restaurant = {
-        id: 'test_1',
-        name: 'Test Place',
-        address: '123 Main St',
-        city: 'SF',
-        provider: 'google',
-      };
-      const slots = await checkAvailability(restaurant, '2025-02-15', 4);
-      expect(Array.isArray(slots)).toBe(true);
-    });
-
-    it('should require approval for booking', async () => {
-      const request: ReservationRequest = {
-        userId: testUserId,
-        restaurant: {
-          id: 'rest_1',
-          name: 'Fine Dining',
-          address: '123 St',
-          city: 'SF',
-          provider: 'google',
-        },
-        date: '2025-02-20',
-        time: '19:00',
-        partySize: 4,
-        guestName: 'John',
-        guestPhone: '+1234567890',
-        guestEmail: 'john@test.com',
-      };
-      const result = await bookReservation(request);
-      expect(result.success).toBe(true);
-      expect(result.requiresApproval).toBe(true);
-    });
-
-    it('should get reservations', async () => {
-      const reservations = await getReservations(testUserId);
-      expect(Array.isArray(reservations)).toBe(true);
-    });
   });
 
   describe('Rideshare Booking', () => {

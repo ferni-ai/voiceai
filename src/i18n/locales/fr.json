@@ -349,7 +349,7 @@
         "activity": "Suivi d'activité"
       },
       "privacy": {
-        "note": "Vos données de santé restent privées. Nous ne partageons que des informations agrégées avec vos séances de coaching."
+        "note": "Ferni enregistre vos données de santé pour repérer des tendances avec vous. Nous ne les vendons jamais, et supprimer votre compte les efface."
       },
       "providers": {
         "apple_health": {

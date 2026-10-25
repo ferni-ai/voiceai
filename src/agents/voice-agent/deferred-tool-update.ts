@@ -7,6 +7,12 @@
 
 import { voice } from '@livekit/agents';
 import { flagOn } from '../../config/env-flag.js';
+import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
+import {
+  preloadTopicDomains,
+  registerSameTurnLoader,
+  type SameTurnLoader,
+} from '../personas/same-turn-tools.js';
 import type { FallbackLogger } from '../../utils/safe-logger.js';
 import { agentOnCall } from '../multi-agent/persona-swap.js';
 import { applyAfterReplyStarts, updateAgentTools } from '../shared/tool-updater.js';
@@ -105,4 +111,26 @@ export function giveLoadedDomainsToNewAgents(
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
   return () => session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+}
+
+/**
+ * Agent setup, once per call: hand-offs get the loaded domains
+ * (giveLoadedDomainsToNewAgents), and with TOOLS_SAME_TURN the persona agent's
+ * llmNode gets this call's loader (agents/personas/same-turn-tools.ts) while
+ * every topic domain is imported into the registry in the background, so the
+ * first turn that names one finds it. Returns the unsubscribe.
+ */
+export function wireCallToolLoader(
+  session: voice.AgentSession<UserData>,
+  firstAgent: voice.Agent<UserData>,
+  dynamicToolLoader: Parameters<typeof giveLoadedDomainsToNewAgents>[2] & SameTurnLoader,
+  toolUpdaterLog: FallbackLogger
+): () => void {
+  if (sameTurnToolsEnabled()) {
+    registerSameTurnLoader(session, dynamicToolLoader);
+    preloadTopicDomains().catch((error: unknown) =>
+      toolUpdaterLog.warn({ error: String(error) }, 'Could not preload the topic domains')
+    );
+  }
+  return giveLoadedDomainsToNewAgents(session, firstAgent, dynamicToolLoader, toolUpdaterLog);
 }
