@@ -22,10 +22,11 @@ export function crisisDecidedOn(session: unknown): boolean {
 export function signalCrisisDecision(
   session: unknown,
   action: string | undefined,
-  from: { reader: CrisisReader; kind?: CrisisEventKind } = { reader: 'pattern' }
+  reader: CrisisReader = 'pattern',
+  kind?: CrisisEventKind
 ): void {
   if (!action || action === 'pass') return;
-  recordCrisisOnCall(session, action, from.reader, from.kind); // CRISIS_EVENT_RECORD: a later tick, never awaited
+  recordCrisisOnCall(session, action, reader, kind); // CRISIS_EVENT_RECORD: a later tick, never awaited
   if (typeof session === 'object' && session !== null) crisisSessions.add(session);
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });

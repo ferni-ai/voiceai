@@ -36,6 +36,11 @@ export function crisisKindOf(crisis: { indicators: readonly string[] }): CrisisE
   };
 }
 
+/** The kind on a gate decision, when it replaced the reply (crisis-gate.ts). */
+export const replaceKind = (
+  decision: { action: string; kind?: CrisisEventKind } | null | undefined
+): CrisisEventKind | undefined => (decision?.action === 'replace' ? decision.kind : undefined);
+
 const MAX_CALLS = 5000;
 /** Calls already recorded (or checked), oldest first. */
 const recordedCalls = new Set<string>();

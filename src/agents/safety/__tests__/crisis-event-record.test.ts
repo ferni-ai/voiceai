@@ -172,14 +172,14 @@ describe('CRISIS_EVENT_RECORD on', () => {
   it('never for guidance or a pass, only the script', async () => {
     const session = call();
     await speak(session, 'what should I cook tonight?');
-    signalCrisisDecision(session, 'guide', { reader: 'pattern' });
+    signalCrisisDecision(session, 'guide', 'pattern');
     await settle();
     expect(added).toHaveLength(0);
   });
 
   it('is never awaited: the write starts after the gate returns', async () => {
     const session = call();
-    signalCrisisDecision(session, 'replace', { reader: 'pattern' });
+    signalCrisisDecision(session, 'replace', 'pattern');
     expect(added).toHaveLength(0);
     await settle();
     expect(added).toHaveLength(1);
@@ -187,16 +187,14 @@ describe('CRISIS_EVENT_RECORD on', () => {
   });
 
   it('a persona id that is not an id is recorded as other', async () => {
-    signalCrisisDecision(call('synthetic-user-1', 'My Buddy Sam!'), 'replace', {
-      reader: 'pattern',
-    });
+    signalCrisisDecision(call('synthetic-user-1', 'My Buddy Sam!'), 'replace', 'pattern');
     await settle();
     expect(added[0]!.doc.personaId).toBe('other');
   });
 
   it('not for a caller with no member id: nobody could delete or export it', async () => {
     for (const id of ['anonymous', 'anon:abc', 'onbehalf:call-1']) {
-      signalCrisisDecision(call(id), 'replace', { reader: 'pattern' });
+      signalCrisisDecision(call(id), 'replace', 'pattern');
     }
     await settle();
     expect(added).toHaveLength(0);
