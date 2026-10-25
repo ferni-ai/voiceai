@@ -23,6 +23,7 @@
 
 import { isClosed, type FollowUp, type FollowUpKind } from './follow-up.js';
 import { rightMoment } from './right-moment.js';
+import { isOrdinaryWebsite } from './ordinary-website.js';
 
 export const MAX_HELD = 20;
 
@@ -163,12 +164,14 @@ const NUMBER_WORDS =
   'zero|one|two|three|four|five|six|seven|eight|nine|oh|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|eighty|ninety';
 const SAID_TLD = `(?!(?:the|and|but|then|than|for|with|from|was|were|of|or|on|he|she|we|they|you|his|her|our|your|their|here|there|when|where|what|party|launch|office|map|page|line|time|day|days|night|period|dance|dress|dot|dots|${NUMBER_WORDS})(?![\\p{L}\\p{N}]))\\p{L}{2,6}`;
 const NOT_A_DOMAIN = '(?!(?:the|a|an|this|that|my|your|our|his|her|their|its)\\b)';
-const ENDING = `(?:${SAID_DOT}(?:${TLD}|${SAID_TLD})|\\.${TLD})`;
+/** A written dot, fullwidth or ideographic too: "jo at gmail．com" is an address. */
+const WRITTEN_DOT = '[.\\uFF0E\\u3002\\uFF61]';
+const ENDING = `(?:${SAID_DOT}(?:${TLD}|${SAID_TLD})|${WRITTEN_DOT}${TLD})`;
 const SPELLED_EMAIL = new RegExp(
   `(?<![\\p{L}\\p{N}._%+\\-'’])(?<local>${LABEL}(?:${ANY_DOT}${LABEL}){0,6})` +
     `(?:\\s*(?:[([]at[)\\]]|[@\uFF20\uFE6B])\\s*${NOT_A_DOMAIN}(?<bracketed>(?:${LABEL}${ANY_DOT}){1,6}(?:${TLD}|${SAID_TLD}))` +
     `|\\s+at\\s+${NOT_A_DOMAIN}(?<said>(?:${LABEL}${ANY_DOT}){0,6}${LABEL}${SAID_DOT}(?:${TLD}|${SAID_TLD}))` +
-    `|\\s+at\\s+${NOT_A_DOMAIN}(?<written>${LABEL}(?:\\.${LABEL}){0,5}\\.${TLD}))` +
+    `|\\s+at\\s+${NOT_A_DOMAIN}(?<written>${LABEL}(?:${WRITTEN_DOT}${LABEL}){0,5}${WRITTEN_DOT}${TLD}))` +
     '(?![\\p{L}\\p{N}])',
   'giu'
 );
@@ -182,8 +185,9 @@ const DOT_DOT = /\bdot\s+dot\b/iu;
 const AT_TOKEN = /^\s*(?:[([]at[)\]]|[@\uFF20\uFE6B]|at)\s*/iu;
 
 /**
- * Blanks every said address. A pause ("dot dot ... later") is kept, and the
- * search goes on from just after its "at", so it can't hide an address. A
+ * Blanks every said address. A pause ("dot dot ... later") and an ordinary
+ * website ("bought shoes at zappos.com", see ordinary-website.ts) are kept, and
+ * the search goes on from just after their "at", so neither can hide an address. A
  * blanked one takes any " at <domain>" right after it, so no part of a longer
  * address is left showing.
  */
@@ -194,7 +198,16 @@ function blankSaidEmails(text: string): string {
   for (let m = SPELLED_EMAIL.exec(text); m; m = SPELLED_EMAIL.exec(text)) {
     const local = m.groups?.local ?? '';
     const said = m.groups?.said;
-    if (said !== undefined && DOT_DOT.test(said) && !LISTED_TLD.test(said)) {
+    const written = m.groups?.written;
+    const pause = said !== undefined && DOT_DOT.test(said) && !LISTED_TLD.test(said);
+    // A website is never kept when another " at <domain>" follows it: "my son at
+    // harvard.edu at gmail.com" is one address.
+    AT_MORE.lastIndex = m.index + m[0].length;
+    const website =
+      written !== undefined &&
+      !AT_MORE.test(text) &&
+      isOrdinaryWebsite(text.slice(Math.max(0, m.index - 81), m.index), local, written);
+    if (pause || website) {
       const at = AT_TOKEN.exec(m[0].slice(local.length))?.[0].length ?? 1;
       SPELLED_EMAIL.lastIndex = m.index + local.length + at;
       continue;

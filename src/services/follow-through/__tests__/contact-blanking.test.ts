@@ -252,7 +252,9 @@ const LEAK_FLOOR: ReadonlyArray<readonly [string, string]> = [
  * Declared over-blanks: main before #2716 left each of these as written, and
  * each is blanked now, on purpose. Any "<word> at <domain>" shape is an address,
  * whatever comes before it (a name-side exemption always let a real one
- * through), an "@" with a domain is never prose, seven said digits are a number,
+ * through), unless it is an ordinary website (WEBSITE_KEPT): a said "dot", a
+ * mailbox word ("team", "info", "us", "jobs", "deals") or a word with no
+ * allow-listed frame ("apply", "reviews", "details") still blanks. An "@" with a domain is never prose, seven said digits are a number,
  * a year's included ("one, two, three, 2026"), and two bare years joined by
  * a dash are a number. An over-blank only hides text from the app; a leak
  * shows someone's address.
@@ -262,10 +264,7 @@ const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
   ['steps one, two, three, 2026', 'steps a number'],
   ['remember steps three two one, 2027 kickoff', 'remember steps a number kickoff'],
   ['one, two, three, 2026, 2027', 'a number'],
-  ['Bought shoes at zappos.com', 'Bought an email address'],
   ['got tickets at ticketmaster.com for friday', 'got an email address for friday'],
-  ['booked rooms at hotels.com', 'booked an email address'],
-  ['ordered flowers at ftd.com for mom', 'ordered an email address for mom'],
   ['found deals at target.com', 'found an email address'],
   ['We grabbed tea at bluebottle dot cafe', 'We grabbed an email address'],
   ['Tom’s at amazon dot com now', 'an email address now'],
@@ -273,38 +272,21 @@ const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
   ['lunch @ cafe.co tomorrow', 'an email address tomorrow'],
   ['the team at google.com shipped it', 'the an email address shipped it'],
   ['interns at apple.com start monday', 'an email address start monday'],
-  ['my sister at stanford.edu called', 'my an email address called'],
   ['the 2019–2020 season', 'the a number season'],
   ['she bought shoes at nordstrom dot com', 'she bought an email address'],
-  ['I saw it at amazon.com', 'I saw an email address'],
-  ['ordered a lamp at target.com', 'ordered a an email address'],
-  ['he works at microsoft.com', 'he an email address'],
-  ["she's at netflix.com now", 'an email address now'],
   ['check prices at walmart.com', 'check an email address'],
   ['tickets at stubhub.com', 'an email address'],
   ['deals at bestbuy.com', 'an email address'],
-  ['sign up at eventbrite.com', 'sign an email address'],
-  ['read it at nytimes.com', 'read an email address'],
-  ['watch it at youtube.com', 'watch an email address'],
-  ['available at amazon.com', 'an email address'],
   ['more info at acme.com', 'more an email address'],
   ['details at acme.com', 'an email address'],
-  ['learn more at acme.com', 'learn an email address'],
-  ['find out more at acme.com', 'find out an email address'],
   ['visit us at acme.com', 'visit an email address'],
   ['apply at acme.com', 'an email address'],
   ['donate at redcross.org', 'an email address'],
   ['register at acme.org', 'an email address'],
   ['listen at npr.org', 'an email address'],
-  ['on sale at target.com', 'on an email address'],
   ['order at acme.com', 'an email address'],
-  ['the recipe is at bonappetit.com', 'the recipe an email address'],
   ['shop at etsy.com', 'an email address'],
-  ["it's on sale at macys.com", "it's on an email address"],
-  ['available now at apple.com', 'available an email address'],
-  ['tickets on sale at ticketmaster.com', 'tickets on an email address'],
   ['her team at nasa.gov won', 'her an email address won'],
-  ['she interned at google.com', 'she an email address'],
   ['best at chess dot com', 'an email address'],
   ['deals at amazon dot com', 'an email address'],
   ['news at cnn dot com', 'an email address'],
@@ -318,28 +300,21 @@ const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
   ['my brother at microsoft dot com', 'my an email address'],
   ['the guy at apple dot com', 'the an email address'],
   ['his team at nasa.gov won', 'his an email address won'],
-  ['her friend at google.com', 'her an email address'],
-  ['her boss at acme.com', 'her an email address'],
-  ['his boss at acme.com', 'his an email address'],
   ['prices at walmart dot com', 'an email address'],
   ['recipes at allrecipes dot com', 'an email address'],
   ['courses at coursera dot org', 'an email address'],
   ['jobs at google dot com', 'an email address'],
   ['careers at acme.com', 'an email address'],
   ['events at eventbrite.com', 'an email address'],
-  ['apply online at acme.com', 'apply an email address'],
-  ['pay online at pge.com', 'pay an email address'],
   ['renew at dmv.ca.gov', 'an email address'],
   ['more at nytimes.com', 'an email address'],
   ['photos at flickr.com', 'an email address'],
   ['reviews at yelp.com', 'an email address'],
-  ['found it at ebay.com', 'found an email address'],
   ['she posted at instagram.com', 'she an email address'],
   ['dinner @ noodle.bar friday', 'an email address friday'],
   ['the 1999–2000 season', 'the a number season'],
   ['seven six five four three two one liftoff', 'a number liftoff'],
   ['one two three four five six seven eight', 'a number'],
-  ['look at example.com for the form', 'an email address for the form'],
   ['look at google dot com later', 'an email address later'],
   ['the deal at example.com ends friday', 'the an email address ends friday'],
   ["he's at amazon dot com", 'an email address'],
@@ -354,6 +329,99 @@ const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
   ['students at mit.edu got in', 'an email address got in'],
   ['find us online or at acme dot com', 'find us online an email address'],
   ['tickets are sold here and at acme dot com', 'tickets are sold here an email address'],
+];
+
+/**
+ * Ordinary websites, kept (ordinary-website.ts): a written "." domain of one
+ * label with a .com/.org/.net/.edu/.gov ending, no mail host, a plain lower-case
+ * word before "at" that is no mailbox name, in an allow-listed frame, and no
+ * contact word just before. 27 of #2756's 96 declared over-blanks and the 3 its
+ * verifier found are here.
+ */
+const WEBSITE_KEPT: readonly string[] = [
+  'Bought shoes at zappos.com',
+  'booked rooms at hotels.com',
+  'ordered flowers at ftd.com for mom',
+  'my sister at stanford.edu called',
+  'I saw it at amazon.com',
+  'ordered a lamp at target.com',
+  'he works at microsoft.com',
+  "she's at netflix.com now",
+  'sign up at eventbrite.com',
+  'read it at nytimes.com',
+  'watch it at youtube.com',
+  'available at amazon.com',
+  'learn more at acme.com',
+  'find out more at acme.com',
+  'on sale at target.com',
+  'the recipe is at bonappetit.com',
+  "it's on sale at macys.com",
+  'available now at apple.com',
+  'tickets on sale at ticketmaster.com',
+  'she interned at google.com',
+  'her friend at google.com',
+  'her boss at acme.com',
+  'his boss at acme.com',
+  'apply online at acme.com',
+  'pay online at pge.com',
+  'found it at ebay.com',
+  'look at example.com for the form',
+  'sold out at target.com',
+  'prices are lower at costco.com',
+  'my son at harvard.edu',
+  'My son at Harvard.edu',
+  'bought a lamp at ikea.com',
+  'my daughter at smith.edu',
+  'she works at acme.com',
+  'sneakers are on sale at nike.com',
+  'sold out at Target.com',
+];
+
+/**
+ * Each guard of the website exception, pinned: a role word, a name (any case),
+ * a said "dot", a mail host, a dotted or non-generic domain, an "@", a contact
+ * word before it, a lookalike letter, a determiner standing in for goods, a
+ * chain of "at"s. Each blanks as #2756 did; the last three blank where #2756 didn't.
+ */
+const WEBSITE_STILL_BLANKED: ReadonlyArray<readonly [string, string]> = [
+  ['ordered from sales at acme.com', 'ordered from an email address'],
+  ['ordered the team at acme.com', 'ordered the an email address'],
+  ['my team at acme.com', 'my an email address'],
+  ['the boss at acme.com', 'the an email address'],
+  ['boss at acme.com', 'an email address'],
+  ['bought team at acme.com', 'bought an email address'],
+  ['bought tickets at acme.com', 'bought an email address'],
+  ['ordered gifts at acme.com', 'ordered an email address'],
+  ['on sale at sales at target.com', 'on sale at an email address'],
+  ['met Sarah at acme.com', 'met an email address'],
+  ['ordered a Kofi at acme.com', 'ordered a an email address'],
+  ['ordered a kofi at acme.com', 'ordered a an email address'],
+  // A capitalised word before "at" is a name, even a frame word.
+  ['my Son at harvard.edu', 'my an email address'],
+  ['ordered a Lamp at target.com', 'ordered a an email address'],
+  ['bought kofi at acme.com', 'bought an email address'],
+  ['bought shoes at zappos dot com', 'bought an email address'],
+  ['my son at harvard dot edu', 'my an email address'],
+  ['her boss at gmail.com', 'her an email address'],
+  ['bought shoes at mail.com', 'bought an email address'],
+  ['my son at jo.smith.com', 'my an email address'],
+  ['my son at mail.harvard.edu', 'my an email address'],
+  ['her boss at acme.io', 'her an email address'],
+  ['my son at smithfamily.com', 'my an email address'],
+  ['my daughter at smith.com', 'my an email address'],
+  ['bought it at sam@acme.com', 'bought it at an email address'],
+  ['email my son at harvard.edu', 'email my an email address'],
+  ['send it to my boss at acme.com', 'send it to my an email address'],
+  ['venmo her boss at acme.com', 'venmo her an email address'],
+  ['bought shoеs at zappos.com', 'bought an email address'],
+  ["ordered a o'brien at acme.com", 'ordered a an email address'],
+  ['ordered a jo-ann at acme.com', 'ordered a an email address'],
+  ['my son at harvard.edu at gmail.com', 'my an email address'],
+  ['bought shoes at zappos.com at gmail.com', 'bought an email address'],
+  // A fullwidth or ideographic dot is a written dot: these blank now (#2756 left them).
+  ['jo at gmail．com', 'an email address'],
+  ['sales at acme。com', 'an email address'],
+  ['bought shoes at zappos．com', 'bought an email address'],
 ];
 
 /**
@@ -469,6 +537,14 @@ describe('withoutContactDetails', () => {
     expect(withoutContactDetails(input)).toBe(expected);
   });
 
+  it.each(WEBSITE_KEPT)('leaves the website in %j as written', (input) => {
+    expect(withoutContactDetails(input)).toBe(input);
+  });
+
+  it.each(WEBSITE_STILL_BLANKED)('still blanks %j, website or not', (input, expected) => {
+    expect(withoutContactDetails(input)).toBe(expected);
+  });
+
   // A contact near the MAX_TEXT cut never shows, whatever surrounds it (words,
   // emoji, CJK with no gap): the cut lands well clear of it, or the text is dropped.
   it.each([
@@ -503,6 +579,8 @@ describe('withoutContactDetails', () => {
     ['a dotted name', 'jo dot '.repeat(57_200)],
     ['repeated addresses', 'lunch at netflix dot com '.repeat(16_000)],
     ['a chain of addresses', 'jo at x dot com '.repeat(25_000)],
+    ['websites', 'bought shoes at zappos.com '.repeat(15_000)],
+    ['websites and an address', 'my son at harvard.edu at x.com '.repeat(13_000)],
     ['spaced @', 'a @ '.repeat(100_000)],
     ['said digits', 'one '.repeat(100_000)],
   ])('blanks 400k chars of %s in under 100 ms', (_name, text) => {
