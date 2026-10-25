@@ -36,8 +36,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          open=$(gh issue list -R "$REPO" --label blocks-testflight --state open --json number,title \
-            --jq '.[] | "#\(.number) \(.title)"') || { echo "::error::could not read blocker issues; refusing"; exit 1; }
+          # A token that can't read issues gets an empty list, not an error (search and REST
+          # alike, the repo being public), which would wave every run through. Prove issues are
+          # visible first: the 100 newest items always include issues in this repo.
+          seen=$(gh api "repos/$REPO/issues?state=all&sort=created&per_page=100" \
+            --jq '[.[] | select(.pull_request | not)] | length') || seen=0
+          if [ "${seen:-0}" -lt 1 ]; then
+            echo "::error::this token can't see any issues, so blockers can't be checked; refusing"
+            exit 1
+          fi
+          open=$(gh api "repos/$REPO/issues?labels=blocks-testflight&state=open&per_page=100" \
+            --jq '.[] | select(.pull_request | not) | "#\(.number) \(.title | gsub("[\\r\\n]"; " "))"') \
+            || { echo "::error::could not read blocker issues; refusing"; exit 1; }
           if [ -n "$open" ]; then
             echo "::error::TestFlight is blocked until these issues close:"
             echo "$open"
