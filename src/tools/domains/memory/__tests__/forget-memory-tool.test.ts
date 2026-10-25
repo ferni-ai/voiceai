@@ -60,7 +60,7 @@ describe('forgetMemory (the live tool)', () => {
     expect(partly).toContain('"I won\'t bring that up again."');
   });
 
-  it("tells the model what it does, not that it deletes", () => {
+  it('tells the model what it does, not that it deletes', () => {
     const description = getToolDescription('forgetMemory');
     expect(description).toMatch(/not erased/);
     expect(description).not.toMatch(/delete memories/i);
