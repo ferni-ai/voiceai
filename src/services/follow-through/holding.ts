@@ -23,7 +23,7 @@
 
 import { isClosed, type FollowUp, type FollowUpKind } from './follow-up.js';
 import { rightMoment } from './right-moment.js';
-import { isOrdinaryWebsite } from './ordinary-website.js';
+import { isOrdinaryWebsite, MAX_BEFORE } from './ordinary-website.js';
 
 export const MAX_HELD = 20;
 
@@ -194,20 +194,27 @@ const AT_TOKEN = /^\s*(?:[([]at[)\]]|[@\uFF20\uFE6B]|at)\s*/iu;
 function blankSaidEmails(text: string): string {
   let out = '';
   let last = 0;
+  // The last kept website: an address found inside it blanks it whole.
+  let keptFrom = 0;
+  let keptTo = 0;
   SPELLED_EMAIL.lastIndex = 0;
   for (let m = SPELLED_EMAIL.exec(text); m; m = SPELLED_EMAIL.exec(text)) {
     const local = m.groups?.local ?? '';
     const said = m.groups?.said;
     const written = m.groups?.written;
     const pause = said !== undefined && DOT_DOT.test(said) && !LISTED_TLD.test(said);
-    // A website is never kept when another " at <domain>" follows it: "my son at
-    // harvard.edu at gmail.com" is one address.
-    AT_MORE.lastIndex = m.index + m[0].length;
+    // A kept website's domain is searched again, and an address found in it
+    // ("my son at harvard.edu at gmail.com") blanks the website with it.
     const website =
       written !== undefined &&
-      !AT_MORE.test(text) &&
-      isOrdinaryWebsite(text.slice(Math.max(0, m.index - 81), m.index), local, written);
+      isOrdinaryWebsite(
+        text.slice(Math.max(0, m.index - MAX_BEFORE - 1), m.index),
+        local,
+        written,
+        text.slice(m.index + m[0].length, m.index + m[0].length + 2)
+      );
     if (pause || website) {
+      if (website) [keptFrom, keptTo] = [m.index, m.index + m[0].length];
       const at = AT_TOKEN.exec(m[0].slice(local.length))?.[0].length ?? 1;
       SPELLED_EMAIL.lastIndex = m.index + local.length + at;
       continue;
@@ -215,7 +222,8 @@ function blankSaidEmails(text: string): string {
     let end = m.index + m[0].length;
     for (AT_MORE.lastIndex = end; AT_MORE.test(text); AT_MORE.lastIndex = end)
       end = AT_MORE.lastIndex;
-    out += `${text.slice(last, m.index)}an email address`;
+    const from = m.index < keptTo ? keptFrom : m.index;
+    out += `${text.slice(last, from)}an email address`;
     last = end;
     SPELLED_EMAIL.lastIndex = end;
   }

@@ -315,6 +315,9 @@ const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
   ['the 1999–2000 season', 'the a number season'],
   ['seven six five four three two one liftoff', 'a number liftoff'],
   ['one two three four five six seven eight', 'a number'],
+  ['her friend at google.com', 'her an email address'],
+  ['her boss at acme.com', 'her an email address'],
+  ['his boss at acme.com', 'his an email address'],
   ['look at google dot com later', 'an email address later'],
   ['the deal at example.com ends friday', 'the an email address ends friday'],
   ["he's at amazon dot com", 'an email address'],
@@ -333,9 +336,9 @@ const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
 
 /**
  * Ordinary websites, kept (ordinary-website.ts): a written "." domain of one
- * label with a .com/.org/.net/.edu/.gov ending, no mail host, a plain lower-case
- * word before "at" that is no mailbox name, in an allow-listed frame, and no
- * contact word just before. 27 of #2756's 96 declared over-blanks and the 3 its
+ * label with a .com/.org/.net/.edu/.gov ending, no mail host, nothing glued on
+ * after it, a frame word before "at" exactly as written, and only short-list
+ * words before the frame. 24 of #2756's 96 declared over-blanks and the 3 its
  * verifier found are here.
  */
 const WEBSITE_KEPT: readonly string[] = [
@@ -359,9 +362,6 @@ const WEBSITE_KEPT: readonly string[] = [
   'available now at apple.com',
   'tickets on sale at ticketmaster.com',
   'she interned at google.com',
-  'her friend at google.com',
-  'her boss at acme.com',
-  'his boss at acme.com',
   'apply online at acme.com',
   'pay online at pge.com',
   'found it at ebay.com',
@@ -375,13 +375,17 @@ const WEBSITE_KEPT: readonly string[] = [
   'she works at acme.com',
   'sneakers are on sale at nike.com',
   'sold out at Target.com',
+  'bought shoes at zappos.com.',
+  'he works at microsoft.com, she said',
+  'Bought shoes  at  zappos.com',
 ];
 
 /**
  * Each guard of the website exception, pinned: a role word, a name (any case),
  * a said "dot", a mail host, a dotted or non-generic domain, an "@", a contact
  * word before it, a lookalike letter, a determiner standing in for goods, a
- * chain of "at"s. Each blanks as #2756 did; the last three blank where #2756 didn't.
+ * chain of "at"s, and the #2831 verifier's leak shapes. Each blanks as #2756 did,
+ * except the fullwidth-dot rows and "(at)" after a kept site, which blank more.
  */
 const WEBSITE_STILL_BLANKED: ReadonlyArray<readonly [string, string]> = [
   ['ordered from sales at acme.com', 'ordered from an email address'],
@@ -422,6 +426,79 @@ const WEBSITE_STILL_BLANKED: ReadonlyArray<readonly [string, string]> = [
   ['jo at gmail．com', 'an email address'],
   ['sales at acme。com', 'an email address'],
   ['bought shoes at zappos．com', 'bought an email address'],
+  // Anything before the frame that isn't on the short list: word forms, channels, phrases, lookalike letters, a contact word far back, a bare "to".
+  ['emails my son at harvard.edu', 'emails my an email address'],
+  ["cc'd my son at harvard.edu", "cc'd my an email address"],
+  ['cc’d my son at harvard.edu', 'cc’d my an email address'],
+  ['whatsapp my son at harvard.edu', 'whatsapp my an email address'],
+  ['fwd: my son at harvard.edu', 'fwd: my an email address'],
+  ['re: my son at harvard.edu', 're: my an email address'],
+  ['loop in my son at harvard.edu', 'loop in my an email address'],
+  ['get in touch with my son at harvard.edu', 'get in touch with my an email address'],
+  ['emaіl my son at harvard.edu', 'emaіl my an email address'],
+  [
+    'email this to her ok so like um my son at harvard.edu',
+    'email this to her ok so like um my an email address',
+  ],
+  ['emails, he works at acme.com', 'emails, he an email address'],
+  ['texted her, she works at acme.com', 'texted her, she an email address'],
+  ['slack him, sold out at target.com', 'slack him, sold an email address'],
+  ['dm me, on sale at target.com', 'dm me, on an email address'],
+  [
+    'email him, i just finally bought shoes at zappos.com',
+    'email him, i just finally bought an email address',
+  ],
+  ['to he works at acme.com', 'to he an email address'],
+  // No colleague frame: a boss or friend can be at a family domain.
+  ['my friend at smithfamily.com', 'my an email address'],
+  ['her boss at jo.com', 'her an email address'],
+  ['my coworker at dave.net', 'my an email address'],
+  ['my boss at harvard.edu', 'my an email address'],
+  // The site must end there: a country ending, a path or a fullwidth dot after it.
+  ['my son at usp.edu.br', 'my an email address.br'],
+  ['my son at harvard.edu.mx', 'my an email address.mx'],
+  ['bought shoes at zappos.com.mx', 'bought an email address.mx'],
+  ['he works at receita.gov.br', 'he an email address.br'],
+  ['bought shoes at zappos.com．mx', 'bought an email address．mx'],
+  ['bought shoes at zappos.com/sale', 'bought an email address/sale'],
+  ['bought shoes at zappos.com-x.br', 'bought an email address-x.br'],
+  // The frame word follows a space or starts the text.
+  ['jo&is at acme.com', 'jo&an email address'],
+  ['jo.lee/works at acme.com', 'jo.lee/an email address'],
+  ['sam&works at acme.com', 'sam&an email address'],
+  ["jo#she's at acme.com", 'jo#an email address'],
+  // Each frame's own rule: booking and "it" after their verbs only, a relative only after a possessive that starts the text, "sale" only after "on", a place verb only after a subject, mail hosts in any case, and the kept domain is checked again.
+  ['need rooms at acme.com', 'need an email address'],
+  ['got rooms at acme.com', 'got an email address'],
+  ['son at harvard.edu', 'an email address'],
+  ['the son at harvard.edu', 'the an email address'],
+  ['today my son at harvard.edu', 'today my an email address'],
+  ['bought shoes at zappos.com (at) gmail.com', 'bought an email address'],
+  ['sold out at target.com [at] gmail.com', 'sold an email address'],
+  ['bought shoes at Gmail.com', 'bought an email address'],
+  ['bought shoes at GMAIL.COM', 'bought an email address'],
+  ['liked it at acme.com', 'liked an email address'],
+  ['sent it at acme.com', 'sent an email address'],
+  ['bought them at acme.com', 'bought an email address'],
+  ['the sale at acme.com', 'the an email address'],
+  ['big sale at acme.com', 'big an email address'],
+  ['works at kimfamily.com', 'an email address'],
+  ['is at sarahjones.com', 'an email address'],
+  ['he works at duck.com', 'he an email address'],
+  ['bought shoes at zappos.io', 'bought an email address'],
+  ['it,is at acme.com', 'it,an email address'],
+  ['he,works at acme.com', 'he,an email address'],
+  ['pay it at acme.com', 'pay an email address'],
+  ['book it at acme.com', 'book an email address'],
+  ['just my son at harvard.edu', 'just my an email address'],
+  ['we bought my son at harvard.edu', 'we bought my an email address'],
+  // Too much text before the frame.
+  [
+    `${'we just '.repeat(20)}bought shoes at zappos.com`,
+    `${'we just '.repeat(20)}bought an email address`,
+  ],
+  // The same with the 121-char window starting on a whole word.
+  [`${'we '.repeat(39)}bought shoes at zappos.com`, `${'we '.repeat(39)}bought an email address`],
 ];
 
 /**
