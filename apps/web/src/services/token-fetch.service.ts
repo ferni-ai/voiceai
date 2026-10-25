@@ -9,6 +9,7 @@ import { API } from '../config/index.js';
 import type { TokenRequest, TokenResponse } from '../types/livekit.js';
 import { isValidTokenResponse } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
+import { appAcceptLanguage } from './app-accept-language.js';
 import { TokenRequestError } from './connect-failure.js';
 import { waitlistFromRefusal } from './waitlist-status.js';
 
@@ -56,6 +57,8 @@ export async function fetchConnectionToken(request: TokenRequest): Promise<Token
   // get saved under anonymous device IDs instead of your profile!
   const headers: Record<string, string> = {
     Accept: 'application/json',
+    // The language chosen in the app, not just the browser's: /token sets the call's locale from it
+    'Accept-Language': appAcceptLanguage(),
   };
 
   try {

@@ -155,7 +155,7 @@ const LANGUAGE_MAP: Record<string, SupportedLocale> = {
 /**
  * Normalize a language code to a supported locale
  */
-function normalizeLocale(langCode: string): SupportedLocale | null {
+export function normalizeLocale(langCode: string): SupportedLocale | null {
   const normalized = langCode.toLowerCase().trim();
 
   // Direct match
