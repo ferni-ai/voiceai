@@ -1,0 +1,5 @@
+# Call 3 of 3, minutes after asked-once-answer as the same user: dinner with Priya was asked
+# about and answered, so Ferni must not ask how it went again (capabilities.json asked-once).
+Hey Ferni, it's me again.
+Not much, just a quiet afternoon.
+Yeah. Okay, thanks. Talk soon.

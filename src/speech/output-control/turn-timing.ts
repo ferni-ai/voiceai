@@ -15,9 +15,17 @@ export type TurnHoldKind = 'actionClaim' | 'openerGate' | 'crisis';
 /**
  * A hold kind, or: 'unfinishedTurn', the ms an unfinished turn is about to be held
  * before its commit (0: answered at once), measured at the commit; 'openerAudio', an
- * opening clip ("Mm") began playing, `ms` until it reaches the wire.
+ * opening clip ("Mm") began playing, `ms` until it reaches the wire; 'ackClip', the
+ * same for a tool acknowledgement clip; 'handoff*', a step of an LLM handoff (ms 0).
  */
-export type TurnTimingKind = TurnHoldKind | 'unfinishedTurn' | 'openerAudio';
+export type TurnTimingKind =
+  | TurnHoldKind
+  | 'unfinishedTurn'
+  | 'openerAudio'
+  | 'ackClip'
+  | 'handoffEvent'
+  | 'handoffLock'
+  | 'handoffPublished';
 
 export type TurnTimingListener = (sessionId: string, kind: TurnTimingKind, ms: number) => void;
 const listeners = new Set<TurnTimingListener>();
