@@ -235,11 +235,9 @@ async function getHostedAudioUrl(
     getLogger().debug({ cacheKey, personaId }, 'Using cached audio URL');
     return cached.url;
   }
-
   // Generate unique filename with persona prefix
   const timestamp = Date.now();
   const filename = `${personaId}-${timestamp}-${cacheKey}.mp3`;
-
   const url = await uploadAudioToGCS(audioBuffer, filename);
 
   if (url) {
@@ -268,12 +266,8 @@ export interface PersonaCallOptions {
   ownerUid?: string;
   /** The member it is for: a MINOR_CARE_SHARED_HOLD on their account stops the call too. */
   userId?: string;
-  /** They asked for this call: just now, or as a reminder or scheduled call they set.
-   * Without it, a call to their own number is Ferni's own, and "Ferni can reach out" off stops it. */
-  askedFor?: boolean;
+  askedFor?: boolean; // they asked for or set it; without it a paused owner isn't rung (outreach-pause.ts)
 }
-
-/** Why a call to the owner's own number didn't ring while they've paused outreach. */
 export const PAUSED_CALL = 'Not calling: outreach paused';
 
 /**
@@ -304,19 +298,15 @@ export async function callWithPersonaVoice(
   const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
   if (await heldSender(options?.userId, e164Phone))
     return { success: false, message: 'Not calling: held' };
-  // "Ferni can reach out" off: a call Ferni starts on its own to them doesn't ring
-  const { outreachPausedFor } = await import('../outreach/guarded-text.js');
+  const { outreachPausedFor } = await import('../outreach/outreach-pause.js');
   if (!options?.askedFor && (await outreachPausedFor(options?.ownerUid, e164Phone)))
     return { success: false, message: PAUSED_CALL };
 
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"
-
   logger.info({ to: e164Phone, personaId }, `📞 Initiating call with ${firstName}'s voice...`);
-
   let twiml: string;
   let usedCartesiaVoice = false;
-
   const twilioVoice = TWILIO_FALLBACK_VOICES[personaId] || 'Polly.Matthew';
   const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 

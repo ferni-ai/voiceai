@@ -177,8 +177,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
           target.resolvedPhone,
           target.message || target.purpose,
           personaId,
-          // They scheduled it: "Ferni can reach out" off doesn't stop it
-          { fallbackToTwilioVoice: true, ownerUid: userId, userId, askedFor: true }
+          { askedFor: true, ownerUid: userId, userId } // they scheduled it (outreach-pause.ts)
         );
         success = result.success;
         errorMsg = result.success ? undefined : result.message;

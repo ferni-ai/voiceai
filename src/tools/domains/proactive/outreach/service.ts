@@ -59,15 +59,13 @@ async function makePhoneCall(
   phone: string,
   message: string,
   personaId: string,
-  userId: string,
-  askedNow = false
+  userId: string
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
   try {
     const result = await callWithPersonaVoice(phone, message, personaId, {
       fallbackToTwilioVoice: true,
       ownerUid: userId,
       userId,
-      askedFor: askedNow,
     });
     if (result.success) return { success: true, callSid: result.callSid };
     return { success: false, error: result.message };
@@ -216,7 +214,7 @@ export interface ImmediateContactOptions {
   contactId?: string;
   /** If true, this is a direct message TO the contact (not to user about contact) */
   isDirectToContact?: boolean;
-  /** They asked for this just now ("text me that", "call me"), so quiet hours and paused outreach don't hold it. */
+  /** They asked for this text just now ("text me that"), so quiet hours don't hold it. */
   askedNow?: boolean;
 }
 
@@ -340,8 +338,7 @@ export async function callUser(
   try {
     // Normalize persona ID and use for voice
     const canonicalPersonaId = getCanonicalPersonaId(personaId);
-    const asked = options?.askedNow === true; // "call me now": outreach paused doesn't stop it
-    const result = await makePhoneCall(phone, message, canonicalPersonaId, userId, asked);
+    const result = await makePhoneCall(phone, message, canonicalPersonaId, userId);
 
     if ('error' in result) {
       return { success: false, error: result.error };
@@ -790,10 +787,7 @@ The call will play a voice message when they answer.`,
       const userId = context?.userId || 'unknown';
       const agentName = context?.personaId || 'Ferni';
 
-      // Placed in the call they're on, when they ask for it
-      const result = await callUser(userId, params.message as string, agentName, {
-        askedNow: true,
-      });
+      const result = await callUser(userId, params.message as string, agentName);
 
       if (result.success) {
         return `Calling you now! When you answer, you'll hear: "${params.message}"`;
