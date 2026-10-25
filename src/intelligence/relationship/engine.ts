@@ -96,12 +96,11 @@ export async function initializeRelationship(
   return engine;
 }
 
-/**
- * Clear engine from cache (for testing or cleanup)
- */
-export function clearRelationshipEngine(userId: string, personaId: string): void {
-  const key = `${userId}_${personaId}`;
-  engineCache.delete(key);
+/** Clear a cached engine (tests, cleanup); with no persona, all of the user's (MINOR_CARE purge) */
+export function clearRelationshipEngine(userId: string, personaId?: string): void {
+  for (const [key, engine] of engineCache)
+    if (engine.userId === userId && (!personaId || key === `${userId}_${personaId}`))
+      engineCache.delete(key);
 }
 
 /**
@@ -121,7 +120,7 @@ export class RelationshipEngine {
   private dirty = false; // Track if changes need persisting
 
   constructor(
-    private readonly userId: string,
+    readonly userId: string,
     private readonly personaId: string,
     existingMemory?: RelationshipMemory | null
   ) {

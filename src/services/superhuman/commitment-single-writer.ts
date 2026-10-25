@@ -12,7 +12,7 @@
 
 import { flagOn } from '../../config/env-flag.js';
 import { forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
-import { flagForUser, type CohortStore } from '../platform/cohort-flags.js';
+import { flagForUser, READ_TIMEOUT_MS, type CohortStore } from '../platform/cohort-flags.js';
 
 /** `source` on the rows the after-call judge writes; the only rows readers show under the flag. */
 export const JUDGED_SOURCE = 'after-call-llm';
@@ -37,14 +37,39 @@ export async function singleWriterFor(
 export const REQUESTED_SOURCE = 'user-request';
 
 /**
- * What a tool adds to the row it writes. Flag off: nothing, so the row is as on
- * main. Flag on: a tag, so the readers that hide the regex-era rows still show
- * what the caller asked for by name, even when the after-call judge missed it.
+ * What a tool adds to the row it writes. Flag off for both the call and the
+ * person: nothing, so the row is as on main. Otherwise a tag, so the readers
+ * that hide the regex-era rows still show what the caller asked for by name.
+ * Either side counts: the call-start cohort read may have timed out (the env
+ * says off, the person's readers on), and the next call's check-in reads the
+ * env. A tag is harmless where the readers are off. The person's read waits
+ * at most READ_TIMEOUT_MS, as at call start; past that the env decides.
  */
-export function requestedFields(env: Record<string, string | undefined> = process.env): {
-  source?: typeof REQUESTED_SOURCE;
-} {
-  return isCommitmentSingleWriterOn(env) ? { source: REQUESTED_SOURCE } : {};
+export async function requestedFieldsFor(
+  userId: string,
+  env: Record<string, string | undefined> = process.env,
+  opts: { store?: CohortStore; timeoutMs?: number } = {}
+): Promise<{ source?: typeof REQUESTED_SOURCE }> {
+  const on = isCommitmentSingleWriterOn(env) || (await personOnWithin(userId, env, opts));
+  return on ? { source: REQUESTED_SOURCE } : {};
+}
+
+/** The person's own value is on, read within the timeout; false when slower. */
+async function personOnWithin(
+  userId: string,
+  env: Record<string, string | undefined>,
+  opts: { store?: CohortStore; timeoutMs?: number }
+): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), opts.timeoutMs ?? READ_TIMEOUT_MS);
+  });
+  try {
+    const read = flagForUser(userId, 'COMMITMENT_SINGLE_WRITER', { env, store: opts.store });
+    return (await Promise.race([read, late])) === 'on';
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** A stored row the after-call judge wrote. */

@@ -292,6 +292,8 @@ const LEGACY_FLAG_MANIFEST = {
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
   MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with MINOR_CARE): a signed-in account owner who says they're under 18 is held too (minor-care.ts)
+  MINOR_CARE_OWNERS: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -446,6 +448,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: "predict my week" loads Peter's game; a week-old prediction is asked about once a call
   WEEKLY_PREDICTION: { default: 'off', owner: 'tools', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: after a call, one wellbeing snapshot from what the caller said (wellbeing-tracking/after-call.ts)
+  WELLBEING_AFTER_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_FACTS_IN_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
