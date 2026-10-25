@@ -3,7 +3,8 @@
  * set() replaces, set(..., { merge: true }) deep-merges maps, update()
  * replaces each named field (and fails NOT_FOUND on a missing doc), and
  * FieldValue.delete() removes a field. Subcollections, collectionGroup and
- * where(field, '!=', null) are enough for the token migration.
+ * where(field, '!=', null) are enough for the token migration; batch() runs
+ * its queued set/delete writes in order on commit().
  */
 import { FieldValue } from '@google-cloud/firestore';
 
@@ -175,9 +176,22 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
       ),
     };
   }
+  /** A write batch: the queued writes apply in order on commit(). */
+  const batch = () => {
+    const ops: Array<() => Promise<void>> = [];
+    return {
+      set: (ref: FakeDocRef, data: Json, opts?: { merge?: boolean }) =>
+        void ops.push(() => ref.set(data, opts)),
+      delete: (ref: FakeDocRef) => void ops.push(() => ref.delete()),
+      commit: async () => {
+        for (const op of ops) await op();
+      },
+    };
+  };
   return {
     collection,
     doc,
+    batch,
     collectionGroup: (name: string) =>
       query(() => [...state.docs.keys()].filter((p) => p.split('/').at(-2) === name)),
   };
