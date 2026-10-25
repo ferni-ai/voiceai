@@ -17,6 +17,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
+// setup.ts fakes getFirestoreDb for every test: the shared-hold write must reach the emulator
+vi.mock('../../../utils/firestore-utils.js', async () =>
+  vi.importActual('../../../utils/firestore-utils.js')
+);
 vi.mock('../../superhuman/semantic-intelligence/index.js', () => ({
   clearSemanticIntelligenceCache: () => undefined,
 }));
@@ -343,6 +347,8 @@ describe.skipIf(!emulator)('MINOR_CARE: the stored held window (Firestore emulat
     const u = uid('K');
     const p = await proc();
     await heldCall(p, u); // the age statement writes the hold; the purge rewrites it and stores the window
+    // three transactions on one doc: the emulator's locks take a few seconds to serialize them
+    for (let i = 0; i < 30 && !(await windows(u)).some((w) => w.scrubbed); i++) await sleep(500);
     const shared = await import('../../outreach/minor-care-shared-hold.js');
     await shared.recordSharedHold(u); // another held session's write, after the window
     const doc = await read(`minor_care_holds/${u}`);
