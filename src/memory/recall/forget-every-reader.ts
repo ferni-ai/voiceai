@@ -106,8 +106,11 @@ export async function forgottenCheck(
  * #2719): the shared read, waited for at most READ_TIMEOUT_MS, or null when it
  * is late or failed. No last-known fallback until #2623 bounds its age.
  */
-export async function forgottenWithin(userId: string): Promise<ForgottenCheck | null> {
-  const stored = await topicsFreshWithin(userId);
+export async function forgottenWithin(
+  userId: string,
+  reader = 'fresh'
+): Promise<ForgottenCheck | null> {
+  const stored = await topicsFreshWithin(userId, reader);
   return stored === null ? null : checkFor(userId, stored);
 }
 
