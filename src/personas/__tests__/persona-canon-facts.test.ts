@@ -11,7 +11,7 @@
  * loadSystemPrompt) ends with the facts line, in both prompt modes; off, it is
  * the prompt exactly as it was.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -96,12 +96,13 @@ describe.each(CANON_BUNDLES)('canon facts for %s agree with its sources', (bundl
 
   it('each given fact is said, word for word, on one line of the bundle', () => {
     const lines = sourceLines(bundle).map(words);
-    for (const key of ['age', 'partner', 'pets', 'home', 'work'] as const) {
-      if (!known(f[key]) || f[key] === 'none') continue;
-      const wanted = keywords(f[key]);
+    for (const key of ['age', 'partner', 'pets', 'home', 'heritage', 'work'] as const) {
+      const value = f[key];
+      if (value === undefined || !known(value) || value === 'none') continue;
+      const wanted = keywords(value);
       expect(wanted.length, key).toBeGreaterThan(0);
       const said = lines.some((line) => wanted.every((w) => line.has(w)));
-      expect(said, `${key}: "${f[key]}" is on no source line`).toBe(true);
+      expect(said, `${key}: "${value}" is on no source line`).toBe(true);
     }
   });
 
@@ -160,6 +161,103 @@ describe.each(CANON_BUNDLES)('canon facts for %s agree with its sources', (bundl
     expect(Math.ceil(line.length / 4)).toBeLessThan(CANON_FACTS_TOKENS);
     expect(line).toContain(f.pronouns);
     for (const name of names(f.partner)) expect(line).toContain(name);
+  });
+
+  it('every persona has an age and a home on its line (2026-10-25 canon pass)', () => {
+    expect(known(f.age), 'age').toBe(true);
+    expect(known(f.home), 'home').toBe(true);
+    const line = canonFactsLine(f);
+    expect(line).toContain(`age ${f.age}`);
+    expect(line).toContain(`home: ${f.home}`);
+  });
+});
+
+/** Files that quote what callers say ("I need to say sorry to my partner"), not the persona. */
+const CALLER_TEXT = /function-calling-specialty|tool-usage-guidance|knowledge\/|methodologies\//;
+
+/** Every text file in a bundle the persona speaks from, as [path inside the bundle, text]. */
+function bundleFiles(bundle: string): Array<[string, string]> {
+  const root = join(BUNDLES, bundle);
+  return readdirSync(root, { recursive: true, encoding: 'utf8' })
+    .filter((f) => /\.(?:md|json|ts)$/.test(f) && !CALLER_TEXT.test(f))
+    .map((f): [string, string] => [f, readFileSync(join(root, f), 'utf8')]);
+}
+
+/**
+ * The product owner's canon calls (2026-10-25), held across every file in the
+ * bundle, not just the identity sources: a prod call audit heard Ferni's pets
+ * change four ways in thirty seconds and Maya's heritage differ file to file.
+ * A quoted caller line ("after 'my dog died'") is not a claim, hence (?<!').
+ */
+describe('canon calls hold in every file of the bundle', () => {
+  const CONFLICTS: Array<[bundle: string, claim: RegExp, why: string]> = [
+    [
+      'ferni',
+      /(?<!')\b(?:my|our)\s+(?:\w+\s+)?(?:dogs?|cats?|pets?|pupp(?:y|ies)|kittens?)\b|\bI (?:have|had) an? (?:\w+ )?(?:dog|cat|pet)\b/i,
+      'Ferni has no pets',
+    ],
+    [
+      'maya-santos',
+      /\bFilipin[oa] (?:roots|heritage)\b|(?<!Filipino-)\bBrazilian (?:heritage|roots)\b|\bI'm (?:Filipin[oa]|Brazilian)-American\b/,
+      'Maya is Filipino-Brazilian, never one side alone',
+    ],
+    [
+      'maya-santos',
+      /\bLola\W+my cat\b|\bLola\b[^.]*\bShe's a cat\b/i,
+      'Lola is her grandmother, not a cat',
+    ],
+    [
+      'maya-santos',
+      /\bmy (?:husband|wife|fianc[eé]e?)\b|\bour wedding\b|\b(?:I'm|we're|we got) married\b|can't keep a dating relationship/i,
+      'Daniel is her partner of six years',
+    ],
+    [
+      'peter-john',
+      /\bI'm (?:80|eighty)\b|\b(?:80|eighty) years old\b/i,
+      'Peter is in his late seventies',
+    ],
+    ['alex-chen', /(?<!')\bmy (?:partner|girlfriend|boyfriend|wife|husband)\b/i, 'Alex is single'],
+  ];
+
+  /** Ferni's silence lines outside the bundle, which the live silence path speaks. */
+  const FERNI_EXTRA = ['meaningful-silence.ts', 'meaningful-silence/content.ts'].map(
+    (f): [string, string] => [f, readFileSync(join(BUNDLES, '..', f), 'utf8')]
+  );
+
+  it.each(CONFLICTS)('%s: %s is said nowhere (%s)', (bundle, claim) => {
+    const files = bundle === 'ferni' ? [...bundleFiles(bundle), ...FERNI_EXTRA] : bundleFiles(bundle);
+    const hits = files.flatMap(([file, text]) =>
+      text
+        .split('\n')
+        .filter((line) => claim.test(line))
+        .map((line) => `${file}: ${line.trim().slice(0, 120)}`)
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it("Maya's own story files name both sides of her family", () => {
+    for (const file of [
+      'biography-core.md',
+      'character.md',
+      'core-identity.md',
+      'system-prompt.md',
+    ]) {
+      const text = read('maya-santos', `identity/${file}`);
+      expect(text, file).toMatch(/Philippines|Filipin/);
+      expect(text, file).toMatch(/Brazil/);
+    }
+  });
+
+  it("renders the calls: Maya's heritage, Ferni without pets, Peter in his late seventies", () => {
+    expect(canonFactsLine(facts('maya-santos'))).toContain(
+      'heritage: Filipino-Brazilian, California raised;'
+    );
+    expect(facts('ferni').pets).toBe('none');
+    expect(canonFactsLine(facts('ferni'))).toContain('pets: none;');
+    expect(canonFactsLine(facts('peter-john'))).toContain('age late seventies;');
+    for (const b of CANON_BUNDLES.filter((x) => x !== 'maya-santos')) {
+      expect(canonFactsLine(facts(b)), b).not.toContain('heritage:');
+    }
   });
 });
 

@@ -28,7 +28,7 @@ export function memoryConsentStore() {
 
 /**
  * Just enough Firestore for firestoreConsentStore and the old phone-keyed
- * stores (top-level docs, get/set/delete, runTransaction get/set), so a test
+ * stores (top-level docs, get/set/delete, runTransaction get/set, set with merge), so a test
  * can drive the real default deps: mock utils/firestore-utils' getFirestoreDb
  * to return this. `docs` is keyed "collection/id".
  */
@@ -52,7 +52,8 @@ export function fakeConsentDb() {
           exists: docs.has(r.path),
           data: () => docs.get(r.path),
         }),
-        set: (r: { path: string }, data: Record<string, unknown>) => docs.set(r.path, { ...data }),
+        set: (r: { path: string }, data: Record<string, unknown>, opts?: { merge?: boolean }) =>
+          docs.set(r.path, opts?.merge ? { ...docs.get(r.path), ...data } : { ...data }),
       }),
   };
   return { db, docs };

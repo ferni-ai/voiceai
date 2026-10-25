@@ -18,8 +18,7 @@ export * from './validation/index.js';
 // --- FORGET REQUESTS over stored commitments (every reader applies them) ---
 export * from './commitment-forget.js';
 
-// --- RE-EXPORTS ---
-// Commitment Keeper
+// --- RE-EXPORTS --- Commitment Keeper
 export {
   buildCommitmentContext,
   commitmentKeeper,
@@ -33,6 +32,7 @@ export {
   type CommitmentStatus,
   type CommitmentType,
 } from './commitment-keeper.js';
+export { loadCompletedCommitmentsOrThrow } from './commitment-store.js';
 
 // Superhuman Observations - "Only I Would Notice" pattern detection
 export {
