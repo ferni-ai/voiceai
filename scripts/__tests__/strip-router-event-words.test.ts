@@ -135,14 +135,54 @@ describe('strip-router-event-words', () => {
       deleteField: DELETE,
       from: '2026-03-02',
     });
-    expect(resumed).toEqual({ days: 1, scanned: 1, withWords: 1, written: 1 });
+    const counts = { stamped: 0, noTimestamp: 1, written: 1 };
+    expect(resumed).toEqual({ days: 1, scanned: 1, withWords: 1, ...counts });
     const all = await stripRouterEventWords(db, { apply: true, deleteField: DELETE });
-    expect(all).toEqual({ days: 2, scanned: 2, withWords: 1, written: 1 });
+    expect(all).toEqual({ days: 2, scanned: 2, withWords: 1, ...counts, noTimestamp: 2 });
     expect(await stripRouterEventWords(db, { apply: true, deleteField: DELETE })).toMatchObject({
       withWords: 0,
       written: 0,
     });
     expect(commits).toEqual([1, 1]);
+  });
+
+  it('stamps expireAt = event time + 30 d in the same write, never now + 30 d, and leaves a stamped one', async () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const march = Date.parse('2026-03-01T10:00:00.000Z');
+    const keep = new Date(Date.parse('2026-11-20T00:00:00.000Z'));
+    const { db, days, commits } = fakeDb({
+      '2026-03-01': {
+        // the writer stored timestamp as an ISO string (cleanForFirestore)
+        old: { ...withWords(1), timestamp: new Date(march).toISOString() },
+        ts: { userId: 'u-test', inputLength: 4, timestamp: { toMillis: () => march + DAY } },
+        noTime: { userId: 'u-test', inputLength: 4 },
+      },
+      '2026-10-24': {
+        stamped: { userId: 'u-test', inputLength: 9, timestamp: 'x', expireAt: keep },
+      },
+    });
+
+    await main(['node', 'strip'], db, DELETE);
+    expect(commits).toEqual([]);
+    expect(logged.join('\n')).toContain('no expireAt: 2 to stamp, 1 with no readable timestamp');
+    expect(logged.join('\n')).toContain('DRY RUN: would strip words from 1 events, expireAt on 2');
+
+    const c = await stripRouterEventWords(db, { apply: true, deleteField: DELETE });
+    expect(c).toMatchObject({ scanned: 4, withWords: 1, stamped: 2, noTimestamp: 1, written: 2 });
+    expect(commits).toEqual([2]); // the strip and the stamp of "old" are one update
+    const at = (id: string) => (days['2026-03-01']?.[id]?.expireAt as Date).getTime();
+    expect(days['2026-03-01']?.old?.inputText).toBeUndefined();
+    expect(at('old')).toBe(march + 30 * DAY);
+    expect(at('ts')).toBe(march + 31 * DAY);
+    expect(days['2026-03-01']?.noTime?.expireAt).toBeUndefined();
+    expect(days['2026-10-24']?.stamped?.expireAt).toBe(keep);
+
+    expect(await stripRouterEventWords(db, { apply: true, deleteField: DELETE })).toMatchObject({
+      withWords: 0,
+      stamped: 0,
+      written: 0,
+    });
+    expect(commits).toEqual([2]);
   });
 
   it('refuses a --from that is not a day', async () => {

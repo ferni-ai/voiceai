@@ -3,7 +3,8 @@
  *
  * Until 2026-10-24 each routed turn wrote semantic_router_events/{day}/events/{id} with the
  * full `inputText`; new events keep its length (routing-analytics.ts). This does the same to
- * old ones. Other fields stay, nothing is deleted. Dry run by default (destructive-gate.ts):
+ * old ones, and stamps the expireAt new events get (timestamp + 30 d) on those without one, so
+ * the TTL policy ages them out too. Other fields stay, nothing is deleted. Dry run by default (destructive-gate.ts):
  * counts only. Finished days are printed, to resume with --from; a rerun writes nothing.
  *
  *   npx tsx scripts/migrations/strip-router-event-words.ts
@@ -16,6 +17,7 @@
 import { pathToFileURL } from 'node:url';
 import { destructiveMode, refusalMessage } from '../destructive-gate.js';
 import { getFirestoreDatabase } from '../../src/config/environment.js';
+import { ROUTING_EVENT_RETENTION_MS } from '../../src/tools/semantic-router/persistence/firestore-persistence.js';
 
 export const COLLECTION = 'semantic_router_events';
 /** Fields holding words: the writer stored `inputText`; the rest the in-memory event held */
@@ -50,19 +52,33 @@ export interface StripCounts {
   scanned: number;
   /** Events holding at least one word field */
   withWords: number;
+  /** Events without an expireAt that get timestamp + 30 d */
+  stamped: number;
+  /** Events without an expireAt or a readable timestamp: not stamped */
+  noTimestamp: number;
   written: number;
 }
 
-/** The update that strips one event, or null when it holds no words. */
+/** A Firestore Timestamp, a Date or an ISO string (what the writer stored), in ms */
+function millis(value: unknown): number | null {
+  if (value instanceof Date) return value.getTime();
+  const t = value as { toMillis?: () => number } | null;
+  if (typeof t?.toMillis === 'function') return t.toMillis();
+  const ms = typeof value === 'string' ? Date.parse(value) : NaN;
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/** The update that strips and stamps one event, or null when it needs neither. */
 export function stripUpdate(doc: Doc, deleteField: unknown): Record<string, unknown> | null {
   const present = WORD_FIELDS.filter((f) => doc.get(f) !== undefined);
-  if (present.length === 0) return null;
   const update: Record<string, unknown> = Object.fromEntries(present.map((f) => [f, deleteField]));
   const text = doc.get('inputText');
   if (typeof text === 'string' && doc.get('inputLength') === undefined) {
     update.inputLength = text.length;
   }
-  return update;
+  const at = doc.get('expireAt') == null ? millis(doc.get('timestamp')) : null;
+  if (at !== null) update.expireAt = new Date(at + ROUTING_EVENT_RETENTION_MS);
+  return Object.keys(update).length > 0 ? update : null;
 }
 
 /**
@@ -78,7 +94,14 @@ export async function stripRouterEventWords(
     onDay?: (day: string, c: StripCounts) => void;
   }
 ): Promise<StripCounts> {
-  const c: StripCounts = { days: 0, scanned: 0, withWords: 0, written: 0 };
+  const c: StripCounts = {
+    days: 0,
+    scanned: 0,
+    withWords: 0,
+    stamped: 0,
+    noTimestamp: 0,
+    written: 0,
+  };
   const days = (await db.collection(COLLECTION).listDocuments())
     .filter((d) => opts.from === undefined || d.id >= opts.from)
     .sort((a, b) => (a.id < b.id ? -1 : 1));
@@ -88,7 +111,7 @@ export async function stripRouterEventWords(
       const base = day
         .collection('events')
         .orderBy('__name__')
-        .select(...WORD_FIELDS, 'inputLength');
+        .select(...WORD_FIELDS, 'inputLength', 'timestamp', 'expireAt');
       const page = (await (last ? base.startAfter(last) : base).limit(PAGE).get()).docs;
       if (page.length === 0) break;
       const batch = db.batch();
@@ -96,8 +119,10 @@ export async function stripRouterEventWords(
       for (const doc of page) {
         c.scanned++;
         const update = stripUpdate(doc, opts.deleteField);
+        if (doc.get('expireAt') == null && !update?.expireAt) c.noTimestamp++;
         if (!update) continue;
-        c.withWords++;
+        if (WORD_FIELDS.some((f) => f in update)) c.withWords++;
+        if (update.expireAt) c.stamped++;
         if (opts.apply) {
           batch.update(doc.ref, update);
           writes++;
@@ -150,7 +175,9 @@ export async function main(
     onDay: (day, so) => console.log(`  done ${day} (scanned ${so.scanned} so far)`),
   });
   console.log(`Scanned ${c.scanned} events over ${c.days} days; ${c.withWords} hold words`);
-  console.log(`${verb} words from ${apply ? c.written : c.withWords} events`);
+  console.log(`  no expireAt: ${c.stamped} to stamp, ${c.noTimestamp} with no readable timestamp`);
+  console.log(`${verb} words from ${c.withWords} events, expireAt on ${c.stamped}`);
+  if (apply) console.log(`Wrote ${c.written} events`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
