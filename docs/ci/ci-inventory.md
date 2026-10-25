@@ -98,12 +98,15 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 ## Quality Workflows
 
-### lead-verified.yml (report-only)
+### lead-verified.yml (enforced in the merge queue)
 
 **Purpose:** Report whether the exact code a PR merges was independently verified
 (rules: `scripts/ci/lead-verified.ts`, always run from main's copy, never the PR's).
-Runs on PRs, PR comments and merge_group and always passes. Enforcing it (the commented
-`LEAD_VERIFIED_ENFORCE` switch plus a required check) needs Seth's OK. CI typechecks it
+Runs on PRs, PR comments and merge_group. PR and comment runs only report: the verifier's
+comment usually lands after the PR's check ran, and comment runs can't update that check.
+merge_group runs set `LEAD_VERIFIED_ENFORCE=1` and fail when any PR in the group lacks a
+PASS for its head. It blocks merges only once the ruleset requires the "Lead Verified"
+check (Seth). CI typechecks it
 via `pnpm typecheck:memory-eval` (`tsconfig.scripts.json`).
 
 **How a verifier marks a PR verified.** Verify the PR's current head, then run (as the

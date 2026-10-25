@@ -1,8 +1,10 @@
 name: Lead Verified
 
-# REPORT-ONLY: was the exact code this PR merges independently verified? Rules:
-# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Always succeeds; the
-# enforcement switch below (and making the check required) needs Seth's OK.
+# Was the exact code this PR merges independently verified? Rules:
+# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. PR runs only report (the
+# verifier's comment usually lands after the PR's check ran, and comment runs can't update
+# it). Merge-queue runs ENFORCE: a group holding a PR without a PASS for its head fails.
+# Making this check required is a ruleset change (Seth).
 # Re-runs when the evidence changes (comments, PR edits). issue_comment runs report in
 # the Actions log; they don't update the PR's check.
 on:
@@ -23,7 +25,7 @@ permissions:
 
 jobs:
   lead-verified:
-    name: Lead Verified (report-only)
+    name: Lead Verified
     if: github.event_name != 'issue_comment' || github.event.issue.pull_request
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -48,8 +50,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
-          # ENFORCEMENT SWITCH (needs Seth's OK): uncomment to fail on NOT_VERIFIED.
-          # LEAD_VERIFIED_ENFORCE: '1'
+          # Enforced in the merge queue only; see the header for why PR runs stay report-only.
+          LEAD_VERIFIED_ENFORCE: ${{ github.event_name == 'merge_group' && '1' || '' }}
         run: |
           [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on main yet"; exit 0; }
           node --experimental-strip-types scripts/ci/lead-verified.ts
