@@ -3,10 +3,18 @@
  * digit is still that credential, in text and as a fact. Ordinary number words are kept.
  * All values are fake.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { redactCredentials } from '../credential-redaction.js';
 import { credentialCategory } from '../spoken-credential.js';
 import { spokenDigits } from '../spoken-digits.js';
+
+// The filter is off by default on main; these rows test redaction, so turn it on
+beforeEach(() => {
+  vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'on');
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const CARD_WORDS = 'four one one one one one one one one one one one one one one one';
 const SSN_WORDS = 'oh seven eight oh five one one two oh';
