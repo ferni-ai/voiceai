@@ -229,8 +229,8 @@ export function withTurnReminder(
     attunementNote(chatCtx, session, { careful: options.shape === false }),
     // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
-    // GOOD_NEWS_BIGGER=on: react, name it, one question about the moment; after the pace note.
-    goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
+    // GOOD_NEWS_BIGGER=on: own words, no echo, one question about the moment; after the pace note.
+    goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false, session }),
     // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
     callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.

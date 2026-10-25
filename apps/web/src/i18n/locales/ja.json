@@ -3508,8 +3508,6 @@
     "accessLevelFullDesc": "すべてのチームメンバーとお話できます",
     "accessLevelLimited": "制限あり",
     "accessLevelLimitedDesc": "Ferni のみ",
-    "accessLevelSupervised": "見守り",
-    "accessLevelSupervisedDesc": "お話があった際に通知を受け取ります",
     "eyebrow": "ファミリー",
     "addMember": "ファミリーメンバーを追加",
     "emptyText": "電話で Ferni にかけるファミリーメンバーを追加しましょう。自動的に認識され、それぞれ Ferni とのお話を楽しめるようになります。",

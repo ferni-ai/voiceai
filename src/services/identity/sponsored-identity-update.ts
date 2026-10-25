@@ -32,7 +32,8 @@ export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
 
 /**
  * Access level: 'full' (all personas and features), 'limited' (specific personas
- * only), 'supervised' (the sponsor gets notifications).
+ * only), 'supervised' (legacy, no longer offered: it is treated like 'full', and
+ * nothing is sent to the sponsor).
  */
 export const ACCESS_LEVELS = ['full', 'limited', 'supervised'] as const;
 export type AccessLevel = (typeof ACCESS_LEVELS)[number];

@@ -3508,8 +3508,6 @@
     "accessLevelFullDesc": "可以与所有团队成员对话",
     "accessLevelLimited": "受限访问",
     "accessLevelLimitedDesc": "仅限 Ferni",
-    "accessLevelSupervised": "受监督",
-    "accessLevelSupervisedDesc": "通话时你会收到通知",
     "eyebrow": "家庭",
     "addMember": "添加家庭成员",
     "emptyText": "添加通过电话联系 Ferni 的家庭成员。系统会自动识别他们，他们也可以与 Ferni 进行专属的对话。",

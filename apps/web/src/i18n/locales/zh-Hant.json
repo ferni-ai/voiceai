@@ -3508,8 +3508,6 @@
     "accessLevelFullDesc": "可以和所有團隊成員對話",
     "accessLevelLimited": "受限存取權",
     "accessLevelLimitedDesc": "僅限 Ferni",
-    "accessLevelSupervised": "受監督存取權",
-    "accessLevelSupervisedDesc": "通話時你會收到通知",
     "eyebrow": "家人",
     "addMember": "新增家人",
     "emptyText": "新增會用電話撥給 Ferni 的家人。系統會自動辨識他們，讓他們也能和 Ferni 進行專屬的對話。",
