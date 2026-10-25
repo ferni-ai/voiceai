@@ -337,10 +337,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   try {
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
+    forgotten.prefetchForgotten(services.userId); // FORGET_EVERY_READER: read it alongside
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
-      forgotten.prefetchForgotten(services.userId), // FORGET_EVERY_READER: read it alongside
     ]);
     mark('load_prompts_done');
 
