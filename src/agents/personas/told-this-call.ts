@@ -18,6 +18,7 @@
  * @module agents/personas/told-this-call
  */
 
+import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
 import type { Line } from './director-notes.js';
 import {
   formatPhraseLoops,
@@ -221,14 +222,20 @@ export function formatTold(told: Told): string {
   return parts.length ? `[Already said this call: ${parts.join(' ')}]` : '';
 }
 
-/** The record without the names, quotes and phrases `keep` rejects (director-notes.ts told()). */
-export function keptTold(told: Told, keep: (text: string) => boolean): Told {
+/**
+ * The record without the names, quotes and phrases `keep` rejects (director-notes.ts
+ * told()). On a call with crisis risk noted (`sessionId`), no phrase loops at all:
+ * a crisis-guided request must never be told to drop wording (crisis-call-risk.ts).
+ */
+export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
+  const { loops: all, ...rest } = told;
+  const loops = all && !(sessionId && crisisRiskNoted(sessionId)) ? all : undefined;
   return {
-    ...told,
+    ...rest,
     names: told.names.filter((n) => keep(n.name)),
     repeated: told.repeated.filter(keep),
     recentLines: told.recentLines.filter(keep),
-    ...(told.loops ? { loops: told.loops.filter((l) => keep(l.phrase)) } : {}),
+    ...(loops ? { loops: loops.filter((l) => keep(l.phrase)) } : {}),
   };
 }
 

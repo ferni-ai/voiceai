@@ -451,7 +451,8 @@ export class Director {
    * model (a locked teammate after the caller moved on: locked-teammates.ts).
    */
   told(keep: (text: string) => boolean = () => true): string {
-    return this.toldRecord ? formatTold(keptTold(this.toldRecord, keep)) : '';
+    const told = this.toldRecord;
+    return told ? formatTold(keptTold(told, keep, this.opts.sessionId)) : '';
   }
 }
 

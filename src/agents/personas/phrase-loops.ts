@@ -20,8 +20,13 @@
  * call, nothing held on the TTS path), and a rewrite of a streamed reply would
  * cut words mid-sentence.
  *
- * Crisis replies (988, 911, a hotline, the screening question) are never in
- * the ledger, so no phrase from one is ever named as something to avoid.
+ * Crisis and safety wording is never named, three ways: a reply that mentions
+ * a crisis resource (988, 911, a hotline, the screening question) is not in
+ * the ledger; a phrase whose content words all sit in one clause of the crisis
+ * and safety scripts (phrase-loops-safety.generated.ts: "are you somewhere
+ * safe right now", "really glad you're talking with me") is never a loop; and
+ * once a call has crisis risk noted, the note carries no loops at all
+ * (told-this-call.ts keptTold).
  *
  * @module agents/personas/phrase-loops
  */
@@ -29,6 +34,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { Line } from './director-notes.js';
 import { mentionsCrisisResource } from './listen-offer.js';
+import { SAFETY_WORDING } from './phrase-loops-safety.generated.js';
 
 export function phraseLoopGuardOn(env: Env = process.env): boolean {
   return flagOn('PHRASE_LOOP_GUARD', env);
@@ -98,13 +104,40 @@ function phrasesOf(text: string): Set<string> {
 const contentWords = (phrase: string): string[] =>
   phrase.split(' ').filter((w) => !FUNCTION_WORDS.has(w));
 
-/** Whether one phrase holds the other, word for word. */
-const overlaps = (a: string, b: string): boolean =>
-  ` ${a} `.includes(` ${b} `) || ` ${b} `.includes(` ${a} `);
+/** Each clause of the crisis and safety scripts, as its content words. */
+const SAFETY_CLAUSES: ReadonlyArray<Set<string>> = SAFETY_WORDING.flatMap(clausesOf).map(
+  (words) => new Set(words.filter((w) => !FUNCTION_WORDS.has(w)))
+);
+
+/** Whether a phrase's content words all sit in one clause of the safety scripts. */
+export const isSafetyWording = (phrase: string): boolean => {
+  const content = contentWords(phrase);
+  return SAFETY_CLAUSES.some((clause) => content.every((w) => clause.has(w)));
+};
+
+/** Its two-word runs that hold a content word. */
+const pairsOf = (phrase: string): string[] => {
+  const words = phrase.split(' ');
+  return words
+    .slice(1)
+    .map((w, i) => [words[i], w])
+    .filter((pair) => pair.some((w) => !FUNCTION_WORDS.has(w)))
+    .map((pair) => pair.join(' '));
+};
+
+/**
+ * Whether two phrases are one habit: they share a two-word run with a content
+ * word ("i'm really glad you're talking with" and "really glad you're talking
+ * with me"; "fair and square" and "you got me fair and square").
+ */
+const overlaps = (a: string, b: string): boolean => {
+  const mine = new Set(pairsOf(a));
+  return pairsOf(b).some((pair) => mine.has(pair)) || ` ${a} `.includes(` ${b} `);
+};
 
 /**
  * The stock phrases Ferni has said in two or more of his last replies, most
- * repeated first. Of two phrases where one holds the other, only the more
+ * repeated first. Of two phrases from one habit (overlaps), only the more
  * repeated (then the longer) is kept: "fair and square" ×6 over "you got me
  * fair and square" ×2, "glad to hear it" over "glad to hear".
  */
@@ -123,7 +156,8 @@ export function phraseLoops(lines: Line[]): PhraseLoop[] {
     .filter(([phrase, n]) => {
       if (n < MIN_REPLIES) return false;
       const content = contentWords(phrase);
-      return content.length > 0 && !content.every((w) => callerWords.has(w));
+      if (!content.length || content.every((w) => callerWords.has(w))) return false;
+      return !isSafetyWording(phrase);
     })
     .map(([phrase, replies]) => ({ phrase, replies }))
     .sort((a, b) => b.replies - a.replies || b.phrase.length - a.phrase.length);
