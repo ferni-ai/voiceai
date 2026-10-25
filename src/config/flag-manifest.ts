@@ -181,6 +181,8 @@ const LEGACY_FLAG_MANIFEST = {
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
   // which flight search backs searchFlights and getFlightPrice: amadeus (default) or ignav (travel/flight-provider.ts)
   FLIGHT_PROVIDER: { default: 'amadeus', owner: 'tools', kind: 'config' },
+  // on: "forget that" deletes the facts (and their copies) instead of hiding them (memory/recall/forget-delete.ts)
+  FORGET_DELETES: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
   FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
