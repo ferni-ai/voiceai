@@ -18,6 +18,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 import type { UserResonanceProfile } from './better-than-human-personality.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'shared-personality-resonance' });
 
@@ -149,6 +150,7 @@ function schedulePersist(userId: string, profile: StoredResonanceProfile): void 
 }
 
 async function persistToFirestore(userId: string, profile: StoredResonanceProfile): Promise<void> {
+  if (writeHeld(userId)) return; // MINOR_CARE: a debounced save or flush after the age statement
   const db = await initFirestore();
   if (!db) return;
 
@@ -213,9 +215,7 @@ async function initFirestore(): Promise<Firestore | null> {
 // PROFILE OPERATIONS
 // ============================================================================
 
-/**
- * Load user's resonance profile from cache or Firestore
- */
+/** Load user's resonance profile from cache or Firestore */
 export async function loadResonanceProfile(userId: string): Promise<UserResonanceProfile | null> {
   try {
     const cached = resonanceCache.get(userId);
@@ -266,10 +266,9 @@ export async function loadResonanceProfile(userId: string): Promise<UserResonanc
   }
 }
 
-/**
- * Record a resonance event (called when we detect user reaction)
- */
+/** Record a resonance event (called when we detect user reaction) */
 export async function recordResonanceEvent(userId: string, event: ResonanceEvent): Promise<void> {
+  if (writeHeld(userId)) return; // MINOR_CARE: nothing learned from a caller under 18
   try {
     const profile = resonanceCache.get(userId) || createDefaultProfile(userId);
 
@@ -336,10 +335,9 @@ export async function recordResonanceEvent(userId: string, event: ResonanceEvent
   }
 }
 
-/**
- * Record a user topic mention (for future callbacks)
- */
+/** Record a user topic mention (for future callbacks) */
 export async function recordUserTopicMention(userId: string, topic: string): Promise<void> {
+  if (writeHeld(userId)) return; // MINOR_CARE: nothing learned from a caller under 18
   try {
     const profile = resonanceCache.get(userId) || createDefaultProfile(userId);
 
@@ -373,13 +371,12 @@ export async function recordUserTopicMention(userId: string, topic: string): Pro
   }
 }
 
-/**
- * Record vulnerability response
- */
+/** Record vulnerability response */
 export async function recordVulnerabilityResponse(
   userId: string,
   responseType: 'reciprocated' | 'deflected' | 'ignored'
 ): Promise<void> {
+  if (writeHeld(userId)) return; // MINOR_CARE: nothing learned from a caller under 18
   try {
     const profile = resonanceCache.get(userId) || createDefaultProfile(userId);
 
@@ -417,9 +414,7 @@ export async function recordVulnerabilityResponse(
   }
 }
 
-/**
- * Force immediate persist (call on session end)
- */
+/** Force immediate persist (call on session end) */
 export async function flushResonanceProfile(userId: string): Promise<void> {
   const existing = pendingSaves.get(userId);
   if (existing) {
@@ -433,22 +428,25 @@ export async function flushResonanceProfile(userId: string): Promise<void> {
   }
 }
 
+/** MINOR_CARE (purgeHeldUser): drop one user's cached profile and pending save. */
+export function clearResonanceUser(userId: string): void {
+  clearTimeout(pendingSaves.get(userId));
+  pendingSaves.delete(userId);
+  resonanceCache.delete(userId);
+}
+
 // ============================================================================
 // SYNC CACHE ACCESS
 // ============================================================================
 
-/**
- * Get resonance profile from cache ONLY (synchronous, for hot path).
- */
+/** Get resonance profile from cache ONLY (synchronous, for hot path). */
 export function getCachedResonance(userId: string): UserResonanceProfile | null {
   const cached = resonanceCache.get(userId);
   if (!cached) return null;
   return transformToResonanceProfile(cached);
 }
 
-/**
- * Pre-load resonance profile into cache (async, call at session start).
- */
+/** Pre-load resonance profile into cache (async, call at session start). */
 export async function prewarmResonanceCache(userId: string): Promise<void> {
   await loadResonanceProfile(userId);
 }
@@ -457,9 +455,7 @@ export async function prewarmResonanceCache(userId: string): Promise<void> {
 // ENGAGEMENT DETECTION
 // ============================================================================
 
-/**
- * Analyze user's response to detect engagement
- */
+/** Analyze user's response to detect engagement */
 export function detectEngagement(
   userResponse: string,
   previousExpression: { theme: ThemeCategory; content: string }

@@ -128,9 +128,7 @@ const DISTRESS_INDICATORS = [
   /i need (a minute|to stop|a break)/i,
 ];
 
-// ============================================================================
-// IN-MEMORY STORE
-// ============================================================================
+// In-memory store
 
 const boundaryProfiles = new Map<string, BoundaryProfile>();
 
@@ -156,9 +154,7 @@ function getOrCreateProfile(userId: string): BoundaryProfile {
 // BOUNDARY DETECTION
 // ============================================================================
 
-/**
- * Detect if a user message establishes a new boundary
- */
+/** Detect if a user message establishes a new boundary */
 export function detectNewBoundary(
   userId: string,
   userMessage: string,
@@ -548,9 +544,12 @@ export interface BoundarySoftening {
 const prematureAdviceRecords = new Map<string, PrematureAdviceRecord[]>();
 const boundarySoftenings = new Map<string, BoundarySoftening[]>();
 
-/**
- * Record when advice was given at the wrong time.
- */
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export function forgetBoundaryUser(userId: string): void {
+  for (const m of [boundaryProfiles, prematureAdviceRecords, boundarySoftenings]) m.delete(userId);
+}
+
+/** Record when advice was given at the wrong time. */
 export function recordPrematureAdvice(
   userId: string,
   advice: string,
