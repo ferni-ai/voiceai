@@ -9,6 +9,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const read = vi.hoisted(() => ({ fn: vi.fn(async (_u: string): Promise<string[] | null> => []) }));
+const logged = vi.hoisted(() => ({ warn: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (original) => {
+  const real = await original<typeof import('../../../utils/safe-logger.js')>();
+  return {
+    ...real,
+    createLogger: (...a: Parameters<typeof real.createLogger>) => {
+      const l = real.createLogger(...a);
+      return Object.assign(Object.create(l), { warn: logged.warn });
+    },
+  };
+});
 vi.mock('../forget.js', async (original) => ({
   ...(await original<typeof import('../forget.js')>()),
   forgottenTopicsOrNull: (userId: string) => read.fn(userId),
@@ -155,5 +166,24 @@ describe('forgottenWithin: bounded, and unflagged', () => {
     await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
     expect(await got).toBeNull();
     expect(forgetReadStats()).toMatchObject({ timeouts: 1, failClosed: 1 });
+  });
+
+  it('each fail-closed answer is logged with its reader and why, so its rate can be measured', async () => {
+    vi.useFakeTimers();
+    logged.warn.mockClear();
+    read.fn.mockImplementationOnce(() => new Promise<never>(() => {})); // hangs
+    const late = forgottenWithin(U, 'last-summary');
+    await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
+    expect(await late).toBeNull();
+    resetForgetTopicsSource();
+    read.fn.mockResolvedValueOnce(null); // unreadable
+    expect(await forgottenWithin(U, 'recent-context')).toBeNull();
+    const closed = logged.warn.mock.calls
+      .filter(([, msg]) => msg === 'Forgotten topics: no fresh read, failing closed')
+      .map(([d]) => ({ reader: d.reader, why: d.why }));
+    expect(closed).toEqual([
+      { reader: 'last-summary', why: 'timeout' },
+      { reader: 'recent-context', why: 'failed' },
+    ]);
   });
 });

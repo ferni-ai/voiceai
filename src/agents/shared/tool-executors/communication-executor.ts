@@ -11,6 +11,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { directSendHeld } from '../../../services/communication-service.js';
+import { rawSendRetired } from '../../../services/messaging/consent-reach.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'CommunicationExecutor' });
@@ -90,6 +92,8 @@ async function execute(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Voice messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
       // Generate the voice message
       log.info({ persona, messageLength: message.length }, '🎤 Generating voice message');
@@ -103,7 +107,8 @@ async function execute(
         return 'Had trouble generating the voice message. Want me to try again or send a text instead?';
       }
 
-      // Send via MMS using Twilio
+      const retired = rawSendRetired(); // MESSAGING_PIPELINE
+      if (retired) return retired;
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -113,7 +118,6 @@ async function execute(
         return `Voice message ready! Here's the preview: ${voiceMessage.audioUrl}\n\nBut I can't send it yet - messaging isn't fully configured.`;
       }
 
-      // Send MMS with audio attachment
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {
@@ -183,8 +187,11 @@ async function execute(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Text messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
-      // Check Twilio credentials
+      const retired = rawSendRetired(); // MESSAGING_PIPELINE
+      if (retired) return retired;
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -194,7 +201,6 @@ async function execute(
         return `I'd send "${message}" to ${contact.name}, but messaging isn't set up yet. Want me to help you draft it for copy-paste?`;
       }
 
-      // Send SMS via Twilio
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {

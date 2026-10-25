@@ -940,9 +940,9 @@ async function recordThreadingData(data: TurnSemanticData): Promise<void> {
  * This enables counterfactual memory: "Last time I suggested X, and it didn't work"
  */
 export async function recordAgentAdvice(advice: AgentAdviceContext): Promise<void> {
-  const { userId, adviceText, topic, userSituation } = advice;
+  const { userId, sessionId, adviceText, topic, userSituation } = advice;
 
-  if (!isMemberIdentity(userId)) return;
+  if (!isMemberIdentity(userId) || writeHeld(userId, sessionId)) return;
 
   try {
     await recordDecisionPoint(userId, {
@@ -957,10 +957,7 @@ export async function recordAgentAdvice(advice: AgentAdviceContext): Promise<voi
   }
 }
 
-/**
- * Track Ferni's promises in his reply: ones he just followed through on, and new ones.
- * Call this after generating an agent response.
- */
+/** Track Ferni's promises in his reply: ones he just followed through on, and new ones. */
 export async function trackFerniCommitments(
   userId: string,
   responseText: string,
@@ -968,9 +965,11 @@ export async function trackFerniCommitments(
     topic?: string;
     person?: string;
     userMessage?: string;
+    sessionId?: string;
   }
 ): Promise<void> {
-  if (!isMemberIdentity(userId)) return;
+  // Ferni's words, but the promises are about the caller's life: a held call keeps none.
+  if (!isMemberIdentity(userId) || writeHeld(userId, context.sessionId)) return;
 
   try {
     await trackResponsePromises(userId, responseText, context);
@@ -995,7 +994,6 @@ export async function recordAdviceOutcome(
   if (!isMemberIdentity(userId)) return;
 
   try {
-    // For now, use the counterfactual memory module's exported function
     const { recordOutcome } = await import('./counterfactual-memory.js');
     await recordOutcome(userId, {
       decisionPointId: adviceId,

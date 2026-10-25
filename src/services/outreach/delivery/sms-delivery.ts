@@ -14,6 +14,7 @@ import type { MessageListInstanceCreateOptions } from 'twilio/lib/rest/api/v2010
 import { getLogger } from '../../../utils/safe-logger.js';
 import { validateSmsContent } from '../../brand/index.js';
 import { MAX_RETRIES as RESILIENCE_MAX_RETRIES } from '../../../config/resilience-config.js';
+import { heldSender } from '../checkin-replies.js';
 
 const log = getLogger().child({ module: 'sms-delivery' });
 
@@ -37,6 +38,8 @@ export interface SMSMessage {
   outreachId: string;
   mediaUrl?: string;
   scheduleSend?: Date;
+  /** Asked for in the call just now (a code, a text they or a member asked for): a MINOR_CARE hold doesn't stop it. */
+  askedNow?: boolean;
 }
 
 export interface SMSDeliveryResult {
@@ -65,9 +68,7 @@ export interface DeliveryRecord {
   retryCount: number;
 }
 
-// ============================================================================
-// STATE
-// ============================================================================
+// --- STATE ---
 
 let config: SMSDeliveryConfig | null = null;
 let twilioClient: Twilio.Twilio | null = null;
@@ -88,9 +89,7 @@ const RECORD_TTL_HOURS = 24; // Records older than this are cleaned up
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // Run cleanup every hour
 let cleanupInterval: NodeJS.Timeout | null = null;
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
+// --- INITIALIZATION ---
 
 /**
  * Initialize SMS delivery with Twilio credentials
@@ -132,9 +131,7 @@ export function getTwilioClient(): Twilio.Twilio | null {
   return twilioClient;
 }
 
-// ============================================================================
-// MESSAGE FORMATTING
-// ============================================================================
+// --- MESSAGE FORMATTING ---
 
 /**
  * Format message for SMS delivery
@@ -219,6 +216,9 @@ export async function sendSMS(message: SMSMessage): Promise<SMSDeliveryResult> {
   const { consentBlocks } = await import('../../messaging/consent.js'); // MESSAGING_PIPELINE
   const refused = await consentBlocks(message.to, 'sms', true);
   if (refused) return { success: false, error: `Not sent: ${refused}` };
+  // MINOR_CARE_SHARED_HOLD: never to an account or number a call held under 18 (unless asked now)
+  if (!message.askedNow && (await heldSender(message.userId, message.to)))
+    return { success: false, error: 'Not sent: held' };
 
   try {
     // Brand validation - ensure content is on-brand before sending

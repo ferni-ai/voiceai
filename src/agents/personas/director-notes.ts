@@ -32,7 +32,13 @@ import {
   NoteHistory,
 } from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
-import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
+import {
+  formatTold,
+  keptTold,
+  toldThisCall,
+  toldThisCallEnabled,
+  type Told,
+} from './told-this-call.js';
 import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
 import {
   cap,
@@ -446,13 +452,7 @@ export class Director {
    */
   told(keep: (text: string) => boolean = () => true): string {
     const told = this.toldRecord;
-    if (!told) return '';
-    return formatTold({
-      ...told,
-      names: told.names.filter((n) => keep(n.name)),
-      repeated: told.repeated.filter(keep),
-      recentLines: told.recentLines.filter(keep),
-    });
+    return told ? formatTold(keptTold(told, keep, this.opts.sessionId)) : '';
   }
 }
 

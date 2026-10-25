@@ -737,7 +737,7 @@ export async function wrappedTtsNode(
           if (isMemberIdentity(userId) && rawLLMBuffer.length > 10 && !isGarbageResponse) {
             import('../../services/superhuman/semantic-intelligence/integration.js')
               .then(({ trackFerniCommitments }) => {
-                void trackFerniCommitments(userId, rawLLMBuffer, {});
+                void trackFerniCommitments(userId, rawLLMBuffer, { sessionId });
               })
               .catch((err) => {
                 // Non-critical - don't block TTS
@@ -989,7 +989,7 @@ export async function wrappedTtsNode(
           },
           `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}" (${chunkCount} chunks in ${streamDurationMs}ms)`
         );
-        noteGeneratedReply(sessionId, ttsOutputBuffer); // CALL_TIMELINE: generated vs heard
+        noteGeneratedReply(sessionId, ttsOutputBuffer, options.session); // CALL_TIMELINE, CUT_REPLY
       }
     },
   });

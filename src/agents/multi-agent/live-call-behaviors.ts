@@ -52,6 +52,7 @@ import {
 } from '../shared/turn-detector-sole.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
 import { attachCallTimeline } from '../shared/call-timeline-session.js';
+import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
 import { addRecallNote, type RecallAgent } from './recall-note.js';
 
 const log = getLogger();
@@ -73,6 +74,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   const { session, sessionEventHandlers, cleanupFunctions, sessionId, userId } = input;
   // CALL_TIMELINE: the whole call in order, sounds and cut replies too (call-timeline.ts)
   cleanupFunctions.push(attachCallTimeline(session as never, { sessionId, userId }));
+  // CUT_REPLY_IN_HISTORY: a cut reply stays in the chat, marked (cut-reply-history.ts, #2422)
+  cleanupFunctions.push(attachCutReplyHistory(session as never, { sessionId }));
   const sessionWithEvents = input.sessionWithEvents as {
     on: (event: string, handler: Handler) => void;
   };

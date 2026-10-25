@@ -15,10 +15,12 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
+import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
+import { carryOwnCallMe, heldCall } from './held-call.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 
@@ -146,13 +148,9 @@ function getPersonaVoiceSettings(personaId: string): VoiceSettings {
   return settings[personaId] || settings['ferni'];
 }
 
-// ============================================================================
-// CALL SCHEDULING
-// ============================================================================
+// --- CALL SCHEDULING ---
 
-/**
- * Schedule a proactive outreach call
- */
+/** Schedule a proactive outreach call */
 export async function scheduleProactiveCall(request: ProactiveCallRequest): Promise<CallResult> {
   const {
     userId,
@@ -174,9 +172,10 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
-    // MESSAGING_PIPELINE: every proactive call stops at a call opt-out. A call-hours hold is
-    // re-checked when placed (deferred-calls.ts); no job ever dials a stored quiet-hours call.
-    const refused = await consentBlocks(normalizedPhone, 'call', true);
+    if (await heldCall(request)) return { success: false, error: 'Not calling: held' };
+    // MESSAGING_PIPELINE: the member's own number or one they hold a call grant for, never past an
+    // opt-out. A call-hours hold is re-checked when placed (deferred-calls.ts), never stale.
+    const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
@@ -209,6 +208,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
       maxAttempts: 3,
       createdAt: new Date().toISOString(),
     };
+    carryOwnCallMe(request, scheduledCall); // the dial re-check (initiateCall) knows it too
 
     await saveScheduledCall(scheduledCall);
 
@@ -233,9 +233,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
   }
 }
 
-/**
- * Initiate an outbound call using Twilio + LiveKit
- */
+/** Initiate an outbound call using Twilio + LiveKit */
 async function initiateCall(
   call: ScheduledCall,
   options: {
@@ -245,6 +243,10 @@ async function initiateCall(
   }
 ): Promise<CallResult> {
   try {
+    if (await heldCall(call)) {
+      await updateCallStatus(call.id, 'cancelled'); // MINOR_CARE_SHARED_HOLD, re-checked at the dial
+      return { success: false, error: 'Not calling: held' };
+    }
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
     if (await ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
 
@@ -611,7 +613,6 @@ export function getConversationalCallService(): ConversationalCallService {
     serviceInstance = {
       isConfigured: isConversationalCallsConfigured,
       makeCall: async (ctx: OutboundCallContext): Promise<CallResult> => {
-        // Extract values with fallbacks
         const userId = ctx.userId || ctx.user?.id || '';
         const phoneNumber = ctx.phoneNumber || ctx.user?.phone || '';
         const message = ctx.message || ctx.approach?.primaryGoal || '';
@@ -622,6 +623,8 @@ export function getConversationalCallService(): ConversationalCallService {
             error: 'Missing required fields: userId, phoneNumber, or message',
           };
         }
+        if (await heldSender(userId, phoneNumber))
+          return { success: false, error: 'Not calling: held' }; // MINOR_CARE_SHARED_HOLD
 
         return scheduleProactiveCall({
           userId,
@@ -699,12 +702,8 @@ export function isConversationalCallsConfigured(): boolean {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 }
 
-/**
- * Make a conversational call (legacy API)
- * @deprecated Use scheduleProactiveCall directly
- */
+/** Make a conversational call (legacy API). @deprecated Use scheduleProactiveCall directly */
 export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
-  // Extract values with fallbacks
   const userId = context.userId || context.user?.id || '';
   const phoneNumber = context.phoneNumber || context.user?.phone || '';
   const message = context.message || context.approach?.primaryGoal || '';
@@ -712,6 +711,7 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
   if (!userId || !phoneNumber || !message) {
     return { success: false, error: 'Missing required fields: userId, phoneNumber, or message' };
   }
+  if (await heldSender(userId, phoneNumber)) return { success: false, error: 'Not calling: held' };
 
   return scheduleProactiveCall({
     userId,

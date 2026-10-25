@@ -22,46 +22,27 @@ import { removeUndefined, cleanForFirestore, toSafeDate, toSafeDateOptional } fr
 import { getLogger } from '../../utils/safe-logger.js';
 import { normalizePhoneNumber, isValidPhoneNumber } from './user-identification.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import {
+  InvalidSponsoredIdentityUpdateError,
+  assertSponsorStatusMove,
+  parseSponsoredIdentityUpdate,
+  type AccessLevel,
+  type RelationshipType,
+  type SponsoredIdentityStatus,
+} from './sponsored-identity-update.js';
+
+export type {
+  AccessLevel,
+  RelationshipType,
+  SponsoredIdentityStatus,
+  UpdateSponsoredIdentityData,
+} from './sponsored-identity-update.js';
 
 const log = getLogger().child({ module: 'SponsoredIdentity' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-/**
- * Relationship types for sponsored identities
- */
-export type RelationshipType =
-  | 'mother'
-  | 'father'
-  | 'parent'
-  | 'grandmother'
-  | 'grandfather'
-  | 'grandparent'
-  | 'sibling'
-  | 'child'
-  | 'spouse'
-  | 'partner'
-  | 'friend'
-  | 'other';
-
-/**
- * Access level for sponsored identities
- */
-export type AccessLevel =
-  | 'full' // Full access to all personas and features
-  | 'limited' // Limited to specific personas
-  | 'supervised'; // Sponsor gets notifications
-
-/**
- * Status of a sponsored identity
- */
-export type SponsoredIdentityStatus =
-  | 'active' // Normal active state
-  | 'pending' // Awaiting sponsor approval (self-registered)
-  | 'suspended' // Temporarily disabled
-  | 'revoked'; // Permanently revoked
 
 /**
  * Sponsored identity - represents a family member or friend who calls via phone
@@ -137,20 +118,6 @@ export interface CreateSponsoredIdentityData {
   accessLevel?: AccessLevel;
   allowedPersonas?: string[];
   notes?: string;
-}
-
-/**
- * Data for updating a sponsored identity
- */
-export interface UpdateSponsoredIdentityData {
-  displayName?: string;
-  preferredName?: string;
-  relationship?: RelationshipType;
-  phoneNumber?: string;
-  accessLevel?: AccessLevel;
-  allowedPersonas?: string[];
-  notes?: string;
-  status?: SponsoredIdentityStatus;
 }
 
 /**
@@ -311,12 +278,15 @@ export async function getSponsoredIdentities(sponsorUserId: string): Promise<Spo
 }
 
 /**
- * Update a sponsored identity.
+ * Update a sponsored identity. `edit` is untrusted (a request body): only the
+ * editable fields are applied, each checked, and only an allowed status move
+ * (see sponsored-identity-update.ts); anything else throws
+ * InvalidSponsoredIdentityUpdateError.
  */
 export async function updateSponsoredIdentity(
   id: string,
   sponsorUserId: string,
-  updates: UpdateSponsoredIdentityData
+  edit: unknown
 ): Promise<SponsoredIdentity | null> {
   const identity = await getSponsoredIdentity(id);
   if (!identity) {
@@ -328,10 +298,13 @@ export async function updateSponsoredIdentity(
     throw new Error('Not authorized to update this identity');
   }
 
+  const updates = parseSponsoredIdentityUpdate(edit);
+  if (updates.status) assertSponsorStatusMove(identity.status, updates.status);
+
   // If phone number is changing, validate and update index
   if (updates.phoneNumber && updates.phoneNumber !== identity.phoneNumber) {
     if (!isValidPhoneNumber(updates.phoneNumber)) {
-      throw new Error(`Invalid phone number: ${updates.phoneNumber}`);
+      throw new InvalidSponsoredIdentityUpdateError('phoneNumber is not a valid phone number');
     }
 
     const normalizedPhone = normalizePhoneNumber(updates.phoneNumber);
