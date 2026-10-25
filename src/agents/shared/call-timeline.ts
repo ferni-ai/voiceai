@@ -15,6 +15,7 @@ import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { SoundKind as Heard } from '../integrations/sound-signal.js';
 import { VOICED_TAKES } from './reaction-clips.js';
+import { noteGeneratedForCut } from './cut-reply-history.js';
 
 const log = createLogger({ module: 'CallTimeline' });
 
@@ -228,10 +229,15 @@ export function timelineFor(key: object | string | undefined): CallTimeline | un
   return typeof key === 'string' ? byId.get(key) : key && bySession.get(key);
 }
 
-/** tts-wrapper: the full reply text at the TTS hand-off. */
-export function noteGeneratedReply(sessionId: string | undefined, text: string): void {
+/** tts-wrapper: the full reply text at the TTS hand-off (also kept for CUT_REPLY_IN_HISTORY). */
+export function noteGeneratedReply(
+  sessionId: string | undefined,
+  text: string,
+  session?: object
+): void {
   try {
     timelineFor(sessionId)?.generated(text);
+    noteGeneratedForCut(session, text);
   } catch {
     // bookkeeping only
   }

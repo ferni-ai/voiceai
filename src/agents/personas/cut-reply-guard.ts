@@ -98,7 +98,7 @@ export function guardCutReply(
   redo: () => Promise<ReadableStream<Chunk> | null>,
   sessionId?: string
 ): ReadableStream<Chunk> {
-  const reader = reply.getReader();
+  let reader = reply.getReader();
   return new ReadableStream<Chunk>({
     async start(controller) {
       let held: Chunk[] | undefined = [];
@@ -124,9 +124,9 @@ export function guardCutReply(
         }
         held = undefined;
         await reader.cancel().catch(() => undefined);
-        const again = guardCutReply(next, undefined, redo, sessionId);
-        for await (const chunk of again as unknown as AsyncIterable<Chunk>)
-          controller.enqueue(chunk);
+        reader = guardCutReply(next, undefined, redo, sessionId).getReader();
+        for (let r = await reader.read(); !r.done; r = await reader.read())
+          controller.enqueue(r.value);
         return true;
       };
       try {
@@ -170,13 +170,16 @@ export function withCutReplyCheck<M extends Model>(
   env: Env = process.env
 ): M {
   if (!flagOn('CUT_REPLY_IN_HISTORY', env)) return model;
+  const services = (session as { userData?: { services?: { sessionId?: string } } }).userData
+    ?.services;
+  const id = sessionId ?? services?.sessionId;
   const checked = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
     const cut = armedCutReply(session);
     const reply = await model(request);
     if (!reply) return reply;
     const redo = async (): Promise<ReadableStream<Chunk> | null> =>
       model(withTurnStyleReminder(request, REPHRASE_NOTE));
-    return guardCutReply(reply, cut, redo, sessionId);
+    return guardCutReply(reply, cut, redo, id);
   };
   return checked as M;
 }

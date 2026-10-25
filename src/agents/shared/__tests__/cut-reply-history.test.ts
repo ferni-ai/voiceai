@@ -16,6 +16,7 @@ import {
   noteGeneratedForCut,
   unheardPart,
 } from '../cut-reply-history.js';
+import { noteGeneratedReply } from '../call-timeline.js';
 
 const ON = { CUT_REPLY_IN_HISTORY: 'on' };
 const TIP =
@@ -74,6 +75,17 @@ describe('attachCutReplyHistory', () => {
     await reply(s, TIP, { cut: true });
     expect(assistantTexts(s.agent)).toEqual([`${CUT_MARK} ${TIP}`]);
     expect(armedCutReply(s.session)).toBe(TIP);
+  });
+
+  it('takes the text from the TTS hand-off (noteGeneratedReply, as tts-wrapper calls it)', async () => {
+    const s = callSession();
+    const handle = voice.SpeechHandle.create();
+    s.session.emit('speech_created', { speechHandle: handle, createdAt: Date.now() - 1000 });
+    noteGeneratedReply('s1', TIP, s.session);
+    handle.interrupt();
+    handle._markDone();
+    await settle();
+    expect(assistantTexts(s.agent)).toEqual([`${CUT_MARK} ${TIP}`]);
   });
 
   it('adds nothing when LiveKit committed the heard reply', async () => {
