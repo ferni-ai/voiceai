@@ -1,12 +1,12 @@
 /**
  * "Response Time Critical" alerts: measured from pickup on calls Ferni places,
- * held for a minimum sample, and sent once per incident.
+ * and held for a minimum sample.
  *
  * Prod (2026-10-22 to 10-25): 23 alerts, one every ~5 minutes for up to an
  * hour after a call. The first response of an on-behalf call was timed from
- * session start, so its ring counted (36 s on 10-24); one call was enough;
- * and the same incident re-alerted every cooldown while it stayed in the
- * one-hour window.
+ * session start, so its ring counted (36 s on 10-24), and one call was enough.
+ * Re-sending every cooldown during a real breach is unchanged from main (a
+ * once-per-incident dedup is a separate follow-up).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,7 +33,6 @@ import {
   startCallQualityMonitor,
 } from '../call-quality-monitor.js';
 import { markCallAnswered } from '../call-start-stages.js';
-import { AlertIncidents } from '../call-quality-incidents.js';
 
 const T0 = Date.UTC(2026, 9, 24, 15, 0, 9);
 const MINUTE = 60_000;
@@ -43,13 +42,13 @@ let seq = 0;
 const at = (ms: number): void => void vi.setSystemTime(ms);
 
 /** An inbound/app call whose first audio came `firstAudioMs` after the session started. */
-function inboundCall(firstAudioMs: number, end: 'natural' | 'disconnect' = 'natural'): void {
+function inboundCall(firstAudioMs: number): void {
   const id = `in-${seq++}`;
   const start = Date.now();
   startCall(id, undefined, 'ferni', 'inbound_call');
   recordCallEvent({ callId: id, timestamp: start + 300, type: 'connection_success' });
   recordCallEvent({ callId: id, timestamp: start + firstAudioMs, type: 'first_response' });
-  endCall(id, end);
+  endCall(id, 'natural');
   at(start); // calls are instant on the test clock
 }
 
@@ -68,12 +67,10 @@ async function onBehalfCall(ringMs: number, replyMs: number): Promise<string> {
   return id;
 }
 
-const titles = (): string[] =>
-  notify.mock.calls.map((args) => (args as unknown as [{ title: string }])[0].title);
-const responseAlerts = (): string[] => titles().filter((title) => title.includes('Response Time'));
-const RESPONSE = '📞 Response Time Critical';
-const DISCONNECT = '📞 Disconnect Rate Critical';
-const count = (title: string): number => titles().filter((t) => t === title).length;
+const responseAlerts = (): string[] =>
+  notify.mock.calls
+    .map((args) => (args as unknown as [{ title: string }])[0].title)
+    .filter((title) => title.includes('Response Time'));
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -133,105 +130,18 @@ describe('response-time alerts wait for a minimum sample', () => {
   });
 });
 
-describe('one alert per incident', () => {
-  it('alerts once for 5 slow calls, then not again while the incident lasts', async () => {
+describe('a real breach (cooldown as on main)', () => {
+  it('alerts for 5 slow calls, holds inside the cooldown, and re-sends after it', async () => {
     for (let i = 0; i < 5; i++) inboundCall(8_000);
     await checkQualityAlerts();
     expect(responseAlerts()).toEqual(['📞 Response Time Critical']);
-
-    // Prod re-sent every 5 minutes while the calls stayed in the 1 h window.
-    for (const minutes of [1, 6, 11, 30, 59]) {
-      at(T0 + minutes * MINUTE);
-      await checkQualityAlerts();
-    }
-    expect(responseAlerts()).toEqual(['📞 Response Time Critical']);
-  });
-
-  it('alerts again after the incident clears and a new one starts', async () => {
-    for (let i = 0; i < 5; i++) inboundCall(8_000);
-    await checkQualityAlerts();
-    expect(responseAlerts()).toHaveLength(1);
-
-    at(T0 + 2 * MINUTE);
-    for (let i = 0; i < 20; i++) inboundCall(500); // (5×8 + 20×0.5) / 25 = 2.0 s: recovered
-    await checkQualityAlerts();
-    expect(responseAlerts()).toHaveLength(1);
-
-    at(T0 + 8 * MINUTE);
-    for (let i = 0; i < 20; i++) inboundCall(10_000); // (40 + 10 + 200) / 45 = 5.6 s
-    await checkQualityAlerts();
-    expect(responseAlerts()).toEqual(['📞 Response Time Critical', '📞 Response Time Critical']);
-  });
-});
-
-describe('a failed send', () => {
-  it('is retried at the next check, and then the incident holds', async () => {
-    for (let i = 0; i < 5; i++) inboundCall(8_000);
-    notify.mockImplementationOnce(async () => {
-      throw new Error('slack 503');
-    });
-    await checkQualityAlerts(); // attempted, threw: not delivered
-    expect(count(RESPONSE)).toBe(1);
 
     at(T0 + MINUTE);
-    await checkQualityAlerts(); // retried and delivered
-    expect(count(RESPONSE)).toBe(2);
-    expect(await notify.mock.results.at(-1)?.value).toBeUndefined(); // the retry succeeded
-
-    for (const minutes of [2, 7, 30]) {
-      at(T0 + minutes * MINUTE);
-      await checkQualityAlerts();
-    }
-    expect(count(RESPONSE)).toBe(2); // delivered once: no more sends this incident
-  });
-});
-
-describe('two alerts at once', () => {
-  it('each alerts once, and each incident opens and clears on its own', async () => {
-    for (let i = 0; i < 5; i++) inboundCall(8_000, 'disconnect');
     await checkQualityAlerts();
-    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 1]);
+    expect(responseAlerts()).toHaveLength(1); // within the 5-minute cooldown
 
-    for (const minutes of [1, 6]) {
-      at(T0 + minutes * MINUTE);
-      await checkQualityAlerts();
-    }
-    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 1]);
-
-    at(T0 + 7 * MINUTE);
-    for (let i = 0; i < 95; i++) inboundCall(8_000); // disconnects 5/100: cleared; still slow
+    at(T0 + 6 * MINUTE);
     await checkQualityAlerts();
-    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 1]);
-
-    at(T0 + 13 * MINUTE);
-    for (let i = 0; i < 20; i++) inboundCall(8_000, 'disconnect'); // 25/120: a new incident
-    await checkQualityAlerts();
-    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 2]);
-  });
-});
-
-describe('AlertIncidents', () => {
-  const timing = { alertCooldownMs: 5 * MINUTE, alertRepeatMs: 3 * 60 * MINUTE };
-  const check = (incidents: AlertIncidents, now: number, firing: boolean): boolean => {
-    incidents.beginCheck();
-    const due = firing && incidents.shouldSend('critical:x', now, timing);
-    if (due) incidents.sent('critical:x', now);
-    incidents.endCheck();
-    return due;
-  };
-
-  it('reminds about an incident still open after alertRepeatMs', () => {
-    const incidents = new AlertIncidents();
-    expect(check(incidents, 0, true)).toBe(true);
-    expect(check(incidents, 179 * MINUTE, true)).toBe(false);
-    expect(check(incidents, 181 * MINUTE, true)).toBe(true);
-  });
-
-  it('does not re-page a flapping alert inside the cooldown', () => {
-    const incidents = new AlertIncidents();
-    expect(check(incidents, 0, true)).toBe(true);
-    expect(check(incidents, 1 * MINUTE, false)).toBe(false); // cleared
-    expect(check(incidents, 2 * MINUTE, true)).toBe(false); // back within 5 min
-    expect(check(incidents, 6 * MINUTE, true)).toBe(true);
+    expect(responseAlerts()).toHaveLength(2); // noisy, never silent
   });
 });

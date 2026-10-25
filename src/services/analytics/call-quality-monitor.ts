@@ -20,7 +20,6 @@ import { logCallStartStages } from './call-start-stages.js';
 import { emitCallEnd, type CallSummary } from './bq-call-events.js';
 import { gateSmallSamples } from './call-quality-sample.js';
 import * as firstResponse from './call-first-response.js';
-import { AlertIncidents } from './call-quality-incidents.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -40,8 +39,8 @@ export interface CallQualityConfig {
 
   qualityCheckIntervalMs: number; // how often quality is checked
 
-  alertCooldownMs: number; // least time between two sends of one alert
-  alertRepeatMs: number; // an open incident's alert is re-sent only after this
+  // Alert cooldown
+  alertCooldownMs: number;
 
   enableSlack: boolean;
 }
@@ -57,7 +56,6 @@ const DEFAULT_CONFIG: CallQualityConfig = {
 
   qualityCheckIntervalMs: 60_000, // Every minute
   alertCooldownMs: 300_000, // 5 minute cooldown
-  alertRepeatMs: 3 * 60 * 60_000, // longer than the 1 h window: one bad burst alerts once
 
   enableSlack: true,
 };
@@ -171,7 +169,7 @@ let config = { ...DEFAULT_CONFIG };
 const sessions = new Map<string, CallSession>();
 const completedSessions: CallSession[] = [];
 const MAX_COMPLETED_SESSIONS = 10000;
-const incidents = new AlertIncidents();
+const lastAlerts = new Map<string, number>();
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
@@ -289,27 +287,21 @@ export function recordCallEvent(event: CallEvent): void {
   }
 }
 
-/** Start a call; `callType` (job metadata.type) marks one Ferni placed (call-first-response.ts). */
-export function startCall(
-  callId: string,
-  userId?: string,
-  personaId?: string,
-  callType?: string
-): void {
-  if (forward)
-    return forward('startCall', [callId, userId, personaId, ...(callType ? [callType] : [])]);
+/** Start a call; `type` (job metadata.type) marks one Ferni placed (call-first-response.ts). */
+export function startCall(callId: string, userId?: string, persona?: string, type?: string): void {
+  if (forward) return forward('startCall', [callId, userId, persona, ...(type ? [type] : [])]);
   const startTime = Date.now();
   recordCallEvent({
     callId,
     userId,
-    personaId,
+    personaId: persona,
     timestamp: startTime,
     type: 'connection_attempt',
   });
   const session = sessions.get(callId);
   if (session) {
     session.stages = { session_start: 0 };
-    session.outbound = firstResponse.isPlacedCallType(callType);
+    session.outbound = firstResponse.isPlacedCallType(type);
   }
 }
 
@@ -559,6 +551,12 @@ function calculateQualityScore(factors: {
 // ALERTING
 // ============================================================================
 
+function shouldSendAlert(alertType: string): boolean {
+  const lastAlert = lastAlerts.get(alertType);
+  if (!lastAlert) return true;
+  return Date.now() - lastAlert > config.alertCooldownMs;
+}
+
 async function sendQualityAlert(
   severity: 'warning' | 'critical',
   title: string,
@@ -567,7 +565,12 @@ async function sendQualityAlert(
 ): Promise<void> {
   const alertKey = `${severity}:${title}`;
 
-  if (!incidents.shouldSend(alertKey, Date.now(), config)) return; // sent for this incident
+  if (!shouldSendAlert(alertKey)) {
+    log.debug({ alertKey }, 'Quality alert rate-limited');
+    return;
+  }
+
+  lastAlerts.set(alertKey, Date.now());
 
   const emoji = severity === 'critical' ? '🚨' : '⚠️';
   log.warn({ severity, title, metrics }, `${emoji} ${title}`);
@@ -582,17 +585,14 @@ async function sendQualityAlert(
         metadata: metrics as unknown as Record<string, unknown>,
       });
     } catch (error) {
-      log.warn({ error: String(error), alertKey }, 'Slack alert failed; retrying next check');
-      return; // not delivered: the next check retries
+      log.warn({ error: String(error) }, 'Failed to send Slack alert');
     }
   }
-  incidents.sent(alertKey, Date.now());
 }
 
 export async function checkQualityAlerts(): Promise<void> {
   const metrics = calculateMetrics();
   const gated = gateSmallSamples(metrics, config.minCallsForRateAlerts);
-  incidents.beginCheck(); // an alert that doesn't fire in this check has cleared
 
   // Feed to predictive alerting
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
@@ -671,7 +671,6 @@ export async function checkQualityAlerts(): Promise<void> {
       { qualityScore: metrics.qualityScore }
     );
   }
-  incidents.endCheck();
 
   log.debug(
     {
@@ -749,7 +748,7 @@ export function resetCallQualityStateForTests(): void {
   stopCallQualityMonitor();
   sessions.clear();
   completedSessions.length = 0;
-  incidents.reset();
+  lastAlerts.clear();
   config = { ...DEFAULT_CONFIG };
   slackService = null;
 }
