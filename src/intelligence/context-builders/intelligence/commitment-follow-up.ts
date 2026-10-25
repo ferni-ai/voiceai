@@ -72,7 +72,8 @@ async function buildCommitmentFollowUpContext(
       recentTopics: userData?.recentTopics,
       emotion: analysis?.emotion?.primary,
       judgedOnly: isCommitmentSingleWriterOn(),
-    }
+    },
+    services?.sessionId // MINOR_CARE: a held call stores nothing here
   );
 
   const injections: ContextInjection[] = answers.flatMap(answerGuidance);

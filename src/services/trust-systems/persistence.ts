@@ -17,28 +17,37 @@ import { loadDashboardHistory, saveDashboardHistory } from './dashboard-history.
 import { readTrustDoc, writeTrustDoc, getTrustDb, TRUST_COLLECTION } from './trust-doc.js';
 
 // Trust system imports
-import { exportBoundaries, importBoundaries, type BoundaryProfile } from './boundary-memory.js';
+import {
+  exportBoundaries,
+  forgetBoundaryUser,
+  importBoundaries,
+  type BoundaryProfile,
+} from './boundary-memory.js';
 
 import {
   exportGrowthProfile,
+  forgetGrowthUser,
   importGrowthProfile,
   type GrowthProfile,
 } from './growth-reflection.js';
 
 import {
   exportInsideJokesProfile,
+  forgetInsideJokesUser,
   importInsideJokesProfile,
   type InsideJokesProfile,
 } from './inside-jokes.js';
 
 import {
   exportSmallWinsProfile,
+  forgetSmallWinsUser,
   importSmallWinsProfile,
   type SmallWinsProfile,
 } from './small-wins.js';
 
 import {
   exportThinkingOfYouProfile,
+  forgetThinkingOfYouUser,
   importThinkingOfYouProfile,
   type ThinkingOfYouProfile,
 } from './thinking-of-you.js';
@@ -54,19 +63,44 @@ import {
 // Phase 12-17, 24-29: New trust system imports for persistence
 import type { RelationshipHealthScore } from './relationship-health.js';
 
-import { getMomentumProfile, type MomentumProfile } from './celebration-momentum.js';
+import {
+  forgetMomentumUser,
+  getMomentumProfile,
+  type MomentumProfile,
+} from './celebration-momentum.js';
 
-import type { SentimentTimeline } from './sentiment-timeline.js';
+import { setTimeline, type SentimentTimeline } from './sentiment-timeline.js';
+import { setUserEvents } from './life-events.js';
 
-import { getBaseline, type PersonalBaseline } from './voice-prosody-learning.js';
+import {
+  forgetVoiceProsodyUser,
+  getBaseline,
+  type PersonalBaseline,
+} from './voice-prosody-learning.js';
 
-import { getJournalingPatterns, type JournalingPattern } from './journaling-prompts.js';
+import {
+  forgetJournalingUser,
+  getJournalingPatterns,
+  type JournalingPattern,
+} from './journaling-prompts.js';
 
-import { getSeasonalProfile, type SeasonalProfile } from './seasonal-awareness.js';
+import {
+  forgetSeasonalUser,
+  getSeasonalProfile,
+  type SeasonalProfile,
+} from './seasonal-awareness.js';
 
-import { getLearningProfile, type LearningProfile } from './learning-style.js';
+import {
+  forgetLearningStyleUser,
+  getLearningProfile,
+  type LearningProfile,
+} from './learning-style.js';
 
-import { getMediaPreferences, type MediaPreferences } from './media-suggestions.js';
+import {
+  forgetMediaUser,
+  getMediaPreferences,
+  type MediaPreferences,
+} from './media-suggestions.js';
 
 import type { InsightsReport } from './relationship-insights.js';
 
@@ -181,6 +215,27 @@ export async function saveTrustProfiles(userId: string): Promise<{
   log.info({ userId, saved: saved.length, failed: failed.length }, '💾 Trust profiles saved');
 
   return { saved, failed };
+}
+
+/**
+ * MINOR_CARE (purgeHeldUser): drop everything saveTrustProfiles would save for this one user, so
+ * a later call never saves what a held caller said. Stored profiles reload at the next session
+ * start (or on first use).
+ */
+export function clearTrustSystemsUser(userId: string): void {
+  forgetBoundaryUser(userId);
+  forgetGrowthUser(userId);
+  forgetInsideJokesUser(userId);
+  forgetSmallWinsUser(userId);
+  forgetThinkingOfYouUser(userId);
+  forgetMomentumUser(userId);
+  forgetVoiceProsodyUser(userId);
+  forgetJournalingUser(userId);
+  forgetSeasonalUser(userId);
+  forgetLearningStyleUser(userId);
+  forgetMediaUser(userId);
+  setTimeline(userId, null); // the dashboard's history: sentiment timeline and life events
+  setUserEvents(userId, []);
 }
 
 // ============================================================================

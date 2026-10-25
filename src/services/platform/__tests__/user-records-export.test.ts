@@ -264,7 +264,7 @@ describe('the value written to the file', () => {
 
 /**
  * Just what BoundedReader calls: doc(path).get(), and collection(path) with where, orderBy,
- * startAfter, limit and get. Documents are keyed by full path; each store is one page.
+ * startAfter, limit and get (and listDocuments, of no partitions). Documents are keyed by full path; each store is one page.
  */
 function storedDb(docs: Record<string, Record<string, unknown>>): FirebaseFirestore.Firestore {
   const snap = (path: string) => ({
@@ -277,6 +277,7 @@ function storedDb(docs: Record<string, Record<string, unknown>>): FirebaseFirest
     orderBy: () => query(path),
     startAfter: () => query(path),
     limit: () => query(path),
+    listDocuments: async () => [],
     get: async () => ({
       docs: Object.keys(docs)
         .filter((p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
