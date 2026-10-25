@@ -33,6 +33,9 @@ function fact(over: Partial<RaisableDate>): RaisableDate {
 
 afterEach(() => vi.unstubAllEnvs());
 
+/** Nothing forgotten (the default reads Firestore). */
+const forgotten = async (): Promise<string[]> => [];
+
 describe('dueDate', () => {
   it('asks how a one-time date that just passed went, by relation and name', () => {
     const due = dueDate([fact({ eventDate: '2026-10-15' })], TODAY);
@@ -138,6 +141,7 @@ describe('createDatesRecall', () => {
       userId: 'u1',
       store,
       mark,
+      forgotten,
       now: () => new Date(`${TODAY}T15:00:00Z`),
     });
     await dates.ready;
@@ -152,7 +156,7 @@ describe('createDatesRecall', () => {
       listOpen: async () => Promise.reject(new Error('down')),
       apply: async () => undefined,
     };
-    const none = createDatesRecall({ userId: 'u1', store: failing });
+    const none = createDatesRecall({ userId: 'u1', store: failing, forgotten });
     await expect(none.ready).resolves.toBeUndefined();
     expect(none.note()).toBeNull();
   });
@@ -164,10 +168,16 @@ describe('createDatesRecall', () => {
       apply: async () => undefined,
     };
     const now = () => new Date('2026-10-17T01:30:00Z');
-    const local = createDatesRecall({ userId: 'u1', store, now, timezone: 'America/New_York' });
+    const local = createDatesRecall({
+      userId: 'u1',
+      store,
+      now,
+      timezone: 'America/New_York',
+      forgotten,
+    });
     await local.ready;
     expect(local.note()).toContain('job interview is tomorrow');
-    const utc = createDatesRecall({ userId: 'u1', store, now });
+    const utc = createDatesRecall({ userId: 'u1', store, now, forgotten });
     await utc.ready;
     expect(utc.note()).toContain('job interview is today');
   });

@@ -5,6 +5,7 @@ import SwiftUI
 
 @main
 struct FerniApp: App {
+    @UIApplicationDelegateAdaptor(FerniAppDelegate.self) private var delegate
     @State private var model: AppModel
 
     init() {
@@ -21,6 +22,15 @@ struct FerniApp: App {
                     await model.team.refresh()
                 }
                 // Consent belongs to whoever is signed in: switch with them.
+                .onChange(of: LiveActivityController.content(for: model.call)) { _, content in
+                    model.liveActivity.follow(content, startedAt: model.call.startedAt)
+                }
+                .task {
+                    EndCallIntent.end = { [call = model.call] in await call.end() }
+                    TalkIntent.handler = { [model] personaID in model.talk(to: personaID) }
+                    FerniAppDelegate.onToken = { [model] token in Task { await model.push.received(deviceToken: token) } }
+                    FerniAppDelegate.onTalk = { [model] in model.talk(to: model.team.chosen) }
+                }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
                 }
@@ -50,6 +60,8 @@ final class AppModel {
     let consent = ConsentStore()
     let team: TeamStore
     let memory: MemoryStore
+    let liveActivity = LiveActivityController()
+    let push: PushStore
     var isShowingSettings = false
     var isAskingConsent = false
     var isShowingCallMore = false
@@ -65,6 +77,14 @@ final class AppModel {
     /// Ferni's words in the caption area; off leaves only who's doing what.
     var showCaptions = UserDefaults.standard.object(forKey: "ferni.captions") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showCaptions, forKey: "ferni.captions") }
+    }
+
+    /// From Siri, Shortcuts, Control Center or the Action button: the same door
+    /// as the Talk button. Someone not on the team yet means Ferni answers.
+    func talk(to personaID: String) {
+        guard !call.isActive else { return }
+        if !team.choose(personaID) { team.choose(PersonaRegistry.ferni.id) }
+        talk()
     }
 
     /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
@@ -94,6 +114,7 @@ final class AppModel {
     /// Sign out: this person's agreement and everything shown about them leave
     /// the phone with them.
     func signOut() async {
+        await push.unregister() // while still signed in as them
         if let uid = account.user?.uid { consent.forget(uid: uid) }
         forgetPerson()
         await account.signOut()
@@ -104,7 +125,10 @@ final class AppModel {
         consent.use(uid: uid)
         guard old != nil, old != uid else { return } // first launch keeps what's loading
         forgetPerson()
-        Task { await team.refresh() }
+        Task {
+            await team.refresh()
+            await push.register() // this phone's notes are now the new person's
+        }
     }
 
     private func forgetPerson() {
@@ -120,6 +144,15 @@ final class AppModel {
         api = account.api(baseURL: config.apiBaseURL)
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
+        #if DEBUG
+        let apnsEnvironment = "sandbox"
+        #else
+        let apnsEnvironment = "production"
+        #endif
+        push = PushStore(
+            api: api, bundleID: Bundle.main.bundleIdentifier ?? "com.sethdford.ferni",
+            environment: apnsEnvironment, appVersion: SettingsView.version()
+        )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         let level = AudioLevelMeter()
         call = CallSession(
