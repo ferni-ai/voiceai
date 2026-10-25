@@ -379,7 +379,8 @@ function consolidateAndPruneVocabulary(vocab: UserVocabulary): {
       // Only consolidate if they map to the same tool
       if (phrase.toolId !== other.toolId) continue;
 
-      if (arePhrasesSimilar(phrase.phrase, other.phrase)) {
+      // The same utterance (the words aren't kept, so near-matches can't be found)
+      if (phrase.phraseHash === other.phraseHash) {
         similar.push(other);
         processed.add(j);
         consolidated++;
@@ -407,37 +408,10 @@ function consolidateAndPruneVocabulary(vocab: UserVocabulary): {
 }
 
 /**
- * Check if two phrases are similar enough to consolidate
- *
- * Uses word overlap and edit distance heuristics
- */
-function arePhrasesSimilar(a: string, b: string): boolean {
-  // Normalize
-  const wordsA = a.toLowerCase().split(/\s+/).filter(Boolean).sort();
-  const wordsB = b.toLowerCase().split(/\s+/).filter(Boolean).sort();
-
-  // If one is much longer, they're not similar
-  if (Math.abs(wordsA.length - wordsB.length) > 2) return false;
-
-  // Calculate word overlap (Jaccard similarity)
-  const setA = new Set(wordsA);
-  const setB = new Set(wordsB);
-  const intersection = [...setA].filter((w) => setB.has(w)).length;
-  const union = new Set([...setA, ...setB]).size;
-
-  const jaccardSimilarity = intersection / union;
-
-  // Consider similar if >= 70% word overlap
-  return jaccardSimilarity >= 0.7;
-}
-
-/**
- * Merge multiple similar phrases into one
+ * Merge entries for one utterance into one
  */
 function mergePhrases(phrases: UserVocabulary['phrases']): UserVocabulary['phrases'][0] {
-  // Use the shortest phrase (usually the most general)
-  const sorted = [...phrases].sort((a, b) => a.phrase.length - b.phrase.length);
-  const base = sorted[0];
+  const base = phrases[0];
 
   // Take the highest confidence
   const maxConfidence = Math.max(...phrases.map((p) => p.confidence));
@@ -455,7 +429,7 @@ function mergePhrases(phrases: UserVocabulary['phrases']): UserVocabulary['phras
   const source = phrases.some((p) => p.source === 'explicit') ? 'explicit' : 'implicit';
 
   return {
-    phrase: base.phrase,
+    phraseHash: base.phraseHash,
     toolId: base.toolId,
     confidence: Math.min(1, maxConfidence + 0.05), // Small boost for consolidation
     usageCount: totalUsage,

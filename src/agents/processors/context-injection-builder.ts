@@ -905,7 +905,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       (userData as Record<string, unknown>).lastValueEvent = {
         type: valueEvent.type,
         eventId: valueEvent.id,
-        message: userText.slice(0, 100),
         timestamp: valueEvent.createdAt,
       };
 

@@ -70,7 +70,10 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'user_contacts',
     'profiles', // conversation and insight feedback, subcollections only
     'feature_flag_overrides', // flags turned on for this person alone (cohort-flags.ts)
-    'minor_care_holds' // {heldUntil, v}: a call held them under 18 (minor-care-shared-hold.ts)
+    'minor_care_holds', // {heldUntil, v}: a call held them under 18 (minor-care-shared-hold.ts)
+    // The router's learning stores: tool picks, lengths and phrase hashes, never the words
+    'semantic_routing_vocabulary',
+    'semantic_routing_corrections' // {uid}/corrections, the {uid} document never written
   ),
   // The app's per-person documents
   ...byId(
@@ -129,6 +132,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'marketplace_installations',
     'trust_analytics',
     'routing_events',
+    'semantic_router_corrections',
+    'semantic_routing_feedback',
     'game_analytics_events',
     'bth_production_events',
     'phone_mappings',

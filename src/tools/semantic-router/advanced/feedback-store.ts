@@ -8,12 +8,14 @@
  *   semantic_routing_feedback/{feedbackId}
  *   semantic_routing_corrections/{userId}/{correctionId}
  *   semantic_routing_vocabulary/{userId}
+ * None of them keeps the caller's words: see persistence/stored-without-words.ts.
  *
  * @module semantic-router/advanced/feedback-store
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import * as stored from '../persistence/stored-without-words.js';
 import {
   getPlattScaler,
   type PlattParameters,
@@ -83,9 +85,9 @@ export interface UserVocabulary {
   userId: string;
   updatedAt: Date;
 
-  // Learned phrase -> tool mappings
+  // Learned phrase -> tool mappings, by stored.phraseHash(userId, utterance), never the words
   phrases: Array<{
-    phrase: string;
+    phraseHash: string;
     toolId: string;
     confidence: number;
     usageCount: number;
@@ -253,9 +255,8 @@ export async function learnUserPhrase(
   }
 
   // Check if phrase already exists
-  const existingIndex = vocab.phrases.findIndex(
-    (p) => p.phrase.toLowerCase() === phrase.toLowerCase()
-  );
+  const hash = stored.phraseHash(userId, phrase);
+  const existingIndex = vocab.phrases.findIndex((p) => p.phraseHash === hash);
 
   if (existingIndex >= 0) {
     // Update existing
@@ -267,7 +268,7 @@ export async function learnUserPhrase(
   } else {
     // Add new
     vocab.phrases.push({
-      phrase: phrase.toLowerCase(),
+      phraseHash: hash,
       toolId,
       confidence: source === 'explicit' ? 0.9 : 0.5,
       usageCount: 1,
@@ -314,13 +315,13 @@ export async function getUserVocabulary(userId: string): Promise<UserVocabulary 
 }
 
 /**
- * Match user input against learned phrases
+ * Match user input against learned phrases: the same utterance, since only its hash is kept
  */
 export function matchUserPhrases(
   input: string,
   vocabulary: UserVocabulary
 ): { toolId: string; confidence: number } | null {
-  const lowerInput = input.toLowerCase();
+  const hash = stored.phraseHash(vocabulary.userId, input);
 
   // Sort phrases by confidence and recency
   const sortedPhrases = [...vocabulary.phrases].sort((a, b) => {
@@ -330,7 +331,7 @@ export function matchUserPhrases(
   });
 
   for (const phrase of sortedPhrases) {
-    if (lowerInput.includes(phrase.phrase)) {
+    if (phrase.phraseHash === hash) {
       return {
         toolId: phrase.toolId,
         confidence: phrase.confidence,
@@ -537,12 +538,7 @@ async function persistFeedback(feedback: RoutingFeedback): Promise<void> {
     await db
       .collection('semantic_routing_feedback')
       .doc(feedback.id)
-      .set(
-        cleanForFirestore({
-          ...feedback,
-          timestamp: feedback.timestamp.toISOString(),
-        })
-      );
+      .set(stored.storedFeedback(feedback, cleanForFirestore));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist feedback');
   }
@@ -558,12 +554,7 @@ async function persistCorrection(correction: UserCorrection): Promise<void> {
       .doc(correction.userId)
       .collection('corrections')
       .doc(correction.id)
-      .set(
-        cleanForFirestore({
-          ...correction,
-          timestamp: correction.timestamp.toISOString(),
-        })
-      );
+      .set(stored.storedUserCorrection(correction, cleanForFirestore));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist correction');
   }
@@ -577,16 +568,7 @@ async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
     await db
       .collection('semantic_routing_vocabulary')
       .doc(vocab.userId)
-      .set(
-        cleanForFirestore({
-          ...vocab,
-          updatedAt: vocab.updatedAt.toISOString(),
-          phrases: vocab.phrases.map((p) => ({
-            ...p,
-            lastUsed: p.lastUsed.toISOString(),
-          })),
-        })
-      );
+      .set(stored.storedVocabulary(vocab, cleanForFirestore));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist vocabulary');
   }
@@ -606,15 +588,19 @@ async function loadVocabulary(userId: string): Promise<UserVocabulary | undefine
     return {
       userId: String(data.userId ?? userId),
       updatedAt: new Date(String(data.updatedAt)),
+      // One kept before 2026-10-25 holds the words, not a hash: left out
       phrases: Array.isArray(data.phrases)
-        ? data.phrases.map((p: Record<string, unknown>) => ({
-            phrase: String(p.phrase ?? ''),
-            toolId: String(p.toolId ?? ''),
-            confidence: Number(p.confidence ?? 0),
-            usageCount: Number(p.usageCount ?? 0),
-            lastUsed: new Date(String(p.lastUsed)),
-            source: (p.source === 'explicit' ? 'explicit' : 'implicit') as 'explicit' | 'implicit',
-          }))
+        ? data.phrases
+            .filter((p: Record<string, unknown>) => typeof p.phraseHash === 'string')
+            .map((p: Record<string, unknown>) => ({
+              phraseHash: String(p.phraseHash),
+              toolId: String(p.toolId ?? ''),
+              confidence: Number(p.confidence ?? 0),
+              usageCount: Number(p.usageCount ?? 0),
+              lastUsed: new Date(String(p.lastUsed)),
+              source: (p.source === 'explicit' ? 'explicit' : 'implicit') as
+                'explicit' | 'implicit',
+            }))
         : [],
       toolPreferences:
         (data.toolPreferences as Record<string, { boost: number; usageCount: number }>) ?? {},
@@ -659,10 +645,7 @@ async function persistPlattParameters(params: PlattParameters): Promise<void> {
           updatedAt: params.updatedAt.toISOString(),
         })
       );
-    log.info(
-      { A: params.A.toFixed(4), B: params.B.toFixed(4) },
-      '✅ Platt parameters persisted'
-    );
+    log.info({ A: params.A.toFixed(4), B: params.B.toFixed(4) }, '✅ Platt parameters persisted');
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist Platt parameters');
   }
