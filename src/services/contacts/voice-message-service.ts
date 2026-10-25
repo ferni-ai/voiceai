@@ -131,6 +131,11 @@ export async function sendVoiceMessageMMS(
     };
   }
 
+  // MINOR_CARE_SHARED_HOLD: nothing made or sent for an account or to a number held under 18
+  const { directSendHeld } = await import('../communication-service.js');
+  if (await directSendHeld(request.contactPhone, 'text', { userId: request.userId }))
+    return { success: false, error: 'Not sent: held', deliveryStatus: 'failed' };
+
   try {
     // Generate voice audio
     const audio = await generateVoiceAudio(request.message, {

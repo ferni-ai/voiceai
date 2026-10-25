@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { directSendHeld } from '../../../services/communication-service.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'CommunicationExecutor' });
@@ -90,6 +91,8 @@ async function execute(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Voice messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
       // Generate the voice message
       log.info({ persona, messageLength: message.length }, '🎤 Generating voice message');
@@ -183,6 +186,8 @@ async function execute(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Text messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
       // Check Twilio credentials
       const accountSid = process.env.TWILIO_ACCOUNT_SID;

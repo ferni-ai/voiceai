@@ -515,9 +515,7 @@ export class ConferenceCallManager extends EventEmitter {
     return undefined;
   }
 
-  /**
-   * Initiate an outbound call
-   */
+  /** Initiate an outbound call */
   private async initiateCall(
     callId: string,
     phoneNumber: string,
@@ -526,6 +524,9 @@ export class ConferenceCallManager extends EventEmitter {
     introduction?: string
   ): Promise<{ success: boolean; callSid?: string; error?: string }> {
     const { thirdPartyRefusal } = await import('../../services/messaging/consent-grants.js');
+    const { directSendHeld } = await import('../../services/communication-service.js');
+    if (await directSendHeld(phoneNumber, 'call', { userId: this.config.userId }))
+      return { success: false, error: 'Not calling: held' }; // MINOR_CARE_SHARED_HOLD
     const refused = await thirdPartyRefusal(this.config.userId, phoneNumber, 'call'); // MESSAGING_PIPELINE
     if (refused) return { success: false, error: `Not calling: ${refused}` };
     if (!this.config.twilio || !this.twilioClient) {
@@ -540,7 +541,6 @@ export class ConferenceCallManager extends EventEmitter {
 
       log.info({ callId, phoneNumber, name, twimlUrl }, '📞 Initiating Twilio call');
 
-      // Create the outbound call using Twilio client
       const call = await this.twilioClient.calls.create({
         to: phoneNumber,
         from: this.config.twilio.phoneNumber,
