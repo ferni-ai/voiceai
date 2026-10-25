@@ -44,8 +44,13 @@ export const callConfirm: ConfirmSpec = {
     let name = who;
     let raw = text(args.phoneNumber);
     if (!raw) {
-      const { resolveContact } = await import('./call-on-behalf.js');
-      const contact = await resolveContact(who, userId);
+      const { findContact } = await import('./call-on-behalf.js');
+      const contact = await findContact(who, userId);
+      // Several contacts tie for this: ask which one, read back nothing yet (contact-pick.ts)
+      if (contact && 'choices' in contact) {
+        const { whichContactReply } = await import('./contact-pick.js');
+        return whichContactReply(who, contact.choices);
+      }
       raw = text(contact?.phone);
       if (contact?.name) name = contact.name;
     }

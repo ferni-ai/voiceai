@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
+import type { PickRow } from './contact-pick.js';
 import type {
   CallType,
   CallObjective,
@@ -56,10 +57,10 @@ const log = getLogger().child({ module: 'call-on-behalf' });
  * - "Mike" → finds entity with canonicalName/alias="Mike"
  * - Deduplication across all legacy collections
  */
-async function resolveContact(
+async function findContact(
   contactQuery: string,
   userId: string
-): Promise<ResolvedContact | null> {
+): Promise<ResolvedContact | { choices: ResolvedContact[] } | null> {
   try {
     // =========================================================================
     // PRIMARY: Try unified entity store first
@@ -94,32 +95,31 @@ async function resolveContact(
     // =========================================================================
     // FALLBACK: Legacy contact_relationships collection
     // =========================================================================
-    const { searchContacts } =
-      await import('../../../services/contacts/contact-relationship-service.js');
-    const { pickContact, searchLegacyContacts } = await import('./contact-pick.js');
-    const results = await searchLegacyContacts(searchContacts, userId, contactQuery);
-    const contact = pickContact(results, contactQuery); // never a phoneless first row (audit 1-2)
-    if (!contact?.phone) {
-      log.info({ matches: results.length }, 'No contact with a number found in any store');
-      return null;
-    }
-
-    log.info(
-      { contactQuery, name: contact.name, source: 'legacy_contact_relationships' },
-      '📇 Contact resolved from legacy collection'
-    );
-
-    return {
-      id: contact.id,
-      name: contact.name || contactQuery,
-      phone: contact.phone,
-      relationship: contact.relationship,
-      notes: contact.notes,
+    const store = await import('../../../services/contacts/contact-relationship-service.js');
+    // One score, never a phoneless row; a tie on top asks which one (contact-pick.ts, audit 1-2)
+    const { findContactToCall } = await import('./contact-pick.js');
+    const stores = {
+      search: store.searchContacts,
+      list: async (id: string) => store.getContacts(id),
     };
+    const pick = await findContactToCall(stores, userId, contactQuery);
+    const resolved = (c: PickRow): ResolvedContact => {
+      const { id, notes, relationship } = c;
+      return { id, name: c.name || contactQuery, phone: c.phone ?? '', relationship, notes };
+    };
+    log.info({ found: pick ? ('choices' in pick ? 'several' : 'one') : 'none' }, '📇 Legacy');
+    if (!pick) return null;
+    return 'choices' in pick ? { choices: pick.choices.map(resolved) } : resolved(pick.contact);
   } catch (error) {
     log.error({ error: String(error), contactQuery }, 'Contact resolution failed');
     return null;
   }
+}
+
+/** The one contact to call, or null (none, or several to choose from). */
+async function resolveContact(contactQuery: string, userId: string) {
+  const found = await findContact(contactQuery, userId);
+  return found && 'choices' in found ? null : found;
 }
 
 /**
@@ -375,7 +375,16 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
       try {
         // Step 1: Resolve the contact (or create from provided phone number)
-        let contact = await resolveContact(contactQuery, ctx.userId);
+        const found = await findContact(contactQuery, ctx.userId);
+        let contact = found && 'choices' in found ? null : found;
+        if (found && 'choices' in found) {
+          // Several contacts tie: a number given picks one, otherwise ask, dial nothing
+          const given = (phoneNumber ?? '').replace(/\D/g, '').slice(-10);
+          contact =
+            found.choices.find((c) => given && c.phone.replace(/\D/g, '').endsWith(given)) ?? null;
+          const { whichContactReply } = await import('./contact-pick.js');
+          if (!contact && !phoneNumber) return whichContactReply(contactQuery, found.choices);
+        }
 
         // If user provided a phone number, use it (and optionally save the contact)
         if (phoneNumber) {
@@ -497,5 +506,12 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 // EXPORTS
 // ============================================================================
 
-export { resolveContact, inferCallType, inferObjective, initiateOnBehalfCall, callOnBehalfSchema };
+export {
+  findContact,
+  resolveContact,
+  inferCallType,
+  inferObjective,
+  initiateOnBehalfCall,
+  callOnBehalfSchema,
+};
 export { alreadySetReply, pendingCallTo } from '../../../services/outreach/deferred-calls.js';

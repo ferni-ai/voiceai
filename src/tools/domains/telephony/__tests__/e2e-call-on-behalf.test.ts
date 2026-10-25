@@ -716,7 +716,9 @@ describe('Integration: Contact Resolution → Tool Execution', () => {
       purpose: 'quick question',
     });
 
-    // Should pick the first match (or could ask for clarification)
-    expect(result).toContain('calling');
+    // Two contacts tie on top: ask which one, never guess (contact-pick.ts, #2848 review)
+    expect(result).toMatch(/^Nothing was dialed/);
+    expect(result).toContain('John Smith or Jane Smith?');
+    expect(mockOrchestratorInitiateCall).not.toHaveBeenCalled();
   });
 });
