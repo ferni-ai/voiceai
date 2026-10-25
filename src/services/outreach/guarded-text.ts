@@ -21,6 +21,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
+  heldSender,
   last4,
   phoneHash,
   phoneHashKey,
@@ -48,7 +49,6 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { reportText } from './outreach-bq.js';
-import { sharedHeld } from '../safety/minor-care-shared-hold.js';
 import {
   consentBlocks,
   defaultConsentDeps,
@@ -233,7 +233,6 @@ export async function sendGuardedText(
     return reportText(t.userId, t.kind, { sent: false, reason });
   };
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
-  if (!t.askedNow && (await sharedHeld(t.userId, deps.env))) return skip('held');
   const storedId = recordUserId(t.userId, deps.env);
   if (!storedId) return skip('no-verified-phone');
 
@@ -251,6 +250,8 @@ export async function sendGuardedText(
 
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
+  // MINOR_CARE_SHARED_HOLD: the account or the number held by a call, unless asked for just now
+  if (!t.askedNow && (await heldSender(t.userId, phone, deps.env))) return skip('held');
   const [refusal, toPhone] = await Promise.all([
     smsConsentRefusal(hash, deps.store, t.askedNow === true, now),
     deps.store.forPhoneHash(hash),

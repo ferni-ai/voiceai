@@ -216,6 +216,17 @@ let ownerCheck: (sessionId: string) => boolean = () => false;
 const sessionUsers = new Map<string, string>();
 /** Past this many, sessions that never sounded under 18 go first, oldest first. */
 const MAX_SESSION_USERS = 5000;
+/** sessionId -> a phone caller's E.164 (caller-recognition.ts), never logged: its hold covers the number. */
+const sessionPhones = new Map<string, string>();
+
+export function bindSessionPhone(sessionId: string, e164: string): void {
+  sessionPhones.set(sessionId, e164);
+  if (sessionPhones.size > MAX_SESSIONS) sessionPhones.delete(sessionPhones.keys().next().value!);
+}
+
+export function sessionPhone(sessionId: string): string | undefined {
+  return sessionPhones.get(sessionId);
+}
 
 function touch(sessionId: string): void {
   likely.delete(sessionId);
@@ -231,24 +242,26 @@ function evictIdle(): void {
   }
 }
 
-/** Told once when a session becomes held for its bound user (minor-care-purge.ts: the shared record). */
-let onUserHeld: (userId: string) => void = () => {};
-/** Sessions whose hold was announced, bounded like `likely`. */
+type HoldListener = (userId: string, sessionId: string) => void;
+/** Told once per user a held session is bound to (minor-care-purge.ts: the shared record). */
+let onUserHeld: HoldListener = () => {};
+/** "sessionId userId" pairs already announced, bounded like `likely`. */
 const announced = new Set<string>();
 
-export function setOnUserHeld(listener: (userId: string) => void): void {
+export function setOnUserHeld(listener: HoldListener): void {
   onUserHeld = listener;
 }
 
-/** This session is held and bound to a user: tell the listener, once per session. Never throws. */
+/** This session is held and bound to a user: tell the listener, once per (session, user). Never throws. */
 function announceHold(sessionId: string): void {
   const userId = sessionUsers.get(sessionId);
-  if (!userId || announced.has(sessionId) || !likely.has(sessionId)) return;
+  const key = `${sessionId} ${userId}`;
+  if (!userId || announced.has(key) || !likely.has(sessionId)) return;
   if (ownerExempt(sessionId)) return;
-  announced.add(sessionId);
+  announced.add(key);
   if (announced.size > MAX_SESSIONS) announced.delete(announced.values().next().value!);
   try {
-    onUserHeld(userId);
+    onUserHeld(userId, sessionId);
   } catch (error) {
     log.warn({ error: String(error) }, 'MINOR_CARE hold listener failed');
   }
@@ -411,5 +424,6 @@ export function resetMinorCare(): void {
   likely.clear();
   sessionUsers.clear();
   announced.clear();
+  sessionPhones.clear();
   ownerCheck = () => false;
 }

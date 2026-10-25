@@ -152,7 +152,11 @@ import { sendSMS, isSMSDeliveryAvailable, type SMSMessage } from './sms-delivery
 import { sendEmail, isEmailDeliveryAvailable } from './email-delivery.js';
 import { sendPushNotification, isPushNotificationsAvailable } from './push-notifications.js';
 import { getFirestoreClient } from '../firestore-persistence.js';
-import { sharedHeld } from '../../safety/minor-care-shared-hold.js';
+import { sharedHeld } from '../minor-care-shared-hold.js';
+import { heldSender } from '../checkin-replies.js';
+
+/** MINOR_CARE_SHARED_HOLD: the account, or the number, is held by a call (in any process). */
+const HELD = 'held (MINOR_CARE)';
 
 export interface DeliverOutreachOptions {
   userId: string;
@@ -179,8 +183,7 @@ export async function deliverOutreach(
   const { userId, channel, message, personaId, subject, outreachId } = options;
   const persona = personaId || 'ferni';
   const outreach = outreachId || `outreach-${Date.now()}`;
-  // MINOR_CARE_SHARED_HOLD: no outreach to a caller held under 18 (in any process)
-  if (await sharedHeld(userId)) return { success: false, channel, error: 'held (MINOR_CARE)' };
+  if (await sharedHeld(userId)) return { success: false, channel, error: HELD };
 
   try {
     switch (channel) {
@@ -193,6 +196,8 @@ export async function deliverOutreach(
         if (!phoneResult) {
           return { success: false, channel, error: 'User phone number not found' };
         }
+        if (await heldSender(undefined, phoneResult))
+          return { success: false, channel, error: HELD };
         const smsMessage: SMSMessage = {
           to: phoneResult,
           body: message,
@@ -275,6 +280,8 @@ export async function deliverOutreach(
           if (!userPhone) {
             return { success: false, channel, error: 'User phone number not found' };
           }
+          if (await heldSender(undefined, userPhone))
+            return { success: false, channel, error: HELD };
 
           const callResult = await makeConversationalCall({
             phone: userPhone,

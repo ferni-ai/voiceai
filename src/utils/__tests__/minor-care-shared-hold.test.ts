@@ -22,7 +22,7 @@ import {
   setHoldStore,
   sharedHeld,
   type HoldStore,
-} from '../../services/safety/minor-care-shared-hold.js';
+} from '../../services/outreach/minor-care-shared-hold.js';
 
 const UNDER_18 = "I'm 15 years old";
 const ON = { MINOR_CARE: 'on', MINOR_CARE_SHARED_HOLD: 'on' };
@@ -64,14 +64,25 @@ describe('the hold listener (minor-care.ts)', () => {
     expect(memoryHeld('s1')).toBe(true);
     noteCallerWords('s1', 'and I like soccer');
     bindSessionUser('s1', 'u1');
-    expect(heard.mock.calls).toEqual([['u1']]);
+    expect(heard.mock.calls).toEqual([['u1', 's1']]);
+  });
+
+  it('fires again for each new id a held session is bound to (anon: -> account mid-call)', () => {
+    bindSessionUser('s1', 'anon:abc');
+    noteCallerWords('s1', UNDER_18);
+    bindSessionUser('s1', 'u1');
+    bindSessionUser('s1', 'u1');
+    expect(heard.mock.calls).toEqual([
+      ['anon:abc', 's1'],
+      ['u1', 's1'],
+    ]);
   });
 
   it('fires when a held session is bound to its user afterwards', () => {
     noteCallerWords('s1', UNDER_18);
     expect(heard).not.toHaveBeenCalled(); // no user yet
     bindSessionUser('s1', 'u1');
-    expect(heard.mock.calls).toEqual([['u1']]);
+    expect(heard.mock.calls).toEqual([['u1', 's1']]);
   });
 
   it('never for a placeholder or shared id', () => {
@@ -99,7 +110,7 @@ describe('the hold listener (minor-care.ts)', () => {
     bindSessionUser('owner', 'u1');
     noteCallerWords('owner', UNDER_18);
     expect(memoryHeld('owner')).toBe(true);
-    expect(heard.mock.calls).toEqual([['u1']]);
+    expect(heard.mock.calls).toEqual([['u1', 'owner']]);
   });
 
   it('never with MINOR_CARE off', () => {

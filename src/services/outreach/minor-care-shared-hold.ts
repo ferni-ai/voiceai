@@ -13,7 +13,7 @@
  * every adult's texts while Firestore is down, and the call itself stays held in its process.
  * The record is erased with the account (user-stores.ts) and lapses on its own via heldUntil.
  *
- * @module services/safety/minor-care-shared-hold
+ * @module services/outreach/minor-care-shared-hold
  */
 import { flagOn } from '../../config/env-flag.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';

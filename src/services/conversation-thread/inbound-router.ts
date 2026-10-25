@@ -19,7 +19,6 @@ import type { PersonaId } from '../../personas/types.js';
 import type { EngagementChannel, InboundRouteDecision } from './types.js';
 import { getActiveThread, getOrCreateThread, addMessage } from './thread-manager.js';
 import { getConversationBridgeContext } from '../outreach/conversation-context-bridge.js';
-import { sharedHeld } from '../safety/minor-care-shared-hold.js';
 
 const log = createLogger({ module: 'InboundRouter' });
 
@@ -223,7 +222,9 @@ export async function handleInboundSMS(
   fromPhone: string,
   body: string,
   /** It might mean "stop texting" (sms-keywords.ts): Ferni should ask, not assume. */
-  possibleOptOut = false
+  possibleOptOut = false,
+  /** MINOR_CARE_SHARED_HOLD (decided by the webhook): a caller held under 18, answered, nothing kept. */
+  held = false
 ): Promise<{
   routeDecision: InboundRouteDecision;
   shouldInitiateCall: boolean;
@@ -236,9 +237,8 @@ export async function handleInboundSMS(
   const callIntent = detectCallIntent(body);
   const responseMessage = callIntent ? `I'd love to talk. Let me call you now...` : undefined;
 
-  // MINOR_CARE_SHARED_HOLD: a caller held under 18 (in any process) is answered, nothing kept
-  if ((await sharedHeld(userId)) || (await sharedHeld(`phone:${fromPhone}`))) {
-    log.info({ userId, agentId: routeDecision.agentId }, 'Inbound SMS not kept: MINOR_CARE hold');
+  if (held) {
+    log.info({ agentId: routeDecision.agentId }, 'Inbound SMS not kept: MINOR_CARE hold');
     return { routeDecision, shouldInitiateCall: callIntent, responseMessage };
   }
 

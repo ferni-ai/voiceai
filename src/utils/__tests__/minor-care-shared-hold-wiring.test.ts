@@ -5,14 +5,20 @@
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IDLE_MS, bindSessionUser, noteCallerWords, resetMinorCare } from '../minor-care.js';
-import { setHoldStore, type HoldStore } from '../../services/safety/minor-care-shared-hold.js';
+import { setHoldStore, type HoldStore } from '../../services/outreach/minor-care-shared-hold.js';
+import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
+import { rememberCallerPhone } from '../../agents/voice-agent-entry/caller-recognition.js';
+
+const PHONE = '+15551234567';
+const room = (phone: string) =>
+  ({ remoteParticipants: new Map([['c', { attributes: { 'sip.phoneNumber': phone } }]]) }) as never;
 
 const writes: Array<[string, { heldUntil: number; v: number }]> = [];
 const store: HoldStore = {
   heldUntil: async () => undefined,
   write: async (userId, record) => void writes.push([userId, record]),
 };
-let purgeHeldUser: (userId: string) => void;
+let purgeHeldUser: (userId: string, sessionId?: string) => void;
 
 beforeAll(async () => {
   ({ purgeHeldUser } = await import('../../agents/voice-agent/minor-care-purge.js'));
@@ -23,6 +29,7 @@ beforeEach(() => {
   writes.length = 0;
   vi.stubEnv('MINOR_CARE', 'on');
   vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'on');
+  vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -43,8 +50,35 @@ describe('MINOR_CARE_SHARED_HOLD in the voice agent', () => {
     expect(writes[0]![1].heldUntil).toBeGreaterThanOrEqual(before + IDLE_MS);
   });
 
-  it('the held call ending refreshes the record', async () => {
-    purgeHeldUser('u1');
+  it("a phone call's hold is written for the caller's number too (its hash, never the number)", async () => {
+    bindSessionUser('call-1', 'anon:abc');
+    rememberCallerPhone('call-1', room(PHONE));
+    noteCallerWords('call-1', "I'm 15 years old");
+    await settle();
+    expect(writes.map(([id]) => id)).toEqual(['anon:abc', phoneHoldId(PHONE)]);
+    expect(phoneHoldId(PHONE)).toMatch(/^phone#[0-9a-f]{64}$/);
+  });
+
+  it('a phone: account is held under its number as well', async () => {
+    bindSessionUser('call-2', `phone:${PHONE}`);
+    noteCallerWords('call-2', "I'm 15 years old");
+    await settle();
+    expect(writes.map(([id]) => id)).toEqual([`phone:${PHONE}`, phoneHoldId(PHONE)]);
+  });
+
+  it("the held call ending refreshes the records, the number's too", async () => {
+    rememberCallerPhone('call-1', room(PHONE));
+    purgeHeldUser('anon:abc', 'call-1');
+    await settle();
+    expect(writes.map(([id]) => id)).toEqual(['anon:abc', phoneHoldId(PHONE)]);
+  });
+
+  it('a web call (no SIP number): only the user', async () => {
+    rememberCallerPhone('web-1', {
+      remoteParticipants: new Map([['p', { attributes: {} }]]),
+    } as never);
+    bindSessionUser('web-1', 'u1');
+    noteCallerWords('web-1', "I'm 15 years old");
     await settle();
     expect(writes.map(([id]) => id)).toEqual(['u1']);
   });

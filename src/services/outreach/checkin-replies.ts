@@ -17,7 +17,7 @@
 import { createHmac } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { sharedHeld } from '../safety/minor-care-shared-hold.js';
+import { sharedHeld } from './minor-care-shared-hold.js';
 
 const log = createLogger({ module: 'checkin-replies' });
 
@@ -135,6 +135,22 @@ export function phoneHash(raw: string, env: Env = process.env): string | null {
 
 export const last4 = (phone: string): string => phone.replace(/\D/g, '').slice(-4);
 
+/** A number's MINOR_CARE_SHARED_HOLD key: its keyed hash, as feature_checkins keys phone users. */
+export function phoneHoldId(phone: string | undefined, env: Env = process.env): string | undefined {
+  const hash = phone ? phoneHash(phone, env) : null;
+  return hash ? `phone#${hash}` : undefined;
+}
+
+/** MINOR_CARE_SHARED_HOLD: this account or this number is held by a call, in any process. */
+export async function heldSender(
+  userId: string | undefined,
+  phone: string | undefined,
+  env: Env = process.env
+): Promise<boolean> {
+  if (await sharedHeld(userId, env)) return true;
+  return sharedHeld(phoneHoldId(phone, env), env);
+}
+
 /** The check-in a reply belongs to: the latest one sent to that phone within REPLY_WINDOW_MS. */
 export function matchCheckin(records: readonly StoredCheckin[], now: Date): StoredCheckin | null {
   let best: StoredCheckin | null = null;
@@ -169,8 +185,7 @@ export async function recordCheckinReply(
     const match = matchCheckin(await deps.store.forPhoneHash(hash), now);
     if (!match) return null;
     // MINOR_CARE_SHARED_HOLD: a caller held under 18 (in any process): their reply isn't kept
-    const phoneId = `phone:${toE164(from) ?? from}`;
-    if ((await sharedHeld(match.userId, deps.env)) || (await sharedHeld(phoneId, deps.env))) {
+    if (await heldSender(match.userId, from, deps.env)) {
       log.info({ checkinId: match.id }, 'Check-in reply not kept: MINOR_CARE hold');
       return null;
     }
