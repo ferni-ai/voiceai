@@ -198,6 +198,8 @@ export async function startBackchannelClips(
   openerClip: (text: string) => boolean;
   /** playClip for the slow-turn "Mm" (slow-turn-sound.ts), conducted as its own kind. */
   slowTurnClip: (text: string) => boolean;
+  /** playClip for a TOOL_ACK_CLIP line (tool-ack-clip.ts), conducted as its own kind. */
+  toolAckClip: (text: string) => boolean;
   /** What live backchanneling needs (live-backchanneling-integration.ts). */
   live: {
     playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
@@ -309,6 +311,8 @@ export async function startBackchannelClips(
       wireDelayMs
     ),
     slowTurnClip: playAt(() => BACKCHANNEL_VOLUME, 'slow_turn'),
+    // A spoken line in the reply's voice, rendered like it: full level, not a soft backchannel.
+    toolAckClip: playAt(() => 1, 'tool_ack'),
     live: { playClip: livePlayClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();

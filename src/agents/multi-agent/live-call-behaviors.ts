@@ -395,6 +395,12 @@ export async function startTurnSounds(input: TurnSoundsInput) {
         attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
       );
     }
+    // TOOL_ACK_CLIP: "Let me look." in the persona's voice as a tool starts (tool-ack-clip.ts).
+    if (flagOn('TOOL_ACK_CLIP')) {
+      const { attachToolAckClipToCall } = await import('../integrations/tool-ack-clip-wiring.js');
+      const ackClips = { ...clips, playClip: (text: string) => heard(clips.toolAckClip(text)) };
+      cleanupFunctions.push(attachToolAckClipToCall(session, sessionId, ackClips, input.personaId));
+    }
     // A backchannel is a move too, on the reply whose answer it is heard in.
     const play = clips.playClip;
     return {

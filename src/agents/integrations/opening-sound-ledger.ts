@@ -2,7 +2,8 @@
  * One opening sound per caller turn, shared by the early opening sound and the
  * slow-turn sound, so the two can't alternate into a sound on every turn. A
  * caller turn starts with the first "speaking" after a commit. Tracked only on
- * calls with SLOW_TURN_SOUND on (slow-turn-wiring.ts); untracked, every check
+ * calls with SLOW_TURN_SOUND or TOOL_ACK_CLIP on (slow-turn-wiring.ts,
+ * tool-ack-clip-wiring.ts); untracked, every check
  * answers as if nothing played and the early sound is unchanged.
  *
  * @module agents/integrations/opening-sound-ledger
@@ -45,9 +46,15 @@ export function trackTurnSounds(session: Pick<NodeJS.EventEmitter, 'on'>): void 
   });
 }
 
-export function noteOpeningSound(session: object, kind: 'early' | 'slow'): void {
+export function noteOpeningSound(session: object, kind: 'early' | 'slow' | 'tool'): void {
   const l = ledgers.get(session);
   if (l) Object.assign(l, { soundTurn: l.turn }, kind === 'slow' && { slowTurn: l.turn });
+}
+
+/** An opening sound (early, slow or a TOOL_ACK_CLIP line) already played this caller turn. */
+export function openingSoundThisTurn(session: object): boolean {
+  const l = ledgers.get(session);
+  return l !== undefined && l.soundTurn === l.turn;
 }
 
 /**
