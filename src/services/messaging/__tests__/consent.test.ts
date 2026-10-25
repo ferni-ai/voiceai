@@ -246,13 +246,13 @@ describe('consentBlocks', () => {
     expect(await consentBlocks(PHONE, 'sms', owner, depsWith(m.store))).toBe('opted-out');
   });
 
-  it('unknown: yes for the owner, no for a third party; an opt-in lets a third party through', async () => {
+  it('unknown: yes for the owner, no for a third party; their START grants no third party', async () => {
     const m = memoryStore();
     const deps = depsWith(m.store);
     expect(await consentBlocks(PHONE, 'sms', owner, deps)).toBeNull();
     expect(await consentBlocks(PHONE, 'sms', stranger, deps)).toBe('needs-consent');
     await writeOptIn(HASH, 'sms', 'inbound-sms', deps);
-    expect(await consentBlocks(PHONE, 'sms', stranger, deps)).toBeNull();
+    expect(await consentBlocks(PHONE, 'sms', stranger, deps)).toBe('needs-consent');
   });
 
   it('an sms opt-out does not block calls; a call opt-out does', async () => {

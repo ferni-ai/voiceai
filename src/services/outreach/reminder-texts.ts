@@ -33,6 +33,7 @@ import {
   type GuardedTextOutcome,
 } from '../scheduling/reminder-text-guard.js';
 import { toE164 } from './checkin-replies.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import {
   defaultTextDeps,
   isOwnVerifiedPhone,
@@ -151,5 +152,7 @@ export async function guardReminderText(
 /** Install the guarded sender in this process; deliverReminder uses it when REMINDER_SMS_DEFAULT is on. */
 export function installReminderTexts(): void {
   installReminderTextGuard((r) => guardReminderText(r));
-  installReminderOwnNumber(async (userId, phone) => isOwnVerifiedPhone(userId, phone));
+  installReminderOwnNumber(async (userId, phone, channel) =>
+    mayReachForOwner(userId, phone, channel, isOwnVerifiedPhone)
+  );
 }

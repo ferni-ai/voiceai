@@ -117,7 +117,17 @@ describe('callUser / proactive calls (conversational-calls.scheduleProactiveCall
     expect(holdForCallHours).not.toHaveBeenCalled();
   });
 
-  it('a text STOP does not stop a call the owner asked for', async () => {
+  it("a call to someone who isn't the owner, with no grant from them, is refused", async () => {
+    own.value = false;
+    expect(await scheduleProactiveCall(callRequest)).toEqual({
+      success: false,
+      error: 'Not calling: needs-consent',
+    });
+    expect(holdForCallHours).not.toHaveBeenCalled();
+  });
+
+  it("a text STOP does not stop a call to the owner's own number", async () => {
+    own.value = true;
     await optOut('sms');
     expect(await scheduleProactiveCall(callRequest)).toMatchObject({ success: true });
     expect(holdForCallHours).toHaveBeenCalledOnce();
@@ -150,12 +160,18 @@ describe('on-behalf first dial (assertNotOptedOut)', () => {
     own.value = true;
     await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
     own.value = false;
-    const { writeOptIn } = await import('../consent.js');
-    await writeOptIn(hash(), 'call', 'inbound-sms', {
-      env: { MESSAGING_PIPELINE: 'on' },
+    const { recordOwnerAttestation } = await import('../consent-grants.js');
+    const deps = {
+      env: { LOG_HASH_SECRET: 'test-secret' },
       store: mem.consent.store,
       now: () => new Date(),
-    });
+    };
+    await recordOwnerAttestation(PHONE, 'call', 'u1', deps, async () => true);
+    await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
+    // Someone else's grant is not this sender's.
+    await expect(assertNotOptedOut(PHONE, async () => false, 'u2')).rejects.toThrow(
+      'has not agreed'
+    );
     await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
   });
 

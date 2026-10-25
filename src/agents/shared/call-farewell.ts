@@ -34,6 +34,7 @@ import { voice } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { goodbyeReadGate } from './goodbye-read.js';
 import { isSessionClosing } from './session-closing-tracker.js';
 import { farewellRisk, stripWarmSymbols } from './farewell-risk.js';
 
@@ -368,6 +369,8 @@ export function watchFarewell(
     clearTimer?: (handle: unknown) => void;
     /** Crisis risk on this call: never end it then (default crisis-call-risk.ts). */
     crisis?: () => boolean;
+    /** The classifier reads each caller turn (default: its mode isn't off; goodbye-read.ts). */
+    readsExpected?: () => boolean;
   }
 ): () => void {
   const { sessionId } = opts;
@@ -377,6 +380,7 @@ export function watchFarewell(
   const clearT = opts.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>));
   sessionIds.set(session, sessionId);
   const crisis = opts.crisis ?? (() => crisisRiskThisCall(sessionId));
+  const gate = goodbyeReadGate(sessionId, containsLine, opts.readsExpected);
   let callerSaidBye = false;
   let ferniSaidBye = false;
   let hangUpAsked = false;
@@ -408,6 +412,10 @@ export function watchFarewell(
         log.info({ sessionId }, 'GOODBYE_END_HELD crisis risk on this call; it stays open');
         return;
       }
+      if (gate.unread()) {
+        log.info({ sessionId }, 'GOODBYE_END_HELD no read of the goodbye after a reopen');
+        return;
+      }
       log.info(
         { sessionId, hangUpAsked },
         'GOODBYE_ENDS_CALL quiet after goodbye; ending the call'
@@ -429,6 +437,7 @@ export function watchFarewell(
     callerSaidBye = !risky && callerSaysGoodbye(text);
     if (isSessionClosing(sessionId)) return;
     if (callerSaidBye) {
+      gate.goodbye(text);
       hangUpAsked = hangUpAsked || callerAsksToHangUp(text);
       if (hangUpAsked) markFarewell(sessionId, 'hang_up_asked');
       else if (ferniSaidBye) markFarewell(sessionId, 'goodbyes'); // his came first
@@ -469,6 +478,7 @@ export function watchFarewell(
     cancel();
     clearFarewell(sessionId);
     resets.delete(sessionId);
+    gate.stop();
     sessionIds.delete(agentSession);
     session.off(EV.ConversationItemAdded, onItem);
     session.off(EV.AgentStateChanged, onAgent);
@@ -478,6 +488,7 @@ export function watchFarewell(
   resets.set(sessionId, (lines) => {
     callerSaidBye = ferniSaidBye = hangUpAsked = false;
     carried = lines;
+    gate.reopened();
   });
   session.on(EV.ConversationItemAdded, onItem);
   session.on(EV.AgentStateChanged, onAgent);

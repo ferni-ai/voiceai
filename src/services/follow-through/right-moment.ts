@@ -39,6 +39,7 @@ export const QUIET_END_HOUR = 8;
 
 /** Kinds whose time the caller chose; quiet hours don't apply to them. */
 const CALLER_TIMED: ReadonlySet<FollowUpKind> = new Set(['reminder', 'dose', 'date']);
+export const isCallerTimed = (f: Pick<FollowUp, 'kind'>): boolean => CALLER_TIMED.has(f.kind);
 
 export function isQuietHour(now: Date, zone: string): boolean {
   const { hour } = wallTimeIn(now, zone);

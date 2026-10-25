@@ -13,6 +13,7 @@
  * @module agents/shared/line-screen
  */
 
+import { ANSWERED_BY } from '../../services/outreach/proactive-channels/self-call.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   waitForCallAnswered,
@@ -91,6 +92,8 @@ interface ScreenSession {
 export interface LineDeps {
   hangUp(): Promise<void>;
   record(answerer: Answerer): Promise<void>;
+  /** Leave no message on a machine: whoever placed the call hangs it up. */
+  noMessage?: boolean;
   now?: () => number;
   tickMs?: number;
 }
@@ -181,7 +184,9 @@ export async function screenLine(
   screening.add(session);
   try {
     const answerer = await poll(() => classifyLine(ear.evidence()), tick);
-    if (answerer === 'voicemail') await leaveMessage(session, parties, deps, ear, tick);
+    if (answerer === 'voicemail' && !deps.noMessage) {
+      await leaveMessage(session, parties, deps, ear, tick);
+    }
     await deps.record(answerer).catch((error: unknown) => {
       log.warn({ error: String(error) }, 'Could not record who answered');
     });
@@ -246,5 +251,46 @@ export async function personAnswered(
     }
   );
   log.info({ sessionId, answerer }, '📞 Outbound call answered');
+  return answerer === 'human';
+}
+
+interface VerdictRoom extends AnswerWatchRoom {
+  localParticipant?: { setAttributes(attributes: Record<string, string>): Promise<void> };
+}
+
+/**
+ * The pickup of a call Ferni placed to its own user (orchestrator.ts): true or
+ * false once it is known, undefined when this isn't such a call. A "call me"
+ * moved from the app (CALL_ME_MOVES_TO_PHONE) is screened whatever
+ * VOICEMAIL_DETECT says: the app call ends only for a person. The verdict goes
+ * on this agent's participant (ANSWERED_BY), where the app side waits for it
+ * (self-call.ts); a machine gets no message, and the app side hangs it up.
+ * Other proactive calls wait for the pickup as before (PROACTIVE_REASON_OPENER).
+ */
+export async function proactivePickedUp(
+  room: VerdictRoom,
+  participant: PhoneParticipant,
+  agent: { session: unknown },
+  sessionId: string
+): Promise<boolean | undefined> {
+  const { getProactiveSessionContext } =
+    await import('../../intelligence/context-builders/external/proactive-session-context.js');
+  if (!getProactiveSessionContext(sessionId)?.movedFrom) {
+    const { isProactiveCall } = await import('../multi-agent/greeting-direction.js');
+    return (await isProactiveCall(sessionId)) ? waitForCallAnswered(room, participant) : undefined;
+  }
+  if (!(await waitForCallAnswered(room, participant, undefined, 0))) return false;
+  const say = async (answerer: Answerer): Promise<void> => {
+    await room.localParticipant?.setAttributes({ [ANSWERED_BY]: answerer });
+  };
+  const deps = { hangUp: async () => undefined, record: say, noMessage: true };
+  const answerer = await screenLine(agent.session as ScreenSession, { personal: true }, deps).catch(
+    async (error: unknown) => {
+      log.warn({ sessionId, error: String(error) }, 'Moved call screen failed; a person, as usual');
+      await say('human').catch(() => undefined);
+      return 'human' as const;
+    }
+  );
+  log.info({ sessionId, answerer }, 'CALL_ME_MOVES_TO_PHONE line screened');
   return answerer === 'human';
 }

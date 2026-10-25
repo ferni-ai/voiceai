@@ -43,8 +43,12 @@ export function installReminderTextGuard(next: ReminderTextGuard | undefined): v
   guard = next;
 }
 
-/** Is this the owner's own verified number? Installed with the guard; without it, never. */
-export type OwnNumberCheck = (userId: string, phone: string) => Promise<boolean>;
+/** The owner's own verified number, or one the owner holds a grant for? Installed with the guard; without it, never. */
+export type OwnNumberCheck = (
+  userId: string,
+  phone: string,
+  channel: 'sms' | 'call'
+) => Promise<boolean>;
 let ownNumber: OwnNumberCheck | undefined;
 
 export function installReminderOwnNumber(next: OwnNumberCheck | undefined): void {
@@ -90,7 +94,7 @@ async function consentRefusal(
   const refused = await consentBlocks(
     to,
     'call',
-    async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to)) === true,
+    async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to, 'call')) === true,
     env
   );
   if (refused) log.info({ reminderId: reminder.id, refused }, 'Reminder call held for the app');

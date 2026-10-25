@@ -3512,8 +3512,6 @@
     "accessLevelFullDesc": "Can talk to all team members",
     "accessLevelLimited": "Limited",
     "accessLevelLimitedDesc": "Only Ferni",
-    "accessLevelSupervised": "Supervised",
-    "accessLevelSupervisedDesc": "You get notified of calls",
     "eyebrow": "Family",
     "addMember": "Add Family Member",
     "lastCall": "Last: {date}",
@@ -3606,7 +3604,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Communication & Relationships",
+        "role": "Communication Coach & Chief of Staff",
         "description": "I help you navigate conversations, strengthen relationships, and express yourself better.",
         "name": "Alex Chen"
       },
@@ -10105,9 +10103,10 @@
     "title": "Little things I remember",
     "subtitle": "So you don't have to",
     "emptyTitle": "Nothing set up yet",
-    "emptySubtitle": "Want me to greet you each morning? Remind you to stretch? I can do that.",
+    "emptySubtitle": "Tell me something you'd like to do regularly and I'll save it here.",
     "emptyButton": "Show me some ideas",
     "addNew": "Add something new",
+    "notRunningYet": "I keep these here for you. They don't run on their own yet.",
     "triggers": {
       "dailyAt": "Every day at {time}",
       "dailyUnset": "Every day at a set time",
