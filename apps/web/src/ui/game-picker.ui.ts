@@ -15,6 +15,13 @@ import { contentIcon } from './icons/content-icons.js';
 
 const log = createLogger('GamePicker');
 
+let gameRequestSeq = 0;
+/** An id for one tap, unique in this page load: the agent's ack carries it back. */
+function newGameRequestId(): string {
+  gameRequestSeq += 1;
+  return `game-${Date.now().toString(36)}-${gameRequestSeq}`;
+}
+
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
@@ -486,11 +493,14 @@ class GamePickerUI {
       const isTextGame = category === 'text' || game.category === 'text' ||
                          category === 'reflection' || game.category === 'reflection';
       
-      // Send game start request via data channel
+      // Send game start request via data channel. The agent echoes requestId in
+      // its ack, so a late answer to an earlier tap can't settle this one.
+      const requestId = newGameRequestId();
       const message = JSON.stringify({
         type: isTextGame ? 'text_game_start_request' : 'game_start_request',
         gameType: gameId,
         gameCategory: game.category,
+        requestId,
         timestamp: Date.now(),
       });
 
@@ -506,7 +516,9 @@ class GamePickerUI {
       const gameName = t(game.nameKey);
       // 🤲 Sidekick: Dispatch game started event for avatar sidekick
       document.dispatchEvent(new CustomEvent('ferni:game-started', {
-        detail: { gameId, gameType: gameId, gameName, category: game.category, awaitsAck: true }
+        detail: {
+          gameId, gameType: gameId, gameName, category: game.category, awaitsAck: true, requestId,
+        }
       }));
 
       // 🤲 Sidekick: For reflection games, also dispatch meditation event

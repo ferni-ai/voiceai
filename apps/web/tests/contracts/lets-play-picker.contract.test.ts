@@ -141,10 +141,14 @@ describe("Let's Play: every picker game starts on the agent", () => {
     async (gameId) => {
       const sessionId = `call-${gameId}`;
       const agent = call(sessionId);
-      agent.deliver(await tap(gameId));
+      const request = await tap(gameId);
+      const { requestId } = JSON.parse(new TextDecoder().decode(request)) as { requestId: unknown };
+      expect(typeof requestId).toBe('string');
+      agent.deliver(request);
 
       await vi.waitFor(() => expect(agent.acks).toHaveLength(1), WAIT);
-      expect(agent.acks[0]).toMatchObject({ gameType: gameId, success: true });
+      // The ack names the tap it answers
+      expect(agent.acks[0]).toMatchObject({ gameType: gameId, success: true, requestId });
       expect(engineGame(sessionId)).toBe(gameId);
       expect(mocks.say).toHaveBeenCalledWith(sessionId, expect.any(String), expect.anything());
 
@@ -179,6 +183,23 @@ describe("Let's Play: a game that won't start", () => {
       'game_start_failed',
       expect.objectContaining({ allowInterruptions: true })
     );
+
+    handleDataMessage(JSON.parse(JSON.stringify(agent.acks[0])) as Message);
+    expect(mocks.toast.success).not.toHaveBeenCalled();
+    expect(mocks.toast.error).toHaveBeenCalledTimes(1);
+    agent.cleanup();
+  }, 20_000);
+
+  it('a text game id the agent does not know is a failed start, and the app says so', async () => {
+    const agent = call('call-unknown-text');
+    agent.deliver(
+      new TextEncoder().encode(
+        JSON.stringify({ type: 'text_game_start_request', gameType: 'no-such-game' })
+      )
+    );
+    await vi.waitFor(() => expect(agent.acks).toHaveLength(1), WAIT);
+    expect(agent.acks[0]).toMatchObject({ success: false, reason: 'unknown_game' });
+    expect(agent.acks[0]).not.toHaveProperty('requestId'); // this request sent none
 
     handleDataMessage(JSON.parse(JSON.stringify(agent.acks[0])) as Message);
     expect(mocks.toast.success).not.toHaveBeenCalled();
