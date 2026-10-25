@@ -119,8 +119,8 @@ describe('GET /api/wellbeing/dashboard', () => {
 
     await get('/api/wellbeing/dashboard?userId=someone-else');
 
-    expect(loadProfile).toHaveBeenCalledWith('signed-in-user');
-    expect(loadProfile).not.toHaveBeenCalledWith('someone-else');
+    expect(loadProfile).toHaveBeenCalledWith('signed-in-user', { rethrow: true });
+    expect(loadProfile).not.toHaveBeenCalledWith('someone-else', expect.anything());
   });
 
   it("the web's has-data check accepts the server's real output in both cases", async () => {

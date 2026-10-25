@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { errorFields } from '../../../utils/error-class.js';
 import type { IntelligentRouterOrchestrator } from '../advanced/intelligent/index.js';
 import {
   getIntelligentOrchestrator,
@@ -159,8 +160,8 @@ export async function initializeIntelligentRouter(
  */
 async function createBanditFirestorePersistence() {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     return {
       save: async (arms: Map<string, unknown>) => {
@@ -267,7 +268,7 @@ export async function startIntelligentRouting(
 
     log.info(
       {
-        userText: userText.slice(0, 50),
+        textLength: userText.length,
         decidedBy: decision.decidedBy,
         toolId: decision.toolId,
         action: decision.action,
@@ -277,10 +278,9 @@ export async function startIntelligentRouting(
       '🧠 Intelligent routing complete'
     );
 
-    // Convert to TurnRouterResult format
     return convertToTurnRouterResult(decision, userText, context, latencyMs);
   } catch (error) {
-    log.error({ error, userText: userText.slice(0, 50) }, 'Intelligent routing failed');
+    log.error({ ...errorFields(error), textLength: userText.length }, 'Intelligent routing failed');
 
     // Fallback to standard semantic routing
     const { startSemanticRouting } = await import('./turn-processor-integration.js');

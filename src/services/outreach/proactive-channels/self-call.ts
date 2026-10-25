@@ -31,32 +31,56 @@ export type CallOutcome = Extract<
   'answered' | 'no_answer' | 'busy' | 'declined' | 'failed'
 >;
 
+/**
+ * `callMove`: a "call me" moving an app call to the phone (live-agent-call.ts);
+ * `movedFrom`: that app call's conversation id, when it has one.
+ */
+type DispatchTrigger = Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'> & {
+  callMove?: boolean;
+  movedFrom?: string;
+};
+
+/** The attribute the phone agent sets once its line screen knows who picked up (line-screen.ts). */
+export const ANSWERED_BY = 'ferni.answeredBy';
+/** How long a moved call waits for that verdict after the pickup (the screen takes up to ~4 s). */
+export const SCREEN_WAIT_MS = 8_000;
+const SCREEN_TICK_MS = 250;
+
 /** The LiveKit calls this makes; tests stub them (the SDK edge). */
 export interface SipApi {
   createRoom: (name: string) => Promise<void>;
   dispatchAgent: (room: string, metadata: string) => Promise<void>;
   dial: (trunkId: string, phone: string, room: string, callId: string) => Promise<void>;
+  /** The phone agent's line-screen verdict in this room, once it has one. */
+  answeredBy?: (room: string) => Promise<string | undefined>;
+  hangUp?: (room: string) => Promise<void>;
 }
 
 export function canPlaceCalls(env: Record<string, string | undefined> = process.env): boolean {
   return Boolean(env.SIP_TRUNK_ID && env.LIVEKIT_URL && env.LIVEKIT_API_SECRET);
 }
 
-/** What the agent job gets: the user on the line is the user, and why Ferni called. */
+/**
+ * What the agent job gets: the user on the line is the user, why we called,
+ * and who calls (the agent speaks as persona_id, in that persona's voice).
+ */
 export function selfCallDispatch(
   userId: string,
   callId: string,
-  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'>
+  trigger: DispatchTrigger,
+  personaId = 'ferni'
 ): Record<string, unknown> {
   return {
     type: 'proactive_outreach',
     callId,
     userId,
-    persona_id: 'ferni',
+    persona_id: personaId,
     triggerType: trigger.kind,
     triggerReason: trigger.reason,
     triggerId: trigger.sourceId,
     openerStyle: 'warm',
+    ...(trigger.callMove && { callMove: true }),
+    ...(trigger.movedFrom && { movedFrom: trigger.movedFrom }),
   };
 }
 
@@ -99,14 +123,42 @@ async function livekitSip(): Promise<SipApi> {
         timeout: RING_SECONDS + 10,
       });
     },
+    async answeredBy(room) {
+      const people = await new RoomServiceClient(url, key, secret).listParticipants(room);
+      return people.map((p) => p.attributes?.[ANSWERED_BY]).find(Boolean);
+    },
+    async hangUp(room) {
+      await new RoomServiceClient(url, key, secret).deleteRoom(room);
+    },
   };
+}
+
+/**
+ * A moved "call me" hands over only to a person: SIP "answered" is a voicemail
+ * greeting too. The phone agent screens the line and says who it heard; a
+ * machine, or no verdict in time, is hung up with no message and is no_answer.
+ */
+async function screened(api: SipApi, room: string): Promise<CallOutcome> {
+  for (let waited = 0; waited < SCREEN_WAIT_MS; waited += SCREEN_TICK_MS) {
+    const verdict = await api.answeredBy?.(room).catch(() => undefined);
+    if (verdict === 'human') return 'answered';
+    if (verdict) break;
+    await new Promise((resolve) => {
+      setTimeout(resolve, SCREEN_TICK_MS);
+    });
+  }
+  await api.hangUp?.(room).catch((error: unknown) => {
+    log.warn({ room, error: String(error) }, 'Moved call not hung up');
+  });
+  return 'no_answer';
 }
 
 export async function placeSelfCall(
   userId: string,
   phone: string,
-  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'>,
-  sip?: SipApi
+  trigger: DispatchTrigger,
+  sip?: SipApi,
+  personaId = 'ferni'
 ): Promise<CallOutcome> {
   const trunkId = process.env.SIP_TRUNK_ID;
   const secret = dispatchSigningSecret();
@@ -119,9 +171,13 @@ export async function placeSelfCall(
   const api = sip ?? (await livekitSip());
   try {
     await api.createRoom(room);
-    const signed = signDispatch(selfCallDispatch(userId, callId, trigger), secret);
+    const signed = signDispatch(selfCallDispatch(userId, callId, trigger, personaId), secret);
     await api.dispatchAgent(room, JSON.stringify(signed));
     await api.dial(trunkId, phone, room, callId);
+    if (trigger.callMove && (await screened(api, room)) !== 'answered') {
+      log.info({ userId, callId }, 'Moved call: no person on the line; hung up');
+      return 'no_answer';
+    }
     log.info(
       { userId, callId, kind: trigger.kind, tail: phone.slice(-2) },
       'Proactive call answered'

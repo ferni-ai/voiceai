@@ -12,7 +12,7 @@
 
 import { diag } from '../../services/diagnostic-logger.js';
 import { deepUnderstandingPeriodicSync } from '../../intelligence/index.js';
-import { memoryHeld } from '../../utils/minor-care.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PeriodicSync' });
@@ -200,7 +200,7 @@ export function stopAllPeriodicSyncs(): void {
  */
 async function performSync(state: PeriodicSyncState): Promise<void> {
   // MINOR_CARE: checked on every tick, since the hold can start mid-call (minor-care.ts)
-  if (memoryHeld(state.sessionId)) {
+  if (memoryHeld(state.sessionId) || userHeld(state.userId)) {
     log.debug({ sessionId: state.sessionId }, 'Periodic sync held: MINOR_CARE');
     return;
   }

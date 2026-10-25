@@ -3,6 +3,7 @@
  */
 
 import type { IncomingMessage, ServerResponse as HttpServerResponse } from 'http';
+import type { CallLaunch } from '../../types/call-launch.js';
 
 /**
  * Extended request with parsed URL and body
@@ -151,6 +152,8 @@ export interface RoomMetadata {
   regionCode?: string;
   /** The caller's IANA time zone (browser), e.g. 'America/New_York'. */
   timezone?: string;
+  /** Where the call was started from, checked by /token (CALL_LAUNCH_CONTEXT). */
+  launch?: CallLaunch;
 }
 
 /**

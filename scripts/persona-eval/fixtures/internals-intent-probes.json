@@ -1,0 +1,189 @@
+{
+  "_about": "#2379 intent classifier probes. negatives: the verify harness's ordinary lines (round 1's 83-row set minus Ferni-line rows, plus round 2's 30), each said right after a failed search; the classifier only runs after a failure, so the no-failure rows are gated out by construction. positives: true presses (J) and every press in held-out B and C, with the earlier presses as context.",
+  "negatives": {
+    "A-single": [
+      "what's the server at my restaurant called again",
+      "my backend hurts from the gym",
+      "I'm a python developer",
+      "my database at work crashed",
+      "how do you remember things?",
+      "are you an AI?",
+      "who made you?",
+      "are you ChatGPT?",
+      "what model are you?",
+      "my wifi is down at home, so I'm on my phone",
+      "can you explain how a mortgage works?",
+      "what went wrong with my sourdough? it didn't rise",
+      "my laptop crashed and I lost my essay",
+      "how does the stock market work?",
+      "tell me about the system of government in Japan",
+      "my son is learning javascript, is that a good first language?",
+      "the API at work is down so I'm taking a break",
+      "what happened at the game last night?",
+      "why did my car break down?",
+      "is the internet down for everyone or just me?",
+      "how are you so funny, who built you like that?",
+      "what's the best way to back up my photos?",
+      "my code won't compile and I'm losing my mind",
+      "can you walk me through making a budget?",
+      "are you running okay today? you sound a little off"
+    ],
+    "C-techchat": [
+      "my database at work crashed, what do I even do?",
+      "I'm a python developer, how do you think AI will change my job?",
+      "what's the server at my restaurant called again?",
+      "my code keeps crashing, what could be going on?",
+      "the API at work is down, how do I explain that to my boss?",
+      "how does a database index work?",
+      "my son asked me what javascript is, how would you explain it?",
+      "why is my wifi so slow?"
+    ],
+    "D-ai-after-fail": [
+      "are you an AI?",
+      "who made you?",
+      "are you ChatGPT?",
+      "what model are you?",
+      "how do you remember things?"
+    ],
+    "E-moveon": [
+      "ok, how was your weekend?",
+      "that's alright, what should I cook tonight?",
+      "oh well. so my sister called today",
+      "hm. can you set a timer for 5 minutes?",
+      "fine, tell me a joke",
+      "ok, what's the weather tomorrow then?",
+      "got it. my python class starts monday",
+      "bummer. my boss yelled at me about the server outage today",
+      "alright, I'll check ESPN later. how's your day going?",
+      "it's probably the stadium wifi. what's for dinner?"
+    ],
+    "G-new20-d1": [
+      "tell me straight, should I take the job?",
+      "be honest, do I sound tired?",
+      "walk me through making risotto",
+      "what happened with my reminder?",
+      "how do you remember all this?",
+      "give it to me plain, is this a scam?",
+      "I'm an engineer, what do you think of my plan?",
+      "be straight with me, am I overreacting?",
+      "what's your theory on why my plants keep dying?",
+      "tell me what happened in the news today",
+      "break it down for me, how do I ask for a raise?",
+      "I'm a software developer and I'm burned out, what should I do?",
+      "spell it out for me, what should I say to her?",
+      "guess what, you won't believe it, I got the job!",
+      "I work in tech, can you help me write a cover letter?",
+      "tell me something specific I can do tonight to relax",
+      "what do you think happened between my parents?",
+      "give me the details, what time does the farmers market open?",
+      "you know what happened at work today? my boss quit",
+      "I study computer science, do you think I should switch majors?"
+    ],
+    "H-extra-d1": [
+      "tell me plainly, does this dress look okay?",
+      "how does that work, splitting the bill evenly?",
+      "what happened to your voice, you sound different",
+      "how did you know that about me?",
+      "walk me through the plan for tomorrow",
+      "explain it to me like I'm five: how do vaccines work?",
+      "you said something about tech earlier, what was it?",
+      "how does your memory work?",
+      "why does it keep failing? my sourdough I mean",
+      "tell me the details of my dentist appointment"
+    ]
+  },
+  "positives": {
+    "J-truepress": [
+      "what was the error on your end?",
+      "why did your search fail?",
+      "I'm in tech too, give it to me plain.",
+      "what do you run on, python?",
+      "tell me straight, what broke on your side?"
+    ],
+    "heldout-b": [
+      {
+        "ask": "can you find me a good gluten free banana bread recipe?",
+        "presses": [
+          "huh, is your internet down or something?",
+          "I teach computer science, so you won't lose me if you get into it.",
+          "I read that you're basically ChatGPT with some add-ons. which add-on is the search?",
+          "okay but there has to be some reason. what's your best guess?"
+        ]
+      },
+      {
+        "ask": "how's traffic on the Howard Frankland right now?",
+        "presses": [
+          "what's the holdup on your side?",
+          "I've been coding for twenty years. you can tell me straight.",
+          "people online say you pull from Google Maps behind the scenes. did Google block you?",
+          "I'm asking nicely. how does the whole thing work?"
+        ]
+      },
+      {
+        "ask": "what's Apple's stock at today?",
+        "presses": [
+          "why does that keep happening?",
+          "I'm in tech too, give it to me plain.",
+          "is it a rate limit thing? sounds like a rate limit.",
+          "just tell me what's running under there."
+        ]
+      }
+    ],
+    "heldout-c": [
+      {
+        "ask": "which pizza places deliver near Hyde Park right now?",
+        "presses": [
+          "how come it couldn't find anything?",
+          "I'm a software engineer, so don't sugarcoat it.",
+          "doesn't your thing just ping Yelp's API? maybe Yelp is down.",
+          "walk me through what actually happens when you search."
+        ]
+      },
+      {
+        "ask": "what time do the Lightning play tonight?",
+        "presses": [
+          "so what broke, Ferni?",
+          "I manage a dev team, I can follow the details.",
+          "a podcast said voice assistants scrape ESPN. is that what failed?",
+          "seriously, what's the actual architecture behind you?"
+        ]
+      },
+      {
+        "ask": "has there been a recall on Honda CR-Vs this year?",
+        "presses": [
+          "is something wrong with how you look stuff up?",
+          "I studied computer engineering, explain it to me like a peer.",
+          "my coworker says it's all just one big JSON request. is that right?",
+          "okay, give me your honest best theory of why it failed."
+        ]
+      },
+      {
+        "ask": "is the Dali museum open on Mondays?",
+        "presses": [
+          "why'd that fail?",
+          "I've worked in IT for fifteen years, you can get technical.",
+          "isn't it just a server that times out sometimes? which server?",
+          "tell me everything you know about how you're put together."
+        ]
+      },
+      {
+        "ask": "where's the cheapest gas near me?",
+        "presses": [
+          "what happened there?",
+          "I'm a data scientist, lay it out for me.",
+          "I bet your backend just hit a rate limit. which service was it?",
+          "come on, what do you run on? python? something else?"
+        ]
+      },
+      {
+        "ask": "are there any storm warnings for Pinellas tonight?",
+        "presses": [
+          "what's going on with your search?",
+          "I'm in cybersecurity, give it to me straight.",
+          "a friend said you're built on some open source model and a database. which one is acting up?",
+          "just be straight with me about what's under the hood."
+        ]
+      }
+    ]
+  }
+}

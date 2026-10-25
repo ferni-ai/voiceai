@@ -1,16 +1,12 @@
 /**
  * Markov Sequence Predictor
- *
  * TRUE PREDICTIVE INTELLIGENCE: Learn behavioral sequences and predict next states.
- *
  * This uses a Markov chain to learn patterns like:
  * - "After talking about work stress → user often mentions sleep issues"
  * - "Morning conversations → typically lead to energy discussions"
  * - "After milestone celebrations → user often sets new goals"
- *
  * Unlike rule-based systems that say "if Sunday → anxious", this LEARNS from actual
  * user behavior what tends to follow what.
- *
  * Key Features:
  * - First-order and second-order Markov chains
  * - Decay-weighted learning (recent patterns matter more)
@@ -156,6 +152,10 @@ const CONFIG = {
 // ============================================================================
 
 const userProfiles = new Map<string, UserPatternProfile>();
+/** MINOR_CARE: drop a held caller under 18's state, so it is never written later. */
+export function clearHeldMarkovUser(userId: string): void {
+  userProfiles.delete(userId);
+}
 const communityPatterns: FirstOrderChain = new Map();
 let communityObservations = 0;
 

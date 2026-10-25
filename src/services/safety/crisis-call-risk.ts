@@ -55,13 +55,52 @@ const turnOf = (latest: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+/** The turn key noteCrisisRisk takes for these caller words (as trackCrisisRead keys them). */
+export const crisisTurnOf = turnOf;
+
 /** Told of every risk noted: the call, and the caller words whose read noted it, when known. */
 type RiskListener = (sessionId: string, turn: string | undefined) => void;
 const listeners = new Set<RiskListener>();
 
-/** Hear of every risk noted on any call (crisis-lone-imminent.ts drops its snapshots). */
-export function onCrisisRiskNoted(listener: RiskListener): void {
+/**
+ * Hear of every risk noted on any call (crisis-lone-imminent.ts drops its
+ * snapshots). Returns a function that stops listening (call-wrap-up.ts listens
+ * only while a call is ending).
+ */
+export function onCrisisRiskNoted(listener: RiskListener): () => void {
   listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+
+/** Told when a classifier read of a call's caller words starts (call-wrap-up.ts waits on it). */
+type ReadListener = (sessionId: string, words: string) => void;
+const readListeners = new Set<ReadListener>();
+
+/**
+ * Hear of every crisis read that starts: the call, and the caller words read.
+ * Returns a function that stops listening.
+ */
+export function onCrisisReadStarted(listener: ReadListener): () => void {
+  readListeners.add(listener);
+  return () => void readListeners.delete(listener);
+}
+
+/** A classifier read of these caller words (or words holding them) is in flight on this call. */
+export function turnReadInFlight(sessionId: string, latest: string): boolean {
+  const reads = pending.get(sessionId);
+  const turn = turnOf(latest);
+  if (!reads || !turn) return false;
+  return [...reads.keys()].some((t) => t === turn || t.includes(turn) || turn.includes(t));
+}
+
+/** A classifier read of this call's caller words is still in flight. */
+export function crisisReadInFlight(sessionId: string): boolean {
+  return pending.has(sessionId);
+}
+
+/** For tests: how many listeners are attached. */
+export function crisisRiskListenerCount(): number {
+  return listeners.size;
 }
 
 /**
@@ -109,6 +148,13 @@ export function trackCrisisRead<T extends { risk: string } | null>(
   const reads = pending.get(sessionId) ?? new Map<string, number>();
   reads.set(turn, (reads.get(turn) ?? 0) + 1);
   pending.set(sessionId, reads);
+  for (const listener of readListeners) {
+    try {
+      listener(sessionId, latest);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Crisis read listener failed');
+    }
+  }
   const settle = (risk: boolean): void => {
     const left = (reads.get(turn) ?? 1) - 1;
     if (left > 0) reads.set(turn, left);

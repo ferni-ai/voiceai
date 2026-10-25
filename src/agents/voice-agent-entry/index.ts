@@ -17,6 +17,7 @@
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { errorText, writeIdentityDiagnostics, writeParticipantReady } from './startup-log.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
@@ -181,7 +182,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   void import('../../tools/dynamic-loader/index.js')
     .then(({ ensureEssentialDomainsLoaded }) => ensureEssentialDomainsLoaded())
     .catch((error: unknown) =>
-      process.stderr.write(`[voice-agent-entry] Essential tool preload failed: ${String(error)}\n`)
+      process.stderr.write(`[voice-agent-entry] Essential tool preload failed: ${errorText(error)}\n`)
     );
 
   // Warm the directed-speech actor now so the greeting cue, a few seconds
@@ -417,20 +418,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         process.stderr.write(
           `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
         );
-        process.stderr.write(
-          `[voice-agent-entry] 🔍 IDENTITY DIAGNOSTICS:\n` +
-            `  - userId: ${userId || 'MISSING!'}\n` +
-            `  - userIdFormat: ${diagnostics.userIdFormat}\n` +
-            `  - hasProfile: ${diagnostics.hasProfile ? 'YES' : 'NO!'}\n` +
-            `  - hasName: ${diagnostics.hasName ? `YES (${services.userProfile?.name || services.userProfile?.preferredName || userName})` : 'NO!'}\n` +
-            `  - hasVoiceSketch: ${diagnostics.hasVoiceSketch ? 'YES (cross-device ready)' : 'NO'}\n` +
-            `  - isReturningUser: ${diagnostics.isReturningUser}\n` +
-            `  - totalConversations: ${diagnostics.totalConversations}\n` +
-            `  - onboardingComplete: ${diagnostics.onboardingComplete}\n` +
-            `  - lastConversationSummary: ${services.userProfile?.lastConversationSummary ? `YES (${services.userProfile.lastConversationSummary.slice(0, 40)}...)` : 'NO!'}\n` +
-            `  - lastContact: ${services.userProfile?.lastContact || 'NEVER'}\n` +
-            `  - issues: ${diagnostics.issues.length > 0 ? diagnostics.issues.join(', ') : 'NONE ✅'}\n`
-        );
+        writeIdentityDiagnostics(userId, services.userProfile, diagnostics);
       } catch {
         process.stderr.write(
           `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
@@ -482,7 +470,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
               }
             }
           } catch (calErr) {
-            process.stderr.write(`[voice-agent-entry] 📅 Calendar fetch failed (non-critical): ${String(calErr)}\n`);
+            process.stderr.write(`[voice-agent-entry] 📅 Calendar fetch failed (non-critical): ${errorText(calErr)}\n`);
           }
         })();
       }
@@ -499,7 +487,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
             cleanupHandlers.push(() => cleanupVoiceVerification(sessionId));
           }
         } catch (voiceVerifyErr) {
-          process.stderr.write(`[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${String(voiceVerifyErr)}\n`);
+          process.stderr.write(`[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${errorText(voiceVerifyErr)}\n`);
         }
       }
 
@@ -532,10 +520,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
               userData.threadId = threadInit.threadId;
               cleanupHandlers.push(() => { cleanupThreadRecording(sessionId); });
             } catch (threadRecordErr) {
-              process.stderr.write(`[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`);
+              process.stderr.write(`[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${errorText(threadRecordErr)}\n`);
             }
           } catch (threadErr) {
-            process.stderr.write(`[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`);
+            process.stderr.write(`[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${errorText(threadErr)}\n`);
           }
         })();
       }
@@ -579,7 +567,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     if (shouldUseMultiAgentEarlyPath) {
       void runPostInitEnrichment().catch((enrichErr: unknown) => {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ Deferred post-init enrichment failed (non-fatal): ${String(enrichErr)}\n`
+          `[voice-agent-entry] ⚠️ Deferred post-init enrichment failed (non-fatal): ${errorText(enrichErr)}\n`
         );
       });
     } else {
@@ -608,9 +596,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       if (participant && ctx.room) {
         await markCallStageSafe(sessionId, 'participant_ready', participantWaitResult.endedAt);
-        process.stderr.write(
-          `[voice-agent-entry] 👤 Participant ready (${participantWaitResult.source}): ${participant.identity}\n`
-        );
+        writeParticipantReady(participantWaitResult.source, participant.identity);
         void noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
@@ -1014,7 +1000,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const errObj = error instanceof Error ? error : new Error(String(error));
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
     await finishCallType?.().catch(() => undefined);
-    process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
+    process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${errorText(error)}\n`);
 
     recordCrash('uncaught_exception', errObj, sessionId, { roomName, connectionState: currentPhase });
 

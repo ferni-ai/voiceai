@@ -6,6 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { consentBlocks } from '../../utils/consent-port.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 const log = getLogger().child({ module: 'TwilioSMS' });
@@ -69,6 +70,12 @@ export async function sendSMS(to: string, body: string): Promise<string | null> 
 
   if (!client || !from) {
     log.warn({ to: to.slice(-4) }, 'SMS not sent - Twilio not configured');
+    return null;
+  }
+  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
+  const refused = await consentBlocks(to, 'sms', true);
+  if (refused) {
+    log.info({ to: to.slice(-4), refused }, 'SMS not sent - consent');
     return null;
   }
 

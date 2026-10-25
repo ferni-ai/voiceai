@@ -23,12 +23,13 @@ import {
 } from 'node:stream/web';
 
 import { GEMINI_MODEL } from '../../config/gemini-config.js';
-import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { asSessionVoice, spokenVoiceId, type SessionVoice } from './spoken-voice.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 import { finops } from '../../services/observability/finops.js';
 import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
+import { spokenPunctuation } from '../../speech/output-control/spoken-punctuation.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
@@ -54,6 +55,7 @@ import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gate
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { noteGeneratedReply } from './call-timeline.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -300,6 +302,8 @@ export interface TtsSessionContext extends ReplyCallerFields {
   userId?: string;
   sessionId?: string;
   personaId?: string;
+  /** The voice resolved when the call started (custom agent or localized), see spoken-voice.ts */
+  sessionVoice?: SessionVoice;
   wasInterrupted?: boolean;
   interruptType?: 'hard' | 'soft';
   /** Current emotional context (for cache-aware TTS) */
@@ -733,7 +737,7 @@ export async function wrappedTtsNode(
           if (isMemberIdentity(userId) && rawLLMBuffer.length > 10 && !isGarbageResponse) {
             import('../../services/superhuman/semantic-intelligence/integration.js')
               .then(({ trackFerniCommitments }) => {
-                void trackFerniCommitments(userId, rawLLMBuffer, {});
+                void trackFerniCommitments(userId, rawLLMBuffer, { sessionId });
               })
               .catch((err) => {
                 // Non-critical - don't block TTS
@@ -962,8 +966,7 @@ export async function wrappedTtsNode(
           sessionId,
         });
 
-        // Estimate LLM output tokens (~4 chars per token)
-        const estimatedOutputTokens = Math.ceil(totalCharacters / 4);
+        const estimatedOutputTokens = Math.ceil(totalCharacters / 4); // LLM tokens, ~4 chars each
         finops.recordLLMCost({
           model: GEMINI_MODEL, // From centralized config
           inputTokens: 0,
@@ -972,8 +975,7 @@ export async function wrappedTtsNode(
           sessionId,
         });
 
-        // 🔍 E2E TRACE [4/4]: What actually goes to TTS (spoken to user)
-        // Use truncateForLog() to respect LOG_FULL_RESPONSES env var
+        // 🔍 E2E TRACE [4/4]: what goes to TTS (truncateForLog respects LOG_FULL_RESPONSES)
         const streamDurationMs = Date.now() - streamStartTime;
         log.info(
           {
@@ -987,6 +989,7 @@ export async function wrappedTtsNode(
           },
           `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}" (${chunkCount} chunks in ${streamDurationMs}ms)`
         );
+        noteGeneratedReply(sessionId, ttsOutputBuffer); // CALL_TIMELINE: generated vs heard
       }
     },
   });
@@ -1007,12 +1010,11 @@ export async function wrappedTtsNode(
     );
   });
 
-  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → cost tracking)
+  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → punctuation → cost)
   const spokenText = linguisticallyMirroredText.pipeThrough(crisisLineSpeechTransform());
-  const trackedText = spokenText.pipeThrough(costTrackingStream);
+  const trackedText = spokenText.pipeThrough(spokenPunctuation()).pipeThrough(costTrackingStream);
 
-  // 6. Apply streaming TTS optimization for lower latency
-  // This chunks the text more aggressively for faster first-audio
+  // 6. Streaming TTS optimization: chunks more aggressively for faster first audio
   let optimizedText: NodeReadableStream<string>;
   if (enableStreamingOptimization) {
     const streamingConfig = getOptimizedStreamingConfig({
@@ -1096,7 +1098,7 @@ export async function wrappedTtsNode(
   // 🚀 TTS GATEWAY: Use FULL gateway when enabled (highest priority)
   // This completely replaces LiveKit's internal Cartesia with our gateway
   if (isTTSGatewayEnabled()) {
-    const actualVoiceId = getVoiceIdForPersona(personaId);
+    const actualVoiceId = spokenVoiceId(personaId, sessionContext?.sessionVoice);
 
     log.info(
       { personaId, voiceId: actualVoiceId, emotion, sessionId },
@@ -1126,7 +1128,7 @@ export async function wrappedTtsNode(
     // Use cache-aware TTS that checks speculative cache before Cartesia
     // BUG FIX: Convert personaId to actual Cartesia voice UUID
     // Previously passed personaId directly, causing cache misses and wrong voice lookups
-    const actualVoiceId = getVoiceIdForPersona(personaId);
+    const actualVoiceId = spokenVoiceId(personaId, sessionContext?.sessionVoice);
     const cacheAwareTTS = createCacheAwareTTSNode({
       voiceId: actualVoiceId,
       emotion,
@@ -1295,6 +1297,7 @@ export function extractTtsSessionContext(
     userId: userData?.userId as string | undefined,
     sessionId: extractedSessionId,
     personaId,
+    sessionVoice: asSessionVoice(userData?.sessionVoice),
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,

@@ -22,6 +22,9 @@ DRY=${NIGHTLY_DRY_RUN:-0}
 P=ferni-dev CONF=$ROOT/livekit.toml DEV_AGENT=CA_siTDMHEba4Fg GCP=johnb-2025
 CLAIM=$HOME/.claude/coordination/claim.py BOARD=$HOME/.claude/coordination/board.md
 ISSUE=${NIGHTLY_ISSUE-2407} LANES_DIR=${NIGHTLY_LANES:-$HERE/lanes}
+# A call that runs longer than this is killed so the rest of its lane still runs
+# (2026-10-23: one hung converse.mjs held lane B for 47 min).
+CALL_MAX_S=${NIGHTLY_CALL_MAX_S:-900}
 # claim.py names its owner by session id: the sweep always claims as itself, never as the caller
 export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
 RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID="" RUNNER=$$
@@ -125,7 +128,7 @@ do_deploy() {
 }
 # One lane file: "ENV | scenario | label | uid | capability" per line.
 lane() {
-  local file=$1 llog=$2 envs sc label uid cap rc name
+  local file=$1 llog=$2 envs sc label uid cap rc name cpid wpid tflag
   name=$(basename "$file" .txt)
   while IFS='|' read -r envs sc label uid cap; do
     envs=$(trim "$envs"); sc=$(trim "${sc:-}"); label=$(trim "${label:-}"); uid=$(trim "${uid:-}")
@@ -143,8 +146,18 @@ lane() {
       # shellcheck disable=SC2086,SC2163 # ENV is a list of VAR=val words, split on purpose
       [ "$envs" = - ] || export $envs
       exec "$EVAL/run.sh" dev "$sc" "$TAG$label" ${uid:+"$uid"}
-    ) > "$OUT/runlogs/$sc-$TAG$label.out" 2>&1 < /dev/null
+    ) > "$OUT/runlogs/$sc-$TAG$label.out" 2>&1 < /dev/null &
+    cpid=$!
+    tflag=$OUT/runlogs/.timeout-$cpid
+    { sleep "$CALL_MAX_S" && : > "$tflag" && say "TIMEOUT $sc $label after ${CALL_MAX_S}s" >> "$llog" \
+      && stop_jobs "$cpid"; } 2> /dev/null &
+    wpid=$!
+    wait "$cpid"
     rc=$?
+    # A timed-out call dies on TERM before stop_jobs reaches its KILL step: let the
+    # watchdog finish, or a child that ignores TERM outlives it.
+    if [ -e "$tflag" ]; then wait "$wpid" 2> /dev/null; rm -f "$tflag"
+    else pkill -P "$wpid" 2> /dev/null; kill "$wpid" 2> /dev/null; wait "$wpid" 2> /dev/null; fi
     say "END $sc $label rc=$rc" >> "$llog"
   done < "$file"
   say "LANE DONE" >> "$llog"
@@ -196,16 +209,16 @@ do_scorecard() {
   [ $RC = 2 ] && STATUS=harness-error REASON="scorecard exit 2 (see scorecard.log)"
 }
 
-# Erases the generated voice-eval users older than the min age in dev's database. While
-# dev still writes to '(default)' (the prod database, until the ferni-dev cutover) it only
-# does the dry run and reports the count.
+# Erases the generated voice-eval users older than the min age in dev's database (ferni-dev
+# since the 2026-10-23 cutover). If dev resolves to '(default)', the prod database (e.g.
+# EVAL_DEV_DATABASE='(default)' as a rollback), it only does the dry run and reports the count.
 do_cleanup() {
   local db out n age=${NIGHTLY_CLEANUP_MIN_AGE_H:-1}
   db=$(node "$EVAL/eval-database.mjs" dev) || return 1
   out=$(npx tsx "$EVAL/cleanup-users.ts" --project $GCP --env dev --min-age-hours "$age" 2>&1)
   printf '%s\n' "$out" >> "$OUT/cleanup.log"
   n=$(printf '%s\n' "$out" | sed -n 's/^Dry run\. To delete these \([0-9][0-9]*\):$/\1/p')
-  if [ "$db" = '(default)' ]; then log "cleanup: dev writes to (default) until cutover; dry run only, ${n:-?} would go"; return 0; fi
+  if [ -z "$db" ] || [ "$db" = '(default)' ]; then log "cleanup: dev resolves to '${db}', not a dev database; dry run only, ${n:-?} would go"; return 0; fi
   [ "${n:-0}" -gt 0 ] || return 0
   npx tsx "$EVAL/cleanup-users.ts" --project $GCP --env dev --min-age-hours "$age" --execute --confirm "$n" \
     >> "$OUT/cleanup.log" 2>&1
@@ -225,7 +238,7 @@ finish() {
   trap '' INT TERM
   # shellcheck disable=SC2086 # pid list
   [ "$DRY" = 1 ] || stop_jobs $LANE_PIDS
-  [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only while dev uses (default))" do_cleanup
+  [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only if dev resolves to (default))" do_cleanup
   [ "$STATUS" = ok ] || [ "$DRY" = 1 ] || write_status "$STATUS" "$REASON"
   step report "board.md line + gh issue comment ${ISSUE:-<unset: skipped>} --body-file $OUT/COMMENT.md" do_report
   [ "$DRY" = 1 ] || stop_jobs $RENEW_PID
