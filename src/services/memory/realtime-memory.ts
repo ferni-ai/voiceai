@@ -22,6 +22,7 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import { recordFallback, recordSuccess } from '../observability/firestore-monitor.js';
 import { fallbackCallSummary } from './call-summary-fallback.js';
+import { checkedPoints, checkedText } from '../../memory/recall/forget-key-points.js'; // #2767
 
 const log = getLogger().child({ module: 'realtime-memory' });
 
@@ -484,7 +485,6 @@ export async function summarizeConversationAsync(
     try {
       const { summarizeWithLLM } = await import('../../memory/index.js');
       const { createSummarizationLLMCaller } = await import('../llm-utils.js');
-
       const llmCaller = createSummarizationLLMCaller();
       const result = await summarizeWithLLM(
         conversationId,
@@ -492,14 +492,14 @@ export async function summarizeConversationAsync(
         llmCaller
       );
 
-      summary = (result.keyPoints ?? []).slice(0, 2).join('; ');
+      summary = (await checkedPoints(userId, result.keyPoints ?? [])).slice(0, 2).join('; ');
     } catch {
       // No LLM summary: the conversation keeps a fallback, the profile keeps its own
     }
 
     if (summary) await markSummarized(userId, conversationId, summary);
     else {
-      const fallback = buildQuickSummary(turns) || 'Brief conversation';
+      const fallback = await checkedText(userId, buildQuickSummary(turns)) || 'Brief conversation';
       await markSummarized(userId, conversationId, fallback, { profile: false });
     }
   } catch (error) {

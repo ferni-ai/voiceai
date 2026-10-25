@@ -9,6 +9,7 @@ import { API } from '../config/index.js';
 import type { TokenRequest, TokenResponse } from '../types/livekit.js';
 import { isValidTokenResponse } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
+import { appAcceptLanguage } from './app-accept-language.js';
 import { TokenRequestError } from './connect-failure.js';
 import { waitlistFromRefusal } from './waitlist-status.js';
 
@@ -57,6 +58,9 @@ export async function fetchConnectionToken(request: TokenRequest): Promise<Token
   const headers: Record<string, string> = {
     Accept: 'application/json',
   };
+  // A non-English app language reaches the call's locale; English leaves the browser's own (accent)
+  const appLanguage = appAcceptLanguage();
+  if (appLanguage) headers['Accept-Language'] = appLanguage;
 
   try {
     const { getAuthToken } = await import('./firebase-auth.service.js');

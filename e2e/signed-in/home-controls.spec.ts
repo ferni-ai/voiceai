@@ -22,14 +22,18 @@ import {
 const OPENERS: Record<string, string> = {
   journey: 'button.unified-indicator',
   'daily practice': '#engagementTriggerBtn',
-  predictions: '#predictionsTriggerBtn',
   'team insights': '#insightsTriggerBtn',
-  // No "add more agents": the marketplace is hidden (apps/web/src/config/menu-visibility.ts)
+  // No "add more agents" or Predictions: both are hidden (apps/web/src/config/menu-visibility.ts)
 };
 
 test.beforeEach(async ({ page }) => {
   await signIn(page, await createUser());
   await expectHome(page);
+});
+
+test('home: no Predictions button while Predictions is hidden', async ({ page }) => {
+  await expect(page.locator('#insightsTriggerBtn')).toBeAttached(); // the home buttons are drawn
+  await expect(page.locator('#predictionsTriggerBtn')).toHaveCount(0);
 });
 
 for (const [name, selector] of Object.entries(OPENERS)) {

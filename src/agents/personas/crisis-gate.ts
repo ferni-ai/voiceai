@@ -39,6 +39,7 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
@@ -233,17 +234,16 @@ export function startCrisisGate(
   const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
+  const said = { latest, earlier, companion };
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
-    adjudicatorMode !== 'live' &&
-    transferRequestIsEveryday({ latest, earlier, companion }, pattern, call, env);
+    adjudicatorMode !== 'live' && transferRequestIsEveryday(said, pattern, call, env);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
-  const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
+  const priorRisk = callRiskBeforeTurn(call, said);
   const groundedPrior = groundedPriorRisk(call, latest);
-  const run = startCrisisClassifier(
-    { latest, earlier, companion },
-    { pattern, env, generate, scope, call }
-  );
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
+  const secondRead = secondReadOf('gate', userData, detection.subject);
+  const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
   if (run?.mode !== 'live' || decision.action === 'replace') {
     return { decision, escalation: null, reask };
   }

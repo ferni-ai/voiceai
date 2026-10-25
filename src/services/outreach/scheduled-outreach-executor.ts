@@ -176,7 +176,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
           target.resolvedPhone,
           target.message || target.purpose,
           personaId,
-          { fallbackToTwilioVoice: true }
+          { fallbackToTwilioVoice: true, userId }
         );
         success = result.success;
         errorMsg = result.success ? undefined : result.message;

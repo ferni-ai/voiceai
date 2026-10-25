@@ -25,6 +25,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { secondReadOf } from '../../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
@@ -87,6 +88,15 @@ export interface TurnCrisis {
   bypassAllowed(): Promise<boolean>;
 }
 
+/** What startTurnCrisis reads from the session's user data. */
+export interface TurnCrisisUserData {
+  voiceEmotion?: unknown;
+  recentTranscripts?: string[];
+  lastAgentResponse?: string;
+  /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
+  turnCount?: number;
+}
+
 type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
 
 /**
@@ -119,9 +129,7 @@ function turnEaser(
 
 export function startTurnCrisis(
   userText: string,
-  userData:
-    | { voiceEmotion?: unknown; recentTranscripts?: string[]; lastAgentResponse?: string }
-    | undefined,
+  userData: TurnCrisisUserData | undefined,
   options: {
     sessionId?: string;
     env?: Record<string, string | undefined>;
@@ -168,7 +176,10 @@ export function startTurnCrisis(
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
+  const secondRead = secondReadOf('pipeline', userData, patterns.subject);
+  const run = { pattern, env, generate, scope, call, secondRead } as const;
+  const classifier = startCrisisClassifier(input, run);
   const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>

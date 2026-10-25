@@ -1,6 +1,5 @@
 /**
  * Unified Outreach Tool - "Better than Human" Communication
- *
  * THE ONE tool for reaching out to contacts (replaced sendMessage, sendEmail, sendSMS,
  * sendPersonalizedMessage, makePhoneCall, callAndConverse, sendVoiceMessage).
  *
@@ -419,6 +418,7 @@ async function executeOutreach(
 
       const result = await callWithPersonaVoice(contact.phone, message, personaId, {
         fallbackToTwilioVoice: true,
+        userId,
       });
 
       if (result.success) {
