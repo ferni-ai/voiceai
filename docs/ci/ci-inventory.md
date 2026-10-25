@@ -106,7 +106,13 @@ Runs on PRs, PR comments and merge_group. PR and comment runs only report: the v
 comment usually lands after the PR's check ran, and comment runs can't update that check.
 merge_group runs set `LEAD_VERIFIED_ENFORCE=1` and fail when any PR in the group lacks a
 PASS for its head. It blocks merges only once the ruleset requires the "Lead Verified"
-check (Seth). CI typechecks it
+check (Seth).
+
+**A green "Lead Verified" on a PR page does NOT mean verified.** PR runs always pass and
+only annotate the verdict (a `NOT_VERIFIED` warning in the run summary). The evidence is a
+`ferni-verifier[bot]` comment whose first line is `RESULT_verifier=PASS sha=<head>`, or the
+`lead-verify` commit status from that app. An unverified PR can still be armed; the merge
+queue run then fails and ejects it. CI typechecks it
 via `pnpm typecheck:memory-eval` (`tsconfig.scripts.json`).
 
 **How a verifier marks a PR verified.** Verify the PR's current head, then run (as the
