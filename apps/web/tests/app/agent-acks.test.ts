@@ -409,6 +409,27 @@ describe('each ack answers its own tap', () => {
       expect(boardIsOpen()).toBe(true);
     });
 
+    it("an earlier tap's success landing after the newer tap's keeps the newer game", () => {
+      tap('tic-tac-toe', 'r1');
+      tap('20-questions', 'r2');
+      // The agent ran r1 then r2, so it plays 20 Questions; r2's answer arrives first
+      deliver(
+        ack('text_game_start_ack', { gameType: '20-questions', requestId: 'r2', success: true })
+      );
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      expect(toastCalls.success).toEqual(['Starting 20-questions...']);
+      expect(boardTitle()).toContain('20-questions');
+    });
+
+    it('a failure naming a tap this call never made says nothing', () => {
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'gone', success: false })
+      );
+      expect(toastCalls.error).toEqual([]);
+    });
+
     it('an agent that sends no request id still settles the tap by its game', () => {
       tap('tic-tac-toe', 'r1');
       deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: true }));
