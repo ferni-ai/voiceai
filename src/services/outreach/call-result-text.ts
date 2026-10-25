@@ -81,11 +81,14 @@ function capped(text: string): string {
 
 /**
  * The last step before the owner sees it: a screen of the exact string, never
- * a cut. If anything risky is left, only Ferni's own lines go, the safety line
- * first whenever the text carried it.
+ * a cut. It catches what only this string can hold: the cap's "..." after a
+ * word ("www..."), or a quote and the summary joining into a request. If
+ * anything risky is left, only Ferni's own lines go, the safety line first
+ * whenever the text carried it. The contact's name is the owner's words, not
+ * the caller's, so it doesn't count: a call to "Chase Bank" still reports.
  */
 function screened(text: string, contactName: string, prefix = ''): string {
-  if (!isRiskyCallerText(text)) return text;
+  if (!isRiskyCallerText(text.split(contactName).join(' '))) return text;
   const safety = text.includes(crisisCallerLine(contactName));
   return [prefix, safety ? crisisCallerLine(contactName) : '', riskyCallerLine(contactName)]
     .filter(Boolean)
@@ -100,7 +103,8 @@ export function callResultText(contactName: string, outcome: CallOutcome): strin
   const passOn = passOnLine(contactName, outcome, `${contactName} asked me to tell you:`);
   const reached = `It's Ferni. I talked to ${contactName}.`;
   if (outcome.status !== 'completed' || !passOn) {
-    return screened(capped(`It's Ferni. ${outcome.outcome.trim()}`), contactName, reached);
+    const lead = outcome.status === 'completed' ? reached : "It's Ferni.";
+    return screened(capped(`It's Ferni. ${outcome.outcome.trim()}`), contactName, lead);
   }
   return screened(capped(`${reached} ${passOn}`), contactName, reached);
 }

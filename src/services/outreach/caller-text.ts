@@ -144,14 +144,12 @@ export function screenedCallerText(
   name: string,
   maxLength = 300
 ): string {
+  // No second screen here: `said` is screened after its own cut, and it is quoted
+  // alone (a risky field quotes nothing), so the join below can't form anything new.
   const { said, risky, safety } = screenCallerParts(text, name, maxLength);
-  const flags = (quote: string): string =>
-    [safety ? crisisCallerLine(name) : '', quote, risky ? riskyCallerLine(name) : '']
-      .filter(Boolean)
-      .join(' ');
-  const told = flags(said);
-  // Screen the exact string that goes out; the fixed lines are Ferni's and hold nothing risky.
-  return said && isRiskyCallerText(told) && !isRiskyCallerText(flags('')) ? flags('') : told;
+  return [safety ? crisisCallerLine(name) : '', said, risky ? riskyCallerLine(name) : '']
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** What is said instead of risky caller text: Ferni's own fixed words, never theirs. */

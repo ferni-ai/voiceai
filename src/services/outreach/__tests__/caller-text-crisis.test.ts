@@ -14,8 +14,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
-const { crisisCallerLine, riskyCallerLine, screenCallerParts, screenedCallerText } =
-  await import('../caller-text.js');
+const {
+  crisisCallerLine,
+  isRiskyCallerText,
+  riskyCallerLine,
+  screenCallerParts,
+  screenedCallerText,
+} = await import('../caller-text.js');
 const { relayedMessage } = await import('../relayed-message.js');
 const { callResultDetails, callResultText } = await import('../call-result-text.js');
 const { liveReportMessage } = await import('../call-result-live.js');
@@ -197,5 +202,70 @@ describe('callee-text screen: crisis always reaches the owner, credentials never
       const once = screenedCallerText(line, 'Mom', 200);
       expect(screenedCallerText(once, 'Mom', 200)).toBe(once);
     }
+  });
+});
+
+// Round 2: the exact-string screen in call-result-text sees what no earlier
+// screen can, because only it sees the final string: the cap's "..." and the
+// quote joined to the summary. Each case is built by the real lifecycle, and
+// each piece passes the earlier screens on its own.
+describe('call-result-text final screen (#2861)', () => {
+  const quiet = (base: Analysis, insights: Partial<Analysis['insights']>): Analysis => ({
+    ...base,
+    insights: { ...base.insights, messagesForUser: [], ...insights },
+  });
+
+  it('the cap\'s "..." after "www" is screened out of the owner\'s text', () => {
+    let report = 'We talked about her garden';
+    while (`It's Ferni. ${report} www`.length < 292) report += ' x';
+    report += ' www supercalifragilisticexpialidocious and the tomatoes';
+    const o = buildCallOutcome(call, said('hello'), quiet(analysisSaying(report), {}));
+    expect(o.message).toBeUndefined();
+    expect(isRiskyCallerText(o.outcome)).toBe(false);
+    const text = callResultText('Mom', o);
+    expect(text).not.toMatch(/\bwww\./i);
+    expect(text).toBe(`It's Ferni. I talked to Mom. ${RISKY}`);
+  });
+
+  it('a quote and the summary that join into a money request are screened out of the details', () => {
+    const o = buildCallOutcome(
+      call,
+      said('hello'),
+      quiet(analysisSaying('Mom sounded fine.'), {
+        messagesForUser: ['Tell him I will send'],
+        detailedSummary: 'the money tomorrow.',
+      })
+    );
+    expect(o.message).toBe('Tell him I will send');
+    expect(isRiskyCallerText(o.message ?? '')).toBe(false);
+    expect(isRiskyCallerText(o.transcriptSummary ?? '')).toBe(false);
+    const details = callResultDetails('Mom', o) ?? '';
+    expect(details).toBe(RISKY);
+  });
+
+  it('a contact whose name looks risky still gets the real outcome', () => {
+    const bank = buildOnBehalfDispatch({
+      callId: 'c-2861-bank',
+      requester: { userId: 'u-2861', name: 'Sam', timezone: 'UTC', originalSessionId: 's-2861' },
+      contact: { name: 'Chase Bank', phone: '+15555550101' },
+      purpose: 'ask about the statement',
+      objective: 'check_in',
+      callType: 'business',
+    });
+    const o = buildCallOutcome(bank, null, null);
+    expect(o.status).not.toBe('completed');
+    expect(o.outcome).toContain('Chase Bank');
+    expect(callResultText('Chase Bank', o)).toBe(`It's Ferni. ${o.outcome.trim()}`);
+  });
+
+  it('a call that never connected is never reported as "I talked to"', () => {
+    const o: Outcome = {
+      callId: 'c-2861',
+      status: 'no_answer',
+      objectiveAchieved: false,
+      outcome: 'Left word at www.example.com',
+    };
+    const text = callResultText('Mom', o);
+    expect(text).toBe(`It's Ferni. ${RISKY}`);
   });
 });
