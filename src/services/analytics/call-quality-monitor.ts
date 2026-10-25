@@ -19,6 +19,8 @@ import { recordMetricValue } from '../predictive-alerting.js';
 import { logCallStartStages } from './call-start-stages.js';
 import { emitCallEnd, type CallSummary } from './bq-call-events.js';
 import { gateSmallSamples } from './call-quality-sample.js';
+import * as firstResponse from './call-first-response.js';
+import { AlertIncidents } from './call-quality-incidents.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -38,8 +40,8 @@ export interface CallQualityConfig {
 
   qualityCheckIntervalMs: number; // how often quality is checked
 
-  // Alert cooldown
-  alertCooldownMs: number;
+  alertCooldownMs: number; // least time between two sends of one alert
+  alertRepeatMs: number; // an open incident's alert is re-sent only after this
 
   enableSlack: boolean;
 }
@@ -55,6 +57,7 @@ const DEFAULT_CONFIG: CallQualityConfig = {
 
   qualityCheckIntervalMs: 60_000, // Every minute
   alertCooldownMs: 300_000, // 5 minute cooldown
+  alertRepeatMs: 3 * 60 * 60_000, // longer than the 1 h window: one bad burst alerts once
 
   enableSlack: true,
 };
@@ -91,6 +94,7 @@ export interface CallSession {
   userId?: string;
   personaId?: string;
   startTime: number;
+  outbound?: boolean; // Ferni placed it: first response is timed from pickup
   stages?: Record<string, number>;
   endTime?: number;
   connectionTimeMs?: number;
@@ -130,6 +134,7 @@ export interface CallQualityMetrics {
   // Response metrics
   avgFirstResponseTimeMs: number;
   p95FirstResponseTimeMs: number;
+  firstResponseSamples: number; // calls in the response average (call-first-response.ts)
   lastSessionStages?: CallStageTimings;
 
   // Duration metrics
@@ -166,7 +171,7 @@ let config = { ...DEFAULT_CONFIG };
 const sessions = new Map<string, CallSession>();
 const completedSessions: CallSession[] = [];
 const MAX_COMPLETED_SESSIONS = 10000;
-const lastAlerts = new Map<string, number>();
+const incidents = new AlertIncidents();
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
@@ -227,8 +232,8 @@ export function recordCallEvent(event: CallEvent): void {
           session_start: session.stages?.session_start ?? 0,
           first_audio: session.firstResponseTimeMs,
         };
-        // Feed to predictive alerting (true first audio only)
-        recordMetricValue('first_response_time', session.firstResponseTimeMs);
+        const sampleMs = firstResponse.sampleMs(session); // a placed call: from pickup
+        if (sampleMs !== undefined) recordMetricValue('first_response_time', sampleMs);
         logCallStartStages(session);
       }
       break;
@@ -284,9 +289,14 @@ export function recordCallEvent(event: CallEvent): void {
   }
 }
 
-/** Convenience function to start a call */
-export function startCall(callId: string, userId?: string, personaId?: string): void {
-  if (forward) return forward('startCall', [callId, userId, personaId]);
+/** Start a call; `callType` (job metadata.type) marks one Ferni placed (call-first-response.ts). */
+export function startCall(
+  callId: string,
+  userId?: string,
+  personaId?: string,
+  callType?: string
+): void {
+  if (forward) return forward('startCall', [callId, userId, personaId, callType]);
   const startTime = Date.now();
   recordCallEvent({
     callId,
@@ -298,6 +308,7 @@ export function startCall(callId: string, userId?: string, personaId?: string): 
   const session = sessions.get(callId);
   if (session) {
     session.stages = { session_start: 0 };
+    session.outbound = firstResponse.isPlacedCallType(callType);
   }
 }
 
@@ -421,14 +432,7 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
       : 0;
 
   // Response metrics (include active — first audio often arrives before call ends)
-  const firstResponseTimes = [
-    ...windowSessions
-      .filter((s) => s.firstResponseTimeMs !== undefined)
-      .map((s) => s.firstResponseTimeMs!),
-    ...activeSessions
-      .filter((s) => s.firstResponseTimeMs !== undefined)
-      .map((s) => s.firstResponseTimeMs!),
-  ];
+  const firstResponseTimes = firstResponse.samples([...windowSessions, ...activeSessions]);
   const avgFirstResponseTimeMs =
     firstResponseTimes.length > 0
       ? firstResponseTimes.reduce((a, b) => a + b, 0) / firstResponseTimes.length
@@ -490,6 +494,7 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
     avgConnectionTimeMs,
     avgFirstResponseTimeMs,
     p95FirstResponseTimeMs,
+    firstResponseSamples: firstResponseTimes.length,
     lastSessionStages,
     avgCallDurationMs,
     medianCallDurationMs,
@@ -553,12 +558,6 @@ function calculateQualityScore(factors: {
 // ALERTING
 // ============================================================================
 
-function shouldSendAlert(alertType: string): boolean {
-  const lastAlert = lastAlerts.get(alertType);
-  if (!lastAlert) return true;
-  return Date.now() - lastAlert > config.alertCooldownMs;
-}
-
 async function sendQualityAlert(
   severity: 'warning' | 'critical',
   title: string,
@@ -567,12 +566,10 @@ async function sendQualityAlert(
 ): Promise<void> {
   const alertKey = `${severity}:${title}`;
 
-  if (!shouldSendAlert(alertKey)) {
-    log.debug({ alertKey }, 'Quality alert rate-limited');
+  if (!incidents.shouldSend(alertKey, Date.now(), config)) {
+    log.debug({ alertKey }, 'Quality alert already sent for this incident');
     return;
   }
-
-  lastAlerts.set(alertKey, Date.now());
 
   const emoji = severity === 'critical' ? '🚨' : '⚠️';
   log.warn({ severity, title, metrics }, `${emoji} ${title}`);
@@ -595,6 +592,7 @@ async function sendQualityAlert(
 export async function checkQualityAlerts(): Promise<void> {
   const metrics = calculateMetrics();
   const gated = gateSmallSamples(metrics, config.minCallsForRateAlerts);
+  incidents.beginCheck(); // an alert that doesn't fire in this check has cleared
 
   // Feed to predictive alerting
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
@@ -621,7 +619,7 @@ export async function checkQualityAlerts(): Promise<void> {
   }
 
   // First response time
-  if (metrics.avgFirstResponseTimeMs > config.firstResponseTimeCriticalMs) {
+  if (gated.avgFirstResponseTimeMs > config.firstResponseTimeCriticalMs) {
     await sendQualityAlert(
       'critical',
       'Response Time Critical',
@@ -631,7 +629,7 @@ export async function checkQualityAlerts(): Promise<void> {
         p95FirstResponseTimeMs: metrics.p95FirstResponseTimeMs,
       }
     );
-  } else if (metrics.avgFirstResponseTimeMs > config.firstResponseTimeWarningMs) {
+  } else if (gated.avgFirstResponseTimeMs > config.firstResponseTimeWarningMs) {
     await sendQualityAlert(
       'warning',
       'Response Time Elevated',
@@ -673,6 +671,7 @@ export async function checkQualityAlerts(): Promise<void> {
       { qualityScore: metrics.qualityScore }
     );
   }
+  incidents.endCheck();
 
   log.debug(
     {
@@ -750,7 +749,7 @@ export function resetCallQualityStateForTests(): void {
   stopCallQualityMonitor();
   sessions.clear();
   completedSessions.length = 0;
-  lastAlerts.clear();
+  incidents.reset();
   config = { ...DEFAULT_CONFIG };
   slackService = null;
 }

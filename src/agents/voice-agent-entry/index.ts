@@ -310,7 +310,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Start call-quality clock as early as possible so stages reflect true latency.
     try {
       const { startCall } = await import('../../services/analytics/call-quality-monitor.js');
-      startCall(sessionId, undefined, sessionPersona.id);
+      startCall(sessionId, undefined, sessionPersona.id, callType);
       await markCallStageSafe(sessionId, 'session_start');
     } catch {
       /* non-fatal */

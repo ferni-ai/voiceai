@@ -10,6 +10,7 @@
 import { getJobContext, voice } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { outboundPartiesFor, waitForCallAnswered } from '../shared/outbound-opener.js';
+import { markCallAnswered } from '../../services/analytics/call-start-stages.js';
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
 import { amdOpensCall, hangUpCall, onBehalfCallFor } from './call-control.js';
 import { openOnBehalfCall, voicemailInstructions, type FirstWords } from './call-opening.js';
@@ -52,7 +53,8 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
       const attributes = room.remoteParticipants.get(identity)?.attributes ?? {
         'sip.callStatus': 'dialing',
       };
-      return waitForCallAnswered(room, { identity, attributes }, ANSWER_WAIT_MS, 0);
+      const answered = () => markCallAnswered(sessionId);
+      return waitForCallAnswered(room, { identity, attributes }, ANSWER_WAIT_MS, 0, answered);
     },
     hearFirstWords: async (options): Promise<FirstWords> => {
       const detector = new voice.AMD(session, {
