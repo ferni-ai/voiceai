@@ -126,6 +126,9 @@ describe('offersCrisisLine (a finished transcript, written forms kept)', () => {
     'the Suicide and Crisis Lifeline',
     'There is a crisis line you can call',
     'the Crisis Text Line is there too',
+    'You can call the suicide hotline any time.',
+    "There's a crisis hotline you can call.",
+    'You can call nine, eight, eight.',
     'text HOME to 741741',
     'text home to 741-741',
     'text HOME to 7 4 1 7 4 1',
@@ -141,6 +144,7 @@ describe('offersCrisisLine (a finished transcript, written forms kept)', () => {
     'Order 98812 shipped today.',
     'Text home to say you are running late.',
     'Your crisis of confidence will pass.',
+    'The suicide rate in the study fell.',
     'How was the week?',
   ])('not a crisis line: %s', (line) => {
     expect(offersCrisisLine(line)).toBe(false);
