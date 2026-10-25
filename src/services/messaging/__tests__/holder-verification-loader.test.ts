@@ -103,12 +103,49 @@ describe('the real loader (holderOf)', () => {
   });
 
   it('a well-formed pending code is read back whole', async () => {
-    const pending = { codeHash: 'h', sentAt: 's', expiresAt: 'e', tries: 2 };
+    const pending = { codeHash: 'h', phoneHash: 'p', sentAt: 's', expiresAt: 'e', tries: 2 };
     docs.set('sponsored_identities/mom', {
       sponsorUserId: 'seth',
       phoneNumber: MOM,
       holderVerification: pending,
     });
     expect((await defaultHolderDeps().byId('mom'))?.holderVerification).toEqual(pending);
+  });
+});
+
+describe('the real transaction (defaultHolderDeps.transact)', () => {
+  const VICTIM = '+12025550177';
+  const momDoc = () => docs.get('sponsored_identities/mom');
+  // the cached lookup, standing in for lookupByPhone: maps the sponsor's number to mom
+  const viaCache = () => ({ ...deps(), byPhone: async () => defaultHolderDeps().byId('mom') });
+
+  beforeEach(() => {
+    docs.set('sponsored_identities/mom', { sponsorUserId: 'seth', phoneNumber: MOM, name: 'Mom' });
+  });
+
+  it('stores the code bound to the number and merges the proof, keeping the other fields', async () => {
+    expect((await startHolderVerification('mom', 'seth', deps())).started).toBe(true);
+    expect(momDoc()?.holderVerification).toMatchObject({ phoneHash: expect.any(String), tries: 0 });
+    expect(await recordHolderCode(MOM, '482913', viaCache())).toBe(true);
+    expect(momDoc()).toMatchObject({ name: 'Mom', phoneNumber: MOM, holderVerification: null });
+    expect(momDoc()?.phoneVerifiedAt).toEqual(expect.any(String));
+  });
+
+  it('a number swapped after the code went out gets no proof, even with the code', async () => {
+    await startHolderVerification('mom', 'seth', deps());
+    docs.set('sponsored_identities/mom', { ...momDoc(), phoneNumber: VICTIM });
+    expect(await recordHolderCode(MOM, '482913', viaCache())).toBe(false);
+    expect(momDoc()?.phoneVerifiedAt).toBeUndefined();
+  });
+
+  it('a pending code stored without its number (before the binding) is no code', async () => {
+    await startHolderVerification('mom', 'seth', deps());
+    const { phoneHash: _bound, ...unbound } = momDoc()?.holderVerification as Record<
+      string,
+      unknown
+    >;
+    docs.set('sponsored_identities/mom', { ...momDoc(), holderVerification: unbound });
+    expect(await recordHolderCode(MOM, '482913', viaCache())).toBe(false);
+    expect(momDoc()?.phoneVerifiedAt).toBeUndefined();
   });
 });

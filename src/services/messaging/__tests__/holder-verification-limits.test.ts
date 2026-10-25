@@ -43,16 +43,19 @@ function deps(latencyMs = 0): HolderVerificationDeps {
     now: () => now,
     byId: async (id) => (await pause(latencyMs), identities.get(id)),
     byPhone: async (p) => [...identities.values()].find((i) => i.phoneNumber === p),
-    save: async (id, patch) => {
+    transact: async (id, decide) => {
       await pause(latencyMs);
+      // read, decide and write with no await between: atomic, like a Firestore transaction
       const cur = identities.get(id);
-      if (!cur) return;
+      const step = decide(cur);
+      if (!cur || !step.patch) return step.ok;
       const next: Record<string, unknown> = { ...cur };
-      for (const [k, v] of Object.entries(patch)) {
+      for (const [k, v] of Object.entries(step.patch)) {
         if (v === null) delete next[k];
         else next[k] = v;
       }
       identities.set(id, next as HolderIdentity & Record<string, unknown>);
+      return step.ok;
     },
     sponsorName: async () => 'Seth',
     ledger: ledger.ledger,

@@ -21,7 +21,17 @@ const fake = vi.hoisted(() => {
     },
     delete: async () => void docs.delete(`${c}/${id}`),
   });
-  const db = { collection: (c: string) => ({ doc: (id: string) => ref(c, id) }) };
+  type Ref = ReturnType<typeof ref>;
+  const db = {
+    collection: (c: string) => ({ doc: (id: string) => ref(c, id) }),
+    // holder-verification writes in a transaction: get, then set with merge
+    runTransaction: async <T>(
+      fn: (tx: {
+        get: (r: Ref) => ReturnType<Ref['get']>;
+        set: (r: Ref, data: Record<string, unknown>, opts?: { merge?: boolean }) => void;
+      }) => Promise<T>
+    ) => fn({ get: async (r) => r.get(), set: (r, data, opts) => void r.set(data, opts) }),
+  };
   return { docs, db };
 });
 vi.mock('../../../utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => fake.db }));
@@ -34,6 +44,9 @@ const svc = await import('../sponsored-identity.js');
 const { defaultHolderDeps } = await import('../../messaging/holder-verification.js');
 
 const stored = (id: string) => fake.docs.get(`sponsored_identities/${id}`);
+/** A merge write through holder-verification's own transaction, as it stores the proof. */
+const holderWrite = async (id: string, patch: Record<string, unknown>) =>
+  defaultHolderDeps().transact(id, () => ({ patch, ok: true }));
 
 beforeEach(() => {
   fake.docs.clear();
@@ -47,7 +60,7 @@ async function verifiedMom(): Promise<string> {
     phoneNumber: '+12025550133',
   });
   // what recordHolderCode writes when the holder replies with the right code
-  await defaultHolderDeps().save(mom.id, {
+  await holderWrite(mom.id, {
     phoneVerifiedAt: '2026-10-18T16:00:00.000Z',
     holderVerification: null,
   });
@@ -73,16 +86,16 @@ describe('saveIdentity keeps the holder proof', () => {
       relationship: 'mother',
       phoneNumber: '+12025550133',
     });
-    const pending = { codeHash: 'h', sentAt: 's', expiresAt: 'e', tries: 1 };
-    await defaultHolderDeps().save(mom.id, { holderVerification: pending });
+    const pending = { codeHash: 'h', phoneHash: 'p', sentAt: 's', expiresAt: 'e', tries: 1 };
+    await holderWrite(mom.id, { holderVerification: pending });
     await svc.updateSponsoredIdentity(mom.id, 'seth', { notes: 'calls on Sundays' });
     expect(stored(mom.id)?.holderVerification).toEqual(pending);
   });
 
   it('verify, then change the number: the new number is not verified and has no code', async () => {
     const id = await verifiedMom();
-    const pending = { codeHash: 'h', sentAt: 's', expiresAt: 'e', tries: 0 };
-    await defaultHolderDeps().save(id, { holderVerification: pending });
+    const pending = { codeHash: 'h', phoneHash: 'p', sentAt: 's', expiresAt: 'e', tries: 0 };
+    await holderWrite(id, { holderVerification: pending });
     await svc.updateSponsoredIdentity(id, 'seth', { phoneNumber: '+12025550199' });
     expect(stored(id)?.phoneNumber).toBe('+12025550199');
     expect(stored(id)?.phoneVerifiedAt).toBeUndefined();

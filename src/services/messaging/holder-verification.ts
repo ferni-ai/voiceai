@@ -13,6 +13,13 @@
  * 2. The holder replies with the code from that phone. A match sets
  *    phoneVerifiedAt on the identity; five wrong tries end the code.
  *
+ * The code is bound to the number it went to: the pending record carries that
+ * number's keyed hash, and every write (the pending code, each try, the proof)
+ * runs in one transaction over a fresh read of the identity that requires its
+ * stored number to still be that number. A sponsor who swaps the number after
+ * the code went out (or a stale phone-to-identity cache) can't land the proof
+ * on the new number.
+ *
  * Behind MESSAGING_PIPELINE, like the rule it unlocks.
  *
  * @module services/messaging/holder-verification
@@ -40,6 +47,8 @@ const SIX_DIGITS = /^\d{6}$/;
 
 interface Pending {
   codeHash: string;
+  /** phoneHash() of the number the code was texted to */
+  phoneHash: string;
   sentAt: string;
   expiresAt: string;
   tries: number;
@@ -57,14 +66,29 @@ export interface HolderVerificationDeps {
   env: Env;
   now: () => Date;
   byId: (id: string) => Promise<HolderIdentity | undefined>;
+  /** Which identity a number belongs to. May be stale (cached): transact re-checks the number. */
   byPhone: (e164: string) => Promise<HolderIdentity | undefined>;
-  save: (id: string, patch: Record<string, unknown>) => Promise<void>;
+  /**
+   * One atomic read-decide-write on the identity: reads it fresh (no cache),
+   * hands it to `decide`, merges the returned patch, if any, before anyone
+   * else can change the doc, and resolves to `ok`.
+   */
+  transact: (
+    id: string,
+    decide: (current: HolderIdentity | undefined) => HolderStep
+  ) => Promise<boolean>;
   /** The sponsor's name from their own account (bogle_users), not from the identity */
   sponsorName: (uid: string) => Promise<unknown>;
   ledger: SendLedger;
   send: (to: string, body: string) => Promise<boolean>;
   code: () => string;
   consent: ConsentDeps;
+}
+
+/** What one transaction decided: the patch to merge (none: no write), and its answer. */
+export interface HolderStep {
+  patch?: Record<string, unknown>;
+  ok: boolean;
 }
 
 export type StartOutcome =
@@ -78,6 +102,7 @@ export type StartOutcome =
         | 'too-soon'
         | 'daily-cap'
         | 'opted-out'
+        | 'phone-changed'
         | 'not-sent';
     };
 
@@ -85,6 +110,14 @@ const hashCode = (code: string, env: Env): string | null => {
   const key = phoneHashKey(env);
   return key ? createHmac('sha256', key).update(`holder-code:${code}`).digest('hex') : null;
 };
+
+/** The stored number is still `e164` (compared as E.164; a missing number is never a match). */
+const stillAt = (identity: HolderIdentity | undefined, e164: string): identity is HolderIdentity =>
+  !!identity && toE164(identity.phoneNumber) === e164;
+
+/** This sponsor's identity, still at `e164` and not yet verified: it may take a code. */
+const awaitingCode = (cur: HolderIdentity | undefined, e164: string, sponsorUid: string): boolean =>
+  stillAt(cur, e164) && cur.sponsorUserId === sponsorUid && !cur.phoneVerifiedAt;
 
 /**
  * A name safe to put in a text from Ferni's number: letters, marks, spaces and
@@ -123,16 +156,28 @@ export async function startHolderVerification(
   if (reserved !== 'ok') return { started: false, reason: reserved };
   const pending: Pending = {
     codeHash,
+    phoneHash: numberHash,
     sentAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + CODE_TTL_MS).toISOString(),
     tries: 0,
   };
-  await deps.save(identity.id, { holderVerification: pending });
+  // Stored only if the doc still holds this number for this sponsor, unverified.
+  const stored = await deps.transact(identity.id, (cur) =>
+    awaitingCode(cur, e164, sponsorUid)
+      ? { patch: { holderVerification: pending }, ok: true }
+      : { ok: false }
+  );
+  if (!stored) return { started: false, reason: 'phone-changed' };
   const name = cleanSponsorName(await deps.sponsorName(sponsorUid).catch(() => undefined));
   const who = name ? `${name} set up Ferni for you. ` : '';
   const body = `Ferni here. ${who}Reply with ${code} to confirm this is your phone, or STOP.`;
   if (!(await deps.send(e164, body))) {
-    await deps.save(identity.id, { holderVerification: null });
+    // Clear only this code, never one written since.
+    await deps.transact(identity.id, (cur) =>
+      cur?.holderVerification?.codeHash === codeHash
+        ? { patch: { holderVerification: null }, ok: true }
+        : { ok: false }
+    );
     return { started: false, reason: 'not-sent' };
   }
   log.info({ identityId, phoneLast4: last4(e164) }, 'Holder verification code sent');
@@ -156,27 +201,40 @@ export async function recordHolderCode(
   const e164 = toE164(from);
   if (!SIX_DIGITS.test(code) || !e164) return false;
   try {
-    const identity = await deps.byPhone(e164);
-    const pending = identity?.holderVerification;
-    const now = deps.now();
-    if (!identity || !pending || now.getTime() > Date.parse(pending.expiresAt)) return false;
+    // Only an id: the lookup may be cached and stale, so the transaction re-reads the doc.
+    const found = await deps.byPhone(e164);
+    if (!found?.holderVerification) return false;
     // A number that texted STOP isn't enrolled by its next message, even the code.
     if (await consentBlocks(e164, 'sms', true, deps.consent)) return false;
     const got = hashCode(code, deps.env);
-    const ok =
-      got !== null &&
-      got.length === pending.codeHash.length &&
-      timingSafeEqual(Buffer.from(got), Buffer.from(pending.codeHash));
-    if (!ok) {
+    const numberHash = phoneHash(e164, deps.env);
+    const now = deps.now();
+    const verified = await deps.transact(found.id, (identity) => {
+      // The doc must still hold the number that replied, and the code must have gone to it.
+      if (!stillAt(identity, e164)) return { ok: false };
+      const pending = identity.holderVerification;
+      if (!pending || !numberHash || pending.phoneHash !== numberHash) return { ok: false };
+      if (now.getTime() > Date.parse(pending.expiresAt)) return { ok: false };
+      const match =
+        got !== null &&
+        got.length === pending.codeHash.length &&
+        timingSafeEqual(Buffer.from(got), Buffer.from(pending.codeHash));
+      if (match) {
+        return {
+          patch: { phoneVerifiedAt: now.toISOString(), holderVerification: null },
+          ok: true,
+        };
+      }
       const tries = pending.tries + 1;
-      await deps.save(identity.id, {
-        holderVerification: tries >= MAX_TRIES ? null : { ...pending, tries },
-      });
-      return false;
+      return {
+        patch: { holderVerification: tries >= MAX_TRIES ? null : { ...pending, tries } },
+        ok: false,
+      };
+    });
+    if (verified) {
+      log.info({ identityId: found.id, phoneLast4: last4(e164) }, 'Holder verified their phone');
     }
-    await deps.save(identity.id, { phoneVerifiedAt: now.toISOString(), holderVerification: null });
-    log.info({ identityId: identity.id, phoneLast4: last4(e164) }, 'Holder verified their phone');
-    return true;
+    return verified;
   } catch (error) {
     log.error({ error: String(error), phoneLast4: last4(e164) }, 'Holder code not checked');
     return false;
@@ -212,9 +270,17 @@ const text = (v: unknown): string | undefined => (typeof v === 'string' ? v : un
 function pendingOf(v: unknown): Pending | undefined {
   if (!v || typeof v !== 'object') return undefined;
   const p = v as Record<string, unknown>;
-  const [codeHash, sentAt, expiresAt] = [text(p.codeHash), text(p.sentAt), text(p.expiresAt)];
-  if (!codeHash || !sentAt || !expiresAt || typeof p.tries !== 'number') return undefined;
-  return { codeHash, sentAt, expiresAt, tries: p.tries };
+  const [codeHash, numberHash, sentAt, expiresAt] = [
+    text(p.codeHash),
+    text(p.phoneHash),
+    text(p.sentAt),
+    text(p.expiresAt),
+  ];
+  // A code without the number it went to (written before the binding) is no code.
+  if (!codeHash || !numberHash || !sentAt || !expiresAt || typeof p.tries !== 'number') {
+    return undefined;
+  }
+  return { codeHash, phoneHash: numberHash, sentAt, expiresAt, tries: p.tries };
 }
 
 /** Read field by field: a doc missing its sponsor or phone matches no one (fails closed). */
@@ -229,11 +295,12 @@ function holderOf(id: string, data: Record<string, unknown>): HolderIdentity {
 }
 
 export function defaultHolderDeps(): HolderVerificationDeps {
-  const db = () => {
+  const firestore = () => {
     const d = getFirestoreDb();
     if (!d) throw new Error('Firestore unavailable');
-    return d.collection('sponsored_identities');
+    return d;
   };
+  const db = () => firestore().collection('sponsored_identities');
   return {
     env: process.env,
     now: () => new Date(),
@@ -246,8 +313,16 @@ export function defaultHolderDeps(): HolderVerificationDeps {
       const found = await lookupByPhone(e164);
       return found.identity ? this.byId(found.identity.id) : undefined;
     },
-    async save(id, patch) {
-      await db().doc(id).set(patch, { merge: true });
+    async transact(id, decide) {
+      const ref = db().doc(id);
+      return firestore().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const step = decide(
+          snap.exists ? holderOf(id, snap.data() as Record<string, unknown>) : undefined
+        );
+        if (step.patch) tx.set(ref, step.patch, { merge: true });
+        return step.ok;
+      });
     },
     async sponsorName(uid) {
       const doc = await getFirestoreDb()?.collection('bogle_users').doc(uid).get();

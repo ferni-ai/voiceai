@@ -27,19 +27,26 @@ let sent: Array<[string, string]>;
 let consent: ReturnType<typeof memoryConsentStore>;
 let ledger: ReturnType<typeof memorySendLedger>;
 
+/** A merge write, where null removes the field (as holderOf reads a stored null). */
+function merge(id: string, patch: Record<string, unknown>): void {
+  const next = { ...identities.get(id) } as Record<string, unknown>;
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === null) delete next[k];
+    else next[k] = v;
+  }
+  identities.set(id, next as unknown as HolderIdentity);
+}
+
 const deps = (over: Partial<HolderVerificationDeps> = {}): HolderVerificationDeps => ({
   env,
   now: () => now,
   byId: async (id) => identities.get(id),
   byPhone: async (p) => [...identities.values()].find((i) => i.phoneNumber === p),
-  save: async (id, patch) => {
-    const cur = identities.get(id) as HolderIdentity;
-    const next = { ...cur } as Record<string, unknown>;
-    for (const [k, v] of Object.entries(patch)) {
-      if (v === null) delete next[k];
-      else next[k] = v;
-    }
-    identities.set(id, next as unknown as HolderIdentity);
+  // read, decide and write with no await between: atomic, like a Firestore transaction
+  transact: async (id, decide) => {
+    const step = decide(identities.get(id));
+    if (step.patch) merge(id, step.patch);
+    return step.ok;
   },
   sponsorName: async () => 'Seth',
   ledger: ledger.ledger,
@@ -140,6 +147,68 @@ describe('recordHolderCode', () => {
     now = new Date(now.getTime() + 16 * 60 * 1000);
     expect(await recordHolderCode(MOM, '482913', deps())).toBe(false);
     expect(identities.get('sponsored_mom')?.phoneVerifiedAt).toBeUndefined();
+  });
+});
+
+describe('the code is bound to the number it went to (sponsor swaps the number)', () => {
+  const VICTIM = '+12025550177';
+  const OLD = '+12025550144';
+  const mom = () => identities.get('sponsored_mom') as HolderIdentity;
+
+  it('the number changed between start and reply: the code from the old number proves nothing', async () => {
+    vi.stubEnv('MESSAGING_PIPELINE', 'on');
+    await startHolderVerification('sponsored_mom', 'seth', deps());
+    expect(sent).toEqual([[MOM, expect.any(String)]]);
+    // The swap lands, but the pending code is still on the doc (the race the update route loses)
+    identities.set('sponsored_mom', { ...mom(), phoneNumber: VICTIM });
+    expect(mom().holderVerification).toBeDefined();
+    // The lookup still maps the old number to this identity (a stale cache)
+    const stale = deps({ byPhone: async (p) => (p === MOM ? mom() : undefined) });
+    expect(await recordHolderCode(MOM, '482913', stale)).toBe(false);
+    expect(mom().phoneVerifiedAt).toBeUndefined();
+    expect(sponsoredPhoneOf(mom() as never)).toBeUndefined();
+  });
+
+  it('a stale phone-to-identity cache never verifies the number the identity is at now', async () => {
+    // The identity is at the victim's number; the cache still maps the sponsor's
+    // number to it, and a pending code exists for the victim's number.
+    await startHolderVerification('sponsored_mom', 'seth', deps());
+    identities.set('sponsored_mom', { ...mom(), phoneNumber: VICTIM });
+    const stale = deps({ byPhone: async () => mom() });
+    expect(await recordHolderCode(MOM, '482913', stale)).toBe(false);
+    expect(await recordHolderCode(MOM, '000000', stale)).toBe(false);
+    // no proof, and not even a try counted against the victim's doc
+    expect(mom().phoneVerifiedAt).toBeUndefined();
+    expect(mom().holderVerification?.tries).toBe(0);
+  });
+
+  it('a pending code bound to an older number is rejected, even from the number on the doc', async () => {
+    await startHolderVerification('sponsored_mom', 'seth', deps());
+    const pending = mom().holderVerification as NonNullable<HolderIdentity['holderVerification']>;
+    expect(pending.phoneHash).toBe(phoneHash(MOM, env));
+    // Same code, same doc number, but the code went to another number
+    merge('sponsored_mom', { holderVerification: { ...pending, phoneHash: phoneHash(OLD, env) } });
+    expect(await recordHolderCode(MOM, '482913', deps())).toBe(false);
+    expect(mom().phoneVerifiedAt).toBeUndefined();
+  });
+
+  it('start writes no code when the stored number is not the one it would text', async () => {
+    // start read the identity at MOM, but the doc now holds the victim's number
+    identities.set('sponsored_mom', { ...mom(), phoneNumber: VICTIM });
+    const staleRead = deps({ byId: async () => ({ ...mom(), phoneNumber: MOM }) });
+    expect(await startHolderVerification('sponsored_mom', 'seth', staleRead)).toEqual({
+      started: false,
+      reason: 'phone-changed',
+    });
+    expect(sent).toHaveLength(0);
+    expect(mom().holderVerification).toBeUndefined();
+  });
+
+  it('with the number unchanged, the reply still verifies', async () => {
+    await startHolderVerification('sponsored_mom', 'seth', deps());
+    expect(await recordHolderCode(MOM, '482913', deps())).toBe(true);
+    expect(mom().phoneVerifiedAt).toBe(now.toISOString());
+    expect(mom().holderVerification).toBeUndefined();
   });
 });
 
