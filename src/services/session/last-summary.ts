@@ -15,16 +15,16 @@
  * Neither summary carries what the caller asked Ferni to forget (#2767): the
  * next call's prompt (agent-setup lastTalkedAbout) and greeting
  * (greeting-direction callerHistory) read them unchecked. A forgotten key
- * point is not written; a summary already on the profile that is about a
- * forgotten topic is cleared on every save (keptSummaries), and when the
- * forget is recorded (forget.ts). If the topics can't be read, the save
+ * point is not written, here or by the call-end summary pass (forget-key-points.ts);
+ * a summary already on the profile that is about a forgotten topic is cleared
+ * on every save (keptSummaries), and when the forget is recorded (forget.ts). If the topics can't be read, the save
  * leaves both stored summaries as they were rather than write an unchecked one.
  *
  * @module services/session/last-summary
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { isMemberIdentity } from '../identity/member-identity.js';
-import { forgottenWithin, type ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
+import type { ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
+import { summaryCheck } from '../../memory/recall/forget-key-points.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'last-summary' });
@@ -58,16 +58,8 @@ export function applyLastSummary(
     profile.lastCallerSummary = profile.lastConversationSummary;
 }
 
-/**
- * The check for the caller's forgotten topics (the shared read, fail closed:
- * null when it can't be read in time). Nothing is stored for a non-member.
- */
-export async function lastSummaryCheck(
-  userId: string | null | undefined,
-  read: (userId: string) => Promise<ForgottenCheck | null> = forgottenWithin
-): Promise<ForgottenCheck | null> {
-  return isMemberIdentity(userId) ? read(userId) : () => false;
-}
+/** The check for the caller's forgotten topics (memory/recall/forget-key-points.ts). */
+export const lastSummaryCheck = summaryCheck;
 
 /**
  * The profile as it may be saved: a last summary about a forgotten topic is

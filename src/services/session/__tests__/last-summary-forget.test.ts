@@ -5,15 +5,17 @@
  *
  * Real code end to end: forgetTopic and the Firestore forget store, the shared
  * topics read (forgottenWithin), applyCheckedSummary and saveKept, which
- * session-manager calls, and the next call's two readers. Only the
- * database is a fake, a map of documents; a profile save is a merge, as
- * firestore-store saveProfile's set(..., { merge: true }) is.
+ * session-manager calls, the call-end summary pass that runs after the save
+ * (realtime-memory summarizeConversationAsync), and the next call's two
+ * readers. Fakes: the database, a map of documents (a profile save is a
+ * merge, as firestore-store saveProfile's set(..., { merge: true }) is), and
+ * the summary model's key points.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fake = vi.hoisted(() => {
   const docs = new Map<string, Record<string, unknown>>();
-  const state = { offline: false };
+  const state = { offline: false, txFails: false, points: [] as string[] };
   const snap = (path: string) => ({
     exists: docs.has(path),
     data: () => docs.get(path),
@@ -21,31 +23,58 @@ const fake = vi.hoisted(() => {
   const merge = (path: string, data: Record<string, unknown>) =>
     docs.set(path, { ...(docs.get(path) ?? {}), ...data });
   type Ref = { path: string; get: () => Promise<ReturnType<typeof snap>>; collection: unknown };
-  const ref = (path: string): Ref => ({
+  /** The documents directly under a collection path, in key order. */
+  const under = (path: string) =>
+    [...docs.keys()]
+      .filter((k) => k.startsWith(`${path}/`) && !k.slice(path.length + 1).includes('/'))
+      .sort()
+      .map((k) => ({ id: k.split('/').pop(), data: () => docs.get(k) }));
+  const ref = (path: string): Ref & { update: unknown } => ({
     path,
     get: async () => snap(path),
+    update: async (data: Record<string, unknown>) => merge(path, data),
     collection: (c: string) => ({
       doc: (id: string) => ref(`${path}/${c}/${id}`),
       get: async () => ({ docs: [] }),
+      orderBy: () => ({ limit: () => ({ get: async () => ({ docs: under(`${path}/${c}`) }) }) }),
     }),
   });
   const db = {
     collection: (c: string) => ({ doc: (id: string) => ref(`${c}/${id}`) }),
-    runTransaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-      fn({
-        get: async (r: Ref) => snap(r.path),
+    runTransaction: async (fn: (tx: unknown) => Promise<unknown>) => {
+      return fn({
+        get: async (r: Ref) => {
+          // only the profile document (bogle_users/<uid>): the forget-time clear's read
+          if (state.txFails && r.path.split('/').length === 2)
+            throw new Error('profile read failed');
+          return snap(r.path);
+        },
         set: (r: Ref, data: Record<string, unknown>) => merge(r.path, data),
         update: (r: Ref, data: Record<string, unknown>) => merge(r.path, data),
-      }),
+      });
+    },
   };
   return { docs, state, merge, db };
 });
 
-vi.mock('../../../utils/firestore-utils.js', () => ({
+vi.mock('../../../utils/firestore-utils.js', async (original) => ({
+  ...(await original<object>()),
   getFirestoreDb: () => (fake.state.offline ? null : fake.db),
 }));
+// realtime-memory opens its own client: the same documents
+vi.mock('@google-cloud/firestore', async (original) => ({
+  ...(await original<object>()),
+  Firestore: function Firestore() {
+    return fake.db;
+  },
+}));
+vi.mock('../../../memory/index.js', () => ({
+  summarizeWithLLM: async () => ({ keyPoints: fake.state.points }),
+}));
+vi.mock('../../llm-utils.js', () => ({ createSummarizationLLMCaller: () => ({ call: vi.fn() }) }));
 
-const { forgetTopic } = await import('../../../memory/recall/forget.js');
+const { forgetForCaller, forgetTopic } = await import('../../../memory/recall/forget.js');
+const { summarizeConversationAsync } = await import('../../memory/realtime-memory.js');
 const { resetForgetTopicsSource } = await import('../../../memory/recall/forget-topics-source.js');
 const { applyCheckedSummary, applyLastSummary, keptSummaries, lastSummaryCheck, saveKept } =
   await import('../last-summary.js');
@@ -76,7 +105,7 @@ function nextCallSees(p: Profile): string {
 
 beforeEach(() => {
   fake.docs.clear();
-  fake.state.offline = false;
+  Object.assign(fake.state, { offline: false, txFails: false, points: [] });
   resetForgetTopicsSource();
 });
 
@@ -106,6 +135,8 @@ describe('#2767: a forgotten topic stays out of the next call', () => {
 
     expect((await forgetTopic(uid, "Dana's divorce")).kind).toBe('forgotten');
     expect(nextCallSees(stored(uid))).not.toMatch(/divorce|Dana/);
+    // both last summaries: the system prompt also reads lastConversationSummary (user-awareness.ts)
+    expect(stored(uid).lastConversationSummary).toBe('');
   });
 
   it('(b) the forget-time clear matches all that a save would: a sentence-cased topic', async () => {
@@ -155,5 +186,45 @@ describe('#2767: a forgotten topic stays out of the next call', () => {
   it('a caller with no account has nothing stored to check', async () => {
     const forgotten = await lastSummaryCheck('anonymous');
     expect(forgotten?.(FORGOTTEN)).toBe(false);
+  });
+
+  it('the call-end summary pass, after the save, writes only what is not forgotten', async () => {
+    const uid = 'e2e-2767-f';
+    const conv = `bogle_users/${uid}/conversations/c1`;
+    fake.merge(`bogle_users/${uid}`, { totalConversations: 3, lastConversationSummary: KEPT });
+    fake.merge(`${conv}/turns/1`, { role: 'user', content: 'Dana is filing', timestamp: 1 });
+    fake.merge(`${conv}/turns/2`, { role: 'assistant', content: 'I hear you', timestamp: 2 });
+    expect((await forgetTopic(uid, "Dana's divorce")).kind).toBe('forgotten');
+
+    fake.state.points = [FORGOTTEN, 'USER is repainting the kitchen'];
+    await summarizeConversationAsync(uid, 'c1');
+    expect(stored(uid).lastConversationSummary).toBe('USER is repainting the kitchen');
+    expect(fake.docs.get(conv)?.summary).not.toMatch(/divorce|Dana/);
+
+    fake.state.offline = true; // topics unreadable: the profile keeps what it had
+    resetForgetTopicsSource();
+    fake.state.points = [FORGOTTEN];
+    await summarizeConversationAsync(uid, 'c1');
+    expect(stored(uid).lastConversationSummary).toBe('USER is repainting the kitchen');
+  });
+
+  it('a failed forget-time clear is reported: Ferni never says it forgot', async () => {
+    const uid = 'e2e-2767-g';
+    fake.merge(`bogle_users/${uid}`, { totalConversations: 3, lastCallerSummary: FORGOTTEN });
+    fake.state.txFails = true;
+    expect((await forgetForCaller(uid, "Dana's divorce")).kind).toBe('failed');
+    expect(fake.docs.get(`bogle_users/${uid}/memory_state/forgotten`)?.topics).toEqual([
+      "Dana's divorce",
+    ]); // recorded before the clear failed: a retry completes it
+  });
+
+  it('session-manager saves through the checked helpers only (wiring)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../session-manager.ts', import.meta.url), 'utf8');
+    expect(src).toContain('applyCheckedSummary(updatedProfile, summary, validatedUserId)');
+    expect(src).not.toMatch(/\bapplyLastSummary\(/);
+    expect(src).toContain('saveKept(global.store, updated, validatedUserId)'); // call end
+    expect(src).toContain('saveKept(global.store, updatedProfile, uid)'); // autosave
+    expect(src).not.toMatch(/global\.store\.saveProfile\(/);
   });
 });
