@@ -12,6 +12,7 @@ import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
 import { heldAfter, lastFerniLine, minorCareNote } from '../../utils/minor-care.js';
 import {
   hasThirdPartyTools,
@@ -396,7 +397,8 @@ export async function toolsForTurn(
     );
   }
   const picked = await retrievedTools(session, chatCtx, withTeammateAsk(unlocked, view));
-  return others ? picked : withoutThirdPartyTools(picked); // retrieval may pick from the catalog
+  // retrieval may pick from the catalog; QUICK_SHORTCUTS_REAL_ONLY: no shortcut that can only refer
+  return withoutQuickShortcuts(others ? picked : withoutThirdPartyTools(picked), session);
 }
 
 /**
