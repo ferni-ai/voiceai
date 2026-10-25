@@ -46,6 +46,7 @@ import type { KeyedStore } from '../erase-other-keys.js';
 import {
   PENDING_TWILIO_ERASURES,
   pendingId,
+  queueTwilioErasure,
   retryPendingTwilioErasures,
   type TwilioEraseClient,
 } from '../twilio-erasure.js';
@@ -55,6 +56,15 @@ interface Rec {
   to?: string;
   from?: string;
   parent?: string;
+  /** dateCreated, ms; seed records default to long before any cutoff */
+  date?: number;
+}
+
+interface LegOpts {
+  to: string;
+  from: string;
+  dateSentBefore?: Date;
+  startTimeBefore?: Date;
 }
 
 /** Twilio holding messages, calls, media, recordings and transcriptions; pages of 2 */
@@ -69,9 +79,13 @@ function fakeTwilio(seed: Record<string, Rec[]>, opts: { honorFilters?: boolean 
       return Promise.reject(Object.assign(new Error('twilio down'), { status: failList }));
     const all = (data.get(kind) ?? []).filter(match);
     const at = (i: number): unknown => ({
-      instances: all
-        .slice(i, i + 2)
-        .map((r) => ({ sid: r.sid, to: r.to, from: r.from, callSid: r.parent })),
+      instances: all.slice(i, i + 2).map((r) => ({
+        sid: r.sid,
+        to: r.to,
+        from: r.from,
+        callSid: r.parent,
+        dateCreated: new Date(r.date ?? 0),
+      })),
       nextPage: () => (i + 2 < all.length ? Promise.resolve(at(i + 2)) : undefined),
     });
     return Promise.resolve(at(0));
@@ -89,8 +103,11 @@ function fakeTwilio(seed: Record<string, Rec[]>, opts: { honorFilters?: boolean 
     list.splice(i, 1);
     return true;
   };
-  const legs = (kind: string) => (o: { to: string; from: string }) =>
-    page(kind, (r) => opts.honorFilters === false || (r.to === o.to && r.from === o.from), o);
+  const legs = (kind: string) => (o: LegOpts) => {
+    const before = (o.dateSentBefore ?? o.startTimeBefore)?.getTime() ?? Infinity;
+    const match = (r: Rec): boolean => r.to === o.to && r.from === o.from && (r.date ?? 0) < before;
+    return page(kind, (r) => opts.honorFilters === false || match(r), { ...o });
+  };
   const children = (kind: string, parent: string) =>
     Object.assign((sid: string) => ({ remove: remove(kind, sid) }), {
       page: (o: object) => page(kind, (r) => r.parent === parent, { ...o, parent }),
@@ -121,6 +138,7 @@ function fakeTwilio(seed: Record<string, Rec[]>, opts: { honorFilters?: boolean 
     failRemove,
     sids,
     failLists: (s: number | null) => void (failList = s),
+    add: (kind: string, rec: Rec) => void data.get(kind)?.push(rec),
   };
 }
 
@@ -274,6 +292,7 @@ describe('Twilio erasure on account delete (TWILIO_ERASE_ON_DELETE)', () => {
     const { db, docs } = fakeFirestore();
     docs.set(pendingPath(ME), {
       encrypted: JSON.stringify({ phone: ME }),
+      createdAt: Date.now(),
       attempts: 0,
       nextAttemptAt: 0,
     });
@@ -308,6 +327,7 @@ describe('Twilio erasure on account delete (TWILIO_ERASE_ON_DELETE)', () => {
     const { db, docs } = fakeFirestore();
     docs.set(pendingPath(ME), {
       encrypted: JSON.stringify({ phone: ME }),
+      createdAt: Date.now(),
       attempts: 0,
       nextAttemptAt: 0,
     });
@@ -358,10 +378,167 @@ describe('Twilio erasure on account delete (TWILIO_ERASE_ON_DELETE)', () => {
     const broken = {
       collection: (name: string) =>
         name === PENDING_TWILIO_ERASURES
-          ? { doc: () => ({ set: async () => Promise.reject(new Error('firestore down')) }) }
+          ? {
+              doc: () => ({
+                get: async () => ({ exists: false, data: () => undefined }),
+                set: async () => Promise.reject(new Error('firestore down')),
+              }),
+            }
           : db.collection(name),
     } as unknown as FirebaseFirestore.Firestore;
     await expect(eraseUserRecord('u-1', broken, [], [NOOP])).resolves.toBeUndefined();
     expect(JSON.stringify(logged)).toContain('Twilio erasure not queued');
+  });
+
+  const DAY = 24 * 60 * 60_000;
+  const pending = (createdAt: number | undefined, phone = ME) => ({
+    encrypted: JSON.stringify({ phone }),
+    ...(createdAt === undefined ? {} : { createdAt }),
+    attempts: 4,
+    nextAttemptAt: 0,
+  });
+
+  it('on: a text after the cutoff (a new owner of the number) survives every run, and the doc clears', async () => {
+    vi.stubEnv('TWILIO_ERASE_ON_DELETE', 'on');
+    const cutoff = Date.now() - DAY;
+    const { db, docs } = fakeFirestore();
+    docs.set(pendingPath(ME), pending(cutoff));
+    // a retried erasure keeps the first cutoff
+    await queueTwilioErasure(db, [ME], cutoff + 60_000);
+    expect(docs.get(pendingPath(ME))?.createdAt).toBe(cutoff);
+    // Twilio ignores the bound here, so the per-record date check alone must keep them
+    const tw = fakeTwilio(seed(), { honorFilters: false });
+    const deps = { client: tw.client, ferniNumbers: [FERNI] };
+    const reports = [];
+    for (let run = 0; run < 4; run++) {
+      // the number's new owner texts Ferni before every run
+      tw.add('messages', { sid: `SMNEW${run}`, from: ME, to: FERNI, date: cutoff + run + 1 });
+      const now = Date.now() + run * 7 * 60 * 60_000; // past each backoff
+      // eslint-disable-next-line no-await-in-loop -- runs in order
+      reports.push(await retryPendingTwilioErasures(db, { now, deps }));
+    }
+    expect(reports[0]).toMatchObject({ messages: 6, calls: 2, done: 0 });
+    expect(reports[1]).toMatchObject({ due: 1, messages: 0, calls: 0, done: 1 });
+    expect(reports[2]).toMatchObject({ due: 0 });
+    expect(docs.has(pendingPath(ME))).toBe(false);
+    expect(tw.sids('messages')).toEqual([...LEFT.messages, 'SMNEW0', 'SMNEW1', 'SMNEW2', 'SMNEW3']);
+    // every list is bounded by the cutoff
+    const bounds = tw.requests
+      .filter((r) => r.op === 'messages.page' || r.op === 'calls.page')
+      .map((r) => (r.params?.dateSentBefore ?? r.params?.startTimeBefore) as Date | undefined);
+    expect(bounds.length).toBeGreaterThan(0);
+    expect(bounds.every((d) => d?.getTime() === cutoff)).toBe(true);
+    expect(tw.requests.filter((r) => r.op === 'messages.page')[0]?.params).toHaveProperty(
+      'dateSentBefore'
+    );
+    expect(tw.requests.filter((r) => r.op === 'calls.page')[0]?.params).toHaveProperty(
+      'startTimeBefore'
+    );
+  });
+
+  it('on: a doc 30 days past its cutoff is dropped with TWILIO_ERASURE_EXPIRED, not retried', async () => {
+    vi.stubEnv('TWILIO_ERASE_ON_DELETE', 'on');
+    const tw = fakeTwilio(seed());
+    const { db, docs } = fakeFirestore();
+    const now = Date.now();
+    docs.set(pendingPath(ME), pending(now - 31 * DAY));
+    docs.set(pendingPath(OTHER), pending(now - 29 * DAY, OTHER));
+    const report = await retryPendingTwilioErasures(db, {
+      now,
+      deps: { client: tw.client, ferniNumbers: [FERNI] },
+    });
+    expect(report).toMatchObject({ due: 2, expired: 1 });
+    expect(docs.has(pendingPath(ME))).toBe(false);
+    expect(docs.has(pendingPath(OTHER))).toBe(true);
+    // the expired phone's records were not touched; the live one's were
+    expect(tw.sids('messages')).toEqual(expect.arrayContaining(['SM1', 'SM6']));
+    expect(tw.sids('messages')).not.toContain('SM7');
+    expect(logged).toContainEqual([
+      expect.objectContaining({ reason: 'max-age', attempts: 4 }),
+      expect.stringContaining('TWILIO_ERASURE_EXPIRED'),
+    ]);
+    expect(JSON.stringify(logged)).not.toMatch(/555555010\d/);
+  });
+
+  it('off: a doc past the age cap is still dropped, with zero Twilio calls; a younger one is kept', async () => {
+    const tw = fakeTwilio(seed());
+    twilio.client = tw.client;
+    const { db, docs } = fakeFirestore();
+    const now = Date.now();
+    docs.set(pendingPath(ME), pending(now - 31 * DAY));
+    docs.set(pendingPath(OTHER), pending(now - 29 * DAY, OTHER));
+    const report = await retryPendingTwilioErasures(db, { now });
+    expect(report).toMatchObject({ due: 0, expired: 1 });
+    expect([...docs.keys()]).toEqual([pendingPath(OTHER)]);
+    expect(tw.requests).toEqual([]);
+    expect(JSON.stringify(logged)).toContain('TWILIO_ERASURE_EXPIRED');
+  });
+
+  it("on: one doc's failed update is logged and the next doc is still processed", async () => {
+    vi.stubEnv('TWILIO_ERASE_ON_DELETE', 'on');
+    const tw = fakeTwilio(seed());
+    tw.failLists(503); // both docs go to the backoff update
+    const { db, docs } = fakeFirestore();
+    docs.set(pendingPath(ME), pending(Date.now()));
+    docs.set(pendingPath(OTHER), pending(Date.now(), OTHER));
+    const col = db.collection(PENDING_TWILIO_ERASURES);
+    const all = await col.where('nextAttemptAt', '<=', Date.now()).limit(50).get();
+    const [first, second] = all.docs;
+    const broken = {
+      collection: () => ({
+        where: () => ({
+          limit: () => ({
+            get: async () => ({
+              docs: [
+                {
+                  ...first,
+                  data: () => first?.data(),
+                  ref: { update: async () => Promise.reject(new Error('NOT_FOUND')) },
+                },
+                second,
+              ],
+            }),
+          }),
+        }),
+      }),
+    } as unknown as FirebaseFirestore.Firestore;
+    const report = await retryPendingTwilioErasures(broken, {
+      deps: { client: tw.client, ferniNumbers: [FERNI] },
+    });
+    expect(report.due).toBe(2);
+    expect(docs.get(pendingPath(OTHER))?.attempts).toBe(5);
+    expect(JSON.stringify(logged)).toContain('Twilio erasure doc not settled');
+  });
+
+  it('on: the queue doc exists before the first store is erased', async () => {
+    vi.stubEnv('TWILIO_ERASE_ON_DELETE', 'on');
+    const { db, docs } = fakeFirestore();
+    const seen: boolean[] = [];
+    const queued = (): boolean => docs.has(pendingPath(ME));
+    const STORE = 'contact_interactions';
+    const watched = {
+      collection: (name: string) =>
+        name === STORE
+          ? {
+              where: () => ({
+                limit: () => ({
+                  get: async () => {
+                    seen.push(queued());
+                    return { empty: true, docs: [] };
+                  },
+                }),
+              }),
+            }
+          : db.collection(name),
+    } as unknown as FirebaseFirestore.Firestore;
+    const probe: KeyedStore = {
+      label: 'probe',
+      erase: async () => void seen.push(queued()),
+      remains: async () => false,
+    };
+    await eraseUserRecord('u-1', watched, [{ collection: STORE, field: 'userId' }], [probe]);
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    expect(seen[0]).toBe(true);
+    expect(seen.every(Boolean)).toBe(true);
   });
 });

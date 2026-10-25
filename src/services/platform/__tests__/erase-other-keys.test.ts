@@ -387,6 +387,18 @@ describe('gatherErasureKeys', () => {
     expect(keys.linkedUserIds).toEqual([]);
     expect(keys.phones).toEqual([]); // their Twilio records are someone else's too
   });
+
+  it('TWILIO_ERASE_ON_DELETE: a phone another account linked is not in the Twilio list', async () => {
+    vi.stubEnv('TWILIO_ERASE_ON_DELETE', 'on');
+    getFirebaseUserOrThrow.mockResolvedValue({ phoneNumber: '+15550000007', providerData: [] });
+    const { db } = fakeFirestore({
+      'bogle_users/u-1': { linkedIdentifiers: ['phone:+15550000006'] },
+      'bogle_users/u-2': { linkedIdentifiers: ['auth:default:u-2', 'phone:+15550000007'] },
+      'bogle_users/phone:+15550000006': { linkedIdentifiers: ['phone:+15550000006'] }, // its own
+    });
+    const keys = await gatherErasureKeys(db, 'u-1').finally(() => vi.unstubAllEnvs());
+    expect(keys.phones).toEqual(['+15550000006']);
+  });
 });
 
 describe('eraseUserRecord with keyed stores', () => {

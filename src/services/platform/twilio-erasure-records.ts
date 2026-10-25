@@ -1,7 +1,9 @@
 /**
  * Deleting one phone's Twilio records with Ferni (texts and their media, calls and their
  * recordings and transcriptions), for twilio-erasure.ts. Only a record whose to and from
- * are exactly the phone and a Ferni number is deleted, checked on every record.
+ * are exactly the phone and a Ferni number is deleted, and only one from before the erasure's
+ * cutoff (a later one is a new owner's of the number, or a re-signup's): the lists are
+ * bounded by it and every record's own dateCreated is checked against it too.
  *
  * @module services/platform/twilio-erasure-records
  */
@@ -26,16 +28,17 @@ interface Sid {
 interface Leg extends Sid {
   to: string;
   from: string;
+  dateCreated?: Date | null;
 }
 type PageOf<T, O = object> = (opts: O & { pageSize: number }) => Promise<Page<T>>;
-type Legs = PageOf<Leg, { to: string; from: string }>;
+type Legs<Before> = PageOf<Leg, { to: string; from: string } & Before>;
 
 /** The part of the twilio client this uses (the real one fits it) */
 export interface TwilioEraseClient {
   messages: ((sid: string) => Removable & {
     media: ((sid: string) => Removable) & { page: PageOf<Sid> };
-  }) & { page: Legs };
-  calls: ((sid: string) => Removable) & { page: Legs };
+  }) & { page: Legs<{ dateSentBefore: Date }> };
+  calls: ((sid: string) => Removable) & { page: Legs<{ startTimeBefore: Date }> };
   recordings: ((sid: string) => Removable & {
     transcriptions: ((sid: string) => Removable) & { page: PageOf<Sid> };
   }) & { page: PageOf<Sid & { callSid: string }, { callSid: string }> };
@@ -135,13 +138,24 @@ async function eraseCall(callSid: string, deps: Deps, counts: Counts): Promise<u
   return call(async () => deps.client.calls(callSid).remove(), deps.sleep);
 }
 
-/** One direction of one phone and one Ferni number; returns how many records it found */
-async function eraseLeg(to: string, from: string, deps: Deps, counts: Counts): Promise<number> {
-  const ours = (r: Leg): boolean => r.to === to && r.from === from;
+/** A record with no date can't be shown to predate the cutoff, so it is left */
+const dated = (r: Leg): number =>
+  r.dateCreated instanceof Date ? r.dateCreated.getTime() : Number.POSITIVE_INFINITY;
+
+/** One direction of one phone and one Ferni number, before cutoff; returns how many it found */
+async function eraseLeg(
+  [to, from]: readonly [string, string],
+  cutoff: number,
+  deps: Deps,
+  counts: Counts
+): Promise<number> {
+  const ours = (r: Leg): boolean => r.to === to && r.from === from && dated(r) <= cutoff;
   const { client, sleep } = deps;
+  const before = new Date(cutoff);
+  const page = { to, from, pageSize: PAGE_SIZE };
   const [messages, calls] = await Promise.all([
-    listAll(async () => client.messages.page({ to, from, pageSize: PAGE_SIZE }), sleep),
-    listAll(async () => client.calls.page({ to, from, pageSize: PAGE_SIZE }), sleep),
+    listAll(async () => client.messages.page({ ...page, dateSentBefore: before }), sleep),
+    listAll(async () => client.calls.page({ ...page, startTimeBefore: before }), sleep),
   ]).then(([m, c]) => [m.filter(ours), c.filter(ours)]);
   await removeAll(messages, 'messages', counts, async (sid) => eraseMessage(sid, deps, counts));
   await removeAll(calls, 'calls', counts, async (sid) => eraseCall(sid, deps, counts));
@@ -149,10 +163,15 @@ async function eraseLeg(to: string, from: string, deps: Deps, counts: Counts): P
 }
 
 /**
- * Erase one phone's records with Ferni. True only when a run found nothing left, so a
- * run that deleted anything is checked by the next one before the doc goes.
+ * Erase one phone's records with Ferni from before cutoff (ms). True only when a run found
+ * nothing left, so a run that deleted anything is checked by the next one before the doc goes.
  */
-export async function erasePhone(phone: string, deps: Deps, counts: Counts): Promise<boolean> {
+export async function erasePhone(
+  phone: string,
+  cutoff: number,
+  deps: Deps,
+  counts: Counts
+): Promise<boolean> {
   const failedBefore = counts.failed;
   const legs = deps.ferniNumbers.flatMap((ferni) => [
     [phone, ferni],
@@ -161,7 +180,7 @@ export async function erasePhone(phone: string, deps: Deps, counts: Counts): Pro
   let found = 0;
   for (const [to, from] of legs) {
     // eslint-disable-next-line no-await-in-loop -- one leg at a time keeps the request rate low
-    if (to && from) found += await eraseLeg(to, from, deps, counts);
+    if (to && from) found += await eraseLeg([to, from], cutoff, deps, counts);
   }
   return found === 0 && counts.failed === failedBefore;
 }

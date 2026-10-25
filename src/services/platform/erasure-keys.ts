@@ -16,6 +16,9 @@
  *   The sign-in links are looked up under every provider Firebase signs people in
  *   with, not only those on the account: once the Firebase user is gone its provider
  *   list is too, and a link under `auth:google.com:{uid}` must still be found.
+ * - phones for Twilio (TWILIO_ERASE_ON_DELETE): none whose profile is shared as above, and
+ *   none another account linked as `phone:{e164}` (linkPhoneToProfile); with the flag off
+ *   that second check, an extra read, is skipped, since nothing uses the list.
  *
  * The Firebase lookup must succeed: a lookup that fails for any reason other than
  * "no such user" throws, so the erasure is reported as failed and can be retried,
@@ -28,7 +31,9 @@
 
 import { getFirebaseUserOrThrow } from '../identity/firebase-auth.js';
 import { normalizePhoneNumber } from '../identity/user-identification.js';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { erasureErrorCode } from './erasure-step.js';
 
 const log = createLogger({ module: 'erasure-keys' });
 
@@ -45,7 +50,7 @@ export interface ErasureKeys {
   sponsoredIdentityIds: string[];
   /** Kept for billing to close once the profiles holding them are gone */
   stripeCustomerIds: string[];
-  /** The person's phones (E.164): verified, or a linked phone profile's; none another sign-in linked */
+  /** The person's phones (E.164): verified, or a linked phone profile's; none another account linked */
   phones: string[];
 }
 
@@ -135,6 +140,35 @@ async function phoneProfiles(
   return { profiles: [...found.values()], shared };
 }
 
+/**
+ * Phones another bogle_users doc linked (`phone:{e164}`), other than this user and the
+ * phone's own profile: that account's too, so their Twilio records stay. A failed read
+ * keeps every phone's records rather than fail the account erasure.
+ */
+async function linkedByOthers(db: Db, userId: string, phones: string[]): Promise<Set<string>> {
+  try {
+    const found = await Promise.all(
+      chunks(phones.map((p) => `${PHONE_PROFILE}${p}`)).map(async (values) =>
+        db.collection('bogle_users').where('linkedIdentifiers', 'array-contains-any', values).get()
+      )
+    );
+    const shared = new Set<string>();
+    for (const snap of found.flatMap((s) => s.docs)) {
+      const linked = links(snap).filter((l) => l.startsWith(PHONE_PROFILE));
+      for (const phone of linked.map((l) => l.slice(PHONE_PROFILE.length))) {
+        const own = snap.id === userId || snap.id === `${PHONE_PROFILE}${phone}`;
+        if (!own && phones.includes(phone)) shared.add(phone);
+      }
+    }
+    if (shared.size > 0)
+      log.warn({ userId, phones: shared.size }, 'Phone linked to another account; Twilio kept');
+    return shared;
+  } catch (error) {
+    log.warn({ error: erasureErrorCode(error), userId }, 'Phone links unreadable; Twilio kept');
+    return new Set(phones);
+  }
+}
+
 const stripeIds = (snaps: Snap[]): string[] =>
   unique(
     snaps.flatMap((s) => [
@@ -184,18 +218,22 @@ export async function gatherErasureKeys(db: Db, userId: string): Promise<Erasure
     const owner: unknown = s.get('firebaseUid');
     return s.exists && (owner === undefined || owner === null || owner === userId);
   });
+  const candidates = unique([
+    ...phones.filter((p) => !shared.has(p)),
+    ...linkedUserIds
+      .filter((id) => id.startsWith(PHONE_PROFILE))
+      .map((id) => id.slice(PHONE_PROFILE.length)),
+  ]).filter((p) => E164.test(p));
+  const elsewhere = flagOn('TWILIO_ERASE_ON_DELETE')
+    ? await linkedByOthers(db, userId, candidates)
+    : new Set<string>();
   return {
     userId,
     linkedUserIds,
     emails,
     sponsoredIdentityIds: sponsored.flatMap((s) => s.docs.map((d) => d.id)),
     stripeCustomerIds: stripeIds([record, garden, ...grants.docs, ...owned, ...linked]),
-    phones: unique([
-      ...phones.filter((p) => !shared.has(p)),
-      ...linkedUserIds
-        .filter((id) => id.startsWith(PHONE_PROFILE))
-        .map((id) => id.slice(PHONE_PROFILE.length)),
-    ]).filter((p) => E164.test(p)),
+    phones: candidates.filter((p) => !elsewhere.has(p)),
   };
 }
 
