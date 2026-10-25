@@ -39,7 +39,7 @@ import {
 import type { HumPlayer } from './tool-hum.js';
 import { recordedWhistleId, takeTuneId, tuneAudio, tuneKind } from './presence-tune.js';
 import { namedTuneFor, presenceSoundsHeld, tunePlayed } from '../../services/session/tune-state.js';
-import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceCallEnding } from './presence-closing.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import type { ConductedSound, SoundGate } from './sound-conductor.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -232,21 +232,24 @@ function watchQuiet(
     {
       ...sound,
       mood: v.mood,
-      // Hard news, venting or crisis risk lately, or the goodbyes said: no sound (presence-heavy.ts).
+      // Hard news, venting or crisis risk (presence-heavy.ts), or the call ending: no sound.
       serious: () => presenceSilenceIsHeavy(v.session),
-      quiet: () => stayQuietOn(v.session),
+      quiet: () => presenceCallEnding(v.session),
       rng: v.rng,
     },
     timing
   );
   const onAgent = (ev: { newState?: string }): void => watcher.onAgentState(ev.newState ?? '');
   const onUser = (ev: { newState?: string }): void => watcher.onUserState(ev.newState ?? '');
+  const onClose = (): void => watcher.close(); // a sound armed at his last line never plays
   v.session.on(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
   v.session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+  v.session.on(voice.AgentSessionEventTypes.Close, onClose);
   return () => {
     watcher.close();
     v.session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
     v.session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+    v.session.off(voice.AgentSessionEventTypes.Close, onClose);
   };
 }
 

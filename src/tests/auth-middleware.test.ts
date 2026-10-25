@@ -317,6 +317,83 @@ describe('Auth Middleware', () => {
     });
   });
 
+  describe('allowDevMode (#2143)', () => {
+    const devModeHeaders = { 'x-admin-key': 'dev-mode', 'x-user-id': 'dev-seth' };
+
+    beforeEach(() => {
+      process.env.API_KEYS = 'test-key';
+      process.env.NODE_ENV = 'development';
+    });
+
+    afterEach(() => {
+      process.env = { ...originalEnv };
+      vi.resetModules();
+    });
+
+    it('requireAuth refuses the dev-mode bypass with 401 when allowDevMode is false', async () => {
+      const { requireAuth } = await import('../api/auth-middleware.js');
+      const res = createMockResponse();
+
+      const auth = await requireAuth(createMockRequest({ headers: devModeHeaders }), res, {
+        allowDevMode: false,
+      });
+
+      expect(auth).toBeNull();
+      expect(res._statusCode).toBe(401);
+    });
+
+    it('requireAuthSync refuses the dev-mode bypass with 401 when allowDevMode is false', async () => {
+      const { requireAuthSync } = await import('../api/auth-middleware.js');
+      const res = createMockResponse();
+
+      const auth = requireAuthSync(createMockRequest({ headers: devModeHeaders }), res, {
+        allowDevMode: false,
+      });
+
+      expect(auth).toBeNull();
+      expect(res._statusCode).toBe(401);
+    });
+
+    it.each([
+      ['omitted (default)', undefined],
+      ['true', { allowDevMode: true }],
+    ])('still accepts the dev-mode bypass when allowDevMode is %s', async (_label, config) => {
+      const { requireAuth, requireAuthSync } = await import('../api/auth-middleware.js');
+      const res = createMockResponse();
+      const syncRes = createMockResponse();
+
+      const auth = await requireAuth(createMockRequest({ headers: devModeHeaders }), res, config);
+      const syncAuth = requireAuthSync(
+        createMockRequest({ headers: devModeHeaders }),
+        syncRes,
+        config
+      );
+
+      for (const [ctx, r] of [
+        [auth, res],
+        [syncAuth, syncRes],
+      ] as const) {
+        expect(ctx?.authMethod).toBe('dev_mode');
+        expect(ctx?.userId).toBe('dev-seth');
+        expect(r._statusCode).toBe(200);
+      }
+    });
+
+    it('allowDevMode false still accepts a real API key', async () => {
+      const { requireAuth } = await import('../api/auth-middleware.js');
+      const res = createMockResponse();
+
+      const auth = await requireAuth(
+        createMockRequest({ headers: { 'x-api-key': 'test-key' } }),
+        res,
+        { allowDevMode: false }
+      );
+
+      expect(auth?.authMethod).toBe('api_key');
+      expect(res._statusCode).toBe(200);
+    });
+  });
+
   describe('Rate Limiting', () => {
     beforeEach(() => {
       process.env.NODE_ENV = 'development';
