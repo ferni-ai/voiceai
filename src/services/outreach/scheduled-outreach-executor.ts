@@ -19,7 +19,7 @@ import {
   type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
 import { isOwnVerifiedPhone, ON_BEHALF_GAP_MS, textOnBehalf } from './guarded-text.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { thirdPartyRefusal } from '../messaging/consent-reach.js';
 import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';
@@ -144,8 +144,11 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
       }
       // MESSAGING_PIPELINE: a number that asked not to be called is never rung, and someone
       // other than the member must have agreed to calls (nothing confirms a scheduled call).
-      const refused = await consentBlocks(target.resolvedPhone, 'call', async () =>
-        toMemberThemself(userId, channelUsed, target)
+      const refused = await thirdPartyRefusal(
+        userId,
+        target.resolvedPhone,
+        'call',
+        isOwnVerifiedPhone
       );
       if (refused) {
         await updateOutreachStatus(userId, id, 'cancelled', {
@@ -173,7 +176,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
           target.resolvedPhone,
           target.message || target.purpose,
           personaId,
-          { fallbackToTwilioVoice: true }
+          { fallbackToTwilioVoice: true, userId }
         );
         success = result.success;
         errorMsg = result.success ? undefined : result.message;

@@ -16,13 +16,13 @@ import { getDisplayName } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { resolveFirebaseProjectId } from '../../utils/firebase-admin-app.js';
+import { getEmailSender } from '../email-transport/index.js';
 import type { GeneratedContent, OutreachType } from './llm-content-generator.js';
+import { heldSender } from './checkin-replies.js';
 
 const log = createLogger({ module: 'UnifiedDelivery' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// --- TYPES ---
 
 export type DeliveryChannel = 'sms' | 'email' | 'voice_call' | 'push' | 'in_app';
 
@@ -58,20 +58,13 @@ export interface ChannelStatus {
   in_app: { available: boolean; reason?: string };
 }
 
-// ============================================================================
-// CREDENTIAL LOADING
-// ============================================================================
+// --- CREDENTIAL LOADING ---
 
 interface Credentials {
   twilio?: {
     accountSid: string;
     authToken: string;
     phoneNumber: string;
-  };
-  sendgrid?: {
-    apiKey: string;
-    fromEmail: string;
-    fromName: string;
   };
   fcm?: {
     projectId: string;
@@ -95,15 +88,6 @@ async function loadCredentials(): Promise<Credentials> {
       phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
     };
     log.info('Twilio credentials loaded');
-  }
-
-  if (process.env.SENDGRID_API_KEY) {
-    credentials.sendgrid = {
-      apiKey: process.env.SENDGRID_API_KEY,
-      fromEmail: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'hello@ferni.ai',
-      fromName: process.env.SENDGRID_FROM_NAME || process.env.EMAIL_FROM_NAME || 'Ferni',
-    };
-    log.info('SendGrid credentials loaded');
   }
 
   // FCM can use explicit credentials OR application default credentials
@@ -140,8 +124,8 @@ export async function getChannelStatus(): Promise<ChannelStatus> {
       reason: creds.twilio?.accountSid ? undefined : 'Twilio credentials not configured',
     },
     email: {
-      available: !!creds.sendgrid?.apiKey,
-      reason: creds.sendgrid?.apiKey ? undefined : 'SendGrid API key not configured',
+      available: getEmailSender().isConfigured(),
+      reason: getEmailSender().isConfigured() ? undefined : 'Email transport not configured',
     },
     voice_call: {
       available: !!creds.twilio?.accountSid && !!creds.twilio?.authToken,
@@ -226,6 +210,9 @@ async function deliverSMS(
   // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
   const refused = await (await import('../messaging/consent.js')).consentBlocks(phone, 'sms', true);
   if (refused) return { success: false, channel: 'sms', error: `Not sent: ${refused}` };
+  // MINOR_CARE_SHARED_HOLD: no text to an account or a number a call held under 18
+  if (await heldSender(userId, phone))
+    return { success: false, channel: 'sms', error: 'Not sent: held' };
 
   const creds = await loadCredentials();
   if (!creds.twilio) {
@@ -253,7 +240,9 @@ async function deliverSMS(
 }
 
 /**
- * Deliver via Email using SendGrid
+ * Deliver via Email through the app transport (EMAIL_PROVIDER: SendGrid by
+ * default, the ferni.ai Workspace under gmail). Outreach is mail they can opt
+ * out of: 'bulk', with the preferences page as List-Unsubscribe.
  */
 async function deliverEmail(
   userId: string,
@@ -266,59 +255,31 @@ async function deliverEmail(
     return { success: false, channel: 'email', error: 'No email address provided' };
   }
 
-  const creds = await loadCredentials();
-  if (!creds.sendgrid) {
-    return { success: false, channel: 'email', error: 'SendGrid not configured' };
+  const mail = getEmailSender();
+  if (!mail.isConfigured()) {
+    return { success: false, channel: 'email', error: 'Email transport not configured' };
   }
 
-  try {
-    const sgMail = await import('@sendgrid/mail');
-    sgMail.default.setApiKey(creds.sendgrid.apiKey);
-
-    // Build preferences URL for unsubscribe
-    const preferencesUrl = `https://app.ferni.ai/preferences?user=${userId}`;
-
-    const msg = {
-      to: email,
-      from: {
-        email: creds.sendgrid.fromEmail,
-        name: creds.sendgrid.fromName,
-      },
-      replyTo: {
-        email: 'hello@ferni.ai',
-        name: 'Ferni',
-      },
-      subject: content.subject || 'A message from Ferni',
-      text: content.text,
-      html: content.htmlBody || `<p>${content.text}</p>`,
-      // Headers for deliverability (CAN-SPAM compliance)
-      headers: {
-        'List-Unsubscribe': `<${preferencesUrl}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-        'X-Priority': '3', // Normal priority
-        'X-Mailer': 'Ferni AI',
-      },
-      // SendGrid tracking settings
-      trackingSettings: {
-        clickTracking: { enable: false }, // Don't modify links (better deliverability)
-        openTracking: { enable: true },
-      },
-      // Category for SendGrid analytics
-      categories: [outreachType, 'ferni-outreach'],
-    };
-
-    const [response] = await sgMail.default.send(msg);
-    const messageId = response.headers['x-message-id'] || `email-${Date.now()}`;
-
-    // Record delivery
-    await recordDelivery(userId, 'email', messageId, outreachType, triggerId);
-
-    log.info({ userId, messageId }, 'Email delivered');
-    return { success: true, channel: 'email', messageId };
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Email delivery failed');
-    return { success: false, channel: 'email', error: String(error) };
+  const sent = await mail.send({
+    to: email,
+    replyTo: 'hello@ferni.ai',
+    subject: content.subject || 'A message from Ferni',
+    text: content.text,
+    html: content.htmlBody || `<p>${content.text}</p>`,
+    kind: 'bulk',
+    unsubscribe: { url: `https://app.ferni.ai/preferences?user=${encodeURIComponent(userId)}` },
+    tracking: { opens: true, clicks: false }, // unmodified links deliver better
+    tags: [outreachType, 'ferni-outreach'],
+  });
+  if (!sent.ok) {
+    log.error({ provider: sent.provider, status: sent.status, error: sent.error, userId }, 'Email delivery failed'); // prettier-ignore
+    return { success: false, channel: 'email', error: sent.error ?? 'Email send failed' };
   }
+
+  const messageId = sent.messageId || `email-${Date.now()}`;
+  await recordDelivery(userId, 'email', messageId, outreachType, triggerId);
+  log.info({ userId, messageId }, 'Email delivered');
+  return { success: true, channel: 'email', messageId };
 }
 
 /**

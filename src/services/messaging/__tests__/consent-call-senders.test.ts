@@ -150,12 +150,18 @@ describe('on-behalf first dial (assertNotOptedOut)', () => {
     own.value = true;
     await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
     own.value = false;
-    const { writeOptIn } = await import('../consent.js');
-    await writeOptIn(hash(), 'call', 'inbound-sms', {
-      env: { MESSAGING_PIPELINE: 'on' },
+    const { recordOwnerAttestation } = await import('../consent-grants.js');
+    const deps = {
+      env: { LOG_HASH_SECRET: 'test-secret' },
       store: mem.consent.store,
       now: () => new Date(),
-    });
+    };
+    await recordOwnerAttestation(PHONE, 'call', 'u1', deps, async () => true);
+    await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
+    // Someone else's grant is not this sender's.
+    await expect(assertNotOptedOut(PHONE, async () => false, 'u2')).rejects.toThrow(
+      'has not agreed'
+    );
     await expect(assertNotOptedOut(PHONE, async () => false, 'u1')).resolves.toBeUndefined();
   });
 

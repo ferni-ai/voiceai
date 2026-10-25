@@ -35,6 +35,10 @@ vi.mock('@livekit/agents', () => ({
   llm: { tool: (config: unknown) => config },
   log: () => ({ info: () => undefined, warn: () => undefined, error: () => undefined }),
 }));
+vi.mock('../../outreach/guarded-text.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../outreach/guarded-text.js')>()),
+  isOwnVerifiedPhone: async () => false,
+}));
 const callsCreate = vi.hoisted(() => vi.fn(async () => ({ sid: 'CA1' })));
 vi.mock('twilio', () => ({ default: () => ({ calls: { create: callsCreate } }) }));
 const fetchSpy = vi.fn(async (url: string | URL) =>
@@ -114,6 +118,20 @@ it('conference-call-manager does not dial a participant who opted out', async ()
   } as unknown as ConstructorParameters<typeof ConferenceCallManager>[0]);
   const result = await manager.addParticipant({ phoneNumber: PHONE, name: 'Pat Example' } as never);
   expect(result).toEqual({ success: false, error: 'Not calling: opted-out' });
+  expect(callsCreate).not.toHaveBeenCalled();
+});
+
+it('conference-call-manager does not dial a participant who never agreed to calls', async () => {
+  mem.consent = memoryConsentStore();
+  const manager = new ConferenceCallManager({
+    room: {} as never,
+    sessionId: 's1',
+    userId: 'u1',
+    webhookBaseUrl: 'https://app.example.test',
+    twilio: { accountSid: 'AC_test', authToken: 'token', phoneNumber: '+12025550100' },
+  } as unknown as ConstructorParameters<typeof ConferenceCallManager>[0]);
+  const result = await manager.addParticipant({ phoneNumber: PHONE, name: 'Pat Example' } as never);
+  expect(result).toEqual({ success: false, error: 'Not calling: needs-consent' });
   expect(callsCreate).not.toHaveBeenCalled();
 });
 

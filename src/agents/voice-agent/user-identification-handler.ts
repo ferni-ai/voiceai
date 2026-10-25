@@ -31,6 +31,7 @@ import {
   rememberDispatchIdentity,
   callerRecognitionEnabled,
   recognizePhoneSession,
+  rememberCallerPhone,
   startReturningCaller,
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -209,6 +210,8 @@ export async function identifyUser(
   await startReturningCaller(room, sessionId, userId).catch((e: unknown) => {
     diag.warn('Returning caller lookup failed', { error: String(e) });
   });
+  // MINOR_CARE_SHARED_HOLD: a held phone call also holds texts from and to its number
+  rememberCallerPhone(sessionId, room);
 
   return {
     // PRIVACY: a caller nobody named (no dispatch metadata, a failed lookup, or a number that

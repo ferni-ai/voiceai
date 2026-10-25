@@ -20,7 +20,7 @@ import { noteCallerJoined } from './sip-caller.js';
 import { errorText, writeIdentityDiagnostics, writeParticipantReady } from './startup-log.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
-import { injectUserAwareness } from './user-awareness-injection.js';
+import { injectUserAwareness, rememberedProfile } from './user-awareness-injection.js';
 import { identifyWithCallStartStages } from './call-start-identify.js';
 
 // Event cleanup registry for proper memory management
@@ -428,7 +428,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Read the profile as it stands now: session init decided "returning" before the deferred load.
       const awareness = injectUserAwareness({
         sessionId,
-        userProfile: services.userProfile,
+        userProfile: await rememberedProfile(userId, services.userProfile),
         userData,
         isReturningUser,
         userName,

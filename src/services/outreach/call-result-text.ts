@@ -23,6 +23,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
 import { callerText, isRiskyCallerText, riskyCallerLine } from './caller-text.js';
+import { isSavedQuietNow } from './quiet-hours.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = createLogger({ module: 'call-result-text' });
@@ -130,6 +131,7 @@ export async function tellOwnerAboutCall(
     const zone = request.userTimezone;
     if (!isValidTimeZone(zone)) return 'no-time-zone';
     if (isQuietHour(deps.now(), zone)) return 'quiet-hours';
+    if (await isSavedQuietNow(request.userId, deps.now())) return 'quiet-hours';
     const contactName = request.resolvedContact?.name || request.contactQuery;
     const sent = await deps.sendText({
       userId: request.userId,
