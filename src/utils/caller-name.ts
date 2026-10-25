@@ -185,7 +185,7 @@ export const WORD_NAMES: ReadonlySet<string> = new Set(
 const MORE_WORD_NAMES = new Set(
   (
     'frank eve bob gene reed wade dale glen cliff carol melody harmony destiny precious ' +
-    'ginger heather violet hazel olive poppy robin wren skye river storm rain brook ' +
+    'ginger heather hazel olive poppy robin wren skye river storm rain brook ' +
     'clay forest rocky buck chip duke king prince earl major sterling noble justice ' +
     'patience prudence charity mercy honor trinity unity liberty serenity bliss happy ' +
     'lucky dusty misty penny goldie cash sonny colt hardy page piper'
