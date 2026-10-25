@@ -51,16 +51,14 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       // as saveEmotionalDataPoint never wrote one.
       for (let i = 0; i < PEOPLE; i++) {
         const col = db.collection('emotional_data').doc(`person-${i}`).collection('points');
-        await col
-          .doc('a')
-          .set({
-            timestamp: T,
-            emotion: 'anxious',
-            intensity: 0.7,
-            topics: ['work'],
-            context: SENTINEL.slice(0, 100),
-            createdAt: T,
-          });
+        await col.doc('a').set({
+          timestamp: T,
+          emotion: 'anxious',
+          intensity: 0.7,
+          topics: ['work'],
+          context: SENTINEL.slice(0, 100),
+          createdAt: T,
+        });
         await col
           .doc('b')
           .set({ timestamp: T, emotion: 'sad', intensity: 0.4, meta: { snippet: PARTIALS[1] } });
