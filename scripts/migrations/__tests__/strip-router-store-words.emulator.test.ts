@@ -3,8 +3,9 @@
  * documents in the shape the router wrote until 2026-10-25 (words in them) are seeded in
  * every store the job covers, with one store over a page. A dry run counts them and
  * changes nothing; --apply without the matching --confirm-project refuses; the apply
- * strips every word field, keeps every other field, records lengths, hashes learned
- * phrases the way new ones are kept and stamps expireAt from each document's own time;
+ * strips every word field, keeps every other field, records lengths, deletes every learned
+ * phrase (text or hash) and a tool profile's word-keyed vocabulary, and stamps expireAt from
+ * each document's own time;
  * a rerun writes nothing. bogle_users/{uid}/corrections, a different store of the same
  * name, is left alone. Skips unless FIRESTORE_EMULATOR_HOST is set:
  *
@@ -14,7 +15,6 @@
 import { FieldValue, Firestore, type DocumentData } from '@google-cloud/firestore';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { phraseHash } from '../../../src/tools/semantic-router/persistence/stored-without-words.js';
 import { main } from '../strip-router-store-words.js';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -127,6 +127,18 @@ describe.skipIf(!emulator)('strip-router-store-words on the emulator', () => {
           updatedAt: MARCH,
         },
       ],
+      // personalization.ts kept the caller's words and word pairs as vocabulary keys
+      [
+        'user_tool_profiles/u-1',
+        {
+          userId: 'u-1',
+          toolBoosts: { set_reminder: 0.2 },
+          vocabulary: { priya: 'send_message', 'bank pin': 'notes', '415-555-0187': 'call' },
+          timePatterns: { '9': { set_reminder: 2 } },
+          totalInteractions: 4,
+        },
+      ],
+      ['user_tool_profiles/u-2', { userId: 'u-2', toolBoosts: { timer: 0.1 } }],
       // Another store named corrections: not the router's, never touched
       ['bogle_users/u-1/corrections/b1', { text: SENTINEL, inputText: SENTINEL, timestamp: MARCH }],
     ];
@@ -177,6 +189,7 @@ describe.skipIf(!emulator)('strip-router-store-words on the emulator', () => {
     expect(out).toContain(
       'semantic_router_community_patterns: scanned 1, would strip words from 1, expireAt on 0'
     );
+    expect(out).toContain('user_tool_profiles: scanned 2, would strip words from 1, expireAt on 0');
     expect(out).not.toMatch(/priya|migraine|u-1|u-2|r1|k1/i);
   });
 
@@ -232,24 +245,21 @@ describe.skipIf(!emulator)('strip-router-store-words on the emulator', () => {
       inputLength: SENTINEL.length,
     });
 
+    // Every learned phrase goes, the text and the hash: nothing derived from the words stays
     const vocab = await data('semantic_routing_vocabulary/u-1');
-    expect(vocab.phrases).toEqual([
-      {
-        phraseHash: phraseHash('u-1', SENTINEL),
-        toolId: 'set_reminder',
-        confidence: 0.5,
-        usageCount: 2,
-        source: 'implicit',
-      },
-      {
-        phraseHash: 'already-hashed',
-        toolId: 'timer',
-        confidence: 0.9,
-        usageCount: 1,
-        source: 'explicit',
-      },
-    ]);
+    expect(Object.keys(vocab).sort()).toEqual(['expireAt', 'updatedAt', 'userId']);
     expect(ts(vocab)).toBe(Date.parse(MARCH) + 30 * DAY);
+    expect(await data('user_tool_profiles/u-1')).toEqual({
+      userId: 'u-1',
+      toolBoosts: { set_reminder: 0.2 },
+      timePatterns: { '9': { set_reminder: 2 } },
+      totalInteractions: 4,
+    });
+    expect(await data('user_tool_profiles/u-2')).toEqual({
+      userId: 'u-2',
+      toolBoosts: { timer: 0.1 },
+    });
+    expect(JSON.stringify(all)).not.toMatch(/already-hashed|bank pin|415-555-0187/);
     expect(await data('semantic_router_community_patterns/p1')).toEqual({
       incorrectTool: 'weather',
       correctTool: 'set_reminder',

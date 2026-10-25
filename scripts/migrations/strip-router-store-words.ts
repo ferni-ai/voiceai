@@ -3,16 +3,19 @@
  * does for semantic_router_events (Seth, 2026-10-24: stop storing words, purge).
  *
  * Until 2026-10-25 these kept what the caller said; new documents keep only lengths, tool
- * ids, scores and (vocabulary) a hash of the utterance:
+ * ids and scores, and learned phrases aren't kept at all:
  *   routing_events                          input                       -> inputLength
  *   semantic_router_corrections             originalQuery, its args...  -> queryLength
  *   semantic_routing_feedback               inputText                   -> inputLength
  *   semantic_routing_corrections/*\/corrections  inputText              -> inputLength
- *   semantic_routing_vocabulary             phrases[].phrase            -> phrases[].phraseHash
+ *   semantic_routing_vocabulary             phrases (each a past utterance) -> (deleted)
  *   semantic_router_community_patterns      queryExamples, keywords...  -> (dropped)
+ *   user_tool_profiles                      vocabulary (map keyed by the caller's words and
+ *                                           word pairs: names, numbers, "bank pin")  -> (deleted)
  * Each per-person document without an expireAt gets the one new documents get (its own
- * time + 30 d), so the TTL policies age it out; community patterns are tool pairs and
- * counts, shared by everyone, and get none. Other fields stay, nothing is deleted. Dry run by default
+ * time + 30 d), so the TTL policies age it out; community patterns (tool pairs and counts,
+ * shared by everyone) and tool profiles (the person's tool boosts) get none. Only the word
+ * fields go: other fields stay, and no document is deleted. Dry run by default
  * (destructive-gate.ts): counts only, never ids or words. A rerun writes nothing.
  *
  *   npx tsx scripts/migrations/strip-router-store-words.ts
@@ -24,10 +27,7 @@
 import { pathToFileURL } from 'node:url';
 import { destructiveMode, refusalMessage } from '../destructive-gate.js';
 import { getFirestoreDatabase } from '../../src/config/environment.js';
-import {
-  phraseHash,
-  ROUTING_EVENT_RETENTION_MS,
-} from '../../src/tools/semantic-router/persistence/stored-without-words.js';
+import { ROUTING_EVENT_RETENTION_MS } from '../../src/tools/semantic-router/persistence/stored-without-words.js';
 import { millis } from './strip-router-event-words.js';
 
 type Data = Record<string, unknown>;
@@ -65,12 +65,14 @@ export const TARGETS: readonly Target[] = [
     length: ['inputText', 'inputLength'],
     time: 'timestamp',
   },
-  // phrases[].phrase, handled in stripUpdate
-  { path: 'semantic_routing_vocabulary', words: [], time: 'updatedAt' },
+  // Every learned phrase, text or hash: the whole list goes
+  { path: 'semantic_routing_vocabulary', words: ['phrases'], time: 'updatedAt' },
   {
     path: 'semantic_router_community_patterns',
     words: ['queryExamples', 'queryPattern', 'keywords'],
   },
+  // personalization.ts learnVocabulary: query unigrams and bigrams -> tool
+  { path: 'user_tool_profiles', words: ['vocabulary'] },
 ];
 
 interface Doc {
@@ -104,19 +106,6 @@ export interface TargetCounts {
   written: number;
 }
 
-/** A learned phrase kept as its words becomes the hash new ones are kept under */
-function hashedPhrases(uid: string, phrases: unknown): Data[] | null {
-  if (!Array.isArray(phrases)) return null;
-  const old = (p: unknown): p is Data & { phrase: string } =>
-    typeof (p as Data | null)?.phrase === 'string';
-  if (!phrases.some(old)) return null;
-  return phrases.map((p: Data) => {
-    if (!old(p)) return p;
-    const { phrase, ...rest } = p;
-    return { ...rest, phraseHash: rest.phraseHash ?? phraseHash(uid, phrase) };
-  });
-}
-
 /** The update that strips and stamps one document, or null when it needs neither. */
 export function stripUpdate(
   target: Target,
@@ -130,10 +119,6 @@ export function stripUpdate(
     const [from, to] = target.length;
     const text = data[from];
     if (typeof text === 'string' && data[to] === undefined) update[to] = text.length;
-  }
-  if (target.path === 'semantic_routing_vocabulary') {
-    const phrases = hashedPhrases(String(data.userId ?? doc.id), data.phrases);
-    if (phrases) update.phrases = phrases;
   }
   const at = target.time && data.expireAt == null ? millis(data[target.time]) : null;
   if (at !== null) update.expireAt = new Date(at + ROUTING_EVENT_RETENTION_MS);
@@ -170,7 +155,7 @@ export async function stripTarget(
         const update = stripUpdate(target, { id: doc.id, data }, opts.deleteField);
         if (target.time && data.expireAt == null && !update?.expireAt) c.noTimestamp++;
         if (!update) continue;
-        if (target.words.some((f) => f in update) || 'phrases' in update) c.withWords++;
+        if (target.words.some((f) => f in update)) c.withWords++;
         if (update.expireAt) c.stamped++;
         if (opts.apply) {
           batch.update(doc.ref, update);
