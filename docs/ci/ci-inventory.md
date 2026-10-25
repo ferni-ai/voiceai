@@ -102,11 +102,12 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 **Purpose:** Check that the exact code a PR merges was independently verified
 (rules: `scripts/ci/lead-verified.ts`, always run from main's copy, never the PR's).
-Runs on PRs, PR comments and merge_group. On a PR it only reports. In the merge queue
-it is enforced (since 2026-10-25): a queued head that is NOT_VERIFIED, or an ERROR reading
-the evidence, fails the group, so the PR leaves the queue. Allowed authors are
-`ferni-verifier[bot]` and, until the lead's machine can post as that app, `sethdford`
-(bound comments only). CI typechecks it via `pnpm typecheck:memory-eval`
+Runs on PRs, PR comments and merge_group. On a PR it only reports. On merge_group it
+fails (since 2026-10-25) when a queued head is NOT_VERIFIED or the evidence can't be read
+(ERROR). The queue drops the PR only while `Lead Verified` is a required check (rollout:
+merge this, then add the context to main's required checks). Allowed authors, for both
+the `lead-verify` status and bound comments, are `ferni-verifier[bot]` and, until the
+lead's machine can post as that app, `sethdford`. CI typechecks it via `pnpm typecheck:memory-eval`
 (`tsconfig.scripts.json`).
 
 **How a verifier marks a PR verified.** Verify the PR's current head, then run (as the
@@ -115,7 +116,7 @@ the evidence, fails the group, so the PR leaves the queue. Allowed authors are
 any SHA that is not the head and posts the `lead-verify` status (the only tamper-proof
 evidence) plus a comment whose first line is `RESULT_verifier=PASS sha=<40-hex head>`.
 A hand-written comment counts only if that marker starts a line outside quotes and code
-fences, the author is `ferni-verifier[bot]` (`LEAD_VERIFIED_AUTHORS`), and it is never
+fences, the author is in `LEAD_VERIFIED_AUTHORS` (see above), and it is never
 edited. Prose verdicts, reviews and auto-merge text never verify. Any FAIL wording
 (`RESULT_verifier=FAIL`, `Verdict: FAIL`, `Verification FAILED`, ...) from anyone, in a
 comment, review or inline comment, blocks every PASS posted at or before it: keep FAIL
