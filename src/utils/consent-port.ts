@@ -72,6 +72,8 @@ export function registerGrantChecks(next: GrantChecks | undefined): void {
   grants = next;
 }
 
+export const grantChecksRegistered = (): boolean => grants !== undefined;
+
 /** consent-grants.ts thirdPartyRefusal. Unregistered (pipeline on), only the owner's own number goes. */
 export async function thirdPartyRefusal(
   ownerUid: string,
