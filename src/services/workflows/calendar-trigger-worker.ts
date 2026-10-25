@@ -48,12 +48,19 @@ let isRunning = false;
 // ============================================================================
 
 /**
+ * True while the person's saved quiet hours hold (QUIET_HOURS_FROM_PREFS): the
+ * job passes outreach's isSavedQuietNow, which this layer may not import.
+ */
+export type QuietNow = (userId: string, at: Date) => Promise<boolean>;
+
+/**
  * Send a pre-meeting push notification with enriched briefing
  */
 async function sendPreMeetingPushNotification(
   userId: string,
   event: CalendarEvent,
-  minutesBefore: number
+  minutesBefore: number,
+  quietNow?: QuietNow
 ): Promise<boolean> {
   const notificationId = `${userId}:${event.id}:push`;
 
@@ -63,6 +70,11 @@ async function sendPreMeetingPushNotification(
   }
 
   try {
+    if (await quietNow?.(userId, new Date())) {
+      log.debug({ userId }, 'Pre-meeting push held: their quiet hours');
+      return false;
+    }
+
     // Get enriched briefing if available
     let briefingBody = `${event.title || 'Meeting'} starts in ${minutesBefore} minutes`;
     let briefingData: Record<string, unknown> = { eventId: event.id };
@@ -208,7 +220,11 @@ async function getUsersWithCalendarWorkflows(): Promise<string[]> {
 /**
  * Check calendar events for a user and trigger workflows + push notifications
  */
-async function checkUserCalendar(userId: string, sendPushNotifications = false): Promise<void> {
+async function checkUserCalendar(
+  userId: string,
+  sendPushNotifications = false,
+  quietNow?: QuietNow
+): Promise<void> {
   try {
     const { getEvents } = await import('../calendar/unified-calendar-store.js');
 
@@ -238,7 +254,8 @@ async function checkUserCalendar(userId: string, sendPushNotifications = false):
           minutesUntilStart > PUSH_NOTIFICATION_MINUTES - 2.5 &&
           minutesUntilStart < PUSH_NOTIFICATION_MINUTES + 2.5
         ) {
-          await sendPreMeetingPushNotification(userId, event, Math.round(minutesUntilStart));
+          const minutes = Math.round(minutesUntilStart);
+          await sendPreMeetingPushNotification(userId, event, minutes, quietNow);
         }
       }
 
@@ -341,7 +358,9 @@ function cleanupTriggeredEvents(): void {
  * user only when this server can send push; otherwise only users with
  * calendar workflows are checked, so no one's calendar is fetched for nothing.
  */
-async function checkAllCalendars(opts: { pushAvailable?: boolean } = {}): Promise<number> {
+async function checkAllCalendars(
+  opts: { pushAvailable?: boolean; quietNow?: QuietNow } = {}
+): Promise<number> {
   try {
     const pushAvailable = opts.pushAvailable ?? true;
     // Get users with calendar workflows (for workflow triggers)
@@ -374,7 +393,7 @@ async function checkAllCalendars(opts: { pushAvailable?: boolean } = {}): Promis
           // Send push notifications for all calendar users
           // Only trigger workflows for users with workflow configs
           const hasWorkflows = workflowUserIds.includes(userId);
-          return checkUserCalendar(userId, pushAvailable);
+          return checkUserCalendar(userId, pushAvailable, opts.quietNow);
         })
       );
     }
@@ -393,10 +412,12 @@ async function checkAllCalendars(opts: { pushAvailable?: boolean } = {}): Promis
  * every 5 minutes). It used to run on an interval inside every voice-call
  * process, each fetching every connected calendar every 5 minutes.
  */
-export async function runCalendarTriggerCheck(): Promise<{ usersChecked: number; push: boolean }> {
+export async function runCalendarTriggerCheck(
+  opts: { quietNow?: QuietNow } = {}
+): Promise<{ usersChecked: number; push: boolean }> {
   const { getChannelStatus } = await import('../outreach/unified-delivery.js');
   const push = (await getChannelStatus()).push.available;
-  const usersChecked = await checkAllCalendars({ pushAvailable: push });
+  const usersChecked = await checkAllCalendars({ pushAvailable: push, quietNow: opts.quietNow });
   return { usersChecked, push };
 }
 
