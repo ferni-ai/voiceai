@@ -106,6 +106,22 @@ describe('isConsentYes: a question or a spelled-out yes is not consent', () => {
     ['who is this? yes', false],
     ['ye s', false],
     ['yes please', false], // the documented set is the bare word only
+    // round 2: an allowlist, so every question mark and symbol is out, in any script
+    ['yes❓', false],
+    ['yes ❓', false],
+    ['yes‽', false],
+    ['yes\u061F', false], // Arabic question mark
+    ['yes\u037E', false], // Greek question mark
+    ['yes⁇', false],
+    ['ok ⁉️', false],
+    ['yes!?', false],
+    ['yes 🙂', false],
+    ['sí', false],
+    ['Yes.', true],
+    ['YES!!', true],
+    ['ok,', true],
+    ['yes 👍', true],
+    ['ＹＥＳ', true], // full-width, folded by NFKC
   ];
   it.each(table)('%j -> %s', (body, yes) => expect(isConsentYes(body)).toBe(yes));
 
