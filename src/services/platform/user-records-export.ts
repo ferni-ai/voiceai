@@ -230,6 +230,15 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
 ];
 
 /**
+ * Stores kept in one partition per day, read in every partition by the owner field.
+ * semantic_router_events/{YYYY-MM-DD}/events: which tool the router picked for each of the
+ * person's turns, how sure it was and how long it took, never the words (routing-analytics.ts).
+ */
+export const PARTITIONED_STORES = [
+  { collection: 'semantic_router_events', sub: 'events', field: 'userId' },
+] as const;
+
+/**
  * Stores a menu panel reads or the voice agent writes (menu audit 2026-10-12). The
  * export must carry each one; menu-export.emulator.test.ts fails when it doesn't.
  */
@@ -336,6 +345,29 @@ function storesFor(userId: string): Store[] {
 }
 
 /**
+ * The partitions holding the person's documents, one store each under one label. The days
+ * are listed, then all counted at once: reading every day in turn could outlast the deadline.
+ */
+async function partitionStores(reader: BoundedReader, userId: string): Promise<Store[]> {
+  const perStore = await Promise.all(
+    PARTITIONED_STORES.map(async (p) => {
+      const where = { field: p.field, equals: userId };
+      const paths = (await reader.listDocIds(p.collection)).map(
+        (d) => `${p.collection}/${d}/${p.sub}`
+      );
+      const counts = await Promise.all(
+        paths.map(async (path) => reader.countCollection(path, { where }))
+      );
+      const label = `${p.collection}/*/${p.sub}`;
+      return paths
+        .filter((_, i) => (counts[i] ?? 0) > 0)
+        .map((path): Store => ({ label, kind: 'collection', path, where }));
+    })
+  );
+  return perStore.flat();
+}
+
+/**
  * Every record kept for this person, as stored. Keys are store paths
  * ("users/{uid}/calendar_events"), values the documents with their ids. All reads go
  * through one BoundedReader on the request's budget and stop at its first limit.
@@ -353,7 +385,7 @@ export async function exportUserRecords(
     return toPlain(data, budget, KEPT_FIELDS[store.label], DATA_MAPS[store.label]);
   };
   const out: Record<string, Plain> = {};
-  for (const store of storesFor(userId)) {
+  for (const store of [...storesFor(userId), ...(await partitionStores(reader, userId))]) {
     if (store.kind === 'doc') {
       const doc = await reader.readDoc(store.path);
       if (doc) out[store.label] = plain(store, doc);
@@ -367,7 +399,9 @@ export async function exportUserRecords(
       id: d.id,
       ...(plain(store, d) as Record<string, Plain>),
     }));
-    if (rows.length > 0) out[store.label] = rows;
+    // A partitioned store's days share one label
+    const earlier = out[store.label];
+    if (rows.length > 0) out[store.label] = [...(Array.isArray(earlier) ? earlier : []), ...rows];
   }
   return out;
 }
@@ -380,7 +414,7 @@ export async function countUserRecords(
 ): Promise<number> {
   const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
   let count = 0;
-  for (const store of storesFor(userId)) {
+  for (const store of [...storesFor(userId), ...(await partitionStores(reader, userId))]) {
     if (store.kind === 'doc') count += (await reader.docExists(store.path)) ? 1 : 0;
     else count += await reader.countCollection(store.path, { where: store.where });
   }
