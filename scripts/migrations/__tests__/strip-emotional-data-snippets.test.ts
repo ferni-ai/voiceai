@@ -32,7 +32,9 @@ function fakeDb(docs: Map<string, Record<string, unknown>>) {
   const db: PointsDb = {
     collection: (name) => {
       expect(name).toBe('emotional_data');
-      return { listDocuments: async () => people().map((uid) => ({ collection: () => query(uid) })) };
+      return {
+        listDocuments: async () => people().map((uid) => ({ collection: () => query(uid) })),
+      };
     },
     runTransaction: async (fn) => {
       const ops: Array<() => void> = [];
@@ -104,7 +106,14 @@ describe('strip-emotional-data-snippets', () => {
     const { db } = fakeDb(docs);
     const c = await strip(db, true, 2); // 2 per page: more than one page per person
 
-    expect(c).toEqual({ people: 3, scanned: 7, toRewrite: 3, toDelete: 2, rewritten: 3, deleted: 2 });
+    expect(c).toEqual({
+      people: 3,
+      scanned: 7,
+      toRewrite: 3,
+      toDelete: 2,
+      rewritten: 3,
+      deleted: 2,
+    });
     expect(leakedPieces([...docs])).toEqual([]);
     expect(docs.get('emotional_data/u1/points/p1')).toEqual(clean('anxious'));
     expect(docs.get('emotional_data/u2/points/p1')).toEqual(clean('lonely'));
@@ -113,6 +122,12 @@ describe('strip-emotional-data-snippets', () => {
     expect(docs.get('emotional_data/u3/points/p1')).toEqual(clean('happy'));
 
     const again = await strip(db, true, 2);
-    expect(again).toMatchObject({ scanned: 5, toRewrite: 0, toDelete: 0, rewritten: 0, deleted: 0 });
+    expect(again).toMatchObject({
+      scanned: 5,
+      toRewrite: 0,
+      toDelete: 0,
+      rewritten: 0,
+      deleted: 0,
+    });
   });
 });

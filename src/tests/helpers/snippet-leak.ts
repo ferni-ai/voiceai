@@ -15,7 +15,7 @@ export const PARTIALS = [SENTINEL.slice(0, 30), SENTINEL.slice(20, 50), SENTINEL
 
 /** Every WINDOW-character piece of `sentinel` found in `value` (JSON of it). */
 export function leakedPieces(value: unknown, sentinel = SENTINEL): string[] {
-  const text = (typeof value === 'string' ? value : JSON.stringify(value) ?? '').toLowerCase();
+  const text = (typeof value === 'string' ? value : (JSON.stringify(value) ?? '')).toLowerCase();
   const found = new Set<string>();
   for (let i = 0; i + WINDOW <= sentinel.length; i++) {
     const piece = sentinel.slice(i, i + WINDOW).toLowerCase();

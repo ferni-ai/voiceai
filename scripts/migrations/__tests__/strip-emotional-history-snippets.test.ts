@@ -7,7 +7,11 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { main, strip, type HistoryDb } from '../strip-emotional-history-snippets.js';
-import { leakedPieces, PARTIALS, SENTINEL as LONG } from '../../../src/tests/helpers/snippet-leak.js';
+import {
+  leakedPieces,
+  PARTIALS,
+  SENTINEL as LONG,
+} from '../../../src/tests/helpers/snippet-leak.js';
 
 const SENTINEL = 'my sister Dolores has stage-three lupus';
 const PARTIAL = SENTINEL.slice(3, 22);

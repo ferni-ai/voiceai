@@ -39,8 +39,7 @@ export function boundedNumber(raw: unknown, lo: number, hi: number): number | nu
 
 /** An ISO time between 2020 and a day from now; null for anything else. */
 export function validTimestamp(raw: unknown, now = Date.now()): string | null {
-  const ms =
-    raw instanceof Date ? raw.getTime() : typeof raw === 'string' ? Date.parse(raw) : NaN;
+  const ms = raw instanceof Date ? raw.getTime() : typeof raw === 'string' ? Date.parse(raw) : NaN;
   if (!Number.isFinite(ms) || ms < EARLIEST || ms > now + FUTURE_SLACK_MS) return null;
   return new Date(ms).toISOString();
 }
@@ -55,7 +54,5 @@ export function ownField(raw: object, key: string): unknown {
 /** True when `raw` holds exactly `kept`'s keys with the same values. */
 export function sameFields(raw: object, kept: Record<string, unknown>): boolean {
   const keys = Object.keys(kept);
-  return (
-    Object.keys(raw).length === keys.length && keys.every((k) => ownField(raw, k) === kept[k])
-  );
+  return Object.keys(raw).length === keys.length && keys.every((k) => ownField(raw, k) === kept[k]);
 }

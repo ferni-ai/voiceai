@@ -33,7 +33,9 @@ export function toStoredDataPoint(raw: unknown, now = Date.now()): StoredDataPoi
   const intensity = boundedNumber(ownField(raw, 'intensity'), 0, 1);
   if (!timestamp || !emotion || intensity === null) return null;
   const createdAt = validTimestamp(ownField(raw, 'createdAt'), now);
-  return createdAt ? { timestamp, emotion, intensity, createdAt } : { timestamp, emotion, intensity };
+  return createdAt
+    ? { timestamp, emotion, intensity, createdAt }
+    : { timestamp, emotion, intensity };
 }
 
 /**
@@ -46,5 +48,7 @@ export function planDataPoint(
 ): { action: 'keep' } | { action: 'rewrite'; point: StoredDataPoint } | { action: 'delete' } {
   const point = toStoredDataPoint(raw, now);
   if (!point) return { action: 'delete' };
-  return sameFields(raw as object, { ...point }) ? { action: 'keep' } : { action: 'rewrite', point };
+  return sameFields(raw as object, { ...point })
+    ? { action: 'keep' }
+    : { action: 'rewrite', point };
 }

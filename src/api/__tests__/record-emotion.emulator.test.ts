@@ -44,7 +44,12 @@ async function post(route: Route, uid: string, body: unknown) {
     writeHead: (code: number) => void (status = code),
     end: (chunk?: string) => void (sent += chunk ?? ''),
   };
-  await route(req as unknown as IncomingMessage, res as unknown as ServerResponse, path, new URL(`http://localhost${path}`));
+  await route(
+    req as unknown as IncomingMessage,
+    res as unknown as ServerResponse,
+    path,
+    new URL(`http://localhost${path}`)
+  );
   return { status, sent };
 }
 
@@ -94,7 +99,13 @@ describe.skipIf(!ON)('record-emotion on the emulator', () => {
     const doc = (await ref(uid).get()).data()!;
     expect(leakedPieces(doc)).toEqual([]);
     expect(Object.keys(doc).sort()).toEqual(['dataPoints', 'lastUpdated', 'userId']);
-    expect(Object.keys(doc.dataPoints[0]).sort()).toEqual(['emotion', 'intensity', 'source', 'timestamp', 'valence']);
+    expect(Object.keys(doc.dataPoints[0]).sort()).toEqual([
+      'emotion',
+      'intensity',
+      'source',
+      'timestamp',
+      'valence',
+    ]);
     expect(doc.dataPoints[0]).toMatchObject(VALID);
     expect(doc.dataPoints[0].timestamp).not.toBe('2021-01-01T00:00:00.000Z');
   });
@@ -104,7 +115,13 @@ describe.skipIf(!ON)('record-emotion on the emulator', () => {
     await ref(uid).set({
       userId: uid,
       dataPoints: [
-        { emotion: 'sad', intensity: 0.5, valence: -0.6, source: 'text', timestamp: 'last tuesday' },
+        {
+          emotion: 'sad',
+          intensity: 0.5,
+          valence: -0.6,
+          source: 'text',
+          timestamp: 'last tuesday',
+        },
         { emotion: 'sad', intensity: 0.5, valence: -0.6, source: 'text' },
         { context: PARTIALS[0] },
         { emotion: 'calm', intensity: 0.3, valence: 0.5, source: 'voice', timestamp: hoursAgo(5) },
@@ -121,7 +138,15 @@ describe.skipIf(!ON)('record-emotion on the emulator', () => {
     const uid = 'emu-restart';
     await ref(uid).set({
       userId: uid,
-      dataPoints: [{ emotion: 'hopeful', intensity: 0.6, valence: 0.4, source: 'text', timestamp: hoursAgo(3) }],
+      dataPoints: [
+        {
+          emotion: 'hopeful',
+          intensity: 0.6,
+          valence: 0.4,
+          source: 'text',
+          timestamp: hoursAgo(3),
+        },
+      ],
     });
     expect((await post(route, uid, VALID)).status).toBe(200);
     await settled(uid, 2);

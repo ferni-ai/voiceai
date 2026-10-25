@@ -66,7 +66,14 @@ export interface StripCounts {
 }
 
 export async function strip(db: PointsDb, apply: boolean, page = PAGE): Promise<StripCounts> {
-  const c: StripCounts = { people: 0, scanned: 0, toRewrite: 0, toDelete: 0, rewritten: 0, deleted: 0 };
+  const c: StripCounts = {
+    people: 0,
+    scanned: 0,
+    toRewrite: 0,
+    toDelete: 0,
+    rewritten: 0,
+    deleted: 0,
+  };
   for (const person of await db.collection(COLLECTION).listDocuments()) {
     c.people++;
     let last: PointDoc | undefined;
@@ -84,7 +91,9 @@ export async function strip(db: PointsDb, apply: boolean, page = PAGE): Promise<
       }
       if (apply && changing.length > 0) {
         const done = await db.runTransaction(async (tx) => {
-          const snaps = await Promise.all(changing.map(async (ref) => [ref, await tx.get(ref)] as const));
+          const snaps = await Promise.all(
+            changing.map(async (ref) => [ref, await tx.get(ref)] as const)
+          );
           const n = { rewritten: 0, deleted: 0 };
           for (const [ref, snap] of snaps) {
             if (!snap.exists) continue;

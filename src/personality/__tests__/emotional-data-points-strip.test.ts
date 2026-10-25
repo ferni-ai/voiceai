@@ -27,7 +27,8 @@ vi.mock('../../utils/firebase-admin-app.js', () => {
   return { getAdminFirestore: () => db };
 });
 
-const { getEmotionalDataPoints, saveEmotionalDataPoint } = await import('../pattern-persistence.js');
+const { getEmotionalDataPoints, saveEmotionalDataPoint } =
+  await import('../pattern-persistence.js');
 
 const T = '2026-09-01T10:00:00.000Z';
 beforeEach(() => points.clear());
