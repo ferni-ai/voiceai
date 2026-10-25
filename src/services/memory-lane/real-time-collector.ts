@@ -64,39 +64,6 @@ function isDuplicateCapture(userId: string, sourceType: string, sourceId: string
 // ============================================================================
 
 /**
- * Capture a commitment as a potential memory
- */
-export async function captureCommitment(event: {
-  userId: string;
-  commitmentId: string;
-  text: string;
-  context?: string;
-  personaId?: string;
-}): Promise<void> {
-  if (isDuplicateCapture(event.userId, 'commitment', event.commitmentId)) {
-    return;
-  }
-
-  try {
-    await processCollectionInput({
-      userId: event.userId,
-      sourceType: 'commitment_kept',
-      sourceId: event.commitmentId,
-      rawContent: event.text,
-      occurredAt: new Date(),
-      personaId: event.personaId,
-    });
-
-    log.debug(
-      { userId: event.userId, commitmentId: event.commitmentId },
-      'Captured commitment memory'
-    );
-  } catch (error) {
-    log.warn({ error: String(error), userId: event.userId }, 'Failed to capture commitment memory');
-  }
-}
-
-/**
  * Capture a dream as a potential memory
  */
 export async function captureDream(event: {
@@ -270,7 +237,6 @@ export async function captureConversationMoment(event: {
 // ============================================================================
 
 export const memoryLaneRealTime = {
-  captureCommitment,
   captureDream,
   captureInsideJoke,
   captureMilestone,

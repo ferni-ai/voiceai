@@ -66,6 +66,20 @@ const CASES: Case[] = [
     who: 'bereaved',
   },
   {
+    name: "own imminent risk, the classifier's subject flipped to third-party",
+    latest: "i have the pills right here and i'm taking them now and he said he'd kill himself",
+    earlier: [],
+    verdict: '{"risk":"imminent","subject":"third_party"}',
+    who: 'self',
+  },
+  {
+    name: 'own risk earlier in the session, bereavement now',
+    latest: "my brother said he would kill himself and now he's gone",
+    earlier: ["i can't do this anymore", 'i feel like such a burden to everyone'],
+    verdict: '{"risk":"crisis","subject":"third_party"}',
+    who: 'bereaved',
+  },
+  {
     name: 'third-party risk a veto used to drop',
     latest: "lol he says he'll kill himself, i'm worried",
     earlier: [],
@@ -136,6 +150,28 @@ describe('THIRD_PARTY_SELF_HARM in the turn pipeline', () => {
     expect(live.summary.subject).toBe('self');
     expect(buildCrisisGuidance(live.crisis)).toMatch(/988[\s\S]*for the user themselves/);
     expect(buildCrisisGuidance(live.crisis)).toMatch(/on their behalf/);
+  });
+
+  it("live: an own-imminent line gets main's self-imminent script", async () => {
+    const c = CASES[5];
+    const asSelf = { ...c, verdict: '{"risk":"imminent","subject":"self"}' };
+    const main = await run(asSelf, undefined);
+    const live = await run(c, 'live');
+    expect(main.summary.shouldOverrideLLM).toBe(true);
+    expect(live.summary.shouldOverrideLLM).toBe(true);
+    expect(live.summary.subject).toBe('self');
+    expect(live.summary.suggestedResponse).toBe(main.summary.suggestedResponse);
+    expect(live.summary.indicators).toContain('imminent_danger');
+  });
+
+  it("live: the session's own earlier risk keeps the self guidance over grief", async () => {
+    const c = CASES[6];
+    const main = await run(c, undefined);
+    expect(main.summary.subject).toBe('third_party');
+    const live = await run(c, 'live');
+    expect(live.summary.subject).toBe('self');
+    expect(buildCrisisGuidance(live.crisis)).toMatch(/Acknowledge their pain/);
+    expect(buildCrisisGuidance(live.crisis)).not.toMatch(/grieving someone who has died/);
   });
 
   it('live: session escalation is kept whatever the who read says', async () => {

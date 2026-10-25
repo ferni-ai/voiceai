@@ -315,18 +315,48 @@ const DEVICE_SETTING_KEYS = new Set<string>([
  */
 export function clearAllUserData(preserveDevSettings = true): void {
   for (const key of getAllFerniKeys()) {
-    if (DEVICE_SETTING_KEYS.has(key)) continue;
-    if (
-      preserveDevSettings &&
-      (key === IDENTITY_KEYS.ADMIN_ID || key === IDENTITY_KEYS.ADMIN_KEY || key === UI_STATE_KEYS.DEV_MODE)
-    ) {
-      continue;
-    }
-    localStorage.removeItem(key);
+    if (isPersonKey(key, preserveDevSettings)) localStorage.removeItem(key);
   }
 
   // Also clear sessionStorage
   sessionStorage.removeItem(SUBSCRIPTION_KEYS.UPGRADE_TIER);
+}
+
+/** A Ferni key that holds the person's data, not this device's settings. */
+function isPersonKey(key: string, preserveDevSettings = true): boolean {
+  if (!/^(ferni[_:-]|voiceai_)/.test(key) || DEVICE_SETTING_KEYS.has(key)) return false;
+  return !(
+    preserveDevSettings &&
+    (key === IDENTITY_KEYS.ADMIN_ID ||
+      key === IDENTITY_KEYS.ADMIN_KEY ||
+      key === UI_STATE_KEYS.DEV_MODE)
+  );
+}
+
+/**
+ * After clearAllUserData, keep this page from writing the person's data back
+ * before it reloads. Modules still starting up do write: the milestones init,
+ * on a timer, saved ferni-milestones again between sign-out's clear and the
+ * reload (menu-e2e run 40105651631). Pass the same preserveDevSettings as the
+ * clear. Only for a page on its way out; returns the undo, for tests.
+ */
+export function sealUserData(preserveDevSettings = true): () => void {
+  // Storage.prototype in a browser; wherever setItem really lives otherwise.
+  let owner: object | null = localStorage;
+  while (owner && !Object.prototype.hasOwnProperty.call(owner, 'setItem'))
+    owner = Object.getPrototypeOf(owner) as object | null;
+  if (!owner) return () => {};
+  const target = owner;
+  const original = Object.getOwnPropertyDescriptor(target, 'setItem') as PropertyDescriptor;
+  const setItem = original.value as Storage['setItem'];
+  Object.defineProperty(target, 'setItem', {
+    ...original,
+    value: function (this: Storage, key: string, value: string): void {
+      if (this === localStorage && isPersonKey(key, preserveDevSettings)) return;
+      setItem.call(this, key, value);
+    },
+  });
+  return () => Object.defineProperty(target, 'setItem', original);
 }
 
 // ============================================================================

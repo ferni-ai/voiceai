@@ -36,6 +36,7 @@ import type { UserData } from '../shared/types.js';
 import { getSessionAdapter } from '../shared/handoff/coordinator-adapter.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+import { sayGameStartSnag } from './game-start-snag.js';
 // Centralized generateReply gateway - NEVER use session.generateReply directly!
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // Safe fire-and-forget for non-critical async operations
@@ -395,15 +396,8 @@ async function handleGameStartRequest(
   } catch (gameErr) {
     getLogger().error({ error: String(gameErr), gameType }, '❌ Game start failed');
 
-    // Make agent acknowledge the error gracefully with a warm static phrase
-    // Using coordinated speech to avoid generateReply echoing issues
-    if (session) {
-      coordinatedSay(
-        ctx.sessionId,
-        `Hmm, hit a small snag there. Try saying "let's play ${gameType}" and we'll get it going.`,
-        { allowInterruptions: true }
-      );
-    }
+    // Says the game's name (never its raw id), in the character's own words
+    if (session) sayGameStartSnag(ctx.sessionId, gameType);
 
     const errorMsg = JSON.stringify({
       type: 'game_start_ack',
@@ -467,15 +461,8 @@ async function handleTextGameStartRequest(
   } catch (gameErr) {
     getLogger().error({ error: String(gameErr), gameType }, '❌ Text game start failed');
 
-    // Make agent acknowledge the error gracefully with a warm static phrase
-    // Using coordinated speech to avoid generateReply echoing issues
-    if (session) {
-      coordinatedSay(
-        ctx.sessionId,
-        `Oops, something went sideways. Try saying "let's play ${gameType}" instead.`,
-        { allowInterruptions: true }
-      );
-    }
+    // Says the game's name (never its raw id), in the character's own words
+    if (session) sayGameStartSnag(ctx.sessionId, gameType);
 
     const errorMsg = JSON.stringify({
       type: 'text_game_start_ack',

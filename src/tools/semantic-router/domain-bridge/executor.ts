@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { errorFields } from '../../../utils/error-class.js';
 import { getTool as getDomainTool } from '../../registry/index.js';
 import type { ServiceRegistry } from '../../registry/types.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../types.js';
@@ -78,8 +79,8 @@ export async function executeDomainTool(
     {
       semanticToolId,
       domainToolId: mapping.domainToolId,
-      originalArgs: args,
-      transformedArgs,
+      argKeys: Object.keys(args),
+      transformedArgKeys: Object.keys(transformedArgs),
     },
     '🔗 Bridging semantic tool to domain tool'
   );
@@ -172,7 +173,7 @@ export async function executeDomainTool(
       {
         semanticToolId,
         domainToolId: mapping.domainToolId,
-        error: String(error),
+        ...errorFields(error),
       },
       'Domain tool execution failed'
     );

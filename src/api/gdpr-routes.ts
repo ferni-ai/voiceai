@@ -21,6 +21,7 @@ import { registerInterval } from '../utils/interval-manager.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { erasureErrorCode } from '../services/platform/erasure-step.js';
 
 const log = createLogger({ module: 'GDPR-API' });
 
@@ -633,8 +634,7 @@ async function handleAccountDeletion(
     const { getDataExportService } = await import('../services/data-export.js');
     const results = await getDataExportService().deleteAllData(userId);
 
-    // Also delete Firebase user if this is a Firebase UID
-    // Firebase UIDs are 28 characters and don't start with 'device:'
+    // Also delete the Firebase user if this is a Firebase UID (28 characters, not 'device:')
     let firebaseDeleted = false;
     if (!userId.startsWith('device:') && userId.length >= 20) {
       try {
@@ -646,7 +646,7 @@ async function handleAccountDeletion(
       } catch (firebaseErr) {
         // Firebase deletion is best-effort - don't fail the whole request
         log.warn(
-          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
+          { error: erasureErrorCode(firebaseErr), userId: `${userId.substring(0, 8)}...` },
           'Firebase user deletion failed (non-fatal)'
         );
       }
@@ -662,7 +662,7 @@ async function handleAccountDeletion(
 
     return true;
   } catch (error) {
-    log.error({ error, userId }, 'Account deletion failed');
+    log.error({ error: erasureErrorCode(error), userId }, 'Account deletion failed');
     sendError(res, 'Failed to delete account. Please contact support.', 500);
     return true;
   }

@@ -45,6 +45,16 @@ const guidance = (d: CrisisGateDecision | null): string =>
 beforeEach(() => resetWhoReads());
 
 describe('THIRD_PARTY_SELF_HARM at the crisis gate', () => {
+  it("live: own imminent risk beside a third-party clause speaks main's self-imminent script", async () => {
+    const text =
+      "i have the pills right here and i'm taking them now and he said he'd kill himself";
+    const main = await gate(text, '{"risk":"imminent","subject":"self"}', 'none');
+    expect(main.escalation?.action).toBe('replace');
+    const flipped = '{"risk":"imminent","subject":"third_party"}';
+    expect((await gate(text, flipped, 'self')).escalation?.action).not.toBe('replace');
+    expect((await gate(text, flipped, 'self', 'live')).escalation).toEqual(main.escalation);
+  });
+
   const bereaved = "my brother wants to kill himself and now he's gone";
 
   it('off and shadow: the patterns\' "988 for them" stands, as on main', async () => {
@@ -78,6 +88,7 @@ describe('THIRD_PARTY_SELF_HARM at the crisis gate', () => {
   it("live: the classifier's self read replaces the patterns' third-party guidance", async () => {
     const main = await gate(bereaved, SELF, 'none');
     expect(main.escalation).toBeNull();
+    expect(await gate(bereaved, SELF, 'none', 'shadow')).toEqual(main);
     const live = await gate(bereaved, SELF, 'none', 'live');
     expect(guidance(live.escalation)).toMatch(/Acknowledge their pain/);
   });

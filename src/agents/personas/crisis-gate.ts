@@ -21,7 +21,6 @@
 
 import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
-
 import {
   agreementOutcome,
   resolveCrisisAgreementGate,
@@ -40,6 +39,7 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
@@ -74,6 +74,7 @@ import {
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
@@ -233,17 +234,16 @@ export function startCrisisGate(
   const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
+  const said = { latest, earlier, companion };
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
   const transfer =
-    adjudicatorMode !== 'live' &&
-    transferRequestIsEveryday({ latest, earlier, companion }, pattern, call, env);
+    adjudicatorMode !== 'live' && transferRequestIsEveryday(said, pattern, call, env);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
-  const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
+  const priorRisk = callRiskBeforeTurn(call, said);
   const groundedPrior = groundedPriorRisk(call, latest);
-  const run = startCrisisClassifier(
-    { latest, earlier, companion },
-    { pattern, env, generate, scope, call }
-  );
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
+  const secondRead = secondReadOf('gate', userData, detection.subject);
+  const run = startCrisisClassifier(said, { pattern, env, generate, scope, call, secondRead });
   if (run?.mode !== 'live' || decision.action === 'replace') {
     return { decision, escalation: null, reask };
   }
@@ -265,7 +265,7 @@ export function startCrisisGate(
       return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
     const base = applyClassifierVerdict(detection, verdict);
-    const merged = who?.live ? await who.resolve(base) : base;
+    const merged = who?.live ? await who.resolve(base, verdict) : base;
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
@@ -370,7 +370,7 @@ export function holdUntilCleared(
         if (!decision) {
           released = true;
           // How long a ready reply waited on the classifier: the latency this gate adds.
-          log.info({ delayedMs: firstHeldAt ? Date.now() - firstHeldAt : 0 }, 'CRISIS_HOLD');
+          log.info({ delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
           for (const chunk of held) controller.enqueue(chunk);
           held.length = 0;
           await pump;

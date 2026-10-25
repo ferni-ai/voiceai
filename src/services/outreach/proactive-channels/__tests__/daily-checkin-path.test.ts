@@ -178,6 +178,24 @@ describe('daily outreach for allowlisted users', () => {
     expect(notesOf(SETH)).toHaveLength(0);
   });
 
+  it('QUIET_HOURS_FROM_PREFS: inside the window saved in the menu it holds; off, as before', async () => {
+    // 11:00 in New York, inside a saved 10:00 to 12:00.
+    const saved = { quietStart: '10:00', quietEnd: '12:00', zone: 'America/New_York' };
+    seedUser(SETH, { messagingPrefs: saved });
+    process.env.QUIET_HOURS_FROM_PREFS = 'on';
+    try {
+      const result = await runDailyOutreach({ respectQuietHours: false });
+      expect(result.details).toEqual([
+        expect.objectContaining({ status: 'skipped', reason: 'quiet hours' }),
+      ]);
+      expect(notesOf(SETH)).toHaveLength(0);
+    } finally {
+      delete process.env.QUIET_HOURS_FROM_PREFS;
+    }
+    await runDailyOutreach({ respectQuietHours: false });
+    expect(notesOf(SETH)).toHaveLength(1);
+  });
+
   it('counts toward the daily cap with the rest of their check-ins', async () => {
     seedUser(SETH);
     for (const id of ['a', 'b', 'c']) {
