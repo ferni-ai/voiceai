@@ -471,19 +471,7 @@ export async function saveCommitment(
       'Commitment saved'
     );
 
-    // Memory Lane: Capture commitment as potential memory
-    try {
-      const { captureCommitment } = await import('../memory-lane/real-time-collector.js');
-      void captureCommitment({
-        userId: commitment.userId,
-        commitmentId: id,
-        text: fullCommitment.summary,
-        context: fullCommitment.statement,
-        personaId: fullCommitment.personaId,
-      });
-    } catch {
-      // Memory capture is optional - don't fail commitment save
-    }
+    // Memory Lane shows a commitment once it's kept (memory-collector.ts), not when it's made.
 
     return { commitment: fullCommitment, feasibility };
   } catch (error) {
