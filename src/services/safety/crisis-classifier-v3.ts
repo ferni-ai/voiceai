@@ -191,7 +191,7 @@ export function secondReadRun(
   turn: {
     call?: string;
     path?: SecondReadPath;
-    /** The call's turn count, which the gate and the pipeline both read. */
+    /** The turn (secondReadTurn): the gate reads the pipeline run's for the latest words. */
     count?: unknown;
     pattern: PatternOutcome;
     /** The patterns read a worry about someone else. */

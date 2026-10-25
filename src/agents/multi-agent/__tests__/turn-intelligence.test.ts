@@ -70,6 +70,33 @@ describe('createTurnIntelligenceHook', () => {
     expect(handle.mock.calls[1][0].userData.lastAgentResponse).toBe('You still there?');
   });
 
+  it('takes one crisis second-read turn per run, before it waits, on the session user data', async () => {
+    // #2666: turnCount goes up twice per final transcript, the second time later, so two runs
+    // could read the same value. Each run takes its own turn as it starts, so none share one.
+    const session = { turnCount: 3 } as unknown as TurnIntelligenceDeps['userData'];
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const handle = vi.fn(() => held);
+    const hook = createTurnIntelligenceHook({ persona, services, userData: session, handle });
+    const first = hook(llm.ChatContext.empty(), userMessage('my brother says'));
+    const second = hook(llm.ChatContext.empty(), userMessage('my brother says he wants to'));
+    // Both runs have their turn before either reaches the turn handler.
+    expect((session as { secondReadTurn?: number }).secondReadTurn).toBe(2);
+    await hook(llm.ChatContext.empty(), userMessage('   ')); // an empty run takes none
+    expect((session as { secondReadTurn?: number }).secondReadTurn).toBe(2);
+    await vi.waitFor(() => expect(handle).toHaveBeenCalledTimes(2));
+    release();
+    await Promise.all([first, second]);
+    const turns = handle.mock.calls.map(
+      (call) =>
+        (call as unknown[])[0] as { userData: { secondReadTurn?: number; turnCount?: number } }
+    );
+    expect(turns.map((ctx) => ctx.userData.secondReadTurn)).toEqual([1, 2]);
+    expect(turns.map((ctx) => ctx.userData.turnCount)).toEqual([3, 3]);
+  });
+
   it('skips empty turns', async () => {
     const handle = vi.fn();
     const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
@@ -141,7 +168,10 @@ describe('turn context pusher', () => {
   it('never pushes while the user is speaking', async () => {
     const { createTurnContextPusher } = await import('../turn-intelligence.js');
     const agent = makeAgent();
-    const pusher = createTurnContextPusher(noting(() => '[CONTEXT: note]'), agent);
+    const pusher = createTurnContextPusher(
+      noting(() => '[CONTEXT: note]'),
+      agent
+    );
 
     await pusher.onUserState('speaking');
     await pusher.onFinalTranscript('so anyway');
@@ -154,7 +184,10 @@ describe('turn context pusher', () => {
   it('replaces the previous note instead of piling notes up', async () => {
     const { createTurnContextPusher } = await import('../turn-intelligence.js');
     const agent = makeAgent();
-    const pusher = createTurnContextPusher(noting((text) => `[CONTEXT about: ${text}]`), agent);
+    const pusher = createTurnContextPusher(
+      noting((text) => `[CONTEXT about: ${text}]`),
+      agent
+    );
 
     await pusher.onFinalTranscript('first topic');
     await pusher.onAgentState('speaking');
@@ -173,7 +206,10 @@ describe('turn context pusher', () => {
     const pusher = createTurnContextPusher(hook, agent);
 
     await pusher.onUserState('speaking');
-    await Promise.all([pusher.onFinalTranscript('I finally'), pusher.onFinalTranscript('quit my job')]);
+    await Promise.all([
+      pusher.onFinalTranscript('I finally'),
+      pusher.onFinalTranscript('quit my job'),
+    ]);
     await pusher.onUserState('listening');
 
     expect(hook.mock.calls.at(-1)?.[1].textContent).toBe('I finally quit my job');
@@ -208,7 +244,10 @@ describe('turn context pusher', () => {
   it('pushes nothing when the turn handler adds no context', async () => {
     const { createTurnContextPusher } = await import('../turn-intelligence.js');
     const agent = makeAgent();
-    const pusher = createTurnContextPusher(vi.fn(async () => {}), agent);
+    const pusher = createTurnContextPusher(
+      vi.fn(async () => {}),
+      agent
+    );
     await pusher.onFinalTranscript('hi');
     await pusher.onAgentState('listening');
     expect(agent.updateChatCtx).not.toHaveBeenCalled();

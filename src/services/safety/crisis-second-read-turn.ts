@@ -4,9 +4,9 @@
  * gate decides once per turn whether v3 may fill; the pipeline fills only where the gate decided
  * fill for the same turn (no decision yet: no fill); a fill about the caller stands only once the
  * other path has noted the turn (the gate waits, bounded) and no read of it is about someone else
- * or failed. A turn is the call's turnCount, which both paths read (one per final transcript),
- * never the caller's words: those matched an earlier turn that ended alike (#2666 round 1). A
- * turn's notes expire when the call's next turn is noted. No turn count: no notes, no fill.
+ * or failed. A turn is nextSecondReadTurn's, never the caller's words (they matched an earlier
+ * turn that ended alike) nor turnCount (up twice per final, once late: two runs could share it).
+ * A turn's notes expire when the call's next turn is noted. No turn: no notes, no fill.
  *
  * @module CrisisSecondReadTurn
  */
@@ -22,7 +22,7 @@ interface TurnNote {
 }
 
 const MAX_CALLS = 64;
-/** Per call, its latest turn's notes only; the least recently noted call goes first. */
+/** Per call, its latest turn's notes only. */
 const turns = new Map<string, { turn: number; notes: TurnNote[] }>();
 const waiters = new Map<string, Set<() => void>>();
 
@@ -30,10 +30,17 @@ const waiters = new Map<string, Set<() => void>>();
 export const turnOf = (count: unknown): number | undefined =>
   typeof count === 'number' && Number.isSafeInteger(count) && count > 0 ? count : undefined;
 
-/** A path's second-read options: its user data's turn count, and its patterns' subject. */
+/** One turn per turn-pipeline run, on the session user data before it waits (turn-intelligence.ts). */
+export function nextSecondReadTurn(userData: { secondReadTurn?: unknown }): number {
+  const turn = (turnOf(userData.secondReadTurn) ?? 0) + 1;
+  userData.secondReadTurn = turn;
+  return turn;
+}
+
+/** A path's second-read options: its user data's turn, and its patterns' subject. */
 export const secondReadOf = (path: SecondReadPath, userData: unknown, subject?: string) => ({
   path,
-  count: (userData as { turnCount?: unknown } | undefined)?.turnCount,
+  count: (userData as { secondReadTurn?: unknown } | undefined)?.secondReadTurn,
   thirdParty: subject === 'third_party',
 });
 

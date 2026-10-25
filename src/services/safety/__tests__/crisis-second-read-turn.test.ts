@@ -6,6 +6,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   gateDecidedFill,
+  nextSecondReadTurn,
   noteSecondReadTurn,
   resetSecondReadTurns,
   secondReadOf,
@@ -61,12 +62,22 @@ describe('gateDecidedFill: the pipeline reads the gate decision for its own turn
       expect(turnOf(count), String(count)).toBeUndefined();
     }
     expect(turnOf(4)).toBe(4);
-    expect(secondReadOf('gate', { turnCount: 4 }, 'third_party')).toEqual({
+    expect(secondReadOf('gate', { secondReadTurn: 4 }, 'third_party')).toEqual({
       path: 'gate',
       count: 4,
       thirdParty: true,
     });
     expect(secondReadOf('pipeline', undefined).count).toBeUndefined();
+  });
+});
+
+describe('nextSecondReadTurn: one turn per pipeline run', () => {
+  it('counts up from the session user data, ignoring anything that is not a turn', () => {
+    const session: { secondReadTurn?: unknown } = {};
+    expect([nextSecondReadTurn(session), nextSecondReadTurn(session)]).toEqual([1, 2]);
+    expect(session.secondReadTurn).toBe(2);
+    session.secondReadTurn = 'x';
+    expect(nextSecondReadTurn(session)).toBe(1);
   });
 });
 

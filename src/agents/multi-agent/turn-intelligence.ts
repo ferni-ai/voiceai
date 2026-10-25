@@ -19,6 +19,7 @@ import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
 import { resolveCrisisAgreementGate } from '../../services/safety/crisis-agreement.js';
+import { nextSecondReadTurn } from '../../services/safety/crisis-second-read-turn.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
@@ -99,6 +100,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
   return async (turnCtx, newMessage) => {
     const userText = newMessage.textContent?.trim();
     if (!userText) return;
+    // This run's crisis second-read turn, before any wait (crisis-second-read-turn.ts).
+    const turn = { secondReadTurn: nextSecondReadTurn(deps.userData as object) };
 
     const start = Date.now();
     try {
@@ -134,6 +137,7 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
         services: deps.services,
         userData: {
           turnCount: userData.turnCount,
+          ...turn,
           extensibilitySessionPrompt: state?.extensibility?.sessionPrompt,
           pauseBeforeMs,
           speechRateWPM: getAverageSpeechRate(deps.services.sessionId),

@@ -272,7 +272,7 @@ export interface StartCrisisClassifierOptions {
   scope?: string;
   /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
   call?: string;
-  /** Which path reads, the call's turn count, and whether its patterns read someone else. */
+  /** Which path reads, this run's second-read turn, and whether its patterns read someone else. */
   secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
 }
 

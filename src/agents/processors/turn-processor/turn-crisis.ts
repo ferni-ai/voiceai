@@ -89,8 +89,8 @@ export function startTurnCrisis(
         voiceEmotion?: unknown;
         recentTranscripts?: string[];
         lastAgentResponse?: string;
-        /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
-        turnCount?: number;
+        /** This run's crisis second-read turn (crisis-second-read-turn.ts). */
+        secondReadTurn?: number;
       }
     | undefined,
   options: {

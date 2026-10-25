@@ -66,12 +66,12 @@ async function heard(
   last: string,
   generate: CrisisGenerateFn
 ): Promise<CrisisGateDecision> {
-  // One final transcript per line: the call's turn count, read by the gate and the pipeline.
-  const userData = { services: { sessionId: `second-read-${++calls}` }, turnCount: 0 };
+  // One pipeline run per line, so one second-read turn; the gate reads it from the session.
+  const userData = { services: { sessionId: `second-read-${++calls}` }, secondReadTurn: 0 };
   const lines = [...PUNS_CALL.map(([caller]) => caller), last];
   let decision: CrisisGateDecision = { action: 'pass' } as CrisisGateDecision;
   for (let i = 0; i < lines.length; i++) {
-    userData.turnCount = i + 1;
+    userData.secondReadTurn = i + 1;
     const gate = startCrisisGate(request(PUNS_CALL.slice(0, i), lines[i]), userData, {
       env,
       generate,
@@ -81,7 +81,7 @@ async function heard(
       {
         recentTranscripts: lines.slice(0, i + 1),
         lastAgentResponse: PUNS_CALL[i - 1]?.[1],
-        turnCount: i + 1,
+        secondReadTurn: i + 1,
       },
       { sessionId: userData.services.sessionId, env, generate }
     );
@@ -183,7 +183,7 @@ describe('the second read through the reply gate', () => {
     const runGate = async () => {
       const gate = startCrisisGate(
         burstRequest(first, last),
-        { services: { sessionId }, turnCount: PUNS_CALL.length + 2 },
+        { services: { sessionId }, secondReadTurn: PUNS_CALL.length + 2 },
         {
           env,
           generate,
@@ -196,7 +196,7 @@ describe('the second read through the reply gate', () => {
         last,
         {
           recentTranscripts: [...PUNS_CALL.map(([caller]) => caller), first],
-          turnCount: PUNS_CALL.length + 2,
+          secondReadTurn: PUNS_CALL.length + 2,
           lastAgentResponse: PUNS_CALL.at(-1)?.[1],
         },
         { sessionId, env, generate }

@@ -211,8 +211,8 @@ async function heard(
 }
 
 /**
- * One call through to the turn's last line. Each caller line is one final transcript: the
- * call's turnCount, which the gate (session userData) and the pipeline (its copy) both read.
+ * One call through to the turn's last line. Each caller line is one pipeline run, so one
+ * secondReadTurn (nextSecondReadTurn): the gate reads the latest from the session user data.
  */
 async function call(
   shape: Shape,
@@ -221,11 +221,11 @@ async function call(
   gateFirst: boolean
 ): Promise<Heard> {
   const sessionId = `shape-${++calls}`;
-  const userData = { services: { sessionId }, turnCount: 0 };
+  const userData = { services: { sessionId }, secondReadTurn: 0 };
   const prior = shape.turns.map(([caller]) => caller);
   const extra = shape.pipeExtra ?? [];
   for (let i = 0; i < shape.turns.length; i++) {
-    userData.turnCount = i + 1;
+    userData.secondReadTurn = i + 1;
     const gate = startCrisisGate(request(shape.turns.slice(0, i), [prior[i]]), userData, {
       env,
       generate,
@@ -234,13 +234,13 @@ async function call(
     const lastAgentResponse = shape.turns[i - 1]?.[1];
     const pipe = startTurnCrisis(
       prior[i],
-      { recentTranscripts: recent, lastAgentResponse, turnCount: i + 1 },
+      { recentTranscripts: recent, lastAgentResponse, secondReadTurn: i + 1 },
       { sessionId, env, generate }
     );
     await Promise.all([gate?.escalation, pipe.summary()]);
   }
-  userData.turnCount = prior.length + shape.burst.length;
-  const turnCount = userData.turnCount;
+  userData.secondReadTurn = prior.length + shape.burst.length;
+  const secondReadTurn = userData.secondReadTurn;
   const last = shape.burst.at(-1) ?? '';
   const recentTranscripts =
     shape.history === 'empty'
@@ -254,7 +254,7 @@ async function call(
   const runPipe = () =>
     startTurnCrisis(
       last,
-      { recentTranscripts, lastAgentResponse, turnCount },
+      { recentTranscripts, lastAgentResponse, secondReadTurn },
       { sessionId, env, generate }
     );
   let gate: ReturnType<typeof runGate>;
