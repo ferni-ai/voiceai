@@ -550,49 +550,24 @@ async function getSponsorName(userId: string): Promise<string> {
   }
 }
 
-async function sendUrgentNotificationToSponsor(
+/** Push, else a text to the sponsor's verified phone (outreach/urgent-alert). Never throws. */
+export async function sendUrgentNotificationToSponsor(
   sponsorUserId: string,
   message: string,
   callId: string
 ): Promise<void> {
   try {
     log.info({ sponsorUserId, callId }, '🚨 Sending urgent notification to sponsor');
-
-    // Try push notification first
-    const { getOutreachOrchestrator } = await import('../outreach/outreach-orchestrator.js');
-    const orchestrator = getOutreachOrchestrator();
-
-    const sent = await orchestrator.sendPushNotification(sponsorUserId, message, {
+    const { sendUrgentAlert } = await import('../outreach/urgent-alert.js');
+    await sendUrgentAlert(sponsorUserId, message, {
       trigger: 'family_checkin_urgent',
-      personaId: 'ferni',
-      metadata: { callId },
+      alertId: callId,
     });
-
-    if (sent) {
-      log.info({ sponsorUserId }, '✅ Urgent push notification sent');
-      return;
-    }
-
-    // Fallback to SMS if push failed
-    const db = getFirestoreDb();
-    if (!db) return;
-
-    const userDoc = await db.collection('bogle_users').doc(sponsorUserId).get();
-    const phoneNumber = userDoc.data()?.phoneNumber;
-
-    if (phoneNumber) {
-      const { sendSMS } = await import('../outreach/delivery/sms-delivery.js');
-      await sendSMS({
-        to: phoneNumber,
-        body: message,
-        userId: sponsorUserId,
-        personaId: 'ferni',
-        outreachId: `family_checkin_urgent_${callId}`,
-      });
-      log.info({ sponsorUserId }, '✅ Urgent SMS notification sent');
-    }
   } catch (error) {
-    log.error({ sponsorUserId, error: String(error) }, 'Failed to send urgent notification');
+    log.error(
+      { sponsorUserId, callId, error: String(error) },
+      'Failed to send urgent notification'
+    );
   }
 }
 
