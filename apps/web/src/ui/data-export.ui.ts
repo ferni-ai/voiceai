@@ -15,6 +15,9 @@ import { asModalDialog } from '../utils/accessibility.js';
 import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
+/** Canonical privacy policy page (https://ferni.ai/privacy/ 301s here). */
+const PRIVACY_POLICY_URL = 'https://ferni.ai/privacy';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -108,7 +111,10 @@ class DataExportUI {
 
     this.wrapper.innerHTML = `
       <header class="data-export__header">
-        <h2>${t('dataExport.title')}</h2>
+        <div>
+          <h2>${t('dataExport.title')}</h2>
+          <p class="data-export__subtitle">${t('dataExport.subtitle')}</p>
+        </div>
         <button class="data-export__close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -138,7 +144,10 @@ class DataExportUI {
       </div>
 
       <div class="data-export__footer">
-        <p>${t('dataExport.footer')}</p>
+        <p>
+          ${t('dataExport.footer')}
+          <a class="data-export__privacy-link" href="${PRIVACY_POLICY_URL}" target="_blank" rel="noopener">${t('dataExport.privacyPolicyLink')}</a>
+        </p>
         <button type="button" class="data-export__delete-account">${t('dataExport.deleteAccount')}</button>
       </div>
     `;
@@ -237,6 +246,12 @@ class DataExportUI {
         justify-content: space-between;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .data-export__subtitle {
+        margin: var(--space-1, 4px) 0 0;
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary);
       }
 
       .data-export__header h2 {
@@ -417,6 +432,20 @@ class DataExportUI {
         font-size: var(--text-xs, 0.75rem);
         color: var(--color-text-muted, #756a5e);
         margin: 0;
+      }
+
+      /* Same color as the sentence it follows (themed via --color-text-muted), set apart by the underline */
+      .data-export__privacy-link {
+        color: inherit;
+        font-weight: var(--font-weight-medium, 500);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .data-export__privacy-link:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+        border-radius: var(--radius-sm, 4px);
       }
 
       /* Dark theme - WCAG AA Compliant */

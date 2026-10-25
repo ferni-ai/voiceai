@@ -143,7 +143,10 @@ export async function shownDialogs(page: Page): Promise<string[]> {
         for (let n: HTMLElement | null = el; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity || 1);
         return (
           rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.pointerEvents !== 'none' &&
-          opacity > 0.05 && rect.right > 0 && rect.left < innerWidth && !el.closest('.settings-menu')
+          opacity > 0.05 && rect.right > 0 && rect.left < innerWidth && !el.closest('.settings-menu') &&
+          // The "getting ready" shell (panel-loading-shell.ts) only stands in until the real
+          // panel draws, so it is never the panel. A real panel that is busy reloading still counts.
+          !el.closest('.panel-loading-shell')
         );
       })
       .map((el) => {

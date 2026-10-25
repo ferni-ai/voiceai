@@ -13,7 +13,6 @@ import type { VoiceHumanizationCleanup } from './types.js';
 import { TOOL_HEALTH_CHECK_INTERVAL, MULTI_AGENT_MODE } from './constants.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { outboundOpener, outboundPartiesFor } from '../shared/outbound-opener.js';
-import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext } from '../shared/performance/pipeline-switcher.js';
 import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
 import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -24,6 +23,8 @@ import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './pa
 import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
+import { sessionRecording } from '../shared/session-recording.js';
+import { errorText, participantKind, toolCallText } from './startup-log.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -158,7 +159,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
       );
     } catch (briefingErr) {
-      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${String(briefingErr)}\n`);
+      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${errorText(briefingErr)}\n`);
     }
   })();
 
@@ -174,7 +175,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   }
   const participant = waitResult.participant;
   if (participant) {
-    process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
+    process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participantKind(participant.identity)}\n`);
     if (ctx.room) void noteCallerJoined({ participant, room: ctx.room, sessionId });
   }
 
@@ -197,7 +198,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     }
   }
 
-  // MUSIC HANDLER
   const musicResult = await setupMusicHandler({
     room: ctx.room, services, sessionPersona, conversationManager, sessionId,
     userId: userData.userId as string,
@@ -205,12 +205,11 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   cleanupHandlers.push(musicResult.cleanup);
   process.stderr.write(`[voice-agent-entry] 🎵 Music handler initialized\n`);
 
-  // Connection type detection + noise cancellation
+  // Connection type + noise cancellation, then start; calls are never recorded (session-recording.ts)
   const { detectConnectionType, setupNoiseCancellation } = await import('../voice-agent/phases/index.js');
   const { isPhoneCall, isWebConnection } = detectConnectionType(ctx, participant);
   const { inputOptions } = await setupNoiseCancellation({ isPhoneCall });
-
-  await session.start({ agent, room: ctx.room, inputOptions });
+  await session.start({ agent, room: ctx.room, inputOptions, record: sessionRecording() });
   process.stderr.write(
     `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
   );
@@ -242,7 +241,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // TTS cache warming (fire-and-forget)
   const { warmSessionCache } = await import('../shared/performance/cache-aware-tts.js');
   warmSessionCache(sessionPersona.id, userData.emotionalState as string | undefined).catch(
-    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${err}\n`)
+    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${errorText(err)}\n`)
   );
 
   // Register initial tools with session
@@ -283,9 +282,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       process.stderr.write(`   ⏱️ Time since last FC: ${(timeSinceLast / 1000).toFixed(1)}s\n`);
     }
     process.stderr.write(`${'='.repeat(60)}\n`);
-    for (let i = 0; i < calls.length; i++) {
-      process.stderr.write(`\n📞 Call ${i + 1}/${calls.length}:\n   Tool Name: ${calls[i].name}\n   Arguments: ${JSON.stringify(calls[i].arguments, null, 2).replace(/\n/g, '\n   ')}\n`);
-    }
+    calls.forEach((c, i) => process.stderr.write(toolCallText(c, i, calls.length)));
     process.stderr.write(`\n${'='.repeat(60)}\n\n`);
   };
   session.on('function_calls_collected' as Parameters<typeof session.on>[0], nativeFnCallsHandler);
@@ -326,7 +323,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         sendDataMessage,
       }).catch((err) => {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ Audio processor ended: ${err}\n`
+          `[voice-agent-entry] ⚠️ Audio processor ended: ${errorText(err)}\n`
         );
       });
     };
@@ -462,21 +459,8 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     const evt = event as { transcript?: string; isFinal?: boolean };
     if (evt.isFinal) {
       userData.turnCount = ((userData.turnCount as number) || 0) + 1;
-      if (isPipelineSwitchingEnabled()) {
-        const switchCtx: PipelineSwitchContext = {
-          emotion: (userData.lastEmotionAnalysis as { primary?: string })?.primary,
-          stressLevel: (userData.lastEmotionAnalysis as { distressLevel?: number })?.distressLevel,
-          wasInterrupted: userData.wasInterrupted as boolean | undefined,
-          turnCount: (userData.turnCount as number) ?? 0,
-          userTranscriptLength: evt.transcript?.length ?? 0,
-          isFirstResponse: ((userData.turnCount as number) ?? 0) === 1,
-          isQuestion: evt.transcript?.includes('?'),
-        };
-        const pipelineResult = selectPipeline(switchCtx);
-        process.stderr.write(`🔀 [TURN ${userData.turnCount}] Pipeline: ${pipelineResult.mode} (${pipelineResult.reason}, confidence=${pipelineResult.confidence})\n`);
-      }
       const transcript = evt.transcript || '';
-      process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
+      process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: ${transcript.length} chars\n`); // never the words
       observeFinalTranscript({ transcript, userData, sessionId, crisisMode: crisisGuardMode });
       if (transcript) {
         const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;

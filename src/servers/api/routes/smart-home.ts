@@ -11,9 +11,10 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { openSealedOrRaw, sealTokens } from '../../../utils/token-at-rest.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
@@ -94,10 +95,10 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>>
 }
 
 function getSmartHomeCollection() {
-  return getFirestore().collection('bogle_users');
+  return getAdminFirestore().collection('bogle_users');
 }
 
-async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
+export async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
   try {
     const doc = await getSmartHomeCollection()
       .doc(userId)
@@ -106,24 +107,22 @@ async function getCredentials<T>(userId: string, integration: string): Promise<T
       .get();
 
     if (!doc.exists) return null;
-    return doc.data() as T;
+    return openSealedOrRaw<T>(doc.data(), `smart_home/${integration}`);
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
   }
 }
 
-async function saveCredentials<T extends object>(
+export async function saveCredentials<T extends object>(
   userId: string,
   integration: string,
   credentials: T
 ): Promise<void> {
   try {
-    await getSmartHomeCollection()
-      .doc(userId)
-      .collection('smart_home')
-      .doc(integration)
-      .set(credentials, { merge: true });
+    const existing = (await getCredentials<Record<string, unknown>>(userId, integration)) ?? {};
+    const ref = getSmartHomeCollection().doc(userId).collection('smart_home').doc(integration);
+    await ref.set(sealTokens({ ...existing, ...credentials })); // replaced whole: no plaintext left
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to save credentials');
     throw error;
@@ -682,7 +681,7 @@ async function handleHomeKitStatus(
     }
 
     // Get device/scene counts from the synced data
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const devicesSnapshot = await db
       .collection('bogle_users')
       .doc(userId)
@@ -770,7 +769,7 @@ async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Pro
       return;
     }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const homekitRef = db.collection('bogle_users').doc(userId).collection('homekit');
 
     // Save config
@@ -836,7 +835,7 @@ async function handleHomeKitCommands(
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const commandsRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -897,7 +896,7 @@ async function handleHomeKitCommandComplete(
       return;
     }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const commandRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -951,7 +950,7 @@ async function handleHomeKitDisconnect(
     await deleteCredentials(userId, 'homekit');
 
     // Also delete devices and scenes
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const devicesRef = db
       .collection('bogle_users')
       .doc(userId)

@@ -1,352 +1,90 @@
-# 👋 Developer Onboarding Guide
+# Developer onboarding
 
-Welcome to Ferni AI! This guide will get you productive in your first week.
+Your first day: get the code running locally, run the checks, and land a small
+PR. For what Ferni is and the repo map, see [README.md](./README.md).
 
----
+## 1. Prerequisites
 
-## Day 1: Environment Setup
+- **Node 22** (`.nvmrc`; CI uses 22 too).
+- **pnpm 10** (`packageManager` in `package.json`). `corepack enable` gives
+  you the pinned version. Don't use npm or yarn to install.
+- **gcloud**, logged in, for Secret Manager and Vertex
+  (`gcloud auth application-default login`).
+- **gh** (GitHub CLI) for issues, PRs and the merge queue.
+- **lk** (LiveKit CLI) only if you will deploy the voice agent.
 
-### 1. Clone and Install
+## 2. Install
 
 ```bash
-git clone <repo-url>
-cd voiceai
-npm install
+git clone https://github.com/ferni-ai/voiceai.git && cd voiceai
+pnpm install
 ```
 
-### 2. Get API Keys
+`pnpm install` also sets `core.hooksPath` to `.husky`, so the pre-commit,
+commit-msg and pre-push hooks run. Never skip them (`--no-verify`).
 
-You'll need accounts at:
-
-| Service | URL | What You Need |
-|---------|-----|---------------|
-| **LiveKit** | [cloud.livekit.io](https://cloud.livekit.io) | URL, API Key, Secret |
-| **Google AI** | [aistudio.google.com](https://aistudio.google.com) | API Key |
-| **Cartesia** | [play.cartesia.ai](https://play.cartesia.ai) | API Key |
-
-### 3. Configure Environment
+## 3. Environment
 
 ```bash
 cp .env.example .env
-# Edit .env with your API keys
 ```
 
-Minimum `.env`:
-```bash
-LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your_key
-LIVEKIT_API_SECRET=your_secret
-GOOGLE_API_KEY=your_google_key
-CARTESIA_API_KEY=your_cartesia_key
-LOG_LEVEL=debug
-```
+Fill in the keys `.env.example` marks `[REQUIRED]`: `LIVEKIT_URL`,
+`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `GOOGLE_API_KEY`, `CARTESIA_API_KEY`.
+The cascade's LLM runs on Vertex, so also set `GOOGLE_CLOUD_PROJECT`
+(`src/agents/model-provider/cartesia-cascade.ts`). Ask for dev values rather
+than creating your own accounts; secrets live in Secret Manager. Every other
+variable is in [docs/guides/environment-variables.md](./docs/guides/environment-variables.md).
 
-### 4. Verify Setup
+Local processes refuse to open production data
+(`src/config/refuse-production-data.ts`).
 
-```bash
-npm run quality  # Should pass all checks
-npm run dev      # Should start 3 servers
-```
+## 4. Run it
 
-Open http://localhost:3004 - you should see the Ferni UI.
+There is no single command that starts everything. `pnpm dev` starts **only
+the voice agent worker**: it rebuilds the tool manifest and embeddings, then
+runs `src/agent.ts dev`, which registers with the LiveKit project in your
+`.env`.
 
-### ✅ Day 1 Checklist
-- [ ] Repository cloned
-- [ ] Dependencies installed
-- [ ] API keys configured
-- [ ] `npm run quality` passes
-- [ ] `npm run dev` works
-- [ ] Can see UI at localhost:3004
+| Terminal | Command | What it starts |
+|---|---|---|
+| 1 | `pnpm dev` | Voice agent worker (`PERSONA_ID` picks the persona) |
+| 2 | `pnpm ui-server` | UI/API server on :3002 (`src/servers/api/index.ts`): tokens, auth, APIs |
+| 3 | `pnpm -C apps/web dev` | Web app on http://localhost:3004 (proxies `/token`, `/api` and the rest to :3002) |
 
----
+`pnpm dev:full` runs terminals 1 and 2 together.
 
-## Day 2: Understanding the Codebase
-
-### Required Reading (In Order)
-
-1. **`CLAUDE.md`** (10 min) - Quick reference, critical rules
-2. **`.cursorrules`** (30 min) - Complete coding standards
-3. **`README.md`** (15 min) - Architecture overview
-
-### Project Structure Tour
+## 5. Checks
 
 ```bash
-# Key directories to explore
-ls -la src/agents/        # Voice agent core
-ls -la src/personas/      # AI personalities
-ls -la src/tools/         # LLM tools
-ls -la src/api/           # REST endpoints
-ls -la src/services/      # Business logic
-ls -la src/intelligence/  # Context builders
+pnpm typecheck               # always this, not plain tsc (it can run out of memory silently)
+pnpm test:unit               # unit tests
+pnpm vitest run <path>       # the tests for what you changed
+pnpm test:frontend           # web app tests (apps/web)
+pnpm lint:fix                # eslint autofix
+pnpm quality                 # typecheck + lint + format + builders + tests, before a PR
 ```
 
-### Meet the Team (Personas)
-
-Try talking to each persona:
-
-```bash
-# Terminal 1 - Different personas
-PERSONA_ID=ferni npm run dev        # Life coach
-PERSONA_ID=maya-santos npm run dev  # Habits coach
-PERSONA_ID=alex-chen npm run dev    # Communications
-```
-
-### ✅ Day 2 Checklist
-- [ ] Read CLAUDE.md
-- [ ] Skim .cursorrules (focus on "Never Do" section)
-- [ ] Explored src/ directory structure
-- [ ] Talked to at least 2 different personas
-- [ ] Found where tools are defined
-- [ ] Found where personas are defined
-
----
-
-## Day 3: Core Concepts Deep Dive
-
-### Context Builder System
-
-The brain of intelligent conversations:
-
-```bash
-# Read the context builder guide
-cat src/intelligence/context-builders/CLAUDE.md
-
-# See builders in action
-ls src/intelligence/context-builders/
-```
-
-Key builders to understand:
-- `emotional.ts` - Emotion detection
-- `memory.ts` - Cross-session memory
-- `handoff.ts` - Agent transitions
-
-### Tool System
-
-How agents take actions:
-
-```bash
-# Read the tool guide
-cat src/tools/CLAUDE.md
-
-# Browse tool domains
-ls src/tools/domains/
-```
-
-### Persona Bundles
-
-How personalities are defined:
-
-```bash
-# Read persona guide
-cat src/personas/CLAUDE.md
-
-# Explore a persona bundle
-ls src/personas/bundles/ferni/
-cat src/personas/bundles/ferni/persona.manifest.json
-```
-
-### ✅ Day 3 Checklist
-- [ ] Understand what context builders do
-- [ ] Know how tools are structured
-- [ ] Explored a persona bundle
-- [ ] Can explain the voice pipeline at high level
-
----
-
-## Day 4: Development Workflow
-
-### Dev Panel
-
-The secret weapon for testing:
-
-1. Open http://localhost:3004/?dev
-2. Press `Cmd/Ctrl + Shift + D` to toggle dev panel
-3. Try:
-   - Switching subscription tiers
-   - Unlocking team members
-   - Triggering celebrations
-
-### Running Tests
-
-```bash
-npm test                    # All tests
-npm run test:watch          # Watch mode
-npx vitest run src/tests/context-builders.test.ts  # Specific file
-```
-
-### Making Your First Change
-
-Try a simple change:
-
-1. Open `src/personas/bundles/ferni/content/behaviors/greetings.json`
-2. Add a new greeting
-3. Restart dev server
-4. Verify the greeting appears
-
-### Debugging Tips
-
-```bash
-# Verbose logging
-LOG_LEVEL=debug npm run dev
-
-# Type checking
-npm run typecheck
-
-# Lint issues
-npm run lint:fix
-```
-
-### ✅ Day 4 Checklist
-- [ ] Used the dev panel
-- [ ] Ran the test suite
-- [ ] Made a small change and verified it
-- [ ] Know how to check logs
-- [ ] Know how to run type checks
-
----
-
-## Day 5: Advanced Topics
-
-### Handoff System
-
-How agents transition:
-
-```bash
-# Explore handoff code
-ls src/tools/handoff/
-cat docs/architecture/HANDOFF_ARCHITECTURE.md
-```
-
-### API Layer
-
-REST endpoints for frontend:
-
-```bash
-ls src/api/
-cat docs/guides/api-reference.md
-```
-
-### Memory System
-
-How data persists:
-
-```bash
-ls src/memory/
-cat docs/architecture/PERSISTENCE-ARCHITECTURE.md
-```
-
-### ✅ Day 5 Checklist
-- [ ] Understand how handoffs work
-- [ ] Know where API routes are defined
-- [ ] Understand storage options (Firestore, Postgres, in-memory)
-- [ ] Ready to pick up a task!
-
----
-
-## Common Tasks Reference
-
-### Add a New Tool
-
-```bash
-# 1. Create tool file
-touch src/tools/domains/wellness/my-tool.ts
-
-# 2. Follow pattern in src/tools/CLAUDE.md
-
-# 3. Register tool
-
-# 4. Add tests
-touch src/tests/tools/my-tool.test.ts
-```
-
-### Add a New API Endpoint
-
-```bash
-# 1. Add to src/api/ (follow existing patterns)
-
-# 2. Add route in ui-server.js
-
-# 3. Add to docs/guides/api-reference.md
-```
-
-### Modify a Persona
-
-```bash
-# 1. Edit manifest
-vi src/personas/bundles/{id}/persona.manifest.json
-
-# 2. Or edit content files
-vi src/personas/bundles/{id}/content/behaviors/greetings.json
-
-# 3. Restart dev server
-```
-
-### Debug a Conversation Issue
-
-1. Check browser console for errors
-2. Check terminal logs (LOG_LEVEL=debug)
-3. Use dev panel to test specific scenarios
-4. Check context builder output in logs
-
----
-
-## Key People/Resources
-
-### Documentation
-- `docs/` - All technical docs
-- `docs/guides/` - How-to guides
-- `docs/architecture/` - System design
-- Inline `CLAUDE.md` files in src directories
-
-### Monitoring
-- `/cognitive-dashboard.html` - AI reasoning
-- `/metrics-dashboard.html` - Persistence
-- `/tools-dashboard.html` - Tool usage
-
----
-
-## Getting Help
-
-### Before Asking
-1. Search the codebase: `grep -r "keyword" src/`
-2. Check documentation: `find docs -name "*.md"`
-3. Look at tests for usage examples
-4. Check inline CLAUDE.md files
-
-### Common Gotchas
-
-| Problem | Solution |
-|---------|----------|
-| Import not found | Use `.js` extension in imports |
-| Type error | Run `npm run typecheck` for details |
-| Console.log used | Replace with `createLogger()` |
-| Test failing | Check `npm test -- --verbose` |
-| UI not updating | Hard refresh (Cmd+Shift+R) |
-
----
-
-## Week 1 Goals
-
-By end of week 1, you should be able to:
-
-- [ ] Run the development environment
-- [ ] Navigate the codebase confidently
-- [ ] Understand the voice processing pipeline
-- [ ] Make simple changes to tools/personas
-- [ ] Run and write tests
-- [ ] Use the dev panel effectively
-- [ ] Pick up a small task from the backlog
-
----
-
-## Next Steps
-
-After onboarding:
-
-1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for PR process
-2. Check [BACKLOG.md](BACKLOG.md) for available tasks
-3. Explore feature docs in `docs/features/`
-4. Try building a small feature end-to-end
-
-Welcome to the team! 🏔️
-
+Tests are Vitest, next to the code in `__tests__/`.
+
+## 6. Your first PR
+
+The full rules are in [AGENTS.md](./AGENTS.md) and
+[docs/agent/operating-model.md](./docs/agent/operating-model.md). In short:
+
+1. Start from an issue (templates in `.github/ISSUE_TEMPLATE/`). The PR says `Closes #N`.
+2. Branch from `origin/main`: `git fetch origin && git switch -c <type>/<slug> origin/main`.
+3. One concern per PR, about 400 reviewable lines or fewer (`scripts/ci/reviewable.sh`
+   counts them; the pre-push hook blocks over 1000).
+4. New behaviour goes behind an env flag that is off by default.
+5. Commit subjects are conventional and all lower-case (`fix: ...`, `docs: ...`).
+6. Merge through the queue: `gh pr merge <n> --auto`, without `--squash`.
+7. Done means merged, deployed to dev, and checked there
+   ([docs/runbooks/deploy.md](./docs/runbooks/deploy.md)).
+
+## Where to read next
+
+- `src/**/CLAUDE.md`: notes for the subsystem you're working in
+  (for example `src/tools/CLAUDE.md`, `src/personas/CLAUDE.md`, `apps/web/CLAUDE.md`).
+- [docs/README.md](./docs/README.md): the docs that are kept current.
+- [docs/DEFINITION-OF-CLEAN.md](./docs/DEFINITION-OF-CLEAN.md): the quality bar.

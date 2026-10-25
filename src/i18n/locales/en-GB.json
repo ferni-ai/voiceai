@@ -223,7 +223,7 @@
       },
       "phoneCall": {
         "question": "How does the phone calling work?",
-        "answer": "Simply call the number from any phone. No app needed, no sign-up required. Ferni will recognise your number and remember your previous conversations automatically."
+        "answer": "Simply call the number from any phone. No app needed, no sign-up required. For now, each phone call starts fresh. To have Ferni remember you from one conversation to the next, talk in the app while you're signed in."
       },
       "privacy": {
         "question": "Is my conversation private?",
@@ -349,7 +349,7 @@
         "activity": "Activity tracking"
       },
       "privacy": {
-        "note": "Your health data stays private. We only share aggregated insights with your coaching sessions."
+        "note": "Ferni saves your health data to spot patterns with you. We never sell it, and deleting your account erases it."
       },
       "providers": {
         "apple_health": {

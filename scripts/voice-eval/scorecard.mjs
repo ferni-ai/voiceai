@@ -3,8 +3,10 @@
 // baseline, its target, today's value on real prod calls and on dev eval
 // calls, and a 14-day trend. A page is built from this file.
 //
-// usage: scorecard.mjs [--days 14] [--out FILE]
+// usage: scorecard.mjs [--days 14] [--out FILE] [--database ID]
 //   (default out: ~/Documents/voiceai-evidence/scorecard/scorecard.json)
+//   --database: the Firestore database holding the owner's records (default
+//   '(default)', prod; FIRESTORE_DATABASE is ignored, see scorecardDatabase).
 //
 // Sources, all local except follow-through:
 // - call-reviews/<date>/calls.json (review-calls.mjs + judge-calls.mjs):
@@ -49,6 +51,7 @@ import {
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { documentsUrl, evalDatabase } from './eval-database.mjs';
 import { checkRun, parseChecks } from './recall-facts.mjs';
 
 const EVIDENCE = process.env.VOICE_EVIDENCE ?? join(homedir(), 'Documents/voiceai-evidence');
@@ -455,10 +458,20 @@ function evalRows(since) {
   return rows;
 }
 
+/**
+ * The database the owner's records are read from: prod ('(default)', via
+ * evalDatabase) unless --database names another. FIRESTORE_DATABASE is not read:
+ * a dev .env sets it, and the scorecard measures prod.
+ */
+export function scorecardDatabase(args, vars = process.env) {
+  const i = args.indexOf('--database');
+  return evalDatabase('prod', { override: i >= 0 ? args[i + 1] : undefined, vars });
+}
+
 /** The owner's ferni_commitments (outcome, dueBy only), read with the gcloud user's token. */
-function ownerPromises() {
+function ownerPromises(database) {
   const token = execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim();
-  const base = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/bogle_users/${OWNER}/ferni_commitments?pageSize=300&mask.fieldPaths=outcome&mask.fieldPaths=dueBy`;
+  const base = `${documentsUrl(PROJECT, database)}/bogle_users/${OWNER}/ferni_commitments?pageSize=300&mask.fieldPaths=outcome&mask.fieldPaths=dueBy`;
   const out = [];
   let page = '';
   do {
@@ -505,10 +518,10 @@ export function firestoreValue(v) {
 }
 
 /** The owner's coach_media_picks, masked to timestamps and outcomes (no titles, topics or links). */
-function ownerPicks() {
+function ownerPicks(database) {
   const token = execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim();
   const mask = COACH_FIELDS.map((f) => `mask.fieldPaths=${f}`).join('&');
-  const base = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/bogle_users/${OWNER}/coach_media_picks?pageSize=300&${mask}`;
+  const base = `${documentsUrl(PROJECT, database)}/bogle_users/${OWNER}/coach_media_picks?pageSize=300&${mask}`;
   const out = [];
   // The token goes to curl in a 0600 header file, never on its command line.
   const dir = mkdtempSync(join(tmpdir(), 'scorecard-'));
@@ -555,18 +568,19 @@ function main() {
   const until = new Date().toISOString();
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
   const out = opt('--out', join(EVIDENCE, 'scorecard/scorecard.json'));
+  const database = scorecardDatabase(args);
   const reviewed = reviewedRows(since);
   const evals = evalRows(since);
   let follow = { overall: null, byDate: {} };
   try {
-    follow = followThroughOf(ownerPromises(), since, until);
+    follow = followThroughOf(ownerPromises(database), since, until);
   } catch (e) {
     console.error(`follow-through not read: ${e.message}`);
   }
   const reports = panelReports(since);
   let coach = {};
   try {
-    coach = coachOf(ownerPicks(), since, until);
+    coach = coachOf(ownerPicks(database), since, until);
   } catch (e) {
     console.error(`coaching picks not read: ${e.message}`);
   }

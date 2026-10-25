@@ -12,7 +12,9 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
+import { callResultDetails, callResultTextOn, tellOwnerIfOn } from './call-result-text.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
@@ -54,9 +56,7 @@ export interface FollowUpAction {
 const callResultStore = new Map<string, StoredCallResult>();
 const followUpActionsStore = new Map<string, FollowUpAction[]>();
 
-/**
- * Store a call result in Firestore (with in-memory fallback)
- */
+/** Store a call result in Firestore (with in-memory fallback) */
 async function storeCallResult(result: StoredCallResult): Promise<void> {
   try {
     // Try Firestore first
@@ -74,7 +74,6 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
         .doc(result.callId)
         .set(cleanForFirestore(result));
 
-      // Semantic indexing
       void onCallResultChange(
         result.userId,
         result.callId,
@@ -109,13 +108,12 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
   }
 }
 
-/**
- * Get a stored call result
- */
+/** Get a stored call result */
 export async function getCallResult(
   callId: string,
   userId: string
 ): Promise<StoredCallResult | null> {
+  if (!isMemberIdentity(userId.trim())) return null; // no shared bucket to read
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
       getFirestoreDb: null,
@@ -173,9 +171,7 @@ async function notifyOriginalSession(
   }
 }
 
-/**
- * Store a notification for later delivery
- */
+/** Store a notification for later delivery */
 async function storeNotification(
   sessionId: string,
   callId: string,
@@ -281,7 +277,7 @@ async function injectToActiveSession(
     await roomService.sendData(sessionId, dataBytes, DataPacket_Kind.RELIABLE, {});
 
     log.info(
-      { sessionId, callId: outcome.callId, contactName },
+      { sessionId, callId: outcome.callId, hasContactName: Boolean(contactName) },
       'Injected call result into active session'
     );
     return true;
@@ -299,9 +295,7 @@ async function injectToActiveSession(
 // FOLLOW-UP ACTIONS
 // ============================================================================
 
-/**
- * Create follow-up actions based on call outcome
- */
+/** Create follow-up actions based on call outcome */
 async function createFollowUpActions(
   userId: string,
   callId: string,
@@ -355,7 +349,6 @@ async function createFollowUpActions(
             .doc(action.id)
             .set(cleanForFirestore(action));
 
-          // Semantic indexing
           void onFollowUpActionChange(
             userId,
             action.id,
@@ -405,10 +398,18 @@ export async function captureCallResult(
 ): Promise<void> {
   const { status, objectiveAchieved } = outcome;
   log.info(
-    { callId, status, objectiveAchieved, contactName: request.resolvedContact?.name },
+    { callId, status, objectiveAchieved, hasContactName: Boolean(request.resolvedContact?.name) },
     'Capturing call result'
   );
   logCallResultOutcome(callId, status, request.userId);
+
+  // PRIVACY: with no member behind the call (a stream with no userId became 'unknown'), every
+  // such result shared one bucket the next lookup read. Tell a live session, store nothing.
+  if (!isMemberIdentity(request.userId?.trim())) {
+    log.warn({ callId }, 'Call result has no member to report to; nothing stored or sent');
+    await injectToActiveSession(request.originalSessionId, outcome, request);
+    return;
+  }
 
   try {
     // 1. Build the stored result
@@ -442,9 +443,8 @@ export async function captureCallResult(
       await notifyOriginalSession(request.originalSessionId, callId, outcome);
     }
 
-    // 5. Send push notification (reaches user even if disconnected)
-    // This is sent regardless - push notifications work even if they're in-app
-    await sendCallResultPushNotification(request, outcome, callId);
+    // 5. Push (reaches them even if disconnected), unless CALL_RESULT_TEXT texts them below
+    if (!callResultTextOn()) await sendCallResultPushNotification(request, outcome, callId);
 
     // 6. Send email notification (tangible record of the call)
     await sendCallResultEmail(request, outcome, callId);
@@ -457,6 +457,7 @@ export async function captureCallResult(
 
     // 9. Store in unified background results (for "While You Were Away")
     await storeInUnifiedResults(request, outcome, callId);
+    await tellOwnerIfOn({ request, outcome, callId, live: injectedToActive });
 
     log.info(
       { callId, userId: request.userId },
@@ -540,7 +541,6 @@ async function sendCallResultEmail(
   callId: string
 ): Promise<void> {
   try {
-    // Get user's email
     const email = await getUserEmail(request.userId);
     if (!email) {
       log.debug(
@@ -574,7 +574,7 @@ async function sendCallResultEmail(
       completedAt
     );
 
-    await sendEmail({
+    const sent = await sendEmail({
       to: email,
       subject,
       body,
@@ -583,6 +583,7 @@ async function sendCallResultEmail(
       outreachId: callId,
       tags: ['on-behalf-call', outcome.status],
     });
+    if (!sent.success) throw new Error(sent.error || 'email not sent');
 
     log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
   } catch (error) {
@@ -591,9 +592,7 @@ async function sendCallResultEmail(
   }
 }
 
-/**
- * Build warm, human email content for call result
- */
+/** Build warm, human email content for call result */
 function buildCallResultEmailContent(
   contactName: string,
   outcome: CallOutcome,
@@ -659,9 +658,7 @@ function buildCallResultEmailContent(
   return { subject, body: lines.join('\n') };
 }
 
-/**
- * Create calendar event for callback if needed
- */
+/** Create calendar event for callback if needed */
 async function createCallbackCalendarEvent(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
@@ -726,7 +723,7 @@ async function createCallbackCalendarEvent(
     });
 
     log.info(
-      { callId, userId: request.userId, contactName, scheduledFor: callbackDate.toISOString() },
+      { callId, userId: request.userId, scheduledFor: callbackDate.toISOString() },
       'Created calendar event for callback'
     );
   } catch (error) {
@@ -799,9 +796,7 @@ function parseCallbackTimeHint(hint: string): Date | null {
   return null;
 }
 
-/**
- * Get user's email address from Firestore
- */
+/** Get user's email address from Firestore */
 async function getUserEmail(userId: string): Promise<string | null> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
@@ -882,7 +877,7 @@ async function storeInUnifiedResults(
       sessionId: request.originalSessionId,
       contactName,
       contactId: request.resolvedContact?.id,
-      details: outcome.transcriptSummary,
+      details: callResultDetails(contactName, outcome),
       actionItems: outcome.actionItems,
       requiresCallback: outcome.callbackRequired || false,
       callbackTime: outcome.callbackTime,
@@ -892,6 +887,7 @@ async function storeInUnifiedResults(
         phoneNumber: request.resolvedContact?.phone,
         status: outcome.status,
       },
+      skipPush: callResultTextOn(),
     });
 
     log.debug({ callId }, 'Call result stored in unified background results');
@@ -908,13 +904,12 @@ async function storeInUnifiedResults(
 // QUERY FUNCTIONS
 // ============================================================================
 
-/**
- * Get recent call results for a user
- */
+/** Get recent call results for a user */
 export async function getRecentCallResults(
   userId: string,
   limit = 10
 ): Promise<StoredCallResult[]> {
+  if (!isMemberIdentity(userId.trim())) return [];
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
       getFirestoreDb: null,
@@ -945,10 +940,9 @@ export async function getRecentCallResults(
   }
 }
 
-/**
- * Get pending follow-up actions for a user
- */
+/** Get pending follow-up actions for a user */
 export async function getPendingFollowUps(userId: string): Promise<FollowUpAction[]> {
+  if (!isMemberIdentity(userId.trim())) return [];
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
       getFirestoreDb: null,

@@ -8,6 +8,10 @@
  * tool lets Ferni's goodbye finish playing, then deletes the call's room,
  * which drops the phone leg and ends the session.
  *
+ * Ferni never hangs up a call that has had a crisis moment (crisis-call-risk.ts):
+ * endCall then tells him to stay, and the call ends when the caller hangs up.
+ * The app's endCall (call-wrap-up.ts) holds the same way.
+ *
  * Calls placed on the user's behalf get their own endCall (with how the call
  * ended) from outbound-call/call-control.ts; this one stays off them.
  *
@@ -17,6 +21,7 @@ import { llm } from '@livekit/agents';
 import { ParticipantKind } from '@livekit/rtc-node';
 import { z } from 'zod';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'phone-goodbye' });
@@ -30,6 +35,30 @@ export const END_CALL_DESCRIPTION =
   'Your goodbye finishes playing before the line drops.';
 
 export type HangUp = (roomName: string) => Promise<void>;
+
+/** What endCall tells the model instead of hanging up a call with crisis risk. */
+export const CRISIS_HOLD =
+  "Don't hang up: this call has had a crisis moment. Stay with them; the call ends when they hang up.";
+
+/** Where in the teardown the crisis check ran. */
+export type CrisisHoldStage = 'before_playout' | 'after_playout' | 'before_delete';
+
+/**
+ * True when endCall must not end this call: crisis risk noted on it, or a
+ * crisis read still in flight. Checked again after the goodbye plays (and
+ * before the app's delayed room delete), since a read can start meanwhile.
+ * Logs END_CALL_HELD_CRISIS so prod can see it.
+ * Without a sessionId there is nothing to look up, so it does not hold.
+ */
+export function holdEndCallForCrisis(
+  sessionId: string | undefined,
+  tool: 'phone' | 'app',
+  stage: CrisisHoldStage = 'before_playout'
+): boolean {
+  if (!sessionId || !crisisRiskThisCall(sessionId)) return false;
+  log.warn({ sessionId, tool, stage }, 'END_CALL_HELD_CRISIS');
+  return true;
+}
 
 /** PHONE_GOODBYE=on, true or 1 (flagOn). */
 export function phoneGoodbyeEnabled(env: Env = process.env): boolean {
@@ -46,18 +75,35 @@ export async function deleteRoom(roomName: string): Promise<void> {
   await new RoomServiceClient(url, key, secret).deleteRoom(roomName);
 }
 
-/** The endCall tool for a phone call in `roomName`. */
-export function createEndCallTool(roomName: string, hangUp: HangUp = deleteRoom) {
+/** endCall's output when the caller kept talking after the goodbye: the call stays open. */
+export const STILL_TALKING =
+  'The caller is still talking, so the call stays open. Listen and answer them; do not end it.';
+
+/** The endCall tool for a phone call in `roomName`, session `sessionId`. */
+export function createEndCallTool(
+  roomName: string,
+  hangUp: HangUp = deleteRoom,
+  sessionId?: string,
+  /** Waits for a short quiet with no crisis read due (call-wrap-up.ts, caller-activity.ts). */
+  holdFirst?: () => Promise<'quiet' | 'talking' | 'risk'>
+) {
   return llm.tool({
     name: END_CALL,
     description: END_CALL_DESCRIPTION,
     parameters: z.object({}),
     execute: async (_args, { ctx }) => {
+      if (holdEndCallForCrisis(sessionId, 'phone')) return CRISIS_HOLD;
       try {
         await ctx.waitForPlayout();
       } catch {
         // Hang up anyway: a cut-off goodbye beats a line left open
       }
+      if (holdEndCallForCrisis(sessionId, 'phone', 'after_playout')) return CRISIS_HOLD;
+      const heard = await holdFirst?.();
+      if (holdFirst && holdEndCallForCrisis(sessionId, 'phone', 'before_delete')) {
+        return CRISIS_HOLD;
+      }
+      if (heard === 'talking') return STILL_TALKING;
       try {
         await hangUp(roomName);
         log.info({ roomName }, 'Ferni hung up after the goodbye');
@@ -83,17 +129,20 @@ interface ToolHolder {
 export async function attachPhoneHangUp(
   agent: object,
   call: {
-    sessionId?: string;
+    sessionId: string;
     roomName: string;
     participant: { kind?: ParticipantKind } | undefined;
     onBehalf: boolean;
     env?: Env;
     hangUp?: HangUp;
+    holdFirst?: () => Promise<'quiet' | 'talking' | 'risk'>;
   }
 ): Promise<boolean> {
   if (!phoneGoodbyeEnabled(call.env) || call.onBehalf) return false;
   if (call.participant?.kind !== ParticipantKind.SIP) return false;
-  const added = await addEndCallTool(agent, () => createEndCallTool(call.roomName, call.hangUp));
+  const added = await addEndCallTool(agent, () =>
+    createEndCallTool(call.roomName, call.hangUp, call.sessionId, call.holdFirst)
+  );
   if (added) log.info({ sessionId: call.sessionId }, 'PHONE_GOODBYE_ATTACHED');
   return added;
 }

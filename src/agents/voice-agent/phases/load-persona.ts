@@ -11,6 +11,7 @@
 import type { JobContext } from '@livekit/agents';
 import type { PersonaConfig } from '../../../personas/types.js';
 import { signedClaim } from '../../../services/identity/signed-dispatch-identity.js';
+import { errorClass } from '../../../utils/error-class.js';
 import type { PersonaPhaseResult } from './types.js';
 
 /**
@@ -24,7 +25,7 @@ function parseMetadata(ctx: JobContext): { personaId: string; userId: string | n
     try {
       metadata = JSON.parse(ctx.job.metadata);
     } catch (e) {
-      process.stderr.write(`[load-persona] Failed to parse job.metadata: ${e}\n`);
+      process.stderr.write(`[load-persona] Failed to parse job.metadata: ${errorClass(e)}\n`);
     }
   }
 
@@ -36,7 +37,7 @@ function parseMetadata(ctx: JobContext): { personaId: string; userId: string | n
         metadata = { ...metadata, ...roomMeta };
       }
     } catch (e) {
-      process.stderr.write(`[load-persona] Failed to parse room.metadata: ${e}\n`);
+      process.stderr.write(`[load-persona] Failed to parse room.metadata: ${errorClass(e)}\n`);
     }
   }
 

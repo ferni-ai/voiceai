@@ -34,8 +34,29 @@ vi.mock('../../outreach/quiet-hours.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../outreach/quiet-hours.js')>()),
   callQuietHours: vi.fn(),
 }));
-const sendSMS = vi.hoisted(() => vi.fn(async () => 'sent'));
-vi.mock('../../communication-service.js', () => ({ sendSMS }));
+// The proactive text goes through the guarded sender (guarded-text.ts). Its STOP
+// check (text-consent.ts) reads the text store's own readers, empty here, so only
+// the consent/ check under test (consentBlocks, over mem.consent) can refuse.
+const twilio = vi.hoisted(() => vi.fn(async () => ({ success: true, messageSid: 'SM1' })));
+vi.mock('../../outreach/guarded-text-store.js', () => ({
+  sendSms: twilio,
+  firestoreTextStore: {
+    isOptedOut: async () => false,
+    consentDoc: async () => undefined,
+    forPhoneHash: async () => [],
+    forUser: async () => [],
+    add: async () => 'id',
+    lock: async () => true,
+    lockedAt: async () => undefined,
+    unlock: async () => undefined,
+    userDoc: async () => undefined,
+    legacySmsChannels: async () => undefined,
+    sponsoredPhone: async () => undefined,
+  },
+}));
+vi.mock('../../identity/firebase-auth.js', () => ({
+  getFirebaseUser: async () => ({ phoneNumber: '+12025550111' }),
+}));
 const placeSelfCall = vi.hoisted(() => vi.fn(async () => 'answered'));
 vi.mock('../../outreach/proactive-channels/self-call.js', () => ({
   canPlaceCalls: () => true,
@@ -164,8 +185,8 @@ describe('on-behalf first dial (assertNotOptedOut)', () => {
 describe('proactive tick (default-deps)', () => {
   it('a STOP keeps the proactive text off Twilio (it falls back to in-app)', async () => {
     await optOut('sms');
-    expect(await defaultProactiveDeps().sendSms(PHONE, 'hi')).toBe(false);
-    expect(sendSMS).not.toHaveBeenCalled();
+    expect(await defaultProactiveDeps().sendSms('u1', trigger)).toBe(false);
+    expect(twilio).not.toHaveBeenCalled();
   });
 
   it('"stop calling" means the proactive call is not placed', async () => {
@@ -177,8 +198,14 @@ describe('proactive tick (default-deps)', () => {
   it('flag off: texts and calls as today', async () => {
     await optOut('sms');
     await optOut('call');
+    // On, the same opt-outs refuse both: what follows is the flag's doing.
+    expect(await defaultProactiveDeps().sendSms('u1', trigger)).toBe(false);
+    expect(await defaultProactiveDeps().placeCall?.('u1', PHONE, trigger)).toBe('failed');
     vi.stubEnv('MESSAGING_PIPELINE', 'off');
-    expect(await defaultProactiveDeps().sendSms(PHONE, 'hi')).toBe(true);
+    expect(await defaultProactiveDeps().sendSms('u1', trigger)).toBe(true);
+    expect(twilio).toHaveBeenCalledWith(
+      expect.objectContaining({ to: PHONE, body: 'Thinking of you' })
+    );
     expect(await defaultProactiveDeps().placeCall?.('u1', PHONE, trigger)).toBe('answered');
   });
 });

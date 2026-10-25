@@ -22,7 +22,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { consentBlocks, writeOptOut, type ConsentDeps } from '../messaging/consent.js';
-import { mayReachForOwner } from '../messaging/consent-grants.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import { isOwnVerifiedPhone } from './guarded-text.js';
 import { phoneHash } from './checkin-replies.js';
 import {
@@ -121,10 +121,15 @@ export function localTimeAfter(
  * write of the do-not-call list, for the retry, and for the calling-hours
  * window: '+1NXXNXXXXXX'. Formatting is stripped and a leading 1 or +1 is
  * accepted. Anything that isn't a valid North American number is null; it is
- * never guessed, and callers fail closed on null.
+ * never guessed, and callers fail closed on null. A "+" with another country
+ * code is never re-read as +1 ("+234 803 1234" is Nigeria, not +1 234...),
+ * however it is dressed: invisible format characters (zero-width spaces, the
+ * BOM), whitespace and leading brackets are stripped before that check.
  */
 export function toE164(phone: string | undefined | null): string | null {
-  const digits = (phone ?? '').replace(/\D/g, '');
+  const head = (phone ?? '').replace(/\p{Cf}/gu, '').replace(/^[\s([{]+/u, '');
+  if (head.startsWith('+') && !/^\+[\s().-]*1/.test(head)) return null;
+  const digits = head.replace(/\D/g, '');
   const national = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
   return /^[2-9]\d{2}[2-9]\d{6}$/.test(national) ? `+1${national}` : null;
 }

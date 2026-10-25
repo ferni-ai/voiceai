@@ -11,6 +11,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getCustomAgent, getActiveCustomAgents } from './custom-agent-persistence-service.js';
 import type { CustomAgent as ApiCustomAgent } from '../../types/custom-agent-api.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { runtimeVoiceId } from './custom-agent-voice-policy.js';
+import { CUSTOM_AGENT_PREFIXES } from './custom-agent-ids.js';
 import type {
   PersonaConfig,
   VoiceConfig,
@@ -27,8 +29,6 @@ const log = getLogger().child({ module: 'CustomAgentRuntime' });
 // CONSTANTS
 // ============================================================================
 
-// Custom agent ID prefixes for detection
-const CUSTOM_AGENT_PREFIXES = ['agent_', 'custom_', 'ca_'];
 
 // Default voice settings for cloned voices
 const DEFAULT_VOICE_SETTINGS = {
@@ -79,12 +79,7 @@ const DEFAULT_KNOWLEDGE: KnowledgeConfig = {
 // DETECTION
 // ============================================================================
 
-/**
- * Check if a persona ID is a custom agent
- */
-export function isCustomAgentId(personaId: string): boolean {
-  return CUSTOM_AGENT_PREFIXES.some((prefix) => personaId.startsWith(prefix));
-}
+export { isCustomAgentId } from './custom-agent-ids.js';
 
 /**
  * Extract user ID from room metadata for custom agent lookup
@@ -280,9 +275,8 @@ function getAgentTypeDescription(type: string): string {
  */
 function buildVoiceConfig(agent: ApiCustomAgent): VoiceConfig {
   const settings = agent.voice.settings || {};
-
   return {
-    voiceId: agent.voice.voiceId || '',
+    voiceId: runtimeVoiceId(agent.id, agent.voice), // never a retired clone or a persona's voice
     provider: 'cartesia',
     defaultRate: settings.speed || 0,
     description: `Custom voice for ${agent.name}`,

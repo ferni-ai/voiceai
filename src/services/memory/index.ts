@@ -27,6 +27,13 @@ export {
   saveMemoryDirect,
 } from './memory-service.js';
 
+// "Last time" recall: only conversations from before this call
+export {
+  NO_EARLIER_CONVERSATION,
+  searchEarlierConversations,
+  thisCallOf,
+} from './earlier-conversations.js';
+
 // Memory service types
 export type {
   TimingDecision,
@@ -76,7 +83,6 @@ export { RelationalMemoryToken } from './knowledge-graph/index.js';
 
 // Stubs for backward compatibility (removed in Jan 2026 cleanup)
 export * from './cognitive-memory.js';
-export * from './cognitive-persistence.js';
 export * from './learned-memories.js';
 
 export * from './human-listening-memory.js';
@@ -109,3 +115,5 @@ export {
 } from './realtime-memory.js';
 export * from './voice-conversation-memory.js';
 export * from './voice-memory.js';
+// What a caller asks Ferni to remember, written where recall reads it (REMEMBER_TO_RECALL).
+export { rememberToRecall } from '../../memory/dynamic/remembered-facts.js';

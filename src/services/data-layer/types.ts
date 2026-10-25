@@ -1298,7 +1298,7 @@ export interface OutreachAttemptEntity {
   reason: string;
   message?: string;
   personaId: string;
-  status: 'pending' | 'sent' | 'delivered' | 'failed';
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'unknown';
   scheduledAt?: string;
   sentAt: string;
   deliveredAt?: string;

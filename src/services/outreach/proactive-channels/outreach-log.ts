@@ -10,6 +10,7 @@
  */
 
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { reportOutreachLog } from '../outreach-bq.js';
 import type { TextSource } from './outreach-text.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
@@ -46,6 +47,8 @@ export interface OutreachLogEntry {
   fallbackFrom?: ProactiveChannel;
   /** A call that couldn't be placed: where its words went instead (it still counts as a call). */
   fallbackChannel?: ProactiveChannel;
+  /** Phone channels ruled out by the person's STOP or do-not-call (opt-outs.ts). */
+  optedOut?: ProactiveChannel[];
   /** What was sent, and who wrote it (outreach-text.ts). */
   text?: string;
   textSource?: TextSource;
@@ -73,6 +76,7 @@ export async function alreadySent(userId: string, sourceId: string): Promise<boo
 
 export async function writeOutreachLog(userId: string, entry: OutreachLogEntry): Promise<void> {
   await logOf(userId).doc(logId(entry.sourceId)).set(entry);
+  reportOutreachLog(userId, entry);
 }
 
 /** Their log since `since` (ISO), for the daily caps and back-off. */

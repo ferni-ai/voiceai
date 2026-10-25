@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const store = vi.hoisted(() => ({
-  getProfile: vi.fn(async () => null),
+  getProfileForWrite: vi.fn(async () => null),
   saveProfile: vi.fn(async () => undefined),
 }));
 vi.mock('../../memory/store-factory.js', () => ({ getStore: async () => store }));

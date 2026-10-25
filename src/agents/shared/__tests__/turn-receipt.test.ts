@@ -4,12 +4,16 @@
  */
 import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
-import { describe, expect, it } from 'vitest';
+import { ReadableStream } from 'node:stream/web';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-context-header.js';
 import { attachTurnReceipts, noteReminder, noteRequest } from '../turn-receipt-session.js';
 import { sentenceCount, userKindOf, type TurnReceipt } from '../turn-receipt.js';
 import { createFirstAudioObserver } from '../../../speech/tts-gateway/first-audio-observer.js';
 import { promptSections } from '../prompt-sections.js';
+import { withActionClaimCheck } from '../../personas/action-claim-guard.js';
+import { holdReplyAudio } from '../../../speech/output-control/reply-activity.js';
+import { noteTurnTiming } from '../../../speech/output-control/turn-timing.js';
 
 const INSTRUCTIONS = 'You are Ferni, a warm friend on a call.';
 const RECALL = '[WHAT YOU REMEMBER ABOUT JANE]\n- Jane Doe: phone = +1 555 867 5309';
@@ -361,5 +365,135 @@ describe('attachTurnReceipts', () => {
     expect(() =>
       noteReminder({}, { reminder: '', directorNotes: '', offered: 0, droppedIdx: [] })
     ).not.toThrow();
+  });
+});
+
+// A latency A/B is credited turn by turn: which holds kept the first words back, and which arm.
+describe('holds, first audio and flags', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+  const SID = 'RM_holds';
+
+  /** A model stream whose words we hand over one at a time. */
+  function model() {
+    let push!: (text: string) => void;
+    let end!: () => void;
+    const stream = new ReadableStream<string>({
+      start(c) {
+        push = (text) => c.enqueue(text);
+        end = () => c.close();
+      },
+    });
+    return { stream, push: (t: string) => push(t), end: () => end() };
+  }
+
+  function receiptsOn(env?: Record<string, string>) {
+    const session = new EventEmitter();
+    const receipts: TurnReceipt[] = [];
+    const detach = attachTurnReceipts(session as never, {
+      sessionId: SID,
+      userId: 'uid-1',
+      persona: () => 'ferni',
+      emit: (r) => receipts.push(r),
+      env,
+    });
+    const commit = (stoppedAt: number) => {
+      session.emit('metrics_collected', {
+        metrics: { type: 'eou_metrics', endOfUtteranceDelayMs: 300, lastSpeakingTimeMs: stoppedAt },
+      });
+      session.emit('agent_state_changed', { newState: 'thinking' });
+    };
+    const reply = () => {
+      session.emit('agent_state_changed', { newState: 'speaking' });
+      session.emit('conversation_item_added', {
+        item: llm.ChatMessage.create({ role: 'assistant', content: 'Sure, that works.' }),
+      });
+      session.emit('agent_state_changed', { newState: 'listening' });
+    };
+    return { session, receipts, detach, commit, reply };
+  }
+
+  it("times the guard's real hold and keeps it out of the provider's TTFB", async () => {
+    vi.useFakeTimers({ now: 1_000_000 });
+    const env = { ACTION_CLAIM_STREAM: 'off', BUILD_SHA: 'abc1234', CASCADE_TURN_EAGER: '0.4' };
+    const c = receiptsOn(env);
+    const stoppedAt = Date.now();
+    vi.advanceTimersByTime(300);
+    c.commit(stoppedAt);
+    const ttsStart = Date.now(); // the TTS node starts with the request
+    const m = model();
+    const caller = { personaId: 'ferni', services: { sessionId: SID } };
+    const guarded = await withActionClaimCheck(m.stream, { items: [] }, {}, caller, env);
+    const reader = (guarded as ReadableStream<unknown>).getReader();
+    vi.advanceTimersByTime(100);
+    noteTurnTiming(SID, 'openerAudio', 40); // an "Mm" reaches the wire 40 ms later
+    vi.advanceTimersByTime(100);
+    m.push('Sure, '); // the model's first words: held until the sentence is whole
+    await vi.advanceTimersByTimeAsync(300);
+    m.push('that works. ');
+    m.end();
+    expect(await reader.read()).toMatchObject({ done: false });
+    const obs = createFirstAudioObserver({ sessionId: SID, startTime: ttsStart });
+    obs.stage('push'); // the words reach the provider
+    await vi.advanceTimersByTimeAsync(180); // the provider's own wait for audio
+    holdReplyAudio(SID, 250); // the "Mm" is still playing: the reply waits for it
+    const held = obs.hold();
+    await vi.advanceTimersByTimeAsync(250);
+    await held;
+    obs();
+    c.reply();
+    const r = c.receipts[0];
+    expect(r.holds.actionClaimHoldMs).toBe(300);
+    expect(r.holds.openerClipMs).toBe(250);
+    expect(r.holds.pauseHoldMs).toBe(0);
+    expect([r.holds.openerGateMs, r.holds.crisisHoldMs, r.holds.unfinishedTurnMs]).toEqual([
+      null,
+      null,
+      null,
+    ]);
+    expect(r.timing.ttsPushMs).toBe(500); // model 200 + the guard's 300
+    expect(r.timing.ttsTtfbMs).toBe(930); // ...+ provider 180 + clip 250
+    expect(r.audio.providerTtfbMs).toBe(180);
+    expect(r.audio.firstAnyAudioMs).toBe(300 + 140); // the "Mm" on the wire
+    expect(r.audio.firstReplyAudioMs).toBe(300 + 930);
+    expect(r.timing.firstAudioMs).toBe(r.audio.firstReplyAudioMs);
+    expect(r.flags).toMatchObject({
+      ACTION_CLAIM_STREAM: 'off',
+      ACTION_CLAIM_GUARD: 'on', // the manifest default
+      CASCADE_TURN_EAGER: '0.4',
+    });
+    expect(r.commit).toBe('abc1234');
+    c.detach();
+  });
+
+  it('reads the flags when the receipt is built, as a cohort set them for this caller', () => {
+    vi.stubEnv('TURN_LENGTH', 'on'); // applyCallerFlags writes process.env at call start
+    vi.stubEnv('CASCADE_TURN_EAGER', 'sk-not-a-number');
+    const c = receiptsOn(); // no env: process.env, as on a live call
+    c.commit(Date.now() - 500);
+    c.reply();
+    vi.stubEnv('TURN_LENGTH', 'off');
+    c.commit(Date.now() - 500);
+    c.reply();
+    expect(c.receipts.map((r) => r.flags.TURN_LENGTH)).toEqual(['on', 'off']);
+    expect(c.receipts[0].flags.CASCADE_TURN_EAGER).toBe('<set>'); // never a non-number value
+    c.detach();
+  });
+
+  it("does not count a hold after Ferni was heard, or another call's", () => {
+    const c = receiptsOn({});
+    c.commit(Date.now() - 500);
+    noteTurnTiming('RM_other', 'crisis', 900);
+    noteTurnTiming(SID, 'crisis', 120);
+    c.reply();
+    expect(c.receipts[0].holds.crisisHoldMs).toBe(120);
+    c.commit(Date.now() - 500);
+    c.session.emit('agent_state_changed', { newState: 'speaking' });
+    noteTurnTiming(SID, 'crisis', 700); // a later request's hold: the caller already heard Ferni
+    c.reply();
+    expect(c.receipts[1].holds.crisisHoldMs).toBeNull();
+    c.detach();
   });
 });

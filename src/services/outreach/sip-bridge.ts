@@ -12,7 +12,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { ownerRefusal } from '../messaging/consent-grants.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import Twilio from 'twilio';
 
 const log = getLogger().child({ module: 'sip-bridge' });

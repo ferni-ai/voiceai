@@ -19,7 +19,7 @@ import {
   type ScheduledOutreachTarget,
 } from './scheduled-multi-outreach.js';
 import { isOwnVerifiedPhone, ON_BEHALF_GAP_MS, textOnBehalf } from './guarded-text.js';
-import { thirdPartyRefusal } from '../messaging/consent-grants.js';
+import { thirdPartyRefusal } from '../messaging/consent-reach.js';
 import { flagOn } from '../../config/env-flag.js';
 import { sendEmail } from './delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../voice/voice-call.js';

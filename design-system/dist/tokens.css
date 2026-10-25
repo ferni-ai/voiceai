@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-18T16:27:32.784Z
+ * Build: 2026-10-18T17:06:51.126Z
  */
 
 /* ========================================
@@ -439,6 +439,44 @@
   --color-ray-on-primary: #ffffff;
   --color-ray-glow: rgba(74, 85, 104, 0.28);
   --color-ray-tint: rgba(74, 85, 104, 0.06);
+}
+:root {
+  --color-ferni-on-surface: #a5c99a;
+  --color-jack-on-surface: #d4c4a8;
+  --color-peter-on-surface: #8bc4cf;
+  --color-alex-on-surface: #a8b8d8;
+  --color-maya-on-surface: #e0b8a8;
+  --color-jordan-on-surface: #f0c0a0;
+  --color-nayan-on-surface: #e8d0a8;
+  --color-joel-on-surface: #f0a8a8;
+  --color-lynch-on-surface: #dde7df;
+  --color-bogle-on-surface: #f3e6e6;
+  --color-eli-on-surface: #b8a8d8;
+  --color-marcus-on-surface: #88c4a8;
+  --color-kenji-on-surface: #90b0c8;
+  --color-carmen-on-surface: #f0d0a8;
+  --color-amara-on-surface: #c0b0d8;
+  --color-sasha-on-surface: #f8b898;
+  --color-ray-on-surface: #a0b0c0;
+}
+[data-theme="zen"] {
+  --color-ferni-on-surface: #4a6741;
+  --color-jack-on-surface: #80664b;
+  --color-peter-on-surface: #3a6b73;
+  --color-alex-on-surface: #5a6b8a;
+  --color-maya-on-surface: #8a6153;
+  --color-jordan-on-surface: #9c5a3e;
+  --color-nayan-on-surface: #85653f;
+  --color-joel-on-surface: #9A0718;
+  --color-lynch-on-surface: #1a5f2a;
+  --color-bogle-on-surface: #8b0000;
+  --color-eli-on-surface: #6B5B95;
+  --color-marcus-on-surface: #2D5A4A;
+  --color-kenji-on-surface: #2C3E50;
+  --color-carmen-on-surface: #935f2d;
+  --color-amara-on-surface: #7261a2;
+  --color-sasha-on-surface: #b44a20;
+  --color-ray-on-surface: #4A5568;
 }
 
 /* Persona: ferni */

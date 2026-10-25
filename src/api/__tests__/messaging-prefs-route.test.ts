@@ -145,8 +145,11 @@ describe('"When I\'ll Check In": save, reload, same values', () => {
 describe('"How I reach you": the channel list sets prefs too', () => {
   it('turning texts on (verified number) and email off saves both stores the same way', async () => {
     store.docs.set('seth', { outreachPreferences: { enabled: true, channels: ['email'] } });
-    expect((await outreach('POST', { allowedChannels: ['sms'] })).status).toBe(200);
+    // Texts go on only with the disclosure the screen showed (#2059).
+    const on = { allowedChannels: ['sms'], disclosureVersion: '2026-10-18' };
+    expect((await outreach('POST', on)).status).toBe(200);
     expect(seth().outreachPreferences.channels).toEqual(['sms']);
+    expect(seth().outreachPreferences.smsConsent).toMatchObject({ source: 'web-settings' });
     expect(seth().messagingPrefs.channels).toMatchObject({ sms: true, email: false });
   });
 

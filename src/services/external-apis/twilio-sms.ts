@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { consentBlocks } from '../../utils/consent-port.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 
 const log = getLogger().child({ module: 'TwilioSMS' });

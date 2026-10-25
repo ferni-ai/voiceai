@@ -13,10 +13,10 @@ import type {
   DateSignal,
   RelationshipSignal,
 } from './fast-capture.js';
-// 🧠 MEMORY FIX: Import vector store for semantic search capability
 import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
+import { withFactEmbeddings } from './fact-embeddings.js';
 import { buildExtractionVectorDocuments } from './extraction-vector-docs.js';
 import {
   recordExtractionDrop,
@@ -24,6 +24,7 @@ import {
 } from '../operations/memory-extraction-telemetry.js';
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
 import { extractionMoment } from './extraction-moment.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
@@ -559,8 +560,8 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
     result: ExtractionResult,
     job: DeepExtractionJob
   ): Promise<void> {
+    if (memoryHeld(job.sessionId) || userHeld(userId)) return; // MINOR_CARE, at write time
     try {
-      // Import entity store dynamically
       const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
       const db = getFirestoreDb();
       if (!db) return;
@@ -593,7 +594,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         batch.set(entityRef, entityDoc);
       }
 
-      for (const factDoc of payloads.facts) {
+      for (const factDoc of await withFactEmbeddings(payloads.facts)) {
         // Same fact, same document: re-extraction refreshes it (newest date, latest confidence).
         const id = factDocId(
           String(factDoc.entityName ?? ''),
@@ -608,7 +609,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         batch.set(relRef, relDoc);
       }
 
-      // Store extraction metadata
+      // Extraction metadata: the transcript's length, never its text (spoken codes, #2385)
       const metaRef = db
         .collection('bogle_users')
         .doc(userId)
@@ -621,7 +622,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           jobId: job.jobId,
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
-          transcript: job.transcript.slice(0, 500),
+          transcriptChars: job.transcript.length,
           entityCount: payloads.entities.length,
           factCount: payloads.facts.length,
           relationshipCount: payloads.relationships.length,
@@ -643,7 +644,6 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         'Persisted extraction results to Firestore'
       );
 
-      // 🧠 MEMORY FIX: Also store in vector store for semantic search
       // This is the critical missing piece - without this, context builders return empty
       await this.persistToVectorStore(userId, result, job, timestamp);
     } catch (error) {

@@ -8,6 +8,10 @@
  * and contact_relationships all survived it. The stores outside the two records were
  * found by reading every top-level collection production code writes with a uid.
  *
+ * Stores split into partitions (ab_tests/{test}/assignments, the router's
+ * semantic_router_events/{day}/events) are listed in erase-other-keys.ts, which lists
+ * the partitions first; the export reads the router's in user-records-export.ts.
+ *
  * @module services/platform/user-stores
  */
 
@@ -57,7 +61,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'growth_moments',
     'user_gifts',
     'user_contacts',
-    'profiles' // conversation and insight feedback, subcollections only
+    'profiles', // conversation and insight feedback, subcollections only
+    'feature_flag_overrides' // flags turned on for this person alone (cohort-flags.ts)
   ),
   // The app's per-person documents
   ...byId(
@@ -119,7 +124,9 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'game_analytics_events',
     'bth_production_events',
     'phone_mappings',
-    'feature_checkins' // texts sent to the person, with their replies
+    'feature_checkins', // texts sent to the person, with their replies
+    'intelligence_queue', // queued turn events holding the person's words (INTELLIGENCE_QUEUE)
+    'relationship_memories' // {uid}_{persona}: shared moments and inside jokes, older agent
   ),
   ...byField('ownerId', 'share_links', 'share_invites', 'voice_households'),
   ...byField('toUserId', 'family_messages', 'family_shared_context'),

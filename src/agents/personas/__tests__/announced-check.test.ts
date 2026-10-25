@@ -10,7 +10,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const warn = vi.hoisted(() => vi.fn());
 vi.mock('../../../utils/safe-logger.js', () => {
-  const l = { debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() };
+  const l: Record<string, unknown> = { debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() };
+  l.child = () => l; // modules loaded through the memory barrel make child loggers at import
   return { getLogger: () => l, createLogger: () => l, safeLog: () => l };
 });
 
@@ -99,7 +100,13 @@ describe('withAnnouncedCheckLog', () => {
     const chatCtx = llm.ChatContext.empty();
     chatCtx.addMessage({ role: 'user', content: 'can you check the weather?' });
     await drain(
-      await withActionClaimCheck(Promise.resolve(streamOf(...ANNOUNCE)), chatCtx, tools, undefined, {})
+      await withActionClaimCheck(
+        Promise.resolve(streamOf(...ANNOUNCE)),
+        chatCtx,
+        tools,
+        undefined,
+        {}
+      )
     );
     expect(flagged()).toHaveLength(1);
   });
@@ -108,7 +115,13 @@ describe('withAnnouncedCheckLog', () => {
     const chatCtx = llm.ChatContext.empty();
     const off = { ACTION_CLAIM_GUARD: 'off' };
     await drain(
-      await withActionClaimCheck(Promise.resolve(streamOf(...ANNOUNCE)), chatCtx, tools, undefined, off)
+      await withActionClaimCheck(
+        Promise.resolve(streamOf(...ANNOUNCE)),
+        chatCtx,
+        tools,
+        undefined,
+        off
+      )
     );
     expect(flagged()).toHaveLength(1);
   });

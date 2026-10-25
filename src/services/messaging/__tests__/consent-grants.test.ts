@@ -10,11 +10,10 @@ import {
   consentAskText,
   hasGrant,
   isConsentYes,
-  mayReachForOwner,
   recordContactYes,
   recordOwnerAttestation,
-  thirdPartyRefusal,
 } from '../consent-grants.js';
+import { mayReachForOwner, thirdPartyRefusal } from '../consent-reach.js';
 import { sendConsentAsk } from '../consent-ask.js';
 import { readConsent, recordInboundSmsConsent, writeOptOut, type ConsentDeps } from '../consent.js';
 import { phoneHash, type StoredCheckin } from '../../outreach/checkin-replies.js';
@@ -166,6 +165,7 @@ describe('sendConsentAsk', () => {
       unlock: async () => undefined,
       sponsoredPhone: async () => undefined,
       isOptedOut: async () => false,
+      consentDoc: async (h: string) => m.store.read(h),
       userDoc: async () => ({ displayName: 'Seth Example' }),
       legacySmsChannels: async () => undefined,
     } as unknown as TextStore,
@@ -276,6 +276,7 @@ describe('consent is given for one owner, and a STOP beats it', () => {
       unlock: async () => undefined,
       sponsoredPhone: async () => undefined,
       isOptedOut: async () => false,
+      consentDoc: async (h: string) => m.store.read(h),
       userDoc: async () => undefined,
       legacySmsChannels: async () => undefined,
     } as unknown as TextStore,

@@ -171,7 +171,7 @@ index 6012dbba6bcff20ff321ee2e2db75f2d6473b929..b06dee1b38e3f0e69697cd71c48099c4
              );
            }
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2ab01c77f7 100644
+index f8d71967401e60955d2144a8c57ff2eaa1340e3c..574873f138e84e5f76f8767c36ea4edab15a8d77 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
 @@ -240,6 +240,12 @@ class AutoToolReplyTurnHold {
@@ -187,7 +187,21 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
  class AgentActivity {
    agent;
    agentSession;
-@@ -1629,6 +1635,12 @@ class AgentActivity {
+@@ -1550,6 +1556,13 @@ class AgentActivity {
+         }
+         this.updatePausedSpeech(this._currentSpeech, timeout);
+         audioOutput.pause();
++        // PATCHED(ferni): PAUSE_RESUME_WATCHDOG. Only an end of speech that comes after this
++        // pause starts the false-interruption timer. A VAD frame left over from the caller's
++        // last words (ink ended the turn while VAD was still in the segment) can land after
++        // that end of speech, on the reply that was just scheduled: nothing ever resumed it
++        // (prod 2026-10-21: a look-up's lead-in and answer lost to 16.9 s of silence). Resume
++        // after falseInterruptionTimeout unless the caller is really speaking.
++        if (process.env.PLAYOUT_LAUNCH_RESUME !== "off") this.__ferniArmLaunchResume(this._currentSpeech, Date.now(), "audio_activity");
+         const stateLease = this.activeAgentStateLease;
+         if (wasAgentSpeaking && stateLease && this.updateAgentState(stateLease, "listening")) {
+           this.onEndOfAgentSpeech(Date.now());
+@@ -1629,6 +1642,12 @@ class AgentActivity {
          );
        }
      }
@@ -200,7 +214,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
    }
    onTranscriptionTimeout(speechDuration, turnStart) {
-@@ -1653,14 +1665,23 @@ class AgentActivity {
+@@ -1653,14 +1672,23 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof import_llm2.LLM)) {
        return;
      }
@@ -225,7 +239,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1858,6 +1879,40 @@ class AgentActivity {
+@@ -1858,6 +1886,40 @@ class AgentActivity {
        }
        return true;
      }
@@ -266,7 +280,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = (0, import_word.splitWords)(info.newTranscript, true).length;
        if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
-@@ -2368,7 +2423,15 @@ class AgentActivity {
+@@ -2368,7 +2430,15 @@ class AgentActivity {
      let discardedPreemptive;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -283,7 +297,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -4183,10 +4246,34 @@ class AgentActivity {
+@@ -4183,10 +4253,47 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -298,7 +312,8 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
      audioOutput == null ? void 0 : audioOutput.resume();
    }
 +  // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME watchdog for a reply paused at playout launch.
-+  __ferniArmLaunchResume(speechHandle, pausedAt) {
++  // Also armed for a pause by audio activity (PAUSE_RESUME_WATCHDOG, interruptByAudioActivityOnce).
++  __ferniArmLaunchResume(speechHandle, pausedAt, cause = "launch") {
 +    clearTimeout(this.__ferniLaunchResumeTimer);
 +    const ms = this.agentSession.sessionOptions.turnHandling.interruption.falseInterruptionTimeout ?? 2e3;
 +    this.__ferniLaunchResumeTimer = setTimeout(() => {
@@ -306,19 +321,31 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
 +      this.__ferniLaunchResumeTimer = void 0;
 +      if (this.closeAbort.signal.aborted || !this.pausedSpeech || this.pausedSpeech.handle !== speechHandle || speechHandle.interrupted || speechHandle.done()) return;
 +      const eot = (_a = this.audioRecognition) == null ? void 0 : _a.endOfTurnTask;
-+      if (this.agentSession.userState === "speaking" || eot && !eot.done) {
-+        this.__ferniArmLaunchResume(speechHandle, pausedAt);
++      const heldMs = Date.now() - pausedAt;
++      // A false-interruption timer that is running, or waiting on a turn decision, settles
++      // the pause itself: don't cut it short. Past 4 s with the caller quiet, resume anyway.
++      const settling = eot && !eot.done || this.falseInterruptionTimer !== void 0 || this.falseInterruptionPending;
++      if (this.agentSession.userState === "speaking" || settling && heldMs < 4e3) {
++        this.__ferniArmLaunchResume(speechHandle, pausedAt, cause);
 +        return;
 +      }
-+      this.falseInterruptionPending = false;
-+      this.logger.info({ heldMs: Date.now() - pausedAt, speechId: speechHandle.id }, "PLAYOUT_LAUNCH_RESUMED");
-+      this.startFalseInterruptionTimer(0);
++      this.cancelFalseInterruptionTimer();
++      this.logger.info({ heldMs, speechId: speechHandle.id, cause, capped: Boolean(settling) }, cause === "launch" ? "PLAYOUT_LAUNCH_RESUMED" : "PAUSE_WATCHDOG_RESUMED");
++      if (!settling) {
++        this.startFalseInterruptionTimer(0);
++        return;
++      }
++      // Capped: resume here, since a timer would wait on the turn decision again.
++      const audioOutput = this.agentSession.output.audio;
++      if (this._currentSpeech === speechHandle) this.restorePausedSpeechState(this.pausedSpeech);
++      this.pausedSpeech = void 0;
++      if (audioOutput && audioOutput.canPause) audioOutput.resume();
 +    }, ms);
 +  }
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -4279,8 +4366,16 @@ class AgentActivity {
+@@ -4279,8 +4386,16 @@ class AgentActivity {
      if (!this.pausedSpeech) {
        return;
      }
@@ -335,7 +362,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -4289,7 +4384,7 @@ class AgentActivity {
+@@ -4289,7 +4404,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -345,7 +372,7 @@ index f8d71967401e60955d2144a8c57ff2eaa1340e3c..08023e6fd6f63ae7a36d1ab64429ab2a
      }
    }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6a72a5636 100644
+index a345f90082ca2e5de031c4bfe940b021d218bc30..3b419bc5557e9d1b8e282875f16529410a3e8909 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
 @@ -293,6 +293,12 @@ class AutoToolReplyTurnHold {
@@ -361,7 +388,21 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
  class AgentActivity {
    agent;
    agentSession;
-@@ -1682,6 +1688,12 @@ class AgentActivity {
+@@ -1603,6 +1609,13 @@ class AgentActivity {
+         }
+         this.updatePausedSpeech(this._currentSpeech, timeout);
+         audioOutput.pause();
++        // PATCHED(ferni): PAUSE_RESUME_WATCHDOG. Only an end of speech that comes after this
++        // pause starts the false-interruption timer. A VAD frame left over from the caller's
++        // last words (ink ended the turn while VAD was still in the segment) can land after
++        // that end of speech, on the reply that was just scheduled: nothing ever resumed it
++        // (prod 2026-10-21: a look-up's lead-in and answer lost to 16.9 s of silence). Resume
++        // after falseInterruptionTimeout unless the caller is really speaking.
++        if (process.env.PLAYOUT_LAUNCH_RESUME !== "off") this.__ferniArmLaunchResume(this._currentSpeech, Date.now(), "audio_activity");
+         const stateLease = this.activeAgentStateLease;
+         if (wasAgentSpeaking && stateLease && this.updateAgentState(stateLease, "listening")) {
+           this.onEndOfAgentSpeech(Date.now());
+@@ -1682,6 +1695,12 @@ class AgentActivity {
          );
        }
      }
@@ -374,7 +415,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
      this.cancelSpeechPauseTask = this.cancelSpeechPause();
    }
    onTranscriptionTimeout(speechDuration, turnStart) {
-@@ -1706,14 +1718,23 @@ class AgentActivity {
+@@ -1706,14 +1725,23 @@ class AgentActivity {
      if (!preemptiveOpts.enabled || this.schedulingPaused || this.newTurnsBlocked || this._currentSpeech !== void 0 && !this._currentSpeech.interrupted || !(this.llm instanceof LLM)) {
        return;
      }
@@ -399,7 +440,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
      this._preemptiveGenerationCount++;
      this.logger.info(
        {
-@@ -1911,6 +1932,40 @@ class AgentActivity {
+@@ -1911,6 +1939,40 @@ class AgentActivity {
        }
        return true;
      }
@@ -440,7 +481,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
      if (this.stt && this.turnDetection !== "manual" && this._currentSpeech && this._currentSpeech.allowInterruptions && !this._currentSpeech.interrupted && ((_c = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _c.minWords) > 0) {
        const wordCount = splitWords(info.newTranscript, true).length;
        if (wordCount < ((_d = this.agentSession.sessionOptions.turnHandling.interruption) == null ? void 0 : _d.minWords)) {
-@@ -2421,7 +2476,15 @@ class AgentActivity {
+@@ -2421,7 +2483,15 @@ class AgentActivity {
      let discardedPreemptive;
      if (this._preemptiveGeneration !== void 0) {
        const preemptive = this._preemptiveGeneration;
@@ -457,7 +498,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -4236,10 +4299,34 @@ class AgentActivity {
+@@ -4236,10 +4306,47 @@ class AgentActivity {
      if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
        this.updatePausedSpeech(speechHandle, 0);
        audioOutput.pause();
@@ -472,7 +513,8 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
      audioOutput == null ? void 0 : audioOutput.resume();
    }
 +  // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME watchdog for a reply paused at playout launch.
-+  __ferniArmLaunchResume(speechHandle, pausedAt) {
++  // Also armed for a pause by audio activity (PAUSE_RESUME_WATCHDOG, interruptByAudioActivityOnce).
++  __ferniArmLaunchResume(speechHandle, pausedAt, cause = "launch") {
 +    clearTimeout(this.__ferniLaunchResumeTimer);
 +    const ms = this.agentSession.sessionOptions.turnHandling.interruption.falseInterruptionTimeout ?? 2e3;
 +    this.__ferniLaunchResumeTimer = setTimeout(() => {
@@ -480,19 +522,31 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
 +      this.__ferniLaunchResumeTimer = void 0;
 +      if (this.closeAbort.signal.aborted || !this.pausedSpeech || this.pausedSpeech.handle !== speechHandle || speechHandle.interrupted || speechHandle.done()) return;
 +      const eot = (_a = this.audioRecognition) == null ? void 0 : _a.endOfTurnTask;
-+      if (this.agentSession.userState === "speaking" || eot && !eot.done) {
-+        this.__ferniArmLaunchResume(speechHandle, pausedAt);
++      const heldMs = Date.now() - pausedAt;
++      // A false-interruption timer that is running, or waiting on a turn decision, settles
++      // the pause itself: don't cut it short. Past 4 s with the caller quiet, resume anyway.
++      const settling = eot && !eot.done || this.falseInterruptionTimer !== void 0 || this.falseInterruptionPending;
++      if (this.agentSession.userState === "speaking" || settling && heldMs < 4e3) {
++        this.__ferniArmLaunchResume(speechHandle, pausedAt, cause);
 +        return;
 +      }
-+      this.falseInterruptionPending = false;
-+      this.logger.info({ heldMs: Date.now() - pausedAt, speechId: speechHandle.id }, "PLAYOUT_LAUNCH_RESUMED");
-+      this.startFalseInterruptionTimer(0);
++      this.cancelFalseInterruptionTimer();
++      this.logger.info({ heldMs, speechId: speechHandle.id, cause, capped: Boolean(settling) }, cause === "launch" ? "PLAYOUT_LAUNCH_RESUMED" : "PAUSE_WATCHDOG_RESUMED");
++      if (!settling) {
++        this.startFalseInterruptionTimer(0);
++        return;
++      }
++      // Capped: resume here, since a timer would wait on the turn decision again.
++      const audioOutput = this.agentSession.output.audio;
++      if (this._currentSpeech === speechHandle) this.restorePausedSpeechState(this.pausedSpeech);
++      this.pausedSpeech = void 0;
++      if (audioOutput && audioOutput.canPause) audioOutput.resume();
 +    }, ms);
 +  }
    cancelFalseInterruptionTimer() {
      if (this.falseInterruptionTimer !== void 0) {
        clearTimeout(this.falseInterruptionTimer);
-@@ -4332,8 +4419,16 @@ class AgentActivity {
+@@ -4332,8 +4439,16 @@ class AgentActivity {
      if (!this.pausedSpeech) {
        return;
      }
@@ -509,7 +563,7 @@ index a345f90082ca2e5de031c4bfe940b021d218bc30..0d7cfbb5b49857aec59b5588bce189b6
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -4342,7 +4437,7 @@ class AgentActivity {
+@@ -4342,7 +4457,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -598,6 +652,136 @@ index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..53ae54c6b6e98ad6a4bdb878ec971ac2
        this.logger.trace({ event: ev.type }, "holding STT event during agent speech");
        this.transcriptBuffer.push(ev);
        return;
+diff --git a/dist/voice/room_io/_output.cjs b/dist/voice/room_io/_output.cjs
+index 660ca7bdf237af285774bb13ba552d94e08e7848..914547464e7863302a7918d9381be885858019a1 100644
+--- a/dist/voice/room_io/_output.cjs
++++ b/dist/voice/room_io/_output.cjs
+@@ -379,6 +379,11 @@ class ParalellTextOutput extends import_io.TextOutput {
+     }
+   }
+ }
++// PATCHED(ferni): BARGE_IN_FAST_STOP, read as flagOn reads a flag (src/config/env-flag.ts).
++function __ferniFastStopOn() {
++  const v = String(process.env.BARGE_IN_FAST_STOP ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ class ParticipantAudioOutput extends import_io.AudioOutput {
+   room;
+   options;
+@@ -420,13 +425,36 @@ class ParticipantAudioOutput extends import_io.AudioOutput {
+   pause() {
+     if (this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture = new import_utils.Future();
++      // PATCHED(ferni): BARGE_IN_FAST_STOP. 1.6 cleared the queued audio here; 1.8 moved the
++      // clear to the next captureFrame. Ferni's resume buffer holds every frame while paused, so
++      // no next frame comes: the queue (up to queueSizeMs) played on after a barge-in paused the
++      // reply (dev 2026-10-22: ~0.8 s more of Ferni after the pause), then was replayed on resume.
++      // Only with that resume buffer in front (it marks this output): without it nothing would
++      // replay what the clear takes from a pause that resumes.
++      if (this.__ferniResumeBuffered === true && __ferniFastStopOn()) this.__ferniClearOnPause();
+     }
+     super.pause();
+   }
++  // PATCHED(ferni): BARGE_IN_FAST_STOP. The captureFrame pause loop's clear, done at the pause.
++  __ferniClearOnPause() {
++    const queuedDuration = this.audioSource.queuedDuration;
++    if (!(queuedDuration > 0)) return;
++    this.__ferniClearedWhilePaused = true;
++    this.logger.info({ queuedMs: Math.round(queuedDuration) }, "BARGE_IN_FAST_STOP_CLEAR");
++    this.sourceDiscardedDuration += queuedDuration / 1e3;
++    this.reportRun({
++      offset: this.sourcePushedDuration * 1e3 - queuedDuration,
++      endedAt: Date.now(),
++      resumesAt: this.sourcePushedDuration * 1e3
++    });
++    // rtc's clearQueue also zeroes queuedDuration, so that loop won't count this audio again.
++    this.audioSource.clearQueue();
++  }
+   resume() {
+     if (!this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture.resolve();
+     }
++    this.__ferniClearedWhilePaused = false;
+     super.resume();
+   }
+   get subscribed() {
+@@ -525,7 +553,10 @@ class ParticipantAudioOutput extends import_io.AudioOutput {
+       await this.audioSource.waitForPlayout();
+     };
+     await Promise.race([waitForForwardingAndPlayout(), interruptionFuture.await]);
+-    const interrupted = interruptionFuture.done;
++    // PATCHED(ferni): BARGE_IN_FAST_STOP. Playout that ended because the pause cleared the queue
++    // was cut short: say so, with the position really played, so the transcript is what was heard.
++    const interrupted = interruptionFuture.done || this.__ferniClearedWhilePaused === true && !this.playbackEnabledFuture.done;
++    this.__ferniClearedWhilePaused = false;
+     let pushedDuration = Math.max(this.sourcePushedDuration - this.sourceDiscardedDuration, 0);
+     if (interrupted) {
+       const queuedDuration = this.audioSource.queuedDuration;
+diff --git a/dist/voice/room_io/_output.js b/dist/voice/room_io/_output.js
+index 8d2ee3646c1638f50eaf273777649b5e46c8c373..9ae02e4ccb735b078eed500268bd532bbe3d6627 100644
+--- a/dist/voice/room_io/_output.js
++++ b/dist/voice/room_io/_output.js
+@@ -372,6 +372,11 @@ class ParalellTextOutput extends TextOutput {
+     }
+   }
+ }
++// PATCHED(ferni): BARGE_IN_FAST_STOP, read as flagOn reads a flag (src/config/env-flag.ts).
++function __ferniFastStopOn() {
++  const v = String(process.env.BARGE_IN_FAST_STOP ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ class ParticipantAudioOutput extends AudioOutput {
+   room;
+   options;
+@@ -413,13 +418,36 @@ class ParticipantAudioOutput extends AudioOutput {
+   pause() {
+     if (this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture = new Future();
++      // PATCHED(ferni): BARGE_IN_FAST_STOP. 1.6 cleared the queued audio here; 1.8 moved the
++      // clear to the next captureFrame. Ferni's resume buffer holds every frame while paused, so
++      // no next frame comes: the queue (up to queueSizeMs) played on after a barge-in paused the
++      // reply (dev 2026-10-22: ~0.8 s more of Ferni after the pause), then was replayed on resume.
++      // Only with that resume buffer in front (it marks this output): without it nothing would
++      // replay what the clear takes from a pause that resumes.
++      if (this.__ferniResumeBuffered === true && __ferniFastStopOn()) this.__ferniClearOnPause();
+     }
+     super.pause();
+   }
++  // PATCHED(ferni): BARGE_IN_FAST_STOP. The captureFrame pause loop's clear, done at the pause.
++  __ferniClearOnPause() {
++    const queuedDuration = this.audioSource.queuedDuration;
++    if (!(queuedDuration > 0)) return;
++    this.__ferniClearedWhilePaused = true;
++    this.logger.info({ queuedMs: Math.round(queuedDuration) }, "BARGE_IN_FAST_STOP_CLEAR");
++    this.sourceDiscardedDuration += queuedDuration / 1e3;
++    this.reportRun({
++      offset: this.sourcePushedDuration * 1e3 - queuedDuration,
++      endedAt: Date.now(),
++      resumesAt: this.sourcePushedDuration * 1e3
++    });
++    // rtc's clearQueue also zeroes queuedDuration, so that loop won't count this audio again.
++    this.audioSource.clearQueue();
++  }
+   resume() {
+     if (!this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture.resolve();
+     }
++    this.__ferniClearedWhilePaused = false;
+     super.resume();
+   }
+   get subscribed() {
+@@ -518,7 +546,10 @@ class ParticipantAudioOutput extends AudioOutput {
+       await this.audioSource.waitForPlayout();
+     };
+     await Promise.race([waitForForwardingAndPlayout(), interruptionFuture.await]);
+-    const interrupted = interruptionFuture.done;
++    // PATCHED(ferni): BARGE_IN_FAST_STOP. Playout that ended because the pause cleared the queue
++    // was cut short: say so, with the position really played, so the transcript is what was heard.
++    const interrupted = interruptionFuture.done || this.__ferniClearedWhilePaused === true && !this.playbackEnabledFuture.done;
++    this.__ferniClearedWhilePaused = false;
+     let pushedDuration = Math.max(this.sourcePushedDuration - this.sourceDiscardedDuration, 0);
+     if (interrupted) {
+       const queuedDuration = this.audioSource.queuedDuration;
 diff --git a/dist/voice/transcription/synchronizer.cjs b/dist/voice/transcription/synchronizer.cjs
 index e7351b5e4d0db18cf9554448da10c3c982d37dcb..4ae8293504515fd7762acaedca52cd4f20578f82 100644
 --- a/dist/voice/transcription/synchronizer.cjs

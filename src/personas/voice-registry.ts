@@ -55,9 +55,6 @@ const FALLBACK_VOICE_IDS: Record<string, string> = {
   'generic-advisor': getVoiceIdForPersona('generic-advisor'),
 };
 
-// Default fallback voice (Ferni)
-const DEFAULT_VOICE_ID = VOICE_IDS.FERNI;
-
 // ============================================================================
 // VOICE REGISTRY STATE
 // ============================================================================
@@ -74,8 +71,13 @@ const voiceRegistry = new Map<string, VoiceEntry>();
 // NOTE: Alias resolution is now handled by persona-ids.ts (SINGLE SOURCE OF TRUTH)
 // The aliasToCanonical map has been removed - use toCanonical() instead
 
-// Initialization state
+// Initialization state. `initialized` is true once any voices are registered,
+// fallbacks included; `bundlesLoaded` only once the bundles' voices are. A
+// getVoiceId before boot registers fallbacks, and that used to stop the real
+// init (it returned on `initialized`), so prod ran on fallbacks only.
 let initialized = false;
+let bundlesLoaded = false;
+let loading: Promise<void> | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -89,11 +91,18 @@ let initialized = false;
  * This function only maps canonical persona IDs to their voice IDs.
  */
 export async function initializeVoiceRegistry(): Promise<void> {
-  if (initialized) {
+  if (bundlesLoaded) {
     logger.debug('Voice registry already initialized');
     return;
   }
+  loading ??= loadBundleVoices().finally(() => {
+    loading = null;
+  });
+  return loading;
+}
 
+/** Register every bundle's voice, over any fallback for the same persona. */
+async function loadBundleVoices(): Promise<void> {
   try {
     // Dynamic import to avoid circular dependency
     const { discoverAndLoadBundles } = await import('./bundles/index.js');
@@ -115,6 +124,7 @@ export async function initializeVoiceRegistry(): Promise<void> {
     }
 
     initialized = true;
+    bundlesLoaded = true;
 
     logger.info(
       {
@@ -139,7 +149,7 @@ export async function initializeVoiceRegistry(): Promise<void> {
 function initializeFallbacks(): void {
   // Register fallback voices for all canonical personas
   for (const canonicalId of ALL_CANONICAL_IDS) {
-    const voiceId = FALLBACK_VOICE_IDS[canonicalId] || VOICE_IDS.FERNI;
+    const voiceId = FALLBACK_VOICE_IDS[canonicalId] || getVoiceIdForPersona('ferni');
     const displayName = DISPLAY_NAMES[canonicalId] || canonicalId;
 
     voiceRegistry.set(canonicalId, {
@@ -205,7 +215,7 @@ export function getVoiceId(personaId: string): string {
   }
 
   logger.warn({ personaId, canonicalId }, 'No voice ID found, using default');
-  return DEFAULT_VOICE_ID;
+  return getVoiceIdForPersona('ferni');
 }
 
 /**
@@ -325,6 +335,7 @@ export function isVoiceRegistryInitialized(): boolean {
 export function resetVoiceRegistry(): void {
   voiceRegistry.clear();
   initialized = false;
+  bundlesLoaded = false;
 }
 
 // ============================================================================

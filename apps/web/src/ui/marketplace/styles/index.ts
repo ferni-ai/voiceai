@@ -16,7 +16,7 @@ import { getCreationsStyles } from './creations.js';
 const REDUCED_MOTION_STYLES = `
   @media (prefers-reduced-motion: reduce) {
     .discover-avatar-ring, .discover-avatar-orb, .agent-avatar,
-    .leader-avatar, .cofounder-avatar, .employee-avatar {
+    .leader-avatar, .employee-avatar {
       animation-play-state: paused !important;
     }
   }

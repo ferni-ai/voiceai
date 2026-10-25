@@ -33,6 +33,7 @@ function textDeps(env: Record<string, string>) {
     unlock: async () => undefined,
     sponsoredPhone: async () => undefined,
     isOptedOut: async () => false,
+    consentDoc: async () => undefined,
     userDoc: async () => undefined,
     legacySmsChannels: async () => undefined,
   } as unknown as TextStore;

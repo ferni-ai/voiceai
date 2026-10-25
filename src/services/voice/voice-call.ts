@@ -294,7 +294,7 @@ export async function callWithPersonaVoice(
 
   const cleanPhone = toPhone.replace(/\D/g, '');
   const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-  const { ownerRefusal } = await import('../messaging/consent-grants.js'); // MESSAGING_PIPELINE
+  const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE
   const refused = await ownerRefusal(options?.ownerUid, e164Phone, 'call'); // fails closed
   if (refused) return { success: false, message: `Not calling: ${refused}` };
 

@@ -215,7 +215,6 @@ fun SpeakingAvatar(volume: Float) {  // 0f - 1f
 - **Design tokens:** `design-system/tokens/animation.json` → `speakingSystem`
 - **Web implementation:** `apps/web/src/ui/presence.ui.ts`, `speaking-mouth.ui.ts`
 - **iOS implementation:** `apps/ios-native/...` (TBD)
-- **Android implementation:** `apps/android-native/...` (TBD)
 
 ---
 

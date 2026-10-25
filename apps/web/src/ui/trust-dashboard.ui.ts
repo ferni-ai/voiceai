@@ -19,6 +19,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import {
   escapeHtml as esc,
   parseTrustTab,
@@ -45,9 +46,7 @@ const log = createLogger('TrustDashboardUI');
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 interface DashboardState {
   activeTab: TrustTab;
@@ -160,6 +159,13 @@ export async function showTrustDashboard(): Promise<void> {
   // Add styles
   addStyles();
 
+  // A modal dialog: named, Escape closes it, and dialog-focus moves focus in and traps Tab
+  const modal = container.querySelector<HTMLElement>('.trust-dashboard-modal');
+  const overlay = container;
+  if (modal) {
+    asModalDialog(modal, { labelledBy: 'trust-dashboard-title' }, () => container === overlay && overlay.classList.contains('visible'), hideTrustDashboard);
+  }
+
   // Add event listeners
   setupEventListeners();
 
@@ -196,7 +202,7 @@ function createDashboardHTML(): string {
       <header class="trust-dashboard-header">
         <div class="header-left">
           <span class="eyebrow">${t('trustDashboard.journey')}</span>
-          <h2>${t('trustDashboard.trustGrowth')}</h2>
+          <h2 id="trust-dashboard-title">${t('trustDashboard.trustGrowth')}</h2>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
@@ -470,10 +476,10 @@ function setupEventListeners(): void {
     btn.addEventListener('click', (e) => {
       const tab = (e.currentTarget as HTMLElement).dataset.tab as DashboardState['activeTab'];
       if (tab) {
-        // Update active state
+        // Update active state, and bring a half-hidden tab fully into view
         container?.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
         (e.currentTarget as HTMLElement).classList.add('active');
-        // Load data
+        (e.currentTarget as HTMLElement).scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
         loadTabData(tab);
       }
     });
@@ -491,16 +497,6 @@ function setupEventListeners(): void {
     insightsPeriod = btn.dataset.period === 'week' ? 'week' : 'month';
     loadTabData('insights');
   });
-
-  // Escape key
-  document.addEventListener('keydown', handleKeyDown);
-}
-
-function handleKeyDown(e: KeyboardEvent): void {
-  if (e.key === 'Escape') {
-    hideTrustDashboard();
-    document.removeEventListener('keydown', handleKeyDown);
-  }
 }
 
 // ============================================================================
@@ -626,12 +622,15 @@ function addStyles(): void {
       height: 20px;
     }
     
+    /* Six tabs don't fit a phone (or quite fit 600px): they scroll, never clip, and the right edge fades */
     .trust-dashboard-tabs {
-      display: flex;
+      display: flex; flex-shrink: 0;
       gap: var(--space-1);
-      padding: var(--space-4) var(--space-6);
+      padding: var(--space-4) var(--space-6) var(--space-4) var(--space-4);
       border-bottom: 1px solid var(--color-border);
-      overflow-x: auto;
+      overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: var(--space-4);
+      -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent); /* Safari < 15.4 */
+      mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent);
     }
     
     .tab-btn {
@@ -645,7 +644,7 @@ function addStyles(): void {
       cursor: pointer;
       color: var(--color-text-muted);
       font-size: 0.85rem;
-      white-space: nowrap;
+      white-space: nowrap; flex: 0 0 auto; scroll-snap-align: start;
       transition: all ${DURATION.FAST}ms;
     }
     

@@ -13,6 +13,7 @@
 import type { JWTPayload } from 'jose';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createLogger } from '../../utils/safe-logger.js';
+import { erasureErrorCode } from '../platform/erasure-step.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'apple-signin-notifications' });
@@ -260,7 +261,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
         log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
       } catch (firebaseErr) {
         log.warn(
-          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
+          { error: erasureErrorCode(firebaseErr), userId: `${userId.substring(0, 8)}...` },
           'Firebase user deletion failed (non-fatal)'
         );
       }
@@ -282,7 +283,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
       );
     } catch (deletionError) {
       log.error(
-        { error: String(deletionError), userId: `${userId.substring(0, 8)}...` },
+        { error: erasureErrorCode(deletionError), userId: `${userId.substring(0, 8)}...` },
         'GDPR deletion failed - manual cleanup required'
       );
 
@@ -293,14 +294,14 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
         .update(
           cleanForFirestore({
             deletionStatus: 'failed',
-            deletionError: String(deletionError),
+            deletionError: erasureErrorCode(deletionError),
           })
         );
 
       throw deletionError;
     }
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to handle account deletion');
+    log.error({ error: erasureErrorCode(error), userId }, 'Failed to handle account deletion');
     throw error;
   }
 }
@@ -438,7 +439,7 @@ export async function processAppleNotification(rawPayload: string): Promise<Noti
       success: false,
       eventType: event.type,
       userId,
-      error: String(error),
+      error: erasureErrorCode(error),
     };
   }
 }

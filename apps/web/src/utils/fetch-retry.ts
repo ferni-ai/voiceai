@@ -91,11 +91,31 @@ export function onOnlineStatusChange(callback: (online: boolean) => void): () =>
 /**
  * Calculate delay for exponential backoff.
  */
-function calculateDelay(attempt: number, initialDelay: number, maxDelay: number): number {
-  // Exponential backoff with jitter
-  const exponentialDelay = initialDelay * Math.pow(2, attempt);
-  const jitter = Math.random() * 0.3 * exponentialDelay; // 0-30% jitter
-  return Math.min(exponentialDelay + jitter, maxDelay);
+export function calculateDelay(attempt: number, initialDelay: number, maxDelay: number): number {
+  // Exponential backoff with "equal jitter": half the step fixed, half random.
+  // The old 0-30% add-on kept every page-load retry within a few ms of each
+  // other (all at ~1.6 s, then ~2.8 s), so a struggling server got a herd.
+  const step = Math.min(initialDelay * Math.pow(2, attempt), maxDelay);
+  return step / 2 + Math.random() * (step / 2);
+}
+
+/** Requests in flight, by key; see dedupeInFlight. */
+const inFlight = new Map<string, Promise<unknown>>();
+
+/**
+ * Run `request` unless one with the same key is already in flight, in which
+ * case share its result. On page load several modules ask for the same thing
+ * at once (/spotify/status from two places, each with its own retries: four
+ * requests to a struggling server); the second caller now waits on the first.
+ */
+export function dedupeInFlight<R>(key: string, request: () => Promise<R>): Promise<R> {
+  const pending = inFlight.get(key) as Promise<R> | undefined;
+  if (pending) return pending;
+  const started = request();
+  inFlight.set(key, started);
+  const forget = (): void => void inFlight.delete(key);
+  started.then(forget, forget);
+  return started;
 }
 
 /**

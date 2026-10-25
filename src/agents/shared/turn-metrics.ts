@@ -42,9 +42,17 @@ export interface LlmMetric {
   /** Prompt tokens the model served from its cache (Gemini cachedContentTokenCount). */
   promptCachedTokens?: number;
   completionTokens: number;
+  /** Which model answered (LiveKit's MetricsMetadata). */
+  metadata?: { modelName?: string };
   /** Epoch ms the request finished, and how long it ran. */
   timestamp?: number;
   durationMs?: number;
+  /** The stream was closed before it finished (a dropped preemptive reply, a warm, a cut reply). */
+  cancelled?: boolean;
+  /** Gemini totalTokenCount: prompt + completion + thoughts. */
+  totalTokens?: number;
+  /** Hidden reasoning tokens, when the plugin breaks them out (0 otherwise). */
+  reasoningTokens?: number;
 }
 
 interface TtsMetric {

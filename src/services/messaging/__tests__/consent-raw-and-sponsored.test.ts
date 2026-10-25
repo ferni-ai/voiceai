@@ -35,7 +35,7 @@ const fetchSpy = vi.fn(
   async (_u: string | URL, _i?: unknown) => new Response('{}', { status: 201 })
 );
 vi.stubGlobal('fetch', fetchSpy);
-import { rawSendRetired } from '../consent-grants.js';
+import { rawSendRetired } from '../consent-reach.js';
 import { accountPhoneSources, sponsoredPhoneOf } from '../../outreach/user-reach.js';
 import { firestoreTextStore } from '../../outreach/guarded-text-store.js';
 import { communicationExecutor } from '../../../agents/shared/tool-executors/communication-executor.js';

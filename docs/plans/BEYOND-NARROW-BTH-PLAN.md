@@ -147,7 +147,7 @@ We can't prove "better than human" because we don't measure it:
 | 2.3 Voice memory | Firestore schema addition |
 | 2.5 BTH telemetry | Firestore + existing signal dispatchers |
 | 3.1 Audio-in/audio-out | Qwen3-Omni (exists) or Omni Pipeline (exists) |
-| 3.2 Pipeline switching | `pipeline-switcher.ts` (exists, experimental) |
+| 3.2 Pipeline switching | `pipeline-switcher.ts` removed 2026-10-18 (PIPELINE_SWITCHING was off everywhere and only logged) |
 | 3.5 Wearable integration | Apple HealthKit API |
 | 4.1 Multi-perspective | Cross-persona intelligence (implemented) |
 | 4.4 Crisis warm transfer | External therapist network (business) |

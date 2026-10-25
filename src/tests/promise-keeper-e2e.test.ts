@@ -36,11 +36,13 @@ vi.mock('../services/superhuman/firestore-utils.js', async (importOriginal) => {
     getFirestoreDb: () => sharedNestedFirestore.db,
   };
 });
-// External senders: Twilio SMS, and the credential lookup that says it's configured.
-const sendSms = vi.fn(async (_to: string, _text: string) => 'Reminder sent');
+// External senders: the guarded text sender (stubbed, installed below; the old
+// unguarded sendReminder must never be used), and the channel check.
+const sendSms = vi.fn(async (_to: string, _text: string): Promise<'sent' | 'in-app'> => 'sent');
+const unguarded = vi.fn(async () => 'Reminder sent');
 vi.mock('../services/communication-service.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/communication-service.js')>()),
-  sendReminder: (to: string, text: string) => sendSms(to, text),
+  sendReminder: unguarded,
 }));
 vi.mock('../services/outreach/unified-delivery.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/outreach/unified-delivery.js')>()),
@@ -59,11 +61,12 @@ vi.mock('@livekit/agents', async (importOriginal) => {
 
 const { reminderTools } = await import('../tools/domains/productivity/reminders.js');
 const { deliverDueReminders } = await import('../services/scheduling/reminder-delivery-job.js');
+const { installReminderTextGuard } = await import('../services/scheduling/reminder-text-guard.js');
 const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
 const { clearCommitmentCache } =
   await import('../services/superhuman/semantic-intelligence/ferni-commitments.js');
-const { buildPromiseContext, resetOfferedMisses } =
+const { buildPromiseContext, markMissesOffered, promiseContextFor } =
   await import('../services/superhuman/semantic-intelligence/promise-keeper.js');
 const { writeTrustDoc } = await import('../services/trust-systems/trust-doc.js');
 const { TIMELINE_DOC } = await import('../services/trust-systems/dashboard-history.js');
@@ -125,8 +128,9 @@ beforeEach(() => {
   vi.stubEnv('OUTBOUND_CONFIRM', 'off'); // pins promise keeping; the confirm gate is tested elsewhere
   fs.store.clear();
   clearCommitmentCache();
-  resetOfferedMisses();
   sendSms.mockClear();
+  unguarded.mockClear();
+  installReminderTextGuard(async (r) => sendSms(r.deliveryAddress, r.message));
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(START);
 });
@@ -144,6 +148,7 @@ describe('Ferni keeps her promises', () => {
     const run = await deliverDueReminders({ now: at(31 * 60 * 1000) });
     expect(run).toMatchObject({ delivered: 1, promiseErrors: 0 });
     expect(sendSms).toHaveBeenCalledTimes(1);
+    expect(unguarded).not.toHaveBeenCalled();
     expect(promises()[0]).toMatchObject({
       outcome: 'kept',
       fulfilled: true,
@@ -174,8 +179,8 @@ describe('Ferni keeps her promises', () => {
     expect(await followsThrough()).toEqual({ kept: 0, total: 1 });
   });
 
-  it('a reminder that could not be sent is a missed promise; a cancelled one is released', async () => {
-    sendSms.mockResolvedValueOnce('trouble sending');
+  it('a reminder that could not be texted is a missed promise; a cancelled one is released', async () => {
+    sendSms.mockResolvedValueOnce('in-app'); // the guard refused it: it goes to the app, unread
     await setReminder('in 30 minutes');
     await setReminder('in 2 hours');
     const [failing, cancelled] = promises().sort((a, b) =>
@@ -196,10 +201,46 @@ describe('Ferni keeps her promises', () => {
     const byId = new Map(promises().map((p) => [p.id, p]));
     expect(byId.get(failing.id)).toMatchObject({
       outcome: 'missed',
-      missedReason: 'reminder could not be delivered',
+      missedReason: 'reminder left in the app, no one told',
     });
+    expect(unguarded).not.toHaveBeenCalled();
     expect(byId.get(cancelled.id)).toMatchObject({ outcome: 'released', fulfilled: false });
     expect(byId.get(cancelled.id)?.violated).toBeUndefined();
+  });
+
+  it('a reminder left in the app with no push is not a kept promise; with a push it is', async () => {
+    const def = reminderTools.find((t) => t.id === 'setReminder');
+    const tool = def?.create({ userId: UID, agentId: 'ferni' } as never) as unknown as {
+      execute: (p: Record<string, string>) => Promise<string>;
+    };
+    await tool.execute({ message: 'stretch', when: 'in 30 minutes' }); // kept for the app
+    await tool.execute({ message: 'water the plants', when: 'in 40 minutes' });
+    const [first, second] = promises().sort((a, b) =>
+      String(a.dueBy).localeCompare(String(b.dueBy))
+    );
+    const statusOf = (p: Record<string, unknown>) =>
+      fs.store.get(`bogle_users/${UID}/reminders/${String(p.reminderId)}`)?.status;
+
+    // No push: an inbox row nobody was told about. Its promise stays open...
+    const run = await deliverDueReminders({ now: at(31 * 60 * 1000) });
+    expect(run).toMatchObject({ delivered: 0, inboxOnly: 1 });
+    expect(statusOf(first)).toBe('in_app_unnotified');
+    const byId = () => new Map(promises().map((p) => [p.id, p]));
+    expect(byId().get(first.id)).toMatchObject({ outcome: 'open', fulfilled: false });
+
+    // A push told them: delivered, and the promise is kept.
+    const reach = { textOn: async () => false, notifyInApp: async () => true };
+    await deliverDueReminders({ now: at(41 * 60 * 1000), reach });
+    expect(statusOf(second)).toBe('delivered');
+    expect(byId().get(second.id)).toMatchObject({ outcome: 'kept', fulfilled: true });
+
+    // ...and once it is due, the overdue check calls it missed, never kept.
+    await deliverDueReminders({ now: at(3 * 60 * 60 * 1000) });
+    expect(byId().get(first.id)).toMatchObject({
+      outcome: 'missed',
+      fulfilled: false,
+      missedReason: 'reminder left in the app, no one told',
+    });
   });
 
   it('asking about it in a later conversation keeps a check-in promise', async () => {
@@ -229,15 +270,18 @@ describe('Ferni keeps her promises', () => {
     await deliverDueReminders({ now: at(7 * DAY + 60_000) });
     vi.setSystemTime(at(8 * DAY));
 
-    const firstCall = await buildPromiseContext(UID);
-    expect(firstCall).toContain("PROMISES YOU DIDN'T KEEP");
-    expect(firstCall).toContain("I'll check in about that");
+    // A web view reads it without owning it; the call that shows it marks it (open-loops-recall.ts).
+    expect(await buildPromiseContext(UID)).toContain("PROMISES YOU DIDN'T KEEP");
+    expect(promises()[0]?.ownOfferedAt).toBeUndefined();
+    const firstCall = await promiseContextFor(UID);
+    expect(firstCall.text).toContain("PROMISES YOU DIDN'T KEEP");
+    expect(firstCall.text).toContain("I'll check in about that");
+    await markMissesOffered(UID, firstCall.misses);
     expect(promises()[0]).toMatchObject({
       outcome: 'missed',
       ownOfferedAt: at(8 * DAY).toISOString(),
     });
 
-    resetOfferedMisses(); // a new call, a new process
     clearCommitmentCache();
     const nextCall = await buildPromiseContext(UID);
     expect(nextCall).not.toContain("PROMISES YOU DIDN'T KEEP");

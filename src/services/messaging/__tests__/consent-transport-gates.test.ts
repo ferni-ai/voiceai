@@ -58,7 +58,11 @@ import {
 import { sendSMS as sendBreakerSms } from '../../external-apis/twilio-sms.js';
 import { initializeSIPBridge, initiateConversationalCall } from '../../outreach/sip-bridge.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
-import { writeOptOut } from '../consent.js';
+import { consentBlocks, writeOptOut } from '../consent.js';
+import { registerConsentCheck } from '../../../utils/consent-port.js';
+
+// The senders below L4 ask the port; register it as each process entry does, over the memory store.
+registerConsentCheck((phone, channel, allow) => consentBlocks(phone, channel, allow));
 
 const PHONE = '+12025550155';
 const env = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };

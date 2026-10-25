@@ -355,7 +355,7 @@ async function execute(
         return `I need a valid phone number. Can you double-check "${phoneNumber}"?`;
       }
       const e164Number = cleanNumber.startsWith('1') ? `+${cleanNumber}` : `+1${cleanNumber}`;
-      const grants = await import('../../../services/messaging/consent-grants.js');
+      const grants = await import('../../../services/messaging/consent-reach.js');
       const refused = await grants.ownerRefusal(ctx.userId, e164Number, 'call');
       if (refused) return grants.notCalling(refused);
 

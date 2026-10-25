@@ -39,7 +39,7 @@ import {
   onBehalfNotSent,
   textOnBehalf,
 } from '../../../../services/outreach/guarded-text.js';
-import { thirdPartyRefusal } from '../../../../services/messaging/consent-grants.js';
+import { thirdPartyRefusal } from '../../../../utils/consent-port.js';
 import { sendEmail } from '../../../../services/outreach/delivery/email-delivery.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 
@@ -251,11 +251,9 @@ async function gatherOutreachContext(
   purpose: string,
   personaId: string
 ): Promise<OutreachContext> {
-  const now = new Date();
-  const lastContact = contact.lastInteraction || contact.createdAt || now;
-  const daysSinceLastContact = Math.floor(
-    (now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  // No recorded interaction means no "it's been a while": 0 keeps the message from claiming a gap
+  const last = contact.lastInteraction;
+  const daysSinceLastContact = last ? Math.floor((Date.now() - last.getTime()) / 86_400_000) : 0;
 
   const recentTopics = contact.topics?.slice(0, 5).map((t) => t.topic) || [];
 
@@ -668,9 +666,7 @@ Just tell me WHO and WHY. I'll handle the rest.`,
             phone: phoneMatch?.[0]?.replace(/\D/g, ''),
             email: emailMatch?.[0],
             firstInteraction: new Date(),
-            lastInteraction: new Date(),
             interactionCount: 0,
-            strengthScore: 0,
             topics: [],
             recentContext: [],
             createdAt: new Date(),

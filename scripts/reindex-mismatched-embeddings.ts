@@ -6,10 +6,18 @@
  * embeddings with incorrect dimensions (e.g., 384 instead of 768) and
  * re-generates them using the current embedding model.
  *
+ * Dry run by default (scripts/destructive-gate.ts): reads the collection and
+ * prints how many documents have each wrong dimension. No ids, no embedding
+ * calls, no writes. Writes need --execute --confirm-project=<project>.
+ *
  * USAGE:
- *   npx tsx scripts/reindex-mismatched-embeddings.ts
- *   npx tsx scripts/reindex-mismatched-embeddings.ts --dry-run
- *   npx tsx scripts/reindex-mismatched-embeddings.ts --delete  # Delete instead of re-index
+ *   GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/reindex-mismatched-embeddings.ts
+ *   GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/reindex-mismatched-embeddings.ts \
+ *     --execute --confirm-project=johnb-2025            # re-embed (needs GOOGLE_API_KEY)
+ *   ... --delete --execute --confirm-project=johnb-2025  # delete instead of re-index
+ *
+ * Embeddings are stored as Firestore vectors (FieldValue.vector), which read
+ * back as a VectorValue, not an array; both shapes are measured.
  *
  * PREREQUISITES:
  *   - Set GOOGLE_API_KEY for embedding generation
@@ -18,8 +26,11 @@
  * @module scripts/reindex-mismatched-embeddings
  */
 
+import { pathToFileURL } from 'node:url';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { destructiveMode, refusalMessage } from './destructive-gate.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -33,9 +44,15 @@ const BATCH_SIZE = 50; // Process in batches to avoid rate limits
 // CLI ARGS
 // ============================================================================
 
-const args = process.argv.slice(2);
-const DRY_RUN = args.includes('--dry-run');
-const DELETE_MODE = args.includes('--delete');
+let DRY_RUN = true;
+let DELETE_MODE = false;
+
+/** An embedding's dimension: an array's length, or a VectorValue's (toArray). */
+export function dimensionOf(embedding: unknown): number | null {
+  if (Array.isArray(embedding)) return embedding.length;
+  const toArray = (embedding as { toArray?: () => number[] } | null)?.toArray;
+  return typeof toArray === 'function' ? toArray.call(embedding).length : null;
+}
 
 // ============================================================================
 // FIREBASE INIT
@@ -116,7 +133,7 @@ interface MismatchedDoc {
 }
 
 async function findMismatchedDocuments(): Promise<MismatchedDoc[]> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const mismatched: MismatchedDoc[] = [];
 
   console.log(`\n🔍 Scanning ${COLLECTION_NAME} collection for dimension mismatches...`);
@@ -127,13 +144,13 @@ async function findMismatchedDocuments(): Promise<MismatchedDoc[]> {
 
   for (const doc of snapshot.docs) {
     const data = doc.data();
-    const embedding = data.embedding;
+    const dimension = dimensionOf(data.embedding);
 
-    if (Array.isArray(embedding) && embedding.length !== EXPECTED_DIMENSION) {
+    if (dimension !== null && dimension !== EXPECTED_DIMENSION) {
       mismatched.push({
         id: doc.id,
         text: data.text || '',
-        currentDimension: embedding.length,
+        currentDimension: dimension,
         metadata: data.metadata || {},
       });
     }
@@ -155,11 +172,14 @@ async function reindexDocument(
     const newEmbedding = await generateEmbedding(doc.text);
 
     if (!DRY_RUN) {
-      await db.collection(COLLECTION_NAME).doc(doc.id).update({
-        embedding: FieldValue.vector(newEmbedding),
-        'metadata.reindexedAt': new Date().toISOString(),
-        'metadata.previousDimension': doc.currentDimension,
-      });
+      await db
+        .collection(COLLECTION_NAME)
+        .doc(doc.id)
+        .update({
+          embedding: FieldValue.vector(newEmbedding),
+          'metadata.reindexedAt': new Date().toISOString(),
+          'metadata.previousDimension': doc.currentDimension,
+        });
     }
 
     return true;
@@ -184,7 +204,17 @@ async function deleteDocument(
   }
 }
 
-async function main(): Promise<void> {
+export async function main(argv: readonly string[] = process.argv): Promise<void> {
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || '';
+  const mode = destructiveMode(argv, projectId);
+  if (mode === 'refused') {
+    console.error(refusalMessage(projectId));
+    process.exitCode = 1;
+    return;
+  }
+  DRY_RUN = mode === 'dry-run';
+  DELETE_MODE = argv.includes('--delete');
+
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('  Re-index Mismatched Embeddings');
   console.log('═══════════════════════════════════════════════════════════════');
@@ -199,7 +229,7 @@ async function main(): Promise<void> {
 
   // Initialize Firebase
   initFirebase();
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   // Find mismatched documents
   const mismatched = await findMismatchedDocuments();
@@ -220,9 +250,12 @@ async function main(): Promise<void> {
   console.log(`\n📊 Found ${mismatched.length} documents with wrong dimensions:`);
   for (const [dim, docs] of byDimension) {
     console.log(`   - ${dim} dimensions: ${docs.length} documents`);
-    // Show first few doc IDs
-    const sample = docs.slice(0, 3).map((d) => d.id);
-    console.log(`     Examples: ${sample.join(', ')}${docs.length > 3 ? '...' : ''}`);
+  }
+
+  // A dry run stops at the counts: no embedding calls, no ids, no writes
+  if (DRY_RUN) {
+    console.log('\n🔍 DRY RUN - add --execute --confirm-project=<project> to apply');
+    return;
   }
 
   // Process in batches
@@ -236,9 +269,7 @@ async function main(): Promise<void> {
     const batch = mismatched.slice(i, i + BATCH_SIZE);
 
     for (const doc of batch) {
-      const success = DELETE_MODE
-        ? await deleteDocument(db, doc)
-        : await reindexDocument(db, doc);
+      const success = DELETE_MODE ? await deleteDocument(db, doc) : await reindexDocument(db, doc);
 
       processed++;
       if (success) {
@@ -273,7 +304,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  console.error('❌ Script failed:', error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error('❌ Script failed:', error);
+    process.exit(1);
+  });
+}

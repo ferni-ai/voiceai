@@ -33,6 +33,8 @@ describe('junkReason', () => {
     [{ name: 'giving the item to Ferni', type: 'topic' }, 'persona'],
     [{ name: 'Hey Maya', type: 'person' }, 'persona'],
     [{ name: 'Ferni', type: 'person', relationship: 'friend' }, 'persona'],
+    [{ name: 'Fernie', type: 'person' }, 'persona'],
+    [{ name: 'Furny', type: 'person' }, 'persona'],
     [{ name: 'Maya', type: 'person' }, 'persona'],
     [{ name: 'Peter John', type: 'person' }, 'persona'],
     [{ name: 'Jordon', type: 'person' }, 'persona'],
@@ -119,5 +121,114 @@ describe('extractEntities (the extractor whose entities the entity store creates
     model.reply = 'not json';
     const { entities } = await extractEntities('Hi Maya, my mom said Ferni was great', context);
     expect(entities.map((e) => e.name)).toEqual(['mother']);
+  });
+});
+
+/** Prod 2026-10-20: STT heard "Hey Ferni" as "Hey Fred."; "Fred" and "Everyone" were stored. */
+describe('a name the caller only greets, and "everyone"', () => {
+  const said = 'Hey Fred.\nEveryone very good.';
+  const fred: NamedEntity = { name: 'Fred', type: 'person', relationship: 'friend' };
+
+  it('drops the greeted name and "Everyone" from the call', () => {
+    expect(junkReason(fred, ON, said)).toBe('greeted');
+    const everyone = { name: 'Everyone', type: 'person', relationship: 'social circle' };
+    expect(junkReason(everyone, ON, said)).toBe('placeholder');
+    expect(junkReason({ name: 'everybody at work', type: 'person' }, ON)).toBe('placeholder');
+  });
+
+  it.each(['Hi, Fred, how are you?', 'Hello Fred', 'Okay. Hey Fred!'])(
+    'drops a person only greeted in %j',
+    (text) => {
+      expect(junkReason(fred, ON, text)).toBe('greeted');
+    }
+  );
+
+  it.each([
+    'my friend Fred says hi',
+    'Hey Fred came over yesterday.',
+    'Hey Fred. My friend Fred is visiting.',
+    'I saw Fred.',
+    'Hey Fred Rogers was on TV',
+    '',
+  ])('keeps a person the caller talks about in %j', (text) => {
+    expect(junkReason(fred, ON, text)).toBeNull();
+  });
+
+  it('keeps a place or topic that follows a greeting', () => {
+    expect(junkReason({ name: 'Denver', type: 'place' }, ON, 'Hey Denver.')).toBeNull();
+  });
+
+  it('the extractor stores neither from the call, and a real Fred still', async () => {
+    model.reply = JSON.stringify([
+      { name: 'Fred', type: 'person', relationship: 'friend', confidence: 0.8 },
+      { name: 'Everyone', type: 'person', relationship: 'social circle', confidence: 0.6 },
+    ]);
+    const context = { userId: 'u1', sessionId: 's1', turnNumber: 2 };
+    vi.stubEnv('ENTITY_HYGIENE', 'on');
+    expect((await extractEntities(said, context)).entities).toEqual([]);
+    const real = await extractEntities('my friend Fred says hi to everyone', context);
+    expect(real.entities.map((e) => e.name)).toEqual(['Fred']);
+    vi.stubEnv('ENTITY_HYGIENE', 'off');
+    expect((await extractEntities(said, context)).entities).toHaveLength(2);
+  });
+});
+
+/** ENTITY_ROLE_LABELS: Ferni stored under the extractor's role words (prod 2026-10-19). */
+describe('ENTITY_ROLE_LABELS', () => {
+  const ROLES_ON = { ...ON, ENTITY_ROLE_LABELS: 'on' };
+  const roles: NamedEntity[] = [
+    { name: "User's interlocutor", type: 'person', relationship: 'collaborator' },
+    { name: 'Assistant', type: 'person', relationship: 'AI assistant / conversational partner' },
+    {
+      name: "The user's conversational partner",
+      type: 'person',
+      relationship: 'conversational partner',
+    },
+    { name: 'the AI', type: 'person' },
+    { name: 'AI assistant', type: 'concept' },
+  ];
+
+  it.each(roles)('on: rejects %o as persona', (entity) => {
+    expect(junkReason(entity, ROLES_ON)).toBe('persona');
+  });
+
+  it.each(roles)('off: %o is kept, as before', (entity) => {
+    expect(junkReason(entity, ON)).toBeNull();
+  });
+
+  const real: NamedEntity[] = [
+    { name: 'Karen', type: 'person', relationship: 'assistant' },
+    { name: 'my assistant Karen', type: 'person', relationship: 'assistant' },
+    { name: 'Google Assistant', type: 'organization' },
+    { name: 'Ainsley', type: 'person' },
+    { name: 'business partner', type: 'concept' },
+  ];
+  it.each(real)('on: keeps %o', (entity) => {
+    expect(junkReason(entity, ROLES_ON)).toBeNull();
+  });
+
+  it('the extractor drops the role labels only with both flags on', async () => {
+    const reply = JSON.stringify([
+      {
+        name: "User's interlocutor",
+        type: 'person',
+        relationship: 'collaborator',
+        confidence: 0.7,
+      },
+      { name: 'Assistant', type: 'person', confidence: 0.7 },
+      { name: 'Sarah', type: 'person', relationship: 'sister', confidence: 0.9 },
+    ]);
+    const context = { userId: 'u1', sessionId: 's1', turnNumber: 1 };
+    model.reply = reply;
+    vi.stubEnv('ENTITY_HYGIENE', 'on');
+    const hygieneOnly = await extractEntities('my sister Sarah says hi', context);
+    expect(hygieneOnly.entities.map((e) => e.name)).toEqual([
+      "User's interlocutor",
+      'Assistant',
+      'Sarah',
+    ]);
+    vi.stubEnv('ENTITY_ROLE_LABELS', 'on');
+    const both = await extractEntities('my sister Sarah says hi', context);
+    expect(both.entities.map((e) => e.name)).toEqual(['Sarah']);
   });
 });

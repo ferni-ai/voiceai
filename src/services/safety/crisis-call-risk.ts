@@ -11,6 +11,10 @@
  * - reads still in flight, which count as risk until they finish.
  * A call with risk noted is never dropped before its 6 hours are up.
  *
+ * CRISIS_GROUNDED_RELEASE (crisis-grounded-release.ts) also asks a narrower
+ * question: is there risk on this call that no grounded release explained?
+ * crisisRiskThisCall never forgets a release; only unexplainedCrisisRisk does.
+ *
  * @module CrisisCallRisk
  */
 
@@ -24,6 +28,25 @@ const TTL_MS = 6 * 60 * 60 * 1000;
 const risky = new Map<string, number>();
 /** Per call: reads in flight, by the caller words they read (a turn). */
 const pending = new Map<string, Map<string, number>>();
+/**
+ * Per call, for unexplainedCrisisRisk: whether risk was ever noted with no
+ * turn (a pattern match, a script that stood), the turns whose reads noted
+ * risk, and the turns a grounded release explained.
+ */
+interface RiskNotes {
+  turnless: boolean;
+  turns: Set<string>;
+  explained: Set<string>;
+}
+const notes = new Map<string, RiskNotes>();
+const notesOf = (sessionId: string): RiskNotes => {
+  let kept = notes.get(sessionId);
+  if (!kept) {
+    kept = { turnless: false, turns: new Set(), explained: new Set() };
+    notes.set(sessionId, kept);
+  }
+  return kept;
+};
 
 const turnOf = (latest: string): string =>
   latest
@@ -32,13 +55,52 @@ const turnOf = (latest: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+/** The turn key noteCrisisRisk takes for these caller words (as trackCrisisRead keys them). */
+export const crisisTurnOf = turnOf;
+
 /** Told of every risk noted: the call, and the caller words whose read noted it, when known. */
 type RiskListener = (sessionId: string, turn: string | undefined) => void;
 const listeners = new Set<RiskListener>();
 
-/** Hear of every risk noted on any call (crisis-lone-imminent.ts drops its snapshots). */
-export function onCrisisRiskNoted(listener: RiskListener): void {
+/**
+ * Hear of every risk noted on any call (crisis-lone-imminent.ts drops its
+ * snapshots). Returns a function that stops listening (call-wrap-up.ts listens
+ * only while a call is ending).
+ */
+export function onCrisisRiskNoted(listener: RiskListener): () => void {
   listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+
+/** Told when a classifier read of a call's caller words starts (call-wrap-up.ts waits on it). */
+type ReadListener = (sessionId: string, words: string) => void;
+const readListeners = new Set<ReadListener>();
+
+/**
+ * Hear of every crisis read that starts: the call, and the caller words read.
+ * Returns a function that stops listening.
+ */
+export function onCrisisReadStarted(listener: ReadListener): () => void {
+  readListeners.add(listener);
+  return () => void readListeners.delete(listener);
+}
+
+/** A classifier read of these caller words (or words holding them) is in flight on this call. */
+export function turnReadInFlight(sessionId: string, latest: string): boolean {
+  const reads = pending.get(sessionId);
+  const turn = turnOf(latest);
+  if (!reads || !turn) return false;
+  return [...reads.keys()].some((t) => t === turn || t.includes(turn) || turn.includes(t));
+}
+
+/** A classifier read of this call's caller words is still in flight. */
+export function crisisReadInFlight(sessionId: string): boolean {
+  return pending.has(sessionId);
+}
+
+/** For tests: how many listeners are attached. */
+export function crisisRiskListenerCount(): number {
+  return listeners.size;
 }
 
 /**
@@ -51,9 +113,17 @@ export function noteCrisisRisk(
   turn?: string
 ): void {
   if (!sessionId) return;
-  for (const [id, at] of risky) if (now - at > TTL_MS) risky.delete(id);
+  for (const [id, at] of risky) {
+    if (now - at > TTL_MS) {
+      risky.delete(id);
+      notes.delete(id);
+    }
+  }
   risky.delete(sessionId);
   risky.set(sessionId, now);
+  const kept = notesOf(sessionId);
+  if (turn === undefined) kept.turnless = true;
+  else kept.turns.add(turn);
   for (const listener of listeners) {
     try {
       listener(sessionId, turn);
@@ -78,6 +148,13 @@ export function trackCrisisRead<T extends { risk: string } | null>(
   const reads = pending.get(sessionId) ?? new Map<string, number>();
   reads.set(turn, (reads.get(turn) ?? 0) + 1);
   pending.set(sessionId, reads);
+  for (const listener of readListeners) {
+    try {
+      listener(sessionId, latest);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Crisis read listener failed');
+    }
+  }
   const settle = (risk: boolean): void => {
     const left = (reads.get(turn) ?? 1) - 1;
     if (left > 0) reads.set(turn, left);
@@ -105,8 +182,40 @@ export function crisisRiskThisCall(sessionId: string, latest?: string, now = Dat
   return [...reads.keys()].some((t) => t !== turn);
 }
 
+/** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */
+export function explainCrisisTurn(sessionId: string | undefined, latest: string): void {
+  if (sessionId) notesOf(sessionId).explained.add(turnOf(latest));
+}
+
+/** How many turns grounded releases have explained on this call. */
+export function explainedCrisisTurns(sessionId: string): number {
+  return notes.get(sessionId)?.explained.size ?? 0;
+}
+
+/**
+ * crisisRiskThisCall without the turns a grounded release explained: any risk
+ * noted with no turn, any noted turn not explained, or a read of other words
+ * still in flight.
+ */
+export function unexplainedCrisisRisk(
+  sessionId: string,
+  latest: string,
+  now = Date.now()
+): boolean {
+  const turn = turnOf(latest);
+  const at = risky.get(sessionId);
+  if (at !== undefined && now - at <= TTL_MS) {
+    const kept = notes.get(sessionId);
+    if (!kept || kept.turnless) return true;
+    for (const t of kept.turns) if (t !== turn && !kept.explained.has(t)) return true;
+  }
+  const reads = pending.get(sessionId);
+  return !!reads && [...reads.keys()].some((t) => t !== turn);
+}
+
 /** For tests. */
 export function resetCrisisCallRisk(): void {
   risky.clear();
   pending.clear();
+  notes.clear();
 }

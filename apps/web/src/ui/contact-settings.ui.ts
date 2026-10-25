@@ -34,9 +34,7 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Generate time options for the quiet hours selects
- */
+/** Generate time options for the quiet hours selects */
 function generateTimeOptions(selectedValue: string): string {
   const options: string[] = [];
   for (let hour = 0; hour < 24; hour++) {
@@ -48,9 +46,7 @@ function generateTimeOptions(selectedValue: string): string {
   return options.join('');
 }
 
-/**
- * Format hour for display (12-hour with AM/PM)
- */
+/** Format hour for display (12-hour with AM/PM) */
 function formatHour(hour: number): string {
   const am = t('contactSettings.time.am', 'AM');
   const pm = t('contactSettings.time.pm', 'PM');
@@ -60,9 +56,7 @@ function formatHour(hour: number): string {
   return `${hour - 12}:00 ${pm}`;
 }
 
-/**
- * Format timezone for display
- */
+/** Format timezone for display */
 function formatTimezone(timezone: string): string {
   try {
     // Get abbreviated timezone name
@@ -79,14 +73,10 @@ function formatTimezone(timezone: string): string {
 }
 
 // ============================================================================
-// TYPES
+// STATE
 // ============================================================================
 
 export type { ContactSettingsState } from './contact-settings-types.js';
-
-// ============================================================================
-// STATE
-// ============================================================================
 
 const freshState = (): ContactSettingsState => ({
   isOpen: false, isLoading: false, isSaving: false, isVerifying: false, verificationCode: '',
@@ -400,7 +390,10 @@ function injectStyles(): void {
       margin: 0;
     }
 
-    .contact-settings-actions {
+    .contact-settings-actions { /* sticky: Save/Later sat below the fold on most screens */
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
       display: flex;
       gap: 0.75rem;
       padding: 1rem 1.5rem;
@@ -628,6 +621,7 @@ function render(): void {
 
   const modal = modalContainer.querySelector('.contact-settings-modal');
   if (!modal) return;
+  const focusedId = modal.contains(document.activeElement) ? document.activeElement?.id : undefined;
 
   modal.innerHTML = `
     <button class="contact-settings-close" aria-label="${t('common.close')}">
@@ -639,7 +633,7 @@ function render(): void {
         ${ICONS.heart}
       </div>
       <p class="contact-settings-eyebrow">${t('contactSettings.eyebrow', 'Stay Connected')}</p>
-      <h2 class="contact-settings-title">${t('contactSettings.title', 'How can I reach you?')}</h2>
+      <h2 class="contact-settings-title" id="contact-settings-title">${t('contactSettings.title', 'How can I reach you?')}</h2>
       <p class="contact-settings-subtitle">
         ${t('contactSettings.subtitle', "Share your contact info so I can check in, celebrate wins, and be there when you need me.")}
       </p>
@@ -704,7 +698,7 @@ function render(): void {
         <div class="contact-settings-privacy">
           <span class="contact-settings-privacy-icon">${ICONS.shield}</span>
           <p class="contact-settings-privacy-text">
-            ${t('contactSettings.privacyNote', "I'll only use this for check-ins. Never spam, never shared.")}
+            ${t('contactSettings.privacyNote', "I'll only use this for check-ins. Never spam, never sold.")}
           </p>
         </div>
 
@@ -763,6 +757,7 @@ function render(): void {
 
   // Bind events
   bindEvents();
+  if (focusedId) modal.querySelector<HTMLElement>(`#${focusedId}`)?.focus({ preventScroll: true }); // re-render replaced it
 }
 
 function bindEvents(): void {
@@ -997,6 +992,8 @@ export async function openContactSettings(): Promise<void> {
   document.body.appendChild(modalContainer);
   state.isOpen = true;
   render(); // usable right away; the load fills in only what the user hasn't typed
+  // Start on the first field with a mouse and keyboard; on touch that would throw up the keyboard
+  if (window.matchMedia?.('(pointer: fine)').matches) modalContainer.querySelector<HTMLElement>('#phone-input:not([disabled])')?.focus();
 
   // Animate in
   requestAnimationFrame(() => {

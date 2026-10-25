@@ -26,6 +26,7 @@ import {
 } from './schema.js';
 import { classifyFactDomain } from './queries.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { graphWriteSkipped } from './graph-write-gate.js';
 
 const log = createLogger({ module: 'SpannerGraphClient' });
 
@@ -102,10 +103,7 @@ export { firestoreFactSyncOps, getUnsyncedFactDocs, RETRIES_PER_CYCLE } from './
 export async function upsertEntity(
   entity: Omit<GraphEntity, 'createdAt' | 'updatedAt'>
 ): Promise<void> {
-  if (!isSpannerReady()) {
-    log.debug('Spanner not ready, skipping entity upsert');
-    return;
-  }
+  if (!isSpannerReady() || graphWriteSkipped('upsertEntity')) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -151,7 +149,7 @@ export async function upsertEntity(
  * Also indexes the fact for semantic search.
  */
 export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<void> {
-  if (!isSpannerReady()) return;
+  if (!isSpannerReady() || graphWriteSkipped('insertFact')) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -204,7 +202,7 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
  * Insert a relationship
  */
 export async function insertRelationship(rel: Omit<GraphRelationship, 'createdAt'>): Promise<void> {
-  if (!isSpannerReady()) return;
+  if (!isSpannerReady() || graphWriteSkipped('insertRelationship')) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -247,7 +245,7 @@ export async function linkFactToEntity(
   entityId: string,
   factId: string
 ): Promise<void> {
-  if (!isSpannerReady()) return;
+  if (!isSpannerReady() || graphWriteSkipped('linkFactToEntity')) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -387,10 +385,7 @@ export async function getEntityByName(userId: string, name: string): Promise<Gra
  * Upsert a memory thread (conversation theme continuity)
  */
 export async function upsertMemoryThread(thread: Omit<MemoryThread, 'createdAt'>): Promise<void> {
-  if (!isSpannerReady()) {
-    log.debug('Spanner not ready, skipping thread upsert');
-    return;
-  }
+  if (!isSpannerReady() || graphWriteSkipped('upsertMemoryThread')) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -537,10 +532,7 @@ export async function getMemoryThreadByTheme(
 export async function insertMemoryAnchor(
   anchor: Omit<MemoryAnchor, 'createdAt' | 'recallCount'>
 ): Promise<void> {
-  if (!isSpannerReady()) {
-    log.debug('Spanner not ready, skipping anchor insert');
-    return;
-  }
+  if (!isSpannerReady() || graphWriteSkipped('insertMemoryAnchor')) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -635,7 +627,7 @@ export async function getMemoryAnchorsByUser(
  * Mark a memory anchor as recalled (increments recall count)
  */
 export async function markAnchorRecalled(userId: string, anchorId: string): Promise<void> {
-  if (!isSpannerReady()) return;
+  if (!isSpannerReady() || graphWriteSkipped('markAnchorRecalled')) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();

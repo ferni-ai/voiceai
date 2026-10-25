@@ -191,7 +191,7 @@ LIVEKIT_API_SECRET=your_prod_secret
 ```bash
 # OpenAI (for Realtime API)
 OPENAI_API_KEY=sk-...
-USE_OPENAI_REALTIME=true  # or false for Gemini
+VOICE_PIPELINE=openai-realtime  # unset runs the Cartesia cascade
 
 # Google AI (for Gemini)
 GOOGLE_API_KEY=your_api_key

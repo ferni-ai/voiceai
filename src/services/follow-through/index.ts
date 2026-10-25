@@ -46,3 +46,14 @@ export {
   type PromiseJobCounts,
 } from './promise-outcomes.js';
 export { releaseForgotten } from './release-forgotten.js';
+export { closeFromSource } from './close-from-source.js';
+export {
+  toHeldItem,
+  whatFerniHolds,
+  withoutContactDetails,
+  MAX_HELD,
+  type HeldItem,
+  type HeldKind,
+  type HeldSource,
+  type HoldingView,
+} from './holding.js';

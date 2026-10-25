@@ -28,15 +28,11 @@ import {
   type DomainMetrics,
 } from '../tools/domains/shared/analytics.js';
 
-// Mock the logger
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-}));
+// Mock the logger (createLogger too: analytics.ts reaches it through firebase-admin-app.ts)
+vi.mock('../utils/safe-logger.js', () => {
+  const logger = () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() });
+  return { getLogger: vi.fn(logger), createLogger: vi.fn(logger) };
+});
 
 // ============================================================================
 // TRACKING TESTS

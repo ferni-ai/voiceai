@@ -10,6 +10,8 @@
 import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { loadRecallForgetGuard } from './recall-forget-guard.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { memoryHeld } from '../../../utils/minor-care.js'; // MINOR_CARE=on: no writes
+import { announceMemorySaved } from '../../../tools/domains/memory/memory-saved.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
@@ -28,8 +30,7 @@ const HANDLED_TOOLS = [
   'savememory',
   'searchmemories',
   'remembername',
-  // --- FTIS V3 Semantic Tool IDs (from category_to_tools.json) ---
-  // memory_save category
+  // --- FTIS V3 Semantic Tool IDs (from category_to_tools.json) --- memory_save category
   'memory_save',
   'memory_note',
   // memory_recall category
@@ -82,16 +83,14 @@ async function execute(
     const importance = (args.importance as string) || 'medium';
     const emotionalContext = args.emotionalContext as string | undefined;
 
-    if (!fact) {
-      return 'Please specify what you want me to remember.';
-    }
+    if (!fact) return 'Please specify what you want me to remember.';
 
     log.info({ fact, category, importance, userId: ctx.userId }, '💾 Remembering fact');
 
-    if (ctx.userId) {
+    if (ctx.userId && !memoryHeld(ctx.sessionId)) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Generate embedding for semantic recall
         let embedding: number[] | null = null;
@@ -120,6 +119,8 @@ async function execute(
           .doc(ctx.userId)
           .collection('extracted_facts')
           .add(cleanForFirestore(memoryDoc));
+        const { sessionId, userId } = ctx; // memory_saved only after the store resolved
+        void announceMemorySaved({ sessionId, userId, id: stored.id, fact, category });
 
         // Index in vector store
         try {
@@ -209,8 +210,8 @@ async function execute(
         }));
 
         // Also get facts from Firestore
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
         const factsSnapshot = await db
           .collection('bogle_users')
           .doc(ctx.userId)
@@ -322,8 +323,8 @@ async function execute(
     log.info({ memory, userId: ctx.userId }, '💪 Reinforcing memory');
 
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       const snapshot = await db
         .collection('bogle_users')
@@ -369,10 +370,10 @@ async function execute(
 
     log.info({ oldFact, newFact, userId: ctx.userId }, '✏️ Updating memory');
 
-    if (ctx.userId) {
+    if (ctx.userId && !memoryHeld(ctx.sessionId)) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         let newEmbedding: number[] | null = null;
         try {
@@ -440,9 +441,7 @@ async function execute(
     const whatToForget = args.whatToForget as string;
     const target = topic || whatToForget;
 
-    if (!target) {
-      return 'What would you like me to forget?';
-    }
+    if (!target) return 'What would you like me to forget?';
 
     log.info({ userId: ctx.userId }, '🗑️ Forgetting memory'); // never log what to forget
 
@@ -465,20 +464,17 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const userDoc = await db.collection('bogle_users').doc(ctx.userId).get();
         const userData = userDoc.data();
 
-        const factsSnapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('extracted_facts')
-          .get();
+        const facts = db.collection('bogle_users').doc(ctx.userId).collection('extracted_facts');
+        const factsCounted = await facts.count().get(); // not a read of every fact
 
         const sessionCount = (userData?.sessionCount as number) || 0;
-        const factCount = factsSnapshot.size;
+        const factCount = factsCounted.data().count;
 
         return {
           sessionsToDate: sessionCount,

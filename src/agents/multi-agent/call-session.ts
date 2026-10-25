@@ -23,11 +23,15 @@ import type { UserData } from '../shared/types.js';
 import { interruptionOverrides } from './interruption-config.js';
 import { logBargeInDecisions } from './live-call-behaviors.js';
 import { preemptiveGenerationOverrides } from './preemptive-tts.js';
+import {
+  installPersonaSpeakingAttribute,
+  type PersonaAttributeRoom,
+} from './persona-speaking-attribute.js';
 import type { createPersonaTTS } from './persona-tts.js';
 
 const log = getLogger();
 
-export async function createCallSession(parts: {
+export interface CallSessionParts {
   persona: PersonaConfig;
   sessionId: string;
   services: SessionServices;
@@ -39,7 +43,12 @@ export async function createCallSession(parts: {
   tts: Awaited<ReturnType<typeof createPersonaTTS>>;
   /** A phone (SIP) caller: the STT may take narrowband settings (PHONE_AUDIO_MODE). */
   phone?: boolean;
-}): Promise<voice.AgentSession<UserData>> {
+  room?: PersonaAttributeRoom; // the agent's persona attributes go on it
+}
+
+export async function createCallSession(
+  parts: CallSessionParts
+): Promise<voice.AgentSession<UserData>> {
   const { persona, sessionId, services, userData, llmModel, tts, phone } = parts;
   // WORLD_FACTS_IN_CALL=on: where their life stands now, read once per call while
   // the session is built; each turn's request picks from it (turn-request.ts).
@@ -137,6 +146,7 @@ export async function createCallSession(parts: {
   logBargeInDecisions(session, sessionId);
   // LOOP_STALL lines say whether Ferni was speaking (loop-watch.ts).
   watchAgentState(session);
+  installPersonaSpeakingAttribute(session, parts.room, userData); // the app's name chip
 
   // Gemini native audio speaks for itself: scripted say() lines must come from
   // the model too, or the call alternates between Gemini's and Cartesia's voice.

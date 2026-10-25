@@ -8,7 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { checkPost, type GateIssue, type GateOptions } from './brand-gate.js';
 import { forbiddenTerms } from './brand-terms.js';
-import { existingPosts, slugify } from './existing-posts.js';
+import { existingPosts, slugify, type ExistingPost } from './existing-posts.js';
 import { renderPack, sourceList, type GhRunner, type Source } from './grounding.js';
 import type { DraftModel } from './model.js';
 import { getPostType, type PostType } from './post-types.js';
@@ -25,6 +25,10 @@ export interface DraftDeps {
   today: string;
   model?: DraftModel;
   writeFile?: (file: string, content: string) => void;
+  /** The posts already in a type's folder, newest first. Defaults to reading the folder. */
+  listPosts?: (folder: string) => ExistingPost[];
+  /** Whether a post file already exists; defaults to the real folder. */
+  fileExists?: (file: string) => boolean;
 }
 
 export interface DraftOptions {
@@ -128,17 +132,21 @@ async function attempt(
 }
 
 /** `<slug>.md` in the folder, or `<slug>-2.md` and on if that's taken. */
-function freePath(folder: string, title: string): string {
+function freePath(
+  folder: string,
+  title: string,
+  exists: (file: string) => boolean = fs.existsSync
+): string {
   const slug = slugify(title);
   let file = path.join(folder, `${slug}.md`);
-  for (let i = 2; fs.existsSync(file); i++) file = path.join(folder, `${slug}-${i}.md`);
+  for (let i = 2; exists(file); i++) file = path.join(folder, `${slug}-${i}.md`);
   return file;
 }
 
 export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<DraftResult> {
   const type = getPostType(opts.type);
   const folder = path.join(deps.root, type.folder);
-  const existing = existingPosts(folder);
+  const existing = (deps.listPosts ?? existingPosts)(folder);
   const since = opts.since ?? defaultSince(type, existing[0]?.date, deps.today);
   const persona = pickPersona(isoWeek(deps.today), opts.persona);
   const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, today: deps.today, persona };
@@ -182,7 +190,8 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
     if (draft && markdown && issues.length === 0) {
       const file = freePath(
         folder,
-        type.id === 'whats-new' ? `whats-new-${deps.today}` : draft.title
+        type.id === 'whats-new' ? `whats-new-${deps.today}` : draft.title,
+        deps.fileExists
       );
       (deps.writeFile ?? fs.writeFileSync)(file, markdown);
       return { ...result, status: 'written', path: file, title: draft.title, markdown };

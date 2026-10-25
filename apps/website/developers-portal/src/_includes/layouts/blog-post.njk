@@ -18,10 +18,18 @@
   <meta property="og:title" content="{{ title }}">
   <meta property="og:description" content="{{ excerpt or description }}">
   <meta property="og:type" content="article">
-  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
-  {% if ogImage %}
-  <meta property="og:image" content="{{ site.url }}{{ ogImage }}">
-  {% endif %}
+  <meta property="og:url" content="{{ site.url }}{{ page.url | replace(r/\/$/, '') }}">
+  <meta property="og:site_name" content="Ferni Developers">
+  <meta property="og:image" content="{{ ogImage }}">
+
+  <!-- Twitter card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ title }}">
+  <meta name="twitter:description" content="{{ excerpt or description }}">
+  <meta name="twitter:image" content="{{ ogImage }}">
+
+  <link rel="canonical" href="{{ site.url }}{{ page.url | replace(r/\/$/, '') }}">
+  <link rel="alternate" type="application/atom+xml" title="Ferni Developer Blog" href="/blog/feed.xml">
 
   <!-- Article metadata -->
   <meta property="article:published_time" content="{{ date | date('iso') }}">

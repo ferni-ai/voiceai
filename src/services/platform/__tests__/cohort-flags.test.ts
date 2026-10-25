@@ -14,7 +14,6 @@ import {
   flagForUser,
   forgetAgentValues,
   inSample,
-  missingPrerequisites,
   forgetFlagCache,
   usersWithFlag,
   type FlagHolderStore,
@@ -24,7 +23,6 @@ import {
   type Cohort,
   type CohortStore,
 } from '../cohort-flags.js';
-import { isCohortMember } from '../cohort-membership.js';
 
 const store = (
   cohorts: Record<string, Cohort[]>,
@@ -183,6 +181,13 @@ describe('the switches a cohort may set', () => {
     'TEAM_VOICES',
     'FERNI_PERSONA_SLIP_GUARD',
     'DIRECTOR_PERSONA_AWARE',
+    'COACH_WINS',
+    'FRIEND_CELEBRATIONS',
+    'REVIVED_INTELLIGENCE',
+    'CALL_JOURNAL',
+    'FOLLOW_THROUGH_IMPORT',
+    'PONDERING',
+    'LIVE_SUMMARIES',
     'PERSONA_VOICE',
   ])('a cohort can turn %s on for its members', async (flag) => {
     const s = store({ seth: [{ id: 'seth', enabled: true, flags: { [flag]: 'on' } }] });
@@ -474,39 +479,5 @@ describe('memory flags', () => {
     expect(await resolveCallerFlags('u', store({ u: [world] }))).toEqual({
       WORLD_FACTS_IN_CALL: 'on',
     });
-  });
-});
-
-describe('missingPrerequisites', () => {
-  it('names a memory switch turned on without what it builds on', () => {
-    expect(missingPrerequisites({ RECALL_EPISODES: 'on' })).toEqual([
-      'RECALL_EPISODES needs SEMANTIC_RECALL',
-    ]);
-    expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on' })).toEqual([
-      'WORLD_FACTS_IN_CALL needs WORLD_MODEL_TEMPORAL',
-    ]);
-    expect(
-      missingPrerequisites({
-        SEMANTIC_RECALL: 'on',
-        RECALL_EPISODES: 'on',
-        WORLD_MODEL_TEMPORAL: 'on',
-        WORLD_FACTS_IN_CALL: 'on',
-      })
-    ).toEqual([]);
-  });
-});
-
-describe('isCohortMember', () => {
-  const ff = (enabled: boolean): Cohort => ({ id: 'friends-and-family', enabled, flags: {} });
-  it('a named member of the enabled cohort is one; a disabled cohort or another cohort is not', async () => {
-    const s = store({
-      a: [ff(true)],
-      b: [ff(false)],
-      c: [{ id: 'seth', enabled: true, flags: {} }],
-    });
-    expect(await isCohortMember('a', 'friends-and-family', s)).toBe(true);
-    expect(await isCohortMember('b', 'friends-and-family', s)).toBe(false);
-    expect(await isCohortMember('c', 'friends-and-family', s)).toBe(false);
-    expect(await isCohortMember('nobody', 'friends-and-family', s)).toBe(false);
   });
 });

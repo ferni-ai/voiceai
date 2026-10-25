@@ -33,8 +33,10 @@ import {
   decideBackchannel,
   heavyMoment,
   LAUGH_CLIP,
+  NEUTRAL_BACKCHANNELS,
   pickBackchannel,
   shouldLaughAlong,
+  SOFT_BACKCHANNELS,
 } from './backchannel-policy.js';
 import {
   forgetCallerTurns,
@@ -47,12 +49,20 @@ import {
   REACTIONS,
 } from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
+import { callIsGrave } from './presence-heavy.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
+import { laughCapOn, nextReplyMayLaugh, recordLaugh } from '../personas/laugh-ledger.js';
 import {
   backchannelAudioClockEnabled,
   PauseClock,
   STALE_FRAME_MS,
 } from './backchannel-pause-clock.js';
+import {
+  backchannelPauseMs,
+  backchannelTimingEnabled,
+  createBackchannelBag,
+} from './backchannel-timing.js';
+import { isHeavyMood } from './presence-watcher.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -186,6 +196,10 @@ export function initializeLiveBackchanneling<T>(
   let clipThisPause = false;
   // BACKCHANNEL_AUDIO_CLOCK=on: pauses timed on the audio, not on when we read it.
   const clock = cfg.playClip && backchannelAudioClockEnabled() ? new PauseClock() : null;
+  // BACKCHANNEL_TIMING=on: wait longer unless they ended a sentence, and vary the takes.
+  const bag = cfg.playClip && backchannelTimingEnabled() ? createBackchannelBag() : null;
+  const minPauseMs = (): number =>
+    bag ? backchannelPauseMs(state.partialTranscript ?? '') : CLIP_PAUSE_MIN_MS;
   const pause = clock
     ? {
         speaking: () => clock.userSpeaking(),
@@ -215,7 +229,7 @@ export function initializeLiveBackchanneling<T>(
       decidedThisPause = false;
       return;
     }
-    if (decidedThisPause || pause.ms() < CLIP_PAUSE_MIN_MS) return;
+    if (decidedThisPause || pause.ms() < minPauseMs()) return;
     // Behind real time: they may already be talking again. A fresher frame decides.
     if (clock && clock.lagMs() > STALE_FRAME_MS) return;
     decidedThisPause = true;
@@ -225,20 +239,35 @@ export function initializeLiveBackchanneling<T>(
     const emotional =
       (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
       (state.currentEmotion?.intensity ?? 0) > 0.7;
+    // Hard news lately or crisis risk: only soft "mm"s, further apart (presence-heavy.ts).
+    // (The partial is usually callerTurns' last already; read alone so the window keeps 3 turns.)
+    const heavy =
+      callIsGrave(sessionId, callerTurns) || callIsGrave(undefined, [partialTranscript]);
     const now = Date.now();
+    // LAUGH_CAP: a laugh clip is one of the call's laughs (laugh-ledger.ts).
+    const capOn = laughCapOn();
+    const mayLaugh = (): boolean =>
+      !capOn ||
+      nextReplyMayLaugh(
+        sessionId,
+        partialTranscript,
+        heavyMoment({ partialTranscript, callerTurns })
+      );
     if (
       shouldLaughAlong({
         partialTranscript,
-        emotional,
+        emotional: emotional || heavy,
         agentSpeaking,
         turnCount: state.turnCount,
         lastLaughTurn,
         callerTurns,
-      })
+      }) &&
+      mayLaugh()
     ) {
       if (playClip(LAUGH_CLIP, at)) {
         clipThisPause = true;
         lastLaughTurn = state.turnCount;
+        recordLaugh(sessionId, true);
         state.lastBackchannelAt = now;
         log.info({}, 'LAUGH_ALONG clip played');
       }
@@ -252,6 +281,7 @@ export function initializeLiveBackchanneling<T>(
       agentSpeaking,
       partialTranscript: state.partialTranscript ?? '',
       emotional,
+      heavy,
     });
     if (!decision.play) {
       log.debug({ reason: decision.reason }, 'backchannel skipped');
@@ -259,21 +289,35 @@ export function initializeLiveBackchanneling<T>(
     }
     // BACKCHANNEL_CONTEXT=on: react to what they're saying ("oh no", "whoa").
     // Nothing fits, or that clip isn't cached for this persona: the neutral pick.
-    const contextual = backchannelContextEnabled()
-      ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
-      : null;
+    const contextual =
+      backchannelContextEnabled() && !heavy
+        ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
+        : null;
     // Never a "Ha" at hard news, however they laughed ("kms lol").
     const laugh = contextual !== null && REACTIONS.funny.includes(contextual);
-    const fitting = laugh && heavyMoment({ partialTranscript, callerTurns }) ? null : contextual;
+    const fitting =
+      laugh && (heavyMoment({ partialTranscript, callerTurns }) || !mayLaugh()) ? null : contextual;
     // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
-    const soft = emotional || ferniEnergyFor(sessionId) === 'low';
-    let text = fitting ?? pickBackchannel(soft, lastClip);
-    let played = playClip(text, at);
-    if (!played && fitting !== null) {
-      text = pickBackchannel(soft, lastClip);
-      played = playClip(text, at);
+    const soft = emotional || heavy || ferniEnergyFor(sessionId) === 'low';
+    let text: string | null;
+    if (bag) {
+      // BACKCHANNEL_TIMING: a fresh take inside the same gate. Soft or grave
+      // (heavy, above) draws only the plain soft clips: no happy "Mmhm!" take.
+      const takes = !soft && !isHeavyMood(state.currentEmotion?.primary);
+      const tokens = soft ? SOFT_BACKCHANNELS : NEUTRAL_BACKCHANNELS;
+      text = bag.play(fitting, tokens, takes, (t) => playClip(t, at));
+    } else {
+      text = fitting ?? pickBackchannel(soft, lastClip);
+      let played = playClip(text, at);
+      if (!played && fitting !== null) {
+        text = pickBackchannel(soft, lastClip);
+        played = playClip(text, at);
+      }
+      if (!played) text = null;
     }
-    if (!played) return;
+    if (text === null) return;
+    // LAUGH_CAP: a "Ha" heard is one of the call's laughs, whichever path played it.
+    if (laugh && text === fitting) recordLaugh(sessionId, true);
     clipThisPause = true;
     lastClip = text;
     state.lastBackchannelAt = now;
@@ -345,7 +389,8 @@ export function initializeLiveBackchanneling<T>(
       timeSinceLastBackchannel: Date.now() - state.lastBackchannelAt,
       isEmotionalMoment:
         (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
-        (state.currentEmotion?.intensity ?? 0) > 0.7,
+        (state.currentEmotion?.intensity ?? 0) > 0.7 ||
+        callIsGrave(sessionId, recentCallerTurns(heard)),
     };
 
     // Check if we should emit
