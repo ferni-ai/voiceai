@@ -7,8 +7,10 @@
  * Storage structure:
  *   semantic_routing_feedback/{feedbackId}
  *   semantic_routing_corrections/{userId}/{correctionId}
- *   semantic_routing_vocabulary/{userId}
- * None of them keeps the caller's words: see persistence/stored-without-words.ts.
+ *   semantic_routing_vocabulary/{userId}  (read only: no longer written)
+ * None of them keeps the caller's words: see persistence/stored-without-words.ts. Learned
+ * phrases (an utterance -> the tool the caller wanted) are no longer kept at all, as text or
+ * as a hash: a hash of a short command is the command (Seth, 2026-10-24: stop storing words).
  *
  * @module semantic-router/advanced/feedback-store
  */
@@ -84,16 +86,6 @@ export interface UserCorrection {
 export interface UserVocabulary {
   userId: string;
   updatedAt: Date;
-
-  // Learned phrase -> tool mappings, by stored.phraseHash(userId, utterance), never the words
-  phrases: Array<{
-    phraseHash: string;
-    toolId: string;
-    confidence: number;
-    usageCount: number;
-    lastUsed: Date;
-    source: 'explicit' | 'implicit'; // User said "always do X" vs learned from usage
-  }>;
 
   // Tool preferences
   toolPreferences: Record<
@@ -234,69 +226,6 @@ export async function recordCorrection(
 // ============================================================================
 
 /**
- * Learn a user-specific phrase mapping
- */
-export async function learnUserPhrase(
-  userId: string,
-  phrase: string,
-  toolId: string,
-  source: 'explicit' | 'implicit' = 'implicit'
-): Promise<void> {
-  let vocab = vocabularyStore.get(userId);
-
-  if (!vocab) {
-    vocab = {
-      userId,
-      updatedAt: new Date(),
-      phrases: [],
-      toolPreferences: {},
-      timePatterns: {},
-    };
-  }
-
-  // Check if phrase already exists
-  const hash = stored.phraseHash(userId, phrase);
-  const existingIndex = vocab.phrases.findIndex((p) => p.phraseHash === hash);
-
-  if (existingIndex >= 0) {
-    // Update existing
-    const existing = vocab.phrases[existingIndex];
-    existing.toolId = toolId;
-    existing.usageCount++;
-    existing.lastUsed = new Date();
-    existing.confidence = Math.min(1, existing.confidence + 0.1);
-  } else {
-    // Add new
-    vocab.phrases.push({
-      phraseHash: hash,
-      toolId,
-      confidence: source === 'explicit' ? 0.9 : 0.5,
-      usageCount: 1,
-      lastUsed: new Date(),
-      source,
-    });
-  }
-
-  vocab.updatedAt = new Date();
-  vocabularyStore.set(userId, vocab);
-
-  // Persist
-  persistVocabulary(vocab).catch((err) => {
-    log.warn({ error: String(err) }, 'Failed to persist vocabulary');
-  });
-
-  log.debug(
-    {
-      userId,
-      phraseLength: phrase.length,
-      toolId,
-      source,
-    },
-    'User phrase learned'
-  );
-}
-
-/**
  * Get user vocabulary for routing
  */
 export async function getUserVocabulary(userId: string): Promise<UserVocabulary | undefined> {
@@ -312,34 +241,6 @@ export async function getUserVocabulary(userId: string): Promise<UserVocabulary 
   }
 
   return vocab;
-}
-
-/**
- * Match user input against learned phrases: the same utterance, since only its hash is kept
- */
-export function matchUserPhrases(
-  input: string,
-  vocabulary: UserVocabulary
-): { toolId: string; confidence: number } | null {
-  const hash = stored.phraseHash(vocabulary.userId, input);
-
-  // Sort phrases by confidence and recency
-  const sortedPhrases = [...vocabulary.phrases].sort((a, b) => {
-    const scoreA = a.confidence * 0.7 + (a.usageCount / 100) * 0.3;
-    const scoreB = b.confidence * 0.7 + (b.usageCount / 100) * 0.3;
-    return scoreB - scoreA;
-  });
-
-  for (const phrase of sortedPhrases) {
-    if (phrase.phraseHash === hash) {
-      return {
-        toolId: phrase.toolId,
-        confidence: phrase.confidence,
-      };
-    }
-  }
-
-  return null;
 }
 
 // ============================================================================
@@ -560,20 +461,6 @@ async function persistCorrection(correction: UserCorrection): Promise<void> {
   }
 }
 
-async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
-  const db = await getFirestoreInstance();
-  if (!db) return;
-
-  try {
-    await db
-      .collection('semantic_routing_vocabulary')
-      .doc(vocab.userId)
-      .set(stored.storedVocabulary(vocab, cleanForFirestore));
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to persist vocabulary');
-  }
-}
-
 async function loadVocabulary(userId: string): Promise<UserVocabulary | undefined> {
   const db = await getFirestoreInstance();
   if (!db) return undefined;
@@ -588,20 +475,7 @@ async function loadVocabulary(userId: string): Promise<UserVocabulary | undefine
     return {
       userId: String(data.userId ?? userId),
       updatedAt: new Date(String(data.updatedAt)),
-      // One kept before 2026-10-25 holds the words, not a hash: left out
-      phrases: Array.isArray(data.phrases)
-        ? data.phrases
-            .filter((p: Record<string, unknown>) => typeof p.phraseHash === 'string')
-            .map((p: Record<string, unknown>) => ({
-              phraseHash: String(p.phraseHash),
-              toolId: String(p.toolId ?? ''),
-              confidence: Number(p.confidence ?? 0),
-              usageCount: Number(p.usageCount ?? 0),
-              lastUsed: new Date(String(p.lastUsed)),
-              source: (p.source === 'explicit' ? 'explicit' : 'implicit') as
-                'explicit' | 'implicit',
-            }))
-        : [],
+      // An old document's learned phrases (the words) are never read
       toolPreferences:
         (data.toolPreferences as Record<string, { boost: number; usageCount: number }>) ?? {},
       timePatterns:
@@ -715,44 +589,6 @@ export async function loadPlattParameters(): Promise<PlattParameters | undefined
 }
 
 // ============================================================================
-// VOCABULARY MANAGEMENT
-// ============================================================================
-
-/**
- * Get all user IDs with vocabulary entries (from memory + Firestore)
- */
-export async function getAllVocabularyUserIds(): Promise<string[]> {
-  // Start with in-memory user IDs
-  const userIds = new Set<string>(vocabularyStore.keys());
-
-  // Try to get additional IDs from Firestore
-  try {
-    const db = await getFirestoreInstance();
-    if (db) {
-      // Note: This requires iterating the collection. For production,
-      // consider maintaining a separate index of user IDs or using pagination.
-      // For now, we only process in-memory vocabularies which is sufficient
-      // for the batch learning use case (users who've been active this session).
-    }
-  } catch {
-    // Firestore not available, continue with in-memory only
-  }
-
-  return Array.from(userIds);
-}
-
-/**
- * Save vocabulary (updates both in-memory and Firestore)
- */
-export async function saveVocabulary(vocab: UserVocabulary): Promise<void> {
-  // Update in-memory store
-  vocabularyStore.set(vocab.userId, vocab);
-
-  // Persist to Firestore
-  await persistVocabulary(vocab);
-}
-
-// ============================================================================
 // METRICS
 // ============================================================================
 
@@ -782,7 +618,6 @@ export function getFeedbackStats(): {
  */
 export function getUserStats(userId: string): {
   corrections: number;
-  learnedPhrases: number;
   toolPreferences: number;
 } {
   const corrections = correctionsStore.get(userId)?.length || 0;
@@ -790,7 +625,6 @@ export function getUserStats(userId: string): {
 
   return {
     corrections,
-    learnedPhrases: vocab?.phrases.length || 0,
     toolPreferences: Object.keys(vocab?.toolPreferences || {}).length,
   };
 }

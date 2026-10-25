@@ -2,12 +2,13 @@
  * The router's other stores keep no caller words (Seth, 2026-10-24, as #2775 did for
  * semantic_router_events), on the Firestore emulator. A routed turn the caller corrects
  * runs through the real writers: the learning loop (feedback, the per-person correction,
- * the learned phrase), the correction store (and community learning behind it), the
+ * and the three paths that used to learn the phrase), the correction store (and community learning behind it), the
  * bandit's routing_events and the analytics' outcome. The words are planted everywhere a
  * caller could put them, extra fields and a nested outcome field included. Then every
  * document in the project and every log call is searched: no 12-character run of the
- * sentinel may be anywhere. The readers still work: the same words said again match the
- * learned phrase after a reload from Firestore, and the loaded corrections keep their tools.
+ * sentinel may be anywhere. Learned phrases are not kept at all (a hash of a short command is
+ * the command): no vocabulary document is written and no hash is stored anywhere, and the
+ * same words said again match nothing. The loaded corrections keep their tools.
  *
  * Skips unless FIRESTORE_EMULATOR_HOST is set:
  *   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 pnpm vitest run \
@@ -120,6 +121,22 @@ describe.skipIf(!emulator)('the router stores keep no caller words (Firestore em
         userFeedback: SENTINEL,
       }
     );
+    // The two other paths that learned the phrase: a success reinforcing the predicted tool,
+    // and an explicit correction (POST /api/intelligence/correction)
+    await loop.recordOutcome(
+      {
+        userId: UID,
+        sessionId: 's-1',
+        personaId: 'ferni',
+        inputText: SENTINEL,
+        inputLocale: 'en-US',
+        routingResult: routedTurn(),
+        conversationHistory: [],
+        recentTools: [],
+      },
+      { actualToolUsed: 'check_calendar', wasCorrection: false, wasSuccess: true }
+    );
+    await loop.handleExplicitCorrection(UID, SENTINEL, 'check_calendar', 'set_reminder');
     corrections.recordCorrection({
       userId: UID,
       sessionId: 's-1',
@@ -181,7 +198,6 @@ describe.skipIf(!emulator)('the router stores keep no caller words (Firestore em
       async () => {
         expect(await count('semantic_routing_feedback')).toBeGreaterThan(0);
         expect(await count(`semantic_routing_corrections/${UID}/corrections`)).toBeGreaterThan(0);
-        expect(await count('semantic_routing_vocabulary')).toBeGreaterThan(0);
         expect(await count('semantic_router_corrections')).toBeGreaterThan(0);
         expect(await count('semantic_router_community_patterns')).toBeGreaterThan(0);
         expect(await count('routing_events')).toBeGreaterThan(0);
@@ -194,6 +210,29 @@ describe.skipIf(!emulator)('the router stores keep no caller words (Firestore em
   it('no stored document holds any part of the words', () => {
     expect(Object.keys(docs).length).toBeGreaterThanOrEqual(7);
     expect(holdsWords(docs)).toEqual([]);
+  });
+
+  it('no learned phrase is kept: no vocabulary document, and no hash of the words anywhere', () => {
+    expect(Object.keys(docs).filter((p) => p.startsWith('semantic_routing_vocabulary/'))).toEqual(
+      []
+    );
+    // A digest of the words (sha256, an HMAC, an md5) is a run of 32+ hex digits
+    const hex = /[0-9a-f]{32,}/i;
+    const found: string[] = [];
+    const walk = (v: unknown, at: string): void => {
+      if (typeof v === 'string' && hex.test(v)) found.push(at);
+      if (v && typeof v === 'object' && !(v instanceof Date) && !('toMillis' in v)) {
+        for (const [k, x] of Object.entries(v)) {
+          if (hex.test(k)) found.push(`${at}.${k}`);
+          walk(x, `${at}.${k}`);
+        }
+      }
+    };
+    for (const [path, d] of Object.entries(docs)) {
+      if (hex.test(path)) found.push(path);
+      walk(d, path);
+    }
+    expect(found).toEqual([]);
   });
 
   it('no log call holds any part of the words', () => {
@@ -250,11 +289,6 @@ describe.skipIf(!emulator)('the router stores keep no caller words (Firestore em
     expect(expires(bandit)).toBe(Date.parse('2026-03-04T10:00:00.000Z') + 30 * DAY);
     const event = one('semantic_router_events/2026-03-04/events/route_fixed');
     expect(expires(event)).toBe(Date.parse('2026-03-04T10:00:00.000Z') + 30 * DAY);
-    const vocab = one(`semantic_routing_vocabulary/${UID}`);
-    expect(vocab.phrases).toEqual([expect.objectContaining({ toolId: 'set_reminder' })]);
-    expect(Object.keys(vocab.phrases[0]).sort()).toEqual(
-      ['confidence', 'lastUsed', 'phraseHash', 'source', 'toolId', 'usageCount'].sort()
-    );
     expect(one('semantic_router_community_patterns/')).toMatchObject({
       incorrectTool: 'check_calendar',
       correctTool: 'set_reminder',
@@ -262,18 +296,21 @@ describe.skipIf(!emulator)('the router stores keep no caller words (Firestore em
     });
   });
 
-  it('after a reload from Firestore, the same words match the learned phrase and corrections keep their tools', async () => {
+  it('after a reload, the same words match no learned phrase, and corrections keep their tools', async () => {
     vi.resetModules();
-    const store = await import('../advanced/feedback-store.js');
-    const vocab = await store.getUserVocabulary(UID);
-    const { phraseHash } = await import('../persistence/stored-without-words.js');
-    expect(vocab?.phrases[0]?.phraseHash).toBe(phraseHash(UID, SENTINEL));
-    expect(store.matchUserPhrases(`  ${SENTINEL.toUpperCase()}! `, vocab!)).toEqual({
-      toolId: 'set_reminder',
-      confidence: 0.5,
+    const loop = await import('../advanced/learning-loop.js');
+    const enhanced = await loop.enhanceWithLearning({
+      userId: UID,
+      sessionId: 's-2',
+      personaId: 'ferni',
+      inputText: SENTINEL,
+      inputLocale: 'en-US',
+      routingResult: routedTurn(),
+      conversationHistory: [],
+      recentTools: [],
     });
-    // What it gives up: words that only contain a learned phrase no longer match it
-    expect(store.matchUserPhrases(`hey ${SENTINEL}`, vocab!)).toBeNull();
+    expect(enhanced.boosts.filter((b) => b.source === 'user_vocabulary')).toEqual([]);
+    expect(holdsWords(enhanced.boosts)).toEqual([]);
 
     const corrections = await import('../learning/correction-store.js');
     await corrections.initializeCorrectionStore();

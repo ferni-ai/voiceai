@@ -17,17 +17,12 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import {
   recordFeedback,
   recordCorrection,
-  learnUserPhrase,
   getUserVocabulary,
-  matchUserPhrases,
   updateCalibration,
   calibrateConfidence,
   getFeedbackStats,
-  getAllVocabularyUserIds,
-  saveVocabulary,
   type RoutingFeedback,
   type UserCorrection,
-  type UserVocabulary,
 } from './feedback-store.js';
 import type { SemanticRouterResult } from '../types.js';
 
@@ -58,11 +53,6 @@ export interface LearningOutcome {
 export interface EnhancedRouting {
   originalResult: SemanticRouterResult;
   adjustedConfidence: number;
-  userVocabularyMatch?: {
-    toolId: string;
-    confidence: number;
-    phrase: string;
-  };
   boosts: Array<{
     source: string;
     toolId: string;
@@ -83,27 +73,11 @@ export interface EnhancedRouting {
 export async function enhanceWithLearning(context: LearningContext): Promise<EnhancedRouting> {
   const boosts: EnhancedRouting['boosts'] = [];
 
-  // 1. Check user vocabulary for learned phrases
+  // 1. User vocabulary: tool preferences and time patterns. Learned phrases are no longer
+  // kept (the caller's words), so nothing is matched on what was said.
   const vocabulary = await getUserVocabulary(context.userId);
-  let userVocabularyMatch: EnhancedRouting['userVocabularyMatch'] | undefined;
 
   if (vocabulary) {
-    const phraseMatch = matchUserPhrases(context.inputText, vocabulary);
-    if (phraseMatch) {
-      userVocabularyMatch = {
-        toolId: phraseMatch.toolId,
-        confidence: phraseMatch.confidence,
-        phrase: context.inputText,
-      };
-
-      // Boost the matched tool
-      boosts.push({
-        source: 'user_vocabulary',
-        toolId: phraseMatch.toolId,
-        boost: phraseMatch.confidence * 0.3, // Up to 30% boost
-      });
-    }
-
     // Apply tool preferences
     for (const [toolId, pref] of Object.entries(vocabulary.toolPreferences)) {
       if (pref.boost !== 0) {
@@ -139,7 +113,6 @@ export async function enhanceWithLearning(context: LearningContext): Promise<Enh
   return {
     originalResult: context.routingResult,
     adjustedConfidence,
-    userVocabularyMatch,
     boosts,
   };
 }
@@ -199,9 +172,6 @@ export async function recordOutcome(
       signalStrength: 0.9,
     });
 
-    // Learn the phrase -> tool mapping
-    await learnUserPhrase(context.userId, context.inputText, outcome.actualToolUsed, 'implicit');
-
     log.info(
       {
         userId: context.userId,
@@ -211,17 +181,6 @@ export async function recordOutcome(
       },
       'Learned from correction'
     );
-  }
-
-  // 3. Reinforce successful patterns
-  if (outcome.wasSuccess && !outcome.wasCorrection) {
-    const predictedTool =
-      context.routingResult.matches.length > 0 ? context.routingResult.matches[0].toolId : null;
-
-    if (predictedTool === outcome.actualToolUsed && predictedTool) {
-      // Strengthen this phrase -> tool association
-      await learnUserPhrase(context.userId, context.inputText, predictedTool, 'implicit');
-    }
   }
 }
 
@@ -247,9 +206,6 @@ export async function handleExplicitCorrection(
     signalStrength: 1.0, // Maximum confidence for explicit corrections
   });
 
-  // Learn the phrase with high confidence
-  await learnUserPhrase(userId, inputText, correctTool, 'explicit');
-
   log.info(
     {
       userId,
@@ -270,7 +226,7 @@ export async function handleExplicitCorrection(
  *
  * Call this periodically (e.g., nightly) to:
  * 1. Update calibration from all feedback
- * 2. Prune low-confidence vocabulary entries
+ * 2. (Learned phrases are no longer kept, so none are pruned)
  * 3. Consolidate patterns
  */
 export async function runBatchLearning(): Promise<{
@@ -283,29 +239,9 @@ export async function runBatchLearning(): Promise<{
   // 1. Update calibration
   await updateCalibration();
 
-  // 2. Consolidate patterns and prune vocabulary for all users
-  let totalConsolidated = 0;
-  let totalPruned = 0;
-
-  // Process all user vocabularies
-  const allUserIds = await getAllVocabularyUserIds();
-
-  for (const userId of allUserIds) {
-    const vocab = await getUserVocabulary(userId);
-    if (!vocab || vocab.phrases.length === 0) continue;
-
-    const { consolidated, pruned, updatedVocab } = consolidateAndPruneVocabulary(vocab);
-    totalConsolidated += consolidated;
-    totalPruned += pruned;
-
-    if (consolidated > 0 || pruned > 0) {
-      await saveVocabulary(updatedVocab);
-      log.debug(
-        { userId, consolidated, pruned, remaining: updatedVocab.phrases.length },
-        'Vocabulary updated'
-      );
-    }
-  }
+  // 2. Learned phrases are no longer kept (the caller's words): nothing to consolidate
+  const totalConsolidated = 0;
+  const totalPruned = 0;
 
   // 3. Get stats
   const stats = getFeedbackStats();
@@ -325,116 +261,6 @@ export async function runBatchLearning(): Promise<{
     calibrationUpdated: true,
     patternsConsolidated: totalConsolidated,
     vocabularyPruned: totalPruned,
-  };
-}
-
-/**
- * Consolidate similar phrases and prune low-quality entries
- */
-function consolidateAndPruneVocabulary(vocab: UserVocabulary): {
-  consolidated: number;
-  pruned: number;
-  updatedVocab: UserVocabulary;
-} {
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-  let consolidated = 0;
-  let pruned = 0;
-
-  // Step 1: Prune low-quality entries
-  const prunedPhrases = vocab.phrases.filter((phrase) => {
-    // Keep if: high confidence, or frequently used, or recently used
-    const isHighConfidence = phrase.confidence >= 0.3;
-    const isFrequentlyUsed = phrase.usageCount >= 2;
-    const isRecentlyUsed = phrase.lastUsed >= thirtyDaysAgo;
-    const isExplicit = phrase.source === 'explicit'; // Always keep explicit corrections
-
-    const shouldKeep = isExplicit || (isHighConfidence && (isFrequentlyUsed || isRecentlyUsed));
-
-    if (!shouldKeep) {
-      pruned++;
-      return false;
-    }
-    return true;
-  });
-
-  // Step 2: Consolidate similar phrases
-  const consolidatedPhrases: typeof prunedPhrases = [];
-  const processed = new Set<number>();
-
-  for (let i = 0; i < prunedPhrases.length; i++) {
-    if (processed.has(i)) continue;
-
-    const phrase = prunedPhrases[i];
-    const similar: typeof prunedPhrases = [phrase];
-    processed.add(i);
-
-    // Find similar phrases
-    for (let j = i + 1; j < prunedPhrases.length; j++) {
-      if (processed.has(j)) continue;
-
-      const other = prunedPhrases[j];
-
-      // Only consolidate if they map to the same tool
-      if (phrase.toolId !== other.toolId) continue;
-
-      // The same utterance (the words aren't kept, so near-matches can't be found)
-      if (phrase.phraseHash === other.phraseHash) {
-        similar.push(other);
-        processed.add(j);
-        consolidated++;
-      }
-    }
-
-    // Merge similar phrases into one
-    if (similar.length > 1) {
-      const merged = mergePhrases(similar);
-      consolidatedPhrases.push(merged);
-    } else {
-      consolidatedPhrases.push(phrase);
-    }
-  }
-
-  return {
-    consolidated,
-    pruned,
-    updatedVocab: {
-      ...vocab,
-      phrases: consolidatedPhrases,
-      updatedAt: now,
-    },
-  };
-}
-
-/**
- * Merge entries for one utterance into one
- */
-function mergePhrases(phrases: UserVocabulary['phrases']): UserVocabulary['phrases'][0] {
-  const base = phrases[0];
-
-  // Take the highest confidence
-  const maxConfidence = Math.max(...phrases.map((p) => p.confidence));
-
-  // Sum usage counts
-  const totalUsage = phrases.reduce((sum, p) => sum + p.usageCount, 0);
-
-  // Take the most recent lastUsed
-  const mostRecent = phrases.reduce(
-    (latest, p) => (p.lastUsed > latest ? p.lastUsed : latest),
-    phrases[0].lastUsed
-  );
-
-  // Prefer explicit source if any
-  const source = phrases.some((p) => p.source === 'explicit') ? 'explicit' : 'implicit';
-
-  return {
-    phraseHash: base.phraseHash,
-    toolId: base.toolId,
-    confidence: Math.min(1, maxConfidence + 0.05), // Small boost for consolidation
-    usageCount: totalUsage,
-    lastUsed: mostRecent,
-    source,
   };
 }
 
@@ -581,9 +407,7 @@ function getTimeOfDay(): string {
 export {
   recordFeedback,
   recordCorrection,
-  learnUserPhrase,
   getUserVocabulary,
-  matchUserPhrases,
   updateCalibration,
   calibrateConfidence,
   getFeedbackStats,

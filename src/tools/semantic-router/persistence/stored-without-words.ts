@@ -2,23 +2,18 @@
  * What the router's stores write, without the caller's words (Seth, 2026-10-24: stop
  * storing words, purge). Each builder copies named fields only, so a field a caller adds
  * (the input, its args, what a tool heard) is never written; the input is kept as its
- * length, and a learned phrase as a hash of the utterance. Each document expires 30 days
- * after its own time: Firestore TTL policies on `expireAt` delete it. Old documents are
+ * length. Learned phrases (an utterance -> the tool wanted) aren't kept at all: a hash of
+ * a short command is the command. Each document expires 30 days after its own time: Firestore TTL policies on `expireAt` delete it. Old documents are
  * stripped by scripts/migrations/strip-router-store-words.ts.
  *
  * @module semantic-router/persistence/stored-without-words
  */
 
-import { createHash } from 'node:crypto';
 import type { PersistedCorrection } from './firestore-persistence.js';
 import type { RoutingEvent as BanditEvent } from '../advanced/intelligent/bandit-persistence.js';
-import type {
-  RoutingFeedback,
-  UserCorrection,
-  UserVocabulary,
-} from '../advanced/feedback-store.js';
+import type { RoutingFeedback, UserCorrection } from '../advanced/feedback-store.js';
 
-/** How long a stored routing event, correction, feedback or vocabulary is kept */
+/** How long a stored routing event, correction or feedback is kept */
 export const ROUTING_EVENT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 type Data = Record<string, unknown>;
@@ -40,20 +35,6 @@ const withExpiry = (data: Data, at: Date, clean: Clean): Data => ({
   ...clean(data),
   expireAt: expiry(at),
 });
-
-/**
- * The key a learned phrase is kept under: the utterance, lower-cased with its punctuation
- * and spacing evened out, hashed with the person's id, so the same words said again match
- * and the store holds none of them.
- */
-export function phraseHash(userId: string, utterance: string): string {
-  const normalized = utterance
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
-  return createHash('sha256').update(`${userId}\n${normalized}`).digest('hex');
-}
 
 /** semantic_router_corrections: which tool was picked and which was wanted */
 export const CORRECTION_FIELDS = [
@@ -120,20 +101,5 @@ export const storedUserCorrection = (c: UserCorrection, clean: Clean): Data =>
       inputLength: c.inputText.length,
     },
     c.timestamp,
-    clean
-  );
-
-/** semantic_routing_vocabulary/{uid}: learned phrases by hash */
-export const storedVocabulary = (v: UserVocabulary, clean: Clean): Data =>
-  withExpiry(
-    {
-      ...pick(v, ['userId', 'toolPreferences', 'timePatterns']),
-      updatedAt: v.updatedAt.toISOString(),
-      phrases: v.phrases.map((p) => ({
-        ...pick(p, ['phraseHash', 'toolId', 'confidence', 'usageCount', 'source']),
-        lastUsed: p.lastUsed.toISOString(),
-      })),
-    },
-    v.updatedAt,
     clean
   );
