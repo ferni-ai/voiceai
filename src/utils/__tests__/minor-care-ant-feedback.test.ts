@@ -30,6 +30,8 @@ vi.mock('../firebase-admin-app.js', async (orig) => ({
 
 import { recordANT } from '../../services/cognitive-intelligence/ant-tracker.js';
 import { createFeedbackPrompt } from '../../services/feedback/conversation-feedback-store.js';
+import { callerIdFor } from '../../services/identity/call-caller-id.js';
+import { buildScientificCoachingContext } from '../../intelligence/context-builders/coaching/scientific-coaching.js';
 import {
   bindSessionUser,
   heldAfter,
@@ -99,4 +101,35 @@ describe('MINOR_CARE: thinking patterns and feedback prompts for a caller who sa
       expect(prompts).toEqual([]);
     } else expect(prompts.length).toBe(1);
   });
+
+  // Verify of #2811: a caller with no account gets a fresh anon: id that no session points at,
+  // so the hold must come from the call itself (the live builder passes services.sessionId).
+  it.each(['held', 'off'] as Case[])(
+    'a caller with no account: the coaching builder keeps no thinking pattern when held (%s)',
+    async (c) => {
+      n++;
+      const sessionId = `session-AJ_antanon${n}-1792919421499`;
+      vi.stubEnv('MINOR_CARE', c === 'off' ? 'off' : 'on');
+      heldAfter(sessionId, "I'm only 14.", {});
+      expect(memoryHeld(sessionId)).toBe(c === 'held');
+      const userId = callerIdFor(undefined, sessionId);
+      written.length = 0;
+      const result = await buildScientificCoachingContext({
+        userId,
+        sessionId,
+        userMessage:
+          'Everyone at school hates me and I always mess everything up, every single time.',
+        personaId: 'ferni',
+        emotionalState: 'sad',
+        enableWellbeingTracking: false,
+        enableNudges: false,
+        enableWisdom: false,
+      });
+      await settle();
+      expect(result.detectedDistortions.length).toBeGreaterThan(0); // the detector fired
+      const ant = written.filter((p) => p.includes('ant_'));
+      if (c === 'held') expect(ant).toEqual([]);
+      else expect(ant.length).toBeGreaterThan(0);
+    }
+  );
 });

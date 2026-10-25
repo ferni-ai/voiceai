@@ -325,11 +325,7 @@ export async function loadUserANTData(
 export function recordANT(
   userId: string,
   detection: DistortionDetection,
-  options?: {
-    topic?: string;
-    emotionalContext?: string;
-    intensity?: number;
-  }
+  options?: { topic?: string; emotionalContext?: string; intensity?: number; sessionId?: string }
 ): ANTEntry {
   const entry: ANTEntry = {
     id: `ant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -344,7 +340,7 @@ export function recordANT(
     reframeAccepted: undefined,
   };
 
-  if (writeHeld(userId)) return entry; // their thinking patterns and trigger words
+  if (writeHeld(userId, options?.sessionId)) return entry; // their thinking patterns, trigger words
   // Store entry in cache
   if (!antEntries.has(userId)) {
     antEntries.set(userId, []);
