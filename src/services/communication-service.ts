@@ -124,6 +124,15 @@ export async function sendAppEmail(email: OutgoingEmail): Promise<EmailSendResul
 }
 
 /**
+ * The List-Unsubscribe mailto for 'bulk' mail that has no unsubscribe endpoint:
+ * the app's From mailbox (EMAIL_FROM), which a person reads. admin@ is the
+ * Workspace user when EMAIL_FROM is unset (docs/runbooks/email-via-workspace.md).
+ */
+export function unsubscribeMailbox(): string {
+  return process.env.EMAIL_FROM?.trim() || 'admin@ferni.ai';
+}
+
+/**
  * Send a plain-text (or HTML) email from Ferni.
  *
  * @param to - Recipient email address
