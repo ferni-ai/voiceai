@@ -13,89 +13,15 @@
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
+import type {
+  FirestoreDB,
+  ToolCallRecord,
+  ToolStats,
+  ToolUsageReport,
+} from './tool-usage-analytics-types.js';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface FirestoreDB {
-  collection: (path: string) => CollectionRef;
-  runTransaction: <T>(fn: (transaction: Transaction) => Promise<T>) => Promise<T>;
-}
-
-interface CollectionRef {
-  doc: (id: string) => DocumentRef;
-  get: () => Promise<QuerySnapshot>;
-  orderBy: (field: string, direction?: 'asc' | 'desc') => CollectionRef;
-  limit: (count: number) => CollectionRef;
-  where: (field: string, op: string, value: unknown) => CollectionRef;
-}
-
-interface DocumentRef {
-  get: () => Promise<DocumentSnapshot>;
-  set: (data: unknown, options?: { merge?: boolean }) => Promise<void>;
-  update: (data: unknown) => Promise<void>;
-}
-
-interface DocumentSnapshot {
-  exists: boolean;
-  data: () => unknown | undefined;
-  id: string;
-}
-
-interface QuerySnapshot {
-  docs: DocumentSnapshot[];
-  empty: boolean;
-}
-
-interface Transaction {
-  get: (ref: DocumentRef) => Promise<DocumentSnapshot>;
-  set: (ref: DocumentRef, data: unknown, options?: { merge?: boolean }) => void;
-  update: (ref: DocumentRef, data: unknown) => void;
-}
-
-/**
- * Tool usage record for a single call
- */
-export interface ToolCallRecord {
-  toolId: string;
-  agentId: string;
-  userId: string;
-  sessionId: string;
-  timestamp: Date;
-  latencyMs: number;
-  success: boolean;
-  errorType?: string;
-  domain: string;
-}
-
-/**
- * Aggregated tool stats
- */
-export interface ToolStats {
-  toolId: string;
-  domain: string;
-  totalCalls: number;
-  successCount: number;
-  failureCount: number;
-  avgLatencyMs: number;
-  lastUsed: Date;
-  usedByAgents: string[];
-  usedByUserCount: number;
-}
-
-/**
- * Tool usage report for analysis
- */
-export interface ToolUsageReport {
-  timestamp: Date;
-  totalTools: number;
-  unusedTools: string[];
-  topTools: Array<{ toolId: string; calls: number }>;
-  slowTools: Array<{ toolId: string; avgLatencyMs: number }>;
-  errorProneTools: Array<{ toolId: string; errorRate: number }>;
-  recommendations: string[];
-}
+export type { ToolCallRecord, ToolStats, ToolUsageReport } from './tool-usage-analytics-types.js';
 
 // ============================================================================
 // IN-MEMORY BUFFER
@@ -146,6 +72,7 @@ class ToolUsageAnalyticsService {
         const { Firestore } = await import('@google-cloud/firestore');
         this.db = new Firestore({
           projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+          databaseId: getFirestoreDatabase(),
         }) as unknown as FirestoreDB;
       } catch (error) {
         getLogger().warn(

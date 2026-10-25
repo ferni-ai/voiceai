@@ -21,7 +21,8 @@
  *
  * memoryHeld(sessionId) is the one check every writer asks: flag on, the
  * caller sounds under 18, and the session is not a verified account owner's
- * (the owner check is registered by caller-recognition.ts, a higher layer).
+ * (the owner check is registered by caller-recognition.ts, a higher layer;
+ * MINOR_CARE_OWNERS=on holds a verified owner too).
  * Crisis handling is untouched: the note is never added to a crisis reply,
  * and nothing here reads or changes crisis code.
  *
@@ -235,6 +236,14 @@ export function setVerifiedOwnerCheck(check: (sessionId: string) => boolean): vo
   ownerCheck = check;
 }
 
+/**
+ * A verified owner is exempt, unless MINOR_CARE_OWNERS=on: a teen with their own account who says
+ * they're under 18 is held like anyone else (Seth, 2026-10-24).
+ */
+function ownerExempt(sessionId: string, env: Env = process.env): boolean {
+  return !flagOn('MINOR_CARE_OWNERS', env) && ownerCheck(sessionId);
+}
+
 interface HeardOptions {
   /** Ferni's previous line, so a bare "16." can answer "how old are you?". */
   asked?: string;
@@ -269,7 +278,7 @@ export function likelyMinor(sessionId: string | undefined): boolean {
 export function memoryHeld(sessionId: string | undefined, env: Env = process.env): boolean {
   if (!sessionId || !minorCareOn(env) || !likely.has(sessionId)) return false;
   touch(sessionId);
-  return !ownerCheck(sessionId);
+  return !ownerExempt(sessionId, env);
 }
 
 /** Read this turn's words, then memoryHeld: the per-turn writers' one-line check. */
@@ -296,6 +305,19 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
 }
 
 /**
+ * Every writer's one check (MINOR_CARE on): this session is held, any of this user's sessions
+ * is, or the id is a placeholder that can't be bound to a session (userHeld can't see it).
+ */
+export function writeHeld(
+  userId: string | undefined,
+  sessionId?: string,
+  env: Env = process.env
+): boolean {
+  if (!minorCareOn(env)) return false;
+  return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
+}
+
+/**
  * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
  * true for any of this user's sessions, from either detector. Never refreshes a session, so a
  * timer can't keep a hold alive past IDLE_MS.
@@ -305,13 +327,13 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
   for (const [sessionId, owner] of sessionUsers) {
     const used = likely.get(sessionId);
     const live = used !== undefined && Date.now() - used <= IDLE_MS;
-    if (owner === userId && live && !ownerCheck(sessionId)) return true;
+    if (owner === userId && live && !ownerExempt(sessionId, env)) return true;
   }
   return false;
 }
 
 export const MINOR_CARE_NOTE =
-  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner.]";
+  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]";
 
 /**
  * The note for this reply: flag on, the caller sounds under 18 and isn't a
@@ -328,7 +350,7 @@ export function minorCareNote(
     return '';
   }
   if (options.careful || !minorCareOn(options.env)) return '';
-  if (sessionId && ownerCheck(sessionId)) return '';
+  if (sessionId && ownerExempt(sessionId, options.env)) return '';
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
 }
 

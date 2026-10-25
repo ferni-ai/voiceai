@@ -19,6 +19,8 @@ import {
   hashContent,
   type CoalescerStats,
 } from '../../utils/request-coalescer.js';
+import { errorFields } from '../../utils/error-class.js';
+import { EmbeddingApiError } from '../../utils/embedding-api-error.js';
 import { getLogger } from '../../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import {
@@ -35,33 +37,19 @@ export type { RustEmbeddingVector as EmbeddingVectorLike };
 // CIRCUIT BREAKERS (Redis-backed for cross-instance coordination)
 // ============================================================================
 
-// Start with local breakers, upgrade to Redis async
-let openaiEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('openai-embeddings', {
-  failureThreshold: 5,
-  resetTimeout: 30000,
-  successThreshold: 2,
-});
+const BREAKER_CONFIG = { failureThreshold: 5, resetTimeout: 30000, successThreshold: 2 };
 
-let googleEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('google-embeddings', {
-  failureThreshold: 5,
-  resetTimeout: 30000,
-  successThreshold: 2,
-});
+// Start with local breakers, upgrade to Redis async
+let openaiEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('openai-embeddings', BREAKER_CONFIG);
+
+let googleEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('google-embeddings', BREAKER_CONFIG);
 
 // Upgrade to Redis-backed breakers (non-blocking)
 // When one instance hits OpenAI rate limits, ALL instances back off
 void (async () => {
   try {
-    openaiEmbeddingBreaker = await getRedisCircuitBreakerAsync('openai-embeddings', {
-      failureThreshold: 5,
-      resetTimeout: 30000,
-      successThreshold: 2,
-    });
-    googleEmbeddingBreaker = await getRedisCircuitBreakerAsync('google-embeddings', {
-      failureThreshold: 5,
-      resetTimeout: 30000,
-      successThreshold: 2,
-    });
+    openaiEmbeddingBreaker = await getRedisCircuitBreakerAsync('openai-embeddings', BREAKER_CONFIG);
+    googleEmbeddingBreaker = await getRedisCircuitBreakerAsync('google-embeddings', BREAKER_CONFIG);
     getLogger().debug('Embedding circuit breakers upgraded to Redis-backed');
   } catch {
     // Keep using local breakers
@@ -197,8 +185,6 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
         });
 
         if (!response.ok) {
-          const error = await response.text();
-
           // Retry on rate limit (429) errors
           if (response.status === 429 && retryCount < MAX_RETRIES) {
             getLogger().warn(
@@ -210,7 +196,7 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
             return this.embedBatch(texts, retryCount + 1);
           }
 
-          throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+          throw new EmbeddingApiError('OpenAI', response.status);
         }
 
         const data = (await response.json()) as {
@@ -233,7 +219,7 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
         return results;
       });
     } catch (error) {
-      getLogger().error(`Embedding error: ${error}`);
+      getLogger().error(errorFields(error), 'Embedding failed');
       throw error;
     }
   }
@@ -336,8 +322,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
         });
 
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Google AI API error: ${response.status} - ${error}`);
+          throw new EmbeddingApiError('Google AI', response.status);
         }
 
         const data = (await response.json()) as {
@@ -356,7 +341,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
         return results;
       });
     } catch (error) {
-      getLogger().error(`Google embedding error: ${error}`);
+      getLogger().error(errorFields(error), 'Google embedding failed');
       throw error;
     }
   }
@@ -458,8 +443,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
             });
             const response = await postWithBackoff(url, { method: 'POST', headers, body });
             if (!response.ok) {
-              const error = await response.text();
-              throw new Error(`Vertex AI API error: ${response.status} - ${error}`);
+              throw new EmbeddingApiError('Vertex AI', response.status);
             }
             const data = (await response.json()) as {
               predictions: Array<{ embeddings: { values: number[] } }>;
@@ -479,7 +463,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
       getLogger().debug(`Generated ${validTexts.length} Vertex AI embeddings (${this._model})`);
       return results;
     } catch (error) {
-      getLogger().error(`Vertex AI embedding error: ${error}`);
+      getLogger().error(errorFields(error), 'Vertex AI embedding failed');
       throw error;
     }
   }

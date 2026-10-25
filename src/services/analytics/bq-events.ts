@@ -44,6 +44,10 @@ export const BQ_TABLES = {
     event_ts: T, env: S, user_hash: S, session_hash: S, turn: I, persona: S, stt_ms: I,
     llm_first_token_ms: I, tts_first_audio_ms: I, reply_delay_ms: I, user_words: I,
     agent_words: I, tools_called: LIST, interrupted: B,
+    // added for the TURN_RECEIPT producer (agents/shared/turn-receipt-bq.ts)
+    user_kind: S, eou_delay_ms: I, commit_to_audio_ms: I, prompt_tokens: I,
+    prompt_cached_tokens: I, model: S, lane: S, tools_offered: I, preemptive: S,
+    pause_hold_ms: I, barge_in_source: S, reply_chars: I,
   },
   followthrough_outcomes: {
     event_ts: T, env: S, user_hash: S, item_hash: S, item_kind: S, outcome: S,

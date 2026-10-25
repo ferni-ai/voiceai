@@ -26,6 +26,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
@@ -60,8 +61,8 @@ export interface CrisisGuardResult {
   isCrisis: boolean;
 }
 
-/** Who is at risk: the caller, or someone the caller is worried about. */
-export type CrisisSubject = 'self' | 'third_party';
+/** Who is at risk: the caller, someone the caller is worried about, or no one now (a grieving caller, crisis-who.ts). */
+export type CrisisSubject = 'self' | 'third_party' | 'bereaved';
 
 export interface CrisisDetectionResult {
   isCrisis: boolean;
@@ -109,6 +110,8 @@ interface TextScore {
   contextHit: boolean;
   /** The caller's own ending words, negated, recovered or hyperbole only ("I would never …"). */
   softSelf: boolean;
+  /** What this turn counts for in a later turn's session check: its self read as before #2528. */
+  sessionSeverity: number;
 }
 
 /** Score one message from its words alone. */
@@ -127,6 +130,7 @@ function scoreText(text: string): TextScore {
   const softened: [number, number][] = [];
   let thirdPartyHit = false;
   let softSelf = false;
+  let tierSoft = false;
   let hardSelf = false;
   for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
     const match = re.exec(text);
@@ -145,7 +149,7 @@ function scoreText(text: string): TextScore {
     if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
       add(`${modifier}_crisis_language`, 0);
       implicitHits++;
-      softSelf = true;
+      softSelf = tierSoft = true;
     } else if (modifier) {
       add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
       hardSelf = true;
@@ -209,6 +213,7 @@ function scoreText(text: string): TextScore {
   // myself"): the third-party read is never lowered. Joking, conditional, hedged or past words
   // stay the caller's (#2528).
   if (implicitHits > softenedHits) hardSelf = true;
+  const selfSeverity = severity;
   let subject: CrisisSubject | undefined = severity > 0 ? 'self' : undefined;
   const thirdParty = thirdPartyHit || THIRD_PARTY_PATTERNS.some((p) => p.test(text));
   if (thirdParty && (!subject || !hardSelf)) {
@@ -217,7 +222,11 @@ function scoreText(text: string): TextScore {
   }
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
-  return { severity, indicators, subject, language, implicitHits, contextHit, softSelf };
+  // A worry about someone else beside the caller's own softened tier words was the caller's own
+  // turn before #2528, and still counts as one in a later turn's session check.
+  const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
+  const found = { severity, indicators, subject, language, implicitHits, contextHit };
+  return { ...found, softSelf, sessionSeverity };
 }
 
 /**
@@ -239,10 +248,9 @@ export function detectCrisis(
     .map(normalize)
     .filter((m) => m.length > 0 && m !== text)
     .slice(-5)
-    .map(scoreText)
-    .filter((s) => s.subject === 'self');
-  const priorPeak = Math.max(0, ...prior.map((s) => s.severity));
-  const priorDistressTurns = prior.filter((s) => s.severity >= SEVERITY.implicit).length;
+    .map((m) => scoreText(m).sessionSeverity);
+  const priorPeak = Math.max(0, ...prior);
+  const priorDistressTurns = prior.filter((v) => v >= SEVERITY.implicit).length;
   const signalNow = (subject === 'self' && severity >= SEVERITY.implicit) || score.contextHit;
   if (signalNow && (priorPeak >= SEVERITY.passive || priorDistressTurns >= 2)) {
     indicators.push('session_escalation');
@@ -352,7 +360,8 @@ export function buildCrisisGuidance(crisis: CrisisDetectionResult): string {
   const header = `[CRITICAL - USER SAFETY]
 Crisis indicators detected (severity: ${(crisis.severity * 100).toFixed(0)}%).
 Indicators: ${crisis.indicators.join(', ')}`;
-
+  const who = whoGuidance(crisis, header); // THIRD_PARTY_SELF_HARM routes, never set when off
+  if (who) return who;
   if (crisis.subject === 'third_party') {
     return `${header}
 
@@ -485,9 +494,4 @@ export function guardPreResponse(
 // EXPORTS
 // ============================================================================
 
-export default {
-  detectCrisis,
-  guardPreResponse,
-  guardFromDetection,
-  buildCrisisGuidance,
-};
+export default { detectCrisis, guardPreResponse, guardFromDetection, buildCrisisGuidance };

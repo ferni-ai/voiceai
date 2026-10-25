@@ -579,7 +579,7 @@ export function isGeminiProblemPhrase(input: string): boolean {
 export function getGeminiConfidenceBoost(input: string): number {
   if (isGeminiProblemPhrase(input)) {
     log.debug(
-      { input: input.slice(0, 50) },
+      { inputLength: input.length },
       '🎯 Gemini problem phrase detected - boosting confidence'
     );
     return 1.15; // 15% confidence boost
@@ -649,7 +649,7 @@ export function logConfidenceCalibration(entry: ConfidenceCalibrationEntry): voi
     log.info(
       {
         toolId: entry.toolId,
-        input: entry.input.slice(0, 40),
+        inputLength: entry.input.length,
         rawConfidence: entry.rawConfidence.toFixed(3),
         finalConfidence: entry.finalConfidence.toFixed(3),
         adjustments: adjustmentDesc.length > 0 ? adjustmentDesc.join(', ') : 'none',
@@ -662,7 +662,7 @@ export function logConfidenceCalibration(entry: ConfidenceCalibrationEntry): voi
     log.info(
       {
         toolId: entry.toolId,
-        input: entry.input.slice(0, 40),
+        inputLength: entry.input.length,
         rawConfidence: entry.rawConfidence.toFixed(3),
         finalConfidence: entry.finalConfidence.toFixed(3),
         adjustments: adjustmentDesc.length > 0 ? adjustmentDesc.join(', ') : 'none',

@@ -7268,21 +7268,6 @@
     "milestone": "Milestone"
   },
   "voiceLibrary": {
-    "emma": {
-      "description": "Warm and friendly voice, perfect for supportive conversations"
-    },
-    "james": {
-      "description": "Clear and professional voice, ideal for mentors and advisors"
-    },
-    "sarah": {
-      "description": "Gentle and soothing voice, great for legacy personas"
-    },
-    "alex": {
-      "description": "Energetic and motivating voice, perfect for coaches"
-    },
-    "morgan": {
-      "description": "Calm and balanced voice, suitable for any persona type"
-    },
     "tags": {
       "warm": "Warm",
       "friendly": "Friendly",
@@ -7298,6 +7283,19 @@
       "calm": "Calm",
       "balanced": "Balanced",
       "neutral": "Neutral"
+    },
+    "loading": "Loading voices...",
+    "loadFailed": "Couldn't load the voices. Close this and try again.",
+    "playSample": "Play a sample of {name}",
+    "gender": {
+      "female": "Woman",
+      "male": "Man"
+    },
+    "accent": {
+      "american": "American",
+      "british": "British",
+      "australian": "Australian",
+      "indian": "Indian English"
     }
   },
   "agentTypes": {

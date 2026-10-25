@@ -24,6 +24,7 @@ import type {
   ToolMatch,
 } from './types.js';
 import { getKeywordWeight, getKeywordWord } from './types.js';
+import { routerContextMentions } from '../../utils/safety-whole-word.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import { batchCosineSimilarityOptimized, cosineSimilarity } from '../../memory/rust-accelerator.js';
 // Re-export for backwards compatibility with existing consumers
@@ -396,10 +397,9 @@ export function calculateContextBoosts(
   for (const tool of tools) {
     const { triggers } = tool.definition;
 
-    // Check if keywords appear in recent conversation
     const keywords = triggers.keywords || [];
     const keywordMatches = keywords.filter((kw) =>
-      recentText.includes(getKeywordWord(kw).toLowerCase())
+      routerContextMentions(recentText, getKeywordWord(kw).toLowerCase(), tool.definition.category)
     );
 
     if (keywordMatches.length > 0) {

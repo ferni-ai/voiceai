@@ -15,7 +15,7 @@ import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { cssDurations } from './lib/duration-scale.js';
-import { darkThemeLines } from './lib/website-theme.js';
+import { websiteThemeLines } from './lib/website-theme.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -632,8 +632,7 @@ function build() {
     ...generateTypographyVars(typography),
     ...generateAnimationVars(animation),
     ...generateEffectsVars(effects),
-    '}',
-    ...darkThemeLines(semanticColors, colors),
+    ...websiteThemeLines(semanticColors, colors, spacing),
   ];
 
   // Generate dark theme CSS (Night Ink) for developer sites

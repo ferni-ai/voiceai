@@ -13,7 +13,6 @@ import type {
   DateSignal,
   RelationshipSignal,
 } from './fast-capture.js';
-// 🧠 MEMORY FIX: Import vector store for semantic search capability
 import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
@@ -25,6 +24,7 @@ import {
 } from '../operations/memory-extraction-telemetry.js';
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
 import { extractionMoment } from './extraction-moment.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
@@ -560,6 +560,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
     result: ExtractionResult,
     job: DeepExtractionJob
   ): Promise<void> {
+    if (memoryHeld(job.sessionId) || userHeld(userId)) return; // MINOR_CARE, at write time
     try {
       const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
       const db = getFirestoreDb();
@@ -643,7 +644,6 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         'Persisted extraction results to Firestore'
       );
 
-      // 🧠 MEMORY FIX: Also store in vector store for semantic search
       // This is the critical missing piece - without this, context builders return empty
       await this.persistToVectorStore(userId, result, job, timestamp);
     } catch (error) {

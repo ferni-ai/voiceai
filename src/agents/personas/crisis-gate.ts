@@ -21,7 +21,6 @@
 
 import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
-
 import {
   agreementOutcome,
   resolveCrisisAgreementGate,
@@ -53,6 +52,7 @@ import {
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
@@ -71,8 +71,9 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
-import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
-import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
+import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
@@ -246,6 +247,7 @@ export function startCrisisGate(
   if (run?.mode !== 'live' || decision.action === 'replace') {
     return { decision, escalation: null, reask };
   }
+  const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
@@ -262,10 +264,12 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'grounded_release' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
-    const merged = applyClassifierVerdict(detection, verdict);
+    const base = applyClassifierVerdict(detection, verdict);
+    const merged = who?.live ? await who.resolve(base) : base;
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
-    if (RANK[stronger.action] <= RANK[decision.action] && !gentle) return null;
+    const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
+    if (RANK[stronger.action] <= RANK[decision.action] && !gentle && !rerouted) return null;
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
@@ -366,7 +370,7 @@ export function holdUntilCleared(
         if (!decision) {
           released = true;
           // How long a ready reply waited on the classifier: the latency this gate adds.
-          log.info({ delayedMs: firstHeldAt ? Date.now() - firstHeldAt : 0 }, 'CRISIS_HOLD');
+          log.info({ delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
           for (const chunk of held) controller.enqueue(chunk);
           held.length = 0;
           await pump;
@@ -428,12 +432,13 @@ export async function gatedReply(
   const chatCtx = withoutPastLeadIns(request, env);
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
-  const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
+  const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
   signalCrisisDecision(session, gate?.decision.action);
   gate?.escalation
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);
+  if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
@@ -441,9 +446,8 @@ export async function gatedReply(
     return textReply(gate.decision.script);
   }
 
-  // A reply with crisis guidance keeps the plain style reminder: a per-turn
-  // shape ("six words at most") must never hold it back, and no goodbye
-  // closes the loop on a plan (wrap-up.ts).
+  // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at
+  // most") must never hold it back, and no goodbye closes the loop on a plan (wrap-up.ts).
   const plain = (): llm.ChatContext =>
     withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
   const ctx =
