@@ -11,10 +11,14 @@
  *   node scripts/ci/prod-web-flags.mjs diff    a default build vs prod's, as a markdown table
  *
  * web: the VITE_* env of deploy-firebase.yml's "Build frontend" step, the app.ferni.ai
- * build. Each `${{ vars.X }}` or `${{ vars.X || 'default' }}` is resolved from VARS_JSON
- * (the workflow passes `${{ toJSON(vars) }}`), so a repo variable flipped for prod is
- * flipped here too, with no second copy to keep in step. Values that name a real
- * account (the Venmo handle) become a placeholder of the same shape.
+ * build. Each `${{ vars.X }}` or `${{ vars.X || 'default' }}` there is resolved from the
+ * step's PROD_VAR_X, which the workflow sets from the same repo variable, so a variable
+ * flipped for prod is flipped here too. Only the variables that build reads are passed,
+ * never `toJSON(vars)`: this repo is public and a step's env is printed in its log. An
+ * account (the Venmo handle) is never passed at all, only whether it is set
+ * (PROD_VAR_X_SET), and the walk gets a placeholder of the same shape. The names must
+ * match the build's exactly, both ways, or this fails: a flag added to the build can't
+ * be left out of the walk unnoticed.
  * server: the on/off flags of deploy/ui-server/env.yaml (the API server's prod env).
  *
  * Read by line, as workflow-concurrency.mjs does: the repo has no YAML library at its root.
@@ -87,10 +91,34 @@ export function diffTable(flags) {
   );
 }
 
-function varsFromEnv() {
-  const raw = process.env.VARS_JSON;
-  if (raw === undefined) throw new Error('VARS_JSON is not set (pass ${{ toJSON(vars) }})');
-  return JSON.parse(raw || '{}');
+export const VAR_PREFIX = 'PROD_VAR_';
+
+/** The repo variables the build reads, from the PROD_VAR_* env the workflow passes. */
+export function varsFromEnv(workflow, env) {
+  const wanted = new Set();
+  for (const [name, raw] of Object.entries(stepEnv(workflow, WEB_BUILD_STEP))) {
+    const m = VAR_REF.exec(raw);
+    if (!m) throw new Error(`${name}: "${raw}" is not \${{ vars.X }} or \${{ vars.X || 'y' }}`);
+    wanted.add(PLACEHOLDERS[m[1]] ? `${VAR_PREFIX}${m[1]}_SET` : `${VAR_PREFIX}${m[1]}`);
+  }
+  const passed = Object.keys(env).filter((k) => k.startsWith(VAR_PREFIX));
+  const missing = [...wanted].filter((k) => env[k] === undefined);
+  const extra = passed.filter((k) => !wanted.has(k));
+  if (missing.length || extra.length) {
+    throw new Error(
+      `pass exactly the variables ${WEB_BUILD} builds with` +
+        (missing.length ? `; missing: ${missing.join(', ')}` : '') +
+        (extra.length ? `; not read by the build: ${extra.join(', ')}` : '')
+    );
+  }
+  const vars = {};
+  for (const key of wanted) {
+    const name = key.slice(VAR_PREFIX.length).replace(/_SET$/, '');
+    if (!PLACEHOLDERS[name]) vars[name] = env[key];
+    else if (env[key] === 'true') vars[name] = PLACEHOLDERS[name];
+    else if (env[key] !== 'false') throw new Error(`${key} must be true or false`);
+  }
+  return vars;
 }
 
 const lines = (flags) => Object.entries(flags).map(([k, v]) => `${k}=${v}`);
@@ -99,9 +127,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const read = (p) => readFileSync(join(ROOT, p), 'utf8');
   const mode = process.argv[2];
   try {
-    if (mode === 'web') console.log(lines(webFlags(read(WEB_BUILD), varsFromEnv())).join('\n'));
+    const web = () => webFlags(read(WEB_BUILD), varsFromEnv(read(WEB_BUILD), process.env));
+    if (mode === 'web') console.log(lines(web()).join('\n'));
     else if (mode === 'server') console.log(lines(serverFlags(read(SERVER_ENV))).join('\n'));
-    else if (mode === 'diff') console.log(diffTable(webFlags(read(WEB_BUILD), varsFromEnv())));
+    else if (mode === 'diff') console.log(diffTable(web()));
     else throw new Error('usage: prod-web-flags.mjs web|server|diff');
   } catch (error) {
     console.error(`::error::prod-web-flags: ${error instanceof Error ? error.message : error}`);
