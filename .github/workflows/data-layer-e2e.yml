@@ -17,6 +17,11 @@ on:
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
+      - 'src/personality/pattern-persistence.ts'
+      - 'src/personality/emotional-data-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-data-snippets.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-data-snippets*.ts'
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
@@ -44,6 +49,11 @@ on:
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
+      - 'src/personality/pattern-persistence.ts'
+      - 'src/personality/emotional-data-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-data-snippets.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-data-snippets*.ts'
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
@@ -165,6 +175,14 @@ jobs:
         run: |
           pnpm vitest run src/services/data-layer/__tests__/service-wiring-integration.test.ts --reporter=verbose
         env:
+          NODE_ENV: test
+
+      # emotional_data/{uid}/points: strip on load, and the cleanup job (dry run, apply, re-run)
+      - name: Run Emotional Data Points Tests
+        run: |
+          pnpm vitest run -c vitest.config.unit.ts scripts/migrations/__tests__/strip-emotional-data-snippets.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
 
       - name: Run Intelligence Layer Tests
