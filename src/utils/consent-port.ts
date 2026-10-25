@@ -65,6 +65,11 @@ export interface GrantChecks {
     isOwn: OwnNumberCheck
   ) => Promise<ConsentBlock | null>;
   recordOwnerAttestation: (phone: string, channel: ConsentChannel, uid: string) => Promise<boolean>;
+  ownerRefusal: (
+    ownerUid: string | undefined,
+    phone: string,
+    channel: ConsentChannel
+  ) => Promise<ConsentBlock | null>;
 }
 let grants: GrantChecks | undefined;
 
@@ -96,3 +101,24 @@ export async function recordOwnerAttestation(
 ): Promise<boolean> {
   return grants ? grants.recordOwnerAttestation(phone, channel, ownerUid) : false;
 }
+
+/** consent-reach.ts ownerRefusal, for a shared sender told who it acts for. Unregistered, fails closed. */
+export async function ownerRefusal(
+  ownerUid: string | undefined,
+  phone: string,
+  channel: ConsentChannel,
+  env: Env = process.env
+): Promise<ConsentBlock | null> {
+  if (grants) return grants.ownerRefusal(ownerUid, phone, channel);
+  if (!flagOn('MESSAGING_PIPELINE', env)) return null;
+  log.warn({ channel }, 'Grant check not registered in this process; not sending');
+  return 'unverifiable';
+}
+
+/** What a tool tells the model when a call was refused, so Ferni says so honestly. */
+export const notCalling = (why: ConsentBlock): string =>
+  why === 'opted-out'
+    ? "I can't call that number: it asked not to be called."
+    : why === 'needs-consent'
+      ? "I can't call that number yet: they haven't said yes to calls from me for you."
+      : "I can't place that call right now.";

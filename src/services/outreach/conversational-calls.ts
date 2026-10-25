@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
@@ -173,9 +173,9 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
       return { success: false, error: 'Invalid phone number format' };
     }
     if (await heldCall(request)) return { success: false, error: 'Not calling: held' };
-    // MESSAGING_PIPELINE: every proactive call stops at a call opt-out. A call-hours hold is
-    // re-checked when placed (deferred-calls.ts); no job ever dials a stored quiet-hours call.
-    const refused = await consentBlocks(normalizedPhone, 'call', true);
+    // MESSAGING_PIPELINE: the member's own number or one they hold a call grant for, never past an
+    // opt-out. A call-hours hold is re-checked when placed (deferred-calls.ts), never stale.
+    const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.

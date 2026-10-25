@@ -22,6 +22,7 @@ import {
   consentBlocks,
   consentCheckRegistered,
   grantChecksRegistered,
+  ownerRefusal,
   recordOwnerAttestation,
   registerConsentCheck,
   registerGrantChecks,
@@ -91,9 +92,16 @@ describe('consent port: the per-owner grant checks', () => {
   it('asks the registered grant checks', async () => {
     const thirdParty = vi.fn(async () => 'needs-consent' as const);
     const attest = vi.fn(async () => true);
-    registerGrantChecks({ thirdPartyRefusal: thirdParty, recordOwnerAttestation: attest });
+    const owner = vi.fn(async () => 'opted-out' as const);
+    registerGrantChecks({
+      thirdPartyRefusal: thirdParty,
+      recordOwnerAttestation: attest,
+      ownerRefusal: owner,
+    });
     expect(grantChecksRegistered()).toBe(true);
     expect(await thirdPartyRefusal(OWNER, PHONE, 'call', notOwn, ON)).toBe('needs-consent');
+    expect(await ownerRefusal(OWNER, PHONE, 'call', ON)).toBe('opted-out');
+    expect(owner).toHaveBeenCalledWith(OWNER, PHONE, 'call');
     expect(await recordOwnerAttestation(PHONE, 'sms', OWNER)).toBe(true);
     expect(attest).toHaveBeenCalledWith(PHONE, 'sms', OWNER);
   });

@@ -353,9 +353,9 @@ async function execute(
         return `I need a valid phone number. Can you double-check "${phoneNumber}"?`;
       }
       const e164Number = cleanNumber.startsWith('1') ? `+${cleanNumber}` : `+1${cleanNumber}`;
-      const { consentBlocks } = await import('../../../services/messaging/consent.js');
-      if (await consentBlocks(e164Number, 'call', true))
-        return `I can't call ${phoneNumber}: that number asked not to be called.`;
+      const grants = await import('../../../services/messaging/consent-reach.js');
+      const refused = await grants.ownerRefusal(ctx.userId, e164Number, 'call');
+      if (refused) return grants.notCalling(refused);
       const { directSendHeld } = await import('../../../services/communication-service.js');
       if (await directSendHeld(e164Number, 'call', { userId })) return 'Not calling: held.';
 

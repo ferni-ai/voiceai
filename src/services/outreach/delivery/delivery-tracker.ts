@@ -56,7 +56,6 @@ export interface UnifiedDeliveryRecord {
   clickedAt?: Date;
   respondedAt?: Date;
 
-  // Content
   to: string;
   subject?: string;
   bodyPreview?: string;
@@ -317,7 +316,7 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
               toPhone,
               item.payload.body,
               item.personaId,
-              { userId: item.userId }
+              { ownerUid: item.userId, userId: item.userId }
             );
             result = callResult.success
               ? { success: true, messageId: callResult.callSid }

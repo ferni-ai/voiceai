@@ -334,7 +334,6 @@ export async function executeOutreach(
   }
 
   try {
-    // Actually send the message
     // This would integrate with your existing outreach infrastructure
     const sent = await sendMessage(item, method);
 
@@ -491,6 +490,7 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
         const result = await callWithPersonaVoice(phone, formatted.message, personaId, {
           fallbackToTwilioVoice: true,
           customGreeting: formatted.opening,
+          ownerUid: item.userId,
           userId: item.userId,
         });
 
