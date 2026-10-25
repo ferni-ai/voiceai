@@ -23,6 +23,13 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { indexSmallWin } from '../data-layer/integrations/trust-integration.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import {
+  formatWinType,
+  generateSSML,
+  getStreakMessage,
+  getThemeMessage,
+} from './celebration-momentum-copy.js';
+import { recordedWhileHeld, withoutHeld } from './held-window.js';
 
 const log = createLogger({ module: 'CelebrationMomentum' });
 
@@ -199,15 +206,59 @@ function getPersistence(): PersistenceStore<PersistedMomentumProfile> {
 export async function loadMomentumUser(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
   try {
-    const data = await getPersistence().load(userId, { strict: 'read' });
+    const stored = await getPersistence().load(userId, { strict: 'read' });
+    const data = stored && (withoutHeldWins(userId, stored) ?? stored); // MINOR_CARE
     if (data) momentumProfiles.set(userId, deserializeProfile(data));
     loadedUsers.add(userId);
+    if (data !== stored) persistProfile(userId); // the stored doc, without them
     log.debug({ userId }, 'Loaded momentum profile from persistence');
   } catch (error) {
     log.warn({ error, userId }, 'Failed to load momentum profile');
     throw error;
   }
 }
+
+/**
+ * MINOR_CARE: a stored profile minus the wins a purged held call recorded (held-window.ts), with
+ * the counts, streaks, themes and score worked out again from the rest; null when none was.
+ */
+export function withoutHeldWins(
+  userId: string,
+  data: PersistedMomentumProfile
+): PersistedMomentumProfile | null {
+  const profile = deserializeProfile(data);
+  const wins = withoutHeld(userId, profile.wins, (w) => w.detectedAt);
+  if (wins === profile.wins) return null;
+  const held = profile.wins.filter((w) => !wins.includes(w));
+  const during = (at: Date) => recordedWhileHeld(userId, at);
+  const day = 24 * 60 * 60 * 1000;
+  profile.wins = wins;
+  profile.totalWins = Math.max(wins.length, profile.totalWins - held.length);
+  profile.winsThisWeek = wins.filter((w) => Date.now() - w.detectedAt.getTime() <= 7 * day).length;
+  profile.winsThisMonth = wins.filter(
+    (w) => Date.now() - w.detectedAt.getTime() <= 30 * day
+  ).length;
+  // A streak a held win started goes; one it extended loses what it added (updateStreaks)
+  const started = profile.streaks.filter((s) => during(s.startDate));
+  profile.streaks = profile.streaks.filter((s) => !during(s.startDate));
+  for (const s of profile.streaks.filter((s) => during(s.lastWinDate))) {
+    const since = wins.filter((w) => w.detectedAt >= s.startDate);
+    const ofType = since.filter((w) => s.type !== 'type_specific' || w.type === s.winType);
+    const added = s.type === 'type_specific' ? held.filter((w) => w.type === s.winType).length : 1;
+    s.count = Math.max(1, s.count - added);
+    s.lastWinDate = ofType.at(-1)?.detectedAt ?? s.startDate;
+  }
+  // A held win that broke the daily streak started a new one: the broken one was the latest
+  if (started.some((s) => s.type === 'daily' && s.active) && !profile.streaks.some(isDaily)) {
+    const broken = profile.streaks.filter((s) => s.type === 'daily').at(-1);
+    if (broken) broken.active = true;
+  }
+  updateThemes(profile);
+  calculateMomentum(profile);
+  detectSpecialStates(profile);
+  return serializeProfile(profile);
+}
+const isDaily = (s: WinStreak): boolean => s.type === 'daily' && s.active;
 
 function persistProfile(userId: string): void {
   const profile = momentumProfiles.get(userId);
@@ -603,74 +654,6 @@ export function generateCelebrations(userId: string): CelebrationSuggestion[] {
   return suggestions;
 }
 
-/**
- * Generate streak message
- */
-function getStreakMessage(streak: WinStreak): string {
-  const messages: Record<number, string[]> = {
-    3: ["Three in a row! You're on a roll.", "That's three! Momentum is building."],
-    5: ["Five wins! You're really getting somewhere.", "A five-win streak - that's no accident."],
-    7: ["A full week of wins! That's incredible.", "Seven! You're making this a habit."],
-    10: [
-      'Double digits! This is becoming who you are.',
-      'Ten wins in a row - you should be proud.',
-    ],
-    14: [
-      'Two weeks of wins! This is transformation.',
-      "Fourteen! You're not the same person you were.",
-    ],
-    21: [
-      'Three weeks! They say it takes 21 days to build a habit.',
-      "Twenty-one. This isn't a streak anymore - it's you.",
-    ],
-    30: ["A whole month! You've changed.", "Thirty days. Look how far you've come."],
-  };
-
-  const options = messages[streak.count] || [`${streak.count} wins! That's remarkable.`];
-
-  return options[Math.floor(Math.random() * options.length)];
-}
-
-/**
- * Generate theme message
- */
-function getThemeMessage(type: WinType, count: number): string {
-  const messages: Record<WinType, string> = {
-    followed_through: `${count} times you've followed through. You're becoming someone people can count on.`,
-    courage_moment: `${count} moments of courage. You're braver than you know.`,
-    self_care: `${count} acts of self-care. You're learning to take care of you.`,
-    boundary_held: `${count} boundaries held. You're protecting your peace.`,
-    hard_conversation: `${count} hard conversations. You're not avoiding the difficult anymore.`,
-    showed_up: `${count} times you showed up when it was hard. That's character.`,
-    tried_new_thing: `${count} new things tried. You're expanding your world.`,
-    asked_for_help: `${count} times you asked for help. That's strength, not weakness.`,
-    effort_made: `${count} times you gave it your all. Effort is everything.`,
-    consistency: `${count} days of consistency. You're building something real.`,
-    breakthrough: `${count} breakthroughs. You're transforming.`,
-  };
-
-  return messages[type] || `${count} wins of this type. You're making progress.`;
-}
-
-/**
- * Generate SSML
- */
-function generateSSML(text: string, mood: 'excited' | 'warm' | 'caring'): string {
-  const prosody = {
-    excited: { rate: '105%', pitch: '+5%' },
-    warm: { rate: '95%', pitch: '-2%' },
-    caring: { rate: '90%', pitch: '-3%' },
-  };
-
-  const p = prosody[mood];
-
-  return `<speak>
-    <prosody rate="${p.rate}" pitch="${p.pitch}">
-      ${text}
-    </prosody>
-  </speak>`;
-}
-
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -729,26 +712,6 @@ export function getMomentumSummary(userId: string): string | null {
   }
 
   return parts.length > 0 ? parts.join(' • ') : null;
-}
-
-/**
- * Format win type for display
- */
-function formatWinType(type: WinType): string {
-  const labels: Record<WinType, string> = {
-    followed_through: 'follow-through',
-    courage_moment: 'courage',
-    self_care: 'self-care',
-    boundary_held: 'boundaries',
-    hard_conversation: 'hard conversations',
-    showed_up: 'showing up',
-    tried_new_thing: 'trying new things',
-    asked_for_help: 'asking for help',
-    effort_made: 'effort',
-    consistency: 'consistency',
-    breakthrough: 'breakthroughs',
-  };
-  return labels[type] || type;
 }
 
 /**

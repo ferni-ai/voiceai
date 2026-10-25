@@ -36,6 +36,7 @@ import { flushVoiceProsodyPersistence, recordVoiceSample } from '../voice-prosod
 import { flushCelebrationMomentumPersistence, recordWin } from '../celebration-momentum.js';
 import { exportBoundaries, updateProbingTolerance } from '../boundary-memory.js';
 import { setUserEvents, type LifeEvent } from '../life-events.js';
+import { getTimeline, setTimeline, type SentimentTimeline } from '../sentiment-timeline.js';
 import {
   bindSessionUser,
   heldAfter,
@@ -185,5 +186,51 @@ describe('MINOR_CARE: after a held call, the next call keeps the stored trust hi
     updateProbingTolerance(u, 'resisted');
     await endCall(u);
     expect(new Map(firestore.docs)).toEqual(kept);
+  });
+
+  it('a failed history read after a purge keeps the sentiment timeline and life events unwritten', async () => {
+    const u = uid();
+    const at = (iso: string) => new Date(iso);
+    const snapshot = (id: string, iso: string) => ({
+      id,
+      timestamp: at(iso),
+      primaryEmotion: 'joy',
+    });
+    const timeline = (ids: string[]) =>
+      ({
+        userId: u,
+        snapshots: ids.map((id) => snapshot(id, '2026-10-01T10:00:00Z')),
+        lastUpdated: at('2026-10-01T10:00:00Z'),
+      }) as unknown as SentimentTimeline;
+    const event = (id: string, description: string) =>
+      ({ id, userId: u, description, date: at('2026-10-02T10:00:00Z') }) as unknown as LifeEvent;
+    await loadTrustProfiles(u); // an owner's earlier call stored their history
+    setTimeline(u, timeline(['OLD-mood']));
+    setUserEvents(u, [event('e0', 'OLD move')]);
+    await saveTrustProfiles(u);
+    const history = ['sentiment_timeline', 'life_events'];
+    const kept = history.map((d) => firestore.docs.get(doc(u, d))?.data);
+    expect(kept.every(Boolean)).toBe(true);
+
+    const hold = call(u);
+    hold();
+    purgeHeldUser(u); // the held call's end: history held until a session start reads it back
+    resetMinorCare();
+    call(u); // the next call, whose history read fails
+    firestore.failReads.match = new RegExp(`${u}/trust_profiles/(sentiment_timeline|life_events)`);
+    await loadTrustProfiles(u);
+    firestore.failReads.match = null;
+    setTimeline(u, timeline(['NEW-mood']));
+    setUserEvents(u, [event('e1', 'NEW move')]);
+    await saveTrustProfiles(u);
+    expect(history.map((d) => firestore.docs.get(doc(u, d))?.data)).toEqual(kept);
+
+    await loadTrustProfiles(u); // a good read: saves resume, on top of what was stored
+    await saveTrustProfiles(u);
+    expect(getTimeline(u)?.snapshots.map((s) => s.id)).toEqual(['OLD-mood', 'NEW-mood']);
+    expect(stored(u, 'life_events').map((e: { description: string }) => e.description)).toEqual([
+      'OLD move',
+      'NEW move',
+    ]);
   });
 });

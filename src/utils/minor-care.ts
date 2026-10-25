@@ -216,6 +216,12 @@ let ownerCheck: (sessionId: string) => boolean = () => false;
 const sessionUsers = new Map<string, string>();
 /** Past this many, sessions that never sounded under 18 go first, oldest first. */
 const MAX_SESSION_USERS = 5000;
+/** sessionId -> when it was first bound to a user: a held call's purge drops what came after it. */
+const sessionBound = new Map<string, number>();
+
+/** When this session was first bound to a user (session start), if it was. */
+export const sessionBoundAt = (sessionId: string | undefined): number | undefined =>
+  sessionId === undefined ? undefined : sessionBound.get(sessionId);
 /** sessionId -> a phone caller's E.164 (caller-recognition.ts), never logged: its hold covers the number. */
 const sessionPhones = new Map<string, string>();
 
@@ -335,9 +341,14 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
   if (!sessionId || !userId || sharedId(userId)) return; // never a placeholder or shared id
   sessionUsers.delete(sessionId);
   sessionUsers.set(sessionId, userId);
+  if (!sessionBound.has(sessionId)) sessionBound.set(sessionId, Date.now());
   for (const s of sessionUsers.keys()) {
     if (sessionUsers.size <= MAX_SESSION_USERS) break;
     if (!likely.has(s)) sessionUsers.delete(s);
+  }
+  for (const s of sessionBound.keys()) {
+    if (sessionBound.size <= MAX_SESSION_USERS) break;
+    if (!sessionUsers.has(s)) sessionBound.delete(s);
   }
   announceHold(sessionId);
 }
@@ -427,6 +438,7 @@ export function resetMinorCare(): void {
   shadowLogged.clear();
   likely.clear();
   sessionUsers.clear();
+  sessionBound.clear();
   announced.clear();
   sessionPhones.clear();
   ownerCheck = () => false;

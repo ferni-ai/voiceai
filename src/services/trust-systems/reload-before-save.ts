@@ -13,10 +13,11 @@
  *
  * @module services/trust-systems/reload-before-save
  */
-import { loadMomentumUser } from './celebration-momentum.js';
+import { loadMomentumUser, withoutHeldWins } from './celebration-momentum.js';
+import { scrubHeldDoc } from './held-window.js';
 import { importLearningProfile, type LearningProfile } from './learning-style.js';
 import { readTrustDoc } from './trust-doc.js';
-import { loadVoiceProsodyUser } from './voice-prosody-learning.js';
+import { loadVoiceProsodyUser, withoutHeldSamples } from './voice-prosody-learning.js';
 
 /** The trust_profiles docs whose store a session start reads back (loadTrustProfiles). */
 const RELOADED_DOCS = [
@@ -70,4 +71,16 @@ export async function loadReloadedStores(userId: string): Promise<string[]> {
     if (ok) loaded.push(doc);
   }
   return loaded;
+}
+
+/**
+ * MINOR_CARE purge: rewrite the timer-flushed stores' docs without what the held call recorded
+ * before its hold began (held-window.ts). Their trust_profiles mirrors are only written at a
+ * session end, from memory, which a held call's end skips; the next save writes them clean.
+ */
+export async function scrubHeldStores(userId: string): Promise<boolean[]> {
+  return Promise.all([
+    scrubHeldDoc(userId, 'voice_prosody', 'data', withoutHeldSamples),
+    scrubHeldDoc(userId, 'celebration_momentum', 'profile', withoutHeldWins),
+  ]);
 }

@@ -23,6 +23,8 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { withoutHeld } from './held-window.js';
+import { average, calculateStdDev, calculateVarianceScore } from './voice-prosody-math.js';
 
 const log = createLogger({ module: 'VoiceProsodyLearning' });
 
@@ -131,8 +133,8 @@ interface PersistedSample extends Omit<VoiceSample, 'timestamp'> {
   timestamp: string;
 }
 
-interface UserVoiceProsodyData {
-  baseline?: PersistedBaseline;
+export interface UserVoiceProsodyData {
+  baseline?: PersistedBaseline | null; // null, not absent: a merge write keeps an absent field
   samples: PersistedSample[];
 }
 
@@ -187,7 +189,8 @@ function getPersistence(): PersistenceStore<UserVoiceProsodyData> {
 export async function loadVoiceProsodyUser(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
   try {
-    const data = await getPersistence().load(userId, { strict: 'read' });
+    const stored = await getPersistence().load(userId, { strict: 'read' });
+    const data = stored && (withoutHeldSamples(userId, stored) ?? stored); // MINOR_CARE
     if (data) {
       if (data.baseline) userBaselines.set(userId, deserializeBaseline(data.baseline));
       if (data.samples) {
@@ -196,10 +199,36 @@ export async function loadVoiceProsodyUser(userId: string): Promise<void> {
       }
     }
     loadedUsers.add(userId);
+    if (data !== stored) persistUserData(userId); // the stored doc, without them
   } catch (error) {
     log.warn({ error, userId }, 'Failed to load voice prosody data');
     throw error;
   }
+}
+
+/** MINOR_CARE: stored samples minus a purged held call's (held-window.ts), baseline rebuilt. */
+export function withoutHeldSamples(
+  userId: string,
+  data: UserVoiceProsodyData
+): UserVoiceProsodyData | null {
+  const all = data.samples ?? [];
+  const kept = withoutHeld(userId, all, (s) => s.timestamp);
+  if (kept === all) return null; // none was held: null, and memory is never touched
+  const samples = kept.map(deserializeSample);
+  const live = userBaselines.get(userId);
+  const stored = data.baseline && deserializeBaseline(data.baseline);
+  userBaselines.delete(userId);
+  if (stored) userBaselines.set(userId, { ...stored, emotionalProfiles: [] }); // keeps establishedAt
+  if (samples.length >= MIN_SAMPLES_FOR_BASELINE) updateBaseline(userId, samples);
+  else userBaselines.delete(userId); // what it had was built with the held samples
+  for (const s of samples) {
+    const emotion = s.userConfirmedEmotion || s.detectedEmotion;
+    if (emotion) updateEmotionalProfile(userId, emotion, s.characteristics);
+  }
+  const rebuilt = userBaselines.get(userId);
+  if (live) userBaselines.set(userId, live);
+  else userBaselines.delete(userId);
+  return { baseline: rebuilt ? serializeBaseline(rebuilt) : null, samples: kept };
 }
 
 function persistUserData(userId: string): void {
@@ -208,7 +237,7 @@ function persistUserData(userId: string): void {
   const samples = voiceSamples.get(userId) || [];
 
   getPersistence().set(cleanForFirestore(userId), {
-    baseline: baseline ? serializeBaseline(baseline) : undefined,
+    baseline: baseline ? serializeBaseline(baseline) : null,
     samples: samples.map(serializeSample),
   });
 }
@@ -725,35 +754,6 @@ export function getEmotionDetectionBoost(userId: string): number {
   };
 
   return boosts[familiarity.level];
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function average(values: number[]): number {
-  if (values.length === 0) return 0;
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-function calculateStdDev(values: number[]): number {
-  if (values.length < 2) return 0;
-  const avg = average(values);
-  const squareDiffs = values.map((v) => Math.pow(v - avg, 2));
-  return Math.sqrt(average(squareDiffs));
-}
-
-function calculateVarianceScore(chars: VoiceCharacteristics[]): number {
-  // Lower variance = more consistent baseline = higher score
-  const keys: Array<keyof VoiceCharacteristics> = ['pitchMean', 'energyMean', 'speakingRate'];
-  const variances = keys.map((k) => {
-    const values = chars.map((c) => c[k]);
-    const avg = average(values);
-    if (avg === 0) return 0;
-    return calculateStdDev(values) / avg; // Coefficient of variation
-  });
-
-  return Math.min(1, average(variances));
 }
 
 // ============================================================================
