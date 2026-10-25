@@ -10220,9 +10220,10 @@
     "title": "Pequeñas cosas que recuerdo",
     "subtitle": "Para que no tengas que hacerlo tú",
     "emptyTitle": "Aún no hay nada configurado",
-    "emptySubtitle": "¿Quieres que te salude cada mañana? ¿Que te recuerde estirar? Puedo hacer eso.",
+    "emptySubtitle": "Cuéntame algo que quieras hacer con regularidad y lo guardaré aquí.",
     "emptyButton": "Muéstrame algunas ideas",
     "addNew": "Añadir algo nuevo",
+    "notRunningYet": "Las guardo aquí para ti. Todavía no se ejecutan solas.",
     "triggers": {
       "dailyAt": "Todos los días a las {time}",
       "dailyUnset": "Todos los días a una hora fija",
