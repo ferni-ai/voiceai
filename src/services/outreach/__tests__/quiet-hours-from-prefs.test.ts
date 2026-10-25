@@ -35,6 +35,7 @@ const CHI_1500 = at('2026-10-20T20:00:00Z'); // Tue 15:00 in Chicago
 /** What POST /api/user/preferences saves for 20:00 to 09:30 (a window over midnight). */
 const saved = (extra: Record<string, unknown> = {}) => ({
   messagingPrefs: { quietStart: '20:00', quietEnd: '09:30', zone: CHI, ...extra },
+  outreachPreferences: { timezone: CHI },
 });
 
 beforeEach(() => {
@@ -50,11 +51,12 @@ describe('savedQuietHours: the one reader', () => {
     expect(qh.savedQuietHours(saved())).toEqual({
       window: { startMin: 20 * 60, endMin: 9 * 60 + 30 },
       zones: [CHI],
-      zone: CHI,
     });
-    // The schedulers with their own check (automated-scheduler, outreach-worker) switch to it.
-    expect(qh.usesSharedQuiet(saved())).toBe(true);
-    expect(qh.usesSharedQuiet({})).toBe(false);
+    expect(qh.isSavedQuietAt(saved(), CHI_2015)).toBe(true);
+    expect(qh.isSavedQuietAt(saved(), CHI_1500)).toBe(false);
+    // A sender's own window check, plus the saved one.
+    expect(qh.quietWithSaved(CHI_2015, null, [CHI], saved())).toBe(true);
+    expect(qh.quietWithSaved(CHI_1500, { startMin: 0, endMin: 23 * 60 }, [CHI], {})).toBe(true);
   });
 
   it('is nothing when the flag is off, nothing is saved, or only the older store holds hours', () => {
@@ -65,7 +67,7 @@ describe('savedQuietHours: the one reader', () => {
     expect(qh.savedQuietHours(older)).toBeUndefined();
     vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'off');
     expect(qh.savedQuietHours(saved())).toBeUndefined();
-    expect(qh.usesSharedQuiet(saved())).toBe(false);
+    expect(qh.isSavedQuietAt(saved(), CHI_2015)).toBe(false);
   });
 
   it('no zone saved: their profile zone; none at all: both US coasts, never no limit', () => {
@@ -73,7 +75,6 @@ describe('savedQuietHours: the one reader', () => {
     expect(qh.savedQuietHours({ ...noZone, contactInfo: { timezone: CHI } })?.zones).toEqual([CHI]);
     const coasts = qh.savedQuietHours(noZone);
     expect(coasts?.zones).toEqual([NY, LA]);
-    expect(coasts?.zone).toBeUndefined();
     expect(qh.isUserQuiet(noZone, at('2026-10-21T04:00:00Z'))).toBe(true); // 21:00 in LA
   });
 });
@@ -138,11 +139,44 @@ describe('checkCallHours (the call-hours guard)', () => {
     expect(decision).toEqual({ allowed: true, at: CHI_2015, timezone: CHI, source: 'stored' });
   });
 
-  it('uses the zone saved with the window when the profile has none', async () => {
-    contactInfo.mockResolvedValue(undefined);
-    docs['bogle_users/u1'] = saved();
-    const decision = await checkCallHours({ now: CHI_1500, recipientUserId: 'u1' });
-    expect(decision).toMatchObject({ allowed: true, timezone: CHI, source: 'stored' });
+  it('never moves the call window to the saved zone: refused on main stays refused', async () => {
+    // Stored zone New York; quiet hours saved from a browser in Los Angeles.
+    contactInfo.mockResolvedValue({ timezone: NY });
+    docs['bogle_users/u1'] = {
+      messagingPrefs: { quietStart: '23:00', quietEnd: '06:00', zone: LA },
+      outreachPreferences: { timezone: NY },
+    };
+    const nine = at('2026-10-21T01:00:00Z'); // 21:00 New York, 18:00 Los Angeles
+    vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'off');
+    const main = await checkCallHours({ now: nine, recipientUserId: 'u1' });
+    vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'on');
+    const head = await checkCallHours({ now: nine, recipientUserId: 'u1' });
+    expect(main).toMatchObject({ allowed: false, timezone: NY });
+    expect(head).toMatchObject({ allowed: false, timezone: NY, source: 'stored' });
+    expect(head.at.getTime()).toBeGreaterThanOrEqual(main.at.getTime());
+  });
+
+  it('a window over all call hours: refused, and the next time offered is past the window', async () => {
+    docs['bogle_users/u1'] = saved({ quietStart: '00:00', quietEnd: '23:59' });
+    const noon = at('2026-10-20T17:00:00Z'); // 12:00 Chicago
+    const decision = await checkCallHours({ now: noon, recipientUserId: 'u1' });
+    const window = qh.savedQuietHours(docs['bogle_users/u1'])!;
+    expect(decision).toMatchObject({ allowed: false, none: true });
+    expect(decision.at.getTime()).toBeGreaterThan(noon.getTime());
+    expect(qh.isQuietAt(decision.at, window.window, window.zones)).toBe(false);
+    // Re-checked then, it still moves forward and never lands back inside the window.
+    const again = await checkCallHours({ now: decision.at, recipientUserId: 'u1' });
+    expect(again.allowed).toBe(false);
+    expect(again.at.getTime()).toBeGreaterThan(decision.at.getTime());
+    expect(qh.isQuietAt(again.at, window.window, window.zones)).toBe(false);
+  });
+
+  it('the schedulers: an all-day window gives an until outside it', async () => {
+    docs['bogle_users/u1'] = saved({ quietStart: '00:00', quietEnd: '23:59' });
+    const noon = at('2026-10-20T17:00:00Z');
+    const { quiet, until } = await qh.callQuietHours('u1', noon);
+    expect(quiet).toBe(true);
+    expect((await qh.callQuietHours('u1', until)).quiet).toBe(false);
   });
 });
 

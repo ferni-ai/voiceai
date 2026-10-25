@@ -28,7 +28,7 @@ import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracki
 import { allowedDeliveryChannels } from './outreach-consent.js';
 import { verifiedPhoneOf } from './user-reach.js';
 import { isValidTimezone } from './call-hours-guard.js';
-import { hoursWindow, isQuietAt, isUserQuiet, usesSharedQuiet } from './quiet-hours.js';
+import { hoursWindow, isQuietHoursUnified, isUserQuiet, quietWithSaved } from './quiet-hours.js';
 import {
   cadenceHold,
   conversationCountOf,
@@ -440,16 +440,16 @@ async function determineBestChannel(
 // ============================================================================
 
 /**
- * Quiet now? The shared predicate (quiet-hours.ts) under QUIET_HOURS_UNIFIED or with quiet
- * hours saved in the menu; else 21:00-08:00 Eastern unless set. A bad zone fails closed.
+ * Quiet now? QUIET_HOURS_UNIFIED=on: the shared predicate (quiet-hours.ts). Off: 21:00-08:00
+ * Eastern unless the user set one; a bad zone fails closed. Either way, plus the menu's window.
  */
-function isInQuietHours(candidate: UserOutreachCandidate): boolean {
-  if (usesSharedQuiet(candidate)) return isUserQuiet(candidate);
+export function isInQuietHours(candidate: UserOutreachCandidate): boolean {
+  if (isQuietHoursUnified()) return isUserQuiet(candidate);
   const prefs = candidate.outreachPreferences;
   const zone = prefs?.timezone || 'America/New_York';
   if (!isValidTimezone(zone)) return true;
   const window = hoursWindow(prefs?.quietHoursStart ?? 21, prefs?.quietHoursEnd ?? 8);
-  return isQuietAt(new Date(), window, [zone]);
+  return quietWithSaved(new Date(), window, [zone], candidate);
 }
 
 // ============================================================================

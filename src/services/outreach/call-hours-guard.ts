@@ -6,7 +6,8 @@
  * in the RECIPIENT's local time. Outside that window the call is deferred to
  * the next opening, never dropped. A recipient's own quiet hours, when set,
  * narrow the window further, and so do the ones saved in the menu
- * (QUIET_HOURS_FROM_PREFS, quiet-hours.ts savedQuietHours), read in their zone.
+ * (QUIET_HOURS_FROM_PREFS, quiet-hours.ts savedQuietHours), read in the saved
+ * window's own zone; the zone and window used here don't change.
  *
  * Recipient time zone, in order: the stored one, the phone's area code, the
  * sponsor's. With none of those, the call must fit the window on both US
@@ -52,6 +53,8 @@ export interface CallHoursDecision {
   allowed: boolean;
   /** `now` when allowed, otherwise the next moment the call may be placed. */
   at: Date;
+  /** No moment clears call hours and the saved window (it covers them all); `at` is past it. */
+  none?: true;
   timezone: string;
   source: TimezoneSource;
 }
@@ -157,12 +160,8 @@ async function userQuietHours(userId: string | undefined): Promise<QuietWindow[]
   ].filter((w): w is QuietWindow => !!w);
 }
 
-async function recipientZones(
-  input: CallHoursInput,
-  savedZone?: string
-): Promise<[string[], TimezoneSource]> {
+async function recipientZones(input: CallHoursInput): Promise<[string[], TimezoneSource]> {
   if (isValidTimezone(input.recipientTimezone)) return [[input.recipientTimezone], 'stored'];
-  if (savedZone) return [[savedZone], 'stored'];
   const own = await userTimezone(input.recipientUserId);
   if (own) return [[own], 'stored'];
   const byPhone = timezoneFromPhone(input.recipientPhone);
@@ -178,7 +177,7 @@ export async function checkCallHours(input: CallHoursInput): Promise<CallHoursDe
   // Dynamic: quiet-hours.ts imports this module.
   const { loadSavedQuietHours, openingWith } = await import('./quiet-hours.js');
   const saved = input.userAsked ? undefined : await loadSavedQuietHours(input.recipientUserId);
-  const [zones, source] = await recipientZones(input, saved?.zone).catch((error: unknown) => {
+  const [zones, source] = await recipientZones(input).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Recipient time zone lookup failed');
     return [FALLBACK_ZONES, 'fallback'] as [string[], TimezoneSource];
   });
@@ -186,6 +185,8 @@ export async function checkCallHours(input: CallHoursInput): Promise<CallHoursDe
     log.warn({ error: String(error) }, 'Quiet hours lookup failed');
     return [] as QuietWindow[];
   });
-  const at = openingWith(now, (t) => nextCallableTime(t, zones, quiet), saved);
-  return { allowed: at.getTime() === now.getTime(), at, timezone: zones[0], source };
+  // Additive: this guard's own decision as before, and also the saved window, in its own zone.
+  const { at, found } = openingWith(now, (t) => nextCallableTime(t, zones, quiet), saved);
+  const allowed = at.getTime() === now.getTime();
+  return { allowed, at, timezone: zones[0], source, ...(!found && { none: true as const }) };
 }

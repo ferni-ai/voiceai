@@ -213,7 +213,7 @@ export function chooseChannel(input: PolicyInput): ChannelChoice {
   const tz = isValidTimezone(input.timezone) ? input.timezone : undefined;
   const saved = input.savedQuiet;
   const savedQuiet = !!saved && isQuietAt(input.now, saved.window, saved.zones);
-  if (tz && (savedQuiet || inQuietHours(input.prefs, tz, input.now)))
+  if (savedQuiet || (tz && inQuietHours(input.prefs, tz, input.now)))
     return { channel: null, why: 'quiet hours' };
   if (!tz) return { channel: 'in_app', why: 'no time zone on file, so no texts or calls' };
   if (!input.trigger.timely) return { channel: 'in_app', why: 'not time-sensitive' };

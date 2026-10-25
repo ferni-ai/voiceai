@@ -136,6 +136,24 @@ describe('deliverAndRecord: QUIET_HOURS_FROM_PREFS', () => {
     expect(recordAttempt).not.toHaveBeenCalled();
   });
 
+  it('the urgent family check-in alert is never held, as on main', async () => {
+    vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'on');
+    vi.setSystemTime(new Date('2026-10-21T01:15:00Z')); // 20:15 Chicago, inside the window
+    const orchestrator = new OutreachOrchestrator();
+    await orchestrator.sendPushNotification('uid-1', 'Your dad did not pick up', {
+      trigger: 'family_checkin_urgent',
+      personaId: 'ferni',
+    });
+    expect(deliverOutreach).toHaveBeenCalledTimes(1);
+    expect(recordAttempt).toHaveBeenCalledWith(
+      'uid-1',
+      expect.objectContaining({ reason: 'family_checkin_urgent', status: 'delivered' })
+    );
+    // The same push for anything else is held.
+    await orchestrator.sendPushNotification('uid-1', 'Thinking of you', { trigger: 'ml' });
+    expect(deliverOutreach).toHaveBeenCalledTimes(1);
+  });
+
   it('outside it, or with the flag off, it is delivered as before', async () => {
     vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'on');
     vi.setSystemTime(new Date('2026-10-20T20:00:00Z')); // 15:00 Chicago

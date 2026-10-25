@@ -28,6 +28,7 @@ import {
   type NotificationType,
 } from '../../services/push-notifications.js';
 import { getUserContactInfo } from '../../services/outreach/user-contact.js';
+import { isSavedQuietNow } from '../../services/outreach/quiet-hours.js';
 import { listTokenUsers } from '../../services/identity/google-calendar-token-store.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase } from '../../config/environment.js';
@@ -251,6 +252,11 @@ export async function checkAndSendMorningBriefings(
         const userHour = getCurrentHourInTimezone(userTz);
         if (userHour !== MORNING_BRIEFING_HOUR) {
           skip('not-7am');
+          continue;
+        }
+        // 7:00 inside the quiet hours they saved in the menu: no push today.
+        if (await isSavedQuietNow(userId, nowProvider())) {
+          skip('quiet-hours');
           continue;
         }
 

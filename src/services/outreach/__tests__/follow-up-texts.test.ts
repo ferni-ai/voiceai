@@ -20,9 +20,16 @@ vi.mock('../../follow-through/promise-outcomes.js', async (importOriginal) => ({
   logPromiseOutcome,
   logPromiseJobRun,
 }));
+// The menu's quiet hours (QUIET_HOURS_FROM_PREFS); the reader is tested in quiet-hours-from-prefs.
+const savedQuiet = vi.hoisted(() => vi.fn(async (_userId: string, _at?: Date) => false));
+vi.mock('../quiet-hours.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSavedQuietNow: savedQuiet,
+}));
 beforeEach(() => {
   logPromiseOutcome.mockClear();
   logPromiseJobRun.mockClear();
+  savedQuiet.mockReset().mockResolvedValue(false);
 });
 
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
@@ -132,6 +139,23 @@ describe('sendDueFollowUpTexts', () => {
     const { d } = deps([c]);
     expect((await sendDueFollowUpTexts(d, { now: late })).sent).toBe(0);
     expect(d.sendText).not.toHaveBeenCalled();
+  });
+
+  it('holds a commitment Ferni would text inside the quiet hours saved in the menu', async () => {
+    const c = followUp({ kind: 'commitment' });
+    const { d, saved } = deps([c]);
+    savedQuiet.mockResolvedValue(true);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(savedQuiet).toHaveBeenCalledWith('u1', NOW);
+    expect(report).toMatchObject({ sent: 0, held: { 'quiet-hours': 1 } });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(saved).toHaveLength(0); // nothing claimed: a later run texts it
+  });
+
+  it('a follow-up whose time they chose still goes inside the saved window', async () => {
+    const { d } = deps([followUp({ kind: 'reminder' })]);
+    savedQuiet.mockResolvedValue(true);
+    expect((await sendDueFollowUpTexts(d, { now: NOW })).sent).toBe(1);
   });
 
   it('counts why the guarded sender held a text and puts the claim back for a later run', async () => {
