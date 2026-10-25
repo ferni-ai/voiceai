@@ -18,6 +18,10 @@ import { envForCaller, type CohortStore } from '../platform/cohort-flags.js';
 import { callLLM } from '../llm-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
+import {
+  classifyEscalation,
+  detectCrisisSignals,
+} from '../human-transfer/escalation-classifier.js';
 import { persistSnapshot } from './persistence.js';
 import type { WellbeingDimensions, WellbeingSnapshot } from './index.js';
 
@@ -97,6 +101,19 @@ export function parseWellbeingReply(reply: string | null): Partial<WellbeingDime
   return out;
 }
 
+/**
+ * A call where any caller turn reaches the crisis tier of the human-transfer
+ * classifier. Such a call is never scored: a mood number is no way to remember it.
+ */
+export function isCrisisCall(turns: WellbeingCall['turns']): boolean {
+  return turns.some(
+    (t) =>
+      t.role === 'user' &&
+      (t.content ?? '').trim() !== '' &&
+      classifyEscalation(detectCrisisSignals(t.content)).type.startsWith('crisis_')
+  );
+}
+
 /** The task body: one model call, then one snapshot when the caller said how they are. */
 export async function recordWellbeingAfterCall(
   ctx: WellbeingCall,
@@ -107,6 +124,10 @@ export async function recordWellbeingAfterCall(
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!wellbeingAfterCallOn(env)) return;
   if (!ctx.turns.some((t) => t.role === 'user' && (t.content ?? '').trim() !== '')) return;
+  if (isCrisisCall(ctx.turns)) {
+    log.info({ sessionId: ctx.sessionId }, 'WELLBEING_SKIPPED_CRISIS');
+    return;
+  }
 
   const llm =
     deps.llm ??

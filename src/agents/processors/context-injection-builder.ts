@@ -211,10 +211,7 @@ export async function buildContextInjections(
   );
   if (functionCallingReinforcement) {
     injections.push(functionCallingReinforcement);
-    diag.debug('Function calling reinforcement added', {
-      turnCount: currentTurnCount,
-      userTextPreview: userText.slice(0, 50),
-    });
+    diag.debug('Function calling reinforcement added', { turnCount: currentTurnCount });
   }
 
   // A source that fails or misses its budget is dropped from this turn's

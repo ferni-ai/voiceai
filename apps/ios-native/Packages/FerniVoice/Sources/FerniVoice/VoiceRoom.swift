@@ -54,6 +54,8 @@ public struct Caption: Identifiable, Sendable, Equatable {
     public let speaker: CaptionChunk.Speaker
     public var text: String
     public var isFinal: Bool
+    /// When it was first heard (a report finds the reply by time).
+    public var at: Date = .now
 }
 
 /// Assembles caption chunks the way the web does: chunks of the same stream

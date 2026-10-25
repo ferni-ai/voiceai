@@ -18,6 +18,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCallOpeningAmdEnabled } from '../../config/call-opening-flag.js';
+import { forgetVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
 
 const log = createLogger({ module: 'outbound-call-control' });
 
@@ -68,6 +69,7 @@ export function forgetOnBehalfCallRoom(sessionId: string): void {
   sessions.delete(sessionId);
   dispositions.delete(sessionId); // in case it was never read
   hungUp.delete(sessionId);
+  forgetVoicemailSpoken(sessionId);
 }
 
 /** The call this session is placing on someone's behalf, if any. */
@@ -136,7 +138,8 @@ export function createEndCallTool(sessionId: string, hangUp: HangUp = deleteRoom
       outcome: z
         .enum(CALL_DISPOSITIONS)
         .describe(
-          'completed: you talked and said goodbye; voicemail_left: you left a message; ' +
+          'completed: you talked and said goodbye; voicemail_left: you spoke a message after ' +
+            'the greeting (the report checks); ' +
             "refused: they didn't want to talk; wrong_number: it wasn't the right person"
         ),
     }),
