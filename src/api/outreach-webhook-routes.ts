@@ -23,6 +23,7 @@ import { recordCheckinReply } from '../services/outreach/checkin-replies.js';
 import { recordInboundSmsConsent } from '../services/messaging/consent.js';
 import { recordContactYes } from '../services/messaging/consent-grants.js';
 import { recordHolderCode } from '../services/messaging/holder-verification.js';
+import { smsCrisisReply, smsReplyTwiml } from '../services/outreach/sms-crisis-screen.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio } from './twilio-callback-signature.js';
 import { URL } from 'url';
@@ -176,11 +177,15 @@ export async function handleOutreachWebhookRoutes(
       const signature = req.headers['x-twilio-signature'] as string;
       const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
 
+      // SMS_CRISIS_SCREEN: read beside the handler (it never rejects); used only once signed.
+      const crisisReply = smsCrisisReply(String(body.Body ?? ''));
       const result = await handleInboundSMSWebhook(
         body as unknown as Parameters<typeof handleInboundSMSWebhook>[0],
         signature,
         fullUrl
       );
+      const crisis = result.success ? await crisisReply : null;
+      if (crisis) result.twiml = smsReplyTwiml(crisis); // 988 replaces whatever else was said
       // success is false only when the Twilio signature failed; never throws.
       if (result.success) {
         await recordCheckinReply(body.From, body.Body, body.MessageSid);
