@@ -19,12 +19,25 @@
  * sentence may go first, chunk-boundary.ts). Only the start of a reply is
  * touched; a name later in a sentence ("That's rough, Sam.") already falls.
  *
+ * NAME_FALLING_SPLIT (with the flag above), measured 2026-10-24 on the same
+ * voice (voiceai-evidence/name-intonation-2026-10-24, Praat, 8 takes each):
+ * - a name that opens the reply ends its own sentence: "Seth, good to hear
+ *   your voice." rose 6.35 st, "Seth. Good to hear your voice." 1.44 st (not
+ *   for a name that is also a word: "Will, as a word, ..." stays);
+ * - a reaction word before the hello goes: "Oh hey Seth, how's it going?"
+ *   rose 7.70 st, and 8.17 with a full stop after the name, against 1.97 for
+ *   "Hey Seth." (the bright "Oh hey" lifts the name whatever follows it), so
+ *   "Oh/Ah/Okay/Well (,) hey Seth, ..." is said "Hey Seth. ...". Checked on
+ *   the code's own pushes (name-push-hold-2026-10-24): "Oh hey Seth, how was
+ *   the run?" 6.58 st, as "Hey Seth. How was the run?" 2.39 st (16 takes).
+ *
  * @module speech/tts-gateway/name-intonation
  */
 
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 import { flagOn } from '../../config/env-flag.js';
+import { firstNameOf, isWordName } from '../../utils/caller-name.js';
 
 /** Leading markup the reply may open with: <emotion .../>, [laughter], spaces. */
 const LEADING_MARKUP = /^(?:\s|<[^>]*>|\[[^\]]*\])*/;
@@ -51,6 +64,13 @@ const NOT_NAMES = new Set(
 );
 /** After the name: a comma, full stop, exclamation or dash. A "?" is a real question; left alone. */
 const AFTER_NAME = /^(?:[,.!…]+|\s*[—–]|\s+-(?=\s))/;
+
+/** Reaction words before a hello ("Oh hey Seth,"), NAME_FALLING_SPLIT. */
+const INTERJECTIONS = ['oh', 'ah', 'well', 'okay', 'ok'];
+const INTERJECTION = /^(?:oh|ah|well|okay|ok),?\s+/i;
+/** A name that opens the reply runs on with a comma or dash: "Seth, good to..." */
+const RUNS_ON = /^(?:,|\s*[—–])\s*/;
+const escapeName = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Still waiting for text before the reply's opening can be decided. */
 export const WAIT = Symbol('wait');
@@ -81,17 +101,92 @@ function nameAndRest(
   return { name: name[2], rest };
 }
 
+/** The text after an opening "Oh " / "Ah, ", WAIT while one may be arriving, or undefined. */
+function afterInterjection(body: string, final: boolean): string | typeof WAIT | undefined {
+  const m = INTERJECTION.exec(body);
+  if (m) return body.slice(m[0].length);
+  const word = body.toLowerCase().replace(/,$/, '');
+  if (!final && /^[a-z]*,?$/i.test(body) && INTERJECTIONS.some((w) => w.startsWith(word))) {
+    return WAIT;
+  }
+  return undefined;
+}
+
+/**
+ * After the name, a list goes on ("Jo, and Mia", "Jo and I", "and the kids"):
+ * the caller is one of several, so the text stays as it was. null while the
+ * first word after the name may still make it one.
+ */
+function listGoesOn(rest: string, final: boolean): boolean | null {
+  if (/^(?:and\b|\p{Lu}[\p{L}'’-]*(?:,|\s+and\b))/u.test(rest)) return true;
+  if (final) return false;
+  return /^(?:a|an|and)?$/i.test(rest) || /^\p{Lu}[\p{L}'’-]*\s*(?:a|an)?$/u.test(rest)
+    ? null
+    : false;
+}
+
+/**
+ * "Seth, good to hear you." -> "Seth. Good to hear you.", WAIT, or undefined.
+ * Never for a name that is also a word: for a caller named Will, "Will, as a
+ * word, means a lot" is about the word.
+ */
+function nameFirst(body: string, final: boolean, name: string): string | typeof WAIT | undefined {
+  if (isWordName(name)) return undefined;
+  if (!final && name.startsWith(body)) return WAIT;
+  if (!body.startsWith(name)) return undefined;
+  const mark = RUNS_ON.exec(body.slice(name.length));
+  if (!mark) return undefined; // "Seth." already ends, "Seth's", "Seth and I"
+  const rest = body.slice(name.length + mark[0].length);
+  const list = listGoesOn(rest, final);
+  if (list === null) return WAIT;
+  if (list) return undefined; // "Seth, Jo and I went."
+  return rest === '' ? `${name}.` : `${name}. ${capitalize(rest)}`;
+}
+
+/** NAME_FALLING_SPLIT's openings, for the caller's own name: rewritten, WAIT, or undefined. */
+function splitOpening(
+  text: string,
+  markup: string,
+  body: string,
+  final: boolean,
+  name: string
+): string | typeof WAIT | undefined {
+  const first = nameFirst(body, final, name);
+  if (first !== undefined) return first === WAIT ? WAIT : `${markup}${first}`;
+  const rest = afterInterjection(body, final);
+  if (rest === WAIT || rest === undefined) return rest;
+  const at = new RegExp(`(?<![\\p{L}'’])${escapeName(name)}(?![\\p{L}'’-])`, 'u').exec(rest);
+  const tail = at ? rest.slice(at.index + name.length).replace(/^(?:[,.!…]+|\s*[—–])\s*/, '') : '';
+  const list = at ? listGoesOn(tail, final) : false;
+  if (list === null) return WAIT;
+  if (list) return text; // "Oh hey Seth, Jo, and Mia!": not the caller alone
+  // Only a hello with the caller's name loses the reaction word: "Oh hey, that's cool" stays.
+  const said = fallingVocative(rest, final);
+  if (said === WAIT) return WAIT;
+  const toCaller = new RegExp(`^\\p{L}+ ${escapeName(name)}\\.`, 'u').test(said);
+  return said === rest || !toCaller ? text : `${markup}${capitalize(said)}`;
+}
+
 /**
  * Rewrite an opening "greeting + name" so the name ends its own sentence.
  *
  * @param text - the start of a reply as streamed so far
  * @param final - true when the reply has no more text coming
+ * @param split - NAME_FALLING_SPLIT: the caller's first name, when the session has one
  * @returns the text to speak, or WAIT while the opening could still be a
  *   greeting with a name and more text is coming
  */
-export function fallingVocative(text: string, final: boolean): string | typeof WAIT {
+export function fallingVocative(
+  text: string,
+  final: boolean,
+  split?: { name: string | null }
+): string | typeof WAIT {
   const markup = LEADING_MARKUP.exec(text)?.[0] ?? '';
   const body = text.slice(markup.length);
+  if (split?.name) {
+    const said = splitOpening(text, markup, body, final, split.name);
+    if (said !== undefined) return said;
+  }
   const greeting = openingGreeting(body, final);
   if (greeting === WAIT) return WAIT;
   if (!greeting) return text;
@@ -107,16 +202,29 @@ export function fallingVocative(text: string, final: boolean): string | typeof W
   return `${markup}${hello}${tail}`;
 }
 
+/** NAME_FALLING_SPLIT's timing: when the reply's text first came, and the longest hold. */
+export interface SplitTiming {
+  /** A hold only the split asks for began: the reply's first text came at `at` (ms epoch). */
+  onText?: (at: number) => void;
+  /** A hold only the split asks for ("Oh", "Se") ends by then: the text goes as without it. */
+  holdMs?: number;
+}
+
 /**
  * Hold a reply's first words just until fallingVocative() can decide, then
  * pass everything through. Text that does not open on a greeting is never held.
  */
 export function withFallingVocative(
   textStream: NodeReadableStream<string>,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  callerName?: string,
+  timing: SplitTiming = {}
 ): NodeReadableStream<string> {
   if (!flagOn('NAME_FALLING_INTONATION', env)) return textStream;
+  const split = flagOn('NAME_FALLING_SPLIT', env) ? { name: firstNameOf(callerName) } : undefined;
   let head: string | null = '';
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let firstAt = 0;
   return textStream.pipeThrough(
     new TransformStream<string, string>({
       transform(chunk, controller) {
@@ -124,14 +232,28 @@ export function withFallingVocative(
           controller.enqueue(chunk);
           return;
         }
+        if (head === '') firstAt = Date.now();
         head += chunk;
-        const decided = fallingVocative(head, false);
-        if (decided === WAIT) return;
+        const decided = fallingVocative(head, false, split);
+        if (decided === WAIT) {
+          if (split && timer === undefined && fallingVocative(head, false) !== WAIT) {
+            timing.onText?.(firstAt);
+            timer = setTimeout(() => {
+              const plain = head === null ? WAIT : fallingVocative(head, false);
+              if (plain === WAIT) return;
+              head = null;
+              controller.enqueue(plain);
+            }, timing.holdMs ?? 150);
+          }
+          return;
+        }
+        clearTimeout(timer);
         head = null;
         controller.enqueue(decided);
       },
       flush(controller) {
-        if (head) controller.enqueue(fallingVocative(head, true) as string);
+        clearTimeout(timer);
+        if (head) controller.enqueue(fallingVocative(head, true, split) as string);
       },
     })
   );

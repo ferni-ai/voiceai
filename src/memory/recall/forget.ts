@@ -29,6 +29,11 @@
  * Ferni says only what happened (forgetDone): "I won't bring that up again"
  * when facts were hidden, and that he deleted them only when every one was.
  *
+ * The caller's open world facts about it (world-model/temporal, where the
+ * dated follow-ups live) are closed as forgotten too, as the app's forget
+ * does (api/routes/known-action-store.ts): before 2026-10-25 a forgotten
+ * topic could still come back as "how did it go?".
+ *
  * The profile's last summaries (what the next call's greeting picks up) are
  * cleared too when they are about the topic; session saves keep forgotten
  * topics out of them after that (services/session/last-summary.ts, #2767).
@@ -87,8 +92,31 @@ export interface ForgetStore {
   addTopic: (userId: string, topic: string, asked?: string) => Promise<void>;
   /** The recorded topics; null when they can't be read (no store, malformed), [] when there are none. */
   topics: (userId: string) => Promise<string[] | null>;
+  /** The caller's open world facts (world-model/temporal); none when absent. */
+  worldFacts?: (userId: string) => Promise<WorldFactRef[]>;
+  /** Closes world facts as forgotten; `wrong` when the caller said they were never true. */
+  markWorldFacts?: (userId: string, ids: string[], at: string, wrong?: boolean) => Promise<void>;
   /** Clears the profile's last summaries that `about` matches (#2767). */
   clearSummaries?: (userId: string, about: (text: string) => boolean) => Promise<void>;
+}
+
+/** A world fact as forget and dispute read it (world-model/temporal's TemporalFact, structurally). */
+export interface WorldFactRef {
+  id: string;
+  subject: string;
+  relation?: string;
+  attribute: string;
+  value: string;
+  replaced?: string;
+  source?: { quote?: string };
+  validTo: string | null;
+}
+
+/** What a world fact is about, for matching a forgotten or avoided topic: who, what, their words. */
+export function worldFactText(f: Omit<WorldFactRef, 'id' | 'validTo'>): string {
+  return [f.subject, f.relation, f.attribute, f.value, f.replaced, f.source?.quote]
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** The profile fields the next call's greeting and prompt read as "last time". */
@@ -124,7 +152,7 @@ export async function forgetTopic(
 ): Promise<ForgetResult> {
   const tokens = storedTopic(topic);
   if (forgetTokens(tokens).length === 0) return { kind: 'nothing' };
-  const facts = await store.facts(userId);
+  const [facts, world] = await Promise.all([store.facts(userId), store.worldFacts?.(userId) ?? []]);
   const live = facts.filter((f) => typeof f.data.forgottenAt !== 'string');
   const matched = live.filter((f) => isForgotten(factText(f.data), [tokens]));
   if (matched.length > MAX_UNASKED && matched.length > live.length * MAX_SHARE) {
@@ -145,6 +173,8 @@ export async function forgetTopic(
   // Facts that can't be deleted yet are marked, so recall still leaves them out.
   const hidden = deleteFacts && marking.length > 0 ? await deleteFacts(userId, marking) : marking;
   if (hidden.length > 0) await store.markForgotten(userId, hidden, now.toISOString());
+  const worldIds = world.filter((f) => isForgotten(worldFactText(f), [tokens])).map((f) => f.id);
+  if (worldIds.length > 0) await store.markWorldFacts?.(userId, worldIds, now.toISOString());
   bumpForgetGeneration(userId);
   // What either matcher reads as the topic, so nothing a save would clear is
   // left for the next call start. Last, so a failure leaves only this to
@@ -155,7 +185,10 @@ export async function forgetTopic(
     (text) => isForgotten(text, [tokens]) || aboutForgotten(text, [tokens])
   );
   const deleted = marking.length - hidden.length;
-  log.info({ userId: userId.slice(0, 8), marked: matched.length, deleted }, 'Forgot a topic');
+  log.info(
+    { userId: userId.slice(0, 8), marked: matched.length, deleted, world: worldIds.length },
+    'Forgot a topic'
+  );
   return deleteFacts
     ? { kind: 'forgotten', marked: matched.length, deleted, hidden: hidden.length }
     : { kind: 'forgotten', marked: matched.length };
@@ -300,6 +333,34 @@ export const withoutDerivedCopies = (): { embedding: FieldValue } => ({
   embedding: FieldValue.delete(),
 });
 
+/** The caller's open world facts: the whole collection, as facts() reads the fact collections. */
+export async function openWorldFacts(userId: string): Promise<WorldFactRef[]> {
+  const db = getFirestoreDb();
+  if (!db) return [];
+  const snap = await db.collection('bogle_users').doc(userId).collection('world_facts').get();
+  return snap.docs
+    .map((d) => ({ ...(d.data() as WorldFactRef), id: d.id }))
+    .filter((f) => f.validTo === null);
+}
+
+/** Closes world facts so no reader serves them: the fields the app's forget writes. */
+export async function closeWorldFacts(
+  userId: string,
+  ids: string[],
+  at: string,
+  wrong?: boolean
+): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+  const col = db.collection('bogle_users').doc(userId).collection('world_facts');
+  const closed = { validTo: at, forgottenAt: at, ...(wrong ? { wrong, disputedAt: at } : {}) };
+  for (let i = 0; i < ids.length; i += 400) {
+    const batch = db.batch();
+    for (const id of ids.slice(i, i + 400)) batch.update(col.doc(id), closed);
+    await batch.commit();
+  }
+}
+
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
 export const firestoreForgetStore: ForgetStore = {
   async facts(userId) {
@@ -379,6 +440,8 @@ export const firestoreForgetStore: ForgetStore = {
     );
     return kept;
   },
+  worldFacts: openWorldFacts,
+  markWorldFacts: closeWorldFacts,
   async addTopic(userId, topic, asked) {
     const db = getFirestoreDb();
     if (!db) return;
