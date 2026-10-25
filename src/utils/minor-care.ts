@@ -21,13 +21,18 @@
  *
  * memoryHeld(sessionId) is the one check every writer asks: flag on, the
  * caller sounds under 18, and the session is not a verified account owner's
- * (the owner check is registered by caller-recognition.ts, a higher layer).
+ * (the owner check is registered by caller-recognition.ts, a higher layer;
+ * MINOR_CARE_OWNERS=on holds a verified owner too).
  * Crisis handling is untouched: the note is never added to a crisis reply,
  * and nothing here reads or changes crisis code.
  *
+ * MINOR_CARE=shadow runs the same detection and logs it once per session (with
+ * whether the session is a verified owner's), but holds nothing and adds no
+ * note: a way to measure detection on real calls before holds go live.
+ *
  * @module utils/minor-care
  */
-import { flagOn } from '../config/env-flag.js';
+import { flagModeOf, flagOn } from '../config/env-flag.js';
 import { createLogger } from './safe-logger.js';
 import { PLACEHOLDER_IDS } from './synthetic-user.js';
 
@@ -86,7 +91,10 @@ const ASKED_AGE = /\b(?:how old|your age|what age|age are you)\b/i;
 /** "I'm 16", "im 14, so": an age only with age words or as the answer to "how old are you?". */
 const AGE_NOW = new RegExp(`${ME_AGE}${AGE}${AFTER_AGE}`, 'gi');
 /** "16 years old." at the start: their age, unless a past tense follows. */
-const YEARS_OLD = new RegExp(String.raw`${LEAD}${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${NOT_PAST}`, 'gi');
+const YEARS_OLD = new RegExp(
+  String.raw`${LEAD}${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${NOT_PAST}`,
+  'gi'
+);
 /** "I'm a 15 year old girl": always their age. */
 const A_YEARS_OLD = new RegExp(
   String.raw`${ME_AGE}a\s+${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${AT_HEART}`,
@@ -96,7 +104,8 @@ const A_YEARS_OLD = new RegExp(
 const CLAUSE_END = String.raw`(?=\s*(?:$|[.,!?;:]|(?:so|but|now)\b|and\b(?!\s+a\s+half\b)))`;
 const AGE_ENDS = new RegExp(`${ME_AGE}(?:like\\s+)?${AGE}${CLAUSE_END}`, 'gi');
 /** Ferni asked for a rating or an amount: "I'm 10." then answers that, not an age. */
-const ASKED_AMOUNT = /\b(?:scale|one to ten|1 to 10|1-10|rate|rating|out of (?:ten|10)|how (?:many|much|far|long|soon))\b/i;
+const ASKED_AMOUNT =
+  /\b(?:scale|one to ten|1 to 10|1-10|rate|rating|out of (?:ten|10)|how (?:many|much|far|long|soon))\b/i;
 /** "16." or "Sixteen." and nothing else, answering "how old are you?". */
 const BARE_ANSWER = new RegExp(
   String.raw`^\s*(?:(?:um+|uh+|er+|well|oh|so|yeah|i'm|im|i am|just|only|almost)[,\s]+)*${AGE}\s*[.!]*\s*$`,
@@ -201,10 +210,23 @@ const likely = new Map<string, number>();
 /** Past this many, sessions idle longer than IDLE_MS go, least recently used first. */
 const MAX_SESSIONS = 500;
 /** Longer than any call plus its after-call work: a session this idle can't still be writing. */
-const IDLE_MS = 6 * 60 * 60 * 1000;
+export const IDLE_MS = 6 * 60 * 60 * 1000;
 let ownerCheck: (sessionId: string) => boolean = () => false;
-/** userId -> the held session it was heard on, for the writers keyed by user (per-user flush timers). */
-const heldUsers = new Map<string, string>();
+/** sessionId -> its userId (session start, and every detector call that knows it), for userHeld. */
+const sessionUsers = new Map<string, string>();
+/** Past this many, sessions that never sounded under 18 go first, oldest first. */
+const MAX_SESSION_USERS = 5000;
+/** sessionId -> a phone caller's E.164 (caller-recognition.ts), never logged: its hold covers the number. */
+const sessionPhones = new Map<string, string>();
+
+export function bindSessionPhone(sessionId: string, e164: string): void {
+  sessionPhones.set(sessionId, e164);
+  if (sessionPhones.size > MAX_SESSIONS) sessionPhones.delete(sessionPhones.keys().next().value!);
+}
+
+export function sessionPhone(sessionId: string): string | undefined {
+  return sessionPhones.get(sessionId);
+}
 
 function touch(sessionId: string): void {
   likely.delete(sessionId);
@@ -220,16 +242,49 @@ function evictIdle(): void {
   }
 }
 
+type HoldListener = (userId: string, sessionId: string) => void;
+/** Told once per user a held session is bound to (minor-care-purge.ts: the shared record). */
+let onUserHeld: HoldListener = () => {};
+/** "sessionId userId" pairs already announced, bounded like `likely`. */
+const announced = new Set<string>();
+
+export function setOnUserHeld(listener: HoldListener): void {
+  onUserHeld = listener;
+}
+
+/** This session is held and bound to a user: tell the listener, once per (session, user). Never throws. */
+function announceHold(sessionId: string): void {
+  const userId = sessionUsers.get(sessionId);
+  const key = `${sessionId} ${userId}`;
+  if (!userId || announced.has(key) || !likely.has(sessionId)) return;
+  if (ownerExempt(sessionId)) return;
+  announced.add(key);
+  if (announced.size > MAX_SESSIONS) announced.delete(announced.values().next().value!);
+  try {
+    onUserHeld(userId, sessionId);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'MINOR_CARE hold listener failed');
+  }
+}
+
 /** caller-recognition.ts registers how to tell a verified account owner (a higher layer). */
 export function setVerifiedOwnerCheck(check: (sessionId: string) => boolean): void {
   ownerCheck = check;
+}
+
+/**
+ * A verified owner is exempt, unless MINOR_CARE_OWNERS=on: a teen with their own account who says
+ * they're under 18 is held like anyone else (Seth, 2026-10-24).
+ */
+function ownerExempt(sessionId: string, env: Env = process.env): boolean {
+  return !flagOn('MINOR_CARE_OWNERS', env) && ownerCheck(sessionId);
 }
 
 interface HeardOptions {
   /** Ferni's previous line, so a bare "16." can answer "how old are you?". */
   asked?: string;
   env?: Env;
-  /** The caller's userId: once the session is held, userHeld(userId) is true too. */
+  /** The caller's userId: binds this session to it, so userHeld(userId) follows memoryHeld. */
   userId?: string;
 }
 
@@ -248,6 +303,7 @@ export function noteCallerWords(
   touch(sessionId);
   if (likely.size > MAX_SESSIONS) evictIdle();
   log.info({ sessionId }, 'MINOR_CARE likely minor');
+  announceHold(sessionId);
   return true;
 }
 
@@ -259,7 +315,7 @@ export function likelyMinor(sessionId: string | undefined): boolean {
 export function memoryHeld(sessionId: string | undefined, env: Env = process.env): boolean {
   if (!sessionId || !minorCareOn(env) || !likely.has(sessionId)) return false;
   touch(sessionId);
-  return !ownerCheck(sessionId);
+  return !ownerExempt(sessionId, env);
 }
 
 /** Read this turn's words, then memoryHeld: the per-turn writers' one-line check. */
@@ -270,29 +326,56 @@ export function heldAfter(
 ): boolean {
   if (!minorCareOn(options.env)) return false;
   noteCallerWords(sessionId, said, options);
-  const held = memoryHeld(sessionId, options.env);
-  if (held && sessionId && !sharedId(options.userId)) heldUsers.set(options.userId!, sessionId);
-  return held;
+  bindSessionUser(sessionId, options.userId);
+  return memoryHeld(sessionId, options.env);
+}
+
+/** This session is this user's (session start, and any detector call that knows the userId). */
+export function bindSessionUser(sessionId: string | undefined, userId: string | undefined): void {
+  if (!sessionId || !userId || sharedId(userId)) return; // never a placeholder or shared id
+  sessionUsers.delete(sessionId);
+  sessionUsers.set(sessionId, userId);
+  for (const s of sessionUsers.keys()) {
+    if (sessionUsers.size <= MAX_SESSION_USERS) break;
+    if (!likely.has(s)) sessionUsers.delete(s);
+  }
+  announceHold(sessionId);
 }
 
 /**
- * The per-user writers' check, at write time (a flush timer's tick): this user's held session is
- * still in use (within IDLE_MS), the flag is on and it isn't a verified owner's. Never refreshes
- * the session, so a timer can't keep a hold alive.
+ * Every writer's one check (MINOR_CARE on): this session is held, any of this user's sessions
+ * is, or the id is a placeholder that can't be bound to a session (userHeld can't see it).
  */
-export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
-  const sessionId = userId && !sharedId(userId) ? heldUsers.get(userId) : undefined;
-  if (!userId || !sessionId || !minorCareOn(env)) return false;
-  const used = likely.get(sessionId);
-  if (used === undefined || Date.now() - used > IDLE_MS) {
-    heldUsers.delete(userId);
-    return false;
-  }
-  return !ownerCheck(sessionId);
+export function writeHeld(
+  userId: string | undefined,
+  sessionId?: string,
+  env: Env = process.env
+): boolean {
+  if (!minorCareOn(env)) return false;
+  return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
 }
 
+/**
+ * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
+ * true for any of this user's sessions, from either detector. Never refreshes a session, so a
+ * timer can't keep a hold alive past IDLE_MS.
+ */
+export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
+  if (!userId || sharedId(userId) || !minorCareOn(env)) return false;
+  for (const [sessionId, owner] of sessionUsers) {
+    const used = likely.get(sessionId);
+    const live = used !== undefined && Date.now() - used <= IDLE_MS;
+    if (owner === userId && live && !ownerExempt(sessionId, env)) return true;
+  }
+  return false;
+}
+
+/** A tool's reply when a held caller's plan wasn't saved: no promise to remember it. */
+export const MINOR_CARE_NOT_SAVED =
+  "Not saved: nothing from this call is kept. Cheer them on warmly, but don't say you'll remember it or check in on it later.";
+
 export const MINOR_CARE_NOTE =
-  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner.]";
+  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]";
 
 /**
  * The note for this reply: flag on, the caller sounds under 18 and isn't a
@@ -304,9 +387,20 @@ export function minorCareNote(
   said: string,
   options: HeardOptions & { careful?: boolean } = {}
 ): string {
+  if (flagModeOf('MINOR_CARE', options.env) === 'shadow') {
+    shadowNote(sessionId, said, options.asked);
+    return '';
+  }
   if (options.careful || !minorCareOn(options.env)) return '';
-  if (sessionId && ownerCheck(sessionId)) return '';
+  if (sessionId && ownerExempt(sessionId, options.env)) return '';
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
+}
+
+/** A verified owner's session bound to this user, if any: purgeHeldUser leaves their state. */
+export function ownerSessionFor(userId: string): string | undefined {
+  for (const [sessionId, owner] of sessionUsers)
+    if (owner === userId && ownerCheck(sessionId)) return sessionId;
+  return undefined;
 }
 
 /**
@@ -317,9 +411,23 @@ export function sharedId(userId: string | undefined): boolean {
   return !userId?.trim() || PLACEHOLDER_IDS.has(userId.trim().toLowerCase());
 }
 
+/** Shadow sessions already logged, oldest first, bounded like `likely`. */
+const shadowLogged = new Set<string>();
+
+/** MINOR_CARE=shadow: log a detection once per session; never hold, never note. */
+function shadowNote(sessionId: string | undefined, said: string, asked: string | undefined): void {
+  if (!sessionId || shadowLogged.has(sessionId) || !statesUnder18(said, asked)) return;
+  shadowLogged.add(sessionId);
+  if (shadowLogged.size > MAX_SESSIONS) shadowLogged.delete(shadowLogged.values().next().value!);
+  log.info({ sessionId, verifiedOwner: ownerCheck(sessionId) }, 'MINOR_CARE shadow: likely minor');
+}
+
 /** Tests only. */
 export function resetMinorCare(): void {
+  shadowLogged.clear();
   likely.clear();
-  heldUsers.clear();
+  sessionUsers.clear();
+  announced.clear();
+  sessionPhones.clear();
   ownerCheck = () => false;
 }

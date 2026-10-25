@@ -40,6 +40,7 @@ const { mockConversationHistory, mockCognitiveMemory, mockEngagementStore, mockL
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
+      child: vi.fn((): unknown => mockLogger), // module loggers (erasure drops outreach in memory)
     };
 
     return { mockConversationHistory, mockCognitiveMemory, mockEngagementStore, mockLogger };

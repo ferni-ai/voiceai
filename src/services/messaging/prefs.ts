@@ -4,6 +4,8 @@
  * reader and writer (DESIGN 2026-10-18, M3b). Consent (whether we may text at
  * all, STOP) is separate. The panels used to save quiet hours to an in-memory
  * profile that never reached Firestore (menu re-audit 2026-10-18).
+ * The one exception is messagingPrefs.focus, a Focus hold, which
+ * focus-store.ts owns; the merge below leaves it alone.
  *
  * Reads never fail: a missing or invalid field reads as its default (quiet
  * 21:00 to 08:00, every channel on). Until a record is saved, quiet hours come
@@ -123,6 +125,18 @@ export function prefsFromDoc(doc: Doc): MessagingPrefs {
     ...(typeof saved.updatedAt === 'string' && { updatedAt: saved.updatedAt }),
     ...(updatedBy && { updatedBy }),
   };
+}
+
+/**
+ * The quiet hours a person saved here and the zone to read them in, or undefined
+ * when no valid window is saved. Unlike prefsFromDoc: no default, no older store.
+ * Senders read it through quiet-hours.ts savedQuietHours (QUIET_HOURS_FROM_PREFS).
+ */
+export function savedQuietSpan(doc: Doc): (LocalSpan & { zone?: string }) | undefined {
+  const saved = field(doc, 'messagingPrefs');
+  const span = spanOf({ start: saved.quietStart, end: saved.quietEnd });
+  const zone = span && prefsFromDoc(doc).zone;
+  return span && { ...span, ...(zone && { zone }) };
 }
 
 /** A patch from untrusted input: every field given must be valid, or nothing is saved. */

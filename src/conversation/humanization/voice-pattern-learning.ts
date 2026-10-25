@@ -449,7 +449,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
         admin.initializeApp();
       }
     }
-    firestoreInstance = admin.firestore();
+    firestoreInstance = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     log.info('Firebase initialized for voice pattern persistence');
     return firestoreInstance;
   } catch (error) {

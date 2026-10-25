@@ -3611,7 +3611,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "沟通与人际关系",
+        "role": "沟通教练兼幕僚长",
         "description": "我帮你应对各种对话、巩固人际关系，并更好地表达自己。",
         "unlockHint": "与 Ferni 分享一个关于人际关系的故事",
         "unlockedMessage": "我注意到了一些值得探讨的模式。",
@@ -10243,6 +10243,7 @@
       "one": "你获得了 {count} 颗种子！"
     },
     "couldNotLoadMemories": "没能加载我记得的内容。再试一次？",
+    "credentialNotKept": "Ferni 不会保存密码或各种代码，所以这条已删除。",
     "memoryCorrected": "明白了，我会这样记住。"
   },
   "trustSignals": {

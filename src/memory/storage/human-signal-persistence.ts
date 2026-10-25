@@ -10,7 +10,7 @@
  * @module HumanSignalPersistence
  */
 
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import type {
@@ -25,6 +25,7 @@ import type {
   RecurringAvoidance,
   InsideJoke,
 } from '../../types/human-memory.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = getLogger().child({ module: 'HumanSignalPersistence' });
 
@@ -80,7 +81,7 @@ export async function persistHumanSignals(
     personaId?: string;
   }
 ): Promise<PersistenceResult> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const result: PersistenceResult = {
     success: false,
     persisted: {
@@ -305,7 +306,7 @@ export async function persistHumanSignals(
  * Retrieve persisted human signals for a user
  */
 export async function getPersistedHumanSignals(userId: string): Promise<Partial<HumanSignals>> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const signalsRef = db.collection('bogle_users').doc(userId).collection('human_signals');
 
   try {
@@ -374,7 +375,7 @@ export async function getHumanMemoryProfile(
  * Check if user has any persisted human signals
  */
 export async function hasPersistedSignals(userId: string): Promise<boolean> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const signalsRef = db.collection('bogle_users').doc(userId).collection('human_signals');
 
   try {

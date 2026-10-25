@@ -1,18 +1,22 @@
 /**
  * Email Delivery Service
  *
- * Beautiful, persona-styled email delivery using SendGrid/Resend with:
+ * Beautiful, persona-styled email delivery with:
  * - Gorgeous HTML templates for each persona
  * - Plain text fallbacks
  * - Open/click tracking
  * - Delivery status handling
  * - Retry logic
+ *
+ * EMAIL_PROVIDER=gmail sends through the Workspace port (workspace-email.ts), no init needed.
  */
 
 import { getCircuitBreaker } from '../../../utils/circuit-breaker.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { validateEmailContent } from '../../brand/index.js';
 import { MAX_RETRIES as RESILIENCE_MAX_RETRIES } from '../../../config/resilience-config.js';
+import { emailProvider, getEmailSender } from '../../email-transport/index.js';
+import { sendViaWorkspace } from './workspace-email.js';
 
 const log = getLogger().child({ module: 'email-delivery' });
 
@@ -113,8 +117,14 @@ export function initializeEmailDelivery(deliveryConfig: EmailDeliveryConfig): vo
   log.info({ provider: config.provider }, '✅ Email Delivery initialized');
 }
 
+/** True when sends go through the Workspace email port (EMAIL_PROVIDER=gmail). */
+export function sendsViaWorkspace(): boolean {
+  return emailProvider() === 'gmail';
+}
+
 /** Check if email delivery is available */
 export function isEmailDeliveryAvailable(): boolean {
+  if (sendsViaWorkspace()) return getEmailSender().isConfigured();
   return config !== null;
 }
 
@@ -423,9 +433,7 @@ export function formatEmailBody(body: string): string {
     .join('');
 }
 
-/**
- * Get persona display name
- */
+/** Get persona display name */
 function getPersonaDisplayName(personaId: string): string {
   const names: Record<string, string> = {
     ferni: 'Ferni',
@@ -438,9 +446,7 @@ function getPersonaDisplayName(personaId: string): string {
   return names[personaId] || 'Ferni';
 }
 
-/**
- * Generate plain text version
- */
+/** Generate plain text version */
 export function generatePlainText(personaId: string, body: string, userName?: string): string {
   const personaName = getPersonaDisplayName(personaId);
   const style = PERSONA_STYLES[personaId] || PERSONA_STYLES.ferni;
@@ -463,9 +469,7 @@ export function generatePlainText(personaId: string, body: string, userName?: st
 // SENDING
 // ============================================================================
 
-/**
- * Send email via configured provider
- */
+/** Send email via configured provider */
 export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryResult> {
   if (!isEmailDeliveryAvailable()) {
     return { success: false, error: 'Email delivery not initialized' };
@@ -487,8 +491,6 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
     }
 
     // Use validated/fixed content
-    // TODO: validatedSubject should be used instead of message.subject below
-    const _validatedSubject = brandCheck.subject;
     const validatedBody = brandCheck.body;
 
     // Generate HTML if not provided
@@ -505,10 +507,20 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
 
     let result: EmailDeliveryResult;
 
-    if (config!.provider === 'sendgrid') {
+    if (sendsViaWorkspace()) {
+      result = await sendViaWorkspace(message, html, text, {
+        personaName: getPersonaDisplayName(message.personaId),
+        brandName: config?.fromName,
+        replyTo: config?.replyToEmail,
+      });
+    } else if (config!.provider === 'sendgrid') {
       result = await sendViaSendGrid(message, html, text);
     } else {
       result = await sendViaResend(message, html, text);
+    }
+
+    if (!result.success) {
+      log.warn({ userId: message.userId, error: result.error }, '⚠️ Email not sent');
     }
 
     if (result.success && result.messageId) {
@@ -543,9 +555,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailDeliveryRes
   }
 }
 
-/**
- * Send via SendGrid
- */
+/** Send via SendGrid */
 async function sendViaSendGrid(
   message: EmailMessage,
   html: string,
@@ -601,9 +611,7 @@ async function sendViaSendGrid(
   return { success: true, messageId, status: 'sent' };
 }
 
-/**
- * Send via Resend
- */
+/** Send via Resend */
 async function sendViaResend(
   message: EmailMessage,
   html: string,
@@ -644,9 +652,7 @@ async function sendViaResend(
   return { success: true, messageId: data.id, status: 'sent' };
 }
 
-/**
- * Send email with retry logic
- */
+/** Send email with retry logic */
 export async function sendEmailWithRetry(
   message: EmailMessage,
   retryCount = 0
@@ -689,9 +695,7 @@ export async function sendEmailWithRetry(
 // STATUS HANDLING
 // ============================================================================
 
-/**
- * Handle email webhook (open, click, bounce, etc.)
- */
+/** Handle email webhook (open, click, bounce, etc.) */
 export function handleEmailEvent(
   messageId: string,
   event: 'delivered' | 'opened' | 'clicked' | 'bounced' | 'failed',
@@ -747,16 +751,12 @@ export function handleEmailEvent(
   deliveryRecords.set(messageId, record);
 }
 
-/**
- * Get delivery record
- */
+/** Get delivery record */
 export function getDeliveryRecord(messageId: string): EmailDeliveryRecord | undefined {
   return deliveryRecords.get(messageId);
 }
 
-/**
- * Get all delivery records for a user
- */
+/** Get all delivery records for a user */
 export function getUserDeliveryRecords(userId: string): EmailDeliveryRecord[] {
   return Array.from(deliveryRecords.values()).filter((r) => r.userId === userId);
 }
@@ -765,9 +765,7 @@ export function getUserDeliveryRecords(userId: string): EmailDeliveryRecord[] {
 // CLEANUP
 // ============================================================================
 
-/**
- * Cancel pending retry
- */
+/** Cancel pending retry */
 export function cancelPendingRetry(outreachId: string): boolean {
   const timeout = pendingRetries.get(outreachId);
   if (timeout) {
@@ -778,9 +776,7 @@ export function cancelPendingRetry(outreachId: string): boolean {
   return false;
 }
 
-/**
- * Clear old delivery records
- */
+/** Clear old delivery records */
 export function clearOldRecords(maxAgeDays = 90): number {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - maxAgeDays);
@@ -800,9 +796,7 @@ export function clearOldRecords(maxAgeDays = 90): number {
   return cleared;
 }
 
-/**
- * Shutdown email delivery
- */
+/** Shutdown email delivery */
 export function shutdownEmailDelivery(): void {
   for (const timeout of pendingRetries.values()) {
     clearTimeout(timeout);

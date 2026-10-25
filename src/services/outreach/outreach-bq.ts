@@ -22,10 +22,14 @@ export const ALLOWLIST_COVERS: true[] = [
   true satisfies Covers<ProactiveChannel, BqEnum<'channel'>>,
   true satisfies Covers<OutreachOutcome, BqEnum<'outcome'>>,
 ];
-const NOT_SENT: Record<string, string> = { 'send-failed': 'fail', 'quiet-hours': 'hold' };
+const NOT_SENT: Record<string, string> = {
+  'send-failed': 'fail',
+  'quiet-hours': 'hold',
+  'focus-held': 'hold',
+};
 
 /**
- * Records a guarded text's outcome and hands it back: sent, held (quiet hours), skipped or
+ * Records a guarded text's outcome and hands it back: sent, held (quiet hours, a Focus), skipped or
  * failed. An on-behalf text goes to someone other than the member (third_party).
  */
 export function reportText<const O extends TextResult>(userId: string, kind: TextKind, o: O): O {

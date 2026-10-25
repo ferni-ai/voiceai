@@ -116,8 +116,8 @@ export class TranscriptCleanupJob extends ScheduledJob<
     let usersProcessed = 0;
 
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       // Calculate cutoff dates
       const now = new Date();
@@ -159,12 +159,13 @@ export class TranscriptCleanupJob extends ScheduledJob<
         }
 
         try {
-          // Delete the conversation and its subcollection of turns
+          // Delete the conversation, its turns and its CALL_TIMELINE docs (call-timeline.ts)
           const turnsSnapshot = await doc.ref.collection('turns').get();
+          const timelineSnapshot = await doc.ref.collection('timeline').get();
           const batch = db.batch();
 
-          for (const turn of turnsSnapshot.docs) {
-            batch.delete(turn.ref);
+          for (const child of [...turnsSnapshot.docs, ...timelineSnapshot.docs]) {
+            batch.delete(child.ref);
           }
           batch.delete(doc.ref);
 

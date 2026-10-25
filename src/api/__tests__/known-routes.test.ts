@@ -22,7 +22,11 @@ const known = vi.hoisted(() => ({
 vi.mock('../../intelligence/memory-view/known.js', () => known);
 const actions = vi.hoisted(() => ({
   applyKnownAction: vi.fn(async (_u: string, item: { id: string }) =>
-    item.id === 'missing' ? { kind: 'not-found' as const } : { kind: 'done' as const }
+    item.id === 'missing'
+      ? { kind: 'not-found' as const }
+      : item.id === 'code'
+        ? { kind: 'not-kept' as const, reason: 'credential' as const }
+        : { kind: 'done' as const }
   ),
 }));
 vi.mock('../../intelligence/memory-view/actions.js', () => actions);
@@ -126,6 +130,12 @@ describe('POST /api/memories/known/:kind/:id', () => {
       { action: 'correct', value: 'hip surgery' },
       { store: { tag: 'actions' } }
     );
+  });
+
+  it('answers 200 with not-kept when a correction was a code', async () => {
+    const res = await post('fact/code', { action: 'correct', value: '5512' });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true, status: 'not-kept', reason: 'credential' });
   });
 
   it('says when the caller has no such item', async () => {

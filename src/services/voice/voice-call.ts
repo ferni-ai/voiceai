@@ -1,8 +1,7 @@
 /**
  * Voice Call Service
  *
- * Makes outbound calls using Cartesia TTS voices for any persona.
- * Also handles incoming call routing to LiveKit agents.
+ * Makes outbound calls using Cartesia TTS voices for any persona; routes incoming calls to LiveKit.
  *
  * Now with SSML support for natural-sounding outbound calls!
  */
@@ -43,8 +42,7 @@ const TWILIO_FALLBACK_VOICES: Record<string, string> = {
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const SIP_INBOUND_TRUNK_ID = process.env.SIP_INBOUND_TRUNK_ID || ''; // SIP_TRUNK_ID is outbound
 
-// GCS configuration for audio hosting
-// Priority: explicit GCS_VOICE_BUCKET > derived from GOOGLE_CLOUD_PROJECT > empty
+// GCS audio hosting: explicit GCS_VOICE_BUCKET > derived from GOOGLE_CLOUD_PROJECT > empty
 const GCS_BUCKET =
   process.env.GCS_VOICE_BUCKET ||
   (process.env.GOOGLE_CLOUD_PROJECT ? `${process.env.GOOGLE_CLOUD_PROJECT}-voice-audio` : '');
@@ -267,12 +265,12 @@ export interface PersonaCallOptions {
   customGreeting?: string;
   /** SSML options for natural speech. Set to false to disable SSML enhancement. */
   ssml?: OutboundSsmlOptions | false;
+  /** The member it is for: a MINOR_CARE_SHARED_HOLD on their account stops the call too. */
+  userId?: string;
 }
 
 /**
- * Make an outbound call using any persona's Cartesia voice
- *
- * This works by:
+ * Make an outbound call using any persona's Cartesia voice. This works by:
  * 1. Looking up the persona's voice ID from the registry
  * 2. Generating audio with Cartesia TTS
  * 3. Uploading to GCS for public access (if configured)
@@ -291,11 +289,15 @@ export async function callWithPersonaVoice(
     return { success: false, message: 'Twilio not configured' };
   }
 
-  // Clean phone number
   const cleanPhone = toPhone.replace(/\D/g, '');
   const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+  const { consentBlocks } = await import('../messaging/consent.js'); // MESSAGING_PIPELINE
+  const refused = await consentBlocks(e164Phone, 'call', true); // opt-outs, every caller
+  if (refused) return { success: false, message: `Not calling: ${refused}` };
+  const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
+  if (await heldSender(options?.userId, e164Phone))
+    return { success: false, message: 'Not calling: held' };
 
-  // Get persona display name for fallback greeting
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"
 
@@ -305,13 +307,11 @@ export async function callWithPersonaVoice(
   let twiml: string;
   let usedCartesiaVoice = false;
 
-  // Get fallback Twilio voice for this persona
   const twilioVoice = TWILIO_FALLBACK_VOICES[personaId] || 'Polly.Matthew';
   const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 
   if (CARTESIA_API_KEY) {
-    // Cartesia uses plain text with punctuation for pacing
-    // For outbound calls, use upbeat/positivity emotion to sound warm and engaged
+    // Plain text with punctuation for pacing; upbeat for outbound calls, warm and engaged
     const audioBuffer = await generatePersonaVoice(message, personaId, {
       emotion: 'positivity', // More upbeat for outbound calls
       speed: 1.05, // Slightly faster, more energetic

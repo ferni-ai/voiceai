@@ -34,6 +34,7 @@ export const OUTCOME_REASONS = [
   'awaiting-yes',
   'already-set',
   'opted-out',
+  'needs-consent',
   'bad-number',
   'no-verified-phone',
   'flag-off',
@@ -116,6 +117,8 @@ const OUTREACH = {
   'quiet-hours': held('quiet-hours'),
   'rate-gap': held('rate-gap'),
   'opted-out': failed('opted-out'),
+  // MESSAGING_PIPELINE: someone else never agreed to calls or texts; not a stop, not retried.
+  'needs-consent': failed('needs-consent'),
   'bad-number': failed('bad-number'),
   missed: failed('missed-window'),
   retrying: { outcome: 'pending', reason: 'provider-error' },
@@ -142,6 +145,7 @@ const FOLLOW_UP_TEXT: Record<string, PromiseOutcome> = {
   expired: failed('missed-window'),
   forgotten: { outcome: 'cancelled', reason: 'forgotten' },
   'recently-sent': held('rate-gap'),
+  'quiet-hours': held('quiet-hours'), // the menu's quiet hours (QUIET_HOURS_FROM_PREFS)
   'opted-out': failed('opted-out'),
   // Unreadable consent or a possible opt-out: the sender retries on its next run.
   'consent-unknown': held('store-error'),

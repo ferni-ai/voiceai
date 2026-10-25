@@ -272,6 +272,42 @@ describe('installFirestoreDbPin', () => {
     }
   });
 
+  it('names the app line of a real-SDK query, though runQuery is sent from a .then()', async () => {
+    const sdk = createRequire(import.meta.url)(
+      '@google-cloud/firestore'
+    ) as typeof import('@google-cloud/firestore');
+    // Transport and init, stubbed beneath the pin: nothing leaves the process.
+    class QueryProbe extends sdk.Firestore {}
+    const transport = vi.fn(async () => 'never sent');
+    Object.assign(QueryProbe.prototype, {
+      requestStream: transport,
+      initializeIfNeeded: async () => {},
+    });
+    const lines: FirestoreDbMismatch[] = [];
+    const env = { ...DEV, FIRESTORE_DB_PIN: 'refuse' };
+    installFirestoreDbPin(env, [{ Firestore: QueryProbe as unknown as FakeClass }], (m) =>
+      lines.push(m)
+    );
+    const db = new QueryProbe({ projectId: 'demo-pin' });
+    try {
+      await expect(db.collection('q').where('a', '==', 1).get()).rejects.toMatchObject({
+        name: 'FirestoreDatabaseMismatchError',
+        method: 'runQuery',
+      });
+      expect(transport).not.toHaveBeenCalled();
+      // It used to say "unknown": the SDK sends runQuery after initializeIfNeeded()
+      // resolves, so no app frame is on the stack by then.
+      expect(lines).toEqual([
+        expect.objectContaining({
+          method: 'runQuery',
+          site: expect.stringMatching(/firestore-db-pin\.test\.ts:\d+/),
+        }),
+      ]);
+    } finally {
+      await db.terminate();
+    }
+  });
+
   it("firebase-admin's getFirestore() uses the same client class the pin patches", () => {
     const fromHere = createRequire(import.meta.url);
     const fromAdmin = createRequire(fromHere.resolve('firebase-admin'));

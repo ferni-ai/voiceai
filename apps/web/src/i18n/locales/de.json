@@ -3611,7 +3611,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Kommunikation & Beziehungen",
+        "role": "Kommunikationscoach & Chief of Staff",
         "description": "Ich helfe dir, Gespräche zu meistern, Beziehungen zu stärken und dich besser auszudrücken.",
         "unlockHint": "Teile eine Beziehungsgeschichte mit Ferni",
         "unlockedMessage": "Mir sind ein paar Muster aufgefallen, die wir uns genauer ansehen sollten.",
@@ -10243,6 +10243,7 @@
       "other": "Du hast {count} Samen gesammelt!"
     },
     "couldNotLoadMemories": "Ich konnte nicht laden, woran ich mich erinnere. Noch mal versuchen?",
+    "credentialNotKept": "Ferni speichert keine Codes oder Passwörter, deshalb ist dieser jetzt weg.",
     "memoryCorrected": "Verstanden. Ich merke es mir so."
   },
   "trustSignals": {

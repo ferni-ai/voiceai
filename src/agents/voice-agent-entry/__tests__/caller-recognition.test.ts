@@ -70,6 +70,11 @@ function roomWith(participant: object): Room {
   } as unknown as Room;
 }
 
+/** Nobody's account: a per-call anon: id of their own (identifyUser never leaves it empty). */
+function expectAnonId(userId: string | undefined): void {
+  expect(userId).toMatch(/^anon:/);
+}
+
 let n = 0;
 async function inbound(participant: object, jobMetadata?: string) {
   const sessionId = `call-${n++}`;
@@ -105,17 +110,17 @@ describe('caller recognition on an inbound call', () => {
 
   it('never trusts a raw X-Twilio-VerStat header: A in the header alone is not recognised', async () => {
     const { result, recognition, sessionId } = await inbound(sipCaller('TN-Validation-Passed-A'));
-    expect(result.userId).toBeUndefined();
+    expectAnonId(result.userId);
     expect(recognition?.status).toBe('maybe');
     expect(recognition?.attestation).toBe('none');
     expect(phoneOnlyIdentity(sessionId)).toBe(false);
   });
 
   it('fails closed on a missing attestation and on a signed B', async () => {
-    expect((await inbound(sipCaller(null))).result.userId).toBeUndefined();
+    expectAnonId((await inbound(sipCaller(null))).result.userId);
     signedFor(SETH, 'B');
     const { result, recognition } = await inbound(sipCaller('TN-Validation-Passed-A'));
-    expect(result.userId).toBeUndefined();
+    expectAnonId(result.userId);
     expect(recognition?.status).toBe('maybe');
   });
 
@@ -123,7 +128,7 @@ describe('caller recognition on an inbound call', () => {
     productionRecognitionDeps.signedAttestation = async () => {
       throw new Error('secret missing');
     };
-    expect((await inbound(sipCaller('TN-Validation-Passed-A'))).result.userId).toBeUndefined();
+    expectAnonId((await inbound(sipCaller('TN-Validation-Passed-A'))).result.userId);
   });
 
   it("does not tell an unverified caller whose number it is: no name, a neutral who's-this", async () => {
@@ -152,7 +157,7 @@ describe('caller recognition on an inbound call', () => {
       sipCaller('TN-Validation-Passed-A'),
       JSON.stringify({ type: 'inbound_call', user_id: 'user-seth', callerPhone: SETH })
     );
-    expect(result.userId).toBeUndefined();
+    expectAnonId(result.userId);
   });
 
   it('reads and awaits the attestation for a number with no account (no timing oracle)', async () => {
@@ -171,7 +176,7 @@ describe('caller recognition on an inbound call', () => {
     release('A');
     const { result, recognition } = await call;
     expect(recognition?.status).toBe('stranger');
-    expect(result.userId).toBeUndefined();
+    expectAnonId(result.userId);
   });
 
   it('leaves a session the app named alone', async () => {
@@ -188,7 +193,7 @@ describe('caller recognition on an inbound call', () => {
     delete process.env.CALLER_RECOGNITION;
     signedFor(SETH, 'A');
     const { result, recognition } = await inbound(sipCaller(null));
-    expect(result.userId).toBeUndefined();
+    expectAnonId(result.userId);
     expect(recognition).toBeUndefined();
     expect(getFirebaseUserByPhone).not.toHaveBeenCalled();
   });
@@ -236,7 +241,7 @@ describe('caller recognition with a signed attestation token', () => {
 
   /** Unrecognised: no account loads and the session isn't phone-only. */
   function expectNoAccount(r: Awaited<ReturnType<typeof inbound>>): void {
-    expect(r.result.userId).toBeUndefined();
+    expectAnonId(r.result.userId);
     expect(r.result.userName).toBeUndefined();
     expect(r.recognition?.userId).toBeUndefined();
     expect(['maybe', 'stranger']).toContain(r.recognition?.status);
@@ -327,7 +332,7 @@ describe('caller recognition with a signed attestation token', () => {
     const r = await inbound(withToken(token('TN-Validation-Passed-A')));
     expect(getFirebaseUserByPhone).not.toHaveBeenCalled();
     expect(r.recognition).toBeUndefined();
-    expect(r.result.userId).toBeUndefined();
+    expectAnonId(r.result.userId);
   });
 });
 

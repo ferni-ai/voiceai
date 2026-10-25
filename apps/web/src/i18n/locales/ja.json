@@ -3611,7 +3611,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "コミュニケーション＆人間関係",
+        "role": "コミュニケーションコーチ＆チーフ・オブ・スタッフ",
         "description": "お話をスムーズに進め、人間関係を深め、自分をもっと上手に表現できるようお手伝いします。",
         "unlockHint": "人間関係についてのお話をFerniにシェアする",
         "unlockedMessage": "一緒に掘り下げる価値のある、いくつかのパターンに気づきました。",
@@ -10243,6 +10243,7 @@
       "one": "タネを{count}個獲得しました！"
     },
     "couldNotLoadMemories": "覚えていることを読み込めませんでした。もう一度試しますか？",
+    "credentialNotKept": "Ferniはコードやパスワードを保存しないので、これは削除しました。",
     "memoryCorrected": "わかりました。そのように覚えておきます。"
   },
   "trustSignals": {

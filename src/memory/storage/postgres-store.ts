@@ -11,6 +11,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
+import { refuseUnsaved } from './profile-read-failure.js';
 import type {
   UserProfile,
   ConversationSummary,
@@ -130,19 +131,23 @@ export class PostgresStore extends MemoryStore {
     if (!this.pool) throw new Error('PostgresStore not initialized');
 
     try {
-      const result = await this.pool.query('SELECT data FROM user_profiles WHERE id = $1', [
-        userId,
-      ]);
-
-      if (result.rows.length === 0) return null;
-      return this.hydrateProfile(result.rows[0].data as unknown as UserProfile);
+      return await this.getProfileStrict(userId);
     } catch (error) {
       getLogger().error(`getProfile error: ${error}`);
       return null;
     }
   }
 
+  /** A failed query throws; null only when the user has no row. */
+  override async getProfileStrict(userId: string): Promise<UserProfile | null> {
+    if (!this.pool) throw new Error('PostgresStore not initialized');
+    const result = await this.pool.query('SELECT data FROM user_profiles WHERE id = $1', [userId]);
+    if (result.rows.length === 0) return null;
+    return this.hydrateProfile(result.rows[0].data as unknown as UserProfile);
+  }
+
   async saveProfile(profile: UserProfile): Promise<void> {
+    refuseUnsaved(profile); // a stand-in built after a failed read never overwrites stored data
     if (!this.pool) throw new Error('PostgresStore not initialized');
 
     try {

@@ -237,6 +237,28 @@ describe('a platform admin', () => {
   });
 });
 
+describe('POST /api/monetization/tip: a held caller sends Stripe no note (MINOR_CARE)', () => {
+  it.each([
+    [true, ''],
+    [false, 'for my homework'],
+  ])('held %s: Stripe metadata.message = %j', async (held, sent) => {
+    m.createPaymentIntent.mockClear();
+    m.tipCreate.mockImplementationOnce(async (p: { userId: string }) => ({
+      id: 'tip_h',
+      ...p,
+      held,
+    }));
+    await request('POST', '/api/monetization/tip', {
+      as: 'uid-alice',
+      body: { amountCents: 500, message: 'for my homework' },
+    });
+    const [intent] = m.createPaymentIntent.mock.calls[0] as unknown as [
+      { metadata: { message: string } },
+    ];
+    expect(intent.metadata.message).toBe(sent);
+  });
+});
+
 describe('POST /api/monetization/tip with Stripe mocked', () => {
   beforeEach(() => vi.clearAllMocks());
 

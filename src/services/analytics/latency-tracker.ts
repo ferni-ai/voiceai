@@ -288,8 +288,8 @@ export async function pingService(service: ServiceName): Promise<number> {
     switch (service) {
       case 'firestore': {
         // Firestore health check - simple read
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
         await db.collection('_health').doc('ping').get();
         break;
       }

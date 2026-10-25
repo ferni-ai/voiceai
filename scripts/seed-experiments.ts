@@ -12,15 +12,16 @@
 
 import 'dotenv/config';
 import admin from 'firebase-admin';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getGCPProjectId } from '../src/config/environment.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 // Initialize Firebase
 const projectId = getGCPProjectId() || 'bogle-voice';
 if (admin.apps.length === 0) {
   admin.initializeApp({ projectId });
 }
-const db = getFirestore();
+const db = getAdminFirestore();
 
 interface ExperimentSeed {
   name: string;

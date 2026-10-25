@@ -47,6 +47,8 @@ for (const action of ACTIONS) {
     }
     const panel = await newPanel(page, before, action);
     const id = (await panel.getAttribute('data-e2e-dialog')) as string;
+    // "What I've learned" is What Ferni Knows in prod (VITE_MEMORY_VIEW), not the old panel
+    if (action === 'insights') await expect(panel).toHaveClass(/\bferni-known\b/);
     await page.waitForTimeout(1_500); // let the screen load its data
     expect(await rawKeysOnScreen(page), 'raw i18n keys on screen').toEqual([]);
 

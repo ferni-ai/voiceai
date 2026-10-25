@@ -13,6 +13,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { stripDataPoints } from './emotional-history-shape.js';
 
 const log = createLogger({ module: 'SemanticRouter.BetterThanHuman' });
 
@@ -51,7 +52,7 @@ export interface EmotionalDataPoint {
   intensity: number; // 0-1
   valence: number; // -1 to 1
   source: 'voice' | 'text' | 'inferred';
-  context?: string;
+  // No text of what was said: this history goes to Firestore (emotional-history-shape.ts).
 }
 
 export interface EmotionalArc {
@@ -345,8 +346,7 @@ export function recordEmotionalDataPoint(
   emotion: string,
   intensity: number,
   valence: number,
-  source: 'voice' | 'text' | 'inferred',
-  context?: string
+  source: 'voice' | 'text' | 'inferred'
 ): void {
   const dataPoint: EmotionalDataPoint = {
     timestamp: new Date(),
@@ -354,7 +354,6 @@ export function recordEmotionalDataPoint(
     intensity,
     valence,
     source,
-    context,
   };
 
   const history = emotionalHistory.get(userId) || [];
@@ -876,9 +875,13 @@ export async function persistEmotionalHistory(userId: string): Promise<void> {
       .set(
         cleanForFirestore({
           userId,
+          // Named fields only, so nothing else an entry picked up is written
           dataPoints: history.map((dp) => ({
-            ...dp,
             timestamp: dp.timestamp.toISOString(),
+            emotion: dp.emotion,
+            intensity: dp.intensity,
+            valence: dp.valence,
+            source: dp.source,
           })),
           lastUpdated: new Date().toISOString(),
         })
@@ -907,24 +910,17 @@ export async function loadEmotionalHistory(userId: string): Promise<void> {
     const data = doc.data();
     if (!data) return;
 
-    // Type narrowing for Firestore document structure
-    interface EmotionalHistoryDoc {
-      dataPoints?: Array<{
-        timestamp: string;
-        emotion: string;
-        intensity: number;
-        valence: number;
-        source: string;
-        context?: string;
-      }>;
-    }
-    const typedData = data as EmotionalHistoryDoc;
-    if (!typedData.dataPoints) return;
+    const stored = (data as { dataPoints?: unknown }).dataPoints;
+    if (!Array.isArray(stored)) return;
 
-    const history = typedData.dataPoints.map((dp) => ({
-      ...dp,
-      timestamp: new Date(dp.timestamp),
-      source: dp.source as 'voice' | 'inferred' | 'text',
+    // Older entries carry a snippet of the caller's words; only the labels,
+    // scores and time are kept, so the next persist can't write it back.
+    const history: EmotionalDataPoint[] = stripDataPoints(stored).points.map((dp) => ({
+      timestamp: new Date(dp.timestamp as string),
+      emotion: dp.emotion as string,
+      intensity: dp.intensity as number,
+      valence: dp.valence as number,
+      source: dp.source as EmotionalDataPoint['source'],
     }));
 
     emotionalHistory.set(userId, history);

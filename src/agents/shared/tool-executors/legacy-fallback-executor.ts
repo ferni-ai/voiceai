@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { directSendHeld } from '../../../services/communication-service.js';
 import { cleanForFirestore, toSafeDate } from '../../../utils/firestore-utils.js';
 import type { ToolExecutionContext } from './types.js';
 
@@ -43,8 +44,8 @@ export async function executeLegacyFallback(
     // Try to persist to Firestore WITH EMBEDDING for semantic recall
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Generate embedding for semantic recall later
         let embedding: number[] | null = null;
@@ -165,8 +166,8 @@ export async function executeLegacyFallback(
         });
 
         // 2. Also get recent facts from Firestore for recency boost
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         interface MemoryItem {
           content: string;
@@ -335,8 +336,8 @@ export async function executeLegacyFallback(
 
         // Fallback to basic text search if semantic fails
         try {
-          const { getFirestore } = await import('firebase-admin/firestore');
-          const db = getFirestore();
+          const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+          const db = getAdminFirestore();
           const factsSnapshot = await db
             .collection('bogle_users')
             .doc(ctx.userId)
@@ -384,8 +385,8 @@ export async function executeLegacyFallback(
     log.info({ memory, confirmationType, userId: ctx.userId }, '💪 Reinforcing memory');
 
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       // Find the memory and boost its confidence
       const snapshot = await db
@@ -444,8 +445,8 @@ export async function executeLegacyFallback(
     // If we have userId, try to update in Firestore
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Generate new embedding for semantic search
         let newEmbedding: number[] | null = null;
@@ -520,8 +521,8 @@ export async function executeLegacyFallback(
     // If we have userId, try to get real relationship data
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Get user profile
         const profileDoc = await db.collection('bogle_users').doc(ctx.userId).get();
@@ -809,8 +810,8 @@ export async function executeLegacyFallback(
     // Store habit in Firestore with behavior science structure
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitId = `habit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         await db
@@ -862,8 +863,8 @@ export async function executeLegacyFallback(
     // Update habit tracking in Firestore
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Find the habit by name
         const habitsSnapshot = await db
@@ -937,8 +938,8 @@ export async function executeLegacyFallback(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitsSnapshot = await db
           .collection('bogle_users')
@@ -970,8 +971,8 @@ export async function executeLegacyFallback(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitsSnapshot = await db
           .collection('bogle_users')
@@ -1136,6 +1137,8 @@ export async function executeLegacyFallback(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Voice messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
       // Generate the voice message
       log.info({ persona, messageLength: message.length }, '🎤 Generating voice message');
@@ -1149,9 +1152,7 @@ export async function executeLegacyFallback(
         return 'Had trouble generating the voice message. Want me to try again or send a text instead?';
       }
 
-      // Send via MMS using Twilio
-
-      // Twilio MMS requires a media URL - we have it from GCS
+      // Send via MMS using Twilio (the media URL is from GCS)
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -1161,7 +1162,6 @@ export async function executeLegacyFallback(
         return `Voice message ready! Here's the preview: ${voiceMessage.audioUrl}\n\nBut I can't send it yet - messaging isn't fully configured.`;
       }
 
-      // Send MMS with audio attachment
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {
@@ -1231,8 +1231,9 @@ export async function executeLegacyFallback(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Text messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
-      // Check Twilio credentials
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -1242,7 +1243,6 @@ export async function executeLegacyFallback(
         return `I'd send "${message}" to ${contact.name}, but messaging isn't set up yet. Want me to help you draft it for copy-paste?`;
       }
 
-      // Send SMS via Twilio
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {
@@ -1793,8 +1793,8 @@ export async function executeLegacyFallback(
     // Store as memory
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
         await db
           .collection('bogle_users')
           .doc(ctx.userId)
@@ -1819,8 +1819,8 @@ export async function executeLegacyFallback(
     log.info({ search }, '📝 Getting notes');
     if (!ctx.userId) return "I'll need to know who you are to get your notes.";
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
       const notesSnapshot = await db
         .collection('bogle_users')
         .doc(ctx.userId)

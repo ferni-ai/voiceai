@@ -7,6 +7,7 @@
  * @module tools/semantic-router/defense/anomaly-detector
  */
 
+import { errorClass, errorFields } from '../../../utils/error-class.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getEmbedding, cosineSimilarity } from '../embedding-providers.js';
 
@@ -340,7 +341,7 @@ export async function detectAnomaly(
     if (isAnomaly) {
       log.debug(
         {
-          input: input.slice(0, 50),
+          inputLength: input.length,
           nearestCluster: nearestCluster?.id,
           distance: nearestDistance.toFixed(3),
           threshold: effectiveThreshold.toFixed(3),
@@ -352,13 +353,13 @@ export async function detectAnomaly(
 
     return result;
   } catch (error) {
-    log.error({ error: String(error) }, 'Anomaly detection failed');
+    log.error(errorFields(error), 'Anomaly detection failed');
     return {
       isAnomaly: false,
       anomalyScore: 0,
       nearestClusterDistance: 0,
       confidencePenalty: 1.0,
-      reason: `Detection error: ${String(error)}`,
+      reason: `Detection error: ${errorClass(error)}`,
     };
   }
 }

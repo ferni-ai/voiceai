@@ -28,14 +28,12 @@ describe('quality ratchet', () => {
     ).toEqual([]);
   });
 
-  it('fails when an oversized file grows or a new one appears', () => {
+  it('leaves file size to size-diff.ts: the oversized list is a scoreboard and never blocks', () => {
     const worse = regressions(base, {
       ...base,
       oversized: { ...base.oversized, 'src/big.ts': 901, 'src/new.ts': 501 },
     });
-    expect(worse).toHaveLength(2);
-    expect(worse.join()).toMatch(/big\.ts: grew 900 → 901/);
-    expect(worse.join()).toMatch(/new\.ts: 501 lines/);
+    expect(worse).toEqual([]);
   });
 
   it('fails on any critical brand copy and on more warnings or lint errors', () => {

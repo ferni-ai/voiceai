@@ -585,14 +585,9 @@ export function createPlaidTools() {
           return linkToken; // Error message
         }
 
-        // Generate the secure link URL (configured via PLAID_LINK_BASE_URL in .env)
-        const PLAID_LINK_BASE_URL = process.env.PLAID_LINK_BASE_URL || '';
-        const secureLink = `${PLAID_LINK_BASE_URL}?token=${linkToken}&user=${userId}`;
-
-        // Send via chosen method
+        const secureLink = `${process.env.PLAID_LINK_BASE_URL || ''}?token=${linkToken}&user=${userId}`;
         let sendResult: string;
         if (deliveryMethod === 'sms') {
-          // Import would happen at top - using inline fetch for SMS here
           const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
           const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
           const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
@@ -602,6 +597,12 @@ export function createPlaidTools() {
           }
 
           const formattedTo = contact.startsWith('+') ? contact : `+1${contact.replace(/\D/g, '')}`;
+          const { consentBlocks } = await import('../../../utils/consent-port.js');
+          if (await consentBlocks(formattedTo, 'sms', true))
+            return 'That number asked not to get texts from me. Could you give me an email address instead?';
+          const { directSendHeld } = await import('../../../services/communication-service.js');
+          if (await directSendHeld(formattedTo, 'text', { userId }))
+            return "I can't text that link.";
 
           try {
             const response = await fetch(
@@ -628,31 +629,19 @@ export function createPlaidTools() {
             sendResult = 'failed';
           }
         } else {
-          // Email via SendGrid
-          const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
-
-          if (!SENDGRID_API_KEY) {
+          // The app transport (EMAIL_PROVIDER): SendGrid by default, the ferni.ai Workspace under gmail
+          const { isEmailConfigured, sendAppEmail } =
+            await import('../../../services/communication-service.js');
+          if (!isEmailConfigured()) {
             return "I'd send you the link via email, but my email service isn't set up. Could you give me a phone number for a text instead?";
           }
 
-          try {
-            const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${SENDGRID_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                personalizations: [{ to: [{ email: contact }] }],
-                from: {
-                  email: process.env.SENDGRID_FROM_EMAIL || '',
-                  name: process.env.SENDGRID_FROM_NAME || 'Ferni',
-                },
-                subject: '🔐 Securely Link Your Bank Account',
-                content: [
-                  {
-                    type: 'text/html',
-                    value: `
+          const sent = await sendAppEmail({
+            to: contact,
+            fromName: 'Ferni',
+            subject: '🔐 Securely Link Your Bank Account',
+            kind: 'transactional',
+            html: `
                     <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
                       <h2>Connect Your Bank Account</h2>
                       <p>Click the secure button below to link your bank account. This uses Plaid - the same security trusted by major financial apps.</p>
@@ -665,17 +654,12 @@ export function createPlaidTools() {
                       <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
                       <p style="color: #718096; font-size: 14px;">— Ferni</p>
                     </div>
-                  `,
-                  },
-                ],
-              }),
-              signal: AbortSignal.timeout(10000),
-            });
-            sendResult = response.ok || response.status === 202 ? 'sent' : 'failed';
-          } catch (error) {
-            getLogger().error({ error }, 'Failed to send SendGrid email notification');
-            sendResult = 'failed';
+            `,
+          });
+          if (!sent.ok) {
+            getLogger().error({ provider: sent.provider, status: sent.status, error: sent.error }, 'Failed to send bank-link email'); // prettier-ignore
           }
+          sendResult = sent.ok ? 'sent' : 'failed';
         }
 
         const elapsed = Date.now() - startTime;

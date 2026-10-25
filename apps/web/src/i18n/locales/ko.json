@@ -3611,7 +3611,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "소통 & 관계",
+        "role": "커뮤니케이션 코치 & 비서실장",
         "description": "대화를 나누고, 관계를 돈독히 하며, 자신을 더 잘 표현할 수 있도록 도와드릴게요.",
         "unlockHint": "Ferni에게 관계에 대한 이야기를 들려주세요",
         "unlockedMessage": "함께 살펴볼 만한 몇 가지 패턴을 발견했어요.",
@@ -10243,6 +10243,7 @@
       "one": "{count}개의 씨앗을 얻었어요!"
     },
     "couldNotLoadMemories": "기억하는 내용을 불러오지 못했어요. 다시 시도할까요?",
+    "credentialNotKept": "Ferni는 코드나 비밀번호를 저장하지 않아서 이건 지웠어요.",
     "memoryCorrected": "알겠어요. 그렇게 기억할게요."
   },
   "trustSignals": {

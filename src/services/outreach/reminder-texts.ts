@@ -28,12 +28,15 @@ import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { extendReminderPromise } from '../superhuman/semantic-intelligence/promise-keeper.js';
 import type { ScheduledReminder } from '../scheduling/reminder-scheduler.js';
 import {
+  installReminderOwnNumber,
   installReminderTextGuard,
   type GuardedTextOutcome,
 } from '../scheduling/reminder-text-guard.js';
 import { toE164 } from './checkin-replies.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import {
   defaultTextDeps,
+  isOwnVerifiedPhone,
   resolveCheckinPhone,
   sendGuardedText,
   sendOnBehalfText,
@@ -149,4 +152,7 @@ export async function guardReminderText(
 /** Install the guarded sender in this process; deliverReminder uses it when REMINDER_SMS_DEFAULT is on. */
 export function installReminderTexts(): void {
   installReminderTextGuard((r) => guardReminderText(r));
+  installReminderOwnNumber(async (userId, phone, channel) =>
+    mayReachForOwner(userId, phone, channel, isOwnVerifiedPhone)
+  );
 }

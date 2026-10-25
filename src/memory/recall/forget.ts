@@ -17,17 +17,27 @@
  * which removes all of this too. A topic that would cover a large share of
  * what Ferni knows is not applied; the caller is asked to narrow it.
  *
- * Not yet covered: other readers of call summaries (priming, pondering)
- * and stored transcripts read by anything but episode quotes.
+ * The profile's last summaries (what the next call's greeting picks up) are
+ * cleared too when they are about the topic; session saves keep forgotten
+ * topics out of them after that (services/session/last-summary.ts, #2767).
+ *
+ * With FORGET_EVERY_READER=on the readers outside recall check it too
+ * (forget-every-reader.ts): the profile's last call summary in the system
+ * prompt, greeting and single-agent awareness, the handoff summary, the
+ * relationship tool, the keyword search legs, UnifiedStore.recall
+ * and recall notes already in the chat. Not yet covered: session priming's
+ * reads of call summaries, and stored transcripts read by anything but
+ * episode quotes.
  *
  * @module memory/recall/forget
  */
-import { FieldValue } from '@google-cloud/firestore';
+import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
 export { isForgotten };
 
@@ -61,7 +71,12 @@ export interface ForgetStore {
   addTopic: (userId: string, topic: string, asked?: string) => Promise<void>;
   /** The recorded topics; null when they can't be read (no store, malformed), [] when there are none. */
   topics: (userId: string) => Promise<string[] | null>;
+  /** Clears the profile's last summaries that `about` matches (#2767). */
+  clearSummaries?: (userId: string, about: (text: string) => boolean) => Promise<void>;
 }
+
+/** The profile fields the next call's greeting and prompt read as "last time". */
+export const LAST_SUMMARY_FIELDS = ['lastConversationSummary', 'lastCallerSummary'] as const;
 
 /** The text a fact document is about, in either collection's shape. */
 export function factText(d: Record<string, unknown>): string {
@@ -111,6 +126,14 @@ export async function forgetTopic(
   const marking = [...matched, ...earlier];
   if (marking.length > 0) await store.markForgotten(userId, marking, now.toISOString());
   bumpForgetGeneration(userId);
+  // What either matcher reads as the topic, so nothing a save would clear is
+  // left for the next call start. Last, so a failure leaves only this to
+  // retry; it throws, and the caller is told the forget didn't go through.
+  const { aboutForgotten } = await import('./forget-every-reader.js'); // it imports this module
+  await store.clearSummaries?.(
+    userId,
+    (text) => isForgotten(text, [tokens]) || aboutForgotten(text, [tokens])
+  );
   log.info({ userId: userId.slice(0, 8), marked: matched.length }, 'Forgot a topic');
   return { kind: 'forgotten', marked: matched.length };
 }
@@ -282,13 +305,32 @@ export const firestoreForgetStore: ForgetStore = {
   },
   async topics(userId) {
     const db = getFirestoreDb();
-    if (!db) return null;
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('memory_state')
-      .doc('forgotten')
-      .get();
-    return parseTopics(doc.exists ? doc.data()?.topics : undefined);
+    return db ? readForgottenTopics(db, userId) : null;
+  },
+  async clearSummaries(userId, about) {
+    const db = getFirestoreDb();
+    if (!db) return;
+    const ref = db.collection('bogle_users').doc(userId);
+    await db.runTransaction(async (tx) => {
+      const data = (await tx.get(ref)).data() ?? {};
+      const cleared: Record<string, string> = {};
+      for (const k of LAST_SUMMARY_FIELDS) {
+        const v: unknown = data[k];
+        if (typeof v === 'string' && v && about(v)) cleared[k] = '';
+      }
+      if (Object.keys(cleared).length > 0) tx.update(ref, cleared);
+    });
+    forgetCallStartReads(userId); // the next call-start read sees the cleared summaries
   },
 };
+
+/** The topics recorded in `db` (memory_state/forgotten), parsed as parseTopics does. */
+export async function readForgottenTopics(db: Firestore, userId: string): Promise<string[] | null> {
+  const doc = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('memory_state')
+    .doc('forgotten')
+    .get();
+  return parseTopics(doc.exists ? doc.data()?.topics : undefined);
+}

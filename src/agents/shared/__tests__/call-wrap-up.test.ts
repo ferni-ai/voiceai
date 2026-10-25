@@ -163,7 +163,8 @@ describe('call wrap-up (CALL_WRAP_UP)', () => {
     await c.runTimers();
     await callEndCall(c.a, c.playout);
     expect(c.events.filter((e) => e.startsWith('deleted'))).toHaveLength(1);
-    expect(c.timers).toHaveLength(0);
+    // No new room close (the ended call's CRISIS_AFTER_END watch may be pending, #2291)
+    expect(c.timers.filter((t) => t.ms === REMOVAL_GRACE_MS)).toHaveLength(0);
   });
 
   it('leaves the room alone when the app already left, and survives a failed delete', async () => {

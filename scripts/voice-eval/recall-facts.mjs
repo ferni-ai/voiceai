@@ -94,8 +94,8 @@ function main() {
   }
   const results = [];
   // A glob like out/facts-recall-*.json also picks up the seed call and the
-  // score/judge sidecars; only the recall calls themselves are counted.
-  for (const f of files.filter((x) => !/\.(seed|score|judge)\.json$/.test(x))) {
+  // score/judge/realism sidecars; only the recall calls themselves are counted.
+  for (const f of files.filter((x) => !/\.(seed|score|judge|realism)\.json$/.test(x))) {
     const run = JSON.parse(readFileSync(f, 'utf8'));
     const scenario = scenarioOf(f, run);
     const checks = parseChecks(readFileSync(new URL(`${scenario}.txt`, SCENARIOS), 'utf8'));

@@ -99,10 +99,10 @@ async function handleGetCallers(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -148,10 +148,10 @@ async function handleGetVisitors(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -232,9 +232,11 @@ async function handleTriggerReport(res: ServerResponse): Promise<void> {
       await import('../services/admin/daily-report-template.js');
     const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } =
       await import('../services/outreach/delivery/email-delivery.js');
+    const { emailProvider } = await import('../services/email-transport/index.js');
 
     // Initialize email if not already done
-    if (!isEmailDeliveryAvailable()) {
+    // With EMAIL_PROVIDER=gmail the report goes through the Workspace port; no SendGrid key needed.
+    if (!isEmailDeliveryAvailable() && emailProvider() !== 'gmail') {
       const apiKey = process.env.SENDGRID_API_KEY;
       if (!apiKey) {
         throw new Error('SENDGRID_API_KEY not configured');

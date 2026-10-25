@@ -13,7 +13,8 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolRegistry } from '../registry/index.js';
 import { loadToolDomainsLazy, autoRegisterAllDomains } from '../registry/loader.js';
-import type { ToolDomain, Tool } from '../registry/types.js';
+import type { ToolDomain, Tool, ToolContext } from '../registry/types.js';
+import { perCallerTool } from '../registry/per-caller-tool.js';
 
 // ============================================================================
 // COMPILED CONFIGURATION (NO JSON PARSING!)
@@ -39,6 +40,21 @@ import {
 } from './tool-tiers.generated.js';
 
 const log = getLogger().child({ module: 'ToolGateway' });
+
+/**
+ * The factory ctx for gateway tools. PRIVACY: the gateway is one instance per process shared by
+ * every session, so no tool is built for a user; each runs as its call's caller (perCallerTool).
+ */
+function gatewayCtx(reason: string): Omit<ToolContext, 'userId'> {
+  const fail = (): never => {
+    throw new Error(reason);
+  };
+  return {
+    agentId: 'gateway',
+    agentDisplayName: 'Tool Gateway',
+    services: { has: () => false, get: fail, getOptional: () => undefined },
+  };
+}
 
 // Re-export for external use
 export { TIER_0_DOMAINS, TIER_1_DOMAINS, SESSION_START_DOMAINS, LOAD_TIME_TARGETS };
@@ -180,18 +196,7 @@ class ToolGateway {
         const domainTools = toolRegistry.getByDomain(domain);
         for (const toolDef of domainTools) {
           try {
-            const tool = toolDef.create({
-              userId: 'gateway',
-              agentId: 'gateway',
-              agentDisplayName: 'Tool Gateway',
-              services: {
-                has: () => false,
-                get: () => {
-                  throw new Error('No services in warmup');
-                },
-                getOptional: () => undefined,
-              },
-            });
+            const tool = perCallerTool(toolDef, gatewayCtx('No services in warmup'));
             this.tier0Tools.set(toolDef.id, tool);
           } catch (err) {
             log.warn({ toolId: toolDef.id, error: String(err) }, 'Failed to create Tier 0 tool');
@@ -290,18 +295,7 @@ class ToolGateway {
 
         if (toolDef) {
           log.debug({ toolId }, 'Found tool in registry during recovery');
-          const tool = toolDef.create({
-            userId: 'gateway-recovery',
-            agentId: 'gateway',
-            agentDisplayName: 'Tool Gateway',
-            services: {
-              has: () => false,
-              get: () => {
-                throw new Error('No services in recovery');
-              },
-              getOptional: () => undefined,
-            },
-          });
+          const tool = perCallerTool(toolDef, gatewayCtx('No services in recovery'));
           this.tier0Tools.set(toolId, tool);
           log.info({ toolId }, '✅ Recovered tool from registry');
           continue;
@@ -333,18 +327,7 @@ class ToolGateway {
             );
 
             if (toolDef) {
-              const tool = toolDef.create({
-                userId: 'gateway-recovery',
-                agentId: 'gateway',
-                agentDisplayName: 'Tool Gateway',
-                services: {
-                  has: () => false,
-                  get: () => {
-                    throw new Error('No services in recovery');
-                  },
-                  getOptional: () => undefined,
-                },
-              });
+              const tool = perCallerTool(toolDef, gatewayCtx('No services in recovery'));
               this.tier0Tools.set(toolId, tool);
               log.info({ toolId }, '✅ Recovered tool via direct import');
               // NOTE: Don't re-register in toolRegistry - the domain loader already did that.
@@ -434,18 +417,7 @@ class ToolGateway {
           if (this.tier0Tools.has(toolDef.id)) continue; // Already in Tier 0
 
           try {
-            const tool = toolDef.create({
-              userId,
-              agentId: 'gateway',
-              agentDisplayName: 'Tool Gateway',
-              services: {
-                has: () => false,
-                get: () => {
-                  throw new Error('No services');
-                },
-                getOptional: () => undefined,
-              },
-            });
+            const tool = perCallerTool(toolDef, gatewayCtx('No services'));
             this.tier1Tools.set(toolDef.id, tool);
           } catch (err) {
             log.warn({ toolId: toolDef.id, error: String(err) }, 'Failed to create Tier 1 tool');
@@ -616,18 +588,7 @@ class ToolGateway {
           if (this.tier0Tools.has(toolDef.id) || this.tier1Tools.has(toolDef.id)) continue;
 
           try {
-            const tool = toolDef.create({
-              userId: this.userId || 'gateway',
-              agentId: 'gateway',
-              agentDisplayName: 'Tool Gateway',
-              services: {
-                has: () => false,
-                get: () => {
-                  throw new Error('No services');
-                },
-                getOptional: () => undefined,
-              },
-            });
+            const tool = perCallerTool(toolDef, gatewayCtx('No services'));
             this.tier2Tools.set(toolDef.id, tool);
           } catch (err) {
             log.warn({ toolId: toolDef.id }, 'Failed to create predictive tool');
@@ -683,18 +644,7 @@ class ToolGateway {
           }
 
           try {
-            const tool = toolDef.create({
-              userId: this.userId || 'gateway',
-              agentId: 'gateway',
-              agentDisplayName: 'Tool Gateway',
-              services: {
-                has: () => false,
-                get: () => {
-                  throw new Error('No services');
-                },
-                getOptional: () => undefined,
-              },
-            });
+            const tool = perCallerTool(toolDef, gatewayCtx('No services'));
             this.tier2Tools.set(toolDef.id, tool);
           } catch (err) {
             log.warn({ toolId: toolDef.id }, 'Failed to create critical tool');

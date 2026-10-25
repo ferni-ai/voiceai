@@ -10,9 +10,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { SemanticRouterResult, ToolMatch, RouterAction } from '../types.js';
+import type { DetectedIntent, MatchLayer, RouterAction, SemanticRouterResult } from '../types.js';
 import { isPersistenceAvailable, saveRoutingEvent as persistEvent } from '../persistence/index.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:analytics' });
 
@@ -20,6 +19,12 @@ const log = createLogger({ module: 'semantic-router:analytics' });
 // TYPES
 // ============================================================================
 
+/**
+ * A routing decision, without the caller's words (Seth, 2026-10-24): the input's length,
+ * not the input; the intent's labels, not `specific` (the matched words); the top tool's
+ * id and scores, not its extracted args or match reason; the action's type, not its args
+ * or question. This buffer feeds getDashboardData().recentEvents and Firestore.
+ */
 export interface RoutingEvent {
   id: string;
   timestamp: Date;
@@ -28,14 +33,13 @@ export interface RoutingEvent {
   personaId: string;
 
   // Input
-  inputText: string;
-  normalizedText: string;
+  inputLength: number;
 
   // Routing result
-  intent: SemanticRouterResult['intent'];
-  topMatch: ToolMatch | null;
+  intent: Omit<DetectedIntent, 'specific'>;
+  topMatch: { toolId: string; confidence: number; matchedBy: MatchLayer[] } | null;
   matchCount: number;
-  action: RouterAction;
+  actionType: RouterAction['type'];
 
   // Timing
   totalTimeMs: number;
@@ -94,7 +98,7 @@ const MAX_EVENTS = 100000; // Keep last 100K events in memory
 // ============================================================================
 
 /**
- * Record a routing event
+ * Record a routing event. `context.inputText` is read for its length only.
  */
 export function recordRoutingEvent(
   result: SemanticRouterResult,
@@ -107,18 +111,21 @@ export function recordRoutingEvent(
 ): string {
   const eventId = `route_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+  const top = result.matches[0];
+  const { category, confidence, mood, urgency } = result.intent;
   const event: RoutingEvent = {
     id: eventId,
     timestamp: new Date(),
     userId: context.userId,
     sessionId: context.sessionId,
     personaId: context.personaId,
-    inputText: context.inputText,
-    normalizedText: result.metadata.normalizedText,
-    intent: result.intent,
-    topMatch: result.matches[0] || null,
+    inputLength: context.inputText.length,
+    intent: { category, confidence, mood, urgency },
+    topMatch: top
+      ? { toolId: top.toolId, confidence: top.confidence, matchedBy: [...top.matchedBy] }
+      : null,
     matchCount: result.matches.length,
-    action: result.action,
+    actionType: result.action.type,
     totalTimeMs: result.metadata.totalTimeMs,
     layerTimesMs: result.metadata.layerTimesMs,
   };
@@ -138,10 +145,12 @@ export function recordRoutingEvent(
       userId: event.userId,
       sessionId: event.sessionId,
       personaId: event.personaId,
-      inputText: event.inputText,
-      actionType: event.action.type,
+      inputLength: event.inputLength,
+      intentCategory: String(category),
+      actionType: event.actionType,
       toolId: event.topMatch?.toolId,
       confidence: event.topMatch?.confidence,
+      matchedBy: event.topMatch?.matchedBy,
       latencyMs: event.totalTimeMs,
     }).catch((err) => {
       // Don't log every error - high volume
@@ -154,9 +163,9 @@ export function recordRoutingEvent(
   log.debug(
     {
       eventId,
-      action: result.action.type,
-      topTool: result.matches[0]?.toolId,
-      confidence: result.matches[0]?.confidence,
+      action: event.actionType,
+      topTool: event.topMatch?.toolId,
+      confidence: event.topMatch?.confidence,
       latencyMs: result.metadata.totalTimeMs,
     },
     'Routing event recorded'
@@ -223,9 +232,9 @@ export function getRoutingStats(options?: {
   }
 
   // Action counts
-  const autoExecute = filtered.filter((e) => e.action.type === 'execute').length;
-  const hint = filtered.filter((e) => e.action.type === 'hint').length;
-  const conversation = filtered.filter((e) => e.action.type === 'conversation').length;
+  const autoExecute = filtered.filter((e) => e.actionType === 'execute').length;
+  const hint = filtered.filter((e) => e.actionType === 'hint').length;
+  const conversation = filtered.filter((e) => e.actionType === 'conversation').length;
 
   // Latency stats
   const latencies = filtered.map((e) => e.totalTimeMs).sort((a, b) => a - b);
@@ -320,7 +329,7 @@ export function getToolPerformance(options?: { since?: Date }): ToolPerformance[
     stats.confidences.push(e.topMatch.confidence);
     stats.latencies.push(e.totalTimeMs);
 
-    if (e.action.type === 'execute') {
+    if (e.actionType === 'execute') {
       stats.autoExecute++;
     }
 

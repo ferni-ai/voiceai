@@ -27,6 +27,7 @@ import { sanitizePlainText } from '../../validation.js';
 import { OWN_NOTE_REFUSAL, refuseOwnNote } from '../../utils/own-note.js';
 import { getLogger, getSessionId } from '../../utils/tool-helpers.js';
 import type { createNotesTools } from './notes.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 type NotesTools = ReturnType<typeof createNotesTools>;
 
@@ -34,8 +35,6 @@ type NotesTools = ReturnType<typeof createNotesTools>;
 const MAX_ENTRY_CHARS = 1000;
 const HISTORY_COUNT = 5;
 const HISTORY_PREVIEW_CHARS = 140;
-/** Ids the session uses when it doesn't know who is calling. */
-const UNKNOWN_CALLERS = new Set(['', 'default', 'anonymous', 'unknown', 'guest']);
 
 const SAVED =
   'Saved to their journal. Confirm in one short, plain line that it is in their journal; do not read the entry back.';
@@ -69,7 +68,10 @@ export function callJournalOn(): boolean {
 export function callerUid(opts: { ctx?: unknown }): string | undefined {
   const userData = (opts.ctx as { userData?: { userId?: unknown } } | undefined)?.userData;
   const uid = userData?.userId;
-  if (typeof uid !== 'string' || UNKNOWN_CALLERS.has(uid.trim().toLowerCase())) return undefined;
+  // 'guest' is a web session placeholder, on top of the shared non-member list.
+  if (typeof uid !== 'string' || !isMemberIdentity(uid) || uid.trim().toLowerCase() === 'guest') {
+    return undefined;
+  }
   return uid;
 }
 
@@ -101,12 +103,19 @@ export async function saveCallJournalEntry(
   }
 }
 
-/** The person's latest entries, for "what did I write in my journal". */
-async function journalHistory(opts: { ctx?: unknown }): Promise<string> {
+/**
+ * The person's latest entries, for "what did I write in my journal". Read from
+ * the store, not the cache: an edit or delete in the Chronicle clears only the
+ * web server's cache, and this runs in the call's process.
+ */
+export async function journalHistory(opts: { ctx?: unknown }): Promise<string> {
   const uid = callerUid(opts);
   if (!uid) return NO_CALLER;
   try {
-    const entries = await getJournalService().getAllEntries(uid, { limit: HISTORY_COUNT });
+    const entries = await getJournalService().getAllEntries(uid, {
+      limit: HISTORY_COUNT,
+      fresh: true,
+    });
     if (entries.length === 0) return 'No journal entries found for them.';
     const lines = entries.map((entry) => {
       const day = entry.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

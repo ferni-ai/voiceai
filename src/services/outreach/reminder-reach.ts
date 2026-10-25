@@ -19,9 +19,9 @@ import { flagOn } from '../../config/env-flag.js';
 import { isReminderSmsDefaultOn } from '../../config/reminder-sms-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { envForCaller, flagForUser } from '../platform/cohort-flags.js';
-import { getPushNotificationsService } from '../push-notifications.js';
 import type { ReminderReach } from '../scheduling/reminder-outcome.js';
 import type { ScheduledReminder } from '../scheduling/reminder-scheduler.js';
+import { pushUnlessFocusHeld } from './focus-send-hold.js';
 
 const log = createLogger({ module: 'reminder-reach' });
 
@@ -35,14 +35,13 @@ export interface ReminderReachDeps {
 const defaultDeps = (): ReminderReachDeps => ({
   env: process.env,
   flagForUser: async (userId, flag) => flagForUser(userId, flag),
+  // A reminder they timed: held by a Focus only when they said reminders wait (focus-send-hold.ts).
   push: async (userId, title, body, reminderId) =>
-    getPushNotificationsService().sendNotification(userId, {
-      title,
-      body,
-      type: 'general',
-      personaId: 'ferni',
-      data: { kind: 'reminder', reminderId },
-    }),
+    pushUnlessFocusHeld(
+      userId,
+      { title, body, type: 'general', personaId: 'ferni', data: { kind: 'reminder', reminderId } },
+      'reminder'
+    ),
 });
 
 /** A flag read that hasn't answered by then counts as no value: off. */

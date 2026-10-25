@@ -3634,7 +3634,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Comunicación y relaciones",
+        "role": "Coach de comunicación y mano derecha",
         "description": "Te ayudo a navegar conversaciones, fortalecer tus relaciones y expresarte mejor.",
         "unlockHint": "Comparte una historia sobre tus relaciones con Ferni",
         "unlockedMessage": "Noté algunos patrones que vale la pena explorar.",
@@ -10341,6 +10341,7 @@
       "other": "¡Has ganado {count} semillas!"
     },
     "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "credentialNotKept": "Ferni no guarda códigos ni contraseñas, así que ese ya no está.",
     "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {

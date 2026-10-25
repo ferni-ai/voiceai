@@ -76,3 +76,31 @@ export const VOICED_TAKES = {
 } satisfies Record<string, readonly string[]>;
 
 export type VoicedCategory = keyof typeof VOICED_TAKES;
+
+/**
+ * BACKCHANNEL_TIMING's takes per backchannel token (backchannel-timing.ts), in
+ * whichever persona voice is on the call: with five clips, 30% of prod's
+ * backchannels (1.7 a minute, 60 calls) repeated one heard inside 60 s (sounds
+ * audit 2026-10-22). Of 65 candidates rendered in 10 persona voices, kept where
+ * three blind Gemini judges per voice scored the take >= 4 of 5 as a natural
+ * listener's backchannel in every voice, at <= 700 ms median length:
+ * voiceai-evidence/backchannel-takes-2026-10-23. `soft` ones also scored >= 4
+ * for "still OK right after sad news" and play in soft and heavy moments too;
+ * `bright` ones only when the bag may use bright takes. No "Right" take passed
+ * (the plain one scores 3.7). No text matches another clip once tags are
+ * stripped (the cache key), so none replays another clip's audio.
+ */
+// prettier-ignore
+export const BACKCHANNEL_TAKES: Readonly<
+  Record<'soft' | 'bright', Readonly<Record<string, readonly string[]>>>
+> = {
+  soft: {
+    Mm: ['Mm.', 'Mmm.', 'Mm,'],
+    Mhm: ['Mhm.', 'Mhmm.', 'M-hm.', '<volume ratio="0.7"/>Mhm...', '<emotion value="calm"/>Mhm-hm.'],
+    'Mm-hmm': ['Mm-hmm.', 'Mmm-hmm.', 'Mm-hmmm.', 'Mhm-hmm.', '<speed ratio="1.15"/>Mm-hmm...'],
+  },
+  bright: {
+    'Mm-hmm': ['Uh-huh.'],
+    Yeah: ['Yeahh.', 'Yeah,', 'Yeh.', 'Yeah...'],
+  },
+};

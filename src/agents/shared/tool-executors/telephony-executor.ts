@@ -158,6 +158,7 @@ async function execute(
         }
         const result = await callWithPersonaVoice(contactInfo.phone, messageToSend, personaId, {
           fallbackToTwilioVoice: true,
+          userId,
         });
         if (result.success) {
           return `📞 Calling ${contactInfo.name} now: "${messageToSend}"`;
