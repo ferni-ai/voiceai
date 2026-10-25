@@ -18,6 +18,7 @@ import { notePushOutcome } from './delivery/push-outcome.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
+import { voicemailWords } from './voicemail-outcome.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -427,8 +428,8 @@ async function sendCallResultPushNotification(
       title = `✓ Call with ${contactName} complete`;
       body = outcome.outcome;
     } else if (outcome.status === 'voicemail') {
-      title = `📞 Left voicemail for ${contactName}`;
-      body = 'They should call back soon.';
+      title = voicemailWords(outcome.voicemailLeft, contactName).pushTitle;
+      body = voicemailWords(outcome.voicemailLeft, contactName).pushBody;
     } else if (outcome.status === 'no_answer' || outcome.status === 'busy') {
       title = `📞 Couldn't reach ${contactName}`;
       body = outcome.callbackRequired ? 'Want me to try again later?' : outcome.outcome;
@@ -533,7 +534,7 @@ function buildCallResultEmailContent(
   if (outcome.objectiveAchieved) {
     subject = `✓ Talked to ${contactName} for you`;
   } else if (outcome.status === 'voicemail') {
-    subject = `📞 Left a message for ${contactName}`;
+    subject = voicemailWords(outcome.voicemailLeft, contactName).emailSubject;
   } else if (outcome.status === 'no_answer' || outcome.status === 'busy') {
     subject = `📞 Couldn't reach ${contactName}`;
   } else {
@@ -551,9 +552,7 @@ function buildCallResultEmailContent(
       `Great news - I was able to ${purpose.toLowerCase().replace(/^(say|tell|wish|let them know)/i, 'pass along your message to')}`
     );
   } else if (outcome.status === 'voicemail') {
-    lines.push(
-      `I left a voicemail for ${contactName}. I made sure to keep it warm and natural - just like you would.`
-    );
+    lines.push(voicemailWords(outcome.voicemailLeft, contactName).emailLine);
   } else if (outcome.status === 'no_answer') {
     lines.push(`I tried calling ${contactName} but couldn't get through. No answer.`);
   } else if (outcome.status === 'busy') {
@@ -771,7 +770,7 @@ async function storeInUnifiedResults(
     if (outcome.objectiveAchieved) {
       summary = `Called ${contactName} - ${outcome.outcome}`;
     } else if (outcome.status === 'voicemail') {
-      summary = `Left voicemail for ${contactName}`;
+      summary = voicemailWords(outcome.voicemailLeft, contactName).summary;
     } else if (outcome.status === 'no_answer') {
       summary = `Tried calling ${contactName} - no answer`;
     } else if (outcome.status === 'busy') {

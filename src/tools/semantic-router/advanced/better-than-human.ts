@@ -12,8 +12,13 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
-import { stripDataPoints } from './emotional-history-shape.js';
+import {
+  mergePoints,
+  storedPoints,
+  type RunTransaction,
+  type StoredPoint,
+} from './emotional-history-shape.js';
+import type { FirestoreDB } from '../persistence/firestore-persistence.js';
 
 const log = createLogger({ module: 'SemanticRouter.BetterThanHuman' });
 
@@ -855,46 +860,50 @@ export function performBetterThanHumanAnalysis(
 // FIRESTORE PERSISTENCE
 // ============================================================================
 
+const toMemory = (p: StoredPoint): EmotionalDataPoint => ({
+  ...p,
+  timestamp: new Date(p.timestamp),
+});
+
 /**
- * Save emotional history to Firestore
+ * Save emotional history merged with what is stored, in a transaction, so a restart
+ * or another instance never loses an earlier point. Each point passes
+ * emotional-history-shape.ts: a bad one is dropped alone. True when written.
  */
-export async function persistEmotionalHistory(userId: string): Promise<void> {
+export async function persistEmotionalHistory(userId: string): Promise<boolean> {
   const history = emotionalHistory.get(userId);
-  if (!history || history.length === 0) return;
+  if (!history || history.length === 0) return false;
 
   try {
     const { getFirestore, initializeFirestorePersistence } =
       await import('../persistence/firestore-persistence.js');
     await initializeFirestorePersistence();
-    const db = getFirestore();
-    if (!db) return;
+    const db = getFirestore() as (FirestoreDB & { runTransaction?: RunTransaction }) | null;
+    if (!db?.runTransaction) return false;
 
-    await db
-      .collection('emotional_history')
-      .doc(userId)
-      .set(
-        cleanForFirestore({
-          userId,
-          // Named fields only, so nothing else an entry picked up is written
-          dataPoints: history.map((dp) => ({
-            timestamp: dp.timestamp.toISOString(),
-            emotion: dp.emotion,
-            intensity: dp.intensity,
-            valence: dp.valence,
-            source: dp.source,
-          })),
-          lastUpdated: new Date().toISOString(),
-        })
-      );
+    const ref = db.collection('emotional_history').doc(userId);
+    const merged = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const points = mergePoints(storedPoints(snap.exists ? snap.data() : undefined), history);
+      tx.set(ref, { userId, dataPoints: points, lastUpdated: new Date().toISOString() });
+      return points;
+    });
+    // A point recorded while the transaction ran is still in memory: keep it
+    const now = mergePoints(merged, emotionalHistory.get(userId) ?? []);
+    emotionalHistory.set(userId, now.map(toMemory));
 
-    log.debug({ userId, dataPointCount: history.length }, 'Emotional history persisted');
+    log.debug({ userId, dataPointCount: merged.length }, 'Emotional history persisted');
+    return true;
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to persist emotional history');
+    return false;
   }
 }
 
 /**
- * Load emotional history from Firestore
+ * Load emotional history, merged with points recorded in memory since. Only the
+ * typed fields of emotional-history-shape.ts are kept: an old entry's snippet of
+ * the caller's words never reaches memory, so the next save can't write it back.
  */
 export async function loadEmotionalHistory(userId: string): Promise<void> {
   try {
@@ -907,23 +916,8 @@ export async function loadEmotionalHistory(userId: string): Promise<void> {
     const doc = await db.collection('emotional_history').doc(userId).get();
     if (!doc.exists) return;
 
-    const data = doc.data();
-    if (!data) return;
-
-    const stored = (data as { dataPoints?: unknown }).dataPoints;
-    if (!Array.isArray(stored)) return;
-
-    // Older entries carry a snippet of the caller's words; only the labels,
-    // scores and time are kept, so the next persist can't write it back.
-    const history: EmotionalDataPoint[] = stripDataPoints(stored).points.map((dp) => ({
-      timestamp: new Date(dp.timestamp as string),
-      emotion: dp.emotion as string,
-      intensity: dp.intensity as number,
-      valence: dp.valence as number,
-      source: dp.source as EmotionalDataPoint['source'],
-    }));
-
-    emotionalHistory.set(userId, history);
+    const history = mergePoints(storedPoints(doc.data()), emotionalHistory.get(userId) ?? []);
+    emotionalHistory.set(userId, history.map(toMemory));
     log.debug({ userId, dataPointCount: history.length }, 'Emotional history loaded');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to load emotional history');

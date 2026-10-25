@@ -116,7 +116,7 @@ describe('a call held for call hours', () => {
     expect(pending()).toHaveLength(1);
     expect(pending()[0].data).toMatchObject({ status: 'pending', scheduledFor: NINE_DENVER });
     expect(reply).toMatch(/^Nothing was dialed yet: /);
-    expect(reply).toMatch(/later today at 9:00\sAM their time/);
+    expect(reply).toMatch(/later today at 9:00\sAM, Mom's time and yours/); // both in Denver
     expect(reply).not.toMatch(/\b(?:i'm calling|calling \w+ now|right now)\b/i);
   });
 });
@@ -129,7 +129,7 @@ describe('a call to the same number while one waits', () => {
     expect(pending()).toHaveLength(1);
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(again).toMatch(/^Nothing was dialed yet: a call to Mom is already set for later today/);
-    expect(again).toMatch(/9:00\sAM their time/);
+    expect(again).toMatch(/9:00\sAM, Mom's time and yours/);
   });
 
   it('the confirm read-back says it is already set instead of asking to call again', async () => {

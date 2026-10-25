@@ -6,7 +6,9 @@
  * been running for a beat with nobody speaking, he hums quietly; the moment he
  * starts talking, the caller speaks, or the result is in, the hum stops. At
  * most twice a call, never on two tool calls in a row, never when their voice
- * read heavy or what they said lately was (presence-heavy.ts).
+ * read heavy or what they said lately was (presence-heavy.ts). One opening sound a
+ * caller turn (opening-sound-ledger.ts): no hum after a TOOL_ACK_CLIP line or a
+ * slow-turn sound, and a hum counts as that turn's sound.
  *
  * TOOL_HUM=on turns it on (off until it has been listened to on dev).
  *
@@ -23,6 +25,7 @@
 
 import { voice, type llm } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
+import { noteOpeningSound, openingSoundThisTurn } from './opening-sound-ledger.js';
 import { synthHum } from './presence-sounds.js';
 import { presenceCallEnding } from './presence-closing.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
@@ -52,6 +55,8 @@ export interface ToolHumDeps {
   serious?: () => boolean;
   /** The call has said its goodbyes or is closing (call-farewell.ts). */
   quiet?: () => boolean;
+  /** An opening sound already played this caller turn, asked when the hum would start. */
+  soundThisTurn?: () => boolean;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
 }
@@ -91,6 +96,7 @@ export function createToolHumWatcher(deps: ToolHumDeps) {
     timer = setT(() => {
       timer = null;
       if (!allowed() || isHeavyMood(deps.mood()) || deps.serious?.() || deps.quiet?.()) return;
+      if (deps.soundThisTurn?.()) return void log.info({ reason: 'sound' }, 'TOOL_HUM_SKIP');
       if (deps.play()) {
         hums++;
         hummedThisRun = true;
@@ -159,6 +165,7 @@ export function startToolHum(
       const pcm = hum ? hum.next() : synthHum();
       if (!pcm || !out.play(pcm, TOOL_HUM_VOLUME)) return false;
       humEndsAt = Date.now() + pcm.byteLength / PCM_BYTES_PER_MS;
+      noteOpeningSound(session, 'hum');
       log.info({ voiced: Boolean(hum) }, 'TOOL_HUM');
       onPlayed(Boolean(hum));
       return true;
@@ -173,6 +180,7 @@ export function startToolHum(
         ?.primary,
     serious: () => presenceSilenceIsHeavy(session),
     quiet: () => presenceCallEnding(session),
+    soundThisTurn: () => openingSoundThisTurn(session),
   });
 
   const onSpeech = (ev: voice.SpeechCreatedEvent) => {

@@ -276,6 +276,8 @@ const LEGACY_FLAG_MANIFEST = {
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
   MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: the voice side of the app menu is on every agent from turn 1, outside the tool cap (menu-tools-pinned.ts)
+  MENU_TOOLS_PINNED: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: one consent record per phone, consent/{phoneHash} (services/messaging/consent.ts):
   // inbound STOP/START writes it, texts and calls read it, third parties need their own opt-in
   MESSAGING_PIPELINE: { default: 'off', owner: 'outreach', kind: 'experiment' },
