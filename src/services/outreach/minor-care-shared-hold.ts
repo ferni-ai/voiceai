@@ -11,7 +11,9 @@
  *
  * A record that can't be read means not held (a warning is logged): failing closed would stop
  * every adult's texts while Firestore is down, and the call itself stays held in its process.
- * The record is erased with the account (user-stores.ts) and lapses on its own via heldUntil.
+ * Each write sets heldUntil to now + IDLE_MS (never added on), so only another held call extends a
+ * hold. The record is erased with the account (user-stores.ts; a number's with the account's
+ * numbers, erase-other-keys.ts), and a lapsed one by the TTL policy on expireAt.
  *
  * @module services/outreach/minor-care-shared-hold
  */
@@ -50,8 +52,11 @@ export const firestoreHoldStore: HoldStore = {
     const until = (await holds().doc(userId).get()).data()?.heldUntil;
     return typeof until === 'number' ? until : undefined;
   },
+  // expireAt (= heldUntil; a Date is stored as a Timestamp): the TTL field that deletes lapsed holds
   async write(userId, record) {
-    await holds().doc(userId).set(record);
+    await holds()
+      .doc(userId)
+      .set({ ...record, expireAt: new Date(record.heldUntil) });
   },
 };
 

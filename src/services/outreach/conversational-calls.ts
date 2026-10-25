@@ -16,6 +16,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { consentBlocks } from '../messaging/consent.js';
+import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
@@ -699,12 +700,8 @@ export function isConversationalCallsConfigured(): boolean {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 }
 
-/**
- * Make a conversational call (legacy API)
- * @deprecated Use scheduleProactiveCall directly
- */
+/** Make a conversational call (legacy API). @deprecated Use scheduleProactiveCall directly */
 export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
-  // Extract values with fallbacks
   const userId = context.userId || context.user?.id || '';
   const phoneNumber = context.phoneNumber || context.user?.phone || '';
   const message = context.message || context.approach?.primaryGoal || '';
@@ -712,6 +709,8 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
   if (!userId || !phoneNumber || !message) {
     return { success: false, error: 'Missing required fields: userId, phoneNumber, or message' };
   }
+  // MINOR_CARE_SHARED_HOLD: no proactive call to an account or number a call held under 18
+  if (await heldSender(userId, phoneNumber)) return { success: false, error: 'Not calling: held' };
 
   return scheduleProactiveCall({
     userId,

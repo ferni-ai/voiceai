@@ -73,6 +73,14 @@ describe('MINOR_CARE_SHARED_HOLD in the voice agent', () => {
     expect(writes.map(([id]) => id)).toEqual(['anon:abc', phoneHoldId(PHONE)]);
   });
 
+  it('a phone call that never sounded under 18 writes nothing for its number (or anyone)', async () => {
+    bindSessionUser('call-3', 'anon:def');
+    rememberCallerPhone('call-3', room(PHONE));
+    noteCallerWords('call-3', 'my son is 15 and I am calling about him');
+    await settle();
+    expect(writes).toEqual([]);
+  });
+
   it('a web call (no SIP number): only the user', async () => {
     rememberCallerPhone('web-1', {
       remoteParticipants: new Map([['p', { attributes: {} }]]),

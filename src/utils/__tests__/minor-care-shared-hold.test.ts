@@ -7,6 +7,19 @@
  * Only the hold store is faked.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** The Firestore documents firestoreHoldStore writes, by path. */
+const firestoreDocs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+vi.mock('../firestore-utils.js', async (orig) => ({
+  ...(await orig<object>()),
+  getFirestoreDb: () => ({
+    collection: (c: string) => ({
+      doc: (id: string) => ({
+        set: async (data: Record<string, unknown>) => void firestoreDocs.set(`${c}/${id}`, data),
+      }),
+    }),
+  }),
+}));
 import {
   IDLE_MS,
   bindSessionUser,
@@ -18,6 +31,7 @@ import {
 } from '../minor-care.js';
 import {
   CACHE_MS,
+  firestoreHoldStore,
   recordSharedHold,
   setHoldStore,
   sharedHeld,
@@ -155,6 +169,28 @@ describe('recordSharedHold', () => {
     setHoldStore(store);
     for (const id of ['anonymous', 'unknown', '', 'a/b']) await recordSharedHold(id, ON, NOW);
     expect(store.write).not.toHaveBeenCalled();
+  });
+
+  it('each write holds until now + the idle window, never added onto an earlier hold', async () => {
+    const { store, writes } = fakeStore();
+    setHoldStore(store);
+    await recordSharedHold('u1', ON, NOW);
+    await recordSharedHold('u1', ON, NOW + 3_600_000);
+    await recordSharedHold('u1', ON, NOW + 3_600_000);
+    expect(writes.map(([, r]) => (r as { heldUntil: number }).heldUntil)).toEqual([
+      NOW + IDLE_MS,
+      NOW + 3_600_000 + IDLE_MS,
+      NOW + 3_600_000 + IDLE_MS,
+    ]);
+  });
+
+  it('in Firestore: { heldUntil, v } plus expireAt = heldUntil stored as a Timestamp (the TTL field)', async () => {
+    firestoreDocs.clear();
+    await firestoreHoldStore.write('u1', { heldUntil: NOW + IDLE_MS, v: 1 });
+    const doc = firestoreDocs.get('minor_care_holds/u1');
+    expect(Object.keys(doc ?? {}).sort()).toEqual(['expireAt', 'heldUntil', 'v']);
+    expect(doc?.expireAt).toBeInstanceOf(Date); // the Admin SDK stores a Date as a Timestamp
+    expect((doc?.expireAt as Date).getTime()).toBe(NOW + IDLE_MS);
   });
 
   it('never throws when the write fails', async () => {

@@ -4,8 +4,9 @@
  * (keyed by email), the phone index of the family members they sponsor, A/B test
  * assignments (one subcollection per test), tool-call telemetry (many people's
  * calls in one shared document) and cohort membership (feature_cohorts.members, a
- * list of uids in each cohort document). The keys, and why each can be trusted, are in
- * erasure-keys.ts.
+ * list of uids in each cohort document), and the minor-care hold on each of their
+ * numbers (minor_care_holds/phone#<hash>). The keys, and why each can be trusted, are
+ * in erasure-keys.ts.
  *
  * Not erased on purpose: feature_checkin_optouts/{phoneHash}. It is a STOP record for
  * a phone, kept so no one texts that number again (an on-behalf text from another
@@ -15,6 +16,7 @@
  */
 
 import { chunks, emailDocId, type ErasureKeys } from './erasure-keys.js';
+import { phoneHoldId } from '../outreach/checkin-replies.js';
 
 export { emailDocId, gatherErasureKeys, type ErasureKeys } from './erasure-keys.js';
 
@@ -190,6 +192,13 @@ async function leaveCohorts(db: Db, uids: readonly string[]): Promise<void> {
   );
 }
 
+/** MINOR_CARE_SHARED_HOLD: a held call's hold on each of the person's numbers (phone#<hash>) */
+const phoneHoldRefs = (db: Db, keys: ErasureKeys): DocRef[] =>
+  keys.phones
+    .map((phone) => phoneHoldId(phone))
+    .filter((id): id is string => !!id)
+    .map((id) => db.collection('minor_care_holds').doc(id));
+
 const deleteAll = async (db: Db, refs: DocRef[]): Promise<void> => {
   await Promise.all(refs.map(async (ref) => db.recursiveDelete(ref)));
 };
@@ -201,6 +210,12 @@ export const KEYED_STORES: readonly KeyedStore[] = [
     label: 'sponsored_identity_phone_index[identityId]',
     erase: async (db, keys) => deleteAll(db, await phoneIndexRefs(db, keys)),
     remains: async (db, keys) => (await phoneIndexRefs(db, keys)).length > 0,
+  },
+  {
+    label: 'minor_care_holds/{phone#hash}',
+    erase: async (db, keys) => deleteAll(db, phoneHoldRefs(db, keys)),
+    remains: async (db, keys) =>
+      (await Promise.all(phoneHoldRefs(db, keys).map(async (r) => r.get()))).some((s) => s.exists),
   },
   {
     label: 'ab_tests/*/assignments/{uid}',

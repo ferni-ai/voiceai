@@ -226,9 +226,11 @@ describe('a guarded text (sendGuardedText)', () => {
     expect(d.send).not.toHaveBeenCalled();
   });
 
-  it('held, but asked for in the call just now: sent', async () => {
+  it('held, but asked for in the call just now: sent, and the sender is told so', async () => {
     holdFor('teen-uid');
-    expect(await sendGuardedText(guarded(true), deps())).toEqual({ sent: true });
+    const d = deps();
+    expect(await sendGuardedText(guarded(true), d)).toEqual({ sent: true });
+    expect(d.send).toHaveBeenCalledWith(expect.objectContaining({ askedNow: true }));
   });
 
   it('unheld: sent as before', async () => {

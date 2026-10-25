@@ -14,6 +14,7 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
 import { emailDocId, KEYED_STORES } from '../erase-other-keys.js';
 import { gatherErasureKeys, type ErasureKeys } from '../erasure-keys.js';
 import { eraseUserRecord } from '../erase-user-record.js';
+import { phoneHoldId } from '../../outreach/checkin-replies.js';
 
 type Data = Record<string, unknown>;
 
@@ -142,6 +143,7 @@ function fakeFirestore(seed: Record<string, Data>) {
 const keysFor = (over: Partial<ErasureKeys> = {}): ErasureKeys => ({
   userId: 'u-1',
   linkedUserIds: [],
+  phones: [],
   emails: [],
   sponsoredIdentityIds: [],
   stripeCustomerIds: [],
@@ -194,6 +196,23 @@ describe('KEYED_STORES', () => {
         'sponsored_identity_phone_index/+15550002',
       ].sort()
     );
+  });
+
+  it("erases the minor-care hold on the person's numbers (phone#<hash>), never another number's", async () => {
+    vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
+    const mine = phoneHoldId('+15550000001') ?? '';
+    const other = phoneHoldId('+15550000009') ?? '';
+    const { db, docs } = fakeFirestore({
+      [`minor_care_holds/${mine}`]: { heldUntil: 1, v: 1 },
+      [`minor_care_holds/${other}`]: { heldUntil: 1, v: 1 },
+    });
+    const holds = store('minor_care_holds/{phone#hash}');
+    const keys = keysFor({ phones: ['+15550000001'] });
+    expect(await holds.remains(db, keys)).toBe(true);
+    await holds.erase(db, keys);
+    expect(await holds.remains(db, keys)).toBe(false);
+    expect([...docs.keys()]).toEqual([`minor_care_holds/${other}`]);
+    vi.unstubAllEnvs();
   });
 
   it('takes the person and their linked phone profile out of every cohort, leaving other members', async () => {
@@ -343,6 +362,8 @@ describe('gatherErasureKeys', () => {
     ]);
     expect(keys.sponsoredIdentityIds).toEqual(['si-1']);
     expect(keys.stripeCustomerIds).toEqual(['cus_1']);
+    // The numbers whose minor-care holds go with the account: sign-in, links, linked profiles
+    expect(keys.phones.sort()).toEqual(['+15550000001', '+15550000002', '+15550000003']);
   });
 
   it.each(['google.com', 'apple.com', 'password'])(
