@@ -27,6 +27,7 @@ interface HostingEntry {
   target?: string;
   rewrites?: Rewrite[];
   redirects?: Array<{ source: string; destination: string; type: number }>;
+  headers?: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
 }
 
 function hosting(path: string): HostingEntry[] {
@@ -51,7 +52,10 @@ describe('landing hosting config', () => {
 
   it('deploys only to the ferni-landing site', () => {
     expect(entries.map((e) => e.site ?? e.target)).toEqual(['ferni-landing']);
-    const firebaserc = readFileSync(resolve(ROOT, 'apps/website/ferni-website/.firebaserc'), 'utf8');
+    const firebaserc = readFileSync(
+      resolve(ROOT, 'apps/website/ferni-website/.firebaserc'),
+      'utf8'
+    );
     expect(firebaserc).not.toContain('ferni-prod');
   });
 
@@ -90,5 +94,19 @@ describe('app hosting config', () => {
     const entry = hosting('apps/web/firebase.json').find((e) => e.target === target);
     expect(entry).toBeDefined();
     expectShareRoutedToBackend(entry!);
+  });
+
+  // /sites/** is served by the app server, which picks the policy per site:
+  // uploaded HTML is sandboxed, pages our templates rendered are not (their
+  // voice call needs the origin). A hosting-level CSP would apply to every
+  // site alike, so the hosting layer only adds nosniff.
+  it.each(['ferni-prod', 'johnb-app'])('%s leaves the /sites/** policy to the server', (target) => {
+    const entry = hosting('apps/web/firebase.json').find((e) => e.target === target);
+    const rewrite = entry?.rewrites?.find((r) => r.source === '/sites/**');
+    expect(rewrite?.run?.serviceId).toBe('john-bogle-ui');
+    const rule = entry?.headers?.find((h) => h.source === '/sites/**');
+    const value = (key: string) => rule?.headers.find((h) => h.key === key)?.value;
+    expect(value('Content-Security-Policy')).toBeUndefined();
+    expect(value('X-Content-Type-Options')).toBe('nosniff');
   });
 });

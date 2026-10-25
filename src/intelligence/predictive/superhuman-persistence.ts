@@ -1,6 +1,5 @@
 /**
  * Superhuman Capabilities Persistence Layer - Better Than Human v4
- *
  * Persists the 8 superhuman predictive capabilities to Firestore.
  *
  * WHAT GETS PERSISTED:
@@ -17,6 +16,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { userHeld } from '../../utils/minor-care.js';
 import { getFirestoreDb, cleanForFirestore } from '../../services/superhuman/firestore-utils.js';
 import { Timestamp } from '@google-cloud/firestore';
 
@@ -298,7 +298,7 @@ async function saveToFirestore(
   docName: string,
   data: Record<string, unknown>
 ): Promise<void> {
-  const firestore = getFirestoreDb();
+  const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
   if (!firestore) {
     log.debug({ userId, docName }, 'Firestore not available, skipping save');
     return;

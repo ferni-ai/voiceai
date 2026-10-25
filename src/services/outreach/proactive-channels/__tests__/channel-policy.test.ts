@@ -19,6 +19,7 @@ function input(over: Partial<PolicyInput> = {}): PolicyInput {
     verifiedPhone: '+15555550123',
     recent: [],
     canCall: true,
+    optedOut: { sms: false, call: false },
     ...over,
   };
 }
@@ -45,6 +46,20 @@ describe('chooseChannel: calls', () => {
 
   it('without calls turned on, a meaningful trigger is a text', () => {
     expect(chooseChannel(input({ prefs: { channels: ['sms'] } })).channel).toBe('sms');
+  });
+
+  it('on the do-not-call list, a meaningful trigger is a text; opted out of texts too, a note', () => {
+    expect(chooseChannel(input({ optedOut: { sms: false, call: true } })).channel).toBe('sms');
+    expect(chooseChannel(input({ optedOut: { sms: true, call: true } }))).toEqual({
+      channel: 'in_app',
+      why: 'opted out of texts',
+    });
+  });
+
+  it('opted out of texts only, a meaningful trigger still calls', () => {
+    expect(chooseChannel(input({ optedOut: { sms: true, call: false } })).channel).toBe(
+      'voice_call'
+    );
   });
 
   it('without a SIP trunk (canCall false) it is a text', () => {

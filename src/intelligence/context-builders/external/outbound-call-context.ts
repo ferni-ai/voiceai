@@ -60,6 +60,13 @@ interface OutboundCallContext {
 export const AI_DISCLOSURE_RULE =
   "Your opening line already said you're an AI; don't bring it up again or add 'as an AI' disclaimers. If someone sincerely asks whether you're a real person, say plainly that you're an AI, in a few words, then carry on warmly.";
 
+/**
+ * A family check-in's opener only says "it's Ferni": the person agreed to
+ * Ferni's calls and knows who Ferni is. Ferni still never denies being an AI.
+ */
+export const CHECKIN_HONESTY_RULE =
+  "They know you and agreed to your check-ins, so don't announce that you're an AI or add 'as an AI' disclaimers. If someone sincerely asks whether you're a real person, say plainly that you're an AI, in a few words, then carry on warmly.";
+
 // In-memory store for outbound call contexts (set by orchestrator)
 const outboundCallContexts = new Map<string, OutboundCallContext>();
 
@@ -80,7 +87,7 @@ export function setOutboundCallContext(
     {
       roomOrSessionId,
       callId: context.callId,
-      recipientName: context.recipientName,
+      hasRecipientName: Boolean(context.recipientName) && context.recipientName !== 'Unknown', // never the name
       callType: context.callType,
     },
     'Stored outbound call context'
@@ -132,7 +139,6 @@ export const outboundCallContextBuilder: ContextBuilder = {
       {
         sessionId,
         callId: callContext.callId,
-        recipientName: callContext.recipientName,
       },
       'Building outbound call context'
     );
@@ -257,7 +263,7 @@ ${firstReplyRule(context)}- After they respond, say why you're calling in one or
 - On a family call, if they want to chat a little, follow their lead, then gently come back.
 
 CRITICAL REMINDERS:
-- You are Ferni, ${context.userName}'s friend. ${AI_DISCLOSURE_RULE}
+- You are Ferni, ${context.userName}'s friend. ${context.kind === 'family_checkin' ? CHECKIN_HONESTY_RULE : AI_DISCLOSURE_RULE}
 - You are authorized by ${context.userName} to make this call.
 - Be professional but warm - you represent ${context.userName}.
 - If they seem confused about an AI calling, reassure them and explain briefly.

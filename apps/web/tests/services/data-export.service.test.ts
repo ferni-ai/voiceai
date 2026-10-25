@@ -47,6 +47,8 @@ function headerOf(call: FetchCall, name: string): string | undefined {
   return (call.init.headers as Record<string, string>)[name];
 }
 
+const realSetItem = Object.getOwnPropertyDescriptor(localStorage, 'setItem') as PropertyDescriptor;
+
 describe('dataExportService', () => {
   beforeEach(() => {
     calls = [];
@@ -58,7 +60,17 @@ describe('dataExportService', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // A successful delete seals storage until the page leaves, which never happens here.
+    Object.defineProperty(localStorage, 'setItem', realSetItem);
   });
+
+  /** What a module still running on the page after the delete would save. */
+  async function lateWrites(): Promise<void> {
+    const { initFerniMilestones } = await import('../../src/ui/ferni-milestones.ui.js');
+    initFerniMilestones(); // saves ferni-milestones on a fresh browser, as in menu-e2e run 40105651631
+    localStorage.setItem('voiceai_userName', 'Sam');
+    localStorage.setItem('ferni_admin_id', 'admin-1');
+  }
 
   describe('deleteAllData', () => {
     it('calls the authenticated server delete, then clears the device', async () => {
@@ -75,6 +87,22 @@ describe('dataExportService', () => {
       expect(sent).toEqual({ confirmDelete: true });
       expect(DeleteAllDataSchema.safeParse(sent).success).toBe(true);
       expect(localStorage.getItem('voiceai_userName')).toBeNull();
+    });
+
+    it('nothing still running on the page can write the deleted data back before it leaves', async () => {
+      mockServer(200, { success: true });
+      localStorage.setItem('ferni_theme', 'dark');
+
+      await dataExportService.deleteAllData();
+      await lateWrites();
+
+      expect(
+        ['ferni-milestones', 'voiceai_userName', 'ferni_admin_id'].filter(
+          (k) => localStorage.getItem(k) !== null
+        )
+      ).toEqual([]);
+      localStorage.setItem('ferni_theme', 'light'); // this device's settings still save
+      expect(localStorage.getItem('ferni_theme')).toBe('light');
     });
 
     it('does not claim success or wipe the device when the server refuses', async () => {
@@ -128,12 +156,27 @@ describe('dataExportService', () => {
       expect(localStorage.getItem('voiceai_userName')).toBeNull();
     });
 
+    it("nothing still running on the page can write the closed account's data back", async () => {
+      mockServer(200, { success: true, details: { failures: [] } });
+
+      expect(await dataExportService.deleteAccount()).toBeNull();
+      await lateWrites();
+
+      expect(
+        ['ferni-milestones', 'voiceai_userName', 'ferni_admin_id'].filter(
+          (k) => localStorage.getItem(k) !== null
+        )
+      ).toEqual([]);
+    });
+
     it('keeps the user signed in and their device intact when the server fails', async () => {
       mockServer(500, { error: "Couldn't delete your account. Nothing was closed. Try again?" });
 
       await expect(dataExportService.deleteAccount()).rejects.toBeInstanceOf(DataRightsError);
       expect(auth.signOut).not.toHaveBeenCalled();
       expect(localStorage.getItem('voiceai_userName')).toBe('Sam');
+      localStorage.setItem('ferni-milestones', '{}'); // nothing deleted: still saving
+      expect(localStorage.getItem('ferni-milestones')).toBe('{}');
     });
   });
 });

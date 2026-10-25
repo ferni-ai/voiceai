@@ -14,7 +14,9 @@
  * @module intelligence/person-model/build
  */
 import { isSensitiveThread, peopleOf, type RecallFact } from '../../memory/index.js';
+import { buildFollowThrough, buildRhythms } from './stats.js';
 import * as T from './types.js';
+import { buildUnfinished } from './unfinished.js';
 import { arr, DAY, dirty, iso, keep, ms, prov, str, type Doc } from './util.js';
 
 export interface PersonModelInputs {
@@ -126,7 +128,7 @@ function buildPeople(i: PersonModelInputs, now: Date, forgotten: string[]): T.Pe
 }
 
 const total = (...lists: unknown[][]) => lists.reduce((n, l) => n + l.length, 0);
-/** Not built yet (later PRs): dirty, so readers derive it live. */
+/** Not built yet (PR 4): dirty, so readers derive it live. */
 const later = <V>(value: V): T.Section<V> => ({ value, prov: dirty() });
 
 /** The person model's code sections. `rendered` is filled by render.ts. */
@@ -144,24 +146,21 @@ export function buildPersonModel(i: PersonModelInputs, now: Date): T.PersonModel
     throughSessionId: str(i.summaries[0]?.sessionId) || str(i.summaries[0]?.id) || null,
     forgetGeneration: i.forgetGeneration,
     rendered: '',
-    // Rhythms, follow-through and open items: next PR (stats.ts, unfinished.ts).
-    rhythms: later({
-      ...{ callsLast30d: 0, medianGapDays: null, usualHours: [], reachWindows: [] },
-      ...{ medianMinutes: null, lastCallAt: null, timezone: i.timezone },
-    }),
-    followThrough: later({
-      byKind: {},
-      slips: [],
-      ferniPromisesOpen: 0,
-      ferniPromisesMissed30d: 0,
-    }),
+    rhythms: buildRhythms(i, now),
+    followThrough: buildFollowThrough(i, now),
     mood: later({ points: [], trend: 'unknown', vsBaseline: null, note: null }),
     people: section(
       closed ? [] : buildPeople(i, now, forgotten),
       ['dynamic_facts', 'familyMembers', 'relationship_network'],
       total(i.facts, i.familyMembers, i.relationshipNetwork)
     ),
-    unfinished: later({ openLoops: [], upcomingDates: [], ferniOwes: [] }),
+    unfinished: section(
+      closed
+        ? { openLoops: [], upcomingDates: [], ferniOwes: [] }
+        : buildUnfinished(i, now, forgotten),
+      ['follow_through', 'summaries', 'world_facts', 'ferni_commitments'],
+      total(i.followThrough, i.summaries, i.worldFacts, i.ferniCommitments)
+    ),
     topics: section(
       closed ? { recurring: [], new: [], fading: [] } : buildTopics(i, forgotten),
       ['summaries', 'topic_patterns'],

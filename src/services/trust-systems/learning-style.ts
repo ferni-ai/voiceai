@@ -187,11 +187,11 @@ const EXAMPLE_SIGNALS = {
   ],
 };
 
-// ============================================================================
-// IN-MEMORY STORAGE
-// ============================================================================
+// In-memory storage
 
 const learningProfiles = new Map<string, LearningProfile>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetLearningStyleUser = (userId: string): boolean => learningProfiles.delete(userId);
 
 // ============================================================================
 // PROFILE MANAGEMENT

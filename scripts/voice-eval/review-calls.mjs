@@ -3,6 +3,9 @@
 // Logging lines and measure what a listener would notice.
 //
 // usage: review-calls.mjs [--env prod|dev|both] [--since ISO] [--until ISO] [--out DIR]
+//                         [--database ID]
+// Opt-in flags are read from each env's Firestore database (eval-database.mjs:
+// prod '(default)', dev 'ferni-dev' or EVAL_DEV_DATABASE); --database forces one for every env.
 //
 // Only these callers are ever reviewed: Seth (REVIEW_OWNER_UID), eval accounts
 // (uid starts with voice-eval-) and anyone whose bogle_users doc has
@@ -24,6 +27,8 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+
+import { documentsUrl, evalDatabase } from './eval-database.mjs';
 
 export const SETH_UID = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
 export const WORKERS = { prod: 'ca-gefvepsnxlsf', dev: 'ca-sitdmheba4fg' };
@@ -296,12 +301,12 @@ function readLogs(worker, since, until, extra = '') {
 }
 
 /** Callers who set bogle_users/{uid}.callReviewOptIn to true; only that field is read. */
-function optedIn(uids) {
+function optedIn(uids, database) {
   const out = new Set();
   if (!uids.length) return out;
   const token = execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim();
   for (const uid of uids) {
-    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/bogle_users/${encodeURIComponent(uid)}?mask.fieldPaths=callReviewOptIn`;
+    const url = `${documentsUrl(PROJECT, database)}/bogle_users/${encodeURIComponent(uid)}?mask.fieldPaths=callReviewOptIn`;
     try {
       const body = JSON.parse(
         execFileSync('curl', ['-sf', '-H', `Authorization: Bearer ${token}`, url], {
@@ -342,7 +347,7 @@ async function main() {
         index.map((s) => s.userId).filter((u) => u && !userKind(u) && !u.startsWith('anon'))
       ),
     ];
-    const optIns = optedIn(unknown);
+    const optIns = optedIn(unknown, evalDatabase(env, { override: opt('--database') }));
     for (const s of index) {
       const kind = userKind(s.userId, optIns);
       if (!kind) {

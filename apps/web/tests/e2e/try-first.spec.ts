@@ -29,7 +29,8 @@ test.use({ viewport: PHONE, isMobile: true, hasTouch: true, serviceWorkers: 'blo
 test('flag off: the gate is the sign-in wall it was', async ({ page }) => {
   await openGate(page, 'false');
   await expect(page.locator('[data-provider="google"]')).toBeVisible();
-  await expect(page.locator('[data-provider="apple"]')).toBeVisible();
+  // Apple sign-in is hidden on the web until VITE_APPLE_WEB_SIGNIN is on.
+  await expect(page.locator('[data-provider="apple"]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Talk to Ferni now' })).toHaveCount(0);
 });
 

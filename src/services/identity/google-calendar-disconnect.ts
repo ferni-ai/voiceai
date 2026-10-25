@@ -17,51 +17,34 @@
  *   only our calendar copy is deleted.
  * - Revoke is best effort: when Google refuses (an already revoked token
  *   answers 400) or is unreachable, the local tokens are still deleted.
+ *   Account erasure passes queueIfUnreachable, so a revoke Google couldn't
+ *   take is queued (google-revocations.ts) before our copy goes.
  *
  * @module services/identity/google-calendar-disconnect
  */
 
 import { readTokensFresh, removeTokens } from './google-calendar-token-store.js';
 import { hasGmailSendGrant } from './gmail-send-as-user.js';
+import { queueGoogleRevocation, revokeGoogleToken } from './google-revocations.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'GoogleCalendarDisconnect' });
+export { GOOGLE_REVOKE_URL } from './google-revocations.js';
 
-export const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
-const REVOKE_TIMEOUT_MS = 5_000;
+const log = createLogger({ module: 'GoogleCalendarDisconnect' });
 
 export interface DisconnectResult {
   revoked: boolean;
   /** The revoke was skipped to keep the user's Gmail send grant. */
   keptGmailGrant: boolean;
-}
-
-async function revoke(token: string, short: string): Promise<boolean> {
-  try {
-    const response = await fetch(GOOGLE_REVOKE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token }),
-      signal: AbortSignal.timeout(REVOKE_TIMEOUT_MS),
-    });
-    if (!response.ok) {
-      log.warn(
-        { status: response.status, userId: short },
-        'Google token revoke refused; removing local tokens anyway'
-      );
-    }
-    return response.ok;
-  } catch (err) {
-    log.warn(
-      { error: (err as Error).name, userId: short },
-      'Google token revoke failed; removing local tokens anyway'
-    );
-    return false;
-  }
+  /** Google was unreachable and the revoke was queued for later. */
+  queued: boolean;
 }
 
 /** Revoke the user's Google grant (best effort) and delete the stored tokens. */
-export async function disconnectGoogleCalendar(userId: string): Promise<DisconnectResult> {
+export async function disconnectGoogleCalendar(
+  userId: string,
+  opts: { queueIfUnreachable?: boolean } = {}
+): Promise<DisconnectResult> {
   const short = userId.substring(0, 8);
   const tokens = await readTokensFresh(userId);
   // The refresh token ends the whole grant; an access token only itself.
@@ -70,8 +53,16 @@ export async function disconnectGoogleCalendar(userId: string): Promise<Disconne
   if (keptGmailGrant) {
     log.info({ userId: short }, 'Gmail send grant exists; calendar disconnected without revoke');
   }
-  const revoked = !!token && !keptGmailGrant && (await revoke(token, short));
+  const outcome = token && !keptGmailGrant ? await revokeGoogleToken(token) : null;
+  if (outcome === 'refused' || outcome === 'unreachable') {
+    log.warn(
+      { userId: short, outcome },
+      'Google revoke did not land; removing local tokens anyway'
+    );
+  }
+  const queued = !!token && outcome === 'unreachable' && !!opts.queueIfUnreachable;
+  if (queued) await queueGoogleRevocation(token);
 
   await removeTokens(userId);
-  return { revoked, keptGmailGrant };
+  return { revoked: outcome === 'revoked', keptGmailGrant, queued };
 }

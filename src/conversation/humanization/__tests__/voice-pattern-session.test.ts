@@ -11,13 +11,11 @@ const firestore = vi.hoisted(() => ({
 }));
 
 vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [{}],
-    initializeApp: vi.fn(),
-    firestore: () => ({ doc: () => ({ get: firestore.get, set: firestore.set }) }),
-  },
+  default: { apps: [{}], initializeApp: vi.fn() },
 }));
+// The store reaches Firestore through getAdminFirestore(), i.e. firebase-admin/firestore.
 vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: () => ({ doc: () => ({ get: firestore.get, set: firestore.set }) }),
   FieldValue: { serverTimestamp: () => 'server-timestamp' },
 }));
 

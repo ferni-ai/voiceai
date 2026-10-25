@@ -4,11 +4,15 @@ title: Privacy Policy
 subtitle: What we keep, why we keep it, who helps us run Ferni, and how to erase it.
 pageType: Privacy
 pageIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'
-lastUpdated: October 18, 2026
+lastUpdated: October 21, 2026
 readTime: 12
 description: How Ferni protects your privacy. We remember your story so we can help you grow—and we take that responsibility seriously.
 contactEmail: privacy@ferni.ai
 toc:
+  - id: the-short-version
+    title: The Short Version
+  - id: at-a-glance
+    title: Your Data at a Glance
   - id: our-commitment
     title: Our Commitment
   - id: information-we-collect
@@ -34,7 +38,7 @@ toc:
   - id: cookies
     title: Cookies & Tracking
   - id: ai-and-ml
-    title: AI & Machine Learning
+    title: Models and Your Conversations
   - id: google-user-data
     title: Google User Data
   - id: changes
@@ -45,6 +49,59 @@ prevPage:
   url: /terms/
   title: Terms of Service
 ---
+
+<section id="the-short-version">
+  <h2>
+    <span class="section-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+    </span>
+    The Short Version
+  </h2>
+
+  <ul>
+    <li><strong>What we keep:</strong> your conversations, the things you tell Ferni, and your account details.</li>
+    <li><strong>Why:</strong> so Ferni can remember you next time. That's the whole point.</li>
+    <li><strong>Who processes it:</strong> it's stored on Google Cloud, and a short list of companies help run Ferni. <a href="#data-sharing">Every one is named below.</a></li>
+    <li><strong>What we never do:</strong> sell your data, show you ads, or train models on your conversations.</li>
+    <li><strong>How to delete it:</strong> in the app, open the menu, choose <strong>Privacy &amp; your data</strong>, then <strong>Delete my account</strong>. What Ferni saved is erased right away.</li>
+  </ul>
+
+  <p>One honest gap: deleting your account doesn't erase usage analytics yet. They never include what you said, and they're deleted after 400 days.</p>
+</section>
+
+<section id="at-a-glance">
+  <h2>
+    <span class="section-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="9" x2="12" y2="21"/></svg>
+    </span>
+    Your Data at a Glance
+  </h2>
+
+  <p>Each kind of data Ferni keeps, why, for how long, and which companies handle it. This table and the provider list under <a href="#data-sharing">Data Sharing</a> come from the same source, so they always agree. It's also available as <a href="/privacy/data.json">data.json</a>.</p>
+
+  <div class="data-table data-table--glance">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Data</th>
+          <th scope="col">Why</th>
+          <th scope="col">Kept for</th>
+          <th scope="col">Who processes it</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in privacyData.dataTypes %}
+        <tr>
+          <td><strong>{{ row.type }}</strong>{% if row.detail %}<br><small>{{ row.detail }}</small>{% endif %}</td>
+          <td data-label="Why">{{ row.why }}</td>
+          <td data-label="Kept for">{{ row.kept }}</td>
+          <td data-label="Who processes it">{{ row.processors | join(", ") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 
 <section id="our-commitment">
   <h2>
@@ -69,7 +126,7 @@ prevPage:
   <p>This Privacy Policy explains how Ferni AI, Inc. ("Ferni," "we," "us," or "our") collects, uses, discloses, and protects your personal information when you use our AI coaching services, including our website (ferni.ai), mobile applications, phone services, and any related services (collectively, the "Services").</p>
 
   <p><strong>Effective Date:</strong> December 31, 2025<br>
-  <strong>Last Updated:</strong> October 18, 2026</p>
+  <strong>Last Updated:</strong> October 21, 2026</p>
 </section>
 
 <section id="information-we-collect">
@@ -116,7 +173,7 @@ prevPage:
         </tr>
         <tr>
           <td><strong>Feedback & Support</strong></td>
-          <td>Survey responses, support tickets, feature requests</td>
+          <td>Survey responses, emails you send us, feature requests</td>
           <td>Improving our Services</td>
         </tr>
       </tbody>
@@ -157,8 +214,8 @@ prevPage:
         </tr>
         <tr>
           <td><strong>Voice Data</strong></td>
-          <td>Your voice while you talk to Ferni, turned into text as you speak (we don't record calls); voice notes you choose to save; voice characteristics for speaker identification</td>
-          <td>Service delivery, voice recognition</td>
+          <td>Your voice while you talk to Ferni, turned into text as you speak (we don't record calls); voice notes you choose to save. We don't use your voice to identify you, and we don't copy your voice</td>
+          <td>Service delivery</td>
         </tr>
       </tbody>
     </table>
@@ -167,7 +224,7 @@ prevPage:
   <h3>Information from Third Parties</h3>
   <ul>
     <li><strong>Authentication providers:</strong> If you sign in via Google or Apple, we receive your name and email</li>
-    <li><strong>Google Calendar and Gmail:</strong> Only if you connect them. See <a href="#google-user-data">Google User Data</a></li>
+    <li><strong>Google Calendar and Gmail:</strong> Only if you connect them. Connecting Google Calendar isn't available yet. See <a href="#google-user-data">Google User Data</a></li>
     <li><strong>Optional contributions:</strong> Contributions are made on Venmo and handled by Venmo under its own privacy policy. Ferni does not receive your payment card or bank details</li>
     <li><strong>Analytics services:</strong> Aggregated usage patterns (not linked to your conversations)</li>
   </ul>
@@ -198,7 +255,7 @@ prevPage:
   <h3>Improving Our Services</h3>
   <ul>
     <li>Analyzing usage patterns to enhance features (aggregated, not individual)</li>
-    <li>Training and improving our AI models (see AI & Machine Learning section)</li>
+    <li>Improving how Ferni works, without training models on your conversations (see <a href="#ai-and-ml">Models and Your Conversations</a>)</li>
     <li>Debugging technical issues</li>
     <li>Conducting research to better understand coaching effectiveness</li>
   </ul>
@@ -221,7 +278,7 @@ prevPage:
 
   <div class="callout">
     <strong>What we'll never do:</strong>
-    <p>Sell your data. Show you ads based on your conversations. Share your story with anyone who doesn't need it to help us serve you. Use your conversations to train AI models without asking you first.</p>
+    <p>Sell your data. Show you ads based on your conversations. Share your story with anyone who doesn't need it to help us serve you. Train models on your conversations.</p>
   </div>
 </section>
 
@@ -290,51 +347,13 @@ prevPage:
         </tr>
       </thead>
       <tbody>
+        {% for p in privacyData.processors %}
         <tr>
-          <td><strong>Google Cloud</strong></td>
-          <td>Hosting and storage</td>
-          <td>Everything we store, encrypted</td>
+          <td><strong>{{ p.name }}</strong></td>
+          <td>{{ p.does }}</td>
+          <td>{{ p.data }}</td>
         </tr>
-        <tr>
-          <td><strong>Google (Gemini on Vertex AI)</strong></td>
-          <td>Understanding you and writing Ferni's replies; summaries, memory notes and memory search</td>
-          <td>Conversation text, things you've told Ferni, voice notes you ask Ferni to transcribe</td>
-        </tr>
-        <tr>
-          <td><strong>Anthropic (Claude)</strong></td>
-          <td>Background work such as summaries, memory notes and messages Ferni drafts for you</td>
-          <td>Conversation text, things you've told Ferni</td>
-        </tr>
-        <tr>
-          <td><strong>OpenAI</strong></td>
-          <td>Backup when our main model is unavailable</td>
-          <td>Conversation text, only when it's used as the backup</td>
-        </tr>
-        <tr>
-          <td><strong>LiveKit</strong></td>
-          <td>Carries the audio of live calls and runs Ferni's voice service</td>
-          <td>Call audio while you talk, conversation text</td>
-        </tr>
-        <tr>
-          <td><strong>Cartesia</strong></td>
-          <td>Turns your voice into text and Ferni's replies into speech</td>
-          <td>Your voice during calls, the text of Ferni's replies</td>
-        </tr>
-        <tr>
-          <td><strong>Twilio</strong></td>
-          <td>Text messages and phone calls</td>
-          <td>Phone number, message content, phone call audio</td>
-        </tr>
-        <tr>
-          <td><strong>SendGrid</strong></td>
-          <td>Email delivery</td>
-          <td>Email address, name, email content</td>
-        </tr>
-        <tr>
-          <td><strong>Google Analytics</strong></td>
-          <td>Website analytics, only if you accept analytics cookies</td>
-          <td>How the website is used, never your conversations</td>
-        </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
@@ -366,56 +385,7 @@ prevPage:
     Data Retention
   </h2>
 
-  <p>We keep your conversations and the things you tell Ferni for as long as you have an account, because that's how Ferni remembers you. Deleting your account erases them.</p>
-
-  <div class="data-table">
-    <table>
-      <thead>
-        <tr>
-          <th>Data Type</th>
-          <th>How Long We Keep It</th>
-          <th>Reason</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Account Information</strong></td>
-          <td>Until you delete your account</td>
-          <td>Service provision, sign-in</td>
-        </tr>
-        <tr>
-          <td><strong>Conversations and Memories</strong><br><small>(full transcripts, summaries, things you've told Ferni, and the search index built from them)</small></td>
-          <td>Until you delete your account</td>
-          <td>So Ferni can remember you</td>
-        </tr>
-        <tr>
-          <td><strong>Things You Ask Ferni to Forget</strong></td>
-          <td>Ferni stops using them right away; they're erased when you delete your account</td>
-          <td>Your choice</td>
-        </tr>
-        <tr>
-          <td><strong>Voice</strong></td>
-          <td>We don't record calls. Voice notes you choose to save stay until you delete them or your account</td>
-          <td>Features you use</td>
-        </tr>
-        <tr>
-          <td><strong>Usage Analytics</strong></td>
-          <td>Kept separately from your conversations and don't include what you said. Deleting your account doesn't erase them yet</td>
-          <td>Service improvement</td>
-        </tr>
-        <tr>
-          <td><strong>Support Tickets</strong></td>
-          <td>3 years after resolution</td>
-          <td>Quality assurance, legal compliance</td>
-        </tr>
-        <tr>
-          <td><strong>Server Logs</strong></td>
-          <td>Up to 90 days</td>
-          <td>Security, debugging</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <p>We keep your conversations and the things you tell Ferni for as long as you have an account, because that's how Ferni remembers you. Deleting your account erases them. How long we keep every other kind of data is in <a href="#at-a-glance">Your Data at a Glance</a>.</p>
 
   <h3>Deleting Your Account</h3>
   <p>In the app, open the menu and choose <strong>Privacy &amp; your data</strong>, then <strong>Delete my account</strong>. You can download a copy of your data there first. Deleting your account erases your conversations, memories, profile and the records linked to them right away, and closes your sign-in. We keep a record that you asked for the deletion, for security. Usage analytics aren't erased yet (see above). You can also email <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a> and we'll do it for you.</p>
@@ -429,29 +399,17 @@ prevPage:
     Data Security
   </h2>
 
-  <p>We implement comprehensive security measures to protect your information:</p>
+  <p>Here's what protects your information today. We only list what we can check.</p>
 
-  <h3>Technical Safeguards</h3>
   <ul>
-    <li><strong>Encryption in Transit:</strong> All data transmitted to and from our Services uses TLS 1.3 encryption</li>
-    <li><strong>Encryption at Rest:</strong> All stored data is encrypted using AES-256 encryption</li>
-    <li><strong>Access Controls:</strong> Role-based access with multi-factor authentication for all team members</li>
-    <li><strong>Infrastructure Security:</strong> Hosted on SOC 2 Type II certified cloud infrastructure (Google Cloud)</li>
-    <li><strong>Network Security:</strong> Firewalls, intrusion detection, and DDoS protection</li>
-    <li><strong>Vulnerability Management:</strong> Regular security assessments and penetration testing</li>
+    <li><strong>Encrypted in transit:</strong> your device talks to Ferni over encrypted connections (TLS).</li>
+    <li><strong>Encrypted at rest:</strong> what we keep is stored on Google Cloud, which encrypts it at rest with AES-256 (<a href="https://docs.cloud.google.com/docs/security/encryption/default-encryption">Google's description</a>).</li>
+    <li><strong>Few hands:</strong> only a few named people on the Ferni team can reach production data, through Google Cloud's access controls. Everyone on the team signs in to our code on GitHub with two-step sign-in.</li>
+    <li><strong>Every code change is checked:</strong> automated code scanning (GitHub CodeQL) reviews every proposed change, Dependabot flags and patches vulnerable dependencies, and secret scanning blocks passwords and keys from being committed.</li>
   </ul>
 
-  <h3>Organizational Safeguards</h3>
-  <ul>
-    <li><strong>Minimal Access:</strong> Team members access personal data only when necessary for their role</li>
-    <li><strong>Security Training:</strong> All employees complete security awareness training</li>
-    <li><strong>Vendor Assessment:</strong> Third-party vendors undergo security review before engagement</li>
-    <li><strong>Incident Response:</strong> Documented procedures for detecting, responding to, and reporting breaches</li>
-    <li><strong>Audit Logging:</strong> All access to sensitive data is logged and monitored</li>
-  </ul>
-
-  <h3>Breach Notification</h3>
-  <p>In the event of a data breach affecting your personal information, we will notify you within 72 hours (as required by GDPR) via email and/or in-app notification. We will also notify relevant regulatory authorities as required by law.</p>
+  <h3>If Something Goes Wrong</h3>
+  <p>If a breach affects your personal information, we'll tell you promptly by email or in the app, and we'll notify regulators where the law requires it (under GDPR, within 72 hours of learning about it).</p>
 </section>
 
 <section id="international-transfers">
@@ -624,24 +582,28 @@ prevPage:
     <span class="section-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
     </span>
-    AI & Machine Learning
+    Models and Your Conversations
   </h2>
 
-  <p>Ferni is an AI-powered service. Here's how we use AI and handle your data in that context:</p>
+  <p>Ferni runs on large language models. Here's how that touches your data:</p>
 
-  <h3>How AI Powers Your Coaching</h3>
+  <h3>How Ferni Thinks</h3>
   <ul>
     <li>Our AI specialists (Ferni, Maya, Peter, Alex, Jordan, Nayan) use large language models to understand and respond to you</li>
     <li>Your conversation history enables personalized, continuous coaching</li>
     <li>AI analyzes patterns in your conversations to provide relevant insights</li>
-    <li>Voice recognition identifies you for seamless phone interactions</li>
+    <li>Ferni doesn't identify you by the sound of your voice, and doesn't make a copy of your voice. Neither is offered today. If we ever offer them, they'll be off until you give your explicit consent, and you'll be able to turn them off</li>
   </ul>
 
-  <h3>AI Model Training</h3>
+  <h3>Training</h3>
   <div class="callout callout--important">
-    <strong>We don't use your conversations to train AI models.</strong>
-    <p>Not ours, and we don't give them to anyone to train theirs. The providers listed under <a href="#data-sharing">Data Sharing</a> process your conversations to answer you. There is no setting that turns training on. If that ever changes, we'll ask you first and update this policy.</p>
+    <strong>We don't train models on your conversations.</strong>
+    <p>Not ours, and there's no setting that turns it on. If that ever changes, we'll ask you first and update this policy.</p>
   </div>
+
+  <p>The companies whose models write Ferni's replies don't train on what we send them either. Their terms say so: <a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/data-governance">Google's Vertex AI</a> and the <a href="https://ai.google.dev/gemini-api/terms">paid Gemini API</a>, <a href="https://www.anthropic.com/legal/commercial-terms">Anthropic's commercial terms</a>, and <a href="https://developers.openai.com/api/docs/guides/your-data">OpenAI's API</a>. So do <a href="https://livekit.com/legal/terms-of-service">LiveKit's</a>.</p>
+
+  <p>Cartesia, which turns your voice into text and Ferni's words into speech, works differently: <a href="https://cartesia.ai/legal/terms">its terms</a> let it learn from customers' audio and text unless the customer opts out. We've opted Ferni out.</p>
 
   <h3>Automated Decision-Making</h3>
   <p>Ferni does not make legally or similarly significant decisions about you through purely automated means. Our AI provides coaching suggestions and insights, but you always maintain full control over your decisions and actions.</p>
@@ -664,7 +626,7 @@ prevPage:
 
   <h3>What we access, and why</h3>
   <ul>
-    <li><strong>Google Calendar</strong> (if you connect it): we read and update your calendar events so Ferni can tell you what's coming up, schedule things you ask for, and remind you.</li>
+    <li><strong>Google Calendar</strong> (not available to connect yet; once it is, only if you connect it): we read and update your calendar events so Ferni can tell you what's coming up, schedule things you ask for, and remind you.</li>
     <li><strong>Gmail, "send email as me"</strong> (only if you turn it on): permission to send email from your Gmail address. Ferni uses it only to send an email you asked Ferni to send, from your own address. This permission cannot read your inbox, and we do not read it. We also receive your email address, so we can show you which account mail goes out from.</li>
   </ul>
 
@@ -672,7 +634,7 @@ prevPage:
   <ul>
     <li>Only to provide or improve the features you can see and turned on.</li>
     <li>Never for advertising, never sold, and never used to build user profiles for anyone else.</li>
-    <li>Never used to train or improve AI models, including our own and any third party's. The opt-in described under AI &amp; Machine Learning does not include Google user data.</li>
+    <li>Never used to train or improve AI models, including our own and any third party's.</li>
     <li>No person at Ferni reads it, except when you ask us to (for example, for support), when it's needed for security (for example, investigating abuse), or to comply with the law.</li>
     <li>We transfer it only as needed to provide those features (for example, to the AI model that answers you during a conversation), to comply with the law, or as part of a merger or acquisition with notice to you.</li>
   </ul>
@@ -718,14 +680,13 @@ prevPage:
 
   <ul>
     <li><strong>Privacy Questions:</strong> <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a></li>
-    <li><strong>Data Protection Officer:</strong> <a href="mailto:dpo@ferni.ai">dpo@ferni.ai</a></li>
     <li><strong>General Support:</strong> <a href="mailto:hello@ferni.ai">hello@ferni.ai</a></li>
     <li><strong>Phone:</strong> <a href="tel:+18885983952">1 (888) 598-3952</a></li>
     <li><strong>Write to us:</strong> Ferni AI, Inc., Philadelphia, Pennsylvania, United States · <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a></li>
   </ul>
 
-  <h3>EU/UK Representative</h3>
-  <p>For users in the European Economic Area or United Kingdom, our representative can be contacted at <a href="mailto:eu-representative@ferni.ai">eu-representative@ferni.ai</a>.</p>
+  <h3>EU/UK Users</h3>
+  <p>We haven't appointed a representative in the EU or UK yet. Write to <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a> and the people who handle privacy at Ferni will answer.</p>
 
   <h3>Supervisory Authority</h3>
   <p>If you're in the EEA/UK and believe we've violated your data protection rights, you have the right to lodge a complaint with your local supervisory authority.</p>

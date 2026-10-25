@@ -11,6 +11,7 @@ import '../../utils/log-redaction-install.js'; // mask phone numbers in all logs
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import { createLogger } from '../../utils/safe-logger.js';
 import { startWorkerServer } from './cloud-run-worker.js';
+import { registerMessagingConsent } from '../messaging/consent.js';
 
 const log = createLogger({ module: 'WorkerMain' });
 
@@ -33,6 +34,8 @@ async function main(): Promise<void> {
       }
       log.info('Firebase initialized');
     }
+
+    registerMessagingConsent(); // the senders below L4 ask it (utils/consent-port.ts)
 
     // Start the worker server
     await startWorkerServer();

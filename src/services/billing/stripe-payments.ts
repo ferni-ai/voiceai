@@ -255,8 +255,10 @@ export async function verifyPayment(paymentIntentId: string): Promise<{
   };
 }
 
+const RECORDED_PAYMENTS_KEPT = 200;
+
 /**
- * Record a completed payment in user's monetization data
+ * Record a completed payment in user's monetization data. Idempotent per payment intent.
  */
 export async function recordPayment(params: {
   userId: string;
@@ -273,6 +275,15 @@ export async function recordPayment(params: {
   const monetization: UserMonetizationData =
     (profile as { monetization?: UserMonetizationData }).monetization ||
     createDefaultMonetizationData();
+
+  // Stripe resends an event after a 500 (e.g. a ledger write refused after a failed read): a
+  // payment intent already counted is not counted again.
+  const recorded = monetization.recordedPaymentIds ?? [];
+  if (recorded.includes(paymentIntentId)) {
+    log.info({ userId, paymentIntentId }, 'Payment already recorded; not counted again');
+    return monetization;
+  }
+  monetization.recordedPaymentIds = [...recorded, paymentIntentId].slice(-RECORDED_PAYMENTS_KEPT);
 
   // Update based on type
   switch (type) {

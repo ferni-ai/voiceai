@@ -335,26 +335,46 @@ export function getLoginUrl(): string {
 // LOGOUT
 // ============================================================================
 
+export interface LogoutResult {
+  /** Whether the server revoked the refresh tokens. The local session is cleared either way. */
+  revoked: boolean;
+  /** Why the server revoke failed, when it did */
+  error?: string;
+}
+
 /**
- * Log out the current user
+ * Log out the current user: revoke their refresh tokens on the server, then
+ * clear the local session whatever the server said.
  */
-export async function logout(): Promise<void> {
+export async function logout(): Promise<LogoutResult> {
   const token = readStoredToken();
-  if (token) {
-    // Optionally revoke the token on the server
-    try {
-      await fetch(`${DEFAULT_CONFIG.apiBaseUrl}/api/auth/revoke`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token.firebaseToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch {
-      // Ignore errors - token will be cleared locally regardless
-    }
+  if (!token) return { revoked: false, error: 'no stored session' };
+
+  let result: LogoutResult;
+  try {
+    const response = await fetch(`${DEFAULT_CONFIG.apiBaseUrl}/api/auth/revoke`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token.firebaseToken}` },
+    });
+    result = response.ok
+      ? { revoked: true }
+      : { revoked: false, error: await describeFailure(response) };
+  } catch (error) {
+    result = { revoked: false, error: error instanceof Error ? error.message : String(error) };
+  } finally {
+    clearStoredToken();
   }
-  clearStoredToken();
+  return result;
+}
+
+async function describeFailure(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    if (typeof body.error === 'string') return `HTTP ${response.status}: ${body.error}`;
+  } catch {
+    // Not JSON: the status alone says enough.
+  }
+  return `HTTP ${response.status}`;
 }
 
 // ============================================================================

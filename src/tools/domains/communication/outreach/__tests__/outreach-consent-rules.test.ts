@@ -18,7 +18,7 @@ vi.mock('../../../../../utils/firestore-utils.js', async (orig) => ({
 }));
 const member = vi.hoisted(() => ({ value: false }));
 vi.mock('../../../../../services/platform/cohort-membership.js', () => ({
-  isCohortMember: async (_uid: string, cohort: string) =>
+  isCohortMember: async (cohort: string, _uid: string) =>
     cohort === 'friends-and-family' && member.value,
 }));
 vi.mock('../../../../../services/outreach/guarded-text.js', async (orig) => {

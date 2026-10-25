@@ -147,7 +147,7 @@ export async function sweepCall(
     const { facts } = buildExtractionFirestoreWritePayloads(
       call.userId,
       { entities: [], facts: found, relationships: [] },
-      { sessionId: call.sessionId, turnNumber: window.start },
+      { sessionId: call.sessionId, turnNumber: window.start, writer: 'sweep' },
       at,
       log
     );

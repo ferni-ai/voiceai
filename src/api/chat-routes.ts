@@ -11,22 +11,18 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-
 import type { FunctionDeclaration } from '@google/generative-ai';
 
 import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { offeredChatTools, refuseChatTool } from './chat-tool-access.js';
+import { type ChatCaller, offeredChatTools, refuseChatTool } from './chat-tool-access.js';
+import { refuseUnadmittedCaller } from './admission.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { executeTool } from '../agents/shared/tool-dispatcher.js';
 import { GEMINI_MODEL } from '../config/gemini-config.js';
 
 const log = createLogger({ module: 'ChatAPI' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 interface ChatMessageRequest {
   message: string;
@@ -44,6 +40,8 @@ interface ToolExecuteRequest {
   args: Record<string, unknown>;
   userId?: string;
   source?: string;
+  /** 'admin': an admin running a tool outside the offered list (logged). */
+  grant?: string;
 }
 
 interface ChatResponse {
@@ -68,14 +66,10 @@ interface ChatResponse {
  */
 async function processMessageWithLLM(
   message: string,
-  userId: string,
   personaId: string,
-  isAdmin: boolean,
+  tools: ChatToolDefinition[],
   conversationHistory: Array<{ role: string; content: string }> = []
 ): Promise<{ response: string; toolCalls: Array<{ fn: string; args: Record<string, unknown> }> }> {
-  // Offer the model only the tools this caller may run
-  const tools = offeredChatTools(await getToolDefinitionsForChat(userId, personaId), isAdmin);
-
   // Build system prompt
   const systemPrompt = buildSystemPrompt(personaId, tools);
 
@@ -122,15 +116,19 @@ After a function returns, incorporate the result naturally. If no tool is needed
   return `${basePrompt}\n\n${toolInstructions}`;
 }
 
-/**
- * Get tool definitions for chat (simplified subset)
- */
-async function getToolDefinitionsForChat(
-  _userId: string,
-  _personaId: string
-): Promise<Array<{ name: string; description: string; parameters?: Record<string, unknown> }>> {
-  // Return a curated set of tools for chat
-  // In production, this would use the UnifiedToolOrchestrator
+interface ChatToolDefinition {
+  name: string;
+  description: string;
+  parameters?: Record<string, unknown>;
+}
+
+/** The tools this caller is offered: the only ones either route runs (chat-tool-access.ts). */
+async function offeredFor(caller: ChatCaller): Promise<ChatToolDefinition[]> {
+  return offeredChatTools(await getToolDefinitionsForChat(caller.userId), caller.isAdmin);
+}
+
+/** The chat catalog: the same for every user and persona today. */
+async function getToolDefinitionsForChat(_userId: string): Promise<ChatToolDefinition[]> {
   return [
     {
       name: 'playMusic',
@@ -407,7 +405,7 @@ export async function handleChatRoutes(
 
   // Require authentication
   const auth = await requireAuth(req, res, { allowDevMode: true });
-  if (!auth) return true;
+  if (!auth || (await refuseUnadmittedCaller(auth, res))) return true; // WAITLIST_GATE: chat is Ferni too
 
   try {
     // POST /api/chat/message - Send a message
@@ -436,11 +434,11 @@ export async function handleChatRoutes(
       );
 
       // Process message through LLM
+      const offered = await offeredFor(auth);
       const llmResult = await processMessageWithLLM(
         body.message,
-        userId,
         personaId,
-        auth.isAdmin,
+        offered,
         body.conversationHistory
       );
 
@@ -449,7 +447,7 @@ export async function handleChatRoutes(
 
       for (const toolCall of llmResult.toolCalls) {
         // The model's pick is steered by the client's message and history
-        if (refuseChatTool(toolCall.fn, auth)) {
+        if (refuseChatTool(toolCall.fn, { ...auth, actingUserId: userId }, offered)) {
           executedTools.push({ ...toolCall, result: 'Not available in text chat', success: false });
           continue;
         }
@@ -497,7 +495,8 @@ export async function handleChatRoutes(
 
       const userId = claimedUserFor(auth, body.userId, res);
       if (!userId) return true;
-      if (refuseChatTool(body.fn, auth)) {
+      const caller = { ...auth, actingUserId: userId };
+      if (refuseChatTool(body.fn, caller, await offeredFor(auth), body.grant)) {
         sendError(res, 'Not authorized to run this tool', 403);
         return true;
       }
@@ -520,9 +519,7 @@ export async function handleChatRoutes(
 
     // GET /api/chat/tools - List available tools
     if (pathname === '/api/chat/tools' && req.method === 'GET') {
-      const personaId = 'ferni'; // Could get from query params
-      const all = await getToolDefinitionsForChat(auth.userId, personaId);
-      const tools = offeredChatTools(all, auth.isAdmin);
+      const tools = await offeredFor(auth);
 
       sendJSON(res, {
         success: true,

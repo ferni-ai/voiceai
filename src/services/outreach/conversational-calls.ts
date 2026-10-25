@@ -18,6 +18,7 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { consentBlocks } from '../messaging/consent.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
+import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 
@@ -58,7 +59,7 @@ export interface CallResult {
     | 'no_answer'
     | 'failed';
   error?: string;
-  // Extended result properties for active calls
+  live?: boolean; // the persona's live agent rang (live-agent-call.ts), not a Twilio <Say>
   context?: OutboundCallContext;
   initiatedAt?: string;
   answeredAt?: string;
@@ -245,6 +246,7 @@ async function initiateCall(
 ): Promise<CallResult> {
   try {
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
+    if (await ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
 
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;

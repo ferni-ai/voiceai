@@ -21,6 +21,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'AppleSignInOAuth' });
 
@@ -139,7 +141,7 @@ async function getFirestore() {
     const { Firestore } = await import('@google-cloud/firestore');
     return new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
   } catch {
     return null;
@@ -317,7 +319,7 @@ async function saveTokens(userId: string, tokens: AppleTokens): Promise<void> {
 
   const docRef = db.collection('apple_calendar_tokens').doc(cleanForFirestore(userId));
   await docRef.set({
-    ...tokens,
+    ...sealTokens(tokens),
     updatedAt: new Date().toISOString(),
   });
 
@@ -340,7 +342,7 @@ export async function getTokens(userId: string): Promise<AppleTokens | null> {
     return null;
   }
 
-  return doc.data() as AppleTokens;
+  return openTokens<AppleTokens>(doc.data(), 'apple_calendar_tokens');
 }
 
 /**

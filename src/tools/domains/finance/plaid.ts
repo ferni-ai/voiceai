@@ -600,7 +600,7 @@ export function createPlaidTools() {
           }
 
           const formattedTo = contact.startsWith('+') ? contact : `+1${contact.replace(/\D/g, '')}`;
-          const { consentBlocks } = await import('../../../services/messaging/consent.js');
+          const { consentBlocks } = await import('../../../utils/consent-port.js');
           if (await consentBlocks(formattedTo, 'sms', true))
             return 'That number asked not to get texts from me. Could you give me an email address instead?';
 

@@ -27,7 +27,10 @@
 // from its bundle: identity/biography-core.md, or the manifest's description
 // when the bundle has no biography-core yet.
 //
-// Judges see the transcript only, not audio, with the same prompt; each sample
+// Judges see the transcript only, not audio, with the same prompt; Ferni's
+// non-speech sounds (backchannels, laughs, hums) are written into it where the
+// caller heard them (sounds.mjs), unless JUDGE_SOUNDS=off, which keeps the
+// words-only transcript of verdicts saved before 2026-10-24 for A/B. Each sample
 // lists the dimensions in a seeded random order shared by both judges. If
 // <scenario>-<label>.seed.json exists, the earlier call is shown too, so recall
 // is checked against what was really said and invented history counts against it.
@@ -39,7 +42,8 @@
 // key), JUDGE_CLAUDE_REGION (default global),
 // JUDGE_CLAUDE_EFFORT (default medium), JUDGE_K (samples per call, default 3,
 // averaged), GCP_PROJECT (default: gcloud config), JUDGE_PERSONA,
-// JUDGE_PERSONA_BIO (a background file to use instead of the bundle's).
+// JUDGE_PERSONA_BIO (a background file to use instead of the bundle's),
+// JUDGE_SOUNDS (default on; off for a words-only transcript).
 // Output: <run>.judge.json (Gemini) or <run>.judge.<provider>.json next to each
 // run, recording provider, model and persona; then the --summary report.
 
@@ -100,12 +104,16 @@ const ANCHOR = `Score each dimension from 1 to 5 against real people on a casual
 5 = better than any friend could be (and still natural)
 Be strict: 3 is not the default. A score of 4 or 5 needs a quoted moment that earns it; a score of 2 or less needs a quoted moment that loses it.`;
 
+/** JUDGE_SOUNDS=off judges the words only, as verdicts before 2026-10-24 were. */
+export const judgeSoundsOn = (env = process.env) => env.JUDGE_SOUNDS !== 'off';
+
 // The greeting stays in: a follow-up asked as he picks up (COACH_FOLLOW_THROUGH)
 // scored 1 when the judge couldn't see it, 4 when it could (dev 2026-10-11).
-export function transcriptOf(run, name = 'Ferni') {
+export function transcriptOf(run, name = 'Ferni', { sounds = judgeSoundsOn() } = {}) {
   const agent = name.toUpperCase();
-  return turnsOf(run, { greeting: true })
+  return turnsOf(run, { greeting: true, sounds: sounds && { name } })
     .map((t, i) => {
+      if (t.who === 'sound') return `${i + 1}. ${t.text}`;
       const who = t.who !== 'agent' ? 'CALLER' : t.greeting ? `${agent} (answering the call)` : agent;
       return `${i + 1}. ${who}: ${t.text}`;
     })
@@ -144,14 +152,18 @@ export function personaOf(run) {
   return run?.meta?.persona || process.env.JUDGE_PERSONA || 'ferni';
 }
 
+// How to read the sounds: evidence within the frozen dimensions, not a new one.
+const soundsNote = (who) =>
+  `Square brackets like [${who}: mm-hm] or [${who} laughs] are non-speech sounds ${who} played, placed where the caller heard them; a line of its own says what the sound played into. Judge them as behaviour under conduct, empathy and quirks: a short backchannel or laugh at the caller's pause is what a good listener does; a sound into silence, the same sound again within a minute, or one over the caller's words or ${who}'s own speech is a tell that it is mechanical.\n\n`;
+
 /** The judge prompt; `order` is the order the dimensions are listed and asked for in. */
-export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = personaProfile(personaOf(run))) {
+export function promptFor(run, seed, order = Object.keys(DIMENSIONS), persona = personaProfile(personaOf(run)), { sounds = judgeSoundsOn() } = {}) {
   const { name: who, bio } = persona;
   const WHO = who.toUpperCase();
   const dims = order.map((k) => `- ${k}: ${DIMENSIONS[k].replaceAll('Ferni', who)}`).join('\n');
   const name = process.env.JUDGE_CALLER_NAME ?? 'Sam';
   const earlier = seed
-    ? `EARLIER CALL between the same two (days before; ${who} may remember it):\n${transcriptOf(seed, who)}\n\n`
+    ? `EARLIER CALL between the same two (days before; ${who} may remember it):\n${transcriptOf(seed, who, { sounds })}\n\n`
     : `There was no earlier call; anything ${who} claims to remember from before is invented.\n\n`;
   const context = `${who} knows the caller's name is ${name} from their account, so using it is fine. ${who} is a character with a life of its own; its own stories (trips, neighbours, places it lived) are self-disclosure, not invented history; judge them under quirks for consistency with its background below and with what it said earlier in the call. "Invented history" means claims about earlier conversations with the caller, or about the caller's life, that were never said and can't be fairly inferred from what they did say (a caller who says "his heart again" has implied an earlier episode; "classic Biscuit" about a dog first mentioned seconds ago is invented familiarity).\n\n${bio ? `${WHO}'S BACKGROUND (canonical; stories that fit it are consistent):\n${bio}\n\n` : ''}`;
   return `You are judging how human and how good a friend "${who}" is on a voice call. Transcripts come from speech recognition and captions, so ignore spelling, casing and small transcription slips.
@@ -161,8 +173,8 @@ ${ANCHOR}
 Dimensions:
 ${dims}
 
-${context}${earlier}CALL TO JUDGE (numbered turns):
-${transcriptOf(run, who)}
+${context}${sounds ? soundsNote(who) : ''}${earlier}CALL TO JUDGE (numbered turns):
+${transcriptOf(run, who, { sounds })}
 
 Reply with JSON only, no prose:
 {"scores": {${order.map((k) => `"${k}": <1-5 or null>`).join(', ')}},
@@ -463,6 +475,7 @@ async function main() {
           k,
           persona: persona.id,
           seeded: Boolean(seed),
+          sounds: judgeSoundsOn(),
           ...combine(samples),
         };
         writeFileSync(verdictFile(f, provider), JSON.stringify(verdict, null, 2));

@@ -106,12 +106,36 @@ export function onToolCallRequested(session: object, listener: () => void): () =
  * Report that the LLM's reply in this session contains a tool call. Runs inside
  * the reply stream, so a failing listener is logged, never thrown into the reply.
  */
-export function signalToolCallRequested(session: object): void {
+export function signalToolCallRequested(session: object, names: readonly string[] = []): void {
   toolCallListeners.get(session)?.forEach((listener) => {
     try {
       listener();
     } catch (error) {
       log.error({ error: String(error) }, 'Tool-call listener failed');
+    }
+  });
+  signalToolNames(session, names); // even unnamed: a tool was asked for
+}
+
+const toolNameListeners = new WeakMap<object, Set<(names: readonly string[]) => void>>();
+
+/** The names of the tools a reply asks for: the first chunk's and any later new one. */
+export function onToolNamesRequested(
+  session: object,
+  listener: (names: readonly string[]) => void
+): () => void {
+  const listeners = toolNameListeners.get(session) ?? new Set();
+  toolNameListeners.set(session, listeners.add(listener));
+  return () => listeners.delete(listener);
+}
+
+/** Tool names a reply asked for (an endCall after a look-up comes in a later chunk). */
+export function signalToolNames(session: object, names: readonly string[]): void {
+  toolNameListeners.get(session)?.forEach((listener) => {
+    try {
+      listener(names);
+    } catch (error) {
+      log.error({ error: String(error) }, 'Tool-name listener failed');
     }
   });
 }

@@ -55,12 +55,25 @@ import { schedulingExecutor } from '../../../agents/shared/tool-executors/schedu
 import { createCommunicationTools } from '../../../tools/domains/communication/communication-tools.js';
 import { createPlaidTools } from '../../../tools/domains/finance/plaid.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
-import { writeOptOut } from '../consent.js';
+import { consentBlocks, writeOptOut } from '../consent.js';
+import { registerConsentCheck } from '../../../utils/consent-port.js';
+
+// The senders below L4 ask the port; register it as each process entry does, over the memory store.
+registerConsentCheck((phone, channel, allow) => consentBlocks(phone, channel, allow));
 
 const PHONE = '+12025550166';
 const env = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
 const target = { id: 't1', requestId: 'r1', name: 'Example Dental', phone: PHONE, attempts: 0 };
-const twilioCalls = () => fetchSpy.mock.calls.filter(([u]) => String(u).includes('twilio.com'));
+/** A request to Twilio, by host (not a substring of the whole URL). */
+const isTwilio = (u: unknown): boolean => {
+  try {
+    const host = new URL(String(u)).hostname;
+    return host === 'twilio.com' || host.endsWith('.twilio.com');
+  } catch {
+    return false;
+  }
+};
+const twilioCalls = () => fetchSpy.mock.calls.filter(([u]) => isTwilio(u));
 
 beforeEach(async () => {
   mem.consent = memoryConsentStore();

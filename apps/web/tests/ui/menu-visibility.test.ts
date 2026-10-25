@@ -134,7 +134,7 @@ describe('mobile bottom sheet', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
   });
 
-  it('offers exactly how i reach you, settings, team, calendar, history, people and insights', async () => {
+  it('offers exactly how i reach you, settings, team, calendar, history, people, sound and insights', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 });
     const { initMobileBottomSheet } = await import('../../src/ui/mobile-bottom-sheet.ui.js');
     initMobileBottomSheet();
@@ -149,6 +149,7 @@ describe('mobile bottom sheet', () => {
       'calendar',
       'history',
       'people',
+      'sound',
       'insights',
     ]);
   });

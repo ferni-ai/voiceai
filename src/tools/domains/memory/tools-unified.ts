@@ -15,11 +15,19 @@ import { isTeammateTalk } from '../../../utils/teammate-talk.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
+import {
+  NO_EARLIER_CONVERSATION,
+  rememberToRecall,
+  searchEarlierConversations,
+  thisCallOf,
+} from '../../../services/memory/index.js';
+import { memoryHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { getSessionId } from '../../utils/tool-helpers.js';
 import { announceRemembered } from './remember-moment.js';
+import { announceMemorySaved } from './memory-saved.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
 const log = getLogger();
@@ -132,15 +140,11 @@ export const recallPreviousConversationUnifiedDef: ToolDefinition = {
           return `I don't have specific memories about "${query}" yet. Would you like to tell me more?`;
         }
 
-        // Use unified memory service
-        const result = await memoryService.search({
-          query,
-          userId,
-          limit: 5,
-          minScore: 0.35,
-        });
+        // Only conversations from before this call count as "last time"
+        const thisCall = thisCallOf(toolCtx.userData);
+        const found = await searchEarlierConversations({ query, userId, thisCall });
 
-        if (result) {
+        if (found.kind === 'found') {
           memoryService.recordFeedback({
             memoryId: `semantic_${Date.now()}`,
             userId,
@@ -148,8 +152,9 @@ export const recallPreviousConversationUnifiedDef: ToolDefinition = {
             context: { personaId: ctx.agentId },
           });
 
-          return `I found something relevant in my memory: ${result}`;
+          return `From a conversation before this call: ${found.text}`;
         }
+        if (found.kind === 'only_this_call') return NO_EARLIER_CONVERSATION;
 
         return `I don't have specific memories about "${query}" from our past conversations. Would you like to tell me more about it?`;
       },
@@ -192,17 +197,14 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         const userId = userData.userId || ctx.userId;
 
         // Store in session for awareness tools (backward compat)
-        if (!userData.keyMoments) {
-          userData.keyMoments = [];
-        }
-        userData.keyMoments.push(`[${category}] ${fact}`);
+        (userData.keyMoments ??= []).push(`[${category}] ${fact}`);
 
-        if (!userId) {
-          log.warn('No userId available for memory write');
+        // MINOR_CARE=on: nothing kept past this call for a caller under 18 (minor-care.ts)
+        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+          log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return REMEMBERED_THIS_CALL;
         }
 
-        // Write to unified memory service
         const result = await memoryService.write({
           userId,
           content: fact,
@@ -216,6 +218,8 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
           const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
+          void announceMemorySaved({ sessionId, userId, id: result.memoryId, fact, category });
+          void rememberToRecall(userId, { fact, memoryId: result.memoryId, category, sessionId });
           return REMEMBERED;
         }
         // Never an empty result (tool-output-guard.ts): say whether it was kept
@@ -257,8 +261,8 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        if (!userId) {
-          log.warn('No userId available for memory write');
+        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+          log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return "I'll remember that.";
         }
 
@@ -266,10 +270,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
         if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) return "I'll remember that.";
 
         // Store in session
-        if (!userData.keyMoments) {
-          userData.keyMoments = [];
-        }
-        userData.keyMoments.push(`[${type}/${emotionalWeight}] ${fact}`);
+        (userData.keyMoments ??= []).push(`[${type}/${emotionalWeight}] ${fact}`);
 
         // Map type to memory type
         const memoryType =
@@ -286,12 +287,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
           userId,
           content: fact,
           type: memoryType as
-            | 'fact'
-            | 'preference'
-            | 'event'
-            | 'emotion'
-            | 'commitment'
-            | 'milestone',
+            'fact' | 'preference' | 'event' | 'emotion' | 'commitment' | 'milestone',
           importance:
             emotionalWeight === 'heavy'
               ? 'critical'
@@ -303,6 +299,14 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
 
         if (result.success) {
           log.debug({ memoryId: result.memoryId }, 'Important fact written');
+          const sessionId = getSessionId({ ctx: toolCtx }); // memory_saved, CLIENT_SIGNALS_V2
+          void announceMemorySaved({
+            sessionId,
+            userId,
+            id: result.memoryId,
+            fact,
+            category: type,
+          });
         }
 
         // Human responses

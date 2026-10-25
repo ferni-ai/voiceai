@@ -29,6 +29,7 @@ describe('classifyCallEnd', () => {
     ['empty_room', 'natural'],
     ['caller_left', 'natural'],
     ['job.shutdownCallback', 'natural'],
+    ['room.closed', 'natural'],
     ['idle', 'natural'],
     ['max_duration', 'natural'],
     ['demo_limit', 'natural'],

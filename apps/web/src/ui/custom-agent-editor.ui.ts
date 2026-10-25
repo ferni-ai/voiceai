@@ -23,6 +23,8 @@ import {
   selectPreMadeVoice,
 } from '../services/custom-agent.service.js';
 import { confirmDelete } from './confirm-modal.ui.js';
+import { escapeHtml } from './ferni-care/escape-html.js';
+import { ensureVoiceLibrary, voiceAvatarSvg, voiceLibraryStatusHtml, voiceMetaLabel } from './voice-library-picker.js';
 import { openMemoryInput, toAddMemoryRequest } from './memory-input-modal.ui.js';
 
 const log = createLogger('AgentEditor');
@@ -472,7 +474,7 @@ function renderVoiceTab(): string {
 
   const voice = currentAgent.voice;
   const voices = getVoiceLibrary();
-
+  ensureVoiceLibrary(() => activeTab === 'voice' && renderTab());
   return `
     <div class="editor-tab-content">
       <div class="editor-section">
@@ -492,25 +494,20 @@ function renderVoiceTab(): string {
       <div class="editor-section">
         <h3 class="editor-section-title">${t('customAgentEditor.voiceLibrary')}</h3>
         <p class="editor-hint">${t('customAgentEditor.voiceLibraryHint')}</p>
-        <div class="editor-voice-grid">
+        ${voiceLibraryStatusHtml() ?? `<div class="editor-voice-grid">
           ${voices.map((v) => `
             <button 
               class="editor-voice-card ${voice.voiceId === v.id ? 'editor-voice-card--selected' : ''}"
-              data-voice-id="${v.id}"
+              data-voice-id="${escapeHtml(v.id)}"
             >
-              <div class="voice-avatar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                </svg>
-              </div>
+              <div class="voice-avatar">${voiceAvatarSvg(20)}</div>
               <div class="voice-info">
-                <span class="voice-name">${v.name}</span>
-                <span class="voice-desc">${t(v.descriptionKey)}</span>
+                <span class="voice-name">${escapeHtml(v.name)}</span>
+                <span class="voice-desc">${escapeHtml(voiceMetaLabel(v))} · ${escapeHtml(v.description)}</span>
               </div>
             </button>
           `).join('')}
-        </div>
+        </div>`}
       </div>
 
       <div class="editor-section">
@@ -975,7 +972,7 @@ function getEditorStyles(): string {
     
     .editor-status.status--active {
       background: var(--persona-tint, rgba(74, 103, 65, 0.2));
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
     
     .editor-status.status--paused {
@@ -1412,7 +1409,7 @@ function getEditorStyles(): string {
       text-transform: uppercase;
     }
     
-    .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni, #4a6741); }
+    .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni-on-surface); }
     .memory-type-badge--wisdom { background: var(--color-nayan-tint, rgba(138, 122, 106, 0.2)); color: var(--color-nayan, #8a7a6a); }
     .memory-type-badge--sharedMoments { background: var(--color-maya-tint, rgba(166, 122, 106, 0.2)); color: var(--color-maya, #a67a6a); }
     .memory-type-badge--journalEntries { background: var(--color-alex-tint, rgba(90, 107, 138, 0.2)); color: var(--color-alex, #5a6b8a); }

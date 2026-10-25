@@ -1,0 +1,36 @@
+{
+  "fond": {
+    "ferni": [
+      "Here's Ferni. A pattern I've noticed: his glasses are always on his head.",
+      "Ferni's coming back. He checks the weather more often than anyone I know.",
+      "Here's Ferni. He gets lost with the map open. Wonderful man."
+    ],
+    "maya-santos": [
+      "Here's Maya. Training for a half marathon, hates running. Fascinating.",
+      "Maya's coming on. Her cats are Compound and Interest. I approve.",
+      "Here's Maya. She calls her grandmother every Sunday. That tells you everything."
+    ],
+    "jordan-taylor": [
+      "Here's Jordan. She keeps a joy journal. I keep a pattern journal.",
+      "Jordan's coming on. She plans her free time. Very relatable.",
+      "Here's Jordan. She runs with Compass, her golden retriever. I couldn't keep up."
+    ],
+    "alex-chen": [
+      "Here's Alex. Alphabetized spices. A man after my own heart.",
+      "Alex is coming on. He has a spreadsheet for everything. Respect.",
+      "Here's Alex. Eight named plants, and Peggy the peace lily is the dramatic one."
+    ],
+    "nayan-patel": [
+      "Here's Nayan. He walks by the river at first light. I'd never make it.",
+      "Nayan's coming on. A long silence means he's thinking. Let him.",
+      "Here's Nayan. Strong chai and cricket on the radio. A very steady man."
+    ]
+  },
+  "back": {
+    "ferni": "Ferni's exaggerating. A little.",
+    "maya-santos": "Maya's too kind. Now then.",
+    "jordan-taylor": "Jordan's too generous. Ha!",
+    "alex-chen": "High praise, coming from Alex.",
+    "nayan-patel": "Nayan's too kind."
+  }
+}

@@ -71,6 +71,7 @@ describe('consent is given for one owner, and a STOP beats it', () => {
       unlock: async () => undefined,
       sponsoredPhone: async () => undefined,
       isOptedOut: async () => false,
+      consentDoc: async (h: string) => m.store.read(h),
       userDoc: async () => undefined,
       legacySmsChannels: async () => undefined,
     } as unknown as TextStore,

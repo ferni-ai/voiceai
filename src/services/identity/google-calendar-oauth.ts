@@ -24,10 +24,9 @@ import {
 } from './google-calendar-token-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
+import type { GoogleAttendee, GoogleOrganizer } from './google-event-invite.js';
 
-// ============================================================================
 // CONFIGURATION
-// ============================================================================
 
 const GOOGLE_OAUTH_CLIENT_ID = (process.env.GOOGLE_CALENDAR_CLIENT_ID ?? '').trim();
 const GOOGLE_OAUTH_CLIENT_SECRET = (process.env.GOOGLE_CALENDAR_CLIENT_SECRET ?? '').trim();
@@ -54,9 +53,7 @@ const googleCalendarCircuitBreaker = getCircuitBreaker('google-calendar', {
   successThreshold: 2, // Need 2 successes to close
 });
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export interface GoogleTokens {
   access_token: string;
@@ -82,7 +79,8 @@ export interface CalendarEvent {
     date?: string;
     timeZone?: string;
   };
-  attendees?: Array<{ email: string; displayName?: string }>;
+  attendees?: GoogleAttendee[];
+  organizer?: GoogleOrganizer;
   reminders?: {
     useDefault: boolean;
     overrides?: Array<{ method: 'email' | 'popup'; minutes: number }>;

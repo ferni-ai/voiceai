@@ -58,6 +58,7 @@ export const SPOTIFY_SCOPES = [
 export const SPOTIFY_LINK_COLLECTION = 'spotify_links';
 const tokenStore = createPersistenceStore<EncryptedTokenData>({
   collection: SPOTIFY_LINK_COLLECTION,
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // Per-user storage
   syncIntervalMs: 2000,
@@ -131,10 +132,8 @@ export async function saveTokens(userId: string, tokens: OAuthTokens): Promise<v
   // Encrypt and persist
   try {
     const encrypted = encryptData(tokensWithTimestamp);
-    await tokenStore.setImmediate(userId, {
-      encrypted,
-      updated_at: Date.now(),
-    });
+    const grant = { encrypted, updated_at: Date.now() };
+    await tokenStore.setImmediate(userId, grant, { safeWithoutRead: true }); // a new grant
     log.info({ userId: userId.substring(0, 8) }, 'Saved Spotify OAuth tokens');
   } catch (err) {
     log.error(

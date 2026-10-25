@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest';
 import { HUMAN_KEY } from '../fixtures/human-baseline-key.js';
 
 const dir = join(import.meta.dirname, '..');
+// spawnSync blocks the worker, so vitest's own timeout can't stop a hung CLI,
+// and the Spanner client swallows SIGTERM: only SIGKILL ends it at the timeout.
+const bounded = { timeout: 30_000, killSignal: 'SIGKILL' } as const;
 
 /** Runs a memory-eval script as a CLI and returns its exit code and stderr. */
 function run(script: string, args: string[], env: Record<string, string>) {
@@ -16,7 +19,7 @@ function run(script: string, args: string[], env: Record<string, string>) {
   const res = spawnSync(process.execPath, ['--import', 'tsx', join(dir, script), ...args], {
     env: { ...clean, ...env },
     encoding: 'utf8',
-    timeout: 30_000,
+    ...bounded,
   });
   return { status: res.status, stderr: res.stderr };
 }
@@ -54,7 +57,7 @@ describe('grade-human', () => {
       {
         env: { ...process.env, OPENAI_API_KEY: '', GOOGLE_CLOUD_PROJECT: 'test-project' },
         encoding: 'utf8',
-        timeout: 30_000,
+        ...bounded,
       }
     );
     expect(res.stderr).not.toContain('TypeError');
@@ -73,7 +76,7 @@ describe('score-live', () => {
     const res = spawnSync(
       process.execPath,
       ['--import', 'tsx', join(dir, 'live', 'score-live.ts'), 'nolabel', '--allow-missing'],
-      { env: { ...process.env, TMPDIR: tmp }, encoding: 'utf8', timeout: 30_000 }
+      { env: { ...process.env, TMPDIR: tmp }, encoding: 'utf8', ...bounded }
     );
     expect(res.status).toBe(0);
     const report = JSON.parse(readFileSync(join(tmp, 'longmem', 'live-nolabel.json'), 'utf8'));

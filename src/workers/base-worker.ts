@@ -15,6 +15,7 @@
 
 import type { EventPayload, EventType } from '../services/async-events/index.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { skipOnNonProdDatabase } from '../config/environment.js';
 
 // ============================================================================
 // TYPES
@@ -160,6 +161,10 @@ export abstract class BaseWorker {
       this.log.debug('WORKER_PUBSUB is not on - using in-process events only');
       return;
     }
+
+    // The subscriptions are prod's: a dev process would take (and ack) prod's
+    // messages and act on them against its own database.
+    if (skipOnNonProdDatabase(`Pub/Sub listen (${this.config.subscriptionName})`)) return;
 
     try {
       // Dynamic import - may not be available in all environments

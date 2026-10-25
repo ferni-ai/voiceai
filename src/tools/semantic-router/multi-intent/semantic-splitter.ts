@@ -14,6 +14,7 @@
  * @module tools/semantic-router/multi-intent/semantic-splitter
  */
 
+import { errorFields } from '../../../utils/error-class.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getEmbedding, cosineSimilarity, type EmbeddingVector } from '../embedding-providers.js';
 import { getToolRegistry } from '../registry.js';
@@ -192,7 +193,7 @@ async function scoreClauseAgainstTools(
 
     return bestMatch;
   } catch (error) {
-    log.warn({ error: String(error), clause }, 'Failed to score clause');
+    log.warn({ ...errorFields(error), clauseLength: clause.length }, 'Failed to score clause');
     return { toolId: null, confidence: 0 };
   }
 }
@@ -281,7 +282,7 @@ export async function semanticSplit(input: string): Promise<SemanticSplitResult>
 
   log.debug(
     {
-      input: input.slice(0, 100),
+      inputLength: input.length,
       clauseCount: clauses.length,
       intentCount: deduplicatedIntents.length,
       processingTimeMs,

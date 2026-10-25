@@ -147,14 +147,15 @@ interface Query {
 // ENGAGEMENT STORE
 // ============================================================================
 
+/** Tags the stand-in profile a failed read returns. Spread copies keep it; Firestore drops it. */
+const READ_FAILED = Symbol('engagementProfileReadFailed');
+
 export class EngagementStore {
   private db: Firestore | null = null;
   private readonly COLLECTION = 'engagement_profiles';
   private memoryCache = new Map<string, EngagementProfile>();
 
-  /**
-   * Initialize Firestore connection
-   */
+  /** Initialize Firestore connection */
   async initialize(): Promise<void> {
     if (this.db) return;
 
@@ -170,41 +171,40 @@ export class EngagementStore {
     }
   }
 
-  /**
-   * Get or create engagement profile
-   */
+  /** Get or create engagement profile */
   async getProfile(userId: string): Promise<EngagementProfile> {
-    // Check memory cache first
     const cached = this.memoryCache.get(userId);
     if (cached) return cached;
 
-    // Try Firestore
     if (this.db) {
       try {
         const doc = await this.db.collection(this.COLLECTION).doc(userId).get();
-        if (doc.exists) {
-          const data = doc.data();
-          if (data) {
-            const profile = data as unknown as EngagementProfile;
-            this.memoryCache.set(userId, profile);
-            return profile;
-          }
+        const data = doc.exists ? doc.data() : undefined;
+        if (data) {
+          const profile = data as unknown as EngagementProfile;
+          this.memoryCache.set(userId, profile);
+          return profile;
         }
       } catch (error) {
-        getLogger().warn({ error, userId }, 'Failed to fetch engagement profile');
+        // A failed read is not a new user: the stand-in is never cached, and saveProfile drops it.
+        getLogger().warn({ error, userId }, 'Failed to fetch engagement profile; using a default');
+        return Object.assign(this.createDefaultProfile(userId), { [READ_FAILED]: true as const });
       }
     }
 
-    // Create default profile
+    // No document yet (or no Firestore): a new user's default profile
     const profile = this.createDefaultProfile(userId);
     await this.saveProfile(profile);
     return profile;
   }
 
-  /**
-   * Save engagement profile
-   */
+  /** Save engagement profile */
   async saveProfile(profile: EngagementProfile): Promise<void> {
+    if ((profile as { [READ_FAILED]?: true })[READ_FAILED]) {
+      // Saving it would overwrite the real stored profile with defaults.
+      getLogger().warn({ userId: profile.userId }, 'Engagement profile read failed; not saving');
+      return;
+    }
     profile.updatedAt = new Date().toISOString();
     this.memoryCache.set(profile.userId, profile);
 

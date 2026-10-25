@@ -1,9 +1,10 @@
 /**
- * With REMINDER_SMS_DEFAULT=on, every reminder text (sms, or a voice_message
- * MMS) goes through the guarded sender or into the app: never the old
- * sendReminder, which honours neither STOP nor quiet hours. deliverReminder
- * asks here first, so the deliver-reminders job and the in-process scheduler
- * take the same path.
+ * Every reminder text (sms or voice_message) goes through the guarded sender
+ * or into the app, whatever the flags say: never a direct send, which honours
+ * neither STOP nor quiet hours (fail closed). deliverReminder asks here first,
+ * so the deliver-reminders job and the in-process scheduler take the same path.
+ * REMINDER_SMS_DEFAULT only decides whether a reminder kept for the app
+ * (voice:<uid>) is texted to its owner instead.
  *
  * The guarded sender can also hold a text: one due in the owner's quiet hours
  * waits until 08:00 (Seth, 2026-10-17), and one inside the guard's gap after
@@ -15,16 +16,16 @@
  * route, and startup when REMINDER_SCHEDULER_IN_PROCESS is on. A process
  * without it delivers the reminder in the app (fail closed).
  *
- * MESSAGING_PIPELINE: the raw paths (a text or MMS with the flag above off, or
- * a call) dial deliveryAddress, which the model can set, and the call path
- * checked no STOP at all. They read consent/{phoneHash} first; a refused one is
- * delivered in the app instead. A text or call to anyone but the owner's
- * verified number needs their own consent: nothing confirms a reminder call.
+ * MESSAGING_PIPELINE: a reminder call dials deliveryAddress, which the model can
+ * set, and checked no STOP at all. It reads consent/{phoneHash} first; a refused
+ * one is delivered in the app instead. A call to anyone but the owner's verified
+ * number needs their own consent: nothing confirms a reminder call. (Texts get
+ * the same checks in the guarded sender.)
  *
  * @module services/scheduling/reminder-text-guard
  */
 
-import { isReminderSmsDefaultOn } from '../../config/reminder-sms-flag.js';
+import { consentBlocks } from '../../utils/consent-port.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ReminderDeliveryMethod, ScheduledReminder } from './reminder-scheduler.js';
 
@@ -37,7 +38,6 @@ export type ReminderTextGuard = (reminder: ScheduledReminder) => Promise<Guarded
 const TEXT_METHODS: readonly ReminderDeliveryMethod[] = ['sms', 'voice_message'];
 
 let guard: ReminderTextGuard | undefined;
-const held = new WeakSet<ScheduledReminder>();
 
 export function installReminderTextGuard(next: ReminderTextGuard | undefined): void {
   guard = next;
@@ -55,17 +55,20 @@ export function installReminderOwnNumber(next: OwnNumberCheck | undefined): void
   ownNumber = next;
 }
 
-/** True when deliverReminder held this reminder to a later time instead of delivering it. */
-export const wasHeld = (reminder: ScheduledReminder): boolean => held.has(reminder);
-
-/** null: not a text, or the flag is off, so deliver it as before (unless consent refuses it). */
+/**
+ * null: not a text, so deliver it on its channel (unless consent refuses a
+ * call: then 'in-app'). `textOn` is the owner's REMINDER_SMS_DEFAULT, decided
+ * per person by the caller; unknown means off, so an app reminder stays in the app.
+ */
 export async function textThroughGuard(
   reminder: ScheduledReminder,
+  textOn = false,
   env: Record<string, string | undefined> = process.env
 ): Promise<GuardedTextOutcome | null> {
-  if (!isReminderSmsDefaultOn(env) || !TEXT_METHODS.includes(reminder.deliveryMethod)) {
+  if (!TEXT_METHODS.includes(reminder.deliveryMethod)) {
     return (await consentRefusal(reminder, env)) ? 'in-app' : null;
   }
+  if (!textOn && reminder.deliveryAddress.startsWith('voice:')) return 'in-app';
   if (!guard) {
     log.warn(
       { reminderId: reminder.id },
@@ -81,23 +84,20 @@ export async function textThroughGuard(
   }
 }
 
-/** Why the raw text or call path may not reach deliveryAddress, or null (MESSAGING_PIPELINE). */
+/** Why a reminder call may not reach deliveryAddress, or null (MESSAGING_PIPELINE). */
 async function consentRefusal(
   reminder: ScheduledReminder,
   env: Record<string, string | undefined>
 ): Promise<string | null> {
-  const method = reminder.deliveryMethod;
-  const channel = method === 'call' ? 'call' : TEXT_METHODS.includes(method) ? 'sms' : null;
-  if (!channel) return null;
-  const { consentBlocks, defaultConsentDeps } = await import('../messaging/consent.js');
+  if (reminder.deliveryMethod !== 'call') return null;
   const to = reminder.deliveryAddress;
   const refused = await consentBlocks(
     to,
-    channel,
-    async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to, channel)) === true,
-    { ...defaultConsentDeps(), env }
+    'call',
+    async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to, 'call')) === true,
+    env
   );
-  if (refused) log.info({ reminderId: reminder.id, channel, refused }, 'Reminder held for the app');
+  if (refused) log.info({ reminderId: reminder.id, refused }, 'Reminder call held for the app');
   return refused;
 }
 
@@ -105,20 +105,20 @@ async function consentRefusal(
  * Marks a held reminder 'pending' at its new time in this process (the in-process
  * scheduler reads these objects). The guard that held it saved the new time.
  */
-function holdReminder(reminder: ScheduledReminder, until: Date): boolean {
+function holdReminder(reminder: ScheduledReminder, until: Date): void {
   reminder.status = 'pending';
   reminder.scheduledFor = until;
-  held.add(reminder);
   log.info({ reminderId: reminder.id, until: until.toISOString() }, 'Reminder text held');
-  return true;
 }
 
 /** For deliverReminder: deliver a held-for-the-app text in the app, or hold it until its time. */
-export async function settleGuardedText(
+export async function settleGuardedText<T>(
   reminder: ScheduledReminder,
   outcome: 'in-app' | { holdUntil: Date },
-  deliver: (r: ScheduledReminder) => Promise<boolean>
-): Promise<boolean> {
+  deliver: (r: ScheduledReminder) => Promise<T>,
+  heldResult: T
+): Promise<T> {
   if (outcome === 'in-app') return deliver({ ...reminder, deliveryMethod: 'in_app' });
-  return Promise.resolve(holdReminder(reminder, outcome.holdUntil));
+  holdReminder(reminder, outcome.holdUntil);
+  return Promise.resolve(heldResult);
 }

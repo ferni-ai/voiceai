@@ -17,11 +17,17 @@
  * which removes all of this too. A topic that would cover a large share of
  * what Ferni knows is not applied; the caller is asked to narrow it.
  *
- * Not yet covered: other readers of call summaries (priming, pondering)
- * and stored transcripts read by anything but episode quotes.
+ * With FORGET_EVERY_READER=on the readers outside recall check it too
+ * (forget-every-reader.ts): the profile's last call summary in the system
+ * prompt, greeting and single-agent awareness, the handoff summary, the
+ * relationship tool, the keyword search legs, UnifiedStore.recall
+ * and recall notes already in the chat. Not yet covered: session priming's
+ * reads of call summaries, and stored transcripts read by anything but
+ * episode quotes.
  *
  * @module memory/recall/forget
  */
+import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
@@ -205,6 +211,14 @@ export async function removeIndexCopies(userId: string, factIds: string[]): Prom
   }
 }
 
+/**
+ * What a fact keeps that is derived from it, cleared in the same write that forgets or
+ * corrects it: its stored vector (RECALL_VECTOR_INDEX), which a vector search still matches.
+ */
+export const withoutDerivedCopies = (): { embedding: FieldValue } => ({
+  embedding: FieldValue.delete(),
+});
+
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
 export const firestoreForgetStore: ForgetStore = {
   async facts(userId) {
@@ -231,7 +245,10 @@ export const firestoreForgetStore: ForgetStore = {
       for (const r of refs.slice(i, i + 400)) {
         // A fact already copied to the graph store is picked up by the next
         // sync again (firestore-spanner-sync.ts), which removes the copy.
-        const resync = r.collection === 'dynamic_facts' ? { syncedToSpanner: false } : {};
+        const resync =
+          r.collection === 'dynamic_facts'
+            ? { syncedToSpanner: false, ...withoutDerivedCopies() }
+            : {};
         // Already forgotten (one by one, or an earlier topic): keep when.
         const when = typeof r.data.forgottenAt === 'string' ? r.data.forgottenAt : at;
         batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: when, ...resync });
@@ -270,13 +287,17 @@ export const firestoreForgetStore: ForgetStore = {
   },
   async topics(userId) {
     const db = getFirestoreDb();
-    if (!db) return null;
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('memory_state')
-      .doc('forgotten')
-      .get();
-    return parseTopics(doc.exists ? doc.data()?.topics : undefined);
+    return db ? readForgottenTopics(db, userId) : null;
   },
 };
+
+/** The topics recorded in `db` (memory_state/forgotten), parsed as parseTopics does. */
+export async function readForgottenTopics(db: Firestore, userId: string): Promise<string[] | null> {
+  const doc = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('memory_state')
+    .doc('forgotten')
+    .get();
+  return parseTopics(doc.exists ? doc.data()?.topics : undefined);
+}

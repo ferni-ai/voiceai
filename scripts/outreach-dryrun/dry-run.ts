@@ -32,6 +32,7 @@ import { atLocal, planCheckIns } from '../../src/services/outreach/grounded-chec
 import * as pondered from '../../src/services/outreach/proactive-channels/pondered-triggers.js';
 import { SOAK_OWNER_UID } from '../pondering/soak-lib.js';
 import { judgeGemini, judgeLocal, means, type JudgeInput, type Scores } from './judge.js';
+import { getAdminFirestore } from '../../src/utils/firebase-admin-app.js';
 
 const DAY = 86_400_000;
 const LA = 'America/Los_Angeles';
@@ -227,7 +228,7 @@ async function main(): Promise<void> {
 
   if (getApps().length === 0) initializeApp({ projectId: 'johnb-2025' });
   blockWrites();
-  const ref = fs.getFirestore().collection('bogle_users').doc(uid);
+  const ref = getAdminFirestore().collection('bogle_users').doc(uid);
   const user = (await ref.get()).data() ?? {};
   const tz = (user.contactInfo as { timezone?: string } | undefined)?.timezone ?? LA;
   const name = pondered.firstName(user);

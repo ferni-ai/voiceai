@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { extractCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
@@ -39,6 +40,9 @@ function extractNameFromContent(content: string): string | null {
   if (!content) return null;
 
   const trimmed = content.trim();
+  // NAME_CAPTURE_STRICT=on: the shared extractor, cue at the start, the name as written
+  // (the patterns below title-case "not" from "I'm not sure" and "ferni" into "Ferni").
+  if (nameCaptureStrict()) return extractCallerName(trimmed, { anchored: true });
 
   for (const pattern of NAME_PATTERNS) {
     const match = trimmed.match(pattern);

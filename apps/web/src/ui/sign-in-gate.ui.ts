@@ -20,12 +20,19 @@ import {
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
 import { checkAccess, type AccessOutcome } from '../services/access-check.js';
+import { signInFailureMessage } from '../services/sign-in-error.js';
+import { isAppleWebSignInEnabled } from '../config/apple-web-signin-flag.js';
 import { emulatorSignInButtons } from './emulator-sign-in.js';
+import { createAppleIcon, createGoogleIcon } from './sign-in-provider-icons.js';
 import { tryFirstButtons } from './try-first.ui.js';
 import { t } from '../i18n/index.js';
 import { createAiRoleLabelRow } from './ai-role-label.ui.js';
+import { celebrateAdmissionOnce, showWaitingInGate } from './waiting-screen.ui.js';
 
 const log = createLogger('SignInGate');
+// app.ferni.ai serves the app for every path, so the legal pages are on the marketing site.
+const TERMS_URL = 'https://ferni.ai/terms';
+const PRIVACY_URL = 'https://ferni.ai/privacy';
 
 // ELEMENT REFERENCES
 
@@ -41,7 +48,7 @@ const STYLES = `
   position: fixed;
   inset: 0;
   z-index: var(--z-system);
-  background: var(--color-bg-primary, #0a0a0f);
+  background: var(--color-background-primary, #14110e);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -70,7 +77,7 @@ const STYLES = `
   width: 100px;
   height: 100px;
   margin: 0 auto var(--space-lg, 1.618rem);
-  border-radius: var(--radius-xl, 18px);
+  border-radius: var(--radius-full, 50%); /* round, like the avatar everywhere else */
   background: transparent;
   display: flex;
   align-items: center;
@@ -82,7 +89,7 @@ const STYLES = `
 .sign-in-gate-logo img {
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--radius-full, 50%);
   object-fit: cover;
 }
 
@@ -306,9 +313,7 @@ function showCheckingState(): void {
   }
 }
 
-/**
- * Create the waitlist icon SVG (clock/hourglass icon).
- */
+/** The waitlist notice's icon: a clock. */
 function createWaitlistIcon(): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '64');
@@ -336,9 +341,6 @@ function createWaitlistIcon(): SVGSVGElement {
   return svg;
 }
 
-/**
- * Transform the UI to show the waitlist pending state.
- */
 type AccessNotice = Exclude<AccessOutcome, { kind: 'approved' }>;
 
 const NOTICE_COPY: Record<AccessNotice['kind'], { title: string; message: string }> = {
@@ -447,43 +449,6 @@ function injectStyles(): void {
   document.head.appendChild(style);
 }
 
-function createGoogleIcon(): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', '20');
-  svg.setAttribute('height', '20');
-  svg.setAttribute('viewBox', '0 0 24 24');
-
-  const paths = [
-    { fill: '#4285F4', d: 'M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z' },
-    { fill: '#34A853', d: 'M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z' },
-    { fill: '#FBBC05', d: 'M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z' },
-    { fill: '#EA4335', d: 'M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z' },
-  ];
-
-  for (const { fill, d } of paths) {
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('fill', fill);
-    path.setAttribute('d', d);
-    svg.appendChild(path);
-  }
-
-  return svg;
-}
-
-function createAppleIcon(): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', '20');
-  svg.setAttribute('height', '20');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'currentColor');
-
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z');
-  svg.appendChild(path);
-
-  return svg;
-}
-
 const TITLE_ID = 'sign-in-gate-title';
 let inertBehindGate: HTMLElement[] = [];
 
@@ -499,6 +464,18 @@ function keepAppBehindGate(): void {
 function releaseAppBehindGate(): void {
   for (const el of inertBehindGate) el.inert = false;
   inertBehindGate = [];
+}
+
+function createAppleButton(): HTMLButtonElement {
+  const appleBtn = document.createElement('button');
+  appleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--apple';
+  appleBtn.dataset.provider = 'apple';
+  appleBtn.dataset.focusRing = 'inset';
+  appleBtn.appendChild(createAppleIcon());
+  const appleText = document.createElement('span');
+  appleText.textContent = t('auth.continueWithApple');
+  appleBtn.appendChild(appleText);
+  return appleBtn;
 }
 
 function createOverlay(): HTMLElement {
@@ -550,17 +527,8 @@ function createOverlay(): HTMLElement {
   googleText.textContent = t('auth.continueWithGoogle');
   googleBtn.appendChild(googleText);
 
-  // Apple button
-  const appleBtn = document.createElement('button');
-  appleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--apple';
-  appleBtn.dataset.provider = 'apple';
-  appleBtn.dataset.focusRing = 'inset';
-  appleBtn.appendChild(createAppleIcon());
-  const appleText = document.createElement('span');
-  appleText.textContent = t('auth.continueWithApple');
-  appleBtn.appendChild(appleText);
-
-  buttonsDiv.append(googleBtn, appleBtn, ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)), ...tryFirstButtons());
+  const appleBtn = isAppleWebSignInEnabled() ? createAppleButton() : null; // hidden until Apple web sign-in is set up
+  buttonsDiv.append(googleBtn, ...(appleBtn ? [appleBtn] : []), ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)), ...tryFirstButtons());
 
   // Error container
   const errorDiv = document.createElement('div');
@@ -574,14 +542,16 @@ function createOverlay(): HTMLElement {
   const parts2 = parts[1]!.split('{privacy}');
   footer.appendChild(document.createTextNode(parts[0]!));
   const termsLink = document.createElement('a');
-  termsLink.href = '/terms';
+  termsLink.href = TERMS_URL;
   termsLink.target = '_blank';
+  termsLink.rel = 'noopener noreferrer';
   termsLink.textContent = t('auth.termsLink');
   footer.appendChild(termsLink);
   footer.appendChild(document.createTextNode(parts2[0]!));
   const privacyLink = document.createElement('a');
-  privacyLink.href = '/privacy';
+  privacyLink.href = PRIVACY_URL;
   privacyLink.target = '_blank';
+  privacyLink.rel = 'noopener noreferrer';
   privacyLink.textContent = t('auth.privacyLink');
   footer.appendChild(privacyLink);
   footer.appendChild(document.createTextNode(parts2[1]!));
@@ -598,7 +568,7 @@ function createOverlay(): HTMLElement {
 
   // Add click handlers
   googleBtn.addEventListener('click', () => handleSignIn('google'));
-  appleBtn.addEventListener('click', () => handleSignIn('apple'));
+  appleBtn?.addEventListener('click', () => handleSignIn('apple'));
 
   return overlay;
 }
@@ -631,8 +601,8 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
 
     // Show error
     if (errorEl) {
-      // Library error messages are English-only; show the localized generic one.
-      errorEl.textContent = t('auth.signInError');
+      // Say why (popup blocked, provider off, network, closed); never the raw library message.
+      errorEl.textContent = signInFailureMessage(error, provider === 'google' ? 'Google' : 'Apple');
       errorEl.classList.add('visible');
     }
 
@@ -666,14 +636,17 @@ export async function showSignInGate(): Promise<void> {
     if (state.isAuthenticated) {
       const runCheck = (): void => {
         showCheckingState();
-        void checkAccess().then((outcome) => {
+        void checkAccess().then(async (outcome) => {
           log.info('Access check', { outcome: outcome.kind });
           if (outcome.kind !== 'approved') {
             // Stay on the gate and keep listening: they may sign in with another account
+            const content = overlayEl?.querySelector('.sign-in-gate-content');
+            if (outcome.kind === 'waitlisted' && content && (await showWaitingInGate(content, runCheck, handleSignOutAndRetry, TITLE_ID))) return; // prettier-ignore
             showAccessNotice(outcome, runCheck);
             return;
           }
           hideSignInGate();
+          void celebrateAdmissionOnce(); // first sign-in after their spot opened
           unsubscribe();
           resolveSignIn?.();
           resolveSignIn = null;

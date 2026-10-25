@@ -12,7 +12,7 @@
  * @module services/outreach/outreach-history
  */
 
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import {
@@ -67,7 +67,7 @@ export async function recordOutreachAttempt(
   attempt: Omit<OutreachAttemptEntity, 'sentAt'>
 ): Promise<string> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const attemptData: OutreachAttemptEntity = {
       ...attempt,
       sentAt: new Date().toISOString(),
@@ -84,8 +84,8 @@ export async function recordOutreachAttempt(
 
     // Check if we should suppress further outreach
     const redis = getRedisCache();
-    if (attemptData.status === 'sent') {
-      // Suppress outreach for 2 hours after sending
+    if (attemptData.status === 'sent' || attemptData.status === 'delivered') {
+      // It reached them (writers record 'delivered', never 'sent'): hold outreach for 2 hours
       await redis.suppressOutreach(userId, 'recent_outreach', 7200);
     }
 
@@ -110,7 +110,7 @@ export async function updateOutreachStatus(
   deliveredAt?: string
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const ref = db.doc(`bogle_users/${userId}/outreach_attempts/${attemptId}`);
 
     const update: Record<string, unknown> = { status };
@@ -136,7 +136,7 @@ export async function recordOutreachResponse(
   response: Omit<OutreachResponseEntity, 'outreachId' | 'timestamp'>
 ): Promise<string> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const responseData: OutreachResponseEntity = {
       ...response,
       outreachId,
@@ -175,7 +175,7 @@ async function learnFromResponse(
   response: OutreachResponseEntity
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Get the original attempt to understand what worked/didn't
     const attemptDoc = await db.doc(`bogle_users/${userId}/outreach_attempts/${outreachId}`).get();
@@ -217,7 +217,7 @@ export async function getOutreachPreferences(
   userId: string
 ): Promise<OutreachPreferenceEntity | null> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const doc = await db.doc(`bogle_users/${userId}/settings/outreach_preferences`).get();
     if (!doc.exists) return null;
     return doc.data() as OutreachPreferenceEntity;
@@ -235,7 +235,7 @@ export async function updateOutreachPreferences(
   preferences: Partial<OutreachPreferenceEntity>
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const current = await getOutreachPreferences(userId);
     const updated: OutreachPreferenceEntity = {
       preferredChannels: preferences.preferredChannels || current?.preferredChannels || ['push'],
@@ -494,7 +494,7 @@ function analyzeOutreachTiming(
  */
 export async function getOutreachStats(userId: string, daysBack = 90): Promise<OutreachStats> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const cutoffDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
 
     // Get all attempts in the time range

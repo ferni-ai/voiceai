@@ -15,6 +15,7 @@ import {
 } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
 import type { TextStore } from './guarded-text.js';
+import { readConsentDoc } from './text-consent.js';
 
 const log = createLogger({ module: 'guarded-text' });
 /** Send locks (lockedSend), kept apart from the records so no query reads them. */
@@ -22,6 +23,7 @@ const TEXT_LOCKS = 'feature_checkin_locks';
 
 export const firestoreTextStore: TextStore = {
   ...firestoreReplyStore,
+  consentDoc: readConsentDoc,
   async forUser(userId) {
     // userId equality only; the gap window is filtered in memory to avoid a composite index.
     const snap = await checkinDb().collection(CHECKINS).where('userId', '==', userId).get();

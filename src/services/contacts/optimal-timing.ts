@@ -18,6 +18,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onCommunicationPreferenceChange } from '../data-layer/hooks/contacts-hooks.js';
+import { findContactByPhone } from '../identity/contacts/contact-phone-keys.js';
 
 const log = createLogger({ module: 'optimal-timing' });
 
@@ -34,13 +35,7 @@ export type TimeSlot =
   | 'night'; // 8-11 PM
 
 export type DayOfWeek =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
-  | 'friday'
-  | 'saturday'
-  | 'sunday';
+  'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 const TIME_SLOT_HOURS: Record<TimeSlot, { start: number; end: number; label: string }> = {
   early_morning: { start: 6, end: 8, label: '6-8 AM' },
@@ -600,72 +595,8 @@ export async function markContactResponded(
   return { updated: true, reason: `Updated timing model: ${slot} on ${day}` };
 }
 
-/**
- * Look up a contact by their phone number
- * Returns userId and contactId if found
- */
-export async function findContactByPhone(
-  phone: string
-): Promise<{ userId: string; contactId: string; contactName: string } | null> {
-  // Normalize phone
-  const normalizedPhone = phone.replace(/[^\d+]/g, '');
-
-  const firestore = await getFirestore();
-  if (!firestore) return null;
-
-  try {
-    // Search across all users' contacts for this phone number
-    // Note: In production, consider a phone->contact index for efficiency
-    const usersSnapshot = await firestore.collection('bogle_users').limit(100).get();
-
-    for (const userDoc of usersSnapshot.docs) {
-      const contactsSnapshot = await firestore
-        .collection('bogle_users')
-        .doc(userDoc.id)
-        .collection('contacts')
-        .where('phone', '==', normalizedPhone)
-        .limit(1)
-        .get();
-
-      if (!contactsSnapshot.empty) {
-        const contactDoc = contactsSnapshot.docs[0];
-        const data = contactDoc.data();
-        return {
-          userId: userDoc.id,
-          contactId: contactDoc.id,
-          contactName: data.name || 'Unknown',
-        };
-      }
-
-      // Also check with +1 prefix for US numbers
-      if (!normalizedPhone.startsWith('+1') && normalizedPhone.length === 10) {
-        const withPrefix = `+1${normalizedPhone}`;
-        const prefixSnapshot = await firestore
-          .collection('bogle_users')
-          .doc(userDoc.id)
-          .collection('contacts')
-          .where('phone', '==', withPrefix)
-          .limit(1)
-          .get();
-
-        if (!prefixSnapshot.empty) {
-          const contactDoc = prefixSnapshot.docs[0];
-          const data = contactDoc.data();
-          return {
-            userId: userDoc.id,
-            contactId: contactDoc.id,
-            contactName: data.name || 'Unknown',
-          };
-        }
-      }
-    }
-
-    return null;
-  } catch (error) {
-    log.warn({ error: String(error), phone }, 'Failed to look up contact by phone');
-    return null;
-  }
-}
+/** Look up a saved contact by phone number (user_contacts, one indexed query). */
+export { findContactByPhone };
 
 // ============================================================================
 // RECOMMENDATION GENERATION

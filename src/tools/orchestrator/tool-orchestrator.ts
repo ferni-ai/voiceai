@@ -32,6 +32,7 @@
  * });
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { isFtisEnabled } from '../../config/tool-config.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -49,6 +50,7 @@ import { initializeHierarchicalClassifier } from '../semantic-router/advanced/in
 
 // Internal modules (extracted for modularity)
 import { getDefaultConfig } from './orchestrator-config.js';
+import { isProtectedTool } from './persona-tool-policy.js';
 import {
   fetchAlwaysAvailableTools,
   fetchContextualTools,
@@ -62,7 +64,6 @@ import {
   explainSelection,
   limitTools,
 } from './orchestrator-helpers.js';
-import { getToolsSimplifiedRoute } from './simplified-routing.js';
 
 // Re-export all types for backward compatibility
 export type {
@@ -200,11 +201,6 @@ export class UnifiedToolOrchestrator {
   // ==========================================================================
 
   async getToolsForIntent(request: ToolSelectionRequest): Promise<ToolSelectionResult> {
-    // Simplified routing feature flag
-    if (process.env.USE_SIMPLIFIED_ROUTING === 'true') {
-      return this.getToolsSimplified(request);
-    }
-
     const startTime = Date.now();
 
     if (!this.initialized) {
@@ -298,10 +294,12 @@ export class UnifiedToolOrchestrator {
       }
     }
 
-    // Apply request-level force exclude
+    // Apply request-level force exclude. PERSONA_TOOL_POLICY: never a protected tool,
+    // even from a list worked out before the registry loaded its domain
     if (request.forceExclude?.length) {
+      const policyOn = flagOn('PERSONA_TOOL_POLICY');
       for (const toolId of request.forceExclude) {
-        delete allTools[toolId];
+        if (!policyOn || !isProtectedTool(toolId)) delete allTools[toolId];
       }
     }
 
@@ -401,19 +399,6 @@ export class UnifiedToolOrchestrator {
     });
 
     return result;
-  }
-
-  // ==========================================================================
-  // SIMPLIFIED ROUTING (Feature Flag: USE_SIMPLIFIED_ROUTING=true)
-  // Delegated to simplified-routing.ts for modularity
-  // ==========================================================================
-
-  private async getToolsSimplified(request: ToolSelectionRequest): Promise<ToolSelectionResult> {
-    if (!this.initialized) {
-      log.warn('Orchestrator not initialized, initializing now...');
-      await this.initialize();
-    }
-    return getToolsSimplifiedRoute(request, this.config, this.selectionCache);
   }
 
   // ==========================================================================

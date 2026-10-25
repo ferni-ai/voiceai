@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TOAST_REGION_STORAGE_KEY } from '../../../src/ui/overlay/toast-flag';
 
 vi.mock('@/services/haptics.service.js', () => ({ getHapticsService: () => ({ play: vi.fn() }) }));
 vi.mock('@/services/outreach.service.js', () => ({
@@ -90,7 +91,8 @@ describe('achievement toast', () => {
 });
 
 describe('moments.celebrate', () => {
-  it('keeps the centred celebration card when the flag is off', async () => {
+  it('keeps the centred celebration card with the toast kill switch set', async () => {
+    localStorage.setItem(TOAST_REGION_STORAGE_KEY, 'off'); // the kill switch: old per-surface toasts
     void getMomentsManager().celebrate('badge', {
       title: 'Early Bird',
       subtitle: 'First chat of the day',
@@ -100,8 +102,7 @@ describe('moments.celebrate', () => {
     expect(achievements()).toEqual([]);
   });
 
-  it('shows an achievement toast instead when the flag is on', async () => {
-    localStorage.setItem(OVERLAY_HOST_STORAGE_KEY, 'true');
+  it('shows an achievement toast instead by default', async () => {
     await getMomentsManager().celebrate('badge', {
       title: 'Early Bird',
       subtitle: 'First chat of the day',
@@ -127,7 +128,8 @@ describe('celebration card (celebration.ui)', () => {
 describe('Ferni milestones', () => {
   beforeEach(() => resetMilestones());
 
-  it('shows nothing under Reduce Motion when the flag is off (today)', async () => {
+  it('shows nothing under Reduce Motion with the toast kill switch set', async () => {
+    localStorage.setItem(TOAST_REGION_STORAGE_KEY, 'off'); // the kill switch: old per-surface toasts
     reducedMotion(true);
     triggerMilestone('first-hello');
     await vi.advanceTimersByTimeAsync(100);

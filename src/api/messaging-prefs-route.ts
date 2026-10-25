@@ -17,6 +17,7 @@ import {
   consentPatchFrom,
   readOutreachConsent,
   writeOutreachConsent,
+  type ConsentContext,
 } from '../services/outreach/outreach-consent.js';
 
 /** What the panels read back from /api/user/preferences. */
@@ -60,13 +61,14 @@ export async function panelConsentPatch(userId: string, body: unknown): Promise<
   return { ...patch, channels: channels.filter((c) => !off.includes(c)) };
 }
 
-/** Saves the consent patch, then the switches to prefs. */
+/** Saves the consent patch (with how it was given, for the consent record), then the switches to prefs. */
 export async function savePanelPrefs(
   userId: string,
   patch: ConsentPatch,
-  body: unknown
+  body: unknown,
+  how: ConsentContext = {}
 ): Promise<void> {
-  await writeOutreachConsent(userId, patch);
+  await writeOutreachConsent(userId, patch, how);
   const channels = panelChannels(body);
   if (Object.keys(channels).length > 0) await writePrefs(userId, { channels }, 'panel');
 }

@@ -12,6 +12,21 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  commitmentLine,
+  MAX_CHARS,
+  needsContext,
+  toSecondPerson,
+  type CommitmentLine,
+} from '../../utils/commitment-quality.js';
+import {
+  isCommitmentSingleWriterOn,
+  isJudgedRow,
+  isSingleWriterRow,
+  shownRows,
+  type ForgetListLoader,
+} from './commitment-single-writer.js';
+import { commitmentsShown } from './commitment-forget.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -27,7 +42,11 @@ export function coachFollowThroughMode(
 /** The fields of a stored commitment this module reads (commitment-keeper.ts). */
 export interface OpenCommitment {
   id: string;
+  /** What they said they'd do ("call my sister Sunday"), or their whole line (`whole`). */
   statement: string;
+  whole?: true;
+  /** Money or a credential (judged-commitments.ts): raised on a call only, never in a text. */
+  sensitive?: true;
   createdAt: number;
   targetDate?: number;
   followUpAfter: number;
@@ -56,33 +75,77 @@ const STALE_AFTER_MS = 30 * DAY_MS;
 /** Next follow-up after one is made. */
 const NEXT_FOLLOW_UP_MS = 3 * DAY_MS;
 
-// The capture regex takes any "I'll" or "I need to", so the store holds
-// sign-offs and filler too ("I need to go", "I'll let you go"). Whole words only.
-const OFFHAND =
-  /\b(go|run|head out|hop off|let you go|talk (to you )?(later|soon)|call you|see|think about it|try|figure it out|be fine|be okay|be right back|bbl)\b[.!?]?\s*$/i;
+// Every reader of open commitments (call check-in, push, proactive tick,
+// follow-through import, morning brief) comes through here: the stored line is
+// cleaned up, goodbyes stored before the writers checked are left out, and a
+// line that needs context ("call her tomorrow") is shown only with context.
 const MIN_WORDS = 4;
 
 function num(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 }
 
+/**
+ * A judged row is the caller's own words, pronouns and all; who it is about is
+ * added when the words don't say ("call her tomorrow (Mindy)").
+ */
+export function sayBack(statement: string, person: unknown): string {
+  const who = typeof person === 'string' ? person.trim() : '';
+  return who && !statement.toLowerCase().includes(who.toLowerCase()) ? `${statement} (${who})` : statement; // prettier-ignore
+}
+
+/** How a reader asks: `withContext` (its model has the conversation), `judgedOnly` (single writer on). */
+export interface OpenCommitmentOptions {
+  withContext?: boolean;
+  judgedOnly?: boolean;
+}
+
+/**
+ * The line to ask about, or null when the row shouldn't be. `judgedOnly`
+ * (COMMITMENT_SINGLE_WRITER on for this person) keeps only rows the after-call
+ * judge wrote and rows a tool wrote at the caller's request; the latter read as
+ * on main. Judged rows were judged with the whole call, so the line cleanup
+ * meant for the regex captures doesn't apply to them ("text Mindy back").
+ * Without `withContext`, a captured line that needs context to make sense is null.
+ */
+function askableLine(
+  d: Record<string, unknown>,
+  opts: OpenCommitmentOptions
+): CommitmentLine | null {
+  const judged = isJudgedRow(d);
+  if (opts.judgedOnly === true && !isSingleWriterRow(d)) return null;
+  const said = String(d.statement ?? d.summary ?? '')
+    .slice(0, MAX_CHARS)
+    .trim();
+  const words = said.split(/\s+/).length;
+  if (judged) return words >= 2 ? { text: sayBack(said, d.person), whole: false } : null;
+  const line = words < MIN_WORDS ? null : commitmentLine(said);
+  return line === null || (opts.withContext !== true && needsContext(line)) ? null : line;
+}
+
 /** A stored document as an open commitment, or null when it isn't one worth asking about. */
-export function toOpenCommitment(id: string, d: Record<string, unknown>): OpenCommitment | null {
+export function toOpenCommitment(
+  id: string,
+  d: Record<string, unknown>,
+  opts: OpenCommitmentOptions = {}
+): OpenCommitment | null {
   if (d.status !== 'active') return null;
-  const statement = String(d.statement ?? d.summary ?? '').trim();
-  if (statement.split(/\s+/).length < MIN_WORDS || OFFHAND.test(statement)) return null;
+  const line = askableLine(d, opts);
+  if (line === null) return null;
   const createdAt = num(d.createdAt);
   if (createdAt === undefined) return null;
   const targetDate = num(d.targetDate);
   const lastFollowUp = num(d.lastFollowUp);
   return {
     id,
-    statement,
+    statement: line.text,
+    ...(line.whole && { whole: true as const }),
     createdAt,
     followUpAfter: num(d.followUpAfter) ?? createdAt + NEXT_FOLLOW_UP_MS,
     followUpCount: num(d.followUpCount) ?? 0,
     ...(targetDate !== undefined && { targetDate }),
     ...(lastFollowUp !== undefined && { lastFollowUp }),
+    ...(d.sensitive === true && { sensitive: true as const }),
   };
 }
 
@@ -109,6 +172,11 @@ export function pickForCall(all: OpenCommitment[], now: number, limit = 2): Open
     .filter((c) => askableOnCall(c, now))
     .sort((a, b) => rank(a) - rank(b) || b.createdAt - a.createdAt)
     .slice(0, limit);
+}
+
+/** The commitment said back to them: "you'd call your sister Sunday", or their whole line quoted. */
+export function youSaidYoud(c: OpenCommitment): string {
+  return c.whole ? `"${c.statement}"` : `you'd ${toSecondPerson(c.statement)}`;
 }
 
 function daysAgo(ms: number): string {
@@ -154,12 +222,12 @@ export const firestoreCommitmentStore: CommitmentStore = {
     const col = commitments(userId);
     if (!col) return [];
     // status + createdAt desc has an index (firestore.indexes.json).
-    const snap = await col
-      .where('status', '==', 'active')
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
-    return snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    const [snap, shown] = await Promise.all([
+      col.where('status', '==', 'active').orderBy('createdAt', 'desc').limit(50).get(),
+      commitmentsShown(userId),
+    ]);
+    // Never one they asked Ferni to forget (commitment-forget.ts).
+    return snap.docs.filter((d) => shown(d.data())).map((d) => ({ id: d.id, data: d.data() }));
   },
   async markFollowedUp(userId, c, now) {
     const col = commitments(userId);
@@ -180,12 +248,19 @@ export async function loadCallCheckIns(
   userId: string,
   store: CommitmentStore = firestoreCommitmentStore,
   now: number = Date.now(),
-  notes?: CallNotes
+  notes?: CallNotes,
+  forgotten?: ForgetListLoader
 ): Promise<OpenCommitment[]> {
   try {
-    const docs = await store.active(userId);
+    // Mid-call: process.env holds this caller's flags (applyCallerFlags).
+    const judgedOnly = isCommitmentSingleWriterOn();
+    const [docs, shown] = await Promise.all([
+      store.active(userId),
+      shownRows(userId, judgedOnly, forgotten),
+    ]);
     const all = docs
-      .map((d) => toOpenCommitment(d.id, d.data))
+      .filter((d) => shown(d.data))
+      .map((d) => toOpenCommitment(d.id, d.data, { withContext: true, judgedOnly }))
       .filter((c): c is OpenCommitment => c !== null);
     // A call Ferni was asked to make is asked about only once it has happened (call-status.ts).
     const said = notes

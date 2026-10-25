@@ -1,8 +1,9 @@
 /**
- * MESSAGING_PIPELINE on: a reminder's raw call and text paths, which dial
- * deliveryAddress, read consent/{phoneHash} first, and a refused reminder is
- * delivered in the app instead. Before, the call path rang with no STOP check
- * at all. Off: as today.
+ * MESSAGING_PIPELINE on: a reminder call, which dials deliveryAddress, reads
+ * consent/{phoneHash} first, and a refused reminder is delivered in the app
+ * instead. Before, the call path rang with no STOP check at all. Off: as today.
+ * Reminder texts only go through the guarded sender, which checks consent
+ * itself (consent-text-senders.test.ts has the owner's no-record case).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryConsentStore } from '../../messaging/__tests__/memory-consent.js';
@@ -49,7 +50,11 @@ const { deliverReminder, reminderFromDoc } = await import('../reminder-scheduler
 // What the job route and startup do: installs the owner's-number check this path asks.
 (await import('../../outreach/reminder-texts.js')).installReminderTexts();
 const { phoneHash } = await import('../../outreach/checkin-replies.js');
-const { writeOptOut } = await import('../../messaging/consent.js');
+const { consentBlocks, writeOptOut } = await import('../../messaging/consent.js');
+// The senders below L4 ask the port; register it as each process entry does, over the memory store.
+(await import('../../../utils/consent-port.js')).registerConsentCheck((phone, channel, allow) =>
+  consentBlocks(phone, channel, allow)
+);
 
 const PHONE = '+12025550133';
 const reminder = (deliveryMethod: 'call' | 'sms') =>
@@ -87,7 +92,7 @@ afterEach(() => {
 describe('reminder call path (the STOP gap)', () => {
   it('does not ring a number that said "stop calling"; the reminder lands in the app', async () => {
     await optOut('call');
-    expect(await deliverReminder(reminder('call'))).toBe(true);
+    await deliverReminder(reminder('call'));
     expect(callWithPersonaVoice).not.toHaveBeenCalled();
     expect(saveInAppMessage).toHaveBeenCalledWith(
       'u1',
@@ -123,7 +128,7 @@ describe('reminder call path (the STOP gap)', () => {
   });
 });
 
-describe('reminder raw text path', () => {
+describe('reminder texts (the guarded sender)', () => {
   it('refuses the owner after a STOP', async () => {
     await optOut('sms');
     await deliverReminder(reminder('sms'));
@@ -136,11 +141,5 @@ describe('reminder raw text path', () => {
     await deliverReminder(reminder('sms'));
     expect(sendReminder).not.toHaveBeenCalled();
     expect(saveInAppMessage).toHaveBeenCalledOnce();
-  });
-
-  it("texts the owner's own number with no consent record", async () => {
-    expect(await deliverReminder(reminder('sms'))).toBe(true);
-    expect(sendReminder).toHaveBeenCalledOnce();
-    expect(saveInAppMessage).not.toHaveBeenCalled();
   });
 });

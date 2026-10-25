@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { parse as parseUrl } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { ownerEmail } from '../config/owner-email.js';
 import { requireAdmin } from './auth-middleware.js';
 
 const log = createLogger({ module: 'AdminAPI' });
@@ -98,10 +99,10 @@ async function handleGetCallers(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -147,10 +148,10 @@ async function handleGetVisitors(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -219,15 +220,23 @@ async function handleGetVisitors(
 }
 
 async function handleTriggerReport(res: ServerResponse): Promise<void> {
+  const owner = ownerEmail();
+  if (!owner) {
+    log.warn('OWNER_EMAIL is not set; daily report not sent');
+    sendJson(res, 503, { success: false, error: 'OWNER_EMAIL not configured' });
+    return;
+  }
   try {
     const { generateDailyReport } = await import('../services/admin/daily-report.js');
     const { generateDailyReportHTML, generateDailyReportPlainText } =
       await import('../services/admin/daily-report-template.js');
     const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } =
       await import('../services/outreach/delivery/email-delivery.js');
+    const { emailProvider } = await import('../services/email-transport/index.js');
 
     // Initialize email if not already done
-    if (!isEmailDeliveryAvailable()) {
+    // With EMAIL_PROVIDER=gmail the report goes through the Workspace port; no SendGrid key needed.
+    if (!isEmailDeliveryAvailable() && emailProvider() !== 'gmail') {
       const apiKey = process.env.SENDGRID_API_KEY;
       if (!apiKey) {
         throw new Error('SENDGRID_API_KEY not configured');
@@ -247,8 +256,7 @@ async function handleTriggerReport(res: ServerResponse): Promise<void> {
     const plainText = generateDailyReportPlainText(reportData);
 
     const emailResult = await sendEmail({
-      to: 'seth.ford@gmail.com',
-      toName: 'Seth Ford',
+      to: owner,
       subject: `Ferni Daily Report - ${reportData.date} (Manual Trigger)`,
       body: plainText,
       html,

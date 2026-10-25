@@ -48,7 +48,7 @@ export function initializeOnBehalfCapture(sessionId: string): boolean {
   sessionCallMap.set(sessionId, callContext.callId);
 
   log.info(
-    { sessionId, callId: callContext.callId, recipientName: callContext.recipientName },
+    { sessionId, callId: callContext.callId, hasRecipientName: Boolean(callContext.recipientName) },
     '📝 On-behalf transcript capture initialized'
   );
 

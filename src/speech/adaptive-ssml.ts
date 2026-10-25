@@ -9,14 +9,8 @@
  * NOTE: This file is a re-export wrapper for backward compatibility.
  * The implementation has been split into:
  * - ./adaptive-ssml/types.ts - Type definitions
- * - ./adaptive-ssml/adaptation.ts - Core adaptive tagging
  * - ./adaptive-ssml/emotion-adaptation.ts - Emotion matching
- * - ./adaptive-ssml/specialized-taggers.ts - Purpose-specific taggers
- * - ./adaptive-ssml/cognitive-ssml.ts - Cognitive-aware SSML
  */
 
 // Re-export everything from the new module structure
 export * from './adaptive-ssml/index.js';
-
-// Also export default for CommonJS compatibility
-export { default } from './adaptive-ssml/index.js';

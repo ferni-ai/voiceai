@@ -1,0 +1,22 @@
+{
+  "_doc": "Realistic caller personas (caller-realism.mjs, run.sh --realistic / CALLER_REALISM / a scenario's '#@caller <id>'). Per scripted turn: filler = chance of an 'um,'/'uh,' after a pause and at the start; restart = chance of repeating the words before a pause ('I was, I was'); pause = chance of a mid-turn pause (a second one at pause squared), pauseMs its range, inserted mid-thought, never after a sentence end; trailOff = chance a line ending '.' trails off '...'; rate = speaking-rate ratio range (Cartesia <speed>, say [[rate]]). minWords: shorter lines get only the rate. voice: the Cartesia caller voice when CALLER_VOICE is unset. Lines are rendered from a seed of scenario, turn and persona, so a rerun says the same thing.",
+  "voice": "c894559e-d529-4d70-a6fb-3330ecf7ef6b",
+  "personas": {
+    "everyday": {
+      "about": "A cooperative caller who talks like a person, not a script: some ums, a thinking pause now and then, rate varies line to line.",
+      "filler": 0.35, "restart": 0.15, "pause": 0.5, "pauseMs": [400, 1500], "trailOff": 0.1, "rate": [0.9, 1.12], "minWords": 6
+    },
+    "flat-deflector": {
+      "about": "Short, flat, plays it down ('it's fine, whatever'). Red team 2026-10-21 eh-answers and flat-heavy-news: Ferni argued the news was heavy (#2333).",
+      "filler": 0.25, "restart": 0.05, "pause": 0.35, "pauseMs": [600, 1500], "trailOff": 0.35, "rate": [0.85, 0.97], "minWords": 5
+    },
+    "trailing-thinker": {
+      "about": "Thinks out loud: long pauses mid-sentence, restarts, trails off. Call review 2026-10-20: 'remind me next time I schedule...' was cut off and a reminder set for a time never given (#2289).",
+      "filler": 0.6, "restart": 0.35, "pause": 0.85, "pauseMs": [700, 1500], "trailOff": 0.3, "rate": [0.88, 1.05], "minWords": 5
+    },
+    "walk-away": {
+      "about": "Distracted: talks over Ferni, changes topic, steps away mid-call. Call review 2026-10-22: Maya repeated replies the caller had cut off (#2422).",
+      "filler": 0.3, "restart": 0.2, "pause": 0.45, "pauseMs": [400, 1300], "trailOff": 0.15, "rate": [0.98, 1.18], "minWords": 6
+    }
+  }
+}

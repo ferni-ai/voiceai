@@ -218,6 +218,7 @@ async function initializeFirestore(): Promise<boolean> {
   try {
     // Dynamic import to avoid issues if Firebase isn't configured
     const admin = (await import('firebase-admin')).default;
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
     // Check if already initialized
     if (admin.apps.length === 0) {
@@ -231,7 +232,7 @@ async function initializeFirestore(): Promise<boolean> {
       }
     }
 
-    firestoreClient = admin.firestore();
+    firestoreClient = getAdminFirestore();
     firestoreAvailable = true;
     log.info('✅ Firestore initialized for coaching persistence');
     return true;
