@@ -108,6 +108,14 @@ describe('#2767: a forgotten topic stays out of the next call', () => {
     expect(nextCallSees(stored(uid))).not.toMatch(/divorce|Dana/);
   });
 
+  it('(b) the forget-time clear matches all that a save would: a sentence-cased topic', async () => {
+    const uid = 'e2e-2767-e';
+    const said = 'USER is divorcing and signed the papers';
+    fake.merge(`bogle_users/${uid}`, { totalConversations: 3, lastCallerSummary: said });
+    expect((await forgetTopic(uid, 'Divorce papers')).kind).toBe('forgotten');
+    expect(nextCallSees(stored(uid))).not.toMatch(/divorc/);
+  });
+
   it('(b) a call that loaded the summary before the forget does not save it back', async () => {
     const uid = 'e2e-2767-c';
     fake.merge(`bogle_users/${uid}`, {

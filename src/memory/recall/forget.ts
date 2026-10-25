@@ -116,8 +116,13 @@ export async function forgetTopic(
   await store.addTopic(userId, tokens, topic.trim());
   noteForgotten(userId, tokens);
   bumpForgetGeneration(userId);
-  // Throws if it fails, so the caller is told it didn't go through.
-  await store.clearSummaries?.(userId, (text) => isForgotten(text, [tokens]));
+  // What either matcher reads as the topic, so nothing a save would clear is
+  // left for the next call start. Throws if it fails: the caller is told.
+  const { aboutForgotten } = await import('./forget-every-reader.js'); // it imports this module
+  await store.clearSummaries?.(
+    userId,
+    (text) => isForgotten(text, [tokens]) || aboutForgotten(text, [tokens])
+  );
   // Open follow-ups about it close too (best effort; the delivery job checks again).
   await closeForgottenFollowUps(userId, (text) => isForgotten(text, [tokens]), now);
   const marking = [...matched, ...earlier];
