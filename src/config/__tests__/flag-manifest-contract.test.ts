@@ -182,7 +182,7 @@ describe('flag manifest contract', () => {
     const src = join(root, 'src', 'config');
     mkdirSync(src, { recursive: true });
     for (const f of readdirSync(CONFIG).filter((f) =>
-      /^flag-(manifest[\w-]*|spec|assembly)\.ts$/.test(f)
+      /^(flag-(manifest[\w-]*|spec|assembly)|generated-guard)\.ts$/.test(f)
     )) {
       copyFileSync(join(CONFIG, f), join(src, f));
     }

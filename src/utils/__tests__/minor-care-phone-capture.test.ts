@@ -120,6 +120,7 @@ import {
   memoryHeld,
   resetMinorCare,
   setVerifiedOwnerCheck,
+  userHeld,
   writeHeld,
 } from '../minor-care.js';
 import { fastCapture } from '../../memory/dynamic/fast-capture.js';
@@ -374,6 +375,27 @@ describe('MINOR_CARE: an anonymous phone caller who said "I\'m only 14."', () =>
     if (c === 'held') expect(profiles).toEqual([]);
     else expect(profiles.length).toBe(1);
   });
+
+  it.each(['on', 'off'])(
+    'a placeholder id keeps no personality profile or engine moment (MINOR_CARE=%s)',
+    async (flag) => {
+      // A held call with a placeholder id: never bound to a session, so userHeld misses it
+      const sessionId = `session-AJ_placeholder${++n}-1792856630903`;
+      vi.stubEnv('MINOR_CARE', flag);
+      heldAfter(sessionId, "I'm only 14.", { userId: 'anonymous' });
+      expect([memoryHeld(sessionId), userHeld('anonymous')]).toEqual([flag === 'on', false]);
+      await initializeRelationship('anonymous', 'ferni');
+      await recordUnifiedMoment({
+        userId: 'anonymous',
+        personaId: 'ferni',
+        type: 'vulnerability',
+        message: RILEY,
+      });
+      const moments = getRelationshipEngine('anonymous', 'ferni')?.getMemory().sharedMoments;
+      const profiles = written.filter((p) => p.includes('/anonymous/personality_profiles/'));
+      expect([moments?.length, profiles.length]).toEqual(flag === 'on' ? [0, 0] : [1, 1]);
+    }
+  );
 
   it.each(CASES)('Creative You keeps no topic when held (%s)', async (c) => {
     const { sessionId, userId } = phoneCall(c);
