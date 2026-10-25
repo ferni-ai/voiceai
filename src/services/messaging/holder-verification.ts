@@ -24,18 +24,15 @@
  *
  * @module services/messaging/holder-verification
  */
-import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { last4, phoneHash, phoneHashKey, toE164, type Env } from '../outreach/checkin-replies.js';
-import {
-  consentBlocks,
-  defaultConsentDeps,
-  messagingPipelineOn,
-  type ConsentDeps,
-} from './consent.js';
-import { firestoreSendLedger, reserveHolderSend, type SendLedger } from './holder-send-ledger.js';
+import { consentBlocks, messagingPipelineOn, type ConsentDeps } from './consent.js';
+import { reserveHolderSend, type SendLedger } from './holder-send-ledger.js';
+import { defaultHolderDeps } from './holder-verification-store.js';
+
+export { defaultHolderDeps };
 
 const log = createLogger({ module: 'holder-verification' });
 
@@ -45,7 +42,7 @@ const NAME_CHARS = /^[\p{L}\p{M}][\p{L}\p{M} '’.-]*$/u;
 const MAX_TRIES = 5;
 const SIX_DIGITS = /^\d{6}$/;
 
-interface Pending {
+export interface Pending {
   codeHash: string;
   /** phoneHash() of the number the code was texted to */
   phoneHash: string;
@@ -131,6 +128,30 @@ export function cleanSponsorName(raw: unknown): string | undefined {
   return ok ? name : undefined;
 }
 
+/** The code's text, naming the sponsor only by their own account's name, cleaned. */
+async function codeText(
+  deps: HolderVerificationDeps,
+  sponsorUid: string,
+  code: string
+): Promise<string> {
+  const name = cleanSponsorName(await deps.sponsorName(sponsorUid).catch(() => undefined));
+  const who = name ? `${name} set up Ferni for you. ` : '';
+  return `Ferni here. ${who}Reply with ${code} to confirm this is your phone, or STOP.`;
+}
+
+/** Clears this code after a failed send, never one written since. */
+async function clearCode(
+  deps: HolderVerificationDeps,
+  id: string,
+  codeHash: string
+): Promise<void> {
+  await deps.transact(id, (cur) =>
+    cur?.holderVerification?.codeHash === codeHash
+      ? { patch: { holderVerification: null }, ok: true }
+      : { ok: false }
+  );
+}
+
 /** The sponsor asks Ferni to text the holder a code. Only the identity's own sponsor may. */
 export async function startHolderVerification(
   identityId: string,
@@ -168,16 +189,8 @@ export async function startHolderVerification(
       : { ok: false }
   );
   if (!stored) return { started: false, reason: 'phone-changed' };
-  const name = cleanSponsorName(await deps.sponsorName(sponsorUid).catch(() => undefined));
-  const who = name ? `${name} set up Ferni for you. ` : '';
-  const body = `Ferni here. ${who}Reply with ${code} to confirm this is your phone, or STOP.`;
-  if (!(await deps.send(e164, body))) {
-    // Clear only this code, never one written since.
-    await deps.transact(identity.id, (cur) =>
-      cur?.holderVerification?.codeHash === codeHash
-        ? { patch: { holderVerification: null }, ok: true }
-        : { ok: false }
-    );
+  if (!(await deps.send(e164, await codeText(deps, sponsorUid, code)))) {
+    await clearCode(deps, identity.id, codeHash);
     return { started: false, reason: 'not-sent' };
   }
   log.info({ identityId, phoneLast4: last4(e164) }, 'Holder verification code sent');
@@ -263,85 +276,4 @@ export async function handleHolderVerifyRoute(
       : 409;
   send(res, status, out);
   return true;
-}
-
-const text = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
-
-function pendingOf(v: unknown): Pending | undefined {
-  if (!v || typeof v !== 'object') return undefined;
-  const p = v as Record<string, unknown>;
-  const [codeHash, numberHash, sentAt, expiresAt] = [
-    text(p.codeHash),
-    text(p.phoneHash),
-    text(p.sentAt),
-    text(p.expiresAt),
-  ];
-  // A code without the number it went to (written before the binding) is no code.
-  if (!codeHash || !numberHash || !sentAt || !expiresAt || typeof p.tries !== 'number') {
-    return undefined;
-  }
-  return { codeHash, phoneHash: numberHash, sentAt, expiresAt, tries: p.tries };
-}
-
-/** Read field by field: a doc missing its sponsor or phone matches no one (fails closed). */
-function holderOf(id: string, data: Record<string, unknown>): HolderIdentity {
-  return {
-    id,
-    sponsorUserId: text(data.sponsorUserId) ?? '',
-    phoneNumber: text(data.phoneNumber) ?? '',
-    phoneVerifiedAt: text(data.phoneVerifiedAt),
-    holderVerification: pendingOf(data.holderVerification),
-  };
-}
-
-export function defaultHolderDeps(): HolderVerificationDeps {
-  const firestore = () => {
-    const d = getFirestoreDb();
-    if (!d) throw new Error('Firestore unavailable');
-    return d;
-  };
-  const db = () => firestore().collection('sponsored_identities');
-  return {
-    env: process.env,
-    now: () => new Date(),
-    async byId(id) {
-      const doc = await db().doc(id).get();
-      return doc.exists ? holderOf(id, doc.data() as Record<string, unknown>) : undefined;
-    },
-    async byPhone(e164) {
-      const { lookupByPhone } = await import('../identity/sponsored-identity.js');
-      const found = await lookupByPhone(e164);
-      return found.identity ? this.byId(found.identity.id) : undefined;
-    },
-    async transact(id, decide) {
-      const ref = db().doc(id);
-      return firestore().runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        const step = decide(
-          snap.exists ? holderOf(id, snap.data() as Record<string, unknown>) : undefined
-        );
-        if (step.patch) tx.set(ref, step.patch, { merge: true });
-        return step.ok;
-      });
-    },
-    async sponsorName(uid) {
-      const doc = await getFirestoreDb()?.collection('bogle_users').doc(uid).get();
-      const data: Record<string, unknown> | undefined = doc?.exists ? doc.data() : undefined;
-      return data?.displayName ?? data?.name;
-    },
-    ledger: firestoreSendLedger,
-    async send(to, body) {
-      const { sendSms } = await import('../outreach/guarded-text-store.js');
-      const out = await sendSms({
-        to,
-        body,
-        personaId: 'ferni',
-        userId: 'holder-verification',
-        outreachId: 'holder-verification',
-      });
-      return out.success;
-    },
-    code: () => String(randomInt(0, 1_000_000)).padStart(6, '0'),
-    consent: defaultConsentDeps(),
-  };
 }
