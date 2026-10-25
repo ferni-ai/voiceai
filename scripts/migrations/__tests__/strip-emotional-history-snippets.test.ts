@@ -7,6 +7,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { main, strip, type HistoryDb } from '../strip-emotional-history-snippets.js';
+import { leakedPieces, PARTIALS, SENTINEL as LONG } from '../../../src/tests/helpers/snippet-leak.js';
 
 const SENTINEL = 'my sister Dolores has stage-three lupus';
 const PARTIAL = SENTINEL.slice(3, 22);
@@ -169,5 +170,29 @@ describe('strip-emotional-history-snippets', () => {
     const second = await strip(db, true, 2);
     expect(second).toMatchObject({ toChange: 1, written: 1, changedDuringRun: 0 });
     expect(JSON.stringify([...docs])).not.toContain(PARTIAL);
+  });
+  it('drops points with a bad time or text under a kept key, and leaves no slice of it', async () => {
+    const docs = new Map<string, Stored>();
+    docs.set('v1', {
+      data: {
+        userId: 'v1',
+        dataPoints: [
+          point('anxious', { timestamp: 'yesterday-ish' }),
+          point(PARTIALS[1]),
+          point('sad', { intensity: PARTIALS[0] }),
+          point('calm', { source: PARTIALS[2] }),
+          { context: LONG },
+          point('tired', { context: PARTIALS[0] }),
+        ],
+        lastUpdated: 'x',
+      },
+      version: 1,
+    });
+    expect(leakedPieces([...docs]).length).toBeGreaterThan(0); // precondition
+    const { db } = fakeDb(docs);
+    const c = await strip(db, true);
+    expect(c).toMatchObject({ toChange: 1, pointsStripped: 6, written: 1 });
+    expect(docs.get('v1')!.data.dataPoints).toEqual([point('tired')]);
+    expect(leakedPieces([...docs])).toEqual([]);
   });
 });
