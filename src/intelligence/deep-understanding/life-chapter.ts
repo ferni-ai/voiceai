@@ -867,12 +867,12 @@ export function importChapterProfile(profile: ChapterProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all life chapter awareness state (for testing)
- */
+export const forgetChapterUser = (userId: string): boolean => profiles.delete(userId);
+
+/** Reset all life chapter awareness state (for testing) */
 export function resetLifeChapterAwareness(): void {
   profiles.clear();
 }

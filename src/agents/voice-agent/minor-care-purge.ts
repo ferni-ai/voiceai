@@ -23,6 +23,8 @@ import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.js';
 import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
+import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
+import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
 import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -62,6 +64,10 @@ export function purgeHeldUser(userId: string): void {
     ['trust systems', clearTrustSystemsUser],
     // topics they mentioned, buffered with a debounced save; a later call's cleanup flushes it
     ['personality resonance', clearResonanceUser],
+    // the relationship arc (first words, key moments), cached 5 min and saved by a later call
+    ['relationship arc', clearArcCache],
+    // quotes, people, avoided topics: the builder feeds them every turn; a later call's end saves them
+    ['deep understanding', clearDeepUnderstandingUser],
   ];
   for (const [name, purge] of purges) {
     try {
