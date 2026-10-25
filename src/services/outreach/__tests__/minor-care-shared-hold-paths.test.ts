@@ -40,6 +40,7 @@ vi.mock('../../contacts/optimal-timing.js', () => ({
   markContactResponded: vi.fn(),
 }));
 const push = vi.hoisted(() => vi.fn(async () => [{ success: true, messageId: 'p1' }]));
+vi.mock('../delivery/push-reach.js', () => ({ hasPushDevice: async () => true })); // a device is registered
 vi.mock('../delivery/push-notifications.js', async (orig) => ({
   ...(await orig<object>()),
   isPushNotificationsAvailable: () => true,
