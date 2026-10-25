@@ -56,6 +56,7 @@ import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { noteGeneratedReply } from './call-timeline.js';
+import { noteGeneratedForCut } from './cut-reply-history.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -990,6 +991,7 @@ export async function wrappedTtsNode(
           `🔍 E2E TRACE [4/4] → TTS: "${truncateForLog(ttsOutputBuffer, 100)}" (${chunkCount} chunks in ${streamDurationMs}ms)`
         );
         noteGeneratedReply(sessionId, ttsOutputBuffer); // CALL_TIMELINE: generated vs heard
+        noteGeneratedForCut(options.session, ttsOutputBuffer); // CUT_REPLY_IN_HISTORY
       }
     },
   });
