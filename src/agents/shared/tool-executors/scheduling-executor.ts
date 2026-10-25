@@ -332,9 +332,7 @@ async function execute(
 
     log.info({ phoneNumber: phoneNumber ? '***' : undefined, userId }, '📞 Making phone call');
 
-    if (!phoneNumber) {
-      return 'What phone number would you like me to call?';
-    }
+    if (!phoneNumber) return 'What phone number would you like me to call?';
 
     if (!message) {
       return `What message should I deliver when I call ${phoneNumber}?`;
@@ -358,6 +356,8 @@ async function execute(
       const grants = await import('../../../services/messaging/consent-reach.js');
       const refused = await grants.ownerRefusal(ctx.userId, e164Number, 'call');
       if (refused) return grants.notCalling(refused);
+      const { directSendHeld } = await import('../../../services/communication-service.js');
+      if (await directSendHeld(e164Number, 'call', { userId })) return 'Not calling: held.';
 
       const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

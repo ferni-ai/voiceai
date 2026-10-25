@@ -28,6 +28,7 @@ import { callerUserId } from '../local-search/caller-city.js';
 import { notCalling, ownerRefusal } from '../../../utils/consent-port.js';
 import { z } from 'zod';
 import {
+  directSendHeld,
   guardedThirdPartySend,
   sendEmail,
   sendSMS,
@@ -202,17 +203,17 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
     return `I need a valid phone number to send a text. "${to}" doesn't look right. Can you provide a number like 555-123-4567?`;
   }
   const phone = validation.sanitized as string;
-  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message));
+  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message, { userId }));
 }
 
 // ===== PHONE CALL FUNCTIONS (Twilio Programmable Voice) =====
 
-/** Initiate an outbound phone call via Twilio */
+/** Outbound Twilio call. Both ids are the session's, never a model arg: consent, then the hold. */
 async function makePhoneCall(
   to: string,
   purpose: string,
   ownerUid: string | undefined,
-  twimlUrl?: string
+  holdUid?: string
 ): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
@@ -223,6 +224,7 @@ async function makePhoneCall(
   // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
   const refused = await ownerRefusal(ownerUid, validPhone, 'call');
   if (refused) return notCalling(refused);
+  if (await directSendHeld(validPhone, 'call', { userId: holdUid })) return 'Not calling: held.';
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio not configured for calls');
@@ -246,7 +248,7 @@ async function makePhoneCall(
         body: new URLSearchParams({
           To: validPhone,
           From: TWILIO_PHONE_NUMBER,
-          ...(twimlUrl ? { Url: twimlUrl } : { Twiml: defaultTwiml }),
+          Twiml: defaultTwiml,
         }),
         signal: AbortSignal.timeout(15000),
       }
@@ -274,7 +276,6 @@ async function makePhoneCall(
 
 /** Generate and send a voice message using Alex's voice */
 async function sendVoiceMessageReal(to: string, message: string): Promise<string> {
-  // Backward compatible overload will pass 'unknown'
   return sendVoiceMessageRealWithUserId(to, message, 'unknown');
 }
 
@@ -296,7 +297,6 @@ async function sendVoiceMessageRealWithUserId(
 
   if (!CARTESIA_API_KEY) {
     getLogger().warn('Cartesia not configured for voice messages');
-    // Fallback to text with voice message indicator
     return sendTextReal(to, `🎤 Voice message from Alex: "${message}"`, userId);
   }
 
@@ -535,7 +535,7 @@ export function createCommunicationTools() {
         message: z.string().describe('Message to deliver in the call'),
       }),
       execute: async ({ phoneNumber, message }, opts) => {
-        return makePhoneCall(phoneNumber, message, callerUserId(opts)); // the session's identity
+        return makePhoneCall(phoneNumber, message, callerUserId(opts), reminderOwner(opts.ctx));
       },
     }),
 

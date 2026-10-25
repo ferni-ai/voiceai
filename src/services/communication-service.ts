@@ -235,6 +235,20 @@ export async function textHeld(to: string, opts: SmsOptions = {}): Promise<boole
 }
 
 /**
+ * textHeld for the senders that reach Twilio themselves (in-call tools, the group call, voice
+ * messages, family check-ins): true when that text or call must not go. Logged without the number.
+ */
+export async function directSendHeld(
+  to: string,
+  what: 'text' | 'call',
+  opts: SmsOptions = {}
+): Promise<boolean> {
+  if (!(await textHeld(to, opts))) return false;
+  getLogger().info({ what }, 'Not sent: MINOR_CARE_SHARED_HOLD');
+  return true;
+}
+
+/**
  * Send an SMS via Twilio. MINOR_CARE_SHARED_HOLD: never to an account (opts.userId) or a number
  * a call held under 18, unless asked for just now (the code they asked for).
  */
