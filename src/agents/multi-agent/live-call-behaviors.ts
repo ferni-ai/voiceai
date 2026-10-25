@@ -9,6 +9,7 @@ import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-hours.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -136,6 +137,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // callUser rings the caller's verified phone through outreach (call-user-port.ts).
   installCallUserPort();
+  // setQuietHours saves to the prefs "When I'll Check In" shows (quiet-hours-port.ts).
+  installQuietHoursWriter();
   // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
   installConfirmThreadPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
