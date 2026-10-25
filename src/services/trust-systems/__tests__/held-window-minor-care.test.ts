@@ -297,6 +297,16 @@ describe('MINOR_CARE: the held window, store by store', () => {
     expect(kept?.samples).toHaveLength(5);
     expect(kept?.baseline).toBeNull();
     expect(p.voice.getBaseline(u)).toBeNull(); // memory unchanged
+    const enough = {
+      ...data,
+      samples: [
+        ...Array.from({ length: 7 }, (_, i) => sample(t0 + 10 + i, 'neutral')),
+        ...data.samples,
+      ],
+    };
+    const rebuilt = p.voice.withoutHeldSamples(u, enough as never); // 12 kept: a baseline of 12
+    expect(rebuilt?.baseline).toMatchObject({ sampleCount: 12, establishedAt: at(t0) });
+    expect(p.voice.getBaseline(u)).toBeNull(); // still: the purge's scrub never fills memory
   });
 
   it('momentum: a held win that broke the daily streak gives it back; themes count only kept wins', async () => {
