@@ -66,29 +66,103 @@ const SOURCE: Readonly<Record<string, HeldSource>> = {
   outreach_confirm: 'on-behalf',
 };
 
-/** A run of digits with phone punctuation between them (7+ digits are blanked). */
-const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
+/**
+ * A run of digits with phone punctuation between them (7+ digits are blanked),
+ * an extension after it included. Digits are any script's (`\p{Nd}`): a
+ * fullwidth or Arabic-Indic number is still a number. A leading "(415)" goes
+ * with it, so no stray bracket is left behind.
+ */
+const PHONE_LIKE =
+  /([+\uFF0B(\uFF08]{0,2}\p{Nd}[\p{Nd}\s().\-\uFF08\uFF09\uFF0D\uFF0E]{5,}\p{Nd})((?:\s*(?:x|ext[.:]?|extension)\s*\p{Nd}(?:[\p{Nd}\s().-]*\p{Nd})?)?)/giu;
+const OPEN = /[(\uFF08]/gu;
+const CLOSE = /[)\uFF09]/gu;
+const LEADING_OPEN = /^[(\uFF08]/u;
 /** A whole match that is only an ISO date (real month and day) is a date, not a number. */
 const DATE_ONLY = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
 /** ...or a date and an hour, when the text goes on ":mm" ("2026-10-22 8:30"). */
 const DATE_HOUR = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]) \d{1,2}$/;
 const EMAIL_LIKE = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 
+const DIGIT_WORD = 'zero|oh|one|two|three|four|five|six|seven|eight|nine';
+/** Digits said as words, maybe mixed with numerals: "four one five, five five five, 0132". */
+const SPELLED_NUMBER = new RegExp(
+  `(?<![\\p{L}\\p{N}])(?:${DIGIT_WORD}|\\p{Nd}+)(?:[\\s,.\\-]+(?:${DIGIT_WORD}|\\p{Nd}+))+(?![\\p{L}\\p{N}])`,
+  'giu'
+);
+const IS_DIGIT_WORD = new RegExp(`^(?:${DIGIT_WORD})$`, 'iu');
+
+/**
+ * An address said out loud: "jo dot lee at example dot com", "jo (at) example.com".
+ * A plain " at " needs a spoken dot too, the domain can't be a word like "the",
+ * and the name before it can't be a word that leads into "at" in a sentence, so
+ * "meet at the dot com party" and "look at example dot com" stay prose.
+ */
+const LABEL = '[\\p{L}\\p{N}][\\p{L}\\p{N}_%+\\-]*';
+const SAID_DOT = '(?:\\s+dot\\s+|\\s*[([]dot[)\\]]\\s*)';
+const ANY_DOT = `(?:${SAID_DOT}|\\.)`;
+const TLD = '(?:com|org|net|edu|gov|io|co|us|uk|ca|au|de|fr|me|ai|app|dev|info|biz)';
+const NOT_A_DOMAIN = '(?!(?:the|a|an|this|that|my|your|our|his|her|their|its)\\b)';
+const SPELLED_EMAIL = new RegExp(
+  `(?<![\\p{L}\\p{N}._%+\\-])${LABEL}(?:${ANY_DOT}${LABEL})*` +
+    `(?:\\s*[([]at[)\\]]\\s*${NOT_A_DOMAIN}(?:${LABEL}${ANY_DOT})+${TLD}` +
+    `|\\s+at\\s+${NOT_A_DOMAIN}(?:${LABEL}${ANY_DOT})*${LABEL}${SAID_DOT}${TLD})` +
+    '(?![\\p{L}\\p{N}])',
+  'giu'
+);
+
+const PLAIN_AT = /^([\p{L}\p{N}_%+-]+)\s+at\s/iu;
+const LEADS_INTO_AT = new Set(
+  (
+    'look looking looked meet meeting met see seen be is am are was were been stay staying ' +
+    'work works working worked live lives living shop shopping arrive arriving arrived ' +
+    'stop stopping eat eating sign signed order ordered buy bought find found check go ' +
+    'went get got it them me us him her you here there out up in home sale'
+  ).split(' ')
+);
+
+function blankSaidEmail(m: string): string {
+  const name = PLAIN_AT.exec(m)?.[1]?.toLowerCase();
+  return name && LEADS_INTO_AT.has(name) ? m : 'an email address';
+}
+
+const count = (text: string, re: RegExp): number => text.match(re)?.length ?? 0;
+
+function blankPhone(m: string, core: string, ext: string, offset: number, whole: string): string {
+  // A run that stays is handed back with what came after it checked on its own,
+  // so a number written straight after a date ("...x415 555 0132") still goes.
+  const kept = (): string => core + ext.replace(PHONE_LIKE, blankPhone);
+  const unbracketed = core.replace(LEADING_OPEN, '');
+  if (DATE_ONLY.test(unbracketed)) return kept();
+  if (DATE_HOUR.test(unbracketed) && !ext && whole[offset + m.length] === ':') return m;
+  // Any other run of 7+ digits goes, however long: two numbers side by side, or
+  // a number next to a date, are blanked whole rather than shown.
+  if (core.replace(/\P{Nd}/gu, '').length < 7) return kept();
+  // "(415 555 0132)": the opening bracket belongs to the sentence, not the number.
+  const keepOpen = LEADING_OPEN.test(core) && count(core, OPEN) > count(core, CLOSE);
+  return keepOpen ? `${core[0]}a number` : 'a number';
+}
+
+function blankSpelled(m: string): string {
+  const tokens = m.split(/[\s,.-]+/u).filter(Boolean);
+  const words = tokens.filter((t) => IS_DIGIT_WORD.test(t)).length;
+  const digits = tokens.reduce((n, t) => n + (IS_DIGIT_WORD.test(t) ? 1 : t.length), 0);
+  return words >= 3 && digits >= 7 ? 'a number' : m;
+}
+
 /**
  * Phone-shaped runs are matched over the whole text first, and one is kept only
  * when all of it is a date or a date-time, so a date-shaped run inside a longer
  * number can never split that number and leave part of it showing.
  */
-function withoutContactDetails(text: string): string {
-  return text
-    .replace(EMAIL_LIKE, 'an email address')
-    .replace(PHONE_LIKE, (m: string, offset: number, whole: string) => {
-      if (DATE_ONLY.test(m)) return m;
-      if (DATE_HOUR.test(m) && whole[offset + m.length] === ':') return m;
-      // Any other run of 7+ digits goes, however long: two numbers side by
-      // side, or a number next to a date, are blanked whole rather than shown.
-      return m.replace(/\D/g, '').length >= 7 ? 'a number' : m;
-    });
+export function withoutContactDetails(text: string): string {
+  return (
+    text
+      .replace(EMAIL_LIKE, 'an email address')
+      .replace(SPELLED_EMAIL, blankSaidEmail)
+      // Said digits first, so "four one five 555 0132" goes whole, not as "four one five a number".
+      .replace(SPELLED_NUMBER, blankSpelled)
+      .replace(PHONE_LIKE, blankPhone)
+  );
 }
 
 /**

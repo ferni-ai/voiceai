@@ -7,6 +7,7 @@
  * Extracted from tool-orchestrator.ts for modularity.
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getContextCarrier } from '../context-carrier.js';
 import { toolRegistry } from '../registry/index.js';
@@ -72,6 +73,10 @@ export function limitTools(
 
 /**
  * Build cache key for tool selection.
+ *
+ * PERSONA_TOOL_POLICY=on: the key also carries the policy and the exclusions
+ * (sorted), so a selection made with the policy on, or with other exclusions, is
+ * never served after a flag flip or to a request without them. Off: as before.
  */
 export function buildCacheKey(request: ToolSelectionRequest): string {
   // Normalize transcript to reduce cache misses
@@ -80,7 +85,10 @@ export function buildCacheKey(request: ToolSelectionRequest): string {
     .replace(/[^\w\s]/g, '')
     .slice(0, 100);
 
-  return `${request.agentId}:${request.userId}:${normalizedTranscript}`;
+  const key = `${request.agentId}:${request.userId}:${normalizedTranscript}`;
+  if (!flagOn('PERSONA_TOOL_POLICY')) return key;
+  const excluded = [...new Set(request.forceExclude ?? [])].sort().join(',');
+  return `${key}:policy:${excluded}`;
 }
 
 // ============================================================================

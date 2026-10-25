@@ -24,7 +24,7 @@ import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 import { sessionRecording } from '../shared/session-recording.js';
-import { participantKind, toolCallText } from './startup-log.js';
+import { errorText, participantKind, toolCallText } from './startup-log.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -159,7 +159,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
       );
     } catch (briefingErr) {
-      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${String(briefingErr)}\n`);
+      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${errorText(briefingErr)}\n`);
     }
   })();
 
@@ -241,7 +241,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // TTS cache warming (fire-and-forget)
   const { warmSessionCache } = await import('../shared/performance/cache-aware-tts.js');
   warmSessionCache(sessionPersona.id, userData.emotionalState as string | undefined).catch(
-    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${err}\n`)
+    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${errorText(err)}\n`)
   );
 
   // Register initial tools with session
@@ -323,7 +323,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         sendDataMessage,
       }).catch((err) => {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ Audio processor ended: ${err}\n`
+          `[voice-agent-entry] ⚠️ Audio processor ended: ${errorText(err)}\n`
         );
       });
     };

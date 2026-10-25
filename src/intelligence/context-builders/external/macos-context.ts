@@ -404,7 +404,7 @@ export const macOSContextBuilder: ContextBuilder = {
       return [];
     }
 
-    log.debug({ context: macOSContext, ageMs: contextAge }, 'Building macOS context injection');
+    log.debug({ contextKeys: Object.keys(macOSContext), ageMs: contextAge }, 'Building macOS context injection');
 
     const injections: ContextInjection[] = [];
 

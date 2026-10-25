@@ -15,7 +15,9 @@
 		6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F086DF8C257F87FC0940C6A /* Assets.xcassets */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
 		A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F678B752992C142D10FE5E /* AudioRoutePicker.swift */; };
+		B0B567B29058A9FEF290836E /* CallViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346AABA0EB545D4C92B2D8CD /* CallViews.swift */; };
 		B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E550D3CF186D8D463FF66E /* SettingsView.swift */; };
+		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
 		F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 3A2B0DD01002A1C6F9C20247 /* FerniDesign */; };
 /* End PBXBuildFile section */
 
@@ -23,9 +25,11 @@
 		03F678B752992C142D10FE5E /* AudioRoutePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRoutePicker.swift; sourceTree = "<group>"; };
 		0F086DF8C257F87FC0940C6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		12AD4DC924A1BFC0A91BA221 /* FerniKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniKit; path = Packages/FerniKit; sourceTree = SOURCE_ROOT; };
+		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		974DF185A4FA58E1F08FD688 /* FerniApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniApp.swift; sourceTree = "<group>"; };
 		ADAF04ADD5C0DB140C9F7769 /* Ferni.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ferni.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8C71781BAD997D314C08864 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -62,6 +66,8 @@
 			children = (
 				0F086DF8C257F87FC0940C6A /* Assets.xcassets */,
 				03F678B752992C142D10FE5E /* AudioRoutePicker.swift */,
+				346AABA0EB545D4C92B2D8CD /* CallViews.swift */,
+				7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */,
 				F0356DF8A0D911077889805D /* Ferni.entitlements */,
 				974DF185A4FA58E1F08FD688 /* FerniApp.swift */,
 				F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */,
@@ -173,6 +179,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */,
+				B0B567B29058A9FEF290836E /* CallViews.swift in Sources */,
+				DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */,
 				7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */,
 				27464AAE3E6286E2D651309D /* HomeView.swift in Sources */,
 				B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */,

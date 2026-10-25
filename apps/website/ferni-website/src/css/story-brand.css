@@ -908,7 +908,7 @@ button {
 
 .btn--secondary:hover {
   border-color: var(--color-forest-green);
-  background: rgba(61, 90, 69, 0.05);
+  background: var(--color-accent-subtle);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -1027,7 +1027,7 @@ button {
    ============================================ */
 .team-card {
   padding: var(--space-8);
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1529,7 +1529,7 @@ button {
 .feature {
   text-align: center;
   padding: var(--space-8);
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   box-shadow:
@@ -2007,7 +2007,7 @@ button {
 /* Base pricing card */
 .pricing-card {
   padding: var(--space-10);
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: 28px;
   border: 1px solid rgba(44, 37, 32, 0.08);
   text-align: center;
@@ -2156,7 +2156,7 @@ button {
 }
 
 .pricing-card--featured .btn--primary {
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   color: var(--color-natural-ink);
 }
 
@@ -2169,7 +2169,7 @@ button {
    ============================================ */
 /* Fund Explainer - How it Works */
 .fund-explainer {
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: 28px;
   padding: var(--space-10) var(--space-8);
   margin-bottom: var(--space-12);
@@ -2255,7 +2255,7 @@ button {
 /* Gift Card */
 .gift-card {
   padding: var(--space-8);
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.08);
   text-align: center;
@@ -2275,7 +2275,7 @@ button {
 
 /* Featured Gift Card */
 .gift-card--featured {
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border: 2px solid var(--color-ferni-green);
   position: relative;
   box-shadow:
@@ -2615,7 +2615,7 @@ button {
   flex-direction: column;
   align-items: center;
   padding: var(--space-8) clamp(32px, 8vw, 64px);
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-xl);
   text-decoration: none;
   position: relative;
@@ -2684,7 +2684,7 @@ button {
 }
 
 .final-cta .btn--primary {
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   color: var(--color-natural-ink);
 }
 
@@ -4547,7 +4547,7 @@ html {
   padding: var(--space-8) var(--space-5);
   background: var(--color-paper-cream);
   border-radius: var(--radius-2xl);
-  border: 1px solid rgba(44, 37, 32, 0.05);
+  border: 1px solid var(--color-border-subtle);
   transition: 
     all var(--duration-normal) var(--ease-smooth);
 }
@@ -5453,7 +5453,7 @@ img[loading='lazy']:not([data-src]) {
 
 /* Speech bubble - elevated glass */
 .two-am__bubble {
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   padding: var(--space-8) var(--space-10);
   border-radius: 28px;
   box-shadow:
@@ -5510,7 +5510,7 @@ img[loading='lazy']:not([data-src]) {
   margin-top: clamp(40px, 6vh, 64px);
   -webkit-overflow-scrolling: touch;
   padding: var(--space-4);
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-xl);
   box-shadow:
     0 1px 2px rgba(44, 37, 32, 0.04),
@@ -5577,7 +5577,7 @@ img[loading='lazy']:not([data-src]) {
 .proof-table__icon {
   width: 48px;
   height: 48px;
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -6369,7 +6369,7 @@ img[loading='lazy']:not([data-src]) {
 /* Card Styling */
 .story__card {
   padding: var(--space-8);
-  background: var(--page-card, white);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   box-shadow: 0 1px 2px rgba(44, 37, 32, 0.04),
@@ -6468,7 +6468,7 @@ img[loading='lazy']:not([data-src]) {
   gap: var(--space-4);
   margin-top: var(--space-12);
   padding-top: var(--space-8);
-  border-top: 1px solid rgba(44, 37, 32, 0.1);
+  border-top: 1px solid var(--color-border-medium);
   justify-content: center;
 }
 

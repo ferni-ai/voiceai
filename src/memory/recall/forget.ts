@@ -22,7 +22,7 @@
  *
  * @module memory/recall/forget
  */
-import { FieldValue } from '@google-cloud/firestore';
+import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
@@ -282,13 +282,17 @@ export const firestoreForgetStore: ForgetStore = {
   },
   async topics(userId) {
     const db = getFirestoreDb();
-    if (!db) return null;
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('memory_state')
-      .doc('forgotten')
-      .get();
-    return parseTopics(doc.exists ? doc.data()?.topics : undefined);
+    return db ? readForgottenTopics(db, userId) : null;
   },
 };
+
+/** The topics recorded in `db` (memory_state/forgotten), parsed as parseTopics does. */
+export async function readForgottenTopics(db: Firestore, userId: string): Promise<string[] | null> {
+  const doc = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('memory_state')
+    .doc('forgotten')
+    .get();
+  return parseTopics(doc.exists ? doc.data()?.topics : undefined);
+}
