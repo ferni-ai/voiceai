@@ -27,7 +27,7 @@ export function setRecentContextTopicsReader(next: TopicsReader | undefined): vo
 export async function forgottenFor(userId: string): Promise<Forgotten | null> {
   const { aboutForgotten, forgottenInProcess, forgottenWithin } =
     await import('../../../memory/index.js');
-  if (!topicsReader) return forgottenWithin(userId).catch(() => null);
+  if (!topicsReader) return forgottenWithin(userId, 'recent-context').catch(() => null);
   const stored = await topicsReader(userId).catch(() => null);
   if (stored === null) return null;
   const topics = [...stored, ...forgottenInProcess(userId)];

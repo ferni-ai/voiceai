@@ -15,7 +15,8 @@ import { forgottenWithin, type ForgottenCheck } from './forget-every-reader.js';
  */
 export async function summaryCheck(
   userId: string | null | undefined,
-  read: (userId: string) => Promise<ForgottenCheck | null> = forgottenWithin
+  read: (userId: string) => Promise<ForgottenCheck | null> = (u) =>
+    forgottenWithin(u, 'last-summary')
 ): Promise<ForgottenCheck | null> {
   return isMemberIdentity(userId) ? read(userId) : () => false;
 }
