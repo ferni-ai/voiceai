@@ -16,6 +16,7 @@
 
 import { playMicroExpression } from '../eq/index.js';
 import { t } from '../i18n/index.js';
+import { appState } from '../state/app.state.js';
 import type { DataMessage } from '../types/events.js';
 import { toast } from '../ui/whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
@@ -90,15 +91,23 @@ function closeBoardOf(start: GameStart): void {
   document.dispatchEvent(new CustomEvent('ferni:game-ended', { detail }));
 }
 
-/** The call ended: nothing is coming, so nothing may be announced later. */
-function forgetGameStarts(): void {
+/**
+ * The call ended: no ack is coming, so nothing may be announced later. call-end.ts
+ * onCallEnded calls this on every end; the listeners below catch the rest.
+ */
+export function forgetGameStarts(): void {
   if (pending) clearTimeout(pending.timer);
   pending = null;
   timedOut.clear();
   boardOpener = null;
 }
+// The agent left; the room closed or dropped (connection.service reports every end here);
+// or the page went into the back/forward cache with a start still waiting.
 document.addEventListener('ferni:disconnected', forgetGameStarts);
-document.addEventListener('ferni:session-end', forgetGameStarts);
+appState.subscribe('connection', (state) => {
+  if (state === 'disconnected' || state === 'error') forgetGameStarts();
+});
+window.addEventListener('pagehide', forgetGameStarts);
 
 /** The waiting start of this game, taken off the clock. */
 function takePending(gameType: unknown): GameStart | null {

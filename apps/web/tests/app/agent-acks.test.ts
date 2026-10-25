@@ -26,6 +26,11 @@ vi.mock('../../src/ui/whisper.ui.js', () => ({
 
 // The room a handoff request is published to.
 const published = vi.hoisted(() => [] as unknown[]);
+// onCallEnded's after-call card isn't under test.
+vi.mock('../../src/ui/after-call/post-call.js', () => ({
+  showPostCallCard: vi.fn(async () => {}),
+}));
+
 vi.mock('../../src/services/connection.service.js', () => ({
   connectionService: {
     getRoom: () => ({
@@ -48,6 +53,12 @@ vi.mock('../../src/utils/gsap-setup.js', () => ({
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
 import { GAME_ACK_TIMEOUT_MS } from '../../src/app/agent-ack-handlers.js';
+import { onCallEnded, onCallStarted } from '../../src/app/call-end.js';
+import {
+  CALL_WRAP_UP_STORAGE_KEY,
+  isCallWrapUpEnabled,
+} from '../../src/config/call-wrap-up-flag.js';
+import { setConnectionState } from '../../src/state/app.state.js';
 import { handoffService } from '../../src/services/handoff.service.js';
 import { destroyGameBoard, initGameBoard } from '../../src/ui/game-board.ui.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
@@ -192,17 +203,55 @@ describe('a game start the agent never answers', () => {
     expect(toastCalls.error).toEqual([]);
   });
 
-  it.each(['ferni:disconnected', 'ferni:session-end'])(
-    'after hanging up (%s) nothing is announced',
-    (event) => {
+  it('hanging up through the real onCallEnded, with call wrap-up off, announces nothing', () => {
+    localStorage.setItem(CALL_WRAP_UP_STORAGE_KEY, 'false');
+    const sent = vi.fn();
+    document.addEventListener('ferni:disconnected', sent);
+    try {
+      expect(isCallWrapUpEnabled()).toBe(false);
+      onCallStarted();
       pickerOpensBoard('tic-tac-toe');
       vi.advanceTimersByTime(3_000);
-      document.dispatchEvent(new CustomEvent(event));
+      onCallEnded(); // what performStandardDisconnect runs on a hang-up
+      expect(sent).not.toHaveBeenCalled(); // the flag-off end sends no ferni:disconnected
       vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
       expect(toastCalls.error).toEqual([]);
       expect(toastCalls.success).toEqual([]);
+    } finally {
+      document.removeEventListener('ferni:disconnected', sent);
+      localStorage.removeItem(CALL_WRAP_UP_STORAGE_KEY);
     }
-  );
+  });
+
+  it.each([
+    [
+      'the agent leaving (ferni:disconnected)',
+      () => document.dispatchEvent(new CustomEvent('ferni:disconnected')),
+    ],
+    ['the room closing or dropping', () => setConnectionState('disconnected')],
+    ['a failed connection', () => setConnectionState('error')],
+    [
+      'the page going into the back/forward cache',
+      () => window.dispatchEvent(new Event('pagehide')),
+    ],
+  ])('after %s nothing is announced', (_label, end) => {
+    setConnectionState('connected'); // on a call
+    pickerOpensBoard('tic-tac-toe');
+    vi.advanceTimersByTime(3_000);
+    end();
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+    expect(toastCalls.error).toEqual([]);
+    expect(toastCalls.success).toEqual([]);
+    setConnectionState('disconnected');
+  });
+
+  it('a call that is only reconnecting keeps the wait', () => {
+    pickerOpensBoard('tic-tac-toe');
+    setConnectionState('reconnecting');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+    expect(toastCalls.error).toEqual([FAILED]);
+    setConnectionState('disconnected');
+  });
 
   it("two taps in a row: the first one's clock stops, the second one's runs", () => {
     pickerOpensBoard('tic-tac-toe');
