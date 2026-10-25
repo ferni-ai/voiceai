@@ -94,22 +94,12 @@ async function resolveContact(
     // =========================================================================
     // FALLBACK: Legacy contact_relationships collection
     // =========================================================================
-    const { searchContacts } =
-      await import('../../../services/contacts/contact-relationship-service.js');
-
-    const results = await searchContacts(userId, contactQuery);
-
-    if (results.length === 0) {
-      log.debug({ contactQuery, userId }, 'No contact found in any store');
-      return null;
-    }
-
-    // Take the first (best) match
-    const contact = results[0];
-
-    // ContactRelationship has phone as optional string
-    if (!contact.phone) {
-      log.debug({ contactQuery, contactName: contact.name }, 'Contact has no phone number');
+    // The best match WITH a number, never a phoneless first row (contact-pick.ts, audit rows 1-2)
+    const { pickContact, searchLegacyContacts } = await import('./contact-pick.js');
+    const results = await searchLegacyContacts(userId, contactQuery);
+    const contact = pickContact(results, contactQuery);
+    if (!contact?.phone) {
+      log.info({ matches: results.length }, 'No contact with a number found in any store');
       return null;
     }
 
@@ -306,24 +296,14 @@ async function saveContactForFuture(
   try {
     const { upsertContact } =
       await import('../../../services/contacts/contact-relationship-service.js');
+    const { contactSaveFields } = await import('./contact-pick.js');
+    // "my dad" is saved as "Dad"; a request naming no one saves nothing
+    const fields = contactSaveFields(contactQuery, inferRelationshipFromQuery(contactQuery));
+    if (!fields) return;
 
-    // Extract a clean name from the query
-    const cleanName = contactQuery
-      .replace(/^(my\s+)/i, '') // Remove "my " prefix
-      .replace(/\s+at\s+.*$/i, '') // Remove "at [phone]" suffix
-      .trim();
+    await upsertContact(userId, { ...fields, contactId: `phone_${phone}`, phone });
 
-    const relationship = inferRelationshipFromQuery(contactQuery);
-
-    await upsertContact(userId, {
-      name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1), // Capitalize
-      contactId: `phone_${phone}`,
-      phone,
-      relationship: relationship ? 'family' : 'other',
-      notes: relationship ? `User's ${relationship}` : undefined,
-    });
-
-    log.info({ userId, name: cleanName, relationship }, '📇 Contact saved for future calls');
+    log.info({ name: fields.name }, '📇 Contact saved for future calls');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save contact');
     // Non-critical - don't throw
