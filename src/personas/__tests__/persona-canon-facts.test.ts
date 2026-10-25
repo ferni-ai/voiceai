@@ -198,7 +198,7 @@ describe('canon calls hold in every file of the bundle', () => {
     ],
     [
       'maya-santos',
-      /\bFilipin[oa] roots\b|(?<!Filipino-)\bBrazilian (?:heritage|roots)\b|\bI'm (?:Filipin[oa]|Brazilian)-American\b/,
+      /\bFilipin[oa] (?:roots|heritage)\b|(?<!Filipino-)\bBrazilian (?:heritage|roots)\b|\bI'm (?:Filipin[oa]|Brazilian)-American\b/,
       'Maya is Filipino-Brazilian, never one side alone',
     ],
     [
@@ -208,7 +208,7 @@ describe('canon calls hold in every file of the bundle', () => {
     ],
     [
       'maya-santos',
-      /\bmy husband\b|can't keep a dating relationship/i,
+      /\bmy (?:husband|wife|fianc[eé]e?)\b|\bour wedding\b|\b(?:I'm|we're|we got) married\b|can't keep a dating relationship/i,
       'Daniel is her partner of six years',
     ],
     [
@@ -219,8 +219,14 @@ describe('canon calls hold in every file of the bundle', () => {
     ['alex-chen', /(?<!')\bmy (?:partner|girlfriend|boyfriend|wife|husband)\b/i, 'Alex is single'],
   ];
 
+  /** Ferni's silence lines outside the bundle, which the live silence path speaks. */
+  const FERNI_EXTRA = ['meaningful-silence.ts', 'meaningful-silence/content.ts'].map(
+    (f): [string, string] => [f, readFileSync(join(BUNDLES, '..', f), 'utf8')]
+  );
+
   it.each(CONFLICTS)('%s: %s is said nowhere (%s)', (bundle, claim) => {
-    const hits = bundleFiles(bundle).flatMap(([file, text]) =>
+    const files = bundle === 'ferni' ? [...bundleFiles(bundle), ...FERNI_EXTRA] : bundleFiles(bundle);
+    const hits = files.flatMap(([file, text]) =>
       text
         .split('\n')
         .filter((line) => claim.test(line))
