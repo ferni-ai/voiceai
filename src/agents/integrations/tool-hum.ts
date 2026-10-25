@@ -57,10 +57,10 @@ export interface ToolHumDeps {
   mood: () => string | undefined;
   /** What they said lately was heavy, or the call has crisis risk (presence-heavy.ts). */
   serious?: () => boolean;
-  /** The call has said its goodbyes or is closing (call-farewell.ts). */
-  quiet?: () => boolean;
   /** A crisis verdict is still pending for this turn (crisisVerdictPending), read when the hum is due. */
   crisisPending?: () => unknown;
+  /** The call has said its goodbyes or is closing (call-farewell.ts). */
+  quiet?: () => boolean;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
 }
