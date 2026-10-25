@@ -20,7 +20,7 @@ import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
-import { carryOwnCallMe, heldCall } from './held-call.js';
+import { carryOwnCallMe, heldCall, isOwnCallMe } from './held-call.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 
@@ -43,6 +43,9 @@ export interface ProactiveCallRequest {
   maxDuration?: number; // seconds
   enableConversation?: boolean; // Allow two-way talk?
   voicemailFallback?: boolean; // Leave message if no answer?
+  /** A call they asked for or set (a deferral of their own "call me", one they scheduled):
+   * "Ferni can reach out" off doesn't stop it. Code sets it, never the model. */
+  askedFor?: boolean;
 }
 
 export interface CallResult {
@@ -173,6 +176,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
       return { success: false, error: 'Invalid phone number format' };
     }
     if (await heldCall(request)) return { success: false, error: 'Not calling: held' };
+    if (await pausedCall(request)) return { success: false, error: 'Not calling: outreach paused' };
     // MESSAGING_PIPELINE: the member's own number or one they hold a call grant for, never past an
     // opt-out. A call-hours hold is re-checked when placed (deferred-calls.ts), never stale.
     const refused = await ownerRefusal(userId, normalizedPhone, 'call');
@@ -180,7 +184,12 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
 
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
     const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
-    const call = { kind: 'proactive' as const, request: { ...request, scheduledFor: undefined } };
+    // Their own "call me" held for call hours stays theirs when it rings later (pausedCall)
+    const asked = isOwnCallMe(request) && { askedFor: true };
+    const call = {
+      kind: 'proactive' as const,
+      request: { ...request, scheduledFor: undefined, ...asked },
+    };
     const due = requestedFor <= new Date();
     const deferral = due && (await holdForCallHours(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
@@ -231,6 +240,17 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     log.error({ error: String(error), userId }, 'Failed to schedule proactive call');
     return { success: false, error: String(error) };
   }
+}
+
+/**
+ * "Ferni can reach out" is off: no call Ferni starts on its own to their own number. Their own
+ * "call me" (asOwnCallMe, call-user-adapter.ts) still rings, and so does one the call-hours guard
+ * held for later (`askedFor`, saved with the deferral). Check-ins and the rest are Ferni's.
+ */
+async function pausedCall(request: ProactiveCallRequest): Promise<boolean> {
+  if (isOwnCallMe(request) || request.askedFor === true) return false;
+  const { outreachPausedFor } = await import('./guarded-text.js');
+  return outreachPausedFor(request.userId, request.phoneNumber);
 }
 
 /** Initiate an outbound call using Twilio + LiveKit */
@@ -529,6 +549,8 @@ export type { ScheduledCall as OutboundCall };
 export interface OutboundCallContext {
   // Simple mode (backward compatible)
   userId?: string;
+  /** They asked for or scheduled this call themselves (ProactiveCallRequest.askedFor). */
+  askedFor?: boolean;
   phoneNumber?: string;
   message?: string;
   ssml?: string;
@@ -721,6 +743,7 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
     personaId: context.personaId || context.persona || 'ferni',
     reason: context.reason || context.trigger?.reason || 'outbound_call',
     maxDuration: context.maxDuration || context.approach?.maxDuration,
+    ...(context.askedFor === true && { askedFor: true }),
   });
 }
 

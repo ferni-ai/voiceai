@@ -167,6 +167,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
           message: target.message || target.purpose,
           personaId,
           reason: target.purpose,
+          askedFor: true, // they scheduled it
         };
         const result = await makeConversationalCall(callContext);
         success = result.status === 'initiating' || result.status === 'ringing';
@@ -176,7 +177,8 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
           target.resolvedPhone,
           target.message || target.purpose,
           personaId,
-          { fallbackToTwilioVoice: true, ownerUid: userId, userId }
+          // They scheduled it: "Ferni can reach out" off doesn't stop it
+          { fallbackToTwilioVoice: true, ownerUid: userId, userId, askedFor: true }
         );
         success = result.success;
         errorMsg = result.success ? undefined : result.message;

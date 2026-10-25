@@ -367,6 +367,7 @@ async function executeOutreach(
           | 'alex-chen'
           | 'jordan-taylor'
           | 'nayan',
+        askedFor: true, // a call they confirmed (outreach-confirm.ts)
       };
 
       const result = await makeConversationalCall(callContext);
@@ -419,6 +420,7 @@ async function executeOutreach(
         fallbackToTwilioVoice: true,
         ownerUid: userId,
         userId,
+        askedFor: true, // a call they confirmed (outreach-confirm.ts)
       });
 
       if (result.success) {

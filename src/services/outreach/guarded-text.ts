@@ -103,6 +103,8 @@ export interface GuardedText {
   readonly minGapMs: number;
   /** The owner asked for it in the call just now: an unreadable consent record doesn't hold it (text-consent.ts). */
   readonly askedNow?: boolean;
+  /** A reminder they set themselves: "Ferni can reach out" off doesn't hold it (texts off does). */
+  readonly personSet?: boolean;
 }
 
 export type TextSkip =
@@ -163,14 +165,39 @@ export async function isOwnVerifiedPhone(
   return own !== undefined && own === toE164(phone);
 }
 
-/** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
+/**
+ * The member explicitly turned texts off, in outreach settings or by a STOP to the webhook.
+ * "Ferni can reach out" off (enabled: false) pauses what Ferni starts on its own, never a text
+ * they asked for (`pauseExempt`: just now, or a reminder they set); texts switched off stop both.
+ */
 export function smsTurnedOff(
   userDoc: Record<string, unknown> | undefined,
-  legacyChannels: unknown
+  legacyChannels: unknown,
+  opts: { pauseExempt?: boolean } = {}
 ): boolean {
   const prefs = (userDoc?.outreachPreferences ?? {}) as { enabled?: unknown; channels?: unknown };
   const withoutSms = (c: unknown): boolean => Array.isArray(c) && !c.includes('sms');
-  return prefs.enabled === false || withoutSms(prefs.channels) || withoutSms(legacyChannels);
+  const paused = prefs.enabled === false && !opts.pauseExempt;
+  return paused || withoutSms(prefs.channels) || withoutSms(legacyChannels);
+}
+
+/**
+ * "Ferni can reach out" is off and `phone` is the member's own verified number: a call Ferni
+ * starts on its own doesn't ring (How I reach you, POST /api/outreach/pause). Someone else's
+ * number is not theirs to pause. An unreadable record doesn't pause anything.
+ */
+export async function outreachPausedFor(
+  userId: string | undefined,
+  phone: string,
+  deps: Pick<TextDeps, 'store' | 'authPhone'> = defaultTextDeps()
+): Promise<boolean> {
+  if (!userId || userId.startsWith('sponsored_')) return false;
+  const doc = await Promise.resolve()
+    .then(() => deps.store.userDoc(userId))
+    .catch(() => undefined);
+  const prefs = (doc?.outreachPreferences ?? {}) as { enabled?: unknown };
+  if (prefs.enabled !== false) return false;
+  return isOwnVerifiedPhone(userId, phone, deps).catch(() => false);
 }
 
 /** Twilio errors can quote the number (21211: "The 'To' number +1555... is not valid"). */
@@ -253,7 +280,8 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(records, t.kind), now, t.minGapMs)) return skip('recently-sent');
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
-  if (smsTurnedOff(userDoc, legacyChannels)) return skip('sms-off');
+  const pauseExempt = t.askedNow === true || t.personSet === true;
+  if (smsTurnedOff(userDoc, legacyChannels, { pauseExempt })) return skip('sms-off');
 
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');

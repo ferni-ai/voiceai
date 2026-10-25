@@ -218,6 +218,16 @@ function getOptimalSendTime(userId: string): Date {
 
 export async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
   try {
+    // Thinking-of-you, follow-ups, milestones: Ferni's own, so "Ferni can reach out" off stops them
+    const { readOutreachConsent } = await import('./outreach-consent.js');
+    const reach = await readOutreachConsent(outreach.userId).then(
+      (c) => c.enabled,
+      () => true
+    );
+    if (!reach) {
+      log.info({ outreachId: outreach.id, type: outreach.type }, 'Outreach paused: not delivered');
+      return false;
+    }
     const prefs = userPreferences.get(outreach.userId);
     const method = prefs?.preferredMethod ?? 'push';
     const push = async (): Promise<void> => {

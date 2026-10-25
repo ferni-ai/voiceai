@@ -583,7 +583,13 @@ export async function deliverReminderOutcome(
           reminder.deliveryAddress,
           messageToDeliver,
           personaId,
-          { fallbackToTwilioVoice: true, ownerUid: reminder.userId, userId: reminder.userId }
+          // A reminder they set: it rings with "Ferni can reach out" off
+          {
+            fallbackToTwilioVoice: true,
+            ownerUid: reminder.userId,
+            userId: reminder.userId,
+            askedFor: true,
+          }
         );
         if (!callResult.success) {
           throw new Error(callResult.message);

@@ -327,6 +327,7 @@ async function executeOutreach(
           fallbackToTwilioVoice: true,
           ownerUid: userId,
           userId,
+          askedFor: true, // a call they confirmed (outreach-confirm.ts)
         });
 
         return {

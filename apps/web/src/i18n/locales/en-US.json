@@ -1436,7 +1436,7 @@
     "smsDisclosure": "Turn on texts and Ferni will text this number with reminders and check-ins, up to 3 a day. Msg & data rates may apply. Reply STOP to cancel, HELP for help.",
     "smsTerms": "SMS terms",
     "reachOut": "Ferni can reach out",
-    "reachOutDesc": "Calls and texts from Ferni. Off pauses both.",
+    "reachOutDesc": "Check-ins and calls Ferni starts on its own. Your own reminders still come through.",
     "callDisclosure": "Ferni will only call this number when you ask, or for check-ins you've turned on.",
     "errorChannelsRefresh": "I couldn't turn that on just yet. Refresh the page and try again?"
   },

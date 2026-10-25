@@ -3,9 +3,10 @@
  *
  * It is the outreach consent's `enabled`, set by POST /api/outreach/pause and
  * /resume and read back as `outreachEnabled` from GET /api/outreach/preferences
- * (loadPhoneAndChannels). Off stops texts AND calls (guarded-text.ts smsTurnedOff,
- * user-reach.ts, the proactive channel policy and the daily run all check it), so
- * the label says exactly that. Until the server has answered, no switch is shown:
+ * (loadPhoneAndChannels). Off pauses the check-ins, texts and calls Ferni starts on its own
+ * (guarded-text.ts smsTurnedOff and outreachPausedFor, proactive calls, the milestone email,
+ * the daily run). Reminders they set, and anything they ask for, still come through (Seth,
+ * 2026-10-25), so the label says exactly that. Until the server has answered, no switch is shown:
  * a guess would be a switch that lies.
  *
  * @module ui/contact-settings-reach
@@ -23,7 +24,10 @@ export function reachSwitchHtml(s: ContactSettingsState): string {
   const on = s.reachOn;
   const label = escapeAttr(t('contactSettings.reachOut', 'Ferni can reach out'));
   const desc = escapeAttr(
-    t('contactSettings.reachOutDesc', 'Calls and texts from Ferni. Off pauses both.')
+    t(
+      'contactSettings.reachOutDesc',
+      'Check-ins and calls Ferni starts on its own. Your own reminders still come through.'
+    )
   );
   return `
     <div class="contact-settings-section" id="reach-out-section">

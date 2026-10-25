@@ -3,7 +3,8 @@
  *
  * PR #2783 removed a push-only "Ferni Check-ins" switch nothing read. The real
  * setting is the outreach consent's on/off (POST /api/outreach/pause and /resume),
- * and it stops texts AND calls, so this switch says so. It shows what the server
+ * and it pauses the check-ins and calls Ferni starts on its own (not reminders they set,
+ * nor what they ask for), so this switch says so. It shows what the server
  * has (GET /api/outreach/preferences `outreachEnabled`), never a guess.
  */
 import { readFileSync } from 'node:fs';
@@ -85,16 +86,20 @@ describe('How I reach you: Ferni can reach out', () => {
     expect(apiGet).toHaveBeenCalledWith('/api/outreach/preferences');
   });
 
-  it('says what it really controls: calls and texts, both', async () => {
+  it('says what it really controls: what Ferni starts on its own, not your reminders', async () => {
     serverSays(true);
     await open();
 
     const label = document.getElementById(reachSwitch()!.getAttribute('aria-labelledby')!);
     const desc = document.getElementById(reachSwitch()!.getAttribute('aria-describedby')!);
     expect(label?.textContent?.trim()).toBe('Ferni can reach out');
-    expect(desc?.textContent?.trim()).toBe('Calls and texts from Ferni. Off pauses both.');
+    expect(desc?.textContent?.trim()).toBe(
+      'Check-ins and calls Ferni starts on its own. Your own reminders still come through.'
+    );
     expect(enUS.contactSettings.reachOut).toBe('Ferni can reach out');
-    expect(enUS.contactSettings.reachOutDesc).toBe('Calls and texts from Ferni. Off pauses both.');
+    expect(enUS.contactSettings.reachOutDesc).toBe(
+      'Check-ins and calls Ferni starts on its own. Your own reminders still come through.'
+    );
     expect(`${label?.textContent} ${desc?.textContent}`).not.toMatch(/\bAI\b/);
   });
 

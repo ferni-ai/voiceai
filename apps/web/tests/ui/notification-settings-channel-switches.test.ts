@@ -131,6 +131,25 @@ describe("When I'll Check In: check-ins by email", () => {
     expect(emailBox()?.checked).toBe(false); // still there, so it can go back on
   });
 
+  it('stays for the rest of the visit once off, through a redraw, and goes back on', async () => {
+    // open: email on; when it goes back on, the server has it off (as this switch left it)
+    serverChannels(['email'], []);
+    await openPanel();
+    flip(false);
+    await flush();
+    const tab = (name: string) =>
+      document.querySelector<HTMLElement>(`.notif-settings__tab[data-tab="${name}"]`)!.click();
+    tab('upcoming');
+    tab('settings'); // redraws the settings tab from this visit's state
+    await flush();
+    expect(emailBox()).not.toBeNull();
+    expect(emailBox()?.checked).toBe(false);
+    flip(true);
+    await flush();
+    expect(preferencePosts()).toEqual([{ emailEnabled: false }, { allowedChannels: ['email'] }]);
+    expect(emailBox()?.checked).toBe(true);
+  });
+
   it('switching back on sends the list read just now, plus email', async () => {
     // open: texts and email on; texts went off elsewhere and calls on before email goes back on
     serverChannels(['sms', 'email'], ['call']);

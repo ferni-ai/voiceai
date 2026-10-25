@@ -160,6 +160,7 @@ async function execute(
           fallbackToTwilioVoice: true,
           ownerUid: userId,
           userId,
+          askedFor: true, // they asked for it in this conversation
         });
         if (result.success) {
           return `📞 Calling ${contactInfo.name} now: "${messageToSend}"`;
