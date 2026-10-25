@@ -26,9 +26,13 @@ vi.mock('../../services/messaging/holder-verification.js', () => ({
   recordHolderCode: vi.fn(async () => false),
 }));
 const modelSays = vi.hoisted(() => ({ risk: 'none' }));
+const modelCalls = vi.hoisted(() => vi.fn());
 vi.mock('../../services/safety/crisis-classifier.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/safety/crisis-classifier.js')>()),
-  createGeminiCrisisGenerate: () => async () => `{"risk":"${modelSays.risk}"}`,
+  createGeminiCrisisGenerate: () => async () => {
+    modelCalls();
+    return `{"risk":"${modelSays.risk}"}`;
+  },
 }));
 
 import { handleOutreachWebhookRoutes } from '../outreach-webhook-routes.js';
@@ -55,6 +59,7 @@ beforeEach(() => {
   modelSays.risk = 'none';
   handleInboundSMSWebhook.mockReset().mockResolvedValue({ success: true, twiml: CALL_ME_TWIML });
   recordInboundSmsConsent.mockClear();
+  modelCalls.mockClear();
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -83,10 +88,17 @@ describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
     expect(await text('running late, see you at 6')).toBe(CALL_ME_TWIML);
   });
 
-  it('on: an unsigned (forged) text gets no crisis reply', async () => {
+  it('on: an unsigned (forged) text gets no crisis reply and never reaches the paid classifier', async () => {
     vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
     handleInboundSMSWebhook.mockResolvedValue({ success: false });
     expect(await text('I want to kill myself')).not.toContain('988');
+    expect(modelCalls).not.toHaveBeenCalled();
+  });
+
+  it('on: a signed text is read by the classifier', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    await text('running late, see you at 6');
+    expect(modelCalls).toHaveBeenCalledTimes(1);
   });
 
   it.each(['off', 'shadow'])('%s: the reply is unchanged', async (mode) => {

@@ -9,6 +9,7 @@ import { detectCrisis } from '../../safety/crisis-guard.js';
 import {
   readSmsCrisis,
   SMS_CRISIS_REPLY,
+  SMS_MAX_CHARS,
   smsCrisisReply,
   smsReplyTwiml,
   type SmsCrisisRead,
@@ -80,6 +81,19 @@ describe('smsCrisisReply: the flag', () => {
     });
     expect(await smsCrisisReply('I want to kill myself', boom)).toBe(SMS_CRISIS_REPLY);
     expect(await smsCrisisReply('see you at 6', boom)).toBeNull();
+  });
+});
+
+describe('smsCrisisReply: input size', () => {
+  it('reads at most SMS_MAX_CHARS of a body (a forged or oversized one costs no more)', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    const r = vi.fn(async (_text: string): Promise<SmsCrisisRead> => ({
+      crisis: false,
+      pattern: false,
+      risk: null,
+    }));
+    await smsCrisisReply('a'.repeat(SMS_MAX_CHARS * 10), r);
+    expect(r.mock.calls[0]?.[0]).toHaveLength(SMS_MAX_CHARS);
   });
 });
 

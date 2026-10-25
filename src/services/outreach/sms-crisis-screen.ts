@@ -37,6 +37,8 @@ export const SMS_CRISIS_REPLY =
 
 /** A text isn't a live turn: Twilio waits ~15 s for the webhook, so the classifier gets longer than a call's 1 s. */
 export const SMS_CLASSIFIER_TIMEOUT_MS = 4_000;
+/** Twilio's longest inbound message; anything longer is not a real text and is cut before a read. */
+export const SMS_MAX_CHARS = 1_600;
 
 export interface SmsCrisisRead {
   crisis: boolean;
@@ -65,10 +67,11 @@ export async function readSmsCrisis(
  * that throws falls back to the pattern guard alone.
  */
 export async function smsCrisisReply(
-  text: string,
+  body: string,
   read: (text: string) => Promise<SmsCrisisRead> = readSmsCrisis
 ): Promise<string | null> {
   const mode = flagModeOf('SMS_CRISIS_SCREEN');
+  const text = body.slice(0, SMS_MAX_CHARS);
   if (mode === 'off' || !text.trim()) return null;
   let outcome: SmsCrisisRead;
   try {

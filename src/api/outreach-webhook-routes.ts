@@ -177,14 +177,13 @@ export async function handleOutreachWebhookRoutes(
       const signature = req.headers['x-twilio-signature'] as string;
       const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
 
-      // SMS_CRISIS_SCREEN: read beside the handler (it never rejects); used only once signed.
-      const crisisReply = smsCrisisReply(String(body.Body ?? ''));
       const result = await handleInboundSMSWebhook(
         body as unknown as Parameters<typeof handleInboundSMSWebhook>[0],
         signature,
         fullUrl
       );
-      const crisis = result.success ? await crisisReply : null;
+      // SMS_CRISIS_SCREEN: only a signed text reaches the (paid) classifier; never rejects.
+      const crisis = result.success ? await smsCrisisReply(String(body.Body ?? '')) : null;
       if (crisis) result.twiml = smsReplyTwiml(crisis); // 988 replaces whatever else was said
       // success is false only when the Twilio signature failed; never throws.
       if (result.success) {
