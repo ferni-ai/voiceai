@@ -220,7 +220,7 @@ export function parseMacOSContextMessage(data: Buffer | string): MacOSContextPay
     const message = typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString());
 
     if (message.type === 'macos_context' && message.payload) {
-      log.debug({ payload: message.payload }, 'Received macOS context');
+      log.debug({ payloadKeys: Object.keys(message.payload) }, 'Received macOS context');
       return message.payload as MacOSContextPayload;
     }
 
@@ -404,7 +404,7 @@ export const macOSContextBuilder: ContextBuilder = {
       return [];
     }
 
-    log.debug({ context: macOSContext, ageMs: contextAge }, 'Building macOS context injection');
+    log.debug({ contextKeys: Object.keys(macOSContext), ageMs: contextAge }, 'Building macOS context injection');
 
     const injections: ContextInjection[] = [];
 

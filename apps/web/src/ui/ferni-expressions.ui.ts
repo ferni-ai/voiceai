@@ -199,9 +199,9 @@ function createLidOverlay(): void {
   lidOverlay.innerHTML = `
     <svg viewBox="0 0 100 100" class="lid-svg" preserveAspectRatio="none">
       <!-- Top lid -->
-      <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="var(--color-background-primary, #1a1612)"/>
+      <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="#ffffff"/>
       <!-- Bottom lid (for squinting) -->
-      <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="var(--color-background-primary, #1a1612)"/>
+      <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="#ffffff"/>
       <!-- Dimples - subtle shadows that appear during warm expressions -->
       <!-- Positioned below eyes (cy=47) in cheek area, styled as soft shadows -->
       <ellipse class="dimple dimple-left" cx="28" cy="68" rx="4" ry="3" opacity="0"/>
@@ -1263,18 +1263,8 @@ function injectStyles(): void {
       display: block;
     }
     
-    /* Lid paths - use theme-aware background color */
-    .lid-top, .lid-bottom {
-      transition: d 0.3s ease;
-      /* A shade of the face: a page-colored lid cut a crescent out of the avatar */
-      fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
-    }
-    
-    /* Light theme support */
-    [data-theme="light"] .lid-top,
-    [data-theme="light"] .lid-bottom {
-      fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
-    }
+    /* Lid colour lives in inline-styles.css only: the page colour, the light "cap" that carries
+       the expression (Seth, 2026-10-11). A fill here outranked it in light mode. */
     
     /* Dimples - subtle shadow indents for warm expressions */
     .dimple {

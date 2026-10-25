@@ -1,0 +1,455 @@
+{
+ "_doc": "Trimmed from the dev voice-eval run long-day-fl04 (devdb-08, 2026-10-22): captions, the backchannel_played messages, the scripted caller turns and the voice segments of each agent track. The backchannel_played at 26265 has no side-track audio (every side track silent 26.0-27.5 s; cut before it was heard). Audio paths and the mic recording are dropped.",
+ "meta": {
+  "scenario": "long-day",
+  "label": "fl04",
+  "env": "prod"
+ },
+ "events": [
+  {
+   "t": 4606,
+   "who": "agent",
+   "text": "Hi Sam, it is Ferni, good morning."
+  },
+  {
+   "t": 8534,
+   "who": "user",
+   "text": "Hey"
+  },
+  {
+   "t": 9167,
+   "who": "user",
+   "text": "Hey Ferni"
+  },
+  {
+   "t": 9479,
+   "who": "user",
+   "text": "Hey Ferni, it"
+  },
+  {
+   "t": 9504,
+   "who": "user",
+   "text": "Hey Ferni, it's"
+  },
+  {
+   "t": 9662,
+   "who": "user",
+   "text": "Hey Ferni, it's been"
+  },
+  {
+   "t": 9826,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind"
+  },
+  {
+   "t": 9970,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind of a"
+  },
+  {
+   "t": 10310,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind of a long"
+  },
+  {
+   "t": 10787,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind of a long day"
+  },
+  {
+   "t": 10822,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind of a long day."
+  },
+  {
+   "t": 10830,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind of a long day."
+  },
+  {
+   "t": 11000,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind of a long day."
+  },
+  {
+   "t": 11019,
+   "who": "user",
+   "text": "Hey Ferni, it's been kind of a long day."
+  },
+  {
+   "t": 20303,
+   "who": "agent",
+   "text": "It's barely noon and already feeling like a long one, huh? I'm here, we can just sit with it for a bit, or you can vent if you want to."
+  },
+  {
+   "t": 23908,
+   "who": "user",
+   "text": "Work"
+  },
+  {
+   "t": 24060,
+   "who": "user",
+   "text": "Work was"
+  },
+  {
+   "t": 24198,
+   "who": "user",
+   "text": "Work was just"
+  },
+  {
+   "t": 24218,
+   "who": "user",
+   "text": "Work was just a lot."
+  },
+  {
+   "t": 24242,
+   "who": "user",
+   "text": "Work was just a lot."
+  },
+  {
+   "t": 24526,
+   "who": "user",
+   "text": "Work was just a lot."
+  },
+  {
+   "t": 25486,
+   "who": "user",
+   "text": "Work was just a lot. My"
+  },
+  {
+   "t": 25810,
+   "who": "user",
+   "text": "Work was just a lot. My manager"
+  },
+  {
+   "t": 26156,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a"
+  },
+  {
+   "t": 26624,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a big"
+  },
+  {
+   "t": 27093,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a big deadline"
+  },
+  {
+   "t": 27113,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a big deadline up to Friday"
+  },
+  {
+   "t": 27147,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a big deadline up to Friday."
+  },
+  {
+   "t": 27151,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a big deadline up to Friday."
+  },
+  {
+   "t": 27629,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a big deadline up to Friday."
+  },
+  {
+   "t": 27636,
+   "who": "user",
+   "text": "Work was just a lot. My manager moved a big deadline up to Friday."
+  },
+  {
+   "t": 39385,
+   "who": "agent",
+   "text": "Moving a big deadline up to tomorrow is, I mean, that's just a brutal curveball to throw at you on a Thursday. No wonder the day already feels so incredibly long."
+  },
+  {
+   "t": 42941,
+   "who": "user",
+   "text": "Yeah"
+  },
+  {
+   "t": 43729,
+   "who": "user",
+   "text": "Yeah, honestly"
+  },
+  {
+   "t": 44227,
+   "who": "user",
+   "text": "Yeah, honestly, I"
+  },
+  {
+   "t": 44358,
+   "who": "user",
+   "text": "Yeah, honestly, I don'"
+  },
+  {
+   "t": 44376,
+   "who": "user",
+   "text": "Yeah, honestly, I don't"
+  },
+  {
+   "t": 44511,
+   "who": "user",
+   "text": "Yeah, honestly, I don't even"
+  },
+  {
+   "t": 44679,
+   "who": "user",
+   "text": "Yeah, honestly, I don't even know"
+  },
+  {
+   "t": 44700,
+   "who": "user",
+   "text": "Yeah, honestly, I don't even know where to start"
+  },
+  {
+   "t": 44720,
+   "who": "user",
+   "text": "Yeah, honestly, I don't even know where to start with it."
+  },
+  {
+   "t": 44744,
+   "who": "user",
+   "text": "Yeah, honestly, I don't even know where to start with it."
+  },
+  {
+   "t": 44916,
+   "who": "user",
+   "text": "Yeah, honestly, I don't even know where to start with it."
+  },
+  {
+   "t": 44930,
+   "who": "user",
+   "text": "Yeah, honestly, I don't even know where to start with it."
+  },
+  {
+   "t": 58689,
+   "who": "agent",
+   "text": "When everything hits at once, the hardest part is just finding a place to put your feet down. We don't have to solve it right now. Do you want to just tell me what the project is, or would it help to lay out the very first step?"
+  },
+  {
+   "t": 62122,
+   "who": "user",
+   "text": "Oh"
+  },
+  {
+   "t": 62450,
+   "who": "user",
+   "text": "Oh, and"
+  },
+  {
+   "t": 62945,
+   "who": "user",
+   "text": "Oh, and Bisc"
+  },
+  {
+   "t": 62962,
+   "who": "user",
+   "text": "Oh, and Biscuit"
+  },
+  {
+   "t": 63266,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed"
+  },
+  {
+   "t": 63280,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up"
+  },
+  {
+   "t": 63391,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up my"
+  },
+  {
+   "t": 63730,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up my phone"
+  },
+  {
+   "t": 63940,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up my phone charger"
+  },
+  {
+   "t": 63941,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up my phone charger this morning."
+  },
+  {
+   "t": 63944,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up my phone charger this morning."
+  },
+  {
+   "t": 64117,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up my phone charger this morning."
+  },
+  {
+   "t": 64122,
+   "who": "user",
+   "text": "Oh, and Biscuit chewed up my phone charger this morning."
+  },
+  {
+   "t": 66294,
+   "who": "user",
+   "text": "So"
+  },
+  {
+   "t": 66316,
+   "who": "user",
+   "text": "So, that was"
+  },
+  {
+   "t": 66333,
+   "who": "user",
+   "text": "So, that was fun."
+  },
+  {
+   "t": 66338,
+   "who": "user",
+   "text": "So, that was fun."
+  },
+  {
+   "t": 66509,
+   "who": "user",
+   "text": "So, that was fun."
+  },
+  {
+   "t": 66574,
+   "who": "user",
+   "text": "So, that was fun."
+  },
+  {
+   "t": 87232,
+   "who": "agent",
+   "text": "Well, of course they did. Because when you're already staring down a Friday deadline, what you really need is a puppy, or, wait, is Biscuit a puppy, or a very mischievous cat, deciding your charger is a chew toy. That is just the absolute perfect cherry on top of a chaotic morning."
+  }
+ ],
+ "data": [
+  {
+   "t": 9858,
+   "payload": {
+    "kind": "backchannel",
+    "wireDelayMs": 60,
+    "type": "backchannel_played"
+   }
+  },
+  {
+   "t": 26265,
+   "payload": {
+    "kind": "backchannel",
+    "wireDelayMs": 0,
+    "type": "backchannel_played"
+   }
+  },
+  {
+   "t": 43971,
+   "payload": {
+    "kind": "backchannel",
+    "wireDelayMs": 1,
+    "type": "backchannel_played"
+   }
+  },
+  {
+   "t": 63870,
+   "payload": {
+    "kind": "backchannel",
+    "wireDelayMs": 0,
+    "type": "backchannel_played"
+   }
+  }
+ ],
+ "userSpeech": [
+  [
+   7020,
+   9819
+  ],
+  [
+   22254,
+   26805
+  ],
+  [
+   41189,
+   44625
+  ],
+  [
+   60467,
+   66127
+  ]
+ ],
+ "tracks": [
+  {
+   "name": "agent:roomio_audio",
+   "voice": [
+    [
+     2323,
+     4962
+    ],
+    [
+     12502,
+     20203
+    ],
+    [
+     29053,
+     39133
+    ],
+    [
+     46382,
+     48113
+    ],
+    [
+     48552,
+     58463
+    ],
+    [
+     68573,
+     86204
+    ]
+   ],
+   "startT": 1502
+  },
+  {
+   "name": "agent:background_reactions",
+   "voice": [
+    [
+     9983,
+     10353
+    ],
+    [
+     11393,
+     12003
+    ],
+    [
+     44033,
+     44143
+    ],
+    [
+     45303,
+     45863
+    ],
+    [
+     64103,
+     64673
+    ]
+   ],
+   "startT": 2193
+  },
+  {
+   "name": "agent:background_audio",
+   "voice": [],
+   "startT": 2193
+  },
+  {
+   "name": "agent:background_audio",
+   "voice": [],
+   "startT": 2372
+  }
+ ]
+}

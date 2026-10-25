@@ -151,6 +151,6 @@ export function updateConversationState(
   // Check for wrap-up signals (using pre-compiled regex for performance)
   if (WRAP_UP_PATTERN.test(userText)) {
     convState.markUserWantsToLeave();
-    diag.state('User wants to leave detected', { userText: userText.slice(0, 50) });
+    diag.state('User wants to leave detected', { textChars: userText.length });
   }
 }

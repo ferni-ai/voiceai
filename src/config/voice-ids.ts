@@ -98,14 +98,13 @@ export const CARTESIA_API_URL = process.env.CARTESIA_API_URL || 'https://api.car
  * Bundle manifests are the primary source of truth.
  */
 export const VOICE_IDS = {
-  // Ferni (life coach) - "Ferni calm B", a Cartesia instant clone re-cloned
-  // (2026-10-16) from the calmest takes of his previous voice, "First Principal
-  // 2" (LEGACY_FERNI_IVC_VOICE_ID), so he is still the same person (speaker
-  // similarity 0.98 of take-to-take) at a slightly lower, slower pitch. Blind
-  // listen: calmer and kinder in 6 of 8 same-words pairs, "same person" 3 of 3.
-  // Prod since 2026-10-17 via the FERNI_VOICE_ID secret, which overrides this.
+  // Ferni (life coach) - "First Principal 2", a Cartesia instant clone (Dec 2024
+  // → 2026-10-03, 10-04 → 10-17, and again since 2026-10-20, when Seth moved
+  // prod back from calm B (FERNI_CALM_B_VOICE_ID) because it was too calm).
+  // The FERNI_VOICE_ID secret overrides this in dev and prod; read it through
+  // getVoiceIdForPersona('ferni'), never this constant, so the two can't drift.
   // Instant clones only: a Pro clone ignores <emotion> and <speed>.
-  FERNI: '2e7f8a26-1627-4d66-88dc-293c297c1619',
+  FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
 
   // Peter John (insights quant) - Synced from .env Dec 2024
   PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
@@ -136,14 +135,20 @@ export const VOICE_IDS = {
 } as const;
 
 /**
- * Ferni's previous voice, "First Principal 2" (Cartesia instant clone, Dec 2024
- * → 2026-10-03, and again 2026-10-04 → 10-17; rollback for FERNI_VOICE_ID). Not in
- * VOICE_IDS: no persona speaks with it now. It stays the default for new template
- * agents (literals in .templates manifests, cli/agent-manager.ts) so those never
- * default to Lester's Professional Voice Clone. It is a clone, so the developer
- * voice catalog doesn't offer it.
+ * "Ferni calm B" (instant clone re-cloned 2026-10-16 from the calmest takes of
+ * First Principal 2), Ferni's prod voice 2026-10-17 → 10-20. Seth found it too
+ * calm. Kept only as the rollback value for FERNI_VOICE_ID; no persona's default.
+ * Still a Ferni voice, so custom agents and the developer catalog may not use it.
  */
-export const LEGACY_FERNI_IVC_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+export const FERNI_CALM_B_VOICE_ID = '2e7f8a26-1627-4d66-88dc-293c297c1619';
+
+/**
+ * The other two calm clones cut in the same 2026-10-16 round (spares A and C): copies of
+ * Ferni's own voice that no persona speaks in. A custom agent must not sound like Ferni
+ * either, so they are forbidden exactly like calm B.
+ */
+export const FERNI_CALM_A_VOICE_ID = '24a60cd5-9428-453d-8a95-92f50567f32e';
+export const FERNI_CALM_C_VOICE_ID = '5b13b172-56f9-4821-887a-a943fe949830';
 
 /** Lester Nare (Pro) V3, Ferni's voice 2026-10-03 to 10-04: a PVC that ignores <emotion>/<speed>. */
 export const LESTER_PRO_V3_VOICE_ID = 'ebaf7477-b6ae-417e-be54-19e6176777ea';
@@ -179,9 +184,13 @@ export function getVoiceIdForPersona(personaId: string): string {
 
   // Check environment variable override first
   // Canonical names (preferred) with fallback to legacy names
+  // Every Ferni alias, and the unknown-persona fallback below, honours the override.
+  const ferniOverride = process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID;
   const envOverrides: Record<string, string | undefined> = {
-    ferni: process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID,
-    'jack-b': process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID,
+    ferni: ferniOverride,
+    'jack-b': ferniOverride,
+    coach: ferniOverride,
+    'life-coach': ferniOverride,
     // Peter John: check canonical name, then legacy JACK_BOGLE_VOICE_ID as temporary fallback
     'peter-john': process.env.PETER_JOHN_VOICE_ID || process.env.JACK_BOGLE_VOICE_ID,
     'alex-chen': process.env.ALEX_CHEN_VOICE_ID || process.env.COMM_SPECIALIST_VOICE_ID,
@@ -271,7 +280,7 @@ export function getVoiceIdForPersona(personaId: string): string {
       { personaId, normalized },
       '⚠️ Unknown persona ID in voice lookup - falling back to Ferni voice'
     );
-    return VOICE_IDS.FERNI;
+    return getVoiceIdForPersona('ferni');
   }
   return voiceId;
 }

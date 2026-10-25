@@ -25,10 +25,15 @@
  * clearer in 72 takes. No users' names: those belong to the user.
  * Evidence: ~/Documents/voiceai-evidence/pronunciation-2026-10-20/.
  *
+ * constants.ts's COMMON_DIFFICULT_NAMES (107 sounds-like spellings: Chloe
+ * "Klo-ee", Bjorn "Bee-yorn", Liam "Lee-um", Joao "Zhwow") went in wholesale
+ * from 2026-10-13 to 2026-10-22, untested. A dictionary entry applies to every
+ * caller with that name, however they say it, and the owner heard Ferni say
+ * names "way off" as if on purpose (2026-10-22). So the dictionary holds only
+ * the tables below, each entry tested; a caller's own name is Sonic's to say.
+ *
  * @module speech/pronunciation-memory/team-names
  */
-
-import { COMMON_DIFFICULT_NAMES } from './constants.js';
 
 export const TEAM_NAME_PRONUNCIATIONS: Readonly<Record<string, string>> = {
   // Ferni's team
@@ -98,17 +103,14 @@ export interface PronunciationDictItem {
 }
 
 /**
- * The whole dictionary: the common hard names (sounds-like), then the IPA
- * names, the spoken words and the team, each later table winning a clash.
+ * The whole dictionary: the IPA names, the spoken words and the team, each
+ * later table winning a clash.
  */
 export function pronunciationDictItems(): PronunciationDictItem[] {
   const items = new Map<string, PronunciationDictItem>();
   const add = (text: string, pronunciation: string, caseSensitive = true): void => {
     items.set(text, { text, pronunciation, case_sensitive: caseSensitive });
   };
-  for (const [name, sounds] of Object.entries(COMMON_DIFFICULT_NAMES)) {
-    add(name.charAt(0).toUpperCase() + name.slice(1), sounds);
-  }
   for (const [text, p] of Object.entries(NAME_IPA)) add(text, p);
   for (const [text, p] of Object.entries(SPOKEN_WORD_PRONUNCIATIONS)) add(text, p, false);
   for (const [text, p] of Object.entries(TEAM_NAME_PRONUNCIATIONS)) add(text, p);

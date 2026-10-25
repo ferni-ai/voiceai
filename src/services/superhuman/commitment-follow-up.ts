@@ -17,7 +17,15 @@ import {
   MAX_CHARS,
   needsContext,
   toSecondPerson,
+  type CommitmentLine,
 } from '../../utils/commitment-quality.js';
+import {
+  isCommitmentSingleWriterOn,
+  isJudgedRow,
+  isSingleWriterRow,
+  shownRows,
+  type ForgetListLoader,
+} from './commitment-single-writer.js';
 import { commitmentsShown } from './commitment-forget.js';
 import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
@@ -38,6 +46,8 @@ export interface OpenCommitment {
   /** What they said they'd do ("call my sister Sunday"), or their whole line (`whole`). */
   statement: string;
   whole?: true;
+  /** Money or a credential (judged-commitments.ts): raised on a call only, never in a text. */
+  sensitive?: true;
   createdAt: number;
   targetDate?: number;
   followUpAfter: number;
@@ -77,21 +87,52 @@ function num(v: unknown): number | undefined {
 }
 
 /**
- * A stored document as an open commitment, or null when it isn't one worth
- * asking about. `withContext` is for a reader whose model has the conversation
- * (the call check-in); without it, a line that needs context to make sense is null.
+ * A judged row is the caller's own words, pronouns and all; who it is about is
+ * added when the words don't say ("call her tomorrow (Mindy)").
  */
-export function toOpenCommitment(
-  id: string,
+export function sayBack(statement: string, person: unknown): string {
+  const who = typeof person === 'string' ? person.trim() : '';
+  return who && !statement.toLowerCase().includes(who.toLowerCase()) ? `${statement} (${who})` : statement; // prettier-ignore
+}
+
+/** How a reader asks: `withContext` (its model has the conversation), `judgedOnly` (single writer on). */
+export interface OpenCommitmentOptions {
+  withContext?: boolean;
+  judgedOnly?: boolean;
+}
+
+/**
+ * The line to ask about, or null when the row shouldn't be. `judgedOnly`
+ * (COMMITMENT_SINGLE_WRITER on for this person) keeps only rows the after-call
+ * judge wrote and rows a tool wrote at the caller's request; the latter read as
+ * on main. Judged rows were judged with the whole call, so the line cleanup
+ * meant for the regex captures doesn't apply to them ("text Mindy back").
+ * Without `withContext`, a captured line that needs context to make sense is null.
+ */
+function askableLine(
   d: Record<string, unknown>,
-  opts: { withContext?: boolean } = {}
-): OpenCommitment | null {
-  if (d.status !== 'active') return null;
+  opts: OpenCommitmentOptions
+): CommitmentLine | null {
+  const judged = isJudgedRow(d);
+  if (opts.judgedOnly === true && !isSingleWriterRow(d)) return null;
   const said = String(d.statement ?? d.summary ?? '')
     .slice(0, MAX_CHARS)
     .trim();
-  const line = said.split(/\s+/).length < MIN_WORDS ? null : commitmentLine(said);
-  if (line === null || (opts.withContext !== true && needsContext(line))) return null;
+  const words = said.split(/\s+/).length;
+  if (judged) return words >= 2 ? { text: sayBack(said, d.person), whole: false } : null;
+  const line = words < MIN_WORDS ? null : commitmentLine(said);
+  return line === null || (opts.withContext !== true && needsContext(line)) ? null : line;
+}
+
+/** A stored document as an open commitment, or null when it isn't one worth asking about. */
+export function toOpenCommitment(
+  id: string,
+  d: Record<string, unknown>,
+  opts: OpenCommitmentOptions = {}
+): OpenCommitment | null {
+  if (d.status !== 'active') return null;
+  const line = askableLine(d, opts);
+  if (line === null) return null;
   const createdAt = num(d.createdAt);
   if (createdAt === undefined) return null;
   const targetDate = num(d.targetDate);
@@ -105,6 +146,7 @@ export function toOpenCommitment(
     followUpCount: num(d.followUpCount) ?? 0,
     ...(targetDate !== undefined && { targetDate }),
     ...(lastFollowUp !== undefined && { lastFollowUp }),
+    ...(d.sensitive === true && { sensitive: true as const }),
   };
 }
 
@@ -207,12 +249,19 @@ export async function loadCallCheckIns(
   userId: string,
   store: CommitmentStore = firestoreCommitmentStore,
   now: number = Date.now(),
-  notes?: CallNotes
+  notes?: CallNotes,
+  forgotten?: ForgetListLoader
 ): Promise<OpenCommitment[]> {
   try {
-    const docs = await store.active(userId);
+    // Mid-call: process.env holds this caller's flags (applyCallerFlags).
+    const judgedOnly = isCommitmentSingleWriterOn();
+    const [docs, shown] = await Promise.all([
+      store.active(userId),
+      shownRows(userId, judgedOnly, forgotten),
+    ]);
     const all = docs
-      .map((d) => toOpenCommitment(d.id, d.data, { withContext: true }))
+      .filter((d) => shown(d.data))
+      .map((d) => toOpenCommitment(d.id, d.data, { withContext: true, judgedOnly }))
       .filter((c): c is OpenCommitment => c !== null);
     // A call Ferni was asked to make is asked about only once it has happened (call-status.ts).
     const said = notes

@@ -1,0 +1,61 @@
+import SwiftUI
+
+/// The room Ferni lives in (design north star §3.1): the theme's paper or
+/// Night Ink field, lit softly from behind the avatar in the current
+/// speaker's persona color. The time of day changes the light, never the
+/// layout: brighter and warmer in the morning, dimmer and a little amber late
+/// at night. Opaque content, never glass.
+public struct RoomBackground: View {
+    let persona: WindowPersona
+    let date: Date
+
+    public init(persona: WindowPersona, date: Date = .now) {
+        self.persona = persona
+        self.date = date
+    }
+
+    public var body: some View {
+        let light = RoomLight(hour: Calendar.current.component(.hour, from: date))
+        ZStack {
+            FerniColor.background
+            // Persona light: a radial wash from behind the avatar (persona glow token).
+            RadialGradient(
+                colors: [persona.primaryColor.opacity(light.wash), .clear],
+                center: UnitPoint(x: 0.5, y: 0.3), startRadius: 0, endRadius: 420
+            )
+            light.tint.opacity(light.tintOpacity)
+        }
+        .ignoresSafeArea()
+        .animation(.easeInOut(duration: 0.4), value: persona) // handoff crossfade
+        .accessibilityHidden(true)
+    }
+}
+
+/// How the room is lit at an hour of the day.
+public struct RoomLight: Equatable, Sendable {
+    /// Persona wash opacity, within the north star's 6-10%.
+    public let wash: Double
+    public let tint: Color
+    public let tintOpacity: Double
+
+    public init(hour: Int) {
+        switch hour {
+        case 5..<11: // morning: warmer, brighter
+            wash = 0.10
+            tint = Color(red: 1, green: 0.85, blue: 0.6)
+            tintOpacity = 0.04
+        case 11..<18: // day: as designed
+            wash = 0.08
+            tint = .clear
+            tintOpacity = 0
+        case 18..<23: // evening
+            wash = 0.07
+            tint = Color(red: 1, green: 0.7, blue: 0.4)
+            tintOpacity = 0.04
+        default: // late night: dimmer, a little amber
+            wash = 0.06
+            tint = Color(red: 0.9, green: 0.55, blue: 0.25)
+            tintOpacity = 0.07
+        }
+    }
+}

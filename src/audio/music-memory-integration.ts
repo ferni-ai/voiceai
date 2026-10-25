@@ -1,16 +1,12 @@
 /**
  * Music Memory Integration
- *
  * > "We believe in making AI human, and the decisions we make will reflect that."
- *
  * Remembers what music helped in what situations, enabling responses like:
  * - "Last time you were stressed, that jazz really seemed to help..."
  * - "You mentioned before that lo-fi helps you focus..."
  * - "Remember when we played that Debussy piece? You seemed more at peace after."
- *
  * This integrates with the existing memory system to store music-related memories
  * that persist across sessions.
- *
  * Philosophy: Music is deeply personal. The same song can bring joy to one person
  * and sadness to another. We track what works for EACH user.
  */
@@ -135,6 +131,11 @@ export interface MusicCallbackPhrase {
  */
 const userMusicMemories = new Map<string, MusicHelpedMemory[]>();
 const userMusicPreferences = new Map<string, MusicPreference[]>();
+/** MINOR_CARE: drop a held caller under 18's state, so it is never written later. */
+export function clearHeldMusicMemories(userId: string): void {
+  userMusicMemories.delete(userId);
+  userMusicPreferences.delete(userId);
+}
 
 // ============================================================================
 // MEMORY CREATION
@@ -337,8 +338,7 @@ export function storeMusicHelpedMemory(
     tags: generateTags(musicContext),
   };
 
-  // Store it
-  let memories = userMusicMemories.get(userId);
+  let memories = userMusicMemories.get(userId); // store it
   if (!memories) {
     memories = [];
     userMusicMemories.set(userId, memories);

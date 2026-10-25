@@ -23,6 +23,7 @@ import {
   youSaidYoud,
 } from '../../superhuman/commitment-follow-up.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { shownRows, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
 import { flagForUser } from '../../platform/cohort-flags.js';
 import type { ProactiveTrigger } from './types.js';
 
@@ -87,9 +88,13 @@ async function followThroughOn(userId: string): Promise<boolean> {
 export async function commitmentTriggers(userId: string, now: Date): Promise<ProactiveTrigger[]> {
   if (!(await followThroughOn(userId))) return [];
   const store = firestoreCommitmentStore;
+  const judgedOnly = await singleWriterFor(userId);
+  const shown = await shownRows(userId, judgedOnly);
   const out: ProactiveTrigger[] = [];
   for (const { id, data } of await store.active(userId)) {
-    const c = toOpenCommitment(id, data);
+    const open = shown(data) ? toOpenCommitment(id, data, { judgedOnly }) : null;
+    // A money or credential item is raised only on a call, never in a proactive text.
+    const c = open?.sensitive ? null : open;
     const said = c && quote(youSaidYoud(c), 120);
     if (!c || !said || !dueForPush(c, now.getTime())) continue;
     out.push({

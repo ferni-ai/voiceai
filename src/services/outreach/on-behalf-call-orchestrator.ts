@@ -146,8 +146,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       {
         callId,
         userId: request.userId,
-        contactName: request.resolvedContact?.name,
-        purpose: request.purpose,
+        hasContactName: Boolean(request.resolvedContact?.name), // never the name or purpose
+        purposeChars: request.purpose?.length ?? 0,
         callType: request.callType,
       },
       'Initiating on-behalf call'
@@ -157,7 +157,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     if (!request.resolvedContact?.phone) throw new Error('No phone number available for contact');
 
     const contact = request.resolvedContact;
-    await assertNotOptedOut(contact.phone); // before queueing too: a deferred call would ring later
+    await assertNotOptedOut(contact.phone, undefined, request.userId); // before queueing too: a deferred call would ring later
     const held = { recipientPhone: contact.phone, sponsorUserId: request.userId };
     const deferral = await holdForCallHours(request.userId, { kind: 'on_behalf', request }, held);
     if (deferral) return deferral.id;
@@ -170,7 +170,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
     // Only enrich for personal calls with brief purposes
     if (request.callType === 'personal' && this.shouldEnrichMessage(request.purpose)) {
-      log.info({ purpose: request.purpose }, 'Enriching message for better-than-human delivery');
+      log.info({ chars: request.purpose.length }, 'Enriching the message for delivery');
 
       const enrichmentContext: EnrichmentContext = {
         originalMessage: request.purpose,
@@ -190,8 +190,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       enrichedMessage = await enrichMessage(enrichmentContext);
       log.info(
         {
-          original: request.purpose,
-          enriched: enrichedMessage.message.slice(0, 100) + '...',
+          originalChars: request.purpose.length,
+          enrichedChars: enrichedMessage.message.length,
           type: enrichedMessage.metadata.enrichmentType,
         },
         'Message enriched successfully'
@@ -333,7 +333,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     script: string
   ): Promise<void> {
     log.info(
-      { roomName, callId, contactName: request.resolvedContact?.name },
+      { roomName, callId, hasContactName: Boolean(request.resolvedContact?.name) },
       '🤖 Dispatching on-behalf agent to room'
     );
 
@@ -730,7 +730,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       {
         callId: call.id,
         status: call.status,
-        contactName: call.request.resolvedContact?.name,
+        hasContactName: Boolean(call.request.resolvedContact?.name),
       },
       'On-behalf call completed'
     );

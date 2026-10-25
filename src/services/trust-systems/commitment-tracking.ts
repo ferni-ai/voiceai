@@ -582,7 +582,7 @@ export async function updateCommitmentStatus(
 export async function processCommitments(
   userId: string,
   userText: string,
-  context?: { recentTopics?: string[]; emotion?: string }
+  context?: { recentTopics?: string[]; emotion?: string; judgedOnly?: boolean }
 ): Promise<{
   newCommitments: Commitment[];
   progressUpdates: Array<{ commitmentId: string; type: string }>;
@@ -594,8 +594,8 @@ export async function processCommitments(
   const answers = await settleAwaitingAnswers(userId, userText, existingCommitments);
   const answered = new Set(answers.map((a) => a.id));
 
-  // Detect new commitments
-  const detected = detectCommitments(userText, context);
+  // New commitments; none with COMMITMENT_SINGLE_WRITER on, where the after-call judge writes
+  const detected = context?.judgedOnly === true ? [] : detectCommitments(userText, context);
   const newCommitments: Commitment[] = [];
 
   for (const d of detected) {
