@@ -185,6 +185,40 @@ describe('upcoming tab', () => {
     expect(apiGet).not.toHaveBeenCalled();
   });
 
+  it('turns markup in any field into text: no element, attribute or class injected', async () => {
+    const breakout = '"><script>alert(2)</script>';
+    const img = '<img src=x onerror="alert(1)">';
+    const hostile = followUp({
+      id: `fu-9${breakout}`,
+      personaId: `ferni${breakout}`,
+      personaName: `${img}Ferni`,
+      reason: breakout,
+      priority: `high${breakout}`,
+      preview: { body: img, subject: breakout },
+    });
+    replies.set(UPCOMING, [ok({ upcoming: [hostile] })]);
+    await openOn('upcoming');
+    await settled('ready');
+    (content().querySelector('[data-action="preview"]') as HTMLElement).click();
+
+    const scope = [
+      ...document.querySelectorAll('.outreach-schedule-overlay *, .outreach-preview-overlay *'),
+    ];
+    expect(scope.filter((el) => el.matches('img, script'))).toEqual([]);
+    expect(
+      scope.flatMap((el) => [...el.attributes].filter((a) => /^on|^src$/i.test(a.name)))
+    ).toEqual([]);
+    const row = content().querySelector<HTMLElement>('.outreach-item');
+    expect(row?.dataset.outreachId).toBe(hostile.id);
+    expect(row?.dataset.persona).toBe(hostile.personaId);
+    expect(row?.querySelector('.outreach-item-priority')?.className).toBe(
+      'outreach-item-priority medium'
+    );
+    expect(row?.querySelector('.outreach-item-reason')?.textContent).toBe(`"${breakout}"`);
+    expect(document.querySelector('.outreach-preview-subject')?.textContent).toBe(breakout);
+    expect(document.querySelector('.outreach-preview-title')?.textContent).toBe(`${img}Ferni`);
+  });
+
   it('shows planned words as text, never as markup, in the row and the preview', async () => {
     replies.set(UPCOMING, [ok({ upcoming: [followUp({ preview: { body: '<img src=x>' } })] })]);
     await openOn('upcoming');

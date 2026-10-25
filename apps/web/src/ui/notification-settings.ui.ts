@@ -22,6 +22,8 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
+import { escapeHtml } from '../utils/escape-html.js';
+import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
 
 const log = createLogger('NotifySettings');
 const TIME_FORMAT: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
@@ -36,22 +38,7 @@ export interface NotificationSettingsUICallbacks {
   onSave?: (preferences: NotificationPreferences) => void;
 }
 
-interface ScheduledOutreach {
-  id: string;
-  type: string;
-  personaId: string;
-  personaName: string;
-  channel: 'sms' | 'email' | 'call' | 'push';
-  scheduledFor: Date;
-  preview: {
-    subject?: string;
-    body: string;
-  };
-  reason: string;
-  priority: 'high' | 'medium' | 'low';
-  canReschedule: boolean;
-  canCancel: boolean;
-}
+type ScheduledOutreach = UpcomingOutreachItem;
 
 // ============================================================================
 // ICONS
@@ -205,11 +192,8 @@ class NotificationSettingsUI {
       const response = await apiGet<{ upcoming?: Array<Record<string, unknown>> }>('/api/outreach/upcoming');
       this.upcomingLoadFailed = !response.ok || !response.data;
       if (response.ok && response.data) {
-        // Keep each item's fields; JSON carries the time as a string, formatTime needs a Date
-        this.upcomingItems = (response.data.upcoming || []).map((item: Record<string, unknown>) => ({
-          ...item,
-          scheduledFor: new Date(item.scheduledFor as string),
-        })) as unknown as ScheduledOutreach[];
+        // Only the known fields, priority checked against its values (upcoming-outreach-item.ts)
+        this.upcomingItems = (response.data.upcoming || []).map(toUpcomingOutreachItem);
       } else {
         this.upcomingItems = [];
       }
@@ -353,11 +337,11 @@ class NotificationSettingsUI {
         <div class="notif-settings__time-row">
           <div class="notif-settings__time-field">
             <label for="quiet-start">${t('notificationSettings.from')}</label>
-            <input type="time" id="quiet-start" data-pref="quietHoursStart" value="${this.localPrefs.quietHoursStart || '22:00'}">
+            <input type="time" id="quiet-start" data-pref="quietHoursStart" value="${escapeHtml(this.localPrefs.quietHoursStart || '22:00')}">
           </div>
           <div class="notif-settings__time-field">
             <label for="quiet-end">${t('notificationSettings.to')}</label>
-            <input type="time" id="quiet-end" data-pref="quietHoursEnd" value="${this.localPrefs.quietHoursEnd || '08:00'}">
+            <input type="time" id="quiet-end" data-pref="quietHoursEnd" value="${escapeHtml(this.localPrefs.quietHoursEnd || '08:00')}">
           </div>
         </div>
         
@@ -535,33 +519,35 @@ class NotificationSettingsUI {
   }
 
   private renderUpcomingItem(item: ScheduledOutreach): string {
-    const initial = (item.personaName || t('team.members.ferni.name')).charAt(0);
+    const name = escapeHtml(item.personaName || t('team.members.ferni.name'));
+    const initial = escapeHtml((item.personaName || t('team.members.ferni.name')).charAt(0));
+    const id = escapeHtml(item.id);
     const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.push;
     const timeStr = this.formatTime(item.scheduledFor);
 
     return `
-      <div class="notif-settings__upcoming-item" data-outreach-id="${item.id}" data-persona="${item.personaId || 'ferni'}">
+      <div class="notif-settings__upcoming-item" data-outreach-id="${id}" data-persona="${escapeHtml(item.personaId)}">
         <div class="notif-settings__upcoming-header">
           <div class="notif-settings__upcoming-avatar">${initial}</div>
           <div class="notif-settings__upcoming-info">
-            <span class="notif-settings__upcoming-persona">${item.personaName || t('team.members.ferni.name')}</span>
+            <span class="notif-settings__upcoming-persona">${name}</span>
             <span class="notif-settings__upcoming-meta">
               <span class="notif-settings__upcoming-channel">${channelIcon}</span>
               <span class="notif-settings__upcoming-time">${ICONS.clock} ${timeStr}</span>
             </span>
           </div>
-          <span class="notif-settings__upcoming-priority notif-settings__upcoming-priority--${item.priority}">${item.priority}</span>
+          <span class="notif-settings__upcoming-priority notif-settings__upcoming-priority--${item.priority}">${escapeHtml(item.priority)}</span>
         </div>
-        <p class="notif-settings__upcoming-preview">${item.preview?.body || item.reason}</p>
+        <p class="notif-settings__upcoming-preview">${escapeHtml(item.preview.body || item.reason)}</p>
         ${item.canReschedule || item.canCancel ? `
           <div class="notif-settings__upcoming-actions">
             ${item.canReschedule ? `
-              <button class="notif-settings__upcoming-btn" data-action="reschedule" data-id="${item.id}">
+              <button class="notif-settings__upcoming-btn" data-action="reschedule" data-id="${id}">
                 ${ICONS.edit} ${t('outreachSchedule.reschedule')}
               </button>
             ` : ''}
             ${item.canCancel ? `
-              <button class="notif-settings__upcoming-btn notif-settings__upcoming-btn--danger" data-action="cancel" data-id="${item.id}">
+              <button class="notif-settings__upcoming-btn notif-settings__upcoming-btn--danger" data-action="cancel" data-id="${id}">
                 ${ICONS.trash} ${t('common.cancel')}
               </button>
             ` : ''}

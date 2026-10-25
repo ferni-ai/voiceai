@@ -24,34 +24,19 @@ import {
   type Loaded,
 } from './outreach-history-view.js';
 import { closeOnEscape } from '../utils/accessibility.js';
+import { escapeHtml as escape } from '../utils/escape-html.js';
+import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
 
 const log = createLogger('OutreachScheduleUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-/** Text from the route goes into markup as text (outreach-history-view.ts does the same). */
-const escape = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface ScheduledOutreach {
-  id: string;
-  type: string;
-  personaId: string;
-  personaName: string;
-  channel: 'sms' | 'email' | 'call' | 'push';
-  scheduledFor: Date;
-  preview: {
-    subject?: string;
-    body: string;
-  };
-  reason: string;
-  priority: 'high' | 'medium' | 'low';
-  canReschedule: boolean;
-  canCancel: boolean;
-}
+type ScheduledOutreach = UpcomingOutreachItem;
 
 
 // ============================================================================
@@ -638,8 +623,8 @@ async function fetchUpcomingOutreach(): Promise<Loaded<ScheduledOutreach[]>> {
   return toLoaded(response, (data) => {
     const upcoming = (data as { upcoming?: unknown } | undefined)?.upcoming;
     if (!Array.isArray(upcoming)) return null;
-    // JSON carries the time as a string; formatTime needs a Date
-    return (upcoming as ScheduledOutreach[]).map((u) => ({ ...u, scheduledFor: new Date(u.scheduledFor) }));
+    // Only the known fields, priority checked against its values (upcoming-outreach-item.ts)
+    return upcoming.map(toUpcomingOutreachItem);
   });
 }
 
@@ -674,7 +659,7 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
   const timeStr = formatTime(item.scheduledFor);
 
   return `
-    <div class="outreach-item" data-outreach-id="${item.id}" data-persona="${item.personaId || 'ferni'}">
+    <div class="outreach-item" data-outreach-id="${escape(item.id)}" data-persona="${escape(item.personaId)}">
       <div class="outreach-item-header">
         <div class="outreach-item-persona">
           ${initial}
@@ -691,16 +676,16 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
       <p class="outreach-item-preview">${escape(item.preview.body)}</p>
       <p class="outreach-item-reason">"${escape(item.reason)}"</p>
       <div class="outreach-item-actions" role="button" tabindex="0">
-        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
+        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${escape(item.id)}">
           ${ICONS.eye} ${t('accessibility.preview')}
         </button>
         ${item.canReschedule ? `
-          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
+          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${escape(item.id)}">
             ${ICONS.edit} ${t('outreachSchedule.reschedule')}
           </button>
         ` : ''}
         ${item.canCancel ? `
-          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
+          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${escape(item.id)}">
             ${ICONS.trash} ${t('common.cancel')}
           </button>
         ` : ''}
@@ -733,7 +718,7 @@ async function handleAction(action: string, item: ScheduledOutreach): Promise<vo
 function showPreview(item: ScheduledOutreach): void {
   const preview = document.createElement('div');
   preview.className = 'outreach-preview-overlay';
-  const personaId = item.personaId || 'ferni';
+  const personaId = escape(item.personaId);
 
   preview.innerHTML = `
     <div class="outreach-preview-backdrop"></div>
