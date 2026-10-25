@@ -180,8 +180,26 @@ export async function handleHolderVerifyRoute(
   return true;
 }
 
+const text = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+
+function pendingOf(v: unknown): Pending | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const p = v as Record<string, unknown>;
+  const [codeHash, sentAt, expiresAt] = [text(p.codeHash), text(p.sentAt), text(p.expiresAt)];
+  if (!codeHash || !sentAt || !expiresAt || typeof p.tries !== 'number') return undefined;
+  return { codeHash, sentAt, expiresAt, tries: p.tries };
+}
+
+/** Read field by field: a doc missing its sponsor or phone matches no one (fails closed). */
 function holderOf(id: string, data: Record<string, unknown>): HolderIdentity {
-  return { ...(data as unknown as HolderIdentity), id };
+  return {
+    id,
+    sponsorUserId: text(data.sponsorUserId) ?? '',
+    phoneNumber: text(data.phoneNumber) ?? '',
+    sponsorName: text(data.sponsorName),
+    phoneVerifiedAt: text(data.phoneVerifiedAt),
+    holderVerification: pendingOf(data.holderVerification),
+  };
 }
 
 export function defaultHolderDeps(): HolderVerificationDeps {
