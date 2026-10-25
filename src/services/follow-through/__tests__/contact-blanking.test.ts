@@ -63,6 +63,38 @@ const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   // A match kept as prose doesn't hide the address after it.
   ['email her at jo dot me at gmail dot com', 'email her at an email address'],
   ['met Sarah at jo dot kim at gmail dot com', 'met Sarah at an email address'],
+  // A dotted or many-part name is always an address.
+  ['jo.kim at example dot org', 'an email address'],
+  ['email ana at dot dot org', 'email an email address'],
+  ['email ana (at) dot dot dev', 'email an email address'],
+  ['ask the jo dot kim at example dot org', 'ask the an email address'],
+  // A mailbox word is a name like any other.
+  ['contact at acme dot com', 'an email address'],
+  ['write to info at acme dot io', 'write to an email address'],
+  ['email us at acme dot com', 'email an email address'],
+  ['jobs at acme dot com is open', 'an email address is open'],
+  ['hello at acme dot dev', 'an email address'],
+  ['support at acme.com', 'an email address'],
+  // Sending something to a name at a domain makes it an address, written dot or not.
+  ['email kofi at acme.com', 'email an email address'],
+  ['reach kofi at acme.com today', 'reach an email address today'],
+  ['send the deck to kofi at acme.com', 'send the deck to an email address'],
+  ['jane at acme.com', 'an email address'],
+  ['email interns at apple.com', 'email an email address'],
+  ['write to staff at acme.com', 'write to an email address'],
+  ['met jane at gmail.com', 'met an email address'],
+  // A phone number shaped like a date range is a number.
+  ['call 2026-2027-1234', 'call a number'],
+  ['call 2026-2027', 'call a number'],
+  ['call 2026/2040', 'call a number'],
+  ['call 2027/2026', 'call a number'],
+  ['call 1999/2000/2001', 'call a number'],
+  ['call 555/555/0199', 'call a number'],
+  ['call 2026-10-24–2032-12-30', 'call a number'],
+  ['call 2026-10-24-2026-10-25-2026-10-26', 'call a number'],
+  // Seven said digits are a number, counting or not.
+  ['one two three four five six seven', 'a number'],
+  ['five five five one two one two', 'a number'],
   // Emails: a written dot after a plain "at", a spaced or fullwidth "@", any ending.
   ['email jane at gmail.com', 'email an email address'],
   ['email jane at mail.example.co.uk today', 'email an email address today'],
@@ -75,6 +107,9 @@ const SHOULD_BLANK: ReadonlyArray<readonly [string, string]> = [
   ['email jo at example dot app', 'email an email address'],
   ['email jo at example dot ai', 'email an email address'],
   ['email jo at example dot dev', 'email an email address'],
+  ['email jo at example dot studio', 'email an email address'],
+  ['email jane at acme dot io', 'email an email address'],
+  ['email jane at acme dot co dot uk', 'email an email address'],
   ['email jo at example dot co', 'email an email address'],
   ['email jo (at) example (dot) shop', 'email an email address'],
   ["email o'brien at gmail dot com", 'email an email address'],
@@ -109,7 +144,7 @@ const LEAK_FLOOR: ReadonlyArray<readonly [string, string]> = [
   ['lunch with kofi at gmail dot com', 'lunch with an email address'],
   ['email her at ana dot ruiz at gmail dot com', 'email her at an email address'],
   ['call him at jo dot kim at yahoo dot com', 'call him at an email address'],
-  ['write to us at sales dot team at acme dot com', 'write to us at an email address'],
+  ['write to us at sales dot team at acme dot com', 'write to an email address'],
   ['reach me at jo at gmail dot com', 'reach me at an email address'],
   ['contact us at info at acme dot com today', 'contact us at an email address today'],
   ['look at jo dot lee at example dot com', 'look at an email address'],
@@ -125,6 +160,19 @@ const LEAK_FLOOR: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /**
+ * Main before #2716 left these as written, but each is blanked now, on purpose:
+ * an "@" with a domain is never prose, seven said digits are a number, and two
+ * bare years joined by a dash are a number. A rare over-blank, never a leak.
+ */
+const OVER_BLANKED: ReadonlyArray<readonly [string, string]> = [
+  ['lunch @ cafe.co tomorrow', 'an email address tomorrow'],
+  ['dinner @ noodle.bar friday', 'an email address friday'],
+  ['the 1999–2000 season', 'the a number season'],
+  ['seven six five four three two one liftoff', 'a number liftoff'],
+  ['one two three four five six seven eight', 'a number'],
+];
+
+/**
  * The keep floor: main before #2716 left each of these as written, and none is
  * a contact, so they stay as written.
  */
@@ -137,8 +185,6 @@ const KEEP_FLOOR: readonly string[] = [
   'found deals at target.com',
   'interns at apple.com start monday',
   'students at mit.edu got in',
-  'lunch @ cafe.co tomorrow',
-  'dinner @ noodle.bar friday',
   // A said "dot" that isn't a domain.
   'She looked great at polka dot night',
   'mortgage rates at six dot two percent',
@@ -147,21 +193,20 @@ const KEEP_FLOOR: readonly string[] = [
   'We grabbed tea at bluebottle dot cafe',
   'good at math dot period',
   'kids at grandma dot dot dot',
+  'kids at grandma dot dot dot later',
+  'good at math dot dot dot later',
   // "or at", "and at": no name before "at", so no address.
   'find us online or at acme dot com',
   'tickets are sold here and at acme dot com',
   // Years and date ranges.
   'the 2026/2027 school year',
   'fiscal 2025/2026 budget',
-  'the 1999–2000 season',
   'trip 2026-10-24–2026-10-30',
   'trip 10/24/2026-10/30/2026',
   'trip 10/24/2026 – 10/30/2026',
   // Counting, with or without a year.
   'remember steps three two one, 2027 kickoff',
   'one, two, three, 2026, 2027',
-  'seven six five four three two one liftoff',
-  'one two three four five six seven eight',
 ];
 
 const MUST_NOT_BLANK: readonly string[] = [
@@ -266,6 +311,10 @@ describe('withoutContactDetails', () => {
     expect(withoutContactDetails(input)).toBe(input);
   });
 
+  it.each(OVER_BLANKED)('blanks %j, on purpose', (input, expected) => {
+    expect(withoutContactDetails(input)).toBe(expected);
+  });
+
   // A long text is matched whole: nothing is cut, so a contact anywhere in it
   // goes, whatever surrounds it (no gap between words, emoji, CJK).
   it.each([
@@ -300,6 +349,7 @@ describe('withoutContactDetails', () => {
     ['at and dot', 'x at y dot '.repeat(9_000)],
     ['a dotted name', 'jo dot '.repeat(14_300)],
     ['kept addresses', 'lunch at netflix dot com '.repeat(4_000)],
+    ['a chain of addresses', 'jo at x dot com '.repeat(6_250)],
     ['spaced @', 'a @ '.repeat(25_000)],
     ['said digits', 'one '.repeat(25_000)],
   ])(
