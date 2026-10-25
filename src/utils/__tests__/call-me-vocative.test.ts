@@ -1,140 +1,124 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  callMeAddressesTeam,
-  callMeIntent,
   callMeVocativeEnabled,
-  isTeamVocative,
-  vocativesFor,
+  personaLike,
+  readCallMe,
+  withoutVocatives,
 } from '../call-me-vocative.js';
 import { extractCallerName } from '../caller-name.js';
 
-const ferni = (words: string, extra: { callerName?: string; called?: boolean } = {}) =>
-  callMeIntent(words, { persona: 'Ferni', ...extra });
-
-describe('callMeIntent: ring', () => {
-  it.each([
-    'Can you call me Fern?', // prod 2026-10-23, STT for "call me, Ferni"
-    'Can you call me, Ferni?',
-    'call me Ferni',
-    'Call me Fernie please',
-    'could you call me Fernee',
-    'call me Fern-ee',
-    'please call me up, Ferni',
-    'Ferni, can you call me now, Fern?',
-  ])('reads %j as a phone call', (words) => {
-    expect(ferni(words)).toBe('ring');
-  });
-
-  it("uses the active persona's name and its STT spellings", () => {
-    expect(callMeIntent('Call me, Maya.', { persona: 'Maya' })).toBe('ring');
-    expect(callMeIntent('can you call me Mya', { persona: 'Maya' })).toBe('ring');
-    // Ferni's spellings belong to Ferni only.
-    expect(callMeIntent('can you call me Fern', { persona: 'Maya' })).toBeNull();
-    expect(callMeIntent('call me Maya', { persona: 'Ferni' })).toBeNull();
-  });
-
-  it('never asks for a second call once one was placed', () => {
-    expect(ferni('call me Ferni', { called: true })).toBe('already-called');
-    expect(ferni('you can call me Fern', { called: true })).toBe('already-called');
-  });
+const saved = { ...process.env };
+afterEach(() => {
+  process.env = { ...saved };
 });
 
-describe('callMeIntent: clarify', () => {
-  it.each(['you can call me Fern', 'Just call me Ferni', 'my friends call me Fern'])(
-    'asks once for %j (a nickname cue)',
-    (words) => {
-      expect(ferni(words)).toBe('clarify');
-    }
-  );
-
-  it('asks once when the name is also the caller’s own', () => {
-    expect(ferni('can you call me Fern?', { callerName: 'Fern Lee' })).toBe('clarify');
-  });
-});
-
-describe('callMeIntent: did you call me', () => {
+describe('personaLike', () => {
   it.each([
-    'Did you give me a call?', // prod 2026-10-23, STT for "Can you give me a call?"
-    'did you call me?',
-    'Did you call me yet?',
-    'did you just ring me',
-    'Did you try calling me, Ferni?',
-    'Did you call me, Ferni?', // holds "call me, Ferni" too: the question wins
-    'did you call me Ferni?',
-    'Have you called me yet?',
-    'were you calling me?',
-  ])('reads %j as wanting a call when none was placed', (words) => {
-    expect(ferni(words)).toBe('did-you-call');
+    ['Ferni', 'ferni'],
+    ['Fern', 'ferni'],
+    ['Ferney', 'ferni'], // round 1 renamed the owner to this: not in any list
+    ['Fernie', 'ferni'],
+    ['Furny', 'ferni'],
+    ['Fern-ee', 'ferni'],
+    ['Pete', 'peter'],
+    ['Mya', 'maya'],
+    ['Maia', 'maya'],
+    ['Jordyn', 'jordan'],
+    ['Nian', 'nayan'],
+    ['alex', 'alex'],
+  ])('%s sounds like %s', (word, team) => {
+    expect(personaLike(word)).toBe(team);
   });
 
-  it.each(['Did you give me a call?', 'Did you call me, Ferni?', 'did you call me Ferni?'])(
-    '%j is a plain question once a call was placed this session',
-    (words) => {
-      expect(ferni(words, { called: true })).toBeNull();
+  it.each(['Sam', 'Jess', 'Seth', 'Nathan', 'Bernie', 'Fergie', 'Max', 'Jordy', 'Fernanda', 'S'])(
+    '%s is no team name',
+    (word) => {
+      expect(personaLike(word)).toBeNull();
     }
   );
 });
 
-describe('callMeIntent: none', () => {
+describe('readCallMe', () => {
+  it.each([
+    'call me, Ferni',
+    'Ferni, call me',
+    'Hey Ferni call me',
+    'call me back Ferni',
+    'give me a call, Ferni',
+    'Can you call me right now, Ferni?',
+    'Call me, um, Ferni',
+    'call me asap Fern',
+    'ring me',
+    'can you call my cell',
+  ])('%j rings', (words) => {
+    expect(readCallMe(words, 'Ferni').intent).toBe('ring');
+  });
+
+  it.each([
+    ['Can you call me Fern?', 'Fern'],
+    ['Could you call me Ferney', 'Ferney'],
+    ['could you just call me Fern', 'Fern'], // "could you just": asking, not a nickname cue
+  ])('%j asks ring or name', (words, name) => {
+    expect(readCallMe(words, 'Ferni')).toMatchObject({ intent: 'ask', name });
+  });
+
+  it.each([
+    ['Just call me Pete', 'Pete'],
+    ['My friends call me Mya', 'Mya'],
+    ['Actually, call me Fern from now on', 'Fern'],
+    ["Don't call me Seth, call me Fern", 'Fern'],
+  ])('%j is a name to confirm, never a call', (words, name) => {
+    const r = readCallMe(words, 'Ferni');
+    expect(r.intent).toBeNull();
+    expect(r.rename).toBe(name);
+  });
+
   it.each([
     'call me Sam',
     'call me later',
-    'Call me crazy, but I like it',
-    'you can call me Seth',
-    'did you call my mom?',
-    'Did you just call me crazy?',
-    'call me Fernando',
-    'call me Ferniture', // a longer word, never a substring match
-    'I love ferns',
-    'Hey for, how are you',
-    '',
-  ])('leaves %j alone', (words) => {
-    expect(ferni(words)).toBeNull();
+    'call me tomorrow, Ferni',
+    'call me crazy',
+    "please don't call me",
+    "that's what they call me",
+  ])('%j is nothing to ring or ask', (words) => {
+    expect(readCallMe(words, 'Ferni').intent).toBeNull();
+  });
+
+  it('the persona speaking decides which name is its own', () => {
+    expect(readCallMe('call me Maya', 'Maya').intent).toBe('ring');
+    expect(readCallMe('call me Maya', 'Ferni')).toMatchObject({ intent: 'ask', name: 'Maya' });
+  });
+
+  it('"did you call me?" is a question, not a request', () => {
+    expect(readCallMe('Did you call me, Ferni?', 'Ferni').intent).toBe('did-you-call');
+    expect(readCallMe('did you give me a call?', 'Ferni').intent).toBe('did-you-call');
+    expect(readCallMe('Did you just call me crazy?', 'Ferni').intent).toBeNull();
+  });
+
+  it('only the vocative span is skipped', () => {
+    const words = "I'm Sam, not Seth. Call me, Ferni.";
+    const r = readCallMe(words, 'Ferni');
+    expect(r.intent).toBe('ring');
+    const rest = withoutVocatives(words, r.spans);
+    expect(rest).toContain("I'm Sam, not Seth.");
+    expect(rest).not.toContain('Ferni');
   });
 });
 
-describe('vocativesFor', () => {
-  it('is the name plus its STT spellings', () => {
-    expect(vocativesFor('Ferni')).toEqual(
-      expect.arrayContaining(['ferni', 'fernie', 'fern', 'fernee'])
-    );
-    expect(vocativesFor('Nayan')).toEqual(expect.arrayContaining(['nayan', 'naya']));
-    expect(vocativesFor('')).toEqual([]);
-  });
-});
-
-describe('the name paths', () => {
-  it('callMeAddressesTeam: Ferni or a teammate, never anyone else', () => {
-    expect(callMeAddressesTeam('Can you call me Fern?')).toBe(true);
-    expect(callMeAddressesTeam('you can call me Jordan')).toBe(true);
-    expect(callMeAddressesTeam('you can call me Seth')).toBe(false);
-    expect(callMeAddressesTeam('did you call me?')).toBe(false);
+describe('extractCallerName with CALL_ME_VOCATIVE', () => {
+  it('never takes a word like a team name after "call me"; any other name stays', () => {
+    process.env.CALL_ME_VOCATIVE = 'on';
+    expect(callMeVocativeEnabled()).toBe(true);
+    expect(extractCallerName('Could you call me Ferney')).toBeNull();
+    expect(extractCallerName('Can you call me Fern?')).toBeNull();
+    expect(extractCallerName('call me Sam')).toBe('Sam');
+    expect(extractCallerName("I'm Sam, call me Ferney")).toBe('Sam');
   });
 
-  it('isTeamVocative', () => {
-    expect(isTeamVocative('Fern')).toBe(true);
-    expect(isTeamVocative('Seth')).toBe(false);
-  });
-
-  it('extractCallerName skips "call me Fern" only with CALL_ME_VOCATIVE=on', () => {
-    const before = { ...process.env };
-    try {
-      process.env.NAME_CAPTURE_STRICT = 'on';
-      delete process.env.CALL_ME_VOCATIVE;
-      expect(extractCallerName('you can call me Fern')).toBe('Fern');
-      process.env.CALL_ME_VOCATIVE = 'on';
-      expect(extractCallerName('you can call me Fern')).toBeNull();
-      expect(extractCallerName('you can call me Seth')).toBe('Seth');
-      // "Fern" is still a name everywhere but after "call me".
-      expect(extractCallerName("I'm Fern")).toBe('Fern');
-    } finally {
-      process.env = before;
-    }
-  });
-
-  it('the flag is off by default', () => {
-    expect(callMeVocativeEnabled({})).toBe(false);
-    expect(callMeVocativeEnabled({ CALL_ME_VOCATIVE: 'on' })).toBe(true);
+  it('flag off: as on main', () => {
+    delete process.env.CALL_ME_VOCATIVE;
+    expect(extractCallerName('Could you call me Ferney')).toBe('Ferney');
+    expect(extractCallerName('Can you call me Fern?')).toBe('Fern');
   });
 });

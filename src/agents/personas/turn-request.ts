@@ -208,8 +208,9 @@ export function withTurnReminder(
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
     nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,
+      plain,
     }),
-    // CALL_ME_VOCATIVE=on: "call me, Ferni" is a phone call, not a name (call-me-note.ts)
+    // CALL_ME_VOCATIVE=on: "call me, Ferni" rings; "call me Fern" is asked about (call-me-note.ts)
     callMeNote(chatCtx, session, words, { plain, careful: crisis }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
