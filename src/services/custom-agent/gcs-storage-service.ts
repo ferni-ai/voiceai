@@ -314,6 +314,44 @@ export async function deleteAudioFromGcs(filePath: string): Promise<boolean> {
   }
 }
 
+interface StoredFile {
+  name: string;
+  delete: () => Promise<unknown>;
+}
+interface JournalBucket {
+  getFiles: (query: { prefix: string }) => Promise<[StoredFile[]]>;
+}
+
+/**
+ * Delete a voice journal entry's recording. uploadVoiceJournalEntry saves it as
+ * voice-journals/{uid}/{agentId}/{timestamp}-entry-{entryId}.webm, and the entry
+ * keeps no path (a private file has no URL), so this finds it in that folder.
+ * Best effort: the entry is already gone, so a failure is logged, not thrown.
+ *
+ * @returns Number of files deleted
+ */
+export async function deleteVoiceJournalAudio(
+  userId: string,
+  agentId: string,
+  entryId: string
+): Promise<number> {
+  const storage = (await getStorageClient()) as { bucket: (name: string) => JournalBucket } | null;
+  if (storage === null) return 0;
+  const prefix = `${AUDIO_PATHS.voiceJournal}/${userId}/${agentId}/`;
+  const name = sanitizeFilename(`entry-${entryId}.webm`);
+  const isThisEntry = (path: string): boolean =>
+    path.endsWith(`-${name}`) && /^\d+$/.test(path.slice(prefix.length, -name.length - 1));
+  try {
+    const [files] = await storage.bucket(GCS_BUCKET).getFiles({ prefix });
+    const mine = files.filter((f) => isThisEntry(f.name));
+    await Promise.all(mine.map(async (f) => f.delete()));
+    return mine.length;
+  } catch (error) {
+    log.warn({ error: String(error), userId, agentId }, 'Failed to delete journal audio');
+    return 0;
+  }
+}
+
 /**
  * Delete all audio files for a specific agent
  *
