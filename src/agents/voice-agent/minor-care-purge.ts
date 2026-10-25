@@ -22,6 +22,7 @@ import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js'
 import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
+import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
 import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -59,6 +60,8 @@ export function purgeHeldUser(userId: string): void {
     ['semantic intelligence', (id) => clearSemanticIntelligenceCache(id)],
     // the relationship arc (first words, key moments), cached 5 min and saved by a later call
     ['relationship arc', clearArcCache],
+    // quotes, people, avoided topics: the builder feeds them every turn; a later call's end saves them
+    ['deep understanding', clearDeepUnderstandingUser],
   ];
   for (const [name, purge] of purges) {
     try {
