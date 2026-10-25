@@ -59,7 +59,7 @@ test('invite: Copy puts a working invite link on the clipboard', async ({
   expect(problems.take()).toEqual([]);
 });
 
-test('the Chronicle: a written entry is kept', async ({ page }) => {
+test('the Chronicle: a written entry is kept, listed, and can be deleted', async ({ page }) => {
   const problems = watchProblems(page);
   const words = `e2e entry ${Date.now()}`;
   let panel = await openPanel(page, 'journal');
@@ -72,7 +72,23 @@ test('the Chronicle: a written entry is kept', async ({ page }) => {
   await page.reload();
   await expectHome(page);
   panel = await openPanel(page, 'journal');
-  await expect(panel).toContainText(words, { timeout: 10_000 });
+  const entry = panel.locator('.chronicle-entry', { hasText: words });
+  await expect(entry).toBeVisible({ timeout: 10_000 });
+  await expect(panel.locator('#chronicle-content')).toHaveAttribute('data-state', 'ready');
+  await expect(panel).not.toContainText(/streak/i);
+
+  await entry.getByRole('button', { name: /^delete your entry/i }).click();
+  await entry.getByRole('button', { name: 'Delete it', exact: true }).click();
+  await expect(panel.locator('#chronicle-content')).toHaveAttribute('data-state', 'empty');
+  await page.keyboard.press('Escape');
+
+  await page.reload(); // gone from the store, not just the screen
+  await expectHome(page);
+  panel = await openPanel(page, 'journal');
+  await expect(panel.locator('#chronicle-content')).toHaveAttribute('data-state', 'empty', {
+    timeout: 10_000,
+  });
+  await expect(panel).not.toContainText(words);
   expect(problems.take()).toEqual([]);
 });
 
