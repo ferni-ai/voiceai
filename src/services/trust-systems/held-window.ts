@@ -14,9 +14,7 @@
  *
  * @module services/trust-systems/held-window
  */
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { timestampsToDates } from '../persistence/index.js';
 import { getTrustDb } from './trust-doc.js';
 
 const log = createLogger({ module: 'minor-care-held-window' });
@@ -51,6 +49,9 @@ export function withoutHeld<T>(userId: string, entries: T[], at: (entry: T) => W
   return kept.length === entries.length ? entries : kept;
 }
 
+/** JSON-shaped data without its undefined fields (the stores' docs hold no Timestamps). */
+const plain = (data: object): Record<string, unknown> => JSON.parse(JSON.stringify(data));
+
 /** Tests only. */
 export function resetHeldWindows(): void {
   windows.clear();
@@ -76,9 +77,8 @@ export async function scrubHeldDoc<T extends object>(
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       const raw = snap.exists ? (snap.data() as Record<string, unknown>) : undefined;
-      const next = raw && clean(userId, timestampsToDates(raw) as T);
-      if (next)
-        tx.set(ref, cleanForFirestore({ ...raw, ...next, _updatedAt: new Date().toISOString() }));
+      const next = raw && clean(userId, raw as T); // the stores write dates as ISO strings
+      if (next) tx.set(ref, plain({ ...raw, ...next, _updatedAt: new Date().toISOString() }));
     });
     return true;
   } catch (error) {
