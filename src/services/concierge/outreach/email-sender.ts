@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isEmailConfigured, sendAppEmail } from '../../communication-service.js';
 import type {
   ConciergeTarget,
   ConciergeResult,
@@ -16,9 +17,7 @@ import type {
 
 const log = createLogger({ module: 'concierge-email' });
 
-// SendGrid configuration
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = process.env.CONCIERGE_FROM_EMAIL || 'concierge@ferni.ai';
+// The From address is the app transport's (EMAIL_FROM); replies go to the user.
 const FROM_NAME = 'Ferni Concierge';
 
 export interface EmailSenderOptions {
@@ -61,7 +60,7 @@ export class EmailSender {
    * Check if email sending is configured
    */
   static isConfigured(): boolean {
-    return !!SENDGRID_API_KEY;
+    return isEmailConfigured();
   }
 
   /**
@@ -76,23 +75,30 @@ export class EmailSender {
       return { success: false, error: 'Target has no email address' };
     }
 
-    log.info({ targetName: target.name, email: target.email, domain }, 'Sending email');
+    log.info({ targetName: target.name, domain }, 'Sending email');
 
     // Generate email content
     const { subject, body } = this.generateEmailContent(target, domain, type, requirements);
 
+    // It used to "simulate" here and report success without sending anything
     if (!EmailSender.isConfigured()) {
-      log.warn('SendGrid not configured, simulating email');
-      return this.simulateEmail(target, subject, body);
+      log.warn('Email transport not configured; concierge email not sent');
+      return { success: false, error: 'Email is not configured' };
     }
 
-    try {
-      const result = await this.sendViaSendGrid(target.email, subject, body);
-      return result;
-    } catch (error) {
-      log.error({ error: String(error), target: target.name }, 'Email failed');
-      return { success: false, error: String(error) };
+    const sent = await sendAppEmail({
+      to: target.email,
+      fromName: FROM_NAME,
+      replyTo: this.userEmail,
+      subject,
+      text: body,
+      kind: 'transactional',
+    });
+    if (!sent.ok) {
+      log.error({ provider: sent.provider, status: sent.status, error: sent.error, target: target.name }, 'Email failed'); // prettier-ignore
+      return { success: false, error: sent.error ?? 'Email send failed' };
     }
+    return { success: true, result: this.sentResult(target), messageId: sent.messageId };
   }
 
   /**
@@ -253,49 +259,9 @@ Reply directly to respond to this request.`;
     return parts.join('\n') || 'I would like more information about your services.';
   }
 
-  /**
-   * Send email via SendGrid
-   */
-  private async sendViaSendGrid(to: string, subject: string, body: string): Promise<EmailResult> {
-    // Production SendGrid integration
-    /*
-    const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(SENDGRID_API_KEY);
-
-    const msg = {
-      to,
-      from: { email: FROM_EMAIL, name: FROM_NAME },
-      replyTo: this.userEmail,
-      subject,
-      text: body,
-    };
-
-    const response = await sgMail.send(msg);
+  /** The tracker record for an email that went out. */
+  private sentResult(target: ConciergeTarget): ConciergeResult {
     return {
-      success: true,
-      messageId: response[0].headers['x-message-id'],
-    };
-    */
-
-    log.info({ to, subject }, 'Would send email via SendGrid');
-    return this.simulateEmail({ email: to } as ConciergeTarget, subject, body);
-  }
-
-  /**
-   * Simulate email for development
-   */
-  private async simulateEmail(
-    target: ConciergeTarget,
-    subject: string,
-    body: string
-  ): Promise<EmailResult> {
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 500);
-    });
-
-    log.info({ to: target.email, subject, bodyLength: body.length }, 'Simulated email sent');
-
-    const result: ConciergeResult = {
       id: `result_${Date.now()}`,
       requestId: target.requestId,
       targetId: target.id,
@@ -309,8 +275,6 @@ Reply directly to respond to this request.`;
       timestamp: new Date(),
       emailThreadId: `email_${Date.now()}`,
     };
-
-    return { success: true, result, messageId: `sim_${Date.now()}` };
   }
 }
 

@@ -9,15 +9,16 @@
  * because a STOP must block everyone; a global opt-out beats every grant, and
  * a global START grants nobody. A grant comes only from:
  *
- * 1. Their own YES (YES, Y, OK or SURE as the whole message) answering a
- *    consent ask from the last 30 days: source 'contact-yes', for the owner
- *    who asked (ask.by) and the channels asked about.
+ * 1. Their own YES (YES, Y, OK or SURE as the whole message, never asked back
+ *    as "yes?") answering a consent ask from the last 30 days: source
+ *    'contact-yes', for the owner who asked and the channels asked about.
  * 2. The owner's attestation at the ActionGate confirm, only when the owner
  *    is in the friends-and-family cohort: source 'owner-attested', with the
  *    time. Anyone else's contacts need (1).
  *
  * The only first message to a contact with no consent is the consent ask:
- * owner-confirmed, at most one per contact per 30 days (claimConsentAsk). A
+ * owner-confirmed, at most one per contact per 30 days (claimConsentAsk), kept
+ * as asks.{ownerUid} so it is erased with the owner (platform/user-stores.ts). A
  * recorded opt-out always wins: neither a YES nor an attestation undoes a
  * STOP (only the contact's START does). The owner's own number is unaffected.
  *
@@ -33,8 +34,10 @@ import {
   type StoredCheckin,
 } from '../outreach/checkin-replies.js';
 import { isCohortMember } from '../platform/cohort-membership.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
   defaultConsentDeps,
+  messagingPipelineOn,
   readConsent,
   type ConsentChannel,
   type ConsentDeps,
@@ -47,11 +50,21 @@ export const FRIENDS_AND_FAMILY = 'friends-and-family';
 export const CONSENT_ASK_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const YES_WORDS: ReadonlySet<string> = new Set(['yes', 'y', 'ok', 'sure']);
 
-/** YES, Y, OK or SURE as the whole message (any case, punctuation stripped), never inside one. */
-export const isConsentYes = (body: string): boolean => YES_WORDS.has(normalizeSms(body));
+/**
+ * Only plain letters (spaced letters too), then at most closing . ! , and a 👍, may be a yes.
+ * An allowlist, not a list of question marks: "yes❓", "yes‽", "yes؟", "y.e.s" and any other
+ * symbol are not consent. Then the letters must be YES, Y, OK or SURE, any case.
+ */
+const PLAIN_REPLY = /^\s*[a-z]+(?:\s[a-z]+)*\s*[.!,]*\s*(?:\u{1F44D}\s*)?$/iu;
+
+export function isConsentYes(body: string): boolean {
+  const raw = body.normalize('NFKC');
+  return PLAIN_REPLY.test(raw) && YES_WORDS.has(normalizeSms(raw));
+}
 
 interface ConsentAsk {
   at: string;
+  /** The owner who asked: the key of consent/{hash}.asks, which holds one entry at most. */
   by: string;
   channels: ConsentChannel[];
   /** The ask text's refId in feature_checkins, to tell it from any later text. */
@@ -71,9 +84,15 @@ function latestSent(texts: readonly StoredCheckin[]): StoredCheckin | undefined 
     .sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt))[0];
 }
 
+/** The phone's open ask: asks.{ownerUid}, the newest if a race ever left two. */
 function askOf(doc: Record<string, unknown> | undefined): ConsentAsk | null {
-  const a = (doc?.ask ?? null) as Partial<ConsentAsk> | null;
-  return a && typeof a.at === 'string' && Array.isArray(a.channels) ? (a as ConsentAsk) : null;
+  const asks = (doc?.asks ?? {}) as Record<string, Partial<ConsentAsk> | null>;
+  const valid = Object.entries(asks).flatMap(([by, a]): ConsentAsk[] =>
+    a && typeof a.at === 'string' && Array.isArray(a.channels)
+      ? [{ at: a.at, by, channels: a.channels, ...(a.ref !== undefined && { ref: a.ref }) }]
+      : []
+  );
+  return valid.sort((x, y) => Date.parse(y.at) - Date.parse(x.at))[0] ?? null;
 }
 
 const within = (iso: string, now: Date): boolean =>
@@ -148,8 +167,8 @@ export async function claimConsentAsk(
     const prev = askOf(doc);
     claimed = !prev || !within(prev.at, now);
     if (!claimed) return doc ?? {};
-    const ask = { at, by: ownerUid, channels: ['sms'], ...(ref !== undefined && { ref }) };
-    return { ...doc, ask, updatedAt: at };
+    const ask = { at, channels: ['sms'], ...(ref !== undefined && { ref }) };
+    return { ...doc, asks: { [ownerUid]: ask }, updatedAt: at };
   });
   return claimed ? at : null;
 }
@@ -162,7 +181,7 @@ export async function releaseConsentAsk(
 ): Promise<void> {
   await deps.store.apply(hash, (doc) => {
     if (askOf(doc)?.at !== at) return doc ?? {};
-    const { ask: _ask, ...rest } = doc ?? {};
+    const { asks: _asks, ...rest } = doc ?? {};
     return rest;
   });
 }
@@ -184,15 +203,19 @@ export async function holdsConsentAsk(
  * still the LAST text sent to the number, within 48 hours: an "ok" after any
  * later text (another owner's, a reminder) may answer that one instead. Each
  * inbound MessageSid counts once, so a replayed webhook grants nothing. A YES
- * from a number that opted out changes nothing. Never throws.
+ * from a number that opted out changes nothing, and nothing is granted to an
+ * owner whose account is gone. MESSAGING_PIPELINE off: does nothing, reads
+ * nothing (an ask left from a flag-on period grants nobody). Never throws.
  */
 export async function recordContactYes(
   from: unknown,
   body: unknown,
   messageSid: unknown,
   deps: ConsentDeps = defaultConsentDeps(),
-  textsTo: TextsToPhone = async (h) => firestoreReplyStore.forPhoneHash(h)
+  textsTo: TextsToPhone = async (h) => firestoreReplyStore.forPhoneHash(h),
+  ownerExists: (uid: string) => Promise<boolean> = accountExists
 ): Promise<ConsentChannel[] | null> {
+  if (!messagingPipelineOn(deps.env)) return null;
   if (typeof from !== 'string' || typeof body !== 'string' || !isConsentYes(body)) return null;
   const e164 = toE164(from);
   const hash = e164 ? phoneHash(e164, deps.env) : null;
@@ -208,7 +231,9 @@ export async function recordContactYes(
       now - Date.parse(last.sentAt) < YES_WINDOW_MS;
     if (!ask || !answersAsk || !(await firstSighting(hash, sid, deps))) return null;
     const consent = await readConsent(hash, deps);
-    const channels = ask.channels.filter((c) => consent[c].state !== 'opted-out');
+    const channels = (await ownerExists(ask.by))
+      ? ask.channels.filter((c) => consent[c].state !== 'opted-out')
+      : [];
     if (channels.length > 0) await writeGrant(hash, ask.by, channels, 'contact-yes', deps);
     await releaseConsentAsk(hash, ask.at, deps);
     log.info({ phoneLast4: last4(e164), channels }, 'Contact said yes to texts for one owner');
@@ -217,6 +242,16 @@ export async function recordContactYes(
     log.error({ error: String(error), phoneLast4: last4(e164) }, 'Contact yes not saved');
     return null;
   }
+}
+
+/** The owner still has an account: bogle_users/{uid} or users/{uid} (erasure removes both). */
+async function accountExists(uid: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  const docs = await Promise.all(
+    ['bogle_users', 'users'].map(async (c) => db.collection(c).doc(uid).get())
+  );
+  return docs.some((d) => d.exists);
 }
 
 /** Records an inbound MessageSid atomically; false when it was seen before (a replay). */

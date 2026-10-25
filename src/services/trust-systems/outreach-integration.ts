@@ -1,6 +1,5 @@
 /**
  * Proactive Outreach Integration
- *
  * Connects the "thinking of you" system to the actual outreach execution.
  * This makes proactive check-ins actually happen.
  *
@@ -436,7 +435,7 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
 
         // Use the communication service for SMS
         const { sendSMS } = await import('../communication-service.js');
-        const result = await sendSMS(phone, formatted.message);
+        const result = await sendSMS(phone, formatted.message, { userId: item.userId });
         const success = !result.includes('trouble') && !result.includes('error');
         if (success) {
           log.info({ userId: item.userId, method: 'sms', personaId }, '📱 SMS sent');
@@ -492,6 +491,7 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
           fallbackToTwilioVoice: true,
           customGreeting: formatted.opening,
           ownerUid: item.userId,
+          userId: item.userId,
         });
 
         if (result.success) {

@@ -21,6 +21,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
+  heldSender,
   last4,
   phoneHash,
   phoneHashKey,
@@ -58,6 +59,7 @@ import {
   type ConsentDeps,
 } from '../messaging/consent.js';
 import { smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
+import { holdTextForFocus, type FocusTextDeps } from './focus-send-hold.js';
 
 const log = createLogger({ module: 'guarded-text' });
 
@@ -84,6 +86,8 @@ export interface TextDeps {
   now: () => Date;
   /** consent/{phoneHash} (MESSAGING_PIPELINE); by default Firestore, under `env`. */
   consent?: ConsentDeps;
+  /** A Focus hold (focus-send-hold.ts): where held texts go, and FOCUS_HOLD; by default Firestore. */
+  focus?: FocusTextDeps;
 }
 
 const consentOf = (deps: TextDeps): ConsentDeps =>
@@ -109,6 +113,8 @@ export type TextSkip =
   | 'opted-out'
   | 'consent-unknown'
   | 'paused'
+  | 'focus-held'
+  | 'held' // MINOR_CARE_SHARED_HOLD: no text they didn't ask for right now
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -251,6 +257,8 @@ export async function sendGuardedText(
 
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
+  // MINOR_CARE_SHARED_HOLD: the account or the number held by a call, unless asked for just now
+  if (!t.askedNow && (await heldSender(t.userId, phone, deps.env))) return skip('held');
   const [refusal, toPhone] = await Promise.all([
     smsConsentRefusal(hash, deps.store, t.askedNow === true, now),
     deps.store.forPhoneHash(hash),
@@ -261,7 +269,8 @@ export async function sendGuardedText(
   if (consent) return skip(consent === 'opted-out' ? 'opted-out' : 'send-failed');
   // Per phone too: two accounts can share a number.
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
-
+  // Their Focus holds what Ferni starts: held until it ends (focus-send-hold.ts), never dropped.
+  if (await holdTextForFocus(t, userDoc, now, deps.focus)) return skip('focus-held');
   const phoneLast4 = last4(phone);
   const record: CheckinRecord = {
     userId: storedId,
@@ -280,6 +289,7 @@ export async function sendGuardedText(
     personaId: 'ferni',
     userId: storedId,
     outreachId: `${t.kind}_${t.refId}`,
+    ...(t.askedNow && { askedNow: true }),
   });
   if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
@@ -320,7 +330,7 @@ export interface OnBehalfText {
 }
 
 export type OnBehalfSkip =
-  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off'>
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'focus-held' | 'held'>
   | 'bad-number'
   | 'needs-consent'
   | 'quiet-hours';

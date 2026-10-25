@@ -168,7 +168,7 @@ export async function makeVoiceReferralCall(params: {
     const result = await callWithPersonaVoice(recipientPhone, message, 'ferni', {
       fallbackToTwilioVoice: true,
       ownerUid: referrerId, // MESSAGING_PIPELINE: the recipient needs a grant from the referrer
-      // Enable SSML enhancement for natural-sounding calls
+      userId: referrerId, // MINOR_CARE_SHARED_HOLD: a held referrer's account stops it
       ssml: {
         callType: ssmlCallType,
         relationshipStage: 'new', // Recipient is new to Ferni

@@ -15,8 +15,15 @@
  * @module services/platform/user-stores
  */
 
-/** A document keyed by the uid (and everything under it), or documents naming the uid */
-export type OwnedStore = { collection: string; doc: 'uid' } | { collection: string; field: string };
+/**
+ * A document keyed by the uid (and everything under it), documents naming the uid, or
+ * an entry keyed by the uid (`{mapKey}.{uid}`) inside a document that isn't the person's:
+ * only that entry is theirs, so only it is erased.
+ */
+export type OwnedStore =
+  | { collection: string; doc: 'uid' }
+  | { collection: string; field: string }
+  | { collection: string; mapKey: string };
 
 /** Collections whose {uid} document, and everything under it, belongs to that person */
 export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
@@ -62,7 +69,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'user_gifts',
     'user_contacts',
     'profiles', // conversation and insight feedback, subcollections only
-    'feature_flag_overrides' // flags turned on for this person alone (cohort-flags.ts)
+    'feature_flag_overrides', // flags turned on for this person alone (cohort-flags.ts)
+    'minor_care_holds' // {heldUntil, v}: a call held them under 18 (minor-care-shared-hold.ts)
   ),
   // The app's per-person documents
   ...byId(
@@ -134,6 +142,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   ...byField('odId', 'analytics_sessions'),
   ...byField('firebaseUid', 'user_profiles'), // access grants; the email-keyed ones too (erase-other-keys)
   ...byField('injection.userId', 'context_injection_outcomes'),
+  ...byField('text.userId', 'feature_held_texts'), // texts held for them (a Focus, quiet hours), with the text
   { collection: 'reply_reports', field: 'uid' }, // replies they reported, with their own words
   { collection: 'reply_report_quota', doc: 'uid' },
 ];
@@ -155,13 +164,28 @@ export const CREDENTIAL_STORES: readonly OwnedStore[] = [
   ...byField('userId', 'developer_oauth_tokens'),
 ];
 
+/**
+ * The person's entries in other people's documents: erased, never exported or copied.
+ * consent/{phoneHash} is a contact's own record, and their STOP stays after any erasure
+ * so nobody texts them again; grants.{uid} is the consent they gave for this member
+ * (messaging/consent-grants.ts), and asks.{uid} the member's open consent ask: both go
+ * with the member, so a later YES can't grant a deleted account.
+ */
+export const ENTRIES_IN_OTHERS_DOCS: readonly OwnedStore[] = [
+  { collection: 'consent', mapKey: 'grants' },
+  { collection: 'consent', mapKey: 'asks' },
+];
+
 /** Every store account deletion must leave empty for the person */
 export const ERASED_STORES: readonly OwnedStore[] = [
   ...USER_RECORD_ROOTS.flatMap((root) => byId(root)),
   ...OWNED_ELSEWHERE,
   ...CREDENTIAL_STORES,
+  ...ENTRIES_IN_OTHERS_DOCS,
 ];
 
-/** A store's label, with the uid written as {uid} ("users/{uid}", "entities[userId]") */
-export const storeLabel = (store: OwnedStore): string =>
-  'doc' in store ? `${store.collection}/{uid}` : `${store.collection}[${store.field}]`;
+/** A store's label, with the uid written as {uid} ("users/{uid}", "entities[userId]", "consent[grants.{uid}]") */
+export function storeLabel(store: OwnedStore): string {
+  if ('doc' in store) return `${store.collection}/{uid}`;
+  return `${store.collection}[${'field' in store ? store.field : `${store.mapKey}.{uid}`}]`;
+}

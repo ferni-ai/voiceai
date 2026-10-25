@@ -333,7 +333,8 @@ function inviteFor(
   };
   const invite = commitmentInviteNote(session, turn, { crisis });
   const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
-  return [invite, ask].join(' ').trim() || questionPaceNote(turn.ferniLines, { crisis });
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  return [invite, ask].join(' ').trim() || questionPaceNote(turn.ferniLines, { crisis, sessionId });
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */

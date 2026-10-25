@@ -342,7 +342,7 @@ describe('confirmations: exactly one per opt-out, and an ordinary text is never 
     '%j reaches Ferni and opts nobody out',
     async (body) => {
       expect(await inbound(body)).toEqual([]);
-      expect(routed).toHaveBeenCalledWith(OWNER_UID, OWNER, body, false);
+      expect(routed).toHaveBeenCalledWith(OWNER_UID, OWNER, body, false, false);
       expect(docs.has(`consent/${hashOf(OWNER)}`)).toBe(false);
       expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(false);
       for (const sender of Object.keys(SENDERS) as Sender[]) {
@@ -364,7 +364,7 @@ describe('a possible opt-out pauses texts (leaning toward stopping) and asks', (
     '%j: no opt-out, no confirmation, Ferni sees it flagged, texts paused',
     async (body) => {
       expect(await inbound(body)).toEqual([]);
-      expect(routed).toHaveBeenCalledWith(OWNER_UID, OWNER, body, true);
+      expect(routed).toHaveBeenCalledWith(OWNER_UID, OWNER, body, true, false);
       expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(false);
       const consent = docs.get(`consent/${hashOf(OWNER)}`);
       expect(consent?.sms).toBeUndefined();

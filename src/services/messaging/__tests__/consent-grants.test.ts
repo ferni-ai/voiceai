@@ -5,6 +5,9 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { memoryConsentStore } from './memory-consent.js';
+
+// Pat is one of each owner's contacts here; consent-ask-guards.test.ts covers strangers.
+vi.mock('../owner-contacts.js', () => ({ ownerKnowsNumber: async () => true }));
 import {
   claimConsentAsk,
   consentAskText,
@@ -66,9 +69,85 @@ const askFrom = async (owner: string): Promise<void> => {
 };
 let sidN = 0;
 const reply = async (body: string, sid = `SM${String(++sidN).padStart(10, '0')}`) =>
-  recordContactYes(PAT, body, sid, deps, async () => texts);
+  recordContactYes(
+    PAT,
+    body,
+    sid,
+    deps,
+    async () => texts,
+    async () => true
+  );
 beforeEach(() => {
   texts = [];
+});
+
+describe('isConsentYes: a question or a spelled-out yes is not consent', () => {
+  const table: Array<[string, boolean]> = [
+    ['yes', true],
+    ['Yes', true],
+    ['YES!', true],
+    ['ok', true],
+    ['sure', true],
+    ['y', true],
+    ['y e s', true],
+    // "Yes?" to an unexpected text means "who is this?"
+    ['yes?', false],
+    ['Yes?', false],
+    ['ok?', false],
+    ['Y?', false],
+    ['¿yes?', false],
+    ['¿yes', false],
+    ['y.e.s', false],
+    ['y-e-s', false],
+    ['yes, stop', false],
+    ['Yes STOP', false],
+    ['no yes', false],
+    ['yesterday', false],
+    ['who is this? yes', false],
+    ['ye s', false],
+    ['yes please', false], // the documented set is the bare word only
+    // round 2: an allowlist, so every question mark and symbol is out, in any script
+    ['yes❓', false],
+    ['yes ❓', false],
+    ['yes‽', false],
+    ['yes\u061F', false], // Arabic question mark
+    ['yes\u037E', false], // Greek question mark
+    ['yes⁇', false],
+    ['ok ⁉️', false],
+    ['yes!?', false],
+    ['yes 🙂', false],
+    ['sí', false],
+    ['Yes.', true],
+    ['YES!!', true],
+    ['ok,', true],
+    ['yes 👍', true],
+    ['ＹＥＳ', true], // full-width, folded by NFKC
+  ];
+  it.each(table)('%j -> %s', (body, yes) => expect(isConsentYes(body)).toBe(yes));
+
+  it('a "yes?" to an open ask grants nothing', async () => {
+    await askFrom('owner-1');
+    expect(await reply('yes?')).toBeNull();
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false);
+  });
+});
+
+describe('recordContactYes with MESSAGING_PIPELINE off', () => {
+  it('a leftover ask and a "yes": no grant, and nothing read or written', async () => {
+    await askFrom('owner-1');
+    const before = structuredClone(m.docs.get(HASH));
+    const read = vi.spyOn(m.store, 'read');
+    const apply = vi.spyOn(m.store, 'apply');
+    const legacy = vi.spyOn(m.store, 'legacySmsOptOut');
+    const textsTo = vi.fn(async () => texts);
+    const off = { ...deps, env: { ...env, MESSAGING_PIPELINE: 'off' } };
+    expect(
+      await recordContactYes(PAT, 'yes', 'SMflagoff0001', off, textsTo, async () => true)
+    ).toBeNull();
+    expect([read, apply, legacy, textsTo].map((f) => f.mock.calls.length)).toEqual([0, 0, 0, 0]);
+    expect(m.docs.get(HASH)).toEqual(before);
+    expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(false);
+  });
 });
 
 describe('recordContactYes', () => {
@@ -80,7 +159,7 @@ describe('recordContactYes', () => {
     });
     expect(await hasGrant(HASH, 'owner-1', 'sms', deps)).toBe(true);
     expect((await readConsent(HASH, deps)).sms.state).toBe('unknown'); // global: only their STOP/START
-    expect(m.docs.get(HASH)?.ask).toBeUndefined();
+    expect(m.docs.get(HASH)?.asks).toBeUndefined();
   });
 
   it('a YES with no ask, or to one older than 30 days, changes nothing', async () => {

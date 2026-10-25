@@ -128,19 +128,27 @@ export async function handleCalendarTriggers(res: ServerResponse): Promise<void>
  */
 export async function handleCalendarBriefing(res: ServerResponse): Promise<void> {
   await run(res, 'calendar-briefing', async () => {
-    const [{ runMorningBriefs }, { defaultMorningBriefDeps }, { checkAndSendMorningBriefings }] =
-      await Promise.all([
-        import('../../services/outreach/morning-brief/brief-job.js'),
-        import('../../services/outreach/morning-brief/default-deps.js'),
-        import('../../tasks/scheduled/calendar-briefing-job.js'),
-      ]);
+    const [
+      { runMorningBriefs },
+      { defaultMorningBriefDeps },
+      { checkAndSendMorningBriefings },
+      { isSavedQuietNow },
+    ] = await Promise.all([
+      import('../../services/outreach/morning-brief/brief-job.js'),
+      import('../../services/outreach/morning-brief/default-deps.js'),
+      import('../../tasks/scheduled/calendar-briefing-job.js'),
+      import('../../services/outreach/quiet-hours.js'),
+    ]);
     const brief = await runMorningBriefs(await defaultMorningBriefDeps(), new Date()).catch(
       (error: unknown) => {
         log.error({ error: String(error) }, 'Morning brief run failed');
         return { recipients: [], report: { error: String(error) } };
       }
     );
-    const push = await checkAndSendMorningBriefings({ skipUsers: brief.recipients });
+    const push = await checkAndSendMorningBriefings({
+      skipUsers: brief.recipients,
+      quietNow: isSavedQuietNow, // the menu's quiet hours (QUIET_HOURS_FROM_PREFS)
+    });
     return { ...push, morningBrief: brief.report };
   });
 }
