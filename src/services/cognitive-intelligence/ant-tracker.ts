@@ -14,6 +14,7 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = getLogger().child({ module: 'ant-tracker' });
 
@@ -320,9 +321,7 @@ export async function loadUserANTData(
 // CORE FUNCTIONS
 // ============================================================================
 
-/**
- * Record a new ANT entry.
- */
+/** Record a new ANT entry (MINOR_CARE: for a caller under 18, kept nowhere). */
 export function recordANT(
   userId: string,
   detection: DistortionDetection,
@@ -345,6 +344,7 @@ export function recordANT(
     reframeAccepted: undefined,
   };
 
+  if (writeHeld(userId)) return entry; // their thinking patterns and trigger words
   // Store entry in cache
   if (!antEntries.has(userId)) {
     antEntries.set(userId, []);
