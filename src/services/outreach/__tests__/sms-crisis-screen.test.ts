@@ -4,14 +4,29 @@
  * classifier's model call is faked (it returns the JSON the model would).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// Every log call the module makes, to prove the words never reach a log line.
+const logged = vi.hoisted(() => [] as unknown[][]);
+vi.mock('../../../utils/safe-logger.js', () => ({
+  createLogger: () => ({
+    info: (...args: unknown[]) => logged.push(args),
+    warn: (...args: unknown[]) => logged.push(args),
+    error: (...args: unknown[]) => logged.push(args),
+    debug: (...args: unknown[]) => logged.push(args),
+  }),
+}));
 import type { CrisisGenerateFn } from '../../safety/crisis-classifier.js';
 import { detectCrisis } from '../../safety/crisis-guard.js';
+import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 import {
+  isBareKeyword,
   readSmsCrisis,
+  SMS_CLASSIFIER_TIMEOUT_MS,
   SMS_CRISIS_REPLY,
   SMS_MAX_CHARS,
   smsCrisisReply,
   smsReplyTwiml,
+  withCrisisReply,
   type SmsCrisisRead,
 } from '../sms-crisis-screen.js';
 
@@ -103,5 +118,79 @@ describe('the reply', () => {
     const twiml = smsReplyTwiml(SMS_CRISIS_REPLY);
     expect(twiml).toContain('<Message>I&apos;m really glad you told me');
     expect(twiml.match(/<Message>/g)).toHaveLength(1);
+  });
+});
+
+describe('Twilio keywords (verify of 5ee374736)', () => {
+  it.each(['HELP', 'help', 'help?', 'Help!', 'STOP', 'stop.', 'START', 'info', 'Unsubscribe'])(
+    'a bare keyword: %s',
+    (text) => expect(isBareKeyword(text)).toBe(true)
+  );
+
+  it.each(['help me', 'i need help', 'stop texting me. i want to die', 'I want to kill myself'])(
+    'not a bare keyword: %s',
+    (text) => expect(isBareKeyword(text)).toBe(false)
+  );
+
+  it('a bare "HELP" read as crisis by the classifier alone gets no 988 (Twilio answers HELP)', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    const classifierOnly = vi.fn(async (): Promise<SmsCrisisRead> => ({
+      crisis: true,
+      pattern: false,
+      risk: 'crisis',
+    }));
+    for (const text of ['HELP', 'help?', 'Help!']) {
+      expect(await smsCrisisReply(text, classifierOnly)).toBeNull();
+    }
+    // A longer ask for help is not a keyword: it keeps the classifier's 988.
+    expect(await smsCrisisReply('i need help', classifierOnly)).toBe(SMS_CRISIS_REPLY);
+  });
+
+  it('an opt-out that reads as crisis keeps its confirmation, then 988', () => {
+    const body = 'stop texting me. i want to die';
+    const confirmation = keywordReply(inboundKeyword(body));
+    expect(confirmation).toMatch(/unsubscribed/); // the app owes this one
+    const handler = smsReplyTwiml(confirmation ?? '');
+    const sent = withCrisisReply(handler, SMS_CRISIS_REPLY, body);
+    expect(sent.match(/<Message>/g)).toHaveLength(2);
+    expect(sent.indexOf('unsubscribed')).toBeLessThan(sent.indexOf('988'));
+  });
+
+  it('any other reply is replaced by 988', () => {
+    const handler = smsReplyTwiml("I'd love to talk. Open Ferni whenever you're ready.");
+    const sent = withCrisisReply(handler, SMS_CRISIS_REPLY, 'I want to die, call me');
+    expect(sent.match(/<Message>/g)).toHaveLength(1);
+    expect(sent).toContain('988');
+    expect(sent).not.toContain('Open Ferni');
+  });
+});
+
+describe('what the screen logs and how long it waits', () => {
+  it('never logs the words of the text', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    logged.length = 0;
+    const words = 'my secret plan is the bridge on fifth street';
+    await smsCrisisReply(words, async () => ({ crisis: true, pattern: true, risk: 'imminent' }));
+    await smsCrisisReply(words, async () => {
+      throw new Error('boom');
+    });
+    expect(logged.length).toBeGreaterThan(0);
+    expect(JSON.stringify(logged)).not.toContain('bridge');
+  });
+
+  it('gives up on a hung classifier after 4 s, so the reply is never held longer', async () => {
+    vi.useFakeTimers();
+    try {
+      const hung: CrisisGenerateFn = () => new Promise<string>(() => {});
+      let settled: SmsCrisisRead | undefined;
+      void readSmsCrisis('see you at 6', hung).then((r) => (settled = r));
+      await vi.advanceTimersByTimeAsync(3_999);
+      expect(settled).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(settled).toEqual({ crisis: false, pattern: false, risk: null });
+      expect(SMS_CLASSIFIER_TIMEOUT_MS).toBeLessThanOrEqual(4_000);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
