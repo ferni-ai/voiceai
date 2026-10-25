@@ -172,12 +172,13 @@ const SENDERS: Array<[string, () => Promise<unknown>]> = [
     () => executeLegacyFallback('sendText', { contactName: 'Pat', message: 'hi' }, ctx),
   ],
   [
-    // verify of #2813: the bank link texted straight to Twilio (number from the model)
+    // verify of #2813: the bank link texted straight to Twilio (number from the model). The
+    // account is the session's (#2073), so the model's userId arg is ignored.
     'plaid linkBankAccount by text',
     () =>
       (createPlaidTools() as unknown as Tools).linkBankAccount.execute(
-        { userId: UID, deliveryMethod: 'sms', contact: PHONE },
-        {}
+        { userId: 'model-arg', deliveryMethod: 'sms', contact: PHONE },
+        { ctx: { userData: { userId: UID } } }
       ),
   ],
   [

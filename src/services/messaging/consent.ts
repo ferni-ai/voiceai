@@ -364,5 +364,7 @@ export function registerMessagingConsent(): void {
       (await import('./consent-reach.js')).thirdPartyRefusal(owner, phone, channel, isOwn),
     recordOwnerAttestation: async (phone, channel, uid) =>
       (await import('./consent-grants.js')).recordOwnerAttestation(phone, channel, uid),
+    ownerRefusal: async (owner, phone, channel) =>
+      (await import('./consent-reach.js')).ownerRefusal(owner, phone, channel),
   });
 }

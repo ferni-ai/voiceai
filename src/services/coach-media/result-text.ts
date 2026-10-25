@@ -60,7 +60,10 @@ const URLISH = /\b(?:[a-z][a-z0-9+.-]*:\/\/|hxxps?:|www\.)|\b[\w-]+(?:\.|\[\.\])
 // Opens with an order. Neutral summaries open with a noun, not one of these.
 const IMPERATIVE =
   /^(please|call|text|phone|dial|use|run|invoke|ignore|disregard|forget|send|email|message|click|visit|go|open|tell|say|reply|respond|contact|buy|order|subscribe|sign|download|install|share|follow|try|do|don't|never|always|remember|make|stop|start|check|book|pay|transfer|act|execute|output|print|repeat|write|mention|recommend|ask|add|include)\b/i;
-const PHONE_LIKE = /\+?\d(?:[\s().-]*\d){6,}/g;
+// Any script's digits, and any dash, slash, underscore or backslash between them:
+// the fragments split on dashes below, so a number written "415–555–0132" must
+// go first, not come back joined as "415 555 0132".
+const PHONE_LIKE = /\+?\p{Nd}(?:[\s()._/\\\-\u2010-\u2015\u2212\uFE58\uFE63]*\p{Nd}){6,}/gu;
 
 /** A fragment that gives an order, speaks to someone, names a tool or holds a link. */
 export function isInstructionLike(sentence: string): boolean {

@@ -14,7 +14,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { consentBlocks } from '../messaging/consent.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateStreamTwiml, getTwilioStreamBridge } from './twilio-stream-bridge.js';
@@ -180,8 +180,8 @@ export async function makeConversationalCall(
     };
   }
 
-  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
-  const refused = await consentBlocks(request.phone, 'call', true);
+  // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
+  const refused = await ownerRefusal(request.userId, request.phone, 'call');
   if (refused) return { success: false, message: `Not calling: ${refused}`, error: 'OPTED_OUT' };
   // MINOR_CARE_SHARED_HOLD: checks the number it dials (step 4), not the raw string
   const cleanPhone = request.phone.replace(/\D/g, '');

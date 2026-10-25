@@ -5,16 +5,20 @@
  *
  * @module services/messaging/consent-reach
  */
-import { phoneHash } from '../outreach/checkin-replies.js';
+import { phoneHash, type Env } from '../outreach/checkin-replies.js';
 import {
   consentBlocks,
   defaultConsentDeps,
+  messagingPipelineOn,
   readConsent,
   type ConsentBlock,
   type ConsentChannel,
   type ConsentDeps,
 } from './consent.js';
 import { hasGrant, holdsConsentAsk } from './consent-grants.js';
+
+/** The tools' honest refusal line lives with the port (L3 tools read it there). */
+export { notCalling } from '../../utils/consent-port.js';
 
 /** Is `phone` the owner's own verified number? (guarded-text's isOwnVerifiedPhone; pass it when imported.) */
 export type OwnNumberCheck = (ownerUid: string, phone: string) => Promise<boolean>;
@@ -78,4 +82,32 @@ export async function grantedOrAsked(
 ): Promise<boolean> {
   if (claim !== undefined && (await holdsConsentAsk(hash, claim, senderUid, deps))) return true;
   return hasGrant(hash, senderUid, 'sms', deps);
+}
+
+/**
+ * For a shared sender that is told who it acts for: refuse unless `phone` is
+ * that owner's own verified number or the owner holds their own grant, and
+ * always on an opt-out. No owner given: refused unless the contact opted in
+ * to nobody in particular, i.e. always for a third party (fails closed).
+ */
+export async function ownerRefusal(
+  ownerUid: string | undefined,
+  phone: string,
+  channel: ConsentChannel
+): Promise<ConsentBlock | null> {
+  return ownerUid
+    ? thirdPartyRefusal(ownerUid, phone, channel)
+    : consentBlocks(phone, channel, false);
+}
+
+/**
+ * The executor-path raw senders (communication- and legacy-fallback-executor)
+ * text through Twilio directly, with none of the guards. With MESSAGING_PIPELINE
+ * on they refuse outright instead of relying on OUTBOUND_CONFIRM alone; the
+ * gated tools (reachOut, sendTextMessage) are the way to text someone.
+ */
+export function rawSendRetired(env: Env = process.env): string | null {
+  return messagingPipelineOn(env)
+    ? 'Nothing was sent: I text people only through the guarded path. Ask me to reach out to them instead.'
+    : null;
 }

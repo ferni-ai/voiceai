@@ -206,10 +206,12 @@ describe('Plaid bank-link email', () => {
     vi.resetModules(); // plaid.ts reads its credentials at import
     const { createPlaidTools } = await import('../../tools/domains/finance/plaid.js');
     const tool = createPlaidTools().linkBankAccount as unknown as {
-      execute: (args: Record<string, string>) => Promise<string>;
+      execute: (args: Record<string, string>, opts: unknown) => Promise<string>;
     };
+    // The caller comes from the session (#2073), never from the model's arguments.
+    const session = { ctx: { userData: { userId: 'u-1' } } };
 
-    const reply = await tool.execute({ userId: 'u-1', deliveryMethod: 'email', contact: 'sam@example.com' }); // prettier-ignore
+    const reply = await tool.execute({ deliveryMethod: 'email', contact: 'sam@example.com' }, session); // prettier-ignore
 
     expect(reply).toContain("I've sent a secure link to sam@example.com");
     expect(port.sent).toHaveLength(1);
