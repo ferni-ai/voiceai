@@ -146,7 +146,10 @@ describe('MINOR_CARE: entries flushed before the age statement never come back',
   const same = uid('S'); // the ordinary call runs in the same process
   const noScrub = uid('N'); // the same, and the purge's scrub of the stored docs fails
   const restart = uid('R'); // the ordinary call runs in a new process (no held window in memory)
-  const all = [same, noScrub, restart];
+  // the scrub fails, and the next call runs in a new process (a restart, or another replica): only
+  // the window the purge stored in minor_care_holds tells that process what to drop
+  const noScrubElsewhere = uid('X');
+  const all = [same, noScrub, restart, noScrubElsewhere];
   let p: P;
   let afterPurge: Record<string, ReturnType<typeof stored>>;
   let heldBeforeAge: Record<string, ReturnType<typeof stored>>;
@@ -165,6 +168,7 @@ describe('MINOR_CARE: entries flushed before the age statement never come back',
     }); // the stores' own sync timers, no flush call
     heldBeforeAge = Object.fromEntries(all.map((u) => [u, stored(u)]));
     failTransactions.add(noScrub);
+    failTransactions.add(noScrubElsewhere);
     for (const u of all) {
       const s1 = `held-${u}`;
       p.mc.heldAfter(s1, "I'm 15.", { userId: u });
@@ -192,13 +196,14 @@ describe('MINOR_CARE: entries flushed before the age statement never come back',
       expect(afterPurge[u].momentum).toEqual({ OLD: 1, HELD: 0, NEW: 0 });
       expect(afterPurge[u].totalWins).toBe(1);
     }
-    expect(afterPurge[noScrub].voice.HELD).toBe(4); // its scrub failed: the reload must drop them
+    for (const u of [noScrub, noScrubElsewhere]) expect(afterPurge[u].voice.HELD).toBe(4); // scrub failed
   });
 
   for (const [name, who, fresh] of [
     ['the same process', () => same, false],
     ['the same process, after the scrub failed', () => noScrub, false],
     ['a new process', () => restart, true],
+    ['a new process, after the scrub failed', () => noScrubElsewhere, true],
   ] as const) {
     it(`an ordinary call in ${name} keeps the older history and nothing from the held call`, async () => {
       const u = who();
@@ -370,12 +375,195 @@ describe('MINOR_CARE: the held window, store by store', () => {
   });
 });
 
+/** A held call: bound, loaded, speaks and wins (flushed), says 15, purged at its end. */
+async function heldCall(p: P, u: string, opts: { startedAt?: number } = {}) {
+  const s1 = `held-${u}`;
+  p.mc.bindSessionUser(s1, u);
+  await p.persist.loadTrustProfiles(u);
+  speak(p, u, 'HELD', 4, 'fear');
+  await p.voice.flushVoiceProsodyPersistence(); // what the stores' timers do
+  await p.momentum.flushCelebrationMomentumPersistence();
+  p.mc.heldAfter(s1, "I'm 15.", { userId: u });
+  p.purge.purgeHeldUser(u, s1, opts.startedAt);
+  await new Promise((r) => {
+    setTimeout(r, 50);
+  });
+}
+const holdDoc = (u: string) =>
+  firestore.docs.get(`minor_care_holds/${u}`) as
+    | { windows?: Array<{ start: number; end: number; scrubbed: boolean }>; expireAt?: Date }
+    | undefined;
+const DAY = 24 * 60 * 60 * 1000;
+
+describe('MINOR_CARE: the held window is stored, so every process drops what it covers', () => {
+  afterEach(() => {
+    firestore.failReads.match = null;
+    failTransactions.clear();
+  });
+
+  it('the purge stores its window for 90 days; a scrub that failed is redone at the next session start, in any process', async () => {
+    const u = uid('Y');
+    await seed(u);
+    vi.stubEnv('MINOR_CARE', 'on');
+    const p = await proc();
+    failTransactions.add(u); // the purge's scrub fails
+    await heldCall(p, u);
+    expect(stored(u).voice.HELD).toBe(4);
+    const window = holdDoc(u)?.windows ?? [];
+    expect(window).toHaveLength(1);
+    expect(window[0].scrubbed).toBe(false);
+    expect(window[0].end - window[0].start).toBeGreaterThanOrEqual(0);
+    expect(holdDoc(u)!.expireAt!.getTime() - window[0].end).toBe(90 * DAY);
+    await endProc(p);
+    failTransactions.delete(u); // Firestore is back
+    const q = await proc(); // the next call lands on another process
+    q.mc.bindSessionUser(`next-${u}`, u);
+    await q.persist.loadTrustProfiles(u);
+    // before any store timer runs: the session start's own scrub cleaned both docs
+    expect(stored(u).voice).toEqual({ OLD: 12, HELD: 0, NEW: 0 });
+    expect(stored(u).momentum).toEqual({ OLD: 1, HELD: 0, NEW: 0 });
+    expect(holdDoc(u)?.windows?.map((w) => w.scrubbed)).toEqual([true]);
+    await endProc(q);
+  });
+
+  it('windows that cannot be read keep voice and momentum unwritten; the next good read cleans them', async () => {
+    const u = uid('Z');
+    await seed(u);
+    vi.stubEnv('MINOR_CARE', 'on');
+    const p = await proc();
+    failTransactions.add(u);
+    await heldCall(p, u);
+    await endProc(p);
+    const before = [raw(u, 'voice_prosody/data'), raw(u, 'celebration_momentum/profile')];
+    const mirrors = [
+      raw(u, 'trust_profiles/voice_prosody'),
+      raw(u, 'trust_profiles/celebration_momentum'),
+    ];
+    failTransactions.delete(u);
+    firestore.failReads.match = new RegExp(`^minor_care_holds/${u}$`);
+    const q = await proc();
+    q.mc.bindSessionUser(`next-${u}`, u);
+    await q.persist.loadTrustProfiles(u);
+    speak(q, u, 'NEW', 10, 'neutral');
+    await endCall(q, u);
+    expect([raw(u, 'voice_prosody/data'), raw(u, 'celebration_momentum/profile')]).toEqual(before);
+    expect([
+      raw(u, 'trust_profiles/voice_prosody'),
+      raw(u, 'trust_profiles/celebration_momentum'),
+    ]).toEqual(mirrors);
+    await endProc(q);
+    firestore.failReads.match = null;
+    const r = await proc();
+    r.mc.bindSessionUser(`later-${u}`, u);
+    await r.persist.loadTrustProfiles(u);
+    await endCall(r, u);
+    expect(stored(u).voice).toEqual({ OLD: 12, HELD: 0, NEW: 0 });
+    expect(stored(u).momentum).toEqual({ OLD: 1, HELD: 0, NEW: 0 });
+    await endProc(r);
+  });
+
+  it('the window starts at the earlier of the call start and the bind', async () => {
+    const p = await proc();
+    const held = await import('../held-window.js');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const t0 = Date.parse('2026-10-25T12:00:00Z');
+      const a = uid('Ea'); // the call started before its session was bound to the user
+      vi.setSystemTime(t0 + 100);
+      p.mc.bindSessionUser(`s-${a}`, a);
+      vi.setSystemTime(t0 + 5000);
+      p.purge.purgeHeldUser(a, `s-${a}`, t0);
+      expect(held.recordedWhileHeld(a, t0)).toBe(true);
+      expect(held.recordedWhileHeld(a, t0 - 1)).toBe(false);
+      const b = uid('Eb'); // bound before the start the cleanup passes
+      vi.setSystemTime(t0);
+      p.mc.bindSessionUser(`s-${b}`, b);
+      vi.setSystemTime(t0 + 5000);
+      p.purge.purgeHeldUser(b, `s-${b}`, t0 + 100);
+      expect(held.recordedWhileHeld(b, t0)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('momentum: a held win that extended the daily streak loses that step', async () => {
+    const p = await proc();
+    const held = await import('../held-window.js');
+    const u = uid('D');
+    const at = (ms: number) => new Date(ms).toISOString();
+    const now = Date.now();
+    const win = (id: string, ms: number) => ({
+      id,
+      type: 'self_care',
+      description: id,
+      detectedAt: at(ms),
+      celebrated: false,
+      tags: [],
+    });
+    const data = {
+      userId: u,
+      wins: [win('OLD1', now - 3 * DAY), win('OLD2', now - 2 * DAY), win('OLD3', now - DAY)],
+      streaks: [
+        {
+          id: 'd',
+          type: 'daily',
+          count: 4,
+          startDate: at(now - 3 * DAY),
+          lastWinDate: at(now - 1000),
+          active: true,
+          celebrated: false,
+        },
+      ],
+      themes: [],
+      momentumScore: 10,
+      momentumTrend: 'stable',
+      consistencyScore: 0,
+      totalWins: 4,
+      winsThisWeek: 4,
+      winsThisMonth: 4,
+      comebackDetected: false,
+      breakthroughMoment: false,
+      lastUpdated: at(now - 1000),
+    };
+    data.wins.push(win('HELD', now - 1000));
+    held.noteHeldWindow(u, now - 2000, now);
+    const kept = p.momentum.withoutHeldWins(u, data as never)!;
+    expect(kept.streaks.map((s) => [s.type, s.count, s.active])).toEqual([['daily', 3, true]]);
+    expect(new Date(kept.streaks[0].lastWinDate).getTime()).toBe(now - DAY);
+  });
+
+  it('a sample unflushed at the age statement never stops this process storing the user later', async () => {
+    const u = uid('L');
+    await seed(u);
+    vi.stubEnv('MINOR_CARE', 'on');
+    const p = await proc();
+    const s1 = `held-${u}`;
+    p.mc.bindSessionUser(s1, u);
+    await p.persist.loadTrustProfiles(u);
+    speak(p, u, 'HELD', 1, 'fear');
+    p.mc.heldAfter(s1, "I'm 15.", { userId: u });
+    await p.voice.flushVoiceProsodyPersistence(); // a tick during the hold drops it
+    p.purge.purgeHeldUser(u, s1);
+    await new Promise((r) => {
+      setTimeout(r, 50);
+    });
+    p.mc.resetMinorCare(); // the hold lapsed
+    p.mc.bindSessionUser(`next-${u}`, u);
+    await p.persist.loadTrustProfiles(u);
+    speak(p, u, 'NEW', 10, 'neutral');
+    await endCall(p, u);
+    expect(stored(u).voice).toEqual({ OLD: 12, HELD: 0, NEW: 10 });
+    await endProc(p);
+  });
+});
+
 describe('MINOR_CARE flags off: nothing is held, purged or dropped', () => {
   it('a call that says "I\'m 15." is saved like any other, on top of the older history', async () => {
     const u = uid('O');
     await seed(u);
     vi.stubEnv('MINOR_CARE', 'off');
     vi.stubEnv('MINOR_CARE_OWNERS', 'off');
+    firestore.failReads.match = new RegExp(`^minor_care_holds/`); // never read with the flag off
     const p = await proc();
     const s1 = `s1-${u}`;
     p.mc.bindSessionUser(s1, u);
@@ -390,6 +578,7 @@ describe('MINOR_CARE flags off: nothing is held, purged or dropped', () => {
     const voice = raw(u, 'voice_prosody/data');
     expect([count(voice, 'OLD'), count(voice, 'CALL1'), count(voice, 'NEW')]).toEqual([12, 4, 10]);
     expect(mirror(u, 'voice_prosody').sampleCount).toBe(26);
+    firestore.failReads.match = null;
     await endProc(p);
   });
 });

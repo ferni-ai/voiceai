@@ -14,7 +14,12 @@
  * @module services/trust-systems/reload-before-save
  */
 import { loadMomentumUser, withoutHeldWins } from './celebration-momentum.js';
-import { scrubHeldDoc } from './held-window.js';
+import {
+  loadHeldWindows,
+  markHeldWindowsScrubbed,
+  scrubHeldDoc,
+  storeHeldWindow,
+} from './held-window.js';
 import { importLearningProfile, type LearningProfile } from './learning-style.js';
 import { readTrustDoc } from './trust-doc.js';
 import { loadVoiceProsodyUser, withoutHeldSamples } from './voice-prosody-learning.js';
@@ -62,6 +67,14 @@ export async function loadReloadedStores(userId: string): Promise<string[]> {
     ['voice_prosody', loadVoiceProsodyUser],
     ['celebration_momentum', loadMomentumUser],
   ] as const;
+  // MINOR_CARE: the held windows any process stored (held-window.ts) before either store reads.
+  // Unreadable: both stay unread and unwritable, since a read now could keep a held caller's entries.
+  const held = await loadHeldWindows(userId).catch(() => null);
+  if (!held) {
+    for (const [doc] of stores) trustDocRead(userId, doc, false);
+    return loaded;
+  }
+  if (held.unscrubbed) await scrubAndMark(userId); // the purge's scrub never completed
   for (const [doc, load] of stores) {
     const ok = await load(userId).then(
       () => true,
@@ -83,4 +96,21 @@ export async function scrubHeldStores(userId: string): Promise<boolean[]> {
     scrubHeldDoc(userId, 'voice_prosody', 'data', withoutHeldSamples),
     scrubHeldDoc(userId, 'celebration_momentum', 'profile', withoutHeldWins),
   ]);
+}
+
+/** Scrub both docs; once both are clean, mark the stored windows scrubbed. Never rejects. */
+async function scrubAndMark(userId: string): Promise<void> {
+  if ((await scrubHeldStores(userId)).every(Boolean)) await markHeldWindowsScrubbed(userId);
+}
+
+/**
+ * MINOR_CARE purge: store the held call's window first, so a process that never saw it still
+ * drops its entries, then scrub. A step that fails is redone at the user's next session start.
+ */
+export async function storeAndScrubHeldWindow(
+  userId: string,
+  window: [number, number]
+): Promise<void> {
+  await storeHeldWindow(userId, window);
+  await scrubAndMark(userId);
 }
