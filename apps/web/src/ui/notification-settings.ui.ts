@@ -205,7 +205,9 @@ class NotificationSettingsUI {
       const response = await apiGet<{ upcoming?: Array<Record<string, unknown>> }>('/api/outreach/upcoming');
       this.upcomingLoadFailed = !response.ok || !response.data;
       if (response.ok && response.data) {
+        // Keep each item's fields; JSON carries the time as a string, formatTime needs a Date
         this.upcomingItems = (response.data.upcoming || []).map((item: Record<string, unknown>) => ({
+          ...item,
           scheduledFor: new Date(item.scheduledFor as string),
         })) as unknown as ScheduledOutreach[];
       } else {
@@ -311,8 +313,9 @@ class NotificationSettingsUI {
         </div>
       </div>
 
-      <!-- Superhuman Capabilities Section -->
-      <div class="notif-settings__group" data-requires="enabled">
+      <!-- What I'll watch: its other switches (check-ins, daily practice, predictions, huddles)
+           were kept in this browser and read by no sender, so they're gone; no streaks, no section -->
+      ${isNoStreaksOn() ? '' : `<div class="notif-settings__group" data-requires="enabled">
         <div class="notif-settings__section-header">
           <h3>${t('notificationSettings.whatIllWatch')}</h3>
           <span class="notif-settings__section-badge">
@@ -324,39 +327,6 @@ class NotificationSettingsUI {
         </div>
         
         <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--guardian">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.ferniCheckins')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.guardianCheckinsDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="ferniCheckins" ${this.localPrefs.ferniCheckins ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--ritual">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.dailyReminders')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.dailyRemindersDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="ritualReminders" ${this.localPrefs.ritualReminders ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-
-        ${isNoStreaksOn() ? '' : `<div class="notif-settings__capability-row">
           <div class="notif-settings__capability-icon notif-settings__capability-icon--streak">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
           </div>
@@ -368,42 +338,8 @@ class NotificationSettingsUI {
             <input type="checkbox" data-pref="streakMilestones" ${this.localPrefs.streakMilestones ? 'checked' : ''}>
             <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
-        </div>`}
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--prediction">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.predictionResults')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.predictionDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="predictionResults" ${this.localPrefs.predictionResults ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
         </div>
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--team">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="8" r="5"/>
-              <path d="M20 21a8 8 0 1 0-16 0"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.teamHuddles')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.teamHuddlesDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="teamHuddles" ${this.localPrefs.teamHuddles ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-      </div>
+      </div>`}
 
       <!-- Quiet Hours: Guardian Respects Boundaries (texts and calls too, so not tied to push) -->
       <div class="notif-settings__group">
@@ -479,22 +415,6 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="milestoneNotifications" ${this.outreachPrefs?.milestoneNotifications ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--recap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.weeklyRecap')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.recapDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-outreach="weeklyRecap" ${this.outreachPrefs?.weeklyRecap ? 'checked' : ''}>
             <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
@@ -610,10 +530,6 @@ class NotificationSettingsUI {
       <!-- Call to Action -->
       <div class="notif-settings__empty-cta">
         <p class="notif-settings__empty-cta-text">${t('notificationSettings.emptyCta')}</p>
-        <div class="notif-settings__empty-tip">
-          ${ICONS.sparkles}
-          <span>${t('notificationSettings.emptyTip', { feature: t('notificationSettings.ferniCheckins') })}</span>
-        </div>
       </div>
     `;
   }

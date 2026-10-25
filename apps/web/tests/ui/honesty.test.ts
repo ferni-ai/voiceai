@@ -100,7 +100,7 @@ describe('When I\'ll Check In', () => {
     showNotificationSettings();
 
     expect(document.querySelector('[data-pref="streakMilestones"]')).toBeNull();
-    expect(document.querySelector('[data-pref="ritualReminders"]')).not.toBeNull();
+    expect(document.querySelector('[data-pref="enabled"]')).not.toBeNull();
     expectHonest(visibleText(document.querySelector('.notif-settings') as HTMLElement));
     hideNotificationSettings();
   });

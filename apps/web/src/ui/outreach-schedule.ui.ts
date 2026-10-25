@@ -29,6 +29,8 @@ const log = createLogger('OutreachScheduleUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+/** Text from the route goes into markup as text (outreach-history-view.ts does the same). */
+const escape = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 // ============================================================================
 // TYPES
@@ -659,18 +661,15 @@ function renderUpcoming(container: Element, items: ScheduledOutreach[]): void {
 
   container.innerHTML = items.map((item) => renderUpcomingItem(item)).join('');
 
-  // Add event listeners
-  container.querySelectorAll('[data-action]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const action = (btn as HTMLElement).dataset.action;
-      const id = (btn as HTMLElement).dataset.id;
-      handleAction(action!, id!);
-    });
+  // Each button acts on the row it sits in (Preview used to look it up elsewhere and find nothing)
+  container.querySelectorAll<HTMLElement>('[data-action]').forEach((btn) => {
+    const item = items.find((i) => i.id === btn.dataset.id);
+    btn.addEventListener('click', () => item && void handleAction(btn.dataset.action ?? '', item));
   });
 }
 
 function renderUpcomingItem(item: ScheduledOutreach): string {
-  const initial = item.personaName.charAt(0);
+  const initial = escape(item.personaName.charAt(0));
   const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.sms;
   const timeStr = formatTime(item.scheduledFor);
 
@@ -681,7 +680,7 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
           ${initial}
         </div>
         <div class="outreach-item-info">
-          <p class="outreach-item-persona-name">${item.personaName}</p>
+          <p class="outreach-item-persona-name">${escape(item.personaName)}</p>
           <div class="outreach-item-meta">
             <span class="outreach-item-channel">${channelIcon} ${channelLabel(item.channel)}</span>
             <span class="outreach-item-time">${ICONS.clock} ${timeStr}</span>
@@ -689,8 +688,8 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
         </div>
         <span class="outreach-item-priority ${item.priority}">${priorityLabel(item.priority)}</span>
       </div>
-      <p class="outreach-item-preview">${item.preview.body}</p>
-      <p class="outreach-item-reason">"${item.reason}"</p>
+      <p class="outreach-item-preview">${escape(item.preview.body)}</p>
+      <p class="outreach-item-reason">"${escape(item.reason)}"</p>
       <div class="outreach-item-actions" role="button" tabindex="0">
         <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
           ${ICONS.eye} ${t('accessibility.preview')}
@@ -714,97 +713,68 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
 // ACTIONS
 // ============================================================================
 
-async function handleAction(action: string, outreachId: string): Promise<void> {
-  log.info({ action, outreachId }, 'Outreach action triggered');
+async function handleAction(action: string, item: ScheduledOutreach): Promise<void> {
+  log.info({ action, outreachId: item.id }, 'Outreach action triggered');
 
   switch (action) {
     case 'preview':
-      await showPreview(outreachId);
+      showPreview(item);
       break;
     case 'reschedule':
-      await showReschedule(outreachId);
+      await showReschedule(item.id);
       break;
     case 'cancel':
-      await cancelOutreach(outreachId);
+      await cancelOutreach(item.id);
       break;
   }
 }
 
-async function showPreview(outreachId: string): Promise<void> {
-  // Fetch the outreach details
-  try {
-    const response = await apiGet<{ pending?: ScheduledOutreach[] }>(`/api/outreach/pending`);
-    if (!response.ok || !response.data) return;
-    const item = response.data.pending?.find((p: ScheduledOutreach) => p.id === outreachId);
+/** Opens the row's own item: the upcoming route already sent everything the preview shows. */
+function showPreview(item: ScheduledOutreach): void {
+  const preview = document.createElement('div');
+  preview.className = 'outreach-preview-overlay';
+  const personaId = item.personaId || 'ferni';
 
-    if (!item) {
-      log.warn({ outreachId }, 'Outreach not found for preview');
-      return;
-    }
-
-    // Create preview modal
-    const preview = document.createElement('div');
-    preview.className = 'outreach-preview-overlay';
-    const personaId = item.personaId || 'ferni';
-
-    preview.innerHTML = `
-      <div class="outreach-preview-backdrop"></div>
-      <div class="outreach-preview-modal" data-persona="${personaId}">
-        <header class="outreach-preview-header">
-          <div class="outreach-preview-persona">
-            ${(item.personaId || 'F').charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h3 class="outreach-preview-title">${getPersonaName(item.personaId)}</h3>
-            <span class="outreach-preview-channel">${channelLabel(item.channel || 'sms')} • ${item.type.replace(/_/g, ' ')}</span>
-          </div>
-          <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
-        </header>
-        <div class="outreach-preview-content">
-          ${item.preview?.subject ? `<p class="outreach-preview-subject">${item.preview.subject}</p>` : ''}
-          <div class="outreach-preview-message">${item.preview?.body || item.reason}</div>
+  preview.innerHTML = `
+    <div class="outreach-preview-backdrop"></div>
+    <div class="outreach-preview-modal" data-persona="${personaId}">
+      <header class="outreach-preview-header">
+        <div class="outreach-preview-persona">${escape(item.personaName.charAt(0))}</div>
+        <div>
+          <h3 class="outreach-preview-title">${escape(item.personaName)}</h3>
+          <span class="outreach-preview-channel">${channelLabel(item.channel || 'sms')} • ${escape(item.type.replace(/_/g, ' '))}</span>
         </div>
-        <footer class="outreach-preview-footer">
-          <span class="outreach-preview-time">${ICONS.clock} ${t('outreachSchedule.scheduledFor', { time: formatTime(new Date(item.scheduledFor)) })}</span>
-        </footer>
+        <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
+      </header>
+      <div class="outreach-preview-content">
+        ${item.preview?.subject ? `<p class="outreach-preview-subject">${escape(item.preview.subject)}</p>` : ''}
+        <div class="outreach-preview-message">${escape(item.preview?.body || item.reason)}</div>
       </div>
-    `;
+      <footer class="outreach-preview-footer">
+        <span class="outreach-preview-time">${ICONS.clock} ${t('outreachSchedule.scheduledFor', { time: formatTime(new Date(item.scheduledFor)) })}</span>
+      </footer>
+    </div>
+  `;
 
-    // Add styles if not already added
-    addPreviewStyles();
+  // Add styles if not already added
+  addPreviewStyles();
 
-    document.body.appendChild(preview);
+  document.body.appendChild(preview);
 
-    // Animate in
-    requestAnimationFrame(() => {
-      preview.classList.add('open');
-    });
+  // Animate in
+  requestAnimationFrame(() => {
+    preview.classList.add('open');
+  });
 
-    // Close handlers
-    preview.querySelector('.outreach-preview-backdrop')?.addEventListener('click', () => {
-      preview.classList.remove('open');
-      trackedTimeout(() => preview.remove(), 200);
-    });
-    preview.querySelector('.outreach-preview-close')?.addEventListener('click', () => {
-      preview.classList.remove('open');
-      trackedTimeout(() => preview.remove(), 200);
-    });
-
-  } catch (error) {
-    log.error({ error, outreachId }, 'Failed to show preview');
-  }
-}
-
-function getPersonaName(personaId: string): string {
-  const names: Record<string, string> = {
-    ferni: 'Ferni',
-    maya: 'Maya Santos',
-    peter: 'Peter John',
-    alex: 'Alex Chen',
-    jordan: 'Jordan Taylor',
-    nayan: 'Nayan Patel',
-  };
-  return names[personaId] ?? 'Ferni';
+  // Close handlers
+  preview.querySelector('.outreach-preview-backdrop')?.addEventListener('click', () => {
+    preview.classList.remove('open');
+    trackedTimeout(() => preview.remove(), 200);
+  });
+  preview.querySelector('.outreach-preview-close')?.addEventListener('click', () => {
+    preview.classList.remove('open');
+    trackedTimeout(() => preview.remove(), 200);
+  });
 }
 
 function addPreviewStyles(): void {

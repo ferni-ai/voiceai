@@ -10,6 +10,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
+import { isPanelVisible } from '../config/menu-visibility.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -87,12 +88,13 @@ class EngagementTriggerUI {
         </svg>
         <span class="engagement-trigger-btn__badge" id="engagementBadge"></span>
       </button>
+      ${!isPanelVisible('predictions') ? '' : /* hidden: config/menu-visibility.ts */ `
       <button class="engagement-trigger-btn" id="predictionsTriggerBtn" aria-label="${t('accessibility.openPredictions')}" title="${t('titles.predictions')}">
         <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
         <span class="engagement-trigger-btn__badge" id="predictionsBadge"></span>
-      </button>
+      </button>`}
       <button class="engagement-trigger-btn" id="insightsTriggerBtn" aria-label="${t('accessibility.openTeamInsights')}" title="${t('titles.teamInsights')}">
         <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>

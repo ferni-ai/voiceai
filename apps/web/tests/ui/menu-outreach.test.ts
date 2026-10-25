@@ -152,4 +152,48 @@ describe('upcoming tab', () => {
     await openOn('upcoming');
     await settled('empty');
   });
+
+  // As GET /api/outreach/upcoming sends it (outreach-upcoming-route.ts)
+  const followUp = (over: Record<string, unknown> = {}) => ({
+    id: 'fu-7',
+    type: 'follow_up',
+    personaId: 'ferni',
+    personaName: 'Ferni',
+    channel: 'sms',
+    scheduledFor: new Date(Date.now() + 26 * 3_600_000).toISOString(),
+    preview: { body: 'How did the talk with your sister go?' },
+    reason: 'Checking how it went',
+    priority: 'medium',
+    canReschedule: false,
+    canCancel: false,
+    ...over,
+  });
+
+  it('Preview opens the row it sits in, without asking another route', async () => {
+    replies.set(UPCOMING, [ok({ upcoming: [followUp()] })]);
+    await openOn('upcoming');
+    await settled('ready');
+    apiGet.mockClear();
+
+    (content().querySelector('[data-action="preview"][data-id="fu-7"]') as HTMLElement).click();
+
+    const preview = document.querySelector('.outreach-preview-overlay');
+    expect(preview?.querySelector('.outreach-preview-message')?.textContent).toBe(
+      'How did the talk with your sister go?'
+    );
+    expect(preview?.querySelector('.outreach-preview-title')?.textContent).toBe('Ferni');
+    expect(apiGet).not.toHaveBeenCalled();
+  });
+
+  it('shows planned words as text, never as markup, in the row and the preview', async () => {
+    replies.set(UPCOMING, [ok({ upcoming: [followUp({ preview: { body: '<img src=x>' } })] })]);
+    await openOn('upcoming');
+    await settled('ready');
+    (content().querySelector('[data-action="preview"]') as HTMLElement).click();
+
+    expect(
+      document.querySelector('.outreach-schedule-overlay img, .outreach-preview-overlay img')
+    ).toBeNull();
+    expect(document.querySelector('.outreach-preview-message')?.textContent).toBe('<img src=x>');
+  });
 });
