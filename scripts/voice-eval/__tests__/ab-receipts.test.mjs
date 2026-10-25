@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  METRICS,
   byCall,
   compare,
   parseArms,
@@ -134,5 +135,43 @@ describe('parseArms', () => {
     expect(() => parseArms(['off=RM_a'])).toThrow(/at least two/);
     expect(() => parseArms(['off', 'on=RM_c'])).toThrow(/name=session/);
     expect(() => parseArms(['off=RM_a', 'on=RM_a'])).toThrow(/more than one arm/);
+  });
+});
+
+describe('tool-turn metrics', () => {
+  const pick = (name, r) => METRICS.find((m) => m.name === name).pick(r);
+  it('reads the answer, requests and tool run time from a tool turn', () => {
+    const r = receipt(
+      'A',
+      1,
+      {
+        firstAudioMs: 1300,
+        requests: [
+          { startMs: -400, ttftMs: null, durationMs: 300, cancelled: true },
+          { startMs: 150, ttftMs: 950, durationMs: 1200 },
+          { startMs: 2000, ttftMs: 900, durationMs: 1500 },
+        ],
+      },
+      {
+        tools: { called: ['getWeather'], execMs: { getWeather: 120, getNews: 30 } },
+        audio: { answerAudioMs: 3100, ackClipMs: null },
+      }
+    );
+    expect(pick('toolFirstAudioMs', r)).toBe(1300);
+    expect(pick('answerAudioMs', r)).toBe(3100);
+    expect(pick('llmRequests', r)).toBe(2); // the dropped preemptive one is not counted
+    expect(pick('toolExecMs', r)).toBe(150);
+  });
+
+  it('leaves no-tool turns and older receipts out', () => {
+    const r = receipt('A', 1, {}, { tools: { called: [] } });
+    for (const name of [
+      'toolFirstAudioMs',
+      'answerAudioMs',
+      'ackClipMs',
+      'llmRequests',
+      'toolExecMs',
+    ])
+      expect(pick(name, r) ?? null).toBeNull();
   });
 });

@@ -42,6 +42,7 @@ import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js
 import { keepLlm, replyRequest, tokensField, type RequestView } from './turn-receipt-llm.js';
 import { receiptBuild } from './turn-receipt-flags.js';
 import * as timed from './turn-receipt-timing.js';
+import * as steps from './turn-receipt-tool-timing.js';
 import type { GatewayHolds } from '../../speech/tts-gateway/first-audio-observer.js';
 import type { TurnTimingKind } from '../../speech/output-control/turn-timing.js';
 import {
@@ -115,6 +116,7 @@ interface OpenTurn {
   bargeInSource: BargeInSource | null;
   handling: TurnHandling | null;
   att: timed.TurnAttribution; // holds and first audio (turn-receipt-timing.ts)
+  steps: steps.ToolSteps; // requests, tool runs, answer audio (turn-receipt-tool-timing.ts)
 }
 
 /** How turns end and how barge-in works on the session, read at the commit. */
@@ -188,6 +190,7 @@ export class TurnReceiptRecorder {
       bargeInSource: null,
       handling: null,
       att: timed.newAttribution(),
+      steps: steps.newToolSteps(),
     };
     return this.turn;
   }
@@ -223,6 +226,7 @@ export class TurnReceiptRecorder {
   /** A hold or opening clip this turn (turn-timing.ts); an unfinished turn's is claimed at its commit. */
   onTiming(kind: TurnTimingKind, heldMs: number): void {
     if (kind === 'unfinishedTurn') this.pendingHold.note(heldMs);
+    else if (steps.isStepKind(kind)) steps.noteStep(this.open().steps, kind, heldMs, this.now());
     else timed.noteTiming(this.open(), kind, heldMs, this.now());
   }
 
@@ -237,6 +241,7 @@ export class TurnReceiptRecorder {
       this.open().eou = metric as unknown as EouMetric;
     } else if (metric.type === 'llm_metrics') {
       keepLlm(this.open(), metric as unknown as LlmMetric);
+      steps.noteRequestMetric(this.open().steps, metric as never);
     } else if (metric.type === 'tts_metrics' && this.turn) {
       this.turn.ttsTtfbMs ??= metric.ttfbMs as number;
       if (metric.cancelled) this.turn.ttsCancelled = true;
@@ -253,6 +258,7 @@ export class TurnReceiptRecorder {
     const note = this.reminder;
     this.reminder = null;
     turn.requests += 1;
+    steps.noteRequestSent(turn.steps, this.now());
     turn.sections = promptSections(items, note ?? undefined);
     turn.toolsOffered = toolsOffered;
     turn.toolSchemaChars = schemaChars;
@@ -314,6 +320,9 @@ export class TurnReceiptRecorder {
     return this.turn;
   }
 
+  /** A tool started running (`name` given) or returned (turn-receipt-tool-timing.ts). */
+  readonly onToolRun = (callId: string, name?: string): void =>
+    steps.noteToolRun(this.open().steps, callId, name, this.now());
   onToolsExecuted(ev: {
     functionCalls?: Array<{ name?: string }>;
     functionCallOutputs?: Array<{ isError?: boolean } | undefined>;
@@ -321,6 +330,7 @@ export class TurnReceiptRecorder {
     const turn = this.open();
     turn.called.push(...(ev.functionCalls ?? []).map((c) => c.name ?? '?'));
     turn.toolErrors += (ev.functionCallOutputs ?? []).filter((o) => o?.isError).length;
+    steps.endToolRuns(turn.steps, this.now());
     turn.replied = true;
   }
 
@@ -331,6 +341,7 @@ export class TurnReceiptRecorder {
       if (this.turn?.speakingAt === undefined) this.releaseCut(); // this turn's own audio
       const turn = this.open();
       turn.speakingAt ??= this.now();
+      steps.noteSpeaking(turn.steps, this.now());
       turn.replied = true;
     }
     if (state !== 'listening' || !this.turn?.replied) return;
@@ -438,7 +449,7 @@ export class TurnReceiptRecorder {
     const handoffTool = turn.called.find(isHandoffTool) ?? null;
     const req = replyRequest(turn); // the request the tokens are from
     const sections = req.sections ?? [];
-    return {
+    return steps.withToolTiming(turn, {
       event: 'TURN_RECEIPT' as const,
       v: TURN_RECEIPT_VERSION,
       sessionId: this.opts.sessionId,
@@ -484,6 +495,6 @@ export class TurnReceiptRecorder {
       ...eotReceiptField(turn.eot),
       ...timed.attributionFields(turn),
       ...receiptBuild(this.opts.env),
-    };
+    });
   }
 }
