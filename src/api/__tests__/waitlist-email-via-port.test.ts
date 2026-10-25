@@ -208,8 +208,8 @@ describe('the daily caps on waitlist email, one bucket per sender', () => {
     pending('link-ok@example.com');
     expect(await clickApprovalLink('link-ok@example.com')).toBe(200);
     await vi.waitFor(() => expect(port.sent).toHaveLength(4));
-    // admin notice (2 recipients) + link-approval welcome (1); newsletter (1); admin-API welcome (1)
-    expect(counts()).toMatchObject({ adminNotice: 3, public: 1, approved: 1 });
+    // signup notice (2 recipients); link-approval welcome (1); newsletter (1); admin-API welcome (1)
+    expect(counts()).toMatchObject({ signupNotice: 2, adminNotice: 1, public: 1, approved: 1 });
   });
 
   it('a full public bucket stops the newsletter welcome but not admin notices or approvals', async () => {
@@ -226,26 +226,42 @@ describe('the daily caps on waitlist email, one bucket per sender', () => {
     await post('/api/waitlist/approve', { email: 'approved@example.com' });
     await vi.waitFor(() => expect(port.sent).toHaveLength(2));
     expect(port.sent[1]).toMatchObject({ to: 'approved@example.com' });
-    expect(counts()).toMatchObject({ public: 5, adminNotice: 2, approved: 1 });
+    expect(counts()).toMatchObject({ public: 5, signupNotice: 2, approved: 1 });
   });
 
-  it('a full adminNotice bucket stops admin notices and link approvals, not the newsletter or admin-API approvals', async () => {
+  it('a full adminNotice bucket stops link approvals, not signup notices, the newsletter or admin-API approvals', async () => {
     vi.stubEnv('WAITLIST_ADMIN_NOTICE_DAILY_LIMIT', '3');
     coll('ops_email_quota').set(today(), { adminNotice: 3 });
     expect(await post('/api/waitlist', { email: 'reader@example.com', source: 'newsletter' })).toBe(200); // prettier-ignore
-    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
-    expect(port.sent[0]).toMatchObject({ to: 'reader@example.com', kind: 'bulk' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(2)); // newsletter welcome + signup notice
+    expect(port.sent.map((m) => m.to)).toContainEqual('reader@example.com');
 
     pending('link@example.com');
     expect(await clickApprovalLink('link@example.com')).toBe(200); // still approved
     await settle();
-    expect(port.sent).toHaveLength(1);
+    expect(port.sent).toHaveLength(2);
     expect(signedUp('link@example.com')).toMatchObject({ status: 'approved' });
 
     pending('admin@example.com');
     await post('/api/waitlist/approve', { email: 'admin@example.com' });
-    await vi.waitFor(() => expect(port.sent).toHaveLength(2));
-    expect(port.sent[1]).toMatchObject({ to: 'admin@example.com' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(3));
+    expect(port.sent[2]).toMatchObject({ to: 'admin@example.com' });
+  });
+
+  it('a burst of anonymous signups that fills signupNotice still lets a link approval welcome out', async () => {
+    vi.stubEnv('WAITLIST_ADMIN_NOTICE_DAILY_LIMIT', '4');
+    for (const e of ['s1@example.com', 's2@example.com', 's3@example.com'])
+      await post('/api/waitlist', { email: e, source: 'newsletter' });
+    await settle();
+    expect(counts()).toMatchObject({ signupNotice: 4 }); // two notices fit, the third is skipped
+    expect(counts()?.adminNotice).toBeUndefined();
+
+    pending('welcome@example.com');
+    expect(await clickApprovalLink('welcome@example.com')).toBe(200);
+    await vi.waitFor(() =>
+      expect(port.sent.map((m) => m.to)).toContainEqual('welcome@example.com')
+    );
+    expect(counts()).toMatchObject({ signupNotice: 4, adminNotice: 1 });
   });
 
   it('a 2-recipient notice that would cross its cap is skipped', async () => {
@@ -254,7 +270,7 @@ describe('the daily caps on waitlist email, one bucket per sender', () => {
     await vi.waitFor(() => expect(port.sent).toHaveLength(1));
     expect(port.sent[0]!.to).toBe('edge@example.com');
     expect(counts()).toMatchObject({ public: 1 });
-    expect(counts()?.adminNotice).toBeUndefined();
+    expect(counts()?.signupNotice).toBeUndefined();
   });
 
   it('a counter error fails closed for the capped buckets; an admin-API approval still sends', async () => {

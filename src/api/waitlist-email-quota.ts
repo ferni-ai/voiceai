@@ -10,15 +10,20 @@
  *
  *   public       mail a signup triggers for the signer (newsletter welcome)
  *                WAITLIST_EMAIL_DAILY_LIMIT recipients a day (default 200)
- *   adminNotice  notices to the admins (signup, welcome call), and the welcome
- *                after a one-click email-link approval (that link is a bearer
- *                token, valid ~48 h and not single-use, so it is not treated as
- *                an admin action) - WAITLIST_ADMIN_NOTICE_DAILY_LIMIT (default 100)
+ *   signupNotice the admins' notice of a new signup, which anyone can trigger
+ *                anonymously, so it has its own bucket and a burst of signups
+ *                can't starve the notices below
+ *   adminNotice  notices to the admins after an approval (welcome call), and
+ *                the welcome after a one-click email-link approval (that link is
+ *                a bearer token, valid ~48 h and not single-use, so it is not
+ *                treated as an admin action)
+ *                Each of signupNotice and adminNotice gets
+ *                WAITLIST_ADMIN_NOTICE_DAILY_LIMIT recipients a day (default 100)
  *   approved     the welcome after an admin approves in the admin API
  *                (requireAdmin): counted, never capped
  *
  * The count is per UTC day across all Cloud Run instances, so it lives in
- * Firestore (ops_email_quota/{yyyy-mm-dd}: { public, adminNotice, approved }) and
+ * Firestore (ops_email_quota/{yyyy-mm-dd}: { public, signupNotice, adminNotice, approved }) and
  * is taken in a transaction. Server only: firestore.rules denies clients.
  *
  * @module api/waitlist-email-quota
@@ -29,7 +34,7 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'waitlist-email-quota' });
 
 export const EMAIL_QUOTA_COLLECTION = 'ops_email_quota';
-export type WaitlistEmailBucket = 'public' | 'adminNotice' | 'approved';
+export type WaitlistEmailBucket = 'public' | 'signupNotice' | 'adminNotice' | 'approved';
 export const DEFAULT_WAITLIST_EMAIL_DAILY_LIMIT = 200;
 export const DEFAULT_WAITLIST_ADMIN_NOTICE_DAILY_LIMIT = 100;
 
@@ -41,7 +46,7 @@ function positiveIntOr(raw: string | undefined, fallback: number): number {
 /** Recipients a bucket may send to in a UTC day (Infinity: counted, not capped). */
 export function waitlistEmailDailyLimit(bucket: WaitlistEmailBucket): number {
   if (bucket === 'approved') return Number.POSITIVE_INFINITY;
-  if (bucket === 'adminNotice') {
+  if (bucket === 'adminNotice' || bucket === 'signupNotice') {
     return positiveIntOr(process.env.WAITLIST_ADMIN_NOTICE_DAILY_LIMIT, DEFAULT_WAITLIST_ADMIN_NOTICE_DAILY_LIMIT); // prettier-ignore
   }
   return positiveIntOr(process.env.WAITLIST_EMAIL_DAILY_LIMIT, DEFAULT_WAITLIST_EMAIL_DAILY_LIMIT);
