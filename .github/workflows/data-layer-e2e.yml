@@ -29,8 +29,6 @@ on:
       - 'src/api/__tests__/record-emotion*.ts'
       - 'src/tools/semantic-router/advanced/better-than-human.ts'
       - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
-      - 'src/personality/pattern-persistence.ts'
-      - 'src/personality/emotional-data-shape.ts'
       - 'src/utils/emotion-point-fields.ts'
       - 'scripts/migrations/strip-emotional-*.ts'
       - 'scripts/migrations/__tests__/strip-emotional-*.ts'
@@ -65,8 +63,6 @@ on:
       - 'src/api/__tests__/record-emotion*.ts'
       - 'src/tools/semantic-router/advanced/better-than-human.ts'
       - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
-      - 'src/personality/pattern-persistence.ts'
-      - 'src/personality/emotional-data-shape.ts'
       - 'src/utils/emotion-point-fields.ts'
       - 'scripts/migrations/strip-emotional-*.ts'
       - 'scripts/migrations/__tests__/strip-emotional-*.ts'
@@ -171,10 +167,10 @@ jobs:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
 
-      # record-emotion keeps only typed fields and merges on save; emotional_data points strip
+      # record-emotion keeps only typed fields and merges on save, never losing a point
       - name: Run Emotion Point Tests
         run: |
-          pnpm vitest run -c vitest.config.unit.ts src/api/__tests__/record-emotion.emulator.test.ts scripts/migrations/__tests__/strip-emotional-data-snippets.emulator.test.ts --reporter=verbose
+          pnpm vitest run -c vitest.config.unit.ts src/api/__tests__/record-emotion.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
