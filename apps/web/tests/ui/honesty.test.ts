@@ -100,7 +100,7 @@ describe('When I\'ll Check In', () => {
     showNotificationSettings();
 
     expect(document.querySelector('[data-pref="streakMilestones"]')).toBeNull();
-    expect(document.querySelector('[data-pref="ritualReminders"]')).not.toBeNull();
+    expect(document.querySelector('[data-pref="enabled"]')).not.toBeNull();
     expectHonest(visibleText(document.querySelector('.notif-settings') as HTMLElement));
     hideNotificationSettings();
   });
@@ -229,9 +229,9 @@ describe('a failed request shows an honest error, never stand-in content', () =>
     });
     const { openChronicle, close } = await import('../../src/ui/chronicle.ui.js');
     openChronicle();
-    await vi.waitFor(() => expect(document.querySelector('.chronicle-stats')).not.toBeNull());
+    await vi.waitFor(() => expect(document.querySelector('[data-state="ready"]')).not.toBeNull());
 
-    expect(document.querySelector('#chronicle-content [data-state="empty"]')?.textContent).toBe(
+    expect(document.querySelector('#chronicle-content .chronicle-no-patterns')?.textContent).toBe(
       t('chronicle.noPatternsYet')
     );
     expect(document.body.textContent).not.toContain(t('chronicle.defaultInsights.startJourney.title'));
@@ -248,14 +248,16 @@ describe('a failed request shows an honest error, never stand-in content', () =>
         insights: [],
         prompts: [],
         stats: { totalEntries: 1, currentStreak: 5, entriesThisWeek: 1, topThemes: [] },
+        insights: [{ icon: 'flame', title: '5-Day Streak', text: 'A full week of reflection.' }],
       },
     });
     const { openChronicle, close } = await import('../../src/ui/chronicle.ui.js');
     openChronicle();
-    await vi.waitFor(() => expect(document.querySelector('.chronicle-stats')).not.toBeNull());
+    await vi.waitFor(() => expect(document.querySelector('[data-state="ready"]')).not.toBeNull());
 
     expect(document.body.textContent).not.toContain(t('chronicle.dayStreak'));
-    expectHonest(visibleText(document.querySelector('.chronicle-stats') as HTMLElement));
+    expect(document.body.textContent).not.toMatch(/streak/i);
+    expectHonest(visibleText(document.querySelector('#chronicle-content') as HTMLElement));
     close();
   });
 });

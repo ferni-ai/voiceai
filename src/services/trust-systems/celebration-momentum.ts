@@ -173,12 +173,14 @@ function deserializeProfile(data: PersistedMomentumProfile): MomentumProfile {
   };
 }
 
-// ============================================================================
-// STORAGE (in-memory cache backed by Firestore)
-// ============================================================================
+// Storage: in-memory cache backed by Firestore
 
 const momentumProfiles = new Map<string, MomentumProfile>();
 const loadedUsers = new Set<string>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export function forgetMomentumUser(userId: string): void {
+  for (const m of [momentumProfiles, loadedUsers]) m.delete(userId);
+}
 
 let persistence: PersistenceStore<PersistedMomentumProfile> | null = null;
 
@@ -216,9 +218,7 @@ function persistProfile(userId: string): void {
   }
 }
 
-/**
- * Flush persistence
- */
+/** Flush persistence */
 export async function flushCelebrationMomentumPersistence(): Promise<void> {
   await getPersistence().flush();
   log.info('Celebration momentum persistence flushed');

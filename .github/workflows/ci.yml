@@ -347,17 +347,13 @@ jobs:
         if: matrix.shard == 1
         run: node scripts/ci/cli-typecheck-ratchet.mjs
 
-      # The env-name list test scans src/ as text, so no import edge reaches it and
-      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
-      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
-      # always runs it, before the Rust build. The list merges with git's union
-      # driver (.gitattributes), which this test makes safe. The flag barrel
-      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
-      # flags/ directory as text, and the barrel merges with union too. The decision
-      # register (docs/decisions/register.md) reads Swift, CSS and JSON as text too.
-      - name: Check the env-name list
+      # The decision register (docs/decisions/register.md) test reads Swift, CSS and
+      # JSON as text, so no import edge reaches it and `--changed` would skip it; a PR
+      # always runs it, before the Rust build. (The env-name list and flag barrel that
+      # used to share this step are generated now, never committed, so they can't drift.)
+      - name: Check the decision register
         if: env.FULL_SUITE != 'true'
-        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts src/__tests__/decisions/
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/__tests__/decisions/
         env:
           NODE_ENV: test
 
