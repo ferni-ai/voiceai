@@ -480,6 +480,9 @@ describe('NAME_FALLING_SPLIT', () => {
     expect(await run(said, callWith(2), off)).toBe('Hey, morning.');
     expect(await run(said, callWith(2), on)).toBe('Morning.');
     expect(await run(['Hey Sam, morning.'], callWith(2), off)).toBe('Morning.');
+    // A hello still arriving ("He" + "y") waits too.
+    expect(await run(['He', 'y', ' Sam', ', morning.'], callWith(2), off)).toBe('Hey, morning.');
+    expect(await run(['He', 'y', ' Sam', ', morning.'], callWith(2), on)).toBe('Morning.');
     // At hello the name stays, so nothing waits for it.
     expect(await run(said, [], on)).toBe(await run(said, [], off));
     // Without NAME_FALLING_INTONATION the gateway would not hold the hello either.

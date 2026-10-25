@@ -90,6 +90,19 @@ const GIVES_NAME = /\b(?:[Yy]ou can|[Jj]ust|[Pp]lease) call me \p{Lu}/u;
 const RELEASABLE = /^[\s,—–;:]*(?:(?:hey|hi|hiya|hello|oh)\b\s*)?([a-z]*)$/i;
 const GREETING_WORDS = ['hey', 'hi', 'hiya', 'hello', 'oh'];
 const HELLO_WORDS = GREETING_WORDS.filter((g) => g !== 'oh');
+
+/**
+ * NAME_FALLING_SPLIT, mid-call: whether held text at the reply's opening is a
+ * hello ("Hey", "Hi ") or one on its way ("He"), which then waits for the word
+ * after it so a dropped name takes it too ("Morning.", not "Hey, morning.").
+ * The TTS gateway holds an opening hello until that word anyway
+ * (speech/tts-gateway/name-intonation.ts), so first audio is no later.
+ */
+function holdsHello(held: string, letters: string): boolean {
+  if (/^\s*(?:hey|hi|hiya|hello)\b/i.test(held)) return true;
+  if (/^\s*(?:hey|hi|hiya|hello|oh)\b/i.test(held.replace(/^[\s,—–;:]*/, ''))) return false;
+  return letters !== '' && HELLO_WORDS.some((g) => g.startsWith(letters));
+}
 /** continuation-tts cuts its first piece on a clause once this many characters will be spoken. */
 const FIRST_PIECE_CHARS = 12;
 const SPOKEN = /\p{L}/u;
@@ -168,8 +181,7 @@ export function withNameGate(
   const allowed = mayUseName(history, name);
   const falling = flagOn('NAME_FALLING_INTONATION', env);
   const split = flagOn('NAME_FALLING_SPLIT', env);
-  /** NAME_FALLING_SPLIT: mid-call, an opening hello waits for the word after it (see above). */
-  const holdHello = split && falling && !allowed;
+  const holdHello = split && falling && !allowed; // NAME_FALLING_SPLIT: see holdsHello()
   const now = opts.now ?? Date.now;
   let raw = '';
   let sent = '';
@@ -199,13 +211,9 @@ export function withNameGate(
     const letters = m[1].toLowerCase();
     if (letters && !GREETING_WORDS.some((g) => g.startsWith(letters))) return false;
     if (letters && name.toLowerCase().startsWith(letters)) return false;
-    const opening = !spoken(sent);
-    // The gateway holds an opening hello too; held here, a dropped name takes it with it.
-    if (holdHello && opening && /^\s*(?:hey|hi|hiya|hello)\b/i.test(raw.slice(from))) return false;
+    if (holdHello && !spoken(sent) && holdsHello(raw.slice(from), letters)) return false;
     if (/^\s*(?:hey|hi|hiya|hello|oh)\b/i.test(raw.slice(from).replace(/^[\s,—–;:]*/, '')))
       return true;
-    if (holdHello && opening && letters && HELLO_WORDS.some((g) => g.startsWith(letters)))
-      return false; // "He", "Hel": a hello on its way waits too
     if (letters) return true; // "He", "Hel": a hello word on its way
     if (allowed && !decidedAny) return true;
     // The first clause break continuation-tts could cut on: 12+ spoken characters
@@ -232,8 +240,8 @@ export function withNameGate(
     const spaceSent = start === v.nameAt && spaces > 0;
     const after = (i: number): number => i + (raw.slice(i).match(/^\s*/)?.[0].length ?? 0);
     const plain = { ...v, start, with: '', capNext: false, fallAt: undefined };
-    // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out). NAME_FALLING_SPLIT:
-    // kept, it still ends its sentence ("Yes, Sam. I'm") though the comma before it went out.
+    // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out); kept, with
+    // NAME_FALLING_SPLIT it still ends its sentence ("Yes, Sam. I'm") though the comma went out.
     const fallAt = split ? v.fallAt : undefined;
     if (v.with === ',') return { ...plain, fallAt, end: spaceSent ? after(v.end) : v.end };
     // "Hey"/"Oh" went out: "Hey, how" (space still to come) or "Hey how" (it went too).
