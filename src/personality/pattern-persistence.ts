@@ -81,7 +81,7 @@ export async function saveEmotionalDataPoint(
       log.debug({ userId }, 'Emotional data point not saved: no valid label, intensity or time');
       return false;
     }
-    await docRef.set(point as unknown as Record<string, unknown>);
+    await docRef.set({ ...point });
 
     log.debug({ userId, emotion: point.emotion }, 'Emotional data point saved');
     return true;
@@ -125,7 +125,12 @@ export async function getEmotionalDataPoints(
       const point = toStoredDataPoint(doc.data());
       if (!point) return [];
       return [
-        { emotion: point.emotion, intensity: point.intensity, topics: [], timestamp: new Date(point.timestamp) },
+        {
+          emotion: point.emotion,
+          intensity: point.intensity,
+          topics: [],
+          timestamp: new Date(point.timestamp),
+        },
       ];
     });
   } catch (error) {

@@ -25,6 +25,15 @@ on:
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
       - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
+      - 'src/api/routes/intelligence-routes.ts'
+      - 'src/api/__tests__/record-emotion*.ts'
+      - 'src/tools/semantic-router/advanced/better-than-human.ts'
+      - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
+      - 'src/personality/pattern-persistence.ts'
+      - 'src/personality/emotional-data-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-*.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-*.ts'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
       - 'firestore.indexes.json'
@@ -52,6 +61,15 @@ on:
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
       - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
+      - 'src/api/routes/intelligence-routes.ts'
+      - 'src/api/__tests__/record-emotion*.ts'
+      - 'src/tools/semantic-router/advanced/better-than-human.ts'
+      - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
+      - 'src/personality/pattern-persistence.ts'
+      - 'src/personality/emotional-data-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-*.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-*.ts'
       - 'firestore.indexes.json'
       - 'firebase.json'
   # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
@@ -149,6 +167,14 @@ jobs:
       - name: Run Dev Database Copy Tests
         run: |
           pnpm vitest run -c vitest.config.unit.ts scripts/devdb/__tests__/copy-user.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
+
+      # record-emotion keeps only typed fields and merges on save; emotional_data points strip
+      - name: Run Emotion Point Tests
+        run: |
+          pnpm vitest run -c vitest.config.unit.ts src/api/__tests__/record-emotion.emulator.test.ts scripts/migrations/__tests__/strip-emotional-data-snippets.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test

@@ -8,7 +8,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createFakeFirestore, newFakeFirestoreState, resetFakeFirestore } from '../../tests/helpers/fake-firestore.js';
+import {
+  createFakeFirestore,
+  newFakeFirestoreState,
+  resetFakeFirestore,
+} from '../../tests/helpers/fake-firestore.js';
 import { leakedPieces, PARTIALS, SENTINEL } from '../../tests/helpers/snippet-leak.js';
 
 const state = vi.hoisted(() => ({ fs: (() => null) as () => unknown }));
@@ -62,6 +66,14 @@ const KEPT = ['emotion', 'intensity', 'source', 'timestamp', 'valence'];
 beforeEach(() => resetFakeFirestore(fsState));
 
 describe('POST /api/intelligence/record-emotion', () => {
+  it('the leak check sees a 30-character slice, not only the whole sentence', () => {
+    for (const slice of PARTIALS) {
+      expect(JSON.stringify({ note: slice })).not.toContain(SENTINEL);
+      expect(leakedPieces({ note: slice }).length).toBeGreaterThan(0);
+    }
+    expect(leakedPieces({ emotion: 'anxious', source: 'text', intensity: 0.7 })).toEqual([]);
+  });
+
   it('stores the label, scores, source and server time, and no context', async () => {
     const before = Date.now();
     const { status } = await recordEmotion('u-ctx', { ...VALID, context: SENTINEL });

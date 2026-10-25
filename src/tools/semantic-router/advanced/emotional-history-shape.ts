@@ -22,6 +22,20 @@ import {
   sameFields,
   validTimestamp,
 } from '../../../utils/emotion-point-fields.js';
+import type { FirestoreDB } from '../persistence/firestore-persistence.js';
+
+type Ref = ReturnType<ReturnType<FirestoreDB['collection']>['doc']>;
+/** The real client's runTransaction, which FirestoreDB's narrow type leaves out. */
+export type RunTransaction = <T>(
+  fn: (tx: {
+    get: (r: Ref) => Promise<{ exists: boolean; data: () => Record<string, unknown> | undefined }>;
+    set: (r: Ref, data: Record<string, unknown>) => unknown;
+  }) => Promise<T>
+) => Promise<T>;
+
+/** The stored dataPoints array, or [] when the document has none. */
+export const storedPoints = (data: Record<string, unknown> | undefined): unknown[] =>
+  Array.isArray(data?.dataPoints) ? data.dataPoints : [];
 
 export const EMOTION_SOURCES = ['voice', 'text', 'inferred'] as const;
 export type EmotionSource = (typeof EMOTION_SOURCES)[number];

@@ -12,7 +12,13 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { mergePoints, type StoredPoint } from './emotional-history-shape.js';
+import {
+  mergePoints,
+  storedPoints,
+  type RunTransaction,
+  type StoredPoint,
+} from './emotional-history-shape.js';
+import type { FirestoreDB } from '../persistence/firestore-persistence.js';
 
 const log = createLogger({ module: 'SemanticRouter.BetterThanHuman' });
 
@@ -854,22 +860,15 @@ export function performBetterThanHumanAnalysis(
 // FIRESTORE PERSISTENCE
 // ============================================================================
 
-const toMemory = (p: StoredPoint): EmotionalDataPoint => ({ ...p, timestamp: new Date(p.timestamp) });
-
-/** The stored dataPoints array, or [] when the document has none. */
-const storedPoints = (data: Record<string, unknown> | undefined): unknown[] => {
-  const raw = data?.dataPoints;
-  return Array.isArray(raw) ? raw : [];
-};
+const toMemory = (p: StoredPoint): EmotionalDataPoint => ({
+  ...p,
+  timestamp: new Date(p.timestamp),
+});
 
 /**
- * Save emotional history to Firestore, merged with what is already stored.
- *
- * In a transaction: read the stored points, add this process's, write the union.
- * A restart, another instance or a concurrent record therefore never loses an
- * earlier point. Every point passes emotional-history-shape.ts on the way, so a
- * bad entry (no valid time, a label that isn't on the list) is dropped alone and
- * never stops the rest saving. Resolves true when the write landed.
+ * Save emotional history merged with what is stored, in a transaction, so a restart
+ * or another instance never loses an earlier point. Each point passes
+ * emotional-history-shape.ts: a bad one is dropped alone. True when written.
  */
 export async function persistEmotionalHistory(userId: string): Promise<boolean> {
   const history = emotionalHistory.get(userId);
@@ -879,7 +878,7 @@ export async function persistEmotionalHistory(userId: string): Promise<boolean> 
     const { getFirestore, initializeFirestorePersistence } =
       await import('../persistence/firestore-persistence.js');
     await initializeFirestorePersistence();
-    const db = getFirestore();
+    const db = getFirestore() as (FirestoreDB & { runTransaction?: RunTransaction }) | null;
     if (!db?.runTransaction) return false;
 
     const ref = db.collection('emotional_history').doc(userId);
@@ -902,10 +901,9 @@ export async function persistEmotionalHistory(userId: string): Promise<boolean> 
 }
 
 /**
- * Load emotional history from Firestore, merged with points recorded in memory
- * since. Older entries carry a snippet of the caller's words; only the typed
- * fields of emotional-history-shape.ts are kept, so the next save can't write it
- * back.
+ * Load emotional history, merged with points recorded in memory since. Only the
+ * typed fields of emotional-history-shape.ts are kept: an old entry's snippet of
+ * the caller's words never reaches memory, so the next save can't write it back.
  */
 export async function loadEmotionalHistory(userId: string): Promise<void> {
   try {
