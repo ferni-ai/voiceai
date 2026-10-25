@@ -160,13 +160,15 @@ function deserializeSample(s: PersistedSample): VoiceSample {
   return { ...s, timestamp: new Date(s.timestamp) };
 }
 
-// ============================================================================
-// STORAGE (in-memory cache backed by Firestore)
-// ============================================================================
+// Storage: in-memory cache backed by Firestore
 
 const userBaselines = new Map<string, PersonalBaseline>();
 const voiceSamples = new Map<string, VoiceSample[]>();
 const loadedUsers = new Set<string>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export function forgetVoiceProsodyUser(userId: string): void {
+  for (const m of [userBaselines, voiceSamples, loadedUsers]) m.delete(userId);
+}
 
 let persistence: PersistenceStore<UserVoiceProsodyData> | null = null;
 
@@ -212,9 +214,7 @@ function persistUserData(userId: string): void {
   });
 }
 
-/**
- * Flush persistence
- */
+/** Flush persistence */
 export async function flushVoiceProsodyPersistence(): Promise<void> {
   await getPersistence().flush();
   log.info('Voice prosody persistence flushed');
