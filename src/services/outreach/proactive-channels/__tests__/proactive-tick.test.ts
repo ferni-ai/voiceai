@@ -122,6 +122,24 @@ describe('scheduler handler → proactive check-in', () => {
     expect(under(`bogle_users/${SETH}/pending_messages/`)).toHaveLength(0);
   });
 
+  it('QUIET_HOURS_FROM_PREFS: inside the window saved in the menu it holds; off, as before', async () => {
+    const saved = { quietStart: '10:00', quietEnd: '12:00', zone: 'America/New_York' };
+    seedUser(SETH, { messagingPrefs: saved }); // 11:00 New York: inside it
+    seedPromise(SETH, 'p1', {});
+    process.env.QUIET_HOURS_FROM_PREFS = 'on';
+    try {
+      const body = await runHandler();
+      expect(under(`bogle_users/${SETH}/pending_messages/`)).toHaveLength(0);
+      expect((body.proactive as { users: unknown[] }).users).toEqual([
+        expect.objectContaining({ userId: SETH, status: 'held', why: 'quiet hours' }),
+      ]);
+    } finally {
+      delete process.env.QUIET_HOURS_FROM_PREFS;
+    }
+    await runHandler();
+    expect(under(`bogle_users/${SETH}/pending_messages/`)).toHaveLength(1);
+  });
+
   it('leaves users off the allowlist alone', async () => {
     seedUser('someone-else');
     seedPromise('someone-else', 'p1', {});

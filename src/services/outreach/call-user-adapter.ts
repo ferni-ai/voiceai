@@ -18,6 +18,7 @@ import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
 import { movingToPhone, type PhoneMove } from './live-agent-call.js';
+import { isSavedQuietNow } from './quiet-hours.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
 import { asOwnCallMe } from './held-call.js';
@@ -52,6 +53,9 @@ export const callUserAdapter: CallUserPort = {
   textOwner: async (userId, body, { askedNow }) => {
     const zone = userTimeZone({ userId });
     if (!askedNow && isValidTimeZone(zone) && isQuietHour(new Date(), zone)) {
+      return { sent: false, reason: HELD['quiet-hours'] };
+    }
+    if (!askedNow && (await isSavedQuietNow(userId))) {
       return { sent: false, reason: HELD['quiet-hours'] };
     }
     const refId = `${Date.now()}`;

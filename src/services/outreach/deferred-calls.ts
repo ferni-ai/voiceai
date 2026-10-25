@@ -13,6 +13,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import type { ProactiveCallRequest } from './conversational-calls.js';
+import { USER_REQUESTED_CALL } from './live-agent-call.js';
 import {
   checkCallHours,
   isCallHoursGuardOn,
@@ -127,7 +128,8 @@ export async function holdForCallHours(
   recipient: CallHoursInput
 ): Promise<Deferral | undefined> {
   if (!isCallHoursGuardOn()) return undefined;
-  const decision = await checkCallHours(recipient);
+  const userAsked = call.kind === 'proactive' && call.request.reason === USER_REQUESTED_CALL;
+  const decision = await checkCallHours({ ...recipient, ...(userAsked && { userAsked }) });
   return decision.allowed ? undefined : deferCall(userId, call, decision);
 }
 
