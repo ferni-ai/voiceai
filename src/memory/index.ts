@@ -209,8 +209,6 @@ export {
   type SummarizationOptions,
 } from './summarizer.js';
 
-// History tracking is handled by session state in services layer
-
 // Key Moment Retrieval
 export {
   clearCurrentSessionMomentsGetter,
@@ -884,6 +882,7 @@ export interface MemorySystemResult {
 // ============================================================================
 // REHYDRATION - DEPRECATED
 // ============================================================================
+//
 // ⚠️ THIS FUNCTION IS DEPRECATED AND SHOULD NOT BE USED
 //
 // Historical context (Dec 2024):
@@ -1283,12 +1282,8 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
-export {
-  aboutForgotten,
-  forgottenWithin,
-  keepRemembered,
-  profileForCaller,
-} from './recall/forget-every-reader.js';
+export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js';
+export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { peopleOf } from './recall/people.js';
