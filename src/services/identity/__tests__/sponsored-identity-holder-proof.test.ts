@@ -102,4 +102,17 @@ describe('saveIdentity keeps the holder proof', () => {
     );
     expect(stored(mom.id)?.phoneVerifiedAt).toBeUndefined();
   });
+
+  it('a call-stat write never stores a proof held only in memory', async () => {
+    const mom = await svc.createSponsoredIdentity('seth', {
+      displayName: 'Mom',
+      relationship: 'mother',
+      phoneNumber: '+12025550133',
+    });
+    const cached = await svc.getSponsoredIdentity(mom.id);
+    Object.assign(cached ?? {}, { phoneVerifiedAt: '2026-10-25T00:00:00Z' });
+    await svc.recordCall(mom.id, 1);
+    expect(stored(mom.id)?.totalCalls).toBe(1);
+    expect(stored(mom.id)?.phoneVerifiedAt).toBeUndefined();
+  });
 });
