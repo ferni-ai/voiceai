@@ -27,12 +27,14 @@ final class FerniAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
             ],
             intentIdentifiers: []
         )])
+        #if FERNI_PUSH
         // Tokens can change: ask again whenever notifications are already allowed.
         Task { @MainActor in
             if await center.notificationSettings().authorizationStatus == .authorized {
                 application.registerForRemoteNotifications()
             }
         }
+        #endif
         return true
     }
 
@@ -101,13 +103,26 @@ struct NotificationAsk: View {
         let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
         guard granted else { return }
         await push.optIn(uid: uid)
+        #if FERNI_PUSH
         UIApplication.shared.registerForRemoteNotifications()
+        #endif
     }
 
     private func markAsked() {
         asked = true
         if let uid { UserDefaults.standard.set(true, forKey: Self.key(uid)) }
     }
+}
+
+/// Whether this build carries notes from Ferni (push). Off until the
+/// server's device route ships (#1991); a build setting, never a server flag
+/// (guideline 2.5.19).
+enum FerniBuild {
+    #if FERNI_PUSH
+    static let pushNotes = true
+    #else
+    static let pushNotes = false
+    #endif
 }
 
 /// Tells the app when the network comes back, so unfinished push work can finish.

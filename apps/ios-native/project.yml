@@ -20,6 +20,9 @@ packages:
     path: Packages/FerniVoice
   FerniDesign:
     path: Packages/FerniDesign
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.30.0
 
 settings:
   base:
@@ -35,6 +38,9 @@ targets:
   Ferni:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/Ferni.xcconfig
+      Release: Config/Ferni.xcconfig
     sources:
       - path: App
         excludes:
@@ -44,6 +50,7 @@ targets:
       - package: FerniKit
       - package: FerniVoice
       - package: FerniDesign
+      - package: Sentry
       - target: FerniLive
         embed: true
     info:
@@ -53,6 +60,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
+        SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
         # ProMotion: the avatar asks for 120 Hz only while Ferni speaks.
@@ -81,8 +90,9 @@ targets:
       path: App/Ferni.entitlements
       properties:
         com.apple.developer.applesignin: [Default]
-        # Notes from Ferni (APNs). Xcode switches it to production for TestFlight and the App Store.
-        aps-environment: development
+        # Notes from Ferni (APNs) wait for the server route (#1991, critic C3).
+        # To ship them: add `aps-environment: development` here and FERNI_PUSH to
+        # SWIFT_ACTIVE_COMPILATION_CONDITIONS below, in one commit.
     settings:
       base:
         PRODUCT_NAME: Ferni

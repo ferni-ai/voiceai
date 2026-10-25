@@ -439,6 +439,32 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(audio.activations, 2)
     }
 
+    /// Critic H3: the agent's handoff messages (exact shapes from
+    /// src/agents/voice-agent/phases/multi-agent-mode.ts and
+    /// src/agents/multi-agent/handoff-messages.ts) move the call to the teammate.
+    func testAHandoffFromTheAgentBringsTheTeammateOnScreen() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        room.send(.data(Data(#"{"type":"handoff_started","target":"maya-santos","newAgent":"maya-santos","previousAgent":"ferni","timestamp":1}"#.utf8)))
+        room.send(.data(Data(#"{"type":"handoff_progress","target":"maya-santos","elapsedMs":0,"timeoutMs":8000,"timestamp":1}"#.utf8)))
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"maya-santos","timestamp":2}"#.utf8)))
+        await until(session.avatar.personaID == "maya")
+        XCTAssertEqual(session.avatar.personaID, "maya")
+    }
+
+    /// An id the app doesn't know (or a lookalike) never changes who's on screen.
+    func testAHandoffToAnUnknownTeammateChangesNothing() async {
+        let session = makeSession()
+        session.start(personaID: "ferni")
+        await until(session.phase == .live)
+        rooms.made[0].send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"peter-lynch","timestamp":2}"#.utf8)))
+        rooms.made[0].send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"<b>x</b>","timestamp":3}"#.utf8)))
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(session.avatar.personaID, "ferni")
+    }
+
     /// Critic C2: iOS often ends an interruption without "should resume" (Siri,
     /// an alarm, a declined call). A call the person is still in comes back anyway.
     func testAnInterruptionThatEndsWithoutShouldResumeStillBringsTheMicBack() async {
