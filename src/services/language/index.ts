@@ -47,3 +47,10 @@ export {
   // Default export
   languageService,
 } from './language-service.js';
+
+// Live call capability (calls are English-only today)
+export {
+  canSpeakLanguageLive,
+  languageNotLiveMessage,
+  currentCallLanguageMessage,
+} from './live-capability.js';

@@ -1,7 +1,9 @@
 /**
  * Language Preference Tools
  *
- * Allows users to set and switch spoken languages via voice commands.
+ * Lets users state a spoken-language preference. Calls are English-only for
+ * now (see canSpeakLanguageLive), so non-English requests are remembered,
+ * never claimed as a switch.
  *
  * Examples:
  * - "Can you speak to me in Spanish?"
@@ -28,7 +30,7 @@ const setSpokenLanguageDef: ToolDefinition = {
   id: 'setSpokenLanguage',
   name: 'Set Spoken Language',
   description:
-    'Changes the spoken language for the conversation. Call this when the user asks to speak in a different language.',
+    'Records the language the user wants to speak. Calls are English-only for now, so the result says what is actually true.',
   domain: 'settings',
   tags: ['language', 'preferences', 'multilingual', 'settings'],
 
@@ -43,7 +45,7 @@ const setSpokenLanguageDef: ToolDefinition = {
 
 The language parameter should be the language name (e.g., "Spanish", "French", "Japanese") or code (e.g., "es", "fr", "ja").
 
-After calling this tool, you should respond in the new language to confirm the switch.`,
+Calls are English-only for now. Say what the result says; never claim you switched to a language the result says you can't speak.`,
       parameters: z.object({
         language: z
           .string()
@@ -59,8 +61,9 @@ After calling this tool, you should respond in the new language to confirm the s
           const {
             parseLanguageName,
             setSessionLanguage,
-            getLanguageConfig,
             persistUserLanguagePreference,
+            canSpeakLanguageLive,
+            languageNotLiveMessage,
           } = await import('../../../services/language/index.js');
 
           // Parse the language name to a code
@@ -68,7 +71,7 @@ After calling this tool, you should respond in the new language to confirm the s
 
           if (!languageCode) {
             log.warn({ userId: ctx.userId, language }, '🌍 Unrecognized language requested');
-            return `I'm not sure which language "${language}" refers to. I support languages like English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Hindi, and many more. Could you try again?`;
+            return `I'm not sure which language "${language}" refers to. Could you say it another way?`;
           }
 
           // Get session ID from context (use actual sessionId, with userId as fallback)
@@ -95,10 +98,14 @@ After calling this tool, you should respond in the new language to confirm the s
               displayName: config.displayName,
               nativeName: config.nativeName,
             },
-            '🌍 Language switched via tool'
+            '🌍 Language preference set via tool'
           );
 
-          // Return confirmation with native name
+          // Calls are English-only today: keep the preference, but never claim a switch.
+          if (!canSpeakLanguageLive(languageCode)) {
+            return languageNotLiveMessage(config.displayName);
+          }
+
           const confirmation = config.fullySupported
             ? `Language switched to ${config.displayName} (${config.nativeName}). I'll now speak to you in ${config.displayName}.`
             : `Language switched to ${config.displayName} (${config.nativeName}). Note: This language has limited support, so some features may work better in English.`;
@@ -146,10 +153,10 @@ const listSupportedLanguagesDef: ToolDefinition = {
 
           log.info({ userId: ctx.userId }, '🌍 Listing supported languages');
 
-          return `I can speak many languages! Here are the main ones: ${languageList}. Just say "speak to me in [language]" and I'll switch. For example, "speak to me in Spanish" or "switch to French".`;
+          return `On calls I can only talk in English for now. I can still help with words and phrases in lots of languages, like ${languageList}. Tell me which one you'd prefer and I'll note it for when calls support it.`;
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, '🌍 Failed to list languages');
-          return `I can speak many languages including English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Hindi, and more. Just tell me which language you'd prefer!`;
+          return `On calls I can only talk in English for now, but I can help with words and phrases in Spanish, French, German, Japanese, Chinese, Hindi, and more.`;
         }
       },
     });
@@ -177,19 +184,19 @@ const getCurrentLanguageDef: ToolDefinition = {
       parameters: z.object({}),
       execute: async () => {
         try {
-          const { getSessionLanguageState, getLanguageConfig } =
+          const { getSessionLanguageState, getLanguageConfig, currentCallLanguageMessage } =
             await import('../../../services/language/index.js');
 
           const sessionId = ctx.userId || 'default';
           const state = getSessionLanguageState(sessionId);
 
           if (!state) {
-            return `We're currently speaking in English. Would you like to switch to another language?`;
+            return `We're speaking English.`;
           }
 
           const config = getLanguageConfig(state.currentLanguage);
           const autoDetectedNote = state.autoDetected
-            ? ` (I detected this from how you were speaking)`
+            ? ` (I detected ${config.displayName} from how you were speaking.)`
             : '';
 
           log.info(
@@ -197,13 +204,13 @@ const getCurrentLanguageDef: ToolDefinition = {
             '🌍 Reporting current language'
           );
 
-          return `We're currently speaking in ${config.displayName}${autoDetectedNote}. Would you like to switch to a different language?`;
+          return `${currentCallLanguageMessage(state.currentLanguage, config.displayName)}${autoDetectedNote}`;
         } catch (error) {
           log.error(
             { error: String(error), userId: ctx.userId },
             '🌍 Failed to get current language'
           );
-          return `We're speaking in English. Would you like to switch to another language?`;
+          return `We're speaking English.`;
         }
       },
     });

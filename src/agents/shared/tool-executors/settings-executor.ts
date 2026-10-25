@@ -65,7 +65,7 @@ async function execute(
     );
 
     if (!targetLanguage) {
-      return `Which language would you like me to speak? I support English, Spanish, Japanese, German, French, and more.`;
+      return `Which language would you like? On calls I can only talk in English for now, but I'll note your preference.`;
     }
 
     const { languageService } = await import('../../../services/language/index.js');
@@ -76,7 +76,7 @@ async function execute(
     );
 
     if (result.success) {
-      return result.confirmationMessage || `I'll speak ${targetLanguage} now.`;
+      return result.confirmationMessage || `Noted, ${targetLanguage}.`;
     }
     return result.error || `I couldn't switch to that language.`;
   }
@@ -85,14 +85,15 @@ async function execute(
     log.info('🗣️ List supported languages');
     const { languageService } = await import('../../../services/language/index.js');
     const languages = await languageService().getSupportedLanguages();
-    return `I can speak: ${languages.map((l) => l.displayName).join(', ')}. Which would you like?`;
+    return `On calls I can only talk in English for now. I can help with words and phrases in: ${languages.map((l) => l.displayName).join(', ')}.`;
   }
 
   if (fnLower === 'getcurrentlanguage' || fnLower === 'getspokenlanguage') {
     log.info({ userId: ctx.userId }, '🗣️ Get current language');
-    const { languageService } = await import('../../../services/language/index.js');
+    const { languageService, currentCallLanguageMessage } =
+      await import('../../../services/language/index.js');
     const current = await languageService().getCurrentLanguage(ctx.userId || 'anonymous');
-    return `I'm currently speaking ${current.displayName || 'English'}.`;
+    return currentCallLanguageMessage(current.code, current.displayName || 'English');
   }
 
   // ========================================

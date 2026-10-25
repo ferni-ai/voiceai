@@ -5,7 +5,16 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+const mockFirestoreSet = vi.fn().mockResolvedValue(undefined);
+vi.mock('../../superhuman/firestore-utils.js', () => ({
+  getFirestoreDb: () => ({
+    collection: () => ({ doc: () => ({ set: mockFirestoreSet }) }),
+  }),
+}));
+
 import {
+  languageService,
   parseLanguageName,
   detectLanguageFromText,
   getLanguageConfig,
@@ -15,6 +24,7 @@ import {
   clearUtteranceBuffer,
   LANGUAGE_CONFIGS,
 } from '../language-service.js';
+import { canSpeakLanguageLive, currentCallLanguageMessage } from '../live-capability.js';
 
 describe('Language Service', () => {
   const testSessionId = 'test-session-123';
@@ -160,6 +170,52 @@ describe('Language Service', () => {
       expect(LANGUAGE_CONFIGS.en.ttsLanguage).toBeDefined();
       expect(LANGUAGE_CONFIGS.es.ttsLanguage).toBeDefined();
       expect(LANGUAGE_CONFIGS.fr.ttsLanguage).toBeDefined();
+    });
+  });
+
+  describe('live call language capability (calls are English-only)', () => {
+    it('only English is live today', () => {
+      expect(canSpeakLanguageLive('en')).toBe(true);
+      expect(canSpeakLanguageLive('en-US')).toBe(true);
+      expect(canSpeakLanguageLive('en-GB')).toBe(true);
+      expect(canSpeakLanguageLive('es')).toBe(false);
+      expect(canSpeakLanguageLive('ja')).toBe(false);
+      expect(canSpeakLanguageLive('zh-TW')).toBe(false);
+    });
+
+    it('needs TTS as well as STT: a Spanish STT setting alone does not make Spanish live', () => {
+      expect(canSpeakLanguageLive('es', { CASCADE_STT_LANGUAGE: 'es' })).toBe(false);
+      expect(canSpeakLanguageLive('en', { CASCADE_STT_LANGUAGE: 'en-US' })).toBe(true);
+    });
+
+    it('current-language answer never claims a language the call cannot speak', () => {
+      expect(currentCallLanguageMessage('en', 'English')).toBe("We're speaking English.");
+      const es = currentCallLanguageMessage('es', 'Spanish');
+      expect(es).not.toMatch(/speaking Spanish/i);
+      expect(es).toMatch(/English-only/);
+      expect(es).toMatch(/Spanish noted/);
+    });
+  });
+
+  describe('languageService().setLanguage', () => {
+    beforeEach(() => mockFirestoreSet.mockClear());
+
+    it('Spanish: persists the preference but does not claim to speak it', async () => {
+      const result = await languageService().setLanguage(testUserId, 'Spanish', testSessionId);
+
+      expect(result.success).toBe(true);
+      expect(result.confirmationMessage).not.toMatch(/speak Spanish now|now speak/i);
+      expect(result.confirmationMessage).toMatch(/only talk in English/);
+      expect(result.confirmationMessage).toMatch(/like Spanish/);
+      expect(mockFirestoreSet).toHaveBeenCalledWith(
+        expect.objectContaining({ preferences: expect.objectContaining({ spokenLanguage: 'es' }) }),
+        { merge: true }
+      );
+    });
+
+    it('English: confirmation unchanged', async () => {
+      const result = await languageService().setLanguage(testUserId, 'English', testSessionId);
+      expect(result.confirmationMessage).toBe("Perfect! I'll speak English now.");
     });
   });
 });

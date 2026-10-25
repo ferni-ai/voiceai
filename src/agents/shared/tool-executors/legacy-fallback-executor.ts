@@ -2163,18 +2163,16 @@ export async function executeLegacyFallback(
       '🗣️ Set spoken language'
     );
     if (!targetLanguage) {
-      return `Which language would you like me to speak? I support English, Spanish, Japanese, German, French, and more.`;
+      return `Which language would you like? On calls I can only talk in English for now, but I'll note your preference.`;
     }
-    // Import and use the language service
     const { languageService } = await import('../../../services/language/index.js');
-    // Pass sessionId for real-time state consistency
     const result = await languageService().setLanguage(
       ctx.userId || 'anonymous',
       targetLanguage,
       ctx.sessionId
     );
     if (result.success) {
-      return result.confirmationMessage || `I'll speak ${targetLanguage} now.`;
+      return result.confirmationMessage || `Noted, ${targetLanguage}.`;
     }
     return result.error || `I couldn't switch to that language.`;
   }
@@ -2184,14 +2182,15 @@ export async function executeLegacyFallback(
     const { languageService } = await import('../../../services/language/index.js');
     const languages = await languageService().getSupportedLanguages();
     const formatted = languages.map((l) => l.displayName).join(', ');
-    return `I can speak: ${formatted}. Which would you prefer?`;
+    return `On calls I can only talk in English for now. I can help with words and phrases in: ${formatted}.`;
   }
 
   if (fnLower === 'getcurrentlanguage' || fnLower === 'getspokenlanguage') {
     log.info({ userId: ctx.userId }, '🗣️ Get current language');
-    const { languageService } = await import('../../../services/language/index.js');
+    const { languageService, currentCallLanguageMessage } =
+      await import('../../../services/language/index.js');
     const current = await languageService().getCurrentLanguage(ctx.userId || 'anonymous');
-    return `I'm currently speaking ${current.displayName}.`;
+    return currentCallLanguageMessage(current.code, current.displayName);
   }
 
   return null;
