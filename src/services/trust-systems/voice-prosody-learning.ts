@@ -160,14 +160,14 @@ function deserializeSample(s: PersistedSample): VoiceSample {
   return { ...s, timestamp: new Date(s.timestamp) };
 }
 
-// Storage: in-memory cache backed by Firestore
-
+// Storage: in-memory cache backed by Firestore, read back at session start (reload-before-save.ts)
 const userBaselines = new Map<string, PersonalBaseline>();
 const voiceSamples = new Map<string, VoiceSample[]>();
 const loadedUsers = new Set<string>();
 /** MINOR_CARE (purgeHeldUser): forget one user. */
 export function forgetVoiceProsodyUser(userId: string): void {
   for (const m of [userBaselines, voiceSamples, loadedUsers]) m.delete(userId);
+  persistence?.clearCache(userId); // its unflushed copy too, or the next read brings it back
 }
 
 let persistence: PersistenceStore<UserVoiceProsodyData> | null = null;
@@ -183,28 +183,27 @@ function getPersistence(): PersistenceStore<UserVoiceProsodyData> {
   return persistence;
 }
 
-async function ensureUserLoaded(userId: string): Promise<void> {
+/** Read a user's stored samples back (once). Rejects on a failed read: they stay unwritable. */
+export async function loadVoiceProsodyUser(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-
   try {
-    const data = await getPersistence().load(userId);
+    const data = await getPersistence().load(userId, { strict: 'read' });
     if (data) {
-      if (data.baseline) {
-        userBaselines.set(userId, deserializeBaseline(data.baseline));
-      }
+      if (data.baseline) userBaselines.set(userId, deserializeBaseline(data.baseline));
       if (data.samples) {
-        voiceSamples.set(userId, data.samples.map(deserializeSample));
+        const recorded = voiceSamples.get(userId) ?? []; // this call's, before the read landed
+        voiceSamples.set(userId, [...data.samples.map(deserializeSample), ...recorded].slice(-500));
       }
     }
     loadedUsers.add(userId);
-    log.debug({ userId }, 'Loaded voice prosody data from persistence');
   } catch (error) {
     log.warn({ error, userId }, 'Failed to load voice prosody data');
-    loadedUsers.add(userId);
+    throw error;
   }
 }
 
 function persistUserData(userId: string): void {
+  if (!loadedUsers.has(userId)) return; // unread: writing would replace their stored samples
   const baseline = userBaselines.get(userId);
   const samples = voiceSamples.get(userId) || [];
 

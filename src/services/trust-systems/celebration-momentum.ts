@@ -173,13 +173,13 @@ function deserializeProfile(data: PersistedMomentumProfile): MomentumProfile {
   };
 }
 
-// Storage: in-memory cache backed by Firestore
-
+// Storage: in-memory cache backed by Firestore, read back at session start (reload-before-save.ts)
 const momentumProfiles = new Map<string, MomentumProfile>();
 const loadedUsers = new Set<string>();
 /** MINOR_CARE (purgeHeldUser): forget one user. */
 export function forgetMomentumUser(userId: string): void {
   for (const m of [momentumProfiles, loadedUsers]) m.delete(userId);
+  persistence?.clearCache(userId); // its unflushed copy too, or the next read brings it back
 }
 
 let persistence: PersistenceStore<PersistedMomentumProfile> | null = null;
@@ -195,25 +195,23 @@ function getPersistence(): PersistenceStore<PersistedMomentumProfile> {
   return persistence;
 }
 
-async function ensureUserLoaded(userId: string): Promise<void> {
+/** Read a user's stored profile back (once). Rejects on a failed read: they stay unwritable. */
+export async function loadMomentumUser(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-
   try {
-    const data = await getPersistence().load(userId);
-    if (data) {
-      momentumProfiles.set(userId, deserializeProfile(data));
-    }
+    const data = await getPersistence().load(userId, { strict: 'read' });
+    if (data) momentumProfiles.set(userId, deserializeProfile(data));
     loadedUsers.add(userId);
     log.debug({ userId }, 'Loaded momentum profile from persistence');
   } catch (error) {
     log.warn({ error, userId }, 'Failed to load momentum profile');
-    loadedUsers.add(userId);
+    throw error;
   }
 }
 
 function persistProfile(userId: string): void {
   const profile = momentumProfiles.get(userId);
-  if (profile) {
+  if (profile && loadedUsers.has(userId)) {
     getPersistence().set(userId, serializeProfile(profile));
   }
 }

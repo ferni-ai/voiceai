@@ -13,8 +13,13 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { loadDashboardHistory, saveDashboardHistory } from './dashboard-history.js';
+import {
+  holdHistoryUntilReloaded,
+  loadDashboardHistory,
+  saveDashboardHistory,
+} from './dashboard-history.js';
 import { readTrustDoc, writeTrustDoc, getTrustDb, TRUST_COLLECTION } from './trust-doc.js';
+import * as reload from './reload-before-save.js';
 
 // Trust system imports
 import {
@@ -204,7 +209,9 @@ export async function saveTrustProfiles(userId: string): Promise<{
 
   for (const [name, profile] of profiles) {
     if (!profile) continue;
-    if (await writeTrustDoc(userId, SYSTEM_NAMES[name], profile)) saved.push(name);
+    const doc = SYSTEM_NAMES[name]; // not over stored history this process hasn't read back
+    if (!reload.trustDocUnread(userId, doc) && (await writeTrustDoc(userId, doc, profile)))
+      saved.push(name);
     else failed.push(name);
   }
 
@@ -219,8 +226,8 @@ export async function saveTrustProfiles(userId: string): Promise<{
 
 /**
  * MINOR_CARE (purgeHeldUser): drop everything saveTrustProfiles would save for this one user, so
- * a later call never saves what a held caller said. Stored profiles reload at the next session
- * start (or on first use).
+ * a later call never saves what a held caller said. None is saved over the stored ones until a
+ * session start reads them back (reload-before-save.ts).
  */
 export function clearTrustSystemsUser(userId: string): void {
   forgetBoundaryUser(userId);
@@ -236,6 +243,8 @@ export function clearTrustSystemsUser(userId: string): void {
   forgetMediaUser(userId);
   setTimeline(userId, null); // the dashboard's history: sentiment timeline and life events
   setUserEvents(userId, []);
+  reload.holdTrustUntilReloaded(userId); // a live owner session must not save the emptied stores
+  holdHistoryUntilReloaded(userId);
 }
 
 // ============================================================================
@@ -245,6 +254,7 @@ export function clearTrustSystemsUser(userId: string): void {
 /** Load a single trust system profile (null when missing or unreadable). */
 async function loadSystemProfile<T>(userId: string, systemName: string): Promise<T | null> {
   const read = await readTrustDoc<T>(userId, systemName);
+  reload.trustDocRead(userId, systemName, read.status !== 'error');
   return read.status === 'found' ? read.data : null;
 }
 
@@ -312,6 +322,7 @@ export async function loadTrustProfiles(userId: string): Promise<{
   for (const name of ['sentimentTimeline', 'lifeEvents']) {
     if (!history.includes(name)) notFound.push(name);
   }
+  loaded.push(...(await reload.loadReloadedStores(userId))); // learning style, voice, momentum
 
   log.info(
     { userId, loaded: loaded.length, notFound: notFound.length },
