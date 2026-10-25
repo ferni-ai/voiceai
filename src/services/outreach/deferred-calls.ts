@@ -31,6 +31,7 @@ import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
+  heldCallJustRang,
   markReplacedBy,
   releaseHeldCall,
 } from './held-call-replace.js';
@@ -284,6 +285,14 @@ export async function placeOrHold(
   const replaces = waiting && wantsCallNow(request) ? waiting : undefined;
   if (waiting && !replaces) {
     return { held: alreadySetReply(name, waiting, now) + otherCallsLine(others, now) };
+  }
+  // The job already took this requester's held call to this number (placing, or placed just now):
+  // it isn't pending any more, so it isn't `waiting`, but it's ringing. Never a second ring.
+  if (!waiting && wantsCallNow(request)) {
+    const phone = request.resolvedContact?.phone ?? '';
+    if (await heldCallJustRang(request.userId, phone, now)) {
+      return { held: alreadyRingingReply(name) + otherCallsLine(others, now) };
+    }
   }
   // Claimed before dialing, only while still pending (held-call-replace.ts): never two rings.
   if (replaces && !(await claimHeldCall(request.userId, replaces.id))) {

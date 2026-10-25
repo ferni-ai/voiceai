@@ -311,6 +311,67 @@ describe('call now replaces exactly one held call, and never rings twice', () =>
   });
 });
 
+describe('call now after the job already took the held call', () => {
+  const MIN = 60_000;
+  const takenRow = (uid: string, status: 'placing' | 'placed', minutesAgo: number) => {
+    const at = new Date(AT_8_43_DENVER.getTime() - minutesAgo * MIN).toISOString();
+    docs.push({
+      uid,
+      collection: 'deferred_calls',
+      id: `${uid}-${status}`,
+      data: {
+        kind: 'on_behalf',
+        status,
+        ...(status === 'placing' ? { claimedAt: at } : { placedAt: at }),
+        scheduledFor: at,
+        timezone: 'America/Denver',
+        request: {
+          contactQuery: 'my mom',
+          resolvedContact: { name: 'Mom', phone: '+13035550100' },
+        },
+      },
+    });
+  };
+
+  it("the job claimed it (placing) before call-now read: exactly one ring, the job's", async () => {
+    takenRow('u1', 'placing', 0.5);
+    void createSipParticipant(); // the job's dial of the call it claimed
+    const reply = await call('my mom', { callNow: true });
+    expect(createSipParticipant).toHaveBeenCalledTimes(1);
+    expect(reply).toMatch(/^Nothing new was dialed: the call to Mom .* already being placed/);
+    expect(held()).toHaveLength(0);
+  });
+
+  it('placed 2 minutes ago: nothing new dialed; placed 10 minutes ago: a new call rings', async () => {
+    takenRow('u1', 'placed', 2);
+    expect(await call('my mom', { callNow: true })).toMatch(/^Nothing new was dialed/);
+    expect(createSipParticipant).not.toHaveBeenCalled();
+
+    docs = [];
+    takenRow('u1', 'placed', 10);
+    expect(await call('my mom', { callNow: true })).toMatch(/^Got it! I'm calling Mom now/);
+    expect(createSipParticipant).toHaveBeenCalledTimes(1);
+  });
+
+  it("another requester's call to this number, or this requester's to another number, doesn't stop it", async () => {
+    takenRow('u2', 'placing', 0.5);
+    takenRow('u1', 'placing', 0.5);
+    const mine = docs.find((d) => d.uid === 'u1')!;
+    (mine.data.request as { resolvedContact: { phone: string } }).resolvedContact.phone =
+      '+13035550111'; // Mom's other number
+    expect(await call('my mom', { callNow: true })).toMatch(/^Got it! I'm calling Mom now/);
+    expect(createSipParticipant).toHaveBeenCalledTimes(1);
+  });
+
+  it('flag off: unchanged (no call-now, so the check never runs)', async () => {
+    vi.stubEnv('CALL_NOW_OWNER_OVERRIDE', 'off');
+    takenRow('u1', 'placing', 0.5);
+    await call('my mom', { callNow: true });
+    expect(held()).toHaveLength(1); // held for 9 AM as before
+    expect(createSipParticipant).not.toHaveBeenCalled();
+  });
+});
+
 describe('CALL_NOW_OWNER_OVERRIDE default', () => {
   it('is off with no env set', () => {
     expect(isCallNowOverrideOn({})).toBe(false);
