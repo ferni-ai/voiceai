@@ -14,6 +14,11 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import {
+  CORRECTION_FIELDS,
+  ROUTING_EVENT_RETENTION_MS,
+  storedCorrection,
+} from './stored-without-words.js';
 
 const log = createLogger({ module: 'semantic-router:persistence' });
 
@@ -154,23 +159,19 @@ export function isPersistenceAvailable(): boolean {
 // CORRECTION PERSISTENCE
 // ============================================================================
 
+/** A routing correction, as stored (stored-without-words.ts): never the caller's words */
 export interface PersistedCorrection {
   id: string;
   timestamp: Date;
   userId: string;
   sessionId: string;
-  originalQuery: string;
-  normalizedQuery: string;
+  queryLength: number;
   predictedTool: string;
   predictedConfidence: number;
-  predictedArgs: Record<string, unknown>;
   actualTool: string | null;
-  actualArgs?: Record<string, unknown>;
   correctionSource: 'user_explicit' | 'user_implicit' | 'system';
-  conversationContext: string[];
   personaId: string;
   feedbackType: 'wrong_tool' | 'wrong_args' | 'should_not_call' | 'missed_tool';
-  userFeedback?: string;
 }
 
 /**
@@ -186,13 +187,7 @@ export async function saveCorrection(correction: PersistedCorrection): Promise<v
     await firestoreInstance
       .collection(COLLECTIONS.CORRECTIONS)
       .doc(correction.id)
-      .set(
-        cleanForFirestore({
-          ...correction,
-          timestamp: correction.timestamp,
-          _createdAt: new Date(),
-        })
-      );
+      .set(storedCorrection(correction, cleanForFirestore));
 
     log.debug({ correctionId: correction.id }, 'Correction persisted to Firestore');
   } catch (error) {
@@ -236,7 +231,7 @@ export async function loadCorrections(options?: {
     return snapshot.docs.map((doc) => {
       const data = doc.data()!;
       return {
-        ...data,
+        ...Object.fromEntries(CORRECTION_FIELDS.map((f) => [f, data[f]])), // never old words
         id: doc.id,
         timestamp:
           (data.timestamp as { toDate?: () => Date })?.toDate?.() ||
@@ -883,7 +878,7 @@ export async function migrateUserProfile(userId: string): Promise<PersistedUserP
 // ============================================================================
 
 /** How long a routing event is kept: Firestore's TTL policy on `events.expireAt` deletes it */
-export const ROUTING_EVENT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+export { ROUTING_EVENT_RETENTION_MS };
 
 /**
  * A routing decision, as stored. None of it is the caller's words: how long the input

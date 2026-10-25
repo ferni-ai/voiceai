@@ -22,6 +22,7 @@ import {
 } from '../../config/voice-ids.js';
 import { ARRIVING_OPENERS } from '../../services/team-engagement/banter.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { toolAckClipTexts } from '../personas/tool-ack-clip-lines.js';
 import { backchannelsFor, bootBackchannels } from './reaction-clips.js';
 import {
   backchannelTakeTexts,
@@ -314,6 +315,8 @@ export async function warmPersonaReactions(personaId: string): Promise<number> {
   const takes = backchannelTakeTexts([...reactions, ...voiced]);
   const done = Promise.all([
     ...reactions.map(async (text) => cachePhrase(text, voiceId, 'backchannel')),
+    // TOOL_ACK_CLIP: "Let me look." / "On it." in this persona's voice (none with it off).
+    ...toolAckClipTexts().map(async (text) => cachePhrase(text, voiceId, 'backchannel')),
     ...voiced.map(async (text) => cachePhrase(text, voiceId, 'backchannel', renderVoicedTake)),
     ...takes.map(async (text) => cachePhrase(text, voiceId, 'backchannel', renderBackchannelTake)),
   ]).then((results) => results.filter((r) => r === 'generated').length);

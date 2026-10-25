@@ -114,9 +114,12 @@ export async function handleExecuteScheduledOutreach(
 
 export async function handleCalendarTriggers(res: ServerResponse): Promise<void> {
   await run(res, 'calendar-triggers', async () => {
-    const { runCalendarTriggerCheck } =
-      await import('../../services/workflows/calendar-trigger-worker.js');
-    return { ...(await runCalendarTriggerCheck()) };
+    const [{ runCalendarTriggerCheck }, { isSavedQuietNow }] = await Promise.all([
+      import('../../services/workflows/calendar-trigger-worker.js'),
+      import('../../services/outreach/quiet-hours.js'),
+    ]);
+    // The menu's quiet hours hold the pre-meeting push (QUIET_HOURS_FROM_PREFS).
+    return { ...(await runCalendarTriggerCheck({ quietNow: isSavedQuietNow })) };
   });
 }
 

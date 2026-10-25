@@ -187,9 +187,9 @@ const EXAMPLE_SIGNALS = {
   ],
 };
 
-// In-memory storage
-
-const learningProfiles = new Map<string, LearningProfile>();
+const learningProfiles = new Map<string, LearningProfile>(); // read back by reload-before-save.ts
+export const importLearningProfile = (userId: string, profile: LearningProfile): void =>
+  void learningProfiles.set(userId, profile);
 /** MINOR_CARE (purgeHeldUser): forget one user. */
 export const forgetLearningStyleUser = (userId: string): boolean => learningProfiles.delete(userId);
 

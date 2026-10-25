@@ -503,30 +503,25 @@ async function handleRecordEmotion(
   }
 
   try {
-    const body = await parseBody<{
-      emotion: string;
-      intensity: number;
-      valence: number;
-      source: 'voice' | 'text' | 'inferred';
-      // A client may also send `context` (the caller's words). It is not stored.
-    }>(req);
-
-    if (!body.emotion || body.intensity === undefined || body.valence === undefined) {
+    // Kept: a listed emotion label, intensity 0..1, valence -1..1, a source of three,
+    // the server's time. Anything else (context, notes, a timestamp) is dropped; a bad
+    // value is refused, never stored.
+    const body = await parseBody<Record<string, unknown>>(req);
+    if (body?.emotion === undefined || body.intensity === undefined || body.valence === undefined) {
       sendError(res, 'Missing required fields: emotion, intensity, valence', 400);
       return true;
     }
-
+    const { toStoredPoint } =
+      await import('../../tools/semantic-router/advanced/emotional-history-shape.js');
+    const { emotion, intensity, valence, source } = body;
+    const point = toStoredPoint({ timestamp: new Date(), emotion, intensity, valence, source });
+    if (!point) {
+      sendError(res, 'Invalid emotion, intensity (0..1), valence (-1..1) or source', 400);
+      return true;
+    }
     const { recordEmotionalDataPoint, persistEmotionalHistory } =
       await import('../../tools/semantic-router/advanced/better-than-human.js');
-
-    // Record the data point
-    recordEmotionalDataPoint(
-      userId,
-      body.emotion,
-      body.intensity,
-      body.valence,
-      body.source || 'inferred'
-    );
+    recordEmotionalDataPoint(userId, point.emotion, point.intensity, point.valence, point.source);
 
     // Persist to Firestore (async, don't block)
     persistEmotionalHistory(userId).catch((err) =>
@@ -536,9 +531,9 @@ async function handleRecordEmotion(
     log.debug(
       {
         userId,
-        emotion: body.emotion,
-        intensity: body.intensity,
-        valence: body.valence,
+        emotion: point.emotion,
+        intensity: point.intensity,
+        valence: point.valence,
       },
       'Emotional data point recorded via API'
     );
