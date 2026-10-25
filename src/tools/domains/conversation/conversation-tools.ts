@@ -7,12 +7,12 @@
 
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
 import { z } from 'zod';
 // Import directly from types to avoid circular dependency through services/index
 import type { SessionServices } from '../../../services/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { rememberName, type NameToolUser } from './remember-name.js';
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -57,59 +57,9 @@ export function createConversationTools() {
             "The user's name (NOT a persona name like Ferni, Maya, Peter, Alex, Jordan, or Nayan)"
           ),
       }),
-      execute: async ({ name }, { ctx }) => {
-        // CRITICAL: Prevent saving persona names as user names!
-        // This happens when user says "Hi Maya" after Maya introduces herself
-        const personaNames = new Set(
-          // First, last and full names
-          'ferni|maya|peter|alex|jordan|nayan|santos|chen|taylor|john|patel|maya santos|alex chen|jordan taylor|peter john|nayan patel'.split(
-            '|'
-          )
-        );
-
-        const nameLower = name.toLowerCase().trim();
-        if (personaNames.has(nameLower)) {
-          getLogger().warn(
-            `Blocked saving persona name "${name}" as user name - this is a team member, not the user!`
-          );
-          return `[INTERNAL: "${name}" is a team member name, not the user's name. Ask the user for their actual name.]`;
-        }
-        // NAME_CAPTURE_STRICT=on: a common word ("not", "sure") or a teammate's speech-to-text
-        // spelling is not a name either (utils/caller-name.ts).
-        if (nameCaptureStrict() && rejectsAsName(nameLower.split(/\s+/)[0] ?? '')) {
-          getLogger().warn({ name }, 'Blocked saving a non-name as the user name');
-          return `[INTERNAL: "${name}" is not a name. Do not call them that; ask their name if you need it.]`;
-        }
-
-        getLogger().info(`Remembering user name: ${name}`);
-        const userData = ctx.userData as UserData;
-
-        // Store in session memory
-        userData.name = name;
-
-        // CRITICAL: Persist to user profile AND save to Firestore!
-        if (userData.services?.userProfile) {
-          userData.services.userProfile.name = name;
-          userData.services.userProfile.preferredName = name;
-
-          // ACTUALLY SAVE TO FIRESTORE - not just in-memory!
-          try {
-            await userData.services.saveProfile();
-            getLogger().info(
-              { name, userId: userData.services.userProfile.id },
-              '🎉 User name persisted to Firestore!'
-            );
-          } catch (saveError) {
-            getLogger().error(
-              { error: String(saveError), name },
-              'Failed to persist name to Firestore - will be saved at session end'
-            );
-          }
-        }
-
-        // Return is for internal confirmation only - Jack should respond naturally, not read this
-        return `[INTERNAL: Name "${name}" stored. Respond naturally - do NOT read this message aloud.]`;
-      },
+      // Refusals, the CALL_ME_VOCATIVE confirm and the save live in remember-name.ts.
+      execute: async ({ name }, { ctx }) =>
+        rememberName(name, ctx.userData as NameToolUser, ctx.session),
     }),
 
     // Note emotional state for context

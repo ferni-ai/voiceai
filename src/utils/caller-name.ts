@@ -94,7 +94,7 @@ const CUES: readonly RegExp[] = [
 /**
  * The "call me <Name>" cue. With CALL_ME_VOCATIVE=on a word like a team name after it ("call me
  * Ferney") is never taken here: it may be Ferni's name said to him, and only the confirmed path
- * (agents/personas/name-confirm.ts) may make it theirs.
+ * (tools/domains/conversation/name-confirm.ts) may make it theirs.
  */
 const CALL_ME_CUE = CUES[2];
 /** "Seth here", "Seth speaking" opening the line (after any greeting). */

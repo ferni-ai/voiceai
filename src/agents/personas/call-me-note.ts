@@ -17,7 +17,19 @@ import type { llm } from '@livekit/agents';
 
 import { type Env } from '../../config/env-flag.js';
 import { callMeVocativeEnabled, readCallMe } from '../../utils/call-me-vocative.js';
-import { eitherNote, personaFirstNameOf, propose, settle } from './name-confirm.js';
+import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import {
+  eitherNote,
+  noteTurnWords,
+  propose,
+  settle,
+} from '../../tools/domains/conversation/name-confirm.js';
+
+/** The speaking persona's first name ("Ferni", "Maya"), as locked-teammates.ts reads it. */
+export function personaFirstNameOf(session: object): string {
+  const id = (session as { userData?: { personaId?: string } }).userData?.personaId ?? 'ferni';
+  return getPersonaDisplayName(id).split(/\s+/)[0] || 'Ferni';
+}
 
 /** Whether callUser was called earlier on this call. */
 export function calledUserThisCall(items: readonly llm.ChatItem[]): boolean {
@@ -46,7 +58,9 @@ export function callMeNote(
   opts: { plain?: boolean; careful?: boolean } = {},
   env: Env = process.env
 ): string {
-  if (!callMeVocativeEnabled(env) || !words || opts.careful === true) return '';
+  if (!callMeVocativeEnabled(env)) return '';
+  noteTurnWords(session, words); // rememberName's confirm reads them (remember-name.ts)
+  if (!words || opts.careful === true) return '';
   const persona = personaFirstNameOf(session);
   const plain = opts.plain === true;
   const ring = (): string => (calledUserThisCall(chatCtx.items) ? ALREADY : RING(persona));

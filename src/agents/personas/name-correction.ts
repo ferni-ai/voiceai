@@ -45,7 +45,14 @@ import {
   readCallMe,
   withoutVocatives,
 } from '../../utils/call-me-vocative.js';
-import { confirmNameNote, pendingOf, personaFirstNameOf, propose, settle } from './name-confirm.js';
+import { isCallbackTime } from '../../utils/callback-time.js';
+import {
+  confirmNameNote,
+  pendingOf,
+  propose,
+  settle,
+} from '../../tools/domains/conversation/name-confirm.js';
+import { personaFirstNameOf } from './call-me-note.js';
 
 const log = createLogger({ module: 'NameCorrection' });
 
@@ -239,10 +246,11 @@ function heardName(
   const reading = readCallMe(words, persona);
   if (reading.rename) return reading.rename;
   const rest = withoutVocatives(words, reading.spans);
-  return (
+  const name =
     statedName(rest, current, agentLast) ??
-    firstName(rest, ANY_SELF_CUE, current, (n) => isCommonWord(n) || n.toLowerCase() === persona)
-  );
+    firstName(rest, ANY_SELF_CUE, current, (n) => isCommonWord(n) || n.toLowerCase() === persona);
+  // "Call me Later" / "Call me Tomorrow" is a callback request, not a name (callback-time.ts).
+  return name && !isCallbackTime(name) ? name : null;
 }
 
 const currentName = (session: object, user: SessionUser): string | undefined =>

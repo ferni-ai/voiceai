@@ -16,11 +16,13 @@
  * Settling is idempotent per turn: the preemptive and final requests of one
  * turn carry the same words and get the same outcome.
  *
- * @module agents/personas/name-confirm
+ * Lives with the tools (L3) so rememberName (remember-name.ts) asks the same
+ * question as the turn reminder (agents/personas/name-correction.ts, call-me-note.ts).
+ *
+ * @module tools/domains/conversation/name-confirm
  */
 
-import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
+import { isClearYes } from '../communication/outreach/outreach-confirm.js';
 
 export type PendingKind = 'rename' | 'either';
 
@@ -54,15 +56,21 @@ const mapOf = <T>(
   return made;
 };
 
-/** The speaking persona's first name ("Ferni", "Maya"), as locked-teammates.ts reads it. */
-export function personaFirstNameOf(session: object): string {
-  const id = (session as { userData?: { personaId?: string } }).userData?.personaId ?? 'ferni';
-  return getPersonaDisplayName(id).split(/\s+/)[0] || 'Ferni';
-}
-
 export function pendingOf(session: object, kind: PendingKind): Pending | undefined {
   return open.get(session)?.get(kind);
 }
+
+const turnWords = new WeakMap<object, string>();
+
+/**
+ * The caller's words this turn, as the turn reminder read them (call-me-note.ts),
+ * so a question rememberName raises mid-turn is settled by the next turn's words.
+ */
+export function noteTurnWords(session: object, words: string): void {
+  if (words.trim()) turnWords.set(session, words);
+}
+
+export const turnWordsOf = (session: object): string => turnWords.get(session) ?? '';
 
 /** Ask about `pending.name` this turn; it is settled by the caller's next words. */
 export function propose(session: object, pending: Pending): void {

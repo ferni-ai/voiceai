@@ -21,7 +21,7 @@
  * - `did-you-call`: "did you call me?" / "did you give me a call?".
  * `spans` are the "call me <vocative>" stretches, so name capture skips only
  * them: "I'm Sam, not Seth. Call me, Ferni." still gives Sam. Nothing here
- * saves a name or places a call (agents/personas/name-confirm.ts asks first).
+ * saves a name or places a call (tools/domains/conversation/name-confirm.ts asks first).
  *
  * @module utils/call-me-vocative
  */
