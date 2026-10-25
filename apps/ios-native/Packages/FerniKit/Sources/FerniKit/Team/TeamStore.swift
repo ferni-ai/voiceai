@@ -14,6 +14,8 @@ public final class TeamStore {
     public var chosen: String = PersonaRegistry.ferni.id
 
     private let fetch: @Sendable () async throws -> Data
+    /// Bumped on every reset: an answer requested for an earlier person is dropped.
+    private var generation = 0
 
     public init(fetch: @escaping @Sendable () async throws -> Data) {
         self.fetch = fetch
@@ -33,9 +35,18 @@ public final class TeamStore {
         return true
     }
 
+    /// A different person: back to Ferni alone until the server answers for them.
+    public func reset() {
+        generation += 1
+        unlocked = [PersonaRegistry.ferni.id]
+        teasers = [:]
+        chosen = PersonaRegistry.ferni.id
+    }
+
     /// Refreshes from the server; on failure the last answer stays.
     public func refresh() async {
-        guard let data = try? await fetch(), let parsed = Self.parse(data) else { return }
+        let asked = generation
+        guard let data = try? await fetch(), asked == generation, let parsed = Self.parse(data) else { return }
         unlocked = parsed.unlocked.union([PersonaRegistry.ferni.id])
         teasers = parsed.teasers
         if !unlocked.contains(chosen) { chosen = PersonaRegistry.ferni.id }

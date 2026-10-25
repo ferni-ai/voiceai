@@ -53,7 +53,7 @@ const RISKY = [
   /[$€£]\s?\d|\b\d+\s?(dollars|bucks|usd)\b/i,
   /\b(wire|venmo|zelle|cash ?app|paypal|gift ?cards?|bitcoin|crypto|bank|routing|account number|credit card|debit card|social security|ssn)\b/i,
   /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i,
-  /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?)\b/i,
+  /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?|card numbers?|cvv|cvc)\b/i,
 ];
 
 export function isRiskyCallerText(text: string): boolean {

@@ -148,6 +148,77 @@ describe('buildCallOutcome with how Ferni ended the call', () => {
   });
 });
 
+describe('buildCallOutcome: voicemail_left needs evidence a message was spoken', () => {
+  const call = makeCall('c');
+  // The real opener: 20 words, enough to pass any word count on its own.
+  const opener: CallTranscriptTurn = {
+    role: 'agent',
+    content:
+      "Hi Mom, it's Ferni, Sam's AI friend. Sam asked me to check in on you. Is now an okay time?",
+  };
+  const greeting: CallTranscriptTurn = {
+    role: 'recipient',
+    content: "You've reached Linda, please leave a message after the tone.",
+  };
+  const words = (n: number): CallTranscriptTurn => ({
+    role: 'agent',
+    content: Array.from({ length: n }, (_, i) => `word${i}`).join(' '),
+  });
+  const message: CallTranscriptTurn = {
+    role: 'agent',
+    content: "Hi Linda, it's Ferni, Sam's AI friend. Sam wanted to check in. Thanks, bye!",
+  };
+
+  // Every shape that once read as "left a message" without one being spoken.
+  const noMessage: Record<string, CallTranscriptTurn[] | null> = {
+    'prod 10-24: opener over the greeting': [opener, greeting],
+    'greeting never transcribed, long opener': [opener],
+    'greeting saved before the opener': [greeting, opener],
+    'Ferni speech only before the greeting': [words(12), greeting],
+    'a full message in the transcript but none recorded as spoken': [greeting, message],
+    'lost transcript': null,
+    ...Object.fromEntries(
+      [1, 2, 3, 4, 5, 6, 7].map((n) => [
+        `${n} Ferni words after the greeting`,
+        [greeting, words(n)],
+      ])
+    ),
+  };
+  it.each(Object.entries(noMessage))('%s: voicemail, no message left', (_shape, turns) => {
+    const outcome = buildCallOutcome(call, turns, null, 'voicemail_left', 30, false);
+    expect(outcome).toMatchObject({ status: 'voicemail', voicemailLeft: false });
+    expect(outcome.outcome).toContain("didn't leave a message");
+    expect(outcome.outcome).not.toMatch(/left a message/);
+    expect(outcome.callbackRequired).toBe(true);
+  });
+
+  it('the voicemail path recorded its message as spoken: left a message', () => {
+    const outcome = buildCallOutcome(call, [greeting, message], null, 'voicemail_left', 30, true);
+    expect(outcome).toMatchObject({ status: 'voicemail', voicemailLeft: true });
+    expect(outcome.outcome).toContain('left a message');
+  });
+
+  it("the report reads the call's spoken flag from call-control, once", async () => {
+    const { registerOnBehalfCallRoom } = await import('../call-control.js');
+    const { noteVoicemailSpoken, takeVoicemailSpoken } =
+      await import('../../../services/outreach/voicemail-outcome.js');
+    registerOnBehalfCallRoom('s-flag', 'c-flag', 'room-flag');
+    const p = { ...ports([opener, greeting], undefined, 'voicemail_left') };
+    const before = await completeOnBehalfCall('s-flag', makeCall('c-flag-0'), 30, true, {
+      ...p,
+      readVoicemailSpoken: takeVoicemailSpoken,
+    });
+    expect(before?.voicemailLeft).toBe(false);
+    registerOnBehalfCallRoom('s-flag', 'c-flag', 'room-flag');
+    noteVoicemailSpoken('s-flag');
+    const after = await completeOnBehalfCall('s-flag', makeCall('c-flag-1'), 30, true, {
+      ...ports([opener, greeting], undefined, 'voicemail_left'),
+      readVoicemailSpoken: takeVoicemailSpoken,
+    });
+    expect(after?.voicemailLeft).toBe(true);
+  });
+});
+
 describe('completeOnBehalfCall', () => {
   it('does not summarize a voicemail as a conversation', async () => {
     const p = ports(conversation, undefined, 'voicemail_left');
@@ -187,7 +258,12 @@ describe('completeOnBehalfCall', () => {
   it('a later exit path waits for the report already under way (the job exits after it)', async () => {
     let release: () => void = () => undefined;
     const p = ports(conversation);
-    p.report.mockImplementation(() => new Promise<void>((r) => (release = r)));
+    p.report.mockImplementation(
+      () =>
+        new Promise<void>((r) => {
+          release = r;
+        })
+    );
     const call = makeCall('c-wait');
     const first = completeOnBehalfCall('s-wait', call, 90, true, p);
     let laterDone = false;
@@ -195,7 +271,9 @@ describe('completeOnBehalfCall', () => {
       laterDone = true;
     });
     await vi.waitFor(() => expect(p.report).toHaveBeenCalledTimes(1));
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => {
+      setTimeout(r, 20);
+    });
     expect(laterDone).toBe(false);
     release();
     await Promise.all([first, later]);
