@@ -7,7 +7,7 @@
  * @module agents/shared/tool-executors/memory-executor
  */
 
-import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { forgetDone, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { loadRecallForgetGuard } from './recall-forget-guard.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { memoryHeld } from '../../../utils/minor-care.js'; // MINOR_CARE=on: no writes
@@ -453,7 +453,7 @@ async function execute(
       clearSessionMemoryCache(ctx.sessionId);
     }
     if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
-    return `I've forgotten about that. Your privacy matters.`;
+    return forgetDone(forgot);
   }
 
   // ========================================

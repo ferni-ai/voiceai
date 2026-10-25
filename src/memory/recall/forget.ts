@@ -11,11 +11,20 @@
  * fact collections and records the topic's words, and recall's snapshot
  * (session-recall.ts) leaves out marked facts and any fact or open thread
  * about a recorded topic; open follow-ups about it are released
- * (forget-follow-ups.ts). It never deletes: the tool is called by a model,
- * on a confirmation the model itself reports, so a misread request must be
- * recoverable. Erasure is account deletion's job (erase-user-record.ts),
- * which removes all of this too. A topic that would cover a large share of
- * what Ferni knows is not applied; the caller is asked to narrow it.
+ * (forget-follow-ups.ts). By default it never deletes: the tool is called by
+ * a model, on a confirmation the model itself reports, so a misread request
+ * must be recoverable. With FORGET_DELETES=on the facts are deleted instead,
+ * with the embeddings they hold and their index copies, except a dynamic fact
+ * the graph sync may have copied (mayHaveGraphCopy): deleting it would leave a
+ * graph copy nothing points at, so it is marked, and the sync removes the copy
+ * as it does for any forgotten fact. The topic is still recorded either way,
+ * so the call summaries and transcripts that keep the words stay out of
+ * recall. Erasing everything is account deletion's job (erase-user-record.ts).
+ * A topic that would cover a large share of what Ferni knows is not applied;
+ * the caller is asked to narrow it.
+ *
+ * Ferni says only what happened (forgetDone): "I won't bring that up again"
+ * when facts were hidden, and that he deleted them only when every one was.
  *
  * The profile's last summaries (what the next call's greeting picks up) are
  * cleared too when they are about the topic; session saves keep forgotten
@@ -32,6 +41,7 @@
  * @module memory/recall/forget
  */
 import { FieldValue, type Firestore } from '@google-cloud/firestore';
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
@@ -50,7 +60,8 @@ const MAX_SHARE = 0.3;
 const MAX_UNASKED = 5;
 
 export type ForgetResult =
-  | { kind: 'forgotten'; marked: number }
+  /** deleted/hidden: with FORGET_DELETES on, how many facts were deleted and how many only hidden. */
+  | { kind: 'forgotten'; marked: number; deleted?: number; hidden?: number }
   | { kind: 'too-broad'; matched: number }
   | { kind: 'nothing' }
   /** No member on this call (anonymous, anon:, onbehalf:), so nothing about them is stored. */
@@ -67,6 +78,8 @@ export interface ForgetStore {
   /** The caller's facts in every fact collection. */
   facts: (userId: string) => Promise<StoredFactRef[]>;
   markForgotten: (userId: string, refs: StoredFactRef[], at: string) => Promise<void>;
+  /** Deletes the facts and their copies; returns those it did not delete, to be marked (FORGET_DELETES). */
+  deleteFacts?: (userId: string, refs: StoredFactRef[]) => Promise<StoredFactRef[]>;
   /** Records a topic as stored (storedTopic) and, for a later tokenizer to re-derive, as asked. */
   addTopic: (userId: string, topic: string, asked?: string) => Promise<void>;
   /** The recorded topics; null when they can't be read (no store, malformed), [] when there are none. */
@@ -103,7 +116,8 @@ export async function forgetTopic(
   userId: string,
   topic: string,
   store: ForgetStore = firestoreForgetStore,
-  now: Date = new Date()
+  now: Date = new Date(),
+  env: Env = process.env
 ): Promise<ForgetResult> {
   const tokens = storedTopic(topic);
   if (forgetTokens(tokens).length === 0) return { kind: 'nothing' };
@@ -124,7 +138,10 @@ export async function forgetTopic(
   // Open follow-ups about it close too (best effort; the delivery job checks again).
   await closeForgottenFollowUps(userId, (text) => isForgotten(text, [tokens]), now);
   const marking = [...matched, ...earlier];
-  if (marking.length > 0) await store.markForgotten(userId, marking, now.toISOString());
+  const deleteFacts = flagOn('FORGET_DELETES', env) ? store.deleteFacts : undefined;
+  // Facts that can't be deleted yet are marked, so recall still leaves them out.
+  const hidden = deleteFacts && marking.length > 0 ? await deleteFacts(userId, marking) : marking;
+  if (hidden.length > 0) await store.markForgotten(userId, hidden, now.toISOString());
   bumpForgetGeneration(userId);
   // What either matcher reads as the topic, so nothing a save would clear is
   // left for the next call start. Last, so a failure leaves only this to
@@ -134,8 +151,38 @@ export async function forgetTopic(
     userId,
     (text) => isForgotten(text, [tokens]) || aboutForgotten(text, [tokens])
   );
-  log.info({ userId: userId.slice(0, 8), marked: matched.length }, 'Forgot a topic');
-  return { kind: 'forgotten', marked: matched.length };
+  const deleted = marking.length - hidden.length;
+  log.info({ userId: userId.slice(0, 8), marked: matched.length, deleted }, 'Forgot a topic');
+  return deleteFacts
+    ? { kind: 'forgotten', marked: matched.length, deleted, hidden: hidden.length }
+    : { kind: 'forgotten', marked: matched.length };
+}
+
+/**
+ * Whether the graph sync may have copied a dynamic fact. Facts are written
+ * with syncedToSpanner false and copied only when the sync sets it true; a
+ * forgotten fact is reset to false while its copy waits to be removed. So
+ * only a live fact still at false is known to have no copy.
+ */
+export function mayHaveGraphCopy(ref: StoredFactRef): boolean {
+  if (ref.collection !== 'dynamic_facts') return false;
+  const live = ref.data.forgottenAt === undefined || ref.data.forgottenAt === null;
+  return !(live && ref.data.syncedToSpanner === false);
+}
+
+/** What Ferni says once a forget went through: only what actually happened. */
+export function forgetDone(result: Extract<ForgetResult, { kind: 'forgotten' }>): string {
+  return result.deleted && !result.hidden
+    ? "I've deleted the facts I'd saved about that, and I won't bring it up again."
+    : "I won't bring that up again.";
+}
+
+/** The voice tool's result: the line to say, and nothing it may claim beyond it. */
+export function forgetDoneNote(result: Extract<ForgetResult, { kind: 'forgotten' }>): string {
+  const line = forgetDone(result);
+  return result.deleted && !result.hidden
+    ? `Deleted. Tell them this, briefly, and carry on: "${line}"`
+    : `It's kept out of what you recall from now on, not erased. Tell them this, briefly, and carry on: "${line}" Don't say you've forgotten, deleted or erased it.`;
 }
 
 /** forgetTopic for a call's user, if any. Never throws: a failure is logged and reported as such. */
@@ -277,6 +324,22 @@ export const firestoreForgetStore: ForgetStore = {
       userId,
       refs.filter((x) => x.collection === 'dynamic_facts').map((x) => x.id)
     );
+  },
+  async deleteFacts(userId, refs) {
+    const db = getFirestoreDb();
+    if (!db) return refs;
+    const user = db.collection('bogle_users').doc(userId);
+    const gone = refs.filter((r) => !mayHaveGraphCopy(r));
+    for (let i = 0; i < gone.length; i += 400) {
+      const batch = db.batch();
+      for (const r of gone.slice(i, i + 400)) batch.delete(user.collection(r.collection).doc(r.id));
+      await batch.commit();
+    }
+    await removeIndexCopies(
+      userId,
+      gone.filter((x) => x.collection === 'dynamic_facts').map((x) => x.id)
+    );
+    return refs.filter((r) => mayHaveGraphCopy(r));
   },
   async addTopic(userId, topic, asked) {
     const db = getFirestoreDb();
