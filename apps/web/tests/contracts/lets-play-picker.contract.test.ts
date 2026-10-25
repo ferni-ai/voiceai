@@ -233,9 +233,10 @@ describe("Let's Play: the agent never answers", () => {
         vi.advanceTimersByTime(100);
         expect(mocks.toast.error).toHaveBeenCalledTimes(1);
 
-        // An ack that turns up after that shows no "Starting".
+        // A success that turns up after that corrects it: the game did start.
         handleDataMessage({ type: ackType, gameType: gameId, success: true } as Message);
-        expect(mocks.toast.success).not.toHaveBeenCalled();
+        expect(mocks.toast.success).toHaveBeenCalledTimes(1);
+        expect(mocks.toast.success.mock.calls[0]?.[0]).toMatch(/^Starting .+\.\.\.$/);
       } finally {
         vi.runOnlyPendingTimers();
         vi.useRealTimers();
