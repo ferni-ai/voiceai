@@ -369,6 +369,23 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(tokens.requests.count, 2, "and one fresh token")
     }
 
+    /// A different person doesn't inherit the last call's card or captions.
+    func testForgettingTheLastCallClearsItsTraces() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        rooms.made[0].send(.caption(CaptionChunk(streamID: "s", segmentID: "a", speaker: .ferni, text: "Hi", isFinal: true)))
+        await until(!session.captions.lines.isEmpty)
+
+        session.forgetLastCall()
+        XCTAssertNotNil(session.startedAt, "a call in progress is left alone")
+        await session.end()
+        session.forgetLastCall()
+        XCTAssertNil(session.startedAt)
+        XCTAssertEqual(session.phase, .idle)
+        XCTAssertTrue(session.captions.lines.isEmpty)
+    }
+
     func testFerniHangingUpEndsTheCall() async {
         let session = makeSession()
         session.start()
