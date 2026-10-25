@@ -46,6 +46,13 @@ describe('gateDecidedFill: the pipeline reads the gate decision for its own turn
     expect(gateDecidedFill('call', 4)).toBe(false);
   });
 
+  it("the last turn's pipeline note never lets this turn's gate fill stand alone", async () => {
+    noteSecondReadTurn('c', 4, 'gate', true, no);
+    noteSecondReadTurn('c', 4, 'pipeline', false, no);
+    noteSecondReadTurn('c', 5, 'gate', true, no);
+    expect(await selfFillStands('c', 5, 'gate', 30)).toBe(false);
+  });
+
   it("another call's decision never applies", () => {
     noteSecondReadTurn('call-a', 4, 'gate', true, no);
     expect(gateDecidedFill('call-b', 4)).toBe(false);
