@@ -229,9 +229,11 @@ function scoreText(text: string): TextScore {
   return { ...found, softSelf, sessionSeverity };
 }
 
-/**
- * Detect crisis indicators in user message
- */
+/** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
+export const sessionSeverityOf = (message: string): number =>
+  scoreText(normalize(message)).sessionSeverity;
+
+/** Detect crisis indicators in user message */
 export function detectCrisis(
   userMessage: string,
   voiceEmotion?: VoiceEmotionContext,
