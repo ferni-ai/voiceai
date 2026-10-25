@@ -722,7 +722,7 @@ APPROVE NOW: ${approveUrl}
 
 View waitlist: https://ferni.ai/admin/waitlist/`;
 
-  await sendWaitlistMail('admin notification', 'adminNotice', {
+  await sendWaitlistMail('admin notification', 'signupNotice', {
     to: ADMIN_NOTIFICATION_EMAILS,
     fromName: 'Ferni Waitlist',
     subject,
