@@ -734,7 +734,7 @@ export async function sendBatchMessages(
         const subject = getSubjectForOccasion(msg.occasion, msg.contactName);
         await sendEmail(msg.channelValue, subject, msg.message);
       } else if (msg.channel === 'sms') {
-        await sendSMS(msg.channelValue, msg.message);
+        await sendSMS(msg.channelValue, msg.message, { userId });
       }
 
       msg.sent = true;

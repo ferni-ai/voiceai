@@ -3,9 +3,10 @@
  *
  * The voice agent answers some requests with an `*_ack` data message and tells
  * the app when it could not start team mode. Until these were handled, the app
- * showed success while the agent had failed: it opens the game board and says
- * "Starting..." right after publishing the request, and nothing corrected that
- * when the agent answered `success: false`.
+ * showed success while the agent had failed: the picker opens the game board
+ * right after publishing the request, and nothing corrected that when the agent
+ * answered `success: false`. Its "Starting..." toast now waits for `success: true`,
+ * and no answer within GAME_ACK_TIMEOUT_MS counts as a failed start.
  *
  * Senders (the payload shapes below come from there):
  * - src/agents/voice-agent/data-channel-handler.ts: *_ack messages
@@ -15,13 +16,14 @@
 
 import { playMicroExpression } from '../eq/index.js';
 import { t } from '../i18n/index.js';
+import { appState } from '../state/app.state.js';
 import type { DataMessage } from '../types/events.js';
 import { toast } from '../ui/whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('AgentAcks');
 
-/** Acks the app listens for. Only a failed one (`success: false`) changes the UI. */
+/** Acks the app listens for. A failed one undoes what the UI did; a game start confirms it. */
 const ACK_TYPES = new Set([
   'game_start_ack',
   'text_game_start_ack',
@@ -33,24 +35,111 @@ const ACK_TYPES = new Set([
   'user_feedback_ack',
 ]);
 
-/** How long after the app opened a game board an ack failure may still close it. */
-const GAME_START_WINDOW_MS = 60_000;
+const GAME_ACKS = new Set(['game_start_ack', 'text_game_start_ack']);
 
-let lastGameStart: { gameType: string; at: number } | null = null;
+/** How long the picker's start waits for the agent's ack before it counts as failed. */
+export const GAME_ACK_TIMEOUT_MS = 10_000;
 
-// The game picker opens the board optimistically; remember what it opened so a
-// failed ack can take back that one game and no other.
+interface GameStart {
+  gameType: string;
+  gameName: unknown;
+  timer: ReturnType<typeof setTimeout> | undefined;
+}
+
+/** The picker's start still waiting for the agent's ack (one at a time: a new tap replaces it). */
+let pending: GameStart | null = null;
+/** Starts that timed out, by game: the user was told they failed; their late ack may still come. */
+const timedOut = new Map<string, GameStart>();
+/** What last opened the board: a picker start, or a game started by voice. */
+let boardOpener: GameStart | 'voice' | null = null;
+
+// The game picker opens the board optimistically (its event says it awaits an
+// ack); remember what it opened so the agent's ack can confirm, or take back,
+// that one game and no other. A game started by voice gets no ack, so it's not timed.
 document.addEventListener('ferni:game-started', (event) => {
-  const gameType = (event as CustomEvent<{ gameType?: unknown }>).detail?.gameType;
-  if (typeof gameType === 'string') lastGameStart = { gameType, at: Date.now() };
+  const detail = (
+    event as CustomEvent<{ gameType?: unknown; gameName?: unknown; awaitsAck?: unknown }>
+  ).detail;
+  const gameType = detail?.gameType;
+  if (typeof gameType !== 'string') return;
+  if (detail?.awaitsAck !== true) {
+    boardOpener = 'voice';
+    return;
+  }
+  if (pending) clearTimeout(pending.timer);
+  const start: GameStart = { gameType, gameName: detail.gameName, timer: undefined };
+  start.timer = setTimeout(() => timeOut(start), GAME_ACK_TIMEOUT_MS);
+  pending = start;
+  boardOpener = start;
 });
 
-function undoGameStart(gameType: unknown): void {
-  const started = lastGameStart;
-  if (started && started.gameType === gameType && Date.now() - started.at < GAME_START_WINDOW_MS) {
-    lastGameStart = null;
-    document.dispatchEvent(new CustomEvent('ferni:game-ended', { detail: { gameType } }));
+/** No ack in time: tell the user it didn't start, and close the board it opened. */
+function timeOut(start: GameStart): void {
+  if (pending !== start) return; // a later tap replaced it
+  log.warn('No answer from the agent to a game start', { gameType: start.gameType });
+  pending = null;
+  timedOut.set(start.gameType, start);
+  closeBoardOf(start);
+  toast.error(t('agentAcks.gameStartFailed'));
+}
+
+/** Close the board only if this start opened it and nothing has opened it since. */
+function closeBoardOf(start: GameStart): void {
+  if (boardOpener !== start) return;
+  boardOpener = null;
+  const detail = { gameType: start.gameType };
+  document.dispatchEvent(new CustomEvent('ferni:game-ended', { detail }));
+}
+
+/**
+ * The call ended: no ack is coming, so nothing may be announced later. call-end.ts
+ * onCallEnded calls this on every end; the listeners below catch the rest.
+ */
+export function forgetGameStarts(): void {
+  if (pending) clearTimeout(pending.timer);
+  pending = null;
+  timedOut.clear();
+  boardOpener = null;
+}
+// The agent left; the room closed or dropped (connection.service reports every end here);
+// or the page went into the back/forward cache with a start still waiting.
+document.addEventListener('ferni:disconnected', forgetGameStarts);
+appState.subscribe('connection', (state) => {
+  if (state === 'disconnected' || state === 'error') forgetGameStarts();
+});
+window.addEventListener('pagehide', forgetGameStarts);
+
+/** The waiting start of this game, taken off the clock. */
+function takePending(gameType: unknown): GameStart | null {
+  if (!pending || pending.gameType !== gameType) return null;
+  const start = pending;
+  clearTimeout(start.timer);
+  pending = null;
+  return start;
+}
+
+function takeTimedOut(gameType: unknown): GameStart | null {
+  const start = typeof gameType === 'string' ? timedOut.get(gameType) : undefined;
+  if (!start) return null;
+  timedOut.delete(start.gameType);
+  return start;
+}
+
+/**
+ * The agent's answer to a game start. "Starting <game>..." shows only now; after
+ * a timeout it corrects the "didn't start" the user already saw.
+ */
+function handleGameAck(message: DataMessage, started: boolean): void {
+  const start = takePending(message['gameType']);
+  const late = start ? null : takeTimedOut(message['gameType']);
+  if (started) {
+    const name = (start ?? late)?.gameName;
+    if (typeof name === 'string') toast.success(t('gamePicker.starting', { game: name }));
+    return;
   }
+  if (start) closeBoardOf(start);
+  // Not when it was already told at the timeout, or while another game is loading
+  if (start || (!late && !pending)) toast.error(t('agentAcks.gameStartFailed'));
 }
 
 /**
@@ -75,8 +164,7 @@ function handleFailedAck(type: string, message: DataMessage): void {
   switch (type) {
     case 'game_start_ack':
     case 'text_game_start_ack':
-      undoGameStart(message['gameType']);
-      toast.error(t('agentAcks.gameStartFailed'));
+      handleGameAck(message, false);
       break;
     case 'practice_start_ack':
       toast.error(t('app.practiceStartFailed'));
@@ -104,7 +192,7 @@ export function handleAgentAckMessage(message: DataMessage): boolean {
     return true;
   }
   if (!ACK_TYPES.has(type)) return false;
-  // A success ack matches what the UI already shows; only a failure needs the user.
   if (message['success'] === false) handleFailedAck(type, message);
+  else if (message['success'] === true && GAME_ACKS.has(type)) handleGameAck(message, true);
   return true;
 }

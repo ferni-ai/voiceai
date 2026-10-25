@@ -21,6 +21,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { formatStoredLocalTime } from '../../../utils/time-zone.js';
 import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
+import { forgottenFor, withoutForgottenLines } from './recent-context-forget.js';
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
@@ -508,6 +509,13 @@ const recentContextDef: ToolDefinition = {
         let response = `**What We've Talked About**\n\n`;
         response += `**Timeframe: ${timeframe.replace(/-/g, ' ')}**\n\n`;
 
+        // #2719: every line from memory passes the caller's forgotten topics; none when unreadable.
+        const forgotten = ctx.userId ? await forgottenFor(ctx.userId) : null;
+        if (ctx.userId && !forgotten) {
+          return `${response}I can't pull up our past conversations right now. What's on your mind?`;
+        }
+        const keep = (text: string): boolean => forgotten !== null && !forgotten(text);
+
         try {
           // Query conversation history service
           const { getConversationHistoryService } =
@@ -515,41 +523,18 @@ const recentContextDef: ToolDefinition = {
           const conversationHistoryService = getConversationHistoryService();
 
           if (ctx.userId) {
-            // Calculate date range based on timeframe
-            const now = new Date();
-            let startDate = new Date();
-
-            switch (timeframe) {
-              case 'today':
-                startDate.setHours(0, 0, 0, 0);
-                break;
-              case 'yesterday':
-                startDate.setDate(startDate.getDate() - 1);
-                startDate.setHours(0, 0, 0, 0);
-                break;
-              case 'this-week':
-                startDate.setDate(startDate.getDate() - 7);
-                break;
-              case 'last-week':
-                startDate.setDate(startDate.getDate() - 14);
-                break;
-              case 'this-month':
-                startDate.setMonth(startDate.getMonth() - 1);
-                break;
-              case 'all-time':
-                startDate = new Date(0);
-                break;
-            }
-
-            // Get conversation history (limit is the only supported parameter)
+            // getHistory takes only a limit: timeframe labels the reply but filters nothing (#2719).
             const history = await conversationHistoryService.getHistory(ctx.userId, 20);
 
             if (history && history.sessions && history.sessions.length > 0) {
+              const sessions = history.sessions.map((s) =>
+                withoutForgottenLines(s, (t) => !keep(t))
+              );
               // Collect topics and insights
               const allTopics = new Set<string>();
               const allInsights: string[] = [];
 
-              for (const session of history.sessions) {
+              for (const session of sessions) {
                 if (session.topicsDiscussed) {
                   session.topicsDiscussed.forEach((t: string) =>
                     allTopics.add(cleanForFirestore(t))
@@ -562,7 +547,7 @@ const recentContextDef: ToolDefinition = {
 
               if (topic) {
                 // Filter for specific topic
-                const relevantSessions = history.sessions.filter(
+                const relevantSessions = sessions.filter(
                   (s: { topicsDiscussed?: string[]; insights?: string[] }) =>
                     s.topicsDiscussed?.some((t: string) =>
                       t.toLowerCase().includes(topic.toLowerCase())
@@ -639,11 +624,12 @@ const recentContextDef: ToolDefinition = {
                 .limit(5)
                 .get();
 
-              if (!snapshot.empty) {
+              const contents = snapshot.docs
+                .map((doc) => (doc.data() as { content?: string } | undefined)?.content || '')
+                .filter(keep);
+              if (contents.length > 0) {
                 response += `I found these in my memory about "${topic}":\n\n`;
-                snapshot.docs.forEach((doc) => {
-                  const mem = doc.data() as { content?: string } | undefined;
-                  const content = mem?.content || '';
+                contents.forEach((content) => {
                   response += `• ${content.slice(0, 100)}${content.length > 100 ? '...' : ''}\n`;
                 });
               } else {

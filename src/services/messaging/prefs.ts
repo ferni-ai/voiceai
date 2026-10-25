@@ -127,6 +127,18 @@ export function prefsFromDoc(doc: Doc): MessagingPrefs {
   };
 }
 
+/**
+ * The quiet hours a person saved here and the zone to read them in, or undefined
+ * when no valid window is saved. Unlike prefsFromDoc: no default, no older store.
+ * Senders read it through quiet-hours.ts savedQuietHours (QUIET_HOURS_FROM_PREFS).
+ */
+export function savedQuietSpan(doc: Doc): (LocalSpan & { zone?: string }) | undefined {
+  const saved = field(doc, 'messagingPrefs');
+  const span = spanOf({ start: saved.quietStart, end: saved.quietEnd });
+  const zone = span && prefsFromDoc(doc).zone;
+  return span && { ...span, ...(zone && { zone }) };
+}
+
 /** A patch from untrusted input: every field given must be valid, or nothing is saved. */
 export function validatePatch(
   raw: unknown

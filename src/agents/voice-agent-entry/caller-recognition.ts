@@ -24,7 +24,7 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
-import { setVerifiedOwnerCheck } from '../../utils/minor-care.js';
+import { bindSessionPhone, setVerifiedOwnerCheck } from '../../utils/minor-care.js';
 import {
   beginReturningCaller,
   returningCallerEnabled,
@@ -181,6 +181,20 @@ export function rememberCallerRecognition(sessionId: string, r: CallerRecognitio
   );
 }
 
+/**
+ * Remember a phone caller's number from the participants already in the room (no waiting), so a
+ * held call also holds texts from and to that number (minor-care-purge.ts).
+ */
+export function rememberCallerPhone(
+  sessionId: string,
+  room: { remoteParticipants?: Map<string, SipParticipantLike> }
+): void {
+  for (const participant of room.remoteParticipants?.values() ?? []) {
+    const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
+    if (e164) return bindSessionPhone(sessionId, e164);
+  }
+}
+
 export function callerRecognitionFor(sessionId: string | undefined): CallerRecognition | undefined {
   return sessionId ? bySession.get(sessionId) : undefined;
 }
@@ -252,6 +266,7 @@ export async function recognizePhoneSession(
   if (!participant) return null;
   const r = await recognizeCaller(participant, deps, room);
   if (!r) return null;
+  rememberCallerPhone(sessionId, { remoteParticipants: new Map([['caller', participant]]) });
   rememberCallerRecognition(sessionId, r);
   return r.status === 'known' ? { userId: r.userId, userName: r.name } : {};
 }

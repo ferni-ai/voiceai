@@ -11,7 +11,8 @@
  *
  * Stores keyed by something other than the uid are seeded the way their writers key them:
  * the waitlist and access grants by email, the sponsored phone index by identity, A/B test
- * assignments under each test, and tool-call telemetry shared by many people in one doc.
+ * assignments under each test, the router's turn events under each day, and tool-call
+ * telemetry shared by many people in one doc.
  */
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -79,6 +80,7 @@ const MUST_ERASE = [
   'engagement_profiles/{uid}',
   'bogle_users/{uid}/summaries',
   'bogle_users/{uid}/conversations',
+  'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/wellbeing_snapshots',
@@ -113,7 +115,11 @@ async function seed(store: string, uid: string): Promise<void> {
   let doc: DocumentReference;
   if (field) {
     // "injection.userId" is a field inside a map
-    const value = field[2]!.split('.').reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
+    // "grants.{uid}" is an entry keyed by the uid in a contact's consent record
+    const value = field[2]!
+      .replace('{uid}', uid)
+      .split('.')
+      .reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
     doc = await db.collection(field[1]!).add({ ...(value as object), marker: 'seeded' });
   } else {
     const path = store.replace('{uid}', uid);
@@ -194,6 +200,9 @@ async function seedOtherKeys(uid: string, email: string, phone: string): Promise
     db.doc('ab_tests/t-tone').set({ name: 'tone test' }), // shared by everyone in the test
     db.doc(`ab_tests/t-tone/assignments/${uid}`).set({ userId: uid, testId: 't-tone' }),
     db.doc(`ab_tests/t-pace/assignments/${uid}`).set({ userId: uid, testId: 't-pace' }),
+    // The router's turn events: one partition per day, the day documents never written
+    db.doc(`semantic_router_events/2026-03-01/events/ev-${uid}`).set({ userId: uid }),
+    db.doc(`semantic_router_events/2026-10-24/events/ev-${uid}`).set({ userId: uid }),
   ]);
   return [email, emailDocId(email), phone, identity.id];
 }

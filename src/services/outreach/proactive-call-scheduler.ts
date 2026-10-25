@@ -14,7 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
 import {
   isConversationalCallsConfigured,
   makeConversationalCall,
@@ -131,8 +131,8 @@ export async function scheduleProactiveCall(
       log.warn({ userId }, 'Conversational calls not configured');
       return { success: false, error: 'Calls not configured' };
     }
-    // MESSAGING_PIPELINE: a number that asked not to be called is never rung.
-    const refused = await consentBlocks(phoneNumber, 'call', true);
+    // MESSAGING_PIPELINE: only the member's own number, or one they hold a call grant for.
+    const refused = await ownerRefusal(userId, phoneNumber, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
     // Check quiet hours. Only for a call due now: the rescheduled one is in the future.

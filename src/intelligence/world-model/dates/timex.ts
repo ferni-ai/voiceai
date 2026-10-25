@@ -217,12 +217,18 @@ export function normaliseWhen(when: string): string {
 }
 
 /**
+ * "at 3" is an hour, never "the 3rd": "Tuesday at 3" is Tuesday. Not when more
+ * numbers follow ("at 5 30", "at 3/14") or am/pm and o'clock, which are read below.
+ */
+const AT_HOUR = /\bat (?:[1-9]|1[0-2])\b(?![\d/:.,–-]|\s*[,.]?\s*\d|\s*(?:[ap]\.?m\b|o'?clock))/gi;
+
+/**
  * The day `when` names, said on `anchor` (YYYY-MM-DD, the call's date where
  * the caller is). `past`: they were talking about something that already
  * happened ("her surgery was Tuesday"). Null when it names no single day.
  */
 export function resolveWhen(when: string, anchor: string, past = false): Resolved | null {
-  const said = normaliseWhen(when);
+  const said = normaliseWhen(when.replace(AT_HOUR, ' '));
   if (said in RELATIVE) return { date: addDays(anchor, RELATIVE[said]), ambiguous: false };
   // The time of day doesn't change the day: "Friday morning", "the 14th 3pm".
   const text = said
@@ -230,6 +236,8 @@ export function resolveWhen(when: string, anchor: string, past = false): Resolve
     .replace(/(?: in)? (?:morning|afternoon|evening|night|noon)$/, '')
     .trim();
   if (!text) return null;
+  // "tomorrow in the morning" is tomorrow once the part of the day is gone.
+  if (text in RELATIVE) return { date: addDays(anchor, RELATIVE[text]), ambiguous: false };
   const lead = /^(next week|this week|sunday|monday|tuesday|wednesday|thursday|friday|saturday) (.+)$/.exec(text); // prettier-ignore
   if (lead && !/^(?:after next|next week|this week)$/.test(lead[2])) {
     const [, head, rest] = lead;

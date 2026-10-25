@@ -234,3 +234,9 @@ __pycache__/
 # Website computed-style diff (e2e/website-style-diff.spec.ts)
 apps/website/ferni-website/_site-base/
 apps/website/ferni-website/style-diff-report/
+
+# Generated at install, typecheck, build and test time by src/config/generated-lists.ts
+# (pnpm gen:lists). Committing them made flag and env-read PRs conflict in the merge
+# queue, which ignores the union merge driver.
+src/config/flags/index.generated.ts
+src/config/env-read-names.generated.ts

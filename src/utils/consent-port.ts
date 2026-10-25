@@ -53,3 +53,72 @@ export async function consentBlocks(
   log.warn({ channel }, 'Consent check not registered in this process; not sending');
   return 'unverifiable';
 }
+
+/** The owner's own verified number? (guarded-text's isOwnVerifiedPhone.) */
+export type OwnNumberCheck = (ownerUid: string, phone: string) => Promise<boolean>;
+/** consent-grants.ts behind the same port: a third party's grant is for one owner. */
+export interface GrantChecks {
+  thirdPartyRefusal: (
+    ownerUid: string,
+    phone: string,
+    channel: ConsentChannel,
+    isOwn: OwnNumberCheck
+  ) => Promise<ConsentBlock | null>;
+  recordOwnerAttestation: (phone: string, channel: ConsentChannel, uid: string) => Promise<boolean>;
+  ownerRefusal: (
+    ownerUid: string | undefined,
+    phone: string,
+    channel: ConsentChannel
+  ) => Promise<ConsentBlock | null>;
+}
+let grants: GrantChecks | undefined;
+
+export function registerGrantChecks(next: GrantChecks | undefined): void {
+  grants = next;
+}
+
+export const grantChecksRegistered = (): boolean => grants !== undefined;
+
+/** consent-grants.ts thirdPartyRefusal. Unregistered (pipeline on), only the owner's own number goes. */
+export async function thirdPartyRefusal(
+  ownerUid: string,
+  phone: string,
+  channel: ConsentChannel,
+  isOwn: OwnNumberCheck,
+  env: Env = process.env
+): Promise<ConsentBlock | null> {
+  if (grants) return grants.thirdPartyRefusal(ownerUid, phone, channel, isOwn);
+  if (!flagOn('MESSAGING_PIPELINE', env) || (await isOwn(ownerUid, phone))) return null;
+  log.warn({ channel }, 'Grant check not registered in this process; not reaching a third party');
+  return 'unverifiable';
+}
+
+/** consent-grants.ts recordOwnerAttestation. Unregistered, nothing is recorded. */
+export async function recordOwnerAttestation(
+  phone: string,
+  channel: ConsentChannel,
+  ownerUid: string
+): Promise<boolean> {
+  return grants ? grants.recordOwnerAttestation(phone, channel, ownerUid) : false;
+}
+
+/** consent-reach.ts ownerRefusal, for a shared sender told who it acts for. Unregistered, fails closed. */
+export async function ownerRefusal(
+  ownerUid: string | undefined,
+  phone: string,
+  channel: ConsentChannel,
+  env: Env = process.env
+): Promise<ConsentBlock | null> {
+  if (grants) return grants.ownerRefusal(ownerUid, phone, channel);
+  if (!flagOn('MESSAGING_PIPELINE', env)) return null;
+  log.warn({ channel }, 'Grant check not registered in this process; not sending');
+  return 'unverifiable';
+}
+
+/** What a tool tells the model when a call was refused, so Ferni says so honestly. */
+export const notCalling = (why: ConsentBlock): string =>
+  why === 'opted-out'
+    ? "I can't call that number: it asked not to be called."
+    : why === 'needs-consent'
+      ? "I can't call that number yet: they haven't said yes to calls from me for you."
+      : "I can't place that call right now.";

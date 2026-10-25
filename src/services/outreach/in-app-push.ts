@@ -14,6 +14,7 @@
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { PushNotificationPayload } from '../push-notifications.js';
+import { pushOriginOf, pushUnlessFocusHeld } from './focus-send-hold.js';
 
 const log = createLogger({ module: 'in-app-push' });
 
@@ -31,10 +32,9 @@ export interface InAppNote {
 
 export type SendPush = (userId: string, payload: PushNotificationPayload) => Promise<boolean>;
 
+/** Ferni's note waits out a Focus hold; a reminder's follows their reminder choice (focus-send-hold.ts). */
 const sendPush: SendPush = async (userId, payload) =>
-  (await import('../push-notifications.js'))
-    .getPushNotificationsService()
-    .sendNotification(userId, payload);
+  pushUnlessFocusHeld(userId, payload, pushOriginOf(payload));
 
 function bodyOf(text: string): string {
   const flat = text.replace(/\s+/g, ' ').trim();

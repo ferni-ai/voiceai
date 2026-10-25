@@ -81,7 +81,7 @@ const teamInfo = (): TeamMemberInfo[] => [
   {
     id: 'alex-chen',
     displayName: t('teamIntro.members.alex.name', 'Alex Chen'),
-    role: t('teamIntro.members.alex.role', 'Communication'),
+    role: t('teamIntro.members.alex.role', 'Communication Coach & Chief of Staff'),
     description: t('teamIntro.members.alex.description', 'Crafts messages, helps with difficult conversations.'),
     initials: 'AC',
   },

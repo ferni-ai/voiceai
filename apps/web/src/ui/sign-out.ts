@@ -4,13 +4,14 @@
  * Releases this browser's push subscription first (so the next person here
  * doesn't get this person's notifications), signs out of Firebase, then clears
  * everything the app kept locally and reloads to the sign-in screen, so a
- * shared device starts clean.
+ * shared device starts clean. Until the reload, this page can't write that
+ * data back.
  *
  * If signing out fails, nothing is cleared: wiping local data and reloading
  * while the session survives would look signed out without being so.
  */
 
-import { clearAllUserData } from '../config/storage-keys.js';
+import { clearAllUserData, sealUserData } from '../config/storage-keys.js';
 import { t } from '../i18n/index.js';
 import { toast } from './whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
@@ -27,6 +28,9 @@ export async function signOutOfThisBrowser(reload: () => void = () => window.loc
     return false;
   }
   clearAllUserData();
+  // Nothing this page still does before the reload (a module finishing its
+  // start-up, a pending save) may put the person's data back.
+  sealUserData();
   reload();
   return true;
 }

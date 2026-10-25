@@ -174,7 +174,10 @@ export function withTurnReminder(
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session, process.env, words),
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
-    quirkTurnNote(sessionId, chatCtx, words),
+    quirkTurnNote(sessionId, chatCtx, words, {
+      mood: callerOf(session)?.voiceEmotion?.primary,
+      careful: crisis,
+    }),
     // NAMED_TUNE=on: they noticed the whistle (name it?), or asked him to stop (named-tune-note.ts).
     tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
     state.note,
@@ -193,7 +196,9 @@ export function withTurnReminder(
     }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call; RETURNING_CALLER=on: not for one who may
     // have called before; "forget me", or the topic hint once they confirm (returning-caller.ts)
-    inReturningCallerFlow(sessionId) ? '' : firstCallNote(chatCtx, session, words, process.env, plain),
+    inReturningCallerFlow(sessionId)
+      ? ''
+      : firstCallNote(chatCtx, session, words, process.env, plain),
     returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
       statedName(w, undefined, a)
     ),
@@ -273,6 +278,7 @@ interface CallerData {
   personaId?: string;
   userName?: string;
   callerTimezone?: string;
+  voiceEmotion?: { primary?: string };
 }
 const callerOf = (session: object): CallerData | undefined =>
   (session as { userData?: unknown }).userData as CallerData | undefined;
@@ -327,7 +333,8 @@ function inviteFor(
   };
   const invite = commitmentInviteNote(session, turn, { crisis });
   const ask = journalAskFor(session, turn, { crisis, invite, phoneOnlyIdentity });
-  return [invite, ask].join(' ').trim() || questionPaceNote(turn.ferniLines, { crisis });
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  return [invite, ask].join(' ').trim() || questionPaceNote(turn.ferniLines, { crisis, sessionId });
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
