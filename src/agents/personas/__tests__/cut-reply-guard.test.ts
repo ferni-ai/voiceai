@@ -1,16 +1,29 @@
 /**
- * The reply right after a cut-off: a near-copy of the cut reply is asked again once,
- * a different reply streams untouched, and a copied cut mark is never spoken
- * (CUT_REPLY_IN_HISTORY, #2422). The cut is armed through the real recorder
- * (shared/cut-reply-history.ts) and a real SDK SpeechHandle.
+ * The reply after a cut-off is observed, never changed (CUT_REPLY_IN_HISTORY, #2422):
+ * every chunk goes out as generated, in order, as it arrives; a copied cut mark is the
+ * only thing removed; a near-copy of the cut reply is logged once the reply ends.
+ * Rounds 1-2 of verify on #2786 failed a re-ask that lost 988 after a reply's opening.
+ * The cut is armed through the real recorder (shared/cut-reply-history.ts) and a real
+ * SDK SpeechHandle.
  */
 import { EventEmitter } from 'node:events';
-import { ReadableStream } from 'node:stream/web';
+import {
+  ReadableStream,
+  type ReadableStreamDefaultController,
+  type ReadableStreamReadResult,
+} from 'node:stream/web';
 import { llm, voice } from '@livekit/agents';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const warn = vi.hoisted(() => vi.fn());
+vi.mock('../../../utils/safe-logger.js', () => {
+  const l: Record<string, unknown> = { debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() };
+  l.child = () => l;
+  return { getLogger: () => l, createLogger: () => l, safeLog: () => l };
+});
+
 import { attachCutReplyHistory, noteGeneratedForCut } from '../../shared/cut-reply-history.js';
-import { REPHRASE_NOTE, isNearCopy, withCutReplyCheck } from '../cut-reply-guard.js';
-import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import { isNearCopy, withCutReplyCheck } from '../cut-reply-guard.js';
 
 type Chunk = string | llm.ChatChunk;
 const ON = { CUT_REPLY_IN_HISTORY: 'on' };
@@ -57,152 +70,112 @@ function request(): llm.ChatContext {
   return ctx;
 }
 
-/** A model that streams `first` on its first call and `second` after. */
-function scripted(first: Chunk[], second: Chunk[]) {
-  const asked: llm.ChatContext[] = [];
-  const model = vi.fn(async (ctx: llm.ChatContext) => {
-    asked.push(ctx);
-    return streamOf(asked.length === 1 ? first : second);
-  });
-  return { model, asked };
-}
+/** A model that streams `chunks`, counting its calls. */
+const modelOf = (chunks: Chunk[]) => vi.fn(async (_ctx: llm.ChatContext) => streamOf(chunks));
 
-const lastUser = (ctx: llm.ChatContext) =>
-  [...ctx.items].reverse().find((i) => i.type === 'message' && i.role === 'user') as
-    llm.ChatMessage | undefined;
+const repeats = () => warn.mock.calls.filter((c) => c[1] === 'CUT_REPLY_REPEATED');
+
+beforeEach(() => warn.mockClear());
 
 describe('withCutReplyCheck', () => {
-  it('asks again when the reply after a cut opens as a near-copy of it', async () => {
+  it('a near-copy of the cut reply goes out as generated, in one call, and is logged', async () => {
     const session = await afterCut();
-    const { model, asked } = scripted(
-      [delta('You got me there, '), delta('fair and square. The secret '), delta('is the toss.')],
-      [delta('Dropping on your iPhone? Is it on wifi or cellular?')]
-    );
+    const model = modelOf([
+      delta('You got me there, '),
+      delta('fair and square. The secret '),
+      delta('is the toss.'),
+    ]);
     const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(out).toBe('Dropping on your iPhone? Is it on wifi or cellular?');
-    expect(model).toHaveBeenCalledTimes(2);
-    expect(lastUser(asked[0])?.textContent).not.toContain(REPHRASE_NOTE);
-    expect(lastUser(asked[1])?.textContent).toContain(REPHRASE_NOTE);
-  });
-
-  it('lets a genuinely different reply through untouched, one call', async () => {
-    const session = await afterCut();
-    const reply = [
-      delta('Oh no, dropping on the iPhone? '),
-      delta('Is that over wifi or cellular?'),
-    ];
-    const { model } = scripted(reply, [delta('unused')]);
-    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(out).toBe('Oh no, dropping on the iPhone? Is that over wifi or cellular?');
+    expect(out).toBe('You got me there, fair and square. The secret is the toss.');
     expect(model).toHaveBeenCalledTimes(1);
+    expect(repeats()).toHaveLength(1);
+    const fields = repeats()[0][0] as Record<string, unknown>;
+    expect(fields).toEqual({ sessionId: 's1', replyWords: 12, cutWords: 18 });
   });
 
-  it('checks nothing when no reply was cut', async () => {
+  it('safety: a word-by-word repeat that offers 988 after its opening goes out whole, in order', async () => {
+    const session = await afterCut();
+    const words = `${CUT} If it ever feels like too much, call or text 988 any time.`.split(
+      /(?<= )/
+    );
+    const chunks = words.map(delta);
+    const out: Chunk[] = [];
+    const reply = await withCutReplyCheck(session, modelOf(chunks), 's1', ON)(request());
+    for await (const c of reply as unknown as AsyncIterable<Chunk>) out.push(c);
+    expect(out).toEqual(chunks);
+    expect(await spoken(streamOf(out))).toContain('988');
+    expect(repeats()).toHaveLength(1);
+  });
+
+  it('passes each chunk on as it arrives: nothing is held after a cut (no "[" means no hold)', async () => {
+    const session = await afterCut();
+    let source!: ReadableStreamDefaultController<Chunk>;
+    const live = new ReadableStream<Chunk>({
+      start(c) {
+        source = c;
+      },
+    });
+    const model = vi.fn(async (_ctx: llm.ChatContext) => live);
+    const reply = await withCutReplyCheck(session, model, 's1', ON)(request());
+    const reader = (reply as ReadableStream<Chunk>).getReader();
+    for (const word of ['You ', 'got ', 'me ', 'there, ', 'fair ', 'and ', 'square.']) {
+      source.enqueue(delta(word));
+      // Read before the next chunk exists: a held chunk would never resolve here.
+      const next = await Promise.race([
+        reader.read(),
+        new Promise<'held'>((resolve) => {
+          setTimeout(() => resolve('held'), 50);
+        }),
+      ]);
+      expect(next).not.toBe('held');
+      expect((next as ReadableStreamReadResult<Chunk>).value).toEqual(delta(word));
+    }
+    source.close();
+    expect((await reader.read()).done).toBe(true);
+  });
+
+  it('logs nothing for a genuinely different reply', async () => {
+    const session = await afterCut();
+    const model = modelOf([delta('Oh no, dropping on the iPhone? '), delta('Is that over wifi?')]);
+    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
+    expect(out).toBe('Oh no, dropping on the iPhone? Is that over wifi?');
+    expect(repeats()).toHaveLength(0);
+  });
+
+  it('logs nothing when no reply was cut', async () => {
     const session = Object.assign(new EventEmitter(), {
       currentAgent: new voice.Agent({ instructions: 'x' }),
     });
     attachCutReplyHistory(session as never, { sessionId: 's1' }, ON);
-    const { model } = scripted([delta(CUT)], [delta('unused')]);
-    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(out).toBe(CUT);
-    expect(model).toHaveBeenCalledTimes(1);
-  });
-
-  it('cuts a copied cut mark off the start of a reply', async () => {
-    const session = await afterCut();
-    const { model } = scripted(
-      [
-        delta('[cut off by the caller; '),
-        delta('they heard little or none of this] Got it, '),
-        delta('your iPhone.'),
-      ],
-      [delta('unused')]
+    const out = await spoken(
+      await withCutReplyCheck(session, modelOf([delta(CUT)]), 's1', ON)(request())
     );
-    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(out).toBe('Got it, your iPhone.');
-  });
-
-  it('flag off: the model itself, unchanged', async () => {
-    const session = await afterCut();
-    const { model } = scripted([delta(CUT)], [delta('unused')]);
-    expect(withCutReplyCheck(session, model, 's1', OFF)).toBe(model);
-  });
-
-  // Round-1 verify of #2786: a crisis "guide" reply comes from this model; asking it again
-  // dropped 988 and 911. A repeated safety line must go out as generated, in one call.
-  const CRISIS =
-    "I'm really glad you told me. If you're in danger right now, please call or text 988, or 911 if it's an emergency.";
-
-  it('safety: a cut crisis reply said again goes out as said, 988 and all, one call', async () => {
-    const session = await afterCut(CRISIS);
-    const { model } = scripted(
-      [delta(CRISIS)],
-      [delta("I hear you. What's happening for you right now?")]
-    );
-    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(model).toHaveBeenCalledTimes(1);
-    expect(out).toContain('988');
-    expect(out).toContain('911');
-  });
-
-  it('safety: on a call with crisis risk, even a non-crisis repeat is not asked again', async () => {
-    resetCrisisCallRisk();
-    try {
-      noteCrisisRisk('s1', Date.now());
-      const session = await afterCut();
-      const { model } = scripted([delta(CUT)], [delta('unused')]);
-      const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-      expect(model).toHaveBeenCalledTimes(1);
-      expect(out).toBe(CUT);
-    } finally {
-      resetCrisisCallRisk();
-    }
-  });
-
-  it('safety: a new reply carrying a crisis resource is never replaced, even if it repeats', async () => {
-    const session = await afterCut();
-    const repeat = `${CUT} If it ever feels like too much, 988 is there any time.`;
-    const { model } = scripted([delta(repeat)], [delta('unused')]);
-    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(model).toHaveBeenCalledTimes(1);
-    expect(out).toContain('988');
-  });
-
-  it('asks again at most once: a second near-copy goes out rather than looping', async () => {
-    const session = await afterCut();
-    let calls = 0;
-    const model = vi.fn(async (_ctx: llm.ChatContext) => {
-      if (++calls > 2) throw new Error('asked again in a loop');
-      return streamOf([delta(CUT)]);
-    });
-    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(model).toHaveBeenCalledTimes(2);
     expect(out).toBe(CUT);
+    expect(repeats()).toHaveLength(0);
   });
 
   it('removes a copied cut mark from the middle of a reply, even split across chunks', async () => {
     const session = await afterCut();
-    const { model } = scripted(
-      [
-        delta('Sure. [cut off by the caller; '),
-        delta('they heard little or none of this]'),
-        delta(' Is it on wifi?'),
-      ],
-      [delta('unused')]
-    );
+    const model = modelOf([
+      delta('Sure. [cut off by the caller; '),
+      delta('they heard little or none of this]'),
+      delta(' Is it on wifi?'),
+    ]);
     const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
-    expect(out).not.toContain('[cut off');
     expect(out).toBe('Sure. Is it on wifi?');
   });
 
   it('leaves other bracketed text alone', async () => {
     const session = await afterCut();
-    const { model } = scripted(
-      [delta('Dropping on your iPhone [the 15]? Is it on wifi?')],
-      [delta('unused')]
-    );
+    const model = modelOf([delta('Dropping on your iPhone [the 15]? Is it on wifi?')]);
     const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
     expect(out).toBe('Dropping on your iPhone [the 15]? Is it on wifi?');
+  });
+
+  it('flag off: the model itself, unchanged', async () => {
+    const session = await afterCut();
+    const model = modelOf([delta(CUT)]);
+    expect(withCutReplyCheck(session, model, 's1', OFF)).toBe(model);
   });
 });
 

@@ -53,7 +53,7 @@ export function withText<T extends Chunk>(chunk: T, text: string): T {
 }
 
 /** The held chunks with the first `cut` characters of reply text removed. */
-export function cutFrom<T extends Chunk>(held: T[], cut: number): T[] {
+function cutFrom<T extends Chunk>(held: T[], cut: number): T[] {
   let left = cut;
   return held.map((chunk) => {
     const text = textOf(chunk);

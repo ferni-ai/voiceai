@@ -12,7 +12,7 @@
  * SDK did not commit goes into the agent's chat context as an assistant message,
  * marked: all of it when nothing was committed, the unheard rest when part was.
  * Never emitted as a conversation item, so it is never stored as a turn, and
- * never spoken. The cut text is also kept for the next reply's near-copy check
+ * never spoken. The cut text is also kept for the next reply's near-copy log
  * (personas/cut-reply-guard.ts) until that reply reaches the TTS.
  *
  * @module agents/shared/cut-reply-history

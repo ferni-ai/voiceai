@@ -672,7 +672,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    * Every LLM request goes through here: crisis-gated with the turn reminder (crisis-gate.ts),
    * this turn's tools, no empty tool result (tool-output-guard.ts), no claimed action no tool
    * did (action-claim-guard.ts), no capped "you still there?" (presence-check.ts), no leading
-   * "(Name said:)" off a handoff's history (said-by.ts), no repeat of a reply the caller cut off
+   * "(Name said:)" off a handoff's history (said-by.ts), no copied cut-off mark, repeats logged
    * (cut-reply-guard.ts). An unprompted reply gets a caller turn (caller-turn.ts), and a tool
    * call written as text is never spoken, captioned or saved (tool-markup-strip.ts).
    */
