@@ -124,10 +124,15 @@ export async function loadWellbeingData(userId: string): Promise<WellbeingData> 
   }
 
   const sorted = [...snapshots].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  // The profile's pointer lags behind snapshots written after it (the after-call task writes
+  // a snapshot without moving the pointer), so the newer of the two is the current state.
+  const latest = sorted[0] ?? null;
+  const pointed = profile?.current ?? null;
+  const current = pointed && (!latest || pointed.timestamp >= latest.timestamp) ? pointed : latest;
   // A profile.current from the old detector can be months older than the latest calls:
   // it joins the estimate as one more (decayed) observation, never as the answer.
-  const all = profile?.current ? [...sorted, profile.current] : sorted;
-  const current = [...all].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0] ?? null;
+  // Only within the same 90 days as the snapshots: an older pointer is no estimate at all.
+  const all = pointed ? [...sorted, ...snapshotsWithin([pointed], MAX_WELLBEING_DAYS)] : sorted;
   return { profile, snapshots: sorted, current, estimates: estimateWellbeing(all, new Date()) };
 }
 

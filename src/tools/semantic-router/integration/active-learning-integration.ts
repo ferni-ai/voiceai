@@ -17,6 +17,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { errorFields } from '../../../utils/error-class.js';
 import {
   enhanceWithLearning,
   recordOutcome,
@@ -384,7 +385,7 @@ export async function completeTurnTracking(
           userId: turnState.userId,
           predicted: turnState.predictedTool,
           actual: actualTool,
-          input: turnState.inputText.slice(0, 30),
+          inputLength: turnState.inputText.length,
         },
         '📚 Learned from implicit correction'
       );
@@ -406,7 +407,7 @@ export async function completeTurnTracking(
       'Turn tracking completed'
     );
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to record learning outcome');
+    log.warn(errorFields(error), 'Failed to record learning outcome');
   }
 
   // Cleanup turn state
@@ -449,16 +450,11 @@ export async function handleUserCorrection(
     });
 
     log.info(
-      {
-        userId,
-        from: wrongTool,
-        to: correctTool,
-        phrase: inputText.slice(0, 30),
-      },
+      { userId, from: wrongTool, to: correctTool, phraseLength: inputText.length },
       '📚 Recorded explicit user correction'
     );
   } catch (error) {
-    log.error({ error: String(error) }, 'Failed to handle user correction');
+    log.error(errorFields(error), 'Failed to handle user correction');
   }
 }
 

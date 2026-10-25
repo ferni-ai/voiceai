@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { isOutreachConfirmOn } from '../../../tools/domains/communication/outreach/outreach-confirm.js';
+import { noAccountRefusal } from '../../../tools/registry/outbound-gate.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'TelephonyExecutor' });
@@ -45,6 +46,9 @@ const TOOL_ALIASES: Record<string, string> = {
   call_history: 'checkvoicemail',
 };
 
+/** The tools here that call, text or email someone other than the account owner. */
+const THIRD_PARTY = new Set(['reachout', 'multioutreach', 'callonbehalf']);
+
 /**
  * Execute telephony-related tools with real backend integration.
  */
@@ -64,6 +68,12 @@ async function execute(
       '🔀 Resolving FTIS tool alias'
     );
     fnLower = TOOL_ALIASES[fnLower];
+  }
+
+  // A caller with no account (anon: session) reaches nobody: nothing is looked up, saved or sent.
+  if (THIRD_PARTY.has(fnLower)) {
+    const refusal = noAccountRefusal(ctx.userId);
+    if (refusal) return refusal;
   }
 
   // ========================================
@@ -148,6 +158,8 @@ async function execute(
         }
         const result = await callWithPersonaVoice(contactInfo.phone, messageToSend, personaId, {
           fallbackToTwilioVoice: true,
+          ownerUid: userId,
+          userId,
         });
         if (result.success) {
           return `📞 Calling ${contactInfo.name} now: "${messageToSend}"`;

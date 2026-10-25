@@ -11,7 +11,19 @@
  */
 
 import type { UserProfile } from '../../types/user-profile.js';
-import { buildUserAwareness } from '../voice-agent/phases/user-awareness.js';
+import { awarenessKind, buildUserAwareness } from '../voice-agent/phases/user-awareness.js';
+import { profileForPrompt } from '../../memory/recall/forget-every-reader.js';
+
+/**
+ * The profile with the last summaries, life events, goals and concerns about a
+ * forgotten topic left out (FORGET_EVERY_READER, forget-every-reader.ts).
+ */
+export function rememberedProfile(
+  userId: string | null | undefined,
+  profile: UserProfile | null | undefined
+): Promise<UserProfile | null> {
+  return profileForPrompt({ userId, userProfile: profile });
+}
 
 export interface UserAwarenessInjection {
   instructionsBlock: string;
@@ -46,7 +58,9 @@ export function injectUserAwareness(opts: {
     process.stderr.write(
       `[voice-agent-entry] 👤 BETTER THAN HUMAN - User awareness injected (${facts.length} facts):\n`
     );
-    facts.forEach((fact, i) => process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${fact}\n`));
+    facts.forEach((f, i) =>
+      process.stderr.write(`[voice-agent-entry]   ${i + 1}. ${awarenessKind(f)}\n`)
+    );
   } else {
     process.stderr.write(
       `[voice-agent-entry] 👤 No user awareness facts available (new user or empty profile)\n`

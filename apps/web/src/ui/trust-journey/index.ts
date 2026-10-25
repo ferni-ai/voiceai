@@ -279,17 +279,6 @@ function updateContent(data: TrustJourneyData): void {
   // Attach event listeners for dynamic content
   content.removeEventListener('click', handleContentClick);
   content.addEventListener('click', handleContentClick);
-
-  // Animate the strength ring after render
-  requestAnimationFrame(() => {
-    const fill = content.querySelector('.trust-strength-fill') as SVGCircleElement;
-    if (fill) {
-      const strengthPercent = data.summary.relationshipStrength;
-      const circumference = 440;
-      const strokeDashoffset = circumference - (circumference * strengthPercent) / 100;
-      fill.style.strokeDashoffset = String(strokeDashoffset);
-    }
-  });
 }
 
 function renderErrorState(errorType: string): void {

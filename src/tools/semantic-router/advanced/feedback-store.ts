@@ -221,7 +221,7 @@ export async function recordCorrection(
       userId: correction.userId,
       from: correction.predictedTool,
       to: correction.correctTool,
-      input: correction.inputText.substring(0, 50),
+      inputLength: correction.inputText.length,
     },
     'Correction recorded'
   );
@@ -287,7 +287,7 @@ export async function learnUserPhrase(
   log.debug(
     {
       userId,
-      phrase,
+      phraseLength: phrase.length,
       toolId,
       source,
     },

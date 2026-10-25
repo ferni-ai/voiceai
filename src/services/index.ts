@@ -431,7 +431,7 @@ export {
 export { ragLookup as semanticRagLookup, type ConversationTurn } from '../memory/index.js';
 
 // Speech re-exports
-export { buildSpeechContext, tagTextWithSsmlAdaptive } from '../speech/index.js';
+export { buildSpeechContext } from '../speech/index.js';
 
 // ============================================================================
 // GEO DETECTION (International Accent Support)

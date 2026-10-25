@@ -46,12 +46,13 @@ function runScript(deps: UsersAdminDeps, script: string, args: readonly string[]
 async function runDestructive(
   deps: UsersAdminDeps,
   script: string,
-  args: readonly string[]
+  args: readonly string[],
+  scriptArgs: readonly string[] = []
 ): Promise<boolean> {
   const projectId = deps.projectId ?? 'johnb-2025';
   if (!args.includes('--execute')) {
     console.log(`Dry run. Re-run with --execute to delete (asks you to type the project id).\n`);
-    runScript(deps, script, ['--dry-run']);
+    runScript(deps, script, [...scriptArgs, '--dry-run']);
     return true;
   }
   const typed = (await deps.ask(`This DELETES data in ${projectId}. Type the project id: `)).trim();
@@ -59,7 +60,7 @@ async function runDestructive(
     console.log('\nProject id did not match. Nothing was deleted.');
     return false;
   }
-  runScript(deps, script, ['--execute', `--confirm-project=${typed}`]);
+  runScript(deps, script, [...scriptArgs, '--execute', `--confirm-project=${typed}`]);
   return true;
 }
 
@@ -96,6 +97,11 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
     case 'delete-stale':
       await runDestructive(deps, 'delete-stale-profiles.ts', args);
       return;
+    case 'undo-dnc':
+      if (requireArg(target, 'ferni users undo-dnc <userId> [--execute]')) {
+        await runDestructive(deps, 'undo-own-dnc.ts', args, [`--user=${target}`]);
+      }
+      return;
     default:
       console.log(`User Management Commands:
 
@@ -105,34 +111,34 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
   ferni users grant <email>          Grant access to a user
   ferni users find-rich              Find users with rich data
   ferni users cleanup [--execute]    Delete anonymous Auth users (dry run by default)
-  ferni users delete-stale [--execute]  Delete empty anonymous profiles (dry run by default)`);
+  ferni users delete-stale [--execute]  Delete empty anonymous profiles (dry run by default)
+  ferni users undo-dnc <userId> [--execute]  Let Ferni call the user's own verified number again (dry run by default)`);
   }
 }
 
 export async function handleWaitlist(args: string[], deps: UsersAdminDeps): Promise<void> {
   const [subcommand = 'status', target] = args;
-  const script = 'approve-waitlist-user.ts';
+  const script = 'waitlist-admin.ts';
+  const project = ['--project', deps.projectId ?? 'johnb-2025'];
   switch (subcommand) {
     case 'list':
-      return runScript(deps, script, ['--list', `--limit=${flagValue(args, 'limit', '20')}`]);
+      return runScript(deps, script, ['list', ...project, `--limit=${flagValue(args, 'limit', '20')}`, `--status=${flagValue(args, 'status', 'pending')}`]); // prettier-ignore
     case 'approve':
-      if (requireArg(target, 'ferni waitlist approve <email>')) {
-        runScript(deps, script, [`--email=${target}`]);
+      if (requireArg(target, 'ferni waitlist approve <email> [--apply]')) {
+        runScript(deps, script, ['approve', target, ...project, ...(args.includes('--apply') ? ['--apply'] : [])]); // prettier-ignore
       }
       return;
     case 'stats':
-      return runScript(deps, script, ['--stats']);
+    case 'status':
+      return runScript(deps, script, ['stats', ...project]);
     case 'export':
-      return runScript(deps, script, [
-        '--export',
-        `--output=${flagValue(args, 'output', 'waitlist-export.csv')}`,
-      ]);
+      return runScript(deps, script, ['export', ...project, `--output=${flagValue(args, 'output', 'waitlist-export.csv')}`]); // prettier-ignore
     default:
-      console.log(`Waitlist Commands:
+      console.log(`Waitlist Commands (read prod Firestore; approve is a dry run without --apply):
 
-  ferni waitlist list [--limit=N]    List pending waitlist users
-  ferni waitlist approve <email>     Approve a user
-  ferni waitlist stats               Show waitlist statistics
-  ferni waitlist export [--output=F] Export waitlist to CSV`);
+  ferni waitlist list [--limit=N] [--status=S|all]  List entries, emails masked (default: pending)
+  ferni waitlist approve <email> [--apply]          Approve; they get in on their next sign-in
+  ferni waitlist stats                              Counts by status and source
+  ferni waitlist export [--output=F]                Export the waitlist to CSV`);
   }
 }

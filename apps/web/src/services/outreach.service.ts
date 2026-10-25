@@ -43,12 +43,13 @@ export interface MilestoneOutreachData {
   milestoneId: string;
   milestoneName: string;
   milestoneMessage: string;
-  daysTogether?: number;
-  streak?: number;
 }
 
 export interface OutreachResult {
   success: boolean;
+  /** Milestones: whether this request sent it, and why not (e.g. 'already-sent') */
+  sent?: boolean;
+  reason?: string;
   message?: string;
   error?: string;
   results?: {
@@ -70,7 +71,8 @@ const API_BASE = '/api/outreach';
 class OutreachService {
   private localPreferences: OutreachPreferences = {
     emailEnabled: true,
-    smsEnabled: true,
+    // Off until the server says the user turned texts on (Contact Settings, with the disclosure).
+    smsEnabled: false,
     weeklyRecap: true,
     monthlyRecap: true,
     streakReminders: true,
@@ -266,6 +268,10 @@ class OutreachService {
    * Update preferences on backend
    */
   async updatePreferences(prefs: Partial<OutreachPreferences>): Promise<void> {
+    // Only the switches changed here are sent: the rest of this copy is this browser's and may be stale.
+    const flipped = (['smsEnabled', 'emailEnabled'] as const).filter(
+      (k) => typeof prefs[k] === 'boolean' && prefs[k] !== this.localPreferences[k]
+    );
     // Update local immediately
     this.localPreferences = { ...this.localPreferences, ...prefs };
     this.saveLocalPreferences();
@@ -279,11 +285,8 @@ class OutreachService {
       if (prefs.quietHours) backendPrefs.quietHours = prefs.quietHours;
       if (prefs.timezone) backendPrefs.timezone = prefs.timezone;
 
-      // Disabled channels
-      const disabled: string[] = [];
-      if (prefs.emailEnabled === false) disabled.push('email');
-      if (prefs.smsEnabled === false) disabled.push('sms');
-      if (disabled.length > 0) backendPrefs.disabledChannels = disabled;
+      // On or off; the server saves both (it used to ignore disabledChannels).
+      for (const k of flipped) backendPrefs[k] = prefs[k];
 
       const response = await apiPost(`${API_BASE}/preferences`, { preferences: backendPrefs });
       if (!response.ok) {

@@ -84,7 +84,25 @@ Read an on/off env flag with `flagOn('NAME')` from `env-flag.ts`. It accepts
 `on|true|1|live` and `off|false|0` in any case and falls back to the default in
 `flag-manifest.ts`. Every env flag read in `src/` must be listed in
 `FLAG_MANIFEST` (name, default, owner, kind); `__tests__/flag-manifest.test.ts`
-fails otherwise.
+fails otherwise. New flag: `pnpm flags:new NAME --default off --owner voice --kind experiment --note "on: ..."`
+writes `flags/NAME.ts` and regenerates the barrel; don't add entries to `flag-manifest*.ts`.
+
+Moving legacy entries to flag files is `pnpm flags:move --file flag-manifest-blocks.ts
+[--range A-F | --names X,Y]` (AST splice, comments kept verbatim). It freezes the moved
+specs in `__tests__/fixtures/flag-move-<batch>.json`, which the contract test holds
+`FLAG_MANIFEST` to. Show `pnpm flags:dump` from base and head in the PR: they must match.
+
+An open PR that edited `flag-manifest*.ts` before main moved those flags: run
+`pnpm flags:migrate` in its clean checkout (`--onto origin/main` is the default). It
+merges main, puts the registry back to main's layout, and re-applies only what the PR
+changed per flag (added, removed, spec or comment), as `flags/NAME.ts` or an AST splice
+where main still has the entry, and re-freezes the `flag-move-*.json` fixtures of the
+flags it changed. If main changed the same flag differently, or the PR changed anything
+in a registry file besides flag entries, it stops before touching anything and prints
+what it found. It ends with a per-name check (`OK` / `MISMATCH` / `DRIFT`) and commits
+the merge only when every line is `OK`; paste that check in the PR. Exit 0 merged, 1
+finish by hand (merge left open; `git merge --abort` undoes it), 2 stopped (nothing
+touched).
 
 ### Using Flags
 

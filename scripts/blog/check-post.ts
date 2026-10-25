@@ -3,13 +3,16 @@
  * Run the brand gate on a post, and with --live the live check too.
  *
  *   pnpm tsx scripts/blog/check-post.ts <file.md> [--meta draft-meta.json] [--live]
- *     [--date YYYY-MM-DD]
+ *     [--date YYYY-MM-DD] [--details]
  *
  * With --meta (written by draft-post.ts --meta-out) numbers are checked
  * against the draft's grounding. --live fetches every PR the post links to or
  * lists in `sources` (needs `gh`) and fails the post if any is not merged or
  * not live (live-check.ts); without --meta, numbers are then checked against
  * those PRs and the house facts. With neither, the number rule is skipped.
+ *
+ * A failing post prints its rule codes and counts only, since the workflow's
+ * log is public (log-safe.ts); --details adds the text each finding quotes.
  */
 
 import * as fs from 'node:fs';
@@ -18,6 +21,7 @@ import { checkPost, type GateIssue } from './brand-gate.js';
 import { forbiddenTerms } from './brand-terms.js';
 import { HOUSE_FACTS, renderPack, runGh, type Source } from './grounding.js';
 import { citedPrNumbers, notLiveReason, offFlags, type LiveContext } from './live-check.js';
+import { issueDetails, ruleCounts } from './log-safe.js';
 import { unsafeOutput } from './untrusted-text.js';
 
 const { values, positionals } = parseArgs({
@@ -26,11 +30,12 @@ const { values, positionals } = parseArgs({
     meta: { type: 'string' },
     live: { type: 'boolean', default: false },
     date: { type: 'string' },
+    details: { type: 'boolean', default: false },
   },
 });
 const file = positionals[0];
 if (!file) {
-  console.error('usage: check-post.ts <file.md> [--meta draft-meta.json] [--live]');
+  console.error('usage: check-post.ts <file.md> [--meta draft-meta.json] [--live] [--details]');
   process.exit(2);
 }
 
@@ -89,6 +94,9 @@ if (issues.length === 0) {
   console.log(`${file}: passes the ${checks} (${audience} rules).`);
 } else {
   console.error(`${file}: ${issues.length} issue(s) from the ${checks} (${audience} rules):`);
-  for (const issue of issues) console.error(`  [${issue.rule}] ${issue.message}`);
+  console.error(`  ${ruleCounts(issues)}`);
+  if (values.details) for (const line of issueDetails(issues)) console.error(line);
+  else
+    console.error('  Findings quote the post, so they print only with --details (run it locally).');
   process.exit(1);
 }

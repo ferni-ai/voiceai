@@ -12,6 +12,7 @@ import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
+import { contentIcon } from './icons/content-icons.js';
 
 const log = createLogger('RoleplayMode');
 
@@ -197,7 +198,6 @@ const STYLES = `
   }
 
   .roleplay-scenario-icon {
-    font-size: 2rem;
     margin-bottom: var(--space-2);
   }
 
@@ -365,7 +365,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   {
     id: 'adventure',
     name: 'scenarios.adventure.name',
-    icon: '🗺️',
+    icon: contentIcon('map', 28),
     setting: 'A mysterious forest at twilight',
     opening: 'You find me standing at the edge of an ancient forest, studying an old map. The trees seem to whisper secrets as the last light fades.',
     mood: 'mysterious'
@@ -373,7 +373,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   {
     id: 'detective',
     name: 'scenarios.detective.name',
-    icon: '🔍',
+    icon: contentIcon('search', 28),
     setting: 'A foggy evening in the city',
     opening: 'I glance up from my notes as you enter the dimly lit office. Another case has come in, and something tells me you might be the key to solving it.',
     mood: 'dramatic'
@@ -381,7 +381,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   {
     id: 'tavern',
     name: 'scenarios.tavern.name',
-    icon: '🍺',
+    icon: contentIcon('beer', 28),
     setting: 'A cozy tavern on a rainy night',
     opening: 'The fire crackles warmly as I notice you taking shelter from the storm. I gesture to the empty seat across from me. "Rough night to be traveling..."',
     mood: 'playful'
@@ -389,7 +389,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   {
     id: 'mentor',
     name: 'scenarios.mentor.name',
-    icon: '📚',
+    icon: contentIcon('bookOpen', 28),
     setting: 'An ancient library filled with secrets',
     opening: 'I look up from the tome I\'ve been studying, candlelight dancing in my eyes. "Ah, you\'ve finally arrived. I\'ve been expecting someone with... questions."',
     mood: 'mysterious'
@@ -397,7 +397,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   {
     id: 'battle',
     name: 'scenarios.battle.name',
-    icon: '⚔️',
+    icon: contentIcon('swords', 28),
     setting: 'The calm before a great challenge',
     opening: 'We stand on the hill overlooking what lies ahead. I turn to you with a serious expression. "Whatever happens next, remember why we\'re doing this."',
     mood: 'action'
@@ -405,7 +405,7 @@ const SCENARIO_TEMPLATES: ScenarioTemplate[] = [
   {
     id: 'custom',
     name: 'scenarios.custom.name',
-    icon: '✨',
+    icon: contentIcon('sparkles', 28),
     setting: 'Your imagination',
     opening: 'Describe the scene and I\'ll bring it to life...',
     mood: 'playful'

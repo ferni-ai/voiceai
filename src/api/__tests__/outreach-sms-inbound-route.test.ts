@@ -8,7 +8,17 @@ vi.mock('../../services/outreach/webhooks/index.js', async (importOriginal) => (
   ...(await importOriginal<typeof import('../../services/outreach/webhooks/index.js')>()),
   handleInboundSMSWebhook,
 }));
-vi.mock('../../services/outreach/checkin-replies.js', () => ({ recordCheckinReply }));
+const recordInboundSmsConsent = vi.hoisted(() => vi.fn(async () => null));
+// Partial: the route's imports (proactive opt-outs via guarded-text) read other exports at load.
+vi.mock('../../services/outreach/checkin-replies.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/outreach/checkin-replies.js')>()),
+  recordCheckinReply,
+}));
+vi.mock('../../services/messaging/consent.js', () => ({ recordInboundSmsConsent }));
+const recordContactYes = vi.hoisted(() => vi.fn(async () => null));
+vi.mock('../../services/messaging/consent-grants.js', () => ({ recordContactYes }));
+const recordHolderCode = vi.hoisted(() => vi.fn(async () => false));
+vi.mock('../../services/messaging/holder-verification.js', () => ({ recordHolderCode }));
 
 import { handleOutreachWebhookRoutes } from '../outreach-webhook-routes.js';
 
@@ -30,6 +40,7 @@ describe('POST /api/outreach/webhooks/twilio/sms-inbound', () => {
   beforeEach(() => {
     handleInboundSMSWebhook.mockReset();
     recordCheckinReply.mockClear();
+    recordInboundSmsConsent.mockClear();
   });
 
   it('records a check-in reply only after the Twilio signature check passes', async () => {
@@ -39,11 +50,22 @@ describe('POST /api/outreach/webhooks/twilio/sms-inbound', () => {
     expect(recordCheckinReply).toHaveBeenCalledWith(params.From, params.Body, params.MessageSid);
   });
 
+  it('hands every signed inbound text (whichever handler answered it) to the consent record', async () => {
+    // The proactive, legacy STOP, thread and check-in handlers all sit behind this one route.
+    handleInboundSMSWebhook.mockResolvedValue({ success: true, twiml: '<Response/>' });
+    const { req, res } = post();
+    await handleOutreachWebhookRoutes(req, res, PATH);
+    expect(recordInboundSmsConsent).toHaveBeenCalledWith(params.From, params.Body);
+    expect(recordContactYes).toHaveBeenCalledWith(params.From, params.Body, params.MessageSid);
+    expect(recordHolderCode).toHaveBeenCalledWith(params.From, params.Body);
+  });
+
   it('never records anything (no opt-out, no reply) for an unsigned or forged message', async () => {
     // handleInboundSMSWebhook returns success: false only when the signature fails.
     handleInboundSMSWebhook.mockResolvedValue({ success: false, error: 'Invalid signature' });
     const { req, res } = post();
     await handleOutreachWebhookRoutes(req, res, PATH);
     expect(recordCheckinReply).not.toHaveBeenCalled();
+    expect(recordInboundSmsConsent).not.toHaveBeenCalled();
   });
 });

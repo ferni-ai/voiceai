@@ -17,7 +17,9 @@ import { getFirestoreStore } from '../memory/firestore-store.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
 import type { MemoryStore } from '../memory/store.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { getFirestoreDb } from '../utils/firestore-utils.js';
+import { linkIdentity } from './identity/identity-linking.js';
+import { markMigrated, readMigratedTo, readMigration } from './identity/migration-flag.js';
 
 // Cache the store reference to avoid repeated async calls
 let cachedStore: MemoryStore | null = null;
@@ -67,26 +69,19 @@ export interface MigrationResult {
 // MIGRATION TRACKING
 // ============================================================================
 
-/** Track completed migrations to prevent duplicates */
-const completedMigrations = new Map<string, { timestamp: number; firebaseUid: string }>();
-
 /**
- * Check if a device has already been migrated.
+ * The account a device's data was moved to, from the flag on its own record
+ * (bogle_users/{device}._migratedTo, migration-flag.ts). An in-memory Map used to
+ * hold this, so a restart forgot every migration.
  */
-export function isAlreadyMigrated(deviceId: string): boolean {
-  const migration = completedMigrations.get(deviceId);
-  if (!migration) return false;
-
-  // Consider migration valid for 30 days
-  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-  return Date.now() - migration.timestamp < thirtyDaysMs;
+export async function getMigratedUid(deviceId: string): Promise<string | null> {
+  const db = getFirestoreDb();
+  return db ? readMigratedTo(db, deviceId) : null;
 }
 
-/**
- * Get the Firebase UID a device was migrated to.
- */
-export function getMigratedUid(deviceId: string): string | null {
-  return completedMigrations.get(deviceId)?.firebaseUid ?? null;
+/** Whether a device's data has already been moved to an account. */
+export async function isAlreadyMigrated(deviceId: string): Promise<boolean> {
+  return (await getMigratedUid(deviceId)) !== null;
 }
 
 // ============================================================================
@@ -115,9 +110,20 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
   });
 
   // Check if already migrated
-  if (isAlreadyMigrated(legacyUserId)) {
-    const existingUid = getMigratedUid(legacyUserId);
+  const flagDb = getFirestoreDb();
+  const { to: existingUid, incomplete } = flagDb
+    ? await readMigration(flagDb, legacyUserId)
+    : { to: null, incomplete: false };
+  if (existingUid) {
     if (existingUid === firebaseUid) {
+      // A copy that failed part-way is retried; linkIdentity clears the mark when done
+      if (incomplete) {
+        try {
+          await linkIdentity(legacyUserId, firebaseUid);
+        } catch (linkErr) {
+          log.error('Retrying the copy failed', { error: String(linkErr) });
+        }
+      }
       log.info('Migration already completed for this device');
       return {
         success: true,
@@ -163,11 +169,6 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
       }
       await store.saveProfile(newProfile);
 
-      completedMigrations.set(cleanForFirestore(legacyUserId), {
-        timestamp: Date.now(),
-        firebaseUid,
-      });
-
       return {
         success: true,
         conversationsMigrated: 0,
@@ -176,7 +177,7 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
       };
     }
 
-    // The in-memory map is lost on restart; the source profile remembers where it went
+    // Marked before _migratedTo existed (migration-flag.ts reads both)
     const migratedTo = sourceProfile.customData?.migratedTo;
     if (typeof migratedTo === 'string' && migratedTo !== firebaseUid) {
       log.warn('Device profile already migrated to a different Firebase UID');
@@ -277,24 +278,27 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
       log.warn('Failed to migrate some key moments', { error: String(memErr) });
     }
 
-    // 6. Mark source profile as migrated (don't delete for safety)
-    // Store migration info in linkedIdentifiers and customData
+    // 6. Keep the source profile (don't delete for safety), noting where it went
     const updatedSourceProfile: UserProfile = {
       ...sourceProfile,
       linkedIdentifiers: [...(sourceProfile.linkedIdentifiers || []), `migrated:${firebaseUid}`],
-      customData: {
-        ...sourceProfile.customData,
-        migratedTo: firebaseUid,
-        migratedAt: new Date().toISOString(),
-      },
     };
     await store.saveProfile(updatedSourceProfile);
 
-    // 7. Track completed migration
-    completedMigrations.set(cleanForFirestore(legacyUserId), {
-      timestamp: Date.now(),
-      firebaseUid,
-    });
+    // 7. Copy every other subcollection of the record. A full copy sets the
+    // source's _migratedTo, the flag both movers read. The device id is the only
+    // credential a device profile has, so the flag is set even when some stores
+    // failed to copy (with _migrationIncomplete, so the next sign-in retries).
+    let linked = false;
+    try {
+      const link = await linkIdentity(legacyUserId, firebaseUid);
+      linked = link.success;
+      if (!linked) log.error('Some stores were not copied', { errors: link.errors });
+    } catch (linkErr) {
+      log.error('Copying the other stores failed', { error: String(linkErr) });
+    }
+    const db = linked ? null : getFirestoreDb();
+    if (db) await markMigrated(db, legacyUserId, firebaseUid, false);
 
     log.info('Migration completed successfully', {
       conversationsMigrated,

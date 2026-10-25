@@ -61,7 +61,7 @@ for port in 9099 8080; do
 done
 
 # Start emulators
-firebase emulators:start --project=demo-ferni &
+firebase emulators:start --only auth,firestore:ferni-dev --project=demo-ferni &
 EMULATORS_PID=$!
 echo "   PID: $EMULATORS_PID"
 

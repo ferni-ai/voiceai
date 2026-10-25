@@ -56,7 +56,7 @@ describe('call game state: transitions', () => {
 
   it('adds points (1 by default) and lets a new player join by scoring', () => {
     const session = {};
-    startCallGame(session, { type: 'trivia' });
+    startCallGame(session, { type: 'other' });
     updateCallGame(session, { scorePlayer: 'caller' });
     updateCallGame(session, { scorePlayer: 'Ferni', scorePoints: 3 });
     updateCallGame(session, { scorePlayer: 'Grandma', scorePoints: 2 });
@@ -115,7 +115,7 @@ describe('call game state: caps', () => {
   it(`tracks at most ${MAX_PLAYERS} players`, () => {
     const session = {};
     const names = Array.from({ length: MAX_PLAYERS + 3 }, (_, i) => `p${i}`);
-    startCallGame(session, { type: 'trivia', players: names });
+    startCallGame(session, { type: 'other', players: names });
     updateCallGame(session, { scorePlayer: 'latecomer' });
     expect(getCallGame(session)?.players).toHaveLength(MAX_PLAYERS);
     expect(getCallGame(session)?.scores.latecomer).toBeUndefined();
@@ -212,7 +212,7 @@ describe('the gameState tool', () => {
     expect(gameStateTools(OFF)).toEqual([]);
   });
 
-  it('keeps the secret out of start and update answers, gives it on get, reveals it on end', () => {
+  it('keeps the secret out of the start answer, gives it on each update and get, reveals it on end', () => {
     const session = {};
     const started = runGameState(session, {
       action: 'start',
@@ -220,8 +220,10 @@ describe('the gameState tool', () => {
       secret: 'a hummingbird',
     });
     expect(started).not.toContain('hummingbird');
+    // One call per 20Q turn: the update answer (private to the model) carries the secret, so no get first.
     const updated = runGameState(session, { action: 'update', used: 'Can it fly?' });
-    expect(updated).not.toContain('hummingbird');
+    expect(updated).toContain('Secret answer');
+    expect(updated).toContain('hummingbird');
     expect(runGameState(session, { action: 'get' })).toContain('hummingbird');
     const ended = runGameState(session, { action: 'end' });
     expect(ended).toContain('The answer was: a hummingbird');

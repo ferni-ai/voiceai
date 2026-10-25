@@ -323,7 +323,7 @@ export class CreativeYouDashboard {
     if (!body) return;
     body.innerHTML = `
       <div class="creative-dashboard-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        ${t('creativeYou.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('creativeYou.tryAgain')}</button>
+        ${t('creativeYou.loadError')} <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('creativeYou.tryAgain')}</button>
       </div>
     `;
     body.querySelector('button')?.addEventListener('click', () => {

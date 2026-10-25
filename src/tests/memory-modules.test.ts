@@ -476,7 +476,7 @@ describe('Embeddings Module', () => {
       vi.useRealTimers();
     });
 
-    it('gives up after two back-offs', async () => {
+    it('gives up after three jittered back-offs', async () => {
       vi.useFakeTimers();
       mockFetch.mockReset();
       mockFetch.mockResolvedValue({
@@ -486,9 +486,9 @@ describe('Embeddings Module', () => {
       });
       const pending = provider.embed('quota test');
       const settled = expect(pending).rejects.toThrow(/429/);
-      await vi.advanceTimersByTimeAsync(1500);
+      await vi.advanceTimersByTimeAsync(2800);
       await settled;
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+      expect(mockFetch).toHaveBeenCalledTimes(4);
       vi.useRealTimers();
     });
 

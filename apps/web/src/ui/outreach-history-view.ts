@@ -14,6 +14,7 @@
 import { formatRelativeTime, t } from '../i18n/index.js';
 import { apiGet, type ApiResponse } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { escapeHtml as escape } from '../utils/escape-html.js';
 
 const log = createLogger('OutreachHistoryView');
 
@@ -44,8 +45,6 @@ export interface HistoryLook {
 
 /** Fail fast enough that loading always ends within 10 s, auth wait included. */
 export const PANEL_READ_OPTIONS = { timeout: 5000, maxRetries: 0 } as const;
-
-const escape = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 export function setPanelState(root: HTMLElement, state: PanelState): void {
   root.dataset.state = state;
@@ -95,7 +94,7 @@ export function showLoadProblem(
     <div class="outreach-schedule-empty" role="alert">
       <div class="outreach-schedule-empty-text">${copy[0]}</div>
       ${copy[1] ? `<div class="outreach-schedule-empty-subtext">${copy[1]}</div>` : ''}
-      ${copy[2] ? `<button class="outreach-item-btn" data-load-action>${copy[2]}</button>` : ''}
+      ${copy[2] ? `<button class="outreach-item-btn outreach-item-btn--preview outreach-schedule-empty-action" data-load-action>${copy[2]}</button>` : ''}
     </div>`;
   content.querySelector('[data-load-action]')?.addEventListener('click', () => {
     if (kind === 'error') return retry();

@@ -27,6 +27,9 @@
  * (BARGE_IN_FASTPATH / BARGE_IN_DECISION, live-call-behaviors.ts; 'vad' when
  * LiveKit paused Ferni for the caller's voice, 'other' for any other cut-off),
  * and the turn detection and interruption mode LiveKit resolved for the turn.
+ * `holds` and `audio` say which deliberate hold kept the first words back and
+ * when the caller first heard anything (turn-receipt-timing.ts); `flags` and
+ * `commit` say which arm of an A/B the turn ran in (turn-receipt-flags.ts).
  *
  * @module agents/shared/turn-receipt
  */
@@ -34,8 +37,13 @@ import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-lane.js';
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
-import { llmReady, type EouMetric, type LlmMetric } from './turn-metrics.js';
+import type { EouMetric, LlmMetric } from './turn-metrics.js';
 import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
+import { keepLlm, replyRequest, tokensField, type RequestView } from './turn-receipt-llm.js';
+import { receiptBuild } from './turn-receipt-flags.js';
+import * as timed from './turn-receipt-timing.js';
+import type { GatewayHolds } from '../../speech/tts-gateway/first-audio-observer.js';
+import type { TurnTimingKind } from '../../speech/output-control/turn-timing.js';
 import {
   promptSections,
   type ItemView,
@@ -74,6 +82,8 @@ interface OpenTurn {
   personaAtStart: string | null;
   eou?: EouMetric;
   llm?: LlmMetric;
+  /** The request `llm` measures: its prompt, tools, director and lane (turn-receipt-llm.ts). */
+  llmRequest?: RequestView;
   ttsTtfbMs?: number;
   ttsPushMs?: number;
   ttsCancelled: boolean;
@@ -86,6 +96,7 @@ interface OpenTurn {
   lane: { lane: 'fast' | 'main'; reason: string } | null;
   director: Omit<ReminderNote, 'reminder' | 'directorNotes'> & { kept: number };
   toolsOffered: number | null;
+  toolSchemaChars?: number;
   called: string[];
   toolErrors: number;
   reply: {
@@ -103,6 +114,7 @@ interface OpenTurn {
   pauseHoldMs: number;
   bargeInSource: BargeInSource | null;
   handling: TurnHandling | null;
+  att: timed.TurnAttribution; // holds and first audio (turn-receipt-timing.ts)
 }
 
 /** How turns end and how barge-in works on the session, read at the commit. */
@@ -129,10 +141,9 @@ export type TurnReceipt = ReturnType<TurnReceiptRecorder['build']>;
 export type EndedBy = 'listening' | 'superseded' | 'session_end';
 
 const log = createLogger({ module: 'TurnReceipt' });
+export const logReceipt = (receipt: TurnReceipt): void => log.info(receipt, 'TURN_RECEIPT');
 /** Audio before a pause after which a cut reply must have words to commit. */
 const HEARD_MS = 1000;
-const ms = (n: number | undefined | null): number | null =>
-  n === undefined || n === null || !Number.isFinite(n) ? null : Math.round(n);
 
 export class TurnReceiptRecorder {
   private turn: OpenTurn | null = null;
@@ -140,6 +151,7 @@ export class TurnReceiptRecorder {
   private reminder: ReminderNote | null = null;
   /** The latest end-of-turn prediction (eot_prediction); its commit claims it. */
   private readonly pendingEot = new PendingEot(() => this.now());
+  private readonly pendingHold = new timed.PendingUnfinished(() => this.now());
   /** LiveKit's preemptive decision, made just before the commit it belongs to. */
   private preemptive: Preemptive | null = null;
   private readonly userKind: UserKind;
@@ -175,6 +187,7 @@ export class TurnReceiptRecorder {
       pauseHoldMs: 0,
       bargeInSource: null,
       handling: null,
+      att: timed.newAttribution(),
     };
     return this.turn;
   }
@@ -189,6 +202,7 @@ export class TurnReceiptRecorder {
     turn.user = true;
     turn.handling ??= this.opts.handling?.() ?? null;
     this.pendingEot.claim(turn);
+    this.pendingHold.claim(turn);
     if (this.preemptive) turn.preemptive = this.preemptive;
     this.preemptive = null;
   }
@@ -206,6 +220,12 @@ export class TurnReceiptRecorder {
     if (this.turn) this.turn.pauseHoldMs = Math.max(this.turn.pauseHoldMs, Math.round(heldMs));
   }
 
+  /** A hold or opening clip this turn (turn-timing.ts); an unfinished turn's is claimed at its commit. */
+  onTiming(kind: TurnTimingKind, heldMs: number): void {
+    if (kind === 'unfinishedTurn') this.pendingHold.note(heldMs);
+    else timed.noteTiming(this.open(), kind, heldMs, this.now());
+  }
+
   /** Ferni was stopped for the caller; the first decision that did it counts. */
   onBargeIn(source: BargeInSource): void {
     if (this.turn) this.turn.bargeInSource ??= source;
@@ -216,8 +236,7 @@ export class TurnReceiptRecorder {
       this.onCommit();
       this.open().eou = metric as unknown as EouMetric;
     } else if (metric.type === 'llm_metrics') {
-      const turn = this.open();
-      turn.llm ??= metric as unknown as LlmMetric;
+      keepLlm(this.open(), metric as unknown as LlmMetric);
     } else if (metric.type === 'tts_metrics' && this.turn) {
       this.turn.ttsTtfbMs ??= metric.ttfbMs as number;
       if (metric.cancelled) this.turn.ttsCancelled = true;
@@ -228,14 +247,15 @@ export class TurnReceiptRecorder {
     this.reminder = note;
   }
 
-  /** A request about to go to the model (preemptive, final or after tools): the last one counts. */
-  onRequest(items: readonly ItemView[], toolsOffered: number): void {
+  /** A request to the model (preemptive, final or after tools): the last one's prompt counts. */
+  onRequest(items: readonly ItemView[], toolsOffered: number, schemaChars?: number): void {
     const turn = this.open();
     const note = this.reminder;
     this.reminder = null;
     turn.requests += 1;
     turn.sections = promptSections(items, note ?? undefined);
     turn.toolsOffered = toolsOffered;
+    turn.toolSchemaChars = schemaChars;
     turn.director = note
       ? {
           offered: note.offered,
@@ -253,8 +273,9 @@ export class TurnReceiptRecorder {
    * The TTS gateway's first audio for this reply (first-audio-observer.ts). Prod speaks through
    * the gateway, which never emits the SDK's tts_metrics, so ttsTtfbMs was null in every receipt.
    */
-  onGatewayAudio(ttfbMs: number, pushMs?: number): void {
+  onGatewayAudio(ttfbMs: number, pushMs?: number, holds?: GatewayHolds): void {
     if (!this.turn) return;
+    if (this.turn.ttsTtfbMs === undefined) this.turn.att.gateway = holds;
     this.turn.ttsTtfbMs ??= ttfbMs;
     if (pushMs !== undefined) this.turn.ttsPushMs ??= pushMs;
   }
@@ -360,7 +381,7 @@ export class TurnReceiptRecorder {
 
   private emit(receipt: TurnReceipt): void {
     try {
-      (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
+      (this.opts.emit ?? logReceipt)(receipt);
     } catch (error) {
       log.warn({ error: String(error) }, 'turn receipt not emitted');
     }
@@ -411,35 +432,12 @@ export class TurnReceiptRecorder {
     return endedBy === 'superseded' && pausedAt !== undefined && pausedAt - speakingAt >= HEARD_MS;
   }
 
-  private timing(turn: OpenTurn, endedBy: EndedBy): Record<string, number | null> {
-    const { eou, llm, thinkingAt, speakingAt } = turn;
-    const stoppedAt = eou?.lastSpeakingTimeMs ?? 0;
-    const since = (from: number, to: number | undefined): number | null =>
-      from > 0 && to !== undefined ? ms(to - from) : null;
-    return {
-      eouDelayMs: ms(eou?.endOfUtteranceDelayMs),
-      transcriptionDelayMs: ms(eou?.transcriptionDelayMs),
-      llmTtftMs: ms(llm?.ttftMs),
-      /** End of the caller's speech to the model's first token (turn-metrics.ts). */
-      llmReadyMs: eou && llm ? ms(llmReady(eou, llm)) : null,
-      llmDurationMs: ms(llm?.durationMs),
-      ttsTtfbMs: ms(turn.ttsTtfbMs),
-      /** Gateway: first text sent to the provider, from the start of the TTS node. */
-      ttsPushMs: ms(turn.ttsPushMs),
-      /** Commit (thinking) to Ferni's first audio, as REPLY_GAP measures it. */
-      commitToAudioMs: since(thinkingAt ?? 0, speakingAt),
-      /** End of the caller's speech to Ferni's first audio. */
-      firstAudioMs: since(stoppedAt, speakingAt),
-      /** End of the caller's speech to the end of the reply. */
-      replyDoneMs: endedBy === 'listening' ? since(stoppedAt, this.now()) : null,
-    };
-  }
-
   build(turn: OpenTurn, endedBy: EndedBy, n = this.count) {
     const { llm } = turn;
     const personaId = this.opts.persona() ?? null;
     const handoffTool = turn.called.find(isHandoffTool) ?? null;
-    const sections = turn.sections ?? [];
+    const req = replyRequest(turn); // the request the tokens are from
+    const sections = req.sections ?? [];
     return {
       event: 'TURN_RECEIPT' as const,
       v: TURN_RECEIPT_VERSION,
@@ -448,24 +446,19 @@ export class TurnReceiptRecorder {
       personaId,
       userKind: this.userKind,
       endedBy,
-      timing: this.timing(turn, endedBy),
-      tokens: llm
-        ? {
-            prompt: llm.promptTokens,
-            promptCached: llm.promptCachedTokens ?? 0,
-            completion: llm.completionTokens,
-          }
-        : null,
+      timing: timed.timingField(turn, endedBy === 'listening' ? this.now() : undefined),
+      tokens: tokensField(llm),
       prompt: {
         requests: turn.requests,
         estimate: 'chars/4' as const,
         totalTokensEst: sections.reduce((n, s) => n + s.tokensEst, 0),
         sections,
-        lane: turn.lane,
+        lane: req.lane,
       },
-      director: turn.director,
+      director: req.director,
       tools: {
-        offered: turn.toolsOffered,
+        offered: req.toolsOffered,
+        schemaChars: req.toolSchemaChars ?? null, // TURN_TOKEN_RECEIPT=on (turn-input-tokens.ts)
         retrieval: toolRetrievalMode(),
         called: turn.called,
         errors: turn.toolErrors,
@@ -489,6 +482,8 @@ export class TurnReceiptRecorder {
       interruptionMode: turn.handling?.interruptionMode ?? 'unknown',
       bargeInSource: turn.bargeInSource ?? (turn.reply.interrupted ? 'other' : null),
       ...eotReceiptField(turn.eot),
+      ...timed.attributionFields(turn),
+      ...receiptBuild(this.opts.env),
     };
   }
 }

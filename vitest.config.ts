@@ -10,6 +10,9 @@ export default defineConfig({
       'node_modules/**',
       '**/node_modules/**',
       'dist/**',
+      // Agent worktrees nest full, stale repo copies under .claude/worktrees/: never run them
+      '.claude/**',
+      '**/.claude/**',
       'frontend-orb/**',
       'apps/web/**',
       'design-system/**',
@@ -47,7 +50,13 @@ export default defineConfig({
         statements: 38,
       },
     },
-    setupFiles: ['./src/tests/setup.ts'],
+    // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).
+    globalSetup: ['./src/config/__tests__/generate-lists-setup.ts'],
+    // setup-emulator.ts only under the emulator: the unit path pays nothing for it.
+    setupFiles: [
+      './src/tests/setup.ts',
+      ...(process.env.FIRESTORE_EMULATOR_HOST ? ['./src/tests/setup-emulator.ts'] : []),
+    ],
     testTimeout: 30000,
     hookTimeout: 30000,
   },

@@ -43,6 +43,7 @@ interface EncryptedTokenData {
 
 const tokenStore = createPersistenceStore<EncryptedTokenData>({
   collection: COLLECTION,
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // bogle_users/{uid}/google_calendar_tokens/data
   syncIntervalMs: 2000,
@@ -125,6 +126,16 @@ async function loadTokens(userId: string): Promise<StoredGoogleCalendarTokens | 
   return null;
 }
 
+/**
+ * Tokens straight from Firestore, past the cache and the remembered miss: a
+ * disconnect must see a token another instance saved within the last minute.
+ * Throws when Firestore can't be read; null when nothing (decryptable) is stored.
+ */
+export async function readTokensFresh(userId: string): Promise<StoredGoogleCalendarTokens | null> {
+  const data = await tokenStore.load(userId, { fresh: true, strict: true });
+  return data?.encrypted ? decryptData<StoredGoogleCalendarTokens>(data.encrypted) : null;
+}
+
 /** Save (encrypted) tokens for a user. */
 export async function saveTokens(
   userId: string,
@@ -135,10 +146,8 @@ export async function saveTokens(
   missUntil.delete(userId);
 
   try {
-    await tokenStore.setImmediate(userId, {
-      encrypted: encryptData(withTimestamp),
-      updated_at: Date.now(),
-    });
+    const grant = { encrypted: encryptData(withTimestamp), updated_at: Date.now() };
+    await tokenStore.setImmediate(userId, grant, { safeWithoutRead: true }); // a new grant saves
     log.info({ userId: userId.substring(0, 8) }, 'Saved Google Calendar tokens');
   } catch (err) {
     log.error(

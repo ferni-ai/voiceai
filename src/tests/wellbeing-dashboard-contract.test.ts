@@ -147,6 +147,16 @@ describe('GET /api/wellbeing/dashboard', () => {
     expect(fields.energy).toBeNull();
   });
 
+  it('a saved profile older than the 90-day window gives no estimate', async () => {
+    const old = { ...snapshot({ mood: 0.2 }), id: 'wb_older', timestamp: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000) }; // prettier-ignore
+    loadProfile.mockResolvedValue(profileWith(old));
+    loadSnapshots.mockResolvedValue([]);
+
+    const { body } = await get('/api/wellbeing/dashboard');
+
+    expect(body.hasData).toBe(false);
+  });
+
   it("the web's has-data check accepts the server's real output in both cases", async () => {
     loadProfile.mockResolvedValue(null);
     loadSnapshots.mockResolvedValue([]);

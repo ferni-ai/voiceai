@@ -1,8 +1,9 @@
 /**
  * A family check-in call runs the same way as a call placed on the user's
- * behalf: the person on the line is the family member, Ferni opens as the
- * sponsor's AI friend once they pick up, and the sponsor's name is never used
- * for the person on the line. Before, the agent didn't recognise the
+ * behalf: the person on the line is the family member, Ferni opens by name once
+ * they pick up (no "<sponsor>'s AI friend": they agreed to Ferni's calls and know
+ * Ferni, Seth 2026-10-18), and the sponsor's name is never used for the person
+ * on the line. Before, the agent didn't recognise the
  * 'family_checkin' dispatch at all and greeted with the app hello.
  */
 import { EventEmitter } from 'events';
@@ -110,19 +111,18 @@ async function openerFor(sessionId: string, metadata: Record<string, unknown>): 
 }
 
 describe('a family check-in call through the real agent path', () => {
-  it("opens to Doug with the dispatched line, as Seth's AI friend", async () => {
+  it('opens to Doug with the dispatched line, by name and without "AI friend"', async () => {
     const line = generateOpeningLine(SCHEDULE, DOUG, SETH, [], NOW);
     const opener = await openerFor('fc-line', checkinDispatch(line));
     expect(opener).toBe(
-      "Good evening Doug, it's Ferni, Seth's AI friend. Seth asked me to check in on you. Is now an okay time?"
+      "Good evening Doug, it's Ferni. Seth asked me to check in on you. Is now an okay time?"
     );
+    expect(opener).not.toMatch(/\bAI\b/);
   });
 
-  it('falls back to the on-behalf opener when the dispatch carries no AI disclosure', async () => {
-    const opener = await openerFor('fc-old', checkinDispatch('Good evening, Doug! This is Ferni.'));
-    expect(opener).toBe(
-      "Hi Doug, it's Ferni, Seth's AI friend. Seth asked me to check in on you. Is now an okay time?"
-    );
+  it('uses the signed dispatched line as sent, even with no AI mention', async () => {
+    const opener = await openerFor('fc-old', checkinDispatch("Good evening Doug, it's Ferni."));
+    expect(opener).toBe("Good evening Doug, it's Ferni.");
   });
 
   it('knows the person on the line as Doug, with the check-in prompt as the call script', async () => {
@@ -200,9 +200,10 @@ describe('every family check-in opening line', () => {
   };
 
   it.each(Object.entries(variants))(
-    '%s: says AI friend, names Doug, no exclamation marks',
+    '%s: says Ferni, not "AI friend", names Doug, no exclamation marks',
     (_, line) => {
-      expect(line).toMatch(/AI friend/);
+      expect(line).toMatch(/it's Ferni/);
+      expect(line).not.toMatch(/AI friend/);
       expect(line).toMatch(/\bDoug\b/);
       expect(line).not.toMatch(/!/);
       expect(line).not.toMatch(/your family member/);
@@ -211,9 +212,11 @@ describe('every family check-in opening line', () => {
 
   it('repeat calls still say who Ferni is, and greet by the family member’s clock', () => {
     expect(variants.lastWeek).toBe(
-      "Good evening Doug, it's Ferni, Seth's AI friend again. How have you been since we talked?"
+      "Good evening Doug, it's Ferni again. How have you been since we talked?"
     );
-    expect(variants.badTimeZone).toMatch(/^Hi Doug, it's Ferni, Seth's AI friend again\./);
-    expect(variants.noSponsorName).toMatch(/^Good evening Doug, it's Ferni, an AI friend\./);
+    expect(variants.badTimeZone).toMatch(/^Hi Doug, it's Ferni again\./);
+    expect(variants.noSponsorName).toMatch(
+      /^Good evening Doug, it's Ferni\. I wanted to check in on you\./
+    );
   });
 });

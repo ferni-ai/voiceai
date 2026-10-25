@@ -10,9 +10,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockApiGet = vi.fn();
+const mockApiPost = vi.fn();
+const mockToastError = vi.fn();
 const mockAuth = vi.fn<() => { uid?: string } | null>(() => ({ uid: 'u1' }));
 
-vi.mock('../../src/utils/api.js', () => ({ apiGet: mockApiGet }));
+vi.mock('../../src/utils/api.js', () => ({ apiGet: mockApiGet, apiPost: mockApiPost }));
+vi.mock('../../src/ui/whisper.ui.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../src/ui/whisper.ui.js')>();
+  return { ...real, toast: { ...real.toast, error: mockToastError } };
+});
 vi.mock('../../src/services/firebase-auth.service.js', () => ({ getAuthState: mockAuth }));
 vi.mock('../../src/ui/sound.ui.js', () => ({ soundUI: { play: vi.fn() } }));
 
@@ -55,6 +61,8 @@ async function openHub(): Promise<typeof import('../../src/ui/ferni-hub.ui.js')>
 beforeEach(() => {
   vi.resetModules();
   mockApiGet.mockReset();
+  mockApiPost.mockReset();
+  mockToastError.mockReset();
   mockAuth.mockReturnValue({ uid: 'u1' });
 });
 
@@ -133,5 +141,33 @@ describe('Your Day hub', () => {
 
     expect(panel().dataset.state).toBe('error');
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+
+  it('Done closes the commitment on the server, then removes its card', async () => {
+    routeApi({ commitments: ok({ items: [COMMITMENT] }) });
+    mockApiPost.mockResolvedValue(ok({ success: true }));
+    await openHub();
+
+    document.querySelector<HTMLButtonElement>('[data-tracked-action="complete"]')!.click();
+
+    expect(mockApiPost).toHaveBeenCalledWith('/api/commitments/commit_1/complete');
+    await vi.waitFor(() => expect(document.querySelector('.ferni-hub-tracked-card')).toBeNull());
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it('Dismiss that the server refuses keeps the card and says so', async () => {
+    routeApi({ commitments: ok({ items: [COMMITMENT] }) });
+    mockApiPost.mockResolvedValue({ ok: false, status: 500, error: 'Failed to update commitment' });
+    await openHub();
+
+    const dismiss = document.querySelector<HTMLButtonElement>('[data-tracked-action="dismiss"]')!;
+    dismiss.click();
+
+    expect(mockApiPost).toHaveBeenCalledWith('/api/commitments/commit_1/dismiss');
+    await vi.waitFor(() =>
+      expect(mockToastError).toHaveBeenCalledWith("Couldn't update that. Try again?")
+    );
+    expect(document.querySelector('.ferni-hub-tracked-card')).not.toBeNull();
+    expect(dismiss.disabled).toBe(false);
   });
 });

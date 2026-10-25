@@ -14,6 +14,7 @@
  * @module services/outreach/after-call-checkin
  */
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import { cohortFlagsEnabled, resolveCallerFlags } from '../platform/cohort-flags.js';
 import type { AfterCallContext } from '../session/after-call-tasks.js';
 import {
@@ -21,6 +22,7 @@ import {
   firestoreTextStore,
   sendGuardedText,
   type TextDeps,
+  type TextSkip,
   type TextStore,
 } from './guarded-text.js';
 
@@ -57,13 +59,12 @@ export interface CheckinDeps extends TextDeps {
 
 export interface CheckinOutcome {
   sent: boolean;
-  reason?: SkipReason | 'gate-off' | 'flag-off' | 'no-hash-secret' | 'send-failed';
+  reason?: SkipReason | 'gate-off' | 'flag-off' | TextSkip;
 }
 
 /** Calls placed on someone's behalf, or with no known person, are not the member's own call. */
 export function isMemberCall(userId: string): boolean {
-  const id = userId.trim();
-  return id !== '' && id !== 'anonymous' && !id.startsWith('onbehalf:') && !id.startsWith('anon:');
+  return isMemberIdentity(userId);
 }
 
 /** The skip reasons that need no reads: whose call it was and how long it ran. */

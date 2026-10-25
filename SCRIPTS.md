@@ -118,7 +118,6 @@ Code and asset generation
 
 | Script | Command |
 |--------|----------|
-| `npm run build:android` | `npx tsx scripts/build.ts android` |
 | `npm run build:animation-constants` | `node design-system/generate-animation-constants.js` |
 | `npm run build:apps` | `npx tsx scripts/build.ts apps` |
 | `npm run build:assets` | `node design-system/build-assets.js` |
@@ -176,7 +175,6 @@ Design tokens and components
 
 | Script | Command |
 |--------|----------|
-| `npm run design-system` | `node design-system/dev-server.js` |
 | `npm run design-system:dev` | `node design-system/dev-server.js` |
 | `npm run design-system:test` | `npx playwright test --config=design-system/playwright.con...` |
 | `npm run design-system:test:update` | `npx playwright test --config=design-system/playwright.con...` |
@@ -295,9 +293,9 @@ npm run ferni health
 
 ## 📚 Additional Resources
 
-- [Deployment Guide](./docs/DEPLOYMENT.md)
-- [Development Setup](./docs/DEVELOPMENT.md)
-- [Architecture Overview](./docs/ARCHITECTURE.md)
+- [Deploy runbook](./docs/runbooks/deploy.md)
+- [Development Setup](./ONBOARDING.md)
+- [Docs index](./docs/README.md)
 
 ---
 

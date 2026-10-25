@@ -11,7 +11,7 @@
  * This config makes them runnable on demand. It is deliberately NOT part of the
  * gated pipeline: expect failures without the relevant credentials/server.
  *
- * Run: pnpm test:external
+ * Run: pnpm test:external   (real Firestore: ALLOW_PRODUCTION_DATA=1 pnpm test:external)
  */
 
 import { defineConfig } from 'vitest/config';
@@ -27,6 +27,11 @@ export default defineConfig({
     exclude: ['node_modules/**', '**/node_modules/**', 'dist/**'],
     testTimeout: 60000,
     hookTimeout: 60000,
+    // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).
+    globalSetup: ['./src/config/__tests__/generate-lists-setup.ts'],
     setupFiles: ['./src/tests/setup.ts'],
+    // The only suite where ALLOW_PRODUCTION_DATA=1 unguards real Google Cloud
+    // (src/tests/gcp-test-guard.ts). Every other config ignores it.
+    env: { EXTERNAL_TEST_SUITE: '1' },
   },
 });

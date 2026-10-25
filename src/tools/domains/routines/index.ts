@@ -32,11 +32,12 @@ import {
 } from '../../../services/stores/workflow-store.js';
 import { getTemplateLibrary } from '../../../services/workflows/templates/template-library.js';
 import { getWorkflowEngine } from '../../../services/workflows/workflow-engine.js';
+import { userTimeZone } from '../../../utils/caller-time-zone.js';
 
 const log = createLogger({ module: 'routines-tools' });
 
 // ============================================================================
-// HUMANIZED RESPONSES
+// HUMANIZED RESPONSES: only what the code does (a saved routine doesn't run on its own yet)
 // ============================================================================
 
 const RESPONSES = {
@@ -45,7 +46,7 @@ const RESPONSES = {
     count === 1
       ? "Here's the one thing I'm taking care of for you:"
       : `Here are the ${count} things I take care of for you:`,
-  routineCreated: (name: string) => `Done! I'll ${name.toLowerCase()} for you now.`,
+  routineCreated: (n: string) => `Saved "${n}" in What I Do For You. It won't run on its own yet.`,
   routinePaused: (name: string) => `Okay, I'll put "${name}" on hold for now.`,
   routineResumed: (name: string) => `Got it, I'll start ${name.toLowerCase()} again.`,
   routineRun: (name: string) => `Running "${name}" for you right now.`,
@@ -154,7 +155,7 @@ async function createRoutineFromVoice(
   try {
     const { name, triggerType, triggerValue, action } = params;
 
-    // Build trigger based on type
+    const timezone = userTimeZone(ctx); // "7:00 AM" is 7 where the caller is, never UTC
     let trigger: WorkflowTrigger;
     switch (triggerType) {
       case 'phrase':
@@ -170,8 +171,7 @@ async function createRoutineFromVoice(
         break;
       case 'time':
       default:
-        // Parse time like "7:00 AM" or "7am" to cron
-        trigger = { type: 'time', schedule: parseTimeToCron(triggerValue), timezone: 'Etc/UTC' };
+        trigger = { type: 'time', schedule: parseTimeToCron(triggerValue), timezone };
     }
 
     // Build action
@@ -192,7 +192,7 @@ async function createRoutineFromVoice(
       variables: {},
       category: 'custom',
       tags: ['voice-created'],
-      icon: '✨',
+      icon: 'sparkles',
       isTemplate: false,
     });
 
@@ -382,7 +382,7 @@ const routineToolDefinitions: ToolDefinition[] = [
     domain: 'routines',
     tags: ['routines', 'create', 'setup'],
     create: (ctx: ToolContext) => llm.tool({
-      description: 'Set up something new for you',
+      description: "Save a routine to What I Do For You. It doesn't run on its own yet",
       parameters: {
         type: 'object',
         properties: {

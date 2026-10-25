@@ -6,6 +6,7 @@
  * Endpoints:
  * - POST /api/auth/migrate - Migrate user data to Firebase UID
  * - GET /api/auth/migration-status - Check migration status for a device
+ * - POST /api/identity/merge-anonymous - Move an anonymous account (identity-merge-routes.ts)
  *
  * @module MigrationRoutes
  */
@@ -13,13 +14,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
   getMigratedUid,
-  isAlreadyMigrated,
   migrateUserData,
   validateMigrationRequest,
 } from '../services/user-migration.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
+import { handleIdentityMergeRoutes } from './identity-merge-routes.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -54,11 +55,11 @@ export async function handleMigrationRoutes(
 
   // GET /api/auth/migration-status - Check migration status
   if (pathname === '/api/auth/migration-status' && req.method === 'GET') {
-    handleMigrationStatus(req, res);
+    await handleMigrationStatus(req, res);
     return true;
   }
 
-  return false;
+  return handleIdentityMergeRoutes(req, res, pathname);
 }
 
 // ============================================================================
@@ -166,7 +167,7 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
  * Query params:
  * - deviceId: The device ID to check
  */
-function handleMigrationStatus(req: IncomingMessage, res: ServerResponse): void {
+async function handleMigrationStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const deviceId = getQueryParam(req, 'deviceId') || getQueryParam(req, 'device_id');
 
   if (!deviceId) {
@@ -175,8 +176,8 @@ function handleMigrationStatus(req: IncomingMessage, res: ServerResponse): void 
   }
 
   const legacyUserId = deviceId.startsWith('device:') ? deviceId : `device:${deviceId}`;
-  const isMigrated = isAlreadyMigrated(legacyUserId);
-  const migratedTo = getMigratedUid(legacyUserId);
+  const migratedTo = await getMigratedUid(legacyUserId);
+  const isMigrated = migratedTo !== null;
 
   sendJson(res, {
     deviceId,

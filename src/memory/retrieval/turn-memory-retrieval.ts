@@ -36,16 +36,15 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { rerankHybridResults } from './cross-encoder.js';
-import {
-  hybridSearch,
-  type HybridSearchMetrics,
-  type HybridSearchResult,
-} from './hybrid-search.js';
+import { hybridSearch, type HybridSearchResult } from './hybrid-search.js';
 import {
   getHybridSearchTimeoutStats,
   recordHybridSearchOutcome,
   runHybridSearchWithTimeout,
 } from './hybrid-search-timeout-stats.js';
+import { logTurnMemory } from './turn-memory-log.js';
+import { gateTurnMemories, turnMemoryRerankOn } from './turn-memory-rerank.js';
+import { capTurnMemories, turnMemoryRrfScaleOn } from './turn-memory-scale.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
 
@@ -295,6 +294,16 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   };
 
   const { userId, sessionId, transcript, turnNumber, surfacedMemoryIds } = input;
+  const logTurn = (candidates: HybridSearchResult[], injected: number, judged: boolean): void =>
+    logTurnMemory({
+      turnNumber,
+      candidates,
+      injected,
+      rrfScale: turnMemoryRrfScaleOn(),
+      rerank: turnMemoryRerankOn(),
+      judged,
+      latencyMs: Date.now() - startTime,
+    });
 
   // Skip retrieval for very short transcripts (likely just acknowledgments)
   if (transcript.length < 10) {
@@ -308,16 +317,19 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   try {
     // 1. HYBRID SEARCH (BM25 + Vector + Entity Store)
     const hybridStart = Date.now();
-    const { results: hybridResults, metrics: hybridMetrics } = await runHybridSearchWithTimeout(
+    const rrfScale = turnMemoryRrfScaleOn(); // gate on cosine, not the fused rank score
+    const searched = await runHybridSearchWithTimeout(
       userId,
       transcript,
-      config.totalTimeoutMs
+      config.totalTimeoutMs,
+      rrfScale
     );
-
     metrics.hybridSearchMs = Date.now() - hybridStart;
-    metrics.rawResultCount = hybridResults.length;
+    metrics.rawResultCount = searched.results.length;
+    const hybridResults = await gateTurnMemories(searched.results, input, rrfScale, metrics);
 
     if (hybridResults.length === 0) {
+      logTurn(searched.results, 0, metrics.rerankingApplied);
       return {
         memories: [],
         hasProactiveSuggestion: false,
@@ -327,7 +339,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
 
     // 2. CROSS-ENCODER RERANKING (optional, for quality)
     let rankedResults = hybridResults;
-    if (config.enableReranking && hybridResults.length > 1) {
+    if (config.enableReranking && !turnMemoryRerankOn() && hybridResults.length > 1) {
       const rerankStart = Date.now();
       try {
         const reranked = await Promise.race([
@@ -352,7 +364,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     // 2.5. ASSOCIATIVE MEMORY (find naturally associated memories)
     // When user mentions something, find what a friend would naturally think of
     const associativeResults: HybridSearchResult[] = [];
-    if (rankedResults.length > 0) {
+    if (!rrfScale && rankedResults.length > 0) {
       try {
         const { getAssociativeMemory } = await import('../associative-memory.js');
         const associative = getAssociativeMemory(userId);
@@ -406,7 +418,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     metrics.dedupedResultCount = dedupedResults.length;
 
     // 5. CONVERT TO TURN FORMAT
-    const memories: RetrievedMemoryForTurn[] = dedupedResults
+    const memories: RetrievedMemoryForTurn[] = capTurnMemories(dedupedResults, rrfScale)
       .slice(0, config.maxMemories)
       .map((result) => {
         const memory: RetrievedMemoryForTurn = {
@@ -441,23 +453,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     }
 
     metrics.totalTimeMs = Date.now() - startTime;
-
-    log.debug(
-      {
-        userId,
-        sessionId,
-        turnNumber,
-        rawResults: metrics.rawResultCount,
-        filteredResults: metrics.filteredResultCount,
-        dedupedResults: metrics.dedupedResultCount,
-        returnedMemories: memories.length,
-        totalMs: metrics.totalTimeMs,
-        hybridMs: metrics.hybridSearchMs,
-        rerankMs: metrics.rerankMs,
-        rerankingApplied: metrics.rerankingApplied,
-      },
-      '🧠 Turn memory retrieval complete'
-    );
+    logTurn(searched.results, memories.length, metrics.rerankingApplied);
 
     return {
       memories,

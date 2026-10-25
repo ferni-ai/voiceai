@@ -85,9 +85,17 @@ describe('notification settings quiet hours', () => {
     if (!enabled) throw new Error('missing push toggle');
     enabled.checked = false;
     enabled.dispatchEvent(new Event('change'));
-    expect(
-      document.querySelector<HTMLInputElement>('[data-pref="ritualReminders"]')?.disabled
-    ).toBe(true);
     expect(document.querySelector<HTMLInputElement>('#quiet-start')?.disabled).toBe(false);
+    expect(document.querySelector<HTMLInputElement>('#quiet-end')?.disabled).toBe(false);
+  });
+});
+
+describe('notification settings texts row', () => {
+  it('has no texts switch (never pre-checked); it sends people to the disclosure instead', async () => {
+    await openPanel();
+    expect(document.querySelector('[data-outreach="smsEnabled"]')).toBeNull();
+    expect(document.querySelector('[data-action="open-contact-texts"]')?.textContent).toContain(
+      'Set up texts'
+    );
   });
 });

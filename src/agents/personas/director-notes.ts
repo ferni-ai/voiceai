@@ -23,17 +23,36 @@
 
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
-import { splitSaidBy } from './said-by.js';
+import { callerSetsDepthOn, labelsDeflection } from './caller-sets-depth.js';
+import { type CallChannel, withCallChannel } from './director-channel.js';
 import {
-  DIRECTOR_ADDRESS,
+  directorAddress,
   directorEscalates,
   hardRuleFor,
   NoteHistory,
 } from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
-import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
+import {
+  formatTold,
+  keptTold,
+  toldThisCall,
+  toldThisCallEnabled,
+  type Told,
+} from './told-this-call.js';
 import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
+import {
+  cap,
+  castFor,
+  directorSeesScene,
+  FERNI_CAST,
+  isShort,
+  self,
+  verbS,
+  type Cast,
+} from './director-cast.js';
+import { formatScene, scriptedNote, type Stage } from './director-scene.js';
+import { erodesGuard, guardRuleFor } from './director-guard.js';
+import { directorDirects, directsAsk, misdirects, type DirectsFilter } from './director-directs.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -53,47 +72,59 @@ export interface Line {
 /** Writes notes from a prompt; injectable so tests need no model. */
 export type NoteWriter = (system: string, prompt: string) => Promise<string | undefined>;
 
-const DIRECTOR_ROLE =
-  'You are the director of a live, unscripted phone call between Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) and someone he cares about. Ferni improvises every word. Between his turns you whisper at most two private notes for his next reply.';
-const DIRECTOR_RULES = [
-  "Never tell him to acknowledge, validate, support or ask about feelings: that's what a therapist does and he's a friend. Never write lines for him to say.",
-  "Pauses, short answers and unanswered questions are normal in conversation: never tell him to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.",
-  "Don't guess at hidden motives or moods (that they're dodging, ignoring him, testing him, stuck, distant, escaping) and never tell him to talk about their tone, mood or reasons instead of what they said. When they ask something, the next reply answers it.",
-  'If the conversation is flowing and Ferni is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.',
+/*
+ * The texts below are written for a Cast (director-cast.ts): FERNI_CAST gives
+ * exactly the prompt prod has sent since before DIRECTOR_SEES_SCENE; with that
+ * flag on, the persona speaking gets its own name, brief and pronouns.
+ */
+const roleFor = (c: Cast): string =>
+  `You are the director of a live, unscripted phone call between ${c.name}${c.brief ? ` (${c.brief})` : ''} and someone ${c.p.subject} ${verbS(c, 'care')} about. ${c.name} improvises every word. Between ${c.p.possessive} turns you whisper at most two private notes for ${c.p.possessive} next reply.`;
+const rulesFor = (c: Cast, { p, name } = c): string[] => [
+  guardRuleFor(c), // director-guard.ts: no note erodes a boundary, honesty or tool truth
+  `Never tell ${p.object} to acknowledge, validate, support or ask about feelings: that's what a therapist does and ${isShort(c)} a friend. Never write lines for ${p.object} to say.`,
+  `Pauses, short answers and unanswered questions are normal in conversation: never tell ${p.object} to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.`,
+  `Don't guess at hidden motives or moods (that they're dodging, ignoring ${p.object}, testing ${p.object}, stuck, distant, escaping) and never tell ${p.object} to talk about their tone, mood or reasons instead of what they said. When they ask something, the next reply answers it.`,
+  `If the conversation is flowing and ${name} is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.`,
 ];
 
-/** The habits the director may tell Ferni to drop. */
-const HABITS = '(too many questions, fixing too early, sounding upbeat, repeating himself)';
+/** The habits the director may tell the speaker to drop. */
+const habitsFor = (c: Cast): string =>
+  `(too many questions, fixing too early, sounding upbeat, repeating ${self(c)})`;
 /**
  * FERNI_LIGHT_TOUCH=on: "sounding upbeat" is no longer a habit to drop (23% of
  * prod notes leaned soft and Ferni read as calm and boring); going flat when
  * the caller is being light is, but only about something light: "lol my
  * grandma passed" is not a cue to lighten up.
  */
-const LIGHT_HABITS =
-  "(too many questions, fixing too early, repeating himself, staying flat or serious when they're being light about something light)";
+const lightHabitsFor = (c: Cast): string =>
+  `(too many questions, fixing too early, repeating ${self(c)}, staying flat or serious when they're being light about something light)`;
 
-export const DIRECTOR_SYSTEM = [
-  DIRECTOR_ROLE,
-  `Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop ${HABITS}. Give the nudge and its reason in under 20 words.`,
-  'Ferni reads your notes only after they have spoken again, and what they say next comes first. So never send him back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.',
-  ...DIRECTOR_RULES,
-].join('\n');
+const systemFor = (c: Cast): string =>
+  [
+    roleFor(c),
+    `Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of ${c.name}'s to drop ${habitsFor(c)}. Give the nudge and its reason in under 20 words.`,
+    `${c.name} reads your notes only after they have spoken again, and what they say next comes first. So never send ${c.p.object} back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.`,
+    ...rulesFor(c),
+  ].join('\n');
+
+export const DIRECTOR_SYSTEM = systemFor(FERNI_CAST);
 
 /**
  * With DIRECTOR_TOOL_STATE on (director-tool-state.ts): the director sees
  * Ferni's tool calls and must not contradict them. Dev call 2026-10-12: "He
  * asked for music, but you don't have a player." while playMusic was starting.
  */
-const TOOL_RULE =
-  "Ferni has tools (music, timers, reminders, weather, calls and more). His tool calls on this call are listed after the transcript: one that is running or done is real, so never say he can't do it or lacks it. Never claim he is missing any capability; you can't see his full set of tools.";
+const toolRuleFor = (c: Cast): string =>
+  `${c.name} has tools (music, timers, reminders, weather, calls and more). ${cap(c.p.possessive)} tool calls on this call are listed after the transcript: one that is running or done is real, so never say ${c.p.subject} can't do it or lacks it. Never claim ${c.p.subject} ${c.p.subject === 'they' ? 'are' : 'is'} missing any capability; you can't see ${c.p.possessive} full set of tools.`;
+const TOOL_RULE = toolRuleFor(FERNI_CAST);
 
 /** The prompt before 2026-10-03, which invited notes that send Ferni back to an earlier line. */
-const LOOKING_BACK_SYSTEM = [
-  DIRECTOR_ROLE,
-  `Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop ${HABITS}. Give the nudge and its reason in under 20 words.`,
-  ...DIRECTOR_RULES,
-].join('\n');
+const lookingBackFor = (c: Cast): string =>
+  [
+    roleFor(c),
+    `Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of ${c.name}'s to drop ${habitsFor(c)}. Give the nudge and its reason in under 20 words.`,
+    ...rulesFor(c),
+  ].join('\n');
 
 /**
  * DIRECTOR_LOOK_BACK=on restores the director that may send Ferni back to an
@@ -112,7 +143,9 @@ export function buildDirectorPrompt(
   lines: Line[],
   userName?: string,
   speaking?: string,
-  tools: string[] = []
+  tools: string[] = [],
+  /** DIRECTOR_SEES_SCENE=on: the SCENE block (director-scene.ts), before the transcript. */
+  scene = ''
 ): string {
   const who = userName || 'Them';
   const assistant = (l: Line): string => (speaking ? (l.by ?? speaking) : 'Ferni');
@@ -123,7 +156,7 @@ export function buildDirectorPrompt(
   const used = tools.length
     ? `\n\n${speaking ?? 'Ferni'}'s tool calls (most recent last):\n${tools.map((t) => `- ${t}`).join('\n')}`
     : '';
-  return `The call so far:\n${transcript}${used}\n\nYour notes for ${speaking ?? 'Ferni'}'s next reply:`;
+  return `${scene ? `${scene}\n\n` : ''}The call so far:\n${transcript}${used}\n\nYour notes for ${speaking ?? 'Ferni'}'s next reply:`;
 }
 
 const GENERIC =
@@ -176,6 +209,13 @@ const STOP = new Set(
   )
 );
 
+/** Everything the caller said on these lines. */
+const callerSaid = (call: Line[] = []): string =>
+  call
+    .filter((l) => l.speaker === 'user')
+    .map((l) => l.text)
+    .join(' ');
+
 /** Words a note must share with the call to be about the call (4+ letters, not function words). */
 function contentWords(text: string): Set<string> {
   return new Set((text.toLowerCase().match(/[a-z']{4,}/g) ?? []).filter((w) => !STOP.has(w)));
@@ -186,7 +226,13 @@ function contentWords(text: string): Set<string> {
  * unusable. With the call's lines given, a note must mention something said
  * in it: the director once reported a "weather bit" nobody had mentioned.
  */
-export function parseNotes(reply: string | undefined, call?: Line[], speaking?: string): string[] {
+export function parseNotes(
+  reply: string | undefined,
+  call?: Line[],
+  speaking?: string,
+  /** DIRECTOR_SEES_SCENE=on: also drop notes that script a line (director-scene.ts). */
+  opts: { scripted?: boolean; sessionId?: string } & DirectsFilter = {}
+): string[] {
   if (!reply) return [];
   const said = call ? contentWords(call.map((l) => l.text).join(' ')) : null;
   const notes = reply
@@ -195,10 +241,16 @@ export function parseNotes(reply: string | undefined, call?: Line[], speaking?: 
     .filter((l) => l && !/^none\b/i.test(l))
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
+    // Never against a boundary, honesty or tool truth, whatever the flags (director-guard.ts).
+    .filter((l) => !erodesGuard(l, opts.sessionId))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
+    // CALLER_SETS_DEPTH=on: no note that labels their deflection or says "hold space".
+    .filter((l) => !(callerSetsDepthOn() && labelsDeflection(l)))
     .filter((l) => directorLooksBack() || !backToEarlier(l))
     .filter((l) => !directorSeesTools() || !CAPABILITY_DENIAL.test(l))
     .filter((l) => speaking === undefined || !claimsIdentity(l))
+    .filter((l) => !opts.scripted || !scriptedNote(l, callerSaid(call)))
+    .filter((l) => !misdirects(l, callerSaid(call), opts)) // DIRECTOR_DIRECTS=on (director-directs.ts)
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);
@@ -225,6 +277,7 @@ export class Director {
   /** DIRECTOR_ESCALATE=on: what the notes have raised, and the rule a repeat earned. */
   private readonly history = new NoteHistory();
   private rule = '';
+  private critiqued = 0;
 
   constructor(
     private readonly opts: {
@@ -236,14 +289,21 @@ export class Director {
       writeNotes?: boolean;
       /** The persona on the call now (DIRECTOR_PERSONA_AWARE); unset, the director directs Ferni. */
       speaking?: () => string;
+      /** The persona id on the call now; read only with DIRECTOR_DIRECTS on (director-directs.ts). */
+      personaId?: () => string | undefined;
+      channel?: () => CallChannel | undefined; // app or phone: DIRECTOR_KNOWS_CHANNEL (director-channel.ts)
     }
   ) {}
 
-  /** Ferni finished a reply: think about the next one. Never throws. */
-  observe(lines: Line[]): Promise<void> {
+  /**
+   * Ferni finished a reply: think about the next one. Never throws. `stage`
+   * (DIRECTOR_SEES_SCENE=on) frames it for the persona speaking, with the scene.
+   */
+  observe(lines: Line[], stage?: Stage): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
+    this.critiqued = 0;
     const speaking = this.opts.speaking?.();
     this.toldRecord = toldThisCallEnabled()
       ? toldThisCall(lines, this.opts.userName, speaking)
@@ -253,19 +313,29 @@ export class Director {
     const seesTools = directorSeesTools();
     const started = Date.now();
     const system = directorSystem();
+    const directs = directorDirects();
+    const framed = stage && directorSeesScene() ? stage : undefined;
     const work = (async () => {
       try {
-        const reply = await withTimeout(
-          writer(
-            (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
-              (seesTools ? `\n${TOOL_RULE}` : ''),
-            buildDirectorPrompt(
-              lines,
-              this.opts.userName,
+        const recast = directs
+          ? this.directing(lines, framed, seesTools)
+          : framed && this.framed(lines, framed, seesTools);
+        const asked = recast
+          ? await recast
+          : {
+              system:
+                (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
+                (seesTools ? `\n${TOOL_RULE}` : ''),
+              prompt: buildDirectorPrompt(
+                lines,
+                this.opts.userName,
+                speaking,
+                seesTools ? this.tools.lines() : []
+              ),
               speaking,
-              seesTools ? this.tools.lines() : []
-            )
-          ),
+            };
+        const reply = await withTimeout(
+          writer(withCallChannel(asked.system, this.opts.channel?.()), asked.prompt),
           this.opts.budgetMs ?? 4000
         );
         if (gen !== this.generation) return; // a newer turn superseded this one
@@ -277,7 +347,17 @@ export class Director {
           );
           return;
         }
-        this.notes = parseNotes(reply, lines.slice(-12), speaking);
+        const names = [this.opts.userName || 'Them', asked.speaking ?? 'Ferni'];
+        const guard = { scripted: !!framed, sessionId: this.opts.sessionId };
+        this.notes = parseNotes(reply, lines.slice(-12), asked.speaking, {
+          ...guard,
+          directs,
+          names,
+        });
+        // DIRECTOR_DIRECTS: how many notes its guard dropped (policing, mind-reading, a scripted line).
+        this.critiqued = directs
+          ? parseNotes(reply, lines.slice(-12), asked.speaking, guard).length - this.notes.length
+          : 0;
         const escalated = this.escalate();
         log.info(
           {
@@ -285,6 +365,7 @@ export class Director {
             ms: Date.now() - started,
             notes: this.notes,
             escalated,
+            ...(directs ? { critiqued: this.critiqued } : {}),
           },
           'DIRECTOR_NOTES'
         );
@@ -294,6 +375,48 @@ export class Director {
       }
     })();
     return work;
+  }
+
+  /**
+   * DIRECTOR_DIRECTS=on: direction for the persona on the call, from its own
+   * sheet (director-directs.ts), with the scene when DIRECTOR_SEES_SCENE is on
+   * too. DIRECTOR_ESCALATE's Ferni-only address is not added.
+   */
+  private async directing(
+    lines: Line[],
+    stage: Stage | undefined,
+    seesTools: boolean
+  ): Promise<{ system: string; prompt: string; speaking: string }> {
+    const personaId = stage?.personaId ?? this.opts.personaId?.();
+    const { system, speaking } = await directsAsk(personaId, seesTools);
+    const tools = seesTools ? this.tools.lines() : [];
+    const scene = stage ? formatScene(stage.scene, speaking) : '';
+    const prompt = buildDirectorPrompt(lines, this.opts.userName, speaking, tools, scene);
+    return { system, prompt, speaking };
+  }
+
+  /** DIRECTOR_DIRECTS=on: notes the last run wrote that the guard dropped (policing or scripting). */
+  droppedAsCritique(): number {
+    return this.critiqued;
+  }
+
+  /** DIRECTOR_SEES_SCENE=on: the request framed for the persona speaking, with the scene. */
+  private async framed(
+    lines: Line[],
+    stage: Stage,
+    seesTools: boolean
+  ): Promise<{ system: string; prompt: string; speaking: string }> {
+    const cast = await castFor(stage.personaId);
+    const system = [
+      directorSystem(process.env, cast),
+      speakerNote(cast.name, true),
+      teamNote(cast.name),
+      ...(seesTools ? [toolRuleFor(cast)] : []),
+    ].join('\n');
+    const tools = seesTools ? this.tools.lines() : [];
+    const scene = formatScene(stage.scene, cast.name);
+    const prompt = buildDirectorPrompt(lines, this.opts.userName, cast.name, tools, scene);
+    return { system, prompt, speaking: cast.name };
   }
 
   /** DIRECTOR_ESCALATE=on: record this reply's notes; a theme raised twice becomes the rule. */
@@ -329,21 +452,20 @@ export class Director {
    */
   told(keep: (text: string) => boolean = () => true): string {
     const told = this.toldRecord;
-    if (!told) return '';
-    return formatTold({
-      ...told,
-      names: told.names.filter((n) => keep(n.name)),
-      repeated: told.repeated.filter(keep),
-      recentLines: told.recentLines.filter(keep),
-    });
+    return told ? formatTold(keptTold(told, keep, this.opts.sessionId)) : '';
   }
 }
 
 /** The director's instructions for this call's flags. */
-export function directorSystem(env: Record<string, string | undefined> = process.env): string {
-  const looking = directorLooksBack(env) ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM;
-  const system = flagOn('FERNI_LIGHT_TOUCH', env) ? looking.replace(HABITS, LIGHT_HABITS) : looking;
-  return directorEscalates(env) ? `${system}\n${DIRECTOR_ADDRESS}` : system;
+export function directorSystem(
+  env: Record<string, string | undefined> = process.env,
+  cast: Cast = FERNI_CAST
+): string {
+  const looking = directorLooksBack(env) ? lookingBackFor(cast) : systemFor(cast);
+  const system = flagOn('FERNI_LIGHT_TOUCH', env)
+    ? looking.replace(habitsFor(cast), lightHabitsFor(cast))
+    : looking;
+  return directorEscalates(env) ? `${system}\n${directorAddress(cast)}` : system;
 }
 
 function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
@@ -373,31 +495,5 @@ export function getDirector(session: object | undefined): Director | undefined {
   return session ? directors.get(session) : undefined;
 }
 
-/**
- * The spoken conversation in a chat context: user and assistant messages,
- * markup removed. The per-turn context note is a user message too, but nobody
- * said it: the director once reported "Stevie Wonder from personality
- * expression" as part of the call.
- */
-export function linesFromChat(
-  items: ReadonlyArray<{ id?: string; type?: string; role?: string; textContent?: string }>,
-  by?: (item: { id?: string }) => string | undefined
-): Line[] {
-  const lines: Line[] = [];
-  for (const item of items) {
-    if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
-    if (item.textContent?.startsWith(TURN_CONTEXT_HEADER)) continue;
-    const said = (item.textContent ?? '')
-      .replace(/<[^>]+>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    // A reply carried over at a handoff is marked "(Ferni said:) " (persona-swap.ts).
-    const marked = item.role === 'assistant' ? splitSaidBy(said) : undefined;
-    const text = marked?.text ?? said;
-    if (!text) continue;
-    const name = item.role === 'assistant' ? (by?.(item) ?? marked?.name) : undefined;
-    if (name) lines.push({ speaker: 'ferni', text, by: name });
-    else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
-  }
-  return lines;
-}
+/** The spoken conversation in a chat context (director-lines.ts). */
+export { linesFromChat } from './director-lines.js';

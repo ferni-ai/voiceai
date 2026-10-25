@@ -185,10 +185,11 @@ function ruleBody(file: string, selector: string): string {
   return body;
 }
 
+/** The last declaration of `prop` in `body` (the one the cascade applies). */
 function declaration(body: string, prop: 'color' | 'background'): string | undefined {
   const re =
-    prop === 'color' ? /(?:^|[;\s])color\s*:\s*([^;]+);/ : /background(?:-color)?\s*:\s*([^;]+);/;
-  return body.match(re)?.[1].trim();
+    prop === 'color' ? /(?:^|[;\s])color\s*:\s*([^;]+);/g : /background(?:-color)?\s*:\s*([^;]+);/g;
+  return [...body.matchAll(re)].at(-1)?.[1].trim();
 }
 
 interface OverlayPair {
@@ -199,6 +200,8 @@ interface OverlayPair {
   surface: string;
   /** Custom properties the component sets from script, by source regex. */
   scriptVars?: Record<string, { file: string; pattern: RegExp }>;
+  /** A theme-scoped rule in the same file whose declarations override the base rule. */
+  themeSelectors?: Partial<Record<ThemeName, string>>;
 }
 
 // Each failure from the overlay gallery probe (midnight, PLAN.md section 0 #6).
@@ -279,6 +282,28 @@ const OVERLAY_PAIRS: OverlayPair[] = [
     selector: '.seeds-action-btn--primary',
     surface: '--color-background-secondary',
   },
+  // Design audit 2026-10-18: midnight 2.96:1 (ink --color-text-inverse on the forest fill).
+  {
+    name: 'call notice "Try again" button',
+    file: 'src/ui/call-status.ui.ts',
+    selector: '.call-status__btn--primary',
+    surface: '--color-background-primary',
+  },
+  // Design audit 2026-10-18: the error retry was --color-ferni text on a --color-ferni
+  // fill (1.0:1 zen); in midnight the fill token was undefined (2.1:1).
+  {
+    name: 'wellbeing "Try again?" button',
+    file: 'src/ui/wellbeing-dashboard.ui.ts',
+    selector: '.wellbeing-btn',
+    surface: '--color-background-elevated',
+    themeSelectors: { midnight: '[data-theme="midnight"] .wellbeing-btn' },
+  },
+  {
+    name: 'end call button',
+    file: 'src/styles/inline-styles.css',
+    selector: '#disconnectBtn.btn-end-call',
+    surface: '--color-background-primary',
+  },
 ];
 
 /** Rendered text/fill colours and their contrast for one pair in one theme. */
@@ -289,7 +314,10 @@ function renderedPair(pair: OverlayPair, theme: ThemeName) {
     if (!value) throw new Error(`${name} not found in ${file}`);
     vars[name] = value;
   }
-  const body = ruleBody(pair.file, pair.selector);
+  const themeSelector = pair.themeSelectors?.[theme];
+  // Later declarations win, so the theme rule's body goes after the base rule's.
+  const body =
+    ruleBody(pair.file, pair.selector) + (themeSelector ? ruleBody(pair.file, themeSelector) : '');
   const surface = toRgba(`var(${pair.surface})`, vars);
   const bgDecl = declaration(body, 'background');
   const fill = bgDecl ? over(toRgba(bgDecl, vars), surface) : surface;
@@ -416,6 +444,16 @@ describe('token contrast', () => {
         expect(vars[cssVar]?.toLowerCase(), cssVar).toBe(value?.toLowerCase());
       }
     });
+  });
+
+  it('wellbeing error retry takes its colours from .wellbeing-btn, not an inline colour', () => {
+    // An inline `color:` beats the class pair; it was --color-ferni on a --color-ferni fill.
+    const src = readFileSync(join(WEB_ROOT, 'src/ui/wellbeing-dashboard.ui.ts'), 'utf8');
+    const retry = src.match(
+      /<button[^>]*class="wellbeing-btn"[^>]*>\$\{t\('wellbeing\.tryAgain'\)\}/
+    )?.[0];
+    expect(retry, 'retry button markup').toBeDefined();
+    expect(retry).not.toMatch(/style="[^"]*(?:^|[;\s"])color\s*:/);
   });
 
   const rendered: string[] = [];

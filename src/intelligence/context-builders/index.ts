@@ -749,7 +749,7 @@ export interface ConditionalLoadingConfig {
 }
 
 let conditionalLoadingConfig: ConditionalLoadingConfig = {
-  enabled: process.env.NODE_ENV === 'production' || process.env.CONDITIONAL_BUILDERS === 'true',
+  enabled: process.env.NODE_ENV === 'production',
   logActiveCategories: process.env.LOG_BUILDER_CATEGORIES === 'true',
 };
 

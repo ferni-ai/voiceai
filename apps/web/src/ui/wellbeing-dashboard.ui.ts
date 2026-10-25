@@ -636,7 +636,7 @@ const styles = `
     width: 56px;
     height: 56px;
     /* Ferni's warm sage green */
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     /* Soft glow for warmth */
     filter: drop-shadow(0 0 16px rgba(74, 103, 65, 0.3));
     /* Organic heartbeat - alive and gentle */
@@ -763,7 +763,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: inherit;
+    color: var(--color-text-secondary); /* each dimension's own hue was as low as 2.4:1; the icon keeps it */
     opacity: 0.9;
   }
   
@@ -930,7 +930,7 @@ const styles = `
     transition: all var(--duration-fast, 100ms) ease;
     border: none;
     background: var(--color-ferni);
-    color: white;
+    color: var(--color-ferni-on-primary);
   }
   
   .wellbeing-btn:hover {
@@ -1138,18 +1138,18 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-btn {
-    background: var(--color-accent-secondary);
-    color: var(--color-text-primary-dark);
+    background: var(--color-accent-primary); /* light sage, so on-accent ink text */
+    color: var(--color-text-on-accent);
   }
 
   [data-theme="midnight"] .wellbeing-btn:hover {
-    background: var(--color-accent-secondary-hover);
+    background: var(--color-accent-hover);
   }
 
   [data-theme="midnight"] .wellbeing-btn--secondary {
     background: transparent;
-    color: var(--color-accent-secondary);
-    border-color: var(--color-accent-secondary);
+    color: var(--color-text-primary); /* accent-secondary isn't defined: it fell back to 2.1:1 green */
+    border-color: var(--color-border-medium);
   }
 
   [data-theme="midnight"] .wellbeing-btn--secondary:hover {
@@ -1646,7 +1646,7 @@ function renderEmptyState(): string {
               border-color: ${dim.hex}30;
             ">
               <div class="wellbeing-empty__dimension-icon" style="color: ${dim.hex};">${dim.icon}</div>
-              <div class="wellbeing-empty__dimension-name" style="color: ${dim.hex};">${dim.name}</div>
+              <div class="wellbeing-empty__dimension-name">${dim.name}</div>
             </div>
           `
             )
@@ -1714,7 +1714,7 @@ function renderContent(): void {
   if (loadError) {
     content.innerHTML = `
       <div class="wellbeing-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        ${t('wellbeing.couldntLoadData')} <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni);">${t('wellbeing.tryAgain')}</button>
+        ${t('wellbeing.couldntLoadData')} <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4);">${t('wellbeing.tryAgain')}</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {

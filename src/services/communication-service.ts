@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { consentBlocks } from './messaging/consent.js';
 import {
   validateEmail,
   validatePhone,
@@ -16,9 +17,13 @@ import {
   sanitizePhoneForLog,
 } from '../utils/validation.js';
 import { MAX_RETRIES, RETRY_DELAY_MS, RETRY_MAX_DELAY_MS } from '../config/resilience-config.js';
+import {
+  getEmailSender,
+  type EmailSendResult,
+  type OutgoingEmail,
+} from './email-transport/index.js';
 
 // API Keys from environment
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
@@ -39,6 +44,30 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxDelayMs: RETRY_MAX_DELAY_MS,
 };
 
+/** A provider answered with a non-2xx HTTP status. */
+export class ProviderHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = 'ProviderHttpError';
+  }
+}
+
+/**
+ * Whether a failed send is worth retrying, judged by HTTP status rather than
+ * message text ("not authorized" matched none of the old keywords, so a key
+ * without Mail Send was retried on every email). A 4xx is permanent, except
+ * 408 and 429; a 5xx, timeout or network error may pass.
+ */
+export function isRetryableSendError(error: unknown): boolean {
+  if (!(error instanceof ProviderHttpError)) return true;
+  const { status } = error;
+  if (status === 408 || status === 429) return true;
+  return status < 400 || status >= 500;
+}
+
 /**
  * Execute a function with exponential backoff retry logic
  */
@@ -52,11 +81,7 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Don't retry on validation or authentication errors
-      const nonRetryableMessages = ['Invalid', 'Unauthorized', 'Forbidden', 'not configured'];
-      const shouldSkipRetry = nonRetryableMessages.some((msg) => lastError?.message.includes(msg));
-
-      if (shouldSkipRetry || attempt === opts.maxRetries - 1) {
+      if (!isRetryableSendError(error) || attempt === opts.maxRetries - 1) {
         throw lastError;
       }
 
@@ -84,8 +109,31 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
 // EMAIL SERVICE
 // ============================================================================
 
+/** True when the configured email transport (EMAIL_PROVIDER) can send. */
+export function isEmailConfigured(): boolean {
+  return getEmailSender().isConfigured();
+}
+
 /**
- * Send an email via SendGrid
+ * Send one email through the app's transport (SendGrid or the ferni.ai Workspace,
+ * per EMAIL_PROVIDER). Never throws; check `ok`. For callers that can't import
+ * src/services/email-transport (L3 contexts).
+ */
+export async function sendAppEmail(email: OutgoingEmail): Promise<EmailSendResult> {
+  return getEmailSender().send(email);
+}
+
+/**
+ * The List-Unsubscribe mailto for 'bulk' mail that has no unsubscribe endpoint:
+ * the app's From mailbox (EMAIL_FROM), which a person reads. admin@ is the
+ * Workspace user when EMAIL_FROM is unset (docs/runbooks/email-via-workspace.md).
+ */
+export function unsubscribeMailbox(): string {
+  return process.env.EMAIL_FROM?.trim() || 'admin@ferni.ai';
+}
+
+/**
+ * Send a plain-text (or HTML) email from Ferni.
  *
  * @param to - Recipient email address
  * @param subject - Email subject
@@ -104,66 +152,113 @@ export async function sendEmail(
     throw new Error(`Invalid email address: ${sanitizeEmailForLog(to)}`);
   }
 
-  // Check API key
-  if (!SENDGRID_API_KEY) {
+  const sender = getEmailSender();
+  if (!sender.isConfigured()) {
     const isDevelopment = process.env.NODE_ENV !== 'production';
     if (isDevelopment) {
-      getLogger().warn('SendGrid API key not configured - email not sent (development mode)');
+      getLogger().warn(
+        { provider: sender.provider },
+        'Email transport not configured - email not sent (development mode)'
+      );
       return `[DEV MODE] Would send email to ${sanitizeEmailForLog(to)}: ${subject}`;
     }
 
-    getLogger().error('SendGrid API key not configured in production');
+    getLogger().error(
+      { provider: sender.provider },
+      'Email transport not configured in production'
+    );
     throw new Error(
-      'Email service is not available: SendGrid API key is not configured. Contact support to enable email delivery.'
+      `Email service is not available: the ${sender.provider} transport is not configured. Contact support to enable email delivery.`
     );
   }
 
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
   const sanitizedSubject = sanitizePlainText(subject);
 
-  return withRetry(async () => {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${SENDGRID_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: { email: 'hello@ferni.ai', name: 'Ferni' },
+  // Gmail backs off inside its transport. SendGrid doesn't retry at all, so its
+  // failures are retried here by status (isRetryableSendError: 408, 429, 5xx),
+  // plus a network error, which has no status.
+  const retryHere = sender.provider === 'sendgrid';
+  let result: EmailSendResult;
+  try {
+    result = await withRetry(async () => {
+      const attempt = await sender.send({
+        to,
         subject: sanitizedSubject,
-        content: [{ type: isHtml ? 'text/html' : 'text/plain', value: sanitizedBody }],
-      }),
-      signal: AbortSignal.timeout(15000), // 15 second timeout
+        ...(isHtml ? { html: sanitizedBody } : { text: sanitizedBody }),
+        from: 'hello@ferni.ai',
+        fromName: 'Ferni',
+        kind: 'transactional',
+      });
+      if (retryHere && !attempt.ok && (attempt.status || attempt.retryable)) {
+        const message = attempt.error ?? 'send failed';
+        throw attempt.status ? new ProviderHttpError(message, attempt.status) : new Error(message);
+      }
+      return attempt;
     });
+  } catch (error) {
+    throw new Error(`Email send failed (${sender.provider}): ${(error as Error).message}`);
+  }
+  if (!result.ok)
+    throw new Error(`Email send failed (${result.provider}): ${result.error ?? 'unknown error'}`);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`SendGrid error: ${response.status} - ${errorText}`);
-    }
-
-    getLogger().info(
-      { to: sanitizeEmailForLog(to), subject: sanitizedSubject.slice(0, 50) },
-      'Email sent successfully'
-    );
-
-    return `Email sent to ${sanitizeEmailForLog(to)}: "${sanitizedSubject}"`;
-  });
+  getLogger().info(
+    {
+      to: sanitizeEmailForLog(to),
+      subject: sanitizedSubject.slice(0, 50),
+      provider: result.provider,
+    },
+    'Email sent successfully'
+  );
+  return `Email sent to ${sanitizeEmailForLog(to)}: "${sanitizedSubject}"`;
 }
 
 // ============================================================================
 // SMS SERVICE
 // ============================================================================
 
+/** Who a text is for, so a MINOR_CARE_SHARED_HOLD on their account stops it too. */
+export interface SmsOptions {
+  /** The member it is for or from (their account), when known. */
+  userId?: string;
+  /** Asked for in the call just now (a verification code): a hold doesn't stop it. */
+  askedNow?: boolean;
+}
+
 /**
- * Send an SMS via Twilio
+ * MINOR_CARE_SHARED_HOLD: `to`, or the account opts.userId, is held by a call under 18 and this
+ * was not asked for just now. For senders that may not import services/outreach (a lower layer).
  */
-export async function sendSMS(to: string, message: string): Promise<string> {
+export async function textHeld(to: string, opts: SmsOptions = {}): Promise<boolean> {
+  const { heldSender } = await import('./outreach/checkin-replies.js');
+  return !opts.askedNow && heldSender(opts.userId, to);
+}
+
+/**
+ * textHeld for the senders that reach Twilio themselves (in-call tools, the group call, voice
+ * messages, family check-ins): true when that text or call must not go. Logged without the number.
+ */
+export async function directSendHeld(
+  to: string,
+  what: 'text' | 'call',
+  opts: SmsOptions = {}
+): Promise<boolean> {
+  if (!(await textHeld(to, opts))) return false;
+  getLogger().info({ what }, 'Not sent: MINOR_CARE_SHARED_HOLD');
+  return true;
+}
+
+/**
+ * Send an SMS via Twilio. MINOR_CARE_SHARED_HOLD: never to an account (opts.userId) or a number
+ * a call held under 18, unless asked for just now (the code they asked for).
+ */
+export async function sendSMS(to: string, message: string, opts: SmsOptions = {}): Promise<string> {
   // Validate phone number
   const phoneValidation = validatePhone(to);
   if (!phoneValidation.valid) {
     throw new Error(`Invalid phone number: ${sanitizePhoneForLog(to)}`);
   }
+  if (await textHeld(to, opts)) throw new Error('SMS not sent: held');
 
   // Check Twilio credentials
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
@@ -178,6 +273,10 @@ export async function sendSMS(to: string, message: string): Promise<string> {
       'SMS service is not available: Twilio credentials are not configured. Contact support to enable SMS delivery.'
     );
   }
+
+  // MESSAGING_PIPELINE: every text through here stops at an opt-out (consent/{phoneHash}).
+  const refused = await consentBlocks(to, 'sms', true);
+  if (refused) throw new Error(`SMS not sent: ${refused}`);
 
   const sanitizedMessage = sanitizePlainText(message);
 
@@ -200,7 +299,10 @@ export async function sendSMS(to: string, message: string): Promise<string> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Twilio error: ${response.status} - ${JSON.stringify(errorData)}`);
+      throw new ProviderHttpError(
+        `Twilio error: ${response.status} - ${JSON.stringify(errorData)}`,
+        response.status
+      );
     }
 
     getLogger().info(

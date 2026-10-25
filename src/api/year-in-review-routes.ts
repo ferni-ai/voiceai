@@ -38,10 +38,10 @@ interface EmotionalMoment {
   intensity: number;
 }
 
+/** A teammate on this person's team (TEAM_BY_NEED: the whole team, nobody "unlocked"). */
 interface TeamUnlock {
   personaId: string;
   personaName: string;
-  unlockedAt?: string; // not recorded anywhere (unlocks follow the relationship stage)
   primaryColor: string;
 }
 
@@ -80,11 +80,14 @@ interface RelationshipGrowth {
 interface YearStats {
   totalConversations: number;
   totalMinutes?: number; // only when every conversation recorded its duration
-  longestStreak: number;
-  currentStreak: number;
+  // Always 0, kept for one release so a tab opened before this deploy (which
+  // still reads them) doesn't break; the web no longer reads them, and they go
+  // in a follow-up.
+  longestStreak: 0;
+  currentStreak: 0;
+  teamMembersUnlocked: 0;
   averageConversationsPerWeek: number;
   mostActiveMonth: string;
-  teamMembersUnlocked: number;
   dreamsTracked: number;
   commitmentsKept: number;
 }
@@ -107,29 +110,37 @@ interface YearData {
 // DATA FETCHING (from Firestore superhuman services)
 // ============================================================================
 
-async function fetchYearData(userId: string): Promise<YearData> {
+/** YYYY-MM-DD in the user's zone (UTC for none or an unknown zone): the heat map's day. */
+function dayKeyIn(ms: number, timeZone?: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || 'UTC' }).format(new Date(ms));
+  } catch {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+async function fetchYearData(userId: string, timeZone?: string): Promise<YearData> {
   const now = new Date();
   const yearAgo = new Date(now);
   yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
   // Fetch from various superhuman services
-  const [conversations, dreams, commitments, relationships, teamStatus] = await Promise.all([
-    fetchConversationHistory(userId, yearAgo),
+  const [conversations, dreams, commitments, relationships] = await Promise.all([
+    fetchConversationHistory(userId, yearAgo, timeZone),
     fetchDreams(userId),
     fetchCommitments(userId),
     fetchRelationships(userId),
-    fetchTeamUnlocks(userId),
   ]);
 
   // Calculate stats
-  const stats = calculateStats(conversations, dreams, commitments, teamStatus);
+  const stats = calculateStats(conversations, dreams, commitments);
 
   return {
     userId,
     startDate: yearAgo.toISOString(),
     conversationCounts: conversations.daily,
     emotionalJourney: conversations.emotionalMoments,
-    teamUnlocks: teamStatus,
+    teamUnlocks: wholeTeam(),
     dreams,
     commitments,
     milestones: conversations.milestones,
@@ -141,7 +152,8 @@ async function fetchYearData(userId: string): Promise<YearData> {
 
 async function fetchConversationHistory(
   userId: string,
-  since: Date
+  since: Date,
+  timeZone?: string
 ): Promise<
   {
     daily: DayData[];
@@ -180,7 +192,7 @@ async function fetchConversationHistory(
 
     for (const data of summaries) {
       const date = new Date(data.timestamp);
-      const dateKey = date.toISOString().split('T')[0];
+      const dateKey = dayKeyIn(date.getTime(), timeZone);
 
       // Daily count
       const existing = dailyMap.get(dateKey);
@@ -329,87 +341,32 @@ async function fetchRelationships(userId: string): Promise<RelationshipGrowth> {
   }
 }
 
-async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
-  try {
-    const { getTeamUnlockState } = await import('../services/team-unlocks.js');
-    const { getStore } = await import('../memory/store-factory.js');
-    const store = await getStore();
-    const profile = await store.getProfile(userId);
-    const state = getTeamUnlockState(profile);
+/**
+ * The whole team, always: TEAM_BY_NEED (Seth, 2026-10-11) puts everyone on the
+ * team from the first call, as Meet Your Team shows, whatever this server's flag.
+ */
+const TEAM: readonly TeamUnlock[] = [
+  { personaId: 'ferni', personaName: 'Ferni', primaryColor: '#4a6741' },
+  { personaId: 'maya-santos', personaName: 'Maya', primaryColor: '#a67a6a' },
+  { personaId: 'peter-john', personaName: 'Peter', primaryColor: '#3a6b73' },
+  { personaId: 'alex-chen', personaName: 'Alex', primaryColor: '#5a6b8a' },
+  { personaId: 'jordan-taylor', personaName: 'Jordan', primaryColor: '#c4856a' },
+  { personaId: 'nayan-patel', personaName: 'Nayan', primaryColor: '#b8956a' },
+];
 
-    // Use full member IDs (maya-santos, peter-john, etc.) to match TeamMemberId type
-    const PERSONA_COLORS: Record<string, string> = {
-      ferni: '#4a6741',
-      'maya-santos': '#a67a6a',
-      'peter-john': '#3a6b73',
-      'alex-chen': '#5a6b8a',
-      'jordan-taylor': '#c4856a',
-      'nayan-patel': '#b8956a',
-    };
-
-    // Map short display names for personaName (e.g., "Maya" not "Maya-santos")
-    const DISPLAY_NAMES: Record<string, string> = {
-      ferni: 'Ferni',
-      'maya-santos': 'Maya',
-      'peter-john': 'Peter',
-      'alex-chen': 'Alex',
-      'jordan-taylor': 'Jordan',
-      'nayan-patel': 'Nayan',
-    };
-
-    return state.unlockedMembers.map((memberId) => ({
-      personaId: memberId,
-      personaName:
-        DISPLAY_NAMES[memberId] ||
-        memberId.split('-')[0]?.charAt(0).toUpperCase() + memberId.split('-')[0]?.slice(1) ||
-        memberId,
-      primaryColor: PERSONA_COLORS[memberId] || '#4a6741',
-    }));
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to fetch team unlocks');
-    return [
-      {
-        personaId: 'ferni',
-        personaName: 'Ferni',
-        primaryColor: '#4a6741',
-      },
-    ];
-  }
+function wholeTeam(): TeamUnlock[] {
+  return TEAM.map((member) => ({ ...member }));
 }
 
 function calculateStats(
   conversations: { daily: DayData[]; milestones: Milestone[] } & ConversationTenure,
   dreams: DreamProgress[],
-  commitments: CommitmentSummary[],
-  teamUnlocks: TeamUnlock[]
+  commitments: CommitmentSummary[]
 ): YearStats {
   // Total conversations
   const totalConversations = conversations.daily.reduce((sum, d) => sum + d.count, 0);
 
-  // Streak calculation
-  let currentStreak = 0;
-  let longestStreak = 0;
-  let tempStreak = 0;
-  const sortedDays = [...conversations.daily].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-
-  const today = new Date().toISOString().split('T')[0];
-  for (let i = 0; i < sortedDays.length; i++) {
-    const day = sortedDays[i];
-    const expectedDate = new Date();
-    expectedDate.setDate(expectedDate.getDate() - i);
-    const expectedDateStr = expectedDate.toISOString().split('T')[0];
-
-    if (day.date === expectedDateStr) {
-      tempStreak++;
-      if (i === 0 || day.date === today) currentStreak = tempStreak;
-    } else {
-      if (tempStreak > longestStreak) longestStreak = tempStreak;
-      tempStreak = 0;
-    }
-  }
-  if (tempStreak > longestStreak) longestStreak = tempStreak;
+  // No streaks (Seth, 2026-10-11 TEAM_BY_NEED / 2026-10-17): showing up is never tallied.
 
   // Most active month
   const monthCounts = new Map<string, number>();
@@ -433,11 +390,11 @@ function calculateStats(
   return {
     totalConversations,
     totalMinutes: conversations.minutes,
-    longestStreak,
-    currentStreak,
+    longestStreak: 0,
+    currentStreak: 0,
+    teamMembersUnlocked: 0,
     averageConversationsPerWeek: averageConversationsPerWeek(totalConversations, conversations),
     mostActiveMonth,
-    teamMembersUnlocked: teamUnlocks.length,
     dreamsTracked: dreams.length,
     commitmentsKept,
   };
@@ -470,7 +427,8 @@ export async function handleYearInReviewRoutes(
 
     try {
       log.info({ userId }, 'Fetching year in review data');
-      const data = await fetchYearData(userId);
+      const tz = typeof parsedUrl.query.tz === 'string' ? parsedUrl.query.tz : undefined;
+      const data = await fetchYearData(userId, tz); // days in the caller's zone, not UTC
       sendJSON(res, data);
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to fetch year in review');

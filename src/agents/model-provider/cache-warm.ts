@@ -17,16 +17,19 @@
  * turn would (toolsForTurn), and warms again after each later change to them,
  * once per distinct tool set.
  *
- * Both fast-lane models are warmed. CASCADE_CACHE_WARM=on (or FIRST_TURN_FAST=on)
+ * Both fast-lane models are warmed (with CACHE_WARM_PRIMARY=on, each hedge's
+ * primary rather than the hedge). CASCADE_CACHE_WARM=on (or FIRST_TURN_FAST=on)
  * turns it on.
  *
  * @module agents/model-provider/cache-warm
  */
 
 import { llm } from '@livekit/agents';
+import { flagOn } from '../../config/env-flag.js';
 import { llmContextCacheEnabled } from '../../config/llm-context-cache-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { FastLaneLLM } from './fast-lane.js';
+import { HedgedLLM } from './hedged-llm.js';
 
 const log = createLogger({ module: 'CacheWarm' });
 
@@ -68,9 +71,23 @@ export function toolContent(toolCtx: llm.ToolContext): string {
   );
 }
 
-/** The models a first reply can go to. */
-export function modelsToWarm(model: unknown): llm.LLM[] {
-  if (model instanceof FastLaneLLM) return [model.fast, model.main];
+/**
+ * The models a first reply can go to. A hedge is warmed through itself unless
+ * CACHE_WARM_PRIMARY=on, which warms its primary directly. A warm starts cold, so
+ * it can pass the hedge delay; the backup then starts, answers first, and the
+ * primary's stream is closed before its prefix is cached. Prod 2026-10-23: the warm's
+ * backup won at 1,304 ms and the caller's first turn had 0 of 13,755 tokens cached.
+ */
+export function modelsToWarm(
+  model: unknown,
+  env: Record<string, string | undefined> = process.env
+): llm.LLM[] {
+  if (model instanceof FastLaneLLM) {
+    return [model.fast, model.main].flatMap((m) => modelsToWarm(m, env));
+  }
+  if (model instanceof HedgedLLM && flagOn('CACHE_WARM_PRIMARY', env)) {
+    return modelsToWarm(model.primary, env);
+  }
   return model instanceof llm.LLM ? [model] : [];
 }
 
@@ -152,7 +169,7 @@ export async function warmPromptCache(
     const s = session as SessionView | undefined;
     const agent = s?.currentAgent;
     if (s === undefined || agent === undefined) return null;
-    const models = modelsToWarm(agent.llm ?? s.llm);
+    const models = modelsToWarm(agent.llm ?? s.llm, env);
     const toolCtx = await turnTools(s, agent);
     await Promise.all(models.map(async (m) => warmOne(m, agent, toolCtx, timeoutMs)));
     return toolContent(toolCtx);

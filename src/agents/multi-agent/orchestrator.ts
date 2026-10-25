@@ -26,22 +26,25 @@ import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { isProactiveCall } from './greeting-direction.js';
 import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
-import {
-  arrivalLine,
-  briefedHandoffs,
-  briefingFor,
-  departureLine,
-  withBrief,
-} from './handoff-brief.js';
+import { holdOutOfMemory } from './arrival-grounding.js';
+import { warmIncomingPersona } from '../model-provider/handoff-cache-warm.js';
+import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
+import { familyArrival, familyDeparture } from './family-table.js';
 export { calmGreeting } from './greeting-direction.js';
-
-// Predictive handoff - pre-briefings for specialist personas
-import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
-import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
+import { markBriefingUsed } from '../../services/automation/predictive-handoff.js';
+import {
+  ARRIVAL_GAP_MS,
+  handoffFastArrival,
+  preBriefSpecialist,
+  startEarly,
+} from './handoff-fast-arrival.js';
+import {
+  armArrivalCooldown,
+  disarmArrivalCooldown,
+} from '../../speech/coordination/arrival-cooldown.js';
 
 const log = getLogger();
 
@@ -246,8 +249,7 @@ export class AgentOrchestrator {
     try {
       // A call Ferni placed waits for the phone to be picked up. One for someone opens
       // with who it is and who it's for, never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
-        await import('../shared/outbound-opener.js');
+      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
@@ -259,13 +261,12 @@ export class AgentOrchestrator {
         if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
-        // A proactive call to Ferni's own user waits for the pickup too.
-        if (await isProactiveCall(this.sessionId)) {
-          const answered = await waitForCallAnswered(this.room, this.userParticipant);
-          if (!answered) {
-            log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
-            return;
-          }
+        // A proactive call to Ferni's own user waits for the pickup too (a moved one is screened).
+        const { proactivePickedUp } = await import('../shared/line-screen.js');
+        const { room, userParticipant: phone, sessionId } = this;
+        if ((await proactivePickedUp(room, phone, agent, sessionId)) === false) {
+          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+          return;
         }
         const userData = agent.userData as UserData | undefined;
         greeting = await greetingOrResume(this.sessionId, agent, userData); // RESUME_AFTER_DROP
@@ -318,7 +319,7 @@ export class AgentOrchestrator {
     log.info(
       {
         targetPersonaId: request.targetPersonaId,
-        reason: request.reason,
+        reasonChars: request.reason?.length ?? 0,
         currentState: {
           activeAgentId: this.activeAgentId,
           agentsMapSize: this.agents.size,
@@ -371,17 +372,41 @@ export class AgentOrchestrator {
 
     // BRIEFED_HANDOFF: the teammate's brief and first line, written while the goodbye plays
     const briefing = briefedHandoffs()
-      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId))
+      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId), this.sessionId)
       : null;
     // HANDOFF_TALK_THROUGH: the caller may talk through the goodbye (handoff-talk-through.ts)
     const talk = isSwappable(currentAgent) ? talkThroughFor(currentAgent, this.sessionId) : null;
+    const swap = singleSessionHandoffs() && isSwappable(currentAgent) ? currentAgent : null;
+    const spawnNext = async () => {
+      const { preBriefing, summary } = await preBriefSpecialist(
+        this.userId,
+        request.targetPersonaId,
+        request.conversationSummary
+      );
+      const briefed = await briefing; // bounded (handoff-brief.ts), and mostly done by now
+      const agent = await this.spawnAgent(request.targetPersonaId, {
+        room: this.room,
+        userParticipant: this.userParticipant,
+        conversationSummary: withBrief(briefed, summary),
+        recentMessages: request.recentMessages,
+        userName: request.userName,
+        isHandoff: true,
+        previousPersonaId,
+        callSession: swap?.session,
+      });
+      return { newAgent: agent, briefed, preBriefing };
+    };
+    // HANDOFF_FAST_ARRIVAL: the teammate is set up while the goodbye plays (handoff-fast-arrival.ts)
+    const fast = swap !== null && handoffFastArrival();
+    if (fast) armArrivalCooldown(ARRIVAL_GAP_MS);
+    const early = fast ? startEarly(spawnNext) : null;
     try {
       const step1Start = Date.now(); // STEP 1: Let old agent say goodbye naturally
       log.info(
         { from: previousPersonaId, to: request.targetPersonaId },
         '🎭 [HANDOFF STEP 1/5] Starting goodbye speech...'
       );
-      await this.agentSaysGoodbye(currentAgent, request.targetPersonaId, talk);
+      await this.agentSaysGoodbye(currentAgent, request, talk);
       log.info(
         { from: previousPersonaId, durationMs: Date.now() - step1Start },
         '🎭 [HANDOFF STEP 1/5] ✅ Goodbye complete'
@@ -394,7 +419,6 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 2/5] Closing old agent...'
       );
       diag.entry(`🎭 Closing ${previousPersonaId}`);
-      const swap = singleSessionHandoffs() && isSwappable(currentAgent) ? currentAgent : null;
       if (!swap) await this.removeAgent(currentAgent.id); // swapped out below instead
       log.info(
         { personaId: previousPersonaId, durationMs: Date.now() - step2Start },
@@ -408,60 +432,7 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 3/5] Spawning new agent...'
       );
 
-      // 🧠 PREDICTIVE HANDOFF: Fetch pre-briefing for the specialist
-      let preBriefing: PreBriefing | null = null;
-      let enhancedSummary = request.conversationSummary;
-      if (this.userId) {
-        try {
-          preBriefing = await getPreBriefing(
-            this.userId,
-            request.targetPersonaId as Parameters<typeof getPreBriefing>[1]
-          );
-          if (preBriefing) {
-            // Enhance the conversation summary with pre-briefing context
-            const briefingContext = [
-              `[PRE-BRIEFING FROM FERNI TEAM]`,
-              preBriefing.context,
-              preBriefing.suggestedApproach
-                ? `Suggested approach: ${preBriefing.suggestedApproach}`
-                : '',
-              preBriefing.relevantHistory.length > 0
-                ? `Relevant history: ${preBriefing.relevantHistory.join('; ')}`
-                : '',
-            ]
-              .filter(Boolean)
-              .join('\n');
-
-            enhancedSummary = enhancedSummary
-              ? `${briefingContext}\n\n${enhancedSummary}`
-              : briefingContext;
-
-            log.info(
-              {
-                userId: this.userId,
-                targetPersona: request.targetPersonaId,
-                briefingId: preBriefing.id,
-              },
-              '🧠 [PREDICTIVE] Pre-briefing applied to handoff context'
-            );
-          }
-        } catch (err) {
-          // Non-critical - continue without pre-briefing
-          log.debug({ error: String(err) }, 'Pre-briefing fetch skipped');
-        }
-      }
-
-      const briefed = await briefing; // bounded (handoff-brief.ts), and mostly done by now
-      const newAgent = await this.spawnAgent(request.targetPersonaId, {
-        room: this.room,
-        userParticipant: this.userParticipant,
-        conversationSummary: withBrief(briefed, enhancedSummary),
-        recentMessages: request.recentMessages,
-        userName: request.userName,
-        isHandoff: true,
-        previousPersonaId,
-        callSession: swap?.session,
-      });
+      const { newAgent, briefed, preBriefing } = await (early ?? spawnNext());
       const forget = (persona: { id: string }) => this.agents.delete(persona.id);
       if (swap) await swapPersona(swap, newAgent, forget, request.onAgentReady);
       log.info(
@@ -474,10 +445,10 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 3/5] ✅ New agent spawned'
       );
 
-      // STEP 4: Switch active agent
-      const step4Start = Date.now();
+      const step4Start = Date.now(); // STEP 4: Switch active agent
       log.info({ newAgentId: newAgent.id }, '🎭 [HANDOFF STEP 4/5] Setting new agent as active...');
       this.setActiveAgent(newAgent.id);
+      void warmIncomingPersona(newAgent.session); // HANDOFF_CACHE_WARM, never waited on
       log.info(
         { activeAgentId: this.activeAgentId, durationMs: Date.now() - step4Start },
         '🎭 [HANDOFF STEP 4/5] ✅ Active agent switched'
@@ -518,7 +489,6 @@ export class AgentOrchestrator {
         `🎭 Handoff complete: ${previousPersonaId} → ${request.targetPersonaId} (${durationMs}ms)`
       );
 
-      // Notify callback
       this.onHandoffComplete?.(previousPersonaId, request.targetPersonaId);
 
       // 🧠 PREDICTIVE HANDOFF: Mark pre-briefing as used (non-blocking)
@@ -535,11 +505,18 @@ export class AgentOrchestrator {
       };
     } catch (error) {
       talk?.abandon();
+      // HANDOFF_FAST_ARRIVAL: a teammate set up early that never came on must stop listening
+      void early
+        ?.then(async ({ newAgent }) => {
+          if (this.activeAgentId === newAgent.id) return;
+          this.agents.delete(newAgent.id);
+          await (newAgent as { release?: () => Promise<void> }).release?.();
+        })
+        .catch(() => undefined);
       const durationMs = Date.now() - startTime;
       log.error(
         {
-          error: String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+          error, // its frames too; the safe logger cuts the message (error-text.ts)
           from: previousPersonaId,
           to: request.targetPersonaId,
           durationMs,
@@ -567,6 +544,7 @@ export class AgentOrchestrator {
         durationMs,
       };
     } finally {
+      if (fast) disarmArrivalCooldown();
       this.handoffInProgress = false;
     }
   }
@@ -734,7 +712,7 @@ export class AgentOrchestrator {
       );
     } catch (err) {
       log.warn(
-        { error: String(err), stack: err instanceof Error ? err.stack : undefined },
+        { error: err },
         '🎭 [removeAgent] ⚠️ Error during agent cleanup'
       );
     }
@@ -759,10 +737,11 @@ export class AgentOrchestrator {
    */
   private async agentSaysGoodbye(
     agent: PersonaAgent,
-    targetPersonaId: string,
+    request: HandoffRequest,
     talk: TalkThrough | null = null
   ): Promise<void> {
-    const goodbye = this.getGoodbyePhrase(agent.personaId, targetPersonaId);
+    const { targetPersonaId } = request;
+    const goodbye = this.getGoodbyePhrase(agent, request);
     const displayName = getPersonaDisplayName(targetPersonaId);
     const textToSpeak = goodbye || `Let me get ${displayName} for you.`;
 
@@ -821,12 +800,11 @@ export class AgentOrchestrator {
   private async agentGreets(
     agent: PersonaAgent,
     previousPersonaId: string,
-    request: HandoffRequest,
+    _request: HandoffRequest,
     firstLine?: string
   ): Promise<void> {
-    const greeting =
-      firstLine ?? this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
-    const textToSpeak = greeting || "Hey! What's up?";
+    const greeting = this.getGreetingPhrase(agent.personaId, previousPersonaId, firstLine);
+    const textToSpeak = holdOutOfMemory(this.sessionId, greeting || "Hey! What's up?"); // ARRIVAL_LINE_GROUNDED
 
     log.info(
       {
@@ -929,18 +907,18 @@ export class AgentOrchestrator {
     return speakingTimeMs + breakTimeMs + buffer;
   }
 
-  /** The departing persona's last line (handoff-brief.ts). */
-  private getGoodbyePhrase(fromPersonaId: string, toPersonaId: string): string | null {
-    return departureLine(fromPersonaId, toPersonaId);
+  /** The departing persona's last line (handoff-brief.ts; FAMILY_TABLE: family-table.ts). */
+  private getGoodbyePhrase(agent: PersonaAgent, request: HandoffRequest): string | null {
+    return familyDeparture(agent, request, this.sessionId);
   }
 
-  /** The arriving teammate's first line (handoff-brief.ts). */
+  /** The arriving teammate's first line: the briefed one or banter, after any word back. */
   private getGreetingPhrase(
     toPersonaId: string,
     fromPersonaId: string,
-    _request: HandoffRequest
-  ): string | null {
-    return arrivalLine(toPersonaId, fromPersonaId);
+    firstLine?: string
+  ): string {
+    return familyArrival(toPersonaId, fromPersonaId, this.sessionId, firstLine);
   }
 }
 

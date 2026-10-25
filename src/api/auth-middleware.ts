@@ -51,14 +51,13 @@ export interface AuthContext {
   userId: string;
   /** Firebase UID if authenticated via Firebase */
   firebaseUid?: string;
-  /** Whether user is an admin */
-  isAdmin: boolean;
-  /** Whether running in dev mode */
-  isDevMode: boolean;
+  isAdmin: boolean; // whether user is an admin
+  isDevMode: boolean; // whether running in dev mode
   /** Which auth method was used */
   authMethod: 'api_key' | 'firebase' | 'dev_mode';
   /** User's email (if available from Firebase) */
   email?: string;
+  emailVerified?: boolean; // Firebase verified that email (anyone can type an unverified one)
   /** Whether Firebase user is anonymous */
   isAnonymous?: boolean;
 }
@@ -68,7 +67,7 @@ export interface AuthConfig {
   optional?: boolean;
   /** Require admin privileges */
   requireAdmin?: boolean;
-  /** Allow dev mode bypass */
+  /** Accept the development-only X-Admin-Key dev-mode bypass (default true; false sends 401) */
   allowDevMode?: boolean;
 }
 
@@ -229,6 +228,7 @@ async function tryFirebaseAuth(req: IncomingMessage, token: string): Promise<Aut
       isDevMode: false,
       authMethod: 'firebase',
       email: verified.email,
+      emailVerified: verified.emailVerified,
       isAnonymous: verified.isAnonymous,
     };
   } catch (error) {
@@ -316,8 +316,8 @@ export async function requireAuth(
     return null;
   }
 
-  // Dev mode not allowed in this context
-  if (auth.isDevMode && !allowDevMode && !IS_DEV) {
+  // Dev mode not allowed here. No !IS_DEV: dev-mode only exists in development (#2143)
+  if (auth.isDevMode && !allowDevMode) {
     log.warn({ url: req.url, userId: auth.userId }, 'Dev mode not allowed');
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
@@ -386,7 +386,7 @@ export function requireAuthSync(
     return null;
   }
 
-  if (auth.isDevMode && !allowDevMode && !IS_DEV) {
+  if (auth.isDevMode && !allowDevMode) {
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
   }

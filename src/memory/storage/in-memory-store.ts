@@ -9,6 +9,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions } from './store.js';
+import { refuseUnsaved } from './profile-read-failure.js';
 import type {
   UserProfile,
   ConversationSummary,
@@ -63,6 +64,7 @@ export class InMemoryStore extends MemoryStore {
   }
 
   async saveProfile(profile: UserProfile): Promise<void> {
+    refuseUnsaved(profile); // a stand-in built after a failed read never overwrites stored data
     this.profiles.set(profile.id, { ...profile, updatedAt: new Date() });
     getLogger().debug(`Saved profile: ${profile.id}`);
     return Promise.resolve();

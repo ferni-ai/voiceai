@@ -9,7 +9,6 @@
  */
 
 import {
-  isSoundDirectorOn,
   isSoundOn,
   setSoundOn,
   soundGate,
@@ -81,7 +80,6 @@ const preloadedAudio: Map<SoundName, HTMLAudioElement> = new Map();
 
 let audioContext: AudioContext | null = null;
 let masterGain: GainNode | null = null;
-let isMuted = false;
 let isInitialized = false;
 
 // ============================================================================
@@ -366,7 +364,7 @@ export function initSoundUI(): void {
       audioContext = new (window.AudioContext ?? (window as any).webkitAudioContext)();
       masterGain = audioContext.createGain();
       masterGain.connect(audioContext.destination);
-      masterGain.gain.value = 1;
+      masterGain.gain.value = getMuted() ? 0 : 1;
       isInitialized = true;
     } catch (e) {
       log.warn('Audio not supported');
@@ -416,7 +414,7 @@ async function playMP3(name: SoundName): Promise<boolean> {
   try {
     // Clone the audio element for overlapping plays
     const clone = audio.cloneNode() as HTMLAudioElement;
-    clone.volume = isMuted ? 0 : 0.4;
+    clone.volume = getMuted() ? 0 : 0.4;
     await clone.play();
     log.debug(`🔊 Playing MP3: ${name}`);
     return true;
@@ -432,7 +430,7 @@ async function playMP3(name: SoundName): Promise<boolean> {
 
 /** `earcon` names the call moment this sound marks; the sound director (flag) plays only those. */
 export function play(name: SoundName, earcon?: Earcon): void {
-  if (isMuted) return;
+  if (getMuted()) return;
 
   // MOBILE FIX: Debounce sounds to prevent "casino effect"
   if (!canPlaySound(name)) {
@@ -579,10 +577,9 @@ function setupHoverSounds(): void {
 // CONTROLS
 // ============================================================================
 
+/** Mute is the saved Sound setting (`ferni:sound`), director on or off, so it survives a reload. */
 export function setMuted(muted: boolean): void {
-  // Director on: this is the one saved Sound setting for every engine.
-  if (isSoundDirectorOn()) setSoundOn(!muted);
-  isMuted = muted;
+  setSoundOn(!muted);
 
   if (masterGain) {
     masterGain.gain.value = muted ? 0 : 1;
@@ -595,7 +592,7 @@ export function toggleMute(): boolean {
 }
 
 export function getMuted(): boolean {
-  return isSoundDirectorOn() ? !isSoundOn() : isMuted;
+  return !isSoundOn();
 }
 
 // ============================================================================

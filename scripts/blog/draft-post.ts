@@ -3,19 +3,25 @@
  * Draft one blog post from merged PRs and the brand docs.
  *
  *   pnpm tsx scripts/blog/draft-post.ts --type <type> [--dry-run] [--since YYYY-MM-DD]
- *     [--persona maya] [--date YYYY-MM-DD] [--meta-out file.json]
+ *     [--persona maya] [--date YYYY-MM-DD] [--meta-out file.json] [--details]
  *
  * Types: see post-types.ts. --dry-run prints the prompt and sources and calls
  * no model. --meta-out writes what the workflow needs for the PR (the path,
  * the sources, and the grounding text the gate checks numbers against).
  * Exits 1 when the draft still fails the brand gate after a retry, or at once
  * when it links off the allowlist or carries raw HTML (untrusted-text.ts).
+ *
+ * The workflow's log is public, so a rejected draft prints only its rule
+ * codes, counts and source PR numbers, and a written one its title and slug
+ * (log-safe.ts). --details also prints a rejected draft and its findings, for
+ * a person running this locally; the workflow never passes it.
  */
 
 import * as fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import { draftPost } from './draft.js';
 import { renderPack, runGh, sourceList } from './grounding.js';
+import { issueDetails, rejectedSummary, writtenSummary } from './log-safe.js';
 import { geminiModel } from './model.js';
 
 const { values } = parseArgs({
@@ -26,11 +32,12 @@ const { values } = parseArgs({
     date: { type: 'string' },
     'dry-run': { type: 'boolean', default: false },
     'meta-out': { type: 'string' },
+    details: { type: 'boolean', default: false },
   },
 });
 
 if (!values.type) {
-  console.error('usage: draft-post.ts --type <type> [--dry-run] [--since YYYY-MM-DD]');
+  console.error('usage: draft-post.ts --type <type> [--dry-run] [--since YYYY-MM-DD] [--details]');
   process.exit(2);
 }
 
@@ -66,11 +73,13 @@ switch (result.status) {
     console.log(`No merged PRs to write a ${result.type} post from. Nothing written.`);
     break;
   case 'written':
-    console.log(`Wrote ${result.path}`);
+    console.log(writtenSummary(result.title ?? '', result.path ?? ''));
     break;
   case 'rejected':
-    console.error(`The ${result.type} draft was rejected; nothing written:`);
-    for (const issue of result.issues) console.error(`  [${issue.rule}] ${issue.message}`);
-    if (result.markdown) console.error(`\nLast draft:\n${result.markdown}`);
+    for (const line of rejectedSummary(result)) console.error(line);
+    if (values.details) {
+      for (const line of issueDetails(result.issues)) console.error(line);
+      if (result.markdown) console.error(`\nLast draft:\n${result.markdown}`);
+    }
     process.exit(1);
 }

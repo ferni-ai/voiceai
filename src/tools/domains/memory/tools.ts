@@ -1,8 +1,7 @@
 /**
  * Memory Domain - Tool Implementations
  *
- * Agent-agnostic memory tools that work with any persona.
- * No agent-specific references - just pure memory functionality.
+ * Agent-agnostic memory tools that work with any persona (no agent-specific references).
  */
 
 import { llm } from '@livekit/agents';
@@ -12,7 +11,9 @@ import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js'
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
-import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { memoryHeld } from '../../../utils/minor-care.js';
+import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { keepRemembered, profileForCaller } from '../../../memory/index.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -99,7 +100,7 @@ export const rememberAboutUserDef: ToolDefinition = {
 
         // Feed to learning engine for persistence
         const { services } = userData;
-        if (services?.captureInsight) {
+        if (services?.captureInsight && !memoryHeld((services as { sessionId?: string }).sessionId)) {
           const typeMap: Record<string, string> = {
             personal: 'relationship',
             financial: 'concern',
@@ -149,9 +150,8 @@ export const recallFromMemoryDef: ToolDefinition = {
         const { services } = userData;
 
         if (services?.userProfile) {
-          const profile = services.userProfile;
+          const profile = await profileForCaller(userData.userId, services.userProfile);
 
-          // Check various memory stores
           if (profile.lastConversationSummary) {
             return `From our last conversation, I remember: ${profile.lastConversationSummary}`;
           }
@@ -168,9 +168,9 @@ export const recallFromMemoryDef: ToolDefinition = {
           }
         }
 
-        // Check session memory
-        if (userData.keyMoments && userData.keyMoments.length > 0) {
-          return `From our conversation today: ${userData.keyMoments.join('; ')}`;
+        const moments = await keepRemembered(userData.userId, userData.keyMoments ?? []);
+        if (moments.length > 0) {
+          return `From our conversation today: ${moments.join('; ')}`;
         }
 
         return `I don't have specific memories about that yet. What's on your mind?`;
@@ -356,7 +356,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
         const { services } = userData;
 
         if (services?.userProfile) {
-          const profile = services.userProfile;
+          const profile = await profileForCaller(userData.userId, services.userProfile);
           const sections: string[] = [];
 
           if (profile.name) {
@@ -470,7 +470,7 @@ export const updateMemoryDef: ToolDefinition = {
 export const forgetMemoryDef: ToolDefinition = {
   id: 'forgetMemory',
   name: 'Forget Memory',
-  description: 'Remove something from memory when the user asks you to forget it',
+  description: 'Stop bringing something up when the user asks you to forget it',
   domain: 'memory',
   tags: ['memory', 'delete', 'forget', 'privacy'],
 
@@ -490,7 +490,7 @@ export const forgetMemoryDef: ToolDefinition = {
         );
 
         if (!confirmDeletion) {
-          return `Just to confirm - you'd like me to forget about "${whatToForget}"? Let me know and I'll remove it.`;
+          return `Just to confirm - you'd like me to forget about "${whatToForget}"?`;
         }
 
         const userData = toolCtx.userData as UserData;
@@ -511,8 +511,7 @@ export const forgetMemoryDef: ToolDefinition = {
           );
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
+        return forgetDoneNote(forgot); // only what happened, never "forgotten" for hidden (forget.ts)
       },
     });
   },

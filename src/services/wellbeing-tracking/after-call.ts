@@ -5,9 +5,9 @@
  *
  * Why: the only other writer is the per-turn regex detector (detectWellbeing),
  * which needs first-person phrasing like "I'm exhausted" or "I feel lonely" in
- * a single turn. The founder's 283 turns over 7 days on prod (20 calls) had no
- * match, so "How You're Feeling" stayed empty for him. Reading the whole call
- * once catches "doing pretty good, just wiped from the week" too.
+ * a single turn. Most calls had no match, so "How You're Feeling" stayed empty.
+ * Reading the whole call once catches "doing pretty good, just wiped from the
+ * week" too.
  *
  * Scores are 0 to 1 like the detector's (the panel shows them as percents);
  * a dimension the caller didn't speak to stays out, so nothing is invented.
@@ -17,6 +17,7 @@
 import { envForCaller, type CohortStore } from '../platform/cohort-flags.js';
 import { callLLM } from '../llm-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import { persistSnapshot } from './persistence.js';
 import type { WellbeingDimensions, WellbeingSnapshot } from './index.js';
 
@@ -101,7 +102,7 @@ export async function recordWellbeingAfterCall(
   ctx: WellbeingCall,
   deps: WellbeingDeps = {}
 ): Promise<void> {
-  if (!ctx.userId || ctx.userId === 'anonymous') return;
+  if (!isMemberIdentity(ctx.userId)) return;
   // This caller's flags: process.env may already hold the next caller's.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!wellbeingAfterCallOn(env)) return;

@@ -24,7 +24,7 @@ npm run ops:logs:errors   # View error logs only
 | **Downtime Alerts** | Active | Email alerts when services go down |
 | **Error Rate Alerts** | Active | Email when error rate > 5/min |
 | **Budget Alert** | Active | $50/month with 50%, 80%, 100% thresholds |
-| **Email Notifications** | Active | seth.ford@gmail.com receives alerts |
+| **Email Notifications** | Active | The owner's address (OWNER_EMAIL) receives alerts |
 
 **GCP Console Links:**
 - Uptime Checks: https://console.cloud.google.com/monitoring/uptime?project=johnb-2025
@@ -97,7 +97,7 @@ npm run ops:logs:errors   # View error logs only
 - `Ferni High Error Rate` - Alerts when error rate > 5/min
 
 ### Notification Channels
-- Email: seth.ford@gmail.com (ID: 497418305396229287)
+- Email: the owner's address (OWNER_EMAIL) (ID: 497418305396229287)
 - Slack: #ferni-ops via webhook (ID: 6446167218147320966)
 
 ### Budget

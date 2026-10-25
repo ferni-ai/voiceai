@@ -48,23 +48,23 @@ const ICONS = {
   sparkles: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>`,
 };
 
-// Circadian period emojis (names/descriptions come from i18n)
-const PERIOD_EMOJI: Record<CircadianPeriod, string> = {
-  earlyMorning: '🌅',
-  morning: '☀️',
-  midday: '🌞',
-  afternoon: '🌤️',
-  evening: '🌇',
-  night: '🌙',
-  lateNight: '🌃',
-  deepNight: '✨',
+// Circadian period icons (names/descriptions come from i18n)
+const PERIOD_ICON: Record<CircadianPeriod, string> = {
+  earlyMorning: ICONS.sunrise,
+  morning: ICONS.sun,
+  midday: ICONS.sun,
+  afternoon: ICONS.sun,
+  evening: ICONS.sunset,
+  night: ICONS.moon,
+  lateNight: ICONS.owl,
+  deepNight: ICONS.sparkles,
 };
 
-function getPeriodInfo(period: CircadianPeriod): { name: string; description: string; emoji: string } {
+function getPeriodInfo(period: CircadianPeriod): { name: string; description: string; icon: string } {
   return {
     name: (t(`sleepSettings.periods.${period}`) ?? period) as string,
     description: (t(`sleepSettings.periodDescriptions.${period}`) ?? '') as string,
-    emoji: PERIOD_EMOJI[period] ?? '',
+    icon: PERIOD_ICON[period] ?? ICONS.sparkles,
   };
 }
 
@@ -216,8 +216,8 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 12px);
     }
 
-    .sleep-settings__preview-emoji {
-      font-size: 2rem;
+    .sleep-settings__preview-emoji svg {
+      width: 2rem; height: 2rem; color: var(--color-ferni-on-surface);
     }
 
     .sleep-settings__preview-info {
@@ -469,7 +469,7 @@ function render(): string {
       <div class="sleep-settings__content">
         <!-- Current Period Preview -->
         <div class="sleep-settings__preview" role="status" aria-live="polite">
-          <span class="sleep-settings__preview-emoji" aria-hidden="true">${periodInfo.emoji}</span>
+          <span class="sleep-settings__preview-emoji" aria-hidden="true">${periodInfo.icon}</span>
           <div class="sleep-settings__preview-info">
             <p class="sleep-settings__preview-name">${t('sleepSettings.currentPeriod', { period: periodInfo.name }) || `Currently: ${periodInfo.name}`}</p>
             <p class="sleep-settings__preview-desc">${periodInfo.description}</p>
@@ -732,7 +732,7 @@ function updatePreview(): void {
   const name = container.querySelector('.sleep-settings__preview-name');
   const desc = container.querySelector('.sleep-settings__preview-desc');
 
-  if (emoji) emoji.textContent = periodInfo.emoji;
+  if (emoji) emoji.innerHTML = periodInfo.icon;
   if (name) name.textContent = t('sleepSettings.currentPeriod', { period: periodInfo.name }) || `Currently: ${periodInfo.name}`;
   if (desc) desc.textContent = periodInfo.description;
 }

@@ -17,6 +17,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isThirdPartyCallUser } from '../../third-party-call.js';
+import { memoryHeld, userHeld } from '../../../utils/minor-care.js';
 import {
   extractEntities,
   extractFacts,
@@ -205,8 +207,6 @@ export function isEntityStorePersistenceReady(): boolean {
  */
 export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResult> {
   const startTime = Date.now();
-
-  // Default result
   const result: CaptureResult = {
     entities: { created: 0, updated: 0, resolved: [] },
     facts: { count: 0, entityIds: [] },
@@ -214,7 +214,8 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     metrics: { totalTimeMs: 0, extractionTimeMs: 0, storageTimeMs: 0 },
   };
 
-  if (!captureEnabled) {
+  // Off, or the person on an on-behalf call (not our user): nothing is extracted.
+  if (!captureEnabled || isThirdPartyCallUser(input.userId)) {
     log.debug({ userId: input.userId }, '🧠 [MEMORY-AUDIT] Capture disabled, skipping');
     return result;
   }
@@ -236,7 +237,6 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     return result;
   }
 
-  // Log that we're starting capture
   log.info(
     {
       userId: input.userId,
@@ -281,8 +281,9 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
       return result;
     }
 
+    // MINOR_CARE, at write time: the batch can hold turns from before they said they're under 18.
+    if (memoryHeld(input.sessionId) || userHeld(input.userId)) return result;
     // 2. Resolve entities to knowledge graph (create or match existing)
-    // MEMORY FIX: Only persist if entity store is ready, but continue with extraction logging
     const storageStart = Date.now();
 
     const resolvedEntities: Array<{
@@ -403,7 +404,6 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     }
 
     // 3. Extract facts about resolved entities AND create mentions with facts
-    // MEMORY FIX: Only persist if entity store is ready
     if (resolvedEntities.length > 0 && entityStoreReady) {
       // Import storage functions for persistence
       const { createMention, upsertRelationship } = await import('../../entity-store/storage.js');

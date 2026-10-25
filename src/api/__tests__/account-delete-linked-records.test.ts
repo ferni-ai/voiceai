@@ -3,6 +3,7 @@
  * their own documents, which the deleteAllData sweep never reached:
  * - push subscriptions (bogle_users/<uid>/push_subscriptions/data) and the
  *   push_endpoint_owners records naming them;
+ * - the native app's device tokens (push_devices records naming them);
  * - OAuth link states they started;
  * - apple_transaction_owners records naming them, replaced by tombstones that
  *   keep no raw uid (deleting them would free the purchase for a first claim).
@@ -23,6 +24,12 @@ import type { IncomingMessage, ServerResponse } from 'http';
 const fs = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   failCollection: null as string | null,
+  failMessage: null as string | null,
+}));
+const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/safe-logger.js')>()),
+  createLogger: () => ({ ...logged, child: () => logged }),
 }));
 
 vi.mock('../../utils/firestore-utils.js', async (importOriginal) => {
@@ -42,7 +49,7 @@ vi.mock('../../utils/firestore-utils.js', async (importOriginal) => {
     doc: (id: string) => ref(`${name}/${id}`),
     where: (field: string, _op: '==', value: unknown) => ({
       get: async () => {
-        if (fs.failCollection === name) throw new Error(`${name} unavailable`);
+        if (fs.failCollection === name) throw new Error(fs.failMessage ?? `${name} unavailable`);
         const docs = [...fs.docs]
           .filter(([path, data]) => {
             const rest = path.slice(name.length + 1);
@@ -156,6 +163,13 @@ async function seed(uid: string): Promise<string> {
     subscriptions: [{ endpoint: `https://push.example/${uid}`, userId: uid }],
   });
   fs.docs.set(`push_endpoint_owners/hash-${uid}`, { userId: uid, keysHash: 'k' });
+  for (const n of [1, 2]) {
+    fs.docs.set(`push_devices/device-${n}-${uid}`, {
+      userId: uid,
+      token: `token-${n}`,
+      updatedAt: `2026-10-18T12:0${n}:00.000Z`,
+    });
+  }
   fs.docs.set(`apple_transaction_owners/otx-${uid}`, { userId: uid, claimedAt: 'then' });
   return startLink(uid);
 }
@@ -187,6 +201,8 @@ for (const storeKind of ['memory', 'firestore'] as const) {
 
       expect(fs.docs.has('bogle_users/alice/push_subscriptions/data')).toBe(false);
       expect(fs.docs.has('push_endpoint_owners/hash-alice')).toBe(false);
+      expect(fs.docs.has('push_devices/device-1-alice')).toBe(false);
+      expect(fs.docs.has('push_devices/device-2-alice')).toBe(false);
       const tomb = fs.docs.get('apple_transaction_owners/otx-alice');
       expect(tomb?.userId).toBeNull(); // tombstoned, not freed for someone's first claim
       expect(tomb?.deletedAt).toEqual(expect.any(String));
@@ -195,6 +211,7 @@ for (const storeKind of ['memory', 'firestore'] as const) {
 
       expect(fs.docs.has('bogle_users/bob/push_subscriptions/data')).toBe(true);
       expect(fs.docs.has('push_endpoint_owners/hash-bob')).toBe(true);
+      expect(fs.docs.has('push_devices/device-1-bob')).toBe(true);
       expect(fs.docs.get('apple_transaction_owners/otx-bob')?.userId).toBe('bob');
       expect((await live(stateB))?.uid).toBe('bob');
 
@@ -212,6 +229,22 @@ describe('DELETE /api/account when a linked sweep fails', () => {
   });
   afterEach(() => {
     fs.failCollection = null;
+    fs.failMessage = null;
+  });
+
+  it("logs the sweep that failed and the error's code, never its message", async () => {
+    await seed('alice');
+    fs.failCollection = 'apple_transaction_owners';
+    fs.failMessage = 'apple_transaction_owners/otx-alice: someone@example.com';
+    logged.error.mockClear();
+
+    await deleteAccount('alice');
+
+    expect(logged.error).toHaveBeenCalledWith(
+      { error: 'Error', userId: 'alice', records: 'apple_transaction_owners' },
+      'Records left behind'
+    );
+    expect(JSON.stringify(logged.error.mock.calls)).not.toContain('someone@example.com');
   });
 
   it('still deletes the account and the other records, and reports what was left', async () => {

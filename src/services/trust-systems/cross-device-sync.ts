@@ -13,9 +13,10 @@
  * Frontend real-time sync happens via API polling or websockets.
  */
 
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'CrossDeviceSync' });
 
@@ -182,7 +183,7 @@ export async function syncWrite(
 
 async function performWrite(userId: string, systemId: string, data: unknown): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const docRef = db
       .collection(TRUST_COLLECTION)
       .doc(userId)
@@ -219,7 +220,7 @@ async function flushPendingWrites(userId: string): Promise<void> {
   if (pendingUpdates.size === 0) return;
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const batch = db.batch();
 
     for (const [key, pending] of pendingUpdates) {
@@ -281,7 +282,7 @@ export function setNetworkStatus(_online: boolean): void {
  */
 export async function detectSessionContinuity(userId: string): Promise<SessionContinuity> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const sessionDocRef = db
       .collection(TRUST_COLLECTION)
       .doc(userId)
@@ -344,7 +345,7 @@ export async function updateSessionState(
   isEnding = false
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const sessionDocRef = db
       .collection(TRUST_COLLECTION)
       .doc(userId)

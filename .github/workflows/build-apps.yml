@@ -1,9 +1,12 @@
 # Voice AI - Build Native Apps
 #
-# Builds the mobile apps (iOS, Android). The Electron desktop app was removed.
-# Triggered on version tags (v*) or manual dispatch. Pull requests and the merge
-# queue run only the iOS build and unit tests, and only when the iPhone app,
-# the shared Swift package or this workflow changed.
+# Builds the iOS app. The Electron desktop app and the native Android app were
+# removed: Android ships as a Trusted Web Activity built by android-twa.yml.
+# The iOS build and unit tests run on every pull request and push to main that
+# touches the iPhone app or this workflow. Merge-queue
+# groups skip them: no required check comes from here, and a macOS job per group
+# held queue runners (merge-queue-jobs.test.ts). Tags (v*) and manual dispatch
+# also build an unsigned iOS archive.
 
 name: Build Native Apps
 
@@ -11,6 +14,12 @@ on:
   push:
     tags:
       - 'v*'
+    # main: only when the iPhone app or this workflow changed
+    # (GitHub does not apply path filters to tag pushes).
+    branches: [main]
+    paths:
+      - 'apps/ios-native/**'
+      - '.github/workflows/build-apps.yml'
   pull_request:
     branches: [main]
   merge_group:
@@ -25,12 +34,13 @@ on:
           - all
           - mobile
           - ios
-          - android
 
-# Cancel in-progress runs for same ref
+# A newer push to a PR cancels that PR's older run. Merge-queue, tag and manual
+# runs each get their own group and are never cancelled: cancelling a queue run
+# for a re-request on its ref drops the entry (see ci.yml's header).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_VERSION: '22'
@@ -39,13 +49,14 @@ jobs:
   # ============================================================================
   # iOS (Native SwiftUI): build and unit tests on a simulator, archive on tags
   # ============================================================================
-  # Pull requests and merge-queue groups run the iOS job only when they touch the
-  # iPhone app, the shared Swift package or this workflow (a skipped job still
-  # reports its check, so this can be made a required check later). ci.yml's
+  # Pull requests run the iOS job only when they touch the iPhone app or this
+  # workflow; merge-queue groups never run it (a skipped job
+  # still reports its check). Pushes to main are path-filtered in `on:` above,
+  # and a failed push run opens a main-red issue (nightly-health.yml). ci.yml's
   # Node jobs keep excluding apps/ios-native: they cannot see a Swift change.
   ios-changes:
     name: Did the iOS app change?
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,14 +69,13 @@ jobs:
       - id: ios
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(apps/ios-native/|apps/shared/|\.github/workflows/build-apps\.yml$)'
-          merge-group: 'true'
+          include: '^(apps/ios-native/|\.github/workflows/build-apps\.yml$)'
 
   build-ios:
     name: iOS build and test
     needs: ios-changes
     if: >
-      !cancelled() && (
+      !cancelled() && github.event_name != 'merge_group' && (
         needs.ios-changes.outputs.ios == 'true' ||
         github.event_name == 'push' ||
         github.event.inputs.platforms == 'all' ||
@@ -81,24 +91,23 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
           xcode-version: latest-stable
 
-      # FerniShared compiles a .metal shader; recent Xcode ships the Metal
-      # compiler as a separate download.
-      - name: Metal toolchain
-        run: |
-          xcodebuild -version
-          if ! xcrun -sdk iphonesimulator metal --version >/dev/null 2>&1; then
-            xcodebuild -downloadComponent MetalToolchain
-          fi
+      - name: Xcode version
+        run: xcodebuild -version
+
+      # No timers or delayed dispatch in the avatar and call (one clock, one state machine).
+      - name: Motion rules
+        working-directory: apps/ios-native
+        run: ./scripts/check-motion-rules.sh
 
       - name: Cache Swift packages
         uses: actions/cache@v6
         with:
           path: ${{ env.SPM_DIR }}
-          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios-native/FerniVoice.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios-native/Ferni.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
 
@@ -106,8 +115,8 @@ jobs:
         working-directory: apps/ios-native
         run: |
           xcodebuild -resolvePackageDependencies \
-            -project FerniVoice.xcodeproj \
-            -scheme FerniVoice \
+            -project Ferni.xcodeproj \
+            -scheme Ferni \
             -clonedSourcePackagesDirPath "$SPM_DIR"
 
       - name: Pick an iPhone simulator
@@ -128,11 +137,11 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild test \
-            -project FerniVoice.xcodeproj \
-            -scheme FerniVoice \
+            -project Ferni.xcodeproj \
+            -scheme Ferni \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -clonedSourcePackagesDirPath "$SPM_DIR" \
-            -resultBundlePath "$RUNNER_TEMP/FerniVoiceTests.xcresult" \
+            -resultBundlePath "$RUNNER_TEMP/FerniTests.xcresult" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO
@@ -142,20 +151,20 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ios-test-results
-          path: ${{ runner.temp }}/FerniVoiceTests.xcresult
+          path: ${{ runner.temp }}/FerniTests.xcresult
           retention-days: 14
 
       # Tags and manual runs also check that a Release archive builds. It is
       # unsigned: signing and upload stay manual in Xcode.
       - name: Build iOS archive (unsigned)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         working-directory: apps/ios-native
         run: |
-          xcodebuild -project FerniVoice.xcodeproj \
-            -scheme FerniVoice \
+          xcodebuild -project Ferni.xcodeproj \
+            -scheme Ferni \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/FerniVoice.xcarchive" \
+            -archivePath "$RUNNER_TEMP/Ferni.xcarchive" \
             -clonedSourcePackagesDirPath "$SPM_DIR" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
@@ -165,111 +174,9 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
       - name: Upload iOS archive
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
           name: ios-archive-unsigned
-          path: ${{ runner.temp }}/FerniVoice.xcarchive
+          path: ${{ runner.temp }}/Ferni.xcarchive
           retention-days: 30
-
-  # ============================================================================
-  # ANDROID BUILD (Native Kotlin/Compose)
-  # ============================================================================
-  build-android:
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.platforms == 'all' ||
-      github.event.inputs.platforms == 'mobile' ||
-      github.event.inputs.platforms == 'android'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('apps/android-native/**/*.gradle*', 'apps/android-native/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Decode Keystore
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/android-native/ferni-release.keystore
-
-      - name: Create key.properties
-        if: env.ANDROID_KEYSTORE_PASSWORD != ''
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          cat > apps/android-native/key.properties << EOF
-          storePassword=$ANDROID_KEYSTORE_PASSWORD
-          keyPassword=$ANDROID_KEY_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=../ferni-release.keystore
-          EOF
-
-      - name: Build Android APK
-        run: |
-          cd apps/android-native
-          chmod +x gradlew
-          ./gradlew assembleRelease
-
-      - name: Build Android Bundle (AAB)
-        run: |
-          cd apps/android-native
-          ./gradlew bundleRelease
-        continue-on-error: true
-
-      - name: Upload Android artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: android-build
-          path: |
-            apps/android-native/app/build/outputs/apk/release/*.apk
-            apps/android-native/app/build/outputs/bundle/release/*.aab
-          retention-days: 30
-
-  # ============================================================================
-  # CREATE RELEASE
-  # ============================================================================
-  create-release:
-    needs: [build-android]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: artifacts/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v3
-        with:
-          draft: true
-          generate_release_notes: true
-          files: |
-            artifacts/android-build/**/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

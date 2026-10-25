@@ -16,6 +16,7 @@ import {
 } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { endLabelKey, installCallRoom } from './call-room/call-room.js';
 
 const log = createLogger('ControlsUI');
 
@@ -49,6 +50,7 @@ interface ControlElements {
 let elements: ControlElements | null = null;
 let callbacks: ControlCallbacks | null = null;
 const cleanupFunctions: (() => void)[] = [];
+let uninstallCallRoom: (() => void) | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -74,6 +76,10 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
 
     // Set up state subscriptions
     setupSubscriptions();
+
+    // The call's own room, behind its off-by-default flag
+    uninstallCallRoom?.();
+    uninstallCallRoom = installCallRoom();
 
     // Initial state
     updateButtonVisibility(appState.get('connection'));
@@ -163,10 +169,7 @@ function updateButtonVisibility(state: ConnectionState): void {
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
       showConnectingStatus(elements.connectBtn, false);
-      // Reset disconnect button to default styling
-      removeClass(elements.disconnectBtn, 'btn-primary');
-      removeClass(elements.disconnectBtn, 'btn-magnetic');
-      addClass(elements.disconnectBtn, 'btn-secondary');
+      removeClass(elements.disconnectBtn, 'btn-end-call');
       break;
 
     case 'connecting':
@@ -182,10 +185,9 @@ function updateButtonVisibility(state: ConnectionState): void {
       hide(elements.connectBtn);
       show(elements.disconnectBtn, 'flex');
       elements.disconnectBtn.disabled = false;
-      // Make disconnect button match persona colors!
-      removeClass(elements.disconnectBtn, 'btn-secondary');
-      addClass(elements.disconnectBtn, 'btn-primary');
-      addClass(elements.disconnectBtn, 'btn-magnetic');
+      // Ending the call must not look like starting one: a calm outlined button
+      // with a soft warm tint, never the filled persona Connect pill.
+      addClass(elements.disconnectBtn, 'btn-end-call');
       break;
 
     case 'error':
@@ -283,10 +285,11 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     // Reset button text
     const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
     if (textSpan) {
-      textSpan.textContent = t('entrance.endTalk');
+      textSpan.textContent = t(endLabelKey());
     }
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
     elements.disconnectBtn.setAttribute('aria-label', t('session.endConversation'));
+    elements.disconnectBtn.disabled = false; // a goodbye taken back re-enables End (#2291)
   }
 }
 
@@ -366,6 +369,8 @@ export function dispose(): void {
     fn();
   }
   cleanupFunctions.length = 0;
+  uninstallCallRoom?.();
+  uninstallCallRoom = null;
   elements = null;
   callbacks = null;
 }

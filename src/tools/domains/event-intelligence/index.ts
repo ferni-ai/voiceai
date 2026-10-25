@@ -634,82 +634,42 @@ const checkPlanningReadinessDef: ToolDefinition = {
 };
 
 // ============================================================================
-// BACKGROUND RESERVATION TOOLS (Jordan's "While You Were Away" Powers)
+// RESERVATIONS: nothing can book yet
 // ============================================================================
+
+/**
+ * Nothing can book a table, room or venue yet. This tool used to wait a second,
+ * invent a confirmation number and later tell the user "Reserved ... Confirmation
+ * RES-..." for a booking nobody made. It now says so and offers what does work:
+ * finding the number (findBusiness) and calling them (callOnBehalf).
+ */
+export function reservationCantBook(venueName?: string): string {
+  const venue = venueName?.trim();
+  const what = venue ? venue : 'that';
+  return `I can't book ${what} directly yet, so nothing's reserved. I can find their number and call them for you if you'd like.`;
+}
 
 const backgroundReservationDef: ToolDefinition = {
   id: 'backgroundReservation',
-  name: 'Background Reservation',
+  name: 'Reservation Request',
   description:
-    'Make reservations in the background that continue even when the user disconnects. Perfect for: "Book dinner at Nobu for Saturday", "Reserve a table while I\'m away", "Get us a hotel room". Results are delivered when the user reconnects.',
+    'Use when the user asks to book or reserve a table, hotel room, venue or activity. This does NOT make a booking: it tells the user nothing is reserved and offers to find the number (findBusiness) and call them (callOnBehalf).',
   domain: 'event-intelligence',
-  tags: ['background', 'async', 'reservations', 'while-you-were-away', 'superhuman-events'],
+  tags: ['reservations', 'superhuman-events'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('backgroundReservation'),
+      description:
+        "Use when the user asks to book or reserve a table, hotel room, venue or activity. It can't book anything: it returns what to tell the user (nothing is reserved) and offers to look up the number with findBusiness and call with callOnBehalf. Never tell the user a booking was made.",
       parameters: z.object({
-        venueName: z.string().describe('Name of restaurant, hotel, or venue'),
-        reservationType: z
-          .enum(['restaurant', 'hotel', 'venue', 'activity', 'service', 'other'])
-          .describe('Type of reservation'),
-        dateTime: z.string().describe('When (e.g., "Saturday at 7pm", "March 15")'),
+        venueName: z.string().optional().describe('Name of the restaurant, hotel or venue'),
+        dateTime: z.string().optional().describe('When they want it (e.g., "Saturday at 7pm")'),
         partySize: z.number().optional().describe('Number of people'),
-        specialRequests: z.string().optional().describe('Any special requests or notes'),
-        alternateOptions: z
-          .array(z.string())
-          .optional()
-          .describe('Backup venues if first choice unavailable'),
-        urgency: z
-          .enum(['when_ready', 'asap', 'next_session'])
-          .optional()
-          .describe('When to deliver results'),
       }),
-      execute: async ({
-        venueName,
-        reservationType,
-        dateTime,
-        partySize = 2,
-        specialRequests,
-        alternateOptions,
-        urgency = 'when_ready',
-      }) => {
-        try {
-          const { queueReservationTask } =
-            await import('../../../services/background-agents/index.js');
-
-          const userId = ctx.userId || 'anonymous';
-          log.info({ userId, venueName, reservationType }, 'Queueing background reservation');
-
-          const taskId = await queueReservationTask({
-            userId,
-            venue: venueName,
-            type: reservationType,
-            dateTime,
-            partySize,
-            specialRequests,
-            initiatedBy: 'jordan',
-            sessionId: ctx.sessionId,
-            context: alternateOptions ? `Alternates: ${alternateOptions.join(', ')}` : undefined,
-          });
-
-          return `**Background Reservation Started** 📅
-
-I'm working on this! Making a reservation at ${venueName}.
-
-**Details:**
-• **Type:** ${reservationType}
-• **When:** ${dateTime}
-• **Party size:** ${partySize} people
-${specialRequests ? `• **Special requests:** ${specialRequests}` : ''}
-${alternateOptions && alternateOptions.length > 0 ? `• **Backups:** ${alternateOptions.join(', ')}` : ''}
-• **Task ID:** ${taskId.slice(0, 8)}...
-
-I'll keep working on this even if you disconnect. When you come back, I'll have the confirmation details!`;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Failed to queue background reservation');
-          return `I couldn't start the background reservation. Let me help you with this in real-time instead...`;
-        }
+      // eslint-disable-next-line @typescript-eslint/require-await -- llm.tool expects an async execute
+      execute: async ({ venueName }) => {
+        log.info({ venueName }, 'Reservation requested; no booking path, offering to call');
+        return reservationCantBook(venueName);
       },
     });
   },

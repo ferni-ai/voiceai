@@ -11,6 +11,8 @@
  * FERNI_PLAYFUL=on: a bright turn whose reminder invited a reaction word
  * (ferni-playful.ts) keeps it, but a kept word still comes at most once in
  * PLAYFUL_GAP replies and never twice running, so not every reply opens "Oh".
+ * Every reaction word he uses counts toward that ("wow", "dude", "oh man"),
+ * not only the stock ones: the playful turn invites more of them.
  *
  * @module agents/personas/opener-gate
  */
@@ -19,6 +21,8 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
 import { flagOn } from '../../config/env-flag.js';
+import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
+import { firstClauseFlushEnabled } from './first-clause-flush.js';
 import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
 
 export const OPENER_EVERY = 3;
@@ -30,16 +34,22 @@ const DECIDE_AFTER = 24;
 const TAG_PREFIX = /^(\s*(?:<[^>]+>\s*)*)/;
 // Not "well": it opens real content ("Well done!"), not only a reaction.
 const INTERJECTION = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b[\s,.!…-]*/i;
+/** FERNI_PLAYFUL: every reaction word Ferni opens with, so each one counts toward the limit. */
+export const PLAYFUL_INTERJECTION =
+  /^(?:o+h+|ugh+|ha(?:ha)*|hah|heh|yeah|yep|hmm+|mm+|ah+|aw+|wow+|whoa+|dude|man|huh|yikes|geez|jeez|gosh|dang|damn|boy|whew|phew)\b[\s,.!…-]*/i;
 
 /**
  * Drop leading reaction words, keeping any leading markup tag. Leaves the
  * text alone when nothing substantive follows (a reply that is only "Oh?").
  */
-export function stripStockOpener(text: string): { text: string; stripped: boolean } {
+export function stripStockOpener(
+  text: string,
+  words: RegExp = INTERJECTION
+): { text: string; stripped: boolean } {
   const tag = TAG_PREFIX.exec(text)?.[1] ?? '';
   let rest = text.slice(tag.length);
   let stripped = false;
-  for (let m = INTERJECTION.exec(rest); m && m[0].length > 0; m = INTERJECTION.exec(rest)) {
+  for (let m = words.exec(rest); m && m[0].length > 0; m = words.exec(rest)) {
     rest = rest.slice(m[0].length);
     stripped = true;
   }
@@ -48,8 +58,8 @@ export function stripStockOpener(text: string): { text: string; stripped: boolea
 }
 
 /** The reaction word a reply opens with, normalised ("Hahaha!" is "ha", "Ohh," is "oh"), or null. */
-export function openerWord(text: string): string | null {
-  const m = INTERJECTION.exec(text.slice((TAG_PREFIX.exec(text)?.[1] ?? '').length));
+export function openerWord(text: string, words: RegExp = INTERJECTION): string | null {
+  const m = words.exec(text.slice((TAG_PREFIX.exec(text)?.[1] ?? '').length));
   if (!m) return null;
   const word = m[0].toLowerCase().replace(/[^a-z]/g, '');
   return /^(?:ha)+h?$/.test(word) ? 'ha' : word.replace(/(.)\1+/g, '$1');
@@ -67,14 +77,14 @@ const WHOLE_WORD = /^([A-Za-z0-9']+)(?=[^A-Za-z0-9'])/;
  * every reply's first words that long. The decision is the same text either
  * way; only when it is made moves.
  */
-export function openingDecidable(text: string): boolean {
+export function openingDecidable(text: string, words: RegExp = INTERJECTION): boolean {
   let rest = text.replace(TAG_PREFIX, '');
   if (rest.length >= DECIDE_AFTER) return true;
   for (;;) {
     rest = rest.replace(/^[\s,.!?…-]+/, '');
     const word = WHOLE_WORD.exec(rest);
     if (!word) return false; // the next word (or markup) isn't whole yet
-    if (!INTERJECTION.test(rest)) return true; // a real word: nothing left to strip
+    if (!words.test(rest)) return true; // a real word: nothing left to strip
     rest = rest.slice(word[1].length);
   }
 }
@@ -113,18 +123,26 @@ export class OpenerGate {
   /** FERNI_PLAYFUL: replies since a reaction word was kept, and which word it was. */
   private turnsSinceKept = PLAYFUL_GAP;
   private lastKept: string | null = null;
+  /** The reaction words this gate counts: every one Ferni uses with FERNI_PLAYFUL on. */
+  private readonly words: RegExp;
+  /** The call whose TURN_RECEIPT gets each reply's hold here (forSession); unset: none. */
+  private session?: () => { userData?: unknown };
 
   /**
    * `early`: decide as soon as the opening is decidable (openingDecidable)
-   * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on.
+   * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on, and
+   * FIRST_CLAUSE_FLUSH=on: a first clause shorter than DECIDE_AFTER would
+   * otherwise wait here for its sentence (first-clause-flush.ts).
    * `playful`: FERNI_PLAYFUL=on, a bright turn may keep its word (mayKeep).
    */
   constructor(
     private readonly every: number = OPENER_EVERY,
-    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on',
+    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on' ||
+      firstClauseFlushEnabled(),
     private readonly playful: boolean = flagOn('FERNI_PLAYFUL')
   ) {
     this.repliesSinceKept = every; // the first reply may keep one
+    this.words = playful ? PLAYFUL_INTERJECTION : INTERJECTION;
   }
 
   /**
@@ -144,18 +162,32 @@ export class OpenerGate {
       return capitalizeStart(withRenderedBurst(opening, found));
     }
     if (found) opening = capitalizeStart(withoutBurst(opening, found));
-    const { text, stripped } = stripStockOpener(opening);
+    const { text, stripped } = stripStockOpener(opening, this.words);
     if (openedBySound) {
       this.kept('mm');
       return stripped ? text : capitalizeStart(opening);
     }
     if (!stripped) return capitalizeStart(opening);
     if (this.mayKeep(opening, bright)) {
-      this.kept(openerWord(opening));
+      this.kept(openerWord(opening, this.words));
       return capitalizeStart(opening);
     }
     this.repliesSinceKept++;
     return text;
+  }
+
+  /** Report each reply's hold here on this session's TURN_RECEIPT (turn-timing.ts). */
+  forSession(session: () => { userData?: unknown }): this {
+    this.session = session;
+    return this;
+  }
+
+  private sessionId(): string | undefined {
+    try {
+      return sessionIdIn(this.session?.().userData);
+    } catch {
+      return undefined; // the agent has no session now: nothing to report on
+    }
   }
 
   private kept(word: string | null): void {
@@ -172,7 +204,8 @@ export class OpenerGate {
   private mayKeep(opening: string, bright: boolean): boolean {
     const due = this.repliesSinceKept >= this.every;
     if (!this.playful) return due;
-    if (this.turnsSinceKept < PLAYFUL_GAP || openerWord(opening) === this.lastKept) return false;
+    const word = openerWord(opening, this.words);
+    if (this.turnsSinceKept < PLAYFUL_GAP || word === this.lastKept) return false;
     return due || bright;
   }
 
@@ -189,12 +222,16 @@ export class OpenerGate {
     const decide = (opening: string): string =>
       this.decide(opening, openedBySound(), burst, bright);
     const early = this.early;
+    const words = this.words;
     let buffered = '';
     let template: Chunk | null = null;
     let decided = false;
+    // From the reply's first words in to its opening out: the wait this gate adds.
+    const held = turnHoldTimer(this.sessionId(), 'openerGate');
     const release = (controller: ReadableStreamDefaultController<Chunk>): void => {
       decided = true;
       if (!buffered) return;
+      held.stop();
       const text = decide(buffered);
       if (typeof template === 'string' || template === null) controller.enqueue(text);
       else {
@@ -216,10 +253,11 @@ export class OpenerGate {
               controller.enqueue(chunk);
               continue;
             }
+            if (content) held.start();
             buffered += content;
             template = chunk;
             const ready = early
-              ? openingDecidable(buffered)
+              ? openingDecidable(buffered, words)
               : buffered.replace(TAG_PREFIX, '').length >= DECIDE_AFTER;
             if (ready) release(controller);
           }

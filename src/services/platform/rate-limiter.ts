@@ -316,7 +316,7 @@ export const rateLimiter = {
    * (firestore-rate-limit.ts); either way it returns null instead of counting in
    * this instance's memory when the store is unreachable, so the caller can fail
    * closed. Uses memory only in local development with neither (no Google Cloud,
-   * no emulator).
+   * no emulator). A cost that isn't a positive finite number is refused (null).
    */
   async checkShared(
     key: string,
@@ -324,6 +324,7 @@ export const rateLimiter = {
     windowMs: number,
     cost = 1
   ): Promise<RateLimitResult | null> {
+    if (!Number.isFinite(cost) || cost <= 0) return null;
     if (!redisClient) {
       return wantsFirestoreSharedLimits()
         ? checkSharedInFirestore(key, maxRequests, windowMs, cost)
@@ -358,13 +359,14 @@ export const rateLimiter = {
   },
 
   /**
-   * Get rate limiter status for health checks.
+   * Rate limiter status for health checks: where shared limits count. Firestore is
+   * reported as connected because each check reaches it on its own (and fails closed).
    */
-  getStatus(): { backend: 'redis' | 'memory'; connected: boolean } {
-    return {
-      backend: redisAvailable ? 'redis' : 'memory',
-      connected: redisAvailable,
-    };
+  getStatus(): { backend: 'redis' | 'firestore' | 'memory'; connected: boolean } {
+    if (redisAvailable) return { backend: 'redis', connected: true };
+    if (!redisClient && wantsFirestoreSharedLimits())
+      return { backend: 'firestore', connected: true };
+    return { backend: 'memory', connected: false };
   },
 
   /**
@@ -380,18 +382,11 @@ export const rateLimiter = {
   },
 };
 
-// Log initialization status
-const isProduction =
-  process.env.NODE_ENV === 'production' ||
-  !!process.env.GOOGLE_CLOUD_PROJECT ||
-  !!process.env.K_SERVICE;
-
-// Warn only when no Redis is configured. At load time the connection is still in flight
-// (redisAvailable turns true on 'connect'), and connection failures log their own warnings.
-if (isProduction && !redisClient) {
-  log.warn(
-    'SECURITY: Using in-memory rate limiting in production. ' +
-      'Rate limits will reset on server restart. ' +
-      'Set REDIS_URL or REDIS_RATE_LIMIT_URL for persistent rate limiting.'
+// Without Redis, spend caps count in Firestore and only per-request limits stay per
+// instance, so there is nothing to warn about. With Redis configured, the connection is
+// still in flight at load time and its failures log their own warnings.
+if (!redisClient && wantsFirestoreSharedLimits()) {
+  log.info(
+    'No Redis configured: spend caps count in Firestore; per-request limits stay per instance'
   );
 }

@@ -34,6 +34,12 @@ import {
   staticCoreToolsEnabled,
 } from '../../config/tool-config.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
+import {
+  forbiddenToolsFor,
+  withoutForbiddenTools,
+} from '../../tools/orchestrator/persona-tool-policy.js';
+import { flagOn } from '../../config/env-flag.js';
+import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import type { UserData } from './types.js';
@@ -112,7 +118,11 @@ export async function updateAgentTools(
   const { domains = [], silentMerge = false, forceSync = false, pin = false } = options;
   const target = asToolCapable(agent);
   const staticCore = staticCoreToolsEnabled();
-  const offered = withoutSharedHandoffs(offeredTools);
+  // PERSONA_TOOL_POLICY: no mid-call update gives the persona on the call a tool it forbids
+  // (the agent's own persona, from agent setup). Off: no await, so the tools still
+  // reach the agent synchronously, as before the policy.
+  const forbidden = flagOn('PERSONA_TOOL_POLICY') ? await forbiddenToolsFor(agent) : [];
+  const offered = withoutForbiddenTools(withoutSharedHandoffs(offeredTools), forbidden);
   const newTools =
     staticCore && !pin
       ? Object.fromEntries(Object.entries(offered).filter(([name]) => isStaticCoreTool(name)))
@@ -122,7 +132,8 @@ export async function updateAgentTools(
     const existing = currentToolRecord(target);
     const actuallyNew = Object.keys(newTools).filter((name) => !(name in existing));
 
-    if (!forceSync && actuallyNew.length === 0) {
+    const holdsForbidden = forbidden.some((name) => name in existing); // e.g. a persona swap
+    if (!forceSync && actuallyNew.length === 0 && !holdsForbidden) {
       log.debug({ attemptedTools: Object.keys(newTools) }, 'All tools already registered');
       return true;
     }
@@ -145,13 +156,18 @@ export async function updateAgentTools(
     const limit =
       resolveInitialToolLimit(getMaxTools()) + Math.min(topicToolCount, resolveTopicToolHeadroom());
     const capped = capToolsToLimit({ ...newTools, ...existing, ...newTools }, limit);
+    // TOOLS_SAME_TURN: append-only calls keep to the same 64 + 24 as the rest,
+    // not APPEND_ONLY_TOOL_CAP (a dev call held 113 against a limit of 88).
+    const appendCap = sameTurnToolsEnabled()
+      ? resolveInitialToolLimit(getMaxTools()) + resolveTopicToolHeadroom()
+      : APPEND_ONLY_TOOL_CAP;
     const merged = staticCore
       ? appendOnly(existing, newTools)
       : appendOnlyToolsEnabled()
-        ? appendOnly(existing, capped)
+        ? appendOnly(existing, capped, appendCap)
         : capped;
 
-    await target.updateTools(merged);
+    await target.updateTools(withoutForbiddenTools(merged, forbidden));
 
     log.info(
       {
@@ -183,12 +199,13 @@ export async function updateAgentTools(
  */
 function appendOnly(
   existing: Record<string, unknown>,
-  picked: Record<string, unknown>
+  picked: Record<string, unknown>,
+  cap = APPEND_ONLY_TOOL_CAP
 ): Record<string, unknown> {
   const added = Object.keys(picked).filter((name) => !(name in existing));
   const merged: Record<string, unknown> = { ...existing };
   for (const name of added) merged[name] = picked[name];
-  let excess = Object.keys(merged).length - APPEND_ONLY_TOOL_CAP;
+  let excess = Object.keys(merged).length - cap;
   if (excess <= 0) return merged;
   excess += APPEND_ONLY_EVICT_BLOCK;
   for (const name of Object.keys(existing)) {

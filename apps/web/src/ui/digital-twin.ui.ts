@@ -24,6 +24,7 @@ import {
 } from '../services/custom-agent.service.js';
 import { openVoiceJournal } from './voice-journal/index.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
+import { isCustomAgentsUiOn } from '../config/custom-agents-ui-flag.js';
 import { isJournalCaptureOn } from '../config/journal-capture-flag.js';
 import {
   enableJournalCapture,
@@ -1134,10 +1135,9 @@ function renderOnboarding(): string {
         </div>
       </div>
 
-      <button class="digital-twin-create-btn" data-action="create">
-        ${ICONS.plus}
-        Create Your Digital Twin
-      </button>
+      ${isCustomAgentsUiOn() ? `<button class="digital-twin-create-btn" data-action="create">
+        ${ICONS.plus} Create Your Digital Twin
+      </button>` : ''}
     </div>
   `;
 }
@@ -1203,10 +1203,9 @@ function renderTwinsList(): string {
     <div class="digital-twin-list">
       ${twinCards}
     </div>
-    <button class="digital-twin-add-btn" data-action="create">
-      ${ICONS.plus}
-      Create Another Journal
-    </button>
+    ${isCustomAgentsUiOn() ? `<button class="digital-twin-add-btn" data-action="create">
+      ${ICONS.plus} Create Another Journal
+    </button>` : ''}
   `;
 }
 
@@ -1516,6 +1515,7 @@ export async function openDigitalTwinUI(): Promise<void> {
     const agents = await listCustomAgents();
     twins = agents.filter((a) => a.type === 'twin');
     isLoading = false;
+    if (twins.length === 0 && !isCustomAgentsUiOn()) return closeDigitalTwinUI(); // a dead end
     updateContent();
 
     log.info(`Loaded ${twins.length} Digital Twins`);

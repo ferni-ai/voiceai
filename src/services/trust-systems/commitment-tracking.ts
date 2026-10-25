@@ -21,6 +21,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { writeHeld } from '../../utils/minor-care.js';
+import { isActionableCommitment } from '../../utils/commitment-quality.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexCommitment, deindexCommitment } from '../data-layer/integrations/index.js';
 import { settleAwaitingAnswers, type FollowUpAnswer } from './commitment-follow-through.js';
@@ -30,8 +32,8 @@ import { commitmentSentences } from '../../utils/commitment-filters.js';
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    return getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    return getAdminFirestore();
   } catch {
     return null;
   }
@@ -401,9 +403,7 @@ function calculateFollowUpDate(type: CommitmentType): Date {
 
 const COLLECTION = 'bogle_users';
 
-/**
- * Save a new commitment
- */
+/** Save a new commitment */
 export async function saveCommitment(commitment: Commitment): Promise<void> {
   try {
     const db = await getFirestoreDb();
@@ -471,9 +471,7 @@ function fromDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): Commitment | nul
   } as Commitment;
 }
 
-/**
- * Get user's active commitments
- */
+/** Get user's active commitments, none about a topic they asked Ferni to forget. */
 export async function getActiveCommitments(userId: string): Promise<Commitment[]> {
   try {
     const db = await getFirestoreDb();
@@ -490,7 +488,9 @@ export async function getActiveCommitments(userId: string): Promise<Commitment[]
       .limit(20)
       .get();
 
-    return snapshot.docs.flatMap((doc) => fromDoc(doc) ?? []);
+    // Lazy: the superhuman barrel is large. Forget requests: commitment-forget.ts.
+    const shown = await (await import('../superhuman/index.js')).commitmentsShown(userId);
+    return snapshot.docs.flatMap((doc) => (shown(doc.data()) ? (fromDoc(doc) ?? []) : []));
   } catch (err) {
     log.error({ error: String(err), userId }, 'Failed to get commitments');
     return [];
@@ -512,9 +512,7 @@ export async function getCommitmentsDueForFollowUp(userId: string): Promise<Comm
   return (await getActiveCommitments(userId)).filter((c) => isDueForFollowUp(c, now)).slice(0, 5);
 }
 
-/**
- * Update commitment status
- */
+/** Update commitment status */
 export async function updateCommitmentStatus(
   userId: string,
   commitmentId: string,
@@ -574,14 +572,12 @@ export async function updateCommitmentStatus(
 // PUBLIC API
 // ============================================================================
 
-/**
- * Process user message for commitments
- * Call this from turn handler
- */
+/** One caller turn: new commitments, progress, follow-up answers. MINOR_CARE: none while held. */
 export async function processCommitments(
   userId: string,
   userText: string,
-  context?: { recentTopics?: string[]; emotion?: string }
+  context?: { recentTopics?: string[]; emotion?: string; judgedOnly?: boolean },
+  sessionId?: string
 ): Promise<{
   newCommitments: Commitment[];
   progressUpdates: Array<{ commitmentId: string; type: string }>;
@@ -589,20 +585,21 @@ export async function processCommitments(
   /** Answers to a follow-up Ferni asked last turn, now recorded. */
   answers: FollowUpAnswer[];
 }> {
-  // Get existing commitments
+  if (writeHeld(userId, sessionId)) {
+    return { newCommitments: [], progressUpdates: [], followUpsDue: [], answers: [] };
+  }
   const existingCommitments = await getActiveCommitments(userId);
   const answers = await settleAwaitingAnswers(userId, userText, existingCommitments);
   const answered = new Set(answers.map((a) => a.id));
 
-  // Detect new commitments
-  const detected = detectCommitments(userText, context);
+  // New commitments; none with COMMITMENT_SINGLE_WRITER on, where the after-call judge writes
+  const detected = context?.judgedOnly === true ? [] : detectCommitments(userText, context);
   const newCommitments: Commitment[] = [];
 
   for (const d of detected) {
-    // Check if similar commitment already exists
     const exists = existingCommitments.some((c) => isCommitmentRelated(c.content, d.content));
-
-    if (!exists) {
+    // Not a goodbye, and not "call her" with no name (utils/commitment-quality.ts).
+    if (!exists && isActionableCommitment(d.content)) {
       const commitment: Commitment = {
         id: `commitment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         userId,

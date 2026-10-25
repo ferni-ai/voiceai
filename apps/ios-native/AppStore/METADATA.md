@@ -10,7 +10,7 @@
 
 **Subtitle (30 chars max):**
 ```
-Your AI emotional support team
+Someone in your corner
 ```
 
 **Primary Category:** Health & Fitness
@@ -52,6 +52,10 @@ KEY FEATURES
 ◦ Siri shortcuts — "Hey Siri, talk to Ferni"
 ◦ Apple Watch — Quick check-ins from your wrist
 
+GOOD TO KNOW
+
+Ferni isn't a person. Ferni is software, built with artificial intelligence, that listens, remembers what matters to you, and talks with you. Real people built it and stand behind it. Ferni is not a substitute for professional care or emergency help. In a crisis in the US, call or text 988. More at ferni.ai/what-ferni-is
+
 PRIVACY FIRST
 
 Your conversations are encrypted and private. We never sell your data. You control what Ferni remembers.
@@ -76,7 +80,7 @@ New: Apple Watch support! Get quick emotional check-ins from your wrist. Plus im
 ## Keywords (100 chars max, comma-separated)
 
 ```
-AI,emotional support,voice,wellness,mental health,habits,coaching,companion,therapy,mindfulness
+emotional support,voice,wellness,mental health,habits,coaching,companion,mindfulness,friend,talk
 ```
 
 ---

@@ -220,17 +220,29 @@ function detectIntentRoute(content: string): { agentId: PersonaId; confidence: n
 export async function handleInboundSMS(
   userId: string,
   fromPhone: string,
-  body: string
+  body: string,
+  /** It might mean "stop texting" (sms-keywords.ts): Ferni should ask, not assume. */
+  possibleOptOut = false,
+  /** MINOR_CARE_SHARED_HOLD (decided by the webhook): a caller held under 18, answered, nothing kept. */
+  held = false
 ): Promise<{
   routeDecision: InboundRouteDecision;
+  /** Asks to talk (detectTalkIntent): the webhook answers honestly, never "calling you now". */
   shouldInitiateCall: boolean;
-  responseMessage?: string;
+  /** A whole-text ask for a call now (detectCallIntent): only this may dial (SMS_CALL_ME). */
+  callNow: boolean;
 }> {
   // Route the message
   const routeDecision = await routeInbound(userId, 'sms', body, { fromPhone });
 
   // Check if user wants to talk
-  const callIntent = detectCallIntent(body);
+  const callIntent = detectTalkIntent(body);
+  const callNow = detectCallIntent(body);
+
+  if (held) {
+    log.info({ agentId: routeDecision.agentId }, 'Inbound SMS not kept: MINOR_CARE hold');
+    return { routeDecision, shouldInitiateCall: callIntent, callNow };
+  }
 
   // Get or create thread
   const thread = await getOrCreateThread(userId, 'sms', routeDecision.agentId, {
@@ -246,6 +258,7 @@ export async function handleInboundSMS(
     timestamp: new Date(),
     metadata: {
       sentiment: detectSentiment(body),
+      ...(possibleOptOut && { possibleOptOut }),
     },
   });
 
@@ -259,11 +272,7 @@ export async function handleInboundSMS(
     '📥 Inbound SMS processed'
   );
 
-  return {
-    routeDecision,
-    shouldInitiateCall: callIntent,
-    responseMessage: callIntent ? `I'd love to talk. Let me call you now...` : undefined,
-  };
+  return { routeDecision, shouldInitiateCall: callIntent, callNow };
 }
 
 /**
@@ -357,25 +366,62 @@ export async function handleVoiceCallStart(
 // HELPER FUNCTIONS
 // ============================================================================
 
+/** Any ask to talk, for the honest reply only ("I want to die, call me" gets one, not silence). */
+const TALK_ASKS = [
+  /\bcall\s+me\b/i,
+  /\bcan\s+we\s+talk\b/i,
+  /\bwant\s+to\s+talk\b/i,
+  /\bneed\s+to\s+talk\b/i,
+  /\blet'?s\s+talk\b/i,
+  /\bcall\s+back\b/i,
+  /\bgive\s+me\s+a\s+call\b/i,
+  /\bring\s+me\b/i,
+  /\bphone\s+me\b/i,
+  /\bi'?d\s+like\s+that\b/i, // a yes to Ferni's own "want to talk?"; silence would read as ignored
+];
 /**
- * Detect if message indicates user wants a voice call.
+ * A text that asks to talk at all gets the honest invitation, never a call.
+ * Reply by default: no word list decides that a text which asks to talk gets
+ * silence ("stop it hurts, call me" would). The one exception is a bare "ok",
+ * "yes", "sure" or "please", which follows any check-in and is not an ask (on
+ * main it got "Let me call you now..." every time); none of the patterns
+ * above matches those, so they stay silent.
  */
-function detectCallIntent(message: string): boolean {
-  const callPhrases = [
-    /\bcall\s+me\b/i,
-    /\bcan\s+we\s+talk\b/i,
-    /\bwant\s+to\s+talk\b/i,
-    /\bneed\s+to\s+talk\b/i,
-    /\blet'?s\s+talk\b/i,
-    /\bcall\s+back\b/i,
-    /\bgive\s+me\s+a\s+call\b/i,
-    /\bring\s+me\b/i,
-    /\bphone\s+me\b/i,
-    /^(yes|ok|sure|please)$/i,
-    /\bi'?d\s+like\s+that\b/i,
-  ];
+export function detectTalkIntent(message: string): boolean {
+  const text = message.trim();
+  return TALK_ASKS.some((pattern) => pattern.test(text));
+}
 
-  return callPhrases.some((pattern) => pattern.test(message.trim()));
+/** Lead-ins that keep a text a plain ask: "ok, call me", "hey Ferni, can you call me?" */
+const LEAD = String.raw`^(?:(?:ok(?:ay)?|yes|yeah|yep|sure|please|pls|hey|hi|ferni)[\s,!.]+)*`;
+const ASK = String.raw`(?:(?:can|could|would|will) you\s+|please\s+|pls\s+)?`;
+const NOW = String.raw`(?:\s+(?:back|now|right now|asap|please|pls))*`;
+const END = String.raw`[\s.!?\p{Extended_Pictographic}]*$`;
+
+/**
+ * The whole text is the ask, so a call is never read out of a longer sentence:
+ * "did you call me?", "my mom will call me", "I need to call back my boss",
+ * "call me when I'm home", "can we talk here" all stay texts.
+ */
+const CALL_ASKS = [
+  `${ASK}(?:call|ring|phone) me${NOW}`,
+  `${ASK}give me a (?:call|ring)${NOW}`,
+  `(?:can|could) we (?:talk|chat)(?: now)?`,
+  `let'?s talk(?: now)?`,
+  `${ASK}talk to me`,
+].map((ask) => new RegExp(`${LEAD}${ask}${END}`, 'iu'));
+
+/**
+ * Detect if a text asks for a voice call now. With SMS_CALL_ME on this places a
+ * real call, so it is precision first: only a short, whole-text ask counts. A
+ * bare "ok" or "yes" (often a reply to a check-in) is not one. A word list
+ * still can't read sarcasm ("sure, call me 🙄"), so this must never dial on its
+ * own: SMS_CALL_ME stays off until a match only asks "Want me to call you now?"
+ * and a YES places the call.
+ */
+export function detectCallIntent(message: string): boolean {
+  const text = message.trim();
+  return CALL_ASKS.some((pattern) => pattern.test(text));
 }
 
 /**

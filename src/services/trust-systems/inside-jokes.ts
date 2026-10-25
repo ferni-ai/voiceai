@@ -226,11 +226,11 @@ const RUNNING_GAG_INDICATORS = [
   'just my luck',
 ];
 
-// ============================================================================
-// IN-MEMORY STORE
-// ============================================================================
+// In-memory store
 
 const profiles = new Map<string, InsideJokesProfile>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetInsideJokesUser = (userId: string): boolean => profiles.delete(userId);
 
 function getOrCreateProfile(userId: string): InsideJokesProfile {
   let profile = profiles.get(userId);

@@ -40,68 +40,15 @@ import { getQuickOptimization } from '../services/landing-intelligence/orchestra
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
-import { requireAdmin } from './auth-middleware.js';
+import { rateLimit, requireAdmin } from './auth-middleware.js';
+import { handleTrackBatch } from './v1/public/experiments.js';
 import { generatePersonaVoice } from '../services/voice/voice-call.js';
 import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
-// SSML humanization for natural-sounding voices
-import { tagTextWithSsmlPersonaAware, sanitizeSsml } from '../ssml/index.js';
-import { makeVoiceAlive, type AliveVoiceContext } from '../speech/adaptive-ssml/alive-voice.js';
+
+/** Experiment batches one IP may send a minute: a visitor flushes about every 5 s, so a few share a NAT. */
+const LANDING_BATCHES_PER_IP_PER_MINUTE = 120;
 
 const log = createLogger({ module: 'LandingIntelligenceHandler' });
-
-// ============================================================================
-// SSML HUMANIZATION FOR LANDING PAGE TTS
-// ============================================================================
-
-/**
- * Apply SSML humanization to make voice samples sound natural and human.
- * Uses Ferni's full SSML pipeline: persona-aware tagging + alive voice enhancements.
- */
-function humanizeTextForTTS(text: string, personaId: string): string {
-  if (!text || text.trim().length === 0) {
-    return text;
-  }
-
-  try {
-    // Step 1: Apply persona-aware SSML tagging
-    // This adds speed, volume, emotion, and break tags based on text analysis
-    let ssml = tagTextWithSsmlPersonaAware(text, {
-      personaId,
-      naturalFillers: true,
-      breathGroupPacing: true,
-    });
-
-    // Step 2: Apply "alive voice" enhancements
-    // This adds sentence-level emotion arcs, dynamic pauses, persona fingerprints
-    const aliveContext: AliveVoiceContext = {
-      personaId,
-      userEmotion: 'neutral',
-      topicWeight: 'medium',
-      turnCount: 1,
-      userEnergy: 'neutral',
-      enableLaughter: true,
-    };
-
-    const aliveResult = makeVoiceAlive(ssml, aliveContext);
-    ssml = aliveResult.text;
-
-    log.debug(
-      {
-        personaId,
-        originalLength: text.length,
-        ssmlLength: ssml.length,
-        appliedFeatures: aliveResult.appliedFeatures,
-      },
-      '✨ Applied SSML humanization for landing TTS'
-    );
-
-    return ssml;
-  } catch (error) {
-    // If SSML processing fails, return sanitized original text
-    log.warn({ error, personaId }, 'SSML humanization failed, using original text');
-    return sanitizeSsml(text);
-  }
-}
 
 // ============================================================================
 // HELPERS
@@ -589,24 +536,18 @@ export async function handleLandingIntelligenceRoutes(
 
     // ============================================================================
     // POST /api/landing/experiments/track/batch - Batch track experiment events
+    // The ferni.ai site's experiments.js flushes here. It used to log and reply OK,
+    // storing nothing; it now records through app.ferni.ai's batch path.
     // ============================================================================
     if (pathname === '/api/landing/experiments/track/batch' && method === 'POST') {
-      const { events } = await parseBody<{
-        events: Array<{
-          experimentId: string;
-          variantId: string;
-          userId: string;
-          eventType: string;
-          goalId?: string;
-          value?: number;
-        }>;
-      }>(req);
-
-      // Log events for analytics (stored in Firestore via analytics system)
-      log.info({ eventCount: events?.length || 0 }, 'Received experiment events batch');
-
-      // Just acknowledge for now - analytics system handles storage
-      sendJSON(res, { success: true, received: events?.length || 0 });
+      // Per IP as well: anonymous visitor ids are minted by the browser, so the
+      // per-visitor limit inside handleTrackBatch alone could be dodged.
+      const limited = rateLimit(req, res, {
+        maxRequests: LANDING_BATCHES_PER_IP_PER_MINUTE,
+        windowMs: 60_000,
+        keyPrefix: 'landing-experiments',
+      });
+      if (!limited) await handleTrackBatch(req, res);
       return true;
     }
 
@@ -893,16 +834,12 @@ export async function handleLandingIntelligenceRoutes(
       const personaId = body.personaId || 'ferni';
       const personaName = getPersonaDisplayName(personaId);
 
-      // Apply SSML humanization to make the voice sound natural
-      const humanizedText = humanizeTextForTTS(body.text, personaId);
-
-      log.info(
-        { personaId, personaName, textLength: body.text.length, ssmlLength: humanizedText.length },
-        '🎤 Landing TTS request (with SSML humanization)'
-      );
+      log.info({ personaId, personaName, textLength: body.text.length }, '🎤 Landing TTS request');
 
       try {
-        const audioBuffer = await generatePersonaVoice(humanizedText, personaId);
+        // The words as written, the way a call speaks a reply. The old humanizer put
+        // "Well..." and "Ah," in front of lines; its tags were stripped before Cartesia.
+        const audioBuffer = await generatePersonaVoice(body.text, personaId);
 
         if (!audioBuffer) {
           log.warn({ personaId }, 'TTS generation failed - no audio returned');

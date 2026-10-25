@@ -36,11 +36,13 @@ vi.mock('../services/superhuman/firestore-utils.js', async (importOriginal) => {
     getFirestoreDb: () => sharedNestedFirestore.db,
   };
 });
-// External senders only: Twilio SMS, SendGrid email, the outbound call.
+// External senders only: the guarded text sender (installed below), SendGrid email,
+// the outbound call. The old unguarded sendReminder must never be used.
 const sent = vi.fn(async (_to: string, _text: string) => 'Reminder sent');
+const unguarded = vi.fn(async () => 'Reminder sent');
 vi.mock('../services/communication-service.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../services/communication-service.js')>()),
-  sendReminder: (to: string, text: string) => sent(to, text),
+  sendReminder: unguarded,
   sendEmail: (to: string, _subject: string, text: string) => sent(to, text),
 }));
 vi.mock('../services/voice/voice-call.js', async (importOriginal) => ({
@@ -75,6 +77,9 @@ const { scheduleFollowUpDef } = await import('../tools/domains/proactive/index.j
 const { setUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
 const { setCallUserPort } = await import('../tools/domains/proactive/outreach/call-user-port.js');
 const { deliverDueReminders } = await import('../services/scheduling/reminder-delivery-job.js');
+const { installReminderTextGuard } = await import('../services/scheduling/reminder-text-guard.js');
+/** An in-app reminder reaches them through a push. */
+const reach = { textOn: async () => false, notifyInApp: async () => true };
 const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
 const { clearCommitmentCache } =
@@ -206,6 +211,11 @@ beforeEach(async () => {
   fs.store.clear();
   clearCommitmentCache();
   sent.mockClear();
+  unguarded.mockClear();
+  installReminderTextGuard(async (r) => {
+    await sent(r.deliveryAddress, r.message);
+    return 'sent';
+  });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(START);
   await setUserContactInfo(UID, { phone: PHONE, email: 'sam@example.com', timezone: 'Etc/UTC' });
@@ -221,9 +231,10 @@ describe('every scheduled promise ends kept or missed', () => {
   it.each(REMINDER_PATHS)('$name: made → delivered → kept', async (path) => {
     const { id, due } = await theReminderPromise(path);
 
-    const run = await deliverDueReminders({ now: new Date(due.getTime() + 60_000) });
+    const run = await deliverDueReminders({ now: new Date(due.getTime() + 60_000), reach });
     expect(run).toMatchObject({ delivered: 1, promiseErrors: 0 });
     expect(sent).toHaveBeenCalledTimes(path.name.startsWith('quick capture') ? 0 : 1);
+    expect(unguarded).not.toHaveBeenCalled();
     expect(promises()[0]).toMatchObject({ id, outcome: 'kept', fulfilled: true });
   });
 
@@ -231,7 +242,7 @@ describe('every scheduled promise ends kept or missed', () => {
     const { id, due } = await theReminderPromise(path);
 
     // The job didn't run until three hours after: too late to send, so it's a miss.
-    await deliverDueReminders({ now: new Date(due.getTime() + 3 * HOUR) });
+    await deliverDueReminders({ now: new Date(due.getTime() + 3 * HOUR), reach });
     expect(sent).not.toHaveBeenCalled();
     expect(promises()[0]).toMatchObject({
       id,

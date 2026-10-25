@@ -132,6 +132,11 @@ describe('recallFromMemory and forgetting', () => {
     expect(said).not.toContain('Lisbon');
   });
 
+  it('says only what happened: hidden, so never "forgotten" or "deleted"', async () => {
+    const said = await memoryExecutor.execute('forgetMemory', { topic: 'Lisbon' }, ctx);
+    expect(said).toBe("I won't bring that up again.");
+  });
+
   it('forgetting clears what this call already recalled', async () => {
     cached = 'I recall: a trip to Lisbon';
     await memoryExecutor.execute('forgetMemory', { topic: 'Lisbon' }, ctx);

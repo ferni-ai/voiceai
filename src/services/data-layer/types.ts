@@ -741,8 +741,8 @@ export interface HealthGoalEntity {
 }
 
 export interface WellnessCheckinEntity {
-  mood: number; // 1-10
-  energy: number; // 1-10
+  mood?: number; // 0-10; undefined when not measured, never 0
+  energy?: number; // 0-10; undefined when not measured, never 0
   notes?: string;
   stressLevel?: number; // 1-10
   timestamp: string;
@@ -1298,7 +1298,7 @@ export interface OutreachAttemptEntity {
   reason: string;
   message?: string;
   personaId: string;
-  status: 'pending' | 'sent' | 'delivered' | 'failed';
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'unknown';
   scheduledAt?: string;
   sentAt: string;
   deliveredAt?: string;

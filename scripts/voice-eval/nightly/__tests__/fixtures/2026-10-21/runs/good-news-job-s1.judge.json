@@ -1,0 +1,21 @@
+{
+  "scores": {
+    "understanding": 3,
+    "thought": 2,
+    "recall": 1,
+    "callbackTact": null,
+    "empathy": 3,
+    "endearing": 3,
+    "quirks": 2,
+    "conduct": 3,
+    "playfulness": null,
+    "followThrough": null,
+    "candor": 1,
+    "feltUnderstood": null,
+    "feltValidated": 3,
+    "feltCaredFor": 3
+  },
+  "humanLikelihood": 0.4,
+  "inventedHistory": ["redacted", "redacted"],
+  "reAsked": []
+}

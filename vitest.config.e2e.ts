@@ -25,6 +25,9 @@ export default defineConfig({
       'node_modules/**',
       '**/node_modules/**',
       'dist/**',
+      // Agent worktrees nest full, stale repo copies under .claude/worktrees/: never run them
+      '.claude/**',
+      '**/.claude/**',
       'apps/**',
       'design-system/**',
       // Playwright tests are separate
@@ -34,6 +37,8 @@ export default defineConfig({
     ],
     testTimeout: 60000, // Longer timeout for e2e
     hookTimeout: 60000,
+    // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).
+    globalSetup: ['./src/config/__tests__/generate-lists-setup.ts'],
     setupFiles: ['./src/tests/setup.ts'],
   },
 });

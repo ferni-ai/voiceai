@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUserProfile, type UserProfile } from '../../../types/user-profile.js';
 
 const store = vi.hoisted(() => ({
-  getProfile: vi.fn(async (_userId: string): Promise<unknown> => null),
+  getProfileForWrite: vi.fn(async (_userId: string): Promise<unknown> => null),
   saveProfile: vi.fn(async (_p: unknown) => undefined),
   saveSummary: vi.fn(async () => undefined),
 }));
@@ -54,7 +54,7 @@ function savedConversationCounts(): number[] {
 
 beforeEach(() => {
   store.saveProfile.mockClear();
-  store.getProfile.mockImplementation(async (uid: string) => createUserProfile(uid, 'Sam'));
+  store.getProfileForWrite.mockImplementation(async (uid: string) => createUserProfile(uid, 'Sam'));
 });
 afterEach(() => {
   vi.unstubAllEnvs();

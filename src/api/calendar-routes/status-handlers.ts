@@ -6,12 +6,14 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  googleCalendarClientId,
+  isGoogleCalendarOAuthConfigured,
+} from '../../config/google-calendar-oauth-env.js';
 import { sendError } from '../helpers.js';
 import { sendJson, checkRateLimitAndApply, getCalendarRateLimitStatus } from './helpers.js';
-import {
-  isCalendarConfigured,
-  deleteUserTokens,
-} from '../../services/identity/google-calendar-oauth.js';
+import { isCalendarConfigured } from '../../services/identity/google-calendar-oauth.js';
+import { disconnectGoogleCalendar } from '../../services/identity/google-calendar-disconnect.js';
 import {
   getCalendarBusyProfile,
   syncCalendarToOutreach,
@@ -32,9 +34,7 @@ export async function handleStatus(
   userId: string
 ): Promise<void> {
   try {
-    const configured = !!(
-      process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET
-    );
+    const configured = isGoogleCalendarOAuthConfigured();
 
     if (!configured) {
       sendJson(res, { connected: false, configured: false });
@@ -89,7 +89,7 @@ export async function handleSyncStatus(
         google: {
           connected: googleConnected,
           status: googleConnected ? 'synced' : 'disconnected',
-          configured: !!process.env.GOOGLE_CALENDAR_CLIENT_ID,
+          configured: googleCalendarClientId() !== '',
           webhooksEnabled: true,
         },
         apple: {
@@ -171,7 +171,7 @@ export async function handleDisconnect(
       );
     }
 
-    await deleteUserTokens(userId);
+    await disconnectGoogleCalendar(userId);
 
     sendJson(res, { success: true });
     log.info({ userId }, '📅 Calendar disconnected');
@@ -238,9 +238,7 @@ export async function handleProvidersStatus(
         google: {
           provider: 'google',
           connected: googleConnected,
-          configured: !!(
-            process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET
-          ),
+          configured: isGoogleCalendarOAuthConfigured(),
         },
         apple: {
           provider: 'apple',

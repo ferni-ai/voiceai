@@ -69,15 +69,6 @@ export interface PushDeliveryResult {
   failureReason?: 'invalid_token' | 'unregistered' | 'quota_exceeded' | 'unknown';
 }
 
-export interface UserPushToken {
-  userId: string;
-  token: string;
-  platform: 'web' | 'ios' | 'android';
-  createdAt: Date;
-  lastUsedAt: Date;
-  userAgent?: string;
-}
-
 export interface PushDeliveryRecord {
   messageId: string;
   userId: string;
@@ -101,7 +92,6 @@ let config: PushNotificationConfig | null = null;
 let fcmAccessToken: string | null = null;
 let tokenExpiry: Date | null = null;
 
-const userTokens = new Map<string, UserPushToken[]>();
 const deliveryRecords = new Map<string, PushDeliveryRecord>();
 
 // ============================================================================
@@ -164,71 +154,6 @@ export function initializePushNotifications(pushConfig: PushNotificationConfig):
  */
 export function isPushNotificationsAvailable(): boolean {
   return config !== null;
-}
-
-// ============================================================================
-// TOKEN MANAGEMENT
-// ============================================================================
-
-/**
- * Register a push token for a user
- */
-export function registerPushToken(
-  userId: string,
-  token: string,
-  platform: 'web' | 'ios' | 'android',
-  userAgent?: string
-): void {
-  const tokens = userTokens.get(userId) || [];
-
-  // Check if token already exists
-  const existingIndex = tokens.findIndex((t) => t.token === token);
-  if (existingIndex !== -1) {
-    tokens[existingIndex].lastUsedAt = new Date();
-    tokens[existingIndex].userAgent = userAgent;
-  } else {
-    tokens.push({
-      userId,
-      token,
-      platform,
-      createdAt: new Date(),
-      lastUsedAt: new Date(),
-      userAgent,
-    });
-  }
-
-  userTokens.set(userId, tokens);
-  log.info({ userId, platform }, '📱 Registered push token');
-}
-
-/**
- * Remove a push token
- */
-export function removePushToken(userId: string, token: string): boolean {
-  const tokens = userTokens.get(userId);
-  if (!tokens) return false;
-
-  const newTokens = tokens.filter((t) => t.token !== token);
-  if (newTokens.length === tokens.length) return false;
-
-  userTokens.set(userId, newTokens);
-  log.info({ userId }, '📱 Removed push token');
-  return true;
-}
-
-/**
- * Get all tokens for a user
- */
-export function getUserTokens(userId: string): UserPushToken[] {
-  return userTokens.get(userId) || [];
-}
-
-/**
- * Check if user has push enabled
- */
-export function hasPushEnabled(userId: string): boolean {
-  const tokens = userTokens.get(userId);
-  return !!tokens && tokens.length > 0;
 }
 
 // ============================================================================
@@ -306,7 +231,11 @@ async function signJWT(header: object, payload: object, privateKey: string): Pro
 // SENDING
 // ============================================================================
 
-/** Send to `onlyToken` when given (a token the caller owns), else every token registered here. */
+/**
+ * Send to `onlyToken`, an FCM token the caller owns. Without one there is
+ * nowhere to send: device tokens live in Firestore (push-devices.ts,
+ * push_subscriptions), not in this module.
+ */
 export async function sendPushNotification(
   notification: PushNotification,
   onlyToken?: string
@@ -315,10 +244,10 @@ export async function sendPushNotification(
     return [{ success: false, error: 'Push notifications not initialized' }];
   }
 
-  const tokens = onlyToken ? [{ token: onlyToken }] : userTokens.get(notification.userId);
-  if (!tokens || tokens.length === 0) {
+  if (!onlyToken) {
     return [{ success: false, error: 'No push tokens registered for user' }];
   }
+  const tokens = [{ token: onlyToken }];
 
   const results: PushDeliveryResult[] = [];
   const style = PERSONA_STYLES[notification.personaId] || PERSONA_STYLES.ferni;
@@ -340,11 +269,6 @@ export async function sendPushNotification(
           sentAt: new Date(),
         };
         deliveryRecords.set(result.messageId, record);
-      }
-
-      // Handle invalid tokens
-      if (result.failureReason === 'unregistered' || result.failureReason === 'invalid_token') {
-        removePushToken(notification.userId, tokenInfo.token);
       }
     } catch (error) {
       log.error({ error, userId: notification.userId }, 'Push notification error');
@@ -656,25 +580,6 @@ export function clearOldRecords(maxAgeDays = 30): number {
   return cleared;
 }
 
-/**
- * Clear inactive tokens
- */
-export function clearInactiveTokens(maxAgeDays = 90): number {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - maxAgeDays);
-
-  let cleared = 0;
-  for (const [userId, tokens] of userTokens) {
-    const activeTokens = tokens.filter((t) => t.lastUsedAt >= cutoff);
-    if (activeTokens.length < tokens.length) {
-      cleared += tokens.length - activeTokens.length;
-      userTokens.set(userId, activeTokens);
-    }
-  }
-
-  return cleared;
-}
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -682,10 +587,6 @@ export function clearInactiveTokens(maxAgeDays = 90): number {
 export const pushNotifications = {
   initialize: initializePushNotifications,
   isAvailable: isPushNotificationsAvailable,
-  registerToken: registerPushToken,
-  removeToken: removePushToken,
-  getUserTokens,
-  hasPushEnabled,
   send: sendPushNotification,
   sendBulk: sendBulkPushNotifications,
   generateNotification: generatePersonaNotification,
@@ -693,5 +594,4 @@ export const pushNotifications = {
   getRecord: getDeliveryRecord,
   getUserRecords: getUserDeliveryRecords,
   clearOldRecords,
-  clearInactiveTokens,
 };

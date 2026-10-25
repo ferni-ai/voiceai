@@ -4,6 +4,7 @@
  * test that drives the real updateCommitmentStatus with a fake Firestore.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { usePersonFlagLookup } from '../../../config/person-flag.js';
 import {
   isWinsOn,
   markWinSurfaced,
@@ -45,6 +46,34 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe('COACH_WINS per person', () => {
+  afterEach(() => usePersonFlagLookup(async () => undefined));
+
+  it('a "done" on a server whose own flag is off records a win only for the cohort member', async () => {
+    usePersonFlagLookup(async (u) => (u === 'seth' ? 'on' : undefined));
+    const env = { COACH_WINS: 'off' };
+    const seth = memoryStore({ c1: promise });
+    const mom = memoryStore({ c1: promise });
+
+    expect(
+      await recordWinFromCommitment('seth', 'c1', { store: seth.store, forgotten: none, env })
+    ).toBe(true);
+    expect(
+      await recordWinFromCommitment('mom', 'c1', { store: mom.store, forgotten: none, env })
+    ).toBe(false);
+    expect(seth.wins.map((w) => w.id)).toEqual(['c1']);
+    expect(mom.wins).toEqual([]);
+  });
+
+  it("a person's own off beats the server's on", async () => {
+    usePersonFlagLookup(async () => 'off');
+    const { store, wins } = memoryStore({ c1: promise });
+    const env = { COACH_WINS: 'on' };
+    expect(await recordWinFromCommitment('mom', 'c1', { store, forgotten: none, env })).toBe(false);
+    expect(wins).toEqual([]);
+  });
 });
 
 describe('the flag', () => {

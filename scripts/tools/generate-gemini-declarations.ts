@@ -171,7 +171,8 @@ function generateTypeScript(schemaFiles: string[]): string {
   lines.push(' * This file is auto-generated from tool schemas. Do not edit directly.');
   lines.push(' * Edit schema files in `src/tools/schemas/` and run `pnpm tools:generate`.');
   lines.push(' *');
-  lines.push(` * Generated: ${new Date().toISOString()}`);
+  // No generation timestamp: the pre-commit hook regenerates this file on every
+  // commit, so a timestamp made every pair of open branches conflict on this line.
   lines.push(` * Schemas: ${schemas.length} files, ${declarations.length} tools`);
   lines.push(' */');
   lines.push('');

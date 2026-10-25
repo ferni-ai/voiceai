@@ -38,7 +38,7 @@ describe('Developer Platform v2 - Validation Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should validate stdio transport MCP server', () => {
+    it('should reject stdio transport MCP server (no publisher processes on our servers)', () => {
       const result = schemas.CreateMCPServerSchema.safeParse({
         name: 'Local MCP',
         description: 'Local MCP server',
@@ -46,7 +46,8 @@ describe('Developer Platform v2 - Validation Schemas', () => {
         command: 'npx',
         args: ['mcp-server-example'],
       });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.message).toBe(schemas.STDIO_MCP_NOT_HOSTED_MESSAGE);
     });
 
     it('should reject HTTP transport without endpoint', () => {

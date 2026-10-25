@@ -16,6 +16,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../../../utils/outbound-url-guard.js';
 import { sendSuccess, sendError } from '../../helpers.js';
 import {
   requireApiKeyAuth,
@@ -551,31 +552,25 @@ async function testWebhookTool(
       ...(tool.config.headers || {}),
     };
 
-    const response = await fetch(tool.config.url, {
+    const response = await safeOutboundFetch(tool.config.url, {
       method,
       headers,
       body: method !== 'GET' ? JSON.stringify(params) : undefined,
     });
+    const bytes = Buffer.byteLength(await readCappedText(response, 64 * 1024));
 
     if (!response.ok) {
-      return {
-        success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      };
+      return { success: false, error: `HTTP ${response.status}` };
     }
 
-    const contentType = response.headers.get('content-type') || '';
-    let result: unknown;
-
-    if (contentType.includes('application/json')) {
-      result = await response.json();
-    } else {
-      result = await response.text();
-    }
-
+    // Report what came back, not the content itself: a test must not relay response bodies.
     return {
       success: true,
-      result,
+      result: {
+        statusCode: response.status,
+        contentType: (response.headers.get('content-type') || '').split(';')[0]?.slice(0, 100),
+        bytes,
+      },
     };
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));

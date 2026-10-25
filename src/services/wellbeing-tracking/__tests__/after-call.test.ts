@@ -64,6 +64,17 @@ describe('after-call wellbeing snapshot', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it('writes nothing for an anon: or onbehalf: session id', async () => {
+    const save = vi.fn(async () => true);
+    for (const userId of ['anon:web-1', 'onbehalf:call-1']) {
+      await recordWellbeingAfterCall(
+        { ...CALL, userId },
+        { llm: async () => '{"mood":0.9}', save, env: { WELLBEING_AFTER_CALL: 'on' } }
+      );
+    }
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('drops scores outside 0..1 and unreadable replies', () => {
     expect(parseWellbeingReply('{"mood":1.4,"energy":-0.1,"worry":0}')).toEqual({ worry: 0 });
     expect(parseWellbeingReply('not json')).toEqual({});

@@ -141,6 +141,16 @@ function clipsOf(kind: PresenceClipKind): ArrayBuffer[] {
   return loaded;
 }
 
+/** The loaded clip from this file, or null (a kept named tune, presence-tune.ts). */
+export function presenceClipNamed(kind: PresenceClipKind, file: string): ArrayBuffer | null {
+  return clipsOf(kind).find((pcm) => names.get(pcm) === file) ?? null;
+}
+
+/** VOICED_QUIRKS: the recorded snores, whatever PRESENCE_SOUND_ASSETS says (voiced-presence.ts). */
+export function snoreClipPicker(rng: () => number = Math.random): ClipPicker {
+  return createClipPicker(clipsOf('snores'), rng);
+}
+
 export function presenceClipPickers(
   env: Record<string, string | undefined> = process.env
 ): { whistle: ClipPicker; snore: ClipPicker } | null {

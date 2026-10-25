@@ -37,6 +37,7 @@ import * as realtimeMemory from '../memory/realtime-memory.js';
 import { onSessionEndUnified } from '../trust-systems/unified-persistence.js';
 import type { SessionServices } from '../types.js';
 import type { ConversationSummary } from './summarization.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 const log = getLogger();
 
@@ -354,7 +355,7 @@ export async function persistSocialGraphOnEnd(userId: string): Promise<void> {
     const isSaved =
       !graph ||
       graph.people.size === 0 ||
-      userId === 'anonymous' ||
+      !isMemberIdentity(userId) ||
       (await persistGraphToFirestore(userId, graph));
     clearRateLimits(userId);
     if (isSaved) {

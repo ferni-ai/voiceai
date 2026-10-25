@@ -16,6 +16,8 @@
 import admin from 'firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { createLogger } from '../../utils/safe-logger.js';
+import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
+import { erasureErrorCode } from '../platform/erasure-step.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });
 
@@ -225,8 +227,11 @@ export async function verifyFirebaseToken(
 /**
  * Get Firebase user by UID.
  * Useful for checking user status, custom claims, etc.
+ * An anon: or onbehalf: session id names no account, so it is never looked up
+ * (each lookup used to fail and log an error).
  */
 export async function getFirebaseUser(uid: string): Promise<admin.auth.UserRecord | null> {
+  if (nonAccountPrefixOf(uid.trim()) !== undefined) return null;
   if (!ensureInitialized()) {
     return null;
   }
@@ -331,7 +336,10 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
     log.info({ uid: `${uid.substring(0, 8)}...` }, 'Deleted Firebase user');
     return true;
   } catch (error) {
-    log.error({ error: String(error), uid }, 'Failed to delete Firebase user');
+    log.error(
+      { error: erasureErrorCode(error), uid: `${uid.substring(0, 8)}...` },
+      'Failed to delete Firebase user'
+    );
     return false;
   }
 }

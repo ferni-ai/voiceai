@@ -8,6 +8,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { MAX_USER_ID_LENGTH, MIN_USER_ID_LENGTH, USER_ID_PATTERN } from './constants.js';
+import { isThirdPartyCallUser } from '../../memory/third-party-call.js';
 
 /**
  * Validate userId format before profile operations
@@ -15,6 +16,8 @@ import { MAX_USER_ID_LENGTH, MIN_USER_ID_LENGTH, USER_ID_PATTERN } from './const
  */
 export function validateUserId(id: string | undefined): string | undefined {
   if (!id) return undefined;
+  // The person on an on-behalf call is not a user: no profile is loaded or created.
+  if (isThirdPartyCallUser(id)) return undefined;
 
   // Must be non-empty string
   if (typeof id !== 'string' || id.trim().length === 0) return undefined;

@@ -777,7 +777,7 @@
     "phoneLabel": "傳簡訊或打電話給我",
     "emailLabel": "寄送最新消息給我",
     "nameLabel": "我該怎麼稱呼你？",
-    "privacyNote": "我只會將此用於自我檢視。絕不發送垃圾訊息，也絕不分享。",
+    "privacyNote": "我只會將此用於自我檢視。絕不發送垃圾訊息，也絕不出售。",
     "quietHours": "勿擾時間",
     "dontCall": "不要打電話",
     "until": "直到",
@@ -1197,7 +1197,7 @@
       "createPractice": "建立儀式",
       "creativeYou": "發揮創意",
       "discoverAgents": "認識更多朋友",
-      "exportData": "匯出你的故事",
+      "exportData": "隱私與你的資料",
       "gifts": "禮物與特別的日子",
       "groupCoaching": "與朋友一起",
       "guidedPractices": "靜心練習",
@@ -1531,7 +1531,7 @@
         "title": "開口說話即可"
       },
       "welcome": {
-        "description": "你專屬的 AI 人生教練團隊。每位教練都帶來獨特的智慧，支持你的旅程。",
+        "description": "你的專屬嚮導團隊。每一位都有自己看待事物的方式。",
         "title": "歡迎來到 Ferni"
       }
     },
@@ -2408,7 +2408,7 @@
     "intro": "連結你的穿戴式裝置，讓 Ferni 更了解你的健康狀況與活力水平。",
     "loading": "載入中...",
     "privacy": {
-      "note": "你的健康數據會保持私密。我們只會將整合後的洞察分享到你的教練對話中。"
+      "note": "Ferni 會儲存你的健康數據，以便和你一起發現規律。我們絕不出售這些數據，刪除帳戶即會將其清除。"
     },
     "providers": {
       "appleHealth": {
@@ -2883,6 +2883,9 @@
     "openConversations": "開啟的對話",
     "onYourMind": "你心裡在想的事",
     "thingsTracking": "你的團隊為你留意的大小事",
+    "trackedDone": "完成",
+    "trackedDismiss": "忽略",
+    "trackedUpdateFailed": "無法更新，請再試一次。",
     "quickConnections": "快速連結",
     "startWithAnyone": "與你團隊中的任何人開始對話",
     "allCaughtUp": "都跟上進度囉！",
@@ -2948,7 +2951,7 @@
     "orUseEmail": "或使用電子郵件",
     "emailLabel": "電子郵件",
     "passwordLabel": "密碼",
-    "privacyNote": "你的資料將永遠保持私密。",
+    "privacyNote": "我們絕不出售你的資料。刪除帳戶即會將其清除。",
     "loading": "請稍等一下...",
     "welcomeBack": "歡迎回來！我都記得。",
     "somethingWentWrong": "出了點問題",
@@ -2971,7 +2974,7 @@
     "waitlistMessage": "我們正在逐步開放 Ferni，以確保每個人都能獲得最佳體驗。一旦有空缺，我們就會發送電子郵件給你。",
     "waitlistEmail": "我們將會發送通知至 {email}",
     "tryDifferentAccount": "嘗試其他帳號",
-    "checkingAccess": "正在檢查你的存取權限...",
+    "checkingAccess": "正在準備…",
     "checkingLabel": "請稍等一下...",
     "signInError": "登入已取消或失敗。請再試一次。",
     "verifyEmailTitle": "驗證你的電子郵件",
@@ -3429,7 +3432,7 @@
     "weeklyDigest": "每週摘要",
     "weeklyDigestDesc": "在週日晚上預覽你未來一週的行程",
     "viewSyncConflicts": "查看同步衝突",
-    "integrationsPrivacy": "整合功能會將你現有的行程同步至 Ferni。你的資料將保持私密。",
+    "integrationsPrivacy": "整合功能會將你現有的行程同步至 Ferni。我們絕不出售你的資料。",
     "tryAgain": "再試一次",
     "syncing": "正在同步...",
     "connectAppleCalendar": "連線 Apple Calendar",
@@ -3505,8 +3508,6 @@
     "accessLevelFullDesc": "可以和所有團隊成員對話",
     "accessLevelLimited": "受限存取權",
     "accessLevelLimitedDesc": "僅限 Ferni",
-    "accessLevelSupervised": "受監督存取權",
-    "accessLevelSupervisedDesc": "通話時你會收到通知",
     "eyebrow": "家人",
     "addMember": "新增家人",
     "emptyText": "新增會用電話撥給 Ferni 的家人。系統會自動辨識他們，讓他們也能和 Ferni 進行專屬的對話。",
@@ -3576,7 +3577,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "你的專屬 AI 伴侶",
+        "role": "你的專屬伴侶",
         "description": "無論你需要什麼，我都在這裡 — 從每日自我檢視到深度對話都沒問題。",
         "unlockHint": "一直守候在你身邊",
         "unlockedMessage": "我們一起經歷了好多呢。",
@@ -3608,7 +3609,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "溝通與人際關係",
+        "role": "溝通教練兼幕僚長",
         "description": "我會協助你引導對話、鞏固人際關係，並更好地表達自己。",
         "unlockHint": "與 Ferni 分享一段關於人際關係的故事",
         "unlockedMessage": "我注意到一些值得我們一起探索的模式。",
@@ -3647,11 +3648,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — 你的 AI 生活伴侶",
+      "title": "認識一下 Ferni",
       "message": "我一直在使用 Ferni，它真的改變了我面對每一天的方式。一起加入我吧！{url}",
       "shortMessage": "一起加入 Ferni 吧！{url}",
-      "emailSubject": "你一定要試試 Ferni",
-      "emailBody": "嘿！我最近在用 Ferni — 這是一個感覺真的很像人類的 AI 伴侶。我想你一定會喜歡。{url}"
+      "emailSubject": "你一定要試試 Ferni"
     },
     "modal": {
       "title": "分享成長",
@@ -3871,21 +3871,21 @@
   "marketplace": {
     "empty": {
       "search": "找不到結果",
-      "installed": "還沒有安裝任何 AI 助理",
+      "installed": "還沒有安裝任何助理",
       "browse": "逛逛我們的市集"
     },
     "creations": {
       "noDescription": "暫無描述",
-      "createButton": "創造 AI 夥伴",
-      "emptyDescription": "打造一個擁有獨特個性與技能的 AI 夥伴，並與社群分享。",
-      "emptyTitle": "你還沒有創造任何 AI 夥伴",
-      "title": "你的專屬 AI 夥伴",
+      "createButton": "創造夥伴",
+      "emptyDescription": "打造一個擁有獨特個性與技能的夥伴，並與社群分享。",
+      "emptyTitle": "你還沒有創造任何夥伴",
+      "title": "你的專屬夥伴",
       "subtitle": "創造擁有專屬聲音與個性的溫暖伴侶",
-      "create": "創造 AI 夥伴",
-      "empty": "目前沒有 AI 夥伴",
-      "emptyHint": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的聲音、打造一位導師，或設計專屬於你的貼心伴侶。",
-      "emptyHintWithoutVoice": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的故事、打造一位導師，或設計專屬於你的貼心伴侶。",
-      "createFirst": "創造你的第一個 AI 夥伴",
+      "create": "創造夥伴",
+      "empty": "目前沒有夥伴",
+      "emptyHint": "創造你的第一個專屬夥伴，珍藏摯愛的聲音、打造一位導師，或設計專屬於你的貼心伴侶。",
+      "emptyHintWithoutVoice": "創造你的第一個專屬夥伴，珍藏摯愛的故事、打造一位導師，或設計專屬於你的貼心伴侶。",
+      "createFirst": "創造你的第一個夥伴",
       "whatYouCan": "你可以創造什麼",
       "legacy": "情感傳承",
       "legacyDesc": "珍藏你所珍愛之人的聲音與智慧",
@@ -3897,10 +3897,10 @@
       "custom": "自由創作",
       "customDesc": "從零開始打造任何獨特個性",
       "startCreating": "開始創造",
-      "createLegacyAria": "創造情感傳承 AI 夥伴",
+      "createLegacyAria": "創造情感傳承夥伴",
       "createMentorAria": "創造心靈導師教練",
       "createTwinAria": "創造數位分身",
-      "createCustomAria": "從零開始創造專屬 AI 夥伴"
+      "createCustomAria": "從零開始創造專屬夥伴"
     },
     "agentCard": {
       "install": "邀請加入",
@@ -3968,7 +3968,6 @@
       "ceo": "執行長",
       "ferniRole": "CEO 與人生教練",
       "ferniDesc": "一切的核心，溫暖而睿智的存在。Ferni 以完美的回憶、毫無批判的包容，以及時刻的陪伴，協調著整個團隊。",
-      "coFounders": "共同創辦人",
       "coreTeam": "核心團隊",
       "footer": "攜手同行，我們正在重新定義什麼是「真正傾聽你的團隊」。",
       "roles": {
@@ -4564,7 +4563,7 @@
     "title": "建立助理頁面",
     "nameLabel": "助理名稱",
     "namePlaceholder": "例如：Nate Holloway",
-    "nameHint": "你的 AI 助理全名",
+    "nameHint": "你的助理全名",
     "initialsLabel": "縮寫",
     "initialsPlaceholder": "例如：JD",
     "initialsHint": "顯示在頭像上（2-3 個字元）",
@@ -4768,7 +4767,10 @@
     "funGames": "趣味遊戲",
     "reflectionGames": "反思遊戲",
     "tipLabel": "小撇步：",
-    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！"
+    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！",
+    "connectFirst": "先和 Ferni 開始通話，再選一個遊戲。",
+    "starting": "正在開始{game}…",
+    "startFailed": "沒能開始這個遊戲。試試直接問 Ferni。"
   },
   "digitalTwinProfile": {
     "title": "打造你的數位分身",
@@ -6417,26 +6419,26 @@
     }
   },
   "customAgentEditor": {
-    "title": "編輯 AI 夥伴",
+    "title": "編輯夥伴",
     "tabInfo": "資訊",
     "tabPersonality": "個性",
     "tabVoice": "聲音",
     "tabMemories": "回憶",
-    "deleteAgent": "刪除 AI 夥伴",
+    "deleteAgent": "刪除夥伴",
     "cancel": "取消",
     "saveChanges": "儲存變更",
     "basicInformation": "基本資訊",
     "fieldName": "名稱",
-    "fieldNamePlaceholder": "AI 夥伴名稱",
+    "fieldNamePlaceholder": "夥伴名稱",
     "fieldDisplayName": "顯示名稱",
     "fieldDisplayNamePlaceholder": "他們如何自我介紹",
     "fieldDescription": "描述",
-    "fieldDescriptionPlaceholder": "這位 AI 夥伴是誰？",
+    "fieldDescriptionPlaceholder": "這位夥伴是誰？",
     "fieldStatus": "狀態",
     "statusDraft": "草稿",
     "statusActive": "啟用中",
     "statusPaused": "已暫停",
-    "statusHint": "啟用中的 AI 夥伴可以在對話中使用。",
+    "statusHint": "啟用中的夥伴可以在對話中使用。",
     "communicationStyle": "溝通風格",
     "personalityTraits": "個性特質",
     "cognitiveStyle": "認知風格",
@@ -7285,8 +7287,7 @@
       "description": "與你一同成長的專屬語音日記",
       "feature1": "記錄每日語音日記",
       "feature2": "與過去的自己對話",
-      "feature3": "追蹤你一路走來的成長",
-      "feature4": "AI 生成的洞察"
+      "feature3": "追蹤你一路走來的成長"
     },
     "fictional": {
       "name": "虛擬角色",
@@ -9005,7 +9006,7 @@
     "styleDirect": "給予直接且坦誠的回饋",
     "styleEncouraging": "給予鼓勵與支持",
     "styleChallenging": "挑戰既有的假設",
-    "styleDefault": "透過編輯 AI 的性格來定義教學風格。",
+    "styleDefault": "透過編輯夥伴的性格來定義教學風格。",
     "mentorNotFound": "找不到這位導師",
     "couldNotUpdate": "無法更新。要再試一次嗎？",
     "couldNotDelete": "無法刪除。要再試一次嗎？",
@@ -9061,10 +9062,6 @@
     "chiefExecutive": "執行長",
     "ferni": "Ferni",
     "ferniRole": "CEO 與人生教練",
-    "coFounders": "共同創辦人",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "核心團隊",
     "tagline": "攜手合作，我們正在重新定義什麼是「真正傾聽你」的團隊。",
     "inTeam": "團隊中",
@@ -9347,7 +9344,8 @@
     "title": "你的資料",
     "exportFormat": "匯出格式",
     "deleteAll": "刪除所有資料",
-    "footer": "你的資料完全屬於你。我們尊重你的隱私。",
+    "footer": "我會保存我們的對話和你告訴我的事，這樣下次我還能記得；如果你哪天想讓它們消失，刪除帳號就會把它們全部清除。",
+    "privacyPolicyLink": "閱讀隱私權政策",
     "deleteAccount": "刪除我的帳號",
     "confirmDeleteAll": "你確定要刪除所有資料嗎？此操作將無法復原。",
     "confirmDeleteAccount": "確定要刪除你的 Ferni 帳號嗎？這會清除 Ferni 所知道關於你的一切，並將你永久登出。此操作將無法復原。",
@@ -9503,7 +9501,14 @@
     "close": "關閉",
     "seeCost": "這次通話的費用",
     "feedbackQuestion": "這次聊得怎麼樣？",
-    "feedbackThanks": "謝謝，這很有幫助。"
+    "feedbackThanks": "謝謝，這很有幫助。",
+    "pushAskQuestion": "想讓 Ferni 之後問問你這件事嗎？",
+    "pushAskYes": "好的",
+    "pushAskNotNow": "先不用",
+    "pushAskDone": "好了。Ferni 的訊息會傳到這台裝置。",
+    "pushAskLater": "沒關係。之後可以在設定裡更改。",
+    "pushAskHomeScreen": "要在這裡收到 Ferni 的訊息，請先把 Ferni 加入主畫面：點一下「分享」，再點「加入主畫面」。",
+    "pushAskGotIt": "知道了"
   },
   "moments": {
     "teamUnlockTitle": "認識 {name}",
@@ -9795,7 +9800,7 @@
     },
     "marketplace": {
       "headline": "尋找懂你的夥伴。",
-      "description": "除了 Ferni 核心團隊之外，還有一座由專業 AI 教練組成的花園等著你。ADHD 支持、戒癮陪伴、睡眠專家、育兒指南 — 這些專家都深知你獨特的旅程。",
+      "description": "除了 Ferni 核心團隊之外，還有一座由專業教練組成的花園等著你。ADHD 支持、戒癮陪伴、睡眠專家、育兒指南 — 這些專家都深知你獨特的旅程。",
       "superhuman1": "專業角色 — 應對特定生活挑戰的教練",
       "superhuman2": "社群評分 — 真實的體驗與評價",
       "superhuman3": "免費與付費 — 滿足各種預算的支持",
@@ -9803,7 +9808,7 @@
     },
     "developerPortal": {
       "headline": "打造真正有意義的事物。",
-      "description": "Ferni 技術正對外開放。打造你專屬的 AI 教練、建立特定的專業角色，並觸及那些正需要你所提供之協助的人。驅動 Ferni 的平台，現在由你掌控。",
+      "description": "Ferni 技術正對外開放。打造你專屬的教練、建立特定的專業角色，並觸及那些正需要你所提供之協助的人。驅動 Ferni 的平台，現在由你掌控。",
       "superhuman1": "完整 API 文件 — 打造所需的一切資源",
       "superhuman2": "SDK 與函式庫 — TypeScript 優先開發",
       "superhuman3": "角色建立器 — 建立教練的視覺化工具",
@@ -9887,7 +9892,7 @@
       "title": "個人化",
       "message": "你的位置能讓我們的對話感覺更親近、更貼切 — 就像我真的陪在你身邊一樣。"
     },
-    "note": "這完全是我們之間的小秘密 — 我只會用它來讓我們的對話更貼近你。",
+    "note": "我只會用它來讓我們的對話更貼近你，絕不出售。",
     "notNow": "稍後再說",
     "allow": "允許定位"
   },
@@ -10121,9 +10126,10 @@
     "title": "我幫你記住的小事",
     "subtitle": "讓你不用操心",
     "emptyTitle": "目前還沒有任何設定",
-    "emptySubtitle": "想要我每天早上向你問好？還是提醒你伸展身體？我都可以幫忙喔。",
+    "emptySubtitle": "告訴我你想定期做的事，我會把它存在這裡。",
     "emptyButton": "看看有哪些靈感",
     "addNew": "新增項目",
+    "notRunningYet": "我把它們存在這裡。它們還不會自動執行。",
     "triggers": {
       "dailyAt": "每天 {time}",
       "dailyUnset": "每天的固定時間",
@@ -10239,6 +10245,7 @@
       "one": "你獲得了 {count} 顆種子！"
     },
     "couldNotLoadMemories": "沒能載入我記得的內容。再試一次？",
+    "credentialNotKept": "Ferni 不會保存密碼或各種代碼，所以這條已刪除。",
     "memoryCorrected": "明白了，我會這樣記住。"
   },
   "trustSignals": {
@@ -10499,7 +10506,7 @@
   },
   "ferniAwakens": {
     "greeting": "你好。",
-    "subtext": "我是 Ferni，你的 AI 人生教練。"
+    "subtext": "我是 Ferni，你的專屬嚮導。"
   },
   "serviceHealth": {
     "names": {
@@ -10509,7 +10516,7 @@
       "historicalFacts": "歷史事件",
       "smartHome": "智慧家庭",
       "lighting": "照明",
-      "aiContext": "AI 上下文",
+      "aiContext": "記憶與上下文",
       "sleepHealth": "睡眠與健康數據",
       "other": "已連結的服務"
     },
@@ -10666,9 +10673,6 @@
     "patronShort": "贊助者",
     "founderAria": "{tier}。謝謝你相信我們！點擊進行管理。"
   },
-  "splash": {
-    "tagline": "你的 AI 團隊已準備就緒"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "所有支持",
@@ -10801,7 +10805,7 @@
   },
   "entrance": {
     "helper": "你的貼心嚮導",
-    "connectToTalk": "聊聊",
+    "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消",
     "connectingNow": "正在連線…",
@@ -11129,5 +11133,21 @@
     "helper": "用手機相機掃描，或點按「開啟 Venmo」。金額可以修改。",
     "maybeLater": "以後再說",
     "close": "關閉"
+  },
+  "reportReply": {
+    "button": "檢舉",
+    "describe": "檢舉{name}說的話",
+    "title": "檢舉回覆",
+    "whichReply": "哪則回覆？",
+    "whatsWrong": "有什麼問題？",
+    "reasonHarmful": "有害或不安全",
+    "reasonWrong": "錯誤或具誤導性",
+    "reasonInappropriate": "不恰當",
+    "reasonOther": "其他",
+    "note": "還有要補充的嗎？（選填）",
+    "send": "傳送",
+    "thanks": "謝謝，會有專人查看。",
+    "failed": "傳送失敗，請再試一次。",
+    "tooMany": "你今天已經送出很多檢舉，請明天再試。"
   }
 }

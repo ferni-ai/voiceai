@@ -6,13 +6,20 @@
  *
  * The channel (a note in the app, a text or a call) comes from channel-policy.ts: the
  * user's opt-ins, verified phone, quiet hours, daily caps and back-off. The
- * words come from outreach-text.ts.
+ * words come from outreach-text.ts. Before either, the verified phone's STOP
+ * and do-not-call records are read (opt-outs.ts); if they can't be, nothing
+ * goes out and the trigger waits for a later run.
  *
  * Off unless PROACTIVE_CHANNELS=on, and then only for the user ids in
  * PROACTIVE_CHANNELS_USERS (comma separated) and the people whose cohort flags
  * turn PROACTIVE_CHANNELS on (cohort-flags.ts usersWithFlag, COHORT_FLAGS=on),
  * so a person is added in Firestore, not in the public deploy config. At most
  * one check-in per user per run; every trigger goes out once.
+ *
+ * People whose cohort flags turn OUTREACH_PONDERED_NOTES on but not
+ * PROACTIVE_CHANNELS get only those notes (pondered-triggers.ts): a note in
+ * the app about something they said, never a text, a call or any other
+ * trigger. The run is still off unless PROACTIVE_CHANNELS=on on the server.
  *
  * @module services/outreach/proactive-channels/proactive-tick
  */
@@ -22,9 +29,10 @@ import { usersWithFlag } from '../../platform/cohort-flags.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
+import { savedQuietHours } from '../quiet-hours.js';
 import type { WorldDueItem } from './more-triggers.js';
 import { collectTriggers } from './triggers.js';
-import { ponderedTriggers } from './pondered-triggers.js';
+import { PONDERED_NOTES_FLAG, ponderedTriggers } from './pondered-triggers.js';
 import { chooseChannel, type ChannelChoice, type PolicyInput } from './channel-policy.js';
 import {
   alreadySent,
@@ -35,6 +43,7 @@ import {
 } from './outreach-log.js';
 import type { CallOutcome } from './self-call.js';
 import { writeOutreachText } from './outreach-text.js';
+import { optedOutChannels, phoneOptOuts, type PhoneOptOuts } from './opt-outs.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
 const log = createLogger({ module: 'ProactiveChannels' });
@@ -58,6 +67,16 @@ export async function proactiveUserIds(): Promise<string[]> {
   ];
 }
 
+/**
+ * People who get only pondered notes: OUTREACH_PONDERED_NOTES on through their
+ * own cohort flags, and not already among `proactive`. Empty while the run is off.
+ */
+export async function ponderedNotesOnlyUserIds(proactive: readonly string[]): Promise<string[]> {
+  if (!isProactiveChannelsOn()) return [];
+  const handled = new Set(proactive);
+  return (await usersWithFlag(PONDERED_NOTES_FLAG)).filter((u) => !handled.has(u));
+}
+
 const HISTORY_MS = 3 * 24 * 60 * 60 * 1000;
 
 /** The flag is on and they're on the allowlist or in a cohort: proactive check-ins handle this user. */
@@ -70,7 +89,12 @@ export interface ProactiveDeps {
   sendInApp: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
   /** A number they proved is theirs (user-reach.ts resolveVerifiedPhone), if any. */
   verifiedPhone: (userId: string, user: Record<string, unknown>) => Promise<string | undefined>;
-  sendSms: (phone: string, text: string) => Promise<boolean>;
+  /**
+   * Texts trigger.text through the guarded sender, which resolves the verified
+   * number itself; false when it didn't go (a STOP since the opt-out read, a text
+   * moments ago, a send failure), and the words go to the app instead.
+   */
+  sendSms: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
   /** What comes due today in their world; absent when the server has no world model. */
   worldDue?: (userId: string, timeZone?: string) => Promise<WorldDueItem[]>;
   /** Rings their verified phone (self-call.ts); absent or false canCall: no calls. */
@@ -102,27 +126,38 @@ function localHourOf(user: Record<string, unknown>, now: Date): number | undefin
   return tz === undefined ? undefined : Math.floor(localMinutes(now, tz) / 60);
 }
 
-/** The first trigger that hasn't gone out yet, in priority order. */
-async function nextTrigger(
+/** Everything but the pondered notes (triggers.ts), with what is due in their world. */
+async function checkInTriggers(
   userId: string,
   user: Record<string, unknown>,
   now: Date,
   deps: ProactiveDeps
-): Promise<ProactiveTrigger | undefined> {
+): Promise<ProactiveTrigger[]> {
   const worldDue = deps.worldDue
     ? await deps.worldDue(userId, timezoneOf(user)).catch((error: unknown) => {
         log.warn({ error: String(error), userId }, 'World model not loaded');
         return [];
       })
     : [];
+  return collectTriggers(userId, {
+    now,
+    // Unknown time zone: never "evening", so time-of-day triggers wait.
+    localHour: localHourOf(user, now) ?? 0,
+    lastTalkedAt: lastTalkedAt(user),
+    worldDue,
+  });
+}
+
+/** The first trigger that hasn't gone out yet, in priority order; notesOnly: pondered notes only. */
+async function nextTrigger(
+  userId: string,
+  user: Record<string, unknown>,
+  now: Date,
+  deps: ProactiveDeps,
+  notesOnly: boolean
+): Promise<ProactiveTrigger | undefined> {
   const triggers = [
-    ...(await collectTriggers(userId, {
-      now,
-      // Unknown time zone: never "evening", so time-of-day triggers wait.
-      localHour: localHourOf(user, now) ?? 0,
-      lastTalkedAt: lastTalkedAt(user),
-      worldDue,
-    })),
+    ...(notesOnly ? [] : await checkInTriggers(userId, user, now, deps)),
     // Pondered follow-ups backed by the caller's own words (OUTREACH_PONDERED_NOTES).
     // A failed read skips them this minute; the triggers above still go out.
     ...(await ponderedTriggers(userId, user, now, timezoneOf(user)).catch((error: unknown) => {
@@ -157,7 +192,7 @@ async function deliver(
   deps: ProactiveDeps
 ): Promise<Delivered> {
   if (channel === 'sms' && phone) {
-    const sent = await deps.sendSms(phone, trigger.text).catch((error: unknown) => {
+    const sent = await deps.sendSms(userId, trigger).catch((error: unknown) => {
       log.warn({ error: String(error), userId }, 'Proactive text failed');
       return false;
     });
@@ -214,7 +249,7 @@ async function send(
       ? await call(userId, toSend, phone, policy, deps)
       : await deliver(userId, toSend, choice.channel, phone, deps);
   await writeOutreachLog(userId, {
-    ...claimFor(trigger, choice, policy.now),
+    ...claimFor(trigger, choice, policy),
     channel: sent.channel,
     outcome: sent.outcome ?? (sent.ok ? 'sent' : 'failed'),
     text: written.text,
@@ -231,49 +266,72 @@ async function send(
   return sent;
 }
 
-function claimFor(trigger: ProactiveTrigger, choice: ChannelChoice, now: Date): OutreachLogEntry {
+function claimFor(
+  trigger: ProactiveTrigger,
+  choice: ChannelChoice,
+  policy: Pick<PolicyInput, 'now' | 'optedOut'>
+): OutreachLogEntry {
+  const optedOut = optedOutChannels(policy.optedOut);
   return {
     sourceId: trigger.sourceId,
     kind: trigger.kind,
     channel: choice.channel ?? 'in_app',
     reason: trigger.reason,
     why: choice.why,
-    at: now.toISOString(),
+    at: policy.now.toISOString(),
     outcome: 'pending',
+    ...(optedOut.length > 0 && { optedOut }),
   };
 }
+
+/** No verified phone: nothing to opt out of, and nothing is texted or rung. */
+const NO_PHONE: PhoneOptOuts = { sms: false, call: false };
 
 async function runForUser(
   userId: string,
   now: Date,
   deps: ProactiveDeps,
-  dryRun: boolean
+  { dryRun, notesOnly }: { dryRun: boolean; notesOnly: boolean }
 ): Promise<UserTickResult> {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not available');
   const user = (await db.collection('bogle_users').doc(userId).get()).data();
   if (!user) return { userId, status: 'skipped', why: 'no such user' };
 
-  const trigger = await nextTrigger(userId, user, now, deps);
+  const trigger = await nextTrigger(userId, user, now, deps, notesOnly);
   if (!trigger) return { userId, status: 'idle' };
-  const verifiedPhone = await deps.verifiedPhone(userId, user);
-  const canCall = deps.canCall?.() === true && deps.placeCall !== undefined;
+  // Notes only: no phone and no calls, so the policy can only pick a note in the app.
+  const verifiedPhone = notesOnly ? undefined : await deps.verifiedPhone(userId, user);
+  let optedOut = NO_PHONE;
+  if (verifiedPhone) {
+    try {
+      optedOut = await phoneOptOuts(userId, user, verifiedPhone);
+    } catch (error) {
+      // Fail closed: an opt-out we can't read must not pass for none.
+      log.warn({ error: String(error), userId }, 'Opt-outs not read; sending nothing');
+      return { userId, sourceId: trigger.sourceId, status: 'held', why: 'opt-out list unreadable' };
+    }
+  }
+  const canCall = !notesOnly && deps.canCall?.() === true && deps.placeCall !== undefined;
   if (trigger.weight === 'meaningful' && !canCall) {
     log.info({ userId, sourceId: trigger.sourceId }, 'No SIP trunk here, so no call');
   }
+  const savedQuiet = savedQuietHours(user);
   const input = {
     trigger,
     now,
     prefs: user.outreachPreferences,
     timezone: timezoneOf(user),
+    ...(savedQuiet && { savedQuiet }),
     verifiedPhone,
     lastTalkedAt: lastTalkedAt(user),
     canCall,
+    optedOut,
   };
   const since = new Date(now.getTime() - HISTORY_MS);
   const decided = await claimOutreach(userId, trigger.sourceId, since, (recent) => {
     const choice = chooseChannel({ ...input, recent });
-    const claim = choice.channel && !dryRun ? claimFor(trigger, choice, now) : undefined;
+    const claim = choice.channel && !dryRun ? claimFor(trigger, choice, input) : undefined;
     return { result: { choice, policy: { ...input, recent } }, claim };
   });
   if (decided === 'claimed') return { userId, status: 'idle', why: 'another run has it' };
@@ -303,11 +361,14 @@ export async function runProactiveChannelsTick(
   if (!isProactiveChannelsOn()) return { enabled: false, users: [] };
   const now = opts.now ?? new Date();
   const users: UserTickResult[] = [];
-  for (const userId of await proactiveUserIds()) {
+  const proactive = await proactiveUserIds();
+  const notesOnly = new Set(await ponderedNotesOnlyUserIds(proactive));
+  const dryRun = opts.dryRun === true;
+  for (const userId of [...proactive, ...notesOnly]) {
     try {
       // One user at a time keeps Firestore reads and sends paced.
       // eslint-disable-next-line no-await-in-loop
-      users.push(await runForUser(userId, now, deps, opts.dryRun === true));
+      users.push(await runForUser(userId, now, deps, { dryRun, notesOnly: notesOnly.has(userId) }));
     } catch (error) {
       log.error({ error: String(error), userId }, 'Proactive check-in failed');
       users.push({ userId, status: 'error', why: String(error) });

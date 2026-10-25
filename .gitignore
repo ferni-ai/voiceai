@@ -25,6 +25,8 @@ latest-logs.txt
 .plaid-tokens.json
 .forms.env
 GoogleService-Info.plist
+# The iPhone app's Firebase config: bundle-restricted, not a secret, and CI builds need it.
+!apps/ios-native/App/GoogleService-Info.plist
 google-services.json
 
 # Local development data (contacts, etc.)
@@ -185,6 +187,9 @@ voice-embeddings/*.pt
 # Test audio output artifacts
 test_higgs_output.wav
 .worktrees/
+# Claude Code agent worktrees created inside a checkout (isolation: worktree).
+# Untracked, they make the deploy checkout look dirty and block the nightly sweep's deploy.
+.claude/worktrees/
 
 # Real LinkedIn OAuth tokens — the .example template stays tracked.
 # apps/website/ferni-website/.env.linkedin held a live 350-char access token
@@ -206,3 +211,32 @@ cases-*.json
 cases-*.md
 longmem-*.json
 memory-[0-9]*.json
+
+# Commit the deploy-agent chain writes for the agent image (src/config/build-sha.ts)
+.build-sha
+
+# Build and session output found committed (untracked 2026-10-18 repo retro).
+# Each is generated on demand and nothing reads it from git.
+# transformers.js model cache: src/utils/transformers-loader.ts downloads into ./.cache/transformers
+.cache/
+# Eleventy output for every portal; each portal's build script regenerates it before deploy
+**/_site/
+# Agent and plugin session state (.ferni-mcp is recreated by the CLI MCP server on start)
+.superpowers/
+.ferni-mcp/
+# Xcode per-user UI state and local build output
+xcuserdata/
+apps/shared/build/
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Website computed-style diff (e2e/website-style-diff.spec.ts)
+apps/website/ferni-website/_site-base/
+apps/website/ferni-website/style-diff-report/
+
+# Generated at install, typecheck, build and test time by src/config/generated-lists.ts
+# (pnpm gen:lists). Committing them made flag and env-read PRs conflict in the merge
+# queue, which ignores the union merge driver.
+src/config/flags/index.generated.ts
+src/config/env-read-names.generated.ts

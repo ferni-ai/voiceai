@@ -17,6 +17,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { checkDialableNumber } from '../../utils/dialable-number.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { SponsoredIdentity } from '../identity/sponsored-identity.js';
 
@@ -77,7 +78,7 @@ function sponsorAllowed(sponsorUserId: string): boolean {
  * the sponsor allowlist, that the identity exists, belongs to the schedule's sponsor and is active,
  * and that the family member's own consent is on record and not withdrawn.
  * With FAMILY_CHECKIN_STOP on, a number on the do-not-call list is refused too
- * (no list wired means no call).
+ * (no list wired means no call). MINOR_CARE_SHARED_HOLD: a held sponsor or number is refused.
  */
 export async function familyCallBlockReason(
   schedule: { sponsorUserId: string; sponsoredIdentityId: string; phoneNumber?: string },
@@ -89,6 +90,11 @@ export async function familyCallBlockReason(
   if (!identity) return 'Sponsored identity not found';
   if (identity.sponsorUserId !== schedule.sponsorUserId) return 'Sponsor mismatch';
   if (identity.status !== 'active') return `Identity is ${identity.status}`;
+  // MINOR_CARE_SHARED_HOLD: not for a sponsor, or to a number, a call held under 18 (as dialled)
+  const dialled = checkDialableNumber(schedule.phoneNumber ?? '');
+  const { directSendHeld } = await import('../communication-service.js');
+  const sponsor = { userId: schedule.sponsorUserId };
+  if (await directSendHeld(dialled.ok ? dialled.e164 : '', 'call', sponsor)) return 'Held';
   if (flagOn('FAMILY_CHECKIN_STOP') && (await onDoNotCallList(schedule, store))) {
     log.info(
       { sponsoredIdentityId: schedule.sponsoredIdentityId },

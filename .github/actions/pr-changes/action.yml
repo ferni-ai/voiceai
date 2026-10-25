@@ -3,8 +3,14 @@ description: >
   Sets `matched` to 'true' when the pull request changes at least one file that
   matches `include` and does not match `exclude` (both extended regexes, tested
   against repo-relative paths; a rename counts its old path too). With
-  `merge-group: 'true'` a merge-queue run is scoped the same way, from the files
-  between the group's base and head. Every other event (push, schedule,
+  `merge-group: 'true'` a merge-queue run is scoped the same way, from every file
+  the group changes against its target branch (main): a three-dot compare of
+  main...head lists the files of each PR in the group's stack. Never the group's
+  base_sha: past the first entry that is the group ahead's temporary commit, so
+  it listed only the last PR's files, and since the queue merges every PR ahead
+  on that group's verdict, PRs whose checks were skipped merged unchecked
+  (2026-10-19: #2027 merged on #1988's group, which skipped Lint, Frontend
+  Quality and Unit Tests). Every other event (push, schedule,
   workflow_dispatch) gets 'true', and so does any failure to list the files or a
   diff of 300+ files: a gate built on this skips work only when it knows the
   change cannot need it. Use it from a job-level `if:` so the skipped job still
@@ -41,18 +47,20 @@ runs:
         REPO: ${{ github.repository }}
         PR: ${{ github.event.pull_request.number }}
         SCOPE_QUEUE: ${{ inputs.merge-group }}
-        MG_BASE: ${{ github.event.merge_group.base_sha }}
+        MG_BASE_REF: ${{ github.event.merge_group.base_ref }}
         MG_HEAD: ${{ github.event.merge_group.head_sha }}
         INCLUDE: ${{ inputs.include }}
         EXCLUDE: ${{ inputs.exclude }}
       run: |
         if [ "$EVENT" = "merge_group" ] && [ "$SCOPE_QUEUE" = "true" ]; then
-          # The compare API lists at most 300 files; at that size, run everything.
-          if ! diff=$(gh api "repos/$REPO/compare/$MG_BASE...$MG_HEAD" \
+          # From the target branch, never base_sha (see the description). The compare
+          # API lists at most 300 files; at that size, run everything.
+          target=${MG_BASE_REF#refs/heads/}
+          if [ -z "$target" ] || ! diff=$(gh api "repos/$REPO/compare/$target...$MG_HEAD" \
               --jq '[.files | length] + [.files[] | .filename, (.previous_filename // empty)] | .[]') \
               || [ -z "$diff" ] || [ "$(printf '%s\n' "$diff" | head -1)" -ge 300 ]; then
             echo "matched=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::Could not scope merge group $MG_BASE...$MG_HEAD, so everything runs"
+            echo "::warning::Could not scope merge group $target...$MG_HEAD, so everything runs"
             exit 0
           fi
           files=$(printf '%s\n' "$diff" | tail -n +2)

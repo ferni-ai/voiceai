@@ -16,6 +16,7 @@ import type {
 import { showFerniCareDashboard } from './dashboard.ui.js';
 import { renderCalendarTriggerFields } from './routine-builder-calendar.js';
 import { saveRoutine } from './routine-builder-save.js';
+import { escapeHtml } from './escape-html.js';
 import {
   ANALYTICS_ICONS,
   GROWTH_ICONS,
@@ -266,7 +267,7 @@ const styles = `
   }
   
   .rb-trigger.selected .rb-trigger__icon {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .rb-trigger__label {
@@ -392,7 +393,7 @@ const styles = `
   
   .rb-add-action:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     background: rgba(74, 103, 65, 0.02);
   }
   
@@ -464,7 +465,7 @@ const styles = `
   }
   
   .rb-action-picker__item:hover .rb-action-picker__item-icon {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .rb-action-picker__item-label {
@@ -629,7 +630,7 @@ export class RoutineBuilder {
         <div class="routine-builder__content">
           <div class="rb-section">
             <label class="rb-section__label">${t(COPY.sections.name)}</label>
-            <input type="text" class="rb-input rb-input--lg" id="rb-name" value="${this.escapeHtml(this.name)}" placeholder="${t(COPY.sections.namePlaceholder)}">
+            <input type="text" class="rb-input rb-input--lg" id="rb-name" value="${escapeHtml(this.name)}" placeholder="${t(COPY.sections.namePlaceholder)}">
           </div>
 
           <div class="rb-section">
@@ -728,9 +729,9 @@ export class RoutineBuilder {
 
     return `
       <div class="rb-action-item">
-        <div class="rb-action-item__icon">${actionDef?.icon || '⚙️'}</div>
+        <div class="rb-action-item__icon">${actionDef?.icon ?? ANALYTICS_ICONS.sparkles}</div>
         <div class="rb-action-item__content">
-          <div class="rb-action-item__name">${this.escapeHtml(action.name || (actionDef ? t(actionDef.labelKey) : ''))}</div>
+          <div class="rb-action-item__name">${escapeHtml(action.name || (actionDef ? t(actionDef.labelKey) : ''))}</div>
           <div class="rb-action-item__hint">${this.getActionSummary(action)}</div>
         </div>
         <button class="rb-action-item__remove" data-action="remove-action" data-index="${index}">
@@ -741,9 +742,11 @@ export class RoutineBuilder {
   }
 
   private getActionSummary(action: WorkflowAction): string {
-    if (action.params.message) return `"${String(action.params.message).slice(0, 40)}..."`;
-    if (action.params.habitId) return t('routineBuilder.trackHabit', { habit: String(action.params.habitId) });
-    if (action.params.zone) return `${action.params.zone}`;
+    if (action.params.message) return `"${escapeHtml(String(action.params.message).slice(0, 40))}..."`;
+    if (action.params.habitId) {
+      return escapeHtml(t('routineBuilder.trackHabit', { habit: String(action.params.habitId) }));
+    }
+    if (action.params.zone) return escapeHtml(action.params.zone);
     const actionDef = COPY.actions.find((a) => a.type === action.type);
     return actionDef ? t(actionDef.hintKey) : action.type;
   }
@@ -930,11 +933,6 @@ export class RoutineBuilder {
     showFerniCareDashboard();
   }
 
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }
 
 // ============================================================================

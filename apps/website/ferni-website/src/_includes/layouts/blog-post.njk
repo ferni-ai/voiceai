@@ -17,7 +17,7 @@
 
   {# ====== STYLES ====== #}
   <link rel="stylesheet" href="/css/story-brand.css?v=20251231">
-  <link rel="stylesheet" href="/css/blog-page.css?v=20251231">
+  <link rel="stylesheet" href="/css/blog-page.css?v=20261021">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
   <link rel="stylesheet" href="/css/dark-mode.css?v=20261005">
 
@@ -30,6 +30,7 @@
   <meta property="og:url" content="https://ferni.ai{{ page.url }}">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Ferni">
+  <link rel="alternate" type="application/atom+xml" title="The Ferni Blog" href="/blog/feed.xml">
 
   {# ====== TWITTER CARD ====== #}
   <meta name="twitter:card" content="summary_large_image">
@@ -155,6 +156,8 @@
 
       <footer class="blog-post__footer">
         <div class="container container-narrow">
+          {% include "partials/crisis-line.njk" %}
+
           <div class="blog-post__share">
             <span class="blog-post__share-label">Share this article</span>
             <div class="blog-post__share-buttons">
@@ -174,9 +177,9 @@
           </div>
 
           <div class="blog-post__cta">
-            <h3>Ready to try Ferni?</h3>
-            <p>Start a conversation with your AI life coach today. It's free.</p>
-            <a href="{{ site.appUrl }}?utm_source=blog&utm_medium=web&utm_campaign={{ page.fileSlug }}" class="btn btn-primary">Start Free</a>
+            <h3>Want someone to talk to?</h3>
+            <p>Ferni is a friend you can call, any hour. It's free, and he'd love to hear from you.</p>
+            <a href="{{ site.appUrl }}?utm_source=blog&utm_medium=web&utm_campaign={{ page.fileSlug }}" class="btn btn-primary">Talk to Ferni</a>
           </div>
         </div>
       </footer>

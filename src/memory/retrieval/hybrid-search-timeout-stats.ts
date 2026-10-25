@@ -27,8 +27,12 @@ import {
   type HybridSearchMetrics,
   type HybridSearchResult,
 } from './hybrid-search.js';
+import { turnMemoryRerankOn } from './turn-memory-rerank.js';
 
 const log = createLogger({ module: 'HybridSearchTimeout' });
+
+/** Time left after the leg deadline for fusion (measured 0 ms) before the race ends. */
+export const LEG_DEADLINE_MARGIN_MS = 50;
 
 let hybridSearchAttempts = 0;
 let hybridSearchTimeouts = 0;
@@ -42,11 +46,14 @@ export function recordHybridSearchAttempt(): void {
  * Run `hybridSearch()` racing against `totalTimeoutMs * 0.7`, recording the
  * attempt for {@link getHybridSearchTimeoutStats}. Extracted from
  * `retrieveForTurn()` so the timeout plumbing lives with its observability.
+ * `rrfScale` (TURN_MEMORY_RRF_SCALE): search only the vector leg and keep every
+ * fused result, for the caller to gate on cosine (turn-memory-scale.ts).
  */
 export async function runHybridSearchWithTimeout(
   userId: string,
   transcript: string,
-  totalTimeoutMs: number
+  totalTimeoutMs: number,
+  rrfScale = false
 ): Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }> {
   recordHybridSearchAttempt();
   const budgetMs = totalTimeoutMs * 0.7;
@@ -55,10 +62,16 @@ export async function runHybridSearchWithTimeout(
   let timedOut = false;
   const search = hybridSearch(userId, transcript, {
     topK: 10,
-    minScore: 0.3, // Lower threshold, we'll filter later
+    // Off: an RRF score is at most ~0.016 per source, so 0.3 lets nothing through.
+    minScore: rrfScale ? 0 : 0.3,
+    skipBM25: rrfScale, // with the flag only a cosine can admit a memory
     bm25Weight: 0.4,
     vectorWeight: 0.6,
     includeEntities: true,
+    // Fuse the legs that made it, just inside the race, so one late leg (the
+    // vector leg, waiting out a 429 backoff) costs its own results, not all.
+    legDeadlineMs: Math.max(0, budgetMs - LEG_DEADLINE_MARGIN_MS),
+    ...(rrfScale && turnMemoryRerankOn() && { withTimestamps: true }), // the judge weighs which fact is newer
   });
   // A search that loses the race still finishes. Log how late, per leg, so the
   // budget is set from what the search actually takes (dev 2026-10-05: 20 of

@@ -61,8 +61,13 @@ const STRING_RULES: Array<[RegExp, string]> = [
   [/\b(said|says|asked|told me|wrote|typed)\b\s+\S.*$/gim, `$1 ${REDACTED}`],
 ];
 
-/** Phone- and card-like runs: 7 to 19 digits with common separators. */
-const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
+/**
+ * Phone- and card-like runs: 7+ digits of any script, with any dash, slash,
+ * underscore or backslash between them too. No upper bound: wider separators
+ * can join two numbers into one run, and a report loses nothing it needs.
+ */
+const PHONE_LIKE =
+  /\+?\p{Nd}[\p{Nd}\s()._/\\\-\u2010-\u2015\u2212\uFE58\uFE63\uFF08\uFF09\uFF0D]{5,}\p{Nd}/gu;
 /** Six or more plain words in a row reads as prose, not as code. */
 const PROSE_RUN = /[A-Za-z][A-Za-z']*(?:[ ,]+[A-Za-z][A-Za-z']*){5,}/g;
 
@@ -71,8 +76,8 @@ export function scrubString(input: string): string {
   let out = input;
   for (const [pattern, replacement] of STRING_RULES) out = out.replace(pattern, replacement);
   out = out.replace(PHONE_LIKE, (match) => {
-    const digits = match.replace(/\D/g, '').length;
-    return digits >= 7 && digits <= 19 ? '[number]' : match;
+    const digits = match.replace(/\P{Nd}/gu, '').length;
+    return digits >= 7 ? '[number]' : match;
   });
   out = out.replace(PROSE_RUN, '[text]');
   return out.length > MAX_STRING ? `${out.slice(0, MAX_STRING)}…` : out;

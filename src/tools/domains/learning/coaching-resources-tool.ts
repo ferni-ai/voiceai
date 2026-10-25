@@ -47,6 +47,7 @@ import { isSyntheticUserId } from '../../../utils/synthetic-user.js';
 import { ownerKnown, testAccountReply } from '../communication/outreach/outreach-confirm.js';
 import { toolRegistry } from '../../registry/index.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 // Brands like iPhone may stay in web text; registered tool names never do.
 useRegisteredToolNames(() => toolRegistry.getAllIds());
@@ -114,7 +115,7 @@ export async function runFindCoachingResources(
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
   // No account, no per-user cap to hold it to: no paid lookups.
-  if (!userId || userId === 'anonymous') return NO_ACCOUNT;
+  if (!isMemberIdentity(userId)) return NO_ACCOUNT;
   if (!(await takeDailyBudget(`grounding:${userId}`, GROUNDING_PER_USER_PER_DAY))) {
     return OVER_DAILY_CAP;
   }
@@ -126,7 +127,7 @@ export async function runFindCoachingResources(
       format === 'book'
         ? await bookCandidates(topic)
         : await videoCandidates(topic, format === 'short');
-    const known = userId && userId !== 'anonymous' ? userId : undefined;
+    const known = isMemberIdentity(userId) ? userId : undefined;
     const taste = tasteFrom(known ? await recentPicks(known) : []);
     const fit = [await fitContext(userId, args.fit, names), tasteWords(taste)]
       .filter(Boolean)

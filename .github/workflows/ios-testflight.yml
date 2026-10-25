@@ -1,0 +1,46 @@
+# iOS TestFlight: archives the iPhone app from main and uploads it for
+# internal testers, with Xcode's own tools (apps/ios-native/scripts/testflight.sh).
+#
+# Started by hand only, from main, and every run waits for a reviewer on the
+# `testflight` environment. ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 must be
+# secrets of that environment (not repository secrets), so nothing else can
+# read the key. No third-party action runs in this job besides a SHA-pinned
+# checkout.
+
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    name: Archive and upload to TestFlight
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    environment: testflight
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The Xcode the iOS CI job builds with; fails loudly if the image lacks it.
+      - name: Select Xcode 26.6
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app || { ls -d /Applications/Xcode*.app; exit 1; }
+          xcodebuild -version
+
+      - name: Archive and upload
+        working-directory: apps/ios-native
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: ./scripts/testflight.sh

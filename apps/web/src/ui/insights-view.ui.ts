@@ -56,7 +56,7 @@ export interface InsightData {
   /** Current life chapter */
   chapter?: {
     title: string;
-    type: 'struggle' | 'growth' | 'triumph' | 'transition' | 'discovery';
+    type: 'struggle' | 'growth' | 'triumph' | 'transition' | 'loss' | 'discovery' | 'connection' | 'decision';
     duration?: string;
     arcSummary?: string;
   };
@@ -99,32 +99,22 @@ const DEFAULT_CHAPTER_COPY: ChapterCopy = {
   encouragementKey: 'insights.chapter.default.encouragement',
 };
 
+const chapterCopy = (type: string, icon: string, verbType = type): ChapterCopy => ({
+  icon,
+  verbKey: `insights.chapter.${verbType}.verb`,
+  encouragementKey: `insights.chapter.${type}.encouragement`,
+});
+
+// Copy is toned by chapter type: a loss is met gently, never with "something beautiful"
 const CHAPTER_COPY: Record<string, ChapterCopy> = {
-  struggle: {
-    icon: CHAPTER_ICONS.struggle,
-    verbKey: 'insights.chapter.default.verb',
-    encouragementKey: 'insights.chapter.struggle.encouragement',
-  },
-  growth: {
-    icon: CHAPTER_ICONS.growth,
-    verbKey: 'insights.chapter.growth.verb',
-    encouragementKey: 'insights.chapter.growth.encouragement',
-  },
-  triumph: {
-    icon: CHAPTER_ICONS.triumph,
-    verbKey: 'insights.chapter.triumph.verb',
-    encouragementKey: 'insights.chapter.triumph.encouragement',
-  },
-  transition: {
-    icon: CHAPTER_ICONS.transition,
-    verbKey: 'insights.chapter.transition.verb',
-    encouragementKey: 'insights.chapter.transition.encouragement',
-  },
-  discovery: {
-    icon: CHAPTER_ICONS.discovery,
-    verbKey: 'insights.chapter.discovery.verb',
-    encouragementKey: 'insights.chapter.discovery.encouragement',
-  },
+  struggle: chapterCopy('struggle', CHAPTER_ICONS.struggle, 'default'),
+  growth: chapterCopy('growth', CHAPTER_ICONS.growth),
+  triumph: chapterCopy('triumph', CHAPTER_ICONS.triumph),
+  transition: chapterCopy('transition', CHAPTER_ICONS.transition),
+  discovery: chapterCopy('discovery', CHAPTER_ICONS.discovery),
+  loss: chapterCopy('loss', CHAPTER_ICONS.struggle),
+  connection: chapterCopy('connection', CHAPTER_ICONS.growth),
+  decision: chapterCopy('decision', CHAPTER_ICONS.transition),
 };
 
 const INSIGHT_ICONS: Record<string, string> = {
@@ -467,7 +457,7 @@ export class InsightsView {
             ${t('insights.keepTalking')}
           </p>
           <div class="insights-empty__invitation-footer">
-            <span class="insights-empty__invitation-icon">✨</span>
+            <span class="insights-empty__invitation-icon" aria-hidden="true">${CHAPTER_ICONS.celebration.replace(/width="24" height="24"/, 'width="16" height="16"')}</span>
             ${t('insights.betterThanMemory')}
           </div>
         </div>

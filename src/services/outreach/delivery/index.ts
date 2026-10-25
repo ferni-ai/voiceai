@@ -44,10 +44,6 @@ export {
   pushNotifications,
   initializePushNotifications,
   isPushNotificationsAvailable,
-  registerPushToken,
-  removePushToken,
-  getUserTokens,
-  hasPushEnabled,
   sendPushNotification,
   sendBulkPushNotifications,
   generatePersonaNotification,
@@ -56,7 +52,6 @@ export {
   type PushNotification,
   type PushAction,
   type PushDeliveryResult,
-  type UserPushToken,
   type PushDeliveryRecord,
 } from './push-notifications.js';
 
@@ -156,7 +151,13 @@ export function initializeDeliveryServices(config: DeliveryConfig): void {
 import { sendSMS, isSMSDeliveryAvailable, type SMSMessage } from './sms-delivery.js';
 import { sendEmail, isEmailDeliveryAvailable } from './email-delivery.js';
 import { sendPushNotification, isPushNotificationsAvailable } from './push-notifications.js';
+import { hasPushDevice } from './push-reach.js';
 import { getFirestoreClient } from '../firestore-persistence.js';
+import { sharedHeld } from '../minor-care-shared-hold.js';
+import { heldSender } from '../checkin-replies.js';
+
+/** MINOR_CARE_SHARED_HOLD: the account, or the number, is held by a call (in any process). */
+const HELD = 'held (MINOR_CARE)';
 
 export interface DeliverOutreachOptions {
   userId: string;
@@ -172,6 +173,8 @@ export interface DeliverOutreachResult {
   channel: string;
   messageId?: string;
   error?: string;
+  /** No push device registered: nothing was tried, so there's no attempt to record. */
+  unreachable?: true;
 }
 
 /**
@@ -183,6 +186,7 @@ export async function deliverOutreach(
   const { userId, channel, message, personaId, subject, outreachId } = options;
   const persona = personaId || 'ferni';
   const outreach = outreachId || `outreach-${Date.now()}`;
+  if (await sharedHeld(userId)) return { success: false, channel, error: HELD };
 
   try {
     switch (channel) {
@@ -195,6 +199,8 @@ export async function deliverOutreach(
         if (!phoneResult) {
           return { success: false, channel, error: 'User phone number not found' };
         }
+        if (await heldSender(undefined, phoneResult))
+          return { success: false, channel, error: HELD };
         const smsMessage: SMSMessage = {
           to: phoneResult,
           body: message,
@@ -234,6 +240,9 @@ export async function deliverOutreach(
         };
 
       case 'push':
+        if (!(await hasPushDevice(userId))) {
+          return { success: false, channel, error: 'No push device registered', unreachable: true };
+        }
         if (!isPushNotificationsAvailable()) {
           return { success: false, channel, error: 'Push notifications not available' };
         }
@@ -277,6 +286,8 @@ export async function deliverOutreach(
           if (!userPhone) {
             return { success: false, channel, error: 'User phone number not found' };
           }
+          if (await heldSender(undefined, userPhone))
+            return { success: false, channel, error: HELD };
 
           const callResult = await makeConversationalCall({
             phone: userPhone,

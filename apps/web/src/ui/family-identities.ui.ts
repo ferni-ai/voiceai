@@ -2,7 +2,7 @@
  * Family Identities Management UI
  *
  * Manage sponsored identities for family members and friends who call
- * Ferni via phone. Allows adding, editing, and viewing call history.
+ * Ferni via phone. Allows adding, editing, and removing them.
  *
  * Self-registered callers ("I'm Sam's mom") are not approved here yet: those
  * pending approvals live in the voice agent's memory, which this API server
@@ -14,8 +14,7 @@
  * @module @ferni/family-identities
  */
 
-import { formatDate, t } from '../i18n/index.js';
-import { tp } from '../i18n/plural.js';
+import { t } from '../i18n/index.js';
 import { closeOnEscape } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -75,12 +74,6 @@ const RELATIONSHIP_OPTIONS = [
   { value: 'other', labelKey: 'familyIdentities.relationshipOther' },
 ];
 
-const ACCESS_LEVEL_OPTIONS = [
-  { value: 'full', labelKey: 'familyIdentities.accessLevelFull', descriptionKey: 'familyIdentities.accessLevelFullDesc' },
-  { value: 'limited', labelKey: 'familyIdentities.accessLevelLimited', descriptionKey: 'familyIdentities.accessLevelLimitedDesc' },
-  { value: 'supervised', labelKey: 'familyIdentities.accessLevelSupervised', descriptionKey: 'familyIdentities.accessLevelSupervisedDesc' },
-];
-
 // ============================================================================
 // ICONS (Lucide-style SVGs - 2px stroke, rounded corners)
 // ============================================================================
@@ -90,11 +83,9 @@ const ICONS = {
   trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
   userPlus: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`,
   users: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-  phone: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
   check: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   x: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   mic: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
-  clock: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
   edit: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   heart: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
 };
@@ -576,7 +567,7 @@ function renderEmptyState(): string {
       <div class="family-empty__icon">${ICONS.heart}</div>
       <div class="family-empty__title">${t('familyIdentities.familyTitle')}</div>
       <div class="family-empty__text">
-        ${t('familyIdentities.emptyText')}
+        ${t('familyIdentities.emptyIntro')}
       </div>
     </div>
   `;
@@ -595,6 +586,7 @@ function renderIdentityItem(identity: SponsoredIdentity): string {
   const relationshipOpt = RELATIONSHIP_OPTIONS.find((r) => r.value === identity.relationship);
   const relationship = relationshipOpt ? t(relationshipOpt.labelKey) : identity.relationship;
 
+  // No call count or last call: nothing records calls now, so they would never change (#2774)
   return `
     <div class="family-item" data-identity-id="${identity.id}">
       <div class="family-item__header">
@@ -612,16 +604,6 @@ function renderIdentityItem(identity: SponsoredIdentity): string {
               : ''
           }
         </div>
-      </div>
-      <div class="family-item__stats">
-        <span class="family-item__stat">
-          ${ICONS.phone}
-          ${tp('familyIdentities.calls', identity.totalCalls)}
-        </span>
-        <span class="family-item__stat">
-          ${ICONS.clock}
-          ${identity.lastCallAt ? t('familyIdentities.lastCall', { date: formatDate(new Date(identity.lastCallAt), { month: 'short', day: 'numeric' }) }) : t('familyIdentities.noCalls')}
-        </span>
       </div>
     </div>
   `;
@@ -894,7 +876,7 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
       <div class="family-modal__header">
         <span class="family-modal__eyebrow">${t('familyIdentities.eyebrow')}</span>
         <h2 class="family-modal__title" id="family-modal-title">${t('familyIdentities.familyTitle')}</h2>
-        <p class="family-modal__subtitle">${t('familyIdentities.familySubtitle')}</p>
+        <p class="family-modal__subtitle">${t('familyIdentities.peopleSubtitle')}</p>
         <button class="family-modal__close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>

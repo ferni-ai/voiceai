@@ -14,6 +14,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { forgetCallStartReads, readUserDocOnce } from '../../utils/call-start-reads.js';
+import { canSpeakLanguageLive, languageNotLiveMessage } from './live-capability.js';
 
 const log = createLogger({ module: 'LanguageService' });
 
@@ -813,8 +815,8 @@ export async function persistUserLanguagePreference(
         { merge: true }
       );
 
-    // Update cache
     userLanguagePreferences.set(userId, language);
+    forgetCallStartReads(userId);
 
     log.info({ userId, language }, '💾 User language preference saved');
   } catch (error) {
@@ -828,7 +830,6 @@ export async function persistUserLanguagePreference(
 export async function loadUserLanguagePreference(
   userId: string
 ): Promise<SupportedLanguage | null> {
-  // Check cache first
   if (userLanguagePreferences.has(userId)) {
     return userLanguagePreferences.get(userId)!;
   }
@@ -838,8 +839,8 @@ export async function loadUserLanguagePreference(
     const db = getFirestoreDb();
     if (!db) return null;
 
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    const data = doc.data();
+    const ref = db.collection('bogle_users').doc(userId);
+    const data = await readUserDocOnce(userId, ref); // shared with the call-start profile load
 
     const language = data?.preferences?.spokenLanguage as SupportedLanguage | undefined;
     if (language && LANGUAGE_CONFIGS[language]) {
@@ -852,10 +853,6 @@ export async function loadUserLanguagePreference(
 
   return null;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
 
 // ============================================================================
 // TTS LANGUAGE HELPERS
@@ -911,12 +908,9 @@ export function languageService() {
         // Try to parse the language name/code
         const parsed = parseLanguageName(languageCode);
         if (!parsed) {
-          const supported = getSupportedLanguagesList()
-            .map((l) => l.name)
-            .join(', ');
           return {
             success: false,
-            error: `I don't support "${languageCode}" yet. I can speak: ${supported}.`,
+            error: `I'm not sure which language ${languageCode} is. Could you say it another way?`,
           };
         }
 
@@ -936,7 +930,9 @@ export function languageService() {
         const config = getLanguageConfig(parsed);
         return {
           success: true,
-          confirmationMessage: `Perfect! I'll speak ${config.displayName} now.`,
+          confirmationMessage: canSpeakLanguageLive(parsed)
+            ? `Perfect! I'll speak ${config.displayName} now.`
+            : languageNotLiveMessage(config.displayName),
         };
       } catch (error) {
         log.error({ error: String(error), userId, languageCode }, 'Failed to set language');

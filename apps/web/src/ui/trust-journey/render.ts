@@ -154,9 +154,6 @@ export function renderContent(data: TrustJourneyData, state: TrustJourneyState):
     return renderEmpty();
   }
 
-  const strengthPercent = data.summary.relationshipStrength;
-  const circumference = 440; // 2 * π * 70 (radius)
-  const strokeDashoffset = circumference - (circumference * strengthPercent) / 100;
   const timelineOffset = state.timelineOffset || 0;
   const currentFilter = state.timelineFilter || 'all';
   
@@ -169,33 +166,6 @@ export function renderContent(data: TrustJourneyData, state: TrustJourneyState):
   const hasMoreTimeline = filteredTimeline.length > visibleTimeline.length;
 
   return `
-    <!-- SVG Gradient Definition -->
-    <svg width="0" height="0">
-      <defs>
-        <linearGradient id="trustGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="var(--persona-secondary, #3d5a35)" />
-          <stop offset="100%" stop-color="var(--persona-primary, #4a6741)" />
-        </linearGradient>
-      </defs>
-    </svg>
-    
-    <!-- Relationship Strength -->
-    <section class="trust-strength-section" aria-labelledby="strength-heading">
-      <h3 id="strength-heading" class="sr-only">${t('trustJourney.sections.strength')}</h3>
-      <div class="trust-strength-ring" role="img" aria-label="${t('trustJourney.strengthLabel', { value: strengthPercent })}">
-        <svg width="180" height="180" viewBox="0 0 180 180">
-          <circle class="trust-strength-bg" cx="90" cy="90" r="70" />
-          <circle class="trust-strength-fill" cx="90" cy="90" r="70" 
-                  style="stroke-dashoffset: ${strokeDashoffset}" />
-        </svg>
-        <div class="trust-strength-center">
-          <div class="trust-strength-value">${strengthPercent}</div>
-          <div class="trust-strength-label">${t('trustJourney.trustScore')}</div>
-        </div>
-      </div>
-      <p class="trust-strength-description">${getStrengthDescription(strengthPercent)}</p>
-    </section>
-    
     <!-- Stats Grid -->
     <div class="trust-stats-grid" role="list" aria-label="${t('trustJourney.sections.stats')}">
       <div class="trust-stat-card" role="listitem">
@@ -334,14 +304,6 @@ function renderFilterTabs(currentFilter: TimelineFilterType, timeline: TimelineI
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getStrengthDescription(percent: number): string {
-  if (percent >= 80) return t('trustJourney.strengthDescriptions.deep');
-  if (percent >= 60) return t('trustJourney.strengthDescriptions.growing');
-  if (percent >= 40) return t('trustJourney.strengthDescriptions.building');
-  if (percent >= 20) return t('trustJourney.strengthDescriptions.starting');
-  return t('trustJourney.strengthDescriptions.beginning');
-}
 
 function formatGrowthType(type: string): string {
   const key = `trustJourney.growthTypes.${type}`;

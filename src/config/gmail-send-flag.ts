@@ -13,6 +13,8 @@
  * @module config/gmail-send-flag
  */
 
+import { isGoogleCalendarOAuthConfigured } from './google-calendar-oauth-env.js';
+
 /** Env var that turns the feature on (must be exactly 'on'). */
 export const GMAIL_SEND_AS_USER_ENV = 'GMAIL_SEND_AS_USER';
 
@@ -22,8 +24,6 @@ export const GMAIL_SEND_OAUTH_PROVIDER = 'gmail_send';
 /** True only when the feature is on and the Google OAuth client is configured. */
 export function isGmailSendAsUserEnabled(): boolean {
   return (
-    process.env[GMAIL_SEND_AS_USER_ENV] === 'on' &&
-    !!process.env.GOOGLE_CALENDAR_CLIENT_ID &&
-    !!process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+    process.env[GMAIL_SEND_AS_USER_ENV] === 'on' && isGoogleCalendarOAuthConfigured()
   );
 }

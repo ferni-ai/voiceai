@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FollowUp } from '../../follow-through/index.js';
-import { followUp } from '../../follow-through/__tests__/fixtures.js';
+import { followUp as fixture } from '../../follow-through/__tests__/fixtures.js';
 import { storedTopic } from '../../../memory/recall/session-recall.js';
 import {
   FOLLOW_UP_GAP_MS,
@@ -10,7 +10,36 @@ import {
   type FollowUpTextDeps,
 } from '../follow-up-texts.js';
 
+// The log lines only; the outcome mapping is the real one.
+const { logPromiseOutcome, logPromiseJobRun } = vi.hoisted(() => ({
+  logPromiseOutcome: vi.fn(),
+  logPromiseJobRun: vi.fn(),
+}));
+vi.mock('../../follow-through/promise-outcomes.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../follow-through/promise-outcomes.js')>()),
+  logPromiseOutcome,
+  logPromiseJobRun,
+}));
+// The menu's quiet hours (QUIET_HOURS_FROM_PREFS); the reader is tested in quiet-hours-from-prefs.
+const savedQuiet = vi.hoisted(() => vi.fn(async (_userId: string, _at?: Date) => false));
+vi.mock('../quiet-hours.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSavedQuietNow: savedQuiet,
+}));
+beforeEach(() => {
+  logPromiseOutcome.mockClear();
+  logPromiseJobRun.mockClear();
+  savedQuiet.mockReset().mockResolvedValue(false);
+});
+
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
+
+/**
+ * A follow-up this job texts: one the caller asked for on a call (from a call
+ * summary). Reminder-store imports are the reminder job's to text (below).
+ */
+const followUp = (over: Partial<FollowUp> = {}): FollowUp =>
+  fixture({ source: { store: 'summaries', ref: 's1:0' }, ...over });
 
 /** An in-memory store with the real one's live() and compare-and-set save(). */
 function deps(
@@ -60,6 +89,25 @@ describe('sendDueFollowUpTexts', () => {
     expect(d.store.save).toHaveBeenCalledWith(saved[0], followUp().updatedAt);
   });
 
+  it('leaves a follow-up imported from a reminder to the reminder job, which texts it once', async () => {
+    const imported = fixture({ source: { store: 'reminders', ref: 'r1' } });
+    const { d, saved } = deps([imported, followUp({ id: 'f2', text: 'water the plants' })]);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).toHaveBeenCalledTimes(1);
+    expect(d.sendText).toHaveBeenCalledWith(expect.objectContaining({ refId: 'f2' }));
+    expect(saved.map((f) => f.id)).toEqual(['f2']); // the reminder's copy is neither claimed nor expired
+    expect(report.sent).toBe(1);
+  });
+
+  it('does not expire a reminder import long past due either: the reminder job owns it', async () => {
+    const stale = fixture({ dueAt: '2026-10-01T16:00:00.000Z' });
+    const { d, saved } = deps([stale]);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(saved).toEqual([]);
+    expect(report.expired).toBe(0);
+  });
+
   it('sends nothing to someone whose FOLLOW_THROUGH_TEXTS is off', async () => {
     const { d, saved } = deps([followUp({ userId: 'mom' })]);
     const report = await sendDueFollowUpTexts(d, { now: NOW });
@@ -91,6 +139,23 @@ describe('sendDueFollowUpTexts', () => {
     const { d } = deps([c]);
     expect((await sendDueFollowUpTexts(d, { now: late })).sent).toBe(0);
     expect(d.sendText).not.toHaveBeenCalled();
+  });
+
+  it('holds a commitment Ferni would text inside the quiet hours saved in the menu', async () => {
+    const c = followUp({ kind: 'commitment' });
+    const { d, saved } = deps([c]);
+    savedQuiet.mockResolvedValue(true);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(savedQuiet).toHaveBeenCalledWith('u1', NOW);
+    expect(report).toMatchObject({ sent: 0, held: { 'quiet-hours': 1 } });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(saved).toHaveLength(0); // nothing claimed: a later run texts it
+  });
+
+  it('a follow-up whose time they chose still goes inside the saved window', async () => {
+    const { d } = deps([followUp({ kind: 'reminder' })]);
+    savedQuiet.mockResolvedValue(true);
+    expect((await sendDueFollowUpTexts(d, { now: NOW })).sent).toBe(1);
   });
 
   it('counts why the guarded sender held a text and puts the claim back for a later run', async () => {
@@ -168,6 +233,60 @@ describe('sendDueFollowUpTexts', () => {
   });
 });
 
+describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
+  it('a sent text is done, an expired follow-up failed missed-window, by follow-up id', async () => {
+    const stale = followUp({ id: 'stale', dueAt: '2026-10-09T16:00:00.000Z' });
+    const { d } = deps([followUp(), stale]);
+    await sendDueFollowUpTexts(d, { now: NOW });
+    expect(logPromiseOutcome.mock.calls).toEqual([
+      [
+        'follow-through-text',
+        { outcome: 'failed', reason: 'missed-window' },
+        { followUpId: 'stale' },
+      ],
+      ['follow-through-text', { outcome: 'done' }, { followUpId: 'f1' }],
+    ]);
+    expect(logPromiseJobRun).toHaveBeenCalledWith('follow-through', {
+      due: 2,
+      done: 1,
+      failed: 0,
+      held: 0,
+      missed: 1,
+    });
+  });
+
+  it("the sender's skips: opted-out failed, a rate gap held", async () => {
+    const { d } = deps([followUp()]);
+    d.sendText = vi.fn(async () => ({ sent: false, reason: 'opted-out' }));
+    await sendDueFollowUpTexts(d, { now: NOW });
+    d.sendText = vi.fn(async () => ({ sent: false, reason: 'recently-sent' }));
+    await sendDueFollowUpTexts(d, { now: NOW });
+    expect(logPromiseOutcome.mock.calls.map((c) => c[1])).toEqual([
+      { outcome: 'failed', reason: 'opted-out' },
+      { outcome: 'held', reason: 'rate-gap' },
+    ]);
+    expect(logPromiseJobRun.mock.calls.map((c) => c[1])).toEqual([
+      { due: 1, done: 0, failed: 1, held: 0, missed: 0 },
+      { due: 1, done: 0, failed: 0, held: 1, missed: 0 },
+    ]);
+  });
+
+  it('logs a run with nobody opted in, and nothing on a dry run', async () => {
+    await sendDueFollowUpTexts(deps([]).d, { now: NOW });
+    expect(logPromiseJobRun).toHaveBeenCalledWith('follow-through', {
+      due: 0,
+      done: 0,
+      failed: 0,
+      held: 0,
+      missed: 0,
+    });
+    logPromiseJobRun.mockClear();
+    await sendDueFollowUpTexts(deps([followUp()]).d, { now: NOW, dryRun: true });
+    expect(logPromiseJobRun).not.toHaveBeenCalled();
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
+  });
+});
+
 describe('sendDueFollowUpTexts and forgotten topics', () => {
   const trip = followUp({ id: 'trip', text: 'ask how the Lisbon trip planning went' });
 
@@ -177,6 +296,12 @@ describe('sendDueFollowUpTexts and forgotten topics', () => {
     expect(d.sendText).not.toHaveBeenCalled();
     expect(docs.get('trip')).toMatchObject({ status: 'released', closedReason: 'forgotten' });
     expect(report).toMatchObject({ sent: 0, forgotten: 1 });
+    // The person's own stop: cancelled, never a failure.
+    expect(logPromiseOutcome).toHaveBeenCalledWith(
+      'follow-through-text',
+      { outcome: 'cancelled', reason: 'forgotten' },
+      { followUpId: 'trip' }
+    );
   });
 
   it('still texts the next due follow-up that is not about the topic', async () => {
@@ -212,6 +337,7 @@ describe('sendDueFollowUpTexts and forgotten topics', () => {
     const report = await sendDueFollowUpTexts(d, { now: NOW, dryRun: true });
     expect(saved).toHaveLength(0);
     expect(report).toMatchObject({ wouldSend: 0, forgotten: 1 });
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
   });
 });
 
