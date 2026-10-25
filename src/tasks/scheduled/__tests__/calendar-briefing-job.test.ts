@@ -34,12 +34,8 @@ vi.mock('../../../services/outreach/user-contact.js', () => ({
 vi.mock('../../../services/identity/google-calendar-token-store.js', () => ({
   listTokenUsers,
 }));
-// The menu's quiet hours (QUIET_HOURS_FROM_PREFS): the reader itself is tested in quiet-hours-from-prefs.
-const savedQuiet = vi.fn(async (_userId: string, _at?: Date) => false);
-vi.mock('../../../services/outreach/quiet-hours.js', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  isSavedQuietNow: savedQuiet,
-}));
+// The menu's quiet hours (QUIET_HOURS_FROM_PREFS), passed in by the job's caller.
+const savedQuiet = vi.fn(async (_userId: string, _at: Date) => false);
 
 describe('checkAndSendMorningBriefings', () => {
   beforeEach(async () => {
@@ -151,11 +147,11 @@ describe('checkAndSendMorningBriefings', () => {
     const { checkAndSendMorningBriefings } = await import('../calendar-briefing-job.js');
     savedQuiet.mockResolvedValueOnce(true);
 
-    const run = await checkAndSendMorningBriefings();
+    const run = await checkAndSendMorningBriefings({ quietNow: savedQuiet });
 
     expect(savedQuiet).toHaveBeenCalledWith('user-alex', new Date('2026-10-06T11:15:00.000Z'));
     expect(run).toMatchObject({ sent: 0, reasons: { 'quiet-hours': 1 } });
     expect(sendNotification).not.toHaveBeenCalled();
-    expect((await checkAndSendMorningBriefings()).sent).toBe(1); // outside it: sent
+    expect((await checkAndSendMorningBriefings({ quietNow: savedQuiet })).sent).toBe(1);
   });
 });

@@ -28,7 +28,6 @@ import {
   type NotificationType,
 } from '../../services/push-notifications.js';
 import { getUserContactInfo } from '../../services/outreach/user-contact.js';
-import { isSavedQuietNow } from '../../services/outreach/quiet-hours.js';
 import { listTokenUsers } from '../../services/identity/google-calendar-token-store.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase } from '../../config/environment.js';
@@ -225,7 +224,11 @@ export async function resolveClaimStore(): Promise<BriefingClaimStore | null> {
 
 /** skipUsers: people Alex texts the brief to, so they don't get this one too. */
 export async function checkAndSendMorningBriefings(
-  opts: { skipUsers?: readonly string[] } = {}
+  opts: {
+    skipUsers?: readonly string[];
+    /** Inside the quiet hours they saved in the menu (the caller passes quiet-hours.ts's reader). */
+    quietNow?: (userId: string, at: Date) => Promise<boolean>;
+  } = {}
 ): Promise<{ checked: number; sent: number; skipped: number; reasons: Record<string, number> }> {
   let checked = 0;
   let sent = 0;
@@ -255,7 +258,7 @@ export async function checkAndSendMorningBriefings(
           continue;
         }
         // 7:00 inside the quiet hours they saved in the menu: no push today.
-        if (await isSavedQuietNow(userId, nowProvider())) {
+        if (await opts.quietNow?.(userId, nowProvider())) {
           skip('quiet-hours');
           continue;
         }
