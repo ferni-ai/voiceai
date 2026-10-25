@@ -83,17 +83,18 @@ export interface TurnCrisis {
   bypassAllowed(): Promise<boolean>;
 }
 
+/** What startTurnCrisis reads from the session's user data. */
+export interface TurnCrisisUserData {
+  voiceEmotion?: unknown;
+  recentTranscripts?: string[];
+  lastAgentResponse?: string;
+  /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
+  turnCount?: number;
+}
+
 export function startTurnCrisis(
   userText: string,
-  userData:
-    | {
-        voiceEmotion?: unknown;
-        recentTranscripts?: string[];
-        lastAgentResponse?: string;
-        /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
-        turnCount?: number;
-      }
-    | undefined,
+  userData: TurnCrisisUserData | undefined,
   options: {
     sessionId?: string;
     env?: Record<string, string | undefined>;
