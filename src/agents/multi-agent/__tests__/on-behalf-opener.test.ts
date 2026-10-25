@@ -396,6 +396,26 @@ describe('waitForCallAnswered', () => {
     await expect(answered).resolves.toBe(true);
   });
 
+  it('a throwing pickup hook never fails the pickup', async () => {
+    const room = new EventEmitter();
+    const hook = vi.fn(() => {
+      throw new Error('analytics down');
+    });
+    const answered = waitForCallAnswered(
+      roomLike(room),
+      phoneParticipant('dialing'),
+      1000,
+      0,
+      hook
+    );
+    const phone = { identity: 'phone_doug', attributes: { 'sip.callStatus': 'active' } };
+    room.emit('participantAttributesChanged', { 'sip.callStatus': 'active' }, phone);
+    await expect(answered).resolves.toBe(true);
+    expect(hook).toHaveBeenCalledTimes(1);
+    const web = { identity: 'web-user', attributes: {} };
+    await expect(waitForCallAnswered(roomLike(room), web, 1000, 0, hook)).resolves.toBe(true);
+  });
+
   it('reports no pickup for a call nobody answers', async () => {
     const onAnswered = vi.fn();
     const room = roomLike(new EventEmitter());

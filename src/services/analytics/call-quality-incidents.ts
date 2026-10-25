@@ -6,7 +6,8 @@
  * hour, so the same alert went out every 5 minutes until the call aged out of
  * the window ("Response Time Critical" 23 times from 2026-10-22 to 10-25).
  *
- * Now a sent alert opens an incident. While every check still fires that alert
+ * Now a delivered alert opens an incident (a send that throws doesn't, so the
+ * next check retries it). While every check still fires that alert
  * the incident stays open and nothing is re-sent, except a reminder once
  * `alertRepeatMs` has passed. A check where it does not fire closes it, and the
  * next breach alerts again (no sooner than `alertCooldownMs` after the last
@@ -32,15 +33,18 @@ export class AlertIncidents {
     this.firing.clear();
   }
 
-  /** Whether alert `key`, firing at `now`, should be sent. A send opens its incident. */
+  /** Whether alert `key`, firing at `now`, is due. Call sent() once it is delivered. */
   shouldSend(key: string, now: number, timing: IncidentTiming): boolean {
     this.firing.add(key);
     const last = this.lastSent.get(key);
     const wait = this.open.has(key) ? timing.alertRepeatMs : timing.alertCooldownMs;
-    if (last !== undefined && now - last <= wait) return false;
+    return last === undefined || now - last > wait;
+  }
+
+  /** Alert `key` was delivered at `now`: its incident is open. */
+  sent(key: string, now: number): void {
     this.lastSent.set(key, now);
     this.open.add(key);
-    return true;
   }
 
   /** End a check: an incident whose alert did not fire in it has cleared. */

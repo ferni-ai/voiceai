@@ -43,13 +43,13 @@ let seq = 0;
 const at = (ms: number): void => void vi.setSystemTime(ms);
 
 /** An inbound/app call whose first audio came `firstAudioMs` after the session started. */
-function inboundCall(firstAudioMs: number): void {
+function inboundCall(firstAudioMs: number, end: 'natural' | 'disconnect' = 'natural'): void {
   const id = `in-${seq++}`;
   const start = Date.now();
   startCall(id, undefined, 'ferni', 'inbound_call');
   recordCallEvent({ callId: id, timestamp: start + 300, type: 'connection_success' });
   recordCallEvent({ callId: id, timestamp: start + firstAudioMs, type: 'first_response' });
-  endCall(id, 'natural');
+  endCall(id, end);
   at(start); // calls are instant on the test clock
 }
 
@@ -68,10 +68,12 @@ async function onBehalfCall(ringMs: number, replyMs: number): Promise<string> {
   return id;
 }
 
-const responseAlerts = (): string[] =>
-  notify.mock.calls
-    .map((args) => (args as unknown as [{ title: string }])[0].title)
-    .filter((title) => title.includes('Response Time'));
+const titles = (): string[] =>
+  notify.mock.calls.map((args) => (args as unknown as [{ title: string }])[0].title);
+const responseAlerts = (): string[] => titles().filter((title) => title.includes('Response Time'));
+const RESPONSE = '📞 Response Time Critical';
+const DISCONNECT = '📞 Disconnect Rate Critical';
+const count = (title: string): number => titles().filter((t) => t === title).length;
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -162,13 +164,60 @@ describe('one alert per incident', () => {
   });
 });
 
+describe('a failed send', () => {
+  it('is retried at the next check, and then the incident holds', async () => {
+    for (let i = 0; i < 5; i++) inboundCall(8_000);
+    notify.mockImplementationOnce(async () => {
+      throw new Error('slack 503');
+    });
+    await checkQualityAlerts(); // attempted, threw: not delivered
+    expect(count(RESPONSE)).toBe(1);
+
+    at(T0 + MINUTE);
+    await checkQualityAlerts(); // retried and delivered
+    expect(count(RESPONSE)).toBe(2);
+    expect(await notify.mock.results.at(-1)?.value).toBeUndefined(); // the retry succeeded
+
+    for (const minutes of [2, 7, 30]) {
+      at(T0 + minutes * MINUTE);
+      await checkQualityAlerts();
+    }
+    expect(count(RESPONSE)).toBe(2); // delivered once: no more sends this incident
+  });
+});
+
+describe('two alerts at once', () => {
+  it('each alerts once, and each incident opens and clears on its own', async () => {
+    for (let i = 0; i < 5; i++) inboundCall(8_000, 'disconnect');
+    await checkQualityAlerts();
+    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 1]);
+
+    for (const minutes of [1, 6]) {
+      at(T0 + minutes * MINUTE);
+      await checkQualityAlerts();
+    }
+    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 1]);
+
+    at(T0 + 7 * MINUTE);
+    for (let i = 0; i < 95; i++) inboundCall(8_000); // disconnects 5/100: cleared; still slow
+    await checkQualityAlerts();
+    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 1]);
+
+    at(T0 + 13 * MINUTE);
+    for (let i = 0; i < 20; i++) inboundCall(8_000, 'disconnect'); // 25/120: a new incident
+    await checkQualityAlerts();
+    expect([count(RESPONSE), count(DISCONNECT)]).toEqual([1, 2]);
+  });
+});
+
 describe('AlertIncidents', () => {
   const timing = { alertCooldownMs: 5 * MINUTE, alertRepeatMs: 3 * 60 * MINUTE };
   const check = (incidents: AlertIncidents, now: number, firing: boolean): boolean => {
     incidents.beginCheck();
-    const sent = firing && incidents.shouldSend('critical:x', now, timing);
+    const due = firing && incidents.shouldSend('critical:x', now, timing);
+    if (due) incidents.sent('critical:x', now);
     incidents.endCheck();
-    return sent;
+    return due;
   };
 
   it('reminds about an incident still open after alertRepeatMs', () => {

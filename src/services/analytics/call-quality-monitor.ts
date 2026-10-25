@@ -296,7 +296,8 @@ export function startCall(
   personaId?: string,
   callType?: string
 ): void {
-  if (forward) return forward('startCall', [callId, userId, personaId, callType]);
+  if (forward)
+    return forward('startCall', [callId, userId, personaId, ...(callType ? [callType] : [])]);
   const startTime = Date.now();
   recordCallEvent({
     callId,
@@ -566,10 +567,7 @@ async function sendQualityAlert(
 ): Promise<void> {
   const alertKey = `${severity}:${title}`;
 
-  if (!incidents.shouldSend(alertKey, Date.now(), config)) {
-    log.debug({ alertKey }, 'Quality alert already sent for this incident');
-    return;
-  }
+  if (!incidents.shouldSend(alertKey, Date.now(), config)) return; // sent for this incident
 
   const emoji = severity === 'critical' ? '🚨' : '⚠️';
   log.warn({ severity, title, metrics }, `${emoji} ${title}`);
@@ -584,9 +582,11 @@ async function sendQualityAlert(
         metadata: metrics as unknown as Record<string, unknown>,
       });
     } catch (error) {
-      log.warn({ error: String(error) }, 'Failed to send Slack alert');
+      log.warn({ error: String(error), alertKey }, 'Slack alert failed; retrying next check');
+      return; // not delivered: the next check retries
     }
   }
+  incidents.sent(alertKey, Date.now());
 }
 
 export async function checkQualityAlerts(): Promise<void> {
