@@ -35,7 +35,14 @@ export const EXIT = { PASS: 0, FAIL: 1, INCONCLUSIVE: 3, DRY_RUN: 4, PASS_WITH_W
 /** The only gate a recorded waiver (--accept-known) can cover; a missed crisis never can. */
 export const WAIVABLE = ['crisis-line-non-crisis'];
 const CAPS = new URL('./nightly/capabilities.json', import.meta.url);
-const CRISIS = new RegExp(JSON.parse(readFileSync(CAPS, 'utf8')).crisisPattern, 'i');
+/** The nightly's crisis pattern. Missing or empty would match every reply, so it throws. */
+export function crisisRegex(caps) {
+  if (typeof caps?.crisisPattern !== 'string' || !caps.crisisPattern.trim())
+    throw new Error(`no crisisPattern in ${CAPS.pathname}`);
+  return new RegExp(caps.crisisPattern, 'i');
+}
+const CRISIS = crisisRegex(JSON.parse(readFileSync(CAPS, 'utf8')));
+export const REPO = 'ferni-ai/voiceai';
 /** A call that measured something: an agent caption after the greeting, voice, a reply gap. */
 const alive = (c) =>
   c.turns.some((t) => t.who === 'agent' && !t.greeting && t.text.trim()) &&
@@ -43,25 +50,33 @@ const alive = (c) =>
   c.replyGaps.some(Number.isFinite);
 const named = (rows) => rows.map((r) => `${r.call.scenario}-${r.call.label}`).join(', ');
 
-/** A failing gate under --accept-known: WAIVED only if the baseline fired it too, the candidate's
- *  rate per call is no higher, and the issue is open. Otherwise it stays FAIL, saying why. */
+/** A failing gate under --accept-known: WAIVED only if every candidate hit is in a scenario where
+ *  the baseline fired it too, the candidate's rate per call is no higher, and #N is an open issue
+ *  (not a PR) in ferni-ai/voiceai naming the predicate in its title or a label. Else FAIL, saying why. */
 function waive(item, id, n, ev) {
-  const { issue, state } = ev.waiver;
+  const { issue, found } = ev.waiver;
   const base = ev.baselineGateRows ?? [];
-  const bn = base.filter((r) => r.hits[id].length).length;
-  const [c, b] = [n / ev.gateRows.length, bn / Math.max(1, base.length)];
+  const fired = (rows) => rows.filter((r) => r.hits[id].length);
+  const baseScen = new Set(fired(base).map((r) => r.call.scenario));
+  const fresh = [...new Set(fired(ev.gateRows).map((r) => r.call.scenario))].filter(
+    (x) => !baseScen.has(x)
+  );
+  const [c, b] = [n / ev.gateRows.length, fired(base).length / Math.max(1, base.length)];
   const refuse = (why) => ({ ...item, why: `${item.why}; waiver #${issue} refused: ${why}` });
-  if (!bn) return refuse('the baseline never fired it');
+  if (!baseScen.size) return refuse('the baseline never fired it');
+  if (fresh.length) return refuse(`new in ${fresh.join(', ')}, where the baseline never fired it`);
   if (c > b)
     return refuse(
       `its rate per call ${c.toFixed(3)} is higher than the baseline's ${b.toFixed(3)}`
     );
-  if (state !== 'OPEN') return refuse(`#${issue} is ${state}`);
-  return {
-    ...item,
-    verdict: 'WAIVED',
-    why: `${item.why}; baseline ${bn}/${base.length}; known issue #${issue} (OPEN)`,
-  };
+  if (!found) return refuse(`#${issue} is not an issue in ${REPO} (or gh failed)`);
+  if (found.pull_request) return refuse(`#${issue} is a pull request, not an issue`);
+  if (found.state !== 'open') return refuse(`#${issue} is ${found.state}`);
+  const labels = (found.labels ?? []).map((l) => l?.name ?? l);
+  if (!String(found.title ?? '').includes(id) && !labels.includes(id))
+    return refuse(`#${issue} names ${id} in neither its title nor a label`);
+  const why = `${item.why}; baseline ${fired(base).length}/${base.length}; known issue #${issue} (open)`;
+  return { ...item, verdict: 'WAIVED', why };
 }
 
 /** Cloud Logging filters covering these calls: worker boot lines (commit) and eval-room lines. */
@@ -266,13 +281,14 @@ function main(argv, say) {
       throw new Error(
         `--accept-known takes ${WAIVABLE.join('|')}:#<open issue>; a missed crisis can't be waived`
       );
-    let state = 'UNKNOWN (gh failed)';
+    // Pinned to the repo: an unpinned `gh issue view` asks whatever repo the cwd is in.
+    let found = null;
     try {
-      state = execFileSync('gh', ['issue', 'view', issue, '--json', 'state', '--jq', '.state'], {
-        encoding: 'utf8',
-      }).trim();
+      found = JSON.parse(
+        execFileSync('gh', ['api', `repos/${REPO}/issues/${issue}`], { encoding: 'utf8' })
+      );
     } catch {}
-    waiver = { id, issue, state };
+    waiver = { id, issue, found };
   }
   const sha = /^[0-9a-f]{7,40}$/;
   if (!sha.test(candidate ?? '') || !sha.test(baseline ?? ''))
