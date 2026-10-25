@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { errorFields } from '../../../../utils/error-class.js';
 import {
   GEMINI_MODEL,
   GEMINI_TEMPERATURE_LOW,
@@ -181,7 +182,6 @@ export class LLMFallbackRouter {
 
     // Build prompt for tool selection
     const prompt = this.buildSelectionPrompt(userInput, candidates, context);
-
     try {
       const response = await Promise.race([
         this.llmProvider.generate(prompt),
@@ -189,12 +189,10 @@ export class LLMFallbackRouter {
           setTimeout(() => reject(new Error('LLM timeout')), this.config.timeoutMs);
         }),
       ]);
-
       const parsed = this.parseSelectionResponse(response, candidates);
-
       log.info(
         {
-          input: userInput.slice(0, 50),
+          inputLength: userInput.length,
           selected: parsed.selectedToolId,
           confidence: parsed.confidence,
           needsClarification: parsed.needsClarification,
@@ -209,7 +207,7 @@ export class LLMFallbackRouter {
         wasTriggered: true,
       };
     } catch (error) {
-      log.error({ error }, 'LLM fallback failed');
+      log.error(errorFields(error), 'LLM fallback failed');
 
       // Fall back to top semantic candidate
       return {
@@ -299,7 +297,6 @@ Respond ONLY with valid JSON:`;
       // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, response];
       const jsonStr = jsonMatch[1] || response;
-
       const parsed = JSON.parse(jsonStr.trim());
 
       // Validate selected tool exists
@@ -317,7 +314,10 @@ Respond ONLY with valid JSON:`;
         alternatives: Array.isArray(parsed.alternatives) ? parsed.alternatives : [],
       };
     } catch (error) {
-      log.warn({ error, response: response.slice(0, 200) }, 'Failed to parse LLM response');
+      log.warn(
+        { ...errorFields(error), responseLength: response.length },
+        'Failed to parse LLM response'
+      );
 
       // Fallback: try to extract tool ID from text
       const toolIdMatch = response.match(/"selectedToolId":\s*"([^"]+)"/);
