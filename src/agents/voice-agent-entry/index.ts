@@ -65,7 +65,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 // Submodule imports
 import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
-import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
+import { buildSessionPersona, callerSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
@@ -336,7 +336,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
     const { userId: identifiedUserId, userName, userAccent, verified } = identified;
     userId = identifiedUserId ?? null;
-
+    personaId = (sessionPersona = await callerSessionPersona(sessionPersona, userId, e2e)).id; // CUSTOM_AGENT_LIVE
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {
       sessionId,
@@ -649,7 +649,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         sessionId,
         sessionPersona,
         // After applyCallerFlags (STEP 4), so the prompt has this caller's flags.
-        systemPrompt: await loadCallerPrompt(sessionPersona.id),
+        systemPrompt: await loadCallerPrompt(sessionPersona),
         modelBaseInstructions,
         userId,
         userAccent,
