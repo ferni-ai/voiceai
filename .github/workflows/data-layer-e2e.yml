@@ -19,6 +19,11 @@ on:
       - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/services/wellbeing-tracking/**'
       - 'src/api/wellbeing*.ts'
+      - 'src/personality/pattern-persistence.ts'
+      - 'src/personality/emotional-data-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-data-snippets.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-data-snippets*.ts'
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
@@ -27,6 +32,13 @@ on:
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
       - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
+      - 'src/api/routes/intelligence-routes.ts'
+      - 'src/api/__tests__/record-emotion*.ts'
+      - 'src/tools/semantic-router/advanced/better-than-human.ts'
+      - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-*.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-*.ts'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
       - 'firestore.indexes.json'
@@ -48,6 +60,11 @@ on:
       - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/services/wellbeing-tracking/**'
       - 'src/api/wellbeing*.ts'
+      - 'src/personality/pattern-persistence.ts'
+      - 'src/personality/emotional-data-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-data-snippets.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-data-snippets*.ts'
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
@@ -56,6 +73,13 @@ on:
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
       - 'src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts'
+      - 'src/api/routes/intelligence-routes.ts'
+      - 'src/api/__tests__/record-emotion*.ts'
+      - 'src/tools/semantic-router/advanced/better-than-human.ts'
+      - 'src/tools/semantic-router/advanced/emotional-history-shape.ts'
+      - 'src/utils/emotion-point-fields.ts'
+      - 'scripts/migrations/strip-emotional-*.ts'
+      - 'scripts/migrations/__tests__/strip-emotional-*.ts'
       - 'firestore.indexes.json'
       - 'firebase.json'
   # Nightly on main, whatever OPTIONAL_CI says (#1366); PR and push runs still follow it
@@ -157,6 +181,14 @@ jobs:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
 
+      # record-emotion keeps only typed fields and merges on save, never losing a point
+      - name: Run Emotion Point Tests
+        run: |
+          pnpm vitest run -c vitest.config.unit.ts src/api/__tests__/record-emotion.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
+
       - name: Run Transcript Cleanup Tests
         run: |
           pnpm vitest run src/tasks/scheduled/__tests__/transcript-cleanup.emulator.test.ts --reporter=verbose
@@ -169,6 +201,14 @@ jobs:
         run: |
           pnpm vitest run src/services/data-layer/__tests__/service-wiring-integration.test.ts --reporter=verbose
         env:
+          NODE_ENV: test
+
+      # emotional_data/{uid}/points: strip on load, and the cleanup job (dry run, apply, re-run)
+      - name: Run Emotional Data Points Tests
+        run: |
+          pnpm vitest run -c vitest.config.unit.ts scripts/migrations/__tests__/strip-emotional-data-snippets.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
 
       - name: Run Intelligence Layer Tests

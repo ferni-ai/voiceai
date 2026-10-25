@@ -14,6 +14,7 @@
  */
 
 import { ANSWERED_BY } from '../../services/outreach/proactive-channels/self-call.js';
+import { markCallAnswered } from '../../services/analytics/call-start-stages.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { noteVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
 import {
@@ -243,7 +244,10 @@ export async function personAnswered(
 ): Promise<boolean> {
   const screen = isVoicemailDetectOn() && participant.attributes?.['sip.callStatus'] !== undefined;
   // Screening replaces the fixed pause after pickup: Ferni speaks once it knows who's there.
-  if (!(await waitForCallAnswered(room, participant, undefined, screen ? 0 : undefined))) {
+  const answered = () => markCallAnswered(sessionId);
+  if (
+    !(await waitForCallAnswered(room, participant, undefined, screen ? 0 : undefined, answered))
+  ) {
     log.info({ sessionId }, '📞 Outbound call not answered, no opener');
     return false;
   }
@@ -280,11 +284,13 @@ export async function proactivePickedUp(
 ): Promise<boolean | undefined> {
   const { getProactiveSessionContext } =
     await import('../../intelligence/context-builders/external/proactive-session-context.js');
+  const answered = () => markCallAnswered(sessionId);
   if (!getProactiveSessionContext(sessionId)?.movedFrom) {
     const { isProactiveCall } = await import('../multi-agent/greeting-direction.js');
-    return (await isProactiveCall(sessionId)) ? waitForCallAnswered(room, participant) : undefined;
+    if (!(await isProactiveCall(sessionId))) return undefined;
+    return waitForCallAnswered(room, participant, undefined, undefined, answered);
   }
-  if (!(await waitForCallAnswered(room, participant, undefined, 0))) return false;
+  if (!(await waitForCallAnswered(room, participant, undefined, 0, answered))) return false;
   const say = async (answerer: Answerer): Promise<void> => {
     await room.localParticipant?.setAttributes({ [ANSWERED_BY]: answerer });
   };

@@ -53,6 +53,7 @@ import {
   returningCallerTurnNote,
 } from '../../services/identity/returning-caller.js';
 import { lastAgentLine, nameCorrectionNote, statedName } from './name-correction.js';
+import { callMeNote } from './call-me-note.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
@@ -208,7 +209,10 @@ export function withTurnReminder(
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
     nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,
+      plain,
     }),
+    // CALL_ME_VOCATIVE=on: "call me, Ferni" rings; "call me Fern" is asked about (call-me-note.ts)
+    callMeNote(chatCtx, session, words, { plain, careful: crisis }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)

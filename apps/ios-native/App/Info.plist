@@ -32,6 +32,8 @@
 	<string>Ferni listens only while you're talking together, so you can talk out loud.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>SentryDSN</key>
+	<string>$(SENTRY_DSN)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

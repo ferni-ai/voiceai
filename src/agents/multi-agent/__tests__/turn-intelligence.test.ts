@@ -1,5 +1,12 @@
+import * as timersPromises from 'node:timers/promises';
 import { llm } from '@livekit/agents';
 import { describe, expect, it, vi } from 'vitest';
+import { flagOn } from '../../../config/env-flag.js';
+
+vi.mock('node:timers/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:timers/promises')>();
+  return { ...actual, setImmediate: vi.fn(actual.setImmediate) };
+});
 import {
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
@@ -29,6 +36,27 @@ describe('resolveTurnIntelligenceMode', () => {
 });
 
 describe('createTurnIntelligenceHook', () => {
+  it('yields to the event loop between cold steps only with FIRST_TURN_WARM on', async () => {
+    const yielded = vi.mocked(timersPromises.setImmediate);
+    const handle = vi.fn(async () => {});
+    const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
+    await hook(llm.ChatContext.empty(), userMessage('warm the imports'));
+    try {
+      expect(flagOn('FIRST_TURN_WARM', {})).toBe(false); // off by default
+      vi.stubEnv('FIRST_TURN_WARM', 'on');
+      yielded.mockClear();
+      await hook(llm.ChatContext.empty(), userMessage('long day'));
+      expect(yielded).toHaveBeenCalledTimes(2); // after the import and after the speech rate
+
+      vi.stubEnv('FIRST_TURN_WARM', '');
+      yielded.mockClear();
+      await hook(llm.ChatContext.empty(), userMessage('long day'));
+      expect(yielded).not.toHaveBeenCalled(); // flag off: as on main
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('hands the turn to the turn handler with the session context', async () => {
     const handle = vi.fn().mockResolvedValue(undefined);
     const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
