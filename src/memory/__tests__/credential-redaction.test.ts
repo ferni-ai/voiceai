@@ -3,7 +3,7 @@
  * credential is dropped (credentialCategory); free text keeps its words and loses only the
  * secret (redactCredentials). All values here are fake.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { credentialCategory, luhnValid, type CredentialCategory } from '../spoken-credential.js';
 import {
   redactCredentials,
@@ -12,6 +12,9 @@ import {
   REDACTED,
 } from '../credential-redaction.js';
 
+beforeEach(() => {
+  vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'on');
+});
 afterEach(() => {
   vi.unstubAllEnvs();
 });
@@ -22,6 +25,9 @@ const REDACTS: Array<[string, string]> = [
   ['my password is hunter2', `my password is ${REDACTED}`],
   ['my password: hunter2', `my password: ${REDACTED}`],
   ['wifi password sunshine42', `wifi password ${REDACTED}`],
+  // Named ID numbers go even when the checksum fails, since #2514 (fail closed)
+  ['SSN 000-12-3456', `SSN ${REDACTED}`],
+  ['the routing number is 123456789', `the routing number is ${REDACTED}`],
   ['PIN 0000', `PIN ${REDACTED}`],
   ['my one time code is 482913', `my one time code is ${REDACTED}`],
   ['the door code is four eight two one ok', `the door code is ${REDACTED} ok`],
@@ -62,8 +68,6 @@ const KEEPS: string[] = [
   "I'll pin the post at 10",
   'card 4111 1111 1111 1112', // fails Luhn
   'session voice-1791889387867 at 1791889387867', // an id and a timestamp, not a card
-  'SSN 000-12-3456', // never issued
-  'the routing number is 123456789', // fails the ABA checksum
   'my account is fine',
   "my mother's maiden name is the same as my grandmother's",
   'combination of factors made it 4821 steps',
@@ -102,7 +106,6 @@ describe('credentialCategory: identifiers as facts (#2385)', () => {
     ['phone', '555-123-4567'],
     ['zip', '33701'],
     ['card_last_four', '1111'],
-    ['routing_number', '123456789'],
     ['maiden_name', 'Kowalski'], // her own maiden name, not a security answer
     ['account', 'switched banks last year'],
     ['api_key', 'in the vault'],
@@ -155,7 +158,9 @@ describe('withoutCredentialAttributes: an entity’s attributes', () => {
       withoutCredentialAttributes({
         door_code: '4821',
         wifi: 'password is sunshine42',
-        note: 'Sam said the wifi password is sunshine42 at dinner',
+        note: 'Sam said the wifi password is hunter at dinner',
+        // a named credential with a secret-shaped value is dropped whole, since #2514
+        later: 'Sam said the wifi password is sunshine42 at dinner',
         age: '42',
         visits: 3,
       })

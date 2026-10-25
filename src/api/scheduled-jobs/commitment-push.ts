@@ -16,6 +16,7 @@ import {
   type CommitmentStore,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
+import { shownRows, singleWriterFor } from '../../services/superhuman/commitment-single-writer.js';
 import { commitmentsShown } from '../../services/superhuman/commitment-forget.js';
 import { proactiveUserIds } from '../../services/outreach/proactive-channels/proactive-tick.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
@@ -60,15 +61,23 @@ async function scanDue(now: number): Promise<DueCommitment[]> {
     .get();
   // Each person's forget requests (commitment-forget.ts), read once per person in the scan.
   const users = [...new Set(snap.docs.map((d) => d.ref.parent.parent?.id ?? ''))];
-  const shown = new Map(
-    await Promise.all(users.map(async (u) => [u, await commitmentsShown(u)] as const))
+  // COMMITMENT_SINGLE_WRITER is per person here: this server sends for everyone.
+  const flags = await Promise.all(
+    users.map(async (u) => {
+      const on = await singleWriterFor(u);
+      const [notForgotten, judged] = await Promise.all([commitmentsShown(u), shownRows(u, on)]);
+      return [u, { on, shown: (d: Record<string, unknown>) => notForgotten(d) && judged(d) }] as const;
+    })
   );
+  const byUser = new Map(flags);
   const rows: DueCommitment[] = [];
   for (const doc of snap.docs) {
     const userId = doc.ref.parent.parent?.id;
-    if (!userId || !shown.get(userId)?.(doc.data())) continue;
-    const commitment = toOpenCommitment(doc.id, doc.data());
-    if (commitment) rows.push({ userId, commitment });
+    const flag = userId ? byUser.get(userId) : undefined;
+    if (!userId || !flag?.shown(doc.data())) continue;
+    const commitment = toOpenCommitment(doc.id, doc.data(), { judgedOnly: flag.on });
+    // A money or credential item is raised only on a call, never in a push.
+    if (commitment && !commitment.sensitive) rows.push({ userId, commitment });
   }
   return pickDuePerUser(rows, now);
 }

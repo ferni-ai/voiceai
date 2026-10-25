@@ -16,7 +16,7 @@
  *
  * usage: npx tsx scripts/voice-eval/voice-emotion/render.ts <secrets.env> <jobs.json> <out-dir>
  *   secrets.env must contain CARTESIA_API_KEY (read, never printed). Voice:
- *   FERNI_VOICE_ID from that file, else VOICE_IDS.FERNI. Existing WAVs are kept
+ *   FERNI_VOICE_ID from that file, else the resolved Ferni voice. Existing WAVs are kept
  *   (re-runs cost nothing); delete one to re-render it.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -53,8 +53,8 @@ Object.assign(process.env, {
   SPEECH_DIRECTOR_LAUGHTER: 'live',
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'silent',
 });
-const { VOICE_IDS } = await import('../../../src/config/voice-ids.js');
-const voiceId = secrets.FERNI_VOICE_ID || VOICE_IDS.FERNI;
+const { getVoiceIdForPersona } = await import('../../../src/config/voice-ids.js');
+const voiceId = secrets.FERNI_VOICE_ID || getVoiceIdForPersona('ferni');
 if (!process.env.CARTESIA_API_KEY) throw new Error('need CARTESIA_API_KEY');
 mkdirSync(outDir, { recursive: true });
 

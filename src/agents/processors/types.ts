@@ -230,6 +230,8 @@ export interface CrisisDetection {
   shouldOverrideLLM: boolean;
   /** A soft check-in instead of crisis guidance (CRISIS_AGREEMENT_GATE, turn-crisis.ts) */
   softCheck?: boolean;
+  /** The soft check-in's text when it is not SOFT_CRISIS_CHECK (CRISIS_GROUNDED_RELEASE) */
+  softGuidance?: string;
   /** Who is at risk: the caller, or someone they are worried about */
   subject?: CrisisSubject;
   /** 'es' when the crisis language was Spanish */

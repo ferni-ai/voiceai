@@ -26,10 +26,22 @@ import {
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
+  GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
   groundedRelease,
 } from '../../../services/safety/crisis-grounded-release.js';
+import {
+  SCREEN_GENTLE_OFFER,
+  screenAnswer,
+  screenIdeation,
+  withScreenPositive,
+} from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
+import { startWhoRead } from '../../../services/safety/crisis-who.js';
+import {
+  resolveClassifierOnlyCheckin,
+  shadowClassifierOnly,
+} from '../../../services/safety/crisis-classifier-only.js';
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
@@ -60,6 +72,8 @@ export interface TurnCrisis {
    * returns the patterns' reading.
    */
   softCheck(): Promise<boolean>;
+  /** The turn result's crisis field, with a grounded release's light touch as its guidance. */
+  summary(): Promise<CrisisDetection>;
   /**
    * Whether a router may answer this turn without the reply model (FTIS direct
    * execution, the semantic short-circuit): never with a crisis signal or a
@@ -83,13 +97,21 @@ export function startTurnCrisis(
     groundedReads?: readonly CrisisGenerateFn[];
   } = {}
 ): TurnCrisis {
-  const patterns = detectCrisis(
+  const found = detectCrisis(
     userText,
     toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined),
     { recentMessages: userData?.recentTranscripts }
   );
+  // The answer to a grounded release's direct question: anything but a clear no counts as a match.
+  const screened = screenAnswer(options.sessionId || undefined, {
+    latest: userText,
+    companion: userData?.lastAgentResponse,
+  });
+  const gentle = screened === 'positive' && !screenIdeation(found, userText);
+  const patterns = screened === 'positive' && !gentle ? withScreenPositive(found) : found;
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
-  const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
+  // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
+  const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
   if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
@@ -112,11 +134,18 @@ export function startTurnCrisis(
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
-  let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
-  const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
+  // THIRD_PARTY_SELF_HARM: who is at risk on a third-party read (crisis-who.ts); null when off.
+  const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
+  type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
+  let settled: Promise<Settled> | null = null;
+  const settleTurn = (): Promise<Settled> =>
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
+            if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
+              return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
+            }
             // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
             if (loneImminentGoodbye({ detection: patterns, verdict, ...input, priorRisk })) {
               log.info({ outcome: 'soft', source: 'lone_imminent_goodbye' }, 'CRISIS_AGREEMENT');
@@ -135,9 +164,12 @@ export function startTurnCrisis(
             });
             if (released) {
               log.info({ outcome: 'soft', source: 'grounded_release' }, 'CRISIS_AGREEMENT');
-              return { crisis: patterns, soft: true };
+              // The same light touch the reply gate gives (crisis-gate.ts): one text, one voice.
+              return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
-            const crisis = applyClassifierVerdict(patterns, verdict);
+            const merged = applyClassifierVerdict(patterns, verdict);
+            // Live: may reroute a third-party read (never lower it). Shadow: logs only.
+            const crisis = who?.live ? await who.resolve(merged) : (who?.shadow(merged) ?? merged);
             if (crisis !== patterns) noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY
             // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an
             // imminent one whoever it is about, gets the soft check-in after every other check.
@@ -146,7 +178,7 @@ export function startTurnCrisis(
               crisis !== patterns &&
               verdict?.risk === 'crisis' &&
               !guardFromDetection(crisis).shouldBlock;
-            const eased = (): { crisis: CrisisDetectionResult; soft: boolean } => {
+            const eased = (): Settled => {
               log.info({ outcome: 'soft', source: 'transfer-request' }, 'CRISIS_AGREEMENT');
               return { crisis: patterns, soft: true };
             };
@@ -193,12 +225,32 @@ export function startTurnCrisis(
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
             return { crisis: patterns, soft: true };
           })
-        : Promise.resolve({ crisis: patterns, soft: false }));
+        : Promise.resolve({
+            crisis: patterns,
+            soft: gentle,
+            ...(gentle ? { guidance: SCREEN_GENTLE_OFFER } : {}),
+          }));
+  // CRISIS_CLASSIFIER_ONLY_CHECKIN=shadow: once the turn settles, log only (crisis-classifier-only.ts).
+  const shadowOn = resolveClassifierOnlyCheckin(env) === 'shadow';
+  const shadowTurn = { detection: patterns, ...input, priorRisk, scope };
+  const settle = (): Promise<Settled> => {
+    const first = settled === null;
+    const turn = settleTurn();
+    if (first && shadowOn) {
+      shadowClassifierOnly(
+        turn.then((s) => !s.soft && s.crisis !== patterns),
+        shadowTurn,
+        env
+      );
+    }
+    return turn;
+  };
   return {
     patterns,
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
+    summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
     bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }
@@ -209,9 +261,14 @@ export function hasCrisisSignal(crisis: CrisisDetectionResult): boolean {
 }
 
 /** The turn result's crisis field. */
-export function crisisSummary(crisis: CrisisDetectionResult, softCheck = false): CrisisDetection {
+export function crisisSummary(
+  crisis: CrisisDetectionResult,
+  softCheck = false,
+  softGuidance?: string
+): CrisisDetection {
   return {
     ...(softCheck ? { softCheck } : {}),
+    ...(softCheck && softGuidance ? { softGuidance } : {}),
     isCrisis: crisis.isCrisis,
     severity: crisis.severity,
     indicators: crisis.indicators,

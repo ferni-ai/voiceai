@@ -62,6 +62,10 @@ describe.skipIf(!emulator)('transcript cleanup on the emulator', () => {
           content: 'something said',
           timestamp: ago(days),
         });
+      // CALL_TIMELINE docs (call-timeline.ts) beside the turns
+      const timeline = u.collection('conversations').doc(id).collection('timeline');
+      await timeline.doc('meta').set({ v: 1, chunks: 1 });
+      await timeline.doc('chunk-000').set({ v: 1, events: [{ kind: 'caller_final' }] });
     }
     await u
       .collection('conversation_summaries')
@@ -105,6 +109,7 @@ describe.skipIf(!emulator)('transcript cleanup on the emulator', () => {
     for (const path of [
       'bogle_users/uid_a/conversations/conv_old',
       'bogle_users/uid_a/conversations/conv_old/turns/t1',
+      'bogle_users/uid_a/conversations/conv_old/timeline/chunk-000',
       'bogle_users/uid_a/conversation_summaries/sum_old',
       'bogle_users/uid_a/group_sessions/grp_old',
       'elsewhere/x/conversations/stray',
@@ -127,11 +132,14 @@ describe.skipIf(!emulator)('transcript cleanup on the emulator', () => {
     });
     expect(await exists('bogle_users/uid_a/conversations/conv_old')).toBe(false);
     expect(await exists('bogle_users/uid_a/conversations/conv_old/turns/t1')).toBe(false);
+    expect(await exists('bogle_users/uid_a/conversations/conv_old/timeline/meta')).toBe(false);
+    expect(await exists('bogle_users/uid_a/conversations/conv_old/timeline/chunk-000')).toBe(false);
     expect(await exists('bogle_users/uid_a/conversation_summaries/sum_old')).toBe(false);
     expect(await exists('bogle_users/uid_a/group_sessions/grp_old')).toBe(false);
 
     expect(await exists('bogle_users/uid_a/conversations/conv_new')).toBe(true);
     expect(await exists('bogle_users/uid_a/conversations/conv_new/turns/t1')).toBe(true);
+    expect(await exists('bogle_users/uid_a/conversations/conv_new/timeline/chunk-000')).toBe(true);
     expect(await exists('bogle_users/uid_a/conversation_summaries/sum_new')).toBe(true);
     expect(await exists('bogle_users/uid_a/group_sessions/grp_new')).toBe(true);
     expect(await exists('bogle_users/uid_a')).toBe(true);

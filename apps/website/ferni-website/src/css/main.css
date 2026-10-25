@@ -389,7 +389,7 @@
 
   .btn-secondary {
     @apply bg-paper-cream text-ink border-2;
-    border-color: rgba(44, 37, 32, 0.1);
+    border-color: var(--color-border-medium);
     @apply hover:border-ferni hover:text-ferni hover:shadow-md;
     @apply active:shadow-sm;
   }
@@ -398,7 +398,7 @@
   .card {
     @apply bg-paper-cream rounded-2xl p-6;
     @apply border shadow-md hover:shadow-lg;
-    border-color: rgba(44, 37, 32, 0.05);
+    border-color: var(--color-border-subtle);
     @apply transition-all duration-300 ease-spring;
   }
 
@@ -422,7 +422,7 @@
     @apply inline-flex items-center gap-2;
     @apply px-4 py-2 rounded-full;
     @apply bg-paper-cream border text-sm text-ink-muted;
-    border-color: rgba(44, 37, 32, 0.05);
+    border-color: var(--color-border-subtle);
   }
 
   /* Navigation */
@@ -430,7 +430,7 @@
     @apply fixed top-0 left-0 right-0 z-50;
     @apply backdrop-blur-lg border-b transition-all duration-300;
     background-color: rgba(243, 240, 235, 0.8);
-    border-color: rgba(44, 37, 32, 0.05);
+    border-color: var(--color-border-subtle);
   }
 
   .nav-scrolled {
@@ -442,7 +442,7 @@
     @apply fixed bottom-4 left-4 right-4 z-50;
     @apply bg-paper-cream rounded-xl p-4;
     @apply shadow-xl border;
-    border-color: rgba(44, 37, 32, 0.1);
+    border-color: var(--color-border-medium);
     @apply flex flex-wrap items-center justify-between gap-4;
     @apply max-w-xl mx-auto;
   }
@@ -452,7 +452,7 @@
     @apply fixed bottom-0 left-0 right-0 z-40;
     @apply backdrop-blur-lg border-t p-4 flex gap-3 md:hidden;
     background-color: rgba(248, 246, 243, 0.9);
-    border-color: rgba(44, 37, 32, 0.05);
+    border-color: var(--color-border-subtle);
   }
 }
 
