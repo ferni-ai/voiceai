@@ -175,6 +175,7 @@ export async function buildScientificCoachingInjections(
     // PRIVACY: never 'unknown': that pooled every id-less caller's distortions (ant_patterns/unknown).
     const result = await buildScientificCoachingContext({
       userId: callerIdFor(services.userId, services.sessionId),
+      sessionId: services.sessionId,
       userMessage: userText,
       personaId: persona.id,
       topic: currentTopic,
