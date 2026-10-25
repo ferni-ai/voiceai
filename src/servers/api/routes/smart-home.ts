@@ -108,16 +108,27 @@ function getSmartHomeCollection() {
   return getAdminFirestore().collection('bogle_users');
 }
 
+/**
+ * Reads and opens a credential doc. Returns null only when the doc does not exist.
+ * A read error, or a record that will not open, throws: the caller must not treat
+ * an unreadable record as "no record" (saveCredentials would then overwrite it).
+ */
+async function readCredentials<T>(userId: string, integration: string): Promise<T | null> {
+  const doc = await getSmartHomeCollection()
+    .doc(userId)
+    .collection('smart_home')
+    .doc(integration)
+    .get();
+
+  if (!doc.exists) return null;
+  const opened = await openSmartHomeCredentials<T>(userId, integration, doc.data());
+  if (opened === null) throw new Error(`smart_home/${integration} record could not be opened`);
+  return opened;
+}
+
 export async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
   try {
-    const doc = await getSmartHomeCollection()
-      .doc(userId)
-      .collection('smart_home')
-      .doc(integration)
-      .get();
-
-    if (!doc.exists) return null;
-    return await openSmartHomeCredentials<T>(userId, integration, doc.data());
+    return await readCredentials<T>(userId, integration);
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
@@ -131,7 +142,8 @@ export async function saveCredentials<T extends object>(
 ): Promise<void> {
   try {
     assertNoEncryptedValues(credentials); // never seal (or later decrypt) a submitted enc_ value
-    const existing = (await getCredentials<Record<string, unknown>>(userId, integration)) ?? {};
+    // Fail closed: a read error throws here, so the set below never replaces a record we could not read.
+    const existing = (await readCredentials<Record<string, unknown>>(userId, integration)) ?? {};
     const ref = getSmartHomeCollection().doc(userId).collection('smart_home').doc(integration);
     await ref.set(sealTokens({ ...existing, ...credentials })); // replaced whole: no plaintext left
   } catch (error) {
