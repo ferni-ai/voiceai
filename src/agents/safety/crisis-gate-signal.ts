@@ -26,10 +26,10 @@ export function signalCrisisDecision(
   kind?: CrisisEventKind
 ): void {
   if (!action || action === 'pass') return;
-  recordCrisisOnCall(session, action, reader, kind); // CRISIS_EVENT_RECORD: a later tick, never awaited
   if (typeof session === 'object' && session !== null) crisisSessions.add(session);
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
+  recordCrisisOnCall(session, action, reader, kind); // CRISIS_EVENT_RECORD: after the signal, never throws
 }
 
 const pendingVerdicts = new WeakMap<object, Promise<unknown>>();

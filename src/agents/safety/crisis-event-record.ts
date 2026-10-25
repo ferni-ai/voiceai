@@ -69,13 +69,18 @@ export function recordCrisisOnCall(
   kind?: CrisisEventKind
 ): void {
   if (action !== 'replace') return;
-  setImmediate(() => {
+  const run = (): void => {
     try {
       recordOnce(session, reader, kind);
     } catch {
       log.warn({ reader }, 'Crisis event check failed, not recorded');
     }
-  });
+  };
+  try {
+    setImmediate(run);
+  } catch {
+    log.warn({ reader }, 'Crisis event not scheduled, not recorded');
+  }
 }
 
 function recordOnce(session: unknown, reader: CrisisReader, kind?: CrisisEventKind): void {

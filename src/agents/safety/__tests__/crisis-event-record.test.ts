@@ -32,6 +32,18 @@ vi.mock('../../../services/identity/member-identity.js', async (importOriginal) 
       boom.on ? thrower() : real.isMemberIdentity(id),
   };
 });
+/** The recorder's own setImmediate (node:timers) can be made to throw */
+const sched = vi.hoisted(() => ({ throws: false }));
+vi.mock('node:timers', async (importOriginal) => {
+  const real = await importOriginal<typeof import('node:timers')>();
+  return {
+    ...real,
+    setImmediate: ((...a: Parameters<typeof real.setImmediate>) => {
+      if (sched.throws) throw new Error(boom.words);
+      return real.setImmediate(...a);
+    }) as typeof real.setImmediate,
+  };
+});
 /** Everything any logger in these modules was given */
 const logged = vi.hoisted(() => [] as unknown[]);
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
@@ -155,6 +167,7 @@ beforeEach(() => {
   addFails.on = false;
   addFails.code = 'unavailable';
   boom.on = false;
+  sched.throws = false;
   slack.notify.mockReset();
   slack.crisis.mockReset();
   fetchSpy.mockReset();
@@ -355,6 +368,34 @@ describe('the recorder can never touch the crisis reply', () => {
       expect(head.session.emit).toHaveBeenCalledWith(CRISIS_GATE_SIGNAL, { action: 'replace' });
       expect(added).toHaveLength(0);
       expect(JSON.stringify(logged)).toContain('Crisis event check failed');
+      noWords(logged);
+    }
+  );
+
+  it.each([
+    ['patterns', PATTERNS_ONLY, SAID, undefined],
+    ['classifier', LIVE, BRIDGE, IMMINENT],
+  ])(
+    'scheduling itself throwing (%s): the script is the same and the signal still goes out',
+    async (_name, env, text, generate) => {
+      vi.stubEnv('CRISIS_EVENT_RECORD', '');
+      const main = await reply(env, text, generate);
+      // The flag is read on the recorder's tick: let the flag-off call's tick run while off
+      await settle();
+      resetCrisisClassifierCache();
+      vi.stubEnv('CRISIS_EVENT_RECORD', 'on');
+      sched.throws = true;
+      let head: Awaited<ReturnType<typeof reply>>;
+      try {
+        head = await reply(env, text, generate);
+      } finally {
+        sched.throws = false;
+      }
+      await settle();
+      expect(head.said).toBe(main.said);
+      expect(head.session.emit).toHaveBeenCalledWith(CRISIS_GATE_SIGNAL, { action: 'replace' });
+      expect(added).toHaveLength(0);
+      expect(JSON.stringify(logged)).toContain('Crisis event not scheduled');
       noWords(logged);
     }
   );
