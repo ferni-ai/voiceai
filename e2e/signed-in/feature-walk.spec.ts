@@ -78,17 +78,20 @@ test.describe('every settings feature', () => {
     test(`${action} switches and remembers its state`, async ({ page }) => {
       const problems = watchProblems(page);
       await openMenu(page);
-      const toggle = page.locator(`.settings-menu [data-action="${action}"]`);
+      const toggle = page.locator(`.settings-menu [data-action="${action}"][role="switch"]`);
       const before = await toggle.getAttribute('aria-checked');
+      expect(['true', 'false'], `${action} has no on/off state`).toContain(before);
+      const after = before === 'true' ? 'false' : 'true';
       await toggle.click();
-      await expect(toggle).not.toHaveAttribute('aria-checked', before ?? '');
+      await expect(toggle).toHaveAttribute('aria-checked', after);
       await page.reload();
       await expectHome(page);
       await openMenu(page);
-      await expect(page.locator(`.settings-menu [data-action="${action}"]`)).not.toHaveAttribute(
-        'aria-checked',
-        before ?? ''
-      );
+      await expect(toggle, `${action} forgot its state on reload`).toHaveAttribute('aria-checked', after);
+      // The keyboard toggles it back
+      await toggle.focus();
+      await page.keyboard.press('Space');
+      await expect(toggle).toHaveAttribute('aria-checked', before as string);
       expect(problems.take(), `${action} raised problems`).toEqual([]);
     });
   }

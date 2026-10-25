@@ -8436,7 +8436,8 @@
     "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
-    "connected": "Connected"
+    "connected": "Connected",
+    "statusFailed": "Couldn't check just now"
   },
   "yourPeople": {
     "section": "Relationships",
