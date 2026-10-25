@@ -14,6 +14,7 @@
  * - GET    /api/sponsored-identities/pending      - List pending self-registrations
  * - POST   /api/sponsored-identities/:id/approve  - Approve pending identity
  * - GET|POST|DELETE /api/sponsored-identities/:id/call-consent - see family-call-consent-routes
+ * - POST   /api/sponsored-identities/:id/verify-phone - text the holder a code (holder-verification)
  *
  * @module api/sponsored-identity-routes
  */
@@ -28,6 +29,7 @@ import {
 import { requireAuth } from './auth-middleware.js';
 import { handleCallConsentRoute } from './family-call-consent-routes.js';
 import { handleCheckinScheduleRoute } from './family-checkin-schedule-routes.js';
+import { handleHolderVerifyRoute } from '../services/messaging/holder-verification.js';
 import {
   createSponsoredIdentity,
   getSponsoredIdentity,
@@ -171,6 +173,7 @@ export async function handleSponsoredIdentityRoutes(
 
     if (await handleCallConsentRoute(req, res, route, userId, sendJSON)) return true;
     if (await handleCheckinScheduleRoute(req, res, route, userId, sendJSON)) return true;
+    if (await handleHolderVerifyRoute(req, res, route, userId, sendJSON)) return true;
 
     // Routes with :id parameter
     const idMatch = route.match(/^\/([^/]+)$/);
