@@ -265,7 +265,7 @@ export function startCrisisGate(
       return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
     const base = applyClassifierVerdict(detection, verdict);
-    const merged = who?.live ? await who.resolve(base) : base;
+    const merged = who?.live ? await who.resolve(base, verdict) : base;
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
