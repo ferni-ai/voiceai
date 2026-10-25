@@ -34,6 +34,9 @@ vi.mock('twilio', () => {
 const callsRefused = async (_phone: string, channel: string) =>
   channel === 'call' ? 'opted-out' : null;
 const consentBlocks = vi.hoisted(() => vi.fn());
+/** The account's verified phone, as the call-me check re-reads it. */
+const reach = vi.hoisted(() => vi.fn(async () => ({ phone: '+15551234567' })));
+vi.mock('../user-reach.js', async (orig) => ({ ...(await orig<object>()), userReach: reach }));
 vi.mock('../../messaging/consent.js', async (orig) => ({
   ...(await orig<object>()),
   consentBlocks,
@@ -44,6 +47,8 @@ const { makeConversationalCall, scheduleProactiveCall } =
   await import('../conversational-calls.js');
 const { callWithPersonaVoice } = await import('../../voice/voice-call.js');
 const { assertNotOptedOut } = await import('../first-dial-opt-out.js');
+const { asOwnCallMe } = await import('../held-call.js');
+const { callUserAdapter } = await import('../call-user-adapter.js');
 const { sendOnBehalfText, textOnBehalf } = await import('../guarded-text.js');
 type TextDeps = import('../guarded-text.js').TextDeps;
 const { phoneHoldId } = await import('../checkin-replies.js');
@@ -136,15 +141,15 @@ describe('makeConversationalCall (proactive call scheduler, scheduled outreach e
 
 describe('scheduleProactiveCall and its dial', () => {
   const reachedConsent = () => consentBlocks.mock.calls.some(([, channel]) => channel === 'call');
-  const schedule = (reason: string) =>
-    scheduleProactiveCall({
-      userId: 'teen-uid',
-      phoneNumber: PHONE,
-      message: 'checking in',
-      ssml: '<speak>checking in</speak>',
-      personaId: 'ferni',
-      reason,
-    });
+  const request = (reason: string, phoneNumber = PHONE) => ({
+    userId: 'teen-uid',
+    phoneNumber,
+    message: 'checking in',
+    ssml: '<speak>checking in</speak>',
+    personaId: 'ferni',
+    reason,
+  });
+  const schedule = (reason: string) => scheduleProactiveCall(request(reason));
 
   it('held: refused before consent, call hours or a deferral', async () => {
     holdFor(phoneHoldId(PHONE));
@@ -152,11 +157,55 @@ describe('scheduleProactiveCall and its dial', () => {
     expect(reachedConsent()).toBe(false);
   });
 
-  it('their own "call me" still goes on to the usual checks', async () => {
+  it('their own "call me" (marked by the adapter, to their verified phone) goes on to the usual checks', async () => {
     holdFor(phoneHoldId(PHONE));
-    expect(await schedule('user_requested_call')).toMatchObject({
+    holdFor('teen-uid');
+    expect(await scheduleProactiveCall(asOwnCallMe(request('user_requested_call')))).toMatchObject({
       error: 'Not calling: opted-out',
     });
+  });
+
+  it('the in-call "call me" adapter marks its request: a held caller is still rung', async () => {
+    holdFor('teen-uid');
+    const result = await callUserAdapter.call({
+      userId: 'teen-uid',
+      phoneNumber: PHONE,
+      message: 'you asked me to call',
+      personaId: 'ferni',
+    } as never);
+    expect(result).toMatchObject({ error: 'Not calling: opted-out' });
+  });
+
+  it('reason "user_requested_call" from any other caller is still held', async () => {
+    holdFor('teen-uid');
+    expect(await schedule('user_requested_call')).toMatchObject({ error: 'Not calling: held' });
+    expect(
+      await makeConversationalCall({
+        userId: 'teen-uid',
+        phoneNumber: PHONE,
+        message: 'hi',
+        reason: 'user_requested_call',
+      })
+    ).toMatchObject({ error: 'Not calling: held' });
+    expect(reachedConsent()).toBe(false);
+  });
+
+  it('a marked "call me" to a number that is not their verified phone is held', async () => {
+    holdFor('teen-uid');
+    const other = asOwnCallMe(request('user_requested_call', '+15559876543'));
+    expect(await scheduleProactiveCall(other)).toMatchObject({ error: 'Not calling: held' });
+  });
+
+  it('their own "call me" keeps its exemption at the dial', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    consentBlocks.mockImplementationOnce(async () => {
+      vi.setSystemTime(Date.now() + CACHE_MS);
+      holdFor('teen-uid');
+      return null;
+    });
+    const result = await scheduleProactiveCall(asOwnCallMe(request('user_requested_call')));
+    expect(result.error).not.toBe('Not calling: held'); // it reached the dial (Twilio is faked)
+    vi.useRealTimers();
   });
 
   it('a hold that starts after scheduling is checked again at the dial', async () => {
@@ -183,8 +232,19 @@ describe('callWithPersonaVoice', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('held account (no number hold): not called when the member is named', async () => {
+    holdFor('teen-uid');
+    expect(await callWithPersonaVoice(PHONE, 'hi', 'ferni', { userId: 'teen-uid' })).toMatchObject({
+      success: false,
+      message: 'Not calling: held',
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('unheld: called as before', async () => {
-    expect(await callWithPersonaVoice('+15559876543', 'hi')).toMatchObject({ success: true });
+    expect(
+      await callWithPersonaVoice('+15559876543', 'hi', 'ferni', { userId: 'adult-uid' })
+    ).toMatchObject({ success: true });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

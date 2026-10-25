@@ -1,6 +1,5 @@
 /**
  * Notification Delivery Service
- *
  * Actually delivers proactive outreach notifications via:
  * - Push notifications (web/mobile)
  * - Email (Sendgrid/Postmark)
@@ -305,6 +304,7 @@ export async function deliverVoice(
 
     const result = await callWithPersonaVoice(phone, item.message, personaId, {
       fallbackToTwilioVoice: true,
+      userId: item.userId,
     });
 
     if (result.success) {
