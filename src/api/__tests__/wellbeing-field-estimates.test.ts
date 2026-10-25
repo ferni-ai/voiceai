@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   WellbeingProfile,
   WellbeingSnapshot,
@@ -21,7 +21,8 @@ vi.mock('../../services/wellbeing-tracking/index.js', () => ({
 import { buildDashboardResponse, loadWellbeingData } from '../wellbeing-data.js';
 
 const DAY = 24 * 60 * 60 * 1000;
-const at = (daysAgo: number) => new Date(Date.now() - daysAgo * DAY);
+const NOW = new Date('2026-10-18T12:00:00Z');
+const at = (daysAgo: number) => new Date(NOW.getTime() - daysAgo * DAY);
 const snap = (id: string, daysAgo: number, dimensions: WellbeingSnapshot['dimensions']) =>
   ({
     id,
@@ -32,7 +33,13 @@ const snap = (id: string, daysAgo: number, dimensions: WellbeingSnapshot['dimens
     confidence: {},
   }) satisfies WellbeingSnapshot;
 
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   stored.profile = null;
   stored.snapshots = [];

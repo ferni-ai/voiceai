@@ -141,7 +141,7 @@ const FLIPPED: Record<Direction, Direction> = {
   steady: 'steady',
 };
 
-/** Each panel field from its estimate; connection is shown as 1 minus loneliness. */
+/** Each panel field from its estimate; connection reads the opposite way to loneliness, so its direction flips. */
 function panelFields(estimates: WellbeingEstimates): Record<PanelField, PanelFieldInfo | null> {
   const out = {} as Record<PanelField, PanelFieldInfo | null>;
   for (const field of Object.keys(PANEL_FIELDS) as PanelField[]) {
