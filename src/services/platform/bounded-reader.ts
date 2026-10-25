@@ -195,6 +195,13 @@ export class BoundedReader {
     return snap.data().count;
   }
 
+  /** The ids of a collection's documents, with those that only hold subcollections: one read */
+  async listDocIds(path: string): Promise<string[]> {
+    this.budget.beginRead();
+    const refs = await beforeDeadline(this.db.collection(path).listDocuments(), this.budget);
+    return refs.map((ref) => ref.id);
+  }
+
   /** Whether a document exists: one read, its bytes reserved like any other */
   async docExists(path: string): Promise<boolean> {
     return (await this.readDoc(path)) !== null;
