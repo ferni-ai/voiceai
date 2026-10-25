@@ -145,6 +145,21 @@ describe('call paths name the member', () => {
     expect(rang()).toBe(1);
   });
 
+  // Checked on the number it dials, so a spelling the hold key can't read is still held
+  it.each(['555/123/4567', 'tel:+15551234567', '555-123-4567 ext'])(
+    'background conversational call to %j, a held number: not called',
+    async (spelled) => {
+      holdFor(phoneHoldId(PHONE));
+      await makeConversationalCall({
+        userId: 'adult-uid',
+        phone: spelled,
+        recipientName: 'Alex',
+        purpose: 'hi',
+      });
+      expect(rang()).toBe(0);
+    }
+  );
+
   it('says why: held', async () => {
     holdFor('teen-uid');
     expect(await callUser('teen-uid', 'hi')).toMatchObject({ error: 'Not calling: held' });

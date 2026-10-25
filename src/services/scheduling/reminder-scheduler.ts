@@ -759,8 +759,10 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
   if (voiceMessage.status === 'failed') {
     return 'I had trouble generating that voice message. Let me try again.';
   }
-  // MINOR_CARE_SHARED_HOLD: the MMS below skips sendSMS, so it checks here
-  if (await textHeld(toPhone, { userId: voiceMessage.userId })) return 'Not sent: held';
+  // MINOR_CARE_SHARED_HOLD: the MMS below skips sendSMS, so it checks the number it dials
+  const cleanPhone = toPhone.replace(/\D/g, '');
+  const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+  if (await textHeld(e164Phone, { userId: voiceMessage.userId })) return 'Not sent: held';
 
   // If we have an audio URL, send via MMS
   if (voiceMessage.audioUrl) {
@@ -771,9 +773,6 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
       if (accountSid && authToken && fromNumber) {
-        const cleanPhone = toPhone.replace(/\D/g, '');
-        const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-
         const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
         const response = await fetch(
           `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,

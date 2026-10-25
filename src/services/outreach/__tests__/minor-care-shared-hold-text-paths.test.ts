@@ -193,6 +193,17 @@ describe('callers of sendSMS pass the member: an account-only hold stops them', 
     expect(sent()).toBe(1);
   });
 
+  // The hold is checked on the number the MMS dials, so a spelling the hold key can't read is held
+  it.each(['555/123/4567', 'tel:+15551234567', '555-123-4567 ext'])(
+    'voice message to %j, a held number: not sent',
+    async (spelled) => {
+      holdFor(phoneHoldId(PHONE));
+      const voice = await createVoiceMessage({ userId: 'adult-uid', message: 'hi' });
+      expect(await sendVoiceMessage(voice.id, spelled)).toBe('Not sent: held');
+      expect(sent()).toBe(0);
+    }
+  );
+
   it('voice message, held: says it was not sent', async () => {
     holdFor(phoneHoldId(PHONE));
     const voice = await createVoiceMessage({ userId: 'adult-uid', message: 'hi' });
