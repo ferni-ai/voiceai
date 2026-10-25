@@ -7,7 +7,11 @@
  * rewritten when its user next records an emotion, so the rest keep it. This
  * rewrites `dataPoints` keeping only the emotion label, intensity, valence,
  * source and timestamp (emotional-history-shape.ts); every other key, nested
- * ones included, goes. Nothing else in the document is touched.
+ * ones included, goes. A point whose kept fields aren't a listed label, scores
+ * in range and a valid time is dropped whole (it can't be shown, and its text
+ * can't stay). Nothing else in the document is touched.
+ *
+ * emotional_data/{uid}/points has its own job: strip-emotional-data-snippets.ts.
  *
  * Dry run by default (scripts/destructive-gate.ts). It prints counts only: no
  * document ids, no contents.

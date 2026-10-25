@@ -503,30 +503,38 @@ async function handleRecordEmotion(
   }
 
   try {
-    const body = await parseBody<{
-      emotion: string;
-      intensity: number;
-      valence: number;
-      source: 'voice' | 'text' | 'inferred';
-      // A client may also send `context` (the caller's words). It is not stored.
-    }>(req);
-
-    if (!body.emotion || body.intensity === undefined || body.valence === undefined) {
+    // Only typed, bounded fields are kept: an emotion label from a fixed list,
+    // intensity 0..1, valence -1..1, a source from three. The time is the
+    // server's. Anything else the client sends (context, notes, a timestamp) is
+    // dropped, and a value that isn't one of these is refused, never stored.
+    const body = await parseBody<Record<string, unknown>>(req);
+    if (body?.emotion === undefined || body.intensity === undefined || body.valence === undefined) {
       sendError(res, 'Missing required fields: emotion, intensity, valence', 400);
       return true;
     }
 
-    const { recordEmotionalDataPoint, persistEmotionalHistory } =
-      await import('../../tools/semantic-router/advanced/better-than-human.js');
+    const [{ recordEmotionalDataPoint, persistEmotionalHistory }, { toStoredPoint }] =
+      await Promise.all([
+        import('../../tools/semantic-router/advanced/better-than-human.js'),
+        import('../../tools/semantic-router/advanced/emotional-history-shape.js'),
+      ]);
+    const point = toStoredPoint({
+      timestamp: new Date(),
+      emotion: body.emotion,
+      intensity: body.intensity,
+      valence: body.valence,
+      source: body.source,
+    });
+    if (!point) {
+      sendError(
+        res,
+        'Invalid fields: emotion must be a known label, intensity 0..1, valence -1..1, source voice|text|inferred',
+        400
+      );
+      return true;
+    }
 
-    // Record the data point
-    recordEmotionalDataPoint(
-      userId,
-      body.emotion,
-      body.intensity,
-      body.valence,
-      body.source || 'inferred'
-    );
+    recordEmotionalDataPoint(userId, point.emotion, point.intensity, point.valence, point.source);
 
     // Persist to Firestore (async, don't block)
     persistEmotionalHistory(userId).catch((err) =>
@@ -536,9 +544,9 @@ async function handleRecordEmotion(
     log.debug(
       {
         userId,
-        emotion: body.emotion,
-        intensity: body.intensity,
-        valence: body.valence,
+        emotion: point.emotion,
+        intensity: point.intensity,
+        valence: point.valence,
       },
       'Emotional data point recorded via API'
     );

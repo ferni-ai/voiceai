@@ -23,6 +23,13 @@ const log = createLogger({ module: 'semantic-router:persistence' });
 
 export interface FirestoreDB {
   collection: (path: string) => CollectionReference;
+  /** The real client always has it; narrow fakes may not. */
+  runTransaction?: <T>(fn: (tx: Transaction) => Promise<T>) => Promise<T>;
+}
+
+export interface Transaction {
+  get: (ref: DocumentReference) => Promise<DocumentSnapshot>;
+  set: (ref: DocumentReference, data: Record<string, unknown>) => unknown;
 }
 
 export interface CollectionReference {
