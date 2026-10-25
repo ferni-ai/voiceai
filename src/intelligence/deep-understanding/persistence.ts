@@ -52,6 +52,7 @@ import { getHopeProfile, importHopeProfile, type HopeProfile } from './hope.js';
 
 import { getChapterProfile, importChapterProfile, type ChapterProfile } from './life-chapter.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'DeepUnderstandingPersistence' });
 
@@ -89,7 +90,7 @@ interface FirestoreDoc {
 
 const COLLECTION_NAME = 'deep_understanding';
 const CURRENT_VERSION = 1;
-/** `${userId}/${systemName}` whose last read errored; cleared by a later read that succeeds. */
+/** `${userId}/${systemName}` unread since an error or a MINOR_CARE purge; a good read clears it */
 const failedReads = new Set<string>();
 
 // System names for subcollections
@@ -105,6 +106,11 @@ const SYSTEM_NAMES = {
   hope: 'hope',
   lifeChapter: 'life_chapter',
 } as const;
+
+/** After a MINOR_CARE purge: no save for this user until a session start reads them back. */
+export function holdUntilReloaded(userId: string): void {
+  for (const name of Object.values(SYSTEM_NAMES)) failedReads.add(`${userId}/${name}`);
+}
 
 // ============================================================================
 // FIRESTORE ACCESS
@@ -135,9 +141,7 @@ function getDoc(userId: string, systemName: string) {
 // SAVE FUNCTIONS
 // ============================================================================
 
-/**
- * Save a single system profile
- */
+/** Save a single system profile */
 async function saveSystemProfile<T>(
   userId: string,
   systemName: string,
@@ -165,16 +169,15 @@ async function saveSystemProfile<T>(
   }
 }
 
-/**
- * Save all deep understanding profiles for a user
- */
+/** Save all deep understanding profiles for a user */
 export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
   saved: string[];
   failed: string[];
 }> {
   const saved: string[] = [];
   const failed: string[] = [];
-
+  // MINOR_CARE: nothing learned from a caller under 18 is kept (their quotes, people, topics)
+  if (writeHeld(userId)) return { saved, failed };
   const silencePattern = getSilencePattern(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.silencePattern, silencePattern)) {
     saved.push('silencePattern');
@@ -257,9 +260,7 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
 // LOAD FUNCTIONS
 // ============================================================================
 
-/**
- * Load a single system profile
- */
+/** Load a single system profile */
 async function loadSystemProfile<T>(userId: string, systemName: string): Promise<T | null> {
   const key = `${userId}/${systemName}`;
   try {
@@ -277,9 +278,7 @@ async function loadSystemProfile<T>(userId: string, systemName: string): Promise
   }
 }
 
-/**
- * Load all deep understanding profiles for a user and import them into memory
- */
+/** Load all deep understanding profiles for a user and import them into memory */
 export async function loadDeepUnderstandingProfiles(userId: string): Promise<{
   loaded: string[];
   notFound: string[];
@@ -401,9 +400,7 @@ export async function loadDeepUnderstandingProfiles(userId: string): Promise<{
 // SESSION HOOKS
 // ============================================================================
 
-/**
- * Call at session start to load deep understanding profiles
- */
+/** Call at session start to load deep understanding profiles */
 export async function onSessionStart(userId: string): Promise<void> {
   try {
     await loadDeepUnderstandingProfiles(userId);
@@ -412,9 +409,7 @@ export async function onSessionStart(userId: string): Promise<void> {
   }
 }
 
-/**
- * Call at session end to save deep understanding profiles
- */
+/** Call at session end to save deep understanding profiles */
 export async function onSessionEnd(userId: string): Promise<void> {
   try {
     await saveDeepUnderstandingProfiles(userId);
@@ -423,9 +418,7 @@ export async function onSessionEnd(userId: string): Promise<void> {
   }
 }
 
-/**
- * Periodic sync during long sessions (every 5 minutes)
- */
+/** Periodic sync during long sessions (every 5 minutes) */
 export async function periodicSync(userId: string): Promise<void> {
   try {
     const { saved, failed } = await saveDeepUnderstandingProfiles(userId);

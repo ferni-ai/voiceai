@@ -20,6 +20,7 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   ALPHA_VANTAGE_API_KEY: 'secret',
   ALPHA_VANTAGE_KEY: 'unread',
   ARRIVAL_GROUNDED: 'unread',
+  CALL_TIMELINE_UIDS: 'secret',
   CARTESIA_API_KEY: 'secret',
   CARTESIA_MODEL: 'config',
   CASCADE_TURN_DETECTION: 'behavior',

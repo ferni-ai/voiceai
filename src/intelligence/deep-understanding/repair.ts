@@ -696,12 +696,12 @@ export function importRepairProfile(profile: RepairProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all repair intelligence state (for testing)
- */
+export const forgetRepairUser = (userId: string): boolean => profiles.delete(userId);
+
+/** Reset all repair intelligence state (for testing) */
 export function resetRepairIntelligence(): void {
   profiles.clear();
   recentResponses.clear();

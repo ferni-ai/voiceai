@@ -134,7 +134,7 @@ export class ScoringWorker {
 
     if (foundHighConfidence) {
       log.debug(
-        { query, topTool: results[0]?.toolId },
+        { queryLength: query.length, topTool: results[0]?.toolId },
         'Early termination - high confidence match'
       );
     }
@@ -315,7 +315,7 @@ export class ScoringWorker {
     // Log if native path was used
     if (isBatchToolScoringNativeAvailable() && profilesArray.length >= 5) {
       log.debug(
-        { query: normalizedQuery.slice(0, 50), profileCount: profilesArray.length },
+        { queryLength: normalizedQuery.length, profileCount: profilesArray.length },
         '🦀 Rust-accelerated tool scoring'
       );
     }

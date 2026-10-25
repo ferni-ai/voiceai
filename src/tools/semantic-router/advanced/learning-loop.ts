@@ -207,7 +207,7 @@ export async function recordOutcome(
         userId: context.userId,
         from: predictedTool,
         to: outcome.actualToolUsed,
-        input: context.inputText.substring(0, 30),
+        inputLength: context.inputText.length,
       },
       'Learned from correction'
     );
@@ -255,7 +255,7 @@ export async function handleExplicitCorrection(
       userId,
       from: wrongTool,
       to: correctTool,
-      phrase: inputText.substring(0, 30),
+      phraseLength: inputText.length,
     },
     'Explicit correction processed'
   );
