@@ -174,7 +174,7 @@ describe.skipIf(!emulator)('A Chronicle edit or delete, everywhere (Firestore em
     expect(await search('pier')).toBe(1);
     const doc = await storeDoc(uid, id);
     expect(Object.keys(doc ?? {}).sort()).toEqual(
-      ['agentId', 'content', 'createdAt', 'mood', 'source', 'updatedAt'].sort()
+      ['agentId', 'content', 'createdAt', 'source', 'updatedAt'].sort()
     );
   });
 
@@ -183,7 +183,11 @@ describe.skipIf(!emulator)('A Chronicle edit or delete, everywhere (Firestore em
     const { productivityExecutor } =
       await import('../../agents/shared/tool-executors/productivity-executor.js');
     const ctx = { userId: uid };
-    await productivityExecutor.execute('addJournal', { entry: 'Fought with Sam.' }, ctx);
+    await productivityExecutor.execute(
+      'addJournal',
+      { entry: 'Fought with Sam.', mood: 'furious' },
+      ctx
+    );
     const [entry] = await panel(uid);
     expect(entry).toMatchObject({ content: 'Fought with Sam.', editable: true });
 
@@ -191,7 +195,63 @@ describe.skipIf(!emulator)('A Chronicle edit or delete, everywhere (Firestore em
     const read = String(await productivityExecutor.execute('getJournals', {}, ctx));
     expect(read).toContain('Talked it through');
     expect(read).not.toContain('Fought');
+    expect(read).not.toContain('furious'); // the mood was the old entry's
     expect(await storeDoc(uid, entry!.id)).not.toHaveProperty('entry');
+  });
+
+  it("an edit to a migrated entry changes the twin's array copy too, so the export is clean", async () => {
+    const uid = newUser();
+    const old = {
+      id: 'mem_mig_1',
+      content: 'Migrated ALPHAWORD text.',
+      transcript: 'Migrated ALPHAWORD text.',
+      title: 'Old ALPHAWORD title',
+      keywords: ['ALPHAWORD'],
+      themes: ['alphatheme'],
+      summary: 'About ALPHAWORD.',
+      context: 'ALPHAWORD prompt',
+      mood: 'alphamood',
+      audioUrl: 'https://example.test/a.webm',
+      createdAt: new Date('2026-04-01'),
+    };
+    await twinWith(uid, [
+      old,
+      { id: 'mem_other', content: 'Another entry.', createdAt: new Date(0) },
+    ]);
+    const twin = await (await userDoc(uid)).collection('custom_agents').doc('twin-1').get();
+    const { runJournalMigration } = await import('../../services/stores/journal-migration.js');
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
+    const source = { uid, agentId: 'twin-1', data: twin.data() ?? {} };
+    expect((await runJournalMigration(db as never, [source], true)).written).toBe(2);
+
+    const { exportUserRecords } = await import('../../services/platform/user-records-export.js');
+    const exportText = async () => JSON.stringify(await exportUserRecords(uid, undefined, db));
+    expect(await exportText()).toContain('Migrated ALPHAWORD text.'); // in the export before
+
+    const edit = { content: 'Rewritten in my words.' };
+    expect((await send(uid, 'PUT', entryPath(old.id), edit)).status).toBe(200);
+    const array = (
+      await (await userDoc(uid)).collection('custom_agents').doc('twin-1').get()
+    ).data()?.memories?.journalEntries as Array<Record<string, unknown>>;
+    expect(array.map((item) => item.id)).toEqual(['mem_mig_1', 'mem_other']);
+    expect(array[0]).toMatchObject({ content: 'Rewritten in my words.', audioUrl: old.audioUrl });
+    expect(array[1]).toMatchObject({ content: 'Another entry.' });
+
+    const exported = await exportText();
+    expect(exported).toContain('Rewritten in my words.');
+    expect(exported).not.toMatch(/alpha/i);
+
+    // A failed array write leaves both copies as they were, not disagreeing
+    const restore = await failAgentWrites();
+    try {
+      expect((await send(uid, 'PUT', entryPath(old.id), { content: 'Third try.' })).status).toBe(
+        500
+      );
+    } finally {
+      restore();
+    }
+    expect((await storeDoc(uid, old.id))?.content).toBe('Rewritten in my words.');
   });
 
   it("a delete that can't change the twin's array changes nothing", async () => {

@@ -15,8 +15,8 @@ const getFiles = vi.hoisted(() =>
 
 vi.mock('@google-cloud/storage', () => ({
   Storage: class {
-    bucket(): { getFiles: typeof getFiles } {
-      return { getFiles };
+    bucket(): { getFiles: typeof getFiles; file: (name: string) => { save: () => void } } {
+      return { getFiles, file: (name) => ({ save: () => stored(name) }) };
     }
   },
 }));
@@ -59,6 +59,23 @@ describe('deleteVoiceJournalAudio', () => {
       'voice-journals/uid1/twin1/sub/1700000000004-entry-journal_1.webm',
     ]);
     expect(getFiles).toHaveBeenCalledWith({ prefix: 'voice-journals/uid1/twin1/' });
+  });
+
+  it('two long ids that share their first 100 characters keep their own recordings', async () => {
+    const { deleteVoiceJournalAudio, journalAudioName } = await loadService();
+    expect(journalAudioName('journal_1')).toBe('entry-journal_1.webm'); // short ids keep their name
+    const longA = `${'a'.repeat(110)}_1`;
+    const longB = `${'a'.repeat(110)}_2`;
+    const { uploadVoiceJournalEntry } = await loadService();
+    const pathA = (await uploadVoiceJournalEntry(Buffer.from('a'), 'uid1', 'twin1', longA))
+      ?.filePath;
+    const pathB = (await uploadVoiceJournalEntry(Buffer.from('b'), 'uid1', 'twin1', longB))
+      ?.filePath;
+    expect(pathA).not.toBe(pathB);
+    expect(files.size).toBe(2); // B's upload didn't overwrite A's
+
+    expect(await deleteVoiceJournalAudio('uid1', 'twin1', longA)).toBe(1);
+    expect([...files.keys()]).toEqual([pathB]);
   });
 
   it('a storage failure is logged, not thrown: the entry is already gone', async () => {

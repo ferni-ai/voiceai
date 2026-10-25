@@ -10,6 +10,7 @@
  * @module services/custom-agent/gcs-storage
  */
 
+import { createHash } from 'node:crypto';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'GcsStorageService' });
@@ -210,7 +211,7 @@ export async function uploadVoiceJournalEntry(
   agentId: string,
   entryId: string
 ): Promise<UploadResult | null> {
-  const filename = `entry-${entryId}.webm`;
+  const filename = journalAudioName(entryId);
   return uploadAudioToGcs(audioBuffer, userId, agentId, filename, 'voiceJournal', false);
 }
 
@@ -323,8 +324,19 @@ interface JournalBucket {
 }
 
 /**
+ * A journal recording's file name, one per entry id. An id that file names
+ * would cut (at 100 characters) or change gets a hash, so two ids never share
+ * a name; the '.' marks it, since entry ids never contain one.
+ */
+export function journalAudioName(entryId: string): string {
+  const plain = `entry-${entryId}.webm`;
+  if (plain.length <= 100 && sanitizeFilename(plain) === plain) return plain;
+  return `entry-sha256.${createHash('sha256').update(entryId).digest('hex')}.webm`;
+}
+
+/**
  * Delete a voice journal entry's recording. uploadVoiceJournalEntry saves it as
- * voice-journals/{uid}/{agentId}/{timestamp}-entry-{entryId}.webm, and the entry
+ * voice-journals/{uid}/{agentId}/{timestamp}-{journalAudioName(id)}, and the entry
  * keeps no path (a private file has no URL), so this finds it in that folder.
  * Best effort: the entry is already gone, so a failure is logged, not thrown.
  *
@@ -338,7 +350,7 @@ export async function deleteVoiceJournalAudio(
   const storage = (await getStorageClient()) as { bucket: (name: string) => JournalBucket } | null;
   if (storage === null) return 0;
   const prefix = `${AUDIO_PATHS.voiceJournal}/${userId}/${agentId}/`;
-  const name = sanitizeFilename(`entry-${entryId}.webm`);
+  const name = journalAudioName(entryId);
   const isThisEntry = (path: string): boolean =>
     path.endsWith(`-${name}`) && /^\d+$/.test(path.slice(prefix.length, -name.length - 1));
   try {

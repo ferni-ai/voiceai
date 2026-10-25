@@ -7,9 +7,9 @@
  * web client retries a 2xx body it can't parse, and a retried DELETE would 404.
  *
  * An edit or delete has to hold everywhere Ferni reads the entry (#2782 review):
- * an edit clears the words drawn from the old text, a delete takes the twin's
- * array copy and the recording with it, and the call's journal history reads
- * the store, not a cache.
+ * an edit clears the words drawn from the old text, in the store and in a
+ * migrated entry's twin-array copy; a delete takes that copy and the recording
+ * with it; and the call's journal history reads the store, not a cache.
  *
  * @module api/journal-chronicle-entry
  */
@@ -39,18 +39,21 @@ export const MAX_ENTRY_CHARS = 10_000;
 /**
  * Fields that hold the entry's words or words drawn from them: addJournal kept
  * its text in `entry` (getJournals reads it), and a voice entry's title,
- * keywords, themes and emotions come from its first transcript (search matches
- * the title). An edit clears them, so the old words don't outlive it.
+ * keywords, themes, emotions and mood come from its first transcript (search
+ * matches the title, getJournals shows the mood). An edit clears them, in the
+ * store and in a migrated entry's twin-array copy, so the old words don't outlive it.
  */
-const DERIVED_TEXT_FIELDS = [
+const DERIVED_FIELDS = [
   'entry',
   'title',
   'transcript',
   'summary',
+  'context',
   'keywords',
   'keyInsights',
   'themes',
   'emotions',
+  'mood',
   'embedding',
 ] as const;
 
@@ -89,25 +92,47 @@ async function editEntry(
     sendJSON(res, { error: 'Content is required' }, 400);
     return;
   }
-  const ref = firestore().collection(journalCollectionPath(uid)).doc(id);
-  if (!(await ref.get()).exists) {
+  const now = new Date();
+  const derived = new Set<string>(DERIVED_FIELDS);
+  const edited = (item: object): object => ({
+    ...Object.fromEntries(Object.entries(item).filter(([key]) => !derived.has(key))),
+    content,
+    updatedAt: now,
+  });
+  const cleared = Object.fromEntries(DERIVED_FIELDS.map((f) => [f, FieldValue.delete()]));
+  const found = await changeBothCopies(uid, id, (tx, ref) => {
+    tx.update(ref, { ...cleared, content, updatedAt: now });
+    return (items) => items.map((item) => (isEntry(item, id) ? edited(item as object) : item));
+  });
+  if (found === null) {
     sendJSON(res, { error: 'Entry not found' }, 404);
     return;
   }
-  const cleared = Object.fromEntries(DERIVED_TEXT_FIELDS.map((f) => [f, FieldValue.delete()]));
-  await ref.update({ ...cleared, content, updatedAt: new Date() });
   journalChanged(uid);
   sendJSON(res, { entry: { id, content } }, 200);
 }
 
+const isEntry = (item: unknown, id: string): boolean =>
+  (item as { id?: unknown } | null)?.id === id;
+
 /**
- * Deletes the store document and, for a migrated entry, its copy in the twin's
- * old array, in one transaction. One at a time, a failure between the two
- * brought the entry back as an old row the Chronicle can't change, and a
- * migration rerun copied it back. Returns the entry's agent ('' for none), or
- * null when there was no such entry.
+ * Changes the store document and, for a migrated entry, its copy in the twin's
+ * old array, in one transaction. One at a time, a failure between the two left
+ * them disagreeing: a delete brought the entry back as an old row the Chronicle
+ * can't change (and a migration rerun copied it back), an edit left the old
+ * words in the array, which the data export returns and every read uses with
+ * JOURNAL_ONE_STORE off. `change` writes the store document and returns what
+ * the array becomes. Returns the entry's agent ('' for none), or null when
+ * there was no such entry.
  */
-async function deleteBothCopies(uid: string, id: string): Promise<string | null> {
+async function changeBothCopies(
+  uid: string,
+  id: string,
+  change: (
+    tx: FirebaseFirestore.Transaction,
+    ref: FirebaseFirestore.DocumentReference
+  ) => (items: unknown[]) => unknown[]
+): Promise<string | null> {
   const db = firestore();
   const ref = db.collection(journalCollectionPath(uid)).doc(id);
   return db.runTransaction(async (tx) => {
@@ -115,24 +140,26 @@ async function deleteBothCopies(uid: string, id: string): Promise<string | null>
     if (!snap.exists) return null;
     const agentId: unknown = snap.data()?.agentId;
     if (typeof agentId !== 'string' || !ENTRY_ID.test(agentId)) {
-      tx.delete(ref);
+      change(tx, ref);
       return '';
     }
     const agentRef = db.doc(`bogle_users/${uid}/custom_agents/${agentId}`); // as getCustomAgent reads it
     const memories: unknown = (await tx.get(agentRef)).data()?.memories;
     const items = (memories as { journalEntries?: unknown } | undefined)?.journalEntries;
-    const isThis = (item: unknown): boolean => (item as { id?: unknown } | null)?.id === id;
-    if (Array.isArray(items) && items.some(isThis)) {
-      const kept = items.filter((item) => !isThis(item));
-      tx.update(agentRef, { 'memories.journalEntries': kept, updatedAt: new Date() });
+    const arrayAfter = change(tx, ref); // reads first: a transaction writes only after them
+    if (Array.isArray(items) && items.some((item) => isEntry(item, id))) {
+      const journalEntries = arrayAfter(items);
+      tx.update(agentRef, { 'memories.journalEntries': journalEntries, updatedAt: new Date() });
     }
-    tx.delete(ref);
     return agentId;
   });
 }
 
 async function deleteEntry(res: ServerResponse, uid: string, id: string): Promise<void> {
-  const agentId = await deleteBothCopies(uid, id);
+  const agentId = await changeBothCopies(uid, id, (tx, ref) => {
+    tx.delete(ref);
+    return (items) => items.filter((item) => !isEntry(item, id));
+  });
   if (agentId === null) {
     sendJSON(res, { error: 'Entry not found' }, 404);
     return;
