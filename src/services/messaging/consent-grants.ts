@@ -51,15 +51,15 @@ export const CONSENT_ASK_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const YES_WORDS: ReadonlySet<string> = new Set(['yes', 'y', 'ok', 'sure']);
 
 /**
- * YES, Y, OK or SURE as the whole message (any case, closing punctuation dropped), never
- * inside one. Decided on the raw text first: a question ("yes?", "¿ok?") is someone asking
- * who this is, not consent, and punctuation between letters ("y.e.s") is not a plain yes.
+ * Only plain letters (spaced letters too), then at most closing . ! , and a 👍, may be a yes.
+ * An allowlist, not a list of question marks: "yes❓", "yes‽", "yes؟", "y.e.s" and any other
+ * symbol are not consent. Then the letters must be YES, Y, OK or SURE, any case.
  */
+const PLAIN_REPLY = /^\s*[a-z]+(?:\s[a-z]+)*\s*[.!,]*\s*(?:\u{1F44D}\s*)?$/iu;
+
 export function isConsentYes(body: string): boolean {
   const raw = body.normalize('NFKC');
-  if (/[?¿]/.test(raw)) return false;
-  if (/\p{L}[^\p{L}\s]+\p{L}/u.test(raw)) return false;
-  return YES_WORDS.has(normalizeSms(raw));
+  return PLAIN_REPLY.test(raw) && YES_WORDS.has(normalizeSms(raw));
 }
 
 interface ConsentAsk {
