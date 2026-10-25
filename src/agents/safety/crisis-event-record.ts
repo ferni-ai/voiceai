@@ -5,10 +5,9 @@
  * - No words: user, session and persona ids, the time, type and severity from fixed
  *   enums, resourcesProvided (every script names 988 or 911), and which reader decided.
  * - No alert: nothing goes to Slack or anyone else (Seth, 2026-10-25).
- * - Once per call; never awaited (the write starts on a later tick, failures logged).
- * - Not for a non-member id (anonymous, anon:, onbehalf:: nobody could delete or export
- *   it) nor a MINOR_CARE-held caller, whose hold keeps nothing personal from the call.
- *   The script is spoken either way. shadow: the same checks, logged; nothing written.
+ * - Once per call. Every check runs on a later tick, caught: it can never touch the reply.
+ * - Not for a non-member id (nobody could delete or export it) nor a MINOR_CARE-held caller
+ *   (nothing personal is kept). The script is spoken either way. shadow: logged only.
  *
  * @module agents/safety/crisis-event-record
  */
@@ -43,7 +42,7 @@ export const replaceKind = (
 ): CrisisEventKind | undefined => (decision?.action === 'replace' ? decision.kind : undefined);
 
 const MAX_CALLS = 5000;
-/** Calls already recorded (or shadow-logged), oldest first. */
+/** Calls recorded (or shadow-logged), oldest first; a skipped call is checked again later. */
 const recordedCalls = new Set<string>();
 
 const PERSONA_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
@@ -61,11 +60,8 @@ function idsOf(session: unknown): { sessionId?: string; userId?: string; persona
   };
 }
 
-/**
- * Told of every crisis decision (crisis-gate-signal.ts, late-words.ts). Returns at once and
- * can never throw into the reply: every check runs on a later tick, inside a catch that logs
- * the reader alone (an error's message could quote the caller).
- */
+/** Told of every crisis decision (crisis-gate-signal.ts, late-words.ts); returns at once. The
+ * catch logs the reader alone: an error's message could quote the caller. */
 export function recordCrisisOnCall(
   session: unknown,
   action: string | undefined,
@@ -88,26 +84,15 @@ function recordOnce(session: unknown, reader: CrisisReader, kind?: CrisisEventKi
   const ids = idsOf(session);
   if (!ids.sessionId || recordedCalls.has(ids.sessionId)) return;
   const at = { sessionId: ids.sessionId, reader };
-  // Checked again on a later replace: the call may have no member id yet
-  if (!isMemberIdentity(ids.userId))
-    return log.info(at, 'Crisis event: no member id, not recorded');
-  if (writeHeld(ids.userId, ids.sessionId))
-    return log.info(at, 'Crisis event: MINOR_CARE hold, not recorded');
+  if (!isMemberIdentity(ids.userId)) return log.info(at, 'Crisis event skipped: no member id');
+  if (writeHeld(ids.userId, ids.sessionId)) return log.info(at, 'Crisis event skipped: MINOR_CARE');
   recordedCalls.add(ids.sessionId);
   if (recordedCalls.size > MAX_CALLS) recordedCalls.delete(recordedCalls.values().next().value!);
   const { crisisType, severity } = kind ?? { crisisType: 'suicidal_ideation', severity: 'high' };
-  if (mode === 'shadow')
-    return log.info({ ...at, severity }, 'Crisis event (shadow): would record');
-  const event = {
-    ...ids,
-    userId: ids.userId,
-    crisisType,
-    severity,
-    reader,
-    resourcesProvided: true,
-  };
+  if (mode === 'shadow') return log.info({ ...at, severity }, 'Crisis event (shadow)');
+  const event = { ...ids, userId: ids.userId, crisisType, severity, reader };
   import('../../services/safety/index.js')
-    .then(async ({ recordCrisisEvent }) => recordCrisisEvent(event))
+    .then(async ({ recordCrisisEvent }) => recordCrisisEvent({ ...event, resourcesProvided: true }))
     // recordCrisisEvent never throws; this is the module failing to load
     .catch(() => log.warn(at, 'Crisis event not recorded: safety module unavailable'));
 }
