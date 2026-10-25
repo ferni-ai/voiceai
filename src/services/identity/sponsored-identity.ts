@@ -17,6 +17,8 @@
 
 import admin from 'firebase-admin';
 import { PhoneInUseError } from './phone-in-use-error.js';
+import type { HolderProof } from './holder-proof.js';
+import { holderProofOf, keptHolderProof, withoutHolderProof } from './holder-proof.js';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore, toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -47,7 +49,7 @@ const log = getLogger().child({ module: 'SponsoredIdentity' });
 /**
  * Sponsored identity - represents a family member or friend who calls via phone
  */
-export interface SponsoredIdentity {
+export interface SponsoredIdentity extends HolderProof {
   /** Unique identifier */
   id: string;
 
@@ -209,16 +211,7 @@ export async function createSponsoredIdentity(
   await saveIdentity(identity);
   await savePhoneIndex(normalizedPhone, id);
 
-  log.info(
-    {
-      id,
-      sponsorUserId,
-      displayName: data.displayName,
-      relationship: data.relationship,
-      phone: normalizedPhone,
-    },
-    '✅ Created sponsored identity'
-  );
+  log.info({ id, sponsorUserId, relationship: data.relationship }, '✅ Created sponsored identity');
 
   return identity;
 }
@@ -686,8 +679,11 @@ async function saveIdentity(identity: SponsoredIdentity): Promise<void> {
   if (!db) return;
 
   try {
+    // A full rewrite: the holder's proof comes from the stored doc only (holder-proof.ts)
+    const ref = db.collection(COLLECTION_NAME).doc(identity.id);
     const data = cleanForFirestore({
-      ...identity,
+      ...withoutHolderProof(identity),
+      ...(await keptHolderProof(ref, identity.phoneNumber)),
       createdAt: admin.firestore.Timestamp.fromDate(identity.createdAt),
       updatedAt: admin.firestore.Timestamp.fromDate(identity.updatedAt),
       lastCallAt: identity.lastCallAt
@@ -698,7 +694,7 @@ async function saveIdentity(identity: SponsoredIdentity): Promise<void> {
         : null,
     });
 
-    await db.collection(COLLECTION_NAME).doc(identity.id).set(data);
+    await ref.set(data);
   } catch (error) {
     log.error({ error, id: identity.id }, 'Failed to save sponsored identity');
   }
@@ -768,6 +764,7 @@ function docToIdentity(doc: admin.firestore.DocumentSnapshot): SponsoredIdentity
     selfRegistered: data.selfRegistered,
     selfRegisteredName: data.selfRegisteredName,
     selfRegisteredAt: toSafeDateOptional(data.selfRegisteredAt),
+    ...holderProofOf(data),
   };
 }
 

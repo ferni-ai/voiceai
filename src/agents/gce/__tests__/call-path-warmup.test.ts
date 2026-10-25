@@ -136,6 +136,26 @@ describe('warmCallPath', () => {
     expect(registry.getVoiceId('jordan-taylor')).toBe(BUNDLE_VOICE);
   });
 
+  it('builds the Vertex client only with FIRST_TURN_WARM on', async () => {
+    vi.resetModules();
+    const warmVertexClient = vi.fn(async () => true);
+    vi.doMock('../../../services/llm-utils.js', () => ({ warmVertexClient }));
+    try {
+      const { warmCallPath } = await import('../call-path-warmup.js');
+      vi.stubEnv('FIRST_TURN_WARM', '');
+      await warmCallPath(() => undefined, []);
+      expect(warmVertexClient).not.toHaveBeenCalled(); // flag off: as on main
+
+      vi.stubEnv('FIRST_TURN_WARM', 'on');
+      await warmCallPath(() => undefined, []);
+      expect(warmVertexClient).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.doUnmock('../../../services/llm-utils.js');
+      vi.resetModules();
+    }
+  });
+
   it('never throws when the voice registry fails to load', async () => {
     vi.resetModules();
     vi.doMock('../../../personas/voice-registry.js', () => ({

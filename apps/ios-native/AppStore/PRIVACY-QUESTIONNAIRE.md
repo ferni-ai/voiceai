@@ -122,13 +122,21 @@ If no analytics, answer **No**.
 
 ### 7. Diagnostics
 
-**Do you collect Diagnostics?** → **Optional**
+**Do you collect Diagnostics?** → **Yes, crash data only, not linked to the person**
 
-If you have crash reporting (Firebase Crashlytics):
-| Data Type | Collected | Purpose |
-|-----------|-----------|---------|
-| Crash Data | ✅ | App Functionality |
-| Performance Data | ✅ | App Functionality |
+Crash reporting is Sentry (sentry-cocoa), on only in builds that carry a DSN
+(apps/ios-native/Config/Ferni.xcconfig; the DSN itself is never committed).
+It sends no user id, no screenshots, no view hierarchy, no session replay,
+no performance traces, and breadcrumbs keep only their kind (never text or
+URLs). See apps/ios-native/App/CrashReporting.swift.
+
+| Data Type | Collected | Linked to the person | Purpose |
+|-----------|-----------|----------------------|---------|
+| Crash Data | ✅ | No | App Functionality |
+| Performance Data | ❌ | | |
+
+Sentry is a processor for crash data and belongs in the privacy policy's list
+of service providers.
 
 ---
 
@@ -176,7 +184,7 @@ None
 
 ### Data Not Linked to You
 ```
-None
+• Diagnostics (Crash Data)
 ```
 
 ---

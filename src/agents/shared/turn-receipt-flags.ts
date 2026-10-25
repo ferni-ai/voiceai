@@ -24,6 +24,7 @@ export const RECEIPT_FLAGS = [
   'TTS_SOCKET_WARM',
   'SLOW_TURN_SOUND',
   'TOOL_ACK_WIDE',
+  'TOOL_ACK_CLIP',
   'TOOL_CORE_STATIC',
   'TURN_DETECTOR',
   'ENDPOINT_FAST_FINISHED',
@@ -38,6 +39,7 @@ export const RECEIPT_FLAGS = [
   'BARGE_IN_FAST_STOP',
   'BARGE_IN_SOFT_PAUSE',
   'SOUND_CONDUCTOR',
+  'QUICK_SHORTCUTS_REAL_ONLY',
 ] as const satisfies readonly FlagName[];
 
 /** Numeric knobs read straight from env: shown only as a plain number. */

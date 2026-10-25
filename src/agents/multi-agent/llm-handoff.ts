@@ -14,6 +14,7 @@ import { handoffEvents } from '../../handoff/index.js';
 import { offerAgent, withdrawAgent } from '../../tools/handoff/ready-agents.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
 import { handoffStartMessages } from './handoff-messages.js';
 import type { handleHandoffFromDataChannel } from './multi-agent-entry.js';
 import type { AgentOrchestrator } from './orchestrator.js';
@@ -47,11 +48,13 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
     log.warn('🎭 voiceSwitch event missing persona ID');
     return;
   }
+  const sessionId = String(call.services.sessionId);
+  noteTurnTiming(sessionId, 'handoffEvent', 0); // the turn's TURN_RECEIPT timing.handoffSteps
   if (!(await call.lock.acquire())) {
     log.warn({ targetPersonaId }, '🔒 Handoff already in progress, ignoring LLM request');
     return;
   }
-  const sessionId = String(call.services.sessionId);
+  noteTurnTiming(sessionId, 'handoffLock', 0);
   try {
     const currentPersonaId = call.orchestrator.getCurrentPersonaId();
     log.info(
@@ -62,6 +65,7 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
       // eslint-disable-next-line no-await-in-loop -- in order: the app reads them in sequence
       await call.publish(m);
     }
+    noteTurnTiming(sessionId, 'handoffPublished', 0);
 
     // With one session per call the tool hands the next persona to the SDK: it stops
     // waiting once that persona is built (ready-agents.ts)

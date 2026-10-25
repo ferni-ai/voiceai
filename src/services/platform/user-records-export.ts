@@ -152,6 +152,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'weather_history',
   ],
   households: [],
+  semantic_routing_corrections: ['corrections'],
 };
 
 /** Stores that exist under a person's record and are withheld on purpose, with why */
@@ -206,6 +207,14 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
     ],
   },
   { collection: 'contact_interactions', field: 'userId' },
+  // The router's record of the person's turns and corrections: which tool it picked, how
+  // sure it was, lengths and phrase hashes, never the words (bandit-persistence.ts,
+  // firestore-persistence.ts, feedback-store.ts)
+  { collection: 'routing_events', field: 'userId' },
+  { collection: 'semantic_router_corrections', field: 'userId' },
+  { collection: 'semantic_routing_feedback', field: 'userId' },
+  { collection: 'semantic_routing_vocabulary', doc: 'uid' },
+  { collection: 'semantic_routing_corrections', doc: 'uid' },
   // What the older agent remembered of the relationship: shared moments, inside jokes
   { collection: 'relationship_memories', field: 'userId' },
   // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the

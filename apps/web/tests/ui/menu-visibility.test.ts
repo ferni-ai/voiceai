@@ -234,12 +234,9 @@ describe('home screen', () => {
     expect(onPredictionsClick).not.toHaveBeenCalled();
   });
 
-  it('opens Predictions from its event or home callback only while the panel is visible', () => {
+  // The `ferni:open-predictions` listener: tests/ui/hidden-panel-gates.test.ts
+  it('opens Predictions from its home callback only while the panel is visible', () => {
     const app = readFileSync(resolve(__dirname, '../../src/app.ts'), 'utf8');
-    const listener = app.slice(app.indexOf("'ferni:open-predictions',"));
-    expect(listener.slice(0, listener.indexOf('\n'))).toContain(
-      "isPanelEventVisible('ferni:open-predictions') &&"
-    );
     const callback = app.slice(app.indexOf('onPredictionsClick:'));
     expect(callback.slice(0, callback.indexOf('\n'))).toContain(
       "isPanelEventVisible('ferni:open-predictions') &&"

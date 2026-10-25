@@ -48,6 +48,14 @@ export function logCallStartStages(call: StagedCall): void {
   );
 }
 
+/** Stage marked when a placed call's phone is picked up (call-first-response.ts). */
+export const CALL_ANSWERED_STAGE = 'call_answered';
+
+/** Mark the pickup of a call Ferni placed; its first response is timed from here. */
+export function markCallAnswered(callId: string): void {
+  markCallStageSoon(callId, CALL_ANSWERED_STAGE);
+}
+
 /** Mark a call stage without waiting or failing (the monitor loads lazily). */
 export function markCallStageSoon(callId: string, stage: string, atMs = Date.now()): void {
   void import('./call-quality-monitor.js')

@@ -22,6 +22,8 @@ import { handlePushInteraction } from '../services/outreach/delivery/push-notifi
 import { recordCheckinReply } from '../services/outreach/checkin-replies.js';
 import { recordInboundSmsConsent } from '../services/messaging/consent.js';
 import { recordContactYes } from '../services/messaging/consent-grants.js';
+import { recordHolderCode } from '../services/messaging/holder-verification.js';
+import { smsCrisisReply, withCrisisReply } from '../services/outreach/sms-crisis-screen.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio } from './twilio-callback-signature.js';
 import { URL } from 'url';
@@ -180,12 +182,16 @@ export async function handleOutreachWebhookRoutes(
         signature,
         fullUrl
       );
+      // SMS_CRISIS_SCREEN: only a signed text reaches the (paid) classifier; never rejects.
+      const crisis = result.success ? await smsCrisisReply(String(body.Body ?? '')) : null;
+      if (crisis) result.twiml = withCrisisReply(result.twiml, crisis, String(body.Body ?? ''));
       // success is false only when the Twilio signature failed; never throws.
       if (result.success) {
         await recordCheckinReply(body.From, body.Body, body.MessageSid);
         // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record.
         await recordInboundSmsConsent(body.From, body.Body);
         await recordContactYes(body.From, body.Body, body.MessageSid); // a YES to the last text, an ask
+        await recordHolderCode(body.From, body.Body); // a sponsored holder confirming their phone
       }
 
       if (result.twiml) {

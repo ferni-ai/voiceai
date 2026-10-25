@@ -175,12 +175,14 @@ export function recordRoutingEvent(
 }
 
 /**
- * Update event with outcome
+ * Update event with outcome: its named fields only, so a field a caller adds (what the
+ * tool heard, say) never reaches getRoutingEvents() or the dashboard
  */
 export function recordRoutingOutcome(eventId: string, outcome: RoutingOutcome): void {
   const event = events.find((e) => e.id === eventId);
   if (event) {
-    event.outcome = outcome;
+    const { toolExecuted, executionSuccess, userSatisfied, corrected, llmFallbackUsed } = outcome;
+    event.outcome = { toolExecuted, executionSuccess, userSatisfied, corrected, llmFallbackUsed };
   }
 }
 
