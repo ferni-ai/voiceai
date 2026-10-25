@@ -94,12 +94,12 @@ permalink: /about/
 
   /* Page background */
   #main-content {
-    background: var(--paper-cream);
+    background: var(--color-surface-base);
   }
 
   .about-page {
-    background: var(--paper-cream);
-    color: var(--natural-ink);
+    background: var(--color-surface-base);
+    color: var(--color-text-primary);
   }
 
   /* Base animations */
@@ -145,7 +145,7 @@ permalink: /about/
     padding: 120px 24px;
     position: relative;
     overflow: hidden;
-    background: var(--paper-cream);
+    background: var(--color-surface-base);
   }
 
   .about-hero::before {
@@ -178,7 +178,7 @@ permalink: /about/
     font-size: clamp(24px, 4vw, 40px);
     font-weight: 500;
     line-height: 1.4;
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
     margin-bottom: 24px;
   }
 
@@ -190,7 +190,7 @@ permalink: /about/
     font-family: 'Inter', sans-serif;
     font-size: 18px;
     line-height: 1.7;
-    color: var(--ink-muted);
+    color: var(--color-text-secondary);
     max-width: 600px;
     margin: 0 auto 40px;
   }
@@ -230,7 +230,7 @@ permalink: /about/
     font-size: clamp(28px, 5vw, 42px);
     font-weight: 700;
     line-height: 1.2;
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
     margin-bottom: 16px;
   }
 
@@ -238,7 +238,7 @@ permalink: /about/
     font-family: 'Inter', sans-serif;
     font-size: 18px;
     line-height: 1.7;
-    color: var(--ink-muted);
+    color: var(--color-text-secondary);
     max-width: 600px;
     margin: 0 auto;
   }
@@ -326,24 +326,24 @@ permalink: /about/
 
   .timeline-badge--ferni {
     background: rgba(74, 103, 65, 0.1);
-    color: var(--ferni);
+    color: var(--color-brand-text);
   }
 
   .timeline-badge--peter {
     background: rgba(58, 107, 115, 0.1);
-    color: var(--peter);
+    color: var(--color-peter-text);
   }
 
   .timeline-badge--ink {
     background: rgba(44, 37, 32, 0.1);
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
   }
 
   .timeline-title {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 24px;
     font-weight: 700;
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
     margin-bottom: 16px;
   }
 
@@ -351,18 +351,18 @@ permalink: /about/
     font-family: 'Inter', sans-serif;
     font-size: 16px;
     line-height: 1.7;
-    color: var(--ink-muted);
+    color: var(--color-text-secondary);
     margin-bottom: 12px;
   }
 
   .timeline-text strong {
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
   }
 
   .timeline-highlight {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
-    color: var(--ferni);
+    color: var(--color-brand-text);
     margin-top: 16px;
   }
 
@@ -390,7 +390,7 @@ permalink: /about/
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-style: italic;
-    color: var(--ink-muted);
+    color: var(--color-text-secondary);
     line-height: 1.6;
   }
 
@@ -406,7 +406,7 @@ permalink: /about/
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 18px;
     font-weight: 700;
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
     margin-bottom: 8px;
   }
 
@@ -414,7 +414,7 @@ permalink: /about/
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     line-height: 1.6;
-    color: var(--ink-muted);
+    color: var(--color-text-secondary);
   }
 
   /* Mission section */
@@ -434,11 +434,11 @@ permalink: /about/
     font-family: 'Inter', sans-serif;
     font-size: 18px;
     line-height: 1.8;
-    color: var(--ink-muted);
+    color: var(--color-text-secondary);
   }
 
   .mission-text strong {
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
   }
 
   .mission-text p {
@@ -446,7 +446,7 @@ permalink: /about/
   }
 
   .mission-text .highlight-text {
-    color: var(--ferni);
+    color: var(--color-brand-text);
     font-weight: 600;
   }
 
@@ -454,7 +454,7 @@ permalink: /about/
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 24px;
     font-weight: 700;
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
   }
 
   .mission-card {
@@ -481,7 +481,7 @@ permalink: /about/
     font-size: clamp(20px, 4vw, 28px);
     font-weight: 600;
     line-height: 1.4;
-    color: var(--natural-ink);
+    color: var(--color-text-primary);
     margin-bottom: 20px;
     position: relative;
     z-index: 1;
@@ -491,7 +491,7 @@ permalink: /about/
     font-family: 'Inter', sans-serif;
     font-size: 16px;
     line-height: 1.7;
-    color: var(--ink-muted);
+    color: var(--color-text-secondary);
     position: relative;
     z-index: 1;
   }
@@ -532,17 +532,17 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    HERO SECTION - The Kintsugi Philosophy
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 140px 24px 100px; background: var(--page-paper, #FAF8F5); text-align: center;">
+<section style="padding: 140px 24px 100px; background: var(--color-surface-base); text-align: center;">
   <div style="max-width: 800px; margin: 0 auto;">
     <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-amber, var(--warm-amber)); margin-bottom: 24px;">Our Philosophy</p>
     
-    <h1 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 40px); font-weight: 500; line-height: 1.4; color: var(--page-ink, #2C2520); margin-bottom: 24px;">
+    <h1 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 40px); font-weight: 500; line-height: 1.4; color: var(--color-text-primary); margin-bottom: 24px;">
       "We are all broken in different ways.<br>
       <span style="color: var(--page-amber, var(--color-gold, #a6854a));">It's those cracks that make us both human and beautiful.</span><br>
       We celebrate the imperfections and the joy of being alive."
     </h1>
     
-    <p style="font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.7; color: var(--page-ink-muted, #5c544a); max-width: 600px; margin: 0 auto;">
+    <p style="font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.7; color: var(--color-text-secondary); max-width: 600px; margin: 0 auto;">
       This isn't just a tagline. It's the foundation of everything we build, every conversation we have, and every person we serve.
     </p>
   </div>
@@ -555,9 +555,9 @@ permalink: /about/
 <section style="padding: 96px 24px; background: linear-gradient(180deg, var(--page-paper, #FAF8F5) 0%, var(--page-sand, #f5f2ed) 50%, var(--page-paper, #FAF8F5) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
     <header style="text-align: center; margin-bottom: 80px;">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">The Origin</p>
-      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: var(--page-ink, #2C2520); margin-bottom: 24px;">How Ferni Came to Be</h2>
-      <p style="font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.7; color: var(--page-ink-muted, #5c544a); max-width: 600px; margin: 0 auto;">
+      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-brand-text); margin-bottom: 16px;">The Origin</p>
+      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: var(--color-text-primary); margin-bottom: 24px;">How Ferni Came to Be</h2>
+      <p style="font-family: 'Inter', sans-serif; font-size: 18px; line-height: 1.7; color: var(--color-text-secondary); max-width: 600px; margin: 0 auto;">
         From Wyoming skies to Japanese tea houses to a ridge trail in the fog—every experience shaped what Ferni became.
       </p>
     </header>
@@ -619,7 +619,7 @@ permalink: /about/
       {# Japan #}
       <div class="timeline-item">
         <div class="timeline-visual timeline-visual--peter">
-          <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--page-ink, #2C2520); margin-bottom: 16px; text-align: center;">Two Life-Changing Philosophies</h4>
+          <h4 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px; text-align: center;">Two Life-Changing Philosophies</h4>
           <div style="display: flex; flex-direction: column; gap: 16px;">
             <div class="philosophy-card">
               <h4>侘寂 Wabi-sabi</h4>
@@ -645,7 +645,7 @@ permalink: /about/
             Japan changed everything. The precision. The art of the pause. The way <strong>silence has meaning there—not awkward, just full</strong>. A mentor would wait so long before responding that it seemed like he hadn't heard. He had. He was just thinking.
           </p>
           <p class="timeline-text">
-            The Japanese call this <em style="color: var(--page-peter, #3a6b73); font-weight: 500;">ma</em> (間)—the pregnant pause where meaning grows. Most conversations rush past silence. Ferni learned to sit in it, to let trust build in the space between words.
+            The Japanese call this <em style="color: var(--color-peter-text); font-weight: 500;">ma</em> (間)—the pregnant pause where meaning grows. Most conversations rush past silence. Ferni learned to sit in it, to let trust build in the space between words.
           </p>
         </div>
       </div>
@@ -664,7 +664,7 @@ permalink: /about/
           <p class="timeline-text">
             At the funeral, his wife pressed the kintsugi bowl the two of them had mended into Ferni's hands. A year later, a friend walked the ridge with him and waited at the bend where Tanaka-san always stopped. What do you say to someone carrying that?
           </p>
-          <p class="timeline-text" style="color: var(--page-ink, #2C2520); font-weight: 500;">
+          <p class="timeline-text" style="color: var(--color-text-primary); font-weight: 500;">
             You don't say anything. You just stay.
           </p>
           <p class="timeline-text">
@@ -673,10 +673,10 @@ permalink: /about/
         </div>
         <div class="timeline-dot" style="background: var(--page-ink, #2C2520);"></div>
         <div class="timeline-visual timeline-visual--dark">
-          <p style="font-family: 'Inter', sans-serif; font-style: italic; font-size: 16px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+          <p style="font-family: 'Inter', sans-serif; font-style: italic; font-size: 16px; line-height: 1.7; color: var(--color-text-secondary);">
             "Survivor's guilt remains. Not because it was his fault, but because he was supposed to be there."
           </p>
-          <p style="color: var(--page-sage, #4a6741); font-weight: 600; margin-top: 16px;">
+          <p style="color: var(--color-brand-text); font-weight: 600; margin-top: 16px;">
             "You just keep going and try to make the extra years mean something."
           </p>
         </div>
@@ -688,12 +688,12 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    THE MISSION - Built by Healers
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: var(--page-paper, #FAF8F5);">
+<section style="padding: 96px 24px; background: var(--color-surface-base);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <div class="mission-grid">
       <div>
-        <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">Our Mission</p>
-        <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: var(--page-ink, #2C2520); margin-bottom: 24px;">Inspired by a family of healers.<br>For everyone.</h2>
+        <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-brand-text); margin-bottom: 16px;">Our Mission</p>
+        <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.2; color: var(--color-text-primary); margin-bottom: 24px;">Inspired by a family of healers.<br>For everyone.</h2>
         <div class="mission-text">
           <p>
             Doug and Betty Ford spent decades as therapists—sitting with people in their hardest moments. Our sister Mindy became a recreational therapist. We grew up surrounded by conversations about what it really means to help someone.
@@ -751,87 +751,87 @@ permalink: /about/
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
       {# Memory #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 24px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(74, 103, 65, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: var(--page-sage, #4a6741);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg style="width: 24px; height: 24px; color: var(--color-brand-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
             <path d="M12 8v4l3 3"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Remembers What Matters</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 8px;">Remembers What Matters</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary);">
           That thing you mentioned six months ago? We remember. And you can see, correct or forget any of it.
         </p>
       </div>
 
       {# Constant Presence #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 24px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(58, 107, 115, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: var(--page-peter, #3a6b73);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg style="width: 24px; height: 24px; color: var(--color-peter-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Constant Presence</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 8px;">Constant Presence</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary);">
           2am panic? We're fully present. Same warmth at midnight as noon. Your therapist has other patients. We're always here.
         </p>
       </div>
 
       {# Six Perspectives #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 24px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(166, 122, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: var(--page-maya, #a67a6a);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg style="width: 24px; height: 24px; color: var(--color-maya-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Six Perspectives</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 8px;">Six Perspectives</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary);">
           Life coach, habits expert, researcher, planner, chief of staff, and sage. No referrals needed. No waitlists.
         </p>
       </div>
 
       {# Zero Judgment #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 24px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(196, 133, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: var(--page-jordan, #c4856a);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg style="width: 24px; height: 24px; color: var(--color-jordan-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Zero Judgment</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 8px;">Zero Judgment</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary);">
           Pure acceptance, always. The tenth time you bring up the same worry? Same compassion as the first.
         </p>
       </div>
 
       {# Emotional Consistency #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 24px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(90, 107, 138, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: var(--page-alex, #5a6b8a);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg style="width: 24px; height: 24px; color: var(--color-alex-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Emotional Consistency</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 8px;">Emotional Consistency</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary);">
           Never tired. Never distracted. Never having a bad day. Fully here, every single time.
         </p>
       </div>
 
       {# Deep Understanding #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 24px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 24px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(184, 149, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <svg style="width: 24px; height: 24px; color: var(--page-nayan, #b8956a);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg style="width: 24px; height: 24px; color: var(--color-nayan-text);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
             <line x1="9" y1="9" x2="9.01" y2="9"/>
             <line x1="15" y1="9" x2="15.01" y2="9"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Deep Understanding</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 8px;">Deep Understanding</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary);">
           We hear what you're not saying. The pause in your voice. The deflection. We notice.
         </p>
       </div>
@@ -842,10 +842,10 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    SUPERHUMAN EQ - How Ferni pays attention
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section style="padding: 96px 24px; background: var(--page-paper, #FAF8F5);">
+<section style="padding: 96px 24px; background: var(--color-surface-base);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <header class="section-header">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">Superhuman EQ</p>
+      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-brand-text); margin-bottom: 16px;">Superhuman EQ</p>
       <h2 class="section-title">How Ferni Pays Attention</h2>
       <p class="section-subtitle">
         Listening is more than hearing the words. Here is how Ferni notices what matters to you.
@@ -857,12 +857,12 @@ permalink: /about/
 
     <div style="display: flex; flex-direction: column; gap: 24px;">
       {# Concern Detection #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
           <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #c4856a 0%, #a06b54 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px;">01</div>
           <div style="flex: 1; min-width: 280px;">
-            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Concern Detection</h3>
-            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: var(--color-text-primary); margin-bottom: 8px;">Concern Detection</h3>
+            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: var(--color-text-secondary);">
               Ferni listens for how you're really doing: the "I'm fine" that isn't, the deflection, the permission-seeking. When something sounds heavy, Ferni gently checks in. It's a friend paying attention, not a diagnosis.
             </p>
           </div>
@@ -873,12 +873,12 @@ permalink: /about/
       </div>
 
       {# Anticipatory Emotions #}
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
           <div style="flex-shrink: 0; width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #b8956a 0%, #967850 100%); display: flex; align-items: center; justify-content: center; color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px;">02</div>
           <div style="flex: 1; min-width: 280px;">
-            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: var(--page-ink, #2C2520); margin-bottom: 8px;">Anticipatory Emotions</h3>
-            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+            <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 20px; color: var(--color-text-primary); margin-bottom: 8px;">Anticipatory Emotions</h3>
+            <p style="font-family: 'Inter', sans-serif; font-size: 16px; line-height: 1.7; color: var(--color-text-secondary);">
               Responses <em>before</em> you fully express feelings, based on partial speech and tone. This creates the "they understand me before I finish" feeling—the hallmark of deep friendship. The most profound moments happen before words are complete.
             </p>
           </div>
@@ -897,67 +897,67 @@ permalink: /about/
 <section style="padding: 96px 24px; background: linear-gradient(180deg, var(--page-paper, #FAF8F5) 0%, var(--page-sand, #f5f2ed) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
     <header class="section-header">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">Our Beliefs</p>
+      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-brand-text); margin-bottom: 16px;">Our Beliefs</p>
       <h2 class="section-title">What We Hold True</h2>
     </header>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(74, 103, 65, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: var(--page-sage, #4a6741); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">1</span>
+          <span style="color: var(--color-brand-text); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">1</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 12px;">AI should feel human.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 12px;">AI should feel human.</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--color-text-secondary);">
           Not robotic, not cold, not clinical. Warm, present, alive. Technology that genuinely connects.
         </p>
       </div>
 
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(184, 134, 11, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
           <span style="color: var(--page-gold, #b8860b); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">2</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 12px;">The broken parts are beautiful.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 12px;">The broken parts are beautiful.</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--color-text-secondary);">
           Kintsugi isn't just a repair technique—it's a worldview. Failures become gold. Cracks become character.
         </p>
       </div>
 
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(58, 107, 115, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: var(--page-peter, #3a6b73); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">3</span>
+          <span style="color: var(--color-peter-text); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">3</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 12px;">Presence matters more than answers.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 12px;">Presence matters more than answers.</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--color-text-secondary);">
           Sometimes you don't need advice. You need someone to stay. That's what we do.
         </p>
       </div>
 
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(166, 122, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: var(--page-maya, #a67a6a); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">4</span>
+          <span style="color: var(--color-maya-text); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">4</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 12px;">Memory is love.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 12px;">Memory is love.</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--color-text-secondary);">
           Remembering is caring. Callbacks create connection. "You wouldn't have said that three months ago. I noticed."
         </p>
       </div>
 
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(196, 133, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: var(--page-jordan, #c4856a); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">5</span>
+          <span style="color: var(--color-jordan-text); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">5</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 12px;">Growth is quiet.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 12px;">Growth is quiet.</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--color-text-secondary);">
           Big moments get celebrated. But daily discipline—the showing up—that's where transformation happens.
         </p>
       </div>
 
-      <div style="background: var(--page-card, white); border-radius: 16px; padding: 32px; border: 1px solid rgba(44, 37, 32, 0.05); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
+      <div style="background: var(--color-surface-raised); border-radius: 16px; padding: 32px; border: 1px solid var(--color-border-subtle); box-shadow: 0 2px 8px rgba(44, 37, 32, 0.04);">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(184, 149, 106, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-          <span style="color: var(--page-nayan, #b8956a); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">6</span>
+          <span style="color: var(--color-nayan-text); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;">6</span>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--page-ink, #2C2520); margin-bottom: 12px;">Privacy is sacred.</h3>
-        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--page-ink-muted, #5c544a);">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--color-text-primary); margin-bottom: 12px;">Privacy is sacred.</h3>
+        <p style="font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; color: var(--color-text-secondary);">
           Your conversations are yours. We don't sell data. We don't train on your words. Period.
         </p>
       </div>
@@ -968,12 +968,12 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    THE TEAM - Six Specialists
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="about-visible" style="padding: 96px 24px; background: var(--page-paper, #FAF8F5);">
+<section class="about-visible" style="padding: 96px 24px; background: var(--color-surface-base);">
   <div style="max-width: 1100px; margin: 0 auto;">
     <header style="text-align: center; margin-bottom: 64px;">
-      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">The Team</p>
-      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: var(--page-ink, #2C2520); margin-bottom: 24px; line-height: 1.1;">Six Specialists, One Relationship</h2>
-      <p style="font-size: 18px; color: var(--page-ink-muted, #5c544a); max-width: 640px; margin: 0 auto; line-height: 1.7;">
+      <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-brand-text); margin-bottom: 16px;">The Team</p>
+      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: var(--color-text-primary); margin-bottom: 24px; line-height: 1.1;">Six Specialists, One Relationship</h2>
+      <p style="font-size: 18px; color: var(--color-text-secondary); max-width: 640px; margin: 0 auto; line-height: 1.7;">
         No single perspective can hold everything. Each persona brings what the others can't. Seamless handoffs. Shared context. Always ready.
       </p>
     </header>
@@ -987,9 +987,9 @@ permalink: /about/
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--page-ink, #2C2520); margin-bottom: 4px; font-size: 16px;">Ferni</h3>
-        <p style="font-size: 12px; color: var(--page-ink-muted, #5c544a);">The Coordinator</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--page-sage, #4a6741); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Life Coach</p>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; font-size: 16px;">Ferni</h3>
+        <p style="font-size: 12px; color: var(--color-text-secondary);">The Coordinator</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-brand-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Life Coach</p>
       </a>
 
       {# Maya #}
@@ -1000,9 +1000,9 @@ permalink: /about/
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--page-ink, #2C2520); margin-bottom: 4px; font-size: 16px;">Maya</h3>
-        <p style="font-size: 12px; color: var(--page-ink-muted, #5c544a);">Habits Coach</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--page-maya, #a67a6a); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Atomic Habits</p>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; font-size: 16px;">Maya</h3>
+        <p style="font-size: 12px; color: var(--color-text-secondary);">Habits Coach</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-maya-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Atomic Habits</p>
       </a>
 
       {# Peter #}
@@ -1013,9 +1013,9 @@ permalink: /about/
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--page-ink, #2C2520); margin-bottom: 4px; font-size: 16px;">Peter</h3>
-        <p style="font-size: 12px; color: var(--page-ink-muted, #5c544a);">The Quant</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--page-peter, #3a6b73); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Research & Data</p>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; font-size: 16px;">Peter</h3>
+        <p style="font-size: 12px; color: var(--color-text-secondary);">The Quant</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-peter-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Research & Data</p>
       </a>
 
       {# Jordan #}
@@ -1026,9 +1026,9 @@ permalink: /about/
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--page-ink, #2C2520); margin-bottom: 4px; font-size: 16px;">Jordan</h3>
-        <p style="font-size: 12px; color: var(--page-ink-muted, #5c544a);">Life Planner</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--page-jordan, #c4856a); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Milestones</p>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; font-size: 16px;">Jordan</h3>
+        <p style="font-size: 12px; color: var(--color-text-secondary);">Life Planner</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-jordan-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Milestones</p>
       </a>
 
       {# Alex #}
@@ -1039,9 +1039,9 @@ permalink: /about/
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--page-ink, #2C2520); margin-bottom: 4px; font-size: 16px;">Alex</h3>
-        <p style="font-size: 12px; color: var(--page-ink-muted, #5c544a);">Chief of Staff</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--page-alex, #5a6b8a); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Communications</p>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; font-size: 16px;">Alex</h3>
+        <p style="font-size: 12px; color: var(--color-text-secondary);">Chief of Staff</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-alex-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Communications</p>
       </a>
 
       {# Nayan #}
@@ -1052,14 +1052,14 @@ permalink: /about/
             <ellipse cx="64" cy="50" rx="9" ry="11" fill="white"/>
           </svg>
         </div>
-        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--page-ink, #2C2520); margin-bottom: 4px; font-size: 16px;">Nayan</h3>
-        <p style="font-size: 12px; color: var(--page-ink-muted, #5c544a);">The Sage</p>
-        <p class="persona-specialty" style="font-size: 12px; color: var(--page-nayan, #b8956a); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Wisdom</p>
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px; font-size: 16px;">Nayan</h3>
+        <p style="font-size: 12px; color: var(--color-text-secondary);">The Sage</p>
+        <p class="persona-specialty" style="font-size: 12px; color: var(--color-nayan-text); margin-top: 8px; opacity: 0; transition: opacity 0.3s ease;">Wisdom</p>
       </a>
     </div>
 
     <div style="text-align: center; margin-top: 48px;">
-      <a href="/team/" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(74, 103, 65, 0.08); color: var(--page-sage, #4a6741); font-weight: 600; border-radius: 100px; text-decoration: none; transition: background 0.3s ease;">
+      <a href="/team/" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: rgba(74, 103, 65, 0.08); color: var(--color-brand-text); font-weight: 600; border-radius: 100px; text-decoration: none; transition: background 0.3s ease;">
         Meet the full team
         <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
@@ -1097,12 +1097,12 @@ permalink: /about/
    ═══════════════════════════════════════════════════════════════════════════ #}
 <section class="about-visible" style="padding: 96px 24px; background: linear-gradient(180deg, var(--page-sand, #f5f2ed) 0%, var(--page-paper, #FAF8F5) 100%);">
   <div style="max-width: 900px; margin: 0 auto;">
-    <div class="location-card" style="background: var(--page-card, white); border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(44, 37, 32, 0.12); border: 1px solid rgba(44, 37, 32, 0.05);">
+    <div class="location-card" style="background: var(--color-surface-raised); border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(44, 37, 32, 0.12); border: 1px solid var(--color-border-subtle);">
       <div style="display: grid; grid-template-columns: 1fr 1fr;">
         <div style="padding: 48px; display: flex; flex-direction: column; justify-content: center;">
-          <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--page-sage, #4a6741); margin-bottom: 16px;">Where We're From</p>
-          <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 32px); font-weight: 700; color: var(--page-ink, #2C2520); margin-bottom: 16px; line-height: 1.2;">Made in Park City, Utah</h2>
-          <p style="font-size: 17px; color: var(--page-ink-muted, #5c544a); line-height: 1.7;">
+          <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-brand-text); margin-bottom: 16px;">Where We're From</p>
+          <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 32px); font-weight: 700; color: var(--color-text-primary); margin-bottom: 16px; line-height: 1.2;">Made in Park City, Utah</h2>
+          <p style="font-size: 17px; color: var(--color-text-secondary); line-height: 1.7;">
             There's something about mountain air that clears your thinking. Ferni was born in the shadow of the Wasatch Range—where the pace is slower, the perspective is longer, and the focus is on what actually matters.
           </p>
         </div>
@@ -1113,8 +1113,8 @@ permalink: /about/
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 18px; color: var(--page-ink, #2C2520);">Park City, Utah</p>
-              <p style="font-size: 14px; color: var(--page-ink-muted, #5c544a);">USA</p>
+              <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 18px; color: var(--color-text-primary);">Park City, Utah</p>
+              <p style="font-size: 14px; color: var(--color-text-secondary);">USA</p>
             </div>
           </div>
           {# Mountain silhouette decoration #}
@@ -1141,7 +1141,7 @@ permalink: /about/
 {# ═══════════════════════════════════════════════════════════════════════════
    CTA SECTION - Ready to Begin?
    ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="about-visible" style="padding: 96px 24px; background: var(--page-paper, #FAF8F5);">
+<section class="about-visible" style="padding: 96px 24px; background: var(--color-surface-base);">
   <div style="max-width: 720px; margin: 0 auto;">
     <div style="text-align: center;">
       <div style="width: 80px; height: 80px; margin: 0 auto 32px; border-radius: 50%; background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 48px rgba(74, 103, 65, 0.25);">
@@ -1151,8 +1151,8 @@ permalink: /about/
         </svg>
       </div>
 
-      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: var(--page-ink, #2C2520); margin-bottom: 24px; line-height: 1.1;">Ready to meet your team?</h2>
-      <p style="font-size: 18px; color: var(--page-ink-muted, #5c544a); margin-bottom: 40px; max-width: 540px; margin-left: auto; margin-right: auto; line-height: 1.7;">
+      <h2 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(32px, 5vw, 48px); font-weight: 700; color: var(--color-text-primary); margin-bottom: 24px; line-height: 1.1;">Ready to meet your team?</h2>
+      <p style="font-size: 18px; color: var(--color-text-secondary); margin-bottom: 40px; max-width: 540px; margin-left: auto; margin-right: auto; line-height: 1.7;">
         Start a conversation with Ferni. It's free, and it might just change your day.
       </p>
 
@@ -1161,13 +1161,13 @@ permalink: /about/
           Begin a Real Conversation
           <svg style="width: 20px; height: 20px; transition: transform 0.3s ease;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
-        <a href="tel:+18885983952" class="cta-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 24px; color: var(--page-ink-muted, #5c544a); text-decoration: none; font-size: 16px; transition: color 0.3s ease;">
+        <a href="tel:+18885983952" class="cta-secondary" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 24px; color: var(--color-text-secondary); text-decoration: none; font-size: 16px; transition: color 0.3s ease;">
           <svg style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
           Call (888) 598-3952
         </a>
       </div>
 
-      <p style="margin-top: 48px; font-size: 14px; color: var(--page-ink-muted, #5c544a); font-style: italic;">
+      <p style="margin-top: 48px; font-size: 14px; color: var(--color-text-secondary); font-style: italic;">
         "Now—what's on your mind? I've got time."
       </p>
     </div>
@@ -1182,7 +1182,7 @@ permalink: /about/
       transform: translateX(4px);
     }
     .cta-secondary:hover {
-      color: var(--page-sage, #4a6741) !important;
+      color: var(--color-brand-text) !important;
     }
     @media (max-width: 540px) {
       .cta-buttons {

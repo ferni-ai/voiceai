@@ -73,10 +73,14 @@ export function onCrisisRiskNoted(listener: RiskListener): () => void {
 }
 
 /** Told when a classifier read of a call's caller words starts (call-wrap-up.ts waits on it). */
-const readListeners = new Set<(sessionId: string) => void>();
+type ReadListener = (sessionId: string, words: string) => void;
+const readListeners = new Set<ReadListener>();
 
-/** Hear of every crisis read that starts. Returns a function that stops listening. */
-export function onCrisisReadStarted(listener: (sessionId: string) => void): () => void {
+/**
+ * Hear of every crisis read that starts: the call, and the caller words read.
+ * Returns a function that stops listening.
+ */
+export function onCrisisReadStarted(listener: ReadListener): () => void {
   readListeners.add(listener);
   return () => void readListeners.delete(listener);
 }
@@ -146,7 +150,7 @@ export function trackCrisisRead<T extends { risk: string } | null>(
   pending.set(sessionId, reads);
   for (const listener of readListeners) {
     try {
-      listener(sessionId);
+      listener(sessionId, latest);
     } catch (error) {
       log.warn({ error: String(error) }, 'Crisis read listener failed');
     }

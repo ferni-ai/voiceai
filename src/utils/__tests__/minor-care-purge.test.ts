@@ -55,7 +55,29 @@ vi.mock('../../services/engagement/engagement-store.js', async (orig) => ({
   getEngagementStore: async () => engagement,
 }));
 
+const semantic = vi.hoisted(() => ({ cleared: [] as (string | undefined)[] }));
+vi.mock('../../services/superhuman/semantic-intelligence/index.js', () => ({
+  clearSemanticIntelligenceCache: (userId?: string) => void semantic.cleared.push(userId),
+}));
+
 import { purgeHeldUser } from '../../agents/voice-agent/minor-care-purge.js';
+import {
+  getThinkingRecordsForPersistence,
+  loadThinkingRecords,
+} from '../../services/trust-systems/between-session-thinking.js';
+import {
+  getCuriosityProfileForPersistence,
+  loadCuriosityProfile,
+} from '../../services/trust-systems/curiosity-memory.js';
+import {
+  getPersonaGrowthForPersistence,
+  loadPersonaGrowthProfile,
+} from '../../services/trust-systems/persona-growth.js';
+import {
+  getTonalProfileForPersistence,
+  loadTonalProfile,
+} from '../../services/trust-systems/tonal-memory.js';
+import { getUserGraph, recordMention } from '../../services/social-graph/index.js';
 import {
   purgeUnifiedUser,
   saveSystemData,
@@ -77,6 +99,10 @@ import {
   markDirty,
   markUserLoaded,
 } from '../../intelligence/predictive/persistence.js';
+import {
+  getRelationshipEngine,
+  initializeRelationship,
+} from '../../intelligence/relationship/engine.js';
 import {
   bindSessionUser,
   heldAfter,
@@ -139,8 +165,14 @@ describe('placeholder ids and other users', () => {
     const a = caller();
     const b = caller();
     await saveGameMemory(b.userId, { totalGamesPlayed: 2 } as never);
+    await initializeRelationship(a.userId, 'ferni');
+    await initializeRelationship(b.userId, 'ferni');
     a.hold();
+    semantic.cleared.length = 0;
     purgeHeldUser(a.userId);
+    expect(semantic.cleared).toEqual([a.userId]); // only theirs, never every user's
+    expect(getRelationshipEngine(a.userId, 'ferni')).toBeUndefined();
+    expect(getRelationshipEngine(b.userId, 'ferni')).toBeDefined();
     expect(userHeld(a.userId)).toBe(true);
     expect(userHeld(b.userId)).toBe(false);
     expect(getCachedGameMemory(b.userId)).not.toBeNull();
@@ -181,6 +213,62 @@ describe('purge: every store drops the user and their loaded markers', () => {
     failReads.add(who.userId);
     await saveSystemData(who.userId, 'boundaries', { topics: ['after'] });
     expect(writesFor(who.userId).length).toBe(1);
+  });
+});
+
+describe('relationship engine: phrases recorded during the held call', () => {
+  // recordMoment keeps the caller's phrase in the cached engine; a held call's cleanup never
+  // ends its session, so a later call from the same id (hold lapsed) would save it
+  it.each([false, true])(
+    'a later call saves none of them once purged (purged: %s)',
+    async (purged) => {
+      const who = caller();
+      const held = await initializeRelationship(who.userId, 'ferni');
+      held.startSession();
+      held.recordMoment('vulnerability', 'opened up about a fight', {
+        userPhrase: 'my best friend Riley and I had a fight',
+      });
+      who.hold();
+      if (purged) purgeHeldUser(who.userId);
+      await vi.advanceTimersByTimeAsync(HOLD_LAPSES_MS);
+      const later = await initializeRelationship(who.userId, 'ferni'); // the next call
+      later.startSession();
+      await later.endSession('neutral', []);
+      const saved = JSON.stringify(writesFor(who.userId).map((w) => w.data));
+      expect(writesFor(who.userId).length).toBeGreaterThan(0); // the later call did save
+      expect(saved.includes('Riley')).toBe(!purged);
+    }
+  );
+});
+
+describe("caches a later call saves: the caller's quotes and the people they mentioned", () => {
+  /** What each cache holds for a user: thinking, curiosity, growth, tonal, social graph. */
+  const held = (userId: string) => [
+    getThinkingRecordsForPersistence(userId).length > 0,
+    getCuriosityProfileForPersistence(userId) !== null,
+    getPersonaGrowthForPersistence(userId, 'ferni') !== null,
+    getTonalProfileForPersistence(userId) !== null,
+    getUserGraph(userId) !== undefined,
+  ];
+  const fill = (userId: string) => {
+    const at = new Date();
+    loadThinkingRecords(userId, [{ id: `t-${userId}`, createdAt: at }] as never);
+    loadCuriosityProfile(userId, { userId, mentions: [], lastUpdated: at } as never);
+    loadPersonaGrowthProfile(userId, 'ferni', { growthRecords: [], lastUpdated: at } as never);
+    loadTonalProfile(userId, { userId, patterns: [], lastUpdated: at } as never);
+    recordMention(userId, 'Jess', 'my best friend Jess moved away', -0.4);
+  };
+
+  it("purge drops all five for the held caller and none of another caller's", () => {
+    const a = caller();
+    const b = caller();
+    fill(a.userId);
+    fill(b.userId);
+    expect(held(a.userId)).toEqual([true, true, true, true, true]);
+    a.hold();
+    purgeHeldUser(a.userId);
+    expect(held(a.userId)).toEqual([false, false, false, false, false]);
+    expect(held(b.userId)).toEqual([true, true, true, true, true]);
   });
 });
 

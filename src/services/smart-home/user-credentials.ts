@@ -9,8 +9,11 @@
  * Sensitive fields: Hue username (API key), LIFX token, Sonos access/refresh tokens
  */
 
+import { FieldValue } from '@google-cloud/firestore'; // the same instance firebase-admin uses
+import type { DocumentData } from 'firebase-admin/firestore';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { openSealedOrRaw } from '../../utils/token-at-rest.js';
 import { encryptSensitive, decryptSensitive } from '../privacy-crypto.js';
 
 const log = createLogger({ module: 'smart-home-credentials' });
@@ -176,18 +179,13 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
       smartHomeRef.doc('homekit').get(),
     ]);
 
-    // Load and decrypt credentials (handles legacy unencrypted data)
-    if (hueDoc.exists) {
-      credentials.hue = await decryptHueCredentials(hueDoc.data() as HueCredentials);
-    }
-
-    if (lifxDoc.exists) {
-      credentials.lifx = await decryptLifxCredentials(lifxDoc.data() as LifxCredentials);
-    }
-
-    if (sonosDoc.exists) {
-      credentials.sonos = await decryptSonosCredentials(sonosDoc.data() as SonosCredentials);
-    }
+    // Open docs the web routes sealed, then decrypt (handles legacy unencrypted data)
+    const hue = openSealedOrRaw<HueCredentials>(hueDoc.data(), 'smart_home/hue');
+    if (hue) credentials.hue = await decryptHueCredentials(hue);
+    const lifx = openSealedOrRaw<LifxCredentials>(lifxDoc.data(), 'smart_home/lifx');
+    if (lifx) credentials.lifx = await decryptLifxCredentials(lifx);
+    const sonos = openSealedOrRaw<SonosCredentials>(sonosDoc.data(), 'smart_home/sonos');
+    if (sonos) credentials.sonos = await decryptSonosCredentials(sonos);
 
     if (homeKitDoc.exists) {
       // HomeKit has no sensitive credentials to decrypt
@@ -230,8 +228,9 @@ export async function getCredential<K extends keyof SmartHomeCredentials>(
 
     if (!doc.exists) return null as SmartHomeCredentials[K];
 
-    // Decrypt based on credential type (handles legacy unencrypted data)
-    const rawData = doc.data();
+    // Open a doc the web routes sealed, then decrypt (handles legacy unencrypted data)
+    const rawData = openSealedOrRaw<DocumentData>(doc.data(), `smart_home/${type}`);
+    if (!rawData) return null as SmartHomeCredentials[K];
     switch (type) {
       case 'hue':
         return (await decryptHueCredentials(rawData as HueCredentials)) as SmartHomeCredentials[K];
@@ -303,6 +302,7 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
       .set(
         {
           ...encryptedCredentials,
+          encrypted: FieldValue.delete(), // a stale sealed copy must not shadow these fields
           connectedAt: new Date().toISOString(),
         },
         { merge: true }

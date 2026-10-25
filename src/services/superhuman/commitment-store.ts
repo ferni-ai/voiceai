@@ -10,6 +10,7 @@
 import type { Commitment } from './commitment-keeper.js';
 import { commitmentsShown } from './commitment-forget.js';
 import { getFirestoreDb, recordDegradation } from './firestore-utils.js';
+import { shownRows, singleWriterFor } from './commitment-single-writer.js';
 
 /** How long a process may serve a user's commitments without reading the store. */
 export const COMMITMENT_CACHE_TTL_MS = 15_000;
@@ -66,10 +67,12 @@ export async function loadActiveCommitmentsOrThrow(userId: string): Promise<Comm
     commitmentsShown(userId),
   ]);
 
+  // COMMITMENT_SINGLE_WRITER: only judged rows, nothing forgotten (judged-commitments.ts).
+  const judged = await shownRows(userId, await singleWriterFor(userId));
   // Never one they asked Ferni to forget (commitment-forget.ts). An after-call commitment
   // is saved with .add(), so its id is only the document's.
   const commitments = snapshot.docs
-    .filter((doc) => shown(doc.data()))
+    .filter((doc) => shown(doc.data()) && judged(doc.data()))
     .map((doc) => {
       const data = doc.data() as Commitment;
       return { ...data, id: doc.id ?? data.id };
