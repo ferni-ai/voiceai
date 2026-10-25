@@ -101,19 +101,32 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 ### lead-verified.yml (report-only)
 
 **Purpose:** Report whether the exact code a PR merges was independently verified
-(rules: `scripts/ci/lead-verified.ts`, run from the base branch, never the PR's copy).
-Runs on PRs and merge_group and always passes. Enforcing it (the commented
-`LEAD_VERIFIED_ENFORCE` switch plus a required check) needs Seth's OK.
+(rules: `scripts/ci/lead-verified.ts`, always run from main's copy, never the PR's).
+Runs on PRs, PR comments and merge_group and always passes. Enforcing it (the commented
+`LEAD_VERIFIED_ENFORCE` switch plus a required check) needs Seth's OK. CI typechecks it
+via `pnpm typecheck:memory-eval` (`tsconfig.scripts.json`).
 
-**How a verifier marks a PR verified.** Verify the PR's current head, then run
+**How a verifier marks a PR verified.** Verify the PR's current head, then run (as the
+`ferni-verifier` app: the script mints its own token and refuses without one)
 `scripts/ci/post-lead-verify.sh <pr> <head-sha> pass|fail "<what you ran>"`. It refuses
-any SHA that is not the head, posts the `lead-verify` status, and comments
-`RESULT_verifier=PASS sha=<40-hex head>` (or `FAIL`). Writing that comment by hand also
-counts. Prose verdicts ("Verdict: PASS on 1a2b3c4d5") and auto-merge text never verify:
-the summary lists prose PASSes as unbound, and a prose FAIL naming the head still blocks.
-Only `sethdford` and `ferni-agent[bot]` count (`LEAD_VERIFIED_AUTHORS`). A later FAIL on
-the same or a later SHA overrides a PASS. A new push needs a new verdict, except a pure
-"merge main in" (no conflict, no extra edit), which carries the verdict forward.
+any SHA that is not the head and posts the `lead-verify` status (the only tamper-proof
+evidence) plus a comment whose first line is `RESULT_verifier=PASS sha=<40-hex head>`.
+A hand-written comment counts only if that marker starts a line outside quotes and code
+fences, the author is `ferni-verifier[bot]` (`LEAD_VERIFIED_AUTHORS`), and it is never
+edited. Prose verdicts, reviews and auto-merge text never verify. Any FAIL wording
+(`RESULT_verifier=FAIL`, `Verdict: FAIL`, `Verification FAILED`, ...) from anyone, in a
+comment, review or inline comment, blocks every PASS posted at or before it: keep FAIL
+words out of a PASS summary. A new push needs a new verdict, except a pure "merge main
+in" (no conflict, no extra edit), which carries the verdict forward.
+
+**Merge groups.** The repo squashes queue entries, so a queue commit has one parent and
+its PRs are the `(#N)` titles of the commits above main, plus the PR the ref names. Each
+PR is judged on its current head. A commit with no PR number blocks the group. Known
+gaps: a PR whose head moves after queueing is judged on the new head, not the queued one,
+and the PR can still edit the workflow file (not the evaluator, which comes from main)
+until main requires code-owner review (#2547) or the workflow moves to a main-pinned
+trigger. `issue_comment` runs log a
+verdict but do not update the PR check, so re-run the check after a new verdict.
 
 ### design-system.yml
 
