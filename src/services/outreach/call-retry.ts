@@ -22,7 +22,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { consentBlocks, writeOptOut, type ConsentDeps } from '../messaging/consent.js';
-import { mayReachForOwner } from '../messaging/consent-grants.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import { isOwnVerifiedPhone } from './guarded-text.js';
 import { phoneHash } from './checkin-replies.js';
 import {

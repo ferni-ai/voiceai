@@ -18,7 +18,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCallOptedOut } from './call-retry.js';
 import { consentBlocks, type ConsentDeps } from '../messaging/consent.js';
-import { mayReachForOwner } from '../messaging/consent-grants.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import { isOwnVerifiedPhone } from './guarded-text.js';
 
 const log = createLogger({ module: 'FirstDialOptOut' });

@@ -10,11 +10,10 @@ import {
   consentAskText,
   hasGrant,
   isConsentYes,
-  mayReachForOwner,
   recordContactYes,
   recordOwnerAttestation,
-  thirdPartyRefusal,
 } from '../consent-grants.js';
+import { mayReachForOwner, thirdPartyRefusal } from '../consent-reach.js';
 import { sendConsentAsk } from '../consent-ask.js';
 import { readConsent, recordInboundSmsConsent, writeOptOut, type ConsentDeps } from '../consent.js';
 import { phoneHash, type StoredCheckin } from '../../outreach/checkin-replies.js';

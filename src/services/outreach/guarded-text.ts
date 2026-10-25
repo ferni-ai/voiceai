@@ -48,12 +48,8 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { reportText } from './outreach-bq.js';
-import {
-  attestedIntro,
-  grantedOrAsked,
-  isOwnerAttested,
-  ownerFirstName,
-} from '../messaging/consent-grants.js';
+import { attestedIntro, isOwnerAttested, ownerFirstName } from '../messaging/consent-grants.js';
+import { grantedOrAsked } from '../messaging/consent-reach.js';
 import {
   consentBlocks,
   defaultConsentDeps,

@@ -286,7 +286,7 @@ export async function recordInboundSmsConsent(
  * can't be hashed, or a store that can't be read, refuses. `allowUnknown` is
  * asked whenever no opt-out is on record: "is this the owner's own verified
  * number, or does the sender hold their own grant?" (a function, asked only
- * then; consent-grants.ts mayReachForOwner). Shared transport senders pass true: they
+ * then; consent-reach.ts mayReachForOwner). Shared transport senders pass true: they
  * can't tell who they reach, so they stop only at an opt-out, and the caller
  * that knows does the third-party check.
  */
@@ -361,7 +361,7 @@ export function registerMessagingConsent(): void {
   // consent-grants.ts imports this module, so it loads on first use.
   registerGrantChecks({
     thirdPartyRefusal: async (owner, phone, channel, isOwn) =>
-      (await import('./consent-grants.js')).thirdPartyRefusal(owner, phone, channel, isOwn),
+      (await import('./consent-reach.js')).thirdPartyRefusal(owner, phone, channel, isOwn),
     recordOwnerAttestation: async (phone, channel, uid) =>
       (await import('./consent-grants.js')).recordOwnerAttestation(phone, channel, uid),
   });
