@@ -115,9 +115,10 @@ test('every control in every panel has a name', async ({ page }) => {
     'family-callers',
     'all-connections',
     'theme',
-    'billing',
+    'cognitive',
     'export',
     'share-ferni',
+    'support-ferni',
     'help',
   ];
   for (const action of panels) {

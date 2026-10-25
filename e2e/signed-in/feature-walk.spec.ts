@@ -30,9 +30,10 @@ const PANELS = [
   'family-callers',
   'all-connections',
   'theme',
-  'billing',
+  'cognitive', // What Ferni Knows (VITE_MEMORY_VIEW, as in prod)
   'export',
   'share-ferni',
+  'support-ferni', // Chip In, in place of Account & Billing while Ferni is free (as in prod)
   'help',
 ];
 

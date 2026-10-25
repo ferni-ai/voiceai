@@ -102,7 +102,10 @@ jobs:
           LIVEKIT_URL: wss://livekit.localhost.invalid
           LIVEKIT_API_KEY: ci-placeholder
           LIVEKIT_API_SECRET: ci-placeholder-not-a-secret
+        # With prod's on/off flags (deploy/ui-server/env.yaml): MEMORY_VIEW=on answers What Ferni Knows
         run: |
+          node scripts/ci/prod-web-flags.mjs server | tee e2e-logs/server-flags.env
+          set -a; . e2e-logs/server-flags.env; set +a
           nohup npx tsx src/servers/api/index.ts > e2e-logs/api.log 2>&1 &
           for _ in $(seq 1 90); do
             # Any HTTP answer means it is listening (status itself needs no auth)
@@ -111,8 +114,12 @@ jobs:
           done
           echo "::error::API server did not start"; tail -80 e2e-logs/api.log; exit 1
 
-      - name: Start web app (emulator sign-in)
+      # Built with prod's VITE_* flags (deploy-firebase.yml, resolved from the repo variables),
+      # so the walk sees app.ferni.ai's menu: What Ferni Knows, Chip In, no Your Contribution.
+      - name: Start web app (emulator sign-in, prod flags)
         working-directory: apps/web
+        env:
+          VARS_JSON: ${{ toJSON(vars) }}
         run: |
           cat > .env.development.local <<'EOF'
           VITE_USE_FIREBASE_EMULATORS=true
@@ -123,6 +130,8 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
           VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
           EOF
+          node ../../scripts/ci/prod-web-flags.mjs web >> .env.development.local
+          node ../../scripts/ci/prod-web-flags.mjs diff >> "$GITHUB_STEP_SUMMARY"
           nohup pnpm exec vite --port 3004 --strictPort > ../../e2e-logs/web.log 2>&1 &
           for _ in $(seq 1 90); do
             curl -sf http://localhost:3004 >/dev/null && exit 0
