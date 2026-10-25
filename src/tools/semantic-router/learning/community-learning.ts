@@ -10,6 +10,9 @@
  * - When many users correct the same mistake, we know it's a systemic issue
  *
  * PRIVACY GUARANTEES:
+ * - No caller words: a pattern is the tool pair and its counts (Seth, 2026-10-24). Until
+ *   2026-10-25 it also kept example queries and their keywords; the keyword readers below
+ *   (getCommunityPatternsForQuery, getCommunityCorrection) have no callers, and match nothing now
  * - No user identifiers stored in community patterns
  * - Only aggregated statistics are used
  * - Minimum threshold before a pattern affects routing (prevents gaming)
@@ -154,15 +157,12 @@ export async function reportCorrectionToCommunity(correction: RoutingCorrection)
 
   const patternId = generatePatternId(correction.predictedTool, correction.actualTool);
   const userHash = hashUserId(correction.userId);
-  const normalizedQuery = normalizeQueryForPattern(correction.normalizedQuery);
 
   try {
     await updatePatternInFirestore(
       patternId,
       correction.predictedTool,
       correction.actualTool,
-      normalizedQuery,
-      extractKeywords(correction.normalizedQuery),
       userHash
     );
 
@@ -344,8 +344,6 @@ async function updatePatternInFirestore(
   patternId: string,
   incorrectTool: string,
   correctTool: string,
-  normalizedQuery: string,
-  keywords: string[],
   userHash: string
 ): Promise<void> {
   if (!isPersistenceAvailable()) return;
@@ -368,12 +366,6 @@ async function updatePatternInFirestore(
       const userCount = existingUsers.size;
       const occurrenceCount = ((data?.occurrenceCount as number) || 0) + 1;
 
-      // Merge keywords
-      const existingKeywords = new Set<string>((data?.keywords as string[]) || []);
-      for (const k of keywords) {
-        existingKeywords.add(cleanForFirestore(k));
-      }
-
       // Calculate confidence
       const confidence = calculateConfidence(userCount, occurrenceCount);
 
@@ -382,15 +374,9 @@ async function updatePatternInFirestore(
           userHashes: Array.from(existingUsers),
           userCount,
           occurrenceCount,
-          keywords: Array.from(existingKeywords).slice(0, 20), // Limit keywords
           confidence,
           isActive: userCount >= MIN_USERS_FOR_ACTIVE && occurrenceCount >= MIN_OCCURRENCES,
           updatedAt: new Date(),
-          // Add query pattern example
-          queryExamples: addQueryExample(
-            (data?.queryExamples as QueryExample[]) || [],
-            normalizedQuery
-          ),
         })
       );
 
@@ -404,8 +390,6 @@ async function updatePatternInFirestore(
           patternId,
           incorrectTool,
           correctTool,
-          queryPattern: extractQueryPattern(normalizedQuery),
-          keywords,
           userHashes: [userHash],
           userCount: 1,
           occurrenceCount: 1,
@@ -413,7 +397,6 @@ async function updatePatternInFirestore(
           isActive: false, // Not active until threshold reached
           createdAt: new Date(),
           updatedAt: new Date(),
-          queryExamples: [{ query: normalizedQuery, count: 1 }],
         })
       );
 
@@ -576,17 +559,6 @@ function extractKeywords(query: string): string[] {
 }
 
 /**
- * Extract a generalized query pattern
- */
-function extractQueryPattern(query: string): string {
-  // Replace specific terms with wildcards
-  return normalizeQueryForPattern(query)
-    .replace(/\b\d+\b/g, '*') // Numbers
-    .replace(/\b(morning|afternoon|evening|night|today|tomorrow|yesterday)\b/g, '*') // Time words
-    .replace(/\b[A-Z][a-z]+\b/g, '*'); // Proper nouns
-}
-
-/**
  * Calculate confidence score
  */
 function calculateConfidence(userCount: number, occurrenceCount: number): number {
@@ -596,21 +568,6 @@ function calculateConfidence(userCount: number, occurrenceCount: number): number
 
   // Users count more than occurrences (prevents gaming by one user)
   return userScore * 0.7 + occurrenceScore * 0.3;
-}
-
-/**
- * Add a query example to the list (deduped, limited)
- */
-function addQueryExample(existing: QueryExample[], newQuery: string): QueryExample[] {
-  const found = existing.find((e) => e.normalizedQuery === newQuery);
-  if (found) {
-    found.count++;
-  } else {
-    existing.push({ normalizedQuery: newQuery, count: 1 });
-  }
-
-  // Keep top 10 by count
-  return existing.sort((a, b) => b.count - a.count).slice(0, 10);
 }
 
 // ============================================================================
