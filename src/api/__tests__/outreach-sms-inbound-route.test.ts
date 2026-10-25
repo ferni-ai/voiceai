@@ -15,6 +15,8 @@ vi.mock('../../services/outreach/checkin-replies.js', async (importOriginal) => 
   recordCheckinReply,
 }));
 vi.mock('../../services/messaging/consent.js', () => ({ recordInboundSmsConsent }));
+const recordContactYes = vi.hoisted(() => vi.fn(async () => null));
+vi.mock('../../services/messaging/consent-grants.js', () => ({ recordContactYes }));
 
 import { handleOutreachWebhookRoutes } from '../outreach-webhook-routes.js';
 
@@ -52,6 +54,7 @@ describe('POST /api/outreach/webhooks/twilio/sms-inbound', () => {
     const { req, res } = post();
     await handleOutreachWebhookRoutes(req, res, PATH);
     expect(recordInboundSmsConsent).toHaveBeenCalledWith(params.From, params.Body);
+    expect(recordContactYes).toHaveBeenCalledWith(params.From, params.Body, params.MessageSid);
   });
 
   it('never records anything (no opt-out, no reply) for an unsigned or forged message', async () => {

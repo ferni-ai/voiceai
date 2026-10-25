@@ -168,10 +168,12 @@ export const CREDENTIAL_STORES: readonly OwnedStore[] = [
  * The person's entries in other people's documents: erased, never exported or copied.
  * consent/{phoneHash} is a contact's own record, and their STOP stays after any erasure
  * so nobody texts them again; grants.{uid} is the consent they gave for this member
- * (messaging/consent-grants.ts), and goes with the member.
+ * (messaging/consent-grants.ts), and asks.{uid} the member's open consent ask: both go
+ * with the member, so a later YES can't grant a deleted account.
  */
 export const ENTRIES_IN_OTHERS_DOCS: readonly OwnedStore[] = [
   { collection: 'consent', mapKey: 'grants' },
+  { collection: 'consent', mapKey: 'asks' },
 ];
 
 /** Every store account deletion must leave empty for the person */
