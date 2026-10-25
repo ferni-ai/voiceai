@@ -162,6 +162,10 @@ COPY scripts/generate-tool-tiers.js ./scripts/
 # The CLI fallback is grouped in braces: `a && b || c` runs c when ANY step
 # before it fails, so a failed build:fast shipped an image with no agent
 # (dev, 2026-10-05: esbuild error, step exit 0, version marked Available).
+# gen:lists writes the gitignored flag barrel and env-name list (build-fast.ts writes
+# them too; this keeps the step visible). The install above ran before src/ existed,
+# so its postinstall could not. Its own RUN: agent-builder-run.test.ts runs the next one.
+RUN pnpm gen:lists
 RUN rm -rf dist && pnpm run build:fast && \
     echo "=== Copying JSON config files ===" && \
     mkdir -p dist/agents/shared/sanitizer/config && \

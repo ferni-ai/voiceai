@@ -49,7 +49,7 @@ vi.mock('../../../speech/tts-gateway/index.js', async (importOriginal) => ({
   },
 }));
 
-const { attachCallTimeline } = await import('../call-timeline-session.js');
+const { attachCallTimeline, timelineRecordsFor } = await import('../call-timeline-session.js');
 const { timelineFor, writeTimelineDoc, CHUNK_EVENTS, soundKindOf } =
   await import('../call-timeline.js');
 const { voicedHumFor } = await import('../../integrations/voiced-presence.js');
@@ -135,6 +135,7 @@ describe('CALL_TIMELINE', () => {
     direct.played = [];
     direct.cancel = false;
     vi.stubEnv('REACTION_SIDETRACK', 'direct');
+    vi.stubEnv('CALL_TIMELINE_UIDS', MEMBER); // the recorded account (owner-only in prod)
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -276,8 +277,43 @@ describe('CALL_TIMELINE', () => {
     expect(tl.events).toEqual([]);
   });
 
+  it('on: only callers in CALL_TIMELINE_UIDS are recorded; anyone else gets no recorder', async () => {
+    vi.stubEnv('CALL_TIMELINE', 'on');
+    vi.stubEnv('CALL_TIMELINE_UIDS', 'someone-else, ' + MEMBER + ' '); // spaces around ids are fine
+    const listed = await scriptedCall('tl-listed', MEMBER);
+    expect(listed.writes.length).toBeGreaterThan(0);
+    expect(listed.writes.every((w) => w.uid === MEMBER)).toBe(true);
+
+    vi.stubEnv('CALL_TIMELINE_UIDS', 'someone-else');
+    const other = await scriptedCall('tl-unlisted', MEMBER);
+    expect(timelineFor(other.session)).toBeUndefined();
+    expect(other.writes).toEqual([]);
+  });
+
+  it('on with CALL_TIMELINE_UIDS unset or empty: records nobody (fails closed)', async () => {
+    vi.stubEnv('CALL_TIMELINE', 'on');
+    vi.stubEnv('CALL_TIMELINE_UIDS', '');
+    expect((await scriptedCall('tl-empty-list', MEMBER)).writes).toEqual([]);
+    vi.unstubAllEnvs();
+    vi.stubEnv('REACTION_SIDETRACK', 'direct');
+    vi.stubEnv('CALL_TIMELINE', 'on');
+    delete process.env.CALL_TIMELINE_UIDS;
+    expect((await scriptedCall('tl-no-list', MEMBER)).writes).toEqual([]);
+  });
+
+  it('timelineRecordsFor: listed uids only, never a missing uid or an empty entry', () => {
+    const env = { CALL_TIMELINE_UIDS: 'u1, u2,' };
+    expect(timelineRecordsFor('u1', env)).toBe(true);
+    expect(timelineRecordsFor('u2', env)).toBe(true);
+    expect(timelineRecordsFor('u3', env)).toBe(false);
+    expect(timelineRecordsFor('', env)).toBe(false);
+    expect(timelineRecordsFor(undefined, env)).toBe(false);
+    expect(timelineRecordsFor('u1', {})).toBe(false);
+  });
+
   it('on: an on-behalf call (the third party is not our user) writes nothing', async () => {
     vi.stubEnv('CALL_TIMELINE', 'on');
+    vi.stubEnv('CALL_TIMELINE_UIDS', `${MEMBER},onbehalf:call_123`); // listed: the on-behalf rule must stop it
     const { writes } = await scriptedCall('tl-onbehalf', 'onbehalf:call_123');
     expect(writes).toEqual([]);
   });
@@ -307,6 +343,7 @@ describe('CALL_TIMELINE', () => {
 
   it('on: a non-member caller (anonymous) writes nothing', async () => {
     vi.stubEnv('CALL_TIMELINE', 'on');
+    vi.stubEnv('CALL_TIMELINE_UIDS', `${MEMBER},anon:abc123,anonymous`); // listed: the member rule must stop it
     expect((await scriptedCall('tl-anon', 'anon:abc123')).writes).toEqual([]);
     expect((await scriptedCall('tl-anon2', 'anonymous')).writes).toEqual([]);
   });

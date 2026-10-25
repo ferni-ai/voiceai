@@ -152,4 +152,82 @@ describe('upcoming tab', () => {
     await openOn('upcoming');
     await settled('empty');
   });
+
+  // As GET /api/outreach/upcoming sends it (outreach-upcoming-route.ts)
+  const followUp = (over: Record<string, unknown> = {}) => ({
+    id: 'fu-7',
+    type: 'follow_up',
+    personaId: 'ferni',
+    personaName: 'Ferni',
+    channel: 'sms',
+    scheduledFor: new Date(Date.now() + 26 * 3_600_000).toISOString(),
+    preview: { body: 'How did the talk with your sister go?' },
+    reason: 'Checking how it went',
+    priority: 'medium',
+    canReschedule: false,
+    canCancel: false,
+    ...over,
+  });
+
+  it('Preview opens the row it sits in, without asking another route', async () => {
+    replies.set(UPCOMING, [ok({ upcoming: [followUp()] })]);
+    await openOn('upcoming');
+    await settled('ready');
+    apiGet.mockClear();
+
+    (content().querySelector('[data-action="preview"][data-id="fu-7"]') as HTMLElement).click();
+
+    const preview = document.querySelector('.outreach-preview-overlay');
+    expect(preview?.querySelector('.outreach-preview-message')?.textContent).toBe(
+      'How did the talk with your sister go?'
+    );
+    expect(preview?.querySelector('.outreach-preview-title')?.textContent).toBe('Ferni');
+    expect(apiGet).not.toHaveBeenCalled();
+  });
+
+  it('turns markup in any field into text: no element, attribute or class injected', async () => {
+    const breakout = '"><script>alert(2)</script>';
+    const img = '<img src=x onerror="alert(1)">';
+    const hostile = followUp({
+      id: `fu-9${breakout}`,
+      personaId: `ferni${breakout}`,
+      personaName: `${img}Ferni`,
+      reason: breakout,
+      priority: `high${breakout}`,
+      preview: { body: img, subject: breakout },
+    });
+    replies.set(UPCOMING, [ok({ upcoming: [hostile] })]);
+    await openOn('upcoming');
+    await settled('ready');
+    (content().querySelector('[data-action="preview"]') as HTMLElement).click();
+
+    const scope = [
+      ...document.querySelectorAll('.outreach-schedule-overlay *, .outreach-preview-overlay *'),
+    ];
+    expect(scope.filter((el) => el.matches('img, script'))).toEqual([]);
+    expect(
+      scope.flatMap((el) => [...el.attributes].filter((a) => /^on|^src$/i.test(a.name)))
+    ).toEqual([]);
+    const row = content().querySelector<HTMLElement>('.outreach-item');
+    expect(row?.dataset.outreachId).toBe(hostile.id);
+    expect(row?.dataset.persona).toBe(hostile.personaId);
+    expect(row?.querySelector('.outreach-item-priority')?.className).toBe(
+      'outreach-item-priority medium'
+    );
+    expect(row?.querySelector('.outreach-item-reason')?.textContent).toBe(`"${breakout}"`);
+    expect(document.querySelector('.outreach-preview-subject')?.textContent).toBe(breakout);
+    expect(document.querySelector('.outreach-preview-title')?.textContent).toBe(`${img}Ferni`);
+  });
+
+  it('shows planned words as text, never as markup, in the row and the preview', async () => {
+    replies.set(UPCOMING, [ok({ upcoming: [followUp({ preview: { body: '<img src=x>' } })] })]);
+    await openOn('upcoming');
+    await settled('ready');
+    (content().querySelector('[data-action="preview"]') as HTMLElement).click();
+
+    expect(
+      document.querySelector('.outreach-schedule-overlay img, .outreach-preview-overlay img')
+    ).toBeNull();
+    expect(document.querySelector('.outreach-preview-message')?.textContent).toBe('<img src=x>');
+  });
 });
