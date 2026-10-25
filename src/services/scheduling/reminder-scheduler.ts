@@ -583,7 +583,7 @@ export async function deliverReminderOutcome(
           reminder.deliveryAddress,
           messageToDeliver,
           personaId,
-          { fallbackToTwilioVoice: true }
+          { fallbackToTwilioVoice: true, userId: reminder.userId }
         );
         if (!callResult.success) {
           throw new Error(callResult.message);
