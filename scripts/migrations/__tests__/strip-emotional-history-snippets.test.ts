@@ -40,7 +40,7 @@ function fakeDb(docs: Map<string, Stored>) {
     orderBy: () => query(after, limit),
     select: () => query(after, limit),
     limit: (n: number) => query(after, n),
-    startAfter: (doc: { id: string }) => query(doc.id, limit),
+    startAfter: (doc: { ref: unknown }) => query(doc.ref as string, limit),
     get: async () => ({
       docs: [...docs.keys()]
         .sort()

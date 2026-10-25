@@ -23,7 +23,7 @@ export type StoredPoint = Partial<Record<(typeof STORED_POINT_KEYS)[number], unk
 
 /** The data point with only the kept keys; null for an entry that is not an object. */
 export function keepStoredFields(raw: unknown): StoredPoint | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const out: StoredPoint = {};
   for (const key of STORED_POINT_KEYS) {
     if (Object.prototype.hasOwnProperty.call(raw, key)) {
