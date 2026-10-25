@@ -4,7 +4,8 @@
  *
  * Target (approved 2026-10-11), dependencies pointing inward:
  *   L5 Experiences    web/API routes, phone, job and worker entrypoints     → may import anything
- *   L4 Orchestration  call session, turn pipeline, after-call use cases, flags → L4..L1
+ *   L4 Orchestration  call session, turn pipeline, after-call use cases, flags → L4..L1;
+ *                     a context only via its index.ts (L5 too: `orchestration-internal`)
  *   L3 Capabilities   the 10 CONTEXTS below; another context only via its index.ts → L3, L2
  *   L2 Shared kernel  Persona, User, Relationship, Turn, Moment, Time, domain events → L2
  *   L1 Platform       LiveKit, STT, TTS, LLM, Firestore, Redis, telemetry adapters → L1, L2, L3 ports

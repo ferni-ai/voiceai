@@ -208,3 +208,27 @@ describe('after-call wellbeing snapshot', () => {
     expect(registeredAfterCallTasks()).toContain(WELLBEING_TASK);
   });
 });
+
+describe('after-call skips a crisis call', () => {
+  const CRISIS_CALL = {
+    userId: 'u-2',
+    sessionId: 's-2',
+    startedAt: new Date('2026-10-18T15:00:00Z'),
+    turns: [
+      { role: 'assistant', content: 'How are things going?' },
+      { role: 'user', content: "I'm planning to end it all tonight" },
+    ],
+  };
+
+  it('makes no model call and writes nothing when a caller turn is a crisis', async () => {
+    const llm = vi.fn(async () => '{"mood":0.1}');
+    const save = vi.fn(async (_u: string, _s: WellbeingSnapshot) => true);
+    await recordWellbeingAfterCall(CRISIS_CALL, {
+      llm,
+      save,
+      env: { WELLBEING_AFTER_CALL: 'on' },
+    });
+    expect(llm).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+  });
+});

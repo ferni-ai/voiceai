@@ -120,8 +120,9 @@ export const COHORT_FLAGS = [
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
   'WELLBEING_AFTER_CALL',
-  // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
+  // Read each time callUser or forgetMemory runs mid-call, per person (telephony/index.ts, recall/forget.ts).
   'TOOLS_REAL_CALL_USER',
+  'FORGET_DELETES',
   'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
   'FRIEND_CELEBRATIONS', // greeting: anniversaryFor (friendship-anniversary.ts)
   'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)
