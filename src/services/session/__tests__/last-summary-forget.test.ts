@@ -74,6 +74,7 @@ vi.mock('../../../memory/index.js', () => ({
 vi.mock('../../llm-utils.js', () => ({ createSummarizationLLMCaller: () => ({ call: vi.fn() }) }));
 
 const { forgetForCaller, forgetTopic } = await import('../../../memory/recall/forget.js');
+type ForgetStore = import('../../../memory/recall/forget.js').ForgetStore;
 const { summarizeConversationAsync } = await import('../../memory/realtime-memory.js');
 const { resetForgetTopicsSource } = await import('../../../memory/recall/forget-topics-source.js');
 const { applyCheckedSummary, applyLastSummary, keptSummaries, lastSummaryCheck, saveKept } =
@@ -208,6 +209,51 @@ describe('#2767: a forgotten topic stays out of the next call', () => {
     expect(stored(uid).lastConversationSummary).toBe('USER is repainting the kitchen');
   });
 
+  it("#2794: the call's own summary never keeps the caller's words about a forgotten topic", async () => {
+    const uid = 'e2e-2794-a';
+    const turns = (conv: string, said: string) => {
+      fake.merge(`${conv}/turns/1`, { role: 'user', content: said, timestamp: 1 });
+      fake.merge(`${conv}/turns/2`, { role: 'assistant', content: 'I hear you', timestamp: 2 });
+    };
+    const c1 = `bogle_users/${uid}/conversations/c1`;
+    const c2 = `bogle_users/${uid}/conversations/c2`;
+    const c3 = `bogle_users/${uid}/conversations/c3`;
+    turns(c1, 'Dana is filing the divorce papers next week and I am a wreck');
+    turns(c2, 'I planted tomatoes in the garden and they are finally coming up');
+    turns(c3, 'Dana is filing the divorce papers next week and I am a wreck');
+    expect((await forgetTopic(uid, "Dana's divorce")).kind).toBe('forgotten');
+
+    fake.state.points = [FORGOTTEN]; // every point forgotten: the fallback is the caller's words
+    await summarizeConversationAsync(uid, 'c1');
+    expect(fake.docs.get(c1)?.summary).toBe('Brief conversation');
+
+    fake.state.points = []; // control: words not about a forgotten topic are still kept
+    await summarizeConversationAsync(uid, 'c2');
+    expect(fake.docs.get(c2)?.summary).toContain('tomatoes');
+
+    fake.state.offline = true; // topics unreadable: no raw words either
+    resetForgetTopicsSource();
+    await summarizeConversationAsync(uid, 'c3');
+    expect(fake.docs.get(c3)?.summary).toBe('Brief conversation');
+  });
+
+  it('the forget-time clear runs after the facts are marked, so a failure leaves only it to retry', async () => {
+    const marked: string[] = [];
+    const store: ForgetStore = {
+      facts: async () => [
+        { collection: 'dynamic_facts', id: 'f1', data: { value: 'Dana filed the divorce papers' } },
+      ],
+      markForgotten: async (_u, refs) => void marked.push(...refs.map((r) => r.id)),
+      addTopic: async () => undefined,
+      topics: async () => [],
+      clearSummaries: async () => {
+        throw new Error('profile write failed');
+      },
+    };
+    await expect(forgetTopic('e2e-2794-b', "Dana's divorce", store)).rejects.toThrow();
+    expect(marked).toEqual(['f1']);
+  });
+
   it('a failed forget-time clear is reported: Ferni never says it forgot', async () => {
     const uid = 'e2e-2767-g';
     fake.merge(`bogle_users/${uid}`, { totalConversations: 3, lastCallerSummary: FORGOTTEN });
@@ -218,13 +264,12 @@ describe('#2767: a forgotten topic stays out of the next call', () => {
     ]); // recorded before the clear failed: a retry completes it
   });
 
-  it('session-manager saves through the checked helpers only (wiring)', async () => {
+  // endSession and the call-end save run for real in last-summary-endsession.test.ts; the
+  // periodic autosave is a timer no test drives, so its wiring is pinned here.
+  it('the autosave saves through the checked helper (wiring)', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(new URL('../session-manager.ts', import.meta.url), 'utf8');
-    expect(src).toContain('applyCheckedSummary(updatedProfile, summary, validatedUserId)');
-    expect(src).not.toMatch(/\bapplyLastSummary\(/);
-    expect(src).toContain('saveKept(global.store, updated, validatedUserId)'); // call end
-    expect(src).toContain('saveKept(global.store, updatedProfile, uid)'); // autosave
+    expect(src).toContain('saveKept(global.store, updatedProfile, uid)');
     expect(src).not.toMatch(/global\.store\.saveProfile\(/);
   });
 });

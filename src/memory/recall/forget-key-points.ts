@@ -28,3 +28,17 @@ export async function checkedPoints(
   const forgotten = await summaryCheck(userId);
   return forgotten ? points.filter((p) => !forgotten(p)) : [];
 }
+
+/**
+ * A call summary to store as it is, or '' when it is about a forgotten topic
+ * or the topics can't be read: the pass's fallback is the caller's own words
+ * (#2794), read later by the call-start refill and outreach.
+ */
+export async function checkedText(
+  userId: string | null | undefined,
+  text: string
+): Promise<string> {
+  if (!text) return text;
+  const forgotten = await summaryCheck(userId);
+  return forgotten && !forgotten(text) ? text : '';
+}
