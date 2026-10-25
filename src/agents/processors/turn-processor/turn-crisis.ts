@@ -37,11 +37,16 @@ import {
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
-import { startWhoRead } from '../../../services/safety/crisis-who.js';
+import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
 } from '../../../services/safety/crisis-classifier-only.js';
+import {
+  easingCheckin,
+  resolveEasingMode,
+  type EasingTurn,
+} from '../../../services/safety/crisis-classifier-only-live.js';
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
@@ -80,6 +85,36 @@ export interface TurnCrisis {
    * soft check-in, which only the normal reply path carries.
    */
   bypassAllowed(): Promise<boolean>;
+}
+
+type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
+
+/**
+ * CRISIS_CLASSIFIER_ONLY_CHECKIN=live: eases a settled turn's classifier-only crisis guide
+ * with the turn's shared easing read (crisis-classifier-only-live.ts).
+ */
+function turnEaser(
+  patterns: CrisisDetectionResult,
+  shadowTurn: Omit<EasingTurn, 'call'>,
+  call: string | undefined,
+  input: Parameters<typeof transcriptFrom>[0],
+  generate: CrisisGenerateFn | undefined,
+  env: Record<string, string | undefined>
+): (turn: Promise<Settled>) => Promise<Settled> {
+  const easing = {
+    transcript: () => transcriptFrom(input),
+    generate,
+    env,
+    source: 'pipeline' as const,
+  };
+  return (turn: Promise<Settled>): Promise<Settled> =>
+    turn.then(async (s) => {
+      const crisisGuide =
+        !s.soft && s.crisis !== patterns && !guardFromDetection(s.crisis).shouldBlock;
+      if (!crisisGuide || !(await easingCheckin({ ...shadowTurn, call }, easing))) return s;
+      log.info({ outcome: 'soft', source: 'classifier_only' }, 'CRISIS_AGREEMENT');
+      return { crisis: patterns, soft: true };
+    });
 }
 
 export function startTurnCrisis(
@@ -134,9 +169,7 @@ export function startTurnCrisis(
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
-  // THIRD_PARTY_SELF_HARM: who is at risk on a third-party read (crisis-who.ts); null when off.
   const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
-  type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>
     (settled ??=
@@ -168,8 +201,9 @@ export function startTurnCrisis(
               return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
             const merged = applyClassifierVerdict(patterns, verdict);
-            // Live: may reroute a third-party read (never lower it). Shadow: logs only.
-            const crisis = who?.live ? await who.resolve(merged) : (who?.shadow(merged) ?? merged);
+            const crisis = who?.live
+              ? await who.resolve(merged, verdict)
+              : (who?.shadow(merged, verdict) ?? merged);
             if (crisis !== patterns) noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY
             // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an
             // imminent one whoever it is about, gets the soft check-in after every other check.
@@ -233,6 +267,10 @@ export function startTurnCrisis(
   // CRISIS_CLASSIFIER_ONLY_CHECKIN=shadow: once the turn settles, log only (crisis-classifier-only.ts).
   const shadowOn = resolveClassifierOnlyCheckin(env) === 'shadow';
   const shadowTurn = { detection: patterns, ...input, priorRisk, scope };
+  // CRISIS_CLASSIFIER_ONLY_CHECKIN=live: the turn's shared easing read (crisis-classifier-only-live.ts).
+  const easingOn = resolveEasingMode(env) !== 'off';
+  let eased: Promise<Settled> | null = null;
+  const easeTurn = turnEaser(patterns, shadowTurn, call, input, options.adjudicate, env);
   const settle = (): Promise<Settled> => {
     const first = settled === null;
     const turn = settleTurn();
@@ -243,7 +281,7 @@ export function startTurnCrisis(
         env
       );
     }
-    return turn;
+    return easingOn ? (eased ??= easeTurn(turn)) : turn;
   };
   return {
     patterns,

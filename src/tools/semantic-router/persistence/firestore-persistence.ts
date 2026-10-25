@@ -882,16 +882,26 @@ export async function migrateUserProfile(userId: string): Promise<PersistedUserP
 // ROUTING EVENT PERSISTENCE
 // ============================================================================
 
+/** How long a routing event is kept: Firestore's TTL policy on `events.expireAt` deletes it */
+export const ROUTING_EVENT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * A routing decision, as stored. None of it is the caller's words: how long the input
+ * was, never the input (Seth, 2026-10-24). saveRoutingEvent writes only these fields.
+ */
 export interface PersistedRoutingEvent {
   id: string;
   timestamp: Date;
   userId: string;
   sessionId: string;
   personaId: string;
-  inputText: string;
+  inputLength: number;
+  intentCategory?: string;
   actionType: string;
   toolId?: string;
   confidence?: number;
+  /** Which router layers matched the top tool (pattern, keyword, embedding, ...) */
+  matchedBy?: string[];
   latencyMs: number;
   outcome?: {
     toolExecuted: string | null;
@@ -901,9 +911,26 @@ export interface PersistedRoutingEvent {
   };
 }
 
+/** The stored fields, by name: a field a caller adds (the input, say) is never written */
+const ROUTING_EVENT_FIELDS = [
+  'id',
+  'userId',
+  'sessionId',
+  'personaId',
+  'inputLength',
+  'intentCategory',
+  'actionType',
+  'toolId',
+  'confidence',
+  'matchedBy',
+  'latencyMs',
+  'outcome',
+] as const satisfies ReadonlyArray<keyof PersistedRoutingEvent>;
+
 /**
  * Save routing event to Firestore
- * Uses date-partitioned subcollections for efficient querying
+ * Uses date-partitioned subcollections: semantic_router_events/{YYYY-MM-DD}/events/{id}.
+ * Account deletion and export reach them by userId (erase-other-keys.ts, user-records-export.ts).
  */
 export async function saveRoutingEvent(event: PersistedRoutingEvent): Promise<void> {
   if (!firestoreInstance) {
@@ -912,63 +939,24 @@ export async function saveRoutingEvent(event: PersistedRoutingEvent): Promise<vo
 
   try {
     const dateStr = event.timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
+    const stored = Object.fromEntries(ROUTING_EVENT_FIELDS.map((f) => [f, event[f]]));
+    const { outcome } = event;
+    if (outcome) {
+      const { toolExecuted, executionSuccess, corrected, llmFallbackUsed } = outcome;
+      stored.outcome = { toolExecuted, executionSuccess, corrected, llmFallbackUsed };
+    }
     await firestoreInstance
       .collection(COLLECTIONS.ROUTING_EVENTS)
       .doc(dateStr)
       .collection('events')
       .doc(event.id)
-      .set(
-        cleanForFirestore({
-          ...event,
-          timestamp: event.timestamp,
-        })
-      );
+      .set({
+        ...cleanForFirestore({ ...stored, timestamp: event.timestamp }),
+        // A Date, stored as the Timestamp a TTL policy reads (cleanForFirestore makes strings)
+        expireAt: new Date(event.timestamp.getTime() + ROUTING_EVENT_RETENTION_MS),
+      });
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to persist routing event');
-  }
-}
-
-/**
- * Load routing events from Firestore
- */
-export async function loadRoutingEvents(options: {
-  date: string; // YYYY-MM-DD
-  userId?: string;
-  limit?: number;
-}): Promise<PersistedRoutingEvent[]> {
-  if (!firestoreInstance) {
-    return [];
-  }
-
-  try {
-    let query = firestoreInstance
-      .collection(COLLECTIONS.ROUTING_EVENTS)
-      .doc(options.date)
-      .collection('events') as unknown as Query;
-
-    if (options.userId) {
-      query = query.where('userId', '==', options.userId);
-    }
-
-    query = query.orderBy('timestamp', 'desc');
-
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const snapshot = await query.get();
-
-    return snapshot.docs.map((doc) => {
-      const data = doc.data()!;
-      return {
-        ...data,
-        id: doc.id,
-        timestamp: (data.timestamp as { toDate?: () => Date })?.toDate?.() || new Date(),
-      } as PersistedRoutingEvent;
-    });
-  } catch (error) {
-    log.debug({ error: String(error) }, 'Failed to load routing events');
-    return [];
   }
 }
 
@@ -1409,14 +1397,6 @@ export class FirestorePersistence {
   // Routing Events
   async saveRoutingEvent(event: PersistedRoutingEvent): Promise<void> {
     return saveRoutingEvent(event);
-  }
-
-  async loadRoutingEvents(options: {
-    date: string;
-    userId?: string;
-    limit?: number;
-  }): Promise<PersistedRoutingEvent[]> {
-    return loadRoutingEvents(options);
   }
 
   // A/B Tests

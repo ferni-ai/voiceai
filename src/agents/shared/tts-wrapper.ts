@@ -737,7 +737,7 @@ export async function wrappedTtsNode(
           if (isMemberIdentity(userId) && rawLLMBuffer.length > 10 && !isGarbageResponse) {
             import('../../services/superhuman/semantic-intelligence/integration.js')
               .then(({ trackFerniCommitments }) => {
-                void trackFerniCommitments(userId, rawLLMBuffer, {});
+                void trackFerniCommitments(userId, rawLLMBuffer, { sessionId });
               })
               .catch((err) => {
                 // Non-critical - don't block TTS
