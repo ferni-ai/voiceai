@@ -116,10 +116,21 @@ export const isSafetyWording = (phrase: string): boolean => {
 };
 
 /**
- * Whether a whole line (a sentence as said) is safety wording: its content words
- * all sit in one clause of the safety scripts (told-this-call.ts keptTold, #2797).
+ * Words that put a line on safety, harm or getting help. Blunt on purpose: a line
+ * it catches is only left unquoted, and a paraphrased safety question the scripts
+ * don't word ("Do you have a plan to hurt yourself tonight?") must never be one
+ * the model is told to drop (#2804 verify: the script match alone caught 1 of 17).
+ */
+const SAFETY_TOPIC =
+  /\b(safe|safety|unsafe|hurt\w*|harm\w*|kill\w*|suicid\w*|die|dying|death|dead|alive|end it|plan to|overdose|weapon|gun|pills|988|911|741741|crisis|hotline|lifeline|emergency|therapist|counsel(?:or|ing)|doctor|hospital|someone with you|anyone with you)\b/i;
+
+/**
+ * Whether a whole line (a sentence as said) is safety wording: it is on safety,
+ * harm or help (SAFETY_TOPIC), or its content words all sit in one clause of the
+ * safety scripts (told-this-call.ts keptTold, #2797).
  */
 export const isSafetyLine = (line: string): boolean => {
+  if (SAFETY_TOPIC.test(line)) return true;
   const content = clausesOf(line)
     .flat()
     .filter((w) => !FUNCTION_WORDS.has(w));
