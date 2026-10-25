@@ -26,7 +26,12 @@ import {
   type ClassifierRisk,
   type CrisisGenerateFn,
 } from '../safety/crisis-classifier.js';
-import { inboundKeyword, isExactKeyword, keywordReply } from '../messaging/sms-keywords.js';
+import {
+  inboundKeyword,
+  isExactKeyword,
+  keywordReply,
+  normalizeSms,
+} from '../messaging/sms-keywords.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import { escapeXml } from './twilio-ssml.js';
 
@@ -40,6 +45,9 @@ export const SMS_CRISIS_REPLY =
 export const SMS_CLASSIFIER_TIMEOUT_MS = 4_000;
 /** Twilio's longest inbound message; anything longer is not a real text and is cut before a read. */
 export const SMS_MAX_CHARS = 1_600;
+
+/** Never gated: a person in crisis may text just "help". */
+const HELP_WORDS: ReadonlySet<string> = new Set(['help', 'info']);
 
 export interface SmsCrisisRead {
   crisis: boolean;
@@ -82,9 +90,11 @@ export async function smsCrisisReply(
     log.warn({ error: String(error), pattern }, 'SMS crisis read failed; pattern guard alone');
     outcome = { crisis: pattern, pattern, risk: null };
   }
-  // A bare keyword ("HELP") read as crisis by the classifier alone was answered
-  // twice (988 and Twilio's own HELP reply). Only a pattern hit counts there.
-  const keyword = isExactKeyword(text);
+  // A bare stop or start keyword ("STOP", "opt out", "START") read as crisis by
+  // the classifier alone got 988 over its consent notice: only a pattern hit
+  // counts there. HELP and INFO are always read in full: someone in crisis
+  // types "help", and 988 beside Twilio's HELP reply is better than silence.
+  const keyword = isExactKeyword(text) && !HELP_WORDS.has(normalizeSms(text));
   if (keyword && !outcome.pattern) outcome = { ...outcome, crisis: false };
   log.info(
     { mode, crisis: outcome.crisis, pattern: outcome.pattern, risk: outcome.risk, keyword },

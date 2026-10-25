@@ -145,18 +145,28 @@ describe('Twilio keywords (verify of 5ee374736)', () => {
     (text) => expect(isExactKeyword(text)).toBe(false)
   );
 
-  it('a bare "HELP" read as crisis by the classifier alone gets no 988 (Twilio answers HELP)', async () => {
+  it('a bare stop or start keyword read as crisis by the classifier alone gets no 988 over its notice', async () => {
     vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
     const classifierOnly = vi.fn(async (): Promise<SmsCrisisRead> => ({
       crisis: true,
       pattern: false,
       risk: 'crisis',
     }));
-    for (const text of ['HELP', 'help?', 'Help!', 'opt out', 'opt out.', 'stop all']) {
+    for (const text of ['STOP', 'stop.', 'opt out', 'opt out.', 'stop all', 'START']) {
       expect(await smsCrisisReply(text, classifierOnly)).toBeNull();
     }
-    // A longer ask for help is not a keyword: it keeps the classifier's 988.
-    expect(await smsCrisisReply('i need help', classifierOnly)).toBe(SMS_CRISIS_REPLY);
+  });
+
+  it('"help" is never gated: someone in crisis texts just "help" (sethford-ee, 2026-10-25)', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    const classifierOnly = vi.fn(async (): Promise<SmsCrisisRead> => ({
+      crisis: true,
+      pattern: false,
+      risk: 'crisis',
+    }));
+    for (const text of ['HELP', 'help', 'help?', 'Help!', 'info', 'help me', 'i need help']) {
+      expect(await smsCrisisReply(text, classifierOnly)).toBe(SMS_CRISIS_REPLY);
+    }
   });
 
   it('an opt-out that reads as crisis keeps its confirmation, then 988', () => {
