@@ -27,6 +27,7 @@ import { llm } from '@livekit/agents';
 import { consentBlocks } from '../../../utils/consent-port.js';
 import { z } from 'zod';
 import {
+  directSendHeld,
   guardedThirdPartySend,
   sendEmail,
   sendSMS,
@@ -201,13 +202,13 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
     return `I need a valid phone number to send a text. "${to}" doesn't look right. Can you provide a number like 555-123-4567?`;
   }
   const phone = validation.sanitized as string;
-  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message));
+  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message, { userId }));
 }
 
 // ===== PHONE CALL FUNCTIONS (Twilio Programmable Voice) =====
 
 /** Initiate an outbound phone call via Twilio */
-async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Promise<string> {
+async function makePhoneCall(to: string, purpose: string, userId?: string): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
     return `I need a valid phone number to make a call. Can you double-check "${to}"?`;
@@ -218,6 +219,7 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
   if (await consentBlocks(validPhone, 'call', true)) {
     return `I can't call that number: it asked not to be called.`;
   }
+  if (await directSendHeld(validPhone, 'call', { userId })) return 'Not calling: held.';
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio not configured for calls');
@@ -241,7 +243,7 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
         body: new URLSearchParams({
           To: validPhone,
           From: TWILIO_PHONE_NUMBER,
-          ...(twimlUrl ? { Url: twimlUrl } : { Twiml: defaultTwiml }),
+          Twiml: defaultTwiml,
         }),
         signal: AbortSignal.timeout(15000),
       }
@@ -269,7 +271,6 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
 
 /** Generate and send a voice message using Alex's voice */
 async function sendVoiceMessageReal(to: string, message: string): Promise<string> {
-  // Backward compatible overload will pass 'unknown'
   return sendVoiceMessageRealWithUserId(to, message, 'unknown');
 }
 
@@ -291,7 +292,6 @@ async function sendVoiceMessageRealWithUserId(
 
   if (!CARTESIA_API_KEY) {
     getLogger().warn('Cartesia not configured for voice messages');
-    // Fallback to text with voice message indicator
     return sendTextReal(to, `🎤 Voice message from Alex: "${message}"`, userId);
   }
 
@@ -534,8 +534,8 @@ export function createCommunicationTools() {
         phoneNumber: z.string().describe('Phone number to call'),
         message: z.string().describe('Message to deliver in the call'),
       }),
-      execute: async ({ phoneNumber, message }) => {
-        return makePhoneCall(phoneNumber, message);
+      execute: async ({ phoneNumber, message }, { ctx }) => {
+        return makePhoneCall(phoneNumber, message, reminderOwner(ctx));
       },
     }),
 

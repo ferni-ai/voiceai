@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { directSendHeld } from '../../../services/communication-service.js';
 import { cleanForFirestore, toSafeDate } from '../../../utils/firestore-utils.js';
 import type { ToolExecutionContext } from './types.js';
 
@@ -1136,6 +1137,8 @@ export async function executeLegacyFallback(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Voice messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
       // Generate the voice message
       log.info({ persona, messageLength: message.length }, '🎤 Generating voice message');
@@ -1149,9 +1152,7 @@ export async function executeLegacyFallback(
         return 'Had trouble generating the voice message. Want me to try again or send a text instead?';
       }
 
-      // Send via MMS using Twilio
-
-      // Twilio MMS requires a media URL - we have it from GCS
+      // Send via MMS using Twilio (the media URL is from GCS)
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -1161,7 +1162,6 @@ export async function executeLegacyFallback(
         return `Voice message ready! Here's the preview: ${voiceMessage.audioUrl}\n\nBut I can't send it yet - messaging isn't fully configured.`;
       }
 
-      // Send MMS with audio attachment
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {
@@ -1231,8 +1231,9 @@ export async function executeLegacyFallback(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Text messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
-      // Check Twilio credentials
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -1242,7 +1243,6 @@ export async function executeLegacyFallback(
         return `I'd send "${message}" to ${contact.name}, but messaging isn't set up yet. Want me to help you draft it for copy-paste?`;
       }
 
-      // Send SMS via Twilio
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {
