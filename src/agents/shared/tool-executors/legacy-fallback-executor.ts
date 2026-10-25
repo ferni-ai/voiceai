@@ -123,8 +123,7 @@ export async function executeLegacyFallback(
       }
     }
 
-    // Return empty string for silent execution
-    return '';
+    return ''; // silent execution
   }
 
   if (fnLower === 'recallfrommemory') {

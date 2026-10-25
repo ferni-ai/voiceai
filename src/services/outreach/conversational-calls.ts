@@ -174,9 +174,8 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
-    // MESSAGING_PIPELINE: every proactive call reaches only the member's own number or one they
-    // hold a call grant for, and stops at an opt-out. A call-hours hold is re-checked when placed
-    // (deferred-calls.ts); no job ever dials a stored quiet-hours call.
+    // MESSAGING_PIPELINE: the member's own number or one they hold a call grant for, never past an
+    // opt-out. A call-hours hold is re-checked when placed (deferred-calls.ts), never stale.
     const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
