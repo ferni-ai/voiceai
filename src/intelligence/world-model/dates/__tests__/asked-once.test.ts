@@ -106,8 +106,8 @@ describe('a dated follow-up over a chain of answers', () => {
     expect(dueDate([base, fact({ id: 'b', eventDate: '2026-10-23' })], TODAY)?.id).toBe('a');
     const asked = fact({ id: 'b', eventDate: '2026-10-23', raisedOn: TODAY, raisedAs: 'passed' });
     expect(dueDate([base, asked], TODAY)).toBeNull();
-    // Another day of the same person waits out the per-person quiet window (person-quiet.test.ts).
-    expect(dueDate([fact({ id: 'c', eventDate: '2026-10-22' }), asked], TODAY)).toBeNull();
+    // Another day of the same person is its own thing.
+    expect(dueDate([fact({ id: 'c', eventDate: '2026-10-19' }), asked], TODAY)?.id).toBe('c');
   });
 });
 
