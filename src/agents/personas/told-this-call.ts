@@ -18,7 +18,7 @@
  * @module agents/personas/told-this-call
  */
 
-import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
+import { crisisReadInFlight, crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
 import type { Line } from './director-notes.js';
 import {
   formatPhraseLoops,
@@ -232,7 +232,7 @@ export function formatTold(told: Told): string {
 /**
  * The record without the names, quotes and phrases `keep` rejects (director-notes.ts
  * told()). On a call with crisis risk noted (`sessionId`), no phrase loops, no
- * quotes and no question streak at all: a crisis-guided request must never be told
+ * quotes and no question streak at all (no streak while a crisis read is in flight): a crisis-guided request must never be told
  * to drop wording or a question (crisis-call-risk.ts). A safety line is never quoted
  * on any call (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
  */
@@ -247,7 +247,10 @@ export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?
     repeated: told.repeated.filter(quotable),
     recentLines: told.recentLines.filter(quotable),
     ...(loops ? { loops: loops.filter((l) => keep(l.phrase)) } : {}),
-    ...(streak !== undefined && !crisis ? { questionStreak: streak } : {}),
+    // Not while a crisis read is still deciding either: it may yet note risk on this turn.
+    ...(streak !== undefined && !crisis && !(sessionId && crisisReadInFlight(sessionId))
+      ? { questionStreak: streak }
+      : {}),
   };
 }
 

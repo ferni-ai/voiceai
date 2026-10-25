@@ -7,19 +7,24 @@ import { Director, type Line } from '../director-notes.js';
 import { isSafetyLine } from '../phrase-loops.js';
 import { formatQuestionStreak, questionStreak } from '../question-streak.js';
 import { formatTold, keptTold, toldThisCall } from '../told-this-call.js';
-import { CUT_MARK } from '../../shared/cut-reply-history.js';
-import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import { CUT_MARK, CUT_REST_MARK } from '../../shared/cut-reply-history.js';
+import {
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+  trackCrisisRead,
+} from '../../../services/safety/crisis-call-risk.js';
 
 const user = (text: string): Line => ({ speaker: 'user', text });
 const ferni = (text: string): Line => ({ speaker: 'ferni', text });
-const STREAK_NOTE = 'End this one without asking one.';
+const STREAK_NOTE = "End this one without asking one, unless you need to check they're safe.";
 
 // Three replies in a row ending on a question, the middle one cut off, a backchannel between.
 const interview: Line[] = [
   user('I went hiking this weekend.'),
   ferni('Oh nice, I love that. Where did you go?'),
   user('Up near the lake.'),
-  ferni(`[laughter] The lake trail is gorgeous. Did you make it to the top? ${CUT_MARK}`),
+  // As cut-reply-history.ts puts it in the chat: the mark first.
+  ferni(`${CUT_MARK} [laughter] The lake trail is gorgeous. Did you make it to the top?`),
   ferni('Mhm.'),
   user('Yeah, all the way up.'),
   ferni('That climb is no joke. How are your legs feeling today?'),
@@ -56,6 +61,28 @@ describe('question streak', () => {
     expect(questionStreak(lines)).toBe(0);
   });
 
+  it('skips the unheard rest of a part-heard reply, and counts a question ending in an emoji', () => {
+    const lines: Line[] = [
+      user('Long day.'),
+      ferni('Oh no, what happened at work today? 😊'),
+      user('Meetings.'),
+      ferni('Ugh, meetings all day sounds rough.'),
+      ferni(`${CUT_REST_MARK} Were they at least short ones?`),
+    ];
+    expect(questionStreak(lines)).toBe(0); // the heard part is a statement
+    expect(questionStreak(lines.slice(0, 2))).toBe(1);
+  });
+
+  it('a safety sentence anywhere in a streak reply gets no note, not only the last one', () => {
+    const lines: Line[] = [
+      user('Everything is too much.'),
+      ferni('That sounds so heavy. Are you thinking about killing yourself? Can you tell me what is going on?'),
+      user('I dunno.'),
+      ferni('I am here and listening. What happened today?'),
+    ];
+    expect(questionStreak(lines)).toBe(0);
+  });
+
   it('writes the note from two in a row', () => {
     expect(formatQuestionStreak(1)).toBe('');
     expect(formatQuestionStreak(2)).toContain(STREAK_NOTE);
@@ -69,6 +96,17 @@ describe('question streak', () => {
     const off = toldThisCall(interview);
     expect(off.questionStreak).toBeUndefined();
     expect(formatTold(keptTold(off, () => true))).not.toContain(STREAK_NOTE);
+  });
+
+  it('is held while a crisis read is in flight, and kept once it settles clean', async () => {
+    const director = new Director({ sessionId: 'reading-call', writeNotes: false });
+    await director.observe(interview);
+    let settle: (v: { risk: string }) => void = () => {};
+    const read = trackCrisisRead('reading-call', 'How are your legs feeling today?', new Promise<{ risk: string }>((r) => (settle = r))); // prettier-ignore
+    expect(director.told()).not.toContain(STREAK_NOTE);
+    settle({ risk: 'none' });
+    await read;
+    expect(director.told()).toContain(STREAK_NOTE);
   });
 
   it('is dropped once the call has crisis risk noted, through the real director', async () => {
