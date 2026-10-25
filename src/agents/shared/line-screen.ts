@@ -15,6 +15,7 @@
 
 import { ANSWERED_BY } from '../../services/outreach/proactive-channels/self-call.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { noteVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
 import {
   waitForCallAnswered,
   type AnswerWatchRoom,
@@ -94,6 +95,8 @@ export interface LineDeps {
   record(answerer: Answerer): Promise<void>;
   /** Leave no message on a machine: whoever placed the call hangs it up. */
   noMessage?: boolean;
+  /** The voicemail message played (voicemail-outcome noteVoicemailSpoken): the report's evidence. */
+  messageSpoken?: () => void;
   now?: () => number;
   tickMs?: number;
 }
@@ -163,6 +166,7 @@ async function leaveMessage(
       return e.silentMs >= 2000 || e.sinceAnswerMs >= 30_000 ? true : undefined;
     }, tick);
     await session.say(voicemailMessage(parties), { allowInterruptions: false }).waitForPlayout();
+    deps.messageSpoken?.();
   } catch (error) {
     log.warn({ error: String(error) }, 'Could not leave the voicemail');
   }
@@ -214,6 +218,7 @@ function defaultDeps(
       const rooms = new RoomServiceClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
       await rooms.removeParticipant(room.name ?? '', participant.identity);
     },
+    messageSpoken: () => noteVoicemailSpoken(sessionId),
     record: async (answerer) => {
       const { getOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
