@@ -81,7 +81,7 @@
    ============================================================================ */
 
 .breathing-card {
-  background: white;
+  background: var(--color-surface-raised);
   border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: 

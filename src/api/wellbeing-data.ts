@@ -72,7 +72,11 @@ export function snapshotsWithin(snapshots: WellbeingSnapshot[], days: number): W
   return snapshots.filter((s) => s.timestamp.getTime() >= cutoff);
 }
 
-/** Load a user's persisted wellbeing profile and recent snapshots. */
+/**
+ * Load a user's persisted wellbeing profile and recent snapshots. A failed read
+ * throws (the routes answer 500 and the panel shows its error state) rather
+ * than reading as "no data yet".
+ */
 export async function loadWellbeingData(userId: string): Promise<WellbeingData> {
   const { loadProfile, loadSnapshots } =
     await import('../services/wellbeing-tracking/persistence.js');
@@ -80,8 +84,8 @@ export async function loadWellbeingData(userId: string): Promise<WellbeingData> 
     await import('../services/wellbeing-tracking/index.js');
 
   let [profile, snapshots] = await Promise.all([
-    loadProfile(userId),
-    loadSnapshots(userId, MAX_WELLBEING_DAYS),
+    loadProfile(userId, { rethrow: true }),
+    loadSnapshots(userId, MAX_WELLBEING_DAYS, { rethrow: true }),
   ]);
 
   if (!profile && snapshots.length === 0) {
@@ -92,7 +96,11 @@ export async function loadWellbeingData(userId: string): Promise<WellbeingData> 
   }
 
   const sorted = [...snapshots].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  const current = profile?.current ?? sorted[0] ?? null;
+  // The profile's pointer lags behind snapshots written after it (the after-call task writes
+  // a snapshot without moving the pointer), so the newer of the two is the current state.
+  const latest = sorted[0] ?? null;
+  const pointed = profile?.current ?? null;
+  const current = pointed && (!latest || pointed.timestamp >= latest.timestamp) ? pointed : latest;
   return { profile, snapshots: sorted, current };
 }
 

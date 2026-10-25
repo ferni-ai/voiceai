@@ -15,7 +15,7 @@ import {
   createBackchannelBag,
   jitterVolume,
 } from '../backchannel-timing.js';
-import { VOICED_TAKES } from '../../shared/reaction-clips.js';
+import { BACKCHANNEL_TAKES, VOICED_TAKES } from '../../shared/reaction-clips.js';
 import { nextReplyMayLaugh } from '../../personas/laugh-ledger.js';
 
 const RATE = 16000;
@@ -122,9 +122,18 @@ describe('when a backchannel starts', () => {
   });
 });
 
-/** The token a clip text belongs to: a voiced mm-hm take is an "Mm-hmm". */
-const tokenOf = (text: string): string =>
-  (VOICED_TAKES.mmhm as readonly string[]).includes(text) ? 'Mm-hmm' : text;
+/** The token a clip text belongs to: a voiced mm-hm take is an "Mm-hmm", a judged take its token's. */
+function tokenOf(text: string): string {
+  if ((VOICED_TAKES.mmhm as readonly string[]).includes(text)) return 'Mm-hmm';
+  for (const tier of Object.values(BACKCHANNEL_TAKES))
+    for (const [token, takes] of Object.entries(tier)) if (takes.includes(text)) return token;
+  return text;
+}
+const MMHMM_SOFT = BACKCHANNEL_TAKES.soft['Mm-hmm'] ?? [];
+const SOFT_CLIPS = ['Mm', 'Mhm', 'Mm-hmm'].flatMap((t) => [
+  t,
+  ...(BACKCHANNEL_TAKES.soft[t] ?? []),
+]);
 
 /** Twenty backchannels in one call: talk 6 s, pause after a sentence, repeat. */
 function twenty(timing: 'on' | 'off') {
@@ -173,32 +182,41 @@ describe('variation across a call', () => {
   });
 
   it('a token with spare takes is held back while the others rest, never past 40%', () => {
-    // Mm-hmm has four takes; Yeah and Right one each, stale for a minute after playing.
+    // Mm-hmm has many takes; "Ha" and "Oh" (contextual, no takes) one each, stale for a minute.
     const bag = createBackchannelBag(() => 0.99);
-    const heard = [bag.play('Right', [], true, () => true, 0)]; // a contextual "Right" first
+    const heard = [bag.play('Oh', [], true, () => true, 0)]; // a contextual "Oh" first
     for (let at = 10_000; at <= 70_000; at += 10_000)
-      heard.push(bag.play(null, ['Mm-hmm', 'Yeah', 'Right'], true, () => true, at));
+      heard.push(bag.play(null, ['Mm-hmm', 'Ha', 'Oh'], true, () => true, at));
     const played = heard.filter((t): t is string => t !== null).map(tokenOf);
-    expect(played).toEqual(['Right', 'Mm-hmm', 'Yeah', 'Mm-hmm', 'Right']);
+    expect(played).toEqual(['Oh', 'Mm-hmm', 'Ha', 'Mm-hmm', 'Oh']);
     // at 70 s only Mm-hmm is fresh, and a third would make it 3 of 6
     expect(played.filter((t) => t === 'Mm-hmm').length / played.length).toBeLessThanOrEqual(0.4);
   });
 
   it('never the same token twice running, even with a fresh take ready', () => {
     const bag = createBackchannelBag(() => 0.99); // keeps the order given
-    const tokens = ['Yeah', 'Right', 'Mm', 'Mhm', 'Mm-hmm'];
-    const heard = [0, 5, 10, 15, 20, 25].map((s) =>
-      bag.play(null, tokens, true, () => true, s * 1000)
-    );
-    expect(heard.map((t) => (t === null ? null : tokenOf(t)))).toEqual([...tokens, null]);
+    const tokens = ['Mm-hmm', 'Ha'];
+    const heard = [0, 5, 10, 15].map((s) => bag.play(null, tokens, true, () => true, s * 1000));
+    // at 15 s "Ha" is stale and Mm-hmm, takes to spare, just played: nothing
+    expect(heard.map((t) => (t === null ? null : tokenOf(t)))).toEqual([...tokens, 'Mm-hmm', null]);
+    expect(heard[2]).not.toBe('Mm-hmm');
   });
 
-  it('soft moments draw only the plain clips, never a voiced take', () => {
+  it('a take not rendered in this voice is skipped for a fresh one of the same token', () => {
     const bag = createBackchannelBag(() => 0.99);
-    const heard = Array.from({ length: 6 }, (_, i) =>
+    const lastTake = MMHMM_SOFT.at(-1);
+    const rendered = (t: string) => t === 'Mm-hmm' || t === lastTake;
+    expect(bag.play(null, ['Mm-hmm'], false, () => false, 0)).toBeNull();
+    expect(bag.play(null, ['Mm-hmm'], false, rendered, 0)).toBe('Mm-hmm');
+    expect(bag.play(null, ['Mm-hmm'], false, rendered, 1000)).toBe(lastTake);
+  });
+
+  it('soft moments draw the plain clip and its soft takes, never a bright or voiced take', () => {
+    const bag = createBackchannelBag(() => 0.99);
+    const heard = Array.from({ length: 12 }, (_, i) =>
       bag.play(null, ['Mm-hmm'], false, () => true, i * 61_000)
     );
-    expect(new Set(heard)).toEqual(new Set(['Mm-hmm']));
+    expect(new Set(heard)).toEqual(new Set(['Mm-hmm', ...MMHMM_SOFT]));
   });
 
   it('gain jitter stays inside +-2 dB', () => {
@@ -209,7 +227,7 @@ describe('variation across a call', () => {
 });
 
 describe('inside the grave gate (#2413)', () => {
-  it('hard news: only the plain soft clips, never Yeah, Right or a voiced take', () => {
+  it('hard news: only the soft clips and soft takes, never Yeah, Right or a bright take', () => {
     let seed = 11;
     const c = call('on', () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 0.5);
     for (let i = 0; i < 40 && c.played.length < 6; i++) {
@@ -218,7 +236,7 @@ describe('inside the grave gate (#2413)', () => {
       c.run(false, 300);
     }
     expect(c.played.length).toBeGreaterThanOrEqual(3);
-    for (const p of c.played) expect(['Mm', 'Mhm', 'Mm-hmm']).toContain(p.text);
+    for (const p of c.played) expect(SOFT_CLIPS).toContain(p.text);
   });
 });
 

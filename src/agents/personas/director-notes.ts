@@ -24,6 +24,7 @@
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerSetsDepthOn, labelsDeflection } from './caller-sets-depth.js';
+import { type CallChannel, withCallChannel } from './director-channel.js';
 import {
   directorAddress,
   directorEscalates,
@@ -284,6 +285,7 @@ export class Director {
       speaking?: () => string;
       /** The persona id on the call now; read only with DIRECTOR_DIRECTS on (director-directs.ts). */
       personaId?: () => string | undefined;
+      channel?: () => CallChannel | undefined; // app or phone: DIRECTOR_KNOWS_CHANNEL (director-channel.ts)
     }
   ) {}
 
@@ -327,7 +329,7 @@ export class Director {
               speaking,
             };
         const reply = await withTimeout(
-          writer(asked.system, asked.prompt),
+          writer(withCallChannel(asked.system, this.opts.channel?.()), asked.prompt),
           this.opts.budgetMs ?? 4000
         );
         if (gen !== this.generation) return; // a newer turn superseded this one

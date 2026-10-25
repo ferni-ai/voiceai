@@ -352,7 +352,7 @@ export function processAnticipatoryTriggers(ctx: AnticipatoryTriggerContext): bo
       diag.session('Anticipatory trigger fired', {
         anticipatedOutcome: result.anticipatedOutcome,
         confidence: result.confidence.toFixed(2),
-        partialTranscript: transcript.slice(0, 50),
+        partialChars: transcript.length,
       });
 
       return true;

@@ -10,6 +10,12 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { FollowUp } from '../../services/follow-through/index.js';
 import { followUp } from '../../services/follow-through/__tests__/fixtures.js';
 
+// Read once when auth-middleware loads, so set before the router is imported.
+vi.hoisted(() => {
+  process.env.API_KEYS = 'svc-key-synthetic';
+  process.env.ADMIN_API_KEYS = 'admin-key-synthetic';
+});
+
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
     token.startsWith('tok-')
@@ -135,6 +141,19 @@ describe('GET /api/follow-through/upcoming', () => {
     expect(res.status).toBe(401);
     expect(stores.reads).toEqual([]);
   });
+
+  it.each(['svc-key-synthetic', 'admin-key-synthetic'])(
+    '401 for an API key (%s): it names no one, so nothing is read',
+    async (key) => {
+      const res = await fetch(`${base}/api/follow-through/upcoming`, {
+        headers: { 'x-api-key': key },
+      });
+
+      expect(res.status).toBe(401);
+      expect(await res.text()).not.toContain('items');
+      expect(stores.reads).toEqual([]);
+    }
+  );
 
   it("lists the caller's live items: soonest first, slipped flagged, done and forgotten left out", async () => {
     stores.forgotten = ['divorce'];
