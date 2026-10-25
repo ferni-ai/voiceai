@@ -12,6 +12,7 @@
  * @module tools/semantic-router/advanced/workers/embedding-worker
  */
 
+import { errorFields } from '../../../../utils/error-class.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { getEmbedding, getEmbeddings } from '../../embedding-providers.js';
 import type { EmbeddingVector } from '../../types.js';
@@ -121,7 +122,7 @@ export class EmbeddingWorker {
       // Trigger processing if not already running
       if (!this.isProcessing) {
         void this.processQueue().catch((error: unknown) => {
-          log.error({ error: String(error) }, 'Embedding queue processing failed');
+          log.error(errorFields(error), 'Embedding queue processing failed');
         });
       }
     });
@@ -279,7 +280,7 @@ export class EmbeddingWorker {
     setInterval(() => {
       if (this.requestQueue.length > 0 && !this.isProcessing) {
         void this.processQueue().catch((error: unknown) => {
-          log.error({ error: String(error) }, 'Embedding queue processing failed');
+          log.error(errorFields(error), 'Embedding queue processing failed');
         });
       }
     }, this.batchDelayMs);
@@ -325,7 +326,7 @@ export class EmbeddingWorker {
         }
       }
     } catch (error) {
-      log.error({ error }, 'Failed to process embedding batch');
+      log.error(errorFields(error), 'Failed to process embedding batch');
     } finally {
       this.isProcessing = false;
     }
@@ -361,7 +362,7 @@ export class EmbeddingWorker {
         });
       }
     } catch (error) {
-      log.error({ error }, 'Pre-warm failed');
+      log.error(errorFields(error), 'Pre-warm failed');
     } finally {
       this.isPrewarming = false;
       log.info({ cacheSize: this.cache.size }, 'Pre-warm complete');

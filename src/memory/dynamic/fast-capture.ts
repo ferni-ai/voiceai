@@ -14,6 +14,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { safeEmitEvent } from './async-events-config.js';
 import { recordFastCapture } from './metrics.js';
 import { isThirdPartyCallUser, noCapture } from '../third-party-call.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'FastCapture' });
 
@@ -314,7 +315,8 @@ export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureR
     linkingSignals.length > 0 ||
     topicHints.length > 0;
 
-  if (hasSignals && transcript.length > 20) {
+  // MINOR_CARE=on: no deep extraction for a held caller under 18 (minor-care.ts).
+  if (hasSignals && transcript.length > 20 && !memoryHeld(sessionId) && !userHeld(userId)) {
     asyncJobId = await queueDeepExtraction({
       userId,
       sessionId,
@@ -658,8 +660,6 @@ interface DeepExtractionJob {
 /**
  * Queue deep extraction for background processing.
  * Fire-and-forget - returns immediately with job ID.
- * 
- * MEMORY FIX: Added better logging to track job queuing
  */
 async function queueDeepExtraction(job: DeepExtractionJob): Promise<string> {
   const jobId = `deep-${job.userId}-${job.sessionId}-${job.turnNumber}-${Date.now()}`;

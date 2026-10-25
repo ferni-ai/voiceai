@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { thanksgivingDay } from '../us-holidays.js';
-import { calendarDaysSince } from '../calendar-days.js';
+import { calendarDaysSince, daysAgoInWords } from '../calendar-days.js';
 import { callerHistory } from '../../agents/multi-agent/greeting-direction.js';
 
 describe('thanksgivingDay', () => {
@@ -59,5 +59,15 @@ describe('greeting "last talked"', () => {
 
   it('n=0: no history', () => {
     expect(callerHistory({ totalConversations: 0 }, new Date())).toBeUndefined();
+  });
+});
+
+describe('daysAgoInWords', () => {
+  it('says a calendar-day count the way a friend would', () => {
+    expect(daysAgoInWords(0)).toBe('earlier today');
+    expect(daysAgoInWords(1)).toBe('yesterday');
+    expect(daysAgoInWords(4)).toBe('4 days ago');
+    expect(daysAgoInWords(14)).toBe('about 2 weeks ago');
+    expect(daysAgoInWords(45)).toBe('a while ago');
   });
 });

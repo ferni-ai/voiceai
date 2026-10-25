@@ -9,6 +9,8 @@
  * builds the same callers at hundreds of memories and scores floor and cap
  * there.
  */
+import { ANCHORS } from '../../src/memory/recall/semantic-recall.js';
+import { storedFactText } from '../../src/memory/recall/stored-fact-vectors.js';
 import type { BenchCaller } from './recall-bench-lib.js';
 
 type Template = { t: string } & Record<string, string | string[]>;
@@ -207,3 +209,51 @@ export function turnHalf(text: string): 'dev' | 'held-out' {
 
 /** fixtures/haystack-followups.json: per caller, [first turn, the next thing said on the same subject]. */
 export type FollowUps = { callers: Record<string, Array<[string, string]>> };
+
+/** Where a caller's own memories sit among their dynamic_facts: older than every distractor, or newer. */
+export type Placement = 'targets-oldest' | 'targets-newest';
+
+/**
+ * The haystack as dynamic_facts documents, newest first, for the
+ * RECALL_VECTOR_INDEX arm (__tests__/vector-index-haystack.test.ts).
+ * "Biscuit breed: golden retriever" becomes entity Biscuit, key breed, so the
+ * text recall embeds (stored-fact-vectors.ts factText) is the memory's own; a
+ * memory not in that form (a thread, Ferni's own line) is a note about the
+ * caller. The caller's labelled and update memories (fresh before stale) come
+ * first or last. Recall loads only the newest 300 (session-recall.ts), so
+ * last puts them past that window once the store is bigger.
+ */
+export function factDocs(
+  callerName: string,
+  store: HaystackMemory[],
+  placement: Placement
+): Array<{ id: string; doc: Record<string, unknown> }> {
+  const rank: Record<MemoryKind, number> = { fresh: 0, labelled: 1, stale: 2, near: 3, generic: 3 };
+  const own = store.filter((m) => rank[m.kind] < 3).sort((a, b) => rank[a.kind] - rank[b.kind]);
+  const padding = store.filter((m) => rank[m.kind] === 3);
+  const newestFirst = placement === 'targets-newest' ? [...own, ...padding] : [...padding, ...own];
+  return newestFirst.map((m, i) => {
+    const parts = /^(\S+) ([^:]+): (.+)$/.exec(m.text);
+    const [entityName, key, value] = parts ? [parts[1], (parts[2] as string).replace(/ /g, '_'), parts[3]] : [callerName, 'note', m.text]; // prettier-ignore
+    const extractedAt = new Date(Date.UTC(2026, 9, 1) - i * 6 * 3_600_000).toISOString();
+    return { id: m.id, doc: { entityName, key, value, confidence: 0.9, extractedAt } };
+  });
+}
+
+/** Facts per caller in the RECALL_VECTOR_INDEX arm: at 300 every fact is loaded; at 1,000, 700 are not. */
+export const VECTOR_INDEX_SIZES = [300, 1000];
+
+/** Every text that arm embeds, by role: the facts and anchors as documents, the turns as queries. */
+export function vectorIndexTexts(
+  callers: BenchCaller[],
+  cases: HaystackCases
+): { document: string[]; query: string[] } {
+  const document = new Set<string>(ANCHORS);
+  const query = new Set<string>();
+  for (const caller of callers) {
+    const store = buildHaystack(caller, cases, Math.max(...VECTOR_INDEX_SIZES));
+    for (const { doc } of factDocs(caller.name, store, 'targets-oldest')) document.add(storedFactText(doc)); // prettier-ignore
+    for (const t of haystackTurns(caller, cases)) query.add(t.text);
+  }
+  return { document: [...document], query: [...query] };
+}
