@@ -39,7 +39,7 @@ import { handleWaitlistQueueRoutes, QUEUE_ROUTE_PATHS } from './waitlist-queue-r
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 import { getEmailSender, type OutgoingEmail } from '../services/email-transport/index.js';
 import { unsubscribeMailbox } from '../services/communication-service.js';
-import { waitlistEmailAllowed } from './waitlist-email-quota.js';
+import { waitlistEmailAllowed, type WaitlistEmailBucket } from './waitlist-email-quota.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -626,11 +626,15 @@ function waitlistMailReady(what: string): boolean {
 }
 
 /** Send through the app transport. Never throws; a failure is logged (no addresses). */
-async function sendWaitlistMail(what: string, email: OutgoingEmail): Promise<boolean> {
+async function sendWaitlistMail(
+  what: string,
+  bucket: WaitlistEmailBucket,
+  email: OutgoingEmail
+): Promise<boolean> {
   ensureFirebaseInitialized();
   const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
   const recipients = Array.isArray(email.to) ? email.to.length : 1;
-  if (!(await waitlistEmailAllowed(getAdminFirestore, what, recipients))) return false;
+  if (!(await waitlistEmailAllowed(getAdminFirestore, what, bucket, recipients))) return false;
   const res = await getEmailSender().send(email);
   if (res.ok) log.info({ what, provider: res.provider }, 'Waitlist email sent');
   else log.warn({ what, provider: res.provider, status: res.status, error: res.error }, 'Waitlist email failed'); // prettier-ignore
@@ -718,7 +722,7 @@ APPROVE NOW: ${approveUrl}
 
 View waitlist: https://ferni.ai/admin/waitlist/`;
 
-  await sendWaitlistMail('admin notification', {
+  await sendWaitlistMail('admin notification', 'adminNotice', {
     to: ADMIN_NOTIFICATION_EMAILS,
     fromName: 'Ferni Waitlist',
     subject,
@@ -880,9 +884,11 @@ async function approveUserAndGrantAccess(
     });
   } else {
     // Fire-and-forget: send welcome email
-    void sendWelcomeEmail(email).catch((err) => {
-      log.warn({ error: String(err) }, 'Failed to send welcome email');
-    });
+    void sendWelcomeEmail(email, approvedBy === 'admin-api' ? 'approved' : 'adminNotice').catch(
+      (err) => {
+        log.warn({ error: String(err) }, 'Failed to send welcome email');
+      }
+    );
   }
 
   return { success: true, phone: waitlistData.phone };
@@ -1000,7 +1006,7 @@ async function notifyAdminOfWelcomeCall(
 </body>
 </html>`;
 
-  await sendWaitlistMail('welcome call notice', {
+  await sendWaitlistMail('welcome call notice', 'adminNotice', {
     to: ADMIN_NOTIFICATION_EMAILS,
     fromName: 'Ferni',
     subject: `📞 ✅ Welcome Call Made: ${email}`,
@@ -1059,7 +1065,7 @@ async function notifyAdminOfWelcomeCallFailure(
 </body>
 </html>`;
 
-  await sendWaitlistMail('welcome call failure notice', {
+  await sendWaitlistMail('welcome call failure notice', 'adminNotice', {
     to: ADMIN_NOTIFICATION_EMAILS,
     fromName: 'Ferni',
     subject: `⚠️ Welcome Call Failed: ${email}`,
@@ -1069,9 +1075,11 @@ async function notifyAdminOfWelcomeCallFailure(
 }
 
 /**
- * Send welcome email when no phone provided
+ * Send welcome email when no phone provided. An admin-API approval (requireAdmin) is
+ * uncapped; a one-click email-link approval counts as an admin notice (its token is a
+ * reusable ~48 h bearer link, see waitlist-email-quota.ts).
  */
-async function sendWelcomeEmail(email: string): Promise<void> {
+async function sendWelcomeEmail(email: string, bucket: WaitlistEmailBucket): Promise<void> {
   if (!waitlistMailReady('welcome email')) return;
 
   const appUrl = 'https://app.ferni.ai';
@@ -1128,7 +1136,7 @@ Open Ferni: ${appUrl}
 
 Just reply if you need anything. I'm here. 🌱`;
 
-  await sendWaitlistMail('welcome email', {
+  await sendWaitlistMail('welcome email', bucket, {
     to: email,
     fromName: 'Ferni',
     subject: "You're in! Welcome to Ferni 🌿",
@@ -1374,7 +1382,7 @@ ferni.ai - Building AI that feels human`;
   const subject = firstName ? `Welcome to Ferni, ${firstName}` : 'Welcome to Ferni';
 
   // A newsletter is mail they can opt out of: 'bulk', with a List-Unsubscribe mailto
-  await sendWaitlistMail('newsletter welcome', {
+  await sendWaitlistMail('newsletter welcome', 'public', {
     to: email,
     fromName: 'Ferni',
     subject,

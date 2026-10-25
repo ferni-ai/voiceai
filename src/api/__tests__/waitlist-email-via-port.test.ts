@@ -178,44 +178,97 @@ describe('waitlist email through the port', () => {
   });
 });
 
-describe('the daily cap on waitlist email', () => {
+describe('the daily caps on waitlist email, one bucket per sender', () => {
   const today = () => new Date().toISOString().slice(0, 10);
+  const counts = () => coll('ops_email_quota').get(today());
   const signedUp = (e: string) => coll('waitlist').get(docId(e));
+  const pending = (e: string) => coll('waitlist').set(docId(e), { email: e, status: 'pending' });
+  const settle = () =>
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+  /** GET the one-click approval link, as the admin email would. */
+  async function clickApprovalLink(e: string): Promise<number> {
+    const { generateApprovalToken } = await import('../waitlist-approval-token.js');
+    const token = generateApprovalToken(e, 'x'.repeat(40));
+    const req = { url: `/api/waitlist/approve/${token}?email=${encodeURIComponent(e)}`, method: 'GET', headers: { host: 'localhost' } }; // prettier-ignore
+    let status = 0;
+    const res = { writeHead: (s: number) => void (status = s), setHeader: () => {}, end: () => {} }; // prettier-ignore
+    await handleWaitlistRoutes(req as never, res as never);
+    return status;
+  }
+  beforeEach(() => vi.stubEnv('WAITLIST_APPROVAL_SECRET', 'x'.repeat(40)));
 
-  it('counts each recipient against the day, under the cap it sends', async () => {
+  it('counts each bucket separately, per recipient', async () => {
     await post('/api/waitlist', { email: 'counted@example.com', source: 'newsletter' });
     await vi.waitFor(() => expect(port.sent).toHaveLength(2));
-    // admin notice (2 recipients) + newsletter welcome (1)
-    expect(coll('ops_email_quota').get(today())).toMatchObject({ waitlist: 3 });
+    pending('admin-ok@example.com');
+    await post('/api/waitlist/approve', { email: 'admin-ok@example.com' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(3));
+    pending('link-ok@example.com');
+    expect(await clickApprovalLink('link-ok@example.com')).toBe(200);
+    await vi.waitFor(() => expect(port.sent).toHaveLength(4));
+    // admin notice (2 recipients) + link-approval welcome (1); newsletter (1); admin-API welcome (1)
+    expect(counts()).toMatchObject({ adminNotice: 3, public: 1, approved: 1 });
   });
 
-  it('at the cap nothing is sent and the signup still succeeds', async () => {
+  it('a full public bucket stops the newsletter welcome but not admin notices or approvals', async () => {
     vi.stubEnv('WAITLIST_EMAIL_DAILY_LIMIT', '5');
-    coll('ops_email_quota').set(today(), { waitlist: 5 });
+    coll('ops_email_quota').set(today(), { public: 5 });
     expect(await post('/api/waitlist', { email: 'late@example.com', source: 'newsletter' })).toBe(200); // prettier-ignore
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 20);
-    });
-    expect(port.sent).toHaveLength(0);
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    expect(port.sent[0]!.subject).toContain('New Waitlist Signup');
+    await settle();
+    expect(port.sent).toHaveLength(1); // no newsletter welcome
     expect(signedUp('late@example.com')).toMatchObject({ status: 'pending' });
-    expect(coll('ops_email_quota').get(today())).toMatchObject({ waitlist: 5 });
+
+    pending('approved@example.com');
+    await post('/api/waitlist/approve', { email: 'approved@example.com' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(2));
+    expect(port.sent[1]).toMatchObject({ to: 'approved@example.com' });
+    expect(counts()).toMatchObject({ public: 5, adminNotice: 2, approved: 1 });
   });
 
-  it('a send that would cross the cap is skipped while one that fits goes out', async () => {
-    vi.stubEnv('WAITLIST_EMAIL_DAILY_LIMIT', '1');
+  it('a full adminNotice bucket stops admin notices and link approvals, not the newsletter or admin-API approvals', async () => {
+    vi.stubEnv('WAITLIST_ADMIN_NOTICE_DAILY_LIMIT', '3');
+    coll('ops_email_quota').set(today(), { adminNotice: 3 });
+    expect(await post('/api/waitlist', { email: 'reader@example.com', source: 'newsletter' })).toBe(200); // prettier-ignore
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    expect(port.sent[0]).toMatchObject({ to: 'reader@example.com', kind: 'bulk' });
+
+    pending('link@example.com');
+    expect(await clickApprovalLink('link@example.com')).toBe(200); // still approved
+    await settle();
+    expect(port.sent).toHaveLength(1);
+    expect(signedUp('link@example.com')).toMatchObject({ status: 'approved' });
+
+    pending('admin@example.com');
+    await post('/api/waitlist/approve', { email: 'admin@example.com' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(2));
+    expect(port.sent[1]).toMatchObject({ to: 'admin@example.com' });
+  });
+
+  it('a 2-recipient notice that would cross its cap is skipped', async () => {
+    vi.stubEnv('WAITLIST_ADMIN_NOTICE_DAILY_LIMIT', '1');
     await post('/api/waitlist', { email: 'edge@example.com', source: 'newsletter' });
     await vi.waitFor(() => expect(port.sent).toHaveLength(1));
-    // the 2-recipient admin notice does not fit in 1; the 1-recipient welcome does
     expect(port.sent[0]!.to).toBe('edge@example.com');
+    expect(counts()).toMatchObject({ public: 1 });
+    expect(counts()?.adminNotice).toBeUndefined();
   });
 
-  it('when the counter fails it sends nothing (fail closed) and the signup succeeds', async () => {
+  it('a counter error fails closed for the capped buckets; an admin-API approval still sends', async () => {
     quota.fail = true;
     expect(await post('/api/waitlist', { email: 'down@example.com', source: 'newsletter' })).toBe(200); // prettier-ignore
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 20);
-    });
+    pending('link-down@example.com');
+    expect(await clickApprovalLink('link-down@example.com')).toBe(200);
+    await settle();
     expect(port.sent).toHaveLength(0);
     expect(signedUp('down@example.com')).toMatchObject({ status: 'pending' });
+
+    pending('admin-down@example.com');
+    await post('/api/waitlist/approve', { email: 'admin-down@example.com' });
+    await vi.waitFor(() => expect(port.sent).toHaveLength(1));
+    expect(port.sent[0]).toMatchObject({ to: 'admin-down@example.com' });
   });
 });

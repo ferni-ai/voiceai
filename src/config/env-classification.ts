@@ -68,5 +68,6 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   USE_KYUTAI_STT: 'unread',
   USE_OPENAI_REALTIME: 'unread',
   VOICE_PIPELINE: 'behavior',
+  WAITLIST_ADMIN_NOTICE_DAILY_LIMIT: 'config',
   WAITLIST_EMAIL_DAILY_LIMIT: 'config',
 };
