@@ -18,7 +18,12 @@ import {
   type ApiDashboardResponse,
   type ApiTrendsResponse,
 } from './wellbeing-api.js';
-import { renderDimensionCard, renderQuiet, type DimensionCard } from './wellbeing-cards.js';
+import {
+  quietFieldKeys,
+  renderDimensionCard,
+  renderQuiet,
+  type DimensionCard,
+} from './wellbeing-cards.js';
 
 const log = createLogger('WellbeingDashboard');
 
@@ -1447,12 +1452,7 @@ function transformApiResponse(
     achievements,
     prediction,
     lastUpdated: currentState.lastUpdated,
-    // Only a server that sends per-field info can tell "never came up" from "not sent"
-    quiet: fields
-      ? (['mood', 'energy', 'anxiety', 'connection', 'purpose', 'sleep'] as const)
-          .filter((k) => !fields[k])
-          .map((k) => `wellbeing.${k}`)
-      : [],
+    quiet: quietFieldKeys(fields),
   };
 }
 

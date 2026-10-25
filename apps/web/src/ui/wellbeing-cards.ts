@@ -6,6 +6,7 @@
  * @module ui/wellbeing-cards
  */
 import { formatDate, t } from '../i18n/index.js';
+import type { ApiCurrentState } from './wellbeing-api.js';
 
 export interface DimensionCard {
   dimension: string;
@@ -19,6 +20,17 @@ export interface DimensionCard {
   sparkline: number[] | null; // Last 30 days; null when the trend failed to load
   insight: string;
   color: string;
+}
+
+/**
+ * The fields the server says never came up, as name keys. Only a server that sends
+ * per-field info can tell "never came up" from "not sent", so none without it.
+ */
+export function quietFieldKeys(fields: ApiCurrentState['fields']): string[] {
+  if (!fields) return [];
+  return (['mood', 'energy', 'anxiety', 'connection', 'purpose', 'sleep'] as const)
+    .filter((k) => !fields[k])
+    .map((k) => `wellbeing.${k}`);
 }
 
 /** The dimensions nobody has talked about lately: said kindly, never scored. */
