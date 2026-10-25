@@ -1,15 +1,10 @@
 /**
  * Strip the caller's words from the routing events already stored.
  *
- * Until 2026-10-24 every routed turn wrote semantic_router_events/{YYYY-MM-DD}/events/{id}
- * with the full, untruncated `inputText`. New events keep only its length
- * (routing-analytics.ts); this removes the words from the old ones and records their
- * length instead. Every other field (userId, tool, confidence, latency, outcome) is
- * left as it is, and nothing is deleted.
- *
- * Dry run by default (scripts/destructive-gate.ts): counts only, never ids or contents.
- * Each finished day is printed, so an interrupted run can resume with --from=<that day>;
- * a rerun is safe anyway, as stripped events are not written again.
+ * Until 2026-10-24 each routed turn wrote semantic_router_events/{day}/events/{id} with the
+ * full `inputText`; new events keep its length (routing-analytics.ts). This does the same to
+ * old ones. Other fields stay, nothing is deleted. Dry run by default (destructive-gate.ts):
+ * counts only. Finished days are printed, to resume with --from; a rerun writes nothing.
  *
  *   npx tsx scripts/migrations/strip-router-event-words.ts
  *   npx tsx scripts/migrations/strip-router-event-words.ts --apply --confirm-project=johnb-2025
@@ -23,20 +18,9 @@ import { destructiveMode, refusalMessage } from '../destructive-gate.js';
 import { getFirestoreDatabase } from '../../src/config/environment.js';
 
 export const COLLECTION = 'semantic_router_events';
-/**
- * Fields that hold the caller's words: `inputText` is the one the writer stored; the rest
- * are what the in-memory event carried (the words, the matched words, a tool's extracted
- * args and match reason, an action's args or question), removed too should any be found.
- */
-export const WORD_FIELDS = [
-  'inputText',
-  'normalizedText',
-  'intent',
-  'topMatch',
-  'action',
-  'extractedArgs',
-  'matchReason',
-] as const;
+/** Fields holding words: the writer stored `inputText`; the rest the in-memory event held */
+// prettier-ignore
+export const WORD_FIELDS = ['inputText', 'normalizedText', 'intent', 'topMatch', 'action', 'extractedArgs', 'matchReason'] as const;
 const PAGE = 400;
 
 interface Doc {
