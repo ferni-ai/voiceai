@@ -118,4 +118,7 @@ export interface CallOutcome {
 
   /** What the person asked Ferni to pass on to the user, in their (screened) words. */
   message?: string;
+
+  /** status 'voicemail' only: Ferni really spoke a message (services/outreach/voicemail-outcome.ts). */
+  voicemailLeft?: boolean;
 }

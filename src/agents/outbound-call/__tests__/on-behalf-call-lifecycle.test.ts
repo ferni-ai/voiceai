@@ -148,6 +148,40 @@ describe('buildCallOutcome with how Ferni ended the call', () => {
   });
 });
 
+describe('buildCallOutcome: voicemail_left needs a message Ferni actually spoke', () => {
+  const call = makeCall('c');
+  // Prod 10-24: the opener played over the greeting, then endCall(voicemail_left), no message.
+  const openerOverGreeting: CallTranscriptTurn[] = [
+    { role: 'agent', content: "Hi, is this Sam's mom?" },
+    { role: 'recipient', content: "You've reached Linda, please leave a message after the tone." },
+  ];
+  const messageAfterGreeting: CallTranscriptTurn[] = [
+    ...openerOverGreeting,
+    {
+      role: 'agent',
+      content: "Hi Linda, it's Ferni, Sam's AI friend. Sam wanted to check in. Thanks, bye!",
+    },
+  ];
+
+  it('endCall voicemail_left with no message spoken: voicemail, no message left', () => {
+    const outcome = buildCallOutcome(call, openerOverGreeting, null, 'voicemail_left');
+    expect(outcome).toMatchObject({ status: 'voicemail', voicemailLeft: false });
+    expect(outcome.outcome).toContain("didn't leave a message");
+    expect(outcome.outcome).not.toMatch(/left a message/);
+    expect(outcome.callbackRequired).toBe(true);
+  });
+
+  it('endCall voicemail_left with a message spoken after the greeting: left a message', () => {
+    const outcome = buildCallOutcome(call, messageAfterGreeting, null, 'voicemail_left');
+    expect(outcome).toMatchObject({ status: 'voicemail', voicemailLeft: true });
+    expect(outcome.outcome).toContain('left a message');
+  });
+
+  it('a lost transcript proves no message', () => {
+    expect(buildCallOutcome(call, null, null, 'voicemail_left').voicemailLeft).toBe(false);
+  });
+});
+
 describe('completeOnBehalfCall', () => {
   it('does not summarize a voicemail as a conversation', async () => {
     const p = ports(conversation, undefined, 'voicemail_left');
@@ -187,7 +221,12 @@ describe('completeOnBehalfCall', () => {
   it('a later exit path waits for the report already under way (the job exits after it)', async () => {
     let release: () => void = () => undefined;
     const p = ports(conversation);
-    p.report.mockImplementation(() => new Promise<void>((r) => (release = r)));
+    p.report.mockImplementation(
+      () =>
+        new Promise<void>((r) => {
+          release = r;
+        })
+    );
     const call = makeCall('c-wait');
     const first = completeOnBehalfCall('s-wait', call, 90, true, p);
     let laterDone = false;
@@ -195,7 +234,9 @@ describe('completeOnBehalfCall', () => {
       laterDone = true;
     });
     await vi.waitFor(() => expect(p.report).toHaveBeenCalledTimes(1));
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => {
+      setTimeout(r, 20);
+    });
     expect(laterDone).toBe(false);
     release();
     await Promise.all([first, later]);

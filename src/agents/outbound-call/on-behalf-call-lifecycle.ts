@@ -27,6 +27,7 @@ import { screenedCallerText } from '../../services/outreach/caller-text.js';
 import { relayedMessage } from '../../services/outreach/relayed-message.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 import { noteCallRefinement } from '../../services/follow-through/index.js';
+import { ferniLeftVoicemail } from '../../services/outreach/voicemail-outcome.js';
 import type { CallDisposition } from './call-control.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
@@ -107,14 +108,20 @@ export function buildCallOutcome(
 ): CallOutcome {
   const name = call.contact.name;
   // What Ferni knew when it hung up beats what the transcript suggests: a
-  // voicemail greeting is transcribed as the other side talking.
+  // voicemail greeting is transcribed as the other side talking. But "left a
+  // message" needs Ferni's own speech after the greeting, not just the model's
+  // say-so (prod 10-24: voicemail_left with no message spoken).
   if (disposition === 'voicemail_left') {
+    const left = ferniLeftVoicemail(turns);
     return {
       callId: call.callId,
       status: 'voicemail',
       objectiveAchieved: false,
-      outcome: `I got ${name}'s voicemail and left a message letting them know you were thinking of them.`,
-      callbackRequired: false,
+      outcome: left
+        ? `I got ${name}'s voicemail and left a message letting them know you were thinking of them.`
+        : `I got ${name}'s voicemail, but I didn't leave a message. Want me to try again later?`,
+      callbackRequired: !left,
+      voicemailLeft: left,
     };
   }
   if (disposition === 'unreachable') {
@@ -177,6 +184,7 @@ export function buildCallOutcome(
         objectiveAchieved: false,
         outcome: `I got ${name}'s voicemail. Want me to try again later?`,
         callbackRequired: true,
+        voicemailLeft: ferniLeftVoicemail(turns),
       };
     }
     if (how === 'opted_out' || how === 'declined') {

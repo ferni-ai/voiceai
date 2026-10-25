@@ -136,7 +136,8 @@ export function createEndCallTool(sessionId: string, hangUp: HangUp = deleteRoom
       outcome: z
         .enum(CALL_DISPOSITIONS)
         .describe(
-          'completed: you talked and said goodbye; voicemail_left: you left a message; ' +
+          'completed: you talked and said goodbye; voicemail_left: you spoke a message after ' +
+            'the greeting (the report checks); ' +
             "refused: they didn't want to talk; wrong_number: it wasn't the right person"
         ),
     }),

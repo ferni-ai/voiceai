@@ -8,6 +8,7 @@
  */
 
 import { getJobContext, voice } from '@livekit/agents';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { outboundPartiesFor, waitForCallAnswered } from '../shared/outbound-opener.js';
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
@@ -18,6 +19,21 @@ const log = createLogger({ module: 'livekit-call-opening' });
 
 /** Longer than the dial's ringing timeout, so the SIP side always decides first. */
 const ANSWER_WAIT_MS = 60_000;
+
+/** No words this long after pickup is a silent pickup, which gets the opener. */
+const SILENT_PICKUP_MS = 2_500;
+/**
+ * CALL_VOICEMAIL_V2: the same wait, long enough for a late voicemail greeting.
+ * Prod 2026-10-24: a greeting began ~4-5 s after pickup; at 2.5 s it was taken
+ * for a silent pickup and the opener played over it.
+ */
+export const FIRST_SPEECH_TIMEOUT_MS = 6_000;
+/** After a call screener, silence is just waiting. */
+const AFTER_SCREENER_MS = 10_000;
+/** CALL_VOICEMAIL_V2: after the opener, how long to keep listening for a greeting (or a reply). */
+export const AFTER_OPENER_LISTEN_MS = 8_000;
+/** The longest wait for the opener to start playing before listening anyway. */
+const OPENER_START_WAIT_MS = 3_000;
 
 /** The phone leg's identity, set by the orchestrator when it dials. */
 export const phoneIdentity = (callId: string) => `phone_${callId}`;
@@ -44,6 +60,34 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
 
   const session = agent.session as voice.AgentSession;
   const identity = phoneIdentity(call.callId);
+  const voicemailV2 = flagOn('CALL_VOICEMAIL_V2');
+  let openerPlayed = false;
+
+  const listen = async (noSpeechTimeoutMs: number, stage: string): Promise<FirstWords> => {
+    const detector = new voice.AMD(session, {
+      participantIdentity: identity,
+      humanSilenceThresholdMs: 500, // answer "Hello?" within about half a second
+      noSpeechTimeoutMs,
+      waitUntilFinished: true, // let a voicemail greeting finish before speaking
+      interruptOnMachine: true, // a machine verdict also stops Ferni mid-opener
+    });
+    try {
+      const verdict = await detector.execute();
+      log.info(
+        {
+          callId: call.callId,
+          category: verdict.category,
+          delayMs: verdict.delayMs,
+          afterScreener: stage === 'after_screener',
+          stage,
+        },
+        'Call answered'
+      );
+      return { category: verdict.category, transcript: verdict.transcript };
+    } finally {
+      await detector.aclose();
+    }
+  };
 
   void openOnBehalfCall(parties, {
     waitForAnswer: () => {
@@ -54,38 +98,27 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
       };
       return waitForCallAnswered(room, { identity, attributes }, ANSWER_WAIT_MS, 0);
     },
-    hearFirstWords: async (options): Promise<FirstWords> => {
-      const detector = new voice.AMD(session, {
-        participantIdentity: identity,
-        humanSilenceThresholdMs: 500, // answer "Hello?" within about half a second
-        // A silent pickup gets the opener after ~2.5 s; after a screener, silence is just waiting.
-        noSpeechTimeoutMs: options?.afterScreener ? 10_000 : 2_500,
-        waitUntilFinished: true, // let a voicemail greeting finish before speaking
-        interruptOnMachine: true,
-      });
-      try {
-        const verdict = await detector.execute();
-        log.info(
-          {
-            callId: call.callId,
-            category: verdict.category,
-            delayMs: verdict.delayMs,
-            afterScreener: options?.afterScreener === true,
-          },
-          'Call answered'
-        );
-        return { category: verdict.category, transcript: verdict.transcript };
-      } finally {
-        await detector.aclose();
-      }
-    },
+    hearFirstWords: (options) =>
+      options?.afterScreener
+        ? listen(AFTER_SCREENER_MS, 'after_screener')
+        : listen(voicemailV2 ? FIRST_SPEECH_TIMEOUT_MS : SILENT_PICKUP_MS, 'pickup'),
+    ...(voicemailV2 && {
+      hearAfterOpener: async () => {
+        // Detection holds queued speech, so it starts once the opener is playing.
+        if (!openerPlayed) await speakingStarted(session, OPENER_START_WAIT_MS);
+        return listen(AFTER_OPENER_LISTEN_MS, 'after_opener');
+      },
+    }),
     say: async (text) => {
       if (agent.userData) {
         agent.userData.greetingText = text;
         agent.userData.greetingInjected = false;
       }
       if (agent.say) agent.say(text, { allowInterruptions: true });
-      else await session.say(text, { allowInterruptions: true }).waitForPlayout();
+      else {
+        await session.say(text, { allowInterruptions: true }).waitForPlayout();
+        openerPlayed = true;
+      }
     },
     answerScreener: async (text) => {
       await session.say(text, { allowInterruptions: false }).waitForPlayout();
@@ -106,4 +139,21 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
     }
   });
   return true;
+}
+
+/** Resolves once Ferni is speaking, or after `ms` (a muted or failed opener never starts). */
+function speakingStarted(session: voice.AgentSession, ms: number): Promise<void> {
+  if (session.agentState === 'speaking') return Promise.resolve();
+  return new Promise((resolve) => {
+    const onState = (event: voice.AgentStateChangedEvent) => {
+      if (event.newState === 'speaking') done();
+    };
+    const done = () => {
+      clearTimeout(timer);
+      session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+  });
 }
