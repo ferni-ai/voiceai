@@ -60,19 +60,30 @@ const { handleTokenRoutes } = await import('../../../../src/servers/api/routes/t
 const { fetchConnectionToken } = await import('../../src/services/token-fetch.service.js');
 const { setLocale } = await import('../../src/i18n/index.js');
 
-/** The browser's fetch, answered by the real /token handler; anything else fails. */
+/** The Accept-Language a browser sends on its own, as Chrome writes it: "en-US,en;q=0.9". */
+const ownHeader = (tags: readonly string[]) =>
+  tags.map((tag, i) => (i ? `${tag};q=${(1 - i * 0.1).toFixed(1)}` : tag)).join(',');
+
+/** A fresh IP per request, so /token's per-IP rate limit never answers the grid with 429. */
+let requestCount = 0;
+
+/**
+ * The browser's fetch, answered by the real /token handler; anything else fails.
+ * Like a real browser it sends its own Accept-Language unless the page set one.
+ */
 async function browserFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
   const url = new URL(String(input), 'http://localhost:3000');
   if (url.pathname !== '/token') throw new Error(`unexpected request to ${url.href}`);
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { 'accept-language': ownHeader(navigator.languages) };
   for (const [k, v] of Object.entries((init.headers ?? {}) as Record<string, string>)) {
     headers[k.toLowerCase()] = v;
   }
+  requestCount++;
   const req = {
     url: url.pathname + url.search,
     method: init.method ?? 'GET',
     headers,
-    socket: { remoteAddress: '198.51.100.9' },
+    socket: { remoteAddress: `10.${(requestCount >> 8) & 255}.${requestCount & 255}.9` },
   } as unknown as IncomingMessage;
   let status = 200;
   let body = '';
@@ -132,11 +143,83 @@ describe('the app language reaches /token', () => {
     expect(meta.locale).toBe('fr');
   });
 
-  it("keeps the browser's region for the chosen language: en-AU stays Australian", async () => {
-    browserLanguages(['en-AU', 'en']);
+  it("an English app language leaves the browser's header: en-GB in an en-US browser stays American", async () => {
+    browserLanguages(['en-US', 'en']);
     await setLocale('en-GB');
     const meta = await callMetadata('cy');
-    expect(meta.locale).toBe('en-AU');
-    expect(meta.preferredAccent).toBe('australian');
+    expect(meta.locale).toBe('en-US');
+    expect(meta.preferredAccent).toBe('american');
+  });
+});
+
+/**
+ * A UI language choice never changes Ferni's voice (lead decision on #2791): a
+ * non-American accent swaps the persona voice for a Cartesia-localized one.
+ *
+ * Every app language x browser language list x saved location, through the real
+ * web fetch and the real /token, against the same /token call carrying only the
+ * browser's own header, which is what main's web sent (it set no Accept-Language).
+ * This PR doesn't touch how /token picks the accent, so that call's accent is main's.
+ */
+describe('the accent never follows the app language', () => {
+  const APP = ['en-US', 'en-GB', 'es', 'fr', 'ja', 'zh-Hant'] as const;
+  const BROWSERS: string[][] = [
+    ['en-US'],
+    ['en-US', 'en'],
+    ['en-GB', 'en'],
+    ['en-AU'],
+    ['en-NZ'],
+    ['en-IN'],
+    ['en-CA', 'fr-CA'],
+    ['es-MX', 'en-US'],
+    ['pt-BR', 'en-GB'],
+    ['de-DE'],
+    ['fr-FR', 'en'],
+  ];
+  const SAVED: Record<string, Record<string, unknown> | null> = {
+    none: null,
+    US: { location: { city: 'Tampa', regionCode: 'FL', countryCode: 'US' } },
+    GB: { location: { city: 'Leeds', countryCode: 'GB' } },
+  };
+
+  /** The accent main's web got: the same call with only the browser's own header. */
+  async function mainAccent(who: string, browser: string[]): Promise<unknown> {
+    dispatched.length = 0;
+    const res = await browserFetch(`/token?room=room-${who}-main&username=${who}`, {
+      headers: { Authorization: `Bearer tok-${who}`, 'Accept-Language': ownHeader(browser) },
+    });
+    expect(res.status).toBe(200);
+    return dispatched[0]?.preferredAccent;
+  }
+
+  beforeEach(() => {
+    globalThis.fetch = browserFetch as typeof fetch;
+    profiles.clear();
+  });
+  afterAll(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it(`is unchanged in all ${APP.length * BROWSERS.length * 3} cases`, async () => {
+    const changed: string[] = [];
+    let n = 0;
+    for (const app of APP) {
+      await setLocale(app);
+      for (const browser of BROWSERS) {
+        browserLanguages(browser);
+        for (const [saved, profile] of Object.entries(SAVED)) {
+          const who = `g${n++}`;
+          if (profile) profiles.set(`uid-${who}-0000`, profile);
+          const before = await mainAccent(who, browser);
+          const after = (await callMetadata(who)).preferredAccent;
+          if (after !== before)
+            changed.push(
+              `${app} | ${browser.join(',')} | ${saved}: ${String(before)} -> ${String(after)}`
+            );
+        }
+      }
+    }
+    expect(n).toBe(APP.length * BROWSERS.length * 3);
+    expect(changed).toEqual([]);
   });
 });

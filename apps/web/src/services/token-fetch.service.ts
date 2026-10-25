@@ -57,9 +57,10 @@ export async function fetchConnectionToken(request: TokenRequest): Promise<Token
   // get saved under anonymous device IDs instead of your profile!
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    // The language chosen in the app, not just the browser's: /token sets the call's locale from it
-    'Accept-Language': appAcceptLanguage(),
   };
+  // A non-English app language reaches the call's locale; English leaves the browser's own (accent)
+  const appLanguage = appAcceptLanguage();
+  if (appLanguage) headers['Accept-Language'] = appLanguage;
 
   try {
     const { getAuthToken } = await import('./firebase-auth.service.js');
