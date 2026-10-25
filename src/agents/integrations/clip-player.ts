@@ -13,7 +13,7 @@
 import { voice } from '@livekit/agents';
 import { AudioFrame, AudioResampler, type Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
-import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceCallEnding } from './presence-closing.js';
 import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
 import {
   createPresenceWatcher,
@@ -375,7 +375,7 @@ function startPresenceSounds(
   };
   // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
   const recorded = presenceClipPickers();
-  const quiet = () => stayQuietOn(session);
+  const quiet = () => presenceCallEnding(session);
   const watchers = [
     createPresenceWatcher({
       play: (quietMs) =>
@@ -401,12 +401,15 @@ function startPresenceSounds(
     watchers.forEach((w) => w.onAgentState(ev.newState ?? ''));
   const onUser = (ev: { newState?: string }) =>
     watchers.forEach((w) => w.onUserState(ev.newState ?? ''));
+  const onClose = () => watchers.forEach((w) => w.close()); // nothing armed plays after close
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
   session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+  session.on(voice.AgentSessionEventTypes.Close, onClose);
   return () => {
-    watchers.forEach((w) => w.close());
+    onClose();
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
     session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+    session.off(voice.AgentSessionEventTypes.Close, onClose);
   };
 }
 

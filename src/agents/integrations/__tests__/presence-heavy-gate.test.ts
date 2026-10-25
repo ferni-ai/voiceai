@@ -2,7 +2,7 @@
  * No idle hum, whistle, tune or yawn (voiced presence, live on prod) and no
  * tool hum right after a heavy turn said calmly, on a call with crisis risk,
  * or after the goodbyes (presence-heavy.ts). Light turns still get them, and
- * the hard turn keeps the silence serious for itself and the two turns after.
+ * the hard turn keeps the silence serious for the rest of the call.
  * On hard news or crisis risk the live backchannels and the turn-opening
  * sound keep to soft "mm"s, and the idle sound stops when he starts talking.
  *
@@ -195,7 +195,7 @@ describe('a light turn, the same quiet window', () => {
   });
 });
 
-describe('the hard turn keeps the silence serious for itself and the two turns after', () => {
+describe('the hard turn keeps the silence serious for the rest of the call', () => {
   const heavy = 'my dad died last week';
   const light = ['haha anyway', 'so what are you up to', 'what is the weather like'];
 
@@ -206,9 +206,10 @@ describe('the hard turn keeps the silence serious for itself and the two turns a
   it('two light turns after it: still no sound', () => {
     expect(idleSounds(call([heavy, ...light.slice(0, 2)]))).toBe(0);
   });
-  it('three light turns after it: sounds are back', () => {
-    expect(idleSounds(call([heavy, ...light]))).toBe(1);
-    expect(toolHums(call([heavy, ...light]))).toBe(1);
+  it('three light turns after it, past the lookback: still no sound', () => {
+    expect(idleSounds(call(light))).toBe(1); // the same light turns alone: a sound
+    expect(idleSounds(call([heavy, ...light]))).toBe(0);
+    expect(toolHums(call([heavy, ...light]))).toBe(0);
   });
 });
 
