@@ -1,6 +1,6 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on: the caller's name ends its own sentence where it would run on: the name gate finds ", Seth, and ..." and keeps it as "Seth. And ..." (with NAME_FALLING_INTONATION) or drops it with the hello or comma before it (agents/personas/name-vocatives.ts, name-gate.ts); with NAME_FALLING_INTONATION, the TTS gateway also says a reply-opening "Seth, ..." as "Seth. ..." and drops the "Oh" in "Oh hey Seth," (speech/tts-gateway/name-intonation.ts).
+// on (with NAME_FALLING_INTONATION): the caller's name ends its own sentence where it would run on at the start of a reply: the TTS gateway says a reply-opening "Seth, ..." as "Seth. ..." (not for word-names like Will or Hope) and "Oh hey Seth," as "Hey Seth." (speech/tts-gateway/name-intonation.ts); the name gate ends a kept "Yes, Seth, I'm" whose comma went out first, and mid-call holds an opening hello so a dropped name takes it too ("Morning.", not "Hey, morning."; agents/personas/name-gate.ts). Replies without the caller's name are unchanged.
 export const NAME_FALLING_SPLIT = {
   default: 'off',
   owner: 'voice',

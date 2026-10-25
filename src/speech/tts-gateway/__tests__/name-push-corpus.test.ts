@@ -41,9 +41,11 @@ describe('NAME_FALLING_SPLIT off', () => {
       expect.arrayContaining([
         "Seth, morning. How'd you sleep?",
         'Oh hey Seth, how was the run?',
-        'See you later, Sam, have a good one.',
-        'I hear you, Sam, and that sounds hard.',
+        'Hey Sam, morning.',
       ])
     );
+    // The ", Sam, and <clause>" rule was cut after round 2 (#2726): these go as main sends them.
+    expect(changed).not.toContain('See you later, Sam, have a good one.');
+    expect(changed).not.toContain('I hear you, Sam, and that sounds hard.');
   });
 });

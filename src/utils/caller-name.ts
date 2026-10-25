@@ -167,3 +167,33 @@ export function firstNameOf(userName: unknown): string | null {
     .toLowerCase()
     .replace(/(^|['’-])(\p{L})/gu, (_, p: string, c: string) => p + c.toUpperCase());
 }
+
+/**
+ * Names that are also ordinary words ("Rich, isn't it?", "Hope. That's what
+ * keeps you going."): the name gate matches them only as written and, at a
+ * sentence start, only before a clause that addresses the caller
+ * (agents/personas/name-vocatives.ts).
+ */
+export const WORD_NAMES: ReadonlySet<string> = new Set(
+  (
+    'will hope grace joy mark rich faith rose dawn bill pat sue art amber ruby jack sky hunter ' +
+    'chance chase grant june may april summer autumn winter august rob drew guy sunny ' +
+    'honey holly ivy lily iris daisy jade pearl ray rusty sandy stormy taylor victor'
+  ).split(' ')
+);
+/** More word-names, for the TTS gateway's name-first rewrite only (NAME_FALLING_SPLIT). */
+const MORE_WORD_NAMES = new Set(
+  (
+    'frank eve bob gene reed wade dale glen cliff carol melody harmony destiny precious ' +
+    'ginger heather violet hazel olive poppy robin wren skye river storm rain brook ' +
+    'clay forest rocky buck chip duke king prince earl major sterling noble justice ' +
+    'patience prudence charity mercy honor trinity unity liberty serenity bliss happy ' +
+    'lucky dusty misty penny goldie cash sonny colt hardy page piper'
+  ).split(' ')
+);
+
+/** Whether a first name is also an everyday English word ("Will", "Hope", "Grace"); any case. */
+export function isWordName(name: string): boolean {
+  const n = name.toLowerCase();
+  return WORD_NAMES.has(n) || MORE_WORD_NAMES.has(n);
+}

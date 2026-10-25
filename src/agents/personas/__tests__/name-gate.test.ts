@@ -465,29 +465,6 @@ describe('NAME_FALLING_SPLIT', () => {
   const on = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'on' };
   const off = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'off' };
 
-  it('ends a kept name that runs on into "and you ..." (", Sam, and" was never found)', async () => {
-    const said = tokens('That sounds like a lot, Sam, and you handled it well.');
-    expect(await run(said, [], off)).toBe('That sounds like a lot, Sam, and you handled it well.');
-    expect(await run(said, [], on)).toBe('That sounds like a lot, Sam. And you handled it well.');
-    const bye = tokens('Catch you later, Sam, have a good one.');
-    expect(await run(bye, callWith(2, 'ok bye!'), on)).toBe(
-      'Catch you later, Sam. Have a good one.'
-    );
-  });
-
-  it('drops a mid-call name before "and that ..." instead of keeping it', async () => {
-    const said = tokens('I hear you, Sam, and that sounds hard.');
-    expect(await run(said, callWith(2), off)).toBe('I hear you, Sam, and that sounds hard.');
-    expect(await run(said, callWith(2), on)).toBe('I hear you, and that sounds hard.');
-  });
-
-  it('reads a lowercase name the same way ("sam, and" as written by the model)', async () => {
-    const said = tokens('I hear you, sam, and that sounds hard.');
-    expect(await run(said, callWith(2), off)).toBe('I hear you, sam, and that sounds hard.');
-    expect(await run(said, callWith(2), on)).toBe('I hear you, and that sounds hard.');
-    expect(await run(said, [], on)).toBe('I hear you, sam. And that sounds hard.');
-  });
-
   // clip(): the comma before the name went out first (hello releases it for first audio), and
   // the kept name still ends its sentence. Main skipped the fall here; #2728 builds on this.
   it('clip(): ends a kept name whose comma already went out', async () => {
@@ -498,29 +475,43 @@ describe('NAME_FALLING_SPLIT', () => {
     expect(await run(["Yes, Sam, I'm sure."], [], off)).toBe("Yes, Sam. I'm sure.");
   });
 
-  it.each([
-    // a clause after a whole clause or a discourse word
-    ['I hear you, Sam, and I mean it.', 'I hear you, Sam. And I mean it.'],
-    ['Thanks, Sam, and I mean it.', 'Thanks, Sam. And I mean it.'],
-    // a list when a name or noun opens the sentence
-    ['Alex, Sam, and I went.', 'Alex, Sam, and I went.'],
-    ['Mom, Sam, and I went to the lake.', 'Mom, Sam, and I went to the lake.'],
-  ])('reads ", Sam, and I": %s', async (text, kept) => {
-    expect(await run(tokens(text), [], on)).toBe(kept);
+  it('mid-call, a dropped name takes its opening hello with it, streamed as whole', async () => {
+    const said = tokens('Hey Sam, morning.');
+    expect(await run(said, callWith(2), off)).toBe('Hey, morning.');
+    expect(await run(said, callWith(2), on)).toBe('Morning.');
+    expect(await run(['Hey Sam, morning.'], callWith(2), off)).toBe('Morning.');
+    // At hello the name stays, so nothing waits for it.
+    expect(await run(said, [], on)).toBe(await run(said, [], off));
+    // Without NAME_FALLING_INTONATION the gateway would not hold the hello either.
+    const split = { NAME_FALLING_SPLIT: 'on' };
+    expect(await run(said, callWith(2), split)).toBe('Hey, morning.');
   });
 
+  // Round 2 (#2726): ", Sam, and <clause>" (and the other split clause words) read lists, single
+  // quotes and short openers as vocatives. That rule is gone; these say what main says.
   it.each([
-    'Say hi to Jo, Sam, and the kids for me.',
-    'It was me, Sam, and the dog.',
-    'Hey, Sam, and welcome back!',
-    'Take care, Sam, and let me know how it goes.',
-    'Mom, Sam, and the kids are coming.',
-    'Grandma, Sam, and the dog are asleep.',
-    '"Thanks, Sam, and good luck," she said.',
-    '"Thanks, Sam, and you take care," she said.',
-  ])('leaves what is not clearly said to the caller as main does: %s', async (text) => {
+    'The twins, Sam, and I went to the lake.',
+    'My parents, Sam, and I drove up Friday.',
+    'My cousins, Sam, and I went.',
+    'Both kids, Sam, and we left early.',
+    'jo, sam, and i went hiking.',
+    'the twins, sam, and i went.',
+    'The twins, Sam, have left already.',
+    "'Thanks, Sam, and I mean it,' she said.",
+    '‘Thanks, Sam, and I mean it,’ she told him.',
+    "'Honestly, Sam, and I say this kindly, you're late,' she said.",
+    "'Thanks, Sam, have a good one,' she said.",
+    'Thanks, Sam, and take your time.',
+    'Sorry, Sam, and I mean that.',
+    'Right, Sam, and that is fine.',
+    'That sounds like a lot, Sam, and you handled it well.',
+    'I hear you, sam, and that sounds hard.',
+    'Catch you later, Sam, have a good one.',
+  ])('says what main says, at hello and mid-call: %s', async (text) => {
     for (const history of [[], callWith(2)]) {
-      expect(await run(tokens(text), history, on)).toBe(await run(tokens(text), history, off));
+      for (const chunks of [tokens(text), [text]]) {
+        expect(await run(chunks, history, on)).toBe(await run(chunks, history, off));
+      }
     }
   });
 });

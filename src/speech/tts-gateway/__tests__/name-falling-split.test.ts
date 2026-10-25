@@ -26,16 +26,6 @@ describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
   it.each([
     // [reply, pushes with the flag off, with it on]
     [
-      'That sounds like a lot, Seth, and you handled it well.',
-      ['That sounds like a lot, ', 'Seth, and you handled it well. '],
-      ['That sounds like a lot, ', 'Seth. ', 'And you handled it well. '],
-    ],
-    [
-      'Catch you later, Seth, have a good one.',
-      ['Catch you later, ', 'Seth, have a good one. '],
-      ['Catch you later, ', 'Seth. ', 'Have a good one. '],
-    ],
-    [
       'Oh hey Seth, how was the run?',
       ['Oh hey Seth, ', 'how was the run? '],
       ['Hey Seth. ', 'How was the run? '],
@@ -45,7 +35,7 @@ describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
     expect(await voiced(reply, 'on')).toEqual(on);
   });
 
-  it('drops the hello the gate left when it dropped the name mid-call', async () => {
+  it('mid-call, drops the hello with the name, as main does for the whole reply', async () => {
     expect(await voiced('Hey Seth, morning.', 'off', false)).toEqual(['Hey, morning. ']);
     expect(await voiced('Hey Seth, morning.', 'on', false)).toEqual(['Morning. ']);
   });
@@ -64,7 +54,6 @@ describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
     'Catch you later, Seth.',
     "That's rough, Seth.",
     "Seth, morning. How'd you sleep?",
-    "Hey Seth, how's it going?",
     // A short goodbye before ", Seth, and": the name falls inside the first push already.
     'Take care, Seth, and let me know how it goes.',
     'See you, Seth, and say hi to Jo.',
@@ -118,6 +107,66 @@ describe('NAME_FALLING_SPLIT: what Cartesia is sent', () => {
   ])('leaves it as main sends it, at hello and mid-call: %s', async (reply) => {
     for (const hello of [true, false]) {
       expect(await voiced(reply, 'on', hello)).toEqual(await voiced(reply, 'off', hello));
+    }
+  });
+
+  // Round 2 (#2726) blockers 1, 2, 4 and 5: with the flag on, Cartesia gets what main sends.
+  it.each([
+    // 1: a list that opens the sentence
+    'The twins, Seth, and I went to the lake.',
+    'My parents, Seth, and I drove up Friday.',
+    'My cousins, Seth, and I went.',
+    'Both kids, Seth, and we left early.',
+    'The movers, Seth, and I carried it up.',
+    'jo, seth, and i went hiking.',
+    'the twins, seth, and i went.',
+    // 2: single quotes
+    "'Thanks, Seth, and I mean it,' she said.",
+    '‘Thanks, Seth, and I mean it,’ she told him.',
+    "'Honestly, Seth, and I say this kindly, you're late,' she said.",
+    // 4: a hello and a greeting, no name
+    "Hey, morning! How'd you sleep?",
+    'Hi, good morning, how are you?',
+    'Hey, evening already?',
+    'Hello, afternoon crew!',
+    // 5: a short opener before ", Seth, and"
+    'Thanks, Seth, and take your time.',
+    'Sorry, Seth, and I mean that.',
+    'Right, Seth, and that is fine.',
+    // the rule they came from
+    'That sounds like a lot, Seth, and you handled it well.',
+    'Catch you later, Seth, have a good one.',
+  ])('round-2 blocker shape goes as main sends it: %s', async (reply) => {
+    for (const hello of [true, false]) {
+      expect(await voiced(reply, 'on', hello)).toEqual(await voiced(reply, 'off', hello));
+    }
+    vi.stubEnv('NAME_FALLING_SPLIT', 'off');
+    const said = await pushesFor(tokens(reply), 'Seth');
+    vi.stubEnv('NAME_FALLING_SPLIT', 'on');
+    expect(await pushesFor(tokens(reply), 'Seth')).toEqual(said); // session.say
+  });
+
+  // Round 2 blocker 3: a caller whose name is also a word, on the LLM path and on session.say.
+  it.each([
+    ['Will', 'Will, as a word, means a lot to me.'],
+    ['will smith', 'Will, I think, is the key.'],
+    ['HOPE', 'Hope, for me, is a daily practice.'],
+    ['Hope', 'Hope, honestly, is what keeps me going.'],
+    ['Grace', 'Grace, in a moment like that, is everything.'],
+  ])('caller %s: a name that is also a word goes as main sends it: %s', async (caller, reply) => {
+    const pieces = tokens(reply);
+    const first = caller
+      .split(' ')[0]
+      .toLowerCase()
+      .replace(/^./, (c) => c.toUpperCase());
+    const sent = async (split: 'on' | 'off', hello?: boolean): Promise<string[]> => {
+      vi.stubEnv('NAME_FALLING_SPLIT', split);
+      const env = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: split };
+      const text = hello === undefined ? pieces : await gatePieces(pieces, first, hello, env);
+      return pushesFor(text, caller);
+    };
+    for (const hello of [undefined, true, false]) {
+      expect(await sent('on', hello)).toEqual(await sent('off', hello));
     }
   });
 });
@@ -214,7 +263,11 @@ describe('NAME_FALLING_SPLIT latency', () => {
     ['Oh, that is rough.', true],
     ["Hey, that's wild, honestly.", false],
     ['Hey there, how was the walk today?', true],
+    ['Hey there, how was the walk today?', false],
     ['Sure thing, I can do that.', false],
+    ["Hey, morning! How'd you sleep?", false],
+    ["Hey, morning! How'd you sleep?", true],
+    ['Hi, good morning, how are you?', false],
   ])('a reply without the name goes out exactly when it did: %s', async (reply, hello) => {
     const off = await firstPush(reply, hello, 'off');
     const on = await firstPush(reply, hello, 'on');
@@ -230,10 +283,22 @@ describe('NAME_FALLING_SPLIT latency', () => {
     expect(Math.abs(on.at - off.at)).toBeLessThan(TOLERANCE);
   });
 
+  // Round 2 blocker 5: ", Seth, and <clause>" after a short opener waited 2-3 tokens mid-call.
   it.each([
-    ['That sounds like a lot, Seth, and you handled it well.', false],
-    ['That sounds like a lot, Seth, and you handled it well.', true],
-    ['Catch you later, Seth, have a good one.', true],
+    ['Thanks, Seth, and take your time.', false],
+    ['Sorry, Seth, and I mean that.', false],
+    ['Right, Seth, and that is fine.', false],
+    ['Thanks, Seth, and take your time.', true],
+  ])('a ", Seth, and" reply goes out as and when it did: %s', async (reply, hello) => {
+    const off = await firstPush(reply, hello, 'off');
+    const on = await firstPush(reply, hello, 'on');
+    expect(on.text).toBe(off.text);
+    expect(Math.abs(on.at - off.at)).toBeLessThan(TOLERANCE);
+  });
+
+  it.each([
+    ["Hey Seth, morning. How'd you sleep?", false],
+    ["Hey Seth, how's it going?", false],
     ['Seth, good to hear your voice.', true],
     ['Oh hey Seth, how was the run?', true],
   ])(

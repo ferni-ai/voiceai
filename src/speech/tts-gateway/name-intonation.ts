@@ -22,7 +22,8 @@
  * NAME_FALLING_SPLIT (with the flag above), measured 2026-10-24 on the same
  * voice (voiceai-evidence/name-intonation-2026-10-24, Praat, 8 takes each):
  * - a name that opens the reply ends its own sentence: "Seth, good to hear
- *   your voice." rose 6.35 st, "Seth. Good to hear your voice." 1.44 st;
+ *   your voice." rose 6.35 st, "Seth. Good to hear your voice." 1.44 st (not
+ *   for a name that is also a word: "Will, as a word, ..." stays);
  * - a reaction word before the hello goes: "Oh hey Seth, how's it going?"
  *   rose 7.70 st, and 8.17 with a full stop after the name, against 1.97 for
  *   "Hey Seth." (the bright "Oh hey" lifts the name whatever follows it), so
@@ -36,7 +37,7 @@
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 import { flagOn } from '../../config/env-flag.js';
-import { firstNameOf } from '../../utils/caller-name.js';
+import { firstNameOf, isWordName } from '../../utils/caller-name.js';
 
 /** Leading markup the reply may open with: <emotion .../>, [laughter], spaces. */
 const LEADING_MARKUP = /^(?:\s|<[^>]*>|\[[^\]]*\])*/;
@@ -69,8 +70,6 @@ const INTERJECTIONS = ['oh', 'ah', 'well', 'okay', 'ok'];
 const INTERJECTION = /^(?:oh|ah|well|okay|ok),?\s+/i;
 /** A name that opens the reply runs on with a comma or dash: "Seth, good to..." */
 const RUNS_ON = /^(?:,|\s*[—–])\s*/;
-/** A hello whose name the name gate dropped: "Hey, morning." (from "Hey Sam, morning."). */
-const BARE_HELLO = /^(?:hey|hi|hiya|hello),?\s+/i;
 const escapeName = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Still waiting for text before the reply's opening can be decided. */
@@ -126,8 +125,13 @@ function listGoesOn(rest: string, final: boolean): boolean | null {
     : false;
 }
 
-/** "Seth, good to hear you." -> "Seth. Good to hear you.", WAIT, or undefined. */
+/**
+ * "Seth, good to hear you." -> "Seth. Good to hear you.", WAIT, or undefined.
+ * Never for a name that is also a word: for a caller named Will, "Will, as a
+ * word, means a lot" is about the word.
+ */
 function nameFirst(body: string, final: boolean, name: string): string | typeof WAIT | undefined {
+  if (isWordName(name)) return undefined;
   if (!final && name.startsWith(body)) return WAIT;
   if (!body.startsWith(name)) return undefined;
   const mark = RUNS_ON.exec(body.slice(name.length));
@@ -139,19 +143,6 @@ function nameFirst(body: string, final: boolean, name: string): string | typeof 
   return rest === '' ? `${name}.` : `${name}. ${capitalize(rest)}`;
 }
 
-/** "Hey, morning." -> "Morning.": the hello the gate left when it dropped the name. */
-function bareHello(body: string, final: boolean): string | typeof WAIT | undefined {
-  const hello = BARE_HELLO.exec(body);
-  if (!hello) return undefined;
-  const rest = body.slice(hello[0].length);
-  const lower = rest.toLowerCase();
-  if (!final && STRESSED.some((g) => g.startsWith(lower) && g !== lower)) return WAIT;
-  const greeting = STRESSED.find((g) => lower.startsWith(g));
-  if (!greeting || /[\p{L}']/u.test(rest.charAt(greeting.length))) return undefined;
-  if (!final && rest.length === greeting.length) return WAIT; // "morning" or "mornings"
-  return capitalize(rest);
-}
-
 /** NAME_FALLING_SPLIT's openings, for the caller's own name: rewritten, WAIT, or undefined. */
 function splitOpening(
   text: string,
@@ -160,7 +151,7 @@ function splitOpening(
   final: boolean,
   name: string
 ): string | typeof WAIT | undefined {
-  const first = nameFirst(body, final, name) ?? bareHello(body, final);
+  const first = nameFirst(body, final, name);
   if (first !== undefined) return first === WAIT ? WAIT : `${markup}${first}`;
   const rest = afterInterjection(body, final);
   if (rest === WAIT || rest === undefined) return rest;

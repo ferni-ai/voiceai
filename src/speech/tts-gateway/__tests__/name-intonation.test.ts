@@ -104,20 +104,40 @@ describe('fallingVocative with NAME_FALLING_SPLIT', () => {
     );
   });
 
+  // Round 2 (#2726): the bare-hello rewrite ("Hey, morning!" -> "Morning!") fired on replies
+  // that never had a name. It is gone; the name gate handles the dropped-name case itself.
   it.each([
-    ['Hey, morning.', 'Morning.'],
-    ["Hey morning, how'd you sleep?", "Morning, how'd you sleep?"],
-    ['Hi, good evening.', 'Good evening.'],
-  ])('drops a hello the name gate left before a greeting: %s', (input, expected) => {
-    expect(fallingVocative(input, false, split)).toBe(expected);
-    expect(fallingVocative(input, false)).toBe(input);
+    'Hey, morning.',
+    "Hey, morning! How'd you sleep?",
+    "Hey morning, how'd you sleep?",
+    'Hi, good morning, how are you?',
+    'Hi, good evening.',
+    'Hey, evening already?',
+    'Hello, afternoon crew!',
+    'Hey, mornings are rough.',
+  ])('leaves a hello with no name as main does: %s', (input) => {
+    for (const final of [false, true]) {
+      expect(fallingVocative(input, final, split)).toBe(fallingVocative(input, final));
+    }
   });
 
-  it('keeps a hello before other words', () => {
-    expect(fallingVocative('Hey, mornings are rough.', false, split)).toBe(
-      'Hey, mornings are rough.'
+  it.each([
+    ['Will', 'Will, as a word, means a lot to me.'],
+    ['Will', 'Will, I think, is the key.'],
+    ['Hope', 'Hope, for me, is a daily practice.'],
+    ['Hope', 'Hope, honestly, is what keeps me going.'],
+    ['Grace', 'Grace, in a moment like that, is everything.'],
+    ['Frank', 'Frank, to be honest, is how I would put it.'],
+    ['Melody', 'Melody — that is what stuck with me.'],
+  ])('leaves a name that is also a word alone (caller %s): %s', (name, input) => {
+    expect(fallingVocative(input, false, { name })).toBe(input);
+    expect(fallingVocative(input, true, { name })).toBe(input);
+  });
+
+  it('still ends a name that is not a word', () => {
+    expect(fallingVocative('Sam, as a rule, you are right.', false, { name: 'Sam' })).toBe(
+      'Sam. As a rule, you are right.'
     );
-    expect(fallingVocative('Hey, mor', false, split)).toBe(WAIT);
   });
 
   it('waits while a reaction word or the name may still open the reply', () => {
