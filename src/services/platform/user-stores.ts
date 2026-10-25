@@ -145,6 +145,9 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   ...byField('text.userId', 'feature_held_texts'), // texts held for them (a Focus, quiet hours), with the text
   { collection: 'reply_reports', field: 'uid' }, // replies they reported, with their own words
   { collection: 'reply_report_quota', doc: 'uid' },
+  // the sponsor's daily holder-verification text count; the same collection's phone_{hash}
+  // docs are each number's own send record, uid-free, kept like a STOP (holder-send-ledger.ts)
+  { collection: 'holder_verification_sends', doc: 'uid' },
 ];
 
 /**

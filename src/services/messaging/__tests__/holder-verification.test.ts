@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ServerResponse } from 'node:http';
 import { memoryConsentStore } from './memory-consent.js';
+import { memorySendLedger } from './memory-send-ledger.js';
 import {
   handleHolderVerifyRoute,
   recordHolderCode,
@@ -24,6 +25,7 @@ let now = new Date('2026-10-18T16:00:00Z');
 let identities: Map<string, HolderIdentity>;
 let sent: Array<[string, string]>;
 let consent: ReturnType<typeof memoryConsentStore>;
+let ledger: ReturnType<typeof memorySendLedger>;
 
 const deps = (over: Partial<HolderVerificationDeps> = {}): HolderVerificationDeps => ({
   env,
@@ -39,6 +41,8 @@ const deps = (over: Partial<HolderVerificationDeps> = {}): HolderVerificationDep
     }
     identities.set(id, next as unknown as HolderIdentity);
   },
+  sponsorName: async () => 'Seth',
+  ledger: ledger.ledger,
   send: async (to, body) => (sent.push([to, body]), true),
   code: () => '482913',
   consent: { env, store: consent.store, now: () => now },
@@ -48,12 +52,10 @@ const deps = (over: Partial<HolderVerificationDeps> = {}): HolderVerificationDep
 beforeEach(() => {
   now = new Date('2026-10-18T16:00:00Z');
   consent = memoryConsentStore();
+  ledger = memorySendLedger();
   sent = [];
   identities = new Map([
-    [
-      'sponsored_mom',
-      { id: 'sponsored_mom', sponsorUserId: 'seth', phoneNumber: MOM, sponsorName: 'Seth' },
-    ],
+    ['sponsored_mom', { id: 'sponsored_mom', sponsorUserId: 'seth', phoneNumber: MOM }],
   ]);
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -121,6 +123,13 @@ describe('recordHolderCode', () => {
       // eslint-disable-next-line no-await-in-loop
       expect(await recordHolderCode(MOM, '000000', deps())).toBe(false);
     }
+    expect(await recordHolderCode(MOM, '482913', deps())).toBe(false);
+    expect(identities.get('sponsored_mom')?.phoneVerifiedAt).toBeUndefined();
+  });
+
+  it('a number that texted STOP after the code went out is not verified by the code', async () => {
+    await startHolderVerification('sponsored_mom', 'seth', deps());
+    await writeOptOut(phoneHash(MOM, env) as string, 'sms', 'inbound-sms', deps().consent);
     expect(await recordHolderCode(MOM, '482913', deps())).toBe(false);
     expect(identities.get('sponsored_mom')?.phoneVerifiedAt).toBeUndefined();
   });

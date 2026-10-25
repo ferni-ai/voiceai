@@ -5,8 +5,11 @@
  * so no outbound reaches it as "theirs".
  *
  * 1. The sponsor asks (POST /api/sponsored-identities/:id/verify-phone):
- *    Ferni texts a 6-digit code to the number, once per 10 minutes, unless
- *    it opted out. Only an HMAC of the code is stored, for 15 minutes.
+ *    Ferni texts a 6-digit code to the number unless it opted out, within the
+ *    send limits in holder-send-ledger.ts. Only an HMAC of the code is stored,
+ *    for 15 minutes. The text names the sponsor only by their own account's
+ *    name, and only when it is plainly a name (never a field the sponsor wrote
+ *    on the identity).
  * 2. The holder replies with the code from that phone. A match sets
  *    phoneVerifiedAt on the identity; five wrong tries end the code.
  *
@@ -18,18 +21,20 @@ import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { last4, phoneHashKey, toE164, type Env } from '../outreach/checkin-replies.js';
+import { last4, phoneHash, phoneHashKey, toE164, type Env } from '../outreach/checkin-replies.js';
 import {
   consentBlocks,
   defaultConsentDeps,
   messagingPipelineOn,
   type ConsentDeps,
 } from './consent.js';
+import { firestoreSendLedger, reserveHolderSend, type SendLedger } from './holder-send-ledger.js';
 
 const log = createLogger({ module: 'holder-verification' });
 
 const CODE_TTL_MS = 15 * 60 * 1000;
-const RESEND_GAP_MS = 10 * 60 * 1000;
+const NAME_MAX = 40;
+const NAME_CHARS = /^[\p{L}\p{M}][\p{L}\p{M} '’.-]*$/u;
 const MAX_TRIES = 5;
 const SIX_DIGITS = /^\d{6}$/;
 
@@ -44,7 +49,6 @@ export interface HolderIdentity {
   id: string;
   sponsorUserId: string;
   phoneNumber: string;
-  sponsorName?: string;
   phoneVerifiedAt?: string;
   holderVerification?: Pending;
 }
@@ -55,6 +59,9 @@ export interface HolderVerificationDeps {
   byId: (id: string) => Promise<HolderIdentity | undefined>;
   byPhone: (e164: string) => Promise<HolderIdentity | undefined>;
   save: (id: string, patch: Record<string, unknown>) => Promise<void>;
+  /** The sponsor's name from their own account (bogle_users), not from the identity */
+  sponsorName: (uid: string) => Promise<unknown>;
+  ledger: SendLedger;
   send: (to: string, body: string) => Promise<boolean>;
   code: () => string;
   consent: ConsentDeps;
@@ -65,13 +72,31 @@ export type StartOutcome =
   | {
       started: false;
       reason:
-        'pipeline-off' | 'not-found' | 'already-verified' | 'too-soon' | 'opted-out' | 'not-sent';
+        | 'pipeline-off'
+        | 'not-found'
+        | 'already-verified'
+        | 'too-soon'
+        | 'daily-cap'
+        | 'opted-out'
+        | 'not-sent';
     };
 
 const hashCode = (code: string, env: Env): string | null => {
   const key = phoneHashKey(env);
   return key ? createHmac('sha256', key).update(`holder-code:${code}`).digest('hex') : null;
 };
+
+/**
+ * A name safe to put in a text from Ferni's number: letters, marks, spaces and
+ * ' . - only, so no digits, URLs, control or bidi characters; no "word.word"
+ * (a domain); at most 40 characters. Anything else is no name at all.
+ */
+export function cleanSponsorName(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const name = raw.normalize('NFC').replace(/ +/g, ' ').trim();
+  const ok = name.length <= NAME_MAX && NAME_CHARS.test(name) && !/\.\p{L}/u.test(name);
+  return ok ? name : undefined;
+}
 
 /** The sponsor asks Ferni to text the holder a code. Only the identity's own sponsor may. */
 export async function startHolderVerification(
@@ -82,21 +107,20 @@ export async function startHolderVerification(
   if (!messagingPipelineOn(deps.env)) return { started: false, reason: 'pipeline-off' };
   const identity = await deps.byId(identityId);
   const e164 = identity ? toE164(identity.phoneNumber) : null;
-  if (!identity || identity.sponsorUserId !== sponsorUid || !e164) {
+  if (!identity || !sponsorUid || identity.sponsorUserId !== sponsorUid || !e164) {
     return { started: false, reason: 'not-found' };
   }
   if (identity.phoneVerifiedAt) return { started: false, reason: 'already-verified' };
-  const now = deps.now();
-  const last = identity.holderVerification?.sentAt;
-  if (last && now.getTime() - Date.parse(last) < RESEND_GAP_MS) {
-    return { started: false, reason: 'too-soon' };
-  }
   if (await consentBlocks(e164, 'sms', true, deps.consent)) {
     return { started: false, reason: 'opted-out' };
   }
   const code = deps.code();
   const codeHash = hashCode(code, deps.env);
-  if (!codeHash) return { started: false, reason: 'not-sent' };
+  const numberHash = phoneHash(e164, deps.env);
+  if (!codeHash || !numberHash) return { started: false, reason: 'not-sent' };
+  const now = deps.now();
+  const reserved = await reserveHolderSend(deps.ledger, numberHash, sponsorUid, now);
+  if (reserved !== 'ok') return { started: false, reason: reserved };
   const pending: Pending = {
     codeHash,
     sentAt: now.toISOString(),
@@ -104,7 +128,8 @@ export async function startHolderVerification(
     tries: 0,
   };
   await deps.save(identity.id, { holderVerification: pending });
-  const who = identity.sponsorName ? `${identity.sponsorName} set up Ferni for you. ` : '';
+  const name = cleanSponsorName(await deps.sponsorName(sponsorUid).catch(() => undefined));
+  const who = name ? `${name} set up Ferni for you. ` : '';
   const body = `Ferni here. ${who}Reply with ${code} to confirm this is your phone, or STOP.`;
   if (!(await deps.send(e164, body))) {
     await deps.save(identity.id, { holderVerification: null });
@@ -135,6 +160,8 @@ export async function recordHolderCode(
     const pending = identity?.holderVerification;
     const now = deps.now();
     if (!identity || !pending || now.getTime() > Date.parse(pending.expiresAt)) return false;
+    // A number that texted STOP isn't enrolled by its next message, even the code.
+    if (await consentBlocks(e164, 'sms', true, deps.consent)) return false;
     const got = hashCode(code, deps.env);
     const ok =
       got !== null &&
@@ -196,7 +223,6 @@ function holderOf(id: string, data: Record<string, unknown>): HolderIdentity {
     id,
     sponsorUserId: text(data.sponsorUserId) ?? '',
     phoneNumber: text(data.phoneNumber) ?? '',
-    sponsorName: text(data.sponsorName),
     phoneVerifiedAt: text(data.phoneVerifiedAt),
     holderVerification: pendingOf(data.holderVerification),
   };
@@ -213,7 +239,7 @@ export function defaultHolderDeps(): HolderVerificationDeps {
     now: () => new Date(),
     async byId(id) {
       const doc = await db().doc(id).get();
-      return doc.exists ? holderOf(doc.id, doc.data() as Record<string, unknown>) : undefined;
+      return doc.exists ? holderOf(id, doc.data() as Record<string, unknown>) : undefined;
     },
     async byPhone(e164) {
       const { lookupByPhone } = await import('../identity/sponsored-identity.js');
@@ -223,6 +249,12 @@ export function defaultHolderDeps(): HolderVerificationDeps {
     async save(id, patch) {
       await db().doc(id).set(patch, { merge: true });
     },
+    async sponsorName(uid) {
+      const doc = await getFirestoreDb()?.collection('bogle_users').doc(uid).get();
+      const data: Record<string, unknown> | undefined = doc?.exists ? doc.data() : undefined;
+      return data?.displayName ?? data?.name;
+    },
+    ledger: firestoreSendLedger,
     async send(to, body) {
       const { sendSms } = await import('../outreach/guarded-text-store.js');
       const out = await sendSms({
