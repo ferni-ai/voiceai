@@ -25,6 +25,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { secondReadOf } from '../../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
@@ -37,10 +38,16 @@ import {
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
+import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
 } from '../../../services/safety/crisis-classifier-only.js';
+import {
+  easingCheckin,
+  resolveEasingMode,
+  type EasingTurn,
+} from '../../../services/safety/crisis-classifier-only-live.js';
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
@@ -81,11 +88,48 @@ export interface TurnCrisis {
   bypassAllowed(): Promise<boolean>;
 }
 
+/** What startTurnCrisis reads from the session's user data. */
+export interface TurnCrisisUserData {
+  voiceEmotion?: unknown;
+  recentTranscripts?: string[];
+  lastAgentResponse?: string;
+  /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
+  turnCount?: number;
+}
+
+type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
+
+/**
+ * CRISIS_CLASSIFIER_ONLY_CHECKIN=live: eases a settled turn's classifier-only crisis guide
+ * with the turn's shared easing read (crisis-classifier-only-live.ts).
+ */
+function turnEaser(
+  patterns: CrisisDetectionResult,
+  shadowTurn: Omit<EasingTurn, 'call'>,
+  call: string | undefined,
+  input: Parameters<typeof transcriptFrom>[0],
+  generate: CrisisGenerateFn | undefined,
+  env: Record<string, string | undefined>
+): (turn: Promise<Settled>) => Promise<Settled> {
+  const easing = {
+    transcript: () => transcriptFrom(input),
+    generate,
+    env,
+    source: 'pipeline' as const,
+  };
+  return (turn: Promise<Settled>): Promise<Settled> =>
+    turn.then(async (s) => {
+      const crisisGuide =
+        !s.soft && s.crisis !== patterns && !guardFromDetection(s.crisis).shouldBlock;
+      if (!crisisGuide || !(await easingCheckin({ ...shadowTurn, call }, easing))) return s;
+      log.info({ outcome: 'soft', source: 'classifier_only' }, 'CRISIS_AGREEMENT');
+      return { crisis: patterns, soft: true };
+    });
+}
+
 export function startTurnCrisis(
   userText: string,
-  userData:
-    | { voiceEmotion?: unknown; recentTranscripts?: string[]; lastAgentResponse?: string }
-    | undefined,
+  userData: TurnCrisisUserData | undefined,
   options: {
     sessionId?: string;
     env?: Record<string, string | undefined>;
@@ -132,8 +176,11 @@ export function startTurnCrisis(
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
-  type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
+  const secondRead = secondReadOf('pipeline', userData, patterns.subject);
+  const run = { pattern, env, generate, scope, call, secondRead } as const;
+  const classifier = startCrisisClassifier(input, run);
+  const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>
     (settled ??=
@@ -164,7 +211,10 @@ export function startTurnCrisis(
               // The same light touch the reply gate gives (crisis-gate.ts): one text, one voice.
               return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
-            const crisis = applyClassifierVerdict(patterns, verdict);
+            const merged = applyClassifierVerdict(patterns, verdict);
+            const crisis = who?.live
+              ? await who.resolve(merged, verdict)
+              : (who?.shadow(merged, verdict) ?? merged);
             if (crisis !== patterns) noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY
             // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an
             // imminent one whoever it is about, gets the soft check-in after every other check.
@@ -228,6 +278,10 @@ export function startTurnCrisis(
   // CRISIS_CLASSIFIER_ONLY_CHECKIN=shadow: once the turn settles, log only (crisis-classifier-only.ts).
   const shadowOn = resolveClassifierOnlyCheckin(env) === 'shadow';
   const shadowTurn = { detection: patterns, ...input, priorRisk, scope };
+  // CRISIS_CLASSIFIER_ONLY_CHECKIN=live: the turn's shared easing read (crisis-classifier-only-live.ts).
+  const easingOn = resolveEasingMode(env) !== 'off';
+  let eased: Promise<Settled> | null = null;
+  const easeTurn = turnEaser(patterns, shadowTurn, call, input, options.adjudicate, env);
   const settle = (): Promise<Settled> => {
     const first = settled === null;
     const turn = settleTurn();
@@ -238,7 +292,7 @@ export function startTurnCrisis(
         env
       );
     }
-    return turn;
+    return easingOn ? (eased ??= easeTurn(turn)) : turn;
   };
   return {
     patterns,

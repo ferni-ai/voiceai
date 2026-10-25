@@ -53,10 +53,7 @@ import {
   uxQualityMetrics,
 } from '../services/observability/index.js';
 // Superhuman activation metrics (moved to services layer for architecture compliance)
-import {
-  getSuperhumanActivationEvents,
-  getSuperhumanActivationStats,
-} from '../services/observability/superhuman-events.js';
+import { getSuperhumanActivationView } from '../services/observability/superhuman-events.js';
 import { getMetrics as getCallQualityMetrics } from '../services/analytics/call-quality-monitor.js';
 // Re-export for backward compatibility with existing importers
 export {
@@ -528,15 +525,13 @@ export async function handleObservabilityRoutes(
     return true;
   }
 
-  // Write operations (clear) require admin access
-  if (req.method === 'POST') {
-    const auth = await requireAdmin(req, res);
-    if (!auth) return true;
-  } else {
-    // Read operations require basic auth
-    const auth = await requireAuth(req, res, { allowDevMode: true });
-    if (!auth) return true;
-  }
+  // Writes (clear) and the routing dashboard (every caller's routes) require admin access;
+  // other reads require a sign-in, and `viewer` decides what per-caller rows they may see
+  const viewer =
+    req.method === 'POST' || pathname === '/api/observability/routing-dashboard'
+      ? await requireAdmin(req, res)
+      : await requireAuth(req, res, { allowDevMode: true });
+  if (!viewer) return true;
 
   const url = new URL(req.url || '', `http://${req.headers.host}`);
   const windowMinutes = getWindowMinutes(url);
@@ -893,7 +888,7 @@ export async function handleObservabilityRoutes(
           // Recent routing decisions (for table)
           recentRoutes: recentRoutes.map((r) => ({
             timestamp: r.timestamp.toISOString(),
-            userInput: r.userInput.slice(0, 50),
+            inputLength: r.inputLength,
             toolId: r.toolId,
             confidence: r.confidence,
             matchPath: r.matchPath,
@@ -915,17 +910,12 @@ export async function handleObservabilityRoutes(
       return true;
     }
 
-    // GET /api/observability/superhuman - Superhuman capability activation metrics
+    // GET /api/observability/superhuman - activation totals; per-call rows name the caller,
+    // so only an admin sees everyone's and anyone else sees their own
     if (pathname === '/api/observability/superhuman' && req.method === 'GET') {
-      const limitParam = url.searchParams.get('limit');
-      const limit = limitParam ? parseInt(limitParam, 10) : 50;
-      const events = getSuperhumanActivationEvents(limit);
-      const stats = getSuperhumanActivationStats();
-
+      const limit = parsePositiveInt(url.searchParams.get('limit'), 50, 100);
       sendJSON(res, {
-        stats,
-        recentEvents: events,
-        count: events.length,
+        ...getSuperhumanActivationView(viewer, limit),
         collectedAt: new Date().toISOString(),
       });
       return true;

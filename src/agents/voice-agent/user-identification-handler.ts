@@ -31,6 +31,7 @@ import {
   rememberDispatchIdentity,
   callerRecognitionEnabled,
   recognizePhoneSession,
+  rememberCallerPhone,
   startReturningCaller,
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -209,6 +210,8 @@ export async function identifyUser(
   await startReturningCaller(room, sessionId, userId).catch((e: unknown) => {
     diag.warn('Returning caller lookup failed', { error: String(e) });
   });
+  // MINOR_CARE_SHARED_HOLD: a held phone call also holds texts from and to its number
+  rememberCallerPhone(sessionId, room);
 
   return {
     // PRIVACY: a caller nobody named (no dispatch metadata, a failed lookup, or a number that
@@ -273,7 +276,7 @@ async function startIdentitySession(
       if (ipLocation?.city) {
         diag.session('📍 IP location detected', {
           hasCity: true, // never the city
-          region: ipLocation.regionCode,
+          hasRegion: Boolean(ipLocation.regionCode),
         });
       }
 
@@ -389,15 +392,15 @@ async function detectUserAccent(
       // Priority 1: Explicit accent preference from user settings
       if (metadata.preferredAccent && isValidAccent(metadata.preferredAccent)) {
         userAccent = metadata.preferredAccent;
-        diag.session('🌍 Using user-selected accent', { accent: userAccent });
+        diag.session('🌍 Using user-selected accent', { hasAccent: Boolean(userAccent) });
       }
       // Priority 2: Detect from user's locale
       else if (metadata.locale) {
         const detection = detectAccentFromLocale(metadata.locale);
         userAccent = detection.accent;
         diag.session('🌍 Accent detected from locale', {
-          locale: metadata.locale,
-          accent: userAccent,
+          hasLocale: Boolean(metadata.locale),
+          hasAccent: Boolean(userAccent),
           confidence: detection.confidence,
         });
       }
@@ -406,8 +409,8 @@ async function detectUserAccent(
         const detection = detectAccentFromLocales(metadata.locales);
         userAccent = detection.accent;
         diag.session('🌍 Accent detected from locales', {
-          locales: metadata.locales,
-          accent: userAccent,
+          locales: metadata.locales?.length ?? 0,
+          hasAccent: Boolean(userAccent),
           confidence: detection.confidence,
         });
       }

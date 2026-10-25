@@ -91,6 +91,12 @@
     "reason": "Compares the Firebase sign-in provider enum ('anonymous' provider), not a user id: an anonymous Firebase user never counts as verified."
   },
   {
+    "file": "services/platform/erasure-keys.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "SIGN_IN_PROVIDERS lists Firebase sign-in provider ids ('anonymous' provider) used to find auth:{provider}:{uid} links to erase, not a user id."
+  },
+  {
     "file": "services/world-awareness/session-integration.ts",
     "count": 2,
     "category": "cache",

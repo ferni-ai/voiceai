@@ -52,7 +52,7 @@ import {
   startHealthMonitoring,
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
-// External STT: Sonata (USE_SONATA_STT=true)
+import * as forgotten from '../../memory/recall/forget-every-reader.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -114,6 +114,8 @@ import { initializeFrontendPublisher } from '../realtime/index.js';
 import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
+import { awarenessKind } from '../voice-agent/phases/user-awareness.js';
+import { errorText } from '../../utils/error-text.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { wireCallToolLoader } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
@@ -326,8 +328,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   //   - These are active from the VERY FIRST MOMENT of connection
   //   - Concise, critical rules that must never be forgotten
   // Agent-level: Full persona prompt (identity, detailed tools, personality)
-  //   - Sent via LiveKit's updateInstructions() after session starts
-  //   - Contains full persona identity and detailed tool catalog
+  //   - Sent via updateInstructions() after session starts: full identity and tool catalog
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
@@ -336,6 +337,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   try {
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
+    forgotten.prefetchForgotten(services.userId); // FORGET_EVERY_READER: read it alongside
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
@@ -367,7 +369,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
-    const userProfile = outboundAwareness ? undefined : services.userProfile;
+    const userProfile = outboundAwareness ? undefined : await forgotten.profileForPrompt(services);
     if (userProfile) {
       // Days since the last call count in the zone this call settled (phone-parity.ts)
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
@@ -500,7 +502,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           `👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts)`
         );
         userAwareness.forEach((fact, i) => {
-          log.debug({ fact }, `  ${i + 1}. ${fact}`);
+          log.debug({ kind: awarenessKind(fact) }, `  ${i + 1}. ${awarenessKind(fact)}`);
         });
       } else {
         log.debug(
@@ -787,7 +789,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         { personaId: persona.id, error: String(err) },
         '🚨 CRITICAL: Essential tool loading failed - using EMERGENCY hardcoded tools'
       );
-      process.stderr.write(`\n🚨 CRITICAL TOOL FAILURE: ${err}\n`);
+      process.stderr.write(`\n🚨 CRITICAL TOOL FAILURE: ${errorText(err)}\n`);
       process.stderr.write(
         '🚨 Using emergency hardcoded tools - agent capabilities severely limited!\n\n'
       );
@@ -1283,7 +1285,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // Store handler references for cleanup
     const llmErrorHandler = (error: unknown) => {
       log.error(
-        { personaId: persona.id, error: String(error), errorObj: error },
+        { personaId: persona.id, error },
         '🚨 [LLM MODEL ERROR] Gemini RealtimeModel emitted error'
       );
       process.stderr.write(
@@ -1317,14 +1319,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
     const llmTranscriptionHandler = (event: unknown) => {
       const transcriptionEvent = event as { transcript?: string };
-      process.stderr.write(
-        `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
-      );
-      // Log character codes to detect invisible characters or periods
-      if (transcriptionEvent.transcript) {
-        const charCodes = transcriptionEvent.transcript.split('').map((c) => c.charCodeAt(0));
-        process.stderr.write(`🎤 [GEMINI STT] Char codes: [${charCodes.join(', ')}]\n`);
-      }
+      // Its length only: what the caller said stays out of the logs.
+      const chars = transcriptionEvent.transcript?.length ?? 0;
+      process.stderr.write(`\n🎤 [GEMINI STT] Input transcribed (${chars} chars)\n`);
     };
     llmWithEvents.on('input_audio_transcription_completed', llmTranscriptionHandler);
 
@@ -1346,7 +1343,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     for (const eventName of audioEventNames) {
       const handler = (event: unknown) => {
         process.stderr.write(
-          `\n🔊 [AUDIO EVENT] ${eventName}: ${JSON.stringify(event, null, 2).slice(0, 500)}\n`
+          `\n🔊 [AUDIO EVENT] ${eventName}: keys ${Object.keys(Object(event)).join(',')}\n`
         );
       };
       llmWithEvents.on(eventName, handler);
@@ -1360,7 +1357,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     let llmMessageHandler: ((msg: unknown) => void) | undefined;
     if (process.env.DEBUG_GEMINI_MESSAGES === 'true') {
       llmMessageHandler = (msg: unknown) => {
-        process.stderr.write(`\n🔍 [GEMINI MSG] ${JSON.stringify(msg, null, 2)}\n`);
+        process.stderr.write(`\n🔍 [GEMINI MSG] keys ${Object.keys(Object(msg)).join(',')}\n`);
       };
       llmWithEvents.on('message', llmMessageHandler);
     }
@@ -1445,7 +1442,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const userInputHandler = (event: unknown) => {
       const evt = event as { transcript?: string; isFinal?: boolean };
       process.stderr.write(
-        `\n📝 [USER TRANSCRIPT] isFinal=${evt.isFinal}: "${evt.transcript || '(empty)'}"\n`
+        `\n📝 [USER TRANSCRIPT] isFinal=${evt.isFinal}: ${evt.transcript?.length ?? 0} chars\n`
       );
       if (!evt.isFinal) return;
       observeFinalTranscript({
@@ -1465,9 +1462,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     if (debugAll) {
       // Track when speech is committed (text sent to TTS)
       const speechCommittedHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n🔊 [SPEECH COMMITTED] ${JSON.stringify(event, null, 2).slice(0, 500)}\n`
-        );
+        process.stderr.write(`\n🔊 [SPEECH COMMITTED] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('speech_committed', speechCommittedHandler);
       sessionEventHandlers.push({ event: 'speech_committed', handler: speechCommittedHandler });
@@ -1482,34 +1477,26 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
       // Track generation events (when LLM starts/finishes generating)
       const genCreatedHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n⚡ [GENERATION CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
-        );
+        process.stderr.write(`\n⚡ [GENERATION CREATED] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('generation_created', genCreatedHandler);
       sessionEventHandlers.push({ event: 'generation_created', handler: genCreatedHandler });
 
       const genDoneHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n✅ [GENERATION DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
-        );
+        process.stderr.write(`\n✅ [GENERATION DONE] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('generation_done', genDoneHandler);
       sessionEventHandlers.push({ event: 'generation_done', handler: genDoneHandler });
 
       // Track response events (OpenAI Realtime style)
       const respCreatedHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n⚡ [RESPONSE CREATED] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
-        );
+        process.stderr.write(`\n⚡ [RESPONSE CREATED] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('response.created', respCreatedHandler);
       sessionEventHandlers.push({ event: 'response.created', handler: respCreatedHandler });
 
       const respDoneHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n✅ [RESPONSE DONE] ${JSON.stringify(event, null, 2).slice(0, 300)}\n`
-        );
+        process.stderr.write(`\n✅ [RESPONSE DONE] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('response.done', respDoneHandler);
       sessionEventHandlers.push({ event: 'response.done', handler: respDoneHandler });
@@ -1546,26 +1533,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
       // Track playout (when audio actually plays)
       const playoutStartedHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n▶️ [PLAYOUT STARTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`
-        );
+        process.stderr.write(`\n▶️ [PLAYOUT STARTED] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('playout_started', playoutStartedHandler);
       sessionEventHandlers.push({ event: 'playout_started', handler: playoutStartedHandler });
 
       const playoutDoneHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n⏹️ [PLAYOUT DONE] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`
-        );
+        process.stderr.write(`\n⏹️ [PLAYOUT DONE] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('playout_done', playoutDoneHandler);
       sessionEventHandlers.push({ event: 'playout_done', handler: playoutDoneHandler });
 
       // Track interruptions
       const interruptedHandler = (event: unknown) => {
-        process.stderr.write(
-          `\n🛑 [INTERRUPTED] ${JSON.stringify(event, null, 2).slice(0, 200)}\n`
-        );
+        process.stderr.write(`\n🛑 [INTERRUPTED] ${Object.keys(Object(event)).join(',')}\n`);
       };
       sessionWithEvents.on('interrupted', interruptedHandler);
       sessionEventHandlers.push({ event: 'interrupted', handler: interruptedHandler });
@@ -1628,7 +1609,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
-      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note, evt.transcript);
+      sendRecall(agent as unknown as RecallAgent, session, recall, note, evt.transcript, userId);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
@@ -1992,14 +1973,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
           // This helps debug what Gemini is transcribing from audio
           if (process.env.DEBUG_GEMINI_TRANSCRIPTS === 'true') {
             process.stderr.write(
-              `\n🎤 [TRANSCRIPT] UserInputTranscribed: "${evt.transcript || '(empty)'}" ` +
+              `\n🎤 [TRANSCRIPT] UserInputTranscribed ` +
                 `(isFinal: ${evt.isFinal}, length: ${(evt.transcript || '').length})\n`
             );
-            // Also log character codes for invisible characters
-            if (evt.transcript) {
-              const charCodes = evt.transcript.split('').map((c) => c.charCodeAt(0));
-              process.stderr.write(`🎤 [TRANSCRIPT] Char codes: [${charCodes.join(', ')}]\n`);
-            }
           }
           transcriptHandler.handler(
             event as import('../voice-agent/transcript-handler.js').TranscriptEvent
@@ -2311,7 +2287,7 @@ export async function buildHandoffContext(config: AgentSetupConfig): Promise<str
   parts.push('[HANDOFF CONTEXT]');
   parts.push(...handoffIntro(previousPersonaId)); // teammate-relationship.ts
 
-  if (conversationSummary) {
+  if (await forgotten.rememberedText(userData?.userId, conversationSummary)) {
     parts.push(`\nConversation summary: ${conversationSummary}`);
   }
 

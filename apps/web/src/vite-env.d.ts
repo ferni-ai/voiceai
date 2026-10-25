@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_APPLE_WEB_SIGNIN?: string;
   /** "on" or "true" gives the call its own room on phones (config/call-room-flag.ts). */
   readonly VITE_CALL_ROOM?: string;
+  /** "true" starts the seeds economy, toast and display (config/seeds-flag.ts). Off: seeds are cut. */
+  readonly VITE_SEEDS?: string;
 }
 
 interface ImportMeta {

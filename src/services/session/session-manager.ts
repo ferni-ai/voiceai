@@ -661,8 +661,7 @@ export async function createSessionServices(
           const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
 
-          // Save to store
-          await global.store.saveProfile(updatedProfile);
+          await (await import('./last-summary.js')).saveKept(global.store, updatedProfile, uid);
 
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
@@ -1542,7 +1541,7 @@ export async function createSessionServices(
             );
           }
 
-          await global.store.saveProfile(updated);
+          await (await import('./last-summary.js')).saveKept(global.store, updated, validatedUserId);
           services.userProfile = updated;
 
           getLogger().info(
@@ -1773,8 +1772,8 @@ export async function createSessionServices(
           }
 
           if (summary?.callerProvenance || summary?.keyPoints?.length) {
-            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
-            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
+            const { applyCheckedSummary } = await import('./last-summary.js'); // #2744 #2767
+            await applyCheckedSummary(updatedProfile, summary, validatedUserId);
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
             const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler

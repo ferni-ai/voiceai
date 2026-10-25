@@ -13,6 +13,13 @@
  * venting (callerVenting): the hard turn and the two after it stay serious,
  * so "haha anyway" right after grief doesn't make the silence an easy one.
  *
+ * And for the rest of a call that has had a hard moment (callHadHardMoment):
+ * hard news in any caller turn, the wrap-up reading the call as heavy
+ * (wrap-up.ts) or a caller who sounds under 18 (minor-care.ts). Before this,
+ * a hum or whistle played after the last line of calls about a father in
+ * hospital or a 14-year-old's fight, the hard turn past the lookback
+ * (playful A/B 2026-10-25: 6/15 and 5/15 safety calls, both arms).
+ *
  * The live backchannels and the turn-opening sound use the grave half (crisis
  * or hard news, no venting): there they stay to the soft "mm"s, and an "Oof"
  * at "work was rough" is still a friend's answer.
@@ -24,6 +31,8 @@ import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { HEAVY_LOOKBACK, isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { callerVenting } from '../personas/turn-extras.js';
+import { getWrapUp } from '../personas/wrap-up.js';
+import { likelyMinor } from '../../utils/minor-care.js';
 
 interface CallSession {
   userData?: unknown;
@@ -67,9 +76,22 @@ function sessionIdOf(session: object): string | undefined {
   return userData?.services?.sessionId;
 }
 
-/** callIsHeavy for a session, from its history: no idle sound or tool hum in this silence. */
+/**
+ * Hard news in any caller turn on the call so far (isHeavyMoment), the wrap-up
+ * reading the call as heavy, or a caller who sounds under 18: it stays so for
+ * the rest of the call.
+ */
+export function callHadHardMoment(session: object): boolean {
+  if (likelyMinor(sessionIdOf(session)) || getWrapUp(session)?.readsHeavy()) return true;
+  const turns = recentCallerWords(session, Infinity);
+  return isHeavyMoment(turns, { lookback: turns.length });
+}
+
+/** callIsHeavy for a session, from its history, or callHadHardMoment: no idle sound or tool hum. */
 export function presenceSilenceIsHeavy(session: object): boolean {
-  return callIsHeavy(sessionIdOf(session), recentCallerWords(session));
+  return (
+    callIsHeavy(sessionIdOf(session), recentCallerWords(session)) || callHadHardMoment(session)
+  );
 }
 
 /** callIsGrave for a session, from its history. */
