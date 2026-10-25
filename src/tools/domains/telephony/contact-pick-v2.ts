@@ -1,8 +1,6 @@
 /**
- * CONTACT_PICK_V2 (default off): which saved contact a call rings, by one score.
- * Phone-calls audit 2026-10-25 rows 1-2; #2848 reviews (rounds 1 and 2).
- *
- * Every contact that has a number is scored (strongest first):
+ * CONTACT_PICK_V2 (default off; audit 2026-10-25 rows 1-2, #2848 reviews). Every contact
+ * that has a number is scored (strongest first):
  *   5  the name is exactly what was said ("Dr. Patel", "李明")
  *   4  the name is the relation asked for ("Dad" for "my dad" / "my father")
  *   3  the relationship field is that relation, or the notes say it is the OWNER's:
