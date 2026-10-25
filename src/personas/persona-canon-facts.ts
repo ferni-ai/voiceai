@@ -9,9 +9,9 @@
  * prose (#1437), so nothing on the turn pins them.
  *
  * Each bundle's identity/canon-facts.json holds pronouns, age, partner, pets,
- * home and work, every value taken from the bundle's own biography and
- * character files ("none mentioned" where no source says, which the line
- * leaves out). The canon test (__tests__/persona-canon-facts.test.ts) fails
+ * home and work (and heritage, where a bundle gives one), every value taken
+ * from the bundle's own biography and character files ("none mentioned"
+ * where no source says, which the line leaves out). The canon test (__tests__/persona-canon-facts.test.ts) fails
  * when a value stops agreeing with those sources.
  *
  * @module personas/persona-canon-facts
@@ -29,14 +29,19 @@ export interface CanonFacts {
   partner: string;
   pets: string;
   home: string;
+  /** Optional: only bundles whose files disagreed about it (Maya, 2026-10-25). */
+  heritage?: string;
   work: string;
 }
 
 /** A value no source gives: left out of the line, never filled in. */
 export const NONE_MENTIONED = 'none mentioned';
 
-/** The line's budget, by the chars/4 estimate self-recall.ts uses: it rides every turn. */
-export const CANON_FACTS_TOKENS = 60;
+/**
+ * The line's budget, by the chars/4 estimate self-recall.ts uses: it rides every turn.
+ * 75, not 60, once every persona had an age and a home (Maya's line is the longest, ~72).
+ */
+export const CANON_FACTS_TOKENS = 75;
 
 export const CANON_FACTS_FILE = 'identity/canon-facts.json';
 
@@ -72,6 +77,7 @@ export function canonFactsLine(facts: CanonFacts): string {
     known(facts.partner) ? `partner: ${partner}` : '',
     known(facts.pets) ? `pets: ${facts.pets}` : '',
     known(facts.home) ? `home: ${facts.home}` : '',
+    facts.heritage && known(facts.heritage) ? `heritage: ${facts.heritage}` : '',
     `work: ${facts.work}`,
   ].filter(Boolean);
   return `Facts about you that never change: ${parts.join('; ')}. Don't invent other pets, partners or homes.`;
