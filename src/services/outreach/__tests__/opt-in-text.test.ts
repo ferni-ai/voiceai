@@ -95,4 +95,37 @@ describe('releaseHeldTexts', () => {
       expect(removed).toEqual([]);
     }
   );
+
+  it('texts that keep waiting cannot hide the ones behind them (pages, oldest first)', async () => {
+    // Like Firestore: releaseAt then id order, `limit`, and `after` as the cursor.
+    const waiting = Array.from({ length: 60 }, (_, i) => ({
+      id: `w${String(i).padStart(2, '0')}`,
+      text: { ...text, refId: 'paused' },
+      releaseAt: at(60_000),
+      reason: 'quiet-hours',
+    }));
+    const items: HeldText[] = [
+      ...waiting,
+      { id: 'behind', text, releaseAt: at(0), reason: 'quiet-hours' },
+    ];
+    const key = (h: Pick<HeldText, 'id' | 'releaseAt'>) => `${h.releaseAt}|${h.id}`;
+    const s: HeldTextStore = {
+      add: vi.fn(async () => undefined),
+      due: vi.fn(async (_now: Date, limit: number, after?: Pick<HeldText, 'id' | 'releaseAt'>) =>
+        [...items]
+          .sort((a, b) => key(a).localeCompare(key(b)))
+          .filter((h) => !after || key(h) > key(after))
+          .slice(0, limit)
+      ),
+      remove: vi.fn(async () => undefined),
+    };
+    const send = vi.fn(async (t: GuardedText) =>
+      t.refId === 'paused'
+        ? { sent: false as const, reason: 'paused' as const }
+        : { sent: true as const }
+    );
+    expect(await releaseHeldTexts(s, deps, send)).toEqual({ sent: 1, dropped: 0, waiting: 60 });
+    expect(send).toHaveBeenCalledTimes(61); // each once
+    expect(s.remove).toHaveBeenCalledWith('behind');
+  });
 });

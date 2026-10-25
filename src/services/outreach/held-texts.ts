@@ -6,6 +6,7 @@
  *
  * @module services/outreach/held-texts
  */
+import { FieldPath } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { checkinDb } from './checkin-replies.js';
 import { forgottenAtRelease, waitsAtRelease } from './focus-send-hold.js';
@@ -20,6 +21,8 @@ const log = createLogger({ module: 'held-texts' });
 const HELD_TEXTS = 'feature_held_texts';
 /** Released this long after its time, a held text is stale: dropped, never sent as a backlog. */
 export const HELD_STALE_MS = 24 * 60 * 60 * 1000;
+/** Pages of 50 a run reads, oldest first, so texts that must wait can't hide the ones behind. */
+const HELD_PAGES = 10;
 
 export interface HeldText {
   id: string;
@@ -32,7 +35,12 @@ export interface HeldText {
 export interface HeldTextStore {
   /** With `id`, that doc is written (a second hold of the same text rewrites it). */
   add: (held: Omit<HeldText, 'id'>, id?: string) => Promise<void>;
-  due: (now: Date, limit: number) => Promise<HeldText[]>;
+  /** Oldest first; `after` is the last one of the previous page. */
+  due: (
+    now: Date,
+    limit: number,
+    after?: Pick<HeldText, 'id' | 'releaseAt'>
+  ) => Promise<HeldText[]>;
   remove: (id: string) => Promise<void>;
 }
 
@@ -41,12 +49,14 @@ export const firestoreHeldTexts: HeldTextStore = {
     const texts = checkinDb().collection(HELD_TEXTS);
     await (id === undefined ? texts.add(held) : texts.doc(id).set(held));
   },
-  async due(now, limit) {
-    const snap = await checkinDb()
+  async due(now, limit, after) {
+    const query = checkinDb()
       .collection(HELD_TEXTS)
       .where('releaseAt', '<=', now.toISOString())
-      .limit(limit)
-      .get();
+      .orderBy('releaseAt')
+      .orderBy(FieldPath.documentId());
+    const page = after ? query.startAfter(after.releaseAt, after.id) : query;
+    const snap = await page.limit(limit).get();
     return snap.docs.map((d) => ({ ...(d.data() as Omit<HeldText, 'id'>), id: d.id }));
   },
   async remove(id) {
@@ -91,6 +101,20 @@ async function beforeSend(
   return (await waitsAtRelease(held, deps.store, now, deps.focus)) ? 'wait' : null;
 }
 
+/** Up to HELD_PAGES pages of due texts, each once (a store that ignores `after` ends it). */
+async function duePages(store: HeldTextStore, now: Date): Promise<HeldText[]> {
+  const seen = new Map<string, HeldText>();
+  let after: HeldText | undefined;
+  for (let page = 0; page < HELD_PAGES; page++) {
+    const batch = await store.due(now, 50, after); // eslint-disable-line no-await-in-loop
+    const fresh = batch.filter((h) => !seen.has(h.id));
+    for (const h of fresh) seen.set(h.id, h);
+    if (batch.length < 50 || fresh.length === 0) break;
+    after = batch[batch.length - 1];
+  }
+  return [...seen.values()];
+}
+
 /**
  * Sends the held texts that are due (beforeSend says which wait or are dropped first).
  * A gap, consent-unknown, pause or a Focus at the send: it waits. Any other skip ends it.
@@ -103,7 +127,7 @@ export async function releaseHeldTexts(
 ): Promise<{ sent: number; dropped: number; waiting: number }> {
   const now = deps.now();
   const out = { sent: 0, dropped: 0, waiting: 0 };
-  for (const held of await store.due(now, 50)) {
+  for (const held of await duePages(store, now)) {
     const ctx = { kind: held.text.kind, refId: held.text.refId, heldFor: held.reason };
     const pre = await beforeSend(held, now, deps); // eslint-disable-line no-await-in-loop
     if (pre === 'wait') {
