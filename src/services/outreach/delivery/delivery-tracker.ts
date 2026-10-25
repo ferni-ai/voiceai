@@ -1,6 +1,5 @@
 /**
  * Delivery Tracker
- *
  * Centralized tracking of all outreach deliveries across channels:
  * - Unified status tracking
  * - Cross-channel analytics
@@ -317,7 +316,7 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
               toPhone,
               item.payload.body,
               item.personaId,
-              { ownerUid: item.userId }
+              { ownerUid: item.userId, userId: item.userId }
             );
             result = callResult.success
               ? { success: true, messageId: callResult.callSid }

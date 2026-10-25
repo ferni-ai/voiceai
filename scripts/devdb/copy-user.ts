@@ -80,6 +80,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'voice_referrals[referrerId]': `${OTHERS}: people referred`,
   'family_messages[toUserId]': `${OTHERS}: written by family members`,
   'family_shared_context[toUserId]': `${OTHERS}: shared by family members`,
+  'consent[grants.{uid}]': `${OTHERS}: a contact's own consent record`,
 };
 
 /**
@@ -214,7 +215,7 @@ export async function copyUser(opts: {
     const collection = source.collection(store.collection);
     if ('doc' in store) {
       await copyDocs([collection.doc(uid)], count);
-    } else {
+    } else if ('field' in store) {
       const snap = await collection.where(store.field, '==', uid).select().get();
       await copyDocs(
         snap.docs.map((d) => d.ref),

@@ -39,6 +39,8 @@ export interface ErasureKeys {
   userId: string;
   /** Phone profiles that are the same person; each is erased like the uid */
   linkedUserIds: string[];
+  /** The person's E.164 numbers (Firebase sign-in, linked phone: profiles) */
+  phones: string[];
   /** Verified email addresses, lower-cased as the writers store them */
   emails: string[];
   /** sponsored_identities the person sponsors; their phone index entries go with them */
@@ -183,6 +185,12 @@ export async function gatherErasureKeys(db: Db, userId: string): Promise<Erasure
   return {
     userId,
     linkedUserIds,
+    phones: unique([
+      ...phones,
+      ...linkedUserIds
+        .filter((id) => id.startsWith(PHONE_PROFILE))
+        .map((id) => id.slice(PHONE_PROFILE.length)),
+    ]),
     emails,
     sponsoredIdentityIds: sponsored.flatMap((s) => s.docs.map((d) => d.id)),
     stripeCustomerIds: stripeIds([record, garden, ...grants.docs, ...owned, ...linked]),

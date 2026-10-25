@@ -115,7 +115,11 @@ async function seed(store: string, uid: string): Promise<void> {
   let doc: DocumentReference;
   if (field) {
     // "injection.userId" is a field inside a map
-    const value = field[2]!.split('.').reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
+    // "grants.{uid}" is an entry keyed by the uid in a contact's consent record
+    const value = field[2]!
+      .replace('{uid}', uid)
+      .split('.')
+      .reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
     doc = await db.collection(field[1]!).add({ ...(value as object), marker: 'seeded' });
   } else {
     const path = store.replace('{uid}', uid);
