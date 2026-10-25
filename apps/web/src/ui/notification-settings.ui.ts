@@ -24,12 +24,7 @@ import { getUserTimezone } from '../services/timezone.service.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
 import { escapeHtml } from '../utils/escape-html.js';
 import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
-import {
-  bindEmailSwitch,
-  emailSwitchHtml,
-  emailSwitchState,
-  loadEmailSwitch,
-} from './email-checkins-switch.js';
+import { bindEmailSwitch, emailSwitchHtml, emailSwitchState, mountEmailSwitch } from './email-checkins-switch.js';
 
 const log = createLogger('NotifySettings');
 const TIME_FORMAT: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
@@ -126,18 +121,8 @@ class NotificationSettingsUI {
     void this.loadUpcomingData();
     this.quietHoursEdited = false;
     void this.loadServerQuietHours();
-    this.email = emailSwitchState();
-    void this.loadEmailCheckins();
-  }
-
-  /** The email switch shows the server's value, so it waits for the server (email-checkins-switch.ts). */
-  private async loadEmailCheckins(): Promise<void> {
-    const email = this.email;
-    await loadEmailSwitch(email);
-    const slot = this.panel?.querySelector<HTMLElement>('[data-email-slot]');
-    if (email !== this.email || !slot) return; // reopened meanwhile, or not on the settings tab
-    slot.innerHTML = emailSwitchHtml(email, ICONS.mail);
-    bindEmailSwitch(slot, email);
+    const email = (this.email = emailSwitchState()); // the server's value, once it answers
+    void mountEmailSwitch(email, ICONS.mail, () => (email === this.email ? this.panel : null));
   }
 
   /**

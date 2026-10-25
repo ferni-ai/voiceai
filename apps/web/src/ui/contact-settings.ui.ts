@@ -789,11 +789,9 @@ function bindEvents(): void {
   quietToggle?.addEventListener('click', () => {
     const isEnabled = state.contactInfo.quietHoursEnabled !== false;
     state.contactInfo.quietHoursEnabled = !isEnabled;
-    
     // Update toggle appearance
     quietToggle.classList.toggle('active', !isEnabled);
     quietToggle.setAttribute('aria-pressed', String(!isEnabled));
-    
     // Update time row enabled state
     const timeRow = modalContainer?.querySelector('.contact-settings-time-row');
     timeRow?.classList.toggle('enabled', !isEnabled);
@@ -802,11 +800,9 @@ function bindEvents(): void {
   // Quiet hours time selects
   const quietStart = modalContainer.querySelector('#quiet-start') as HTMLSelectElement;
   const quietEnd = modalContainer.querySelector('#quiet-end') as HTMLSelectElement;
-  
   quietStart?.addEventListener('change', (e) => {
     state.contactInfo.quietHoursStart = (e.target as HTMLSelectElement).value;
   });
-  
   quietEnd?.addEventListener('change', (e) => {
     state.contactInfo.quietHoursEnd = (e.target as HTMLSelectElement).value;
   });

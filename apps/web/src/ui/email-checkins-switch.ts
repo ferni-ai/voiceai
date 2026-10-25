@@ -39,10 +39,23 @@ async function serverChannels(): Promise<string[] | null> {
   return Array.isArray(list) ? list.filter((c): c is string => typeof c === 'string') : null;
 }
 
-export async function loadEmailSwitch(s: EmailSwitch): Promise<void> {
+async function loadEmailSwitch(s: EmailSwitch): Promise<void> {
   const channels = await serverChannels();
   s.on = channels ? channels.includes('email') : undefined;
   s.shown = s.shown || s.on === true;
+}
+
+/** Ask the server, then draw the row into `[data-email-slot]` if the panel is still this visit's. */
+export async function mountEmailSwitch(
+  s: EmailSwitch,
+  icon: string,
+  root: () => ParentNode | null
+): Promise<void> {
+  await loadEmailSwitch(s);
+  const slot = root()?.querySelector<HTMLElement>('[data-email-slot]');
+  if (!slot) return; // reopened meanwhile, or on the Upcoming tab (its redraw draws the row)
+  slot.innerHTML = emailSwitchHtml(s, icon);
+  bindEmailSwitch(slot, s);
 }
 
 export function emailSwitchHtml(s: EmailSwitch, icon: string): string {
