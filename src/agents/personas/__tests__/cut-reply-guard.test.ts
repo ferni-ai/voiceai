@@ -170,7 +170,11 @@ describe('withCutReplyCheck', () => {
 
   it('asks again at most once: a second near-copy goes out rather than looping', async () => {
     const session = await afterCut();
-    const { model } = scripted([delta(CUT)], [delta(CUT)]);
+    let calls = 0;
+    const model = vi.fn(async (_ctx: llm.ChatContext) => {
+      if (++calls > 2) throw new Error('asked again in a loop');
+      return streamOf([delta(CUT)]);
+    });
     const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
     expect(model).toHaveBeenCalledTimes(2);
     expect(out).toBe(CUT);
