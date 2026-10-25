@@ -15,7 +15,7 @@
 
 import { ANSWERED_BY } from '../../services/outreach/proactive-channels/self-call.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { noteVoicemailSpoken } from '../outbound-call/call-control.js';
+import { noteVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
 import {
   waitForCallAnswered,
   type AnswerWatchRoom,
@@ -95,7 +95,7 @@ export interface LineDeps {
   record(answerer: Answerer): Promise<void>;
   /** Leave no message on a machine: whoever placed the call hangs it up. */
   noMessage?: boolean;
-  /** The voicemail message played (call-control noteVoicemailSpoken): the report's evidence. */
+  /** The voicemail message played (voicemail-outcome noteVoicemailSpoken): the report's evidence. */
   messageSpoken?: () => void;
   now?: () => number;
   tickMs?: number;

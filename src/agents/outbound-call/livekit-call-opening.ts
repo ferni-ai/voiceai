@@ -12,7 +12,8 @@ import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { outboundPartiesFor, waitForCallAnswered } from '../shared/outbound-opener.js';
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
-import { amdOpensCall, hangUpCall, noteVoicemailSpoken, onBehalfCallFor } from './call-control.js';
+import { noteVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
+import { amdOpensCall, hangUpCall, onBehalfCallFor } from './call-control.js';
 import { openOnBehalfCall, voicemailInstructions, type FirstWords } from './call-opening.js';
 
 const log = createLogger({ module: 'livekit-call-opening' });

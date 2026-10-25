@@ -18,6 +18,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCallOpeningAmdEnabled } from '../../config/call-opening-flag.js';
+import { forgetVoicemailSpoken } from '../../services/outreach/voicemail-outcome.js';
 
 const log = createLogger({ module: 'outbound-call-control' });
 
@@ -42,8 +43,6 @@ interface CallSession {
 const sessions = new Map<string, CallSession>();
 const dispositions = new Map<string, CallDisposition>();
 const hungUp = new Set<string>();
-/** Sessions whose leave-a-voicemail path played its message (the only evidence a message was left). */
-const voicemailSpoken = new Set<string>();
 
 /** Remember which room an on-behalf call session is in, so it can hang up. */
 export function registerOnBehalfCallRoom(
@@ -70,23 +69,7 @@ export function forgetOnBehalfCallRoom(sessionId: string): void {
   sessions.delete(sessionId);
   dispositions.delete(sessionId); // in case it was never read
   hungUp.delete(sessionId);
-  voicemailSpoken.delete(sessionId);
-}
-
-/**
- * Called only by the code that speaks a voicemail, once a machine was heard
- * and its message played to the end. The report says "left a message" only
- * with this, never on the model's endCall reason alone (prod 10-24).
- */
-export function noteVoicemailSpoken(sessionId: string): void {
-  if (sessions.has(sessionId)) voicemailSpoken.add(sessionId);
-}
-
-/** Whether this session's call really left a voicemail message. Read once. */
-export function takeVoicemailSpoken(sessionId: string): boolean {
-  const spoken = voicemailSpoken.has(sessionId);
-  voicemailSpoken.delete(sessionId);
-  return spoken;
+  forgetVoicemailSpoken(sessionId);
 }
 
 /** The call this session is placing on someone's behalf, if any. */

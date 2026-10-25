@@ -199,8 +199,9 @@ describe('buildCallOutcome: voicemail_left needs evidence a message was spoken',
   });
 
   it("the report reads the call's spoken flag from call-control, once", async () => {
-    const { registerOnBehalfCallRoom, noteVoicemailSpoken, takeVoicemailSpoken } =
-      await import('../call-control.js');
+    const { registerOnBehalfCallRoom } = await import('../call-control.js');
+    const { noteVoicemailSpoken, takeVoicemailSpoken } =
+      await import('../../../services/outreach/voicemail-outcome.js');
     registerOnBehalfCallRoom('s-flag', 'c-flag', 'room-flag');
     const p = { ...ports([opener, greeting], undefined, 'voicemail_left') };
     const before = await completeOnBehalfCall('s-flag', makeCall('c-flag-0'), 30, true, {

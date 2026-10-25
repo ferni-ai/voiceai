@@ -27,7 +27,11 @@ import { screenedCallerText } from '../../services/outreach/caller-text.js';
 import { relayedMessage } from '../../services/outreach/relayed-message.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 import { noteCallRefinement } from '../../services/follow-through/index.js';
-import { isRecordedGreeting, voicemailWords } from '../../services/outreach/voicemail-outcome.js';
+import {
+  isRecordedGreeting,
+  takeVoicemailSpoken,
+  voicemailWords,
+} from '../../services/outreach/voicemail-outcome.js';
 import type { CallDisposition } from './call-control.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
@@ -35,7 +39,7 @@ const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 export interface CallLifecyclePorts {
   /** How Ferni said the call ended when it hung up itself (see call-control). */
   readDisposition: (sessionId: string) => CallDisposition | undefined;
-  /** True only when the leave-a-voicemail path played its message (call-control noteVoicemailSpoken). */
+  /** True only when the leave-a-voicemail path played its message (voicemail-outcome noteVoicemailSpoken). */
   readVoicemailSpoken?: (sessionId: string) => boolean;
   /** The turns captured so far, or null when capture never started. */
   readTranscript: (callId: string) => CallTranscriptTurn[] | null;
@@ -261,7 +265,7 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
     await import('../../services/outreach/call-retry.js');
   return {
     readDisposition: control.takeCallDisposition,
-    readVoicemailSpoken: control.takeVoicemailSpoken,
+    readVoicemailSpoken: takeVoicemailSpoken,
     readTranscript: (callId) => transcripts.getActiveTranscript(callId)?.turns.slice() ?? null,
     analyze: transcripts.analyzeCompletedCall,
     report: captureCallResult,

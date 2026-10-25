@@ -9,7 +9,7 @@
  *
  * A voicemail counts as left only on positive evidence: a machine was heard
  * and the leave-a-voicemail path played its message to the end
- * (noteVoicemailSpoken in agents/outbound-call/call-control.ts). Counting
+ * (noteVoicemailSpoken below). Counting
  * Ferni's words in the transcript is not evidence: the opener alone is ~20
  * words, and a greeting STT missed, or saved out of order, made it count.
  * Everything else is "voicemail, no message left". Every report (live, push,
@@ -29,6 +29,28 @@ const RECORDED_GREETING =
 
 /** True when the words are ones only a voicemail greeting says. */
 export const isRecordedGreeting = (said: string): boolean => RECORDED_GREETING.test(said);
+
+/** Sessions whose leave-a-voicemail path played its message (the only evidence a message was left). */
+const voicemailSpoken = new Set<string>();
+
+/**
+ * Called only by the code that speaks a voicemail, once a machine was heard
+ * and its message played to the end. The report says "left a message" only
+ * with this, never on the model's endCall reason alone (prod 10-24).
+ */
+export function noteVoicemailSpoken(sessionId: string): void {
+  voicemailSpoken.add(sessionId);
+}
+
+/** Whether this session's call really left a voicemail message. Read once. */
+export function takeVoicemailSpoken(sessionId: string): boolean {
+  return voicemailSpoken.delete(sessionId);
+}
+
+/** Drops the record when the call is forgotten (agents/outbound-call/call-control.ts). */
+export function forgetVoicemailSpoken(sessionId: string): void {
+  voicemailSpoken.delete(sessionId);
+}
 
 export interface VoicemailWords {
   /** The report's outcome sentence. */

@@ -192,7 +192,7 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
       role: 'agent',
       content: "Hi Mom, it's Ferni, Sam's AI friend, just checking in. Thanks, bye!",
     };
-    // The voicemail path recorded its message as spoken (call-control noteVoicemailSpoken).
+    // The voicemail path recorded its message as spoken (voicemail-outcome noteVoicemailSpoken).
     const p = { ...ports([...voicemail, message], new Date(), 'voicemail_left') };
     const outcome = await completeOnBehalfCall('s15', makeCall(), 30, true, {
       ...p,

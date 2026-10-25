@@ -58,8 +58,8 @@ vi.mock('../call-control.js', async (importOriginal) => {
 
 const { openIfOnBehalfCall, FIRST_SPEECH_TIMEOUT_MS, AFTER_OPENER_LISTEN_MS } =
   await import('../livekit-call-opening.js');
-const { registerOnBehalfCallRoom, forgetOnBehalfCallRoom, takeVoicemailSpoken } =
-  await import('../call-control.js');
+const { registerOnBehalfCallRoom, forgetOnBehalfCallRoom } = await import('../call-control.js');
+const { takeVoicemailSpoken } = await import('../../../services/outreach/voicemail-outcome.js');
 const { setOutboundCallContext } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 

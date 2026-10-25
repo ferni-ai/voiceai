@@ -71,7 +71,7 @@ export interface CallOpeningPorts {
   /**
    * Leaves the voicemail and resolves when it has played. Only called after a
    * machine verdict; the port records that the message was spoken
-   * (call-control noteVoicemailSpoken), the only evidence a report trusts.
+   * (voicemail-outcome noteVoicemailSpoken), the only evidence a report trusts.
    */
   leaveVoicemail(): Promise<void>;
   hangUp(disposition?: CallDisposition): Promise<void>;
