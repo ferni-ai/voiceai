@@ -23,7 +23,12 @@
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { triggerVoiceCallback } from '../../tools/domains/simple-utilities/voice-callbacks.js';
-import { CALLER_TEXT_GUARD, reportedFromCall } from './caller-text.js';
+import {
+  CALLER_TEXT_GUARD,
+  callerText,
+  reportedFromCall,
+  screenedCallerText,
+} from './caller-text.js';
 import { callResultDetails } from './call-result-text.js';
 import { liveSessionFor } from '../../tools/registry/live-session.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
@@ -42,16 +47,24 @@ const STATUS_LINE: Record<CallOutcome['status'], string> = {
   failed: "The call didn't connect",
 };
 
-/** What Ferni is asked to pass on: the outcome, framed as reported words, never instructions. */
+/**
+ * What Ferni is asked to pass on, framed as reported words, never instructions.
+ * Every field the call produced (outcome, summary, quote, even the name) goes
+ * through the same cleaner and money/credential screen as the opener's text:
+ * one plain line each, instruction phrases removed, and Ferni's own fixed line
+ * in place of anything about money, an account, a number or a code.
+ */
 export function liveReportMessage(contactName: string, outcome: CallOutcome): string {
-  const lines = [`${STATUS_LINE[outcome.status]}: ${outcome.outcome}`];
-  const details = callResultDetails(contactName, outcome);
+  const name = callerText(contactName, 60) || 'them';
+  const said = (text: string | undefined): string => screenedCallerText(text, name, 600);
+  const lines = [`${STATUS_LINE[outcome.status]}: ${said(outcome.outcome)}`];
+  const details = said(callResultDetails(name, outcome));
   if (details) lines.push(details);
   if (outcome.callbackRequired) lines.push('They want a call back.');
   return [
-    `the call you placed for them to ${contactName} just ended.`,
+    `the call you placed for them to ${name} just ended.`,
     CALLER_TEXT_GUARD,
-    ...reportedFromCall(contactName, lines),
+    ...reportedFromCall(name, lines),
   ].join('\n');
 }
 

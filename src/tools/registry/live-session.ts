@@ -21,28 +21,41 @@ interface Runnable {
   execute: (args: unknown, opts: unknown) => unknown;
 }
 
-const idBySession = new WeakMap<object, string>();
-const sessionById = new Map<string, object>();
+/** One registration: a persona handoff re-notes the same session, so each release owns its own. */
+interface Entry {
+  session: object;
+  sessionId: string;
+}
 
-/** Session setup: this call's AgentSession is live under `sessionId`. Returns the release. */
+const entryBySession = new WeakMap<object, Entry>();
+const entryById = new Map<string, Entry>();
+
+/**
+ * Session setup: this call's AgentSession is live under `sessionId`. Returns the
+ * release, which removes only this registration: after a handoff re-notes the
+ * session, the old persona's late cleanup leaves the new one in place.
+ */
 export function noteLiveSession(session: object, sessionId: string): () => void {
-  idBySession.set(session, sessionId);
-  sessionById.set(sessionId, session);
+  const entry: Entry = { session, sessionId };
+  entryBySession.set(session, entry);
+  entryById.set(sessionId, entry);
   return () => {
-    if (sessionById.get(sessionId) === session) sessionById.delete(sessionId);
-    idBySession.delete(session);
+    if (entryById.get(sessionId) === entry) entryById.delete(sessionId);
+    if (entryBySession.get(session) === entry) entryBySession.delete(session);
   };
 }
 
 /** The live AgentSession with this id in this process, if the call is still on. */
 export function liveSessionFor(sessionId: string | undefined): object | undefined {
-  return sessionId ? sessionById.get(sessionId) : undefined;
+  return sessionId ? entryById.get(sessionId)?.session : undefined;
 }
 
 /** The real session id of the call a tool is running in (LiveKit's `opts.ctx.session`). */
 export function liveSessionIdOf(opts: unknown): string | undefined {
   const session: unknown = (opts as { ctx?: { session?: unknown } } | undefined)?.ctx?.session;
-  return typeof session === 'object' && session !== null ? idBySession.get(session) : undefined;
+  return typeof session === 'object' && session !== null
+    ? entryBySession.get(session)?.sessionId
+    : undefined;
 }
 
 /**
