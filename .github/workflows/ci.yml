@@ -1315,6 +1315,14 @@ jobs:
             pnpm exec playwright test -c playwright.overlays.config.ts --update-snapshots=all
           fi
 
+      # Required check: a copy or layout change fails it until the baselines match.
+      - name: How to refresh the baselines
+        if: failure()
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::error title=Overlay gallery::If the changed overlays are intended, refresh the Linux baselines from this run: scripts/ci/refresh-overlay-baselines.sh $PR (from the repo root, on the PR branch), review each image, then commit them."
+
       - name: Upload report and snapshots
         if: always()
         uses: actions/upload-artifact@v7
