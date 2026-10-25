@@ -10125,9 +10125,10 @@
     "title": "我记住的那些小事",
     "subtitle": "这样你就不必操心了",
     "emptyTitle": "还没有设置任何内容",
-    "emptySubtitle": "想让我每天早上向你问好？提醒你伸个懒腰？我都可以做到哦。",
+    "emptySubtitle": "告诉我你想定期做的事，我会把它存在这里。",
     "emptyButton": "给我看一些灵感",
     "addNew": "添加新内容",
+    "notRunningYet": "我把它们存在这里。它们还不会自动运行。",
     "triggers": {
       "dailyAt": "每天 {time}",
       "dailyUnset": "每天的固定时间",
