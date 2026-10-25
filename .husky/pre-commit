@@ -16,6 +16,27 @@ echo "╚═══════════════════════�
 echo ""
 
 # =============================================================================
+# ARCHITECTURE + SIZE RATCHET ON THE STAGED CONTENT (BLOCKS COMMIT, ≈2 s)
+# =============================================================================
+# Pre-push runs the full gates on the working tree; these used to be found only
+# there, after this hook had passed. staged-gates.ts reads the index, so unstaged
+# edits can't fail or pass the commit. Skipped when no TypeScript under src/ or
+# apps/ is staged (the only code these gates judge).
+if git diff --cached --name-only --diff-filter=ACMRD | grep -qE '^(src|apps)/.*\.tsx?$'; then
+  echo "🧱 Architecture + size ratchet (staged files)..."
+  npx tsx apps/cli/src/commands/quality/staged-gates.ts || {
+    echo ""
+    echo "  ❌ ARCHITECTURE OR SIZE REGRESSION IN THE STAGED FILES - COMMIT BLOCKED"
+    echo "  Pre-push would block it too. Full run: pnpm quality:arch, and"
+    echo "  npx tsx apps/cli/src/commands/quality/ratchet.ts"
+    echo ""
+    exit 1
+  }
+  echo "  ✓ No new architecture or size regressions"
+  echo ""
+fi
+
+# =============================================================================
 # QUICK CHECKS (Must pass)
 # =============================================================================
 echo "🔍 Running quick quality checks..."

@@ -16,7 +16,7 @@
  * @module quality/architecture-gate
  */
 import { appendFileSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
-import { dirname, join, relative, resolve } from 'path';
+import { dirname, join, relative } from 'path';
 import ts from 'typescript';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { CONTEXTS, LAYER_MAP, type Context, type Layer } from './architecture-layers.js';
@@ -58,13 +58,11 @@ function walk(dir: string, out: string[]): string[] {
   return out;
 }
 
-function resolveSpec(root: string, from: string, spec: string): string | null {
+/** `isFile` takes a root-relative path, so the graph can come from the index as well as the disk. */
+function resolveSpec(from: string, spec: string, isFile: (path: string) => boolean): string | null {
   if (!spec.startsWith('.')) return null;
-  const base = resolve(root, dirname(from), spec).replace(/\.(js|ts|mjs|cjs)$/, '');
-  const hit = [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find(
-    (c) => existsSync(c) && statSync(c).isFile()
-  );
-  return hit ? relative(root, hit) : null;
+  const base = join(dirname(from), spec).replace(/\.(js|ts|mjs|cjs)$/, '');
+  return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find(isFile) ?? null;
 }
 
 /** True when every name an import/export clause brings in is type-only. */
@@ -83,35 +81,46 @@ function typeOnly(node: ts.ImportDeclaration | ts.ExportDeclaration): boolean {
 /** Every relative import between production files under src/, from the AST. */
 export function buildGraph(root: string): { files: string[]; edges: Edge[]; vendor: VendorImport[] } {
   const files = walk(join(root, 'src'), []).map((f) => relative(root, f)).filter((f) => !TEST.test(f));
+  const isFile = (path: string): boolean => existsSync(join(root, path)) && statSync(join(root, path)).isFile();
   const edges: Edge[] = [];
   const vendor: VendorImport[] = [];
   for (const from of files) {
-    const sf = ts.createSourceFile(from, readFileSync(join(root, from), 'utf8'), ts.ScriptTarget.Latest, true);
-    const add = (spec: string, kind: Edge['kind'], node: ts.Node, lazy: boolean): void => {
-      const to = resolveSpec(root, from, spec);
-      const line = sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
-      const pkg = vendorOf(spec);
-      if (pkg) vendor.push({ from, to: pkg, line });
-      if (to && !TEST.test(to)) edges.push({ from, to, kind, lazy, line });
-    };
-    const visit = (node: ts.Node, lazy: boolean): void => {
-      if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-        add(node.moduleSpecifier.text, typeOnly(node) ? 'type' : 'static', node, lazy);
-      } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
-        const e = node.moduleReference.expression;
-        if (ts.isStringLiteral(e)) add(e.text, node.isTypeOnly ? 'type' : 'static', node, lazy);
-      } else if (ts.isCallExpression(node) && node.arguments[0] && ts.isStringLiteralLike(node.arguments[0])) {
-        const callee = node.expression;
-        if (callee.kind === ts.SyntaxKind.ImportKeyword) add(node.arguments[0].text, 'dynamic', node, lazy);
-        else if (ts.isIdentifier(callee) && callee.text === 'require') add(node.arguments[0].text, 'require', node, lazy);
-      } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
-        add(node.argument.literal.text, 'type', node, lazy);
-      }
-      ts.forEachChild(node, (child) => visit(child, lazy || ts.isFunctionLike(node)));
-    };
-    visit(sf, false);
+    const found = importsOf(from, readFileSync(join(root, from), 'utf8'), isFile);
+    edges.push(...found.edges);
+    vendor.push(...found.vendor);
   }
   return { files, edges, vendor };
+}
+
+/** One file's relative imports of production files, and its vendor SDK imports. */
+export function importsOf(from: string, text: string, isFile: (path: string) => boolean): { edges: Edge[]; vendor: VendorImport[] } {
+  const edges: Edge[] = [];
+  const vendor: VendorImport[] = [];
+  const sf = ts.createSourceFile(from, text, ts.ScriptTarget.Latest, true);
+  const add = (spec: string, kind: Edge['kind'], node: ts.Node, lazy: boolean): void => {
+    const to = resolveSpec(from, spec, isFile);
+    const line = sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+    const pkg = vendorOf(spec);
+    if (pkg) vendor.push({ from, to: pkg, line });
+    if (to && !TEST.test(to)) edges.push({ from, to, kind, lazy, line });
+  };
+  const visit = (node: ts.Node, lazy: boolean): void => {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      add(node.moduleSpecifier.text, typeOnly(node) ? 'type' : 'static', node, lazy);
+    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+      const e = node.moduleReference.expression;
+      if (ts.isStringLiteral(e)) add(e.text, node.isTypeOnly ? 'type' : 'static', node, lazy);
+    } else if (ts.isCallExpression(node) && node.arguments[0] && ts.isStringLiteralLike(node.arguments[0])) {
+      const callee = node.expression;
+      if (callee.kind === ts.SyntaxKind.ImportKeyword) add(node.arguments[0].text, 'dynamic', node, lazy);
+      else if (ts.isIdentifier(callee) && callee.text === 'require') add(node.arguments[0].text, 'require', node, lazy);
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+      add(node.argument.literal.text, 'type', node, lazy);
+    }
+    ts.forEachChild(node, (child) => visit(child, lazy || ts.isFunctionLike(node)));
+  };
+  visit(sf, false);
+  return { edges, vendor };
 }
 
 /** Where a file sits (longest matching prefix); null when unassigned or unmapped. */
