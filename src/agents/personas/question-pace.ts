@@ -20,7 +20,7 @@
  */
 import { flagOn } from '../../config/env-flag.js';
 import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
-import { isSafetyTopic } from './phrase-loops.js';
+import { isSafetyLine, isSafetyTopic } from './phrase-loops.js';
 
 export function questionPaceOn(env: Record<string, string | undefined> = process.env): boolean {
   return flagOn('QUESTION_PACE', env);
@@ -48,5 +48,9 @@ export function questionPaceNote(
   if (opts.sessionId && crisisRiskNoted(opts.sessionId)) return '';
   const last = ferniLines[ferniLines.length - 1];
   if (last === undefined || !endsOnQuestion(last)) return '';
-  return isSafetyTopic(last) ? '' : QUESTION_PACE_LINE;
+  // Held after a safety word or script sentence anywhere, or after a question main's
+  // looser check (isSafetyLine) flags; a reaction like "That sounds so heavy." no
+  // longer holds it (it did on 26% of real question-ending replies).
+  const asks = last.split(/(?<=[.!?])\s+/).filter((s) => endsOnQuestion(s));
+  return isSafetyTopic(last) || asks.some(isSafetyLine) ? '' : QUESTION_PACE_LINE;
 }

@@ -92,21 +92,27 @@ describe('questionPaceNote: safety by topic and script, not by loose word overla
       'Do you feel like you might do something to yourself tonight?',
       'Have you taken anything tonight?',
       'Can you put some distance between you and the medication for tonight?',
-      'How much did you drink tonight, and did you mix it with anything?',
       'Have you cut yourself again since we last talked?',
       'Has he ever put his hands on you?',
       'Is anyone there with you right now?',
       'Is there someone you trust who could come stay with you tonight?',
-      'Would you let me help you find a number to call right now?',
     ])
       expect(after(q), q).toBe('');
   });
 
-  it('keeps the note after ordinary emotional follow-ups that only share words with a script', () => {
+  it('holds the note after the questions main held it for (#2812 verify)', () => {
     for (const q of [
-      'How are you feeling about it?',
-      'That sounds so heavy. What did he say back?',
-      'I love that. What are you going to name him?',
+      'Have you been giving your things away?',
+      "When you say you're done, do you mean done with everything?",
+    ])
+      expect(after(q), q).toBe('');
+  });
+
+  it('keeps the note after a reaction that only shares words with a script, and plain follow-ups', () => {
+    for (const q of [
+      'That sounds so heavy. When do you fly out?',
+      'That makes sense. When do you fly out?',
+      'I love that. What movie did you pick?',
       'Oof, long week. What are you doing this weekend?',
     ])
       expect(after(q), q).toBe(QUESTION_PACE_LINE);

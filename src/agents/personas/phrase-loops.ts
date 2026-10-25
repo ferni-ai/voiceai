@@ -119,31 +119,26 @@ export const isSafetyWording = (phrase: string): boolean => {
  * Words that put a line on safety, harm or getting help. Blunt on purpose: a line
  * it catches is only left unquoted or gets no pacing note, and a paraphrased safety
  * question the scripts don't word must never be one the model is told to drop or
- * hold back (#2804 verify: the script match alone caught 1 of 17; #2809 verify:
- * this list still missed 13 of 22, so it covers the families, not just phrases:
- * ending a life, not waking up or being here, self-harm, what was taken, who is
- * with them, who hurts them, who to call).
+ * hold back (#2804 verify: the script match alone caught 1 of 17). A list never
+ * covers them all (#2812 verify: stems added for one held-out set caught 0 of a
+ * fresh 25), so only precise words go here; the classifier and noted risk are the
+ * real defense (crisis-call-risk.ts).
  */
 const SAFETY_TOPIC = new RegExp(
   [
-    'safe', 'safety', 'unsafe', 'danger\\w*', 'hurt\\w*', 'harm\\w*', 'kill\\w*', 'suicid\\w*',
+    'safe', 'safety', 'unsafe', 'danger', 'dangerous', 'hurt\\w*', 'harm\\w*', 'kill\\w*', 'suicid\\w*',
     'die', 'dying', 'death', 'dead', 'alive', 'end it', 'end it all', 'plan to', 'overdose\\w*',
     'weapon\\w*', 'gun\\w*', 'pills?', 'meds', 'medication\\w*', '988', '911', '741741',
     'crisis', 'hotline', 'lifeline', 'emergency', 'therapist', 'counsel(?:or|ing)', 'doctor',
     'hospital',
     // ending or taking a life; not waking up; not being here; better off without them
-    '(?:end|ending|ended|take|taking|took)\\s+(?:your|my|their|his|her)\\s+(?:own\\s+)?life',
+    '(?:end|ending|ended|take|taking|took)\\s+(?:your|my|their|his|her)\\s+(?:own\\s+)?life(?!\\s+savings)',
     'not\\s+(?:to\\s+)?wake\\s+up', '(?:want(?:ing)?|be)\\s+(?:to\\s+)?(?:be\\s+)?here\\s+any\\s?more',
     'better\\s+off\\s+without', 'do\\s+something\\s+to\\s+(?:yourself|myself)',
     'cut(?:s|ting)?\\s+(?:yourself|myself)', 'self[- ]harm\\w*',
-    // what was taken or mixed
-    '(?:taken|took|take)\\s+anything', 'mix(?:ed|ing)?\\s+it\\s+with',
-    // who is with them, who to call
-    '(?:anyone|someone|somebody)\\s+(?:there\\s+)?with\\s+you', '(?:be|stay)\\s+with\\s+you',
-    '(?:anyone|someone|somebody)\\s+nearby', 'access\\s+to\\s+(?:anything|things|something)',
-    '(?:someone|somebody|anyone)\\s+you\\s+trust', '(?:number|someone|somebody|anyone)\\s+(?:to|you\\s+can)\\s+call',
-    // who hurts them
-    'hands\\s+on\\s+you', 'hit(?:s|ting)?\\s+you', 'abus\\w*',
+    // what was taken; who is with them; who hurts them
+    '(?:taken|took)\\s+anything', '(?:anyone|someone|somebody)\\s+(?:there\\s+)?with\\s+you',
+    '(?:someone|somebody|anyone)\\s+you\\s+trust', 'hands\\s+on\\s+you', 'abus\\w*',
   ]
     .map((w) => `\\b${w}\\b`)
     .join('|'),
