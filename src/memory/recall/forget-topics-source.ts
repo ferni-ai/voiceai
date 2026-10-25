@@ -116,6 +116,24 @@ export async function topicsWithin(userId: string, reader: string): Promise<stri
   return fallback(userId, reader, got === 'late' ? 'timeout' : 'failed');
 }
 
+/**
+ * The topics for a reader that must not use an old list (#2727): the shared read within
+ * READ_TIMEOUT_MS, else null (fail closed). The last-known fallback has no age bound yet (#2623),
+ * so it could miss a topic forgotten since in another process; switch to topicsWithin once it does.
+ */
+export async function topicsFreshWithin(userId: string): Promise<string[] | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<'late'>((resolve) => {
+    timer = setTimeout(() => resolve('late'), READ_TIMEOUT_MS);
+  });
+  const got = await Promise.race([readTopics(userId), late]);
+  clearTimeout(timer);
+  if (Array.isArray(got)) return got;
+  if (got === 'late') stats.timeouts++;
+  stats.failClosed++;
+  return null;
+}
+
 /** The topics without waiting: fresh or last known, else null (fail closed). Starts a read if due. */
 export function topicsNow(userId: string, reader: string): string[] | null {
   void readTopics(userId);

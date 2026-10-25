@@ -184,3 +184,19 @@ export function wholeWordSite(
 ): boolean {
   return decide(site, today, () => (wholeWord() ? 'hit' : null), env) !== null;
 }
+
+/**
+ * The semantic router's context boost (tools/semantic-router/matcher.ts) on
+ * one keyword. Crisis tools' keywords go through saysPhrase, which counts a
+ * soft match too: a boost has no softer tier, so "diet" still boosts
+ * crisis_support as on main, and STT spellings ("i cant go on") now boost as
+ * well. Other tools keep the substring check.
+ */
+export function routerContextMentions(
+  text: string,
+  keyword: string,
+  category: string,
+  env: Env = process.env
+): boolean {
+  return category === 'crisis' ? saysPhrase(text, keyword, env) : text.includes(keyword);
+}
