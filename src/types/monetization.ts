@@ -43,6 +43,8 @@ export interface TipTransaction {
   completedAt?: Date;
   stripePaymentId?: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
+  /** MINOR_CARE: created while the caller was held, so their note was never kept */
+  held?: boolean;
 }
 
 // ============================================================================
@@ -69,6 +71,8 @@ export type ValueType =
 export interface ValueEvent {
   id: string;
   userId: string;
+  /** MINOR_CARE: detected while the caller was held: never stored with its type or estimate */
+  held?: boolean;
   type: ValueType;
   /** Description of what was achieved */
   description: string;
@@ -397,6 +401,8 @@ export interface UserMonetizationData {
   /** Ferni Fund contributions */
   totalFundContributionsCents: number;
   fundContributionCount: number;
+  /** Stripe payment intents already counted, newest last (capped): a webhook retry counts once */
+  recordedPaymentIds?: string[];
   /** Has user ever been sponsored? */
   wasSponsored: boolean;
   /** Partner referrals clicked */

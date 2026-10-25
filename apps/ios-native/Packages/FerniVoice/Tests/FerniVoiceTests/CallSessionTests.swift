@@ -29,7 +29,13 @@ final class CallSessionTests: XCTestCase {
             connectedTo = (url, token)
             if let agentOnConnect { continuation.yield(.agentJoined(attributes: agentOnConnect)) }
         }
-        func setMicrophone(enabled: Bool) async throws { micStates.append(enabled) }
+        var order: Order?
+        func setMicrophone(enabled: Bool) async throws {
+            micStates.append(enabled)
+            order?.steps.append("mic \(enabled)")
+        }
+        private(set) var sent: [Data] = []
+        func send(_ data: Data) async throws { sent.append(data) }
         func disconnect() async {
             disconnects += 1
             continuation.finish()
@@ -45,9 +51,15 @@ final class CallSessionTests: XCTestCase {
         private(set) var deactivations = 0
         init() { (interruptions, interrupt) = AsyncStream.makeStream(of: AudioInterruption.self) }
         func requestMicrophone() async -> Bool { micAllowed }
-        func activate() throws { activations += 1 }
+        var order: Order?
+        func activate() throws {
+            activations += 1
+            order?.steps.append("activate")
+        }
         func deactivate() { deactivations += 1 }
     }
+
+    final class Order: @unchecked Sendable { var steps: [String] = [] }
 
     final class Rooms: @unchecked Sendable {
         var made: [FakeRoom] = []
@@ -64,7 +76,14 @@ final class CallSessionTests: XCTestCase {
     private var tokens = Tokens()
     private var audio = FakeAudio()
 
-    private func makeSession(timeout: Duration = .milliseconds(200)) -> CallSession {
+    /// Timeouts: 5 s by default, so a Ferni who's there is never raced by the
+    /// watchdog (his join reaches the session through the room's AsyncStream
+    /// and a task hop, which on a loaded CI runner took longer than the old
+    /// 200 ms; testFerniMissingTwiceEndsWithRetryNotSilence and
+    /// testAFailedRejoinEndsTheCallAfterOneFreshRoom flaked on main). A test
+    /// where Ferni is missing makes him missing without the clock (the token
+    /// says not dispatched) or passes a short timeout and never sends him.
+    private func makeSession(timeout: Duration = .seconds(5)) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
             fetchToken: { persona in
@@ -79,13 +98,15 @@ final class CallSessionTests: XCTestCase {
                 return room
             },
             audio: audio,
-            agentTimeout: timeout
+            agentTimeout: timeout,
+            defaults: UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
         )
     }
 
-    /// Lets the session's tasks run until `condition` holds (or fails after 2 s).
+    /// Lets the session's tasks run until `condition` holds (or fails after
+    /// 10 s; a pass returns as soon as it holds, so only failures wait).
     private func until(_ condition: @autoclosure () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
-        let deadline = ContinuousClock.now + .seconds(2)
+        let deadline = ContinuousClock.now + .seconds(10)
         while !condition(), ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(10)) }
         XCTAssertTrue(condition(), "timed out", file: file, line: line)
     }
@@ -102,6 +123,22 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(rooms.made.first?.micStates, [true])
         XCTAssertEqual(audio.activations, 1)
         XCTAssertEqual(session.agentActivity, .listening)
+        XCTAssertTrue(session.hasTalked)
+    }
+
+    /// Haptics-while-recording is set up (in activate) before the mic goes on.
+    func testTheAudioSessionIsReadyBeforeTheMicOpens() async {
+        let order = Order()
+        audio.order = order
+        rooms.next = {
+            let room = FakeRoom()
+            room.order = order
+            return room
+        }
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertEqual(order.steps, ["activate", "mic true"])
     }
 
     func testWaitsForFerniWhoArrivesLate() async {
@@ -117,9 +154,13 @@ final class CallSessionTests: XCTestCase {
     }
 
     func testFerniMissingIsRetriedOnceInAFreshRoom() async {
+        // The first token says nobody was dispatched (missing at once, no
+        // clock); the second, fetched after the first room, says he was.
+        tokens.dispatched = false
         var first = true
+        let tokens = tokens
         rooms.next = {
-            defer { first = false }
+            defer { first = false; tokens.dispatched = true }
             return FakeRoom(agentOnConnect: first ? nil : [:])
         }
         let session = makeSession()
@@ -132,6 +173,9 @@ final class CallSessionTests: XCTestCase {
     }
 
     func testFerniMissingTwiceEndsWithRetryNotSilence() async {
+        // Missing without the clock: neither token was dispatched. The
+        // watchdog's own deadline is testTheWatchdogRetriesOnceThenGivesUp's.
+        tokens.dispatched = false
         rooms.next = { FakeRoom(agentOnConnect: nil) }
         let session = makeSession()
         session.start()
@@ -141,6 +185,7 @@ final class CallSessionTests: XCTestCase {
         XCTAssertTrue(rooms.made.allSatisfy { $0.disconnects == 1 })
         XCTAssertEqual(audio.deactivations, 2)
 
+        tokens.dispatched = true
         rooms.next = { FakeRoom() }
         session.start()
         await until(session.phase == .live)
@@ -154,7 +199,23 @@ final class CallSessionTests: XCTestCase {
         session.start()
 
         await until(session.phase == .failed(.ferniDidNotJoin))
-        XCTAssertLessThan(ContinuousClock.now - started, .seconds(2))
+        // Far under the 30 s timeout, with room for a stalled runner (2 s
+        // failed when the test process froze for 2.5 s).
+        XCTAssertLessThan(ContinuousClock.now - started, .seconds(10))
+    }
+
+    /// The watchdog itself: dispatched, but Ferni never joins either room.
+    /// Nobody is ever sent, so a stalled runner can only make it later.
+    func testTheWatchdogRetriesOnceThenGivesUp() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .milliseconds(150))
+        session.start()
+
+        await until(session.phase == .failed(.ferniDidNotJoin))
+        try? await Task.sleep(for: .milliseconds(600)) // four more deadlines' worth
+        XCTAssertEqual(rooms.made.count, 2)
+        XCTAssertEqual(tokens.requests.count, 2)
+        XCTAssertEqual(session.phase, .failed(.ferniDidNotJoin))
     }
 
     func testRefusedTokenSaysSoAndJoinsNothing() async {
@@ -234,6 +295,25 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.captions.lines.map(\.speaker), [.ferni, .you])
     }
 
+    func testTappingFerniInterruptsOnlyWhileFerniIsTalking() async throws {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        let quiet = await session.interrupt()
+        XCTAssertFalse(quiet, "nothing to interrupt while Ferni listens")
+        XCTAssertTrue(rooms.made[0].sent.isEmpty)
+
+        rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
+        await until(session.avatar.pose == .speaking)
+        let sent = await session.interrupt()
+        XCTAssertTrue(sent)
+        let message = try XCTUnwrap(rooms.made[0].sent.first)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: message) as? [String: Any])
+        XCTAssertEqual(json["type"] as? String, "user_interrupt")
+        XCTAssertNotNil(json["timestamp"] as? Int)
+    }
+
     func testMuteTurnsTheMicOffAndOn() async {
         let session = makeSession()
         session.start()
@@ -272,9 +352,12 @@ final class CallSessionTests: XCTestCase {
     /// no rejoining again after the rejoin fails (the train's verifier: no
     /// test covered a failed rejoin, so either loop shipped green).
     func testAFailedRejoinEndsTheCallAfterOneFreshRoom() async {
-        let session = makeSession(timeout: .milliseconds(150))
+        let session = makeSession()
         session.start()
         await until(session.phase == .live)
+        // The rejoin's Ferni is missing without the clock: its token says
+        // nobody was dispatched, so the first join is never raced.
+        tokens.dispatched = false
         rooms.next = { FakeRoom(agentOnConnect: nil) }
 
         rooms.made[0].send(.disconnected(byUs: false))

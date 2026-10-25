@@ -4,9 +4,17 @@
  * real redactor on the sentence and the real fact predicate on the fact an extractor would
  * make of it, so free text and facts follow one rule. All values are fake.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { redactCredentials } from '../credential-redaction.js';
 import { credentialCategory, type CredentialCategory } from '../spoken-credential.js';
+
+// The filter is off by default on main; these rows test redaction, so turn it on
+beforeEach(() => {
+  vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'on');
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const SPOKEN: Array<
   [said: string, stored: string, key: string, value: string, category: CredentialCategory]

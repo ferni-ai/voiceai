@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
+import { appleAppSiteAssociationPlugin } from './scripts/apple-app-site-association';
 import { assetLinksPlugin } from './scripts/asset-links';
 
 // Stub for Firebase when not configured (dev only)
@@ -32,8 +33,9 @@ export default defineConfig(({ mode }) => {
     root: '.',
     publicDir: 'public',
     define: { __FERNI_APP_VERSION__: JSON.stringify(sha ? `${version}+${sha}` : version) },
-    // dist/.well-known/assetlinks.json for the Android app, from ANDROID_CERT_SHA256.
-    plugins: [assetLinksPlugin()],
+    // dist/.well-known/assetlinks.json for the Android app, from ANDROID_CERT_SHA256,
+    // and dist/.well-known/apple-app-site-association for the iPhone app.
+    plugins: [assetLinksPlugin(), appleAppSiteAssociationPlugin()],
     resolve: {
       // Allow .js imports to resolve to .ts files (Node-style ESM imports)
       extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],

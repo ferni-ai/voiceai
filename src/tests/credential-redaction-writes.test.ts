@@ -118,6 +118,7 @@ const log = { debug: () => undefined };
 
 beforeEach(() => {
   written.length = 0;
+  vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'on');
 });
 afterEach(() => {
   vi.unstubAllEnvs();

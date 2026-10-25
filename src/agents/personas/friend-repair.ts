@@ -28,6 +28,7 @@
 import type { StoredFact } from '../../memory/dynamic/fact-supersession.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import { contrastWith } from './correction-repair.js';
 import { firestoreRepairStore } from './friend-repair-store.js';
 
@@ -155,6 +156,8 @@ export async function recordFriendRepair(
   now: Date = new Date()
 ): Promise<string | null> {
   if (!friendRepairEnabled(env)) return null;
+  // MINOR_CARE: nothing kept, and no stored fact retired, for a held caller under 18.
+  if (memoryHeld(turn.callId, env) || userHeld(turn.userId, env)) return null;
   const correction = factCorrection(turn.said, turn.ferni);
   if (!correction) return null;
   // His latest line with the word they corrected.

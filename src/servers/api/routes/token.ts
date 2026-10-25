@@ -19,6 +19,7 @@ import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
 import { refuseUnadmitted } from '../../../api/admission.js';
 import { demoPersonaFor, personaForCaller } from './token-persona-owner.js';
+import { callLaunchFor, launchPersona } from './call-launch-param.js';
 import { handleDemoClaim } from './demo-claim.js';
 import { handleDemoSessionUpdate } from './demo-session-update.js';
 
@@ -390,8 +391,11 @@ export async function handleTokenRoutes(
       if (await refuseUnadmitted({ uid: firebaseUid, email: verifiedEmail, isAdmin }, res))
         return true;
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
+      // CALL_LAUNCH_CONTEXT: where the call was started from; a practice run asks for Alex.
+      const launch = await callLaunchFor(parsedUrl.searchParams.get('from'), firebaseUid);
+      const persona = launchPersona(launch, requestedPersona);
       // A custom agent id must be the caller's own, else the call is with Ferni.
-      const selectedPersona = await personaForCaller(requestedPersona, firebaseUid);
+      const selectedPersona = await personaForCaller(persona, firebaseUid);
 
       log.info(
         {
@@ -406,8 +410,6 @@ export async function handleTokenRoutes(
       );
 
       // Accent: the explicit parameter, then the saved profile preference, then geo, then 'american'
-      // Try to load user's saved accent AND location from profile if authenticated
-      // "Better than Human" - We remember your accent preference AND location
       let savedAccent: string | undefined;
       let savedLocation:
         | {
@@ -451,8 +453,7 @@ export async function handleTokenRoutes(
         }
       }
 
-      // Detect geo/accent (fallback if no explicit or saved preference)
-      // Priority: saved location (browser-gps/manual) > IP geolocation > timezone inference
+      // Geo/accent fallback: saved location (gps/manual) > IP geolocation > timezone inference
       let geoData = {
         locale: 'en-US',
         locales: ['en-US'],
@@ -523,7 +524,6 @@ export async function handleTokenRoutes(
         'Generated token with geo'
       );
 
-      // Pre-warm LLM content cache (fire-and-forget, before session starts)
       prewarmLLMContentForPersona(selectedPersona, firebaseUid || undefined);
 
       // ⚡ Pre-fetch profile, trust and insights while the token is prepared, before the session
@@ -534,7 +534,6 @@ export async function handleTokenRoutes(
       // 🔗 Developer Platform: the publisher enables MCP servers and webhooks for custom personas
       const publisherId = await getPublisherIdForPersona(selectedPersona);
 
-      // Build room metadata (shared type — also passed to agent dispatch inside createRoomWithAgent)
       const roomMetadata: RoomMetadata = {
         user_name: username,
         firebase_uid: firebaseUid || undefined,
@@ -553,6 +552,7 @@ export async function handleTokenRoutes(
         city: geoData.city,
         regionCode: geoData.regionCode,
         timezone,
+        ...(launch && { launch }), // only with CALL_LAUNCH_CONTEXT: off, the metadata is as before
       };
 
       const token = await createToken({

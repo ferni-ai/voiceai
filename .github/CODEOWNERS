@@ -1,0 +1,6 @@
+# Changes to the CI that judges PRs need the owner's review, so a PR can't
+# rewrite its own checks (lead-verified gate, 2026-10-23). This takes effect
+# only once "Require review from Code Owners" is on in the main ruleset.
+/.github/CODEOWNERS   @sethdford
+/.github/workflows/   @sethdford
+/scripts/ci/          @sethdford

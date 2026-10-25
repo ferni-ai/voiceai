@@ -21,6 +21,7 @@ import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import { conversationDaysFor } from './conversation-days.js';
 import { forgetCallStartReads, readUserRootOnce } from '../../utils/call-start-reads.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
+import { invalidStoredProfile, refuseUnsaved } from './profile-read-failure.js';
 import {
   isValidUserProfile,
   isValidConversationSummary,
@@ -212,16 +213,12 @@ export class FirestoreStore extends MemoryStore {
     if (!data) return null;
     const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
     if (isValidUserProfile(hydrated)) return hydrated;
-    const { id, name, createdAt } = hydrated ?? {};
-    const sample = { userId, hasId: !!id, hasName: !!name, hasCreatedAt: !!createdAt };
-    const dataKeys = Object.keys(hydrated || {});
-    getLogger().error({ ...sample, dataKeys }, 'Invalid user profile data from Firestore');
-    throw new Error(`stored profile for ${userId} is not a valid profile`);
+    throw invalidStoredProfile(userId, hydrated);
   }
 
   async saveProfile(profile: UserProfile): Promise<void> {
+    refuseUnsaved(profile); // a stand-in built after a failed read never overwrites stored data
     const db = await this.ensureInitialized();
-
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
       // conversationDays is derived on load; token fields are written only by profile-token-field.

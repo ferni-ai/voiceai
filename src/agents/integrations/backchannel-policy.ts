@@ -83,6 +83,8 @@ export function pickBackchannel(
   return pool[Math.floor(random() * pool.length)] ?? pool[0];
 }
 
+export { NEUTRAL as NEUTRAL_BACKCHANNELS, SOFT as SOFT_BACKCHANNELS };
+
 /** The pre-rendered laugh, in the persona's voice (conversational-audio-cache.ts). */
 export const LAUGH_CLIP = '[laughter]';
 

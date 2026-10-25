@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
 import {
   NO_EARLIER_CONVERSATION,
+  rememberToRecall,
   searchEarlierConversations,
   thisCallOf,
 } from '../../../services/memory/index.js';
@@ -26,6 +27,7 @@ import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js'
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { getSessionId } from '../../utils/tool-helpers.js';
 import { announceRemembered } from './remember-moment.js';
+import { announceMemorySaved } from './memory-saved.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
 const log = getLogger();
@@ -195,10 +197,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         const userId = userData.userId || ctx.userId;
 
         // Store in session for awareness tools (backward compat)
-        if (!userData.keyMoments) {
-          userData.keyMoments = [];
-        }
-        userData.keyMoments.push(`[${category}] ${fact}`);
+        (userData.keyMoments ??= []).push(`[${category}] ${fact}`);
 
         // MINOR_CARE=on: nothing kept past this call for a caller under 18 (minor-care.ts)
         if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
@@ -206,7 +205,6 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           return REMEMBERED_THIS_CALL;
         }
 
-        // Write to unified memory service
         const result = await memoryService.write({
           userId,
           content: fact,
@@ -220,6 +218,8 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
           const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
+          void announceMemorySaved({ sessionId, userId, id: result.memoryId, fact, category });
+          void rememberToRecall(userId, { fact, memoryId: result.memoryId, category, sessionId });
           return REMEMBERED;
         }
         // Never an empty result (tool-output-guard.ts): say whether it was kept
@@ -270,10 +270,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
         if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) return "I'll remember that.";
 
         // Store in session
-        if (!userData.keyMoments) {
-          userData.keyMoments = [];
-        }
-        userData.keyMoments.push(`[${type}/${emotionalWeight}] ${fact}`);
+        (userData.keyMoments ??= []).push(`[${type}/${emotionalWeight}] ${fact}`);
 
         // Map type to memory type
         const memoryType =
@@ -290,12 +287,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
           userId,
           content: fact,
           type: memoryType as
-            | 'fact'
-            | 'preference'
-            | 'event'
-            | 'emotion'
-            | 'commitment'
-            | 'milestone',
+            'fact' | 'preference' | 'event' | 'emotion' | 'commitment' | 'milestone',
           importance:
             emotionalWeight === 'heavy'
               ? 'critical'
@@ -307,6 +299,14 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
 
         if (result.success) {
           log.debug({ memoryId: result.memoryId }, 'Important fact written');
+          const sessionId = getSessionId({ ctx: toolCtx }); // memory_saved, CLIENT_SIGNALS_V2
+          void announceMemorySaved({
+            sessionId,
+            userId,
+            id: result.memoryId,
+            fact,
+            category: type,
+          });
         }
 
         // Human responses

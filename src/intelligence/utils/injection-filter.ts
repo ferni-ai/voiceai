@@ -46,6 +46,22 @@ export const ESSENTIAL_CATEGORIES = new Set([
 ]);
 
 /**
+ * Categories the dedup never drops (deduplicateInjections): the filter's
+ * essentials, plus the crisis and listening guidance that rides beside them.
+ * Derived from ESSENTIAL_CATEGORIES so the two cannot drift. At the emergency
+ * level `safety` and `crisis_response` both say "crisis", and the keyword
+ * clusters dropped crisis_response with its validation line and named resource.
+ */
+export const DEDUP_PROTECTED_CATEGORIES: ReadonlySet<string> = new Set([
+  ...ESSENTIAL_CATEGORIES,
+  'safety_soft_check',
+  'crisis_transfer',
+  'crisis_follow_up',
+  'scientific_early_warning',
+  'emotional_guidance',
+]);
+
+/**
  * Categories that are NICE-TO-HAVE but can be dropped
  */
 export const OPTIONAL_CATEGORIES = new Set([
@@ -78,6 +94,13 @@ export const MAX_TOTAL_CHARS = 1500;
  */
 const FAST_MODE_MAX_INJECTIONS = 3;
 const FAST_MODE_MAX_CHARS = 600;
+
+/** The count and character budget filterInjections gives a mode (casual is fast mode). */
+export function filterBudget(mode: ConversationMode): { maxInjections: number; maxChars: number } {
+  return mode === 'casual'
+    ? { maxInjections: FAST_MODE_MAX_INJECTIONS, maxChars: FAST_MODE_MAX_CHARS }
+    : { maxInjections: MAX_INJECTIONS, maxChars: MAX_TOTAL_CHARS };
+}
 
 // ============================================================================
 // CONVERSATION MODES
@@ -256,9 +279,9 @@ export function filterInjections(
 
   // LATENCY OPTIMIZATION: Use aggressive limits for casual/simple exchanges
   const isFastMode = mode === 'casual';
-  const maxInjections =
-    options.maxInjections ?? (isFastMode ? FAST_MODE_MAX_INJECTIONS : MAX_INJECTIONS);
-  const maxChars = options.maxChars ?? (isFastMode ? FAST_MODE_MAX_CHARS : MAX_TOTAL_CHARS);
+  const budget = filterBudget(mode);
+  const maxInjections = options.maxInjections ?? budget.maxInjections;
+  const maxChars = options.maxChars ?? budget.maxChars;
 
   const priorityCategories = getPriorityCategories(mode);
   const filtered: ContextInjection[] = [];
@@ -350,7 +373,9 @@ function areSemanticallySimilar(a: ContextInjection, b: ContextInjection): boole
 }
 
 /**
- * Deduplicate semantically similar injections.
+ * Deduplicate semantically similar injections. An injection in a protected
+ * category (DEDUP_PROTECTED_CATEGORIES) is dropped only when its content is
+ * identical to one already kept.
  */
 export function deduplicateInjections(injections: ContextInjection[]): ContextInjection[] {
   if (injections.length <= 1) return injections;
@@ -364,7 +389,11 @@ export function deduplicateInjections(injections: ContextInjection[]): ContextIn
     kept.push(current);
     for (let j = i + 1; j < sorted.length; j++) {
       if (skipped.has(j)) continue;
-      if (areSemanticallySimilar(current, sorted[j])) skipped.add(j);
+      const other = sorted[j];
+      const duplicate = DEDUP_PROTECTED_CATEGORIES.has(other.category)
+        ? other.content === current.content
+        : areSemanticallySimilar(current, other);
+      if (duplicate) skipped.add(j);
     }
   }
 
@@ -382,6 +411,7 @@ export default {
   deduplicateInjections,
   detectConversationMode,
   ESSENTIAL_CATEGORIES,
+  DEDUP_PROTECTED_CATEGORIES,
   OPTIONAL_CATEGORIES,
   MAX_INJECTIONS,
   MAX_TOTAL_CHARS,

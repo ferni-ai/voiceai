@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const store = vi.hoisted(() => ({
-  getProfile: vi.fn(async (userId: string) => ({
+  getProfileForWrite: vi.fn(async (userId: string) => ({
     userId,
     name: 'Sam',
     totalConversations: 3,

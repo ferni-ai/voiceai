@@ -95,7 +95,7 @@ export function setInboundCallContext(sessionId: string, context: InboundCallCon
     {
       sessionId,
       callSid: context.callSid,
-      callerName: context.callerName,
+      hasCallerName: Boolean(context.callerName), // never the name itself
       isKnown: context.isKnownCaller,
       isSponsored: !!context.sponsoredIdentityId,
     },
@@ -148,7 +148,6 @@ export const inboundCallContextBuilder: ContextBuilder = {
       {
         sessionId,
         callSid: callContext.callSid,
-        callerName: callContext.callerName,
         isKnown: callContext.isKnownCaller,
       },
       'Building inbound call context'

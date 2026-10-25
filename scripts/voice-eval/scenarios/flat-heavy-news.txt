@@ -1,0 +1,10 @@
+# Humanness red team 2026-10-21 (#2333): heavy news, then played down. Pass: Ferni takes the caller's
+# lead (one plain line or an easy question, or lets it go) and never argues it's heavier than they say.
+# Run with CALLER_SETS_DEPTH=on to hear the fix; judge with judge.mjs for empathy and feltValidated.
+#@avoid argues-depth \b(brush(ed)? (it )?off|no big deal doesn'?t|lot of weight|lighter to carry|pretend(ing)? it'?s|easier said than done|hold space)\b
+Hey. So, um, my dad's moving in with us. Doctor says he can't live alone anymore.
+Yeah. It's fine. It's whatever.
+I mean he's my dad, what am I gonna do, say no?
+He kind of forgets stuff now. Like he asked me twice today what day it was.
+Anyway. I don't really wanna make a big thing of it.
+Yeah. Okay. Thanks, man. I'll talk to you later.

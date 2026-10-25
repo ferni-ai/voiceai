@@ -15,7 +15,7 @@
 import { CartesiaMarkupFilter, filterCartesiaMarkup } from './cartesia-markup-filter.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
-import { CARTESIA_API_VERSION, CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
+import { CARTESIA_API_VERSION, CARTESIA_MODEL, getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { forwardTtsEvents } from './forward-tts-events.js';
 import { prewarmReplyVoice } from './prewarm-voice.js';
 import type { PersonaVoiceConfig } from './types.js';
@@ -125,7 +125,7 @@ export class PersonaAwareTTS extends tts.TTS {
     super(24000, 1, { streaming: true });
 
     this.personaName = personaName;
-    this.voiceId = voiceConfig.voiceId || DEFAULT_VOICE_IDS.FERNI;
+    this.voiceId = voiceConfig.voiceId || getVoiceIdForPersona('ferni');
     this.accent = (voiceConfig.accent as EnglishAccent) ?? DEFAULT_ACCENT;
     this.isLocalizedVoice = voiceConfig.isLocalizedVoice ?? this.accent !== 'american';
 
