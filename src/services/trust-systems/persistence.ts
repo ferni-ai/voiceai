@@ -267,6 +267,7 @@ export async function loadTrustProfiles(userId: string): Promise<{
 }> {
   const loaded: string[] = [];
   const notFound: string[] = [];
+  reload.holdUntilReloaded(userId); // until loadReloadedStores reads them, below
 
   // Boundaries
   const boundaries = await loadSystemProfile<BoundaryProfile>(userId, SYSTEM_NAMES.boundaries);

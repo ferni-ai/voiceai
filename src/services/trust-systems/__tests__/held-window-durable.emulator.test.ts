@@ -28,6 +28,7 @@ type GFS = typeof import('@google-cloud/firestore');
 type Snap = { exists: boolean; data: () => Record<string, unknown> | undefined };
 let scanDb: { doc: (path: string) => { get: () => Promise<Snap> } };
 let failRead: RegExp | null = null; // DocumentReference.get on these paths rejects
+let hangRead: RegExp | null = null; // ...or never settles (a hung connection)
 let failTx: RegExp | null = null; // Transaction.get on these paths...
 let txMode: 'fail' | 'hang' | 'unavailable-once' = 'fail';
 let txPaths: string[] = []; // every Transaction.get on a faulted path, in order
@@ -42,6 +43,7 @@ async function setup() {
   };
   const get = ref.get;
   ref.get = function (this: { path: string; [SCAN]?: boolean }, ...a: unknown[]) {
+    if (hangRead?.test(this.path) && !this[SCAN]) return new Promise<never>(() => {});
     if (failRead?.test(this.path) && !this[SCAN])
       return Promise.reject(Object.assign(new Error('14 UNAVAILABLE: injected'), { code: 14 }));
     return get.apply(this, a);
@@ -181,6 +183,7 @@ async function heldCall(p: P, u: string) {
 
 afterEach(() => {
   failRead = null;
+  hangRead = null;
   failTx = null;
   txPaths = [];
   vi.unstubAllEnvs();
@@ -289,5 +292,68 @@ describe.skipIf(!emulator)('MINOR_CARE: the stored held window (Firestore emulat
     expect([after['voice.OLD'], after['voice.HELD'], after['mom.HELD']]).toEqual([12, 0, 0]);
     expect((await windows(u)).map((w) => w.scrubbed)).toEqual([true]);
     await endProc(p);
+  }, 90_000);
+
+  const MIRRORS = ['trust_profiles/voice_prosody', 'trust_profiles/celebration_momentum'];
+  for (const hang of ['windows read', 'scrub retry'] as const)
+    it(`the held ${hang} never settles: the session-end save writes neither mirror, and doesn't wait`, async () => {
+      await setup();
+      on();
+      const u = uid(hang === 'scrub retry' ? 'S' : 'W');
+      await seed(u);
+      let p = await proc();
+      failTx = new RegExp(`^bogle_users/${u}/`);
+      txMode = 'fail';
+      await heldCall(p, u); // its scrub failed: the stored window is unscrubbed
+      await endProc(p);
+      const docs = async () =>
+        JSON.stringify(
+          await Promise.all(
+            [...MIRRORS, 'voice_prosody/data', 'celebration_momentum/profile'].map((d) =>
+              read(`bogle_users/${u}/${d}`)
+            )
+          )
+        );
+      const before = await docs();
+      if (hang === 'windows read') {
+        failTx = null;
+        hangRead = new RegExp(`^minor_care_holds/${u}$`);
+      } else txMode = 'hang';
+      p = await proc(); // the next call, on another process
+      p.mc.bindSessionUser(`next-${u}`, u);
+      let settled = false;
+      void p.persist.loadTrustProfiles(u).finally(() => (settled = true));
+      speak(p, u, 'NEW', 10, 'neutral');
+      win(p, u, 'NEW');
+      const ended = await Promise.race([
+        endCall(p, u).then(() => 'ended'),
+        sleep(10_000).then(() => 'waited'),
+      ]);
+      expect(ended, 'the session end did not wait on the hung read').toBe('ended');
+      await sleep(3500); // past a momentum timer tick
+      expect(settled, 'still hanging').toBe(false);
+      expect(await docs()).toBe(before);
+      await endProc(p);
+    }, 90_000);
+
+  it('the hold record, written for real: heldUntil and the windows both stay, and it never expires first', async () => {
+    await setup();
+    on();
+    vi.stubEnv('MINOR_CARE_SHARED_HOLD', 'on');
+    const u = uid('K');
+    const p = await proc();
+    await heldCall(p, u); // the age statement writes the hold; the purge rewrites it and stores the window
+    const shared = await import('../../outreach/minor-care-shared-hold.js');
+    await shared.recordSharedHold(u); // another held session's write, after the window
+    const doc = await read(`minor_care_holds/${u}`);
+    await endProc(p);
+    expect(typeof doc?.heldUntil, 'heldUntil reached the emulator').toBe('number');
+    expect(doc?.v).toBe(1);
+    const stored = (doc?.windows ?? []) as Array<{ end: number; scrubbed: boolean }>;
+    expect(stored.map((w) => w.scrubbed)).toEqual([true]);
+    const expireAt = (doc?.expireAt as { toMillis: () => number }).toMillis();
+    expect(doc?.keepUntil).toBe(stored[0].end + 90 * 24 * 60 * 60 * 1000);
+    expect(expireAt).toBe(doc?.keepUntil);
+    expect(expireAt).toBeGreaterThan(doc?.heldUntil as number);
   }, 90_000);
 });

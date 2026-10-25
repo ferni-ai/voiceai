@@ -42,6 +42,8 @@ const batch = () => {
 };
 /** The purge's scrub fails for these users, as an unavailable Firestore would. */
 const failTransactions = new Set<string>();
+/** ...or never settles, as a hung connection would. */
+const hangTransactions = new Set<string>();
 const runTransaction = async (fn: (tx: unknown) => Promise<unknown>) => {
   const ops: Array<() => Promise<void>> = [];
   const tx = {
@@ -49,6 +51,7 @@ const runTransaction = async (fn: (tx: unknown) => Promise<unknown>) => {
       const snap = (await ref.get()) as { data: () => { _userId?: string } | undefined };
       const id = snap.data()?._userId;
       if (id && failTransactions.has(id)) throw new Error('14 UNAVAILABLE: fake outage');
+      if (id && hangTransactions.has(id)) await new Promise<never>(() => {});
       return snap;
     },
     set: (ref: Ref, d: unknown, o?: unknown) => void ops.push(() => ref.set(d, o)),
@@ -65,14 +68,15 @@ const uid = (tag: string) => `HwMc${tag}${String(++n).padStart(3, '0')}xQ7mN2pLk
 
 async function proc() {
   vi.resetModules();
-  const [persist, voice, momentum, purge, mc] = await Promise.all([
+  const [persist, voice, momentum, purge, mc, learning] = await Promise.all([
     import('../persistence.js'),
     import('../voice-prosody-learning.js'),
     import('../celebration-momentum.js'),
     import('../../../agents/voice-agent/minor-care-purge.js'),
     import('../../../utils/minor-care.js'),
+    import('../learning-style.js'),
   ]);
-  return { persist, voice, momentum, purge, mc };
+  return { persist, voice, momentum, purge, mc, learning };
 }
 type P = Awaited<ReturnType<typeof proc>>;
 
@@ -398,8 +402,60 @@ const DAY = 24 * 60 * 60 * 1000;
 describe('MINOR_CARE: the held window is stored, so every process drops what it covers', () => {
   afterEach(() => {
     firestore.failReads.match = null;
+    firestore.hangReads.match = null;
     failTransactions.clear();
+    hangTransactions.clear();
   });
+
+  const MIRRORS = ['trust_profiles/voice_prosody', 'trust_profiles/celebration_momentum'];
+  const STORES = ['voice_prosody/data', 'celebration_momentum/profile'];
+  for (const [name, setup] of [
+    [
+      'the held windows read never settles',
+      (u: string) => {
+        firestore.hangReads.match = new RegExp(`^minor_care_holds/${u}$`);
+      },
+    ],
+    ['the scrub retry never settles', (u: string) => void hangTransactions.add(u)],
+    [
+      'an earlier session-start read never settles',
+      (u: string) => {
+        firestore.hangReads.match = new RegExp(`^bogle_users/${u}/trust_profiles/boundaries$`);
+      },
+    ],
+  ] as const) {
+    it(`${name}: the session-end save writes neither mirror, and doesn't wait for it`, async () => {
+      const u = uid('G');
+      await seed(u);
+      vi.stubEnv('MINOR_CARE', 'on');
+      const p = await proc();
+      failTransactions.add(u); // the purge's scrub fails: the window stays unscrubbed
+      await heldCall(p, u);
+      await endProc(p);
+      failTransactions.delete(u);
+      const before = [...MIRRORS, ...STORES].map((d) => raw(u, d));
+      expect(before.every((d) => d !== 'null')).toBe(true);
+      setup(u);
+      const q = await proc(); // the next call, on another process
+      q.mc.bindSessionUser(`next-${u}`, u);
+      let settled = false;
+      void q.persist.loadTrustProfiles(u).finally(() => (settled = true));
+      speak(q, u, 'NEW', 10, 'neutral');
+      q.learning.recordLearningSignals(u, 'can you show me an example, step by step?');
+      const ended = await Promise.race([
+        endCall(q, u).then(() => 'ended'),
+        new Promise((r) => {
+          setTimeout(() => r('waited'), 5000);
+        }),
+      ]);
+      expect(ended).toBe('ended');
+      expect(settled).toBe(false); // the read (or scrub) is still hanging
+      expect([...MIRRORS, ...STORES].map((d) => raw(u, d))).toEqual(before);
+      if (name.startsWith('an earlier'))
+        expect(raw(u, 'trust_profiles/learning_style')).toBe('null');
+      await endProc(q);
+    });
+  }
 
   it('the purge stores its window for 90 days; a scrub that failed is redone at the next session start, in any process', async () => {
     const u = uid('Y');
