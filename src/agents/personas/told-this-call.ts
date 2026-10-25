@@ -27,6 +27,7 @@ import {
   phraseLoops,
   type PhraseLoop,
 } from './phrase-loops.js';
+import { formatQuestionStreak, questionStreak, questionStreakGuardOn } from './question-streak.js';
 
 export function toldThisCallEnabled(
   env: Record<string, string | undefined> = process.env
@@ -47,6 +48,8 @@ export interface Told {
   askedAboutFerni: boolean;
   /** PHRASE_LOOP_GUARD=on: stock phrases in two or more recent replies; absent when off. */
   loops?: PhraseLoop[];
+  /** QUESTION_STREAK_GUARD=on: his latest replies in a row ending on a question; absent when off. */
+  questionStreak?: number;
 }
 
 /** Capitalized words that are grammar or filler, not something Ferni brought up. */
@@ -196,6 +199,7 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     recentLines,
     askedAboutFerni: Boolean(lastUser && ASKS_ABOUT_FERNI.test(lastUser.text)),
     ...(phraseLoopGuardOn() ? { loops: phraseLoops(lines) } : {}),
+    ...(questionStreakGuardOn() ? { questionStreak: questionStreak(lines) } : {}),
   };
 }
 
@@ -220,18 +224,20 @@ export function formatTold(told: Told): string {
   if (quotes.length) parts.push(`Don't say again: ${quotes.map((q) => `"${q}"`).join('; ')}`);
   const loops = formatPhraseLoops(told.loops ?? []);
   if (loops) parts.push(loops);
+  const streak = formatQuestionStreak(told.questionStreak ?? 0);
+  if (streak) parts.push(streak);
   return parts.length ? `[Already said this call: ${parts.join(' ')}]` : '';
 }
 
 /**
  * The record without the names, quotes and phrases `keep` rejects (director-notes.ts
- * told()). On a call with crisis risk noted (`sessionId`), no phrase loops and no
- * quotes at all: a crisis-guided request must never be told to drop wording
- * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
- * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
+ * told()). On a call with crisis risk noted (`sessionId`), no phrase loops, no
+ * quotes and no question streak at all: a crisis-guided request must never be told
+ * to drop wording or a question (crisis-call-risk.ts). A safety line is never quoted
+ * on any call (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
  */
 export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
-  const { loops: all, ...rest } = told;
+  const { loops: all, questionStreak: streak, ...rest } = told;
   const crisis = Boolean(sessionId && crisisRiskNoted(sessionId));
   const loops = all && !crisis ? all : undefined;
   const quotable = (line: string): boolean => !crisis && keep(line) && !isSafetyLine(line);
@@ -241,6 +247,7 @@ export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?
     repeated: told.repeated.filter(quotable),
     recentLines: told.recentLines.filter(quotable),
     ...(loops ? { loops: loops.filter((l) => keep(l.phrase)) } : {}),
+    ...(streak !== undefined && !crisis ? { questionStreak: streak } : {}),
   };
 }
 
