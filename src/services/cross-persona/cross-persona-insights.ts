@@ -29,16 +29,21 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFinancialStore } from '../stores/financial-store.js';
 import { getProductivityStore } from '../stores/productivity-store.js';
 import { getInsightsBroadcast } from '../communication/insights-broadcast.js';
-import { hideFromUser } from './insight-visibility.js';
 import {
   computeFinancialHealth,
   emptyFinancialHealth,
   type FinancialHealth,
 } from './financial-health-status.js';
-import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import {
+  changeStoredInsights,
+  insightChanges,
+  isRecentDuplicate,
+  readStoredInsights,
+  type InsightChange,
+} from './insight-store.js';
 
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
 // Superhuman service imports for "Better than Human" insights
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import {
   loadUserCommitments,
   assessBurnoutRisk,
@@ -49,32 +54,6 @@ import {
 } from '../superhuman/index.js';
 
 const log = createLogger({ module: 'cross-persona-insights' });
-
-// ============================================================================
-// PERSISTENCE
-// ============================================================================
-
-interface PersistedInsightsData {
-  insights: CrossPersonaInsight[];
-  lastScannedAt: number;
-}
-
-// Firestore persistence store for cross-persona insights
-// Path: bogle_users/{userId}/team_insights/data
-let persistenceStore: PersistenceStore<PersistedInsightsData> | null = null;
-
-function getInsightsPersistence(): PersistenceStore<PersistedInsightsData> {
-  if (!persistenceStore) {
-    persistenceStore = createPersistenceStore<PersistedInsightsData>({
-      collection: 'team_insights',
-      documentId: 'data',
-      syncIntervalMs: 3000, // Sync every 3 seconds
-      maxPendingChanges: 10,
-    });
-    log.info('Cross-persona insights persistence store initialized');
-  }
-  return persistenceStore;
-}
 
 // ============================================================================
 // TYPES
@@ -132,13 +111,13 @@ export interface TeamStatusSummary {
 // INSIGHT STORE
 // ============================================================================
 
-// In-memory cache for fast access
+// This process's view: the stored insights (insight-store.ts) as last read, plus its own changes.
 const userInsightsCache = new Map<string, CrossPersonaInsight[]>();
-const loadedUsers = new Set<string>();
+/** When each user's view was last read. Agent reads within READ_TTL_MS reuse it. */
+const readAt = new Map<string, number>();
+const reading = new Map<string, Promise<void>>();
+const READ_TTL_MS = 30_000;
 
-/**
- * Get insights for a user (from cache or load from Firestore)
- */
 function getInsightsForUser(userId: string): CrossPersonaInsight[] {
   if (!userInsightsCache.has(userId)) {
     userInsightsCache.set(userId, []);
@@ -147,55 +126,43 @@ function getInsightsForUser(userId: string): CrossPersonaInsight[] {
 }
 
 /**
- * Load insights from Firestore for a user
+ * Reads the user's stored insights into the view. `fresh` (the app's routes) always
+ * reads and throws on a failed read; otherwise a view read in the last 30 s is reused
+ * and a failed read keeps the view.
  */
-async function loadInsightsFromPersistence(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
-
+async function loadInsightsFromPersistence(userId: string, fresh = false): Promise<void> {
+  if (!fresh && Date.now() - (readAt.get(userId) ?? 0) < READ_TTL_MS) return;
+  if (!fresh && reading.has(userId)) return reading.get(userId);
+  const read = readStoredInsights(getFirestoreDb(), userId).then((stored) => {
+    const now = Date.now();
+    if (stored)
+      userInsightsCache.set(
+        userId,
+        stored.filter((i) => i.expiresAt > now)
+      );
+    readAt.set(userId, now);
+  });
+  if (!fresh)
+    reading.set(
+      userId,
+      read.catch(() => undefined)
+    );
   try {
-    const store = getInsightsPersistence();
-    const data = await store.load(userId);
-
-    if (data?.insights && Array.isArray(data.insights)) {
-      // Filter out expired insights during load
-      const now = Date.now();
-      const validInsights = data.insights.filter((i) => i.expiresAt > now);
-      userInsightsCache.set(userId, validInsights);
-      log.debug({ userId, count: validInsights.length }, 'Loaded insights from persistence');
-    }
-
-    loadedUsers.add(userId);
+    await read;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load insights from persistence');
-    loadedUsers.add(userId); // Don't retry on failure
+    if (fresh) throw error;
+  } finally {
+    if (!fresh) reading.delete(userId);
   }
 }
 
-/**
- * Persist insights to Firestore
- */
-function persistInsights(userId: string): void {
-  const insights = userInsightsCache.get(userId) || [];
-  const store = getInsightsPersistence();
-
-  store.set(cleanForFirestore(userId), {
-    insights,
-    lastScannedAt: Date.now(),
-  });
+/** Applies a change to the view now, and to the stored list atomically (insight-store.ts). */
+async function applyChange(userId: string, change: InsightChange): Promise<void> {
+  userInsightsCache.set(userId, change(getInsightsForUser(userId)));
+  await changeStoredInsights(getFirestoreDb(), userId, change);
 }
-
-/**
- * Persist insights immediately (for critical updates)
- */
-async function persistInsightsImmediate(userId: string): Promise<void> {
-  const insights = userInsightsCache.get(userId) || [];
-  const store = getInsightsPersistence();
-
-  await store.setImmediate(userId, {
-    insights,
-    lastScannedAt: Date.now(),
-  });
-}
+const logged = (): void => undefined; // insight-store.ts logs a failed write
 
 // ============================================================================
 // INSIGHT MANAGEMENT
@@ -208,32 +175,13 @@ export function addCrossPersonaInsight(
   userId: string,
   insight: Omit<CrossPersonaInsight, 'id' | 'createdAt' | 'expiresAt'>
 ): CrossPersonaInsight {
-  const insights = getInsightsForUser(userId);
-
-  // Check for duplicate insights (same source, target, category within last hour)
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
-  const isDuplicate = insights.some(
-    (i) =>
-      i.source === insight.source &&
-      i.target === insight.target &&
-      i.category === insight.category &&
-      i.createdAt > oneHourAgo
-  );
-
-  if (isDuplicate) {
+  const existing = getInsightsForUser(userId).find((i) => isRecentDuplicate(i, insight));
+  if (existing) {
     log.debug(
       { userId, source: insight.source, category: insight.category },
       'Skipping duplicate insight'
     );
-    // Return the existing insight
-    const existing = insights.find(
-      (i) =>
-        i.source === insight.source &&
-        i.target === insight.target &&
-        i.category === insight.category &&
-        i.createdAt > oneHourAgo
-    );
-    return existing!;
+    return existing;
   }
 
   const fullInsight: CrossPersonaInsight = {
@@ -243,10 +191,7 @@ export function addCrossPersonaInsight(
     expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
   };
 
-  insights.push(fullInsight);
-
-  // Persist to Firestore (batched, not immediate)
-  persistInsights(userId);
+  void applyChange(userId, insightChanges.add(fullInsight)).catch(logged);
 
   log.info(
     {
@@ -347,16 +292,10 @@ export function getProactiveInsights(userId: string): CrossPersonaInsight[] {
  * Mark an insight as consumed (for one-time insights)
  */
 export function consumeInsight(userId: string, insightId: string): void {
-  const insights = getInsightsForUser(userId);
-  const index = insights.findIndex((i) => i.id === insightId);
-
-  if (index >= 0) {
-    const insight = insights[index];
-    if (insight.oneTime) {
-      insights.splice(index, 1);
-      persistInsights(userId); // Persist the change
-      log.debug({ userId, insightId }, '🗑️ One-time insight consumed');
-    }
+  const insight = getInsightsForUser(userId).find((i) => i.id === insightId);
+  if (insight?.oneTime) {
+    void applyChange(userId, insightChanges.remove(insightId)).catch(logged);
+    log.debug({ userId, insightId }, '🗑️ One-time insight consumed');
   }
 }
 
@@ -364,16 +303,10 @@ export function consumeInsight(userId: string, insightId: string): void {
  * Clear expired insights
  */
 export function clearExpiredInsights(userId: string): number {
-  const insights = getInsightsForUser(userId);
   const now = Date.now();
-  const initialLength = insights.length;
-
-  const activeInsights = insights.filter((i) => i.expiresAt > now);
-  userInsightsCache.set(userId, activeInsights);
-
-  const removed = initialLength - activeInsights.length;
+  const removed = getInsightsForUser(userId).filter((i) => i.expiresAt <= now).length;
   if (removed > 0) {
-    persistInsights(userId); // Persist the cleanup
+    void applyChange(userId, insightChanges.dropExpired(now)).catch(logged);
     log.debug({ userId, removed }, '🧹 Expired insights cleared');
   }
 
@@ -768,14 +701,15 @@ async function safeCall<T>(fn: () => Promise<T>): Promise<T | null> {
 // ============================================================================
 
 /**
- * Build a complete insight briefing for a persona during handoff
+ * Build a complete insight briefing for a persona during handoff. `fresh` (the app's
+ * routes) reads the stored insights now and throws when that read fails.
  */
 export async function buildInsightBriefingForHandoff(
   userId: string,
-  targetPersonaId: string
+  targetPersonaId: string,
+  options: { fresh?: boolean } = {}
 ): Promise<InsightBriefing> {
-  // Load from persistence first (if not already loaded)
-  await loadInsightsFromPersistence(userId);
+  await loadInsightsFromPersistence(userId, options.fresh);
 
   // Clear expired insights
   clearExpiredInsights(userId);
@@ -894,12 +828,7 @@ function normalizePersonaId(personaId: string): InsightSource {
 // ============================================================================
 
 export type PersonaId =
-  | InsightSource
-  | 'alex-chen'
-  | 'nayan-patel'
-  | 'maya-santos'
-  | 'peter-john'
-  | 'jordan-taylor';
+  InsightSource | 'alex-chen' | 'nayan-patel' | 'maya-santos' | 'peter-john' | 'jordan-taylor';
 
 /**
  * Record an insight (legacy API - flexible arguments)
@@ -1014,8 +943,7 @@ export async function acknowledgeInsight(
   insightId: string,
   _personaId?: string
 ): Promise<void> {
-  if (hideFromUser(getInsightsForUser(userId), insightId)) persistInsights(userId);
-  return Promise.resolve();
+  await applyChange(userId, insightChanges.hide(insightId, Date.now()));
 }
 
 /**

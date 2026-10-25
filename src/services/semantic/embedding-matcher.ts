@@ -14,6 +14,7 @@
  * @module EmbeddingMatcher
  */
 
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import { cosineSimilarity } from '../../memory/rust-accelerator.js';
@@ -93,8 +94,7 @@ async function getEmbedding(text: string): Promise<EmbeddingVector | null> {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      log.error({ error, status: response.status }, 'Embedding API error');
+      log.error({ status: response.status }, 'Embedding API error');
       return null;
     }
 
@@ -107,7 +107,7 @@ async function getEmbedding(text: string): Promise<EmbeddingVector | null> {
 
     return embedding;
   } catch (error) {
-    log.error({ error: String(error) }, 'Failed to get embedding');
+    log.error(errorFields(error), 'Failed to get embedding');
     return null;
   }
 }

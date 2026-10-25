@@ -87,7 +87,7 @@ function getFirestoreDb(): Firestore | null {
   }
 
   try {
-    db = new Firestore();
+    db = new Firestore({ databaseId: process.env.FIRESTORE_DATABASE || '(default)' });
     initialized = true;
     log.debug('ReadingListStore Firestore initialized');
     return db;

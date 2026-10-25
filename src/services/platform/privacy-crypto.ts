@@ -23,27 +23,16 @@ import {
   scrypt,
   timingSafeEqual,
 } from 'crypto';
-import admin from 'firebase-admin';
 import { promisify } from 'util';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  findExistingToken,
+  loadTokenFromFirestore,
+  saveTokenToFirestore,
+} from './token-vault-store.js';
 
 const log = getLogger();
 const scryptAsync = promisify(scrypt);
-
-// ============================================================================
-// FIRESTORE SETUP FOR TOKEN VAULT
-// ============================================================================
-
-const TOKEN_VAULT_COLLECTION = 'token_vault';
-
-function getFirestore(): admin.firestore.Firestore | null {
-  try {
-    return admin.firestore();
-  } catch {
-    return null;
-  }
-}
 
 // ============================================================================
 // CONFIGURATION
@@ -203,68 +192,60 @@ async function deriveKey(salt: Buffer): Promise<Buffer> {
  * Output format: base64(salt + iv + authTag + ciphertext)
  *
  * @param plaintext - Data to encrypt (string or JSON-serializable object)
+ * @param aad - Optional context the ciphertext is bound to (GCM additional
+ *   authenticated data): decrypting it needs the same value.
  * @returns Encrypted data as base64 string
  */
 export async function encryptSensitive(
-  plaintext: string | Record<string, unknown>
+  plaintext: string | Record<string, unknown>,
+  aad?: string
 ): Promise<string> {
   const data = typeof plaintext === 'string' ? plaintext : JSON.stringify(plaintext);
-
-  // Generate random salt and IV
   const salt = randomBytes(SALT_LENGTH);
   const iv = randomBytes(IV_LENGTH);
-
-  // Derive key
   const key = await deriveKey(salt);
-
-  // Encrypt
-  const cipher = createCipheriv(ALGORITHM, key, iv, {
-    authTagLength: AUTH_TAG_LENGTH,
-  });
-
+  const cipher = createCipheriv(ALGORITHM, key, iv, { authTagLength: AUTH_TAG_LENGTH });
+  if (aad !== undefined) cipher.setAAD(Buffer.from(aad, 'utf8'));
   const encrypted = Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]);
-
   const authTag = cipher.getAuthTag();
 
   // Combine: salt + iv + authTag + ciphertext
   const combined = Buffer.concat([salt, iv, authTag, encrypted]);
-
   return `enc_${combined.toString('base64')}`;
+}
+
+/** Decrypt the salt + iv + authTag + ciphertext layout, with or without AAD. */
+async function decryptCombined(combined: Buffer, aad: string | undefined): Promise<string> {
+  const salt = combined.subarray(0, SALT_LENGTH);
+  const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+  const tagEnd = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH;
+  const decipher = createDecipheriv(ALGORITHM, await deriveKey(salt), iv, {
+    authTagLength: AUTH_TAG_LENGTH,
+  });
+  decipher.setAuthTag(combined.subarray(SALT_LENGTH + IV_LENGTH, tagEnd));
+  if (aad !== undefined) decipher.setAAD(Buffer.from(aad, 'utf8'));
+  return Buffer.concat([decipher.update(combined.subarray(tagEnd)), decipher.final()]).toString(
+    'utf8'
+  );
 }
 
 /**
  * Decrypt sensitive data
  *
  * @param encryptedData - Data encrypted with encryptSensitive()
+ * @param aad - The context it was bound to. When given it is required: a
+ *   ciphertext without it (or bound elsewhere) does not open.
  * @returns Decrypted string (or parsed JSON if it was an object)
  */
-export async function decryptSensitive<T = string>(encryptedData: string): Promise<T> {
-  // Remove prefix
+export async function decryptSensitive<T = string>(
+  encryptedData: string,
+  aad?: string
+): Promise<T> {
   if (!encryptedData.startsWith('enc_')) {
     throw new Error('Invalid encrypted data format');
   }
-
   const combined = Buffer.from(encryptedData.slice(4), 'base64');
-
-  // Extract components
-  const salt = combined.subarray(0, SALT_LENGTH);
-  const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-  const authTag = combined.subarray(
-    SALT_LENGTH + IV_LENGTH,
-    SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH
-  );
-  const ciphertext = combined.subarray(SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
-
-  // Derive key
-  const key = await deriveKey(salt);
-
-  // Decrypt
-  const decipher = createDecipheriv(ALGORITHM, key, iv, {
-    authTagLength: AUTH_TAG_LENGTH,
-  });
-  decipher.setAuthTag(authTag);
-
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+  const decrypted = await decryptCombined(combined, aad);
 
   // Try to parse as JSON
   try {
@@ -342,76 +323,10 @@ export async function decryptVoiceSketch(encryptedSketch: string): Promise<{
 
 /**
  * Token vault for mapping tokens to values
- * Uses Firestore for persistence with in-memory cache
+ * Uses Firestore for persistence (token-vault-store.ts) with in-memory cache
  */
 const tokenVaultCache = new Map<string, string>();
 const reverseTokenCache = new Map<string, string>(); // value -> token for dedup
-
-/**
- * Save token to Firestore
- */
-async function saveTokenToFirestore(token: string, value: string, category: string): Promise<void> {
-  const db = getFirestore();
-  if (!db) return;
-
-  try {
-    await db
-      .collection(TOKEN_VAULT_COLLECTION)
-      .doc(token)
-      .set(
-        removeUndefined({
-          value,
-          category,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        })
-      );
-  } catch (error) {
-    log.error({ error, token }, 'Failed to save token to Firestore');
-  }
-}
-
-/**
- * Load token from Firestore
- */
-async function loadTokenFromFirestore(token: string): Promise<string | null> {
-  const db = getFirestore();
-  if (!db) return null;
-
-  try {
-    const doc = await db.collection(TOKEN_VAULT_COLLECTION).doc(token).get();
-    if (doc.exists) {
-      const data = doc.data();
-      return data?.value || null;
-    }
-  } catch (error) {
-    log.error({ error, token }, 'Failed to load token from Firestore');
-  }
-  return null;
-}
-
-/**
- * Check if value already has a token in Firestore
- */
-async function findExistingToken(value: string, category: string): Promise<string | null> {
-  const db = getFirestore();
-  if (!db) return null;
-
-  try {
-    const snapshot = await db
-      .collection(TOKEN_VAULT_COLLECTION)
-      .where('value', '==', value)
-      .where('category', '==', category)
-      .limit(1)
-      .get();
-
-    if (!snapshot.empty) {
-      return snapshot.docs[0].id;
-    }
-  } catch (error) {
-    log.error({ error }, 'Failed to find existing token');
-  }
-  return null;
-}
 
 /**
  * Tokenize a sensitive value

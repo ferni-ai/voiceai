@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { errorFields } from '../../../utils/error-class.js';
 import type { SemanticRouterResult, ToolMatch } from '../types.js';
 
 // SOTA Learning Systems
@@ -185,7 +186,7 @@ export async function applySOTAPreRouting(context: SOTARoutingContext): Promise<
       isColdStart,
     };
   } catch (error) {
-    log.warn({ error: String(error) }, 'SOTA pre-routing failed, using defaults');
+    log.warn(errorFields(error), 'SOTA pre-routing failed, using defaults');
     return {
       strategy: {
         strategy: 'balanced',
@@ -346,7 +347,7 @@ export function recordSOTAOutcome(outcome: SOTAOutcome, routeResult?: SemanticRo
           metadata: { userId, sessionId },
         })
         .catch((err) => {
-          log.debug({ error: String(err) }, 'Failed to add correction to learning engine');
+          log.debug(errorFields(err), 'Failed to add correction to learning engine');
         });
 
       log.info(
@@ -367,7 +368,7 @@ export function recordSOTAOutcome(outcome: SOTAOutcome, routeResult?: SemanticRo
       'SOTA outcome recorded'
     );
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to record SOTA outcome');
+    log.warn(errorFields(error), 'Failed to record SOTA outcome');
   }
 }
 
@@ -403,20 +404,19 @@ export function recordImplicitCorrection(
         metadata: { userId, sessionId },
       })
       .catch((err) => {
-        log.debug({ error: String(err) }, 'Failed to add implicit correction to learning engine');
+        log.debug(errorFields(err), 'Failed to add implicit correction to learning engine');
       });
-
     log.info(
       {
         userId,
         originalTool: originalToolId,
         correctedTool: correctedToolId,
-        originalQuery: originalQuery.slice(0, 50),
+        originalQueryLength: originalQuery.length,
       },
       'Implicit correction recorded'
     );
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to record implicit correction');
+    log.warn(errorFields(error), 'Failed to record implicit correction');
   }
 }
 

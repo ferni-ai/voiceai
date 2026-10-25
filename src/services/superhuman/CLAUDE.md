@@ -57,6 +57,7 @@ src/services/superhuman/
 ├── index.ts                         # Unified exports + context builders
 ├── types.ts                         # Shared type definitions
 ├── firestore-utils.ts               # Persistence helpers
+├── load-state.ts                    # Profile loads: found / missing / error (never save on error)
 ├── README.md                        # Detailed service documentation
 ├── health-check.ts                  # Superhuman service health checks
 │

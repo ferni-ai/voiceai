@@ -9,7 +9,8 @@
 
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../src/utils/firebase-admin-app.js';
 
 // demo-* projects exist only in the emulators, and the Admin SDK needs no
 // credentials when both emulator hosts are set. Refuse to run without them so
@@ -24,7 +25,7 @@ try {
   initializeApp({ projectId });
 
   const auth = getAuth();
-  const firestore = getFirestore();
+  const firestore = getAdminFirestore();
 
   // Test user credentials
   const testEmail = 'test@ferni.local';

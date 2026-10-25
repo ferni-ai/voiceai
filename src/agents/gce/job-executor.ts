@@ -29,6 +29,8 @@ import '../voice-agent-entry/returning-caller-register.js';
 import '../voice-agent-entry/sms-owner-register.js';
 // A caller's own cohort flags for code that runs after their call (config/person-flag.ts).
 import '../person-flag-register.js';
+// What a caller asks Ferni to remember, written where recall reads it (REMEMBER_TO_RECALL).
+import '../remembered-fact-store-register.js';
 
 // ============================================================================
 // TYPES

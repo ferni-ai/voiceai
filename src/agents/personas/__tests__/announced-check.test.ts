@@ -100,7 +100,13 @@ describe('withAnnouncedCheckLog', () => {
     const chatCtx = llm.ChatContext.empty();
     chatCtx.addMessage({ role: 'user', content: 'can you check the weather?' });
     await drain(
-      await withActionClaimCheck(Promise.resolve(streamOf(...ANNOUNCE)), chatCtx, tools, undefined, {})
+      await withActionClaimCheck(
+        Promise.resolve(streamOf(...ANNOUNCE)),
+        chatCtx,
+        tools,
+        undefined,
+        {}
+      )
     );
     expect(flagged()).toHaveLength(1);
   });
@@ -109,7 +115,13 @@ describe('withAnnouncedCheckLog', () => {
     const chatCtx = llm.ChatContext.empty();
     const off = { ACTION_CLAIM_GUARD: 'off' };
     await drain(
-      await withActionClaimCheck(Promise.resolve(streamOf(...ANNOUNCE)), chatCtx, tools, undefined, off)
+      await withActionClaimCheck(
+        Promise.resolve(streamOf(...ANNOUNCE)),
+        chatCtx,
+        tools,
+        undefined,
+        off
+      )
     );
     expect(flagged()).toHaveLength(1);
   });

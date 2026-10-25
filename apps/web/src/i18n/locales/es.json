@@ -3530,8 +3530,6 @@
     "accessLevelFullDesc": "Puede hablar con todos los miembros del equipo",
     "accessLevelLimited": "Limitado",
     "accessLevelLimitedDesc": "Solo con Ferni",
-    "accessLevelSupervised": "Supervisado",
-    "accessLevelSupervisedDesc": "Te avisaremos cuando haya llamadas",
     "eyebrow": "Familia",
     "addMember": "Añadir miembro de la familia",
     "emptyText": "Agrega a los miembros de tu familia que llamen a Ferni por teléfono. Se les reconocerá automáticamente y podrán tener sus propias conversaciones con Ferni.",
@@ -3634,7 +3632,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Comunicación y relaciones",
+        "role": "Coach de comunicación y mano derecha",
         "description": "Te ayudo a navegar conversaciones, fortalecer tus relaciones y expresarte mejor.",
         "unlockHint": "Comparte una historia sobre tus relaciones con Ferni",
         "unlockedMessage": "Noté algunos patrones que vale la pena explorar.",
@@ -10220,9 +10218,10 @@
     "title": "Pequeñas cosas que recuerdo",
     "subtitle": "Para que no tengas que hacerlo tú",
     "emptyTitle": "Aún no hay nada configurado",
-    "emptySubtitle": "¿Quieres que te salude cada mañana? ¿Que te recuerde estirar? Puedo hacer eso.",
+    "emptySubtitle": "Cuéntame algo que quieras hacer con regularidad y lo guardaré aquí.",
     "emptyButton": "Muéstrame algunas ideas",
     "addNew": "Añadir algo nuevo",
+    "notRunningYet": "Las guardo aquí para ti. Todavía no se ejecutan solas.",
     "triggers": {
       "dailyAt": "Todos los días a las {time}",
       "dailyUnset": "Todos los días a una hora fija",
@@ -10341,6 +10340,7 @@
       "other": "¡Has ganado {count} semillas!"
     },
     "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "credentialNotKept": "Ferni no guarda códigos ni contraseñas, así que ese ya no está.",
     "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {

@@ -14,6 +14,7 @@ vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
 }));
 
 import { forgetMemoryDef } from '../tools.js';
+import { getToolDescription } from '../../../utils/tool-descriptions.js';
 
 type Execute = (
   args: { whatToForget: string; confirmDeletion: boolean },
@@ -26,7 +27,7 @@ const execute = (_userData: Record<string, unknown>) =>
 afterEach(() => forget.mockClear());
 
 describe('forgetMemory (the live tool)', () => {
-  it('deletes the topic from stored memory once the caller confirms', async () => {
+  it('forgets the topic in stored memory once the caller confirms', async () => {
     const userData = { userId: 'u-1', keyMoments: ['my divorce was hard', 'Biscuit learned sit'] };
     const run = execute(userData);
     expect(
@@ -57,6 +58,13 @@ describe('forgetMemory (the live tool)', () => {
     const partly = await run(confirm, { ctx: { userData } });
     expect(partly).not.toMatch(/deleted the facts/);
     expect(partly).toContain('"I won\'t bring that up again."');
+  });
+
+  it("tells the model what it does, not that it deletes", () => {
+    const description = getToolDescription('forgetMemory');
+    expect(description).toMatch(/not erased/);
+    expect(description).not.toMatch(/delete memories/i);
+    expect(forgetMemoryDef.description).not.toMatch(/remove|delete/i);
   });
 
   it('never says it forgot when the delete failed', async () => {

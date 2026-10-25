@@ -84,11 +84,21 @@ export function allowCrisisAdjudicatorLiveForTests(allowed: boolean): void {
   liveAllowed = allowed;
 }
 
+/**
+ * Whether an adjudicator-style check-in may change what the caller hears. One
+ * hold for every path that asks: CRISIS_ADJUDICATOR=live and
+ * CRISIS_CLASSIFIER_ONLY_CHECKIN=live (crisis-classifier-only-live.ts) both
+ * run as shadow while it is held.
+ */
+export function adjudicatorCheckinsMayChangeReplies(): boolean {
+  return liveAllowed;
+}
+
 export function resolveCrisisAdjudicatorMode(
   env: Record<string, string | undefined> = process.env
 ): CrisisAdjudicatorMode {
   const raw = env.CRISIS_ADJUDICATOR?.trim().toLowerCase();
-  if (raw === 'live') return liveAllowed ? 'live' : 'shadow';
+  if (raw === 'live') return adjudicatorCheckinsMayChangeReplies() ? 'live' : 'shadow';
   return raw === 'shadow' ? raw : 'off';
 }
 
@@ -209,7 +219,8 @@ export async function adjudicateCrisis(
 
 /** Gemini-backed, tool-free JSON reads. '' (escalate) when Gemini is not configured. */
 export function createGeminiAdjudicatorGenerate(
-  model: string = process.env.CRISIS_ADJUDICATOR_MODEL || DEFAULT_CRISIS_ADJUDICATOR_MODEL
+  model: string = process.env.CRISIS_ADJUDICATOR_MODEL || DEFAULT_CRISIS_ADJUDICATOR_MODEL,
+  maxOutputTokens = 120
 ): CrisisGenerateFn {
   return async (systemPrompt, userContent, signal) => {
     const { getGeminiClient } = await import('../../config/gemini-config.js');
@@ -223,7 +234,7 @@ export function createGeminiAdjudicatorGenerate(
       config: {
         systemInstruction: systemPrompt,
         temperature: 0,
-        maxOutputTokens: 120,
+        maxOutputTokens,
         responseMimeType: 'application/json',
         thinkingConfig: { thinkingBudget: 0 },
         abortSignal: signal,

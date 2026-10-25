@@ -51,7 +51,6 @@ export const SKIP_FILES: Record<string, string> = {
   'src/utils/synthetic-write-guard.ts': 'owned by the synthetic-guard PR (02)',
   'src/utils/synthetic-user.ts': 'owned by the synthetic-guard PR (02)',
   'src/services/pubsub/pubsub-client.ts': 'Pub/Sub choke point, owned by PR 08',
-  'src/services/communication/intelligence-publisher.ts': 'Pub/Sub choke point, owned by PR 08',
   'src/workers/base-worker.ts': 'Pub/Sub choke point, owned by PR 08',
 };
 const SKIP_PREFIXES: Array<[string, string]> = [

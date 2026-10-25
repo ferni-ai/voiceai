@@ -66,6 +66,7 @@ describe('forget that, FORGET_DELETES off (the default)', () => {
     expect(state.facts.filter((f) => f.data.forgottenAt).map((f) => f.id)).toEqual(['d1', 'e1']);
     if (result.kind !== 'forgotten') throw new Error('not forgotten');
     expect(forgetDone(result)).toBe("I won't bring that up again.");
+    expect(forgetDone(result)).not.toMatch(/forgot|delet|eras|remov/i);
     expect(forgetDoneNote(result)).toMatch(/not erased/);
     expect(forgetDoneNote(result)).toMatch(/Don't say you've forgotten, deleted or erased it/);
   });
@@ -93,6 +94,14 @@ describe('forget that, FORGET_DELETES on', () => {
     expect(result).toEqual({ kind: 'forgotten', marked: 2, deleted: 1, hidden: 1 });
     expect(ids(state.facts)).toEqual(['d1', 'd3']);
     expect(state.facts.find((f) => f.id === 'd1')?.data.forgottenAt).toBe(at.toISOString());
+    if (result.kind !== 'forgotten') throw new Error('not forgotten');
+    expect(forgetDone(result)).toBe("I won't bring that up again.");
+  });
+
+  it('never claims deletion when nothing about the topic was stored', async () => {
+    const { store, deleteFacts } = memoryStore(divorce());
+    const result = await forgetTopic('u', 'my sailing trip', store, at, on);
+    expect(deleteFacts).not.toHaveBeenCalled();
     if (result.kind !== 'forgotten') throw new Error('not forgotten');
     expect(forgetDone(result)).toBe("I won't bring that up again.");
   });

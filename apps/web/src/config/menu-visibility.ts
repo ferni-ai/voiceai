@@ -88,6 +88,12 @@ const HIDDEN_INTEGRATIONS: ReadonlySet<string> = new Set([
   'vibe-controller',
 ]);
 
+/** Every settings-menu row hidden right now, flagged-off rows included (for the hide tests). */
+export function hiddenMenuActions(): string[] {
+  const flaggedOff = Object.keys(FLAGGED).filter((id) => !flagAllows(id));
+  return [...HIDDEN_MENU_ACTIONS, ...flaggedOff];
+}
+
 /** True when a settings-menu row with this action may render. */
 export function isMenuActionVisible(action: string): boolean {
   return !HIDDEN_MENU_ACTIONS.has(action) && flagAllows(action);

@@ -339,7 +339,7 @@ async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext>
     const { createDefaultSubscription } = await import('../types/subscription.js');
 
     const store = await getStore();
-    let profile = await store.getProfile(userId);
+    let profile = await store.getProfileForWrite(userId); // a failed read throws, never resets
 
     if (!profile) {
       // Create a minimal profile for new users using proper interface

@@ -53,7 +53,7 @@ for (const file of readdirSync(WORKFLOWS).filter((f) => /\.ya?ml$/.test(f))) {
 describe('CI test jobs have no Google Cloud credentials', () => {
   it('finds the unit and integration test jobs (the scan is not empty)', () => {
     const names = testJobs.map(([name]) => name);
-    expect(names).toContain('ci.yml › test-unit');
+    expect(names).toContain('ci.yml › test-unit-shard');
     expect(names).toContain('ci.yml › test-integration');
   });
 
