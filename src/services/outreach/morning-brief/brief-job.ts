@@ -93,11 +93,10 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
   const saved = savedQuietHours(user);
   if (!saved) return false;
   const eight = zonedWallTimeToUtc({ ...local, hour: MORNING_BRIEF_HOUR, minute: 0 }, zone);
+  // `now` in the hour from `opens` puts `opens` on today's date, at or after 08:00.
   const opens = quietEndsAt(eight, saved.window, saved.zones);
-  const at = wallTimeIn(opens, zone);
-  const sameDay = at.day === local.day && at.month === local.month;
   const inHour = now >= opens && now.getTime() < opens.getTime() + HOUR_MS;
-  return opens > eight && sameDay && at.hour < MORNING_BRIEF_LATEST_HOUR && inHour;
+  return inHour && wallTimeIn(opens, zone).hour < MORNING_BRIEF_LATEST_HOUR;
 }
 
 /** One pass over the recipients. Returns who they are, so the push brief can skip them. */
