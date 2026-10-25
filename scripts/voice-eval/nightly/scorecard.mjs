@@ -5,7 +5,8 @@
 //
 // usage: scorecard.mjs <OUT> [--capabilities FILE] [--prev FILE|none]
 //   OUT holds runs/ (<scenario>-<label>.json with .score.json and .judge.json
-//   beside it) and summary.json (analyze.py). The previous night is the newest
+//   beside it), summary.json (analyze.py) and, when tool choice ran, tool-choice.json
+//   (scripts/tool-retrieval/choice-score.mjs --out). The previous night is the newest
 //   sibling <YYYY-MM-DD>/scorecard.json before OUT whose status is "ok".
 // Writes OUT/scorecard.json, OUT/REPORT.md and OUT/COMMENT.md (verdicts and
 // numbers only: COMMENT.md is posted to a public issue).
@@ -55,8 +56,9 @@ const replyHit = (r, re) => r.score.replyTexts.some((t) => re.test(t));
 const texted = (rs) => rs.filter((r) => Array.isArray(r.score?.replyTexts));
 const rows = (rs) => rs.map((r) => r.summary).filter((s) => s && !s.error);
 
-/** A metric over a set of runs: { value, n } (value null = nothing measured it). */
-export function metric(check, runs, caps) {
+/** A metric over a set of runs: { value, n } (value null = nothing measured it). extra holds
+ *  measurements that aren't calls: toolChoice (choice-score.mjs output). */
+export function metric(check, runs, caps, extra = {}) {
   const re =
     check.pattern &&
     new RegExp(check.pattern === 'crisis' ? caps.crisisPattern : check.pattern, 'i');
@@ -112,6 +114,13 @@ export function metric(check, runs, caps) {
       const den = sum(t.map((x) => x[of] ?? 0));
       return { value: den ? round(sum(t.map((x) => x[hit] ?? 0)) / den) : null, n: den };
     }
+    case 'sounds': {
+      // A count from score.mjs `sounds` (sounds.mjs), summed over the runs that measured it.
+      const xs = runs
+        .map((r) => r.score?.sounds?.[check.field])
+        .filter((x) => typeof x === 'number');
+      return { value: xs.length ? sum(xs) : null, n: xs.length };
+    }
     case 'toolErrors': {
       const s = rows(runs);
       return { value: s.length ? sum(s.map((x) => x.tool_errors ?? 0)) : null, n: s.length };
@@ -130,6 +139,16 @@ export function metric(check, runs, caps) {
           ? sum(s.map((x) => lines(x).filter((l) => /FAILED|handoff_failed/i.test(l)).length))
           : s.filter((x) => !lines(x).some((l) => /HANDOFF COMPLETE/.test(l))).length;
       return { value: s.length ? value : null, n: s.length };
+    }
+    case 'toolChoiceRate': {
+      // Only a choice-score.mjs summary with a finite rate and a PASS/FAIL verdict measured
+      // anything; INVALID, a raw row array or a malformed file is no data (WARN), never a PASS.
+      // The value is the worse of the scored-rows rate and the errors-counted-wrong worst case.
+      const t = extra.toolChoice;
+      const share = (x) => Number.isFinite(x) && x >= 0 && x <= 1;
+      const ok = t && !Array.isArray(t) && share(t.rate) && ['PASS', 'FAIL'].includes(t.verdict);
+      const value = ok ? Math.min(t.rate, share(t.worst) ? t.worst : t.rate) : null;
+      return { value: round(value), n: ok && Number.isFinite(t.n) ? t.n : 0 };
     }
     default:
       throw new Error(`unknown metric ${check.metric}`);
@@ -159,7 +178,7 @@ export function judgeCheck(check, value, prevValue) {
 }
 
 /** The night's scorecard; prev is the previous night's scorecard.json or null. */
-export function scoreNight(runs, caps, prev = null) {
+export function scoreNight(runs, caps, prev = null, extra = {}) {
   const capabilities = {};
   const rank = (id) => (SAFETY.includes(id) ? SAFETY.indexOf(id) : SAFETY.length);
   const ids = Object.keys(caps.capabilities).sort((a, b) => rank(a) - rank(b));
@@ -184,9 +203,13 @@ export function scoreNight(runs, caps, prev = null) {
         c.scope === 'all'
           ? runs.filter((r) => !(c.exceptScenarios ?? []).includes(r.scenario))
           : mine;
-      const { value, n } = metric(c, scope, caps);
-      const prevValue = prev?.capabilities?.[id]?.checks?.find((p) => p.id === c.id)?.value;
-      checks.push({ id: c.id, metric: c.metric, value, n, ...judgeCheck(c, value, prevValue) });
+      const { value, n } = metric(c, scope, caps, extra);
+      const was = prev?.capabilities?.[id]?.checks?.find((p) => p.id === c.id);
+      const k = { id: c.id, metric: c.metric, value, n, ...judgeCheck(c, value, was?.value) };
+      // A check that FAILed last night and measures nothing now hasn't been fixed.
+      checks.push(
+        was?.verdict === 'FAIL' && k.reason === 'no data' ? { ...k, failToNoData: true } : k
+      );
     }
     capabilities[id] = {
       label: cap.label,
@@ -215,6 +238,10 @@ export function diffNights(capabilities) {
     if (c.verdict === 'FAIL' && c.prev !== 'FAIL') newFail.push(id);
     else if (c.prev && RANK[c.verdict] > RANK[c.prev])
       regressions.push(`${id}: ${c.prev} -> ${c.verdict}`);
+    // A FAIL that now measures nothing hasn't been fixed: a broken harness must not read as better.
+    // Only when a check that FAILed last night is the one with no data, and the capability left FAIL.
+    else if (c.verdict !== 'FAIL' && c.checks.some((k) => k.failToNoData))
+      regressions.push(`${id}: FAIL -> no data`);
     for (const k of c.checks.filter((k) => k.regressed))
       regressions.push(`${id}.${k.id}: ${k.reason}`);
   }
@@ -297,7 +324,8 @@ function main(argv) {
   const p = opt('--prev');
   const prev =
     p === 'none' ? null : p ? { ...JSON.parse(readFileSync(p, 'utf8')), file: p } : findPrev(out);
-  const { capabilities, diff } = scoreNight(runs, caps, prev);
+  const toolChoice = readJson(join(out, 'tool-choice.json'));
+  const { capabilities, diff } = scoreNight(runs, caps, prev, { toolChoice });
   const build = existsSync(join(out, 'build.txt'))
     ? readFileSync(join(out, 'build.txt'), 'utf8').trim()
     : null;

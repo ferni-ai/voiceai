@@ -60,18 +60,26 @@ const PERSONA_IDS = [
   'generic-advisor',
 ];
 
-/** A retired clone, or a voice a Ferni persona speaks in (env overrides included). */
+/**
+ * A retired clone, or a voice a Ferni persona speaks in (env overrides included).
+ * Compared trimmed and lowercased: isValidVoiceId accepts uppercase hex, so an
+ * UPPERCASE copy of a forbidden id must not slip past.
+ */
 export function isForbiddenCustomAgentVoiceId(voiceId: string): boolean {
-  if (RETIRED_CLONE_VOICE_IDS.has(voiceId)) return true;
-  const personaVoices = new Set<string>([
-    ...Object.values(VOICE_IDS),
-    FERNI_CALM_A_VOICE_ID,
-    FERNI_CALM_B_VOICE_ID,
-    FERNI_CALM_C_VOICE_ID,
-    LESTER_PRO_V3_VOICE_ID,
-    ...PERSONA_IDS.map((id) => getVoiceIdForPersona(id)),
-  ]);
-  return personaVoices.has(voiceId);
+  const norm = (id: string) => id.trim().toLowerCase();
+  const id = norm(voiceId);
+  if ([...RETIRED_CLONE_VOICE_IDS].some((r) => norm(r) === id)) return true;
+  const personaVoices = new Set<string>(
+    [
+      ...Object.values(VOICE_IDS),
+      FERNI_CALM_A_VOICE_ID,
+      FERNI_CALM_B_VOICE_ID,
+      FERNI_CALM_C_VOICE_ID,
+      LESTER_PRO_V3_VOICE_ID,
+      ...PERSONA_IDS.map((pid) => getVoiceIdForPersona(pid)),
+    ].map(norm)
+  );
+  return personaVoices.has(id);
 }
 
 /** Whether select-premade may store this id. */

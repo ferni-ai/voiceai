@@ -39,7 +39,11 @@ export interface RoutingMetric {
   timestamp: Date;
   userId: string;
   sessionId: string;
-  userInput: string;
+  /**
+   * How long the caller's input was. Never the words: this buffer holds the
+   * last 10k routes across every caller and the admin routing dashboard serves it.
+   */
+  inputLength: number;
   toolId: string | null;
   confidence: number;
   matchPath: 'pattern' | 'keyword' | 'embedding' | 'combined' | 'none';
@@ -123,7 +127,7 @@ export function recordLLMBypass(
   recordRoutingMetric({
     userId,
     sessionId,
-    userInput: userInput.slice(0, 100), // Truncate for storage
+    inputLength: userInput.length,
     toolId,
     confidence,
     matchPath: matchPath as RoutingMetric['matchPath'],
@@ -149,7 +153,7 @@ export function recordHintAdded(
   recordRoutingMetric({
     userId,
     sessionId,
-    userInput: userInput.slice(0, 100),
+    inputLength: userInput.length,
     toolId,
     confidence,
     matchPath: matchPath as RoutingMetric['matchPath'],
@@ -172,7 +176,7 @@ export function recordConversation(
   recordRoutingMetric({
     userId,
     sessionId,
-    userInput: userInput.slice(0, 100),
+    inputLength: userInput.length,
     toolId: null,
     confidence: 0,
     matchPath: 'none',
@@ -196,7 +200,7 @@ export function recordRoutingError(
   recordRoutingMetric({
     userId,
     sessionId,
-    userInput: userInput.slice(0, 100),
+    inputLength: userInput.length,
     toolId: null,
     confidence: 0,
     matchPath: 'none',

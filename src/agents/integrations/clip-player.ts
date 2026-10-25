@@ -25,7 +25,7 @@ import {
 import { startToolHum } from './tool-hum.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
-import { presenceClipPickers } from './presence-clips.js';
+import { presenceClipName, presenceClipPickers } from './presence-clips.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { LAUGH_CLIP } from './backchannel-policy.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
@@ -214,6 +214,8 @@ export async function startBackchannelClips(
     return null;
   }
   let lastPlayedAt = 0;
+  // The clip that last played: a take, when a variation picked one (its sound_played label).
+  let lastClip = '';
   const direct = reactionSidetrackDirect() ? await startDirectClips(room, session) : null;
   const mixerWireMs = (): number => (process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650);
   const directWireMs = (): number => direct?.lastWireMs ?? 60;
@@ -229,7 +231,7 @@ export async function startBackchannelClips(
     player,
     () => direct?.playing ?? false,
     personaId,
-    (kind) => sound?.(kind, mixerWireMs()),
+    (kind, label) => sound?.(kind, mixerWireMs(), label),
     gate
   );
   // The synthesized hum on the mixer; a voiced take is conducted in voiced-presence.ts.
@@ -239,7 +241,7 @@ export async function startBackchannelClips(
     stop: () => player.stop(),
   };
   const stopToolHum = startToolHum(session, humPlayer, undefined, undefined, (onDirect) =>
-    sound?.('hum', onDirect ? directWireMs() : mixerWireMs())
+    sound?.('hum', onDirect ? directWireMs() : mixerWireMs(), 'tool hum')
   );
   const voiced = startVoicedPresence({
     session,
@@ -247,7 +249,7 @@ export async function startBackchannelClips(
     mixerBusy: () => player.playing,
     getClip,
     personaId,
-    onSound: (kind) => sound?.(kind, directWireMs()),
+    onSound: (kind, label) => sound?.(kind, directWireMs(), label),
     gate,
   });
   // `kind` unset: a live reaction, a laugh or a backchannel by its clip.
@@ -261,6 +263,7 @@ export async function startBackchannelClips(
     );
     if (!played) return false;
     lastPlayedAt = Date.now();
+    lastClip = text;
     recordQuirk(sessionIdOf(session), {
       kind: text === LAUGH_CLIP ? 'laugh' : 'backchannel',
       source: 'clip',
@@ -283,10 +286,16 @@ export async function startBackchannelClips(
       : (voiced?.vary(playClip) ?? playClip),
     sound,
     liveReactionKind,
-    wireDelayMs
+    wireDelayMs,
+    () => lastClip
   );
   const livePlayClip = avatarListenSignalsEnabled()
-    ? withBackchannelSignal(variedPlayClip, createDataMessageSender(room), wireDelayMs)
+    ? withBackchannelSignal(
+        variedPlayClip,
+        createDataMessageSender(room),
+        wireDelayMs,
+        () => lastClip
+      )
     : variedPlayClip;
   return {
     playClip,
@@ -325,10 +334,10 @@ function startPresenceSounds(
   player: ClipPlayer,
   otherTrackBusy: () => boolean = () => false,
   personaId: () => string = () => 'ferni',
-  onSound: (kind: 'hum' | 'breath') => void = () => {},
+  onSound: (kind: 'hum' | 'breath', label: string) => void = () => {},
   gate: SoundGate = (_kind, _clip, play) => play()
 ): () => void {
-  // VOICED_PRESENCE: no whistle or snore until researched; voiced-presence.ts fills the quiet.
+  // VOICED_PRESENCE: voiced-presence.ts fills the quiet (its snore is VOICED_QUIRKS's long-quiet slot).
   if (!presenceSoundsEnabled() || voicedPresenceEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
@@ -345,7 +354,9 @@ function startPresenceSounds(
     if (ok) {
       endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
       log.info({ kind }, `PRESENCE_SOUND ${kind}`);
-      onSound(kind === 'snore' ? 'breath' : 'hum'); // a whistle reads as a hum (sound-signal.ts)
+      // A whistle reads as a hum (sound-signal.ts); the label names it, and its recording when it has one.
+      const file = presenceClipName(pcm);
+      onSound(kind === 'snore' ? 'breath' : 'hum', file ? `recorded-${kind}:${file}` : kind);
       const secs = Math.round(quietMs / 1000);
       const voice = mood() ? `, their voice sounding ${mood()}` : '';
       recordQuirk(sessionIdOf(session), {
