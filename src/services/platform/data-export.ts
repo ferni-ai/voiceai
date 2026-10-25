@@ -822,44 +822,10 @@ class DataExportService {
         await deleteAnswerCardsForUser(userId);
       });
 
-      // 7. Delete conversation history (if method exists)
-      try {
-        const service = getConversationHistoryService();
-        // Type narrowing for optional deleteHistory method
-        interface WithDeleteHistory {
-          deleteHistory?: (userId: string) => Promise<void>;
-        }
-        const serviceWithDelete = service as unknown as WithDeleteHistory;
-        if (typeof serviceWithDelete.deleteHistory === 'function') {
-          await serviceWithDelete.deleteHistory(userId);
-          deletionResults['conversations'] = true;
-        } else {
-          log.debug({ userId }, 'Conversation history deleteHistory method not available');
-          deletionResults['conversations'] = false;
-        }
-      } catch (e) {
-        log.warn({ error: erasureErrorCode(e), userId }, 'Failed to delete conversation history');
-        deletionResults['conversations'] = false;
-      }
-
-      // 8. Delete cognitive memories (if method exists)
-      try {
-        const memoryService = getCognitiveMemoryService();
-        interface WithDeleteAllMemories {
-          deleteAllMemories?: (userId: string) => Promise<void>;
-        }
-        const memoryWithDelete = memoryService as unknown as WithDeleteAllMemories;
-        if (typeof memoryWithDelete.deleteAllMemories === 'function') {
-          await memoryWithDelete.deleteAllMemories(userId);
-          deletionResults['cognitive'] = true;
-        } else {
-          log.debug({ userId }, 'Cognitive memory deleteAllMemories method not available');
-          deletionResults['cognitive'] = false;
-        }
-      } catch (e) {
-        log.warn({ error: erasureErrorCode(e), userId }, 'Failed to delete cognitive memories');
-        deletionResults['cognitive'] = false;
-      }
+      // 7. Conversations are not deleted here: bogle_users/{uid}/conversations (timelines
+      // included) is erased with the user record in step 2.
+      // 8. Cognitive memory is not deleted here: it is an in-process Map of per-session state,
+      // with nothing persisted to erase.
 
       log.info({ userId, deletionResults }, '🗑️ User data deletion completed');
       return deletionResults;
