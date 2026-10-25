@@ -11,7 +11,6 @@
  */
 
 import { flagOn } from '../../../config/env-flag.js';
-import type { ContactRelationship } from '../../../services/contacts/contact-relationship-service.js';
 
 /** The name a role is saved under, and the words people use for it. */
 const ROLES: Record<string, readonly string[]> = {
@@ -40,7 +39,13 @@ export function roleOf(query: string): string | undefined {
   return Object.keys(ROLES).find((role) => ROLES[role].includes(q));
 }
 
-type Row = Pick<ContactRelationship, 'name' | 'phone' | 'notes'> & {
+/** The legacy store's search (contact-relationship-service.ts), passed in by the caller. */
+type Search<T extends Row> = (userId: string, query: string) => Promise<T[]>;
+
+type Row = {
+  name: string;
+  phone?: string;
+  notes?: string;
   relationship?: string;
   updatedAt?: unknown;
 };
@@ -89,12 +94,11 @@ export function pickContact<T extends Row>(rows: readonly T[], query: string): T
 }
 
 /** What the legacy store holds for this query, also under the saved role word ("mum" finds "Mom"). */
-export async function searchLegacyContacts(
+export async function searchLegacyContacts<T extends Row & { id?: string }>(
+  searchContacts: Search<T>,
   userId: string,
   query: string
-): Promise<ContactRelationship[]> {
-  const { searchContacts } =
-    await import('../../../services/contacts/contact-relationship-service.js');
+): Promise<T[]> {
   const q = normalizeContactQuery(query) || query;
   const role = roleOf(q);
   const terms = [...new Set([q, ...(role ? [role.toLowerCase()] : [])])];

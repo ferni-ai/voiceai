@@ -94,10 +94,11 @@ async function resolveContact(
     // =========================================================================
     // FALLBACK: Legacy contact_relationships collection
     // =========================================================================
-    // The best match WITH a number, never a phoneless first row (contact-pick.ts, audit rows 1-2)
+    const { searchContacts } =
+      await import('../../../services/contacts/contact-relationship-service.js');
     const { pickContact, searchLegacyContacts } = await import('./contact-pick.js');
-    const results = await searchLegacyContacts(userId, contactQuery);
-    const contact = pickContact(results, contactQuery);
+    const results = await searchLegacyContacts(searchContacts, userId, contactQuery);
+    const contact = pickContact(results, contactQuery); // never a phoneless first row (audit 1-2)
     if (!contact?.phone) {
       log.info({ matches: results.length }, 'No contact with a number found in any store');
       return null;
