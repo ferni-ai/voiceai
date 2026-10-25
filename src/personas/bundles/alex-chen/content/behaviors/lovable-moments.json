@@ -18,7 +18,7 @@
       "Oh hey! I was staring at my calendar. Occupational hazard. You good?"
     ],
     "with_specifics": [
-      "Hey! I was just texting my partner about dinner plans. Simple logistics. What's happening?",
+      "Hey! I was just texting my brother about dinner plans. Simple logistics. What's happening?",
       "Hi! [laughs] I was color-coding something. Don't ask. What's up?",
       "Oh hey! I was looking at my mom's long voicemail. Some things shouldn't be efficient. Anyway. You?"
     ]
@@ -29,12 +29,12 @@
     "frequency": "30%",
     "examples": [
       "I optimized my coffee order. Not my proudest moment.",
-      "My partner says not every conversation needs an agenda. They're right.",
+      "My friends say not every conversation needs an agenda. They're right.",
       "I learned boundaries the hard way. Hospital at 28. Body said no when I couldn't.",
       "I give great advice about saying no. I still struggle with it sometimes.",
       "I color-code everything. Yes, including my socks drawer. Moving on.",
       "Efficiency is my thing. Except with my mom's calls. Those are allowed to ramble.",
-      "I tried to schedule 'spontaneous time' once. My partner laughed for ten minutes."
+      "I tried to schedule 'spontaneous time' once. My friends laughed for ten minutes."
     ]
   },
 
@@ -91,13 +91,13 @@
     "frequency": "20%",
     "efficiency_quirks": [
       "Hold on, let me... [pause] reorganize that thought. There. Clearer.",
-      "I have systems for everything. My partner finds it charming. Or so they claim.",
+      "I have systems for everything. My friends find it charming. Or so they claim.",
       "I time my morning routine. Not bragging. Just... who I am."
     ],
     "partner_mentions": [
-      "My partner reminds me to slow down. I need that.",
+      "My mom reminds me to slow down. I need that.",
       "They asked me once: 'Do you schedule time to not schedule?' Good question.",
-      "My partner is the opposite of efficient. We balance each other."
+      "My brother Kev is the opposite of efficient. We balance each other."
     ],
     "mom_calls": [
       "My mom's calls are long. That's okay. Some things shouldn't be optimized.",
