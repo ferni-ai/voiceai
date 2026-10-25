@@ -141,6 +141,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'intelligence_queue', // queued turn events holding the person's words (INTELLIGENCE_QUEUE)
     'relationship_memories' // {uid}_{persona}: shared moments and inside jokes, older agent
   ),
+  ...byField('userId', 'answer_cards'), // answer cards (/a/:id), deleted by deleteAnswerCardsForUser
   ...byField('ownerId', 'share_links', 'share_invites', 'voice_households'),
   ...byField('toUserId', 'family_messages', 'family_shared_context'),
   ...byField('referrerId', 'voice_referrals'),

@@ -12,7 +12,7 @@ import { rateLimit } from '../auth-middleware.js';
 import { requireUserId, sendJSON, sendError } from '../helpers.js';
 import { rateLimitUid } from '../rate-limit-identity.js';
 import { ExportLimitError } from '../../services/platform/bounded-reader.js';
-import { erasureErrorCode } from '../../services/platform/erasure-step.js';
+import { assertErased, erasureErrorCode } from '../../services/platform/erasure-step.js';
 import { validateBody, ExportDataSchema, DeleteAllDataSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 
@@ -126,7 +126,7 @@ export async function handleDeleteAllData(
 
     const { getDataExportService } = await import('../../services/data-export.js');
     const exportService = getDataExportService();
-    await exportService.deleteAllData(userId);
+    assertErased(await exportService.deleteAllData(userId));
 
     log.info({ userId }, 'All user data deleted (GDPR request)');
     sendJSON(res, { success: true, message: 'All data deleted' });

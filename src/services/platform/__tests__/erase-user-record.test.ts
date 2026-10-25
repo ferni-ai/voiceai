@@ -44,7 +44,7 @@ const fieldAt = (d: Record<string, unknown>, path: string): unknown =>
 
 function fakeFirestore(
   seed: Record<string, Record<string, unknown>>,
-  opts = { deleteWorks: true }
+  opts: { deleteWorks?: boolean; failUnder?: string } = {}
 ) {
   const docs = new Map(Object.entries(seed));
   const under = (path: string) => [...docs.keys()].filter((p) => p.startsWith(`${path}/`));
@@ -74,7 +74,8 @@ function fakeFirestore(
       }),
     }),
     recursiveDelete: vi.fn(async (ref: { path: string }) => {
-      if (!opts.deleteWorks) return;
+      if (opts.failUnder && ref.path.startsWith(opts.failUnder)) throw new Error('unavailable');
+      if (opts.deleteWorks === false) return;
       for (const p of [ref.path, ...under(ref.path)]) docs.delete(p);
     }),
   };
@@ -158,6 +159,30 @@ describe('eraseUserRecord', () => {
         'contact_relationships[userId]',
       ]);
     });
+  });
+
+  it('lists answer cards among the stores erased with the account', () => {
+    expect(ERASED_STORES).toContainEqual({ collection: 'answer_cards', field: 'userId' });
+  });
+
+  it('erases the key-source records last: a failed tier-1 store leaves bogle_users/{uid} for the retry', async () => {
+    const stores: OwnedStore[] = [
+      { collection: 'bogle_users', doc: 'uid' },
+      { collection: 'user_profiles', field: 'firebaseUid' },
+    ];
+    const { db, docs } = fakeFirestore(
+      {
+        'bogle_users/u-1': {},
+        'bogle_users/u-1/dynamic_facts/f1': {},
+        'user_profiles/p1': { firebaseUid: 'u-1' },
+      },
+      { failUnder: 'user_profiles/' }
+    );
+    await expect(eraseUserRecord('u-1', db, stores, [])).rejects.toThrow(
+      'user_profiles[firebaseUid]'
+    );
+    expect(docs.has('bogle_users/u-1')).toBe(true);
+    expect(docs.has('bogle_users/u-1/dynamic_facts/f1')).toBe(true);
   });
 
   it('erases the relationship memories and flag overrides account deletion used to leave', async () => {

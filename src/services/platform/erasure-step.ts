@@ -32,6 +32,17 @@ export function erasureErrorCode(error: unknown): string {
   return shown.length <= 64 && SAFE_CODE.test(shown) ? `${name}:${shown}` : name;
 }
 
+/** The erasure steps that reported false, i.e. data left behind; an undefined result counts as none */
+export function erasureFailures(results: Record<string, boolean> | undefined): string[] {
+  return Object.keys(results ?? {}).filter((key) => results?.[key] === false);
+}
+
+/** Throws naming each erasure step that left data behind (a false result), so the route answers 500 */
+export function assertErased(results: Record<string, boolean> | undefined): void {
+  const left = Object.keys(results ?? {}).filter((step) => results?.[step] === false);
+  if (left.length > 0) throw new Error(`Data left behind: ${left.join(',')}`);
+}
+
 export function erasureSteps(
   results: Record<string, boolean>,
   userId: string,
