@@ -45,13 +45,10 @@ import {
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
 import {
-  pushedNotesText,
-  queuedNotes,
+  NoteQueue,
   safetyOnlyNote,
-  safetyText,
   TURN_CONTEXT_SAFETY,
   turnNotes,
-  type TurnNote,
 } from './pushed-notes.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
@@ -348,31 +345,22 @@ export function createTurnContextPusher(
   agent: ContextAgent,
   { carryAcrossTurns = false }: { carryAcrossTurns?: boolean } = {} // reply_end, deferred turn 1
 ) {
-  let queued: TurnNote[] = []; // what waits for the next push, see queuedNotes
-  let lastPushed: TurnNote[] = []; // what the chat context holds now
-  let lastPushedFor = '';
+  const queue = new NoteQueue(carryAcrossTurns);
   let pushedId: string | null = null;
-  let turnText = '';
-  let run = 0;
   let agentListening = true;
   let userSpeaking = false;
-  let pendingFor = '';
-  let turnNo = 0;
-  const lastRunOf = new Map<number, number>(); // a turn's latest run
 
   const tryPush = async (): Promise<void> => {
-    if (queued.length === 0 || !agentListening || userSpeaking) return;
+    if (!queue.waiting() || !agentListening || userSpeaking) return;
     // PREEMPT_STABLE_CONTEXT: wait out a preemptive reply, unless it carries safety guidance.
     const retry = () => void tryPush();
-    if (!safetyText(queued) && heldForPreemptive(agent, 'turn-context', retry)) return;
-    const content = `${TURN_CONTEXT_HEADER}\n${pushedNotesText(queued)}`;
-    const safety = safetyText(queued); // its crisis or safety notes (safety-note.ts), whole
+    if (!queue.safetyWaiting() && heldForPreemptive(agent, 'turn-context', retry)) return;
+    const { text, forText, safety } = queue.take();
+    const content = `${TURN_CONTEXT_HEADER}\n${text}`;
     const extra = {
-      [TURN_CONTEXT_FOR]: pendingFor,
+      [TURN_CONTEXT_FOR]: forText,
       ...(safety && { [TURN_CONTEXT_SAFETY]: safety }),
     };
-    lastPushed = queued; lastPushedFor = pendingFor;
-    queued = [];
     try {
       const chatCtx = agent.chatCtx.copy();
       if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
@@ -403,33 +391,15 @@ export function createTurnContextPusher(
     /** A final transcript segment; segments of one turn accumulate. */
     async onFinalTranscript(transcript: string): Promise<void> {
       if (!transcript.trim()) return;
-      if (!turnText) turnNo++; // the last turn ended: its reply cleared turnText
-      turnText = `${turnText} ${transcript.trim()}`.trim();
-      const forText = turnText;
-      const mine = ++run;
-      const turn = turnNo; lastRunOf.set(turn, mine);
+      const run = queue.begin(transcript);
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
-      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
-      const notes = turnNotes(scratch.items, turn);
-      if (mine !== run) {
-        // A later segment rebuilds this turn: only turn 1's last run carries on.
-        if (carryAcrossTurns && turn === 1 && lastRunOf.get(turn) === mine) {
-          if (queued.length === 0) pendingFor = lastPushedFor || forText;
-          queued = queuedNotes(notes, queued.length > 0 ? queued : lastPushed, true);
-          await tryPush();
-        } else log.info({ notes: notes.length }, 'Superseded turn context dropped');
-        return;
-      }
-      if (notes.length === 0) return;
-      if (!carryAcrossTurns && queued.some((n) => !n.safety)) log.info('Unpushed note replaced');
-      pendingFor = forText;
-      queued = queuedNotes(queued, notes, carryAcrossTurns);
-      await tryPush();
+      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: run.forText }));
+      if (queue.settle(run, turnNotes(scratch.items, run.turn))) await tryPush();
     },
 
     async onAgentState(newState: string | undefined): Promise<void> {
-      if (newState === 'thinking' || newState === 'speaking') turnText = ''; // the turn ended
+      if (newState === 'thinking' || newState === 'speaking') queue.endTurn(); // the turn ended
       agentListening = newState === 'listening';
       await tryPush();
     },

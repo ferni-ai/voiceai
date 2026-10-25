@@ -77,21 +77,108 @@ export function withHeldSafety(held: readonly string[], notes: readonly TurnNote
 /**
  * The notes waiting for the next push. The fresh ones come first, as the newest,
  * so the budget cuts the end. A turn's fresh notes replace its own older ones.
- * With `keep`, the other turns' notes already waiting stay (a released turn-1
- * note that turn 2's words overtook, #2642-style carry). Else they are replaced,
- * as before. Safety guidance still waiting is never replaced (#2642).
+ * With `keepFirstTurn`, a waiting turn-1 note stays behind them (a released
+ * turn-1 note that turn 2's words overtook); turn 1 is the only deferred turn.
+ * Else the others are replaced, as before. Safety guidance still waiting is
+ * never replaced (#2642).
  */
 export function queuedNotes(
   queued: readonly TurnNote[],
   fresh: readonly TurnNote[],
-  keep: boolean
+  keepFirstTurn: boolean
 ): TurnNote[] {
-  const turns = new Set(fresh.map((note) => note.turn));
-  const rest = keep ? queued.filter((note) => !note.safety && !turns.has(note.turn)) : [];
+  const firstTurnFresh = fresh.some((note) => note.turn === 1);
+  const rest =
+    keepFirstTurn && !firstTurnFresh
+      ? queued.filter((note) => !note.safety && note.turn === 1)
+      : [];
   return withHeldSafety(
     queued.filter((note) => note.safety).map((note) => note.text),
     [...fresh, ...rest]
   );
+}
+
+/** One segment's build: its run id, its turn, and the words it was built for. */
+export interface Run {
+  id: number;
+  turn: number;
+  forText: string;
+}
+
+/**
+ * What a turn-context pusher holds between builds and pushes: the notes waiting
+ * for the next push, and the note the chat context holds now. With `carry`
+ * (reply_end, a deferred turn 1), a turn-1 note whose build ends after turn 2's
+ * words merges into turn 2's note, which is pushed again, not lost.
+ */
+export class NoteQueue {
+  private turnText = '';
+  private runs = 0;
+  private turnNo = 0;
+  private readonly lastRunOf = new Map<number, number>();
+  private queued: TurnNote[] = [];
+  private queuedFor = '';
+  private pushed: TurnNote[] = [];
+  private pushedFor = '';
+
+  constructor(private readonly carry: boolean) {}
+
+  /** A final transcript segment starts a run; segments of one turn accumulate. */
+  begin(transcript: string): Run {
+    if (!this.turnText) this.turnNo++; // the last turn ended: its reply cleared turnText
+    this.turnText = `${this.turnText} ${transcript.trim()}`.trim();
+    const run = { id: ++this.runs, turn: this.turnNo, forText: this.turnText };
+    this.lastRunOf.set(run.turn, run.id);
+    return run;
+  }
+
+  /** Ferni started or ended a reply: the next segment is a new turn. */
+  endTurn(): void {
+    this.turnText = '';
+  }
+
+  /** A finished build's notes; true when a push may now go out. */
+  settle(run: Run, notes: TurnNote[]): boolean {
+    if (run.id !== this.runs) {
+      // A later segment rebuilds this turn: only turn 1's last run carries on.
+      const carries = this.carry && run.turn === 1 && this.lastRunOf.get(1) === run.id;
+      if (!carries || notes.length === 0) {
+        log.info({ notes: notes.length }, 'Superseded turn context dropped');
+        return false;
+      }
+      if (this.queued.length === 0) this.queuedFor = this.pushedFor || run.forText;
+      this.queued = queuedNotes(notes, this.queued.length > 0 ? this.queued : this.pushed, true);
+      return true;
+    }
+    if (notes.length === 0) return false;
+    if (!this.carry && this.queued.some((note) => !note.safety)) {
+      log.info('Unpushed note replaced');
+    }
+    this.queuedFor = run.forText;
+    this.queued = queuedNotes(this.queued, notes, this.carry);
+    return true;
+  }
+
+  waiting(): boolean {
+    return this.queued.length > 0;
+  }
+
+  safetyWaiting(): string {
+    return safetyText(this.queued);
+  }
+
+  /** The waiting notes, as they go out now; they become the note the chat holds. */
+  take(): { text: string; forText: string; safety: string } {
+    const taken = {
+      text: pushedNotesText(this.queued),
+      forText: this.queuedFor,
+      safety: this.safetyWaiting(),
+    };
+    this.pushed = this.queued;
+    this.pushedFor = this.queuedFor;
+    this.queued = [];
+    return taken;
+  }
 }
 
 /** The key, in a pushed note's `extra`, of its safety guidance, whole. */

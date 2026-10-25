@@ -271,6 +271,111 @@ describe('FIRST_TURN_DEFER_RELEASE=reply_end', () => {
     await detach();
   });
 
+  it('a turn-2 segment still queued while the caller speaks is replaced by its later segment', async () => {
+    const session = new EventEmitter();
+    const hook = noteHook(() => 20);
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: REPLY_END });
+    finalTranscript(session, 'turn one words');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1500);
+    agentState(session, 'listening');
+    await pause(100);
+    session.emit('user_state_changed', { newState: 'speaking' }); // nothing is pushed while they speak
+    finalTranscript(session, 'I finally');
+    await pause(60);
+    finalTranscript(session, 'quit my job');
+    await pause(60);
+    session.emit('user_state_changed', { newState: 'listening' });
+    await vi.waitFor(() => expect(contextText(agent)).toContain('NOTE for I finally quit my job'), {
+      timeout: 1000,
+    });
+    expect(contextText(agent)).not.toMatch(/NOTE for I finally(?! quit my job)/);
+    await detach();
+  });
+
+  it('a turn-2 note still queued is replaced by turn 3 words, not kept behind them', async () => {
+    const session = new EventEmitter();
+    const hook = noteHook(() => 20);
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: REPLY_END });
+    finalTranscript(session, 'turn one words');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1500);
+    agentState(session, 'listening');
+    await pause(100);
+    session.emit('user_state_changed', { newState: 'speaking' });
+    finalTranscript(session, 'yeah'); // queued; the caller is still speaking
+    await pause(60);
+    agentState(session, 'thinking'); // the turn ended
+    finalTranscript(session, 'okay');
+    await pause(60);
+    session.emit('user_state_changed', { newState: 'listening' });
+    agentState(session, 'listening');
+    await vi.waitFor(() => expect(contextText(agent)).toContain('NOTE for okay'), { timeout: 1000 });
+    expect(contextText(agent)).not.toContain('NOTE for yeah');
+    await detach();
+  });
+
+  it('a turn-2 note superseded by turn 3 words is dropped, not carried (only turn 1 carries)', async () => {
+    const session = new EventEmitter();
+    const hook = vi.fn<UserTurnHook>(async (ctx, msg) => {
+      await pause(msg.textContent === 'yeah' ? 300 : 20);
+      if (msg.textContent !== 'okay') ctx.addMessage({ role: 'user', content: `NOTE for ${msg.textContent}` });
+    });
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: REPLY_END });
+    finalTranscript(session, 'turn one words');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1500);
+    agentState(session, 'listening');
+    await pause(100);
+    finalTranscript(session, 'yeah');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(100);
+    finalTranscript(session, 'okay'); // superseding turn 2's build, which yields no note
+    agentState(session, 'thinking');
+    await pause(400);
+    agentState(session, 'listening');
+    await pause(50);
+    expect(contextText(agent)).toContain('NOTE for turn one words');
+    expect(contextText(agent)).not.toContain('NOTE for yeah');
+    await detach();
+  });
+
+  it('a superseded turn-1 run that yields no note leaves the chat note as it was', async () => {
+    const session = new EventEmitter();
+    const hook = vi.fn<UserTurnHook>(async (ctx, msg) => {
+      if (msg.textContent === 'turn one words') {
+        await pause(3000); // no note
+        return;
+      }
+      ctx.addMessage({ role: 'user', content: `NOTE for ${msg.textContent}` });
+    });
+    const agent = makeAgent();
+    const detach = attachTurnContextPusher(hook, agent, session, { env: REPLY_END });
+    finalTranscript(session, 'turn one words');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(1500);
+    agentState(session, 'listening');
+    await pause(300);
+    finalTranscript(session, 'yeah');
+    agentState(session, 'thinking');
+    agentState(session, 'speaking');
+    await pause(100);
+    agentState(session, 'listening'); // 'yeah' has no note yet; turn 1's build still runs
+    await pause(100);
+    const pushes = agent.updateChatCtx.mock.calls.length;
+    await pause(3000); // turn 1's build ends with no note
+    expect(agent.updateChatCtx.mock.calls.length).toBe(pushes);
+    await detach();
+  });
+
   for (const env of [{}, { FIRST_TURN_DEFER_BACKGROUND: 'on' }]) {
     it(`flag off, as on main (${JSON.stringify(env)}): a turn-1 note superseded by turn 2 is dropped`, async () => {
       const session = new EventEmitter();
