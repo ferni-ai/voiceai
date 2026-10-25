@@ -135,7 +135,8 @@ export function parseQuietWindow(start?: string, end?: string): QuietWindow | un
   return { startMin, endMin };
 }
 
-async function userTimezone(userId: string | undefined): Promise<string | undefined> {
+/** A Ferni user's saved time zone, when valid; never a default. */
+export async function userTimezone(userId: string | undefined): Promise<string | undefined> {
   if (!userId) return undefined;
   const { getUserContactInfo } = await import('./user-contact.js');
   const tz = (await getUserContactInfo(userId))?.timezone;
