@@ -798,12 +798,12 @@ export function importHopeProfile(profile: HopeProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all hope trajectory state (for testing)
- */
+export const forgetHopeUser = (userId: string): boolean => profiles.delete(userId);
+
+/** Reset all hope trajectory state (for testing) */
 export function resetHopeTrajectory(): void {
   profiles.clear();
 }
