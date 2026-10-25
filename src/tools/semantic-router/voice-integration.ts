@@ -47,6 +47,7 @@ import {
 } from './i18n/index.js';
 import type { SemanticToolDefinition, EmbeddingProvider } from './types.js';
 import { errorFields } from '../../utils/error-class.js';
+import { pronounLogFields } from './pronoun-log-fields.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Import embedding worker integration (background processing + Rust SIMD)
@@ -866,17 +867,9 @@ export async function routeVoiceInput(
       entityCount: deepContext.entities.size,
     };
 
-    // If we resolved pronouns, log which ones: the values are the caller's words, and
-    // "the result" carries the last tool's whole output, so only its length is logged
+    // If we resolved pronouns, log which ones (never the caller's words they resolved to)
     if (Object.keys(resolvedPronouns).length > 0) {
-      log.debug(
-        {
-          pronouns: Object.keys(resolvedPronouns),
-          resultLength: resolvedPronouns.result?.length,
-          toolId,
-        },
-        'Pronouns resolved'
-      );
+      log.debug(pronounLogFields(resolvedPronouns, toolId), 'Pronouns resolved');
     }
   }
   const { action } = routingResult;
