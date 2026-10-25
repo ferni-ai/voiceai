@@ -484,7 +484,7 @@ export async function summarizeConversationAsync(
     try {
       const { summarizeWithLLM } = await import('../../memory/index.js');
       const { createSummarizationLLMCaller } = await import('../llm-utils.js');
-
+      const { checkedPoints } = await import('../../memory/recall/forget-key-points.js'); // #2767
       const llmCaller = createSummarizationLLMCaller();
       const result = await summarizeWithLLM(
         conversationId,
@@ -492,7 +492,7 @@ export async function summarizeConversationAsync(
         llmCaller
       );
 
-      summary = (result.keyPoints ?? []).slice(0, 2).join('; ');
+      summary = (await checkedPoints(userId, result.keyPoints ?? [])).slice(0, 2).join('; ');
     } catch {
       // No LLM summary: the conversation keeps a fallback, the profile keeps its own
     }

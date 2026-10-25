@@ -167,6 +167,7 @@ jobs:
           LIVEKIT_URL: wss://livekit.localhost.invalid
           LIVEKIT_API_KEY: ci-placeholder
           LIVEKIT_API_SECRET: ci-placeholder-not-a-secret
+          JOURNAL_ONE_STORE: 'on' # as on the prod web server: the Chronicle can edit and delete
         # With prod's on/off flags (deploy/ui-server/env.yaml): MEMORY_VIEW=on answers What Ferni Knows
         run: |
           # No pipe: a failed read must fail the step (the default shell has no pipefail)

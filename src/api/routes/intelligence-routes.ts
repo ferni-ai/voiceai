@@ -508,7 +508,7 @@ async function handleRecordEmotion(
       intensity: number;
       valence: number;
       source: 'voice' | 'text' | 'inferred';
-      context?: string;
+      // A client may also send `context` (the caller's words). It is not stored.
     }>(req);
 
     if (!body.emotion || body.intensity === undefined || body.valence === undefined) {
@@ -525,8 +525,7 @@ async function handleRecordEmotion(
       body.emotion,
       body.intensity,
       body.valence,
-      body.source || 'inferred',
-      body.context
+      body.source || 'inferred'
     );
 
     // Persist to Firestore (async, don't block)

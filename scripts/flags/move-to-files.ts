@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import * as prettier from 'prettier';
 import ts from 'typescript';
-import { writeFlagBarrel } from '../../src/config/__tests__/flag-barrel.js';
+import { writeFlagBarrel } from '../../src/config/generated-lists.js';
 import { commentsOf, parseLegacy, type Entry } from './legacy-parse.js';
 import { flagFileText, isMain } from './new-flag.js';
 

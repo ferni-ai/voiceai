@@ -8,6 +8,10 @@
 #
 # Keep REQUIRED_CI and REQUIRED_OTHER in step with main's required status
 # checks. GITHUB_TOKEN can't read branch protection, so they are listed here.
+# One required check is deliberately left out: "Overlay Gallery (visual +
+# contrast)" (ci.yml) runs on pull_request only and is skipped, which reports
+# success, in the merge queue and on pushes to main. Listed here it would make
+# every queue and push run look untested and block deploys.
 #
 # Usage (GH_TOKEN, GITHUB_REPOSITORY):
 #   required-checks.sh ci-run <run-id>
