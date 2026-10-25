@@ -34,6 +34,7 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { sayGoodbyeEarly } from './early-goodbye.js';
 import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
 import { holdHandoffThroughTalk } from './held-handoff-speech.js';
@@ -506,12 +507,11 @@ export async function buildHandoffTools(
           context: context_summary ? { summary: context_summary } : undefined,
           userProfile: runtimeUserProfile,
           subscriptionTier: runtimeTier,
-          // Pass conversation context for cognitive handoff
-          emotionalState,
+          emotionalState, // conversation context for a cognitive handoff
           topics,
           sessionId,
-          // Pass voice emotion for better-than-human entrance adaptation
-          voiceEmotion,
+          voiceEmotion, // for better-than-human entrance adaptation
+          onCleared: async (to) => sayGoodbyeEarly(sessionId, to), // HANDOFF_EARLY_GOODBYE
         });
 
         // 🐛 FIX BUG-008: Clear stale conversation context after successful handoff

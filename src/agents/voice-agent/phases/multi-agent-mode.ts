@@ -182,6 +182,7 @@ export async function runMultiAgentMode(
     const { handoffEvents } = await import('../../../handoff/index.js');
     const handoffMsgs = await import('../../multi-agent/handoff-messages.js');
     const { llmHandoffHandler } = await import('../../multi-agent/llm-handoff.js');
+    const { startEarlyGoodbye } = await import('../../multi-agent/early-goodbye-call.js');
 
     // RESUME_AFTER_DROP: look for a call that dropped moments ago while the agent builds
     startResumeLookup(sessionId, userId, services.realtimeConversationId);
@@ -344,6 +345,8 @@ export async function runMultiAgentMode(
     });
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
+    // HANDOFF_EARLY_GOODBYE: the handoff tool says the goodbye once its checks pass
+    const stopEarlyGoodbye = startEarlyGoodbye(multiAgentResult.orchestrator, services, sessionId);
     // In-call controls and Ferni's teammate introductions, for the agent speaking now
     const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona, callerChecks };
     const stopInCallChannels = startInCallChannels(callParts, multiAgentResult.orchestrator);
@@ -370,6 +373,7 @@ export async function runMultiAgentMode(
 
     // Cleanup
     handoffEvents.off('voiceSwitch', voiceSwitchHandler);
+    stopEarlyGoodbye();
     stopInCallChannels();
     ctx.room?.off('dataReceived', dataHandler);
     if (groupConversationIntegration) {
