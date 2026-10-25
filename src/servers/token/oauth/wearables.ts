@@ -159,6 +159,7 @@ function getTokenStore(provider: WearableProvider) {
       provider,
       createPersistenceStore<EncryptedTokenData>({
         collection: `wearable_${provider}_tokens`,
+        holdWrites: () => false, // MINOR_CARE opt-out: credentials
         documentId: 'data',
         useRootCollection: false, // Per-user storage
         syncIntervalMs: 2000,
@@ -291,11 +292,8 @@ export async function saveTokens(
   try {
     const store = getTokenStore(provider);
     const encrypted = encryptData(tokensWithTimestamp);
-    await store.setImmediate(userId, {
-      encrypted,
-      provider,
-      updated_at: Date.now(),
-    });
+    const grant = { encrypted, provider, updated_at: Date.now() };
+    await store.setImmediate(userId, grant, { safeWithoutRead: true }); // a new grant
     log.info({ provider, userId: userId.substring(0, 8) }, 'Saved wearable OAuth tokens');
   } catch (err) {
     log.error(
@@ -523,8 +521,7 @@ export function buildAuthUrl(
     // Cleanup old verifiers (> 10 minutes)
     const maxAge = 10 * 60 * 1000;
     for (const [key, _] of pkceVerifiers) {
-      // We don't store timestamps, so we rely on the caller to cleanup
-      // In production, use Redis with TTL
+      // No timestamps stored, so the caller cleans up (in production, Redis with a TTL)
     }
 
     url.searchParams.set('code_challenge', codeChallenge);

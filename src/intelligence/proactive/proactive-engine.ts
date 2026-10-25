@@ -25,6 +25,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { commitmentKey, isAskableCommitment } from '../../utils/commitment-filters.js';
 import type { ContextWindow } from '../context-assembler.js';
 import type { CrossDomainCorrelation } from '../patterns/cross-domain-correlator.js';
 
@@ -201,7 +202,7 @@ export function checkProactiveTriggers(
   const overwhelm = checkOverwhelmTrigger(context, moment);
   if (overwhelm) insights.push(overwhelm);
 
-  const commitment = checkCommitmentTrigger(context, moment);
+  const commitment = checkCommitmentTrigger(userId, context, moment);
   if (commitment) insights.push(commitment);
 
   const capacity = checkCapacityTrigger(context, moment);
@@ -349,22 +350,21 @@ function checkOverwhelmTrigger(
 }
 
 /**
- * Commitment reminder trigger (Priority 3)
+ * Commitment reminder trigger (Priority 3). The newest commitment that is the
+ * caller's own; its id is stable so the cooldown can match it. The voice turn
+ * re-checks time, call status and the shared ask record (commitment-follow-up-gate.ts).
  */
 function checkCommitmentTrigger(
+  userId: string,
   context: ContextWindow,
   moment: SurfaceMoment
 ): ProactiveIntelligenceInsight | null {
   if (moment !== 'session_start') return null;
-
-  const commitments = context.relationship.activeCommitments;
-  if (!commitments.length) return null;
-
-  // Pick the most relevant commitment
-  const commitment = commitments[0];
+  const commitment = context.relationship.activeCommitments.find(isAskableCommitment);
+  if (!commitment) return null;
 
   return {
-    id: `commitment_${Date.now()}`,
+    id: `commitment_${commitmentKey(userId, commitment)}`,
     category: 'commitment_reminder',
     message: `Hey, I remember you mentioned wanting to ${commitment.toLowerCase()}. How's that going?`,
     followUp: 'No pressure - just wanted to check in on something that seemed important to you.',

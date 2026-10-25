@@ -321,16 +321,23 @@
   function initExitTracking() {
     // Scroll depth and time on page, recorded as the visitor leaves. They go
     // through FerniExperiments like every other goal: only after cookie consent,
-    // under the visitor's anonymous id, as conversions of the experiments they
-    // are in. This used to be a beacon straight to app.ferni.ai with no id and
-    // an event type the API doesn't take, sent before consent; the API answered
-    // every one with 400 "userId is required".
+    // under the visitor's anonymous id. A visitor in an experiment sends them as
+    // conversions of the experiments they are in; a visitor in none sends them
+    // once as engagement events, so every consented visit counts, and none twice.
+    // This used to be a beacon straight to app.ferni.ai with no id, sent before
+    // consent; the API answered every one with 400 "userId is required".
     window.addEventListener('beforeunload', function () {
-      if (typeof window.FerniExperiments === 'undefined') return;
+      var experiments = window.FerniExperiments;
+      if (typeof experiments === 'undefined') return;
       var timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
-      window.FerniExperiments.trackConversionForAll('final_scroll_depth', maxScrollDepth);
-      window.FerniExperiments.trackConversionForAll('time_on_page', timeOnPage);
-      window.FerniExperiments.flushEvents();
+      if (experiments.inAnyExperiment()) {
+        experiments.trackConversionForAll('final_scroll_depth', maxScrollDepth);
+        experiments.trackConversionForAll('time_on_page', timeOnPage);
+      } else {
+        experiments.trackEngagement('final_scroll_depth', maxScrollDepth);
+        experiments.trackEngagement('time_on_page', timeOnPage);
+      }
+      experiments.flushEvents();
     });
 
     // Track bounce (leaving within 10 seconds without interaction)

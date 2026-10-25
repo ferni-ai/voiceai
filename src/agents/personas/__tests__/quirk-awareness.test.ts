@@ -163,9 +163,16 @@ describe('motivation: no playful sound into a serious silence', () => {
     expect(quirkEvents(sessionId)).toEqual([]);
   });
 
-  it('off, the words are not read (the voice-mood gate alone, as before)', async () => {
+  it('off, the words are still read: a safety gate, not a quirk (presence-heavy.ts)', async () => {
     vi.stubEnv('QUIRK_AWARENESS', 'off');
     await call("I'm so stressed, I got fired today.");
+    vi.advanceTimersByTime(30_000);
+    expect(mixer.plays).toBe(1); // only the keep-alive silence
+  });
+
+  it('off, a light turn still gets its whistle and snore', async () => {
+    vi.stubEnv('QUIRK_AWARENESS', 'off');
+    await call('and then the toaster caught fire');
     vi.advanceTimersByTime(30_000);
     expect(mixer.plays).toBe(3); // silence, whistle, snore
   });

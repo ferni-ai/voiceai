@@ -167,8 +167,9 @@ describe('chat API tool access', () => {
     expect(ranTools()).toEqual(['getUnreadEmails']);
   });
 
-  it('an admin may run any tool directly', async () => {
-    const body = { fn: 'reachOut', args: { phone: '+15555550100', message: 'hi' } };
+  // An admin's unoffered tools need an explicit grant (chat-tool-grant.test.ts).
+  it("an admin may run any tool directly with grant: 'admin'", async () => {
+    const body = { fn: 'reachOut', args: { phone: '+15555550100', message: 'hi' }, grant: 'admin' };
 
     expect(await post('/api/chat/tool', body, 'admin-uid')).toBe(200);
     expect(ranTools()).toEqual(['reachOut']);

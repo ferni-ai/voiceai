@@ -1,389 +1,52 @@
-# Ferni Documentation
-
-> **We believe in making AI human, and the decisions we make will reflect that.**
-
-## Quick Links
-
-| I want to...               | Read this                                   |
-| -------------------------- | ------------------------------------------- |
-| **Get started**            | [ONBOARDING.md](../ONBOARDING.md)           |
-| **Understand the mission** | [CORE-PRINCIPLES.md](../CORE-PRINCIPLES.md) |
-| **Write code**             | [CLAUDE.md](../CLAUDE.md)                   |
-| **Contribute**             | [CONTRIBUTING.md](../CONTRIBUTING.md)       |
-| **Deploy**                 | [deployment/](./deployment/) (use `ferni deploy`) |
-| **Run commands**           | [SCRIPTS.md](../SCRIPTS.md)                 |
-| **Check implementation status** | [status/CURRENT-STATE-SUMMARY.md](./status/CURRENT-STATE-SUMMARY.md) |
-
----
-
-## Documentation Map
-
-```
-voiceai/
-├── README.md              # Project overview
-├── CLAUDE.md              # AI coding context (START HERE)
-├── CORE-PRINCIPLES.md     # Mission & philosophy
-├── ONBOARDING.md          # Developer setup
-├── CONTRIBUTING.md        # How to contribute
-├── (See docs/deployment/) # Deployment guide
-├── SCRIPTS.md             # npm scripts
-├── BACKLOG.md             # Product backlog
-└── CHANGELOG.md           # Version history
-
-docs/
-├── README.md              # THIS FILE - Index
-├── status/                # Implementation status & health
-│   ├── CURRENT-STATE-SUMMARY.md  # ⭐ AUTHORITATIVE implementation status
-│   ├── DOCUMENTATION-STATE.md    # Documentation audit & cleanup plan
-│   ├── SYSTEM-HEALTH-REPORT.md   # System health tracking
-│   └── TECH-DEBT.md             # Auto-generated tech debt report
-│
-├── architecture/          # System design (80 docs + ADRs)
-├── audits/                # Quality audits (73 active)
-├── plans/                 # Implementation plans (44 docs)
-├── features/              # Feature specs (19 docs)
-├── guides/                # How-to guides (24 docs)
-├── deployment/            # Deploy guides (12 docs)
-├── security/              # Security checklists (3 docs)
-├── api/                   # API documentation (5 docs)
-├── operations/            # Runbooks & operations (4 docs)
-├── research/              # Research documents (4 docs)
-├── refactoring/           # Refactoring guides (7 docs)
-├── strategy/              # Business & launch docs (3 docs)
-├── marketplace/           # Marketplace docs (3 docs)
-└── archive/               # 📦 Completed/outdated/consolidated docs (35+)
-
-brand/                     # Brand ASSETS (logos, icons)
-design-system/docs/brand/       # Brand DOCUMENTATION
-apps/web/       # Frontend code & CLAUDE.md
-marketplace-agents/        # Agent marketplace
-```
-
----
-
-## Complete Documentation Locations
-
-> **Rule:** All major documentation should live in `docs/`. Module-specific READMEs and CLAUDE.md files stay in-source.
-
-### By Category
-
-| Type | Location | Examples |
-|------|----------|----------|
-| **Architecture** | `docs/architecture/` | System design, ADRs, technical decisions |
-| **Audits** | `docs/audits/` | Code reviews, quality assessments |
-| **Plans** | `docs/plans/` | Implementation roadmaps, feature plans |
-| **Guides** | `docs/guides/` | How-to guides, tutorials |
-| **API Docs** | `docs/api/` | REST API, OpenAPI specs |
-| **Features** | `docs/features/` | Feature specifications |
-| **Deployment** | `docs/deployment/` | Deploy guides, CI/CD setup |
-| **Brand** | `design-system/docs/brand/` | Brand guidelines, voice guide |
-| **Module Docs** | `src/*/CLAUDE.md`, `src/*/README.md` | In-source context for AI & devs |
-
-### Scattered Documentation (Intentionally In-Place)
-
-These docs stay with their code because they're project-specific:
-
-| Location | Purpose |
-|----------|---------|
-| `apps/web/CLAUDE.md` | Frontend coding context |
-| `apps/website/ferni-website/docs/` | Website-specific (marketing pipeline, assets) |
-| `apps/website/ferni-website/*.md` | Website plans (LAUNCH-PLAN, POLISH-PLAN) |
-| `design-system/README.md` | Design system setup |
-| `design-system/docs/brand/` | Brand guidelines, voice, imagery |
-| `src/personas/bundles/*/` | Persona content (identity, commands, etc.) |
-| `src/*/CLAUDE.md` | AI coding context for each module |
-| `src/*/README.md` | Module-specific documentation |
-
-### Pointer Files
-
-Files that have been moved will have a pointer showing the new location:
-
-```markdown
-# ⚠️ MOVED
-This documentation has been moved to:
-📍 `docs/architecture/NEW-LOCATION.md`
-```
-
----
-
-## Architecture (`/docs/architecture/`)
-
-System design and technical decisions.
-
-### Core Architecture
-
-| Doc                                                                                             | Description                          |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------ |
-| [ARCHITECTURE-ACTION-PLAN.md](./architecture/ARCHITECTURE-ACTION-PLAN.md)                       | **Refactoring priorities & roadmap** |
-| [CLEAN-ARCHITECTURE.md](./architecture/CLEAN-ARCHITECTURE.md)                                   | Layer structure & import rules       |
-| [SEMANTIC-ROUTER.md](./architecture/SEMANTIC-ROUTER.md)                                         | **Pre-LLM tool routing system**      |
-| [SPEECH-COORDINATION.md](./architecture/SPEECH-COORDINATION.md)                                 | **Adaptive speech coordination**     |
-| [AGENT-AGNOSTIC-ARCHITECTURE.md](./architecture/AGENT-AGNOSTIC-ARCHITECTURE.md)                 | Tool & persona patterns              |
-| [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](./architecture/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think                   |
-| [PERSISTENCE-ARCHITECTURE.md](./architecture/PERSISTENCE-ARCHITECTURE.md)                       | Memory & storage                     |
-| [HANDOFF_ARCHITECTURE.md](./architecture/HANDOFF_ARCHITECTURE.md)                               | Agent handoff system                 |
-| [MEMORY-MANAGEMENT.md](./architecture/MEMORY-MANAGEMENT.md)                                     | Memory patterns & cleanup            |
-| [GCE-CLEAN-ARCHITECTURE.md](./architecture/GCE-CLEAN-ARCHITECTURE.md)                           | GCE deployment architecture          |
-
-### Feature Architecture
-
-| Doc                                                                     | Description             |
-| ----------------------------------------------------------------------- | ----------------------- |
-| [FERNI-EMOTION-SYSTEM.md](./architecture/FERNI-EMOTION-SYSTEM.md)       | Emotional intelligence  |
-| [MONETIZATION-SYSTEM.md](./architecture/MONETIZATION-SYSTEM.md)         | Subscriptions & unlocks |
-| [CINEMATIC-DESIGN-SYSTEM.md](./architecture/CINEMATIC-DESIGN-SYSTEM.md) | Design system           |
-| [REALTIME-MEMORY-PLAN.md](./architecture/REALTIME-MEMORY-PLAN.md)       | Memory optimization     |
-
-### Architecture Decision Records (ADRs)
-
-| ADR                                                                                           | Decision         |
-| --------------------------------------------------------------------------------------------- | ---------------- |
-| [001-clean-architecture.md](./architecture/adr/001-clean-architecture.md)                     | Layer structure  |
-| [0001-persona-bundle-architecture.md](./architecture/adr/0001-persona-bundle-architecture.md) | Persona bundles  |
-| [0002-context-builder-pattern.md](./architecture/adr/0002-context-builder-pattern.md)         | Context builders |
-| [002-design-token-system.md](./architecture/adr/002-design-token-system.md)                   | Design tokens    |
-| [004-persona-registry-pattern.md](./architecture/adr/004-persona-registry-pattern.md)         | Persona registry |
-
----
-
-## Guides (`/docs/guides/`)
-
-How-to guides and reference material.
-
-| Doc                                                               | Description                        |
-| ----------------------------------------------------------------- | ---------------------------------- |
-| [FERNI-COMPLETE-GUIDE.md](./guides/FERNI-COMPLETE-GUIDE.md)       | Comprehensive Ferni implementation |
-| [creating-personas.md](./guides/creating-personas.md)             | Building custom personas           |
-| [environment-variables.md](./guides/environment-variables.md)     | Configuration reference            |
-| [api-reference.md](./guides/api-reference.md)                     | REST API documentation             |
-| [RUNBOOK.md](./guides/RUNBOOK.md)                                 | Operations runbook                 |
-| [HUMANIZATION-GUIDELINES.md](./guides/HUMANIZATION-GUIDELINES.md) | Voice & tone guide                 |
-| [MOBILE-POLISH-GUIDE.md](./guides/MOBILE-POLISH-GUIDE.md)         | Mobile UX polish                   |
-| [TESTING-PHILOSOPHY.md](./guides/TESTING-PHILOSOPHY.md)           | Testing approach                   |
-| [COMMIT-CONVENTIONS.md](./guides/COMMIT-CONVENTIONS.md)           | Commit messages                    |
-
----
-
-## Features (`/docs/features/`)
-
-Feature specifications and roadmaps.
-
-| Doc                                                                     | Description            |
-| ----------------------------------------------------------------------- | ---------------------- |
-| [PROACTIVE-OUTREACH-VISION.md](./features/PROACTIVE-OUTREACH-VISION.md) | Proactive engagement   |
-| [MUSIC-GAMES.md](./features/MUSIC-GAMES.md)                             | Music games system     |
-| [SPOTIFY-INTEGRATION.md](./features/SPOTIFY-INTEGRATION.md)             | Music integration      |
-| [VOICE-PRESENCE-ROADMAP.md](./features/VOICE-PRESENCE-ROADMAP.md)       | Voice features roadmap |
-| [VOICE-HUMANIZATION.md](./features/VOICE-HUMANIZATION.md)               | Voice humanization     |
-| [AB-TESTING.md](./features/AB-TESTING.md)                               | Experiment framework   |
-| [DJ-SYSTEM.md](./features/DJ-SYSTEM.md)                                 | DJ/music system        |
-| [TOOL_COST_ANALYSIS.md](./features/TOOL_COST_ANALYSIS.md)               | Tool performance data  |
-
----
-
-## Core Systems
-
-### Life Coaching
-
-| Doc                                                                      | Description                                                                     |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| [COACHING-SYSTEM.md](./features/COACHING-SYSTEM.md)                      | **Complete coaching capabilities** - Goals, actions, obstacles, values, journey |
-| [LIFE-COACH-ENHANCEMENT-PLAN.md](./plans/LIFE-COACH-ENHANCEMENT-PLAN.md) | Enhancement roadmap                                                             |
-
-### Better Than Human / Emotional Intelligence
-
-| Doc                                                                                       | Description                        |
-| ----------------------------------------------------------------------------------------- | ---------------------------------- |
-| [design-system/docs/brand/BETTER-THAN-HUMAN.md](../design-system/docs/brand/BETTER-THAN-HUMAN.md)   | EQ specification (source of truth) |
-| [BETTER-THAN-HUMAN-INTEGRATION-PLAN.md](./plans/BETTER-THAN-HUMAN-INTEGRATION-PLAN.md)    | Implementation plan                |
-| [BETTER-THAN-PHD-ROADMAP.md](./plans/BETTER-THAN-PHD-ROADMAP.md)                          | PhD-level EQ roadmap               |
-| [BETTER-THAN-PHD-SYSTEMS.md](./architecture/BETTER-THAN-PHD-SYSTEMS.md)                   | Systems implementation             |
-
-### Trust & Authentication
-
-| Doc                                                                              | Description                   |
-| -------------------------------------------------------------------------------- | ----------------------------- |
-| [TRUST-SYSTEMS.md](./architecture/TRUST-SYSTEMS.md)                              | Trust & relationship tracking |
-| [VOICE-AUTHENTICATION.md](./features/VOICE-AUTHENTICATION.md)                    | Voice auth overview           |
-| [VOICE-AUTH-IMPLEMENTATION-GUIDE.md](./guides/VOICE-AUTH-IMPLEMENTATION-GUIDE.md)| Implementation guide          |
-
-### Outreach & Engagement
-
-| Doc                                                                        | Description         |
-| -------------------------------------------------------------------------- | ------------------- |
-| [OUTREACH-PRODUCTION-PLAN.md](./plans/OUTREACH-PRODUCTION-PLAN.md)         | Production plan     |
-| [OUTREACH-DEPLOYMENT-COMPLETE.md](./deployment/OUTREACH-DEPLOYMENT-COMPLETE.md) | Deployment status |
-| [OUTREACH-WEBHOOKS.md](./features/OUTREACH-WEBHOOKS.md)                    | Webhook integration |
-
-### Evaluation & Operations
-
-| Doc                                    | Description                  |
-| -------------------------------------- | ---------------------------- |
-| [EVALOPS.md](./operations/EVALOPS.md)  | Evaluation operations system |
-| [API.md](./api/API.md)                 | API documentation            |
-
----
-
-## Deployment (`/docs/deployment/`)
-
-| Doc                                                               | Description           |
-| ----------------------------------------------------------------- | --------------------- |
-| [PRODUCTION-DEPLOYMENT.md](./deployment/PRODUCTION-DEPLOYMENT.md) | Full deployment guide |
-| [QUICK-DEPLOY.md](./deployment/QUICK-DEPLOY.md)                   | Fast deploy reference |
-| [SUBSCRIPTION-SETUP.md](./deployment/SUBSCRIPTION-SETUP.md)       | Stripe setup          |
-| [SENTRY-SETUP.md](./deployment/SENTRY-SETUP.md)                   | Error tracking        |
-| [GITHUB-SECRETS-SETUP.md](./deployment/GITHUB-SECRETS-SETUP.md)   | CI/CD secrets         |
-| [DASHBOARDS.md](./deployment/DASHBOARDS.md)                       | Monitoring dashboards |
-
----
-
-## Security (`/docs/security/`)
-
-| Doc                                                                               | Description              |
-| --------------------------------------------------------------------------------- | ------------------------ |
-| [SECURITY-CHECKLIST.md](./security/SECURITY-CHECKLIST.md)                         | Security audit checklist |
-| [security-review.md](./security/security-review.md)                               | Review process           |
-| [CODE-ORGANIZATION-PR-CHECKLIST.md](./security/CODE-ORGANIZATION-PR-CHECKLIST.md) | PR checklist             |
-
----
-
-## Audits (`/docs/audits/`)
-
-System and code quality audits.
-
-| Doc                                                               | Description                |
-| ----------------------------------------------------------------- | -------------------------- |
-| [DESIGN-SYSTEM-AUDIT.md](./audits/DESIGN-SYSTEM-AUDIT.md)         | Design token consolidation |
-| [BETTER-THAN-HUMAN-AUDIT.md](./audits/BETTER-THAN-HUMAN-AUDIT.md) | EQ capabilities            |
-| [EMOTION-ANIMATION-AUDIT.md](./audits/EMOTION-ANIMATION-AUDIT.md) | Avatar emotions            |
-| [ANIMATION-PRINCIPLES-AUDIT.md](./audits/ANIMATION-PRINCIPLES-AUDIT.md) | Animation best practices |
-| [UI-SPACING-AUDIT.md](./audits/UI-SPACING-AUDIT.md)               | UI spacing consistency     |
-| [COMPREHENSIVE-CODEBASE-AUDIT.md](./audits/COMPREHENSIVE-CODEBASE-AUDIT.md) | Full codebase review |
-| [GAMES-AUDIT.md](./audits/GAMES-AUDIT.md)                         | Games system               |
-| [BEHAVIOR-AUDIT.md](./audits/BEHAVIOR-AUDIT.md)                   | Persona behaviors          |
-| [SDLC-AUDIT.md](./audits/SDLC-AUDIT.md)                           | Dev lifecycle              |
-| [TECH-DEBT.md](./status/TECH-DEBT.md)                             | Auto-generated debt report |
-
----
-
-## Business & Launch (`/docs/strategy/`)
-
-| Doc                                                                        | Description                 |
-| -------------------------------------------------------------------------- | --------------------------- |
-| [VC-ARCHITECTURE-OVERVIEW.md](./strategy/VC-ARCHITECTURE-OVERVIEW.md)      | Investor-ready architecture |
-| [SERVICE-DOMAINS-DEEP-DIVE.md](./architecture/SERVICE-DOMAINS-DEEP-DIVE.md)| E2E service breakdown       |
-| [LAUNCH-KIT.md](./strategy/LAUNCH-KIT.md)                                  | Go-to-market materials      |
-
----
-
-## Coding Standards (CLAUDE.md Files)
-
-AI assistant context files form a hierarchy:
-
-| File                                                                                          | Purpose                                         |
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| [CLAUDE.md](../CLAUDE.md)                                                                     | **Root**: Quality gates, architecture, patterns |
-| [apps/web/CLAUDE.md](../apps/web/CLAUDE.md)                             | Frontend patterns, design tokens                |
-| [src/tools/CLAUDE.md](../src/tools/CLAUDE.md)                                                 | Tool development                                |
-| [src/personas/CLAUDE.md](../src/personas/CLAUDE.md)                                           | Persona development                             |
-| [src/intelligence/context-builders/CLAUDE.md](../src/intelligence/context-builders/CLAUDE.md) | Context builder patterns                        |
-| [src/tools/habit-coaching/CLAUDE.md](../src/tools/habit-coaching/CLAUDE.md)                   | Module organization example                     |
-
-Complete coding standards: [.cursorrules](../.cursorrules) (22KB)
-
----
-
-## Plans (`/docs/plans/`)
-
-Implementation plans and roadmaps. See [archive/](./archive/) for completed plans.
-
-| Doc                                                                                    | Description                  |
-| -------------------------------------------------------------------------------------- | ---------------------------- |
-| [IMPLEMENTATION-PLAN.md](./plans/IMPLEMENTATION-PLAN.md)                               | Comprehensive implementation |
-| [BETTER-THAN-PHD-ROADMAP.md](./plans/BETTER-THAN-PHD-ROADMAP.md)                       | PhD-level EQ roadmap (master)|
-| [COMPREHENSIVE-REMEDIATION-PLAN.md](./plans/COMPREHENSIVE-REMEDIATION-PLAN.md)         | Technical debt remediation   |
-| [FEATURE-COMPLETION-PLAN.md](./plans/FEATURE-COMPLETION-PLAN.md)                       | 26 menu features E2E         |
-| [MUSIC-INTELLIGENCE-PLAN.md](./plans/MUSIC-INTELLIGENCE-PLAN.md)                       | Music/DJ system roadmap      |
-| [EXTENSIBILITY-COMPLETION-PLAN.md](./plans/EXTENSIBILITY-COMPLETION-PLAN.md)           | Agent extensibility system   |
-| [ADMIN-SECTION-IMPLEMENTATION-PLANS.md](./plans/ADMIN-SECTION-IMPLEMENTATION-PLANS.md) | Admin UI plans               |
-| [AI-BRAND-SCALING-PLAN.md](./plans/AI-BRAND-SCALING-PLAN.md)                           | AI brand expansion           |
-| [EMOTION-SYSTEM-PLAN.md](./plans/EMOTION-SYSTEM-PLAN.md)                               | Emotion system implementation|
-| [LOCALIZATION-PLAN.md](./plans/LOCALIZATION-PLAN.md)                                   | i18n implementation plan     |
-| [LIFE-COACH-ENHANCEMENT-PLAN.md](./plans/LIFE-COACH-ENHANCEMENT-PLAN.md)               | Life coaching improvements   |
-
----
-
-## Brand & Design
-
-| File                                                                                                 | Purpose                      |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------- |
-| [brand/README.md](../brand/README.md)                                                                | Brand assets (logos, icons)  |
-| [design-system/docs/brand/FERNI-BRAND-GUIDELINES.md](../design-system/docs/brand/FERNI-BRAND-GUIDELINES.md)    | Core brand guidelines        |
-| [design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md](../design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md)  | Screen design system         |
-| [design-system/docs/brand/FERNI-SONIC-IDENTITY.md](../design-system/docs/brand/FERNI-SONIC-IDENTITY.md)        | Audio branding               |
-| [design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md](../design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md)        | Brand universe & personality |
-| [design-system/docs/brand/BETTER-THAN-HUMAN.md](../design-system/docs/brand/BETTER-THAN-HUMAN.md)              | EQ specification             |
-
-See [design-system/docs/brand/README.md](../design-system/docs/brand/README.md) for complete brand documentation index.
-
----
-
-## Marketplace Agents
-
-| File                                                                                                        | Purpose                  |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------ |
-| [marketplace-agents/README.md](../marketplace-agents/README.md)                                             | Marketplace overview     |
-| [marketplace-agents/CONTRIBUTING.md](../marketplace-agents/CONTRIBUTING.md)                                 | Agent contribution guide |
-| [marketplace-agents/docs/AGENT-DEVELOPMENT-GUIDE.md](../marketplace-agents/docs/AGENT-DEVELOPMENT-GUIDE.md) | Development guide        |
-
----
-
-## DevOps & Development Workflow
-
-| Doc | Description |
-|-----|-------------|
-| [BRANCH-PROTECTION.md](./deployment/BRANCH-PROTECTION.md) | GitHub branch protection setup |
-| [BUILD-OPTIMIZATIONS.md](./deployment/BUILD-OPTIMIZATIONS.md) | Build performance tips |
-| [CLOUDFLARE-SETUP.md](./deployment/CLOUDFLARE-SETUP.md) | CDN configuration |
-| [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to contribute |
-| [guides/COMMIT-CONVENTIONS.md](./guides/COMMIT-CONVENTIONS.md) | Commit message format |
-
-### Automation Overview
-
-| System | What It Does |
-|--------|--------------|
-| **Pre-commit hooks** | Typecheck, lint, test on commit |
-| **Conventional commits** | Enforced via commitlint |
-| **Blue-green deploys** | Safe deployments with rollback |
-| **Auto-release tags** | Semver from conventional commits |
-| **Dependabot** | Weekly dependency updates |
-| **Slack notifications** | Deploy success/failure alerts |
-
-See [.github/workflows/](../.github/workflows/) for all CI/CD workflows.
-
----
-
-## Archive (`/docs/archive/`)
-
-Completed plans and outdated documentation preserved for historical reference.
-
-| Category | Contents |
-|----------|----------|
-| `completed-audits/` | 4 point-in-time audits that are resolved |
-| `completed-plans/` | 10 plans now fully implemented (Animation, Trust Systems, Personas, etc.) |
-| Root archive | Superseded status documents |
-
-See [archive/README.md](./archive/README.md) for details.
-
----
-
-## Documentation Maintenance
-
-For documentation cleanup status and maintenance guidelines, see:
-
-- [status/DOCUMENTATION-STATE.md](./status/DOCUMENTATION-STATE.md) - Documentation audit & cleanup plan
-- [status/CURRENT-STATE-SUMMARY.md](./status/CURRENT-STATE-SUMMARY.md) - **Authoritative** implementation status
-
----
-
-_Last updated: December 24, 2024_
+# Ferni docs: the ones kept current
+
+This index lists only living docs. Everything else in `docs/` is history:
+plans, audits and guides written for setups that have since changed (GCE,
+Gemini Live, OpenAI Realtime, `ferni deploy`). Check those against the code
+before acting on them, and when you fix or retire one, update this list.
+
+## Start here
+
+| Doc | Read it for |
+|---|---|
+| [README.md](../README.md) | What Ferni is, the repo map, quick start |
+| [ONBOARDING.md](../ONBOARDING.md) | First-day setup, local processes, checks, first PR |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Code rules and the PR process |
+| [AGENTS.md](../AGENTS.md) | The stack today, how work ships, hard rules |
+| [CORE-PRINCIPLES.md](../CORE-PRINCIPLES.md) | The mission behind product decisions |
+
+## How work runs
+
+| Doc | Read it for |
+|---|---|
+| [agent/operating-model.md](./agent/operating-model.md) | Issues, the board, work in flight, review |
+| [agent/fleet-rules.md](./agent/fleet-rules.md) | Rules for parallel agent sessions |
+| [agent/fleet-handoff.md](./agent/fleet-handoff.md) | A dated snapshot of the fleet queue (check `gh` before acting) |
+| [DEFINITION-OF-CLEAN.md](./DEFINITION-OF-CLEAN.md) | The quality bar the ratchet enforces |
+
+## The system
+
+| Doc | Read it for |
+|---|---|
+| [VOICE-STACK-DIRECTION.md](./VOICE-STACK-DIRECTION.md) | The Cartesia cascade, and what was removed |
+| [FOCUS-EVERYTHING-ELSE.md](./FOCUS-EVERYTHING-ELSE.md) | What to fix, wire or prove next |
+| [architecture/ci-deployment-current.md](./architecture/ci-deployment-current.md) | CI and the deploy workflows |
+| [guides/environment-variables.md](./guides/environment-variables.md) | Environment variables |
+
+## Runbooks
+
+| Doc | Read it for |
+|---|---|
+| [runbooks/deploy.md](./runbooks/deploy.md) | Deploying and rolling back every part |
+| [runbooks/cohort-rollout.md](./runbooks/cohort-rollout.md) | Turning a flag on for one audience at a time |
+| [runbooks/FERNI-LIVENESS.md](./runbooks/FERNI-LIVENESS.md) | The liveness check and what to do when it fails |
+| [runbooks/firestore-indexes.md](./runbooks/firestore-indexes.md) | Which Firestore indexes are ours, and which never to prune |
+
+## In the code
+
+- `src/**/CLAUDE.md` and `apps/*/CLAUDE.md`: notes for one subsystem, read
+  when you work in it (for example `src/tools/CLAUDE.md`, `apps/web/CLAUDE.md`).
+- `.claude/skills/`: `ship-change`, `deploy-agent` and `voice-eval` hold the
+  exact commands for shipping, deploying and live-call evals.
+- [archive/2026-10-08-former-claude-md.md](./archive/2026-10-08-former-claude-md.md):
+  the old 2,000-line CLAUDE.md, with subsystem overviews. Partly outdated.

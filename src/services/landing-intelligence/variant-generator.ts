@@ -12,9 +12,20 @@ import { quickValidate } from '../brand/index.js';
 import type { ExperimentPattern } from '../experiments/hypothesis-generator.js';
 import { generateJSON } from './gemini-client.js';
 import type { VisitorIntent } from './intent-detector.js';
+import { landingAiEnabled } from './landing-ai-flag.js';
 import type { TimeMode } from './time-aware.js';
 
 const log = createLogger({ module: 'VariantGenerator' });
+
+/**
+ * With LANDING_AI off the Gemini client returns null by design, and the
+ * callers logged that as "Failed to generate" (118 warnings in three days).
+ */
+function landingAiOff(kind: string): boolean {
+  if (landingAiEnabled()) return false;
+  log.debug({ kind }, 'Landing AI off, no generated variant');
+  return true;
+}
 
 // ============================================================================
 // TYPES
@@ -136,6 +147,7 @@ Return JSON:
 export async function generateHeadlineVariant(
   context: VariantGenerationContext
 ): Promise<GeneratedVariant | null> {
+  if (landingAiOff('headline')) return null;
   const contextStr = formatContext(context);
   const patternsStr = formatPatterns(context.winningPatterns || []);
 
@@ -222,6 +234,7 @@ Return JSON:
 export async function generateCTAVariant(
   context: VariantGenerationContext
 ): Promise<GeneratedVariant | null> {
+  if (landingAiOff('cta')) return null;
   const contextStr = formatContext(context);
   const patternsStr = formatPatterns(
     (context.winningPatterns || []).filter((p) => p.attribute.startsWith('cta.'))
@@ -278,6 +291,7 @@ export async function generateCTAVariant(
 export async function generatePersonalizedVariant(
   context: VariantGenerationContext
 ): Promise<GeneratedVariant | null> {
+  if (landingAiOff('full')) return null;
   // Generate headline and CTA together for coherence
   const fullPrompt = `You are generating a cohesive landing page hero for Ferni, an AI life coach.
 

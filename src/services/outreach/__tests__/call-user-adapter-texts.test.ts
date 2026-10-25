@@ -19,7 +19,8 @@ vi.mock('../../identity/firebase-auth.js', () => ({ getFirebaseUser: async () =>
 vi.mock('../conversational-calls.js', () => ({ scheduleProactiveCall: vi.fn() }));
 vi.mock('../user-reach.js', () => ({ userReach: async () => ({ phone: '+18015550100' }) }));
 
-import { callUserAdapter } from '../call-user-adapter.js';
+import { callUserAdapter, installCallUserPort } from '../call-user-adapter.js';
+import { verifiedAddressFor } from '../../engagement/engagement-reach-port.js';
 
 const NOON_NY = new Date('2026-10-15T16:00:00.000Z');
 const ELEVEN_PM_NY = new Date('2026-10-16T03:00:00.000Z');
@@ -64,5 +65,14 @@ describe('verifiedEmail', () => {
     h.user = { email: 'owner@example.com', emailVerified: false };
     expect(await callUserAdapter.verifiedEmail!('uid-1')).toBeUndefined();
     expect(await callUserAdapter.verifiedEmail!('phone:+18015550100')).toBeUndefined();
+  });
+});
+
+describe('installCallUserPort', () => {
+  it('also installs the engagement port with the same verified-only reach', async () => {
+    h.user = { email: 'owner@example.com', emailVerified: true };
+    installCallUserPort();
+    expect(await verifiedAddressFor('uid-1', 'sms')).toBe('+18015550100');
+    expect(await verifiedAddressFor('uid-1', 'email')).toBe('owner@example.com');
   });
 });

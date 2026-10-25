@@ -594,12 +594,12 @@ export function importSilencePattern(pattern: SilencePattern): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all silence intelligence state (for testing)
- */
+export const forgetSilenceUser = (userId: string): boolean => userPatterns.delete(userId);
+
+/** Reset all silence intelligence state (for testing) */
 export function resetSilenceIntelligence(): void {
   userPatterns.clear();
 }

@@ -240,7 +240,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-lg, 12px);
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .smart-home-settings__title-icon svg {
@@ -379,7 +379,7 @@ function injectStyles(): void {
     }
 
     .smart-home-settings__card-status--connected {
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .smart-home-settings__card-status--disconnected {
@@ -490,7 +490,7 @@ function injectStyles(): void {
       justify-content: center;
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-xl, 20px);
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .smart-home-settings__step-icon svg {
@@ -679,7 +679,7 @@ function injectStyles(): void {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
       font-size: 0.9rem;
       text-decoration: none;
       margin-top: 12px;

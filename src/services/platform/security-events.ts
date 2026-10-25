@@ -19,13 +19,14 @@
  */
 
 import { createHmac, randomBytes } from 'crypto';
-import admin from 'firebase-admin';
-import { getGCPProjectId } from '../../config/environment.js';
+import type admin from 'firebase-admin';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { opsAlert } from './ops-alert.js';
+import { withExpiry } from './security-event-expiry.js';
 import { registerInterval } from '../../utils/interval-manager.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = getLogger();
 
@@ -159,17 +160,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   firestoreInitAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     log.info('✅ Firestore initialized for security events');
     return firestoreInstance;
   } catch (error) {
@@ -242,12 +233,7 @@ async function saveEventToFirestore(event: SecurityEvent): Promise<void> {
     await db
       .collection(EVENTS_COLLECTION)
       .doc(event.id)
-      .set(
-        removeUndefined({
-          ...event,
-          timestamp: event.timestamp,
-        })
-      );
+      .set(removeUndefined(withExpiry(event)));
   } catch (error) {
     log.error({ error, eventId: event.id }, 'Failed to save security event to Firestore');
   }

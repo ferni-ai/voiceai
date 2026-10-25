@@ -158,6 +158,12 @@ describe('the opener of a call Ferni places to its own user', () => {
     expect(opener).not.toMatch(/phone|sound/i);
   });
 
+  it('names whoever placed the call in the fallback: "call me" can ring with Alex', () => {
+    expect(proactiveFallback('Seth', 'alex')).toBe("Hey Seth, it's Alex, just calling to check in.");
+    expect(proactiveFallback(undefined, 'maya')).toBe("Hey, it's Maya, just calling to check in.");
+    expect(proactiveFallback('Seth', 'not-a-persona')).toBe(proactiveFallback('Seth'));
+  });
+
   it('is unchanged with PROACTIVE_REASON_OPENER off', async () => {
     vi.stubEnv('PROACTIVE_REASON_OPENER', '');
     actor.reply = "Hey Seth, how's your week been treating you?";

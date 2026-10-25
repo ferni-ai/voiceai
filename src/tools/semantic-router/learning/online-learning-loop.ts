@@ -138,7 +138,7 @@ export class OnlineLearningEngine {
 
     log.debug(
       {
-        query: example.query.substring(0, 50),
+        queryLength: example.query.length,
         predicted: example.predictedToolId,
         actual: example.actualToolId,
         pendingCount: this.pendingExamples.length,

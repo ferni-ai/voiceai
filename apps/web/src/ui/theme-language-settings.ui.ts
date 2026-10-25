@@ -229,7 +229,7 @@ function injectStyles(): void {
     }
 
     .theme-language-settings__theme-preview--zen {
-      background: linear-gradient(145deg, #fafaf9 0%, #f5f4f2 100%);
+      background: linear-gradient(145deg, #faf8f5 0%, #f5f2ed 100%);
       border: 1px solid rgba(44, 37, 32, 0.1);
       color: #8B7355;
     }
@@ -264,7 +264,7 @@ function injectStyles(): void {
       height: 24px;
       border-radius: 50%;
       background: var(--color-accent-primary, #3D5A45);
-      color: var(--color-background-primary, #fafaf9);
+      color: var(--color-background-primary, #faf8f5);
       display: none;
       align-items: center;
       justify-content: center;
@@ -548,8 +548,8 @@ export function showThemeLanguageSettings(): void {
 
   container = document.createElement('div');
   container.className = 'theme-language-settings';
-  container.setAttribute('role', 'dialog');
-  container.setAttribute('aria-modal', 'true');
+  // The named role="dialog" is the card render() draws inside; a second, unnamed
+  // one around it made screen readers announce an empty dialog first
   document.body.appendChild(container);
 
   render();

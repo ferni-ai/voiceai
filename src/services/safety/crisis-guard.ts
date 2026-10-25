@@ -24,7 +24,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { endingFloor } from './crisis-ending-floor.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
@@ -59,8 +61,8 @@ export interface CrisisGuardResult {
   isCrisis: boolean;
 }
 
-/** Who is at risk: the caller, or someone the caller is worried about. */
-export type CrisisSubject = 'self' | 'third_party';
+/** Who is at risk: the caller, someone the caller is worried about, or no one now (a grieving caller, crisis-who.ts). */
+export type CrisisSubject = 'self' | 'third_party' | 'bereaved';
 
 export interface CrisisDetectionResult {
   isCrisis: boolean;
@@ -106,6 +108,10 @@ interface TextScore {
   language?: 'en' | 'es';
   implicitHits: number;
   contextHit: boolean;
+  /** The caller's own ending words, negated, recovered or hyperbole only ("I would never …"). */
+  softSelf: boolean;
+  /** What this turn counts for in a later turn's session check: its self read as before #2528. */
+  sessionSeverity: number;
 }
 
 /** Score one message from its words alone. */
@@ -123,6 +129,9 @@ function scoreText(text: string): TextScore {
   // ("want to unalive myself" / "unalive myself") inherits the softening.
   const softened: [number, number][] = [];
   let thirdPartyHit = false;
+  let softSelf = false;
+  let tierSoft = false;
+  let hardSelf = false;
   for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
     const match = re.exec(text);
     if (!match) continue;
@@ -140,17 +149,42 @@ function scoreText(text: string): TextScore {
     if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
       add(`${modifier}_crisis_language`, 0);
       implicitHits++;
+      softSelf = tierSoft = true;
     } else if (modifier) {
       add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
+      hardSelf = true;
     } else {
+      hardSelf = true;
       add('explicit_crisis_language', SEVERITY.explicit);
       if (imminent) add('imminent_danger', SEVERITY.explicit);
       break;
     }
   }
 
+  // The floor (#2525), escalate-only: first-person ending words whatever comes before them
+  // ("I might", "before I", "until I"), softened exactly as the patterns above are. Words a
+  // pattern above already softened keep that softening.
+  const floor = severity < SEVERITY.explicit ? endingFloor(text, softened) : null;
+  if (floor) {
+    const { modifier } = floor;
+    if (floor.thirdParty) thirdPartyHit = true;
+    if (modifier === 'third_party') thirdPartyHit = true;
+    else if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
+      add(`${modifier}_crisis_language`, 0);
+      implicitHits++;
+      softSelf = true;
+    } else if (modifier) {
+      add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
+      hardSelf = true;
+    } else {
+      hardSelf = true;
+      add('explicit_crisis_language', SEVERITY.explicit);
+    }
+  }
+
   for (const { re, tag } of PASSIVE_IDEATION_PATTERNS) {
     if (re.test(text)) {
+      hardSelf = true;
       add('passive_ideation', SEVERITY.passive);
       if (tag === 'self_harm') add('self_harm', 0);
       break;
@@ -170,22 +204,36 @@ function scoreText(text: string): TextScore {
     severity < SEVERITY.explicit &&
     PLAN_OR_MEANS_PATTERNS.some((p) => p.test(text))
   ) {
+    hardSelf = true;
     add('plan_or_means', SEVERITY.explicit);
   }
 
+  // A worry about someone else outranks the caller's own words only when those are negated,
+  // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill
+  // myself"): the third-party read is never lowered. Joking, conditional, hedged or past words
+  // stay the caller's (#2528).
+  if (implicitHits > softenedHits) hardSelf = true;
+  const selfSeverity = severity;
   let subject: CrisisSubject | undefined = severity > 0 ? 'self' : undefined;
-  if (!subject && (thirdPartyHit || THIRD_PARTY_PATTERNS.some((p) => p.test(text)))) {
+  const thirdParty = thirdPartyHit || THIRD_PARTY_PATTERNS.some((p) => p.test(text));
+  if (thirdParty && (!subject || !hardSelf)) {
     add('third_party_risk', SEVERITY.passive);
     subject = 'third_party';
   }
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
-  return { severity, indicators, subject, language, implicitHits, contextHit };
+  // A worry about someone else beside the caller's own softened tier words was the caller's own
+  // turn before #2528, and still counts as one in a later turn's session check.
+  const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
+  const found = { severity, indicators, subject, language, implicitHits, contextHit };
+  return { ...found, softSelf, sessionSeverity };
 }
 
-/**
- * Detect crisis indicators in user message
- */
+/** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
+export const sessionSeverityOf = (message: string): number =>
+  scoreText(normalize(message)).sessionSeverity;
+
+/** Detect crisis indicators in user message */
 export function detectCrisis(
   userMessage: string,
   voiceEmotion?: VoiceEmotionContext,
@@ -202,10 +250,9 @@ export function detectCrisis(
     .map(normalize)
     .filter((m) => m.length > 0 && m !== text)
     .slice(-5)
-    .map(scoreText)
-    .filter((s) => s.subject === 'self');
-  const priorPeak = Math.max(0, ...prior.map((s) => s.severity));
-  const priorDistressTurns = prior.filter((s) => s.severity >= SEVERITY.implicit).length;
+    .map((m) => scoreText(m).sessionSeverity);
+  const priorPeak = Math.max(0, ...prior);
+  const priorDistressTurns = prior.filter((v) => v >= SEVERITY.implicit).length;
   const signalNow = (subject === 'self' && severity >= SEVERITY.implicit) || score.contextHit;
   if (signalNow && (priorPeak >= SEVERITY.passive || priorDistressTurns >= 2)) {
     indicators.push('session_escalation');
@@ -217,6 +264,14 @@ export function detectCrisis(
   // not a crisis. The 988 script is for the caller, so a worry about someone
   // else never escalates into it.
   const textSeverity = severity;
+  // A worry about someone else, with the caller's own softened ending words and a distressed
+  // voice: the voice makes it about the caller again, as before #2528.
+  const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
+  if (subject === 'third_party' && score.softSelf && voiced) {
+    const { primary } = voiceEmotion;
+    const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
+    if (distressed.includes(primary)) subject = 'self';
+  }
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);
@@ -249,6 +304,10 @@ export function detectCrisis(
   };
 }
 
+/** Where to turn when someone is in danger now; the action-claim guard reuses it (issue 1553). */
+export const IN_DANGER_NOW =
+  'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.';
+
 /**
  * Get appropriate crisis response based on severity
  */
@@ -261,7 +320,7 @@ function getCrisisResponse(
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
 
-If you've taken something or you're in danger right now, please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.
+If you've taken something or you're in danger right now, ${IN_DANGER_NOW}
 
 I'm staying right here with you. Is anyone nearby who can be with you?`;
   }
@@ -303,7 +362,8 @@ export function buildCrisisGuidance(crisis: CrisisDetectionResult): string {
   const header = `[CRITICAL - USER SAFETY]
 Crisis indicators detected (severity: ${(crisis.severity * 100).toFixed(0)}%).
 Indicators: ${crisis.indicators.join(', ')}`;
-
+  const who = whoGuidance(crisis, header); // THIRD_PARTY_SELF_HARM routes, never set when off
+  if (who) return who;
   if (crisis.subject === 'third_party') {
     return `${header}
 
@@ -436,9 +496,4 @@ export function guardPreResponse(
 // EXPORTS
 // ============================================================================
 
-export default {
-  detectCrisis,
-  guardPreResponse,
-  guardFromDetection,
-  buildCrisisGuidance,
-};
+export default { detectCrisis, guardPreResponse, guardFromDetection, buildCrisisGuidance };

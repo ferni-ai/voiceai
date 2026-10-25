@@ -48,9 +48,7 @@
 ### Tool Scaffolds
 | Tool | Location | Status |
 |------|----------|--------|
-| VS Code Extension | `tools/vscode-extension/` | ✅ Scaffold |
 | Discord Bot | `tools/discord-bot/` | ✅ Scaffold |
-| JSON Schema | `tools/vscode-extension/schemas/persona.manifest.schema.json` | ✅ |
 
 ### Automation
 | Item | Location | Status |
@@ -211,21 +209,11 @@ docs/
 ```
 tools/
 ├── README.md
-├── discord-bot/
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-│       └── index.ts
-└── vscode-extension/
+└── discord-bot/
     ├── package.json
     ├── tsconfig.json
-    ├── schemas/
-    │   └── persona.manifest.schema.json
-    ├── snippets/
-    │   ├── json.json
-    │   └── markdown.json
     └── src/
-        └── extension.ts
+        └── index.ts
 ```
 
 ### CLI Commands (`apps/cli/src/commands/`)

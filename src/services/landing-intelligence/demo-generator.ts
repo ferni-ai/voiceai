@@ -10,6 +10,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateJSON } from './gemini-client.js';
 import type { VisitorIntent } from './intent-detector.js';
+import { landingAiEnabled } from './landing-ai-flag.js';
 
 const log = createLogger({ module: 'DemoGenerator' });
 
@@ -269,6 +270,12 @@ export async function generateDemoConversation(
       log.debug({ concern, matchedSuperpower }, 'Using concern-matched prebuilt demo');
       return PREBUILT_DEMOS[matchedSuperpower];
     }
+  }
+
+  // With LANDING_AI off there is no model to ask; the fallback is expected, not a failure
+  if (!landingAiEnabled()) {
+    log.debug({ concern, superpower }, 'Landing AI off, using fallback demo');
+    return PREBUILT_DEMOS['reading-between-lines'];
   }
 
   // Generate with AI for novel combinations

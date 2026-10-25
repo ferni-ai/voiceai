@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 const SCENES = [
   'toast-pair',
   'toast-error',
+  'toast-long',
   'toast-warning',
   'notice-action',
   'achievement',
@@ -298,15 +299,17 @@ async function boxes(
 /** What a celebration card may never cover: Connect, the call controls and the menu trigger. */
 const CONTROLS = ['#connectBtn', '.controls-row', '#waveformContainer', '.mobile-menu-trigger'];
 
-// With the flag off, the old cards are still what people see (#1065 moved the
-// easter-egg card off the controls, #846 the milestone card): keep them there.
+// With the toast kill switch set (VITE_TOAST_REGION=off, src/ui/overlay/toast-flag.ts),
+// the old cards come back (#1065 moved the easter-egg card off the controls, #846
+// the milestone card): keep them there.
 for (const [scene, card] of [
   ['achievement', '.achievement-notification'],
   ['first-milestone', '.ferni-milestone'],
 ] as const) {
-  test(`${scene}: card stays on screen and clear of the controls with the overlay host off`, async ({
+  test(`${scene}: card stays on screen and clear of the controls with the toast kill switch set`, async ({
     page,
   }) => {
+    await page.addInitScript(() => localStorage.setItem('ferni:flag:toast-region', 'off'));
     await openScene(page, scene);
     const { vw, vh, found } = await boxes(page, [card, ...CONTROLS]);
     const [box, ...controls] = found;

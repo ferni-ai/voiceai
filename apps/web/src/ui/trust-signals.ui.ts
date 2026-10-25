@@ -30,7 +30,7 @@ import {
 } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { showToast } from './overlay/toast-region.js';
 import { ICONS, SIGNAL_CONFIG, type TrustSignalType } from './trust-signals-config.js';
 
@@ -87,9 +87,7 @@ let dismissedSignals: Set<string> = new Set();
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Initialize the trust signals UI.
- */
+/** Initialize the trust signals UI. */
 export function initTrustSignals(customConfig?: Partial<TrustSignalsConfig>): void {
   if (isInitialized) return;
 
@@ -119,6 +117,7 @@ function cleanupOrphanedElements(): void {
 function createContainer(): void {
   container = document.createElement('div');
   container.className = 'trust-signals-container';
+  container.setAttribute('role', 'status'); // aria-label is not allowed on a plain div
   container.setAttribute('aria-live', 'polite');
   container.setAttribute('aria-label', t('trustSignals.ariaLabel'));
   document.body.appendChild(container);
@@ -166,7 +165,7 @@ export function showTrustSignal(signal: Omit<TrustSignal, 'id' | 'timestamp'>): 
     return;
   }
 
-  if (isOverlayHostEnabled()) {
+  if (isToastRegionEnabled()) {
     showSignalToast(fullSignal, signalKey);
     log.info('Trust signal shown', { type: signal.type, title: signal.title });
     return;

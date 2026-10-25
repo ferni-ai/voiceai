@@ -21,8 +21,8 @@ export async function handleRunDeepAnalysis(res: ServerResponse): Promise<void> 
     const { runDeepAnalysis, getLatestDeepAnalysis } =
       await import('../../intelligence/predictive/llm-deep-analysis.js');
 
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -263,7 +263,7 @@ export async function handleDeepAnalysis(res: ServerResponse): Promise<void> {
 /**
  * Nightly pondering (intelligence/pondering/ponder-job.ts): hourly poll that
  * ponders the cohort's callers whose night slot has come. Off unless
- * PONDERING=on.
+ * PONDERING=on, here or in the person's own cohort flags.
  */
 export async function handlePondering(res: ServerResponse): Promise<void> {
   const startTime = Date.now();
@@ -271,11 +271,14 @@ export async function handlePondering(res: ServerResponse): Promise<void> {
     const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
     const { callLLM } = await import('../../services/llm-utils.js');
     const { runPonderingJob } = await import('../../intelligence/pondering/ponder-job.js');
+    const { usersWithFlag } = await import('../../services/platform/cohort-flags.js');
     const db = getFirestoreDb();
     if (!db) throw new Error('Firestore is not available');
     const llm = async (prompt: string): Promise<string | null> =>
       callLLM(prompt, { maxTokens: 1500, temperature: 0.4 });
-    const { results: _results, ...stats } = await runPonderingJob(db, llm);
+    const { results: _results, ...stats } = await runPonderingJob(db, llm, {
+      holders: () => usersWithFlag('PONDERING'),
+    });
     const durationMs = Date.now() - startTime;
     log.info({ ...stats, durationMs }, 'Pondering poll completed');
     sendJson(res, 200, {

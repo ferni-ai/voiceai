@@ -1,0 +1,11 @@
+[
+  {"name": "event_ts", "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "env", "type": "STRING"},
+  {"name": "run_id", "type": "STRING"},
+  {"name": "scenario", "type": "STRING"},
+  {"name": "arm", "type": "STRING"},
+  {"name": "agent_version", "type": "STRING"},
+  {"name": "metric", "type": "STRING"},
+  {"name": "value", "type": "FLOAT64"},
+  {"name": "flags", "type": "STRING", "mode": "REPEATED"}
+]

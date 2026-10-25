@@ -11,6 +11,8 @@
  * @module utils/commitment-filters
  */
 
+import { createHash } from 'crypto';
+
 // Sarcasm indicators: never a commitment when detected (P2 FIX)
 const SARCASM_INDICATORS = [
   /\(not\)$/i,
@@ -86,4 +88,34 @@ export function commitmentSentences(transcript: string): string {
       );
     })
     .join(' ');
+}
+
+/**
+ * A stored commitment worth asking the caller about: something is left after
+ * dropping questions, requests to Ferni and orders, and it is the caller's own.
+ * "I'll take butter and honey" and "Can you call my mom?" are not.
+ */
+export function isAskableCommitment(text: string): boolean {
+  return commitmentSentences(text).trim() !== '' && !isNotOwnCommitment(text);
+}
+
+/** "I'm going to finish the AI project!" and "i'm going to finish the AI project" are one commitment. */
+export function normalizeCommitmentText(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .match(/[a-z0-9]+/g) ?? []
+  ).join(' ');
+}
+
+/**
+ * One commitment's stable key: a hash of the user and its normalized text, so
+ * every call, instance and duplicate record of it agrees (commitment_checkins).
+ */
+export function commitmentKey(userId: string, text: string): string {
+  return createHash('sha256')
+    .update(`${userId}\n${normalizeCommitmentText(text)}`)
+    .digest('hex')
+    .slice(0, 32);
 }

@@ -243,7 +243,7 @@ export async function recordOwnerAttestation(
   ownerUid: string,
   deps: ConsentDeps = defaultConsentDeps(),
   isMember: (uid: string) => Promise<boolean> = async (uid) =>
-    isCohortMember(uid, FRIENDS_AND_FAMILY)
+    isCohortMember(FRIENDS_AND_FAMILY, uid)
 ): Promise<boolean> {
   const e164 = toE164(phone);
   const hash = e164 ? phoneHash(e164, deps.env) : null;

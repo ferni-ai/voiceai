@@ -17,9 +17,13 @@ import {
   sanitizePhoneForLog,
 } from '../utils/validation.js';
 import { MAX_RETRIES, RETRY_DELAY_MS, RETRY_MAX_DELAY_MS } from '../config/resilience-config.js';
+import {
+  getEmailSender,
+  type EmailSendResult,
+  type OutgoingEmail,
+} from './email-transport/index.js';
 
 // API Keys from environment
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
@@ -40,6 +44,30 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxDelayMs: RETRY_MAX_DELAY_MS,
 };
 
+/** A provider answered with a non-2xx HTTP status. */
+export class ProviderHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = 'ProviderHttpError';
+  }
+}
+
+/**
+ * Whether a failed send is worth retrying, judged by HTTP status rather than
+ * message text ("not authorized" matched none of the old keywords, so a key
+ * without Mail Send was retried on every email). A 4xx is permanent, except
+ * 408 and 429; a 5xx, timeout or network error may pass.
+ */
+export function isRetryableSendError(error: unknown): boolean {
+  if (!(error instanceof ProviderHttpError)) return true;
+  const { status } = error;
+  if (status === 408 || status === 429) return true;
+  return status < 400 || status >= 500;
+}
+
 /**
  * Execute a function with exponential backoff retry logic
  */
@@ -53,11 +81,7 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Don't retry on validation or authentication errors
-      const nonRetryableMessages = ['Invalid', 'Unauthorized', 'Forbidden', 'not configured'];
-      const shouldSkipRetry = nonRetryableMessages.some((msg) => lastError?.message.includes(msg));
-
-      if (shouldSkipRetry || attempt === opts.maxRetries - 1) {
+      if (!isRetryableSendError(error) || attempt === opts.maxRetries - 1) {
         throw lastError;
       }
 
@@ -85,8 +109,22 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
 // EMAIL SERVICE
 // ============================================================================
 
+/** True when the configured email transport (EMAIL_PROVIDER) can send. */
+export function isEmailConfigured(): boolean {
+  return getEmailSender().isConfigured();
+}
+
 /**
- * Send an email via SendGrid
+ * Send one email through the app's transport (SendGrid or the ferni.ai Workspace,
+ * per EMAIL_PROVIDER). Never throws; check `ok`. For callers that can't import
+ * src/services/email-transport (L3 contexts).
+ */
+export async function sendAppEmail(email: OutgoingEmail): Promise<EmailSendResult> {
+  return getEmailSender().send(email);
+}
+
+/**
+ * Send a plain-text (or HTML) email from Ferni.
  *
  * @param to - Recipient email address
  * @param subject - Email subject
@@ -105,51 +143,65 @@ export async function sendEmail(
     throw new Error(`Invalid email address: ${sanitizeEmailForLog(to)}`);
   }
 
-  // Check API key
-  if (!SENDGRID_API_KEY) {
+  const sender = getEmailSender();
+  if (!sender.isConfigured()) {
     const isDevelopment = process.env.NODE_ENV !== 'production';
     if (isDevelopment) {
-      getLogger().warn('SendGrid API key not configured - email not sent (development mode)');
+      getLogger().warn(
+        { provider: sender.provider },
+        'Email transport not configured - email not sent (development mode)'
+      );
       return `[DEV MODE] Would send email to ${sanitizeEmailForLog(to)}: ${subject}`;
     }
 
-    getLogger().error('SendGrid API key not configured in production');
+    getLogger().error(
+      { provider: sender.provider },
+      'Email transport not configured in production'
+    );
     throw new Error(
-      'Email service is not available: SendGrid API key is not configured. Contact support to enable email delivery.'
+      `Email service is not available: the ${sender.provider} transport is not configured. Contact support to enable email delivery.`
     );
   }
 
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
   const sanitizedSubject = sanitizePlainText(subject);
 
-  return withRetry(async () => {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${SENDGRID_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: { email: 'hello@ferni.ai', name: 'Ferni' },
+  // Gmail backs off inside its transport. SendGrid doesn't retry at all, so its
+  // failures are retried here by status (isRetryableSendError: 408, 429, 5xx),
+  // plus a network error, which has no status.
+  const retryHere = sender.provider === 'sendgrid';
+  let result: EmailSendResult;
+  try {
+    result = await withRetry(async () => {
+      const attempt = await sender.send({
+        to,
         subject: sanitizedSubject,
-        content: [{ type: isHtml ? 'text/html' : 'text/plain', value: sanitizedBody }],
-      }),
-      signal: AbortSignal.timeout(15000), // 15 second timeout
+        ...(isHtml ? { html: sanitizedBody } : { text: sanitizedBody }),
+        from: 'hello@ferni.ai',
+        fromName: 'Ferni',
+        kind: 'transactional',
+      });
+      if (retryHere && !attempt.ok && (attempt.status || attempt.retryable)) {
+        const message = attempt.error ?? 'send failed';
+        throw attempt.status ? new ProviderHttpError(message, attempt.status) : new Error(message);
+      }
+      return attempt;
     });
+  } catch (error) {
+    throw new Error(`Email send failed (${sender.provider}): ${(error as Error).message}`);
+  }
+  if (!result.ok)
+    throw new Error(`Email send failed (${result.provider}): ${result.error ?? 'unknown error'}`);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`SendGrid error: ${response.status} - ${errorText}`);
-    }
-
-    getLogger().info(
-      { to: sanitizeEmailForLog(to), subject: sanitizedSubject.slice(0, 50) },
-      'Email sent successfully'
-    );
-
-    return `Email sent to ${sanitizeEmailForLog(to)}: "${sanitizedSubject}"`;
-  });
+  getLogger().info(
+    {
+      to: sanitizeEmailForLog(to),
+      subject: sanitizedSubject.slice(0, 50),
+      provider: result.provider,
+    },
+    'Email sent successfully'
+  );
+  return `Email sent to ${sanitizeEmailForLog(to)}: "${sanitizedSubject}"`;
 }
 
 // ============================================================================
@@ -205,7 +257,10 @@ export async function sendSMS(to: string, message: string): Promise<string> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Twilio error: ${response.status} - ${JSON.stringify(errorData)}`);
+      throw new ProviderHttpError(
+        `Twilio error: ${response.status} - ${JSON.stringify(errorData)}`,
+        response.status
+      );
     }
 
     getLogger().info(

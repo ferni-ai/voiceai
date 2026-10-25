@@ -64,7 +64,12 @@ async function handleAuthStateChange(user) {
         showDashboard(data);
       } else {
         console.error('Backend verification failed');
-        showAuthError('Failed to verify authentication. Please try again.');
+        // 403/409 explain themselves (e.g. a verified email is required)
+        const data = await response.json().catch(() => ({}));
+        const known = response.status === 403 || response.status === 409;
+        showAuthError(
+          known && data.error ? data.error : 'Failed to verify authentication. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Auth verification error:', error);

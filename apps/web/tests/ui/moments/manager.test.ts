@@ -34,6 +34,10 @@ vi.mock('@/utils/tracked-timeout.js', () => ({
 // Import after mocks
 import { getMomentsManager, resetMomentsManager } from '@/ui/moments/manager.js';
 
+// The old per-surface toasts: the kill-switch path of src/ui/overlay/toast-flag.ts.
+beforeEach(() => vi.stubEnv('VITE_TOAST_REGION', 'off'));
+afterEach(() => vi.unstubAllEnvs());
+
 describe('MomentsManager', () => {
   beforeEach(() => {
     // Reset DOM

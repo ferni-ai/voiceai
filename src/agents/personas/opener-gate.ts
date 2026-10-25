@@ -21,6 +21,8 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
 import { flagOn } from '../../config/env-flag.js';
+import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
+import { firstClauseFlushEnabled } from './first-clause-flush.js';
 import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
 
 export const OPENER_EVERY = 3;
@@ -123,15 +125,20 @@ export class OpenerGate {
   private lastKept: string | null = null;
   /** The reaction words this gate counts: every one Ferni uses with FERNI_PLAYFUL on. */
   private readonly words: RegExp;
+  /** The call whose TURN_RECEIPT gets each reply's hold here (forSession); unset: none. */
+  private session?: () => { userData?: unknown };
 
   /**
    * `early`: decide as soon as the opening is decidable (openingDecidable)
-   * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on.
+   * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on, and
+   * FIRST_CLAUSE_FLUSH=on: a first clause shorter than DECIDE_AFTER would
+   * otherwise wait here for its sentence (first-clause-flush.ts).
    * `playful`: FERNI_PLAYFUL=on, a bright turn may keep its word (mayKeep).
    */
   constructor(
     private readonly every: number = OPENER_EVERY,
-    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on',
+    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on' ||
+      firstClauseFlushEnabled(),
     private readonly playful: boolean = flagOn('FERNI_PLAYFUL')
   ) {
     this.repliesSinceKept = every; // the first reply may keep one
@@ -167,6 +174,20 @@ export class OpenerGate {
     }
     this.repliesSinceKept++;
     return text;
+  }
+
+  /** Report each reply's hold here on this session's TURN_RECEIPT (turn-timing.ts). */
+  forSession(session: () => { userData?: unknown }): this {
+    this.session = session;
+    return this;
+  }
+
+  private sessionId(): string | undefined {
+    try {
+      return sessionIdIn(this.session?.().userData);
+    } catch {
+      return undefined; // the agent has no session now: nothing to report on
+    }
   }
 
   private kept(word: string | null): void {
@@ -205,9 +226,12 @@ export class OpenerGate {
     let buffered = '';
     let template: Chunk | null = null;
     let decided = false;
+    // From the reply's first words in to its opening out: the wait this gate adds.
+    const held = turnHoldTimer(this.sessionId(), 'openerGate');
     const release = (controller: ReadableStreamDefaultController<Chunk>): void => {
       decided = true;
       if (!buffered) return;
+      held.stop();
       const text = decide(buffered);
       if (typeof template === 'string' || template === null) controller.enqueue(text);
       else {
@@ -229,6 +253,7 @@ export class OpenerGate {
               controller.enqueue(chunk);
               continue;
             }
+            if (content) held.start();
             buffered += content;
             template = chunk;
             const ready = early

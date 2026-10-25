@@ -24,6 +24,7 @@ import {
 } from './mood-conversion.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import * as oneStore from './journal-ports.js';
+import { journalStreaks } from './streaks.js';
 
 const log = createLogger({ module: 'JournalService' });
 
@@ -633,54 +634,12 @@ class JournalService {
     });
   }
 
+  /** The current streak (ending today or yesterday) and the best run, kept separate. */
   private calculateStreaks(entries: UnifiedJournalEntry[]): {
     currentStreak: number;
     longestStreak: number;
   } {
-    if (entries.length === 0) {
-      return { currentStreak: 0, longestStreak: 0 };
-    }
-
-    // Get unique dates (YYYY-MM-DD)
-    const dates = new Set(entries.map((e) => e.createdAt.toISOString().split('T')[0]));
-    const sortedDates = Array.from(dates).sort().reverse();
-
-    // Check if today or yesterday has an entry (for current streak)
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const hasRecentEntry = sortedDates[0] === today || sortedDates[0] === yesterday;
-
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
-    let lastDate: Date | null = null;
-
-    for (const dateStr of sortedDates) {
-      const date = new Date(dateStr);
-
-      if (!lastDate) {
-        tempStreak = 1;
-        if (hasRecentEntry) currentStreak = 1;
-      } else {
-        const dayDiff = Math.round((lastDate.getTime() - date.getTime()) / 86400000);
-        if (dayDiff === 1) {
-          tempStreak++;
-          if (hasRecentEntry && tempStreak > currentStreak) {
-            currentStreak = tempStreak;
-          }
-        } else {
-          tempStreak = 1;
-        }
-      }
-
-      if (tempStreak > longestStreak) {
-        longestStreak = tempStreak;
-      }
-
-      lastDate = date;
-    }
-
-    return { currentStreak, longestStreak };
+    return journalStreaks(entries.map((e) => e.createdAt));
   }
 
   private isCacheValid(key: string): boolean {

@@ -168,7 +168,7 @@ Add entry to `registry.json`:
   "tags": ["tag1", "tag2"],
   "icon": "🎯",
   "version": "1.0.0",
-  "author": "VoiceAI Team",
+  "author": "Ferni",
   "license": "premium",
   "colors": {
     "primary": "#hexcode",

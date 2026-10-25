@@ -2,8 +2,10 @@
  * Stores that keep a person's data under a key other than their uid, which the
  * uid-keyed sweep in user-stores.ts can't find: the waitlist and access grants
  * (keyed by email), the phone index of the family members they sponsor, A/B test
- * assignments (one subcollection per test) and tool-call telemetry (many people's
- * calls in one shared document). The keys, and why each can be trusted, are in
+ * assignments (one subcollection per test), the router's turn events (one partition
+ * per day, semantic_router_events/{YYYY-MM-DD}/events), tool-call telemetry (many people's
+ * calls in one shared document) and cohort membership (feature_cohorts.members, a
+ * list of uids in each cohort document). The keys, and why each can be trusted, are in
  * erasure-keys.ts.
  *
  * Not erased on purpose: feature_checkin_optouts/{phoneHash}. It is a STOP record for
@@ -79,6 +81,22 @@ const assignmentRefs = async (db: Db, keys: ErasureKeys): Promise<DocRef[]> => {
   );
   const snaps = await Promise.all(refs.map(async (ref) => ref.get()));
   return snaps.filter((snap) => snap.exists).map((snap) => snap.ref);
+};
+
+/**
+ * semantic_router_events/{day}/events: the router's record of each turn (routing-analytics.ts).
+ * The day documents are never written, only listed; each day is queried by userId at once.
+ */
+const routerEventRefs = async (db: Db, keys: ErasureKeys): Promise<DocRef[]> => {
+  const days = await db.collection('semantic_router_events').listDocuments();
+  const snaps = await Promise.all(
+    days.flatMap((day) =>
+      chunks(uidsOf(keys)).map(async (ids) =>
+        day.collection('events').where('userId', 'in', ids).get()
+      )
+    )
+  );
+  return snaps.flatMap((snap) => snap.docs.map((d) => d.ref));
 };
 
 type ToolCall = Record<string, unknown> & { userId?: unknown };
@@ -166,6 +184,29 @@ async function stripToolCalls(db: Db, uids: readonly string[]): Promise<void> {
   );
 }
 
+/** feature_cohorts/{id}.members lists uids; a cohort naming the person loses them */
+const cohortsNaming = async (db: Db, uids: readonly string[]): Promise<DocRef[]> => {
+  const snaps = await Promise.all(
+    chunks(uids).map(async (ids) =>
+      db.collection('feature_cohorts').where('members', 'array-contains-any', ids).get()
+    )
+  );
+  return [...new Map(snaps.flatMap((s) => s.docs.map((d) => [d.ref.path, d.ref]))).values()];
+};
+
+async function leaveCohorts(db: Db, uids: readonly string[]): Promise<void> {
+  const refs = await cohortsNaming(db, uids);
+  await Promise.all(
+    refs.map(async (ref) =>
+      db.runTransaction(async (tx) => {
+        const members: unknown = (await tx.get(ref)).get('members');
+        if (!Array.isArray(members)) return;
+        tx.update(ref, { members: members.filter((m) => !uids.includes(m as string)) });
+      })
+    )
+  );
+}
+
 const deleteAll = async (db: Db, refs: DocRef[]): Promise<void> => {
   await Promise.all(refs.map(async (ref) => db.recursiveDelete(ref)));
 };
@@ -182,6 +223,16 @@ export const KEYED_STORES: readonly KeyedStore[] = [
     label: 'ab_tests/*/assignments/{uid}',
     erase: async (db, keys) => deleteAll(db, await assignmentRefs(db, keys)),
     remains: async (db, keys) => (await assignmentRefs(db, keys)).length > 0,
+  },
+  {
+    label: 'semantic_router_events/*/events[userId]',
+    erase: async (db, keys) => deleteAll(db, await routerEventRefs(db, keys)),
+    remains: async (db, keys) => (await routerEventRefs(db, keys)).length > 0,
+  },
+  {
+    label: 'feature_cohorts[members]',
+    erase: async (db, keys) => leaveCohorts(db, uidsOf(keys)),
+    remains: async (db, keys) => (await cohortsNaming(db, uidsOf(keys))).length > 0,
   },
   {
     label: 'tool_usage_calls[calls.userId]',

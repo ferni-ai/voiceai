@@ -16,6 +16,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
+import { logCallStartStages } from './call-start-stages.js';
+import { emitCallEnd, type CallSummary } from './bq-call-events.js';
+import { gateSmallSamples } from './call-quality-sample.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -31,9 +34,9 @@ export interface CallQualityConfig {
   firstResponseTimeCriticalMs: number;
   disconnectRateWarning: number;
   disconnectRateCritical: number;
+  minCallsForRateAlerts: number; // rate and score alerts wait for this many calls
 
-  // Check intervals
-  qualityCheckIntervalMs: number;
+  qualityCheckIntervalMs: number; // how often quality is checked
 
   // Alert cooldown
   alertCooldownMs: number;
@@ -48,6 +51,7 @@ const DEFAULT_CONFIG: CallQualityConfig = {
   firstResponseTimeCriticalMs: 5000, // 5 seconds
   disconnectRateWarning: 0.05, // 5%
   disconnectRateCritical: 0.1, // 10%
+  minCallsForRateAlerts: 5,
 
   qualityCheckIntervalMs: 60_000, // Every minute
   alertCooldownMs: 300_000, // 5 minute cooldown
@@ -189,7 +193,6 @@ export function recordCallEvent(event: CallEvent): void {
   if (forward) return forward('recordCallEvent', [event]);
   let session = sessions.get(event.callId);
 
-  // Create session if needed
   if (!session) {
     session = {
       callId: event.callId,
@@ -209,10 +212,8 @@ export function recordCallEvent(event: CallEvent): void {
     sessions.set(event.callId, session);
   }
 
-  // Add event
   session.events.push(event);
 
-  // Process event
   switch (event.type) {
     case 'connection_success':
       session.connectionTimeMs = event.timestamp - session.startTime;
@@ -228,6 +229,7 @@ export function recordCallEvent(event: CallEvent): void {
         };
         // Feed to predictive alerting (true first audio only)
         recordMetricValue('first_response_time', session.firstResponseTimeMs);
+        logCallStartStages(session);
       }
       break;
 
@@ -258,6 +260,7 @@ export function recordCallEvent(event: CallEvent): void {
     case 'call_end_natural':
     case 'call_end_disconnect':
     case 'call_end_error':
+      logCallStartStages(session); // a call that never spoke still gets its line
       session.endTime = event.timestamp;
       session.totalDurationMs = session.endTime - session.startTime;
       session.endReason =
@@ -267,7 +270,6 @@ export function recordCallEvent(event: CallEvent): void {
             ? 'disconnect'
             : 'error';
 
-      // Move to completed
       completedSessions.push(session);
       sessions.delete(event.callId);
 
@@ -276,14 +278,8 @@ export function recordCallEvent(event: CallEvent): void {
         completedSessions.splice(0, completedSessions.length - MAX_COMPLETED_SESSIONS);
       }
 
-      log.debug(
-        {
-          callId: session.callId,
-          duration: session.totalDurationMs,
-          endReason: session.endReason,
-        },
-        'Call completed'
-      );
+      log.debug({ callId: session.callId, endReason: session.endReason }, 'Call completed');
+      emitCallEnd(session, event.metadata?.summary as CallSummary | undefined);
       break;
   }
 }
@@ -316,6 +312,7 @@ export function markCallStage(callId: string, stage: string, atMs: number = Date
     session_start: session.stages?.session_start ?? 0,
     [stage]: getElapsedStageMs(session, atMs),
   };
+  if (stage === 'tts_first_frame') logCallStartStages(session);
 }
 
 /** Record the moment a user barge-in is detected while the agent is speaking. */
@@ -349,17 +346,17 @@ export function recordBargeInAgentStopped(callId: string, atMs: number = Date.no
 /** Convenience function to end a call */
 export function endCall(
   callId: string,
-  reason: 'natural' | 'disconnect' | 'error' = 'natural'
+  reason: 'natural' | 'disconnect' | 'error' = 'natural',
+  summary?: CallSummary
 ): void {
-  if (forward) return forward('endCall', [callId, reason]);
+  if (forward) return forward('endCall', summary ? [callId, reason, summary] : [callId, reason]);
   const type =
     reason === 'natural'
       ? 'call_end_natural'
       : reason === 'disconnect'
         ? 'call_end_disconnect'
         : 'call_end_error';
-
-  recordCallEvent({ callId, timestamp: Date.now(), type });
+  recordCallEvent({ callId, timestamp: Date.now(), type, metadata: summary && { summary } });
 }
 
 // --- Metrics calculation ---
@@ -404,7 +401,6 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
   const now = Date.now();
   const windowStart = now - windowMs;
 
-  // Get sessions in window
   const windowSessions = completedSessions.filter((s) => s.startTime >= windowStart);
   const activeSessions = Array.from(sessions.values());
 
@@ -477,7 +473,6 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
   const handoffSuccesses = windowSessions.reduce((a, b) => a + b.handoffSuccesses, 0);
   const handoffSuccessRate = handoffAttempts > 0 ? handoffSuccesses / handoffAttempts : 1;
 
-  // Calculate quality score (0-100)
   const qualityScore = calculateQualityScore({
     connectionSuccessRate,
     avgFirstResponseTimeMs,
@@ -542,7 +537,6 @@ function calculateQualityScore(factors: {
   const completionScore = factors.completionRate * 100;
   const handoffScore = factors.handoffSuccessRate * 100;
 
-  // Weighted average
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
   const score =
     (connectionScore * weights.connectionSuccessRate +
@@ -598,15 +592,16 @@ async function sendQualityAlert(
   }
 }
 
-async function checkQualityAlerts(): Promise<void> {
+export async function checkQualityAlerts(): Promise<void> {
   const metrics = calculateMetrics();
+  const gated = gateSmallSamples(metrics, config.minCallsForRateAlerts);
 
   // Feed to predictive alerting
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
   recordMetricValue('disconnect_rate', metrics.disconnectRate * 100);
 
   // Connection success rate
-  if (metrics.connectionSuccessRate < config.connectionSuccessRateCritical) {
+  if (gated.connectionSuccessRate < config.connectionSuccessRateCritical) {
     await sendQualityAlert(
       'critical',
       'Connection Success Rate Critical',
@@ -616,7 +611,7 @@ async function checkQualityAlerts(): Promise<void> {
         connectionAttempts: metrics.connectionAttempts,
       }
     );
-  } else if (metrics.connectionSuccessRate < config.connectionSuccessRateWarning) {
+  } else if (gated.connectionSuccessRate < config.connectionSuccessRateWarning) {
     await sendQualityAlert(
       'warning',
       'Connection Success Rate Degraded',
@@ -646,14 +641,14 @@ async function checkQualityAlerts(): Promise<void> {
   }
 
   // Disconnect rate
-  if (metrics.disconnectRate > config.disconnectRateCritical) {
+  if (gated.disconnectRate > config.disconnectRateCritical) {
     await sendQualityAlert(
       'critical',
       'Disconnect Rate Critical',
       `${(metrics.disconnectRate * 100).toFixed(1)}% of calls ending in disconnection`,
       { disconnectRate: metrics.disconnectRate, disconnectCount: metrics.disconnectCount }
     );
-  } else if (metrics.disconnectRate > config.disconnectRateWarning) {
+  } else if (gated.disconnectRate > config.disconnectRateWarning) {
     await sendQualityAlert(
       'warning',
       'Disconnect Rate Elevated',
@@ -663,14 +658,14 @@ async function checkQualityAlerts(): Promise<void> {
   }
 
   // Quality score alert
-  if (metrics.qualityScore < 70) {
+  if (gated.qualityScore < 70) {
     await sendQualityAlert(
       'critical',
       'Call Quality Score Low',
       `Overall quality score is ${metrics.qualityScore}/100`,
       metrics
     );
-  } else if (metrics.qualityScore < 85) {
+  } else if (gated.qualityScore < 85) {
     await sendQualityAlert(
       'warning',
       'Call Quality Score Degraded',

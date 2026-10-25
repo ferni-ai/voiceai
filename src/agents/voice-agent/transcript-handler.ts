@@ -70,6 +70,7 @@ import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forg
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
+import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import {
   analyzeTurnSignals,
   handleInterruption,
@@ -349,7 +350,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         if (interruptDecision.shouldYield) {
           diag.state('🧠 Human intelligence: Yielding floor gracefully', {
             style: interruptDecision.yieldStyle,
-            trigger: event.transcript.slice(0, 30),
+            triggerChars: event.transcript.length,
           });
           // The micro-interrupt handler above will stop the agent
         }
@@ -590,7 +591,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
               diag.session('🔮 Anticipatory trigger fired', {
                 anticipatedOutcome: result.anticipatedOutcome,
                 confidence: result.confidence.toFixed(2),
-                partialTranscript: event.transcript.slice(0, 50),
+                partialChars: event.transcript.length,
               });
             }
           }
@@ -706,7 +707,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         diag.state('🚫 Transcript rejected by intelligent filter', {
           reason: validation.reason,
           confidence: validation.confidence.toFixed(2),
-          transcript: event.transcript.slice(0, 30),
+          transcriptChars: event.transcript.length,
           timeSinceAgentSpoke,
         });
 
@@ -765,7 +766,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         diag.state('🚫 Transcript rejected by speech duration filter (likely noise)', {
           speechDurationMs: userData.lastSpeechDurationMs,
           thresholdMs: MIN_SPEECH_DURATION_MS,
-          transcript: event.transcript.slice(0, 30),
+          transcriptChars: event.transcript.length,
         });
         // Clear the flag and reject
         userData.lastSpeechDurationMs = undefined;
@@ -851,7 +852,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // Log human intelligence insights
       if (finalTurnSignals.isUrgent) {
         diag.state('🧠 Human intelligence: URGENT message detected', {
-          transcript: cleanedTranscript.slice(0, 50),
+          transcriptChars: cleanedTranscript.length,
         });
       }
 
@@ -877,7 +878,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
             if (triggered) {
               diag.state('🔄 Routine triggered by phrase', {
                 routineName: triggered.name,
-                transcript: cleanedTranscript.slice(0, 30),
+                transcriptChars: cleanedTranscript.length,
               });
             }
           } catch {
@@ -1000,7 +1001,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
           if (feedbackRecorded) {
             diag.state('📊 Music feedback recorded from user response', {
-              transcript: cleanedTranscript.slice(0, 50),
+              transcriptChars: cleanedTranscript.length,
               wasPositive: detectedFeedback.wasPositive,
               voiceTone,
             });
@@ -1048,7 +1049,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           timeSinceAgentSpokeMs: timeSinceAgentSpoke,
           adaptiveCooldownMs: adaptiveEchoCooldown,
           lastUtteranceDurationMs: userData.lastAgentUtteranceDurationMs,
-          transcript: event.transcript.slice(0, 30),
+          transcriptChars: event.transcript.length,
         });
 
         // =========================================================================
@@ -1079,7 +1080,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
           if (isShort && !looksLikeRealInterruption && (isGenericAck || words.length <= 3)) {
             diag.state('🚫 [ECHO] Dropping likely phantom transcript after interruption', {
-              transcript: cleanedTranscript,
+              transcriptChars: cleanedTranscript.length,
               timeSinceAgentSpokeMs: timeSinceAgentSpoke,
               isShort,
               isGenericAck,
@@ -1285,11 +1286,14 @@ async function processFinalTranscript(
     autoOptimizer,
     agent,
   } = ctx;
+  // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
+  const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
+  const held = heldAfter(sessionId, event.transcript, { userId, asked });
+  const memoryUserId = held ? undefined : userId;
 
   // ===============================================
   // 🧠 WS1: VALIDATE SPECULATIVE CONTEXT
-  // Check if pre-computed context from partial transcript is still valid.
-  // If valid, store on userData for processTurn to use (skip expensive builders).
+  // Pre-computed context from the partial transcript, if still valid, goes on userData for processTurn.
   // ===============================================
   if (userId) {
     try {
@@ -1341,9 +1345,10 @@ async function processFinalTranscript(
         await import('../processors/tool-routing-integration.js');
       const { isFtisEnabled } = await import('../../config/tool-config.js');
 
-      if (isFtisEnabled() && userId) {
+      // FTIS runs tools straight from the transcript: never for a held caller (MINOR_CARE)
+      if (isFtisEnabled() && memoryUserId) {
         const ftisResult = await runFTISRouting(event.transcript, {
-          userId,
+          userId: memoryUserId,
           sessionId,
           personaId: sessionPersona?.id || 'ferni',
           userLocation: userData.userLocation as
@@ -1430,12 +1435,12 @@ async function processFinalTranscript(
   // Deep LLM extraction runs in background worker
   // ===============================================
   try {
-    if (!userId) {
+    if (!memoryUserId) {
       diag.debug('Skipping memory capture - no userId');
     } else {
       const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
       const captureResult = await fastCapture({
-        userId,
+        userId: memoryUserId,
         sessionId,
         turnNumber: 0, // Transcript handler doesn't track turn numbers
         transcript: event.transcript,
@@ -1443,7 +1448,7 @@ async function processFinalTranscript(
       });
 
       // 🧠 CRITICAL: Record to STM buffer for session context
-      recordTurn(sessionId, userId, captureResult, event.transcript, 0);
+      recordTurn(sessionId, memoryUserId, captureResult, event.transcript, 0);
 
       // Log capture results for debugging
       if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
@@ -1480,12 +1485,12 @@ async function processFinalTranscript(
   // 🧵 THREAD RECORDING: Record user message for cross-channel continuity
   // This enables seamless conversation flow: SMS → Voice → Push
   // ===============================================
-  if (userId && event.transcript) {
+  if (memoryUserId && event.transcript) {
     try {
       const { recordUserMessage } =
         await import('../../services/conversation-thread/thread-recorder.js');
       void recordUserMessage({
-        userId,
+        userId: memoryUserId,
         sessionId,
         personaId: sessionPersona.id as import('../../personas/types.js').PersonaId,
         threadId: userData.threadId,
@@ -1505,10 +1510,8 @@ async function processFinalTranscript(
   }
 
   // ===============================================
-  // 🔴 CRITICAL FIX: Record user turn for memory persistence
-  // This was MISSING - causing all user speech to be lost!
-  // Without this, learning engine gets no data, summaries are empty,
-  // and Ferni never remembers what users say.
+  // 🔴 CRITICAL FIX: Record user turn for memory persistence (it was missing: the
+  // learning engine got no data, summaries were empty, Ferni remembered nothing).
   // ===============================================
   // For on-behalf calls, also captures for superhuman analysis
   if (event.transcript) {
@@ -1521,7 +1524,7 @@ async function processFinalTranscript(
         }
       });
     diag.debug('📝 User turn recorded for memory', {
-      preview: event.transcript.slice(0, 50),
+      transcriptChars: event.transcript.length,
       sessionId,
     });
   }
@@ -1554,12 +1557,13 @@ async function processFinalTranscript(
   // Process trial status for trial users
   processTrialStatus(userId, userData, services, session, conversationManager, sessionId);
 
-  // Run human listening pipeline
+  // Human listening: runs for a held caller too (session-only distress cues, nothing stored)
   processHumanListeningPipeline(event.transcript, userData, sessionId);
 
-  // 🌟 Better Than Human transcript processing
-  // Detects: first-time vulnerability, emotional contradictions, patterns, linguistic style
-  processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+  // 🌟 Better Than Human (vulnerability, contradictions, patterns): per user, never held (MINOR_CARE)
+  if (!held) {
+    processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+  }
 
   // 🎵 Music Preference Extraction
   // Detects: "I love jazz", "I don't like country", "Taylor Swift is my favorite"
@@ -1579,13 +1583,13 @@ async function processFinalTranscript(
   // 🧠 General Preference Extraction
   // Detects: sports teams, stocks, news interests, avoid topics, locations, allergies
   // Learns preferences from natural conversation without explicit commands
-  if (userId && hasPreferenceContent(event.transcript)) {
+  if (memoryUserId && hasPreferenceContent(event.transcript)) {
     const extractedPrefs = extractPreferences(event.transcript);
     if (extractedPrefs.length > 0) {
       // Fire-and-forget: save each preference to the appropriate store
       for (const pref of extractedPrefs) {
         fireAndForget(async () => {
-          await saveExtractedPreference(userId, pref);
+          await saveExtractedPreference(memoryUserId, pref);
         }, 'preference-extraction');
       }
       diag.state('🧠 Extracted general preferences from conversation', {
@@ -1659,7 +1663,7 @@ async function processFinalTranscript(
   }
 
   diag.state('Silence context synced', {
-    topicsDiscussed: silenceContext.topicsDiscussed.slice(0, 3),
+    topicsDiscussed: silenceContext.topicsDiscussed.length,
     emotionalTone: silenceContext.recentEmotionalTone,
     wasDiscussingTopic: silenceContext.wasDiscussingTopic,
   });
@@ -1683,7 +1687,7 @@ async function processFinalTranscript(
       .then(async (loadedDomains) => {
         if (loadedDomains.length > 0) {
           diag.tool('Dynamic domains loaded based on user message', {
-            transcript: event.transcript.slice(0, 50),
+            transcriptChars: event.transcript.length,
             loadedDomains,
             totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
           });
@@ -1705,27 +1709,23 @@ async function processFinalTranscript(
         toolUpdaterLog.warn({ error }, 'Failed to process message for dynamic tool loading');
       });
   } else if (dynamicToolLoader && !isMidSessionToolUpdateSafe()) {
-    // 🔍 DIAGNOSTIC: Log when we skip mid-session updates for Gemini
-    // We still process the message for analytics, just don't update the agent
+    // 🔍 Gemini skips mid-session updates: still process the message for analytics, no agent update
     dynamicToolLoader.processMessage(event.transcript).catch(() => {});
-    // Note: Tools were registered at session start - they don't need mid-session updates
-    // Gemini should have all the tools it needs from registerInitialTools()
+    // Tools were registered at session start (registerInitialTools): no mid-session updates needed
   }
 
-  // Process voice identity
-  processVoiceIdentity(sessionId, event.transcript, userData);
+  processVoiceIdentity(sessionId, event.transcript, userData); // identity and verification
+  processDJSessionFlow(event.transcript, userData); // DJ session flow tracking
 
-  // Process DJ session flow tracking
-  processDJSessionFlow(event.transcript, userData);
-
-  // Collect feedback for tool optimization
-  processFeedbackCollection(event.transcript, userData, sessionId, sessionPersona, autoOptimizer);
+  // Collect feedback for tool optimization: it keeps their words, so never when held (MINOR_CARE)
+  if (!held) {
+    processFeedbackCollection(event.transcript, userData, sessionId, sessionPersona, autoOptimizer);
+  }
 
   // Process daily check-in (extracts weather and records to engagement system)
   processDailyCheckInTranscript(event.transcript, userData, sessionId, ctx.sendDataMessage);
 
-  // Detect team huddle requests
-  processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage);
+  processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage); // huddle asks
 
   // ===============================================
   // RESPONSE GENERATION - Clean Architecture (Jan 2026)
@@ -1855,7 +1855,7 @@ function processHumanListeningPipeline(
         });
       } else if (listeningResult.shouldSlowDown) {
         diag.state('Human listening: User needs slower pace', {
-          assessment: listeningResult.overallAssessment.slice(0, 100),
+          assessmentChars: listeningResult.overallAssessment.length,
         });
       }
     },
@@ -2013,7 +2013,7 @@ function processDJSessionFlow(transcript: string, userData: UserData): void {
       // Music memories are now stored via music-memory-integration.ts
       diag.state('User speech during music', {
         hasEmotion: !!voiceEmotion,
-        transcript: transcript.slice(0, 50),
+        transcriptChars: transcript.length,
         emotion: voiceEmotion,
       });
     }
@@ -2030,8 +2030,8 @@ function processDailyCheckInTranscript(
   sessionId: string,
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>
 ): void {
-  // Only process if we have a user ID
-  if (!userData.userId) {
+  // A user ID, and MINOR_CARE=on: not a held caller under 18 (it records their emotional weather)
+  if (!userData.userId || memoryHeld(sessionId)) {
     return;
   }
 
@@ -2170,45 +2170,44 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
           priority: 'secondary', // Auto-extracted = secondary, explicit = primary
         });
         diag.info('🏈 Learned favorite team from conversation', {
-          team: pref.value,
-          league: pref.context,
+          hasValue: Boolean(pref.value),
         });
         break;
 
       case 'stock_watchlist':
         await addToWatchlist(userId, pref.value);
-        diag.info('📈 Learned stock interest from conversation', { ticker: pref.value });
+        diag.info('📈 Learned stock interest from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'news_interest':
         await addNewsInterest(userId, pref.value);
-        diag.info('📰 Learned news interest from conversation', { topic: pref.value });
+        diag.info('📰 Learned news interest from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'avoid_topic':
         await addAvoidTopic(userId, pref.value);
-        diag.info('🚫 Learned topic to avoid from conversation', { topic: pref.value });
+        diag.info('🚫 Learned topic to avoid from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'home_location':
         await saveLocation(userId, { name: 'Home', address: pref.value });
-        diag.info('🏠 Learned home location from conversation', { location: pref.value });
+        diag.info('🏠 Learned home location from conversation', { hasLocation: Boolean(pref.value) });
         break;
 
       case 'work_location':
         await saveLocation(userId, { name: 'Work', address: pref.value });
-        diag.info('💼 Learned work location from conversation', { location: pref.value });
+        diag.info('💼 Learned work location from conversation', { hasLocation: Boolean(pref.value) });
         break;
 
       case 'allergy':
         await setAllergies(userId, [pref.value], 'add');
-        diag.info('🤧 Learned allergy from conversation', { allergy: pref.value });
+        diag.info('🤧 Learned allergy from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'health_condition':
         // Health conditions are sensitive - log but don't auto-store without confirmation
         diag.info('🏥 Detected health condition mention (not auto-stored)', {
-          condition: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2221,7 +2220,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'music', pref.category, pref.value, pref.isNegative);
         diag.info(`🎵 Learned music preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
           isNegative: pref.isNegative,
         });
         break;
@@ -2237,7 +2236,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`🎬 Learned entertainment preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
           isNegative: pref.isNegative,
         });
         break;
@@ -2249,7 +2248,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'food', pref.category, pref.value, pref.isNegative);
         diag.info(`🍽️ Learned food preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
           isNegative: pref.isNegative,
         });
         break;
@@ -2266,7 +2265,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`🏋️ Learned wellness preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2276,7 +2275,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'travel', pref.category, pref.value, pref.isNegative);
         diag.info(`✈️ Learned travel preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2291,7 +2290,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`📚 Learned learning goal from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2301,7 +2300,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'social', pref.category, pref.value, pref.isNegative);
         diag.info(`👥 Learned social preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2317,17 +2316,17 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`🛠️ Learned daily life preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
       default:
-        diag.debug('Unknown preference category', { category: pref.category, value: pref.value });
+        diag.debug('Unknown preference category', { category: pref.category, hasValue: Boolean(pref.value) });
     }
   } catch (error) {
     diag.warn('Failed to save extracted preference', {
       category: pref.category,
-      value: pref.value,
+      hasValue: Boolean(pref.value),
       error: String(error),
     });
   }
@@ -2402,14 +2401,14 @@ async function saveLifestylePreference(
       { merge: true }
     );
 
-    diag.debug('Saved lifestyle preference to Firestore', { userId, domain, category, value });
+    diag.debug('Saved lifestyle preference to Firestore', { userId, domain, category, hasValue: Boolean(value) });
   } catch (error) {
     // Non-fatal - preference saving shouldn't break the session
     diag.debug('Could not save lifestyle preference to Firestore', {
       userId,
       domain,
       category,
-      value,
+      hasValue: Boolean(value),
       error: String(error),
     });
   }

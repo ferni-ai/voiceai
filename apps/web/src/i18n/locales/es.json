@@ -777,7 +777,7 @@
     "phoneLabel": "Escríbeme o llámame",
     "emailLabel": "Envíame actualizaciones",
     "nameLabel": "¿Cómo quieres que te llame?",
-    "privacyNote": "Solo usaré esto para los registros. Nunca spam, nunca se compartirá.",
+    "privacyNote": "Solo usaré esto para los registros. Nunca spam, nunca se venderá.",
     "quietHours": "Horas de silencio",
     "dontCall": "No llamar",
     "until": "hasta",
@@ -1207,7 +1207,7 @@
       "createPractice": "Crea un ritual",
       "creativeYou": "Despierta tu creatividad",
       "discoverAgents": "Conoce a más amistades",
-      "exportData": "Llévate tu historia",
+      "exportData": "Privacidad y tus datos",
       "gifts": "Regalos y días especiales",
       "groupCoaching": "Con amistades",
       "guidedPractices": "El santuario",
@@ -2427,7 +2427,7 @@
     "intro": "Conecta tus dispositivos corporales para darle a Ferni contexto sobre tu salud y niveles de energía.",
     "loading": "Cargando...",
     "privacy": {
-      "note": "Tus datos de salud se mantienen privados. Solo compartimos reflexiones agregadas con tus sesiones de coaching."
+      "note": "Ferni guarda tus datos de salud para encontrar patrones contigo. Nunca los vendemos, y al eliminar tu cuenta se borran."
     },
     "providers": {
       "appleHealth": {
@@ -2902,6 +2902,9 @@
     "openConversations": "Conversaciones abiertas",
     "onYourMind": "En tu mente",
     "thingsTracking": "Cosas de las que tu equipo está haciendo un seguimiento por ti",
+    "trackedDone": "Hecho",
+    "trackedDismiss": "Descartar",
+    "trackedUpdateFailed": "No se pudo actualizar. ¿Lo intentas de nuevo?",
     "quickConnections": "Conexiones rápidas",
     "startWithAnyone": "Inicia una conversación con cualquiera de tu equipo",
     "allCaughtUp": "¡Todo al día!",
@@ -2967,7 +2970,7 @@
     "orUseEmail": "o usa tu correo",
     "emailLabel": "Correo electrónico",
     "passwordLabel": "Contraseña",
-    "privacyNote": "Tus datos siguen siendo privados. Siempre.",
+    "privacyNote": "Nunca vendemos tus datos. Al eliminar tu cuenta, se borran.",
     "loading": "Un momento...",
     "welcomeBack": "¡Te damos la bienvenida de nuevo! Lo recuerdo todo.",
     "somethingWentWrong": "Algo salió mal",
@@ -2990,7 +2993,7 @@
     "waitlistMessage": "Estamos lanzando Ferni poco a poco para asegurarnos de que todo el mundo tenga la mejor experiencia. Te enviaremos un correo en cuanto haya un lugar para ti.",
     "waitlistEmail": "Te avisaremos en {email}",
     "tryDifferentAccount": "Prueba con otra cuenta",
-    "checkingAccess": "Comprobando tu acceso...",
+    "checkingAccess": "Preparando todo…",
     "checkingLabel": "Un momento...",
     "signInError": "El inicio de sesión se canceló o falló. Por favor, inténtalo de nuevo.",
     "verifyEmailTitle": "Verifica tu correo electrónico",
@@ -3451,7 +3454,7 @@
     "weeklyDigest": "Resumen semanal",
     "weeklyDigestDesc": "Un adelanto de tu próxima semana cada domingo por la tarde",
     "viewSyncConflicts": "Ver conflictos de sincronización",
-    "integrationsPrivacy": "Las integraciones sincronizan tus eventos existentes en Ferni. Tus datos siguen siendo privados.",
+    "integrationsPrivacy": "Las integraciones sincronizan tus eventos existentes en Ferni. Nunca vendemos tus datos.",
     "tryAgain": "Intentar de nuevo",
     "syncing": "Sincronizando...",
     "connectAppleCalendar": "Conectar Apple Calendar",
@@ -3992,7 +3995,6 @@
       "ceo": "Dirección",
       "ferniRole": "CEO y Coach de vida",
       "ferniDesc": "La presencia cálida y sabia en el corazón de todo. Ferni coordina al equipo con un recuerdo perfecto, cero juicios y una presencia constante.",
-      "coFounders": "Cofundadores",
       "coreTeam": "Equipo principal",
       "footer": "En conjunto, estamos redefiniendo lo que significa tener un equipo que te escucha de verdad.",
       "roles": {
@@ -4799,7 +4801,10 @@
     "funGames": "Juegos divertidos",
     "reflectionGames": "Juegos de reflexión",
     "tipLabel": "Consejo:",
-    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!"
+    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!",
+    "connectFirst": "Primero empieza una llamada con Ferni y luego elige un juego.",
+    "starting": "Empezando {game}…",
+    "startFailed": "No se pudo empezar ese juego. Pídeselo a Ferni."
   },
   "digitalTwinProfile": {
     "title": "Crea tu gemelo digital",
@@ -9126,10 +9131,6 @@
     "chiefExecutive": "Dirección Ejecutiva",
     "ferni": "Ferni",
     "ferniRole": "CEO y Coach de vida",
-    "coFounders": "Cofundadores",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Equipo principal",
     "tagline": "En equipo, estamos redefiniendo lo que significa tener a alguien que te escuche de verdad.",
     "inTeam": "En el equipo",
@@ -9415,7 +9416,8 @@
     "title": "Tus datos",
     "exportFormat": "Formato de exportación",
     "deleteAll": "Eliminar todos los datos",
-    "footer": "Tus datos te pertenecen. Respetamos tu privacidad.",
+    "footer": "Guardo nuestras conversaciones y lo que me cuentas para poder recordarlo la próxima vez, y si algún día quieres que desaparezca, al eliminar tu cuenta se borra todo.",
+    "privacyPolicyLink": "Lee la política de privacidad",
     "deleteAccount": "Eliminar mi cuenta",
     "confirmDeleteAll": "¿De verdad quieres eliminar todos tus datos? Esta acción no se puede deshacer.",
     "confirmDeleteAccount": "¿Quieres eliminar tu cuenta de Ferni? Esto borrará todo lo que Ferni sabe sobre ti y cerrará tu sesión de forma permanente. Esta acción no se puede deshacer.",
@@ -9976,7 +9978,7 @@
       "title": "Personalización",
       "message": "Tu ubicación me ayuda a que nuestras conversaciones se sientan más personales y relevantes, como si realmente estuviera ahí contigo."
     },
-    "note": "Esto queda solo entre nosotros; solo lo uso para que nuestras conversaciones sean más personales.",
+    "note": "Solo lo uso para que nuestras conversaciones sean más personales, y nunca lo vendo.",
     "notNow": "Ahora no",
     "allow": "Permitir ubicación"
   },
@@ -10339,6 +10341,7 @@
       "other": "¡Has ganado {count} semillas!"
     },
     "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "credentialNotKept": "Ferni no guarda códigos ni contraseñas, así que ese ya no está.",
     "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {
@@ -10920,7 +10923,7 @@
   },
   "entrance": {
     "helper": "Tu guía personal",
-    "connectToTalk": "Hablar",
+    "connectToTalk": "Habla con Ferni",
     "endTalk": "Desconectar",
     "connectingCancel": "Conectando. Toca para cancelar",
     "connectingNow": "Conectando…",
@@ -11253,5 +11256,21 @@
     "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
     "maybeLater": "Quizás después",
     "close": "Cerrar"
+  },
+  "reportReply": {
+    "button": "Reportar",
+    "describe": "Reportar algo que dijo {name}",
+    "title": "Reportar una respuesta",
+    "whichReply": "¿Qué respuesta?",
+    "whatsWrong": "¿Qué tiene de malo?",
+    "reasonHarmful": "Dañina o peligrosa",
+    "reasonWrong": "Incorrecta o engañosa",
+    "reasonInappropriate": "Inapropiada",
+    "reasonOther": "Otra cosa",
+    "note": "¿Algo que añadir? (opcional)",
+    "send": "Enviar",
+    "thanks": "Gracias. Una persona lo revisará.",
+    "failed": "No se pudo enviar. Inténtalo de nuevo.",
+    "tooMany": "Hoy has enviado muchos reportes. Inténtalo de nuevo mañana."
   }
 }

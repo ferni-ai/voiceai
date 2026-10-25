@@ -11,7 +11,7 @@
  * @module services/experiments/hypothesis-generator
  */
 
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { removeUndefined, cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { quickValidate } from '../brand/index.js';
@@ -570,7 +570,7 @@ function estimateLift(pattern: ExperimentPattern): number {
  * Save a generated hypothesis to Firestore
  */
 export async function saveHypothesis(hypothesis: GeneratedHypothesis): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 
   await db
     .collection('generated_hypotheses')
@@ -591,7 +591,7 @@ export async function saveHypothesis(hypothesis: GeneratedHypothesis): Promise<v
 export async function getHypotheses(
   status?: GeneratedHypothesis['status']
 ): Promise<GeneratedHypothesis[]> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 
   let query = db.collection('generated_hypotheses').orderBy('createdAt', 'desc');
 
@@ -615,7 +615,7 @@ export async function updateHypothesisStatus(
   hypothesisId: string,
   status: GeneratedHypothesis['status']
 ): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 
   await db
     .collection('generated_hypotheses')
@@ -634,7 +634,7 @@ export async function updateHypothesisStatus(
  * Save discovered patterns
  */
 export async function savePatterns(patterns: ExperimentPattern[]): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const batch = db.batch();
 
   for (const pattern of patterns) {

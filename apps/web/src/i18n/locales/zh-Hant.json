@@ -777,7 +777,7 @@
     "phoneLabel": "傳簡訊或打電話給我",
     "emailLabel": "寄送最新消息給我",
     "nameLabel": "我該怎麼稱呼你？",
-    "privacyNote": "我只會將此用於自我檢視。絕不發送垃圾訊息，也絕不分享。",
+    "privacyNote": "我只會將此用於自我檢視。絕不發送垃圾訊息，也絕不出售。",
     "quietHours": "勿擾時間",
     "dontCall": "不要打電話",
     "until": "直到",
@@ -1197,7 +1197,7 @@
       "createPractice": "建立儀式",
       "creativeYou": "發揮創意",
       "discoverAgents": "認識更多朋友",
-      "exportData": "匯出你的故事",
+      "exportData": "隱私與你的資料",
       "gifts": "禮物與特別的日子",
       "groupCoaching": "與朋友一起",
       "guidedPractices": "靜心練習",
@@ -2408,7 +2408,7 @@
     "intro": "連結你的穿戴式裝置，讓 Ferni 更了解你的健康狀況與活力水平。",
     "loading": "載入中...",
     "privacy": {
-      "note": "你的健康數據會保持私密。我們只會將整合後的洞察分享到你的教練對話中。"
+      "note": "Ferni 會儲存你的健康數據，以便和你一起發現規律。我們絕不出售這些數據，刪除帳戶即會將其清除。"
     },
     "providers": {
       "appleHealth": {
@@ -2883,6 +2883,9 @@
     "openConversations": "開啟的對話",
     "onYourMind": "你心裡在想的事",
     "thingsTracking": "你的團隊為你留意的大小事",
+    "trackedDone": "完成",
+    "trackedDismiss": "忽略",
+    "trackedUpdateFailed": "無法更新，請再試一次。",
     "quickConnections": "快速連結",
     "startWithAnyone": "與你團隊中的任何人開始對話",
     "allCaughtUp": "都跟上進度囉！",
@@ -2948,7 +2951,7 @@
     "orUseEmail": "或使用電子郵件",
     "emailLabel": "電子郵件",
     "passwordLabel": "密碼",
-    "privacyNote": "你的資料將永遠保持私密。",
+    "privacyNote": "我們絕不出售你的資料。刪除帳戶即會將其清除。",
     "loading": "請稍等一下...",
     "welcomeBack": "歡迎回來！我都記得。",
     "somethingWentWrong": "出了點問題",
@@ -2971,7 +2974,7 @@
     "waitlistMessage": "我們正在逐步開放 Ferni，以確保每個人都能獲得最佳體驗。一旦有空缺，我們就會發送電子郵件給你。",
     "waitlistEmail": "我們將會發送通知至 {email}",
     "tryDifferentAccount": "嘗試其他帳號",
-    "checkingAccess": "正在檢查你的存取權限...",
+    "checkingAccess": "正在準備…",
     "checkingLabel": "請稍等一下...",
     "signInError": "登入已取消或失敗。請再試一次。",
     "verifyEmailTitle": "驗證你的電子郵件",
@@ -3429,7 +3432,7 @@
     "weeklyDigest": "每週摘要",
     "weeklyDigestDesc": "在週日晚上預覽你未來一週的行程",
     "viewSyncConflicts": "查看同步衝突",
-    "integrationsPrivacy": "整合功能會將你現有的行程同步至 Ferni。你的資料將保持私密。",
+    "integrationsPrivacy": "整合功能會將你現有的行程同步至 Ferni。我們絕不出售你的資料。",
     "tryAgain": "再試一次",
     "syncing": "正在同步...",
     "connectAppleCalendar": "連線 Apple Calendar",
@@ -3967,7 +3970,6 @@
       "ceo": "執行長",
       "ferniRole": "CEO 與人生教練",
       "ferniDesc": "一切的核心，溫暖而睿智的存在。Ferni 以完美的回憶、毫無批判的包容，以及時刻的陪伴，協調著整個團隊。",
-      "coFounders": "共同創辦人",
       "coreTeam": "核心團隊",
       "footer": "攜手同行，我們正在重新定義什麼是「真正傾聽你的團隊」。",
       "roles": {
@@ -4767,7 +4769,10 @@
     "funGames": "趣味遊戲",
     "reflectionGames": "反思遊戲",
     "tipLabel": "小撇步：",
-    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！"
+    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！",
+    "connectFirst": "先和 Ferni 開始通話，再選一個遊戲。",
+    "starting": "正在開始{game}…",
+    "startFailed": "沒能開始這個遊戲。試試直接問 Ferni。"
   },
   "digitalTwinProfile": {
     "title": "打造你的數位分身",
@@ -9056,10 +9061,6 @@
     "chiefExecutive": "執行長",
     "ferni": "Ferni",
     "ferniRole": "CEO 與人生教練",
-    "coFounders": "共同創辦人",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "核心團隊",
     "tagline": "攜手合作，我們正在重新定義什麼是「真正傾聽你」的團隊。",
     "inTeam": "團隊中",
@@ -9342,7 +9343,8 @@
     "title": "你的資料",
     "exportFormat": "匯出格式",
     "deleteAll": "刪除所有資料",
-    "footer": "你的資料完全屬於你。我們尊重你的隱私。",
+    "footer": "我會保存我們的對話和你告訴我的事，這樣下次我還能記得；如果你哪天想讓它們消失，刪除帳號就會把它們全部清除。",
+    "privacyPolicyLink": "閱讀隱私權政策",
     "deleteAccount": "刪除我的帳號",
     "confirmDeleteAll": "你確定要刪除所有資料嗎？此操作將無法復原。",
     "confirmDeleteAccount": "確定要刪除你的 Ferni 帳號嗎？這會清除 Ferni 所知道關於你的一切，並將你永久登出。此操作將無法復原。",
@@ -9889,7 +9891,7 @@
       "title": "個人化",
       "message": "你的位置能讓我們的對話感覺更親近、更貼切 — 就像我真的陪在你身邊一樣。"
     },
-    "note": "這完全是我們之間的小秘密 — 我只會用它來讓我們的對話更貼近你。",
+    "note": "我只會用它來讓我們的對話更貼近你，絕不出售。",
     "notNow": "稍後再說",
     "allow": "允許定位"
   },
@@ -10241,6 +10243,7 @@
       "one": "你獲得了 {count} 顆種子！"
     },
     "couldNotLoadMemories": "沒能載入我記得的內容。再試一次？",
+    "credentialNotKept": "Ferni 不會保存密碼或各種代碼，所以這條已刪除。",
     "memoryCorrected": "明白了，我會這樣記住。"
   },
   "trustSignals": {
@@ -10800,7 +10803,7 @@
   },
   "entrance": {
     "helper": "你的貼心嚮導",
-    "connectToTalk": "聊聊",
+    "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消",
     "connectingNow": "正在連線…",
@@ -11128,5 +11131,21 @@
     "helper": "用手機相機掃描，或點按「開啟 Venmo」。金額可以修改。",
     "maybeLater": "以後再說",
     "close": "關閉"
+  },
+  "reportReply": {
+    "button": "檢舉",
+    "describe": "檢舉{name}說的話",
+    "title": "檢舉回覆",
+    "whichReply": "哪則回覆？",
+    "whatsWrong": "有什麼問題？",
+    "reasonHarmful": "有害或不安全",
+    "reasonWrong": "錯誤或具誤導性",
+    "reasonInappropriate": "不恰當",
+    "reasonOther": "其他",
+    "note": "還有要補充的嗎？（選填）",
+    "send": "傳送",
+    "thanks": "謝謝，會有專人查看。",
+    "failed": "傳送失敗，請再試一次。",
+    "tooMany": "你今天已經送出很多檢舉，請明天再試。"
   }
 }

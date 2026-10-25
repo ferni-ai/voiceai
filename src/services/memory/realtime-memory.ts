@@ -304,7 +304,7 @@ export async function getRecentConversations(
           ? (data.endedAt as { toDate?: () => Date })?.toDate?.() ||
             new Date(data.endedAt as string)
           : undefined,
-        turnCount: (data.turnCount as number) || 0,
+        turnCount: Number.isFinite(data.turnCount) ? (data.turnCount as number) : 0,
         summarized: (data.summarized as boolean) || false,
         summary: data.summary as string | undefined,
       };
@@ -406,10 +406,10 @@ export async function getUnsummarizedConversations(
 
     return snapshot.docs
       .map((doc) => ({
-        userId: (doc.ref.parent.parent as { id?: string } | null)?.id || 'unknown',
+        userId: (doc.ref.parent.parent as { id?: string } | null)?.id,
         conversationId: doc.id,
       }))
-      .filter((item) => item.userId !== 'unknown');
+      .filter((item): item is { userId: string; conversationId: string } => !!item.userId);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get unsummarized conversations');
     return [];

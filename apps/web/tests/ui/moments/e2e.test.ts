@@ -67,6 +67,10 @@ vi.mock('@/utils/tracked-timeout.js', () => ({
   }),
 }));
 
+// The old per-surface toasts: the kill-switch path of src/ui/overlay/toast-flag.ts.
+beforeEach(() => vi.stubEnv('VITE_TOAST_REGION', 'off'));
+afterEach(() => vi.unstubAllEnvs());
+
 describe('Moments System E2E', () => {
   beforeAll(() => {
     // Mock Element.animate (not supported in jsdom)

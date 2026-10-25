@@ -1,337 +1,108 @@
-name: FerniVoice
+# Ferni for iPhone and iPad. Generate the Xcode project with `xcodegen generate`
+# (the generated Ferni.xcodeproj is committed so CI and Xcode need no extra tool).
+#
+# The app target is a thin SwiftUI shell; the work lives in local packages:
+#   Packages/FerniKit    configuration, the account, the server API, team, plans
+#   Packages/FerniVoice  a call with Ferni: the session, the LiveKit room, agent signals
+#   Packages/FerniDesign color/type/spacing tokens and the window avatar
+name: Ferni
 options:
   bundleIdPrefix: com.sethdford
   deploymentTarget:
-    iOS: "18.0"
-    watchOS: "9.0"
-  xcodeVersion: "15.0"
-  generateEmptyDirectories: true
+    iOS: "26.0"
+  xcodeVersion: "27.1"
+  generateEmptyDirectories: false
 
 packages:
-  LiveKit:
-    url: https://github.com/livekit/client-sdk-swift
-    exactVersion: 2.12.1
-  FerniShared:
-    path: ../shared
+  FerniKit:
+    path: Packages/FerniKit
+  FerniVoice:
+    path: Packages/FerniVoice
   FerniDesign:
     path: Packages/FerniDesign
-  Firebase:
-    url: https://github.com/firebase/firebase-ios-sdk
-    from: "11.0.0"
 
 settings:
   base:
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "6"
-    SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: "XT8W26YE9U"
     CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
 
 targets:
-  FerniVoice:
+  Ferni:
     type: application
     platform: iOS
-    deploymentTarget: "18.0"
     sources:
-      - path: Sources
-        type: group
-      - path: FerniVoice
-        type: group
-      - path: FerniCarPlay
-        type: group
-      - path: Ferni
-        type: group
+      - path: App
+        excludes:
+          - Info.plist
     dependencies:
-      - package: LiveKit
-        product: LiveKit
-      - package: FerniShared
-        product: FerniShared
+      - package: FerniKit
+      - package: FerniVoice
       - package: FerniDesign
-      - package: Firebase
-        product: FirebaseAuth
-      - package: Firebase
-        product: FirebaseCore
-      - target: FerniWidgets
-        embed: true
-      - target: FerniShareExtension
-        embed: true
-      - sdk: CarPlay.framework
-    resources:
-      - path: FerniVoice/Assets.xcassets
-      - path: FerniVoice/LaunchScreen.storyboard
-      - path: FerniVoice/Preview Content
-      - path: FerniVoice/GoogleService-Info.plist
     info:
-      path: FerniVoice/Info.plist
+      path: App/Info.plist
       properties:
+        CFBundleDisplayName: Ferni
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDisplayName: Ferni
-        UILaunchStoryboardName: LaunchScreen
+        FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        ITSAppUsesNonExemptEncryption: false
+        # ProMotion: the avatar asks for 120 Hz only while Ferni speaks.
+        CADisableMinimumFrameDurationOnPhone: true
+        LSRequiresIPhoneOS: true
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: LaunchLogo
+        # One window: a call is one session, and a second iPad window would share it.
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # Calls keep talking with the screen locked, reported to the system through
+        # LiveCommunicationKit (a VoIP call app). Nothing else runs in the background.
         UIBackgroundModes:
           - audio
           - voip
-          - fetch
-          - processing
-        # CarPlay scene configuration
-        UIApplicationSceneManifest:
-          UIApplicationSupportsMultipleScenes: true
-          UISceneConfigurations:
-            CPTemplateApplicationSceneSessionRoleApplication:
-              - UISceneConfigurationName: CarPlay Configuration
-                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).FerniCarPlaySceneDelegate
-        # Core permissions
-        NSMicrophoneUsageDescription: Ferni needs the microphone so you can talk out loud with Ferni and your team.
-        # Required by LiveKit SDK (even if not used directly)
-        NSCameraUsageDescription: Ferni may use the camera for future video features.
-        NSMotionUsageDescription: Ferni may use motion data to enhance your experience.
-        # HealthKit - wellness insights
-        NSHealthShareUsageDescription: Ferni uses health data to provide personalized wellness insights and notice when you might need extra support.
-        NSHealthUpdateUsageDescription: Ferni may save wellness notes to your Health app.
-        # Contacts - relationship awareness
-        NSContactsUsageDescription: Ferni uses your contacts to remember the people in your life and help you stay connected.
-        # HomeKit - ambient environment
-        NSHomeKitUsageDescription: Ferni can adjust your smart home lighting to create calming or energizing environments.
-        # Siri - voice activation
-        NSSiriUsageDescription: Add Ferni shortcuts to Siri for quick access to emotional support.
-        # Music - mood-aware playback
-        NSAppleMusicUsageDescription: Ferni plays music that matches your mood to help you feel better.
-        # Location - context awareness (optional future use)
-        NSLocationWhenInUseUsageDescription: Ferni uses your location to provide context-aware support, like knowing when you're at home vs work.
-        # User activity types for Siri Shortcuts
-        NSUserActivityTypes:
-          - com.ferni.talk
-          - com.ferni.support
-          - com.ferni.checkin
-          - com.ferni.music.calming
-          - com.ferni.routine.morning
-          - com.ferni.routine.evening
-          - com.ferni.vent
-          - com.ferni.gratitude
-        UIUserInterfaceStyle: Dark
-        # Required for iPad multitasking support
+        NSMicrophoneUsageDescription: Ferni listens only while you're talking together, so you can talk out loud.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        # Required for background task scheduling
-        BGTaskSchedulerPermittedIdentifiers:
-          - com.ferni.refresh
-          - com.ferni.sync
     entitlements:
-      path: FerniVoice/FerniVoice.entitlements
+      path: App/Ferni.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
     settings:
       base:
+        PRODUCT_NAME: Ferni
         PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni
-        INFOPLIST_FILE: FerniVoice/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+        FERNI_API_BASE_URL: "https://app.ferni.ai"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_EMIT_LOC_STRINGS: YES
         ENABLE_PREVIEWS: YES
-        SWIFT_EMIT_LOC_STRINGS: YES
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-
-  FerniVoiceTests:
-    type: bundle.unit-test
-    platform: iOS
-    sources:
-      - path: Tests
-        type: group
-    dependencies:
-      - target: FerniVoice
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.tests
-
-  FerniWidgets:
-    type: app-extension
-    platform: iOS
-    deploymentTarget: "17.0"
-    sources:
-      - path: FerniWidgets
-        type: group
-    info:
-      path: FerniWidgets/Info.plist
-      properties:
-        CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDisplayName: Ferni Widgets
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
-    entitlements:
-      path: FerniWidgets/FerniWidgets.entitlements
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.widgets
-        INFOPLIST_FILE: FerniWidgets/Info.plist
-        SWIFT_EMIT_LOC_STRINGS: YES
-        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-        GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "6"
-        MARKETING_VERSION: "1.0.0"
-
-  # MARK: - watchOS Targets
-
-  FerniWatch:
-    type: application
-    platform: watchOS
-    deploymentTarget: "9.0"
-    sources:
-      - path: FerniWatch
-        type: group
-    dependencies:
-      - package: FerniShared
-        product: FerniShared
-      - target: FerniWatchWidgets
-        embed: true
-    info:
-      path: FerniWatch/Info.plist
-      properties:
-        CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDisplayName: Ferni
-        WKApplication: true
-        WKCompanionAppBundleIdentifier: com.sethdford.ferni
-    entitlements:
-      path: FerniWatch/FerniWatch.entitlements
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.watch
-        INFOPLIST_FILE: FerniWatch/Info.plist
-        SWIFT_EMIT_LOC_STRINGS: YES
-        WATCHOS_DEPLOYMENT_TARGET: "9.0"
-        GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "6"
-        MARKETING_VERSION: "1.0.0"
-        SDKROOT: watchos
-
-  FerniWatchWidgets:
-    type: app-extension
-    platform: watchOS
-    deploymentTarget: "9.0"
-    sources:
-      - path: FerniWatchWidgets
-        type: group
-    dependencies:
-      - package: FerniShared
-        product: FerniShared
-    info:
-      path: FerniWatchWidgets/Info.plist
-      properties:
-        CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDisplayName: Ferni Watch Widgets
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
-    entitlements:
-      path: FerniWatchWidgets/FerniWatchWidgets.entitlements
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.watch.widgets
-        INFOPLIST_FILE: FerniWatchWidgets/Info.plist
-        SWIFT_EMIT_LOC_STRINGS: YES
-        WATCHOS_DEPLOYMENT_TARGET: "9.0"
-        GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "6"
-        MARKETING_VERSION: "1.0.0"
-        SDKROOT: watchos
-
-  # MARK: - Share Extension
-
-  FerniShareExtension:
-    type: app-extension
-    platform: iOS
-    deploymentTarget: "16.0"
-    sources:
-      - path: FerniShareExtension
-        type: group
-    info:
-      path: FerniShareExtension/Info.plist
-      properties:
-        CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        CFBundleDisplayName: Share with Ferni
-        NSExtension:
-          NSExtensionAttributes:
-            NSExtensionActivationRule:
-              NSExtensionActivationSupportsText: true
-              NSExtensionActivationSupportsWebURLWithMaxCount: 1
-          NSExtensionPointIdentifier: com.apple.share-services
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
-    entitlements:
-      path: FerniShareExtension/FerniShareExtension.entitlements
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.share
-        INFOPLIST_FILE: FerniShareExtension/Info.plist
-        SWIFT_EMIT_LOC_STRINGS: YES
-        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
-        GENERATE_INFOPLIST_FILE: NO
-        CURRENT_PROJECT_VERSION: "6"
-        MARKETING_VERSION: "1.0.0"
 
 schemes:
-  FerniVoice:
+  Ferni:
     build:
       targets:
-        FerniVoice: all
-        FerniVoiceTests: [test]
-        FerniWidgets: all
+        Ferni: all
     run:
       config: Debug
       storeKitConfiguration: Ferni.storekit
     test:
       config: Debug
+      gatherCoverageData: true
       targets:
-        - FerniVoiceTests
+        - package: FerniKit/FerniKitTests
+        - package: FerniVoice/FerniVoiceTests
         - package: FerniDesign/FerniDesignTests
-      storeKitConfiguration: Ferni.storekit
-    profile:
-      config: Release
-    analyze:
-      config: Debug
-    archive:
-      config: Release
-
-  FerniWidgets:
-    build:
-      targets:
-        FerniWidgets: all
-    run:
-      config: Debug
-    profile:
-      config: Release
-    analyze:
-      config: Debug
-    archive:
-      config: Release
-
-  FerniWatch:
-    build:
-      targets:
-        FerniWatch: all
-        FerniWatchWidgets: all
-    run:
-      config: Debug
-    profile:
-      config: Release
-    analyze:
-      config: Debug
-    archive:
-      config: Release
-
-  FerniShareExtension:
-    build:
-      targets:
-        FerniShareExtension: all
-    run:
-      config: Debug
-      askForAppToLaunch: true
     profile:
       config: Release
     analyze:

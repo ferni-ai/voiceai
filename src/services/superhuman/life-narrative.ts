@@ -13,6 +13,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { indexLifeChapter } from '../data-layer/integrations/index.js';
 import { onLifeChapterTransition } from '../outreach/superhuman-outreach-bridge.js';
+import * as signals from './life-chapter-signals.js';
 
 const log = createLogger({ module: 'life-narrative' });
 
@@ -71,7 +72,8 @@ export interface LifeChapter {
   // Meta
   createdAt: number;
   lastUpdated: number;
-  conversationCount: number; // How many conversations touched this
+  conversationCount: number; // How many separate conversations touched this
+  conversationIds?: string[]; // Which ones (session id, or the day): the naming evidence
 }
 
 export interface IdentityEvolution {
@@ -138,7 +140,7 @@ const CHAPTER_TRIGGERS: Array<{
     patterns: [
       /\bmy (mom|dad|mother|father|parent|sibling|friend) (died|passed|is dying)/i,
       /\bwe (broke up|ended things|are divorcing)/i,
-      /\bi lost my/i,
+      signals.LOSS_OF_SOMEONE, // a person or pet, never "I lost my keys"
     ],
     type: 'loss',
     significance: 1.0,
@@ -257,7 +259,6 @@ export async function saveChapter(chapter: LifeChapter): Promise<void> {
       'update'
     );
 
-    // Update cache
     const chapters = chapterCache.get(chapter.userId) || [];
     const idx = chapters.findIndex((c) => c.id === chapter.id);
     if (idx >= 0) {
@@ -284,18 +285,14 @@ export async function createOrUpdateChapter(
     theme?: string;
     person?: string;
     emotion?: string;
+    conversationId?: string; // the session, so one chat never counts twice
   }
 ): Promise<LifeChapter> {
   const chapters = await loadUserChapters(userId);
 
-  // Find ongoing chapter of same type (within last 30 days)
-  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const ongoing = chapters.find(
-    (c) => c.type === data.type && !c.endDate && c.startDate > thirtyDaysAgo
-  );
-
+  // Continue a same-type chapter that is still current (mentioned within the fade window)
+  const ongoing = chapters.find((c) => c.type === data.type && signals.isChapterCurrent(c));
   if (ongoing) {
-    // Update existing chapter
     ongoing.keyQuotes.push(data.quote);
     if (data.theme && !ongoing.keyThemes.includes(data.theme)) {
       ongoing.keyThemes.push(data.theme);
@@ -306,14 +303,16 @@ export async function createOrUpdateChapter(
     if (data.emotion && !ongoing.keyEmotions.includes(data.emotion)) {
       ongoing.keyEmotions.push(data.emotion);
     }
-    ongoing.conversationCount++;
+    const becameNameable = signals.recordAndCheckNameable(ongoing, data.conversationId);
     ongoing.lastUpdated = Date.now();
-
     await saveChapter(ongoing);
+    // Reach out only as the chapter becomes clear enough to name, never on one passing line
+    if (becameNameable) {
+      await reachOutForChapter(userId, ongoing);
+    }
     return ongoing;
   }
 
-  // Create new chapter
   const newChapter: LifeChapter = {
     id: `chapter_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     userId,
@@ -331,25 +330,27 @@ export async function createOrUpdateChapter(
     createdAt: Date.now(),
     lastUpdated: Date.now(),
     conversationCount: 1,
+    conversationIds: [signals.chapterConversationKey(data.conversationId)],
   };
 
   await saveChapter(newChapter);
-
-  // Better Than Human: Trigger proactive outreach for life transitions
-  if (data.type === 'transition' || data.type === 'loss' || data.type === 'triumph') {
-    try {
-      await onLifeChapterTransition(userId, {
-        fromChapter: 'previous',
-        toChapter: newChapter.title,
-        significance:
-          data.type === 'loss' ? 'transformative' : data.type === 'triumph' ? 'major' : 'major',
-      });
-    } catch (outreachError) {
-      log.debug({ error: String(outreachError) }, 'Life chapter outreach failed (non-blocking)');
-    }
-  }
-
   return newChapter;
+}
+
+/** Better Than Human: proactive outreach for a life transition, once the chapter is real */
+async function reachOutForChapter(userId: string, chapter: LifeChapter): Promise<void> {
+  if (chapter.type !== 'transition' && chapter.type !== 'loss' && chapter.type !== 'triumph') {
+    return;
+  }
+  try {
+    await onLifeChapterTransition(userId, {
+      fromChapter: 'previous',
+      toChapter: chapter.title,
+      significance: chapter.type === 'loss' ? 'transformative' : 'major',
+    });
+  } catch (outreachError) {
+    log.debug({ error: String(outreachError) }, 'Life chapter outreach failed (non-blocking)');
+  }
 }
 
 function generateChapterTitle(type: ChapterType, theme?: string): string {
@@ -420,7 +421,6 @@ export async function recordIdentityShift(
     };
   }
 
-  // Add transformation
   identity.transformations.push({
     from: shift.from,
     to: shift.to,
@@ -438,7 +438,6 @@ export async function recordIdentityShift(
 
   identity.lastUpdated = Date.now();
 
-  // Save
   const db = getFirestoreDb();
   if (db) {
     await db
@@ -495,7 +494,8 @@ export function identifyNarrativeArc(chapters: LifeChapter[]): NarrativeArc[] {
 // ============================================================================
 
 export async function buildNarrativeContext(userId: string): Promise<NarrativeContext> {
-  const chapters = await loadUserChapters(userId);
+  // Only chapters clear enough to name feed the story: one passing line is not a chapter
+  const chapters = (await loadUserChapters(userId)).filter(signals.isChapterNameable);
   const identity = await loadIdentity(userId);
 
   const context: NarrativeContext = {
@@ -506,8 +506,7 @@ export async function buildNarrativeContext(userId: string): Promise<NarrativeCo
     journeyMilestones: [],
   };
 
-  // Find current (ongoing) chapter
-  context.currentChapter = chapters.find((c) => !c.endDate);
+  context.currentChapter = signals.getCurrentChapter(chapters);
 
   // Extract growth evidence
   for (const chapter of chapters.slice(0, 10)) {

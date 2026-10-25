@@ -1,6 +1,7 @@
 import { createSessionBindings } from '../../utils/session-bindings.js';
 import { FrontendPublisher, type PublisherConfig, type RoomRef } from './frontend-publisher.js';
 import { wireRememberMoment } from './remember-moment-ports.js';
+import { setMemorySavedSender } from '../../tools/domains/memory/memory-saved-sender.js';
 
 const publishers = createSessionBindings<FrontendPublisher>();
 
@@ -28,6 +29,8 @@ export function initializeFrontendPublisher(
   publishers.bind(sessionId, publisher);
   // A call's room is reachable from here on, so tools may announce to it (REMEMBER_MOMENT).
   wireRememberMoment(getFrontendPublisher);
+  // ...and memory writers may tell it a memory was kept (memory_saved, CLIENT_SIGNALS_V2).
+  setMemorySavedSender((id, type, payload) => getFrontendPublisher(id).sendData(type, payload));
   return publisher;
 }
 

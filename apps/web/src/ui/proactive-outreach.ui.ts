@@ -19,7 +19,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { dismissToast, showToast } from './overlay/toast-region.js';
 import { ICONS } from './proactive-outreach-icons.js';
 
@@ -80,7 +80,7 @@ export function showOutreach(data: ProactiveOutreachData): void {
   currentOutreach = data;
   log.info({ type: data.type, personaId: data.personaId }, '💭 Showing proactive outreach');
 
-  if (isOverlayHostEnabled()) {
+  if (isToastRegionEnabled()) {
     showOutreachToast(data);
     document.dispatchEvent(new CustomEvent('ferni:proactive-outreach', { detail: data }));
     return;

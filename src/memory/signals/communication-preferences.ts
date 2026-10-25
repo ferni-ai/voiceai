@@ -32,8 +32,8 @@ const log = createLogger({ module: 'CommunicationPreferences' });
  */
 async function getFirestoreDb() {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    return getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    return getAdminFirestore();
   } catch {
     log.debug('Firestore not available');
     return null;

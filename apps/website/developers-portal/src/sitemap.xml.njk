@@ -1,0 +1,22 @@
+---
+permalink: /sitemap.xml
+eleventyExcludeFromCollections: true
+---
+{#- Every page the build writes, at the URL firebase.json serves (no trailing slash), except the signed-in console. Blog posts get their date as lastmod. -#}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  {%- for p in collections.all %}
+  {%- if p.url and p.url != "/404.html" and r/(\/|\.html)$/.test(p.url) and not r/^\/console(\/|$)/.test(p.url) %}
+  <url>
+    <loc>{{ site.url }}{{ p.url | replace(r/\/$/, "") | replace(r/\.html$/, "") }}</loc>
+    {%- if "blogPosts" in (p.data.tags or []) %}
+    <lastmod>{{ p.date | date('iso') }}</lastmod>
+    {%- endif %}
+  </url>
+  {%- endif %}
+  {%- endfor %}
+  {#- The blog index is excluded from collections, so list it here. #}
+  <url>
+    <loc>{{ site.url }}/blog</loc>
+  </url>
+</urlset>

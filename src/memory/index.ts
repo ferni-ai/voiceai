@@ -209,8 +209,6 @@ export {
   type SummarizationOptions,
 } from './summarizer.js';
 
-// History tracking is handled by session state in services layer
-
 // Key Moment Retrieval
 export {
   clearCurrentSessionMomentsGetter,
@@ -674,7 +672,6 @@ export type {
 // The unified entity store replaces fragmented collections:
 // - user_contacts, contact_relationships, relationship_network
 // - relationship_nodes, guest_profiles, network/relationships
-//
 // All people, places, events, and concepts are now stored as unified entities
 // with deduplication, alias resolution, and cross-domain queries.
 
@@ -1285,6 +1282,8 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
+export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js';
+export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { peopleOf } from './recall/people.js';

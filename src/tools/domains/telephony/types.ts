@@ -115,4 +115,7 @@ export interface CallOutcome {
   // Recording (if consented)
   recordingUrl?: string;
   transcriptSummary?: string;
+
+  /** What the person asked Ferni to pass on to the user, in their (screened) words. */
+  message?: string;
 }

@@ -7,12 +7,12 @@
  */
 
 import type { ServerResponse } from 'http';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
+import { ownerEmail } from '../../config/owner-email.js';
 
 const log = createLogger({ module: 'MaintenanceJobs' });
-
-const ADMIN_REPORT_EMAIL = 'seth.ford@gmail.com';
 
 export async function handleTTLCleanup(res: ServerResponse): Promise<void> {
   try {
@@ -48,6 +48,31 @@ export async function handleTTLCleanup(res: ServerResponse): Promise<void> {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
+  }
+}
+
+/** Deletes erased accounts' BigQuery analytics rows (services/analytics/bq-erasure.ts). */
+export async function handleBqErasure(res: ServerResponse): Promise<void> {
+  if (!flagOn('BQ_ERASURE')) {
+    log.info('BigQuery erasure skipped: BQ_ERASURE is off');
+    sendJson(res, 200, { success: true, job: 'bq-erasure', skipped: 'BQ_ERASURE off' });
+    return;
+  }
+  try {
+    const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
+    const { runBqErasure } = await import('../../services/analytics/bq-erasure.js');
+    const db = getFirestoreDb();
+    if (!db) throw new Error('Firestore not available');
+    const result = await runBqErasure(db);
+    log.info(result, 'BigQuery erasure run');
+    sendJson(res, result.retrying || result.overdue ? 500 : 200, {
+      success: !result.retrying && !result.overdue,
+      job: 'bq-erasure',
+      ...result,
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'BigQuery erasure job failed');
+    sendJson(res, 500, { success: false, error: 'bq-erasure failed' });
   }
 }
 
@@ -90,6 +115,12 @@ export async function handleTTLBackfill(res: ServerResponse): Promise<void> {
 }
 
 export async function handleDailyAdminReport(res: ServerResponse): Promise<void> {
+  const owner = ownerEmail();
+  if (!owner) {
+    log.warn('OWNER_EMAIL is not set; daily admin report skipped');
+    sendJson(res, 200, { success: true, job: 'daily-admin-report', skipped: 'OWNER_EMAIL unset' });
+    return;
+  }
   try {
     log.info('Running daily admin report job (Cloud Scheduler)');
 
@@ -98,8 +129,10 @@ export async function handleDailyAdminReport(res: ServerResponse): Promise<void>
       await import('../../services/admin/daily-report-template.js');
     const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } =
       await import('../../services/outreach/delivery/email-delivery.js');
+    const { emailProvider } = await import('../../services/email-transport/index.js');
 
-    if (!isEmailDeliveryAvailable()) {
+    // With EMAIL_PROVIDER=gmail the report goes through the Workspace port; no SendGrid key needed.
+    if (!isEmailDeliveryAvailable() && emailProvider() !== 'gmail') {
       const apiKey = process.env.SENDGRID_API_KEY;
       if (!apiKey) {
         throw new Error('SENDGRID_API_KEY not configured');
@@ -119,8 +152,7 @@ export async function handleDailyAdminReport(res: ServerResponse): Promise<void>
     const plainText = generateDailyReportPlainText(reportData);
 
     const emailResult = await sendEmail({
-      to: ADMIN_REPORT_EMAIL,
-      toName: 'Seth Ford',
+      to: owner,
       subject: `Ferni Daily Report - ${reportData.date}`,
       body: plainText,
       html,
@@ -153,7 +185,7 @@ export async function handleDailyAdminReport(res: ServerResponse): Promise<void>
         uniqueVisitors: reportData.visitors.unique,
         totalSessions: reportData.visitors.totalSessions,
         phoneCalls: reportData.callers.total,
-        emailSentTo: ADMIN_REPORT_EMAIL,
+        emailSent: true,
         messageId: emailResult.messageId,
       },
       timestamp: new Date().toISOString(),

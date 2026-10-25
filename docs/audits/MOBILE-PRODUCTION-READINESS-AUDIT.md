@@ -1,5 +1,14 @@
 # Mobile Apps Production Readiness Audit
 
+> **Out of date for Android (note added 2026-10-18).** The "Android Native ✅ Ready
+> for Play Store" rows below are not true. The native app could not start a call
+> (`/token` now requires Firebase sign-in; the app had none), targeted API 34 while
+> Play requires 36, had no push or account deletion, and was never built in CI;
+> its "BUILD SUCCESSFUL" was a local debug build. It is archived in
+> `apps/archive/android-native`. Android now ships as a Trusted Web Activity over
+> app.ferni.ai: see `apps/android-twa/README.md`. The iOS and macOS rows were not
+> re-checked here.
+
 **Audit Date:** December 25, 2024
 **Status:** ✅ Production Ready - All Builds Verified Working
 
@@ -125,7 +134,7 @@ xcrun simctl launch "iPhone 16 Pro" com.ferni.voice.ios
 ### 2.1 Architecture (Production Ready ✅)
 
 ```
-apps/android-native/
+apps/archive/android-native/
 ├── app/src/main/java/com/ferni/voice/
 │   ├── FerniVoiceApp.kt              # Application class
 │   ├── MainActivity.kt                # Single activity
@@ -201,7 +210,7 @@ dependencies {
 **Verified Working (December 25, 2024):**
 ```bash
 export JAVA_HOME=/opt/homebrew/Cellar/openjdk/23.0.2/libexec/openjdk.jdk/Contents/Home
-cd apps/android-native
+cd apps/archive/android-native
 ./gradlew assembleDebug
 # BUILD SUCCESSFUL in 23s
 # APK: app/build/outputs/apk/debug/app-debug.apk (62MB)

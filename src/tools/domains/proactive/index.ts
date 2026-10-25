@@ -1,8 +1,7 @@
 /**
  * Proactive Domain Tools - Better Than Human
  *
- * This domain exposes Ferni's superhuman capabilities as LLM tools.
- * These tools make Ferni genuinely better than any human friend:
+ * Ferni's superhuman capabilities as LLM tools, the ones that beat any human friend:
  *
  * - Perfect memory of every commitment
  * - Pattern recognition across conversations
@@ -10,8 +9,7 @@
  * - Life narrative synthesis
  * - Values alignment detection
  *
- * DOMAIN: proactive
- * PERSONA AFFINITY: All personas (superhuman capabilities are cross-cutting)
+ * DOMAIN: proactive. PERSONA AFFINITY: all personas (superhuman capabilities are cross-cutting)
  *
  * TOOLS:
  *   Commitment: trackCommitment, reviewCommitments, celebrateCompletion
@@ -28,9 +26,8 @@ import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
-// Import superhuman services
+import { requestedFieldsFor } from '../../../services/superhuman/index.js';
 import {
-  detectCommitment,
   saveCommitment,
   loadUserCommitments,
   updateCommitmentStatus,
@@ -53,6 +50,7 @@ import {
 } from '../../../services/superhuman/life-narrative.js';
 import { detectConflict, loadUserValues } from '../../../services/superhuman/values-alignment.js';
 import { recordCheckInPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
+import { MINOR_CARE_NOT_SAVED, writeHeld } from '../../../utils/minor-care.js';
 
 const log = createLogger({ module: 'proactive-tools' });
 
@@ -96,7 +94,7 @@ const trackCommitmentDef: ToolDefinition = {
 
         try {
           const importanceToWeight = { low: 0.3, medium: 0.6, high: 0.9 };
-          const { commitment } = await saveCommitment({
+          const { commitment, notActionable } = await saveCommitment({
             userId: ctx.userId,
             type: type as CommitmentType,
             statement: summary,
@@ -112,8 +110,10 @@ const trackCommitmentDef: ToolDefinition = {
             status: 'active',
             followUpCount: 0,
             topic: context,
+            ...(await requestedFieldsFor(ctx.userId)), // shown with COMMITMENT_SINGLE_WRITER on, per person
           });
-
+          if (notActionable) return 'Not tracked: that is a goodbye or a pleasantry.';
+          if (writeHeld(ctx.userId)) return MINOR_CARE_NOT_SAVED; // the save held too
           let response = `**Got it. I'll remember this.** ✓\n\n`;
           response += `**Commitment:** ${summary}\n`;
           response += `**Type:** ${type}\n`;

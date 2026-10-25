@@ -1,13 +1,14 @@
 import admin from 'firebase-admin';
 import { generateAgentPage } from '../src/services/page-generator/index.js';
 import type { AgentPageConfig } from '../src/services/page-generator/types.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 const projectId = 'johnb-2025';
 if (admin.apps.length === 0) {
   admin.initializeApp({ projectId });
 }
 
-const db = admin.firestore();
+const db = getAdminFirestore();
 
 async function regen() {
   const config: AgentPageConfig = {
@@ -45,6 +46,7 @@ async function regen() {
     // Use set with merge for nested files object
     await docRef.set({
       files: { ...(currentData.files || {}), 'index.html': result.html },
+      kind: 'generated',
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
     console.log('✓ Updated in Firestore (deployed-sites):', snap.docs[0].id);
@@ -55,6 +57,7 @@ async function regen() {
       subdomain: 'joel-dickson',
       status: 'active',
       files: { 'index.html': result.html },
+      kind: 'generated',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });

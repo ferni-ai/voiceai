@@ -125,7 +125,7 @@ export function startTurn(sessionId: string, userTranscript?: string): string {
   activeTimelines.set(turnId, timeline);
   sessionTurnMap.set(sessionId, turnId);
 
-  getLog().debug({ turnId, sessionId, transcript: userTranscript?.slice(0, 50) }, '📊 Turn started');
+  getLog().debug({ turnId, sessionId, transcriptChars: userTranscript?.length ?? 0 }, '📊 Turn started');
 
   return turnId;
 }
@@ -480,7 +480,7 @@ function completeTurn(timeline: LatencyTimeline): void {
   // Log comprehensive summary
   const summary = {
     turnId: timeline.turnId,
-    transcript: timeline.userTranscript?.slice(0, 30),
+    transcriptChars: timeline.userTranscript?.length ?? 0,
     e2eTotal: timeline.e2eTotal,
     llmTTFB: timeline.llmTTFB,
     llmTotal: timeline.llmTotal,

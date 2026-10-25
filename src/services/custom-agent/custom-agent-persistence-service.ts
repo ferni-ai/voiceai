@@ -8,7 +8,7 @@
  * @module custom-agent-persistence.service
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CustomAgent, CreateCustomAgentRequest } from '../../types/custom-agent-api.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -65,7 +65,7 @@ function removeUndefinedFields<T extends Record<string, unknown>>(obj: T): T {
  * Gets the Firestore reference for a user's custom agents collection
  */
 function getCustomAgentsCollection(userId: string) {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   return db.collection(COLLECTION_USERS).doc(userId).collection(SUBCOLLECTION_CUSTOM_AGENTS);
 }
 

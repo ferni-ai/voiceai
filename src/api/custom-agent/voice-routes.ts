@@ -20,6 +20,8 @@ import {
   MAX_FILE_SIZE_BYTES,
 } from '../../services/custom-agent/voice-clone-service.js';
 import type { CustomAgentVoice } from '../../types/custom-agent-api.js';
+import { isStockCustomAgentVoiceId } from '../../services/custom-agent/custom-agent-voice-policy.js';
+import { CUSTOM_AGENT_VOICE_CATALOG } from '../../services/custom-agent/custom-agent-voice-catalog.js';
 import type { VoiceUploadBody, VoiceCloneBody } from './types.js';
 import { sendJson, getQualityFeedback } from './helpers.js';
 
@@ -182,6 +184,16 @@ export async function handleVoiceClone(
 }
 
 /**
+ * GET /api/custom-agents/voices - the voices a person can pick for their agent.
+ * The picker reads this list, so the ids it sends to select-premade are the ids
+ * select-premade accepts.
+ */
+export function handleListVoices(res: ServerResponse): boolean {
+  sendJson(res, 200, { voices: CUSTOM_AGENT_VOICE_CATALOG });
+  return true;
+}
+
+/**
  * PUT /api/custom-agents/:agentId/voice/select-premade - Select pre-made voice
  */
 export async function handleSelectPremadeVoice(
@@ -194,6 +206,15 @@ export async function handleSelectPremadeVoice(
 
   if (!body.voiceId) {
     sendJson(res, 400, { error: 'Voice ID is required' });
+    return true;
+  }
+  // Only a stock library voice: never a made-up id marked ready, a retired clone or a persona's voice.
+  if (!isStockCustomAgentVoiceId(body.voiceId)) {
+    log.warn(
+      { userId, agentId, voiceId: String(body.voiceId).slice(0, 64) },
+      'Unknown pre-made voice refused'
+    );
+    sendJson(res, 400, { error: 'unknown_voice' });
     return true;
   }
 

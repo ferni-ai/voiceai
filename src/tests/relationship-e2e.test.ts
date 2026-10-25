@@ -197,12 +197,14 @@ describe('Relationship Memory E2E', () => {
 
   describe('Emotional Trajectory', () => {
     it('should track emotional trends across sessions', async () => {
-      // Simulate declining then improving trajectory
+      // Simulate declining then improving trajectory. A trend needs 3 older and
+      // 3 recent sessions (#2124), so the older window is all struggling.
       const moods: Array<'struggling' | 'neutral' | 'positive'> = [
         'struggling',
         'struggling',
+        'struggling',
         'neutral',
-        'neutral',
+        'positive',
         'positive',
       ];
 

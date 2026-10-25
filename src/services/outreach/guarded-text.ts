@@ -47,6 +47,7 @@ import {
   type QuietHoursUser,
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
+import { reportText } from './outreach-bq.js';
 import {
   attestedIntro,
   grantedOrAsked,
@@ -60,10 +61,11 @@ import {
   type ConsentBlock,
   type ConsentDeps,
 } from '../messaging/consent.js';
+import { smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
 
 const log = createLogger({ module: 'guarded-text' });
 
-export interface TextStore extends Pick<ReplyStore, 'forPhoneHash' | 'isOptedOut'> {
+export interface TextStore extends Pick<ReplyStore, 'forPhoneHash'>, TextConsentReaders {
   forUser: (userId: string) => Promise<StoredCheckin[]>;
   add: (record: CheckinRecord) => Promise<string>;
   /** Takes lock `id`, stamped `at`, only if nobody holds it (atomic); false if someone does. */
@@ -99,6 +101,8 @@ export interface GuardedText {
   readonly refId: string;
   /** No second text of this kind to this person or phone within this many ms. */
   readonly minGapMs: number;
+  /** The owner asked for it in the call just now: an unreadable consent record doesn't hold it (text-consent.ts). */
+  readonly askedNow?: boolean;
 }
 
 export type TextSkip =
@@ -107,6 +111,8 @@ export type TextSkip =
   | 'recently-sent'
   | 'sms-off'
   | 'opted-out'
+  | 'consent-unknown'
+  | 'paused'
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -229,7 +235,7 @@ export async function sendGuardedText(
   const logCtx = { kind: t.kind, refId: t.refId };
   const skip = (reason: TextSkip): TextOutcome => {
     log.info({ ...logCtx, reason }, 'Text skipped');
-    return { sent: false, reason };
+    return reportText(t.userId, t.kind, { sent: false, reason });
   };
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const storedId = recordUserId(t.userId, deps.env);
@@ -249,11 +255,11 @@ export async function sendGuardedText(
 
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
-  const [optedOut, toPhone] = await Promise.all([
-    deps.store.isOptedOut(hash),
+  const [refusal, toPhone] = await Promise.all([
+    smsConsentRefusal(hash, deps.store, t.askedNow === true, now),
     deps.store.forPhoneHash(hash),
   ]);
-  if (optedOut) return skip('opted-out');
+  if (refusal) return skip(refusal);
   // The member's own verified number: unknown consent is fine, an opt-out is not.
   const consent = await consentBlocks(phone, 'sms', true, consentOf(deps));
   if (consent) return skip(consent === 'opted-out' ? 'opted-out' : 'send-failed');
@@ -282,20 +288,17 @@ export async function sendGuardedText(
   if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
     log.warn({ ...logCtx, phoneLast4, error: redactNumbers(result.error) }, 'Text not sent');
-    return { sent: false, reason: 'send-failed' };
+    return reportText(t.userId, t.kind, { sent: false, reason: 'send-failed' });
   }
   log.info({ ...logCtx, phoneLast4 }, 'Text sent');
-  return { sent: true };
+  return reportText(t.userId, t.kind, { sent: true });
 }
 
 // ---------------------------------------------------------------------------
 // Texts a member asks Ferni to send to someone else
 // ---------------------------------------------------------------------------
 
-/**
- * The guards are safety, not a feature, so they run unless ops turn them off:
- * ON_BEHALF_TEXT_GUARD=off restores the unguarded send (rollback only).
- */
+/** The guards are safety, not a feature: ON_BEHALF_TEXT_GUARD=off restores the unguarded send (rollback only). */
 export function onBehalfGuardOn(env: Env = process.env): boolean {
   return flagOn('ON_BEHALF_TEXT_GUARD', env);
 }
@@ -321,13 +324,10 @@ export interface OnBehalfText {
 }
 
 export type OnBehalfSkip =
-  | 'no-hash-secret'
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off'>
   | 'bad-number'
-  | 'opted-out'
   | 'needs-consent'
-  | 'recently-sent'
-  | 'quiet-hours'
-  | 'send-failed';
+  | 'quiet-hours';
 export type OnBehalfOutcome =
   | { sent: true }
   | { sent: false; reason: Exclude<OnBehalfSkip, 'quiet-hours'> }
@@ -336,10 +336,8 @@ export type OnBehalfOutcome =
 
 const QUIET_WINDOW = hoursWindow(QUIET_START_HOUR, QUIET_END_HOUR);
 
-/**
- * Quiet-hours zones: the recipient's (given, else their area code's), else the
- * member's (the call's, else their account's), else both US coasts.
- */
+/** Quiet-hours zones: the recipient's (given, else their area code's), else the member's
+ * (the call's, else their account's), else both US coasts. */
 async function quietZonesFor(t: OnBehalfText, to: string, deps: TextDeps): Promise<string[]> {
   const zone = [t.zone, timezoneFromPhone(to), userTimeZone({ userId: t.senderUserId })].find(
     (z) => z !== undefined && isValidTimeZone(z)
@@ -352,7 +350,7 @@ async function quietZonesFor(t: OnBehalfText, to: string, deps: TextDeps): Promi
 /**
  * Sends a text to someone else for a member (the caller has already said yes,
  * outreach-confirm.ts): only to a valid number, never after that number sent
- * STOP (any STOP to our number is recorded, checkin-replies.ts), not twice in
+ * STOP (any STOP to our number is recorded, messaging/consent.ts), not twice in
  * ten minutes, not in their quiet hours (follow-through's 21:00 to 08:00).
  */
 export async function sendOnBehalfText(
@@ -361,7 +359,7 @@ export async function sendOnBehalfText(
 ): Promise<OnBehalfOutcome> {
   const skip = (reason: Exclude<OnBehalfSkip, 'quiet-hours'>): OnBehalfOutcome => {
     log.info({ kind: 'on-behalf', refId: t.refId, reason }, 'Text skipped');
-    return { sent: false, reason };
+    return reportText(t.senderUserId, 'on-behalf', { sent: false, reason });
   };
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const to = toE164(t.toPhone);
@@ -372,13 +370,13 @@ export async function sendOnBehalfText(
   if (isQuietAt(now, QUIET_WINDOW, zones)) {
     const until = quietEndsAt(now, QUIET_WINDOW, zones);
     log.info({ kind: 'on-behalf', refId: t.refId, reason: 'quiet-hours' }, 'Text skipped');
-    return { sent: false, reason: 'quiet-hours', until };
+    return reportText(t.senderUserId, 'on-behalf', { sent: false, reason: 'quiet-hours', until });
   }
-  const [optedOut, toPhone] = await Promise.all([
-    deps.store.isOptedOut(hash),
+  const [refusal, toPhone] = await Promise.all([
+    smsConsentRefusal(hash, deps.store, false, now),
     deps.store.forPhoneHash(hash),
   ]);
-  if (optedOut) return skip('opted-out');
+  if (refusal) return skip(refusal);
   const consent = await onBehalfConsent(t, deps);
   if (consent) return skip(consent);
   if (sentWithin(lastSentAt(toPhone, 'on-behalf'), now, ON_BEHALF_GAP_MS))
@@ -412,9 +410,9 @@ export async function sendOnBehalfText(
       { kind: 'on-behalf', refId: t.refId, error: redactNumbers(result.error) },
       'Text not sent'
     );
-    return { sent: false, reason: 'send-failed' };
+    return reportText(t.senderUserId, 'on-behalf', { sent: false, reason: 'send-failed' });
   }
-  return { sent: true };
+  return reportText(t.senderUserId, 'on-behalf', { sent: true });
 }
 
 /**
@@ -475,6 +473,8 @@ export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   const why: Record<OnBehalfSkip, string> = {
     'opted-out': "that number replied STOP to our texts, so I can't text it",
     'needs-consent': "they haven't said yes to texts from me yet",
+    'consent-unknown': "I couldn't check whether that number asked us to stop texting, so I didn't",
+    paused: 'they recently sounded like they might want fewer texts, so texts to them are on hold',
     'quiet-hours': "it's late where they are (9pm to 8am their time). Nothing is queued",
     'recently-sent': 'I already texted that number in the last ten minutes',
     'bad-number': "that doesn't look like a valid phone number",
