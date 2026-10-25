@@ -2,7 +2,7 @@
  * Notification Delivery Service
  * Actually delivers proactive outreach notifications via:
  * - Push notifications (web/mobile)
- * - Email (Sendgrid/Postmark)
+ * - Email (the app transport: SendGrid or the ferni.ai Workspace)
  * - SMS (Twilio)
  *
  * Philosophy: The best check-ins feel like they came from a friend
@@ -212,8 +212,7 @@ export async function deliverEmail(
   };
 
   try {
-    // Use Sendgrid or Postmark
-    const sent = await sendEmailViaSendgrid(payload);
+    const sent = await sendEmailViaTransport(payload);
 
     if (sent) {
       log.info(
@@ -636,45 +635,31 @@ async function getFirebaseAdmin(): Promise<typeof import('firebase-admin') | nul
 }
 
 /**
- * Send email via Sendgrid
+ * Send email through the app transport (EMAIL_PROVIDER: SendGrid by default, the
+ * ferni.ai Workspace under gmail). A check-in is mail they can opt out of, so it
+ * goes as 'bulk' with a List-Unsubscribe mailto.
  */
-async function sendEmailViaSendgrid(payload: EmailPayload): Promise<boolean> {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  if (!apiKey) {
-    log.warn('SENDGRID_API_KEY not configured');
+async function sendEmailViaTransport(payload: EmailPayload): Promise<boolean> {
+  const { isEmailConfigured, sendAppEmail, unsubscribeMailbox } =
+    await import('../communication-service.js');
+  if (!isEmailConfigured()) {
+    log.warn('Email transport not configured');
     return false;
   }
-
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: payload.to }] }],
-        from: { email: 'hello@ferni.ai', name: 'Ferni' },
-        reply_to: { email: payload.replyTo || 'hello@ferni.ai' },
-        subject: payload.subject,
-        content: [
-          { type: 'text/plain', value: payload.text },
-          ...(payload.html ? [{ type: 'text/html', value: payload.html }] : []),
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      return true;
-    }
-
-    const error = await response.text();
-    log.error({ status: response.status, error }, 'Sendgrid error');
-    return false;
-  } catch (error) {
-    log.error({ error }, 'Sendgrid request failed');
-    return false;
+  const res = await sendAppEmail({
+    to: payload.to,
+    fromName: 'Ferni',
+    replyTo: payload.replyTo || 'hello@ferni.ai',
+    subject: payload.subject,
+    text: payload.text,
+    html: payload.html,
+    kind: 'bulk',
+    unsubscribe: { mailto: unsubscribeMailbox() },
+  });
+  if (!res.ok) {
+    log.error({ provider: res.provider, status: res.status, error: res.error }, 'Email send failed'); // prettier-ignore
   }
+  return res.ok;
 }
 
 /**
