@@ -11,7 +11,11 @@
  * @module intelligence/collective/community-labels
  */
 
-import { TOPIC_NAMES, type TopicCategory } from '../detectors/topic.js';
+import type {
+  CommunityResponsePattern,
+  EffectiveQuestion,
+  StoryResonance,
+} from './community-insights.js';
 
 // ============================================================================
 // QUESTION SHAPES
@@ -61,27 +65,46 @@ export function questionShapeOf(text: string | undefined | null): QuestionShape 
 }
 
 /** Fixed wording for a prompt hint, e.g. "a question about how they feel". */
-export function describeQuestionShape(shape: QuestionShape): string {
-  return SHAPE_DESCRIPTIONS[shape];
+export function describeQuestion(text: string | undefined | null): string {
+  return SHAPE_DESCRIPTIONS[questionShapeOf(text)];
 }
 
 // ============================================================================
 // TOPICS AND CONTEXTS
 // ============================================================================
 
-const TOPIC_CATEGORIES: readonly TopicCategory[] = [
+/**
+ * The topic detector's fixed topic names and categories (intelligence/detectors/topic.ts).
+ * Kept here, not imported, so this context stays self-contained; a topic missing from
+ * this list is stored as 'general', which loses detail but never leaks words.
+ */
+const SAFE_TOPICS = new Set<string>([
+  'retirement',
+  'investments',
+  'stocks',
+  'bonds',
+  'funds',
+  'fees',
+  'savings',
+  'debt',
+  'goals',
+  'risk',
+  'market',
+  'family',
+  'health',
+  'work',
+  'anxiety',
+  'uncertainty',
+  'college',
   'financial',
   'personal',
   'emotional',
-  'market',
   'planning',
   'education',
   'general',
-];
+]);
 
-const SAFE_TOPICS = new Set<string>([...TOPIC_NAMES, ...TOPIC_CATEGORIES]);
-
-/** A topic from the topic detector's fixed names, or 'general'. */
+/** A topic from the fixed set above, or 'general'. */
 export function safeTopic(topic: string | undefined | null): string {
   const key = (topic ?? '').trim().toLowerCase();
   return SAFE_TOPICS.has(key) ? key : 'general';
@@ -113,4 +136,77 @@ const SAFE_CONTEXTS = new Set<string>([
 export function safeContext(context: string | undefined | null): string {
   const key = (context ?? '').trim().toLowerCase();
   return SAFE_CONTEXTS.has(key) ? key : 'conversation';
+}
+
+/** The labels a breakthrough is stored under: [question shape, topic, context]. */
+export function labelBreakthrough(
+  question: string,
+  topic: string,
+  context: string
+): [QuestionShape, string, string] {
+  return [questionShapeOf(question), safeTopic(topic), safeContext(context)];
+}
+
+// ============================================================================
+// RELABELING STORED ROWS
+// Rows saved before labels were enforced can hold a caller's words (prompt text
+// as a question, a reply as a context, free text as a topic). They are relabeled
+// on load, so the next save rewrites the shared doc without them.
+// ============================================================================
+
+function relabelQuestions(rows: EffectiveQuestion[]): EffectiveQuestion[] {
+  const byKey = new Map<string, EffectiveQuestion>();
+  for (const row of rows) {
+    const questionPattern = questionShapeOf(row.questionPattern);
+    const topic = safeTopic(row.topic);
+    const bestContexts = [...new Set((row.bestContexts ?? []).map(safeContext))];
+    const key = `${questionPattern}|${row.personaId}|${topic}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, { ...row, questionPattern, topic, bestContexts });
+      continue;
+    }
+    const n = prev.sampleSize + row.sampleSize;
+    if (n > 0) {
+      prev.avgBreakthroughRate =
+        (prev.avgBreakthroughRate * prev.sampleSize + row.avgBreakthroughRate * row.sampleSize) / n;
+      prev.avgEngagementLift =
+        (prev.avgEngagementLift * prev.sampleSize + row.avgEngagementLift * row.sampleSize) / n;
+    }
+    prev.sampleSize = n;
+    prev.bestContexts = [...new Set([...prev.bestContexts, ...bestContexts])];
+  }
+  return [...byKey.values()];
+}
+
+function relabelStory(story: StoryResonance): StoryResonance {
+  const byTopic: Record<string, number> = {};
+  for (const [topic, score] of Object.entries(story.byTopic ?? {})) {
+    const label = safeTopic(topic);
+    byTopic[label] = byTopic[label] === undefined ? score : (byTopic[label] + score) / 2;
+  }
+  const bestContexts = [...new Set((story.bestContexts ?? []).map(safeTopic))];
+  return { ...story, byTopic, bestContexts };
+}
+
+/**
+ * Relabels rows loaded from the shared Firestore doc. Question and story rows are
+ * relabeled (and merged where they now share a label); response patterns keyed by a
+ * free-text topic are dropped, and recompute from new, labeled signals.
+ */
+export function relabelInsights<
+  T extends {
+    patterns?: CommunityResponsePattern[];
+    effectiveQuestions?: EffectiveQuestion[];
+    storyResonance?: StoryResonance[];
+  },
+>(data: T): T {
+  return {
+    ...data,
+    patterns: data.patterns?.filter(
+      (p) => p.context.topic === undefined || safeTopic(p.context.topic) === p.context.topic
+    ),
+    effectiveQuestions: data.effectiveQuestions && relabelQuestions(data.effectiveQuestions),
+    storyResonance: data.storyResonance?.map(relabelStory),
+  };
 }

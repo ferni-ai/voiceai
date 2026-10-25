@@ -376,15 +376,10 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
         );
 
       if (isBreakthroughMoment) {
-        // Community learning is shared with every caller, so it gets labels only: the
-        // shape of the question that may have triggered this (injections can carry the
-        // caller's memories), a fixed topic name, and a fixed context, never their words.
-        const questionPattern = questionShapeOf(
-          ctx.injections.find((i) => i.content.includes('?'))?.content
-        );
-        const topic = safeTopic(
-          ctx.injections.find((i) => i.category === 'topics')?.content?.split(' ')[0]
-        );
+        const asked = ctx.injections.find((i) => i.content.includes('?'))?.content;
+        const topicLine = ctx.injections.find((i) => i.category === 'topics')?.content;
+        const questionPattern = questionShapeOf(asked); // shared by all callers: labels only
+        const topic = safeTopic(topicLine?.split(' ')[0]);
 
         recordBreakthroughForLearning(
           ctx.personaId,
@@ -393,10 +388,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
           'breakthrough',
           ctx.emotionalResult.intensity // engagement lift
         );
-        logger.debug(
-          { topic, intensity: ctx.emotionalResult.intensity },
-          '💡 Breakthrough recorded'
-        );
+        logger.debug({ topic, intensity: ctx.emotionalResult.intensity }, '💡 Breakthrough');
       }
 
       // 📚 CAPABILITY LEARNING: Track user engagement with surfaced capabilities

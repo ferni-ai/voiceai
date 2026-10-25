@@ -223,9 +223,6 @@ const TOPIC_DEFINITIONS: TopicDefinition[] = [
   },
 ];
 
-/** The fixed topic names this detector can return (no caller words). */
-export const TOPIC_NAMES: readonly string[] = TOPIC_DEFINITIONS.map((d) => d.name);
-
 // ============================================================================
 // TOPIC TRACKER
 // ============================================================================

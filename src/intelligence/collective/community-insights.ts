@@ -10,19 +10,12 @@
  * This creates COLLECTIVE INTELLIGENCE that makes every persona smarter
  * based on learnings from the entire community.
  *
- * PRIVACY: All data is anonymized before aggregation. No PII stored. Questions,
- * topics and contexts are stored only as labels from fixed sets (community-labels.ts):
- * they are shared with every caller, so they must never hold anyone's words.
+ * PRIVACY: shared by every caller, so questions/topics/contexts are labels only (community-labels).
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
-import {
-  describeQuestionShape,
-  questionShapeOf,
-  safeContext,
-  safeTopic,
-} from './community-labels.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
+import * as labels from './community-labels.js';
 
 // ============================================================================
 // TYPES
@@ -141,7 +134,7 @@ export interface CommunityJourneyPattern {
  * Question that leads to breakthroughs
  */
 export interface EffectiveQuestion {
-  questionPattern: string; // a QuestionShape label, e.g. 'future_question' (never the words)
+  questionPattern: string; // a QuestionShape label, e.g. 'future_question', never the words
   topic: string;
   personaId: string;
 
@@ -206,15 +199,10 @@ export class CommunityInsightsEngine {
   private journeyPatterns = new Map<string, CommunityJourneyPattern>();
   private effectiveQuestions: EffectiveQuestion[] = [];
   private storyResonance = new Map<string, StoryResonance>();
-  private phraseEffectiveness: PhraseEffectiveness[] = [];
 
   // Minimum samples before pattern is considered reliable
   private readonly MIN_SAMPLES = 10;
   private readonly HIGH_CONFIDENCE_SAMPLES = 50;
-
-  constructor() {
-    // Will be loaded from persistent storage
-  }
 
   // ==========================================================================
   // SIGNAL COLLECTION (Called during conversations)
@@ -258,7 +246,7 @@ export class CommunityInsightsEngine {
     reaction: 'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent',
     engagementScore: number
   ): void {
-    context = { ...context, topic: safeTopic(context.topic) };
+    context = { ...context, topic: labels.safeTopic(context.topic) };
     const existing = this.storyResonance.get(storyId);
 
     if (existing) {
@@ -361,10 +349,7 @@ export class CommunityInsightsEngine {
     context: string,
     engagementLift: number
   ): void {
-    // Shared with every caller: keep labels only, never the question or reply text
-    questionPattern = questionShapeOf(questionPattern);
-    topic = safeTopic(topic);
-    context = safeContext(context);
+    [questionPattern, topic, context] = labels.labelBreakthrough(questionPattern, topic, context);
     const existing = this.effectiveQuestions.find(
       (q) => q.questionPattern === questionPattern && q.personaId === personaId
     );
@@ -516,7 +501,6 @@ export class CommunityInsightsEngine {
     expectedEngagement: number;
     alternatives: string[];
   } | null {
-    context = { ...context, topic: safeTopic(context.topic) };
     // Try exact match first
     const exactKey = `${context.userEmotion}|${context.topic}|${context.relationshipStage}|${context.personaId}`;
     let pattern = this.patterns.get(`pattern_${exactKey.replace(/\|/g, '_')}`);
@@ -555,7 +539,6 @@ export class CommunityInsightsEngine {
     },
     limit = 3
   ): Array<{ storyId: string; expectedEffectiveness: number; reason: string }> {
-    context = { ...context, topic: safeTopic(context.topic) };
     const results: Array<{ storyId: string; score: number; reason: string }> = [];
 
     for (const [storyId, resonance] of this.storyResonance.entries()) {
@@ -601,14 +584,13 @@ export class CommunityInsightsEngine {
     topic: string,
     limit = 3
   ): Array<{ question: string; expectedBreakthroughRate: number; bestContext: string }> {
-    topic = safeTopic(topic);
     return this.effectiveQuestions
-      .filter((q) => q.personaId === personaId && q.topic === topic)
+      .filter((q) => q.personaId === personaId && q.topic === labels.safeTopic(topic))
       .filter((q) => q.sampleSize >= this.MIN_SAMPLES)
       .sort((a, b) => b.avgBreakthroughRate - a.avgBreakthroughRate)
       .slice(0, limit)
       .map((q) => ({
-        question: describeQuestionShape(questionShapeOf(q.questionPattern)),
+        question: labels.describeQuestion(q.questionPattern),
         expectedBreakthroughRate: q.avgBreakthroughRate,
         bestContext: q.bestContexts[0] || 'any',
       }));
@@ -637,7 +619,7 @@ export class CommunityInsightsEngine {
       ...signal,
       context: {
         ...signal.context,
-        topic: safeTopic(signal.context.topic),
+        topic: labels.safeTopic(signal.context.topic),
         // Coarsen time to day granularity
         turnInConversation: Math.floor(signal.context.turnInConversation / 5) * 5,
       },
@@ -724,12 +706,9 @@ export class CommunityInsightsEngine {
     effectiveQuestions?: EffectiveQuestion[];
     storyResonance?: StoryResonance[];
   }): void {
+    data = labels.relabelInsights(data); // rows saved before labels can hold callers' words
     if (data.patterns) {
       for (const p of data.patterns) {
-        // Older rows could hold a caller's words as a topic; they recompute from new signals
-        if (p.context.topic !== undefined && safeTopic(p.context.topic) !== p.context.topic) {
-          continue;
-        }
         this.patterns.set(p.id, p);
       }
     }
@@ -739,11 +718,11 @@ export class CommunityInsightsEngine {
       }
     }
     if (data.effectiveQuestions) {
-      this.effectiveQuestions = relabelQuestions(data.effectiveQuestions);
+      this.effectiveQuestions = data.effectiveQuestions;
     }
     if (data.storyResonance) {
       for (const s of data.storyResonance) {
-        this.storyResonance.set(s.storyId, relabelStory(s));
+        this.storyResonance.set(s.storyId, s);
       }
     }
 
@@ -967,48 +946,6 @@ export async function saveCommunityInsightsToFirestore(): Promise<void> {
 export async function initializeCommunityInsights(): Promise<CommunityInsightsEngine> {
   await loadCommunityInsightsFromFirestore();
   return getCommunityInsights();
-}
-
-// ============================================================================
-// RELABELING STORED ROWS
-// Rows saved before labels were enforced can hold a caller's words (prompt text
-// as a question, a reply as a context, free text as a topic). They are relabeled
-// on load, so the next save rewrites the shared doc without them.
-// ============================================================================
-
-function relabelQuestions(rows: EffectiveQuestion[]): EffectiveQuestion[] {
-  const byKey = new Map<string, EffectiveQuestion>();
-  for (const row of rows) {
-    const questionPattern = questionShapeOf(row.questionPattern);
-    const topic = safeTopic(row.topic);
-    const bestContexts = [...new Set((row.bestContexts ?? []).map(safeContext))];
-    const key = `${questionPattern}|${row.personaId}|${topic}`;
-    const prev = byKey.get(key);
-    if (!prev) {
-      byKey.set(key, { ...row, questionPattern, topic, bestContexts });
-      continue;
-    }
-    const n = prev.sampleSize + row.sampleSize;
-    if (n > 0) {
-      prev.avgBreakthroughRate =
-        (prev.avgBreakthroughRate * prev.sampleSize + row.avgBreakthroughRate * row.sampleSize) / n;
-      prev.avgEngagementLift =
-        (prev.avgEngagementLift * prev.sampleSize + row.avgEngagementLift * row.sampleSize) / n;
-    }
-    prev.sampleSize = n;
-    prev.bestContexts = [...new Set([...prev.bestContexts, ...bestContexts])];
-  }
-  return [...byKey.values()];
-}
-
-function relabelStory(story: StoryResonance): StoryResonance {
-  const byTopic: Record<string, number> = {};
-  for (const [topic, score] of Object.entries(story.byTopic ?? {})) {
-    const label = safeTopic(topic);
-    byTopic[label] = byTopic[label] === undefined ? score : (byTopic[label] + score) / 2;
-  }
-  const bestContexts = [...new Set((story.bestContexts ?? []).map(safeTopic))];
-  return { ...story, byTopic, bestContexts };
 }
 
 // ============================================================================
