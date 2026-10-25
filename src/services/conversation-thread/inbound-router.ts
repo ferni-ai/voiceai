@@ -222,7 +222,9 @@ export async function handleInboundSMS(
   fromPhone: string,
   body: string,
   /** It might mean "stop texting" (sms-keywords.ts): Ferni should ask, not assume. */
-  possibleOptOut = false
+  possibleOptOut = false,
+  /** MINOR_CARE_SHARED_HOLD (decided by the webhook): a caller held under 18, answered, nothing kept. */
+  held = false
 ): Promise<{
   routeDecision: InboundRouteDecision;
   shouldInitiateCall: boolean;
@@ -233,6 +235,12 @@ export async function handleInboundSMS(
 
   // Check if user wants to talk
   const callIntent = detectCallIntent(body);
+  const responseMessage = callIntent ? `I'd love to talk. Let me call you now...` : undefined;
+
+  if (held) {
+    log.info({ agentId: routeDecision.agentId }, 'Inbound SMS not kept: MINOR_CARE hold');
+    return { routeDecision, shouldInitiateCall: callIntent, responseMessage };
+  }
 
   // Get or create thread
   const thread = await getOrCreateThread(userId, 'sms', routeDecision.agentId, {
@@ -262,11 +270,7 @@ export async function handleInboundSMS(
     '📥 Inbound SMS processed'
   );
 
-  return {
-    routeDecision,
-    shouldInitiateCall: callIntent,
-    responseMessage: callIntent ? `I'd love to talk. Let me call you now...` : undefined,
-  };
+  return { routeDecision, shouldInitiateCall: callIntent, responseMessage };
 }
 
 /**

@@ -120,9 +120,17 @@ jobs:
       voice-eval: ${{ steps.queue.outputs.tested == 'true' && 'false' || steps.voice-eval.outputs.matched }}
       # the web app, design system or brand changed (Overlay Gallery)
       web: ${{ steps.web.outputs.matched }}
+      # 'false' only when this PR's diff hits none of vitest.config.unit.ts's
+      # forceRerunTriggers, so `vitest --changed` runs just the affected unit tests
+      # (see test-unit-shard). Empty on other events.
+      unit-full-suite: ${{ steps.unit-full.outputs.needed }}
     steps:
+      # Two commits on a pull request (the merge commit and its base) for the unit
+      # trigger check below; the pr-changes steps list files through the API.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Did code change?
         id: code
@@ -173,6 +181,18 @@ jobs:
             exit 1
           fi
           echo "✅ node_modules verified"
+
+      # `vitest --changed` runs the WHOLE unit suite when the diff touches one of
+      # vitest.config.unit.ts's forceRerunTriggers (a persona bundle or other data
+      # file under src/, package.json, the lockfile, tsconfig). One shard can't run
+      # ~2,200 files in its 25 min: #2508 edited three persona JSONs and was
+      # cancelled at the timeout three times with no failing test. Such a PR gets
+      # the four shards of a full run instead. The script asks vitest for the
+      # triggers and matches with vitest's picomatch; any failure says 'true'.
+      - name: Will the affected unit tests be the whole suite?
+        id: unit-full
+        if: github.event_name == 'pull_request' && (steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true')
+        run: node scripts/ci/unit-full-suite-needed.mjs HEAD^1 || echo "needed=true" >> "$GITHUB_OUTPUT"
 
       - name: Save node_modules cache
         if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
@@ -243,16 +263,40 @@ jobs:
         run: pnpm tools:schemas:check
 
   # ============================================================================
-  # UNIT TESTS (Fast - ~30-60 seconds)
+  # UNIT TESTS
   # ============================================================================
-  test-unit:
-    name: Unit Tests
+  # The full run (2,209 files) took ~31 of the job's ~34 min, so every merge-queue
+  # group took ~35 min and sat a minute under the old 35 min timeout (2026-10-23).
+  # It runs as four vitest shards in parallel; `test-unit` below is the one
+  # "Unit Tests" check that branch protection, queue-tested and required-checks.sh
+  # read. vitest shards by a hash of each file's path, so every file runs in
+  # exactly one shard. A pull request runs only the affected tests, so the matrix
+  # is just shard 1 there: shards 2-4 are never created and take no runner. When
+  # the affected tests are the whole suite (setup's unit-full-suite), a PR gets
+  # all four, as a full run does.
+  test-unit-shard:
+    name: Unit Tests (${{ matrix.shard }}/4)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
-    # an ~8 min test run. Cached cargo brings later runs back near the old budget.
-    timeout-minutes: 35
+    # A shard runs ~8 min of tests; a cold cargo cache adds the native build.
+    timeout-minutes: 25
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        # [1, 2, 3, 4] on a full run, [1] on a pull request that runs only the
+        # affected tests. The condition is FULL_SUITE's below and must stay the same
+        # (merge-queue-jobs.test.ts pins it, and the Unit Tests gate checks the count).
+        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false') && '[1, 2, 3, 4]' || '[1]') }}
+    env:
+      # 'true' when this run tests the whole suite: every event but a pull request,
+      # a pull request labelled ci:full-tests, and one whose diff makes `--changed`
+      # run everything anyway (`!= 'false'`: a missing answer runs all four).
+      FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' }}
+    # Every leg reports the same two values, so it doesn't matter which one wins.
+    outputs:
+      full-suite: ${{ env.FULL_SUITE }}
+      shards: ${{ strategy.job-total }}
     steps:
       # Two commits on a pull request: GitHub's merge commit and its first parent, the
       # base, which the affected-tests step below diffs against.
@@ -290,7 +334,9 @@ jobs:
       # The root vitest.config.ts excludes apps/**, so the step below never sees the
       # CLI's tests; they run under apps/cli/vitest.config.ts instead. They need no
       # native bindings and finish in seconds, so they run before the Rust build.
+      # Shard 1 runs them and the ratchet below; they don't depend on the shard.
       - name: Run CLI unit tests
+        if: matrix.shard == 1
         run: pnpm test:cli:unit
         env:
           NODE_ENV: test
@@ -298,19 +344,16 @@ jobs:
       # The root typecheck covers src/** only, so apps/cli was never typechecked.
       # Its error count may only go down (baseline: apps/cli/tsc-error-baseline.json).
       - name: CLI typecheck ratchet
+        if: matrix.shard == 1
         run: node scripts/ci/cli-typecheck-ratchet.mjs
 
-      # The env-name list test scans src/ as text, so no import edge reaches it and
-      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
-      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
-      # always runs it, before the Rust build. The list merges with git's union
-      # driver (.gitattributes), which this test makes safe. The flag barrel
-      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
-      # flags/ directory as text, and the barrel merges with union too. The decision
-      # register (docs/decisions/register.md) reads Swift, CSS and JSON as text too.
-      - name: Check the env-name list
-        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
-        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts src/__tests__/decisions/
+      # The decision register (docs/decisions/register.md) test reads Swift, CSS and
+      # JSON as text, so no import edge reaches it and `--changed` would skip it; a PR
+      # always runs it, before the Rust build. (The env-name list and flag barrel that
+      # used to share this step are generated now, never committed, so they can't drift.)
+      - name: Check the decision register
+        if: env.FULL_SUITE != 'true'
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/__tests__/decisions/
         env:
           NODE_ENV: test
 
@@ -382,19 +425,24 @@ jobs:
       # so this changes how early a PR hears, never what reaches main. The
       # `ci:full-tests` label runs the whole suite on a PR.
       - name: Run unit tests affected by this pull request
-        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        if: env.FULL_SUITE != 'true'
         run: pnpm exec vitest run --config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests
         env:
           NODE_ENV: test
           NODE_OPTIONS: '--max-old-space-size=8192'
 
+      # No `--`: pnpm passes it through and vitest ignores every flag after it, so the
+      # old `-- --reporter=verbose` here never took effect (the default reporter ran).
       - name: Run unit tests with coverage
         id: full-unit
-        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
-        run: pnpm test:unit:coverage -- --reporter=verbose
+        if: env.FULL_SUITE == 'true'
+        run: pnpm test:unit:coverage --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
 
+      # Each shard uploads its part under the one `unit` flag and Codecov merges the
+      # uploads for a commit. vitest.config.unit.ts sets no coverage thresholds, so
+      # there is no merged total to enforce here.
       - name: Upload unit coverage
         uses: codecov/codecov-action@v7
         if: always() && steps.full-unit.outcome != 'skipped'
@@ -403,6 +451,46 @@ jobs:
           files: ./coverage/lcov.info
           flags: unit
           fail_ci_if_error: false
+
+  # The "Unit Tests" check: green only when setup and every shard of the matrix
+  # (four on a full run, one on an affected-only PR run) passed. A matrix job's
+  # result is success only when every leg succeeded; failure, cancelled and
+  # skipped all fail this check, so shards skipped on a full run can't pass it.
+  # It runs whenever the shards should have (always(), so a failed, cancelled or
+  # timed-out shard turns it red instead of skipping it: a skipped required check
+  # counts as passed), and skips exactly when the shards skip by design (setup
+  # scoped the Node suite out), as the single job did before it was sharded.
+  test-unit:
+    name: Unit Tests
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
+    timeout-minutes: 5
+    needs: [setup, test-unit-shard]
+    if: always() && (needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true')
+    steps:
+      - name: Every unit test shard passed
+        env:
+          SETUP: ${{ needs.setup.result }}
+          SHARDS: ${{ needs.test-unit-shard.result }}
+          FULL: ${{ needs.test-unit-shard.outputs.full-suite }}
+          TOTAL: ${{ needs.test-unit-shard.outputs.shards }}
+        run: |
+          echo "setup: $SETUP, unit test shards: $SHARDS ($TOTAL created, full suite: $FULL)"
+          if [ "$SETUP" != success ] || [ "$SHARDS" != success ]; then
+            echo "::error::Unit Tests failed: setup $SETUP, shards $SHARDS (see the Unit Tests (n/4) jobs)"
+            exit 1
+          fi
+          # The shard matrix and FULL_SUITE are two copies of one condition. If they
+          # drifted, a full run could create one shard that runs --shard=1/4 and
+          # passes having run a quarter of the suite. Fail closed instead.
+          case "$FULL" in
+            true) want=4 ;;
+            false) want=1 ;;
+            *) echo "::error::Unit Tests: the shards did not report whether this was a full run"; exit 1 ;;
+          esac
+          if [ "$TOTAL" != "$want" ]; then
+            echo "::error::Unit Tests: $TOTAL shard(s) ran, expected $want (full suite: $FULL)"
+            exit 1
+          fi
 
   # ============================================================================
   # INTEGRATION TESTS (Slower - ~2-5 minutes)
@@ -1167,13 +1255,17 @@ jobs:
   # apps/web/tests/overlays/contrast-baseline.json (axe + the gallery probe),
   # snapshots must match the committed Linux baselines, and with the overlay
   # host on the toast region must keep clear of Connect and the menu trigger.
-  # Other PRs and the merge queue skip it (a skipped job reports success, so it
-  # can become a required check). Reuses setup's node_modules cache and runs the
-  # Vite dev server (the gallery is dev-only, so the prod build can't be used).
+  # Other PRs and the merge queue skip it, and a skipped job reports success, so
+  # branch protection requires it (since #2391) without stalling them; it is not
+  # in required-checks.sh, which says why. Reuses setup's node_modules cache and
+  # runs the Vite dev server (the gallery is dev-only, so the prod build can't
+  # be used).
   overlay-gallery:
     name: Overlay Gallery (visual + contrast)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 10
+    # 10 cut the suite off mid-run (#2391): an install on a cache miss plus the
+    # two axe sweeps (every menu panel, two themes, retried once in CI) need more.
+    timeout-minutes: 20
     needs: setup
     if: github.event_name == 'pull_request' && needs.setup.outputs.web != 'false'
     steps:
@@ -1218,6 +1310,14 @@ jobs:
             echo "::warning::No Linux overlay snapshots are committed yet. Writing them: commit tests/overlays/__screenshots__/linux from the overlay-gallery artifact."
             pnpm exec playwright test -c playwright.overlays.config.ts --update-snapshots=all
           fi
+
+      # Required check: a copy or layout change fails it until the baselines match.
+      - name: How to refresh the baselines
+        if: failure()
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::error title=Overlay gallery::If the changed overlays are intended, refresh the Linux baselines from this run: scripts/ci/refresh-overlay-baselines.sh $PR (from the repo root, on the PR branch), review each image, then commit them."
 
       - name: Upload report and snapshots
         if: always()

@@ -24,6 +24,7 @@ import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 import { sessionRecording } from '../shared/session-recording.js';
+import { errorText, participantKind, toolCallText } from './startup-log.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -158,7 +159,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
       );
     } catch (briefingErr) {
-      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${String(briefingErr)}\n`);
+      process.stderr.write(`[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${errorText(briefingErr)}\n`);
     }
   })();
 
@@ -174,7 +175,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   }
   const participant = waitResult.participant;
   if (participant) {
-    process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
+    process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participantKind(participant.identity)}\n`);
     if (ctx.room) void noteCallerJoined({ participant, room: ctx.room, sessionId });
   }
 
@@ -240,7 +241,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   // TTS cache warming (fire-and-forget)
   const { warmSessionCache } = await import('../shared/performance/cache-aware-tts.js');
   warmSessionCache(sessionPersona.id, userData.emotionalState as string | undefined).catch(
-    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${err}\n`)
+    (err: unknown) => process.stderr.write(`[voice-agent-entry] ⚠️ TTS cache warming failed (non-critical): ${errorText(err)}\n`)
   );
 
   // Register initial tools with session
@@ -281,9 +282,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       process.stderr.write(`   ⏱️ Time since last FC: ${(timeSinceLast / 1000).toFixed(1)}s\n`);
     }
     process.stderr.write(`${'='.repeat(60)}\n`);
-    for (let i = 0; i < calls.length; i++) {
-      process.stderr.write(`\n📞 Call ${i + 1}/${calls.length}:\n   Tool Name: ${calls[i].name}\n   Arguments: ${JSON.stringify(calls[i].arguments, null, 2).replace(/\n/g, '\n   ')}\n`);
-    }
+    calls.forEach((c, i) => process.stderr.write(toolCallText(c, i, calls.length)));
     process.stderr.write(`\n${'='.repeat(60)}\n\n`);
   };
   session.on('function_calls_collected' as Parameters<typeof session.on>[0], nativeFnCallsHandler);
@@ -324,7 +323,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
         sendDataMessage,
       }).catch((err) => {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ Audio processor ended: ${err}\n`
+          `[voice-agent-entry] ⚠️ Audio processor ended: ${errorText(err)}\n`
         );
       });
     };
@@ -461,7 +460,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     if (evt.isFinal) {
       userData.turnCount = ((userData.turnCount as number) || 0) + 1;
       const transcript = evt.transcript || '';
-      process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
+      process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: ${transcript.length} chars\n`); // never the words
       observeFinalTranscript({ transcript, userData, sessionId, crisisMode: crisisGuardMode });
       if (transcript) {
         const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;

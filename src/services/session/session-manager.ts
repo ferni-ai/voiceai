@@ -44,6 +44,7 @@ import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
+import { loadSessionProfile, savable } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
@@ -254,38 +255,7 @@ export async function createSessionServices(
   const validatedUserId = validateUserId(userId);
 
   const loadProfileForSession = async (profileUserId: string): Promise<UserProfile | null> => {
-    // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
-    // Cache hit: ~5-20ms vs Firestore: ~100-500ms
-    const { getProfileWithCache, cacheProfile, invalidateProfile } =
-      await import('../data-layer/profile-cache.js');
-
-    // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
-    userProfile = await getProfileWithCache(profileUserId, async (uid) => {
-      return global.store.getProfile(uid);
-    });
-
-    const warnUnsaved = (e: unknown) => getLogger().warn({ error: String(e) }, 'Profile not saved');
-    if (!userProfile) {
-      const { createUserProfile } = await import('../../types/user-profile.js');
-      // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
-      userProfile = createUserProfile(profileUserId, userName);
-      // Never fatal: a refused write (synthetic-write-guard) must not end the call
-      await global.store.saveProfile(userProfile).catch(warnUnsaved);
-      void cacheProfile(profileUserId, userProfile);
-      getLogger().info(
-        { userId: profileUserId, name: userName || '(none)' },
-        '🆕 Created new user profile with name from onboarding'
-      );
-    } else if (!userProfile.name && userName) {
-      // Existing profile without a name, but we now have one - update it!
-      userProfile.name = userName;
-      await global.store.saveProfile(userProfile).catch(warnUnsaved);
-      void invalidateProfile(profileUserId);
-      getLogger().info(
-        { userId: profileUserId, name: userName },
-        '✨ Updated existing profile with name from onboarding'
-      );
-    }
+    userProfile = await loadSessionProfile(global.store, profileUserId, userName);
     markCallStageSoon(sessionId, 'profile_ready');
     return userProfile;
   };
@@ -686,13 +656,12 @@ export async function createSessionServices(
     const autoSaveCallback = async (uid: string) => {
       const startTime = Date.now();
       try {
-        if (services.userProfile && !memoryHeld(sessionId)) {
-          // Export current intelligence state
-          const updatedProfile = applyIntelligenceToProfile(services.userProfile, uid);
+        const current = savable(services.userProfile); // a stand-in (failed read) never saves
+        if (current && !memoryHeld(sessionId)) {
+          const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
 
-          // Save to store
-          await global.store.saveProfile(updatedProfile);
+          await (await import('./last-summary.js')).saveKept(global.store, updatedProfile, uid);
 
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
@@ -1519,7 +1488,7 @@ export async function createSessionServices(
     saveProfile: async () => {
       // CRITICAL FIX: Use services.userProfile, not the closure variable!
       // The closure variable is stale and doesn't include updates from endSession()
-      const profileToSave = services.userProfile;
+      const profileToSave = savable(services.userProfile); // never a stand-in (failed read)
       if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
         try {
           const history = historyTracker.getSessionHistory();
@@ -1572,7 +1541,7 @@ export async function createSessionServices(
             );
           }
 
-          await global.store.saveProfile(updated);
+          await (await import('./last-summary.js')).saveKept(global.store, updated, validatedUserId);
           services.userProfile = updated;
 
           getLogger().info(
@@ -1803,8 +1772,8 @@ export async function createSessionServices(
           }
 
           if (summary?.callerProvenance || summary?.keyPoints?.length) {
-            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
-            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
+            const { applyCheckedSummary } = await import('./last-summary.js'); // #2744 #2767
+            await applyCheckedSummary(updatedProfile, summary, validatedUserId);
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
             const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler

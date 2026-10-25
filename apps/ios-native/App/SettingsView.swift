@@ -11,7 +11,8 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                AccountSection(account: model.account)
+                AccountSection(account: model.account, signOut: model.signOut)
+                PrivacySection(consent: model.consent)
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
                     Link("Privacy Policy", destination: URL(string: "https://ferni.ai/privacy")!)
@@ -42,6 +43,7 @@ struct SettingsView: View {
 /// Who you are to Ferni, and the upgrade from "this phone" to "you, anywhere".
 private struct AccountSection: View {
     let account: AccountStore
+    let signOut: () async -> Void
     @Environment(\.colorScheme) private var colorScheme
     @State private var nonce = AppleNonce()
     @State private var confirmingSignOut = false
@@ -88,9 +90,33 @@ private struct AccountSection: View {
             Text("Account")
         }
         .confirmationDialog("Sign out?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
-            Button("Sign out", role: .destructive) { Task { await account.signOut() } }
+            Button("Sign out", role: .destructive) { Task { await signOut() } }
         } message: {
             Text("Ferni will start fresh on this phone until you sign in again.")
+        }
+    }
+}
+
+/// What you agreed to, and taking it back.
+private struct PrivacySection: View {
+    let consent: ConsentStore
+    @State private var confirmingWithdraw = false
+
+    var body: some View {
+        Section("Privacy") {
+            if let agreement = consent.agreement, consent.hasAgreed {
+                LabeledContent("You agreed on", value: agreement.agreedAt.formatted(date: .abbreviated, time: .omitted))
+                Button("Withdraw", role: .destructive) { confirmingWithdraw = true }
+            } else {
+                Text("You haven't agreed to share your conversations yet. Ferni will ask before your next call.")
+                    .foregroundStyle(FerniColor.textSecondary)
+            }
+            Link("How Ferni handles your data", destination: URL(string: "https://ferni.ai/privacy")!)
+        }
+        .confirmationDialog("Withdraw your agreement?", isPresented: $confirmingWithdraw, titleVisibility: .visible) {
+            Button("Withdraw", role: .destructive) { consent.withdraw() }
+        } message: {
+            Text("Ferni won't take calls until you agree again.")
         }
     }
 }

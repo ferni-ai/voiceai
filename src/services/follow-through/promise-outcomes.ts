@@ -145,6 +145,7 @@ const FOLLOW_UP_TEXT: Record<string, PromiseOutcome> = {
   expired: failed('missed-window'),
   forgotten: { outcome: 'cancelled', reason: 'forgotten' },
   'recently-sent': held('rate-gap'),
+  'quiet-hours': held('quiet-hours'), // the menu's quiet hours (QUIET_HOURS_FROM_PREFS)
   'opted-out': failed('opted-out'),
   // Unreadable consent or a possible opt-out: the sender retries on its next run.
   'consent-unknown': held('store-error'),

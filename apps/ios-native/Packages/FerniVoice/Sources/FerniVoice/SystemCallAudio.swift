@@ -45,7 +45,11 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
             .playAndRecord, mode: .voiceChat,
             options: [.defaultToSpeaker, .allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
         )
-        try session.setActive(true)
+        // Otherwise iOS silences every haptic while the mic records (B9).
+        try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
+        // Under LiveCommunicationKit the system activates the session itself and
+        // may refuse ours; that's fine, the call goes on with the system's.
+        try? session.setActive(true)
     }
 
     public func deactivate() {

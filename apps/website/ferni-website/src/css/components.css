@@ -520,7 +520,7 @@ a.card:hover h3 {
   padding: clamp(40px, 6vw, 56px) clamp(32px, 5vw, 48px);
   background: var(--color-bg-elevated, var(--color-bg-elevated));
   border-radius: 28px;
-  border: 1px solid rgba(44, 37, 32, 0.05);
+  border: 1px solid var(--color-border-subtle);
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.02),
     0 12px 32px rgba(0, 0, 0, 0.05);

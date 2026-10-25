@@ -29,7 +29,13 @@ final class CallSessionTests: XCTestCase {
             connectedTo = (url, token)
             if let agentOnConnect { continuation.yield(.agentJoined(attributes: agentOnConnect)) }
         }
-        func setMicrophone(enabled: Bool) async throws { micStates.append(enabled) }
+        var order: Order?
+        func setMicrophone(enabled: Bool) async throws {
+            micStates.append(enabled)
+            order?.steps.append("mic \(enabled)")
+        }
+        private(set) var sent: [Data] = []
+        func send(_ data: Data) async throws { sent.append(data) }
         func disconnect() async {
             disconnects += 1
             continuation.finish()
@@ -45,9 +51,15 @@ final class CallSessionTests: XCTestCase {
         private(set) var deactivations = 0
         init() { (interruptions, interrupt) = AsyncStream.makeStream(of: AudioInterruption.self) }
         func requestMicrophone() async -> Bool { micAllowed }
-        func activate() throws { activations += 1 }
+        var order: Order?
+        func activate() throws {
+            activations += 1
+            order?.steps.append("activate")
+        }
         func deactivate() { deactivations += 1 }
     }
+
+    final class Order: @unchecked Sendable { var steps: [String] = [] }
 
     final class Rooms: @unchecked Sendable {
         var made: [FakeRoom] = []
@@ -86,7 +98,8 @@ final class CallSessionTests: XCTestCase {
                 return room
             },
             audio: audio,
-            agentTimeout: timeout
+            agentTimeout: timeout,
+            defaults: UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
         )
     }
 
@@ -110,6 +123,22 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(rooms.made.first?.micStates, [true])
         XCTAssertEqual(audio.activations, 1)
         XCTAssertEqual(session.agentActivity, .listening)
+        XCTAssertTrue(session.hasTalked)
+    }
+
+    /// Haptics-while-recording is set up (in activate) before the mic goes on.
+    func testTheAudioSessionIsReadyBeforeTheMicOpens() async {
+        let order = Order()
+        audio.order = order
+        rooms.next = {
+            let room = FakeRoom()
+            room.order = order
+            return room
+        }
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertEqual(order.steps, ["activate", "mic true"])
     }
 
     func testWaitsForFerniWhoArrivesLate() async {
@@ -264,6 +293,25 @@ final class CallSessionTests: XCTestCase {
         await until(session.captions.lines.count == 2)
         XCTAssertEqual(session.captions.lines.map(\.text), ["Hey, good to hear you.", "Hi"])
         XCTAssertEqual(session.captions.lines.map(\.speaker), [.ferni, .you])
+    }
+
+    func testTappingFerniInterruptsOnlyWhileFerniIsTalking() async throws {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        let quiet = await session.interrupt()
+        XCTAssertFalse(quiet, "nothing to interrupt while Ferni listens")
+        XCTAssertTrue(rooms.made[0].sent.isEmpty)
+
+        rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
+        await until(session.avatar.pose == .speaking)
+        let sent = await session.interrupt()
+        XCTAssertTrue(sent)
+        let message = try XCTUnwrap(rooms.made[0].sent.first)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: message) as? [String: Any])
+        XCTAssertEqual(json["type"] as? String, "user_interrupt")
+        XCTAssertNotNil(json["timestamp"] as? Int)
     }
 
     func testMuteTurnsTheMicOffAndOn() async {

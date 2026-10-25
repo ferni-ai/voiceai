@@ -7,7 +7,8 @@
  *   (the engagement router doesn't claim the path, so it 404s like any
  *   unknown one).
  * - The person is the verified caller (requireAuth), never a uid from the
- *   query or body, not even an admin's named target.
+ *   query or body, not even an admin's named target. An API key or dev header
+ *   gets 401, as it names no one.
  * - A failed read (the store, or the forgotten topics) answers 503: an empty
  *   list only ever means nothing is open.
  *
@@ -22,8 +23,9 @@ import { flagOn, type Env } from '../config/env-flag.js';
 import { whatFerniHolds } from '../services/follow-through/index.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
+import { API_ERRORS } from './error-messages.js';
 import { firestoreHoldingDeps, type HoldingDeps } from './follow-through-upcoming-deps.js';
-import { sendJSON } from './helpers.js';
+import { sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'follow-through-upcoming-route' });
 
@@ -42,8 +44,14 @@ export async function handleFollowThroughUpcoming(
   opts: { deps?: () => Promise<HoldingDeps>; env?: Env; now?: () => Date } = {}
 ): Promise<boolean> {
   if (!isFollowThroughUpcomingRoute(pathname, opts.env) || req.method !== 'GET') return false;
-  const auth = await requireAuth(req, res, { allowDevMode: true });
+  const auth = await requireAuth(req, res);
   if (!auth) return true; // 401 already sent
+  // A person's own Firebase sign-in only: a service or admin API key names
+  // nobody (it would read 'api-user' or 'system'), and neither does a dev header.
+  if (auth.authMethod !== 'firebase') {
+    sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
+    return true;
+  }
   const { userId } = auth;
   try {
     const deps = await (opts.deps ?? firestoreHoldingDeps)();
