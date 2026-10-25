@@ -157,6 +157,28 @@ export function mayUseName(items: readonly HistoryItem[], name: string): boolean
   return since >= NAME_EVERY;
 }
 
+/** A vocative that starts in text already sent (raw[0, sentRaw)): drop only what is still to come. */
+function clipVocative(v: Vocative, raw: string, sentRaw: number, split: boolean): Vocative | null {
+  if (v.nameAt < sentRaw) return null; // the name went out: it stays
+  // Only the name and the spaces right before it can still go; letters before it went out as said.
+  const spaces = raw.slice(0, v.nameAt).match(/\s*$/)?.[0].length ?? 0;
+  const start = Math.max(sentRaw, v.nameAt - spaces);
+  const spaceSent = start === v.nameAt && spaces > 0;
+  const after = (i: number): number => i + (raw.slice(i).match(/^\s*/)?.[0].length ?? 0);
+  const plain = { ...v, start, with: '', capNext: false, fallAt: undefined };
+  // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out); kept, with
+  // NAME_FALLING_SPLIT it still ends its sentence ("Yes, Sam. I'm") though the comma went out.
+  const fallAt = split ? v.fallAt : undefined;
+  if (v.with === ',') return { ...plain, fallAt, end: spaceSent ? after(v.end) : v.end };
+  // "Hey"/"Oh" went out: "Hey, how" (space still to come) or "Hey how" (it went too).
+  if (v.capNext || /\b(?:hey|hi|hiya|hello|oh)\s+$/i.test(raw.slice(0, v.nameAt))) {
+    const tail = raw.slice(v.nameEnd).match(/^(?:\s*[,—–;:])?\s*/)?.[0].length ?? 0;
+    return { ...plain, end: spaceSent ? v.nameEnd + tail : v.nameEnd };
+  }
+  // ", Sam." after the comma went out: the name goes, the comma stays ("something,?").
+  return { ...plain, end: v.nameEnd };
+}
+
 /**
  * One reply's LLM stream with the caller's vocative name limited. Text passes
  * straight through; only the name, while its next character is still to come,
@@ -234,28 +256,6 @@ export function withNameGate(
     return true;
   };
 
-  /** A vocative that starts in text already sent: drop only what is still to come. */
-  const clip = (v: Vocative): Vocative | null => {
-    if (v.nameAt < sentRaw) return null; // the name went out: it stays
-    // Only the name and the spaces right before it can still go; letters before it went out as said.
-    const spaces = raw.slice(0, v.nameAt).match(/\s*$/)?.[0].length ?? 0;
-    const start = Math.max(sentRaw, v.nameAt - spaces);
-    const spaceSent = start === v.nameAt && spaces > 0;
-    const after = (i: number): number => i + (raw.slice(i).match(/^\s*/)?.[0].length ?? 0);
-    const plain = { ...v, start, with: '', capNext: false, fallAt: undefined };
-    // ", Sam, I'm" -> ", I'm" (or "Sam, " goes when the space before it went out); kept, with
-    // NAME_FALLING_SPLIT it still ends its sentence ("Yes, Sam. I'm") though the comma went out.
-    const fallAt = split ? v.fallAt : undefined;
-    if (v.with === ',') return { ...plain, fallAt, end: spaceSent ? after(v.end) : v.end };
-    // "Hey"/"Oh" went out: "Hey, how" (space still to come) or "Hey how" (it went too).
-    if (v.capNext || /\b(?:hey|hi|hiya|hello|oh)\s+$/i.test(raw.slice(0, v.nameAt))) {
-      const tail = raw.slice(v.nameEnd).match(/^(?:\s*[,—–;:])?\s*/)?.[0].length ?? 0;
-      return { ...plain, end: spaceSent ? v.nameEnd + tail : v.nameEnd };
-    }
-    // ", Sam." after the comma went out: the name goes, the comma stays ("something,?").
-    return { ...plain, end: v.nameEnd };
-  };
-
   /** Whether this vocative is the one that stays (decided once, from the text before it). */
   const decideKeep = (v: Vocative): boolean => {
     // At hello, a caller's goodbye or the interval, the first; otherwise the
@@ -287,7 +287,7 @@ export function withNameGate(
         continue;
       }
       // It starts in text that went out undecided: drop only what is still to come.
-      const clipped = clip(v);
+      const clipped = clipVocative(v, raw, sentRaw, split);
       if (clipped === null) keptOne = true; // the name went out
       decided.set(v.nameAt, { keep: clipped === null || decideKeep(v), clipped });
       if (clipped) found.push(clipped);
