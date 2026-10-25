@@ -98,13 +98,16 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 ## Quality Workflows
 
-### lead-verified.yml (report-only)
+### lead-verified.yml (enforced in the merge queue)
 
-**Purpose:** Report whether the exact code a PR merges was independently verified
+**Purpose:** Check that the exact code a PR merges was independently verified
 (rules: `scripts/ci/lead-verified.ts`, always run from main's copy, never the PR's).
-Runs on PRs, PR comments and merge_group and always passes. Enforcing it (the commented
-`LEAD_VERIFIED_ENFORCE` switch plus a required check) needs Seth's OK. CI typechecks it
-via `pnpm typecheck:memory-eval` (`tsconfig.scripts.json`).
+Runs on PRs, PR comments and merge_group. On a PR it only reports. In the merge queue
+it is enforced (since 2026-10-25): a queued head that is NOT_VERIFIED, or an ERROR reading
+the evidence, fails the group, so the PR leaves the queue. Allowed authors are
+`ferni-verifier[bot]` and, until the lead's machine can post as that app, `sethdford`
+(bound comments only). CI typechecks it via `pnpm typecheck:memory-eval`
+(`tsconfig.scripts.json`).
 
 **How a verifier marks a PR verified.** Verify the PR's current head, then run (as the
 `ferni-verifier` app: the script mints its own token and refuses without one)

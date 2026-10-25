@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   lead-verified:
-    name: Lead Verified (report-only)
+    name: Lead Verified
     if: github.event_name != 'issue_comment' || github.event.issue.pull_request
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -48,8 +48,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
-          # ENFORCEMENT SWITCH (needs Seth's OK): uncomment to fail on NOT_VERIFIED.
-          # LEAD_VERIFIED_ENFORCE: '1'
+          # Enforced in the merge queue only (2026-10-25): there the evidence is read fresh
+          # for every queued head, and a NOT_VERIFIED or ERROR fails the group. On a PR it
+          # only reports, because comment-triggered runs don't update the PR's check.
+          LEAD_VERIFIED_ENFORCE: ${{ github.event_name == 'merge_group' && '1' || '' }}
+          # Until this Mac can post as ferni-verifier[bot] (~/.claude/bin/ferni-verifier-token),
+          # the lead's bound comments also count. Drop sethdford once that token exists.
+          LEAD_VERIFIED_AUTHORS: ferni-verifier[bot],sethdford
         run: |
           [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on main yet"; exit 0; }
           node --experimental-strip-types scripts/ci/lead-verified.ts
