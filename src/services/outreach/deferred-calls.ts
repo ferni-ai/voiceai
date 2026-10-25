@@ -28,6 +28,12 @@ import {
 } from '../follow-through/index.js';
 import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-call-clocks.js';
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
+import {
+  alreadyRingingReply,
+  claimHeldCall,
+  markReplacedBy,
+  releaseHeldCall,
+} from './held-call-replace.js';
 
 export { spokenWhen, wantsCallNow };
 
@@ -279,8 +285,18 @@ export async function placeOrHold(
   if (waiting && !replaces) {
     return { held: alreadySetReply(name, waiting, now) + otherCallsLine(others, now) };
   }
-  const callId = await place(request);
-  if (replaces) await supersede(request.userId, replaces.id, callId);
+  // Claimed before dialing, only while still pending (held-call-replace.ts): never two rings.
+  if (replaces && !(await claimHeldCall(request.userId, replaces.id))) {
+    return { held: alreadyRingingReply(name) + otherCallsLine(others, now) };
+  }
+  let callId: string;
+  try {
+    callId = await place(request);
+  } catch (error) {
+    if (replaces) await releaseHeldCall(request.userId, replaces.id);
+    throw error;
+  }
+  if (replaces) await markReplacedBy(request.userId, replaces.id, callId);
   const held = deferredCallReply(callId, name, request.purpose, now);
   const also = otherCallsLine(others, now, callId);
   return { callId, held: held && held + also, others: also };
@@ -315,17 +331,6 @@ export interface DeferredCallsRunResult {
   rescheduled: number;
   failed: number;
   missed: number;
-}
-
-/** A held call the owner's call-now replaced: never placed as well. */
-async function supersede(userId: string, id: string, by: string): Promise<void> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const calls = getFirestoreDb()?.collection('bogle_users').doc(userId).collection(COLLECTION);
-    await calls?.doc(id).set({ status: 'superseded', supersededBy: by }, { merge: true });
-  } catch (error) {
-    log.warn({ userId, error: String(error) }, 'Could not mark the held call superseded');
-  }
 }
 
 /**

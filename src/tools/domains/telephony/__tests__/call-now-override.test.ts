@@ -14,8 +14,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = { uid: string; collection: string; id: string; data: Record<string, unknown> };
 let docs: Doc[] = [];
-/** bogle_users/{uid}/{collection}: doc(id).set() and where(field, '==', v).get(). */
+/** Runs once right after the next query read: the deferred-calls job claiming a call in between. */
+let afterNextRead: (() => void) | undefined;
+type Ref = { get: () => Promise<{ data: () => unknown }>; update: (p: object) => Promise<void> };
+/**
+ * bogle_users/{uid}/{collection}: doc(id).set/get/update, where(field, '==', v).get(),
+ * and runTransaction over get/update, like Firestore's.
+ */
 const fakeDb = {
+  runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
+    fn({ get: (ref: Ref) => ref.get(), update: (ref: Ref, patch: object) => ref.update(patch) }),
   collection: () => ({
     doc: (uid: string) => ({
       collection: (collection: string) => {
@@ -29,12 +37,28 @@ const fakeDb = {
                 d.collection === collection &&
                 filters.every(([f, v]) => d.data[f] === v)
             );
-            return { docs: found.map((d) => ({ id: d.id, data: () => d.data })) };
+            const result = { docs: found.map((d) => ({ id: d.id, data: () => d.data })) };
+            afterNextRead?.();
+            afterNextRead = undefined;
+            return result;
           },
         });
         return {
           ...query([]),
           doc: (id: string) => ({
+            get: async () => {
+              const found = docs.find(
+                (d) => d.uid === uid && d.collection === collection && d.id === id
+              );
+              return { data: () => found?.data };
+            },
+            update: async (patch: Record<string, unknown>) => {
+              const found = docs.find(
+                (d) => d.uid === uid && d.collection === collection && d.id === id
+              );
+              if (!found) throw new Error(`NOT_FOUND: ${collection}/${id}`);
+              Object.assign(found.data, patch);
+            },
             set: async (data: Record<string, unknown>, opts?: { merge?: boolean }) => {
               const old = docs.find(
                 (d) => d.uid === uid && d.collection === collection && d.id === id
@@ -93,7 +117,8 @@ process.env.SIP_TRUNK_ID = 'ST_test';
 
 const { createCallOnBehalfTool } = await import('../call-on-behalf.js');
 const { callConfirm } = await import('../call-confirm.js');
-const { isFamilyCallee } = await import('../../../../services/outreach/call-now-override.js');
+const { isFamilyCallee, isCallNowOverrideOn } =
+  await import('../../../../services/outreach/call-now-override.js');
 
 const AT_8_43_DENVER = new Date('2026-10-24T14:43:00Z'); // the prod call: 10:43 AM in New York
 const AT_11_30_PM_DENVER = new Date('2026-10-25T05:30:00Z');
@@ -111,6 +136,7 @@ const call = (contactQuery: string, extra: Record<string, unknown> = {}) =>
 
 beforeEach(() => {
   docs = [];
+  afterNextRead = undefined;
   vi.clearAllMocks();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(AT_8_43_DENVER);
@@ -238,6 +264,57 @@ describe('both clocks on a held call', () => {
     const reply = await call('my mom');
     expect(reply).toMatch(/later today at 9:00\sAM their time to ask/);
     expect(reply).not.toMatch(/yours/);
+  });
+});
+
+describe('call now replaces exactly one held call, and never rings twice', () => {
+  const heldRow = (uid: string, id: string, phone: string) =>
+    docs.push({
+      uid,
+      collection: 'deferred_calls',
+      id,
+      data: {
+        kind: 'on_behalf',
+        status: 'pending',
+        scheduledFor: '2026-10-24T15:00:00.000Z',
+        timezone: 'America/Denver',
+        request: { contactQuery: 'my mom', resolvedContact: { name: 'Mom', phone } },
+      },
+    });
+  const status = (uid: string, id: string) =>
+    docs.find((d) => d.uid === uid && d.id === id)?.data.status;
+
+  it("only this requester's call to this number: Mom's other number and another requester's stay pending", async () => {
+    heldRow('u1', 'same', '+13035550100');
+    heldRow('u1', 'mom-cell', '+13035550111'); // the same person, a second number
+    heldRow('u2', 'other-requester', '+13035550100'); // someone else's call to the same number
+    await call('my mom', { callNow: true });
+    expect(createSipParticipant).toHaveBeenCalledTimes(1);
+    expect(status('u1', 'same')).toBe('superseded');
+    expect(status('u1', 'mom-cell')).toBe('pending');
+    expect(status('u2', 'other-requester')).toBe('pending');
+  });
+
+  it('the job claims the held call between the read and the dial: exactly one ring, ours not dialed', async () => {
+    heldRow('u1', 'same', '+13035550100');
+    // The job claims it (pending -> placing) right after placeOrHold reads the pending calls,
+    // and dials it: that ring is the job's.
+    afterNextRead = () => {
+      const row = docs.find((d) => d.id === 'same');
+      if (row) row.data.status = 'placing';
+      void createSipParticipant();
+    };
+    const reply = await call('my mom', { callNow: true });
+    expect(createSipParticipant).toHaveBeenCalledTimes(1); // the job's ring only
+    expect(status('u1', 'same')).toBe('placing');
+    expect(reply).toMatch(/^Nothing new was dialed: the call to Mom .* already being placed/);
+  });
+});
+
+describe('CALL_NOW_OWNER_OVERRIDE default', () => {
+  it('is off with no env set', () => {
+    expect(isCallNowOverrideOn({})).toBe(false);
+    expect(isCallNowOverrideOn({ CALL_NOW_OWNER_OVERRIDE: 'on' })).toBe(true);
   });
 });
 
