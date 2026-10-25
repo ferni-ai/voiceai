@@ -166,6 +166,23 @@ export function whichContactReply(said: string, choices: readonly PickRow[]): st
 }
 
 /**
+ * A lookup's answer for the call: the one contact; when several tied, the one whose number
+ * the caller gave, or the question to ask (dial nothing); null for none, or for a number
+ * none of them has (a new contact).
+ */
+export function pickFromTie<T extends PickRow>(
+  found: T | { choices: readonly T[] } | null,
+  said: string,
+  phoneNumber?: string
+): T | string | null {
+  if (!found || !('choices' in found)) return found;
+  const given = digits(phoneNumber);
+  const hit = given ? found.choices.find((c) => digits(c.phone) === given) : undefined;
+  if (hit) return hit;
+  return phoneNumber ? null : whichContactReply(said, found.choices);
+}
+
+/**
  * How a number given for "my dad" is saved: under "Dad", never a placeholder like "Contact".
  * Null when the request names no one to save it under.
  */

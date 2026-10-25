@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
-import type { PickRow } from './contact-pick.js';
+import { pickFromTie, type PickRow } from './contact-pick.js';
 import type {
   CallType,
   CallObjective,
@@ -375,16 +375,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
       try {
         // Step 1: Resolve the contact (or create from provided phone number)
+        // Several contacts tie: a number given picks one, otherwise ask, dial nothing
         const found = await findContact(contactQuery, ctx.userId);
-        let contact = found && 'choices' in found ? null : found;
-        if (found && 'choices' in found) {
-          // Several contacts tie: a number given picks one, otherwise ask, dial nothing
-          const given = (phoneNumber ?? '').replace(/\D/g, '').slice(-10);
-          contact =
-            found.choices.find((c) => given && c.phone.replace(/\D/g, '').endsWith(given)) ?? null;
-          const { whichContactReply } = await import('./contact-pick.js');
-          if (!contact && !phoneNumber) return whichContactReply(contactQuery, found.choices);
-        }
+        let contact = pickFromTie(found, contactQuery, phoneNumber);
+        if (typeof contact === 'string') return contact;
 
         // If user provided a phone number, use it (and optionally save the contact)
         if (phoneNumber) {
