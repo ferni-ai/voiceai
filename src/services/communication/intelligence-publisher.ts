@@ -13,6 +13,9 @@ import { getProfileStore } from '../../memory/profile-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { flagOn } from '../../config/env-flag.js';
+import { skipOnNonProdDatabase } from '../../config/environment.js';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // ============================================================================
 // TYPES (Duplicated from intelligence-worker to avoid cross-package imports)
@@ -103,6 +106,13 @@ const PUBSUB_ENABLED = process.env.INTELLIGENCE_PUBSUB_ENABLED === 'true';
 // Fallback to Firestore queue if Pub/Sub not configured
 const USE_FIRESTORE_QUEUE = !PUBSUB_ENABLED;
 
+/**
+ * intelligence_queue had a producer and no consumer: the worker that drains it
+ * runs as no service, so ~31K events sat "pending" (2026-10-18 audit). Nothing
+ * is published unless INTELLIGENCE_QUEUE=on, and queued documents expire.
+ */
+export const QUEUE_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
 // ============================================================================
 // PUB/SUB CLIENT (Lazy loaded)
 // ============================================================================
@@ -112,6 +122,9 @@ let pubsubTopic: unknown = null;
 
 async function getPubSubTopic(): Promise<unknown> {
   if (!PUBSUB_ENABLED) return null;
+  // The intelligence worker reads prod's (default) database: dev events would be
+  // processed against real people's data.
+  if (skipOnNonProdDatabase('intelligence-events publish')) return null;
 
   if (!pubsubClient) {
     const { PubSub } = await import('@google-cloud/pubsub');
@@ -133,17 +146,16 @@ async function queueToFirestore(event: IntelligenceEvent): Promise<void> {
     return;
   }
 
-  // Use direct Firestore access for queue
-  const admin = await import('firebase-admin');
-  const db = admin.default.firestore();
+  // Use direct Firestore access for queue, in this process's database
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  const db = getAdminFirestore();
 
-  await db.collection('intelligence_queue').add(
-    cleanForFirestore({
-      ...event,
-      status: 'pending',
-      queuedAt: new Date(),
-    })
-  );
+  const queuedAt = new Date();
+  await db.collection('intelligence_queue').add({
+    ...cleanForFirestore({ ...event, status: 'pending', queuedAt }),
+    // A Timestamp, which a TTL policy reads (cleanForFirestore turns a Date into a string)
+    expireAt: Timestamp.fromDate(new Date(queuedAt.getTime() + QUEUE_RETENTION_MS)),
+  });
 }
 
 // ============================================================================
@@ -184,6 +196,7 @@ export async function publishIntelligenceEvent(params: {
   sessionId: string;
   payload: unknown;
 }): Promise<void> {
+  if (!flagOn('INTELLIGENCE_QUEUE')) return;
   const event: IntelligenceEvent = {
     eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     type: params.type,
@@ -349,7 +362,8 @@ export async function publishIntelligenceEventsBatch(
     payload: unknown;
   }>
 ): Promise<void> {
-  if (events.length === 0) return;
+  // Same gate as publishIntelligenceEvent: this path wrote intelligence_queue unflagged
+  if (events.length === 0 || !flagOn('INTELLIGENCE_QUEUE')) return;
 
   const formattedEvents = events.map((e) => ({
     eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,

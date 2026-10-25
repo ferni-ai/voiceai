@@ -12,6 +12,7 @@
 
 import { randomUUID } from 'node:crypto';
 
+import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   CARTESIA_MODEL,
@@ -21,7 +22,7 @@ import {
 } from '../../../config/voice-ids.js';
 import type { ITTSProvider, SSMLProsodyConfig } from '../types.js';
 import { CartesiaReplyStream, type ReplyStream } from './cartesia-reply-stream.js';
-import { CartesiaSocket } from './cartesia-socket.js';
+import { CartesiaSocket, DEFAULT_SOCKET_WARMTH } from './cartesia-socket.js';
 import { protectSpell } from '../ssml/speech-markup.js';
 
 const log = createLogger({ module: 'CartesiaTTSProvider' });
@@ -84,9 +85,12 @@ export function prosodyTags(prosody?: SSMLProsodyConfig): string {
 
 export class CartesiaTTSProvider implements ITTSProvider {
   readonly name = 'cartesia';
+  // TTS_SOCKET_WARM=on: ping the shared socket and reopen it when it drops (cartesia-socket.ts).
   private readonly socket = new CartesiaSocket(
     () => buildWebsocketUrl(process.env.CARTESIA_API_KEY ?? ''),
-    WS_OPEN_TIMEOUT_MS
+    WS_OPEN_TIMEOUT_MS,
+    undefined,
+    flagOn('TTS_SOCKET_WARM') ? DEFAULT_SOCKET_WARMTH : undefined
   );
 
   async synthesize(
@@ -275,6 +279,11 @@ export class CartesiaTTSProvider implements ITTSProvider {
       );
   }
 
+  /** Close the shared socket and stop its ping and reopen timers. */
+  close(): void {
+    this.socket.close();
+  }
+
   async isAvailable(): Promise<boolean> {
     return !!process.env.CARTESIA_API_KEY;
   }
@@ -301,5 +310,6 @@ export function createCartesiaProvider(): CartesiaTTSProvider {
 }
 
 export function resetCartesiaProvider(): void {
+  instance?.close();
   instance = null;
 }

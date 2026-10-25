@@ -10,11 +10,13 @@
 import { getLifeAutomationService, type Workflow } from '../../services/life-automation.service.js';
 import { getUserId } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
+import { getIdeaIcon } from '../icons/idea-icons.js';
 import { formatDate, t } from '../../i18n/index.js';
 import { showCareConnections } from './connections-tab.ui.js';
 import { showIdeasGallery } from './ideas-gallery.ui.js';
 import { calendarTriggerSummary } from './routine-builder-calendar.js';
 import { bindRoutinesNotice, loadRoutines, routinesDataState, routinesNoticeHtml } from './routines-load.js';
+import { escapeHtml } from './escape-html.js';
 
 const log = createLogger('FerniCare');
 
@@ -276,7 +278,7 @@ const styles = `
   
   .ferni-routine__status--active {
     background: rgba(74, 103, 65, 0.1);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .ferni-routine__status--paused {
@@ -323,7 +325,7 @@ const styles = `
     width: 80px;
     height: 80px;
     margin: 0 auto var(--space-5, 20px);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     opacity: 0.4;
   }
   
@@ -382,7 +384,7 @@ const styles = `
   
   .ferni-add-btn:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     background: rgba(74, 103, 65, 0.02);
   }
   
@@ -509,7 +511,7 @@ export class FerniCareDashboard {
     }
 
     return `
-      <div class="ferni-routines">
+      <div class="ferni-routines"><div class="ferni-routine__trigger" data-routines-note>${t('ferniCare.notRunningYet')}</div>
         ${this.workflows.map((wf) => this.renderRoutineCard(wf)).join('')}
         <button class="ferni-add-btn" data-action="create-routine">
           ${ICONS.plus}
@@ -522,28 +524,29 @@ export class FerniCareDashboard {
   private renderRoutineCard(workflow: Workflow): string {
     const triggerIcon = TRIGGER_ICONS[workflow.trigger.type] || ICONS.sparkle;
     const triggerLabel = this.getTriggerLabel(workflow.trigger);
-    const statusClass = `ferni-routine__status--${workflow.status}`;
+    const statusClass = `ferni-routine__status--${escapeHtml(workflow.status)}`;
+    const id = escapeHtml(workflow.id);
     const statusKey = STATUS_LABEL_KEYS[workflow.status];
     const statusLabel = statusKey ? t(statusKey) : workflow.status;
 
     return `
-      <div class="ferni-routine" data-workflow-id="${workflow.id}">
-        <div class="ferni-routine__icon">${workflow.icon || ICONS.sparkle}</div>
+      <div class="ferni-routine" data-workflow-id="${id}">
+        <div class="ferni-routine__icon" aria-hidden="true">${getIdeaIcon(workflow.icon, 22)}</div>
         <div class="ferni-routine__content">
-          <div class="ferni-routine__name">${this.escapeHtml(workflow.name)}</div>
+          <div class="ferni-routine__name">${escapeHtml(workflow.name)}</div>
           <div class="ferni-routine__trigger">
             ${triggerIcon}
-            <span>${triggerLabel}</span>
+            <span>${escapeHtml(triggerLabel)}</span>
           </div>
         </div>
         <span class="ferni-routine__status ${statusClass}">
-          ${statusLabel}
+          ${escapeHtml(statusLabel)}
         </span>
         <div class="ferni-routine__actions">
-          <button class="ferni-routine__btn" data-action="toggle-status" data-workflow-id="${workflow.id}" title="${workflow.status === 'active' ? t('ferniCare.pause') : t('ferniCare.resume')}">
+          <button class="ferni-routine__btn" data-action="toggle-status" data-workflow-id="${id}" title="${workflow.status === 'active' ? t('ferniCare.pause') : t('ferniCare.resume')}">
             ${workflow.status === 'active' ? ICONS.pause : ICONS.play}
           </button>
-          <button class="ferni-routine__btn" data-action="run" data-workflow-id="${workflow.id}" title="${t('ferniCare.runNow')}">
+          <button class="ferni-routine__btn" data-action="run" data-workflow-id="${id}" title="${t('ferniCare.runNow')}">
             ${ICONS.play}
           </button>
         </div>
@@ -689,11 +692,6 @@ export class FerniCareDashboard {
     }
   }
 
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 }
 
 // ============================================================================

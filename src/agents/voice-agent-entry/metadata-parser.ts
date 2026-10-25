@@ -11,6 +11,17 @@ import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
 import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
 import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
+import { rememberCallLaunch } from '../shared/call-launch-hint.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
+import { errorText } from '../../utils/error-text.js';
+import { jobMetadataLine } from './startup-log.js';
+import { flagOn } from '../../config/env-flag.js';
+
+// What a dispatch carries is the caller's (why Ferni calls, what to ask a
+// doctor, the last talk): logged as kinds and lengths only, through the safe
+// logger, never to stderr, which reaches Cloud Logging unredacted.
+const log = createLogger({ module: 'metadata-parser' });
 
 /** What an inbound dispatch says about the caller's account; honoured only when signed. */
 const INBOUND_ACCOUNT_FIELDS = [
@@ -30,18 +41,34 @@ const INBOUND_ACCOUNT_FIELDS = [
 ] as const;
 
 /**
+ * A signed "call me" dispatch moving an app call to the phone (`callMove`,
+ * CALL_ME_MOVES_TO_PHONE, live-agent-call.ts), and the app call it moved from
+ * when it has one (`movedFrom`, absent while memory is held): ids only, never its text. The turns are read from this
+ * user's own memory store (resume-after-drop.ts restoreMovedTurns). Read from
+ * the raw job metadata the signature covers, never the object parseJobMetadata
+ * merged room metadata into: room metadata is not signed.
+ */
+export function movedFromOf(
+  rawJobMetadata: string | undefined
+): { userId: string; conversationId?: string } | undefined {
+  if (!flagOn('CALL_ME_MOVES_TO_PHONE') || !rawJobMetadata) return undefined;
+  let signed: Record<string, unknown>;
+  try {
+    signed = JSON.parse(rawJobMetadata) as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+  const { userId, movedFrom, callMove } = signed;
+  if (callMove !== true || typeof userId !== 'string' || !userId) return undefined;
+  const plainId = typeof movedFrom === 'string' && /^[\w-]{1,128}$/.test(movedFrom);
+  return plainId ? { userId, conversationId: movedFrom } : { userId };
+}
+
+/**
  * Parse job and room metadata from the LiveKit job context.
  */
 export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
   let metadata: Record<string, unknown> = {};
-
-  // DEBUG: Log raw job metadata to trace persona_id flow
-  process.stderr.write(
-    `[voice-agent-entry] 🔍 DEBUG: Raw job.metadata = ${ctx.job.metadata || '(empty)'}\n`
-  );
-  process.stderr.write(
-    `[voice-agent-entry] 🔍 DEBUG: Raw room.metadata = ${ctx.job.room?.metadata || '(empty)'}\n`
-  );
 
   if (ctx.job.metadata) {
     try {
@@ -50,9 +77,15 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
         `[voice-agent-entry] 🔍 DEBUG: Parsed job metadata keys: ${Object.keys(metadata).join(', ')}\n`
       );
     } catch (e) {
-      process.stderr.write(`[voice-agent-entry] Failed to parse job.metadata: ${e}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Failed to parse job.metadata: ${errorClass(e)} (${ctx.job.metadata.length} chars)\n`
+      );
     }
   }
+  // The call reviewer reads persona and eval calls from this line: allowlisted keys only.
+  process.stderr.write(
+    `[voice-agent-entry] 🔍 DEBUG: ${jobMetadataLine(ctx.job.metadata ? metadata : undefined)}\n`
+  );
   if (!metadata.persona_id && ctx.job.room?.metadata) {
     try {
       const roomMeta = JSON.parse(ctx.job.room.metadata);
@@ -60,7 +93,9 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
         metadata = { ...metadata, ...roomMeta };
       }
     } catch (e) {
-      process.stderr.write(`[voice-agent-entry] Failed to parse room.metadata: ${e}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Failed to parse room.metadata: ${errorClass(e)} (${ctx.job.room.metadata.length} chars)\n`
+      );
     }
   }
 
@@ -87,6 +122,9 @@ export async function setupCallTypeContexts(
   roomName: string | undefined,
   rawJobMetadata?: string
 ): Promise<void> {
+  // Where /token says the call was started from (CALL_LAUNCH_CONTEXT); the hello reads it.
+  rememberCallLaunch(sessionId, metadata.launch);
+
   // =========================================================================
   // INBOUND CALL DETECTION
   // =========================================================================
@@ -156,7 +194,7 @@ export async function setupCallTypeContexts(
         metadata.user_id = metadata.userId;
       }
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${errorText(error)}\n`);
     }
   }
 
@@ -167,13 +205,14 @@ export async function setupCallTypeContexts(
     process.stderr.write(
       `[voice-agent-entry] 📞 ON-BEHALF CALL DETECTED - using standard agent with outbound context\n`
     );
-    process.stderr.write(
-      `[voice-agent-entry] 📞 Call context: ${JSON.stringify({
+    log.info(
+      {
         callId: metadata.callId,
-        contactName: (metadata.contact as Record<string, unknown>)?.name,
-        purpose: metadata.purpose,
         callType: metadata.callType,
-      })}\n`
+        hasContactName: Boolean((metadata.contact as Record<string, unknown>)?.name),
+        purposeChars: typeof metadata.purpose === 'string' ? metadata.purpose.length : 0,
+      },
+      'On-behalf call context'
     );
 
     try {
@@ -206,7 +245,8 @@ export async function setupCallTypeContexts(
         // from an unsigned dispatch (it must not put a name in Ferni's mouth).
         userName: call?.requester.name || (trusted && requesterNameOf(metadata)) || 'the user',
         originalSessionId: call?.requester.originalSessionId || '',
-        requesterUserId: call?.requester.userId,
+        // Where answered-by writes (and a voicemail reports): only a signed requester.
+        requesterUserId: trusted ? call?.requester.userId : undefined,
         kind: 'on_behalf' as const,
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
@@ -225,7 +265,7 @@ export async function setupCallTypeContexts(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${errorText(error)}\n`);
     }
   }
 
@@ -279,18 +319,21 @@ export async function setupCallTypeContexts(
     process.stderr.write(
       `[voice-agent-entry] 📞 PROACTIVE OUTREACH DETECTED - setting up check-in context\n`
     );
-    process.stderr.write(
-      `[voice-agent-entry] 📞 Outreach context: ${JSON.stringify({
+    log.info(
+      {
         triggerType: metadata.triggerType,
-        triggerReason: metadata.triggerReason,
+        triggerReasonChars:
+          typeof metadata.triggerReason === 'string' ? metadata.triggerReason.length : 0,
         daysSinceLastSession: metadata.daysSinceLastSession,
-      })}\n`
+      },
+      'Proactive outreach context'
     );
 
     try {
       const { setProactiveSessionContext } =
         await import('../../intelligence/context-builders/external/proactive-session-context.js');
 
+      const movedFrom = movedFromOf(rawJobMetadata); // CALL_ME_MOVES_TO_PHONE
       const proactiveContext = {
         triggerType: ((metadata.triggerType as string) ||
           'silence') as import('../../intelligence/context-builders/external/proactive-session-context.js').ProactiveTriggerType,
@@ -308,6 +351,7 @@ export async function setupCallTypeContexts(
         suggestedOpener: metadata.suggestedOpener as string | undefined,
         avoidances: metadata.avoidances as string[] | undefined,
         initiatingPersona: (metadata.persona_id as string) || 'ferni',
+        ...(movedFrom && { movedFrom }),
       };
 
       setProactiveSessionContext(sessionId, proactiveContext);
@@ -319,7 +363,7 @@ export async function setupCallTypeContexts(
         `[voice-agent-entry] 📞 Proactive session context set for sessionId: ${sessionId}\n`
       );
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${errorText(error)}\n`);
     }
   }
 }
@@ -347,6 +391,24 @@ export async function finishCallTypeContexts(
   if (!call) return;
   const trusted = await isTrustedDispatch(rawJobMetadata);
   await completeOnBehalfCall(sessionId, call, Math.round(sessionDurationMs / 1000), trusted);
+}
+
+/**
+ * Runs `finish` once, from whichever comes first: the entrypoint's own exit
+ * path, or LiveKit's shutdown callbacks. The job gives the entrypoint only 15 s
+ * after the room closes (ENTRYPOINT_SHUTDOWN_TIMEOUT in @livekit/agents) and
+ * then exits the process, but it awaits its shutdown callbacks first. Without
+ * this, a call report still running at the end of a slow cleanup (the LLM read
+ * of the call, the requester's push and records) was dropped with no log line.
+ */
+export function finishOnce(
+  ctx: { addShutdownCallback: (callback: () => Promise<void>) => void },
+  finish: () => Promise<void>
+): () => Promise<void> {
+  let running: Promise<void> | undefined;
+  const once = (): Promise<void> => (running ??= finish());
+  ctx.addShutdownCallback(once);
+  return once;
 }
 
 /**

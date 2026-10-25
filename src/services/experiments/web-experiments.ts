@@ -16,10 +16,12 @@
 
 import crypto from 'crypto';
 import admin from 'firebase-admin';
-import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { eventExpireAt } from './event-retention.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'WebExperiments' });
 
@@ -52,16 +54,7 @@ let db: Firestore | null = null;
 function getDb(): Firestore {
   if (!db) {
     // Initialize Firebase if not already done
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-      log.info('Firebase initialized by WebExperiments');
-    }
-    db = getFirestore();
+    db = getAdminFirestore();
   }
   return db;
 }
@@ -128,8 +121,8 @@ export interface ExperimentEvent {
   variantId: string;
   userId: string;
   sessionId?: string;
-  eventType: 'exposure' | 'conversion';
-  goalId?: string; // For conversions
+  eventType: 'exposure' | 'conversion' | 'engagement';
+  goalId?: string; // For conversions and engagement
   value?: number; // Optional value (e.g., revenue)
   metadata?: Record<string, unknown>;
   timestamp: Date;
@@ -192,7 +185,6 @@ export async function initWebExperiments(): Promise<void> {
   try {
     const db = getDb();
 
-    // Load all experiments
     const experimentsSnap = await db.collection('web_experiments').get();
     experimentsCache.clear();
 
@@ -517,14 +509,11 @@ export async function trackConversion(
   });
 }
 
-/**
- * Track an event (internal)
- */
-async function trackEvent(event: ExperimentEvent): Promise<void> {
+/** Track an event. Engagement (landing exit beacon) calls this directly; it moves no counter. */
+export async function trackEvent(event: ExperimentEvent): Promise<void> {
   try {
     const db = getDb();
 
-    // Write event to events collection
     await db
       .collection('web_experiments')
       .doc(event.experimentId)
@@ -533,6 +522,7 @@ async function trackEvent(event: ExperimentEvent): Promise<void> {
         removeUndefined({
           ...event,
           timestamp: FieldValue.serverTimestamp(),
+          expireAt: eventExpireAt(), // TTL deletes the raw event (event-retention.ts)
         })
       );
 

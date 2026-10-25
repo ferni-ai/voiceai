@@ -2,7 +2,6 @@
  * Session Manager
  *
  * > "We believe in making AI human, and the decisions we make will reflect that."
- *
  * Handles creation and lifecycle of per-conversation sessions.
  * Each session gets its own set of services and state.
  *
@@ -21,6 +20,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { runAfterCall } from './after-call-tasks.js';
+import { memoryHeld } from '../../utils/minor-care.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
@@ -44,6 +44,7 @@ import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
+import { loadSessionProfile, savable } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
@@ -136,11 +137,6 @@ import { getContextManager, removeContextManager } from '../../context/index.js'
 import {
   buildSpeechContext,
   getSessionWPMTracker,
-  tagAdvice,
-  tagStory,
-  tagSupportResponse,
-  tagTextWithSsmlAdaptive,
-  tagWrapUp,
 } from '../../speech/index.js';
 
 // Local imports
@@ -163,6 +159,7 @@ import {
 
 // Persistence metrics for observability
 import { persistenceMetrics } from '../analytics/persistence-metrics.js';
+import { markCallStageSoon } from '../analytics/call-start-stages.js';
 
 // ============================================================================
 // SESSION STATE
@@ -258,38 +255,8 @@ export async function createSessionServices(
   const validatedUserId = validateUserId(userId);
 
   const loadProfileForSession = async (profileUserId: string): Promise<UserProfile | null> => {
-    // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
-    // Cache hit: ~5-20ms vs Firestore: ~100-500ms
-    const { getProfileWithCache, cacheProfile, invalidateProfile } =
-      await import('../data-layer/profile-cache.js');
-
-    // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
-    userProfile = await getProfileWithCache(profileUserId, async (uid) => {
-      return global.store.getProfile(uid);
-    });
-
-    if (!userProfile) {
-      const { createUserProfile } = await import('../../types/user-profile.js');
-      // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
-      userProfile = createUserProfile(profileUserId, userName);
-      await global.store.saveProfile(userProfile);
-      // Cache the new profile
-      void cacheProfile(profileUserId, userProfile);
-      getLogger().info(
-        { userId: profileUserId, name: userName || '(none)' },
-        '🆕 Created new user profile with name from onboarding'
-      );
-    } else if (!userProfile.name && userName) {
-      // Existing profile without a name, but we now have one - update it!
-      userProfile.name = userName;
-      await global.store.saveProfile(userProfile);
-      // Invalidate cache so next session gets updated profile
-      void invalidateProfile(profileUserId);
-      getLogger().info(
-        { userId: profileUserId, name: userName },
-        '✨ Updated existing profile with name from onboarding'
-      );
-    }
+    userProfile = await loadSessionProfile(global.store, profileUserId, userName);
+    markCallStageSoon(sessionId, 'profile_ready');
     return userProfile;
   };
 
@@ -311,7 +278,6 @@ export async function createSessionServices(
 
     // NON-BLOCKING: Background enrichment tasks (fire and forget)
     if (isReturningUser) {
-      // Load intelligence state in background
       // Use setTimeout(0) for compatibility with ESLint no-undef rule for setImmediate
       setTimeout(() => {
         try {
@@ -339,12 +305,10 @@ export async function createSessionServices(
           /* Non-critical */
         });
 
-      // Load cross-persona insights (background)
       loadCrossPersonaInsights(validatedUserId).catch(() => {
         /* Non-critical */
       });
 
-      // Load social graph (background)
       import('../social-graph/index.js')
         .then(async ({ loadGraphFromFirestore }) => loadGraphFromFirestore(validatedUserId))
         .catch(() => {
@@ -355,13 +319,6 @@ export async function createSessionServices(
       onSessionStartUnified(validatedUserId, sessionId).catch(() => {
         /* Non-critical */
       });
-
-      // Pre-warm embeddings (background)
-      import('../../agents/shared/performance/session-optimizations.js')
-        .then(async ({ optimizeSessionStart }) => optimizeSessionStart(sessionId, validatedUserId))
-        .catch(() => {
-          /* Non-critical */
-        });
     }
   } else if (validatedUserId && deferProfileLoad) {
     isReturningUser = false;
@@ -699,13 +656,12 @@ export async function createSessionServices(
     const autoSaveCallback = async (uid: string) => {
       const startTime = Date.now();
       try {
-        if (services.userProfile) {
-          // Export current intelligence state
-          const updatedProfile = applyIntelligenceToProfile(services.userProfile, uid);
+        const current = savable(services.userProfile); // a stand-in (failed read) never saves
+        if (current && !memoryHeld(sessionId)) {
+          const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
 
-          // Save to store
-          await global.store.saveProfile(updatedProfile);
+          await (await import('./last-summary.js')).saveKept(global.store, updatedProfile, uid);
 
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
@@ -969,7 +925,7 @@ export async function createSessionServices(
       }
 
       // Persist the turn to Firestore now, in the background.
-      if (validatedUserId && realtimeConversationId) {
+      if (validatedUserId && realtimeConversationId && !memoryHeld(sessionId)) {
         const now = turn.timestamp || new Date();
         // 🧹 ISSUE-005 FIX: Strip SSML from assistant turns before persisting
         // Raw SSML tags like <break time="200ms"/> should not appear in memory
@@ -1075,31 +1031,6 @@ export async function createSessionServices(
         personaSpeech,
         personaEnergy,
       });
-    },
-
-    tagWithSsml: (text: string) => {
-      const speechContext = services.getSpeechContext(text);
-      const state = stateMachine.getState();
-      const textLower = text.toLowerCase();
-
-      const storyPatterns =
-        /\b(i remember|back in|when i was|years ago|one time|there was|let me tell you|i'll never forget|i once|my father|back at the firm|in 1987|in 2008)\b/i;
-      const isStory = storyPatterns.test(textLower);
-
-      if (isStory) {
-        return tagStory(text, speechContext, personaId);
-      }
-
-      switch (state.phase) {
-        case 'supporting':
-          return tagSupportResponse(text, speechContext, personaId);
-        case 'advising':
-          return tagAdvice(text, speechContext, personaId);
-        case 'wrapping_up':
-          return tagWrapUp(text, speechContext, personaId);
-        default:
-          return tagTextWithSsmlAdaptive(text, speechContext, personaId);
-      }
     },
 
     // ========================================================================
@@ -1557,8 +1488,8 @@ export async function createSessionServices(
     saveProfile: async () => {
       // CRITICAL FIX: Use services.userProfile, not the closure variable!
       // The closure variable is stale and doesn't include updates from endSession()
-      const profileToSave = services.userProfile;
-      if (profileToSave && validatedUserId) {
+      const profileToSave = savable(services.userProfile); // never a stand-in (failed read)
+      if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
         try {
           const history = historyTracker.getSessionHistory();
           const state = stateMachine.getState();
@@ -1610,7 +1541,7 @@ export async function createSessionServices(
             );
           }
 
-          await global.store.saveProfile(updated);
+          await (await import('./last-summary.js')).saveKept(global.store, updated, validatedUserId);
           services.userProfile = updated;
 
           getLogger().info(
@@ -1639,7 +1570,7 @@ export async function createSessionServices(
         getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save at session start');
       }
 
-      if (validatedUserId && userProfile) {
+      if (validatedUserId && userProfile && !memoryHeld(sessionId)) {
         try {
           const turns = historyTracker.getSimpleTurns();
 
@@ -1841,8 +1772,8 @@ export async function createSessionServices(
           }
 
           if (summary?.callerProvenance || summary?.keyPoints?.length) {
-            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
-            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
+            const { applyCheckedSummary } = await import('./last-summary.js'); // #2744 #2767
+            await applyCheckedSummary(updatedProfile, summary, validatedUserId);
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
             const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler
@@ -2272,7 +2203,7 @@ export async function createSessionServices(
 
       // 🔴 REALTIME: End conversation and trigger async summarization
       // The turns are already persisted - summarization happens in background
-      if (validatedUserId && realtimeConversationId) {
+      if (validatedUserId && realtimeConversationId && !memoryHeld(sessionId)) {
         try {
           await realtimeMemory.endConversation(validatedUserId, realtimeConversationId);
 
@@ -2298,8 +2229,8 @@ export async function createSessionServices(
         }
       }
 
-      // Flush unified trust persistence for this user
-      if (validatedUserId) {
+      // Flush unified trust persistence for this user (never a held caller under 18: MINOR_CARE)
+      if (validatedUserId && !memoryHeld(sessionId)) {
         try {
           await onSessionEndUnified(validatedUserId);
         } catch {
@@ -2370,13 +2301,6 @@ export async function createSessionServices(
           void onSessionStartUnified(validatedUserId, sessionId).catch(() => {
             /* Non-critical */
           });
-          void import('../../agents/shared/performance/session-optimizations.js')
-            .then(async ({ optimizeSessionStart }) =>
-              optimizeSessionStart(sessionId, validatedUserId)
-            )
-            .catch(() => {
-              /* Non-critical */
-            });
         }
 
         getLogger().info(

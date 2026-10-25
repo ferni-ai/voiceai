@@ -6,7 +6,6 @@ import {
 } from '../../../../services/session/after-call-tasks.js';
 import type { ResolutionPlan } from '../../temporal/resolve.js';
 import type { WorldFactStore } from '../../temporal/store.js';
-import { isMemberCall } from '../../../../services/outreach/after-call-checkin.js';
 import { DATES_TASK, extractDatesAfterCall } from '../after-call.js';
 
 const ON = { DATES_THAT_MATTER: 'on' };
@@ -51,7 +50,7 @@ describe('the dates-that-matter after-call task', () => {
   ])('keeps no dates for %s: no model call, no write', async (_label, userId) => {
     const llm = vi.fn(async (_prompt: string) => modelReply);
     const s = store();
-    await extractDatesAfterCall({ ...ctx, userId }, { isMember: isMemberCall, llm, store: s, topics: async () => [], env: ON }); // prettier-ignore
+    await extractDatesAfterCall({ ...ctx, userId }, { llm, store: s, topics: async () => [], env: ON }); // prettier-ignore
     expect(llm).not.toHaveBeenCalled();
     expect(s.plans).toEqual([]);
   });
@@ -59,13 +58,7 @@ describe('the dates-that-matter after-call task', () => {
   it('does nothing with the flag off: no model call, no write', async () => {
     const llm = vi.fn(async (_prompt: string) => modelReply);
     const s = store();
-    await extractDatesAfterCall(ctx, {
-      isMember: isMemberCall,
-      llm,
-      store: s,
-      topics: async () => [],
-      env: {},
-    });
+    await extractDatesAfterCall(ctx, { llm, store: s, topics: async () => [], env: {} });
     expect(llm).not.toHaveBeenCalled();
     expect(s.plans).toEqual([]);
   });
@@ -78,11 +71,11 @@ describe('the dates-that-matter after-call task', () => {
     // The next call's caller has it on in the env; this caller's cohort has it off.
     const nextOn = { COHORT_FLAGS: 'on', DATES_THAT_MATTER: 'on' };
     const llm = vi.fn(async (_prompt: string) => modelReply);
-    await extractDatesAfterCall(ctx, { isMember: isMemberCall, llm, store: store(), topics: async () => [], env: nextOn, cohorts: cohorts(false) }); // prettier-ignore
+    await extractDatesAfterCall(ctx, { llm, store: store(), topics: async () => [], env: nextOn, cohorts: cohorts(false) }); // prettier-ignore
     expect(llm).not.toHaveBeenCalled();
     // And the other way round: this caller's cohort has it on, the env is off.
     const s = store();
-    await extractDatesAfterCall(ctx, { isMember: isMemberCall, llm, store: s, topics: async () => [], env: { COHORT_FLAGS: 'on' }, cohorts: cohorts(true) }); // prettier-ignore
+    await extractDatesAfterCall(ctx, { llm, store: s, topics: async () => [], env: { COHORT_FLAGS: 'on' }, cohorts: cohorts(true) }); // prettier-ignore
     expect(llm).toHaveBeenCalledTimes(1);
     expect(s.plans).toHaveLength(1);
   });
@@ -90,13 +83,7 @@ describe('the dates-that-matter after-call task', () => {
   it("stores the call's dates resolved against the caller's own day", async () => {
     const llm = vi.fn(async (_prompt: string) => modelReply);
     const s = store();
-    await extractDatesAfterCall(ctx, {
-      isMember: isMemberCall,
-      llm,
-      store: s,
-      topics: async () => [],
-      env: ON,
-    });
+    await extractDatesAfterCall(ctx, { llm, store: s, topics: async () => [], env: ON });
     expect(llm.mock.calls[0][0]).toContain('Sunday 2026-10-11');
     expect(s.plans[0].create.map((f) => [f.subject, f.value, f.eventDate])).toEqual([
       ['mom', 'birthday', '2026-10-12'],
@@ -106,14 +93,14 @@ describe('the dates-that-matter after-call task', () => {
 
   it('does not write down what the caller asked Ferni to forget', async () => {
     const s = store();
-    await extractDatesAfterCall(ctx, { isMember: isMemberCall, llm: async () => modelReply, store: s, topics: async () => ['mindy surgery'], env: ON }); // prettier-ignore
+    await extractDatesAfterCall(ctx, { llm: async () => modelReply, store: s, topics: async () => ['mindy surgery'], env: ON }); // prettier-ignore
     expect(s.plans[0].create.map((f) => f.subject)).toEqual(['mom']);
   });
 
   it('writes nothing, and makes no write call, when the forgotten topics come back unreadable (null)', async () => {
     const s = store();
     const apply = vi.spyOn(s, 'apply');
-    await extractDatesAfterCall(ctx, { isMember: isMemberCall, llm: async () => modelReply, store: s, topics: async () => null, env: ON }); // prettier-ignore
+    await extractDatesAfterCall(ctx, { llm: async () => modelReply, store: s, topics: async () => null, env: ON }); // prettier-ignore
     expect(apply).not.toHaveBeenCalled();
     expect(s.plans).toEqual([]);
   });
@@ -124,13 +111,7 @@ describe('the dates-that-matter after-call task', () => {
       throw new Error('down');
     };
     await expect(
-      extractDatesAfterCall(ctx, {
-        isMember: isMemberCall,
-        llm: async () => modelReply,
-        store: s,
-        topics,
-        env: ON,
-      })
+      extractDatesAfterCall(ctx, { llm: async () => modelReply, store: s, topics, env: ON })
     ).rejects.toThrow('down');
     expect(s.plans).toEqual([]);
   });

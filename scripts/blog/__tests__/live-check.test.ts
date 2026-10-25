@@ -1,3 +1,5 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -21,6 +23,27 @@ describe('textFlagReason', () => {
   it('reads the flag manifest', () => {
     expect(off.has('COACH_MEDIA')).toBe(true);
     expect(off.has('MULTI_AGENT_SINGLE_SESSION')).toBe(false);
+    // flag-manifest-blocks.ts used to be missed
+    expect(off.has('EMOTION_LIFT')).toBe(true);
+    expect(off.has('VOCAL_BURSTS')).toBe(true);
+  });
+
+  it('reads one-file-per-flag entries and every legacy manifest file', () => {
+    const tmp = mkdtempSync(path.join(tmpdir(), 'live-check-'));
+    const config = path.join(tmp, 'src', 'config');
+    mkdirSync(path.join(config, 'flags'), { recursive: true });
+    const file = (d: string) =>
+      `export const X = {\n  default: '${d}',\n  owner: 'voice',\n  kind: 'experiment',\n} as const;\n`;
+    writeFileSync(path.join(config, 'flags', 'NEW_OFF.ts'), file('off'));
+    writeFileSync(path.join(config, 'flags', 'NEW_SHADOW.ts'), file('shadow'));
+    writeFileSync(path.join(config, 'flags', 'NEW_ON.ts'), file('on'));
+    writeFileSync(path.join(config, 'flags', 'index.generated.ts'), "  default: 'off'\n");
+    writeFileSync(
+      path.join(config, 'flag-manifest-later.ts'),
+      "  OLD_OFF: { default: 'off', owner: 'voice', kind: 'experiment' },\n" +
+        "  OLD_ON: { default: 'on', owner: 'voice', kind: 'kill-switch' },\n"
+    );
+    expect([...offFlags(tmp)].sort()).toEqual(['NEW_OFF', 'NEW_SHADOW', 'OLD_OFF']);
   });
 
   it.each([
@@ -59,6 +82,20 @@ describe('diffFlagReason', () => {
     ).toMatch(/web flag file/);
   });
 
+  it('flags a new off-by-default flag file and a legacy block entry', () => {
+    const file = "+export const NEW_THING = {\n+  default: 'off',\n+  owner: 'voice',";
+    expect(diffFlagReason([{ filename: 'src/config/flags/NEW_THING.ts', patch: file }])).toMatch(
+      /off-by-default flag to src\/config\/flags\/NEW_THING\.ts/
+    );
+    const entry = "+  NEW_THING: { default: 'shadow', owner: 'voice', kind: 'experiment' },";
+    expect(
+      diffFlagReason([{ filename: 'src/config/flag-manifest-blocks.ts', patch: entry }])
+    ).toMatch(/off-by-default/);
+    expect(
+      diffFlagReason([{ filename: 'src/config/flags/index.generated.ts', patch: file }])
+    ).toBeUndefined();
+  });
+
   it('keeps an on-by-default entry and ordinary files', () => {
     const entry = "+  NEW_THING: { default: 'on', owner: 'voice', kind: 'kill-switch' },";
     expect(diffFlagReason([{ filename: 'src/config/flag-manifest.ts', patch: entry }])).toBe(
@@ -83,9 +120,14 @@ describe('deployReason', () => {
     expect(deployReason(pr('x', '', '2026-10-11T00:00:00Z'), agent, '2026-10-18')).toBe(undefined);
   });
 
-  it('does not count the developers portal as deployed on merge', () => {
+  it('counts a developers-portal-only PR as live the day it merges', () => {
     const portal = [{ filename: 'apps/website/developers-portal/src/blog/a.md' }];
-    expect(deployReason(pr('x'), portal, '2026-10-17')).toMatch(/7 days/);
+    expect(deployReason(pr('x'), portal, '2026-10-17')).toBeUndefined();
+  });
+
+  it('does not count another website folder as deployed on merge', () => {
+    const other = [{ filename: 'apps/website/marketplace-portal/index.html' }];
+    expect(deployReason(pr('x'), other, '2026-10-17')).toMatch(/7 days/);
   });
 
   it('does not count a PR with no files as web-only', () => {

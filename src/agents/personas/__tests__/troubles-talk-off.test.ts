@@ -3,7 +3,12 @@
  * origin/main builds without it (d41e88e46, re-taken when main was merged in;
  * before that c8ee11d96, first taken on 2705bbda6). The hashes below were taken on that commit with
  * this same file; a change to any of these prompts that is
- * not behind the flag fails here.
+ * not behind the flag fails here. One deliberate change outside the flag
+ * since: character:ferni re-taken when the games section of Ferni's
+ * tool-usage-guidance.md stopped naming tools a call lacks (#2020); and
+ * character:ferni, character:maya-santos and character:peter-john re-taken when
+ * their bundles took one canon (#2816: Maya Filipino-Brazilian, Peter in his late
+ * seventies, Ferni without pets). Every other key is as taken.
  *
  * Regenerate (only for a deliberate change outside the flag):
  *   PRINT_TROUBLES_BASELINE=1 corepack pnpm vitest run troubles-talk-off
@@ -199,9 +204,9 @@ const BASELINE: Record<string, string> = {
   ledger: '969858475dd1023e',
   'recall:opening': 'b3e7205e818a3418',
   'recall:fence': 'b3e7205e818a3418',
-  'character:ferni': 'd346bd6260445a32',
-  'character:peter-john': '9ba94c71b1470611',
-  'character:maya-santos': 'db2d5a01fbe2fe2a',
+  'character:ferni': '697b379e7adc2788',
+  'character:peter-john': 'e8f1cef9957aa617',
+  'character:maya-santos': 'f5c43cb55d293f43',
   'character:alex-chen': '5198aec44e53e80c',
 };
 

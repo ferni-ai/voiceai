@@ -54,8 +54,8 @@ done
 echo ""
 echo "  Checking for required generated assets..."
 required_assets=(
-    "images/generated/hero/hero-zen-fallback.jpg"
-    "images/generated/avatars/avatar-ferni.png"
+    "images/hero-zen-fallback.jpg"
+    "images/generated/hero/hero-zen-garden.jpg"
     "images/og-image.jpg"
 )
 

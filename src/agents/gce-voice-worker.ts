@@ -25,6 +25,7 @@
 import 'dotenv/config';
 
 import { GCE_WORKER_STARTUP_DELAY_MS, GCE_WORKER_READINESS_DELAY_MS } from '../config/timeouts.js';
+import { loadBuildSha } from '../config/build-sha.js';
 import { effectiveSettingsLines } from '../config/effective-settings.js';
 
 // ============================================================================
@@ -52,6 +53,8 @@ log('🚀 GCE Voice Worker starting', {
 });
 
 // Once per boot, for comparing deployments by hash (no flag: it is cheap observability).
+// agent.ts loads it first; this covers starting the worker directly.
+loadBuildSha();
 for (const line of effectiveSettingsLines()) log(line);
 
 // ============================================================================
@@ -145,6 +148,7 @@ startOpsOrchestrator({
 log('✅ Ops orchestrator started');
 
 // Start Call Quality Monitor (disconnect patterns, connection success rates)
+import { flushBqEvents } from '../services/analytics/bq-events.js';
 import { startCallQualityMonitor } from '../services/analytics/call-quality-monitor.js';
 startCallQualityMonitor({
   connectionSuccessRateWarning: 0.95,
@@ -336,6 +340,8 @@ const shutdown = async (signal: string): Promise<void> => {
 
   // 6. Run memory work still waiting for its batch (deep extraction, knowledge capture), max 10s
   await drainBatchedMemoryWork(10_000);
+  // 6b. Send buffered analytics rows (bq-events.ts; nothing when BQ_EVENTS is off), max 5s
+  await flushBqEvents(5_000);
 
   const metrics = getJobMetrics();
   log('Shutdown complete', {

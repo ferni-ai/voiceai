@@ -24,6 +24,8 @@
 export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis-detection.js';
 /** The crisis guard's scoring of the caller's words alone: quiet, no logging (heavy-moment.ts). */
 export { detectCrisis as scoreCrisisLanguage } from './crisis-guard.js';
+// Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
+export { crisisRiskThisCall } from './crisis-call-risk.js';
 
 export type {
   CrisisDetectionResult,
@@ -72,7 +74,7 @@ export type {
 // UNIFIED API
 // ============================================================================
 
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis, type CrisisDetectionResult, type CrisisSignal } from './crisis-detection.js';
@@ -82,6 +84,7 @@ import {
   determineEscalation,
   type EscalationDecision,
 } from './escalation-pathways.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'Safety' });
 
@@ -98,7 +101,7 @@ function getFirestoreInstance(): Firestore | null {
 
   firestoreInitAttempted = true;
   try {
-    firestoreInstance = getFirestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firestore not available - crisis events will only be logged');

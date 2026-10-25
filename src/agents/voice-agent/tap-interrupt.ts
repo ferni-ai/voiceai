@@ -3,8 +3,9 @@
  * talking, the same as if they had started speaking over him.
  * TAP_INTERRUPT=on (default off).
  *
- * The web app sends `{ type: 'user_interrupt', timestamp }` on the reliable
- * data channel while Ferni is speaking. It only shows the button when the
+ * The web app sends `{ type: 'user_interrupt', timestamp }` and the iPhone app
+ * sends `{ type: 'user_interrupt' }` on the reliable data channel while Ferni
+ * is speaking (docs/api/user-interrupt.md). It only shows the button when the
  * agent participant carries the attribute `ferni.tap_interrupt` = "on", which
  * this module sets when the flag is on, so a client never offers a button the
  * agent would ignore.
@@ -38,7 +39,27 @@ export interface TapInterruptRoom {
 }
 
 export type TapInterruptOutcome =
-  'disabled' | 'malformed' | 'not_caller' | 'not_speaking' | 'interrupted' | 'failed';
+  | 'disabled'
+  | 'malformed'
+  | 'not_caller'
+  | 'rate_limited'
+  | 'not_speaking'
+  | 'interrupted'
+  | 'failed';
+
+/** Taps beyond this many in the window are dropped: a held finger is not a stream of interrupts. */
+export const TAP_LIMIT = 5;
+export const TAP_WINDOW_MS = 5_000;
+const tapsByRoom = new WeakMap<object, number[]>();
+
+/** True (and counted) while the room is within its tap budget. */
+function withinTapBudget(room: object, now: number): boolean {
+  const recent = (tapsByRoom.get(room) ?? []).filter((t) => now - t < TAP_WINDOW_MS);
+  const ok = recent.length < TAP_LIMIT;
+  if (ok) recent.push(now);
+  tapsByRoom.set(room, recent);
+  return ok;
+}
 
 /** Tell the web client it may show the tap-to-interrupt button. No-op when the flag is off. */
 export function advertiseTapInterrupt(room: TapInterruptRoom, env: Env = process.env): void {
@@ -52,8 +73,10 @@ export function advertiseTapInterrupt(room: TapInterruptRoom, env: Env = process
 function isWellFormed(message: unknown): boolean {
   if (typeof message !== 'object' || message === null) return false;
   const { type, timestamp } = message as { type?: unknown; timestamp?: unknown };
+  // The timestamp is optional (the iPhone app sends none) but, when present, must be a number.
   return (
-    type === TAP_INTERRUPT_MESSAGE && typeof timestamp === 'number' && Number.isFinite(timestamp)
+    type === TAP_INTERRUPT_MESSAGE &&
+    (timestamp === undefined || (typeof timestamp === 'number' && Number.isFinite(timestamp)))
   );
 }
 
@@ -73,7 +96,8 @@ export async function handleTapInterrupt(
   room: TapInterruptRoom,
   session: InterruptibleSession,
   senderIdentity: string | undefined,
-  env: Env = process.env
+  env: Env = process.env,
+  now: number = Date.now()
 ): Promise<TapInterruptOutcome> {
   if (!tapInterruptEnabled(env)) return 'disabled';
   if (!isWellFormed(message)) {
@@ -81,8 +105,13 @@ export async function handleTapInterrupt(
     return 'malformed';
   }
   if (!isCaller(room, senderIdentity)) {
-    log.warn({ senderIdentity: senderIdentity }, 'Ignoring user_interrupt from a non-caller');
+    log.warn('Ignoring user_interrupt from a non-caller');
     return 'not_caller';
+  }
+  // After the caller check, so a stranger's taps can't use up the caller's budget.
+  if (!withinTapBudget(room, now)) {
+    log.warn('Dropping user_interrupt: too many taps');
+    return 'rate_limited';
   }
   const state = session.agentState;
   if (state !== 'speaking') {
@@ -91,7 +120,7 @@ export async function handleTapInterrupt(
   }
   try {
     await session.interrupt().await;
-    log.info({ senderIdentity: senderIdentity }, 'Tap to interrupt: stopped Ferni speaking');
+    log.info('Tap to interrupt: stopped Ferni speaking');
     return 'interrupted';
   } catch (err: unknown) {
     log.warn({ err }, 'Tap to interrupt failed');

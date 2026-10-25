@@ -1,0 +1,108 @@
+name: Eval Gate
+
+# Regressions in recall, crisis reads and tool retrieval fail the PR instead of
+# reaching calls. Each suite is compared with evals/baselines/*.json (value and
+# allowed band per metric); re-baselining is a deliberate diff to those files.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/agents/**'
+      - 'src/memory/**'
+      - 'src/intelligence/**'
+      - 'src/personas/**'
+      - 'src/services/safety/**'
+      - 'src/speech/tts-gateway/director/**'
+      - 'src/tools/retrieval/**'
+      - 'src/tools/semantic-router/**'
+      - 'scripts/eval-gate/**'
+      - 'scripts/memory-eval/**'
+      - 'scripts/tool-retrieval/router-examples.ts'
+      - 'evals/**'
+      - '.github/workflows/eval-gate.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  offline:
+    name: Offline evals (no model)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Absolute floors (golden recall, crisis guard)
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/memory/__tests__/memory-recall-golden.test.ts src/agents/__tests__/crisis-guard-eval.test.ts scripts/eval-gate
+        env:
+          NODE_ENV: test
+
+      - name: Compare with evals/baselines/offline.json
+        run: pnpm tsx scripts/eval-gate/offline.ts
+        env:
+          NODE_ENV: test
+          LOG_LEVEL: silent
+
+  # pull_request (never pull_request_target): fork code gets no secrets or OIDC
+  # token. The model job runs only for branches of this repo; a fork PR gets a notice.
+  model-fork-notice:
+    name: Model evals (Vertex)
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::warning title=Model evals skipped::skipped: fork PR"
+          echo "### Model evals: skipped: fork PR" >> "$GITHUB_STEP_SUMMARY"
+
+  model:
+    name: Model evals (Vertex)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Keyless: an OIDC token, accepted by the eval-gate provider only for this
+    # repo and this workflow path (keep the file name), impersonating a service
+    # account that holds roles/aiplatform.user and nothing else.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: projects/1031920444452/locations/global/workloadIdentityPools/github-pool/providers/ferni-voiceai-eval-gate
+          service_account: ferni-ci-eval@johnb-2025.iam.gserviceaccount.com
+
+      - name: Build the router example set
+        run: |
+          mkdir -p scripts/tool-retrieval/out
+          pnpm tsx scripts/tool-retrieval/router-examples.ts
+        env:
+          LOG_LEVEL: silent
+
+      - name: Compare with evals/baselines/model.json
+        run: pnpm tsx scripts/eval-gate/model.ts
+        env:
+          GOOGLE_CLOUD_PROJECT: johnb-2025
+          LOG_LEVEL: silent

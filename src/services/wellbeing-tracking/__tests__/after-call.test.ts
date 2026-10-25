@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
-import { isMemberCall } from '../../outreach/after-call-checkin.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+  trackCrisisRead,
+} from '../../safety/crisis-call-risk.js';
+import { bindSessionUser, noteCallerWords, resetMinorCare } from '../../../utils/minor-care.js';
 import type { WellbeingSnapshot } from '../index.js';
 import {
   WELLBEING_TASK,
@@ -22,12 +27,7 @@ const CALL = {
 function run(reply: string | null, flag = 'on') {
   const llm = vi.fn(async () => reply);
   const save = vi.fn(async (_u: string, _s: WellbeingSnapshot) => true);
-  const done = recordWellbeingAfterCall(CALL, {
-    llm,
-    save,
-    env: { WELLBEING_AFTER_CALL: flag },
-    isMember: isMemberCall,
-  });
+  const done = recordWellbeingAfterCall(CALL, { llm, save, env: { WELLBEING_AFTER_CALL: flag } });
   return { llm, save, done };
 }
 
@@ -62,51 +62,131 @@ describe('after-call wellbeing snapshot', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['anonymous', 'anonymous'],
-    ['an unrecognised caller', 'anon:5e4001b2-6005-40e8-bd29-abf9bc9ed648'],
-    ['the third party on a call placed for someone', 'onbehalf:call-123'],
-    ['no caller', ''],
-  ])('makes no model call and writes nothing for %s', async (_label, userId) => {
-    const llm = vi.fn(async () => '{"mood":0.9}');
+  it('writes nothing for an anonymous caller', async () => {
     const save = vi.fn(async () => true);
     await recordWellbeingAfterCall(
-      { ...CALL, userId },
-      { llm, save, env: { WELLBEING_AFTER_CALL: 'on' }, isMember: isMemberCall }
+      { ...CALL, userId: 'anonymous' },
+      { llm: async () => '{"mood":0.9}', save, env: { WELLBEING_AFTER_CALL: 'on' } }
     );
-    expect(llm).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('runs for nobody when no member check is passed in (fails closed)', async () => {
-    const llm = vi.fn(async () => '{"mood":0.9}');
+  it('writes nothing for an anon: or onbehalf: session id', async () => {
     const save = vi.fn(async () => true);
-    await recordWellbeingAfterCall(CALL, { llm, save, env: { WELLBEING_AFTER_CALL: 'on' } });
-    expect(llm).not.toHaveBeenCalled();
+    for (const userId of ['anon:web-1', 'onbehalf:call-1']) {
+      await recordWellbeingAfterCall(
+        { ...CALL, userId },
+        { llm: async () => '{"mood":0.9}', save, env: { WELLBEING_AFTER_CALL: 'on' } }
+      );
+    }
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('never scores a crisis call: no model call, nothing written', async () => {
-    const llm = vi.fn(async () => '{"mood":0.1}');
-    const save = vi.fn(async () => true);
-    const turns = [
-      { role: 'assistant', content: 'How are you holding up?' },
-      { role: 'user', content: "Honestly I don't want to live anymore." },
-    ];
-    expect(isCrisisCall(turns)).toBe(true);
-    await recordWellbeingAfterCall(
-      { ...CALL, turns },
-      { llm, save, env: { WELLBEING_AFTER_CALL: 'on' }, isMember: isMemberCall }
-    );
-    expect(llm).not.toHaveBeenCalled();
-    expect(save).not.toHaveBeenCalled();
-  });
+  describe('never scores a crisis call', () => {
+    afterEach(() => {
+      resetCrisisCallRisk();
+      vi.unstubAllEnvs();
+    });
+    const ON = { WELLBEING_AFTER_CALL: 'on' };
+    async function scored(call: typeof CALL, deps = {}): Promise<number> {
+      const llm = vi.fn(async () => '{"mood":0.1}');
+      const save = vi.fn(async () => true);
+      await recordWellbeingAfterCall(call, { llm, save, env: ON, ...deps });
+      expect(save.mock.calls.length).toBe(llm.mock.calls.length > 0 ? 1 : 0);
+      return llm.mock.calls.length;
+    }
+    const said = (...lines: string[]) => ({
+      ...CALL,
+      turns: lines.map((content, i) => ({ role: i % 2 ? 'user' : 'assistant', content })),
+    });
 
-  it('a hard week that is not a crisis is still scored', () => {
-    expect(isCrisisCall(CALL.turns)).toBe(false);
-    expect(isCrisisCall([{ role: 'user', content: 'Work has been brutal and I am wiped.' }])).toBe(
-      false
-    );
+    it("the caller's own words reach the crisis tier: no model call, nothing written", async () => {
+      const call = said('How are you holding up?', "Honestly I don't want to live anymore.");
+      expect(isCrisisCall(call, () => false)).toBe(true);
+      expect(await scored(call, { crisisRisk: () => false })).toBe(0);
+    });
+
+    it('words only the live crisis patterns read as crisis (the 988 tier reads none)', async () => {
+      for (const words of [
+        'I just want to disappear forever.',
+        'I wish I could go to sleep and not wake up.',
+        'I took a bunch of pills.',
+      ]) {
+        expect(await scored(said('How are you?', words), { crisisRisk: () => false })).toBe(0);
+      }
+    });
+
+    it('words only the human-transfer tier sends to 988 or 911 (the patterns read none)', async () => {
+      for (const words of [
+        'My husband hits me and I am scared to go home.',
+        'I want to hurt someone.',
+      ]) {
+        expect(await scored(said('How are you?', words), { crisisRisk: () => false })).toBe(0);
+      }
+    });
+
+    it("an escalation across the caller's turns (earlier turns as context)", async () => {
+      const lines = [
+        'I feel like a burden to everyone',
+        'nobody would miss me',
+        'Soon none of this will matter',
+      ];
+      const call = said('Hey.', lines[0], 'Hm.', lines[1], 'Okay.', lines[2]);
+      expect(isCrisisCall(call, () => false)).toBe(true);
+      // No line alone is a crisis.
+      for (const line of lines) expect(isCrisisCall(said('Hey.', line), () => false)).toBe(false);
+    });
+
+    it('risk was noted on this call by the crisis gate or turn pipeline (real ledger)', async () => {
+      // Plain words in the transcript: only the live call knew (e.g. a voice-amplified read).
+      noteCrisisRisk(CALL.sessionId);
+      expect(await scored(CALL)).toBe(0);
+    });
+
+    it('a classifier-only imminent read, words the patterns pass (real ledger)', async () => {
+      await trackCrisisRead(CALL.sessionId, 'doing alright', Promise.resolve({ risk: 'imminent' }));
+      expect(await scored(CALL)).toBe(0);
+    });
+
+    it('a crisis read still in flight when the call ended counts as risk', async () => {
+      void trackCrisisRead(
+        CALL.sessionId,
+        'doing alright',
+        new Promise<{ risk: string }>(() => {})
+      );
+      expect(await scored(CALL)).toBe(0);
+    });
+
+    it("another call's risk does not hold this one", async () => {
+      noteCrisisRisk('some-other-call');
+      expect(await scored(CALL)).toBe(1);
+    });
+
+    it('Ferni gave the caller 988 or the Crisis Text Line', async () => {
+      for (const line of [
+        'You can call or text 988 any time, day or night.',
+        'Text HOME to 741741 to reach the Crisis Text Line.',
+      ]) {
+        expect(await scored(said(line, 'ok.'), { crisisRisk: () => false })).toBe(0);
+      }
+    });
+
+    it('a hard week that is not a crisis is still scored', async () => {
+      expect(isCrisisCall(CALL, () => false)).toBe(false);
+      const hard = said('How was work?', 'Work has been brutal and I am wiped.');
+      expect(isCrisisCall(hard, () => false)).toBe(false);
+      expect(await scored(hard)).toBe(1);
+    });
+
+    it('MINOR_CARE: another session of this caller sounded under 18 (writeHeld)', async () => {
+      vi.stubEnv('MINOR_CARE', 'on');
+      resetMinorCare();
+      bindSessionUser('earlier-call', CALL.userId);
+      noteCallerWords('earlier-call', "I'm 15.");
+      expect(await scored(CALL)).toBe(0);
+      resetMinorCare();
+      expect(await scored(CALL)).toBe(1);
+    });
   });
 
   it('drops scores outside 0..1 and unreadable replies', () => {

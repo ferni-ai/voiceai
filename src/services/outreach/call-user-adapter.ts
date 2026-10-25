@@ -11,23 +11,31 @@ import {
   type CallUserPort,
 } from '../../tools/domains/proactive/outreach/call-user-port.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
+import { setEngagementReachPort } from '../engagement/engagement-reach-port.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
+import { movingToPhone, type PhoneMove } from './live-agent-call.js';
+import { isSavedQuietNow } from './quiet-hours.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
+import { asOwnCallMe } from './held-call.js';
 
 /** What Ferni says when a text to the owner was held. */
 const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'quiet-hours': "it's quiet hours where you are",
   'opted-out': 'you replied STOP to my texts',
+  'consent-unknown': "I couldn't check your text settings just now",
+  paused: 'you sounded like you might want fewer texts, so I held off',
   'sms-off': 'texts are turned off in your settings',
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
   'no-hash-secret': "texting isn't set up here",
+  held: "I'm holding off on texts for now",
   'send-failed': "the text didn't go through",
+  'focus-held': "your Focus is on, so it'll come when that ends",
 };
 
 /** No second immediate text within a minute: a loop can't spam the owner. */
@@ -48,23 +56,48 @@ export const callUserAdapter: CallUserPort = {
     if (!askedNow && isValidTimeZone(zone) && isQuietHour(new Date(), zone)) {
       return { sent: false, reason: HELD['quiet-hours'] };
     }
+    if (!askedNow && (await isSavedQuietNow(userId))) {
+      return { sent: false, reason: HELD['quiet-hours'] };
+    }
     const refId = `${Date.now()}`;
-    const t = { userId, body, kind: 'message' as const, refId, minGapMs: OWNER_TEXT_GAP_MS };
+    const t = {
+      userId,
+      body,
+      kind: 'message' as const,
+      refId,
+      minGapMs: OWNER_TEXT_GAP_MS,
+      askedNow,
+    };
     const outcome = await sendGuardedText(t);
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
   },
-  call: ({ userId, phoneNumber, message, personaId }) =>
-    scheduleProactiveCall({
-      userId,
-      phoneNumber,
-      message,
-      ssml: `<speak>${escapeXml(message)}</speak>`,
-      personaId,
-      reason: 'user_requested_call',
-    }),
+  call: async ({ userId, phoneNumber, message, personaId, handover }) => {
+    // Their own "call me": the one call a MINOR_CARE_SHARED_HOLD lets ring (held-call.ts)
+    const place = () =>
+      scheduleProactiveCall(
+        asOwnCallMe({
+          userId,
+          phoneNumber,
+          message,
+          ssml: `<speak>${escapeXml(message)}</speak>`,
+          personaId,
+          reason: 'user_requested_call',
+        })
+      );
+    if (!handover) return place();
+    // CALL_ME_MOVES_TO_PHONE: the app call's id rides the dispatch; the live dial comes back
+    const move: PhoneMove = { userId, conversationId: handover.conversationId };
+    const result = await movingToPhone(move, place);
+    return move.dial ? { ...result, dial: move.dial } : result;
+  },
 };
 
 /** Install the adapter; safe to call on every call. */
 export function installCallUserPort(): void {
   setCallUserPort(callUserAdapter);
+  // Maya's notifications (services/engagement) reach only the same verified phone and email.
+  setEngagementReachPort({
+    verifiedPhone: callUserAdapter.verifiedPhone,
+    verifiedEmail: async (userId) => (await callUserAdapter.verifiedEmail?.(userId)) ?? undefined,
+  });
 }

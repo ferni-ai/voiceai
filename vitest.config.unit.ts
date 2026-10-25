@@ -7,7 +7,7 @@
  * Usage: pnpm test:unit
  */
 
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -59,6 +59,21 @@ export default defineConfig({
     ],
     testTimeout: 20000, // Reasonable timeout for unit tests with mocking
     hookTimeout: 20000,
+    // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).
+    globalSetup: ['./src/config/__tests__/generate-lists-setup.ts'],
     setupFiles: ['./src/tests/setup.ts'],
+    // Pull requests run `--changed`: only the tests whose imports reach a changed
+    // file (ci.yml, Unit Tests). A change to any of these runs the whole suite,
+    // because no import edge leads from a test to them: the setup files, the
+    // lockfile and tsconfig, and non-code files under src/ that code reads from
+    // disk at runtime (persona bundles, prompt and data files).
+    forceRerunTriggers: [
+      ...configDefaults.forceRerunTriggers,
+      '**/src/tests/setup.ts',
+      '**/src/tests/gcp-test-guard.ts',
+      '**/pnpm-lock.yaml',
+      '**/tsconfig*.json',
+      '**/src/**/*.{md,json,yaml,yml,txt,csv}',
+    ],
   },
 });

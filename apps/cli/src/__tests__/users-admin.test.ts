@@ -20,13 +20,6 @@ describe('no shell: user input stays one argv element', () => {
     ['users show', () => handleUsers, ['show', evil], 'check-my-data.ts', `--email=${evil}`],
     ['users grant', () => handleUsers, ['grant', evil], 'grant-access.ts', `--email=${evil}`],
     ['users dump', () => handleUsers, ['dump', evil], 'full-user-dump.ts', `--user=${evil}`],
-    [
-      'waitlist approve',
-      () => handleWaitlist,
-      ['approve', evil],
-      'approve-waitlist-user.ts',
-      `--email=${evil}`,
-    ],
   ])('%s', async (_name, handler, args, script, flag) => {
     const d = deps();
     await handler()(args, d);
@@ -34,6 +27,16 @@ describe('no shell: user input stays one argv element', () => {
     expect(d.run).toHaveBeenCalledWith('npx', ['tsx', `/repo/scripts/${script}`, flag], {
       stdio: 'inherit',
     });
+  });
+
+  it('waitlist approve: the email is one argv element, and no --apply unless asked', async () => {
+    const d = deps();
+    await handleWaitlist(['approve', evil], d);
+    expect(d.run).toHaveBeenCalledWith(
+      'npx',
+      ['tsx', '/repo/scripts/waitlist-admin.ts', 'approve', evil, '--project', 'johnb-2025'],
+      { stdio: 'inherit' }
+    );
   });
 
   it('never invokes a shell for any subcommand', async () => {
@@ -74,6 +77,38 @@ describe.each([
     expect(d.run).toHaveBeenCalledWith(
       'npx',
       ['tsx', `/repo/scripts/${script}`, '--execute', '--confirm-project=johnb-2025'],
+      { stdio: 'inherit' }
+    );
+  });
+});
+
+describe('users undo-dnc', () => {
+  it('is a dry run by default, the user id one argv element', async () => {
+    const d = deps();
+    await handleUsers(['undo-dnc', evil], d);
+    expect(d.ask).not.toHaveBeenCalled();
+    expect(d.run).toHaveBeenCalledWith(
+      'npx',
+      ['tsx', '/repo/scripts/undo-own-dnc.ts', `--user=${evil}`, '--dry-run'],
+      { stdio: 'inherit' }
+    );
+  });
+
+  it('--execute asks for the project id and runs only when it matches', async () => {
+    const wrong = deps('nope');
+    await handleUsers(['undo-dnc', 'u1', '--execute'], wrong);
+    expect(wrong.run).not.toHaveBeenCalled();
+    const right = deps('johnb-2025');
+    await handleUsers(['undo-dnc', 'u1', '--execute'], right);
+    expect(right.run).toHaveBeenCalledWith(
+      'npx',
+      [
+        'tsx',
+        '/repo/scripts/undo-own-dnc.ts',
+        '--user=u1',
+        '--execute',
+        '--confirm-project=johnb-2025',
+      ],
       { stdio: 'inherit' }
     );
   });

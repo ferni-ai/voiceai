@@ -777,7 +777,7 @@
     "phoneLabel": "Escríbeme o llámame",
     "emailLabel": "Envíame actualizaciones",
     "nameLabel": "¿Cómo quieres que te llame?",
-    "privacyNote": "Solo usaré esto para los registros. Nunca spam, nunca se compartirá.",
+    "privacyNote": "Solo usaré esto para los registros. Nunca spam, nunca se venderá.",
     "quietHours": "Horas de silencio",
     "dontCall": "No llamar",
     "until": "hasta",
@@ -1207,7 +1207,7 @@
       "createPractice": "Crea un ritual",
       "creativeYou": "Despierta tu creatividad",
       "discoverAgents": "Conoce a más amistades",
-      "exportData": "Llévate tu historia",
+      "exportData": "Privacidad y tus datos",
       "gifts": "Regalos y días especiales",
       "groupCoaching": "Con amistades",
       "guidedPractices": "El santuario",
@@ -1540,7 +1540,7 @@
         "title": "Solo habla"
       },
       "welcome": {
-        "description": "Tu equipo personal de coaches de vida con IA. Cada quien aporta una sabiduría única para acompañar tu camino.",
+        "description": "Tu equipo personal de guías. Cada uno aporta su propia forma de ver las cosas.",
         "title": "Te damos la bienvenida a Ferni"
       }
     },
@@ -2427,7 +2427,7 @@
     "intro": "Conecta tus dispositivos corporales para darle a Ferni contexto sobre tu salud y niveles de energía.",
     "loading": "Cargando...",
     "privacy": {
-      "note": "Tus datos de salud se mantienen privados. Solo compartimos reflexiones agregadas con tus sesiones de coaching."
+      "note": "Ferni guarda tus datos de salud para encontrar patrones contigo. Nunca los vendemos, y al eliminar tu cuenta se borran."
     },
     "providers": {
       "appleHealth": {
@@ -2902,6 +2902,9 @@
     "openConversations": "Conversaciones abiertas",
     "onYourMind": "En tu mente",
     "thingsTracking": "Cosas de las que tu equipo está haciendo un seguimiento por ti",
+    "trackedDone": "Hecho",
+    "trackedDismiss": "Descartar",
+    "trackedUpdateFailed": "No se pudo actualizar. ¿Lo intentas de nuevo?",
     "quickConnections": "Conexiones rápidas",
     "startWithAnyone": "Inicia una conversación con cualquiera de tu equipo",
     "allCaughtUp": "¡Todo al día!",
@@ -2967,7 +2970,7 @@
     "orUseEmail": "o usa tu correo",
     "emailLabel": "Correo electrónico",
     "passwordLabel": "Contraseña",
-    "privacyNote": "Tus datos siguen siendo privados. Siempre.",
+    "privacyNote": "Nunca vendemos tus datos. Al eliminar tu cuenta, se borran.",
     "loading": "Un momento...",
     "welcomeBack": "¡Te damos la bienvenida de nuevo! Lo recuerdo todo.",
     "somethingWentWrong": "Algo salió mal",
@@ -2990,7 +2993,7 @@
     "waitlistMessage": "Estamos lanzando Ferni poco a poco para asegurarnos de que todo el mundo tenga la mejor experiencia. Te enviaremos un correo en cuanto haya un lugar para ti.",
     "waitlistEmail": "Te avisaremos en {email}",
     "tryDifferentAccount": "Prueba con otra cuenta",
-    "checkingAccess": "Comprobando tu acceso...",
+    "checkingAccess": "Preparando todo…",
     "checkingLabel": "Un momento...",
     "signInError": "El inicio de sesión se canceló o falló. Por favor, inténtalo de nuevo.",
     "verifyEmailTitle": "Verifica tu correo electrónico",
@@ -3451,7 +3454,7 @@
     "weeklyDigest": "Resumen semanal",
     "weeklyDigestDesc": "Un adelanto de tu próxima semana cada domingo por la tarde",
     "viewSyncConflicts": "Ver conflictos de sincronización",
-    "integrationsPrivacy": "Las integraciones sincronizan tus eventos existentes en Ferni. Tus datos siguen siendo privados.",
+    "integrationsPrivacy": "Las integraciones sincronizan tus eventos existentes en Ferni. Nunca vendemos tus datos.",
     "tryAgain": "Intentar de nuevo",
     "syncing": "Sincronizando...",
     "connectAppleCalendar": "Conectar Apple Calendar",
@@ -3527,8 +3530,6 @@
     "accessLevelFullDesc": "Puede hablar con todos los miembros del equipo",
     "accessLevelLimited": "Limitado",
     "accessLevelLimitedDesc": "Solo con Ferni",
-    "accessLevelSupervised": "Supervisado",
-    "accessLevelSupervisedDesc": "Te avisaremos cuando haya llamadas",
     "eyebrow": "Familia",
     "addMember": "Añadir miembro de la familia",
     "emptyText": "Agrega a los miembros de tu familia que llamen a Ferni por teléfono. Se les reconocerá automáticamente y podrán tener sus propias conversaciones con Ferni.",
@@ -3599,7 +3600,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Tu acompañante personal de IA",
+        "role": "Tu acompañante personal",
         "description": "Estoy aquí para lo que necesites, desde registros diarios hasta conversaciones profundas.",
         "unlockHint": "Siempre a tu lado",
         "unlockedMessage": "Hemos pasado por mucho en nuestro camino.",
@@ -3631,7 +3632,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Comunicación y relaciones",
+        "role": "Coach de comunicación y mano derecha",
         "description": "Te ayudo a navegar conversaciones, fortalecer tus relaciones y expresarte mejor.",
         "unlockHint": "Comparte una historia sobre tus relaciones con Ferni",
         "unlockedMessage": "Noté algunos patrones que vale la pena explorar.",
@@ -3670,11 +3671,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Tu compañero de vida con IA",
+      "title": "Conoce a Ferni",
       "message": "He estado usando Ferni y realmente ha cambiado mi forma de enfocar el día. ¡Únete! {url}",
       "shortMessage": "¡Únete a mí en Ferni! {url}",
-      "emailSubject": "Deberías probar Ferni",
-      "emailBody": "¡Hola! He estado usando Ferni — es un compañero de IA que realmente se siente humano. Pensé que te encantaría. {url}"
+      "emailSubject": "Deberías probar Ferni"
     },
     "modal": {
       "title": "Comparte el crecimiento",
@@ -3993,7 +3993,6 @@
       "ceo": "Dirección",
       "ferniRole": "CEO y Coach de vida",
       "ferniDesc": "La presencia cálida y sabia en el corazón de todo. Ferni coordina al equipo con un recuerdo perfecto, cero juicios y una presencia constante.",
-      "coFounders": "Cofundadores",
       "coreTeam": "Equipo principal",
       "footer": "En conjunto, estamos redefiniendo lo que significa tener un equipo que te escucha de verdad.",
       "roles": {
@@ -4595,7 +4594,7 @@
     "title": "Crear página del agente",
     "nameLabel": "Nombre del agente",
     "namePlaceholder": "ej. Nate Holloway",
-    "nameHint": "El nombre completo de tu agente de IA",
+    "nameHint": "El nombre completo de tu agente",
     "initialsLabel": "Iniciales",
     "initialsPlaceholder": "ej. JD",
     "initialsHint": "Se muestran en el avatar (2 o 3 caracteres)",
@@ -4800,7 +4799,10 @@
     "funGames": "Juegos divertidos",
     "reflectionGames": "Juegos de reflexión",
     "tipLabel": "Consejo:",
-    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!"
+    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!",
+    "connectFirst": "Primero empieza una llamada con Ferni y luego elige un juego.",
+    "starting": "Empezando {game}…",
+    "startFailed": "No se pudo empezar ese juego. Pídeselo a Ferni."
   },
   "digitalTwinProfile": {
     "title": "Crea tu gemelo digital",
@@ -7332,8 +7334,7 @@
       "description": "Tu diario de voz personal que crece contigo",
       "feature1": "Registra diarios de voz cotidianos",
       "feature2": "Habla con tu yo del pasado",
-      "feature3": "Sigue de cerca tu crecimiento a lo largo del tiempo",
-      "feature4": "Reflexiones generadas por IA"
+      "feature3": "Sigue de cerca tu crecimiento a lo largo del tiempo"
     },
     "fictional": {
       "name": "Ficticio",
@@ -9128,10 +9129,6 @@
     "chiefExecutive": "Dirección Ejecutiva",
     "ferni": "Ferni",
     "ferniRole": "CEO y Coach de vida",
-    "coFounders": "Cofundadores",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Equipo principal",
     "tagline": "En equipo, estamos redefiniendo lo que significa tener a alguien que te escuche de verdad.",
     "inTeam": "En el equipo",
@@ -9417,7 +9414,8 @@
     "title": "Tus datos",
     "exportFormat": "Formato de exportación",
     "deleteAll": "Eliminar todos los datos",
-    "footer": "Tus datos te pertenecen. Respetamos tu privacidad.",
+    "footer": "Guardo nuestras conversaciones y lo que me cuentas para poder recordarlo la próxima vez, y si algún día quieres que desaparezca, al eliminar tu cuenta se borra todo.",
+    "privacyPolicyLink": "Lee la política de privacidad",
     "deleteAccount": "Eliminar mi cuenta",
     "confirmDeleteAll": "¿De verdad quieres eliminar todos tus datos? Esta acción no se puede deshacer.",
     "confirmDeleteAccount": "¿Quieres eliminar tu cuenta de Ferni? Esto borrará todo lo que Ferni sabe sobre ti y cerrará tu sesión de forma permanente. Esta acción no se puede deshacer.",
@@ -9581,7 +9579,14 @@
     "close": "Cerrar",
     "seeCost": "Lo que costó esta llamada",
     "feedbackQuestion": "¿Qué tal te sentó?",
-    "feedbackThanks": "Gracias, eso me ayuda."
+    "feedbackThanks": "Gracias, eso me ayuda.",
+    "pushAskQuestion": "¿Quieres que Ferni te pregunte por esto más adelante?",
+    "pushAskYes": "Sí, por favor",
+    "pushAskNotNow": "Ahora no",
+    "pushAskDone": "Listo. Las notas de Ferni llegarán a este dispositivo.",
+    "pushAskLater": "Sin problema. Puedes cambiarlo en Ajustes más tarde.",
+    "pushAskHomeScreen": "Para recibir notas de Ferni aquí, añade Ferni a tu pantalla de inicio: toca Compartir y luego Añadir a pantalla de inicio.",
+    "pushAskGotIt": "Entendido"
   },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
@@ -9875,7 +9880,7 @@
     },
     "marketplace": {
       "headline": "Encuentra a tu gente.",
-      "description": "Más allá del equipo principal de Ferni, te espera un jardín de coaches de IA especializados. Apoyo para el TDAH, acompañamiento para la sobriedad, especialistas en sueño, guías de crianza... especialistas que entienden tu camino específico.",
+      "description": "Más allá del equipo principal de Ferni, te espera un jardín de coaches especializados. Apoyo para el TDAH, acompañamiento para la sobriedad, especialistas en sueño, guías de crianza... especialistas que entienden tu camino específico.",
       "superhuman1": "Personalidades especializadas: coaches para desafíos de vida específicos",
       "superhuman2": "Calificaciones de la comunidad: experiencias reales, reseñas reales",
       "superhuman3": "Gratuito y premium: apoyo para todos los presupuestos",
@@ -9883,7 +9888,7 @@
     },
     "developerPortal": {
       "headline": "Construye lo que importa.",
-      "description": "La tecnología de Ferni se está abriendo al mundo. Construye tus propios coaches de IA, crea personalidades especializadas y llega a las personas que necesitan exactamente lo que ofreces. La plataforma que impulsa a Ferni, ahora en tus manos.",
+      "description": "La tecnología de Ferni se está abriendo al mundo. Construye tus propios coaches, crea personalidades especializadas y llega a las personas que necesitan exactamente lo que ofreces. La plataforma que impulsa a Ferni, ahora en tus manos.",
       "superhuman1": "Documentación completa de la API: todo lo que necesitas para construir",
       "superhuman2": "SDK y librerías: desarrollo enfocado en TypeScript",
       "superhuman3": "Creador de personalidades: herramientas visuales para crear coaches",
@@ -9971,7 +9976,7 @@
       "title": "Personalización",
       "message": "Tu ubicación me ayuda a que nuestras conversaciones se sientan más personales y relevantes, como si realmente estuviera ahí contigo."
     },
-    "note": "Esto queda solo entre nosotros; solo lo uso para que nuestras conversaciones sean más personales.",
+    "note": "Solo lo uso para que nuestras conversaciones sean más personales, y nunca lo vendo.",
     "notNow": "Ahora no",
     "allow": "Permitir ubicación"
   },
@@ -10213,9 +10218,10 @@
     "title": "Pequeñas cosas que recuerdo",
     "subtitle": "Para que no tengas que hacerlo tú",
     "emptyTitle": "Aún no hay nada configurado",
-    "emptySubtitle": "¿Quieres que te salude cada mañana? ¿Que te recuerde estirar? Puedo hacer eso.",
+    "emptySubtitle": "Cuéntame algo que quieras hacer con regularidad y lo guardaré aquí.",
     "emptyButton": "Muéstrame algunas ideas",
     "addNew": "Añadir algo nuevo",
+    "notRunningYet": "Las guardo aquí para ti. Todavía no se ejecutan solas.",
     "triggers": {
       "dailyAt": "Todos los días a las {time}",
       "dailyUnset": "Todos los días a una hora fija",
@@ -10334,6 +10340,7 @@
       "other": "¡Has ganado {count} semillas!"
     },
     "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "credentialNotKept": "Ferni no guarda códigos ni contraseñas, así que ese ya no está.",
     "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {
@@ -10602,7 +10609,7 @@
   },
   "ferniAwakens": {
     "greeting": "Hola.",
-    "subtext": "Soy Ferni, tu coach de vida con IA."
+    "subtext": "Soy Ferni, tu guía personal."
   },
   "serviceHealth": {
     "names": {
@@ -10612,7 +10619,7 @@
       "historicalFacts": "Datos históricos",
       "smartHome": "Hogar inteligente",
       "lighting": "Iluminación",
-      "aiContext": "Contexto de IA",
+      "aiContext": "Memoria y contexto",
       "sleepHealth": "Datos de sueño y salud",
       "other": "Un servicio conectado"
     },
@@ -10778,9 +10785,6 @@
     "patronShort": "Mecenas",
     "founderAria": "{tier}. ¡Gracias por creer en nosotros! Haz clic para administrar."
   },
-  "splash": {
-    "tagline": "Tu equipo de IA está listo"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "Todo el apoyo",
@@ -10918,7 +10922,7 @@
   },
   "entrance": {
     "helper": "Tu guía personal",
-    "connectToTalk": "Hablar",
+    "connectToTalk": "Habla con Ferni",
     "endTalk": "Desconectar",
     "connectingCancel": "Conectando. Toca para cancelar",
     "connectingNow": "Conectando…",
@@ -11251,5 +11255,21 @@
     "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
     "maybeLater": "Quizás después",
     "close": "Cerrar"
+  },
+  "reportReply": {
+    "button": "Reportar",
+    "describe": "Reportar algo que dijo {name}",
+    "title": "Reportar una respuesta",
+    "whichReply": "¿Qué respuesta?",
+    "whatsWrong": "¿Qué tiene de malo?",
+    "reasonHarmful": "Dañina o peligrosa",
+    "reasonWrong": "Incorrecta o engañosa",
+    "reasonInappropriate": "Inapropiada",
+    "reasonOther": "Otra cosa",
+    "note": "¿Algo que añadir? (opcional)",
+    "send": "Enviar",
+    "thanks": "Gracias. Una persona lo revisará.",
+    "failed": "No se pudo enviar. Inténtalo de nuevo.",
+    "tooMany": "Hoy has enviado muchos reportes. Inténtalo de nuevo mañana."
   }
 }

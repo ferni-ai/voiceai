@@ -24,10 +24,18 @@
  * @module tools/domains/communication/outreach/outreach-confirm
  */
 
+import { flagOn } from '../../../../config/env-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
+import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
+import {
+  gateInFamily,
+  settleThenSend,
+  type ConfirmGate,
+  type Execute,
+} from './outreach-server-confirm.js';
 
 const log = getLogger();
 
@@ -62,9 +70,9 @@ const GATED = Symbol.for('ferni.outbound-confirm');
 
 type SessionEvent =
   { kind: 'caller'; text: string; agentSpeaking: boolean } | { kind: 'tool'; callIds: string[] };
-type ConfirmEvent = SessionEvent & { seq: number };
+export type ConfirmEvent = SessionEvent & { seq: number };
 
-interface PendingAction {
+export interface PendingAction {
   toolId: string;
   userId: string;
   spec: ConfirmSpec;
@@ -73,13 +81,22 @@ interface PendingAction {
   callId: string;
   createdSeq: number;
   expiresAt: number;
+  /** OUTREACH_SERVER_CONFIRM: who it reaches and how to send it as read back (outreach-confirm-family.ts). */
+  server?: Kin & { readBack: string; send: () => Promise<unknown> };
+  /** The owner's first name, lower-case, from the call's user data: a yes may address them. */
+  owner?: string[];
 }
 
-interface SessionLog {
+export interface SessionLog {
   seq: number;
   events: ConfirmEvent[];
   pending?: PendingAction;
   speakerIsOwner?: () => boolean; // false: the person on the line is not the account owner
+  // OUTREACH_SERVER_CONFIRM: the action last sent on a yes, the yes waiting to settle, and how
+  // the model hears what the server did (the live call installs it).
+  sent?: Kin & { readBack: string; expiresAt: number };
+  settle?: ReturnType<typeof setTimeout>;
+  note?: (text: string) => void;
 }
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
@@ -145,6 +162,14 @@ const NOT_A_NAME = new Set([
     uncle cousin friend boss doctor her him them me us it that this there here`.split(/\s+/),
 ]);
 
+// Names that may address Ferni inside a yes: the personas (as in FILLERS) and STT mishearings of
+// "Ferni" (agents/personas/name-mishear.ts, plus "fred" and "freddie", taken as the name only
+// here: in other speech "Fred" is as likely a real person). Owner call 10-18: "Uh, go ahead, Fred."
+const FERNI_NAMES = new Set([
+  ...'ferni fern maya jordan peter alex nayan'.split(' '),
+  ...'freddy freddie fred fernie ferny furny'.split(' '),
+]);
+
 const words = (text: string): string[] =>
   text
     .toLowerCase()
@@ -153,11 +178,17 @@ const words = (text: string): string[] =>
 
 /**
  * A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob".
- * It may also address Ferni by one name, misheard or not, set off by a comma at its start or
- * end ("Uh, go ahead, Fred.", "Okay Sam, go ahead"); never a word in NOT_A_NAME or in `target`
- * (the person the action reaches: "Yes, Dad." may mean someone else).
+ * It may also carry one name set off by a comma at its start or end ("Uh, go ahead, Fred."),
+ * but only a name that leaves the action as read back: Ferni's (or a persona's) name or a
+ * mishearing of it, the owner's own first name (`owner`), or the person the action reaches
+ * (`target`: "Yes, go ahead, Mike." for a call to Mike restates it). Any other name voids the
+ * yes: with a call to Mike waiting, "Yes, go ahead, Bob." may mean Bob. Never a NOT_A_NAME word.
  */
-export function isClearYes(text: string, target: readonly string[] = []): boolean {
+export function isClearYes(
+  text: string,
+  target: readonly string[] = [],
+  owner: readonly string[] = []
+): boolean {
   // A question word is never a yes phrase, so "which one, yes" already fails below.
   if (text.includes('?')) return false;
   if (onlyYes(words(text))) return true;
@@ -169,10 +200,11 @@ export function isClearYes(text: string, target: readonly string[] = []): boolea
     [head[head.length - 1], [...head.slice(0, -1), ...parts.slice(1)].join(' ')],
   ];
   if (!/\s/.test(tail)) options.push([tail, parts.slice(0, -1).join(' ')]);
-  const isName = (w: string): boolean =>
-    /^[A-Z][a-z]+$/.test(w) &&
-    !NOT_A_NAME.has(w.toLowerCase()) &&
-    !target.includes(w.toLowerCase());
+  const isName = (w: string): boolean => {
+    const name = w.toLowerCase();
+    if (!/^[A-Z][a-z]+$/.test(w) || NOT_A_NAME.has(name)) return false;
+    return FERNI_NAMES.has(name) || target.includes(name) || owner.includes(name);
+  };
   return options.some(([name, rest]) => isName(name) && onlyYes(words(rest)));
 }
 
@@ -190,6 +222,14 @@ function onlyYes(said: string[]): boolean {
     w = w.slice(phrase.split(' ').length);
   }
   return sawYes;
+}
+
+/** The owner's first names, lower-case, from the tool run's user data (userName, name). */
+function ownerFirstNames(opts: unknown): string[] {
+  const data = (opts as { ctx?: { userData?: Record<string, unknown> } } | undefined)?.ctx
+    ?.userData;
+  const names = [data?.userName, data?.name].filter((n): n is string => typeof n === 'string');
+  return [...new Set(names.flatMap((n) => words(n).slice(0, 1)))];
 }
 
 export function isClearNo(text: string): boolean {
@@ -231,7 +271,7 @@ export function confirmationState(
   const target = ['contactQuery', 'contactName', 'friendName', 'recipientName'].flatMap((k) =>
     typeof pending.args[k] === 'string' ? words(pending.args[k]) : []
   );
-  return isClearYes(answer.join(' '), target) ? 'confirmed' : 'void';
+  return isClearYes(answer.join(' '), target, pending.owner) ? 'confirmed' : 'void';
 }
 
 /**
@@ -263,18 +303,22 @@ function continues(
 /**
  * Listeners for a live AgentSession: the caller's final transcripts and tool
  * outputs. If `speakerIsOwner` returns false, no reply on this call confirms.
+ * `note` tells the model what the server sent on a yes (OUTREACH_SERVER_CONFIRM).
  */
 export function outreachConfirmListeners(
   session: { agentState?: string },
-  speakerIsOwner?: () => boolean
+  speakerIsOwner?: () => boolean,
+  note?: (text: string) => void
 ) {
   if (speakerIsOwner) logFor(session).speakerIsOwner = speakerIsOwner;
+  if (note) logFor(session).note = note;
   return {
     onTranscript: (event: unknown) => {
       const e = event as { transcript?: string; isFinal?: boolean };
       if (!e.isFinal || !e.transcript?.trim()) return;
       const agentSpeaking = session.agentState === 'speaking';
       record(session, { kind: 'caller', text: e.transcript, agentSpeaking });
+      if (serverConfirmOn()) settleThenSend(serverGate, session, logFor(session));
     },
     onToolsExecuted: (event: unknown) => {
       const calls = (event as { functionCalls?: Array<{ callId?: string }> }).functionCalls ?? [];
@@ -303,6 +347,32 @@ export interface ConfirmSpec {
   sameAction?: (stored: Record<string, unknown>, next: Record<string, unknown>) => boolean;
 }
 
+/** What OUTREACH_SERVER_CONFIRM's half (outreach-server-confirm.ts) borrows from this gate. */
+const serverGate: ConfirmGate = {
+  confirmationState,
+  ownerKnown,
+  isClearNo,
+  ownerFirstNames,
+  windowMs: CONFIRM_WINDOW_MS,
+  planOnly: PLAN_ONLY,
+  planned: PLANNED,
+};
+const CALL_CHANNELS = ['call', 'voicemail', 'conversation'];
+
+/**
+ * MESSAGING_PIPELINE: the owner's yes to a planned text or call is their
+ * attestation that the contact is happy to hear from Ferni on that channel,
+ * recorded only for a friends-and-family owner (consent-grants.ts).
+ */
+async function attestOnConfirm(userId: string, args: Record<string, unknown>): Promise<void> {
+  const planned = (args as { [PLANNED]?: Planned })[PLANNED];
+  if (!planned?.to || planned.channel === 'email') return;
+  if (!flagOn('MESSAGING_PIPELINE')) return;
+  const { recordOwnerAttestation } = await import('../../../../utils/consent-port.js');
+  const channel = CALL_CHANNELS.includes(planned.channel) ? 'call' : 'sms';
+  await recordOwnerAttestation(planned.to, channel, userId);
+}
+
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
   if ((def as unknown as Record<symbol, unknown>)[GATED]) return def;
@@ -310,8 +380,8 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
     ...def,
     create: (ctx: ToolContext): Tool => {
       const tool = def.create(ctx);
-      type Execute = (a: unknown, o?: unknown) => Promise<unknown>;
       const execute = (tool as { execute: Execute }).execute.bind(tool);
+      const gate = { gate: serverGate, toolId: def.id, spec, execute };
       const gated = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
         if (spec.applies && !spec.applies(args)) return execute(args, opts);
         if (isSyntheticUserId(ctx.userId)) {
@@ -331,6 +401,8 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           log.warn({ toolId: def.id }, 'OUTREACH_CONFIRM: speaker is not the owner, nothing sent');
           return "Nothing was sent: only the account owner can confirm this, and they aren't on the line.";
         }
+        if (serverConfirmOn())
+          return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
         const { pending } = entry;
         if (
           pending &&
@@ -343,6 +415,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
             { toolId: def.id, previewedBy: pending.toolId },
             'OUTREACH_CONFIRM: caller said yes, sending'
           );
+          await attestOnConfirm(ctx.userId, pending.args);
           return sentConfirmThread(pending, execute(pending.args, opts));
         }
         if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent
@@ -360,6 +433,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           callId,
           createdSeq: entry.seq,
           expiresAt: Date.now() + CONFIRM_WINDOW_MS,
+          owner: ownerFirstNames(opts),
         };
         openConfirmThread(entry.pending, {
           userId: ctx.userId,

@@ -7,8 +7,12 @@
  * rendered; the integration tiles showed Oura, Eight Sleep, Ecobee, Spotify,
  * Apple Health and a Vibe tile that always said "connected"; voice and
  * notification deep links still opened Music, the Quiz, Home & Family, Voice ID
- * and Predictions.
+ * and Predictions. Later (2026-10-25 audit): the home screen's Predictions
+ * button and the `ferni:open-predictions` listener still opened the panel.
  */
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,16 +25,20 @@ const { relationshipStageService } =
   await import('../../src/services/relationship-stage.service.js');
 const { memoryControlEnabled } = await import('../../src/ui/memory/remembered.js');
 const { getSettingsMenuUI, initSettingsMenuUI } = await import('../../src/ui/settings-menu.ui.js');
+const { hiddenMenuActions } = await import('../../src/config/menu-visibility.js');
 
+/** Every hidden row (config/menu-visibility.ts), integration settings rows included. */
 const HIDDEN_ROWS = [
   'vibe-controller',
+  'smart-home',
   'discover-agents',
+  'household',
   'household-members',
+  'voice-enrollment',
   'voice-id-settings',
   'music-dashboard',
   'knowledge-quiz',
   'ritual',
-  'pattern-insights',
   'whats-growing',
   'predictions',
   'spotify',
@@ -38,6 +46,10 @@ const HIDDEN_ROWS = [
   'eight-sleep-settings',
   'apple-health-settings',
   'wearable-settings',
+  // flagged off by default (VITE_PATTERN_INSIGHTS)
+  'pattern-insights',
+  'conversation-insights',
+  'patterns',
 ];
 
 /** Every row of the menu body, in order, for a user with everything unlocked. */
@@ -95,10 +107,7 @@ describe('desktop settings menu', () => {
     vi.spyOn(relationshipStageService, 'getStage').mockReturnValue('established');
     vi.spyOn(relationshipStageService, 'isFeatureUnlocked').mockReturnValue(true);
     // Pins saved before the hides must not bring a hidden row back
-    localStorage.setItem(
-      'ferni_menu_pinned',
-      JSON.stringify(['hub', 'household-members', 'predictions', 'voice-id-settings'])
-    );
+    localStorage.setItem('ferni_menu_pinned', JSON.stringify(['hub', ...HIDDEN_ROWS]));
     initSettingsMenuUI({});
     getSettingsMenuUI().show();
   });
@@ -111,6 +120,10 @@ describe('desktop settings menu', () => {
 
   it('renders exactly the decided rows, in order', () => {
     expect(bodyRows()).toEqual(VISIBLE_ROWS);
+  });
+
+  it('lists every hidden row, so a new hide is checked here too', () => {
+    expect([...HIDDEN_ROWS].sort()).toEqual(hiddenMenuActions().sort());
   });
 
   it('renders no hidden row anywhere, pinned or not', () => {
@@ -134,7 +147,7 @@ describe('mobile bottom sheet', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
   });
 
-  it('offers exactly how i reach you, settings, team, calendar, history, people and insights', async () => {
+  it('offers exactly how i reach you, settings, team, calendar, history, people, sound and insights', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 });
     const { initMobileBottomSheet } = await import('../../src/ui/mobile-bottom-sheet.ui.js');
     initMobileBottomSheet();
@@ -149,6 +162,7 @@ describe('mobile bottom sheet', () => {
       'calendar',
       'history',
       'people',
+      'sound',
       'insights',
     ]);
   });
@@ -200,6 +214,36 @@ describe('deep links to hidden panels do nothing', () => {
 
     expect(openPanelForNotificationType('prediction_result')).toBe(false);
     expect(opened).toEqual([]);
+  });
+});
+
+describe('home screen', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('has no Predictions button, and keeps Daily Practice and Team Insights', async () => {
+    document.body.innerHTML = '<div class="controls-row"></div>';
+    const onPredictionsClick = vi.fn();
+    const { initEngagementTriggerUI } = await import('../../src/ui/engagement-trigger.ui.js');
+    initEngagementTriggerUI({ onPredictionsClick });
+
+    expect(document.querySelector('#predictionsTriggerBtn')).toBeNull();
+    expect(document.querySelector('#engagementTriggerBtn')).not.toBeNull();
+    expect(document.querySelector('#insightsTriggerBtn')).not.toBeNull();
+    expect(onPredictionsClick).not.toHaveBeenCalled();
+  });
+
+  it('opens Predictions from its event or home callback only while the panel is visible', () => {
+    const app = readFileSync(resolve(__dirname, '../../src/app.ts'), 'utf8');
+    const listener = app.slice(app.indexOf("'ferni:open-predictions',"));
+    expect(listener.slice(0, listener.indexOf('\n'))).toContain(
+      "isPanelEventVisible('ferni:open-predictions') &&"
+    );
+    const callback = app.slice(app.indexOf('onPredictionsClick:'));
+    expect(callback.slice(0, callback.indexOf('\n'))).toContain(
+      "isPanelEventVisible('ferni:open-predictions') &&"
+    );
   });
 });
 

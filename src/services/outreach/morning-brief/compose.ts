@@ -18,6 +18,8 @@ export interface BriefEvent {
   readonly title: string;
   readonly start: Date;
   readonly allDay: boolean;
+  /** An invite from someone else not yet accepted: shown by time only, never by title. */
+  readonly invite?: boolean;
 }
 
 export interface MorningBriefInput {
@@ -35,20 +37,48 @@ export interface MorningBriefInput {
 const FIRST_PERSON =
   /^(?:i(?:'m| am) (?:going to|gonna)|i(?:'ll| will)|i (?:need|have|want|promise) to|i should)\s+/i;
 
-/** One item, safe for the brief: no dashes, ellipses or emoji, at most ITEM_CHARS. */
+// Contact details never go out in a brief: a title or task holding a link, a domain,
+// an email or a phone number could make a Ferni text carry someone else's phishing.
+// NFKC folds full-width letters and dots first; each pattern is linear (no nested
+// quantifiers) and runs on at most 200 chars, again after the length cut.
+const URL_LIKE = /\b(?:https?:\/\/|www\.)\S+/giu;
+const EMAIL_LIKE = /\S+@\S+/gu;
+const DOMAIN_LIKE = /[\p{L}\p{N}-]+[.。｡][\p{L}]{2,}\S*/gu;
+// Any script's digits (NFKC leaves Arabic-Indic ones alone) and any dash, slash,
+// underscore or backslash: cleanItem turns dashes into ", " after this runs, so
+// "415–555–0132" has to go here or it reaches the brief as "415, 555, 0132".
+const PHONE_LIKE = /\+?\p{Nd}[\p{Nd}\s()._/\\\-\u2010-\u2015\u2212\uFE58\uFE63]{6,}\p{Nd}/gu;
+
+// Invisible and pictographic characters go first: removed after the scrub, they
+// could join "evil.🙂com" back into a link.
+const INVISIBLE = /[\p{Extended_Pictographic}\p{Cf}\u{FE00}-\u{FE0F}\u{20E3}]/gu;
+
+function withoutContacts(text: string): string {
+  return text
+    .normalize('NFKC')
+    .replace(INVISIBLE, '')
+    .slice(0, 200)
+    .replace(URL_LIKE, ' ')
+    .replace(EMAIL_LIKE, ' ')
+    .replace(DOMAIN_LIKE, ' ')
+    .replace(PHONE_LIKE, ' ');
+}
+
+/** One item, safe for the brief: no dashes, ellipses, emoji or contact details, at most ITEM_CHARS. */
 export function cleanItem(raw: string): string {
-  const s = raw
+  const s = withoutContacts(raw)
     .replace(/\s*[—–]\s*/g, ', ')
     .replace(/…|\.{2,}/g, ' ')
-    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '')
     .replace(/\s+/g, ' ')
     .trim()
     .replace(FIRST_PERSON, '')
     .replace(/[\s,;:.!?]+$/, '');
-  if (s.length <= ITEM_CHARS) return s;
+  if (s.length <= ITEM_CHARS) return withoutContacts(s).trim();
   const cut = s.slice(0, ITEM_CHARS + 1);
   const space = cut.lastIndexOf(' ');
-  return (space > 10 ? cut.slice(0, space) : cut.slice(0, ITEM_CHARS)).replace(/[\s,;:]+$/, '');
+  return withoutContacts(space > 10 ? cut.slice(0, space) : cut.slice(0, ITEM_CHARS))
+    .trim()
+    .replace(/[\s,;:]+$/, '');
 }
 
 /** "10am", "2:30pm" in the zone. */
@@ -89,6 +119,8 @@ export function composeMorningBrief(input: MorningBriefInput): string | null {
   const lists = {
     today: unique(
       events.map((e) => {
+        if (e.invite)
+          return e.allDay ? 'an invite' : `an invite at ${clock(e.start, input.timeZone)}`;
         const title = cleanItem(e.title);
         return e.allDay || !title ? title : `${clock(e.start, input.timeZone)} ${title}`;
       })

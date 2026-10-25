@@ -4,8 +4,8 @@
  * GET /api/wellbeing/dashboard, the route the panel calls. Real persistence and
  * route on the Firestore emulator; only the model is a stand-in.
  *
- * Before: the only writer was a per-turn regex ("I'm exhausted"), and none of
- * the founder's 283 turns over 7 days on prod matched, so the panel stayed empty.
+ * Before: the only writer was a per-turn regex ("I'm exhausted"), which missed
+ * how callers usually describe their week, so the panel stayed empty.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -65,7 +65,6 @@ async function callEnds(uid: string, flag: 'on' | 'off'): Promise<void> {
     { userId: uid, sessionId: `s-${uid}`, startedAt: new Date(), turns: CALL },
     {
       env: { WELLBEING_AFTER_CALL: flag },
-      isMember: () => true, // a member's own call (the register passes isMemberCall)
       llm: async () => '{"mood":0.7,"energy":0.2,"worry":null}',
     }
   );

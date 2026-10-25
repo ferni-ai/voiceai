@@ -5,7 +5,6 @@
  *
  * @module agents/wellbeing-register
  */
-import { isMemberCall } from '../services/outreach/after-call-checkin.js';
 import { registerAfterCallTask } from '../services/session/after-call-tasks.js';
 import {
   WELLBEING_TASK,
@@ -13,10 +12,6 @@ import {
 } from '../services/wellbeing-tracking/after-call.js';
 
 // One model call (20 s timeout) and one store write.
-registerAfterCallTask(
-  WELLBEING_TASK,
-  (ctx) => recordWellbeingAfterCall(ctx, { isMember: isMemberCall }),
-  {
-    timeoutMs: 30_000,
-  }
-);
+registerAfterCallTask(WELLBEING_TASK, (ctx) => recordWellbeingAfterCall(ctx), {
+  timeoutMs: 30_000,
+});

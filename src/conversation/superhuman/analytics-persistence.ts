@@ -24,6 +24,7 @@ import {
   type CapabilityEffectivenessEvent,
   type CapabilityStats,
 } from './analytics.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'bth-analytics-persistence' });
 
@@ -38,7 +39,7 @@ function getDb(): Firestore | null {
   if (initialized) return db;
 
   try {
-    db = new Firestore();
+    db = new Firestore({ databaseId: getFirestoreDatabase() });
     initialized = true;
     log.debug('BTH Analytics Firestore initialized');
     return db;

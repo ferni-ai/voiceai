@@ -21,14 +21,18 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { flagOn } from './env-flag.js';
+import { isChiefOfStaffTool } from './alex-chief-of-staff-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
+import { isPrivacyTool, PRIVACY_TOOLS } from './privacy-tools.js';
+import {
+  isLeanAlwaysOnTool,
+  LEAN_ALWAYS_ON_TOOLS,
+  sameTurnToolsEnabled,
+} from './same-turn-tools-config.js';
+import { isVoiceTicTacToeTool } from './voice-tictactoe.js';
 
 const log = createLogger({ module: 'ToolConfig' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 export interface ToolConfiguration {
   /**
@@ -340,6 +344,7 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'recallFromMemory',
   'rememberImportantFact',
   'recallPreviousConversation',
+  ...PRIVACY_TOOLS, // forget and correct a memory (privacy-tools.ts)
   'playMusic',
   'musicControl',
   'quickTimer',
@@ -364,7 +369,7 @@ export function isTeammateTool(name: string): boolean {
 }
 
 export function isStaticCoreTool(name: string): boolean {
-  return STATIC_CORE_TOOLS.includes(name) || isTeammateTool(name);
+  return STATIC_CORE_TOOLS.includes(name) || isTeammateTool(name) || isVoiceTicTacToeTool(name);
 }
 
 /**
@@ -380,14 +385,19 @@ export const APPEND_ONLY_EVICT_BLOCK = 32;
 export const CALL_JOURNAL_TOOLS: readonly string[] = ['journal', 'addGratitude'];
 const callJournalToolsOn = (): boolean => flagOn('CALL_JOURNAL') && flagOn('JOURNAL_ONE_STORE');
 
-/**
- * Check if a tool is in the essential tools list
- */
+/** Check if a tool is in the essential tools list. */
 export function isEssentialTool(toolName: string): boolean {
   const config = getToolConfig();
+  const listed = sameTurnToolsEnabled() // TOOLS_SAME_TURN: the lean always-on set
+    ? isLeanAlwaysOnTool(toolName) ||
+      (isCoachLocalEnabled() && COACH_LOCAL_TOOLS.includes(toolName))
+    : config.essentialTools.includes(toolName);
   return (
-    config.essentialTools.includes(toolName) ||
+    listed ||
+    isPrivacyTool(toolName) || // forgetMemory, updateMemory: never capped out
     (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
+    isVoiceTicTacToeTool(toolName) ||
+    isChiefOfStaffTool(toolName) || // ALEX_CHIEF_OF_STAFF=on (multi-agent/chief-of-staff-tools.ts)
     toolName.startsWith('handoffTo') ||
     toolName === 'endCall' ||
     toolName === 'askForTeammate' // stands in for locked handoffs (locked-teammates.ts)
@@ -398,6 +408,7 @@ export function isEssentialTool(toolName: string): boolean {
  * Get the essential tools list
  */
 export function getEssentialTools(): readonly string[] {
+  if (sameTurnToolsEnabled()) return Object.keys(LEAN_ALWAYS_ON_TOOLS);
   return getToolConfig().essentialTools;
 }
 

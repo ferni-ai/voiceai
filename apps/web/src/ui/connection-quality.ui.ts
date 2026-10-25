@@ -12,7 +12,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { setIslandPoorQuality } from './status-island-connection.js';
 
 const log = createLogger('ConnectionQuality');
@@ -270,8 +270,8 @@ function injectStyles(): void {
       font-variant-numeric: tabular-nums;
     }
 
-    /* Warning pulse (only while shown: its opacity keyframes would override the hidden state) */
-    .connection-quality--visible.connection-quality--warning {
+    /* Warning pulse, while shown, on the bars only: fading the pill took the label below AA */
+    .connection-quality--visible.connection-quality--warning .connection-quality__bars {
       animation: quality-pulse 2s ease-in-out infinite;
     }
 
@@ -415,7 +415,7 @@ function createIndicator(): HTMLElement {
 }
 
 function updateIndicator(): void {
-  if (isOverlayHostEnabled()) setIslandPoorQuality(currentQuality === 'poor'); // status island shows it
+  if (isToastRegionEnabled()) setIslandPoorQuality(currentQuality === 'poor'); // status island shows it
   if (!indicator) return;
 
   const bars = indicator.querySelectorAll('.connection-quality__bar');
@@ -539,7 +539,7 @@ export function stopAutoUpdate(): void {
 
 /** Toggle visibility; hidden (opacity 0) means hidden from assistive tech too. */
 function setVisible(visible: boolean): void {
-  if (visible && isOverlayHostEnabled()) return; // the status island shows the weak state instead
+  if (visible && isToastRegionEnabled()) return; // the status island shows the weak state instead
   indicator?.classList.toggle('connection-quality--visible', visible);
   if (visible) indicator?.removeAttribute('aria-hidden');
   else indicator?.setAttribute('aria-hidden', 'true');

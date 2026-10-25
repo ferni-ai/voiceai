@@ -14,6 +14,8 @@ export interface DeliverySchedulerJob {
   minBackoff?: string;
   maxBackoff?: string;
   timeout?: string;
+  /** Sent without the Content-Type and X-CloudScheduler headers (OIDC alone authenticates). */
+  noHeaders?: boolean;
 }
 
 export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
@@ -80,14 +82,40 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
     },
     {
       // Off until the UI server has FOLLOW_THROUGH_JOB=on; until then each run answers flag-off.
+      // As created in prod on 2026-10-18 (gcloud scheduler jobs describe follow-through).
       name: 'follow-through',
-      description: 'Text each person the follow-up due for them now (FOLLOW_THROUGH_JOB)',
+      description:
+        'Follow-up texts (follow-up-texts.ts via /api/jobs/follow-through); sends only to people with FOLLOW_THROUGH_TEXTS on',
       schedule: '*/5 * * * *',
       timezone: 'America/Los_Angeles',
       uri: `${uiServerUrl}/api/jobs/follow-through`,
       httpMethod: 'POST',
       retryCount: 0,
-      timeout: '180s',
+      timeout: '120s',
+      noHeaders: true,
+    },
+    {
+      // Hourly: each poll ponders callers whose night slot has come (ponder-job.ts), at most
+      // POLL_BUDGET_MS plus one caller. Off until PONDERING is on here or in a cohort.
+      name: 'pondering',
+      description: 'Ponder the callers whose night slot has come (PONDERING, ponder-job.ts)',
+      schedule: '40 * * * *',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/pondering`,
+      httpMethod: 'POST',
+      retryCount: 0,
+      timeout: '300s',
+    },
+    {
+      // Revokes Google couldn't take during an account erasure; gives up after 14 days.
+      name: 'retry-pending-revocations',
+      description: 'Retry Google OAuth revokes queued by account erasure',
+      schedule: '*/15 * * * *',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/retry-pending-revocations`,
+      httpMethod: 'POST',
+      retryCount: 0,
+      timeout: '120s',
     },
   ];
 }

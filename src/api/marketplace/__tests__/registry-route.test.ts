@@ -57,17 +57,17 @@ describe('GET /api/marketplace/registry', () => {
     for (const id of listed) expect(isKnownId(id)).toBe(true);
   });
 
-  it.each([
-    'apps/marketplace-agents/registry.json',
-    'apps/web/public/voiceai-agents/registry.json',
-  ])('%s carries no invented rating or download count', (path) => {
-    const file = JSON.parse(readFileSync(join(root, path), 'utf-8')) as {
-      agents: Array<Record<string, unknown>>;
-    };
-    expect(file.agents.length).toBeGreaterThan(0);
-    for (const agent of file.agents) {
-      expect(agent).not.toHaveProperty('rating');
-      expect(agent).not.toHaveProperty('downloads');
+  it.each(['apps/marketplace-agents/registry.json'])(
+    '%s carries no invented rating or download count',
+    (path) => {
+      const file = JSON.parse(readFileSync(join(root, path), 'utf-8')) as {
+        agents: Array<Record<string, unknown>>;
+      };
+      expect(file.agents.length).toBeGreaterThan(0);
+      for (const agent of file.agents) {
+        expect(agent).not.toHaveProperty('rating');
+        expect(agent).not.toHaveProperty('downloads');
+      }
     }
-  });
+  );
 });

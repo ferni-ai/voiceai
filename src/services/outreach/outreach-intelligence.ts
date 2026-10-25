@@ -1,8 +1,6 @@
 /**
  * Outreach Intelligence Service
- *
  * Predicts when and why agents should proactively reach out to users.
- *
  * TRIGGERS:
  * 1. Commitments - "I'll work out tomorrow" → check-in next evening
  * 2. Goals - Progress milestones, streaks at risk, celebrations
@@ -32,6 +30,8 @@ import {
 } from '../outreach/user-contact.js';
 import { AgentRole } from '../../personas/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { userHeld } from '../../utils/minor-care.js';
+import { calculateCheckInTime, parseTimeReference } from './commitment-time.js';
 
 // ============================================================================
 // TYPES
@@ -146,6 +146,8 @@ export async function initializeOutreachPersistence(): Promise<void> {
 
   persistenceStore = createPersistenceStore<OutreachUserData>({
     collection: 'outreach_data',
+    // MINOR_CARE, held: only contact preferences (outreach off, quiet hours) persist
+    whenHeld: (d: OutreachUserData) => ({ preferences: d.preferences }),
     syncIntervalMs: 10000, // Sync every 10 seconds
     maxPendingChanges: 30,
   });
@@ -242,7 +244,7 @@ async function loadUserData(userId: string): Promise<void> {
  * Persist user's outreach data to Firestore
  */
 function persistUserData(userId: string): void {
-  if (!persistenceStore) return;
+  if (!persistenceStore || erasedUsers.has(userId)) return;
 
   const data: OutreachUserData = {
     commitments: commitmentStore.get(userId) || [],
@@ -274,22 +276,62 @@ export async function shutdownOutreachPersistence(): Promise<void> {
 // ============================================================================
 
 /**
- * Clear all outreach data for a specific user.
- * Call this when a user session ends or user is deleted.
+ * Drop a user's in-memory outreach data (SessionDataManager runs this at every session end).
+ * What is stored stays (account erasure deletes it): pending changes are saved, then the cache is
+ * dropped so the next session reads the doc again (another process may have changed it).
+ * `save: false`: a held caller's opt-outs stay queued (held parts); anyone else's changes drop.
  */
-export async function clearUserOutreachData(userId: string): Promise<void> {
-  commitmentStore.delete(userId);
-  opportunityStore.delete(userId);
-  preferencesStore.delete(userId);
-  engagementStore.delete(userId);
-  sentOutreachLog.delete(userId);
-
-  // Also clear from persistence
-  if (persistenceStore) {
-    await persistenceStore.delete(userId);
+export async function clearUserOutreachData(
+  userId: string,
+  options?: { save?: boolean }
+): Promise<void> {
+  const store = persistenceStore;
+  if (options?.save === false) {
+    if (!userHeld(userId)) store?.clearCache(userId);
+  } else if (store) {
+    const saving: Promise<void> = store.flushUser(userId).finally(() => {
+      if (sessionEndSaves.get(userId) === saving) sessionEndSaves.delete(userId);
+    });
+    sessionEndSaves.set(userId, saving);
+    await saving;
+    if (!stillOwed(store, userId)) store.clearCache(userId); // failed: the next sync retries
   }
+  dropFromMemory(userId);
+}
 
-  getLogger().debug({ userId }, 'Cleared outreach data for user');
+/** markDirty marks only a cached user, so the dirty count grows only when it was clean. */
+function stillOwed(store: PersistenceStore<OutreachUserData>, userId: string): boolean {
+  const before = store.getStats().dirty;
+  store.markDirty(userId);
+  return store.getStats().dirty === before;
+}
+
+const erasedUsers = new Set<string>(); // for the rest of this process, never written again
+
+const sessionEndSaves = new Map<string, Promise<void>>(); // flushUser in flight, by user
+
+/**
+ * Account erasure (deleteAllData, before and after the record sweep): refuse the user's writes from
+ * now on and drop them from memory, wait out every write already in flight (a session end's save,
+ * the sync with its held parts), then delete through the store (which waits for held writes too),
+ * so nothing a live session started can land after the sweep.
+ */
+export async function eraseUserOutreachData(userId: string): Promise<void> {
+  erasedUsers.add(userId);
+  dropFromMemory(userId);
+  const store = persistenceStore;
+  if (!store) return;
+  store.clearCache(userId); // no later sync or save includes them
+  await sessionEndSaves.get(userId);
+  await store.flush(); // waits for a sync in flight, then one with nothing of theirs
+  await store.delete(userId);
+}
+
+function dropFromMemory(userId: string): void {
+  for (const map of [commitmentStore, opportunityStore, preferencesStore, engagementStore])
+    map.delete(userId);
+  sentOutreachLog.delete(userId);
+  getLogger().debug({ userId }, 'Cleared in-memory outreach data for user');
 }
 
 /**
@@ -501,85 +543,6 @@ export function extractCommitments(
   }
 
   return commitments;
-}
-
-/**
- * Parse time references like "tomorrow", "this week", "by Friday"
- */
-function parseTimeReference(timeRef: string, fromDate: Date): Date {
-  const result = new Date(fromDate);
-  const lower = timeRef.toLowerCase();
-
-  if (lower === 'today' || lower === 'tonight') {
-    // Today, evening
-    result.setHours(20, 0, 0, 0);
-  } else if (lower === 'tomorrow') {
-    result.setDate(result.getDate() + 1);
-    result.setHours(18, 0, 0, 0);
-  } else if (lower === 'this week' || lower === 'this weekend') {
-    // End of week
-    const daysUntilFriday = (5 - result.getDay() + 7) % 7 || 7;
-    result.setDate(result.getDate() + daysUntilFriday);
-    result.setHours(18, 0, 0, 0);
-  } else if (lower === 'next week') {
-    result.setDate(result.getDate() + 7);
-    result.setHours(18, 0, 0, 0);
-  } else if (lower.startsWith('by ')) {
-    // "by Friday", "by Monday"
-    const dayName = lower.replace('by ', '');
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const targetDay = days.indexOf(dayName);
-    if (targetDay >= 0) {
-      const daysUntil = (targetDay - result.getDay() + 7) % 7 || 7;
-      result.setDate(result.getDate() + daysUntil);
-      result.setHours(18, 0, 0, 0);
-    }
-  } else if (lower.startsWith('in ')) {
-    // "in 2 days", "in 1 hour"
-    const match = lower.match(/in (\d+) (day|hour|minute|week)s?/);
-    if (match) {
-      const amount = parseInt(match[1]);
-      const unit = match[2];
-      switch (unit) {
-        case 'minute':
-          result.setMinutes(result.getMinutes() + amount);
-          break;
-        case 'hour':
-          result.setHours(result.getHours() + amount);
-          break;
-        case 'day':
-          result.setDate(result.getDate() + amount);
-          break;
-        case 'week':
-          result.setDate(result.getDate() + amount * 7);
-          break;
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Calculate when to check in based on commitment timing
- */
-function calculateCheckInTime(targetTime: Date, timeRef: string): Date {
-  const checkIn = new Date(targetTime);
-  const lower = timeRef.toLowerCase();
-
-  // Check in after the commitment time has passed
-  if (lower === 'today' || lower === 'tonight') {
-    // Check in that evening or next morning
-    checkIn.setHours(checkIn.getHours() + 2);
-  } else if (lower === 'tomorrow') {
-    // Check in tomorrow evening
-    checkIn.setHours(20, 0, 0, 0);
-  } else {
-    // For longer commitments, check in at the deadline
-    checkIn.setHours(19, 0, 0, 0);
-  }
-
-  return checkIn;
 }
 
 // ============================================================================

@@ -110,7 +110,7 @@ import {
   processUserResponseForResonance,
 } from '../../integrations/better-than-human-integration.js';
 
-import { crisisSummary, hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
+import { hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -181,7 +181,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       );
       diag.debug('📊 Memory response recorded', {
         memoryIds: ctx.lastSurfacedMemoryIds,
-        userTextPreview: userText.slice(0, 50),
+        textChars: userText.length,
       });
     } catch (error) {
       diag.warn('Memory response tracking failed', { error: String(error) });
@@ -238,7 +238,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       async () => {
         try {
           const { recordCallerCorrection } = await import('./caller-correction.js');
-          await recordCallerCorrection(uid, userText, prevFerni, personaId);
+          await recordCallerCorrection(uid, userText, prevFerni, personaId, services.sessionId);
         } catch {
           // Non-blocking
         }
@@ -734,11 +734,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
-    // Never bypass the LLM on a crisis turn: the bypass result carries no crisis.
+    // Never bypass the LLM on a crisis or soft check-in turn: the bypass result carries neither.
     if (
       ftisResult.bypassLLM &&
       ftisResult.toolResult &&
-      !hasCrisisSignal(await turnCrisis.resolve())
+      (await turnCrisis.bypassAllowed())
     ) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
@@ -750,9 +750,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
       diag.debug('🎯 FTIS: Will use generateReply for natural response', {
         tool: ftisResult.toolResult.toolId,
-        result:
-          ftisResult.toolResult.output?.slice(0, 100) ||
-          ftisResult.toolResult.speakableResponse?.slice(0, 100),
+        resultChars: (ftisResult.toolResult.output ?? ftisResult.toolResult.speakableResponse ?? '').length,
       });
 
       return {
@@ -807,7 +805,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (semanticRoutingPromise) {
     const routedCrisis = await turnCrisis.resolve();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
-      crisisDetected: routedCrisis.isCrisis,
+      crisisDetected: !(await turnCrisis.bypassAllowed()), // a crisis or a soft check-in
       crisisSeverity: routedCrisis.severity,
       analysisResult,
       ctx,
@@ -1291,7 +1289,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       emotion: analysis.emotion.primary,
       distress: analysis.emotion.distressLevel.toFixed(2),
       intent: analysis.intent.primary,
-      topics: analysis.topics.detected.slice(0, 3),
+      topicCount: analysis.topics.detected.length,
       phase: analysis.state.phase,
       contextCount: injections.length,
       emotionalTrajectory: emotionalState.trajectory,
@@ -1482,7 +1480,7 @@ If they're just conversing, respond naturally without a tool call.`,
     }
   }
 
-  const finalCrisis = await turnCrisis.resolve();
+  const finalCrisis = await turnCrisis.summary();
 
   // DEV TELEMETRY: Complete trace
   trace?.complete();
@@ -1509,7 +1507,7 @@ If they're just conversing, respond naturally without a tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: crisisSummary(finalCrisis, await turnCrisis.softCheck()),
+    crisis: finalCrisis,
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,

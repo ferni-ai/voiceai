@@ -62,6 +62,8 @@ vi.mock('../intelligent-onboarding-arc.js', () => ({
   getPendingCheckIns: vi.fn(async () => []),
 }));
 vi.mock('../llm-content-generator.js', () => ({ generatePersonalizedContent: vi.fn() }));
+const confirmSmsOptIn = vi.hoisted(() => vi.fn(async () => 'sent'));
+vi.mock('../opt-in-text.js', () => ({ confirmSmsOptIn }));
 
 const consent = await import('../outreach-consent.js');
 const { deliver } = await import('../unified-delivery.js');
@@ -78,6 +80,7 @@ beforeEach(() => {
   setCalls.length = 0;
   dbAvailable = true;
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe('outreach consent mapping', () => {
   it('defaults to on with no opt-in channels', () => {
@@ -129,6 +132,74 @@ describe('outreach consent mapping', () => {
     });
     const junk = { proactiveFrequency: 'always', quietHours: { start: 25, end: 'noon' } };
     expect(consent.proactiveSettingsFrom(junk)).toEqual({});
+  });
+
+  it('records proof of consent when texts or calls go on, and revokedAt when they go off', async () => {
+    const how = { disclosureVersion: consent.CURRENT_SMS_DISCLOSURE, source: 'web-settings' };
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms', 'voice_call'] }, how);
+    const granted = (setCalls[0].value as { outreachPreferences: Record<string, unknown> })
+      .outreachPreferences;
+    for (const [field, channel] of [
+      ['smsConsent', 'sms'],
+      ['callConsent', 'call'],
+    ]) {
+      expect(granted[field]).toEqual({
+        grantedAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+        disclosureVersion: '2026-10-18',
+        source: 'web-settings',
+        channel,
+        revokedAt: null,
+      });
+    }
+
+    users = [user('u1', { outreachPreferences: { channels: ['sms', 'voice_call'] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['voice_call'] }, how);
+    const revoked = (setCalls[1].value as { outreachPreferences: Record<string, unknown> })
+      .outreachPreferences;
+    // Only revokedAt: the merge keeps the original grant on record.
+    expect(revoked.smsConsent).toEqual({ revokedAt: expect.stringMatching(/^\d{4}-/) });
+    expect(revoked).not.toHaveProperty('callConsent'); // unchanged, so untouched
+  });
+
+  it('SMS_OPT_IN_CONFIRM off (default): consent is recorded, no confirmation is sent', async () => {
+    confirmSmsOptIn.mockClear();
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', undefined);
+    const web = { disclosureVersion: consent.CURRENT_SMS_DISCLOSURE, source: 'web-settings' };
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
+    const prefs = (setCalls[0].value as { outreachPreferences: Record<string, unknown> })
+      .outreachPreferences;
+    expect(prefs.smsConsent).toEqual({
+      grantedAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+      disclosureVersion: consent.CURRENT_SMS_DISCLOSURE,
+      source: 'web-settings',
+      channel: 'sms',
+      revokedAt: null,
+    });
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', 'off');
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
+    expect(confirmSmsOptIn).not.toHaveBeenCalled();
+  });
+
+  it('texts going on in settings send one confirmation; going off, or another source, none', async () => {
+    confirmSmsOptIn.mockClear();
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', 'on');
+    const web = { disclosureVersion: consent.CURRENT_SMS_DISCLOSURE, source: 'web-settings' };
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
+    const granted = (
+      setCalls[0].value as { outreachPreferences: { smsConsent: { grantedAt: string } } }
+    ).outreachPreferences.smsConsent.grantedAt;
+    expect(confirmSmsOptIn).toHaveBeenCalledWith('u1', granted);
+    await consent.writeOutreachConsent('u1', { channels: ['voice_call'] }, web); // calls only: no sms grant
+    users = [user('u1', { outreachPreferences: { channels: ['sms'] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web); // already on
+    await consent.writeOutreachConsent('u1', { channels: [] }, web); // off
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }); // not from settings
+    expect(confirmSmsOptIn).toHaveBeenCalledTimes(1);
   });
 
   it('fails loudly when the opt-out cannot be saved', async () => {
@@ -196,6 +267,31 @@ describe('daily outreach selection', () => {
     ];
     const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
     expect(result.details.map((d) => d.userId)).toEqual(['device:device-9f3a']);
+  });
+
+  it('ids that name no account do not use up the day’s candidates', async () => {
+    // Every unrecognised caller (eval runs included) leaves an anon: doc, and
+    // calls placed on someone's behalf an onbehalf: one. They sort before
+    // most real ids, so counting them toward the cap starved real accounts.
+    const strangers = Array.from({ length: 120 }, (_, i) => user(`anon:eval-${i}`));
+    const onBehalf = Array.from({ length: 30 }, (_, i) => user(`onbehalf:call-${i}`));
+    const real = ['real-account-1', 'real-account-2', 'real-account-3'];
+    users = [...strangers, ...onBehalf, ...real.map((id) => user(id))];
+
+    const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
+
+    expect(result.details.map((d) => d.userId)).toEqual(real);
+  });
+
+  it('jumps past a long run of anon: ids instead of spending the scan bound on them', async () => {
+    const strangers = Array.from({ length: 6000 }, (_, i) =>
+      user(`anon:${String(i).padStart(5, '0')}`)
+    );
+    users = [...strangers, user('real-account-1')];
+
+    const result = await runDailyOutreach({ dryRun: true, respectQuietHours: false });
+
+    expect(result.details.map((d) => d.userId)).toEqual(['real-account-1']);
   });
 
   it('pages past the first 200 users', async () => {

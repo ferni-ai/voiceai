@@ -20,6 +20,7 @@ import { createPersistenceStore, type PersistenceStore } from '../services/persi
 
 // Import types and functions from learning modules
 import {
+  clearHeldMusicProfile as clearHeldProfile,
   getUserProfile,
   importUserProfile,
   exportUserProfile,
@@ -27,7 +28,9 @@ import {
 } from './music-user-learning.js';
 
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { userHeld } from '../utils/minor-care.js';
 import {
+  clearHeldMusicMemories as clearHeldMemories,
   exportUserMusicMemories,
   importUserMusicMemories,
   type MusicHelpedMemory,
@@ -151,6 +154,24 @@ let memoryPersistence: PersistenceStore<PersistedMusicMemories> | null = null;
 // Track which users have been loaded
 const loadedProfileUsers = new Set<string>();
 const loadedMemoryUsers = new Set<string>();
+// Users whose last read errored: their stored data is unread, so it is never saved over until a
+// later load succeeds. A missing document is not an error: that user loads with nothing stored.
+const failedProfileUsers = new Set<string>();
+const failedMemoryUsers = new Set<string>();
+
+/** MINOR_CARE: drop everything music learning holds for this user (cleanup of a held session). */
+export function purgeMusicLearning(userId: string): void {
+  clearHeldProfile(userId);
+  clearHeldMemories(userId);
+  loadedProfileUsers.delete(userId); // the next session reloads before it writes
+  loadedMemoryUsers.delete(userId);
+  profilePersistence?.clearCache(userId); // never creates a store (they share one interval name)
+  memoryPersistence?.clearCache(userId);
+}
+
+/** At each store sync or set: a held user is dropped, learning maps included, never written. */
+const heldPurged = (userId: string): boolean =>
+  userHeld(userId) && (purgeMusicLearning(userId), true);
 
 function getProfilePersistence(): PersistenceStore<PersistedTransitionProfile> {
   if (!profilePersistence) {
@@ -158,6 +179,7 @@ function getProfilePersistence(): PersistenceStore<PersistedTransitionProfile> {
       collection: 'music_learning',
       documentId: 'profile',
       syncIntervalMs: 10000, // Sync every 10 seconds
+      holdWrites: heldPurged, // MINOR_CARE: a held caller under 18's music learning: dropped
     });
   }
   return profilePersistence;
@@ -169,6 +191,7 @@ function getMemoryPersistence(): PersistenceStore<PersistedMusicMemories> {
       collection: 'music_learning',
       documentId: 'memories',
       syncIntervalMs: 15000, // Sync every 15 seconds (less frequent)
+      holdWrites: heldPurged,
     });
   }
   return memoryPersistence;
@@ -185,7 +208,7 @@ export async function ensureProfileLoaded(userId: string): Promise<void> {
   if (loadedProfileUsers.has(userId)) return;
 
   try {
-    const data = await getProfilePersistence().load(userId);
+    const data = await getProfilePersistence().load(userId, { strict: true });
     if (data) {
       const profile = deserializeProfile(data);
       importUserProfile(profile);
@@ -195,7 +218,9 @@ export async function ensureProfileLoaded(userId: string): Promise<void> {
       );
     }
     loadedProfileUsers.add(userId);
+    failedProfileUsers.delete(userId);
   } catch (error) {
+    failedProfileUsers.add(userId);
     log.warn({ error, userId }, 'Failed to load music profile from persistence');
   }
 }
@@ -207,7 +232,7 @@ export async function ensureMemoriesLoaded(userId: string): Promise<void> {
   if (loadedMemoryUsers.has(userId)) return;
 
   try {
-    const data = await getMemoryPersistence().load(userId);
+    const data = await getMemoryPersistence().load(userId, { strict: true });
     if (data) {
       const memories = deserializeMemories(data);
       importUserMusicMemories(userId, memories);
@@ -217,7 +242,9 @@ export async function ensureMemoriesLoaded(userId: string): Promise<void> {
       );
     }
     loadedMemoryUsers.add(userId);
+    failedMemoryUsers.delete(userId);
   } catch (error) {
+    failedMemoryUsers.add(userId);
     log.warn({ error, userId }, 'Failed to load music memories from persistence');
   }
 }
@@ -243,6 +270,11 @@ export function isMusicLearningLoaded(userId: string): boolean {
  * Save user's transition profile (queued for batch write)
  */
 export function saveProfile(userId: string): void {
+  if (failedProfileUsers.has(userId)) {
+    log.warn({ userId }, 'Music profile read failed; not saving over it');
+    return;
+  }
+  if (!loadedProfileUsers.has(userId)) return; // never loaded here: it would replace stored state
   try {
     const profile = exportUserProfile(userId);
     if (profile) {
@@ -259,6 +291,11 @@ export function saveProfile(userId: string): void {
  * Save user's music memories (queued for batch write)
  */
 export function saveMemories(userId: string): void {
+  if (failedMemoryUsers.has(userId)) {
+    log.warn({ userId }, 'Music memories read failed; not saving over them');
+    return;
+  }
+  if (!loadedMemoryUsers.has(userId)) return; // never loaded here: it would replace stored state
   try {
     const memories = exportUserMusicMemories(userId);
     if (memories.memories.length > 0 || memories.preferences.length > 0) {
@@ -310,6 +347,8 @@ export async function flushAllMusicLearning(): Promise<void> {
 export function clearUserCache(userId: string): void {
   loadedProfileUsers.delete(userId);
   loadedMemoryUsers.delete(userId);
+  failedProfileUsers.delete(userId);
+  failedMemoryUsers.delete(userId);
   getProfilePersistence().clearCache(userId);
   getMemoryPersistence().clearCache(userId);
 }
@@ -322,6 +361,8 @@ export async function shutdownMusicLearningPersistence(): Promise<void> {
 
   loadedProfileUsers.clear();
   loadedMemoryUsers.clear();
+  failedProfileUsers.clear();
+  failedMemoryUsers.clear();
   profilePersistence = null;
   memoryPersistence = null;
 

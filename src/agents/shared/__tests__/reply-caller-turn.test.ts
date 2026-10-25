@@ -107,6 +107,76 @@ describe('callerWordsAnswered', () => {
   });
 });
 
+/**
+ * The chat the SDK hands llmNode for the reply after a tool step, built as
+ * agent_activity.js builds it: the step's text is an assistant message with the
+ * generation's id, its calls are `${id}/fnc_${n}`, then their outputs.
+ */
+describe('callerWordsAnswered after a tool step (real ChatContext shape)', () => {
+  let at = 1_000;
+  const said = (chat: llm.ChatContext, role: 'user' | 'assistant', text: string, id?: string) =>
+    chat.insert(
+      llm.ChatMessage.create({ role, content: text, createdAt: at++, ...(id && { id }) })
+    );
+  const toolStep = (chat: llm.ChatContext, generation: string, text: string | null) => {
+    if (text !== null) said(chat, 'assistant', text, generation);
+    const callId = `call_${generation}`;
+    chat.insert([
+      llm.FunctionCall.create({
+        id: `${generation}/fnc_0`,
+        callId,
+        name: 'getWeather',
+        args: '{}',
+        createdAt: at++,
+      }),
+      llm.FunctionCallOutput.create({
+        callId,
+        name: 'getWeather',
+        output: '"sunny"',
+        isError: false,
+        createdAt: at++,
+      }),
+    ]);
+  };
+  const history = () => {
+    const chat = llm.ChatContext.empty();
+    said(chat, 'user', 'my dad is sick');
+    said(chat, 'assistant', 'I am sorry.', 'item_earlier');
+    return chat;
+  };
+
+  it("walks past the step's own lead-in to the caller's question", () => {
+    const chat = history();
+    said(chat, 'user', 'what is the weather?');
+    toolStep(chat, 'item_g1', 'Let me check.');
+    expect(callerWordsAnswered(chat.items)).toBe('what is the weather?');
+  });
+
+  it('walks past chained tool steps, with and without lead-ins', () => {
+    const chat = history();
+    said(chat, 'user', 'should I leave now?');
+    toolStep(chat, 'item_g1', 'Let me look.');
+    toolStep(chat, 'item_g2', null);
+    toolStep(chat, 'item_g3', 'And the roads.');
+    expect(callerWordsAnswered(chat.items)).toBe('should I leave now?');
+  });
+
+  it('does not cross a reply that ended an earlier turn', () => {
+    const chat = history();
+    toolStep(chat, 'item_g1', null); // a tool step with no lead-in, right after "I am sorry."
+    expect(callerWordsAnswered(chat.items)).toBe('');
+  });
+
+  it('a caller message after a tool step is the turn, as before', () => {
+    const chat = history();
+    said(chat, 'user', 'what is the weather?');
+    toolStep(chat, 'item_g1', 'Let me check.');
+    said(chat, 'assistant', 'Sunny all day.', 'item_g2');
+    said(chat, 'user', 'nice, thanks');
+    expect(callerWordsAnswered(chat.items)).toBe('nice, thanks');
+  });
+});
+
 describe('replyCallerTurnFields', () => {
   it('reads the noted turn when llmNode ran, else falls back to lastUserMessage', () => {
     const agent = {};
@@ -125,6 +195,16 @@ describe('replyCallerTurnFields', () => {
       callerTurnFresh: true,
     });
   });
+
+  it('is read once: a say() line after the reply falls back, not fresh', () => {
+    const agent = {};
+    noteReplyCallerTurn(agent, { items: [message('user', 'I got the job!')] });
+    expect(replyCallerTurnFields(agent, 'old words').callerTurnFresh).toBe(true);
+    expect(replyCallerTurnFields(agent, 'old words')).toEqual({
+      userRequest: 'old words',
+      callerTurnFresh: false,
+    });
+  });
 });
 
 describe('prod order: tts-wrapper → gateway → Director sees THIS turn', () => {
@@ -133,7 +213,7 @@ describe('prod order: tts-wrapper → gateway → Director sees THIS turn', () =
     EMOTION_LIFT: 'on',
     FERNI_VOICE_EMOTION: 'excited',
     FERNI_VOICE_SPEED: '1.08',
-    FERNI_VOICE_ID: '2e7f8a26-1627-4d66-88dc-293c297c1619',
+    FERNI_VOICE_ID: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc', // prod's secret since 2026-10-20
   };
   beforeEach(() => {
     Object.assign(process.env, ENV);

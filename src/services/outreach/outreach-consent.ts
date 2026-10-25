@@ -9,6 +9,7 @@
  * @module OutreachConsent
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { DeliveryChannel } from './unified-delivery.js';
@@ -102,6 +103,78 @@ export function consentPatchFrom(body: unknown): Partial<OutreachConsent> & Proa
   };
 }
 
+/**
+ * The texts disclosure the settings screen shows next to the Texts box
+ * (apps/web contact-settings-phone.ts). Bump both together whenever that text changes.
+ * Not named *_VERSION: the Cartesia pin test reads `X_VERSION = '<date>'` as an API version.
+ */
+export const CURRENT_SMS_DISCLOSURE = '2026-10-18';
+
+/** How a channel change was made, for the consent record. */
+export interface ConsentContext {
+  /** The disclosure version the client sent with the toggle (anything but a string is recorded as null). */
+  disclosureVersion?: unknown;
+  /** Where the user made the change, e.g. 'web-settings'. */
+  source?: string;
+}
+
+/** A change made in the web app's settings, with the disclosure version it sent. */
+export const webConsent = (disclosureVersion: unknown): ConsentContext => ({
+  disclosureVersion,
+  source: 'web-settings',
+});
+
+const PROOFS = [
+  ['sms', 'sms', 'smsConsent'],
+  ['voice_call', 'call', 'callConsent'],
+] as const;
+
+/**
+ * Proof of what the user agreed to and when, for each phone channel this change
+ * turns on (a fresh record, clearing any old revokedAt) or off (revokedAt only;
+ * the merge keeps the original grant). Carriers and the TCPA ask for this record.
+ */
+export function consentProofs(
+  before: DeliveryChannel[],
+  after: DeliveryChannel[],
+  how: ConsentContext,
+  now: Date = new Date()
+): Record<string, unknown> {
+  const at = now.toISOString();
+  const out: Record<string, unknown> = {};
+  for (const [delivery, channel, field] of PROOFS) {
+    const was = before.includes(delivery);
+    const is = after.includes(delivery);
+    if (!was && is) {
+      out[field] = {
+        grantedAt: at,
+        disclosureVersion: typeof how.disclosureVersion === 'string' ? how.disclosureVersion : null,
+        source: how.source ?? 'unspecified',
+        channel,
+        revokedAt: null,
+      };
+    } else if (was && !is) {
+      out[field] = { revokedAt: at };
+    }
+  }
+  return out;
+}
+
+/**
+ * Why turning texts on is refused, or null: the request has to carry the
+ * disclosure version the user was shown, so nothing can opt someone in to
+ * texts without the disclosure on screen. Keeping or dropping texts is never refused.
+ */
+export function smsDisclosureRefusal(
+  current: DeliveryChannel[],
+  requested: DeliveryChannel[] | undefined,
+  disclosureVersion: unknown
+): string | null {
+  if (!requested?.includes('sms') || current.includes('sms')) return null;
+  if (disclosureVersion === CURRENT_SMS_DISCLOSURE) return null;
+  return "I've updated what texts from me include. Refresh the page to see it, then turn texts on again.";
+}
+
 export async function readOutreachConsent(userId: string): Promise<OutreachConsent> {
   const db = getFirestoreDb();
   if (!db) return consentFromPrefs(undefined);
@@ -115,23 +188,42 @@ export async function readOutreachConsent(userId: string): Promise<OutreachConse
  */
 export async function writeOutreachConsent(
   userId: string,
-  patch: Partial<OutreachConsent> & ProactiveSettings
+  patch: Partial<OutreachConsent> & ProactiveSettings,
+  how: ConsentContext = {}
 ): Promise<void> {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not available');
+  const ref = db.collection('bogle_users').doc(userId);
   const outreachPreferences: Record<string, unknown> = {};
   if (typeof patch.enabled === 'boolean') outreachPreferences.enabled = patch.enabled;
   const chosen = patch.channels;
-  if (chosen) outreachPreferences.channels = OPT_IN_CHANNELS.filter((c) => chosen.includes(c));
+  if (chosen) {
+    const channels = OPT_IN_CHANNELS.filter((c) => chosen.includes(c));
+    const doc = await ref.get();
+    const before = consentFromPrefs(doc.exists ? doc.data()?.outreachPreferences : undefined);
+    outreachPreferences.channels = channels;
+    Object.assign(outreachPreferences, consentProofs(before.channels, channels, how));
+  }
   if (patch.proactiveFrequency) outreachPreferences.proactiveFrequency = patch.proactiveFrequency;
   if (patch.quietHours) outreachPreferences.quietHours = { enabled: true, ...patch.quietHours };
   if (Object.keys(outreachPreferences).length === 0) return;
-  await db
-    .collection('bogle_users')
-    .doc(userId)
-    .set(
-      { outreachPreferences, outreachPreferencesUpdatedAt: new Date().toISOString() },
-      { merge: true }
-    );
+  await ref.set(
+    { outreachPreferences, outreachPreferencesUpdatedAt: new Date().toISOString() },
+    { merge: true }
+  );
   log.info({ userId, ...outreachPreferences }, 'Outreach consent saved');
+  const granted = (outreachPreferences.smsConsent as { grantedAt?: string } | undefined)?.grantedAt;
+  if (granted && how.source === 'web-settings' && flagOn('SMS_OPT_IN_CONFIRM')) {
+    await confirmOptIn(userId, granted);
+  }
+}
+
+/** SMS_OPT_IN_CONFIRM on: texts going on in settings get one confirmation text; never fails the save. */
+async function confirmOptIn(userId: string, grantedAt: string): Promise<void> {
+  try {
+    const { confirmSmsOptIn } = await import('./opt-in-text.js');
+    log.info({ userId, outcome: await confirmSmsOptIn(userId, grantedAt) }, 'Opt-in confirmation');
+  } catch (error) {
+    log.warn({ userId, error: String(error) }, 'Opt-in confirmation not sent');
+  }
 }

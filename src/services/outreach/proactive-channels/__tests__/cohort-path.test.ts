@@ -16,6 +16,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 // cohort-flags.ts reads Firestore through the utils module.
 vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -30,8 +35,14 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async (uid: string) => authUsers.get(uid) ?? null),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (to: string, body: string) => void texts.push({ to, body })),
+// Proactive texts go through the guarded sender; Twilio is stubbed at its transport.
+vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSMSDeliveryAvailable: () => true,
+  sendSMS: vi.fn(async ({ to, body }: { to: string; body: string }) => {
+    texts.push({ to, body });
+    return { success: true, messageSid: 'SM1' };
+  }),
 }));
 vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 
@@ -81,6 +92,8 @@ async function processed(): Promise<string[] | null> {
 
 const ENV_KEYS = ['PROACTIVE_CHANNELS', 'PROACTIVE_CHANNELS_USERS', 'COHORT_FLAGS'];
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   authUsers.clear();
   texts.length = 0;
@@ -92,6 +105,7 @@ beforeEach(() => {
   for (const uid of [LISTED, MINDY, STRANGER]) seedUser(uid);
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   for (const k of ENV_KEYS) delete process.env[k];
 });

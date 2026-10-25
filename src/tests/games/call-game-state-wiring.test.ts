@@ -95,6 +95,9 @@ describe('gameState on the live path', () => {
       used: 'Capital of Peru?',
       nextTurn: true,
     });
+    // A player's name as nextTurn, as the model sends it, passes the SDK's validation (audit: 4 of 50 failed).
+    const named = await dispatch(session, toolCtx, { action: 'update', nextTurn: 'caller' });
+    expect(named).toContain("caller's turn");
     const note = gameTurnNote(session);
     expect(note).toContain('Game on: trivia');
     expect(note).toContain('Capital of Peru?');

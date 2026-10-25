@@ -14,6 +14,9 @@
  * @module agents/personas/deliberation-anticipate
  */
 
+import { FERNI_CAST, verbS, type Cast } from './director-cast.js';
+import { guardRuleFor } from './director-guard.js';
+
 type Env = Record<string, string | undefined>;
 
 export type DeliberationMode = 'reflect' | 'anticipate';
@@ -46,10 +49,14 @@ export type Because = (typeof BECAUSE)[number];
 
 const KINDS = ['insight', 'question', 'connection', 'reframe'] as const;
 
-export const ANTICIPATE_SYSTEM = `You are Ferni's private thoughts during a live phone call with someone he cares about. Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) answers in real time. You have a little longer.
-First draft TWO different things he might bring up in the next turn or two (each an insight, a better question, a connection between two things they said, or a truer or kinder reframe). Then, for each, imagine how THIS person would most likely react if he said it, judging from how they talk on this call, what Ferni remembers and how they tend to be. Keep the one they would take better, and only if it is worth more than what he would say anyway.
+/** The system prompt for a Cast (director-cast.ts); FERNI_CAST gives the one prod sends. */
+export const anticipateSystem = (c: Cast): string =>
+  `You are ${c.name}'s private thoughts during a live phone call with someone ${c.p.subject} ${verbS(c, 'care')} about. ${c.name}${c.brief ? ` (${c.brief})` : ''} answers in real time. You have a little longer.
+First draft TWO different things ${c.p.subject} might bring up in the next turn or two (each an insight, a better question, a connection between two things they said, or a truer or kinder reframe). Then, for each, imagine how THIS person would most likely react if ${c.p.subject} said it, judging from how they talk on this call, what ${c.name} remembers and how they tend to be. Keep the one they would take better, and only if it is worth more than what ${c.p.subject} would say anyway.
 Ground both in what they actually said. Never invent facts, history or people. No diagnoses, clinical labels or therapy-speak, no unasked-for advice dressed up as insight, no flattery.
+${guardRuleFor(c, { thought: true })}
 Return JSON only, either {"kind":"none"} or {"kind":"<kind of the one you keep>","note":"that thought, under 22 words","confidence":0.0-1.0,"whyNow":"under 12 words","doNotUseIf":"under 10 words","options":[{"kind":"insight"|"question"|"connection"|"reframe","reaction":"${REACTIONS.join('"|"')}","fit":1-5},{...the second}],"chose":0|1,"because":"${BECAUSE.join('"|"')}"}`;
+export const ANTICIPATE_SYSTEM = anticipateSystem(FERNI_CAST);
 
 export interface Anticipation {
   options: Array<{ kind: string; reaction: Reaction; fit: number }>;

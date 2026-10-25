@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { writeHeld } from '../../../utils/minor-care.js';
 import { runBackground } from '../../../utils/background-task.js';
 
 // Import all 6 semantic intelligence systems
@@ -99,6 +100,7 @@ import {
 } from '../../conversation-thread/superhuman-outreach-intelligence.js';
 import { detectEnergyLevel, detectOvercommitment } from '../capacity-guardian.js';
 import { detectConflict, loadUserValues, type UserValue } from '../values-alignment.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 
 // NOTE: Additional superhuman services are called with dynamic imports
 // to avoid coupling issues with varying API signatures. Each service
@@ -177,18 +179,15 @@ export interface AgentAdviceContext {
 /**
  * Process a user turn through all semantic intelligence systems.
  *
- * This is the main entry point called from turn-handler.ts.
- * It extracts relevant data and feeds it to each system in parallel.
+ * Entry point from turn-handler.ts: feeds the turn to each system in parallel.
  *
  * IMPORTANT: This runs as fire-and-forget to not block turn processing.
  */
 export async function processSemanticIntelligence(data: TurnSemanticData): Promise<void> {
   const { userId, userText, topic, textEmotion, textEmotionIntensity } = data;
 
-  if (!userId || userId === 'anonymous') {
-    log.debug({ userId }, '⏭️ Skipping semantic intelligence for anonymous user');
-    return; // Skip for anonymous users
-  }
+  // Anonymous users, and MINOR_CARE: a caller under 18 by their own words (every system writes)
+  if (!isMemberIdentity(userId) || writeHeld(userId, data.sessionId)) return;
 
   // V4.1: Log when semantic intelligence runs (helps debug data capture issues)
   log.info(
@@ -941,11 +940,9 @@ async function recordThreadingData(data: TurnSemanticData): Promise<void> {
  * This enables counterfactual memory: "Last time I suggested X, and it didn't work"
  */
 export async function recordAgentAdvice(advice: AgentAdviceContext): Promise<void> {
-  const { userId, adviceText, topic, userSituation } = advice;
+  const { userId, sessionId, adviceText, topic, userSituation } = advice;
 
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  if (!isMemberIdentity(userId) || writeHeld(userId, sessionId)) return;
 
   try {
     await recordDecisionPoint(userId, {
@@ -960,10 +957,7 @@ export async function recordAgentAdvice(advice: AgentAdviceContext): Promise<voi
   }
 }
 
-/**
- * Track Ferni's promises in his reply: ones he just followed through on, and new ones.
- * Call this after generating an agent response.
- */
+/** Track Ferni's promises in his reply: ones he just followed through on, and new ones. */
 export async function trackFerniCommitments(
   userId: string,
   responseText: string,
@@ -971,11 +965,11 @@ export async function trackFerniCommitments(
     topic?: string;
     person?: string;
     userMessage?: string;
+    sessionId?: string;
   }
 ): Promise<void> {
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  // Ferni's words, but the promises are about the caller's life: a held call keeps none.
+  if (!isMemberIdentity(userId) || writeHeld(userId, context.sessionId)) return;
 
   try {
     await trackResponsePromises(userId, responseText, context);
@@ -997,12 +991,9 @@ export async function recordAdviceOutcome(
     userFeedback?: string;
   }
 ): Promise<void> {
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  if (!isMemberIdentity(userId)) return;
 
   try {
-    // For now, use the counterfactual memory module's exported function
     const { recordOutcome } = await import('./counterfactual-memory.js');
     await recordOutcome(userId, {
       decisionPointId: adviceId,
@@ -1075,9 +1066,7 @@ const NEGATIVE_OUTCOME_PATTERNS = [
  * not just the most recent one.
  */
 export async function detectAdviceOutcome(userId: string, userText: string): Promise<void> {
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  if (!isMemberIdentity(userId)) return;
 
   const lowerText = userText.toLowerCase();
 
@@ -1458,7 +1447,7 @@ function extractKeyConcepts(text: string): string[] {
  * This pre-loads Firestore data into memory caches for faster context building.
  */
 export async function warmupSemanticIntelligence(userId: string): Promise<void> {
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return;
   }
 

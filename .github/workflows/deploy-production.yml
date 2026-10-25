@@ -25,29 +25,72 @@ name: Deploy Production (Blue-Green)
 # │                                                                         │
 # └─────────────────────────────────────────────────────────────────────────┘
 #
-# PIPELINE STAGES:
-# 1. Prepare  → Validate secrets, determine services
-# 2. Test     → Type check, CI verdict on this commit, build
-# 3. Build    → Docker images (parallel, cached)
-# 4. Deploy   → Blue-green with health checks
-# 5. Verify   → Smoke tests
-# 6. Notify   → Slack, DORA metrics
+# ONE JOB, ONE RUNNER. Every job here used to wait for its own free hosted
+# runner. With ~200 jobs queued against the org's ~60 slots that was ~30 min
+# per job, and the UI path (prepare → build-test → build-ui-image → deploy-ui
+# → verify → notify) waited 4-5 times: a merged security fix sat undeployed
+# for 3+ hours on 2026-10-18. The steps are unchanged; they now run in order
+# in the single deploy-ui job:
+# 1. Prepare  → Validate secrets, metadata, deployment safety check
+# 2. Gate     → CI verdict on this commit, or the merge queue's on its tree
+#               (see "on:" below; a push first runs the small queue-verdict
+#               job), then the deploy freeze and forward-only guard
+# 3. Build    → design-system, then the UI Docker image
+# 4. Deploy   → Blue-green: green gets no traffic until it passes 5
+# 5. Verify   → Health check + smoke tests on green, freeze re-check; any
+#               failure removes green and keeps blue
+# 6. Notify   → Summary, Slack, DORA metrics (always)
+#
+# The voice agent is not deployed here: it runs on LiveKit Cloud and ships with
+# `lk agent deploy` (.claude/skills/deploy-agent/SKILL.md), which builds its own
+# image from docker/Dockerfile.agent. Nothing pulled the ferni-voice-agent image
+# this workflow used to push, so it no longer builds it.
 #
 # ============================================================================
 
 on:
+  # CI's verdict starts the deploy, so no runner sits idle polling for it.
+  # Only a successful CI run for a push to main in this repo deploys, and it
+  # deploys exactly that run's head_sha (the job `if:` below). One deploy per
+  # head: a push to main gets one CI run, and CI's own concurrency group for
+  # main lets only the newest waiting run finish, superseded ones end cancelled
+  # (no deploy). merge_group runs don't deploy: their commit isn't on main yet
+  # when they finish, and GitHub cancels them when the queue merges; the push
+  # run on the merged commit is the verdict. A push that CI's `paths:` filter
+  # skips (docs only) deploys nothing; every input of the UI image is in that
+  # list (src, apps, packages, design-system, docker, the root package and
+  # tsconfig files, patches, .npmrc, .dockerignore, this workflow) or of its
+  # deploy (deploy/ui-server/ env and secrets; ui-deploy-ci-paths.test.ts).
+  # CI runs can still finish out of order, so the job's forward-only guard
+  # (scripts/ci/deploy-forward-guard.sh) never deploys an older commit over a
+  # newer one. A failed CI on main's tip is reported by report-not-live.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Merge-queue fast path. A queue merge lands a tree that a successful
+  # merge-queue CI run already tested (squash merges land the same tree), so
+  # the push deploys right away instead of waiting 65-132 min for push CI
+  # (queue-tested finds the run; merge_group runs themselves never deploy,
+  # because the group can still be dequeued). The queue runs SCOPED CI, so the
+  # run counts only if every required check passed with none skipped, on a
+  # base that was itself tested (scripts/ci/queue-verdict.sh). An admin merge,
+  # direct push, scoped or docs-only run has no such verdict: the queue-verdict
+  # job says so, the deploy job never starts, and the workflow_run path deploys
+  # it after full push CI.
+  # One deploy per head: when push CI on a fast-pathed head passes, the
+  # workflow_run run finds production already serving it (identical) and stops.
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
       service:
-        description: 'Service to deploy'
+        description: 'Service to deploy (the voice agent ships with lk agent deploy)'
         required: true
         default: 'all'
         type: choice
         options:
           - all
-          - voice-agent
           - ui-server
       skip_tests:
         description: 'Skip tests (emergency deploy only)'
@@ -57,14 +100,44 @@ on:
         description: 'Traffic % to new revision (canary)'
         type: number
         default: 100
+      sha:
+        description: 'Commit on main to deploy (full SHA; empty = main''s head)'
+        type: string
+        default: ''
+      allow_older:
+        description: 'Roll back on purpose: skip the forward-only check (needs a reason)'
+        type: boolean
+        default: false
+      unfreeze:
+        description: 'Lift a rollback''s deploy freeze and stop (deploys nothing; needs a reason)'
+        type: boolean
+        default: false
+      reason:
+        description: 'Why (required with allow_older or unfreeze; shown in the run summary)'
+        type: string
+        default: ''
 
 # One deploy at a time. Merges minutes apart each start a deploy, and without
 # a group they ran in parallel, so whichever finished last decided what served
 # production, even an older commit (2026-10-02: four at once). A queued run
 # waits; GitHub keeps only the newest pending one, so main's head wins.
 # cancel-in-progress stays off so a rollout is never cut off midway.
+# Every CI completion on main starts a run, most of them cancelled or failed
+# CI that deploy nothing. Those take a group of their own, so they can never
+# replace a pending real deploy. The condition matches the deploying part of
+# the deploy-ui `if:` for workflow_run and manual runs.
+# A push run never takes this group at the workflow level. Its queue-verdict
+# job decides outside any group, and only a push the merge queue fully tested
+# starts deploy-ui, which joins this same group at the job level (GitHub
+# shares group names across workflow and job level). So a push that would
+# no-op (admin merge, direct push, scoped or docs-only run) can never replace
+# a pending deploy. A fast-path push that does queue replaces only a pending
+# run for an earlier commit of main, which it contains; if its guard then
+# no-ops, its own push CI run (queue-fast-path.sh requires one) still deploys
+# it, or report-not-live says it didn't. A workflow_run that replaces a
+# pending fast-path deploy leaves that commit to its own push CI the same way.
 concurrency:
-  group: deploy-production
+  group: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze != true) || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) && 'deploy-production' || format('deploy-production-noop-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -72,80 +145,162 @@ env:
   GCP_REGION: us-central1
   NODE_VERSION: '22'
   LIVEKIT_AGENTS_VERSION: '1.0.31'
+  # The commit to deploy. On workflow_run, github.sha is main's head when the
+  # run started, which may be newer than the commit CI passed. A manual deploy
+  # may name a commit on main (the guard checks it is on main).
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || inputs.sha || github.sha }}
   # Docker registries
   REGISTRY: gcr.io
-  VOICE_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/ferni-voice-agent
   UI_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/john-bogle-ui
 
 jobs:
   # ============================================================================
-  # STAGE 1: VALIDATE & PREPARE
+  # MERGE-QUEUE FAST PATH: may this push deploy without waiting for push CI?
   # ============================================================================
-  prepare:
-    name: 🔍 Validate & Prepare
-    runs-on: ubuntu-latest
+  # Push runs only. In no concurrency group, with no cloud credentials and no
+  # install: a push that isn't queue-tested stops here and never reaches the
+  # deploy-production group, so it can't replace a pending deploy.
+  queue-verdict:
+    name: Merge-queue verdict
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read  # to read the merge-queue and push CI runs
     outputs:
-      short_sha: ${{ steps.meta.outputs.short_sha }}
-      deploy_voice: ${{ steps.services.outputs.voice }}
-      deploy_ui: ${{ steps.services.outputs.ui }}
-      version: ${{ steps.meta.outputs.version }}
-    
+      tested: ${{ steps.verdict.outputs.tested }}
+      run-id: ${{ steps.verdict.outputs.run-id }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Did a successful merge-queue CI run test exactly this tree?
+      - name: Did the merge queue already test this tree?
+        id: queue
+        uses: ./.github/actions/queue-tested
+
+      - name: Does that run count as full CI?
+        id: verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          QUEUE_TESTED: ${{ steps.queue.outputs.tested }}
+          QUEUE_RUN_ID: ${{ steps.queue.outputs.run-id }}
+        run: bash scripts/ci/queue-fast-path.sh
+
+  # ============================================================================
+  # UI SERVER: VALIDATE → BUILD → DEPLOY (Blue-Green) → VERIFY → NOTIFY
+  # ============================================================================
+  deploy-ui:
+    name: 🔵🟢 Deploy UI Server (Blue-Green)
+    # Pinned: ubuntu-latest moves to Ubuntu 26 on 2026-10-19 (CI pins 24.04 too).
+    runs-on: ubuntu-24.04
+    needs: queue-verdict
+    # Manual deploys only from main's workflow file; never from a branch. A
+    # push deploys only when queue-verdict passed it. `!cancelled()` because
+    # queue-verdict is skipped on every other event.
+    if: >-
+      !cancelled() && (
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze != true) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.queue-verdict.result == 'success' && needs.queue-verdict.outputs.tested == 'true') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository))
+    # A fast-path push joins the deploy group here, at the job level (see the
+    # workflow's concurrency). Other runs already hold it at the workflow level
+    # and use a group of their own here: the same name at both levels would
+    # deadlock the run.
+    concurrency:
+      group: ${{ github.event_name == 'push' && 'deploy-production' || format('deploy-ui-{0}', github.run_id) }}
+      cancel-in-progress: false
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read  # to read CI's verdict on this commit
+
+    steps:
+      # ── 1. Prepare ─────────────────────────────────────────────────────────
       - name: Validate secrets
         run: |
           MISSING=""
           [ -z "${{ secrets.GCP_SA_KEY }}" ] && MISSING="$MISSING GCP_SA_KEY"
           [ -z "${{ secrets.GCP_PROJECT_ID }}" ] && MISSING="$MISSING GCP_PROJECT_ID"
-          
+
           if [ -n "$MISSING" ]; then
             echo "❌ Missing secrets:$MISSING"
             exit 1
           fi
           echo "✅ All secrets configured"
 
+      # Runs before checkout and before any cloud credentials: DEPLOY_SHA's own
+      # code (scripts/ci/*, package.json) must never run with prod credentials
+      # unless the commit is already on main. Uses only the API, no checkout.
+      - name: Commit is on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ env.DEPLOY_SHA }}
+          SKIP_TESTS: ${{ inputs.skip_tests }}
+          CUSTOM_SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Not a full commit SHA: $SHA"; exit 1; }
+          if [ "$SKIP_TESTS" = "true" ] && [ -n "$CUSTOM_SHA" ]; then
+            echo "::error::skip_tests can't be combined with a custom sha"; exit 1
+          fi
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$SHA" --jq .status) ||
+            { echo "::error::Could not compare $SHA with main"; exit 1; }
+          case "$status" in
+            identical|behind) echo "✅ $SHA is on main ($status)" ;;
+            *) echo "::error::$SHA is not on main ($status)"; exit 1 ;;
+          esac
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Generate metadata
         id: meta
         run: |
-          echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
-          echo "version=$(date +%Y%m%d)-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Not a full commit SHA: $DEPLOY_SHA"; exit 1; }
+          echo "short_sha=${DEPLOY_SHA::8}" >> $GITHUB_OUTPUT
+          # Unique per run, so redeploying a commit doesn't collide with its
+          # earlier revision. Starts with the short SHA, which rollback.yml matches.
+          echo "revision_suffix=${DEPLOY_SHA::8}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> $GITHUB_OUTPUT
+          echo "version=$(date +%Y%m%d)-${DEPLOY_SHA::8}" >> $GITHUB_OUTPUT
           echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
 
-      - name: Determine services to deploy
-        id: services
+      # ── 2. Gate ────────────────────────────────────────────────────────────
+      # The tests that count already ran on this exact commit, in the CI workflow
+      # (unit with the Rust bindings, integration, quality gates, Lint & Type
+      # Check, the frontend and backend builds). Re-running `pnpm test` here
+      # without those bindings failed 10 files on every deploy (2026-10-17, runs
+      # 39036034251 and 39038112712) and took 23 minutes. A workflow_run deploy
+      # starts only from a successful CI run on DEPLOY_SHA (the job `if:`). A
+      # manual dispatch checks CI's verdict once: a successful CI run for a push
+      # to main on the commit passes (a green PR-only run never does); none, or
+      # one still running, means no deploy.
+      - name: Require CI to pass on this commit
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.skip_tests }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ env.DEPLOY_SHA }}
         run: |
-          INPUT="${{ github.event.inputs.service }}"
-          if [[ "$INPUT" == "all" || "$INPUT" == "" ]]; then
-            echo "voice=true" >> $GITHUB_OUTPUT
-            echo "ui=true" >> $GITHUB_OUTPUT
-          elif [[ "$INPUT" == "voice-agent" ]]; then
-            echo "voice=true" >> $GITHUB_OUTPUT
-            echo "ui=false" >> $GITHUB_OUTPUT
-          else
-            echo "voice=false" >> $GITHUB_OUTPUT
-            echo "ui=true" >> $GITHUB_OUTPUT
+          if ! runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=20" \
+            --jq '.workflow_runs[] | select(.event == "push" and .head_branch == "main") | "\(.status) \(.conclusion // "-") \(.event) \(.html_url)"'); then
+            echo "❌ Could not read CI runs for $SHA. Not deploying."
+            exit 1
           fi
-
-  # ============================================================================
-  # STAGE 2: BUILD & TEST
-  # ============================================================================
-  build-test:
-    name: 🧪 Build & Test
-    runs-on: ubuntu-latest
-    needs: prepare
-    if: ${{ !inputs.skip_tests }}
-    timeout-minutes: 75
-    permissions:
-      contents: read
-      actions: read  # to read CI's verdict on this commit
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+          echo "$runs"
+          if grep -q '^completed success ' <<<"$runs"; then
+            echo "✅ CI passed on $SHA"
+            exit 0
+          fi
+          echo "❌ No successful CI run for a push to main on $SHA. Not deploying."
+          echo "Wait for CI to pass (that deploys it), or rerun this once it has."
+          exit 1
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -165,10 +320,13 @@ jobs:
           sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
           sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
 
+      # No install scripts: nothing compiles on the host. The safety check, the
+      # design-system build and the smoke tests need only tsx and plain Node.
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
 
       - name: Deployment safety check
+        if: ${{ !inputs.skip_tests }}
         run: |
           echo "🔍 Scanning for unsafe deployment patterns..."
           npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all || {
@@ -179,178 +337,52 @@ jobs:
           }
           echo "✅ Deployment safety passed"
 
-      # Type check and the CI verdict below both gate the deploy. They used to be
-      # continue-on-error, so a red build still shipped to prod.
-      - name: Type check
-        run: pnpm typecheck
-
-      # The tests that count already ran on this exact commit: the merge queue runs
-      # the full CI workflow (unit with the Rust bindings, integration, quality
-      # gates) on the commit that then lands on main, with the same SHA. Re-running
-      # `pnpm test` here without those bindings failed 10 files on every deploy
-      # (2026-10-17, runs 39036034251 and 39038112712) and took 23 minutes, so this
-      # waits for CI's own verdict on github.sha instead. Any successful CI run on
-      # the commit passes (a push run cancelled by its concurrency group doesn't
-      # count against it); no success means no deploy.
-      - name: Require CI to pass on this commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.sha }}
-        run: |
-          start=$SECONDS
-          while :; do
-            # A transient API error (5xx, rate limit) retries next round; the time
-            # limits below still fail closed if it persists.
-            if ! runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=20" \
-              --jq '.workflow_runs[] | "\(.status) \(.conclusion // "-") \(.event) \(.html_url)"'); then
-              echo "::warning::Could not read CI runs for $SHA, retrying"
-              runs=""
-            fi
-            echo "$runs"
-            if grep -q '^completed success ' <<<"$runs"; then
-              echo "✅ CI passed on $SHA"
-              exit 0
-            fi
-            if [ -n "$runs" ] && ! grep -qv '^completed ' <<<"$runs"; then
-              echo "❌ Every CI run on $SHA finished without success. Not deploying."
-              exit 1
-            fi
-            elapsed=$((SECONDS - start))
-            if [ -z "$runs" ] && [ "$elapsed" -gt 600 ]; then
-              echo "❌ No CI run found for $SHA after 10 minutes. Not deploying."
-              exit 1
-            fi
-            if [ "$elapsed" -gt 3600 ]; then
-              echo "❌ CI on $SHA has not finished after 60 minutes. Not deploying."
-              exit 1
-            fi
-            sleep 30
-          done
-
-      - name: Build backend
-        run: pnpm build:fast
-
-      - name: Build design-system
+      # ── 3. Build ───────────────────────────────────────────────────────────
+      # Dockerfile.ui builds the backend and the frontend itself; it copies only
+      # design-system/dist from the host.
+      - name: Build design-system (required for Docker)
         run: node design-system/build.js
 
-      - name: Build frontend
-        run: |
-          cd apps/web
-          pnpm install --no-frozen-lockfile
-          pnpm build
-
-  # ============================================================================
-  # STAGE 3A: BUILD VOICE AGENT DOCKER IMAGE
-  # ============================================================================
-  build-voice-image:
-    name: 🐳 Build Voice Agent Image
-    runs-on: ubuntu-latest
-    needs: [prepare]
-    if: ${{ needs.prepare.outputs.deploy_voice == 'true' }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
       # ═══════════════════════════════════════════════════════════════════════
       # GCR AUTHENTICATION
       # ═══════════════════════════════════════════════════════════════════════
       # Uses gcloud auth configure-docker which works with service account keys
-      # without needing additional IAM permissions
-      # ═══════════════════════════════════════════════════════════════════════
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker gcr.io --quiet
-
-      # The agent image compiles two Rust native modules in Docker, which ran the
-      # GitHub-hosted runner out of disk ("No space left on device", 2026-09-27).
-      # Remove preinstalled toolchains this job never uses (~30 GB).
-      - name: Free disk space
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-            /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/.ghcup
-          sudo docker image prune --all --force
-          df -h /
-
-      - name: Build and push image
-        run: |
-          # Use native docker build (gcloud auth configure-docker works with this)
-          docker build \
-            --file docker/Dockerfile.agent \
-            --tag ${{ env.VOICE_IMAGE }}:${{ github.sha }} \
-            --tag ${{ env.VOICE_IMAGE }}:${{ needs.prepare.outputs.short_sha }} \
-            --tag ${{ env.VOICE_IMAGE }}:latest \
-            --build-arg NODE_VERSION=22 \
-            .
-
-          # Push all tags
-          docker push ${{ env.VOICE_IMAGE }}:${{ github.sha }}
-          docker push ${{ env.VOICE_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
-          docker push ${{ env.VOICE_IMAGE }}:latest
-
-      - name: Image summary
-        run: |
-          echo "### 🐳 Voice Agent Image Built" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image:** \`${{ env.VOICE_IMAGE }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Short tag:** \`${{ needs.prepare.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================================================
-  # STAGE 3B: BUILD UI SERVER DOCKER IMAGE
-  # ============================================================================
-  build-ui-image:
-    name: 🐳 Build UI Server Image
-    runs-on: ubuntu-latest
-    needs: [prepare]
-    if: ${{ needs.prepare.outputs.deploy_ui == 'true' }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm (for design-system build)
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Build design-system (required for Docker)
-        run: |
-          pnpm install --no-frozen-lockfile --ignore-scripts
-          node design-system/build.js
-
-      # ═══════════════════════════════════════════════════════════════════════
-      # GCR AUTHENTICATION
-      # ═══════════════════════════════════════════════════════════════════════
-      # Uses gcloud auth configure-docker which works with service account keys
-      # Required to push the UI image to gcr.io. The build itself pulls nothing
+      # Required to push the UI image to gcr.io, and here first so the guard
+      # can read what production serves. The build itself pulls nothing
       # private (the ferni-speaker base image is gone from Dockerfile.ui).
+      # Dependency code (install, safety check, design-system build) runs above,
+      # before any cloud credentials exist in this job; credentials load only for
+      # the forward guard, the image push and the deploy.
       # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      # Never move production backwards, including a re-run of an old CI run:
+      # deploy only when DEPLOY_SHA is ahead of the commit production serves.
+      # A no-op otherwise (deploy=false), which skips every step below. A manual
+      # allow_older (with a reason, for a commit on main) skips the check, for
+      # an intentional rollback. While a rollback's deploy freeze holds
+      # (scripts/ci/deploy-freeze.sh), only a manual allow_older run deploys.
+      - name: Forward-only guard
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ALLOW_OLDER: ${{ inputs.allow_older == true }}
+          REASON: ${{ inputs.reason }}
+          QUEUE_TESTED: ${{ needs.queue-verdict.outputs.tested }}
+          QUEUE_RUN_ID: ${{ needs.queue-verdict.outputs.run-id }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: bash scripts/ci/deploy-forward-guard.sh
+
       - name: Configure Docker for GCR
+        if: steps.guard.outputs.deploy == 'true'
         run: gcloud auth configure-docker gcr.io --quiet
 
       - name: Free runner disk space
+        if: steps.guard.outputs.deploy == 'true'
         # The ui image build ran out of disk (ERR_PNPM_ENOSPC) on ubuntu-latest.
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
@@ -358,11 +390,12 @@ jobs:
           df -h /
 
       - name: Build and push image
+        if: steps.guard.outputs.deploy == 'true'
         run: |
           docker build \
             --file docker/Dockerfile.ui \
-            --tag ${{ env.UI_IMAGE }}:${{ github.sha }} \
-            --tag ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }} \
+            --tag ${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }} \
+            --tag ${{ env.UI_IMAGE }}:${{ steps.meta.outputs.short_sha }} \
             --tag ${{ env.UI_IMAGE }}:latest \
             --build-arg NODE_VERSION=22 \
             --build-arg VITE_VENMO_CHIP_IN="${{ vars.VITE_VENMO_CHIP_IN }}" \
@@ -371,106 +404,92 @@ jobs:
             --build-arg VITE_CAPTIONS_BREATH="${{ vars.VITE_CAPTIONS_BREATH }}" \
             --build-arg VITE_CAPTIONS_HEARD="${{ vars.VITE_CAPTIONS_HEARD }}" \
             --build-arg VITE_MEMORY_VIEW="${{ vars.VITE_MEMORY_VIEW }}" \
+            --build-arg VITE_APPLE_WEB_SIGNIN="${{ vars.VITE_APPLE_WEB_SIGNIN }}" \
+            --build-arg VITE_CALL_WRAP_UP="${{ vars.VITE_CALL_WRAP_UP }}" \
+            --build-arg VITE_PROMISES_PANEL="${{ vars.VITE_PROMISES_PANEL }}" \
+            --build-arg VITE_TOAST_REGION="${{ vars.VITE_TOAST_REGION }}" \
             .
 
           # Push all tags
-          docker push ${{ env.UI_IMAGE }}:${{ github.sha }}
-          docker push ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }}
+          docker push ${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }}
+          docker push ${{ env.UI_IMAGE }}:${{ steps.meta.outputs.short_sha }}
           docker push ${{ env.UI_IMAGE }}:latest
 
       - name: Image summary
+        if: steps.guard.outputs.deploy == 'true'
         run: |
           echo "### 🐳 UI Server Image Built" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image:** \`${{ env.UI_IMAGE }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** \`${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }}\`" >> $GITHUB_STEP_SUMMARY
 
-  # ============================================================================
-  # STAGE 4A: DEPLOY VOICE AGENT (Blue-Green)
-  # ============================================================================
-  # BLUE-GREEN STRATEGY:
-  # 1. Deploy new "green" revision with --no-traffic
-  # 2. Health check green revision
-  # 3. If healthy: shift traffic blue→green (100%)
-  # 4. If unhealthy: delete green, keep blue
-  # 5. Cleanup zombie revisions (critical for LiveKit)
-  # ============================================================================
-  deploy-voice:
-    name: ⛔ Voice Agent (GCE only - skip Cloud Run)
-    runs-on: ubuntu-latest
-    needs: [prepare, build-test, build-voice-image]
-    if: |
-      always() &&
-      needs.prepare.outputs.deploy_voice == 'true' &&
-      needs.build-voice-image.result == 'success' &&
-      (needs.build-test.result == 'success' || needs.build-test.result == 'skipped')
-    outputs:
-      revision: ${{ steps.skip.outputs.revision }}
-      url: ${{ steps.skip.outputs.url }}
-
-    steps:
-      # ⛔ CRITICAL: Voice agent MUST NOT be deployed to Cloud Run.
-      #
-      # Cloud Run cannot handle WebRTC/UDP which LiveKit requires for voice.
-      # More importantly, a Cloud Run voiceai-agent registers as a LiveKit worker
-      # and STEALS JOBS from the real agent via round-robin dispatch. The Cloud Run
-      # worker then fails (no UDP), causing silent connection failures for users.
-      #
-      # This exact bug caused a production outage on 2026-02-24.
-      # The Cloud Run voiceai-agent service was deleted to fix it.
-      #
-      # Voice agent deployment: LiveKit Cloud via `lk agent deploy`, gated by
-      # .claude/skills/deploy-agent/SKILL.md. (The GCE VM is retired.)
-      #
-      # DO NOT re-add `gcloud run deploy voiceai-agent` here.
-      - name: ⛔ Skip Cloud Run deploy (the voice agent runs on LiveKit Cloud)
-        id: skip
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "⛔ SKIPPING Cloud Run deployment for voice agent"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "The voice agent runs on LiveKit Cloud agents (livekit.prod-cloud.toml),"
-          echo "NOT Cloud Run: Cloud Run can't handle WebRTC/UDP and a worker there"
-          echo "would steal jobs from the real agent. Deploy it with lk agent deploy."
-          echo ""
-          echo "revision=skipped" >> $GITHUB_OUTPUT
-          echo "url=" >> $GITHUB_OUTPUT
-
-  # ============================================================================
-  # STAGE 4B: DEPLOY UI SERVER (Blue-Green)
-  # ============================================================================
-  # BLUE-GREEN STRATEGY: Same as voice agent
-  # ============================================================================
-  deploy-ui:
-    name: 🔵🟢 Deploy UI Server (Blue-Green)
-    runs-on: ubuntu-latest
-    needs: [prepare, build-test, build-ui-image]
-    if: |
-      always() && 
-      needs.prepare.outputs.deploy_ui == 'true' &&
-      needs.build-ui-image.result == 'success' &&
-      (needs.build-test.result == 'success' || needs.build-test.result == 'skipped')
-    outputs:
-      revision: ${{ steps.deploy.outputs.revision }}
-      url: ${{ steps.deploy.outputs.url }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
+      # ── 4. Deploy (Blue-Green) and 5. Verify ───────────────────────────────
+      # 1. Deploy new "green" revision with --no-traffic
+      # 2. Health check and smoke-test green on its tag URL
+      # 3. If both pass: shift traffic blue→green (100%)
+      # 4. If not: remove the green tag, keep blue, fail the run
       - name: Set up Cloud SDK
+        if: steps.guard.outputs.deploy == 'true'
         uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: 🟢 Deploy GREEN revision (no traffic)
-        id: deploy
+      # 2026-10-17: a --set-secrets entry named a secret with no enabled version.
+      # The new revision could not start and Cloud Run kept serving the old one
+      # for 3.5h. Check every secret before deploying, and name each bad one.
+      # Reads deploy/ui-server/secrets.txt exactly as the deploy step does.
+      - name: 🔐 Preflight - every mounted secret has an enabled version
+        id: preflight
+        if: steps.guard.outputs.deploy == 'true'
         run: |
-          REVISION_SUFFIX=${{ needs.prepare.outputs.short_sha }}
+          set -u
+          bad=()
+          declare -A seen=()
+          SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
+          IFS=',' read -ra entries <<< "$SECRETS"
+          for entry in "${entries[@]}"; do
+            ref=${entry#*=}
+            secret=${ref%%:*}
+            version=latest
+            if [[ "$ref" == *:* ]]; then version=${ref#*:}; fi
+            if [[ -n "${seen[$secret:$version]:-}" ]]; then continue; fi
+            seen[$secret:$version]=1
+
+            if out=$(gcloud secrets versions list "$secret" --filter=state:ENABLED --limit=1 --format='value(name)' 2>&1); then
+              if [[ -z "$out" ]]; then
+                bad+=("$secret: no ENABLED version")
+              elif [[ "$version" != latest ]]; then
+                state=$(gcloud secrets versions describe "$version" --secret="$secret" --format='value(state)' 2>&1)
+                if [[ "$state" != ENABLED ]]; then bad+=("$secret:$version: $state"); fi
+              fi
+            elif [[ "$out" == *PERMISSION_DENIED* ]]; then
+              # No secretmanager.versions.list: probe the exact version Cloud Run
+              # will mount. The payload goes to /dev/null and is never printed.
+              if ! err=$(gcloud secrets versions access "$version" --secret="$secret" 2>&1 >/dev/null); then
+                bad+=("$secret:$version: $(head -1 <<< "$err")")
+              fi
+            else
+              bad+=("$secret: $(head -1 <<< "$out")")
+            fi
+          done
+
+          if (( ${#bad[@]} > 0 )); then
+            for b in "${bad[@]}"; do echo "::error title=Secret preflight::$b"; done
+            echo "### ❌ Secret preflight failed" >> "$GITHUB_STEP_SUMMARY"
+            printf -- '- %s\n' "${bad[@]}" >> "$GITHUB_STEP_SUMMARY"
+            echo "Add or enable a version of each secret above, then re-run. Not deploying."
+            exit 1
+          fi
+          echo "✅ ${#seen[@]} secret references, each with an enabled version"
+
+      - name: 🟢 Deploy GREEN revision (no traffic)
+        if: steps.guard.outputs.deploy == 'true'
+        id: deploy
+        env:
+          # App email goes through the ferni.ai Workspace (runbook: email-via-workspace.md).
+          # Back to SendGrid without a PR: `gh variable set EMAIL_PROVIDER --body sendgrid`, redeploy.
+          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'gmail' }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}
+        run: |
+          REVISION_SUFFIX=${{ steps.meta.outputs.revision_suffix }}
 
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🔵🟢 UI SERVER BLUE-GREEN DEPLOYMENT"
@@ -491,14 +510,21 @@ jobs:
           # whole project). It holds only what the server uses: Firestore
           # (datastore.user), Vertex Gemini (aiplatform.user), Firebase Auth user
           # get/delete (custom role ferniUiAuthUsers) and secretAccessor on each
-          # secret below. A new --set-secrets entry needs that grant too.
-          # Server flags live in --set-env-vars below. It REPLACES the service's env on every
-          # deploy, so a flag set by hand on Cloud Run is gone after the next main push:
-          # turn a web-server flag on here (and in apps/cli deploy.ts), in a reviewed PR.
-          # DISPATCH_SIGNING_SECRET signs the calls this server places (proactive check-ins,
-          # on-behalf, family check-ins); the voice agent verifies with the same secret (#1706).
+          # secret in deploy/ui-server/secrets.txt. A new secret needs that grant too.
+          # Env and secrets: one key per line in deploy/ui-server/ (env.yaml, secrets.txt;
+          # both REPLACE the service's on every deploy). Per-deploy env, one printf per key:
+          ENV_FILE=$(mktemp --suffix=.yaml)
+          cp deploy/ui-server/env.yaml "$ENV_FILE"
+          # Read from shell env, never pasted in as a workflow expression: DEPLOY_SHA can
+          # come from a workflow_dispatch input (CodeQL code injection, as in the summary).
+          printf 'BUILD_SHA: "%s"\n' "$DEPLOY_SHA" >> "$ENV_FILE"
+          printf 'GCLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          printf 'GOOGLE_CLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          printf 'EMAIL_PROVIDER: "%s"\n' "$EMAIL_PROVIDER" >> "$ENV_FILE"
+          printf 'EMAIL_FROM: "%s"\n' "$EMAIL_FROM" >> "$ENV_FILE"
+          SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
           gcloud run deploy john-bogle-ui \
-            --image ${{ env.UI_IMAGE }}:${{ github.sha }} \
+            --image ${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             $NO_TRAFFIC_FLAG \
@@ -513,20 +539,30 @@ jobs:
             --min-instances 0 \
             --max-instances 10 \
             --vpc-connector ferni-redis-connector \
-            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP::JOURNAL_TRANSCRIBE_VERTEX=on::MEMORY_VIEW=on::JOURNAL_ONE_STORE=on::CALL_HOURS_GUARD=on::FAMILY_CHECKIN_STOP=on::COHORT_FLAGS=on::PROACTIVE_CHANNELS=on::FOLLOW_THROUGH_JOB=on" \
-            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest,DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest"
-          
-          REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
-          URL=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")
-          
+            --env-vars-file "$ENV_FILE" \
+            --set-secrets "$SECRETS"
+
+          SVC=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format=json)
+          REVISION=$(jq -r '.status.latestCreatedRevisionName // empty' <<<"$SVC")
+          URL=$(jq -r '.status.url // empty' <<<"$SVC")
+          # The green tag's own URL serves the new revision; the service URL still serves blue.
+          GREEN_URL=$(jq -r 'first(.status.traffic[]? | select(.tag == "green") | .url) // empty' <<<"$SVC")
+
           echo "revision=$REVISION" >> $GITHUB_OUTPUT
           echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "green_url=$GREEN_URL" >> $GITHUB_OUTPUT
 
       - name: Health check green revision
+        if: steps.guard.outputs.deploy == 'true'
         id: health
         run: |
-          URL="${{ steps.deploy.outputs.url }}"
-          
+          URL="${{ steps.deploy.outputs.green_url }}"
+          if [ -z "$URL" ]; then
+            echo "::error::No green-tagged URL to check"
+            echo "healthy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           for i in {1..10}; do
             if curl -sf "$URL/health" > /dev/null 2>&1; then
               echo "✅ Health check passed!"
@@ -536,14 +572,46 @@ jobs:
             echo "Attempt $i failed, retrying..."
             sleep 10
           done
-          
+
           echo "healthy=false" >> $GITHUB_OUTPUT
 
+      # Smoke tests on green BEFORE it gets traffic, so a failure keeps traffic
+      # on blue (Rollback below). They used to run with no URL, so they hit
+      # localhost:3002, failed 0/7 on every deploy, and continue-on-error hid it.
+      - name: Run smoke tests
+        id: smoke
+        if: steps.guard.outputs.deploy == 'true' && steps.health.outputs.healthy == 'true'
+        env:
+          SMOKE_TEST_URL: ${{ steps.deploy.outputs.green_url }}
+        run: |
+          test -n "$SMOKE_TEST_URL" || { echo "::error::the deploy step gave no green URL"; exit 1; }
+          npx tsx apps/cli/src/commands/test/smoke-test.ts
+
+      # A rollback may have started while this run built. It freezes deploys
+      # before it moves traffic, so look again right before shifting: frozen
+      # means stop here, keep blue, and let the rollback have the last word.
+      - name: Re-check the deploy freeze
+        id: freeze
+        if: steps.guard.outputs.deploy == 'true' && steps.health.outputs.healthy == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          ALLOW_OLDER: ${{ inputs.allow_older == true }}
+        run: |
+          rc=0
+          reason=$(bash scripts/ci/deploy-freeze.sh gate) || rc=$?
+          if [ "$rc" = 3 ]; then
+            echo "::error::frozen: $reason. A rollback started while this deploy ran, so traffic stays where it is."
+            echo "### 🧊 frozen: $reason (traffic not shifted)" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          [ "$rc" = 0 ] || { echo "::error::Could not read the deploy freeze, so traffic is not shifted."; exit 1; }
+
       - name: Shift traffic to green
-        if: steps.health.outputs.healthy == 'true'
+        if: steps.guard.outputs.deploy == 'true' && steps.health.outputs.healthy == 'true'
         run: |
           TRAFFIC=${{ inputs.traffic_percent || 100 }}
-          
+
           if [ "$TRAFFIC" = "100" ]; then
             gcloud run services update-traffic john-bogle-ui \
               --region=${{ env.GCP_REGION }} \
@@ -554,122 +622,104 @@ jobs:
               --to-tags green=$TRAFFIC
           fi
 
+      # Runs after a failed deploy too, so the log says why the revision isn't live.
+      - name: ✅ Verify the new revision is Ready and serving
+        if: ${{ !cancelled() && steps.guard.outputs.deploy == 'true' && steps.preflight.outcome == 'success' }}
+        env:
+          EXPECTED: john-bogle-ui-${{ steps.meta.outputs.revision_suffix }}
+          TRAFFIC: ${{ inputs.traffic_percent || 100 }}
+          REGION: ${{ env.GCP_REGION }}
+        run: |
+          set -u
+          if ! rev=$(gcloud run revisions describe "$EXPECTED" --region="$REGION" --format=json); then
+            echo "::error title=Deploy not live::revision $EXPECTED was never created"
+            echo "### ❌ $EXPECTED was never created" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          svc=$(gcloud run services describe john-bogle-ui --region="$REGION" --format=json)
+          ready=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | .status][0] // "Unknown"' <<< "$rev")
+          why=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | (.message // .reason // "")][0] // ""' <<< "$rev")
+          serving=$(jq -r --arg r "$EXPECTED" '[.status.traffic[]? | select(.revisionName == $r) | (.percent // 0)] | add // 0' <<< "$svc")
+          echo "$EXPECTED: Ready=$ready, serving ${serving}% (expected ${TRAFFIC}%)"
+
+          fail=0
+          if [[ "$ready" != True ]]; then
+            echo "::error title=Deploy not live::$EXPECTED is not Ready ($ready): $why"
+            fail=1
+          fi
+          if [[ "$serving" != "$TRAFFIC" ]]; then
+            echo "::error title=Deploy not live::$EXPECTED serves ${serving}% of traffic, expected ${TRAFFIC}%; traffic did not move to it"
+            fail=1
+          fi
+          if (( fail )); then
+            echo "### ❌ $EXPECTED is not live: Ready=$ready, ${serving}% of traffic" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "### ✅ $EXPECTED is Ready and serving ${serving}%" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Rollback on failure
-        if: steps.health.outputs.healthy != 'true'
+        if: always() && steps.guard.outputs.deploy == 'true' && steps.deploy.outcome == 'success' && (steps.health.outputs.healthy != 'true' || steps.smoke.outcome == 'failure' || steps.freeze.outcome == 'failure')
         run: |
           gcloud run services update-traffic john-bogle-ui \
             --region=${{ env.GCP_REGION }} \
             --remove-tags green || true
           exit 1
 
-  # ============================================================================
-  # STAGE 5: POST-DEPLOY VERIFICATION
-  # ============================================================================
-  verify:
-    name: ✅ Verify Deployment
-    runs-on: ubuntu-latest
-    needs: [prepare, deploy-voice, deploy-ui]
-    if: always() && (needs.deploy-voice.result == 'success' || needs.deploy-ui.result == 'success')
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Fix local dependencies for CI
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      # Against the revision just deployed. It used to run with no URL, so it hit
-      # localhost:3002, failed 0/7 on every deploy, and continue-on-error hid it.
-      - name: Run smoke tests
-        if: needs.deploy-ui.result == 'success'
-        env:
-          SMOKE_TEST_URL: ${{ needs.deploy-ui.outputs.url }}
-        run: |
-          test -n "$SMOKE_TEST_URL" || { echo "::error::deploy-ui gave no URL"; exit 1; }
-          npx tsx apps/cli/src/commands/test/smoke-test.ts
-
+      # ── 6. Notify (always, so a failed deploy still reports; not on a no-op) ─
       - name: Create deployment summary
+        if: always() && steps.guard.outputs.deploy != 'false'
+        # Values reach the script as env, never pasted into it: the revision is
+        # gcloud output on a workflow_dispatch path (CodeQL code injection).
+        env:
+          JOB_STATUS: ${{ job.status }}
+          REVISION: ${{ steps.deploy.outputs.revision }}
+          ACTOR: ${{ github.actor }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | Revision |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|----------|" >> $GITHUB_STEP_SUMMARY
-          
-          if [[ "${{ needs.deploy-voice.result }}" == "success" ]]; then
-            echo "| Voice Agent | ✅ Success | \`${{ needs.deploy-voice.outputs.revision }}\` |" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ needs.deploy-voice.result }}" == "failure" ]]; then
-            echo "| Voice Agent | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Voice Agent | ⏭️ Skipped | - |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [[ "${{ needs.deploy-ui.result }}" == "success" ]]; then
-            echo "| UI Server | ✅ Success | \`${{ needs.deploy-ui.outputs.revision }}\` |" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ needs.deploy-ui.result }}" == "failure" ]]; then
+
+          if [[ "$JOB_STATUS" == "success" ]]; then
+            echo "| UI Server | ✅ Success | \`${REVISION}\` |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "$JOB_STATUS" == "failure" ]]; then
             echo "| UI Server | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| UI Server | ⏭️ Skipped | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| UI Server | ⏭️ Cancelled | - |" >> $GITHUB_STEP_SUMMARY
           fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ needs.prepare.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
-  # ============================================================================
-  # STAGE 6: NOTIFICATIONS & METRICS
-  # ============================================================================
-  notify:
-    name: 📢 Notify
-    runs-on: ubuntu-latest
-    needs: [prepare, deploy-voice, deploy-ui, verify]
-    if: always()
-    
-    steps:
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${DEPLOY_SHA}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${ACTOR}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${VERSION}" >> $GITHUB_STEP_SUMMARY
+
       - name: Determine status
         id: status
+        if: always() && steps.guard.outputs.deploy != 'false'
         run: |
-          VOICE="${{ needs.deploy-voice.result }}"
-          UI="${{ needs.deploy-ui.result }}"
-          
-          if [[ "$VOICE" == "failure" || "$UI" == "failure" ]]; then
+          UI="${{ job.status }}"
+
+          if [[ "$UI" == "failure" ]]; then
             echo "status=failure" >> $GITHUB_OUTPUT
             echo "emoji=❌" >> $GITHUB_OUTPUT
             echo "color=danger" >> $GITHUB_OUTPUT
-          elif [[ "$VOICE" == "success" || "$UI" == "success" ]]; then
+          elif [[ "$UI" == "success" ]]; then
             echo "status=success" >> $GITHUB_OUTPUT
             echo "emoji=✅" >> $GITHUB_OUTPUT
             echo "color=good" >> $GITHUB_OUTPUT
           else
-            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "status=cancelled" >> $GITHUB_OUTPUT
             echo "emoji=⏭️" >> $GITHUB_OUTPUT
             echo "color=warning" >> $GITHUB_OUTPUT
           fi
 
       - name: Send Slack notification
-        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ always() && steps.guard.outputs.deploy != 'false' && env.SLACK_WEBHOOK_URL != '' }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -X POST "$SLACK_WEBHOOK_URL" \
+          curl --fail-with-body -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{
               "attachments": [{
@@ -685,9 +735,8 @@ jobs:
                   {
                     "type": "section",
                     "fields": [
-                      {"type": "mrkdwn", "text": "*Voice:* ${{ needs.deploy-voice.result }}"},
-                      {"type": "mrkdwn", "text": "*UI:* ${{ needs.deploy-ui.result }}"},
-                      {"type": "mrkdwn", "text": "*Commit:* `${{ needs.prepare.outputs.short_sha }}`"},
+                      {"type": "mrkdwn", "text": "*UI:* ${{ job.status }}"},
+                      {"type": "mrkdwn", "text": "*Commit:* `${{ steps.meta.outputs.short_sha }}`"},
                       {"type": "mrkdwn", "text": "*By:* ${{ github.actor }}"}
                     ]
                   },
@@ -703,10 +752,10 @@ jobs:
                   }
                 ]
               }]
-            }' || true
+            }' || echo "::warning::Slack notify failed"
 
       - name: Track DORA metrics
-        if: ${{ env.DORA_API_URL != '' && env.DORA_API_KEY != '' }}
+        if: ${{ always() && steps.guard.outputs.deploy != 'false' && env.DORA_API_URL != '' && env.DORA_API_KEY != '' }}
         env:
           DORA_API_URL: ${{ secrets.DORA_API_URL }}
           DORA_API_KEY: ${{ secrets.DORA_API_KEY }}
@@ -716,8 +765,67 @@ jobs:
             -H "Authorization: Bearer $DORA_API_KEY" \
             -d '{
               "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
-              "commitSha": "${{ github.sha }}",
+              "commitSha": "'"$DEPLOY_SHA"'",
               "environment": "production",
               "success": ${{ steps.status.outputs.status == 'success' }},
               "triggeredBy": "${{ github.actor }}"
             }' || true
+
+  # ============================================================================
+  # UNFREEZE: lift a rollback's deploy freeze, deliberately
+  # ============================================================================
+  # Deploys nothing. The next CI-green commit then deploys as usual, so unfreeze
+  # once the fix is on main (or main is safe again). Its own job, so the deploy
+  # job never holds contents: write.
+  unfreeze:
+    name: 🔓 Unfreeze deploys
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze == true
+    timeout-minutes: 5
+    permissions:
+      contents: write  # deletes the deploy-freeze tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Lift the freeze
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASON: ${{ inputs.reason }}
+        run: bash scripts/ci/deploy-freeze.sh clear "$REASON"
+
+  # ============================================================================
+  # MERGED BUT NOT LIVE: CI failed on a push to main, so nothing deploys
+  # ============================================================================
+  # Without this a red head is silent here: the deploy job just doesn't run.
+  # Red when the failed commit is still main's tip (production is behind main
+  # until a fix lands); a warning when a newer head has superseded it.
+  report-not-live:
+    name: ⚠️ Merged but not live
+    runs-on: ubuntu-24.04
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Report the commit that did not deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha) || tip=""
+          if [ "$SHA" = "$tip" ]; then
+            msg="Merged but not live: push CI failed on $SHA, main's tip. Unless the merge-queue fast path already deployed it (see this commit's push run), production is behind main. CI: $CI_URL"
+            echo "::error::$msg"
+            echo "### ❌ $msg" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          msg="CI failed on $SHA, but main has moved on to ${tip:-an unknown head}, which deploys if its CI passes. CI: $CI_URL"
+          echo "::warning::$msg"
+          echo "### ⚠️ $msg" >> "$GITHUB_STEP_SUMMARY"

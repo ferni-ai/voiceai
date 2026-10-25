@@ -6,11 +6,8 @@
  *
  * @module agents/dates-register
  */
-import { isMemberCall } from '../services/outreach/after-call-checkin.js';
 import { registerAfterCallTask } from '../services/session/after-call-tasks.js';
 import { DATES_TASK, extractDatesAfterCall } from '../intelligence/world-model/dates/after-call.js';
 
 // One model call (20 s timeout) and one store write.
-registerAfterCallTask(DATES_TASK, (ctx) => extractDatesAfterCall(ctx, { isMember: isMemberCall }), {
-  timeoutMs: 30_000,
-});
+registerAfterCallTask(DATES_TASK, (ctx) => extractDatesAfterCall(ctx), { timeoutMs: 30_000 });

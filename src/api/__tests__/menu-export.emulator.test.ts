@@ -160,6 +160,22 @@ describe.skipIf(!emulator)('export carries every known user store (Firestore emu
     expect(identity).not.toHaveProperty('totalCalls');
   });
 
+  it("carries the router's turn events from every day, and not another person's", async () => {
+    const uid = id();
+    const other = id();
+    const day = (d: string, doc: string) => db.doc(`semantic_router_events/${d}/events/${doc}`);
+    await day('2026-03-01', `a-${uid}`).set({ userId: uid, toolId: 'weather' });
+    await day('2026-10-24', `b-${uid}`).set({ userId: uid, toolId: 'timer' });
+    await day('2026-10-24', `c-${other}`).set({ userId: other, toolId: 'not-yours' });
+
+    const { categories, records } = await exportAll(uid);
+
+    const rows = records['semantic_router_events/*/events'] as Array<{ toolId: string }>;
+    expect(rows.map((r) => r.toolId).sort()).toEqual(['timer', 'weather']);
+    expect(JSON.stringify(records)).not.toContain('not-yours');
+    expect(categories.find((c) => c.category === 'Records')?.itemCount).toBe(2);
+  });
+
   it("someone else's records are not in the file", async () => {
     const owner = id();
     for (const store of KNOWN_USER_STORES) await seed(store, owner, 'not-yours');

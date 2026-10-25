@@ -5,9 +5,9 @@
  *
  * Why: the only other writer is the per-turn regex detector (detectWellbeing),
  * which needs first-person phrasing like "I'm exhausted" or "I feel lonely" in
- * a single turn. The founder's 283 turns over 7 days on prod (20 calls) had no
- * match, so "How You're Feeling" stayed empty for him. Reading the whole call
- * once catches "doing pretty good, just wiped from the week" too.
+ * a single turn. Most calls had no match, so "How You're Feeling" stayed empty.
+ * Reading the whole call once catches "doing pretty good, just wiped from the
+ * week" too.
  *
  * Scores are 0 to 1 like the detector's (the panel shows them as percents);
  * a dimension the caller didn't speak to stays out, so nothing is invented.
@@ -19,8 +19,11 @@ import {
   detectCrisisSignals,
 } from '../human-transfer/escalation-classifier.js';
 import { envForCaller, type CohortStore } from '../platform/cohort-flags.js';
+import { crisisRiskThisCall, scoreCrisisLanguage } from '../safety/index.js';
 import { callLLM } from '../llm-utils.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import { persistSnapshot } from './persistence.js';
 import type { WellbeingDimensions, WellbeingSnapshot } from './index.js';
 
@@ -52,13 +55,8 @@ export interface WellbeingDeps {
   save?: (userId: string, snapshot: WellbeingSnapshot) => Promise<boolean>;
   env?: Record<string, string | undefined>;
   cohorts?: CohortStore;
-  /**
-   * Whether this is the member's own call: never an unrecognised caller (anon:)
-   * or the third party on a call placed for someone (onbehalf:). The check lives
-   * above this layer (isMemberCall in services/outreach, isMemberIdentity once
-   * #2017 lands), so the register file passes it in. Without one, nothing runs.
-   */
-  isMember?: (userId: string) => boolean;
+  /** Whether this call's crisis paths noted risk (crisis-call-risk.ts); for tests. */
+  crisisRisk?: (sessionId: string) => boolean;
 }
 
 export function wellbeingAfterCallOn(env: Record<string, string | undefined>): boolean {
@@ -89,18 +87,44 @@ A polite "good, you?" answering a greeting is not a mood. Most calls leave most 
 Respond with ONLY JSON: {"mood":null,"energy":null,"worry":null,"loneliness":null,"meaningfulness":null,"sleepQuality":null}`;
 }
 
+/** A FERNI line that gave the caller a crisis line: 988, or the Crisis Text Line. */
+const CRISIS_LINE = /\b(?:988|741741)\b|\bcrisis (?:text )?line\b/i;
+
 /**
- * A call where any caller turn reaches the crisis tier of the human-transfer
- * classifier (the 988/911 decision: crisis_immediate or crisis_support). Such a
- * call is never scored: a mood number is no way to remember it.
+ * Whether this was a crisis call. A crisis call is never scored: a mood number
+ * is no way to remember it. Any one of these is enough:
+ * - risk noted on this call (crisis-call-risk.ts, crisisRiskThisCall): the reply
+ *   gate's or turn pipeline's patterns, the crisis script or a gentle 988 offer,
+ *   any classifier read that was not a clean none (a classifier-only imminent
+ *   read too, even one a grounded release or the lone-imminent check later
+ *   eased), a soft check-in, crisis words in the goodbye, or a read still in
+ *   flight;
+ * - a caller turn the live crisis patterns read as crisis (crisis-guard.ts, with
+ *   the caller's earlier turns as context), or that the human-transfer tier sends
+ *   to 988 (crisis_immediate / crisis_support). This holds when nothing was noted
+ *   live (crisis gate off or in shadow);
+ * - a FERNI line that gave a crisis line, however it got there.
+ * A MINOR_CARE-held call never gets this far (runAfterCallTasks, and writeHeld below).
  */
-export function isCrisisCall(turns: WellbeingCall['turns']): boolean {
-  return turns.some(
-    (t) =>
-      t.role === 'user' &&
-      (t.content ?? '').trim() !== '' &&
-      classifyEscalation(detectCrisisSignals(t.content)).type.startsWith('crisis_')
-  );
+export function isCrisisCall(
+  call: Pick<WellbeingCall, 'sessionId' | 'turns'>,
+  riskNoted: (sessionId: string) => boolean = crisisRiskThisCall
+): boolean {
+  if (call.sessionId && riskNoted(call.sessionId)) return true;
+  const said: string[] = [];
+  for (const t of call.turns) {
+    const text = (t.content ?? '').trim();
+    if (!text) continue;
+    if (t.role !== 'user') {
+      if (CRISIS_LINE.test(text)) return true;
+      continue;
+    }
+    if (scoreCrisisLanguage(text, undefined, { recentMessages: said.slice(-5) }).isCrisis)
+      return true;
+    if (classifyEscalation(detectCrisisSignals(text)).type.startsWith('crisis_')) return true;
+    said.push(text);
+  }
+  return false;
 }
 
 /** The scored dimensions from the model's reply; values outside 0..1 or not numbers are dropped. */
@@ -126,12 +150,15 @@ export async function recordWellbeingAfterCall(
   ctx: WellbeingCall,
   deps: WellbeingDeps = {}
 ): Promise<void> {
-  if (!(deps.isMember?.(ctx.userId ?? '') ?? false)) return;
+  if (!isMemberIdentity(ctx.userId)) return;
+  // MINOR_CARE: runAfterCallTasks holds a call whose caller sounded under 18; this also holds
+  // the same caller's call when another of their sessions is held (writeHeld, minor-care.ts).
+  if (writeHeld(ctx.userId, ctx.sessionId)) return;
   // This caller's flags: process.env may already hold the next caller's.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!wellbeingAfterCallOn(env)) return;
   if (!ctx.turns.some((t) => t.role === 'user' && (t.content ?? '').trim() !== '')) return;
-  if (isCrisisCall(ctx.turns)) {
+  if (isCrisisCall(ctx, deps.crisisRisk)) {
     log.info({ sessionId: ctx.sessionId }, 'WELLBEING_SKIPPED_CRISIS');
     return;
   }

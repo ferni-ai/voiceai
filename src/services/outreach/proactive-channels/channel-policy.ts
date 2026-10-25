@@ -8,11 +8,15 @@
  *   on: at most one a day, inside the call window (call-hours-guard), never in
  *   their quiet hours.
  * - Quiet hours (nothing goes out): 21:00 to 08:00 always, plus the user's
- *   own window (read as quiet-hours.ts, #802, does), in their own time zone.
+ *   own window (read as quiet-hours.ts, #802, does), in their own time zone,
+ *   and the one saved in the menu (quiet-hours.ts savedQuietHours).
  *   Without a time zone there are no texts or calls.
  * - Backing off: two texts in a row with no conversation since means no more
  *   texts until they talk to Ferni again; a call that wasn't picked up (or was
  *   a "not now") means no calls for three days; a snooze holds everything.
+ * - A phone that opted out (STOP, do-not-call; opt-outs.ts) gets no text or
+ *   call: the other phone channel only if it didn't opt out of that too, else a
+ *   note in the app.
  * - outreachPreferences.proactiveFrequency: 'normal', 'gentle' (the default)
  *   or 'light' sets the daily caps (light: one a day, no calls); 'off' stops
  *   proactive check-ins.
@@ -28,6 +32,8 @@ import {
   type QuietWindow,
 } from '../call-hours-guard.js';
 import { consentFromPrefs } from '../outreach-consent.js';
+import { isQuietAt, type ZonedQuiet } from '../quiet-hours.js';
+import type { PhoneOptOuts } from './opt-outs.js';
 import type { OutreachLogEntry } from './outreach-log.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
@@ -101,6 +107,8 @@ export interface PolicyInput {
   /** The user's stored outreachPreferences. */
   prefs: unknown;
   timezone?: string;
+  /** Quiet hours saved in the menu (QUIET_HOURS_FROM_PREFS); they add to the ones above. */
+  savedQuiet?: ZonedQuiet;
   /** The phone on their Firebase account; texts and calls go nowhere else. */
   verifiedPhone?: string;
   lastTalkedAt?: number;
@@ -108,6 +116,8 @@ export interface PolicyInput {
   recent: OutreachLogEntry[];
   /** A call can be placed (the SIP trunk is configured). */
   canCall: boolean;
+  /** What the verified phone opted out of (opt-outs.ts); never texted or rung on those. */
+  optedOut: PhoneOptOuts;
 }
 
 /** channel null: hold it for now (the trigger stays pending) or, with `stop`, not at all. */
@@ -166,6 +176,7 @@ function tryCall(
 ): ChannelChoice | null {
   const callsOn = consentFromPrefs(input.prefs).channels.includes('voice_call');
   if (input.trigger.weight !== 'meaningful' || !callsOn || !input.canCall) return null;
+  if (input.optedOut.call) return null;
   const blocked = callBlocked(input, tz, sentToday, caps.call);
   if (!blocked) {
     return {
@@ -181,6 +192,7 @@ function tryCall(
 }
 
 function textOrNote(input: PolicyInput, sentToday: OutreachLogEntry[], caps: Caps): ChannelChoice {
+  if (input.optedOut.sms) return { channel: 'in_app', why: 'opted out of texts' };
   if (!consentFromPrefs(input.prefs).channels.includes('sms')) {
     return { channel: 'in_app', why: 'texts not turned on' };
   }
@@ -199,7 +211,10 @@ export function chooseChannel(input: PolicyInput): ChannelChoice {
   if ('why' in caps) return caps;
 
   const tz = isValidTimezone(input.timezone) ? input.timezone : undefined;
-  if (tz && inQuietHours(input.prefs, tz, input.now)) return { channel: null, why: 'quiet hours' };
+  const saved = input.savedQuiet;
+  const savedQuiet = !!saved && isQuietAt(input.now, saved.window, saved.zones);
+  if (savedQuiet || (tz && inQuietHours(input.prefs, tz, input.now)))
+    return { channel: null, why: 'quiet hours' };
   if (!tz) return { channel: 'in_app', why: 'no time zone on file, so no texts or calls' };
   if (!input.trigger.timely) return { channel: 'in_app', why: 'not time-sensitive' };
   if (!input.verifiedPhone) return { channel: 'in_app', why: 'no verified phone' };

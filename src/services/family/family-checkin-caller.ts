@@ -285,7 +285,8 @@ async function initiateViaLiveKitSip(
   const sponsorName = params.context.sponsorName; // the agent opens as "<sponsor>'s AI friend"
 
   try {
-    const { RoomServiceClient, SipClient } = await import('livekit-server-sdk');
+    const { RoomServiceClient, SipClient, AgentDispatchClient } =
+      await import('livekit-server-sdk');
 
     const livekitUrl = process.env.LIVEKIT_URL!;
     const livekitApiKey = process.env.LIVEKIT_API_KEY!;
@@ -312,9 +313,7 @@ async function initiateViaLiveKitSip(
         openingLine,
       }),
     });
-
     // 2. Dispatch the family check-in agent to the room
-    const { AgentDispatchClient } = await import('livekit-server-sdk');
     const agentDispatch = new AgentDispatchClient(livekitUrl, livekitApiKey, livekitApiSecret);
     const agentName = process.env.AGENT_NAME || 'voice-agent';
 
@@ -340,7 +339,6 @@ async function initiateViaLiveKitSip(
 
     // 3. Initiate the SIP call to the family member's phone
     const sipClient = new SipClient(livekitUrl, livekitApiKey, livekitApiSecret);
-
     // Normalize phone number to E.164
     const cleanPhone = schedule.phoneNumber.replace(/\D/g, '');
     const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
@@ -350,6 +348,8 @@ async function initiateViaLiveKitSip(
       participantName: schedule.familyMemberName,
       playDialtone: false, // Agent should speak first
       hidePhoneNumber: false,
+      ringingTimeout: 45, // the trunk default gave up before voicemail could answer
+      maxCallDuration: schedule.maxDurationMinutes * 60,
     });
 
     log.info(
@@ -550,49 +550,24 @@ async function getSponsorName(userId: string): Promise<string> {
   }
 }
 
-async function sendUrgentNotificationToSponsor(
+/** Push, else a text to the sponsor's verified phone (outreach/urgent-alert). Never throws. */
+export async function sendUrgentNotificationToSponsor(
   sponsorUserId: string,
   message: string,
   callId: string
 ): Promise<void> {
   try {
     log.info({ sponsorUserId, callId }, '🚨 Sending urgent notification to sponsor');
-
-    // Try push notification first
-    const { getOutreachOrchestrator } = await import('../outreach/outreach-orchestrator.js');
-    const orchestrator = getOutreachOrchestrator();
-
-    const sent = await orchestrator.sendPushNotification(sponsorUserId, message, {
+    const { sendUrgentAlert } = await import('../outreach/urgent-alert.js');
+    await sendUrgentAlert(sponsorUserId, message, {
       trigger: 'family_checkin_urgent',
-      personaId: 'ferni',
-      metadata: { callId },
+      alertId: callId,
     });
-
-    if (sent) {
-      log.info({ sponsorUserId }, '✅ Urgent push notification sent');
-      return;
-    }
-
-    // Fallback to SMS if push failed
-    const db = getFirestoreDb();
-    if (!db) return;
-
-    const userDoc = await db.collection('bogle_users').doc(sponsorUserId).get();
-    const phoneNumber = userDoc.data()?.phoneNumber;
-
-    if (phoneNumber) {
-      const { sendSMS } = await import('../outreach/delivery/sms-delivery.js');
-      await sendSMS({
-        to: phoneNumber,
-        body: message,
-        userId: sponsorUserId,
-        personaId: 'ferni',
-        outreachId: `family_checkin_urgent_${callId}`,
-      });
-      log.info({ sponsorUserId }, '✅ Urgent SMS notification sent');
-    }
   } catch (error) {
-    log.error({ sponsorUserId, error: String(error) }, 'Failed to send urgent notification');
+    log.error(
+      { sponsorUserId, callId, error: String(error) },
+      'Failed to send urgent notification'
+    );
   }
 }
 

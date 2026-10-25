@@ -3,7 +3,6 @@
   "tags": "teamMember",
   "permalink": "/team/{{ id }}/",
   "eleventyComputed": {
-    "title": "{{ name }} - {{ role }}"
+    "title": "{% if name %}{{ name | safe }} - {{ role | safe }}{% else %}{{ title | safe }}{% endif %}"
   }
 }
-

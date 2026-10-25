@@ -23,10 +23,18 @@ vi.mock('../auth-middleware.js', async (importOriginal) => ({
   requireAuth,
 }));
 
+// The panel's channel switches are also saved to messagingPrefs (messaging-prefs-route.test.ts).
+const writePrefs = vi.fn(async () => undefined);
+vi.mock('../../services/messaging/prefs.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/messaging/prefs.js')>()),
+  writePrefs,
+}));
 vi.mock('../../services/identity/firebase-auth.js', () => ({ getFirebaseUser: async () => fb }));
 vi.mock('../../services/superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 const { handleOutreachRoutes } = await import('../outreach.routes.js');
+const DISCLOSURE = '2026-10-18';
+const how = { disclosureVersion: DISCLOSURE, source: 'web-settings' };
 
 let server: Server;
 let base = '';
@@ -70,7 +78,7 @@ describe('outreach consent routes', () => {
     fb.phoneNumber = undefined;
     for (const channel of ['sms', 'call']) {
       const res = await call('POST', '/preferences', {
-        preferences: { allowedChannels: [channel] },
+        preferences: { allowedChannels: [channel], disclosureVersion: DISCLOSURE },
       });
       expect(res.status).toBe(409);
       expect(((await res.json()) as { error: string }).error).toMatch(/verify your phone/i);
@@ -88,37 +96,90 @@ describe('outreach consent routes', () => {
     expect(res.status).toBe(200);
     expect(writeOutreachConsent).toHaveBeenCalledWith(
       'u1',
-      expect.objectContaining({ channels: ['sms'] })
+      expect.objectContaining({ channels: ['sms'] }),
+      expect.anything()
     );
   });
 
-  it('accepts texts for a user with a verified phone', async () => {
-    const res = await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } });
+  it('accepts texts for a user with a verified phone, passing the disclosure they saw', async () => {
+    const res = await call('POST', '/preferences', {
+      preferences: { allowedChannels: ['sms'], disclosureVersion: DISCLOSURE },
+    });
     expect(res.status).toBe(200);
     expect(writeOutreachConsent).toHaveBeenCalledWith(
       'u1',
-      expect.objectContaining({ channels: ['sms'] })
+      expect.objectContaining({ channels: ['sms'] }),
+      how
     );
+    expect(writePrefs).toHaveBeenCalledWith(
+      'u1',
+      { channels: { sms: true, email: false } },
+      'panel'
+    );
+  });
+
+  it('refuses turning texts on without the current disclosure version, and saves nothing', async () => {
+    for (const disclosureVersion of [undefined, '2025-01-01']) {
+      const res = await call('POST', '/preferences', {
+        preferences: { allowedChannels: ['sms'], disclosureVersion },
+      });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toMatch(/refresh the page/i);
+    }
+    expect(writeOutreachConsent).not.toHaveBeenCalled();
+    // Calls alone, and texts already on, don't need it.
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['call'] } })).status
+    ).toBe(200);
+    readOutreachConsent.mockResolvedValueOnce({ enabled: true, channels: ['sms'] });
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } })).status
+    ).toBe(200);
+  });
+
+  it('refuses turning texts on without the current disclosure version, and saves nothing', async () => {
+    for (const disclosureVersion of [undefined, '2025-01-01']) {
+      const res = await call('POST', '/preferences', {
+        preferences: { allowedChannels: ['sms'], disclosureVersion },
+      });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toMatch(/refresh the page/i);
+    }
+    expect(writeOutreachConsent).not.toHaveBeenCalled();
+    // Calls alone, and texts already on, don't need it.
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['call'] } })).status
+    ).toBe(200);
+    readOutreachConsent.mockResolvedValueOnce({ enabled: true, channels: ['sms'] });
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } })).status
+    ).toBe(200);
   });
 
   it('saves switching outreach off for the logged-in user', async () => {
     const res = await call('POST', '/preferences', {
       userId: 'someone-else',
-      preferences: { enabled: false, allowedChannels: ['sms', 'call'] },
+      preferences: {
+        enabled: false,
+        allowedChannels: ['sms', 'call'],
+        disclosureVersion: DISCLOSURE,
+      },
     });
     expect(res.status).toBe(200);
-    expect(writeOutreachConsent).toHaveBeenCalledWith('u1', {
-      enabled: false,
-      channels: ['sms', 'voice_call'],
-    });
+    expect(writeOutreachConsent).toHaveBeenCalledWith(
+      'u1',
+      { enabled: false, channels: ['sms', 'voice_call'] },
+      how
+    );
   });
 
   it('leaves channels alone when the request does not mention them', async () => {
     await call('POST', '/preferences', { preferences: { timezone: 'America/Denver' } });
-    expect(writeOutreachConsent).toHaveBeenCalledWith('u1', {
-      enabled: undefined,
-      channels: undefined,
-    });
+    expect(writeOutreachConsent).toHaveBeenCalledWith(
+      'u1',
+      { enabled: undefined, channels: undefined },
+      { disclosureVersion: undefined, source: 'web-settings' }
+    );
   });
 
   it('reports a failed save instead of claiming success', async () => {

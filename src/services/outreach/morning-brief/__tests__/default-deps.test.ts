@@ -61,3 +61,33 @@ describe('openTasks', () => {
     expect(openTasks({})).toEqual([]);
   });
 });
+
+describe('readDay invites', () => {
+  it("drops declined invites and marks others' unaccepted ones as invites", async () => {
+    const now = new Date('2026-10-19T12:05:00Z');
+    getEventsForDay.mockImplementation(async (_u: string, d: Date) =>
+      d.toISOString().slice(0, 10) === '2026-10-19'
+        ? [
+            event('mine', '2026-10-19T14:00:00Z', { ownerResponse: 'organizer' }),
+            event('accepted', '2026-10-19T15:00:00Z', { ownerResponse: 'accepted' }),
+            event('pending', '2026-10-19T16:00:00Z', { ownerResponse: 'needsAction' }),
+            event('maybe', '2026-10-19T17:00:00Z', { ownerResponse: 'tentative' }),
+            event('declined', '2026-10-19T18:00:00Z', { ownerResponse: 'declined' }),
+            event('ferni-own', '2026-10-19T19:00:00Z', { ownerResponse: 'organizer' }),
+            event('unknown', '2026-10-19T20:00:00Z'),
+          ]
+        : []
+    );
+    const { readDay } = await import('../default-deps.js');
+    const day = await readDay('uid-seth', {}, 'America/New_York', now);
+    expect(day.events.map((e) => [e.title, e.invite])).toEqual([
+      ['mine', false],
+      ['accepted', false],
+      ['pending', true],
+      ['maybe', true],
+      ['ferni-own', false],
+      // No organizer data at all: shown by time only (fail closed).
+      ['unknown', true],
+    ]);
+  });
+});

@@ -120,7 +120,7 @@
   gap: 8px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(44, 37, 32, 0.1);
+  border-top: 1px solid var(--color-border-medium);
 }
 
 .persona-voice-input input {
@@ -129,7 +129,7 @@
   border: 1px solid rgba(44, 37, 32, 0.15);
   border-radius: var(--radius-xl);
   font-size: var(--text-sm);
-  background: white;
+  background: var(--color-surface-raised);
   transition: border-color 0.2s;
 }
 

@@ -140,9 +140,9 @@ This plan defines **what “better” means** for each competitor, **concrete im
 
 ## 6. References
 
-- [HIGGS-BEST-IN-CLASS-PLAN.md](./HIGGS-BEST-IN-CLASS-PLAN.md) — Latency, quality, performance improvements; what’s done and what’s left.
-- [CHIPCHAT-VS-HIGGS.md](./CHIPCHAT-VS-HIGGS.md) — What ChipChat offers vs Higgs; where each is stronger.
+- HIGGS-BEST-IN-CLASS-PLAN.md (archived: `git show docs-archive-2026-10-18:docs/plans/HIGGS-BEST-IN-CLASS-PLAN.md`) — Latency, quality, performance improvements; what’s done and what’s left.
+- CHIPCHAT-VS-HIGGS.md (archived: `git show docs-archive-2026-10-18:docs/plans/CHIPCHAT-VS-HIGGS.md`) — What ChipChat offers vs Higgs; where each is stronger.
 - [KYUTAI-DSM-BETTER-THAN-HUMAN.md](./KYUTAI-DSM-BETTER-THAN-HUMAN.md) — BTH latency targets (STT, TTS, E2E).
-- [BETTER-THAN-NEMO-AUDIT.md](./BETTER-THAN-NEMO-AUDIT.md) — Metrics table, benchmark script, regression CI.
-- [HIGGS-RUST-REALTIME-GAPS.md](./HIGGS-RUST-REALTIME-GAPS.md) — Full stack in Rust (generate_reply, tools, context).
-- [HIGGS-INTEGRATION-STATUS.md](./HIGGS-INTEGRATION-STATUS.md) — What’s wired (STT, TTS, biomarkers, generate_reply).
+- BETTER-THAN-NEMO-AUDIT.md (archived: `git show docs-archive-2026-10-18:docs/plans/BETTER-THAN-NEMO-AUDIT.md`) — Metrics table, benchmark script, regression CI.
+- HIGGS-RUST-REALTIME-GAPS.md (archived: `git show docs-archive-2026-10-18:docs/plans/HIGGS-RUST-REALTIME-GAPS.md`) — Full stack in Rust (generate_reply, tools, context).
+- HIGGS-INTEGRATION-STATUS.md (archived: `git show docs-archive-2026-10-18:docs/plans/HIGGS-INTEGRATION-STATUS.md`) — What’s wired (STT, TTS, biomarkers, generate_reply).

@@ -97,8 +97,8 @@ describe.skipIf(!emulator)('Our Story milestones, call to panel (Firestore emula
     expect(Date.now() - first).toBeGreaterThanOrEqual(8 * DAY - 60_000);
   });
 
-  // Prod 2026-10-18: the founder's arc was copied from his device id, field userId and all.
-  // Saves went to bogle_users/{that id}, so 42 calls in a week never moved the panel's doc.
+  // A saved arc whose userId field held a device id: saves went to bogle_users/{that id},
+  // so no call ever moved the doc the panel reads.
   it('a call updates the arc the panel reads even when the doc names an older user id', async () => {
     const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     const { clearAllArcCache, createDefaultRelationshipArcData } =

@@ -14,14 +14,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { getStore } from '../memory/store-factory.js';
-import {
-  getTimingProfile,
-  updateTimingPreferences,
-} from '../services/outreach/timing-intelligence.js';
+import { readPrefs, PrefsError } from '../services/messaging/prefs.js';
+import { updateTimingPreferences } from '../services/outreach/timing-intelligence.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { isValidTimeZone } from '../utils/time-zone.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import * as contact from './user-contact.js';
+import { panelView, savePanelQuietHours } from './messaging-prefs-route.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import type { UserProfile } from '../types/user-profile.js';
 
@@ -615,11 +614,7 @@ export async function handleUserRoutes(
     const userId = authenticatedUserId;
 
     try {
-      const updates: Partial<{
-        timezone: string;
-        quietHoursStart: string;
-        quietHoursEnd: string;
-      }> = {};
+      const updates: UserPreferencesUpdate = {};
 
       // Validate and apply timezone
       if (body?.timezone) {
@@ -653,8 +648,9 @@ export async function handleUserRoutes(
         updates.quietHoursEnd = body.quietHoursEnd;
       }
 
-      // Update timing preferences
+      // To messagingPrefs: senders read it with QUIET_HOURS_FROM_PREFS on (quiet-hours.ts).
       if (Object.keys(updates).length > 0) {
+        await savePanelQuietHours(userId, updates);
         updateTimingPreferences(userId, updates);
       }
 
@@ -669,20 +665,12 @@ export async function handleUserRoutes(
         await store.saveProfile(profile);
       }
 
-      const timingProfile = getTimingProfile(userId);
-
       log.info({ userId, updates }, '⚙️ User preferences updated');
-      sendJson(res, 200, {
-        success: true,
-        preferences: {
-          timezone: timingProfile.preferences.timezone,
-          quietHoursStart: timingProfile.preferences.quietHoursStart,
-          quietHoursEnd: timingProfile.preferences.quietHoursEnd,
-        },
-      });
+      sendJson(res, 200, { success: true, preferences: panelView(await readPrefs(userId)) });
     } catch (error) {
       log.error({ error, userId }, 'Failed to update preferences');
-      sendJson(res, 500, { success: false, error: 'Failed to update preferences' });
+      const status = error instanceof PrefsError ? 400 : 500;
+      sendJson(res, status, { success: false, error: 'Failed to update preferences' });
     }
     return true;
   }
@@ -695,16 +683,7 @@ export async function handleUserRoutes(
     const userId = authenticatedUserId;
 
     try {
-      const timingProfile = getTimingProfile(userId);
-
-      sendJson(res, 200, {
-        success: true,
-        preferences: {
-          timezone: timingProfile.preferences.timezone,
-          quietHoursStart: timingProfile.preferences.quietHoursStart,
-          quietHoursEnd: timingProfile.preferences.quietHoursEnd,
-        },
-      });
+      sendJson(res, 200, { success: true, preferences: panelView(await readPrefs(userId)) });
     } catch (error) {
       log.error({ error, userId }, 'Failed to get preferences');
       sendJson(res, 500, { success: false, error: 'Failed to get preferences' });

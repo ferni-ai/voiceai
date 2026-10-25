@@ -1,12 +1,15 @@
 /**
- * Which collection-group queries in src need a composite index, and does
+ * Which Firestore queries in src need a composite index, and does
  * firestore.indexes.json declare it?
  *
  * Prod went weeks without the deferred_calls (status, scheduledFor) index: the
  * deferred-call job threw FAILED_PRECONDITION every minute and no check could
  * have noticed. This reads the source with the TypeScript parser and finds:
  *
- * - `x.collectionGroup('name').where(...).orderBy(...)` chains, and
+ * - `x.collectionGroup('name').where(...).orderBy(...)` chains (COLLECTION_GROUP
+ *   scope),
+ * - `x.collection('name').where(...).orderBy(...)` chains, including
+ *   `db.collection('a').doc(id).collection('b')...` (COLLECTION scope), and
  * - `claimDueItems(db, { collection, dueField })` calls, whose shared query is
  *   (status == 'pending', dueField <= now, orderBy dueField).
  *
@@ -18,8 +21,9 @@
  * (scripts/firestore/__tests__/index-coverage.test.ts). `diffIndexes` below is
  * the declared-vs-prod comparison behind scripts/firestore/check-indexes.ts.
  *
- * Out of scope: plain `collection()` queries, and the single-field
- * collection-group indexes an equality-only query needs (fieldOverrides).
+ * Out of scope: queries assembled across statements (`let q = ...; q = q.where()`),
+ * a collection named by a parameter (unresolved, see the coverage test), and the
+ * single-field indexes an equality-only query needs (fieldOverrides).
  */
 import ts from 'typescript';
 
@@ -50,11 +54,14 @@ export interface IndexNeed {
   equality: Array<string | null>;
   /** Ordered tail of the index: the range field first, then the orderBy fields. */
   ordered: Array<{ field: string | null; order: Direction }>;
-  via: 'collectionGroup' | 'claimDueItems';
+  via: 'collectionGroup' | 'claimDueItems' | 'collection';
+  /** Which index scope serves it: a collection query needs a COLLECTION index. */
+  scope: 'COLLECTION' | 'COLLECTION_GROUP';
 }
 
 const EQUALITY_OPS = new Set(['==', 'in', 'array-contains', 'array-contains-any']);
 const RANGE_OPS = new Set(['<', '<=', '>', '>=', '!=', 'not-in']);
+const PATH_METHODS = new Set(['doc', 'collection', 'collectionGroup']);
 
 /** `const NAME = 'literal'` declarations anywhere in the file. */
 function stringConsts(sf: ts.SourceFile): Map<string, string> {
@@ -107,12 +114,16 @@ function needFromChain(
   line: number,
   collection: string | null,
   chain: ChainCall[],
-  consts: Map<string, string>
+  consts: Map<string, string>,
+  via: 'collectionGroup' | 'collection' = 'collectionGroup'
 ): IndexNeed | null {
+  // `.doc()` / `.collection()` start a new path; what follows is another query's.
+  const end = chain.findIndex((c) => PATH_METHODS.has(c.method));
+  const calls = end >= 0 ? chain.slice(0, end) : chain;
   const equality: Array<string | null> = [];
   const ranges: Array<string | null> = [];
   const orderBys: Array<{ field: string | null; order: Direction }> = [];
-  for (const call of chain) {
+  for (const call of calls) {
     if (call.method === 'where') {
       const field = resolve(call.args[0], consts);
       const op = resolve(call.args[1], consts);
@@ -133,7 +144,8 @@ function needFromChain(
   for (const r of ranges) {
     if (!ordered.some((o) => o.field === r)) ordered.unshift({ field: r, order: 'ASCENDING' });
   }
-  return { file, line, collection, equality, ordered, via: 'collectionGroup' };
+  const scope = via === 'collection' ? 'COLLECTION' : 'COLLECTION_GROUP';
+  return { file, line, collection, equality, ordered, via, scope };
 }
 
 function objectProp(obj: ts.ObjectLiteralExpression, name: string): ts.Expression | undefined {
@@ -154,7 +166,7 @@ function calleeName(call: ts.CallExpression): string | null {
 
 /** Every composite-index requirement in one source file. */
 export function indexNeedsInSource(file: string, text: string): IndexNeed[] {
-  if (!text.includes('collectionGroup(') && !text.includes('claimDueItems(')) return [];
+  if (!text.includes('collection') && !text.includes('claimDueItems(')) return [];
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const consts = stringConsts(sf);
   const needs: IndexNeed[] = [];
@@ -162,13 +174,17 @@ export function indexNeedsInSource(file: string, text: string): IndexNeed[] {
     if (ts.isCallExpression(node)) {
       const name = calleeName(node);
       const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-      if (name === 'collectionGroup' && ts.isPropertyAccessExpression(node.expression)) {
+      if (
+        (name === 'collectionGroup' || name === 'collection') &&
+        ts.isPropertyAccessExpression(node.expression)
+      ) {
         const need = needFromChain(
           file,
           line,
           resolve(node.arguments[0], consts),
           chainAfter(node),
-          consts
+          consts,
+          name
         );
         if (need) needs.push(need);
       } else if (name === 'claimDueItems' && node.arguments.length >= 2) {
@@ -181,6 +197,7 @@ export function indexNeedsInSource(file: string, text: string): IndexNeed[] {
             equality: ['status'],
             ordered: [{ field: resolve(objectProp(opts, 'dueField'), consts), order: 'ASCENDING' }],
             via: 'claimDueItems',
+            scope: 'COLLECTION_GROUP',
           });
         }
       }
@@ -197,11 +214,11 @@ export const isResolved = (n: IndexNeed): boolean =>
   n.ordered.every((o) => o.field !== null);
 
 /**
- * Does a declared COLLECTION_GROUP index serve the need? Equality fields form
+ * Does a declared index of the need's scope serve it? Equality fields form
  * the prefix in any order; the ordered tail must match field and direction.
  */
 export function serves(index: DeclaredIndex, need: IndexNeed): boolean {
-  if (index.queryScope !== 'COLLECTION_GROUP' || index.collectionGroup !== need.collection) {
+  if (index.queryScope !== need.scope || index.collectionGroup !== need.collection) {
     return false;
   }
   const fields = index.fields.filter((f) => f.fieldPath !== '__name__');
@@ -222,7 +239,7 @@ export function serves(index: DeclaredIndex, need: IndexNeed): boolean {
 export function indexFor(need: IndexNeed): DeclaredIndex {
   return {
     collectionGroup: need.collection ?? '?',
-    queryScope: 'COLLECTION_GROUP',
+    queryScope: need.scope,
     fields: [
       ...[...new Set(need.equality)].map((f) => ({
         fieldPath: f ?? '?',
@@ -241,7 +258,7 @@ export const describeNeed = (n: IndexNeed): string =>
 /** A listed index: firestore.indexes.json entry, or one row of `gcloud firestore indexes composite list`. */
 export interface ListedIndex {
   collectionGroup?: string;
-  /** gcloud: projects/<p>/databases/(default)/collectionGroups/<cg>/indexes/<id> */
+  /** gcloud: projects/<p>/databases/<db>/collectionGroups/<cg>/indexes/<id>, db '(default)' or 'ferni-dev' */
   name?: string;
   queryScope: string;
   fields: Array<IndexField & { vectorConfig?: unknown }>;
@@ -250,6 +267,10 @@ export interface ListedIndex {
 
 const groupOf = (i: ListedIndex): string =>
   i.collectionGroup ?? /collectionGroups\/([^/]+)\//.exec(i.name ?? '')?.[1] ?? '?';
+
+/** The database a gcloud row lives in; undefined for a firestore.indexes.json entry. */
+export const databaseOf = (i: ListedIndex): string | undefined =>
+  /\/databases\/([^/]+)\//.exec(i.name ?? '')?.[1];
 
 /** Identity of an index; Firestore appends `__name__`, so it is left out. */
 export function indexKey(i: ListedIndex): string {

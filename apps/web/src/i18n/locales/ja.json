@@ -777,7 +777,7 @@
     "phoneLabel": "テキストメッセージまたは通話",
     "emailLabel": "アップデートを受け取る",
     "nameLabel": "何とお呼びしたらいいですか？",
-    "privacyNote": "この情報はチェックインにのみ使用します。スパムを送信したり、他者と共有したりすることは決してありません。",
+    "privacyNote": "この情報はチェックインにのみ使用します。スパムを送ったり、販売したりすることは決してありません。",
     "quietHours": "おやすみ時間",
     "dontCall": "連絡しない",
     "until": "まで",
@@ -1284,7 +1284,7 @@
       "householdMembers": "住まいと家族",
       "familyCallers": "家族の通話アクセス",
       "contactInfo": "連絡先情報",
-      "exportData": "あなたの物語を持ち出す",
+      "exportData": "プライバシーとあなたのデータ",
       "shareFerni": "友達を招待する",
       "supportFerni": "Ferniを応援する",
       "takeTour": "案内してもらう",
@@ -1531,7 +1531,7 @@
         "title": "話しかけるだけ"
       },
       "welcome": {
-        "description": "あなた専属のAIライフコーチのチームです。それぞれのコーチが独自の知恵で、あなたの道のりをサポートします。",
+        "description": "あなた専属のガイドのチームです。それぞれが独自の視点を持っています。",
         "title": "Ferniへようこそ"
       }
     },
@@ -2408,7 +2408,7 @@
     "intro": "ウェアラブルデバイスを連携して、あなたの健康状態やエネルギーレベルをFerniに共有しましょう。",
     "loading": "読み込み中...",
     "privacy": {
-      "note": "健康データはプライベートに保たれます。コーチングセッションには、統合された気づきのみが共有されます。"
+      "note": "Ferniはあなたと一緒にパターンを見つけるために健康データを保存します。データを販売することは決してなく、アカウントを削除すると消去されます。"
     },
     "providers": {
       "appleHealth": {
@@ -2883,6 +2883,9 @@
     "openConversations": "進行中のお話",
     "onYourMind": "気になっていること",
     "thingsTracking": "チームがあなたのために記録していること",
+    "trackedDone": "完了",
+    "trackedDismiss": "閉じる",
+    "trackedUpdateFailed": "更新できませんでした。もう一度お試しください。",
     "quickConnections": "クイック接続",
     "startWithAnyone": "チームのメンバーとお話を始めましょう",
     "allCaughtUp": "すべて確認しました！",
@@ -2948,7 +2951,7 @@
     "orUseEmail": "またはメールアドレスを使用",
     "emailLabel": "メールアドレス",
     "passwordLabel": "パスワード",
-    "privacyNote": "あなたのデータは常にプライベートに保たれます。",
+    "privacyNote": "あなたのデータを販売することは決してありません。アカウントを削除すると消去されます。",
     "loading": "少々お待ちください...",
     "welcomeBack": "おかえりなさい！すべて覚えていますよ。",
     "somethingWentWrong": "問題が発生しました",
@@ -2971,7 +2974,7 @@
     "waitlistMessage": "すべての方に最高の体験をお届けするため、Ferniは段階的に公開しています。ご案内が可能になり次第、メールでお知らせいたします。",
     "waitlistEmail": "{email}宛てにお知らせします",
     "tryDifferentAccount": "別のアカウントを試す",
-    "checkingAccess": "アクセス権を確認中...",
+    "checkingAccess": "準備しています…",
     "checkingLabel": "少々お待ちください...",
     "signInError": "サインインがキャンセルされたか、失敗しました。もう一度お試しください。",
     "verifyEmailTitle": "メールアドレスを確認しましょう",
@@ -3429,7 +3432,7 @@
     "weeklyDigest": "週間ダイジェスト",
     "weeklyDigestDesc": "日曜日の夜に、翌週の予定をプレビューします",
     "viewSyncConflicts": "同期の競合を表示",
-    "integrationsPrivacy": "外部連携により、既存のイベントがFerniに同期されます。データはプライベートに保たれます。",
+    "integrationsPrivacy": "外部連携により、既存のイベントがFerniに同期されます。データを販売することは決してありません。",
     "tryAgain": "もう一度試す",
     "syncing": "同期中…",
     "connectAppleCalendar": "Apple Calendarを接続",
@@ -3505,8 +3508,6 @@
     "accessLevelFullDesc": "すべてのチームメンバーとお話できます",
     "accessLevelLimited": "制限あり",
     "accessLevelLimitedDesc": "Ferni のみ",
-    "accessLevelSupervised": "見守り",
-    "accessLevelSupervisedDesc": "お話があった際に通知を受け取ります",
     "eyebrow": "ファミリー",
     "addMember": "ファミリーメンバーを追加",
     "emptyText": "電話で Ferni にかけるファミリーメンバーを追加しましょう。自動的に認識され、それぞれ Ferni とのお話を楽しめるようになります。",
@@ -3576,7 +3577,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "あなただけのAIパートナー",
+        "role": "あなただけのパートナー",
         "description": "毎日のチェックインから深いお話まで、あなたが必要なときはいつでもここにいます。",
         "unlockHint": "いつでもあなたのそばに",
         "unlockedMessage": "私たち、たくさんのことを一緒に乗り越えてきましたね。",
@@ -3608,7 +3609,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "コミュニケーション＆人間関係",
+        "role": "コミュニケーションコーチ＆チーフ・オブ・スタッフ",
         "description": "お話をスムーズに進め、人間関係を深め、自分をもっと上手に表現できるようお手伝いします。",
         "unlockHint": "人間関係についてのお話をFerniにシェアする",
         "unlockedMessage": "一緒に掘り下げる価値のある、いくつかのパターンに気づきました。",
@@ -3647,11 +3648,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — あなたのAIライフパートナー",
+      "title": "Ferniに会ってみて",
       "message": "Ferniを使い始めてから、毎日の過ごし方が本当に変わったよ。一緒に始めてみない？ {url}",
       "shortMessage": "Ferniで一緒に始めよう！ {url}",
-      "emailSubject": "Ferniを使ってみて",
-      "emailBody": "やあ！Ferniっていうアプリを使っているんだけど、本当に人間みたいに温かいAIパートナーなんだ。君もきっと気に入ると思うよ。 {url}"
+      "emailSubject": "Ferniを使ってみて"
     },
     "modal": {
       "title": "成長をシェアしよう",
@@ -3967,7 +3967,6 @@
       "ceo": "代表",
       "ferniRole": "CEO兼ライフコーチ",
       "ferniDesc": "すべての中心にある、温かく賢い存在。Ferniは完璧な思い出、偏見のない心、そして常に寄り添う姿勢でチームをまとめます。",
-      "coFounders": "共同創業者",
       "coreTeam": "コアチーム",
       "footer": "私たちは共に、本当に耳を傾けてくれるチームを持つことの意味を再定義しています。",
       "roles": {
@@ -4564,7 +4563,7 @@
     "title": "エージェントページの作成",
     "nameLabel": "エージェント名",
     "namePlaceholder": "例：Nate Holloway",
-    "nameHint": "AIエージェントのフルネーム",
+    "nameHint": "エージェントのフルネーム",
     "initialsLabel": "イニシャル",
     "initialsPlaceholder": "例：JD",
     "initialsHint": "アバターに表示されます（2〜3文字）",
@@ -4768,7 +4767,10 @@
     "funGames": "楽しいゲーム",
     "reflectionGames": "振り返りゲーム",
     "tipLabel": "ヒント：",
-    "tipContent": "途中でやめたいときは、いつでも「ストップ」や「ゲームを終了して」と言ってね。進捗はいつでも保存されているよ！"
+    "tipContent": "途中でやめたいときは、いつでも「ストップ」や「ゲームを終了して」と言ってね。進捗はいつでも保存されているよ！",
+    "connectFirst": "まずFerniと通話を始めてから、ゲームを選んでね。",
+    "starting": "{game}を始めています…",
+    "startFailed": "ゲームを始められませんでした。Ferniに頼んでみてね。"
   },
   "digitalTwinProfile": {
     "title": "デジタルツインを作ろう",
@@ -7285,8 +7287,7 @@
       "description": "あなたと一緒に成長する、あなただけの音声ジャーナル",
       "feature1": "日々の音声ジャーナルを記録",
       "feature2": "過去の自分とお話する",
-      "feature3": "これまでの成長を振り返る",
-      "feature4": "AIによる気づきの生成"
+      "feature3": "これまでの成長を振り返る"
     },
     "fictional": {
       "name": "フィクション",
@@ -9058,10 +9059,6 @@
     "chiefExecutive": "最高経営責任者",
     "ferni": "Ferni",
     "ferniRole": "CEO 兼 ライフコーチ",
-    "coFounders": "共同創業者",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "コアチーム",
     "tagline": "私たちは力を合わせて、「心から耳を傾けてくれるチーム」のあり方を新しく定義していきます。",
     "inTeam": "チームに参加中",
@@ -9344,7 +9341,8 @@
     "title": "あなたのデータ",
     "exportFormat": "エクスポート形式",
     "deleteAll": "すべてのデータを削除",
-    "footer": "あなたのデータはあなたのものです。私たちはあなたのプライバシーを尊重します。",
+    "footer": "次に話すときに覚えていられるように、私たちの会話やあなたが話してくれたことを保存しています。消したくなったら、アカウントを削除すればすべて消去されます。",
+    "privacyPolicyLink": "プライバシーポリシーを読む",
     "deleteAccount": "アカウントを削除する",
     "confirmDeleteAll": "本当にすべてのデータを削除しますか？この操作は取り消せません。",
     "confirmDeleteAccount": "Ferniのアカウントを削除しますか？これにより、Ferniがあなたについて知っているすべての情報が消去され、完全にサインアウトされます。この操作は取り消せません。",
@@ -9500,7 +9498,14 @@
     "close": "閉じる",
     "seeCost": "この通話の費用",
     "feedbackQuestion": "今回の会話はどうでしたか？",
-    "feedbackThanks": "ありがとう、参考になります。"
+    "feedbackThanks": "ありがとう、参考になります。",
+    "pushAskQuestion": "このことについて、Ferniから様子を聞いてもいい？",
+    "pushAskYes": "うん、お願い",
+    "pushAskNotNow": "今はいい",
+    "pushAskDone": "設定しました。Ferniからのメッセージがこの端末に届きます。",
+    "pushAskLater": "大丈夫です。あとで設定から変更できます。",
+    "pushAskHomeScreen": "ここでFerniからのメッセージを受け取るには、ホーム画面にFerniを追加してください：共有をタップし、「ホーム画面に追加」を選びます。",
+    "pushAskGotIt": "わかった"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
@@ -9792,7 +9797,7 @@
     },
     "marketplace": {
       "headline": "あなたにぴったりの相手を見つけましょう。",
-      "description": "Ferniのコアチームだけでなく、専門的なAIコーチたちが集まるお庭があなたを待っています。ADHDサポート、禁酒のパートナー、睡眠スペシャリスト、子育てガイドなど、あなたの特別な道のりを理解してくれる専門家たちです。",
+      "description": "Ferniのコアチームだけでなく、専門的なコーチたちが集まるお庭があなたを待っています。ADHDサポート、禁酒のパートナー、睡眠スペシャリスト、子育てガイドなど、あなたの特別な道のりを理解してくれる専門家たちです。",
       "superhuman1": "専門的なペルソナ — 人生の特定の課題に特化したコーチ",
       "superhuman2": "コミュニティの評価 — 実際の体験、リアルなレビュー",
       "superhuman3": "無料とプレミアム — あらゆる予算に合わせたサポート",
@@ -9800,7 +9805,7 @@
     },
     "developerPortal": {
       "headline": "大切なものを形にしましょう。",
-      "description": "Ferniのテクノロジーがオープンになります。あなた自身のAIコーチを構築し、専門的なペルソナを作成して、あなたが提供するものをまさに必要としている人々に届けましょう。Ferniを支えるプラットフォームが、あなたのものになります。",
+      "description": "Ferniのテクノロジーがオープンになります。あなた自身のコーチを構築し、専門的なペルソナを作成して、あなたが提供するものをまさに必要としている人々に届けましょう。Ferniを支えるプラットフォームが、あなたのものになります。",
       "superhuman1": "完全なAPIドキュメント — 開発に必要なすべてがここに",
       "superhuman2": "SDKとライブラリ — TypeScriptファーストの開発",
       "superhuman3": "ペルソナビルダー — コーチを作成するためのビジュアルツール",
@@ -9884,7 +9889,7 @@
       "title": "パーソナライズ",
       "message": "位置情報のおかげで、まるですぐそばにいるかのように、より親密であなたにぴったりなお話ができるようになります。"
     },
-    "note": "この情報は二人だけの秘密です。お話をより親密なものにするためだけに大切に使います。",
+    "note": "お話をより親密なものにするためだけに使います。販売することは決してありません。",
     "notNow": "また今度",
     "allow": "位置情報を許可する"
   },
@@ -10118,9 +10123,10 @@
     "title": "私が覚えている、ささやかなこと",
     "subtitle": "あなたが覚えておかなくてもいいように",
     "emptyTitle": "まだ何も設定されていません",
-    "emptySubtitle": "毎朝の挨拶や、ストレッチのリマインダーなど、何でもお手伝いしますよ。",
+    "emptySubtitle": "定期的にしたいことを教えてください。ここに保存しておきます。",
     "emptyButton": "アイデアを見る",
     "addNew": "新しく追加する",
+    "notRunningYet": "ここに保存しています。まだ自動では動きません。",
     "triggers": {
       "dailyAt": "毎日{time}に",
       "dailyUnset": "毎日決まった時間に",
@@ -10236,6 +10242,7 @@
       "one": "タネを{count}個獲得しました！"
     },
     "couldNotLoadMemories": "覚えていることを読み込めませんでした。もう一度試しますか？",
+    "credentialNotKept": "Ferniはコードやパスワードを保存しないので、これは削除しました。",
     "memoryCorrected": "わかりました。そのように覚えておきます。"
   },
   "trustSignals": {
@@ -10496,7 +10503,7 @@
   },
   "ferniAwakens": {
     "greeting": "こんにちは。",
-    "subtext": "私はFerni、あなたのAIライフコーチです。"
+    "subtext": "私はFerni、あなた専属のガイドです。"
   },
   "serviceHealth": {
     "names": {
@@ -10506,7 +10513,7 @@
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",
-      "aiContext": "AIコンテキスト",
+      "aiContext": "記憶とコンテキスト",
       "sleepHealth": "睡眠と健康のデータ",
       "other": "連携しているサービス"
     },
@@ -10663,9 +10670,6 @@
     "patronShort": "パトロン",
     "founderAria": "{tier}。私たちを信じてくれてありがとうございます！クリックして管理できます。"
   },
-  "splash": {
-    "tagline": "あなたのAIチームの準備が整いました"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "すべてのサポート",
@@ -10798,7 +10802,7 @@
   },
   "entrance": {
     "helper": "あなた専属のガイド",
-    "connectToTalk": "お話する",
+    "connectToTalk": "Ferniと話す",
     "endTalk": "終了",
     "connectingCancel": "接続中です。タップしてキャンセル",
     "connectingNow": "接続中…",
@@ -11126,5 +11130,21 @@
     "helper": "スマホのカメラで読み取るか、「Venmoを開く」をタップしてください。金額は変更できます。",
     "maybeLater": "また今度",
     "close": "閉じる"
+  },
+  "reportReply": {
+    "button": "報告",
+    "describe": "{name}の発言を報告",
+    "title": "返答を報告",
+    "whichReply": "どの返答ですか？",
+    "whatsWrong": "何が問題ですか？",
+    "reasonHarmful": "有害または危険",
+    "reasonWrong": "誤りまたは誤解を招く",
+    "reasonInappropriate": "不適切",
+    "reasonOther": "その他",
+    "note": "補足があれば入力してください（任意）",
+    "send": "送信",
+    "thanks": "ありがとうございます。担当者が確認します。",
+    "failed": "送信できませんでした。もう一度お試しください。",
+    "tooMany": "今日はすでに多くの報告が送信されています。明日もう一度お試しください。"
   }
 }

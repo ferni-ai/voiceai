@@ -14,6 +14,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 vi.mock('../../unified-delivery.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getChannelStatus: vi.fn(async () => ({
@@ -35,6 +40,17 @@ vi.mock('../../llm-content-generator.js', () => ({
     personaId: 'ferni',
     reason: 'daily',
   })),
+}));
+
+// The push service under in-app-push.ts (web push / APNs), stubbed at its boundary.
+const pushes: Array<{ userId: string; payload: Record<string, unknown> }> = [];
+vi.mock('../../../push-notifications.js', () => ({
+  getPushNotificationsService: () => ({
+    sendNotification: vi.fn(async (userId: string, payload: Record<string, unknown>) => {
+      pushes.push({ userId, payload });
+      return true;
+    }),
+  }),
 }));
 
 let modelReply: string | null = null;
@@ -68,7 +84,10 @@ const logOf = (uid: string) =>
     .map(([, d]) => d);
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
+  pushes.length = 0;
   modelReply = null;
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
@@ -79,13 +98,41 @@ beforeEach(() => {
   process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
   delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  delete process.env.OUTREACH_IN_APP_PUSH;
 });
 
 describe('daily outreach for allowlisted users', () => {
+  it('OUTREACH_IN_APP_PUSH on: the note in the app comes with one push saying it is there', async () => {
+    process.env.OUTREACH_IN_APP_PUSH = 'on';
+    seedUser(SETH);
+    expect(pushes).toHaveLength(0);
+    await runDailyOutreach();
+    const [[, note]] = notesOf(SETH);
+    expect(pushes).toEqual([
+      {
+        userId: SETH,
+        payload: expect.objectContaining({
+          title: 'Ferni',
+          body: note.text,
+          type: 'ferni_checkin',
+          data: { kind: 'momentum_check', messageId: note.id },
+        }),
+      },
+    ]);
+  });
+
+  it('OUTREACH_IN_APP_PUSH off (the default): the note is saved and no push goes out', async () => {
+    seedUser(SETH);
+    await runDailyOutreach();
+    expect(notesOf(SETH)).toHaveLength(1);
+    expect(pushes).toHaveLength(0);
+  });
+
   it('goes to the app (not email or a text), once a day, and is logged', async () => {
     seedUser(SETH);
     expect(logOf(SETH)).toHaveLength(0);
@@ -129,6 +176,24 @@ describe('daily outreach for allowlisted users', () => {
       expect.objectContaining({ status: 'skipped', reason: 'quiet hours' }),
     ]);
     expect(notesOf(SETH)).toHaveLength(0);
+  });
+
+  it('QUIET_HOURS_FROM_PREFS: inside the window saved in the menu it holds; off, as before', async () => {
+    // 11:00 in New York, inside a saved 10:00 to 12:00.
+    const saved = { quietStart: '10:00', quietEnd: '12:00', zone: 'America/New_York' };
+    seedUser(SETH, { messagingPrefs: saved });
+    process.env.QUIET_HOURS_FROM_PREFS = 'on';
+    try {
+      const result = await runDailyOutreach({ respectQuietHours: false });
+      expect(result.details).toEqual([
+        expect.objectContaining({ status: 'skipped', reason: 'quiet hours' }),
+      ]);
+      expect(notesOf(SETH)).toHaveLength(0);
+    } finally {
+      delete process.env.QUIET_HOURS_FROM_PREFS;
+    }
+    await runDailyOutreach({ respectQuietHours: false });
+    expect(notesOf(SETH)).toHaveLength(1);
   });
 
   it('counts toward the daily cap with the rest of their check-ins', async () => {

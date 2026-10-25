@@ -150,7 +150,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
       effectiveVoiceId = localizationResult.voiceId;
       isLocalizedVoice = localizationResult.isLocalized;
       process.stderr.write(
-        `[voice-agent-entry] 🌍 Voice localized: ${userAccent} (cached: ${localizationResult.cached})\n`
+        `[voice-agent-entry] 🌍 Voice localized: ${userAccent ? 'yes' : 'no'} (cached: ${localizationResult.cached})\n`
       );
     } catch (locErr) {
       process.stderr.write(
@@ -174,6 +174,13 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   process.stderr.write(
     `[voice-agent-entry] ⚡ Parallel module loads complete in ${Date.now() - parallelLoadStart}ms\n`
   );
+
+  // The gateway TTS speaks in this voice while the call is still this persona (spoken-voice.ts)
+  userData.sessionVoice = {
+    personaId: sessionPersona.id,
+    voiceId: effectiveVoiceId,
+    localized: isLocalizedVoice,
+  };
 
   // Create TTS
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -268,7 +275,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
       : undefined;
 
   process.stderr.write(
-    `[voice-agent-entry] 📍 Geo metadata received: city=${metadata.city || 'none'}, region=${metadata.regionCode || 'none'}, country=${metadata.countryCode || 'none'}\n`
+    `[voice-agent-entry] 📍 Geo metadata received: city=${metadata.city ? 'yes' : 'none'}, region=${metadata.regionCode ? 'yes' : 'none'}, country=${metadata.countryCode ? 'yes' : 'none'}\n`
   );
 
   userData.userLocation = userLocation;
@@ -444,7 +451,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
       const transcriptionEvent = event as { transcript?: string };
       process.stderr.write(
-        `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
+        `\n🎤 [GEMINI STT] Input transcribed: ${transcriptionEvent.transcript?.length ?? 0} chars\n`
       );
     });
   }

@@ -19,6 +19,11 @@ public class EmotionalSoundEngine: ObservableObject {
 
     // MARK: - State
 
+    /// AVAudioEngine setup and teardown for every instance run here, one at a
+    /// time. A deinit on one thread stopping an engine while another thread
+    /// built the next one deadlocked inside Core Audio (#2098).
+    private static let lifecycleQueue = DispatchQueue(label: "ai.ferni.emotional-sound-engine.lifecycle")
+
     private var audioEngine: AVAudioEngine?
     private var toneNode: AVAudioSourceNode?
     private var isEngineRunning = false
@@ -27,21 +32,31 @@ public class EmotionalSoundEngine: ObservableObject {
     @Published public var isEnabled: Bool = true
 
     /// Master volume (0-1)
-    @Published public var volume: Float = 0.15
+    @Published public var volume: Float = 0.15 {
+        didSet { tone.volume = volume }
+    }
 
     // MARK: - Tone Generation State
 
-    private var currentFrequency: Float = 0
-    private var targetFrequency: Float = 0
-    private var currentAmplitude: Float = 0
-    private var targetAmplitude: Float = 0
-    private var phase: Float = 0
+    /// What the render block reads. The block holds this, never the engine, so
+    /// the engine's last reference can't be dropped (and deinit run) on the
+    /// audio IO thread.
+    private final class ToneState {
+        var currentFrequency: Float = 0
+        var targetFrequency: Float = 0
+        var currentAmplitude: Float = 0
+        var targetAmplitude: Float = 0
+        var phase: Float = 0
+        var volume: Float = 0.15
+    }
+
+    private let tone = ToneState()
     private let sampleRate: Float = 44100
 
     // MARK: - Initialization
 
     public init() {
-        setupAudioEngine()
+        Self.lifecycleQueue.sync { setupAudioEngine() }
     }
 
     // MARK: - Engine Setup
@@ -54,25 +69,25 @@ public class EmotionalSoundEngine: ObservableObject {
         // Create tone generator node
         let format = AVAudioFormat(standardFormatWithSampleRate: Double(sampleRate), channels: 1)!
 
-        toneNode = AVAudioSourceNode { [weak self] _, _, frameCount, audioBufferList -> OSStatus in
-            guard let self = self else { return noErr }
-
+        let tone = self.tone
+        let sampleRate = self.sampleRate
+        toneNode = AVAudioSourceNode { _, _, frameCount, audioBufferList -> OSStatus in
             let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
             let buffer = ablPointer[0]
             let ptr = buffer.mData?.assumingMemoryBound(to: Float.self)
 
             for frame in 0..<Int(frameCount) {
                 // Smooth frequency/amplitude transitions
-                self.currentFrequency += (self.targetFrequency - self.currentFrequency) * 0.01
-                self.currentAmplitude += (self.targetAmplitude - self.currentAmplitude) * 0.01
+                tone.currentFrequency += (tone.targetFrequency - tone.currentFrequency) * 0.01
+                tone.currentAmplitude += (tone.targetAmplitude - tone.currentAmplitude) * 0.01
 
                 // Generate sine wave
-                let sample = sin(self.phase * 2 * .pi) * self.currentAmplitude * self.volume
+                let sample = sin(tone.phase * 2 * .pi) * tone.currentAmplitude * tone.volume
                 ptr?[frame] = sample
 
                 // Advance phase
-                self.phase += self.currentFrequency / self.sampleRate
-                if self.phase > 1 { self.phase -= 1 }
+                tone.phase += tone.currentFrequency / sampleRate
+                if tone.phase > 1 { tone.phase -= 1 }
             }
 
             return noErr
@@ -308,30 +323,37 @@ public class EmotionalSoundEngine: ObservableObject {
     // MARK: - Core Tone Generation
 
     private func playTone(startHz: Float, endHz: Float, duration: TimeInterval, amplitude: Float) {
-        targetFrequency = startHz
-        currentFrequency = startHz
-        targetAmplitude = amplitude * volume
+        tone.targetFrequency = startHz
+        tone.currentFrequency = startHz
+        tone.targetAmplitude = amplitude * volume
 
         // Fade out at end
         DispatchQueue.main.asyncAfter(deadline: .now() + duration * 0.7) { [weak self] in
-            self?.targetFrequency = endHz
+            self?.tone.targetFrequency = endHz
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
-            self?.targetAmplitude = 0
+            self?.tone.targetAmplitude = 0
         }
     }
 
     // MARK: - Lifecycle
 
     public func stop() {
-        targetAmplitude = 0
-        audioEngine?.stop()
+        tone.targetAmplitude = 0
+        let engine = audioEngine
+        Self.lifecycleQueue.sync { engine?.stop() }
         isEngineRunning = false
     }
 
     deinit {
-        stop()
+        // deinit runs on whichever thread drops the last reference, so it
+        // never stops the engine itself. The lifecycle queue does it, after
+        // any setup already in progress.
+        tone.targetAmplitude = 0
+        if let engine = audioEngine {
+            Self.lifecycleQueue.async { engine.stop() }
+        }
     }
 }
 

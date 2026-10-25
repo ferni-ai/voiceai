@@ -22,6 +22,7 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import { recordFallback, recordSuccess } from '../observability/firestore-monitor.js';
 import { fallbackCallSummary } from './call-summary-fallback.js';
+import { checkedPoints, checkedText } from '../../memory/recall/forget-key-points.js'; // #2767
 
 const log = getLogger().child({ module: 'realtime-memory' });
 
@@ -304,7 +305,7 @@ export async function getRecentConversations(
           ? (data.endedAt as { toDate?: () => Date })?.toDate?.() ||
             new Date(data.endedAt as string)
           : undefined,
-        turnCount: (data.turnCount as number) || 0,
+        turnCount: Number.isFinite(data.turnCount) ? (data.turnCount as number) : 0,
         summarized: (data.summarized as boolean) || false,
         summary: data.summary as string | undefined,
       };
@@ -406,10 +407,10 @@ export async function getUnsummarizedConversations(
 
     return snapshot.docs
       .map((doc) => ({
-        userId: (doc.ref.parent.parent as { id?: string } | null)?.id || 'unknown',
+        userId: (doc.ref.parent.parent as { id?: string } | null)?.id,
         conversationId: doc.id,
       }))
-      .filter((item) => item.userId !== 'unknown');
+      .filter((item): item is { userId: string; conversationId: string } => !!item.userId);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get unsummarized conversations');
     return [];
@@ -484,7 +485,6 @@ export async function summarizeConversationAsync(
     try {
       const { summarizeWithLLM } = await import('../../memory/index.js');
       const { createSummarizationLLMCaller } = await import('../llm-utils.js');
-
       const llmCaller = createSummarizationLLMCaller();
       const result = await summarizeWithLLM(
         conversationId,
@@ -492,14 +492,14 @@ export async function summarizeConversationAsync(
         llmCaller
       );
 
-      summary = (result.keyPoints ?? []).slice(0, 2).join('; ');
+      summary = (await checkedPoints(userId, result.keyPoints ?? [])).slice(0, 2).join('; ');
     } catch {
       // No LLM summary: the conversation keeps a fallback, the profile keeps its own
     }
 
     if (summary) await markSummarized(userId, conversationId, summary);
     else {
-      const fallback = buildQuickSummary(turns) || 'Brief conversation';
+      const fallback = await checkedText(userId, buildQuickSummary(turns)) || 'Brief conversation';
       await markSummarized(userId, conversationId, fallback, { profile: false });
     }
   } catch (error) {

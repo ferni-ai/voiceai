@@ -26,6 +26,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { errorFields } from '../../../utils/error-class.js';
 // NOTE: routeUserInput deprecated in favor of UTO - see module header
 import type { ToolMatch } from '../types.js';
 import { isToolExecutionResult } from '../types.js';
@@ -38,10 +39,7 @@ import {
 import { isSemanticRoutingEnabled as isRoutingEnabledFromConfig } from '../config.js';
 import { hasDomainMapping, executeDomainTool } from '../domain-bridge/index.js';
 // Better Than Human integration
-import {
-  routeVoiceInput,
-  type VoiceRouterContext,
-} from '../voice-integration.js';
+import { routeVoiceInput, type VoiceRouterContext } from '../voice-integration.js';
 import type { voice } from '@livekit/agents';
 // Safe fire-and-forget for non-critical async operations
 import { fireAndForget } from '../../../utils/safe-fire-and-forget.js';
@@ -235,7 +233,7 @@ export async function routeTranscript(
   }
 
   const startTime = performance.now();
-  log.info({ transcript: transcript.slice(0, 50) }, '🎯 Routing transcript');
+  log.info({ transcriptLength: transcript.length }, '🎯 Routing transcript');
 
   try {
     // Ensure router is ready
@@ -324,7 +322,7 @@ export async function routeTranscript(
 
           // Guide Gemini to speak the response
           log.info(
-            { toolId: topMatch.toolId, response: execResult.naturalResponse.slice(0, 50) },
+            { toolId: topMatch.toolId, responseLength: execResult.naturalResponse.length },
             '🎯 Guiding Gemini with tool result'
           );
 
@@ -353,7 +351,7 @@ export async function routeTranscript(
               session.generateReply({ instructions, allowInterruptions: true });
             } catch (genErr) {
               log.warn(
-                { error: String(genErr), toolId: topMatch.toolId },
+                { ...errorFields(genErr), toolId: topMatch.toolId },
                 '⚠️ generateReply failed for tool result (minimal session, non-critical)'
               );
             }
@@ -371,7 +369,7 @@ export async function routeTranscript(
 
         // Tool execution failed - fall through to Gemini
         log.warn(
-          { toolId: topMatch.toolId, error: execResult.error },
+          { toolId: topMatch.toolId, errorLength: execResult.error?.length },
           'Tool execution failed, letting Gemini handle'
         );
         recordRoutingError(
@@ -390,7 +388,7 @@ export async function routeTranscript(
         };
       } catch (execError) {
         const totalLatencyMs = Math.round(performance.now() - startTime);
-        log.warn({ error: String(execError) }, 'Tool execution threw, letting Gemini handle');
+        log.warn(errorFields(execError), 'Tool execution threw, letting Gemini handle');
         recordRoutingError(userId, sessionId, transcript, String(execError), totalLatencyMs);
 
         return {
@@ -426,7 +424,7 @@ export async function routeTranscript(
     };
   } catch (error) {
     const latencyMs = Math.round(performance.now() - startTime);
-    log.error({ error: String(error) }, '🚨 Semantic routing failed');
+    log.error(errorFields(error), '🚨 Semantic routing failed');
     recordRoutingError(userId, sessionId, transcript, String(error), latencyMs);
 
     return {
@@ -483,7 +481,7 @@ async function executeToolForTranscript(
       {
         semanticToolId: toolId,
         success: result.success,
-        responsePreview: result.naturalResponse?.slice(0, 100),
+        responseLength: result.naturalResponse?.length,
       },
       '🔗 Domain bridge execution complete'
     );

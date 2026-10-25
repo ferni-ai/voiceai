@@ -18,8 +18,15 @@ vi.mock('../../../utils/caller-time-zone.js', () => ({ userTimeZone: () => h.zon
 vi.mock('../../identity/firebase-auth.js', () => ({ getFirebaseUser: async () => h.user }));
 vi.mock('../conversational-calls.js', () => ({ scheduleProactiveCall: vi.fn() }));
 vi.mock('../user-reach.js', () => ({ userReach: async () => ({ phone: '+18015550100' }) }));
+// The menu's quiet hours (QUIET_HOURS_FROM_PREFS); the reader is tested in quiet-hours-from-prefs.
+const savedQuiet = vi.hoisted(() => vi.fn(async (_userId: string) => false));
+vi.mock('../quiet-hours.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSavedQuietNow: savedQuiet,
+}));
 
-import { callUserAdapter } from '../call-user-adapter.js';
+import { callUserAdapter, installCallUserPort } from '../call-user-adapter.js';
+import { verifiedAddressFor } from '../../engagement/engagement-reach-port.js';
 
 const NOON_NY = new Date('2026-10-15T16:00:00.000Z');
 const ELEVEN_PM_NY = new Date('2026-10-16T03:00:00.000Z');
@@ -57,6 +64,20 @@ describe('textOwner', () => {
   });
 });
 
+describe('textOwner and the quiet hours saved in the menu', () => {
+  it('holds a text Ferni starts inside them; one they just asked for still goes', async () => {
+    vi.useFakeTimers({ now: NOON_NY });
+    savedQuiet.mockResolvedValue(true);
+    const unasked = await callUserAdapter.textOwner!('uid-1', 'hi', { askedNow: false });
+    expect(unasked).toEqual({ sent: false, reason: "it's quiet hours where you are" });
+    expect(savedQuiet).toHaveBeenCalledWith('uid-1');
+    expect(h.guarded).not.toHaveBeenCalled();
+    await callUserAdapter.textOwner!('uid-1', 'hi', { askedNow: true });
+    expect(h.guarded).toHaveBeenCalledTimes(1);
+    savedQuiet.mockResolvedValue(false);
+  });
+});
+
 describe('verifiedEmail', () => {
   it('only an address Firebase verified', async () => {
     h.user = { email: 'owner@example.com', emailVerified: true };
@@ -64,5 +85,14 @@ describe('verifiedEmail', () => {
     h.user = { email: 'owner@example.com', emailVerified: false };
     expect(await callUserAdapter.verifiedEmail!('uid-1')).toBeUndefined();
     expect(await callUserAdapter.verifiedEmail!('phone:+18015550100')).toBeUndefined();
+  });
+});
+
+describe('installCallUserPort', () => {
+  it('also installs the engagement port with the same verified-only reach', async () => {
+    h.user = { email: 'owner@example.com', emailVerified: true };
+    installCallUserPort();
+    expect(await verifiedAddressFor('uid-1', 'sms')).toBe('+18015550100');
+    expect(await verifiedAddressFor('uid-1', 'email')).toBe('owner@example.com');
   });
 });

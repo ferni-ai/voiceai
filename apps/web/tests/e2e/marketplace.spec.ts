@@ -251,8 +251,8 @@ test.describe('Agent Marketplace', () => {
 
 test.describe('Marketplace API', () => {
   test('should fetch registry', async ({ page }) => {
-    // In development, this uses local files
-    const response = await page.request.get('/voiceai-agents/registry.json');
+    // Dev and prod both read the server's filtered registry
+    const response = await page.request.get('/api/marketplace/registry');
     
     if (response.ok()) {
       const data = await response.json();

@@ -1,6 +1,5 @@
 /**
  * Automated Outreach Scheduler
- *
  * > "We show up. Every day. Without being asked."
  *
  * Cloud Scheduler integration for automated proactive outreach:
@@ -16,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { isSyntheticUserId } from '../../utils/synthetic-user.js';
+import { isPersonAccountId, nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -29,15 +28,17 @@ import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracki
 import { allowedDeliveryChannels } from './outreach-consent.js';
 import { verifiedPhoneOf } from './user-reach.js';
 import { isValidTimezone } from './call-hours-guard.js';
-import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
+import { hoursWindow, isQuietHoursUnified, isUserQuiet, quietWithSaved } from './quiet-hours.js';
 import {
   cadenceHold,
+  conversationCountOf,
   engagementLevel as engagementLevelOf,
   lastTalkedAt,
   unansweredCount,
 } from './outreach-cadence.js';
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
+import { pushInAppIfOn } from './in-app-push.js';
 import { skipReasonCounts, type SchedulerResult } from './scheduler-report.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -67,6 +68,7 @@ interface UserOutreachCandidate {
   phone?: string;
   name?: string;
   daysSinceSignup: number;
+  conversationCount?: number;
   lastConversationDate?: Date;
   lastOutreachDate?: Date;
   onboardingDay?: number;
@@ -82,6 +84,7 @@ interface UserOutreachCandidate {
     timezone?: string;
   };
   contactInfo?: { timezone?: string };
+  messagingPrefs?: unknown;
 }
 
 // ============================================================================
@@ -111,7 +114,6 @@ export async function runDailyOutreach(
   };
 
   try {
-    // Get candidates for outreach
     const candidates = await getOutreachCandidates(batchSize);
     log.info({ candidateCount: candidates.length }, 'Found outreach candidates');
 
@@ -205,12 +207,11 @@ async function processCandidate(
     return { sent: false, reason: 'No phone number' };
   }
 
-  // Build user context for personalization
   const userContext: UserContext = {
     userId,
     name,
     daysSinceSignup,
-    conversationCount: 0, // TODO: Get actual count
+    conversationCount: candidate.conversationCount, // unknown: the writer is told no number
     engagementLevel,
     preferredPersona: 'ferni',
   };
@@ -237,6 +238,7 @@ async function processCandidate(
   });
 
   await proactive?.done(outreachType, deliveryResult.success);
+  await pushInAppIfOn(userId, deliveryResult, { ...content, kind: outreachType });
 
   if (deliveryResult.success) {
     // Record that we sent outreach
@@ -278,6 +280,10 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
       if (page.empty) break;
       scanned += page.size;
       lastId = page.docs[page.docs.length - 1].id;
+      // anon:/onbehalf: docs pile up one per session: jump past the rest of
+      // that id range rather than spend the scan bound reading it.
+      const prefix = nonAccountPrefixOf(lastId);
+      if (prefix) lastId = `${prefix}\uf8ff`;
 
       for (const doc of page.docs) {
         if (candidates.length >= limit) break;
@@ -285,7 +291,8 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (isSyntheticUserId(userId)) continue; // test harness accounts
+        // Test harnesses and ids that name no account: skipped before the cap.
+        if (!isPersonAccountId(userId)) continue;
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());
@@ -293,7 +300,6 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         // Quieter users wait longer between messages; unanswered ones stop.
         if (cadenceHold(data, engagementLevel, now.getTime())) continue;
 
-        // Build candidate
         const createdAt = data.createdAt?.toDate?.() || data.createdAt || now;
         const daysSinceSignup = Math.floor(
           (now.getTime() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000)
@@ -305,6 +311,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           phone: verifiedPhoneOf(userId, data), // never the model-written profile phone
           name: data.displayName || data.name,
           daysSinceSignup,
+          conversationCount: conversationCountOf(data),
           lastConversationDate: talkedAt === undefined ? undefined : new Date(talkedAt),
           lastOutreachDate: lastOutreach,
           onboardingDay: data.onboardingDay,
@@ -312,6 +319,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           unanswered: unansweredCount(data),
           outreachPreferences: data.outreachPreferences,
           contactInfo: data.contactInfo,
+          messagingPrefs: data.messagingPrefs,
         });
       }
       if (page.size < CANDIDATE_PAGE_SIZE) break;
@@ -432,18 +440,16 @@ async function determineBestChannel(
 // ============================================================================
 
 /**
- * Is it quiet hours for this user now? QUIET_HOURS_UNIFIED=on uses the shared
- * predicate (quiet-hours.ts): 22:00-08:00 and both US coasts when the zone is
- * unknown. Off, this scheduler keeps its own window: 21:00-08:00 Eastern unless
- * the user set one. A zone that cannot be read fails closed.
+ * Quiet now? QUIET_HOURS_UNIFIED=on: the shared predicate (quiet-hours.ts). Off: 21:00-08:00
+ * Eastern unless the user set one; a bad zone fails closed. Either way, plus the menu's window.
  */
-function isInQuietHours(candidate: UserOutreachCandidate): boolean {
+export function isInQuietHours(candidate: UserOutreachCandidate): boolean {
   if (isQuietHoursUnified()) return isUserQuiet(candidate);
   const prefs = candidate.outreachPreferences;
   const zone = prefs?.timezone || 'America/New_York';
   if (!isValidTimezone(zone)) return true;
   const window = hoursWindow(prefs?.quietHoursStart ?? 21, prefs?.quietHoursEnd ?? 8);
-  return isQuietAt(new Date(), window, [zone]);
+  return quietWithSaved(new Date(), window, [zone], candidate);
 }
 
 // ============================================================================

@@ -3,11 +3,20 @@ import matter from 'gray-matter';
 import { describe, expect, it, vi } from 'vitest';
 import { REQUIRED_FIELDS } from '../brand-gate.js';
 import { draftPost, isoWeek, type DraftDeps } from '../draft.js';
+import { existingPosts } from '../existing-posts.js';
 import type { GhRunner } from '../grounding.js';
 import { POST_TYPES } from '../post-types.js';
 
 const root = path.resolve(__dirname, '../../..');
 const TODAY = '2026-10-19';
+/**
+ * The real folders, as of the day before the fixture PRs. A post published
+ * later (a whats-new dated after them) would move the whats-new window past
+ * them and turn every whats-new case into 'nothing-to-draft'.
+ */
+const POSTS_BEFORE = '2026-10-14';
+const postsBeforeFixtures = (folder: string) =>
+  existingPosts(folder).filter((p) => p.date <= POSTS_BEFORE);
 
 // Read the real blog folders as they stood before the fixture PRs merged, so a
 // newly published post can't move whats-new's lookback window past them.
@@ -73,7 +82,7 @@ const BODY = Array.from(
 const answer = (title: string, body = BODY) =>
   JSON.stringify({ title, excerpt: 'A short, honest note.', body });
 
-function deps(model: (prompt: string) => string, gh = fakeGh()) {
+function deps(model: (prompt: string) => string, gh = fakeGh(), taken: string[] = []) {
   const writes: Array<{ file: string; content: string }> = [];
   const generate = vi.fn(async (prompt: string) => model(prompt));
   const d: DraftDeps = {
@@ -83,6 +92,9 @@ function deps(model: (prompt: string) => string, gh = fakeGh()) {
     today: TODAY,
     model: { generate },
     writeFile: (file, content) => writes.push({ file, content }),
+    listPosts: postsBeforeFixtures,
+    // Never the real folder: a post published on TODAY would rename the draft (#2214).
+    fileExists: (file) => taken.includes(path.basename(file)),
   };
   return { d, writes, generate, gh };
 }
@@ -95,6 +107,7 @@ describe('each post type', () => {
 
       expect(result.status, JSON.stringify(result.issues)).toBe('written');
       expect(writes).toHaveLength(1);
+      expect(result.title).toBe(`A fresh ${type.id} title`);
       expect(path.dirname(writes[0].file)).toBe(path.join(root, type.folder));
       const { data, content } = matter(writes[0].content);
       for (const field of REQUIRED_FIELDS) expect(data[field], field).toBeTruthy();
@@ -111,6 +124,12 @@ describe('each post type', () => {
       }
     });
   }
+
+  it('takes the next free name when a post with that name exists', async () => {
+    const dev = deps(() => answer('Anything'), fakeGh(), [`whats-new-${TODAY}.md`]);
+    await draftPost({ type: 'whats-new' }, dev.d);
+    expect(path.basename(dev.writes[0].file)).toBe(`whats-new-${TODAY}-2.md`);
+  });
 
   it('names a whats-new post by date and a consumer post by its title', async () => {
     const dev = deps(() => answer('Anything'));

@@ -11,6 +11,7 @@ import { getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { toE164 } from '../services/outreach/checkin-replies.js';
 import {
   readOutreachConsent,
+  smsDisclosureRefusal,
   writeOutreachConsent,
 } from '../services/outreach/outreach-consent.js';
 import type { DeliveryChannel } from '../services/outreach/unified-delivery.js';
@@ -66,16 +67,35 @@ const isPhoneChannel = (c: DeliveryChannel): boolean => PHONE_CHANNELS.includes(
  * Why turning on these check-in channels is refused, or null. Only channels
  * being ADDED count, so opting out is never refused; adding texts or calls
  * needs a verified number. An unreadable consent counts as nothing on (fails closed).
+ * `known` is the stored channels when the caller already read them.
  */
 export async function phoneChannelRefusal(
   auth: AuthContext,
-  requested: DeliveryChannel[] | undefined
+  requested: DeliveryChannel[] | undefined,
+  known?: DeliveryChannel[]
 ): Promise<string | null> {
   if (!requested?.some(isPhoneChannel)) return null;
-  const current = (await readOutreachConsent(auth.userId)).channels;
+  const current = known ?? (await readOutreachConsent(auth.userId)).channels;
   const added = requested.filter((c) => isPhoneChannel(c) && !current.includes(c));
   if (added.length === 0 || (await verifiedPhoneFor(auth))) return null;
   return 'Verify your phone number before turning on texts or calls.';
+}
+
+/**
+ * Why this channel change is refused, or null: phoneChannelRefusal, then texts
+ * only with the disclosure version the screen showed (smsDisclosureRefusal).
+ */
+export async function channelConsentRefusal(
+  auth: AuthContext,
+  requested: DeliveryChannel[] | undefined,
+  disclosureVersion: unknown
+): Promise<string | null> {
+  if (!requested) return null;
+  const current = (await readOutreachConsent(auth.userId)).channels;
+  return (
+    (await phoneChannelRefusal(auth, requested, current)) ??
+    smsDisclosureRefusal(current, requested, disclosureVersion)
+  );
 }
 
 /**

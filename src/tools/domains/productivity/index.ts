@@ -8,7 +8,6 @@
  * TOOLS:
  *   Tasks: addTask, completeTask, getTasks, rescheduleTask, getTaskSummary
  *   Notes: saveNote, getRecentNotes, searchNotes, startJournal
- *   Routines: createRoutine, startRoutine, routineStepDone, listRoutines
  *   Shopping: addToShoppingList, getShoppingList, checkOffItem
  */
 
@@ -24,7 +23,6 @@ import {
   callJournalSaveNote,
   callJournalTool,
 } from './call-journal.js';
-import { createRoutineTools } from './routines.js';
 import { createShoppingTools } from '../home/shopping.js';
 import { createBillTools } from '../finance/bills.js';
 import { createPackageTools } from '../home/packages.js';
@@ -53,6 +51,17 @@ function wrapLegacyTool(
     domain: 'productivity',
     tags: ['productivity', ...(tags || [])],
     create: (_ctx: ToolContext) => legacyTool,
+  };
+}
+
+/**
+ * `def`, but `journalTool` while CALL_JOURNAL is on. Chosen when a call builds its tools,
+ * after its caller's flags are applied (cohort-flags.ts), never when this module loads.
+ */
+function whileCallJournal(def: ToolDefinition, journalTool: unknown): ToolDefinition {
+  return {
+    ...def,
+    create: (ctx) => (callJournalOn() ? journalTool : (def.create(ctx) as unknown)),
   };
 }
 
@@ -96,17 +105,20 @@ function getTaskToolDefinitions(): ToolDefinition[] {
 
 function getNotesToolDefinitions(): ToolDefinition[] {
   const legacyTools = createNotesTools();
-  const callJournal = callJournalOn(); // CALL_JOURNAL: journal writes go to the person's journal
+  // CALL_JOURNAL: journal writes go to the person's journal
 
   // Consolidated: saveNote handles notes/gratitude/mood, getNotes combines recent+search,
   // journal combines start/complete/history/prompts into one tool
   return [
-    wrapLegacyTool(
-      'saveNote',
-      'Save Note',
-      'Save a note, thought, gratitude, or mood entry. Specify type: "note", "gratitude", or "mood".',
-      callJournal ? callJournalSaveNote(legacyTools.saveNote) : legacyTools.saveNote,
-      ['notes', 'create', 'gratitude', 'mood']
+    whileCallJournal(
+      wrapLegacyTool(
+        'saveNote',
+        'Save Note',
+        'Save a note, thought, gratitude, or mood entry. Specify type: "note", "gratitude", or "mood".',
+        legacyTools.saveNote,
+        ['notes', 'create', 'gratitude', 'mood']
+      ),
+      callJournalSaveNote(legacyTools.saveNote)
     ),
     wrapLegacyTool(
       'getNotes',
@@ -115,14 +127,17 @@ function getNotesToolDefinitions(): ToolDefinition[] {
       legacyTools.getRecentNotes,
       ['notes', 'list', 'search']
     ),
-    wrapLegacyTool(
-      'journal',
-      'Journal',
-      'Start a journaling session, record entries, get prompts, or view journal history. Action: "start", "write", "prompt", or "history".',
-      callJournal ? callJournalTool(legacyTools.startJournal) : legacyTools.startJournal,
-      ['notes', 'journal']
+    whileCallJournal(
+      wrapLegacyTool(
+        'journal',
+        'Journal',
+        'Start a journaling session, record entries, get prompts, or view journal history. Action: "start", "write", "prompt", or "history".',
+        legacyTools.startJournal,
+        ['notes', 'journal']
+      ),
+      callJournalTool(legacyTools.startJournal)
     ),
-    ...(callJournal
+    ...(callJournalOn()
       ? [
           wrapLegacyTool(
             'addGratitude',
@@ -133,32 +148,6 @@ function getNotesToolDefinitions(): ToolDefinition[] {
           ),
         ]
       : []),
-  ];
-}
-
-// ============================================================================
-// ROUTINE TOOLS (Consolidated: 6 → 3 essential tools)
-// ============================================================================
-
-function getRoutineToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createRoutineTools();
-
-  // Consolidated: manageRoutine handles create/list/delete, runRoutine handles start/progress/step
-  return [
-    wrapLegacyTool(
-      'manageRoutine',
-      'Manage Routine',
-      'Create, list, or delete routines. For creating, specify steps and frequency (daily/weekly).',
-      legacyTools.createRoutine,
-      ['routines', 'create', 'list', 'delete']
-    ),
-    wrapLegacyTool(
-      'runRoutine',
-      'Run Routine',
-      'Start a routine, mark steps complete, skip steps, or check progress. Action: "start", "done", "skip", or "status".',
-      legacyTools.startRoutine,
-      ['routines', 'start', 'progress']
-    ),
   ];
 }
 
@@ -309,8 +298,9 @@ function getCommitmentToolDefinitions(): ToolDefinition[] {
 
 const productivityTools: ToolDefinition[] = [
   ...getTaskToolDefinitions(),
-  ...getNotesToolDefinitions(),
-  ...getRoutineToolDefinitions(),
+  // Not addGratitude: whether it exists is per caller, so call-journal-tools.ts adds it per call.
+  ...getNotesToolDefinitions().filter((d) => d.id !== 'addGratitude'),
+  // No routines here: the routines domain owns them, in the store What I Do For You reads
   ...getShoppingToolDefinitions(),
   ...getBillToolDefinitions(),
   ...getPackageToolDefinitions(),
@@ -332,7 +322,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 export {
   getTaskToolDefinitions,
   getNotesToolDefinitions,
-  getRoutineToolDefinitions,
   getShoppingToolDefinitions,
   getBillToolDefinitions,
   getPackageToolDefinitions,

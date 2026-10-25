@@ -24,6 +24,8 @@
  * call are reminded of it, so Ferni doesn't slide back to his version. The
  * durable side already exists: turn-learning.ts records corrections through
  * userCorrections.autoRecord, and memory extraction keeps the new fact.
+ * FRIEND_REPAIR=on (friend-repair.ts) keeps a "<this>, not <that>" correction
+ * across calls, retires the fact it corrects, and names the miss when owning it.
  *
  * REPAIR_MODE=on enables it (with the mishear checks).
  *
@@ -49,10 +51,10 @@ const ABOUT_SAYING =
 /** Disputing a claim: only at the start of a reply to something Ferni stated ("My boss yelled. That's not right." isn't). */
 const DISPUTES =
   /^\s*(?:no,?\s*)?(?:that'?s|that is) (?:wrong|not right|not true|not correct|incorrect)\b/i;
-const CONTRAST = /\bnot (?:the |a |an )?([a-z][a-z'-]{2,})\b/gi;
+const CONTRAST = /\bnot (?:(?:the|a|an|my|your|his|her|their|our) )?([a-z][a-z'-]{2,})\b/gi;
 /** Words after "not" that are hedges, not the thing being corrected ("not really", "not bad"). */
 const NOT_A_THING = new Set(
-  'really sure that this those these much quite exactly yet even bad good great too very anymore always ever now today tonight right true'.split(
+  'really sure that this those these much quite exactly yet even bad good great too very anymore always ever now today tonight right true fault'.split(
     ' '
   )
 );
@@ -84,6 +86,24 @@ const whenIn = (text: string): Set<string> =>
   new Set((text.toLowerCase().match(WHEN) ?? []).map(normal));
 
 /**
+ * "<this>, not <that>" where <that> is a word Ferni stated (not asked) in his
+ * last few lines: the "not ..." words, where they start, and the word; null when none.
+ */
+export function contrastWith(
+  said: string,
+  ferni: string[]
+): { text: string; index: number; word: string } | null {
+  const stated = new Set(statements(ferni.slice(-3)).match(/[a-z][a-z'-]*/g) ?? []);
+  for (const match of said.matchAll(CONTRAST)) {
+    const word = (match[1] ?? '').toLowerCase();
+    if (!NOT_A_THING.has(word) && stated.has(word)) {
+      return { text: match[0], index: match.index ?? 0, word };
+    }
+  }
+  return null;
+}
+
+/**
  * Whether the caller's words correct something Ferni said in `ferni` (his
  * recent lines, oldest first; the last one is what they answer).
  */
@@ -91,11 +111,7 @@ export function isCorrection(said: string, ferni: string[]): boolean {
   if (ABOUT_SAYING.test(said)) return true;
   const last = statements(ferni.slice(-1));
   if (last && DISPUTES.test(said)) return true;
-  const stated = new Set(statements(ferni.slice(-3)).match(/[a-z][a-z'-]*/g) ?? []);
-  for (const match of said.matchAll(CONTRAST)) {
-    const word = (match[1] ?? '').toLowerCase();
-    if (!NOT_A_THING.has(word) && stated.has(word)) return true;
-  }
+  if (contrastWith(said, ferni)) return true;
   // "No, it's two." after "five am": a different time or day than the one he gave.
   if (!STARTS_NO.test(said)) return false;
   const his = whenIn(last);
@@ -120,8 +136,26 @@ function remember(session: object, said: string): string[] {
 const clip = (text: string): string =>
   text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS - 3)}...` : text;
 
-export function correctionNote(said: string): string {
-  return `They just corrected you ("${clip(said)}"). Own it in one short line, the way a friend would ("Ah, my mistake."), then go on with what they said. Don't argue, explain why, or repeat your old version.`;
+/**
+ * With FRIEND_REPAIR=on the line names what he had wrong, light only if they are (friend-repair.ts).
+ * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): their words only, no quoted line to say.
+ */
+const OWN_IT = 'Own it in one short line, the way a friend would ("Ah, my mistake.")';
+const OWN_IT_FRIEND =
+  'Own it in one short line that names what you had wrong, light if they are ("Ha, I had your sister as the one in Denver, my mistake."), plain if not ("My mistake, your brother.")';
+const OWN_IT_PLAIN = 'Own it in one short line';
+const OWN_IT_FRIEND_PLAIN =
+  'Own it in one short line that names what you had wrong, light if they are, plain if not';
+
+export function correctionNote(said: string, friend = false, scriptFree = false): string {
+  const own = scriptFree
+    ? friend
+      ? OWN_IT_FRIEND_PLAIN
+      : OWN_IT_PLAIN
+    : friend
+      ? OWN_IT_FRIEND
+      : OWN_IT;
+  return `They just corrected you ("${clip(said)}"). ${own}, then go on with what they said. Don't argue, explain why, or repeat your old version.`;
 }
 
 export function settledNote(earlier: string[]): string {
@@ -158,7 +192,8 @@ function linesOf(chatCtx: llm.ChatContext): { said: string; ferni: string[] } {
 export function correctionNotesFor(
   chatCtx: llm.ChatContext,
   session: object,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  scriptFree = false
 ): string {
   if (!correctionRepairEnabled(env)) return '';
   const { said, ferni } = linesOf(chatCtx);
@@ -167,7 +202,11 @@ export function correctionNotesFor(
   // An earlier one is anything not this turn's words (or a partial of them).
   const earlier = carried.filter((c) => !said.startsWith(c)).reverse();
   if (correcting) log.info({ carried: carried.length }, 'CORRECTION_REPAIR');
-  return [correcting ? correctionNote(said) : '', earlier.length ? settledNote(earlier) : '']
+  const friend = env.FRIEND_REPAIR === 'on';
+  return [
+    correcting ? correctionNote(said, friend, scriptFree) : '',
+    earlier.length ? settledNote(earlier) : '',
+  ]
     .filter(Boolean)
     .join(' ');
 }

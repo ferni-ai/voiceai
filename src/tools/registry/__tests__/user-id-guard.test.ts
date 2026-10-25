@@ -168,19 +168,55 @@ describe('ToolRegistry userId guard', () => {
   });
 
   // (c) ---------------------------------------------------------------------
-  it.each(['shared', 'anonymous', 'default', ''])(
-    'leaves the model-supplied userId unchanged for placeholder ctx.userId=%j',
+  // SECURITY: a placeholder or gateway build ctx used to let the model's userId through (an IDOR:
+  // a prompt-injected id read or wrote that member's data). It now fails closed to the session's
+  // own id from LiveKit's opts.ctx.userData, or one anon: id per session, never the model's.
+  const PLACEHOLDER_CTX = [
+    'shared',
+    'anonymous',
+    'Anonymous',
+    'default',
+    'unknown',
+    '',
+    'anon',
+    'session',
+    'gateway',
+    'gateway-recovery',
+  ];
+
+  function placeholderTool(placeholder: string): Tool {
+    const toolId = `toolC${placeholder.replace(/[^a-z]/gi, '') || 'Empty'}`;
+    const registry = new ToolRegistry();
+    registry.register(makeToolDefinition({ id: toolId, hasUserIdParam: true }));
+    return requireDef(registry, toolId).create(createMockContext(placeholder));
+  }
+
+  it.each(PLACEHOLDER_CTX)(
+    "never runs as the model's userId for ctx.userId=%j: the session's own id wins",
     async (placeholder) => {
-      const toolId = `toolC_${placeholder || 'empty'}`;
-      const registry = new ToolRegistry();
-      registry.register(makeToolDefinition({ id: toolId, hasUserIdParam: true }));
+      const opts = { ctx: { userData: { userId: 'uid-session' }, session: {} } };
+      const result = (await placeholderTool(placeholder).execute(
+        { userId: 'member-123' },
+        opts
+      )) as EchoResult;
 
-      const ctx = createMockContext(placeholder);
-      const tool = requireDef(registry, toolId).create(ctx);
+      expect(result.received.userId).toBe('uid-session');
+    }
+  );
 
-      const result = (await tool.execute({ userId: 'model-supplied' })) as EchoResult;
+  it.each(PLACEHOLDER_CTX)(
+    'with no session id either (ctx.userId=%j), runs as one anon: id per session',
+    async (placeholder) => {
+      const tool = placeholderTool(placeholder);
+      const session = {};
+      const run = async (opts: unknown) =>
+        ((await tool.execute({ userId: 'member-123' }, opts)) as EchoResult).received.userId;
 
-      expect(result.received.userId).toBe('model-supplied');
+      const first = await run({ ctx: { userData: {}, session } });
+      expect(first).toMatch(/^anon:.+/);
+      expect(await run({ ctx: { userData: { userId: 'unknown' }, session } })).toBe(first);
+      expect(await run({ ctx: { userData: {}, session: {} } })).not.toBe(first);
+      expect(await run(undefined)).toMatch(/^anon:.+/);
     }
   );
 

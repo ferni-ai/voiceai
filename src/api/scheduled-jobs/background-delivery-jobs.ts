@@ -7,6 +7,7 @@
  * POST /api/jobs/calendar-triggers           (every 5 minutes)
  * POST /api/jobs/calendar-briefing           (every 15 minutes; MORNING_BRIEF texts)
  * POST /api/jobs/follow-through              (every 5 minutes; ?dryRun=true; FOLLOW_THROUGH_JOB)
+ * POST /api/jobs/retry-pending-revocations  (every 15 minutes; Google revokes erasure queued)
  *
  * @module api/scheduled-jobs/background-delivery-jobs
  */
@@ -127,19 +128,27 @@ export async function handleCalendarTriggers(res: ServerResponse): Promise<void>
  */
 export async function handleCalendarBriefing(res: ServerResponse): Promise<void> {
   await run(res, 'calendar-briefing', async () => {
-    const [{ runMorningBriefs }, { defaultMorningBriefDeps }, { checkAndSendMorningBriefings }] =
-      await Promise.all([
-        import('../../services/outreach/morning-brief/brief-job.js'),
-        import('../../services/outreach/morning-brief/default-deps.js'),
-        import('../../tasks/scheduled/calendar-briefing-job.js'),
-      ]);
+    const [
+      { runMorningBriefs },
+      { defaultMorningBriefDeps },
+      { checkAndSendMorningBriefings },
+      { isSavedQuietNow },
+    ] = await Promise.all([
+      import('../../services/outreach/morning-brief/brief-job.js'),
+      import('../../services/outreach/morning-brief/default-deps.js'),
+      import('../../tasks/scheduled/calendar-briefing-job.js'),
+      import('../../services/outreach/quiet-hours.js'),
+    ]);
     const brief = await runMorningBriefs(await defaultMorningBriefDeps(), new Date()).catch(
       (error: unknown) => {
         log.error({ error: String(error) }, 'Morning brief run failed');
         return { recipients: [], report: { error: String(error) } };
       }
     );
-    const push = await checkAndSendMorningBriefings({ skipUsers: brief.recipients });
+    const push = await checkAndSendMorningBriefings({
+      skipUsers: brief.recipients,
+      quietNow: isSavedQuietNow, // the menu's quiet hours (QUIET_HOURS_FROM_PREFS)
+    });
     return { ...push, morningBrief: brief.report };
   });
 }
@@ -206,4 +215,13 @@ export async function handleFollowThrough(
   res: ServerResponse
 ): Promise<void> {
   await run(res, 'follow-through', async () => runFollowThroughJob({ dryRun: isDryRun(req) }));
+}
+
+/** Revokes Google couldn't take during an account erasure (identity/google-revocations). */
+export async function handleRetryPendingRevocations(res: ServerResponse): Promise<void> {
+  await run(res, 'retry-pending-revocations', async () => {
+    const { retryPendingRevocations } =
+      await import('../../services/identity/google-revocations.js');
+    return { ...(await retryPendingRevocations()) };
+  });
 }

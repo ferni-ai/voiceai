@@ -43,7 +43,14 @@ export function installNeverSilent(
     hangMs: hangMs(env),
     stayQuiet: () => isSessionClosing(sessionId) || musicPlaying(),
     replyPaused: () => replyPaused(session),
-    log: (fields) => log.warn({ sessionId, ...fields }, 'NEVER_SILENT_FALLBACK'),
+    // A rendering problem is not a fallback: keep NEVER_SILENT_FALLBACK a count of real ones.
+    log: (fields) =>
+      log.warn(
+        { sessionId, ...fields },
+        'prerenderRejected' in fields || 'prerenderFailed' in fields
+          ? 'NEVER_SILENT_PRERENDER'
+          : 'NEVER_SILENT_FALLBACK'
+      ),
   });
   const handlers: Array<{ event: string; handler: (ev: unknown) => void }> = [
     { event: 'conversation_item_added', handler: guard.onItemAdded },

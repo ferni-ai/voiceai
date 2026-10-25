@@ -30,7 +30,8 @@ test.beforeEach(async ({ page }) => {
 test('notifications: a changed preference is saved and survives a reload', async ({ page }) => {
   const problems = watchProblems(page);
   let panel = await openPanel(page, 'notifications');
-  const pref = () => panel.locator('input[data-pref="ritualReminders"]');
+  // Milestone Celebrations: read before a milestone is sent (Daily Practice Reminders is gone, read by nothing)
+  const pref = () => panel.locator('input[data-outreach="milestoneNotifications"]');
   const was = await pref().isChecked();
   await pref().setChecked(!was);
   await expect(pref()).toHaveAccessibleName(/\S/); // a named switch, not a blank one
@@ -59,7 +60,7 @@ test('invite: Copy puts a working invite link on the clipboard', async ({
   expect(problems.take()).toEqual([]);
 });
 
-test('the Chronicle: a written entry is kept', async ({ page }) => {
+test('the Chronicle: a written entry is kept, listed, and can be deleted', async ({ page }) => {
   const problems = watchProblems(page);
   const words = `e2e entry ${Date.now()}`;
   let panel = await openPanel(page, 'journal');
@@ -72,7 +73,23 @@ test('the Chronicle: a written entry is kept', async ({ page }) => {
   await page.reload();
   await expectHome(page);
   panel = await openPanel(page, 'journal');
-  await expect(panel).toContainText(words, { timeout: 10_000 });
+  const entry = panel.locator('.chronicle-entry', { hasText: words });
+  await expect(entry).toBeVisible({ timeout: 10_000 });
+  await expect(panel.locator('#chronicle-content')).toHaveAttribute('data-state', 'ready');
+  await expect(panel).not.toContainText(/streak/i);
+
+  await entry.getByRole('button', { name: /^delete your entry/i }).click();
+  await entry.getByRole('button', { name: 'Delete it', exact: true }).click();
+  await expect(panel.locator('#chronicle-content')).toHaveAttribute('data-state', 'empty');
+  await page.keyboard.press('Escape');
+
+  await page.reload(); // gone from the store, not just the screen
+  await expectHome(page);
+  panel = await openPanel(page, 'journal');
+  await expect(panel.locator('#chronicle-content')).toHaveAttribute('data-state', 'empty', {
+    timeout: 10_000,
+  });
+  await expect(panel).not.toContainText(words);
   expect(problems.take()).toEqual([]);
 });
 
@@ -115,9 +132,10 @@ test('every control in every panel has a name', async ({ page }) => {
     'family-callers',
     'all-connections',
     'theme',
-    'billing',
+    'cognitive',
     'export',
     'share-ferni',
+    'support-ferni',
     'help',
   ];
   for (const action of panels) {
@@ -196,7 +214,11 @@ test('family phone access: a number already set up says so, not just "couldn\'t 
   await addFamilyMember(page, panel, 'Uncle Lee', phone);
   await expect(panel).toContainText('Uncle Lee', { timeout: 10_000 });
   await addFamilyMember(page, panel, 'Uncle Lee again', phone);
-  await expect(page.getByText(/already set up for someone else/i)).toBeVisible({ timeout: 10_000 });
+  // The toast's text, not its screen-reader copy in the live region
+  const notice = page.getByText(/already set up for someone else/i);
+  await expect(notice.and(page.locator(':not(.ferni-toast-live)'))).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
 test('family phone access: an added family member is listed and kept', async ({ page }) => {

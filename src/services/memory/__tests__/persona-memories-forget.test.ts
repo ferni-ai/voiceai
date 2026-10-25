@@ -1,6 +1,5 @@
 /**
- * forget() is reachable from DELETE /api/cognitive/memories/:id and the
- * forgetThisAboutMe tool. The memory cache holds every loaded user's
+ * forget() is reachable from DELETE /api/cognitive/memories/:id. The memory cache holds every loaded user's
  * memories, so it must refuse to delete a memory the caller doesn't own.
  */
 
@@ -8,9 +7,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // In-memory profile store: nothing here may reach Firestore.
 const profiles = new Map<string, Record<string, unknown>>();
+const getProfile = async (userId: string) =>
+  profiles.get(userId) ?? { userId, personaMemories: {} };
 vi.mock('../../../memory/index.js', () => ({
   getDefaultStore: () => ({
-    getProfile: async (userId: string) => profiles.get(userId) ?? { userId, personaMemories: {} },
+    getProfile,
+    getProfileStrict: getProfile,
     saveProfile: async (profile: Record<string, unknown>) => {
       profiles.set(profile.userId as string, profile);
     },
@@ -19,7 +21,10 @@ vi.mock('../../../memory/index.js', () => ({
 // The migrated callers reach the store through getProfileStore (flag off: the default store).
 vi.mock('../../../memory/profile-store.js', async () => {
   const { getDefaultStore } = await import('../../../memory/index.js');
-  return { getProfileStore: async () => getDefaultStore(), isAgentProfilePersistenceOn: () => false };
+  return {
+    getProfileStore: async () => getDefaultStore(),
+    isAgentProfilePersistenceOn: () => false,
+  };
 });
 
 const { forget, getAllUserMemories, rememberPreference } = await import('../persona-memories.js');

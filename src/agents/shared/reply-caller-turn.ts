@@ -16,13 +16,34 @@
  * reads them back. A reply nobody prompted (its context ends on Ferni's own
  * line) answers no caller words.
  *
+ * The reply after a tool step has no new caller message: its context is
+ * [caller, "Let me check.", tool call, tool result] (agent_activity.js tool
+ * reply). It answers the caller's words that started the step, so the step's
+ * own lead-in is walked past; a reply that ended an earlier turn is not.
+ *
+ * The note is single-use: the reply's ttsNode reads it once (Ferni's llmNode
+ * emits no flush sentinel, so one TTS segment per reply). session.say() goes
+ * straight to ttsNode with no llmNode, so a greeting, goodbye or timer line
+ * finds no note and reads lastUserMessage, not fresh, as before.
+ * A fresh reply also carries the call's LAUGH_CAP ledger (laugh-ledger.ts).
+ *
  * @module agents/shared/reply-caller-turn
  */
 
+import type { LaughGate } from '../../speech/tts-gateway/director/types.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { laughGateFor } from '../personas/laugh-ledger.js';
+
+/** The caller fields of the TTS context (tts-wrapper.ts TtsSessionContext). */
+export interface ReplyCallerFields {
+  userRequest?: string;
+  callerTurnFresh?: boolean; // userRequest was read from this reply's own chat context
+  laughGate?: LaughGate;
+}
 
 interface ChatItemView {
   type: string;
+  id?: string;
   role?: string;
   textContent?: string;
 }
@@ -33,12 +54,29 @@ const byAgent = new WeakMap<object, string>();
 /** A note the turn machinery pushed into the chat as a user message, not something the caller said. */
 const isNote = (text: string): boolean => text.startsWith(TURN_CONTEXT_HEADER);
 
+/** The generation a tool call came from: the SDK ids calls `${generation}/fnc_${n}`, its text `${generation}`. */
+const generationOf = (callId: string): string => callId.split('/fnc_')[0] ?? callId;
+
+/**
+ * Walking back before any caller words: a tool call (its generation noted) or
+ * that generation's own lead-in ("Let me check."), both part of the tool step.
+ */
+function inToolStep(item: ChatItemView, toolSteps: Set<string>): boolean {
+  if (item.id === undefined) return false;
+  if (item.type === 'function_call') {
+    toolSteps.add(generationOf(item.id));
+    return true;
+  }
+  return item.type === 'message' && item.role === 'assistant' && toolSteps.has(item.id);
+}
+
 /** The caller's messages since Ferni last spoke, joined; '' when the context ends on Ferni's line. */
 export function callerWordsAnswered(items: readonly ChatItemView[]): string {
   const said: string[] = [];
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i];
-    if (item?.type !== 'message') continue;
+  const toolSteps = new Set<string>(); // generations whose tool step the context ends in
+  for (const item of [...items].reverse()) {
+    if (said.length === 0 && inToolStep(item, toolSteps)) continue;
+    if (item.type !== 'message') continue;
     if (item.role === 'assistant') break;
     const text = item.textContent?.trim();
     if (item.role === 'user' && text && !isNote(text)) said.unshift(text);
@@ -57,14 +95,18 @@ export function noteReplyCallerTurn<T extends { items: readonly ChatItemView[] }
 
 /**
  * The TTS context's caller fields: the words noted for this agent's reply when
- * llmNode ran (callerTurnFresh), else the fallback (userData.lastUserMessage).
+ * llmNode ran (callerTurnFresh), read once; else the fallback (userData.lastUserMessage).
  */
 export function replyCallerTurnFields(
   agent: object,
-  fallback: unknown
-): { userRequest?: string; callerTurnFresh: boolean } {
+  fallback: unknown,
+  sessionId?: string
+): ReplyCallerFields & { callerTurnFresh: boolean } {
   const noted = byAgent.get(agent);
-  if (noted !== undefined) return { userRequest: noted || undefined, callerTurnFresh: true };
+  byAgent.delete(agent); // single-use: a say() line after this reply is not fresh
+  const laughGate = laughGateFor(sessionId);
+  if (noted !== undefined)
+    return { userRequest: noted || undefined, callerTurnFresh: true, laughGate };
   return {
     userRequest: typeof fallback === 'string' ? fallback : undefined,
     callerTurnFresh: false,

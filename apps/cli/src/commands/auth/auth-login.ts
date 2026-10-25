@@ -142,8 +142,13 @@ async function handleLogout(): Promise<void> {
   spinner.start('Logging out...');
 
   try {
-    await logout();
-    spinner.stop('Logged out successfully.');
+    const result = await logout();
+    if (result.revoked) {
+      spinner.stop('Logged out successfully.');
+    } else {
+      spinner.stop('Signed out on this computer.');
+      p.log.warn(`Signed out here; couldn't revoke on the server: ${result.error}`);
+    }
     p.outro(color.green('See you next time!'));
   } catch (error) {
     spinner.stop('Logout failed.');

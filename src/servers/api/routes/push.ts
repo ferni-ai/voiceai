@@ -1,13 +1,25 @@
 /**
  * Push Notification Routes
  *
- * Web Push notification management.
+ * Browsers subscribe with web-push keys (/api/push/subscribe); the iPhone app
+ * registers its APNs device token (/api/push/devices), which has no such keys.
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { rateLimit, requireAdmin, requireAuth } from '../../../api/auth-middleware.js';
+import {
+  rateLimit,
+  requireAdmin,
+  requireAuth,
+  type AuthContext,
+} from '../../../api/auth-middleware.js';
 import { parseBody, sendError, sendJSON } from '../../../api/helpers.js';
 import { EndpointOwnedError } from '../../../services/push-endpoint-owners.js';
+import {
+  parseDeviceRegistration,
+  registerDevice,
+  unregisterDevice,
+} from '../../../services/push-devices.js';
+import { recipientTag } from '../../../services/ios-push.js';
 import { getPushNotificationsService } from '../../../services/push-notifications.js';
 import { isAllowedWebPushEndpoint } from '../../../services/web-push-endpoint.js';
 import { isWebPushDeliverable } from '../../../services/web-push-loader.js';
@@ -25,15 +37,68 @@ interface SubscribeBody {
   platform?: unknown;
 }
 
-const PLATFORMS = ['web', 'ios', 'android'] as const;
-
 /** Read the JSON body; answers 400 itself and returns null when it isn't JSON. */
-async function readJson(req: IncomingMessage, res: ServerResponse): Promise<SubscribeBody | null> {
+async function readJson<T = SubscribeBody>(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<T | null> {
   try {
-    return await parseBody<SubscribeBody>(req);
+    return await parseBody<T>(req);
   } catch {
     sendError(res, 'Invalid JSON body', 400);
     return null;
+  }
+}
+
+/** A signed-in person (anonymous Firebase users count), never a service API key. */
+async function requirePerson(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<AuthContext | null> {
+  const auth = await requireAuth(req, res);
+  if (!auth) return null;
+  if (!auth.firebaseUid && !auth.isDevMode) {
+    sendError(res, 'Device registration needs a signed-in user', 403);
+    return null;
+  }
+  return auth;
+}
+
+/** POST registers the app's APNs token for the caller; DELETE forgets it. */
+async function handleDevices(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const auth = await requirePerson(req, res);
+  if (!auth) return;
+  if (rateLimit(req, res, { maxRequests: 20, windowMs: 60_000, keyPrefix: 'push-devices' })) return;
+
+  const body = await readJson<unknown>(req, res);
+  if (body === null) return;
+
+  if (req.method === 'POST') {
+    const parsed = parseDeviceRegistration(body);
+    if (!parsed.ok) return sendError(res, parsed.error, 400);
+    try {
+      await registerDevice(auth.userId, parsed.device);
+      log.info(
+        { userId: auth.userId, environment: parsed.device.environment },
+        'Push device registered'
+      );
+      // The app keeps its tag and drops a push whose `r` names someone else (ios-push.ts).
+      sendJSON(res, { success: true, recipientTag: recipientTag(auth.userId) });
+    } catch (err) {
+      log.error({ error: String(err), userId: auth.userId }, 'Failed to register push device');
+      sendError(res, 'Failed to register device', 500);
+    }
+    return;
+  }
+
+  const token = (body as { token?: unknown } | null)?.token;
+  if (typeof token !== 'string' || !token) return sendError(res, 'token is required', 400);
+  try {
+    const removed = await unregisterDevice(auth.userId, token);
+    sendJSON(res, { success: true, removed });
+  } catch (err) {
+    log.error({ error: String(err), userId: auth.userId }, 'Failed to unregister push device');
+    sendError(res, 'Failed to unregister device', 500);
   }
 }
 
@@ -65,7 +130,13 @@ export async function handlePushRoutes(
     return true;
   }
 
-  // POST /api/push/subscribe - Register push subscription
+  // POST|DELETE /api/push/devices - the native app's device token
+  if (pathname === '/api/push/devices' && (req.method === 'POST' || req.method === 'DELETE')) {
+    await handleDevices(req, res);
+    return true;
+  }
+
+  // POST /api/push/subscribe - Register a browser's push subscription
   // Stored through the same service (Firestore push_subscriptions) the senders
   // read, keyed by the verified caller, so a subscribed user can actually be reached.
   if (pathname === '/api/push/subscribe' && req.method === 'POST') {
@@ -76,14 +147,17 @@ export async function handlePushRoutes(
     if (!body) return true;
 
     const { endpoint, keys } = body;
-    const platform = PLATFORMS.find((p) => p === (body.platform ?? 'web'));
+    // A native app has a device token, not web-push keys: it registers at /api/push/devices.
+    if ((body.platform ?? 'web') !== 'web') {
+      sendError(res, 'Native apps register their device token at POST /api/push/devices', 400);
+      return true;
+    }
     if (
       typeof endpoint !== 'string' ||
       !endpoint ||
       typeof keys?.auth !== 'string' ||
       typeof keys?.p256dh !== 'string' ||
-      !platform ||
-      (platform === 'web' && !isAllowedWebPushEndpoint(endpoint))
+      !isAllowedWebPushEndpoint(endpoint)
     ) {
       sendError(res, 'Invalid subscription format', 400);
       return true;
@@ -93,7 +167,7 @@ export async function handlePushRoutes(
       await getPushNotificationsService().registerSubscription({
         endpoint,
         keys: { auth: keys.auth, p256dh: keys.p256dh },
-        platform,
+        platform: 'web',
         userId: auth.userId,
         createdAt: new Date().toISOString(),
       });

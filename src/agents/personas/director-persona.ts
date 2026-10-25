@@ -22,10 +22,17 @@ export function directorPersonaAware(
   return flagOn('DIRECTOR_PERSONA_AWARE', env);
 }
 
-/** What the director's system prompt adds about who is speaking now. */
-export function speakerNote(name: string): string {
+/**
+ * What the director's system prompt adds about who is speaking now. `framed`
+ * (DIRECTOR_SEES_SCENE=on): the instructions above are already written for
+ * `name` (director-cast.ts), so nothing is carried over from Ferni's.
+ */
+export function speakerNote(name: string, framed = false): string {
   const never = `Never tell ${name === 'Ferni' ? 'him' : name} to say who they are, that they are someone else, or to correct who the caller thinks they are talking to.`;
   if (name === 'Ferni') return `Each line of the call is labelled with who said it. ${never}`;
+  if (framed) {
+    return `${name} is on the call now; earlier lines may be a teammate's. Each line of the call is labelled with who said it. A caller who talks to ${name} by name is right, not confused. ${never}`;
+  }
   return [
     `Ferni handed this call to his teammate ${name}, who is on the call now. Your notes are for ${name}'s next reply, and what is said above about Ferni's habits applies to ${name}.`,
     `Each line of the call is labelled with who said it. A caller who talks to ${name} by name is right, not confused.`,

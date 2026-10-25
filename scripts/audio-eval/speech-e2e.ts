@@ -31,7 +31,7 @@
  *
  *   CARTESIA_API_KEY comes from the environment, else from --env-file, else
  *   from the main checkout's .env (only that one key is read; never printed).
- *   --voice-id / --model default to VOICE_IDS.FERNI / CARTESIA_MODEL from
+ *   --voice-id / --model default to getVoiceIdForPersona('ferni') / CARTESIA_MODEL from
  *   src/config/voice-ids.ts.
  *
  * @module scripts/audio-eval/speech-e2e
@@ -168,8 +168,8 @@ const audioPlan = await import('../../src/speech/reply-audio-plan.js');
 
 type SocketLike = import('../../src/speech/tts-gateway/providers/cartesia-socket.js').SocketLike;
 
-const voiceId = arg('voice-id') ?? voiceIds.VOICE_IDS.FERNI;
-const voiceSource = arg('voice-id') ? '--voice-id' : 'VOICE_IDS.FERNI';
+const voiceId = arg('voice-id') ?? voiceIds.getVoiceIdForPersona('ferni');
+const voiceSource = arg('voice-id') ? '--voice-id' : "getVoiceIdForPersona('ferni')";
 
 // Swap the provider's shared socket for one on a tapped WebSocket.
 const tap = new CartesiaTap();

@@ -2,40 +2,27 @@
  * Unified Trust Profile Persistence
  *
  * > "We believe in making AI human, and the decisions we make will reflect that."
- *
  * This module ensures all trust profile data has a SINGLE source of truth
  * in Firestore. It prevents data drift between in-memory and persisted state.
  *
- * The Problem:
- * - Multiple systems maintain their own in-memory Maps
- * - Periodic sync can lead to stale/inconsistent data
- * - Server restarts lose recent changes
- *
- * The Solution:
- * - Real-time write-through for critical changes
- * - Periodic batch sync for efficiency
- * - Single document structure per user
- * - Conflict resolution with timestamps
- *
+ * The Problem: many in-memory Maps; periodic sync drifts; restarts lose recent changes.
+ * The Solution: write-through for critical changes, batch sync otherwise, one document per user.
  * @module UnifiedTrustPersistence
  */
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { userHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
 
-// Module-level Firestore instance (lazy initialized)
-let db: FirestoreType | null = null;
-// FIX: Promise-based singleton to prevent race condition
-let dbInitPromise: Promise<FirestoreType | null> | null = null;
+let db: FirestoreType | null = null; // lazy initialized
+let dbInitPromise: Promise<FirestoreType | null> | null = null; // one init, no race
 
-/**
- * Get Firestore connection (lazy initialized)
- */
+/** Get Firestore connection (lazy initialized) */
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
   if (dbInitPromise) return dbInitPromise;
@@ -137,6 +124,7 @@ const DEFAULT_CONFIG: PersistenceConfig = {
 let config = { ...DEFAULT_CONFIG };
 const pendingChanges = new Map<string, Set<string>>(); // userId -> set of system names
 const profileCache = new Map<string, UnifiedTrustProfile>();
+const loadedFromStorage = new Set<string>(); // read from Firestore here: only those are written
 let isInitialized = false;
 
 // ============================================================================
@@ -210,7 +198,7 @@ export async function loadUnifiedProfile(userId: string): Promise<UnifiedTrustPr
       .collection('trust')
       .doc('unified_profile')
       .get();
-
+    loadedFromStorage.add(userId);
     if (!doc.exists) {
       return null;
     }
@@ -245,6 +233,7 @@ export async function saveSystemData(
   data: unknown,
   options: { immediate?: boolean } = {}
 ): Promise<void> {
+  if (userHeld(userId)) return purgeUnifiedUser(userId); // MINOR_CARE: not even cached
   const shouldWriteThrough =
     options.immediate ||
     (config.realtimeWriteThrough && config.criticalSystems.includes(systemName));
@@ -352,11 +341,19 @@ async function flushUserChanges(userId: string): Promise<void> {
   log.debug({ userId, systemCount: userPending.size }, 'Flushed user changes');
 }
 
-/**
- * Persist a profile to Firestore
- */
+/** MINOR_CARE: a held caller under 18's trust state, dropped so nothing is written later. */
+export function purgeUnifiedUser(userId: string): void {
+  profileCache.delete(userId);
+  pendingChanges.delete(userId);
+  loadedFromStorage.delete(userId); // the next session reloads before it writes
+}
+
+/** Persist a profile to Firestore */
 async function persistProfile(userId: string, profile: UnifiedTrustProfile): Promise<void> {
   try {
+    // MINOR_CARE: every path (timer, write-through, session end) checks at write time, and drops
+    if (userHeld(userId)) return purgeUnifiedUser(userId);
+    if (!loadedFromStorage.has(userId)) return log.warn({ userId }, 'Not written: never loaded');
     const firestore = await getFirestore();
     if (!firestore) return;
 
@@ -435,6 +432,7 @@ export async function migrateToUnifiedProfile(userId: string): Promise<boolean> 
     profile.systems = systems;
     profile.systemVersions = systemVersions;
 
+    loadedFromStorage.add(userId); // the old documents were read above
     await persistProfile(userId, profile);
     profileCache.set(userId, profile);
 

@@ -7,6 +7,9 @@ description: >
   other event or branch, an admin merge or direct push (no queue run for this
   tree), a failed or cancelled run, or any API error. On 2026-10-11, admin merges
   that skipped the queue left main red, so that path must always get full CI.
+  A run counts only if its Node suite (Lint & Type Check, Unit Tests, Frontend
+  Quality) actually ran and passed: a scoped queue run that skipped those jobs
+  succeeded without testing the tree (2026-10-19, #2027 merged that way).
 
 outputs:
   tested:
@@ -37,13 +40,22 @@ runs:
         runs=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?event=merge_group&status=success&per_page=30" \
           --jq '.workflow_runs[] | select(.conclusion == "success") | "\(.id) \(.head_sha)"') \
           || full "could not list merge-queue runs"
+        # 'true' when the run's Node suite ran and passed (skipped counts as not run).
+        suite_ran() {
+          gh api "repos/$REPO/actions/runs/$1/jobs?per_page=100" --jq '[.jobs[]
+            | select(.name == "Lint & Type Check" or .name == "Unit Tests" or .name == "Frontend Quality")
+            | .conclusion] | length == 3 and all(. == "success")' 2>/dev/null
+        }
         while read -r id head; do
           [ -n "$id" ] || continue
-          if [ "$head" = "$SHA" ]; then match=$id; break; fi
-          t=$(gh api "repos/$REPO/git/commits/$head" --jq .tree.sha 2>/dev/null) || continue
-          if [ "$t" = "$tree" ]; then match=$id; break; fi
+          if [ "$head" != "$SHA" ]; then
+            t=$(gh api "repos/$REPO/git/commits/$head" --jq .tree.sha 2>/dev/null) || continue
+            [ "$t" = "$tree" ] || continue
+          fi
+          if [ "$(suite_ran "$id")" = true ]; then match=$id; break; fi
+          echo "Merge-queue run $id has this tree but did not run the Node suite; not trusted"
         done <<< "$runs"
-        [ -n "${match:-}" ] || full "no successful merge-queue run tested tree $tree (admin merge or direct push?)"
+        [ -n "${match:-}" ] || full "no successful merge-queue run ran the Node suite on tree $tree (admin merge, direct push, or a scoped queue run?)"
         echo "tested=true" >> "$GITHUB_OUTPUT"
         echo "run_id=$match" >> "$GITHUB_OUTPUT"
         echo "::notice::Skipping the full suite: merge-queue run $SERVER/$REPO/actions/runs/$match passed on tree $tree, which is this commit's tree"

@@ -394,7 +394,7 @@ const MICRO_STORIES = {
   jackB: [
     '<emotion value="affectionate"/><break time="400ms"/>I was staring at the mountains in Wyoming once, <break time="200ms"/>just sitting there for maybe an hour. <break time="250ms"/>My brother asked if I was okay. <break time="150ms"/>I said I was perfect.',
     '<emotion value="curious"/><break time="300ms"/>There\'s a coffee shop I go to sometimes just to... <break time="200ms"/>be around people. <break time="250ms"/>Don\'t even talk to anyone. <break time="150ms"/>Just... <break time="200ms"/>be there.',
-    '<emotion value="happy"/><break time="400ms"/>My dog and I have an agreement. <break time="150ms"/>I don\'t explain my silences, <break time="150ms"/>and he doesn\'t explain his barking. <break time="200ms"/>Works for us.',
+    '<emotion value="happy"/><break time="400ms"/>My neighbor\'s dog and I have an agreement. <break time="150ms"/>I don\'t explain my silences, <break time="150ms"/>and he doesn\'t explain his barking. <break time="200ms"/>Works for us.',
     '<emotion value="curious"/><break time="300ms"/>I wrote in my journal last night: \'Today I had a good thought.\' <break time="250ms"/>Didn\'t write what it was. <break time="150ms"/>Still don\'t remember. <break time="200ms"/>But it was good.',
     '<emotion value="affectionate"/><break time="400ms"/>You know what I\'ve been doing lately? <break time="150ms"/>Watching the sunset. <break time="250ms"/>Like, actually watching it. <break time="150ms"/>Highly recommend.',
     '<emotion value="happy"/><break time="300ms"/>I bought a plant six months ago. <break time="150ms"/>Named it \'Compound Interest.\' <break time="200ms"/>It\'s doing great. <break time="150ms"/>[laughter]',

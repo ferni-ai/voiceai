@@ -24,8 +24,14 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
+import { bindSessionPhone, setVerifiedOwnerCheck } from '../../utils/minor-care.js';
+import {
+  beginReturningCaller,
+  returningCallerEnabled,
+} from '../../services/identity/returning-caller.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
+  readSignedAttestation,
   readSipCaller,
   type AttributeUpdates,
   type SipAttestation,
@@ -53,11 +59,13 @@ export interface RecognitionDeps {
   ownerOf: (e164: string) => Promise<PhoneOwner | null>;
   /**
    * The attestation level from a signed token verified for this caller and
-   * this number, or null when there is none. Never a raw header.
+   * this number, or null when there is none. Never a raw header. `updates`
+   * lets it wait for a token that lands after the caller joins.
    */
   signedAttestation: (
     participant: SipParticipantLike,
-    e164: string
+    e164: string,
+    updates?: AttributeUpdates
   ) => Promise<SipAttestation | null>;
 }
 
@@ -96,15 +104,22 @@ const firstName = (name: string | undefined): string | undefined =>
 /** Recognise a phone caller. Null for a participant that isn't a SIP caller. */
 export async function recognizeCaller(
   participant: SipParticipantLike,
-  deps: RecognitionDeps
+  deps: RecognitionDeps,
+  updates?: AttributeUpdates
 ): Promise<CallerRecognition | null> {
   // isSip only: the reading's attestation comes from a raw, forgeable header.
   const reading = await readSipCaller(participant, { waitMs: 0 });
   if (!reading.isSip) return null;
   const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
-  const owner = e164 ? await deps.ownerOf(e164).catch(() => null) : null;
-  const signed =
-    owner && e164 ? await deps.signedAttestation(participant, e164).catch(() => null) : null;
+  // Both run, in parallel, whatever the owner lookup finds: reading the token
+  // only for a number with an account would let a caller time the call's
+  // start and learn whether that number has a Ferni account.
+  const [owner, signed] = e164
+    ? await Promise.all([
+        deps.ownerOf(e164).catch(() => null),
+        deps.signedAttestation(participant, e164, updates).catch(() => null),
+      ])
+    : [null, null];
   const status = classifyCaller(owner, signed);
   const recognition: CallerRecognition = { status, attestation: signed ?? 'none' };
   if (owner && status === 'known') {
@@ -115,9 +130,9 @@ export async function recognizeCaller(
 }
 
 /**
- * Production lookups. The signed attestation arrives with #605 (webhook
- * token, `ferni.attest`); until it is wired here there is none, so no caller
- * is 'known': recognition fails closed rather than trusting a header.
+ * Production lookups. The attestation is our webhook's signed token (#605,
+ * `ferni.attest`) verified against PHONE_ATTEST_SECRET for this participant
+ * and this number (readSignedAttestation); anything else is null.
  */
 export const productionRecognitionDeps: RecognitionDeps = {
   async ownerOf(e164) {
@@ -125,7 +140,8 @@ export const productionRecognitionDeps: RecognitionDeps = {
     const user = await getFirebaseUserByPhone(e164);
     return user ? { userId: user.uid, name: user.displayName } : null;
   },
-  signedAttestation: async () => null,
+  signedAttestation: (participant, e164, updates) =>
+    readSignedAttestation(participant, e164, { updates }),
 };
 
 /** The room's first remote participant, waiting up to `waitMs` for one to join. */
@@ -165,6 +181,20 @@ export function rememberCallerRecognition(sessionId: string, r: CallerRecognitio
   );
 }
 
+/**
+ * Remember a phone caller's number from the participants already in the room (no waiting), so a
+ * held call also holds texts from and to that number (minor-care-purge.ts).
+ */
+export function rememberCallerPhone(
+  sessionId: string,
+  room: { remoteParticipants?: Map<string, SipParticipantLike> }
+): void {
+  for (const participant of room.remoteParticipants?.values() ?? []) {
+    const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
+    if (e164) return bindSessionPhone(sessionId, e164);
+  }
+}
+
 export function callerRecognitionFor(sessionId: string | undefined): CallerRecognition | undefined {
   return sessionId ? bySession.get(sessionId) : undefined;
 }
@@ -183,6 +213,8 @@ export function rememberDispatchIdentity(sessionId: string, source: string, meta
 export function sessionIsVerifiedOwner(sessionId: string): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known' || namedByDispatch.has(sessionId);
 }
+// MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
+setVerifiedOwnerCheck(sessionIsVerifiedOwner);
 
 /** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
@@ -232,11 +264,40 @@ export async function recognizePhoneSession(
 ): Promise<{ userId?: string; userName?: string } | null> {
   const participant = await firstParticipant(room, PARTICIPANT_WAIT_MS);
   if (!participant) return null;
-  const r = await recognizeCaller(participant, deps);
+  const r = await recognizeCaller(participant, deps, room);
   if (!r) return null;
+  rememberCallerPhone(sessionId, { remoteParticipants: new Map([['caller', participant]]) });
   rememberCallerRecognition(sessionId, r);
   return r.status === 'known' ? { userId: r.userId, userName: r.name } : {};
 }
 
 /** How long to wait for the caller to join. */
 const PARTICIPANT_WAIT_MS = 3000;
+
+/**
+ * RETURNING_CALLER=on: an unverified phone caller (an `anon:` session on a
+ * SIP call, never an account or a proven owner) gets what they told Ferni
+ * before, looked up by their hashed number (returning-caller.ts). Caller ID
+ * can be spoofed, so only a call with a signed attestation A (the signal
+ * 'known' needs) reads or writes a record; anything else gets neither.
+ */
+export async function startReturningCaller(
+  room: RoomLike,
+  sessionId: string,
+  userId: string | undefined,
+  deps: Pick<RecognitionDeps, 'signedAttestation'> = productionRecognitionDeps,
+  begin: typeof beginReturningCaller = beginReturningCaller
+): Promise<void> {
+  if (!returningCallerEnabled() || !userId?.startsWith('anon:')) return;
+  if (sessionIsVerifiedOwner(sessionId)) return;
+  const participant = await firstParticipant(room, PARTICIPANT_WAIT_MS);
+  if (!participant || !(await readSipCaller(participant, { waitMs: 0 })).isSip) return;
+  const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
+  if (!e164) return;
+  const signed = await deps.signedAttestation(participant, e164).catch(() => null);
+  if (signed !== 'A') {
+    getLogger().info({ sessionId, attestation: signed ?? 'none' }, 'RETURNING_CALLER skipped');
+    return;
+  }
+  await begin(sessionId, e164);
+}

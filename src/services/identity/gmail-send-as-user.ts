@@ -13,9 +13,11 @@
  * Every read goes to Firestore: the API server writes them, the voice agent
  * (another process) reads them, and a disconnect must take effect at once.
  *
- * Disconnect deletes our copy without calling Google's revoke endpoint, because
- * revoking any token drops every scope the user granted the project, calendar
- * included. Account erasure does revoke (forgetGmailSendGrant).
+ * Revoking any token drops every scope the user granted the project. So
+ * disconnecting Gmail send deletes our copy without revoking (that would end
+ * the calendar connection too), and disconnecting the calendar skips its revoke
+ * while a Gmail send grant exists (hasGmailSendGrant). Account erasure revokes
+ * both (forgetGmailSendGrant, then disconnectGoogleCalendar).
  *
  * @module services/identity/gmail-send-as-user
  */
@@ -23,6 +25,12 @@
 import { createPersistenceStore } from '../persistence/index.js';
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { queueGoogleRevocation, revokeGoogleToken } from './google-revocations.js';
+import {
+  googleCalendarClientId,
+  googleCalendarClientSecret,
+  googleCalendarRedirectUri,
+} from '../../config/google-calendar-oauth-env.js';
 
 const log = createLogger({ module: 'GmailSendAsUser' });
 
@@ -42,6 +50,7 @@ interface GmailSendTokens {
 
 const store = createPersistenceStore<{ encrypted: string; updated_at: number }>({
   collection: 'gmail_send_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // bogle_users/{uid}/gmail_send_tokens/data
   syncIntervalMs: 2000,
@@ -51,12 +60,12 @@ const short = (userId: string) => userId.substring(0, 8);
 
 /** The same redirect the calendar connect uses: the callback is shared (routes/gmail-send.ts). */
 export function gmailSendRedirectUri(): string {
-  return process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'https://app.ferni.ai/auth/google/callback';
+  return googleCalendarRedirectUri('https://app.ferni.ai/auth/google/callback');
 }
 
 export function buildGmailSendAuthUrl(state: string): string {
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-  url.searchParams.set('client_id', process.env.GOOGLE_CALENDAR_CLIENT_ID || '');
+  url.searchParams.set('client_id', googleCalendarClientId());
   url.searchParams.set('redirect_uri', gmailSendRedirectUri());
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('scope', GMAIL_SEND_SCOPES.join(' '));
@@ -66,13 +75,15 @@ export function buildGmailSendAuthUrl(state: string): string {
   return url.toString();
 }
 
-async function loadTokens(userId: string): Promise<GmailSendTokens | null> {
-  const doc = await store.load(userId, { fresh: true });
+/** `strict` throws when Firestore can't be read, instead of answering "not connected". */
+async function loadTokens(userId: string, strict = false): Promise<GmailSendTokens | null> {
+  const doc = await store.load(userId, { fresh: true, strict });
   return doc?.encrypted ? decryptData<GmailSendTokens>(doc.encrypted) : null;
 }
 
 async function saveTokens(userId: string, tokens: GmailSendTokens): Promise<void> {
-  await store.setImmediate(userId, { encrypted: encryptData(tokens), updated_at: Date.now() });
+  const grant = { encrypted: encryptData(tokens), updated_at: Date.now() };
+  await store.setImmediate(userId, grant, { safeWithoutRead: true }); // never built on a read
 }
 
 /** The email claim of an id_token received straight from Google's token endpoint over TLS. */
@@ -107,8 +118,8 @@ export async function completeGmailSendConnect(
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CALENDAR_CLIENT_ID || '',
-      client_secret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '',
+      client_id: googleCalendarClientId(),
+      client_secret: googleCalendarClientSecret(),
       redirect_uri: gmailSendRedirectUri(),
       grant_type: 'authorization_code',
     }),
@@ -148,6 +159,11 @@ export async function getGmailSendAddress(userId: string): Promise<string | null
   return (await loadTokens(userId))?.email ?? null;
 }
 
+/** Whether the user has a Gmail send grant. Throws when Firestore can't be read. */
+export async function hasGmailSendGrant(userId: string): Promise<boolean> {
+  return !!(await store.load(userId, { fresh: true, strict: true }))?.encrypted;
+}
+
 /** Turn the feature off: forget the grant (see the module note on revoking). */
 export async function disconnectGmailSend(userId: string): Promise<void> {
   await store.delete(userId);
@@ -155,23 +171,17 @@ export async function disconnectGmailSend(userId: string): Promise<void> {
 }
 
 /**
- * Account erasure: revoke the grant at Google (best effort), then delete it.
- * Returns whether there was a grant. Runs before the record is erased, while the
- * token can still be read.
+ * Account erasure: revoke the grant at Google, then delete it. Returns whether
+ * there was a grant. Runs before the record is erased, while the token can
+ * still be read. A failed read throws (never erase on an unknown token state);
+ * a revoke Google couldn't take is queued (google-revocations.ts), and a
+ * failed queue write throws too.
  */
 export async function forgetGmailSendGrant(userId: string): Promise<boolean> {
-  const tokens = await loadTokens(userId);
+  const tokens = await loadTokens(userId, true);
   if (!tokens) return false;
-  try {
-    const revoke = await fetch('https://oauth2.googleapis.com/revoke', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token: tokens.refresh_token || tokens.access_token }),
-    });
-    if (!revoke.ok) log.warn({ status: revoke.status }, 'Gmail send revoke refused');
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Gmail send revoke failed');
-  }
+  const token = tokens.refresh_token || tokens.access_token;
+  if ((await revokeGoogleToken(token)) === 'unreachable') await queueGoogleRevocation(token);
   await store.delete(userId);
   return true;
 }

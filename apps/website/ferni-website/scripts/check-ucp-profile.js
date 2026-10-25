@@ -59,7 +59,7 @@ function checkRewrite(firebaseJson) {
   const rewrites = (site && site.rewrites) || [];
   const at = rewrites.findIndex((r) => r.source === WELL_KNOWN && r.destination === SERVED);
   if (at < 0) return [`no rewrite ${WELL_KNOWN} -> ${SERVED}`];
-  const catchAll = rewrites.findIndex((r) => r.source === '!/api/**');
+  const catchAll = rewrites.findIndex((r) => r.source === '**' || r.source.startsWith('!'));
   if (catchAll >= 0 && catchAll < at) return ['the rewrite must come before the 404 catch-all'];
   return [];
 }

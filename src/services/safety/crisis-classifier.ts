@@ -30,6 +30,9 @@ import {
   needsPlainRead,
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
+import { trackCrisisRead } from './crisis-call-risk.js';
+import { secondReadRun } from './crisis-classifier-v3.js';
+import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -168,7 +171,7 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
 const MAX_COMPANION_CHARS = 400;
 
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
-function normalizeInput(input: CrisisClassifierInput): {
+export function normalizeInput(input: CrisisClassifierInput): {
   latest: string;
   earlier: string[];
   companion?: string;
@@ -267,6 +270,10 @@ export interface StartCrisisClassifierOptions {
    * verdict is kept with the turn's other reads (turnVerdicts).
    */
   scope?: string;
+  /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
+  call?: string;
+  /** Which path reads, the call's turn count, and whether its patterns read someone else. */
+  secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -396,6 +403,7 @@ export function resetCrisisClassifierCache(): void {
   recentRuns.clear();
   turnReads.clear();
   looseReads.clear();
+  resetSecondReadTurns();
 }
 
 export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
@@ -423,16 +431,26 @@ export function startCrisisClassifier(
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
   const prompt = crisisClassifierPrompt(env);
+  // CRISIS_CLASSIFIER_SECOND_READ: v3 may fill a read that found nothing (crisis-classifier-v3.ts).
+  const waitMs = resolveCrisisClassifierTimeoutMs(env);
+  const { call, pattern, secondRead } = options;
+  const lines = [normalized.latest, ...normalized.earlier];
+  const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
+    second.key,
   ]);
+  // What each call's reads found, and which are in flight (crisis-call-risk.ts).
+  const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
   const shared = cachedRun(key, startedAt);
   if (shared) {
-    if (options.scope) rememberRead(options.scope, input, startedAt, shared.verdict);
-    return { mode, verdict: shared.verdict };
+    second.note();
+    const verdict = own(shared.verdict);
+    if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
+    return { mode, verdict };
   }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
@@ -440,12 +458,13 @@ export function startCrisisClassifier(
     classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env);
-  const reads = plain
+  const base = plain
     ? Promise.all([
         read(prompt),
         read(crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })),
       ]).then(([ruled, unruled]) => moreSevereRead(ruled, unruled))
     : read(prompt);
+  const reads = second.apply(base, read, prompt);
   const verdict = reads.then((v) => {
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
@@ -464,10 +483,10 @@ export function startCrisisClassifier(
     );
     return v;
   });
-  const run = { mode, verdict };
-  rememberRun(key, startedAt, run);
-  if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
-  return run;
+  rememberRun(key, startedAt, { mode, verdict });
+  const turn = own(verdict);
+  if (options.scope) rememberRead(options.scope, input, startedAt, turn);
+  return { mode, verdict: turn };
 }
 
 export default {

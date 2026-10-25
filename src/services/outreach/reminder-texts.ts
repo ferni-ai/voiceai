@@ -1,9 +1,10 @@
 /**
- * The guarded sender for reminder texts (REMINDER_SMS_DEFAULT=on). deliverReminder
- * hands every reminder text here (scheduling/reminder-text-guard.ts) and delivers
- * it in the app unless this says 'sent':
+ * The guarded sender for every reminder text: deliverReminder hands each one here
+ * (scheduling/reminder-text-guard.ts), whatever the flags say, and delivers it in
+ * the app unless this says 'sent':
  *
- * - to the owner's own verified number: sendGuardedText, so STOP and texts
+ * - to the owner's own verified number (also for a reminder kept for their app,
+ *   `voice:<uid>`, once texts are on for them): sendGuardedText, so STOP and texts
  *   turned off apply. One due in the owner's quiet hours (21:00 to 08:00 in the
  *   reminder's zone) is held and texted at 08:00 (Seth, 2026-10-17); one inside
  *   the guard's gap after another reminder text waits out the gap;
@@ -27,12 +28,15 @@ import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { extendReminderPromise } from '../superhuman/semantic-intelligence/promise-keeper.js';
 import type { ScheduledReminder } from '../scheduling/reminder-scheduler.js';
 import {
+  installReminderOwnNumber,
   installReminderTextGuard,
   type GuardedTextOutcome,
 } from '../scheduling/reminder-text-guard.js';
 import { toE164 } from './checkin-replies.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import {
   defaultTextDeps,
+  isOwnVerifiedPhone,
   resolveCheckinPhone,
   sendGuardedText,
   sendOnBehalfText,
@@ -108,10 +112,12 @@ export async function guardReminderText(
   r: ScheduledReminder,
   deps: ReminderTextDeps = defaultDeps()
 ): Promise<GuardedTextOutcome> {
-  const to = toE164(r.deliveryAddress);
-  if (!to) return held(r, 'not-a-phone');
   const userDoc = await deps.text.store.userDoc(r.userId);
   const own = await resolveCheckinPhone(r.userId, userDoc, deps.text);
+  // A reminder kept for the owner's app (voice:<uid>) is texted to their own verified number.
+  const to =
+    toE164(r.deliveryAddress) ?? (r.deliveryAddress === `voice:${r.userId}` ? own : undefined);
+  if (!to) return held(r, 'not-a-phone');
 
   if (to === own) {
     const now = deps.text.now();
@@ -146,4 +152,7 @@ export async function guardReminderText(
 /** Install the guarded sender in this process; deliverReminder uses it when REMINDER_SMS_DEFAULT is on. */
 export function installReminderTexts(): void {
   installReminderTextGuard((r) => guardReminderText(r));
+  installReminderOwnNumber(async (userId, phone, channel) =>
+    mayReachForOwner(userId, phone, channel, isOwnVerifiedPhone)
+  );
 }

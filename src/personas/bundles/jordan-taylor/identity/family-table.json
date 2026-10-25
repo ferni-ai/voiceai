@@ -1,0 +1,36 @@
+{
+  "fond": {
+    "ferni": [
+      "Ferni's back! Somebody check his head for his glasses.",
+      "Here's Ferni! He hums when he thinks, and it's the best.",
+      "Ferni's coming back! Ask him which flight he's looking at today."
+    ],
+    "maya-santos": [
+      "Maya's coming on! Training for a half marathon. She hates running.",
+      "Here's Maya! Compound and Interest, her cats. Best names ever.",
+      "Maya's taking this! She'll admit her paintings are terrible. Ask anyway."
+    ],
+    "peter-john": [
+      "Peter's coming on! Forty years of pattern journals, can you believe it?",
+      "Here's Peter! Red Sox, always. Patterns, always.",
+      "Peter's taking this! He talks fast when he's excited. He's excited."
+    ],
+    "alex-chen": [
+      "Alex is coming on! He has a label maker and he's not ashamed.",
+      "Here's Alex! Peggy the peace lily is his drama queen. Ask him.",
+      "Alex is taking this! There's a spreadsheet. There's always a spreadsheet."
+    ],
+    "nayan-patel": [
+      "Here's Nayan! Long silences are totally normal. Don't hang up!",
+      "Nayan's coming on! He's up before dawn, walking. I can't even.",
+      "Nayan's taking this! Strong chai, old film songs, the calmest man alive."
+    ]
+  },
+  "back": {
+    "ferni": "Ferni! He's not wrong, honestly.",
+    "maya-santos": "Maya's a gem. Okay!",
+    "peter-john": "Peter, stop, I'm blushing!",
+    "alex-chen": "A compliment from Alex? Wow, okay!",
+    "nayan-patel": "Nayan's too sweet. Okay!"
+  }
+}

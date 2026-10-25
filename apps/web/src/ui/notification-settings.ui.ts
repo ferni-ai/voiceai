@@ -22,6 +22,8 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
+import { escapeHtml } from '../utils/escape-html.js';
+import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
 
 const log = createLogger('NotifySettings');
 const TIME_FORMAT: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
@@ -36,22 +38,7 @@ export interface NotificationSettingsUICallbacks {
   onSave?: (preferences: NotificationPreferences) => void;
 }
 
-interface ScheduledOutreach {
-  id: string;
-  type: string;
-  personaId: string;
-  personaName: string;
-  channel: 'sms' | 'email' | 'call' | 'push';
-  scheduledFor: Date;
-  preview: {
-    subject?: string;
-    body: string;
-  };
-  reason: string;
-  priority: 'high' | 'medium' | 'low';
-  canReschedule: boolean;
-  canCancel: boolean;
-}
+type ScheduledOutreach = UpcomingOutreachItem;
 
 // ============================================================================
 // ICONS
@@ -101,9 +88,7 @@ class NotificationSettingsUI {
     this.createPanel();
   }
 
-  /**
-   * HMR Protection: Remove orphaned elements from previous instances
-   */
+  /** HMR Protection: Remove orphaned elements from previous instances */
   private cleanupOrphanedElements(): void {
     document.querySelectorAll('.notif-settings').forEach((el) => el.remove());
     document.querySelectorAll('.notif-settings-styles').forEach((el) => el.remove());
@@ -207,9 +192,8 @@ class NotificationSettingsUI {
       const response = await apiGet<{ upcoming?: Array<Record<string, unknown>> }>('/api/outreach/upcoming');
       this.upcomingLoadFailed = !response.ok || !response.data;
       if (response.ok && response.data) {
-        this.upcomingItems = (response.data.upcoming || []).map((item: Record<string, unknown>) => ({
-          scheduledFor: new Date(item.scheduledFor as string),
-        })) as unknown as ScheduledOutreach[];
+        // Only the known fields, priority checked against its values (upcoming-outreach-item.ts)
+        this.upcomingItems = (response.data.upcoming || []).map(toUpcomingOutreachItem);
       } else {
         this.upcomingItems = [];
       }
@@ -313,8 +297,9 @@ class NotificationSettingsUI {
         </div>
       </div>
 
-      <!-- Superhuman Capabilities Section -->
-      <div class="notif-settings__group" data-requires="enabled">
+      <!-- What I'll watch: its other switches (check-ins, daily practice, predictions, huddles)
+           were kept in this browser and read by no sender, so they're gone; no streaks, no section -->
+      ${isNoStreaksOn() ? '' : `<div class="notif-settings__group" data-requires="enabled">
         <div class="notif-settings__section-header">
           <h3>${t('notificationSettings.whatIllWatch')}</h3>
           <span class="notif-settings__section-badge">
@@ -326,39 +311,6 @@ class NotificationSettingsUI {
         </div>
         
         <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--guardian">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.ferniCheckins')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.guardianCheckinsDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="ferniCheckins" ${this.localPrefs.ferniCheckins ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--ritual">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.dailyReminders')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.dailyRemindersDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="ritualReminders" ${this.localPrefs.ritualReminders ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-
-        ${isNoStreaksOn() ? '' : `<div class="notif-settings__capability-row">
           <div class="notif-settings__capability-icon notif-settings__capability-icon--streak">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
           </div>
@@ -370,42 +322,8 @@ class NotificationSettingsUI {
             <input type="checkbox" data-pref="streakMilestones" ${this.localPrefs.streakMilestones ? 'checked' : ''}>
             <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
-        </div>`}
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--prediction">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.predictionResults')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.predictionDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="predictionResults" ${this.localPrefs.predictionResults ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
         </div>
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--team">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="8" r="5"/>
-              <path d="M20 21a8 8 0 1 0-16 0"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.teamHuddles')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.teamHuddlesDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="teamHuddles" ${this.localPrefs.teamHuddles ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-      </div>
+      </div>`}
 
       <!-- Quiet Hours: Guardian Respects Boundaries (texts and calls too, so not tied to push) -->
       <div class="notif-settings__group">
@@ -419,11 +337,11 @@ class NotificationSettingsUI {
         <div class="notif-settings__time-row">
           <div class="notif-settings__time-field">
             <label for="quiet-start">${t('notificationSettings.from')}</label>
-            <input type="time" id="quiet-start" data-pref="quietHoursStart" value="${this.localPrefs.quietHoursStart || '22:00'}">
+            <input type="time" id="quiet-start" data-pref="quietHoursStart" value="${escapeHtml(this.localPrefs.quietHoursStart || '22:00')}">
           </div>
           <div class="notif-settings__time-field">
             <label for="quiet-end">${t('notificationSettings.to')}</label>
-            <input type="time" id="quiet-end" data-pref="quietHoursEnd" value="${this.localPrefs.quietHoursEnd || '08:00'}">
+            <input type="time" id="quiet-end" data-pref="quietHoursEnd" value="${escapeHtml(this.localPrefs.quietHoursEnd || '08:00')}">
           </div>
         </div>
         
@@ -465,12 +383,10 @@ class NotificationSettingsUI {
           </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">${t('notificationSettings.smsMessages')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.smsDesc')}</span>
+            <span class="notif-settings__desc">${t('notificationSettings.smsSetUpDesc', 'Texts are turned on next to your number, where you can see what they include.')}</span>
           </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-outreach="smsEnabled" ${this.outreachPrefs?.smsEnabled ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
+          <!-- Texts go on only in Contact Settings, beside the disclosure (carriers require it). -->
+          <button type="button" class="notif-settings__upcoming-btn" data-action="open-contact-texts">${t('notificationSettings.smsSetUp', 'Set up texts')}</button>
         </div>
 
         <div class="notif-settings__capability-row">
@@ -483,22 +399,6 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="milestoneNotifications" ${this.outreachPrefs?.milestoneNotifications ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
-
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--recap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>
-            </svg>
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.weeklyRecap')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.recapDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-outreach="weeklyRecap" ${this.outreachPrefs?.weeklyRecap ? 'checked' : ''}>
             <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
@@ -614,42 +514,40 @@ class NotificationSettingsUI {
       <!-- Call to Action -->
       <div class="notif-settings__empty-cta">
         <p class="notif-settings__empty-cta-text">${t('notificationSettings.emptyCta')}</p>
-        <div class="notif-settings__empty-tip">
-          ${ICONS.sparkles}
-          <span>${t('notificationSettings.emptyTip', { feature: t('notificationSettings.ferniCheckins') })}</span>
-        </div>
       </div>
     `;
   }
 
   private renderUpcomingItem(item: ScheduledOutreach): string {
-    const initial = (item.personaName || t('team.members.ferni.name')).charAt(0);
+    const name = escapeHtml(item.personaName || t('team.members.ferni.name'));
+    const initial = escapeHtml((item.personaName || t('team.members.ferni.name')).charAt(0));
+    const id = escapeHtml(item.id);
     const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.push;
     const timeStr = this.formatTime(item.scheduledFor);
 
     return `
-      <div class="notif-settings__upcoming-item" data-outreach-id="${item.id}" data-persona="${item.personaId || 'ferni'}">
+      <div class="notif-settings__upcoming-item" data-outreach-id="${id}" data-persona="${escapeHtml(item.personaId)}">
         <div class="notif-settings__upcoming-header">
           <div class="notif-settings__upcoming-avatar">${initial}</div>
           <div class="notif-settings__upcoming-info">
-            <span class="notif-settings__upcoming-persona">${item.personaName || t('team.members.ferni.name')}</span>
+            <span class="notif-settings__upcoming-persona">${name}</span>
             <span class="notif-settings__upcoming-meta">
               <span class="notif-settings__upcoming-channel">${channelIcon}</span>
               <span class="notif-settings__upcoming-time">${ICONS.clock} ${timeStr}</span>
             </span>
           </div>
-          <span class="notif-settings__upcoming-priority notif-settings__upcoming-priority--${item.priority}">${item.priority}</span>
+          <span class="notif-settings__upcoming-priority notif-settings__upcoming-priority--${item.priority}">${escapeHtml(item.priority)}</span>
         </div>
-        <p class="notif-settings__upcoming-preview">${item.preview?.body || item.reason}</p>
+        <p class="notif-settings__upcoming-preview">${escapeHtml(item.preview.body || item.reason)}</p>
         ${item.canReschedule || item.canCancel ? `
           <div class="notif-settings__upcoming-actions">
             ${item.canReschedule ? `
-              <button class="notif-settings__upcoming-btn" data-action="reschedule" data-id="${item.id}">
+              <button class="notif-settings__upcoming-btn" data-action="reschedule" data-id="${id}">
                 ${ICONS.edit} ${t('outreachSchedule.reschedule')}
               </button>
             ` : ''}
             ${item.canCancel ? `
-              <button class="notif-settings__upcoming-btn notif-settings__upcoming-btn--danger" data-action="cancel" data-id="${item.id}">
+              <button class="notif-settings__upcoming-btn notif-settings__upcoming-btn--danger" data-action="cancel" data-id="${id}">
                 ${ICONS.trash} ${t('common.cancel')}
               </button>
             ` : ''}
@@ -715,6 +613,12 @@ class NotificationSettingsUI {
 
     this.panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
     this.panel.querySelector('[data-action="save"]')?.addEventListener('click', () => this.save());
+    this.panel
+      .querySelector('[data-action="open-contact-texts"]')
+      ?.addEventListener('click', () => {
+        this.hide();
+        void import('./lazy-screens.js').then((m) => m.openContactSettings());
+      });
 
     // Upcoming item actions
     this.panel.querySelectorAll('[data-action="reschedule"]').forEach((btn) => {
@@ -739,12 +643,8 @@ class NotificationSettingsUI {
 
   private handleOutreachChange(input: HTMLInputElement): void {
     if (!this.outreachPrefs) return;
-
     const pref = input.dataset.outreach as keyof OutreachPreferences;
-
-    if (input.type === 'checkbox') {
-      (this.outreachPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
-    }
+    (this.outreachPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
   }
 
   private handlePrefChange(input: HTMLInputElement): void {
@@ -1017,7 +917,7 @@ class NotificationSettingsUI {
 
       .notif-settings__tab--active {
         background: var(--persona-primary, #4a6741);
-        color: white;
+        color: var(--persona-on-primary, #ffffff);
       }
 
       .notif-settings__tab--active:hover { background: var(--persona-secondary, #3d5a35); }
@@ -1863,7 +1763,7 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__toggle-track { background: var(--color-background-tertiary, #2a241f); }
       [data-theme="midnight"] .notif-settings__time-field input { background: var(--color-background-secondary, #1e1a16); color: var(--color-text-primary, #faf6f0); }
       [data-theme="midnight"] .notif-settings__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .notif-settings__tab { color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .notif-settings__tab:not(.notif-settings__tab--active) { color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .notif-settings__tab:hover { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .notif-settings__empty-tip { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary, #2a241f); }

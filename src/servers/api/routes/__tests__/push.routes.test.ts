@@ -19,6 +19,7 @@ vi.mock('../../../../services/persistence/index.js', () => ({
     return {
       get: async (id: string) => docs.get(id) ?? null,
       load: async (id: string) => docs.get(id) ?? null,
+      readFailed: () => false,
       set: (id: string, data: unknown) => void docs.set(id, data),
       setImmediate: async (id: string, data: unknown) => void docs.set(id, data),
       delete: async (id: string) => void docs.delete(id),
@@ -188,21 +189,25 @@ describe('push subscribe → sender lookup', () => {
     expect(collections.get('push_subscriptions')?.has('uid-ssrf') ?? false).toBe(false);
   });
 
-  it('still accepts a native token, which is not a URL', async () => {
-    const res = response();
-    await handlePushRoutes(
-      post(
-        '/api/push/subscribe',
-        { ...SUBSCRIPTION, endpoint: 'fcm-device-token-abc', platform: 'ios' },
-        { authorization: 'Bearer verified-uid-ios' }
-      ),
-      res,
-      '/api/push/subscribe'
-    );
+  it.each(['ios', 'android'])(
+    'sends a %s app to /api/push/devices instead of storing a keyless subscription',
+    async (platform) => {
+      const res = response();
+      await handlePushRoutes(
+        post(
+          '/api/push/subscribe',
+          { ...SUBSCRIPTION, endpoint: 'fcm-device-token-abc', platform },
+          { authorization: 'Bearer verified-uid-native' }
+        ),
+        res,
+        '/api/push/subscribe'
+      );
 
-    expect(res.statusCode).toBe(200);
-    expect(collections.get('push_subscriptions')?.has('uid-ios')).toBe(true);
-  });
+      expect(res.statusCode).toBe(400);
+      expect(String(vi.mocked(res.end).mock.calls[0]?.[0])).toContain('/api/push/devices');
+      expect(collections.get('push_subscriptions')?.has('uid-native') ?? false).toBe(false);
+    }
+  );
 
   it('unsubscribe removes it from the store the sender reads', async () => {
     const headers = { authorization: 'Bearer verified-uid-3' };

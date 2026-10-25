@@ -75,8 +75,8 @@ export class TriggerEmbeddingCache {
 
       try {
         // Dynamic import to avoid circular dependencies
-        const { getFirestore } = await import('firebase-admin/firestore');
-        this.firestoreDb = getFirestore();
+        const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+        this.firestoreDb = getAdminFirestore();
         this.initialized = true;
         log.info('Trigger embedding cache initialized with Firestore');
       } catch (error) {

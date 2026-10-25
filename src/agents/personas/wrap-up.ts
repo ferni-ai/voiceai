@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { guardViolation } from './director-guard.js';
 import type { Line } from './director-notes.js';
 import { hardNews } from './turn-candor.js';
 import {
@@ -73,24 +74,39 @@ export function parseDecided(reply: string): { items: Decided[]; heavy: boolean 
           i.what.trim() !== '' &&
           i.what.trim().split(/\s+/).length <= 10
       )
-      .slice(0, 3)
       .map((i) => ({
         who: i.who as Decided['who'],
         what: (i.what as string).trim().replace(/[.!]+$/, ''),
         when: typeof i.when === 'string' && i.when.trim() ? i.when.trim() : null,
-      }));
+      }))
+      .filter(allowed)
+      .slice(0, 3);
     return { items, heavy: p.heavy === true };
   } catch {
     return null;
   }
 }
 
+/** One item as the goodbye note names it: "they'll call the landlord tomorrow". */
+function phrase(i: Decided): string {
+  const when = i.when ? ` ${i.when}` : '';
+  return i.who === 'caller' ? `they'll ${i.what}${when}` : `you said you'd ${i.what}${when}`;
+}
+
+/**
+ * The items are model-written and Ferni is told to say them aloud, so one that
+ * erodes a boundary, honesty or tool truth (director-guard.ts) is dropped.
+ * Logs the reason code, never the item.
+ */
+function allowed(i: Decided): boolean {
+  const reason = guardViolation(phrase(i));
+  if (reason) log.info({ reason }, 'wrap-up item dropped');
+  return reason === undefined;
+}
+
 /** The note for the goodbye reply: what was settled, and how to say it. */
 export function formatWrapUp(items: Decided[]): string {
-  const parts = items.map((i) => {
-    const when = i.when ? ` ${i.when}` : '';
-    return i.who === 'caller' ? `they'll ${i.what}${when}` : `you said you'd ${i.what}${when}`;
-  });
+  const parts = items.map(phrase);
   return `[Wrapping up: they're saying goodbye. Close the loop in one natural sentence, the way a friend would, naming what you two settled (${parts.join('; ')}), then a short goodbye. Not a list, not a recap of the call.]`;
 }
 
@@ -112,6 +128,11 @@ export class WrapUp {
     ),
     private readonly timeoutMs = TIMEOUT_MS
   ) {}
+
+  /** The call carried hard news, grief, illness, a crisis or real distress; it stays so. */
+  readsHeavy(): boolean {
+    return this.heavy;
+  }
 
   /** Ferni finished a reply: read what was decided from the call so far. Never throws. */
   async observe(lines: Line[]): Promise<void> {
