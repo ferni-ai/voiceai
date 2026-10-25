@@ -96,7 +96,10 @@ describe('saveIdentity keeps the holder proof', () => {
       phoneNumber: '+12025550133',
     });
     const forged = { notes: 'x', phoneVerifiedAt: '2026-10-25T00:00:00Z' };
-    await svc.updateSponsoredIdentity(mom.id, 'seth', forged);
+    // #2814's update allowlist refuses the field outright; the proof must still never land.
+    await expect(svc.updateSponsoredIdentity(mom.id, 'seth', forged)).rejects.toThrow(
+      /phoneVerifiedAt is not editable/
+    );
     expect(stored(mom.id)?.phoneVerifiedAt).toBeUndefined();
   });
 });
