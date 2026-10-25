@@ -203,7 +203,10 @@ async function eraseLinkedRecords(userId: string): Promise<string[]> {
   return LINKED_RECORDS.flatMap(([name], i) => {
     const result = results[i];
     if (result?.status !== 'rejected') return [];
-    log.error({ error: String(result.reason), userId, records: name }, 'Records left behind');
+    log.error(
+      { error: erasureErrorCode(result.reason), userId, records: name },
+      'Records left behind'
+    );
     return [name];
   });
 }
