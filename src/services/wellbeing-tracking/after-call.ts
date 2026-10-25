@@ -19,7 +19,7 @@ import {
   detectCrisisSignals,
 } from '../human-transfer/escalation-classifier.js';
 import { envForCaller, type CohortStore } from '../platform/cohort-flags.js';
-import { crisisRiskThisCall, scoreCrisisLanguage } from '../safety/index.js';
+import { crisisRiskThisCall, offersCrisisLine, scoreCrisisLanguage } from '../safety/index.js';
 import { callLLM } from '../llm-utils.js';
 import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -87,9 +87,6 @@ A polite "good, you?" answering a greeting is not a mood. Most calls leave most 
 Respond with ONLY JSON: {"mood":null,"energy":null,"worry":null,"loneliness":null,"meaningfulness":null,"sleepQuality":null}`;
 }
 
-/** A FERNI line that gave the caller a crisis line: 988, or the Crisis Text Line. */
-const CRISIS_LINE = /\b(?:988|741741)\b|\bcrisis (?:text )?line\b/i;
-
 /**
  * Whether this was a crisis call. A crisis call is never scored: a mood number
  * is no way to remember it. Any one of these is enough:
@@ -98,12 +95,14 @@ const CRISIS_LINE = /\b(?:988|741741)\b|\bcrisis (?:text )?line\b/i;
  *   any classifier read that was not a clean none (a classifier-only imminent
  *   read too, even one a grounded release or the lone-imminent check later
  *   eased), a soft check-in, crisis words in the goodbye, or a read still in
- *   flight;
+ *   flight (skipped for good: there is no retry once it settles). This carries
+ *   most skips: the transcript checks below catch only about a fifth of crisis
+ *   words on their own;
  * - a caller turn the live crisis patterns read as crisis (crisis-guard.ts, with
  *   the caller's earlier turns as context), or that the human-transfer tier sends
- *   to 988 (crisis_immediate / crisis_support). This holds when nothing was noted
- *   live (crisis gate off or in shadow);
- * - a FERNI line that gave a crisis line, however it got there.
+ *   to 988 (crisis_immediate / crisis_support);
+ * - a FERNI line that gave a crisis line in any written form (offersCrisisLine:
+ *   988, 9-8-8, "nine eight eight", 741741, "Suicide and Crisis Lifeline").
  * A MINOR_CARE-held call never gets this far (runAfterCallTasks, and writeHeld below).
  */
 export function isCrisisCall(
@@ -116,7 +115,7 @@ export function isCrisisCall(
     const text = (t.content ?? '').trim();
     if (!text) continue;
     if (t.role !== 'user') {
-      if (CRISIS_LINE.test(text)) return true;
+      if (offersCrisisLine(text)) return true;
       continue;
     }
     if (scoreCrisisLanguage(text, undefined, { recentMessages: said.slice(-5) }).isCrisis)

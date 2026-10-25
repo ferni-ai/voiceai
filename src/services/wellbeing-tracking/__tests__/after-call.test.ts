@@ -166,6 +166,12 @@ describe('after-call wellbeing snapshot', () => {
       for (const line of [
         'You can call or text 988 any time, day or night.',
         'Text HOME to 741741 to reach the Crisis Text Line.',
+        // Written the way a model's free text writes it (crisis-line-speech.ts)
+        'You can call or text 9-8-8 any time',
+        'You can call 9 8 8 whenever you need',
+        'You can call or text nine eight eight any time',
+        'the Suicide and Crisis Lifeline',
+        'or text home to seven four one seven four one',
       ]) {
         expect(await scored(said(line, 'ok.'), { crisisRisk: () => false })).toBe(0);
       }
