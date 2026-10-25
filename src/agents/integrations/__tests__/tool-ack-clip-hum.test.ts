@@ -140,15 +140,15 @@ describe('TOOL_ACK_CLIP and TOOL_HUM: one opening sound a turn', () => {
     expect(c.hums).toHaveLength(0);
   });
 
-  it('clip skipped for a pending crisis verdict: the hum plays as before (pinned)', () => {
+  it('clip skipped for a pending crisis verdict: the hum stays silent too', () => {
     const c = call({ clip: true });
     noteCrisisVerdictPending(c.session, new Promise(() => {}));
     c.callerSays('can you look up the news');
     c.startTool('getNews');
     vi.advanceTimersByTime(2000);
     expect(c.clips).toEqual([]);
-    // TOOL_HUM does not read the crisis verdict, only crisis risk (presence-heavy.ts).
-    expect(c.hums).toHaveLength(1);
+    // No casual sound while a crisis verdict is pending (#2870, crisis-gate-signal.ts).
+    expect(c.hums).toHaveLength(0);
   });
 
   it('clip skipped as the caller talks over the tool: hum only 1.2 s after they stop', () => {
