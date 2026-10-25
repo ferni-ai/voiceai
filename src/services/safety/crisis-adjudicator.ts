@@ -84,11 +84,21 @@ export function allowCrisisAdjudicatorLiveForTests(allowed: boolean): void {
   liveAllowed = allowed;
 }
 
+/**
+ * Whether an adjudicator-style check-in may change what the caller hears. One
+ * hold for every path that asks: CRISIS_ADJUDICATOR=live and
+ * CRISIS_CLASSIFIER_ONLY_CHECKIN=live (crisis-classifier-only-live.ts) both
+ * run as shadow while it is held.
+ */
+export function adjudicatorCheckinsMayChangeReplies(): boolean {
+  return liveAllowed;
+}
+
 export function resolveCrisisAdjudicatorMode(
   env: Record<string, string | undefined> = process.env
 ): CrisisAdjudicatorMode {
   const raw = env.CRISIS_ADJUDICATOR?.trim().toLowerCase();
-  if (raw === 'live') return liveAllowed ? 'live' : 'shadow';
+  if (raw === 'live') return adjudicatorCheckinsMayChangeReplies() ? 'live' : 'shadow';
   return raw === 'shadow' ? raw : 'off';
 }
 
