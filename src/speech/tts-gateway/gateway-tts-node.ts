@@ -371,7 +371,6 @@ async function createStreamingOverlapTTS(
     ssmlProcessor,
     markFirstAudio,
   } = opts;
-
   // One continuous generation per reply: tone and pacing carry across sentences.
   if (provider.openReplyStream && process.env.TTS_REPLY_CONTINUATIONS !== 'false') {
     metrics.gatewaySyntheses++;
@@ -385,6 +384,7 @@ async function createStreamingOverlapTTS(
       emotion,
       baseSpeed: sessionSpeed(sessionId),
       sessionId,
+      callerName: opts.turnContext?.userName, // NAME_FALLING_SPLIT
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
       onStage: markFirstAudio.stage,

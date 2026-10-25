@@ -24,6 +24,8 @@ import { createTelephonyTools } from './telephony.js';
 
 // Import on-behalf call tool
 import { createCallOnBehalfTool } from './call-on-behalf.js';
+// The requesting call's real session id, read from LiveKit's run context (row 12 of the audit).
+import { withLiveSessionId } from '../../registry/live-session.js';
 
 // The call path that really rings the user's phone
 import { callUserDef } from '../proactive/outreach/agent-to-user.js';
@@ -129,7 +131,7 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       domain: 'telephony',
       tags: ['telephony', 'outbound', 'autonomous', 'on-behalf'],
       requiredServices: ['twilio'],
-      create: (ctx: ToolContext) => createCallOnBehalfTool(ctx),
+      create: (ctx: ToolContext) => withLiveSessionId(ctx, createCallOnBehalfTool),
     },
     // Personal conversational calls: agent calls family/friends for the user
     // This is an alias for callOnBehalf with personal call defaults
@@ -141,7 +143,7 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       domain: 'telephony',
       tags: ['telephony', 'outbound', 'personal', 'conversation'],
       requiredServices: ['twilio'],
-      create: (ctx: ToolContext) => createCallOnBehalfTool(ctx),
+      create: (ctx: ToolContext) => withLiveSessionId(ctx, createCallOnBehalfTool),
     },
   ];
 }

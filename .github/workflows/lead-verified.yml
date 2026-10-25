@@ -1,15 +1,22 @@
 name: Lead Verified
 
-# REPORT-ONLY: was the exact code this PR merges independently verified? Rules:
-# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Always succeeds; the
-# enforcement switch below (and making the check required) needs Seth's OK.
+# Was the exact code this PR merges independently verified? Rules:
+# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Reports on PRs and PR
+# comments; fails on merge_group when a queued head isn't verified. The queue acts on it
+# only while "Lead Verified" is a required check.
+# Re-runs when the evidence changes (comments, PR edits). issue_comment runs report in
+# the Actions log; they don't update the PR's check.
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, edited]
+  issue_comment:
+    types: [created, edited, deleted]
   merge_group:
 
 concurrency:
-  group: lead-verified-${{ github.event.pull_request.number || github.run_id }}
+  # Per event, so a comment-triggered run never cancels a pending pull_request run (whose
+  # result is the PR's check).
+  group: lead-verified-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -19,29 +26,38 @@ permissions:
 
 jobs:
   lead-verified:
-    name: Lead Verified (report-only)
+    name: Lead Verified
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # Evaluator from the BASE (main in the queue), never the PR: a PR can't rewrite
-      # its own judge. The head is fetched as data; full history for git merge-tree.
-      - uses: actions/checkout@v7
+      # The evaluator script is checked out from main (also for stacked PRs), not the PR.
+      # This workflow file itself still runs from the PR's merge or queue commit, so a PR
+      # can edit it until branch rules require code-owner review (#2547) or it moves to a
+      # main-pinned trigger. The head is fetched as data only; full history for merge-tree.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+          ref: main
           fetch-depth: 0
+          persist-credentials: false
           sparse-checkout: scripts/ci
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
       - name: Evaluate verification evidence
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
-          # ENFORCEMENT SWITCH (needs Seth's OK): uncomment to fail on NOT_VERIFIED.
-          # LEAD_VERIFIED_ENFORCE: '1'
+          # Enforced in the merge queue only (2026-10-25): there the evidence is read fresh
+          # for every queued head, and a NOT_VERIFIED or ERROR fails the group. On a PR it
+          # only reports, because comment-triggered runs don't update the PR's check.
+          LEAD_VERIFIED_ENFORCE: ${{ github.event_name == 'merge_group' && '1' || '' }}
+          # Until this Mac can post as ferni-verifier[bot] (~/.claude/bin/ferni-verifier-token),
+          # the lead's bound comments also count. Drop sethdford once that token exists.
+          LEAD_VERIFIED_AUTHORS: ferni-verifier[bot],sethdford
         run: |
-          [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on the base yet"; exit 0; }
+          [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on main yet"; exit 0; }
           node --experimental-strip-types scripts/ci/lead-verified.ts

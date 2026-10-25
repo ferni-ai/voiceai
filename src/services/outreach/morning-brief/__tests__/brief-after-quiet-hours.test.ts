@@ -93,6 +93,16 @@ describe('windows it does not move for', () => {
     expect(sendText).not.toHaveBeenCalled();
   });
 
+  it('a window that ends at 11:50: sent at 11:55, skipped by the 12:00 run', async () => {
+    saveWindow('20:00', '11:50');
+    const before = fakeDeps();
+    expect((await runMorningBriefs(before.deps, at('2026-10-18T16:55:00Z'))).report.sent).toBe(1);
+    const { deps, sendText } = fakeDeps();
+    const noon = await runMorningBriefs(deps, at('2026-10-18T17:00:00Z')); // 12:00 Chicago
+    expect(noon.report.reasons).toEqual({ 'not-8am': 1 });
+    expect(sendText).not.toHaveBeenCalled();
+  });
+
   it('a window that leaves 08:00 free (12:00 to 14:00): 08:00 as before, not after it', async () => {
     saveWindow('12:00', '14:00');
     expect((await runMorningBriefs(fakeDeps().deps, at('2026-10-18T13:05:00Z'))).report.sent).toBe(

@@ -28,7 +28,7 @@ import { composeMorningBrief, type MorningBriefInput } from './compose.js';
 const log = createLogger({ module: 'MorningBrief' });
 
 export const MORNING_BRIEF_HOUR = 8;
-/** A brief moved past saved quiet hours goes before this local hour, or not that day. */
+/** A brief moved past saved quiet hours is sent before this local hour, or not that day. */
 export const MORNING_BRIEF_LATEST_HOUR = 12;
 /** Longer than a scheduler retry, shorter than a day: one text a morning. */
 export const MORNING_BRIEF_GAP_MS = 20 * 60 * 60 * 1000;
@@ -96,7 +96,9 @@ function inBriefHour(user: Record<string, unknown>, zone: string, local: WallTim
   // `now` in the hour from `opens` puts `opens` on today's date, at or after 08:00.
   const opens = quietEndsAt(eight, saved.window, saved.zones);
   const inHour = now >= opens && now.getTime() < opens.getTime() + HOUR_MS;
-  return inHour && wallTimeIn(opens, zone).hour < MORNING_BRIEF_LATEST_HOUR;
+  // Sent before MORNING_BRIEF_LATEST_HOUR, not just opened before it: a window ending at 11:50
+  // gives a run at 12:00, and that brief is skipped.
+  return inHour && local.hour < MORNING_BRIEF_LATEST_HOUR;
 }
 
 /** One pass over the recipients. Returns who they are, so the push brief can skip them. */

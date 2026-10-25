@@ -131,6 +131,49 @@ describe('a saved window over all their call hours', () => {
   });
 });
 
+// CALL_NOW_OWNER_OVERRIDE (#2849) with an all-day saved window: the owner's explicit call-now is
+// decided first and overrides it, as a call the user asked for is exempt (#2781). Without the
+// override, or late there, the hold follows the all-day rule (next day, then dropped).
+describe('call-now and an all-day saved window', () => {
+  const callMom = (callNow: boolean) => ({
+    kind: 'on_behalf' as const,
+    request: {
+      userId: 'u1',
+      contactQuery: 'my mom',
+      purpose: 'say hi',
+      resolvedContact: { name: 'Mom', phone: '+13125550101', relationship: 'mother' },
+      ...(callNow && { callNow: true }),
+    } as never,
+  });
+  const recipient = { recipientUserId: 'u1', recipientPhone: '+13125550101' };
+
+  it('daytime call-now: rings now, nothing held', async () => {
+    vi.stubEnv('CALL_NOW_OWNER_OVERRIDE', 'on');
+    vi.setSystemTime(NOON);
+    expect(
+      await holdForCallHours('u1', callMom(true), { ...recipient, now: NOON })
+    ).toBeUndefined();
+    expect(deferred()).toHaveLength(0);
+  });
+
+  it('late there (23:00): held to their next day with the late ask, then the all-day drop', async () => {
+    vi.stubEnv('CALL_NOW_OWNER_OVERRIDE', 'on');
+    const late = new Date('2026-10-21T04:00:00Z'); // Tue 23:00 Chicago
+    vi.setSystemTime(late);
+    const held = await holdForCallHours('u1', callMom(true), { ...recipient, now: late });
+    expect(held).toMatchObject({ lateNow: true });
+    expect(deferred()[0].data).toMatchObject({ scheduledFor: NINE_NEXT, quietAllDay: recipient });
+    expect(deferred()[0].data.quietAllDay).not.toHaveProperty('now');
+  });
+
+  it('override off: the all-day hold as before', async () => {
+    vi.setSystemTime(NOON);
+    const held = await holdForCallHours('u1', callMom(true), { ...recipient, now: NOON });
+    expect(held?.at.toISOString()).toBe(NINE_NEXT);
+    expect(held).not.toHaveProperty('lateNow');
+  });
+});
+
 // Flag off or unset: the guard's decision is main's (its own hours only), and so is the deferral.
 const DAYS = ['2026-03-08', '2026-10-25'];
 const TIMES = DAYS.flatMap((d) => {

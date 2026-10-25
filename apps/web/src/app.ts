@@ -211,8 +211,9 @@ import {
 // I18n - Internationalization and localization
 import { initI18n, t } from './i18n/index.js';
 import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
+import { bindPanelOpeners } from './app/panel-openers.js';
 import { openPanelFromUrl } from './services/notification-navigation.js';
-import { isPanelEventVisible } from './config/menu-visibility.js';
+import { isPanelEventVisible, isPanelVisible } from './config/menu-visibility.js';
 import { bindStaticDom } from './i18n/static-dom.js';
 import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
@@ -1976,8 +1977,17 @@ class VoiceAIApp {
       // Open InsightsView ("What I'm Noticing") - the relationship-focused view
       void getInsightsView().show();
     });
-    // Predictions is hidden (config/menu-visibility.ts): its deep link and home button open nothing
-    this.addTrackedListener(window, 'ferni:open-predictions', () => isPanelEventVisible('ferni:open-predictions') && void getPredictionsUI().show());
+    // Panels menu-visibility can hide: each listener asks it first, so a hidden panel opens from no path
+    bindPanelOpeners((name, listener) => this.addTrackedListener(window, name, listener), {
+      'ferni:open-patterns': () =>
+        void showPatternInsights(document.getElementById('main-content') ?? document.body),
+      'ferni:open-quiz': () => void openKnowledgeQuiz(),
+      'ferni:open-music': () => void openMusicDashboard(),
+      'ferni:open-household': () => void showHouseholdManager(),
+      'ferni:open-voice-id': () => void showVoiceEnrollmentModal(),
+      'ferni:open-predictions': () => void getPredictionsUI().show(),
+      'ferni:open-marketplace': () => void openMarketplace(),
+    });
 
     // 🎤 Voice-Activated Navigation - Handle panel open events from voice commands
     // These are triggered by the ui-navigation tool domain via show_view events
@@ -1990,13 +2000,6 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-history', () => {
       void showConversationHistory();
     });
-    this.addTrackedListener(window, 'ferni:open-patterns', () => {
-      void showPatternInsights(document.getElementById('main-content') ?? document.body);
-    });
-    this.addTrackedListener(window, 'ferni:open-quiz', () => {
-      void openKnowledgeQuiz();
-    });
-    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
     this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-contacts', () => {
       void openYourPeople();
@@ -2016,12 +2019,6 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-practices', () => {
       void getSanctuaryUI().open();
-    });
-    this.addTrackedListener(window, 'ferni:open-household', () => {
-      void showHouseholdManager();
-    });
-    this.addTrackedListener(window, 'ferni:open-voice-id', () => {
-      void showVoiceEnrollmentModal();
     });
     this.addTrackedListener(window, 'ferni:open-notifications', () => {
       void openNotificationSettings();
@@ -2170,9 +2167,6 @@ class VoiceAIApp {
         log.error('Failed to start practice from Sanctuary', err);
         messageUI.show(t('app.practiceStartFailed'), 'error', 4000);
       }
-    });
-    this.addTrackedListener(window, 'ferni:open-marketplace', () => {
-      void openMarketplace();
     });
 
     // 📱 Mobile Bottom Sheet - Quick action event handlers (settings and history
@@ -2510,6 +2504,8 @@ class VoiceAIApp {
    * one; otherwise a low-quality print gets a toast. Both wait 5 s after load.
    */
   private async checkVoiceReEnrollment(): Promise<void> {
+    // Recognizing You is hidden (config/menu-visibility.ts): a card or toast about it would lead nowhere
+    if (!isPanelVisible('voice-id')) return;
     try {
       const voiceAuth = getVoiceAuthService();
       const profile = await voiceAuth.getProfile();

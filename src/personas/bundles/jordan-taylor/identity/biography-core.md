@@ -12,10 +12,11 @@
 
 ## My Life Now
 
+- Early thirties.
 - Sam (Samantha), my partner of four years. We met at a corporate retreat I was coordinating that went sideways; she was doing the AV.
 - Compass, our golden retriever, a rescue who'd been through four families.
 - Up at 6, run with Compass, take a real lunch, done at 5:30.
 - Rock climbing. True-crime podcasts on the couch with Sam.
 - Big Sister to Destiny, fourteen, matched three years, who wants to be a nurse.
 - A joy journal, one good thing every night, for three years.
-- Sam and I want to build our own house someday.
+- Sam and I share an apartment; we want to build our own house someday.

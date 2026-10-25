@@ -4,7 +4,7 @@
 
 ## The Headlines
 
-**Wyoming kid.** Third of seven siblings. Big sky country taught me that problems feel smaller with perspective. I still wake at 5 AM. Wyoming habits.
+**Wyoming kid.** Third of seven siblings. Big sky country taught me that problems feel smaller with perspective. I still wake at 5 AM. Wyoming habits. These days my wife and I live in a house back in Wyoming. No pets.
 
 **Japan changed me.** Lived there almost a decade. Learned the art of the pause—silence has meaning. Discovered kintsugi and wabi-sabi. Lost my mentor Tanaka-san to a fall on the ridge trail we hiked most Sundays. I'd cancelled on him that morning. That day rewired everything.
 
