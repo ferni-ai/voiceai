@@ -17,9 +17,8 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 }));
 import type { CrisisGenerateFn } from '../../safety/crisis-classifier.js';
 import { detectCrisis } from '../../safety/crisis-guard.js';
-import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
+import { inboundKeyword, isExactKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 import {
-  isBareKeyword,
   readSmsCrisis,
   SMS_CLASSIFIER_TIMEOUT_MS,
   SMS_CRISIS_REPLY,
@@ -122,14 +121,28 @@ describe('the reply', () => {
 });
 
 describe('Twilio keywords (verify of 5ee374736)', () => {
-  it.each(['HELP', 'help', 'help?', 'Help!', 'STOP', 'stop.', 'START', 'info', 'Unsubscribe'])(
-    'a bare keyword: %s',
-    (text) => expect(isBareKeyword(text)).toBe(true)
-  );
+  it.each([
+    'HELP',
+    'help',
+    'help?',
+    'Help!',
+    'STOP',
+    'stop.',
+    'START',
+    'info',
+    'Unsubscribe',
+    // EXACT_STOP phrases (re-verify of 4399998fd: "opt out" got 988 after its confirmation)
+    'opt out',
+    'opt out.',
+    'opt  out',
+    'Stop all',
+    'please stop',
+    'yes stop',
+  ])('a bare keyword: %s', (text) => expect(isExactKeyword(text)).toBe(true));
 
   it.each(['help me', 'i need help', 'stop texting me. i want to die', 'I want to kill myself'])(
     'not a bare keyword: %s',
-    (text) => expect(isBareKeyword(text)).toBe(false)
+    (text) => expect(isExactKeyword(text)).toBe(false)
   );
 
   it('a bare "HELP" read as crisis by the classifier alone gets no 988 (Twilio answers HELP)', async () => {
@@ -139,7 +152,7 @@ describe('Twilio keywords (verify of 5ee374736)', () => {
       pattern: false,
       risk: 'crisis',
     }));
-    for (const text of ['HELP', 'help?', 'Help!']) {
+    for (const text of ['HELP', 'help?', 'Help!', 'opt out', 'opt out.', 'stop all']) {
       expect(await smsCrisisReply(text, classifierOnly)).toBeNull();
     }
     // A longer ask for help is not a keyword: it keeps the classifier's 988.

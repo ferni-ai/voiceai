@@ -26,7 +26,7 @@ import {
   type ClassifierRisk,
   type CrisisGenerateFn,
 } from '../safety/crisis-classifier.js';
-import { inboundKeyword, keywordReply, normalizeSms } from '../messaging/sms-keywords.js';
+import { inboundKeyword, isExactKeyword, keywordReply } from '../messaging/sms-keywords.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import { escapeXml } from './twilio-ssml.js';
 
@@ -40,27 +40,6 @@ export const SMS_CRISIS_REPLY =
 export const SMS_CLASSIFIER_TIMEOUT_MS = 4_000;
 /** Twilio's longest inbound message; anything longer is not a real text and is cut before a read. */
 export const SMS_MAX_CHARS = 1_600;
-
-/** Twilio's own keywords (sms-keywords.ts): Twilio answers these, and a bare one is a request, not a disclosure. */
-const TWILIO_KEYWORDS: ReadonlySet<string> = new Set([
-  'stop',
-  'stopall',
-  'unsubscribe',
-  'cancel',
-  'end',
-  'quit',
-  'revoke',
-  'optout',
-  'start',
-  'unstop',
-  'help',
-  'info',
-]);
-
-/** "HELP", "help?", "Stop." and the like: the whole text is one Twilio keyword. */
-export function isBareKeyword(text: string): boolean {
-  return TWILIO_KEYWORDS.has(normalizeSms(text));
-}
 
 export interface SmsCrisisRead {
   crisis: boolean;
@@ -105,7 +84,7 @@ export async function smsCrisisReply(
   }
   // A bare keyword ("HELP") read as crisis by the classifier alone was answered
   // twice (988 and Twilio's own HELP reply). Only a pattern hit counts there.
-  const keyword = isBareKeyword(text);
+  const keyword = isExactKeyword(text);
   if (keyword && !outcome.pattern) outcome = { ...outcome, crisis: false };
   log.info(
     { mode, crisis: outcome.crisis, pattern: outcome.pattern, risk: outcome.risk, keyword },
