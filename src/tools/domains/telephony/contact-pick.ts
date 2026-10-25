@@ -1,12 +1,8 @@
 /**
- * Which saved contact a call rings, for both the read-back (call-confirm.ts) and the dial
- * (call-on-behalf.ts), and the name a number given during a call is saved under.
- *
- * Default: exactly as before (the store's search for the words as said, first match),
- * with one fix (phone-calls audit 2026-10-25, rows 1-2): when that first match has no
- * number and a later match is the same contact name WITH one (a duplicate row), ring the
- * duplicate instead of saying "no number saved". The owner had two "Mom" rows, the older
- * phoneless one stored first, so every call to Mom failed.
+ * Which saved contact a call rings (read-back in call-confirm.ts, dial in call-on-behalf.ts).
+ * Default: as before (the store's first match for the words as said), with one fix (audit
+ * 2026-10-25, rows 1-2): a phoneless first match yields to a same-named duplicate row with a
+ * number. The owner's older, phoneless "Mom" row came first, so every call to Mom failed.
  * CONTACT_PICK_V2 on: the scored picker (contact-pick-v2.ts).
  *
  * @module tools/domains/telephony/contact-pick
@@ -18,6 +14,7 @@ import {
   digits,
   findScored,
   norm,
+  notesAgree,
   type ContactPick,
   type ContactStores,
   type PickRow,
@@ -29,14 +26,16 @@ const hasPhone = (row: PickRow): boolean => digits(row.phone) !== '';
 
 /**
  * The default path: the first match, or (when it has no number) the first later match
- * with the same full name and a number. Anything else is as before: null.
+ * with the same full name and a number whose notes don't say it is someone else (a
+ * phoneless "old coworker" John Smith never becomes the "plumber" one). Else, as before: null.
  */
 export function pickFirstOrDuplicate<T extends PickRow>(results: readonly T[]): T | null {
   const [first] = results;
   if (!first) return null;
   if (hasPhone(first)) return first;
   const name = norm(first.name);
-  return (name && results.find((r) => hasPhone(r) && norm(r.name) === name)) || null;
+  const same = (r: T) => hasPhone(r) && norm(r.name) === name && notesAgree(first, r);
+  return (name && results.find(same)) || null;
 }
 
 /** The contact to ring for what was said, a question to ask instead, or none. */
@@ -50,11 +49,7 @@ export async function findContactToCall<T extends PickRow>(
   return contact ? { contact } : null;
 }
 
-/**
- * A lookup's answer for the call: the one contact; when the caller must choose, the one
- * whose number they gave, or the question to ask (dial nothing); null for none, or for a
- * number none of them has (a new contact).
- */
+/** The contact to call; for a question, the choice whose number was given, else the question. */
 export function pickFromTie<T extends PickRow>(
   found: T | { choices: readonly T[]; ask: string } | null,
   phoneNumber?: string
@@ -66,11 +61,7 @@ export function pickFromTie<T extends PickRow>(
   return phoneNumber ? null : found.ask;
 }
 
-/**
- * How a number given during a call is saved. Default: as before (the words said, minus
- * "my "). CONTACT_PICK_V2: under the relation's name ("Dad" for "my father"); a request
- * naming no one ("them", "contact") saves nothing (null).
- */
+/** How a number given in a call is saved: as before, or (CONTACT_PICK_V2) as "Dad", or not. */
 export function saveFieldsFor(
   contactQuery: string,
   relationshipWord: string | undefined

@@ -271,8 +271,8 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
   lindaNotes('Mom', LINDA, LINDA),
-  lindaNotes('mom - cell', LINDA, LINDA),
-  lindaNotes('Mom (work)', LINDA, LINDA),
+  lindaNotes('mom - cell', null, null),
+  lindaNotes('Mom (work)', null, null),
   lindaNotes("Mom's new number", null, null),
   lindaNotes('mother', LINDA, LINDA),
   lindaNotes('stepmom', null, null),
@@ -333,3 +333,43 @@ export const DEFAULT_PATH_FIXES: Record<string, Pick> = {
   'the prod bug: two Mom rows, the phoneless one stored first|mom': 'Mom|8015550163',
   'the prod bug: two Mom rows, the phoneless one stored first|mother': 'Mom|8015550163',
 };
+
+/** #2884 round-1 B2 rows: the real relative has no number; each note names someone else. */
+export const NOT_THE_OWNERS: Array<{ relative: Seed; other: Seed; asks: string[] }> = [
+  {
+    relative: ['Dad', undefined, "User's dad", F],
+    other: ['Hank', '8015550601', "User's father-in-law", F],
+    asks: ['my dad', 'my father', 'dad'],
+  },
+  {
+    relative: ['Dad', undefined, "User's dad", F],
+    other: ['Walt', '8015550602', 'my dad-in-law', F],
+    asks: ['my dad', 'dad'],
+  },
+  {
+    relative: ['Mom', undefined, undefined, F],
+    other: ['Bev', '8015550603', "User's mother-in-law", F],
+    asks: ['my mom', 'mom'],
+  },
+  {
+    relative: ['Dad', undefined, "User's dad", F],
+    other: ['Ted', '8015550604', "used to be my dad's boss; my dad trusts him"],
+    asks: ['my dad', 'dad'],
+  },
+  {
+    relative: ['Mom', undefined, undefined, F],
+    other: ['Aunt Rita', '8015550605', 'like my mom to me', F],
+    asks: ['my mom', 'mom'],
+  },
+  {
+    relative: ['Mom', undefined, undefined, F],
+    other: ['Nana', '8015550606', 'basically my mom growing up', F],
+    asks: ['my mom', 'mom'],
+  },
+];
+
+/** Two John Smiths: the old coworker has no number, the plumber has one. */
+export const TWO_JOHN_SMITHS: Seed[] = [
+  ['John Smith', undefined, 'old coworker'],
+  ['John Smith', '8015550701', 'plumber'],
+];

@@ -3,9 +3,8 @@
  * that has a number is scored (strongest first):
  *   5  the name is exactly what was said ("Dr. Patel", "李明")
  *   4  the name is the relation asked for ("Dad" for "my dad" / "my father")
- *   3  the relationship field is that relation, or the notes say it is the OWNER's:
- *      "User's dad", "my dad", or just "dad" as a clause. Never a third party's
- *      ("her dad is a doctor"), a possessive ("Dad's wife"), or negated ("not my dad")
+ *   3  the relationship field is that relation, or a whole note segment is the OWNER's
+ *      ("User's dad", "my dad", "dad"); never "her dad", "my dad-in-law", "not my dad"
  *   2  the name contains what was said ("Sarah" in "Sarah Lee"; a title, "Father Tom")
  *   1  (not a relation query) the store's search matched another field
  * A relation query ("mom", "my dad", "my dentist") never dials on 2 or below: it asks
@@ -55,26 +54,30 @@ export function roleOf(query: string): string | undefined {
   return Object.keys(ROLES).find((role) => ROLES[role].includes(q));
 }
 
-const NEGATION = /(?:^|[^\p{L}])(?:not|isn['’]?t|no longer|never)(?![\p{L}])/iu;
-
 /**
- * The notes say this contact is the OWNER's relation: "User's dad", "my dad", or a clause
- * that is only the relation word ("mother", "mom - cell"). Not a third party's ("her dad"),
- * not a possessive ("Dad's wife", "Mom's mom"), not negated in that clause ("not my dad").
+ * A whole note segment (split on ; . , and newlines) is exactly "user's dad", "owner's dad",
+ * "my dad" or "dad". Never "my dad-in-law", "like my mom to me", "my dad trusts him".
  */
 export function notesNameOwnerRelation(notes: unknown, relation: readonly string[]): boolean {
   if (typeof notes !== 'string' || relation.length === 0) return false;
-  const clauses = notes.toLocaleLowerCase().split(/[;,.!?()\n]|\s[-–—]\s/u);
-  return clauses.some((clause) => {
-    if (relation.includes(norm(clause))) return true;
-    if (NEGATION.test(clause)) return false;
-    return relation.some((w) =>
-      new RegExp(
-        `(?:^|[^\\p{L}])(?:(?:user|owner)['’]?s|my)\\s+${w}(?![\\p{L}\\p{N}])(?!\\s*['’]s)`,
-        'u'
-      ).test(clause)
-    );
+  const segments = notes
+    .toLocaleLowerCase()
+    .replace(/’/g, "'")
+    .split(/[;.,\n]/);
+  return segments.some((segment) => {
+    const words = segment.trim().replace(/\s+/g, ' ');
+    const relationWord = words.replace(/^(?:(?:user|owner)'s|my) /, '');
+    return relation.includes(relationWord);
   });
+}
+
+/**
+ * Same-named rows are one person only when their notes don't conflict: the phoneless row's
+ * notes are empty or equal. Two John Smiths, "old coworker" and "plumber", are two people.
+ */
+export function notesAgree(phoneless: PickRow, phoned: PickRow): boolean {
+  const notes = (r: PickRow) => (r.notes ?? '').trim().toLocaleLowerCase();
+  return notes(phoneless) === '' || notes(phoneless) === notes(phoned);
 }
 
 /** What was said, read once: the cleaned words, the relation (if any), and its words. */
@@ -109,9 +112,8 @@ function listNames(choices: readonly PickRow[]): string {
       ? `${c.name} (number ending ${digits(c.phone).slice(-4)})`
       : c.name;
   const names = choices.map(label);
-  return names.length === 1
-    ? names[0]
-    : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
+  const last = names.pop();
+  return names.length ? `${names.join(', ')} or ${last}` : String(last);
 }
 
 /** Score every candidate with a number; ring the single strongest, else ask. */
@@ -137,7 +139,14 @@ export function pickScored<T extends PickRow>(
     const ask = `Nothing was dialed: no saved contact is ${who}. Did you mean ${listNames(choices)}, or what's ${who}'s number? Ask the caller.`;
     return { choices, ask };
   }
-  if (choices.length === 1) return { contact: choices[0] };
+  if (choices.length === 1) {
+    // A same-named contact without a number whose notes say it is someone else: ask instead
+    const [one] = choices;
+    const other = rows.some(
+      ({ row }) => !digits(row.phone) && norm(row.name) === norm(one.name) && !notesAgree(row, one)
+    );
+    return other ? null : { contact: one };
+  }
   const ask = `Nothing was dialed: more than one contact matches "${said.trim()}". Ask the caller which one: ${listNames(choices)}?`;
   return { choices, ask };
 }
@@ -163,18 +172,15 @@ export async function findScored<T extends PickRow>(
   const searched = (await Promise.all(terms.map((t) => stores.search(userId, t)))).flat();
   // A failed full listing is no listing (getContacts degrades the same way); the search stands
   const all = isRelation ? await stores.list(userId).catch((): T[] => []) : [];
-  const seen = new Set<unknown>();
-  const rows: Array<{ row: T; fromSearch: boolean }> = [];
-  for (const [row, fromSearch] of [
-    ...searched.map((r) => [r, true] as const),
-    ...all.map((r) => [r, false] as const),
-  ]) {
-    const key = row.id ?? row;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    rows.push({ row, fromSearch });
-  }
-  return pickScored(rows, said);
+  const rows = [
+    ...searched.map((row) => ({ row, fromSearch: true })),
+    ...all.map((row) => ({ row, fromSearch: false })),
+  ];
+  const key = (c: { row: T }) => c.row.id ?? c.row;
+  return pickScored(
+    rows.filter((c, i) => rows.findIndex((o) => key(o) === key(c)) === i),
+    said
+  );
 }
 
 /**

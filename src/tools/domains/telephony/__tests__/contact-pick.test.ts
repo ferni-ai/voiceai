@@ -47,7 +47,7 @@ import {
   getContacts,
 } from '../../../../services/contacts/contact-relationship-service.js';
 import { pickFirstOrDuplicate } from '../contact-pick.js';
-import { DEFAULT_PATH_FIXES, SCENARIOS } from './contact-pick.fixtures.js';
+import { DEFAULT_PATH_FIXES, SCENARIOS, TWO_JOHN_SMITHS } from './contact-pick.fixtures.js';
 import { liveCall, rings, seed, stubCallEnv, USER } from './contact-pick.harness.js';
 
 const fetchSpy = vi.fn(async () => new Response('{}'));
@@ -98,6 +98,22 @@ describe('the duplicate-row rescue', () => {
     expect(pickFirstOrDuplicate([phoneless, other])).toBeNull();
     expect(pickFirstOrDuplicate([other, phoned])).toBe(other);
     expect(pickFirstOrDuplicate([])).toBeNull();
+    // Notes that say it is someone else: never rescued (the old coworker is not the plumber)
+    const [coworker, plumber] = TWO_JOHN_SMITHS.map(([name, phone, notes]) => ({
+      name,
+      phone,
+      notes,
+    }));
+    expect(pickFirstOrDuplicate([coworker, plumber])).toBeNull();
+    expect(pickFirstOrDuplicate([{ ...coworker, notes: ' PLUMBER ' }, plumber])).toBe(plumber);
+  });
+
+  it('two John Smiths: "John Smith" asks for the number, as main does', async () => {
+    await seed(TWO_JOHN_SMITHS);
+    expect(await rings('John Smith')).toBeNull();
+    const out = await liveCall().call({ contactQuery: 'John Smith', purpose: 'say hi' }, 'c1');
+    expect(out).toMatch(/^Nothing was dialed: I don't have a number/);
+    expect(sip.createSipParticipant).not.toHaveBeenCalled();
   });
 
   it('the read-back and the dial use the rescued Mom and her number', async () => {

@@ -3,8 +3,9 @@
  * probe scenarios (rounds 1 and 2) plus the round-2 blockers:
  * - B1: a relation query ("my dad") never dials a name that merely contains the word
  *   (Father Tom, Mama's Kitchen, Sister Mary); it asks the caller instead.
- * - B2: notes count only as the OWNER's relation: never "her dad is a doctor", never
- *   "not my dad, just a family friend".
+ * - B2: notes count only as the OWNER's relation, as a whole note segment ("User's dad",
+ *   "my dad", "dad"): never "her dad is a doctor", "not my dad", "User's father-in-law",
+ *   "my dad-in-law", "like my mom to me" or "my dad trusts him".
  * - B3: names in any script ("李明", "Ольга Петрова", "محمد") resolve by exact name.
  *
  * Drives the real contact store (in memory), the real lookup and the real gated tool.
@@ -55,7 +56,7 @@ import {
   notesNameOwnerRelation,
   roleOf,
 } from '../contact-pick-v2.js';
-import { SCENARIOS } from './contact-pick.fixtures.js';
+import { NOT_THE_OWNERS, SCENARIOS, TWO_JOHN_SMITHS } from './contact-pick.fixtures.js';
 import { liveCall, rings, seed, stubCallEnv, USER } from './contact-pick.harness.js';
 
 const fetchSpy = vi.fn(async () => new Response('{}'));
@@ -123,8 +124,40 @@ describe("B2: notes count only as the owner's relation", () => {
     ["Dad's wife", false],
     ["User's dad's wife", false],
     ["Mom's cell; Dad uses it too", false],
+    ['  My  Dad. ', true],
+    ['User’s father', true],
+    ['old friend; my dad', true],
+    ["User's father-in-law", false],
+    ['my dad-in-law', false],
+    ["used to be my dad's boss; my dad trusts him", false],
+    ['like my dad to me', false],
+    ['basically my dad growing up', false],
+    ['stepdad', false],
   ])('"%s" → %s', (notes, owner) => {
     expect(notesNameOwnerRelation(notes, dad)).toBe(owner);
+  });
+
+  for (const { relative, other, asks } of NOT_THE_OWNERS) {
+    it(`${other[0]} ("${other[2]}") is never "${asks[0]}": nothing is dialed`, async () => {
+      await seed([relative, other]);
+      for (const said of asks) {
+        // eslint-disable-next-line no-await-in-loop -- one probe at a time, like a caller
+        expect(await rings(said), `"${said}"`).toBeNull();
+      }
+      const out = await liveCall().call({ contactQuery: asks[0], purpose: 'say hi' }, 'c1');
+      expect(out).toMatch(/^Nothing was dialed: I don't have a number/);
+      expect(sip.createSipParticipant).not.toHaveBeenCalled();
+    });
+  }
+});
+
+describe('two John Smiths, flag on', () => {
+  it('the phoned plumber is not rung for the phoneless old coworker: asks', async () => {
+    await seed(TWO_JOHN_SMITHS);
+    expect(await rings('John Smith')).toBeNull();
+    clearCache();
+    await seed([['John Smith', undefined], TWO_JOHN_SMITHS[1]]);
+    expect(await rings('John Smith')).toBe('John Smith|8015550701');
   });
 });
 
