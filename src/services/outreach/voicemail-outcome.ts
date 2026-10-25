@@ -7,38 +7,32 @@
  * without saying a message. The endCall tool and the call outcome trusted that
  * reason, so the requester was told "left a message", which was false.
  *
- * A voicemail counts as left only when the call's committed transcript has
- * Ferni speaking a message after the greeting. Every report (live, push,
+ * A voicemail counts as left only on positive evidence: a machine was heard
+ * and the leave-a-voicemail path played its message to the end
+ * (noteVoicemailSpoken in agents/outbound-call/call-control.ts). Counting
+ * Ferni's words in the transcript is not evidence: the opener alone is ~20
+ * words, and a greeting STT missed, or saved out of order, made it count.
+ * Everything else is "voicemail, no message left". Every report (live, push,
  * email, While You Were Away) words a voicemail from `voicemailLeft`, and says
  * "left a message" only when it is true.
  *
  * @module services/outreach/voicemail-outcome
  */
 
-import type { CallTranscriptTurn } from './call-transcript-intelligence.js';
-
-/** A real message is a few sentences; a hello or a "Hi, is this...?" is not one. */
-export const MIN_VOICEMAIL_WORDS = 8;
-
-const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length;
-
 /**
- * True when Ferni spoke a message after the voicemail greeting: its speech
- * after the other side's last turn (the greeting) adds up to at least
- * MIN_VOICEMAIL_WORDS. With no greeting transcribed, any speech that long
- * counts. A null transcript (capture never started) proves nothing.
+ * Phrases only a recorded greeting says. "Not available right now" and "can't
+ * come to the phone" are left out on purpose: a person can say them too, often
+ * just before "don't call me again", and voicemail is the outcome that gets a retry.
  */
-export function ferniLeftVoicemail(turns: readonly CallTranscriptTurn[] | null): boolean {
-  if (!turns) return false;
-  let lastGreeting = -1;
-  turns.forEach((turn, i) => {
-    if (turn.role === 'recipient') lastGreeting = i;
-  });
-  const after = turns.slice(lastGreeting + 1).filter((turn) => turn.role === 'agent');
-  return wordCount(after.map((turn) => turn.content).join(' ')) >= MIN_VOICEMAIL_WORDS;
-}
+const RECORDED_GREETING =
+  /\b(leave (me |us )?a message|(after|at) the (tone|beep)|voice ?mail|mailbox|record your message)\b/i;
+
+/** True when the words are ones only a voicemail greeting says. */
+export const isRecordedGreeting = (said: string): boolean => RECORDED_GREETING.test(said);
 
 export interface VoicemailWords {
+  /** The report's outcome sentence. */
+  outcome: string;
   pushTitle: string;
   pushBody: string;
   emailSubject: string;
@@ -53,6 +47,7 @@ export interface VoicemailWords {
 export function voicemailWords(left: boolean | undefined, name: string): VoicemailWords {
   return left === true
     ? {
+        outcome: `I got ${name}'s voicemail and left a message letting them know you were thinking of them.`,
         pushTitle: `📞 Left voicemail for ${name}`,
         pushBody: 'They should call back soon.',
         emailSubject: `📞 Left a message for ${name}`,
@@ -61,6 +56,7 @@ export function voicemailWords(left: boolean | undefined, name: string): Voicema
         label: 'Left voicemail',
       }
     : {
+        outcome: `I got ${name}'s voicemail, but I didn't leave a message. Want me to try again later?`,
         pushTitle: `📞 Reached ${name}'s voicemail`,
         pushBody: 'No message left.',
         emailSubject: `📞 Reached ${name}'s voicemail`,

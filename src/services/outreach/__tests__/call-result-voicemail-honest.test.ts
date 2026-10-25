@@ -8,6 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OutgoingEmail } from '../../../types/email-sender.js';
 import type { CallTranscriptTurn } from '../call-transcript-intelligence.js';
+import type { CallOutcome } from '../../../tools/domains/telephony/types.js';
 
 const stored = vi.hoisted(() => ({ docs: [] as Array<Record<string, unknown>> }));
 const fakeDb = vi.hoisted(() => {
@@ -57,6 +58,7 @@ const { buildCallOutcome, toOnBehalfCallRequest } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
 const { captureCallResult } = await import('../call-result-capture.js');
 const { buildOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
+const { twilioStatusToOutcome } = await import('../../../servers/api/routes/twilio-call-status.js');
 const { buildPendingCallResultsContext } =
   await import('../../../intelligence/context-builders/external/pending-call-results.js');
 
@@ -69,7 +71,7 @@ const message: CallTranscriptTurn = {
   content: "Hi Linda, it's Ferni, Sam's AI friend. Sam wanted to check in. Thanks, bye!",
 };
 
-async function reportVoicemail(userId: string, turns: CallTranscriptTurn[]) {
+async function reportVoicemail(userId: string, turns: CallTranscriptTurn[], spoken: boolean) {
   const call = buildOnBehalfDispatch({
     callId: `call-${userId}`,
     requester: { userId, name: 'Sam', timezone: 'America/New_York', originalSessionId: 'gone' },
@@ -78,7 +80,15 @@ async function reportVoicemail(userId: string, turns: CallTranscriptTurn[]) {
     objective: 'check_in',
     callType: 'personal',
   });
-  const outcome = buildCallOutcome(call, turns, null, 'voicemail_left', 30);
+  const outcome = buildCallOutcome(call, turns, null, 'voicemail_left', 30, spoken);
+  return deliver(userId, call, outcome);
+}
+
+async function deliver(
+  userId: string,
+  call: ReturnType<typeof buildOnBehalfDispatch>,
+  outcome: CallOutcome
+) {
   await captureCallResult(call.callId, outcome, toOnBehalfCallRequest(call));
   await vi.waitFor(() => expect(port.send).toHaveBeenCalled());
   await vi.waitFor(() => expect(push.send).toHaveBeenCalled());
@@ -104,8 +114,8 @@ afterEach(() => {
 });
 
 describe('report after endCall(voicemail_left)', () => {
-  it('no message spoken: push, email and live context all say no message was left', async () => {
-    const { push: p, email, live } = await reportVoicemail('u-none', greeting);
+  it('no message recorded as spoken (even with one in the transcript): push, email and live context all say no message was left', async () => {
+    const { push: p, email, live } = await reportVoicemail('u-none', [...greeting, message], false);
     expect(p.title).toBe("📞 Reached Mom's voicemail");
     expect(p.body).toBe('No message left.');
     expect(email.subject).toBe("📞 Reached Mom's voicemail");
@@ -116,11 +126,57 @@ describe('report after endCall(voicemail_left)', () => {
     expect(live).not.toMatch(/Left voicemail/);
   });
 
-  it('message spoken after the greeting: push, email and live context say it was left', async () => {
-    const { push: p, email, live } = await reportVoicemail('u-left', [...greeting, message]);
+  it('message recorded as spoken by the voicemail path: push, email and live context say it was left', async () => {
+    const { push: p, email, live } = await reportVoicemail('u-left', [...greeting, message], true);
     expect(p.title).toBe('📞 Left voicemail for Mom');
     expect(email.subject).toBe('📞 Left a message for Mom');
     expect(JSON.stringify(email)).toContain('I left a voicemail for Mom');
     expect(live).toContain('Left voicemail');
+  });
+});
+
+describe('Twilio status webhook, call answered by a machine', () => {
+  it('reports a voicemail with no message, never "left voicemail"', async () => {
+    const call = buildOnBehalfDispatch({
+      callId: 'call-u-twilio',
+      requester: { userId: 'u-twilio', name: 'Sam', timezone: 'UTC', originalSessionId: 'gone' },
+      contact: { name: 'Mom', phone: '+15555550100', relationship: 'mother' },
+      purpose: 'check in on her',
+      objective: 'check_in',
+      callType: 'personal',
+    });
+    for (const AnsweredBy of ['machine', 'machine_end_beep'] as const) {
+      const outcome = twilioStatusToOutcome(
+        {
+          CallSid: 'CA0',
+          AccountSid: 'AC0',
+          From: '+15555550101',
+          To: '+15555550100',
+          CallStatus: 'completed',
+          CallDuration: '25',
+          Direction: 'outbound-api',
+          AnsweredBy: AnsweredBy as 'machine',
+        },
+        { callId: call.callId, contactName: 'Mom' } as Parameters<typeof twilioStatusToOutcome>[1]
+      );
+      expect(outcome).toMatchObject({ status: 'voicemail', voicemailLeft: false });
+      expect(outcome?.outcome).not.toMatch(/left (a )?(voicemail|message)/i);
+    }
+    const machine = twilioStatusToOutcome(
+      {
+        CallSid: 'CA1',
+        AccountSid: 'AC0',
+        From: '+15555550101',
+        To: '+15555550100',
+        CallStatus: 'completed',
+        Direction: 'outbound-api',
+        AnsweredBy: 'machine',
+      },
+      { callId: call.callId, contactName: 'Mom' } as Parameters<typeof twilioStatusToOutcome>[1]
+    );
+    const { push: p, email } = await deliver('u-twilio', call, machine as CallOutcome);
+    expect(p.title).toBe("📞 Reached Mom's voicemail");
+    expect(p.body).toBe('No message left.');
+    expect(JSON.stringify(email)).not.toMatch(/Left (voicemail|a message)/);
   });
 });

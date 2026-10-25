@@ -15,6 +15,10 @@ const stubs = vi.hoisted(() => ({
   room: undefined as unknown,
   /** When the voicemail greeting starts, in ms after pickup. */
   greetingAtMs: Infinity,
+  /** What the detector makes of the words that start then. */
+  greeting: { category: 'machine-vm', transcript: 'Leave a message after the tone' },
+  /** The voicemail message was cut off before it finished. */
+  messageCutOff: false,
   /** Ms after pickup that the current detector run starts listening. */
   clockMs: 0,
   amdOptions: [] as Array<{ noSpeechTimeoutMs?: number; interruptOnMachine?: boolean }>,
@@ -33,7 +37,7 @@ vi.mock('@livekit/agents', async (importOriginal) => {
       const end = stubs.clockMs + this.windowMs;
       if (stubs.greetingAtMs <= end) {
         stubs.clockMs = stubs.greetingAtMs;
-        return { category: 'machine-vm', transcript: 'Leave a message after the tone', delayMs: 0 };
+        return { ...stubs.greeting, delayMs: 0 };
       }
       stubs.clockMs = end;
       return { category: 'uncertain', transcript: '', delayMs: 0 };
@@ -54,7 +58,8 @@ vi.mock('../call-control.js', async (importOriginal) => {
 
 const { openIfOnBehalfCall, FIRST_SPEECH_TIMEOUT_MS, AFTER_OPENER_LISTEN_MS } =
   await import('../livekit-call-opening.js');
-const { registerOnBehalfCallRoom, forgetOnBehalfCallRoom } = await import('../call-control.js');
+const { registerOnBehalfCallRoom, forgetOnBehalfCallRoom, takeVoicemailSpoken } =
+  await import('../call-control.js');
 const { setOutboundCallContext } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 
@@ -63,10 +68,15 @@ const SESSION = 'ob-vm2';
 /** A multi-agent persona: say() only queues, and the session reports when Ferni starts speaking. */
 function callingAgent() {
   const playout = { waitForPlayout: vi.fn(async () => undefined) };
+  const reply = () => ({
+    waitForPlayout: vi.fn(async () => undefined),
+    interrupted: stubs.messageCutOff,
+    chatItems: [{ type: 'message', role: 'assistant' }],
+  });
   const session = Object.assign(new EventEmitter(), {
     agentState: 'listening',
     say: vi.fn(() => playout),
-    generateReply: vi.fn(() => playout),
+    generateReply: vi.fn((_options?: { instructions: string }) => reply()),
   });
   const say = vi.fn(() => {
     // Detection must not start before this: it would hold the queued opener.
@@ -88,6 +98,8 @@ const restore = (name: string, value: string | undefined) => {
 beforeEach(() => {
   stubs.clockMs = 0;
   stubs.amdOptions = [];
+  stubs.greeting = { category: 'machine-vm', transcript: 'Leave a message after the tone' };
+  stubs.messageCutOff = false;
   stubs.hangUpCall.mockClear();
   stubs.room = Object.assign(new EventEmitter(), {
     remoteParticipants: new Map([
@@ -156,7 +168,18 @@ describe('a voicemail greeting that starts 4.5 s after pickup', () => {
     expect(instructions).toContain(`"Hi Doug, it's Ferni, Sam's AI friend."`);
     expect(instructions).toContain('check in on Doug');
     expect(agent.wireHandlers).not.toHaveBeenCalled();
+    expect(takeVoicemailSpoken(SESSION)).toBe(true); // the report's only evidence of a message
   });
+});
+
+it('a voicemail message that is cut off is not recorded as spoken', async () => {
+  process.env.CALL_VOICEMAIL_V2 = 'on';
+  stubs.greetingAtMs = 4_500;
+  stubs.messageCutOff = true;
+  const agent = callingAgent();
+  openIfOnBehalfCall(SESSION, agent);
+  await vi.waitFor(() => expect(stubs.hangUpCall).toHaveBeenCalledWith(SESSION, 'voicemail_left'));
+  expect(takeVoicemailSpoken(SESSION)).toBe(false);
 });
 
 describe('a voicemail greeting that starts after the opener (9 s after pickup)', () => {
@@ -189,6 +212,37 @@ describe('a voicemail greeting that starts after the opener (9 s after pickup)',
     expect(agent.session.generateReply).toHaveBeenCalledTimes(1);
     expect(stubs.hangUpCall).toHaveBeenCalledTimes(1);
     expect(agent.wireHandlers).not.toHaveBeenCalled();
+    expect(takeVoicemailSpoken(SESSION)).toBe(true);
+  });
+
+  it('with CALL_VOICEMAIL_V2 on: a person answering late gets the conversation, no hang-up', async () => {
+    process.env.CALL_VOICEMAIL_V2 = 'on';
+    stubs.greeting = { category: 'human', transcript: "Hello? Who's this?" };
+    const agent = callingAgent();
+    openIfOnBehalfCall(SESSION, agent);
+    await vi.waitFor(() => expect(agent.wireHandlers).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(stubs.amdOptions).toHaveLength(2);
+    expect(stubs.hangUpCall).not.toHaveBeenCalled();
+    expect(agent.session.generateReply).not.toHaveBeenCalled(); // the normal reply answers them
+    expect(takeVoicemailSpoken(SESSION)).toBe(false);
+  });
+
+  it('with CALL_VOICEMAIL_V2 on: a person who sounds like a machine is answered, not voicemailed', async () => {
+    process.env.CALL_VOICEMAIL_V2 = 'on';
+    // AMD can call this machine-vm; without a recorded-greeting phrase it is not definitive.
+    stubs.greeting = {
+      category: 'machine-vm',
+      transcript: "Hi, you've reached Sam... oh hey, it's me",
+    };
+    const agent = callingAgent();
+    openIfOnBehalfCall(SESSION, agent);
+    await vi.waitFor(() => expect(agent.wireHandlers).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(stubs.hangUpCall).not.toHaveBeenCalled();
+    expect(agent.session.generateReply).toHaveBeenCalledTimes(1);
+    expect(agent.session.generateReply.mock.calls[0]).toEqual([]); // carry on, no voicemail script
+    expect(takeVoicemailSpoken(SESSION)).toBe(false);
   });
 });
 

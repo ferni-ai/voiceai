@@ -12,7 +12,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { outboundPartiesFor, waitForCallAnswered } from '../shared/outbound-opener.js';
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
-import { amdOpensCall, hangUpCall, onBehalfCallFor } from './call-control.js';
+import { amdOpensCall, hangUpCall, noteVoicemailSpoken, onBehalfCallFor } from './call-control.js';
 import { openOnBehalfCall, voicemailInstructions, type FirstWords } from './call-opening.js';
 
 const log = createLogger({ module: 'livekit-call-opening' });
@@ -123,10 +123,18 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
     answerScreener: async (text) => {
       await session.say(text, { allowInterruptions: false }).waitForPlayout();
     },
-    leaveVoicemail: () =>
-      session
-        .generateReply({ instructions: voicemailInstructions(parties, context.purpose) })
-        .waitForPlayout(),
+    leaveVoicemail: async () => {
+      const message = session.generateReply({
+        instructions: voicemailInstructions(parties, context.purpose),
+      });
+      await message.waitForPlayout();
+      // Evidence for the report: a machine was heard and the message played to the end.
+      if (playedToEnd(message)) noteVoicemailSpoken(sessionId);
+      else log.warn({ callId: call.callId }, 'Voicemail message did not play');
+    },
+    carryOn: () => {
+      session.generateReply();
+    },
     hangUp: async (disposition) => {
       await hangUpCall(sessionId, disposition);
     },
@@ -156,4 +164,13 @@ function speakingStarted(session: voice.AgentSession, ms: number): Promise<void>
     const timer = setTimeout(done, ms);
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
   });
+}
+
+/** The reply spoke words and was not cut off. */
+function playedToEnd(handle: voice.SpeechHandle): boolean {
+  const items = handle.chatItems as ReadonlyArray<{ type?: string; role?: string }> | undefined;
+  return (
+    !handle.interrupted &&
+    (items ?? []).some((item) => item.type === 'message' && item.role === 'assistant')
+  );
 }

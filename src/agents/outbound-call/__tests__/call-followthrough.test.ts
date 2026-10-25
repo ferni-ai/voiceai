@@ -192,8 +192,12 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
       role: 'agent',
       content: "Hi Mom, it's Ferni, Sam's AI friend, just checking in. Thanks, bye!",
     };
-    const p = ports([...voicemail, message], new Date(), 'voicemail_left');
-    const outcome = await completeOnBehalfCall('s15', makeCall(), 30, true, p);
+    // The voicemail path recorded its message as spoken (call-control noteVoicemailSpoken).
+    const p = { ...ports([...voicemail, message], new Date(), 'voicemail_left') };
+    const outcome = await completeOnBehalfCall('s15', makeCall(), 30, true, {
+      ...p,
+      readVoicemailSpoken: () => true,
+    });
     expect(outcome?.status).toBe('voicemail');
     expect(outcome?.outcome).toMatch(
       /^I got Mom's voicemail and left a message.*I'll try again tomorrow\.$/
