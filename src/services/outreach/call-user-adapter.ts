@@ -35,6 +35,7 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'no-hash-secret': "texting isn't set up here",
   held: "I'm holding off on texts for now",
   'send-failed': "the text didn't go through",
+  'focus-held': "your Focus is on, so it'll come when that ends",
 };
 
 /** No second immediate text within a minute: a loop can't spam the owner. */

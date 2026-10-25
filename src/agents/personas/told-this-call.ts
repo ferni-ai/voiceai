@@ -22,6 +22,7 @@ import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
 import type { Line } from './director-notes.js';
 import {
   formatPhraseLoops,
+  isSafetyLine,
   phraseLoopGuardOn,
   phraseLoops,
   type PhraseLoop,
@@ -224,17 +225,21 @@ export function formatTold(told: Told): string {
 
 /**
  * The record without the names, quotes and phrases `keep` rejects (director-notes.ts
- * told()). On a call with crisis risk noted (`sessionId`), no phrase loops at all:
- * a crisis-guided request must never be told to drop wording (crisis-call-risk.ts).
+ * told()). On a call with crisis risk noted (`sessionId`), no phrase loops and no
+ * quotes at all: a crisis-guided request must never be told to drop wording
+ * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
+ * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
  */
 export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
   const { loops: all, ...rest } = told;
-  const loops = all && !(sessionId && crisisRiskNoted(sessionId)) ? all : undefined;
+  const crisis = Boolean(sessionId && crisisRiskNoted(sessionId));
+  const loops = all && !crisis ? all : undefined;
+  const quotable = (line: string): boolean => !crisis && keep(line) && !isSafetyLine(line);
   return {
     ...rest,
     names: told.names.filter((n) => keep(n.name)),
-    repeated: told.repeated.filter(keep),
-    recentLines: told.recentLines.filter(keep),
+    repeated: told.repeated.filter(quotable),
+    recentLines: told.recentLines.filter(quotable),
     ...(loops ? { loops: loops.filter((l) => keep(l.phrase)) } : {}),
   };
 }

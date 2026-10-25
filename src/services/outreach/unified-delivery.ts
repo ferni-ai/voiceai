@@ -18,12 +18,11 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { resolveFirebaseProjectId } from '../../utils/firebase-admin-app.js';
 import { getEmailSender } from '../email-transport/index.js';
 import type { GeneratedContent, OutreachType } from './llm-content-generator.js';
+import { heldSender } from './checkin-replies.js';
 
 const log = createLogger({ module: 'UnifiedDelivery' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// --- TYPES ---
 
 export type DeliveryChannel = 'sms' | 'email' | 'voice_call' | 'push' | 'in_app';
 
@@ -59,9 +58,7 @@ export interface ChannelStatus {
   in_app: { available: boolean; reason?: string };
 }
 
-// ============================================================================
-// CREDENTIAL LOADING
-// ============================================================================
+// --- CREDENTIAL LOADING ---
 
 interface Credentials {
   twilio?: {
@@ -213,6 +210,9 @@ async function deliverSMS(
   const { ownerRefusal } = await import('../messaging/consent-reach.js'); // MESSAGING_PIPELINE
   const refused = await ownerRefusal(userId, phone, 'sms'); // own number, or the owner's grant
   if (refused) return { success: false, channel: 'sms', error: `Not sent: ${refused}` };
+  // MINOR_CARE_SHARED_HOLD: no text to an account or a number a call held under 18
+  if (await heldSender(userId, phone))
+    return { success: false, channel: 'sms', error: 'Not sent: held' };
 
   const creds = await loadCredentials();
   if (!creds.twilio) {

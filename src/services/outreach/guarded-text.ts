@@ -59,6 +59,7 @@ import {
   type ConsentDeps,
 } from '../messaging/consent.js';
 import { smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
+import { holdTextForFocus, type FocusTextDeps } from './focus-send-hold.js';
 
 const log = createLogger({ module: 'guarded-text' });
 
@@ -85,6 +86,8 @@ export interface TextDeps {
   now: () => Date;
   /** consent/{phoneHash} (MESSAGING_PIPELINE); by default Firestore, under `env`. */
   consent?: ConsentDeps;
+  /** A Focus hold (focus-send-hold.ts): where held texts go, and FOCUS_HOLD; by default Firestore. */
+  focus?: FocusTextDeps;
 }
 
 const consentOf = (deps: TextDeps): ConsentDeps =>
@@ -110,6 +113,7 @@ export type TextSkip =
   | 'opted-out'
   | 'consent-unknown'
   | 'paused'
+  | 'focus-held'
   | 'held' // MINOR_CARE_SHARED_HOLD: no text they didn't ask for right now
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
@@ -265,7 +269,8 @@ export async function sendGuardedText(
   if (consent) return skip(consent === 'opted-out' ? 'opted-out' : 'send-failed');
   // Per phone too: two accounts can share a number.
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
-
+  // Their Focus holds what Ferni starts: held until it ends (focus-send-hold.ts), never dropped.
+  if (await holdTextForFocus(t, userDoc, now, deps.focus)) return skip('focus-held');
   const phoneLast4 = last4(phone);
   const record: CheckinRecord = {
     userId: storedId,
@@ -325,7 +330,7 @@ export interface OnBehalfText {
 }
 
 export type OnBehalfSkip =
-  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'held'>
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'focus-held' | 'held'>
   | 'bad-number'
   | 'needs-consent'
   | 'quiet-hours';

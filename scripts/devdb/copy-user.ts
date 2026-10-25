@@ -60,6 +60,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'scheduled_deliveries[userId]': QUEUE,
   'pending_inapp_messages[userId]': QUEUE,
   'outreach_triggers[userId]': QUEUE,
+  'feature_held_texts[text.userId]': `${QUEUE}; held texts carry their words`,
   'message_drafts[userId]': `${QUEUE}; drafts name their recipients`,
   'delivery_orders[userId]': QUEUE,
   'tracked_appointments[userId]': `${QUEUE} (appointment follow-ups)`,
