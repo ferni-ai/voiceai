@@ -118,12 +118,14 @@ async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerD
     }
 
     // Quiet hours. Off: 22:00-08:00 on the server clock, which is UTC on Cloud Run.
-    const { isQuietHoursUnified, userQuietHours } =
+    // Quiet hours saved in the menu: the shared predicate, in their zone, with theirs.
+    const { isQuietHoursUnified, loadSavedQuietHours, userQuietHours } =
       await import('../services/outreach/quiet-hours.js');
     const hour = now.getHours();
-    const isQuietHours = isQuietHoursUnified()
-      ? (await userQuietHours(trigger.userId, now)).quiet
-      : hour < 8 || hour >= 22;
+    const isQuietHours =
+      isQuietHoursUnified() || (await loadSavedQuietHours(trigger.userId))
+        ? (await userQuietHours(trigger.userId, now)).quiet
+        : hour < 8 || hour >= 22;
     if (isQuietHours) {
       return {
         shouldSend: false,

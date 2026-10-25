@@ -15,6 +15,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { OutreachAttemptEntity } from '../data-layer/types.js';
 import { deliverOutreach, type DeliverOutreachOptions } from './delivery/index.js';
 import { outreachHistory } from './outreach-history.js';
+import { isQuietAt, loadSavedQuietHours } from './quiet-hours.js';
 
 const log = createLogger({ module: 'deliver-and-record' });
 
@@ -35,6 +36,12 @@ function attemptChannel(channel: OrchestratedSend['channel']): OutreachAttemptEn
 
 /** Delivers `send`, records the attempt (delivered or failed), and says whether it went out. */
 export async function deliverAndRecord(send: OrchestratedSend): Promise<boolean> {
+  // Inside the quiet hours they saved in the menu (QUIET_HOURS_FROM_PREFS): nothing goes out.
+  const saved = await loadSavedQuietHours(send.userId);
+  if (saved && isQuietAt(new Date(), saved.window, saved.zones)) {
+    log.info({ userId: send.userId, channel: send.channel }, 'Outreach skipped: quiet hours');
+    return false;
+  }
   let delivered = false;
   try {
     const result = await deliverOutreach({

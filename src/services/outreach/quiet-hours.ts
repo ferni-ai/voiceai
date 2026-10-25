@@ -15,10 +15,17 @@
  *
  * Senders use this when QUIET_HOURS_UNIFIED=on; off keeps each one's own check.
  *
+ * The menu's quiet hours ("When I'll Check In", "How I reach you") are saved to
+ * messagingPrefs. With QUIET_HOURS_FROM_PREFS=on, savedQuietHours is the one
+ * reader every sender asks: a saved window adds quiet time to the sender's own,
+ * read in the person's zone. Nothing saved, or the flag off: today's check.
+ *
  * @module services/outreach/quiet-hours
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { savedQuietSpan } from '../messaging/prefs.js';
 import {
   isValidTimezone,
   localMinutes,
@@ -41,6 +48,8 @@ export interface QuietHoursUser {
     timezone?: string;
   };
   contactInfo?: { timezone?: string };
+  /** The menu's record (messaging/prefs.ts); read by savedQuietHours. */
+  messagingPrefs?: unknown;
 }
 
 export interface QuietHoursResult {
@@ -51,6 +60,58 @@ export interface QuietHoursResult {
 
 export function isQuietHoursUnified(): boolean {
   return process.env.QUIET_HOURS_UNIFIED === 'on';
+}
+
+/** A quiet window and the zones it is read in. */
+export interface ZonedQuiet {
+  readonly window: QuietWindow;
+  readonly zones: string[];
+  /** Their stored zone, when there is one (zones is then just it). */
+  readonly zone?: string;
+}
+
+export function isQuietHoursFromPrefs(): boolean {
+  return flagOn('QUIET_HOURS_FROM_PREFS');
+}
+
+/**
+ * The quiet hours the person saved in the menu (bogle_users/{uid}.messagingPrefs),
+ * in their zone: the one saved with them, else their profile's; with none, both US
+ * coasts. Undefined when QUIET_HOURS_FROM_PREFS is off or nothing is saved.
+ */
+export function savedQuietHours(user: unknown): ZonedQuiet | undefined {
+  if (!isQuietHoursFromPrefs()) return undefined;
+  const span = savedQuietSpan(user as Record<string, unknown> | undefined);
+  const window = span && parseQuietWindow(span.start, span.end);
+  if (!window) return undefined;
+  const zone = isValidTimezone(span.zone) ? span.zone : undefined;
+  return { window, zones: quietZones(zone), ...(zone && { zone }) };
+}
+
+/** A sender with its own check uses the shared one: QUIET_HOURS_UNIFIED, or quiet hours saved. */
+export function usesSharedQuiet(user?: unknown): boolean {
+  return isQuietHoursUnified() || !!savedQuietHours(user);
+}
+
+/** savedQuietHours for a user id; undefined without reading anything when the flag is off. */
+export async function loadSavedQuietHours(userId?: string): Promise<ZonedQuiet | undefined> {
+  if (!userId || !isQuietHoursFromPrefs()) return undefined;
+  return savedQuietHours(await loadQuietHoursUser(userId));
+}
+
+/**
+ * The first moment from `at` that neither the sender's own check (`own`: `at` when
+ * not quiet, else when it ends) nor the saved window holds back.
+ */
+export function openingWith(at: Date, own: (t: Date) => Date, saved?: ZonedQuiet): Date {
+  if (!saved) return own(at);
+  let t = at;
+  for (let i = 0; i < 8; i++) {
+    const next = quietEndsAt(own(t), saved.window, saved.zones);
+    if (next.getTime() === t.getTime()) break;
+    t = next;
+  }
+  return t;
 }
 
 /** The process's own time zone: what `Date#getHours()` reads. */
@@ -120,7 +181,7 @@ export function quietEndsAt(
 }
 
 export function isUserQuiet(user: QuietHoursUser | undefined, now = new Date()): boolean {
-  return isQuietAt(now, quietWindowOf(user), quietZonesOf(user));
+  return quietHoursOf(user, now).quiet;
 }
 
 /** The user's doc, or undefined when it can't be read (the defaults then apply). */
@@ -135,21 +196,30 @@ export async function loadQuietHoursUser(userId: string): Promise<QuietHoursUser
   }
 }
 
-export async function userQuietHours(userId: string, now = new Date()): Promise<QuietHoursResult> {
-  const user = await loadQuietHoursUser(userId);
+/** The shared predicate for this user doc, plus their saved window, both read in their zone. */
+export function quietHoursOf(user: QuietHoursUser | undefined, now: Date): QuietHoursResult {
+  const saved = savedQuietHours(user);
   const window = quietWindowOf(user);
-  const zones = quietZonesOf(user);
-  const quiet = isQuietAt(now, window, zones);
-  return { quiet, until: quiet ? quietEndsAt(now, window, zones) : now };
+  const zones = saved?.zones ?? quietZonesOf(user);
+  const until = openingWith(now, (t) => quietEndsAt(t, window, zones), saved);
+  return { quiet: until.getTime() !== now.getTime(), until };
+}
+
+export async function userQuietHours(userId: string, now = new Date()): Promise<QuietHoursResult> {
+  return quietHoursOf(await loadQuietHoursUser(userId), now);
 }
 
 /**
  * Quiet hours for the two call schedulers. Off: their old check, the
- * quietHours object only, on the server clock, waiting until its end hour.
+ * quietHours object only, on the server clock, waiting until its end hour,
+ * unless the person saved quiet hours in the menu (QUIET_HOURS_FROM_PREFS).
  */
 export async function callQuietHours(userId: string, now = new Date()): Promise<QuietHoursResult> {
   if (isQuietHoursUnified()) return userQuietHours(userId, now);
-  const q = (await loadQuietHoursUser(userId))?.outreachPreferences?.quietHours;
+  const user = await loadQuietHoursUser(userId);
+  // Quiet hours saved in the menu: the shared predicate, in their zone, with theirs.
+  if (savedQuietHours(user)) return quietHoursOf(user, now);
+  const q = user?.outreachPreferences?.quietHours;
   const quiet =
     !!q?.enabled && isQuietAt(now, parseQuietWindow(q.start, q.end), [serverTimezone()]);
   if (!quiet) return { quiet, until: now };

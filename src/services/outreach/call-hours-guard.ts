@@ -5,7 +5,8 @@
  * (on-behalf, family check-in, proactive) only go out between 9:00 and 20:30
  * in the RECIPIENT's local time. Outside that window the call is deferred to
  * the next opening, never dropped. A recipient's own quiet hours, when set,
- * narrow the window further.
+ * narrow the window further, and so do the ones saved in the menu
+ * (QUIET_HOURS_FROM_PREFS, quiet-hours.ts savedQuietHours), read in their zone.
  *
  * Recipient time zone, in order: the stored one, the phone's area code, the
  * sponsor's. With none of those, the call must fit the window on both US
@@ -43,6 +44,8 @@ export interface CallHoursInput {
   sponsorUserId?: string;
   /** The recipient when they are a Ferni user: their time zone and quiet hours apply. */
   recipientUserId?: string;
+  /** They asked for this call ("call me"): the hours above apply, their menu quiet hours don't. */
+  userAsked?: boolean;
 }
 
 export interface CallHoursDecision {
@@ -154,8 +157,12 @@ async function userQuietHours(userId: string | undefined): Promise<QuietWindow[]
   ].filter((w): w is QuietWindow => !!w);
 }
 
-async function recipientZones(input: CallHoursInput): Promise<[string[], TimezoneSource]> {
+async function recipientZones(
+  input: CallHoursInput,
+  savedZone?: string
+): Promise<[string[], TimezoneSource]> {
   if (isValidTimezone(input.recipientTimezone)) return [[input.recipientTimezone], 'stored'];
+  if (savedZone) return [[savedZone], 'stored'];
   const own = await userTimezone(input.recipientUserId);
   if (own) return [[own], 'stored'];
   const byPhone = timezoneFromPhone(input.recipientPhone);
@@ -168,7 +175,10 @@ async function recipientZones(input: CallHoursInput): Promise<[string[], Timezon
 /** Decide whether a call to this recipient may be placed now. Lookup failures don't block a call. */
 export async function checkCallHours(input: CallHoursInput): Promise<CallHoursDecision> {
   const now = input.now ?? new Date();
-  const [zones, source] = await recipientZones(input).catch((error: unknown) => {
+  // Dynamic: quiet-hours.ts imports this module.
+  const { loadSavedQuietHours, openingWith } = await import('./quiet-hours.js');
+  const saved = input.userAsked ? undefined : await loadSavedQuietHours(input.recipientUserId);
+  const [zones, source] = await recipientZones(input, saved?.zone).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Recipient time zone lookup failed');
     return [FALLBACK_ZONES, 'fallback'] as [string[], TimezoneSource];
   });
@@ -176,6 +186,6 @@ export async function checkCallHours(input: CallHoursInput): Promise<CallHoursDe
     log.warn({ error: String(error) }, 'Quiet hours lookup failed');
     return [] as QuietWindow[];
   });
-  const at = nextCallableTime(now, zones, quiet);
+  const at = openingWith(now, (t) => nextCallableTime(t, zones, quiet), saved);
   return { allowed: at.getTime() === now.getTime(), at, timezone: zones[0], source };
 }

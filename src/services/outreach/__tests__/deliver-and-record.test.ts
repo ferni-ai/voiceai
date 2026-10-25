@@ -1,5 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+let userDoc: Record<string, unknown> | undefined;
+vi.mock('../../superhuman/firestore-utils.js', () => ({
+  getFirestoreDb: () => ({
+    collection: () => ({
+      doc: () => ({ get: async () => ({ exists: !!userDoc, data: () => userDoc }) }),
+    }),
+  }),
+}));
 const deliverOutreach = vi.fn();
 const recordAttempt = vi.fn();
 
@@ -23,6 +31,7 @@ const send = {
 };
 
 beforeEach(() => {
+  userDoc = undefined;
   deliverOutreach.mockReset();
   recordAttempt.mockReset().mockResolvedValue('attempt-1');
 });
@@ -102,5 +111,38 @@ describe('OutreachOrchestrator sends', () => {
       status: 'failed',
     });
     expect(orchestrator.getTelemetry().successfulDeliveries).toBe(0);
+  });
+});
+
+describe('deliverAndRecord: QUIET_HOURS_FROM_PREFS', () => {
+  const quietUser = {
+    messagingPrefs: { quietStart: '20:00', quietEnd: '09:30', zone: 'America/Chicago' },
+  };
+  beforeEach(() => {
+    userDoc = quietUser;
+    vi.useFakeTimers({ toFake: ['Date'] });
+    deliverOutreach.mockResolvedValue({ success: true, channel: 'push' });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it('inside the saved window nothing goes out and no attempt is recorded', async () => {
+    vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'on');
+    vi.setSystemTime(new Date('2026-10-21T01:15:00Z')); // 20:15 Chicago
+    expect(await deliverAndRecord(send)).toBe(false);
+    expect(deliverOutreach).not.toHaveBeenCalled();
+    expect(recordAttempt).not.toHaveBeenCalled();
+  });
+
+  it('outside it, or with the flag off, it is delivered as before', async () => {
+    vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'on');
+    vi.setSystemTime(new Date('2026-10-20T20:00:00Z')); // 15:00 Chicago
+    expect(await deliverAndRecord(send)).toBe(true);
+    vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'off');
+    vi.setSystemTime(new Date('2026-10-21T01:15:00Z'));
+    expect(await deliverAndRecord(send)).toBe(true);
+    expect(deliverOutreach).toHaveBeenCalledTimes(2);
   });
 });

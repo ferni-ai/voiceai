@@ -8,7 +8,8 @@
  *   on: at most one a day, inside the call window (call-hours-guard), never in
  *   their quiet hours.
  * - Quiet hours (nothing goes out): 21:00 to 08:00 always, plus the user's
- *   own window (read as quiet-hours.ts, #802, does), in their own time zone.
+ *   own window (read as quiet-hours.ts, #802, does), in their own time zone,
+ *   and the one saved in the menu (quiet-hours.ts savedQuietHours).
  *   Without a time zone there are no texts or calls.
  * - Backing off: two texts in a row with no conversation since means no more
  *   texts until they talk to Ferni again; a call that wasn't picked up (or was
@@ -31,6 +32,7 @@ import {
   type QuietWindow,
 } from '../call-hours-guard.js';
 import { consentFromPrefs } from '../outreach-consent.js';
+import { isQuietAt, type ZonedQuiet } from '../quiet-hours.js';
 import type { PhoneOptOuts } from './opt-outs.js';
 import type { OutreachLogEntry } from './outreach-log.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
@@ -105,6 +107,8 @@ export interface PolicyInput {
   /** The user's stored outreachPreferences. */
   prefs: unknown;
   timezone?: string;
+  /** Quiet hours saved in the menu (QUIET_HOURS_FROM_PREFS); they add to the ones above. */
+  savedQuiet?: ZonedQuiet;
   /** The phone on their Firebase account; texts and calls go nowhere else. */
   verifiedPhone?: string;
   lastTalkedAt?: number;
@@ -207,7 +211,10 @@ export function chooseChannel(input: PolicyInput): ChannelChoice {
   if ('why' in caps) return caps;
 
   const tz = isValidTimezone(input.timezone) ? input.timezone : undefined;
-  if (tz && inQuietHours(input.prefs, tz, input.now)) return { channel: null, why: 'quiet hours' };
+  const saved = input.savedQuiet;
+  const savedQuiet = !!saved && isQuietAt(input.now, saved.window, saved.zones);
+  if (tz && (savedQuiet || inQuietHours(input.prefs, tz, input.now)))
+    return { channel: null, why: 'quiet hours' };
   if (!tz) return { channel: 'in_app', why: 'no time zone on file, so no texts or calls' };
   if (!input.trigger.timely) return { channel: 'in_app', why: 'not time-sensitive' };
   if (!input.verifiedPhone) return { channel: 'in_app', why: 'no verified phone' };
