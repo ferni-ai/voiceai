@@ -24,7 +24,7 @@ import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 import { heldSender } from '../checkin-replies.js';
-import { answerCallMe } from '../sms-call-me.js';
+import { answerCallMe, NO_CALL } from '../sms-call-me.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -458,7 +458,8 @@ export async function handleInboundSMSWebhook(
       );
 
       if (routeResult.shouldInitiateCall) {
-        const reply = await answerCallMe(userId, From, routeResult.routeDecision.agentId);
+        const persona = routeResult.routeDecision.agentId;
+        const reply = routeResult.callNow ? await answerCallMe(userId, From, persona) : NO_CALL;
         return { success: true, twiml: generateTwiML(reply) }; // says only what was done
       }
     } catch (routeError) {

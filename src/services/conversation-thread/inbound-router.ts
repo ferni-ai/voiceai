@@ -227,18 +227,21 @@ export async function handleInboundSMS(
   held = false
 ): Promise<{
   routeDecision: InboundRouteDecision;
-  /** A "call me": the webhook places the call or says it didn't (sms-call-me.ts). */
+  /** Asks to talk (detectTalkIntent): the webhook answers honestly, never "calling you now". */
   shouldInitiateCall: boolean;
+  /** A whole-text ask for a call now (detectCallIntent): only this may dial (SMS_CALL_ME). */
+  callNow: boolean;
 }> {
   // Route the message
   const routeDecision = await routeInbound(userId, 'sms', body, { fromPhone });
 
   // Check if user wants to talk
-  const callIntent = detectCallIntent(body);
+  const callIntent = detectTalkIntent(body);
+  const callNow = detectCallIntent(body);
 
   if (held) {
     log.info({ agentId: routeDecision.agentId }, 'Inbound SMS not kept: MINOR_CARE hold');
-    return { routeDecision, shouldInitiateCall: callIntent };
+    return { routeDecision, shouldInitiateCall: callIntent, callNow };
   }
 
   // Get or create thread
@@ -269,7 +272,7 @@ export async function handleInboundSMS(
     '📥 Inbound SMS processed'
   );
 
-  return { routeDecision, shouldInitiateCall: callIntent };
+  return { routeDecision, shouldInitiateCall: callIntent, callNow };
 }
 
 /**
@@ -362,6 +365,38 @@ export async function handleVoiceCallStart(
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/** Any ask to talk, for the honest reply only ("I want to die, call me" gets one, not silence). */
+const TALK_ASKS = [
+  /\bcall\s+me\b/i,
+  /\bcan\s+we\s+talk\b/i,
+  /\bwant\s+to\s+talk\b/i,
+  /\bneed\s+to\s+talk\b/i,
+  /\blet'?s\s+talk\b/i,
+  /\bcall\s+back\b/i,
+  /\bgive\s+me\s+a\s+call\b/i,
+  /\bring\s+me\b/i,
+  /\bphone\s+me\b/i,
+  /\bi'?d\s+like\s+that\b/i, // a yes to Ferni's own "want to talk?"; silence would read as ignored
+];
+/** Not an ask: negated, a name ("call me Ishmael", "call me crazy"), or someone else's words. */
+const NOT_AN_ASK = [
+  /\b(?:don'?t|do not|never|no need to|stop)\b[^.?!]{0,20}\b(?:call|ring|phone|talk)/i,
+  /\bcall me (?:crazy|maybe|a cab|an? uber|ishmael)\b/i,
+  /\bcall me [A-Z][a-z]+[.!]?$/,
+  /\b(?:said|says|told|tells|asked|asks)\b[^.?!]{0,20}\bto call me\b/i,
+];
+
+/**
+ * A text that asks to talk at all, answered with an honest invitation and
+ * never a call. Bare "ok", "yes", "sure" or "please" is not one: it follows
+ * any check-in, and on main it got "Let me call you now..." every time.
+ */
+export function detectTalkIntent(message: string): boolean {
+  const text = message.trim();
+  if (NOT_AN_ASK.some((pattern) => pattern.test(text))) return false;
+  return TALK_ASKS.some((pattern) => pattern.test(text));
+}
 
 /** Lead-ins that keep a text a plain ask: "ok, call me", "hey Ferni, can you call me?" */
 const LEAD = String.raw`^(?:(?:ok(?:ay)?|yes|yeah|yep|sure|please|pls|hey|hi|ferni)[\s,!.]+)*`;

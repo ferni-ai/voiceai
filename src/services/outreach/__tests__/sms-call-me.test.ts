@@ -44,7 +44,11 @@ vi.mock('../../../memory/profile-store.js', () => ({
   }),
 }));
 const routed = vi.hoisted(() =>
-  vi.fn(async () => ({ routeDecision: { agentId: 'ferni' }, shouldInitiateCall: true }))
+  vi.fn(async () => ({
+    routeDecision: { agentId: 'ferni' },
+    shouldInitiateCall: true,
+    callNow: true,
+  }))
 );
 vi.mock('../../conversation-thread/inbound-router.js', () => ({ handleInboundSMS: routed }));
 vi.mock('../../contacts/optimal-timing.js', () => ({
@@ -140,6 +144,18 @@ describe('Twilio inbound webhook, a "call me" text', () => {
     expect(routed).toHaveBeenCalledTimes(1);
     expect(res.twiml).toContain('Open Ferni whenever'); // TwiML escapes the apostrophe
     expect(res.twiml).not.toMatch(/call you now/i);
+    expect(adapter.call).not.toHaveBeenCalled();
+  });
+
+  it('flag on, an ask to talk that is not a whole-text call ask: honest reply, no call', async () => {
+    vi.stubEnv('SMS_CALL_ME', 'on');
+    routed.mockResolvedValueOnce({
+      routeDecision: { agentId: 'ferni' },
+      shouldInitiateCall: true,
+      callNow: false,
+    });
+    const res = await inbound();
+    expect(res.twiml).toContain('Open Ferni whenever');
     expect(adapter.call).not.toHaveBeenCalled();
   });
 
