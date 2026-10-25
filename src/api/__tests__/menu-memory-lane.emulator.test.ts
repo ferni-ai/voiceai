@@ -1,9 +1,9 @@
 /**
  * "Memory Lane", call → panel: a commitment the agent saves during a call
  * (saveCommitment, the one writer behind per-turn commitment detection and the
- * commitment tools) is captured as a memory and comes back through
+ * commitment tools), once completed, comes back as kept through
  * GET /api/memories/highlights, the panel's first tab (memory-lane.ui.ts
- * loadTabData). Real route on node:http, real firebase-admin on the Firestore
+ * loadTabData). A commitment only made is not shown (#2796). Real route on node:http, real firebase-admin on the Firestore
  * emulator. The route is loaded after vi.resetModules, so nothing is shared
  * with the writer through module state, like the separate API process.
  */
@@ -26,6 +26,7 @@ process.env.GCLOUD_PROJECT ??= 'demo-menu-memory-lane';
 const newUser = () => `u-${Math.random().toString(36).slice(2)}`;
 const userA = newUser();
 const PROMISE = 'call my sister on her birthday';
+const KEPT = `You kept your promise: "${PROMISE}"`;
 
 let server: Server;
 let base: string;
@@ -56,7 +57,10 @@ async function agentSavesCommitment(userId: string): Promise<string> {
 
 beforeAll(async () => {
   if (!emulator) return;
-  await agentSavesCommitment(userA);
+  const id = await agentSavesCommitment(userA);
+  // Completed through the real path: the commitment tools and PATCH /api/commitments/:id.
+  const { updateCommitmentStatus } = await import('../../services/superhuman/commitment-keeper.js');
+  await updateCommitmentStatus(userA, id, 'completed');
   vi.resetModules(); // the API server is another process
   const { handleMemoriesRoutes } = await import('../routes/memories.js');
   server = createServer((req: IncomingMessage, res) => {
@@ -92,15 +96,12 @@ async function highlights(uid: string, query = ''): Promise<Highlights> {
 const contents = (h: Highlights) => h.memories.map((m) => m.content);
 
 describe.skipIf(!emulator)('Memory Lane, call to panel (Firestore emulator)', () => {
-  it('a commitment from a call shows up in Highlights', async () => {
-    // The capture runs after saveCommitment returns, so give it a moment to land.
-    await expect
-      .poll(async () => contents(await highlights(userA)), { timeout: 10_000 })
-      .toEqual(expect.arrayContaining([expect.stringContaining(PROMISE)]));
+  it('a commitment from a call, once kept, shows up in Highlights', async () => {
+    expect(contents(await highlights(userA))).toEqual([KEPT]);
   });
 
   it('another user never sees it, even asking for it by ?userId', async () => {
-    await expect.poll(async () => contents(await highlights(userA))).not.toHaveLength(0);
+    expect(contents(await highlights(userA))).toEqual([KEPT]); // there is one to leak
     const userB = newUser();
     expect(contents(await highlights(userB))).toEqual([]);
     expect(contents(await highlights(userB, `?userId=${userA}`))).toEqual([]);
