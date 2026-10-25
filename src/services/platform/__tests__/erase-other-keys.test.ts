@@ -191,6 +191,21 @@ describe('KEYED_STORES', () => {
     );
   });
 
+  it("erases the router's turn events of every linked uid on every day, leaving everyone else's", async () => {
+    const label = 'semantic_router_events/*/events[userId]';
+    const { db, docs } = fakeFirestore({
+      'semantic_router_events/2026-03-01/events/e1': { userId: 'u-1', toolId: 'weather' },
+      'semantic_router_events/2026-03-01/events/e2': { userId: 'u-2', toolId: 'music' },
+      'semantic_router_events/2026-10-24/events/e3': { userId: 'u-1', toolId: 'timer' },
+      'semantic_router_events/2026-10-24/events/e4': { userId: 'phone:+15550001' },
+    });
+    const keys = keysFor({ linkedUserIds: ['phone:+15550001'] });
+    expect(await store(label).remains(db, keys)).toBe(true);
+    await store(label).erase(db, keys);
+    expect(await store(label).remains(db, keys)).toBe(false);
+    expect([...docs.keys()]).toEqual(['semantic_router_events/2026-03-01/events/e2']);
+  });
+
   it('takes the person and their linked phone profile out of every cohort, leaving other members', async () => {
     const { db, docs } = fakeFirestore({
       'feature_cohorts/friends-and-family': { members: ['u-1', 'u-2', 'phone:+1'], enabled: true },

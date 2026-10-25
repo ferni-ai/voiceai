@@ -1,0 +1,177 @@
+/**
+ * Strip the caller's words from the routing events already stored.
+ *
+ * Until 2026-10-24 every routed turn wrote semantic_router_events/{YYYY-MM-DD}/events/{id}
+ * with the full, untruncated `inputText`. New events keep only its length
+ * (routing-analytics.ts); this removes the words from the old ones and records their
+ * length instead. Every other field (userId, tool, confidence, latency, outcome) is
+ * left as it is, and nothing is deleted.
+ *
+ * Dry run by default (scripts/destructive-gate.ts): counts only, never ids or contents.
+ * Each finished day is printed, so an interrupted run can resume with --from=<that day>;
+ * a rerun is safe anyway, as stripped events are not written again.
+ *
+ *   npx tsx scripts/migrations/strip-router-event-words.ts
+ *   npx tsx scripts/migrations/strip-router-event-words.ts --apply --confirm-project=johnb-2025
+ *   npx tsx scripts/migrations/strip-router-event-words.ts --apply --confirm-project=johnb-2025 --from=2026-05-01
+ *
+ * FIRESTORE_DATABASE picks the database (default "(default)"), e.g. ferni-dev.
+ */
+
+import { pathToFileURL } from 'node:url';
+import { destructiveMode, refusalMessage } from '../destructive-gate.js';
+import { getFirestoreDatabase } from '../../src/config/environment.js';
+
+export const COLLECTION = 'semantic_router_events';
+/**
+ * Fields that hold the caller's words: `inputText` is the one the writer stored; the rest
+ * are what the in-memory event carried (the words, the matched words, a tool's extracted
+ * args and match reason, an action's args or question), removed too should any be found.
+ */
+export const WORD_FIELDS = [
+  'inputText',
+  'normalizedText',
+  'intent',
+  'topMatch',
+  'action',
+  'extractedArgs',
+  'matchReason',
+] as const;
+const PAGE = 400;
+
+interface Doc {
+  ref: unknown;
+  get(field: string): unknown;
+}
+export interface EventsQuery {
+  orderBy(field: string): EventsQuery;
+  select(...fields: string[]): EventsQuery;
+  limit(n: number): EventsQuery;
+  startAfter(doc: Doc): EventsQuery;
+  get(): Promise<{ docs: Doc[] }>;
+}
+/** The slice of Firestore the job uses, so a test can hand it a fake. */
+export interface EventsDb {
+  collection(name: string): {
+    listDocuments(): Promise<Array<{ id: string; collection(name: string): EventsQuery }>>;
+  };
+  batch(): {
+    update(ref: unknown, data: Record<string, unknown>): unknown;
+    commit(): Promise<unknown>;
+  };
+}
+
+export interface StripCounts {
+  days: number;
+  scanned: number;
+  /** Events holding at least one word field */
+  withWords: number;
+  written: number;
+}
+
+/** The update that strips one event, or null when it holds no words. */
+export function stripUpdate(doc: Doc, deleteField: unknown): Record<string, unknown> | null {
+  const present = WORD_FIELDS.filter((f) => doc.get(f) !== undefined);
+  if (present.length === 0) return null;
+  const update: Record<string, unknown> = Object.fromEntries(present.map((f) => [f, deleteField]));
+  const text = doc.get('inputText');
+  if (typeof text === 'string' && doc.get('inputLength') === undefined) {
+    update.inputLength = text.length;
+  }
+  return update;
+}
+
+/**
+ * Walk every day from `from` (inclusive) on, oldest first; strip each page in one batch
+ * when `apply` is set. `onDay` hears each finished day, with the counts so far.
+ */
+export async function stripRouterEventWords(
+  db: EventsDb,
+  opts: {
+    apply: boolean;
+    deleteField: unknown;
+    from?: string;
+    onDay?: (day: string, c: StripCounts) => void;
+  }
+): Promise<StripCounts> {
+  const c: StripCounts = { days: 0, scanned: 0, withWords: 0, written: 0 };
+  const days = (await db.collection(COLLECTION).listDocuments())
+    .filter((d) => opts.from === undefined || d.id >= opts.from)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+  for (const day of days) {
+    let last: Doc | undefined;
+    for (;;) {
+      const base = day
+        .collection('events')
+        .orderBy('__name__')
+        .select(...WORD_FIELDS, 'inputLength');
+      const page = (await (last ? base.startAfter(last) : base).limit(PAGE).get()).docs;
+      if (page.length === 0) break;
+      const batch = db.batch();
+      let writes = 0;
+      for (const doc of page) {
+        c.scanned++;
+        const update = stripUpdate(doc, opts.deleteField);
+        if (!update) continue;
+        c.withWords++;
+        if (opts.apply) {
+          batch.update(doc.ref, update);
+          writes++;
+        }
+      }
+      if (writes > 0) {
+        await batch.commit();
+        c.written += writes;
+      }
+      if (page.length < PAGE) break;
+      last = page[page.length - 1];
+    }
+    c.days++;
+    opts.onDay?.(day.id, c);
+  }
+  return c;
+}
+
+export async function main(
+  argv: readonly string[] = process.argv,
+  db?: EventsDb,
+  deleteField?: unknown
+): Promise<void> {
+  const projectId = process.env.GCLOUD_PROJECT || 'johnb-2025';
+  const databaseId = getFirestoreDatabase();
+  const mode = destructiveMode(argv, projectId);
+  if (mode === 'refused') {
+    console.error(refusalMessage(projectId));
+    process.exitCode = 1;
+    return;
+  }
+  const from = argv.find((a) => a.startsWith('--from='))?.split('=')[1];
+  if (from !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(from)) {
+    console.error('--from takes a day, YYYY-MM-DD');
+    process.exitCode = 1;
+    return;
+  }
+  if (!db || deleteField === undefined) {
+    const { Firestore, FieldValue } = await import('@google-cloud/firestore');
+    db ??= new Firestore({ projectId, databaseId }) as unknown as EventsDb;
+    deleteField ??= FieldValue.delete();
+  }
+  const apply = mode === 'execute';
+  const verb = apply ? 'Stripped' : 'DRY RUN: would strip';
+  console.log(`${COLLECTION} on ${projectId}/${databaseId}${from ? ` from ${from}` : ''}`);
+  const c = await stripRouterEventWords(db, {
+    apply,
+    deleteField,
+    from,
+    onDay: (day, so) => console.log(`  done ${day} (scanned ${so.scanned} so far)`),
+  });
+  console.log(`Scanned ${c.scanned} events over ${c.days} days; ${c.withWords} hold words`);
+  console.log(`${verb} words from ${apply ? c.written : c.withWords} events`);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error('strip-router-event-words failed:', err);
+    process.exit(1);
+  });
+}
