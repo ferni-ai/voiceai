@@ -24,6 +24,7 @@ import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 import { heldSender } from '../checkin-replies.js';
+import { answerCallMe } from '../sms-call-me.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -456,11 +457,9 @@ export async function handleInboundSMSWebhook(
         '🔀 SMS routed to agent'
       );
 
-      if (routeResult.shouldInitiateCall && routeResult.responseMessage) {
-        return {
-          success: true,
-          twiml: generateTwiML(routeResult.responseMessage),
-        };
+      if (routeResult.shouldInitiateCall) {
+        const reply = await answerCallMe(userId, From, routeResult.routeDecision.agentId);
+        return { success: true, twiml: generateTwiML(reply) }; // says only what was done
       }
     } catch (routeError) {
       log.warn({ error: String(routeError), userId }, 'Failed to route inbound SMS');
