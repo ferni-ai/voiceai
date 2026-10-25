@@ -31,7 +31,7 @@ struct HomeView: View {
                         RestingLine(call: call)
                         if call.phase == .ended {
                             RememberCard(call: call, memory: model.memory)
-                            if call.hasTalked { NotificationAsk() }
+                            if call.hasTalked { NotificationAsk(push: model.push, uid: model.account.user?.uid) }
                         }
                         TeamRow(team: model.team)
                     }

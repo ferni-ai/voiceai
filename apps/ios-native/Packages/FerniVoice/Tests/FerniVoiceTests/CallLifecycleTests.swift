@@ -116,4 +116,57 @@ final class CallLifecycleTests: XCTestCase {
         audio.interrupt.yield(.ended(shouldResume: true))
         await until(!call.isOnHold)
     }
+
+    // MARK: - Critic C1: the system owns the call's audio
+
+    /// Under LiveCommunicationKit the app sets the session up but never
+    /// activates it; the system does, and says so.
+    func testUnderTheSystemTheAppNeverActivatesTheSessionItself() async {
+        let call = session()
+        call.start()
+        await until(call.phase == .live)
+        XCTAssertEqual(audio.ownership, [true])
+        lifecycle.ask.yield(.audio(active: true))
+        await until(audio.systemStates == [true])
+    }
+
+    /// The system taking the audio back mid-call (another call) puts Ferni on
+    /// hold; giving it back resumes, mic and all.
+    func testTheSystemsAudioDecidesHoldAndResume() async {
+        let call = session()
+        call.start()
+        await until(call.phase == .live)
+        lifecycle.ask.yield(.audio(active: true))
+        lifecycle.ask.yield(.audio(active: false))
+        await until(call.isOnHold)
+        XCTAssertEqual(audio.systemStates, [true, false])
+
+        lifecycle.ask.yield(.audio(active: true))
+        await until(!call.isOnHold)
+        XCTAssertEqual(room.micStates, [true, true])
+    }
+
+    /// If the system refuses the call, nobody else will activate the audio:
+    /// the app does.
+    func testARefusedCallRunsItsOwnAudio() async {
+        lifecycle.refuse = true
+        let call = session()
+        call.start()
+        await until(call.phase == .live)
+        XCTAssertEqual(audio.ownership, [false])
+    }
+
+    /// The Simulator's call service ends the call at once, after the room is
+    /// already up: the app takes the audio over.
+    func testASystemThatDropsTheCallAtOnceHandsTheAudioBack() async {
+        room = CallSessionTests.FakeRoom(agentOnConnect: nil)
+        let call = session()
+        call.start()
+        await until(call.phase == .waitingForFerni)
+        lifecycle.ask.yield(.end)
+        await until(audio.ownership == [true, false])
+        room.send(.agentJoined(attributes: [:]))
+        await until(call.phase == .live)
+    }
 }
+
