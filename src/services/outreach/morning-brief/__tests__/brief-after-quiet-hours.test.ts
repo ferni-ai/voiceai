@@ -84,6 +84,15 @@ describe('windows it does not move for', () => {
     }
   });
 
+  it('a window that ends at noon or later (06:00 to 13:00): no brief that afternoon', async () => {
+    saveWindow('06:00', '13:00');
+    user.outreachPreferences = { quietHours: { enabled: false } }; // only the saved window holds
+    const { deps, sendText } = fakeDeps();
+    const afternoon = await runMorningBriefs(deps, at('2026-10-18T18:05:00Z')); // 13:05
+    expect(afternoon.report.reasons).toEqual({ 'not-8am': 1 });
+    expect(sendText).not.toHaveBeenCalled();
+  });
+
   it('a window that leaves 08:00 free (12:00 to 14:00): 08:00 as before, not after it', async () => {
     saveWindow('12:00', '14:00');
     expect((await runMorningBriefs(fakeDeps().deps, at('2026-10-18T13:05:00Z'))).report.sent).toBe(
