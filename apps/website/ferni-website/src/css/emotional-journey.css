@@ -166,7 +166,7 @@
   left: 50%;
   transform: translateX(-50%) translateY(8px);
   width: 280px;
-  background: white;
+  background: var(--color-surface-raised);
   border-radius: var(--radius-md);
   padding: 16px;
   box-shadow: 

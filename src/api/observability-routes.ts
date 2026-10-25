@@ -893,7 +893,7 @@ export async function handleObservabilityRoutes(
           // Recent routing decisions (for table)
           recentRoutes: recentRoutes.map((r) => ({
             timestamp: r.timestamp.toISOString(),
-            userInput: r.userInput.slice(0, 50),
+            inputLength: r.inputLength,
             toolId: r.toolId,
             confidence: r.confidence,
             matchPath: r.matchPath,

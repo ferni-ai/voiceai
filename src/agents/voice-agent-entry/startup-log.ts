@@ -103,3 +103,6 @@ export function jobMetadataLine(metadata: Record<string, unknown> | undefined): 
 export function participantKind(identity: string): string {
   return /^([a-z]+)_/.exec(identity)?.[1] ?? 'other';
 }
+
+/** For raw stderr lines: an error's class and message cut at its first quote. */
+export { errorText } from '../../utils/error-text.js';

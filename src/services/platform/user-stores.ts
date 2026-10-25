@@ -121,6 +121,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'bth_production_events',
     'phone_mappings',
     'feature_checkins', // texts sent to the person, with their replies
+    'intelligence_queue', // queued turn events holding the person's words (INTELLIGENCE_QUEUE)
     'relationship_memories' // {uid}_{persona}: shared moments and inside jokes, older agent
   ),
   ...byField('ownerId', 'share_links', 'share_invites', 'voice_households'),
