@@ -53,15 +53,27 @@ type AttachOptions = Omit<TimelineOptions, 'conversationId' | 'persona'> &
   Partial<Pick<TimelineOptions, 'conversationId' | 'persona'>>;
 
 /**
- * CALL_TIMELINE=on: start the call's timeline on this session. Returns the
- * detach, which records the end, writes what is left and stops listening.
+ * Whose calls are recorded: only the uids in CALL_TIMELINE_UIDS (comma-separated).
+ * Fails closed: unset or empty records nobody, so turning the flag on never
+ * records every member (the owner decided timelines are his account's only).
+ */
+export function timelineRecordsFor(userId: string | undefined, env: Env = process.env): boolean {
+  if (!userId) return false;
+  const uids = (env.CALL_TIMELINE_UIDS ?? '').split(',').map((s) => s.trim());
+  return uids.includes(userId);
+}
+
+/**
+ * CALL_TIMELINE=on, for a caller in CALL_TIMELINE_UIDS: start the call's timeline
+ * on this session. Returns the detach, which records the end, writes what is left
+ * and stops listening.
  */
 export function attachCallTimeline(
   session: EventSource & { userData?: unknown },
   opts: AttachOptions,
   env: Env = process.env
 ): () => void {
-  if (!flagOn('CALL_TIMELINE', env)) return () => {};
+  if (!flagOn('CALL_TIMELINE', env) || !timelineRecordsFor(opts.userId, env)) return () => {};
   // Read when needed: the conversation starts in the background, a swap changes the persona.
   const data = () => session.userData as SessionData | undefined;
   const tl = new CallTimeline({

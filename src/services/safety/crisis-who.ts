@@ -13,15 +13,17 @@
  *      touched, and severity only stays or rises.
  *   2. Bereaved turns get grief guidance instead of "988 for them"
  *      (crisis-who-guidance.ts). The caller's own risk wins: a self read in
- *      the patterns or classifier is never reached, and a who read of self
- *      puts the caller first while keeping the other person's 988 line.
+ *      the patterns or classifier is never reached, an earlier turn of the
+ *      session with the caller's own risk keeps the self guidance over grief,
+ *      and a who read of self puts the caller first (at the classifier's
+ *      imminent level when it read one) while keeping the other person's line.
  *   3. off (default): never called. shadow: called, logged, the turn unchanged.
  *      The log carries the kind and booleans, never the caller's words.
  *
  * The lexical forms are a hint only: the patterns' tags and whether risk
- * words appear go into the read as LEXICAL, and start it early (in parallel
- * with the classifier) so a third-party turn rarely waits for it. A turn with
- * no hint starts it only once a third-party read needs it.
+ * words appear go into the read as LEXICAL. A third-party pattern read also
+ * starts it early, in parallel with the classifier; any other third-party read
+ * starts it when the classifier's verdict arrives. Ordinary turns never call it.
  *
  * A timeout, an error or an unusable reply leaves the read as it was (main's).
  * It runs only with CRISIS_CLASSIFIER_MODE=live, at both places that merge the
@@ -39,7 +41,12 @@ import {
   type CrisisClassifierInput,
   type CrisisGenerateFn,
 } from './crisis-classifier.js';
-import { applyClassifierVerdict, type CrisisDetectionResult } from './crisis-guard.js';
+import {
+  applyClassifierVerdict,
+  sessionSeverityOf,
+  type ClassifierVerdictLike,
+  type CrisisDetectionResult,
+} from './crisis-guard.js';
 import { WHO_BEREAVED, WHO_SELF_AND_OTHER } from './crisis-who-guidance.js';
 
 const log = createLogger({ module: 'CrisisWho' });
@@ -95,6 +102,24 @@ export function parseWhoReply(reply: string): WhoRead | null {
   }
 }
 
+/**
+ * main's session check counts an earlier message at or above the implicit tier
+ * (crisis-guard.ts) as a distress turn; here such a turn means the session
+ * already shows the caller's own risk.
+ */
+const SESSION_SELF_SEVERITY = 0.6;
+
+/** Whether an earlier turn of this session already read as the caller's own risk. */
+export function sessionShowsSelfRisk(earlier: readonly string[]): boolean {
+  return earlier.some((message) => sessionSeverityOf(message) >= SESSION_SELF_SEVERITY);
+}
+
+/** What the merge also weighs: the classifier's verdict, and the session's own earlier risk. */
+export interface WhoContext {
+  verdict?: ClassifierVerdictLike | null;
+  sessionSelf?: boolean;
+}
+
 /** The lexical hint: the patterns' tags, and whether risk words appear. Never the caller's words. */
 export function whoHint(found: CrisisDetectionResult, latest: string): string[] {
   return [...found.indicators, ...(hasRiskContent(latest) ? ['risk_words'] : [])];
@@ -106,20 +131,30 @@ const needsWho = (read: CrisisDetectionResult): boolean =>
 
 /**
  * Merge a who read into the patterns-plus-classifier read. Only a third-party
- * read changes: bereaved → grief at the same severity; self → the caller first
- * (applyClassifierVerdict only escalates), the other person's line kept.
+ * read changes (applyClassifierVerdict only escalates):
+ * - self: the caller first, the other person's line kept. The classifier's
+ *   imminent level carries over (it flips self and third_party on one line),
+ *   so an imminent read gets the imminent script, as main's self read does.
+ * - bereaved: grief guidance at the same severity; but when the session
+ *   already shows the caller's own risk, the caller's self guidance instead.
  */
 export function applyWhoRead(
   read: CrisisDetectionResult,
-  who: WhoRead | null
+  who: WhoRead | null,
+  context: WhoContext = {}
 ): CrisisDetectionResult {
   if (!who || !needsWho(read)) return read;
-  if (who.who === 'bereaved') {
+  if (who.who === 'bereaved' && !context.sessionSelf) {
     const indicators = [...read.indicators, WHO_BEREAVED];
     return { ...read, subject: 'bereaved', indicators, suggestedResponse: undefined };
   }
+  if (who.who === 'bereaved') {
+    const self = applyClassifierVerdict(read, { risk: 'crisis', subject: 'self' });
+    return { ...self, indicators: [...self.indicators, WHO_BEREAVED] };
+  }
   if (who.who !== 'self') return read;
-  const self = applyClassifierVerdict(read, { risk: 'crisis', subject: 'self' });
+  const risk = context.verdict?.risk === 'imminent' ? 'imminent' : 'crisis';
+  const self = applyClassifierVerdict(read, { risk, subject: 'self' });
   return { ...self, indicators: [...self.indicators, WHO_SELF_AND_OTHER] };
 }
 
@@ -186,16 +221,25 @@ export interface WhoRun {
   /** THIRD_PARTY_SELF_HARM=live: resolve() may change the turn's read. */
   live: boolean;
   /** live: the read with the who read applied (waits for it only on a third-party read). */
-  resolve: (read: CrisisDetectionResult) => Promise<CrisisDetectionResult>;
+  resolve: (
+    read: CrisisDetectionResult,
+    verdict?: ClassifierVerdictLike | null
+  ) => Promise<CrisisDetectionResult>;
   /** shadow: log what live would do, in the background; always returns the read unchanged. */
-  shadow: (read: CrisisDetectionResult) => CrisisDetectionResult;
+  shadow: (
+    read: CrisisDetectionResult,
+    verdict?: ClassifierVerdictLike | null
+  ) => CrisisDetectionResult;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
 
 /**
  * Prepare the who read for one turn, or null when THIRD_PARTY_SELF_HARM is
- * off. It starts at once when the lexical hint is non-empty.
+ * off. It starts at once only when the patterns already read third-party risk:
+ * risk words alone fire on everyday talk ("tonight", "last", "gone"), so they
+ * go in as a hint but no longer start a read. Any other third-party read starts
+ * it when the classifier's verdict arrives.
  */
 export function startWhoRead(
   input: CrisisClassifierInput,
@@ -206,10 +250,11 @@ export function startWhoRead(
   const mode = resolveWhoMode(env);
   if (mode === 'off') return null;
   const lexical = whoHint(found, input.latest);
-  const eager = lexical.length > 0;
+  const eager = found.indicators.includes('third_party_risk');
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const { latest, earlier, companion } = normalizeInput(input);
   const key = JSON.stringify([latest, earlier, companion ?? '']);
+  const sessionSelf = sessionShowsSelfRisk(earlier);
   let started: Promise<WhoRead | null> | null = null;
   const read = async (): Promise<WhoRead | null> =>
     (started ??= sharedRead(key, async () =>
@@ -218,12 +263,14 @@ export function startWhoRead(
   if (eager) void read();
   return {
     live: mode === 'live',
-    resolve: async (current) =>
-      mode === 'live' && needsWho(current) ? applyWhoRead(current, await read()) : current,
-    shadow: (current) => {
+    resolve: async (current, verdict) =>
+      mode === 'live' && needsWho(current)
+        ? applyWhoRead(current, await read(), { verdict, sessionSelf })
+        : current,
+    shadow: (current, verdict) => {
       if (needsWho(current)) {
         void read().then((who) => {
-          const changed = applyWhoRead(current, who) !== current;
+          const changed = applyWhoRead(current, who, { verdict, sessionSelf }) !== current;
           log.info({ kind: who?.who ?? null, changed, eager }, 'THIRD_PARTY_WHO');
         });
       }
