@@ -20,6 +20,7 @@ import { playMicroExpression } from '../eq/index.js';
 import { t } from '../i18n/index.js';
 import { appState } from '../state/app.state.js';
 import type { DataMessage } from '../types/events.js';
+import { normalizeGameType } from '../ui/game-board.ui.js';
 import { toast } from '../ui/whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -45,113 +46,158 @@ export const GAME_ACK_TIMEOUT_MS = 10_000;
 /** The detail of a `ferni:game-started` event, as the board reads it. */
 type StartDetail = Record<string, unknown> & { gameType: string };
 
-/** A game the agent is playing, on the board: started by voice, or a picker start it confirmed. */
-interface ShownGame {
-  kind: 'shown';
+/** A game the board shows, or may show: started by voice or by a picker tap. */
+interface Game {
+  /** Arrival order: of the games the agent may be running, the newest is the one to show. */
+  seq: number;
+  gameType: string;
   detail: StartDetail;
-  /** Its last `ferni:game-state-update`, to redraw it if a failed start covered it. */
+  /** Its latest `ferni:game-state-update`, to redraw it. */
   lastState: unknown;
 }
 
-/** A picker start the agent hasn't confirmed yet. */
-interface GameStart {
-  kind: 'start';
+/** A picker tap, kept until the call ends so its ack (however late) finds it. */
+interface GameStart extends Game {
   /** The picker's id for the tap, echoed in the ack (an older agent echoes none). */
   requestId: string | undefined;
-  gameType: string;
   gameName: unknown;
-  detail: StartDetail;
-  lastState: unknown;
+  /** A text game: it has a board. A music game has none, and runs on the other engine. */
+  onBoard: boolean;
   timer: ReturnType<typeof setTimeout> | undefined;
-  /** The game the board showed when this start opened over it: put back if this one fails. */
-  covered: ShownGame | null;
+  /** 'waiting' for its ack; 'timedOut' (told it failed, may still be answered); 'answered'. */
+  status: 'waiting' | 'timedOut' | 'answered';
+  started: boolean;
+  /** Started while a newer tap was waiting: its "Starting" waits for that one to settle. */
+  startedQuietly: boolean;
 }
 
-/** The picker's start still waiting for the agent's ack (one at a time: a new tap replaces it). */
-let pending: GameStart | null = null;
-/** Starts that timed out: the user was told they failed; their late ack may still come. */
-const timedOut = new Set<GameStart>();
-/** What the board shows now. */
-let board: GameStart | ShownGame | null = null;
+let seq = 0;
+/** This call's taps, oldest first. */
+let starts: GameStart[] = [];
+/** The board game the agent is running, as its acks and voice starts tell it. */
+let agentGame: Game | null = null;
+/** What the board shows, as far as this module knows. */
+let onScreen: Game | null = null;
+/** This module is redrawing the board: its own events aren't news. */
+let redrawing = false;
 
-const shown = (detail: StartDetail, lastState?: unknown): ShownGame => ({
-  kind: 'shown',
-  detail,
-  lastState,
-});
+const isBoardGame = (gameType: string): boolean => normalizeGameType(gameType) !== null;
+const sameGame = (a: string, b: unknown): boolean =>
+  typeof b === 'string' && normalizeGameType(a) === normalizeGameType(b);
 
 // The game picker opens the board optimistically (its event says it awaits an
-// ack); remember what it opened so the agent's ack can confirm, or take back,
-// that one start and no other. A game started by voice gets no ack, so it's not timed.
+// ack); a game started by voice gets no ack, so it's not timed.
 document.addEventListener('ferni:game-started', (event) => {
   const detail = (event as CustomEvent<Record<string, unknown> | undefined>).detail;
   const gameType = detail?.['gameType'];
-  if (!detail || typeof gameType !== 'string') return;
+  if (redrawing || !detail || typeof gameType !== 'string') return;
+  const game = { seq: ++seq, gameType, detail: { ...detail, gameType }, lastState: undefined };
   if (detail['awaitsAck'] !== true) {
-    board = shown({ ...detail, gameType });
+    if (isBoardGame(gameType)) agentGame = onScreen = game; // a music game leaves the board as is
     return;
   }
-  if (pending) clearTimeout(pending.timer);
+  // A newer tap stops the older one's clock; that one's ack still counts when it comes
+  for (const start of starts) clearTimeout(start.timer);
   const requestId = detail['requestId'];
   const start: GameStart = {
-    kind: 'start',
+    ...game,
+    detail: { ...game.detail, awaitsAck: false, requestId: undefined },
     requestId: typeof requestId === 'string' ? requestId : undefined,
-    gameType,
     gameName: detail['gameName'],
-    detail: { ...detail, gameType, awaitsAck: false, requestId: undefined },
-    lastState: undefined,
+    onBoard: isBoardGame(gameType),
     timer: undefined,
-    // A tap that replaced an unconfirmed one covers what that one covered
-    covered: board?.kind === 'start' ? board.covered : board,
+    status: 'waiting',
+    started: false,
+    startedQuietly: false,
   };
   start.timer = setTimeout(() => timeOut(start), GAME_ACK_TIMEOUT_MS);
-  pending = start;
-  board = start;
+  starts.push(start);
+  if (start.onBoard) onScreen = start;
 });
 
+// A move: saved on the newest game it can be for, so a redraw shows the latest state.
 document.addEventListener('ferni:game-state-update', (event) => {
-  if (board) board.lastState = (event as CustomEvent<unknown>).detail;
+  const state = (event as CustomEvent<{ gameType?: unknown } | undefined>).detail;
+  if (redrawing || !state) return;
+  const games = [agentGame, ...starts.filter((s) => s.status === 'waiting' && s.onBoard)];
+  let game: Game | null = null;
+  for (const g of games) {
+    if (g && sameGame(g.gameType, state.gameType) && g.seq > (game?.seq ?? 0)) game = g;
+  }
+  if (game) game.lastState = state;
 });
 
-// The agent ended a game (or this module took one back): nothing is left to put back.
-document.addEventListener('ferni:game-ended', () => {
-  if (board?.kind === 'start') board.covered = null;
-  else board = null;
+// The agent ended a game: it's no longer one to put back. (Any end hides the board.)
+document.addEventListener('ferni:game-ended', (event) => {
+  if (redrawing) return;
+  const gameType = (event as CustomEvent<{ gameType?: unknown } | undefined>).detail?.gameType;
+  if (agentGame && (gameType === undefined || sameGame(agentGame.gameType, gameType))) {
+    agentGame = null;
+  }
+  onScreen = null;
 });
 
-/** Put a game the agent is playing back on the board. */
-function showOnBoard(game: ShownGame): void {
-  document.dispatchEvent(new CustomEvent('ferni:game-started', { detail: game.detail }));
-  board = game; // the listener above made a fresh record; keep this one and its state
-  if (game.lastState !== undefined) {
-    const detail = game.lastState;
-    document.dispatchEvent(new CustomEvent('ferni:game-state-update', { detail }));
+/** The newest game the agent may be running: a waiting text tap, or its known board game. */
+function gameToShow(): Game | null {
+  let game = agentGame;
+  for (const start of starts) {
+    if (start.onBoard && start.status === 'waiting' && start.seq > (game?.seq ?? 0)) game = start;
+  }
+  return game;
+}
+
+/** Make the board show gameToShow(): redraw it (with its latest state), or close it. */
+function showOnBoard(): void {
+  const game = gameToShow();
+  const was = onScreen;
+  if (game === was) return;
+  onScreen = game;
+  redrawing = true;
+  try {
+    if (!game) {
+      const detail = { gameType: was?.gameType };
+      document.dispatchEvent(new CustomEvent('ferni:game-ended', { detail }));
+      return;
+    }
+    document.dispatchEvent(new CustomEvent('ferni:game-started', { detail: game.detail }));
+    if (game.lastState !== undefined) {
+      const detail = game.lastState;
+      document.dispatchEvent(new CustomEvent('ferni:game-state-update', { detail }));
+    }
+  } finally {
+    redrawing = false;
   }
 }
 
-/** No ack in time: tell the user it didn't start, and take back what it put on the board. */
+/** A newer game on the same engine started after this one, so this one isn't running. */
+function replaced(start: GameStart): boolean {
+  if (start.onBoard && agentGame && agentGame.seq > start.seq) return true;
+  return starts.some((s) => s.seq > start.seq && s.onBoard === start.onBoard && s.started);
+}
+
+function sayStarting(start: GameStart): void {
+  if (typeof start.gameName === 'string') {
+    toast.success(t('gamePicker.starting', { game: start.gameName }));
+  }
+}
+
+/** No tap is waiting any more: say "Starting" for the ones that started meanwhile. */
+function settle(): void {
+  if (starts.some((s) => s.status === 'waiting')) return;
+  for (const start of starts) {
+    if (!start.startedQuietly) continue;
+    start.startedQuietly = false;
+    if (!replaced(start)) sayStarting(start);
+  }
+  showOnBoard();
+}
+
+/** No ack in time: tell the user it didn't start (nor any tap before it), and redraw. */
 function timeOut(start: GameStart): void {
-  if (pending !== start) return; // a later tap replaced it
   log.warn('No answer from the agent to a game start', { gameType: start.gameType });
-  pending = null;
-  timedOut.add(start);
-  takeBackBoardOf(start);
+  for (const s of starts) if (s.status === 'waiting') s.status = 'timedOut';
   toast.error(t('agentAcks.gameStartFailed'));
-}
-
-/**
- * Undo only what this start did to the board: if nothing has replaced it, put
- * back the game it covered (a voice game the agent is still playing), else close.
- */
-function takeBackBoardOf(start: GameStart): void {
-  if (board !== start) return;
-  if (start.covered) {
-    showOnBoard(start.covered);
-    return;
-  }
-  board = null;
-  const detail = { gameType: start.gameType };
-  document.dispatchEvent(new CustomEvent('ferni:game-ended', { detail }));
+  settle();
 }
 
 /**
@@ -159,10 +205,10 @@ function takeBackBoardOf(start: GameStart): void {
  * onCallEnded calls this on every end; the listeners below catch the rest.
  */
 export function forgetGameStarts(): void {
-  if (pending) clearTimeout(pending.timer);
-  pending = null;
-  timedOut.clear();
-  board = null;
+  for (const start of starts) clearTimeout(start.timer);
+  starts = [];
+  agentGame = null;
+  onScreen = null;
 }
 // The agent left; the room closed or dropped (connection.service reports every end here);
 // or the page went into the back/forward cache with a start still waiting.
@@ -173,62 +219,47 @@ appState.subscribe('connection', (state) => {
 window.addEventListener('pagehide', forgetGameStarts);
 
 /**
- * Does this ack answer that start? By the echoed request id; an ack without one
- * (an agent older than request ids) by its game, as before.
+ * The tap this ack answers: by the echoed request id; an ack without one (an agent
+ * older than request ids) by its game, an unanswered tap first.
  */
-function answers(message: DataMessage, start: GameStart): boolean {
+function tapAnswered(message: DataMessage): GameStart | undefined {
   const requestId = message['requestId'];
-  if (typeof requestId === 'string') return start.requestId === requestId;
-  return start.gameType === message['gameType'];
-}
-
-/** The waiting start this ack answers, taken off the clock. */
-function takePending(message: DataMessage): GameStart | null {
-  if (!pending || !answers(message, pending)) return null;
-  const start = pending;
-  clearTimeout(start.timer);
-  pending = null;
-  return start;
-}
-
-function takeTimedOut(message: DataMessage): GameStart | null {
-  for (const start of timedOut) {
-    if (!answers(message, start)) continue;
-    timedOut.delete(start);
-    return start;
-  }
-  return null;
+  if (typeof requestId === 'string') return starts.find((s) => s.requestId === requestId);
+  const ofGame = starts.filter((s) => s.gameType === message['gameType']).reverse();
+  return ofGame.find((s) => s.status !== 'answered') ?? ofGame[0];
 }
 
 /**
- * The agent's answer to a game start. "Starting <game>..." shows only now. A
- * success after the timeout means the agent is playing it, so it goes back on the
- * board and the toast corrects the "didn't start", unless a newer tap is waiting.
+ * The agent's answer to a game start. "Starting <game>..." shows only now, and
+ * after a timeout it corrects the "didn't start". The board then shows the newest
+ * game the agent is running; while a newer tap waits, that tap's answer comes first.
  */
 function handleGameAck(message: DataMessage, started: boolean): void {
-  const start = takePending(message);
-  const late = start ? null : takeTimedOut(message);
-  const echoed = typeof message['requestId'] === 'string';
-  if (started) {
-    if (start) {
-      if (board === start) board = shown(start.detail, start.lastState);
-    } else if (late && !pending) {
-      showOnBoard(shown(late.detail, late.lastState));
-    } else {
-      return; // an earlier tap's answer (the newer tap's ack decides) or one we never asked for
+  const start = tapAnswered(message);
+  if (!start) {
+    // From an agent without request ids, a failure we can't place: told unless a game is loading
+    const waiting = starts.some((s) => s.status === 'waiting');
+    if (!started && typeof message['requestId'] !== 'string' && !waiting) {
+      toast.error(t('agentAcks.gameStartFailed'));
     }
-    const name = (start ?? late)?.gameName;
-    if (typeof name === 'string') toast.success(t('gamePicker.starting', { game: name }));
     return;
   }
-  if (start) {
-    takeBackBoardOf(start);
+  if (start.status === 'answered') return; // a repeat
+  const wasWaiting = start.status === 'waiting';
+  clearTimeout(start.timer);
+  start.status = 'answered';
+  start.started = started;
+  const newerWaiting = starts.some((s) => s.seq > start.seq && s.status === 'waiting');
+  if (started && !replaced(start)) {
+    if (start.onBoard) agentGame = start;
+    if (newerWaiting) start.startedQuietly = true;
+    else sayStarting(start);
+  }
+  // Only the newest tap's failure is news; the user was told at a timeout already
+  if (!started && wasWaiting && !starts.some((s) => s.seq > start.seq)) {
     toast.error(t('agentAcks.gameStartFailed'));
-    return;
   }
-  // Late (already told at the timeout), an earlier tap's answer, or, from an agent
-  // without request ids, a failure we can't place: that one is told unless a game is loading.
-  if (!late && !echoed && !pending) toast.error(t('agentAcks.gameStartFailed'));
+  settle();
 }
 
 /**
