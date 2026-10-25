@@ -21,7 +21,7 @@ import {
 // Firestore access via superhuman firestore-utils for proper db instance
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onReminderChange } from '../data-layer/hooks/index.js';
-import { sendEmail, sendSMS } from '../communication-service.js';
+import { sendEmail, sendSMS, textHeld } from '../communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
 import { WallClock, zonedWallTimeToUtc } from '../../utils/time-zone.js';
 export { userTimeZone } from '../../utils/caller-time-zone.js';
@@ -651,9 +651,7 @@ export async function deliverReminderOutcome(
   }
 }
 
-// ============================================================================
-// VOICE MESSAGE FUNCTIONS
-// ============================================================================
+// --- VOICE MESSAGE FUNCTIONS ---
 
 /**
  * Create a voice message using TTS
@@ -761,6 +759,8 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
   if (voiceMessage.status === 'failed') {
     return 'I had trouble generating that voice message. Let me try again.';
   }
+  // MINOR_CARE_SHARED_HOLD: the MMS below skips sendSMS, so it checks here
+  if (await textHeld(toPhone, { userId: voiceMessage.userId })) return 'Not sent: held';
 
   // If we have an audio URL, send via MMS
   if (voiceMessage.audioUrl) {

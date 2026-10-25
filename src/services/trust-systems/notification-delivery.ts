@@ -16,12 +16,11 @@ import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getOutreachVoiceConfig, routeToPersona } from '../outreach/persona-outreach-formatter.js';
 import type { OutreachItem } from './outreach-integration.js';
+import { textHeld } from '../communication-service.js';
 
 const log = createLogger({ module: 'NotificationDelivery' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// --- TYPES ---
 
 export type DeliveryChannel = 'push' | 'email' | 'sms' | 'voice';
 
@@ -66,9 +65,7 @@ export interface UserChannelConfig {
   enabledChannels: DeliveryChannel[];
 }
 
-// ============================================================================
-// TEMPLATES - Warm, human language
-// ============================================================================
+// --- TEMPLATES - Warm, human language ---
 
 const PUSH_TEMPLATES: Record<string, { icon: string; badge: number }> = {
   thinking_of_you: {
@@ -251,6 +248,9 @@ export async function deliverEmail(
  * Deliver via SMS
  */
 export async function deliverSms(item: OutreachItem, phone: string): Promise<DeliveryResult> {
+  // MINOR_CARE_SHARED_HOLD: no text to an account or number a call held under 18
+  if (await textHeld(phone, { userId: item.userId }))
+    return { success: false, channel: 'sms', error: 'Not sent: held', retryable: false };
   // Keep SMS short and sweet
   const body = truncateForSms(item.message);
 

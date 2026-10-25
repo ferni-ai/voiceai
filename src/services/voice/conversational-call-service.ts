@@ -183,6 +183,9 @@ export async function makeConversationalCall(
   // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
   const refused = await consentBlocks(request.phone, 'call', true);
   if (refused) return { success: false, message: `Not calling: ${refused}`, error: 'OPTED_OUT' };
+  const { heldSender } = await import('../outreach/checkin-replies.js'); // MINOR_CARE_SHARED_HOLD
+  if (await heldSender(request.userId, request.phone))
+    return { success: false, message: 'Not calling: held', error: 'HELD' };
 
   const personaId = request.personaId || 'ferni';
   const personaName = getPersonaDisplayName(personaId);

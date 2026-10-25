@@ -13,6 +13,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { consentBlocks } from '../messaging/consent.js';
+import { heldSender } from './checkin-replies.js';
 import Twilio from 'twilio';
 
 const log = getLogger().child({ module: 'sip-bridge' });
@@ -105,6 +106,8 @@ export async function initiateConversationalCall(
   // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
   const refused = await consentBlocks(toPhone, 'call', true);
   if (refused) return { success: false, error: `Not calling: ${refused}` };
+  // MINOR_CARE_SHARED_HOLD: never ring an account or a number a call held under 18
+  if (await heldSender(userId, toPhone)) return { success: false, error: 'Not calling: held' };
 
   try {
     // Generate a unique room name for this call
