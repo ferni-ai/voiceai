@@ -506,7 +506,7 @@ class GamePickerUI {
       const gameName = t(game.nameKey);
       // 🤲 Sidekick: Dispatch game started event for avatar sidekick
       document.dispatchEvent(new CustomEvent('ferni:game-started', {
-        detail: { gameId, gameType: gameId, gameName, category: game.category }
+        detail: { gameId, gameType: gameId, gameName, category: game.category, awaitsAck: true }
       }));
 
       // 🤲 Sidekick: For reflection games, also dispatch meditation event

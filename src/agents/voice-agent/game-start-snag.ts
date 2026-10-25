@@ -39,7 +39,11 @@ const GAME_NAMES: Readonly<Record<GameType | TextGameType, string>> = {
 
 /** The line for a game that didn't start; never the raw id. */
 export function gameStartSnag(gameType: unknown): string {
-  const name = typeof gameType === 'string' ? GAME_NAMES[gameType as GameType] : undefined;
+  // Own keys only: "constructor" or "__proto__" must not read Object's built-ins
+  const name =
+    typeof gameType === 'string' && Object.hasOwn(GAME_NAMES, gameType)
+      ? GAME_NAMES[gameType as GameType]
+      : undefined;
   return name
     ? `Hmm, I couldn't get ${name} going just now. Want to try again, or just ask me for it?`
     : "Hmm, I couldn't get that game going just now. Want to try again, or pick another one?";

@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
   sent: [] as Uint8Array[],
   say: vi.fn(),
+  ownWords: vi.fn(),
 }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast: mocks.toast }));
 vi.mock('../../src/services/connection.service.js', () => ({
@@ -33,6 +34,13 @@ vi.mock('../../../../src/speech/coordination/session-integration.js', async (imp
   ...(await importOriginal<object>()),
   coordinatedSay: mocks.say,
 }));
+
+// The snag line must go through sayInOwnWords (the real one still runs).
+vi.mock('../../../../src/speech/direction/index.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../src/speech/direction/index.js')>();
+  mocks.ownWords.mockImplementation(actual.sayInOwnWords);
+  return { ...actual, sayInOwnWords: mocks.ownWords };
+});
 
 // jsdom has no Web Animations API
 Element.prototype.animate = vi.fn(() => ({
@@ -50,6 +58,7 @@ await i18n.initI18n();
 await i18n.setLocale('en-US');
 const { showGamePicker, hideGamePicker } = await import('../../src/ui/game-picker.ui.js');
 const { handleDataMessage } = await import('../../src/app/data-message-handlers.js');
+const { GAME_ACK_TIMEOUT_MS } = await import('../../src/app/agent-ack-handlers.js');
 type Message = Parameters<typeof handleDataMessage>[0];
 
 const WAIT = { timeout: 5_000 };
@@ -114,7 +123,13 @@ beforeAll(() => {
   vi.stubEnv('DIRECTED_SPEECH', 'off'); // the snag line's understudy, word for word
 });
 afterAll(() => vi.unstubAllEnvs());
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  mocks.toast.success.mockClear();
+  mocks.toast.error.mockClear();
+  mocks.say.mockClear();
+  mocks.ownWords.mockClear(); // keep the real implementation
+  mocks.sent.length = 0;
+});
 
 describe("Let's Play: every picker game starts on the agent", () => {
   it('the picker shows all 19 games', () => {
@@ -157,6 +172,13 @@ describe("Let's Play: a game that won't start", () => {
     const line = mocks.say.mock.calls[0]?.[1] as string;
     expect(line).toContain('20 Questions');
     expect(line).not.toContain('20-questions');
+    // In the character's own words (DIRECTED_SPEECH is off here, so the text is the understudy)
+    expect(mocks.ownWords).toHaveBeenCalledWith(
+      sessionId,
+      line,
+      'game_start_failed',
+      expect.objectContaining({ allowInterruptions: true })
+    );
 
     handleDataMessage(JSON.parse(JSON.stringify(agent.acks[0])) as Message);
     expect(mocks.toast.success).not.toHaveBeenCalled();
@@ -177,4 +199,48 @@ describe("Let's Play: a game that won't start", () => {
     expect(line).not.toContain('no-such-game');
     agent.cleanup();
   }, 20_000);
+
+  it.each(['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf'])(
+    'an id named like a built-in (%s) is "that game", not JavaScript',
+    async (gameType) => {
+      const agent = call(`call-${gameType}`);
+      agent.deliver(
+        new TextEncoder().encode(JSON.stringify({ type: 'game_start_request', gameType }))
+      );
+      await vi.waitFor(() => expect(mocks.say).toHaveBeenCalled(), WAIT);
+      const line = mocks.say.mock.calls[0]?.[1] as string;
+      expect(line).toContain('that game');
+      expect(line).not.toMatch(/function|native code|\[object/);
+      agent.cleanup();
+    },
+    20_000
+  );
+});
+
+// Last in the file: fake timers stop the picker's close timer until they're advanced.
+describe("Let's Play: the agent never answers", () => {
+  it.each([
+    ['name-that-tune', 'game_start_ack'],
+    ['tic-tac-toe', 'text_game_start_ack'],
+  ])(
+    '%s: after 10 s with no ack the app says it did not start',
+    async (gameId, ackType) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      try {
+        await tap(gameId); // never delivered to the agent
+        vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS - 100);
+        expect(mocks.toast.error).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(100);
+        expect(mocks.toast.error).toHaveBeenCalledTimes(1);
+
+        // An ack that turns up after that shows no "Starting".
+        handleDataMessage({ type: ackType, gameType: gameId, success: true } as Message);
+        expect(mocks.toast.success).not.toHaveBeenCalled();
+      } finally {
+        vi.runOnlyPendingTimers();
+        vi.useRealTimers();
+      }
+    },
+    20_000
+  );
 });

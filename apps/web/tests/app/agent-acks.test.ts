@@ -47,6 +47,7 @@ vi.mock('../../src/utils/gsap-setup.js', () => ({
 }));
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
+import { GAME_ACK_TIMEOUT_MS } from '../../src/app/agent-ack-handlers.js';
 import { handoffService } from '../../src/services/handoff.service.js';
 import { destroyGameBoard, initGameBoard } from '../../src/ui/game-board.ui.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
@@ -69,7 +70,7 @@ const boardIsOpen = (): boolean =>
 const pickerOpensBoard = (gameType: string): void =>
   void document.dispatchEvent(
     new CustomEvent('ferni:game-started', {
-      detail: { gameId: gameType, gameType, gameName: gameType },
+      detail: { gameId: gameType, gameType, gameName: gameType, awaitsAck: true },
     })
   );
 
@@ -134,6 +135,67 @@ describe('a game that failed to start', () => {
     pickerOpensBoard('20-questions');
     deliver(ack('game_start_ack', { gameType: 'tic-tac-toe', success: true }));
     expect(toastCalls.success).toEqual([]);
+  });
+});
+
+describe('a game start the agent never answers', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    initGameBoard();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    destroyGameBoard();
+    document.querySelectorAll('.game-board-container').forEach((el) => el.remove());
+  });
+
+  it('a text game: after 10 s the board closes and the user is told, once', () => {
+    pickerOpensBoard('tic-tac-toe');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS - 1);
+    expect(boardIsOpen()).toBe(true);
+    expect(toastCalls.error).toEqual([]);
+
+    vi.advanceTimersByTime(1);
+    expect(boardIsOpen()).toBe(false);
+    expect(toastCalls.error).toEqual([
+      "That game didn't start. Try asking Ferni to play it out loud.",
+    ]);
+
+    // A late answer changes nothing, success or failure.
+    deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: true }));
+    deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: false }));
+    expect(toastCalls.success).toEqual([]);
+    expect(toastCalls.error).toHaveLength(1);
+  });
+
+  it('a music game (no board): after 10 s the user is told it did not start', () => {
+    pickerOpensBoard('name-that-tune');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+    expect(toastCalls.error).toEqual([
+      "That game didn't start. Try asking Ferni to play it out loud.",
+    ]);
+    deliver(ack('game_start_ack', { gameType: 'name-that-tune', success: true }));
+    expect(toastCalls.success).toEqual([]);
+  });
+
+  it('an ack in time cancels the timeout', () => {
+    pickerOpensBoard('name-that-tune');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS - 1);
+    deliver(ack('game_start_ack', { gameType: 'name-that-tune', success: true }));
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+    expect(toastCalls.success).toEqual(['Starting name-that-tune...']);
+    expect(toastCalls.error).toEqual([]);
+  });
+
+  it('a game started by voice (no ack coming) is never timed out', () => {
+    document.dispatchEvent(
+      new CustomEvent('ferni:game-started', {
+        detail: { gameId: 'tic-tac-toe', gameType: 'tic-tac-toe', gameName: 'Tic-Tac-Toe' },
+      })
+    );
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+    expect(boardIsOpen()).toBe(true);
+    expect(toastCalls.error).toEqual([]);
   });
 });
 
