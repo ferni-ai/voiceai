@@ -96,4 +96,28 @@ describe.skipIf(!emulator)('Our Story milestones, call to panel (Firestore emula
     expect(week - first).toBe(7 * DAY);
     expect(Date.now() - first).toBeGreaterThanOrEqual(8 * DAY - 60_000);
   });
+
+  // A saved arc whose userId field held a device id: saves went to bogle_users/{that id},
+  // so no call ever moved the doc the panel reads.
+  it('a call updates the arc the panel reads even when the doc names an older user id', async () => {
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const { clearAllArcCache, createDefaultRelationshipArcData } =
+      await import('../../intelligence/context-builders/relationship/arc/index.js');
+    const db = getAdminFirestore();
+    const uid = newUser();
+    const oldId = `device:${uid}-old`;
+    const arc = { ...createDefaultRelationshipArcData(oldId), totalSessions: 5 };
+    await db
+      .doc(`bogle_users/${uid}/relationship_arc/data`)
+      .set({ ...arc, firstSessionDate: Date.now() - 30 * DAY, _migratedFrom: oldId });
+    clearAllArcCache(); // a fresh worker: the call loads the doc from Firestore
+
+    await callEndedDaysAgo(uid, 0);
+    clearAllArcCache(); // the panel is served by another process (the UI server)
+
+    const res = await fetch(`${base}/api/your-story/full`, { headers: { 'x-test-uid': uid } });
+    const body = (await res.json()) as { data: { header: { totalConversations: number } } };
+    expect(body.data.header.totalConversations).toBe(6);
+    expect((await db.doc(`bogle_users/${oldId}/relationship_arc/data`).get()).exists).toBe(false);
+  });
 });

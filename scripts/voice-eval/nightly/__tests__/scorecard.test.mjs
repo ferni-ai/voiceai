@@ -346,3 +346,104 @@ describe('the CLI and the previous night', () => {
     expect(spawnSync('node', [SCORECARD, join(root, '2026-10-22')]).status).toBe(2);
   });
 });
+
+describe('tool choice (offline metric from choice-score.mjs)', () => {
+  const capsT = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+  const at = (toolChoice, prev = null) => scoreNight([], capsT, prev, { toolChoice });
+  const verdict = (card) => card.capabilities['tool-choice'].verdict;
+
+  it('FAILs under the 78% floor, WARNs under 80%, PASSes above', () => {
+    expect(verdict(at({ rate: 0.736, n: 599, verdict: 'FAIL' }))).toBe('FAIL');
+    expect(verdict(at({ rate: 0.79, n: 600, verdict: 'PASS' }))).toBe('WARN');
+    expect(verdict(at({ rate: 0.82, n: 600, verdict: 'PASS' }))).toBe('PASS');
+  });
+
+  it('reads no file or an INVALID run (too many errored rows) as no data, never a PASS', () => {
+    expect(check(at(undefined), 'tool-choice', 'right-or-equivalent')).toMatchObject({
+      verdict: 'WARN',
+      reason: 'no data',
+    });
+    expect(verdict(at({ rate: 0.9, n: 550, verdict: 'INVALID' }))).toBe('WARN');
+  });
+
+  it('flags a drop of more than 2 points night over night as a regression', () => {
+    const prev = { capabilities: at({ rate: 0.85, n: 600, verdict: 'PASS' }).capabilities };
+    expect(at({ rate: 0.82, n: 600, verdict: 'PASS' }, prev).diff.regressions).toContain(
+      'tool-choice.right-or-equivalent: worse by 0.03 (max 0.02)'
+    );
+    expect(at({ rate: 0.84, n: 600, verdict: 'PASS' }, prev).diff.regressions).toEqual([]);
+  });
+
+  it('the CLI scores OUT/tool-choice.json beside the runs', () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'nightly-')), '2026-10-22');
+    cpSync(join(HERE, 'fixtures', '2026-10-21'), out, { recursive: true });
+    writeFileSync(
+      join(out, 'tool-choice.json'),
+      JSON.stringify({ rate: 0.736, n: 599, verdict: 'FAIL' })
+    );
+    const r = spawnSync('node', [SCORECARD, out, '--prev', 'none'], { encoding: 'utf8' });
+    expect(r.stdout).toMatch(/^FAIL {1,}tool-choice$/m);
+  });
+});
+
+describe('tool choice input that is not a choice-score summary (review #2454)', () => {
+  const capsT = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+  const reason = (toolChoice) =>
+    check(scoreNight([], capsT, null, { toolChoice }), 'tool-choice', 'right-or-equivalent');
+  it.each([
+    ['a raw choice-*.json row array', [{ query: 'q', label: 'setTimer', final: 'setTimer' }]],
+    ['a FAIL with no rate', { verdict: 'FAIL', n: 599 }],
+    ['a rate that is a string', { rate: '73.6%', verdict: 'FAIL', n: 599 }],
+    ['an unknown verdict', { rate: 0.9, verdict: 'invalid', n: 599 }],
+    ['no verdict', { rate: 0.9, n: 599 }],
+  ])('reads %s as no data, never PASS', (_, toolChoice) => {
+    expect(reason(toolChoice)).toMatchObject({ verdict: 'WARN', reason: 'no data' });
+  });
+  it('reads a choice-score FAIL from its worst case even when the scored-rows rate clears the floor', () => {
+    expect(reason({ rate: 0.7806, worst: 0.765, verdict: 'FAIL', n: 588 }).verdict).toBe('FAIL');
+  });
+});
+
+describe('a FAIL that turns into no data', () => {
+  it('is a regression, not an improvement', () => {
+    const caps1 = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+    const prev = {
+      capabilities: scoreNight([], caps1, null, {
+        toolChoice: { rate: 0.7, n: 600, verdict: 'FAIL' },
+      }).capabilities,
+    };
+    const card = scoreNight([], caps1, prev, { toolChoice: undefined });
+    expect(card.diff.regressions).toContain('tool-choice: FAIL -> no data');
+    expect(card.diff.exit).toBe(1);
+  });
+
+  it('is not claimed for a capability that still FAILs and has another check with no data', () => {
+    // Review of #2454: this fired every night and reached the public COMMENT.md.
+    const caps2 = {
+      capabilities: {
+        multi: {
+          label: 'm',
+          scenarios: [],
+          checks: [
+            { id: 'a', metric: 'toolChoiceRate', better: 'higher', warn: 0.8, fail: 0.78 },
+            { id: 'b', metric: 'callsMatching', pattern: 'zzz', better: 'lower', warn: 0, fail: 0 },
+          ],
+        },
+      },
+    };
+    const tc = { toolChoice: { rate: 0.7, worst: 0.7, verdict: 'FAIL', n: 600 } };
+    const prev = { capabilities: scoreNight([], caps2, null, tc).capabilities };
+    const card = scoreNight([], caps2, prev, tc);
+    expect(card.capabilities.multi.verdict).toBe('FAIL');
+    expect(card.diff.regressions).toEqual([]);
+    expect(card.diff.exit).toBe(0);
+  });
+
+  it('reads a rate outside [0, 1] as no data', () => {
+    const caps1 = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+    for (const rate of [82, -1, 1.2]) {
+      const c = scoreNight([], caps1, null, { toolChoice: { rate, verdict: 'PASS', n: 600 } });
+      expect(check(c, 'tool-choice', 'right-or-equivalent')).toMatchObject({ reason: 'no data' });
+    }
+  });
+});

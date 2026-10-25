@@ -2,9 +2,16 @@
  * The voices people can pick for their own agent are real, distinct, never a Ferni
  * persona's or a retired clone's, and are exactly what select-premade accepts.
  */
+import { existsSync, readdirSync } from 'fs';
 import type { ServerResponse } from 'http';
 import { describe, expect, it, vi } from 'vitest';
-import { isValidVoiceId } from '../../../config/voice-ids.js';
+import {
+  FERNI_CALM_A_VOICE_ID,
+  FERNI_CALM_B_VOICE_ID,
+  FERNI_CALM_C_VOICE_ID,
+  isValidVoiceId,
+  VOICE_IDS,
+} from '../../../config/voice-ids.js';
 import {
   CUSTOM_AGENT_VOICE_CATALOG,
   DEFAULT_CUSTOM_AGENT_VOICE_ID,
@@ -19,6 +26,7 @@ import {
 } from '../custom-agent-voice-policy.js';
 import { handleListVoices } from '../../../api/custom-agent/voice-routes.js';
 
+const PREVIEWS = new URL('../../../../apps/web/public/sounds/voice-library/', import.meta.url);
 const ARCHIVED_CHILD = '2ee87190-8f84-4925-97da-e52547f9462c'; // the old list's "Dr. Chen"
 
 describe('the custom-agent voice catalog', () => {
@@ -34,9 +42,42 @@ describe('the custom-agent voice catalog', () => {
     }
   });
 
+  it('has a web preview clip for every voice, and none for voices it dropped', () => {
+    const ids = CUSTOM_AGENT_VOICE_CATALOG.map((v) => v.voiceId);
+    for (const v of CUSTOM_AGENT_VOICE_CATALOG) {
+      expect(existsSync(new URL(`${v.voiceId}.mp3`, PREVIEWS)), v.name).toBe(true);
+    }
+    const files = readdirSync(PREVIEWS).filter((f) => f.endsWith('.mp3'));
+    expect(files.map((f) => f.replace(/\.mp3$/, '')).sort()).toEqual([...ids].sort());
+  });
+
   it("never offers a Ferni persona's voice or a retired clone", () => {
     for (const v of CUSTOM_AGENT_VOICE_CATALOG) {
       expect(isForbiddenCustomAgentVoiceId(v.voiceId), v.name).toBe(false);
+    }
+    // Both of Ferni's voices: the live one and calm B, its rollback outside VOICE_IDS.
+    expect(isForbiddenCustomAgentVoiceId(VOICE_IDS.FERNI)).toBe(true);
+    expect(isForbiddenCustomAgentVoiceId(FERNI_CALM_B_VOICE_ID)).toBe(true);
+  });
+
+  it('forbids calm A, B and C however the id is cased or padded', () => {
+    for (const id of [FERNI_CALM_A_VOICE_ID, FERNI_CALM_B_VOICE_ID, FERNI_CALM_C_VOICE_ID]) {
+      for (const variant of [id.toUpperCase(), ` ${id} `, `\n${id.toUpperCase()}\t`]) {
+        expect(isForbiddenCustomAgentVoiceId(variant), JSON.stringify(variant)).toBe(true);
+      }
+    }
+    expect(isForbiddenCustomAgentVoiceId(VOICE_IDS.FERNI.toUpperCase())).toBe(true);
+  });
+
+  it("forbids every calm clone of Ferni's own voice, spares A and C included, even as a ready clone", () => {
+    expect(FERNI_CALM_A_VOICE_ID).toBe('24a60cd5-9428-453d-8a95-92f50567f32e');
+    expect(FERNI_CALM_C_VOICE_ID).toBe('5b13b172-56f9-4821-887a-a943fe949830');
+    for (const voiceId of [FERNI_CALM_A_VOICE_ID, FERNI_CALM_B_VOICE_ID, FERNI_CALM_C_VOICE_ID]) {
+      expect(isForbiddenCustomAgentVoiceId(voiceId), voiceId).toBe(true);
+      expect(customAgentVoiceAllowed({ type: 'cloned', voiceId, status: 'ready' }), voiceId).toBe(
+        false
+      );
+      expect(isStockCustomAgentVoiceId(voiceId), voiceId).toBe(false);
     }
   });
 

@@ -3,10 +3,11 @@
  * nod (or smile) with its own "mm-hmm" instead of staying still while it is
  * heard. Clips play on a side track the client can't tell apart from music.
  *
- * Message: `backchannel_played { kind, wireDelayMs }`. `kind` is 'laugh' for
+ * Message: `backchannel_played { kind, wireDelayMs, label }`. `kind` is 'laugh' for
  * the laugh clip and 'backchannel' for everything else; `wireDelayMs` is the
  * player's play()-to-wire delay (measured on the last direct-track clip,
- * estimated on the mixer track), so the client can time the nod to the sound.
+ * estimated on the mixer track), so the client can time the nod to the sound;
+ * `label` is the clip's short text (sound-signal.ts soundLabel).
  *
  * Only with AVATAR_LISTEN_SIGNALS=on (listen-turn-signals.ts).
  *
@@ -15,6 +16,7 @@
 
 import type { DataMessageSender } from '../shared/data-message-envelope.js';
 import { LAUGH_CLIP } from './backchannel-policy.js';
+import { soundLabel } from './sound-signal.js';
 
 export const BACKCHANNEL_PLAYED = 'backchannel_played';
 
@@ -30,7 +32,8 @@ export function backchannelKind(text: string): BackchannelKind {
 export function withBackchannelSignal(
   playClip: PlayClipFn,
   send: DataMessageSender,
-  wireDelayMs: () => number
+  wireDelayMs: () => number,
+  labelOf: (text: string) => string = (text) => text
 ): PlayClipFn {
   return (text, opts) => {
     const played = playClip(text, opts);
@@ -38,6 +41,7 @@ export function withBackchannelSignal(
       void send(BACKCHANNEL_PLAYED, {
         kind: backchannelKind(text),
         wireDelayMs: Math.round(wireDelayMs()),
+        label: soundLabel(labelOf(text)),
       });
     }
     return played;

@@ -21,7 +21,6 @@
 
 import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
-
 import {
   agreementOutcome,
   resolveCrisisAgreementGate,
@@ -74,6 +73,7 @@ import {
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
@@ -370,7 +370,7 @@ export function holdUntilCleared(
         if (!decision) {
           released = true;
           // How long a ready reply waited on the classifier: the latency this gate adds.
-          log.info({ delayedMs: firstHeldAt ? Date.now() - firstHeldAt : 0 }, 'CRISIS_HOLD');
+          log.info({ delayedMs: noteCrisisHold(escalation, firstHeldAt) }, 'CRISIS_HOLD');
           for (const chunk of held) controller.enqueue(chunk);
           held.length = 0;
           await pump;
