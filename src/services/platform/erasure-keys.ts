@@ -13,6 +13,9 @@
  * - phone profiles (bogle_users/phone:{e164}): one of those phones, or one that linked
  *   this sign-in (`auth:{provider}:{uid}`, linkWebAuthToPhone). A phone profile that
  *   linked any other sign-in, even alongside this one, is left alone (and logged).
+ *   The sign-in links are looked up under every provider Firebase signs people in
+ *   with, not only those on the account: once the Firebase user is gone its provider
+ *   list is too, and a link under `auth:google.com:{uid}` must still be found.
  *
  * The Firebase lookup must succeed: a lookup that fails for any reason other than
  * "no such user" throws, so the erasure is reported as failed and can be retried,
@@ -62,6 +65,27 @@ export const chunks = <T>(values: readonly T[], size = IN_LIMIT): T[][] => {
 const unique = (values: Array<string | undefined>): string[] => [
   ...new Set(values.filter((v): v is string => !!v)),
 ];
+
+/**
+ * The provider ids linkWebAuthToPhone can be given ('default' is its own default):
+ * Firebase's built-in sign-in providers. A custom OIDC or SAML provider is found only
+ * while the Firebase user, and so its provider list, still exists.
+ */
+const SIGN_IN_PROVIDERS = [
+  'default',
+  'anonymous',
+  'password',
+  'phone',
+  'google.com',
+  'apple.com',
+  'facebook.com',
+  'github.com',
+  'twitter.com',
+  'microsoft.com',
+  'yahoo.com',
+  'gamecenter.apple.com',
+  'playgames.google.com',
+] as const;
 
 const E164 = /^\+\d{7,15}$/;
 const PHONE_PROFILE = 'phone:';
@@ -141,7 +165,10 @@ export async function gatherErasureKeys(db: Db, userId: string): Promise<Erasure
         .map((l) => l.slice(PHONE_PROFILE.length)),
     ].map((p) => (p ? normalizePhoneNumber(p) : undefined))
   ).filter((p) => E164.test(p));
-  const providers = unique(['default', ...(user?.providerData.map((p) => p.providerId) ?? [])]);
+  const providers = unique([
+    ...SIGN_IN_PROVIDERS,
+    ...(user?.providerData.map((p) => p.providerId) ?? []),
+  ]);
   const { profiles: linked, shared } = await phoneProfiles(db, userId, phones, providers);
   const linkedUserIds = linked.map((s) => s.id);
 

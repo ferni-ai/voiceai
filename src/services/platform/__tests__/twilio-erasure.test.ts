@@ -20,6 +20,10 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return { createLogger: () => logger, getLogger: () => ({ child: () => logger }) };
 });
 vi.mock('../../identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => false }));
+// The post-sweep outreach drop (#2311); the real module loads the LLM content service.
+vi.mock('../../outreach/outreach-intelligence.js', () => ({
+  eraseUserOutreachData: async () => undefined,
+}));
 const keys = vi.hoisted(() => ({ phones: [] as string[] }));
 vi.mock('../erasure-keys.js', () => ({
   gatherErasureKeys: async (_db: unknown, userId: string) => ({

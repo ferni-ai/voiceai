@@ -25,6 +25,7 @@ import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
 import { ESBUILD_SUPPORTED, ESBUILD_TARGET } from './esbuild-target.js';
 import { copyImportedJson } from './copy-imported-json.js';
+import { writeGeneratedLists } from '../../../../../src/config/generated-lists.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
@@ -316,6 +317,11 @@ ${colors.cyan}╚═════════════════════
 `);
 
   const totalStart = Date.now();
+
+  // The flag barrel and env-name list are gitignored (src/config/generated-lists.ts).
+  // Every image build runs this script, so it writes them before esbuild reads src/.
+  const generated = writeGeneratedLists(PROJECT_ROOT);
+  log.info(`Generated lists: ${generated.length ? generated.join(', ') : 'up to date'}`);
 
   if (typeCheckOnly) {
     await typeCheck();

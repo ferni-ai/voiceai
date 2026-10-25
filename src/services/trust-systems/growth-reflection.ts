@@ -178,11 +178,11 @@ const BOUNDARY_GROWTH = {
   ],
 };
 
-// ============================================================================
-// IN-MEMORY STORE
-// ============================================================================
+// In-memory store
 
 const growthProfiles = new Map<string, GrowthProfile>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetGrowthUser = (userId: string): boolean => growthProfiles.delete(userId);
 
 function getOrCreateProfile(userId: string): GrowthProfile {
   let profile = growthProfiles.get(userId);

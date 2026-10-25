@@ -541,7 +541,6 @@ async function sendCallResultEmail(
   callId: string
 ): Promise<void> {
   try {
-    // Get user's email
     const email = await getUserEmail(request.userId);
     if (!email) {
       log.debug(
@@ -575,7 +574,7 @@ async function sendCallResultEmail(
       completedAt
     );
 
-    await sendEmail({
+    const sent = await sendEmail({
       to: email,
       subject,
       body,
@@ -584,6 +583,7 @@ async function sendCallResultEmail(
       outreachId: callId,
       tags: ['on-behalf-call', outcome.status],
     });
+    if (!sent.success) throw new Error(sent.error || 'email not sent');
 
     log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
   } catch (error) {
