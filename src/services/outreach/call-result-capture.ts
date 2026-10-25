@@ -13,6 +13,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
 import { callResultDetails, callResultTextOn, tellOwnerIfOn } from './call-result-text.js';
+import { callResultLiveReportOn, reportCallResultLive } from './call-result-live.js';
+import { notePushOutcome } from './delivery/push-outcome.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
@@ -143,73 +145,6 @@ export async function getCallResult(
 }
 
 // ============================================================================
-// SESSION NOTIFICATION
-// ============================================================================
-
-/**
- * Notify the original session of the call result
- *
- * Currently stores the notification for the user to see when they next connect.
- * Real-time notification via WebSocket can be added later when the data message
- * infrastructure is in place.
- */
-async function notifyOriginalSession(
-  originalSessionId: string,
-  callId: string,
-  outcome: CallOutcome
-): Promise<void> {
-  try {
-    log.info(
-      { originalSessionId, callId, status: outcome.status },
-      'Storing call result notification for session'
-    );
-
-    // Store a notification for the user to see when they next connect
-    await storeNotification(originalSessionId, callId, outcome);
-  } catch (error) {
-    log.error({ error: String(error), originalSessionId }, 'Failed to notify original session');
-  }
-}
-
-/** Store a notification for later delivery */
-async function storeNotification(
-  sessionId: string,
-  callId: string,
-  outcome: CallOutcome
-): Promise<void> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-      getFirestoreDb: null,
-    }));
-
-    const db = getFirestoreDb ? getFirestoreDb() : null;
-    const notification = {
-      type: 'on_behalf_call_complete',
-      callId,
-      outcome: outcome.outcome,
-      status: outcome.status,
-      objectiveAchieved: outcome.objectiveAchieved,
-      callbackRequired: outcome.callbackRequired,
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-
-    if (db) {
-      // Store in user's pending notifications
-      await db
-        .collection('pending_notifications')
-        .doc(sessionId)
-        .collection('items')
-        .add(cleanForFirestore(notification));
-    }
-
-    log.debug({ sessionId, callId }, 'Notification stored for later delivery');
-  } catch (error) {
-    log.debug({ error: String(error), sessionId }, 'Could not store notification');
-  }
-}
-
-// ============================================================================
 // ACTIVE SESSION INJECTION
 // ============================================================================
 
@@ -224,6 +159,7 @@ async function injectToActiveSession(
   outcome: CallOutcome,
   request: OnBehalfCallRequest
 ): Promise<boolean> {
+  if (!sessionId) return false; // no requesting call (an empty name is no room)
   try {
     // Dynamic import to avoid circular deps and allow graceful degradation
     const livekitSdk = await import('livekit-server-sdk').catch(() => null);
@@ -431,17 +367,11 @@ export async function captureCallResult(
     // 2. Store the result
     await storeCallResult(result);
 
-    // 3. Try to inject directly into active session (instant feedback)
-    const injectedToActive = await injectToActiveSession(
-      request.originalSessionId,
-      outcome,
-      request
-    );
-
-    // 4. Store notification for later if session wasn't active
-    if (!injectedToActive) {
-      await notifyOriginalSession(request.originalSessionId, callId, outcome);
-    }
+    // 3. Tell the owner in the call that asked for it, if it's still on (CALL_RESULT_LIVE_REPORT)
+    const injectedToActive = callResultLiveReportOn()
+      ? reportCallResultLive(request, outcome)
+      : await injectToActiveSession(request.originalSessionId, outcome, request);
+    // 4. Not live: step 9 keeps it for While You Were Away (the next call's opener reads it)
 
     // 5. Push (reaches them even if disconnected), unless CALL_RESULT_TEXT texts them below
     if (!callResultTextOn()) await sendCallResultPushNotification(request, outcome, callId);
@@ -507,7 +437,7 @@ async function sendCallResultPushNotification(
       body = outcome.outcome;
     }
 
-    await sendPushNotification({
+    const results = await sendPushNotification({
       userId: request.userId,
       outreachId: callId,
       personaId: 'ferni',
@@ -523,8 +453,7 @@ async function sendCallResultPushNotification(
       priority: 'high',
       clickAction: '/calls', // Navigate to call history
     });
-
-    log.info({ callId, userId: request.userId }, 'Push notification sent for call result');
+    notePushOutcome(log, results, { callId, userId: request.userId, for: 'call result' });
   } catch (error) {
     // Don't fail the whole capture if push fails
     log.warn({ error: String(error), callId }, 'Failed to send push notification');

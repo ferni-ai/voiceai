@@ -18,6 +18,7 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
+import { noteLiveSession } from '../../tools/registry/live-session.js';
 import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
@@ -151,6 +152,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       session
     )
   );
+  // A call placed from this one reports back here by its real id (tools/registry/live-session.ts).
+  cleanupFunctions.push(noteLiveSession(session, sessionId));
 
   // Answer a caller turn that was left hanging (turn-keeper.ts).
   if (process.env.TURN_KEEPER !== 'off') {
