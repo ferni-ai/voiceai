@@ -60,32 +60,53 @@ describe('detectCallIntent', () => {
  * What the texter gets back, main vs this change (2026-10-25). `main` is what
  * main's matcher did: every 'reply' there was "Let me call you now..." with no
  * call. Here a 'reply' is the honest "Open Ferni whenever you're ready."
- * Never lower at the output: no text may lose its reply except the ones that
- * were never asks to talk (bare assent, negations, names, someone else's words).
+ * Reply by default: the only texts that lose their reply are bare assent.
+ * Verifier r2 of #2841 showed a word list deciding silence fails fresh
+ * distress texts ("stop it hurts, call me"), so no other silence class exists.
  */
+const REPLY = 'reply' as const;
+const both = (text: string) => ({ text, main: REPLY, now: REPLY });
 const TABLE: { text: string; main: 'reply' | 'none'; now: 'reply' | 'none'; why?: string }[] = [
-  { text: 'I want to die, call me', main: 'reply', now: 'reply' },
-  { text: 'I want to kill myself, can you call me', main: 'reply', now: 'reply' },
-  { text: "please call me I can't do this anymore", main: 'reply', now: 'reply' },
-  { text: "I'm scared, call me", main: 'reply', now: 'reply' },
-  { text: 'I need to talk', main: 'reply', now: 'reply' },
-  { text: 'need to talk to someone', main: 'reply', now: 'reply' },
-  { text: 'can we talk? im not ok', main: 'reply', now: 'reply' },
-  { text: 'call me', main: 'reply', now: 'reply' },
-  { text: 'ok', main: 'reply', now: 'none', why: 'assent' },
-  { text: 'yes', main: 'reply', now: 'none', why: 'assent' },
-  { text: 'sure', main: 'reply', now: 'none', why: 'assent' },
-  { text: 'please', main: 'reply', now: 'none', why: 'assent' },
-  { text: "I'd like that", main: 'reply', now: 'reply' },
-  { text: "don't call me", main: 'reply', now: 'none', why: 'negated' },
-  { text: 'call me Ishmael', main: 'reply', now: 'none', why: 'name' },
-  { text: 'call me crazy but I like it', main: 'reply', now: 'none', why: 'name' },
-  { text: 'she said to call me back later', main: 'reply', now: 'none', why: 'reported' },
-  // Crisis words beside a non-ask: pinned as they are; the crisis screen
-  // (SMS_CRISIS_SCREEN) is what must answer these, not this matcher.
-  { text: "don't call me, I just want to die", main: 'reply', now: 'none', why: 'negated' },
-  { text: 'call me Ishmael, I want to end it', main: 'reply', now: 'none', why: 'name' },
-  { text: 'she said call me if I feel like ending it', main: 'reply', now: 'reply' },
+  ...[
+    'I want to die, call me',
+    'I want to kill myself, can you call me',
+    "please call me I can't do this anymore",
+    "I'm scared, call me",
+    'I need to talk',
+    'need to talk to someone',
+    'can we talk? im not ok',
+    'call me',
+    "I'd like that",
+    // Fresh distress texts from the #2841 r2 verify (22d2f2635): 10 of these went silent there
+    "I can't stop crying, call me",
+    "I can't stop shaking, please call me",
+    "it won't stop hurting, can we talk",
+    'I never feel ok anymore, call me',
+    "I don't feel safe, can we talk",
+    "don't leave me, call me",
+    "please don't hang up on me, call me back",
+    'i dont want to live, call me',
+    'stop it hurts, call me',
+    'I want to die, call me Mom',
+    "I don't want to be here anymore, call me",
+    "I don't know what to do, I need to talk",
+    "I can't do this, call me",
+    'nobody would care, call me',
+    "I'm not ok. call me",
+    "call me please I'm scared",
+    'I want to end it. call me',
+    // Not asks, but an honest invitation is harmless and silence is never chosen by a word list
+    "don't call me, I just want to die",
+    'call me Ishmael, I want to end it',
+    'she said call me if I feel like ending it',
+    'call me Ishmael',
+    'call me crazy but I like it',
+    'she said to call me back later',
+  ].map(both),
+  { text: 'ok', main: 'reply', now: 'none', why: 'bare assent' },
+  { text: 'yes', main: 'reply', now: 'none', why: 'bare assent' },
+  { text: 'sure', main: 'reply', now: 'none', why: 'bare assent' },
+  { text: 'please', main: 'reply', now: 'none', why: 'bare assent' },
   { text: 'running late, see you at 6', main: 'none', now: 'none' },
 ];
 
@@ -94,9 +115,9 @@ describe('detectTalkIntent: the reply the texter gets, pinned against main', () 
     expect(detectTalkIntent(text) ? 'reply' : 'none').toBe(now);
   });
 
-  it('only texts that were never asks to talk lose their reply', () => {
+  it('only bare assent loses its reply, and nothing gains one', () => {
     const lost = TABLE.filter((row) => row.main === 'reply' && row.now === 'none');
-    expect(lost.every((row) => row.why !== undefined)).toBe(true);
+    expect(lost.map((row) => row.text).sort()).toEqual(['ok', 'please', 'sure', 'yes']);
     expect(TABLE.filter((row) => row.main === 'none' && row.now === 'reply')).toEqual([]);
   });
 

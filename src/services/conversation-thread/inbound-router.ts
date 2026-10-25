@@ -379,22 +379,16 @@ const TALK_ASKS = [
   /\bphone\s+me\b/i,
   /\bi'?d\s+like\s+that\b/i, // a yes to Ferni's own "want to talk?"; silence would read as ignored
 ];
-/** Not an ask: negated, a name ("call me Ishmael", "call me crazy"), or someone else's words. */
-const NOT_AN_ASK = [
-  /\b(?:don'?t|do not|never|no need to|stop)\b[^.?!]{0,20}\b(?:call|ring|phone|talk)/i,
-  /\bcall me (?:crazy|maybe|a cab|an? uber|ishmael)\b/i,
-  /\bcall me [A-Z][a-z]+[.!]?$/,
-  /\b(?:said|says|told|tells|asked|asks)\b[^.?!]{0,20}\bto call me\b/i,
-];
-
 /**
- * A text that asks to talk at all, answered with an honest invitation and
- * never a call. Bare "ok", "yes", "sure" or "please" is not one: it follows
- * any check-in, and on main it got "Let me call you now..." every time.
+ * A text that asks to talk at all gets the honest invitation, never a call.
+ * Reply by default: no word list decides that a text which asks to talk gets
+ * silence ("stop it hurts, call me" would). The one exception is a bare "ok",
+ * "yes", "sure" or "please", which follows any check-in and is not an ask (on
+ * main it got "Let me call you now..." every time); none of the patterns
+ * above matches those, so they stay silent.
  */
 export function detectTalkIntent(message: string): boolean {
   const text = message.trim();
-  if (NOT_AN_ASK.some((pattern) => pattern.test(text))) return false;
   return TALK_ASKS.some((pattern) => pattern.test(text));
 }
 
