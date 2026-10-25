@@ -300,10 +300,10 @@ describe('the facts line in the live persona prompt', () => {
   describe.each(['full', 'character'])('PROMPT_MODE=%s', (mode) => {
     it.each(CANON_BUNDLES)('%s: on ends with its line; off is the prompt without it', async (b) => {
       process.env['PROMPT_MODE'] = mode;
-      const off = await loadCallerPrompt(b);
+      const off = await loadCallerPrompt({ id: b });
       expect(off).not.toContain('Facts about you that never change');
       process.env['PERSONA_CANON_FACTS'] = 'on';
-      const on = await loadCallerPrompt(b);
+      const on = await loadCallerPrompt({ id: b });
       expect(on).toBe(`${off.trimEnd()}\n\n${canonFactsLine(facts(b))}\n`);
     });
   });

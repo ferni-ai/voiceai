@@ -13,6 +13,7 @@ import type { VoiceDeps } from '../voice-agent/phases/index.js';
 import type { UserLocation } from './types.js';
 import { USE_TOOL_GATEWAY } from './constants.js';
 import { createLightweightVoiceAgentRef } from './voice-agent-ref.js';
+import { isLiveCustomAgent } from '../shared/custom-agent-live.js';
 import { attachTurnMetrics } from '../shared/turn-metrics.js';
 import { createLogger as createTurnMetricsLogger } from '../../utils/safe-logger.js';
 
@@ -142,7 +143,8 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   let effectiveVoiceId = voiceConfig.voiceId;
   let isLocalizedVoice = false;
 
-  if (userAccent && userAccent !== 'american') {
+  // A live custom agent keeps its own voice: localizing would localize Ferni's (custom-agent-live.ts)
+  if (userAccent && userAccent !== 'american' && !isLiveCustomAgent(sessionPersona)) {
     try {
       const { getLocalizedVoiceId } =
         await import('../../services/voice/cartesia-voice-localization.js');

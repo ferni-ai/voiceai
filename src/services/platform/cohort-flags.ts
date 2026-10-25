@@ -108,6 +108,7 @@ export const COHORT_FLAGS = [
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
   'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
+  'CUSTOM_AGENT_LIVE', // read once the caller is known, at STEP 4 (agents/shared/custom-agent-live.ts)
   // Latency A/Bs, one arm per eval caller. Each reply's guard (action-claim-guard.ts:242)
   // and each preemptive turn's hold (preempt-stable-context.ts) read process.env.
   'ACTION_CLAIM_STREAM',
