@@ -10,6 +10,7 @@ import { llm, voice } from '@livekit/agents';
 import { describe, expect, it, vi } from 'vitest';
 import { attachCutReplyHistory, noteGeneratedForCut } from '../../shared/cut-reply-history.js';
 import { REPHRASE_NOTE, isNearCopy, withCutReplyCheck } from '../cut-reply-guard.js';
+import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 
 type Chunk = string | llm.ChatChunk;
 const ON = { CUT_REPLY_IN_HISTORY: 'on' };
@@ -125,6 +126,79 @@ describe('withCutReplyCheck', () => {
     const session = await afterCut();
     const { model } = scripted([delta(CUT)], [delta('unused')]);
     expect(withCutReplyCheck(session, model, 's1', OFF)).toBe(model);
+  });
+
+  // Round-1 verify of #2786: a crisis "guide" reply comes from this model; asking it again
+  // dropped 988 and 911. A repeated safety line must go out as generated, in one call.
+  const CRISIS =
+    "I'm really glad you told me. If you're in danger right now, please call or text 988, or 911 if it's an emergency.";
+
+  it('safety: a cut crisis reply said again goes out as said, 988 and all, one call', async () => {
+    const session = await afterCut(CRISIS);
+    const { model } = scripted(
+      [delta(CRISIS)],
+      [delta("I hear you. What's happening for you right now?")]
+    );
+    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(out).toContain('988');
+    expect(out).toContain('911');
+  });
+
+  it('safety: on a call with crisis risk, even a non-crisis repeat is not asked again', async () => {
+    resetCrisisCallRisk();
+    try {
+      noteCrisisRisk('s1', Date.now());
+      const session = await afterCut();
+      const { model } = scripted([delta(CUT)], [delta('unused')]);
+      const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
+      expect(model).toHaveBeenCalledTimes(1);
+      expect(out).toBe(CUT);
+    } finally {
+      resetCrisisCallRisk();
+    }
+  });
+
+  it('safety: a new reply carrying a crisis resource is never replaced, even if it repeats', async () => {
+    const session = await afterCut();
+    const repeat = `${CUT} If it ever feels like too much, 988 is there any time.`;
+    const { model } = scripted([delta(repeat)], [delta('unused')]);
+    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
+    expect(model).toHaveBeenCalledTimes(1);
+    expect(out).toContain('988');
+  });
+
+  it('asks again at most once: a second near-copy goes out rather than looping', async () => {
+    const session = await afterCut();
+    const { model } = scripted([delta(CUT)], [delta(CUT)]);
+    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
+    expect(model).toHaveBeenCalledTimes(2);
+    expect(out).toBe(CUT);
+  });
+
+  it('removes a copied cut mark from the middle of a reply, even split across chunks', async () => {
+    const session = await afterCut();
+    const { model } = scripted(
+      [
+        delta('Sure. [cut off by the caller; '),
+        delta('they heard little or none of this]'),
+        delta(' Is it on wifi?'),
+      ],
+      [delta('unused')]
+    );
+    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
+    expect(out).not.toContain('[cut off');
+    expect(out).toBe('Sure. Is it on wifi?');
+  });
+
+  it('leaves other bracketed text alone', async () => {
+    const session = await afterCut();
+    const { model } = scripted(
+      [delta('Dropping on your iPhone [the 15]? Is it on wifi?')],
+      [delta('unused')]
+    );
+    const out = await spoken(await withCutReplyCheck(session, model, 's1', ON)(request()));
+    expect(out).toBe('Dropping on your iPhone [the 15]? Is it on wifi?');
   });
 });
 

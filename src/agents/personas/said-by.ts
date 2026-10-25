@@ -46,7 +46,7 @@ export function textOf(chunk: Chunk): string | undefined {
   return undefined; // tool calls, usage: not reply text
 }
 
-function withText<T extends Chunk>(chunk: T, text: string): T {
+export function withText<T extends Chunk>(chunk: T, text: string): T {
   if (typeof chunk === 'string') return text as T;
   const c = chunk as llm.ChatChunk;
   return { ...c, delta: { ...c.delta, content: text } } as T;

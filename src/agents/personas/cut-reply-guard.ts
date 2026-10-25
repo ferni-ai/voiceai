@@ -15,14 +15,22 @@
  * reply opening with "[", held until its "]" in case it copied the cut mark,
  * which is cut. No extra model call unless a near-copy is caught.
  *
+ * Safety: the check stands down on a crisis call. A crisis reply ("guide" in
+ * crisis-gate.ts) comes from this same model; asking it again with "don't say
+ * it again" dropped 988 and 911 in round-1 verify of #2786. So when the call has
+ * crisis risk (crisis-call-risk.ts), or the cut or new reply carries a crisis
+ * resource, the reply goes out as generated, repeat or not. A false match only
+ * means the check doesn't run.
+ *
  * @module agents/personas/cut-reply-guard
  */
 import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { armedCutReply, wordsOf } from '../shared/cut-reply-history.js';
-import { cutFrom, textOf } from './said-by.js';
+import { cutFrom, textOf, withText } from './said-by.js';
 import { withTurnStyleReminder } from './turn-style.js';
 
 const log = createLogger({ module: 'cut-reply-guard' });
@@ -41,6 +49,11 @@ const MIN_WORDS = 5;
 /** A copied cut mark, at the very start of a reply. */
 const LEADING_MARK = /^\s*\[cut off by the caller[^\]]{0,80}\]\s*/i;
 const LONGEST_MARK = 120;
+/** A copied cut mark anywhere in a reply. */
+const ANY_MARK = /\s*\[cut off by the caller[^\]]{0,80}\]/gi;
+/** A crisis resource or crisis talk: never ask the model to say such a reply differently. */
+export const CRISIS_RESOURCE =
+  /\b(?:988|911|999|112)\b|crisis|lifeline|suicid|self[- ]harm|emergency|hotline|samaritans/i;
 
 export const REPHRASE_NOTE =
   "Your last reply was cut off before the caller heard it, and they have spoken since. Don't say it again: answer what they just said. If something in it still matters, say it in one short sentence, in new words.";
@@ -84,8 +97,62 @@ function leadingMark(text: string): { cut: number; open: boolean } {
 
 function verdict(body: string, cut: string | undefined, ended: boolean): Verdict {
   if (!cut) return 'release';
+  if (CRISIS_RESOURCE.test(body)) return 'release'; // safety wording goes out as said
   if (!ended && wordsOf(body).length < OPENING_WORDS) return 'hold';
   return isNearCopy(body, cut) ? 'redo' : 'release';
+}
+
+/**
+ * The reply with any copied cut mark removed, wherever it falls. Text is held only
+ * from a "[" until its "]" (at most LONGEST_MARK characters); everything else passes.
+ */
+export function dropCutMarks(reply: ReadableStream<Chunk>): ReadableStream<Chunk> {
+  const reader = reply.getReader();
+  return new ReadableStream<Chunk>({
+    async start(controller) {
+      let held: Chunk[] = [];
+      let text = '';
+      const flush = (): void => {
+        const clean = text.replace(ANY_MARK, '');
+        let first = true;
+        for (const chunk of held) {
+          if (textOf(chunk) === undefined) controller.enqueue(chunk);
+          else {
+            controller.enqueue(withText(chunk, first ? clean : ''));
+            first = false;
+          }
+        }
+        held = [];
+        text = '';
+      };
+      try {
+        for (let r = await reader.read(); !r.done; r = await reader.read()) {
+          const t = textOf(r.value);
+          if (t === undefined) {
+            if (held.length) held.push(r.value);
+            else controller.enqueue(r.value);
+            continue;
+          }
+          if (!held.length && !t.includes('[')) {
+            controller.enqueue(r.value);
+            continue;
+          }
+          held.push(r.value);
+          text += t;
+          const open = text.lastIndexOf('[');
+          const closed = open >= 0 && text.indexOf(']', open) >= 0;
+          if (open < 0 || closed || text.length - open > LONGEST_MARK) flush();
+        }
+        if (held.length) flush();
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      await reader.cancel(reason).catch(() => undefined);
+    },
+  });
 }
 
 /**
@@ -124,6 +191,7 @@ export function guardCutReply(
         }
         held = undefined;
         await reader.cancel().catch(() => undefined);
+        // At most one re-ask: the new reply is checked for a copied mark only (cut = undefined).
         reader = guardCutReply(next, undefined, redo, sessionId).getReader();
         for (let r = await reader.read(); !r.done; r = await reader.read())
           controller.enqueue(r.value);
@@ -174,12 +242,17 @@ export function withCutReplyCheck<M extends Model>(
     ?.services;
   const id = sessionId ?? services?.sessionId;
   const checked = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
-    const cut = armedCutReply(session);
+    const armed = armedCutReply(session);
+    const crisis =
+      armed !== undefined &&
+      (CRISIS_RESOURCE.test(armed) || (id !== undefined && crisisRiskThisCall(id)));
+    if (crisis) log.warn({ sessionId: id }, 'CUT_REPLY_CHECK_SKIPPED crisis');
+    const cut = crisis ? undefined : armed;
     const reply = await model(request);
     if (!reply) return reply;
     const redo = async (): Promise<ReadableStream<Chunk> | null> =>
       model(withTurnStyleReminder(request, REPHRASE_NOTE));
-    return guardCutReply(reply, cut, redo, id);
+    return dropCutMarks(guardCutReply(reply, cut, redo, id));
   };
   return checked as M;
 }
