@@ -24,7 +24,7 @@ import ts from 'typescript';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { CONTEXTS, LAYER_MAP, type Context, type Layer } from './architecture-layers.js';
 import { kernelDuplicateGate } from './kernel-duplicates.js';
-import { diffAgainstBase, listAtBase, readAtBase, resolveBase, type BaseDiff } from './merge-base.js';
+import { basePathOf, diffAgainstBase, listAtBase, readAtBase, resolveBase, type BaseDiff } from './merge-base.js';
 
 export const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'architecture-baseline.generated.json');
 const RUNTIME_RULES = ['upward', 'core-to-platform', 'context-internal'] as const;
@@ -303,6 +303,18 @@ export function newViolations(head: Violation[], base: Violation[], toBase: (hea
   });
 }
 
+/** What the working tree adds over `base` (read from git objects); moves and splits are free. */
+export function addedSinceBase(
+  root: string,
+  base: string,
+  now: Violation[],
+  map: Record<string, string> = LAYER_MAP
+): { added: Violation[]; before: Violation[]; diff: BaseDiff } {
+  const diff = diffAgainstBase(base, ['src'], root);
+  const before = check(buildGraph(root, gitTree(base, root)), map);
+  return { added: newViolations(now, before, (p) => basePathOf(diff, p)), before, diff };
+}
+
 /** Where orchestration should enter instead: the nearest index.ts above the file, or a note that none exists. */
 export function orchestrationHint(to: string, root: string, map: Record<string, string> = LAYER_MAP): string {
   const prefix = placementOf(to, map)?.prefix ?? dirname(to);
@@ -398,9 +410,7 @@ function main(args: string[]): void {
 
   const base = resolveBase(root);
   const atBase = Date.now();
-  const diff: BaseDiff = diffAgainstBase(base, ['src'], root);
-  const before = check(buildGraph(root, gitTree(base, root)));
-  const added = newViolations(now, before, (p) => (diff.added.has(p) ? null : (diff.renamedFrom.get(p) ?? p)));
+  const { added, before, diff } = addedSinceBase(root, base, now);
   say(`Base ${base.slice(0, 9)}: ${before.length} violations there, ${now.length} here; ${diff.changed.length} changed files (${Date.now() - atBase} ms).`);
 
   // The committed baseline is a scoreboard: --update lowers it; it never blocks.

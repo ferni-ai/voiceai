@@ -1,9 +1,11 @@
+import { execFileSync } from 'child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  addedSinceBase,
   buildGraph,
   check,
   compare,
@@ -244,6 +246,35 @@ describe('architecture gate: only what the change adds fails (merge-base compari
 
   it('fails every violation of a new file that no removed edge accounts for', () => {
     expect(newViolations([v('src/new.ts', 'src/m/x.ts', 'upward')], [], (p) => (p === 'src/new.ts' ? null : p))).toHaveLength(1);
+  });
+});
+
+describe('architecture gate: the base is a git commit, not the committed scoreboard', () => {
+  it('fails only what the working tree adds over the base commit, and lets a moved file keep its edges', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'arch-gate-git-'));
+    const git = (...args: string[]): string =>
+      execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: dir, encoding: 'utf8' }).trim();
+    const put = (path: string, text: string): void => {
+      mkdirSync(dirname(join(dir, path)), { recursive: true });
+      writeFileSync(join(dir, path), text);
+    };
+    try {
+      git('init', '-q', '-b', 'main');
+      put('src/pipeline/turn.ts', 'export const turn = 1;\n');
+      put('src/memory/old.ts', "import { turn } from '../pipeline/turn.js';\nexport const old = turn;\n");
+      git('add', '.');
+      git('commit', '-q', '-m', 'base');
+      const base = git('rev-parse', 'HEAD');
+      git('mv', 'src/memory/old.ts', 'src/memory/renamed.ts');
+      put('src/memory/fresh.ts', "import { turn } from '../pipeline/turn.js';\nexport const fresh = turn;\n");
+      const now = check(buildGraph(dir), MAP);
+      expect(now.map((v) => `${v.rule} ${v.from}`).sort()).toEqual(['upward src/memory/fresh.ts', 'upward src/memory/renamed.ts']);
+      const { added, before } = addedSinceBase(dir, base, now, MAP);
+      expect(before.map((v) => v.from)).toEqual(['src/memory/old.ts']);
+      expect(added.map((v) => `${v.rule} ${v.from}`)).toEqual(['upward src/memory/fresh.ts']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
