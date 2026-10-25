@@ -3529,8 +3529,6 @@
     "accessLevelFullDesc": "אפשרות לדבר עם כל חברי הצוות",
     "accessLevelLimited": "מוגבלת",
     "accessLevelLimitedDesc": "רק עם Ferni",
-    "accessLevelSupervised": "בפיקוח",
-    "accessLevelSupervisedDesc": "קבלת עדכונים על שיחות",
     "eyebrow": "משפחה",
     "addMember": "הוספת בן משפחה",
     "emptyText": "אפשר להוסיף בני משפחה שמתקשרים ל-Ferni בטלפון. הם יזוהו באופן אוטומטי ויוכלו לנהל שיחות משלהם עם Ferni.",

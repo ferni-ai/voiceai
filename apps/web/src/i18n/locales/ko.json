@@ -3508,8 +3508,6 @@
     "accessLevelFullDesc": "모든 팀 멤버와 대화할 수 있어요",
     "accessLevelLimited": "제한됨",
     "accessLevelLimitedDesc": "Ferni만 가능",
-    "accessLevelSupervised": "감독됨",
-    "accessLevelSupervisedDesc": "통화 시 알림을 받아요",
     "eyebrow": "가족",
     "addMember": "가족 구성원 추가",
     "emptyText": "전화로 Ferni에게 연락할 가족 구성원을 추가해 보세요. 자동으로 인식되어 Ferni와 개별적으로 대화할 수 있어요.",

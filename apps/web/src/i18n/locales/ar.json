@@ -3595,8 +3595,6 @@
     "accessLevelFullDesc": "يمكنهم التحدث مع جميع أعضاء الفريق",
     "accessLevelLimited": "محدود",
     "accessLevelLimitedDesc": "Ferni فقط",
-    "accessLevelSupervised": "خاضع للإشراف",
-    "accessLevelSupervisedDesc": "تصلكم إشعارات بالمكالمات",
     "eyebrow": "العائلة",
     "addMember": "إضافة فرد من العائلة",
     "emptyText": "يمكنكم إضافة أفراد العائلة الذين يتصلون بـ Ferni هاتفياً. سيتم التعرف عليهم تلقائياً، ويمكنهم إجراء محادثاتهم الخاصة مع Ferni.",

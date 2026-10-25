@@ -3530,8 +3530,6 @@
     "accessLevelFullDesc": "Puede hablar con todos los miembros del equipo",
     "accessLevelLimited": "Limitado",
     "accessLevelLimitedDesc": "Solo con Ferni",
-    "accessLevelSupervised": "Supervisado",
-    "accessLevelSupervisedDesc": "Te avisaremos cuando haya llamadas",
     "eyebrow": "Familia",
     "addMember": "Añadir miembro de la familia",
     "emptyText": "Agrega a los miembros de tu familia que llamen a Ferni por teléfono. Se les reconocerá automáticamente y podrán tener sus propias conversaciones con Ferni.",

@@ -52,7 +52,7 @@ export type RelationshipType =
 export type AccessLevel =
   | 'full' // Full access to all personas and features
   | 'limited' // Limited to specific personas
-  | 'supervised'; // Sponsor gets notifications
+  | 'supervised'; // Legacy, no longer offered: nothing notifies the sponsor, treated as full
 
 /**
  * Status of a sponsored identity

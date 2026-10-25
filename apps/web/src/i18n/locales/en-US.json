@@ -3569,8 +3569,6 @@
     "accessLevelFullDesc": "Can talk to all team members",
     "accessLevelLimited": "Limited",
     "accessLevelLimitedDesc": "Only Ferni",
-    "accessLevelSupervised": "Supervised",
-    "accessLevelSupervisedDesc": "You get notified of calls",
     "eyebrow": "Family",
     "addMember": "Add Family Member",
     "calls": {
