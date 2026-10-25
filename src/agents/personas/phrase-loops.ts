@@ -115,6 +115,17 @@ export const isSafetyWording = (phrase: string): boolean => {
   return SAFETY_CLAUSES.some((clause) => content.every((w) => clause.has(w)));
 };
 
+/**
+ * Whether a whole line (a sentence as said) is safety wording: its content words
+ * all sit in one clause of the safety scripts (told-this-call.ts keptTold, #2797).
+ */
+export const isSafetyLine = (line: string): boolean => {
+  const content = clausesOf(line)
+    .flat()
+    .filter((w) => !FUNCTION_WORDS.has(w));
+  return content.length > 0 && SAFETY_CLAUSES.some((clause) => content.every((w) => clause.has(w)));
+};
+
 /** Its two-word runs that hold a content word. */
 const pairsOf = (phrase: string): string[] => {
   const words = phrase.split(' ');

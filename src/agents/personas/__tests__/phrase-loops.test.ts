@@ -281,7 +281,7 @@ describe('crisis turns get no loops note (PHRASE_LOOP_GUARD on)', () => {
     // Risk stays on the call: no loops note on its later turns either.
     const [after] = await requestsFor(session, 'what should I cook tonight?', PATTERNS_ONLY);
     expect(after).not.toContain(LOOPS);
-    expect(after).toContain('[Already said this call: '); // the rest of the note still rides
+    expect(after).not.toContain("Don't say again"); // no quotes on a crisis call either (#2797)
     setDirector(session, null);
   });
 
@@ -300,6 +300,6 @@ describe('crisis turns get no loops note (PHRASE_LOOP_GUARD on)', () => {
     expect(director.told()).toContain(LOOPS);
     noteCrisisRisk('noted');
     expect(director.told()).not.toContain(LOOPS);
-    expect(director.told()).toContain('[Already said this call: ');
+    expect(director.told()).not.toContain("Don't say again"); // #2797
   });
 });
