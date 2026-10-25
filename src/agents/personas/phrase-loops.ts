@@ -117,12 +117,58 @@ export const isSafetyWording = (phrase: string): boolean => {
 
 /**
  * Words that put a line on safety, harm or getting help. Blunt on purpose: a line
- * it catches is only left unquoted, and a paraphrased safety question the scripts
- * don't word ("Do you have a plan to hurt yourself tonight?") must never be one
- * the model is told to drop (#2804 verify: the script match alone caught 1 of 17).
+ * it catches is only left unquoted or gets no pacing note, and a paraphrased safety
+ * question the scripts don't word must never be one the model is told to drop or
+ * hold back (#2804 verify: the script match alone caught 1 of 17). A list never
+ * covers them all (#2812 verify: stems added for one held-out set caught 0 of a
+ * fresh 25), so only precise words go here; the classifier and noted risk are the
+ * real defense (crisis-call-risk.ts).
  */
-const SAFETY_TOPIC =
-  /\b(safe|safety|unsafe|hurt\w*|harm\w*|kill\w*|suicid\w*|die|dying|death|dead|alive|end it|plan to|overdose|weapon|gun|pills|988|911|741741|crisis|hotline|lifeline|emergency|therapist|counsel(?:or|ing)|doctor|hospital|someone with you|anyone with you)\b/i;
+const SAFETY_TOPIC = new RegExp(
+  [
+    'safe', 'safety', 'unsafe', 'danger', 'dangerous', 'hurt\\w*', 'harm\\w*', 'kill\\w*', 'suicid\\w*',
+    'die', 'dying', 'death', 'dead', 'alive', 'end it', 'end it all', 'plan to', 'overdose\\w*',
+    'weapon\\w*', 'gun\\w*', 'pills?', 'meds', 'medication\\w*', '988', '911', '741741',
+    'crisis', 'hotline', 'lifeline', 'emergency', 'therapist', 'counsel(?:or|ing)', 'doctor',
+    'hospital',
+    // ending or taking a life; not waking up; not being here; better off without them
+    '(?:end|ending|ended|take|taking|took)\\s+(?:your|my|their|his|her)\\s+(?:own\\s+)?life(?!\\s+savings)',
+    'not\\s+(?:to\\s+)?wake\\s+up', '(?:want(?:ing)?|be)\\s+(?:to\\s+)?(?:be\\s+)?here\\s+any\\s?more',
+    'better\\s+off\\s+without', 'do\\s+something\\s+to\\s+(?:yourself|myself)',
+    'cut(?:s|ting)?\\s+(?:yourself|myself)', 'self[- ]harm\\w*',
+    // what was taken; who is with them; who hurts them
+    '(?:taken|took)\\s+anything', '(?:anyone|someone|somebody)\\s+(?:there\\s+)?with\\s+you',
+    '(?:someone|somebody|anyone)\\s+you\\s+trust', 'hands\\s+on\\s+you', 'abus\\w*',
+  ]
+    .map((w) => `\\b${w}\\b`)
+    .join('|'),
+  'i'
+);
+
+/** A sentence as compared with the scripts': lowercase words only. */
+const normalized = (sentence: string): string =>
+  sentence
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** Every sentence of the crisis and safety scripts, normalized. */
+const SCRIPT_SENTENCES: ReadonlySet<string> = new Set(
+  SAFETY_WORDING.flatMap((line) => line.split(/(?<=[.!?¿¡])\s+/)).map(normalized).filter(Boolean)
+);
+
+/**
+ * Whether a line is on safety, harm or help (SAFETY_TOPIC) or holds a sentence of
+ * the safety scripts word for word; what QUESTION_PACE checks. Unlike isSafetyLine
+ * it doesn't match a sentence whose words merely sit in a script clause ("How are
+ * you feeling about it?"), which held the pacing note back on 26% of real
+ * question-ending replies.
+ */
+export const isSafetyTopic = (line: string): boolean =>
+  SAFETY_TOPIC.test(line) ||
+  line.split(/(?<=[.!?])\s+/).some((sentence) => SCRIPT_SENTENCES.has(normalized(sentence)));
 
 /**
  * Whether a whole line (a sentence as said) is safety wording: it is on safety,
