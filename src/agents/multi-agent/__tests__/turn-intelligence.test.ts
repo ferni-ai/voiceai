@@ -1,6 +1,7 @@
 import * as timersPromises from 'node:timers/promises';
 import { llm } from '@livekit/agents';
 import { describe, expect, it, vi } from 'vitest';
+import { flagOn } from '../../../config/env-flag.js';
 
 vi.mock('node:timers/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:timers/promises')>();
@@ -41,10 +42,11 @@ describe('createTurnIntelligenceHook', () => {
     const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
     await hook(llm.ChatContext.empty(), userMessage('warm the imports'));
     try {
+      expect(flagOn('FIRST_TURN_WARM', {})).toBe(false); // off by default
       vi.stubEnv('FIRST_TURN_WARM', 'on');
       yielded.mockClear();
       await hook(llm.ChatContext.empty(), userMessage('long day'));
-      expect(yielded).toHaveBeenCalled();
+      expect(yielded).toHaveBeenCalledTimes(2); // after the import and after the speech rate
 
       vi.stubEnv('FIRST_TURN_WARM', '');
       yielded.mockClear();
