@@ -126,6 +126,7 @@ const FAKE_GH = [
   'const entry = fx[path];',
   "if (args[0] !== 'api' || !entry) { process.stderr.write('HTTP 404: ' + path + '\\n'); process.exit(1); }",
   "if (entry.error) { process.stderr.write('HTTP ' + entry.error + ': ' + path + '\\n'); process.exit(1); }",
+  'if (entry.raw !== undefined) { process.stdout.write(entry.raw); process.exit(0); }',
   'const pages = entry.pages;',
   "if (!args.includes('--paginate')) process.stdout.write(JSON.stringify(pages[0]));",
   "else if (args.includes('--slurp')) process.stdout.write(JSON.stringify(pages));",
@@ -224,9 +225,12 @@ describe('main() against a stubbed gh and a squash queue', () => {
   });
 
   /** Writes the gh fixtures: each PR's head, its comments (as pages) and its statuses. */
-  const serve = (
-    pulls: Record<number, { head: string; comments?: unknown[][] } | { error: number }>
-  ) => {
+  type Served = {
+    head: string;
+    comments?: unknown[][] | { error: number } | { raw: string };
+    statuses?: unknown[];
+  };
+  const serve = (pulls: Record<number, Served | { error: number }>) => {
     const fx: Record<string, unknown> = {};
     for (const [key, v] of Object.entries(pulls)) {
       const n = Number(key);
@@ -237,8 +241,9 @@ describe('main() against a stubbed gh and a squash queue', () => {
       }
       fx[api] = { pages: [{ number: n, head: { sha: v.head } }] };
       fx[`${api}/commits`] = { pages: [[{ sha: v.head, parents: [] }]] };
-      fx[`repos/${R}/commits/${v.head}/statuses`] = { pages: [[]] };
-      fx[`repos/${R}/issues/${n}/comments`] = { pages: v.comments ?? [[]] };
+      fx[`repos/${R}/commits/${v.head}/statuses`] = { pages: [v.statuses ?? []] };
+      const c = v.comments ?? [[]];
+      fx[`repos/${R}/issues/${n}/comments`] = Array.isArray(c) ? { pages: c } : c;
       fx[`${api}/reviews`] = { pages: [[]] };
       fx[`${api}/comments`] = { pages: [[]] };
     }
@@ -272,6 +277,12 @@ describe('main() against a stubbed gh and a squash queue', () => {
     return { code: r.status, out: `${r.stdout}${r.stderr}` };
   };
   const queue = (sha: string) => `gh-readonly-queue/main/pr-9-${sha}`;
+  const okStatus = (sha: string) => ({
+    context: 'lead-verify',
+    state: 'success',
+    creator: { login: VERIFIER },
+    created_at: T0,
+  });
 
   it('a single-PR group whose PR is verified on its head passes', () => {
     serve({ 9: { head: B9, comments: [[passC(B9, T0)]] } });
@@ -304,6 +315,33 @@ describe('main() against a stubbed gh and a squash queue', () => {
 
   it('an API error gives ERROR and exit 1 under enforcement', () => {
     serve({ 9: { error: 502 } });
+    const r = run(['9']);
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/PR #9 \w*: ERROR: could not evaluate/);
+  });
+
+  it('a merge-group ref missing on origin gives ERROR and exit 1', () => {
+    serve({ 9: { head: B9, comments: [[passC(B9, T0)]] } });
+    const r = run([], { QUEUE_REF: queue('0'.repeat(40)) });
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/merge queue : ERROR: could not evaluate/);
+    expect(r.out).not.toMatch(/VERIFIED:/);
+  });
+
+  it('a 502 on the comments gives ERROR even with a verifier success status', () => {
+    // Control: the status alone verifies, so only the failed comments call can block it.
+    serve({ 9: { head: B9, statuses: [okStatus(B9)] } });
+    expect(run(['9']).code).toBe(0);
+    serve({ 9: { head: B9, statuses: [okStatus(B9)], comments: { error: 502 } } });
+    const r = run(['9']);
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/PR #9 \w*: ERROR: could not evaluate: .*issues\/9\/comments/);
+  });
+
+  it('non-JSON gh output gives ERROR, not an empty list', () => {
+    serve({
+      9: { head: B9, statuses: [okStatus(B9)], comments: { raw: '<html>502 Bad Gateway</html>' } },
+    });
     const r = run(['9']);
     expect(r.code).toBe(1);
     expect(r.out).toMatch(/PR #9 \w*: ERROR: could not evaluate/);

@@ -28,9 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # pull_request_target-style safety: the evaluator always comes from main (also for
-      # stacked PRs), never the PR, so a PR can't rewrite its own judge. The head is
-      # fetched as data only; full history for git merge-tree.
+      # The evaluator script is checked out from main (also for stacked PRs), not the PR.
+      # This workflow file itself still runs from the PR's merge or queue commit, so a PR
+      # can edit it until branch rules require code-owner review (#2547) or it moves to a
+      # main-pinned trigger. The head is fetched as data only; full history for merge-tree.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main

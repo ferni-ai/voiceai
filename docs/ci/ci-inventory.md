@@ -123,7 +123,9 @@ in" (no conflict, no extra edit), which carries the verdict forward.
 its PRs are the `(#N)` titles of the commits above main, plus the PR the ref names. Each
 PR is judged on its current head. A commit with no PR number blocks the group. Known
 gaps: a PR whose head moves after queueing is judged on the new head, not the queued one,
-and the PR can still rewrite its own judge until #2547 lands. `issue_comment` runs log a
+and the PR can still edit the workflow file (not the evaluator, which comes from main)
+until main requires code-owner review (#2547) or the workflow moves to a main-pinned
+trigger. `issue_comment` runs log a
 verdict but do not update the PR check, so re-run the check after a new verdict.
 
 ### design-system.yml
