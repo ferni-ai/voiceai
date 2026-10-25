@@ -585,10 +585,7 @@ export function createPlaidTools() {
           return linkToken; // Error message
         }
 
-        // Generate the secure link URL (configured via PLAID_LINK_BASE_URL in .env)
-        const PLAID_LINK_BASE_URL = process.env.PLAID_LINK_BASE_URL || '';
-        const secureLink = `${PLAID_LINK_BASE_URL}?token=${linkToken}&user=${userId}`;
-
+        const secureLink = `${process.env.PLAID_LINK_BASE_URL || ''}?token=${linkToken}&user=${userId}`;
         let sendResult: string;
         if (deliveryMethod === 'sms') {
           const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
@@ -603,6 +600,9 @@ export function createPlaidTools() {
           const { consentBlocks } = await import('../../../utils/consent-port.js');
           if (await consentBlocks(formattedTo, 'sms', true))
             return 'That number asked not to get texts from me. Could you give me an email address instead?';
+          const { directSendHeld } = await import('../../../services/communication-service.js');
+          if (await directSendHeld(formattedTo, 'text', { userId }))
+            return "I can't text that link.";
 
           try {
             const response = await fetch(

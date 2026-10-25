@@ -16,6 +16,8 @@ vi.hoisted(() => {
     TWILIO_PHONE_NUMBER: '+12025550100',
     ELEVENLABS_API_KEY: 'el-test',
     GCS_BUCKET_NAME: 'bucket-test',
+    PLAID_CLIENT_ID: 'plaid-test',
+    PLAID_SECRET: 'plaid-secret',
   });
 });
 const twilio = vi.hoisted(() => {
@@ -34,7 +36,9 @@ const fetchSpy = vi.hoisted(() =>
   vi.fn(async (url: string | URL) =>
     String(url).includes('elevenlabs')
       ? new Response(new Uint8Array([1, 2, 3]), { status: 200 })
-      : new Response('{"sid":"X1"}', { status: 201 })
+      : String(url).includes('plaid.com')
+        ? new Response('{"link_token":"link-test"}', { status: 200 })
+        : new Response('{"sid":"X1"}', { status: 201 })
   )
 );
 vi.stubGlobal('fetch', fetchSpy);
@@ -74,6 +78,7 @@ const { communicationExecutor } =
   await import('../../../agents/shared/tool-executors/communication-executor.js');
 const { executeLegacyFallback } =
   await import('../../../agents/shared/tool-executors/legacy-fallback-executor.js');
+const { createPlaidTools } = await import('../../../tools/domains/finance/plaid.js');
 const { phoneHoldId } = await import('../checkin-replies.js');
 const { setHoldStore, sharedHeld } = await import('../minor-care-shared-hold.js');
 
@@ -165,6 +170,15 @@ const SENDERS: Array<[string, () => Promise<unknown>]> = [
   [
     'legacy-fallback sendText',
     () => executeLegacyFallback('sendText', { contactName: 'Pat', message: 'hi' }, ctx),
+  ],
+  [
+    // verify of #2813: the bank link texted straight to Twilio (number from the model)
+    'plaid linkBankAccount by text',
+    () =>
+      (createPlaidTools() as unknown as Tools).linkBankAccount.execute(
+        { userId: UID, deliveryMethod: 'sms', contact: PHONE },
+        {}
+      ),
   ],
   [
     'legacy-fallback sendVoiceMessage',
