@@ -166,6 +166,7 @@ describe('sendConsentAsk', () => {
       unlock: async () => undefined,
       sponsoredPhone: async () => undefined,
       isOptedOut: async () => false,
+      consentDoc: async (h: string) => m.store.read(h),
       userDoc: async () => ({ displayName: 'Seth Example' }),
       legacySmsChannels: async () => undefined,
     } as unknown as TextStore,

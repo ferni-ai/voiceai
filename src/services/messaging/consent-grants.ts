@@ -36,12 +36,12 @@ import { isCohortMember } from '../platform/cohort-membership.js';
 import {
   consentBlocks,
   defaultConsentDeps,
-  normalizeReply,
   readConsent,
   type ConsentBlock,
   type ConsentChannel,
   type ConsentDeps,
 } from './consent.js';
+import { normalizeSms } from './sms-keywords.js';
 
 const log = createLogger({ module: 'messaging-consent-grants' });
 
@@ -50,7 +50,7 @@ export const CONSENT_ASK_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const YES_WORDS: ReadonlySet<string> = new Set(['yes', 'y', 'ok', 'sure']);
 
 /** YES, Y, OK or SURE as the whole message (any case, punctuation stripped), never inside one. */
-export const isConsentYes = (body: string): boolean => YES_WORDS.has(normalizeReply(body));
+export const isConsentYes = (body: string): boolean => YES_WORDS.has(normalizeSms(body));
 
 interface ConsentAsk {
   at: string;
