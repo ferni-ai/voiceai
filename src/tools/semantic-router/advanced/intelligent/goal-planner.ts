@@ -575,7 +575,7 @@ Respond ONLY with valid JSON:`;
       state.failedSteps.push(step.id);
       options?.onStepError?.(step.id, error instanceof Error ? error : new Error(String(error)));
 
-      log.warn({ stepId: step.id, error }, 'Step failed');
+      log.warn({ stepId: step.id, ...errorFields(error) }, 'Step failed');
     } finally {
       state.executingSteps = state.executingSteps.filter((s) => s !== step.id);
     }

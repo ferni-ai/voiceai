@@ -23,6 +23,7 @@ const h = vi.hoisted(() => ({
   tool: undefined as undefined | { execute: () => Promise<unknown> },
   preRoutingError: undefined as unknown,
   strategyError: undefined as unknown,
+  bridged: undefined as undefined | (() => Promise<unknown>),
 }));
 
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
@@ -64,6 +65,9 @@ vi.mock('../domain-bridge/index.js', () => ({
   hasDomainMapping: () => h.mapped,
   executeDomainTool: async () => h.domain?.(),
 }));
+vi.mock('../../registry/index.js', () => ({
+  getTool: () => ({ create: () => ({ execute: async () => h.bridged?.() }) }),
+}));
 vi.mock('../registry.js', () => ({ getToolRegistry: () => ({ get: () => h.tool }) }));
 vi.mock('../learning/dynamic-strategy.js', () => ({
   getDynamicStrategyEngine: () => {
@@ -104,6 +108,7 @@ import {
   logRoutingSummary,
   startSemanticRouting,
 } from '../integration/turn-processor-integration.js';
+import { executeDomainTool } from '../domain-bridge/executor.js';
 import { routeTranscript } from '../integration/transcript-integration.js';
 import { recordImplicitCorrection, recordSOTAOutcome } from '../integration/sota-integration.js';
 
@@ -511,6 +516,59 @@ const rows: Array<[name: string, expectedMessage: string, run: () => Promise<unk
       await settle();
     },
   ],
+  [
+    'GoalPlanner.executePlan when a step throws an error that repeats its args',
+    'Step failed',
+    async () => {
+      const step = { id: 's1', toolId: 'music.play', args: { name: SENTINEL }, dependsOn: [] };
+      const plan = { goal: 'g', steps: [step], strategy: 'sequential', confidence: 1 };
+      await new GoalPlanner().executePlan(plan as never, {
+        execute: async (_id, args) => {
+          throw new Error(`no contact matching ${String(args.name)}`);
+        },
+      });
+    },
+  ],
+  [
+    'executeDomainTool (every bridged call)',
+    'Bridging semantic tool',
+    async () => {
+      h.bridged = async () => 'done';
+      await executeDomainTool(
+        'play',
+        { originalText: SENTINEL },
+        {
+          userId: 'u1',
+          sessionId: 's1',
+          personaId: 'ferni',
+          conversationHistory: [],
+          services: null,
+        },
+        { play: { domainToolId: 'playMusic' } }
+      );
+    },
+  ],
+  [
+    'executeDomainTool when the tool throws an error that repeats its args',
+    'Domain tool execution failed',
+    async () => {
+      h.bridged = async () => {
+        throw new Error(`no contact matching ${SENTINEL}`);
+      };
+      await executeDomainTool(
+        'play',
+        { originalText: SENTINEL },
+        {
+          userId: 'u1',
+          sessionId: 's1',
+          personaId: 'ferni',
+          conversationHistory: [],
+          services: null,
+        },
+        { play: { domainToolId: 'playMusic' } }
+      );
+    },
+  ],
 ];
 
 describe('router logs never carry the caller words', () => {
@@ -526,6 +584,7 @@ describe('router logs never carry the caller words', () => {
     h.tool = undefined;
     h.preRoutingError = undefined;
     h.strategyError = undefined;
+    h.bridged = undefined;
   });
 
   it.each(rows)('%s', async (_name, expectedMessage, run) => {
