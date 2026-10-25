@@ -1,3 +1,5 @@
+import { setImmediate as yieldToLoop } from 'node:timers/promises';
+
 /**
  * FIRST_TURN_DEFER_RELEASE: what lifts turn 1's held context build once Ferni
  * replies (first-turn-defer.ts). Kept apart from that module, which loads the
@@ -25,3 +27,11 @@ export function firstTurnDeferRelease(
  */
 export const replyEndRelease = (env: Record<string, string | undefined> = process.env): boolean =>
   firstTurnDeferRelease(env) === 'reply_end';
+
+/**
+ * Between the turn-1 build's cold steps, under reply_end only: back to back
+ * they starved the reply's audio pump (LOOP_STALL), so each one yields.
+ */
+export const yieldIfReplyEnd = async (): Promise<void> => {
+  if (replyEndRelease()) await yieldToLoop();
+};

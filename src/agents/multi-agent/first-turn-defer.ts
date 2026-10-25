@@ -25,8 +25,8 @@
  * (the default) 600 ms into it; `reply_end` when it ends or is interrupted
  * (the agent leaves 'speaking'), so the build's stalls (531-777 ms on dev,
  * 2026-10-22) land while Ferni listens instead of cutting into its audio. Its
- * note still reaches turn 2 unless turn 2's words come first: the pusher then
- * merges it into the next push (createTurnContextPusher).
+ * note reaches turn 2 only if turn 2's words do not arrive before the build
+ * ends: then the pusher drops it, as on main (known limitation, see the PR).
  *
  * Safety work is never deferred. The same build also runs crisis detection
  * and sends its signals (the crisis override note, `crisis_detected` to the
@@ -48,7 +48,7 @@ import { setImmediate } from 'node:timers';
 import { flagOn } from '../../config/env-flag.js';
 import { getProviderIdSync } from '../../config/model-provider-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { type FirstTurnRelease } from './first-turn-release.js';
+import { firstTurnDeferRelease, type FirstTurnRelease } from './first-turn-release.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import {
   resolveCrisisGuardMode,
@@ -252,4 +252,23 @@ export function deferFirstTurn(
       if (outcome === 'late') log.warn({ endWaitMs }, 'FIRST_TURN_DEFER work outlived session end');
     },
   };
+}
+
+/**
+ * The turn-1 deferral for a session's pusher, or undefined when turn 1 is not
+ * deferred: the flag is off, a later persona takes the session, or the process
+ * is warm.
+ */
+export function deferralForSession(
+  hook: UserTurnHook,
+  session: object,
+  env: Record<string, string | undefined>,
+  userData: unknown
+): FirstTurnDeferral | undefined {
+  return firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
+    ? deferFirstTurn(hook, {
+        releaseOn: firstTurnDeferRelease(env),
+        voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
+      })
+    : undefined;
 }
