@@ -21,6 +21,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
+  heldSender,
   last4,
   phoneHash,
   phoneHashKey,
@@ -110,6 +111,7 @@ export type TextSkip =
   | 'consent-unknown'
   | 'paused'
   | 'focus-held'
+  | 'held' // MINOR_CARE_SHARED_HOLD: no text they didn't ask for right now
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -252,6 +254,8 @@ export async function sendGuardedText(
 
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
+  // MINOR_CARE_SHARED_HOLD: the account or the number held by a call, unless asked for just now
+  if (!t.askedNow && (await heldSender(t.userId, phone, deps.env))) return skip('held');
   const [refusal, toPhone] = await Promise.all([
     smsConsentRefusal(hash, deps.store, t.askedNow === true, now),
     deps.store.forPhoneHash(hash),
@@ -282,6 +286,7 @@ export async function sendGuardedText(
     personaId: 'ferni',
     userId: storedId,
     outreachId: `${t.kind}_${t.refId}`,
+    ...(t.askedNow && { askedNow: true }),
   });
   if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
@@ -318,7 +323,7 @@ export interface OnBehalfText {
 }
 
 export type OnBehalfSkip =
-  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'focus-held'>
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'focus-held' | 'held'>
   | 'bad-number'
   | 'needs-consent'
   | 'quiet-hours';

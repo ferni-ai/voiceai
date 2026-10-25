@@ -1,6 +1,5 @@
 /**
  * Multi-Target Outreach Tool - "Better than Human" Batch Communication
- *
  * Enables compound requests like:
  * - "Call Mom, text Dad, email my boss"
  * - "Reach out to my whole family"
@@ -327,6 +326,7 @@ async function executeOutreach(
       } else {
         const result = await callWithPersonaVoice(contact.phone, message, personaId, {
           fallbackToTwilioVoice: true,
+          userId,
         });
 
         return {

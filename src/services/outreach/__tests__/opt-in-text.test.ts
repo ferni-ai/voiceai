@@ -96,6 +96,13 @@ describe('releaseHeldTexts', () => {
     }
   );
 
+  it('drops (never retries) a held text the minor-care hold refuses', async () => {
+    const { s, removed } = store([{ id: 'h', text, releaseAt: at(0), reason: 'quiet-hours' }]);
+    const send = vi.fn(async () => ({ sent: false as const, reason: 'held' as const }));
+    expect(await releaseHeldTexts(s, deps, send)).toEqual({ sent: 0, dropped: 1, waiting: 0 });
+    expect(removed).toEqual(['h']);
+  });
+
   it('texts that keep waiting cannot hide the ones behind them (pages, oldest first)', async () => {
     // Like Firestore: releaseAt then id order, `limit`, and `after` as the cursor.
     const waiting = Array.from({ length: 60 }, (_, i) => ({

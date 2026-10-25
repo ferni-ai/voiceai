@@ -177,6 +177,16 @@ describe('eraseUserRecord', () => {
     ]);
   });
 
+  it('erases the minor-care hold record (MINOR_CARE_SHARED_HOLD) with the account', async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'minor_care_holds');
+    const { db, docs } = fakeFirestore({
+      'minor_care_holds/u-1': { heldUntil: '1' },
+      'minor_care_holds/u-2': { heldUntil: '1' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()]).toEqual(['minor_care_holds/u-2']);
+  });
+
   it("erases the person's queued intelligence events, which hold their words", async () => {
     const stores = ERASED_STORES.filter((s) => s.collection === 'intelligence_queue');
     const { db, docs } = fakeFirestore({
