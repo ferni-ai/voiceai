@@ -42,6 +42,10 @@ public final class CallSession {
     public private(set) var roomName: String?
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
+    /// Whose voice the caller last heard. After a handoff `personaID` changes
+    /// at once, this on the teammate's first words (their speaking turn or
+    /// their first caption): what the name chip says (CallTruth).
+    public private(set) var voicePersonaID = "ferni"
     /// Talk was refused because this account is still on the waitlist: where
     /// they stand. The app shows their place in line instead of an error.
     public private(set) var waitlist: WaitlistStatus?
@@ -51,9 +55,11 @@ public final class CallSession {
     /// caller in the latest call. Only rises within a call, lasts through its
     /// post-call screen, and is none while `crisisModeKey` is off.
     public private(set) var concern = AgentSignals.Concern.none
-    /// Off by default. Read when a call starts, so it never changes mid-call.
+    /// On by default (Seth, 2026-10-23): no value means on, and an explicit
+    /// NO turns it off. Read when a call starts, so it never changes mid-call.
     public static let crisisModeKey = "ferni.call.crisisMode"
     private var crisisModeOn = false
+    static func crisisModeOn(_ defaults: UserDefaults) -> Bool { defaults.object(forKey: crisisModeKey) as? Bool ?? true }
     private let defaults: UserDefaults
     private static let hasTalkedKey = "ferni.call.hasTalked"
 
@@ -134,6 +140,7 @@ public final class CallSession {
     public func start(personaID: String = "ferni", prepare: (@MainActor () async -> Bool)? = nil) {
         guard !isActive else { return }
         self.personaID = personaID
+        voicePersonaID = personaID
         waitlist = nil
         isMuted = false // a new call starts unmuted (critic M1)
         avatar.send(.connectTapped(personaID: personaID))
@@ -143,7 +150,7 @@ public final class CallSession {
         startedAt = .now
         firstAgentAudio = nil
         concern = .none
-        crisisModeOn = defaults.bool(forKey: Self.crisisModeKey)
+        crisisModeOn = Self.crisisModeOn(defaults)
         // Tap to first word, measured on the phone: the first audible buffer
         // of Ferni's voice, timed from Talk (timing only; never the audio).
         let began = callBegan
@@ -549,6 +556,7 @@ public final class CallSession {
             }
         case .caption(let chunk):
             captions.apply(chunk, room: roomName, persona: personaID)
+            if chunk.speaker == .ferni { voicePersonaID = personaID } // their words are on screen
         case .reconnecting:
             if phase == .live { phase = .reconnecting }
             avatar.send(.reconnecting)
@@ -583,6 +591,7 @@ public final class CallSession {
     private func apply(_ attributes: [String: String]) {
         guard let activity = AgentSignals.agentActivity(from: attributes) else { return }
         agentActivity = activity
+        if activity == .speaking { voicePersonaID = personaID } // their voice
         avatar.send(.agentState(activity))
     }
 

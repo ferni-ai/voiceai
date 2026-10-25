@@ -36,7 +36,7 @@ enum UITestScenario: String {
     case failed
     /// Crisis mode (trust panel R16): a tool starts (the calendar), then the
     /// agent says the caller is in crisis. Hang up with End. The screen turns
-    /// serious only with `-ferni.call.crisisMode YES`.
+    /// serious unless `-ferni.call.crisisMode NO` (crisis mode is on by default).
     case crisisDuringTool
 
     static let current: UITestScenario? = value(after: "-FerniUITest").flatMap(UITestScenario.init(rawValue:))

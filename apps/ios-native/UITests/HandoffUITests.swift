@@ -15,17 +15,38 @@ final class HandoffUITests: XCTestCase {
         // Award upgrade 4: the captions say she came in.
         XCTAssertTrue(app.descendants(matching: .any)["captions.joined.maya"].waitForExistence(timeout: 15), "Maya joined")
         XCTAssertEqual(app.descendants(matching: .any)["captions.joined.maya"].label, "Maya joined")
-        // Maya's first words: the stage is still swapping, so the name hasn't changed yet.
+        // Maya's first words: the chip is hers as they show (trust panel R5:
+        // it said Ferni for ~2 s while she talked, waiting on the stage swap).
         let hers = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Maya: Hi!'")).firstMatch
         XCTAssertTrue(hers.waitForExistence(timeout: 15), "her words are named as hers")
-        XCTAssertTrue(chip.label.hasPrefix("Ferni"), "the name waits for the swap: \(chip.label)")
-        // Then it's hers.
         let maya = NSPredicate(format: "label BEGINSWITH 'Maya'")
         expectation(for: maya, evaluatedWith: chip)
-        waitForExpectations(timeout: 5)
+        waitForExpectations(timeout: 0.5)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "shot-handoff-maya"
         shot.lifetime = .keepAlways
         add(shot)
     }
+
+    /// Trust panel T1: through the handoff the state line says Ferni's
+    /// bringing in Maya, and never that anyone is listening.
+    func testAHandoffIsNeverListening() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FerniUITest", "handoff", "-FerniReduceMotion", "NO", "-FerniSounds", "NO"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["call.nameChip"].waitForExistence(timeout: 20))
+        let listening = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'listening'")).firstMatch
+        let bringing = app.staticTexts.matching(NSPredicate(format: "label == %@", "Ferni's bringing in Maya…")).firstMatch
+        let hers = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Maya: Hi!'")).firstMatch
+        var sawHandoff = false
+        let deadline = Date.now.addingTimeInterval(20)
+        while !hers.exists, Date.now < deadline {
+            XCTAssertFalse(listening.exists, "nobody is listening in a handoff")
+            if bringing.exists { sawHandoff = true }
+        }
+        XCTAssertTrue(hers.exists, "Maya spoke")
+        XCTAssertTrue(sawHandoff, "the line said Ferni's bringing in Maya")
+        XCTAssertFalse(listening.exists)
+    }
 }
+

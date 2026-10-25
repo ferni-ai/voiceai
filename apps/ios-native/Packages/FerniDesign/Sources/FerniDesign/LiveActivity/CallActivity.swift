@@ -39,6 +39,12 @@ public enum CallActivityState: String, Codable, Hashable, Sendable {
     case calling, arriving, listening, thinking, speaking, reconnecting, onHold, ended
     /// Ferni never arrived, even in a fresh room: the call's last word.
     case couldNotJoin
+    /// A teammate is on the way in (the activity names the teammate). Never
+    /// "listening" while nobody is (trust panel T1).
+    case bringingIn
+    /// On the call, but neither listening, thinking nor talking (the agent
+    /// is idle or starting up): nothing is claimed.
+    case here
 
     /// End and Mute, on every state of a call; nothing to press once it's over.
     public var hasControls: Bool { self != .ended && self != .couldNotJoin }
@@ -59,7 +65,7 @@ public enum CallActivityState: String, Codable, Hashable, Sendable {
     /// live call, it says so, as the call screen does: the Lock Screen said
     /// "Ferni's listening" to a muted mic (award upgrade 9).
     public func words(_ name: String, muted: Bool = false) -> String {
-        if muted, [.listening, .thinking, .speaking].contains(self) { return "You're muted" }
+        if muted, [.listening, .thinking, .speaking, .here].contains(self) { return "You're muted" }
         return switch self {
         case .calling: "Calling \(name)"
         case .arriving: "\(name)'s on the way"
@@ -70,6 +76,8 @@ public enum CallActivityState: String, Codable, Hashable, Sendable {
         case .onHold: "On hold"
         case .ended: "Talk soon."
         case .couldNotJoin: "\(name) couldn't join right now"
+        case .bringingIn: "Bringing in \(name)"
+        case .here: "\(name)'s here"
         }
     }
 }

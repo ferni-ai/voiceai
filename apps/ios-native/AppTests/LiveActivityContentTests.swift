@@ -18,7 +18,18 @@ final class LiveActivityContentTests: XCTestCase {
         XCTAssertEqual(state(.live, pose: .speaking), .speaking)
         XCTAssertEqual(state(.live, pose: .thinking), .thinking)
         XCTAssertEqual(state(.live, pose: .listening), .listening)
-        XCTAssertEqual(state(.live, pose: .arriving), .listening, "anything else in a live call is listening")
+        // Trust panel T1: anything else in a live call was "listening".
+        XCTAssertEqual(state(.live, pose: .arriving), .here, "here, not listening")
+        XCTAssertEqual(state(.live, pose: .handoffArriving(to: "maya")), .bringingIn, "a handoff is a handoff")
+    }
+
+    /// The Lock Screen in a handoff names who's coming in; once she's heard, she's the one talking.
+    func testAHandoffOnTheLockScreen() {
+        let coming = LiveActivityController.content(phase: .live, onHold: false, pose: .speaking, personaID: "maya", voicePersonaID: "ferni")
+        XCTAssertEqual(coming?.state, .bringingIn)
+        XCTAssertEqual(coming.map { $0.state.words($0.personaName) }, "Bringing in Maya")
+        let heard = LiveActivityController.content(phase: .live, onHold: false, pose: .speaking, personaID: "maya", voicePersonaID: "maya")
+        XCTAssertEqual(heard.map { $0.state.words($0.personaName) }, "Maya's talking")
     }
 
     func testHoldWinsOverWhatFerniIsDoing() {
