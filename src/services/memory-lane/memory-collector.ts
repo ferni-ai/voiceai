@@ -16,7 +16,11 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
-import { collectKeptCommitments, withKeptCommitmentsOnly } from './kept-commitments.js';
+import {
+  collectKeptCommitments,
+  keptMemoryId,
+  withKeptCommitmentsOnly,
+} from './kept-commitments.js';
 import type {
   MemoryHighlight,
   MemoryType,
@@ -398,19 +402,28 @@ export async function saveMemory(memory: MemoryHighlight): Promise<boolean> {
   }
 
   try {
-    await db
+    const ref = db
       .collection('bogle_users')
       .doc(memory.userId)
       .collection(COLLECTION_PATH)
-      .doc(memory.id)
-      .set(cleanForFirestore(memory));
+      .doc(memory.id);
+    // A kept commitment has one fixed id: create() so a second writer can never replace it.
+    if (memory.sourceType === 'commitment_kept') await ref.create(cleanForFirestore(memory));
+    else await ref.set(cleanForFirestore(memory));
 
     log.debug({ userId: memory.userId, memoryId: memory.id }, 'Saved memory highlight');
     return true;
   } catch (error) {
+    if (alreadyExists(error)) return false; // another visit wrote it first
     log.warn({ error: String(error), memoryId: memory.id }, 'Failed to save memory');
     return false;
   }
+}
+
+/** Firestore's ALREADY_EXISTS (gRPC code 6), from create() on an existing document. */
+function alreadyExists(error: unknown): boolean {
+  const { code } = (error ?? {}) as { code?: unknown };
+  return code === 6 || code === 'already-exists' || code === 'ALREADY_EXISTS';
 }
 
 /**
@@ -451,16 +464,13 @@ async function findExistingMemory(
 async function hasKeptMemory(userId: string, commitmentId: string): Promise<boolean> {
   const db = getFirestoreDb();
   if (!db) return false;
-  const snapshot = await db
+  const doc = await db
     .collection('bogle_users')
     .doc(userId)
     .collection(COLLECTION_PATH)
-    .where('sourceType', '==', 'commitment_kept')
-    .where('sourceId', '==', commitmentId)
-    .limit(5)
+    .doc(keptMemoryId(commitmentId))
     .get();
-  // A copy saved when it was made has no keptAt and doesn't count.
-  return snapshot.docs.some((doc) => typeof doc.get('keptAt') === 'number');
+  return doc.exists;
 }
 
 /**
