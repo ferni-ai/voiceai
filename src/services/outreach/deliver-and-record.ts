@@ -45,6 +45,7 @@ export async function deliverAndRecord(send: OrchestratedSend): Promise<boolean>
       outreachId: send.outreachId,
     });
     delivered = result.success;
+    if (result.unreachable) return false; // nothing was sent, so nothing to record
     if (!delivered) {
       log.warn(
         { userId: send.userId, channel: send.channel, error: result.error },
