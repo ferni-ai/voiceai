@@ -2,11 +2,10 @@
  * The director is told where the call is happening (DIRECTOR_KNOWS_CHANNEL).
  *
  * The director's role line says every call is "a live, unscripted phone call"
- * (director-notes.ts roleFor), including calls in the web and iOS apps. Prod
- * 2026-10-23 (#2709): the owner, in the web app, asked Ferni to ring his phone;
- * `callUser` ran, and the director wrote "He thinks you're on a different
- * platform. Clarify you're already talking on the phone line." Ferni then told
- * the app call "We're on the line now" while the phone rang.
+ * (director-notes.ts roleFor), including calls in the web and iOS apps. So a
+ * caller in the app who asks to be rung (#2709) got a note telling Ferni they
+ * were already on the phone line, and the reply claimed the call was under way
+ * while the phone rang.
  *
  * With the flag on, an app call's director prompt says it is in the Ferni app,
  * not on a phone line, and that a request to be called means their phone
