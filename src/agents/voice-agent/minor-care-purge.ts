@@ -32,6 +32,7 @@ import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.js';
 import {
+  heldSince,
   noteHeldWindow,
   recordedWhileHeld,
   scrubHeldDoc,
@@ -53,7 +54,6 @@ import {
   setOnUserHeld,
   sharedId,
 } from '../../utils/minor-care.js';
-import { setHeldWindowCheck } from '../../utils/held-window-check.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'minor-care-purge' });
@@ -70,12 +70,20 @@ export function shareHold(userId: string, sessionId?: string): void {
   if (phoneId) void recordSharedHold(phoneId);
 }
 setOnUserHeld(shareHold);
-setHeldWindowCheck(recordedWhileHeld); // shared moments, Memory Lane, the index: never read back
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);
 // ...and scrubbed from the stored doc with them, so a failed music scrub is retried too
 addHeldScrub((id) => scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories));
+// ...and so are shared moments, Memory Lane captures (by when written) and the semantic index
+const fromHeld = (scrub: (id: string, since: number) => Promise<number>) => async (id: string) => {
+  const since = heldSince(id) ?? Infinity; // none known: nothing to scrub
+  return since === Infinity || (await scrub(id, since)) >= 0;
+};
+addHeldScrub(fromHeld((id, since) => scrubHeldSince(id, since)));
+const writtenAt = ['createdAt', 'updatedAt']; // a doc without createdAt: its last write
+addHeldScrub(fromHeld((id, since) => scrubHeldSince(id, since, 'memory_highlights', writtenAt)));
+addHeldScrub(fromHeld((id) => purgeHeldIndexEntries(id, (at) => recordedWhileHeld(id, at))));
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -97,7 +105,6 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
   const ownerSession = ownerSessionFor(userId);
   if (ownerSession)
     log.info({ ownerSession }, 'MINOR_CARE purged while an owner session was live; it will reload');
-  const windowed = Number.isFinite(since); // a held window was noted for the scrubs below
   const purges: Array<[string, (userId: string) => void]> = [
     ['unified trust', purgeUnifiedUser],
     ['game memory', purgeGameMemory],
@@ -130,19 +137,7 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     ['deep understanding', clearDeepUnderstandingUser],
     // songs that played during their moments (memory only); a later call would speak them back
     ['our songs', clearOurSongsUser],
-    // shared moments (what they said, kept as inside-joke origins) stored before the age statement
-    ['shared moments scrub', (id) => void (windowed && scrubHeldSince(id, since))],
-    // Memory Lane captures of the call (inside jokes, wins, milestones…): when they happened
-    [
-      'memory lane scrub',
-      (id) => void (windowed && scrubHeldSince(id, since, 'memory_highlights', 'occurredAt')),
-    ],
     ['shared moments read', forgetReadMoments], // deep-relationship's cache of them
-    // what the stores indexed for semantic recall before the age statement (their words, too)
-    [
-      'semantic index scrub',
-      (id) => void (windowed && purgeHeldIndexEntries(id, (at) => recordedWhileHeld(id, at))),
-    ],
   ];
   for (const [name, purge] of purges) {
     try {

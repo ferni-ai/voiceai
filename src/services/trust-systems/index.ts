@@ -10,3 +10,5 @@
 
 export * from '../trust/index.js';
 export { default } from '../trust/index.js';
+// MINOR_CARE: a reader in any process applies the stored held windows (held-window.ts)
+export { loadHeldWindows } from './held-window.js';

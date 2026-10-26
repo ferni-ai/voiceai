@@ -73,7 +73,14 @@ const fs = vi.hoisted(() => {
             .sort()
             .filter((p) => page.after === undefined || p.split('/').pop()! > page.after)
             .slice(0, page.limit ?? Infinity);
-          return { exists: false, empty: !rows.length, size: rows.length, docs: rows.map(snapOf) };
+          const found = rows.map(snapOf); // a missing doc's read too: exists false, no data
+          return {
+            exists: false,
+            data: () => undefined,
+            empty: !rows.length,
+            size: rows.length,
+            docs: found,
+          };
         },
         set: async (d: Json, o?: { merge?: boolean }) => {
           check(path);
@@ -118,7 +125,7 @@ const fs = vi.hoisted(() => {
   return { docs, fail, db };
 });
 vi.mock('firebase-admin/firestore', () => ({
-  FieldValue: { serverTimestamp: () => 'now' },
+  FieldValue: { serverTimestamp: () => 'now', increment: (n: number) => n },
   FieldPath: { documentId: () => '__name__' },
 }));
 vi.mock('../../../../utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => fs.db }));
@@ -138,11 +145,14 @@ vi.mock('../../../../services/superhuman/semantic-intelligence/index.js', () => 
   clearSemanticIntelligenceCache: () => undefined,
 }));
 
-// The semantic index is the vectors collection of the fake Firestore (/vectors/{id})
+// The semantic index is the vectors collection of the fake Firestore (/vectors/{id}); `removes`
+// false: every remove fails (returns false), as a delete that throws inside the store does
+const vstore = vi.hoisted(() => ({ removes: true }));
 vi.mock('../../../../memory/firestore-vector-store/index.js', () => ({
   getFirestoreVectorStore: () => ({
     list: async () => [],
-    removeDocument: async (id: string) => fs.docs.delete(`/vectors/${id}`),
+    cached: async () => ({ docs: [], fallback: false }),
+    removeDocument: async (id: string) => vstore.removes && fs.docs.delete(`/vectors/${id}`),
     addDocument: async (d: { id: string; text: string; metadata: Json }) =>
       void fs.docs.set(`/vectors/${d.id}`, { text: d.text, metadata: structuredClone(d.metadata) }),
   }),
@@ -170,9 +180,12 @@ import {
 } from '../../../../services/data-layer/held-index-purge.js';
 import { withoutForgotten } from '../../../../memory/firestore-vector-store/forget-filter.js';
 import {
+  collectAllMemories,
   loadMemories,
   processCollectionInput,
 } from '../../../../services/memory-lane/memory-collector.js';
+import { markMemorySurfaced } from '../../../../services/memory-lane/highlight-scorer.js';
+import { loadReloadedStores } from '../../../../services/trust-systems/reload-before-save.js';
 import {
   noteHeldWindow,
   recordedWhileHeld,
@@ -226,6 +239,7 @@ const settle = () =>
 
 beforeEach(() => {
   fs.fail.match = null;
+  vstore.removes = true;
   resetMinorCare();
   vi.stubEnv('MINOR_CARE', 'on');
 });
@@ -340,6 +354,9 @@ function seedVector(id: string, userId: string, ms: number, text = 'User said: "
   fs.docs.set(`/vectors/${id}`, { text, metadata: { ...metadata, indexedAt: iso(ms) } });
 }
 const iso = (ms: number) => new Date(ms).toISOString();
+/** The held windows stored for a user (minor_care_holds, #2879): the session-start retry's list. */
+const storedWindows = (u: string) =>
+  (fs.docs.get(`/minor_care_holds/${u}`)?.windows ?? []) as Array<{ scrubbed: boolean }>;
 
 describe('the semantic index and MINOR_CARE', () => {
   const observe = (u: string, id: string, said = SENTINEL) =>
@@ -439,6 +456,26 @@ describe('the semantic index and MINOR_CARE', () => {
     expect(await purgeHeldIndexEntries(u, () => false)).toBe(-1);
   });
 
+  it('a remove that fails is not a removal: -1, and the held window stays unscrubbed', async () => {
+    const u = uid('IR');
+    const call = await heldCall(u);
+    seedVector(`ir-held-${u}`, u, Date.now() - 300, `User said: "${SENTINEL}".`);
+    vstore.removes = false;
+    expect(await purgeHeldIndexEntries(u, () => true)).toBe(-1);
+    // in fallback mode, even with nothing to remove: what it can't see may be held
+    const fallback = {
+      removeDocument: async () => true,
+      cached: async () => ({ docs: [], fallback: true }),
+    };
+    expect(await purgeHeldIndexEntries(uid('IZ'), () => true, fallback)).toBe(-1);
+    call.hold();
+    purgeHeldUser(u, call.s, call.startedAt);
+    await vi.waitFor(() => expect(storedWindows(u)).toHaveLength(1));
+    await settle();
+    expect(vectorOf(`ir-held-${u}`)).toBeDefined(); // still there, and still owed a scrub
+    expect(storedWindows(u)[0]!.scrubbed).toBe(false);
+  });
+
   it('search never returns an entry indexed during a purged held call', async () => {
     const u = uid('IS');
     noteHeldWindow(u, Date.now() - 1000);
@@ -504,6 +541,64 @@ describe('Memory Lane and MINOR_CARE', () => {
     purgeHeldUser(u, call.s, call.startedAt);
     const ids = () => highlightsOf(u).map(([p]) => p.split('/').pop());
     await vi.waitFor(() => expect(ids()).toEqual(['older']));
+  });
+
+  it('collectAllMemories in the window, about a 10-day-old milestone: scrubbed, never read back', async () => {
+    for (const scrubs of [true, false]) {
+      const u = uid(scrubs ? 'MS' : 'MF');
+      const call = await heldCall(u);
+      fs.docs.set(`/bogle_users/${u}/relationship_milestones/ms1`, {
+        userId: u,
+        type: 'first_month',
+        title: 'One month',
+        description: SENTINEL,
+        achievedAt: Date.now() - 10 * DAY,
+      });
+      await collectAllMemories(u); // the app collects while the call runs, before the age statement
+      const [[, written]] = highlightsOf(u);
+      expect(Date.parse(String(written!.occurredAt))).toBeLessThan(call.startedAt); // the event's
+      seedHighlight(u, 'older', Date.now() - 30 * DAY, OLDER_WORDS);
+      call.hold();
+      if (!scrubs) fs.fail.match = /memory_highlights$/;
+      purgeHeldUser(u, call.s, call.startedAt);
+      if (scrubs) await vi.waitFor(() => expect(highlightsOf(u)).toHaveLength(1));
+      else await settle();
+      fs.fail.match = null;
+      resetMinorCare();
+      const memories = await loadMemories(u);
+      expect(memories.map((m) => m.id)).toEqual(['older']);
+      expect(leakedPieces(memories)).toEqual([]);
+    }
+  });
+
+  it("marking a memory surfaced writes nothing for a held caller; an adult's as before", async () => {
+    const held = uid('MK');
+    const adult = uid('ML');
+    heldAfter(`call-${held}`, "I'm 15.", { userId: held });
+    for (const u of [held, adult]) seedHighlight(u, 'm1', Date.now() - 30 * DAY, OLDER_WORDS);
+    expect(await markMemorySurfaced(held, 'm1', 'call')).toBe(false);
+    expect(fs.docs.get(`/bogle_users/${held}/memory_highlights/m1`)!.timesSurfaced).toBeUndefined();
+    expect(await markMemorySurfaced(adult, 'm1', 'call')).toBe(true);
+    expect(fs.docs.get(`/bogle_users/${adult}/memory_highlights/m1`)!.lastSurfacedAt).toBeDefined();
+  });
+
+  it('only the Memory Lane scrub fails: the window stays unscrubbed; the next start cleans it', async () => {
+    const u = uid('MT');
+    const call = await heldCall(u);
+    seedHighlight(u, 'held', Date.now() - 400, SENTINEL);
+    call.hold();
+    fs.fail.match = /memory_highlights$/;
+    purgeHeldUser(u, call.s, call.startedAt);
+    await vi.waitFor(() => expect(storedWindows(u)).toHaveLength(1));
+    await settle();
+    fs.fail.match = null;
+    expect(storedWindows(u)[0]!.scrubbed).toBe(false);
+    expect(highlightsOf(u)).toHaveLength(1);
+    expect(momentsOf(u).map(([p]) => p.split('/').pop())).toEqual(['older']); // the rest scrubbed
+    resetMinorCare(); // the hold lapsed: the user's next call starts
+    await loadReloadedStores(u);
+    expect(highlightsOf(u)).toEqual([]);
+    expect(storedWindows(u)[0]!.scrubbed).toBe(true);
   });
 
   it('a later read never returns a held-window capture, even when the scrub failed', async () => {

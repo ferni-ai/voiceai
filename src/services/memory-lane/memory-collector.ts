@@ -14,10 +14,11 @@
  * @module services/memory-lane/memory-collector
  */
 
-import { withoutHeldAt } from '../../utils/held-window-check.js';
+import { withoutHeldStored } from '../../utils/held-window-check.js';
 import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import { loadHeldWindows } from '../trust-systems/index.js';
 import {
   collectKeptCommitments,
   keptMemoryId,
@@ -393,9 +394,7 @@ function createMemoryFromWin(
 // PERSISTENCE
 // ============================================================================
 
-/**
- * Save a memory highlight to Firestore
- */
+/** Save a memory highlight to Firestore */
 export async function saveMemory(memory: MemoryHighlight): Promise<boolean> {
   const db = getFirestoreDb();
   if (!db || writeHeld(memory.userId)) return false; // MINOR_CARE: nothing kept for a held caller
@@ -406,9 +405,9 @@ export async function saveMemory(memory: MemoryHighlight): Promise<boolean> {
       .doc(memory.userId)
       .collection(COLLECTION_PATH)
       .doc(memory.id);
-    // A kept commitment has one fixed id: create() so a second writer can never replace it.
-    if (memory.sourceType === 'commitment_kept') await ref.create(cleanForFirestore(memory));
-    else await ref.set(cleanForFirestore(memory));
+    // createdAt: MINOR_CARE keys on it. A kept commitment's one fixed id: create(), never replaced
+    const data = cleanForFirestore({ ...memory, createdAt: memory.createdAt ?? new Date() });
+    await (memory.sourceType === 'commitment_kept' ? ref.create(data) : ref.set(data));
 
     log.debug({ userId: memory.userId, memoryId: memory.id }, 'Saved memory highlight');
     return true;
@@ -512,7 +511,9 @@ export async function loadMemories(
       memories = memories.filter((m) => options.types!.includes(m.type));
     }
 
-    memories = withoutHeldAt(userId, memories, (m) => m.occurredAt); // MINOR_CARE: none held
+    // MINOR_CARE: none written during a purged held call (when written, not when it happened)
+    const written = (m: MemoryHighlight) => (isNaN(+m.createdAt) ? m.updatedAt : m.createdAt);
+    memories = await withoutHeldStored(userId, memories, written, loadHeldWindows);
     return await withKeptCommitmentsOnly(userId, memories);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load memories');

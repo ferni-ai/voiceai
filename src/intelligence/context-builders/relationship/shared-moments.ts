@@ -1,11 +1,7 @@
 /**
- * Shared moments: bogle_users/{uid}/shared_moments, the callbacks deep-relationship.ts reads back
- * as inside jokes and shared phrases. Each keeps what the caller said (origin.whatTheySaid).
- *
- * MINOR_CARE: a held caller (writeHeld) gets none. What a held call stored before its hold began
- * (between its start and the age statement) is the held caller's too: the purge deletes those docs
- * (scrubHeldSince), and every read drops them (held-window-check.ts), so a purge that failed never
- * puts them in a later call's prompt.
+ * Shared moments (bogle_users/{uid}/shared_moments): callbacks deep-relationship.ts reads back, each
+ * with what the caller said. MINOR_CARE: a held caller gets none; what a held call stored before its
+ * hold began is purged (scrubHeldSince) and dropped on every read (held-window-check.ts).
  *
  * @module intelligence/context-builders/relationship/shared-moments
  */
@@ -36,10 +32,7 @@ export const withoutHeldMoments = <T extends Record<string, unknown>>(
   moments: T[]
 ) => withoutHeldAt(userId, moments, (m) => m.createdAt);
 
-/**
- * Record a shared moment (joke, phrase, callback moment) when a significant moment is detected.
- * A held caller gets none.
- */
+/** Record a shared moment (joke, phrase, callback moment). A held caller gets none. */
 export async function recordSharedMoment(
   userId: string,
   moment: {
@@ -54,21 +47,20 @@ export async function recordSharedMoment(
   if (writeHeld(userId, moment.sessionId)) return;
   try {
     const momentId = `moment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    await userDocs(userId)
-      .doc(momentId)
-      .set(
-        cleanForFirestore({
-          id: momentId,
-          type: moment.type,
-          content: moment.content,
-          origin: { whatTheySaid: moment.whatTheySaid, timestamp: new Date() },
-          triggers: moment.triggers || [],
-          significance: moment.significance || 'warm',
-          callbackCount: 0,
-          callbackReception: 'unknown',
-          createdAt: new Date(),
-        })
-      );
+    const ref = userDocs(userId).doc(momentId);
+    await ref.set(
+      cleanForFirestore({
+        id: momentId,
+        type: moment.type,
+        content: moment.content,
+        origin: { whatTheySaid: moment.whatTheySaid, timestamp: new Date() },
+        triggers: moment.triggers || [],
+        significance: moment.significance || 'warm',
+        callbackCount: 0,
+        callbackReception: 'unknown',
+        createdAt: new Date(),
+      })
+    );
     log.info({ userId, momentId, type: moment.type }, '💫 Shared moment recorded');
   } catch (err) {
     log.debug({ error: String(err) }, 'Could not record shared moment');
@@ -76,26 +68,26 @@ export async function recordSharedMoment(
 }
 
 /**
- * The purge: delete this user's docs in bogle_users/{uid}/{collection} whose `field` (when they were
- * made) a held window covers, from `since` (the held call's start); older ones stay. Shared moments
- * and Memory Lane captures. Resolves the count deleted, or -1 on a failure (logged; every read still
- * drops them). Never rejects.
+ * The purge: delete the user's docs in bogle_users/{uid}/{collection} written (the first present of
+ * `fields`) in a held window, from `since`. Resolves the count, or -1 on a failure (logged; reads
+ * still drop them, and the next session start retries). Never rejects.
  */
 export async function scrubHeldSince(
   userId: string,
   since: number,
   collection = 'shared_moments',
-  field = 'createdAt'
+  fields = ['createdAt']
 ): Promise<number> {
   try {
     const docs = userDocs(userId, collection);
     // An ISO string (cleanForFirestore), epoch ms (inside-joke-memory) or a Timestamp from another
     // writer: Firestore ranges never cross types, so one query each
     const from = [new Date(since).toISOString(), since, new Date(since)];
-    const snaps = await Promise.all(from.map((at) => docs.where(field, '>=', at).get()));
-    const held = snaps
-      .flatMap((snap) => snap.docs)
-      .filter((doc) => madeWhileHeld(userId, doc.get(field)));
+    const reads = fields.flatMap((f) => from.map((at) => docs.where(f, '>=', at).get()));
+    const found = new Map((await Promise.all(reads)).flatMap((s) => s.docs.map((d) => [d.id, d])));
+    const writtenAt = (doc: FirebaseFirestore.QueryDocumentSnapshot) =>
+      fields.map((f) => doc.get(f)).find((at) => at !== undefined);
+    const held = [...found.values()].filter((doc) => madeWhileHeld(userId, writtenAt(doc)));
     await Promise.all(held.map((doc) => doc.ref.delete()));
     log.info({ userId, collection, removed: held.length }, 'MINOR_CARE held docs removed');
     return held.length;

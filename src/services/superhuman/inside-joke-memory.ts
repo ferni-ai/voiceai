@@ -12,11 +12,12 @@
  * @module services/superhuman/inside-joke-memory
  */
 
-import { withoutHeldAt } from '../../utils/held-window-check.js';
+import { withoutHeldStored } from '../../utils/held-window-check.js';
 import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { onInsideJokeChange } from '../data-layer/hooks/trust-hooks.js';
+import { loadHeldWindows } from '../trust-systems/index.js';
 
 const log = createLogger({ module: 'InsideJokeMemory' });
 
@@ -120,7 +121,7 @@ export async function recordSharedMoment(
       'create'
     );
 
-    log.info({ userId, type, momentId: docRef.id }, 'Recorded shared moment'); // never the words
+    log.info({ userId, type, momentId: docRef.id }, 'Recorded shared moment');
 
     // Memory Lane: Capture inside joke as potential memory
     if (type === 'inside_joke' || type === 'running_gag' || type === 'silly_moment') {
@@ -161,7 +162,7 @@ export async function loadSharedMoments(userId: string): Promise<SharedMoment[]>
       .get();
 
     const moments = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
-    return withoutHeldAt(userId, moments, (m) => m.createdAt); // MINOR_CARE: never a held window's
+    return await withoutHeldStored(userId, moments, (m) => m.createdAt, loadHeldWindows); // MINOR_CARE
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load shared moments');
     return [];

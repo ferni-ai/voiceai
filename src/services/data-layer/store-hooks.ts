@@ -209,8 +209,7 @@ async function processChange(key: string): Promise<void> {
     // MINOR_CARE: the hold may have begun while it embedded; checked again right before the write
     if (writeHeld(event.userId)) return void skippedCount++;
 
-    // Index to semantic memory. The store's own fields come last: a caller's metadata can't
-    // replace them (the purge and search trust source and indexedAt)
+    // Index to semantic memory; the store's fields last, so a caller's metadata can't replace them
     await vectorStore.addDocument({
       id: docId,
       text: event.content,

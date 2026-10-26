@@ -21,12 +21,21 @@ vi.mock('../../../../memory/firestore-vector-store/index.js', async () => {
   return {
     getFirestoreVectorStore: () => ({
       list: async () => [],
+      cached: async () => ({ docs: [], fallback: false }),
       removeDocument: async (id: string) => (
         await getAdminFirestore().collection('vectors').doc(id).delete(),
         true
       ),
     }),
   };
+});
+// Memory Lane reads Firestore through this module (the shared setup fakes it): the emulator's
+vi.mock('../../../../services/superhuman/firestore-utils.js', async () => {
+  const real = await vi.importActual<typeof import('../../../../utils/firestore-utils.js')>(
+    '../../../../utils/firestore-utils.js'
+  );
+  const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+  return { ...real, getFirestoreDb: () => getAdminFirestore(), recordDegradation: () => undefined };
 });
 vi.mock('../../../../services/superhuman/semantic-intelligence/index.js', () => ({
   clearSemanticIntelligenceCache: () => undefined,
@@ -170,7 +179,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('shared moments on the emu
     const capture = (at: number, content: string) => ({
       content,
       sourceType: 'inside_joke',
-      occurredAt: new Date(at).toISOString(),
+      occurredAt: new Date(at - 10 * DAY).toISOString(), // the event: never the key
+      createdAt: new Date(at).toISOString(), // when it was written
     });
     await lane.doc('held').set(capture(Date.now() - 300, SENTINEL));
     await lane.doc('older').set(capture(Date.now() - 30 * DAY, OLDER_WORDS));
@@ -182,5 +192,67 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('shared moments on the emu
         timeout: 5000,
       }
     );
+  });
+
+  it('collectAllMemories in the window about a 10-day-old milestone: scrubbed, not read back', async () => {
+    const u = uid();
+    const call = await heldCall(u);
+    await db
+      .doc(`bogle_users/${u}/relationship_milestones/ms1`)
+      .set({
+        userId: u,
+        type: 'first_month',
+        title: 'One month',
+        description: SENTINEL,
+        achievedAt: Date.now() - 10 * DAY,
+      });
+    const lane = await import('../../../../services/memory-lane/memory-collector.js');
+    await lane.collectAllMemories(u);
+    const highlights = db.collection('bogle_users').doc(u).collection('memory_highlights');
+    const written = (await highlights.get()).docs.map((d) => d.data());
+    expect(written).toHaveLength(1);
+    expect(Date.parse(String(written[0]!.occurredAt))).toBeLessThan(call.startedAt);
+    expect(typeof written[0]!.createdAt).toBe('string'); // what the scrub's range query matches
+    expect(mods.mc.heldAfter(call.s, "I'm 15.", { userId: u })).toBe(true);
+    mods.purge.purgeHeldUser(u, call.s, call.startedAt);
+    await vi.waitFor(async () => expect((await highlights.get()).size).toBe(0), { timeout: 5000 });
+    mods.mc.resetMinorCare();
+    expect(await lane.loadMemories(u)).toEqual([]);
+  });
+
+  it('a store in fallback mode: -1, and recovery migrates no held entry back', async () => {
+    const u = uid();
+    const since = Date.now() - 1000;
+    const { noteHeldWindow, recordedWhileHeld } =
+      await import('../../../../services/trust-systems/held-window.js');
+    noteHeldWindow(u, since);
+    const { FirestoreVectorStore } =
+      await import('../../../../memory/firestore-vector-store/core.js');
+    const { migrateCacheToFirestore } =
+      await import('../../../../memory/firestore-vector-store/recovery.js');
+    const store = new FirestoreVectorStore();
+    await store.initialize();
+    const raw = store as unknown as { useFallback: boolean; fallbackCache: never };
+    raw.useFallback = true; // as a failed connectivity check leaves it
+    const metadata = { userId: u, source: 'store_auto_sync', entityType: 'inside_joke' };
+    const add = (id: string, at: number) =>
+      store.addDocument({
+        id,
+        text: SENTINEL,
+        embedding: new Array(768).fill(0.02),
+        metadata: { ...metadata, indexedAt: new Date(at).toISOString() },
+      });
+    await add(`fb-held-${u}`, since + 10); // indexed before the age statement, in the cache only
+    await add(`fb-old-${u}`, since - DAY);
+    const { purgeHeldIndexEntries } =
+      await import('../../../../services/data-layer/held-index-purge.js');
+    expect(await purgeHeldIndexEntries(u, (t) => recordedWhileHeld(u, t), store)).toBe(-1);
+    expect((await store.list({ userId: u })).map((d) => d.id)).toEqual([`fb-old-${u}`]);
+    raw.useFallback = false; // recovery
+    await migrateCacheToFirestore(db as never, 'vectors', raw.fallbackCache);
+    const ids = (await db.collection('vectors').where('metadata.userId', '==', u).get()).docs.map(
+      (d) => d.id
+    );
+    expect(ids).toEqual([`fb-old-${u}`]);
   });
 });
