@@ -7,6 +7,7 @@
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
 import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
+import '../../services/outreach/phone-hash-key-boot.js'; // which LOG_HASH_SECRET (fingerprint)
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -324,7 +325,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname)))
+    return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;

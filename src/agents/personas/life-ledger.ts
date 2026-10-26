@@ -29,6 +29,7 @@ import { join } from 'node:path';
 import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
 import { getPersonaPronouns, type PersonaPronouns } from '../../personas/persona-pronouns.js';
 import { selfRecallEnabled } from './self-recall.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeLedger' });
@@ -173,9 +174,7 @@ export function formatLedger(
   return [
     `[WHAT YOU'VE TOLD ${who.toUpperCase()} ABOUT YOUR OWN LIFE ON EARLIER CALLS]`,
     ...lines,
-    opts.bridge
-      ? BRIDGE_FOOTER
-      : THREAD_FOOTER,
+    opts.bridge ? BRIDGE_FOOTER : THREAD_FOOTER,
   ].join('\n');
 }
 
@@ -212,7 +211,10 @@ export function biographyCore(personaId: string): Promise<string> {
     bio = (async () => {
       const { getBundleSearchPaths } = await import('../../personas/bundles/loader.js');
       for (const root of getBundleSearchPaths()) {
-        const text = await readFile(join(root, personaId, 'identity', 'biography-core.md'), 'utf8').catch(() => '');
+        const text = await readFile(
+          join(root, personaId, 'identity', 'biography-core.md'),
+          'utf8'
+        ).catch(() => '');
         if (text) return text;
       }
       log.warn({ personaId }, 'No biography-core.md found; the biography check is skipped');
@@ -275,7 +277,11 @@ export async function supersededFacts(
   return candidates.filter((_, i) => picked.has(i + 1));
 }
 
-async function askModel(systemInstruction: string, input: string, temperature = 0.2): Promise<string> {
+async function askModel(
+  systemInstruction: string,
+  input: string,
+  temperature = 0.2
+): Promise<string> {
   const { getGenerativeModel } = await import('../../config/generative-model.js');
   const model = await getGenerativeModel({
     model: process.env.LIFE_LEDGER_MODEL || 'gemini-3.5-flash-lite',
@@ -321,8 +327,12 @@ function quotedConflicts(reply: string, biography: string): Set<number> {
   const conflicting = new Set<number>();
   for (const line of reply.split('\n')) {
     const m = line.match(/^\D*(\d+)\s*[|:-]\s*["“]?(.+?)["”]?\s*$/);
-    const quote = m?.[2].toLowerCase().replace(/\s+/g, ' ').replace(/[."”]+$/, '');
-    if (m && quote && quote.split(' ').length >= 2 && bio.includes(quote)) conflicting.add(Number(m[1]));
+    const quote = m?.[2]
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/[."”]+$/, '');
+    if (m && quote && quote.split(' ').length >= 2 && bio.includes(quote))
+      conflicting.add(Number(m[1]));
   }
   return conflicting;
 }
@@ -335,7 +345,12 @@ export const firestoreCallerNames: CallerNames = async (userId) => {
   const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
   const db = getFirestoreDb();
   if (!db) return [];
-  const snap = await db.collection('bogle_users').doc(userId).collection('dynamic_entities').limit(300).get();
+  const snap = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('dynamic_entities')
+    .limit(300)
+    .get();
   return snap.docs
     .map((d) => d.data() as { name?: unknown; type?: unknown })
     .filter((e) => typeof e.name === 'string' && CALLER_KINDS.test(String(e.type)))
@@ -353,7 +368,11 @@ export const firestoreCallerNames: CallerNames = async (userId) => {
 const COMMON_NOUN =
   /^(?:(?:my |the |their )?(?:mom|mother|dad|father|parents?|brother|sister|sibling|son|daughter|kids?|child|baby|wife|husband|partner|spouse|boyfriend|girlfriend|friend|best friend|roommate|neighbou?r|boss|manager|coworker|colleague|team|grandma|grandpa|grandmother|grandfather|aunt|uncle|cousin|family|dog|cat|puppy|kitten|pet|bird|fish|doctor|teacher|therapist)|she|he|they|her|him|them|it|we|you|i)$/i;
 
-export function notTheCallers(facts: string[], callerNames: string[], personaName: string): string[] {
+export function notTheCallers(
+  facts: string[],
+  callerNames: string[],
+  personaName: string
+): string[] {
   const own = personaName.toLowerCase().slice(0, 4);
   const names = callerNames.filter(
     (n) =>
@@ -368,8 +387,14 @@ export function notTheCallers(facts: string[], callerNames: string[], personaNam
   return facts.filter((f) => !re.test(f));
 }
 
-const defaultExtractor: FactExtractor = async (name, lines, pronouns = getPersonaPronouns(name)) => {
-  const prompt = selfMemoryEnabled() ? SELF_MEMORY_PROMPT(name, pronouns) : EXTRACT_PROMPT(name, pronouns);
+const defaultExtractor: FactExtractor = async (
+  name,
+  lines,
+  pronouns = getPersonaPronouns(name)
+) => {
+  const prompt = selfMemoryEnabled()
+    ? SELF_MEMORY_PROMPT(name, pronouns)
+    : EXTRACT_PROMPT(name, pronouns);
   const text = await askModel(prompt, lines.map((l) => `- ${l}`).join('\n'));
   return !text || /^none\b/i.test(text) ? [] : text.split('\n');
 };
@@ -430,6 +455,8 @@ export function createLedgerRecorder(
     /** The biography check's model; injected so tests need none. */
     ask?: (system: string, input: string) => Promise<string>;
     callerNames?: CallerNames;
+    /** The call's: a held caller's call stores nothing (MINOR_CARE writeHeld). */
+    sessionId?: string;
   } = {}
 ) {
   const lines = new Map<string, string[]>();
@@ -444,6 +471,11 @@ export function createLedgerRecorder(
     async flush(): Promise<number> {
       if (flushed || !lifeLedgerEnabled()) return 0;
       flushed = true;
+      // MINOR_CARE: the extractor can keep the caller's own details (a job, a school) as his.
+      if (writeHeld(userId, deps.sessionId, deps.env)) {
+        log.info({ lines: lines.size }, 'LIFE_LEDGER skipped: MINOR_CARE hold');
+        return 0;
+      }
       const saidAt = new Date((deps.now ?? Date.now)()).toISOString();
       let saved = 0;
       for (const [personaId, said] of lines) {
@@ -462,10 +494,19 @@ export function createLedgerRecorder(
               )
             : grounded;
           const own = strict
-            ? await consistentWithBiography(name, mine, await canonText(personaId, deps.env), deps.ask, pronouns)
+            ? await consistentWithBiography(
+                name,
+                mine,
+                await canonText(personaId, deps.env),
+                deps.ask,
+                pronouns
+              )
             : mine;
           if (strict) {
-            log.info({ personaId, extracted: raw.length, kept: own.length }, 'LIFE_LEDGER_SELF_MEMORY');
+            log.info(
+              { personaId, extracted: raw.length, kept: own.length },
+              'LIFE_LEDGER_SELF_MEMORY'
+            );
           }
           const facts = own.map((fact) => ({ personaId, fact, saidAt }));
           if (facts.length === 0) continue;
