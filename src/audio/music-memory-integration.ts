@@ -15,6 +15,8 @@ import { createLogger } from '../utils/safe-logger.js';
 import type { MusicSessionContext } from './music-session-context.js';
 import type { TransitionType } from './intelligent-music-transitions.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { writeHeld } from '../utils/minor-care.js';
+import type { MusicEvidence } from './music-memory-evidence.js';
 
 const log = createLogger({ module: 'MusicMemoryIntegration' });
 
@@ -60,19 +62,8 @@ export interface MusicHelpedMemory {
     wasAmbient: boolean;
   };
 
-  /** How did we know it helped? */
-  evidence: {
-    /** User's first words after music ended */
-    userResponse?: string;
-    /** Detected emotional shift */
-    emotionalShift?: 'positive' | 'neutral' | 'negative';
-    /** Did they continue the session happily? */
-    continuedSession: boolean;
-    /** Did they explicitly thank or praise the music? */
-    explicitPositive: boolean;
-    /** Voice tone analysis */
-    voiceTone?: 'warmer' | 'calmer' | 'energized' | 'neutral';
-  };
+  /** How did we know it helped? Labels only, never the caller's words (music-memory-evidence.ts) */
+  evidence: MusicEvidence;
 
   /** What transition worked after the music? */
   effectiveTransition: TransitionType;
@@ -284,7 +275,8 @@ export function detectMusicHelped(
 }
 
 /**
- * Store a memory that music helped
+ * Store a memory that music helped. The caller's words (`userResponse`) only decide whether it
+ * helped; the memory keeps the labels. MINOR_CARE: a held caller (writeHeld) gets no memory.
  */
 export function storeMusicHelpedMemory(
   userId: string,
@@ -294,8 +286,10 @@ export function storeMusicHelpedMemory(
     userResponse?: string;
     voiceTone?: 'warmer' | 'calmer' | 'energized' | 'neutral';
     continuedSession?: boolean;
-  }
+  },
+  sessionId?: string
 ): MusicHelpedMemory | null {
+  if (writeHeld(userId, sessionId)) return null; // MINOR_CARE: a held caller gets no memory
   // Check if music actually helped
   const helpCheck = detectMusicHelped(
     evidence.userResponse,
@@ -327,7 +321,6 @@ export function storeMusicHelpedMemory(
       wasAmbient: musicContext?.wasAmbient ?? false,
     },
     evidence: {
-      userResponse: evidence.userResponse,
       emotionalShift: helpCheck.helped ? 'positive' : 'neutral',
       continuedSession: evidence.continuedSession ?? true,
       explicitPositive: helpCheck.explicitPositive,
@@ -391,12 +384,19 @@ function generateTags(musicContext: MusicSessionContext | null): string[] {
  * Update preferences based on a new memory
  */
 function updatePreferencesFromMemory(userId: string, memory: MusicHelpedMemory): void {
-  let prefs = userMusicPreferences.get(userId);
-  if (!prefs) {
-    prefs = [];
-    userMusicPreferences.set(userId, prefs);
-  }
+  const prefs = userMusicPreferences.get(userId) ?? [];
+  userMusicPreferences.set(userId, prefs);
+  applyToPreferences(prefs, memory);
+}
 
+/** The preferences these memories alone build, oldest first (a purge dropped some). */
+export function preferencesFrom(memories: MusicHelpedMemory[]): MusicPreference[] {
+  const prefs: MusicPreference[] = [];
+  for (const memory of memories) applyToPreferences(prefs, memory);
+  return prefs;
+}
+
+function applyToPreferences(prefs: MusicPreference[], memory: MusicHelpedMemory): void {
   // Check if we have an existing preference for this context
   const existingPref = prefs.find(
     (p) => p.context.emotionalState === memory.emotionalContext.state

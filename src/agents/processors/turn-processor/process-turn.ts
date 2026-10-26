@@ -158,7 +158,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const trace = isDev ? createTurnTrace(services.sessionId) : null;
 
   diag.user('Processing user turn', {
-    preview: userText.slice(0, 100),
+    userTextLength: userText?.length ?? 0,
   });
 
   if (!userText || userText.trim().length === 0) {
@@ -181,7 +181,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       );
       diag.debug('📊 Memory response recorded', {
         memoryIds: ctx.lastSurfacedMemoryIds,
-        userTextPreview: userText.slice(0, 50),
+        textChars: userText.length,
       });
     } catch (error) {
       diag.warn('Memory response tracking failed', { error: String(error) });
@@ -750,9 +750,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
       diag.debug('🎯 FTIS: Will use generateReply for natural response', {
         tool: ftisResult.toolResult.toolId,
-        result:
-          ftisResult.toolResult.output?.slice(0, 100) ||
-          ftisResult.toolResult.speakableResponse?.slice(0, 100),
+        resultChars: (ftisResult.toolResult.output ?? ftisResult.toolResult.speakableResponse ?? '').length,
       });
 
       return {
@@ -1291,7 +1289,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       emotion: analysis.emotion.primary,
       distress: analysis.emotion.distressLevel.toFixed(2),
       intent: analysis.intent.primary,
-      topics: analysis.topics.detected.slice(0, 3),
+      topicCount: analysis.topics.detected.length,
       phase: analysis.state.phase,
       contextCount: injections.length,
       emotionalTrajectory: emotionalState.trajectory,

@@ -11,7 +11,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { userHeld } from '../../utils/minor-care.js';
+import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 import { heldFields } from './held-fields.js';
+import { readGuard, ReadFailedWriteError, type WriteOptions } from './read-guard.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -49,16 +51,18 @@ export interface PersistenceConfig {
 
 export interface LoadOptions {
   fresh?: boolean;
-  strict?: boolean;
+  strict?: boolean | 'read'; // 'read': throws on a failed read only, not when Firestore is absent
 }
 
 export interface PersistenceStore<T> {
   /** Get data for a user */
   get: (userId: string) => Promise<T | null>;
-  /** Set data for a user (queued for batch write) */
-  set: (userId: string, data: T) => void;
-  /** Set data and write immediately */
-  setImmediate: (userId: string, data: T) => Promise<void>;
+  /** Set data for a user (queued for batch write). The read guard doesn't apply here yet */
+  set: (userId: string, data: T, options?: WriteOptions) => void;
+  /** Set data and write immediately; rejects (ReadFailedWriteError) while the last load failed */
+  setImmediate: (userId: string, data: T, options?: WriteOptions) => Promise<void>;
+  /** The latest load for this user failed (read-guard.ts) */
+  readFailed: (userId: string) => boolean;
   /** Delete data for a user */
   delete: (userId: string) => Promise<void>;
   /** Mark data as dirty (needs sync) */
@@ -160,12 +164,22 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   const cache = new Map<string, T>();
   const dirty = new Set<string>();
   const intervalName = `persistence-sync-${collection}`;
-  const tainted = new Set<string>(); // held once: dropped on every set and sync from then on
+  // Held once: dropped on every set and sync until clearCache (a purge that also forgot the user
+  // upstream, so what is set next is read back from storage, not the held call's).
+  const tainted = new Set<string>();
   const held = (userId: string): boolean =>
     (tainted.has(userId) || holdWrites(userId)) &&
     (tainted.add(userId), cache.delete(userId), true);
   const heldParts = heldFields<T>(whenHeld, syncIntervalMs);
+  // PRIVACY: a placeholder id (anonymous, unknown, default, shared, blank) is one bucket every caller
+  // without an id shares, so under bogle_users it is never cached, read or written.
+  const shared = (userId: string): boolean => !useRootCollection && isSharedPlaceholderId(userId);
   let isShutdown = false;
+  const refFor = (firestore: FirestoreType, userId: string) =>
+    useRootCollection
+      ? firestore.collection(collection).doc(userId)
+      : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
+  const guard = readGuard(collection); // a failed load: no write may replace what wasn't read
 
   // Start sync interval using managed interval
   const startSyncInterval = () => {
@@ -202,10 +216,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     const toFlush = Array.from(dirty).filter((userId) => !held(userId));
     dirty.clear();
 
-    const docRefFor = (userId: string) =>
-      useRootCollection
-        ? firestore.collection(collection).doc(userId)
-        : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
+    const docRefFor = (userId: string) => refFor(firestore, userId);
 
     // Deep-clean before every write: Firestore rejects `undefined` anywhere in the tree, even
     // inside arrays (`events[].estimatedValueCents`). `ignoreUndefinedProperties` on the client
@@ -285,11 +296,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     }
 
     try {
-      const docRef = useRootCollection
-        ? firestore.collection(collection).doc(userId)
-        : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-
-      await docRef.set(
+      await refFor(firestore, userId).set(
         cleanForFirestore({
           ...data,
           _updatedAt: new Date().toISOString(),
@@ -307,32 +314,30 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   // Load from Firestore
   const load = async (userId: string, options?: LoadOptions): Promise<T | null> => {
+    if (shared(userId)) return null;
     // Check cache first
     if (cache.has(userId) && (!options?.fresh || dirty.has(userId))) {
       return cache.get(userId)!;
     }
 
     const firestore = await getFirestore();
-    if (!firestore && options?.strict) throw new Error(`Firestore unavailable (${collection})`);
+    if (!firestore && options?.strict === true) throw new Error(`No Firestore (${collection})`);
     if (!firestore) return cache.get(userId) ?? null;
 
+    const gen = guard.begin(userId);
     try {
-      const docRef = useRootCollection
-        ? firestore.collection(collection).doc(userId)
-        : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-
-      const doc = await docRef.get();
-
-      if (!doc.exists) {
+      const doc = await refFor(firestore, userId).get();
+      const data = doc.exists ? (timestampsToDates(doc.data()) as T) : undefined;
+      guard.settle(userId, gen, true); // a read counts as good only once its data converted
+      if (data === undefined) {
         cache.delete(userId);
         return null;
       }
-
-      const data = timestampsToDates(doc.data()) as T;
       cache.set(userId, data);
       return data;
     } catch (error) {
       log.error({ error, collection, userId }, 'Failed to load user data');
+      guard.settle(userId, gen, false);
       if (options?.strict) throw error;
       return null;
     }
@@ -343,6 +348,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   const store: PersistenceStore<T> = {
     get: async (userId: string) => {
+      if (shared(userId)) return null;
       if (cache.has(userId)) {
         return cache.get(userId)!;
       }
@@ -354,6 +360,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
+      if (shared(userId)) return;
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
@@ -364,14 +371,17 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       }
     },
 
-    setImmediate: async (userId: string, data: T) => {
+    setImmediate: async (userId: string, data: T, options?: WriteOptions) => {
+      if (guard.refuses(userId, options)) throw new ReadFailedWriteError(collection, userId);
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
+      if (shared(userId)) return; // a shared id is never held (minor-care sharedId)
       cache.set(userId, data);
       dirty.add(userId);
       await flushUser(userId);
     },
 
     delete: async (userId: string) => {
+      if (shared(userId)) return; // never touches the shared doc; removing it is a human decision
       cache.delete(userId);
       dirty.delete(userId);
       heldParts.forget(userId, true); // a pending held part, even one in flight, never outlives this
@@ -381,11 +391,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       if (!firestore) return;
 
       try {
-        const docRef = useRootCollection
-          ? firestore.collection(collection).doc(userId)
-          : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-
-        await docRef.delete();
+        await refFor(firestore, userId).delete();
         heldParts.documentDeleted(userId); // only now is a pending compensating delete moot
         log.debug({ collection, userId }, 'User data deleted');
       } catch (error) {
@@ -393,6 +399,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       }
     },
 
+    readFailed: (userId: string) => guard.failed(userId),
     markDirty: (userId: string) => {
       if (cache.has(userId)) {
         dirty.add(userId);
@@ -408,6 +415,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     clearCache: (userId: string) => {
       cache.delete(userId);
       dirty.delete(userId);
+      tainted.delete(userId); // still held: the next set taints it again
       heldParts.forget(userId);
     },
 
@@ -443,19 +451,13 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 // GLOBAL LIFECYCLE
 // ============================================================================
 
-/**
- * Initialize all persistence stores
- * Call this at application startup
- */
+/** Initialize all persistence stores; call at application startup */
 export async function initializePersistence(): Promise<void> {
   await getFirestore();
   log.info('Persistence layer initialized');
 }
 
-/**
- * Shutdown all persistence stores
- * Call this at application shutdown
- */
+/** Shutdown all persistence stores; call at application shutdown */
 export async function shutdownPersistence(): Promise<void> {
   log.info({ storeCount: activeStores.length }, 'Shutting down persistence layer...');
 
@@ -486,10 +488,6 @@ export function getAllStats(): Record<string, { cached: number; dirty: number }>
   }
   return stats;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
 
 export default {
   createPersistenceStore,

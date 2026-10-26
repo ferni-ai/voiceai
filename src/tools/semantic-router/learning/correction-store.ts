@@ -18,7 +18,6 @@ import {
   loadCorrections as loadPersistedCorrections,
   saveUserProfile as persistUserProfile,
   loadUserProfile as loadPersistedUserProfile,
-  type PersistedCorrection,
   type PersistedUserProfile,
 } from '../persistence/index.js';
 
@@ -34,12 +33,12 @@ export interface RoutingCorrection {
   userId: string;
   sessionId: string;
 
-  // What happened
-  originalQuery: string;
-  normalizedQuery: string;
+  // What happened (the query and its args are never stored: one loaded from Firestore has none)
+  originalQuery?: string;
+  normalizedQuery?: string;
   predictedTool: string;
   predictedConfidence: number;
-  predictedArgs: Record<string, unknown>;
+  predictedArgs?: Record<string, unknown>;
 
   // What should have happened
   actualTool: string | null; // null if no tool should have been called
@@ -47,7 +46,7 @@ export interface RoutingCorrection {
   correctionSource: 'user_explicit' | 'user_implicit' | 'system';
 
   // Context
-  conversationContext: string[];
+  conversationContext?: string[];
   personaId: string;
 
   // Metadata
@@ -145,10 +144,8 @@ export function recordCorrection(correction: Omit<RoutingCorrection, 'id' | 'tim
 
   // Persist to Firestore (fire-and-forget)
   if (isPersistenceAvailable()) {
-    const persisted: PersistedCorrection = {
-      ...fullCorrection,
-    };
-    persistCorrection(persisted).catch((err) => {
+    const queryLength = correction.originalQuery?.length ?? 0;
+    persistCorrection({ ...fullCorrection, queryLength }).catch((err) => {
       log.warn({ error: String(err) }, 'Failed to persist correction');
     });
   }

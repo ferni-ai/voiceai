@@ -1452,7 +1452,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     }
   }
 
-  if (held && userId) purgeHeldUser(userId); // MINOR_CARE: last, so nothing re-fills a store after
+  if (held && userId) purgeHeldUser(userId, sessionId, services?.sessionStartTime); // MINOR_CARE
   const totalDuration = Date.now() - cleanupStart;
   diag.session('✅ Session cleanup complete', { totalDurationMs: totalDuration });
 }

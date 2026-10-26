@@ -3569,8 +3569,6 @@
     "accessLevelFullDesc": "Can talk to all team members",
     "accessLevelLimited": "Limited",
     "accessLevelLimitedDesc": "Only Ferni",
-    "accessLevelSupervised": "Supervised",
-    "accessLevelSupervisedDesc": "You get notified of calls",
     "eyebrow": "Family",
     "addMember": "Add Family Member",
     "calls": {
@@ -3663,7 +3661,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Communication & Relationships",
+        "role": "Communication Coach & Chief of Staff",
         "description": "I help you navigate conversations, strengthen relationships, and express yourself better.",
         "name": "Alex Chen"
       },
@@ -6322,7 +6320,40 @@
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
     "quoted": "\"{text}\"",
     "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again.",
-    "loadFailed": "I couldn't load your Chronicle just now. Your entries are safe. Try again in a little while."
+    "loadFailed": "I couldn't load your Chronicle just now. Your entries are safe. Try again in a little while.",
+    "signedOut": "You need to sign in first.",
+    "offline": "This needs a connection. I'll be here when you're back.",
+    "emptyHowItFills": "Nothing here yet. Write a thought here, or ask me in a call to put something in your journal, and I'll keep it for you.",
+    "insights": {
+      "rising": {
+        "title": "Lighter lately",
+        "text": "Your recent entries feel lighter. Something's shifting."
+      },
+      "heavy": {
+        "title": "Heavier days",
+        "text": "Things have felt heavier lately. I'm here when you want to talk."
+      },
+      "theme": {
+        "title": "It keeps coming up",
+        "text": "{theme} keeps coming up in what you write. What's drawing you there?"
+      }
+    },
+    "list": {
+      "title": "What you've kept",
+      "showMore": "Show more",
+      "edit": "Edit",
+      "delete": "Delete",
+      "editLabel": "Edit your entry from {date}",
+      "deleteLabel": "Delete your entry from {date}",
+      "editorLabel": "Your entry",
+      "save": "Save",
+      "cancel": "Cancel",
+      "deleteConfirm": "Delete this entry? It can't be brought back.",
+      "confirmDelete": "Delete it",
+      "keep": "Keep it",
+      "saveFailed": "That didn't save. Want to try again?",
+      "deleteFailed": "That didn't delete. Want to try again?"
+    }
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",
@@ -7268,21 +7299,6 @@
     "milestone": "Milestone"
   },
   "voiceLibrary": {
-    "emma": {
-      "description": "Warm and friendly voice, perfect for supportive conversations"
-    },
-    "james": {
-      "description": "Clear and professional voice, ideal for mentors and advisors"
-    },
-    "sarah": {
-      "description": "Gentle and soothing voice, great for legacy personas"
-    },
-    "alex": {
-      "description": "Energetic and motivating voice, perfect for coaches"
-    },
-    "morgan": {
-      "description": "Calm and balanced voice, suitable for any persona type"
-    },
     "tags": {
       "warm": "Warm",
       "friendly": "Friendly",
@@ -7298,6 +7314,19 @@
       "calm": "Calm",
       "balanced": "Balanced",
       "neutral": "Neutral"
+    },
+    "loading": "Loading voices...",
+    "loadFailed": "Couldn't load the voices. Close this and try again.",
+    "playSample": "Play a sample of {name}",
+    "gender": {
+      "female": "Woman",
+      "male": "Man"
+    },
+    "accent": {
+      "american": "American",
+      "british": "British",
+      "australian": "Australian",
+      "indian": "Indian English"
     }
   },
   "agentTypes": {
@@ -8006,6 +8035,9 @@
     "improving": "Trending up",
     "declining": "A bit lower lately",
     "trendUnavailable": "This trend didn't load. Try again in a bit.",
+    "notTalkedLately": "We haven't talked about these lately:",
+    "asOfOnce": "As of {date} · came up once",
+    "asOfCount": "As of {date} · came up {count} times",
     "trendUp": "up",
     "trendDown": "down",
     "trendStable": "stable",
@@ -8405,7 +8437,8 @@
     "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
-    "connected": "Connected"
+    "connected": "Connected",
+    "statusFailed": "Couldn't check just now"
   },
   "yourPeople": {
     "section": "Relationships",
@@ -10201,9 +10234,10 @@
     "title": "Little things I remember",
     "subtitle": "So you don't have to",
     "emptyTitle": "Nothing set up yet",
-    "emptySubtitle": "Want me to greet you each morning? Remind you to stretch? I can do that.",
+    "emptySubtitle": "Tell me something you'd like to do regularly and I'll save it here.",
     "emptyButton": "Show me some ideas",
     "addNew": "Add something new",
+    "notRunningYet": "I keep these here for you. They don't run on their own yet.",
     "triggers": {
       "dailyAt": "Every day at {time}",
       "dailyUnset": "Every day at a set time",

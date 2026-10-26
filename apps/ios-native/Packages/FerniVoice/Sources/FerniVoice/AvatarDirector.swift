@@ -11,7 +11,8 @@ public enum AvatarPose: Equatable, Sendable {
 
 /// Everything about a call the avatar reacts to (ios-motion-spec §6.1).
 public enum CallEvent: Equatable, Sendable {
-    case connectTapped
+    /// A call to `personaID` (the teammate the person chose).
+    case connectTapped(personaID: String)
     case agentJoined
     case agentState(AgentSignals.AgentActivity)
     case expression(AvatarExpression, hold: Duration?)
@@ -26,10 +27,11 @@ public enum CallEvent: Equatable, Sendable {
 /// Feedback a pose change asks for; the model plays it, views never do (one per event at most).
 public enum AvatarEffect: Equatable, Sendable {
     case haptic(HapticCue)
+    /// Played only if the sound director allows it (EarconDirector).
+    case earcon(Earcon)
     case announce(String)
 }
 
-public enum HapticCue: String, Equatable, Sendable { case presence, firstWord, handoff, goodbye, error, reconnected }
 
 /// The avatar's state machine, pure and clocked by the caller so tests control
 /// time. Turn poses settle for 150 ms (400 ms under Reduce Motion) so a quick
@@ -102,14 +104,14 @@ public struct AvatarDirector: Equatable, Sendable {
     public mutating func send(_ event: CallEvent, now: Instant) -> [AvatarEffect] {
         var effects = tick(now: now)
         switch event {
-        case .connectTapped:
-            self = AvatarDirector(reduceMotion: reduceMotion, personaID: personaID)
+        case .connectTapped(let chosen):
+            self = AvatarDirector(reduceMotion: reduceMotion, personaID: chosen)
             connection = .arriving
         case .agentJoined:
             if connection == .arriving { connection = .none }
             if !presencePlayed {
                 presencePlayed = true
-                effects.append(.haptic(.presence))
+                effects += [.haptic(.presence), .earcon(.arrival)]
             }
         case .agentState(let activity):
             effects += setTurn(Self.turn(for: activity), now: now)
@@ -121,7 +123,7 @@ public struct AvatarDirector: Equatable, Sendable {
             handoffTo = nil
             personaID = to
             firstWordPlayed = false
-            effects += [.haptic(.handoff), .announce("\(name) joined.")]
+            effects += [.haptic(.handoff), .earcon(.handoff(to: to)), .announce("\(name) joined.")]
         case .handoffFailed:
             handoffTo = nil
             expressionOverride = (.concerned, now + .milliseconds(1500))
@@ -146,7 +148,7 @@ public struct AvatarDirector: Equatable, Sendable {
             turn = .idle
             pendingTurn = nil
             handoffTo = nil
-            if wasInCall { effects.append(.haptic(.goodbye)) }
+            if wasInCall { effects += [.haptic(.goodbye), .earcon(.goodbye)] }
         }
         return effects
     }

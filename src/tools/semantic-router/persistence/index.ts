@@ -28,7 +28,6 @@ export {
 
   // Routing event persistence
   saveRoutingEvent,
-  loadRoutingEvents,
   type PersistedRoutingEvent,
 
   // A/B test persistence

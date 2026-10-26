@@ -13,6 +13,7 @@ import {
   removeMemoryFromAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
 import { isJournalPlaceholder } from '../../services/custom-agent/journal-placeholder.js';
+import { deleteVoiceJournalAudio } from '../../services/custom-agent/gcs-storage-service.js';
 import { journalOneStoreOn } from '../../services/journal/journal-ports.js';
 import { firestoreJournalStore as journalStore } from '../../services/stores/journal-store.js';
 import { journalChanged } from './journal-view.js';
@@ -177,6 +178,8 @@ export async function handleDeleteMemory(
     await journalStore.remove(userId, memoryId);
     journalChanged(userId);
   }
+  // A voice entry's recording goes with it (best effort, logs a failure)
+  if (internalType === 'journalEntries') await deleteVoiceJournalAudio(userId, agentId, memoryId);
 
   log.info({ userId, agentId, memoryId }, 'Memory deleted');
   res.writeHead(204);

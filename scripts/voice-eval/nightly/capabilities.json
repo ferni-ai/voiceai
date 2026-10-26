@@ -33,9 +33,15 @@
       ]
     },
     "follow-through": {
-      "label": "Follow-through on open threads", "scenarios": ["follow-through"],
+      "label": "Follow-through on open threads", "scenarios": ["follow-through", "asked-once-answer"],
       "checks": [
         { "id": "own-opener", "metric": "ownOpener", "better": "lower", "warn": 0, "fail": 0, "why": "10-21: asked by name 3/3, then answered it himself 1/3 (B2)" }
+      ]
+    },
+    "asked-once": {
+      "label": "An answered follow-up is not asked again", "scenarios": ["asked-once-check"],
+      "checks": [
+        { "id": "re-asked", "metric": "callsMatching", "pattern": "\\b(?:priya|dinner)\\b[^.?!]{0,60}\\b(?:go|went|turn(?:ed)? out)\\b|\\bhow\\b[^.?!]{0,60}\\bpriya\\b|\\bhow (?:was|is|'s) (?:the |that |your )?dinner\\b", "better": "lower", "warn": 0, "fail": 0, "why": "memory audit 10-25: an answer stored as a new dated fact was asked again 16 min later (dates/recall.ts)" }
       ]
     },
     "attunement": {
@@ -75,6 +81,13 @@
         { "id": "backchannel-stop", "metric": "backchannelStop", "better": "lower", "warn": 0, "fail": 0.5, "why": "10-21: 1 of 2 backchannels stopped Ferni" }
       ]
     },
+    "listening-sounds": {
+      "label": "Listening sounds (backchannels, laughs, hums)", "scenarios": [],
+      "checks": [
+        { "id": "into-silence", "metric": "sounds", "field": "intoSilence", "scope": "all", "better": "lower", "warn": 0, "fail": null, "why": "prod review 10-24: 5 backchannels into 45 s of quiet; WARN-only until a dev baseline (sounds.mjs)" },
+        { "id": "repeats", "metric": "sounds", "field": "repeats", "scope": "all", "better": "lower", "warn": 0, "fail": null, "why": "the same clip again within 60 s; no data until sound_played carries label (CLIENT_SIGNALS_V2 on)" }
+      ]
+    },
     "goodbye": {
       "label": "Goodbye", "scenarios": ["sweep-crisis-bye"],
       "checks": [
@@ -85,6 +98,12 @@
       "label": "Timer", "scenarios": ["timer"],
       "checks": [
         { "id": "not-fired", "metric": "callsNotMatching", "pattern": "timer (?:just )?went off|time'?s up|timer'?s (?:up|done)", "better": "lower", "warn": 0, "fail": 0, "why": "the timer goes off and Ferni says so" }
+      ]
+    },
+    "tool-choice": {
+      "label": "Tool choice (offline, frozen set)", "scenarios": [],
+      "checks": [
+        { "id": "right-or-equivalent", "metric": "toolChoiceRate", "better": "higher", "warn": 0.8, "fail": 0.78, "maxDrop": 0.02, "why": "eval-choice.ts, 2+ seeds pooled (choice-score.mjs); 10-22: ee11522d9 74.9%, 8981d4f03 73.6%" }
       ]
     },
     "tool-health": {

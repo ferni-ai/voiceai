@@ -167,6 +167,7 @@ import {
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { buildProactiveOutreachPayload } from './proactive-outreach-message.js';
+import { joinRetrieved } from './retrieval-join.js';
 import * as followUpGate from './commitment-follow-up-gate.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
@@ -570,7 +571,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
   try {
     // Import the turn processor (cached after first load)
-    const { processTurn, injectTurnContext, getCelebrationEvents } =
+    const { processTurn, injectTurnContext, getCelebrationEvents, addSafetyNote } =
       await import('../processors/index.js');
 
     // Build turn context - cast userData to UserData for processor compatibility
@@ -888,13 +889,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // Memory injections are added with high priority so LLM can use them
     // ================================================================
     if (memoryRetrievalResult && memoryRetrievalResult.injections.length > 0) {
-      for (const memoryInjection of memoryRetrievalResult.injections) {
-        result.context.injections.push({
-          category: memoryInjection.category || 'memory',
-          content: memoryInjection.content,
-          priority: 80, // High priority - memory is important context
-        });
-      }
+      // RETRIEVAL_FILTERED=on: memories join after processTurn's kept list, leftover budget only
+      const turn = { userText, emotionalIntensity: result.emotional?.intensity };
+      joinRetrieved(result.context, memoryRetrievalResult.injections, turn, result.crisis);
 
       diag.state('🧠 Memory retrieval injected', {
         memoriesRetrieved: memoryRetrievalResult.memoryContext?.memories.length || 0,
@@ -1348,15 +1345,15 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
         indicators: result.crisis.indicators,
       });
 
-      turnCtx.addMessage({
-        role: 'system',
-        content: `[CRITICAL SAFETY OVERRIDE]
+      addSafetyNote(
+        turnCtx,
+        `[CRITICAL SAFETY OVERRIDE]
 The user appears to be in crisis. You MUST respond with the following crisis response.
 Do NOT deviate from this response. User safety is the absolute priority.
 
 REQUIRED RESPONSE:
-${result.crisis.suggestedResponse}`,
-      });
+${result.crisis.suggestedResponse}`
+      );
 
       try {
         await sendDataMessage('crisis_detected', {

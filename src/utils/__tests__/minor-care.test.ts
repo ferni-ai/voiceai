@@ -16,6 +16,7 @@ vi.mock('../safe-logger.js', () => {
 });
 
 import {
+  bindSessionUser,
   heldAfter,
   likelyMinor,
   memoryHeld,
@@ -25,6 +26,8 @@ import {
   resetMinorCare,
   setVerifiedOwnerCheck,
   statesUnder18,
+  userHeld,
+  writeHeld,
 } from '../minor-care.js';
 
 const ON = { MINOR_CARE: 'on' };
@@ -236,6 +239,24 @@ describe('the per-session hold', () => {
     setVerifiedOwnerCheck((id) => id === 'owner-note');
     expect(minorCareNote('owner-note', "I'm in 9th grade", { env: ON })).toBe('');
     expect(minorCareNote('not-owner', "I'm in 9th grade", { env: ON })).toBe(MINOR_CARE_NOTE);
+  });
+
+  it('MINOR_CARE_OWNERS=on: a teen with their own account is held, gets the note, every writer', () => {
+    const OWNERS = { ...ON, MINOR_CARE_OWNERS: 'on' };
+    setVerifiedOwnerCheck((id) => id === 'teen-owner');
+    bindSessionUser('teen-owner', 'uid-teen-owner');
+    noteCallerWords('teen-owner', "I'm 15 years old", { env: OWNERS });
+    expect(memoryHeld('teen-owner', ON)).toBe(false); // exempt without it, as before
+    expect(userHeld('uid-teen-owner', ON)).toBe(false);
+    expect(memoryHeld('teen-owner', OWNERS)).toBe(true);
+    expect(userHeld('uid-teen-owner', OWNERS)).toBe(true);
+    expect(writeHeld('uid-teen-owner', undefined, OWNERS)).toBe(true);
+    expect(minorCareNote('teen-owner', 'ok', { env: OWNERS })).toBe(MINOR_CARE_NOTE);
+    // An adult owner who never said an age stays unheld either way
+    setVerifiedOwnerCheck((id) => id === 'adult-owner' || id === 'teen-owner');
+    bindSessionUser('adult-owner', 'uid-adult-owner');
+    expect(memoryHeld('adult-owner', OWNERS)).toBe(false);
+    expect(userHeld('uid-adult-owner', OWNERS)).toBe(false);
   });
 });
 

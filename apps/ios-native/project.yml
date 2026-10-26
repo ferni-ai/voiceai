@@ -20,6 +20,9 @@ packages:
     path: Packages/FerniVoice
   FerniDesign:
     path: Packages/FerniDesign
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.30.0
 
 settings:
   base:
@@ -35,14 +38,21 @@ targets:
   Ferni:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/Ferni.xcconfig
+      Release: Config/Ferni.xcconfig
     sources:
       - path: App
         excludes:
           - Info.plist
+      - path: Shared
     dependencies:
       - package: FerniKit
       - package: FerniVoice
       - package: FerniDesign
+      - package: Sentry
+      - target: FerniLive
+        embed: true
     info:
       path: App/Info.plist
       properties:
@@ -50,7 +60,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
+        SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false
+        NSSupportsLiveActivities: true
+        # ProMotion: the avatar asks for 120 Hz only while Ferni speaks.
+        CADisableMinimumFrameDurationOnPhone: true
         LSRequiresIPhoneOS: true
         UILaunchScreen:
           UIColorName: LaunchBackground
@@ -58,9 +73,11 @@ targets:
         # One window: a call is one session, and a second iPad window would share it.
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        # Calls keep talking with the screen locked. Nothing else runs in the background.
+        # Calls keep talking with the screen locked, reported to the system through
+        # LiveCommunicationKit (a VoIP call app). Nothing else runs in the background.
         UIBackgroundModes:
           - audio
+          - voip
         NSMicrophoneUsageDescription: Ferni listens only while you're talking together, so you can talk out loud.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -73,6 +90,9 @@ targets:
       path: App/Ferni.entitlements
       properties:
         com.apple.developer.applesignin: [Default]
+        # Notes from Ferni (APNs) wait for the server route (#1991, critic C3).
+        # To ship them: add `aps-environment: development` here and FERNI_PUSH to
+        # SWIFT_ACTIVE_COMPILATION_CONDITIONS below, in one commit.
     settings:
       base:
         PRODUCT_NAME: Ferni
@@ -83,6 +103,42 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
         ENABLE_PREVIEWS: YES
+
+  # App-level logic (AppModel), hosted in the app.
+  FerniAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [AppTests]
+    dependencies:
+      - target: Ferni
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.apptests
+        GENERATE_INFOPLIST_FILE: YES
+
+  # The call on the Lock Screen and in the Dynamic Island.
+  FerniLive:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: LiveActivity
+        excludes:
+          - Info.plist
+      - path: Shared
+    dependencies:
+      - package: FerniDesign
+    info:
+      path: LiveActivity/Info.plist
+      properties:
+        CFBundleDisplayName: Ferni
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.live
+        TARGETED_DEVICE_FAMILY: "1,2"
 
 schemes:
   Ferni:
@@ -96,6 +152,7 @@ schemes:
       config: Debug
       gatherCoverageData: true
       targets:
+        - FerniAppTests
         - package: FerniKit/FerniKitTests
         - package: FerniVoice/FerniVoiceTests
         - package: FerniDesign/FerniDesignTests

@@ -174,5 +174,9 @@ describe('toHeldItem', () => {
     expect(t('415 555 0132 2026-10-22')).not.toMatch(/415|555|0132/);
     expect(t('call 415-555-0132 415-555-0199')).toBe('call a number');
     expect(t('4155-55-0132')).toBe('a number');
+    // A bracketed area code goes with the number; a bracketed date stays.
+    expect(t('The number is (415)555-0132')).toBe('The number is a number');
+    expect(t('call (415) 555-0132 today')).toBe('call a number today');
+    expect(t('rent due (2026-11-01)')).toBe('rent due (2026-11-01)');
   });
 });

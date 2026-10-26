@@ -42,6 +42,7 @@ import {
   type CommitmentType,
 } from './commitment-keeper.js';
 import { storeMemory, type PersonaId } from '../../memory/cross-persona/index.js';
+import { isCommitmentSingleWriterOn } from './commitment-single-writer.js';
 
 const log = createLogger({ module: 'CommitmentKeeperE2E' });
 
@@ -168,9 +169,7 @@ const DEFAULT_CONFIG: CommitmentE2EConfig = {
 
 let config: CommitmentE2EConfig = { ...DEFAULT_CONFIG };
 
-/**
- * Update configuration
- */
+/** Update configuration */
 export function setCommitmentE2EConfig(newConfig: Partial<CommitmentE2EConfig>): void {
   config = { ...config, ...newConfig };
 }
@@ -206,7 +205,8 @@ export async function detectCommitmentE2E(input: CommitmentE2EInput): Promise<Co
 
     // A goodbye or "call her tomorrow" is not kept (saveCommitment checks the same).
     const actionable = isActionableCommitment(detection.commitment?.statement ?? '');
-    if (!actionable || detection.confidence < config.minDetectionConfidence) {
+    const judgedOnly = isCommitmentSingleWriterOn(); // COMMITMENT_SINGLE_WRITER: the judge stores
+    if (judgedOnly || !actionable || detection.confidence < config.minDetectionConfidence) {
       return {
         detected: false,
         confidence: detection.confidence,

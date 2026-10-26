@@ -31,8 +31,18 @@ public final class CallSession {
     /// Ferni's voice level, fed by the room on the audio thread, read per frame.
     public let agentLevel: AudioLevelMeter
     public private(set) var isMuted = false
+    /// A phone call or Siri has the audio; the call resumes when it's done.
+    public private(set) var isOnHold = false
+    /// When the latest call began (what it taught Ferni is learned after this).
+    public private(set) var startedAt: Date?
+    /// The room of the latest call (a report's session id).
+    public private(set) var roomName: String?
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
+    /// Whether this phone has ever had a call go live (Home's first-visit hello).
+    public private(set) var hasTalked: Bool
+    private let defaults: UserDefaults
+    private static let hasTalkedKey = "ferni.call.hasTalked"
 
     public typealias FetchToken = @Sendable (_ personaID: String) async throws -> CallToken
 
@@ -41,6 +51,11 @@ public final class CallSession {
     private let audio: any CallAudio
     private let agentTimeout: Duration
     private var room: (any VoiceRoom)?
+    private let lifecycle: (any CallLifecycle)?
+    private var callID: UUID?
+    private var callBegan = ContinuousClock.now
+    /// LiveCommunicationKit took this call: the system activates its audio.
+    private var systemOwnsCall = false
     private var agentHere = false
     private var callTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
@@ -51,10 +66,15 @@ public final class CallSession {
         makeRoom: @escaping @Sendable () -> any VoiceRoom,
         audio: any CallAudio,
         avatar: AvatarModel = AvatarModel(),
+        lifecycle: (any CallLifecycle)? = nil,
         agentLevel: AudioLevelMeter = AudioLevelMeter(),
-        agentTimeout: Duration = .seconds(10)
+        agentTimeout: Duration = .seconds(10),
+        defaults: UserDefaults = .standard
     ) {
+        self.defaults = defaults
+        hasTalked = defaults.bool(forKey: Self.hasTalkedKey)
         self.avatar = avatar
+        self.lifecycle = lifecycle
         self.agentLevel = agentLevel
         self.fetchToken = fetchToken
         self.makeRoom = makeRoom
@@ -62,6 +82,11 @@ public final class CallSession {
         self.agentTimeout = agentTimeout
         Task { [weak self, interruptions = audio.interruptions] in
             for await interruption in interruptions { await self?.handle(interruption) }
+        }
+        if let lifecycle {
+            Task { [weak self] in
+                for await request in lifecycle.requests { await self?.handle(request) }
+            }
         }
     }
 
@@ -73,11 +98,39 @@ public final class CallSession {
     }
 
     /// Start a call (also Retry after a failure). Ignored while one is running.
-    public func start(personaID: String = "ferni") {
+    /// - Parameter prepare: runs first, while the screen already says
+    ///   "Calling…" (the account and consent settle here). False ends the call
+    ///   as "couldn't confirm it's you" rather than silently doing nothing.
+    public func start(personaID: String = "ferni", prepare: (@MainActor () async -> Bool)? = nil) {
         guard !isActive else { return }
         self.personaID = personaID
-        avatar.send(.connectTapped)
-        callTask = Task { await run(rejoining: false) }
+        isMuted = false // a new call starts unmuted (critic M1)
+        avatar.send(.connectTapped(personaID: personaID))
+        let id = UUID()
+        callID = id
+        callBegan = .now
+        startedAt = .now
+        systemOwnsCall = false
+        phase = .connecting
+        callTask = Task {
+            if let prepare {
+                guard await prepare() else {
+                    if !Task.isCancelled { fail(.notSignedIn) }
+                    return
+                }
+                if Task.isCancelled { return }
+            }
+            // The system's call UI; the call still works if it refuses.
+            if let lifecycle {
+                do {
+                    try await lifecycle.begin(id: id, name: PersonaRegistry.get(personaID).name)
+                    systemOwnsCall = true
+                } catch {
+                    log.error("The system refused the call; running its audio ourselves")
+                }
+            }
+            await run(rejoining: false)
+        }
     }
 
     /// Hang up. Safe to call at any point, including while still connecting.
@@ -87,21 +140,88 @@ public final class CallSession {
         await leaveRoom()
         phase = .ended
         avatar.send(.ended)
+        isOnHold = false
+        if let id = callID {
+            callID = nil
+            await lifecycle?.ended(id: id, failed: false)
+        }
+    }
+
+    /// Tap Ferni while Ferni is talking: ask the agent to stop now (its
+    /// `user_interrupt` handler, the web's tap-to-interrupt). Only while speaking.
+    @discardableResult
+    public func interrupt() async -> Bool {
+        guard avatar.pose == .speaking, let room else { return false }
+        let ms = Int(Date().timeIntervalSince1970 * 1000)
+        do {
+            try await room.send(Data(#"{"type":"user_interrupt","timestamp":\#(ms)}"#.utf8))
+            return true
+        } catch {
+            log.error("Interrupt not sent: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// A different person: the last call's outcome and its "I'll remember"
+    /// anchor don't carry over. A call in progress is left alone.
+    public func forgetLastCall() {
+        guard !isActive else { return }
+        startedAt = nil
+        phase = .idle
+        captions.clear()
     }
 
     public func toggleMute() async {
-        isMuted.toggle()
+        if await setMuted(!isMuted), let id = callID { await lifecycle?.setMuted(id: id, muted: isMuted) }
+    }
+
+    private func setMuted(_ muted: Bool) async -> Bool {
+        guard muted != isMuted else { return true }
+        isMuted = muted
         do {
-            try await room?.setMicrophone(enabled: !isMuted)
+            try await room?.setMicrophone(enabled: !muted)
+            return true
         } catch {
-            isMuted.toggle()
+            isMuted = !muted
             log.error("Mute change failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// The Lock Screen's end button, AirPods mute, the system call UI.
+    private func handle(_ request: LifecycleRequest) async {
+        switch request {
+        case .end:
+            // An end in the first seconds, before Ferni is even on the line, is the
+            // system refusing the call (the Simulator does this): carry on without it.
+            let refusal = phase != .live && phase != .reconnecting && ContinuousClock.now - callBegan < .seconds(2)
+            if refusal {
+                log.error("The system ended the call before it connected; continuing without it")
+                callID = nil
+                if systemOwnsCall {
+                    // Nobody will activate the session now: the app does.
+                    systemOwnsCall = false
+                    if room != nil { try? audio.activate(systemOwned: false) }
+                }
+            } else if isActive {
+                await end()
+            }
+        case .mute(let muted): _ = await setMuted(muted)
+        case .audio(let active):
+            audio.systemAudio(active: active)
+            guard systemOwnsCall, isActive else { return }
+            if active {
+                await resume()
+            } else if phase == .live {
+                isOnHold = true // the system took the audio (another call)
+            }
         }
     }
 
     // MARK: - Joining
 
-    private enum Attempt { case joined, ferniMissing, failed(CallProblem) }
+    /// `cancelled`: the person hung up meanwhile; nothing may change on screen.
+    private enum Attempt { case joined, ferniMissing, failed(CallProblem), cancelled }
 
     private func run(rejoining: Bool) async {
         phase = .connecting
@@ -113,7 +233,14 @@ public final class CallSession {
             if Task.isCancelled { return }
             switch await join() {
             case .joined:
-                if !Task.isCancelled { phase = .live }
+                if !Task.isCancelled {
+                    phase = .live
+                    if !rejoining, let id = callID { lifecycle?.connected(id: id) }
+                    if !hasTalked {
+                        hasTalked = true
+                        defaults.set(true, forKey: Self.hasTalkedKey)
+                    }
+                }
                 if rejoining { avatar.send(.reconnected) }
                 return
             case .ferniMissing:
@@ -122,6 +249,8 @@ public final class CallSession {
             case .failed(let problem):
                 await leaveRoom()
                 return fail(problem)
+            case .cancelled:
+                return
             }
         }
         if !Task.isCancelled { fail(rejoining ? .connectionLost : .ferniDidNotJoin) }
@@ -132,22 +261,28 @@ public final class CallSession {
         do {
             token = try await fetchToken(personaID)
         } catch {
-            return .failed(CallProblem(error))
+            // A hang-up surfaces as a network error from URLSession: not a failure (critic H1).
+            return Task.isCancelled ? .cancelled : .failed(CallProblem(error))
         }
+        if Task.isCancelled { return .cancelled }
         let room = makeRoom()
         self.room = room
+        roomName = token.room
         agentHere = false
         eventsTask = Task { [weak self] in
             for await event in room.events { self?.handle(event, from: room) }
         }
         do {
-            try audio.activate()
+            try audio.activate(systemOwned: systemOwnsCall)
             try await room.connect(url: token.url, token: token.token)
+            // Hung up while connecting: the room was already left; touch nothing.
+            if Task.isCancelled || self.room !== room { return .cancelled }
             try await room.setMicrophone(enabled: !isMuted)
         } catch {
             log.error("Joining the room failed: \(error.localizedDescription, privacy: .public)")
-            return Task.isCancelled ? .ferniMissing : .failed(.offline)
+            return Task.isCancelled || self.room !== room ? .cancelled : .failed(.offline)
         }
+        if Task.isCancelled || self.room !== room { return .cancelled }
         if !agentHere { phase = .waitingForFerni }
         // The server already knows dispatch failed: no point waiting it out.
         let wait = token.agentDispatched == false ? Duration.zero : agentTimeout
@@ -169,7 +304,7 @@ public final class CallSession {
         room = nil
         agentHere = false
         await leaving?.disconnect()
-        audio.deactivate()
+        audio.deactivate(systemOwned: systemOwnsCall)
         agentActivity = nil
         isUserSpeaking = false
         agentLevel.reset()
@@ -178,9 +313,31 @@ public final class CallSession {
     private func fail(_ problem: CallProblem) {
         phase = .failed(problem)
         avatar.send(.failed)
+        isOnHold = false
+        if let id = callID {
+            callID = nil
+            Task { await lifecycle?.ended(id: id, failed: true) }
+        }
     }
 
     // MARK: - Events
+
+    /// The agent brings in a teammate (critic H3). Only teammates the app
+    /// knows ever reach the screen; a rejoin continues with whoever is on now.
+    private func handle(_ handoff: AgentSignals.Handoff?) {
+        switch handoff {
+        case .started(let id)?:
+            if let teammate = PersonaRegistry.known(serverID: id) { avatar.send(.handoffStarted(to: teammate.id)) }
+        case .completed(let id)?:
+            guard let teammate = PersonaRegistry.known(serverID: id) else { return }
+            personaID = teammate.id
+            avatar.send(.handoffCompleted(to: teammate.id, name: teammate.name))
+        case .failed?:
+            avatar.send(.handoffFailed)
+        case nil:
+            break
+        }
+    }
 
     private func handle(_ event: RoomEvent, from source: any VoiceRoom) {
         guard source === room else { return } // a room we already left
@@ -202,6 +359,7 @@ public final class CallSession {
             case .ended?, .paused?: isUserSpeaking = false
             case nil: break
             }
+            handle(AgentSignals.handoff(from: json))
             if let result = ExpressionEventMapper.shared.processMessage(json) {
                 let hold = RemoteDuration.seconds(result.hold ?? result.duration)
                 avatar.send(.expression(result.expression, hold: hold))
@@ -233,15 +391,30 @@ public final class CallSession {
     }
 
     private func handle(_ interruption: AudioInterruption) async {
-        guard let room else { return }
+        guard room != nil else { return }
         switch interruption {
         case .began:
-            // The system has the mic (a phone call, Siri); nothing to send.
-            log.info("Audio interrupted")
-        case .ended(let shouldResume):
-            guard shouldResume else { return }
-            try? audio.activate()
-            try? await room.setMicrophone(enabled: !isMuted)
+            // The system has the mic (a phone call, Siri): Ferni waits.
+            isOnHold = true
+        case .ended:
+            // "Should resume" is advice for media players. The person is still
+            // in this call, so it always comes back (iOS often leaves the flag
+            // off after Siri, an alarm or a declined call).
+            await resume()
+        }
+    }
+
+    /// Brings the call back after an interruption. If the system still has
+    /// the audio, the call stays "On hold" (never "listening" over a dead mic)
+    /// and the person can try again.
+    public func resume() async {
+        guard let room, isOnHold else { return }
+        do {
+            try audio.activate(systemOwned: systemOwnsCall)
+            try await room.setMicrophone(enabled: !isMuted)
+            isOnHold = false
+        } catch {
+            log.error("Couldn't resume after an interruption: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

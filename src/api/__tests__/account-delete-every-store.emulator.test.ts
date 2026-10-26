@@ -11,7 +11,8 @@
  *
  * Stores keyed by something other than the uid are seeded the way their writers key them:
  * the waitlist and access grants by email, the sponsored phone index by identity, A/B test
- * assignments under each test, and tool-call telemetry shared by many people in one doc.
+ * assignments under each test, the router's turn events under each day, and tool-call
+ * telemetry shared by many people in one doc.
  */
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -79,6 +80,7 @@ const MUST_ERASE = [
   'engagement_profiles/{uid}',
   'bogle_users/{uid}/summaries',
   'bogle_users/{uid}/conversations',
+  'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/wellbeing_snapshots',
@@ -93,6 +95,12 @@ const MUST_ERASE = [
   'feature_checkins[userId]',
   'context_injection_outcomes[injection.userId]',
   'user_profiles[firebaseUid]',
+  // The router's stores of each turn and correction (no words since 2026-10-25)
+  'routing_events[userId]',
+  'semantic_router_corrections[userId]',
+  'semantic_routing_feedback[userId]',
+  'semantic_routing_vocabulary/{uid}',
+  'semantic_routing_corrections/{uid}/corrections',
 ];
 
 let db: Firestore;
@@ -113,7 +121,11 @@ async function seed(store: string, uid: string): Promise<void> {
   let doc: DocumentReference;
   if (field) {
     // "injection.userId" is a field inside a map
-    const value = field[2]!.split('.').reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
+    // "grants.{uid}" is an entry keyed by the uid in a contact's consent record
+    const value = field[2]!
+      .replace('{uid}', uid)
+      .split('.')
+      .reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
     doc = await db.collection(field[1]!).add({ ...(value as object), marker: 'seeded' });
   } else {
     const path = store.replace('{uid}', uid);
@@ -194,6 +206,9 @@ async function seedOtherKeys(uid: string, email: string, phone: string): Promise
     db.doc('ab_tests/t-tone').set({ name: 'tone test' }), // shared by everyone in the test
     db.doc(`ab_tests/t-tone/assignments/${uid}`).set({ userId: uid, testId: 't-tone' }),
     db.doc(`ab_tests/t-pace/assignments/${uid}`).set({ userId: uid, testId: 't-pace' }),
+    // The router's turn events: one partition per day, the day documents never written
+    db.doc(`semantic_router_events/2026-03-01/events/ev-${uid}`).set({ userId: uid }),
+    db.doc(`semantic_router_events/2026-10-24/events/ev-${uid}`).set({ userId: uid }),
   ]);
   return [email, emailDocId(email), phone, identity.id];
 }
@@ -303,6 +318,11 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
       await db.doc(`bogle_users/phone:${phone}`).set({ name: 'Caller' });
       await db.doc(`bogle_users/phone:${phone}/summaries/s1`).set({ text: 'a call' });
       await db.collection('phone_mappings').add({ phone, userId: `phone:${phone}` });
+      // The router's stores, as kept for the phone profile
+      await db.doc(`semantic_routing_vocabulary/phone:${phone}`).set({ phrases: [] });
+      await db.doc(`semantic_routing_corrections/phone:${phone}/corrections/c1`).set({ x: 1 });
+      await db.collection('semantic_router_corrections').add({ userId: `phone:${phone}` });
+      await db.collection('routing_events').add({ userId: `phone:${phone}` });
     }
     await db.doc(`bogle_users/phone:${authed}`).set({ linkedIdentifiers: [`auth:default:${h}`] });
     await db.doc(`bogle_users/phone:${similar}`).set({ name: 'Someone' });

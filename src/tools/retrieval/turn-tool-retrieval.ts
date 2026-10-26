@@ -8,13 +8,12 @@
  * computed while they are still talking, from interim transcripts, so the
  * ~200 ms embedding call is off the reply's critical path.
  *
- * Modes (TOOL_RETRIEVAL): off (default); shadow = pick and log, but send the
- * tools as before, then log whether each tool the model called was in the
- * pick; live = send only the pick. Live lost its A/B (2026-09-30: reply p50
- * 2.47 -> 2.90 s, p90 3.3 -> 4.5 s, 2x worker memory), so shadow, which still
- * embedded every prod turn, is opt-in now too. Selection happens inside llmNode on a copy:
- * the agent's own tool list never changes, so the SDK's preemptive reply is
- * kept and any tool the model calls can still be executed.
+ * Modes (TOOL_RETRIEVAL): off (default); shadow = pick and log, but send the tools as
+ * before, then log whether each tool the model called was in the pick; live = send only
+ * the pick. Live lost its A/B (2026-09-30: reply p50 2.47 -> 2.90 s, p90 3.3 -> 4.5 s, 2x
+ * worker memory), so shadow, which still embedded every prod turn, is opt-in now too.
+ * Selection happens inside llmNode on a copy: the agent's own tool list never changes, so
+ * the SDK's preemptive reply is kept and any tool the model calls can still be executed.
  *
  * @module tools/retrieval/turn-tool-retrieval
  */
@@ -22,6 +21,7 @@
 import { llm } from '@livekit/agents';
 import { isPrivacyTool } from '../../config/privacy-tools.js';
 import { isFindableTool } from '../dynamic-loader/findable-domains.js';
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
 import { RetrievalStats, isLiveCovered } from './retrieval-stats.js';
@@ -245,9 +245,9 @@ export class TurnToolRetrieval {
         this.lastPick = pick;
         this.stats.pick(pick.embedMs);
         return pick;
-      } catch (error) {
+      } catch (err) {
         this.stats.pick(null);
-        log.warn({ sessionId: this.opts.sessionId, error: String(error) }, 'tool retrieval failed');
+        log.warn({ sessionId: this.opts.sessionId, ...errorFields(err) }, 'tool retrieval failed');
         return null;
       }
     })();
