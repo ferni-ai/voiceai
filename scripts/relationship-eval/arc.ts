@@ -101,7 +101,8 @@ async function generate(
   system: string | undefined,
   contents: Content[],
   maxOutputTokens: number,
-  temperature: number
+  temperature: number,
+  judging = false
 ): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -113,7 +114,8 @@ async function generate(
           maxOutputTokens,
           temperature,
           // The judge thinks at its model's default, the setting the Flash/Pro check measured.
-          ...(model === JUDGE || model.includes('pro')
+          // Chosen by role: the judge and the simulated Ferni can share a model id.
+          ...(judging || model.includes('pro')
             ? {}
             : { thinkingConfig: minimalThinkingFor(model) }),
         },
@@ -206,7 +208,7 @@ async function afterCall(sessionId: string, t: CallTranscript, at: Date): Promis
 }
 
 const ask = (model: string, prompt: string) =>
-  generate(model, undefined, [{ role: 'user', parts: [{ text: prompt }] }], 4000, 0);
+  generate(model, undefined, [{ role: 'user', parts: [{ text: prompt }] }], 4000, 0, true);
 
 /** Code markers, the marker judge (with what a friend knows) and the blind judge. */
 async function judgeCall(t: CallTranscript): Promise<CallResult> {
