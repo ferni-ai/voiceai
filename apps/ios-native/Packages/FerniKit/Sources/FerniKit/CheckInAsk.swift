@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// When to ask whether Ferni may check in (UX spec §12): only after a good
 /// call (at least 2 minutes, ended by the person). "Not now" waits at least
@@ -12,6 +13,11 @@ public struct CheckInAsk {
 
     static func key(_ uid: String) -> String { "ferni.checkin.\(uid)" }
 
+    /// Set by CrisisMarker, cleared by the next good call (one without a crisis).
+    /// In memory only: it says something about how the person was doing, so it
+    /// never touches the disk and goes with the app (or the account) it came from.
+    static let afterCrisis = OSAllocatedUnfairLock(initialState: false)
+
     func record(_ uid: String) -> Record {
         defaults.data(forKey: Self.key(uid)).flatMap { try? JSONDecoder().decode(Record.self, from: $0) } ?? Record()
     }
@@ -24,9 +30,12 @@ public struct CheckInAsk {
         var record = record(uid)
         record.good += 1
         save(record, uid)
+        Self.afterCrisis.withLock { $0 = false }
     }
 
     public func shouldAsk(uid: String) -> Bool {
+        // Never right after a crisis call (#2868 item 38).
+        if Self.afterCrisis.withLock({ $0 }) { return false }
         let record = record(uid)
         switch record.declines {
         case 0: return record.good >= 1

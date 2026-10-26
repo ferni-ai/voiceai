@@ -145,7 +145,8 @@ public final class CallSession {
     public func end() async { await finish(byPerson: true) }
 
     private func finish(byPerson: Bool) async {
-        lastCallWasGood = byPerson && liveSince.map { now() - $0 >= .seconds(120) } == true
+        let hadCrisis = CrisisMarker.endCall() // a crisis call is never a good call (#2868 item 38)
+        lastCallWasGood = byPerson && liveSince.map { now() - $0 >= .seconds(120) } == true && !hadCrisis
         liveSince = nil
         callTask?.cancel()
         callTask = nil
@@ -375,6 +376,7 @@ public final class CallSession {
             case .ended?, .paused?: isUserSpeaking = false
             case nil: break
             }
+            if CrisisMarker.isCrisisSignal(json) { CrisisMarker.mark() }
             handle(AgentSignals.handoff(from: json))
             if let result = ExpressionEventMapper.shared.processMessage(json) {
                 let hold = RemoteDuration.seconds(result.hold ?? result.duration)
