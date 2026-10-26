@@ -14,7 +14,10 @@ import { KNOWN_USER_STORES } from '../../services/platform/user-records-export.j
 // The shared setup fakes Firestore for every test; here the export must read the emulator
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
-vi.mock('../../services/identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => true }));
+vi.mock('../../services/identity/firebase-auth.js', () => ({
+  ensureFirebaseAdmin: () => true,
+  getFirebaseUserOrThrow: async () => null, // no Firebase user: no proven phone profiles
+}));
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-menu-export';

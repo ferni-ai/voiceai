@@ -8,6 +8,8 @@ import { countUserRecords, exportUserRecords } from '../user-records-export.js';
 
 // The shared setup fakes firestore; the value cleaner checks its real Timestamp class
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
+// No proven phone profiles: the linked lookup (erasure-keys.ts) has its own tests
+vi.mock('../erasure-keys.js', () => ({ gatherErasureKeys: async () => ({ linkedUserIds: [] }) }));
 
 type Data = Record<string, unknown>;
 
