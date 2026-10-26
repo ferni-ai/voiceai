@@ -17,7 +17,20 @@ import type { llm } from '@livekit/agents';
 
 import { type Env } from '../../config/env-flag.js';
 import { callMeVocativeEnabled, readCallMe } from '../../utils/call-me-vocative.js';
+import { noteCallerTurn } from '../../tools/domains/conversation/index.js';
 import { eitherNote, personaFirstNameOf, propose, settle } from './name-confirm.js';
+
+/** The caller's turns so far: runs of their messages between Ferni's (lead-ins and tool steps add none). */
+function callerTurns(items: readonly llm.ChatItem[]): number {
+  let count = 0;
+  let last: string | undefined;
+  for (const item of items) {
+    if (item.type !== 'message') continue;
+    if (item.role === 'user' && last !== 'user') count++;
+    last = item.role;
+  }
+  return count;
+}
 
 /** Whether callUser was called earlier on this call. */
 export function calledUserThisCall(items: readonly llm.ChatItem[]): boolean {
@@ -46,7 +59,9 @@ export function callMeNote(
   opts: { plain?: boolean; careful?: boolean } = {},
   env: Env = process.env
 ): string {
-  if (!callMeVocativeEnabled(env) || !words || opts.careful === true) return '';
+  if (!callMeVocativeEnabled(env)) return '';
+  noteCallerTurn(session, words, callerTurns(chatCtx.items)); // rememberName's confirm (remember-name.ts)
+  if (!words || opts.careful === true) return '';
   const persona = personaFirstNameOf(session);
   const plain = opts.plain === true;
   const ring = (): string => (calledUserThisCall(chatCtx.items) ? ALREADY : RING(persona));

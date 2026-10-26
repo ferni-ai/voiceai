@@ -12,3 +12,4 @@
 
 // Conversation tools - core conversation management
 export { createConversationTools, default } from './conversation-tools.js';
+export { noteCallerTurn } from './name-confirm-calls.js';
