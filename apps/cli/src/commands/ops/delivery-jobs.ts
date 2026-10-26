@@ -117,5 +117,15 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
       retryCount: 0,
       timeout: '120s',
     },
+    {
+      name: 'held-scrub-sweep',
+      description: 'Retry MINOR_CARE held-window scrubs that failed (off unless HELD_SCRUB_SWEEP)',
+      schedule: '17 * * * *',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/held-scrub-sweep`,
+      httpMethod: 'POST',
+      retryCount: 0,
+      timeout: '280s',
+    },
   ];
 }
