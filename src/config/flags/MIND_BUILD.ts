@@ -1,7 +1,7 @@
 import type { FlagSpec } from '../flag-spec.js';
 
 // On: the between-calls mind may build its canonical world model (entities, threads, brief) for a user.
-// Nothing reads it yet: PR 1 adds only the types and the pure entity resolver (intelligence/mind/).
+// Nothing calls it yet. PR 1: mind/names.ts canonicalSubjectKey is subjectKeyOf exactly while off.
 // Design: between-calls mind, 2026-10-25, section 1.
 export const MIND_BUILD = {
   default: 'off',
