@@ -19,6 +19,7 @@
         "src/personas/bundles/*/*.ts!",
         "src/api/scheduled-jobs/*.ts!",
         "src/jobs/*.ts!",
+        "src/config/flags/*.ts!",
         "src/cli/**/*.ts",
         "src/scripts/**/*.ts",
         "scripts/**/*.{ts,mts,mjs}",

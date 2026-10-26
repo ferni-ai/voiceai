@@ -6,7 +6,8 @@
  * On 2026-10-23 no workflow ran a dead-code check and 118 production files had no
  * importer (code-health dead.md, G5). knip resolves the import graph from the container
  * entrypoints, worker threads, scripts, tests and the registry globs that load modules by
- * path (tool domains, persona bundles, scheduled jobs).
+ * path (tool domains, persona bundles, scheduled jobs, flag files: FLAG_MANIFEST reads them
+ * through a namespace import of the generated barrel, which knip can't follow).
  *
  * It compares the change with its merge base (merge-base.ts), not a committed list: knip
  * runs on the working tree and on the base commit's source trees (with today's root config
