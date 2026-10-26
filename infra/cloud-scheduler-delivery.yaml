@@ -125,3 +125,19 @@ jobs:
         audience: https://app.ferni.ai/api/jobs/retry-pending-revocations
     retryConfig:
       retryCount: 0
+
+  - name: held-scrub-sweep
+    description: Retry MINOR_CARE held-window scrubs that failed (off unless HELD_SCRUB_SWEEP)
+    schedule: "17 * * * *"
+    timeZone: Etc/UTC
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/held-scrub-sweep
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/held-scrub-sweep
+    retryConfig:
+      retryCount: 0

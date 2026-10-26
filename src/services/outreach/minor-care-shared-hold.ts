@@ -56,12 +56,16 @@ export const firestoreHoldStore: HoldStore = {
   },
   // expireAt (a Date is stored as a Timestamp): the TTL field that deletes lapsed holds. A merge,
   // and never before keepUntil: the same doc keeps the purges' held windows (held-window.ts).
+  // None while a window is unscrubbed: it hides what the failed scrub left (null isn't a TTL date).
   async write(userId, record) {
     const ref = holds().doc(userId);
     await firestore().runTransaction(async (tx) => {
-      const keep = (await tx.get(ref)).data()?.keepUntil;
+      const data = (await tx.get(ref)).data();
+      const keep = data?.keepUntil;
       const until = Math.max(record.heldUntil, typeof keep === 'number' ? keep : 0);
-      tx.set(ref, { ...record, expireAt: new Date(until) }, { merge: true });
+      const list: unknown[] = Array.isArray(data?.windows) ? data.windows : [];
+      const pending = list.some((w) => (w as { scrubbed?: unknown })?.scrubbed !== true);
+      tx.set(ref, { ...record, expireAt: pending ? null : new Date(until) }, { merge: true });
     });
   },
 };
