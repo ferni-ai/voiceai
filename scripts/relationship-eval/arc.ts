@@ -96,6 +96,14 @@ const JUDGE = judgeModel();
 
 type Content = { role: 'user' | 'model'; parts: Array<{ text: string }> };
 
+class TruncatedReply extends Error {
+  constructor(role: string, model: string, maxOutputTokens: number) {
+    super(
+      `${role} reply hit MAX_TOKENS (${model}, ${maxOutputTokens} tokens): fix the budget or thinking`
+    );
+  }
+}
+
 async function generate(
   model: string,
   system: string | undefined,
@@ -120,9 +128,12 @@ async function generate(
             : { thinkingConfig: minimalThinkingFor(model) }),
         },
       });
+      // A reply cut off by the token budget is not a call to score: stop the run, don't retry.
+      if (String(res.candidates?.[0]?.finishReason) === 'MAX_TOKENS')
+        throw new TruncatedReply(judging ? 'judge' : 'ferni', model, maxOutputTokens);
       return (res.text ?? '').trim();
     } catch (error) {
-      if (attempt >= 3) throw error;
+      if (error instanceof TruncatedReply || attempt >= 3) throw error;
       await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
     }
   }
