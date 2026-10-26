@@ -96,6 +96,7 @@ const HIGH_DISTRESS_VOICE_EMOTIONS = [
 const MODERATE_DISTRESS_VOICE_EMOTIONS = ['anxious', 'sad', 'hurt', 'scared', 'overwhelmed'];
 
 const SEVERITY = { explicit: 0.9, passive: 0.75, implicit: 0.6, block: 0.85, crisis: 0.7 } as const;
+export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
 
 // ============================================================================
 // CRISIS DETECTION

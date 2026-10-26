@@ -17,9 +17,12 @@
  * with the embeddings they hold and their index copies, except a dynamic fact
  * the graph sync may have copied (mayHaveGraphCopy): deleting it would leave a
  * graph copy nothing points at, so it is marked, and the sync removes the copy
- * as it does for any forgotten fact. The topic is still recorded either way,
- * so the call summaries and transcripts that keep the words stay out of
- * recall. Erasing everything is account deletion's job (erase-user-record.ts).
+ * as it does for any forgotten fact. That is judged on each fact as re-read in
+ * the deleting transaction (deletableNow), so one synced or edited since the
+ * forget read it is marked too; a sync that copies a fact and then finds it
+ * deleted takes its copy back out (markFactSynced). The topic is still
+ * recorded either way, so the call summaries and transcripts that keep the
+ * words stay out of recall. Erasing everything is account deletion's job (erase-user-record.ts).
  * A topic that would cover a large share of what Ferni knows is not applied;
  * the caller is asked to narrow it.
  *
@@ -201,6 +204,19 @@ export function mayHaveGraphCopy(ref: StoredFactRef): boolean {
   if (ref.collection !== 'dynamic_facts') return false;
   const live = ref.data.forgottenAt === undefined || ref.data.forgottenAt === null;
   return !(live && ref.data.syncedToSpanner === false);
+}
+
+/** Facts deleted per transaction (well under Firestore's 500 writes per commit). */
+const DELETE_CHUNK = 100;
+
+/**
+ * Whether a fact can be deleted, judged on `fresh`, the fact as read in the
+ * deleting transaction: it has no graph copy (mayHaveGraphCopy) and says what
+ * it said when the forget matched it (`stale`). A fact edited since is marked
+ * instead, which a later forget or correction can still undo.
+ */
+export function deletableNow(stale: StoredFactRef, fresh: StoredFactRef): boolean {
+  return !mayHaveGraphCopy(fresh) && factText(fresh.data) === factText(stale.data);
 }
 
 /** What Ferni says once a forget went through: only what actually happened. */
@@ -390,17 +406,39 @@ export const firestoreForgetStore: ForgetStore = {
     const db = getFirestoreDb();
     if (!db) return refs;
     const user = db.collection('bogle_users').doc(userId);
-    const gone = refs.filter((r) => !mayHaveGraphCopy(r));
-    for (let i = 0; i < gone.length; i += 400) {
-      const batch = db.batch();
-      for (const r of gone.slice(i, i + 400)) batch.delete(user.collection(r.collection).doc(r.id));
-      await batch.commit();
+    const gone: StoredFactRef[] = [];
+    const kept: StoredFactRef[] = [];
+    // Decided on each fact as it is at the write, not as facts() read it: a
+    // fact the sync copied or someone edited since then is marked, never
+    // deleted. The transaction re-reads every fact it may delete, and the
+    // commit fails and retries if one changes before it lands.
+    for (let i = 0; i < refs.length; i += DELETE_CHUNK) {
+      const chunk = refs.slice(i, i + DELETE_CHUNK);
+      const decided = await db.runTransaction(async (tx) => {
+        const docs = chunk.map((r) => ({ r, doc: user.collection(r.collection).doc(r.id) }));
+        const snaps = await tx.getAll(...docs.map((d) => d.doc));
+        const out = { gone: [] as StoredFactRef[], kept: [] as StoredFactRef[] };
+        docs.forEach(({ r, doc }, j) => {
+          const snap = snaps[j];
+          if (snap === undefined) return void out.kept.push(r); // not re-read: never delete
+          // Already gone (account deletion, another forget): nothing left to mark.
+          if (!snap.exists) return void out.gone.push(r);
+          const fresh = { ...r, data: snap.data() ?? {} };
+          if (deletableNow(r, fresh)) {
+            tx.delete(doc);
+            out.gone.push(fresh);
+          } else out.kept.push(fresh);
+        });
+        return out;
+      });
+      gone.push(...decided.gone);
+      kept.push(...decided.kept);
     }
     await removeIndexCopies(
       userId,
       gone.filter((x) => x.collection === 'dynamic_facts').map((x) => x.id)
     );
-    return refs.filter((r) => mayHaveGraphCopy(r));
+    return kept;
   },
   worldFacts: openWorldFacts,
   markWorldFacts: closeWorldFacts,

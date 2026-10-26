@@ -13,6 +13,7 @@ struct SettingsView: View {
             List {
                 Section {
                     NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory) }
+                    SoundsToggle()
                 }
                 AccountSection(account: model.account, signOut: model.signOut)
                 Section {
@@ -197,4 +198,10 @@ struct DeleteAccountView: View {
         }
         working = false
     }
+}
+
+/// The call's few sounds (arrival, handoff, goodbye); haptics are separate.
+private struct SoundsToggle: View {
+    @AppStorage(CallFeedback.soundsKey) private var on = true
+    var body: some View { Toggle("Call sounds", isOn: $on) }
 }
