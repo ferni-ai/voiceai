@@ -82,6 +82,8 @@ export interface ToolExecutionContext {
   sessionId?: string;
   personaId?: string;
   publisherId?: string;
+  /** MINOR_CARE: the caller is held, read in another process (tool-executors/types.ts). */
+  held?: boolean;
   onToolStart?: (fn: string, args: Record<string, unknown>) => void;
   onToolComplete?: (result: ToolExecutionResult) => void;
   onHandoff?: (target: string, reason: string) => Promise<void>;

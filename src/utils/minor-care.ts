@@ -366,6 +366,14 @@ export function writeHeld(
   return memoryHeld(sessionId, env) || userHeld(userId, env) || sharedId(userId);
 }
 
+/** writeHeld, or a hold its caller already read where this process can't see it (chat: ctx.held). */
+export function callerHeld(
+  ctx: { held?: boolean; userId?: string; sessionId?: string },
+  env: Env = process.env
+): boolean {
+  return ctx.held === true || writeHeld(ctx.userId, ctx.sessionId, env);
+}
+
 /**
  * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
  * true for any of this user's sessions, from either detector. Never refreshes a session, so a
