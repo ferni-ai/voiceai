@@ -23,6 +23,7 @@
  *
  * @module services/trust-systems/held-window
  */
+import { setHeldWindowCheck } from '../../utils/held-window-check.js';
 import { minorCareOn } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getTrustDb } from './trust-doc.js';
@@ -226,3 +227,9 @@ export async function loadHeldWindows(userId: string): Promise<{ unscrubbed: boo
   for (const w of stored) noteHeldWindow(userId, w.start, w.end);
   return { unscrubbed: stored.some((w) => !w.scrubbed) };
 }
+
+/** The earliest start of the user's known windows: the scrubs' lower bound (addHeldScrub). */
+export const heldSince = (userId: string): number | undefined =>
+  windows.get(userId)?.reduce((min, [from]) => Math.min(min, from), Infinity);
+// Any process loading this applies its windows to every store's reads (an API server too)
+setHeldWindowCheck(recordedWhileHeld);

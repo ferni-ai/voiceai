@@ -157,7 +157,7 @@ async function execute(
           return `I don't have ${contactInfo.name}'s phone number. Should I send an email instead?`;
         }
         const result = await callWithPersonaVoice(contactInfo.phone, messageToSend, personaId, {
-          fallbackToTwilioVoice: true,
+          askedFor: true, // asked for in this conversation (outreach-pause.ts)
           ownerUid: userId,
           userId,
         });

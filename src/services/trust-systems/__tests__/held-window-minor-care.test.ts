@@ -30,6 +30,8 @@ vi.mock('@google-cloud/firestore', () => ({
 vi.mock('../../superhuman/semantic-intelligence/index.js', () => ({
   clearSemanticIntelligenceCache: () => undefined,
 }));
+// #2906's index scrub runs with these (addHeldScrub); the vector store isn't under test here
+vi.mock('../../data-layer/held-index-purge.js', () => ({ purgeHeldIndexEntries: async () => 0 }));
 
 type Ref = { get: () => Promise<unknown>; set: (d: unknown, o?: unknown) => Promise<void> };
 const firestore: FakeEngagementFirestore = createFakeEngagementFirestore();

@@ -103,6 +103,7 @@ export interface GuardedText {
   readonly minGapMs: number;
   /** The owner asked for it in the call just now: an unreadable consent record doesn't hold it (text-consent.ts). */
   readonly askedNow?: boolean;
+  readonly personSet?: boolean; // a reminder they set: a pause doesn't hold it (outreach-pause.ts)
 }
 
 export type TextSkip =
@@ -163,14 +164,16 @@ export async function isOwnVerifiedPhone(
   return own !== undefined && own === toE164(phone);
 }
 
-/** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
+/** Texts turned off (settings, a STOP), or outreach paused unless `pauseExempt` (outreach-pause.ts). */
 export function smsTurnedOff(
   userDoc: Record<string, unknown> | undefined,
-  legacyChannels: unknown
+  legacyChannels: unknown,
+  opts: { pauseExempt?: boolean } = {}
 ): boolean {
   const prefs = (userDoc?.outreachPreferences ?? {}) as { enabled?: unknown; channels?: unknown };
   const withoutSms = (c: unknown): boolean => Array.isArray(c) && !c.includes('sms');
-  return prefs.enabled === false || withoutSms(prefs.channels) || withoutSms(legacyChannels);
+  const paused = prefs.enabled === false && !opts.pauseExempt;
+  return paused || withoutSms(prefs.channels) || withoutSms(legacyChannels);
 }
 
 /** Twilio errors can quote the number (21211: "The 'To' number +1555... is not valid"). */
@@ -242,7 +245,6 @@ export async function sendGuardedText(
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const storedId = recordUserId(t.userId, deps.env);
   if (!storedId) return skip('no-verified-phone');
-
   const sponsored = t.userId.startsWith('sponsored_');
   const [records, userDoc, legacyChannels] = await Promise.all([
     deps.store.forUser(storedId),
@@ -253,8 +255,8 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(records, t.kind), now, t.minGapMs)) return skip('recently-sent');
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
-  if (smsTurnedOff(userDoc, legacyChannels)) return skip('sms-off');
-
+  const pauseExempt = t.askedNow === true || t.personSet === true;
+  if (smsTurnedOff(userDoc, legacyChannels, { pauseExempt })) return skip('sms-off');
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
   // MINOR_CARE_SHARED_HOLD: the account or the number held by a call, unless asked for just now
@@ -303,7 +305,6 @@ export async function sendGuardedText(
 // ---------------------------------------------------------------------------
 // Texts a member asks Ferni to send to someone else
 // ---------------------------------------------------------------------------
-
 /** The guards are safety, not a feature: ON_BEHALF_TEXT_GUARD=off restores the unguarded send (rollback only). */
 export function onBehalfGuardOn(env: Env = process.env): boolean {
   return flagOn('ON_BEHALF_TEXT_GUARD', env);
@@ -391,7 +392,6 @@ export async function sendOnBehalfText(
   // First from THIS owner to that number: each owner's first text carries their intro.
   const fromOwner = toPhone.filter((r) => r.userId === storedId);
   const body = await firstContactBody(t, hash, lastSentAt(fromOwner, 'on-behalf') === null, deps);
-
   const record: CheckinRecord = {
     userId: storedId,
     sessionId: t.refId,
