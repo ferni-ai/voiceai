@@ -10,7 +10,11 @@
 import { clearHeldMarkovUser as clearMarkov } from '../../intelligence/predictive/markov-sequence-predictor.js';
 import { clearHeldTimeSeriesUser as clearTimeSeries } from '../../intelligence/predictive/time-series-forecaster.js';
 import { clearHeldReinforcementUser as clearReinforcement } from '../../intelligence/predictive/reinforcement-learner.js';
-import { purgeMusicLearning } from '../../audio/music-learning-persistence.js';
+import {
+  purgeMusicLearning,
+  setMusicHeldWindow,
+  withoutHeldMusicMemories,
+} from '../../audio/music-learning-persistence.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
@@ -22,7 +26,11 @@ import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js'
 import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.js';
-import { noteHeldWindow } from '../../services/trust-systems/held-window.js';
+import {
+  noteHeldWindow,
+  recordedWhileHeld,
+  scrubHeldDoc,
+} from '../../services/trust-systems/held-window.js';
 import { scrubHeldStores } from '../../services/trust-systems/reload-before-save.js';
 import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
@@ -53,6 +61,9 @@ export function shareHold(userId: string, sessionId?: string): void {
   if (phoneId) void recordSharedHold(phoneId);
 }
 setOnUserHeld(shareHold);
+// Music memories made during a purged held call are dropped on every read and save, as the
+// timer-flushed trust stores' are (held-window.ts holds the windows).
+setMusicHeldWindow(recordedWhileHeld);
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -97,6 +108,11 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     ['trust systems', clearTrustSystemsUser],
     // what voice prosody and momentum flushed before the age statement (held-window.ts)
     ['held-window scrub', (id) => void scrubHeldStores(id)],
+    // music memories the 15 s timer stored before the age statement, and any caller's words
+    [
+      'music memory scrub',
+      (id) => void scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories),
+    ],
     // topics they mentioned, buffered with a debounced save; a later call's cleanup flushes it
     ['personality resonance', clearResonanceUser],
     // the relationship arc (first words, key moments), cached 5 min and saved by a later call
