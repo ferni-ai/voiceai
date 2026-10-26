@@ -240,7 +240,7 @@ describe('outreach waits for the caller', () => {
     const call = liveCall();
     await call.call('reachOut', TO_MOM, 'c1');
     call.caller('Uh, yeah, go ahead.');
-    call.caller('Go ahead and give her a call');
+    call.caller('Go ahead, please');
 
     await call.call('reachOut', TO_MOM, 'c2');
     await call.call('reachOut', TO_MOM, 'c3');
@@ -465,9 +465,18 @@ describe('isClearYes', () => {
       "Yes, it's okay with me. Give him a call.",
       "Yes, it's okay with me. Give him a call. and check in.",
       'Yes, you should.',
-      "That's fine.",
     ]) {
-      expect(isClearYes(yes), yes).toBe(true);
+      expect(isClearYes(yes, [], [], true), yes).toBe(true);
+    }
+    // To "Should I call your dad?", "That's okay." is often "no thanks": never a yes alone.
+    for (const decline of [
+      "That's okay.",
+      "That's okay, thanks.",
+      "It's okay.",
+      "That's fine, thanks Ferni.",
+      'Fine.',
+    ]) {
+      expect(isClearYes(decline, [], [], true), decline).toBe(false);
     }
     // The fillers added for them never make a yes alone, and never let anything new through.
     expect(isClearYes('call', [], [], true)).toBe(false);
@@ -508,6 +517,29 @@ describe('isClearYes', () => {
     expect(confirmationState(pending('reachOut'), events, Date.now())).toBe('void');
   });
 
+  /** Security review of #2939: "call" beside a persona's name reads as a call to someone else. */
+  it('"call" never confirms beside a name, with or without a comma', () => {
+    for (const redirect of [
+      'Yeah, call Peter.',
+      'Okay, call Alex.',
+      'Yes, call Maya please.',
+      'Yeah, call, Peter.',
+      'Go ahead, call Jordan.',
+      'Yeah, call buddy.',
+    ]) {
+      expect(isClearYes(redirect, ['doug'], ['seth'], true), redirect).toBe(false);
+    }
+    expect(isClearYes('Yeah, go ahead, Ferni.', ['doug'], ['seth'], true)).toBe(true);
+  });
+
+  it('a long reply that splits many ways is judged at once', () => {
+    const long = `${'you need to '.repeat(60)}bob`;
+    const start = performance.now();
+    expect(isClearYes(long, [], [], true)).toBe(false);
+    expect(isClearYes(`yes ${'you need to '.repeat(60)}`, [], [], true)).toBe(true);
+    expect(performance.now() - start).toBeLessThan(50);
+  });
+
   /** "you" (a filler) used to win over "you should" because the first phrase in the lists was taken. */
   it('tries every phrase that fits, not only the first in the lists', () => {
     expect(isClearYes('Yes, you should.')).toBe(true);
@@ -522,7 +554,9 @@ describe('isClearYes', () => {
       'Yeah, call her now.',
       'Go ahead and call him.',
     ]) {
-      expect(isClearYes(yes), yes).toBe(true);
+      expect(isClearYes(yes, [], [], true), yes).toBe(true);
+      // With a text waiting, a call is a different action.
+      expect(isClearYes(yes), yes).toBe(false);
     }
     // A restatement that adds anything (someone else, a time, a different action) is not plain.
     for (const notYes of [
