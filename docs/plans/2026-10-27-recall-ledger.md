@@ -74,6 +74,13 @@ There are about 15 partial records, and two near-ledgers. `ferni_actions` is wri
    Each retirement is its own small PR, and each gets a grep proving it has no live caller.
 5. **First producers, by harm:** on-behalf call at dial time; deferred calls; `callWithPersonaVoice` one-way calls; raw `communication-service` sends; on-behalf texts (including with `ON_BEHALF_TEXT_GUARD=off`); `email-delivery`; direct pushes; Google-created calendar events.
 
+**Email specifically.** An audit of the owner's prod mail, 10-12..10-26, found three attempts: a milestone email (failed), the 10-24 call result (failed, logged as sent), and the 10-25 call result "✓ Talked to my mom for you" (sent, Gmail id recorded only in a log line). Nothing Ferni can read says any email went out or what it said. So:
+- The email record is written at the transport port, `getEmailSender().send`, where every route meets under `EMAIL_PROVIDER=gmail`.
+- The `email-delivery` SendGrid and Resend branches, which bypass the port, are covered too.
+- The record stores channel, provider, messageId, subject, a short body summary, the trigger and the source id, and it records failures as well.
+- `communication-service.sendEmail` gains a `userId`.
+- The source document links back (`notified.email`).
+
 Known bugs found along the way get their own issues, not lane 2 scope:
 - `reachOut`'s "conversation" channel may file `scheduled_calls` under the contact, and may report a placed call as failed.
 - A callback-required call result may be emailed twice.
@@ -105,6 +112,7 @@ Contract: zero new `onbehalf:*` documents after a test call.
 ### 5. Recall reads the ledger
 
 - **A `recallActivity` tool** answers "did you call my dad?", "what did mom say?", "why did you email me?" and "what's still open?" by person, time and status. It replaces the dead `call_history` alias.
+- **Stop burning results.** `pending-call-results.ts:223` marks a result delivered when the context is *built*. On 10-24 a result was burned in a two-turn hang-up session. On 10-25 it was marked delivered at 15:54:41 while Ferni told the owner "No, I haven't placed that call yet", 53 minutes after emailing him that it had. Lane 5 records `told` only when Ferni says it. Lane 0g's status lookup already ignores the flag.
 - **Session start** includes a short open-items summary (scheduled, in progress, outcomes not yet told), with no 24 h or deliver-once cut-off. An item leaves the summary when it's closed and told, not when the context was built. `told` is recorded when Ferni actually says it.
 - **Honesty:** Ferni says "done" only when the ledger says done, and "scheduled for 9 AM because of call hours" when it's deferred. This extends `call-status`, which already refuses to claim outcomes it doesn't know.
 
