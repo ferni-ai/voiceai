@@ -21,6 +21,7 @@ import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
 import { pickFromTie, type PickRow } from './contact-pick.js';
+import { relationWordOf, rememberNumberGiven, replaceConfirmed } from './contact-on-mention.js';
 import type {
   CallType,
   CallObjective,
@@ -251,68 +252,6 @@ async function initiateOnBehalfCall(request: OnBehalfCallRequest): Promise<strin
 }
 
 // ============================================================================
-// CONTACT HELPERS
-// ============================================================================
-
-/**
- * Infer relationship type from the contact query
- * e.g., "my mom" → "mom", "doctor" → "doctor"
- */
-function inferRelationshipFromQuery(query: string): string | undefined {
-  const queryLower = query.toLowerCase();
-
-  // Family relationships
-  const familyWords = [
-    'mom',
-    'mother',
-    'dad',
-    'father',
-    'brother',
-    'sister',
-    'grandma',
-    'grandpa',
-    'aunt',
-    'uncle',
-    'cousin',
-  ];
-  for (const word of familyWords) {
-    if (queryLower.includes(word)) return word;
-  }
-
-  // Professional relationships
-  const proWords = ['doctor', 'dentist', 'therapist', 'lawyer', 'accountant'];
-  for (const word of proWords) {
-    if (queryLower.includes(word)) return word;
-  }
-
-  return undefined;
-}
-
-/**
- * Save a contact for future use
- * This enables "remembering" phone numbers across sessions
- */
-async function saveContactForFuture(
-  userId: string,
-  contactQuery: string,
-  phone: string
-): Promise<void> {
-  try {
-    const { upsertContact } =
-      await import('../../../services/contacts/contact-relationship-service.js');
-
-    const { saveFieldsFor } = await import('./contact-pick.js');
-    const fields = saveFieldsFor(contactQuery, inferRelationshipFromQuery(contactQuery));
-    if (!fields) return; // CONTACT_PICK_V2: "them" / "contact" names no one to save
-    await upsertContact(userId, { ...fields, contactId: `phone_${phone}`, phone });
-    log.info({ name: fields.name }, '📇 Contact saved for future calls');
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to save contact');
-    // Non-critical - don't throw
-  }
-}
-
-// ============================================================================
 // TOOL DEFINITION
 // ============================================================================
 
@@ -350,34 +289,26 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       try {
         // Step 1: Resolve the contact (or create from provided phone number); a question
         // (CONTACT_PICK_V2: several match, or only a name like "Father Tom") dials nothing
-        let contact = pickFromTie(await findContact(contactQuery, ctx.userId), phoneNumber);
+        const found = await findContact(contactQuery, ctx.userId);
+        let contact = pickFromTie(found, phoneNumber);
         if (typeof contact === 'string') return contact;
 
-        // If user provided a phone number, use it (and optionally save the contact)
+        // A number given rings this call; it replaces a different saved one only on the yes to a
+        // read-back that said so, and is otherwise saved for next time (contact-on-mention.ts)
         if (phoneNumber) {
           const normalizedPhone = phoneNumber.replace(/\D/g, ''); // Strip non-digits
-
-          if (contact) {
-            // Update existing contact with new phone number
-            contact.phone = normalizedPhone;
-            log.info(
-              { contactName: contact.name },
-              'Using provided phone number for existing contact'
-            );
-          } else {
-            // Create a temporary contact from the provided info
-            contact = {
-              name: contactQuery,
-              phone: normalizedPhone,
-              relationship: inferRelationshipFromQuery(contactQuery),
-            };
-            log.info({ contactQuery, phone: '***' }, 'Using provided phone number for new contact');
-
-            // Save this contact for future use (async, don't wait)
-            saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
-              log.warn({ error: String(err) }, 'Failed to save contact for future');
-            });
-          }
+          const { userId, sessionId } = ctx;
+          const replace = replaceConfirmed(params);
+          const given = { userId, sessionId, contactQuery, phone: phoneNumber, found, replace };
+          void rememberNumberGiven({ ...given, placing: true });
+          log.info({ known: Boolean(contact) }, 'Using the phone number given');
+          contact = contact
+            ? { ...contact, phone: normalizedPhone }
+            : {
+                name: contactQuery,
+                phone: normalizedPhone,
+                relationship: relationWordOf(contactQuery),
+              };
         }
 
         if (!contact) {

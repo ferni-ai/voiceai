@@ -77,11 +77,12 @@ const RELATIONSHIP_MAP: Record<string, string> = {
 // PHONE NUMBER EXTRACTION
 // ============================================================================
 
+// Groups may be split by a comma too: speech-to-text writes "801, 661, 6112" (prod 2026-10-26 18:47)
 const PHONE_PATTERNS = [
-  // Standard formats: (555) 123-4567, 555-123-4567, 555.123.4567
-  /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+  // Standard formats: (555) 123-4567, 555-123-4567, 555.123.4567, 555, 123, 4567
+  /\(?\d{3}\)?(?:,\s?|[-.\s])?\d{3}(?:,\s?|[-.\s])?\d{4}/,
   // With country code: +1 555 123 4567, 1-555-123-4567
-  /\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/,
+  /\+?1?[-.\s]?\(?\d{3}\)?(?:,\s?|[-.\s])?\d{3}(?:,\s?|[-.\s])?\d{4}/,
   // 10 digits together
   /\b\d{10}\b/,
   // 7 digits (local)
@@ -242,10 +243,7 @@ function extractContactEntity(text: string): ContactEntity | null {
   const email = extractEmail(text);
   const relationshipMatch = extractRelationship(text);
 
-  // Must have either contact info OR relationship context
-  if (!phone && !email && !relationshipMatch) {
-    return null;
-  }
+  if (!phone && !email && !relationshipMatch) return null; // nothing to capture
 
   // Return entity even if only relationship (no phone/email)
   // The intent classifier will decide if it should be saved
@@ -421,12 +419,7 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
       phone: contact.phone,
       email: contact.email,
       relationship: relationshipType as
-        | 'family'
-        | 'friend'
-        | 'colleague'
-        | 'acquaintance'
-        | 'professional'
-        | 'other',
+        'family' | 'friend' | 'colleague' | 'acquaintance' | 'professional' | 'other',
       notes: contact.relationship, // Store the specific relationship (mom, brother, etc.)
     });
 
@@ -461,10 +454,11 @@ export async function processDataCapture(context: DataCaptureContext): Promise<D
     const hasRelationship = !!(contactEntity.relationship || contactEntity.name);
     const intent = classifyIntent(transcript, hasContactInfo, hasRelationship);
 
-    // Saved (and acknowledged) unless the caller is held under 18: MINOR_CARE, minor-care.ts
+    // Saved (and acknowledged) unless the caller is held under 18 (MINOR_CARE, minor-care.ts), or
+    // nothing says whose it is ("his number is …" would be a "Contact" no one can ask for)
     const saves = ['explicit_save', 'implicit_share', 'correction', 'relationship_mention'];
     const held = memoryHeld(context.sessionId) || userHeld(userId);
-    const shouldSave = saves.includes(intent) && !held;
+    const shouldSave = saves.includes(intent) && !held && hasRelationship;
 
     // Determine storage target (contacts for contact info, relationships for relationship-only)
     const storageTarget = hasContactInfo ? 'contacts' : 'relationships';

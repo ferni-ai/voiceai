@@ -271,7 +271,8 @@ describe('a number given during the call, flag on', () => {
     const ask = { contactQuery: 'my dad', phoneNumber: '(801) 555-0142', purpose: 'say hi' };
     await call.call(ask, 'c1');
     call.caller('Yes.');
-    expect(await call.call(ask, 'c2')).toContain('calling my dad');
+    // Saved as "Dad" at the read-back (CONTACT_SAVE_ON_MENTION), so the confirmed call finds Dad
+    expect(await call.call(ask, 'c2')).toContain('calling Dad');
     await vi.waitFor(async () => expect(await getContacts(USER)).toHaveLength(1));
     expect((await getContacts(USER))[0]).toMatchObject({ name: 'Dad', notes: "User's dad" });
     const next = await liveCall().call({ contactQuery: 'my dad', purpose: 'say hi' }, 'c3');

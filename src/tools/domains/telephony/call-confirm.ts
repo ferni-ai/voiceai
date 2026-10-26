@@ -9,6 +9,7 @@
 
 import type { ConfirmSpec } from '../communication/outreach/outreach-confirm.js';
 import { checkDialableNumber } from '../../../utils/dialable-number.js';
+import { numberAtReadBack, type FindContact } from './contact-on-mention.js';
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 /** "My Dad" and "dad" are the same person to call. */
@@ -42,7 +43,8 @@ export const callConfirm: ConfirmSpec = {
     const who = text(args.contactQuery) || 'them';
     const purpose = text(args.purpose);
     let name = who;
-    let raw = text(args.phoneNumber);
+    const given = text(args.phoneNumber);
+    let raw = given;
     let relationship: string | undefined;
     if (!raw) {
       const { findContact } = await import('./call-on-behalf.js');
@@ -56,6 +58,10 @@ export const callConfirm: ConfirmSpec = {
     if (!raw) return `Nothing was dialed: I don't have a number for ${who}. Ask the caller for it.`;
     const number = checkDialableNumber(raw);
     if (!number.ok) return `Nothing was dialed: ${number.reason}.`;
+    // A number the owner gave is theirs to keep: saved now, before any yes (contact-on-mention.ts)
+    const find: FindContact = async (q) =>
+      (await import('./call-on-behalf.js')).findContact(q, userId);
+    const change = await numberAtReadBack(userId, who, given, find);
     // The owner's call-now to family (CALL_NOW_OWNER_OVERRIDE) replaces a call set for later.
     const { alreadySetReply, pendingCallTo, wantsCallNow } = await import('./call-on-behalf.js');
     const resolvedContact = { name, phone: number.e164, relationship };
@@ -68,8 +74,8 @@ export const callConfirm: ConfirmSpec = {
     const waiting = now ? undefined : await pendingCallTo(userId, number.e164);
     if (waiting) return alreadySetReply(name, waiting);
     return {
-      args: { ...args, phoneNumber: number.e164 },
-      readBack: `a call to ${name} at ${number.spoken}${now ? ', right now' : ''}${purpose ? `, to ${purpose}` : ''}`,
+      args: { ...args, phoneNumber: number.e164, ...change.args },
+      readBack: `a call to ${name} at ${number.spoken}${now ? ', right now' : ''}${purpose ? `, to ${purpose}` : ''}${change.readBack}`,
     };
   },
 };
