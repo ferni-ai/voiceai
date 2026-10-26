@@ -631,15 +631,15 @@ async function recordOurSongMoment(ctx: LearningContext): Promise<void> {
   // 3. Record this as "our song" for later callback
   const track = musicState.currentTrack;
 
+  // Ids and labels only: never the caller's words (nor the track, which says what they listen to)
   logger.info('🎵 Recording "Our Song" moment', {
-    song: track.name,
-    artist: track.artist,
+    sessionId: ctx.sessionId,
     momentType: significantMoment.type,
-    userText: ctx.userText.slice(0, 50),
   });
 
-  // Record the song memory
+  // Record the song memory: labels only, never the caller's words. A held caller gets none.
   recordOurSong({
+    sessionId: ctx.sessionId,
     userId: ctx.userId,
     song: {
       name: track.name,
@@ -649,6 +649,5 @@ async function recordOurSongMoment(ctx: LearningContext): Promise<void> {
     momentType: significantMoment.type,
     emotion: significantMoment.emotion || 'grateful', // Default to 'grateful' if no emotion detected
     context: ctx.emotionalResult.primary || 'meaningful moment',
-    memorableQuote: ctx.userText.slice(0, 200),
   });
 }

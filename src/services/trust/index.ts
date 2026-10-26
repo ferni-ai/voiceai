@@ -158,9 +158,9 @@ export {
 
 export {
   checkForOurSong,
+  clearOurSongsUser,
   detectSignificantMoment,
   getAllOurSongs,
-  getOurSongsProfileForPersistence,
   getOurSongsStats,
   getProactiveRememberWhen,
   loadOurSongsProfile,
