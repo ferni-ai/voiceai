@@ -94,10 +94,22 @@ export async function smsCrisisReply(
   // the classifier alone got 988 over its consent notice: only a pattern hit
   // counts there. HELP and INFO are always read in full: someone in crisis
   // types "help", and 988 beside Twilio's HELP reply is better than silence.
-  const keyword = isExactKeyword(text) && !HELP_WORDS.has(normalizeSms(text));
+  const help = HELP_WORDS.has(normalizeSms(text));
+  const keyword = isExactKeyword(text) && !help;
   if (keyword && !outcome.pattern) outcome = { ...outcome, crisis: false };
+  // Twilio may answer HELP and INFO itself. `help` (any punctuation) and
+  // `bareHelp` (the word alone) tell the shadow logs whether they reach us.
+  const bareHelp = HELP_WORDS.has(text.trim().toLowerCase());
   log.info(
-    { mode, crisis: outcome.crisis, pattern: outcome.pattern, risk: outcome.risk, keyword },
+    {
+      mode,
+      crisis: outcome.crisis,
+      pattern: outcome.pattern,
+      risk: outcome.risk,
+      keyword,
+      help,
+      bareHelp,
+    },
     'SMS_CRISIS_SCREEN'
   );
   return mode === 'on' && outcome.crisis ? SMS_CRISIS_REPLY : null;

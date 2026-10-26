@@ -201,6 +201,21 @@ describe('what the screen logs and how long it waits', () => {
     expect(JSON.stringify(logged)).not.toContain('bridge');
   });
 
+  it('in shadow, logs whether the text was HELP, bare or not, but never changes the reply', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+    logged.length = 0;
+    const crisisRead = async () => ({ crisis: true, pattern: true, risk: 'imminent' as const });
+    expect(await smsCrisisReply('HELP', crisisRead)).toBeNull();
+    expect(await smsCrisisReply('help?', crisisRead)).toBeNull();
+    expect(await smsCrisisReply('see you at 6', read(false))).toBeNull();
+    const fields = logged.map((args) => args[0] as Record<string, unknown>);
+    expect(fields.map((f) => [f.mode, f.help, f.bareHelp])).toEqual([
+      ['shadow', true, true],
+      ['shadow', true, false],
+      ['shadow', false, false],
+    ]);
+  });
+
   it('gives up on a hung classifier after 4 s, so the reply is never held longer', async () => {
     vi.useFakeTimers();
     try {
