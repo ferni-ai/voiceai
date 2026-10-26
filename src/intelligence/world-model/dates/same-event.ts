@@ -38,8 +38,10 @@ export const SAME_EVENT_DAYS = 3;
  */
 export const SIMILAR_WORDS = 0.5;
 
-/** How it went says nothing about what it was: "went well", "pretty good". */
-const OUTCOME = new Set(forgetTokens('went well good great fine ok okay pretty really'));
+/** How it went says nothing about what it was: "went well", "pretty good". Built on first use, not at import. */
+let outcome: Set<string> | undefined;
+const outcomeWords = (): Set<string> =>
+  (outcome ??= new Set(forgetTokens('went well good great fine ok okay pretty really')));
 
 type Fact = TemporalFact & Pick<DateFact, 'kind' | 'recurrence' | 'monthDay'>;
 
@@ -58,7 +60,8 @@ export const personKey = (f: Pick<TemporalFact, 'subjectKey'>): string =>
 /** What it was, in content words: no stopwords, no outcome words, not whose it was. */
 function eventWords(f: Fact): string[] {
   const whose = new Set(forgetTokens(`${f.subject} ${f.relation ?? ''}`));
-  return forgetTokens(f.value).filter((w) => !OUTCOME.has(w) && !whose.has(w));
+  const out = outcomeWords();
+  return forgetTokens(f.value).filter((w) => !out.has(w) && !whose.has(w));
 }
 
 export function askedEvent(f: Fact): AskedEvent | null {
