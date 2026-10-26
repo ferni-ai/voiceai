@@ -162,6 +162,14 @@ function baseCheckout(base: string, root: string): string {
   const config = readAtBase(base, ['knip.json'], root).get('knip.json');
   if (config !== undefined) writeFileSync(join(dir, 'knip.json'), config);
   symlinkSync(join(root, 'node_modules'), join(dir, 'node_modules'));
+  // Since #2597 the flag barrel and env-name list are gitignored and written at install, so
+  // git archive leaves them out of the base. Without them every flag file looks unimported at
+  // the base and its export unused here: dozens of false "added" exports on every PR.
+  const lists = 'src/config/generated-lists.ts';
+  if (listAtBase(base, [lists], root).length > 0) {
+    const gen = spawnSync(join(root, 'node_modules', '.bin', 'tsx'), [lists], { cwd: dir, encoding: 'utf8' });
+    if (gen.status !== 0) throw new Error(`${lists} failed in the base checkout: ${(gen.stderr ?? '').slice(-2000)}`);
+  }
   return dir;
 }
 
