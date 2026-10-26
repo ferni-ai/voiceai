@@ -3,7 +3,7 @@
 
 Per call, from the dev agent's Cloud Logging lines (the 2026-10-21 sweep's analyzer, trimmed
 to what the nightly scorecard reads): build (worker boot hash), REPLY_GAP, TURN_RECEIPT tool
-errors and tool-turn first audio, L>=50 and top L40 lines, crisis lines, handoff lines. Prints a
+errors and tool-turn answer audio, L>=50 and top L40 lines, crisis lines, handoff lines. Prints a
 short pooled summary.
 """
 import collections, glob, json, os, re, sys
@@ -33,6 +33,10 @@ for h, p, tm, j, w in recs:
         a[2] = min(a[2], tm); a[3] = max(a[3], tm)
 runs = sorted(f for f in glob.glob(os.path.join(outdir, '*.json')) if not re.search(r'\.(score|judge[\w.]*|agent-room)\.json$', f))
 summary = []
+def tool_gap(j):
+    a = j.get('audio') or {}
+    return a.get('answerAudioMs') if 'answerAudioMs' in a else (j.get('timing') or {}).get('firstAudioMs')
+
 for f in runs:
     try: r = json.load(open(f))
     except Exception: continue
@@ -51,8 +55,10 @@ for f in runs:
         if j.get('msg') == 'TURN_RECEIPT' and k not in seen: seen.add(k); rc.append(j)
     row['receipts'] = len(rc)
     row['tool_errors'] = sum((j.get('tools') or {}).get('errors') or 0 for j in rc)
-    # Caller stop to Ferni's first audio on turns that called a tool (superhuman-bar.json tool-turn-p50).
-    row['tool_reply_gaps'] = [j['timing']['firstAudioMs'] for j in rc if (j.get('tools') or {}).get('called') and isinstance((j.get('timing') or {}).get('firstAudioMs'), (int, float))]
+    # Caller stop to the answer's first audio on turns that called a tool (superhuman-bar.json
+    # tool-turn-p50): audio.answerAudioMs since #2850 (after any "let me look" lead-in; null on a
+    # handoff), timing.firstAudioMs on receipts that predate it.
+    row['tool_reply_gaps'] = [g for g in (tool_gap(j) for j in rc if (j.get('tools') or {}).get('called')) if isinstance(g, (int, float))]
     row['l50'] = [f"{j.get('module')}: {str(j.get('msg'))[:90]} | {str(j.get('err') or j.get('error') or '')[:120]}" for j in lines if isinstance(j.get('level'), int) and j['level'] >= 50]
     row['l40'] = collections.Counter(f"{j.get('module')}: {str(j.get('msg'))[:70]}" for j in lines if j.get('level') == 40).most_common(8)
     row['crisis'] = [f"{j.get('module')}:{str(j.get('msg'))[:40]} risk={j.get('risk')} action={j.get('action')} source={j.get('source')}"

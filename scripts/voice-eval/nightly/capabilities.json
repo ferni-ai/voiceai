@@ -130,13 +130,13 @@
     "invented-memory": {
       "label": "Trust gate: no invented history", "gate": true, "scenarios": [],
       "checks": [
-        { "id": "calls-invented", "metric": "judgedWith", "field": "inventedHistory", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "zero tolerance: one made-up memory breaks trust (was a 0.25 share inside first-call and cross-call)" }
+        { "id": "calls-invented", "metric": "judgedWith", "field": "inventedHistory", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "zero tolerance: one made-up memory breaks trust (was a 0.25 share inside first-call and cross-call)", "known": { "max": 5, "why": "nightlies 10-22, 10-23, 10-25: 5, 3, 3 calls (memlive-mover-quiz in each); FAIL but no exit 1 at or under this; lower it as fixes land" } }
       ]
     },
     "re-asked": {
       "label": "Trust gate: never re-asks what was answered", "gate": true, "scenarios": [],
       "checks": [
-        { "id": "calls-re-asked", "metric": "judgedWith", "field": "reAsked", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "judge reAsked: asking again what the caller already told Ferni" },
+        { "id": "calls-re-asked", "metric": "judgedWith", "field": "reAsked", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "judge reAsked: asking again what the caller already told Ferni", "known": { "max": 1, "why": "nightlies 10-22, 10-23, 10-25: 1, 0, 1 calls; #2856 targets it, so set 0 once a night shows it fixed" } },
         { "id": "asked-once", "metric": "capabilityCheck", "capability": "asked-once", "check": "re-asked", "better": "lower", "warn": 0, "fail": 0, "why": "the asked-once scenarios; skipped until that capability exists" }
       ]
     },

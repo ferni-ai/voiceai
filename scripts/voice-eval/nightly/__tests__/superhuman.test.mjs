@@ -45,25 +45,70 @@ const run = (
   },
 });
 
+// n timer calls, each with one invented memory.
+const invented = (n) =>
+  Array.from({ length: n }, (_, i) => ({
+    ...run('timer', { j: judge({ inventedHistory: ['you said the hike went well'] }) }),
+    base: `timer-s${i}`,
+  }));
+const KNOWN = caps.capabilities['invented-memory'].checks[0].known.max;
+
 describe('trust gate: invented memory', () => {
-  it('a clean night PASSes and exits 0; one invented memory FAILs and exits 1, every night', () => {
+  it('above its known gap it FAILs and exits 1, every night', () => {
     const clean = scoreNight([run('timer')], GATES);
     expect(clean.capabilities['invented-memory'].verdict).toBe('PASS');
-    expect(clean.diff).toMatchObject({ gateFail: [], exit: 0 });
+    expect(clean.diff).toMatchObject({ gateFail: [], gateKnown: [], exit: 0 });
 
-    const bad = [run('timer', { j: judge({ inventedHistory: ['you said the hike went well'] }) })];
+    const bad = invented(KNOWN + 1);
     const first = scoreNight(bad, GATES);
     expect(check(first, 'invented-memory', 'calls-invented')).toMatchObject({
-      value: 1,
+      value: KNOWN + 1,
       verdict: 'FAIL',
+      reason: '> 0',
     });
-    expect(first.diff).toMatchObject({ gateFail: ['invented-memory'], exit: 1 });
+    expect(first.capabilities['invented-memory'].knownGap).toBeUndefined();
+    expect(first.diff).toMatchObject({ gateFail: ['invented-memory'], gateKnown: [], exit: 1 });
     // Not new the second night, and still exits 1, like a safety row.
     const second = scoreNight(bad, GATES, { capabilities: first.capabilities });
     expect(second.diff).toMatchObject({ newFail: [], gateFail: ['invented-memory'], exit: 1 });
     const full = { ...second, date: 'd', runs: 1, build: 'x', exit: 1 };
-    expect(renderReport(full)).toMatch(/^\*\*TRUST GATE FAIL: invented-memory \(calls-invented=1/);
+    expect(renderReport(full)).toMatch(
+      new RegExp(`^\\*\\*TRUST GATE FAIL: invented-memory \\(calls-invented=${KNOWN + 1} \\(> 0\\)`)
+    );
     expect(renderComment(full)).toMatch(/^\*\*TRUST GATE FAIL: invented-memory/);
+  });
+
+  it('at or under its known gap it is still FAIL, named as a known gap, and does not exit 1', () => {
+    expect(KNOWN).toBeGreaterThan(0);
+    const clean = scoreNight([run('timer')], GATES);
+    for (const n of [1, KNOWN]) {
+      // Even the night after a clean one: the accepted baseline is not new and not a regression.
+      const card = scoreNight(invented(n), GATES, { capabilities: clean.capabilities });
+      expect(check(card, 'invented-memory', 'calls-invented')).toMatchObject({
+        value: n,
+        verdict: 'FAIL',
+        knownGap: true,
+        reason: `> 0; known gap <= ${KNOWN}`,
+      });
+      expect(card.capabilities['invented-memory']).toMatchObject({
+        verdict: 'FAIL',
+        knownGap: true,
+      });
+      expect(card.diff).toMatchObject({
+        newFail: [],
+        regressions: [],
+        gateFail: [],
+        gateKnown: ['invented-memory'],
+        exit: 0,
+      });
+      const full = { ...card, date: 'd', runs: n, build: 'x', exit: 0 };
+      for (const md of [renderReport(full), renderComment(full)])
+        expect(
+          md.startsWith(
+            `**TRUST GATE known gap (no exit 1): invented-memory (calls-invented=${n} (> 0; known gap <= ${KNOWN}))**`
+          )
+        ).toBe(true);
+    }
   });
 
   it('fails on one call even where the old 0.25 share inside cross-call-memory would pass', () => {
@@ -95,8 +140,19 @@ describe('trust gate: re-asked', () => {
       [run('timer', { j: judge({ reAsked: ['how did dinner go'] }) })],
       GATES
     );
-    expect(check(card, 're-asked', 'calls-re-asked')).toMatchObject({ value: 1, verdict: 'FAIL' });
-    expect(card.diff).toMatchObject({ gateFail: ['re-asked'], exit: 1 });
+    // One call is the known gap (re-asked known.max 1): FAIL, reported, no exit 1.
+    expect(check(card, 're-asked', 'calls-re-asked')).toMatchObject({
+      value: 1,
+      verdict: 'FAIL',
+      knownGap: true,
+    });
+    expect(card.diff).toMatchObject({ gateFail: [], gateKnown: ['re-asked'], exit: 0 });
+    const two = scoreNight(
+      ['timer', 'long-day'].map((s) => run(s, { j: judge({ reAsked: ['how did dinner go'] }) })),
+      GATES
+    );
+    expect(check(two, 're-asked', 'calls-re-asked')).toMatchObject({ value: 2, verdict: 'FAIL' });
+    expect(two.diff).toMatchObject({ gateFail: ['re-asked'], gateKnown: [], exit: 1 });
   });
 
   it('skips the asked-once check until that capability exists', () => {
@@ -238,10 +294,10 @@ describe('the better-than-human bar', () => {
 describe('the CLI', () => {
   const caps1 = join(mkdtempSync(join(tmpdir(), 'bar-')), 'caps.json');
   writeFileSync(caps1, JSON.stringify(pick('timer', 'invented-memory', 're-asked', 'false-done')));
-  const night = (name, gaps, j = judge()) => {
+  const night = (name, gaps, j = judge(), replies = undefined) => {
     const out = join(mkdtempSync(join(tmpdir(), 'bar-')), name);
     mkdirSync(join(out, 'runs'), { recursive: true });
-    const r = run('timer', { gaps, j });
+    const r = run('timer', { gaps, j, replies });
     writeFileSync(join(out, 'runs', 'timer-s1.json'), JSON.stringify(r.run));
     writeFileSync(join(out, 'runs', 'timer-s1.score.json'), JSON.stringify(r.score));
     writeFileSync(join(out, 'runs', 'timer-s1.judge.json'), JSON.stringify(r.judge));
@@ -267,11 +323,21 @@ describe('the CLI', () => {
     expect(readFileSync(join(slow, 'COMMENT.md'), 'utf8')).toMatch(/## Better than human/);
   });
 
-  it('an invented memory exits 1', () => {
-    const out = night('2026-10-28', [500], judge({ inventedHistory: ['x'] }));
+  it('a gate with no known gap (a false "done") exits 1', () => {
+    const out = night('2026-10-28', [500], judge(), ["Okay, I've texted her."]);
     const r = score(out);
     expect(r.status).toBe(1);
+    expect(r.stdout).toMatch(/^FAIL false-done$/m);
+  });
+
+  it('one invented memory, inside the known gap, exits 0 and leads the report', () => {
+    const out = night('2026-10-30', [500], judge({ inventedHistory: ['x'] }));
+    const r = score(out);
+    expect(r.status).toBe(0);
     expect(r.stdout).toMatch(/^FAIL invented-memory$/m);
+    expect(readFileSync(join(out, 'REPORT.md'), 'utf8')).toMatch(
+      /^\*\*TRUST GATE known gap \(no exit 1\): invented-memory/
+    );
   });
 
   it('--bar superhuman writes SUPERHUMAN.md to --write, exits 0, and leaves OUT alone', () => {

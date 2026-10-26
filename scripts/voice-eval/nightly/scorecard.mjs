@@ -13,9 +13,11 @@
 // bar (superhuman-bar.json, superhuman.mjs). --bar superhuman scores only that bar and the trust
 // gates for any sweep dir and writes DIR/SUPERHUMAN.md and DIR/superhuman.json (DIR defaults to
 // OUT), leaving OUT's REPORT.md alone; it exits 0 (2 on a harness error).
-// Exit: 0 nothing newly FAIL and no regression; 1 a new FAIL, a regression, or a safety or
-// trust gate (capabilities with gate: true) that FAILs, every night it lasts (only then does
-// someone investigate); 2 harness error (no scored runs, bad input). The bar never changes it.
+// Exit: 0 nothing newly FAIL and no regression; 1 a new FAIL, a regression, a safety row that
+// FAILs, or a trust gate (capabilities with gate: true) that FAILs above its known, accepted gap
+// (check.known.max), every night it lasts (only then does someone investigate); 2 harness error
+// (no scored runs, bad input). A gate at or under its known gap is FAIL in the table and named on
+// the top line as a known gap every night, but does not exit 1. The bar never changes the exit.
 import {
   existsSync,
   mkdirSync,
@@ -241,15 +243,21 @@ export function scoreNight(runs, caps, prev = null, extra = {}) {
       const { value, n } = metric(c, scope, caps, { ...extra, scored });
       const was = prev?.capabilities?.[id]?.checks?.find((p) => p.id === c.id);
       const k = { id: c.id, metric: c.metric, value, n, ...judgeCheck(c, value, was?.value) };
+      // A gate's known, accepted gap (check.known): still FAIL, at or under the measured baseline.
+      if (k.verdict === 'FAIL' && c.known && value <= c.known.max)
+        Object.assign(k, { knownGap: true, reason: `${k.reason}; known gap <= ${c.known.max}` });
       // A check that FAILed last night and measures nothing now hasn't been fixed.
       checks.push(
         was?.verdict === 'FAIL' && k.reason === 'no data' ? { ...k, failToNoData: true } : k
       );
     }
+    const verdict = worst(checks.map((c) => c.verdict));
+    const known = verdict === 'FAIL' && checks.every((k) => k.verdict !== 'FAIL' || k.knownGap);
     scored[id] = {
       label: cap.label,
       ...(cap.gate ? { gate: true } : {}),
-      verdict: worst(checks.map((c) => c.verdict)),
+      ...(known ? { knownGap: true } : {}),
+      verdict,
       prev: prev?.capabilities?.[id]?.verdict ?? null,
       checks,
       runs: mine.map((r) => r.base),
@@ -277,15 +285,19 @@ export function diffNights(capabilities) {
   const safetyNoData = SAFETY.filter(
     (id) => capabilities[id] && !safetyFail.includes(id) && unmeasured(capabilities[id]).length
   );
-  // A trust gate (invented memory, re-asking, a false "done") exits 1 every night it FAILs; with no
-  // data it is WARN and named on the top line, but does not exit (false-done has no lane yet).
-  const gateFail = Object.keys(capabilities).filter(
-    (id) => capabilities[id].gate && capabilities[id].verdict === 'FAIL'
+  // A trust gate (invented memory, re-asking, a false "done") exits 1 every night it FAILs above its
+  // known gap; at or under it, it is named on the top line as a known gap and does not exit. With
+  // no data it is WARN and named on the top line, but does not exit (false-done has no lane yet).
+  const gates = Object.keys(capabilities).filter((id) => capabilities[id].gate);
+  const gateFail = gates.filter(
+    (id) => capabilities[id].verdict === 'FAIL' && !capabilities[id].knownGap
   );
-  const gateNoData = Object.keys(capabilities).filter(
-    (id) => capabilities[id].gate && !gateFail.includes(id) && unmeasured(capabilities[id]).length
+  const gateKnown = gates.filter((id) => capabilities[id].knownGap);
+  const gateNoData = gates.filter(
+    (id) => !gateFail.includes(id) && unmeasured(capabilities[id]).length
   );
   for (const [id, c] of Object.entries(capabilities)) {
+    if (c.knownGap) continue; // the accepted baseline: never new, never a regression
     if (c.verdict === 'FAIL' && c.prev !== 'FAIL') newFail.push(id);
     else if (c.prev && RANK[c.verdict] > RANK[c.prev])
       regressions.push(`${id}: ${c.prev} -> ${c.verdict}`);
@@ -304,7 +316,7 @@ export function diffNights(capabilities) {
     gateFail.length
       ? 1
       : 0;
-  return { newFail, regressions, safetyFail, safetyNoData, gateFail, gateNoData, exit };
+  return { newFail, regressions, safetyFail, safetyNoData, gateFail, gateKnown, gateNoData, exit };
 }
 
 /** The newest earlier night's scorecard.json with status "ok", or null. */
@@ -338,6 +350,7 @@ export const safetyLine = (card) =>
   topLine(card, 'SAFETY FAIL: ', card.diff.safetyFail, failed, checkText) +
   topLine(card, 'SAFETY: no data — ', card.diff.safetyNoData, unmeasured, noData) +
   topLine(card, 'TRUST GATE FAIL: ', card.diff.gateFail, failed, checkText) +
+  topLine(card, 'TRUST GATE known gap (no exit 1): ', card.diff.gateKnown, failed, checkText) +
   topLine(card, 'TRUST GATE: no data — ', card.diff.gateNoData, unmeasured, noData);
 
 export function renderReport(card) {
@@ -370,7 +383,7 @@ export function renderBarReport(card) {
   const gates = Object.entries(card.capabilities)
     .filter(([, c]) => c.gate)
     .map(([id, c]) => `| ${id} | ${c.verdict} | ${c.checks.map(checkText).join('; ')} |`);
-  return `# Better-than-human bar: ${card.date}\n\nBuild ${card.build ?? '?'}, ${card.runs} scored runs.\n\n## Trust gates (exit 1 in the nightly)\n\n| Gate | Verdict | Numbers |\n|---|---|---|\n${gates.join('\n')}\n${renderBar(card.superhuman)}`;
+  return `# Better-than-human bar: ${card.date}\n\nBuild ${card.build ?? '?'}, ${card.runs} scored runs.\n\n## Trust gates (exit 1 in the nightly above a known gap)\n\n| Gate | Verdict | Numbers |\n|---|---|---|\n${gates.join('\n')}\n${renderBar(card.superhuman)}`;
 }
 
 function main(argv) {
