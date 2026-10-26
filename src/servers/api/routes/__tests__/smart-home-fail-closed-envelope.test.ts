@@ -43,7 +43,8 @@ const path = (user: string, integration: string) => `bogle_users/${user}/smart_h
 
 // No plaintext token and no ciphertext reaches a log line.
 const noTokenInLogs = () => {
-  const s = JSON.stringify(h.calls);
+  // Errors serialize to {} by default, so pull out their messages too.
+  const s = JSON.stringify(h.calls, (_k, v: unknown) => (v instanceof Error ? v.message : v));
   for (const t of PLAIN) expect(s).not.toContain(t);
   expect(s).not.toContain('enc_');
 };
@@ -119,6 +120,17 @@ describe('smart_home fail-closed saves and envelope decrypt', () => {
       );
       state.docs.set(path('u1', 'sonos'), { ...sealTokens({ accessToken: enc }) });
       expect(await routes.getCredentials('u1', 'sonos')).toBeNull();
+    });
+
+    it('the AAD separates integrations even when the field name is the same', async () => {
+      const { decryptSensitive } = await import('../../../../services/platform/privacy-crypto.js');
+      const enc = await encryptSensitive(TOKEN_A, creds.smartHomeAad('u1', 'lifx', 'token'));
+      await expect(
+        decryptSensitive(enc, creds.smartHomeAad('u1', 'hue', 'token'))
+      ).rejects.toThrow();
+      await expect(decryptSensitive(enc, creds.smartHomeAad('u1', 'lifx', 'token'))).resolves.toBe(
+        TOKEN_A
+      );
     });
 
     it('fail for another integration', async () => {
