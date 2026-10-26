@@ -324,7 +324,7 @@ async function executeOutreach(
         };
       } else {
         const result = await callWithPersonaVoice(contact.phone, message, personaId, {
-          fallbackToTwilioVoice: true,
+          askedFor: true, // a call they confirmed (outreach-pause.ts)
           ownerUid: userId,
           userId,
         });
