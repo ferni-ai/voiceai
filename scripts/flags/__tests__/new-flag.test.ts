@@ -3,16 +3,22 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseFlagFile } from '../legacy-parse.js';
-import { DEFAULT_EXPERIMENT_DAYS, ISSUE_TBD } from '../../../src/config/flag-lifecycle.js';
+import {
+  DEFAULT_EXPERIMENT_DAYS,
+  isRealIssue,
+  REAL_ISSUE as LIFECYCLE_REAL_ISSUE,
+} from '../../../src/config/flag-lifecycle.js';
 import {
   EXPERIMENT_DAYS,
   flagFileSource,
-  ISSUE_PLACEHOLDER,
   parseNewFlag,
+  REAL_ISSUE,
   writeNewFlag,
 } from '../new-flag.js';
 
-const args = ['ZZ_PROBE', '--default', 'off', '--owner', 'platform', '--kind', 'experiment'];
+/** An experiment without --issue: flags:new refuses it. */
+const bare = ['ZZ_PROBE', '--default', 'off', '--owner', 'platform', '--kind', 'experiment'];
+const args = [...bare, '--issue', '#2555'];
 const TODAY = new Date('2026-10-23T12:00:00Z');
 
 function fakeRoot(): string {
@@ -34,7 +40,7 @@ describe('flags:new', () => {
       kind: 'experiment',
       note: 'on: probe',
       expires: '2027-01-21',
-      issue: 'TBD',
+      issue: '#2555',
     });
     expect(() => parseNewFlag(['zz_probe', ...args.slice(1)])).toThrow(/UPPER_SNAKE_CASE/);
     expect(() =>
@@ -54,13 +60,31 @@ describe('flags:new', () => {
         "  owner: 'platform',\n" +
         "  kind: 'experiment',\n" +
         "  expires: '2027-01-21',\n" +
-        "  issue: 'TBD',\n" +
+        "  issue: '#2555',\n" +
         '} as const satisfies FlagSpec;\n'
     );
   });
 
-  it("uses flag-lifecycle.ts's defaults", () => {
-    expect([EXPERIMENT_DAYS, ISSUE_PLACEHOLDER]).toEqual([DEFAULT_EXPERIMENT_DAYS, ISSUE_TBD]);
+  it("uses flag-lifecycle.ts's defaults and its idea of a real issue", () => {
+    expect(EXPERIMENT_DAYS).toBe(DEFAULT_EXPERIMENT_DAYS);
+    expect(REAL_ISSUE.source).toBe(LIFECYCLE_REAL_ISSUE.source);
+  });
+
+  it("refuses an experiment with issue 'TBD', a non-issue, or no --issue (the header's promise)", () => {
+    for (const bad of [[], ['--issue', 'TBD'], ['--issue', 'later'], ['--issue', '2555'], ['--issue', '']]) {
+      expect(() => parseNewFlag([...bare, ...bad], TODAY), JSON.stringify(bad)).toThrow(
+        /--issue '#123'/
+      );
+    }
+    // what it does accept is exactly what the Flag expiry check calls a real issue
+    for (const good of ['#2555', 'https://github.com/ferni-ai/voiceai/issues/2555']) {
+      expect(parseNewFlag([...bare, '--issue', good], TODAY).issue).toBe(good);
+      expect(isRealIssue(good)).toBe(true);
+    }
+    // config and kill-switch flags still need none
+    expect(() =>
+      parseNewFlag(['ZZ_KS', '--default', 'on', '--owner', 'voice', '--kind', 'kill-switch'], TODAY)
+    ).not.toThrow();
   });
 
   it('gives only experiments an expiry, takes explicit lifecycle values, and parses them back', () => {
@@ -71,7 +95,7 @@ describe('flags:new', () => {
     expect(config.expires).toBeUndefined();
     expect(config.issue).toBeUndefined();
     const flag = parseNewFlag(
-      [...args, '--expires', '2026-12-01', '--issue', '#2555', '--context', "the caller's call"],
+      [...args, '--expires', '2026-12-01', '--context', "the caller's call"],
       TODAY
     );
     expect(flag).toMatchObject({

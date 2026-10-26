@@ -11,7 +11,7 @@
  * edited experiment carries expires, issue and context in its own spec instead.
  *
  * The 2026-10-24..26 groups and 16 of the 2026-10-23 names were grandfathered when main was
- * merged on 2026-10-26: 52 experiments that landed on main after this list was cut, same rule.
+ * merged on 2026-10-26: 54 experiments that landed on main after this list was cut, same rule.
  *
  * @module config/flag-lifecycle-backfill
  */
@@ -154,7 +154,11 @@ const GROUPS: readonly BackfillGroup[] = [
     flags:
       'CALL_ME_VOCATIVE CALL_NOW_OWNER_OVERRIDE CALL_RESULT_LIVE_REPORT CALL_VOICEMAIL_V2 CRISIS_CLASSIFIER_SECOND_READ CUSTOM_AGENT_LIVE CUT_REPLY_IN_HISTORY FIRST_TURN_WARM FORGET_DELETES MENU_TOOLS_PINNED MINOR_CARE_SHARED_HOLD NAME_FALLING_SPLIT PERSONA_CANON_FACTS PHRASE_LOOP_GUARD QUICK_SHORTCUTS_REAL_ONLY QUIET_HOURS_FROM_PREFS SMS_CALL_ME SMS_CRISIS_SCREEN TOOL_ACK_CLIP',
   },
-  { firstSeen: '2026-10-26', expires: '2027-01-24', flags: 'CRISIS_EVENT_RECORD MIND_BUILD' },
+  {
+    firstSeen: '2026-10-26',
+    expires: '2027-01-24',
+    flags: 'CONTACT_PICK_V2 CRISIS_EVENT_RECORD HANDOFF_EARLY_GOODBYE MIND_BUILD',
+  },
 ];
 
 export const FLAG_EXPIRY_BACKFILL: Readonly<

@@ -1,9 +1,11 @@
 /**
  * Flag expiry, warn first (src/config/flag-lifecycle.ts).
  *
- *   pnpm flags:expiry           CI (Quality Gates): fails only when this change adds or edits an
- *                               experiment's spec without a valid future `expires` (compared with
- *                               the merge base); expired and TBD experiments are warnings only.
+ *   pnpm flags:expiry           CI (Quality Gates): fails only on what this change adds, edits or
+ *                               touches (compared with the merge base, flag-lifecycle.ts); expired
+ *                               and TBD experiments are warnings only. Past ISSUE_TBD_UNTIL a 'TBD'
+ *                               experiment passes while its owner's nightly issue is open (looked
+ *                               up with gh, only then; a failed lookup fails closed).
  *   pnpm flags:expiry --issues  nightly (flag-expiry.yml): one open issue per owner listing its
  *                               expired or overdue experiments, closed once the list is empty.
  *
@@ -22,6 +24,7 @@ import { parseBackfill } from '../../src/config/flag-lifecycle-backfill.js';
 import {
   isoDay,
   lifecycleWarnings,
+  type OwnerIssue,
   specProblems,
   touchedProblems,
 } from '../../src/config/flag-lifecycle.js';
@@ -100,6 +103,48 @@ export function backfillProblems(
 
 const BACKFILL = 'src/config/flag-lifecycle-backfill.ts';
 const LABEL = 'flag-expiry';
+const ownerTitle = (owner: string): string => `Flag expiry: ${owner}`;
+
+/** owner → '#N', from the open issues the nightly job keeps (label flag-expiry, title 'Flag expiry: <owner>'). */
+export function ownerIssuesFrom(
+  issues: ReadonlyArray<{ number: number; title: string }>
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const i of issues) {
+    const m = /^Flag expiry: (\S+)$/.exec(i.title);
+    if (m && !out.has(m[1]!)) out.set(m[1]!, `#${i.number}`);
+  }
+  return out;
+}
+
+const listOpenOwnerIssues = (): Array<{ number: number; title: string }> =>
+  JSON.parse(
+    execFileSync(
+      'gh',
+      ['issue', 'list', '--state', 'open', '--label', LABEL, '--limit', '200', '--json', 'number,title'],
+      { encoding: 'utf8' }
+    )
+  ) as Array<{ number: number; title: string }>;
+
+/** A lookup that asks gh once, on first use, and fails closed (no owner issues) if gh fails. */
+export function lazyOwnerIssue(
+  list: () => ReadonlyArray<{ number: number; title: string }> = listOpenOwnerIssues
+): OwnerIssue {
+  let byOwner: Map<string, string> | undefined;
+  return (owner) => {
+    if (!byOwner) {
+      try {
+        byOwner = ownerIssuesFrom(list());
+      } catch (error) {
+        console.log(
+          `  (could not list the nightly flag-expiry issues, so none count: ${error instanceof Error ? error.message.split('\n')[0] : error})`
+        );
+        byOwner = new Map();
+      }
+    }
+    return byOwner.get(owner);
+  };
+}
 
 function headTexts(root: string): Map<string, string> {
   const files = [
@@ -140,7 +185,7 @@ function syncIssues(byOwner: Map<string, string[]>, owners: string[]): void {
     ])
   ) as Array<{ number: number; title: string }>;
   for (const owner of owners) {
-    const title = `Flag expiry: ${owner}`;
+    const title = ownerTitle(owner);
     const existing = open.find((i) => i.title === title);
     const items = byOwner.get(owner) ?? [];
     if (items.length === 0) {
@@ -192,12 +237,19 @@ function main(args: string[]): void {
   const base = resolveBase(root);
   const baseFiles = listAtBase(base, [CONFIG], root).filter(isRegistry);
   const baseTexts = readAtBase(base, baseFiles, root);
-  const edited = editedExperiments(head, specsOf(baseTexts));
+  const baseSpecs = specsOf(baseTexts);
+  const edited = editedExperiments(head, baseSpecs);
   const touched = touchedFlags(texts, baseTexts).filter((n) => !edited.includes(n));
   const baseBackfill = readAtBase(base, [BACKFILL], root).get(BACKFILL);
+  const ownerIssue = lazyOwnerIssue();
   const problems = [
-    ...edited.flatMap((name) => specProblems(name, head.get(name)!, today)),
-    ...touched.flatMap((name) => touchedProblems(name, head.get(name)!, today)),
+    ...edited.flatMap((name) =>
+      specProblems(name, head.get(name)!, today, {
+        isNew: baseSpecs.get(name)?.kind !== 'experiment',
+        ownerIssue,
+      })
+    ),
+    ...touched.flatMap((name) => touchedProblems(name, head.get(name)!, today, ownerIssue)),
     ...backfillProblems(
       baseBackfill === undefined ? null : parseBackfill(baseBackfill),
       parseBackfill(readFileSync(join(root, BACKFILL), 'utf8'))

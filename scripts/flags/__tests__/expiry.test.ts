@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { backfillProblems, editedExperiments, specsOf, touchedFlags } from '../expiry.js';
+import {
+  backfillProblems,
+  editedExperiments,
+  lazyOwnerIssue,
+  ownerIssuesFrom,
+  specsOf,
+  touchedFlags,
+} from '../expiry.js';
 
 const legacy = (entries: string): string => `export const FLAGS_A = {\n${entries}\n} as const;\n`;
 const flagFile = (name: string, body: string): string =>
@@ -110,5 +117,33 @@ describe('flags:expiry, a touched flag is one whose registry entry changed, comm
       ['src/config/flag-manifest-blocks.ts', legacy(`  // on: does a thing\n${entry}`)],
     ]);
     expect(touchedFlags(commented, base)).toEqual(['OLD']);
+  });
+});
+
+describe("flags:expiry, the nightly owner issue counts as a TBD flag's issue", () => {
+  const open = [
+    { number: 3001, title: 'Flag expiry: voice' },
+    { number: 3002, title: 'Flag expiry: memory' },
+    { number: 3003, title: 'Something else: voice' },
+  ];
+
+  it("maps 'Flag expiry: <owner>' titles to '#N', ignoring other titles", () => {
+    expect(Object.fromEntries(ownerIssuesFrom(open))).toEqual({ voice: '#3001', memory: '#3002' });
+  });
+
+  it('asks gh once, on first use, and fails closed when gh fails', () => {
+    let calls = 0;
+    const lookup = lazyOwnerIssue(() => {
+      calls++;
+      return open;
+    });
+    expect(calls).toBe(0);
+    expect(lookup('voice')).toBe('#3001');
+    expect(lookup('tools')).toBeUndefined();
+    expect(calls).toBe(1);
+    const broken = lazyOwnerIssue(() => {
+      throw new Error('gh: not authenticated');
+    });
+    expect(broken('voice')).toBeUndefined();
   });
 });

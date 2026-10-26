@@ -1,11 +1,13 @@
 /**
- * pnpm flags:new NAME --default off --owner voice --kind experiment [--note "..."]
- *   [--expires YYYY-MM-DD] [--issue '#123'] [--context "what decides it"]
+ * pnpm flags:new NAME --default off --owner voice --kind experiment --issue '#123' [--note "..."]
+ *   [--expires YYYY-MM-DD] [--context "what decides it"]
  *
  * Writes src/config/flags/NAME.ts and regenerates the flag barrel (gitignored), so a
  * new flag adds one file and touches no shared one. --note becomes the comment above the entry:
  * say what "on" does and where it is read. An experiment gets expires (default:
- * 90 days out, at most 180) and issue (default 'TBD', refused from ISSUE_TBD_UNTIL).
+ * 90 days out, at most 180) and needs --issue: a real tracking issue ('#123' or an issue URL)
+ * from day one. 'TBD' or no --issue is refused, because the Flag expiry check fails a new
+ * experiment without one.
  * Past its expiry it is a CI warning and a line in its owner's nightly issue
  * (src/config/flag-lifecycle.ts), never a failure on main.
  */
@@ -28,12 +30,12 @@ export interface NewFlag {
 }
 
 /**
- * Mirrors DEFAULT_EXPERIMENT_DAYS and ISSUE_TBD in src/config/flag-lifecycle.ts (a test
+ * Mirror DEFAULT_EXPERIMENT_DAYS and REAL_ISSUE in src/config/flag-lifecycle.ts (a test
  * keeps them equal). Not imported: flags:migrate copies scripts/flags into a scratch repo
  * that has only the flag-spec files.
  */
 export const EXPERIMENT_DAYS = 90;
-export const ISSUE_PLACEHOLDER = 'TBD';
+export const REAL_ISSUE = /^(?:#\d+|https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)$/;
 
 const NAME = /^[A-Z][A-Z0-9_]*$/;
 const VALUE = /^[\w.-]+$/;
@@ -67,12 +69,17 @@ export function parseNewFlag(argv: string[], today: Date = new Date()): NewFlag 
   if (values.expires !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(values.expires)) {
     problems.push('--expires YYYY-MM-DD');
   }
+  if (flag.kind === 'experiment' && !REAL_ISSUE.test(values.issue ?? '')) {
+    problems.push(
+      `--issue '#123' (a real tracking issue for the experiment, not '${values.issue ?? ''}'; 'TBD' is refused)`
+    );
+  }
   if (problems.length > 0) throw new Error(`flags:new needs ${problems.join(', ')}`);
   const out: NewFlag = { ...(flag as Omit<NewFlag, 'note'>), note: values.note };
   if (flag.kind === 'experiment') {
     const later = new Date(today.getTime() + EXPERIMENT_DAYS * 86_400_000);
     out.expires = values.expires ?? later.toISOString().slice(0, 10);
-    out.issue = values.issue ?? ISSUE_PLACEHOLDER;
+    out.issue = values.issue;
   }
   if (values.context) out.context = values.context;
   return out;

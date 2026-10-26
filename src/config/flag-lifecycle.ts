@@ -6,14 +6,19 @@
  * `issue` and `context`; experiments listed before that get their expiry from
  * flag-lifecycle-backfill.ts.
  *
- * Warn first. An expired experiment, a 'TBD' issue past ISSUE_TBD_UNTIL, or a missing
+ * Warn first. An expired experiment, a 'TBD' issue from ISSUE_TBD_WARN_FROM, or a missing
  * expiry past MISSING_EXPIRES_GRACE is a warning: an annotation on CI runs and a nightly
  * issue per owner (scripts/flags/expiry.ts), never a failure on main or in the merge queue.
  * Hard failures are only for what a PR does, checked against its merge base:
- * - a spec it adds or edits needs its own valid `expires`, in the future and at most
- *   MAX_EXPIRY_DAYS out, and an issue ('TBD' only before ISSUE_TBD_UNTIL) (specProblems);
+ * - a NEW experiment needs its own valid `expires`, in the future and at most MAX_EXPIRY_DAYS
+ *   out, and a real issue ('#123' or an issue URL) from day one (specProblems);
+ * - an EXISTING experiment whose spec it edits needs the same `expires`; its issue may stay
+ *   'TBD' until ISSUE_TBD_UNTIL;
  * - from the grace date, a flag whose registry entry it touches must already have an expiry
- *   and, from ISSUE_TBD_UNTIL, a real issue (touchedProblems), so the warnings can't just pile up;
+ *   (touchedProblems);
+ * - from ISSUE_TBD_UNTIL, an existing experiment it edits or touches needs a real issue: its
+ *   own, or the open nightly 'Flag expiry: <owner>' issue for its owner, which counts for every
+ *   flag that owner still has on 'TBD', so nobody has to hand-edit 350 specs;
  * - the backfill may only shrink or move dates earlier (scripts/flags/expiry.ts).
  * A unit test also fails while the backfill names a flag that is no longer an experiment.
  *
@@ -24,9 +29,16 @@
  */
 import { FLAG_EXPIRY_BACKFILL } from './flag-lifecycle-backfill.js';
 
-/** A tracking issue not filed yet. Warned about from ISSUE_TBD_UNTIL; who files them is the lead's call. */
+/** A tracking issue not filed yet. Only existing experiments may carry it (pnpm flags:new refuses it). */
 export const ISSUE_TBD = 'TBD';
-export const ISSUE_TBD_UNTIL = '2026-12-01';
+/** From this date 'TBD' is a warning (annotation + the owner's nightly issue). */
+export const ISSUE_TBD_WARN_FROM = '2026-12-01';
+/**
+ * From this date a PR that edits or touches an experiment still on 'TBD' fails, unless its
+ * owner's nightly issue is open. Six weeks after the warnings start, so the nightly issues
+ * exist first and there is no day-one wall of failing PRs (Seth, 2026-10-26).
+ */
+export const ISSUE_TBD_UNTIL = '2027-01-15';
 /** An existing experiment with no expiry anywhere is warned about from this date. */
 export const MISSING_EXPIRES_GRACE = '2026-12-01';
 /** The furthest a new or edited expires may be: a flag gets reviewed at least twice a year. */
@@ -34,9 +46,21 @@ export const MAX_EXPIRY_DAYS = 180;
 /** pnpm flags:new gives a new experiment this long. */
 export const DEFAULT_EXPERIMENT_DAYS = 90;
 
+/**
+ * A real tracking issue: '#123' or a GitHub issue URL. Mirrored as REAL_ISSUE in
+ * scripts/flags/new-flag.ts (a test keeps them equal).
+ */
+export const REAL_ISSUE = /^(?:#\d+|https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)$/;
+export const isRealIssue = (issue: string | undefined): boolean =>
+  !!issue && REAL_ISSUE.test(issue);
+
+/** The open nightly issue for an owner ('#123'), or undefined. Called only past ISSUE_TBD_UNTIL. */
+export type OwnerIssue = (owner: string) => string | undefined;
+
 /** The fields this module reads: a FlagSpec, or a spec parsed from a registry file's text. */
 interface LifecycleFields {
   kind: string;
+  owner?: string;
   expires?: string;
   issue?: string;
   context?: string;
@@ -87,21 +111,43 @@ export function lifecycleWarnings(name: string, spec: LifecycleFields, today: st
       `${name}: expired ${life.expires}. Delete it, make it permanent (kind kill-switch/config), or move the date with a reason in context`
     );
   }
-  if (life.issue === ISSUE_TBD && today >= ISSUE_TBD_UNTIL)
+  if (life.issue === ISSUE_TBD && today >= ISSUE_TBD_WARN_FROM)
     out.push(
-      `${name}: issue is still '${ISSUE_TBD}' after ${ISSUE_TBD_UNTIL}; file one and put its number here`
+      `${name}: issue is still '${ISSUE_TBD}' after ${ISSUE_TBD_WARN_FROM}; file one and put its number here (a PR touching it fails from ${ISSUE_TBD_UNTIL} unless this owner issue is open)`
     );
   return out;
 }
 
 /**
+ * Past ISSUE_TBD_UNTIL, an existing experiment without a real issue of its own: empty when its
+ * owner's nightly issue is open (that issue tracks it), else the problem.
+ */
+function tbdProblem(
+  name: string,
+  spec: LifecycleFields,
+  issue: string | undefined,
+  today: string,
+  ownerIssue: OwnerIssue | undefined,
+  what: string
+): string[] {
+  if (isRealIssue(issue) || today < ISSUE_TBD_UNTIL) return [];
+  if (spec.owner && ownerIssue?.(spec.owner)) return [];
+  return [
+    `${name}: ${what} after ${ISSUE_TBD_UNTIL} and its issue is '${issue ?? ISSUE_TBD}'; put a real issue ('#123') in its spec, or wait for the nightly 'Flag expiry: ${spec.owner ?? '<owner>'}' issue to open`,
+  ];
+}
+
+/**
  * The hard rule, for a spec a PR adds or edits: an experiment must carry its own valid
- * `expires` after `today`, and an issue. Empty when the spec may land.
+ * `expires` after `today`, and an issue. A new experiment (not one at the merge base) needs a
+ * real issue from day one; an existing one may keep 'TBD' until ISSUE_TBD_UNTIL, or past it
+ * while its owner's nightly issue is open. Empty when the spec may land.
  */
 export function specProblems(
   name: string,
   spec: Partial<LifecycleFields>,
-  today: string
+  today: string,
+  opts: { isNew: boolean; ownerIssue?: OwnerIssue } = { isNew: true }
 ): string[] {
   if (spec.kind !== 'experiment') return [];
   const out: string[] = [];
@@ -117,19 +163,33 @@ export function specProblems(
       `${name}: expires ${spec.expires} is more than ${MAX_EXPIRY_DAYS} days out; pick a nearer review date`
     );
   }
-  if (!spec.issue)
-    out.push(`${name}: a new or edited experiment needs issue ('#123', a URL, or '${ISSUE_TBD}')`);
-  else if (spec.issue === ISSUE_TBD && today >= ISSUE_TBD_UNTIL) {
-    out.push(`${name}: issue 'TBD' after ${ISSUE_TBD_UNTIL}; file one and put its number here`);
-  }
+  if (opts.isNew) {
+    if (!isRealIssue(spec.issue))
+      out.push(
+        `${name}: a new experiment needs a real issue ('#123' or an issue URL) from day one, not '${spec.issue ?? ''}'; file it, then pnpm flags:new … --issue '#123'`
+      );
+  } else if (!spec.issue)
+    out.push(`${name}: an edited experiment needs issue ('#123', an issue URL, or '${ISSUE_TBD}')`);
+  else if (spec.issue !== ISSUE_TBD && !isRealIssue(spec.issue))
+    out.push(`${name}: issue '${spec.issue}' is not '#123', an issue URL, or '${ISSUE_TBD}'`);
+  else
+    out.push(
+      ...tbdProblem(name, spec as LifecycleFields, spec.issue, today, opts.ownerIssue, 'edited')
+    );
   return out;
 }
 
 /**
  * From the grace dates, a PR that touches an experiment's registry entry (spec or comments) has
- * to bring it up to date: an expiry somewhere (its spec or the backfill), and a real issue.
+ * to bring it up to date: an expiry somewhere (its spec or the backfill) from
+ * MISSING_EXPIRES_GRACE, and from ISSUE_TBD_UNTIL a real issue or its owner's open nightly issue.
  */
-export function touchedProblems(name: string, spec: LifecycleFields, today: string): string[] {
+export function touchedProblems(
+  name: string,
+  spec: LifecycleFields,
+  today: string,
+  ownerIssue?: OwnerIssue
+): string[] {
   if (spec.kind !== 'experiment') return [];
   const life = flagLifecycle(name, spec);
   const out: string[] = [];
@@ -138,10 +198,6 @@ export function touchedProblems(name: string, spec: LifecycleFields, today: stri
       `${name}: touched after ${MISSING_EXPIRES_GRACE} and still has no expires; add expires, issue and context to its spec`
     );
   }
-  if (life.issue === ISSUE_TBD && today >= ISSUE_TBD_UNTIL) {
-    out.push(
-      `${name}: touched after ${ISSUE_TBD_UNTIL} and its issue is still 'TBD'; file one and put its number in the spec`
-    );
-  }
+  out.push(...tbdProblem(name, spec, life.issue, today, ownerIssue, 'touched'));
   return out;
 }

@@ -84,7 +84,7 @@ Read an on/off env flag with `flagOn('NAME')` from `env-flag.ts`. It accepts
 `on|true|1|live` and `off|false|0` in any case and falls back to the default in
 `flag-manifest.ts`. Every env flag read in `src/` must be listed in
 `FLAG_MANIFEST` (name, default, owner, kind); `__tests__/flag-manifest.test.ts`
-fails otherwise. New flag: `pnpm flags:new NAME --default off --owner voice --kind experiment --note "on: ..."`
+fails otherwise. New flag: `pnpm flags:new NAME --default off --owner voice --kind experiment --issue '#123' --note "on: ..."`
 writes `flags/NAME.ts` and regenerates the barrel; don't add entries to `flag-manifest*.ts`.
 
 Moving legacy entries to flag files is `pnpm flags:move --file flag-manifest-blocks.ts
