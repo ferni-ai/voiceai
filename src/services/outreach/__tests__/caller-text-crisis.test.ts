@@ -258,6 +258,30 @@ describe('call-result-text final screen (#2861)', () => {
     expect(callResultText('Chase Bank', o)).toBe(`It's Ferni. ${o.outcome.trim()}`);
   });
 
+  it('an empty contact name does not switch the final screen off (#2892)', () => {
+    const o: Outcome = {
+      callId: 'c-2892',
+      status: 'no_answer',
+      objectiveAchieved: false,
+      outcome: 'They said to send the money tonight',
+    };
+    const text = callResultText('', o);
+    expect(text).not.toContain('send the money');
+    expect(text).toBe(`It's Ferni. ${riskyCallerLine('')}`);
+  });
+
+  it('a short contact name is not cut out of their words before the screen (#2892)', () => {
+    const o: Outcome = {
+      callId: 'c-2892',
+      status: 'no_answer',
+      objectiveAchieved: false,
+      outcome: 'Pa said: Pay the money to him first',
+    };
+    const text = callResultText('Pa', o);
+    expect(text).not.toContain('Pay the money');
+    expect(text).toBe(`It's Ferni. ${riskyCallerLine('Pa')}`);
+  });
+
   it('a call that never connected is never reported as "I talked to"', () => {
     const o: Outcome = {
       callId: 'c-2861',

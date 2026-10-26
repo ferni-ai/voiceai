@@ -80,6 +80,19 @@ function capped(text: string): string {
 }
 
 /**
+ * The text with the contact's name masked as a whole word, so the screen
+ * ignores the owner's own words (#2892). A name with fewer than 3 letters or
+ * digits isn't masked: splitting on '' blanked the whole screen, and on "Pa"
+ * it turned "Pay the money" into "y the money".
+ */
+function withoutName(text: string, contactName: string): string {
+  const name = contactName.trim();
+  if (name.replace(/[^\p{L}\p{N}]/gu, '').length < 3) return text;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'gu'), ' ');
+}
+
+/**
  * The last step before the owner sees it: a screen of the exact string, never
  * a cut. It catches what only this string can hold: the cap's "..." after a
  * word ("www..."), or a quote and the summary joining into a request. If
@@ -88,7 +101,7 @@ function capped(text: string): string {
  * the caller's, so it doesn't count: a call to "Chase Bank" still reports.
  */
 function screened(text: string, contactName: string, prefix = ''): string {
-  if (!isRiskyCallerText(text.split(contactName).join(' '))) return text;
+  if (!isRiskyCallerText(withoutName(text, contactName))) return text;
   const safety = text.includes(crisisCallerLine(contactName));
   return [prefix, safety ? crisisCallerLine(contactName) : '', riskyCallerLine(contactName)]
     .filter(Boolean)
