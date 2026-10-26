@@ -76,7 +76,7 @@ let n = 0;
 const newId = () => `wf_${++n}`;
 
 describe('the same event, stored again under a nearby date, is asked once', () => {
-  it('the audit chain: answers re-dated to D+1 and to the call day, one closing nothing', async () => {
+  it('the audit chain over 5 calls: one ask, answers re-dated to D+1 (a) and the call day (b2)', async () => {
     const w = worldStore();
     const obs = (value: string, eventDate: string, at: string, sessionId: string) =>
       ({
@@ -127,9 +127,14 @@ describe('the same event, stored again under a nearby date, is asked once', () =
     expect(open.map((f) => f.eventDate).sort()).toEqual(['2026-10-24', '2026-10-25']);
     expect(open.every((f) => f.raisedOn === undefined)).toBe(true); // new subject+day pairs
 
-    // Calls 2 and 3, the next days: nothing more about Sam's dinner.
-    expect(await call('2026-10-26T13:01:00Z', 'call-2')).toBeNull();
-    expect(await call('2026-10-27T13:01:00Z', 'call-3')).toBeNull();
+    // Calls 2 to 5, the next days: nothing more about Sam's dinner.
+    for (const [day, session] of [
+      ['2026-10-26', 'call-2'],
+      ['2026-10-27', 'call-3'],
+      ['2026-10-28', 'call-4'],
+      ['2026-10-29', 'call-5'],
+    ])
+      expect(await call(`${day}T13:01:00Z`, session)).toBeNull();
   });
 
   it('(a) chain: an answer told in a later call that closes the asked fact', () => {
@@ -153,6 +158,18 @@ describe('the same event, stored again under a nearby date, is asked once', () =
     const evening = answer({ observedAt: `${ago(0)}T01:00:00Z` });
     expect(dueDate([old, evening], TODAY)?.id).toBe('b');
     expect(dueDate([old, evening], TODAY, { timeZone: 'America/New_York' })).toBeNull();
+  });
+
+  it('(b1) the same event restated in the asking call, any days apart', () => {
+    const job = asked({ value: 'job interview', kind: 'event', eventDate: ago(8) });
+    const restated = fact({
+      id: 'b',
+      value: 'the interview',
+      eventDate: ago(1),
+      source: { kind: 'summary', sessionId: 'call-1' },
+    });
+    expect(dueDate([restated], TODAY)?.id).toBe('b');
+    expect(dueDate([job, restated], TODAY)).toBeNull(); // 7 days apart: not (c), only (b1)
   });
 
   it(`(c) same kind and words within ${SAME_EVENT_DAYS} days, from any call`, () => {
@@ -228,6 +245,27 @@ describe('a different event of the same person is still asked', () => {
       later({ value: 'concert', kind: 'event', eventDate: ago(0) }),
     ],
   ];
+
+  const inCall = { source: { kind: 'summary' as const, sessionId: 'call-1' } };
+  cases.push(
+    [
+      "mom's surgery, then 'she fell in the kitchen', told in the asking call",
+      asked({ ...mom, value: 'knee surgery', kind: 'medical' }),
+      fact({
+        ...mom,
+        ...inCall,
+        id: 'b',
+        value: 'fell in the kitchen',
+        kind: 'medical',
+        eventDate: ago(1),
+      }),
+    ],
+    [
+      'dinner with Sam, then his dentist visit (another kind), told in the asking call',
+      asked({ value: 'dinner', kind: 'event' }),
+      fact({ ...inCall, id: 'b', value: 'dentist', kind: 'medical', eventDate: ago(1) }),
+    ]
+  );
 
   it.each(cases)('%s', (_label, prior, next) => {
     expect(dueDate([prior, next], TODAY)?.id).toBe('b');

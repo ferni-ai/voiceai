@@ -11,7 +11,10 @@
  *
  * (a) chain: one supersedes the other (resolve.ts / dates/store.ts link them);
  * (b) answer in the call: told in the call where Ferni asked about that person,
- *     and not dated after that call (a plan made then is a new event);
+ *     not dated after that call, and either the same event in other words (b1:
+ *     the same kind and words as (c), any day) or nothing but how it went (b2:
+ *     "pretty well", no content words left). "She also fell in the kitchen",
+ *     told while answering about her surgery, is its own event and is asked;
  * (c) same subject, same kind and similar words, within SAME_EVENT_DAYS.
  *
  * Yearly dates are never matched here (recall.ts), and an ask only quiets the
@@ -69,21 +72,10 @@ const chained = (f: Fact, g: Fact): boolean =>
   (f.supersedes ?? []).includes(g.id) || g.supersededBy === f.id;
 
 /**
- * Told in the call that raised `g`: its session when the raise recorded one (raisedIn),
- * else the caller's day it was told on is the raise day (older raises kept only the day).
- * Dated after that call, it is something new they mentioned, not how it went.
+ * The same kind (when both are known; with only one kind, the words decide) and content-word
+ * Jaccard at least SIMILAR_WORDS. Empty word sets match nothing.
  */
-function answeredInCall(f: Fact, day: string, asked: AskedEvent, timeZone: string): boolean {
-  const g = asked.fact;
-  const raisedOn = g.raisedOn as string;
-  if (day > (asked.day > raisedOn ? asked.day : raisedOn)) return false;
-  if (g.raisedIn) return f.source?.sessionId === g.raisedIn;
-  const told = Date.parse(f.observedAt);
-  return Boolean(told) && callMomentFor(new Date(told), timeZone).date === raisedOn;
-}
-
-function similar(f: Fact, day: string, asked: AskedEvent): boolean {
-  if (Math.abs(daysBetween(asked.day, day)) > SAME_EVENT_DAYS) return false;
+function sameWords(f: Fact, asked: AskedEvent): boolean {
   if (f.kind && asked.fact.kind && f.kind !== asked.fact.kind) return false;
   const a = new Set(eventWords(f));
   const b = new Set(asked.words);
@@ -91,6 +83,30 @@ function similar(f: Fact, day: string, asked: AskedEvent): boolean {
   const shared = [...a].filter((w) => b.has(w)).length;
   return shared / (a.size + b.size - shared) >= SIMILAR_WORDS;
 }
+
+/** Nothing but how it went ("pretty well", "went great"): no event of its own. */
+const pureOutcome = (f: Fact): boolean => eventWords(f).length === 0;
+
+/**
+ * Told in the call that raised `g` (b): its session when the raise recorded one (raisedIn),
+ * else the caller's day it was told on is the raise day (older raises kept only the day).
+ * Dated after that call, it is something new they mentioned, not how it went. Only the same
+ * event in other words (b1) or a bare outcome (b2) is the answer; anything with content of
+ * its own ("she fell in the kitchen") is a new event, asked about in its turn.
+ */
+function answeredInCall(f: Fact, day: string, asked: AskedEvent, timeZone: string): boolean {
+  const g = asked.fact;
+  const raisedOn = g.raisedOn as string;
+  if (day > (asked.day > raisedOn ? asked.day : raisedOn)) return false;
+  if (!sameWords(f, asked) && !pureOutcome(f)) return false;
+  if (g.raisedIn) return f.source?.sessionId === g.raisedIn;
+  const told = Date.parse(f.observedAt);
+  return Boolean(told) && callMomentFor(new Date(told), timeZone).date === raisedOn;
+}
+
+/** (c): the same event in other words within SAME_EVENT_DAYS, told in any call. */
+const similar = (f: Fact, day: string, asked: AskedEvent): boolean =>
+  Math.abs(daysBetween(asked.day, day)) <= SAME_EVENT_DAYS && sameWords(f, asked);
 
 /**
  * True when `f`, due as `moment` on `day`, is an event already asked about at that moment
