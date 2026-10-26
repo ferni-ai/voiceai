@@ -5,17 +5,17 @@ import XCTest
 /// app through the handlers it installs at launch.
 @MainActor
 final class CallIntentTests: XCTestCase {
-    func testMuteFromTheLockScreenTogglesTheCall() async throws {
-        var toggles = 0
-        let before = MuteCallIntent.toggle
-        defer { MuteCallIntent.toggle = before }
-        MuteCallIntent.toggle = { toggles += 1 }
+    func testMuteFromTheLockScreenReachesTheCall() async throws {
+        var mutes = 0
+        let before = MuteCallIntent.mute
+        defer { MuteCallIntent.mute = before }
+        MuteCallIntent.mute = { mutes += 1 }
         _ = try await MuteCallIntent().perform()
-        XCTAssertEqual(toggles, 1)
+        XCTAssertEqual(mutes, 1)
     }
 
     func testTheAppInstallsBothHandlers() {
         XCTAssertNotNil(EndCallIntent.end, "End always reaches the call")
-        XCTAssertNotNil(MuteCallIntent.toggle)
+        XCTAssertNotNil(MuteCallIntent.mute)
     }
 }

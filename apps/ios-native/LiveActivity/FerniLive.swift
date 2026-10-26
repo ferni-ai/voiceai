@@ -69,14 +69,23 @@ struct CallLiveActivity: Widget {
             .contentTransition(.numericText())
     }
 
-    private func muteButton(_ muted: Bool) -> some View {
-        Button(intent: MuteCallIntent()) {
-            Image(systemName: muted ? "mic.slash.fill" : "mic.fill")
+    /// Mute only: a locked phone can mute the call but never turn the mic back
+    /// on. Muted, it's a plain sign; unmuting is in the app (#2868 item 45).
+    @ViewBuilder private func muteButton(_ muted: Bool) -> some View {
+        if muted {
+            Image(systemName: "mic.slash.fill")
                 .frame(width: 44, height: 44)
                 .background(.thinMaterial, in: Circle())
+                .accessibilityLabel("Muted. Open Ferni to unmute.")
+        } else {
+            Button(intent: MuteCallIntent()) {
+                Image(systemName: "mic.fill")
+                    .frame(width: 44, height: 44)
+                    .background(.thinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Mute")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(muted ? "Unmute" : "Mute")
     }
 
     private var endButton: some View {
