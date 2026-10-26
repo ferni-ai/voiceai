@@ -16,12 +16,23 @@
  * call's `busy`, early-goodbye-call.ts), for an unknown id, or with
  * HANDOFF_TALK_THROUGH, which says the goodbye its own way.
  *
+ * Another handoff can start while the goodbye is pending or playing: a tap, or a
+ * second tool call. For a different teammate the goodbye is cancelled (its speech is
+ * stopped, or stopped as soon as the SDK makes it) and forgotten, so the caller never
+ * hears "here's Ferni" before the teammate they tapped. For the same teammate, a tool
+ * whose own path then fails reports the teammate as on the call once they are.
+ *
  * @module tools/handoff/early-goodbye
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { AgentId } from '../../services/agent-bus.js';
 import type { HandoffResult } from './executor.js';
-import { getSessionState, hasSessionState } from './session-state.js';
+import {
+  getSessionState,
+  hasSessionState,
+  setCurrentAgent as setSessionAgent,
+} from './session-state.js';
+import { setCurrentAgent } from './state.js';
 import { handoffNotConfirmed } from './unconfirmed-handoff.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
@@ -41,8 +52,15 @@ export interface EarlyGoodbyeCall {
   activeAgent(): OutgoingPersona | null;
   /** A handoff is already running, or a crisis verdict holds the reply: no goodbye now. */
   busy(): boolean;
+  /** A handoff is running or holds the call's handoff lock (it may still bring the teammate). */
+  running?(): boolean;
   /** The departure line, as the orchestrator picks it. */
   line(agent: OutgoingPersona, to: string): string;
+}
+
+/** The SDK's handle for a spoken line (its 'speech_created' event). */
+interface SpeechHandleLike {
+  interrupt(force?: boolean): unknown;
 }
 
 interface Said {
@@ -50,10 +68,32 @@ interface Said {
   to: string;
   text: string;
   at: number;
+  /** The goodbye's speech, once the SDK has made it */
+  handle?: SpeechHandleLike;
+  /** Another handoff took over: the goodbye must not play */
+  cancelled?: boolean;
+  stopWatching?: () => void;
 }
 
 const calls = new Map<string, EarlyGoodbyeCall>();
 const said = new Map<string, Said>();
+
+/**
+ * A tool handoff past its checks and not yet done. The caller's tap to someone else wins
+ * outright: `chosen` is that teammate, and the tool's queued handoff never runs
+ * (llm-handoff.ts toolHandoffSuperseded).
+ */
+interface ToolHandoff {
+  to: string;
+  chosen?: string;
+}
+const toolHandoffs = new Map<string, ToolHandoff>();
+
+/** The teammate the caller chose instead, when the tool's queued handoff to `target` lost. */
+export function toolHandoffSuperseded(sessionId: string, target: string): string | null {
+  const tool = toolHandoffs.get(sessionId);
+  return tool && tool.to === plain(target) && tool.chosen ? tool.chosen : null;
+}
 
 export function handoffEarlyGoodbye(env: Env = process.env): boolean {
   return flagOn('HANDOFF_EARLY_GOODBYE', env) && !flagOn('HANDOFF_TALK_THROUGH', env);
@@ -101,9 +141,14 @@ async function sayEarly(
     if (!to || to === plain(agent.personaId)) return null;
     // The persona lookup awaited: the call may have moved on meanwhile
     if (call.activeAgent() !== agent || call.busy()) return null;
+    const pending = said.get(sessionId);
+    if (pending && pending.to === to && Date.now() - pending.at <= EARLY_GOODBYE_TTL_MS)
+      return null;
+    if (pending) cancelEarly(sessionId, pending, to); // a goodbye for someone else: not now
     const text = call.line(agent, to);
+    const early: Said = { from: agent.personaId, to, text, at: Date.now() };
+    watchSpeech(agent.session, early);
     agent.say(text, { allowInterruptions: false });
-    const early = { from: agent.personaId, to, text, at: Date.now() };
     said.set(sessionId, early);
     log.info({ sessionId, from: agent.personaId, to }, '🎭 [GOODBYE] Said early');
     return early;
@@ -111,6 +156,61 @@ async function sayEarly(
     log.warn({ sessionId, error: String(error) }, '🎭 [GOODBYE] Early goodbye skipped');
     return null;
   }
+}
+
+const SPEECH_CREATED = 'speech_created';
+
+interface SpeechEvents {
+  on?: (event: string, fn: (ev: unknown) => void) => unknown;
+  off?: (event: string, fn: (ev: unknown) => void) => unknown;
+}
+
+/** Keep the goodbye's speech handle (the first say the session makes after it), to stop it. */
+function watchSpeech(session: unknown, early: Said): void {
+  const s = (session ?? {}) as SpeechEvents;
+  if (typeof s.on !== 'function' || typeof s.off !== 'function') return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const onCreated = (ev: unknown): void => {
+    const { source, speechHandle } = (ev ?? {}) as {
+      source?: string;
+      speechHandle?: SpeechHandleLike;
+    };
+    if (source !== 'say' || !speechHandle) return;
+    stop();
+    early.handle = speechHandle;
+    if (early.cancelled) silence(early); // cancelled while it waited in the queue
+  };
+  const stop = (): void => {
+    clearTimeout(timer);
+    s.off?.(SPEECH_CREATED, onCreated);
+    early.stopWatching = undefined;
+  };
+  early.stopWatching = stop;
+  timer = setTimeout(stop, EARLY_GOODBYE_TTL_MS);
+  timer.unref?.();
+  s.on(SPEECH_CREATED, onCreated);
+}
+
+function silence(early: Said): void {
+  try {
+    early.handle?.interrupt(true); // said without interruptions: only a forced stop ends it
+  } catch (error) {
+    log.warn({ to: early.to, error: String(error) }, '🎭 [GOODBYE] Early goodbye not stopped');
+  }
+}
+
+/** Another handoff took over: the goodbye stops (or never starts) and is forgotten. */
+function cancelEarly(sessionId: string, early: Said, by: string): void {
+  early.cancelled = true;
+  if (said.get(sessionId) === early) said.delete(sessionId);
+  if (early.handle) {
+    early.stopWatching?.();
+    silence(early);
+  }
+  log.info(
+    { sessionId, to: early.to, by },
+    '🎭 [GOODBYE] Early goodbye cancelled: another handoff'
+  );
 }
 
 /** A goodbye said early that no handoff has taken yet (llm-handoff.ts: never leave it hanging). */
@@ -133,8 +233,13 @@ export async function withEarlyGoodbye(
   teammate: string,
   run: (onCleared: (to: string) => Promise<unknown>) => Promise<HandoffResult>
 ): Promise<HandoffResult> {
-  const early: { said?: Said | null } = {};
+  const early: { said?: Said | null; cleared?: boolean; tool?: ToolHandoff } = {};
   const onCleared = async (to: string): Promise<void> => {
+    early.cleared = true; // past the same-persona, rate and unlock checks
+    if (sessionId && handoffEarlyGoodbye()) {
+      early.tool = { to: plain(to) };
+      toolHandoffs.set(sessionId, early.tool);
+    }
     early.said = await sayEarly(sessionId, to);
   };
   let result: HandoffResult;
@@ -144,9 +249,86 @@ export async function withEarlyGoodbye(
     if (!early.said || !sessionId) throw error;
     log.warn({ sessionId, error: String(error) }, '🎭 [GOODBYE] Handoff threw after the goodbye');
     result = notConfirmed(sessionId, early.said, teammate);
+  } finally {
+    if (sessionId && early.tool && toolHandoffs.get(sessionId) === early.tool) {
+      toolHandoffs.delete(sessionId);
+    }
   }
-  if (result.success || !early.said || !sessionId) return result;
+  if (result.success || !sessionId || !handoffEarlyGoodbye()) return result;
+  const call = calls.get(sessionId);
+  if (early.cleared && call && (await joinedAnyway(call, result.targetAgent))) {
+    return joined(sessionId, early.said ?? null, result);
+  }
+  if (early.tool?.chosen) return choseOther(early.tool.chosen, teammate, result);
+  if (!early.said) return result;
+  if (early.said.cancelled) return dropped(early.said, teammate, result);
   return toldTheTruth(sessionId, early.said, teammate, result);
+}
+
+/** The longest a failed tool waits for a handoff still running (a tap) before it reports. */
+export const JOINED_SETTLE_MS = 8_000;
+const SETTLE_POLL_MS = 50;
+
+/** After the handoff that is running settles: is `target` the persona on the call? */
+async function joinedAnyway(call: EarlyGoodbyeCall, target: string): Promise<boolean> {
+  const until = Date.now() + JOINED_SETTLE_MS;
+  while (call.running?.() && Date.now() < until) {
+    // eslint-disable-next-line no-await-in-loop -- polling until the other handoff settles
+    await new Promise((resolve) => setTimeout(resolve, SETTLE_POLL_MS));
+  }
+  const agent = call.activeAgent();
+  return Boolean(agent && target && plain(agent.personaId) === plain(target));
+}
+
+/** The teammate came on by another path (a tap): the tool says so, never that it failed. */
+function joined(sessionId: string, early: Said | null, result: HandoffResult): HandoffResult {
+  if (early && said.get(sessionId) === early) said.delete(sessionId);
+  // The executor put the previous persona back as current (unconfirmed-handoff.ts)
+  const target = result.targetAgent as AgentId;
+  if (hasSessionState(sessionId)) setSessionAgent(getSessionState(sessionId), target);
+  setCurrentAgent(target);
+  log.info({ sessionId, to: target }, '🎭 [GOODBYE] Teammate joined by another path');
+  return {
+    ...result,
+    success: true,
+    error: undefined,
+    greetingSpoken: true,
+    instructionsUpdated: true,
+  };
+}
+
+/** The caller turned to someone else first: no honest line (that handoff speaks), no claim. */
+/** The caller tapped someone else during the setup: that handoff won, this one never ran. */
+async function choseOther(
+  chosen: string,
+  teammate: string,
+  result: HandoffResult
+): Promise<HandoffResult> {
+  const name = firstName(teammate);
+  let other = chosen;
+  try {
+    other = firstName((await import('../../personas/index.js')).getPersonaDisplayName(chosen));
+  } catch {
+    // the id is still a name the model can read
+  }
+  log.info({ to: result.targetAgent, chosen }, '🎭 [GOODBYE] The caller chose another teammate');
+  return {
+    ...result,
+    success: false,
+    error:
+      `They chose ${other} instead, so ${name} isn't joining and ${other} is on the call ` +
+      `now. Don't say ${name} joined, and don't hand off to ${name} unless they ask again.`,
+  };
+}
+
+function dropped(early: Said, teammate: string, result: HandoffResult): HandoffResult {
+  const name = firstName(teammate);
+  log.info({ to: early.to }, '🎭 [GOODBYE] Handoff dropped: the caller turned to someone else');
+  return {
+    ...result,
+    success: false,
+    error: `They asked for someone else before ${name} joined, so ${name} isn't on the call. Don't say ${name} joined.`,
+  };
 }
 
 function notConfirmed(sessionId: string, early: Said, teammate: string): HandoffResult {
@@ -195,7 +377,15 @@ function toldTheTruth(
 export function takeEarlyGoodbye(sessionId: string, target: string, now = Date.now()): Said | null {
   const early = said.get(sessionId);
   said.delete(sessionId);
-  if (!early || early.to !== plain(target)) return null;
+  // A tap to someone else while the tool's handoff waits: the tap wins (toolHandoffSuperseded)
+  const tool = toolHandoffs.get(sessionId);
+  if (tool && tool.to !== plain(target)) tool.chosen = plain(target);
+  if (!early) return null;
+  // A handoff to someone else: that goodbye must not play before this one
+  if (early.to !== plain(target)) {
+    cancelEarly(sessionId, early, plain(target));
+    return null;
+  }
   return now - early.at <= EARLY_GOODBYE_TTL_MS ? early : null;
 }
 
