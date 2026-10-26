@@ -106,20 +106,25 @@ describe('firestore index drift', () => {
     const drift = computeDrift(indexFile(), dev(), devAllow);
     expect(drift.wouldDelete).toEqual([]);
     expect(drift.staleAllow).toEqual([]);
-    expect(drift.allowedDelete).toHaveLength(12);
+    expect(drift.allowedDelete).toHaveLength(11);
     const prodTtls = prod().ttls.map((f) =>
       f.name.split('/collectionGroups/')[1].replace('/fields/', '.')
     );
-    expect(prodTtls).toHaveLength(16);
+    expect(prodTtls).toHaveLength(18);
+    // Each prod policy is either already on dev or one the next dev deploy adds.
+    const devTtls = new Set(
+      dev().ttls.map((f) => f.name.split('/collectionGroups/')[1].replace('/fields/', '.'))
+    );
     for (const ttl of prodTtls)
       expect(
-        drift.wouldCreate.some((c) => c.startsWith(`field override ${ttl} [TTL policy]`))
+        devTtls.has(ttl) ||
+          drift.wouldCreate.some((c) => c.startsWith(`field override ${ttl} [TTL policy]`))
       ).toBe(true);
   });
 
-  it('without the allow-list, dev fails on its 12 dev-only TTL policies', () => {
+  it('without the allow-list, dev fails on its 11 dev-only TTL policies', () => {
     const drift = computeDrift(indexFile(), dev());
-    expect(drift.wouldDelete).toHaveLength(12);
+    expect(drift.wouldDelete).toHaveLength(11);
     expect(report('ferni-dev', 'fixture', drift).ok).toBe(false);
   });
 
@@ -130,7 +135,7 @@ describe('firestore index drift', () => {
       'field override rate_limits.expireAt [TTL policy] indexes=[ASCENDING/COLLECTION, DESCENDING/COLLECTION, CONTAINS/COLLECTION]',
     ]);
     // ...and every dev-only entry is stale against prod, which has none of them.
-    expect(drift.staleAllow).toHaveLength(12);
+    expect(drift.staleAllow).toHaveLength(11);
   });
 
   it('an allow-list entry whose offset no longer matches the listing fails', () => {
@@ -149,11 +154,9 @@ describe('firestore index drift', () => {
 
   it('an allow-list entry for a policy that is gone fails', () => {
     const listing = dev();
-    listing.ttls = listing.ttls.filter(
-      (f) => !f.name.endsWith('/minor_care_holds/fields/expireAt')
-    );
+    listing.ttls = listing.ttls.filter((f) => !f.name.endsWith('/security_events/fields/expireAt'));
     const out = report('ferni-dev', 'fixture', computeDrift(indexFile(), listing, devAllow));
     expect(out.ok).toBe(false);
-    expect(out.text).toContain('! minor_care_holds.expireAt offset=none');
+    expect(out.text).toContain('! security_events.expireAt offset=none');
   });
 });
