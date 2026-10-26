@@ -27,6 +27,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { writeHeld } from '../utils/minor-care.js';
 import type { MusicSessionContext, MusicStartReason } from './music-session-context.js';
 
 // Import enhanced systems
@@ -1134,8 +1135,14 @@ export function recordTransitionFeedback(
     emotionalTone?: 'heavy' | 'light' | 'neutral' | 'crisis';
     isLateNight?: boolean;
     musicContext?: MusicSessionContext;
+    /** MINOR_CARE: the call's session, so a held caller's feedback is never learned or kept */
+    sessionId?: string;
   }
 ): void {
+  if (writeHeld(userId, context?.sessionId)) {
+    log.debug({ eventId, userId }, 'MINOR_CARE: transition feedback not recorded (held caller)');
+    return;
+  }
   // Update user learning
   updateUserLearning(
     userId,
@@ -1159,7 +1166,6 @@ export function recordTransitionFeedback(
   analytics.recordEngagement({
     eventId,
     timeToUserSpeechMs: feedback.timeToUserSpeechMs,
-    firstUserUtterance: feedback.userResponse,
     emotionalResponse: feedback.wasPositive ? 'positive' : 'neutral',
     continuedTopic: true, // TODO: detect from user response
     sessionContinuedMs: feedback.continuedSession ? 300000 : undefined, // 5 min assumed
@@ -1167,10 +1173,13 @@ export function recordTransitionFeedback(
 
   // Store music memory if it helped
   if (feedback.wasPositive && feedback.confidence > 0.6 && context?.musicContext) {
-    const memoryStored = storeMusicHelpedMemory(userId, context.musicContext, transitionType, {
-      userResponse: feedback.userResponse,
-      continuedSession: feedback.continuedSession,
-    });
+    const memoryStored = storeMusicHelpedMemory(
+      userId,
+      context.musicContext,
+      transitionType,
+      { userResponse: feedback.userResponse, continuedSession: feedback.continuedSession },
+      context.sessionId
+    );
 
     // Trigger persistence for memory
     if (memoryStored) {
