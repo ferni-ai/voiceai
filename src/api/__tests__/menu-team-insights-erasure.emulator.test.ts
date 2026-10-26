@@ -331,7 +331,8 @@ describe.skipIf(!emulator)('Team Insights, an erasure racing a write (Firestore 
     expect(failures).toBe(1);
     // Nothing of the user's own record went: it is marked, and its links are still there
     const record = (await recordOf(uid).get()).data();
-    expect(record).toMatchObject({ erasing: true, linkedIdentifiers: [linked] });
+    // ...with every field it had (the account still works; only marked writers stop)
+    expect(record).toMatchObject({ id: uid, erasing: true, linkedIdentifiers: [linked] });
     expect((await docOf(uid).get()).exists).toBe(true);
     // A write meanwhile (a live call) adds nothing, to the user or the phone profile left
     const agent = await agentProcess();
@@ -344,6 +345,8 @@ describe.skipIf(!emulator)('Team Insights, an erasure racing a write (Firestore 
     }
 
     expect((await deleteAccount(uid)).status).toBe(200);
+    // The retry clears everything, the records (and with them the mark) last
+    for (const id of [uid, authed, linked]) expect((await recordOf(id).get()).exists).toBe(false);
     expect(await docsNaming(uid, authed, linked)).toEqual([]);
     for (const id of [uid, authed, linked])
       expect(await recordOf(id).listCollections()).toEqual([]);

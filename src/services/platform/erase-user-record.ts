@@ -13,6 +13,7 @@
  * @module services/platform/erase-user-record
  */
 
+import { erasingMark } from '../../utils/erasing-mark.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -240,7 +241,7 @@ export async function eraseUserRecord(
 }
 
 /**
- * Marks each record `erasing` before anything is deleted. A write still running for the
+ * Marks each record `erasing` (utils/erasing-mark.ts) before anything is deleted. A write still running for the
  * person (a live call's team insight, insight-store.ts) reads the record in its own
  * transaction and stops on the mark, so it can't recreate a document under a record that
  * is about to go: the record itself is deleted last, since a retry reads the keys from it
@@ -250,13 +251,13 @@ export async function eraseUserRecord(
  * the erasure before anything is deleted.
  */
 async function markErasing(db: Db, userIds: readonly string[]): Promise<void> {
-  const erasingAt = new Date().toISOString();
+  const mark = erasingMark();
   await Promise.all(
     userIds.map(async (uid) =>
       db
         .collection(USER_RECORDS_COLLECTION)
         .doc(uid)
-        .update({ erasing: true, erasingAt })
+        .update(mark)
         .catch((error: unknown) => {
           if ((error as { code?: unknown } | null)?.code !== NOT_FOUND) throw error;
         })
