@@ -82,6 +82,29 @@ export async function smsCrisisReply(
   const mode = flagModeOf('SMS_CRISIS_SCREEN');
   const text = body.slice(0, SMS_MAX_CHARS);
   if (mode === 'off' || !text.trim()) return null;
+  if (mode === 'shadow') {
+    // Shadow never holds the reply: the read runs beside it. On Cloud Run the
+    // CPU may be throttled once the reply is sent, so the classifier's line can
+    // come late or not at all; the pattern and HELP fields are logged first,
+    // before any network call, so they always land.
+    const pattern = detectCrisis(text).isCrisis;
+    logScreen(mode, text, { crisis: pattern, pattern, risk: null }, 'pattern');
+    void screenSms(text, read).then(
+      (outcome) => logScreen(mode, text, outcome, 'classifier'),
+      () => undefined
+    );
+    return null;
+  }
+  const outcome = await screenSms(text, read);
+  logScreen(mode, text, outcome, 'classifier');
+  return outcome.crisis ? SMS_CRISIS_REPLY : null;
+}
+
+/** The read, falling back to the pattern guard alone when it throws. Never rejects. */
+async function screenSms(
+  text: string,
+  read: (text: string) => Promise<SmsCrisisRead>
+): Promise<SmsCrisisRead> {
   let outcome: SmsCrisisRead;
   try {
     outcome = await read(text);
@@ -94,25 +117,36 @@ export async function smsCrisisReply(
   // the classifier alone got 988 over its consent notice: only a pattern hit
   // counts there. HELP and INFO are always read in full: someone in crisis
   // types "help", and 988 beside Twilio's HELP reply is better than silence.
-  const help = HELP_WORDS.has(normalizeSms(text));
-  const keyword = isExactKeyword(text) && !help;
-  if (keyword && !outcome.pattern) outcome = { ...outcome, crisis: false };
+  if (isKeywordOnly(text) && !outcome.pattern) outcome = { ...outcome, crisis: false };
+  return outcome;
+}
+
+function isKeywordOnly(text: string): boolean {
+  return isExactKeyword(text) && !HELP_WORDS.has(normalizeSms(text));
+}
+
+/** One line per read, with verdicts and booleans only, never the words. */
+function logScreen(
+  mode: 'shadow' | 'on',
+  text: string,
+  outcome: SmsCrisisRead,
+  stage: 'pattern' | 'classifier'
+): void {
   // Twilio may answer HELP and INFO itself. `help` (any punctuation) and
   // `bareHelp` (the word alone) tell the shadow logs whether they reach us.
-  const bareHelp = HELP_WORDS.has(text.trim().toLowerCase());
   log.info(
     {
       mode,
+      stage,
       crisis: outcome.crisis,
       pattern: outcome.pattern,
       risk: outcome.risk,
-      keyword,
-      help,
-      bareHelp,
+      keyword: isKeywordOnly(text),
+      help: HELP_WORDS.has(normalizeSms(text)),
+      bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),
     },
     'SMS_CRISIS_SCREEN'
   );
-  return mode === 'on' && outcome.crisis ? SMS_CRISIS_REPLY : null;
 }
 
 /**

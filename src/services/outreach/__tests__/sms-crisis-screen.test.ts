@@ -208,12 +208,34 @@ describe('what the screen logs and how long it waits', () => {
     expect(await smsCrisisReply('HELP', crisisRead)).toBeNull();
     expect(await smsCrisisReply('help?', crisisRead)).toBeNull();
     expect(await smsCrisisReply('see you at 6', read(false))).toBeNull();
+    await vi.waitFor(() => expect(logged).toHaveLength(6));
     const fields = logged.map((args) => args[0] as Record<string, unknown>);
-    expect(fields.map((f) => [f.mode, f.help, f.bareHelp])).toEqual([
+    const byStage = (stage: string) =>
+      fields.filter((f) => f.stage === stage).map((f) => [f.mode, f.help, f.bareHelp]);
+    const expected = [
       ['shadow', true, true],
       ['shadow', true, false],
       ['shadow', false, false],
-    ]);
+    ];
+    // The pattern line goes before the reply, the classifier's line beside it.
+    expect(byStage('pattern')).toEqual(expected);
+    expect(byStage('classifier')).toEqual(expected);
+  });
+
+  it('in shadow, a hung classifier never holds the reply; on, it waits for the read', async () => {
+    const hung = (): Promise<SmsCrisisRead> => new Promise(() => {});
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+    let done = false;
+    void smsCrisisReply('STOP', hung).then(() => (done = true));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(done).toBe(true);
+
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    done = false;
+    void smsCrisisReply('i want to die tonight', hung).then(() => (done = true));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(done).toBe(false);
   });
 
   it('gives up on a hung classifier after 4 s, so the reply is never held longer', async () => {
