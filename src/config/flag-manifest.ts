@@ -226,6 +226,8 @@ const LEGACY_FLAG_MANIFEST = {
   HANDOFF_TALK_THROUGH: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on (web server): the hourly held-scrub-sweep job retries MINOR_CARE scrubs that failed (held-scrub-sweep.ts)
+  HELD_SCRUB_SWEEP: { default: 'off', owner: 'memory', kind: 'kill-switch' },
   ...FLAGS_HONEST_TO_IDENTITY,
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },

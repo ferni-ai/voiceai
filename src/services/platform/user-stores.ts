@@ -25,8 +25,11 @@ export type OwnedStore =
   | { collection: string; field: string }
   | { collection: string; mapKey: string };
 
+/** The person's own record; account deletion erases it last, and a retry starts from it */
+export const USER_RECORDS_COLLECTION = 'bogle_users';
+
 /** Collections whose {uid} document, and everything under it, belongs to that person */
-export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
+export const USER_RECORD_ROOTS = [USER_RECORDS_COLLECTION, 'users'] as const;
 
 const byId = (...collections: string[]): OwnedStore[] =>
   collections.map((collection) => ({ collection, doc: 'uid' as const }));

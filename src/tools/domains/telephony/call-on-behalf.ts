@@ -20,6 +20,7 @@ import { llm } from '@livekit/agents';
 import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
+import { pickFromTie, type PickRow } from './contact-pick.js';
 import type {
   CallType,
   CallObjective,
@@ -56,10 +57,10 @@ const log = getLogger().child({ module: 'call-on-behalf' });
  * - "Mike" → finds entity with canonicalName/alias="Mike"
  * - Deduplication across all legacy collections
  */
-async function resolveContact(
+async function findContact(
   contactQuery: string,
   userId: string
-): Promise<ResolvedContact | null> {
+): Promise<ResolvedContact | { choices: ResolvedContact[]; ask: string } | null> {
   try {
     // =========================================================================
     // PRIMARY: Try unified entity store first
@@ -94,41 +95,34 @@ async function resolveContact(
     // =========================================================================
     // FALLBACK: Legacy contact_relationships collection
     // =========================================================================
-    const { searchContacts } =
-      await import('../../../services/contacts/contact-relationship-service.js');
-
-    const results = await searchContacts(userId, contactQuery);
-
-    if (results.length === 0) {
-      log.debug({ contactQuery, userId }, 'No contact found in any store');
-      return null;
-    }
-
-    // Take the first (best) match
-    const contact = results[0];
-
-    // ContactRelationship has phone as optional string
-    if (!contact.phone) {
-      log.debug({ contactQuery, contactName: contact.name }, 'Contact has no phone number');
-      return null;
-    }
-
-    log.info(
-      { contactQuery, name: contact.name, source: 'legacy_contact_relationships' },
-      '📇 Contact resolved from legacy collection'
+    const store = await import('../../../services/contacts/contact-relationship-service.js');
+    // A phoneless first row yields to its same-named duplicate; CONTACT_PICK_V2 scores (contact-pick.ts)
+    const { findContactToCall } = await import('./contact-pick.js');
+    const list = async (id: string) => store.getContacts(id);
+    const pick = await findContactToCall(
+      { search: store.searchContacts, list },
+      userId,
+      contactQuery
     );
-
-    return {
-      id: contact.id,
-      name: contact.name || contactQuery,
-      phone: contact.phone,
-      relationship: contact.relationship,
-      notes: contact.notes,
+    const resolved = (c: PickRow): ResolvedContact => {
+      const { id, notes, relationship } = c;
+      return { id, name: c.name || contactQuery, phone: c.phone ?? '', relationship, notes };
     };
+    log.info({ found: pick ? ('ask' in pick ? 'ask' : 'one') : 'none' }, '📇 Legacy lookup');
+    if (!pick) return null;
+    return 'ask' in pick
+      ? { ...pick, choices: pick.choices.map(resolved) }
+      : resolved(pick.contact);
   } catch (error) {
     log.error({ error: String(error), contactQuery }, 'Contact resolution failed');
     return null;
   }
+}
+
+/** The one contact to call, or null (none, or a question to ask first). */
+async function resolveContact(contactQuery: string, userId: string) {
+  const found = await findContact(contactQuery, userId);
+  return found && 'ask' in found ? null : found;
 }
 
 /**
@@ -307,23 +301,11 @@ async function saveContactForFuture(
     const { upsertContact } =
       await import('../../../services/contacts/contact-relationship-service.js');
 
-    // Extract a clean name from the query
-    const cleanName = contactQuery
-      .replace(/^(my\s+)/i, '') // Remove "my " prefix
-      .replace(/\s+at\s+.*$/i, '') // Remove "at [phone]" suffix
-      .trim();
-
-    const relationship = inferRelationshipFromQuery(contactQuery);
-
-    await upsertContact(userId, {
-      name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1), // Capitalize
-      contactId: `phone_${phone}`,
-      phone,
-      relationship: relationship ? 'family' : 'other',
-      notes: relationship ? `User's ${relationship}` : undefined,
-    });
-
-    log.info({ userId, name: cleanName, relationship }, '📇 Contact saved for future calls');
+    const { saveFieldsFor } = await import('./contact-pick.js');
+    const fields = saveFieldsFor(contactQuery, inferRelationshipFromQuery(contactQuery));
+    if (!fields) return; // CONTACT_PICK_V2: "them" / "contact" names no one to save
+    await upsertContact(userId, { ...fields, contactId: `phone_${phone}`, phone });
+    log.info({ name: fields.name }, '📇 Contact saved for future calls');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save contact');
     // Non-critical - don't throw
@@ -366,8 +348,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       );
 
       try {
-        // Step 1: Resolve the contact (or create from provided phone number)
-        let contact = await resolveContact(contactQuery, ctx.userId);
+        // Step 1: Resolve the contact (or create from provided phone number); a question
+        // (CONTACT_PICK_V2: several match, or only a name like "Father Tom") dials nothing
+        let contact = pickFromTie(await findContact(contactQuery, ctx.userId), phoneNumber);
+        if (typeof contact === 'string') return contact;
 
         // If user provided a phone number, use it (and optionally save the contact)
         if (phoneNumber) {
@@ -490,7 +474,14 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 // EXPORTS
 // ============================================================================
 
-export { resolveContact, inferCallType, inferObjective, initiateOnBehalfCall, callOnBehalfSchema };
+export {
+  findContact,
+  resolveContact,
+  inferCallType,
+  inferObjective,
+  initiateOnBehalfCall,
+  callOnBehalfSchema,
+};
 export {
   alreadySetReply,
   pendingCallTo,

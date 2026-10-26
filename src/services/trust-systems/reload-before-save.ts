@@ -118,9 +118,13 @@ export function addHeldScrub(scrub: (userId: string) => Promise<boolean>): void 
   otherScrubs.push(scrub);
 }
 
-/** Scrub both docs; once both are clean, mark the stored windows scrubbed. Never rejects. */
-async function scrubAndMark(userId: string): Promise<void> {
-  if ((await scrubHeldStores(userId)).every(Boolean)) await markHeldWindowsScrubbed(userId);
+/**
+ * Run every scrub; only once all are clean, mark the stored windows scrubbed. Answers whether
+ * both happened (the held-scrub sweep's retry). Never rejects.
+ */
+export async function scrubAndMark(userId: string): Promise<boolean> {
+  if (!(await scrubHeldStores(userId)).every(Boolean)) return false;
+  return markHeldWindowsScrubbed(userId);
 }
 
 /**

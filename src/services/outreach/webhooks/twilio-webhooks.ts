@@ -434,10 +434,7 @@ export async function handleInboundSMSWebhook(
     }
   } catch (mlError) {
     // Don't fail the webhook if ML tracking fails
-    log.warn(
-      { error: String(mlError), from: From },
-      'Failed to update ML timing for contact response'
-    );
+    log.warn({ error: mlError, from: From }, 'Failed to update ML timing for contact response');
   }
 
   // BIDIRECTIONAL ROUTING: to the right agent
@@ -463,7 +460,10 @@ export async function handleInboundSMSWebhook(
         return { success: true, twiml: generateTwiML(reply) }; // says only what was done
       }
     } catch (routeError) {
-      log.warn({ error: String(routeError), userId }, 'Failed to route inbound SMS');
+      // The raw value, not String(): that throws on a value with no string form,
+      // outside the logger's guard, and the reply became a 500. The logger
+      // redacts errors (redactErrorValue).
+      log.warn({ error: routeError, userId }, 'Failed to route inbound SMS');
       // Continue with default handling
     }
   }
@@ -606,10 +606,7 @@ export async function handleCallStatusWebhook(
       }
     } catch (mlError) {
       // Don't fail the webhook if ML tracking fails
-      log.warn(
-        { error: String(mlError), to: payload.To },
-        'Failed to update ML timing for call response'
-      );
+      log.warn({ error: mlError, to: payload.To }, 'Failed to update ML timing for call response');
     }
   }
 

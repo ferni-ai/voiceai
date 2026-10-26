@@ -26,11 +26,16 @@ import {
   type ErasureKeys,
 } from './erasure-keys.js';
 import { erasureErrorCode } from './erasure-step.js';
-import { ERASED_STORES, storeLabel, type OwnedStore } from './user-stores.js';
+import {
+  ERASED_STORES,
+  storeLabel,
+  USER_RECORDS_COLLECTION,
+  type OwnedStore,
+} from './user-stores.js';
 
 const log = createLogger({ module: 'erase-user-record' });
 
-export const USER_RECORDS_COLLECTION = 'bogle_users';
+export { USER_RECORDS_COLLECTION };
 
 /** gRPC NOT_FOUND: an update of a document that doesn't exist */
 const NOT_FOUND = 5;

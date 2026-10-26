@@ -8,7 +8,7 @@ import SwiftUI
 /// it (headroom for hops, the ring and the corner teammate) so Ferni is never
 /// clipped. Display rate (120 Hz on ProMotion) only while speaking; 30 fps
 /// otherwise and always in Low Power Mode or when the device is hot; paused
-/// when the app isn't active. Reduce Motion scales motion to 35% and skips
+/// when the app isn't active or something covers Ferni (`covered`). Reduce Motion scales motion to 35% and skips
 /// the big moments.
 public struct AvatarView: View {
     let persona: WindowPersona
@@ -16,6 +16,7 @@ public struct AvatarView: View {
     let activity: AvatarActivity
     let level: @Sendable () -> Float
     let name: String
+    let covered: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -34,12 +35,13 @@ public struct AvatarView: View {
     /// - Parameter level: Ferni's voice level from the remote audio track, read once per frame.
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
-        name: String = "Ferni", level: @escaping @Sendable () -> Float = { 0 }
+        name: String = "Ferni", covered: Bool = false, level: @escaping @Sendable () -> Float = { 0 }
     ) {
         self.persona = persona
         self.expression = expression
         self.activity = activity
         self.name = name
+        self.covered = covered
         self.level = level
     }
 
@@ -51,8 +53,11 @@ public struct AvatarView: View {
                     let side = min(geo.size.width, geo.size.height)
                     if let renderer = AliveRenderer.shared {
                         let throttled = lowPower || hot
-                        let cadence: Double? = activity == .speaking && !throttled ? nil : 1.0 / 30
-                        TimelineView(.animation(minimumInterval: cadence, paused: scenePhase != .active)) { timeline in
+                        let clock = Self.schedule(
+                            speaking: activity == .speaking, throttled: throttled,
+                            covered: covered, active: scenePhase == .active
+                        )
+                        TimelineView(.animation(minimumInterval: clock.interval, paused: clock.paused)) { timeline in
                             AliveMetalView(
                                 renderer: renderer, uniforms: frame(at: timeline.date),
                                 radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
@@ -108,6 +113,11 @@ public struct AvatarView: View {
         return u
     }
 
+    /// Frame interval (nil = the display's rate) and whether the clock is paused.
+    static func schedule(speaking: Bool, throttled: Bool, covered: Bool, active: Bool) -> (interval: Double?, paused: Bool) {
+        (speaking && !throttled ? nil : 1.0 / 30, covered || !active)
+    }
+
     static func words(for activity: AvatarActivity, name: String) -> String {
         switch activity {
         case .idle: "\(name) is here"
@@ -119,4 +129,9 @@ public struct AvatarView: View {
         case .error: "\(name) couldn't connect"
         }
     }
+}
+
+/// What Ferni is doing, as the avatar shows it.
+public enum AvatarActivity: Equatable, Sendable {
+    case idle, arriving, listening, thinking, speaking, reconnecting, error
 }
