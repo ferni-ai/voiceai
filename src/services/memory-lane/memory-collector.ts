@@ -14,6 +14,8 @@
  * @module services/memory-lane/memory-collector
  */
 
+import { withoutHeldAt } from '../../utils/held-window-check.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import {
@@ -396,10 +398,7 @@ function createMemoryFromWin(
  */
 export async function saveMemory(memory: MemoryHighlight): Promise<boolean> {
   const db = getFirestoreDb();
-  if (!db) {
-    log.debug('Firestore not available, skipping memory save');
-    return false;
-  }
+  if (!db || writeHeld(memory.userId)) return false; // MINOR_CARE: nothing kept for a held caller
 
   try {
     const ref = db
@@ -509,11 +508,11 @@ export async function loadMemories(
       } as MemoryHighlight;
     });
 
-    // Filter by types if specified
     if (options.types && options.types.length > 0) {
       memories = memories.filter((m) => options.types!.includes(m.type));
     }
 
+    memories = withoutHeldAt(userId, memories, (m) => m.occurredAt); // MINOR_CARE: none held
     return await withKeptCommitmentsOnly(userId, memories);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load memories');

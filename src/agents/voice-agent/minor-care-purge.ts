@@ -17,8 +17,7 @@ import {
 } from '../../audio/music-learning-persistence.js';
 import {
   forgetReadMoments,
-  scrubHeldSharedMoments,
-  setSharedMomentsHeldWindow,
+  scrubHeldSince,
 } from '../../intelligence/context-builders/relationship/shared-moments.js';
 import { purgeHeldIndexEntries } from '../../services/data-layer/held-index-purge.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
@@ -51,6 +50,7 @@ import {
   setOnUserHeld,
   sharedId,
 } from '../../utils/minor-care.js';
+import { setHeldWindowCheck } from '../../utils/held-window-check.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'minor-care-purge' });
@@ -67,7 +67,7 @@ export function shareHold(userId: string, sessionId?: string): void {
   if (phoneId) void recordSharedHold(phoneId);
 }
 setOnUserHeld(shareHold);
-setSharedMomentsHeldWindow(recordedWhileHeld); // shared moments made in a held window: never read
+setHeldWindowCheck(recordedWhileHeld); // shared moments, Memory Lane, the index: never read back
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);
@@ -130,7 +130,12 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     // songs that played during their moments (memory only); a later call would speak them back
     ['our songs', clearOurSongsUser],
     // shared moments (what they said, kept as inside-joke origins) stored before the age statement
-    ['shared moments scrub', (id) => void (windowed && scrubHeldSharedMoments(id, since))],
+    ['shared moments scrub', (id) => void (windowed && scrubHeldSince(id, since))],
+    // Memory Lane captures of the call (inside jokes, wins, milestones…): when they happened
+    [
+      'memory lane scrub',
+      (id) => void (windowed && scrubHeldSince(id, since, 'memory_highlights', 'occurredAt')),
+    ],
     ['shared moments read', forgetReadMoments], // deep-relationship's cache of them
     // what the stores indexed for semantic recall before the age statement (their words, too)
     [

@@ -15,10 +15,19 @@ import { leakedPieces, SENTINEL } from '../../../../tests/helpers/snippet-leak.j
 
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
-// The vector store and semantic cache aren't under test here (the unit test fakes them)
-vi.mock('../../../../memory/firestore-vector-store/index.js', () => ({
-  getFirestoreVectorStore: () => ({ list: async () => [], removeDocument: async () => true }),
-}));
+// The vector store's own client isn't under test: its remove deletes the emulator's doc
+vi.mock('../../../../memory/firestore-vector-store/index.js', async () => {
+  const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+  return {
+    getFirestoreVectorStore: () => ({
+      list: async () => [],
+      removeDocument: async (id: string) => (
+        await getAdminFirestore().collection('vectors').doc(id).delete(),
+        true
+      ),
+    }),
+  };
+});
 vi.mock('../../../../services/superhuman/semantic-intelligence/index.js', () => ({
   clearSemanticIntelligenceCache: () => undefined,
 }));
@@ -124,5 +133,54 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('shared moments on the emu
     const context = await laterCall(u);
     expect(leakedPieces(context)).toEqual([]);
     expect(context).toContain(OLDER_WORDS);
+  });
+
+  it('the index purge pages through every entry: 650, the held ones past the first 500', async () => {
+    const u = uid();
+    const since = Date.now() - 1000;
+    const { noteHeldWindow, recordedWhileHeld } =
+      await import('../../../../services/trust-systems/held-window.js');
+    noteHeldWindow(u, since);
+    const batch = db.batch();
+    for (let i = 0; i < 650; i++) {
+      const at = new Date(i >= 600 ? since + 10 : since - DAY).toISOString();
+      batch.set(db.collection('vectors').doc(`pg-${u}-${String(i).padStart(4, '0')}`), {
+        text: i >= 600 ? SENTINEL : 'older',
+        metadata: {
+          userId: u,
+          source: 'store_auto_sync',
+          entityType: 'inside_joke',
+          indexedAt: at,
+        },
+      });
+    }
+    await batch.commit();
+    const { purgeHeldIndexEntries } =
+      await import('../../../../services/data-layer/held-index-purge.js');
+    expect(await purgeHeldIndexEntries(u, (t) => recordedWhileHeld(u, t))).toBe(50);
+    const left = await db.collection('vectors').where('metadata.userId', '==', u).get();
+    expect(left.size).toBe(600);
+    expect(leakedPieces(left.docs.map((d) => d.data()))).toEqual([]);
+  });
+
+  it('the purge deletes Memory Lane captures from the held window; older ones stay', async () => {
+    const u = uid();
+    const call = await heldCall(u);
+    const lane = db.collection('bogle_users').doc(u).collection('memory_highlights');
+    const capture = (at: number, content: string) => ({
+      content,
+      sourceType: 'inside_joke',
+      occurredAt: new Date(at).toISOString(),
+    });
+    await lane.doc('held').set(capture(Date.now() - 300, SENTINEL));
+    await lane.doc('older').set(capture(Date.now() - 30 * DAY, OLDER_WORDS));
+    expect(mods.mc.heldAfter(call.s, "I'm 15.", { userId: u })).toBe(true);
+    mods.purge.purgeHeldUser(u, call.s, call.startedAt);
+    await vi.waitFor(
+      async () => expect((await lane.get()).docs.map((d) => d.id)).toEqual(['older']),
+      {
+        timeout: 5000,
+      }
+    );
   });
 });

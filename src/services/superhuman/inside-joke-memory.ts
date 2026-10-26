@@ -12,6 +12,7 @@
  * @module services/superhuman/inside-joke-memory
  */
 
+import { withoutHeldAt } from '../../utils/held-window-check.js';
 import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
@@ -159,7 +160,8 @@ export async function loadSharedMoments(userId: string): Promise<SharedMoment[]>
       .limit(100)
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
+    const moments = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
+    return withoutHeldAt(userId, moments, (m) => m.createdAt); // MINOR_CARE: never a held window's
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load shared moments');
     return [];

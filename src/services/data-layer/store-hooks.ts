@@ -203,18 +203,20 @@ async function processChange(key: string): Promise<void> {
       return;
     }
 
-    // Enforce maxPerUser limits
     await enforceMaxPerUser(vectorStore, event.userId, event.entityType as EntityType, docId);
 
-    // Generate embedding
     const embedding = await embed(event.content);
+    // MINOR_CARE: the hold may have begun while it embedded; checked again right before the write
+    if (writeHeld(event.userId)) return void skippedCount++;
 
-    // Index to semantic memory via Firestore vector store
+    // Index to semantic memory. The store's own fields come last: a caller's metadata can't
+    // replace them (the purge and search trust source and indexedAt)
     await vectorStore.addDocument({
       id: docId,
       text: event.content,
       embedding,
       metadata: {
+        ...event.metadata,
         userId: event.userId,
         storeType: event.storeType,
         entityType: event.entityType,
@@ -222,7 +224,6 @@ async function processChange(key: string): Promise<void> {
         source: 'store_auto_sync',
         indexedAt: new Date().toISOString(),
         changeType: event.changeType,
-        ...event.metadata,
       },
     });
 
