@@ -24,6 +24,7 @@ vi.mock('../../utils/firebase-admin-app.js', () => ({
       doc: () => ({
         collection: () => ({
           add: async (doc: unknown) => (store.facts.push(doc), { id: `fact${store.facts.length}` }),
+          doc: () => ({ set: async (doc: unknown) => void store.facts.push(doc) }),
         }),
       }),
     }),
@@ -51,13 +52,13 @@ vi.mock('@google/generative-ai', () => ({
     }
   },
 }));
-// "Bearer <uid>" is a verified token for <uid>.
+// "Bearer <uid>" is a verified token for <uid>; admin-uid is an admin.
 vi.mock('../auth-middleware.js', () => ({
   rateLimit: vi.fn(() => false),
-  requireAuth: vi.fn(async (req: IncomingMessage) => ({
-    userId: String(req.headers.authorization).slice(7),
-    isAdmin: false,
-  })),
+  requireAuth: vi.fn(async (req: IncomingMessage) => {
+    const userId = String(req.headers.authorization).slice(7);
+    return { userId, isAdmin: userId === 'admin-uid' };
+  }),
 }));
 
 process.env.GOOGLE_API_KEY = 'test-key';
@@ -145,6 +146,27 @@ describe('text chat and a MINOR_CARE hold from a voice call', () => {
     expect(store.facts).toEqual([]);
     expect(store.indexed).toEqual([]);
     expect(body.success).toBe(true);
+  });
+
+  it('runs no other writer for a held caller: journal and habits (an admin acting for them)', async () => {
+    process.env.MINOR_CARE_SHARED_HOLD = 'on';
+    setHoldStore({
+      heldUntil: async (id) => (id === 'teen-uid' ? Date.now() + 60_000 : 0),
+      write: async () => undefined,
+    });
+    const run = (userId: string, fn: string, args: object) =>
+      post('/api/chat/tool', 'admin-uid', { fn, args, userId, grant: 'admin' });
+    const journal = { entry: 'had a rough day at practice', mood: 'tired' };
+    const habit = { name: 'stretch every morning' };
+
+    await run('teen-uid', 'addJournal', journal);
+    await run('teen-uid', 'createHabit', habit);
+    await run('teen-uid', 'journal_add', journal); // an alias: not on the read-only list either
+    expect(store.facts).toEqual([]);
+
+    await run('adult-uid', 'addJournal', journal); // the same calls store for someone not held
+    await run('adult-uid', 'createHabit', habit);
+    expect(store.facts).toHaveLength(2);
   });
 
   it("still saves a caller who isn't held, with no MINOR_CARE note", async () => {
