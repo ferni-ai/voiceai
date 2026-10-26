@@ -224,8 +224,10 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
     (...args: unknown[]): void => {
       try {
         current()[method](...(args as Parameters<FallbackLogger['info']>));
-      } catch {
-        // Dropped: losing one line beats breaking the caller.
+      } catch (error) {
+        // Dropped: losing one line beats breaking the caller. Counted and
+        // announced on another channel, so a dark logger is never silent.
+        noteDroppedLine(error);
       }
     };
   return {
@@ -250,6 +252,51 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
  *
  * @returns A logger instance
  */
+let droppedLines = 0;
+
+/** How many log lines were dropped because writing them failed (see lazyLogger). */
+export function droppedLogLines(): number {
+  return droppedLines;
+}
+
+/** Test helper: start the dropped-line count again. */
+export function resetDroppedLogLinesForTests(): void {
+  droppedLines = 0;
+}
+
+/** 1, 100, 10 000, …: an outage keeps announcing itself without a flood. */
+function isPowerOf100(n: number): boolean {
+  if (n < 1) return false;
+  let x = n;
+  while (x % 100 === 0) x /= 100;
+  return x === 1;
+}
+
+/**
+ * Counts a dropped line and, on the 1st, 100th, 10 000th…, says so through the
+ * error sink (error-reporting sends it to Sentry, over the network), since the
+ * write that failed may be stderr itself. The notice carries the count and the
+ * failure's type only, never the line's fields.
+ */
+function noteDroppedLine(error: unknown): void {
+  droppedLines += 1;
+  if (!isPowerOf100(droppedLines)) return;
+  try {
+    const kind = error instanceof Error ? error.name : typeof error;
+    const notice = new Error(
+      `safe-logger dropped ${droppedLines} log line(s); last failure: ${kind}`
+    );
+    try {
+      errorLogSink?.([{ error: notice }, 'Log lines are being dropped']);
+    } catch {
+      // The sink failing too leaves the count.
+    }
+    if (droppedLines === 1) process.stderr.write(`[safe-logger] ${notice.message}\n`);
+  } catch {
+    // Nothing left to tell; droppedLogLines() still has the count.
+  }
+}
+
 export const getLogger = safeLog;
 
 /** Receives the raw arguments of every error-level call (error reporting registers here). */
