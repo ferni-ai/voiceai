@@ -10,6 +10,7 @@ import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
+import { installProcessGuards } from './process-guards.js';
 
 const log = createLogger({ module: 'APIServer' });
 
@@ -1587,21 +1588,18 @@ async function gracefulShutdown(): Promise<void> {
 }
 
 // Handle shutdown signals
-process.on('SIGTERM', () => {
-  log.info('Received SIGTERM, shutting down gracefully...');
-  gracefulShutdown().catch((err) => {
-    log.error({ error: (err as Error).message }, 'Shutdown error');
-    process.exit(1);
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.on(signal, () => {
+    log.info(`Received ${signal}, shutting down gracefully...`);
+    gracefulShutdown().catch((err) => {
+      log.error({ error: (err as Error).message }, 'Shutdown error');
+      process.exit(1);
+    });
   });
-});
+}
 
-process.on('SIGINT', () => {
-  log.info('Received SIGINT, shutting down gracefully...');
-  gracefulShutdown().catch((err) => {
-    log.error({ error: (err as Error).message }, 'Shutdown error');
-    process.exit(1);
-  });
-});
+// A stray rejection is reported and survived; a thrown error drains, then exits (#2914).
+installProcessGuards({ server });
 
 // Export for gateway
 export { server, gracefulShutdown };
