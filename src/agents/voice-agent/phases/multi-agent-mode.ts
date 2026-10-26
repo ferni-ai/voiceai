@@ -69,6 +69,8 @@ export interface MultiAgentModeResult {
 interface HandoffLock {
   acquire: () => Promise<boolean>;
   release: () => void;
+  /** A handoff holds the lock now (HANDOFF_EARLY_GOODBYE: no goodbye then) */
+  held: () => boolean;
 }
 
 /**
@@ -110,6 +112,8 @@ function createHandoffLock(): HandoffLock {
         releaseHandoffLock = null;
       }
     },
+
+    held: (): boolean => handoffInProgress,
   };
 }
 
@@ -346,7 +350,7 @@ export async function runMultiAgentMode(
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
     // HANDOFF_EARLY_GOODBYE: the handoff tool says the goodbye once its checks pass
-    const stopEarlyGoodbye = startEarlyGoodbye(multiAgentResult.orchestrator, services, sessionId);
+    const stopEarlyGoodbye = startEarlyGoodbye(multiAgentResult.orchestrator, config, handoffLock);
     // In-call controls and Ferni's teammate introductions, for the agent speaking now
     const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona, callerChecks };
     const stopInCallChannels = startInCallChannels(callParts, multiAgentResult.orchestrator);

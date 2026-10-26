@@ -19,6 +19,10 @@
  * @module tools/handoff/early-goodbye
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
+import type { AgentId } from '../../services/agent-bus.js';
+import type { HandoffResult } from './executor.js';
+import { getSessionState, hasSessionState } from './session-state.js';
+import { handoffNotConfirmed } from './unconfirmed-handoff.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -42,6 +46,7 @@ export interface EarlyGoodbyeCall {
 }
 
 interface Said {
+  from: string;
   to: string;
   text: string;
   at: number;
@@ -79,24 +84,111 @@ export async function sayGoodbyeEarly(
   target: string,
   env: Env = process.env
 ): Promise<boolean> {
-  if (!sessionId || !handoffEarlyGoodbye(env)) return false;
+  return (await sayEarly(sessionId, target, env)) !== null;
+}
+
+async function sayEarly(
+  sessionId: string | undefined,
+  target: string,
+  env: Env = process.env
+): Promise<Said | null> {
+  if (!sessionId || !handoffEarlyGoodbye(env)) return null;
   const call = calls.get(sessionId);
   try {
     const agent = call?.activeAgent();
-    if (!call || !agent || call.busy()) return false;
+    if (!call || !agent || call.busy()) return null;
     const to = await voicedPersona(target);
-    if (!to || to === plain(agent.personaId)) return false;
+    if (!to || to === plain(agent.personaId)) return null;
     // The persona lookup awaited: the call may have moved on meanwhile
-    if (call.activeAgent() !== agent || call.busy()) return false;
+    if (call.activeAgent() !== agent || call.busy()) return null;
     const text = call.line(agent, to);
     agent.say(text, { allowInterruptions: false });
-    said.set(sessionId, { to, text, at: Date.now() });
+    const early = { from: agent.personaId, to, text, at: Date.now() };
+    said.set(sessionId, early);
     log.info({ sessionId, from: agent.personaId, to }, '🎭 [GOODBYE] Said early');
-    return true;
+    return early;
   } catch (error) {
     log.warn({ sessionId, error: String(error) }, '🎭 [GOODBYE] Early goodbye skipped');
-    return false;
+    return null;
   }
+}
+
+/** A goodbye said early that no handoff has taken yet (llm-handoff.ts: never leave it hanging). */
+export const earlyGoodbyePending = (sessionId: string): boolean => said.has(sessionId);
+
+const firstName = (name: string): string => name.trim().split(/\s+/)[0] ?? name;
+
+/** What the caller hears when a handoff they were told about doesn't happen. */
+export const brokenPromiseLine = (teammate: string): string =>
+  `Hmm, I couldn't bring ${firstName(teammate)} in just now. I'm still here.`;
+
+/**
+ * Run a handoff with the early goodbye: `run` passes `onCleared` to executeHandoff. When the
+ * goodbye was said and the handoff then fails, times out or throws, the saved goodbye is
+ * cleared, the persona still on the call says one honest line, and the result tells the
+ * model the caller was already told the teammate was coming. It never claims the handoff.
+ */
+export async function withEarlyGoodbye(
+  sessionId: string | undefined,
+  teammate: string,
+  run: (onCleared: (to: string) => Promise<unknown>) => Promise<HandoffResult>
+): Promise<HandoffResult> {
+  const early: { said?: Said | null } = {};
+  const onCleared = async (to: string): Promise<void> => {
+    early.said = await sayEarly(sessionId, to);
+  };
+  let result: HandoffResult;
+  try {
+    result = await run(onCleared);
+  } catch (error) {
+    if (!early.said || !sessionId) throw error;
+    log.warn({ sessionId, error: String(error) }, '🎭 [GOODBYE] Handoff threw after the goodbye');
+    result = notConfirmed(sessionId, early.said, teammate);
+  }
+  if (result.success || !early.said || !sessionId) return result;
+  return toldTheTruth(sessionId, early.said, teammate, result);
+}
+
+function notConfirmed(sessionId: string, early: Said, teammate: string): HandoffResult {
+  return handoffNotConfirmed({
+    sessionState: hasSessionState(sessionId) ? getSessionState(sessionId) : null,
+    previousAgent: early.from as AgentId,
+    targetAgent: early.to,
+    targetAgentName: teammate,
+  });
+}
+
+/** The goodbye was said, the handoff didn't happen: clear it, say so once, tell the model. */
+function toldTheTruth(
+  sessionId: string,
+  early: Said,
+  teammate: string,
+  result: HandoffResult
+): HandoffResult {
+  if (said.get(sessionId) === early) said.delete(sessionId);
+  const line = brokenPromiseLine(teammate);
+  const agent = calls.get(sessionId)?.activeAgent();
+  let spoken = false;
+  try {
+    // Only the persona who said the goodbye, still on the call, says it was off
+    if (agent && plain(agent.personaId) === plain(early.from)) {
+      agent.say(line, { allowInterruptions: false });
+      spoken = true;
+    }
+  } catch (error) {
+    log.warn({ sessionId, error: String(error) }, '🎭 [GOODBYE] Honest line not said');
+  }
+  log.info({ sessionId, to: early.to, spoken }, '🎭 [GOODBYE] Handoff failed after the goodbye');
+  const name = firstName(teammate);
+  const heard = spoken ? ` They then heard you say: "${line}"` : '';
+  return {
+    ...result,
+    success: false,
+    error:
+      `You already told them ${name} was coming, but ${name} couldn't join, so you're still ` +
+      `the one talking with them.${heard} Don't say ${name} joined, and don't try again ` +
+      `unless they ask.`,
+  };
 }
 
 /** The goodbye this handoff already said, taken once; null when none or stale. */

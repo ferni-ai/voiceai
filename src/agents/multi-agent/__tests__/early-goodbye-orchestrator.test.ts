@@ -4,7 +4,12 @@
  * without one, the orchestrator says it as before.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { registerEarlyGoodbye, sayGoodbyeEarly } from '../../../tools/handoff/early-goodbye.js';
+import {
+  brokenPromiseLine,
+  registerEarlyGoodbye,
+  sayGoodbyeEarly,
+  withEarlyGoodbye,
+} from '../../../tools/handoff/early-goodbye.js';
 import { earlyGoodbyeCall } from '../early-goodbye-call.js';
 import { AgentOrchestrator, createAgentOrchestrator } from '../orchestrator.js';
 
@@ -96,5 +101,32 @@ describe('HANDOFF_EARLY_GOODBYE in the orchestrator', () => {
     vi.spyOn(orchestrator, 'isHandoffInProgress').mockReturnValue(true);
     expect(await sayGoodbyeEarly(SESSION, 'peter-john')).toBe(false);
     expect(ferni).not.toHaveBeenCalled();
+  });
+
+  it('flag on: a handoff that fails after the goodbye says so, and the next one says its goodbye', async () => {
+    vi.stubEnv('HANDOFF_EARLY_GOODBYE', 'on');
+    const { orchestrator, ferni } = await startCall();
+    const failed = await withEarlyGoodbye(SESSION, 'Peter John', async (onCleared) => {
+      await onCleared('peter-john');
+      return {
+        success: false,
+        error: 'timeout',
+        targetAgent: 'peter-john',
+        targetAgentName: 'Peter John',
+        previousAgent: 'ferni',
+        greeting: '',
+      };
+    });
+    expect(failed.success).toBe(false);
+    expect(failed.error).toMatch(/already told them Peter was coming/);
+    const lines = (): string[] => ferni.mock.calls.map(([text]) => String(text));
+    expect(lines()).toHaveLength(2);
+    expect(lines()[1]).toBe(brokenPromiseLine('Peter John'));
+
+    // Within 10 s, a handoff that skips the tool (a tap) still says its own goodbye
+    const result = await orchestrator.handoff({ targetPersonaId: 'peter-john', reason: 'tap' });
+    expect(result.success).toBe(true);
+    expect(lines()).toHaveLength(3);
+    expect(lines()[2]).not.toBe(brokenPromiseLine('Peter John'));
   });
 });

@@ -1,8 +1,8 @@
 /**
  * The call's side of HANDOFF_EARLY_GOODBYE (tools/handoff/early-goodbye.ts): the
- * persona on the call, whether the goodbye must wait (a handoff already running,
- * or a crisis verdict holding the reply), and the departure line the
- * orchestrator would pick (family-table.ts).
+ * persona on the call, whether the goodbye must wait (a handoff already running or
+ * holding the call's handoff lock, or a crisis verdict holding the reply), and the
+ * departure line the orchestrator would pick (family-table.ts).
  *
  * @module agents/multi-agent/early-goodbye-call
  */
@@ -24,14 +24,23 @@ const crisisHeld = (agent: OutgoingPersona | null): boolean => {
   return typeof session === 'object' && session !== null && crisisVerdictPending(session) !== null;
 };
 
+/** The call's handoff lock (multi-agent-mode.ts): held, the voiceSwitch handler would refuse */
+interface HandoffLockView {
+  held(): boolean;
+}
+
 export function earlyGoodbyeCall(
   orchestrator: Orchestrated,
   callId: string,
-  userEmotion: () => string | undefined
+  userEmotion: () => string | undefined,
+  lock?: HandoffLockView
 ): EarlyGoodbyeCall {
   return {
     activeAgent: () => orchestrator.getActiveAgent(),
-    busy: () => orchestrator.isHandoffInProgress() || crisisHeld(orchestrator.getActiveAgent()),
+    busy: () =>
+      orchestrator.isHandoffInProgress() ||
+      Boolean(lock?.held()) ||
+      crisisHeld(orchestrator.getActiveAgent()),
     line: (agent, to) =>
       familyDeparture(agent, { targetPersonaId: to, userEmotion: userEmotion() }, callId),
   };
@@ -40,15 +49,19 @@ export function earlyGoodbyeCall(
 /** Lend this call to its handoff tools for the early goodbye; returns the undo. */
 export function startEarlyGoodbye(
   orchestrator: Orchestrated,
-  services: {
-    sessionId?: unknown;
-    sessionPriming?: { emotionalContext?: { lastEmotion?: string } } | null;
+  call: {
+    services: {
+      sessionId?: unknown;
+      sessionPriming?: { emotionalContext?: { lastEmotion?: string } } | null;
+    };
+    sessionId: string;
   },
-  callId: string
+  lock: HandoffLockView
 ): () => void {
+  const { services, sessionId } = call;
   const emotion = (): string | undefined => services.sessionPriming?.emotionalContext?.lastEmotion;
   return registerEarlyGoodbye(
     String(services.sessionId),
-    earlyGoodbyeCall(orchestrator, callId, emotion)
+    earlyGoodbyeCall(orchestrator, sessionId, emotion, lock)
   );
 }
