@@ -53,6 +53,32 @@ Changes are appended to `activity/{id}/events/{seq}` in the same transaction as 
 
 `recordActivity(uid, change, expectedRevision)` is the only way to write. Producers call it inside the same Firestore transaction as their own write, for example the `on_behalf_calls` write or the `deferred_calls` claim. So the ledger and the action can't disagree. Fan-out to semantic memory and BigQuery runs through the existing data-layer hooks (`onCallResultChange` pattern). If indexing fails, the ledger is still right.
 
+### 2b. Lane 2 strategy: hook the choke points, retire the dead paths
+
+A read-only inventory found about 40 send paths:
+- 12 call paths and 10 text paths;
+- 4 email paths and 6 push or in-app paths;
+- 5 calendar paths;
+- 5 promise or errand paths, plus a few that aren't really sends.
+
+There are about 15 partial records, and two near-ledgers. `ferni_actions` is written only from the text-chat dispatcher, for 12 lowercase tool names. `bogle_users/{uid}/audit_log` has a read API but no writer. Instrumenting 40 sites one by one won't hold. Instead:
+
+1. **Tool-initiated sends go through the existing gates.** Hook `ToolRegistry.register`'s `gateOutboundTool` wrapper, `withOutreachConfirmation` (the single confirm point, where `sentConfirmThread` already fires), `gateLegacyTool` and `tool-dispatcher`. One hook in each gate gives every registry, legacy and executor tool a ledger record at asked → confirmed → sent. The duplicate `agents/shared/tool-executors/*` implementations are covered by the dispatcher hook.
+2. **Job-initiated sends go through the transports.** Hook the send layer itself: `sms-delivery.ts` (`sendSms`), `guarded-text.ts` `lockedSend`, `voice-call.ts` `callWithPersonaVoice` (which also starts storing the Twilio SID and adds a `StatusCallback`), `email-delivery.ts` and `email-transport`, and the push senders. Each transport writes a ledger event keyed by the caller-supplied `activityId`, or a new one with `source` set to the job name.
+3. **Outcomes go to the record.** Twilio call and SMS status webhooks, the on-behalf lifecycle's `captureCallResult`, and `deferred_calls` transitions all update the same activity record. A deferred call links to its eventual `on_behalf_calls` id (missing today).
+4. **Retire, don't instrument, dead or deceptive paths.** These include:
+   - the concierge "I'll call N hotels", which simulates and dials nothing;
+   - latent senders with no callers (`sip-bridge`, `voice-message-service`, `personalized-outreach.sendBatchMessages`, `notification-delivery`, Gmail send, the `task-queue` `send_sms`/`send_email` handlers);
+   - the thinking-of-you job's raw text to an unverified `profile.phone`.
+
+   Each retirement is its own small PR, and each gets a grep proving it has no live caller.
+5. **First producers, by harm:** on-behalf call at dial time; deferred calls; `callWithPersonaVoice` one-way calls; raw `communication-service` sends; on-behalf texts (including with `ON_BEHALF_TEXT_GUARD=off`); `email-delivery`; direct pushes; Google-created calendar events.
+
+Known bugs found along the way get their own issues, not lane 2 scope:
+- `reachOut`'s "conversation" channel may file `scheduled_calls` under the contact, and may report a placed call as failed.
+- A callback-required call result may be emailed twice.
+- `outreach-worker` marks failed sends as sent.
+
 ### 3. Durable steps: use what's already running
 
 All durable timing today is Cloud Scheduler polling Firestore, so lane 3 adds a per-minute **errand waker** job over `ErrandStore.due()` and `EffectOutbox.claimEffect()`, with runners for each effect kind. It also fixes the stuck-`placing` gap in deferred calls with a lease, plus a provider check on expiry: was the Twilio call created? Then mark the result, don't redial.
@@ -126,6 +152,6 @@ The facade collapse of the tool list (2026-09-30 plan), research-ahead, and voic
 
 ## Open items to settle in lane PRs
 
-- Send-path inventory: which paths send with no record today. These are lane 2's first producers. (Research in progress; added below when it lands.)
+- Whether SIP on-behalf calls ever reach the Twilio status webhook (`getPendingCall(CallSid)` vs the SIP `participantId`). Lane 2 settles this with a dev call. Until then, SIP completion relies on the agent lifecycle alone.
 - Whether the knowledge-graph Cloud Scheduler jobs are deployed (`gcloud scheduler jobs list`). This only matters if lane 5 reads the graph.
 - Agent prod flag values aren't in the repo. Lane PRs state the flag they need and its prod value, read from EFFECTIVE_SETTINGS.
