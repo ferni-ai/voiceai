@@ -84,16 +84,20 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
   'gateway-recovery',
 ]);
 
-/** Unicode format characters (Cf): zero-width space/joiners, BOM, soft hyphen. Invisible. */
-const FORMAT_CHARS = /\p{Cf}/gu;
+/**
+ * Characters that change no visible letter: format characters (Cf: zero-width
+ * space/joiners, BOM, soft hyphen), other default-ignorables (Hangul fillers,
+ * variation selectors) and whitespace anywhere. No member id has any of them.
+ */
+const INVISIBLE = /[\p{Cf}\p{Default_Ignorable_Code_Point}\s]/gu;
 
 /**
  * The id as compared, so a disguised placeholder still matches: NFKC (full-width,
- * NBSP), format characters dropped, trimmed, lower case. Comparison only; never
- * store or key by it.
+ * NBSP), invisible characters and whitespace dropped, lower case. Comparison only;
+ * never store or key by it.
  */
 export function comparableId(userId: string): string {
-  return userId.normalize('NFKC').replace(FORMAT_CHARS, '').trim().toLowerCase();
+  return userId.normalize('NFKC').replace(INVISIBLE, '').toLowerCase();
 }
 
 /**

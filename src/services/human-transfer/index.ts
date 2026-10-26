@@ -246,6 +246,11 @@ export function buildTransferAwarenessContext(decision: EscalationDecision): str
 
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { crisisLevelSignalsSince, type CrisisEventRecord } from './crisis-signals.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
+import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
+
+/** A non-member's signal is kept 90 days, like a crisis event (#2872): a TTL on expireAt. */
+const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
  * Log transfer event for analytics and safety audit trail
@@ -302,6 +307,11 @@ export async function logTransferEvent(
  * Log crisis signal detection (even without transfer)
  * Used for tracking escalation patterns over time
  * Accepts CrisisSignals type returned by detectCrisisSignals()
+ *
+ * PRIVACY: never under a shared placeholder id ('unknown', a disguised one, a bare
+ * 'anon:'): that bucket would pool every id-less caller's crises. A non-member
+ * (anon:<id>) has no account to erase or export it under, so like #2872's crisis
+ * record it keeps no words, only the signal flags and ids, and expires in 90 days.
  */
 export async function logCrisisSignal(
   userId: string,
@@ -332,6 +342,11 @@ export async function logCrisisSignal(
     },
     '🚨 Crisis signal detected'
   );
+  if (isSharedPlaceholderId(userId)) {
+    log.warn({ sessionId }, 'Crisis signal not stored: shared placeholder id');
+    return;
+  }
+  const member = isMemberIdentity(userId);
 
   try {
     const db = getFirestoreDb();
@@ -353,14 +368,21 @@ export async function logCrisisSignal(
           domesticViolence: signals.domesticViolence,
           severity: signals.severity,
         },
-        // Store truncated transcript for context (privacy-conscious)
-        transcriptSnippet: transcript ? transcript.slice(0, 200) : null,
+        // A member's truncated transcript for context; a non-member's words are never kept
+        ...(member
+          ? { transcriptSnippet: transcript ? transcript.slice(0, 200) : null }
+          : { expireAt: new Date(Date.now() + NON_MEMBER_SIGNAL_RETENTION_MS) }),
         // Firestore rejects an undefined field, which dropped every signal logged without one
         ...(sessionId ? { sessionId } : {}),
       });
     forgetRecentCrisis(userId); // the next turn's check-in sees this signal
   } catch (error) {
-    log.error({ error: String(error) }, 'Failed to log crisis signal');
+    // The code only, and only when it looks like one: a message can quote the caller
+    const code = String((error as { code?: unknown } | null)?.code ?? '');
+    log.error(
+      { userId, code: /^[\w.-]{1,40}$/.test(code) ? code : 'unknown' },
+      'Failed to log crisis signal'
+    );
   }
 }
 
