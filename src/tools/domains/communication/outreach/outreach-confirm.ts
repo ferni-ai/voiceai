@@ -134,7 +134,9 @@ function record(session: object, event: SessionEvent): void {
 const YES_PHRASES = [
   ...'go ahead|do it|send it|send them|please do|please send|thats right|sounds good'.split('|'),
   ...'call them|call her|call him|make the call'.split('|'),
-  ...'yes yeah yep yup ya sure ok okay correct absolutely definitely'.split(' '),
+  ...'yes yeah yep yup ya sure ok okay correct absolutely definitely fine'.split(' '),
+  // Owner call 10-26: "Yes, it's okay with me. Give him a call." placed nothing.
+  ...'its okay|its ok|thats okay|thats ok|its fine|thats fine'.split('|'),
 ];
 // Words a yes may carry that add nothing to send: a name for whoever is speaking, a filler, or an
 // echo of the question ("Should I call her?" "Yes, she should."). Never a yes on their own.
@@ -145,11 +147,17 @@ const FILLERS = [
   ...'thank you|that works|you can|for sure|of course'.split('|'),
   ...'give her a call|give him a call|give them a call|you need to|need to|right now'.split('|'),
   ...'and you now'.split(' '),
+  // Owner call 10-26: "... Give him a call. and check in." placed nothing.
+  ...'with me|check in'.split('|'),
   ...'she should|he should|they should|you should|she can|he can|they can'.split('|'),
   ...'please thanks ferni fern maya jordan peter alex nayan buddy bud man dude pal um uh oh hey'.split(
     ' '
   ),
 ];
+// Only when the waiting action is itself a phone call: there "call" restates it (owner call 10-26,
+// "Yeah, go ahead and call." placed nothing). With a text waiting it would change what is sent.
+const CALL_FILLERS = ['call'];
+const PLACES_A_CALL = new Set(['callOnBehalf', 'callAndConverse', 'callUser']);
 const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
 // Never taken for a name the caller calls Ferni by: a word that could change what is sent
 // (who, when, how, how many), a question word or a no. "Yes, Tuesday." is not a plain yes.
@@ -187,11 +195,12 @@ const words = (text: string): string[] =>
 export function isClearYes(
   text: string,
   target: readonly string[] = [],
-  owner: readonly string[] = []
+  owner: readonly string[] = [],
+  call = false
 ): boolean {
   // A question word is never a yes phrase, so "which one, yes" already fails below.
   if (text.includes('?')) return false;
-  if (onlyYes(words(text))) return true;
+  if (onlyYes(words(text), call)) return true;
   const parts = text.split(',');
   if (parts.length < 2) return false;
   const head = parts[0].trim().split(/\s+/);
@@ -205,23 +214,21 @@ export function isClearYes(
     if (!/^[A-Z][a-z]+$/.test(w) || NOT_A_NAME.has(name)) return false;
     return FERNI_NAMES.has(name) || target.includes(name) || owner.includes(name);
   };
-  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest)));
+  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest), call));
 }
 
-function onlyYes(said: string[]): boolean {
-  let w = said;
-  if (w.length === 0) return false;
-  let sawYes = false;
-  while (w.length > 0) {
-    const rest = w;
-    const phrase = [...YES_PHRASES, ...FILLERS].find((p) =>
-      p.split(' ').every((part, i) => rest[i] === part)
-    );
-    if (!phrase) return false;
-    sawYes ||= YES_PHRASES.includes(phrase);
-    w = w.slice(phrase.split(' ').length);
-  }
-  return sawYes;
+/**
+ * Whether the words split wholly into yes phrases and fillers, with at least one yes. Every phrase
+ * that fits at a point is tried, not just the first in the lists: "you" (a filler) used to win over
+ * "you should", leaving "should" alone, so "Yes, you should." placed nothing (owner call 10-26).
+ */
+function onlyYes(said: string[], call: boolean, sawYes = false): boolean {
+  if (said.length === 0) return sawYes;
+  return [...YES_PHRASES, ...FILLERS, ...(call ? CALL_FILLERS : [])].some((phrase) => {
+    const parts = phrase.split(' ');
+    if (!parts.every((part, i) => said[i] === part)) return false;
+    return onlyYes(said.slice(parts.length), call, sawYes || YES_PHRASES.includes(phrase));
+  });
 }
 
 /** The owner's first names, lower-case, from the tool run's user data (userName, name). */
@@ -271,7 +278,8 @@ export function confirmationState(
   const target = ['contactQuery', 'contactName', 'friendName', 'recipientName'].flatMap((k) =>
     typeof pending.args[k] === 'string' ? words(pending.args[k]) : []
   );
-  return isClearYes(answer.join(' '), target, pending.owner) ? 'confirmed' : 'void';
+  const call = PLACES_A_CALL.has(pending.toolId);
+  return isClearYes(answer.join(' '), target, pending.owner, call) ? 'confirmed' : 'void';
 }
 
 /**
