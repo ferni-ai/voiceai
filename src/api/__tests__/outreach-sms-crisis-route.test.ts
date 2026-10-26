@@ -35,6 +35,31 @@ vi.mock('../../services/safety/crisis-classifier.js', async (importOriginal) => 
   },
 }));
 
+// The screen's own log lines can be made to throw, to prove a failing logger
+// never changes what goes back to the phone.
+const screenLogThrows = vi.hoisted(() => ({ on: false }));
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../utils/safe-logger.js')>();
+  return {
+    ...real,
+    createLogger: (...args: Parameters<typeof real.createLogger>) => {
+      const logger = real.createLogger(...args);
+      return new Proxy(logger, {
+        get(target, prop, receiver) {
+          const value = Reflect.get(target, prop, receiver) as unknown;
+          if (prop !== 'info' || typeof value !== 'function') return value;
+          return (...logArgs: unknown[]) => {
+            if (screenLogThrows.on && logArgs[1] === 'SMS_CRISIS_SCREEN') {
+              throw new Error('logger down');
+            }
+            return (value as (...a: unknown[]) => unknown).apply(target, logArgs);
+          };
+        },
+      });
+    },
+  };
+});
+
 import { handleOutreachWebhookRoutes } from '../outreach-webhook-routes.js';
 import { SMS_CRISIS_REPLY } from '../../services/outreach/sms-crisis-screen.js';
 
@@ -57,12 +82,16 @@ const CRISIS_IN_TWIML = 'please call or text 988';
 
 beforeEach(() => {
   modelSays.risk = 'none';
-  handleInboundSMSWebhook.mockReset().mockResolvedValue({ success: true, twiml: CALL_ME_TWIML });
+  // A fresh result per text, as in prod: the route writes the crisis reply into it.
+  handleInboundSMSWebhook
+    .mockReset()
+    .mockImplementation(async () => ({ success: true, twiml: CALL_ME_TWIML }));
   recordInboundSmsConsent.mockClear();
   modelCalls.mockClear();
 });
 afterEach(() => {
   vi.unstubAllEnvs();
+  screenLogThrows.on = false;
 });
 
 describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
@@ -104,5 +133,39 @@ describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
   it.each(['off', 'shadow'])('%s: the reply is unchanged', async (mode) => {
     vi.stubEnv('SMS_CRISIS_SCREEN', mode);
     expect(await text('I want to kill myself')).toBe(CALL_ME_TWIML);
+  });
+
+  it('a logger that throws on every screen line never changes the reply: shadow is byte-identical to off', async () => {
+    const STOP_TWIML = '<?xml version="1.0"?><Response><Message>You are unsubscribed</Message></Response>';
+    const texts = ['STOP', 'HELP', 'I want to kill myself', 'running late, see you at 6'];
+    const replies = async (mode: string) => {
+      vi.stubEnv('SMS_CRISIS_SCREEN', mode);
+      const out: string[] = [];
+      for (const body of texts) {
+        handleInboundSMSWebhook.mockResolvedValueOnce({
+          success: true,
+          twiml: body === 'STOP' ? STOP_TWIML : CALL_ME_TWIML,
+        });
+        // One text at a time: the order of replies is the thing compared.
+        // eslint-disable-next-line no-await-in-loop
+        out.push(await text(body));
+      }
+      return out;
+    };
+    const off = await replies('off');
+    screenLogThrows.on = true;
+    modelSays.risk = 'imminent';
+    const shadow = await replies('shadow');
+    expect(shadow).toEqual(off);
+    expect(off[0]).toBe(STOP_TWIML);
+    // Let the shadow reads finish while the logger is still throwing.
+    await vi.waitFor(() => expect(modelCalls).toHaveBeenCalledTimes(texts.length));
+  });
+
+  it('on: a logger that throws still sends 988 to a crisis text', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    screenLogThrows.on = true;
+    expect(await text('I want to kill myself')).toContain(CRISIS_IN_TWIML);
+    expect(await text('running late, see you at 6')).toBe(CALL_ME_TWIML);
   });
 });

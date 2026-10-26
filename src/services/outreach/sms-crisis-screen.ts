@@ -93,8 +93,8 @@ export async function smsCrisisReply(
     const screenId = randomUUID();
     const pattern = detectCrisis(text).isCrisis;
     logScreen(mode, text, { crisis: pattern, pattern, risk: null }, 'pattern', screenId);
-    // The trailing catch also covers a throw from the log call itself: the web
-    // server has no unhandledRejection handler, so a rejection here would crash it.
+    // Nothing in this chain may reject: the web server has no unhandledRejection
+    // handler, so a rejection here would crash it (#2914).
     void screenSms(text, read)
       .then((outcome) => logScreen(mode, text, outcome, 'classifier', screenId))
       .catch(() => undefined);
@@ -140,20 +140,26 @@ function logScreen(
 ): void {
   // Twilio may answer HELP and INFO itself. `help` (any punctuation) and
   // `bareHelp` (the word alone) tell the shadow logs whether they reach us.
-  log.info(
-    {
-      mode,
-      stage,
-      screenId,
-      crisis: outcome.crisis,
-      pattern: outcome.pattern,
-      risk: outcome.risk,
-      keyword: isKeywordOnly(text),
-      help: HELP_WORDS.has(normalizeSms(text)),
-      bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),
-    },
-    'SMS_CRISIS_SCREEN'
-  );
+  // A log failure must never change what the person gets back, in any mode:
+  // the pattern line runs inside the request, where a throw becomes a 500.
+  try {
+    log.info(
+      {
+        mode,
+        stage,
+        screenId,
+        crisis: outcome.crisis,
+        pattern: outcome.pattern,
+        risk: outcome.risk,
+        keyword: isKeywordOnly(text),
+        help: HELP_WORDS.has(normalizeSms(text)),
+        bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),
+      },
+      'SMS_CRISIS_SCREEN'
+    );
+  } catch {
+    // Nothing to do: the reply goes out as it would with the screen off.
+  }
 }
 
 /**
