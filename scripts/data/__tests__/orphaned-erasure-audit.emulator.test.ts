@@ -5,7 +5,13 @@
  * The audit must count exactly those, never a live user or a phone-keyed profile, print
  * no id, and change nothing.
  */
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// vitest.config.unit.ts's setup mocks firebase-admin (initializeApp is a no-op), so the
+// app below was never made and getAuth fell back to a default app that doesn't exist.
+// This test runs against the real emulators under either config.
+vi.unmock('firebase-admin/app');
+vi.unmock('firebase-admin/firestore');
 import { getAuth } from 'firebase-admin/auth';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';

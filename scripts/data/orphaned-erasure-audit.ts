@@ -37,10 +37,12 @@ import {
   type Firestore,
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
-import { USER_RECORDS_COLLECTION } from '../../src/services/platform/erase-user-record.js';
+// user-stores.ts imports nothing; erase-user-record.ts pulls in Firebase Auth, BigQuery and
+// more, which kept this CLI from exiting and needed a default Firebase app at import
 import {
   ERASED_STORES,
   storeLabel,
+  USER_RECORDS_COLLECTION,
   type OwnedStore,
 } from '../../src/services/platform/user-stores.js';
 
