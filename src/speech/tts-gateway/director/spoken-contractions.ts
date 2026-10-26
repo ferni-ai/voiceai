@@ -12,6 +12,14 @@
  * clause, so a clause-final "ready when you are." and a stressed "I am NOT"
  * stay as written, as does "That is, ..." (a comma follows). Off, nothing changes.
  *
+ * An auxiliary (is / am / are / will) contracts only when what follows starts its
+ * complement (the Following Valent Constraint: Hudson et al., J. Linguistics 2026).
+ * "Who you are matters" and "where it is now" keep the full form: the next word is
+ * an adverb or a new verb, and "you're matters" isn't English. So the next word
+ * must be on a small allowlist of complement starters (a determiner, "not",
+ * "going", an adjective, an -ing or -ed form), and nothing contracts right after a
+ * wh-word, "as" or "than". Missing a contraction is safe; a wrong one isn't.
+ *
  * @module speech/tts-gateway/director/spoken-contractions
  */
 
@@ -52,13 +60,54 @@ const PAIRS: ReadonlyArray<readonly [string, string]> = [
  * The full form as a whole-word match, with a lowercase word after it in the same
  * clause. Only the first letter may be a capital ("It is", "it is"): a case-blind
  * match would let "I am NOT" through, and a stressed word should stay stressed.
+ * The pair must be followed by a lowercase word, so a wrapped "*not*" (emphasis,
+ * still in the text when this runs) also keeps the full form.
  */
 const PATTERNS = PAIRS.map(([full, short]) => {
   const first = full[0];
   const head = first === 'I' ? 'I' : `[${first}${first.toUpperCase()}]`;
   const body = full.slice(1).replace(' ', String.raw`\s+`);
-  return [new RegExp(String.raw`\b${head}${body}\b(?=\s+[a-z])`, 'g'), short] as const;
+  const negation = /\bnot$|^cannot$/.test(full);
+  return [new RegExp(String.raw`\b${head}${body}\b(?=\s+[a-z])`, 'g'), short, negation] as const;
 });
+
+/** Words that start a complement after is / am / are. */
+const COMPLEMENT_STARTERS = new Set(
+  (
+    'a an the this that these those my your his her our their its some any no every all ' +
+    'one two not going gonna so really just very pretty such kind sort totally completely ' +
+    'always never also still about only actually definitely probably literally exactly ' +
+    'okay ok fine right wrong sure glad sorry proud happy sad ready good great bad hard ' +
+    'tough true fair funny weird normal real allowed back out off over done tired scared ' +
+    'worried afraid excited nervous lucky safe alone different enough who what where why how'
+  ).split(' ')
+);
+
+/** Words that start a complement after "will": a bare verb, or an adverb before one. */
+const WILL_STARTERS = new Set(
+  (
+    'be have do get go make see tell talk call text send check let try keep remember ' +
+    'help find ask take give come never always just probably definitely really still'
+  ).split(' ')
+);
+
+/** After one of these the auxiliary is stranded: "who you are", "as easy as it is". */
+const GAP_OPENERS = new Set(
+  'who what where when why how as than wherever however whatever whoever whichever'.split(' ')
+);
+
+/** Does the next word start the auxiliary's complement? `after` is the text after the pair. */
+function complementFollows(full: string, after: string): boolean {
+  const next = /^\s+([a-z][a-z'-]*)(\s+[a-z])?/.exec(after);
+  if (!next) return false;
+  const word = next[1];
+  if (full.endsWith('will')) return WILL_STARTERS.has(word);
+  if (COMPLEMENT_STARTERS.has(word)) return true;
+  // "I am currently hiding", "that is incredibly frustrating": an -ly adverb counts
+  // only when a word follows it, so "they are lately." stays as written.
+  if (/ly$/.test(word)) return next[2] !== undefined;
+  return word.length > 4 && /(ing|ed)$/.test(word);
+}
 
 /** Keep the first letter's case: "It is" → "It's", "it is" → "it's", "I am" → "I'm". */
 function matchCase(found: string, short: string): string {
@@ -68,8 +117,15 @@ function matchCase(found: string, short: string): string {
 /** The text with full forms contracted, calling `hit` once per contraction. */
 export function contractForSpeech(text: string, hit: () => void): string {
   return PATTERNS.reduce(
-    (acc, [re, short]) =>
-      acc.replace(re, (found: string) => {
+    (acc, [re, short, negation]) =>
+      acc.replace(re, (found: string, at: number, all: string) => {
+        if (!negation) {
+          const before = /([A-Za-z']+)\s+$/.exec(all.slice(0, at));
+          if (before && GAP_OPENERS.has(before[1].toLowerCase())) return found;
+          if (!complementFollows(found.split(/\s+/).join(' '), all.slice(at + found.length))) {
+            return found;
+          }
+        }
         hit();
         return matchCase(found, short);
       }),

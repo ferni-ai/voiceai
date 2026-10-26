@@ -160,6 +160,10 @@ const RULES: readonly Rule[] = [
       const tail = /\s$/.test(rest) ? ' ' : '';
       return `${lead}${lead ? ' ' : ''}${items.filter(Boolean).join(', ')}${tail}`;
     }),
+  // SPOKEN_CONTRACTIONS=on: "That is a massive shift" → "That's a massive shift" (#2334).
+  // Before the markdown unwrap and the caps rule, so a stressed "I am *not*" or
+  // "I am NOT" keeps the full form (Sonic has no emphasis tag; the full form is the stress).
+  (t, hit) => (spokenContractionsEnabled() ? contractForSpeech(t, hit) : t),
   // Stage directions and markdown.
   (t, hit) => {
     // Stage directions are dropped and emphasis unwrapped (shared with the
@@ -180,9 +184,6 @@ const RULES: readonly Rule[] = [
     hit();
     return tidy(out, t);
   },
-  // SPOKEN_CONTRACTIONS=on: "That is a massive shift" → "That's a massive shift" (#2334).
-  // Before the caps rule, so a stressed "I am NOT" is left as written.
-  (t, hit) => (spokenContractionsEnabled() ? contractForSpeech(t, hit) : t),
   // Shouted emphasis: lowercase it so Sonic says the word, not its letters.
   (t, hit) =>
     t.replace(CAPS_WORD, (word: string, at: number, all: string) => {

@@ -72,4 +72,44 @@ describe('SPOKEN_CONTRACTIONS', () => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
     expect(say(line)).toBe(line.replace('NOT', 'not'));
   });
+
+  /** Lead verifier's FAIL on 7dcd5c688 (PR #2347): each was contracted at a stranded spot. */
+  it.each([
+    'Who you are matters.',
+    'I like who you are now.',
+    'I know where it is now.',
+    'I wonder how old they are today.',
+    'I lost track of where that is anymore.',
+    'I will tomorrow.',
+    'Look at what there is to do.',
+    'It is as easy as it is now.',
+  ])('on: a stranded auxiliary keeps the full form: %s', (line) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(normalizeForSpeech(line)).toEqual({ text: line, count: 0 });
+  });
+
+  it('on: "That is who I am today" contracts only the pair with a complement', () => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say('That is who I am today.')).toBe("That's who I am today.");
+  });
+
+  it.each([
+    ['I am *not* going.', 'I am not going.'],
+    ['It is _really_ hard.', 'It is really hard.'],
+    ['*It is* a lot.', 'It is a lot.'],
+  ])('on: emphasis keeps the full form: %s', (line, spoken) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say(line)).toBe(spoken);
+  });
+
+  it.each([
+    ['I will call you after.', "I'll call you after."],
+    ['They are so tired.', "They're so tired."],
+    ['You are right about that.', "You're right about that."],
+    ['There is a dog outside.', "There's a dog outside."],
+    ['I am still here.', "I'm still here."],
+  ])('on: a complement after the auxiliary still contracts: %s', (line, contracted) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say(line)).toBe(contracted);
+  });
 });

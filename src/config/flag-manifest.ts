@@ -381,8 +381,9 @@ const LEGACY_FLAG_MANIFEST = {
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: the speech director contracts "that is" / "it is" / "I am not" when a word follows
-  // (speech/tts-gateway/director/spoken-contractions.ts, #2334)
+  // on: the speech director contracts "that is" / "it is" / "I am not" when a complement follows
+  // (speech/tts-gateway/director/spoken-contractions.ts, #2334). Audible only with
+  // SPEECH_DIRECTOR=live and the normalize lever up.
   SPOKEN_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: a fact holding a code, password or PIN the caller said aloud is not stored (memory/spoken-credential.ts)
   SPOKEN_CREDENTIAL_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
