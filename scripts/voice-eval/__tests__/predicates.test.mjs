@@ -428,7 +428,35 @@ describe('dead-air', () => {
   });
 });
 
+describe('dead-air boundaries', () => {
+  /** Caller lines and agent voice on the run clock; captions don't matter here. */
+  const at = (callerSpeech, agentVoice) => ({ events: [], callerSpeech, agentVoice, turns: [] });
+  const quiet = (line, voice) => hits('dead-air', at([line, [50000, 52000, 2000]], voice));
+  it('a line exactly 1000 ms over its audio still counts; 1001 ms over is a stall', () => {
+    const greeted = [[0, 500]];
+    expect(quiet([1000, 3000, 1000], greeted)).toHaveLength(1);
+    expect(quiet([1000, 3000, 999], greeted)).toEqual([]);
+  });
+  it('an old line of exactly 30 s still counts; 30.001 s is a stall', () => {
+    expect(quiet([1000, 31000], [[0, 500]])).toHaveLength(1);
+    expect(quiet([1000, 31001], [[0, 500]])).toEqual([]);
+  });
+  it('a line ending exactly at, or 100 ms after, the first agent audio still counts', () => {
+    expect(quiet([1000, 3000, 2000], [[3000, 3000]])).toHaveLength(1);
+    expect(quiet([1000, 3000, 2000], [[2900, 2950]])).toHaveLength(1);
+    // control: the same line before any agent audio is skipped
+    expect(quiet([1000, 3000, 2000], [[55000, 56000]])).toEqual([]);
+  });
+});
+
 describe('slow-start (reported only)', () => {
+  it('reports first agent audio over 15 s, not at 15 s', () => {
+    const c = (first) => ({ callerSpeech: [[20000, 21000, 1000]], agentVoice: [[first, 19000]] });
+    expect(hits('slow-start', c(15000))).toEqual([]);
+    expect(hits('slow-start', c(15001))).toEqual([
+      expect.objectContaining({ why: 'first agent audio at 15.0 s' }),
+    ]);
+  });
   it('passes a greeting before the caller speaks, and reports a late one', () => {
     expect(hits('slow-start', call(['a: Hi.', 'u: Hey.', 'a: How are you?']))).toEqual([]);
     const late = call(['a: Hi.', 'u: Hey.'], {

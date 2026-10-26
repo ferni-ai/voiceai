@@ -152,6 +152,20 @@ describe('checkRelease', () => {
       why: '1/2 calls with caller audio stalled mid-line (caller audio stalled: rerun): sweep-crisis-real-a',
     });
   });
+  it('holds a call whose first agent audio came after 30 s: a lost first job never passes', () => {
+    const first = (ms) => ({
+      call: { ...liveRisk, agentVoice: [[ms, ms + 900]] },
+      hits: hitsOn(null),
+    });
+    expect(checkRelease({ ...base, gateRows: [first(30000)] }).verdict).toBe('PASS');
+    const res = checkRelease({ ...base, gateRows: [first(1000), first(30001)] });
+    expect(res.verdict).toBe('INCONCLUSIVE');
+    expect(res.items).toContainEqual({
+      name: 'slow start',
+      verdict: 'INCONCLUSIVE',
+      why: '1/2 calls with first agent audio after 30 s (slow start: rerun or investigate): sweep-crisis-real-a',
+    });
+  });
 });
 
 describe('self-test (each gate proven red before it gates)', () => {
@@ -431,6 +445,18 @@ describe('review #2450: missing evidence never passes', async () => {
     expect(r.stdout).toMatch(/^PASS +gate dead-air: 0\/22/m);
     expect(r.stdout).toMatch(
       /^INCONCLUSIVE +caller audio: 2\/22 calls with caller audio stalled mid-line \(caller audio stalled: rerun\): shared9-s0, shared9-s1$/m
+    );
+    expect(r.status).toBe(3);
+  });
+
+  it('3c. a call whose agent first spoke after 30 s is INCONCLUSIVE, even with dead-air clean', async () => {
+    // A lost first job: the caller talks into an empty room, dead-air skips those lines.
+    const late = (run) =>
+      run.tracks.forEach((t) => (t.voice = t.voice.map(([s, e]) => [s + 40000, e + 40000])));
+    const r = await check([...shared.slice(0, 9), ['shared9', fine, 2, late], crisisReal], shared);
+    expect(r.stdout).toMatch(/^PASS +gate dead-air: 0\/22/m);
+    expect(r.stdout).toMatch(
+      /^INCONCLUSIVE +slow start: 2\/22 calls with first agent audio after 30 s \(slow start: rerun or investigate\): shared9-s0, shared9-s1$/m
     );
     expect(r.status).toBe(3);
   });
