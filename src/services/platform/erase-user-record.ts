@@ -31,6 +31,8 @@ const log = createLogger({ module: 'erase-user-record' });
 
 export const USER_RECORDS_COLLECTION = 'bogle_users';
 
+/** gRPC NOT_FOUND: an update of a document that doesn't exist */
+const NOT_FOUND = 5;
 const PAGE = 300;
 /** A query that keeps returning documents after they were deleted must not loop forever */
 const MAX_PAGES = 1_000;
@@ -92,12 +94,7 @@ async function eraseStore(db: Db, store: OwnedStore, userId: string): Promise<vo
   const collection = db.collection(store.collection);
   if ('mapKey' in store) return eraseEntries(db, store, userId);
   if ('doc' in store) {
-    // The record first: a write still running checks it in its own transaction and stops
-    // (insight-store.ts). Deleted after its children, it let a write that read it in between
-    // recreate a child (#2833). recursiveDelete still clears a missing doc's subcollections.
-    const ref = collection.doc(userId);
-    await ref.delete();
-    await db.recursiveDelete(ref);
+    await db.recursiveDelete(collection.doc(userId));
     return;
   }
   const query = collection.where(store.field, '==', userId).limit(PAGE);
@@ -204,6 +201,9 @@ export async function eraseUserRecord(
   linked.forEach(assertErasableUserId);
   // BQ_ERASURE: their BigQuery rows go in a later batch, after the streaming buffer (bq-erasure.ts)
   if (flagOn('BQ_ERASURE')) await queueBqErasure(db, [userId, ...linked]);
+  // The records this erasure deletes are marked before anything goes
+  if (stores.some((store) => storeLabel(store) === `${USER_RECORDS_COLLECTION}/{uid}`))
+    await markErasing(db, [userId, ...linked]);
   const uidJobs = (uid: string, tier: number): Job[] =>
     stores
       .filter((store) => (KEY_TIER.get(storeLabel(store)) ?? 0) === tier)
@@ -237,6 +237,31 @@ export async function eraseUserRecord(
     await runPhase([...keyedJobs(tier), ...uidJobs(userId, tier)], userId);
   }
   await eraseUserOutreachData(userId);
+}
+
+/**
+ * Marks each record `erasing` before anything is deleted. A write still running for the
+ * person (a live call's team insight, insight-store.ts) reads the record in its own
+ * transaction and stops on the mark, so it can't recreate a document under a record that
+ * is about to go: the record itself is deleted last, since a retry reads the keys from it
+ * (erasure-keys.ts). One update, which needs the record to exist: a write that read the
+ * record before the mark either lands first (and is erased with the rest) or is retried
+ * and finds the mark. A record that doesn't exist isn't created. Any other failure fails
+ * the erasure before anything is deleted.
+ */
+async function markErasing(db: Db, userIds: readonly string[]): Promise<void> {
+  const erasingAt = new Date().toISOString();
+  await Promise.all(
+    userIds.map(async (uid) =>
+      db
+        .collection(USER_RECORDS_COLLECTION)
+        .doc(uid)
+        .update({ erasing: true, erasingAt })
+        .catch((error: unknown) => {
+          if ((error as { code?: unknown } | null)?.code !== NOT_FOUND) throw error;
+        })
+    )
+  );
 }
 
 /**

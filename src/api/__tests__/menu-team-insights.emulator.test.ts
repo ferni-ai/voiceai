@@ -488,13 +488,17 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
   }
 
   /**
-   * #2833 verifier, item 4: an erasure partway through (the record deleted first, the
-   * documents under it not yet) leaves an insights document with no record. A write then
-   * must not add to it: before, the document's being there let every write in.
+   * #2833 verifier, item 4: an insights document with no record (an erasure that deleted
+   * the record but not yet everything under it, or a legacy uid) gets nothing added.
+   * Before, the document's being there let every write in.
    */
   it('an insights document whose record is gone gets no write', async () => {
     const uid = await newUser();
-    await docOf(uid).set({ insights: [insightAt('insight_left', 60_000)], _userId: uid });
+    // Another category, so the note shared below isn't a recent duplicate of it
+    await docOf(uid).set({
+      insights: [insightAt('insight_left', 60_000, { category: 'check_in' })],
+      _userId: uid,
+    });
     await db.doc(`bogle_users/${uid}`).delete();
     const agent = await agentProcess();
 
@@ -504,6 +508,23 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
       { userId: uid },
       'Team insight write dropped: no user record'
     );
+  });
+
+  it('a record the erasure has marked (erasing) gets no write', async () => {
+    const uid = await newUser();
+    // Another category, so the note shared below isn't a recent duplicate of it
+    await docOf(uid).set({
+      insights: [insightAt('insight_left', 60_000, { category: 'check_in' })],
+      _userId: uid,
+    });
+    await db
+      .doc(`bogle_users/${uid}`)
+      .update({ erasing: true, erasingAt: new Date().toISOString() });
+    const agent = await agentProcess();
+
+    await agent.share(uid, 'surfacePatternInsight', mayaNotices('Walks after dinner stick'));
+
+    expect((await storedOf(uid)).map((i) => i.id)).toEqual(['insight_left']);
   });
 
   it('a user whose record exists but has no insights yet gets the write, as before', async () => {

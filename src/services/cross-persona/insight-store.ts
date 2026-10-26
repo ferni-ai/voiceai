@@ -119,13 +119,14 @@ export const BACKGROUND_RETRY: RetryOptions = {
 /**
  * Applies one change to the stored list in a transaction, so a concurrent writer's
  * insights are kept. Never writes for a caller MINOR_CARE holds, a shared id, or an
- * erased account: when the user record (bogle_users/{uid}) is gone, the write is dropped,
- * whether or not this document is still there. Account erasure deletes the record first,
- * then everything under it (erase-user-record.ts); the scheduled jobs read the missing
- * record the same way (ponder-job.ts). The record is read in this write's transaction, so
- * a process still running during or after the erasure (a live call, a scan) can't recreate
- * the document: a write that read the record before its delete either lands first (and
- * the erasure then removes it) or conflicts with the delete, and its retry finds no record.
+ * erased account: when the user record (bogle_users/{uid}) is gone or marked `erasing`,
+ * the write is dropped, whether or not this document is still there. Account erasure marks
+ * the record before it deletes anything, and deletes the record last (erase-user-record.ts
+ * markErasing); the scheduled jobs read the missing record the same way (ponder-job.ts).
+ * The record is read in this write's transaction, so a process still running during or
+ * after the erasure (a live call, a scan) can't recreate the document: a write that read
+ * the record before the mark either lands first (and is erased with the rest) or conflicts
+ * with the mark, and its retry finds it.
  * `background`: retried with BACKGROUND_RETRY. Rejects when the write fails; the failure
  * is logged once, by its code, never with the insight's words.
  */
@@ -144,7 +145,7 @@ export async function changeStoredInsights(
     tries += 1;
     return db.runTransaction(async (tx) => {
       const [user, snap] = await Promise.all([tx.get(record), tx.get(ref)]);
-      if (!user.exists) return false; // erased, or being erased
+      if (!user.exists || user.data()?.erasing === true) return false; // erased, or being erased
       const insights = change(listOf(snap.data()));
       const doc = { insights, lastScannedAt: Date.now(), _updatedAt: new Date().toISOString() };
       // Plain JSON, as the app receives it: no undefined anywhere, Dates as ISO strings

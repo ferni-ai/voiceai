@@ -4,16 +4,22 @@
  * #2833 verifier, item 4: the erasure deleted a user's sub-documents before their record
  * (bogle_users/{uid}). An insight write that read the record in that window, then found
  * no insights document, wrote the document back, with the insight's words, under an
- * erased user; from then on every later write got in too. Now the erasure deletes the
- * record first (erase-user-record.ts eraseStore), and the write reads the record in its
- * own transaction and drops itself whenever the record is missing (insight-store.ts).
+ * erased user; from then on every later write got in too. Now the erasure first marks the
+ * record `erasing` in a transaction (erase-user-record.ts markErasing) and still deletes
+ * it last, and the write reads the record in its own transaction and drops itself
+ * whenever the record is missing or marked (insight-store.ts).
  *
  * Each race is made deterministic by pausing the write's transaction at a chosen read.
  * Synthetic users only.
  */
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
+import type {
+  CollectionReference,
+  DocumentReference,
+  Firestore,
+  Transaction,
+} from 'firebase-admin/firestore';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // src/tests/setup.ts fakes firebase-admin and getFirestoreDb; the erasure and the insight
@@ -24,10 +30,16 @@ vi.mock('../../utils/firestore-utils.js', () => vi.importActual('../../utils/fir
 vi.mock('../../services/superhuman/firestore-utils.js', () =>
   vi.importActual('../../utils/firestore-utils.js')
 );
+/** The Firebase record each test uid signs in with (a verified phone, for the auth-linked profile) */
+const firebaseUsers = vi.hoisted(() => new Map<string, { phoneNumber?: string }>());
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   ensureFirebaseAdmin: () => true,
   deleteFirebaseUser: vi.fn(async () => true),
-  getFirebaseUserOrThrow: vi.fn(async () => ({ providerData: [], emailVerified: false })),
+  getFirebaseUserOrThrow: vi.fn(async (uid: string) => ({
+    providerData: [],
+    emailVerified: false,
+    ...firebaseUsers.get(uid),
+  })),
 }));
 vi.mock('../auth-middleware.js', () => ({
   requireAuth: vi.fn(async (req: IncomingMessage) => {
@@ -152,6 +164,31 @@ const settledOrAfter = async (p: Promise<unknown>, ms: number): Promise<void> =>
   ]);
 };
 
+/** Every document in the project that names one of `names` in its path or its fields */
+const holds = (value: unknown, names: readonly string[]): boolean =>
+  typeof value === 'string'
+    ? names.some((n) => value.includes(n))
+    : typeof value === 'object' &&
+      value !== null &&
+      Object.values(value).some((v) => holds(v, names));
+async function docsNaming(...names: string[]): Promise<string[]> {
+  const found: string[] = [];
+  const walk = async (collections: CollectionReference[], underNamed: boolean): Promise<void> => {
+    for (const collection of collections) {
+      const [existing, refs] = await Promise.all([collection.get(), collection.listDocuments()]);
+      const data = new Map(existing.docs.map((d) => [d.ref.path, d.data()]));
+      for (const ref of refs) {
+        const fields = data.get(ref.path);
+        const named = underNamed || names.some((n) => ref.path.includes(n)) || holds(fields, names);
+        if (named && fields) found.push(ref.path);
+        await walk(await ref.listCollections(), named);
+      }
+    }
+  };
+  await walk(await db.listCollections(), false);
+  return found;
+}
+
 describe.skipIf(!emulator)('Team Insights, an erasure racing a write (Firestore emulator)', () => {
   it('an erasure that runs while a write has read the record, but not yet the insights, leaves nothing; DELETE /api/account answers 200', async () => {
     const uid = `race-${rid()}`;
@@ -253,4 +290,62 @@ describe.skipIf(!emulator)('Team Insights, an erasure racing a write (Firestore 
     expect((await docOf(uid).get()).exists).toBe(false);
     expect(await recordOf(uid).listCollections()).toEqual([]);
   }, 60_000);
+  /**
+   * The mark (not deleting the record first) is what stops the write, because a retry reads
+   * the keys off the record: the phone profiles linked to it (erasure-keys.ts). Here the
+   * first erasure fails partway through the auth-linked phone profile; the retry must still
+   * find and erase both phone profiles and everything under them, and answer 200.
+   */
+  it('an erasure that fails partway keeps the record (marked) and its links; the retry erases everything, 200', async () => {
+    const uid = `retry-${rid()}`;
+    const n = String(Date.now()).slice(-7);
+    const authed = `phone:+1555${n}`; // the phone Firebase verified for this sign-in
+    const linked = `phone:+1556${n}`; // linked to the record after a texted code
+    firebaseUsers.set(uid, { phoneNumber: authed.slice('phone:'.length) });
+    await userWithInsights(uid);
+    await recordOf(uid).set({ linkedIdentifiers: [linked] }, { merge: true });
+    for (const id of [authed, linked]) {
+      await userWithInsights(id);
+      for (const i of [1, 2])
+        await db.doc(`bogle_users/${id}/summaries/s${i}`).set({ text: 'a call' });
+    }
+
+    // The first pass over the auth-linked profile deletes one document, then fails
+    const proto = Object.getPrototypeOf(db) as Firestore;
+    const realRecursiveDelete = proto.recursiveDelete;
+    let failures = 0;
+    vi.spyOn(proto, 'recursiveDelete').mockImplementation(async function (
+      this: Firestore,
+      ref,
+      writer
+    ) {
+      if (failures === 0 && (ref as DocumentReference).path === recordOf(authed).path) {
+        failures += 1;
+        await db.doc(`bogle_users/${authed}/summaries/s1`).delete();
+        throw Object.assign(new Error('14 UNAVAILABLE: injected'), { code: 14 });
+      }
+      return realRecursiveDelete.call(this, ref, writer);
+    });
+
+    expect((await deleteAccount(uid)).status).toBe(500);
+    expect(failures).toBe(1);
+    // Nothing of the user's own record went: it is marked, and its links are still there
+    const record = (await recordOf(uid).get()).data();
+    expect(record).toMatchObject({ erasing: true, linkedIdentifiers: [linked] });
+    expect((await docOf(uid).get()).exists).toBe(true);
+    // A write meanwhile (a live call) adds nothing, to the user or the phone profile left
+    const agent = await agentProcess();
+    agent.insights.addCrossPersonaInsight(uid, note);
+    agent.insights.addCrossPersonaInsight(authed, note);
+    await agent.store.insightWritesSettled();
+    for (const id of [uid, authed]) {
+      const stored = ((await docOf(id).get()).data()?.insights ?? []) as Array<{ id: string }>;
+      expect(stored.map((i) => i.id)).toEqual(['insight_stored']);
+    }
+
+    expect((await deleteAccount(uid)).status).toBe(200);
+    expect(await docsNaming(uid, authed, linked)).toEqual([]);
+    for (const id of [uid, authed, linked])
+      expect(await recordOf(id).listCollections()).toEqual([]);
+  }, 120_000);
 });

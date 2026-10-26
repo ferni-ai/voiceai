@@ -127,7 +127,7 @@ describe('cross-persona insight reads', () => {
     expect(storedIds()).toEqual(['insight_stored', 'mine']);
   });
 
-  it('a stored document whose record is gone (an erasure partway) gets no write', async () => {
+  it('a stored document whose record is gone gets no write', async () => {
     firestore.docs.set(docPath(), { insights: [storedInsight()], lastScannedAt: 1 });
     firestore.docs.delete(`bogle_users/${user}`);
 
