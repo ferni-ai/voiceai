@@ -17,7 +17,8 @@
 // FAILs, or a trust gate (capabilities with gate: true) that FAILs above its known, accepted gap
 // (check.known.max), every night it lasts (only then does someone investigate); 2 harness error
 // (no scored runs, bad input). A gate at or under its known gap is FAIL in the table and named on
-// the top line as a known gap every night, but does not exit 1. The bar never changes the exit.
+// the top line as a known gap every night, but does not exit 1. A reportOnly capability (false-done,
+// a word list) is WARN at worst and never exits 1. The bar never changes the exit.
 import {
   existsSync,
   mkdirSync,
@@ -29,6 +30,7 @@ import {
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkRun, parseChecks } from '../recall-facts.mjs';
+import { claimedContact } from './false-done.mjs';
 import { loadBar, prevBar, renderBar, scoreBar } from './superhuman.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -90,6 +92,11 @@ export function metric(check, runs, caps, extra = {}) {
   switch (check.metric) {
     case 'callsMatching':
       return { value: n ? t.filter((r) => replyHit(r, re)).length : null, n };
+    case 'claimedContact': // false-done.mjs: a claimed call, text or booking (report only)
+      return {
+        value: n ? t.filter((r) => r.score.replyTexts.some(claimedContact)).length : null,
+        n,
+      };
     case 'callsNotMatching':
       return { value: n ? t.filter((r) => !replyHit(r, re)).length : null, n };
     case 'ownOpener': {
@@ -257,6 +264,7 @@ export function scoreNight(runs, caps, prev = null, extra = {}) {
       label: cap.label,
       ...(cap.gate ? { gate: true } : {}),
       ...(known ? { knownGap: true } : {}),
+      ...(cap.reportOnly ? { reportOnly: true } : {}),
       verdict,
       prev: prev?.capabilities?.[id]?.verdict ?? null,
       checks,
@@ -265,7 +273,9 @@ export function scoreNight(runs, caps, prev = null, extra = {}) {
   }
   // Safety first, then the trust gates, then the rest in capabilities.json order.
   const rank = (id) =>
-    SAFETY.includes(id) ? SAFETY.indexOf(id) : SAFETY.length + (scored[id].gate ? 0 : 1);
+    SAFETY.includes(id)
+      ? SAFETY.indexOf(id)
+      : SAFETY.length + (scored[id].gate || scored[id].reportOnly ? 0 : 1);
   const ids = Object.keys(caps.capabilities).filter((id) => scored[id]);
   const capabilities = Object.fromEntries(
     ids.sort((a, b) => rank(a) - rank(b)).map((id) => [id, scored[id]])
@@ -285,19 +295,24 @@ export function diffNights(capabilities) {
   const safetyNoData = SAFETY.filter(
     (id) => capabilities[id] && !safetyFail.includes(id) && unmeasured(capabilities[id]).length
   );
-  // A trust gate (invented memory, re-asking, a false "done") exits 1 every night it FAILs above its
-  // known gap; at or under it, it is named on the top line as a known gap and does not exit. With
-  // no data it is WARN and named on the top line, but does not exit (false-done has no lane yet).
+  // A trust gate (invented memory, re-asking) exits 1 every night it FAILs above its known gap; at
+  // or under it, it is named on the top line as a known gap and does not exit. With no data it is
+  // WARN and named on the top line, but does not exit.
   const gates = Object.keys(capabilities).filter((id) => capabilities[id].gate);
   const gateFail = gates.filter(
     (id) => capabilities[id].verdict === 'FAIL' && !capabilities[id].knownGap
   );
   const gateKnown = gates.filter((id) => capabilities[id].knownGap);
+  // A report-only capability (a word-list detector, e.g. false-done) is named on the top line
+  // whenever it isn't PASS, and never exits 1: not new, not a regression.
+  const reportOnly = Object.keys(capabilities).filter(
+    (id) => capabilities[id].reportOnly && capabilities[id].verdict !== 'PASS'
+  );
   const gateNoData = gates.filter(
     (id) => !gateFail.includes(id) && unmeasured(capabilities[id]).length
   );
   for (const [id, c] of Object.entries(capabilities)) {
-    if (c.knownGap) continue; // the accepted baseline: never new, never a regression
+    if (c.knownGap || c.reportOnly) continue; // accepted baseline or report only: never exits
     if (c.verdict === 'FAIL' && c.prev !== 'FAIL') newFail.push(id);
     else if (c.prev && RANK[c.verdict] > RANK[c.prev])
       regressions.push(`${id}: ${c.prev} -> ${c.verdict}`);
@@ -316,7 +331,8 @@ export function diffNights(capabilities) {
     gateFail.length
       ? 1
       : 0;
-  return { newFail, regressions, safetyFail, safetyNoData, gateFail, gateKnown, gateNoData, exit };
+  const d = { newFail, regressions, safetyFail, safetyNoData, gateFail, gateKnown, gateNoData };
+  return { ...d, reportOnly, exit };
 }
 
 /** The newest earlier night's scorecard.json with status "ok", or null. */
@@ -343,6 +359,7 @@ const topLine = (card, title, ids = [], pick, text) =>
         .join(', ')}**\n\n`
     : '';
 const failed = (c) => c.checks.filter((k) => k.verdict === 'FAIL');
+const notPass = (c) => c.checks.filter((k) => k.verdict !== 'PASS');
 const noData = (k) => `${k.id}: ${k.reason}`;
 /** The first lines of every report while a safety capability or a trust gate FAILs or measured
  *  nothing. */
@@ -351,7 +368,8 @@ export const safetyLine = (card) =>
   topLine(card, 'SAFETY: no data — ', card.diff.safetyNoData, unmeasured, noData) +
   topLine(card, 'TRUST GATE FAIL: ', card.diff.gateFail, failed, checkText) +
   topLine(card, 'TRUST GATE known gap (no exit 1): ', card.diff.gateKnown, failed, checkText) +
-  topLine(card, 'TRUST GATE: no data — ', card.diff.gateNoData, unmeasured, noData);
+  topLine(card, 'TRUST GATE: no data — ', card.diff.gateNoData, unmeasured, noData) +
+  topLine(card, 'REPORT ONLY (no exit 1): ', card.diff.reportOnly, notPass, checkText);
 
 export function renderReport(card) {
   const head = `# Nightly capability sweep ${card.date}\n\nBuild ${card.build ?? '?'}, ${card.runs} scored runs. Exit ${card.exit}.`;
@@ -381,9 +399,9 @@ const USAGE =
 /** --bar superhuman: the trust gates and the better-than-human bar for any sweep dir. */
 export function renderBarReport(card) {
   const gates = Object.entries(card.capabilities)
-    .filter(([, c]) => c.gate)
+    .filter(([, c]) => c.gate || c.reportOnly)
     .map(([id, c]) => `| ${id} | ${c.verdict} | ${c.checks.map(checkText).join('; ')} |`);
-  return `# Better-than-human bar: ${card.date}\n\nBuild ${card.build ?? '?'}, ${card.runs} scored runs.\n\n## Trust gates (exit 1 in the nightly above a known gap)\n\n| Gate | Verdict | Numbers |\n|---|---|---|\n${gates.join('\n')}\n${renderBar(card.superhuman)}`;
+  return `# Better-than-human bar: ${card.date}\n\nBuild ${card.build ?? '?'}, ${card.runs} scored runs.\n\n## Trust gates (exit 1 in the nightly above a known gap; report-only rows never)\n\n| Gate | Verdict | Numbers |\n|---|---|---|\n${gates.join('\n')}\n${renderBar(card.superhuman)}`;
 }
 
 function main(argv) {
@@ -428,7 +446,9 @@ function main(argv) {
     const dir = opt('--write') ?? out;
     mkdirSync(dir, { recursive: true });
     const { date, build: b, runs: n, prevFile } = card;
-    const gates = Object.fromEntries(Object.entries(capabilities).filter(([, c]) => c.gate));
+    const gates = Object.fromEntries(
+      Object.entries(capabilities).filter(([, c]) => c.gate || c.reportOnly)
+    );
     const json = { date, build: b, runs: n, prevFile, gates, superhuman };
     writeFileSync(join(dir, 'superhuman.json'), `${JSON.stringify(json, null, 2)}\n`);
     writeFileSync(join(dir, 'SUPERHUMAN.md'), renderBarReport(card));

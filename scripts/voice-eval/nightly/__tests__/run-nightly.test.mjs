@@ -36,6 +36,7 @@ function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
     'analyze.py',
     'superhuman.mjs',
     'superhuman-bar.json',
+    'false-done.mjs',
   ])
     cpSync(join(NIGHTLY, f), join(n, f));
   for (const f of ['recall-facts.mjs', 'eval-database.mjs'])
