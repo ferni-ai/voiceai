@@ -22,6 +22,7 @@ import {
   PHONE_STYLES, afterPhoneCleared, bindPhoneActions, bindPhoneInput, escapeAttr,
   field, loadPhoneAndChannels, phoneActionsHtml, phoneStatus, planPhoneSave, sendCode,
 } from './contact-settings-phone.js';
+import { bindReachSwitch, reachSwitchHtml } from './contact-settings-reach.js';
 import type { ContactSettingsState } from './contact-settings-types.js';
 import { escapeHtml } from './engagement-components.js';
 
@@ -702,6 +703,7 @@ function render(): void {
           </p>
         </div>
 
+        ${reachSwitchHtml(state)}
         <!-- Quiet Hours Section -->
         <div class="contact-settings-section">
           <div class="contact-settings-section-header">
@@ -776,6 +778,7 @@ function bindEvents(): void {
   // Typed values live in state, so a re-render (load finishing, an error) never wipes them.
   bindPhoneInput(modalContainer, state, render);
   bindPhoneActions(modalContainer, state, render);
+  bindReachSwitch(modalContainer, state);
   const email = modalContainer.querySelector<HTMLInputElement>('#email-input');
   email?.addEventListener('input', () => (state.drafts.email = email.value));
   const name = modalContainer.querySelector<HTMLInputElement>('#name-input');
@@ -786,11 +789,9 @@ function bindEvents(): void {
   quietToggle?.addEventListener('click', () => {
     const isEnabled = state.contactInfo.quietHoursEnabled !== false;
     state.contactInfo.quietHoursEnabled = !isEnabled;
-    
     // Update toggle appearance
     quietToggle.classList.toggle('active', !isEnabled);
     quietToggle.setAttribute('aria-pressed', String(!isEnabled));
-    
     // Update time row enabled state
     const timeRow = modalContainer?.querySelector('.contact-settings-time-row');
     timeRow?.classList.toggle('enabled', !isEnabled);
@@ -799,11 +800,9 @@ function bindEvents(): void {
   // Quiet hours time selects
   const quietStart = modalContainer.querySelector('#quiet-start') as HTMLSelectElement;
   const quietEnd = modalContainer.querySelector('#quiet-end') as HTMLSelectElement;
-  
   quietStart?.addEventListener('change', (e) => {
     state.contactInfo.quietHoursStart = (e.target as HTMLSelectElement).value;
   });
-  
   quietEnd?.addEventListener('change', (e) => {
     state.contactInfo.quietHoursEnd = (e.target as HTMLSelectElement).value;
   });

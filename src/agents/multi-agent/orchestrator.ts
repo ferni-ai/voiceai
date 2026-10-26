@@ -26,6 +26,7 @@ import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { goodbyeLeft, takeEarlyGoodbye } from '../../tools/handoff/early-goodbye.js';
 import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
@@ -711,10 +712,7 @@ export class AgentOrchestrator {
         '🎭 [removeAgent] ✅ agent.cleanup() completed'
       );
     } catch (err) {
-      log.warn(
-        { error: err },
-        '🎭 [removeAgent] ⚠️ Error during agent cleanup'
-      );
+      log.warn({ error: err }, '🎭 [removeAgent] ⚠️ Error during agent cleanup');
     }
 
     this.agents.delete(agentId);
@@ -741,9 +739,9 @@ export class AgentOrchestrator {
     talk: TalkThrough | null = null
   ): Promise<void> {
     const { targetPersonaId } = request;
-    const goodbye = this.getGoodbyePhrase(agent, request);
-    const displayName = getPersonaDisplayName(targetPersonaId);
-    const textToSpeak = goodbye || `Let me get ${displayName} for you.`;
+    const early = takeEarlyGoodbye(this.sessionId, targetPersonaId); // said by the tool already
+    const goodbye = early?.text ?? this.getGoodbyePhrase(agent, request);
+    const textToSpeak = goodbye || `Let me get ${getPersonaDisplayName(targetPersonaId)} for you.`;
 
     log.info(
       {
@@ -764,14 +762,13 @@ export class AgentOrchestrator {
 
     // Coordinated speech, else session.say (talk-through: interruptible, none over the caller)
     try {
-      if (!talk?.callerTalking()) agent.say(textToSpeak, { allowInterruptions: Boolean(talk) });
+      if (!(early ?? talk?.callerTalking())) agent.say(textToSpeak, { allowInterruptions: !!talk });
     } catch (sayError) {
       log.warn(
         { personaId: agent.personaId, error: String(sayError) },
         '🎭 [GOODBYE] Coordinated say failed, trying direct session speak...'
       );
 
-      // Fallback: Try direct session.say if coordinated speech fails
       try {
         const session = agent.session as { say?: (text: string, opts?: unknown) => void };
         if (session?.say) {
@@ -787,7 +784,7 @@ export class AgentOrchestrator {
       }
     }
 
-    await (talk ? talk.listen(duration) : this.waitForSpeechComplete(duration));
+    await (talk ? talk.listen(duration) : this.waitForSpeechComplete(goodbyeLeft(early, duration)));
     log.info({ personaId: agent.personaId }, '🎭 [GOODBYE] Wait complete');
   }
 

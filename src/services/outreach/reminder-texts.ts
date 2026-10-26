@@ -123,7 +123,13 @@ export async function guardReminderText(
     const now = deps.text.now();
     const morning = quietHoursEnd(now, r.timezone);
     if (morning) return holdUntil(r, morning);
-    const t = { userId: r.userId, body: reminderText(r), kind: 'reminder' as const };
+    // A reminder they set: it comes through with "Ferni can reach out" off (Seth, 2026-10-25)
+    const t = {
+      userId: r.userId,
+      body: reminderText(r),
+      kind: 'reminder' as const,
+      personSet: true,
+    };
     const outcome = await deps.sendOwn(
       { ...t, refId: r.id, minGapMs: REMINDER_TEXT_GAP_MS },
       deps.text

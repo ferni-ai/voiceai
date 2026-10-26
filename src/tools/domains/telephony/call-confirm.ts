@@ -45,8 +45,10 @@ export const callConfirm: ConfirmSpec = {
     let raw = text(args.phoneNumber);
     let relationship: string | undefined;
     if (!raw) {
-      const { resolveContact } = await import('./call-on-behalf.js');
-      const contact = await resolveContact(who, userId);
+      const { findContact } = await import('./call-on-behalf.js');
+      const contact = await findContact(who, userId);
+      // CONTACT_PICK_V2: several match, or only a name like "Father Tom": ask, read back nothing
+      if (contact && 'ask' in contact) return contact.ask;
       raw = text(contact?.phone);
       if (contact?.name) name = contact.name;
       relationship = contact?.relationship;

@@ -36,11 +36,10 @@
 // is checked against what was really said and invented history counts against it.
 //
 // Env: JUDGE_PROVIDERS (default gemini; gemini,qwen for the local cross-family
-// judge, JUDGE_QWEN_MODEL default qwen3:30b-a3b, OLLAMA_HOST), JUDGE_MODEL (default gemini-3.1-pro-preview),
+// judge, JUDGE_QWEN_MODEL default qwen3:30b-a3b, OLLAMA_HOST), JUDGE_MODEL (default pro here; flash for Flash),
 // JUDGE_CLAUDE_MODEL (default claude-opus-5-5; Vertex Model Garden in the same
 // project, else ANTHROPIC_API_KEY plus ANTHROPIC_WORKSPACE_ID for an organization
-// key), JUDGE_CLAUDE_REGION (default global),
-// JUDGE_CLAUDE_EFFORT (default medium), JUDGE_K (samples per call, default 3,
+// key), JUDGE_CLAUDE_REGION (default global), JUDGE_CLAUDE_EFFORT (default medium), JUDGE_K (samples per call, default 3,
 // averaged), GCP_PROJECT (default: gcloud config), JUDGE_PERSONA,
 // JUDGE_PERSONA_BIO (a background file to use instead of the bundle's),
 // JUDGE_SOUNDS (default on; off for a words-only transcript).
@@ -51,7 +50,9 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { turnsOf } from './humanness.mjs';
+import { withBillingLabels } from '../lib/gemini-billing-labels.mjs';
 import * as stats from './judge-stats.mjs';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 export const DIMENSIONS = {
   understanding:
@@ -207,10 +208,10 @@ async function askGemini(prompt, { model, project }) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: JSON.stringify(withBillingLabels({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 8192 },
-    }),
+    })),
   });
   const body = await res.json();
   if (!res.ok) throw new Error(`judge ${res.status}: ${JSON.stringify(body.error ?? body).slice(0, 300)}`);
@@ -284,7 +285,7 @@ async function askQwen(prompt, { model }) {
 }
 
 export const PROVIDERS = {
-  gemini: { model: (env) => env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview', ask: askGemini },
+  gemini: { model: (env) => judgeModel(env, 'pro'), ask: askGemini }, // Pro: Flash's humanLikelihood ran 5x Pro's (judge-model.mjs)
   claude: { model: (env) => env.JUDGE_CLAUDE_MODEL ?? 'claude-opus-5-5', ask: askClaude },
   qwen: { model: (env) => env.JUDGE_QWEN_MODEL ?? 'qwen3:30b-a3b', ask: askQwen },
 };

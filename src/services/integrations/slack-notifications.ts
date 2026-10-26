@@ -18,8 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { opsAlert } from '../platform/ops-alert.js';
-import { postToSlackWebhook, type SlackDelivery } from './slack-delivery.js';
+import { postToSlackWebhook, raiseWithoutWebhook, type SlackDelivery } from './slack-delivery.js';
 
 export type { SlackDelivery } from './slack-delivery.js';
 
@@ -94,6 +93,8 @@ export interface NotificationContext {
   severity?: 'info' | 'warning' | 'error' | 'success';
   actionUrl?: string;
   actionText?: string;
+  /** Which alert this is (e.g. 'critical:Response Time Critical'); keys its opsAlert. */
+  alertKey?: string;
 }
 
 // ============================================================================
@@ -173,12 +174,7 @@ export class SlackNotificationService {
 
     log.info({ type: context.type, title: context.title }, `${emoji} ${context.title}`);
 
-    if (!webhook) {
-      const viaOps =
-        context.severity === 'error' &&
-        opsAlert(`notify:${context.type}`, `🚨 ${context.title}`, { message: context.message });
-      return viaOps ? { status: 'delivered', via: 'ops' } : { status: 'not_configured' };
-    }
+    if (!webhook) return raiseWithoutWebhook(context);
 
     return postToSlackWebhook(webhook, message, WEBHOOK_TIMEOUT_MS);
   }

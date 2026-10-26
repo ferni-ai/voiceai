@@ -205,13 +205,27 @@ describe('recordSharedHold', () => {
 
   it('in Firestore: keeps the held windows stored with it, and never expires before them', async () => {
     firestoreDocs.clear();
-    const windows = [{ start: NOW - 60_000, end: NOW, scrubbed: false }];
+    const windows = [{ start: NOW - 60_000, end: NOW, scrubbed: true }];
     const keepUntil = NOW + 90 * 24 * 3_600_000;
     firestoreDocs.set('minor_care_holds/u1', { windows, keepUntil, expireAt: new Date(keepUntil) });
     await firestoreHoldStore.write('u1', { heldUntil: NOW + IDLE_MS, v: 1 });
     const doc = firestoreDocs.get('minor_care_holds/u1');
     expect(doc).toMatchObject({ windows, keepUntil, heldUntil: NOW + IDLE_MS, v: 1 });
     expect((doc?.expireAt as Date).getTime()).toBe(keepUntil);
+  });
+
+  it('in Firestore: no expireAt while a held window is unscrubbed (it hides what the scrub left)', async () => {
+    firestoreDocs.clear();
+    const windows = [
+      { start: NOW - 120_000, end: NOW - 60_000, scrubbed: true },
+      { start: NOW - 60_000, end: NOW, scrubbed: false },
+    ];
+    const old = new Date(NOW + 90 * 24 * 3_600_000); // a doc written before the rule had one
+    firestoreDocs.set('minor_care_holds/u1', { windows, keepUntil: null, expireAt: old });
+    await firestoreHoldStore.write('u1', { heldUntil: NOW + IDLE_MS, v: 1 });
+    const doc = firestoreDocs.get('minor_care_holds/u1');
+    expect(doc).toMatchObject({ windows, heldUntil: NOW + IDLE_MS, v: 1 });
+    expect(doc?.expireAt).toBeNull();
   });
 
   it('never throws when the write fails', async () => {
@@ -251,15 +265,17 @@ describe('sharedHeld', () => {
     expect(store.heldUntil).toHaveBeenCalledTimes(2);
   });
 
-  it('reuses a read for CACHE_MS, then reads again', async () => {
+  it('reads a "not held" fresh (another process may write a hold), and reuses a held answer for CACHE_MS', async () => {
     const until: Record<string, number> = {};
     const { store } = fakeStore(until);
     setHoldStore(store);
     expect(await sharedHeld('u1', ON, NOW)).toBe(false);
-    until.u1 = NOW + IDLE_MS; // written by another process
-    expect(await sharedHeld('u1', ON, NOW + CACHE_MS - 1)).toBe(false);
-    expect(await sharedHeld('u1', ON, NOW + CACHE_MS)).toBe(true);
+    until.u1 = NOW + IDLE_MS; // written by another process: seen on the next read, not 30 s later
+    expect(await sharedHeld('u1', ON, NOW + 1)).toBe(true);
+    expect(await sharedHeld('u1', ON, NOW + CACHE_MS)).toBe(true); // the held answer, reused
     expect(store.heldUntil).toHaveBeenCalledTimes(2);
+    expect(await sharedHeld('u1', ON, NOW + CACHE_MS + 1)).toBe(true); // reused no longer: read
+    expect(store.heldUntil).toHaveBeenCalledTimes(3);
   });
 
   it('a hold this process wrote is seen at once', async () => {

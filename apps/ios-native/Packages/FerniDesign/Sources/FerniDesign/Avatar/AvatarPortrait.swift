@@ -1,24 +1,28 @@
 import SwiftUI
 
-/// A teammate at rest, small and still: the same renderer as the live avatar,
-/// one frame, no clock (the team row, sheets, a Live Activity image).
+/// A teammate at rest, small and still: the Metal Ferni rendered once per
+/// persona and theme (`AlivePortraits`), in their brand colour. Used in the
+/// team row, sheets and the Live Activity.
 public struct AvatarPortrait: View {
     let persona: WindowPersona
     let present: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
-    /// - Parameter present: false draws them faded, not yet on your team.
+    /// - Parameter present: false dims them (still in their colour): not yet on your team.
     public init(persona: WindowPersona, present: Bool = true) {
         self.persona = persona
         self.present = present
     }
 
     public var body: some View {
-        var frame = AvatarFrame()
-        frame.persona = persona
-        frame.lowPower = true // no glow at this size
-        return Canvas { context, size in AvatarRenderer.draw(frame, in: &context, size: size) }
-            .aspectRatio(1, contentMode: .fit)
-            .saturation(present ? 1 : 0)
-            .opacity(present ? 1 : 0.45)
+        Group {
+            if let image = AlivePortraits.image(persona, dark: colorScheme == .dark) {
+                Image(uiImage: image).resizable().interpolation(.high)
+            } else {
+                Circle().fill(persona.primaryColor) // the images ship with the app; this never shows
+            }
+        }
+        .aspectRatio(1, contentMode: .fit)
+        .opacity(present ? 1 : 0.5)
     }
 }
