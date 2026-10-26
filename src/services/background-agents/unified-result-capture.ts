@@ -284,14 +284,11 @@ async function sendPushNotification(result: BackgroundResult): Promise<void> {
     const { sendPushNotification: sendPush, isPushNotificationsAvailable } =
       await import('../outreach/delivery/push-notifications.js');
 
-    if (!isPushNotificationsAvailable()) {
-      return;
-    }
-
+    if (!isPushNotificationsAvailable()) return;
     const title = buildPushTitle(result);
     const body = result.summary;
 
-    await sendPush({
+    const results = await sendPush({
       userId: result.userId,
       outreachId: result.id,
       personaId: result.initiatedBy,
@@ -306,8 +303,11 @@ async function sendPushNotification(result: BackgroundResult): Promise<void> {
       priority: result.priority === 'urgent' ? 'high' : 'normal',
       clickAction: '/activity', // Navigate to activity history
     });
-
-    log.info({ userId: result.userId, resultId: result.id }, 'Push notification sent');
+    // No device token comes back as { success: false }, never a throw: only a delivery is "sent".
+    const error = results.some((r) => r.success) ? undefined : (results[0]?.error ?? 'not sent');
+    const fields = { userId: result.userId, resultId: result.id, error };
+    if (error) log.warn(fields, 'Push notification NOT sent');
+    else log.info(fields, 'Push notification sent');
   } catch (error) {
     log.warn({ error: String(error), resultId: result.id }, 'Failed to send push notification');
   }

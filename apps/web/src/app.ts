@@ -211,8 +211,9 @@ import {
 // I18n - Internationalization and localization
 import { initI18n, t } from './i18n/index.js';
 import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
+import { bindPanelOpeners } from './app/panel-openers.js';
 import { openPanelFromUrl } from './services/notification-navigation.js';
-import { isPanelEventVisible } from './config/menu-visibility.js';
+import { isPanelEventVisible, isPanelVisible } from './config/menu-visibility.js';
 import { bindStaticDom } from './i18n/static-dom.js';
 import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
@@ -306,14 +307,10 @@ import {
 } from './ui/subscription.ui.js';
 // Cosmetics Service - personalization system
 import { initCosmeticsService } from './services/cosmetics.service.js';
-// Seeds Economy - earn seeds through engagement
-import { initSeedsEconomy } from './services/seeds-economy.service.js';
-import { watchServerSeeds } from './services/seeds-ledger.service.js';
+// Seeds: off unless VITE_SEEDS=true
+import { initSeeds } from './app/seeds-boot.js';
 // Referral Service - network effect seeds system
 import { checkReferralFromUrl, initReferralService, processPendingReferral } from './services/referral.service.js';
-// Seeds UI - display balance and toast notifications
-import { initSeedsDisplay } from './ui/seeds-display.ui.js';
-import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
 // Structured logger
@@ -1646,7 +1643,7 @@ class VoiceAIApp {
       initEngagementTriggerUI({
         // Show InsightsView ("What I'm Noticing") - the relationship-focused daily check-in
         onEngagementClick: () => getInsightsView().toggle(),
-        onPredictionsClick: () => getPredictionsUI().toggle(),
+        onPredictionsClick: () => isPanelEventVisible('ferni:open-predictions') && getPredictionsUI().toggle(),
         onInsightsClick: () => teamInsightsUI.toggle(),
       })
     );
@@ -1771,17 +1768,10 @@ class VoiceAIApp {
     // 🎨 Cosmetics Service - Personalization system (themes, skins, sounds)
     this.safeInit('CosmeticsService', () => initCosmeticsService());
 
-    // 🌱 Seeds Economy - Earn seeds through natural engagement
-    this.safeInit('SeedsEconomy', () => initSeedsEconomy());
-
-    // 🌱 Server seed ledger - one balance from the server once it keeps seeds
-    this.safeInit('SeedsLedger', () => watchServerSeeds());
+    // 🌱 Seeds: cut, so nothing starts unless VITE_SEEDS=true (app/seeds-boot.ts)
+    initSeeds((name, init) => this.safeInit(name, init));
 
     this.safeInit('ReferralService', () => initReferralService());
-
-    // 🌱 Seeds UI - Display balance and toast notifications
-    this.safeInit('SeedsDisplay', () => initSeedsDisplay());
-    this.safeInit('SeedsToast', () => initSeedsToast());
 
     // 🎯 Moments System - Unified feedback (whisper, notice, celebration, milestone)
     this.deferredInit('MomentsSystem', 500, async () => {
@@ -1987,8 +1977,16 @@ class VoiceAIApp {
       // Open InsightsView ("What I'm Noticing") - the relationship-focused view
       void getInsightsView().show();
     });
-    this.addTrackedListener(window, 'ferni:open-predictions', () => {
-      void getPredictionsUI().show();
+    // Panels menu-visibility can hide: each listener asks it first, so a hidden panel opens from no path
+    bindPanelOpeners((name, listener) => this.addTrackedListener(window, name, listener), {
+      'ferni:open-patterns': () =>
+        void showPatternInsights(document.getElementById('main-content') ?? document.body),
+      'ferni:open-quiz': () => void openKnowledgeQuiz(),
+      'ferni:open-music': () => void openMusicDashboard(),
+      'ferni:open-household': () => void showHouseholdManager(),
+      'ferni:open-voice-id': () => void showVoiceEnrollmentModal(),
+      'ferni:open-predictions': () => void getPredictionsUI().show(),
+      'ferni:open-marketplace': () => void openMarketplace(),
     });
 
     // 🎤 Voice-Activated Navigation - Handle panel open events from voice commands
@@ -2002,13 +2000,6 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-history', () => {
       void showConversationHistory();
     });
-    this.addTrackedListener(window, 'ferni:open-patterns', () => {
-      void showPatternInsights(document.getElementById('main-content') ?? document.body);
-    });
-    this.addTrackedListener(window, 'ferni:open-quiz', () => {
-      void openKnowledgeQuiz();
-    });
-    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
     this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-contacts', () => {
       void openYourPeople();
@@ -2028,12 +2019,6 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-practices', () => {
       void getSanctuaryUI().open();
-    });
-    this.addTrackedListener(window, 'ferni:open-household', () => {
-      void showHouseholdManager();
-    });
-    this.addTrackedListener(window, 'ferni:open-voice-id', () => {
-      void showVoiceEnrollmentModal();
     });
     this.addTrackedListener(window, 'ferni:open-notifications', () => {
       void openNotificationSettings();
@@ -2182,9 +2167,6 @@ class VoiceAIApp {
         log.error('Failed to start practice from Sanctuary', err);
         messageUI.show(t('app.practiceStartFailed'), 'error', 4000);
       }
-    });
-    this.addTrackedListener(window, 'ferni:open-marketplace', () => {
-      void openMarketplace();
     });
 
     // 📱 Mobile Bottom Sheet - Quick action event handlers (settings and history
@@ -2522,6 +2504,8 @@ class VoiceAIApp {
    * one; otherwise a low-quality print gets a toast. Both wait 5 s after load.
    */
   private async checkVoiceReEnrollment(): Promise<void> {
+    // Recognizing You is hidden (config/menu-visibility.ts): a card or toast about it would lead nowhere
+    if (!isPanelVisible('voice-id')) return;
     try {
       const voiceAuth = getVoiceAuthService();
       const profile = await voiceAuth.getProfile();

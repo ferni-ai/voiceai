@@ -120,8 +120,13 @@ export async function topicsWithin(userId: string, reader: string): Promise<stri
  * The topics for a reader that must not use an old list (#2727): the shared read within
  * READ_TIMEOUT_MS, else null (fail closed). The last-known fallback has no age bound yet (#2623),
  * so it could miss a topic forgotten since in another process; switch to topicsWithin once it does.
+ * Each fail-closed answer is logged with the reader and why (timeout or failed), so its rate can
+ * be read from the logs.
  */
-export async function topicsFreshWithin(userId: string): Promise<string[] | null> {
+export async function topicsFreshWithin(
+  userId: string,
+  reader = 'fresh'
+): Promise<string[] | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<'late'>((resolve) => {
     timer = setTimeout(() => resolve('late'), READ_TIMEOUT_MS);
@@ -131,6 +136,11 @@ export async function topicsFreshWithin(userId: string): Promise<string[] | null
   if (Array.isArray(got)) return got;
   if (got === 'late') stats.timeouts++;
   stats.failClosed++;
+  const why = got === 'late' ? 'timeout' : 'failed';
+  log.warn(
+    { reader, why, failClosed: stats.failClosed },
+    'Forgotten topics: no fresh read, failing closed'
+  );
   return null;
 }
 

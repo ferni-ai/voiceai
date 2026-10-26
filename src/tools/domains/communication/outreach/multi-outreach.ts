@@ -1,6 +1,5 @@
 /**
  * Multi-Target Outreach Tool - "Better than Human" Batch Communication
- *
  * Enables compound requests like:
  * - "Call Mom, text Dad, email my boss"
  * - "Reach out to my whole family"
@@ -40,7 +39,6 @@ import type { OutboundCallContext } from '../../../../services/outreach/conversa
 import { craftPersonalizedMessage, type MessageCraftingContext } from './message-crafting.js';
 import type { OutreachIntent, Channel } from './unified-outreach.js';
 
-// Date parsing
 import { parseNaturalDate } from '../../../../services/calendar/natural-date-parser.js';
 
 // Scheduled storage
@@ -327,6 +325,8 @@ async function executeOutreach(
       } else {
         const result = await callWithPersonaVoice(contact.phone, message, personaId, {
           fallbackToTwilioVoice: true,
+          ownerUid: userId,
+          userId,
         });
 
         return {

@@ -13,6 +13,7 @@ import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/liv
 import type { RoomMetadata } from '../../shared/types.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { getClientIp } from '../../../utils/client-ip.js';
+import { requestLanguages } from './token-locale.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
@@ -455,8 +456,7 @@ export async function handleTokenRoutes(
 
       // Geo/accent fallback: saved location (gps/manual) > IP geolocation > timezone inference
       let geoData = {
-        locale: 'en-US',
-        locales: ['en-US'],
+        ...requestLanguages(req), // the app's language (token-locale.ts), saved location or not
         detectedAccent: preferred_accent || savedAccent || 'american',
         countryCode: savedLocation?.countryCode,
         city: savedLocation?.city,

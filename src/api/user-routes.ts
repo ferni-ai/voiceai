@@ -648,7 +648,7 @@ export async function handleUserRoutes(
         updates.quietHoursEnd = body.quietHoursEnd;
       }
 
-      // Saved to messagingPrefs, the one record senders read; the timing profile is memory only.
+      // To messagingPrefs: senders read it with QUIET_HOURS_FROM_PREFS on (quiet-hours.ts).
       if (Object.keys(updates).length > 0) {
         await savePanelQuietHours(userId, updates);
         updateTimingPreferences(userId, updates);

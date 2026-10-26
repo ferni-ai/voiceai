@@ -210,12 +210,29 @@ const likely = new Map<string, number>();
 /** Past this many, sessions idle longer than IDLE_MS go, least recently used first. */
 const MAX_SESSIONS = 500;
 /** Longer than any call plus its after-call work: a session this idle can't still be writing. */
-const IDLE_MS = 6 * 60 * 60 * 1000;
+export const IDLE_MS = 6 * 60 * 60 * 1000;
 let ownerCheck: (sessionId: string) => boolean = () => false;
 /** sessionId -> its userId (session start, and every detector call that knows it), for userHeld. */
 const sessionUsers = new Map<string, string>();
 /** Past this many, sessions that never sounded under 18 go first, oldest first. */
 const MAX_SESSION_USERS = 5000;
+/** sessionId -> when it was first bound to a user: a held call's purge drops what came after it. */
+const sessionBound = new Map<string, number>();
+
+/** When this session was first bound to a user (session start), if it was. */
+export const sessionBoundAt = (sessionId: string | undefined): number | undefined =>
+  sessionId === undefined ? undefined : sessionBound.get(sessionId);
+/** sessionId -> a phone caller's E.164 (caller-recognition.ts), never logged: its hold covers the number. */
+const sessionPhones = new Map<string, string>();
+
+export function bindSessionPhone(sessionId: string, e164: string): void {
+  sessionPhones.set(sessionId, e164);
+  if (sessionPhones.size > MAX_SESSIONS) sessionPhones.delete(sessionPhones.keys().next().value!);
+}
+
+export function sessionPhone(sessionId: string): string | undefined {
+  return sessionPhones.get(sessionId);
+}
 
 function touch(sessionId: string): void {
   likely.delete(sessionId);
@@ -228,6 +245,31 @@ function evictIdle(): void {
   for (const [sessionId, used] of likely) {
     if (likely.size <= MAX_SESSIONS || used >= cutoff) return;
     likely.delete(sessionId);
+  }
+}
+
+type HoldListener = (userId: string, sessionId: string) => void;
+/** Told once per user a held session is bound to (minor-care-purge.ts: the shared record). */
+let onUserHeld: HoldListener = () => {};
+/** "sessionId userId" pairs already announced, bounded like `likely`. */
+const announced = new Set<string>();
+
+export function setOnUserHeld(listener: HoldListener): void {
+  onUserHeld = listener;
+}
+
+/** This session is held and bound to a user: tell the listener, once per (session, user). Never throws. */
+function announceHold(sessionId: string): void {
+  const userId = sessionUsers.get(sessionId);
+  const key = `${sessionId} ${userId}`;
+  if (!userId || announced.has(key) || !likely.has(sessionId)) return;
+  if (ownerExempt(sessionId)) return;
+  announced.add(key);
+  if (announced.size > MAX_SESSIONS) announced.delete(announced.values().next().value!);
+  try {
+    onUserHeld(userId, sessionId);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'MINOR_CARE hold listener failed');
   }
 }
 
@@ -267,6 +309,7 @@ export function noteCallerWords(
   touch(sessionId);
   if (likely.size > MAX_SESSIONS) evictIdle();
   log.info({ sessionId }, 'MINOR_CARE likely minor');
+  announceHold(sessionId);
   return true;
 }
 
@@ -298,10 +341,16 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
   if (!sessionId || !userId || sharedId(userId)) return; // never a placeholder or shared id
   sessionUsers.delete(sessionId);
   sessionUsers.set(sessionId, userId);
+  if (!sessionBound.has(sessionId)) sessionBound.set(sessionId, Date.now());
   for (const s of sessionUsers.keys()) {
     if (sessionUsers.size <= MAX_SESSION_USERS) break;
     if (!likely.has(s)) sessionUsers.delete(s);
   }
+  for (const s of sessionBound.keys()) {
+    if (sessionBound.size <= MAX_SESSION_USERS) break;
+    if (!sessionUsers.has(s)) sessionBound.delete(s);
+  }
+  announceHold(sessionId);
 }
 
 /**
@@ -331,6 +380,10 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
   }
   return false;
 }
+
+/** A tool's reply when a held caller's plan wasn't saved: no promise to remember it. */
+export const MINOR_CARE_NOT_SAVED =
+  "Not saved: nothing from this call is kept. Cheer them on warmly, but don't say you'll remember it or check in on it later.";
 
 export const MINOR_CARE_NOTE =
   "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner. Nothing from this call is kept, so never say you'll remember it; if they ask, kindly say you won't keep notes from today.]";
@@ -385,5 +438,8 @@ export function resetMinorCare(): void {
   shadowLogged.clear();
   likely.clear();
   sessionUsers.clear();
+  sessionBound.clear();
+  announced.clear();
+  sessionPhones.clear();
   ownerCheck = () => false;
 }

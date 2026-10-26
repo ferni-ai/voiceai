@@ -13,7 +13,7 @@
 import { voice } from '@livekit/agents';
 import { AudioFrame, AudioResampler, type Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
-import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceCallEnding } from './presence-closing.js';
 import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
 import {
   createPresenceWatcher,
@@ -198,6 +198,8 @@ export async function startBackchannelClips(
   openerClip: (text: string) => boolean;
   /** playClip for the slow-turn "Mm" (slow-turn-sound.ts), conducted as its own kind. */
   slowTurnClip: (text: string) => boolean;
+  /** playClip for a TOOL_ACK_CLIP line (tool-ack-clip.ts), conducted as its own kind. */
+  toolAckClip: (text: string) => boolean;
   /** What live backchanneling needs (live-backchanneling-integration.ts). */
   live: {
     playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
@@ -309,6 +311,8 @@ export async function startBackchannelClips(
       wireDelayMs
     ),
     slowTurnClip: playAt(() => BACKCHANNEL_VOLUME, 'slow_turn'),
+    // A spoken line in the reply's voice, rendered like it: full level, not a soft backchannel.
+    toolAckClip: playAt(() => 1, 'tool_ack'),
     live: { playClip: livePlayClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();
@@ -375,7 +379,7 @@ function startPresenceSounds(
   };
   // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
   const recorded = presenceClipPickers();
-  const quiet = () => stayQuietOn(session);
+  const quiet = () => presenceCallEnding(session);
   const watchers = [
     createPresenceWatcher({
       play: (quietMs) =>
@@ -401,12 +405,15 @@ function startPresenceSounds(
     watchers.forEach((w) => w.onAgentState(ev.newState ?? ''));
   const onUser = (ev: { newState?: string }) =>
     watchers.forEach((w) => w.onUserState(ev.newState ?? ''));
+  const onClose = () => watchers.forEach((w) => w.close()); // nothing armed plays after close
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
   session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+  session.on(voice.AgentSessionEventTypes.Close, onClose);
   return () => {
-    watchers.forEach((w) => w.close());
+    onClose();
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
     session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+    session.off(voice.AgentSessionEventTypes.Close, onClose);
   };
 }
 

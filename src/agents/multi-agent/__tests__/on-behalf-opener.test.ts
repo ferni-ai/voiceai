@@ -164,8 +164,8 @@ describe('the opener of a call placed on the user’s behalf', () => {
       expect(room.listenerCount('participantAttributesChanged')).toBe(0);
     } finally {
       amdOpening.takesCall = false;
-      }
-    });
+    }
+  });
 
   it('names the requester from a signed dispatch with no requester id, for display only', async () => {
     // Dev 2026-10-10: a call to Seth's sister said "it's Ferni, an AI friend", without "Seth's".
@@ -374,5 +374,52 @@ describe('waitForCallAnswered', () => {
       waitForCallAnswered(roomLike(room), phoneParticipant('dialing'), 20, 0)
     ).resolves.toBe(false);
     expect(room.listenerCount('participantAttributesChanged')).toBe(0);
+  });
+
+  it('reports the pickup itself, before the grace pause (call-first-response.ts)', async () => {
+    const room = new EventEmitter();
+    const onAnswered = vi.fn();
+    const answered = waitForCallAnswered(
+      roomLike(room),
+      phoneParticipant('dialing'),
+      1000,
+      50,
+      onAnswered
+    );
+    expect(onAnswered).not.toHaveBeenCalled(); // still ringing
+    const phone = { identity: 'phone_doug', attributes: { 'sip.callStatus': 'active' } };
+    room.emit('participantAttributesChanged', { 'sip.callStatus': 'active' }, phone);
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
+    expect(onAnswered).toHaveBeenCalledTimes(1); // inside the 50 ms grace
+    await expect(answered).resolves.toBe(true);
+  });
+
+  it('a throwing pickup hook never fails the pickup', async () => {
+    const room = new EventEmitter();
+    const hook = vi.fn(() => {
+      throw new Error('analytics down');
+    });
+    const answered = waitForCallAnswered(
+      roomLike(room),
+      phoneParticipant('dialing'),
+      1000,
+      0,
+      hook
+    );
+    const phone = { identity: 'phone_doug', attributes: { 'sip.callStatus': 'active' } };
+    room.emit('participantAttributesChanged', { 'sip.callStatus': 'active' }, phone);
+    await expect(answered).resolves.toBe(true);
+    expect(hook).toHaveBeenCalledTimes(1);
+    const web = { identity: 'web-user', attributes: {} };
+    await expect(waitForCallAnswered(roomLike(room), web, 1000, 0, hook)).resolves.toBe(true);
+  });
+
+  it('reports no pickup for a call nobody answers', async () => {
+    const onAnswered = vi.fn();
+    const room = roomLike(new EventEmitter());
+    await waitForCallAnswered(room, phoneParticipant('dialing'), 20, 0, onAnswered);
+    expect(onAnswered).not.toHaveBeenCalled();
   });
 });

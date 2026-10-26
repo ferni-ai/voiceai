@@ -129,6 +129,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Daily email counters (api/waitlist-email-quota.ts): server only
+    match /ops_email_quota/{day} {
+      allow read, write: if false;
+    }
+
     // ============================================================================
     // PHONE LOOKUP INDEX (for cross-device identification)
     // Stores hashed phone -> userId mappings

@@ -23,6 +23,7 @@ import type { CallerChecks } from '../data-sender.js';
 import { startResumeLookup } from '../../multi-agent/resume-after-drop.js';
 import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
 import { demoCallCap, startDemoCallCap } from './demo-call-cap.js';
+import { isLiveCustomAgent } from '../../shared/custom-agent-live.js';
 
 // ============================================================================
 // TYPES
@@ -165,7 +166,9 @@ export async function runMultiAgentMode(
 
   // Check if multi-agent mode is enabled (default: true, set MULTI_AGENT_MODE=false to disable)
   const MULTI_AGENT_MODE = process.env.MULTI_AGENT_MODE !== 'false';
-  if (!MULTI_AGENT_MODE) {
+  // CUSTOM_AGENT_LIVE: the orchestrator builds bundled personas only, so a loaded custom
+  // agent runs as the single-agent session (custom-agent-live.ts)
+  if (!MULTI_AGENT_MODE || isLiveCustomAgent(sessionPersona)) {
     return { activated: false };
   }
 

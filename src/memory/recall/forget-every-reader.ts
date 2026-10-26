@@ -106,8 +106,11 @@ export async function forgottenCheck(
  * #2719): the shared read, waited for at most READ_TIMEOUT_MS, or null when it
  * is late or failed. No last-known fallback until #2623 bounds its age.
  */
-export async function forgottenWithin(userId: string): Promise<ForgottenCheck | null> {
-  const stored = await topicsFreshWithin(userId);
+export async function forgottenWithin(
+  userId: string,
+  reader = 'fresh'
+): Promise<ForgottenCheck | null> {
+  const stored = await topicsFreshWithin(userId, reader);
   return stored === null ? null : checkFor(userId, stored);
 }
 
@@ -137,6 +140,54 @@ export function prefetchForgotten(userId: string | null | undefined, env: Env = 
  */
 export function snapshotTopics(userId: string, env: Env = process.env): Promise<string[] | null> {
   return forgetEveryReaderEnabled(env) ? readTopics(userId, true) : forgottenTopicsOrNull(userId);
+}
+
+const TEXT_FIELDS = ['text', 'content', 'naturalPhrasing', 'title', 'description', 'name'];
+const NAME_FIELDS = ['canonicalName', 'aliases', 'peopleMentioned', 'topics', 'relationship'];
+const NESTED = ['data', 'memory', 'entity', 'metadata'];
+
+/** The words a stored record is about: its text, names and topics, two levels down too. */
+export function recordText(record: unknown, depth = 0): string {
+  if (typeof record === 'string') return record;
+  if (!record || typeof record !== 'object') return '';
+  const r = record as Record<string, unknown>;
+  const words = [...TEXT_FIELDS, ...NAME_FIELDS].flatMap((k) => {
+    const v = r[k];
+    if (typeof v === 'string') return [v];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+  });
+  // Two levels: a search result's data.metadata.aliases (hybrid-search.ts).
+  if (depth < 2) for (const k of NESTED) words.push(recordText(r[k], depth + 1));
+  return words.filter(Boolean).join(' ');
+}
+
+/** Items not about a forgotten topic; all of them when there is no check. */
+export function remembered<T>(
+  items: T[],
+  forgotten: ForgottenCheck | null,
+  textOf: (item: T) => string = recordText
+): T[] {
+  return forgotten ? items.filter((item) => !forgotten(textOf(item))) : items;
+}
+
+/** remembered(), reading the caller's topics first. */
+export async function keepRemembered<T>(
+  userId: string | null | undefined,
+  items: T[],
+  textOf: (item: T) => string = recordText
+): Promise<T[]> {
+  if (items.length === 0) return items;
+  return remembered(items, await forgottenCheck(userId, 'search'), textOf);
+}
+
+/** The text, or undefined when it is about a forgotten topic. */
+export async function rememberedText(
+  userId: string | null | undefined,
+  text: string | undefined
+): Promise<string | undefined> {
+  if (!text) return text;
+  const forgotten = await forgottenCheck(userId, 'text');
+  return forgotten?.(text) ? undefined : text;
 }
 
 export { PROFILE_PASS_THROUGH } from './forget-profile.js';

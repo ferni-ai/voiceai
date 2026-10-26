@@ -78,6 +78,7 @@ export interface MemoryHighlight {
   // Source tracking
   sourceType: MemorySourceType;
   sourceId?: string; // ID from source system (commitment ID, etc.)
+  keptAt?: number; // commitment_kept only: when it was completed (ms); unset on copies saved when made
 
   // Scoring
   emotionalWeight: number; // 0-1, how emotionally significant
