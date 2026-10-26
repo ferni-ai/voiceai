@@ -7,6 +7,8 @@ import SwiftUI
 /// Ferni to stop; that is the avatar's only gesture.
 struct CallAvatar: View {
     let call: CallSession
+    /// A sheet or cover hides Ferni, so the avatar stops drawing.
+    var covered = false
 
     var body: some View {
         let avatar = call.avatar
@@ -16,6 +18,7 @@ struct CallAvatar: View {
             expression: avatar.expression,
             activity: Self.activity(avatar.pose),
             name: PersonaRegistry.get(avatar.personaID).name,
+            covered: covered,
             level: { [level = call.agentLevel] in level.level }
         )
         .contentShape(Circle())
@@ -80,7 +83,10 @@ struct CallCaptions: View {
                             Button("Report this reply", systemImage: "flag") { report(line) }
                         }
                     }
-                    .accessibilityAction(named: "Report this reply") { if isFerni { report(line) } }
+                    .accessibilityActions {
+                        // Only Ferni's lines can be reported (critic M4).
+                        if isFerni { Button("Report this reply") { report(line) } }
+                    }
             }
             if let state = Self.state(call, name: name) {
                 HStack(spacing: FerniSpace.breath) {
@@ -95,9 +101,6 @@ struct CallCaptions: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: lines)
-        .onChange(of: Self.state(call, name: name)) { _, line in
-            if let line { AccessibilityNotification.Announcement(line).post() }
-        }
     }
 
     private var name: String { PersonaRegistry.get(call.avatar.personaID).name }
@@ -117,6 +120,20 @@ struct CallCaptions: View {
             default: return String(localized: "\(name)'s listening")
             }
         default: return nil
+        }
+    }
+}
+
+/// What VoiceOver is told about the call on its own: only what needs
+/// attention (trouble, being put on hold), never each turn over Ferni's voice
+/// (ios-motion-spec §6.3, critic M4). Handoffs are announced by the avatar.
+enum CallAnnouncement {
+    static func text(phase: CallSession.Phase, onHold: Bool) -> String? {
+        switch phase {
+        case .reconnecting: String(localized: "Reconnecting…")
+        case .live where onHold: String(localized: "On hold")
+        case .failed(let problem): problem.message
+        default: nil
         }
     }
 }
@@ -173,7 +190,7 @@ struct CallControls: View {
                     } label: {
                         Image(systemName: "phone.down.fill")
                             .font(.title)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(FerniColor.onError)
                             .frame(width: 72, height: 72)
                     }
                     .buttonStyle(.plain)
@@ -188,7 +205,7 @@ struct CallControls: View {
                     Button(action: talk) {
                         Label(talkLabel, systemImage: "waveform")
                             .font(FerniType.button)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(FerniColor.onAccent)
                             .frame(maxWidth: 420, minHeight: 56)
                     }
                     .buttonStyle(.plain)

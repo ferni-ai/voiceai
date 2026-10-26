@@ -41,6 +41,12 @@ struct FerniApp: App {
                         await model.push.reconcile(uid: model.account.user?.uid)
                     }
                 }
+                // A good call (two minutes or more, ended by you) counts toward the check-in ask.
+                .onChange(of: model.call.phase) { _, phase in
+                    if phase == .ended, model.call.lastCallWasGood, let uid = model.account.user?.uid {
+                        CheckInAsk().recordGoodCall(uid: uid)
+                    }
+                }
                 // The watch shows the call as it is now.
                 .onChange(of: model.remoteState) { _, state in model.watchRemote?.publish(state) }
                 // What Ferni remembers locks again whenever the app leaves the foreground.
@@ -57,6 +63,8 @@ struct FerniApp: App {
 @MainActor
 @Observable
 final class AppModel {
+    /// The model for scenes SwiftUI doesn't own (CarPlay).
+    static weak var shared: AppModel?
     let feedback: CallFeedback
     let config: FerniConfig
     let account: AccountStore
@@ -117,6 +125,7 @@ final class AppModel {
     /// Delete the account on the server, then everything this phone kept about
     /// the person, then start fresh. Throws (and keeps everything) if the server says no.
     func deleteAccount() async throws {
+        if call.isActive { await call.end() } // first, even if the server then says no
         let uid = account.user?.uid
         try await AccountDeletion.delete(using: api)
         if let uid { consent.forget(uid: uid) }
@@ -127,7 +136,15 @@ final class AppModel {
 
     /// Sign out: this person's agreement and everything shown about them leave
     /// the phone with them.
+    /// Withdrawing consent mid-call ends the call first: nothing more goes to
+    /// the providers the person just withdrew from (critic M2).
+    func withdrawConsent() async {
+        if call.isActive { await call.end() }
+        consent.withdraw()
+    }
+
     func signOut() async {
+        if call.isActive { await call.end() } // the call belongs to the person leaving
         if let uid = account.user?.uid { await push.unbindBeforeSignOut(uid: uid) } // while still them
         if let uid = account.user?.uid { consent.forget(uid: uid) }
         forgetPerson()
@@ -184,6 +201,7 @@ final class AppModel {
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
         installSystemHandlers()
+        Self.shared = self
         watchRemote = WatchRemote(model: self)
         watchRemote?.start()
     }

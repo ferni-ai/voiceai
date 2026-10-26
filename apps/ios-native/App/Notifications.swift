@@ -56,7 +56,9 @@ final class FerniAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
     }
 }
 
-/// After a good call: ask this person once whether Ferni may check in.
+/// After a good call: ask whether Ferni may check in (UX spec §12; when to
+/// ask is `CheckInAsk`: after the first good call, once more three good calls
+/// after a "Not now", then never).
 struct NotificationAsk: View {
     let push: PushStore
     let uid: String?
@@ -78,7 +80,7 @@ struct NotificationAsk: View {
                     HStack {
                         Button("Yes, check in") { Task { await allow() } }
                             .buttonStyle(.borderedProminent)
-                        Button("Not now") { markAsked() }
+                        Button("Not now") { decline() }
                     }
                     .tint(FerniColor.accent)
                 }
@@ -89,17 +91,15 @@ struct NotificationAsk: View {
             }
         }
         .task(id: uid) {
-            asked = uid.map { UserDefaults.standard.bool(forKey: Self.key($0)) } ?? true
+            asked = !(uid.map { CheckInAsk().shouldAsk(uid: $0) } ?? false)
             let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
             undecided = !push.hasOptedIn(uid) && status != .denied
         }
     }
 
-    private static func key(_ uid: String) -> String { "ferni.notifications.asked.\(uid)" }
-
     private func allow() async {
         guard let uid else { return }
-        markAsked()
+        asked = true
         let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
         guard granted else { return }
         await push.optIn(uid: uid)
@@ -108,9 +108,9 @@ struct NotificationAsk: View {
         #endif
     }
 
-    private func markAsked() {
+    private func decline() {
         asked = true
-        if let uid { UserDefaults.standard.set(true, forKey: Self.key(uid)) }
+        if let uid { CheckInAsk().declined(uid: uid) }
     }
 }
 

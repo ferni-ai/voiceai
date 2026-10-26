@@ -47,7 +47,7 @@ struct HomeView: View {
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
                                 #if FERNI_PUSH
-                                if call.hasTalked { NotificationAsk(push: model.push, uid: model.account.user?.uid) }
+                                NotificationAsk(push: model.push, uid: model.account.user?.uid)
                                 #endif
                             }
                             TeamRow(team: model.team)
@@ -69,6 +69,10 @@ struct HomeView: View {
             }
             .background(RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID)))
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
+            // Trouble is announced wherever you are, including after the call view goes.
+            .onChange(of: CallAnnouncement.text(phase: call.phase, onHold: call.isOnHold)) { _, line in
+                if let line { AccessibilityNotification.Announcement(line).post() }
+            }
             .toolbar {
                 if showsAccountButton { ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -108,7 +112,9 @@ struct HomeView: View {
     }
 
     private func avatar(call: CallSession, size: CGFloat) -> some View {
-        CallAvatar(call: call)
+        // The Settings page sheet and the consent cover hide Ferni; the
+        // smaller sheets (More, Report) leave him in view.
+        CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent)
             .frame(width: size, height: size)
             .opacity(call.phase == .reconnecting ? 0.5 : 1)
     }
@@ -173,22 +179,30 @@ enum Greeting {
     }
 }
 
-/// Your corner: the team, small. Tap a teammate to choose who answers next;
-/// someone not on the team yet says why in their own words.
+/// Who the team row on Home shows: only your team, and no row at all while
+/// that's just Ferni (the first visit). Locked teammates and why they aren't
+/// here yet live on the Team page (Settings, or the iPad sidebar), never on
+/// Home (critic M9, delight plan §0 item 5).
+enum TeamRowModel {
+    static func shown(unlocked: Set<String>) -> [Persona] {
+        let team = PersonaRegistry.all.filter { unlocked.contains($0.id) }
+        return team.count > 1 ? team : []
+    }
+}
+
+/// Your corner: your team, small. Tap a teammate to choose who answers next.
 private struct TeamRow: View {
     let team: TeamStore
-    @State private var note: String?
 
     var body: some View {
-        VStack(spacing: FerniSpace.breath) {
+        let shown = TeamRowModel.shown(unlocked: team.unlocked)
+        if !shown.isEmpty {
             HStack(spacing: FerniSpace.pause) {
-                ForEach(PersonaRegistry.all) { persona in
-                    let here = team.isOnTeam(persona.id)
+                ForEach(shown) { persona in
                     Button {
-                        note = here ? nil : team.teasers[persona.id] ?? "\(persona.name) joins as you and Ferni get to know each other."
                         team.choose(persona.id)
                     } label: {
-                        AvatarPortrait(persona: WindowPersona(personaId: persona.id), present: here)
+                        AvatarPortrait(persona: WindowPersona(personaId: persona.id))
                             .frame(width: 40, height: 40)
                             .padding(2)
                             .overlay {
@@ -200,17 +214,11 @@ private struct TeamRow: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(persona.name), \(persona.role.lowercased())")
-                    .accessibilityValue(team.chosen == persona.id ? "Answers next" : here ? "On your team" : "Not on your team yet")
+                    .accessibilityValue(team.chosen == persona.id ? "Answers next" : "On your team")
                 }
             }
-            if let note {
-                Text(note)
-                    .font(FerniType.footnote)
-                    .foregroundStyle(FerniColor.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
+            .sensoryFeedback(.selection, trigger: team.chosen)
         }
-        .sensoryFeedback(.selection, trigger: team.chosen)
     }
 }
 

@@ -769,6 +769,70 @@
         }
       }
     },
+    "Agree to talk on your iPhone first": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Agree to talk on your iPhone first"
+          }
+        }
+      }
+    },
     "Alex": {
       "localizations": {
         "ar": {
@@ -4353,6 +4417,70 @@
         }
       }
     },
+    "OK": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "OK"
+          }
+        }
+      }
+    },
     "On hold": {
       "localizations": {
         "ar": {
@@ -5249,66 +5377,66 @@
         }
       }
     },
-    "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you.": {
+    "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "en-GB": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "he": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         }
       }
@@ -7997,6 +8125,70 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Your account and everything Ferni remembers will be gone for good."
+          }
+        }
+      }
+    },
+    "Your team": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Your team"
           }
         }
       }

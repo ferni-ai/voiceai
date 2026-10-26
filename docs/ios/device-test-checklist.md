@@ -21,7 +21,7 @@ was an iPad Air).
 | 2 | Let Ferni talk for 30 s | The body moves with Ferni's voice (glow, lower lids, nods on syllables); no stutter |
 | 3 | Mid-call, "Hey Siri, what time is it?", then talk again | The call comes back on its own, or shows On hold with Resume; never "listening" over a dead mic |
 | 4 | Have someone call the iPhone; decline; talk again | Same as 3 |
-| 5 | Lock the phone mid-call and talk | Audio continues both ways |
+| 5 | Lock the phone mid-call and talk for a minute | Audio continues both ways. This proves the app needs only the audio background mode, not VoIP (critic M8). If it stops, report it before adding `voip` back. |
 | 6 | Ask Ferni to bring in Maya (if unlocked) | The family table: Maya peeks in, they greet, swap; Ferni waits in the corner |
 | 7 | End the call from the Lock Screen | The call ends; Ferni's goodbye plays on the phone |
 | 8 | Stay on Home for 2 minutes, then call again for 3 minutes | No warmth or slowdown; fps stays near 30 at rest and up to 120 while Ferni speaks |
