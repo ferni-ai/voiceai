@@ -47,7 +47,14 @@ import { sendSMS } from '../../../../../services/outreach/delivery/sms-delivery.
 import { telephonyExecutor } from '../../../../../agents/shared/tool-executors/telephony-executor.js';
 import type { ToolContext } from '../../../../registry/types.js';
 import { getOutreachToolDefinitions } from '../index.js';
-import { CONFIRM_WINDOW_MS, isClearYes, outreachConfirmListeners } from '../outreach-confirm.js';
+import {
+  CONFIRM_WINDOW_MS,
+  confirmationState,
+  isClearYes,
+  outreachConfirmListeners,
+  type ConfirmEvent,
+  type PendingAction,
+} from '../outreach-confirm.js';
 
 const ctx: ToolContext = { userId: 'user-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
 const contacts: Record<string, { id: string; name: string; phone: string }> = {
@@ -446,6 +453,66 @@ describe('isClearYes', () => {
     for (const yes of ['Oh yes, of course.', 'Yeah, that works.', 'Sure, Maya, you can.']) {
       expect(isClearYes(yes), yes).toBe(true);
     }
+  });
+
+  it("takes the owner's 10-26 yeses that placed nothing (11 attempts, no call)", () => {
+    // The owner's words, as speech-to-text gave them; the second one arrived as two finals.
+    // With a phone call waiting, "call" restates it.
+    expect(isClearYes('Yeah, go ahead and call.', [], [], true)).toBe(true);
+    // With a text waiting, it would change what is sent.
+    expect(isClearYes('Yeah, go ahead and call.')).toBe(false);
+    for (const yes of [
+      "Yes, it's okay with me. Give him a call.",
+      "Yes, it's okay with me. Give him a call. and check in.",
+      'Yes, you should.',
+      "That's fine.",
+    ]) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    // The fillers added for them never make a yes alone, and never let anything new through.
+    expect(isClearYes('call', [], [], true)).toBe(false);
+    expect(isClearYes('Yes, call Bob instead.', [], [], true)).toBe(false);
+    for (const notYes of [
+      'call',
+      'Check in.',
+      'With me.',
+      'Fine?',
+      'Yes, call Bob instead.',
+      'Yes, call him tomorrow morning.',
+      'Yes, call him and tell him I quit.',
+      'Yeah, call everyone.',
+      "It's okay, don't.",
+      'Yes, email him.',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+  });
+
+  it('"go ahead and call" confirms a waiting phone call, and voids a waiting text', () => {
+    const pending = (toolId: string): PendingAction =>
+      ({
+        toolId,
+        userId: 'u',
+        readBack: 'Doug',
+        args: { contactName: 'Doug' },
+        callId: 'c1',
+        createdSeq: 0,
+        expiresAt: Date.now() + 60_000,
+        owner: ['seth'],
+      }) as unknown as PendingAction;
+    const events: ConfirmEvent[] = [
+      { kind: 'tool', callIds: ['c1'], seq: 1 },
+      { kind: 'caller', text: 'Yeah, go ahead and call.', agentSpeaking: false, seq: 2 },
+    ];
+    expect(confirmationState(pending('callOnBehalf'), events, Date.now())).toBe('confirmed');
+    expect(confirmationState(pending('reachOut'), events, Date.now())).toBe('void');
+  });
+
+  /** "you" (a filler) used to win over "you should" because the first phrase in the lists was taken. */
+  it('tries every phrase that fits, not only the first in the lists', () => {
+    expect(isClearYes('Yes, you should.')).toBe(true);
+    expect(isClearYes('Yes, you can.')).toBe(true);
+    expect(isClearYes('Yes, you should, Ferni.')).toBe(true);
   });
 
   it('takes a yes that restates the same action (owner call 2026-10-17)', () => {
