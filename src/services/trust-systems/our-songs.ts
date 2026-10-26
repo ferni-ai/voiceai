@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'OurSongs' });
 
@@ -45,10 +46,8 @@ export interface SharedSongMemory {
     emotion: EmotionDuringMoment;
     /** What was happening - brief context */
     context: string;
-    /** What they said or were discussing */
+    /** A topic label (never the caller's words: no quote of what they said is kept) */
     topic?: string;
-    /** Key quote if applicable */
-    memorableQuote?: string;
   };
 
   /** How significant is this memory */
@@ -182,7 +181,7 @@ const MUSIC_LOVE_INDICATORS = [
 ];
 
 // ============================================================================
-// IN-MEMORY STORE (will be persisted via unified persistence)
+// IN-MEMORY STORE (this process only: no code saves or loads it as of 2026-10-25)
 // ============================================================================
 
 const profiles = new Map<string, OurSongsProfile>();
@@ -309,13 +308,16 @@ export interface RecordSongMomentParams {
   emotion: EmotionDuringMoment;
   context: string;
   topic?: string;
-  memorableQuote?: string;
+  /** MINOR_CARE: the call's session, so a held caller's moment is never kept */
+  sessionId?: string;
 }
 
 /**
- * Record a song as "our song" - a shared musical memory
+ * Record a song as "our song" - a shared musical memory. Labels only: the caller's words are
+ * never kept. MINOR_CARE: a held caller (writeHeld) gets no memory, so returns null.
  */
-export function recordOurSong(params: RecordSongMomentParams): SharedSongMemory {
+export function recordOurSong(params: RecordSongMomentParams): SharedSongMemory | null {
+  if (writeHeld(params.userId, params.sessionId)) return null;
   const profile = getOrCreateProfile(params.userId);
 
   // Check if we already have this song
@@ -328,7 +330,7 @@ export function recordOurSong(params: RecordSongMomentParams): SharedSongMemory 
   if (existingSong) {
     // Update existing - this song has multiple meaningful moments!
     log.info(
-      { song: params.song.name, userId: params.userId },
+      { userId: params.userId },
       '🎵 Song already in "our songs" - adding new moment context'
     );
     // Keep the most significant moment
@@ -341,7 +343,6 @@ export function recordOurSong(params: RecordSongMomentParams): SharedSongMemory 
         emotion: params.emotion,
         context: params.context,
         topic: params.topic,
-        memorableQuote: params.memorableQuote,
       };
       existingSong.significance = determineSignificance(params.momentType);
     }
@@ -358,7 +359,6 @@ export function recordOurSong(params: RecordSongMomentParams): SharedSongMemory 
       emotion: params.emotion,
       context: params.context,
       topic: params.topic,
-      memorableQuote: params.memorableQuote,
     },
     significance: determineSignificance(params.momentType),
     callbackCount: 0,
@@ -386,7 +386,6 @@ export function recordOurSong(params: RecordSongMomentParams): SharedSongMemory 
   log.info(
     {
       userId: params.userId,
-      song: params.song.name,
       momentType: params.momentType,
       totalSongs: profile.songs.length,
     },
@@ -448,7 +447,7 @@ export function checkForOurSong(
     const hoursSinceLastCallback =
       (Date.now() - new Date(memory.lastCallback).getTime()) / (1000 * 60 * 60);
     if (hoursSinceLastCallback < 24) {
-      log.debug({ song: songName }, '🎵 Skipping callback - too recent');
+      log.debug({ userId }, '🎵 Skipping callback - too recent');
       return null;
     }
   }
@@ -462,7 +461,7 @@ export function checkForOurSong(
 
   log.info(
     {
-      song: songName,
+      userId,
       momentType: memory.moment.type,
       callbackCount: memory.callbackCount,
     },
@@ -531,12 +530,6 @@ function generateBreakthroughCallback(memory: SharedSongMemory): string {
     `I can't hear this without thinking of you and that ${memory.moment.emotion} moment. When you ${memory.moment.context}.`,
     `You know what this song reminds me of? When you ${memory.moment.context}. I was so proud of you.`,
   ];
-
-  if (memory.moment.memorableQuote) {
-    phrases.push(
-      `Remember when you said "${memory.moment.memorableQuote}"? This song was playing. I'll never forget that.`
-    );
-  }
 
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
@@ -727,36 +720,29 @@ export function getAllOurSongs(userId: string): SharedSongMemory[] {
 // PERSISTENCE HELPERS
 // ============================================================================
 
+/**
+ * A stored moment's labels, with its date back as a Date. Only these fields are kept: old data
+ * held `memorableQuote`, up to 200 characters of what the caller said, which is never loaded.
+ */
+function hydrateMoment(moment: SharedSongMemory['moment']): SharedSongMemory['moment'] {
+  const { type, emotion, context, topic } = moment;
+  return { timestamp: new Date(moment.timestamp), type, emotion, context, topic };
+}
+
+function hydrateSong(song: SharedSongMemory): SharedSongMemory {
+  return {
+    ...song,
+    moment: hydrateMoment(song.moment),
+    lastCallback: song.lastCallback ? new Date(song.lastCallback) : undefined,
+  };
+}
+
 export function loadOurSongsProfile(userId: string, data: OurSongsProfile): void {
-  // Convert date strings back to Date objects
   const hydrated: OurSongsProfile = {
     ...data,
-    songs: data.songs.map((song) => ({
-      ...song,
-      moment: {
-        ...song.moment,
-        timestamp: new Date(song.moment.timestamp),
-      },
-      lastCallback: song.lastCallback ? new Date(song.lastCallback) : undefined,
-    })),
-    firstSong: data.firstSong
-      ? {
-          ...data.firstSong,
-          moment: {
-            ...data.firstSong.moment,
-            timestamp: new Date(data.firstSong.moment.timestamp),
-          },
-        }
-      : undefined,
-    mostMeaningful: data.mostMeaningful
-      ? {
-          ...data.mostMeaningful,
-          moment: {
-            ...data.mostMeaningful.moment,
-            timestamp: new Date(data.mostMeaningful.moment.timestamp),
-          },
-        }
-      : undefined,
+    songs: data.songs.map(hydrateSong),
+    firstSong: data.firstSong ? hydrateSong(data.firstSong) : undefined,
+    mostMeaningful: data.mostMeaningful ? hydrateSong(data.mostMeaningful) : undefined,
   };
 
   profiles.set(userId, hydrated);
@@ -765,6 +751,14 @@ export function loadOurSongsProfile(userId: string, data: OurSongsProfile): void
 
 export function getOurSongsProfileForPersistence(userId: string): OurSongsProfile | null {
   return profiles.get(userId) || null;
+}
+
+/**
+ * MINOR_CARE: drop this user's songs (the end-of-call purge, minor-care-purge.ts). The store
+ * lives only in this process's memory, so what a held call learned is never spoken back later.
+ */
+export function clearOurSongsUser(userId: string): void {
+  profiles.delete(userId);
 }
 
 // ============================================================================
@@ -780,4 +774,5 @@ export default {
   getAllOurSongs,
   loadOurSongsProfile,
   getOurSongsProfileForPersistence,
+  clearOurSongsUser,
 };

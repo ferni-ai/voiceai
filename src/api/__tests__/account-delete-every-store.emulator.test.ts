@@ -95,6 +95,12 @@ const MUST_ERASE = [
   'feature_checkins[userId]',
   'context_injection_outcomes[injection.userId]',
   'user_profiles[firebaseUid]',
+  // The router's stores of each turn and correction (no words since 2026-10-25)
+  'routing_events[userId]',
+  'semantic_router_corrections[userId]',
+  'semantic_routing_feedback[userId]',
+  'semantic_routing_vocabulary/{uid}',
+  'semantic_routing_corrections/{uid}/corrections',
 ];
 
 let db: Firestore;
@@ -312,6 +318,11 @@ describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the 
       await db.doc(`bogle_users/phone:${phone}`).set({ name: 'Caller' });
       await db.doc(`bogle_users/phone:${phone}/summaries/s1`).set({ text: 'a call' });
       await db.collection('phone_mappings').add({ phone, userId: `phone:${phone}` });
+      // The router's stores, as kept for the phone profile
+      await db.doc(`semantic_routing_vocabulary/phone:${phone}`).set({ phrases: [] });
+      await db.doc(`semantic_routing_corrections/phone:${phone}/corrections/c1`).set({ x: 1 });
+      await db.collection('semantic_router_corrections').add({ userId: `phone:${phone}` });
+      await db.collection('routing_events').add({ userId: `phone:${phone}` });
     }
     await db.doc(`bogle_users/phone:${authed}`).set({ linkedIdentifiers: [`auth:default:${h}`] });
     await db.doc(`bogle_users/phone:${similar}`).set({ name: 'Someone' });

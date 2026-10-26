@@ -41,22 +41,27 @@ export interface HoldStore {
   write: (userId: string, record: HoldRecord) => Promise<void>;
 }
 
-function holds(): FirebaseFirestore.CollectionReference {
+function firestore(): FirebaseFirestore.Firestore {
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore unavailable');
-  return db.collection(HOLDS_COLLECTION);
+  return db;
 }
+const holds = () => firestore().collection(HOLDS_COLLECTION);
 
 export const firestoreHoldStore: HoldStore = {
   async heldUntil(userId) {
     const until = (await holds().doc(userId).get()).data()?.heldUntil;
     return typeof until === 'number' ? until : undefined;
   },
-  // expireAt (= heldUntil; a Date is stored as a Timestamp): the TTL field that deletes lapsed holds
+  // expireAt (a Date is stored as a Timestamp): the TTL field that deletes lapsed holds. A merge,
+  // and never before keepUntil: the same doc keeps the purges' held windows (held-window.ts).
   async write(userId, record) {
-    await holds()
-      .doc(userId)
-      .set({ ...record, expireAt: new Date(record.heldUntil) });
+    const ref = holds().doc(userId);
+    await firestore().runTransaction(async (tx) => {
+      const keep = (await tx.get(ref)).data()?.keepUntil;
+      const until = Math.max(record.heldUntil, typeof keep === 'number' ? keep : 0);
+      tx.set(ref, { ...record, expireAt: new Date(until) }, { merge: true });
+    });
   },
 };
 

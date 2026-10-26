@@ -105,9 +105,10 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 Runs on PRs, PR comments and merge_group. On a PR it only reports. On merge_group it
 fails (since 2026-10-25) when a queued head is NOT_VERIFIED or the evidence can't be read
 (ERROR). The queue drops the PR only while `Lead Verified` is a required check (rollout:
-merge this, then add the context to main's required checks). Allowed authors, for both
-the `lead-verify` status and bound comments, are `ferni-verifier[bot]` and, until the
-lead's machine can post as that app, `sethdford`. CI typechecks it via `pnpm typecheck:memory-eval`
+merge this, then add the context to main's required checks). The only allowed author, for
+both the `lead-verify` status and bound comments, is `ferni-verifier[bot]`. A green "Lead
+Verified" on a PR page is not verification; the evidence is that app's
+`RESULT_verifier=PASS sha=<head>` comment or its `lead-verify` status. CI typechecks it via `pnpm typecheck:memory-eval`
 (`tsconfig.scripts.json`).
 
 **How a verifier marks a PR verified.** Verify the PR's current head, then run (as the

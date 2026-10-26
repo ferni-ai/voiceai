@@ -28,6 +28,7 @@ import {
 } from '../follow-through/index.js';
 import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-call-clocks.js';
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
+import { wasDialled } from './dial-marker.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -100,11 +101,22 @@ export function deferredCallReply(
   );
 }
 
+export interface DeferOptions {
+  /** Held only because it's late or early there; a call-now to family may go on a second yes. */
+  lateNow?: boolean;
+  /**
+   * The guard's input, kept when their saved window covers all their call hours
+   * (QUIET_HOURS_FROM_PREFS, decision.none). The call then waits for their next day and is
+   * dropped, not held again, if the window still covers it all (executeDueDeferredCalls).
+   */
+  quietAllDay?: CallHoursInput;
+}
+
 export async function deferCall(
   userId: string,
   held: DeferredCall,
   decision: CallHoursDecision,
-  lateNow?: boolean
+  { lateNow, quietAllDay }: DeferOptions = {}
 ): Promise<Deferral> {
   const id = `deferred_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   // Stored without the call-now ask: when it's picked up, the hours alone decide.
@@ -142,6 +154,7 @@ export async function deferCall(
         timezoneSource: decision.source,
         requesterTimezone,
         createdAt: new Date().toISOString(),
+        ...(quietAllDay && { quietAllDay }),
       })
     );
   recent.set(id, deferral);
@@ -161,16 +174,26 @@ export async function holdForCallHours(
 ): Promise<Deferral | undefined> {
   if (!isCallHoursGuardOn()) return undefined;
   const userAsked = call.kind === 'proactive' && call.request.reason === USER_REQUESTED_CALL;
-  const decision = await checkCallHours({ ...recipient, ...(userAsked && { userAsked }) });
+  const input = { ...recipient, ...(userAsked && { userAsked }) };
+  const decision = await checkCallHours(input);
   if (decision.allowed) return undefined;
-  // The owner's call-now to family (CALL_NOW_OWNER_OVERRIDE): rings now, or asks once more if late.
+  // The owner's call-now to family (CALL_NOW_OWNER_OVERRIDE): rings now, or asks once more if
+  // late. Decided first, so an explicit call-now also overrides an all-day saved window, as a
+  // call the user asked for is exempt from it (#2781).
   const now = recipient.now ?? new Date();
   const verdict = call.kind === 'on_behalf' ? callNowVerdict(call.request, decision, now) : 'hold';
   if (verdict === 'place') {
     log.info({ userId, timezone: decision.timezone }, 'Call now: owner override, not held');
     return undefined;
   }
-  return deferCall(userId, call, decision, verdict === 'confirm_late');
+  const lateNow = verdict === 'confirm_late';
+  // Quiet all day: no call today, one more look on their next day (never a call at `at`, past it).
+  if (decision.recheckAt) {
+    const nextDay = { ...decision, at: decision.recheckAt };
+    const quietAllDay = { ...input, now: undefined }; // re-checked at its own time
+    return deferCall(userId, call, nextDay, { lateNow, quietAllDay });
+  }
+  return deferCall(userId, call, decision, { lateNow });
 }
 
 /** The last ten digits, so "+13035550100" and "303-555-0100" match. */
@@ -302,7 +325,10 @@ export async function placeOrHold(
   try {
     callId = await place(request);
   } catch (error) {
-    if (replaces) await releaseHeldCall(request.userId, replaces.id);
+    // Back to pending only if nothing rang: a throw after the dial must not ring them twice.
+    if (replaces && wasDialled(request)) {
+      log.warn({ userId: request.userId }, 'Call-now rang, then failed; held call stays replaced');
+    } else if (replaces) await releaseHeldCall(request.userId, replaces.id);
     throw error;
   }
   if (replaces) await markReplacedBy(request.userId, replaces.id, callId);
@@ -340,6 +366,8 @@ export interface DeferredCallsRunResult {
   rescheduled: number;
   failed: number;
   missed: number;
+  /** Dropped at the re-check: their saved window still covers all their call hours. */
+  quietAllDay?: number;
 }
 
 /**
@@ -377,6 +405,12 @@ async function place(userId: string, call: DeferredCall): Promise<string | undef
   return undefined;
 }
 
+/** Held for a saved window over all their call hours, and still so now: drop it. */
+async function stillQuietAllDay(data: Record<string, unknown>, now = new Date()): Promise<boolean> {
+  const input = data.quietAllDay as CallHoursInput | undefined;
+  return !!input && !!(await checkCallHours({ ...input, now })).none;
+}
+
 /** Place the deferred calls that are due. Run by the execute-scheduled-outreach job. */
 export async function executeDueDeferredCalls(
   opts: { now?: Date; limit?: number } = {}
@@ -395,20 +429,31 @@ export async function executeDueDeferredCalls(
     now: opts.now,
     limit: opts.limit ?? 10,
   });
-  const result = { due: claim.due, placed: 0, rescheduled: 0, failed: 0, missed: claim.late };
+  const result: DeferredCallsRunResult = {
+    due: claim.due,
+    placed: 0,
+    rescheduled: 0,
+    failed: 0,
+    missed: claim.late,
+  };
   for (const item of claim.lateItems) {
     logPromiseOutcome('deferred-call', deferredCallOutcome('missed'), { userId: item.userId });
   }
   for (const item of claim.claimed) {
     const call = item.data as unknown as DeferredCall;
-    let status: 'placed' | 'rescheduled' | 'failed' = 'placed';
+    let status: 'placed' | 'rescheduled' | 'failed' | 'quiet-all-day' = 'placed';
     let heldAs: string | undefined;
     try {
-      // Owner from the document's path, not the stored request.
-      heldAs = await place(item.userId, call);
-      // Still outside their hours (prod 2026-10-18 02:39Z, 8:39pm in Denver): held, not placed.
-      if (heldAs) status = 'rescheduled';
-      result[heldAs ? 'rescheduled' : 'placed']++;
+      if (await stillQuietAllDay(item.data, opts.now)) {
+        status = 'quiet-all-day';
+        result.quietAllDay = (result.quietAllDay ?? 0) + 1;
+      } else {
+        // Owner from the document's path, not the stored request.
+        heldAs = await place(item.userId, call);
+        // Still outside their hours (prod 2026-10-18 02:39Z, 8:39pm in Denver): held, not placed.
+        if (heldAs) status = 'rescheduled';
+        result[heldAs ? 'rescheduled' : 'placed']++;
+      }
     } catch (error) {
       status = 'failed';
       result.failed++;

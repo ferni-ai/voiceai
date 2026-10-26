@@ -55,9 +55,10 @@ jobs:
           # for every queued head, and a NOT_VERIFIED or ERROR fails the group. On a PR it
           # only reports, because comment-triggered runs don't update the PR's check.
           LEAD_VERIFIED_ENFORCE: ${{ github.event_name == 'merge_group' && '1' || '' }}
-          # Until this Mac can post as ferni-verifier[bot] (~/.claude/bin/ferni-verifier-token),
-          # the lead's bound comments also count. Drop sethdford once that token exists.
-          LEAD_VERIFIED_AUTHORS: ferni-verifier[bot],sethdford
+          # Only the ferni-verifier app counts (2026-10-25: sessions now post as it via
+          # ~/.claude/bin/post-lead-verify). A personal account would let any tool that
+          # falls back to the owner's own gh login post a trusted PASS.
+          LEAD_VERIFIED_AUTHORS: ferni-verifier[bot]
         run: |
           [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on main yet"; exit 0; }
           node --experimental-strip-types scripts/ci/lead-verified.ts
