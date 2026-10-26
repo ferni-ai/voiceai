@@ -12,9 +12,12 @@
  * @module services/superhuman/inside-joke-memory
  */
 
+import { withoutHeldStored } from '../../utils/held-window-check.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { onInsideJokeChange } from '../data-layer/hooks/trust-hooks.js';
+import { loadHeldWindows } from '../trust-systems/index.js';
 
 const log = createLogger({ module: 'InsideJokeMemory' });
 
@@ -67,7 +70,7 @@ export interface CallbackOpportunity {
 // ============================================================================
 
 /**
- * Record a shared moment worth remembering.
+ * Record a shared moment worth remembering. MINOR_CARE: a held caller (writeHeld) gets none.
  */
 export async function recordSharedMoment(
   userId: string,
@@ -76,8 +79,10 @@ export async function recordSharedMoment(
   context: string,
   triggerKeywords: string[],
   callbackPhrase: string,
-  resonance = 0.7
+  resonance = 0.7,
+  sessionId?: string
 ): Promise<string | null> {
+  if (writeHeld(userId, sessionId)) return null;
   const db = getFirestoreDb();
   if (!db) {
     log.debug({ userId }, 'Firestore not available, skipping shared moment');
@@ -116,7 +121,7 @@ export async function recordSharedMoment(
       'create'
     );
 
-    log.info({ userId, type, essence }, 'Recorded shared moment');
+    log.info({ userId, type, momentId: docRef.id }, 'Recorded shared moment');
 
     // Memory Lane: Capture inside joke as potential memory
     if (type === 'inside_joke' || type === 'running_gag' || type === 'silly_moment') {
@@ -156,7 +161,8 @@ export async function loadSharedMoments(userId: string): Promise<SharedMoment[]>
       .limit(100)
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
+    const moments = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
+    return await withoutHeldStored(userId, moments, (m) => m.createdAt, loadHeldWindows); // MINOR_CARE
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load shared moments');
     return [];
