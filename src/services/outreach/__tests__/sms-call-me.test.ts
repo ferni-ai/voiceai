@@ -212,4 +212,22 @@ describe('Twilio inbound webhook, while every log write fails', () => {
     await expect(inbound()).resolves.toEqual({ success: false });
     expect(process.stderr.write).toHaveBeenCalled();
   });
+
+  it('a contact lookup or route that rejects with a value with no string form gives the same reply as an ordinary error', async () => {
+    docs.clear();
+    vi.stubEnv('SKIP_TWILIO_VALIDATION', 'true');
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('LOG_HASH_SECRET', 'test-hash-secret');
+    vi.stubEnv('SMS_CALL_ME', 'off');
+    const { findContactByPhone } = await import('../../contacts/optimal-timing.js');
+    const fail = async (value: unknown) => {
+      vi.mocked(findContactByPhone).mockRejectedValueOnce(value);
+      routed.mockRejectedValueOnce(value);
+      return inbound();
+    };
+    const ordinary = await fail(new Error('down'));
+    const exotic = await fail(Object.create(null));
+    expect(exotic).toEqual(ordinary);
+    expect(exotic.success).toBe(true);
+  });
 });

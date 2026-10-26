@@ -85,4 +85,15 @@ describe('a log call never throws into its caller', () => {
     expect(() => createLogger({ module: 'x' }).warn(throwing, 'm')).not.toThrow();
     expect(droppedLogLines()).toBe(1);
   });
+
+  it('a child whose bindings throw keeps the parent logger, counted, and never throws', () => {
+    const write = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    let child: ReturnType<typeof createLogger> | undefined;
+    expect(() => {
+      child = createLogger({ module: 'x' }).child(throwing as Record<string, unknown>);
+    }).not.toThrow();
+    expect(droppedLogLines()).toBe(1);
+    expect(() => child?.info({ a: 1 }, 'still logs')).not.toThrow();
+    expect(write.mock.calls.some(([line]) => String(line).includes('still logs'))).toBe(true);
+  });
 });

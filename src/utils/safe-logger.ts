@@ -235,8 +235,15 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
     info: call('info'),
     warn: call('warn'),
     error: call('error'),
-    child: (childBindings: Record<string, unknown>) =>
-      lazyLogger({ ...bindings, ...childBindings }),
+    // Bindings whose getter throws (read by the spread) keep the parent's.
+    child: (childBindings: Record<string, unknown>) => {
+      try {
+        return lazyLogger({ ...bindings, ...childBindings });
+      } catch (error) {
+        noteDroppedLine(error);
+        return lazyLogger(bindings);
+      }
+    },
   };
 }
 
