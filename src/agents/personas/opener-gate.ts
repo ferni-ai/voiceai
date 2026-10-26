@@ -21,6 +21,7 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
 import { flagOn } from '../../config/env-flag.js';
+import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 import { firstClauseFlushEnabled } from './first-clause-flush.js';
 import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
 
@@ -124,6 +125,8 @@ export class OpenerGate {
   private lastKept: string | null = null;
   /** The reaction words this gate counts: every one Ferni uses with FERNI_PLAYFUL on. */
   private readonly words: RegExp;
+  /** The call whose TURN_RECEIPT gets each reply's hold here (forSession); unset: none. */
+  private session?: () => { userData?: unknown };
 
   /**
    * `early`: decide as soon as the opening is decidable (openingDecidable)
@@ -173,6 +176,20 @@ export class OpenerGate {
     return text;
   }
 
+  /** Report each reply's hold here on this session's TURN_RECEIPT (turn-timing.ts). */
+  forSession(session: () => { userData?: unknown }): this {
+    this.session = session;
+    return this;
+  }
+
+  private sessionId(): string | undefined {
+    try {
+      return sessionIdIn(this.session?.().userData);
+    } catch {
+      return undefined; // the agent has no session now: nothing to report on
+    }
+  }
+
   private kept(word: string | null): void {
     this.repliesSinceKept = 0;
     this.turnsSinceKept = 0;
@@ -209,9 +226,12 @@ export class OpenerGate {
     let buffered = '';
     let template: Chunk | null = null;
     let decided = false;
+    // From the reply's first words in to its opening out: the wait this gate adds.
+    const held = turnHoldTimer(this.sessionId(), 'openerGate');
     const release = (controller: ReadableStreamDefaultController<Chunk>): void => {
       decided = true;
       if (!buffered) return;
+      held.stop();
       const text = decide(buffered);
       if (typeof template === 'string' || template === null) controller.enqueue(text);
       else {
@@ -233,6 +253,7 @@ export class OpenerGate {
               controller.enqueue(chunk);
               continue;
             }
+            if (content) held.start();
             buffered += content;
             template = chunk;
             const ready = early

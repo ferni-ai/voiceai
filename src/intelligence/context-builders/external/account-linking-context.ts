@@ -175,7 +175,7 @@ export const accountLinkingContextBuilder: ContextBuilder = {
         sessionId,
         matchType: bestMatch.matchType,
         confidence: bestMatch.confidence,
-        matchedName: bestMatch.profile.name,
+        hasMatchedName: Boolean(bestMatch.profile.name),
       },
       'Building account linking context'
     );

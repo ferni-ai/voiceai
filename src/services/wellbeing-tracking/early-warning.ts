@@ -8,7 +8,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { mentionsAny } from './phrase-match.js';
+import { mentionsAny } from '../../utils/phrase-match.js';
+import { renderWarningInjection } from './warning-injection.js';
 import type { WellbeingDimensions, WellbeingProfile } from './index.js';
 
 const log = getLogger().child({ module: 'early-warning' });
@@ -661,25 +662,10 @@ export function getActiveWarnings(userId: string): EarlyWarning[] {
 }
 
 /**
- * Get warning context for LLM.
+ * Get warning context for LLM (crisis_risk first; see warning-injection.ts).
  */
 export function getWarningContextInjection(userId: string): string {
-  const active = getActiveWarnings(userId);
-  if (active.length === 0) return '';
-
-  // Get most severe warning
-  const mostSevere = active.sort(
-    (a, b) => severityLevel(b.severity) - severityLevel(a.severity)
-  )[0];
-
-  return `[⚠️ EARLY WARNING ACTIVE]
-Type: ${formatWarningType(mostSevere.type)}
-Severity: ${mostSevere.severity.toUpperCase()}
-
-Guidance for you:
-${mostSevere.recommendations.forFerni.map((r) => `- ${r}`).join('\n')}
-
-${mostSevere.recommendations.suggestProfessional ? '⚡ Consider gently suggesting professional support' : ''}`;
+  return renderWarningInjection(getActiveWarnings(userId));
 }
 
 /**
@@ -760,20 +746,6 @@ function selectRecommendations(all: string[], severity: WarningSeverity): string
   // Return more recommendations for more severe warnings
   const count = severity === 'urgent' ? 4 : severity === 'concern' ? 3 : 2;
   return all.slice(0, count);
-}
-
-function formatWarningType(type: WarningType): string {
-  const names: Record<WarningType, string> = {
-    depression_risk: 'Depression Risk',
-    anxiety_spike: 'Anxiety Spike',
-    burnout_trajectory: 'Burnout Trajectory',
-    isolation_pattern: 'Isolation Pattern',
-    sleep_deterioration: 'Sleep Deterioration',
-    motivation_collapse: 'Motivation Collapse',
-    hopelessness_pattern: 'Hopelessness Pattern',
-    crisis_risk: 'Crisis Risk',
-  };
-  return names[type] || type;
 }
 
 // ============================================================================

@@ -24,6 +24,7 @@
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerSetsDepthOn, labelsDeflection } from './caller-sets-depth.js';
+import { type CallChannel, withCallChannel } from './director-channel.js';
 import {
   directorAddress,
   directorEscalates,
@@ -31,7 +32,13 @@ import {
   NoteHistory,
 } from './director-escalation.js';
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
-import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
+import {
+  formatTold,
+  keptTold,
+  toldThisCall,
+  toldThisCallEnabled,
+  type Told,
+} from './told-this-call.js';
 import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
 import {
   cap,
@@ -284,6 +291,7 @@ export class Director {
       speaking?: () => string;
       /** The persona id on the call now; read only with DIRECTOR_DIRECTS on (director-directs.ts). */
       personaId?: () => string | undefined;
+      channel?: () => CallChannel | undefined; // app or phone: DIRECTOR_KNOWS_CHANNEL (director-channel.ts)
     }
   ) {}
 
@@ -327,7 +335,7 @@ export class Director {
               speaking,
             };
         const reply = await withTimeout(
-          writer(asked.system, asked.prompt),
+          writer(withCallChannel(asked.system, this.opts.channel?.()), asked.prompt),
           this.opts.budgetMs ?? 4000
         );
         if (gen !== this.generation) return; // a newer turn superseded this one
@@ -444,13 +452,7 @@ export class Director {
    */
   told(keep: (text: string) => boolean = () => true): string {
     const told = this.toldRecord;
-    if (!told) return '';
-    return formatTold({
-      ...told,
-      names: told.names.filter((n) => keep(n.name)),
-      repeated: told.repeated.filter(keep),
-      recentLines: told.recentLines.filter(keep),
-    });
+    return told ? formatTold(keptTold(told, keep, this.opts.sessionId)) : '';
   }
 }
 

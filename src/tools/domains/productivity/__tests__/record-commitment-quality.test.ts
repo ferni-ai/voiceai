@@ -71,3 +71,27 @@ describe('recordCommitment', () => {
     expect(reply).toMatch(/^Got it/);
   });
 });
+
+describe('recordCommitment for a caller under 18 (MINOR_CARE)', () => {
+  const recordAs = (userId: string) =>
+    (recordDef?.create({ userId } as ToolContext) as unknown as { execute: Exec }).execute;
+
+  it.each(['held', 'off'])('never promises to remember a plan it did not keep (%s)', async (c) => {
+    const { bindSessionUser, heldAfter, resetMinorCare, MINOR_CARE_NOT_SAVED } =
+      await import('../../../../utils/minor-care.js');
+    vi.stubEnv('MINOR_CARE', c === 'held' ? 'on' : 'off');
+    try {
+      bindSessionUser('session-teen-1', 'uid-teen-commit');
+      heldAfter('session-teen-1', "I'm 15.", { userId: 'uid-teen-commit' });
+      const reply = await recordAs('uid-teen-commit')({
+        statement: "I'm going to try out for the soccer team",
+        summary: 'try out for the soccer team',
+      });
+      if (c === 'held') expect(reply).toBe(MINOR_CARE_NOT_SAVED);
+      else expect(reply).toMatch(/^Got it - I'll remember/);
+    } finally {
+      resetMinorCare();
+      vi.unstubAllEnvs();
+    }
+  });
+});

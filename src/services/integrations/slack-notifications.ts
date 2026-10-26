@@ -19,6 +19,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { opsAlert } from '../platform/ops-alert.js';
+import { postToSlackWebhook, type SlackDelivery } from './slack-delivery.js';
+
+export type { SlackDelivery } from './slack-delivery.js';
 
 const log = createLogger({ module: 'SlackNotifications' });
 
@@ -154,10 +157,14 @@ export class SlackNotificationService {
     }
   }
 
-  /**
-   * Send a notification
-   */
+  /** Send a notification. True only when Slack accepted it. */
   async notify(context: NotificationContext): Promise<boolean> {
+    const result = await this.notifyWithResult(context);
+    return result.status === 'delivered' && result.via === 'slack';
+  }
+
+  /** notify(), saying whether anyone was told and how (see slack-delivery.ts). */
+  async notifyWithResult(context: NotificationContext): Promise<SlackDelivery> {
     const emoji = TYPE_EMOJIS[context.type] || '📢';
     const color = SEVERITY_COLORS[context.severity || 'info'];
 
@@ -167,11 +174,13 @@ export class SlackNotificationService {
     log.info({ type: context.type, title: context.title }, `${emoji} ${context.title}`);
 
     if (!webhook) {
-      if (context.severity === 'error') opsAlert(`notify:${context.type}`, `🚨 ${context.title}`, { message: context.message });
-      return false;
+      const viaOps =
+        context.severity === 'error' &&
+        opsAlert(`notify:${context.type}`, `🚨 ${context.title}`, { message: context.message });
+      return viaOps ? { status: 'delivered', via: 'ops' } : { status: 'not_configured' };
     }
 
-    return this.sendToSlack(webhook, message);
+    return postToSlackWebhook(webhook, message, WEBHOOK_TIMEOUT_MS);
   }
 
   /**
@@ -468,27 +477,6 @@ export class SlackNotificationService {
     if (type.startsWith('incident_') || type.startsWith('health_')) return this.webhooks.alerts;
     if (type === 'crisis_alert') return this.webhooks.safety;
     return this.defaultWebhook;
-  }
-
-  private async sendToSlack(webhookUrl: string, message: SlackMessage): Promise<boolean> {
-    try {
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(message),
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
-      });
-
-      if (!response.ok) {
-        log.error({ status: response.status }, 'Slack webhook failed');
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      log.error({ error }, 'Failed to send Slack notification');
-      return false;
-    }
   }
 
   private formatKey(key: string): string {

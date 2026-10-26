@@ -17,10 +17,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { captureCallResult } from '../../../services/outreach/call-result-capture.js';
+import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
 import { validateTwilioSignature } from '../../../services/outreach/webhooks/twilio-webhooks.js';
-import type {
-  CallOutcome,
-} from '../../../tools/domains/telephony/types.js';
+import type { CallOutcome } from '../../../tools/domains/telephony/types.js';
 import {
   trackOutboundCall,
   getPendingCall,
@@ -70,7 +69,7 @@ interface TwilioCallStatusPayload {
 /**
  * Convert Twilio status to our CallOutcome
  */
-function twilioStatusToOutcome(
+export function twilioStatusToOutcome(
   payload: TwilioCallStatusPayload,
   pendingCall: PendingCall
 ): CallOutcome | null {
@@ -91,17 +90,25 @@ function twilioStatusToOutcome(
 
   switch (CallStatus) {
     case 'completed':
-      // Call connected and ended normally
-      // The actual outcome (objective achieved, etc.) should come from the agent
-      // For now, we mark it as completed and let agent update later
+      // A machine answer is a voicemail with no message on record: this webhook
+      // has no evidence one was spoken, so it never says "left" (audit 10-25).
+      // Twilio sends machine_start / machine_end_beep / ... as well as "machine".
+      if (AnsweredBy?.startsWith('machine') === true) {
+        return {
+          ...baseOutcome,
+          status: 'voicemail',
+          outcome: voicemailWords(false, pendingCall.contactName).outcome,
+          callbackRequired: true,
+          voicemailLeft: false,
+          recordingUrl: RecordingUrl,
+        };
+      }
+      // Call connected and ended normally; the agent reports the real outcome
       return {
         ...baseOutcome,
         status: 'completed',
-        outcome:
-          AnsweredBy === 'machine'
-            ? `Left voicemail for ${pendingCall.contactName}`
-            : `Call with ${pendingCall.contactName} completed (${CallDuration}s)`,
-        objectiveAchieved: AnsweredBy !== 'machine', // Assume success if human answered
+        outcome: `Call with ${pendingCall.contactName} completed (${CallDuration}s)`,
+        objectiveAchieved: true, // Assume success if human answered
         recordingUrl: RecordingUrl,
       };
 

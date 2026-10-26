@@ -98,6 +98,11 @@ jobs:
       - name: Xcode version
         run: xcodebuild -version
 
+      # No timers or delayed dispatch in the avatar and call (one clock, one state machine).
+      - name: Motion rules
+        working-directory: apps/ios-native
+        run: ./scripts/check-motion-rules.sh
+
       - name: Cache Swift packages
         uses: actions/cache@v6
         with:
@@ -129,24 +134,18 @@ jobs:
 
       - name: Build and run unit tests (simulator, unsigned)
         working-directory: apps/ios-native
-        run: |
-          set -o pipefail
-          xcodebuild test \
-            -project Ferni.xcodeproj \
-            -scheme Ferni \
-            -destination "id=${{ steps.sim.outputs.udid }}" \
-            -clonedSourcePackagesDirPath "$SPM_DIR" \
-            -resultBundlePath "$RUNNER_TEMP/FerniTests.xcresult" \
-            -skipPackagePluginValidation \
-            -skipMacroValidation \
-            CODE_SIGNING_ALLOWED=NO
+        # Package tests, then the app-hosted tests; only a host app that never
+        # launched is retried, once, with a warning (scripts/ci-test.sh).
+        run: scripts/ci-test.sh "${{ steps.sim.outputs.udid }}" "$SPM_DIR" "$RUNNER_TEMP"
 
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: ios-test-results
-          path: ${{ runner.temp }}/FerniTests.xcresult
+          path: |
+            ${{ runner.temp }}/*.xcresult
+            ${{ runner.temp }}/app-tests*.log
           retention-days: 14
 
       # Tags and manual runs also check that a Release archive builds. It is

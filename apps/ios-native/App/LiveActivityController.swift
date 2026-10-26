@@ -1,0 +1,72 @@
+@preconcurrency import ActivityKit
+import FerniDesign
+import FerniKit
+import FerniVoice
+import Foundation
+
+/// Keeps the call's Live Activity in step with the call: started when the
+/// call connects, updated on state changes no more than once a second (the
+/// latest state wins), ended with the call and dismissed five seconds later.
+@MainActor
+final class LiveActivityController {
+    private var activity: Activity<CallActivityAttributes>?
+    private var lastSent: Date = .distantPast
+    private var pending: Task<Void, Never>?
+    private var latest: CallActivityAttributes.ContentState?
+
+    /// What the activity should show for the call right now; nil when there's no call.
+    static func content(for call: CallSession) -> CallActivityAttributes.ContentState? {
+        let state: CallActivityState
+        switch call.phase {
+        case .connecting, .waitingForFerni: state = .arriving
+        case .reconnecting: state = .reconnecting
+        case .live:
+            if call.isOnHold { state = .onHold } else {
+                switch call.avatar.pose {
+                case .speaking: state = .speaking
+                case .thinking: state = .thinking
+                default: state = .listening
+                }
+            }
+        default: return nil
+        }
+        let id = call.avatar.personaID
+        return .init(state: state, personaID: id, personaName: PersonaRegistry.get(id).name)
+    }
+
+    func follow(_ content: CallActivityAttributes.ContentState?, startedAt: Date?) {
+        guard let content else { return end() }
+        latest = content
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        if activity == nil {
+            activity = try? Activity.request(
+                attributes: CallActivityAttributes(startedAt: startedAt ?? .now),
+                content: ActivityContent(state: content, staleDate: nil)
+            )
+            lastSent = .now
+            return
+        }
+        scheduleUpdate()
+    }
+
+    private func scheduleUpdate() {
+        guard pending == nil else { return } // the pending update sends the latest state
+        let wait = max(0, 1 - Date.now.timeIntervalSince(lastSent))
+        pending = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(wait))
+            guard let self, !Task.isCancelled, let activity = self.activity, let latest = self.latest else { return }
+            await activity.update(ActivityContent(state: latest, staleDate: nil))
+            self.lastSent = .now
+            self.pending = nil
+        }
+    }
+
+    private func end() {
+        pending?.cancel()
+        pending = nil
+        guard let activity else { return }
+        self.activity = nil
+        let final = latest.map { ActivityContent(state: $0, staleDate: nil) }
+        Task { await activity.end(final, dismissalPolicy: .after(.now + 5)) }
+    }
+}

@@ -7,10 +7,12 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const notify = vi.hoisted(() => vi.fn(async () => undefined));
+const notify = vi.hoisted(() =>
+  vi.fn(async () => ({ status: 'delivered' as const, via: 'slack' as const }))
+);
 vi.mock('../../slack-notifications.js', () => ({
   SlackNotificationService: class {
-    notify = notify;
+    notifyWithResult = notify;
   },
 }));
 vi.mock('../../predictive-alerting.js', () => ({ recordMetricValue: vi.fn() }));

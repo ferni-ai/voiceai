@@ -26,6 +26,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import { whoGuidance } from './crisis-who-guidance.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
@@ -60,8 +61,8 @@ export interface CrisisGuardResult {
   isCrisis: boolean;
 }
 
-/** Who is at risk: the caller, or someone the caller is worried about. */
-export type CrisisSubject = 'self' | 'third_party';
+/** Who is at risk: the caller, someone the caller is worried about, or no one now (a grieving caller, crisis-who.ts). */
+export type CrisisSubject = 'self' | 'third_party' | 'bereaved';
 
 export interface CrisisDetectionResult {
   isCrisis: boolean;
@@ -95,6 +96,7 @@ const HIGH_DISTRESS_VOICE_EMOTIONS = [
 const MODERATE_DISTRESS_VOICE_EMOTIONS = ['anxious', 'sad', 'hurt', 'scared', 'overwhelmed'];
 
 const SEVERITY = { explicit: 0.9, passive: 0.75, implicit: 0.6, block: 0.85, crisis: 0.7 } as const;
+export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
 
 // ============================================================================
 // CRISIS DETECTION
@@ -228,9 +230,11 @@ function scoreText(text: string): TextScore {
   return { ...found, softSelf, sessionSeverity };
 }
 
-/**
- * Detect crisis indicators in user message
- */
+/** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
+export const sessionSeverityOf = (message: string): number =>
+  scoreText(normalize(message)).sessionSeverity;
+
+/** Detect crisis indicators in user message */
 export function detectCrisis(
   userMessage: string,
   voiceEmotion?: VoiceEmotionContext,
@@ -359,7 +363,8 @@ export function buildCrisisGuidance(crisis: CrisisDetectionResult): string {
   const header = `[CRITICAL - USER SAFETY]
 Crisis indicators detected (severity: ${(crisis.severity * 100).toFixed(0)}%).
 Indicators: ${crisis.indicators.join(', ')}`;
-
+  const who = whoGuidance(crisis, header); // THIRD_PARTY_SELF_HARM routes, never set when off
+  if (who) return who;
   if (crisis.subject === 'third_party') {
     return `${header}
 
@@ -492,9 +497,4 @@ export function guardPreResponse(
 // EXPORTS
 // ============================================================================
 
-export default {
-  detectCrisis,
-  guardPreResponse,
-  guardFromDetection,
-  buildCrisisGuidance,
-};
+export default { detectCrisis, guardPreResponse, guardFromDetection, buildCrisisGuidance };

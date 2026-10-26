@@ -1,43 +1,45 @@
 /**
- * A failed insights read never overwrites the stored insights.
+ * A failed insights read never costs the stored insights, and the app's read
+ * fails loudly instead of answering an empty list.
  *
- * Before: the persistence store's non-strict load answered null on a read
- * error, and the catch marked the user loaded ("don't retry"). The next
- * insight a persona recorded was persisted as the user's whole insight list,
- * replacing what the other personas had left for each other.
+ * Before: a write saved this process's whole cached list over the stored one, so
+ * a read that errored (or a process that had never read) replaced what the other
+ * personas had left for each other. Writes now apply one change to the list as
+ * stored at that moment (insight-store.ts); the Firestore emulator test
+ * src/api/__tests__/menu-team-insights.emulator.test.ts covers two processes.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createFakeEngagementFirestore,
   type FakeEngagementFirestore,
 } from '../../engagement/__tests__/fake-engagement-firestore.js';
-import type { PersistenceStore } from '../../persistence/index.js';
 
-const fake = vi.hoisted(() => ({ db: null as unknown, store: null as unknown }));
-
-vi.mock('@google-cloud/firestore', () => ({
-  Firestore: class {
-    constructor() {
-      return fake.db as object;
-    }
+const firestore: FakeEngagementFirestore = createFakeEngagementFirestore();
+type Ref = { get: () => Promise<unknown>; set: (d: object, o?: object) => Promise<void> };
+// One transaction at a time is enough here: read, then write what the change returned.
+const db = Object.assign(firestore.db, {
+  runTransaction: async (fn: (tx: object) => Promise<void>) => {
+    const writes: Array<() => Promise<void>> = [];
+    await fn({
+      get: (ref: Ref) => ref.get(),
+      set: (ref: Ref, data: object, opts?: object) => writes.push(() => ref.set(data, opts)),
+    });
+    for (const write of writes) await write();
   },
-}));
-
-// The real store, captured so a test can flush one user without waiting for the sync interval.
-vi.mock('../../persistence/index.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../persistence/index.js')>();
-  return {
-    ...actual,
-    createPersistenceStore: (config: Parameters<typeof actual.createPersistenceStore>[0]) =>
-      (fake.store = actual.createPersistenceStore(config)),
-  };
 });
+
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/firestore-utils.js')>()),
+  getFirestoreDb: () => db,
+}));
 
 import {
   addCrossPersonaInsight,
+  buildInsightBriefingForHandoff,
   getInsightsForPersona,
   loadInsights,
 } from '../cross-persona-insights.js';
+import { insightWritesSettled } from '../insight-store.js';
 
 let userSeq = 0;
 let user: string;
@@ -56,7 +58,7 @@ const storedInsight = () => ({
   oneTime: false,
 });
 
-const addInsight = (content: string): void => {
+const addInsight = async (content: string): Promise<void> => {
   addCrossPersonaInsight(user, {
     source: 'maya',
     target: 'jordan',
@@ -66,10 +68,7 @@ const addInsight = (content: string): void => {
     proactive: false,
     oneTime: false,
   });
-};
-
-const flush = async (): Promise<void> => {
-  await (fake.store as PersistenceStore<unknown> | null)?.flushUser(user);
+  await insightWritesSettled();
 };
 
 const storedIds = (): string[] =>
@@ -77,33 +76,32 @@ const storedIds = (): string[] =>
     (i) => (i.id === 'insight_stored' ? i.id : i.content)
   );
 
-const firestore: FakeEngagementFirestore = createFakeEngagementFirestore();
-fake.db = firestore.db;
-
 beforeEach(() => {
-  // Module state (loaded and failed markers, the insight cache) lives for the whole file.
+  // Module state (the per-process view and its read times) lives for the whole file.
   user = `user-${++userSeq}`;
   firestore.docs.clear();
   firestore.failReads.match = null;
+  // A signed-up user: their record exists (a call's session start makes it)
+  firestore.docs.set(`bogle_users/${user}`, { id: user });
 });
 
 describe('cross-persona insight reads', () => {
-  it('a read that throws leaves the stored insights unwritten', async () => {
-    const stored = { insights: [storedInsight()], lastScannedAt: 1 };
-    firestore.docs.set(docPath(), structuredClone(stored));
+  it('a read that throws never costs the stored insights', async () => {
+    firestore.docs.set(docPath(), { insights: [storedInsight()], lastScannedAt: 1 });
     firestore.failReads.match = new RegExp(`^${docPath()}$`);
 
     await loadInsights(user);
-    addInsight('new');
-    await flush();
+    await addInsight('while-down'); // its transaction can't read either: nothing written
+    expect(storedIds()).toEqual(['insight_stored']);
 
-    expect(firestore.docs.get(docPath())).toEqual(stored);
+    firestore.failReads.match = null;
+    await addInsight('after');
+    expect(storedIds()).toEqual(['insight_stored', 'after']);
   });
 
   it('a missing document still saves new insights', async () => {
     await loadInsights(user);
-    addInsight('new');
-    await flush();
+    await addInsight('new');
 
     expect(storedIds()).toEqual(['new']);
   });
@@ -115,26 +113,35 @@ describe('cross-persona insight reads', () => {
     expect(getInsightsForPersona(user, 'maya').map((i) => i.insight.id)).toEqual([
       'insight_stored',
     ]);
-    addInsight('new');
-    await flush();
+    await addInsight('new');
 
     expect(storedIds()).toEqual(['insight_stored', 'new']);
   });
 
-  it('a later read that succeeds allows saving again', async () => {
-    const stored = { insights: [storedInsight()], lastScannedAt: 1 };
-    firestore.docs.set(docPath(), structuredClone(stored));
+  it('a stored insight this process never read survives its write', async () => {
+    await loadInsights(user); // read while empty
+    firestore.docs.set(docPath(), { insights: [storedInsight()], lastScannedAt: 1 }); // another process
+
+    await addInsight('mine');
+
+    expect(storedIds()).toEqual(['insight_stored', 'mine']);
+  });
+
+  it('a stored document whose record is gone gets no write', async () => {
+    firestore.docs.set(docPath(), { insights: [storedInsight()], lastScannedAt: 1 });
+    firestore.docs.delete(`bogle_users/${user}`);
+
+    await loadInsights(user);
+    await addInsight('after-erasure-began');
+
+    expect(storedIds()).toEqual(['insight_stored']);
+  });
+
+  it("the app's read failing is an error, not an empty list", async () => {
     firestore.failReads.match = new RegExp(`^${docPath()}$`);
-    await loadInsights(user);
-    addInsight('lost');
-    await flush();
-    expect(firestore.docs.get(docPath())).toEqual(stored);
 
-    firestore.failReads.match = null;
-    await loadInsights(user);
-    addInsight('kept');
-    await flush();
-
-    expect(storedIds()).toEqual(['insight_stored', 'kept']);
+    await expect(buildInsightBriefingForHandoff(user, 'ferni', { fresh: true })).rejects.toThrow(
+      /DEADLINE_EXCEEDED/
+    );
   });
 });

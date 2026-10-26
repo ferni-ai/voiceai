@@ -17,6 +17,7 @@ Element.prototype.animate = vi.fn(() => ({
 
 await (await import('../../src/i18n/index.js')).initI18n();
 const { showTeamIntro, hideTeamIntro } = await import('../../src/ui/team-intro.ui.js');
+const { getPersona } = await import('../../src/config/personas.js');
 
 const LOCK_WORDS = /unlock|locked|streak|in a row|\bof 6\b|conversations? with Ferni/i;
 
@@ -45,5 +46,9 @@ describe('Meet Your Team (phone sheet "The team")', () => {
     expect(modal.querySelector('.team-intro__subtitle')?.textContent?.trim()).toBe(
       "Everyone's here from your first call. Ferni brings in whoever fits what you're working on."
     );
+    // Alex is Chief of Staff, as his persona config says, not "Communication & Relationships"
+    const alexRole = modal.querySelector('[data-member="alex-chen"] .team-member-card__role');
+    expect(alexRole?.textContent?.trim()).toBe(getPersona('alex-chen').subtitle);
+    expect(getPersona('alex-chen').subtitle).toBe('Communication Coach & Chief of Staff');
   });
 });

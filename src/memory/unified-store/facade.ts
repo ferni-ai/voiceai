@@ -10,9 +10,11 @@
  * @module memory/unified-store/facade
  */
 
+import { errorFields } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { v4 as uuidv4 } from 'uuid';
 import { embed } from '../embeddings.js';
+import { keepRemembered } from '../recall/forget-every-reader.js';
 import { cacheRecentWrite } from '../retrieval/index.js';
 import type {
   UnifiedMemoryStore,
@@ -170,11 +172,10 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
     let embedding = input.embedding || [];
 
     if (embedding.length === 0) {
-      try {
-        embedding = await embed(input.content);
-      } catch (error) {
-        log.warn({ error: String(error) }, 'Failed to generate embedding');
-      }
+      embedding = await embed(input.content).catch((error: unknown) => {
+        log.warn(errorFields(error), 'Failed to generate embedding');
+        return [];
+      });
     }
 
     // Build stored memory
@@ -297,7 +298,7 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
         queryEmbedding = await embed(query.query);
         debug.embeddingTimeMs = Date.now() - embedStart;
       } catch (error) {
-        log.warn({ error: String(error) }, 'Failed to generate query embedding');
+        log.warn(errorFields(error), 'Failed to generate query embedding');
       }
     }
 
@@ -357,10 +358,9 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
       }
     }
 
-    // Apply contextual boosting
-    let boostedResults = this.applyContextualBoosting(allResults, query);
+    const kept = await keepRemembered(query.userId, allResults); // FORGET_EVERY_READER
+    let boostedResults = this.applyContextualBoosting(kept, query);
 
-    // Sort by final score
     boostedResults.sort((a, b) => b.score - a.score);
 
     // Apply limit
@@ -382,7 +382,7 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
     log.debug(
       {
         userId: query.userId,
-        query: query.query.slice(0, 50),
+        queryLength: query.query.length,
         resultsCount: filteredResults.length,
         queryTimeMs: result.queryTimeMs,
       },

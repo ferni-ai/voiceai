@@ -149,8 +149,9 @@ describe('cleanup-handler: held caller under 18', { timeout: BUDGET_MS + 10_000 
     expect(seen[key]).toEqual([]);
   });
 
-  it('every per-user store purges the user, last (minor-care-purge.ts)', () => {
-    expect(seen.purge).toEqual([[run.userId]]);
+  it('every per-user store purges the user, last (minor-care-purge.ts), from the call start', () => {
+    expect(seen.purge).toEqual([[run.userId, run.sessionId, expect.any(Number)]]);
+    expect(Date.now() - (seen.purge[0][2] as number)).toBeGreaterThanOrEqual(60_000);
   });
 
   it('capability tracking is discarded instead', () => {

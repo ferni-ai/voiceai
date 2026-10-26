@@ -27,6 +27,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { writeHeld } from '../utils/minor-care.js';
 import type { MusicSessionContext, MusicStartReason } from './music-session-context.js';
 
 // Import enhanced systems
@@ -1110,13 +1111,8 @@ function generateTransitionOfType(
 }
 
 /**
- * Record user feedback after a transition
- *
- * Call this when you have signals about how the user responded.
- * The system uses this to improve future transitions.
- *
- * @param eventId - The event ID from getMusicTransition
- * @param feedback - Engagement signals
+ * Record how the user responded to a transition (eventId from getMusicTransition), to improve
+ * future transitions. The caller's words only shape labels; none are kept.
  */
 export function recordTransitionFeedback(
   eventId: string,
@@ -1134,8 +1130,10 @@ export function recordTransitionFeedback(
     emotionalTone?: 'heavy' | 'light' | 'neutral' | 'crisis';
     isLateNight?: boolean;
     musicContext?: MusicSessionContext;
+    sessionId?: string; // MINOR_CARE: a held caller's feedback is never learned or kept
   }
 ): void {
+  if (writeHeld(userId, context?.sessionId)) return; // MINOR_CARE: nothing recorded
   // Update user learning
   updateUserLearning(
     userId,
@@ -1159,7 +1157,6 @@ export function recordTransitionFeedback(
   analytics.recordEngagement({
     eventId,
     timeToUserSpeechMs: feedback.timeToUserSpeechMs,
-    firstUserUtterance: feedback.userResponse,
     emotionalResponse: feedback.wasPositive ? 'positive' : 'neutral',
     continuedTopic: true, // TODO: detect from user response
     sessionContinuedMs: feedback.continuedSession ? 300000 : undefined, // 5 min assumed
@@ -1167,10 +1164,13 @@ export function recordTransitionFeedback(
 
   // Store music memory if it helped
   if (feedback.wasPositive && feedback.confidence > 0.6 && context?.musicContext) {
-    const memoryStored = storeMusicHelpedMemory(userId, context.musicContext, transitionType, {
-      userResponse: feedback.userResponse,
-      continuedSession: feedback.continuedSession,
-    });
+    const memoryStored = storeMusicHelpedMemory(
+      userId,
+      context.musicContext,
+      transitionType,
+      { userResponse: feedback.userResponse, continuedSession: feedback.continuedSession },
+      context.sessionId
+    );
 
     // Trigger persistence for memory
     if (memoryStored) {

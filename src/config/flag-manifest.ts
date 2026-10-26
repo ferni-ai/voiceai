@@ -33,6 +33,7 @@ import {
 } from './flag-manifest-blocks.js';
 import { assembleManifest } from './flag-assembly.js';
 import * as FLAG_FILES from './flags/index.generated.js';
+import { assertGeneratedList } from './generated-guard.js';
 export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
 const LEGACY_FLAG_MANIFEST = {
@@ -81,6 +82,8 @@ const LEGACY_FLAG_MANIFEST = {
   COHORT_FLAGS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: once a call, invite one small caller-owned next step (agents/personas/commitment-invite.ts)
   COMMITMENT_INVITE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the after-call judge is the only commitment writer; readers show only its rows
+  COMMITMENT_SINGLE_WRITER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // adds what Ferni and the caller both know to the first recall note
   COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
   // The user's own "in memory" mark on a contact (services/contacts/in-memory.ts)
@@ -178,6 +181,8 @@ const LEGACY_FLAG_MANIFEST = {
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
   // which flight search backs searchFlights and getFlightPrice: amadeus (default) or ignav (travel/flight-provider.ts)
   FLIGHT_PROVIDER: { default: 'amadeus', owner: 'tools', kind: 'config' },
+  // on: "forget that" deletes the facts (and their copies) instead of hiding them (memory/recall/forget-delete.ts)
+  FORGET_DELETES: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
   FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
@@ -271,6 +276,8 @@ const LEGACY_FLAG_MANIFEST = {
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
   MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: the voice side of the app menu is on every agent from turn 1, outside the tool cap (menu-tools-pinned.ts)
+  MENU_TOOLS_PINNED: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: one consent record per phone, consent/{phoneHash} (services/messaging/consent.ts):
   // inbound STOP/START writes it, texts and calls read it, third parties need their own opt-in
   MESSAGING_PIPELINE: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -290,6 +297,11 @@ const LEGACY_FLAG_MANIFEST = {
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
   MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with MINOR_CARE): a signed-in account owner who says they're under 18 is held too (minor-care.ts)
+  MINOR_CARE_OWNERS: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with MINOR_CARE): a held caller's hold is shared (minor_care_holds/{uid}, no words), so the
+  // API server and workers keep no inbound text from them and send them no outreach (minor-care-shared-hold.ts)
+  MINOR_CARE_SHARED_HOLD: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -444,6 +456,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: "predict my week" loads Peter's game; a week-old prediction is asked about once a call
   WEEKLY_PREDICTION: { default: 'off', owner: 'tools', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: after a call, one wellbeing snapshot from what the caller said (wellbeing-tracking/after-call.ts)
+  WELLBEING_AFTER_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_FACTS_IN_CALL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -454,5 +468,7 @@ const LEGACY_FLAG_MANIFEST = {
   WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 // New flags go in src/config/flags/<NAME>.ts: pnpm flags:new (flag-assembly.ts sorts the keys).
+// An empty barrel would drop every flags/<NAME>.ts flag to unknown without a sound.
+assertGeneratedList('flags/index.generated.ts', Object.keys(FLAG_FILES).length, 1);
 export const FLAG_MANIFEST = assembleManifest(LEGACY_FLAG_MANIFEST, FLAG_FILES);
 export type FlagName = keyof typeof FLAG_MANIFEST;
