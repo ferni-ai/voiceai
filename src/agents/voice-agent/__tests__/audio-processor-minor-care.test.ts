@@ -73,6 +73,23 @@ describe('MINOR_CARE: voice samples from the audio processor', () => {
     expect(recordVoiceSample).not.toHaveBeenCalled();
   });
 
+  it('records nothing for another session of a user held in this process', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const user = 'ApMcHeldTwice7xQ2pLk9Vb4Hc8Zt';
+    bindSessionUser('ap-held-a', user);
+    expect(heldAfter('ap-held-a', "I'm 15.", { userId: user })).toBe(true);
+    bindSessionUser('ap-held-b', user); // this session itself never said an age
+    await utterance('ap-held-b', user);
+    expect(recordVoiceSample).not.toHaveBeenCalled();
+  });
+
+  it('records nothing for a shared placeholder id (one bucket for every caller without an id)', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    bindSessionUser('ap-anon', 'anonymous');
+    await utterance('ap-anon', 'anonymous');
+    expect(recordVoiceSample).not.toHaveBeenCalled();
+  });
+
   it('records as before with MINOR_CARE off', async () => {
     vi.stubEnv('MINOR_CARE', 'off');
     const user = 'ApMcFlagsOff7xQ2pLk9Vb4Hc8Zt';
