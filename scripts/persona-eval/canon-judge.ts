@@ -2,7 +2,7 @@
  * Does a persona play its script, or write a new one? Scores every life claim
  * a persona makes against its bible, and when and why it talks about itself.
  * Manual tool: calls Vertex AI (Gemini judge, JUDGE_MODEL, default
- * gemini-3.1-pro-preview).
+ * flash; pro for Pro).
  *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/persona-eval/canon-judge.ts \
  *     <run-dir> [<run-dir> ...] [--persona ferni] [--out summary.json]
@@ -30,6 +30,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { generate } from '../first-call-eval/vertex.js';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 export type Kind = 'canon' | 'texture' | 'elaboration' | 'invented' | 'contradiction';
 export interface Claim {
@@ -156,7 +157,7 @@ export function parseVerdict(text: string, replies: number): Verdict {
 }
 
 async function judge(canon: string, earlier: Call[], call: Call): Promise<Verdict> {
-  const model = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+  const model = judgeModel();
   for (let attempt = 0; attempt < 6; attempt++) {
     if (attempt) await new Promise((r) => setTimeout(r, 3000 * attempt));
     const text = await generate({

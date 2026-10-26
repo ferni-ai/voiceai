@@ -186,6 +186,7 @@ describe('what is copied', () => {
         "bth_production_events[userId]",
         "feature_checkins[userId]",
         "relationship_memories[userId]",
+        "answer_cards[userId]",
         "share_links[ownerId]",
         "analytics_sessions[odId]",
         "context_injection_outcomes[injection.userId]",

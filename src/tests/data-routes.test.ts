@@ -369,6 +369,21 @@ describe('Data Routes', () => {
       expect(mockExportService.deleteAllData).not.toHaveBeenCalled();
     });
 
+    it('should not report success when a data step left data behind', async () => {
+      mockValidateBody.mockResolvedValue({
+        confirmDelete: true,
+      });
+      mockExportService.deleteAllData.mockResolvedValue({ answer_cards: false });
+
+      const req = createMockRequest({ method: 'DELETE', url: '/api/export/all' });
+      const { res, getWrittenData } = createMockResponse();
+      const parsedUrl = new URL('/api/export/all?userId=test-user', 'http://localhost:3002');
+
+      await handleDeleteAllData(req, res, parsedUrl);
+
+      expect(getWrittenData().status).toBe(500);
+    });
+
     it('should handle delete errors', async () => {
       mockValidateBody.mockResolvedValue({
         confirmDelete: true,

@@ -7,9 +7,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Every log call the module makes, to prove the words never reach a log line.
 const logged = vi.hoisted(() => [] as unknown[][]);
+// A log stage whose info() throws, to prove a failing logger can't crash the server.
+const throwOnStage = vi.hoisted(() => ({ stage: '' }));
 vi.mock('../../../utils/safe-logger.js', () => ({
   createLogger: () => ({
-    info: (...args: unknown[]) => logged.push(args),
+    info: (...args: unknown[]) => {
+      if ((args[0] as { stage?: string } | undefined)?.stage === throwOnStage.stage) {
+        throw new Error('logger down');
+      }
+      return logged.push(args);
+    },
     warn: (...args: unknown[]) => logged.push(args),
     error: (...args: unknown[]) => logged.push(args),
     debug: (...args: unknown[]) => logged.push(args),
@@ -199,6 +206,79 @@ describe('what the screen logs and how long it waits', () => {
     });
     expect(logged.length).toBeGreaterThan(0);
     expect(JSON.stringify(logged)).not.toContain('bridge');
+  });
+
+  it('in shadow, logs whether the text was HELP, bare or not, but never changes the reply', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+    logged.length = 0;
+    const crisisRead = async () => ({ crisis: true, pattern: true, risk: 'imminent' as const });
+    expect(await smsCrisisReply('HELP', crisisRead)).toBeNull();
+    expect(await smsCrisisReply('help?', crisisRead)).toBeNull();
+    expect(await smsCrisisReply('see you at 6', read(false))).toBeNull();
+    await vi.waitFor(() => expect(logged).toHaveLength(6));
+    const fields = logged.map((args) => args[0] as Record<string, unknown>);
+    const byStage = (stage: string) =>
+      fields.filter((f) => f.stage === stage).map((f) => [f.mode, f.help, f.bareHelp]);
+    const expected = [
+      ['shadow', true, true],
+      ['shadow', true, false],
+      ['shadow', false, false],
+    ];
+    // The pattern line goes before the reply, the classifier's line beside it.
+    expect(byStage('pattern')).toEqual(expected);
+    expect(byStage('classifier')).toEqual(expected);
+    // Each text's two lines share one id, and no two texts share an id, so a
+    // missing classifier line is countable per text.
+    const stagesById = new Map<unknown, unknown[]>();
+    for (const f of fields) stagesById.set(f.screenId, [...(stagesById.get(f.screenId) ?? []), f.stage]);
+    expect(stagesById.size).toBe(3);
+    for (const [id, stages] of stagesById) {
+      expect(typeof id).toBe('string');
+      expect([...stages].sort()).toEqual(['classifier', 'pattern']);
+    }
+  });
+
+  it('in shadow, a hung classifier never holds the reply; on, it waits for the read', async () => {
+    const hung = (): Promise<SmsCrisisRead> => new Promise(() => {});
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+    let done = false;
+    void smsCrisisReply('STOP', hung).then(() => (done = true));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(done).toBe(true);
+
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    done = false;
+    void smsCrisisReply('i want to die tonight', hung).then(() => (done = true));
+    await new Promise((r) => {
+      setTimeout(r, 20);
+    });
+    expect(done).toBe(false);
+  });
+
+  it('in shadow, a logger that throws on the classifier line never leaves an unhandled rejection', async () => {
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    throwOnStage.stage = 'classifier';
+    let classifierRan = false;
+    try {
+      const crisisRead = async () => {
+        classifierRan = true;
+        return { crisis: true, pattern: false, risk: 'imminent' as const };
+      };
+      expect(await smsCrisisReply('the pills are lined up', crisisRead)).toBeNull();
+      await vi.waitFor(() => expect(classifierRan).toBe(true));
+      // Unhandled rejections are reported after the microtask queue drains.
+      await new Promise((r) => {
+        setTimeout(r, 20);
+      });
+      expect(unhandled).toEqual([]);
+    } finally {
+      throwOnStage.stage = '';
+      process.off('unhandledRejection', onUnhandled);
+    }
   });
 
   it('gives up on a hung classifier after 4 s, so the reply is never held longer', async () => {

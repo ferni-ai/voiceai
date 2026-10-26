@@ -449,12 +449,19 @@ describe('GDPR Routes API', () => {
       expect(JSON.stringify(logged.warn.mock.calls)).not.toContain('someone@example.com');
     });
 
+    it('keeps the sign-in when a data step reports it left data behind', async () => {
+      deleteAllData.mockResolvedValue({ profile: true, answer_cards: false });
+      const res = await deleteAccount();
+      expect(res._statusCode).toBe(500);
+      expect(deleteFirebaseUser).not.toHaveBeenCalled();
+    });
+
     it('keeps the sign-in and says so when the data could not be erased', async () => {
       deleteAllData.mockRejectedValue(new Error('User record not fully erased'));
       const res = await deleteAccount();
       expect(res._statusCode).toBe(500);
       expect(deleteFirebaseUser).not.toHaveBeenCalled();
-      expect(JSON.parse(res._data).error).toBe('Failed to delete account. Please contact support.');
+      expect(JSON.parse(res._data).error).toBe('Failed to delete account. Your sign-in is still open, so try again.');
     });
   });
 });

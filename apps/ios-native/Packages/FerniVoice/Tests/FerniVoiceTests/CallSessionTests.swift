@@ -465,6 +465,49 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.avatar.personaID, "ferni")
     }
 
+    // MARK: - Critic M6: what counts as a good call
+
+    /// At least two minutes live, and the person hung up: that's a good call.
+    func testALongCallYouEndIsAGoodCall() async {
+        let session = makeSession()
+        let clock = TestClock()
+        session.now = { clock.now }
+        session.start()
+        await until(session.phase == .live)
+        clock.advance(by: .seconds(121))
+        await session.end()
+        XCTAssertTrue(session.lastCallWasGood)
+    }
+
+    func testAShortCallIsNot() async {
+        let session = makeSession()
+        let clock = TestClock()
+        session.now = { clock.now }
+        session.start()
+        await until(session.phase == .live)
+        clock.advance(by: .seconds(90))
+        await session.end()
+        XCTAssertFalse(session.lastCallWasGood)
+    }
+
+    /// Ferni hanging up isn't the person ending it, however long it was.
+    func testACallFerniEndsIsNot() async {
+        let session = makeSession()
+        let clock = TestClock()
+        session.now = { clock.now }
+        session.start()
+        await until(session.phase == .live)
+        clock.advance(by: .seconds(300))
+        rooms.made[0].send(.agentLeft)
+        await until(session.phase == .ended)
+        XCTAssertFalse(session.lastCallWasGood)
+    }
+
+    final class TestClock: @unchecked Sendable {
+        var now = ContinuousClock.now
+        func advance(by d: Duration) { now = now.advanced(by: d) }
+    }
+
     /// Critic C2: iOS often ends an interruption without "should resume" (Siri,
     /// an alarm, a declined call). A call the person is still in comes back anyway.
     func testAnInterruptionThatEndsWithoutShouldResumeStillBringsTheMicBack() async {

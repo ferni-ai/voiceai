@@ -262,7 +262,7 @@ describe('Multi-Outreach Tool', () => {
         mockMom.phone,
         'Hey Mom!',
         'ferni',
-        expect.objectContaining({ fallbackToTwilioVoice: true })
+        expect.objectContaining({ askedFor: true }) // a call they confirmed: a pause doesn't stop it
       );
       expect(result).toContain('Mom');
     });
