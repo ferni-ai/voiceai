@@ -35,6 +35,7 @@ import { scrubHeldStores } from '../../services/trust-systems/reload-before-save
 import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
+import { clearOurSongsUser } from '../../services/trust-systems/index.js';
 import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
 import {
@@ -118,6 +119,8 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     ['relationship arc', clearArcCache],
     // quotes, people, avoided topics: the builder feeds them every turn; a later call's end saves them
     ['deep understanding', clearDeepUnderstandingUser],
+    // songs that played during their moments (memory only); a later call would speak them back
+    ['our songs', clearOurSongsUser],
   ];
   for (const [name, purge] of purges) {
     try {
