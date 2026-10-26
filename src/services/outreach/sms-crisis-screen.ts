@@ -115,7 +115,11 @@ async function screenSms(
     outcome = await read(text);
   } catch (error) {
     const pattern = detectCrisis(text).isCrisis;
-    log.warn({ error: String(error), pattern }, 'SMS crisis read failed; pattern guard alone');
+    safeLog(
+      'warn',
+      { error: String(error), pattern },
+      'SMS crisis read failed; pattern guard alone'
+    );
     outcome = { crisis: pattern, pattern, risk: null };
   }
   // A bare stop or start keyword ("STOP", "opt out", "START") read as crisis by
@@ -130,6 +134,19 @@ function isKeywordOnly(text: string): boolean {
   return isExactKeyword(text) && !HELP_WORDS.has(normalizeSms(text));
 }
 
+/**
+ * Every log line in this file goes through here. A log failure must never change
+ * what the person gets back, in any mode: inside the request a throw becomes a
+ * 500 (no 988, no STOP confirmation), and in shadow's background read a rejection.
+ */
+function safeLog(level: 'info' | 'warn', fields: Record<string, unknown>, message: string): void {
+  try {
+    log[level](fields, message);
+  } catch {
+    // Nothing to do: the reply goes out as it would without the line.
+  }
+}
+
 /** One line per read, with verdicts and booleans only, never the words. */
 function logScreen(
   mode: 'shadow' | 'on',
@@ -140,26 +157,21 @@ function logScreen(
 ): void {
   // Twilio may answer HELP and INFO itself. `help` (any punctuation) and
   // `bareHelp` (the word alone) tell the shadow logs whether they reach us.
-  // A log failure must never change what the person gets back, in any mode:
-  // the pattern line runs inside the request, where a throw becomes a 500.
-  try {
-    log.info(
-      {
-        mode,
-        stage,
-        screenId,
-        crisis: outcome.crisis,
-        pattern: outcome.pattern,
-        risk: outcome.risk,
-        keyword: isKeywordOnly(text),
-        help: HELP_WORDS.has(normalizeSms(text)),
-        bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),
-      },
-      'SMS_CRISIS_SCREEN'
-    );
-  } catch {
-    // Nothing to do: the reply goes out as it would with the screen off.
-  }
+  safeLog(
+    'info',
+    {
+      mode,
+      stage,
+      screenId,
+      crisis: outcome.crisis,
+      pattern: outcome.pattern,
+      risk: outcome.risk,
+      keyword: isKeywordOnly(text),
+      help: HELP_WORDS.has(normalizeSms(text)),
+      bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),
+    },
+    'SMS_CRISIS_SCREEN'
+  );
 }
 
 /**

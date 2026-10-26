@@ -27,16 +27,25 @@ vi.mock('../../services/messaging/holder-verification.js', () => ({
 }));
 const modelSays = vi.hoisted(() => ({ risk: 'none' }));
 const modelCalls = vi.hoisted(() => vi.fn());
-vi.mock('../../services/safety/crisis-classifier.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../services/safety/crisis-classifier.js')>()),
-  createGeminiCrisisGenerate: () => async () => {
-    modelCalls();
-    return `{"risk":"${modelSays.risk}"}`;
-  },
-}));
+// The classifier read can be made to reject, to reach the screen's fallback path.
+const readRejects = vi.hoisted(() => ({ on: false }));
+vi.mock('../../services/safety/crisis-classifier.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../services/safety/crisis-classifier.js')>();
+  return {
+    ...real,
+    classifyCrisis: async (...args: Parameters<typeof real.classifyCrisis>) => {
+      if (readRejects.on) throw new Error('classifier down');
+      return real.classifyCrisis(...args);
+    },
+    createGeminiCrisisGenerate: () => async () => {
+      modelCalls();
+      return `{"risk":"${modelSays.risk}"}`;
+    },
+  };
+});
 
-// The screen's own log lines can be made to throw, to prove a failing logger
-// never changes what goes back to the phone.
+// The screen's own logger (every level) can be made to throw, to prove a
+// failing logger never changes what goes back to the phone.
 const screenLogThrows = vi.hoisted(() => ({ on: false }));
 vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../utils/safe-logger.js')>();
@@ -44,14 +53,14 @@ vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
     ...real,
     createLogger: (...args: Parameters<typeof real.createLogger>) => {
       const logger = real.createLogger(...args);
+      const isScreen = (args[0] as { module?: string } | undefined)?.module === 'SmsCrisisScreen';
+      if (!isScreen) return logger;
       return new Proxy(logger, {
         get(target, prop, receiver) {
           const value = Reflect.get(target, prop, receiver) as unknown;
-          if (prop !== 'info' || typeof value !== 'function') return value;
+          if (typeof value !== 'function') return value;
           return (...logArgs: unknown[]) => {
-            if (screenLogThrows.on && logArgs[1] === 'SMS_CRISIS_SCREEN') {
-              throw new Error('logger down');
-            }
+            if (screenLogThrows.on) throw new Error('logger down');
             return (value as (...a: unknown[]) => unknown).apply(target, logArgs);
           };
         },
@@ -92,6 +101,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   screenLogThrows.on = false;
+  readRejects.on = false;
 });
 
 describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
@@ -136,7 +146,8 @@ describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
   });
 
   it('a logger that throws on every screen line never changes the reply: shadow is byte-identical to off', async () => {
-    const STOP_TWIML = '<?xml version="1.0"?><Response><Message>You are unsubscribed</Message></Response>';
+    const STOP_TWIML =
+      '<?xml version="1.0"?><Response><Message>You are unsubscribed</Message></Response>';
     const texts = ['STOP', 'HELP', 'I want to kill myself', 'running late, see you at 6'];
     const replies = async (mode: string) => {
       vi.stubEnv('SMS_CRISIS_SCREEN', mode);
@@ -160,6 +171,39 @@ describe('POST sms-inbound with SMS_CRISIS_SCREEN', () => {
     expect(off[0]).toBe(STOP_TWIML);
     // Let the shadow reads finish while the logger is still throwing.
     await vi.waitFor(() => expect(modelCalls).toHaveBeenCalledTimes(texts.length));
+  });
+
+  it('on: a rejected read plus a logger throwing on every level still sends 988, and STOP is confirmed and recorded once', async () => {
+    const STOP_TWIML =
+      '<?xml version="1.0"?><Response><Message>You are unsubscribed</Message></Response>';
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    screenLogThrows.on = true;
+    readRejects.on = true;
+    expect(await text('I want to kill myself')).toContain(CRISIS_IN_TWIML);
+    recordInboundSmsConsent.mockClear();
+    handleInboundSMSWebhook.mockResolvedValueOnce({ success: true, twiml: STOP_TWIML });
+    expect(await text('STOP')).toBe(STOP_TWIML);
+    expect(recordInboundSmsConsent).toHaveBeenCalledExactlyOnceWith('+18015550177', 'STOP');
+  });
+
+  it('shadow: a rejected read plus a logger throwing on every level changes no reply and leaves no unhandled rejection', async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      vi.stubEnv('SMS_CRISIS_SCREEN', 'off');
+      const off = await text('I want to kill myself');
+      vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+      screenLogThrows.on = true;
+      readRejects.on = true;
+      expect(await text('I want to kill myself')).toBe(off);
+      await new Promise((r) => {
+        setTimeout(r, 50);
+      });
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
   });
 
   it('on: a logger that throws still sends 988 to a crisis text', async () => {
