@@ -20,6 +20,7 @@ import {
 } from '../../tools/domains/telephony/compliance.js';
 import { callOpeningDialOptions } from '../../config/call-opening-flag.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
+import { noteDialled } from './dial-marker.js';
 import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { assertNotOptedOut } from './first-dial-opt-out.js';
@@ -411,7 +412,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
     try {
       const { SipClient } = await import('livekit-server-sdk');
-
       const sipClient = new SipClient(
         this.config.livekitUrl,
         this.config.livekitApiKey,
@@ -431,7 +431,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
           ...callOpeningDialOptions(), // CALL_OPENING_AMD: ring until voicemail picks up
         }
       );
-
+      noteDialled(request); // it rings now: a later throw never re-arms a held call (dial-marker.ts)
       log.info(
         { callId, sipParticipantId: sipParticipant.participantId, roomName },
         '✅ LiveKit SIP call initiated'
@@ -506,7 +506,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       const error = await response.text();
       throw new Error(`Twilio error: ${response.status} - ${error}`);
     }
-
+    noteDialled(request); // Twilio accepted the call: it rings now (dial-marker.ts)
     const data = (await response.json()) as { sid: string };
 
     // Track the call so the webhook handler can link Twilio CallSid to our context

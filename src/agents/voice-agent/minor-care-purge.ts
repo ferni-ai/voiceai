@@ -10,7 +10,11 @@
 import { clearHeldMarkovUser as clearMarkov } from '../../intelligence/predictive/markov-sequence-predictor.js';
 import { clearHeldTimeSeriesUser as clearTimeSeries } from '../../intelligence/predictive/time-series-forecaster.js';
 import { clearHeldReinforcementUser as clearReinforcement } from '../../intelligence/predictive/reinforcement-learner.js';
-import { purgeMusicLearning } from '../../audio/music-learning-persistence.js';
+import {
+  purgeMusicLearning,
+  setMusicHeldWindow,
+  withoutHeldMusicMemories,
+} from '../../audio/music-learning-persistence.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
@@ -22,11 +26,19 @@ import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js'
 import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.js';
-import { noteHeldWindow } from '../../services/trust-systems/held-window.js';
-import { scrubHeldStores } from '../../services/trust-systems/reload-before-save.js';
+import {
+  noteHeldWindow,
+  recordedWhileHeld,
+  scrubHeldDoc,
+} from '../../services/trust-systems/held-window.js';
+import {
+  addHeldScrub,
+  storeAndScrubHeldWindow,
+} from '../../services/trust-systems/reload-before-save.js';
 import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
+import { clearOurSongsUser } from '../../services/trust-systems/index.js';
 import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
 import {
@@ -52,6 +64,11 @@ export function shareHold(userId: string, sessionId?: string): void {
   if (phoneId) void recordSharedHold(phoneId);
 }
 setOnUserHeld(shareHold);
+// Music memories made during a purged held call are dropped on every read and save, as the
+// timer-flushed trust stores' are (held-window.ts holds the windows).
+setMusicHeldWindow(recordedWhileHeld);
+// ...and scrubbed from the stored doc with them, so a failed music scrub is retried too
+addHeldScrub((id) => scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories));
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -61,15 +78,15 @@ setOnUserHeld(shareHold);
  *
  * What the timer-flushed stores (voice prosody, celebration momentum) already stored since the
  * held call began (`startedAt`, or when its session was bound to the user, whichever is earlier)
- * is the held caller's too: noted as a held window, dropped on every later read, and scrubbed from
- * the stored docs now (held-window.ts).
+ * is the held caller's too: noted as a held window (in memory and in minor_care_holds), dropped on
+ * every later read in any process, and scrubbed from the stored docs now (held-window.ts).
  */
 export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: number): void {
   if (sharedId(userId)) return log.warn('MINOR_CARE purge skipped: a shared or placeholder id');
   shareHold(userId, sessionId); // held for IDLE_MS from the call's end, in every process
   const since = Math.min(startedAt ?? Infinity, sessionBoundAt(sessionId) ?? Infinity);
-  if (Number.isFinite(since)) noteHeldWindow(userId, since);
-  else log.warn('MINOR_CARE purge: no session start, so stored entries were not scrubbed');
+  const window = Number.isFinite(since) ? noteHeldWindow(userId, since) : undefined;
+  if (!window) log.warn('MINOR_CARE purge: no session start, so stored entries were not scrubbed');
   const ownerSession = ownerSessionFor(userId);
   if (ownerSession)
     log.info({ ownerSession }, 'MINOR_CARE purged while an owner session was live; it will reload');
@@ -95,13 +112,16 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     // boundaries, growth, inside jokes, small wins, life events…: saved by a later call's cleanup
     ['trust systems', clearTrustSystemsUser],
     // what voice prosody and momentum flushed before the age statement (held-window.ts)
-    ['held-window scrub', (id) => void scrubHeldStores(id)],
+    // ...and the music memories the 15 s timer stored, and any caller's words (addHeldScrub, above)
+    ['held-window scrub', (id) => void (window && storeAndScrubHeldWindow(id, window))],
     // topics they mentioned, buffered with a debounced save; a later call's cleanup flushes it
     ['personality resonance', clearResonanceUser],
     // the relationship arc (first words, key moments), cached 5 min and saved by a later call
     ['relationship arc', clearArcCache],
     // quotes, people, avoided topics: the builder feeds them every turn; a later call's end saves them
     ['deep understanding', clearDeepUnderstandingUser],
+    // songs that played during their moments (memory only); a later call would speak them back
+    ['our songs', clearOurSongsUser],
   ];
   for (const [name, purge] of purges) {
     try {

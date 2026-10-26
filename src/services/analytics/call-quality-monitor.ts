@@ -20,6 +20,7 @@ import { logCallStartStages } from './call-start-stages.js';
 import { emitCallEnd, type CallSummary } from './bq-call-events.js';
 import { gateSmallSamples } from './call-quality-sample.js';
 import * as firstResponse from './call-first-response.js';
+import { AlertIncidents, deliverAlert } from './call-quality-incidents.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -39,7 +40,7 @@ export interface CallQualityConfig {
 
   qualityCheckIntervalMs: number; // how often quality is checked
 
-  // Alert cooldown
+  // Least time between two sends of one alert; one per incident (call-quality-incidents.ts)
   alertCooldownMs: number;
 
   enableSlack: boolean;
@@ -55,7 +56,7 @@ const DEFAULT_CONFIG: CallQualityConfig = {
   minCallsForRateAlerts: 5,
 
   qualityCheckIntervalMs: 60_000, // Every minute
-  alertCooldownMs: 300_000, // 5 minute cooldown
+  alertCooldownMs: 300_000, // 5 minutes
 
   enableSlack: true,
 };
@@ -169,7 +170,7 @@ let config = { ...DEFAULT_CONFIG };
 const sessions = new Map<string, CallSession>();
 const completedSessions: CallSession[] = [];
 const MAX_COMPLETED_SESSIONS = 10000;
-const lastAlerts = new Map<string, number>();
+const incidents = new AlertIncidents();
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
@@ -551,12 +552,6 @@ function calculateQualityScore(factors: {
 // ALERTING
 // ============================================================================
 
-function shouldSendAlert(alertType: string): boolean {
-  const lastAlert = lastAlerts.get(alertType);
-  if (!lastAlert) return true;
-  return Date.now() - lastAlert > config.alertCooldownMs;
-}
-
 async function sendQualityAlert(
   severity: 'warning' | 'critical',
   title: string,
@@ -565,34 +560,25 @@ async function sendQualityAlert(
 ): Promise<void> {
   const alertKey = `${severity}:${title}`;
 
-  if (!shouldSendAlert(alertKey)) {
-    log.debug({ alertKey }, 'Quality alert rate-limited');
-    return;
-  }
-
-  lastAlerts.set(alertKey, Date.now());
+  if (!incidents.shouldSend(alertKey, Date.now(), config.alertCooldownMs)) return; // sent for this incident
 
   const emoji = severity === 'critical' ? '🚨' : '⚠️';
   log.warn({ severity, title, metrics }, `${emoji} ${title}`);
 
-  if (config.enableSlack && slackService) {
-    try {
-      await slackService.notify({
-        type: severity === 'critical' ? 'incident_opened' : 'health_degraded',
-        title: `📞 ${title}`,
-        message,
-        severity: severity === 'critical' ? 'error' : 'warning',
-        metadata: metrics as unknown as Record<string, unknown>,
-      });
-    } catch (error) {
-      log.warn({ error: String(error) }, 'Failed to send Slack alert');
-    }
-  }
+  const result = await deliverAlert(config.enableSlack ? slackService : null, {
+    type: severity === 'critical' ? 'incident_opened' : 'health_degraded',
+    title: `📞 ${title}`,
+    message,
+    severity: severity === 'critical' ? 'error' : 'warning',
+    metadata: metrics as unknown as Record<string, unknown>,
+  });
+  incidents.record(alertKey, Date.now(), result, log);
 }
 
 export async function checkQualityAlerts(): Promise<void> {
   const metrics = calculateMetrics();
   const gated = gateSmallSamples(metrics, config.minCallsForRateAlerts);
+  incidents.beginCheck();
 
   // Feed to predictive alerting
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
@@ -672,6 +658,7 @@ export async function checkQualityAlerts(): Promise<void> {
     );
   }
 
+  incidents.endCheck();
   log.debug(
     {
       qualityScore: metrics.qualityScore,
@@ -748,7 +735,7 @@ export function resetCallQualityStateForTests(): void {
   stopCallQualityMonitor();
   sessions.clear();
   completedSessions.length = 0;
-  lastAlerts.clear();
+  incidents.reset();
   config = { ...DEFAULT_CONFIG };
   slackService = null;
 }

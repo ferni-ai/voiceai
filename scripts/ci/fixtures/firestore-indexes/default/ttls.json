@@ -127,6 +127,48 @@
   },
   {
     "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/events/fields/expireAt",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
       "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
     },
     "name": "projects/johnb-2025/databases/(default)/collectionGroups/forecast_archive/fields/expires_at",
@@ -148,6 +190,48 @@
       "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
     },
     "name": "projects/johnb-2025/databases/(default)/collectionGroups/insights/fields/ttl_date",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expireAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expireAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ],
+      "usesAncestorConfig": true
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/minor_care_holds/fields/expireAt",
     "ttlConfig": {
       "state": "ACTIVE"
     }

@@ -119,6 +119,8 @@ const { createCallOnBehalfTool } = await import('../call-on-behalf.js');
 const { callConfirm } = await import('../call-confirm.js');
 const { isFamilyCallee, isCallNowOverrideOn } =
   await import('../../../../services/outreach/call-now-override.js');
+const { getOnBehalfCallOrchestrator } =
+  await import('../../../../services/outreach/on-behalf-call-orchestrator.js');
 
 const AT_8_43_DENVER = new Date('2026-10-24T14:43:00Z'); // the prod call: 10:43 AM in New York
 const AT_11_30_PM_DENVER = new Date('2026-10-25T05:30:00Z');
@@ -151,6 +153,15 @@ afterEach(() => {
 describe('call now, before 9 AM where Mom is', () => {
   it('flag off: held as before, whatever the caller asked', async () => {
     vi.stubEnv('CALL_NOW_OWNER_OVERRIDE', 'off');
+    const reply = await call('my mom', { callNow: true });
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    expect(held()).toHaveLength(1);
+    expect(reply).toMatch(/^Nothing was dialed yet: /);
+  });
+
+  it('flag unset: held as before (off by default, not only when set to off)', async () => {
+    vi.stubEnv('CALL_NOW_OWNER_OVERRIDE', undefined);
+    expect(process.env.CALL_NOW_OWNER_OVERRIDE).toBeUndefined();
     const reply = await call('my mom', { callNow: true });
     expect(createSipParticipant).not.toHaveBeenCalled();
     expect(held()).toHaveLength(1);
@@ -293,6 +304,29 @@ describe('call now replaces exactly one held call, and never rings twice', () =>
     expect(status('u1', 'same')).toBe('superseded');
     expect(status('u1', 'mom-cell')).toBe('pending');
     expect(status('u2', 'other-requester')).toBe('pending');
+  });
+
+  it('the dial itself fails: nothing rang, so the held call goes back to pending', async () => {
+    heldRow('u1', 'same', '+13035550100');
+    createSipParticipant.mockRejectedValueOnce(new Error('SIP 503'));
+    const reply = await call('my mom', { callNow: true });
+    expect(createSipParticipant).toHaveBeenCalledTimes(1);
+    expect(reply).toMatchObject({ success: false });
+    expect(status('u1', 'same')).toBe('pending'); // it still rings at its hour
+  });
+
+  it('a step after a successful dial throws: the call rang, so the held call is not put back', async () => {
+    heldRow('u1', 'same', '+13035550100');
+    expect(status('u1', 'same')).toBe('pending');
+    // A real post-dial step of the orchestrator failing: its 'call-initiated' event, after the dial.
+    getOnBehalfCallOrchestrator().once('call-initiated', () => {
+      throw new Error('listener failed after the dial');
+    });
+    const reply = await call('my mom', { callNow: true });
+    expect(createSipParticipant).toHaveBeenCalledTimes(1); // it rang
+    expect(reply).toMatchObject({ success: false });
+    expect(status('u1', 'same')).toBe('superseded'); // never pending again: it can't ring twice
+    expect(held()).toHaveLength(0);
   });
 
   it('the job claims the held call between the read and the dial: exactly one ring, ours not dialed', async () => {

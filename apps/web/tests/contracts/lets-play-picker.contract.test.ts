@@ -8,8 +8,9 @@
  * speech output are stand-ins.
  *
  * Before: the picker's ids were only checked by hand against the engine, the
- * "Starting..." toast showed before the agent answered, and a failed start was
- * spoken as "try saying let's play 20-questions".
+ * "Starting..." toast showed before the agent answered, a failed start was
+ * spoken as "try saying let's play 20-questions", and an unknown text game id
+ * was acked as started.
  */
 import { initializeLogger } from '@livekit/agents';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -182,6 +183,36 @@ describe("Let's Play: a game that won't start", () => {
 
     handleDataMessage(JSON.parse(JSON.stringify(agent.acks[0])) as Message);
     expect(mocks.toast.success).not.toHaveBeenCalled();
+    expect(mocks.toast.error).toHaveBeenCalledTimes(1);
+    agent.cleanup();
+  }, 20_000);
+
+  it('a text game id the agent does not know is a failed start, and the app says so', async () => {
+    const agent = call('call-unknown-text');
+    agent.deliver(
+      new TextEncoder().encode(
+        JSON.stringify({ type: 'text_game_start_request', gameType: 'no-such-game' })
+      )
+    );
+    await vi.waitFor(() => expect(agent.acks).toHaveLength(1), WAIT);
+    expect(agent.acks[0]).toMatchObject({ success: false, reason: 'unknown_game' });
+    expect(agent.acks[0]).not.toHaveProperty('requestId'); // this request sent none
+
+    handleDataMessage(JSON.parse(JSON.stringify(agent.acks[0])) as Message);
+    expect(mocks.toast.success).not.toHaveBeenCalled();
+    expect(mocks.toast.error).toHaveBeenCalledTimes(1);
+    agent.cleanup();
+  }, 20_000);
+
+  it('a refused start says why, and the app says it did not start', async () => {
+    const sessionId = 'call-refused';
+    const engine = games.getSessionGameEngine(sessionId, 'ferni');
+    vi.spyOn(engine, 'startGame').mockRejectedValueOnce(new Error('engine down'));
+    const agent = call(sessionId);
+    agent.deliver(await tap('name-that-tune'));
+    await vi.waitFor(() => expect(agent.acks).toHaveLength(1), WAIT);
+    expect(agent.acks[0]).toMatchObject({ success: false, reason: 'start_failed' });
+    handleDataMessage(JSON.parse(JSON.stringify(agent.acks[0])) as Message);
     expect(mocks.toast.error).toHaveBeenCalledTimes(1);
     agent.cleanup();
   }, 20_000);

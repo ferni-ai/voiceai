@@ -1,10 +1,9 @@
 /**
- * Prod call 2026-10-24 (#2735): the owner asked Ferni to call his mom; the call
- * tool held the call until 9:00 AM her time. He said she was an early riser and
- * to call now; the tool said the call was already set, and Ferni said "Ah, got
- * it, early riser, I'll call now." The guard let it through: "I'll call now."
- * names no one, and the future-tense call pattern needs a person or number.
- * ACTION_CLAIM_BARE_WILL=on reads it as a call claim; off, nothing changes.
+ * A held call (#2735): the owner asks Ferni to call a contact now; the call tool
+ * holds it until the contact's morning. The reply then claims "I'll call now" with
+ * no one named, and the guard let it through: the future-tense call pattern needs
+ * a person or number. ACTION_CLAIM_BARE_WILL=on reads it as a call claim; off,
+ * nothing changes.
  *
  * The held result is the real one deferred-calls.ts writes.
  */
@@ -26,7 +25,7 @@ import { actionClaimBareWillEnabled, claimedAction } from '../action-claims.js';
 
 initializeLogger({ pretty: false, level: 'warn' });
 
-const LINE = "Ah, got it, early riser, I'll call now.";
+const LINE = "Sounds good, I'll call now.";
 const ON = { ACTION_CLAIM_BARE_WILL: 'on' };
 const OFF = {};
 
@@ -55,13 +54,13 @@ async function run(items: unknown[], ...parts: string[]) {
 }
 
 const HELD = alreadySetReply(
-  'my mom',
+  'Dana',
   {
-    at: new Date('2026-10-24T15:00:00Z'),
-    timezone: 'America/Denver',
-    contactName: 'my mom',
+    at: new Date('2026-10-24T03:30:00Z'),
+    timezone: 'Asia/Kolkata',
+    contactName: 'Dana',
   } as never,
-  new Date('2026-10-24T14:43:49Z')
+  new Date('2026-10-24T02:43:49Z')
 );
 
 afterEach(() => vi.unstubAllEnvs());
@@ -96,7 +95,7 @@ describe('ACTION_CLAIM_BARE_WILL', () => {
 
 describe('after a held call, the prod line', () => {
   const items = () => [
-    user("Uh, she's an early riser. I think you could call her now."),
+    user('Dana is usually up at dawn. Could you call her now?'),
     result(JSON.stringify(HELD)),
   ];
 
