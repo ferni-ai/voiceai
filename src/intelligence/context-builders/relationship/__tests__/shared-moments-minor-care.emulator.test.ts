@@ -1,0 +1,128 @@
+/**
+ * Shared moments and MINOR_CARE on the Firestore emulator, with the real firebase-admin client:
+ * the real writer's createdAt (an ISO string, from cleanForFirestore) and inside-joke-memory's
+ * (epoch ms) are both found by the purge's range queries, the moments made in the held window are
+ * deleted and older and later ones stay, and deep-relationship's read (a `type in [...]` query)
+ * never hands a later call a held-window moment, even when the scrub never ran. Synthetic docs
+ * only. Skips unless FIRESTORE_EMULATOR_HOST is set:
+ *
+ *   GCLOUD_PROJECT=demo-project firebase emulators:exec --only firestore:ferni-dev \
+ *     --project demo-project "pnpm vitest run -c vitest.config.unit.ts <this file>"
+ */
+import type { Firestore } from 'firebase-admin/firestore';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { leakedPieces, SENTINEL } from '../../../../tests/helpers/snippet-leak.js';
+
+vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
+// The vector store and semantic cache aren't under test here (the unit test fakes them)
+vi.mock('../../../../memory/firestore-vector-store/index.js', () => ({
+  getFirestoreVectorStore: () => ({ list: async () => [], removeDocument: async () => true }),
+}));
+vi.mock('../../../../services/superhuman/semantic-intelligence/index.js', () => ({
+  clearSemanticIntelligenceCache: () => undefined,
+}));
+
+const DAY = 24 * 60 * 60 * 1000;
+const OLDER_WORDS = 'the heron at the lake that would not stop staring at us';
+
+describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('shared moments on the emulator', () => {
+  let db: Firestore;
+  let mods: {
+    purge: typeof import('../../../../agents/voice-agent/minor-care-purge.js');
+    deep: typeof import('../deep-relationship.js');
+    mc: typeof import('../../../../utils/minor-care.js');
+  };
+  let n = 0;
+  const uid = () => `ShMoEmu${++n}${Math.random().toString(36).slice(2, 8)}`;
+  const moments = (u: string) => db.collection('bogle_users').doc(u).collection('shared_moments');
+  const ids = async (u: string) => (await moments(u).get()).docs.map((d) => d.id).sort();
+  const gag = (at: string, said: string, trigger: string) => ({
+    type: 'running_gag',
+    content: `the ${trigger} thing`,
+    origin: { whatTheySaid: said },
+    triggers: [trigger],
+    callbackReception: 'positive',
+    createdAt: at,
+  });
+  const laterCall = async (u: string) =>
+    JSON.stringify(
+      await mods.deep.buildDeepRelationshipContext({
+        userText: 'ha, remember the quokka and the heron?',
+        userData: { turnCount: 5 },
+        services: { userId: u },
+      } as never)
+    );
+
+  beforeAll(async () => {
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    db = getAdminFirestore();
+    mods = {
+      purge: await import('../../../../agents/voice-agent/minor-care-purge.js'),
+      deep: await import('../deep-relationship.js'),
+      mc: await import('../../../../utils/minor-care.js'),
+    };
+  });
+  beforeEach(() => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    mods.mc.resetMinorCare();
+  });
+
+  /** A call that began 1 s ago; an earlier call's moment; a moment stored before the age statement. */
+  async function heldCall(u: string) {
+    const s = `call-${u}`;
+    const startedAt = Date.now() - 1000;
+    mods.mc.bindSessionUser(s, u);
+    await db.collection('bogle_users').doc(u).set({ totalConversations: 6 });
+    await moments(u)
+      .doc('a-held')
+      .set(gag(new Date().toISOString(), SENTINEL, 'quokka'));
+    await moments(u)
+      .doc('b-older')
+      .set(gag(new Date(Date.now() - 3 * DAY).toISOString(), OLDER_WORDS, 'heron'));
+    return { s, startedAt };
+  }
+
+  it('the purge deletes the held-window moments of both writers; older and later ones stay', async () => {
+    const u = uid();
+    const call = await heldCall(u);
+    await mods.deep.recordSharedMoment(u, {
+      type: 'callback_moment',
+      content: 'sad',
+      whatTheySaid: SENTINEL,
+      sessionId: call.s,
+    });
+    await moments(u)
+      .doc('c-epoch')
+      .set({ type: 'inside_joke', essence: SENTINEL, createdAt: Date.now() });
+    await moments(u)
+      .doc('d-later')
+      .set(gag(new Date(Date.now() + 60_000).toISOString(), 'the owner, later', 'otter'));
+    const written = (await moments(u).where('type', '==', 'callback_moment').get()).docs[0];
+    expect(typeof written.get('createdAt')).toBe('string'); // what the range query must match
+    expect(await ids(u)).toHaveLength(5);
+
+    expect(mods.mc.heldAfter(call.s, "I'm 15.", { userId: u })).toBe(true);
+    mods.purge.purgeHeldUser(u, call.s, call.startedAt);
+    await vi.waitFor(async () => expect(await ids(u)).toEqual(['b-older', 'd-later']), {
+      timeout: 5000,
+    });
+    const left = (await moments(u).get()).docs.map((d) => d.data());
+    expect(leakedPieces(left)).toEqual([]);
+  });
+
+  it('a later call never reads a held-window moment back, even when the scrub never ran', async () => {
+    const u = uid();
+    const call = await heldCall(u);
+    expect(await laterCall(u)).toContain('Dolores'); // the held moment is the first callback
+    // The window is known (the purge's import set the check), as a purge whose scrub failed
+    // leaves it: nothing was deleted
+    const { noteHeldWindow } = await import('../../../../services/trust-systems/held-window.js');
+    noteHeldWindow(u, call.startedAt);
+    (await import('../shared-moments.js')).forgetReadMoments(u); // the purge's cache drop
+    expect(await ids(u)).toEqual(['a-held', 'b-older']);
+    const context = await laterCall(u);
+    expect(leakedPieces(context)).toEqual([]);
+    expect(context).toContain(OLDER_WORDS);
+  });
+});

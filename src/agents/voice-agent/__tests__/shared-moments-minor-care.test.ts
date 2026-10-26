@@ -56,7 +56,10 @@ const uid = (tag: string) => `ShMo${tag}${String(++n).padStart(3, '0')}kQ4vX8pLm
 const momentsOf = (u: string) =>
   [...docs].filter(([p]) => p.startsWith(`/bogle_users/${u}/shared_moments/`)).map(([, d]) => d);
 /** The writer is fire-and-forget: let its dynamic import and set settle. */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
+const settle = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 30);
+  });
 
 /** A high-emotion turn on a multiple of 3: the branch that records a shared moment. */
 const turn = (userId: string, sessionId: string): LearningContext => ({

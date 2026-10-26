@@ -110,6 +110,10 @@ const fs = vi.hoisted(() => {
 });
 vi.mock('firebase-admin/firestore', () => ({ FieldValue: { serverTimestamp: () => 'now' } }));
 vi.mock('../../../../utils/firebase-admin-app.js', () => ({ getAdminFirestore: () => fs.db }));
+vi.mock('../../../../services/superhuman/firestore-utils.js', async (orig) => ({
+  ...(await orig<Json>()),
+  getFirestoreDb: () => fs.db,
+}));
 vi.mock('@google-cloud/firestore', async (orig) => ({
   ...(await orig<Json>()),
   Firestore: class {
@@ -139,6 +143,7 @@ vi.mock('../../../../memory/embeddings.js', () => ({ embed: async () => [0.1, 0.
 
 import { purgeHeldUser } from '../../../../agents/voice-agent/minor-care-purge.js';
 import { buildDeepRelationshipContext, recordSharedMoment } from '../deep-relationship.js';
+import { recordSharedMoment as recordInsideJoke } from '../../../../services/superhuman/inside-joke-memory.js';
 import { indexReadingBetweenLines } from '../../../../services/data-layer/integrations/trust-integration.js';
 import { bindSessionUser, heldAfter, resetMinorCare } from '../../../../utils/minor-care.js';
 import type { ContextBuilderInput } from '../../index.js';
@@ -182,7 +187,10 @@ async function heldCall(u: string) {
   seedGag(u, 'older', Date.now() - 3 * DAY, OLDER_WORDS, 'heron'); // an earlier, ordinary call
   return { s, startedAt, hold: () => expect(heldAfter(s, "I'm 15.", { userId: u })).toBe(true) };
 }
-const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
+const settle = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, 30);
+  });
 
 beforeEach(() => {
   fs.fail.match = null;
@@ -210,11 +218,13 @@ describe('the purge and shared moments', () => {
       essence: SENTINEL,
       createdAt: Date.now() - 200,
     });
-    expect(momentsOf(u)).toHaveLength(4);
+    // after the window: another process's call for the same account, a minute from now
+    seedGag(u, 'after', Date.now() + 60_000, 'the owner, later', 'otter');
+    expect(momentsOf(u)).toHaveLength(5);
     call.hold();
     purgeHeldUser(u, call.s, call.startedAt);
     const ids = () => momentsOf(u).map(([p]) => p.split('/').pop());
-    await vi.waitFor(() => expect(ids()).toEqual(['older']));
+    await vi.waitFor(() => expect(ids()).toEqual(['older', 'after']));
     expect(leakedPieces(momentsOf(u))).toEqual([]);
   });
 
@@ -246,6 +256,18 @@ describe('the purge and shared moments', () => {
     const context = await laterCall(u);
     expect(leakedPieces(context)).toEqual([]);
     expect(context).toContain(OLDER_WORDS);
+  });
+
+  it("inside-joke-memory's writer stores nothing for a held caller; an adult's as before", async () => {
+    const held = uid('JH');
+    const adult = uid('JA');
+    heldAfter(`call-${held}`, "I'm 15.", { userId: held });
+    const joke = (u: string) =>
+      recordInsideJoke(u, 'inside_joke', SENTINEL, 'the lake', ['heron'], 'the heron', 0.7);
+    expect(await joke(held)).toBeNull();
+    expect(momentsOf(held)).toEqual([]);
+    expect(await joke(adult)).toEqual(expect.any(String));
+    expect(momentsOf(adult)).toHaveLength(1);
   });
 
   it('a non-held adult: every moment, recent ones included, still comes back', async () => {
