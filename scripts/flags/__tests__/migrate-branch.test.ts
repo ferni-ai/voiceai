@@ -16,7 +16,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { writeFlagBarrel } from '../../../src/config/__tests__/flag-barrel.js';
+import { writeFlagBarrel } from '../../../src/config/generated-lists.js';
 import { migrateBranch, type Step } from '../migrate-branch.js';
 import { moveToFiles } from '../move-to-files.js';
 import { flagFileText } from '../new-flag.js';
@@ -72,13 +72,11 @@ function addContractSuite(root: string): void {
   const entries = readFileSync(join(REPO, 'src', 'config', 'flag-manifest-entries.ts'), 'utf8');
   const shape = entries.indexOf('}\n', entries.indexOf('export interface FlagSpec')) + 2;
   writeFileSync(path(root, 'flag-manifest-entries.ts'), entries.slice(0, shape));
-  copyFileSync(
-    join(REPO, 'src/config/__tests__/flag-barrel.ts'),
-    path(root, '__tests__/flag-barrel.ts')
-  );
+  for (const f of ['generated-lists.ts', 'generated-guard.ts'])
+    copyFileSync(join(REPO, 'src', 'config', f), path(root, f));
   cpSync(join(REPO, 'scripts', 'flags'), join(root, 'scripts', 'flags'), { recursive: true });
   symlinkSync(join(REPO, 'node_modules'), join(root, 'node_modules'));
-  writeFileSync(join(root, '.gitignore'), 'node_modules\n');
+  writeFileSync(join(root, '.gitignore'), 'node_modules\nsrc/config/flags/index.generated.ts\n');
 }
 const CONTRACT: Step = {
   cmd: [
@@ -100,6 +98,8 @@ async function repo(
   writeFileSync(path(root, 'flag-manifest-blocks.ts'), BLOCKS);
   writeFileSync(path(root, 'flag-manifest.ts'), MANIFEST);
   writeFlagBarrel(path(root, 'flags'));
+  // As in the repo: the barrel is generated, never committed.
+  writeFileSync(join(root, '.gitignore'), 'src/config/flags/index.generated.ts\n');
   onBase(root);
   git(root, 'init', '-q', '-b', 'main');
   git(root, 'config', 'user.email', 'test@example.com');

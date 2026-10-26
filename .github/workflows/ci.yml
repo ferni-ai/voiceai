@@ -124,6 +124,10 @@ jobs:
       # forceRerunTriggers, so `vitest --changed` runs just the affected unit tests
       # (see test-unit-shard). Empty on other events.
       unit-full-suite: ${{ steps.unit-full.outputs.needed }}
+      # 'true' when a PR touches crisis-safety or memory code, which then gets the
+      # whole unit suite on four shards, as the ci:full-tests label does. Only
+      # 'false' on a PR that touches none of those paths.
+      full-tests: ${{ steps.risky.outputs.matched }}
     steps:
       # Two commits on a pull request (the merge commit and its base) for the unit
       # trigger check below; the pr-changes steps list files through the API.
@@ -162,6 +166,16 @@ jobs:
         uses: ./.github/actions/pr-changes
         with:
           include: '^(apps/web/|design-system/|brand/|\.github/workflows/ci\.yml$)'
+
+      # Crisis-safety and memory code: a PR touching it runs the whole unit suite,
+      # not just the tests whose imports reach the diff. #2717 (crisis safety) went
+      # green on shard 1 alone, and a ci:full-tests label added after CI starts
+      # does not re-run it. Pinned by src/tests/ci/merge-queue-scope.test.ts.
+      - name: Did crisis-safety or memory code change?
+        id: risky
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^src/(services/safety/|agents/personas/crisis|agents/processors/turn-processor/turn-crisis|tools/domains/life-coaching-shared/safety-guards\.ts$|memory/|services/memory/|utils/safety-whole-word|utils/phrase-match)'
 
       - name: Generate cache key
         id: cache-key
@@ -287,12 +301,13 @@ jobs:
         # [1, 2, 3, 4] on a full run, [1] on a pull request that runs only the
         # affected tests. The condition is FULL_SUITE's below and must stay the same
         # (merge-queue-jobs.test.ts pins it, and the Unit Tests gate checks the count).
-        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false') && '[1, 2, 3, 4]' || '[1]') }}
+        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' || needs.setup.outputs.full-tests == 'true') && '[1, 2, 3, 4]' || '[1]') }}
     env:
       # 'true' when this run tests the whole suite: every event but a pull request,
-      # a pull request labelled ci:full-tests, and one whose diff makes `--changed`
-      # run everything anyway (`!= 'false'`: a missing answer runs all four).
-      FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' }}
+      # a pull request labelled ci:full-tests, one whose diff makes `--changed`
+      # run everything anyway (`!= 'false'`: a missing answer runs all four), and
+      # one that touches crisis-safety or memory code (setup's full-tests).
+      FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' || needs.setup.outputs.full-tests == 'true' }}
     # Every leg reports the same two values, so it doesn't matter which one wins.
     outputs:
       full-suite: ${{ env.FULL_SUITE }}
@@ -347,17 +362,13 @@ jobs:
         if: matrix.shard == 1
         run: node scripts/ci/cli-typecheck-ratchet.mjs
 
-      # The env-name list test scans src/ as text, so no import edge reaches it and
-      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
-      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
-      # always runs it, before the Rust build. The list merges with git's union
-      # driver (.gitattributes), which this test makes safe. The flag barrel
-      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
-      # flags/ directory as text, and the barrel merges with union too. The decision
-      # register (docs/decisions/register.md) reads Swift, CSS and JSON as text too.
-      - name: Check the env-name list
+      # The decision register (docs/decisions/register.md) test reads Swift, CSS and
+      # JSON as text, so no import edge reaches it and `--changed` would skip it; a PR
+      # always runs it, before the Rust build. (The env-name list and flag barrel that
+      # used to share this step are generated now, never committed, so they can't drift.)
+      - name: Check the decision register
         if: env.FULL_SUITE != 'true'
-        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts src/__tests__/decisions/
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/__tests__/decisions/
         env:
           NODE_ENV: test
 
@@ -427,7 +438,8 @@ jobs:
       # lists the files no import reaches (setup, lockfile, runtime data); a change to
       # one runs everything. The merge queue always runs the whole suite with coverage,
       # so this changes how early a PR hears, never what reaches main. The
-      # `ci:full-tests` label runs the whole suite on a PR.
+      # `ci:full-tests` label runs the whole suite on a PR, and so does a change to
+      # crisis-safety or memory code (setup's full-tests).
       - name: Run unit tests affected by this pull request
         if: env.FULL_SUITE != 'true'
         run: pnpm exec vitest run --config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests
@@ -1042,6 +1054,12 @@ jobs:
       - name: Firestore database ratchet
         run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
 
+      # Blocking. A firebase deploy of the index file must not delete a TTL policy, field
+      # override or composite that prod or dev has. Diffs firestore.indexes.json against the
+      # checked-in gcloud listings in scripts/ci/fixtures/firestore-indexes/. ~2 s.
+      - name: Firestore index drift
+        run: pnpm tsx scripts/ci/firestore-indexes-drift.ts
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
@@ -1259,9 +1277,11 @@ jobs:
   # apps/web/tests/overlays/contrast-baseline.json (axe + the gallery probe),
   # snapshots must match the committed Linux baselines, and with the overlay
   # host on the toast region must keep clear of Connect and the menu trigger.
-  # Other PRs and the merge queue skip it (a skipped job reports success, so it
-  # can become a required check). Reuses setup's node_modules cache and runs the
-  # Vite dev server (the gallery is dev-only, so the prod build can't be used).
+  # Other PRs and the merge queue skip it, and a skipped job reports success, so
+  # branch protection requires it (since #2391) without stalling them; it is not
+  # in required-checks.sh, which says why. Reuses setup's node_modules cache and
+  # runs the Vite dev server (the gallery is dev-only, so the prod build can't
+  # be used).
   overlay-gallery:
     name: Overlay Gallery (visual + contrast)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
@@ -1312,6 +1332,14 @@ jobs:
             echo "::warning::No Linux overlay snapshots are committed yet. Writing them: commit tests/overlays/__screenshots__/linux from the overlay-gallery artifact."
             pnpm exec playwright test -c playwright.overlays.config.ts --update-snapshots=all
           fi
+
+      # Required check: a copy or layout change fails it until the baselines match.
+      - name: How to refresh the baselines
+        if: failure()
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::error title=Overlay gallery::If the changed overlays are intended, refresh the Linux baselines from this run: scripts/ci/refresh-overlay-baselines.sh $PR (from the repo root, on the PR branch), review each image, then commit them."
 
       - name: Upload report and snapshots
         if: always()

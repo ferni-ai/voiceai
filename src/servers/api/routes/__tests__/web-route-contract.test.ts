@@ -59,7 +59,7 @@ const WEB_FILES = [
   // through services/your-story (GET /api/your-story/full) and its other fetches
   // are commented out until they are wired. Add it back when they are.
   'ui/integrations-settings.ui.ts',
-  'ui/connected-life.ui.ts',
+  'ui/connected-life-status.ts', // Connected Life's status checks
   'ui/vibe-controller.ui.ts',
   'ui/vibe-controller.api.ts',
   'ui/practice-experience.ui.ts',

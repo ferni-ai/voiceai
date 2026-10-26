@@ -5,23 +5,65 @@ import SwiftUI
 
 @main
 struct FerniApp: App {
+    @UIApplicationDelegateAdaptor(FerniAppDelegate.self) private var delegate
     @State private var model: AppModel
 
     init() {
+        CrashReporting.start()
+        FerniFonts.register()
+        // Compile Ferni's shader off the main thread, ahead of the first frame.
+        Task.detached(priority: .userInitiated) { AliveRenderer.warmUp() }
+        #if DEBUG
+        if let scenario = UITestScenario.current {
+            UITestScenario.resetDefaults()
+            _model = State(initialValue: AppModel(config: UITestScenario.config, firebaseReady: false, scenario: scenario.rawValue))
+            return
+        }
+        #endif
         _model = State(initialValue: AppModel(firebaseReady: FerniFirebase.configure()))
     }
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            RootView()
                 .environment(model)
+                #if DEBUG
+                .uiTestEnvironment()
+                #endif
                 // Silent, anonymous on a first launch: talking never waits on a sign-in screen.
                 .task {
                     await model.account.start()
                     await model.team.refresh()
+                    await model.minimumBuild.check()
                 }
                 // Consent belongs to whoever is signed in: switch with them.
-                .onChange(of: model.account.user?.uid, initial: true) { _, uid in model.consent.use(uid: uid) }
+                .onChange(of: LiveActivityController.content(for: model.call)) { _, content in
+                    model.liveActivity.follow(content, startedAt: model.call.startedAt)
+                }
+                .task {
+                    // Back online: finish any unbind or registration that didn't go through,
+                    // starting an account first if one is waiting to be unbound. This loop
+                    // never ends, so it stays last in this task.
+                    for await _ in NetworkWatcher.becameReachable() {
+                        if model.push.needsAccount { await model.account.start() }
+                        await model.push.reconcile(uid: model.account.user?.uid)
+                    }
+                }
+                // A good call (two minutes or more, ended by you) counts toward the check-in ask.
+                .onChange(of: model.call.phase) { _, phase in
+                    if phase == .ended, model.call.lastCallWasGood, let uid = model.account.user?.uid {
+                        CheckInAsk().recordGoodCall(uid: uid)
+                    }
+                }
+                // The watch shows the call as it is now.
+                .onChange(of: model.remoteState) { _, state in model.watchRemote?.publish(state) }
+                // What Ferni remembers locks again whenever the app leaves the foreground.
+                .onChange(of: scenePhase) { _, phase in if phase != .active { model.memoryLock.lock() } }
+                .onChange(of: model.account.user?.uid, initial: true) { old, uid in
+                    model.accountChanged(from: old, to: uid)
+                }
         }
     }
 }
@@ -31,63 +73,180 @@ struct FerniApp: App {
 @MainActor
 @Observable
 final class AppModel {
-    private static let haptics = CoreHapticsPlayer()
-
-    /// The avatar's feedback: one haptic per moment, and VoiceOver announcements.
-    private static func play(_ effect: AvatarEffect) {
-        switch effect {
-        case .haptic(let cue): haptics.play(cue)
-        case .announce(let text): AccessibilityNotification.Announcement(text).post()
-        }
-    }
-
+    /// The model for scenes SwiftUI doesn't own (CarPlay).
+    static weak var shared: AppModel?
+    let feedback: CallFeedback
     let config: FerniConfig
     let account: AccountStore
     let api: FerniAPI
     let call: CallSession
     let consent = ConsentStore()
     let team: TeamStore
+    let memory: MemoryStore
+    let minimumBuild: MinimumBuild
+    let callRemembered: CallRemembered
+    let memoryLock = MemoryLock()
+    @ObservationIgnored private(set) var watchRemote: WatchRemote?
+    let liveActivity = LiveActivityController()
+    let push: PushStore
     var isShowingSettings = false
     var isAskingConsent = false
     var isShowingCallMore = false
+    /// A line of Ferni's being reported.
+    var reporting: Caption?
+
+    func report(_ caption: Caption, reason: ReplyReport.Reason, note: String) async throws {
+        try await ReplyReport.send(
+            using: api, sessionID: call.roomName ?? "unknown", saidAt: caption.at, reason: reason,
+            note: note, textHint: caption.text, appVersion: SettingsView.version()
+        )
+    }
     /// Ferni's words in the caption area; off leaves only who's doing what.
     var showCaptions = UserDefaults.standard.object(forKey: "ferni.captions") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showCaptions, forKey: "ferni.captions") }
     }
 
+    /// From Siri, Shortcuts, Control Center or the Action button: the same door
+    /// as the Talk button. Someone not on the team yet means Ferni answers.
+    func talk(to personaID: String) {
+        guard !call.isActive else { return }
+        if !team.choose(personaID) { team.choose(PersonaRegistry.ferni.id) }
+        talk()
+    }
+
     /// Talk: the consent screen first if this person hasn't agreed (or withdrew).
     func talk() {
+        feedback.newCall()
         if consent.hasAgreed { call.start(personaID: team.chosen) } else { isAskingConsent = true }
     }
 
-    /// "I agree, let's talk": recorded for the signed-in account only, so the
-    /// account is settled first.
+    /// "I agree, let's talk": the call starts at once ("Calling…"); the
+    /// account is settled inside it, and the agreement is recorded for that
+    /// account only. No account means the call ends saying so (critic H5).
     func agreeAndTalk() async {
-        await account.start()
-        consent.use(uid: account.user?.uid)
-        if consent.agree() { call.start(personaID: team.chosen) }
+        call.start(personaID: team.chosen) { [weak self] in
+            guard let self else { return false }
+            await self.account.start()
+            self.consent.use(uid: self.account.user?.uid)
+            return self.consent.agree()
+        }
     }
 
-    /// Sign out: this person's agreement leaves the phone with them.
-    func signOut() async {
-        if let uid = account.user?.uid { consent.forget(uid: uid) }
+    /// Delete the account on the server, then everything this phone kept about
+    /// the person, then start fresh. Throws (and keeps everything) if the server says no.
+    func deleteAccount() async throws {
+        if call.isActive { await call.end() } // first, even if the server then says no
+        let uid = account.user?.uid
+        try await AccountDeletion.delete(using: api)
+        if let uid { consent.forget(uid: uid) }
+        AccountDeletion.localKeys.forEach(UserDefaults.standard.removeObject(forKey:))
+        forgetPerson()
         await account.signOut()
     }
 
-    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool) {
+    /// Sign out: this person's agreement and everything shown about them leave
+    /// the phone with them.
+    /// Withdrawing consent mid-call ends the call first: nothing more goes to
+    /// the providers the person just withdrew from (critic M2).
+    func withdrawConsent() async {
+        if call.isActive { await call.end() }
+        consent.withdraw()
+    }
+
+    func signOut() async {
+        if call.isActive { await call.end() } // the call belongs to the person leaving
+        if let uid = account.user?.uid { await push.unbindBeforeSignOut(uid: uid) } // while still them
+        if let uid = account.user?.uid { consent.forget(uid: uid) }
+        forgetPerson()
+        await account.signOut()
+    }
+
+    /// Every per-person store follows the signed-in account.
+    func accountChanged(from old: String?, to uid: String?) {
+        consent.use(uid: uid)
+        // At launch and on every change: the token is bound to this person only if they said yes.
+        Task { await push.reconcile(uid: uid) }
+        guard old != nil, old != uid else { return } // first launch keeps what's loading
+        forgetPerson()
+        Task { await team.refresh() }
+    }
+
+    private func forgetPerson() {
+        memory.reset()
+        memoryLock.reset()
+        team.reset()
+        call.forgetLastCall()
+        UserDefaults.standard.removeObject(forKey: "ferni.call.hasTalked")
+    }
+
+    /// - Parameter scenario: debug builds only; a UI-test launch (`UITestScenario`).
+    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil) {
         self.config = config
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         api = account.api(baseURL: config.apiBaseURL)
         team = TeamStore(api: api)
+        memory = MemoryStore(api: api)
+        callRemembered = CallRemembered(api: api)
+        minimumBuild = MinimumBuild(api: api, currentBuild: (Bundle.main.infoDictionary?["CFBundleVersion"] as? String).flatMap(Int.init))
+        #if DEBUG
+        let apnsEnvironment = "sandbox"
+        #else
+        let apnsEnvironment = "production"
+        #endif
+        push = PushStore(
+            api: api, vault: KeychainPushVault(), bundleID: Bundle.main.bundleIdentifier ?? "com.sethdford.ferni",
+            environment: apnsEnvironment, appVersion: SettingsView.version(),
+            currentUID: { [account] in account.user?.uid }
+        )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
+        let feedback = CallFeedback()
+        self.feedback = feedback
         let level = AudioLevelMeter()
-        call = CallSession(
+        let avatar = AvatarModel(play: { [feedback] in feedback.play($0) })
+        #if DEBUG
+        let testCall = scenario.map { _ in UITestScenario.callSession(avatar: avatar, level: level) }
+        #else
+        let testCall: CallSession? = nil
+        #endif
+        call = testCall ?? CallSession(
             fetchToken: CallTokens.fetcher(api: api),
             makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
-            audio: SystemCallAudio(),
-            avatar: AvatarModel(play: Self.play),
+            audio: SystemCallAudio(systemManagesCalls: ConversationLifecycle.isAvailable),
+            avatar: avatar,
             lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
             agentLevel: level
         )
+        feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
+        installSystemHandlers()
+        Self.shared = self
+        #if DEBUG
+        if let scenario = scenario.flatMap(UITestScenario.init(rawValue:)) {
+            switch scenario {
+            case .home: break
+            case .consent: isAskingConsent = true
+            case .settings: isShowingSettings = true
+            case .call: call.start(personaID: PersonaRegistry.ferni.id)
+            }
+            return // no watch session in a UI test
+        }
+        #endif
+        watchRemote = WatchRemote(model: self)
+        watchRemote?.start()
+    }
+
+    /// Siri, Control Center, the Action button and notifications can launch
+    /// the app cold and arrive before any view appears (critic H6), so they're
+    /// wired as soon as the model exists, before the app finishes launching.
+    private func installSystemHandlers() {
+        EndCallIntent.end = { [weak self] in await self?.call.end() }
+        TalkIntent.handler = { [weak self] personaID in self?.talk(to: personaID) }
+        FerniAppDelegate.onToken = { [weak self] token in
+            guard let self else { return }
+            Task { await self.push.received(deviceToken: token, uid: self.account.user?.uid) }
+        }
+        FerniAppDelegate.onTalk = { [weak self] in
+            guard let self else { return }
+            self.talk(to: self.team.chosen)
+        }
     }
 }

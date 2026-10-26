@@ -1,6 +1,5 @@
 /**
  * Delivery Tracker
- *
  * Centralized tracking of all outreach deliveries across channels:
  * - Unified status tracking
  * - Cross-channel analytics
@@ -57,7 +56,6 @@ export interface UnifiedDeliveryRecord {
   clickedAt?: Date;
   respondedAt?: Date;
 
-  // Content
   to: string;
   subject?: string;
   bodyPreview?: string;
@@ -317,7 +315,8 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
             const callResult = await callWithPersonaVoice(
               toPhone,
               item.payload.body,
-              item.personaId
+              item.personaId,
+              { ownerUid: item.userId, userId: item.userId }
             );
             result = callResult.success
               ? { success: true, messageId: callResult.callSid }

@@ -33,7 +33,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'SoundConductor' });
 
 export type ConductedSound =
-  'backchannel' | 'opener' | 'laugh' | 'presence' | 'snore' | 'tool_hum' | 'slow_turn';
+  'backchannel' | 'opener' | 'laugh' | 'presence' | 'snore' | 'tool_hum' | 'slow_turn' | 'tool_ack';
 
 export type SoundConductorMode = 'off' | 'shadow' | 'on';
 
@@ -68,6 +68,8 @@ export const SOUND_BUDGET_PER_MIN: Readonly<Record<ConductedSound, number>> = {
   tool_hum: 1,
   // At most one per slow turn; two a minute is already every other reply.
   slow_turn: 2,
+  // TOOL_ACK_CLIP: once per tool turn; three a minute is a tool on every reply.
+  tool_ack: 3,
 };
 
 export type SoundReason = 'ok' | 'turn_edge' | 'same_sound' | 'repeat' | 'budget';

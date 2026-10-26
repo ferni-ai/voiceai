@@ -6,11 +6,13 @@
 import { DisconnectReason } from '@livekit/rtc-node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const notify = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const notify = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ status: 'delivered' as const, via: 'slack' as const })
+);
 vi.mock('../../slack-notifications.js', () => ({
   // a function, not an arrow: the monitor calls it with `new`
   SlackNotificationService: vi.fn().mockImplementation(function () {
-    return { notify };
+    return { notifyWithResult: notify };
   }),
 }));
 vi.mock('../../predictive-alerting.js', () => ({ recordMetricValue: vi.fn() }));

@@ -23,6 +23,7 @@
 import {
   apply,
   followUpTextOutcome,
+  isCallerTimed,
   logPromiseJobRun,
   logPromiseOutcome,
   rightMoment,
@@ -33,6 +34,7 @@ import {
 } from '../follow-through/index.js';
 import { isForgotten } from '../../memory/recall/session-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSavedQuietNow } from './quiet-hours.js';
 
 const log = createLogger({ module: 'follow-up-texts' });
 
@@ -227,6 +229,11 @@ async function forPerson(
   }
   const pick = moments.find((m) => m.moment === 'text-now')?.f;
   if (!pick) return;
+  // One Ferni starts, inside the quiet hours they saved in the menu, waits for a later run.
+  if (!isCallerTimed(pick) && (await isSavedQuietNow(userId, now))) {
+    report.held['quiet-hours'] = (report.held['quiet-hours'] ?? 0) + 1;
+    return;
+  }
   if (dryRun) {
     report.wouldSend++;
     report.wouldSendIds.push(pick.id);

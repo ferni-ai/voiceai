@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
+import { writeHeld } from '../../../../utils/minor-care.js';
 import type {
   RelationshipArcData,
   FirstMeetingData,
@@ -100,6 +101,9 @@ export async function loadRelationshipArcData(userId: string): Promise<Relations
  * Save relationship arc data
  */
 export async function saveRelationshipArcData(data: RelationshipArcData): Promise<void> {
+  // MINOR_CARE: nothing kept for a held caller under 18 (or a placeholder id). The caller
+  // mutated the cached object in place, so drop it too: a later call must not save it.
+  if (writeHeld(data.userId)) return void arcCache.delete(data.userId);
   const db = await getDb();
   if (!db) {
     log.debug({ userId: data.userId }, 'No Firestore, skipping save');

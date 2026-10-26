@@ -1,7 +1,9 @@
 /**
  * Language Preference Tools
  *
- * Allows users to set and switch spoken languages via voice commands.
+ * Lets users state a spoken-language preference. Calls are English-only for
+ * now (see canSpeakLanguageLive), so non-English requests are remembered,
+ * never claimed as a switch.
  *
  * Examples:
  * - "Can you speak to me in Spanish?"
@@ -26,15 +28,15 @@ const log = getLogger();
 
 const setSpokenLanguageDef: ToolDefinition = {
   id: 'setSpokenLanguage',
-  name: 'Set Spoken Language',
+  name: 'Save Language Preference',
   description:
-    'Changes the spoken language for the conversation. Call this when the user asks to speak in a different language.',
+    'Remembers the language the user would like. Calls are English only for now, so this saves the preference and offers help with words and phrases.',
   domain: 'settings',
   tags: ['language', 'preferences', 'multilingual', 'settings'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Set the spoken language for this conversation. Call this when the user says things like:
+      description: `Remember the language the user would like. Call this when the user says things like:
 - "Speak to me in Spanish"
 - "Switch to French"  
 - "Can we talk in Japanese?"
@@ -43,12 +45,12 @@ const setSpokenLanguageDef: ToolDefinition = {
 
 The language parameter should be the language name (e.g., "Spanish", "French", "Japanese") or code (e.g., "es", "fr", "ja").
 
-After calling this tool, you should respond in the new language to confirm the switch.`,
+Calls are English only for now, so this does not change the language you talk in. Say what the result says and never claim you switched. If they want the app's screens in another language, use setAppLanguage.`,
       parameters: z.object({
         language: z
           .string()
           .describe(
-            'The language to switch to. Can be a language name (Spanish, French) or code (es, fr)'
+            'The language they would like. A language name (Spanish, French) or code (es, fr)'
           ),
       }),
       execute: async (params) => {
@@ -59,8 +61,9 @@ After calling this tool, you should respond in the new language to confirm the s
           const {
             parseLanguageName,
             setSessionLanguage,
-            getLanguageConfig,
             persistUserLanguagePreference,
+            canSpeakLanguageLive,
+            languageNotLiveMessage,
           } = await import('../../../services/language/index.js');
 
           // Parse the language name to a code
@@ -68,7 +71,7 @@ After calling this tool, you should respond in the new language to confirm the s
 
           if (!languageCode) {
             log.warn({ userId: ctx.userId, language }, '🌍 Unrecognized language requested');
-            return `I'm not sure which language "${language}" refers to. I support languages like English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Hindi, and many more. Could you try again?`;
+            return `I'm not sure which language "${language}" refers to. Could you say it another way?`;
           }
 
           // Get session ID from context (use actual sessionId, with userId as fallback)
@@ -95,21 +98,21 @@ After calling this tool, you should respond in the new language to confirm the s
               displayName: config.displayName,
               nativeName: config.nativeName,
             },
-            '🌍 Language switched via tool'
+            '🌍 Language preference set via tool'
           );
 
-          // Return confirmation with native name
-          const confirmation = config.fullySupported
-            ? `Language switched to ${config.displayName} (${config.nativeName}). I'll now speak to you in ${config.displayName}.`
-            : `Language switched to ${config.displayName} (${config.nativeName}). Note: This language has limited support, so some features may work better in English.`;
+          // Calls are English-only today: keep the preference, but never claim a switch.
+          if (!canSpeakLanguageLive(languageCode)) {
+            return languageNotLiveMessage(config.displayName);
+          }
 
-          return confirmation;
+          return `Language switched to ${config.displayName}. I'll now speak to you in ${config.displayName}.`;
         } catch (error) {
           log.error(
             { error: String(error), userId: ctx.userId, language },
             '🌍 Failed to switch language'
           );
-          return `I had trouble switching languages. Let's continue in English for now, and you can try again later.`;
+          return `I had trouble saving that. Let's keep going in English for now.`;
         }
       },
     });
@@ -124,13 +127,13 @@ const listSupportedLanguagesDef: ToolDefinition = {
   id: 'listSupportedLanguages',
   name: 'List Supported Languages',
   description:
-    'Lists all languages supported by Ferni. Call this when the user asks what languages you can speak.',
+    'Tells the user which languages Ferni can help with for words and phrases. Calls are English only for now.',
   domain: 'settings',
   tags: ['language', 'preferences', 'multilingual', 'help'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `List the languages Ferni can speak. Call this when the user asks:
+      description: `Tell the user which languages you can help with for words and phrases, and that calls are English only for now. Call this when the user asks things like:
 - "What languages do you speak?"
 - "Can you speak other languages?"
 - "What languages are supported?"
@@ -138,18 +141,15 @@ const listSupportedLanguagesDef: ToolDefinition = {
       parameters: z.object({}),
       execute: async () => {
         try {
-          const { getSupportedLanguagesList } = await import('../../../services/language/index.js');
-
-          const languages = getSupportedLanguagesList();
-
-          const languageList = languages.map((l) => l.name).join(', ');
+          const { getSupportedLanguagesList, languageHelpListMessage } =
+            await import('../../../services/language/index.js');
 
           log.info({ userId: ctx.userId }, '🌍 Listing supported languages');
 
-          return `I can speak many languages! Here are the main ones: ${languageList}. Just say "speak to me in [language]" and I'll switch. For example, "speak to me in Spanish" or "switch to French".`;
+          return languageHelpListMessage(getSupportedLanguagesList());
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, '🌍 Failed to list languages');
-          return `I can speak many languages including English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Hindi, and more. Just tell me which language you'd prefer!`;
+          return `I only speak English on calls for now. I can help with words and phrases in Spanish, French, German, Japanese, Chinese, Hindi, and more.`;
         }
       },
     });
@@ -164,46 +164,47 @@ const getCurrentLanguageDef: ToolDefinition = {
   id: 'getCurrentLanguage',
   name: 'Get Current Language',
   description:
-    'Gets the current spoken language for the conversation. Call this when the user asks what language you are speaking.',
+    'Tells the user which language the call is in and which one they would like. Calls are English only for now.',
   domain: 'settings',
   tags: ['language', 'preferences', 'status'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Get the current language setting. Call this when the user asks:
+      description: `Say which language this call is in and which one the user would like. Calls are English only for now. Call this when the user asks:
 - "What language are we speaking?"
 - "What language is this?"
 - "What's my language set to?"`,
       parameters: z.object({}),
       execute: async () => {
         try {
-          const { getSessionLanguageState, getLanguageConfig } =
+          const { getSessionLanguageState, getLanguageConfig, currentCallLanguageMessage } =
             await import('../../../services/language/index.js');
 
           const sessionId = ctx.userId || 'default';
           const state = getSessionLanguageState(sessionId);
 
           if (!state) {
-            return `We're currently speaking in English. Would you like to switch to another language?`;
+            return `We're speaking English.`;
           }
 
           const config = getLanguageConfig(state.currentLanguage);
-          const autoDetectedNote = state.autoDetected
-            ? ` (I detected this from how you were speaking)`
-            : '';
 
           log.info(
             { userId: ctx.userId, language: state.currentLanguage },
             '🌍 Reporting current language'
           );
 
-          return `We're currently speaking in ${config.displayName}${autoDetectedNote}. Would you like to switch to a different language?`;
+          return currentCallLanguageMessage(
+            state.currentLanguage,
+            config.displayName,
+            state.autoDetected
+          );
         } catch (error) {
           log.error(
             { error: String(error), userId: ctx.userId },
             '🌍 Failed to get current language'
           );
-          return `We're speaking in English. Would you like to switch to another language?`;
+          return `We're speaking English.`;
         }
       },
     });

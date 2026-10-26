@@ -55,9 +55,8 @@ export async function handleOutboundCallRoutes(
     // Everything past health dials real phones or lists who is being called,
     // so it is admin-only. It was open to anonymous callers on prod: any body
     // with a phone and a name rang that number with a message of their choosing.
-    if (!(await requireAdmin(req, res))) {
-      return true;
-    }
+    const admin = await requireAdmin(req, res);
+    if (!admin) return true;
 
     // POST /api/outbound-call/initiate - Initiate a conversational call
     if (pathname === '/api/outbound-call/initiate' && method === 'POST') {
@@ -79,8 +78,25 @@ export async function handleOutboundCallRoutes(
         return true;
       }
 
+      // The admin names whose call it is; the owner rule still applies to that user
+      // (MESSAGING_PIPELINE: their own number, or someone who gave them a call grant).
+      const owner = body.userId ?? body.user?.id;
+      if (!owner) {
+        sendJsonResponse(res, 400, { error: 'Name the user the call is for (userId)' });
+        return true;
+      }
       try {
-        const call = await makeConversationalCall(body);
+        const reason = body.reason ?? body.trigger?.reason ?? 'outbound_call';
+        const call = await makeConversationalCall({
+          ...body,
+          userId: owner,
+          reason: `admin-initiated by ${admin.userId}: ${reason}`, // provenance, stored with the call
+        });
+        log.info({ adminId: admin.userId, ownerId: owner }, 'Admin-initiated outbound call');
+        if (call.success === false) {
+          sendJsonResponse(res, 409, { success: false, error: call.error });
+          return true;
+        }
 
         sendJsonResponse(res, 200, {
           success: true,

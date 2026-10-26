@@ -33,9 +33,15 @@
       ]
     },
     "follow-through": {
-      "label": "Follow-through on open threads", "scenarios": ["follow-through"],
+      "label": "Follow-through on open threads", "scenarios": ["follow-through", "asked-once-answer"],
       "checks": [
         { "id": "own-opener", "metric": "ownOpener", "better": "lower", "warn": 0, "fail": 0, "why": "10-21: asked by name 3/3, then answered it himself 1/3 (B2)" }
+      ]
+    },
+    "asked-once": {
+      "label": "An answered follow-up is not asked again", "scenarios": ["asked-once-check"],
+      "checks": [
+        { "id": "re-asked", "metric": "callsMatching", "pattern": "\\b(?:priya|dinner)\\b[^.?!]{0,60}\\b(?:go|went|turn(?:ed)? out)\\b|\\bhow\\b[^.?!]{0,60}\\bpriya\\b|\\bhow (?:was|is|'s) (?:the |that |your )?dinner\\b", "better": "lower", "warn": 0, "fail": 0, "why": "memory audit 10-25: an answer stored as a new dated fact was asked again 16 min later (dates/recall.ts)" }
       ]
     },
     "attunement": {
@@ -119,6 +125,26 @@
       "label": "Better-than-human sample", "scenarios": ["bh-01", "bh-05", "bh-09", "bh-13", "bh-17", "bh-20"],
       "checks": [
         { "id": "human", "metric": "judgeMean", "dim": "humanLikelihood", "better": "higher", "warn": 0.5, "fail": 0.25, "maxDrop": 0.1, "why": "10-21 dev mean 0.31; bh-17 and bh-20 collapse" }
+      ]
+    },
+    "invented-memory": {
+      "label": "Trust gate: no invented history", "gate": true, "scenarios": [],
+      "checks": [
+        { "id": "calls-invented", "metric": "judgedWith", "field": "inventedHistory", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "zero tolerance: one made-up memory breaks trust (was a 0.25 share inside first-call and cross-call)", "known": { "max": 5, "why": "nightlies 10-22, 10-23, 10-25: 5, 3, 3 calls (memlive-mover-quiz in each); FAIL but no exit 1 at or under this; lower it as fixes land" } }
+      ]
+    },
+    "re-asked": {
+      "label": "Trust gate: never re-asks what was answered", "gate": true, "scenarios": [],
+      "checks": [
+        { "id": "calls-re-asked", "metric": "judgedWith", "field": "reAsked", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "judge reAsked: asking again what the caller already told Ferni", "known": { "max": 1, "why": "nightlies 10-22, 10-23, 10-25: 1, 0, 1 calls; #2856 targets it, so set 0 once a night shows it fixed" } },
+        { "id": "asked-once", "metric": "capabilityCheck", "capability": "asked-once", "check": "re-asked", "better": "lower", "warn": 0, "fail": 0, "why": "the asked-once scenarios; skipped until that capability exists" }
+      ]
+    },
+    "false-done": {
+      "label": "Report only: never claims a call or text that didn't happen", "reportOnly": true, "scenarios": [],
+      "reportOnlyWhy": "REPORT ONLY (WARN tier, never exit 1) until a model or judge read backs it: it is a word list (false-done.mjs), and #2899 round 1 measured precision 0.67 / recall 0.50 on 18 held-out phrasings; lexical gates keep failing held-out sets. A model-backed check is the path back to a trust gate.",
+      "checks": [
+        { "id": "claimed-contact", "metric": "claimedContact", "scope": "all", "better": "lower", "warn": 0, "why": "eval accounts never reach anyone, so a first-person or done-fact call/text/booking claim is false (action-claim.txt); WARN, never FAIL" }
       ]
     }
   }

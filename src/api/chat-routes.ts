@@ -17,6 +17,7 @@ import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { type ChatCaller, offeredChatTools, refuseChatTool } from './chat-tool-access.js';
 import { refuseUnadmittedCaller } from './admission.js';
+import { chatHold, chatToolContext } from './chat-minor-care.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { executeTool } from '../agents/shared/tool-dispatcher.js';
@@ -68,10 +69,11 @@ async function processMessageWithLLM(
   message: string,
   personaId: string,
   tools: ChatToolDefinition[],
-  conversationHistory: Array<{ role: string; content: string }> = []
+  conversationHistory: Array<{ role: string; content: string }> = [],
+  note = '' // MINOR_CARE_NOTE for a held caller (chat-minor-care.ts)
 ): Promise<{ response: string; toolCalls: Array<{ fn: string; args: Record<string, unknown> }> }> {
   // Build system prompt
-  const systemPrompt = buildSystemPrompt(personaId, tools);
+  const systemPrompt = `${buildSystemPrompt(personaId, tools)}${note && `\n\n${note}`}`;
 
   // Build messages
   const messages = [
@@ -80,10 +82,7 @@ async function processMessageWithLLM(
     { role: 'user', content: message },
   ];
 
-  // Call LLM
-  const response = await callLLMWithTools(messages, tools);
-
-  return response;
+  return callLLMWithTools(messages, tools);
 }
 
 /**
@@ -433,13 +432,14 @@ export async function handleChatRoutes(
         'Processing chat message'
       );
 
-      // Process message through LLM
-      const offered = await offeredFor(auth);
+      // Process message through LLM; a held caller's reply promises no memory (chat-minor-care.ts)
+      const [offered, hold] = await Promise.all([offeredFor(auth), chatHold(userId)]);
       const llmResult = await processMessageWithLLM(
         body.message,
         personaId,
         offered,
-        body.conversationHistory
+        body.conversationHistory,
+        hold.note
       );
 
       // Execute any tool calls
@@ -455,7 +455,7 @@ export async function handleChatRoutes(
         try {
           const result = await executeTool(
             { name: toolCall.fn, args: toolCall.args },
-            { userId, personaId, inputText: body.message }
+            chatToolContext(userId, hold, body.message, personaId)
           );
 
           executedTools.push({
@@ -505,7 +505,7 @@ export async function handleChatRoutes(
       const startTime = Date.now();
       const result = await executeTool(
         { name: body.fn, args: body.args || {} },
-        { userId, inputText: `Direct tool call: ${body.fn}` }
+        chatToolContext(userId, await chatHold(userId), `Direct tool call: ${body.fn}`)
       );
 
       sendJSON(res, {

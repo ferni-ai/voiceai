@@ -322,7 +322,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         canon = c;
       })
     : Promise.resolve();
-  const dates = deps.dates ?? datesRecallFor(deps.userId);
+  const dates = deps.dates ?? datesRecallFor(deps.userId, deps.sessionId);
   const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready, world.ready];
   const repairs = loadRepairRecall(deps.userId, deps.repairStore); // FRIEND_REPAIR, first note
@@ -471,6 +471,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           semantic: semantic.size,
           extras: extras.length,
           self: self !== null,
+          // Which lines came along (ids are in dates-recall's 'Date raised'), never words.
+          dates: dateNow ? 1 : 0,
+          world: worldNote ? 1 : 0,
         },
         'Recall added'
       );

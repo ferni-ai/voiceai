@@ -18,6 +18,8 @@ import { llm } from '@livekit/agents';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { namesNoAccount } from '../../../utils/synthetic-user.js';
+import { quietHoursWriter } from './quiet-hours-port.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 // Superhuman services for "Better Than Human" awareness
@@ -190,6 +192,12 @@ const setQuietHoursDef: ToolDefinition = {
             return 'Please use 24-hour time format like 22:00 for 10 PM or 08:00 for 8 AM.';
           }
 
+          // "When I'll Check In" and the senders read messagingPrefs; the ambient copy is for nudges.
+          const save = quietHoursWriter();
+          if (namesNoAccount(ctx.userId)) return "I can set quiet hours once I know it's you.";
+          if (!save) throw new Error('quiet hours writer not installed');
+          if ((await save(ctx.userId, startTime, endTime)) === 'same')
+            return 'Quiet hours need a different start and end time.';
           await ambientMode.setQuietHours(ctx.userId, startTime, endTime);
 
           log.info({ userId: ctx.userId, startTime, endTime }, 'Quiet hours set');

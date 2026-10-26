@@ -298,6 +298,8 @@ export interface ExecuteHandoffOptions {
   subscriptionTier?: 'free' | 'friend' | 'partner';
   /** Skip unlock validation (for testing) */
   skipUnlockCheck?: boolean;
+  /** Runs once the checks pass, before the setup awaits: the early goodbye (early-goodbye.ts) */
+  onCleared?: (targetId: string) => Promise<unknown>;
   /** Current emotional state of the user */
   emotionalState?: string;
   /** Topics discussed in the conversation */
@@ -403,7 +405,11 @@ export async function executeHandoff(
 
   // Team unlock validation (bypass via BYPASS_TEAM_UNLOCKS is inside the check)
   if (!options.skipUnlockCheck) {
-    const unlock = checkHandoffUnlocked(canonicalTargetId, options.userProfile || null, options.subscriptionTier || 'free');
+    const unlock = checkHandoffUnlocked(
+      canonicalTargetId,
+      options.userProfile || null,
+      options.subscriptionTier || 'free'
+    );
     if (!unlock.open) {
       return {
         success: false,
@@ -421,15 +427,13 @@ export async function executeHandoff(
   try {
     agent = await AgentRegistry.getAgentOrNull(canonicalTargetId);
   } catch (err) {
-    // FIX BUG #11: Proper error type narrowing
     getLogger().warn({ targetAgentId, error: String(err) }, 'Failed to get agent from registry');
   }
 
-  // Get display name
+  if (agent) await options.onCleared?.(canonicalTargetId); // HANDOFF_EARLY_GOODBYE, before setup
   const targetAgentName = agent?.name || getPersonaDisplayName(canonicalTargetId);
 
-  // FIX BUG #6: Capture conversation context if provided
-  // This ensures the new persona has awareness of what was just discussed
+  // FIX BUG #6: Capture conversation context, so the new persona knows what was just discussed
   if (options.topics || options.emotionalState || options.voiceEmotion) {
     captureHandoffContext({
       topics: options.topics || [],
@@ -447,8 +451,7 @@ export async function executeHandoff(
     );
   }
 
-  // Update current agent
-  // FIX: Update both session-scoped and global state for compatibility
+  // Update current agent: both session-scoped and global state, for compatibility
   if (sessionState) {
     setSessionCurrentAgent(sessionState, canonicalTargetId as AgentId);
   }
@@ -485,7 +488,6 @@ export async function executeHandoff(
   try {
     voiceId = getVoiceId(canonicalTargetId);
   } catch (err) {
-    // FIX BUG #11: Proper error type narrowing
     getLogger().warn({ targetAgentId, error: String(err) }, 'Could not get voice ID');
   }
 
@@ -497,8 +499,7 @@ export async function executeHandoff(
     `🔄 HANDOFF: ${previousAgent} → ${targetAgentName}`
   );
 
-  // Emit voiceSwitch event
-  // FIX BUG: Add logging to trace event emission
+  // Emit voiceSwitch event (logged, to trace its emission)
   const eventData = await createHandoffEvent(canonicalTargetId, {
     greeting,
     playSound: options.playSound,
@@ -519,8 +520,7 @@ export async function executeHandoff(
   );
 
   // FIX: Wait for handler to complete before returning to LLM
-  // This prevents race conditions where LLM responds before greeting is spoken
-  // FIX BUG #2 & #8: Use shared HANDOFF_TIMING constant
+  // This prevents race conditions where LLM responds before greeting is spoken (HANDOFF_TIMING)
 
   const handlerCompletePromise = new Promise<{
     success: boolean;

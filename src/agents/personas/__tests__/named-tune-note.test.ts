@@ -5,6 +5,25 @@
  * light turn. Off, nothing changes and nothing is read or written.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** NAMED_TUNE_NOTE lines, captured from the module logger. */
+const logged = vi.hoisted(() => [] as Array<[Record<string, unknown>, string]>);
+vi.mock('../../../utils/safe-logger.js', async (orig) => {
+  const real = await orig<Record<string, unknown>>();
+  const logger = (): unknown =>
+    new Proxy(
+      {},
+      {
+        get: (_t, prop) =>
+          prop === 'info'
+            ? (fields: Record<string, unknown>, msg: string) => logged.push([fields, msg])
+            : prop === 'child'
+              ? logger
+              : () => undefined,
+      }
+    );
+  return { ...real, createLogger: logger };
+});
 import {
   asksToStopTune,
   MENTION_EVERY,
@@ -65,7 +84,11 @@ async function call(sessionId: string, store: TuneStore, env: Record<string, str
   return { note, whistle: (id = TUNE) => tunePlayed(sessionId, id, 'whistle', env) };
 }
 
-beforeEach(() => forgetTuneCalls());
+beforeEach(() => {
+  forgetTuneCalls();
+  logged.length = 0;
+});
+const tuneLog = () => logged.filter(([, msg]) => msg === 'NAMED_TUNE_NOTE').map(([f]) => f);
 afterEach(() => vi.restoreAllMocks());
 
 describe('noticing the whistle', () => {
@@ -174,6 +197,71 @@ describe('naming flow, flag on', () => {
     const note = c.note('were you whistling?');
     expect(note).toContain('"Pharmacy Line Blues"');
     expect(note).not.toContain('name it');
+  });
+});
+
+describe('the ask, the name, and no made-up past', () => {
+  it('owning it asks them to name it, ends on the question, and forbids an origin', async () => {
+    const { store } = memoryStore();
+    const c = await call('s1', store);
+    c.whistle();
+    const note = c.note("Okay, I'm back. Wait, were you just whistling? What's that tune?");
+    expect(note).toContain('Want to name it?');
+    expect(note).toContain('end your reply on that question');
+    expect(note).toContain(
+      'never give it a history, an origin, or a memory of anyone whistling it'
+    );
+  });
+
+  it('their name is the name: kept as they said it, said back, never replaced with a history', async () => {
+    const { store, records } = memoryStore();
+    const c = await call('s1', store);
+    c.whistle();
+    c.note('were you just whistling?');
+    const named = c.note("Let's call it the sock song.");
+    expect(named).toContain('"the sock song"');
+    expect(named).toContain('Take their name as is');
+    expect(named).toContain("Don't rename it or correct them");
+    expect(named).toContain('never give it a history, an origin');
+    await flush();
+    expect(records.get('u1')).toMatchObject({ tuneId: TUNE, name: 'the sock song' });
+  });
+
+  it('caught whistling the named tune again: owned by their name, still no origin', async () => {
+    const { store } = memoryStore({ u1: { tuneId: TUNE, name: 'the sock song' } });
+    const c = await call('s1', store);
+    c.whistle();
+    const note = c.note('were you whistling?');
+    expect(note).toContain('"the sock song", the tune they named');
+    expect(note).toContain('never give it a history');
+  });
+});
+
+describe('decision log (NAMED_TUNE_NOTE)', () => {
+  it('logs the step for each note, and why a remark got none, never their words', async () => {
+    const { store } = memoryStore();
+    const c = await call('s1', store);
+    expect(tuneLog()).toEqual([]); // "hey, how are you": no note, no remark, no line
+    expect(c.note("what's that tune?")).toBe('');
+    c.whistle();
+    c.note('were you just whistling?');
+    c.note("let's call it Pharmacy Line Blues");
+    namedTuneNote(turn('s7', 'were you whistling?', { verified: false }), store, ON);
+    expect(tuneLog()).toEqual([
+      { sessionId: 's1', step: 'skip:nothing_played' },
+      { sessionId: 's1', step: 'remark' },
+      { sessionId: 's1', step: 'named' },
+      { sessionId: 's7', step: 'skip:not_verified_owner' },
+    ]);
+    expect(JSON.stringify(logged)).not.toMatch(/Pharmacy|whistling\?|tune\?/);
+  });
+
+  it('logs nothing with the flag off', async () => {
+    const { store } = memoryStore();
+    const c = await call('s1', store, {});
+    c.whistle();
+    expect(c.note('were you whistling?')).toBe('');
+    expect(tuneLog()).toEqual([]);
   });
 });
 

@@ -41,9 +41,8 @@ export const COSMETICS_FOR_SALE: readonly CosmeticForSale[] = [
   { id: 'sounds-rain', type: 'sound-pack', price: 150, requiredTier: 'friend' },
   { id: 'sounds-fireplace', type: 'sound-pack', price: 150, requiredTier: 'friend' },
   { id: 'sounds-nature', type: 'sound-pack', price: 250, requiredTier: 'friend' },
-  { id: 'voice-warm', type: 'voice-pack', price: 200, requiredTier: 'friend' },
-  { id: 'voice-calm', type: 'voice-pack', price: 300, requiredTier: 'friend' },
-  { id: 'voice-energetic', type: 'voice-pack', price: 300, requiredTier: 'friend' },
+  // No voice packs: nothing applies one (VOICE_PACKS_AVAILABLE in the web catalog is off), so
+  // a bought pack changed nothing. The web hides them; the server must not sell them either.
 ];
 
 const BY_ID = new Map(COSMETICS_FOR_SALE.map((item) => [item.id, item]));

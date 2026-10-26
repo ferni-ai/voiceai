@@ -61,6 +61,11 @@ vi.mock('firebase-admin', () => {
 const deleteAllData = vi.hoisted(() => vi.fn());
 vi.mock('../../services/data-export.js', () => ({ getDataExportService: () => ({ deleteAllData }) }));
 const deleteFirebaseUser = vi.hoisted(() => vi.fn());
+const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/safe-logger.js')>()),
+  createLogger: () => ({ ...logged, child: () => logged }),
+}));
 vi.mock('../../services/identity/firebase-auth.js', () => ({ deleteFirebaseUser }));
 
 // Mock helpers
@@ -427,12 +432,36 @@ describe('GDPR Routes API', () => {
       expect(order).toEqual(['data', 'sign-in']);
     });
 
+    it("logs a failed sign-in deletion's code, never its message", async () => {
+      deleteAllData.mockResolvedValue({ profile: true });
+      deleteFirebaseUser.mockRejectedValue(
+        Object.assign(new Error('could not delete someone@example.com'), {
+          code: 'auth/internal-error',
+        })
+      );
+      logged.warn.mockClear();
+      const res = await deleteAccount();
+      expect(res._statusCode).toBe(200);
+      expect(logged.warn).toHaveBeenCalledWith(
+        { error: 'Error:auth/internal-error', userId: 'firebase...' },
+        'Firebase user deletion failed (non-fatal)'
+      );
+      expect(JSON.stringify(logged.warn.mock.calls)).not.toContain('someone@example.com');
+    });
+
+    it('keeps the sign-in when a data step reports it left data behind', async () => {
+      deleteAllData.mockResolvedValue({ profile: true, answer_cards: false });
+      const res = await deleteAccount();
+      expect(res._statusCode).toBe(500);
+      expect(deleteFirebaseUser).not.toHaveBeenCalled();
+    });
+
     it('keeps the sign-in and says so when the data could not be erased', async () => {
       deleteAllData.mockRejectedValue(new Error('User record not fully erased'));
       const res = await deleteAccount();
       expect(res._statusCode).toBe(500);
       expect(deleteFirebaseUser).not.toHaveBeenCalled();
-      expect(JSON.parse(res._data).error).toBe('Failed to delete account. Please contact support.');
+      expect(JSON.parse(res._data).error).toBe('Failed to delete account. Your sign-in is still open, so try again.');
     });
   });
 });

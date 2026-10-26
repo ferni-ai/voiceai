@@ -11,6 +11,8 @@ final class AccountStoreTests: XCTestCase {
         var existing: AccountUser?
         var anonymousFailures = 0
         var linkError: Error?
+        /// The Apple ID already has its own Ferni account (Firebase signs into it instead).
+        var appleAccount: String?
         private(set) var anonymousCalls = 0
         private(set) var linked: [String] = []
         private(set) var signOuts = 0
@@ -32,7 +34,7 @@ final class AccountStoreTests: XCTestCase {
         func linkOrSignIn(apple: AppleCredential) async throws -> AccountUser {
             if let linkError { throw linkError }
             linked.append(apple.idToken)
-            existing = AccountUser(uid: existing?.uid ?? "apple", isAnonymous: false, providerIDs: ["apple.com"])
+            existing = AccountUser(uid: appleAccount ?? existing?.uid ?? "apple", isAnonymous: false, providerIDs: ["apple.com"])
             return existing!
         }
         func signOut() async throws {
@@ -137,6 +139,19 @@ final class AccountStoreTests: XCTestCase {
         XCTAssertEqual(account.user?.isSignedInWithApple, true)
         XCTAssertEqual(uploads.codes, ["code-1"])
         XCTAssertNil(account.notice)
+    }
+
+    /// Critic M3: when the Apple ID already has a Ferni account, the person
+    /// continues there, and is told, since this phone's conversations so far
+    /// stay with the account they leave.
+    func testLandingOnAnExistingAppleAccountSaysSo() async {
+        let backend = FakeBackend()
+        backend.appleAccount = "existing-apple-user"
+        let account = store(backend)
+        await account.start()
+        await account.signInWithApple(apple)
+        XCTAssertEqual(account.user?.uid, "existing-apple-user")
+        XCTAssertEqual(account.notice, AccountStore.switchedNotice)
     }
 
     func testAFailedAppleSignInKeepsTheAnonymousAccountAndSendsNothing() async {

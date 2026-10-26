@@ -17,6 +17,7 @@
 import type { GatewayHolds } from '../../speech/tts-gateway/first-audio-observer.js';
 import type { TurnHoldKind, TurnTimingKind } from '../../speech/output-control/turn-timing.js';
 import { llmReady, type EouMetric, type LlmMetric } from './turn-metrics.js';
+import type { StepKind } from './turn-receipt-tool-timing.js';
 
 export interface TurnAttribution {
   holds: Partial<Record<TurnHoldKind, number>>;
@@ -44,7 +45,7 @@ export const newAttribution = (): TurnAttribution => ({ holds: {} });
 /** A hold or an opening clip on the open turn; holds after Ferni was heard don't count. */
 export function noteTiming(
   turn: TimedTurn,
-  kind: Exclude<TurnTimingKind, 'unfinishedTurn'>,
+  kind: Exclude<TurnTimingKind, 'unfinishedTurn' | StepKind>,
   heldMs: number,
   now: number
 ): void {

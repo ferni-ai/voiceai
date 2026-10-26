@@ -180,7 +180,7 @@ export const MICRO_STORIES = {
   jackB: [
     '<emotion value="affectionate"/><break time="400ms"/>I was staring at the mountains in Wyoming once, <break time="200ms"/>just sitting there for maybe an hour. <break time="250ms"/>My brother asked if I was okay. <break time="150ms"/>I said I was perfect.',
     '<emotion value="curious"/><break time="300ms"/>There\'s a coffee shop I go to sometimes just to... <break time="200ms"/>be around people. <break time="250ms"/>Don\'t even talk to anyone. <break time="150ms"/>Just... <break time="200ms"/>be there.',
-    '<emotion value="happy"/><break time="400ms"/>My dog and I have an agreement. <break time="150ms"/>I don\'t explain my silences, <break time="150ms"/>and he doesn\'t explain his barking. <break time="200ms"/>Works for us.',
+    '<emotion value="happy"/><break time="400ms"/>My neighbor\'s dog and I have an agreement. <break time="150ms"/>I don\'t explain my silences, <break time="150ms"/>and he doesn\'t explain his barking. <break time="200ms"/>Works for us.',
     '<emotion value="affectionate"/><break time="400ms"/>My mom used to say: \'Slow down. Life isn\'t a race.\' <break time="200ms"/>Took me thirty years to really hear that.',
   ],
   alex: [

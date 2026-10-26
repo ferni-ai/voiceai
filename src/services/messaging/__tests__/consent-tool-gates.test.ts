@@ -35,6 +35,10 @@ vi.mock('@livekit/agents', () => ({
   llm: { tool: (config: unknown) => config },
   log: () => ({ info: () => undefined, warn: () => undefined, error: () => undefined }),
 }));
+vi.mock('../../outreach/guarded-text.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../outreach/guarded-text.js')>()),
+  isOwnVerifiedPhone: async () => false,
+}));
 const callsCreate = vi.hoisted(() => vi.fn(async () => ({ sid: 'CA1' })));
 vi.mock('twilio', () => ({ default: () => ({ calls: { create: callsCreate } }) }));
 const fetchSpy = vi.fn(async (url: string | URL) =>
@@ -52,10 +56,13 @@ import { createCommunicationTools } from '../../../tools/domains/communication/c
 import { createPlaidTools } from '../../../tools/domains/finance/plaid.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
 import { consentBlocks, writeOptOut } from '../consent.js';
-import { registerConsentCheck } from '../../../utils/consent-port.js';
+import { registerConsentCheck, registerGrantChecks } from '../../../utils/consent-port.js';
+import { recordOwnerAttestation } from '../consent-grants.js';
+import { ownerRefusal, thirdPartyRefusal } from '../consent-reach.js';
 
 // The senders below L4 ask the port; register it as each process entry does, over the memory store.
 registerConsentCheck((phone, channel, allow) => consentBlocks(phone, channel, allow));
+registerGrantChecks({ thirdPartyRefusal, recordOwnerAttestation, ownerRefusal });
 
 const PHONE = '+12025550166';
 const env = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
@@ -117,6 +124,20 @@ it('conference-call-manager does not dial a participant who opted out', async ()
   expect(callsCreate).not.toHaveBeenCalled();
 });
 
+it('conference-call-manager does not dial a participant who never agreed to calls', async () => {
+  mem.consent = memoryConsentStore();
+  const manager = new ConferenceCallManager({
+    room: {} as never,
+    sessionId: 's1',
+    userId: 'u1',
+    webhookBaseUrl: 'https://app.example.test',
+    twilio: { accountSid: 'AC_test', authToken: 'token', phoneNumber: '+12025550100' },
+  } as unknown as ConstructorParameters<typeof ConferenceCallManager>[0]);
+  const result = await manager.addParticipant({ phoneNumber: PHONE, name: 'Pat Example' } as never);
+  expect(result).toEqual({ success: false, error: 'Not calling: needs-consent' });
+  expect(callsCreate).not.toHaveBeenCalled();
+});
+
 it('scheduling executor makePhoneCall refuses an opted-out number', async () => {
   const reply = await schedulingExecutor.execute(
     'makePhoneCall',
@@ -143,9 +164,22 @@ it('plaid linkBankAccount will not text the link to an opted-out number', async 
     { execute: (args: Record<string, unknown>, ctx: unknown) => Promise<unknown> }
   >;
   const reply = await tools.linkBankAccount.execute(
+    { userId: 'someone-else', deliveryMethod: 'sms', contact: PHONE },
+    { ctx: { userData: { userId: 'u1' } } }
+  );
+  expect(String(reply)).toContain('asked not to get texts');
+  expect(twilioCalls()).toHaveLength(0);
+});
+
+it("plaid linkBankAccount acts only for the session's caller, never a model-supplied id", async () => {
+  const tools = createPlaidTools() as unknown as Record<
+    string,
+    { execute: (args: Record<string, unknown>, ctx: unknown) => Promise<unknown> }
+  >;
+  const reply = await tools.linkBankAccount.execute(
     { userId: 'u1', deliveryMethod: 'sms', contact: PHONE },
     {}
   );
-  expect(String(reply)).toContain('asked not to get texts');
+  expect(String(reply)).toContain("only send the link to the person I'm talking with");
   expect(twilioCalls()).toHaveLength(0);
 });
