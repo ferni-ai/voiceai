@@ -1,0 +1,100 @@
+/**
+ * CALL_ME_VOCATIVE=on: the name rememberName is confirming, tracked from the
+ * tool calls themselves (remember-name.ts), never from a reading of the
+ * transcript.
+ *
+ * PR #2886 tracked "the name the caller said last" with a regex over their
+ * words. Lower-case or unusual corrections ("actually call me jamie", "no
+ * wait, make it Jamie") fell back to the old name, so a late call for Sam
+ * plus "yes" saved Sam. Here:
+ * - the newest name the tool is called with is the one being confirmed; an
+ *   older open question is dropped when a newer name is asked about or saved;
+ * - the caller's next turn answers the open question, and only it: a yes is
+ *   for that name on that turn, and is gone the turn after;
+ * - a question the next turn didn't answer is dropped, so an old name asked
+ *   about again later starts over and never inherits an old yes.
+ * Turns are counted from the request (call-me-note.ts noteCallerTurn): runs of
+ * the caller's messages, so one turn's preemptive, final and tool-reply
+ * requests are one turn, and "yes" then "yes" are two.
+ *
+ * @module tools/domains/conversation/name-confirm-calls
+ */
+
+interface Turn {
+  turn: number;
+  words: string;
+}
+
+interface Asked {
+  name: string;
+  turn: number;
+  /** A name like a team name, asked about twice (name-likeness.ts). */
+  twice: boolean;
+  /** This is the second question. */
+  second: boolean;
+}
+
+interface Answer extends Asked {
+  /** The turn that answered it. */
+  on: number;
+  yes: boolean;
+}
+
+const turns = new WeakMap<object, Turn>();
+const asked = new WeakMap<object, Asked>();
+const answered = new WeakMap<object, Answer>();
+
+/** Notes the caller's turn: `turn` counts their turns so far on this call, `words` are this turn's. */
+export function noteCallerTurn(session: object, words: string, turn: number): void {
+  if (words.trim()) turns.set(session, { turn, words });
+}
+
+const first = (name: string): string => name.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
+export const sameName = (a: string, b: string | undefined): boolean => !!b && first(a) === first(b);
+
+export type Step = { kind: 'ask'; second: boolean } | { kind: 'save' } | { kind: 'no' };
+
+/** The open question meets the caller's next turn: answered there, or dropped if that turn passed. */
+function settle(session: object, now: Turn, isYes: (words: string, name: string) => boolean): void {
+  const open = asked.get(session);
+  if (!open || now.turn <= open.turn) return; // the same turn: still waiting
+  asked.delete(session);
+  if (now.turn !== open.turn + 1) return; // their next turn passed with no tool call: start over
+  answered.set(session, { ...open, on: now.turn, yes: isYes(now.words, open.name) });
+}
+
+function ask(session: object, name: string, now: Turn, twice: boolean, second: boolean): Step {
+  asked.set(session, { name, turn: now.turn, twice, second });
+  return { kind: 'ask', second };
+}
+
+/**
+ * What a rememberName call for `name` does this turn. `twice`: ask twice;
+ * `onFile`: the account's name (saved again as before, never asked about).
+ */
+export function stepFor(
+  session: object,
+  name: string,
+  opts: { twice: boolean; onFile?: string; isYes: (words: string, name: string) => boolean }
+): Step {
+  const now = turns.get(session) ?? { turn: -1, words: '' };
+  settle(session, now, opts.isYes);
+  const reply = answered.get(session);
+  const open = asked.get(session);
+  if (reply && reply.on === now.turn && sameName(reply.name, name)) {
+    if (open && !sameName(open.name, name)) asked.delete(session); // the newer call wins
+    if (!reply.yes) return { kind: 'no' };
+    if (reply.twice && !reply.second) {
+      answered.delete(session);
+      return ask(session, name, now, true, true);
+    }
+    return { kind: 'save' };
+  }
+  if (open && open.turn === now.turn && sameName(open.name, name))
+    return { kind: 'ask', second: open.second };
+  if (sameName(name, opts.onFile)) {
+    if (open) asked.delete(session);
+    return { kind: 'save' };
+  }
+  return ask(session, name, now, opts.twice, false);
+}
