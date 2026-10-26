@@ -5,16 +5,17 @@
  * Prod (2026-10-22 to 10-25): 23 alerts, one every ~5 minutes for up to an
  * hour after a call. The first response of an on-behalf call was timed from
  * session start, so its ring counted (36 s on 10-24), and one call was enough.
- * Re-sending every cooldown during a real breach is unchanged from main (a
- * once-per-incident dedup is a separate follow-up).
+ * A real breach now pages once per incident (call-quality-incidents.test.ts).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const notify = vi.hoisted(() => vi.fn(async () => undefined));
+const notify = vi.hoisted(() =>
+  vi.fn(async () => ({ status: 'delivered' as const, via: 'slack' as const }))
+);
 const recordMetricValue = vi.hoisted(() => vi.fn());
 vi.mock('../../slack-notifications.js', () => ({
   SlackNotificationService: class {
-    notify = notify;
+    notifyWithResult = notify;
   },
 }));
 vi.mock('../../predictive-alerting.js', () => ({ recordMetricValue }));
@@ -130,18 +131,18 @@ describe('response-time alerts wait for a minimum sample', () => {
   });
 });
 
-describe('a real breach (cooldown as on main)', () => {
-  it('alerts for 5 slow calls, holds inside the cooldown, and re-sends after it', async () => {
+describe('a real breach', () => {
+  it('alerts for 5 slow calls once, not again every 5 minutes', async () => {
     for (let i = 0; i < 5; i++) inboundCall(8_000);
     await checkQualityAlerts();
     expect(responseAlerts()).toEqual(['📞 Response Time Critical']);
 
     at(T0 + MINUTE);
     await checkQualityAlerts();
-    expect(responseAlerts()).toHaveLength(1); // within the 5-minute cooldown
+    expect(responseAlerts()).toHaveLength(1);
 
-    at(T0 + 6 * MINUTE);
+    at(T0 + 6 * MINUTE); // past the 5-minute cooldown, same incident
     await checkQualityAlerts();
-    expect(responseAlerts()).toHaveLength(2); // noisy, never silent
+    expect(responseAlerts()).toHaveLength(1);
   });
 });

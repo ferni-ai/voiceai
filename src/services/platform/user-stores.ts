@@ -70,7 +70,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'user_contacts',
     'profiles', // conversation and insight feedback, subcollections only
     'feature_flag_overrides', // flags turned on for this person alone (cohort-flags.ts)
-    'minor_care_holds', // {heldUntil, v}: a call held them under 18 (minor-care-shared-hold.ts)
+    'minor_care_holds', // {heldUntil, v, windows}: a call held them under 18 (minor-care-shared-hold.ts)
     // The router's learning stores: tool picks, lengths and phrase hashes, never the words
     'semantic_routing_vocabulary',
     'semantic_routing_corrections' // {uid}/corrections, the {uid} document never written
@@ -141,6 +141,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'intelligence_queue', // queued turn events holding the person's words (INTELLIGENCE_QUEUE)
     'relationship_memories' // {uid}_{persona}: shared moments and inside jokes, older agent
   ),
+  ...byField('userId', 'answer_cards'), // answer cards (/a/:id), deleted by deleteAnswerCardsForUser
   ...byField('ownerId', 'share_links', 'share_invites', 'voice_households'),
   ...byField('toUserId', 'family_messages', 'family_shared_context'),
   ...byField('referrerId', 'voice_referrals'),

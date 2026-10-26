@@ -66,6 +66,13 @@ describe('Apple account-delete failure', () => {
     expect(lines).not.toContain('No document to update');
   });
 
+  it('keeps the sign-in and does not mark the deletion complete when a step left data behind', async () => {
+    deleteAllData.mockResolvedValue({ answer_cards: false });
+    expect(await processAppleNotification('signed.jwt.token')).toMatchObject({ success: false });
+    expect(deleteFirebaseUser).not.toHaveBeenCalled();
+    expect(updates).not.toContainEqual(expect.objectContaining({ deletionStatus: 'completed' }));
+  });
+
   it("logs a failed Firebase user deletion's code, never its message", async () => {
     deleteAllData.mockResolvedValue({});
     deleteFirebaseUser.mockRejectedValue(

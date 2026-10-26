@@ -15,9 +15,19 @@ vi.mock('../firestore-utils.js', async (orig) => ({
   getFirestoreDb: () => ({
     collection: (c: string) => ({
       doc: (id: string) => ({
+        path: `${c}/${id}`,
         set: async (data: Record<string, unknown>) => void firestoreDocs.set(`${c}/${id}`, data),
       }),
     }),
+    runTransaction: async (fn: (tx: unknown) => Promise<void>) =>
+      fn({
+        get: async (ref: { path: string }) => ({ data: () => firestoreDocs.get(ref.path) }),
+        set: (ref: { path: string }, data: Record<string, unknown>, opts?: { merge?: boolean }) =>
+          void firestoreDocs.set(ref.path, {
+            ...(opts?.merge ? firestoreDocs.get(ref.path) : {}),
+            ...data,
+          }),
+      }),
   }),
 }));
 import {
@@ -191,6 +201,17 @@ describe('recordSharedHold', () => {
     expect(Object.keys(doc ?? {}).sort()).toEqual(['expireAt', 'heldUntil', 'v']);
     expect(doc?.expireAt).toBeInstanceOf(Date); // the Admin SDK stores a Date as a Timestamp
     expect((doc?.expireAt as Date).getTime()).toBe(NOW + IDLE_MS);
+  });
+
+  it('in Firestore: keeps the held windows stored with it, and never expires before them', async () => {
+    firestoreDocs.clear();
+    const windows = [{ start: NOW - 60_000, end: NOW, scrubbed: false }];
+    const keepUntil = NOW + 90 * 24 * 3_600_000;
+    firestoreDocs.set('minor_care_holds/u1', { windows, keepUntil, expireAt: new Date(keepUntil) });
+    await firestoreHoldStore.write('u1', { heldUntil: NOW + IDLE_MS, v: 1 });
+    const doc = firestoreDocs.get('minor_care_holds/u1');
+    expect(doc).toMatchObject({ windows, keepUntil, heldUntil: NOW + IDLE_MS, v: 1 });
+    expect((doc?.expireAt as Date).getTime()).toBe(keepUntil);
   });
 
   it('never throws when the write fails', async () => {

@@ -14,7 +14,12 @@
  * @module services/trust-systems/reload-before-save
  */
 import { loadMomentumUser, withoutHeldWins } from './celebration-momentum.js';
-import { scrubHeldDoc } from './held-window.js';
+import {
+  loadHeldWindows,
+  markHeldWindowsScrubbed,
+  scrubHeldDoc,
+  storeHeldWindow,
+} from './held-window.js';
 import { importLearningProfile, type LearningProfile } from './learning-style.js';
 import { readTrustDoc } from './trust-doc.js';
 import { loadVoiceProsodyUser, withoutHeldSamples } from './voice-prosody-learning.js';
@@ -49,9 +54,21 @@ export function trustDocRead(userId: string, doc: string, ok: boolean): void {
 export const trustDocUnread = (userId: string, doc: string): boolean =>
   unread.has(`${userId}/${doc}`);
 
+/** The docs loadReloadedStores reads back, each released only by its own good read. */
+const LATE_DOCS = ['learning_style', 'voice_prosody', 'celebration_momentum'];
+
+/**
+ * Session start, before any read: hold the docs loadReloadedStores reads back. A read that never
+ * settles (the SDK's deadline is 300 s), here or earlier in loadTrustProfiles, must not leave the
+ * session-end save free to write this call alone over them.
+ */
+export function holdUntilReloaded(userId: string): void {
+  for (const doc of LATE_DOCS) trustDocRead(userId, doc, false);
+}
+
 /** Session start: read back the stores loadTrustProfiles didn't. Returns the ones read. */
 export async function loadReloadedStores(userId: string): Promise<string[]> {
-  const loaded: string[] = [];
+  const loaded: string[] = []; // its docs are held since loadTrustProfiles began (holdUntilReloaded)
   const style = await readTrustDoc<LearningProfile>(userId, 'learning_style');
   trustDocRead(userId, 'learning_style', style.status !== 'error');
   if (style.status === 'found') {
@@ -62,6 +79,12 @@ export async function loadReloadedStores(userId: string): Promise<string[]> {
     ['voice_prosody', loadVoiceProsodyUser],
     ['celebration_momentum', loadMomentumUser],
   ] as const;
+  // MINOR_CARE: the held windows any process stored (held-window.ts) before either store reads.
+  // Unreadable (or never settling): both stay held, since a read now could keep a held caller's
+  // entries. A scrub retry that fails is fine (the loads drop them); one that hangs holds them.
+  const held = await loadHeldWindows(userId).catch(() => null);
+  if (!held) return loaded;
+  if (held.unscrubbed) await scrubAndMark(userId); // the purge's scrub never completed
   for (const [doc, load] of stores) {
     const ok = await load(userId).then(
       () => true,
@@ -82,5 +105,32 @@ export async function scrubHeldStores(userId: string): Promise<boolean[]> {
   return Promise.all([
     scrubHeldDoc(userId, 'voice_prosody', 'data', withoutHeldSamples),
     scrubHeldDoc(userId, 'celebration_momentum', 'profile', withoutHeldWins),
+    ...otherScrubs.map((scrub) => scrub(userId)),
   ]);
+}
+
+/**
+ * Other stores' scrubs (music memories, registered by minor-care-purge.ts: this layer can't import
+ * them). Each runs with these, so one that fails leaves the window unscrubbed and is retried.
+ */
+const otherScrubs: Array<(userId: string) => Promise<boolean>> = [];
+export function addHeldScrub(scrub: (userId: string) => Promise<boolean>): void {
+  otherScrubs.push(scrub);
+}
+
+/** Scrub both docs; once both are clean, mark the stored windows scrubbed. Never rejects. */
+async function scrubAndMark(userId: string): Promise<void> {
+  if ((await scrubHeldStores(userId)).every(Boolean)) await markHeldWindowsScrubbed(userId);
+}
+
+/**
+ * MINOR_CARE purge: store the held call's window first, so a process that never saw it still
+ * drops its entries, then scrub. A step that fails is redone at the user's next session start.
+ */
+export async function storeAndScrubHeldWindow(
+  userId: string,
+  window: [number, number]
+): Promise<void> {
+  await storeHeldWindow(userId, window);
+  await scrubAndMark(userId);
 }
