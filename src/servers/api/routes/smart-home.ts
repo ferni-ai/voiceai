@@ -15,7 +15,10 @@ import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { sealTokens } from '../../../utils/token-at-rest.js';
-import { openSmartHomeCredentials } from '../../../services/smart-home/user-credentials.js';
+import {
+  openSmartHomeCredentials,
+  readSmartHomeCredentials,
+} from '../../../services/smart-home/user-credentials.js';
 import { assertNoEncryptedValues, hueSaveInput, lifxSaveInput } from './smart-home-guards.js';
 import { HUE_NEEDS_REMOTE_ACCESS } from '../../../services/smart-home/hue-remote-access.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
@@ -108,27 +111,9 @@ function getSmartHomeCollection() {
   return getAdminFirestore().collection('bogle_users');
 }
 
-/**
- * Reads and opens a credential doc. Returns null only when the doc does not exist.
- * A read error, or a record that will not open, throws: the caller must not treat
- * an unreadable record as "no record" (saveCredentials would then overwrite it).
- */
-async function readCredentials<T>(userId: string, integration: string): Promise<T | null> {
-  const doc = await getSmartHomeCollection()
-    .doc(userId)
-    .collection('smart_home')
-    .doc(integration)
-    .get();
-
-  if (!doc.exists) return null;
-  const opened = await openSmartHomeCredentials<T>(userId, integration, doc.data());
-  if (opened === null) throw new Error(`smart_home/${integration} record could not be opened`);
-  return opened;
-}
-
 export async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
   try {
-    return await readCredentials<T>(userId, integration);
+    return await readSmartHomeCredentials<T>(userId, integration);
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
@@ -143,7 +128,8 @@ export async function saveCredentials<T extends object>(
   try {
     assertNoEncryptedValues(credentials); // never seal (or later decrypt) a submitted enc_ value
     // Fail closed: a read error throws here, so the set below never replaces a record we could not read.
-    const existing = (await readCredentials<Record<string, unknown>>(userId, integration)) ?? {};
+    const existing =
+      (await readSmartHomeCredentials<Record<string, unknown>>(userId, integration)) ?? {};
     const ref = getSmartHomeCollection().doc(userId).collection('smart_home').doc(integration);
     await ref.set(sealTokens({ ...existing, ...credentials })); // replaced whole: no plaintext left
   } catch (error) {

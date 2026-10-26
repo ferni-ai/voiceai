@@ -156,6 +156,28 @@ export async function openSmartHomeCredentials<T>(
 }
 
 /**
+ * Reads and opens a credential doc. Returns null only when the doc does not exist.
+ * A read error, or a record that will not open, throws: a caller must not treat an
+ * unreadable record as "no record" (saveCredentials would then overwrite it).
+ */
+export async function readSmartHomeCredentials<T>(
+  userId: string,
+  integration: string
+): Promise<T | null> {
+  const doc = await getAdminFirestore()
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('smart_home')
+    .doc(integration)
+    .get();
+
+  if (!doc.exists) return null;
+  const opened = await openSmartHomeCredentials<T>(userId, integration, doc.data());
+  if (opened === null) throw new Error(`smart_home/${integration} record could not be opened`);
+  return opened;
+}
+
+/**
  * Load all smart home credentials for a user
  */
 export async function getUserSmartHomeCredentials(userId: string): Promise<SmartHomeCredentials> {
