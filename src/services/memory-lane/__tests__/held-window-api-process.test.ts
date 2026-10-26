@@ -22,7 +22,7 @@ const fs = vi.hoisted(() => {
         doc: (id: string) => ref(`${path}/${id}`),
         get: async () => {
           reads.push(path);
-          if (fail.hang?.test(path)) await new Promise(() => undefined); // never answers
+          if (fail.hang?.test(path)) await new Promise(() => {}); // never answers
           if (fail.match?.test(path)) throw new Error('14 UNAVAILABLE: fake outage');
           const rows = [...docs].filter(([p]) => p.startsWith(`${path}/`));
           return {
@@ -105,9 +105,15 @@ describe('Memory Lane in a process without the purge', () => {
 // before another process stored a window (and its scrub failed) served the held item for up to 60 s.
 describe('a window stored in another process right after this one read none', () => {
   const joke = (u: string, id: string, at: number, essence: string) =>
-    fs.docs.set(`/bogle_users/${u}/shared_moments/${id}`, { type: 'inside_joke', essence, createdAt: at });
+    fs.docs.set(`/bogle_users/${u}/shared_moments/${id}`, {
+      type: 'inside_joke',
+      essence,
+      createdAt: at,
+    });
   const storeWindow = (u: string, start: number) =>
-    fs.docs.set(`/minor_care_holds/${u}`, { windows: [{ start, end: Date.now(), scrubbed: false }] });
+    fs.docs.set(`/minor_care_holds/${u}`, {
+      windows: [{ start, end: Date.now(), scrubbed: false }],
+    });
 
   it('the next read, within the minute, serves nothing held (Memory Lane and inside jokes)', async () => {
     const u = uid();

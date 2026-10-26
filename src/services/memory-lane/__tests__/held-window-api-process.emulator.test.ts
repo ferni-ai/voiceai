@@ -42,18 +42,22 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('held windows in an API pr
   const uid = () => `HwApiEmu${++n}${Math.random().toString(36).slice(2, 8)}`;
   const coll = (u: string, c: string) => db.collection('bogle_users').doc(u).collection(c);
   const capture = (u: string, id: string, writtenMs: number, content: string) =>
-    coll(u, 'memory_highlights').doc(id).set({
-      id,
-      userId: u,
-      content,
-      type: 'milestone',
-      sourceType: 'milestone_reached',
-      occurredAt: new Date(writtenMs - 10 * DAY).toISOString(),
-      createdAt: new Date(writtenMs).toISOString(),
-      updatedAt: new Date(writtenMs).toISOString(),
-    });
+    coll(u, 'memory_highlights')
+      .doc(id)
+      .set({
+        id,
+        userId: u,
+        content,
+        type: 'milestone',
+        sourceType: 'milestone_reached',
+        occurredAt: new Date(writtenMs - 10 * DAY).toISOString(),
+        createdAt: new Date(writtenMs).toISOString(),
+        updatedAt: new Date(writtenMs).toISOString(),
+      });
   const joke = (u: string, id: string, at: number, essence: string) =>
-    coll(u, 'shared_moments').doc(id).set({ type: 'inside_joke', essence, resonance: 0.9, createdAt: at });
+    coll(u, 'shared_moments')
+      .doc(id)
+      .set({ type: 'inside_joke', essence, resonance: 0.9, createdAt: at });
 
   beforeAll(async () => {
     db = (await import('../../../utils/firebase-admin-app.js')).getAdminFirestore();
