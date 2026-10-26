@@ -21,6 +21,11 @@ const fs = vi.hoisted(() => {
       docs.set(path, data);
     },
     set: async (data: Record<string, unknown>) => void docs.set(path, data),
+    // As Firestore's: the document must exist (the erasure's `erasing` mark)
+    update: async (data: Record<string, unknown>) => {
+      if (!docs.has(path)) throw Object.assign(new Error('5 NOT_FOUND'), { code: 5 });
+      docs.set(path, { ...docs.get(path), ...data });
+    },
   });
   const empty = { limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) };
   const db = {

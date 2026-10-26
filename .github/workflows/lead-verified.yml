@@ -1,8 +1,9 @@
 name: Lead Verified
 
-# REPORT-ONLY: was the exact code this PR merges independently verified? Rules:
-# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Always succeeds; the
-# enforcement switch below (and making the check required) needs Seth's OK.
+# Was the exact code this PR merges independently verified? Rules:
+# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Reports on PRs and PR
+# comments; fails on merge_group when a queued head isn't verified. The queue acts on it
+# only while "Lead Verified" is a required check.
 # Re-runs when the evidence changes (comments, PR edits). issue_comment runs report in
 # the Actions log; they don't update the PR's check.
 on:
@@ -13,7 +14,9 @@ on:
   merge_group:
 
 concurrency:
-  group: lead-verified-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  # Per event, so a comment-triggered run never cancels a pending pull_request run (whose
+  # result is the PR's check).
+  group: lead-verified-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -23,7 +26,7 @@ permissions:
 
 jobs:
   lead-verified:
-    name: Lead Verified (report-only)
+    name: Lead Verified
     if: github.event_name != 'issue_comment' || github.event.issue.pull_request
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -48,8 +51,14 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
-          # ENFORCEMENT SWITCH (needs Seth's OK): uncomment to fail on NOT_VERIFIED.
-          # LEAD_VERIFIED_ENFORCE: '1'
+          # Enforced in the merge queue only (2026-10-25): there the evidence is read fresh
+          # for every queued head, and a NOT_VERIFIED or ERROR fails the group. On a PR it
+          # only reports, because comment-triggered runs don't update the PR's check.
+          LEAD_VERIFIED_ENFORCE: ${{ github.event_name == 'merge_group' && '1' || '' }}
+          # Only the ferni-verifier app counts (2026-10-25: sessions now post as it via
+          # ~/.claude/bin/post-lead-verify). A personal account would let any tool that
+          # falls back to the owner's own gh login post a trusted PASS.
+          LEAD_VERIFIED_AUTHORS: ferni-verifier[bot]
         run: |
           [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on main yet"; exit 0; }
           node --experimental-strip-types scripts/ci/lead-verified.ts

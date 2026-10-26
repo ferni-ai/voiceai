@@ -69,6 +69,9 @@ export interface TemporalFact extends WorldObservation {
   forgottenAt?: string;
   /** The caller said it was never true. */
   wrong?: boolean;
+  /** The caller's day Ferni last asked about it on a call (dates/recall.ts), and as which moment. */
+  raisedOn?: string;
+  raisedAs?: string;
 }
 
 /**
@@ -79,6 +82,16 @@ export interface TemporalFact extends WorldObservation {
 export const REPLACEABLE_ATTRIBUTES: ReadonlySet<string> = new Set(
   'status job location relationship health school role'.split(' ')
 );
+
+/** A thread the caller asked Ferni not to bring up: value "avoid: <what>" (extraction-prompt.ts). */
+export const AVOID_THREAD = /^avoid:\s*/i;
+
+/** What the caller asked not to be brought up, from their open "avoid:" threads. */
+export function avoidedTopics(facts: readonly TemporalFact[]): string[] {
+  return facts
+    .filter((f) => f.validTo === null && f.attribute === 'thread' && AVOID_THREAD.test(f.value))
+    .map((f) => f.value.replace(AVOID_THREAD, ''));
+}
 
 export function normaliseText(text: string): string {
   return text.trim().toLowerCase().replace(/\s+/g, ' ');

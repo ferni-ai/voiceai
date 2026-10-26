@@ -16,6 +16,7 @@ import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js'
 import { createLogger } from '../utils/safe-logger.js';
 import type { EmotionalDataPoint, EmotionalPattern, GrowthMoment } from './emotional-patterns.js';
 import { getAdminFirestore } from '../utils/firebase-admin-app.js';
+import { toStoredDataPoint } from './emotional-data-shape.js';
 
 const log = createLogger({ module: 'PatternPersistence' });
 
@@ -74,15 +75,15 @@ export async function saveEmotionalDataPoint(
       .collection('points')
       .doc();
 
-    await docRef.set(
-      removeUndefined({
-        ...dataPoint,
-        timestamp: dataPoint.timestamp.toISOString(),
-        createdAt: new Date().toISOString(),
-      })
-    );
+    // The label, intensity and time only: never the caller's words (context)
+    const point = toStoredDataPoint({ ...dataPoint, createdAt: new Date() });
+    if (!point) {
+      log.debug({ userId }, 'Emotional data point not saved: no valid label, intensity or time');
+      return false;
+    }
+    await docRef.set({ ...point });
 
-    log.debug({ userId, emotion: dataPoint.emotion }, 'Emotional data point saved');
+    log.debug({ userId, emotion: point.emotion }, 'Emotional data point saved');
     return true;
   } catch (error) {
     log.warn({ error, userId }, 'Failed to save emotional data point');
@@ -117,13 +118,20 @@ export async function getEmotionalDataPoints(
       query = query.limit(options.limit);
     }
 
+    // Older points carry a snippet of the caller's words; only the typed fields
+    // are read back, and a point without a valid time or label is skipped alone.
     const snapshot = await query.get();
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        ...data,
-        timestamp: new Date(data.timestamp),
-      } as EmotionalDataPoint;
+    return snapshot.docs.flatMap((doc) => {
+      const point = toStoredDataPoint(doc.data());
+      if (!point) return [];
+      return [
+        {
+          emotion: point.emotion,
+          intensity: point.intensity,
+          topics: [],
+          timestamp: new Date(point.timestamp),
+        },
+      ];
     });
   } catch (error) {
     log.warn({ error, userId }, 'Failed to get emotional data points');

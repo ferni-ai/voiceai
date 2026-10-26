@@ -14,7 +14,10 @@ import { KNOWN_USER_STORES } from '../../services/platform/user-records-export.j
 // The shared setup fakes Firestore for every test; here the export must read the emulator
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
-vi.mock('../../services/identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => true }));
+vi.mock('../../services/identity/firebase-auth.js', () => ({
+  ensureFirebaseAdmin: () => true,
+  getFirebaseUserOrThrow: async () => null, // no Firebase user: no proven phone profiles
+}));
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-menu-export';
@@ -174,6 +177,34 @@ describe.skipIf(!emulator)('export carries every known user store (Firestore emu
     expect(rows.map((r) => r.toolId).sort()).toEqual(['timer', 'weather']);
     expect(JSON.stringify(records)).not.toContain('not-yours');
     expect(categories.find((c) => c.category === 'Records')?.itemCount).toBe(2);
+  });
+
+  it("carries the router's learning stores, and not another person's", async () => {
+    const uid = id();
+    const other = id();
+    for (const owner of [uid, other]) {
+      const mark = owner === uid ? 'mine' : 'not-yours';
+      await db.collection('routing_events').add({ userId: owner, selectedTool: mark });
+      await db.collection('semantic_router_corrections').add({ userId: owner, actualTool: mark });
+      await db.collection('semantic_routing_feedback').add({ userId: owner, inputLocale: mark });
+      await db.doc(`semantic_routing_vocabulary/${owner}`).set({ userId: owner, mark });
+      await db
+        .doc(`semantic_routing_corrections/${owner}/corrections/c1`)
+        .set({ correctTool: mark });
+    }
+
+    const { records } = await exportAll(uid);
+
+    for (const label of [
+      'routing_events',
+      'semantic_router_corrections',
+      'semantic_routing_feedback',
+      'semantic_routing_vocabulary/{uid}',
+      'semantic_routing_corrections/{uid}/corrections',
+    ]) {
+      expect(JSON.stringify(records[label] ?? null), label).toContain('mine');
+    }
+    expect(JSON.stringify(records)).not.toContain('not-yours');
   });
 
   it("someone else's records are not in the file", async () => {

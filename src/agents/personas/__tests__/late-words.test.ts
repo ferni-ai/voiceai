@@ -7,6 +7,13 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { FirstTurnGate, sttWithFirstTurnFast } from '../first-turn-fast.js';
+
+// CRISIS_EVENT_RECORD: what the re-gate tells the recorder (crisis-event-record.test.ts covers the record)
+const recorded = vi.hoisted(() => vi.fn());
+vi.mock('../../safety/crisis-event-record.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  recordCrisisOnCall: recorded,
+}));
 import { isMergeableTail, lateWordsMerger, MAX_LATE_WORDS, negativeVoice } from '../late-words.js';
 
 const T = stt.SpeechEventType;
@@ -173,7 +180,10 @@ describe('a merged turn is crisis-gated again on the whole sentence', () => {
   });
   const SAID_DONE = "I'm just done";
 
-  beforeEach(() => resetCrisisClassifierCache());
+  beforeEach(() => {
+    resetCrisisClassifierCache();
+    recorded.mockReset();
+  });
 
   it('a crisis only the classifier sees, completed by the tail: the reply in flight gives way to the crisis script', async () => {
     expect(isMergeableTail(['with', 'everything.'], SAID_DONE)).toBe(true); // the patterns miss it
@@ -193,6 +203,14 @@ describe('a merged turn is crisis-gated again on the whole sentence', () => {
     expect(session.interrupt).toHaveBeenCalledTimes(1);
     expect(session.interrupt.mock.invocationCallOrder[0]).toBeLessThan(
       session.say.mock.invocationCallOrder[0]!
+    ); // One record, by the classifier, after the script is queued
+    expect(recorded).toHaveBeenCalledTimes(1);
+    expect(recorded).toHaveBeenCalledWith(session, 'replace', 'classifier', {
+      crisisType: 'suicidal_ideation',
+      severity: 'critical',
+    });
+    expect(session.say.mock.invocationCallOrder[0]).toBeLessThan(
+      recorded.mock.invocationCallOrder[0]!
     );
   });
 

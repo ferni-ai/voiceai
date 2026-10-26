@@ -114,6 +114,29 @@ describe.skipIf(!emulator)('menu quiet hours reach the senders (Firestore emulat
     expect(await scheduler(uid, IN_WINDOW)).toEqual({ quiet: false, until: IN_WINDOW });
   });
 
+  it('by voice: setQuietHours saves what the panel shows and the senders read', async () => {
+    vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'on');
+    const uid = newUser();
+    expect(await panelSave(uid, '12:00', '14:00')).toBe(200); // the zone, set once in the panel
+    const { installQuietHoursWriter } =
+      await import('../../services/messaging/voice-quiet-hours.js');
+    installQuietHoursWriter(); // what live-call-behaviors.ts does for every call
+    const { getToolDefinitions } = await import('../../tools/domains/ambient-mode/index.js');
+    const def = (await getToolDefinitions()).find((d) => d.id === 'setQuietHours');
+    const ctx = { userId: uid, sessionId: 's-quiet', agentId: 'ferni', agentDisplayName: 'Ferni' };
+    if (!def) throw new Error('setQuietHours is not in ambient-mode');
+    const tool = def.create(ctx) as unknown as {
+      execute: (args: object, opts: object) => Promise<string>;
+    };
+    const said = await tool.execute({ startTime: '20:00', endTime: '09:30' }, {});
+    expect(said).toMatch(/^Got it!/);
+    const res = await fetch(`${base}/api/user/preferences`, { headers: { 'x-test-uid': uid } });
+    expect(await res.json()).toMatchObject({
+      preferences: { quietHoursStart: '20:00', quietHoursEnd: '09:30', timezone: CHI },
+    });
+    expect(await guard(uid, IN_WINDOW)).toMatchObject({ allowed: false, at: WINDOW_END });
+  });
+
   it('a new save replaces the old window', async () => {
     vi.stubEnv('QUIET_HOURS_FROM_PREFS', 'on');
     const uid = newUser();

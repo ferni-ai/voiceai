@@ -129,8 +129,9 @@ describe('an inbound SMS (the real Twilio webhook)', () => {
     expect([...holds.keys()].sort()).toEqual(['anon:abc', `phone#${phoneHash(PHONE)}`]);
     expect([...holds.keys()].join()).not.toContain('5551234567'); // never the number itself
 
-    const reply = await text(PHONE, 'call me, my school is X');
-    expect(reply.twiml).toContain('call you');
+    // A whole-text ask (detectCallIntent): it gets an answer, and still nothing is kept
+    const reply = await text(PHONE, 'call me');
+    expect(reply.twiml).toContain('Open Ferni whenever'); // answered honestly (sms-call-me.ts)
     expect(threads.getOrCreateThread).not.toHaveBeenCalled();
     expect(threads.addMessage).not.toHaveBeenCalled();
   });
