@@ -43,22 +43,31 @@ export const callConfirm: ConfirmSpec = {
     const purpose = text(args.purpose);
     let name = who;
     let raw = text(args.phoneNumber);
+    let relationship: string | undefined;
     if (!raw) {
       const { resolveContact } = await import('./call-on-behalf.js');
       const contact = await resolveContact(who, userId);
       raw = text(contact?.phone);
       if (contact?.name) name = contact.name;
+      relationship = contact?.relationship;
     }
     if (!raw) return `Nothing was dialed: I don't have a number for ${who}. Ask the caller for it.`;
     const number = checkDialableNumber(raw);
     if (!number.ok) return `Nothing was dialed: ${number.reason}.`;
+    // The owner's call-now to family (CALL_NOW_OWNER_OVERRIDE) replaces a call set for later.
+    const { alreadySetReply, pendingCallTo, wantsCallNow } = await import('./call-on-behalf.js');
+    const resolvedContact = { name, phone: number.e164, relationship };
+    const now = wantsCallNow({
+      callNow: args.callNow === true,
+      contactQuery: who,
+      resolvedContact,
+    });
     // A call to this number already set for later: say so, rather than read back a second one.
-    const { alreadySetReply, pendingCallTo } = await import('./call-on-behalf.js');
-    const waiting = await pendingCallTo(userId, number.e164);
+    const waiting = now ? undefined : await pendingCallTo(userId, number.e164);
     if (waiting) return alreadySetReply(name, waiting);
     return {
       args: { ...args, phoneNumber: number.e164 },
-      readBack: `a call to ${name} at ${number.spoken}${purpose ? `, to ${purpose}` : ''}`,
+      readBack: `a call to ${name} at ${number.spoken}${now ? ', right now' : ''}${purpose ? `, to ${purpose}` : ''}`,
     };
   },
 };

@@ -9,6 +9,7 @@ import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-hours.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { flagOn } from '../../config/env-flag.js';
@@ -18,6 +19,7 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
+import { noteLiveSession } from '../../tools/registry/live-session.js';
 import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
@@ -136,6 +138,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // callUser rings the caller's verified phone through outreach (call-user-port.ts).
   installCallUserPort();
+  // setQuietHours saves to the prefs "When I'll Check In" shows (quiet-hours-port.ts).
+  installQuietHoursWriter();
   // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
   installConfirmThreadPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
@@ -151,6 +155,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       session
     )
   );
+  // A call placed from this one reports back here by its real id (tools/registry/live-session.ts).
+  cleanupFunctions.push(noteLiveSession(session, sessionId));
 
   // Answer a caller turn that was left hanging (turn-keeper.ts).
   if (process.env.TURN_KEEPER !== 'off') {
@@ -394,6 +400,12 @@ export async function startTurnSounds(input: TurnSoundsInput) {
       cleanupFunctions.push(
         attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
       );
+    }
+    // TOOL_ACK_CLIP: "Let me look." in the persona's voice as a tool starts (tool-ack-clip.ts).
+    if (flagOn('TOOL_ACK_CLIP')) {
+      const { attachToolAckClipToCall } = await import('../integrations/tool-ack-clip-wiring.js');
+      const ackClips = { ...clips, playClip: (text: string) => heard(clips.toolAckClip(text)) };
+      cleanupFunctions.push(attachToolAckClipToCall(session, sessionId, ackClips, input.personaId));
     }
     // A backchannel is a move too, on the reply whose answer it is heard in.
     const play = clips.playClip;

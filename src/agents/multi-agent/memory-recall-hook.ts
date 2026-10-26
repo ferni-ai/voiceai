@@ -471,6 +471,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           semantic: semantic.size,
           extras: extras.length,
           self: self !== null,
+          // Which lines came along (ids are in dates-recall's 'Date raised'), never words.
+          dates: dateNow ? 1 : 0,
+          world: worldNote ? 1 : 0,
         },
         'Recall added'
       );

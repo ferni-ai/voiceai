@@ -33,13 +33,8 @@ import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
-import {
-  deferFirstTurn,
-  firstTurnDeferEnabled,
-  hadUserTurn,
-  noteUserTurn,
-  turnPipelineWarm,
-} from './first-turn-defer.js';
+import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
+import { yieldIfFirstTurnWarm } from './first-turn-warm.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive } from './preempt-stable-context.js';
@@ -111,9 +106,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       const { startVoicePatterns } =
         await import('../../conversation/humanization/voice-pattern-session.js');
       await startVoicePatterns(deps.services.sessionId, deps.services.userId);
+      await yieldIfFirstTurnWarm(); // between cold steps: back to back they starve the audio pump
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
+      await yieldIfFirstTurnWarm();
       const userData = deps.userData as UserData & {
         turnCount?: number;
         userSpeakingStartTime?: number;
@@ -442,12 +439,7 @@ export function attachTurnContextPusher(
   options: { env?: Record<string, string | undefined>; userData?: unknown } = {}
 ): () => Promise<void> {
   const { env = process.env, userData } = options;
-  const deferral =
-    firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
-      ? deferFirstTurn(hook, {
-          voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
-        })
-      : undefined;
+  const deferral = deferralForSession(hook, session, env, userData);
   const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
   const onTranscript = (event: unknown) => {

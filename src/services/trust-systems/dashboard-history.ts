@@ -24,8 +24,10 @@ const log = createLogger({ module: 'TrustDashboardHistory' });
 export const TIMELINE_DOC = 'sentiment_timeline';
 export const LIFE_EVENTS_DOC = 'life_events';
 
-/** Users whose stored history couldn't be read in this process. */
+/** Users whose stored history couldn't be read in this process (or not since a purge). */
 const unreadable = new Set<string>();
+/** MINOR_CARE purge: no history save for this user until a session start reads theirs back. */
+export const holdHistoryUntilReloaded = (userId: string): void => void unreadable.add(userId);
 
 /** The stored timeline plus snapshots recorded here that it doesn't have yet. */
 export function mergeTimeline(

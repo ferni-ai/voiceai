@@ -26,9 +26,15 @@ struct HomeView: View {
                         .opacity(call.phase == .reconnecting ? 0.5 : 1)
                         .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
                     if inCall {
-                        CallCaptions(call: call, showWords: model.showCaptions)
+                        CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                     } else {
                         RestingLine(call: call)
+                        if call.phase == .ended {
+                            RememberCard(call: call, memory: model.memory)
+                            #if FERNI_PUSH
+                            if call.hasTalked { NotificationAsk(push: model.push, uid: model.account.user?.uid) }
+                            #endif
+                        }
                         TeamRow(team: model.team)
                     }
                     // At accessibility text sizes the controls scroll with the
@@ -64,7 +70,13 @@ struct HomeView: View {
                 SettingsView()
             }
             .sheet(isPresented: $model.isShowingCallMore) {
-                CallMoreSheet(showCaptions: $model.showCaptions)
+                CallMoreSheet(
+                    showCaptions: $model.showCaptions,
+                    lastReply: call.captions.lines.last { $0.speaker == .ferni }
+                ) { model.reporting = $0 }
+            }
+            .sheet(item: $model.reporting) { caption in
+                ReportSheet(caption: caption) { reason, note in try await model.report(caption, reason: reason, note: note) }
             }
             .fullScreenCover(isPresented: $model.isAskingConsent) {
                 ConsentView(
