@@ -106,7 +106,7 @@ export type TtlAllowList = Record<string, string | null>;
  * - The 8 with an offset: declaring them would create offset-less policies in prod, and
  *   prod would delete every document whose timestamp has already passed (a year of
  *   ai_email_log, all of health_checks, ...).
- * - The 4 without one: dev-first rollouts. Declaring them would switch them on in prod at
+ * - The 3 without one: dev-first rollouts. Declaring them would switch them on in prod at
  *   the next index deploy, which needs Seth's OK. Move each into the file (and out of
  *   here) once prod has the policy.
  * A ferni-dev index deploy offers these for deletion: answer no, and never pass --force.
@@ -125,7 +125,6 @@ export const UNDECLARABLE_TTLS: Record<string, TtlAllowList> = {
     // Expire-at fields, on dev first; prod has none of these yet.
     '_rate_limits.expiresAt': null,
     'intelligence_queue.expireAt': null,
-    'minor_care_holds.expireAt': null,
     'security_events.expireAt': null,
   },
 };

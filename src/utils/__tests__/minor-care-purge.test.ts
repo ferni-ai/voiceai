@@ -104,6 +104,12 @@ import {
   initializeRelationship,
 } from '../../intelligence/relationship/engine.js';
 import {
+  checkForOurSong,
+  getAllOurSongs,
+  getProactiveRememberWhen,
+  recordOurSong,
+} from '../../services/trust-systems/our-songs.js';
+import {
   bindSessionUser,
   heldAfter,
   resetMinorCare,
@@ -269,6 +275,34 @@ describe("caches a later call saves: the caller's quotes and the people they men
     purgeHeldUser(a.userId);
     expect(held(a.userId)).toEqual([false, false, false, false, false]);
     expect(held(b.userId)).toEqual([true, true, true, true, true]);
+  });
+});
+
+describe('our songs: a moment the held call made before its age statement', () => {
+  const song = { name: 'Harbor Lights', artist: 'The Synthetic Band' };
+  const learn = (userId: string, sessionId: string) =>
+    recordOurSong({
+      userId,
+      sessionId,
+      song,
+      momentType: 'celebration',
+      emotion: 'excited',
+      context: 'joy',
+    });
+
+  it('is never spoken back on a later call, and another caller keeps theirs', async () => {
+    const a = caller();
+    const b = caller();
+    expect(learn(a.userId, a.sessionId)).not.toBeNull(); // learned before they said their age
+    expect(learn(b.userId, b.sessionId)).not.toBeNull();
+    a.hold();
+    purgeHeldUser(a.userId, a.sessionId);
+    await vi.advanceTimersByTimeAsync(HOLD_LAPSES_MS); // a later call, the hold lapsed
+    bindSessionUser(`later-${a.userId}`, a.userId);
+    expect(getAllOurSongs(a.userId)).toEqual([]);
+    expect(checkForOurSong(a.userId, song.name, song.artist)).toBeNull();
+    expect(getProactiveRememberWhen(a.userId)).toBeNull();
+    expect(checkForOurSong(b.userId, song.name, song.artist)).not.toBeNull();
   });
 });
 

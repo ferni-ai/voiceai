@@ -357,13 +357,6 @@ export interface VoiceRouterResult {
     predictedSteps: string[];
   };
 
-  /** User vocabulary match (per-user personalization) */
-  userVocabularyMatch?: {
-    toolId: string;
-    confidence: number;
-    phrase: string;
-  };
-
   /** Deep context enhancements */
   contextEnhancements?: {
     resolvedPronouns: Record<string, string>;
@@ -966,7 +959,7 @@ export async function routeVoiceInput(
                 value: v,
               }))
             : undefined,
-          userVocabulary: !!enhancement.userVocabularyMatch,
+          userVocabulary: false, // learned phrases are no longer kept
           emotionBoost: prosodyBoost && prosodyBoost.boostedTools.includes(action.toolId),
         },
         routingResult.matches.slice(1).map((m) => ({ toolId: m.toolId, confidence: m.confidence }))
@@ -979,7 +972,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         // Better Than Human results
         prosodyBoost,
@@ -1000,7 +992,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,
@@ -1018,7 +1009,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,
@@ -1036,7 +1026,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,
@@ -1054,7 +1043,6 @@ export async function routeVoiceInput(
         processingTimeMs: performance.now() - startTime,
         detectedLocale,
         toolChain,
-        userVocabularyMatch: enhancement.userVocabularyMatch,
         contextEnhancements,
         prosodyBoost,
         paceAnalysis,

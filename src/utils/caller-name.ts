@@ -28,6 +28,7 @@
 
 import { flagOn, type Env } from '../config/env-flag.js';
 import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from './teammate-talk.js';
+import { callMeVocativeEnabled, personaLike } from './call-me-vocative.js';
 
 export function nameCaptureStrict(env: Env = process.env): boolean {
   return flagOn('NAME_CAPTURE_STRICT', env);
@@ -64,10 +65,15 @@ const TEAM_NAMES = new Set<string>([
 /** Capitalised as transcribed: "Seth", "Mary-Jane"; not "seth" or "SETH". */
 const CAPITALISED = /^\p{Lu}\p{Ll}+(?:-\p{Lu}\p{Ll}+)?$/u;
 
+/** A common word ("tired", "here", "not"), too short or too long: never a name, in any case. */
+export function isCommonWord(word: string): boolean {
+  const w = word.trim().toLowerCase();
+  return w.length < 2 || w.length > 20 || NOT_NAMES.has(w);
+}
+
 /** A common word or a team name: never the caller's name, in any case. */
 export function rejectsAsName(word: string): boolean {
-  const w = word.trim().toLowerCase();
-  return w.length < 2 || w.length > 20 || NOT_NAMES.has(w) || TEAM_NAMES.has(w);
+  return isCommonWord(word) || TEAM_NAMES.has(word.trim().toLowerCase());
 }
 
 /** A word as transcribed that can be the caller's name. */
@@ -85,6 +91,12 @@ const CUES: readonly RegExp[] = [
   String.raw`\bi go by\s+`,
   String.raw`\bthis is\s+`,
 ].map((cue) => new RegExp(cue + WORD, 'giu'));
+/**
+ * The "call me <Name>" cue. With CALL_ME_VOCATIVE=on a word like a team name after it ("call me
+ * Ferney") is never taken here: it may be Ferni's name said to him, and only the confirmed path
+ * (agents/personas/name-confirm.ts) may make it theirs.
+ */
+const CALL_ME_CUE = CUES[2];
 /** "Seth here", "Seth speaking" opening the line (after any greeting). */
 const HERE = new RegExp(String.raw`^\s*${WORD}\s+(?:here|speaking)\b`, 'gu');
 /** "[Ff]erni|...": a team name in either first-letter case, for a case-sensitive pattern. */
@@ -118,11 +130,13 @@ function possessive(text: string, end: number): boolean {
 }
 
 function firstMatch(text: string, re: RegExp, anchored: boolean): CallerNameMatch | null {
+  const vocative = re === CALL_ME_CUE && callMeVocativeEnabled();
   for (const m of text.matchAll(re)) {
     const start = m.index ?? 0;
     if (anchored && text.slice(0, start).trim() !== '') return null;
     const name = m[1];
     if (!acceptsSpokenName(name) || possessive(text, start + m[0].length)) continue;
+    if (vocative && personaLike(name)) continue;
     return { name, phrase: m[0].replace(/^[\s.!?,]+/, '').trim() };
   }
   return null;

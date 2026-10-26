@@ -71,7 +71,10 @@ vi.mock('@google-cloud/firestore', async (orig) => ({
 }));
 
 import { createPersistenceStore } from '../../services/persistence/index.js';
-import { recordVoiceSample } from '../../services/trust-systems/voice-prosody-learning.js';
+import {
+  loadVoiceProsodyUser,
+  recordVoiceSample,
+} from '../../services/trust-systems/voice-prosody-learning.js';
 import {
   initializeOutreachPersistence,
   setPreferences,
@@ -233,6 +236,7 @@ describe('voice prosody (built on the shared store, 10 s sync)', () => {
     ['off', true],
   ])('%s: their voice and topic written = %s', async (c, writes) => {
     const { userId } = caller(c);
+    await loadVoiceProsodyUser(userId); // session start reads their stored voice back first
     recordVoiceSample(userId, VOICE, { conversationContext: 'math class' });
     await tick(10_000);
     expect(wrote(userId, 'math class')).toBe(writes);
@@ -240,6 +244,7 @@ describe('voice prosody (built on the shared store, 10 s sync)', () => {
 
   it('a hold that starts mid-call stops the next write', async () => {
     const who = caller('mid');
+    await loadVoiceProsodyUser(who.userId);
     recordVoiceSample(who.userId, VOICE, { conversationContext: 'before' });
     await tick(10_000);
     expect(wrote(who.userId, 'before')).toBe(true);

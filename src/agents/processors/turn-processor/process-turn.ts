@@ -158,7 +158,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const trace = isDev ? createTurnTrace(services.sessionId) : null;
 
   diag.user('Processing user turn', {
-    preview: userText.slice(0, 100),
+    userTextLength: userText?.length ?? 0,
   });
 
   if (!userText || userText.trim().length === 0) {

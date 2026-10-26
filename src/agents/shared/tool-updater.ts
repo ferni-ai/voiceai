@@ -33,6 +33,7 @@ import {
   isStaticCoreTool,
   staticCoreToolsEnabled,
 } from '../../config/tool-config.js';
+import { countMenuPinned } from '../../config/menu-tools-pinned.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
 import {
   forbiddenToolsFor,
@@ -196,6 +197,7 @@ export async function updateAgentTools(
  * the cap picked that are new, at the end. Nothing is evicted until the call
  * holds APPEND_ONLY_TOOL_CAP tools; then the oldest non-essential ones go as
  * one block, so the declarations change at the front rarely, not every load.
+ * MENU_TOOLS_PINNED's tools are never evicted and count outside the cap.
  */
 function appendOnly(
   existing: Record<string, unknown>,
@@ -205,7 +207,7 @@ function appendOnly(
   const added = Object.keys(picked).filter((name) => !(name in existing));
   const merged: Record<string, unknown> = { ...existing };
   for (const name of added) merged[name] = picked[name];
-  let excess = Object.keys(merged).length - cap;
+  let excess = Object.keys(merged).length - countMenuPinned(Object.keys(merged)) - cap;
   if (excess <= 0) return merged;
   excess += APPEND_ONLY_EVICT_BLOCK;
   for (const name of Object.keys(existing)) {

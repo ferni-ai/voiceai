@@ -53,6 +53,13 @@ describe('QUICK_SHORTCUTS_REAL_ONLY', () => {
     expect(await offered(newCall())).toEqual(NAMES);
   });
 
+  it('flag unset: the shortcuts are offered as before (off by default, not only when set to off)', async () => {
+    vi.stubEnv('QUICK_SHORTCUTS_REAL_ONLY', undefined);
+    vi.stubEnv('ASSISTANT_ACTIONS_REAL', 'off');
+    expect(process.env.QUICK_SHORTCUTS_REAL_ONLY).toBeUndefined();
+    expect(await offered(newCall())).toEqual(NAMES);
+  });
+
   it('flag on, actions off: the shortcuts are not offered; reachOut and callOnBehalf are', async () => {
     vi.stubEnv('ASSISTANT_ACTIONS_REAL', 'off');
     vi.stubEnv('QUICK_SHORTCUTS_REAL_ONLY', 'off');

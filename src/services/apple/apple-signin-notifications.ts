@@ -13,7 +13,7 @@
 import type { JWTPayload } from 'jose';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createLogger } from '../../utils/safe-logger.js';
-import { erasureErrorCode } from '../platform/erasure-step.js';
+import { assertErased, erasureErrorCode } from '../platform/erasure-step.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'apple-signin-notifications' });
@@ -26,10 +26,7 @@ const log = createLogger({ module: 'apple-signin-notifications' });
  * Apple notification event types
  */
 export type AppleNotificationEventType =
-  | 'consent-revoked'
-  | 'account-delete'
-  | 'email-disabled'
-  | 'email-enabled';
+  'consent-revoked' | 'account-delete' | 'email-disabled' | 'email-enabled';
 
 /**
  * Decoded Apple notification payload
@@ -252,7 +249,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
     try {
       const { getDataExportService } = await import('../data-export.js');
       const dataExportService = getDataExportService();
-      await dataExportService.deleteAllData(userId);
+      assertErased(await dataExportService.deleteAllData(userId));
 
       // Also delete Firebase user account
       try {

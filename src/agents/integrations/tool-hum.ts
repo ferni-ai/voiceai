@@ -6,9 +6,17 @@
  * been running for a beat with nobody speaking, he hums quietly; the moment he
  * starts talking, the caller speaks, or the result is in, the hum stops. At
  * most twice a call, never on two tool calls in a row, never when their voice
- * read heavy or what they said lately was (presence-heavy.ts).
+ * read heavy or what they said lately was (presence-heavy.ts). One opening sound a
+ * caller turn (opening-sound-ledger.ts): no hum after a TOOL_ACK_CLIP line or a
+ * slow-turn sound, and a hum counts as that turn's sound.
  *
  * TOOL_HUM=on turns it on (off until it has been listened to on dev).
+ *
+ * Never while the crisis classifier is still deciding this turn
+ * (crisis-gate-signal.ts: no casual sound while a verdict is pending), read
+ * when the hum is due, not when it was armed: a classifier-only verdict can
+ * land ~300 ms after the tool starts. A hum skipped that way is not re-armed
+ * for the same tool run. Nor once the gate has guided or replaced a reply.
  *
  * "A tool is running" comes from the SDK itself (@livekit/agents 1.5.1): every
  * reply's SpeechHandle is announced by SpeechCreated, and the SDK hands each
@@ -23,10 +31,12 @@
 
 import { voice, type llm } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
+import { noteOpeningSound, openingSoundThisTurn } from './opening-sound-ledger.js';
 import { synthHum } from './presence-sounds.js';
 import { presenceCallEnding } from './presence-closing.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import { isHeavyMood } from './presence-watcher.js';
+import { crisisDecidedOn, crisisVerdictPending } from '../safety/crisis-gate-signal.js';
 import { voicedHumFor, voicedPresenceEnabled, type VoicedHum } from './voiced-presence.js';
 
 const log = createLogger({ module: 'ToolHum' });
@@ -50,8 +60,12 @@ export interface ToolHumDeps {
   mood: () => string | undefined;
   /** What they said lately was heavy, or the call has crisis risk (presence-heavy.ts). */
   serious?: () => boolean;
+  /** A crisis verdict is still pending for this turn (crisisVerdictPending), read when the hum is due. */
+  crisisPending?: () => unknown;
   /** The call has said its goodbyes or is closing (call-farewell.ts). */
   quiet?: () => boolean;
+  /** An opening sound already played this caller turn, asked when the hum would start. */
+  soundThisTurn?: () => boolean;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
 }
@@ -65,6 +79,8 @@ export function createToolHumWatcher(deps: ToolHumDeps) {
   let hums = 0;
   let hummedThisRun = false;
   let hummedLastRun = false;
+  /** Skipped for a pending crisis verdict: silent for the rest of this tool run. */
+  let silencedThisRun = false;
   let playing = false;
   let timer: unknown = null;
 
@@ -73,6 +89,7 @@ export function createToolHumWatcher(deps: ToolHumDeps) {
     agent !== 'speaking' &&
     user !== 'speaking' &&
     !hummedThisRun &&
+    !silencedThisRun &&
     !hummedLastRun &&
     hums < TOOL_HUM_MAX_PER_CALL;
 
@@ -90,7 +107,13 @@ export function createToolHumWatcher(deps: ToolHumDeps) {
     if (timer !== null) return;
     timer = setT(() => {
       timer = null;
+      if (allowed() && deps.crisisPending?.()) {
+        silencedThisRun = true;
+        log.info({ reason: 'crisis_pending' }, 'TOOL_HUM_SKIP');
+        return;
+      }
       if (!allowed() || isHeavyMood(deps.mood()) || deps.serious?.() || deps.quiet?.()) return;
+      if (deps.soundThisTurn?.()) return void log.info({ reason: 'sound' }, 'TOOL_HUM_SKIP');
       if (deps.play()) {
         hums++;
         hummedThisRun = true;
@@ -104,6 +127,7 @@ export function createToolHumWatcher(deps: ToolHumDeps) {
       if (running.size === 0) {
         hummedLastRun = hummedThisRun;
         hummedThisRun = false;
+        silencedThisRun = false;
       }
       running.add(callId);
       update();
@@ -159,6 +183,7 @@ export function startToolHum(
       const pcm = hum ? hum.next() : synthHum();
       if (!pcm || !out.play(pcm, TOOL_HUM_VOLUME)) return false;
       humEndsAt = Date.now() + pcm.byteLength / PCM_BYTES_PER_MS;
+      noteOpeningSound(session, 'hum');
       log.info({ voiced: Boolean(hum) }, 'TOOL_HUM');
       onPlayed(Boolean(hum));
       return true;
@@ -171,8 +196,10 @@ export function startToolHum(
     mood: () =>
       (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
         ?.primary,
-    serious: () => presenceSilenceIsHeavy(session),
+    serious: () => crisisDecidedOn(session) || presenceSilenceIsHeavy(session),
+    crisisPending: () => crisisVerdictPending(session),
     quiet: () => presenceCallEnding(session),
+    soundThisTurn: () => openingSoundThisTurn(session),
   });
 
   const onSpeech = (ev: voice.SpeechCreatedEvent) => {
