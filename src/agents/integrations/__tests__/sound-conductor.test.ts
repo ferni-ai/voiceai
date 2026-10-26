@@ -79,6 +79,13 @@ describe('sound conductor rules', () => {
     expect(c.request({ ...next, at: NO_REPEAT_MS + 1 }).reason).toBe('ok');
   });
 
+  it('a snore has its own budget: a whistle earlier in the same quiet never blocks it', () => {
+    const c = createSoundConductor();
+    c.played({ kind: 'presence', clip: 'whistle:tune-1', at: 0 });
+    expect(c.request({ kind: 'presence', clip: 'hum', at: 20_000 }).reason).toBe('budget');
+    expect(c.request({ kind: 'snore', clip: 'snore:a', at: 20_000 }).reason).toBe('ok');
+  });
+
   it('reads clip families and live kinds', () => {
     expect(['Mm', 'Mm-hmm', 'Mhm.', 'Hmm', '<volume ratio="0.7"/>Mhm...'].map(soundFamily)).toEqual(
       ['mm', 'mm', 'mm', 'mm', 'mm']

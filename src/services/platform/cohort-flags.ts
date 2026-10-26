@@ -108,6 +108,7 @@ export const COHORT_FLAGS = [
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
   'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
+  'CUSTOM_AGENT_LIVE', // read once the caller is known, at STEP 4 (agents/shared/custom-agent-live.ts)
   // Latency A/Bs, one arm per eval caller. Each reply's guard (action-claim-guard.ts:242)
   // and each preemptive turn's hold (preempt-stable-context.ts) read process.env.
   'ACTION_CLAIM_STREAM',
@@ -119,8 +120,10 @@ export const COHORT_FLAGS = [
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
-  // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
+  'WELLBEING_AFTER_CALL',
+  // Read each time callUser or forgetMemory runs mid-call, per person (telephony/index.ts, recall/forget.ts).
   'TOOLS_REAL_CALL_USER',
+  'FORGET_DELETES',
   'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
   'FRIEND_CELEBRATIONS', // greeting: anniversaryFor (friendship-anniversary.ts)
   'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)

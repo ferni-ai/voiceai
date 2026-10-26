@@ -13,18 +13,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const toastCalls = vi.hoisted(() => ({
   error: [] as string[],
   info: [] as string[],
+  success: [] as string[],
 }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({
   toast: {
     error: (message: string) => toastCalls.error.push(message),
     info: (message: string) => toastCalls.info.push(message),
-    success: vi.fn(),
+    success: (message: string) => toastCalls.success.push(message),
     warning: vi.fn(),
   },
 }));
 
 // The room a handoff request is published to.
 const published = vi.hoisted(() => [] as unknown[]);
+// onCallEnded's after-call card isn't under test.
+vi.mock('../../src/ui/after-call/post-call.js', () => ({
+  showPostCallCard: vi.fn(async () => {}),
+}));
+
 vi.mock('../../src/services/connection.service.js', () => ({
   connectionService: {
     getRoom: () => ({
@@ -46,6 +52,13 @@ vi.mock('../../src/utils/gsap-setup.js', () => ({
 }));
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
+import { GAME_ACK_TIMEOUT_MS } from '../../src/app/agent-ack-handlers.js';
+import { onCallEnded, onCallStarted } from '../../src/app/call-end.js';
+import {
+  CALL_WRAP_UP_STORAGE_KEY,
+  isCallWrapUpEnabled,
+} from '../../src/config/call-wrap-up-flag.js';
+import { setConnectionState } from '../../src/state/app.state.js';
 import { handoffService } from '../../src/services/handoff.service.js';
 import { destroyGameBoard, initGameBoard } from '../../src/ui/game-board.ui.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
@@ -68,6 +81,14 @@ const boardIsOpen = (): boolean =>
 const pickerOpensBoard = (gameType: string): void =>
   void document.dispatchEvent(
     new CustomEvent('ferni:game-started', {
+      detail: { gameId: gameType, gameType, gameName: gameType, awaitsAck: true },
+    })
+  );
+
+/** A game the agent started on a voice request (data-message-handlers.ts handleGameStarted). */
+const voiceStartsGame = (gameType: string): void =>
+  void document.dispatchEvent(
+    new CustomEvent('ferni:game-started', {
       detail: { gameId: gameType, gameType, gameName: gameType },
     })
   );
@@ -75,6 +96,7 @@ const pickerOpensBoard = (gameType: string): void =>
 beforeEach(() => {
   toastCalls.error.length = 0;
   toastCalls.info.length = 0;
+  toastCalls.success.length = 0;
   published.length = 0;
 });
 
@@ -120,6 +142,164 @@ describe('a game that failed to start', () => {
       ack('game_start_ack', { gameType: 'tic-tac-toe', success: true, message: 'Your move' })
     );
 
+    expect(boardIsOpen()).toBe(true);
+    expect(toastCalls.error).toEqual([]);
+    // The picker's "Starting..." waits for this ack, and shows once.
+    expect(toastCalls.success).toEqual(['Starting tic-tac-toe...']);
+    deliver(ack('game_start_ack', { gameType: 'tic-tac-toe', success: true }));
+    expect(toastCalls.success).toHaveLength(1);
+  });
+
+  it('says nothing for a started game the picker did not ask for', () => {
+    pickerOpensBoard('20-questions');
+    deliver(ack('game_start_ack', { gameType: 'tic-tac-toe', success: true }));
+    expect(toastCalls.success).toEqual([]);
+  });
+});
+
+describe('a game start the agent never answers', () => {
+  const FAILED = "That game didn't start. Try asking Ferni to play it out loud.";
+  beforeEach(() => {
+    vi.useFakeTimers();
+    initGameBoard();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    destroyGameBoard();
+    document.querySelectorAll('.game-board-container').forEach((el) => el.remove());
+  });
+
+  it('a text game: after 10 s the board closes and the user is told, once', () => {
+    pickerOpensBoard('tic-tac-toe');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS - 1);
+    expect(boardIsOpen()).toBe(true);
+    expect(toastCalls.error).toEqual([]);
+
+    vi.advanceTimersByTime(1);
+    expect(boardIsOpen()).toBe(false);
+    expect(toastCalls.error).toEqual([FAILED]);
+
+    // Its failure ack, arriving late, isn't told twice.
+    deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: false }));
+    expect(toastCalls.error).toEqual([FAILED]);
+  });
+
+  it('a success after the timeout corrects the "didn\'t start", once', () => {
+    pickerOpensBoard('name-that-tune'); // a music game: no board
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+    expect(toastCalls.error).toEqual([FAILED]);
+
+    deliver(ack('game_start_ack', { gameType: 'name-that-tune', success: true }));
+    deliver(ack('game_start_ack', { gameType: 'name-that-tune', success: true }));
+    expect(toastCalls.success).toEqual(['Starting name-that-tune...']);
+  });
+
+  it('an ack in time cancels the timeout', () => {
+    pickerOpensBoard('name-that-tune');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS - 1);
+    deliver(ack('game_start_ack', { gameType: 'name-that-tune', success: true }));
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+    expect(toastCalls.success).toEqual(['Starting name-that-tune...']);
+    expect(toastCalls.error).toEqual([]);
+  });
+
+  it('hanging up through the real onCallEnded, with call wrap-up off, announces nothing', () => {
+    localStorage.setItem(CALL_WRAP_UP_STORAGE_KEY, 'false');
+    const sent = vi.fn();
+    document.addEventListener('ferni:disconnected', sent);
+    try {
+      expect(isCallWrapUpEnabled()).toBe(false);
+      onCallStarted();
+      pickerOpensBoard('tic-tac-toe');
+      vi.advanceTimersByTime(3_000);
+      onCallEnded(); // what performStandardDisconnect runs on a hang-up
+      expect(sent).not.toHaveBeenCalled(); // the flag-off end sends no ferni:disconnected
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+      expect(toastCalls.error).toEqual([]);
+      expect(toastCalls.success).toEqual([]);
+    } finally {
+      document.removeEventListener('ferni:disconnected', sent);
+      localStorage.removeItem(CALL_WRAP_UP_STORAGE_KEY);
+    }
+  });
+
+  it.each([
+    [
+      'the agent leaving (ferni:disconnected)',
+      () => document.dispatchEvent(new CustomEvent('ferni:disconnected')),
+    ],
+    ['the room closing or dropping', () => setConnectionState('disconnected')],
+    ['a failed connection', () => setConnectionState('error')],
+    [
+      'the page going into the back/forward cache',
+      () => window.dispatchEvent(new Event('pagehide')),
+    ],
+  ])('after %s nothing is announced', (_label, end) => {
+    setConnectionState('connected'); // on a call
+    pickerOpensBoard('tic-tac-toe');
+    vi.advanceTimersByTime(3_000);
+    end();
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+    expect(toastCalls.error).toEqual([]);
+    expect(toastCalls.success).toEqual([]);
+    setConnectionState('disconnected');
+  });
+
+  it('a call that is only reconnecting keeps the wait', () => {
+    pickerOpensBoard('tic-tac-toe');
+    setConnectionState('reconnecting');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+    expect(toastCalls.error).toEqual([FAILED]);
+    setConnectionState('disconnected');
+  });
+
+  it("two taps in a row: the first one's clock stops, the second one's runs", () => {
+    pickerOpensBoard('tic-tac-toe');
+    vi.advanceTimersByTime(6_000);
+    pickerOpensBoard('20-questions');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS - 6_000); // the first tap's 10 s
+    expect(toastCalls.error).toEqual([]);
+    expect(boardIsOpen()).toBe(true);
+
+    vi.advanceTimersByTime(6_000); // the second tap's 10 s
+    expect(toastCalls.error).toEqual([FAILED]);
+    expect(boardIsOpen()).toBe(false);
+  });
+
+  it('a failure for game A, replaced by a tap on game B, says nothing while B loads', () => {
+    pickerOpensBoard('tic-tac-toe');
+    vi.advanceTimersByTime(2_000);
+    pickerOpensBoard('20-questions');
+    deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: false }));
+    expect(toastCalls.error).toEqual([]);
+    expect(boardIsOpen()).toBe(true);
+  });
+
+  it('a late failure for a timed-out game A is not told again after game B started', () => {
+    pickerOpensBoard('tic-tac-toe');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+    expect(toastCalls.error).toEqual([FAILED]);
+
+    pickerOpensBoard('20-questions');
+    deliver(ack('text_game_start_ack', { gameType: '20-questions', success: true }));
+    expect(toastCalls.success).toEqual(['Starting 20-questions...']);
+
+    deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: false }));
+    expect(toastCalls.error).toEqual([FAILED]);
+    expect(boardIsOpen()).toBe(true);
+  });
+
+  it('the timeout never closes a board a voice-started game opened since', () => {
+    pickerOpensBoard('name-that-tune'); // a music game: no board
+    voiceStartsGame('tic-tac-toe');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+    expect(toastCalls.error).toEqual([FAILED]); // Name That Tune really didn't start
+    expect(boardIsOpen()).toBe(true);
+  });
+
+  it('a game started by voice (no ack coming) is never timed out', () => {
+    voiceStartsGame('tic-tac-toe');
+    vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
     expect(boardIsOpen()).toBe(true);
     expect(toastCalls.error).toEqual([]);
   });

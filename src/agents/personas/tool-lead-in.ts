@@ -38,6 +38,7 @@ import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { callIsGrave, sessionIsGrave } from '../integrations/presence-heavy.js';
+import { ackClipTakesOver, noteTextLeadIn } from '../integrations/tool-ack-clip-registry.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { afterBridge, EXTRA_LOOKUP_TOOLS, lookupBridgeOn } from './lookup-bridge.js';
@@ -51,7 +52,7 @@ export const LEAD_INS = [
 ] as const;
 
 /** Tools that fetch something the caller waits on. */
-const LOOKUP_TOOLS = new Set([
+export const LOOKUP_TOOLS: ReadonlySet<string> = new Set([
   'getWeather',
   'getWeatherForecast',
   'quickWeather',
@@ -79,7 +80,7 @@ const LOOKUP_TOOLS = new Set([
 export const ACKS = ['Sure.', 'Okay.', 'Yep.', 'On it.'] as const;
 
 /** Actions a caller asks for out loud and waits on: a timer, a reminder, music. */
-const ACTION_TOOLS = new Set([
+export const ACTION_TOOLS: ReadonlySet<string> = new Set([
   'quickTimer',
   'setTimer',
   'cancelTimer',
@@ -110,7 +111,7 @@ const ACTION_TOOLS = new Set([
 ]);
 
 /** TOOL_ACK_WIDE: look-ups the audit found silent. */
-const WIDE_LOOKUP_TOOLS = new Set([
+export const WIDE_LOOKUP_TOOLS: ReadonlySet<string> = new Set([
   'marketData',
   'getContactInfo',
   'searchContacts',
@@ -121,7 +122,7 @@ const WIDE_LOOKUP_TOOLS = new Set([
 ]);
 
 /** TOOL_ACK_WIDE: actions with side effects; "On it." only, never a word that sounds done. */
-const WIDE_ACTION_TOOLS = new Set([
+export const WIDE_ACTION_TOOLS: ReadonlySet<string> = new Set([
   'callOnBehalf',
   'callAndConverse',
   'callUser',
@@ -291,6 +292,13 @@ export function withToolLeadIn(
   // This turn's words too: they may not be in the session history yet.
   const grave = wide && (sessionIsGrave(session) || callIsGrave(undefined, [callerWords(request)]));
   const wider = { lookups: wide && asked && !grave, actions: wide && !grave };
+  // TOOL_ACK_CLIP: a covered tool with a clip in this persona's voice is acknowledged
+  // on the clip track when it starts (tool-ack-clip.ts), so no line goes into the text.
+  const clip = flagOn('TOOL_ACK_CLIP', env);
+  const toClip = (chunk: Chunk): boolean => {
+    const tool = (chunk as llm.ChatChunk).delta?.toolCalls?.[0]?.name ?? '';
+    return clip && ackClipTakesOver(session, tool, callerWords(request));
+  };
   let decided = false;
   return new ReadableStream<Chunk>({
     async start(controller) {
@@ -298,7 +306,8 @@ export function withToolLeadIn(
         for await (const chunk of input as unknown as AsyncIterable<Chunk>) {
           const leadIn = decided ? undefined : leadInBefore(chunk, asked, extra, wider);
           if (leadIn !== undefined) decided = true;
-          if (leadIn !== undefined && leadIn !== 'none') {
+          if (leadIn !== undefined && leadIn !== 'none' && !toClip(chunk)) {
+            if (clip) noteTextLeadIn(session);
             const { id } = chunk as llm.ChatChunk;
             const line =
               leadIn === 'lookup'

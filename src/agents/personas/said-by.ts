@@ -37,7 +37,7 @@ const LEADING_MARK = /^\s*\([^()]{1,40} said:\)\s*/;
 /** Past this many characters without a closing ")" the reply can't open with a mark */
 const LONGEST_MARK = 48;
 
-function textOf(chunk: Chunk): string | undefined {
+export function textOf(chunk: Chunk): string | undefined {
   if (typeof chunk === 'string') return chunk;
   const c = chunk as llm.ChatChunk;
   if ('delta' in c && c.delta !== undefined && (c.delta.toolCalls?.length ?? 0) === 0) {
@@ -46,7 +46,7 @@ function textOf(chunk: Chunk): string | undefined {
   return undefined; // tool calls, usage: not reply text
 }
 
-function withText<T extends Chunk>(chunk: T, text: string): T {
+export function withText<T extends Chunk>(chunk: T, text: string): T {
   if (typeof chunk === 'string') return text as T;
   const c = chunk as llm.ChatChunk;
   return { ...c, delta: { ...c.delta, content: text } } as T;

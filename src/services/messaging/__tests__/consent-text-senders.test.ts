@@ -12,7 +12,8 @@ import {
   type TextStore,
 } from '../../outreach/guarded-text.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
-import { writeOptIn, writeOptOut } from '../consent.js';
+import { writeOptOut } from '../consent.js';
+import { recordOwnerAttestation } from '../consent-grants.js';
 import { memoryConsentStore } from './memory-consent.js';
 
 const OWNER_PHONE = '+12025550101';
@@ -93,9 +94,9 @@ describe('sendOnBehalfText / textOnBehalf (texts to someone else)', () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('sends once they opted in themselves, and refuses again after their STOP', async () => {
+  it("sends with the sender's own grant, and refuses again after their STOP", async () => {
     const { d, send, consent } = textDeps(ON);
-    await writeOptIn(hash(FRIEND_PHONE), 'sms', 'inbound-sms', consent);
+    await recordOwnerAttestation(FRIEND_PHONE, 'sms', 'u1', consent, async () => true);
     expect(await sendOnBehalfText(friendText, d)).toEqual({ sent: true });
     await writeOptOut(hash(FRIEND_PHONE), 'sms', 'inbound-sms', consent);
     expect(await sendOnBehalfText({ ...friendText, refId: 'o2' }, d)).toEqual({
@@ -107,7 +108,7 @@ describe('sendOnBehalfText / textOnBehalf (texts to someone else)', () => {
 
   it('the old store (feature_checkin_optouts) still blocks: fallback', async () => {
     const { d, send, consent } = textDeps(ON);
-    await writeOptIn(hash(FRIEND_PHONE), 'sms', 'inbound-sms', consent);
+    await recordOwnerAttestation(FRIEND_PHONE, 'sms', 'u1', consent, async () => true);
     await consent.store.setLegacySmsOptOut(hash(FRIEND_PHONE), true, NOW.toISOString());
     expect(await sendOnBehalfText(friendText, d)).toEqual({ sent: false, reason: 'opted-out' });
     expect(send).not.toHaveBeenCalled();

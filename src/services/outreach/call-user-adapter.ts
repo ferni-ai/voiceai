@@ -18,8 +18,10 @@ import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
 import { movingToPhone, type PhoneMove } from './live-agent-call.js';
+import { isSavedQuietNow } from './quiet-hours.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
+import { asOwnCallMe } from './held-call.js';
 
 /** What Ferni says when a text to the owner was held. */
 const HELD: Record<TextSkip | 'quiet-hours', string> = {
@@ -31,7 +33,9 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
   'no-hash-secret': "texting isn't set up here",
+  held: "I'm holding off on texts for now",
   'send-failed': "the text didn't go through",
+  'focus-held': "your Focus is on, so it'll come when that ends",
 };
 
 /** No second immediate text within a minute: a loop can't spam the owner. */
@@ -52,6 +56,9 @@ export const callUserAdapter: CallUserPort = {
     if (!askedNow && isValidTimeZone(zone) && isQuietHour(new Date(), zone)) {
       return { sent: false, reason: HELD['quiet-hours'] };
     }
+    if (!askedNow && (await isSavedQuietNow(userId))) {
+      return { sent: false, reason: HELD['quiet-hours'] };
+    }
     const refId = `${Date.now()}`;
     const t = {
       userId,
@@ -65,15 +72,18 @@ export const callUserAdapter: CallUserPort = {
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
   },
   call: async ({ userId, phoneNumber, message, personaId, handover }) => {
+    // Their own "call me": the one call a MINOR_CARE_SHARED_HOLD lets ring (held-call.ts)
     const place = () =>
-      scheduleProactiveCall({
-        userId,
-        phoneNumber,
-        message,
-        ssml: `<speak>${escapeXml(message)}</speak>`,
-        personaId,
-        reason: 'user_requested_call',
-      });
+      scheduleProactiveCall(
+        asOwnCallMe({
+          userId,
+          phoneNumber,
+          message,
+          ssml: `<speak>${escapeXml(message)}</speak>`,
+          personaId,
+          reason: 'user_requested_call',
+        })
+      );
     if (!handover) return place();
     // CALL_ME_MOVES_TO_PHONE: the app call's id rides the dispatch; the live dial comes back
     const move: PhoneMove = { userId, conversationId: handover.conversationId };

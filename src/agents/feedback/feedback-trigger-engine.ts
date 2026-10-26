@@ -398,7 +398,8 @@ export async function triggerFeedback(
   });
 
   if (!result.ok) {
-    log.warn({ sessionId, reason: result.reason }, 'Failed to create feedback prompt');
+    if (result.reason !== 'held')
+      log.warn({ sessionId, reason: result.reason }, 'Failed to create feedback prompt');
     return null;
   }
 

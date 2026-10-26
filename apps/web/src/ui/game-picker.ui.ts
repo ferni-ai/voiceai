@@ -506,7 +506,7 @@ class GamePickerUI {
       const gameName = t(game.nameKey);
       // 🤲 Sidekick: Dispatch game started event for avatar sidekick
       document.dispatchEvent(new CustomEvent('ferni:game-started', {
-        detail: { gameId, gameType: gameId, gameName, category: game.category }
+        detail: { gameId, gameType: gameId, gameName, category: game.category, awaitsAck: true }
       }));
 
       // 🤲 Sidekick: For reflection games, also dispatch meditation event
@@ -516,9 +516,8 @@ class GamePickerUI {
         }));
       }
 
-      // Close picker and show success
+      // Close the picker; "Starting..." waits for the agent's ack (agent-ack-handlers.ts)
       this.hide();
-      this.showSuccess(t('gamePicker.starting', { game: gameName }));
       
     } catch (error) {
       log.error({ error, gameId }, '🎮 Failed to start game');
@@ -528,14 +527,6 @@ class GamePickerUI {
         card.classList.remove('game-card--loading');
       }
     }
-  }
-
-  /**
-   * Show success toast
-   */
-  private showSuccess(message: string): void {
-    log.debug({ message }, '🎮 Toast: success');
-    toast.success(message);
   }
 
   /**

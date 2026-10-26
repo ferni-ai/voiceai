@@ -24,6 +24,8 @@ import {
   type Loaded,
 } from './outreach-history-view.js';
 import { closeOnEscape } from '../utils/accessibility.js';
+import { escapeHtml as escape } from '../utils/escape-html.js';
+import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
 
 const log = createLogger('OutreachScheduleUI');
 
@@ -34,22 +36,7 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // TYPES
 // ============================================================================
 
-interface ScheduledOutreach {
-  id: string;
-  type: string;
-  personaId: string;
-  personaName: string;
-  channel: 'sms' | 'email' | 'call' | 'push';
-  scheduledFor: Date;
-  preview: {
-    subject?: string;
-    body: string;
-  };
-  reason: string;
-  priority: 'high' | 'medium' | 'low';
-  canReschedule: boolean;
-  canCancel: boolean;
-}
+type ScheduledOutreach = UpcomingOutreachItem;
 
 
 // ============================================================================
@@ -636,8 +623,8 @@ async function fetchUpcomingOutreach(): Promise<Loaded<ScheduledOutreach[]>> {
   return toLoaded(response, (data) => {
     const upcoming = (data as { upcoming?: unknown } | undefined)?.upcoming;
     if (!Array.isArray(upcoming)) return null;
-    // JSON carries the time as a string; formatTime needs a Date
-    return (upcoming as ScheduledOutreach[]).map((u) => ({ ...u, scheduledFor: new Date(u.scheduledFor) }));
+    // Only the known fields, priority checked against its values (upcoming-outreach-item.ts)
+    return upcoming.map(toUpcomingOutreachItem);
   });
 }
 
@@ -659,29 +646,26 @@ function renderUpcoming(container: Element, items: ScheduledOutreach[]): void {
 
   container.innerHTML = items.map((item) => renderUpcomingItem(item)).join('');
 
-  // Add event listeners
-  container.querySelectorAll('[data-action]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const action = (btn as HTMLElement).dataset.action;
-      const id = (btn as HTMLElement).dataset.id;
-      handleAction(action!, id!);
-    });
+  // Each button acts on the row it sits in (Preview used to look it up elsewhere and find nothing)
+  container.querySelectorAll<HTMLElement>('[data-action]').forEach((btn) => {
+    const item = items.find((i) => i.id === btn.dataset.id);
+    btn.addEventListener('click', () => item && void handleAction(btn.dataset.action ?? '', item));
   });
 }
 
 function renderUpcomingItem(item: ScheduledOutreach): string {
-  const initial = item.personaName.charAt(0);
+  const initial = escape(item.personaName.charAt(0));
   const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.sms;
   const timeStr = formatTime(item.scheduledFor);
 
   return `
-    <div class="outreach-item" data-outreach-id="${item.id}" data-persona="${item.personaId || 'ferni'}">
+    <div class="outreach-item" data-outreach-id="${escape(item.id)}" data-persona="${escape(item.personaId)}">
       <div class="outreach-item-header">
         <div class="outreach-item-persona">
           ${initial}
         </div>
         <div class="outreach-item-info">
-          <p class="outreach-item-persona-name">${item.personaName}</p>
+          <p class="outreach-item-persona-name">${escape(item.personaName)}</p>
           <div class="outreach-item-meta">
             <span class="outreach-item-channel">${channelIcon} ${channelLabel(item.channel)}</span>
             <span class="outreach-item-time">${ICONS.clock} ${timeStr}</span>
@@ -689,19 +673,19 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
         </div>
         <span class="outreach-item-priority ${item.priority}">${priorityLabel(item.priority)}</span>
       </div>
-      <p class="outreach-item-preview">${item.preview.body}</p>
-      <p class="outreach-item-reason">"${item.reason}"</p>
+      <p class="outreach-item-preview">${escape(item.preview.body)}</p>
+      <p class="outreach-item-reason">"${escape(item.reason)}"</p>
       <div class="outreach-item-actions" role="button" tabindex="0">
-        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
+        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${escape(item.id)}">
           ${ICONS.eye} ${t('accessibility.preview')}
         </button>
         ${item.canReschedule ? `
-          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
+          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${escape(item.id)}">
             ${ICONS.edit} ${t('outreachSchedule.reschedule')}
           </button>
         ` : ''}
         ${item.canCancel ? `
-          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
+          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${escape(item.id)}">
             ${ICONS.trash} ${t('common.cancel')}
           </button>
         ` : ''}
@@ -714,97 +698,68 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
 // ACTIONS
 // ============================================================================
 
-async function handleAction(action: string, outreachId: string): Promise<void> {
-  log.info({ action, outreachId }, 'Outreach action triggered');
+async function handleAction(action: string, item: ScheduledOutreach): Promise<void> {
+  log.info({ action, outreachId: item.id }, 'Outreach action triggered');
 
   switch (action) {
     case 'preview':
-      await showPreview(outreachId);
+      showPreview(item);
       break;
     case 'reschedule':
-      await showReschedule(outreachId);
+      await showReschedule(item.id);
       break;
     case 'cancel':
-      await cancelOutreach(outreachId);
+      await cancelOutreach(item.id);
       break;
   }
 }
 
-async function showPreview(outreachId: string): Promise<void> {
-  // Fetch the outreach details
-  try {
-    const response = await apiGet<{ pending?: ScheduledOutreach[] }>(`/api/outreach/pending`);
-    if (!response.ok || !response.data) return;
-    const item = response.data.pending?.find((p: ScheduledOutreach) => p.id === outreachId);
+/** Opens the row's own item: the upcoming route already sent everything the preview shows. */
+function showPreview(item: ScheduledOutreach): void {
+  const preview = document.createElement('div');
+  preview.className = 'outreach-preview-overlay';
+  const personaId = escape(item.personaId);
 
-    if (!item) {
-      log.warn({ outreachId }, 'Outreach not found for preview');
-      return;
-    }
-
-    // Create preview modal
-    const preview = document.createElement('div');
-    preview.className = 'outreach-preview-overlay';
-    const personaId = item.personaId || 'ferni';
-
-    preview.innerHTML = `
-      <div class="outreach-preview-backdrop"></div>
-      <div class="outreach-preview-modal" data-persona="${personaId}">
-        <header class="outreach-preview-header">
-          <div class="outreach-preview-persona">
-            ${(item.personaId || 'F').charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h3 class="outreach-preview-title">${getPersonaName(item.personaId)}</h3>
-            <span class="outreach-preview-channel">${channelLabel(item.channel || 'sms')} • ${item.type.replace(/_/g, ' ')}</span>
-          </div>
-          <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
-        </header>
-        <div class="outreach-preview-content">
-          ${item.preview?.subject ? `<p class="outreach-preview-subject">${item.preview.subject}</p>` : ''}
-          <div class="outreach-preview-message">${item.preview?.body || item.reason}</div>
+  preview.innerHTML = `
+    <div class="outreach-preview-backdrop"></div>
+    <div class="outreach-preview-modal" data-persona="${personaId}">
+      <header class="outreach-preview-header">
+        <div class="outreach-preview-persona">${escape(item.personaName.charAt(0))}</div>
+        <div>
+          <h3 class="outreach-preview-title">${escape(item.personaName)}</h3>
+          <span class="outreach-preview-channel">${channelLabel(item.channel || 'sms')} • ${escape(item.type.replace(/_/g, ' '))}</span>
         </div>
-        <footer class="outreach-preview-footer">
-          <span class="outreach-preview-time">${ICONS.clock} ${t('outreachSchedule.scheduledFor', { time: formatTime(new Date(item.scheduledFor)) })}</span>
-        </footer>
+        <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
+      </header>
+      <div class="outreach-preview-content">
+        ${item.preview?.subject ? `<p class="outreach-preview-subject">${escape(item.preview.subject)}</p>` : ''}
+        <div class="outreach-preview-message">${escape(item.preview?.body || item.reason)}</div>
       </div>
-    `;
+      <footer class="outreach-preview-footer">
+        <span class="outreach-preview-time">${ICONS.clock} ${t('outreachSchedule.scheduledFor', { time: formatTime(new Date(item.scheduledFor)) })}</span>
+      </footer>
+    </div>
+  `;
 
-    // Add styles if not already added
-    addPreviewStyles();
+  // Add styles if not already added
+  addPreviewStyles();
 
-    document.body.appendChild(preview);
+  document.body.appendChild(preview);
 
-    // Animate in
-    requestAnimationFrame(() => {
-      preview.classList.add('open');
-    });
+  // Animate in
+  requestAnimationFrame(() => {
+    preview.classList.add('open');
+  });
 
-    // Close handlers
-    preview.querySelector('.outreach-preview-backdrop')?.addEventListener('click', () => {
-      preview.classList.remove('open');
-      trackedTimeout(() => preview.remove(), 200);
-    });
-    preview.querySelector('.outreach-preview-close')?.addEventListener('click', () => {
-      preview.classList.remove('open');
-      trackedTimeout(() => preview.remove(), 200);
-    });
-
-  } catch (error) {
-    log.error({ error, outreachId }, 'Failed to show preview');
-  }
-}
-
-function getPersonaName(personaId: string): string {
-  const names: Record<string, string> = {
-    ferni: 'Ferni',
-    maya: 'Maya Santos',
-    peter: 'Peter John',
-    alex: 'Alex Chen',
-    jordan: 'Jordan Taylor',
-    nayan: 'Nayan Patel',
-  };
-  return names[personaId] ?? 'Ferni';
+  // Close handlers
+  preview.querySelector('.outreach-preview-backdrop')?.addEventListener('click', () => {
+    preview.classList.remove('open');
+    trackedTimeout(() => preview.remove(), 200);
+  });
+  preview.querySelector('.outreach-preview-close')?.addEventListener('click', () => {
+    preview.classList.remove('open');
+    trackedTimeout(() => preview.remove(), 200);
+  });
 }
 
 function addPreviewStyles(): void {
