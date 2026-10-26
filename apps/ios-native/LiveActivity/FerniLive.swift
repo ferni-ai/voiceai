@@ -8,6 +8,7 @@ struct FerniLiveBundle: WidgetBundle {
     var body: some Widget {
         CallLiveActivity()
         TalkControl()
+        FerniHomeWidget()
     }
 }
 

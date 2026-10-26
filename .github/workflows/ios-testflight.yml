@@ -59,7 +59,7 @@ jobs:
     name: Archive and upload to TestFlight
     needs: blockers
     if: github.ref == 'refs/heads/main'
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 60
     environment: testflight
     steps:
@@ -67,10 +67,11 @@ jobs:
         with:
           persist-credentials: false
 
-      # The Xcode the iOS CI job builds with; fails loudly if the image lacks it.
-      - name: Select Xcode 26.6
+      # The one Xcode for iOS builds (apps/ios-native/.xcode-version), shared with
+      # the TestFlight lane; fails loudly if the image lacks it.
+      - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.6.app || { ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select -s "/Applications/Xcode_$(cat apps/ios-native/.xcode-version).app" || { ls -d /Applications/Xcode*.app; exit 1; }
           xcodebuild -version
 
       - name: Archive and upload

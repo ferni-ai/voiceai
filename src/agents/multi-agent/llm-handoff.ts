@@ -11,6 +11,7 @@
  * @module agents/multi-agent/llm-handoff
  */
 import { handoffEvents } from '../../handoff/index.js';
+import { earlyGoodbyePending } from '../../tools/handoff/early-goodbye.js';
 import { offerAgent, withdrawAgent } from '../../tools/handoff/ready-agents.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -52,6 +53,16 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
   noteTurnTiming(sessionId, 'handoffEvent', 0); // the turn's TURN_RECEIPT timing.handoffSteps
   if (!(await call.lock.acquire())) {
     log.warn({ targetPersonaId }, '🔒 Handoff already in progress, ignoring LLM request');
+    // HANDOFF_EARLY_GOODBYE: after a goodbye, answer the tool now, not at its timeout (dead air)
+    if (earlyGoodbyePending(String(call.services.sessionId))) {
+      handoffEvents.emit('handoffHandlerComplete', {
+        targetId: targetPersonaId,
+        success: false,
+        greetingSpoken: false,
+        instructionsUpdated: false,
+        error: 'Handoff already in progress',
+      });
+    }
     return;
   }
   noteTurnTiming(sessionId, 'handoffLock', 0);

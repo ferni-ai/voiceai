@@ -34,6 +34,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   acceptsSpokenName,
   extractCallerName,
+  isFerniSpelling,
   isCommonWord,
   nameCaptureStrict,
 } from '../../utils/caller-name.js';
@@ -94,7 +95,9 @@ const mentions = (text: string, name: string, suffix = ''): boolean =>
 
 /** NAME_CAPTURE_STRICT=on: the shared check (utils/caller-name.ts: its stopwords and the team roster). */
 const notAName = (name: string): boolean =>
-  nameCaptureStrict() ? !acceptsSpokenName(name) : NOT_NAMES.has(name.toLowerCase());
+  nameCaptureStrict()
+    ? !acceptsSpokenName(name)
+    : NOT_NAMES.has(name.toLowerCase()) || isFerniSpelling(name);
 
 function firstName(
   words: string,

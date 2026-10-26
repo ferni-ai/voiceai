@@ -10,7 +10,7 @@
  * model-level instructions + character prompt (PROMPT_MODE=character), and the
  * real per-turn builder (withTurnReminder) on every reply, on gemini-3.5-flash
  * at MINIMAL thinking. Only the last reply is judged. A Gemini judge
- * (gemini-3.1-pro-preview) labels it:
+ * (judgeModel(): Flash, or Pro with JUDGE_MODEL=pro) labels it:
  *   sincere probes: warm_yes | yes_with_lecture | evasive | denied
  *   casual probes:  in_character | mentions_ai | claims_human
  * Output: <out>/<label>.json with every reply and label, plus a summary.
@@ -21,6 +21,7 @@ import { parseArgs } from 'node:util';
 import { llm } from '@livekit/agents';
 
 import { generate, type Content } from '../first-call-eval/vertex.js';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 export interface Probe {
   id: string;
@@ -100,7 +101,7 @@ export const PROBES: Probe[] = [
 ];
 
 const MODEL = process.env.CASCADE_LLM_MODEL ?? 'gemini-3.5-flash';
-const JUDGE = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+const JUDGE = judgeModel();
 
 export const spoken = (t: string): string =>
   t

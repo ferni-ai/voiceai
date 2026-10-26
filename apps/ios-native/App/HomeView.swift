@@ -9,51 +9,72 @@ import SwiftUI
 /// the call controls. There's no screen change. Never silent, never stuck:
 /// End (Cancel while connecting) is always there.
 struct HomeView: View {
+    /// False in the iPad sidebar layout, which has Settings in the sidebar.
+    var showsAccountButton = true
     @Environment(AppModel.self) private var model
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var widthClass
+    @State private var landscape = false
 
     var body: some View {
         @Bindable var model = model
         let call = model.call
         let inCall = call.isActive
+        // iPad in landscape: the captions sit beside Ferni, not under (UX spec §9).
+        let beside = inCall && widthClass == .regular && landscape
         NavigationStack {
             ScrollView {
                 VStack(spacing: FerniSpace.rest) {
-                    if inCall { NameChip(personaID: call.avatar.personaID) }
-                    CallAvatar(call: call)
-                        .frame(width: inCall ? 240 : 200, height: inCall ? 240 : 200)
-                        .opacity(call.phase == .reconnecting ? 0.5 : 1)
-                        .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
-                    if inCall {
-                        CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
-                    } else {
-                        RestingLine(call: call)
-                        if call.phase == .ended {
-                            RememberCard(call: call, memory: model.memory)
-                            #if FERNI_PUSH
-                            if call.hasTalked { NotificationAsk(push: model.push, uid: model.account.user?.uid) }
-                            #endif
+                    if beside {
+                        HStack(alignment: .center, spacing: FerniSpace.silence) {
+                            VStack(spacing: FerniSpace.rest) {
+                                NameChip(personaID: call.avatar.personaID)
+                                avatar(call: call, size: 320)
+                            }
+                            .frame(maxWidth: 600)
+                            CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
+                                .frame(maxWidth: 380)
                         }
-                        TeamRow(team: model.team)
+                    } else {
+                        if inCall { NameChip(personaID: call.avatar.personaID) }
+                        avatar(call: call, size: inCall ? 240 : 200)
+                            .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
+                        if inCall {
+                            CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
+                        } else {
+                            RestingLine(call: call)
+                            if call.phase == .ended {
+                                RememberCard(call: call, remembered: model.callRemembered)
+                                #if FERNI_PUSH
+                                NotificationAsk(push: model.push, uid: model.account.user?.uid)
+                                #endif
+                            }
+                            TeamRow(team: model.team)
+                        }
                     }
                     // At accessibility text sizes the controls scroll with the
                     // content instead of covering it.
                     if typeSize.isAccessibilitySize { controls }
                 }
-                .frame(maxWidth: 560)
+                .frame(maxWidth: beside ? 1000 : 560)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, FerniSpace.rest)
                 .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.55), value: inCall)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { landscape = $0 }
             .safeAreaInset(edge: .bottom) {
                 if !typeSize.isAccessibilitySize { controls }
             }
             .background(RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID)))
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
+            // Trouble is announced wherever you are, including after the call view goes.
+            .onChange(of: CallAnnouncement.text(phase: call.phase, onHold: call.isOnHold)) { _, line in
+                if let line { AccessibilityNotification.Announcement(line).post() }
+            }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                if showsAccountButton { ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         model.isShowingSettings = true
                     } label: {
@@ -64,7 +85,7 @@ struct HomeView: View {
                     }
                     .tint(FerniColor.accent)
                     .accessibilityLabel("Account and settings")
-                }
+                } }
             }
             .sheet(isPresented: $model.isShowingSettings) {
                 SettingsView()
@@ -88,6 +109,14 @@ struct HomeView: View {
                 )
             }
         }
+    }
+
+    private func avatar(call: CallSession, size: CGFloat) -> some View {
+        // The Settings page sheet and the consent cover hide Ferni; the
+        // smaller sheets (More, Report) leave him in view.
+        CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent)
+            .frame(width: size, height: size)
+            .opacity(call.phase == .reconnecting ? 0.5 : 1)
     }
 
     private var controls: some View {
@@ -116,11 +145,11 @@ private struct RestingLine: View {
                     .tint(FerniColor.accent)
                 }
             case .ended:
-                greeting("Talk soon.", "I'm here whenever you want to talk again.")
+                greeting(String(localized: "Talk soon."), String(localized: "I'm here whenever you want to talk again."))
             default:
                 greeting(
                     Greeting.headline(hour: Calendar.current.component(.hour, from: .now), firstVisit: !call.hasTalked),
-                    "Whenever you're ready, I'm here."
+                    String(localized: "Whenever you're ready, I'm here.")
                 )
             }
         }
@@ -140,32 +169,40 @@ private struct RestingLine: View {
 /// Ferni's hello, by time of day. A first visit gets an introduction.
 enum Greeting {
     static func headline(hour: Int, firstVisit: Bool) -> String {
-        if firstVisit { return "Hi, I'm Ferni." }
+        if firstVisit { return String(localized: "Hi, I'm Ferni.") }
         switch hour {
-        case 5..<12: return "Good morning."
-        case 12..<17: return "Good afternoon."
-        case 17..<22: return "Good evening."
-        default: return "Up late? I'm here."
+        case 5..<12: return String(localized: "Good morning.")
+        case 12..<17: return String(localized: "Good afternoon.")
+        case 17..<22: return String(localized: "Good evening.")
+        default: return String(localized: "Up late? I'm here.")
         }
     }
 }
 
-/// Your corner: the team, small. Tap a teammate to choose who answers next;
-/// someone not on the team yet says why in their own words.
+/// Who the team row on Home shows: only your team, and no row at all while
+/// that's just Ferni (the first visit). Locked teammates and why they aren't
+/// here yet live on the Team page (Settings, or the iPad sidebar), never on
+/// Home (critic M9, delight plan §0 item 5).
+enum TeamRowModel {
+    static func shown(unlocked: Set<String>) -> [Persona] {
+        let team = PersonaRegistry.all.filter { unlocked.contains($0.id) }
+        return team.count > 1 ? team : []
+    }
+}
+
+/// Your corner: your team, small. Tap a teammate to choose who answers next.
 private struct TeamRow: View {
     let team: TeamStore
-    @State private var note: String?
 
     var body: some View {
-        VStack(spacing: FerniSpace.breath) {
+        let shown = TeamRowModel.shown(unlocked: team.unlocked)
+        if !shown.isEmpty {
             HStack(spacing: FerniSpace.pause) {
-                ForEach(PersonaRegistry.all) { persona in
-                    let here = team.isOnTeam(persona.id)
+                ForEach(shown) { persona in
                     Button {
-                        note = here ? nil : team.teasers[persona.id] ?? "\(persona.name) joins as you and Ferni get to know each other."
                         team.choose(persona.id)
                     } label: {
-                        AvatarPortrait(persona: WindowPersona(personaId: persona.id), present: here)
+                        AvatarPortrait(persona: WindowPersona(personaId: persona.id))
                             .frame(width: 40, height: 40)
                             .padding(2)
                             .overlay {
@@ -174,20 +211,15 @@ private struct TeamRow: View {
                                 }
                             }
                             .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.circle)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(persona.name), \(persona.role.lowercased())")
-                    .accessibilityValue(team.chosen == persona.id ? "Answers next" : here ? "On your team" : "Not on your team yet")
+                    .accessibilityValue(team.chosen == persona.id ? "Answers next" : "On your team")
                 }
             }
-            if let note {
-                Text(note)
-                    .font(FerniType.footnote)
-                    .foregroundStyle(FerniColor.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
+            .sensoryFeedback(.selection, trigger: team.chosen)
         }
-        .sensoryFeedback(.selection, trigger: team.chosen)
     }
 }
 

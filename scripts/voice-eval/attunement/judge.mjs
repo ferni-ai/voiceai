@@ -8,7 +8,7 @@
 // --sample and --only narrow what is judged: qwen takes 1-3 min a row locally
 // (QWEN_PARALLEL, default 1, requests at a time).
 //
-// gemini: JUDGE_MODEL (default gemini-3.1-pro-preview) on Vertex, GCP_PROJECT or
+// gemini: JUDGE_MODEL (default flash; pro for Pro) on Vertex, GCP_PROJECT or
 //         GOOGLE_CLOUD_PROJECT. Same family as Ferni's model, so never alone.
 // qwen:   qwen3:30b-a3b on local Ollama (OLLAMA_URL, default localhost:11434),
 //         /api/chat with think on and the JSON shape constrained. Not qwen2.5:
@@ -21,6 +21,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { judgeModel } from '../../lib/judge-model.mjs';
 
 const RUBRIC = `You are judging a voice AI called Ferni, who is meant to talk like a close friend on the phone. Score each of Ferni's replies on ONE question: did this reply meet the caller where they are?
 
@@ -76,7 +77,7 @@ async function askGemini(prompt) {
     tokenAt = Date.now();
   }
   const project = process.env.GCP_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT;
-  const model = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+  const model = judgeModel();
   const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',

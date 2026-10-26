@@ -21,6 +21,7 @@ const h = vi.hoisted(() => {
   return {
     notifyWithResult: vi.fn(),
     warn: vi.fn(),
+    error: vi.fn(),
   };
 });
 vi.mock('../../slack-notifications.js', async (importOriginal) => ({
@@ -31,7 +32,7 @@ vi.mock('../../slack-notifications.js', async (importOriginal) => ({
 }));
 vi.mock('../../predictive-alerting.js', () => ({ recordMetricValue: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: h.warn, error: vi.fn() }),
+  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: h.warn, error: h.error }),
 }));
 
 import {
@@ -92,6 +93,7 @@ beforeEach(() => {
   sends = [];
   resetCallQualityStateForTests();
   h.warn.mockClear();
+  h.error.mockClear();
   h.notifyWithResult.mockReset();
   h.notifyWithResult.mockImplementation(async (ctx: NotificationContext) => {
     const result = script.get(ctx.title)?.shift() ?? DELIVERED;
@@ -106,6 +108,7 @@ afterAll(() => {
 afterEach(() => {
   resetCallQualityStateForTests();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.useRealTimers();
 });
 
@@ -150,17 +153,29 @@ describe('an incident opens only once the alert is delivered', () => {
     expect(fetchMock.mock.calls.every(([url]) => url === process.env.SLACK_WEBHOOK_URL)).toBe(true);
   });
 
-  it('no webhook: logged once per incident, never counted as sent', async () => {
-    script.set(RESPONSE, Array(10).fill({ status: 'not_configured' }));
+  it('no webhook: tried once per 5-minute cooldown, logged once, never counted as sent', async () => {
+    const NC: SlackDelivery = { status: 'not_configured' };
+    script.set(RESPONSE, [NC, NC, NC]);
     slowCalls();
 
-    await checksAt(0, 9);
-    expect([attempts(RESPONSE), deliveries(RESPONSE)]).toEqual([10, 0]); // still trying
+    await checksAt(0, 14); // #2900 tried every check: 15 attempts, 15 warning lines
+    expect([attempts(RESPONSE), deliveries(RESPONSE)]).toEqual([3, 0]); // minutes 0, 5, 10
     expect(warned('alert not delivered: no Slack webhook')).toBe(1);
 
-    await checksAt(10, 10); // a webhook appears: delivered, then it holds
-    await checksAt(11, 20);
-    expect([attempts(RESPONSE), deliveries(RESPONSE)]).toEqual([11, 1]);
+    await checksAt(15, 25); // a webhook appears: delivered at 15, then it holds
+    expect([attempts(RESPONSE), deliveries(RESPONSE)]).toEqual([4, 1]);
+  });
+
+  it('a failed send after a no-webhook backoff is still retried at the next check', async () => {
+    script.set(RESPONSE, [{ status: 'not_configured' }, { status: 'failed', reason: 'http 503' }]);
+    slowCalls();
+
+    await checksAt(0, 4);
+    expect(attempts(RESPONSE)).toBe(1);
+    await checksAt(5, 5); // backoff over: a webhook now, but it 503s
+    expect([attempts(RESPONSE), deliveries(RESPONSE)]).toEqual([2, 0]);
+    await checksAt(6, 6); // failed is not backed off
+    expect([attempts(RESPONSE), deliveries(RESPONSE)]).toEqual([3, 1]);
   });
 
   it('a critical alert opsAlert raised (no webhook) counts as delivered', async () => {
@@ -224,5 +239,36 @@ describe('once per incident', () => {
     calls(10, 8_000, 'disconnect'); // 15/65 = 23%: a new disconnect incident
     await checksAt(21, 30);
     expect([attempts(RESPONSE), deliveries(DISCONNECT)]).toEqual([1, 2]);
+  });
+});
+
+describe('no webhook, two critical alerts at once', () => {
+  it('both reach the operator through opsAlert on the first check', async () => {
+    vi.stubEnv('SLACK_WEBHOOK_URL', '');
+    vi.stubEnv('SLACK_ALERTS_WEBHOOK', '');
+    vi.resetModules(); // the real service reads its webhooks at load
+    const { SlackNotificationService } = await vi.importActual<{
+      SlackNotificationService: typeof RealSlack;
+    }>('../../slack-notifications.js');
+    const real = new SlackNotificationService();
+    h.notifyWithResult.mockImplementation(async (ctx: NotificationContext) => {
+      const result = await real.notifyWithResult(ctx);
+      sends.push({ title: ctx.title, status: result.status });
+      return result;
+    });
+    calls(5, 8_000, 'disconnect'); // slow AND dropped: both critical
+
+    await checksAt(0, 0); // one shared 'notify:incident_opened' key: disconnect waited ~15 min
+    expect(sends.filter((s) => s.title === RESPONSE || s.title === DISCONNECT)).toEqual([
+      { title: RESPONSE, status: 'delivered' },
+      { title: DISCONNECT, status: 'delivered' },
+    ]);
+    const keys = h.error.mock.calls.map((c) => (c[0] as { opsAlert?: string }).opsAlert);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'notify:incident_opened:critical:Response Time Critical',
+        'notify:incident_opened:critical:Disconnect Rate Critical',
+      ])
+    );
   });
 });

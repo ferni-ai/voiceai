@@ -559,8 +559,7 @@ async function sendQualityAlert(
   metrics: Partial<CallQualityMetrics>
 ): Promise<void> {
   const alertKey = `${severity}:${title}`;
-
-  if (!incidents.shouldSend(alertKey, Date.now(), config.alertCooldownMs)) return; // sent for this incident
+  if (!incidents.shouldSend(alertKey, Date.now(), config.alertCooldownMs)) return; // sent, or backing off
 
   const emoji = severity === 'critical' ? '🚨' : '⚠️';
   log.warn({ severity, title, metrics }, `${emoji} ${title}`);
@@ -571,6 +570,7 @@ async function sendQualityAlert(
     message,
     severity: severity === 'critical' ? 'error' : 'warning',
     metadata: metrics as unknown as Record<string, unknown>,
+    alertKey, // its own opsAlert key: two critical alerts at once both reach the operator
   });
   incidents.record(alertKey, Date.now(), result, log);
 }

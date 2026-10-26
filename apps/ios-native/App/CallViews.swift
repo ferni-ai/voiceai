@@ -7,6 +7,8 @@ import SwiftUI
 /// Ferni to stop; that is the avatar's only gesture.
 struct CallAvatar: View {
     let call: CallSession
+    /// A sheet or cover hides Ferni, so the avatar stops drawing.
+    var covered = false
 
     var body: some View {
         let avatar = call.avatar
@@ -16,6 +18,7 @@ struct CallAvatar: View {
             expression: avatar.expression,
             activity: Self.activity(avatar.pose),
             name: PersonaRegistry.get(avatar.personaID).name,
+            covered: covered,
             level: { [level = call.agentLevel] in level.level }
         )
         .contentShape(Circle())
@@ -80,7 +83,10 @@ struct CallCaptions: View {
                             Button("Report this reply", systemImage: "flag") { report(line) }
                         }
                     }
-                    .accessibilityAction(named: "Report this reply") { if isFerni { report(line) } }
+                    .accessibilityActions {
+                        // Only Ferni's lines can be reported (critic M4).
+                        if isFerni { Button("Report this reply") { report(line) } }
+                    }
             }
             if let state = Self.state(call, name: name) {
                 HStack(spacing: FerniSpace.breath) {
@@ -95,9 +101,6 @@ struct CallCaptions: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: lines)
-        .onChange(of: Self.state(call, name: name)) { _, line in
-            if let line { AccessibilityNotification.Announcement(line).post() }
-        }
     }
 
     private var name: String { PersonaRegistry.get(call.avatar.personaID).name }
@@ -105,18 +108,32 @@ struct CallCaptions: View {
     /// Nil while Ferni is talking: the words say it.
     static func state(_ call: CallSession, name: String) -> String? {
         switch call.phase {
-        case .connecting: return "Calling \(name)…"
-        case .waitingForFerni: return "\(name)'s on the way…"
-        case .reconnecting: return "Reconnecting…"
+        case .connecting: return String(localized: "Calling \(name)…")
+        case .waitingForFerni: return String(localized: "\(name)'s on the way…")
+        case .reconnecting: return String(localized: "Reconnecting…")
         case .live:
-            if call.isOnHold { return "On hold" }
-            if call.isMuted { return "You're muted" }
+            if call.isOnHold { return String(localized: "On hold") }
+            if call.isMuted { return String(localized: "You're muted") }
             switch call.avatar.pose {
             case .speaking: return nil
-            case .thinking: return "\(name)'s thinking"
-            default: return "\(name)'s listening"
+            case .thinking: return String(localized: "\(name)'s thinking")
+            default: return String(localized: "\(name)'s listening")
             }
         default: return nil
+        }
+    }
+}
+
+/// What VoiceOver is told about the call on its own: only what needs
+/// attention (trouble, being put on hold), never each turn over Ferni's voice
+/// (ios-motion-spec §6.3, critic M4). Handoffs are announced by the avatar.
+enum CallAnnouncement {
+    static func text(phase: CallSession.Phase, onHold: Bool) -> String? {
+        switch phase {
+        case .reconnecting: String(localized: "Reconnecting…")
+        case .live where onHold: String(localized: "On hold")
+        case .failed(let problem): problem.message
+        default: nil
         }
     }
 }
@@ -162,6 +179,7 @@ struct CallControls: View {
                             circle("mic.fill", muted: call.isMuted, label: call.isMuted ? "Unmute" : "Mute") {
                                 Task { await call.toggleMute() }
                             }
+                            .keyboardShortcut("m", modifiers: .command)
                         }
                     }
                     .disabled(call.phase != .live)
@@ -172,13 +190,15 @@ struct CallControls: View {
                     } label: {
                         Image(systemName: "phone.down.fill")
                             .font(.title)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(FerniColor.onError)
                             .frame(width: 72, height: 72)
+                            .contentShape(.circle)
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.error).interactive(), in: .circle)
                     .glassEffectID("talk", in: glass)
                     .accessibilityLabel(call.phase == .live || call.phase == .reconnecting ? "End call" : "Cancel")
+                    .keyboardShortcut(".", modifiers: .command)
 
                     circle("ellipsis", muted: false, label: "More", action: more)
                         .glassEffectID("right", in: glass)
@@ -186,12 +206,16 @@ struct CallControls: View {
                     Button(action: talk) {
                         Label(talkLabel, systemImage: "waveform")
                             .font(FerniType.button)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(FerniColor.onAccent)
                             .frame(maxWidth: 420, minHeight: 56)
+                            // A plain button hit-tests only what it draws: without this,
+                            // only the words started a call, not the glass around them.
+                            .contentShape(.capsule)
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.accent).interactive(), in: .capsule)
                     .glassEffectID("talk", in: glass)
+                    .keyboardShortcut(.return, modifiers: .command)
                 }
             }
         }
@@ -206,6 +230,7 @@ struct CallControls: View {
                 .font(.title2)
                 .foregroundStyle(FerniColor.textPrimary)
                 .frame(width: 60, height: 60)
+                .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)
@@ -214,9 +239,9 @@ struct CallControls: View {
 
     private var talkLabel: String {
         switch call.phase {
-        case .failed(.connectionLost): "Call back"
-        case .failed: "Try again"
-        default: "Talk to \(PersonaRegistry.get(team.chosen).name)"
+        case .failed(.connectionLost): String(localized: "Call back")
+        case .failed: String(localized: "Try again")
+        default: String(localized: "Talk to \(PersonaRegistry.get(team.chosen).name)")
         }
     }
 }

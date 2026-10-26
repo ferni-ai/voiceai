@@ -7,7 +7,7 @@
 
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
+import { isFerniSpelling, nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
 import { z } from 'zod';
 // Import directly from types to avoid circular dependency through services/index
 import type { SessionServices } from '../../../services/types.js';
@@ -68,7 +68,7 @@ export function createConversationTools() {
         );
 
         const nameLower = name.toLowerCase().trim();
-        if (personaNames.has(nameLower)) {
+        if (personaNames.has(nameLower) || isFerniSpelling(name)) {
           getLogger().warn(
             `Blocked saving persona name "${name}" as user name - this is a team member, not the user!`
           );

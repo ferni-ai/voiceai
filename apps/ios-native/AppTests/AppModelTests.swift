@@ -71,5 +71,44 @@ final class AppModelTests: XCTestCase {
     func testNotesFromFerniWaitForTheServerRoute() {
         XCTAssertFalse(FerniBuild.pushNotes, "the entitlement is checked on the signed build (codesign)")
     }
+
+    /// The watch is a remote: its Talk goes through consent like the phone's,
+    /// and Mute or End with no call do nothing.
+    func testTheWatchsTalkGoesThroughConsent() {
+        let model = model()
+        WatchRemote.handle(.mute, model: model)
+        WatchRemote.handle(.end, model: model)
+        XCTAssertFalse(model.call.isActive)
+        WatchRemote.handle(.talk, model: model)
+        XCTAssertTrue(model.isAskingConsent, "no call before consent")
+        XCTAssertFalse(model.call.isActive)
+    }
+
+    // MARK: - Critic M2: leaving ends the call
+
+    /// Signing out, withdrawing consent or deleting the account mid-call ends
+    /// the call first: no audio keeps flowing for someone who just left.
+    func testSigningOutEndsALiveCall() async {
+        let model = model()
+        model.call.start()
+        XCTAssertTrue(model.call.isActive)
+        await model.signOut()
+        XCTAssertFalse(model.call.isActive, "ended, then cleared for the next person")
+    }
+
+    func testWithdrawingConsentEndsALiveCall() async {
+        let model = model()
+        model.call.start()
+        await model.withdrawConsent()
+        XCTAssertEqual(model.call.phase, .ended)
+        XCTAssertFalse(model.consent.hasAgreed)
+    }
+
+    func testDeletingTheAccountEndsALiveCallEvenIfTheServerSaysNo() async {
+        let model = model()
+        model.call.start()
+        try? await model.deleteAccount()
+        XCTAssertEqual(model.call.phase, .ended)
+    }
 }
 
