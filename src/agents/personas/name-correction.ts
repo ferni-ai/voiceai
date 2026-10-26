@@ -48,11 +48,14 @@ import {
 import { isCallbackTime } from '../../utils/callback-time.js';
 import {
   confirmNameNote,
+  doubleCheckLine,
+  nameLikeness,
   pendingOf,
   propose,
   settle,
-} from '../../tools/domains/conversation/name-confirm.js';
-import { personaFirstNameOf } from './call-me-note.js';
+  type Pending,
+} from '../../tools/domains/conversation/index.js';
+import { noteTurn, personaFirstNameOf } from './call-me-note.js';
 
 const log = createLogger({ module: 'NameCorrection' });
 
@@ -268,11 +271,34 @@ function applyAnswers(
     const name = done?.pending.name;
     const agreed = done?.outcome === 'yes' || done?.outcome === 'name';
     if (!name || !agreed || sameName(name, currentName(session, user))) continue;
+    // A name like a team name: this yes only raises the second check (name-likeness.ts).
+    if (done.pending.check === 'first') {
+      propose(session, { ...done.pending, askedOn: turn.words, check: 'second' });
+      continue;
+    }
     const was = corrected.get(session)?.was ?? currentName(session, user);
     corrected.set(session, { name, was });
     rename(user, name, deps);
     log.info({ sessionId: user.services?.sessionId, hadName: !!was }, 'NAME_CORRECTION confirmed');
   }
+}
+
+/** A name like a team name ("Furnee", "Jenni") is asked about twice (name-likeness.ts). */
+const firstCheck = (name: string): 'first' | undefined =>
+  nameLikeness(name).kind === 'name' ? undefined : 'first';
+
+/** The line for the open question: the usual one, or the second check. */
+function askLine(
+  session: object,
+  ask: Pending,
+  current: string | undefined,
+  plain?: boolean
+): string {
+  const like = nameLikeness(ask.name);
+  if (ask.check !== 'second' || like.kind === 'name')
+    return confirmNameNote(ask.name, current, plain);
+  const team = like.kind === 'like' ? like.team : 'Ferni';
+  return doubleCheckLine(ask.name, team, personaFirstNameOf(session), plain);
 }
 
 /**
@@ -293,11 +319,11 @@ function confirmingNote(
   applyAnswers(session, user, { words, heard }, deps);
   const current = currentName(session, user);
   if (heard && !sameName(heard, current) && pendingOf(session, 'rename')?.name !== heard)
-    propose(session, { kind: 'rename', name: heard, askedOn: words });
+    propose(session, { kind: 'rename', name: heard, askedOn: words, check: firstCheck(heard) });
   const ask = pendingOf(session, 'rename');
   const now = corrected.get(session);
   return [
-    ask ? confirmNameNote(ask.name, current, deps.plain) : '',
+    ask ? askLine(session, ask, current, deps.plain) : '',
     now ? nameNote(now.name, now.was) : '',
   ]
     .filter((line) => line !== '')
@@ -317,6 +343,7 @@ export function nameCorrectionNote(
   env: Env = process.env,
   deps: NameCorrectionDeps = {}
 ): string {
+  noteTurn(chatCtx, session, callerWords); // before any question is settled (call-me-note.ts)
   const user = nameCorrectionEnabled(env) ? callerOn(session, deps) : null;
   if (!user) return '';
   // With a guest in the room, "I'm David" may be the guest (room-guests.ts).

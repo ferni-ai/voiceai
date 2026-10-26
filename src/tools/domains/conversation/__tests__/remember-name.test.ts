@@ -46,17 +46,23 @@ function call(given: string | null = 'Seth') {
   return { session, user: session.userData as never, userProfile, saveProfile };
 }
 
-function chat(said: string): llm.ChatContext {
+/** A call so far: each earlier turn is a reply of Ferni's and the caller's words. */
+function chat(said: string, before: readonly string[] = []): llm.ChatContext {
   const ctx = llm.ChatContext.empty();
-  ctx.addMessage({ role: 'assistant', content: 'Hey, good to hear you.' });
-  ctx.addMessage({ role: 'user', content: said });
+  for (const line of [...before, said]) {
+    ctx.addMessage({ role: 'assistant', content: 'Hey, good to hear you.' });
+    ctx.addMessage({ role: 'user', content: line });
+  }
   return ctx;
 }
 
+const history = new WeakMap<object, string[]>();
 /** One caller turn as the live path runs it: the preemptive and the final request. */
 function turn(session: object, said: string): void {
-  withTurnReminder(chat(said), session);
-  withTurnReminder(chat(said), session);
+  const before = history.get(session) ?? [];
+  withTurnReminder(chat(said, before), session);
+  withTurnReminder(chat(said, before), session);
+  history.set(session, [...before, said]);
 }
 
 const ASK = 'Want me to call you Jess from now on?';
@@ -148,27 +154,154 @@ describe('rememberName, CALL_ME_VOCATIVE=off (unchanged)', () => {
   });
 });
 
-describe('Ferni as speech-to-text hears it is never the caller', () => {
-  it.each([
-    ['off', 'Fern'],
-    ['on', 'Fern'],
-    ['off', 'fern'],
-    ['off', 'Fernie'],
-    ['off', 'Fernee'],
-    ['off', 'Ferni'],
-  ] as const)('CALL_ME_VOCATIVE=%s refuses %s', async (flag, name) => {
-    flags(flag);
+const CHECK = (name: string, like: string): string =>
+  `Just checking, your name is ${name}? Like ${like}?`;
+
+/** Two yeses through the live turns: the usual question, then "Just checking...". */
+async function askedTwice(
+  flag: 'on' | 'off',
+  name: string,
+  like: string,
+  nc: 'on' | 'off' = 'off'
+) {
+  flags(flag, nc);
+  const { session, user, userProfile, saveProfile } = call('Seth');
+  turn(session, `call me ${name}`);
+  expect(await rememberName(name, user, session)).toContain('Not saved yet');
+  expect(userProfile.name).toBe('Seth');
+  turn(session, 'yes');
+  // The first yes is not enough: the second question, and still nothing written.
+  expect(await rememberName(name, user, session)).toContain(CHECK(name, like));
+  expect(userProfile.name).toBe('Seth');
+  expect(userProfile.preferredName).toBe('Seth');
+  expect((session.userData as { userName?: string }).userName).toBe('Seth');
+  expect(saveProfile).not.toHaveBeenCalled();
+  turn(session, 'yes');
+  expect(await rememberName(name, user, session)).toContain('stored');
+  expect(userProfile.name).toBe(name);
+  expect(saveProfile).toHaveBeenCalledTimes(1);
+}
+
+describe("Ferni's own name, normalised, is never the caller (flag on or off)", () => {
+  const REFUSED = ['Ferni', 'Fern', 'Ferni!', 'Fern.', 'FERNI', 'Férni', ' fern ', 'Fern?'];
+  it.each((['off', 'on'] as const).flatMap((f) => REFUSED.map((n) => [f, n] as const)))(
+    'CALL_ME_VOCATIVE=%s refuses "%s"',
+    async (flag, name) => {
+      flags(flag);
+      const { session, user, userProfile, saveProfile } = call('Seth');
+      turn(session, `call me ${name}`);
+      expect(await rememberName(name, user, session)).toContain('team member name');
+      turn(session, 'yes');
+      expect(await rememberName(name, user, session)).toContain('team member name');
+      expect(userProfile.name).toBe('Seth');
+      expect(saveProfile).not.toHaveBeenCalled();
+    }
+  );
+});
+
+describe('a name like a team name is asked twice, never refused (flag on or off)', () => {
+  const LIKE_FERNI = [
+    'Furnee',
+    'Furni',
+    'Fernay',
+    'Fernie',
+    'Ferny',
+    'Fernee',
+    'Phernie',
+    'Jenni',
+    'Terri',
+  ];
+  const TEAM: Array<[string, string]> = [
+    ['Maya', 'my teammate Maya'],
+    ['Jordan', 'my teammate Jordan'],
+    ['Alex', 'my teammate Alex'],
+  ];
+  const ROWS = [...LIKE_FERNI.map((n) => [n, 'my name, Ferni'] as [string, string]), ...TEAM];
+  it.each((['off', 'on'] as const).flatMap((f) => ROWS.map(([n, l]) => [f, n, l] as const)))(
+    'CALL_ME_VOCATIVE=%s: %s is saved only after the second yes',
+    (flag, name, like) => askedTwice(flag, name, like)
+  );
+
+  it.each(['Jenni', 'Terri'])('%s through name-correction too (NAME_CORRECTION=on)', (name) =>
+    askedTwice('on', name, 'my name, Ferni', 'on')
+  );
+
+  it('a no to the second question saves nothing', async () => {
+    flags('on');
     const { session, user, userProfile, saveProfile } = call('Seth');
-    expect(await rememberName(name, user, session)).toContain('team member name');
+    turn(session, 'call me Furnee');
+    await rememberName('Furnee', user, session);
+    turn(session, 'yes');
+    await rememberName('Furnee', user, session);
+    turn(session, 'no, sorry');
+    expect(await rememberName('Furnee', user, session)).toContain("didn't say yes");
     expect(userProfile.name).toBe('Seth');
     expect(saveProfile).not.toHaveBeenCalled();
   });
 
-  it('a real name still saves (flag off)', async () => {
-    flags('off');
+  it.each([
+    ['off', 'Fern Smith'],
+    ['off', 'Fernando'],
+  ] as const)(
+    'a multi-word or plain name saves as before with the flag off: %s',
+    async (f, name) => {
+      flags(f);
+      const { session, user, userProfile } = call('Seth');
+      await rememberName(name, user, session);
+      expect(userProfile.name).toBe(name);
+    }
+  );
+
+  it('"Fern Smith" takes the usual single confirm with the flag on', async () => {
+    flags('on');
     const { session, user, userProfile } = call('Seth');
-    await rememberName('Fernando', user, session);
-    expect(userProfile.name).toBe('Fernando');
+    turn(session, 'call me Fern Smith');
+    expect(await rememberName('Fern Smith', user, session)).toContain(
+      'Want me to call you Fern Smith from now on?'
+    );
+    turn(session, 'yes');
+    expect(await rememberName('Fern Smith', user, session)).toContain('stored');
+    expect(userProfile.name).toBe('Fern Smith');
+  });
+});
+
+describe('the question holds the name the caller said last (CALL_ME_VOCATIVE=on)', () => {
+  it.each(['on', 'off'] as const)(
+    'Sam, then "actually, call me Riley": only a yes saves, and it saves Riley (NAME_CORRECTION=%s)',
+    async (nc) => {
+      flags('on', nc);
+      const { session, user, userProfile, saveProfile } = call('Seth');
+      turn(session, 'call me Sam');
+      await rememberName('Sam', user, session);
+      turn(session, 'actually, call me Riley');
+      await rememberName('Riley', user, session);
+      // The model then names Sam in the same turn: it can't take the question back.
+      expect(await rememberName('Sam', user, session)).toContain(
+        'The name they said last is Riley'
+      );
+      expect(pendingOf(session, 'rename')?.name).toBe('Riley');
+      expect(userProfile.name).toBe('Seth');
+      expect(saveProfile).not.toHaveBeenCalled();
+      turn(session, 'yes');
+      await rememberName('Sam', user, session);
+      expect(userProfile.name).toBe('Seth');
+      await rememberName('Riley', user, session);
+      expect(userProfile.name).toBe('Riley');
+      expect(userProfile.preferredName).toBe('Riley');
+      await rememberName('Sam', user, session);
+      expect(userProfile.name).toBe('Riley');
+      expect(saveProfile).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('a session name nobody confirmed is never written by the same-name shortcut', async () => {
+    flags('on');
+    const { session, user, userProfile, saveProfile } = call('Seth');
+    (session.userData as { userName?: string }).userName = 'Sam'; // set without a yes
+    turn(session, 'sure');
+    expect(await rememberName('Sam', user, session)).toContain('Not saved yet');
+    expect(userProfile.name).toBe('Seth');
+    expect(saveProfile).not.toHaveBeenCalled();
   });
 });
 

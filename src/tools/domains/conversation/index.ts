@@ -12,3 +12,15 @@
 
 // Conversation tools - core conversation management
 export { createConversationTools, default } from './conversation-tools.js';
+
+// The caller's-name questions the turn reminder shares with rememberName (agents/personas)
+export {
+  confirmNameNote,
+  eitherNote,
+  noteTurnWords,
+  pendingOf,
+  propose,
+  settle,
+  type Pending,
+} from './name-confirm.js';
+export { doubleCheckLine, nameLikeness } from './name-likeness.js';

@@ -33,7 +33,7 @@ export function callMeVocativeEnabled(env: Env = process.env): boolean {
   return flagOn('CALL_ME_VOCATIVE', env);
 }
 
-function editDistance(a: string, b: string): number {
+export function editDistance(a: string, b: string): number {
   let row = Array.from({ length: b.length + 1 }, (_, j) => j);
   for (let i = 1; i <= a.length; i++) {
     const next = [i];

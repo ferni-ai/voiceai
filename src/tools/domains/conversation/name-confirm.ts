@@ -31,8 +31,15 @@ export interface Pending {
   name: string;
   /** The caller's words on the turn it was asked: the same words again are the same turn. */
   askedOn: string;
+  /** The turn it was asked on (set by propose). */
+  turn?: string;
   /** `either` where the word is their own name already: only "ring or not" is open. */
   ownName?: boolean;
+  /**
+   * A name like a team name ("Furnee", "Jenni", "Maya": name-likeness.ts) is asked twice:
+   * `first` is the usual question, whose yes only raises the `second`, "Just checking...".
+   */
+  check?: 'first' | 'second';
 }
 
 export type Outcome = 'waiting' | 'yes' | 'name' | 'ring' | 'dropped';
@@ -43,6 +50,21 @@ export interface Settled {
 }
 
 const open = new WeakMap<object, Map<PendingKind, Pending>>();
+/** First names (lower case) the caller said yes to on this call, and to which question. */
+const confirmed = new WeakMap<object, Map<string, 'plain' | 'second'>>();
+const firstLower = (name: string): string => name.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
+
+/** A yes (not the first of two) is remembered for the call: rememberName may save that name. */
+function noteConfirmed(session: object, pending: Pending, outcome: Outcome): void {
+  if ((outcome !== 'yes' && outcome !== 'name') || pending.check === 'first') return;
+  const said = confirmed.get(session) ?? new Map<string, 'plain' | 'second'>();
+  said.set(firstLower(pending.name), pending.check ?? 'plain');
+  confirmed.set(session, said);
+}
+
+/** Whether the caller said yes to `name` on this call: to the usual question, or to the second check. */
+export const confirmedOf = (session: object, name: string): 'plain' | 'second' | undefined =>
+  confirmed.get(session)?.get(firstLower(name));
 const done = new WeakMap<object, Map<PendingKind, Settled & { on: string }>>();
 
 const mapOf = <T>(
@@ -60,21 +82,29 @@ export function pendingOf(session: object, kind: PendingKind): Pending | undefin
   return open.get(session)?.get(kind);
 }
 
-const turnWords = new WeakMap<object, string>();
+const turnWords = new WeakMap<object, { words: string; turn: string }>();
 
 /**
- * The caller's words this turn, as the turn reminder read them (call-me-note.ts),
- * so a question rememberName raises mid-turn is settled by the next turn's words.
+ * The caller's words this turn, as the turn reminder read them, and which turn it is
+ * (`turn`: how many replies came before, call-me-note.ts noteTurn). rememberName reads
+ * them, and two turns of the same words ("yes", then "yes" to the next question) are
+ * told apart by `turn`, not mistaken for one turn's two requests.
  */
-export function noteTurnWords(session: object, words: string): void {
-  if (words.trim()) turnWords.set(session, words);
+export function noteTurnWords(session: object, words: string, turn = ''): void {
+  if (words.trim()) turnWords.set(session, { words, turn });
 }
 
-export const turnWordsOf = (session: object): string => turnWords.get(session) ?? '';
+export const turnWordsOf = (session: object): string => turnWords.get(session)?.words ?? '';
+
+/** Which turn `words` belong to: the noted turn when they are its words, else the words alone. */
+function turnOf(session: object, words: string): string {
+  const noted = turnWords.get(session);
+  return noted && noted.words === words && noted.turn ? `${noted.turn}\u0000${words}` : words;
+}
 
 /** Ask about `pending.name` this turn; it is settled by the caller's next words. */
 export function propose(session: object, pending: Pending): void {
-  mapOf(open, session).set(pending.kind, pending);
+  mapOf(open, session).set(pending.kind, { ...pending, turn: turnOf(session, pending.askedOn) });
 }
 
 const NO_FIRST = /^\W*(?:no|nope|nah|not|don['’]?t|never|wait|stop|cancel)\b/i;
@@ -120,17 +150,19 @@ export function settle(
   restated: string | null = null
 ): Settled | null {
   if (!words.trim()) return null;
+  const now = turnOf(session, words);
   const pending = pendingOf(session, kind);
   if (pending) {
-    if (pending.askedOn === words) return { pending, outcome: 'waiting' };
+    if ((pending.turn ?? pending.askedOn) === now) return { pending, outcome: 'waiting' };
     const outcome =
       kind === 'rename' ? renameAnswer(pending, words, restated) : eitherAnswer(pending, words);
     open.get(session)?.delete(kind);
-    mapOf(done, session).set(kind, { pending, outcome, on: words });
+    mapOf(done, session).set(kind, { pending, outcome, on: now });
+    noteConfirmed(session, pending, outcome);
     return { pending, outcome };
   }
   const last = done.get(session)?.get(kind);
-  return last && last.on === words ? { pending: last.pending, outcome: last.outcome } : null;
+  return last && last.on === now ? { pending: last.pending, outcome: last.outcome } : null;
 }
 
 /** The turn line while a new name waits for their yes. `plain`: no quoted example. */
