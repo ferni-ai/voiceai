@@ -181,6 +181,8 @@ const LEGACY_FLAG_MANIFEST = {
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
   // which flight search backs searchFlights and getFlightPrice: amadeus (default) or ignav (travel/flight-provider.ts)
   FLIGHT_PROVIDER: { default: 'amadeus', owner: 'tools', kind: 'config' },
+  // on: "forget that" deletes the facts (and their copies) instead of hiding them (memory/recall/forget-delete.ts)
+  FORGET_DELETES: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
   FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
@@ -274,6 +276,8 @@ const LEGACY_FLAG_MANIFEST = {
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
   MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: the voice side of the app menu is on every agent from turn 1, outside the tool cap (menu-tools-pinned.ts)
+  MENU_TOOLS_PINNED: { default: 'off', owner: 'tools', kind: 'experiment' },
   // on: one consent record per phone, consent/{phoneHash} (services/messaging/consent.ts):
   // inbound STOP/START writes it, texts and calls read it, third parties need their own opt-in
   MESSAGING_PIPELINE: { default: 'off', owner: 'outreach', kind: 'experiment' },

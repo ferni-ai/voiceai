@@ -19,6 +19,7 @@ import { recordMetricValue } from '../predictive-alerting.js';
 import { logCallStartStages } from './call-start-stages.js';
 import { emitCallEnd, type CallSummary } from './bq-call-events.js';
 import { gateSmallSamples } from './call-quality-sample.js';
+import * as firstResponse from './call-first-response.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -91,6 +92,7 @@ export interface CallSession {
   userId?: string;
   personaId?: string;
   startTime: number;
+  outbound?: boolean; // Ferni placed it: first response is timed from pickup
   stages?: Record<string, number>;
   endTime?: number;
   connectionTimeMs?: number;
@@ -130,6 +132,7 @@ export interface CallQualityMetrics {
   // Response metrics
   avgFirstResponseTimeMs: number;
   p95FirstResponseTimeMs: number;
+  firstResponseSamples: number; // calls in the response average (call-first-response.ts)
   lastSessionStages?: CallStageTimings;
 
   // Duration metrics
@@ -227,8 +230,8 @@ export function recordCallEvent(event: CallEvent): void {
           session_start: session.stages?.session_start ?? 0,
           first_audio: session.firstResponseTimeMs,
         };
-        // Feed to predictive alerting (true first audio only)
-        recordMetricValue('first_response_time', session.firstResponseTimeMs);
+        const sampleMs = firstResponse.sampleMs(session); // a placed call: from pickup
+        if (sampleMs !== undefined) recordMetricValue('first_response_time', sampleMs);
         logCallStartStages(session);
       }
       break;
@@ -284,20 +287,21 @@ export function recordCallEvent(event: CallEvent): void {
   }
 }
 
-/** Convenience function to start a call */
-export function startCall(callId: string, userId?: string, personaId?: string): void {
-  if (forward) return forward('startCall', [callId, userId, personaId]);
+/** Start a call; `type` (job metadata.type) marks one Ferni placed (call-first-response.ts). */
+export function startCall(callId: string, userId?: string, persona?: string, type?: string): void {
+  if (forward) return forward('startCall', [callId, userId, persona, ...(type ? [type] : [])]);
   const startTime = Date.now();
   recordCallEvent({
     callId,
     userId,
-    personaId,
+    personaId: persona,
     timestamp: startTime,
     type: 'connection_attempt',
   });
   const session = sessions.get(callId);
   if (session) {
     session.stages = { session_start: 0 };
+    session.outbound = firstResponse.isPlacedCallType(type);
   }
 }
 
@@ -421,14 +425,7 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
       : 0;
 
   // Response metrics (include active — first audio often arrives before call ends)
-  const firstResponseTimes = [
-    ...windowSessions
-      .filter((s) => s.firstResponseTimeMs !== undefined)
-      .map((s) => s.firstResponseTimeMs!),
-    ...activeSessions
-      .filter((s) => s.firstResponseTimeMs !== undefined)
-      .map((s) => s.firstResponseTimeMs!),
-  ];
+  const firstResponseTimes = firstResponse.samples([...windowSessions, ...activeSessions]);
   const avgFirstResponseTimeMs =
     firstResponseTimes.length > 0
       ? firstResponseTimes.reduce((a, b) => a + b, 0) / firstResponseTimes.length
@@ -490,6 +487,7 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
     avgConnectionTimeMs,
     avgFirstResponseTimeMs,
     p95FirstResponseTimeMs,
+    firstResponseSamples: firstResponseTimes.length,
     lastSessionStages,
     avgCallDurationMs,
     medianCallDurationMs,
@@ -621,7 +619,7 @@ export async function checkQualityAlerts(): Promise<void> {
   }
 
   // First response time
-  if (metrics.avgFirstResponseTimeMs > config.firstResponseTimeCriticalMs) {
+  if (gated.avgFirstResponseTimeMs > config.firstResponseTimeCriticalMs) {
     await sendQualityAlert(
       'critical',
       'Response Time Critical',
@@ -631,7 +629,7 @@ export async function checkQualityAlerts(): Promise<void> {
         p95FirstResponseTimeMs: metrics.p95FirstResponseTimeMs,
       }
     );
-  } else if (metrics.avgFirstResponseTimeMs > config.firstResponseTimeWarningMs) {
+  } else if (gated.avgFirstResponseTimeMs > config.firstResponseTimeWarningMs) {
     await sendQualityAlert(
       'warning',
       'Response Time Elevated',

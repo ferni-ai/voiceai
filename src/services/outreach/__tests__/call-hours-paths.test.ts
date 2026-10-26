@@ -96,8 +96,9 @@ describe('on-behalf call', () => {
     const reply = await callDad();
 
     expect(createSipParticipant).not.toHaveBeenCalled();
+    // The requester is in New York, where it's 2 AM Wednesday: both clocks, from held-call-clocks.ts.
     expect(reply).toBe(
-      "Nothing was dialed yet: it's not a good hour to call Dad, so I'll call tomorrow at 9:00 AM their time to wish him happy birthday."
+      "Nothing was dialed yet: it's not a good hour to call Dad, so I'll call tomorrow at 9:00 AM Dad's time, later today at 12:00 PM yours, to wish him happy birthday. Both times are already worked out: say them as written."
     );
     expect(deferred()).toHaveLength(1);
     expect(deferred()[0].data).toMatchObject({

@@ -60,7 +60,7 @@ export interface StripCounts {
 }
 
 /** A Firestore Timestamp, a Date or an ISO string (what the writer stored), in ms */
-function millis(value: unknown): number | null {
+export function millis(value: unknown): number | null {
   if (value instanceof Date) return value.getTime();
   const t = value as { toMillis?: () => number } | null;
   if (typeof t?.toMillis === 'function') return t.toMillis();

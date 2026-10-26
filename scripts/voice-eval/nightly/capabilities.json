@@ -33,9 +33,15 @@
       ]
     },
     "follow-through": {
-      "label": "Follow-through on open threads", "scenarios": ["follow-through"],
+      "label": "Follow-through on open threads", "scenarios": ["follow-through", "asked-once-answer"],
       "checks": [
         { "id": "own-opener", "metric": "ownOpener", "better": "lower", "warn": 0, "fail": 0, "why": "10-21: asked by name 3/3, then answered it himself 1/3 (B2)" }
+      ]
+    },
+    "asked-once": {
+      "label": "An answered follow-up is not asked again", "scenarios": ["asked-once-check"],
+      "checks": [
+        { "id": "re-asked", "metric": "callsMatching", "pattern": "\\b(?:priya|dinner)\\b[^.?!]{0,60}\\b(?:go|went|turn(?:ed)? out)\\b|\\bhow\\b[^.?!]{0,60}\\bpriya\\b|\\bhow (?:was|is|'s) (?:the |that |your )?dinner\\b", "better": "lower", "warn": 0, "fail": 0, "why": "memory audit 10-25: an answer stored as a new dated fact was asked again 16 min later (dates/recall.ts)" }
       ]
     },
     "attunement": {

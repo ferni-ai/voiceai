@@ -16,7 +16,8 @@
  *   happened". What is disputed: facts sharing at least two words with the
  *   reply.
  * Summary items about it (follow-ups, key points, topics, open threads,
- * inside jokes) are disputed the same way.
+ * inside jokes) are disputed the same way, and so are the caller's open world
+ * facts (closed, wrong: true), where the dated follow-ups are read from.
  *
  * A denial means "that memory is wrong", not "never bring this up": only the
  * matched items are marked, never the forgotten-topics list (that is for
@@ -33,7 +34,7 @@
  * @module memory/recall/dispute
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { factText, type StoredFactRef } from './forget.js';
+import { factText, worldFactText, type ForgetStore, type StoredFactRef } from './forget.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
@@ -106,7 +107,7 @@ export interface StoredSummaryRef {
   data: Record<string, unknown>;
 }
 
-export interface DisputeStore {
+export interface DisputeStore extends Pick<ForgetStore, 'worldFacts' | 'markWorldFacts'> {
   /** The caller's facts in every fact collection (forget.ts). */
   facts: (userId: string) => Promise<StoredFactRef[]>;
   /** The caller's recent call summaries. */
@@ -142,21 +143,28 @@ export async function disputeDenied(
   now: Date = new Date()
 ): Promise<DisputeResult> {
   const covers = matcher(denial);
-  const [facts, summaries] = await Promise.all([store.facts(userId), store.summaries(userId)]);
+  const [facts, summaries, world] = await Promise.all([
+    store.facts(userId),
+    store.summaries(userId),
+    store.worldFacts?.(userId) ?? [],
+  ]);
   const matched = facts.filter(
     (f) => typeof f.data.forgottenAt !== 'string' && covers(factText(f.data))
   );
+  const worldIds = world.filter((f) => covers(worldFactText(f))).map((f) => f.id);
   const items = summaries
     .map((s) => ({ id: s.id, items: disputedItemsOf(s.data, covers) }))
     .filter((s) => s.items.length > 0);
   const itemCount = items.reduce((n, s) => n + s.items.length, 0);
   if (matched.length > MAX_DISPUTED) return { kind: 'too-broad', matched: matched.length };
+  if (worldIds.length > MAX_DISPUTED) return { kind: 'too-broad', matched: worldIds.length };
   if (itemCount > MAX_DISPUTED_ITEMS) return { kind: 'too-broad', matched: itemCount };
-  if (matched.length === 0 && itemCount === 0) return { kind: 'nothing' };
+  if (matched.length + worldIds.length + itemCount === 0) return { kind: 'nothing' };
   const at = now.toISOString();
   if (matched.length > 0) await store.markFacts(userId, matched, at);
+  if (worldIds.length > 0) await store.markWorldFacts?.(userId, worldIds, at, true);
   for (const s of items) await store.markSummaryItems(userId, s.id, s.items, at);
-  return { kind: 'disputed', facts: matched.length, items: itemCount };
+  return { kind: 'disputed', facts: matched.length + worldIds.length, items: itemCount };
 }
 
 /** Reads the caller's line against the reply before it and disputes what it denies. Never throws. */

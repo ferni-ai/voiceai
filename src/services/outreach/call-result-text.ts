@@ -22,7 +22,13 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
-import { callerText, isRiskyCallerText, riskyCallerLine } from './caller-text.js';
+import {
+  crisisCallerLine,
+  cutAtWord,
+  isRiskyCallerText,
+  riskyCallerLine,
+  screenCallerParts,
+} from './caller-text.js';
 import { isSavedQuietNow } from './quiet-hours.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
@@ -40,24 +46,53 @@ export function callResultTextOn(env: Record<string, string | undefined> = proce
 /**
  * What they asked to pass on, screened again right before it goes out (it may
  * have been joined from parts). Their words are only ever quoted and
- * attributed; risky words are replaced by Ferni's own fixed line, decided by
- * isRiskyCallerText, never by whether a second pass changed the text.
+ * attributed, and only when nothing risky came up; otherwise Ferni's own fixed
+ * line goes instead. Crisis words are never lost (#2861): Ferni's safety line
+ * comes first, so the length cap can't cut it.
  */
-function passedOn(contactName: string, outcome: CallOutcome): { quote?: string; flag?: string } {
-  const said = callerText(outcome.message, 200);
-  if (!said) return {};
-  // The lifecycle may already have put the fixed line in `message`: say it, don't quote it.
-  if (said === riskyCallerLine(contactName) || isRiskyCallerText(said)) {
-    return { flag: riskyCallerLine(contactName) };
-  }
-  return { quote: said };
+function passedOn(
+  contactName: string,
+  outcome: CallOutcome
+): { quote?: string; before?: string; after?: string } {
+  // The lifecycle may already have put the fixed lines in `message`: the screen
+  // takes them back out of the quote and reports them as flags.
+  const { said, risky, safety } = screenCallerParts(outcome.message, contactName, 200);
+  return {
+    quote: said && !risky && !isRiskyCallerText(said) ? said : undefined,
+    before: safety ? crisisCallerLine(contactName) : undefined,
+    after: risky ? riskyCallerLine(contactName) : undefined,
+  };
 }
 
-/** Cut to one text without leaving a quote open (a cut quote is closed, so it stays theirs). */
+/** The flags and the quote, by priority: safety first, the quote, then money. */
+function passOnLine(contactName: string, outcome: CallOutcome, lead: string): string | undefined {
+  const { quote, before, after } = passedOn(contactName, outcome);
+  const said = quote ? `${lead} "${quote}"` : undefined;
+  const line = [before, said, after].filter(Boolean).join(' ');
+  return line || undefined;
+}
+
+/** Cut to one text at a word, without leaving a quote open (a cut quote is closed, so it stays theirs). */
 function capped(text: string): string {
   if (text.length <= MAX_TEXT) return text;
-  const cut = `${text.slice(0, MAX_TEXT - 4).trimEnd()}...`;
+  const cut = cutAtWord(text, MAX_TEXT - 1);
   return (cut.match(/"/g)?.length ?? 0) % 2 === 1 ? `${cut}"` : cut;
+}
+
+/**
+ * The last step before the owner sees it: a screen of the exact string, never
+ * a cut. It catches what only this string can hold: the cap's "..." after a
+ * word ("www..."), or a quote and the summary joining into a request. If
+ * anything risky is left, only Ferni's own lines go, the safety line first
+ * whenever the text carried it. The contact's name is the owner's words, not
+ * the caller's, so it doesn't count: a call to "Chase Bank" still reports.
+ */
+function screened(text: string, contactName: string, prefix = ''): string {
+  if (!isRiskyCallerText(text.split(contactName).join(' '))) return text;
+  const safety = text.includes(crisisCallerLine(contactName));
+  return [prefix, safety ? crisisCallerLine(contactName) : '', riskyCallerLine(contactName)]
+    .filter(Boolean)
+    .join(' ');
 }
 
 /**
@@ -65,22 +100,20 @@ function capped(text: string): string {
  * on, quoted. Without one: the call's own outcome line.
  */
 export function callResultText(contactName: string, outcome: CallOutcome): string {
-  const { quote, flag } = passedOn(contactName, outcome);
+  const passOn = passOnLine(contactName, outcome, `${contactName} asked me to tell you:`);
   const reached = `It's Ferni. I talked to ${contactName}.`;
-  if (outcome.status !== 'completed' || (!quote && !flag)) {
-    return capped(`It's Ferni. ${outcome.outcome.trim()}`);
+  if (outcome.status !== 'completed' || !passOn) {
+    const lead = outcome.status === 'completed' ? reached : "It's Ferni.";
+    return screened(capped(`It's Ferni. ${outcome.outcome.trim()}`), contactName, lead);
   }
-  return capped(
-    quote ? `${reached} ${contactName} asked me to tell you: "${quote}"` : `${reached} ${flag}`
-  );
+  return screened(capped(`${reached} ${passOn}`), contactName, reached);
 }
 
 /** The While You Were Away details: what they asked to pass on first, then the summary. */
 export function callResultDetails(contactName: string, outcome: CallOutcome): string | undefined {
-  const { quote, flag } = passedOn(contactName, outcome);
-  const passOn = quote ? `${contactName} asked to pass on: "${quote}"` : flag;
-  if (!passOn) return outcome.transcriptSummary;
-  return outcome.transcriptSummary ? `${passOn} ${outcome.transcriptSummary}` : passOn;
+  const passOn = passOnLine(contactName, outcome, `${contactName} asked to pass on:`);
+  const details = [passOn, outcome.transcriptSummary].filter(Boolean).join(' ');
+  return details ? screened(details, contactName) : undefined;
 }
 
 export type CallResultTold = 'live' | 'quiet-hours' | 'no-time-zone' | 'texted' | 'not-sent';

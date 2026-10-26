@@ -104,6 +104,8 @@ const DEFERRED = {
   rescheduled: held('call-hours'),
   failed: failed('provider-error'),
   missed: failed('missed-window'),
+  // Their saved quiet hours still cover all their call hours at the re-check: their own stop.
+  'quiet-all-day': { outcome: 'cancelled', reason: 'quiet-hours' },
 } satisfies Record<string, PromiseOutcome>;
 export const deferredCallOutcome = (s: keyof typeof DEFERRED): PromiseOutcome => DEFERRED[s];
 

@@ -1281,7 +1281,7 @@ export default {
   initializeRedisCache,
   rehydrateConversationEmbeddings,
 };
-export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
+export { forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js';
 export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js';
 export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';

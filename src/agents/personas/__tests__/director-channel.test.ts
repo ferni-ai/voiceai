@@ -2,10 +2,9 @@
  * The director is told whether the call is in the app or on a phone line
  * (DIRECTOR_KNOWS_CHANNEL, director-channel.ts).
  *
- * Prod 2026-10-23 (#2709): the owner, in the web app, asked Ferni to call him
- * on the phone; callUser ran, and the director wrote "He thinks you're on a
- * different platform. Clarify you're already talking on the phone line."
- * because its prompt calls every call "a live, unscripted phone call".
+ * A caller in the app who asks to be rung (#2709): the director's prompt calls
+ * every call "a live, unscripted phone call", so the note it wrote said the
+ * caller was already on the phone line.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { Director, type Line } from '../director-notes.js';
