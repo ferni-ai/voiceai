@@ -31,7 +31,10 @@ import {
   recordedWhileHeld,
   scrubHeldDoc,
 } from '../../services/trust-systems/held-window.js';
-import { storeAndScrubHeldWindow } from '../../services/trust-systems/reload-before-save.js';
+import {
+  addHeldScrub,
+  storeAndScrubHeldWindow,
+} from '../../services/trust-systems/reload-before-save.js';
 import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
@@ -63,6 +66,8 @@ setOnUserHeld(shareHold);
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);
+// ...and scrubbed from the stored doc with them, so a failed music scrub is retried too
+addHeldScrub((id) => scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories));
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -106,12 +111,8 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     // boundaries, growth, inside jokes, small wins, life events…: saved by a later call's cleanup
     ['trust systems', clearTrustSystemsUser],
     // what voice prosody and momentum flushed before the age statement (held-window.ts)
+    // ...and the music memories the 15 s timer stored, and any caller's words (addHeldScrub, above)
     ['held-window scrub', (id) => void (window && storeAndScrubHeldWindow(id, window))],
-    // music memories the 15 s timer stored before the age statement, and any caller's words
-    [
-      'music memory scrub',
-      (id) => void scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories),
-    ],
     // topics they mentioned, buffered with a debounced save; a later call's cleanup flushes it
     ['personality resonance', clearResonanceUser],
     // the relationship arc (first words, key moments), cached 5 min and saved by a later call

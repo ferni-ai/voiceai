@@ -25,6 +25,7 @@ export function createFakeEngagementFirestore(): FakeEngagementFirestore {
   const hangReads: FakeEngagementFirestore['hangReads'] = { match: null };
 
   const docRef = (path: string) => ({
+    path,
     collection: (name: string) => query(`${path}/${name}`, []),
     get: async () => {
       if (failReads.match?.test(path)) throw new Error('4 DEADLINE_EXCEEDED: fake timeout');

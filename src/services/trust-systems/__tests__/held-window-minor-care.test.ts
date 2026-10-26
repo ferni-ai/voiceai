@@ -44,6 +44,8 @@ const batch = () => {
 const failTransactions = new Set<string>();
 /** ...or never settles, as a hung connection would. */
 const hangTransactions = new Set<string>();
+/** Transactions on a doc path this matches fail (one store's scrub alone). */
+const failTxPath = { match: null as RegExp | null };
 const runTransaction = async (fn: (tx: unknown) => Promise<unknown>) => {
   const ops: Array<() => Promise<void>> = [];
   const tx = {
@@ -52,6 +54,8 @@ const runTransaction = async (fn: (tx: unknown) => Promise<unknown>) => {
       const id = snap.data()?._userId;
       if (id && failTransactions.has(id)) throw new Error('14 UNAVAILABLE: fake outage');
       if (id && hangTransactions.has(id)) await new Promise<never>(() => {});
+      if (failTxPath.match?.test((ref as { path?: string }).path ?? ''))
+        throw new Error('14 UNAVAILABLE: fake outage');
       return snap;
     },
     set: (ref: Ref, d: unknown, o?: unknown) => void ops.push(() => ref.set(d, o)),
@@ -401,6 +405,7 @@ const DAY = 24 * 60 * 60 * 1000;
 
 describe('MINOR_CARE: the held window is stored, so every process drops what it covers', () => {
   afterEach(() => {
+    failTxPath.match = null;
     firestore.failReads.match = null;
     firestore.hangReads.match = null;
     failTransactions.clear();
@@ -478,6 +483,46 @@ describe('MINOR_CARE: the held window is stored, so every process drops what it 
     // before any store timer runs: the session start's own scrub cleaned both docs
     expect(stored(u).voice).toEqual({ OLD: 12, HELD: 0, NEW: 0 });
     expect(stored(u).momentum).toEqual({ OLD: 1, HELD: 0, NEW: 0 });
+    expect(holdDoc(u)?.windows?.map((w) => w.scrubbed)).toEqual([true]);
+    await endProc(q);
+  });
+
+  it('only the music scrub fails: the window stays unscrubbed, and the next session start retries it', async () => {
+    const u = uid('Mu');
+    await seed(u);
+    vi.stubEnv('MINOR_CARE', 'on');
+    const now = Date.now();
+    const memory = (id: string, at: number) => ({
+      id,
+      createdAt: new Date(at).toISOString(),
+      emotionalContext: { state: 'sad' },
+      music: { genre: 'lofi', mood: 'calm' },
+      evidence: { userMentioned: true },
+      effectiveTransition: 'sad_to_calm',
+      confidence: 0.8,
+      tags: [id],
+    });
+    const music = `bogle_users/${u}/music_learning/memories`;
+    firestore.docs.set(music, {
+      userId: u,
+      _userId: u,
+      updatedAt: new Date(now).toISOString(),
+      memories: [memory('OLDM', now - 2 * DAY), memory('HELDM', now - 30_000)],
+      preferences: [],
+    });
+    const p = await proc();
+    failTxPath.match = /music_learning\/memories$/; // the voice and momentum scrubs succeed
+    await heldCall(p, u, { startedAt: now - 60_000 });
+    await vi.waitFor(() => expect(stored(u).voice.HELD).toBe(0), { timeout: 2000 });
+    expect(raw(u, 'music_learning/memories')).toContain('HELDM');
+    expect(holdDoc(u)?.windows?.map((w) => w.scrubbed)).toEqual([false]);
+    await endProc(p);
+    failTxPath.match = null;
+    const q = await proc(); // the next call, on another process
+    q.mc.bindSessionUser(`next-${u}`, u);
+    await q.persist.loadTrustProfiles(u);
+    expect(raw(u, 'music_learning/memories')).not.toContain('HELDM');
+    expect(raw(u, 'music_learning/memories')).toContain('OLDM');
     expect(holdDoc(u)?.windows?.map((w) => w.scrubbed)).toEqual([true]);
     await endProc(q);
   });

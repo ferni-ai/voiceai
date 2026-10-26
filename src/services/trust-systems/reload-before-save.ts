@@ -105,7 +105,17 @@ export async function scrubHeldStores(userId: string): Promise<boolean[]> {
   return Promise.all([
     scrubHeldDoc(userId, 'voice_prosody', 'data', withoutHeldSamples),
     scrubHeldDoc(userId, 'celebration_momentum', 'profile', withoutHeldWins),
+    ...otherScrubs.map((scrub) => scrub(userId)),
   ]);
+}
+
+/**
+ * Other stores' scrubs (music memories, registered by minor-care-purge.ts: this layer can't import
+ * them). Each runs with these, so one that fails leaves the window unscrubbed and is retried.
+ */
+const otherScrubs: Array<(userId: string) => Promise<boolean>> = [];
+export function addHeldScrub(scrub: (userId: string) => Promise<boolean>): void {
+  otherScrubs.push(scrub);
 }
 
 /** Scrub both docs; once both are clean, mark the stored windows scrubbed. Never rejects. */
