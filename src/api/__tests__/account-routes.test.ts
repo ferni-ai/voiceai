@@ -149,6 +149,29 @@ describe('DELETE /api/account', () => {
     expect(mockDeleteFirebaseUser).not.toHaveBeenCalled();
   });
 
+  it('tells the person their sign-in is still open even in production', async () => {
+    vi.stubEnv('K_SERVICE', 'ferni-api');
+    try {
+      mockDeleteAllData.mockResolvedValue({ profile: true, answer_cards: false });
+      const { handleAccountRoutes } = await import('../account-routes.js');
+      const res = response();
+
+      await handleAccountRoutes(
+        deleteRequest({ confirmation: 'DELETE_MY_ACCOUNT' }),
+        res,
+        '/api/account'
+      );
+
+      expect(res.status).toBe(500);
+      expect(res.body().error).toBe(
+        "Couldn't finish deleting your account, so your sign-in is still open. Try again?"
+      );
+      expect(mockDeleteFirebaseUser).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('closes the sign-in only when every data step succeeded', async () => {
     mockDeleteAllData.mockResolvedValue({ profile: true, answer_cards: true });
     const { handleAccountRoutes } = await import('../account-routes.js');

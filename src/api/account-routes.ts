@@ -33,6 +33,7 @@ import { eraseConsentFor } from '../services/processing-consent.js';
 import { assertErased, erasureErrorCode } from '../services/platform/erasure-step.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
+import { sendUserFacingError } from './user-facing-error.js';
 import { handleProcessingConsent } from './processing-consent-routes.js';
 
 // Alias for compatibility
@@ -261,7 +262,7 @@ async function handleDeleteAccount(
       { error: erasureErrorCode(error), userId },
       'Account deletion failed while erasing data'
     );
-    sendError(
+    sendUserFacingError(
       res,
       "Couldn't finish deleting your account, so your sign-in is still open. Try again?",
       500

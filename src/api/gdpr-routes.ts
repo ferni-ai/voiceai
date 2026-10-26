@@ -21,6 +21,7 @@ import { registerInterval } from '../utils/interval-manager.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { sendUserFacingError } from './user-facing-error.js';
 import { assertErased, erasureErrorCode } from '../services/platform/erasure-step.js';
 
 const log = createLogger({ module: 'GDPR-API' });
@@ -662,7 +663,7 @@ async function handleAccountDeletion(
     return true;
   } catch (error) {
     log.error({ error: erasureErrorCode(error), userId }, 'Account deletion failed');
-    sendError(res, 'Failed to delete account. Your sign-in is still open, so try again.', 500);
+    sendUserFacingError(res, 'Failed to delete account. Your sign-in is still open, so try again.');
     return true;
   }
 }
