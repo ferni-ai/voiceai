@@ -19,8 +19,8 @@ const distinct = (subjects: string[]) => new Set(subjects.map(key)).size;
 describe('owner relations collapse (MIND_BUILD on)', () => {
   it("gives the owner's mom one key however it is written", () => {
     const mom = ['Mom', 'mother', 'my Mum', "MOM'S", 'Mommy', 'my mom', "user's mother", 'Mom ❤️'];
-    expect(mom.map(key)).toEqual(Array(mom.length).fill('person:mother'));
-    expect(['dad', 'Daddy', 'my father'].map(key)).toEqual(Array(3).fill('person:father'));
+    expect(mom.map(key)).toEqual(Array(mom.length).fill('person:rel:mother'));
+    expect(['dad', 'Daddy', 'my father'].map(key)).toEqual(Array(3).fill('person:rel:father'));
   });
 
   it('gives one name under several casings and a possessive one key', () => {
@@ -29,10 +29,10 @@ describe('owner relations collapse (MIND_BUILD on)', () => {
   });
 
   it('keeps a qualified relation apart: a stepmom or a mother-in-law is not mom', () => {
-    expect(key('stepmom')).toBe('person:step-mother');
-    expect(key('my step mom')).toBe('person:step-mother');
-    expect(key('my mother-in-law')).toBe('person:mother-in-law');
-    expect(key('ex wife')).toBe('person:ex-wife');
+    expect(key('stepmom')).toBe('person:rel:step-mother');
+    expect(key('my step mom')).toBe('person:rel:step-mother');
+    expect(key('my mother-in-law')).toBe('person:rel:mother-in-law');
+    expect(key('ex wife')).toBe('person:rel:ex-wife');
   });
 });
 
@@ -49,14 +49,14 @@ describe('what must never collapse (MIND_BUILD on)', () => {
   });
 
   it('1. grandma and nana are two people; "my grandma" is grandma', () => {
-    expect(key('grandma')).toBe('person:grandma');
-    expect(key('my grandma')).toBe('person:grandma');
+    expect(key('grandma')).toBe('person:rel:grandma');
+    expect(key('my grandma')).toBe('person:rel:grandma');
     expect(distinct(['grandma', 'nana', 'grandmother', 'my nana', 'Lola'])).toBe(5);
   });
 
   it("2. a third party's relation is not the owner's", () => {
     const theirs = ['his mom', 'her mom', 'their mom', 'her mother', "Odile's mom"];
-    expect(theirs.map(key)).not.toContain('person:mother');
+    expect(theirs.map(key)).not.toContain('person:rel:mother');
     expect(distinct(theirs)).toBe(theirs.length);
   });
 
@@ -76,7 +76,7 @@ describe('what must never collapse (MIND_BUILD on)', () => {
     for (const s of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
       expect(key(s)).toBe(`person:${normalizeName(s)}`);
       expect(key(s)).not.toMatch(/function|native|object/i);
-      expect(ownerRelationKey(normalizeName(s))).toBeNull();
+      expect(ownerRelationKey(s)).toBeNull();
       expect(relationKey(s)).toBeNull();
     }
   });
@@ -115,6 +115,43 @@ describe('names keep their letters (MIND_BUILD on)', () => {
     expect(normalizeName('Nguyễn')).toBe('nguyen');
     // only Latin accents come off: a kana voicing mark is part of the letter
     expect(normalizeName('ゆうが')).toBe('ゆうが');
+  });
+});
+
+describe('accents, glued prefixes, marks and Ferni forms (MIND_BUILD on)', () => {
+  it('an accented name is never the role or self word it folds to', () => {
+    expect(key('Sơn')).toBe('person:son');
+    expect(key('my son')).toBe('person:rel:son');
+    expect(key('Son')).toBe('person:rel:son');
+    expect(key('Mẹ')).toBe('person:me');
+    expect([key('Mẹ'), key('my mom')]).not.toContain('self');
+    expect(key('Mẹ')).not.toBe(key('my mom'));
+  });
+
+  it('no name key lands where a relation key lives', () => {
+    const names = ['Sơn', 'Mẹ', 'Móther', 'Dàd', 'Godson', 'Nana', 'Teodoro'];
+    for (const k of names.map(key)) expect(k).not.toMatch(/^person:rel:/);
+  });
+
+  it('Godson is a name: only step and ex split off a word', () => {
+    expect(key('Godson')).toBe('person:godson');
+    expect(key('Godson')).not.toBe(key('my godson'));
+    expect(key('godmother')).toBe('person:godmother');
+    expect(key('exwife')).toBe('person:rel:ex-wife');
+  });
+
+  it('Indic vowel signs are part of the name', () => {
+    expect(key('रेखा')).not.toBe(key('राखी'));
+    expect(key('मीना')).not.toBe(key('मोना'));
+    expect(key('রিনা')).not.toBe(key('রানু'));
+    expect(key('प्रिया')).toBe('person:प्रिया');
+    expect(normalizeName('रेखा')).toBe('रेखा');
+  });
+
+  it('a Ferni form drops only as the whole name', () => {
+    expect(key('Fernie Gonzalez')).toBe('person:fernie gonzalez');
+    expect(key('Fernie')).toBeNull();
+    expect(key('the fernie')).toBeNull();
   });
 });
 
@@ -177,7 +214,7 @@ describe('canonicalSubjectKey with MIND_BUILD off (the default) is subjectKeyOf 
 
 describe('the pieces', () => {
   it('ownerRelationKey: a bare role word or one the owner claims, nothing else', () => {
-    const n = (s: string) => ownerRelationKey(normalizeName(s));
+    const n = ownerRelationKey;
     expect(['my sister', 'sister', "the caller's stepdad", "user's mother"].map(n)).toEqual([
       'sister',
       'sister',
