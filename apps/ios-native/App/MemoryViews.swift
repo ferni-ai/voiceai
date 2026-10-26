@@ -3,38 +3,33 @@ import FerniKit
 import FerniVoice
 import SwiftUI
 
-/// After a call: what Ferni kept from it, in your words, each one forgettable
-/// (design north star §3.4). Nothing shows when the call taught nothing new.
+/// After a call: what Ferni kept from it, each one fixable ("Not quite") or
+/// forgettable (design north star §3.4). Nothing shows when the call taught
+/// nothing new, or when the server has nothing to show.
 struct RememberCard: View {
     let call: CallSession
-    let memory: MemoryStore
-    @State private var notes: [MemoryStore.Note] = []
+    let remembered: CallRemembered
+    @State private var items: [CallRemembered.Item] = []
+    @State private var editing: String?
+    @State private var draft = ""
+    @State private var problem: String?
 
     var body: some View {
         // A permanent zero-height anchor: .task on a view that renders nothing never runs.
         VStack(spacing: 0) {
             Color.clear.frame(height: 0)
-            if !notes.isEmpty {
+            if !items.isEmpty {
                 VStack(alignment: .leading, spacing: FerniSpace.breath) {
                     Text("I'll remember")
                         .font(FerniType.headline)
                         .foregroundStyle(FerniColor.textPrimary)
-                    ForEach(notes) { note in
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(note.content)
-                                .font(FerniType.body)
-                                .foregroundStyle(FerniColor.textSecondary)
-                            Spacer(minLength: FerniSpace.breath)
-                            if note.canForget {
-                                Button("Forget") { Task { await forget(note) } }
-                                    .font(FerniType.footnote)
-                                    .tint(FerniColor.accent)
-                                    // A full 44 pt target, not just the word (critic L5).
-                                    .frame(minWidth: 44, minHeight: 44)
-                                    .contentShape(Rectangle())
-                                    .accessibilityLabel("Forget \(note.content)")
-                            }
-                        }
+                    ForEach(items) { item in
+                        if editing == item.id { editor(item) } else { row(item) }
+                    }
+                    if let problem {
+                        Text(problem)
+                            .font(FerniType.footnote)
+                            .foregroundStyle(FerniColor.textSecondary)
                     }
                 }
                 .padding(FerniSpace.pause)
@@ -47,28 +42,111 @@ struct RememberCard: View {
         .task(id: call.startedAt) { await load() }
     }
 
-    /// Notes are written as the call wraps up, so look once more a little later.
+    private func row(_ item: CallRemembered.Item) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(item.sentence)
+                .font(FerniType.body)
+                .foregroundStyle(FerniColor.textSecondary)
+            HStack(spacing: FerniSpace.rest) {
+                Button("Not quite") {
+                    draft = item.value
+                    editing = item.id
+                    problem = nil
+                }
+                .accessibilityLabel("Not quite: correct \(item.sentence)")
+                Button("Forget") { Task { await forget(item) } }
+                    .accessibilityLabel("Forget \(item.sentence)")
+            }
+            .font(FerniType.footnote)
+            .tint(FerniColor.accent)
+            .frame(minHeight: 44)
+        }
+    }
+
+    private func editor(_ item: CallRemembered.Item) -> some View {
+        VStack(alignment: .leading, spacing: FerniSpace.breath) {
+            if let key = item.key {
+                Text(key.prefix(1).uppercased() + key.dropFirst())
+                    .font(FerniType.footnote)
+                    .foregroundStyle(FerniColor.textSecondary)
+            }
+            TextField("What's right?", text: $draft)
+                .textFieldStyle(.roundedBorder)
+                .submitLabel(.done)
+                .onSubmit { Task { await save(item) } }
+                .onChange(of: draft) { _, text in
+                    if text.count > CallRemembered.maxCorrection { draft = String(text.prefix(CallRemembered.maxCorrection)) }
+                }
+            HStack(spacing: FerniSpace.rest) {
+                Button("Cancel") { editing = nil }
+                Button("Save") { Task { await save(item) } }
+                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .font(FerniType.footnote)
+            .tint(FerniColor.accent)
+            .frame(minHeight: 44)
+        }
+    }
+
+    /// Facts are written as the call wraps up, so look once more a little later.
     private func load() async {
         guard let since = call.startedAt else { return }
         for attempt in 0..<2 {
             if attempt > 0 { try? await Task.sleep(for: .seconds(4)) }
-            await memory.refresh()
-            notes = memory.learned(since: since)
-            if !notes.isEmpty { return }
+            items = await remembered.items(since: since)
+            if !items.isEmpty { return }
         }
     }
 
-    private func forget(_ note: MemoryStore.Note) async {
-        notes.removeAll { $0 == note }
-        if !(await memory.forget(note)) { notes = memory.learned(since: call.startedAt ?? .now) }
+    private func save(_ item: CallRemembered.Item) async {
+        if let fixed = await remembered.correct(item, to: draft) {
+            items = items.map { $0.id == item.id ? fixed : $0 }
+            editing = nil
+            problem = nil
+        } else {
+            problem = String(localized: "Couldn't save that. Try again?")
+        }
+    }
+
+    private func forget(_ item: CallRemembered.Item) async {
+        let before = items
+        items.removeAll { $0 == item }
+        if !(await remembered.forget(item)) {
+            items = before
+            problem = String(localized: "Couldn't forget that. Try again?")
+        }
     }
 }
 
 /// Everything Ferni remembers, grouped, each note forgettable (UX spec §5).
 struct MemoryScreen: View {
     let memory: MemoryStore
+    let lock: MemoryLock
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        Group {
+            if lock.isLocked {
+                // Locked: nothing is fetched or shown until the phone's owner confirms.
+                ContentUnavailableView {
+                    Label("What Ferni remembers is locked", systemImage: "lock")
+                } actions: {
+                    Button("Unlock with \(lock.method ?? String(localized: "passcode"))") { Task { await lock.unlock() } }
+                        .buttonStyle(.borderedProminent)
+                        .tint(FerniColor.accent)
+                }
+                .task { await lock.unlock() }
+            } else {
+                notes
+            }
+        }
+        // The app switcher's snapshot never shows the notes when the lock is on.
+        .overlay { if lock.isEnabled && scenePhase != .active { Rectangle().fill(.regularMaterial).ignoresSafeArea() } }
+        .navigationTitle("What Ferni remembers")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var notes: some View {
         List {
             switch memory.load {
             case .failed where memory.notes.isEmpty:
@@ -105,8 +183,6 @@ struct MemoryScreen: View {
             }
         }
         .overlay { if memory.load == .loading && memory.notes.isEmpty { ProgressView() } }
-        .navigationTitle("What Ferni remembers")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await memory.refresh() }
         .refreshable { await memory.refresh() }
     }

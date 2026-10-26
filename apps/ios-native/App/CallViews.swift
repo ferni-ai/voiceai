@@ -105,16 +105,16 @@ struct CallCaptions: View {
     /// Nil while Ferni is talking: the words say it.
     static func state(_ call: CallSession, name: String) -> String? {
         switch call.phase {
-        case .connecting: return "Calling \(name)…"
-        case .waitingForFerni: return "\(name)'s on the way…"
-        case .reconnecting: return "Reconnecting…"
+        case .connecting: return String(localized: "Calling \(name)…")
+        case .waitingForFerni: return String(localized: "\(name)'s on the way…")
+        case .reconnecting: return String(localized: "Reconnecting…")
         case .live:
-            if call.isOnHold { return "On hold" }
-            if call.isMuted { return "You're muted" }
+            if call.isOnHold { return String(localized: "On hold") }
+            if call.isMuted { return String(localized: "You're muted") }
             switch call.avatar.pose {
             case .speaking: return nil
-            case .thinking: return "\(name)'s thinking"
-            default: return "\(name)'s listening"
+            case .thinking: return String(localized: "\(name)'s thinking")
+            default: return String(localized: "\(name)'s listening")
             }
         default: return nil
         }
@@ -217,9 +217,9 @@ struct CallControls: View {
 
     private var talkLabel: String {
         switch call.phase {
-        case .failed(.connectionLost): "Call back"
-        case .failed: "Try again"
-        default: "Talk to \(PersonaRegistry.get(team.chosen).name)"
+        case .failed(.connectionLost): String(localized: "Call back")
+        case .failed: String(localized: "Try again")
+        default: String(localized: "Talk to \(PersonaRegistry.get(team.chosen).name)")
         }
     }
 }
