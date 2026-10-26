@@ -158,6 +158,7 @@ export {
 
 export {
   checkForOurSong,
+  clearOurSongsUser,
   detectSignificantMoment,
   getAllOurSongs,
   getOurSongsProfileForPersistence,

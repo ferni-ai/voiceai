@@ -35,7 +35,7 @@ import { scrubHeldStores } from '../../services/trust-systems/reload-before-save
 import { clearResonanceUser } from '../../personas/shared/personality-resonance-store.js';
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
-import { clearOurSongsUser } from '../../services/trust-systems/our-songs.js';
+import { clearOurSongsUser } from '../../services/trust-systems/index.js';
 import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
 import {
