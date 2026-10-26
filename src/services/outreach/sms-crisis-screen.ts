@@ -18,6 +18,7 @@
  *
  * @module services/outreach/sms-crisis-screen
  */
+import { randomUUID } from 'node:crypto';
 import { flagModeOf } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -87,16 +88,20 @@ export async function smsCrisisReply(
     // CPU may be throttled once the reply is sent, so the classifier's line can
     // come late or not at all; the pattern and HELP fields are logged first,
     // before any network call, so they always land.
+    // One random id per text pairs its two lines, so a pattern line with no
+    // classifier line reads as "the read never finished", not as "not a crisis".
+    const screenId = randomUUID();
     const pattern = detectCrisis(text).isCrisis;
-    logScreen(mode, text, { crisis: pattern, pattern, risk: null }, 'pattern');
-    void screenSms(text, read).then(
-      (outcome) => logScreen(mode, text, outcome, 'classifier'),
-      () => undefined
-    );
+    logScreen(mode, text, { crisis: pattern, pattern, risk: null }, 'pattern', screenId);
+    // The trailing catch also covers a throw from the log call itself: the web
+    // server has no unhandledRejection handler, so a rejection here would crash it.
+    void screenSms(text, read)
+      .then((outcome) => logScreen(mode, text, outcome, 'classifier', screenId))
+      .catch(() => undefined);
     return null;
   }
   const outcome = await screenSms(text, read);
-  logScreen(mode, text, outcome, 'classifier');
+  logScreen(mode, text, outcome, 'classifier', randomUUID());
   return outcome.crisis ? SMS_CRISIS_REPLY : null;
 }
 
@@ -130,7 +135,8 @@ function logScreen(
   mode: 'shadow' | 'on',
   text: string,
   outcome: SmsCrisisRead,
-  stage: 'pattern' | 'classifier'
+  stage: 'pattern' | 'classifier',
+  screenId: string
 ): void {
   // Twilio may answer HELP and INFO itself. `help` (any punctuation) and
   // `bareHelp` (the word alone) tell the shadow logs whether they reach us.
@@ -138,6 +144,7 @@ function logScreen(
     {
       mode,
       stage,
+      screenId,
       crisis: outcome.crisis,
       pattern: outcome.pattern,
       risk: outcome.risk,
