@@ -37,6 +37,8 @@ import { getSessionAdapter } from '../shared/handoff/coordinator-adapter.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { sayGameStartSnag } from './game-start-snag.js';
+import { isTextGameType } from '../../services/games/text-game-types.js';
+import { publishGameAck, type GameStartRequest } from './game-start-ack.js';
 // Centralized generateReply gateway - NEVER use session.generateReply directly!
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // Safe fire-and-forget for non-critical async operations
@@ -354,7 +356,7 @@ async function handleHandoffRequest(
  * Handle game_start_request messages - user started a game from UI
  */
 async function handleGameStartRequest(
-  message: { gameType: string },
+  message: GameStartRequest,
   ctx: DataChannelContext
 ): Promise<void> {
   const { room, session, sessionPersona } = ctx;
@@ -366,7 +368,7 @@ async function handleGameStartRequest(
     const { getSessionGameEngine } = await import('../../services/games/index.js');
     const engine = getSessionGameEngine(ctx.sessionId, sessionPersona.id);
 
-    // Start the game - returns welcome message
+    // Start the game - returns welcome message (an unknown id throws)
     // Cast gameType since it comes from user input via data channel
     type GameType = import('../../services/games/types.js').GameType;
     const welcomeMessage = await engine.startGame(gameType as GameType);
@@ -380,16 +382,9 @@ async function handleGameStartRequest(
       getLogger().info('🎮 Agent spoke welcome message');
     }
 
-    // Send ack to frontend
-    const ackMessage = JSON.stringify({
-      type: 'game_start_ack',
-      gameType,
+    await publishGameAck(room, 'game_start_ack', message, {
       success: true,
       message: welcomeMessage,
-      timestamp: Date.now(),
-    });
-    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
-      reliable: true,
     });
 
     getLogger().info({ gameType }, '🎮 Game started successfully');
@@ -399,15 +394,10 @@ async function handleGameStartRequest(
     // Says the game's name (never its raw id), in the character's own words
     if (session) sayGameStartSnag(ctx.sessionId, gameType);
 
-    const errorMsg = JSON.stringify({
-      type: 'game_start_ack',
-      gameType,
+    await publishGameAck(room, 'game_start_ack', message, {
       success: false,
+      reason: 'start_failed',
       error: String(gameErr),
-      timestamp: Date.now(),
-    });
-    await room.localParticipant?.publishData(new TextEncoder().encode(errorMsg), {
-      reliable: true,
     });
   }
 }
@@ -416,7 +406,7 @@ async function handleGameStartRequest(
  * Handle text_game_start_request messages - user started a text game from UI
  */
 async function handleTextGameStartRequest(
-  message: { gameType: string },
+  message: GameStartRequest,
   ctx: DataChannelContext
 ): Promise<void> {
   const { room, session, sessionPersona } = ctx;
@@ -424,13 +414,26 @@ async function handleTextGameStartRequest(
 
   getLogger().info({ gameType }, '🎮 User requested text game start via UI');
 
+  // The engine answers an unknown id with "I don't know that game" and starts
+  // nothing, so that used to go back as success: true. Say so instead, before
+  // the engine ends the game that's on now.
+  if (!isTextGameType(gameType)) {
+    getLogger().warn({ gameType }, '❌ Text game start: unknown game');
+    if (session) sayGameStartSnag(ctx.sessionId, gameType);
+    await publishGameAck(room, 'text_game_start_ack', message, {
+      success: false,
+      reason: 'unknown_game',
+      error: 'Unknown text game',
+    });
+    return;
+  }
+
   try {
     const { getSessionTextGameEngine } = await import('../../services/games/index.js');
     const engine = getSessionTextGameEngine(ctx.sessionId, sessionPersona.id);
 
     // Start the text game - returns result with message
-    type TextGameType = import('../../services/games/text-game-types.js').TextGameType;
-    const result = await engine.startGame(gameType as TextGameType);
+    const result = await engine.startGame(gameType);
     getLogger().info({ gameType, result }, '🎮 Text game engine returned result');
 
     // CRITICAL: Make the agent actually SPEAK the welcome message
@@ -445,16 +448,9 @@ async function handleTextGameStartRequest(
       getLogger().info('🎮 Agent spoke text game welcome message');
     }
 
-    // Send ack to frontend
-    const ackMessage = JSON.stringify({
-      type: 'text_game_start_ack',
-      gameType,
+    await publishGameAck(room, 'text_game_start_ack', message, {
       success: true,
       message: result.message,
-      timestamp: Date.now(),
-    });
-    await room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
-      reliable: true,
     });
 
     getLogger().info({ gameType }, '🎮 Text game started successfully');
@@ -464,15 +460,10 @@ async function handleTextGameStartRequest(
     // Says the game's name (never its raw id), in the character's own words
     if (session) sayGameStartSnag(ctx.sessionId, gameType);
 
-    const errorMsg = JSON.stringify({
-      type: 'text_game_start_ack',
-      gameType,
+    await publishGameAck(room, 'text_game_start_ack', message, {
       success: false,
+      reason: 'start_failed',
       error: String(gameErr),
-      timestamp: Date.now(),
-    });
-    await room.localParticipant?.publishData(new TextEncoder().encode(errorMsg), {
-      reliable: true,
     });
   }
 }
