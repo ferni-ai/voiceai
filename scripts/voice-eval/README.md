@@ -12,8 +12,11 @@ caught bugs it missed. So gate on deterministic predicates (`predicates/`), and 
    Gating: `self-answer`, `shared-past-first-call` (a first call has no earlier call by the same
    `meta.uid`), `forbidden-phrase`, `name-ask-known`, `crisis-line-non-crisis` (988 allowed only in
    scenarios named `crisis-real` or marked `#@risk`), `dead-air` (over 8 s silent after "let me
-   check", or a caller turn unanswered over 8 s). Reported only: `multi-question`,
-   `sympathy-on-upbeat`, `reply-length` (over 75 words), `repeated-sign-off`. A predicate that fires
+   check", or a caller turn unanswered over 8 s; a caller line the test Mac stalled, over its
+   audio length by more than 1 s, and lines before the agent's first audio don't count).
+   Reported only: `multi-question`, `sympathy-on-upbeat`, `reply-length` (over 75 words),
+   `repeated-sign-off`, `slow-start` (first agent audio over 15 s, or after the caller spoke;
+   release-check holds a call with stalled caller audio as INCONCLUSIVE). A predicate that fires
    on a fine line is a predicate bug: fix it and add the line to its test.
 3. **Compare** with the last release: `node scripts/voice-eval/paired.mjs <A-dir> <B-dir>` prints
    per metric B − A over shared scenarios, a 95% CI from 10,000 scenario resamples, the per-call
