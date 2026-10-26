@@ -21,6 +21,7 @@ import { parseArgs } from 'node:util';
 
 import { spoken, type Line, type Persona } from './simulate.js';
 import { generate } from './vertex.js';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 const NAME_ASK =
   /\b(your name|what should i call you|who('s| is| am i) (this|talking)|didn'?t (catch|get) your name|i'?m ferni|i'm fernando|name'?s ferni)\b/i;
@@ -163,7 +164,7 @@ async function judgeOne(
     });
     text = ((await res.json()) as { message?: { content?: string } }).message?.content ?? '';
   } else {
-    const model = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+    const model = judgeModel();
     text = await generate({
       model,
       system: 'You are a careful judge of conversations.',
