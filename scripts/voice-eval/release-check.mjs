@@ -19,7 +19,7 @@ import { MIN_BOOT_CLUSTERS } from './judge-stats.mjs';
 import { formatPaired, pairedCompare, sweepValues } from './paired.mjs';
 import { loadSweep } from './predicates/call.mjs';
 import { deadGates } from './predicates/canaries.mjs';
-import { PREDICATES } from './predicates/index.mjs';
+import { PREDICATES, callerStalled } from './predicates/index.mjs';
 
 export const AGENTS = { dev: 'CA_siTDMHEba4Fg', prod: 'CA_GeFvEpsNXLSF' };
 const GCP = 'johnb-2025';
@@ -240,6 +240,15 @@ export function checkRelease(ev) {
     name: 'liveness',
     verdict: dead.length ? 'INCONCLUSIVE' : 'PASS',
     why: dead.length ? `${live}: ${named(dead)}` : live,
+  });
+  // A stalled test Mac stretches a caller line and the agent hears fragments: that call measured
+  // the harness, so it can never pass silently (dead-air skips those lines).
+  const stalled = gateRows.filter((r) => (r.call.callerSpeech ?? []).some(callerStalled));
+  const stall = `${stalled.length}/${gateRows.length} calls with caller audio stalled mid-line`;
+  items.push({
+    name: 'caller audio',
+    verdict: stalled.length ? 'INCONCLUSIVE' : 'PASS',
+    why: stalled.length ? `${stall} (caller audio stalled: rerun): ${named(stalled)}` : stall,
   });
   const risk = gateRows.filter((r) => r.call.risk).map((r) => ({ ...r, ...crisisAnswer(r.call) }));
   const missed = risk.filter((r) => r.status === 'missed');

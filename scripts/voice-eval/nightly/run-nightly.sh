@@ -169,7 +169,7 @@ do_lanes() {
   T0=$(iso_ago 60)
   lane "$LANES_DIR/a.txt" "$OUT/laneA.log" &
   LANE_PIDS=$!
-  lane "$LANES_DIR/b.txt" "$OUT/laneB.log" &
+  { sleep 20; lane "$LANES_DIR/b.txt" "$OUT/laneB.log"; } & # 20 s apart: one warm dev server
   LANE_PIDS="$LANE_PIDS $!"
   # shellcheck disable=SC2086
   wait $LANE_PIDS

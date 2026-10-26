@@ -49,7 +49,7 @@ const events = []; // { t, who, from, text }
 // (handoff_progress, handoff_complete, ...), sent to the whole room.
 const data = []; // { t, from, topic, payload }
 const tracks = new Map(); // sid -> { name, bufs, voice: [[startT, endT], ...] }
-const userSpeech = []; // [startT, endT] of each scripted utterance
+const userSpeech = []; // [startT, endT, audioMs] of each scripted utterance
 let mainVoiceLastAt = 0;
 let mainVoiceStartedAt = 0;
 const phone = process.env.VOICE_EVAL_PHONE === '1';
@@ -153,7 +153,9 @@ async function say(path) {
   speaking = new Int16Array(buf.buffer, buf.byteOffset, buf.length / 2);
   pos = 0;
   while (speaking) await sleep(10);
-  userSpeech.push([start, now()]);
+  // The line's real audio length (48 kHz mono s16le: bytes / 96 = ms). Wall time far past it means
+  // the harness stalled mid-line (predicates/index.mjs callerStalled), not that the agent was slow.
+  userSpeech.push([start, now(), Math.round(buf.length / 96)]);
   return now();
 }
 
@@ -209,7 +211,9 @@ if (phone) {
     await sleep(100);
   }
 }
-await waitAgentDone(20000); // greeting
+// The greeting. 90 s matches the agent's own startup limit (src/agents/gce/job-runner.ts): a cold
+// server can take that long to join, and a caller who speaks first talks to an empty room.
+await waitAgentDone(90000);
 const results = [];
 let replyStartedAt = 0;
 for (const arg of turns) {
