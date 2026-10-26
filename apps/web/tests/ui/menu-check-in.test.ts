@@ -183,13 +183,15 @@ describe('Settings tab', () => {
       (input) => input.dataset.pref ?? input.dataset.outreach
     );
     // enabled: subscribes this browser on the server (push-preference.ts)
-    // emailEnabled: sent to POST /api/outreach/preferences
     // milestoneNotifications: read before this page sends a milestone (outreach.service.ts)
-    expect(switches).toEqual(['enabled', 'emailEnabled', 'milestoneNotifications']);
+    // The email switch shows only while the server has email on (email-checkins-switch.ts);
+    // here GET /api/outreach/preferences fails, so it is not offered.
+    expect(switches).toEqual(['enabled', 'milestoneNotifications']);
     for (const gone of ['teamHuddles', 'predictionResults', 'ferniCheckins', 'ritualReminders']) {
       expect(panel().querySelector(`[data-pref="${gone}"]`), gone).toBeNull();
     }
     expect(panel().querySelector('[data-outreach="weeklyRecap"]')).toBeNull();
+    expect(panel().querySelector('[data-email-checkins]')).toBeNull();
     expect(panel().textContent).not.toMatch(/Team Huddles|Prediction Results|Weekly Recap/);
   });
 });

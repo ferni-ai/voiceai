@@ -51,6 +51,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { turnsOf } from './humanness.mjs';
+import { withBillingLabels } from '../lib/gemini-billing-labels.mjs';
 import * as stats from './judge-stats.mjs';
 
 export const DIMENSIONS = {
@@ -207,10 +208,10 @@ async function askGemini(prompt, { model, project }) {
   const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: JSON.stringify(withBillingLabels({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 8192 },
-    }),
+    })),
   });
   const body = await res.json();
   if (!res.ok) throw new Error(`judge ${res.status}: ${JSON.stringify(body.error ?? body).slice(0, 300)}`);

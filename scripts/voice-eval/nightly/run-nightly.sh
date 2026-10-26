@@ -27,6 +27,8 @@ ISSUE=${NIGHTLY_ISSUE-2407} LANES_DIR=${NIGHTLY_LANES:-$HERE/lanes}
 CALL_MAX_S=${NIGHTLY_CALL_MAX_S:-900}
 # claim.py names its owner by session id: the sweep always claims as itself, never as the caller
 export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
+# Vertex Gemini requests from this run carry billing label ferni_job=nightly_sweep
+export GEMINI_BILLING_JOB=nightly_sweep
 RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID="" RUNNER=$$
 cd "$ROOT" || exit 2
 
