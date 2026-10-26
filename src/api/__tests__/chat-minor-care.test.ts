@@ -18,14 +18,19 @@ import type { IncomingMessage, ServerResponse } from 'http';
 const store = vi.hoisted(() => ({ facts: [] as unknown[], indexed: [] as unknown[] }));
 const llm = vi.hoisted(() => ({ prompts: [] as string[] }));
 
+// The caller's own data (facts, journal, habits); other writers (the learning loop) are ignored.
+const USER_DATA = vi.hoisted(() => new Set(['extracted_facts', 'journal', 'habits']));
 vi.mock('../../utils/firebase-admin-app.js', () => ({
   getAdminFirestore: () => ({
     collection: () => ({
       doc: () => ({
-        collection: () => ({
-          add: async (doc: unknown) => (store.facts.push(doc), { id: `fact${store.facts.length}` }),
-          doc: () => ({ set: async (doc: unknown) => void store.facts.push(doc) }),
-        }),
+        collection: (name: string) => {
+          const keep = (doc: unknown) => void (USER_DATA.has(name) && store.facts.push(doc));
+          return {
+            add: async (doc: unknown) => (keep(doc), { id: `fact${store.facts.length}` }),
+            doc: () => ({ set: async (doc: unknown) => keep(doc) }),
+          };
+        },
       }),
     }),
   }),
@@ -64,7 +69,8 @@ vi.mock('../auth-middleware.js', () => ({
 process.env.GOOGLE_API_KEY = 'test-key';
 const { handleChatRoutes } = await import('../chat-routes.js');
 const { heldAfter, MINOR_CARE_NOTE, resetMinorCare } = await import('../../utils/minor-care.js');
-const { setHoldStore } = await import('../../services/outreach/minor-care-shared-hold.js');
+const { setHoldStore, STRICT_READ_MS } =
+  await import('../../services/outreach/minor-care-shared-hold.js');
 
 interface ChatBody {
   success: boolean;
@@ -72,6 +78,7 @@ interface ChatBody {
   toolCalls?: Array<{ fn: string; result: unknown; success: boolean }>;
 }
 
+let lastStatus = 0;
 async function post(path: string, caller: string, payload: object): Promise<ChatBody> {
   const stream = new PassThrough();
   const req = stream as unknown as IncomingMessage;
@@ -82,7 +89,7 @@ async function post(path: string, caller: string, payload: object): Promise<Chat
   let body: unknown;
   const res = {
     setHeader: vi.fn(),
-    writeHead: vi.fn(),
+    writeHead: vi.fn((status: number) => void (lastStatus = status)),
     end: vi.fn((chunk?: string) => (body = chunk ? JSON.parse(chunk) : undefined)),
   } as unknown as ServerResponse;
   await handleChatRoutes(req, res, path);
@@ -179,5 +186,55 @@ describe('text chat and a MINOR_CARE hold from a voice call', () => {
     expect(store.indexed).toHaveLength(1);
     expect(body.toolCalls?.[0]?.result).toBe('');
     expect(llm.prompts[0]).not.toContain(MINOR_CARE_NOTE);
+  });
+});
+
+describe('the shared record, read for chat', () => {
+  const remember = 'remember my favourite band is The Synthetics';
+  beforeEach(() => {
+    process.env.MINOR_CARE_SHARED_HOLD = 'on';
+  });
+
+  it('fails closed: a record that cannot be read saves nothing, and the reply still goes', async () => {
+    setHoldStore({
+      heldUntil: async () => Promise.reject(new Error('firestore unavailable')),
+      write: async () => undefined,
+    });
+
+    const body = await chat('teen-uid', remember);
+
+    expect(store.facts).toEqual([]);
+    expect(store.indexed).toEqual([]);
+    expect(lastStatus).toBe(200);
+    expect(body).toMatchObject({ success: true, response: 'Love that band!' });
+  });
+
+  it('fails closed on a read that never answers, within the timeout', async () => {
+    setHoldStore({
+      heldUntil: () =>
+        new Promise<number>(() => {
+          // never answers
+        }),
+      write: async () => undefined,
+    });
+
+    const started = Date.now();
+    const body = await chat('teen-uid', remember);
+
+    expect(store.facts).toEqual([]);
+    expect(body.success).toBe(true);
+    expect(Date.now() - started).toBeLessThan(STRICT_READ_MS + 1000);
+  });
+
+  it('never serves a cached "not held" once the voice process writes a hold', async () => {
+    let heldUntil = 0;
+    setHoldStore({ heldUntil: async () => heldUntil, write: async () => undefined });
+
+    await chat('teen-uid', remember); // not held yet: saved
+    expect(store.facts).toHaveLength(1);
+
+    heldUntil = Date.now() + 60_000; // a held call starts; well inside the 30 s read cache
+    await chat('teen-uid', remember);
+    expect(store.facts).toHaveLength(1);
   });
 });

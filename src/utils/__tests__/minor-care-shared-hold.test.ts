@@ -251,15 +251,17 @@ describe('sharedHeld', () => {
     expect(store.heldUntil).toHaveBeenCalledTimes(2);
   });
 
-  it('reuses a read for CACHE_MS, then reads again', async () => {
+  it('reads a "not held" fresh (another process may write a hold), and reuses a held answer for CACHE_MS', async () => {
     const until: Record<string, number> = {};
     const { store } = fakeStore(until);
     setHoldStore(store);
     expect(await sharedHeld('u1', ON, NOW)).toBe(false);
-    until.u1 = NOW + IDLE_MS; // written by another process
-    expect(await sharedHeld('u1', ON, NOW + CACHE_MS - 1)).toBe(false);
-    expect(await sharedHeld('u1', ON, NOW + CACHE_MS)).toBe(true);
+    until.u1 = NOW + IDLE_MS; // written by another process: seen on the next read, not 30 s later
+    expect(await sharedHeld('u1', ON, NOW + 1)).toBe(true);
+    expect(await sharedHeld('u1', ON, NOW + CACHE_MS)).toBe(true); // the held answer, reused
     expect(store.heldUntil).toHaveBeenCalledTimes(2);
+    expect(await sharedHeld('u1', ON, NOW + CACHE_MS + 1)).toBe(true); // reused no longer: read
+    expect(store.heldUntil).toHaveBeenCalledTimes(3);
   });
 
   it('a hold this process wrote is seen at once', async () => {

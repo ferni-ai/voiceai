@@ -11,6 +11,7 @@
  *
  * A record that can't be read means not held (a warning is logged): failing closed would stop
  * every adult's texts while Firestore is down, and the call itself stays held in its process.
+ * Writers that only skip saving fail closed instead (sharedHeldStrict: text chat).
  * Each write sets heldUntil to now + IDLE_MS (never added on), so only another held call extends a
  * hold. The record is erased with the account (user-stores.ts; a number's with the account's
  * numbers, erase-other-keys.ts), and a lapsed one by the TTL policy on expireAt.
@@ -27,7 +28,7 @@ const log = createLogger({ module: 'minor-care-shared-hold' });
 type Env = Record<string, string | undefined>;
 
 export const HOLDS_COLLECTION = 'minor_care_holds';
-/** How long a read is reused: a hold written in another process is seen within this. */
+/** How long a held answer is reused (readHeld). A "not held" is never reused. */
 export const CACHE_MS = 30_000;
 const MAX_CACHED = 5000;
 
@@ -106,6 +107,18 @@ export async function recordSharedHold(
   }
 }
 
+/**
+ * The record, read. Only a held answer is reused: another process writes a hold, and nothing
+ * here can invalidate a cached "not held", so that answer is always read fresh. Throws if unreadable.
+ */
+async function readHeld(userId: string, now: number): Promise<boolean> {
+  const hit = cache.get(userId);
+  if (hit && now - hit.at < CACHE_MS && hit.until > now) return true;
+  const until = (await store.heldUntil(userId)) ?? 0;
+  remember(userId, until, now);
+  return until > now;
+}
+
 /** This user is held, here or in any other process (flag on). A failed read: not held. */
 export async function sharedHeld(
   userId: string | undefined,
@@ -114,14 +127,38 @@ export async function sharedHeld(
 ): Promise<boolean> {
   if (!sharedHoldOn(env) || !holdable(userId)) return false;
   if (userHeld(userId, env)) return true;
-  const hit = cache.get(userId);
-  if (hit && now - hit.at < CACHE_MS) return hit.until > now;
   try {
-    const until = (await store.heldUntil(userId)) ?? 0;
-    remember(userId, until, now);
-    return until > now;
+    return await readHeld(userId, now);
   } catch (error) {
     log.warn({ error: String(error) }, 'MINOR_CARE shared hold unreadable: treated as not held');
     return false;
+  }
+}
+
+/** How long a fail-closed read may take before the caller is treated as held. */
+export const STRICT_READ_MS = 1000;
+
+/**
+ * sharedHeld for writers that fail closed (text chat, api/chat-minor-care.ts): a record that
+ * can't be read, or isn't read within timeoutMs, means held. Nothing is saved; the reply still goes.
+ */
+export async function sharedHeldStrict(
+  userId: string | undefined,
+  env: Env = process.env,
+  timeoutMs = STRICT_READ_MS
+): Promise<boolean> {
+  if (!sharedHoldOn(env) || !holdable(userId)) return false;
+  if (userHeld(userId, env)) return true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer in ${timeoutMs} ms`)), timeoutMs);
+  });
+  try {
+    return await Promise.race([readHeld(userId, Date.now()), late]);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'MINOR_CARE shared hold unreadable: treated as held');
+    return true;
+  } finally {
+    clearTimeout(timer);
   }
 }

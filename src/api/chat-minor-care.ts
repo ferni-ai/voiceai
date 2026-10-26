@@ -4,13 +4,14 @@
  * The hold (utils/minor-care.ts) is bound to the user for 6 h, but chat has no session and runs
  * in the API server, which sees a call's hold only through the shared record
  * (services/outreach/minor-care-shared-hold.ts, MINOR_CARE_SHARED_HOLD). So the route reads it
- * once per request: the model gets the voice path's note (never promise to remember), and every
- * tool gets ctx.held and no message text (the dispatcher's learning loop keeps inputText).
+ * once per request, failing closed (a record it can't read in time counts as held): the model
+ * gets the voice path's note (never promise to remember), and every tool gets ctx.held and no
+ * message text (the dispatcher's learning loop keeps inputText). The reply itself still goes.
  *
  * @module api/chat-minor-care
  */
 import { MINOR_CARE_NOTE, userHeld } from '../utils/minor-care.js';
-import { sharedHeld } from '../services/outreach/minor-care-shared-hold.js';
+import { sharedHeldStrict } from '../services/outreach/minor-care-shared-hold.js';
 
 export interface ChatHold {
   held: boolean;
@@ -18,9 +19,12 @@ export interface ChatHold {
   note: string;
 }
 
-/** This chat caller's hold: one held in this process, or the shared record. Never a placeholder id. */
+/**
+ * This chat caller's hold: one held in this process, or the shared record. Fails closed: a record
+ * that can't be read in time means held for this request. Never a placeholder id.
+ */
 export async function chatHold(userId: string): Promise<ChatHold> {
-  const held = userHeld(userId) || (await sharedHeld(userId));
+  const held = userHeld(userId) || (await sharedHeldStrict(userId));
   return { held, note: held ? MINOR_CARE_NOTE : '' };
 }
 
