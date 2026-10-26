@@ -133,10 +133,7 @@ function record(session: object, event: SessionEvent): void {
 // Replies made only of these count as a yes. Longest first, so "yes please" beats "yes".
 const YES_PHRASES = [
   ...'go ahead|do it|send it|send them|please do|please send|thats right|sounds good'.split('|'),
-  ...'call them|call her|call him|make the call'.split('|'),
-  ...'yes yeah yep yup ya sure ok okay correct absolutely definitely fine'.split(' '),
-  // Owner call 10-26: "Yes, it's okay with me. Give him a call." placed nothing.
-  ...'its okay|its ok|thats okay|thats ok|its fine|thats fine'.split('|'),
+  ...'yes yeah yep yup ya sure ok okay correct absolutely definitely'.split(' '),
 ];
 // Words a yes may carry that add nothing to send: a name for whoever is speaking, a filler, or an
 // echo of the question ("Should I call her?" "Yes, she should."). Never a yes on their own.
@@ -145,18 +142,29 @@ const YES_PHRASES = [
 // "Yes, you, you need to call her.": a yes may restate the same action, never add to it.
 const FILLERS = [
   ...'thank you|that works|you can|for sure|of course'.split('|'),
-  ...'give her a call|give him a call|give them a call|you need to|need to|right now'.split('|'),
+  ...'you need to|need to|right now'.split('|'),
   ...'and you now'.split(' '),
-  // Owner call 10-26: "... Give him a call. and check in." placed nothing.
-  ...'with me|check in'.split('|'),
+  // Owner call 10-26: "Yes, it's okay with me. Give him a call. and check in." placed nothing.
+  // Never a yes alone: to "Should I call your dad?", "That's okay." is often "no thanks".
+  ...'its okay|its ok|thats okay|thats ok|its fine|thats fine|fine|with me|check in'.split('|'),
   ...'she should|he should|they should|you should|she can|he can|they can'.split('|'),
   ...'please thanks ferni fern maya jordan peter alex nayan buddy bud man dude pal um uh oh hey'.split(
     ' '
   ),
 ];
-// Only when the waiting action is itself a phone call: there "call" restates it (owner call 10-26,
-// "Yeah, go ahead and call." placed nothing). With a text waiting it would change what is sent.
-const CALL_FILLERS = ['call'];
+// Only when the waiting action is itself a phone call, where they restate it: with a text
+// waiting, "Yes, call her." would change what is sent. Owner call 10-26: "Yeah, go ahead and
+// call." placed nothing. A bare "call" never rides beside a name filler: "Yeah, call Peter."
+// may mean Peter, not the call read back.
+const CALL_YES = 'call them|call her|call him|make the call'.split('|');
+const CALL_FILLERS = 'give her a call|give him a call|give them a call'.split('|');
+const NAME_FILLERS = new Set(
+  'ferni fern maya jordan peter alex nayan buddy bud man dude pal'.split(' ')
+);
+const phrase = (yes: boolean) => (text: string) => ({ parts: text.split(' '), yes });
+const PHRASES = [...YES_PHRASES.map(phrase(true)), ...FILLERS.map(phrase(false))];
+const CALL_PHRASES = [...CALL_YES.map(phrase(true)), ...CALL_FILLERS.map(phrase(false))];
+const BARE_CALL = phrase(false)('call');
 const PLACES_A_CALL = new Set(['callOnBehalf', 'callAndConverse', 'callUser']);
 const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
 // Never taken for a name the caller calls Ferni by: a word that could change what is sent
@@ -214,21 +222,38 @@ export function isClearYes(
     if (!/^[A-Z][a-z]+$/.test(w) || NOT_A_NAME.has(name)) return false;
     return FERNI_NAMES.has(name) || target.includes(name) || owner.includes(name);
   };
-  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest), call));
+  // No "call" beside a name, even one set off by a comma: STT's commas aren't the caller's
+  // ("Yeah, call, Peter." may be "Yeah, call Peter.").
+  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest), false));
 }
 
 /**
  * Whether the words split wholly into yes phrases and fillers, with at least one yes. Every phrase
  * that fits at a point is tried, not just the first in the lists: "you" (a filler) used to win over
  * "you should", leaving "should" alone, so "Yes, you should." placed nothing (owner call 10-26).
+ * One pass over word positions (reached without a yes / with one), so no reply takes more than
+ * words × phrases steps however many ways it splits.
  */
-function onlyYes(said: string[], call: boolean, sawYes = false): boolean {
-  if (said.length === 0) return sawYes;
-  return [...YES_PHRASES, ...FILLERS, ...(call ? CALL_FILLERS : [])].some((phrase) => {
-    const parts = phrase.split(' ');
-    if (!parts.every((part, i) => said[i] === part)) return false;
-    return onlyYes(said.slice(parts.length), call, sawYes || YES_PHRASES.includes(phrase));
-  });
+function onlyYes(said: string[], call: boolean): boolean {
+  const bare = call && !said.some((word) => NAME_FILLERS.has(word));
+  const phrases = [...PHRASES, ...(call ? CALL_PHRASES : []), ...(bare ? [BARE_CALL] : [])];
+  const plain = said.map((_, i) => i === 0);
+  const withYes = said.map(() => false);
+  const done = [false, false];
+  const reach = (at: number, yes: boolean): void => {
+    if (at === said.length) done[yes ? 1 : 0] = true;
+    else if (yes) withYes[at] = true;
+    else plain[at] = true;
+  };
+  for (let i = 0; i < said.length; i++) {
+    if (!plain[i] && !withYes[i]) continue;
+    for (const { parts, yes } of phrases) {
+      if (!parts.every((part, j) => said[i + j] === part)) continue;
+      if (plain[i]) reach(i + parts.length, yes);
+      if (withYes[i]) reach(i + parts.length, true);
+    }
+  }
+  return done[1];
 }
 
 /** The owner's first names, lower-case, from the tool run's user data (userName, name). */
