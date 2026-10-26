@@ -51,6 +51,11 @@ function fakeFirestore(
   const docRef = (path: string) => ({
     path,
     get: async () => ({ exists: docs.has(path) }),
+    // As Firestore's: the document must exist (the erasure's `erasing` mark)
+    update: async (d: Record<string, unknown>) => {
+      if (!docs.has(path)) throw Object.assign(new Error('5 NOT_FOUND'), { code: 5 });
+      docs.set(path, { ...docs.get(path), ...d });
+    },
     listCollections: async () =>
       [...new Set(under(path).map((p) => p.slice(path.length + 1).split('/')[0]))].map((id) => ({
         id,
