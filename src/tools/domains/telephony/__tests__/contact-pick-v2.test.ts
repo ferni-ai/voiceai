@@ -56,7 +56,15 @@ import {
   notesNameOwnerRelation,
   roleOf,
 } from '../contact-pick-v2.js';
-import { NOT_THE_OWNERS, SCENARIOS, TWO_JOHN_SMITHS } from './contact-pick.fixtures.js';
+import {
+  BARE_DUPLICATE_MOMS,
+  NOT_THE_OWNERS,
+  PROD_SHAPE_MOMS,
+  SAME_NUMBER_TWICE,
+  SCENARIOS,
+  THREE_MOMS,
+  TWO_JOHN_SMITHS,
+} from './contact-pick.fixtures.js';
 import { liveCall, rings, seed, stubCallEnv, USER } from './contact-pick.harness.js';
 
 const fetchSpy = vi.fn(async () => new Response('{}'));
@@ -151,13 +159,31 @@ describe("B2: notes count only as the owner's relation", () => {
   }
 });
 
-describe('two John Smiths, flag on', () => {
-  it('the phoned plumber is not rung for the phoneless old coworker: asks', async () => {
+describe('same-named rows, flag on', () => {
+  it('two John Smiths ask which one, by note and last 4 digits; a bare duplicate rings', async () => {
     await seed(TWO_JOHN_SMITHS);
-    expect(await rings('John Smith')).toBeNull();
+    const found = await findContact('John Smith', USER);
+    expect(found && 'ask' in found && found.ask).toContain(
+      '"Which John Smith: the plumber, ending 0701, or the old coworker?"'
+    );
     clearCache();
     await seed([['John Smith', undefined], TWO_JOHN_SMITHS[1]]);
     expect(await rings('John Smith')).toBe('John Smith|8015550701');
+  });
+
+  it('the prod shape and a bare duplicate rescue; three Moms with two numbers ask', async () => {
+    for (const [rows, expected] of [
+      [PROD_SHAPE_MOMS, 'Mom|8015550163'],
+      [BARE_DUPLICATE_MOMS, 'Mom|8015550163'],
+      [SAME_NUMBER_TWICE, 'Mom|8015550163'],
+      [THREE_MOMS, 'ASK'],
+    ] as const) {
+      clearCache();
+      // eslint-disable-next-line no-await-in-loop -- one list at a time
+      await seed([...rows]);
+      // eslint-disable-next-line no-await-in-loop -- one list at a time
+      expect(await rings('my mom')).toBe(expected);
+    }
   });
 });
 
@@ -172,7 +198,7 @@ describe('B3: names in any script', () => {
 
 describe('the prod bug and the call itself', () => {
   it('the read-back and the dial use the same Mom and number', async () => {
-    await seed(scenario('the prod bug').contacts);
+    await seed(PROD_SHAPE_MOMS);
     const call = liveCall();
     const preview = await call.call({ contactQuery: 'my mom', purpose: 'say hi' }, 'c1');
     expect(preview).toContain('Mom at 801-555-0163');

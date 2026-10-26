@@ -1,15 +1,10 @@
 /**
- * CONTACT_PICK_V2 (default off; audit 2026-10-25 rows 1-2, #2848 reviews). Every contact
- * that has a number is scored (strongest first):
- *   5  the name is exactly what was said ("Dr. Patel", "李明")
- *   4  the name is the relation asked for ("Dad" for "my dad" / "my father")
- *   3  the relationship field is that relation, or a whole note segment is the OWNER's
- *      ("User's dad", "my dad", "dad"); never "her dad", "my dad-in-law", "not my dad"
- *   2  the name contains what was said ("Sarah" in "Sarah Lee"; a title, "Father Tom")
- *   1  (not a relation query) the store's search matched another field
- * A relation query ("mom", "my dad", "my dentist") never dials on 2 or below: it asks
- * ("Did you mean Father Tom, or what's your dad's number?"). Two or more contacts tied on
- * top with different numbers are never guessed between: the caller is asked which one.
+ * CONTACT_PICK_V2 (default off; audit 2026-10-25 rows 1-2, #2848/#2884 reviews). Each contact
+ * with a number scores: 5 exact name; 4 the name is the relation ("Dad" for "my father");
+ * 3 the relationship field is the relation, or a whole note segment is the owner's ("User's
+ * dad", "my dad", "dad"); 2 the name contains the words (titles: "Father Tom"); 1 (non-relation
+ * queries) another field matched. A relation query never dials on 2 or below, a tie on top
+ * asks which one, and same-named rows ring only when plausibly one person (resolveSameName).
  *
  * @module tools/domains/telephony/contact-pick-v2
  */
@@ -54,30 +49,55 @@ export function roleOf(query: string): string | undefined {
   return Object.keys(ROLES).find((role) => ROLES[role].includes(q));
 }
 
-/**
- * A whole note segment (split on ; . , and newlines) is exactly "user's dad", "owner's dad",
- * "my dad" or "dad". Never "my dad-in-law", "like my mom to me", "my dad trusts him".
- */
+/** A whole note segment (; . , \n) is exactly "user's dad", "my dad" or "dad", no more. */
 export function notesNameOwnerRelation(notes: unknown, relation: readonly string[]): boolean {
   if (typeof notes !== 'string' || relation.length === 0) return false;
-  const segments = notes
-    .toLocaleLowerCase()
-    .replace(/’/g, "'")
-    .split(/[;.,\n]/);
-  return segments.some((segment) => {
+  const text = notes.toLocaleLowerCase().replace(/’/g, "'");
+  return text.split(/[;.,\n]/).some((segment) => {
     const words = segment.trim().replace(/\s+/g, ' ');
     const relationWord = words.replace(/^(?:(?:user|owner)'s|my) /, '');
     return relation.includes(relationWord);
   });
 }
 
+const lower = (s: unknown): string => (typeof s === 'string' ? s.trim().toLocaleLowerCase() : '');
+
 /**
- * Same-named rows are one person only when their notes don't conflict: the phoneless row's
- * notes are empty or equal. Two John Smiths, "old coworker" and "plumber", are two people.
+ * A phoneless row is plausibly the same-named row with a number: no notes and no relationship
+ * ("other" is the store default), or the same relationship and notes equal or naming the same
+ * owner relation ("mother" / "User's mom"). "old coworker" and "plumber" are two people.
  */
-export function notesAgree(phoneless: PickRow, phoned: PickRow): boolean {
-  const notes = (r: PickRow) => (r.notes ?? '').trim().toLocaleLowerCase();
-  return notes(phoneless) === '' || notes(phoneless) === notes(phoned);
+export function samePerson(phoneless: PickRow, phoned: PickRow): boolean {
+  const rel = (r: PickRow) => (lower(r.relationship) === 'other' ? '' : lower(r.relationship));
+  if (!lower(phoneless.notes) && !rel(phoneless)) return true;
+  if (rel(phoneless) !== rel(phoned)) return false;
+  if (lower(phoneless.notes) === lower(phoned.notes)) return true;
+  return Object.values(ROLES).some(
+    (r) => notesNameOwnerRelation(phoneless.notes, r) && notesNameOwnerRelation(phoned.notes, r)
+  );
+}
+
+/**
+ * Same-named rows, some without a number: ring the one number only if it is the only one and
+ * every phoneless row is plausibly that person; else ask, by note and last 4 digits.
+ */
+export function resolveSameName<T extends PickRow>(group: readonly T[]): ContactPick<T> {
+  const phoned = group.filter(
+    (r, i) => digits(r.phone) && group.findIndex((o) => digits(o.phone) === digits(r.phone)) === i
+  );
+  if (phoned.length === 0) return null;
+  const phoneless = group.filter((r) => !digits(r.phone));
+  if (phoned.length === 1 && phoneless.every((r) => samePerson(r, phoned[0]))) {
+    return { contact: phoned[0] };
+  }
+  const label = (r: PickRow) => {
+    const end = digits(r.phone) ? `, ending ${digits(r.phone).slice(-4)}` : '';
+    return r.notes?.trim() ? `the ${r.notes.trim()}${end}` : `the one${end || ' with no number'}`;
+  };
+  const options = [...phoned, ...phoneless].map(label);
+  const [name, last] = [group[0].name, options.pop()];
+  const ask = `Nothing was dialed: more than one contact is named ${name}. Ask the caller: "Which ${name}: ${options.join(', ')}, or ${last}?"`;
+  return { choices: phoned, ask };
 }
 
 /** What was said, read once: the cleaned words, the relation (if any), and its words. */
@@ -140,12 +160,9 @@ export function pickScored<T extends PickRow>(
     return { choices, ask };
   }
   if (choices.length === 1) {
-    // A same-named contact without a number whose notes say it is someone else: ask instead
-    const [one] = choices;
-    const other = rows.some(
-      ({ row }) => !digits(row.phone) && norm(row.name) === norm(one.name) && !notesAgree(row, one)
-    );
-    return other ? null : { contact: one };
+    // Same-named rows without a number: one person, or a question (resolveSameName)
+    const group = rows.map((c) => c.row).filter((r) => norm(r.name) === norm(choices[0].name));
+    return group.some((r) => !digits(r.phone)) ? resolveSameName(group) : { contact: choices[0] };
   }
   const ask = `Nothing was dialed: more than one contact matches "${said.trim()}". Ask the caller which one: ${listNames(choices)}?`;
   return { choices, ask };
@@ -157,11 +174,7 @@ export interface ContactStores<T extends PickRow> {
   list: (userId: string) => Promise<T[]>;
 }
 
-/**
- * Search for the words as said (punctuated names: "O'Brien", "J.R."), cleaned, and under
- * the relation's saved name; for a relation every contact is scored, since notes like
- * "User's father" never contain the word "dad" that was said.
- */
+/** Search as said ("O'Brien"), cleaned and as the relation name; a relation scores everyone. */
 export async function findScored<T extends PickRow>(
   stores: ContactStores<T>,
   userId: string,
@@ -170,8 +183,7 @@ export async function findScored<T extends PickRow>(
   const { q, role, isRelation } = readQuery(said);
   const terms = [...new Set([said.trim(), q, role?.toLowerCase() ?? ''].filter(Boolean))];
   const searched = (await Promise.all(terms.map((t) => stores.search(userId, t)))).flat();
-  // A failed full listing is no listing (getContacts degrades the same way); the search stands
-  const all = isRelation ? await stores.list(userId).catch((): T[] => []) : [];
+  const all = isRelation ? await stores.list(userId).catch((): T[] => []) : []; // as getContacts
   const rows = [
     ...searched.map((row) => ({ row, fromSearch: true })),
     ...all.map((row) => ({ row, fromSearch: false })),
@@ -183,10 +195,7 @@ export async function findScored<T extends PickRow>(
   );
 }
 
-/**
- * How a number given for "my dad" is saved: under "Dad", never a placeholder like "Contact".
- * Null when the request names no one to save it under.
- */
+/** A number given for "my dad" is saved as "Dad"; "them" / "contact" save nothing (null). */
 export function contactSaveFields(
   contactQuery: string,
   relationshipWord: string | undefined

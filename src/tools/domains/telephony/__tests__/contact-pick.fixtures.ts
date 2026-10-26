@@ -121,16 +121,17 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    title: 'the prod bug: two Mom rows, the phoneless one stored first',
+    // The phoneless row is "family" with no notes: not plausibly the same person, so ask
+    title: 'two Mom rows, the phoneless one (family, no notes) stored first',
     contacts: [
       ['Mom', undefined, undefined, F],
       ['Mom', '8015550163', "User's mom", F],
     ],
     rows: [
-      ['my mom', null, 'Mom|8015550163'],
-      ['mom', null, 'Mom|8015550163'],
-      ['My Mum', null, 'Mom|8015550163'],
-      ['mother', null, 'Mom|8015550163'],
+      ['my mom', null, 'ASK'],
+      ['mom', null, 'ASK'],
+      ['My Mum', null, 'ASK'],
+      ['mother', null, 'ASK'],
     ],
   },
   {
@@ -330,8 +331,8 @@ export const SCENARIOS: Scenario[] = [
 
 /** On the default path the only change from main: the duplicate-row rescue. */
 export const DEFAULT_PATH_FIXES: Record<string, Pick> = {
-  'the prod bug: two Mom rows, the phoneless one stored first|mom': 'Mom|8015550163',
-  'the prod bug: two Mom rows, the phoneless one stored first|mother': 'Mom|8015550163',
+  'two Mom rows, the phoneless one (family, no notes) stored first|mom': 'ASK',
+  'two Mom rows, the phoneless one (family, no notes) stored first|mother': 'ASK',
 };
 
 /** #2884 round-1 B2 rows: the real relative has no number; each note names someone else. */
@@ -366,6 +367,29 @@ export const NOT_THE_OWNERS: Array<{ relative: Seed; other: Seed; asks: string[]
     other: ['Nana', '8015550606', 'basically my mom growing up', F],
     asks: ['my mom', 'mom'],
   },
+];
+
+/** The prod shape, invented: both "family"; the phoneless notes say "mother", the other "User's mom". */
+export const PROD_SHAPE_MOMS: Seed[] = [
+  ['Mom', undefined, 'mother', F],
+  ['Mom', '8015550163', "User's mom", F],
+];
+
+/** A phoneless duplicate with no notes and no relationship. */
+export const BARE_DUPLICATE_MOMS: Seed[] = [['Mom'], ['Mom', '8015550163', "User's mom", F]];
+
+/** One phoneless Mom and two with different numbers. */
+export const THREE_MOMS: Seed[] = [
+  ['Mom'],
+  ['Mom', '8015550604', "User's mom", F],
+  ['Mom', '8015550605', "User's mom", F],
+];
+
+/** One phoneless Mom and the same number stored twice. */
+export const SAME_NUMBER_TWICE: Seed[] = [
+  ['Mom'],
+  ['Mom', '8015550163', "User's mom", F],
+  ['Mom', '(801) 555-0163', "User's mom", F],
 ];
 
 /** Two John Smiths: the old coworker has no number, the plumber has one. */

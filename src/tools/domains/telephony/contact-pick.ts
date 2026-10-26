@@ -14,7 +14,7 @@ import {
   digits,
   findScored,
   norm,
-  notesAgree,
+  resolveSameName,
   type ContactPick,
   type ContactStores,
   type PickRow,
@@ -24,18 +24,13 @@ export type { ContactPick, ContactStores, PickRow } from './contact-pick-v2.js';
 
 const hasPhone = (row: PickRow): boolean => digits(row.phone) !== '';
 
-/**
- * The default path: the first match, or (when it has no number) the first later match
- * with the same full name and a number whose notes don't say it is someone else (a
- * phoneless "old coworker" John Smith never becomes the "plumber" one). Else, as before: null.
- */
-export function pickFirstOrDuplicate<T extends PickRow>(results: readonly T[]): T | null {
+/** Default: the first match, as before; if it has no number, its same-named rows decide. */
+export function pickFirstOrDuplicate<T extends PickRow>(results: readonly T[]): ContactPick<T> {
   const [first] = results;
   if (!first) return null;
-  if (hasPhone(first)) return first;
+  if (hasPhone(first)) return { contact: first };
   const name = norm(first.name);
-  const same = (r: T) => hasPhone(r) && norm(r.name) === name && notesAgree(first, r);
-  return (name && results.find(same)) || null;
+  return name ? resolveSameName(results.filter((r) => norm(r.name) === name)) : null;
 }
 
 /** The contact to ring for what was said, a question to ask instead, or none. */
@@ -45,8 +40,7 @@ export async function findContactToCall<T extends PickRow>(
   said: string
 ): Promise<ContactPick<T>> {
   if (flagOn('CONTACT_PICK_V2')) return findScored(stores, userId, said);
-  const contact = pickFirstOrDuplicate(await stores.search(userId, said));
-  return contact ? { contact } : null;
+  return pickFirstOrDuplicate(await stores.search(userId, said));
 }
 
 /** The contact to call; for a question, the choice whose number was given, else the question. */

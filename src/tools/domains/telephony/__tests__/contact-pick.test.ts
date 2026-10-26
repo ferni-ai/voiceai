@@ -46,8 +46,17 @@ import {
   clearCache,
   getContacts,
 } from '../../../../services/contacts/contact-relationship-service.js';
+import { findContact } from '../call-on-behalf.js';
 import { pickFirstOrDuplicate } from '../contact-pick.js';
-import { DEFAULT_PATH_FIXES, SCENARIOS, TWO_JOHN_SMITHS } from './contact-pick.fixtures.js';
+import {
+  BARE_DUPLICATE_MOMS,
+  DEFAULT_PATH_FIXES,
+  PROD_SHAPE_MOMS,
+  SAME_NUMBER_TWICE,
+  SCENARIOS,
+  THREE_MOMS,
+  TWO_JOHN_SMITHS,
+} from './contact-pick.fixtures.js';
 import { liveCall, rings, seed, stubCallEnv, USER } from './contact-pick.harness.js';
 
 const fetchSpy = vi.fn(async () => new Response('{}'));
@@ -84,40 +93,72 @@ describe('CONTACT_PICK_V2 off: main, row for row, plus the duplicate-row rescue'
 });
 
 describe('the duplicate-row rescue', () => {
-  const TWO_MOMS = SCENARIOS.find((s) => s.title.startsWith('the prod bug'))!;
+  const JOHN_ASK =
+    'Nothing was dialed: more than one contact is named John Smith. Ask the caller: "Which John Smith: the plumber, ending 0701, or the old coworker?"';
 
-  it('a phoneless first "Mom" yields to the same-named row with a number, and only that', () => {
-    const phoneless = { name: 'Mom' };
-    const phoned = { name: 'mom', phone: '8015550163' };
-    const other = { name: 'Grandma', phone: '8015550105' };
+  it('rescues only one number, from rows plausibly one person', () => {
+    const phoned = {
+      name: 'mom',
+      phone: '8015550163',
+      notes: "User's mom",
+      relationship: 'family',
+    };
     // Pre-state: main's rule (results[0] if it has a number, else nothing) finds no one here
     const mainRule = (rows: Array<{ name: string; phone?: string }>) =>
       rows[0]?.phone ? rows[0] : null;
-    expect(mainRule([phoneless, phoned])).toBeNull();
-    expect(pickFirstOrDuplicate([phoneless, phoned])).toBe(phoned);
-    expect(pickFirstOrDuplicate([phoneless, other])).toBeNull();
-    expect(pickFirstOrDuplicate([other, phoned])).toBe(other);
+    expect(mainRule([{ name: 'Mom' }, phoned])).toBeNull();
+    // No notes and no relationship ("other" is the store default): one person
+    expect(pickFirstOrDuplicate([{ name: 'Mom', relationship: 'other' }, phoned])).toEqual({
+      contact: phoned,
+    });
+    // Same relationship, notes naming the same owner relation ("mother" / "User's mom")
+    const mother = { name: 'Mom', notes: 'mother', relationship: 'family' };
+    expect(pickFirstOrDuplicate([mother, phoned])).toEqual({ contact: phoned });
+    // Same notes but another relationship, or other notes: a question, never a dial
+    expect(pickFirstOrDuplicate([{ ...mother, relationship: 'friend' }, phoned])).toMatchObject({
+      choices: [phoned],
+    });
+    expect(pickFirstOrDuplicate([{ name: 'Mom', relationship: 'family' }, phoned])).toHaveProperty(
+      'ask'
+    );
+    expect(pickFirstOrDuplicate([{ name: 'Mom' }, { name: 'Grandma', phone: '1' }])).toBeNull();
+    expect(pickFirstOrDuplicate([{ name: 'Grandma', phone: '1' }, phoned])).toEqual({
+      contact: { name: 'Grandma', phone: '1' },
+    });
     expect(pickFirstOrDuplicate([])).toBeNull();
-    // Notes that say it is someone else: never rescued (the old coworker is not the plumber)
-    const [coworker, plumber] = TWO_JOHN_SMITHS.map(([name, phone, notes]) => ({
-      name,
-      phone,
-      notes,
-    }));
-    expect(pickFirstOrDuplicate([coworker, plumber])).toBeNull();
-    expect(pickFirstOrDuplicate([{ ...coworker, notes: ' PLUMBER ' }, plumber])).toBe(plumber);
   });
 
-  it('two John Smiths: "John Smith" asks for the number, as main does', async () => {
+  it('two John Smiths ask "Which John Smith: the plumber, ending 0701, or the old coworker?"', async () => {
     await seed(TWO_JOHN_SMITHS);
-    expect(await rings('John Smith')).toBeNull();
+    expect(await rings('John Smith')).toBe('ASK');
     const out = await liveCall().call({ contactQuery: 'John Smith', purpose: 'say hi' }, 'c1');
-    expect(out).toMatch(/^Nothing was dialed: I don't have a number/);
+    expect(out).toBe(JOHN_ASK);
     expect(sip.createSipParticipant).not.toHaveBeenCalled();
   });
 
+  it('a phoneless Mom with no notes or relationship is rescued; so is the prod shape', async () => {
+    for (const rows of [BARE_DUPLICATE_MOMS, PROD_SHAPE_MOMS]) {
+      clearCache();
+      // eslint-disable-next-line no-await-in-loop -- one list at a time
+      await seed(rows);
+      // eslint-disable-next-line no-await-in-loop -- one list at a time
+      expect(await rings('mom')).toBe('Mom|8015550163');
+    }
+  });
+
+  it('three Moms with two numbers ask; the same number stored twice is one', async () => {
+    await seed(THREE_MOMS);
+    const found = await findContact('mom', USER);
+    expect(found && 'ask' in found && found.ask).toContain(
+      "Which Mom: the User's mom, ending 0604, the User's mom, ending 0605, or the one with no number?"
+    );
+    clearCache();
+    await seed(SAME_NUMBER_TWICE);
+    expect(await rings('mom')).toBe('Mom|8015550163');
+  });
+
   it('the read-back and the dial use the rescued Mom and her number', async () => {
-    await seed(TWO_MOMS.contacts);
+    await seed(PROD_SHAPE_MOMS);
     const call = liveCall();
     const preview = await call.call({ contactQuery: 'mom', purpose: 'say hi' }, 'c1');
     expect(preview).toContain('NOT SENT YET');
@@ -131,7 +172,7 @@ describe('the duplicate-row rescue', () => {
   });
 
   it('flipping CONTACT_PICK_V2 on changes "my mom" (so the default above is really off)', async () => {
-    await seed(TWO_MOMS.contacts);
+    await seed(PROD_SHAPE_MOMS);
     expect(await rings('my mom')).toBeNull();
     vi.stubEnv('CONTACT_PICK_V2', 'on');
     expect(await rings('my mom')).toBe('Mom|8015550163');
