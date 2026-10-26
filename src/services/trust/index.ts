@@ -161,7 +161,6 @@ export {
   clearOurSongsUser,
   detectSignificantMoment,
   getAllOurSongs,
-  getOurSongsProfileForPersistence,
   getOurSongsStats,
   getProactiveRememberWhen,
   loadOurSongsProfile,
