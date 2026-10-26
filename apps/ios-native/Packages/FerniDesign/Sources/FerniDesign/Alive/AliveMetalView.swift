@@ -1,4 +1,5 @@
 import MetalKit
+import os
 import SwiftUI
 
 /// The Metal canvas for one frame of Ferni. Paused: it draws only when SwiftUI
@@ -42,6 +43,8 @@ struct AliveMetalView: UIViewRepresentable {
         let renderer: AliveRenderer
         var uniforms = AliveUniforms()
         var radius: Float = 0.18, below: Float = 0
+        private var meter = FrameMeter()
+        private let log = Logger(subsystem: "com.sethdford.ferni", category: "avatar")
 
         init(renderer: AliveRenderer) { self.renderer = renderer }
 
@@ -57,6 +60,43 @@ struct AliveMetalView: UIViewRepresentable {
             renderer.encode(u, pass: pass, into: buffer)
             buffer.present(drawable)
             buffer.commit()
+            // Every 5 s: the real draw rate and what shaped it (device test evidence).
+            if let fps = meter.tick(at: CACurrentMediaTime()) {
+                let info = ProcessInfo.processInfo
+                log.notice("""
+                avatar fps=\(fps, format: .fixed(precision: 1), privacy: .public) \
+                scale=\(Double(view.contentScaleFactor), format: .fixed(precision: 1), privacy: .public) \
+                drawable=\(Int(size.width), privacy: .public)x\(Int(size.height), privacy: .public) \
+                thermal=\(FrameMeter.words(info.thermalState), privacy: .public) \
+                lowPower=\(info.isLowPowerModeEnabled, privacy: .public)
+                """)
+            }
+        }
+    }
+}
+
+/// Draws per second over a window, reported once per window.
+struct FrameMeter {
+    var window: Double = 5
+    private var start: Double?
+    private var frames = 0
+
+    /// Counts a frame at `now` (seconds); the frame rate once each window is full.
+    mutating func tick(at now: Double) -> Double? {
+        guard let begun = start else { start = now; frames = 0; return nil }
+        frames += 1
+        guard now - begun >= window else { return nil }
+        defer { start = now; frames = 0 }
+        return Double(frames) / (now - begun)
+    }
+
+    static func words(_ state: ProcessInfo.ThermalState) -> String {
+        switch state {
+        case .nominal: "nominal"
+        case .fair: "fair"
+        case .serious: "serious"
+        case .critical: "critical"
+        @unknown default: "unknown"
         }
     }
 }

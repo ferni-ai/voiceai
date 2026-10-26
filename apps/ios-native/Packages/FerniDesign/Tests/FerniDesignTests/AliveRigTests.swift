@@ -123,3 +123,15 @@ final class AliveRigTests: XCTestCase {
         XCTAssertEqual(Double(reduced / full), 0.35, accuracy: 0.12)
     }
 }
+
+final class FrameMeterTests: XCTestCase {
+    func testItReportsTheDrawRateOncePerWindow() {
+        var meter = FrameMeter()
+        var reports: [Double] = []
+        for i in 0...(60 * 11) {
+            if let fps = meter.tick(at: Double(i) / 60) { reports.append(fps) }
+        }
+        XCTAssertEqual(reports.count, 2, "one report per 5 s")
+        for fps in reports { XCTAssertEqual(fps, 60, accuracy: 0.5) }
+    }
+}
