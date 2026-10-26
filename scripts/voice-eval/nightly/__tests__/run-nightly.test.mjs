@@ -29,7 +29,14 @@ function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
   const ev = join(t, 'events.log');
   const n = join(t, 'root/scripts/voice-eval/nightly');
   mkdirSync(join(n, 'lanes'), { recursive: true });
-  for (const f of ['run-nightly.sh', 'scorecard.mjs', 'capabilities.json', 'analyze.py'])
+  for (const f of [
+    'run-nightly.sh',
+    'scorecard.mjs',
+    'capabilities.json',
+    'analyze.py',
+    'superhuman.mjs',
+    'superhuman-bar.json',
+  ])
     cpSync(join(NIGHTLY, f), join(n, f));
   for (const f of ['recall-facts.mjs', 'eval-database.mjs'])
     cpSync(join(EVAL, f), join(n, '..', f));

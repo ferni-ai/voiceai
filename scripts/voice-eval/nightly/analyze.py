@@ -3,7 +3,8 @@
 
 Per call, from the dev agent's Cloud Logging lines (the 2026-10-21 sweep's analyzer, trimmed
 to what the nightly scorecard reads): build (worker boot hash), REPLY_GAP, TURN_RECEIPT tool
-errors, L>=50 and top L40 lines, crisis lines, handoff lines. Prints a short pooled summary.
+errors and tool-turn first audio, L>=50 and top L40 lines, crisis lines, handoff lines. Prints a
+short pooled summary.
 """
 import collections, glob, json, os, re, sys
 
@@ -50,6 +51,8 @@ for f in runs:
         if j.get('msg') == 'TURN_RECEIPT' and k not in seen: seen.add(k); rc.append(j)
     row['receipts'] = len(rc)
     row['tool_errors'] = sum((j.get('tools') or {}).get('errors') or 0 for j in rc)
+    # Caller stop to Ferni's first audio on turns that called a tool (superhuman-bar.json tool-turn-p50).
+    row['tool_reply_gaps'] = [j['timing']['firstAudioMs'] for j in rc if (j.get('tools') or {}).get('called') and isinstance((j.get('timing') or {}).get('firstAudioMs'), (int, float))]
     row['l50'] = [f"{j.get('module')}: {str(j.get('msg'))[:90]} | {str(j.get('err') or j.get('error') or '')[:120]}" for j in lines if isinstance(j.get('level'), int) and j['level'] >= 50]
     row['l40'] = collections.Counter(f"{j.get('module')}: {str(j.get('msg'))[:70]}" for j in lines if j.get('level') == 40).most_common(8)
     row['crisis'] = [f"{j.get('module')}:{str(j.get('msg'))[:40]} risk={j.get('risk')} action={j.get('action')} source={j.get('source')}"

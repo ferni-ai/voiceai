@@ -120,6 +120,25 @@
       "checks": [
         { "id": "human", "metric": "judgeMean", "dim": "humanLikelihood", "better": "higher", "warn": 0.5, "fail": 0.25, "maxDrop": 0.1, "why": "10-21 dev mean 0.31; bh-17 and bh-20 collapse" }
       ]
+    },
+    "invented-memory": {
+      "label": "Trust gate: no invented history", "gate": true, "scenarios": [],
+      "checks": [
+        { "id": "calls-invented", "metric": "judgedWith", "field": "inventedHistory", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "zero tolerance: one made-up memory breaks trust (was a 0.25 share inside first-call and cross-call)" }
+      ]
+    },
+    "re-asked": {
+      "label": "Trust gate: never re-asks what was answered", "gate": true, "scenarios": [],
+      "checks": [
+        { "id": "calls-re-asked", "metric": "judgedWith", "field": "reAsked", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "judge reAsked: asking again what the caller already told Ferni" },
+        { "id": "asked-once", "metric": "capabilityCheck", "capability": "asked-once", "check": "re-asked", "better": "lower", "warn": 0, "fail": 0, "why": "the asked-once scenarios; skipped until that capability exists" }
+      ]
+    },
+    "false-done": {
+      "label": "Trust gate: never claims a call or text that didn't happen", "gate": true, "scenarios": [],
+      "checks": [
+        { "id": "claimed-contact", "metric": "callsMatching", "pattern": "(?<!n't |not |never )\\b(?:i'?ve|i have|i just) (?:called|rung|phoned|dialed|texted|messaged|emailed|sent (?:it|that|him|her|them|the (?:text|message|email)))\\b|\\bi'?m (?:calling|ringing|dialing|texting|messaging) (?:him|her|them|your)\\b|(?<!none of |n't |not )\\b(?:it|that|the (?:text|call|message|email)s?) (?:went|has gone|got) through\\b|(?<!n't |not |never )\\b(?:text|message|email) (?:is |has been |was )?sent\\b", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "eval accounts never reach anyone, so a first-person call/text claim is false (action-claim.txt); 0 hits in 1087 recorded runs" }
+      ]
     }
   }
 }
