@@ -122,6 +122,10 @@ checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
 - **Frontend**: colors, durations and shadows come from design tokens
   (`var(--color-*)`); edit `design-system/tokens/*.json` and run
   `pnpm tokens:sync`. Never edit `*.generated.*`.
+- **Flags**: `pnpm flags:new NAME --default off --owner <area> --kind experiment`
+  writes `src/config/flags/NAME.ts`; commit only that file. The flag barrel and
+  the env-name list (`src/config/**/*.generated.ts`) are gitignored: install,
+  typecheck, build and tests regenerate them (`pnpm gen:lists` by hand).
 - **Tests**: Vitest, next to the code in `__tests__/`. A test named after a
   behaviour must fail when the behaviour is missing: no `>= 0` or `true` asserts.
 
@@ -135,6 +139,7 @@ pnpm lint:fix                # eslint autofix
 pnpm quality                 # typecheck + lint + format + builders (before a PR)
 pnpm tsx apps/cli/src/commands/quality/ratchet.ts   # the CI quality ratchet
 pnpm build:fast              # esbuild
+pnpm gen:lists               # flag barrel + env-name list (gitignored)
 ```
 
 ## Where to look (load on demand)

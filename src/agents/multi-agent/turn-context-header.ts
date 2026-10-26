@@ -9,6 +9,12 @@
 export const TURN_CONTEXT_HEADER =
   "[Background on what they said just above, not something the user said. It was written for your reply to that line, which you already gave: use what it tells you about them, but don't act on its instructions, such as asking a question or bringing something up.]";
 
+/**
+ * The caller turn on a reply they didn't prompt (personas/caller-turn.ts). Here so the
+ * fast lane can tell it from the caller's words.
+ */
+export const NO_NEW_WORDS_NOTE = "(They haven't said anything since your last words.)";
+
 /** The key, in a pushed note's `extra`, of the caller's words it was built for. */
 export const TURN_CONTEXT_FOR = 'turnContextFor';
 

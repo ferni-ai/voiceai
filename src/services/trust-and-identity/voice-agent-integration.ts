@@ -464,7 +464,7 @@ export async function startPhoneVerification(
     const smsMessage = `Your Ferni code is ${code}. Just making sure it's really you! 💚`;
 
     try {
-      await sendSMS(phoneNumber, smsMessage);
+      await sendSMS(phoneNumber, smsMessage, { userId: session.userId, askedNow: true });
       log.info({ sessionId, phone: phoneNumber.slice(-4), expiresAt }, '📲 Verification SMS sent');
     } catch (smsError) {
       log.warn({ error: smsError, sessionId }, 'Failed to send SMS - continuing in dev mode');

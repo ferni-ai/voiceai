@@ -31,6 +31,7 @@ import {
 } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
 import { logVoicedTake } from './voiced-presence.js';
+import { noteClipCut } from '../shared/call-timeline.js';
 
 const log = createLogger({ module: 'DirectClipTrack' });
 
@@ -286,8 +287,10 @@ export async function startDirectClips(
     return null;
   }
   const onUser = (ev: { newState?: string }): void => {
-    if (ev.newState === 'speaking' && track.cancelIfFresh())
+    if (ev.newState === 'speaking' && track.cancelIfFresh()) {
       log.info({ by: 'vad' }, 'CLIP_CANCELLED');
+      noteClipCut(session, 'vad');
+    }
   };
   session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   track.onClose(() => session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser));

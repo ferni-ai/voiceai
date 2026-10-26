@@ -24,10 +24,11 @@ export function quirkAwarenessEnabled(
   return env.QUIRK_AWARENESS === 'on';
 }
 
-export type QuirkKind = 'snore' | 'whistle' | 'hum' | 'laugh' | 'backchannel' | 'breath' | 'sigh';
+export type QuirkKind =
+  'snore' | 'whistle' | 'hum' | 'yawn' | 'laugh' | 'backchannel' | 'breath' | 'sigh';
 
 /** Worth telling him about, most notable first. Breaths, sighs and "mm-hm"s never are. */
-export const NOTABLE_QUIRKS: readonly QuirkKind[] = ['snore', 'whistle', 'hum', 'laugh'];
+export const NOTABLE_QUIRKS: readonly QuirkKind[] = ['snore', 'whistle', 'hum', 'yawn', 'laugh'];
 
 export interface QuirkEvent {
   kind: QuirkKind;
@@ -42,6 +43,10 @@ export interface QuirkEvent {
   where?: string;
   /** How the caller took it, once they did: they laughed, or they brought it up. */
   landed?: 'laughed' | 'mentioned';
+  /** What played: a tune id (presence-tune.ts) or a recorded file's label, never caller words. */
+  clip?: string;
+  /** VOICED_QUIRKS snore: he owns it out loud on the caller's next turn (quirk-note.ts), then false. */
+  ownIt?: boolean;
 }
 
 /** The move id for the outcome log (MOVE_OUTCOMES, PR #720): quirk_snore, quirk_whistle, ... */
@@ -76,7 +81,13 @@ export function recordQuirk(
   }
   if (isNotable(event.kind)) {
     log.info(
-      { sessionId, move: quirkMove(event.kind), source: event.source, reason: event.reason },
+      {
+        sessionId,
+        move: quirkMove(event.kind),
+        source: event.source,
+        reason: event.reason,
+        clip: event.clip,
+      },
       'QUIRK_PERFORMED'
     );
   }

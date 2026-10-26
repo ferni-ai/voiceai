@@ -14,6 +14,7 @@ import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { engagementTriggerUI } from '../ui/engagement-trigger.ui.js';
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { forgetGameStarts } from './agent-ack-handlers.js';
 import { holdToastsPastCard } from './call-end-paths.js';
 import { isCallWrapUpEnabled } from '../config/call-wrap-up-flag.js';
 
@@ -53,6 +54,8 @@ async function showPostCall(): Promise<void> {
 
 /** The call is over, by goodbye, hang-up or drop. Safe to call more than once. */
 export function onCallEnded(): void {
+  // A game start still waiting for the agent must not say "didn't start" after the call
+  forgetGameStarts();
   // Any held expression (the goodbye smile, a greeting pose) would leave lid "bites" on the avatar.
   ferniExpressions.setExpression('neutral', DURATION.SLOW);
   engagementTriggerUI.show();

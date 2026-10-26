@@ -468,7 +468,7 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   };
 
   log.debug('Turn signals analyzed', {
-    transcript: transcript.slice(0, 40),
+    transcriptChars: transcript.length,
     ...result,
     backchannelSuggestion: result.backchannelSuggestion || 'none',
   });

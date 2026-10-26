@@ -95,15 +95,28 @@ const SIP_CALL_STATUS = 'sip.callStatus';
  * joins the room while the phone is still ringing, so speaking as soon as it
  * joins plays the opener into the ring. Non-SIP participants resolve at once.
  * Resolves false when they hang up or never answer within `timeoutMs`.
+ * `onAnswered` runs at the pickup itself, before the grace pause; if it
+ * throws, the pickup still stands.
  */
 export async function waitForCallAnswered(
   room: AnswerWatchRoom,
   participant: AnswerWatchParticipant,
   timeoutMs: number = ANSWER_TIMEOUT_MS,
-  graceMs: number = ANSWER_GRACE_MS
+  graceMs: number = ANSWER_GRACE_MS,
+  onAnswered?: () => void
 ): Promise<boolean> {
+  const pickedUp = (): void => {
+    try {
+      onAnswered?.();
+    } catch {
+      /* analytics only: never fail the pickup */
+    }
+  };
   const status = participant.attributes?.[SIP_CALL_STATUS];
-  if (status === undefined) return true;
+  if (status === undefined) {
+    pickedUp();
+    return true;
+  }
 
   const answered = new Promise<boolean>((resolve) => {
     if (status === 'active') {
@@ -131,6 +144,7 @@ export async function waitForCallAnswered(
   });
 
   if (!(await answered)) return false;
+  pickedUp();
   await new Promise<void>((resolve) => {
     setTimeout(resolve, graceMs);
   });

@@ -4,6 +4,7 @@ import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-intelligence.js';
 import { withTurnStyleReminder } from '../../personas/turn-style.js';
 import { buildFastLane, buildCascadeLLMOptions } from '../cartesia-cascade.js';
 import { callerTurn, chitChat, fastLaneEnabled, FastLaneLLM, laneReason } from '../fast-lane.js';
+import { NO_NEW_WORDS_NOTE } from '../../multi-agent/turn-context-header.js';
 
 class FakeStream extends llm.LLMStream {
   constructor(
@@ -95,6 +96,20 @@ describe('fast lane', () => {
     expect(laneReason('set a timer for five minutes')).toBe('request');
     expect(laneReason('who won the game last night?')).toBe('question');
     expect(laneReason('what have you been up to today?')).toBe('chat');
+  });
+
+  it('keeps a reply nobody prompted on the main model, though it carries the turn note (#2507)', () => {
+    // A timer alert, greeting or silence remark: Ferni spoke last, so llmNode adds the note
+    // as the caller turn (caller-turn.ts). Its instructions are what the reply is for.
+    const items = [
+      ...said('how hot should the water be?'),
+      { type: 'message', role: 'assistant', textContent: 'Around eighty degrees.' },
+      ...said(NO_NEW_WORDS_NOTE),
+    ];
+    expect(callerTurn(items)).toBe('');
+    expect(laneReason(callerTurn(items))).toBe('no_words');
+    // The note after the caller's own unanswered words still leaves those words.
+    expect(callerTurn([...said('so anyway'), ...said(NO_NEW_WORDS_NOTE)])).toBe('so anyway');
   });
 
   it('keeps the reply after a tool result on the main model', () => {

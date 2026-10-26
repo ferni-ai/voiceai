@@ -462,8 +462,12 @@ describe('E2E: Call On Behalf Flow', () => {
       // Should still send push notification
       expect(mockSendPushNotification).toHaveBeenCalled();
 
-      // Should store notification for later
-      expect(mockFirestoreAdd).toHaveBeenCalled();
+      // Kept as the call record the next call's opener reads (pending-call-results.ts),
+      // not in pending_notifications, which nothing read (phone-calls audit, row 12)
+      expect(mockFirestoreSet).toHaveBeenCalledWith(
+        expect.objectContaining({ callId: 'call-disconnect-test' })
+      );
+      expect(mockFirestoreAdd).not.toHaveBeenCalled();
     });
   });
 

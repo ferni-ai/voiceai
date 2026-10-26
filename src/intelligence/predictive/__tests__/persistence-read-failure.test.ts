@@ -22,7 +22,13 @@ vi.mock('../../../services/superhuman/firestore-utils.js', () => ({
 }));
 
 import {
+  clearHeldMarkovUser,
+  getMarkovDataForPersistence,
+  recordTransition,
+} from '../markov-sequence-predictor.js';
+import {
   forceFlushUser,
+  forgetLoadedUser,
   isUserLoaded,
   loadMarkovState,
   loadTimeSeriesState,
@@ -140,5 +146,39 @@ describe('predictive model reads', () => {
     await saveMarkovState(user, markov(43));
 
     expect(firestore.docs.get(markovPath())).toMatchObject({ totalObservations: 43 });
+  });
+});
+
+describe('a MINOR_CARE purge while a model read is in flight', () => {
+  const settle = () =>
+    new Promise((r) => {
+      setTimeout(r, 0);
+    });
+
+  it('voids that read: the next model reads again and never saves over the stored state', async () => {
+    storeDoc(markovPath(), markov(41)); // the owner's stored model
+    recordTransition(user, 'neutral' as never, 'happy' as never); // first use: its read starts
+    clearHeldMarkovUser(user); // the purge lands before that read does (minor-care-purge.ts)
+    forgetLoadedUser(user);
+    await settle();
+    expect(isUserLoaded(user, 'markov')).toBe(false);
+
+    recordTransition(user, 'neutral' as never, 'happy' as never); // the next call: reads again
+    await settle();
+    expect(isUserLoaded(user, 'markov')).toBe(true);
+    await forceFlushUser(
+      user,
+      getMarkovDataForPersistence,
+      () => null,
+      () => null
+    );
+    expect(firestore.docs.get(markovPath())).toMatchObject({ totalObservations: 41 });
+  });
+
+  it('a read that began after the purge still marks the model loaded', async () => {
+    forgetLoadedUser(user);
+    expect(await loadMarkovState(user)).toBeNull();
+    markUserLoaded(user, 'markov');
+    expect(isUserLoaded(user, 'markov')).toBe(true);
   });
 });

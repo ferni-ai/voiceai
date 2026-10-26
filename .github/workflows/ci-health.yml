@@ -44,8 +44,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          node scripts/ci/ci-speed.mjs --hours 24 > ci-speed.md
+          rc=0
+          node scripts/ci/ci-speed.mjs --hours 24 > ci-speed.md || rc=$?
           cat ci-speed.md >> "$GITHUB_STEP_SUMMARY"
+          # 1: more than half the runs couldn't be read. Keep the report here, don't post it.
+          [ "$rc" -eq 0 ] || exit "$rc"
           issue=$(gh issue list -R "$REPO" --state open --label ci-speed --limit 1 --json number --jq '.[0].number // empty')
           if [ -z "$issue" ]; then
             gh issue create -R "$REPO" --title "CI speed, daily" --label ci-speed --body-file ci-speed.md

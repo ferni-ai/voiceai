@@ -1017,9 +1017,8 @@ class ConnectionService {
       case 'connecting':
         return 'connecting';
       case 'reconnecting':
+      case 'signalReconnecting': // a signal blip: the call and its data channel stay up
         return 'reconnecting';
-      case 'disconnected':
-        return 'disconnected';
       default:
         return 'disconnected';
     }

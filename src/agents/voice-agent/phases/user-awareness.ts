@@ -241,3 +241,20 @@ function addGoalsAndConcerns(facts: string[], profile: UserProfile): void {
     facts.push(`On their mind: ${topConcern}`);
   }
 }
+
+const FACT_KINDS: Array<[RegExp, string]> = [
+  [/^You placed a call to /, 'outbound call'],
+  [/^You're talking to /, 'name'],
+  [/^Last time you talked about/, 'last conversation'],
+  [/^(Life context|Current goal|On their mind):/, '$1'],
+  [/^This is your first conversation/, 'first conversation'],
+  [/\b(earlier today|yesterday|days ago|weeks since|months? since)\b/, 'last contact'],
+  [/\b(talked once|talked \d+ times|conversations?\b)/, 'conversation count'],
+];
+
+/** What an awareness fact is about and how long it is, for logs: never its words. */
+export function awarenessKind(fact: string): string {
+  const hit = FACT_KINDS.find(([re]) => re.test(fact));
+  const kind = hit ? fact.match(hit[0])![0].replace(hit[0], hit[1]).toLowerCase() : 'other';
+  return `${kind} (${fact.length} chars)`;
+}

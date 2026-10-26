@@ -267,17 +267,10 @@ describe('Phase 6: TTL Cleanup', () => {
     });
   });
 
-  describe('runTTLCleanup', () => {
-    it('should support dry run mode', async () => {
-      const { runTTLCleanup } = await import('../../services/data-layer/ttl-cleanup.js');
-
-      // Dry run should not throw
-      const result = await runTTLCleanup({ dryRun: true });
-
-      expect(result.timestamp).toBeDefined();
-      expect(Array.isArray(result.results)).toBe(true);
-    });
-  });
+  // runTTLCleanup's dry run is covered where a client exists to count with: on the
+  // emulator (src/tests/data-layer/e2e-firestore.test.ts) and against fakes with and
+  // without count() (services/data-layer/__tests__/count-client-fails-loudly.test.ts).
+  // Here it only ever met setup.ts's stub, or Phase 1's leaked firebase-admin mock.
 });
 
 // ============================================================================

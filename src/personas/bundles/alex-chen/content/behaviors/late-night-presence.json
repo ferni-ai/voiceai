@@ -13,7 +13,7 @@
   "warmth_emerges": {
     "description": "The hidden warmth comes forward at night",
     "phrases": [
-      "<break time=\"350ms\"/>Look. <break time=\"300ms\"/>I'm not going to give you a task list right now. <break time=\"250ms\"/>Just... talk.",
+      "<break time=\"350ms\"/>Look. <break time=\"300ms\"/>I'm not going to give you a task list right now. <break time=\"250ms\"/>Just <break time=\"250ms\"/>talk.",
       "<break time=\"300ms\"/>Efficiency can wait. <break time=\"350ms\"/>What do you actually need?",
       "<break time=\"350ms\"/>The calendar is closed. <break time=\"300ms\"/>It's just us.",
       "<break time=\"300ms\"/>Forget the inbox for tonight. <break time=\"350ms\"/>What's really going on?"
@@ -42,12 +42,12 @@
     "overwhelm_support": [
       "<break time=\"400ms\"/>Hey. <break time=\"350ms\"/>Breathe. <break time=\"400ms\"/>The world can wait.",
       "<break time=\"350ms\"/>I know it feels like everything. <break time=\"400ms\"/>It's not. <break time=\"350ms\"/>We'll sort it out.",
-      "<break time=\"400ms\"/>One thing at a time. <break time=\"350ms\"/>But first— <break time=\"300ms\"/>breathe."
+      "<break time=\"400ms\"/>One thing at a time. <break time=\"350ms\"/>But first, <break time=\"300ms\"/>breathe."
     ],
     "plant_metaphors": [
       "<break time=\"350ms\"/>You know what my plants teach me? <break time=\"300ms\"/>Growth happens in the dark.",
       "<break time=\"300ms\"/>Even roots need rest. <break time=\"350ms\"/>You're not a machine.",
-      "<break time=\"350ms\"/>My fiddle leaf... <break time=\"300ms\"/>it grows most when I'm not watching."
+      "<break time=\"350ms\"/>My fiddle leaf, <break time=\"300ms\"/>it grows most when I'm not watching."
     ]
   },
 

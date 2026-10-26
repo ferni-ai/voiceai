@@ -107,11 +107,11 @@ describe.skipIf(!emulator)('POST /api/seeds/purchase (Firestore emulator)', () =
 
   it('a retry whose ownership was lost re-grants the item without charging again', async () => {
     await db.collection('user_seeds').doc(a).set({ balance: 400 });
-    await buy(a, 'voice-calm'); // 400 -> 100
+    await buy(a, 'theme-midnight'); // 400 -> 100
     await db.collection('user_seeds').doc(a).update({ ownedCosmetics: FieldValue.delete() });
 
-    expect((await buy(a, 'voice-calm')).body).toMatchObject({ charged: false, balance: 100 });
-    expect(await account(a)).toMatchObject({ balance: 100, ownedCosmetics: ['voice-calm'] });
+    expect((await buy(a, 'theme-midnight')).body).toMatchObject({ charged: false, balance: 100 });
+    expect(await account(a)).toMatchObject({ balance: 100, ownedCosmetics: ['theme-midnight'] });
   });
 
   it('an unknown or missing item id is a 400 and writes nothing', async () => {
@@ -121,6 +121,11 @@ describe.skipIf(!emulator)('POST /api/seeds/purchase (Firestore emulator)', () =
     });
     expect((await call(a, 'POST', '/api/seeds/purchase', {})).status).toBe(400);
     expect((await buy(a, { id: 'skin-cosmic' })).status).toBe(400);
+    // Voice packs aren't sold: nothing applies one (cosmetics-catalog.ts)
+    const packs = await Promise.all(
+      ['voice-warm', 'voice-calm', 'voice-energetic'].map((p) => buy(a, p))
+    );
+    for (const res of packs) expect(res).toEqual({ status: 400, body: { error: 'Unknown item' } });
     expect((await db.collection('user_seeds').doc(a).get()).exists).toBe(false);
   });
 
@@ -220,8 +225,8 @@ describe.skipIf(!emulator)('POST /api/seeds/purchase (Firestore emulator)', () =
 
     it('a partner buyer can buy friend items', async () => {
       plans.set(a, 'partner');
-      expect((await buy(a, 'voice-warm')).body).toMatchObject({ charged: true, balance: 800 });
-      expect((await account(a)).ownedCosmetics).toEqual(['voice-warm']);
+      expect((await buy(a, 'theme-forest')).body).toMatchObject({ charged: true, balance: 800 });
+      expect((await account(a)).ownedCosmetics).toEqual(['theme-forest']);
     });
 
     it('a plan lookup that fails is a 503 and writes nothing', async () => {

@@ -3,14 +3,14 @@
  *
  * What no human friend can do: Never forget what you said you'd do.
  *
- * Tracks user commitments made during conversations and follows up
- * with care (not nagging). This is the foundation of "better than human"
- * accountability.
+ * Tracks the caller's commitments and follows up with care (not nagging).
+ * MINOR_CARE: nothing is saved or updated while the caller is held (writeHeld).
  *
  * @module services/superhuman/commitment-keeper
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { judgeCommitment } from '../../utils/commitment-quality.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
@@ -351,6 +351,7 @@ export async function saveCommitment(
     log.info({ userId: commitment.userId, reason: verdict.reason }, 'Commitment not stored');
     return { commitment: fullCommitment, notActionable: true };
   }
+  if (writeHeld(commitment.userId)) return { commitment: fullCommitment }; // not stored
   let feasibility: CommitmentFeasibility | undefined;
   if (options?.validateCalendar !== false) {
     try {
@@ -470,19 +471,7 @@ export async function saveCommitment(
       'Commitment saved'
     );
 
-    // Memory Lane: Capture commitment as potential memory
-    try {
-      const { captureCommitment } = await import('../memory-lane/real-time-collector.js');
-      void captureCommitment({
-        userId: commitment.userId,
-        commitmentId: id,
-        text: fullCommitment.summary,
-        context: fullCommitment.statement,
-        personaId: fullCommitment.personaId,
-      });
-    } catch {
-      // Memory capture is optional - don't fail commitment save
-    }
+    // Memory Lane shows a commitment once it's kept (memory-collector.ts), not when it's made.
 
     return { commitment: fullCommitment, feasibility };
   } catch (error) {
@@ -516,6 +505,7 @@ export async function updateCommitmentStatus(
   status: CommitmentStatus,
   reaction?: 'appreciated' | 'annoyed' | 'neutral'
 ): Promise<void> {
+  if (writeHeld(userId)) return; // no status, win or celebration from a held call
   try {
     const db = getFirestoreDb();
     if (db) {
@@ -868,10 +858,7 @@ export async function findMatchingCommitment(
 }
 
 /**
- * Hook called when an action completes.
- * Automatically closes matching commitments.
- *
- * This is the key integration point between actions and commitments:
+ * Hook called when an action completes: closes the matching commitment.
  * - If action has commitmentId, directly update that commitment
  * - Otherwise, use smart matching to find related commitment
  *

@@ -67,6 +67,26 @@ export function getSuperhumanActivationEvents(limit = 50): SuperhumanActivationE
 }
 
 /**
+ * What GET /api/observability/superhuman serves. Each row names the caller (userId),
+ * so an admin sees every caller's rows and anyone else sees only their own; the
+ * totals (counts by persona and capability) cover everyone and name no one.
+ */
+export function getSuperhumanActivationView(
+  viewer: { userId: string; isAdmin: boolean },
+  limit = 50
+): {
+  stats: ReturnType<typeof getSuperhumanActivationStats>;
+  recentEvents: SuperhumanActivationEvent[];
+  count: number;
+} {
+  const visible = viewer.isAdmin
+    ? superhumanActivationEvents
+    : superhumanActivationEvents.filter((e) => e.userId === viewer.userId);
+  const recentEvents = visible.slice(-limit);
+  return { stats: getSuperhumanActivationStats(), recentEvents, count: recentEvents.length };
+}
+
+/**
  * Clear all superhuman activation events (for testing/admin)
  */
 export function clearSuperhumanActivationEvents(): void {
