@@ -88,7 +88,7 @@ async function holdsUser(db: Db, store: OwnedStore, userId: string): Promise<boo
 }
 
 /** Delete one store's documents for the user, and everything under them (Firestore doesn't cascade) */
-export async function eraseStore(db: Db, store: OwnedStore, userId: string): Promise<void> {
+async function eraseStore(db: Db, store: OwnedStore, userId: string): Promise<void> {
   const collection = db.collection(store.collection);
   if ('mapKey' in store) return eraseEntries(db, store, userId);
   if ('doc' in store) {

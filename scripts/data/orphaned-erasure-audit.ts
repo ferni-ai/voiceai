@@ -8,8 +8,8 @@
  *
  *   npx tsx scripts/data/orphaned-erasure-audit.ts --project <gcp-project-id>
  *
- * Read-only unless `--delete` is passed AND CONFIRM_ORPHAN_DELETE is set to the total
- * the dry run printed. Delete mode recounts first and refuses if the total has moved.
+ * Read-only: it never writes or deletes. Removing leftovers is a separate, reviewed job,
+ * not a flag on a counting script.
  *
  * A key is orphaned only when all three hold:
  * 1. It has the shape of a Firebase uid: exactly 28 letters or digits. Firebase Auth
@@ -29,7 +29,7 @@
  */
 
 import { pathToFileURL } from 'node:url';
-import { applicationDefault, initializeApp } from 'firebase-admin/app';
+import { applicationDefault, deleteApp, initializeApp } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import {
   FieldPath,
@@ -37,10 +37,7 @@ import {
   type Firestore,
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
-import {
-  eraseStore,
-  USER_RECORDS_COLLECTION,
-} from '../../src/services/platform/erase-user-record.js';
+import { USER_RECORDS_COLLECTION } from '../../src/services/platform/erase-user-record.js';
 import {
   ERASED_STORES,
   storeLabel,
@@ -84,8 +81,6 @@ export interface OrphanedStore {
 export interface AuditRun {
   lines: string[];
   total: number;
-  refused: boolean;
-  erased: number;
 }
 
 const chunk = <T>(values: readonly T[], size: number): T[][] => {
@@ -210,58 +205,28 @@ export function reportLines(orphans: readonly OrphanedStore[]): { lines: string[
   return { lines, total };
 }
 
-/** Deletes each orphaned key's records with the sweep's own eraseStore */
-async function eraseOrphans(db: Firestore, orphans: readonly OrphanedStore[]): Promise<number> {
-  let erased = 0;
-  for (const { store, keys } of orphans) {
-    for (const { key } of keys) {
-      await eraseStore(db, store, key);
-      erased += 1;
-    }
-  }
-  return erased;
-}
-
-/**
- * Dry run unless deleteRequested. Delete mode recounts and deletes only when `confirm`
- * is exactly that count; otherwise it refuses and deletes nothing.
- */
+/** Counts orphaned records store by store. Reads only. */
 export async function runAudit(options: {
   db: Firestore;
   auth: Auth;
-  deleteRequested: boolean;
-  confirm: string | undefined;
   stores?: readonly OwnedStore[];
 }): Promise<AuditRun> {
   const orphans = await findOrphans(options.db, options.auth, options.stores);
   const { lines, total } = reportLines(orphans);
-  if (!options.deleteRequested) {
-    lines.push(
-      'dry run: nothing deleted. To delete, pass --delete and CONFIRM_ORPHAN_DELETE=<total>.'
-    );
-    return { lines, total, refused: false, erased: 0 };
-  }
-  if (options.confirm !== String(total)) {
-    lines.push(`refusing to delete: CONFIRM_ORPHAN_DELETE must equal the dry-run total, ${total}.`);
-    return { lines, total, refused: true, erased: 0 };
-  }
-  const erased = await eraseOrphans(options.db, orphans);
-  lines.push(`erased ${erased} orphaned store entries`);
-  return { lines, total, refused: false, erased };
+  lines.push('read-only: nothing was changed.');
+  return { lines, total };
 }
 
-function parseArgs(argv: readonly string[]): { project: string; deleteRequested: boolean } {
+function parseArgs(argv: readonly string[]): { project: string } {
   let project: string | undefined;
-  let deleteRequested = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg === '--delete') deleteRequested = true;
-    else if (arg === '--project') project = argv[++i];
+    if (arg === '--project') project = argv[++i];
     else if (arg?.startsWith('--project=')) project = arg.slice('--project='.length);
     else throw new Error(`unknown argument: ${arg}`);
   }
   if (!project) throw new Error('--project <gcp-project-id> is required');
-  return { project, deleteRequested };
+  return { project };
 }
 
 async function main(): Promise<void> {
@@ -277,14 +242,13 @@ async function main(): Promise<void> {
     { credential: applicationDefault(), projectId: args.project },
     'orphan-audit'
   );
-  const run = await runAudit({
-    db: getFirestore(app),
-    auth: getAuth(app),
-    deleteRequested: args.deleteRequested,
-    confirm: process.env.CONFIRM_ORPHAN_DELETE,
-  });
-  for (const line of run.lines) console.log(line);
-  if (run.refused) process.exitCode = 1;
+  try {
+    const run = await runAudit({ db: getFirestore(app), auth: getAuth(app) });
+    for (const line of run.lines) console.log(line);
+  } finally {
+    // Firestore's open channel keeps Node alive, so the run never exited without this
+    await deleteApp(app);
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
