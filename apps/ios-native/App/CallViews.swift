@@ -192,6 +192,7 @@ struct CallControls: View {
                             .font(.title)
                             .foregroundStyle(FerniColor.onError)
                             .frame(width: 72, height: 72)
+                            .contentShape(.circle)
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.error).interactive(), in: .circle)
@@ -207,6 +208,9 @@ struct CallControls: View {
                             .font(FerniType.button)
                             .foregroundStyle(FerniColor.onAccent)
                             .frame(maxWidth: 420, minHeight: 56)
+                            // A plain button hit-tests only what it draws: without this,
+                            // only the words started a call, not the glass around them.
+                            .contentShape(.capsule)
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.accent).interactive(), in: .capsule)
@@ -226,6 +230,7 @@ struct CallControls: View {
                 .font(.title2)
                 .foregroundStyle(FerniColor.textPrimary)
                 .frame(width: 60, height: 60)
+                .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)
