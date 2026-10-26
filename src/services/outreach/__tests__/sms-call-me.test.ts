@@ -10,6 +10,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from '../proactive-channels/__tests__/path-firestore.js';
 
+// The real logger, so the "every log write fails" cases below exercise it.
+vi.unmock('../../../utils/safe-logger.js');
+
 const SETH = 'seth-uid';
 const PHONE = '+15555550123';
 const docs = new Map<string, Record<string, unknown>>();
@@ -164,5 +167,49 @@ describe('Twilio inbound webhook, a "call me" text', () => {
     const res = await inbound();
     expect(adapter.call).toHaveBeenCalledTimes(1);
     expect(res.twiml).toContain(CALLING);
+  });
+});
+
+describe('Twilio inbound webhook, while every log write fails', () => {
+  const inbound = (signature?: string) =>
+    handleInboundSMSWebhook(
+      {
+        MessageSid: `SM${Math.random()}`,
+        Body: 'call me',
+        From: PHONE,
+        To: '+15555550000',
+        NumMedia: '0',
+        AccountSid: 'AC1',
+      } as never,
+      signature,
+      signature ? 'https://app.ferni.example/x' : undefined
+    );
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('a log line that throws never changes the reply: same TwiML as with logging working', async () => {
+    docs.clear();
+    vi.stubEnv('SKIP_TWILIO_VALIDATION', 'true');
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('LOG_HASH_SECRET', 'test-hash-secret');
+    vi.stubEnv('SMS_CALL_ME', 'off');
+    const working = await inbound();
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => {
+      throw new Error('EPIPE');
+    });
+    const failing = await inbound();
+    expect(process.stderr.write).toHaveBeenCalled();
+    expect(failing).toEqual(working);
+    expect(failing.twiml).toContain('Open Ferni whenever');
+  });
+
+  it('an unsigned text is still refused cleanly, not thrown, when its warn line fails', async () => {
+    vi.stubEnv('SKIP_TWILIO_VALIDATION', 'false');
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => {
+      throw new Error('EPIPE');
+    });
+    await expect(inbound()).resolves.toEqual({ success: false });
+    expect(process.stderr.write).toHaveBeenCalled();
   });
 });

@@ -216,13 +216,23 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
     bound = wrapLoggerWithErrorSerialization(target as unknown as ReturnType<typeof log>);
     return bound;
   };
+  // A log line must never throw into its caller: a getter that throws while the
+  // fields are sanitised, or a failed write, would otherwise turn a request's
+  // reply into a 500 (an SMS's 988 or STOP confirmation among them).
+  const call =
+    (method: 'debug' | 'info' | 'warn' | 'error') =>
+    (...args: unknown[]): void => {
+      try {
+        current()[method](...(args as Parameters<FallbackLogger['info']>));
+      } catch {
+        // Dropped: losing one line beats breaking the caller.
+      }
+    };
   return {
-    debug: (...args: unknown[]) =>
-      current().debug(...(args as Parameters<FallbackLogger['debug']>)),
-    info: (...args: unknown[]) => current().info(...(args as Parameters<FallbackLogger['info']>)),
-    warn: (...args: unknown[]) => current().warn(...(args as Parameters<FallbackLogger['warn']>)),
-    error: (...args: unknown[]) =>
-      current().error(...(args as Parameters<FallbackLogger['error']>)),
+    debug: call('debug'),
+    info: call('info'),
+    warn: call('warn'),
+    error: call('error'),
     child: (childBindings: Record<string, unknown>) =>
       lazyLogger({ ...bindings, ...childBindings }),
   };

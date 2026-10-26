@@ -115,9 +115,11 @@ async function screenSms(
     outcome = await read(text);
   } catch (error) {
     const pattern = detectCrisis(text).isCrisis;
+    // The fields are built inside safeLog: String() of a thrown value with no
+    // string form (Object.create(null)) throws too.
     safeLog(
       'warn',
-      { error: String(error), pattern },
+      () => ({ error: String(error), pattern }),
       'SMS crisis read failed; pattern guard alone'
     );
     outcome = { crisis: pattern, pattern, risk: null };
@@ -139,9 +141,13 @@ function isKeywordOnly(text: string): boolean {
  * what the person gets back, in any mode: inside the request a throw becomes a
  * 500 (no 988, no STOP confirmation), and in shadow's background read a rejection.
  */
-function safeLog(level: 'info' | 'warn', fields: Record<string, unknown>, message: string): void {
+function safeLog(
+  level: 'info' | 'warn',
+  fields: () => Record<string, unknown>,
+  message: string
+): void {
   try {
-    log[level](fields, message);
+    log[level](fields(), message);
   } catch {
     // Nothing to do: the reply goes out as it would without the line.
   }
@@ -159,7 +165,7 @@ function logScreen(
   // `bareHelp` (the word alone) tell the shadow logs whether they reach us.
   safeLog(
     'info',
-    {
+    () => ({
       mode,
       stage,
       screenId,
@@ -169,7 +175,7 @@ function logScreen(
       keyword: isKeywordOnly(text),
       help: HELP_WORDS.has(normalizeSms(text)),
       bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),
-    },
+    }),
     'SMS_CRISIS_SCREEN'
   );
 }
