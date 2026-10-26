@@ -13,7 +13,7 @@
  * (b) answer in the call: told in the call where Ferni asked about that person,
  *     not dated after that call, and either the same event in other words (b1:
  *     the same kind and words as (c), any day) or nothing but how it went (b2:
- *     "pretty well", no content words left). "She also fell in the kitchen",
+ *     "pretty well" or "it was rough": an outcome word and no content words left). "She also fell in the kitchen",
  *     told while answering about her surgery, is its own event and is asked;
  * (c) same subject, same kind and similar words, within SAME_EVENT_DAYS.
  *
@@ -38,10 +38,22 @@ export const SAME_EVENT_DAYS = 3;
  */
 export const SIMILAR_WORDS = 0.5;
 
-/** How it went says nothing about what it was: "went well", "pretty good". Built on first use, not at import. */
+/**
+ * How it went, good or bad ("went well", "it was rough"). OUTCOME says how it
+ * went; HOW only frames it ("went", "pretty"), so "going out" or "went out"
+ * is not an answer on its own (#2881 verifier: a stopword-only value read as
+ * one, and "it was rough" was asked about again).
+ */
+const OUTCOME =
+  'well good great fine ok okay alright smooth smoothly amazing fantastic perfect wonderful lovely ' +
+  'rough bad badly awful terrible horrible hard tough better worse so-so';
+const HOW =
+  'went go going pretty really very so all quite not too it is was she he they her his doing';
+
+/** Both kinds of outcome word, as event words see them (stemmed). Built on first use, not at import. */
 let outcome: Set<string> | undefined;
-const outcomeWords = (): Set<string> =>
-  (outcome ??= new Set(forgetTokens('went well good great fine ok okay pretty really')));
+const outcomeWords = (): Set<string> => (outcome ??= new Set(forgetTokens(`${OUTCOME} ${HOW}`)));
+const SAYS_HOW = new Set(OUTCOME.split(' '));
 
 type Fact = TemporalFact & Pick<DateFact, 'kind' | 'recurrence' | 'monthDay'>;
 
@@ -87,8 +99,10 @@ function sameWords(f: Fact, asked: AskedEvent): boolean {
   return shared / (a.size + b.size - shared) >= SIMILAR_WORDS;
 }
 
-/** Nothing but how it went ("pretty well", "went great"): no event of its own. */
-const pureOutcome = (f: Fact): boolean => eventWords(f).length === 0;
+/** Nothing but how it went ("pretty well", "it was rough"): no event of its own, and a word that says how. */
+const pureOutcome = (f: Fact): boolean =>
+  eventWords(f).length === 0 &&
+  (f.value.toLowerCase().match(/[\p{L}-]+/gu) ?? []).some((w) => SAYS_HOW.has(w));
 
 /**
  * Told in the call that raised `g` (b): its session when the raise recorded one (raisedIn),
