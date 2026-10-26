@@ -39,6 +39,7 @@ import {
 } from 'firebase-admin/firestore';
 // user-stores.ts imports nothing; erase-user-record.ts pulls in Firebase Auth, BigQuery and
 // more, which kept this CLI from exiting and needed a default Firebase app at import
+import { getFirestoreDatabase } from '../../src/config/environment.js';
 import {
   ERASED_STORES,
   storeLabel,
@@ -245,7 +246,10 @@ async function main(): Promise<void> {
     'orphan-audit'
   );
   try {
-    const run = await runAudit({ db: getFirestore(app), auth: getAuth(app) });
+    const run = await runAudit({
+      db: getFirestore(app, getFirestoreDatabase()),
+      auth: getAuth(app),
+    });
     for (const line of run.lines) console.log(line);
   } finally {
     // Firestore's open channel keeps Node alive, so the run never exited without this
