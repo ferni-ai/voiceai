@@ -90,4 +90,13 @@ describe('with no webhook', () => {
     expect(await slack.notifyWithResult(warning)).toEqual({ status: 'not_configured' });
     expect(await slack.notify(warning)).toBe(false);
   });
+
+  it('opsAlert is keyed per alert: a second alert type is not held by the first', async () => {
+    const slack = await service('');
+    const a = { ...critical, alertKey: 'critical:A' };
+    const b = { ...critical, alertKey: 'critical:B' };
+    expect(await slack.notifyWithResult(a)).toEqual({ status: 'delivered', via: 'ops' });
+    expect(await slack.notifyWithResult(b)).toEqual({ status: 'delivered', via: 'ops' });
+    expect(await slack.notifyWithResult(a)).toEqual({ status: 'not_configured' }); // A's cooldown
+  });
 });
