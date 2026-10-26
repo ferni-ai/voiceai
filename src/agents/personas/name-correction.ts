@@ -47,6 +47,8 @@ import {
   withoutVocatives,
 } from '../../utils/call-me-vocative.js';
 import { isCallbackTime } from '../../utils/callback-time.js';
+import { sameName as sameFirstName, toolAsks } from '../../tools/domains/conversation/index.js';
+import { callerTurns } from './call-me-note.js';
 import { confirmNameNote, pendingOf, personaFirstNameOf, propose, settle } from './name-confirm.js';
 
 const log = createLogger({ module: 'NameCorrection' });
@@ -253,11 +255,16 @@ function heardName(
 const currentName = (session: object, user: SessionUser): string | undefined =>
   corrected.get(session)?.name ?? user.userName;
 
-/** A yes to "Sam from now on?", or "the name" to "ring or call you Fern?": rename them now. */
+/**
+ * A yes to "Sam from now on?", or "the name" to "ring or call you Fern?":
+ * rename them now. Not while rememberName is asking about another name
+ * (`asking`, name-confirm-calls.ts): that question is the newer one, and the
+ * yes is the tool's.
+ */
 function applyAnswers(
   session: object,
   user: SessionUser,
-  turn: { words: string; heard: string | null },
+  turn: { words: string; heard: string | null; asking?: string },
   deps: NameCorrectionDeps
 ): void {
   for (const kind of ['rename', 'either'] as const) {
@@ -265,6 +272,7 @@ function applyAnswers(
     const name = done?.pending.name;
     const agreed = done?.outcome === 'yes' || done?.outcome === 'name';
     if (!name || !agreed || sameName(name, currentName(session, user))) continue;
+    if (turn.asking && !sameFirstName(name, turn.asking)) continue;
     const was = corrected.get(session)?.was ?? currentName(session, user);
     corrected.set(session, { name, was });
     rename(user, name, deps);
@@ -287,7 +295,8 @@ function confirmingNote(
   const heard = words
     ? heardName(words, currentName(session, user), session, lastAgentLine(chatCtx))
     : null;
-  applyAnswers(session, user, { words, heard }, deps);
+  const asking = toolAsks(session, callerTurns(chatCtx.items));
+  applyAnswers(session, user, { words, heard, asking }, deps);
   const current = currentName(session, user);
   if (heard && !sameName(heard, current) && pendingOf(session, 'rename')?.name !== heard)
     propose(session, { kind: 'rename', name: heard, askedOn: words });

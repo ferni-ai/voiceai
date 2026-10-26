@@ -21,7 +21,7 @@ import { noteCallerTurn } from '../../tools/domains/conversation/index.js';
 import { eitherNote, personaFirstNameOf, propose, settle } from './name-confirm.js';
 
 /** The caller's turns so far: runs of their messages between Ferni's (lead-ins and tool steps add none). */
-function callerTurns(items: readonly llm.ChatItem[]): number {
+export function callerTurns(items: readonly llm.ChatItem[]): number {
   let count = 0;
   let last: string | undefined;
   for (const item of items) {

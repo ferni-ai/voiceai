@@ -52,6 +52,17 @@ export function noteCallerTurn(session: object, words: string, turn: number): vo
 const first = (name: string): string => name.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
 export const sameName = (a: string, b: string | undefined): boolean => !!b && first(a) === first(b);
 
+/**
+ * The name this tool is asking about, while the caller's `turn` may still
+ * answer it (asked this turn or the one before). Name-correction's own
+ * question yields to it (name-correction.ts applyAnswers): "call me Sam, or
+ * actually Jamie", then "yes", is a yes to Jamie, the newest name.
+ */
+export function toolAsks(session: object, turn: number): string | undefined {
+  const open = asked.get(session);
+  return open && turn - open.turn <= 1 ? open.name : undefined;
+}
+
 export type Step = { kind: 'ask'; second: boolean } | { kind: 'save' } | { kind: 'no' };
 
 /** The open question meets the caller's next turn: answered there, or dropped if that turn passed. */
