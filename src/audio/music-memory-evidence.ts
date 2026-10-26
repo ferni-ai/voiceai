@@ -40,6 +40,6 @@ export function cleanMusicEvidence(raw: unknown): MusicEvidence {
 /** A stored memory's evidence holds more than the labels (the caller's words, in old docs). */
 export function hasExtraEvidence(raw: unknown): boolean {
   if (!raw || typeof raw !== 'object') return false;
-  const clean = cleanMusicEvidence(raw) as unknown as Record<string, unknown>;
+  const clean: Record<string, unknown> = { ...cleanMusicEvidence(raw) };
   return Object.entries(raw).some(([k, v]) => v !== undefined && clean[k] !== v);
 }
