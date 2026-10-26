@@ -58,6 +58,9 @@ const onSwitch = (e: { agentId: string }): void => {
 
 async function handoffToFerni(): Promise<{ error?: string }> {
   const { tools } = await buildHandoffTools('maya-santos');
+  // Set last, after the build: in the full unit run (CI's --changed set) a persona set
+  // before the first build was gone, and the handoff was refused as "Already with Ferni"
+  setCurrentAgent('maya-santos');
   const name = Object.keys(tools).find((t) => /Ferni$/.test(t));
   if (!name) throw new Error('no handoff tool to Ferni');
   const history = new llm.ChatContext();

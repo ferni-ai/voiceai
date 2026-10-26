@@ -65,6 +65,9 @@ const onSwitch = (event: { agentId: string }): void => {
 
 async function handoff(from: string, toolMatch: RegExp, words: string) {
   const { tools } = await buildHandoffTools(from);
+  // Set last, after the build: in the full unit run (CI's --changed set) a persona set
+  // before the first build was gone, and the handoff was refused as "Already with Ferni"
+  setCurrentAgent(from as Parameters<typeof setCurrentAgent>[0]);
   const name = Object.keys(tools).find((t) => toolMatch.test(t));
   if (!name) throw new Error(`no tool matching ${toolMatch}`);
   return (tools[name] as unknown as HandoffTool).execute({ reason: 'test' }, runCtx(words));
