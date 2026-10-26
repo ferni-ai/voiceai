@@ -1111,13 +1111,8 @@ function generateTransitionOfType(
 }
 
 /**
- * Record user feedback after a transition
- *
- * Call this when you have signals about how the user responded.
- * The system uses this to improve future transitions.
- *
- * @param eventId - The event ID from getMusicTransition
- * @param feedback - Engagement signals
+ * Record how the user responded to a transition (eventId from getMusicTransition), to improve
+ * future transitions. The caller's words only shape labels; none are kept.
  */
 export function recordTransitionFeedback(
   eventId: string,
@@ -1135,14 +1130,10 @@ export function recordTransitionFeedback(
     emotionalTone?: 'heavy' | 'light' | 'neutral' | 'crisis';
     isLateNight?: boolean;
     musicContext?: MusicSessionContext;
-    /** MINOR_CARE: the call's session, so a held caller's feedback is never learned or kept */
-    sessionId?: string;
+    sessionId?: string; // MINOR_CARE: a held caller's feedback is never learned or kept
   }
 ): void {
-  if (writeHeld(userId, context?.sessionId)) {
-    log.debug({ eventId, userId }, 'MINOR_CARE: transition feedback not recorded (held caller)');
-    return;
-  }
+  if (writeHeld(userId, context?.sessionId)) return; // MINOR_CARE: nothing recorded
   // Update user learning
   updateUserLearning(
     userId,

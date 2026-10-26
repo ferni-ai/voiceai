@@ -16,6 +16,7 @@ import type { MusicSessionContext } from './music-session-context.js';
 import type { TransitionType } from './intelligent-music-transitions.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { writeHeld } from '../utils/minor-care.js';
+import type { MusicEvidence } from './music-memory-evidence.js';
 
 const log = createLogger({ module: 'MusicMemoryIntegration' });
 
@@ -61,20 +62,8 @@ export interface MusicHelpedMemory {
     wasAmbient: boolean;
   };
 
-  /**
-   * How did we know it helped? Labels only: the caller's words are read once, when the memory is
-   * made (detectMusicHelped), and never kept (cleanMusicEvidence).
-   */
-  evidence: {
-    /** Detected emotional shift */
-    emotionalShift?: 'positive' | 'neutral' | 'negative';
-    /** Did they continue the session happily? */
-    continuedSession: boolean;
-    /** Did they explicitly thank or praise the music? */
-    explicitPositive: boolean;
-    /** Voice tone analysis */
-    voiceTone?: 'warmer' | 'calmer' | 'energized' | 'neutral';
-  };
+  /** How did we know it helped? Labels only, never the caller's words (music-memory-evidence.ts) */
+  evidence: MusicEvidence;
 
   /** What transition worked after the music? */
   effectiveTransition: TransitionType;
@@ -285,34 +274,6 @@ export function detectMusicHelped(
   return { helped, confidence, explicitPositive };
 }
 
-const VOICE_TONES = new Set(['warmer', 'calmer', 'energized', 'neutral']);
-const SHIFTS = new Set(['positive', 'neutral', 'negative']);
-
-/**
- * The evidence labels a memory keeps, from whatever a stored doc holds: never text. Old docs
- * carried the caller's words (`userResponse`); a load or save drops them and any other field.
- */
-export function cleanMusicEvidence(raw: unknown): MusicHelpedMemory['evidence'] {
-  const e = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  return {
-    emotionalShift: SHIFTS.has(e.emotionalShift as string)
-      ? (e.emotionalShift as MusicHelpedMemory['evidence']['emotionalShift'])
-      : undefined,
-    continuedSession: e.continuedSession !== false,
-    explicitPositive: e.explicitPositive === true,
-    voiceTone: VOICE_TONES.has(e.voiceTone as string)
-      ? (e.voiceTone as MusicHelpedMemory['evidence']['voiceTone'])
-      : undefined,
-  };
-}
-
-/** A stored memory's evidence holds more than the labels (the caller's words, in old docs). */
-export function hasExtraEvidence(raw: unknown): boolean {
-  if (!raw || typeof raw !== 'object') return false;
-  const clean = cleanMusicEvidence(raw) as Record<string, unknown>;
-  return Object.entries(raw).some(([k, v]) => v !== undefined && clean[k] !== v);
-}
-
 /**
  * Store a memory that music helped. The caller's words (`userResponse`) only decide whether it
  * helped; the memory keeps the labels. MINOR_CARE: a held caller (writeHeld) gets no memory.
@@ -328,10 +289,7 @@ export function storeMusicHelpedMemory(
   },
   sessionId?: string
 ): MusicHelpedMemory | null {
-  if (writeHeld(userId, sessionId)) {
-    log.debug({ userId, sessionId }, 'MINOR_CARE: no music memory for a held caller');
-    return null;
-  }
+  if (writeHeld(userId, sessionId)) return null; // MINOR_CARE: a held caller gets no memory
   // Check if music actually helped
   const helpCheck = detectMusicHelped(
     evidence.userResponse,
@@ -426,11 +384,8 @@ function generateTags(musicContext: MusicSessionContext | null): string[] {
  * Update preferences based on a new memory
  */
 function updatePreferencesFromMemory(userId: string, memory: MusicHelpedMemory): void {
-  let prefs = userMusicPreferences.get(userId);
-  if (!prefs) {
-    prefs = [];
-    userMusicPreferences.set(userId, prefs);
-  }
+  const prefs = userMusicPreferences.get(userId) ?? [];
+  userMusicPreferences.set(userId, prefs);
   applyToPreferences(prefs, memory);
 }
 

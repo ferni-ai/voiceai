@@ -29,11 +29,10 @@ import {
 
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { userHeld } from '../utils/minor-care.js';
+import { cleanMusicEvidence, hasExtraEvidence } from './music-memory-evidence.js';
 import {
-  cleanMusicEvidence,
   clearHeldMusicMemories as clearHeldMemories,
   exportUserMusicMemories,
-  hasExtraEvidence,
   importUserMusicMemories,
   preferencesFrom,
   type MusicHelpedMemory,

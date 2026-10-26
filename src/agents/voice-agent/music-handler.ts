@@ -120,10 +120,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
   // Register feedback recorder for learning (creates a closure for this session)
   registerMusicFeedbackRecorder(sessionId, (feedback) => {
     // Labels only: feedback.userResponse is the caller's words, never logged
-    log.debug(
-      { sessionId, wasPositive: feedback.wasPositive, voiceTone: feedback.voiceTone },
-      'Music feedback received'
-    );
+    log.debug({ sessionId, wasPositive: feedback.wasPositive }, 'Music feedback received');
   });
 
   // Initialize DJ Controller

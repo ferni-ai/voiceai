@@ -217,7 +217,9 @@ describe('music memory and MINOR_CARE', () => {
     feedback(seed, u, 'celebration');
     await seed.persist.flushMusicLearning(u);
     await seed.persist.shutdownMusicLearningPersistence();
-    await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => {
+      setTimeout(r, 5);
+    });
 
     const a = await proc(); // the held call
     const s1 = `held-${u}`;
@@ -253,7 +255,9 @@ describe('music memory and MINOR_CARE', () => {
     a.mc.heldAfter(s1, "I'm 15.", { userId: u });
     a.purge.purgeHeldUser(u, s1, startedAt);
     a.mc.resetMinorCare(); // the hold lapsed: the next call is ordinary
-    await new Promise((r) => setTimeout(r, 5)); // past the window's end
+    await new Promise((r) => {
+      setTimeout(r, 5);
+    }); // past the window's end
     await a.persist.ensureMusicLearningLoaded(u);
     // A memory from inside the window still in memory (read before the window was known)
     const held = {
@@ -281,7 +285,9 @@ describe('music memory and MINOR_CARE', () => {
     failTransactions.add(u);
     a.mc.heldAfter(s1, "I'm 15.", { userId: u });
     a.purge.purgeHeldUser(u, s1, startedAt);
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => {
+      setTimeout(r, 20);
+    });
     expect(tagsOf(u)).toContain('comfort'); // precondition: the scrub did not run
     failTransactions.delete(u);
     a.mc.resetMinorCare(); // the next call, same process: the window is known

@@ -3,7 +3,7 @@
  *
  * Until 2026-10-25 each music memory kept `evidence.userResponse`: what the caller said after
  * the music. The app no longer writes it, and drops it (and any other non-label evidence field)
- * when it loads a doc (cleanMusicEvidence in src/audio/music-memory-integration.ts). This rewrites
+ * when it loads a doc (cleanMusicEvidence in src/audio/music-memory-evidence.ts). This rewrites
  * each memory's evidence to the labels the app keeps; the rest of the doc stays, and nothing is
  * deleted.
  *
@@ -21,7 +21,7 @@
 
 import { pathToFileURL } from 'node:url';
 import { destructiveMode, refusalMessage } from '../destructive-gate.js';
-import { cleanMusicEvidence, hasExtraEvidence } from '../../src/audio/music-memory-integration.js';
+import { cleanMusicEvidence, hasExtraEvidence } from '../../src/audio/music-memory-evidence.js';
 
 type Data = Record<string, unknown>;
 interface Ref {
