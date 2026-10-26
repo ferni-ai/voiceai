@@ -60,6 +60,7 @@ struct NameChip: View {
 struct CallCaptions: View {
     let call: CallSession
     let showWords: Bool
+    let report: (Caption) -> Void
 
     var body: some View {
         let lines = showWords ? Array(call.captions.lines.suffix(3)) : []
@@ -73,6 +74,13 @@ struct CallCaptions: View {
                     .frame(maxWidth: .infinity, alignment: isFerni ? .leading : .trailing)
                     .multilineTextAlignment(isFerni ? .leading : .trailing)
                     .accessibilityLabel(isFerni ? "\(name): \(text)" : "You: \(text)")
+                    .contextMenu {
+                        if isFerni {
+                            Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = text }
+                            Button("Report this reply", systemImage: "flag") { report(line) }
+                        }
+                    }
+                    .accessibilityAction(named: "Report this reply") { if isFerni { report(line) } }
             }
             if let state = Self.state(call, name: name) {
                 HStack(spacing: FerniSpace.breath) {
@@ -144,8 +152,17 @@ struct CallControls: View {
         GlassEffectContainer(spacing: FerniSpace.rest) {
             HStack(spacing: FerniSpace.rest) {
                 if call.isActive {
-                    circle("mic.fill", muted: call.isMuted, label: call.isMuted ? "Unmute" : "Mute") {
-                        Task { await call.toggleMute() }
+                    Group {
+                        if call.isOnHold {
+                            // The audio didn't come back on its own: one tap tries again.
+                            circle("play.fill", muted: false, label: "Resume call") {
+                                Task { await call.resume() }
+                            }
+                        } else {
+                            circle("mic.fill", muted: call.isMuted, label: call.isMuted ? "Unmute" : "Mute") {
+                                Task { await call.toggleMute() }
+                            }
+                        }
                     }
                     .disabled(call.phase != .live)
                     .glassEffectID("left", in: glass)
@@ -207,12 +224,21 @@ struct CallControls: View {
 /// During a call: captions, where the sound goes, and help right now.
 struct CallMoreSheet: View {
     @Binding var showCaptions: Bool
+    /// Ferni's latest line, if there's one to report.
+    let lastReply: Caption?
+    let report: (Caption) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             List {
                 Toggle("Captions", isOn: $showCaptions)
+                if let lastReply {
+                    Button("Report something Ferni said", systemImage: "flag") {
+                        dismiss()
+                        report(lastReply)
+                    }
+                }
                 HStack {
                     Text("Audio output")
                     Spacer()

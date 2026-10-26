@@ -23,7 +23,7 @@ import { attachSlowTurnSound, type SlowTurnDeps } from './slow-turn-sound.js';
 
 type Clips = Pick<SlowTurnDeps, 'playClip' | 'lastPlayedAt'> & { wireDelayMs?: () => number };
 
-function musicPlaying(): boolean {
+export function musicPlaying(): boolean {
   try {
     return getDJController().isMusicActive();
   } catch {

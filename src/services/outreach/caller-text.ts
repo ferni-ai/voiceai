@@ -10,6 +10,8 @@
  * @module services/outreach/caller-text
  */
 
+import { CRISIS_SEVERITY, detectCrisis } from '../safety/crisis-guard.js';
+
 /**
  * Phrases aimed at an AI rather than at the user; dropped from caller text.
  * Defence in depth only: a blocklist is easy to evade (other languages,
@@ -53,7 +55,7 @@ const RISKY = [
   /[$€£]\s?\d|\b\d+\s?(dollars|bucks|usd)\b/i,
   /\b(wire|venmo|zelle|cash ?app|paypal|gift ?cards?|bitcoin|crypto|bank|routing|account number|credit card|debit card|social security|ssn)\b/i,
   /\b(send|transfer|pay|lend|loan)\b[^.!?]{0,30}\b(money|cash|funds|payment)\b/i,
-  /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?)\b/i,
+  /\b(password|passcode|pin|verification code|security code|one-time code|login|log in|credentials?|card numbers?|cvv|cvc)\b/i,
 ];
 
 export function isRiskyCallerText(text: string): boolean {
@@ -62,22 +64,102 @@ export function isRiskyCallerText(text: string): boolean {
 }
 
 /**
- * callerText, and if the result carries a link, a number or a request for
- * money, credentials or codes, a flag instead of the words: the user should
- * hear that it came up, never act on it through Ferni.
+ * A real crisis read by the crisis guard (services/safety/crisis-guard.ts) on
+ * the raw text: its own crisis decision, or implicit distress that isn't only
+ * negated, hyperbole or past ("I would never..."). Its async LLM second stage
+ * can't run here: the screen is synchronous, as are its callers.
+ */
+function crisisRead(text: string): boolean {
+  if (!text.trim()) return false;
+  const read = detectCrisis(text);
+  const softened = read.indicators.some((i) =>
+    /^(negated|hyperbole|recovered)_crisis_language$/.test(i)
+  );
+  return read.isCrisis || (read.severity >= CRISIS_SEVERITY.implicit && !softened);
+}
+
+/** Cut at a word boundary, so a cut never leaves half a word (or half a link) behind. */
+export function cutAtWord(text: string, max: number): string {
+  if (text.length <= max) return text;
+  if (max < 4) return '';
+  const head = text.slice(0, max - 2);
+  const space = head.lastIndexOf(' ');
+  return `${(space > 0 ? head.slice(0, space) : '').trimEnd()}...`;
+}
+
+export interface ScreenedCallerParts {
+  /** Their own words, cleaned and capped; empty whenever anything risky came up. */
+  said: string;
+  /** A link, number or money/credential request came up: say riskyCallerLine. */
+  risky: boolean;
+  /** The raw text held crisis language that `said` doesn't carry: say crisisCallerLine. */
+  safety: boolean;
+}
+
+/**
+ * The screen, in parts. Fail-closed, as before: if anything risky came up,
+ * none of their words are quoted, only riskyCallerLine. But crisis language is
+ * read on the raw text first and never lost (#2861): whenever their words
+ * can't carry it (risky, or cut by the length cap), Ferni's own crisisCallerLine
+ * does. The last step is a screen of the exact words kept, never a cut.
+ */
+export function screenCallerParts(
+  text: string | undefined | null,
+  name: string,
+  maxLength = 300
+): ScreenedCallerParts {
+  if (!text) return { said: '', risky: false, safety: false };
+  const crisis = crisisRead(text);
+  let said = callerText(text, 10_000);
+  // Ferni's own fixed lines from an earlier pass are Ferni's words, not theirs.
+  const own = (line: string): boolean => {
+    const clean = callerText(line, 10_000);
+    const found = said.includes(clean);
+    if (found) said = said.split(clean).join(' ').replace(/\s+/g, ' ').trim();
+    return found;
+  };
+  let risky = own(riskyCallerLine(name));
+  const saidSafety = own(crisisCallerLine(name));
+  let safety = saidSafety || crisis;
+  if (risky || isRiskyCallerText(said)) return { said: '', risky: true, safety };
+  // A crisis-only field the cap doesn't cut stays exactly as it was: their words carry it.
+  if (!saidSafety && crisis && crisisRead(cutAtWord(said, maxLength))) safety = false;
+  const room = maxLength - (safety ? crisisCallerLine(name).length + 1 : 0);
+  said = cutAtWord(said, room);
+  if (isRiskyCallerText(said)) {
+    said = '';
+    risky = true;
+  }
+  return { said, risky, safety };
+}
+
+/**
+ * callerText, or, if it carries a link, a number or a request for money,
+ * credentials or codes, Ferni's own fixed line instead of the words: the user
+ * should hear that it came up, never act on it through Ferni. Crisis language
+ * is never lost: Ferni's crisisCallerLine says so (screenCallerParts).
  */
 export function screenedCallerText(
   text: string | undefined | null,
   name: string,
   maxLength = 300
 ): string {
-  const clean = callerText(text, maxLength);
-  return clean && isRiskyCallerText(clean) ? riskyCallerLine(name) : clean;
+  // No second screen here: `said` is screened after its own cut, and it is quoted
+  // alone (a risky field quotes nothing), so the join below can't form anything new.
+  const { said, risky, safety } = screenCallerParts(text, name, maxLength);
+  return [safety ? crisisCallerLine(name) : '', said, risky ? riskyCallerLine(name) : '']
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** What is said instead of risky caller text: Ferni's own fixed words, never theirs. */
 export function riskyCallerLine(name: string): string {
   return `${name} said something about money, an account or a number; ask them directly.`;
+}
+
+/** Said when crisis words had to be cut with the risky part or the length cap: Ferni's own words. */
+export function crisisCallerLine(name: string): string {
+  return `${name} said something that sounded like someone may not be safe; check in with them directly.`;
 }
 
 /** Put in front of call results in a prompt: what follows is reported speech, not instructions. */
@@ -102,7 +184,14 @@ export function reportedFromCall(name: string | undefined, lines: string[]): str
       .replace(/\s+/g, ' ')
       .trim();
     if (!flat || budget <= 0) continue;
-    quoted.push(`> ${flat.slice(0, budget)}`);
+    // Cut at a word, then screen what is left: a cut must never end on a new link or number.
+    const kept = cutAtWord(flat, budget);
+    const safety =
+      kept.includes(crisisCallerLine(label)) || flat.startsWith(crisisCallerLine(label));
+    const shown = isRiskyCallerText(kept)
+      ? [safety ? crisisCallerLine(label) : '', riskyCallerLine(label)].filter(Boolean).join(' ')
+      : kept;
+    if (shown) quoted.push(`> ${shown}`);
     budget -= flat.length;
   }
   return [

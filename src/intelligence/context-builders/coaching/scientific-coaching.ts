@@ -57,6 +57,8 @@ export interface ScientificCoachingInput {
   sessionDurationMinutes?: number;
 
   // Feature flags
+  /** The call, so MINOR_CARE can hold a caller under 18 who has no account. */
+  sessionId?: string;
   enableDistortionDetection?: boolean;
   enableWellbeingTracking?: boolean;
   enableNudges?: boolean;
@@ -129,6 +131,7 @@ export async function buildScientificCoachingContext(
           // Record for ANT tracking
           for (const distortion of distortions) {
             recordANT(userId, distortion, {
+              sessionId: input.sessionId, // MINOR_CARE: holds a caller with no account too
               topic,
               emotionalContext: emotionalState,
               intensity: emotionalIntensity,

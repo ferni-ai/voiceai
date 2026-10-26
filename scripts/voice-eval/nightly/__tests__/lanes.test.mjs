@@ -19,8 +19,8 @@ const lines = ['a', 'b'].flatMap((l) =>
 );
 
 describe('nightly lanes', () => {
-  it('run the 10-21 set: 15 + 32 calls', () => {
-    expect(lines).toHaveLength(47);
+  it('run the 10-21 set plus asked-once: 17 + 32 calls', () => {
+    expect(lines).toHaveLength(49);
   });
 
   it.each(lines.map(([env, sc, label, uid, cap]) => [sc, label, cap, env, uid]))(

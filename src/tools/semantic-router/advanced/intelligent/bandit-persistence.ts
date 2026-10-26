@@ -15,6 +15,7 @@
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { ToolArm, BanditConfig } from './bandit-optimizer.js';
 import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
+import { storedBanditEvent } from '../../persistence/stored-without-words.js';
 
 const log = createLogger({ module: 'bandit-persistence' });
 
@@ -392,7 +393,8 @@ export interface RoutingEvent {
   userId: string;
   sessionId: string;
   personaId: string;
-  input: string;
+  /** The input's length, never the input (stored-without-words.ts) */
+  inputLength: number;
   selectedTool: string;
   confidence: number;
   decidedBy: string;
@@ -409,12 +411,7 @@ export async function recordRoutingEvent(event: RoutingEvent): Promise<string | 
     const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
     const db = getAdminFirestore();
 
-    const docRef = await db.collection('routing_events').add(
-      cleanForFirestore({
-        ...event,
-        timestamp: event.timestamp || new Date(),
-      })
-    );
+    const docRef = await db.collection('routing_events').add(storedBanditEvent(event, cleanForFirestore));
 
     return docRef.id;
   } catch (error) {

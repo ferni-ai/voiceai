@@ -16,7 +16,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { writeFlagBarrel } from '../../src/config/__tests__/flag-barrel.js';
+import { writeFlagBarrel } from '../../src/config/generated-lists.js';
 import { commentsOf, parseFlagFile, parseLegacy, type Entry, type Spec } from './legacy-parse.js';
 import { configDir, editLegacy, writeFormatted } from './move-to-files.js';
 import { flagFileText, isMain } from './new-flag.js';
@@ -213,17 +213,11 @@ const vitest = (...files: string[]): string[] => [
   'vitest.config.unit.ts',
   ...files.map((f) => `src/config/__tests__/${f}.test.ts`),
 ];
+// The generated lists are gitignored: the vitest global setup regenerates them, so
+// there is nothing to stage.
 export const DEFAULT_STEPS: Step[] = [
-  { cmd: vitest('env-read-names'), env: { UPDATE_ENV_READ_NAMES: '1' } },
-  { cmd: ['git', 'add', 'src/config/env-read-names.generated.ts'] },
   {
-    cmd: vitest(
-      'flag-index',
-      'flag-manifest-contract',
-      'flag-manifest',
-      'effective-settings',
-      'env-read-names'
-    ),
+    cmd: vitest('generated-lists', 'flag-manifest-contract', 'flag-manifest', 'effective-settings'),
   },
 ];
 
@@ -275,7 +269,6 @@ async function finish(
 ): Promise<number> {
   const log = o.log ?? console.log;
   const paths = new Set([...registryPathsOnDisk(root), ...[...main.values()].map((l) => l.path)]);
-  paths.add('src/config/flags/index.generated.ts');
   for (const p of paths) {
     if (tryGit(root, 'cat-file', '-e', `${onto}:${p}`) === 0) git(root, 'checkout', onto, '--', p);
     else git(root, 'rm', '-q', '-f', '--ignore-unmatch', '--', p);

@@ -1,0 +1,8 @@
+// Build settings shared by every configuration of the Ferni app.
+
+// Crash reporting (Sentry). Empty means off: no SDK starts, nothing is sent.
+// To turn it on for a build, put the DSN in Config/Sentry.local.xcconfig, which
+// is never committed. xcconfig reads "//" as a comment, so write the scheme as:
+//   SENTRY_DSN = https:/$()/<public key>@<host>/<project id>
+SENTRY_DSN =
+#include? "Sentry.local.xcconfig"

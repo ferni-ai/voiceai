@@ -6,6 +6,7 @@ import {
 } from '../../../../services/session/after-call-tasks.js';
 import type { ResolutionPlan } from '../../temporal/resolve.js';
 import type { WorldFactStore } from '../../temporal/store.js';
+import { bindSessionUser, noteCallerWords, resetMinorCare } from '../../../../utils/minor-care.js';
 import { DATES_TASK, extractDatesAfterCall } from '../after-call.js';
 
 const ON = { DATES_THAT_MATTER: 'on' };
@@ -41,6 +42,36 @@ describe('the dates-that-matter after-call task', () => {
   it('is registered by the after-call registry', async () => {
     await import('../../../../agents/after-call-register.js');
     expect(registeredAfterCallTasks()).toContain(DATES_TASK);
+  });
+
+  it.each([
+    ['an unrecognised caller', 'anon:5e4001b2-6005-40e8-bd29-abf9bc9ed648'],
+    ['the third party on a call placed for someone', 'onbehalf:call-123'],
+    ['anonymous', 'anonymous'],
+  ])('keeps no dates for %s: no model call, no write', async (_label, userId) => {
+    const llm = vi.fn(async (_prompt: string) => modelReply);
+    const s = store();
+    await extractDatesAfterCall({ ...ctx, userId }, { llm, store: s, topics: async () => [], env: ON }); // prettier-ignore
+    expect(llm).not.toHaveBeenCalled();
+    expect(s.plans).toEqual([]);
+  });
+
+  it("MINOR_CARE: keeps no dates when another of this caller's sessions is held", async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    resetMinorCare();
+    bindSessionUser('earlier-call', ctx.userId);
+    noteCallerWords('earlier-call', "I'm 15.");
+    const llm = vi.fn(async (_prompt: string) => modelReply);
+    const s = store();
+    await extractDatesAfterCall(ctx, { llm, store: s, topics: async () => [], env: ON });
+    expect(llm).not.toHaveBeenCalled();
+    expect(s.plans).toEqual([]);
+    // The hold cleared: the same call keeps its dates.
+    resetMinorCare();
+    await extractDatesAfterCall(ctx, { llm, store: s, topics: async () => [], env: ON });
+    expect(llm).toHaveBeenCalledTimes(1);
+    expect(s.plans).toHaveLength(1);
+    vi.unstubAllEnvs();
   });
 
   it('does nothing with the flag off: no model call, no write', async () => {

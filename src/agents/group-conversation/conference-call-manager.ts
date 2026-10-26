@@ -515,9 +515,7 @@ export class ConferenceCallManager extends EventEmitter {
     return undefined;
   }
 
-  /**
-   * Initiate an outbound call
-   */
+  /** Initiate an outbound call */
   private async initiateCall(
     callId: string,
     phoneNumber: string,
@@ -525,8 +523,11 @@ export class ConferenceCallManager extends EventEmitter {
     relationship?: string,
     introduction?: string
   ): Promise<{ success: boolean; callSid?: string; error?: string }> {
-    const { consentBlocks } = await import('../../services/messaging/consent.js');
-    const refused = await consentBlocks(phoneNumber, 'call', true); // MESSAGING_PIPELINE opt-outs
+    const { thirdPartyRefusal } = await import('../../services/messaging/consent-reach.js');
+    const { directSendHeld } = await import('../../services/communication-service.js');
+    if (await directSendHeld(phoneNumber, 'call', { userId: this.config.userId }))
+      return { success: false, error: 'Not calling: held' }; // MINOR_CARE_SHARED_HOLD
+    const refused = await thirdPartyRefusal(this.config.userId, phoneNumber, 'call'); // MESSAGING_PIPELINE
     if (refused) return { success: false, error: `Not calling: ${refused}` };
     if (!this.config.twilio || !this.twilioClient) {
       log.warn('📞 Twilio not configured - simulating call');
@@ -540,7 +541,6 @@ export class ConferenceCallManager extends EventEmitter {
 
       log.info({ callId, phoneNumber, name, twimlUrl }, '📞 Initiating Twilio call');
 
-      // Create the outbound call using Twilio client
       const call = await this.twilioClient.calls.create({
         to: phoneNumber,
         from: this.config.twilio.phoneNumber,

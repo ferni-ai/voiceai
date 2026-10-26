@@ -347,17 +347,13 @@ jobs:
         if: matrix.shard == 1
         run: node scripts/ci/cli-typecheck-ratchet.mjs
 
-      # The env-name list test scans src/ as text, so no import edge reaches it and
-      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
-      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
-      # always runs it, before the Rust build. The list merges with git's union
-      # driver (.gitattributes), which this test makes safe. The flag barrel
-      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
-      # flags/ directory as text, and the barrel merges with union too. The decision
-      # register (docs/decisions/register.md) reads Swift, CSS and JSON as text too.
-      - name: Check the env-name list
+      # The decision register (docs/decisions/register.md) test reads Swift, CSS and
+      # JSON as text, so no import edge reaches it and `--changed` would skip it; a PR
+      # always runs it, before the Rust build. (The env-name list and flag barrel that
+      # used to share this step are generated now, never committed, so they can't drift.)
+      - name: Check the decision register
         if: env.FULL_SUITE != 'true'
-        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts src/__tests__/decisions/
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/__tests__/decisions/
         env:
           NODE_ENV: test
 
@@ -1042,6 +1038,12 @@ jobs:
       - name: Firestore database ratchet
         run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
 
+      # Blocking. A firebase deploy of the index file must not delete a TTL policy, field
+      # override or composite that prod or dev has. Diffs firestore.indexes.json against the
+      # checked-in gcloud listings in scripts/ci/fixtures/firestore-indexes/. ~2 s.
+      - name: Firestore index drift
+        run: pnpm tsx scripts/ci/firestore-indexes-drift.ts
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
@@ -1259,9 +1261,11 @@ jobs:
   # apps/web/tests/overlays/contrast-baseline.json (axe + the gallery probe),
   # snapshots must match the committed Linux baselines, and with the overlay
   # host on the toast region must keep clear of Connect and the menu trigger.
-  # Other PRs and the merge queue skip it (a skipped job reports success, so it
-  # can become a required check). Reuses setup's node_modules cache and runs the
-  # Vite dev server (the gallery is dev-only, so the prod build can't be used).
+  # Other PRs and the merge queue skip it, and a skipped job reports success, so
+  # branch protection requires it (since #2391) without stalling them; it is not
+  # in required-checks.sh, which says why. Reuses setup's node_modules cache and
+  # runs the Vite dev server (the gallery is dev-only, so the prod build can't
+  # be used).
   overlay-gallery:
     name: Overlay Gallery (visual + contrast)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
@@ -1312,6 +1316,14 @@ jobs:
             echo "::warning::No Linux overlay snapshots are committed yet. Writing them: commit tests/overlays/__screenshots__/linux from the overlay-gallery artifact."
             pnpm exec playwright test -c playwright.overlays.config.ts --update-snapshots=all
           fi
+
+      # Required check: a copy or layout change fails it until the baselines match.
+      - name: How to refresh the baselines
+        if: failure()
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::error title=Overlay gallery::If the changed overlays are intended, refresh the Linux baselines from this run: scripts/ci/refresh-overlay-baselines.sh $PR (from the repo root, on the PR branch), review each image, then commit them."
 
       - name: Upload report and snapshots
         if: always()
