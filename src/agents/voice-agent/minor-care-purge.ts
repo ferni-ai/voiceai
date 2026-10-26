@@ -15,6 +15,12 @@ import {
   setMusicHeldWindow,
   withoutHeldMusicMemories,
 } from '../../audio/music-learning-persistence.js';
+import {
+  forgetReadMoments,
+  scrubHeldSharedMoments,
+  setSharedMomentsHeldWindow,
+} from '../../intelligence/context-builders/relationship/shared-moments.js';
+import { purgeHeldIndexEntries } from '../../services/data-layer/held-index-purge.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
@@ -63,6 +69,7 @@ setOnUserHeld(shareHold);
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);
+setSharedMomentsHeldWindow(recordedWhileHeld); // shared moments too, on every read
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -84,6 +91,7 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
   const ownerSession = ownerSessionFor(userId);
   if (ownerSession)
     log.info({ ownerSession }, 'MINOR_CARE purged while an owner session was live; it will reload');
+  const windowed = Number.isFinite(since); // a held window was noted for the scrubs below
   const purges: Array<[string, (userId: string) => void]> = [
     ['unified trust', purgeUnifiedUser],
     ['game memory', purgeGameMemory],
@@ -111,6 +119,14 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     [
       'music memory scrub',
       (id) => void scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories),
+    ],
+    // shared moments (what they said, kept as inside-joke origins) stored before the age statement
+    ['shared moments scrub', (id) => void (windowed && scrubHeldSharedMoments(id, since))],
+    ['shared moments read', forgetReadMoments], // deep-relationship's cache of them
+    // what the stores indexed for semantic recall before the age statement (their words, too)
+    [
+      'semantic index scrub',
+      (id) => void (windowed && purgeHeldIndexEntries(id, (at) => recordedWhileHeld(id, at))),
     ],
     // topics they mentioned, buffered with a debounced save; a later call's cleanup flushes it
     ['personality resonance', clearResonanceUser],

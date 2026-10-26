@@ -12,6 +12,7 @@
  * @module services/superhuman/inside-joke-memory
  */
 
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { onInsideJokeChange } from '../data-layer/hooks/trust-hooks.js';
@@ -67,7 +68,7 @@ export interface CallbackOpportunity {
 // ============================================================================
 
 /**
- * Record a shared moment worth remembering.
+ * Record a shared moment worth remembering. MINOR_CARE: a held caller (writeHeld) gets none.
  */
 export async function recordSharedMoment(
   userId: string,
@@ -76,8 +77,10 @@ export async function recordSharedMoment(
   context: string,
   triggerKeywords: string[],
   callbackPhrase: string,
-  resonance = 0.7
+  resonance = 0.7,
+  sessionId?: string
 ): Promise<string | null> {
+  if (writeHeld(userId, sessionId)) return null;
   const db = getFirestoreDb();
   if (!db) {
     log.debug({ userId }, 'Firestore not available, skipping shared moment');
@@ -116,7 +119,7 @@ export async function recordSharedMoment(
       'create'
     );
 
-    log.info({ userId, type, essence }, 'Recorded shared moment');
+    log.info({ userId, type, momentId: docRef.id }, 'Recorded shared moment'); // never the words
 
     // Memory Lane: Capture inside joke as potential memory
     if (type === 'inside_joke' || type === 'running_gag' || type === 'silly_moment') {

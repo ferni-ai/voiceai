@@ -345,8 +345,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
       });
     }
 
-    // Check for shared moments (phrases, jokes, meaningful exchanges)
-    // Only on high-emotional turns AND rate-limited to every 3rd qualifying turn
+    // Shared moments (phrases, jokes, meaningful exchanges): high-emotion turns, every 3rd turn
     const isHighEmotionTurn =
       ctx.emotionalResult.intensity > 0.6 ||
       ctx.injections.some(
@@ -363,6 +362,7 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
         whatTheySaid: ctx.userText.slice(0, 200),
         triggers: [ctx.emotionalResult.primary || 'emotional_moment'],
         significance: ctx.emotionalResult.intensity > 0.8 ? 'meaningful' : 'warm',
+        sessionId: ctx.sessionId, // MINOR_CARE: a held caller gets none
       }).catch((err) => {
         logger.debug({ error: String(err) }, 'Shared moment recording (non-critical)');
       });

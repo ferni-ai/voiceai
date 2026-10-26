@@ -12,6 +12,7 @@
 
 import { embed } from '../../memory/embeddings.js';
 import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getIndexingPolicy, shouldIndex } from './indexing-policy.js';
 import { enforceMaxPerUser, forgetIndexedDoc } from './max-per-user.js';
@@ -20,7 +21,6 @@ import type { ChangeType, EntityType, StoreChangeEvent } from './types.js';
 
 const log = createLogger({ module: 'store-hooks' });
 
-// Re-export types for convenience
 export type { ChangeType, EntityType, StoreChangeEvent, StoreType } from './types.js';
 
 // ============================================================================
@@ -192,11 +192,10 @@ async function processChange(key: string): Promise<void> {
       return;
     }
 
-    // Check indexing policy
-    const { shouldIndex: doIndex, reason } = shouldIndex(
-      event.entityType as EntityType,
-      event.metadata || {}
-    );
+    // Check indexing policy. MINOR_CARE: nothing for a held caller (held-index-purge.ts: before it)
+    const { shouldIndex: doIndex, reason } = writeHeld(event.userId)
+      ? { shouldIndex: false, reason: 'MINOR_CARE hold' }
+      : shouldIndex(event.entityType as EntityType, event.metadata || {});
 
     if (!doIndex) {
       log.debug({ key, reason }, 'Skipping index - policy check failed');
