@@ -73,6 +73,7 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
+import { crisisKindOf, replaceKind } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
@@ -94,7 +95,7 @@ const log = createLogger({ module: 'CrisisGate' });
 export type CrisisGateDecision =
   | { action: 'pass' }
   | { action: 'guide'; guidance: string }
-  | { action: 'replace'; script: string };
+  | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
 
 export interface CrisisGateTurn {
   /** What the patterns decided, before the LLM is asked. */
@@ -174,7 +175,7 @@ const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guid
 
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
-    return { action: 'replace', script: crisis.suggestedResponse };
+    return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
   }
   if (crisis.isCrisis) return { action: 'guide', guidance: buildCrisisGuidance(crisis) };
   return { action: 'pass' };
@@ -190,10 +191,8 @@ export interface CrisisGateOptions {
   groundedReads?: readonly CrisisGenerateFn[];
 }
 
-/**
- * Decide this reply's crisis handling from the request about to go to the LLM.
- * Null when the gate is off or in shadow, or there are no caller words.
- */
+/** This reply's crisis handling, from the request about to go to the LLM; null when the gate is
+ * off or in shadow, or there are no caller words. */
 export function startCrisisGate(
   chatCtx: llm.ChatContext,
   userData: unknown,
@@ -434,9 +433,9 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
-  signalCrisisDecision(session, gate?.decision.action);
+  signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
   gate?.escalation
-    ?.then((decision) => signalCrisisDecision(session, decision?.action))
+    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
     .catch(() => undefined);
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);

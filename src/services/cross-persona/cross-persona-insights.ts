@@ -157,10 +157,10 @@ async function loadInsightsFromPersistence(userId: string, fresh = false): Promi
   }
 }
 
-/** Applies a change to the view now, and to the stored list atomically (insight-store.ts). */
-async function applyChange(userId: string, change: InsightChange): Promise<void> {
+/** Applies a change to the view, then the store (insight-store.ts). `bg`: off-reply, retried. */
+async function applyChange(userId: string, change: InsightChange, bg = false): Promise<void> {
   userInsightsCache.set(userId, change(getInsightsForUser(userId)));
-  await changeStoredInsights(getFirestoreDb(), userId, change);
+  await changeStoredInsights(getFirestoreDb(), userId, change, { background: bg });
 }
 const logged = (): void => undefined; // insight-store.ts logs a failed write
 
@@ -191,7 +191,7 @@ export function addCrossPersonaInsight(
     expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
   };
 
-  void applyChange(userId, insightChanges.add(fullInsight)).catch(logged);
+  void applyChange(userId, insightChanges.add(fullInsight), true).catch(logged);
 
   log.info(
     {
@@ -294,7 +294,7 @@ export function getProactiveInsights(userId: string): CrossPersonaInsight[] {
 export function consumeInsight(userId: string, insightId: string): void {
   const insight = getInsightsForUser(userId).find((i) => i.id === insightId);
   if (insight?.oneTime) {
-    void applyChange(userId, insightChanges.remove(insightId)).catch(logged);
+    void applyChange(userId, insightChanges.remove(insightId), true).catch(logged);
     log.debug({ userId, insightId }, '🗑️ One-time insight consumed');
   }
 }
@@ -306,7 +306,7 @@ export function clearExpiredInsights(userId: string): number {
   const now = Date.now();
   const removed = getInsightsForUser(userId).filter((i) => i.expiresAt <= now).length;
   if (removed > 0) {
-    void applyChange(userId, insightChanges.dropExpired(now)).catch(logged);
+    void applyChange(userId, insightChanges.dropExpired(now), true).catch(logged);
     log.debug({ userId, removed }, '🧹 Expired insights cleared');
   }
 

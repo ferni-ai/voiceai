@@ -164,7 +164,9 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   const cache = new Map<string, T>();
   const dirty = new Set<string>();
   const intervalName = `persistence-sync-${collection}`;
-  const tainted = new Set<string>(); // held once: dropped on every set and sync from then on
+  // Held once: dropped on every set and sync until clearCache (a purge that also forgot the user
+  // upstream, so what is set next is read back from storage, not the held call's).
+  const tainted = new Set<string>();
   const held = (userId: string): boolean =>
     (tainted.has(userId) || holdWrites(userId)) &&
     (tainted.add(userId), cache.delete(userId), true);
@@ -413,6 +415,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     clearCache: (userId: string) => {
       cache.delete(userId);
       dirty.delete(userId);
+      tainted.delete(userId); // still held: the next set taints it again
       heldParts.forget(userId);
     },
 

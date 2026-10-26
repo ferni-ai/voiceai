@@ -44,6 +44,11 @@ function fakeFirestore(seed: Record<string, Data>) {
     get: async () => snap(path),
     set: async (data: Data, opts?: { merge?: boolean }) =>
       void docs.set(path, opts?.merge ? { ...docs.get(path), ...data } : data),
+    // As Firestore's: the document must exist (the erasure's `erasing` mark)
+    update: async (data: Data) => {
+      if (!docs.has(path)) throw Object.assign(new Error('5 NOT_FOUND'), { code: 5 });
+      docs.set(path, { ...docs.get(path), ...data });
+    },
     collection: (name: string) => collection(`${path}/${name}`),
     listCollections: async () =>
       [

@@ -28,6 +28,7 @@ import {
 } from '../follow-through/index.js';
 import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-call-clocks.js';
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
+import { wasDialled } from './dial-marker.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -324,7 +325,10 @@ export async function placeOrHold(
   try {
     callId = await place(request);
   } catch (error) {
-    if (replaces) await releaseHeldCall(request.userId, replaces.id);
+    // Back to pending only if nothing rang: a throw after the dial must not ring them twice.
+    if (replaces && wasDialled(request)) {
+      log.warn({ userId: request.userId }, 'Call-now rang, then failed; held call stays replaced');
+    } else if (replaces) await releaseHeldCall(request.userId, replaces.id);
     throw error;
   }
   if (replaces) await markReplacedBy(request.userId, replaces.id, callId);
