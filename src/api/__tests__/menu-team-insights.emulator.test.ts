@@ -31,7 +31,15 @@ process.env.GCLOUD_PROJECT ??= 'demo-menu-team-insights';
 let server: Server;
 let base: string;
 let db: Firestore;
-const newUser = () => `u-${Math.random().toString(36).slice(2)}`;
+/**
+ * A signed-up user: their record (bogle_users/{uid}) exists, as a call's session start or
+ * the app makes it. A write for a uid with no record is dropped (erased).
+ */
+const newUser = async (): Promise<string> => {
+  const uid = `u-${Math.random().toString(36).slice(2)}`;
+  await db.doc(`bogle_users/${uid}`).set({ id: uid, firstContact: new Date().toISOString() });
+  return uid;
+};
 
 beforeAll(async () => {
   if (!emulator) return;
@@ -117,7 +125,7 @@ const grief = (g: string) => `Grief insight (anniversary): ${g} | Significance: 
 
 describe.skipIf(!emulator)('Team Insights, call to panel (Firestore emulator)', () => {
   it('an insight Maya shares on a call shows on the panel', async () => {
-    const uid = newUser();
+    const uid = await newUser();
     const agent = await agentProcess();
 
     await agent.share(uid, 'surfacePatternInsight', mayaNotices('Walks after dinner stick'));
@@ -129,7 +137,7 @@ describe.skipIf(!emulator)('Team Insights, call to panel (Firestore emulator)', 
   });
 
   it('a web server that already read the user sees what the agent writes after', async () => {
-    const uid = newUser();
+    const uid = await newUser();
     expect(await panelRead(uid)).toEqual({ status: 200, contents: [] });
 
     const agent = await agentProcess();
@@ -139,7 +147,7 @@ describe.skipIf(!emulator)('Team Insights, call to panel (Firestore emulator)', 
   });
 
   it('two calls writing at once both keep their insight, and the app keeps both', async () => {
-    const uid = newUser();
+    const uid = await newUser();
     const [a, b] = [await agentProcess(), await agentProcess()];
     expect(await panelRead(uid)).toEqual({ status: 200, contents: [] });
 
@@ -168,7 +176,7 @@ describe.skipIf(!emulator)('Team Insights, call to panel (Firestore emulator)', 
   });
 
   it('a document written in the old shape still reads', async () => {
-    const uid = newUser();
+    const uid = await newUser();
     const now = Date.now();
     await db.doc(`bogle_users/${uid}/team_insights/data`).set({
       insights: [
@@ -229,7 +237,7 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
 
   it('writes nothing for a caller MINOR_CARE holds (safety)', async () => {
     vi.stubEnv('MINOR_CARE', 'on');
-    const [held, adult] = [newUser(), newUser()];
+    const [held, adult] = [await newUser(), await newUser()];
     const agent = await agentProcess();
     // The caller says they're 14 on a call bound to their account, as a voice turn does
     agent.minorCare.heldAfter('call-held', "I'm 14.", { userId: held });
@@ -249,7 +257,7 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
     const placeholders = ['anonymous', 'default', 'unknown', 'session'];
     await Promise.all(placeholders.map((id) => docOf(id).delete()));
     const agent = await agentProcess();
-    const real = newUser();
+    const real = await newUser();
 
     await Promise.all(
       placeholders.map(async (id) => {
@@ -267,7 +275,7 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
   });
 
   it('two calls adding the same note at once store it once (the check inside the transaction)', async () => {
-    const uid = newUser();
+    const uid = await newUser();
     // Neither process has read the user, so each one's own view says "not there yet"
     const [a, b] = [await agentProcess(), await agentProcess()];
 
@@ -282,7 +290,7 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
   });
 
   it('an add applied again (a retry after a commit that landed) keeps one copy, by id', async () => {
-    const uid = newUser();
+    const uid = await newUser();
     const agent = await agentProcess();
     const { changeStoredInsights, insightChanges } = agent.store;
     const firestore = agent.firestoreUtils.getFirestoreDb();
@@ -296,7 +304,7 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
   });
 
   it('consuming a one-time insight removes it from the store, and only it', async () => {
-    const uid = newUser();
+    const uid = await newUser();
     await docOf(uid).set({
       insights: [
         insightAt('insight_once', 60_000, { oneTime: true, content: 'Ask how the interview went' }),
@@ -316,67 +324,213 @@ describe.skipIf(!emulator)('Team Insights store rules (Firestore emulator)', () 
     expect((await panelRead(uid)).contents).toEqual(['Mornings go better']);
   });
 
-  /**
-   * Pinned as it is today, not as it should be (#2777 verifier, item 2): add, consume and
-   * expiry fire and forget. When the transaction runs out of attempts the write is logged
-   * and dropped: the caller isn't told, this process's view keeps the change, and nothing
-   * retries it. acknowledge is the one write that rejects (the route answers 500).
-   * Changing any of this should be a deliberate edit of this test.
-   */
-  it('a failed add is logged and dropped after the retries; acknowledge rejects', async () => {
-    const uid = newUser();
-    const agent = await agentProcess();
-    const firestore = agent.firestoreUtils.getFirestoreDb();
-    if (!firestore) throw new Error('no Firestore client');
-    const realRun = firestore.runTransaction.bind(firestore);
-    const attempts = { count: 0 };
-    // Every attempt reads and writes as usual, then loses to contention (ABORTED, which the
-    // SDK retries), so the SDK's own retry loop runs to its limit.
-    const failing = vi.spyOn(firestore, 'runTransaction').mockImplementation((update, options) =>
-      realRun(async (tx) => {
-        attempts.count += 1;
-        await update(tx);
-        throw Object.assign(new Error('10 ABORTED: Transaction lock timeout'), { code: 10 });
-      }, options)
-    );
-
-    const added = agent.insights.addCrossPersonaInsight(uid, {
-      source: 'maya',
-      target: 'all',
-      priority: 'normal',
-      content: 'Walks help on bad days',
-      category: 'behavior_pattern',
-      proactive: true,
-      oneTime: false,
-    });
-    await expect(agent.store.insightWritesSettled()).resolves.toBeUndefined();
-
-    expect(attempts.count).toBe(5); // the SDK's DEFAULT_MAX_TRANSACTION_ATTEMPTS
-    expect(added.content).toBe('Walks help on bad days'); // the caller got its insight back
-    expect((await docOf(uid).get()).exists).toBe(false); // nothing stored
-    // This process still sees it
-    expect(agent.insights.getProactiveInsights(uid).map((i) => i.id)).toEqual([added.id]);
-    // Logged once, by the store
+  /** The store's own logger in this process (safe-logger is a mock in tests). */
+  const storeLogOf = (agent: Agent) => {
     const createLogger = vi.mocked(agent.logger.createLogger);
     const at = createLogger.mock.calls.findIndex(
       ([bindings]) => bindings.module === 'cross-persona-insight-store'
     );
-    const storeLog = createLogger.mock.results[at]?.value as { warn: ReturnType<typeof vi.fn> };
+    return createLogger.mock.results[at]?.value as {
+      warn: ReturnType<typeof vi.fn>;
+      info: ReturnType<typeof vi.fn>;
+    };
+  };
+
+  const CODE_NAMES: Record<number, string> = {
+    3: 'INVALID_ARGUMENT',
+    7: 'PERMISSION_DENIED',
+    10: 'ABORTED: Transaction lock timeout',
+  };
+  /** Every transaction attempt reads and writes as usual, then fails with `code` (ABORTED: contention). */
+  const failTransactions = (
+    firestore: NonNullable<ReturnType<Agent['firestoreUtils']['getFirestoreDb']>>,
+    failFirst = Infinity,
+    code = 10
+  ) => {
+    const realRun = firestore.runTransaction.bind(firestore);
+    const attempts = { count: 0 };
+    const spy = vi.spyOn(firestore, 'runTransaction').mockImplementation((update, options) =>
+      realRun(async (tx) => {
+        attempts.count += 1;
+        const result = await update(tx);
+        if (attempts.count <= failFirst)
+          throw Object.assign(new Error(`${code} ${CODE_NAMES[code]}`), { code });
+        return result;
+      }, options)
+    );
+    return { attempts, spy };
+  };
+
+  const walksNote = {
+    source: 'maya',
+    target: 'all',
+    priority: 'normal',
+    content: 'Walks help on bad days',
+    category: 'behavior_pattern',
+    proactive: true,
+    oneTime: false,
+  } as const;
+
+  /**
+   * #2795 pinned the opposite: one failed transaction run and the add was dropped. Changed on
+   * purpose (#2777 verifier, item 2): a background write is now tried again, a bounded number
+   * of times (BACKGROUND_RETRY: 3 tries of the SDK's 5 attempts), then logged once by its code,
+   * never its words. Nothing queues it past that: the bound is the point.
+   */
+  it('a failed add is retried, a bounded number of times, then logged by code; acknowledge rejects', async () => {
+    const uid = await newUser();
+    const agent = await agentProcess();
+    const firestore = agent.firestoreUtils.getFirestoreDb();
+    if (!firestore) throw new Error('no Firestore client');
+    const { attempts, spy } = failTransactions(firestore);
+
+    const added = agent.insights.addCrossPersonaInsight(uid, walksNote);
+    await expect(agent.store.insightWritesSettled()).resolves.toBeUndefined();
+
+    expect(attempts.count).toBe(15); // 3 tries x the SDK's DEFAULT_MAX_TRANSACTION_ATTEMPTS
+    expect(added.content).toBe('Walks help on bad days'); // the caller got its insight back
+    expect((await docOf(uid).get()).exists).toBe(false); // nothing stored
+    const storeLog = storeLogOf(agent);
     expect(storeLog.warn).toHaveBeenCalledTimes(1);
     expect(storeLog.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: uid, error: expect.stringContaining('ABORTED') }),
+      { code: 10, tries: 3, userId: uid },
       'Team insight write failed'
     );
+    expect(JSON.stringify(storeLog.warn.mock.calls)).not.toContain('Walks');
 
-    // acknowledge, under the same failure, tells its caller
+    // acknowledge, the app's own write, isn't retried here: its caller is told (the route 500s)
     const before = attempts.count;
     await expect(agent.insights.acknowledgeInsight(uid, added.id)).rejects.toThrow('ABORTED');
     expect(attempts.count - before).toBe(5);
-
-    // Once writes work again, nothing re-sends the dropped add: the next change lands alone
-    failing.mockRestore();
-    const later = insightAt('insight_later', 0);
-    await agent.store.changeStoredInsights(firestore, uid, agent.store.insightChanges.add(later));
-    expect((await storedOf(uid)).map((i) => i.id)).toEqual(['insight_later']);
+    spy.mockRestore();
   }, 60_000);
+
+  it('an add whose first try fails is stored by the retry', async () => {
+    const uid = await newUser();
+    const agent = await agentProcess();
+    const firestore = agent.firestoreUtils.getFirestoreDb();
+    if (!firestore) throw new Error('no Firestore client');
+    const { attempts } = failTransactions(firestore, 5); // the whole first try (5 attempts)
+
+    agent.insights.addCrossPersonaInsight(uid, walksNote);
+    await agent.store.insightWritesSettled();
+
+    expect(attempts.count).toBe(6);
+    expect((await storedOf(uid)).map((i) => i.content)).toEqual(['Walks help on bad days']);
+    expect(storeLogOf(agent).warn).not.toHaveBeenCalled();
+  }, 60_000);
+
+  /**
+   * #2777 verifier, item 3: a process still running after the account is erased (a live call,
+   * a background scan) recreated the document. The erasure deletes bogle_users/{uid} and
+   * everything under it (erase-user-record.ts eraseStore: recursiveDelete), as here.
+   */
+  it('after the account is erased, a still-running process writes nothing back', async () => {
+    const uid = await newUser();
+    await docOf(uid).set({
+      insights: [
+        // Another category, so the note shared below isn't a recent duplicate of either
+        insightAt('insight_once', 60_000, { oneTime: true, category: 'check_in' }),
+        insightAt('insight_old', 60_000, { category: 'check_in', expiresAt: Date.now() + 5_000 }),
+      ],
+      _userId: uid,
+    });
+    // A call in progress: it has read the user, so its own view holds both insights
+    const agent = await agentProcess();
+    await agent.insights.loadInsights(uid);
+
+    await db.recursiveDelete(db.doc(`bogle_users/${uid}`));
+    expect((await docOf(uid).get()).exists).toBe(false);
+
+    // The call goes on: a tool shares a note, a one-time insight is used, expiry runs, the app acks
+    await agent.share(uid, 'surfacePatternInsight', mayaNotices('Walks after dinner stick'));
+    agent.insights.consumeInsight(uid, 'insight_once');
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 10_000);
+    expect(agent.insights.clearExpiredInsights(uid)).toBe(1);
+    vi.mocked(Date.now).mockRestore();
+    await agent.insights.acknowledgeInsight(uid, 'insight_once');
+    await agent.store.insightWritesSettled();
+
+    expect((await docOf(uid).get()).exists).toBe(false);
+    expect((await db.doc(`bogle_users/${uid}`).listCollections()).length).toBe(0);
+    expect((await db.doc(`bogle_users/${uid}`).get()).exists).toBe(false);
+    // Each dropped write is logged by user id alone, without the insight's words
+    const storeLog = storeLogOf(agent);
+    expect(storeLog.info).toHaveBeenCalledWith(
+      { userId: uid },
+      'Team insight write dropped: no user record'
+    );
+    expect(storeLog.info).toHaveBeenCalledTimes(4); // add, consume, expiry, acknowledge
+    expect(JSON.stringify(storeLog.info.mock.calls)).not.toContain('Walks');
+    expect(storeLog.warn).not.toHaveBeenCalled();
+  }, 30_000);
+
+  for (const code of [7, 3]) {
+    it(`a permanent error (${CODE_NAMES[code]}) is tried once, not retried`, async () => {
+      const uid = await newUser();
+      const agent = await agentProcess();
+      const firestore = agent.firestoreUtils.getFirestoreDb();
+      if (!firestore) throw new Error('no Firestore client');
+      const { attempts, spy } = failTransactions(firestore, Infinity, code);
+
+      agent.insights.addCrossPersonaInsight(uid, walksNote);
+      await agent.store.insightWritesSettled();
+
+      expect(attempts.count).toBe(1); // neither the SDK nor BACKGROUND_RETRY tries again
+      expect(storeLogOf(agent).warn).toHaveBeenCalledWith(
+        { code, tries: 1, userId: uid },
+        'Team insight write failed'
+      );
+      expect((await docOf(uid).get()).exists).toBe(false);
+      spy.mockRestore();
+    }, 60_000);
+  }
+
+  /**
+   * #2833 verifier, item 4: an insights document with no record (an erasure that deleted
+   * the record but not yet everything under it, or a legacy uid) gets nothing added.
+   * Before, the document's being there let every write in.
+   */
+  it('an insights document whose record is gone gets no write', async () => {
+    const uid = await newUser();
+    // Another category, so the note shared below isn't a recent duplicate of it
+    await docOf(uid).set({
+      insights: [insightAt('insight_left', 60_000, { category: 'check_in' })],
+      _userId: uid,
+    });
+    await db.doc(`bogle_users/${uid}`).delete();
+    const agent = await agentProcess();
+
+    await agent.share(uid, 'surfacePatternInsight', mayaNotices('Walks after dinner stick'));
+    expect((await storedOf(uid)).map((i) => i.id)).toEqual(['insight_left']);
+    expect(storeLogOf(agent).info).toHaveBeenCalledWith(
+      { userId: uid },
+      'Team insight write dropped: no user record'
+    );
+  });
+
+  it('a record the erasure has marked (erasing) gets no write', async () => {
+    const uid = await newUser();
+    // Another category, so the note shared below isn't a recent duplicate of it
+    await docOf(uid).set({
+      insights: [insightAt('insight_left', 60_000, { category: 'check_in' })],
+      _userId: uid,
+    });
+    await db
+      .doc(`bogle_users/${uid}`)
+      .update({ erasing: true, erasingAt: new Date().toISOString() });
+    const agent = await agentProcess();
+
+    await agent.share(uid, 'surfacePatternInsight', mayaNotices('Walks after dinner stick'));
+
+    expect((await storedOf(uid)).map((i) => i.id)).toEqual(['insight_left']);
+  });
+
+  it('a user whose record exists but has no insights yet gets the write, as before', async () => {
+    const uid = await newUser();
+    const agent = await agentProcess();
+    await agent.share(uid, 'surfacePatternInsight', mayaNotices('Mornings go better'));
+    expect((await storedOf(uid)).map((i) => i.content)).toEqual([pattern('Mornings go better')]);
+  });
 });
