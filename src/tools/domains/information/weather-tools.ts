@@ -40,13 +40,13 @@ export function getWeatherToolDefinitions(): ToolDefinition[] {
             const resolved = await resolveWeatherLocation(location, opts, ctx);
 
             if (!resolved) {
-              log.info({ location }, '🌤️ Weather tool: no location known, asking');
+              log.info({ hasLocation: Boolean(location) }, '🌤️ Weather tool: no location known, asking');
               return "I don't know your location. Which city would you like weather for?";
             }
             const effectiveLocation = resolved.location;
 
             log.info(
-              { location: effectiveLocation, locationSource: resolved.source },
+              { hasLocation: Boolean(effectiveLocation), locationSource: resolved.source },
               '🌤️ Weather tool called'
             );
 
@@ -54,7 +54,7 @@ export function getWeatherToolDefinitions(): ToolDefinition[] {
               const { text, timedOut } = await currentWeatherWithin(effectiveLocation);
               log.info(
                 {
-                  location: effectiveLocation,
+                  hasLocation: Boolean(effectiveLocation),
                   locationSource: resolved.source,
                   elapsed: Date.now() - startTime,
                   timedOut,
@@ -63,7 +63,7 @@ export function getWeatherToolDefinitions(): ToolDefinition[] {
               );
               return text;
             } catch (error) {
-              log.error({ location: effectiveLocation, error: String(error) }, '🌤️ Weather error');
+              log.error({ hasLocation: Boolean(effectiveLocation), error: String(error) }, '🌤️ Weather error');
               return `I couldn't get weather for ${effectiveLocation}. Try a different city name?`;
             }
           },
@@ -96,19 +96,19 @@ export function getWeatherToolDefinitions(): ToolDefinition[] {
             const effectiveLocation = resolved.location;
 
             log.info(
-              { location: effectiveLocation, locationSource: resolved.source, days },
+              { hasLocation: Boolean(effectiveLocation), locationSource: resolved.source, days },
               '📅 Weather forecast called'
             );
 
             try {
               const result = await getWeatherForecast(effectiveLocation, Math.min(days, 7));
               log.info(
-                { location: effectiveLocation, days, elapsed: Date.now() - startTime },
+                { hasLocation: Boolean(effectiveLocation), days, elapsed: Date.now() - startTime },
                 '📅 Forecast returned'
               );
               return result;
             } catch (error) {
-              log.error({ location: effectiveLocation, error: String(error) }, '📅 Forecast error');
+              log.error({ hasLocation: Boolean(effectiveLocation), error: String(error) }, '📅 Forecast error');
               return `I couldn't get the forecast for ${effectiveLocation}. Try a different city?`;
             }
           },

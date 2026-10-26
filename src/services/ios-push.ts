@@ -18,6 +18,12 @@
  * second line of defense if a sign-out's unregister never reached us. The tag
  * is an HMAC of the uid, so the uid itself is never in a push.
  *
+ * The lock screen never shows the note itself. iOS shows the alert before any
+ * app code runs, so the app can't filter it, and a note, check-in or reminder
+ * can hold names and the caller's own words. The alert says only what kind of
+ * thing is waiting (LOCK_SCREEN_COPY); the words stay in the app, and the push
+ * carries ids, never text (idsOnly). Web push is unchanged.
+ *
  * @module services/ios-push
  */
 import { createHmac } from 'node:crypto';
@@ -25,7 +31,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import { getApnsSender, type ApnsAlert, type ApnsSender } from './apns-sender.js';
 import { flagForUser, type FlagLookupOptions } from './platform/cohort-flags.js';
 import { listDevices, unregisterDevice, type PushDevice } from './push-devices.js';
-import type { PushNotificationPayload } from './push-notifications.js';
+import type { NotificationType, PushNotificationPayload } from './push-notifications.js';
 
 const log = createLogger({ module: 'ios-push' });
 
@@ -70,17 +76,63 @@ export function recipientTag(
   return createHmac('sha256', key).update(uid).digest('base64url').slice(0, 22);
 }
 
+export interface LockScreenCopy {
+  title: string;
+  body: string;
+}
+
+/**
+ * What an iPhone's lock screen says for each kind of push. A friend's voice,
+ * never a name, a topic or the note's own words; no "AI", no em dashes, no
+ * ellipses. A kind not listed here (a cast, a new type) gets DEFAULT_COPY.
+ */
+export const LOCK_SCREEN_COPY = {
+  ferni_checkin: { title: 'Ferni', body: 'I left you a note.' },
+  engagement: { title: 'A quick check-in from Ferni', body: "I'm here whenever you want to talk." },
+  general: { title: 'Ferni', body: 'I left you something in the app.' },
+  ritual_reminder: { title: 'Ferni', body: "It's time for your ritual." },
+  streak_milestone: { title: 'Ferni', body: 'You reached a new streak. Nice work.' },
+  prediction_result: { title: 'Ferni', body: 'Your results are ready.' },
+  team_huddle: { title: 'Ferni', body: 'The team is ready when you are.' },
+  calendar_reminder: { title: 'Ferni', body: 'Something on your calendar is coming up.' },
+  calendar_digest: { title: 'Ferni', body: 'Your day at a glance is ready.' },
+  family_approval_request: { title: 'Ferni', body: "There's something for you to look at." },
+} as const satisfies Record<NotificationType, LockScreenCopy>;
+
+/** A reminder the person set, whatever type carried it (data.kind 'reminder'). */
+export const REMINDER_COPY: LockScreenCopy = { title: 'Ferni', body: 'Your reminder is ready.' };
+export const DEFAULT_COPY: LockScreenCopy = { title: 'Ferni', body: 'I left you a note.' };
+
+export function lockScreenCopy(payload: PushNotificationPayload): LockScreenCopy {
+  if (payload.data?.kind === 'reminder') return REMINDER_COPY;
+  const copy: Record<string, LockScreenCopy> = LOCK_SCREEN_COPY;
+  return Object.hasOwn(copy, payload.type) ? copy[payload.type] : DEFAULT_COPY;
+}
+
+/**
+ * Only ids and kinds go beside `aps` (messageId, reminderId, triggerId, kind,
+ * action): the app opens the note by id, with auth. Never a name or words a
+ * caller put in data (callerName, topic, ritualName).
+ */
+function idsOnly(data: Record<string, unknown> = {}): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(data).filter(
+      (e): e is [string, string] =>
+        typeof e[1] === 'string' && (e[0] === 'kind' || e[0] === 'action' || /Id$/.test(e[0]))
+    )
+  );
+}
+
 export function apnsAlert(
   payload: PushNotificationPayload,
   recipient: string | null = null
 ): ApnsAlert {
   return {
     ...(recipient && { recipient }),
-    title: payload.title,
-    body: payload.body,
+    ...lockScreenCopy(payload),
     threadId: payload.type,
     data: {
-      ...payload.data,
+      ...idsOnly(payload.data),
       type: payload.type,
       ...(payload.personaId && { personaId: payload.personaId }),
     },

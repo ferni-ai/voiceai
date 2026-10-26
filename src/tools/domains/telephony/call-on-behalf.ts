@@ -16,8 +16,8 @@
  * @module tools/domains/telephony/call-on-behalf
  */
 
-import { z } from 'zod';
 import { llm } from '@livekit/agents';
+import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
 import type {
@@ -335,35 +335,6 @@ async function saveContactForFuture(
 // ============================================================================
 
 /**
- * Parameter schema for the call on behalf tool
- */
-const callOnBehalfSchema = z.object({
-  contactQuery: z.string().describe('Who to call (e.g., "my doctor", "mom", "Olive Garden")'),
-  phoneNumber: z
-    .string()
-    .optional()
-    .describe(
-      'Phone number if provided by user (e.g., "8015550142", "+1-801-555-0142"). Use this if the user explicitly provides a number.'
-    ),
-  purpose: z
-    .string()
-    .describe('Why you are calling (e.g., "reschedule my appointment to next week")'),
-  additionalContext: z
-    .string()
-    .optional()
-    .describe('Any additional context or preferences for the call'),
-  preferredTimes: z
-    .array(z.string())
-    .optional()
-    .describe('Preferred times if scheduling (e.g., ["morning", "after 2pm"])'),
-  recordingConsent: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe('Whether the user consents to call recording'),
-});
-
-/**
  * Create the call on behalf tool
  */
 export function createCallOnBehalfTool(ctx: ToolContext): Tool {
@@ -385,6 +356,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         additionalContext,
         preferredTimes,
         recordingConsent,
+        callNow,
+        lateConfirmed,
       } = params;
 
       log.info(
@@ -466,7 +439,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           purpose,
           objective,
           callType,
-          originalSessionId: ctx.sessionId || ctx.agentId, // report back into the requesting session
+          originalSessionId: ctx.sessionId ?? '', // the requesting call; never an agent id
           userId: ctx.userId,
           userTimezone,
           userName,
@@ -475,6 +448,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             additionalContext,
           },
           recordingConsent: recordingConsent ?? true,
+          ...(callNow && { callNow, ...(lateConfirmed && { lateConfirmed }) }),
           requiresHIPAA:
             callType === 'business' &&
             ['doctor', 'dentist', 'therapist', 'pharmacy', 'clinic', 'hospital'].some((kw) =>
@@ -488,10 +462,9 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         if (!compliance.passed) {
           log.warn({ issues: compliance.issues }, 'Compliance check failed');
-          return (
-            `I can't make this call because: ${compliance.issues.join(', ')}. ` +
-            `Could you help me resolve these issues?`
-          );
+          // A result marked failed, so a confirmed call that didn't ring is never "placed".
+          const why = `I can't make this call because: ${compliance.issues.join(', ')}.`;
+          return { success: false, error: `${why} Could you help me resolve these issues?` };
         }
 
         // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
@@ -506,11 +479,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         );
       } catch (error) {
         log.error({ error: String(error), contactQuery, purpose }, 'Failed to initiate call');
-
-        return (
-          `Sorry, I ran into a problem trying to call ${contactQuery}. ` +
-          `Would you like me to try again, or is there another way I can help?`
-        );
+        const sorry = `Sorry, I ran into a problem trying to call ${contactQuery}.`;
+        return { success: false, error: `${sorry} Would you like me to try again?` };
       }
     },
   });
@@ -521,4 +491,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 // ============================================================================
 
 export { resolveContact, inferCallType, inferObjective, initiateOnBehalfCall, callOnBehalfSchema };
-export { alreadySetReply, pendingCallTo } from '../../../services/outreach/deferred-calls.js';
+export {
+  alreadySetReply,
+  pendingCallTo,
+  wantsCallNow,
+} from '../../../services/outreach/deferred-calls.js';

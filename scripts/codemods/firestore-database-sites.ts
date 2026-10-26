@@ -81,14 +81,33 @@ interface Bindings {
 /** Modules that export the Firestore client class. */
 const FIRESTORE_CLASS_MODULES = ['@google-cloud/firestore', ADMIN_FIRESTORE];
 
-function moduleOf(node: ts.Expression | undefined): string | undefined {
-  // import('x'), await import('x'), require('x'), (await import('x')).default
+/** `x` in `await x`, `(x)`, `x.default`, `x!`. */
+function unwrap(node: ts.Expression): ts.Expression {
   let expr = node;
-  while (expr) {
-    if (ts.isAwaitExpression(expr) || ts.isParenthesizedExpression(expr)) expr = expr.expression;
+  for (;;) {
+    if (
+      ts.isAwaitExpression(expr) ||
+      ts.isParenthesizedExpression(expr) ||
+      ts.isNonNullExpression(expr)
+    )
+      expr = expr.expression;
     else if (ts.isPropertyAccessExpression(expr) && expr.name.text === 'default')
       expr = expr.expression;
-    else break;
+    else return expr;
+  }
+}
+
+function moduleOf(node: ts.Expression | undefined): string | undefined {
+  // import('x'), await import('x'), require('x'), (await import('x')).default,
+  // import('x').then((m) => m.default)
+  let expr = node && unwrap(node);
+  while (
+    expr &&
+    ts.isCallExpression(expr) &&
+    ts.isPropertyAccessExpression(expr.expression) &&
+    expr.expression.name.text === 'then'
+  ) {
+    expr = unwrap(expr.expression.expression);
   }
   if (expr && ts.isCallExpression(expr)) {
     const isImport = expr.expression.kind === ts.SyntaxKind.ImportKeyword;
@@ -105,6 +124,49 @@ function collectBindings(sf: ts.SourceFile): Bindings {
     getFirestore: new Set(),
     adminFirestoreModule: new Set(),
     firestoreClass: new Set(['Firestore']),
+  };
+  /** Names a declaration binds from `init`: `const x = init`, `const { a: x } = init`. */
+  const bindDeclared = (name: ts.BindingName, init: ts.Expression): void => {
+    const from = moduleOf(init);
+    if (from === ADMIN && ts.isIdentifier(name)) b.admin.add(name.text);
+    if (from === ADMIN && ts.isObjectBindingPattern(name)) {
+      for (const el of name.elements) {
+        const prop =
+          el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
+        if (prop === 'default' && ts.isIdentifier(el.name)) b.admin.add(el.name.text);
+      }
+    }
+    if (from && FIRESTORE_CLASS_MODULES.includes(from) && ts.isObjectBindingPattern(name)) {
+      for (const el of name.elements) {
+        const prop =
+          el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
+        if (ts.isIdentifier(el.name) && (prop ?? el.name.text) === 'Firestore') {
+          b.firestoreClass.add(el.name.text);
+        }
+      }
+    }
+    // const Fz = (await import('@google-cloud/firestore')).Firestore
+    if (
+      ts.isIdentifier(name) &&
+      ts.isPropertyAccessExpression(init) &&
+      init.name.text === 'Firestore' &&
+      FIRESTORE_CLASS_MODULES.includes(moduleOf(init.expression) ?? '')
+    ) {
+      b.firestoreClass.add(name.text);
+    }
+    if (from === ADMIN_FIRESTORE && ts.isIdentifier(name)) b.adminFirestoreModule.add(name.text);
+    if (from === ADMIN_FIRESTORE && ts.isObjectBindingPattern(name)) {
+      for (const el of name.elements) {
+        const prop =
+          el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
+        if (
+          (prop ?? (ts.isIdentifier(el.name) ? el.name.text : '')) === 'getFirestore' &&
+          ts.isIdentifier(el.name)
+        ) {
+          b.getFirestore.add(el.name.text);
+        }
+      }
+    }
   };
   const visit = (node: ts.Node): void => {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
@@ -136,53 +198,100 @@ function collectBindings(sf: ts.SourceFile): Bindings {
       }
     }
     if (ts.isVariableDeclaration(node) && node.initializer) {
-      const from = moduleOf(node.initializer);
-      if (from === ADMIN && ts.isIdentifier(node.name)) b.admin.add(node.name.text);
-      if (from === ADMIN && ts.isObjectBindingPattern(node.name)) {
-        for (const el of node.name.elements) {
-          const prop =
-            el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
-          if (prop === 'default' && ts.isIdentifier(el.name)) b.admin.add(el.name.text);
-        }
-      }
-      if (from && FIRESTORE_CLASS_MODULES.includes(from) && ts.isObjectBindingPattern(node.name)) {
-        for (const el of node.name.elements) {
-          const prop =
-            el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
-          if (ts.isIdentifier(el.name) && (prop ?? el.name.text) === 'Firestore') {
-            b.firestoreClass.add(el.name.text);
-          }
-        }
-      }
-      // const Fz = (await import('@google-cloud/firestore')).Firestore
-      const init = node.initializer;
-      if (
-        ts.isIdentifier(node.name) &&
-        ts.isPropertyAccessExpression(init) &&
-        init.name.text === 'Firestore' &&
-        FIRESTORE_CLASS_MODULES.includes(moduleOf(init.expression) ?? '')
-      ) {
-        b.firestoreClass.add(node.name.text);
-      }
-      if (from === ADMIN_FIRESTORE && ts.isIdentifier(node.name))
-        b.adminFirestoreModule.add(node.name.text);
-      if (from === ADMIN_FIRESTORE && ts.isObjectBindingPattern(node.name)) {
-        for (const el of node.name.elements) {
-          const prop =
-            el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
-          if (
-            (prop ?? (ts.isIdentifier(el.name) ? el.name.text : '')) === 'getFirestore' &&
-            ts.isIdentifier(el.name)
-          ) {
-            b.getFirestore.add(el.name.text);
-          }
-        }
+      bindDeclared(node.name, node.initializer);
+      // const [app, { getFirestore }] = await Promise.all([import('x'), import('y')])
+      if (ts.isArrayBindingPattern(node.name)) {
+        const items = promiseAllItems(node.initializer);
+        node.name.elements.forEach((el, i) => {
+          const item = items?.[i];
+          if (ts.isBindingElement(el) && item) bindDeclared(el.name, item);
+        });
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(sf);
+  followAdmin(sf, b.admin);
   return b;
+}
+
+/** The awaited expressions of `await Promise.all([a, b])`, by position. */
+function promiseAllItems(
+  init: ts.Expression | undefined
+): (ts.Expression | undefined)[] | undefined {
+  const all = init && unwrap(init);
+  if (
+    !all ||
+    !ts.isCallExpression(all) ||
+    !ts.isPropertyAccessExpression(all.expression) ||
+    all.expression.name.text !== 'all'
+  )
+    return undefined;
+  const list = all.arguments[0];
+  if (!list || !ts.isArrayLiteralExpression(list)) return undefined;
+  return list.elements.map((e) => (ts.isSpreadElement(e) ? undefined : e));
+}
+
+/** An expression that evaluates to the firebase-admin namespace, given the names already bound to it. */
+function isAdminValue(expr: ts.Expression, admin: Set<string>): boolean {
+  if (moduleOf(expr) === ADMIN) return true;
+  const inner = unwrap(expr);
+  const id = ts.isCallExpression(inner) ? unwrap(inner.expression) : inner;
+  return ts.isIdentifier(id) && admin.has(id.text);
+}
+
+/** The expressions a function returns, nested functions excluded. */
+function returnedBy(fn: ts.FunctionLikeDeclaration): ts.Expression[] {
+  if (!fn.body) return [];
+  if (!ts.isBlock(fn.body)) return [fn.body];
+  const out: ts.Expression[] = [];
+  const visit = (n: ts.Node): void => {
+    if (ts.isReturnStatement(n) && n.expression) out.push(n.expression);
+    else if (!ts.isFunctionLike(n)) ts.forEachChild(n, visit);
+  };
+  ts.forEachChild(fn.body, visit);
+  return out;
+}
+
+/**
+ * Adds the names the namespace reaches after the import: a variable or assignment
+ * that holds it or its pending import (`p ??= import('firebase-admin').then(...)`,
+ * `const admin = await p`), and a function that returns it (`await loadAdmin()`).
+ * Repeats until nothing new turns up, since a use can come before its source.
+ */
+function followAdmin(sf: ts.SourceFile, admin: Set<string>): void {
+  for (let size = -1; size !== admin.size;) {
+    size = admin.size;
+    const visit = (node: ts.Node): void => {
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+        const init = node.initializer;
+        if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) {
+          if (returnedBy(init).some((e) => isAdminValue(e, admin))) admin.add(node.name.text);
+        } else if (isAdminValue(init, admin)) admin.add(node.name.text);
+      }
+      if (
+        ts.isBinaryExpression(node) &&
+        ts.isIdentifier(node.left) &&
+        [
+          ts.SyntaxKind.EqualsToken,
+          ts.SyntaxKind.QuestionQuestionEqualsToken,
+          ts.SyntaxKind.BarBarEqualsToken,
+        ].includes(node.operatorToken.kind) &&
+        isAdminValue(node.right, admin)
+      ) {
+        admin.add(node.left.text);
+      }
+      if (
+        ts.isFunctionDeclaration(node) &&
+        node.name &&
+        returnedBy(node).some((e) => isAdminValue(e, admin))
+      ) {
+        admin.add(node.name.text);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
 }
 
 /** The identifier an expression chain hangs off: `admin` in `admin.default.app()`. */
@@ -232,6 +341,38 @@ export function databaseIdProperty(
       (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) &&
       p.name.text === 'databaseId'
   );
+}
+
+/**
+ * True when the nearest declaration of `id` is a local function, parameter or variable
+ * not bound to firebase-admin/firestore, e.g. a file's own `getFirestore()` wrapper.
+ */
+function shadowed(id: ts.Identifier): boolean {
+  const name = id.text;
+  const names = (n: ts.BindingName): string[] =>
+    ts.isIdentifier(n)
+      ? [n.text]
+      : n.elements.flatMap((e) => (ts.isOmittedExpression(e) ? [] : names(e.name)));
+  for (let n: ts.Node | undefined = id.parent; n; n = n.parent) {
+    if (ts.isFunctionLike(n) && n.parameters.some((p) => names(p.name).includes(name))) return true;
+    if (!ts.isBlock(n) && !ts.isSourceFile(n)) continue;
+    for (const st of n.statements) {
+      if (ts.isFunctionDeclaration(st) && st.name?.text === name) return true;
+      if (!ts.isVariableStatement(st)) continue;
+      for (const d of st.declarationList.declarations) {
+        if (!names(d.name).includes(name)) continue;
+        // const [, { getFirestore }] = await Promise.all([..., import('firebase-admin/firestore')])
+        const at = ts.isArrayBindingPattern(d.name)
+          ? d.name.elements.findIndex(
+              (e) => !ts.isOmittedExpression(e) && names(e.name).includes(name)
+            )
+          : -1;
+        const source = at >= 0 ? promiseAllItems(d.initializer)?.[at] : d.initializer;
+        return moduleOf(source) !== ADMIN_FIRESTORE;
+      }
+    }
+  }
+  return false;
 }
 
 /** `const config = { ... }` in an enclosing block, for `new Firestore(config)`. */
@@ -305,7 +446,7 @@ export function findSites(sf: ts.SourceFile): Site[] {
         add('admin-namespace', node);
       }
       const getFs =
-        (ts.isIdentifier(callee) && b.getFirestore.has(callee.text)) ||
+        (ts.isIdentifier(callee) && b.getFirestore.has(callee.text) && !shadowed(callee)) ||
         (ts.isPropertyAccessExpression(callee) &&
           callee.name.text === 'getFirestore' &&
           ((ts.isIdentifier(callee.expression) &&

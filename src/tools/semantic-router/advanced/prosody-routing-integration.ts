@@ -180,8 +180,7 @@ export class ProsodyRoutingEngine {
       emotion,
       this.calculateEmotionIntensity(signals),
       signals.valence,
-      'voice',
-      sessionId
+      'voice'
     );
 
     return signals;

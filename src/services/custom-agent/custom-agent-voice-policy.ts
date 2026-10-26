@@ -15,32 +15,37 @@
  */
 
 import {
+  FERNI_CALM_A_VOICE_ID,
+  FERNI_CALM_B_VOICE_ID,
+  FERNI_CALM_C_VOICE_ID,
   getVoiceIdForPersona,
   isValidVoiceId,
-  LEGACY_FERNI_IVC_VOICE_ID,
   LESTER_PRO_V3_VOICE_ID,
   RETIRED_CLONE_VOICE_IDS,
   VOICE_IDS,
 } from '../../config/voice-ids.js';
 import type { CustomAgentVoice } from '../../types/custom-agent-api.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  CUSTOM_AGENT_VOICE_CATALOG,
+  DEFAULT_CUSTOM_AGENT_VOICE_ID,
+  LEGACY_CUSTOM_AGENT_VOICE_IDS,
+} from './custom-agent-voice-catalog.js';
 
 const log = createLogger({ module: 'CustomAgentVoicePolicy' });
 
 /**
- * Stock Cartesia library voices: the custom-agent voice library
- * (voice-clone-service getVoiceLibrary) minus "James", which the generic-advisor
- * and wellness-coach personas speak in.
+ * Stock Cartesia voices a custom agent may speak in: the catalog people pick from, plus
+ * the voices offered before it (so agents already using one keep it). The old list's
+ * "Dr. Chen" pointed at a voice Cartesia has archived; agents stored with it get the default.
  */
 export const CUSTOM_AGENT_STOCK_VOICE_IDS: ReadonlySet<string> = new Set([
-  'a0e99841-438c-4a64-b679-ae501e7d6091', // Rose
-  'f114a467-c40a-4db8-964d-aaba89cd08fa', // Walter
-  '694f9389-aac1-45b6-b726-9d9369183238', // Sarah
-  '2ee87190-8f84-4925-97da-e52547f9462c', // Dr. Chen
+  ...CUSTOM_AGENT_VOICE_CATALOG.map((v) => v.voiceId),
+  ...LEGACY_CUSTOM_AGENT_VOICE_IDS,
 ]);
 
 /** What the runtime speaks in when an agent's stored voice isn't allowed. */
-export const SAFE_DEFAULT_CUSTOM_AGENT_VOICE_ID = 'a0e99841-438c-4a64-b679-ae501e7d6091';
+export const SAFE_DEFAULT_CUSTOM_AGENT_VOICE_ID = DEFAULT_CUSTOM_AGENT_VOICE_ID;
 
 const PERSONA_IDS = [
   'ferni',
@@ -55,16 +60,26 @@ const PERSONA_IDS = [
   'generic-advisor',
 ];
 
-/** A retired clone, or a voice a Ferni persona speaks in (env overrides included). */
+/**
+ * A retired clone, or a voice a Ferni persona speaks in (env overrides included).
+ * Compared trimmed and lowercased: isValidVoiceId accepts uppercase hex, so an
+ * UPPERCASE copy of a forbidden id must not slip past.
+ */
 export function isForbiddenCustomAgentVoiceId(voiceId: string): boolean {
-  if (RETIRED_CLONE_VOICE_IDS.has(voiceId)) return true;
-  const personaVoices = new Set<string>([
-    ...Object.values(VOICE_IDS),
-    LEGACY_FERNI_IVC_VOICE_ID,
-    LESTER_PRO_V3_VOICE_ID,
-    ...PERSONA_IDS.map((id) => getVoiceIdForPersona(id)),
-  ]);
-  return personaVoices.has(voiceId);
+  const norm = (id: string) => id.trim().toLowerCase();
+  const id = norm(voiceId);
+  if ([...RETIRED_CLONE_VOICE_IDS].some((r) => norm(r) === id)) return true;
+  const personaVoices = new Set<string>(
+    [
+      ...Object.values(VOICE_IDS),
+      FERNI_CALM_A_VOICE_ID,
+      FERNI_CALM_B_VOICE_ID,
+      FERNI_CALM_C_VOICE_ID,
+      LESTER_PRO_V3_VOICE_ID,
+      ...PERSONA_IDS.map((pid) => getVoiceIdForPersona(pid)),
+    ].map(norm)
+  );
+  return personaVoices.has(id);
 }
 
 /** Whether select-premade may store this id. */

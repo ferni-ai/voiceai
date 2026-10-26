@@ -25,6 +25,7 @@ import {
   linkProblem,
   type LinkedAccount,
 } from '../src/api/v1/developers/shared/publisher-link-rules.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 export type { LinkedAccount };
 
@@ -62,7 +63,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   }
 
   if (!admin.apps.length) admin.initializeApp({ projectId });
-  const db = admin.firestore();
+  const db = getAdminFirestore();
   const snapshot = await db.collection('publishers').get();
 
   const toUnlink: Array<{ id: string; reason: string; ref: admin.firestore.DocumentReference }> =

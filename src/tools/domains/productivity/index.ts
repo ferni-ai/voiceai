@@ -8,7 +8,6 @@
  * TOOLS:
  *   Tasks: addTask, completeTask, getTasks, rescheduleTask, getTaskSummary
  *   Notes: saveNote, getRecentNotes, searchNotes, startJournal
- *   Routines: createRoutine, startRoutine, routineStepDone, listRoutines
  *   Shopping: addToShoppingList, getShoppingList, checkOffItem
  */
 
@@ -24,7 +23,6 @@ import {
   callJournalSaveNote,
   callJournalTool,
 } from './call-journal.js';
-import { createRoutineTools } from './routines.js';
 import { createShoppingTools } from '../home/shopping.js';
 import { createBillTools } from '../finance/bills.js';
 import { createPackageTools } from '../home/packages.js';
@@ -150,32 +148,6 @@ function getNotesToolDefinitions(): ToolDefinition[] {
           ),
         ]
       : []),
-  ];
-}
-
-// ============================================================================
-// ROUTINE TOOLS (Consolidated: 6 → 3 essential tools)
-// ============================================================================
-
-function getRoutineToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createRoutineTools();
-
-  // Consolidated: manageRoutine handles create/list/delete, runRoutine handles start/progress/step
-  return [
-    wrapLegacyTool(
-      'manageRoutine',
-      'Manage Routine',
-      'Create, list, or delete routines. For creating, specify steps and frequency (daily/weekly).',
-      legacyTools.createRoutine,
-      ['routines', 'create', 'list', 'delete']
-    ),
-    wrapLegacyTool(
-      'runRoutine',
-      'Run Routine',
-      'Start a routine, mark steps complete, skip steps, or check progress. Action: "start", "done", "skip", or "status".',
-      legacyTools.startRoutine,
-      ['routines', 'start', 'progress']
-    ),
   ];
 }
 
@@ -328,7 +300,7 @@ const productivityTools: ToolDefinition[] = [
   ...getTaskToolDefinitions(),
   // Not addGratitude: whether it exists is per caller, so call-journal-tools.ts adds it per call.
   ...getNotesToolDefinitions().filter((d) => d.id !== 'addGratitude'),
-  ...getRoutineToolDefinitions(),
+  // No routines here: the routines domain owns them, in the store What I Do For You reads
   ...getShoppingToolDefinitions(),
   ...getBillToolDefinitions(),
   ...getPackageToolDefinitions(),
@@ -350,7 +322,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 export {
   getTaskToolDefinitions,
   getNotesToolDefinitions,
-  getRoutineToolDefinitions,
   getShoppingToolDefinitions,
   getBillToolDefinitions,
   getPackageToolDefinitions,

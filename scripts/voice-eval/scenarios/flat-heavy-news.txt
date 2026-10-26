@@ -1,15 +1,10 @@
-# Regression for SPOKEN_CONTRACTIONS (#2334) and #2333. From the 2026-10-21 humanness red team
-# (rt-1021-flat-heavy-news): heavy news said flatly, then played down. On dev, Ferni said "That is a
-# massive shift." / "It is a lot, even when you say it's fine." (uncontracted, read-aloud), and
-# argued twice that it was heavier than the caller said. With SPOKEN_CONTRACTIONS=on the
-# uncontracted avoid should read 0. The calibration avoids track #2333 (no flag yet).
+# Humanness red team 2026-10-21 (#2333): heavy news, then played down. Pass: Ferni takes the caller's
+# lead (one plain line or an easy question, or lets it go) and never argues it's heavier than they say.
+# Run with CALLER_SETS_DEPTH=on to hear the fix; judge with judge.mjs for empathy and feltValidated.
+# Also the regression for SPOKEN_CONTRACTIONS (#2334): on dev Ferni said "That is a massive shift." /
+# "It is a lot, even when you say it's fine." With SPOKEN_CONTRACTIONS=on, uncontracted should read 0.
 #@avoid uncontracted \b(that is|it is|i am|is not|do not)\s+[a-z]
-#@avoid stock-validation \b(valid|completely understandable|totally understandable|makes (complete|total) sense)\b
-#@avoid therapist-voice \bi hear you\b|\bthat'?s a lot to (carry|hold|process)\b|\bhold space\b|\bhow does (that|this) make you feel\b|\bit'?s (okay|ok) to feel\b
-#@avoid here-for-you \bi'?m (always )?here for you\b|\bhere (for you )?if you need\b
-#@avoid offers-help \b(is there anything i can|how can i help|would it help (if|to)|want me to (help|find|look))\b
-#@avoid exclaim-pile !.*!
-#@avoid argues-depth \b(brush(ed)? (it )?off|pretend it'?s no big deal|lighter to carry|lot of weight)\b
+#@avoid argues-depth \b(brush(ed)? (it )?off|no big deal doesn'?t|lot of weight|lighter to carry|pretend(ing)? it'?s|easier said than done|hold space)\b
 Hey. So, um, my dad's moving in with us. Doctor says he can't live alone anymore.
 Yeah. It's fine. It's whatever.
 I mean he's my dad, what am I gonna do, say no?

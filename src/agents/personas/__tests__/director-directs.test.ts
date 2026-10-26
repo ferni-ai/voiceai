@@ -24,6 +24,7 @@ import {
   directsDeliberationSystem,
   directsSystem,
   policesDelivery,
+  readsMind,
   scriptedNote,
   sheetForDirector,
   transcriptNote,
@@ -215,6 +216,105 @@ describe('the guard: no style policing, no scripted lines', () => {
     vi.stubEnv('DIRECTOR_DIRECTS', 'on');
     const r = await directed('nayan-patel', `${policing[0]}\n${direction[1]}`);
     expect(r.notes).toEqual([direction[1]]);
+    expect(r.dropped).toBe(1);
+  });
+});
+
+describe('the guard: no mind-reading the caller', () => {
+  /** Hand-labelled director notes from the 2026-10-18 bar runs (see the file's `rubric`). */
+  const FIXTURE = JSON.parse(
+    readFileSync(new URL('./director-mind-reading.fixture.json', import.meta.url), 'utf8')
+  ) as { notes: Array<{ note: string; mindReading: boolean; borderline: boolean }> };
+
+  /** What the flag-on parser keeps of one note (no call given, so no content-word check). */
+  const kept = (note: string): string[] =>
+    parseNotes(note, undefined, 'Maya', { directs: true, names: ['Riley', 'Maya'] });
+
+  function confusion(notes: typeof FIXTURE.notes) {
+    const m = { tp: 0, fn: 0, fp: 0, tn: 0 };
+    for (const n of notes) {
+      const d = readsMind(n.note);
+      if (n.mindReading && d) m.tp++;
+      else if (n.mindReading) m.fn++;
+      else if (d) m.fp++;
+      else m.tn++;
+    }
+    return { ...m, recall: m.tp / (m.tp + m.fn), falsePositive: m.fp / (m.fp + m.tn) };
+  }
+
+  it('the fixture is the labelled set it claims to be', () => {
+    expect(FIXTURE.notes).toHaveLength(1063);
+    expect(FIXTURE.notes.filter((n) => n.mindReading)).toHaveLength(217);
+    // Every note was kept by the flag-off parser when it was written.
+    expect(FIXTURE.notes.filter((n) => parseNotes(n.note).length === 0)).toEqual([]);
+  });
+
+  it('the flag-on parser drops every note the guard flags', () => {
+    const flagged = FIXTURE.notes.filter((n) => readsMind(n.note));
+    expect(flagged.length).toBeGreaterThan(200);
+    expect(flagged.filter((n) => kept(n.note).length > 0).map((n) => n.note)).toEqual([]);
+  });
+
+  it('drops >= 90% of mind-reading notes and <= 5% of legitimate ones', () => {
+    const all = confusion(FIXTURE.notes);
+    expect(all.recall).toBeGreaterThanOrEqual(0.9);
+    expect(all.falsePositive).toBeLessThanOrEqual(0.05);
+    // The notes a labeller could not call either way are not doing the work.
+    const clear = confusion(FIXTURE.notes.filter((n) => !n.borderline));
+    expect(clear.recall).toBeGreaterThanOrEqual(0.95);
+    expect(clear.falsePositive).toBeLessThanOrEqual(0.01);
+  });
+
+  it('drops a feeling or motive pinned on the caller', () => {
+    for (const n of [
+      'Riley is using the car trouble to escape the pressure of the upcoming raise conversation.',
+      'Riley is likely hiding some anxiety about the big move behind the excitement of the job offer.',
+      "Riley is downplaying the achievement because they're secretly insecure about the slow time.",
+      'Deep down she is afraid the knee will give out again.',
+      'He is really afraid of what his mom will say.',
+      'Riley is deflecting to the car because asking for a raise feels vulnerable.',
+      'Riley is feeling guilty for even considering the move while their mom needs them.',
+      "Riley's silence might mean they are feeling self-conscious about celebrating.",
+      'She is looking for permission to stop working and rest.',
+      "She's likely feeling the financial pressure right now.",
+    ])
+      expect(readsMind(n), n).toBe(true);
+  });
+
+  it('keeps subtext grounded in what they said, and direction', () => {
+    for (const n of [
+      "Riley said twice the review is Thursday: that's what's on her mind.",
+      'She keeps hearing it: the promotion is fine, the goodbye is the scene.',
+      "Riley's freaking out about the money; let the size of it land.",
+      'Riley changed the subject abruptly to her car; follow her lead.',
+      "To explore the roommate's likely reaction to a direct conversation.",
+      'To find out what kind of second opinion they actually need from you.',
+      'To dig in: ask them to name the thing they are dreading or anticipating this week.',
+      'To match her energy without making her feel guilty for sharing.',
+      'To avoid filling the silence with easy comfort: she needs someone to stay with her.',
+      'Keep it short; a long answer might feel like a lecture right now.',
+      "Riley is grieving the physical absence of a companion who's been there fourteen years.",
+    ])
+      expect(readsMind(n), n).toBe(false);
+  });
+
+  it('matches whole words, not substrings', () => {
+    expect(readsMind('An unlikely win: Riley ran the whole 5k without walking.')).toBe(false);
+    expect(readsMind('Riley is guiltless about the cobbler; celebrate the peaches.')).toBe(false);
+    expect(readsMind('Riley is guilty about the cobbler.')).toBe(true);
+  });
+
+  it('drops them only with the flag on, and counts the drop on a live run', async () => {
+    const mind = 'Riley is likely hiding how much the Lisbon move scares her.';
+    const direction =
+      'To let it land: her mom cried, the cost of Lisbon she has not said out loud.';
+    expect(parseNotes(`${mind}\n${direction}`, CALL)).toEqual([mind, direction]);
+    expect(parseNotes(`${mind}\n${direction}`, CALL, 'Nayan', { directs: true })).toEqual([
+      direction,
+    ]);
+    vi.stubEnv('DIRECTOR_DIRECTS', 'on');
+    const r = await directed('nayan-patel', `${mind}\n${direction}`);
+    expect(r.notes).toEqual([direction]);
     expect(r.dropped).toBe(1);
   });
 });

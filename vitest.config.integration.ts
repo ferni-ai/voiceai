@@ -47,6 +47,8 @@ export default defineConfig({
     ],
     testTimeout: 30000,
     hookTimeout: 30000,
+    // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).
+    globalSetup: ['./src/config/__tests__/generate-lists-setup.ts'],
     setupFiles: ['./src/tests/setup.ts'],
   },
 });

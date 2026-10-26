@@ -12,9 +12,13 @@ import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
-import { apiGet } from '../utils/api.js';
-import { getDeviceId } from '../state/app.state.js';
 import { visibleIntegrations } from '../config/menu-visibility.js';
+import {
+  fetchIntegrationStatuses,
+  renderTileAction,
+  type ConnectionStatus,
+  type IntegrationStatuses,
+} from './connected-life-status.js';
 
 const log = createLogger('ConnectedLife');
 
@@ -23,7 +27,6 @@ const log = createLogger('ConnectedLife');
 // ============================================================================
 
 type IntegrationCategory = 'health' | 'calendar' | 'vibe';
-type ConnectionStatus = 'connected' | 'disconnected' | 'pending';
 
 interface Integration {
   id: string;
@@ -72,17 +75,6 @@ const ICONS = {
 // CONNECTED LIFE UI CLASS
 // ============================================================================
 
-interface IntegrationStatuses {
-  appleHealth: ConnectionStatus;
-  oura: ConnectionStatus;
-  eightSleep: ConnectionStatus;
-  wearables: ConnectionStatus;
-  googleCalendar: ConnectionStatus;
-  linkedin: ConnectionStatus;
-  spotify: ConnectionStatus;
-  ecobee: ConnectionStatus;
-}
-
 class ConnectedLifeUI {
   private container: HTMLElement | null = null;
   private callbacks: ConnectedLifeCallbacks = {};
@@ -113,8 +105,8 @@ class ConnectedLifeUI {
     this.callbacks = callbacks || {};
     this.cleanupOrphanedElements();
     
-    // Fetch current integration statuses before showing
-    await this.fetchIntegrationStatuses();
+    // Check the shown tiles before drawing; the menu's loading shell covers the wait
+    await this.refreshStatuses();
     
     this.createModal();
     this.isVisible = true;
@@ -140,64 +132,9 @@ class ConnectedLifeUI {
   // PRIVATE METHODS
   // ==========================================================================
 
-  private async fetchIntegrationStatuses(): Promise<void> {
-    try {
-      const response = await apiGet<{
-        integrations?: {
-          biometrics?: { connected: boolean; platform?: string };
-          calendar?: { connected: boolean };
-          linkedin?: { connected: boolean };
-        };
-      }>('/api/v1/integrations/status');
-
-      if (response.ok && response.data?.integrations) {
-        const { integrations } = response.data;
-        // Map API response to our statuses
-        if (integrations.biometrics?.connected) {
-          // Determine which biometric platform is connected
-          const platform = integrations.biometrics.platform?.toLowerCase() || '';
-          if (platform.includes('apple')) {
-            this.integrationStatuses.appleHealth = 'connected';
-          } else if (platform.includes('oura')) {
-            this.integrationStatuses.oura = 'connected';
-          } else if (platform.includes('eight') || platform.includes('sleep')) {
-            this.integrationStatuses.eightSleep = 'connected';
-          } else {
-            this.integrationStatuses.wearables = 'connected';
-          }
-        }
-        
-        if (integrations.calendar?.connected) {
-          this.integrationStatuses.googleCalendar = 'connected';
-        }
-        
-        if (integrations.linkedin?.connected) {
-          this.integrationStatuses.linkedin = 'connected';
-        }
-      }
-      
-      // Spotify link status is per device (without device_id the server reports SDK config)
-      try {
-        const spotifyResponse = await apiGet<{ linked: boolean }>('/spotify/status', { device_id: getDeviceId() });
-        if (spotifyResponse.ok && spotifyResponse.data?.linked) {
-          this.integrationStatuses.spotify = 'connected';
-        }
-      } catch {
-        // Spotify status check is optional
-      }
-      
-      // Check calendar status separately
-      try {
-        const calendarResponse = await apiGet<{ providers?: Record<string, { connected: boolean }> }>('/api/calendar/providers/status');
-        if (calendarResponse.ok && Object.values(calendarResponse.data?.providers ?? {}).some(p => p.connected)) {
-          this.integrationStatuses.googleCalendar = 'connected';
-        }
-      } catch {
-        // Calendar status check is optional
-      }
-    } catch (error) {
-      log.debug('Failed to fetch integration statuses, using defaults', error);
-    }
+  /** Statuses for the tiles that render (connected-life-status.ts) */
+  private async refreshStatuses(): Promise<void> {
+    this.integrationStatuses = await fetchIntegrationStatuses();
   }
 
   private createModal(): void {
@@ -359,13 +296,7 @@ class ConnectedLifeUI {
               <h4>${int.name}</h4>
               <p>${int.description}</p>
             </div>
-            <div class="connected-life-integration-action">
-              ${
-                int.status === 'connected'
-                  ? `<span class="connected-life-status connected">${ICONS.check} ${t('connectedLife.connected')}</span>`
-                  : `<button class="connected-life-connect-btn" data-connect="${int.id}">${t('common.connect')}</button>`
-              }
-            </div>
+            <div class="connected-life-integration-action">${renderTileAction(int.id, int.status, ICONS.check)}</div>
           </div>
         `
           )
@@ -395,13 +326,19 @@ class ConnectedLifeUI {
       });
     });
 
-    // Connect button clicks
-    this.container.querySelectorAll('.connected-life-connect-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const integrationId = (btn as HTMLElement).dataset.connect;
-        this.handleConnect(integrationId);
-      });
+    // Connect and Try again, for whichever tab is drawn
+    this.container.querySelector('.connected-life-content')?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.connected-life-connect-btn');
+      if (btn?.dataset.retry) void this.retryStatuses(btn);
+      else if (btn) this.handleConnect(btn.dataset.connect);
     });
+  }
+
+  private async retryStatuses(btn: HTMLButtonElement): Promise<void> {
+    btn.disabled = true;
+    await this.refreshStatuses();
+    const contentEl = this.container?.querySelector('.connected-life-content');
+    if (contentEl) contentEl.innerHTML = this.renderIntegrations();
   }
 
   private setTabActive(category: IntegrationCategory): void {
@@ -418,13 +355,6 @@ class ConnectedLifeUI {
     const contentEl = this.container?.querySelector('.connected-life-content');
     if (contentEl) {
       contentEl.innerHTML = this.renderIntegrations();
-      // Re-bind connect buttons
-      this.container?.querySelectorAll('.connected-life-connect-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const integrationId = (btn as HTMLElement).dataset.connect;
-          this.handleConnect(integrationId);
-        });
-      });
     }
   }
 
@@ -709,6 +639,11 @@ const styles = `
   font-size: 0.8rem;
   color: var(--color-accent, #3D5A45);
   font-weight: 500;
+}
+
+.connected-life-status.error {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1, 4px);
 }
 
 .connected-life-status svg {

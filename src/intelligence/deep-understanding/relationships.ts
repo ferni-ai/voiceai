@@ -826,12 +826,12 @@ export function importRelationalNetwork(network: RelationalNetwork): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all relational network state (for testing)
- */
+export const forgetRelationalUser = (userId: string): boolean => networks.delete(userId);
+
+/** Reset all relational network state (for testing) */
 export function resetRelationalNetwork(): void {
   networks.clear();
 }

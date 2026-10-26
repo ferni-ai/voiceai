@@ -12,10 +12,11 @@ import { timeContext } from '../shared/time-context.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { DEFAULT_COMMUNICATION, buildDefaultIdentity, buildPersonaName } from './constants.js';
 import type { E2EDiagnostics } from './types.js';
-import {
-  getPrewarmedResources,
-  loadPersonaLocally,
-} from '../voice-agent/phases/index.js';
+import { getPrewarmedResources, loadPersonaLocally } from '../voice-agent/phases/index.js';
+import { liveCustomAgentPrompt, resolveLiveCustomAgent } from '../shared/custom-agent-live.js';
+
+/** The default persona: what a custom-agent call gets when the agent can't load for this caller. */
+const DEFAULT_PERSONA_ID = 'ferni';
 
 /** Result of building a session persona */
 export interface PersonaBuildResult {
@@ -134,7 +135,27 @@ export async function buildSessionPersona(
  * runs at STEP 2, so it used to hand the single-agent session a prompt built
  * with the last caller's flags.
  */
-export async function loadCallerPrompt(personaId: string): Promise<string> {
+export async function loadCallerPrompt(persona: { id: string }): Promise<string> {
+  // CUSTOM_AGENT_LIVE: a custom agent's own prompt, its owner's text kept as data
+  const live = liveCustomAgentPrompt(persona);
+  if (live !== undefined) return live;
   const { loadSystemPrompt } = await import('../personas/prompt-loader.js');
-  return loadSystemPrompt(personaId);
+  return loadSystemPrompt(persona.id);
+}
+
+/**
+ * The persona this call speaks as, once the caller is known (STEP 4, after
+ * identifyUser). CUSTOM_AGENT_LIVE=on: a custom agent the caller owns loads as
+ * itself; someone else's, or one that fails to load, gives the default persona
+ * (agents/shared/custom-agent-live.ts). Off, or for a built-in persona, `persona` itself.
+ */
+export async function callerSessionPersona(
+  persona: PersonaConfig,
+  userId: string | null,
+  e2e: E2EDiagnostics
+): Promise<PersonaConfig> {
+  const live = await resolveLiveCustomAgent(persona, userId);
+  if (live.kind === 'unchanged') return persona;
+  if (live.kind === 'loaded') return live.persona;
+  return (await buildSessionPersona(DEFAULT_PERSONA_ID, e2e)).sessionPersona;
 }

@@ -19,6 +19,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { runBackground } from '../../utils/background-task.js';
 import { onScheduledOutreachChange } from '../data-layer/hooks/misc-hooks.js';
+import { outreachPaused } from './outreach-pause.js';
 
 const log = createLogger({ module: 'ProactiveScheduler' });
 
@@ -218,6 +219,7 @@ function getOptimalSendTime(userId: string): Date {
 
 export async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
   try {
+    if (await outreachPaused(outreach.userId, outreach.type)) return false; // Ferni's own: paused
     const prefs = userPreferences.get(outreach.userId);
     const method = prefs?.preferredMethod ?? 'push';
     const push = async (): Promise<void> => {
@@ -231,7 +233,6 @@ export async function deliverOutreach(outreach: ScheduledOutreach): Promise<bool
         data: { type: outreach.type },
       });
     };
-
     log.info(
       {
         outreachId: outreach.id,
@@ -241,7 +242,6 @@ export async function deliverOutreach(outreach: ScheduledOutreach): Promise<bool
       },
       '📤 Delivering proactive outreach'
     );
-
     switch (method) {
       case 'push': {
         await push();

@@ -1,8 +1,8 @@
 /**
  * pnpm flags:new NAME --default off --owner voice --kind experiment [--note "..."]
  *
- * Writes src/config/flags/NAME.ts and regenerates the flag barrel, so a new flag
- * touches no shared hand-edited file. --note becomes the comment above the entry:
+ * Writes src/config/flags/NAME.ts and regenerates the flag barrel (gitignored), so a
+ * new flag adds one file and touches no shared one. --note becomes the comment above the entry:
  * say what "on" does and where it is read.
  */
 import { execFileSync } from 'node:child_process';
@@ -99,8 +99,9 @@ export const isMain = (url: string): boolean =>
 if (isMain(import.meta.url)) {
   try {
     const file = writeNewFlag(process.cwd(), parseNewFlag(process.argv.slice(2)));
-    console.log(`Wrote ${file}`);
-    execFileSync('pnpm', ['flags:gen'], { stdio: 'inherit' });
+    console.log(`Wrote ${file}. Commit only that file: the barrel is generated.`);
+    // The barrel is gitignored; regenerate it so this checkout's tsc and tests see the flag.
+    execFileSync('pnpm', ['gen:lists'], { stdio: 'inherit' });
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);

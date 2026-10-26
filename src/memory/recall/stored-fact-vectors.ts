@@ -10,7 +10,9 @@
  * A fact found that way goes through loadRecallSnapshot's own filters (forgotten
  * topics, forgotten or corrected facts, low confidence, supersession) with the
  * forgotten topics the call started with, before it can be recalled. Until those
- * topics have been read, or when they can't be, nothing is found.
+ * topics have been read, or when they can't be, nothing is found. With
+ * REMEMBER_TO_RECALL or FORGET_EVERY_READER on, topics forgotten in this process
+ * since count too: a fact remembered while a forget was reading lands unmarked.
  *
  * @module memory/recall/stored-fact-vectors
  */
@@ -25,6 +27,8 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from './session-recall.js';
+import { forgetEveryReaderEnabled } from './forget-every-reader.js';
+import { forgottenInProcess } from './forget.js';
 import { defaultEmbeddingModel, type NearestItems, type RecallItem } from './semantic-recall.js';
 
 const log = createLogger({ module: 'StoredFactVectors' });
@@ -106,6 +110,9 @@ export function factItems(
   });
 }
 
+/** Topics forgotten during the call count in the search (see the module comment). */
+const inCallForgets = (): boolean => flagOn('REMEMBER_TO_RECALL') || forgetEveryReaderEnabled();
+
 export function createStoredVectors(
   base: VectorRecallStore,
   userId: string,
@@ -157,8 +164,9 @@ export function createStoredVectors(
       const docs = await withTimeout(query, NEAREST_TIMEOUT_MS, 'Nearest facts');
       const vectors = await vectorsOf(docs);
       // The same filters as the call's snapshot, with the topics it was loaded with.
+      const now = inCallForgets() ? [...forgotten, ...forgottenInProcess(userId)] : forgotten;
       const { facts } = await loadRecallSnapshot(
-        { facts: async () => docs, summaries: async () => [], forgotten: async () => forgotten },
+        { facts: async () => docs, summaries: async () => [], forgotten: async () => now },
         userId
       );
       const known = new Set(found.map(factId));

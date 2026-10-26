@@ -301,7 +301,11 @@ describe('withNameGate', () => {
 
 describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
   /** Stream `chunks` at virtual times; returns what came out, when, and the gate's own timing. */
-  async function timed(chunks: Array<[number, string]>, history: HistoryItem[]) {
+  async function timed(
+    chunks: Array<[number, string]>,
+    history: HistoryItem[],
+    env: Record<string, string> = {}
+  ) {
     let clock = 0;
     let push!: (s: string | null) => void;
     const input = new ReadableStream<string>({
@@ -315,7 +319,7 @@ describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
     const gated = withNameGate(input as never, {
       name: 'Sam',
       history,
-      env: {},
+      env,
       now: () => clock,
       onTiming: (t) => (timing = t),
     });
@@ -457,5 +461,149 @@ describe('withNameGate timing (#1413: under 50 ms to first audio)', () => {
     );
     expect(out[0]).toEqual([0, 'I hear you about the week. That is rough']);
     expect(timing.maxHoldMs).toBe(50); // a later comma, then the name itself until its next letter
+  });
+
+  // NAME_FALLING_SPLIT holds a mid-call hello only for a name with a comma or dash after it.
+  const split = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'on' };
+  const said = (out: Array<[number, string]>): string => out.map(([, s]) => s).join('');
+
+  it('NAME_FALLING_SPLIT: "Oh" is a reaction, not a hello, so it goes at once', async () => {
+    for (const env of [{}, split]) {
+      const { out, timing } = await timed(
+        [
+          [0, 'Oh'],
+          [200, ' hey'],
+          [240, ', that is cool.'],
+        ],
+        callWith(2),
+        env
+      );
+      expect(out[0]).toEqual([0, 'Oh']);
+      expect(timing.firstHoldMs).toBe(0);
+      expect(said(out)).toBe('Oh hey, that is cool.');
+    }
+  });
+
+  it('NAME_FALLING_SPLIT: a name that ends its sentence lets the held hello go when main would', async () => {
+    for (const [reply, mainSays] of [
+      ['Hey Sam! Good to hear you.', 'Hey! Good to hear you.'],
+      ['Hey Sam. How was the run?', 'Hey. How was the run?'],
+      ['Hey Sam? You there?', 'Hey? You there?'],
+    ]) {
+      const chunks: Array<[number, string]> = reply
+        .split(/(?=[\s.!?])/)
+        .map((s, i) => [i * 100, s]);
+      const off = await timed(chunks, callWith(2));
+      const on = await timed(chunks, callWith(2), split);
+      expect(said(off.out), reply).toBe(mainSays);
+      expect(said(on.out), reply).toBe(mainSays);
+      // Main sends "Hey" at once and the gateway holds it to the mark after the name (200 ms);
+      // held here, it goes then too, never with the next sentence.
+      expect(on.out[0], reply).toEqual([200, `Hey${mainSays.charAt(3)}`]);
+    }
+    // A comma after the name still takes the hello with it.
+    const comma = await timed(
+      [
+        [0, 'Hey'],
+        [100, ' Sam'],
+        [200, ','],
+        [300, ' morning.'],
+      ],
+      callWith(2),
+      split
+    );
+    expect(said(comma.out)).toBe('Morning.');
+  });
+});
+
+describe('NAME_FALLING_SPLIT', () => {
+  const tokens = (t: string): string[] => t.split(/(?=\s)/);
+  const on = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'on' };
+  const off = { NAME_FALLING_INTONATION: 'on', NAME_FALLING_SPLIT: 'off' };
+
+  // clip(): the comma before the name went out first (hello releases it for first audio), and
+  // the kept name still ends its sentence. Main skipped the fall here; #2728 builds on this.
+  it('clip(): ends a kept name whose comma already went out', async () => {
+    const said = tokens("Yes, Sam, I'm sure.");
+    expect(await run(said, [], off)).toBe("Yes, Sam, I'm sure.");
+    expect(await run(said, [], on)).toBe("Yes, Sam. I'm sure.");
+    // Whole, the comma never went out first: main already ended the name.
+    expect(await run(["Yes, Sam, I'm sure."], [], off)).toBe("Yes, Sam. I'm sure.");
+  });
+
+  it('mid-call, a name that ends its sentence leaves its hello, as main streams it', async () => {
+    for (const reply of [
+      'Hey Sam! Good to hear you.',
+      'Hey Sam. How was the run?',
+      'Hey Sam? You there?',
+      'Hi Sam! So good to hear you.',
+    ]) {
+      for (const chunks of [
+        tokens(reply),
+        reply.split(/(?=[\s.!?])/),
+        reply.match(/[\s\S]{1,3}/g) ?? [],
+        [reply.slice(0, 2), ...reply.slice(2).split(/(?=\s)/)],
+      ]) {
+        expect(await run(chunks, callWith(2), on), JSON.stringify(chunks)).toBe(
+          await run(chunks, callWith(2), off)
+        );
+      }
+    }
+    expect(await run(tokens('Hey Sam! Good to hear you.'), callWith(2), on)).toBe(
+      'Hey! Good to hear you.'
+    );
+  });
+
+  // Once the reply has said something, a later hello is not held: only the name goes.
+  it.each([
+    ["That's great. Hey Sam, one more thing.", "That's great. Hey, one more thing."],
+    ['Okay. Hey Sam, quick one.', 'Okay. Hey, quick one.'],
+    ['Got it! Hi Sam, so about Friday.', 'Got it! Hi, so about Friday.'],
+  ])('mid-call, a hello after text went out stays as main streams it: %s', async (text, main) => {
+    expect(await run(tokens(text), callWith(2), off)).toBe(main);
+    expect(await run(tokens(text), callWith(2), on)).toBe(main);
+  });
+
+  it('mid-call, a dropped name takes its opening hello with it, streamed as whole', async () => {
+    const said = tokens('Hey Sam, morning.');
+    expect(await run(said, callWith(2), off)).toBe('Hey, morning.');
+    expect(await run(said, callWith(2), on)).toBe('Morning.');
+    expect(await run(['Hey Sam, morning.'], callWith(2), off)).toBe('Morning.');
+    // A hello still arriving ("He" + "y") waits too.
+    expect(await run(['He', 'y', ' Sam', ', morning.'], callWith(2), off)).toBe('Hey, morning.');
+    expect(await run(['He', 'y', ' Sam', ', morning.'], callWith(2), on)).toBe('Morning.');
+    // At hello the name stays, so nothing waits for it.
+    expect(await run(said, [], on)).toBe(await run(said, [], off));
+    // Without NAME_FALLING_INTONATION the gateway would not hold the hello either.
+    const split = { NAME_FALLING_SPLIT: 'on' };
+    expect(await run(said, callWith(2), split)).toBe('Hey, morning.');
+  });
+
+  // Round 2 (#2726): ", Sam, and <clause>" (and the other split clause words) read lists, single
+  // quotes and short openers as vocatives. That rule is gone; these say what main says.
+  it.each([
+    'The twins, Sam, and I went to the lake.',
+    'My parents, Sam, and I drove up Friday.',
+    'My cousins, Sam, and I went.',
+    'Both kids, Sam, and we left early.',
+    'jo, sam, and i went hiking.',
+    'the twins, sam, and i went.',
+    'The twins, Sam, have left already.',
+    "'Thanks, Sam, and I mean it,' she said.",
+    '‘Thanks, Sam, and I mean it,’ she told him.',
+    "'Honestly, Sam, and I say this kindly, you're late,' she said.",
+    "'Thanks, Sam, have a good one,' she said.",
+    'Thanks, Sam, and take your time.',
+    'Sorry, Sam, and I mean that.',
+    'Right, Sam, and that is fine.',
+    'That sounds like a lot, Sam, and you handled it well.',
+    'I hear you, sam, and that sounds hard.',
+    'Catch you later, Sam, have a good one.',
+  ])('says what main says, at hello and mid-call: %s', async (text) => {
+    for (const history of [[], callWith(2)]) {
+      for (const chunks of [tokens(text), [text]]) {
+        expect(await run(chunks, history, on)).toBe(await run(chunks, history, off));
+      }
+    }
   });
 });

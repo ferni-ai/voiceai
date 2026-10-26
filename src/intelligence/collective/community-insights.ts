@@ -10,11 +10,12 @@
  * This creates COLLECTIVE INTELLIGENCE that makes every persona smarter
  * based on learnings from the entire community.
  *
- * PRIVACY: All data is anonymized before aggregation. No PII stored.
+ * PRIVACY: shared by every caller, so questions/topics/contexts are labels only (community-labels).
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
+import * as labels from './community-labels.js';
 
 // ============================================================================
 // TYPES
@@ -133,7 +134,7 @@ export interface CommunityJourneyPattern {
  * Question that leads to breakthroughs
  */
 export interface EffectiveQuestion {
-  questionPattern: string; // "What would [success] look like for you?"
+  questionPattern: string; // a QuestionShape label, e.g. 'future_question', never the words
   topic: string;
   personaId: string;
 
@@ -198,15 +199,10 @@ export class CommunityInsightsEngine {
   private journeyPatterns = new Map<string, CommunityJourneyPattern>();
   private effectiveQuestions: EffectiveQuestion[] = [];
   private storyResonance = new Map<string, StoryResonance>();
-  private phraseEffectiveness: PhraseEffectiveness[] = [];
 
   // Minimum samples before pattern is considered reliable
   private readonly MIN_SAMPLES = 10;
   private readonly HIGH_CONFIDENCE_SAMPLES = 50;
-
-  constructor() {
-    // Will be loaded from persistent storage
-  }
 
   // ==========================================================================
   // SIGNAL COLLECTION (Called during conversations)
@@ -250,6 +246,7 @@ export class CommunityInsightsEngine {
     reaction: 'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent',
     engagementScore: number
   ): void {
+    context = { ...context, topic: labels.safeTopic(context.topic) };
     const existing = this.storyResonance.get(storyId);
 
     if (existing) {
@@ -352,6 +349,7 @@ export class CommunityInsightsEngine {
     context: string,
     engagementLift: number
   ): void {
+    [questionPattern, topic, context] = labels.labelBreakthrough(questionPattern, topic, context);
     const existing = this.effectiveQuestions.find(
       (q) => q.questionPattern === questionPattern && q.personaId === personaId
     );
@@ -587,12 +585,12 @@ export class CommunityInsightsEngine {
     limit = 3
   ): Array<{ question: string; expectedBreakthroughRate: number; bestContext: string }> {
     return this.effectiveQuestions
-      .filter((q) => q.personaId === personaId && q.topic === topic)
+      .filter((q) => q.personaId === personaId && q.topic === labels.safeTopic(topic))
       .filter((q) => q.sampleSize >= this.MIN_SAMPLES)
       .sort((a, b) => b.avgBreakthroughRate - a.avgBreakthroughRate)
       .slice(0, limit)
       .map((q) => ({
-        question: q.questionPattern,
+        question: labels.describeQuestion(q.questionPattern),
         expectedBreakthroughRate: q.avgBreakthroughRate,
         bestContext: q.bestContexts[0] || 'any',
       }));
@@ -621,6 +619,7 @@ export class CommunityInsightsEngine {
       ...signal,
       context: {
         ...signal.context,
+        topic: labels.safeTopic(signal.context.topic),
         // Coarsen time to day granularity
         turnInConversation: Math.floor(signal.context.turnInConversation / 5) * 5,
       },
@@ -707,6 +706,7 @@ export class CommunityInsightsEngine {
     effectiveQuestions?: EffectiveQuestion[];
     storyResonance?: StoryResonance[];
   }): void {
+    data = labels.relabelInsights(data); // rows saved before labels can hold callers' words
     if (data.patterns) {
       for (const p of data.patterns) {
         this.patterns.set(p.id, p);

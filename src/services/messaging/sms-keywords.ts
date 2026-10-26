@@ -102,6 +102,15 @@ export function normalizeSms(body: string): string {
   return /^(?:\p{L} )+\p{L}$/u.test(s) ? s.replace(/ /g, '') : s;
 }
 
+/**
+ * The whole text is one consent keyword: Twilio's own ("STOP", "help?") or one
+ * of EXACT_STOP's phrases ("opt out", "stop all"). A request, not a disclosure.
+ */
+export function isExactKeyword(body: string): boolean {
+  const said = normalizeSms(body);
+  return TWILIO.has(said) || EXACT_STOP.has(said);
+}
+
 /** What an inbound text means for consent (see the module comment), or null. */
 export function inboundKeyword(body: string): InboundKeyword | null {
   const raw = body.trim().toLowerCase();
