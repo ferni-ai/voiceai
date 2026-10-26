@@ -230,7 +230,8 @@ describe('what the screen logs and how long it waits', () => {
     // Each text's two lines share one id, and no two texts share an id, so a
     // missing classifier line is countable per text.
     const stagesById = new Map<unknown, unknown[]>();
-    for (const f of fields) stagesById.set(f.screenId, [...(stagesById.get(f.screenId) ?? []), f.stage]);
+    for (const f of fields)
+      stagesById.set(f.screenId, [...(stagesById.get(f.screenId) ?? []), f.stage]);
     expect(stagesById.size).toBe(3);
     for (const [id, stages] of stagesById) {
       expect(typeof id).toBe('string');
@@ -294,6 +295,29 @@ describe('what the screen logs and how long it waits', () => {
       expect(SMS_CLASSIFIER_TIMEOUT_MS).toBeLessThanOrEqual(4_000);
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it('a read that rejects with a value with no string form still falls back to the pattern guard (on) and never rejects (shadow)', async () => {
+    const exotic = async (): Promise<SmsCrisisRead> => {
+      throw Object.create(null);
+    };
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'on');
+    expect(await smsCrisisReply('i want to kill myself', exotic)).toBe(SMS_CRISIS_REPLY);
+    expect(await smsCrisisReply('see you at 6', exotic)).toBeNull();
+
+    vi.stubEnv('SMS_CRISIS_SCREEN', 'shadow');
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      expect(await smsCrisisReply('i want to kill myself', exotic)).toBeNull();
+      await new Promise((r) => {
+        setTimeout(r, 20);
+      });
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
     }
   });
 });
