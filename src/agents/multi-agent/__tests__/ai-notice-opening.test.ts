@@ -12,6 +12,7 @@ const fs = vi.hoisted(() => ({
   added: [] as Array<{ userId: string; row: Row }>,
   reads: 0,
   slow: false,
+  fails: false,
 }));
 
 function fakeDb() {
@@ -25,6 +26,7 @@ function fakeDb() {
               limit: (n: number) => ({
                 get: async () => {
                   fs.reads++;
+                  if (fs.fails) throw new Error('firestore unavailable');
                   if (fs.slow)
                     await new Promise((r) => {
                       setTimeout(r, 5_000);
@@ -77,6 +79,7 @@ beforeEach(() => {
   fs.added = [];
   fs.reads = 0;
   fs.slow = false;
+  fs.fails = false;
   resetAiNotices();
 });
 afterEach(() => {
@@ -136,6 +139,14 @@ describe('AI notice in the first line (AI_NOTICE_SPOKEN=on)', () => {
     const started = Date.now();
     const line = await firstLine(nextSession(), 'user-1');
     expect(Date.now() - started).toBeLessThan(2_000);
+    expect(line).toContain(OPENING_NOTICE);
+  });
+
+  it('a lookup that fails: says it, even to someone who heard it 2 h ago (never skips on doubt)', async () => {
+    fs.rows.set('user-1', [{ at: new Date(Date.now() - 2 * HOUR), kind: 'opening' }]);
+    fs.fails = true;
+    const line = await firstLine(nextSession(), 'user-1');
+    expect(fs.reads).toBe(1);
     expect(line).toContain(OPENING_NOTICE);
   });
 
