@@ -24,7 +24,7 @@
 export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis-detection.js';
 /** The crisis guard's scoring of the caller's words alone: quiet, no logging (heavy-moment.ts). */
 export { detectCrisis as scoreCrisisLanguage, IN_DANGER_NOW } from './crisis-guard.js';
-export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
+export { noteMeansInHandShadow } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
 export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';

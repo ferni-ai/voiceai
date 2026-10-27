@@ -19,7 +19,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return { createLogger: () => logger, getLogger: () => logger, default: logger, logger };
 });
 
-import { detectCrisis } from '../crisis-guard.js';
+import { detectCrisis, sessionSeverityOf } from '../crisis-guard.js';
 import { LIVE_FORMS, resolveMeansInHandMode } from '../crisis-means-in-hand.js';
 import { noteMeansInHandShadow, readsImminentLive, tierOf } from '../crisis-means-shadow.js';
 import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
@@ -166,5 +166,60 @@ describe('the security-review bypasses', () => {
     'i have the tablets in front of me, ipads for the class',
   ])('no live form reads it; the classifier decides: "%s"', (text) => {
     expect(live(text)).toEqual(off(text));
+  });
+});
+
+describe('round 2 (verifier r1 follow-ups)', () => {
+  it.each(["she texted me 'i took them all'", 'she texted me "i took them all"'])(
+    "someone else's reported words are not the caller's 911: %s",
+    (text) => {
+      expect(live(text)).toEqual(off(text));
+      expect(imminent(live(text))).toBe(false);
+    }
+  );
+
+  it.each(['the nail gun is in my hand', "the nail gun is in my hand and i'm going to use it now"])(
+    'a tool called a gun is not the means, in any form: "%s"',
+    (text) => {
+      expect(live(text)).toEqual(off(text));
+      expect(all(text).indicators.some((i) => i.startsWith('means_form:'))).toBe(false);
+    }
+  );
+
+  it.each(['', 'shadow', 'live'])(
+    'a shadow-only match never counts toward a later turn (mode "%s")',
+    (mode) => {
+      vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
+      expect(sessionSeverityOf('i have the pills right here')).toBe(0);
+      const later = 'everything is too much right now.';
+      const earlier = { recentMessages: ['i have the pills right here'] };
+      const main = detectCrisis(later, undefined, { ...earlier, meansInHand: 'off' });
+      expect(main.indicators).not.toContain('session_escalation');
+      expect(detectCrisis(later, undefined, earlier)).toEqual(main);
+    }
+  );
+
+  it.each([
+    'i took 10 tylenol over the whole week for my back',
+    'i took 2 advil a day since monday',
+    "the blade is against my wrist, i'm doing the ink outline for my tattoo",
+    "i took 30 tylenol to my grandma's house in her pill organizer",
+  ])('a spread-out count, carrying, or a tattoo is not the 911 script: "%s"', (text) => {
+    expect(live(text)).toEqual(off(text));
+  });
+
+  it.each([
+    'i took 30 tylenol to kill myself',
+    'i took 40 tylenol an hour ago',
+    'i took 20 advil over the last hour',
+    'the blade is against my wrist, goodbye',
+  ])('the same forms still read 911 when nothing spreads or carries them: "%s"', (text) => {
+    expect(imminent(live(text))).toBe(true);
+  });
+
+  it('the shadow log names the form that would act: ending words beside the means', () => {
+    const text = 'i want to die and i have the pills right here';
+    expect(all(text).indicators).toContain('means_form:ending_beside_means');
+    expect(all('i have the pills right here').indicators).toContain('means_form:means_in_hand');
   });
 });

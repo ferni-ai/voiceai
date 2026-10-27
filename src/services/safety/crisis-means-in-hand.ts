@@ -59,6 +59,11 @@ const DID_IT = String.raw`\bi (?:just |finally |actually |already )?(?:did it|we
  * A dose, for the past tense. Seth's call on #2697: "i took my meds" and "yes i took them" are
  * medication check-ins, so a past dose needs one of these (the classifier still reads the rest).
  */
+/**
+ * A count spread over time ("10 tylenol over the whole week", "2 a day") or carried somewhere
+ * ("took 30 tylenol to my grandma's house") is not a dose taken now (#2717 r2 verifier).
+ */
+const NOT_SPREAD_OR_CARRIED = String.raw`(?![^.!?]*\b(?:over the (?:whole |entire |past |last )?(?:week|month)|(?:per|a|each|every) day\b(?! ago)|daily|since (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|last week|yesterday)|this (?:week|month)|in a week)\b)(?! to (?:my |the |her |his |their |our |a )?(?:[\w']+ ){0,2}(?:house|home|place|office|work|school|car|room|pharmacy|store|apartment|organizer)\b)`;
 const DOSE_TAKEN = String.raw`(?:(?:them|em|these|those) all|all of (?:them|em|these|those|the pills|my pills|my meds)|all (?:the|my) (?:pills|meds|tablets)|the (?:whole|entire) bottle|everything|every (?:last |single )?(?:one|pill)(?: i (?:have|had))?|a (?:bottle|handful|bunch|whole bottle)(?: of (?:pills|meds|tablets|them|sleeping pills|painkillers))?|(?:like |about |maybe |over )?(?:[1-9]\d|\d{3,}) (?:of (?:them|em|my pills|my meds)|pills|tablets))`;
 /** A strength is not a count: "500 mg of tylenol", "25 units of insulin". */
 const NOT_A_UNIT = String.raw`(?! ?(?:mg|mgs|mcg|µg|ug|milligrams?|micrograms?|grams?|g|units?|u|ml|mls|milliliters?|millilitres?|cc|iu|drops?|puffs?|mmol|percent|%)\b)`;
@@ -103,14 +108,14 @@ const FORMS: readonly MeansForm[] = [
   // Means on the body: "the noose is around my neck", "gun pointed at my head".
   {
     name: 'on_body',
-    re: /\bnoose (is )?(around|on) my neck\b|\b(gun|pistol|revolver) (is )?(pointed|aimed) at my (head|chest|temple|face)\b|\b(knife|blade|razor) (is )?(to|against|on) my (wrists?|throat|neck)\b|\bloaded (gun|pistol|revolver)\b[^.!?]{0,20}\b(next to me|in my lap|in my hand)\b/,
+    re: /\bnoose (is )?(around|on) my neck\b|\b(gun|pistol|revolver) (is )?(pointed|aimed) at my (head|chest|temple|face)\b|\b(knife|blade|razor) (is )?(to|against|on) my (wrists?|throat|neck)\b(?![^.!?]*\b(tattoo\w*|ink outline|inking|shav\w*|henna|stencil|piercing)\b)|\bloaded (gun|pistol|revolver)\b[^.!?]{0,20}\b(next to me|in my lap|in my hand)\b/,
     tag: 'suicidal',
   },
   // An overdose named by the drug: "i took 40 tylenol", "a whole bottle of tylenol".
   {
     name: 'drug_count',
     re: new RegExp(
-      String.raw`\b(?:took|taken|swallowed|downed) (?:like |about |maybe |over |almost )?(?:(?:[1-9]\d|\d{3,})\b${NOT_A_UNIT}|a (?:bunch|handful|lot|whole bottle)|all|too many|the (?:whole|entire|rest of the) (?:bottle|pack))\b[^.!?]{0,25}\b${DRUGS}\b`
+      String.raw`\b(?:took|taken|swallowed|downed) (?:like |about |maybe |over |almost )?(?:(?:[1-9]\d|\d{3,})\b${NOT_A_UNIT}|a (?:bunch|handful|lot|whole bottle)|all|too many|the (?:whole|entire|rest of the) (?:bottle|pack))\b[^.!?]{0,25}\b${DRUGS}\b${NOT_SPREAD_OR_CARRIED}`
     ),
     tag: 'suicidal',
   },
@@ -188,7 +193,7 @@ const REPORTED =
 /** A quote opened after the reporting words and still open where the match starts. */
 const QUOTED = new RegExp(String.raw`${REPORTED.source}[^"]*"[^"]*$`);
 /** Softened in a way the shared modifiers miss: negated means, or not happening. */
-export function meansSoftened(text: string, start: number, end: number): boolean {
+function meansSoftened(text: string, start: number, end: number): boolean {
   const span = text.slice(start, end);
   const clause =
     text
@@ -236,24 +241,33 @@ export function meansInHandRead(
   if (forms === 'none') return null;
   const free = (start: number, end: number): boolean =>
     !softened.some(([s, e]) => start < e && end > s) && !meansSoftened(text, start, end);
-  const counts = (form: MeansFormName): boolean => forms === 'all' || LIVE_FORMS.has(form);
-  for (const { name, re, tag } of FORMS) {
-    if (!counts(name)) continue;
-    for (const m of text.matchAll(new RegExp(re.source, 'g'))) {
+  const read = (form: MeansForm): { tag: 'suicidal' | 'self_harm'; form: MeansFormName } | null => {
+    for (const m of text.matchAll(new RegExp(form.re.source, 'g'))) {
       const end = m.index + m[0].length;
       if (free(m.index, end) && explicitModifier(text, m.index, end, true) === null) {
-        return { tag, form: name };
+        return { tag: form.tag, form: form.name };
       }
     }
-  }
-  // Ending words already read explicit, with the means at hand: 911 first (severity unchanged).
-  if (!counts('ending_beside_means')) return null;
-  if (!indicators.includes('explicit_crisis_language') && !indicators.includes('plan_or_means')) {
     return null;
+  };
+  // Live forms first, then ending words beside the means, then (the shadow log only) the rest, so
+  // the log names the form that would act ("i want to die and i have the pills right here").
+  for (const form of FORMS) {
+    const hit = LIVE_FORMS.has(form.name) ? read(form) : null;
+    if (hit) return hit;
   }
-  for (const m of text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g'))) {
-    if (free(m.index, m.index + m[0].length))
+  const ending =
+    (forms === 'all' || LIVE_FORMS.has('ending_beside_means')) &&
+    (indicators.includes('explicit_crisis_language') || indicators.includes('plan_or_means'));
+  for (const m of ending ? text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g')) : []) {
+    if (free(m.index, m.index + m[0].length)) {
       return { tag: 'suicidal', form: 'ending_beside_means' };
+    }
+  }
+  if (forms !== 'all') return null;
+  for (const form of FORMS) {
+    const hit = LIVE_FORMS.has(form.name) ? null : read(form);
+    if (hit) return hit;
   }
   return null;
 }
