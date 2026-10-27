@@ -52,8 +52,9 @@ describe('the mode', () => {
   it.each(NEW_IMMINENT)('off and shadow read "%s" exactly as main; live reads 911', (text) => {
     const main = off(text);
     expect(main.indicators).not.toContain('imminent_danger');
-    for (const mode of [undefined, 'shadow', 'off']) {
-      if (mode) vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
+    // '' is unset: the default, whatever the process was started with.
+    for (const mode of ['', 'shadow', 'off']) {
+      vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
       expect(detectCrisis(text)).toEqual(main);
       expect(assessSafety(text).flags).not.toContain('suicidal: imminent means or attempt');
     }
