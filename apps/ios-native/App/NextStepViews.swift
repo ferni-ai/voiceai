@@ -19,26 +19,23 @@ enum StepWords {
     }
 }
 
-/// The event the system's event sheet opens with. Calendars show on the Lock
-/// Screen and in widgets, so a heavy topic gets a neutral title the person
-/// can change in the sheet. The light-topic rule lives on the server; this
-/// is a cautious local check of the step's topic and words.
+/// The event the system's event sheet opens with. Calendar titles show on the
+/// Lock Screen and in widgets, and the Lock Screen never shows the person's
+/// own words, so the title is always neutral and their step goes in the notes,
+/// which only show inside Calendar. No word list can know what's sensitive
+/// ("call 988 tonight", "pick up my zoloft prescription" passed the old one).
+/// The person still sees the title in the system sheet and can change it.
 enum CalendarDraft {
     static let neutralTitle = String(localized: "Something you mentioned to Ferni")
-    static let heavy: Set<String> = [
-        "health", "medical", "doctor", "hospital", "diagnosis", "therapy", "therapist", "medication",
-        "money", "finance", "debt", "loan", "grief", "funeral", "relationship", "divorce", "breakup",
-        "legal", "lawyer", "court", "custody",
-    ]
 
     static func fill(_ event: EKEvent, from step: NextSteps.Step) {
-        let words = Set(([step.topic ?? ""] + step.text.lowercased().split { !$0.isLetter }.map(String.init)).map { $0.lowercased() })
-        event.title = words.isDisjoint(with: heavy) ? String(step.text.prefix(1).uppercased() + step.text.dropFirst()) : neutralTitle
+        event.title = neutralTitle
         if let due = step.due {
             event.startDate = due
             event.endDate = due.addingTimeInterval(30 * 60)
         }
-        event.notes = String(localized: "From a talk with Ferni.")
+        let words = step.text.prefix(1).uppercased() + step.text.dropFirst()
+        event.notes = String(localized: "From a talk with Ferni: \(words)")
     }
 }
 

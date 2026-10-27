@@ -21,20 +21,43 @@ final class NextStepTests: XCTestCase {
     func testTheCalendarEventIsPrefilledForTheSheet() {
         let event = EKEvent(eventStore: EKEventStore())
         CalendarDraft.fill(event, from: NextSteps.Step(id: "c3", text: "call the pharmacy", due: due, topic: "errands"))
-        XCTAssertEqual(event.title, "Call the pharmacy")
+        XCTAssertEqual(event.title, CalendarDraft.neutralTitle)
         XCTAssertEqual(event.startDate, due)
         XCTAssertEqual(event.endDate, due.addingTimeInterval(30 * 60))
-        XCTAssertEqual(event.notes, "From a talk with Ferni.")
+        XCTAssertEqual(event.notes, "From a talk with Ferni: Call the pharmacy")
     }
 
-    /// Calendars show on the Lock Screen and in widgets: a heavy topic gets a
-    /// neutral title the person can change in the sheet.
-    func testAHeavyTopicGetsANeutralTitle() {
-        for (topic, text) in [("health", "book the scan"), ("money", "pay the loan"), (nil, "call the lawyer about custody")] {
+    /// Calendar titles show on the Lock Screen and in widgets, and the Lock
+    /// Screen never shows the person's words: every title is neutral, light or
+    /// heavy, and the words go in the notes. These are the train 26 verifier's
+    /// held-out phrases (a word list let 11 of 12 sensitive ones through) and a
+    /// light one.
+    func testNoTitleCarriesTheirWords() {
+        let phrases = [
+            "call the pharmacy", "call 988 tonight", "see the psychiatrist on monday", "go to my AA meeting",
+            "pick up my zoloft prescription", "call my therapist", "book the oncologist", "pay the overdue rent",
+            "talk to my counselor", "call the crisis line", "doctors appointment", "take my meds", "call mom",
+            "buy milk",
+        ]
+        for text in phrases {
             let event = EKEvent(eventStore: EKEventStore())
-            CalendarDraft.fill(event, from: NextSteps.Step(id: "x", text: text, due: due, topic: topic))
-            XCTAssertEqual(event.title, CalendarDraft.neutralTitle, "\(topic ?? "-") \(text)")
+            CalendarDraft.fill(event, from: NextSteps.Step(id: text, text: text, due: due, topic: nil))
+            XCTAssertEqual(event.title, CalendarDraft.neutralTitle, text)
+            let notes = event.notes ?? ""
+            XCTAssertTrue(notes.hasPrefix("From a talk with Ferni: "), "\(text): \(notes)")
+            XCTAssertTrue(notes.localizedCaseInsensitiveContains(text), "\(text): \(notes)")
+            XCTAssertEqual(event.startDate, due, text)
+            XCTAssertEqual(event.endDate, due.addingTimeInterval(30 * 60), text)
         }
         XCTAssertEqual(CalendarDraft.neutralTitle, "Something you mentioned to Ferni")
+    }
+
+    /// A heavy topic with light words is neutral too (the old check's case).
+    func testATopicDoesNotChangeTheTitle() {
+        for (topic, text) in [("health", "book the scan"), ("money", "pay the loan"), ("errands", "buy milk")] {
+            let event = EKEvent(eventStore: EKEventStore())
+            CalendarDraft.fill(event, from: NextSteps.Step(id: "x", text: text, due: due, topic: topic))
+            XCTAssertEqual(event.title, CalendarDraft.neutralTitle, "\(topic) \(text)")
+        }
     }
 }
