@@ -195,8 +195,8 @@ export function rememberCallerPhone(
   return false;
 }
 
-function bindParticipantPhone(sessionId: string, participant: SipParticipantLike | undefined) {
-  const e164 = toE164(participant?.attributes?.['sip.phoneNumber']);
+function bindParticipantPhone(sessionId: string, p: SipParticipantLike | undefined): boolean {
+  const e164 = toE164(p?.attributes?.['sip.phoneNumber']);
   if (e164) bindSessionPhone(sessionId, e164);
   return !!e164;
 }
@@ -216,8 +216,9 @@ export function watchCallerPhone(
 ): void {
   if (rememberCallerPhone(sessionId, room) || !room.on || !room.off) return;
   const events = room as RoomLike;
-  const joined = (p: SipParticipantLike) => void (bindParticipantPhone(sessionId, p) && stop());
-  const changed = (_: Record<string, string>, p: SipParticipantLike) => joined(p);
+  const joined = (p: SipParticipantLike): void =>
+    void (bindParticipantPhone(sessionId, p) && stop());
+  const changed = (_: Record<string, string>, p: SipParticipantLike): void => joined(p);
   const stop = (): void => {
     clearTimeout(timer);
     events.off('participantConnected', joined);
