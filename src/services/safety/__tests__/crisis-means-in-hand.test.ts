@@ -169,6 +169,7 @@ describe('live: everyday look-alikes', () => {
     'the drill gun is in my hand',
     'i have the jump rope right here',
     'i have my blood pressure pills right here',
+    'i have my anti anxiety pills in my hand',
     "i'm taking my meds now",
     "i'm taking them now, my antidepressants, like the doctor said",
     'i have the tablets in front of me, ipads for the class',

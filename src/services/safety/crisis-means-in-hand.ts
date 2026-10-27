@@ -31,9 +31,7 @@ export function resolveMeansInHandMode(
 /** Tools and toys called guns, and ropes for play or work, are not the means. */
 const TOOL_GUN = String.raw`(?<!\b(?:nail|glue|water|nerf|toy|heat|staple|spray|paint|caulk|caulking|squirt|bb|airsoft|paintball|grease|massage|label|price|tattoo|foam|bubble|glitter|radar|speed|scan|scanner|barcode|drill|rivet|tape|dart|flare|starter|laser|cap|finger|hot glue|thermometer|temperature|temp|brad|tack|stud|ice|snow|hot|silicone|tire|air|\w+ing) )`;
 const PLAY_ROPE = String.raw`(?<!\b(?:jump|jumping|skip|skipping|tow|climbing|tug of war|clothes|bungee|dog|swing) )`;
-/** "my pills" alone is the caller's medication ("i have my blood pressure pills right here"). */
-const NOT_MY = String.raw`(?<!(?<!\ball )\bmy (?:[\w-]+ ){0,2})`;
-const MEANS = String.raw`(?:${NOT_MY}(?:pills|meds|tablets)|${TOOL_GUN}gun|pistol|${PLAY_ROPE}rope|noose|razor|blades?)`;
+const MEANS = String.raw`(?:pills|meds|tablets|${TOOL_GUN}gun|pistol|${PLAY_ROPE}rope|noose|razor|blades?)`;
 const WHERE = String.raw`(?:right here|in my hands?|in front of me)(?: (?:right here|in my hands?|in front of me|right now))?`;
 const PILLS_TAKEN = String.raw`(?:them|em|these|those|every (?:last |single )?(?:one|pill)(?: i have)?|all of (?:them|em|these|those|the pills|my pills)|all (?:the|my) (?:pills|meds|tablets)|the (?:pills|meds|tablets)|(?:these |those )?(?:pills|meds|tablets)|the (?:whole|entire) bottle|everything|a (?:bottle|handful)(?: of (?:pills|meds|tablets|them|sleeping pills|painkillers))?)`;
 /**
@@ -140,9 +138,12 @@ const REPORTED =
   /\b(he|she|they|my (\w+ )?(friend|brother|sister|mom|mother|dad|father|son|daughter|kid|child|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|neighbor))('s| is| was)? (said|says|texted|texts|wrote|writes|told me|posted|messaged|keeps saying|just said)\b/;
 /** A quote opened after the reporting words and still open where the match starts. */
 const QUOTED = new RegExp(String.raw`${REPORTED.source}[^"]*"[^"]*$`);
-/** An everyday setting for the means, unless the words name an overdose amount. */
+/**
+ * An everyday setting for the means, unless the words name an overdose amount. "my pills" alone is
+ * the caller's medication ("i have my heart pills right here", "i'm taking my meds now").
+ */
 const EVERYDAY =
-  /(?<!\ball )\bmy ([\w-]+ )?(pills|meds|medication|medicine|prescription)\b|\b(deer|kayak|sailing|leash|shav(e|es|ed|ing|er)|belay(ing)?|climbing|camping|tent|tarp|hammock|the range|shooting range|target practice|hunting|police|officer|cop|deputy|on duty|holster|security guard|pharmacist|pharmacy|nurse|ipads?|laptops?|museum|stone tablets?|halloween|costume|prop|rehearsal|vitamins?|with food|with water|(the |my )?doctor (said|told me|prescribed|wants|ordered)|prescri(bed|ption)|refill|as (directed|prescribed)|like always|every (day|night|morning)|daily|bedtime|before bed|allerg(y|ies)|headache|blood pressure|antibiotics?|birth control|cholesterol|thyroid|tie (it|them|the)|knot for)\b/;
+  /(?<!\ball )\bmy ([\w-]+ ){0,2}(pills|meds|medication|medicine|prescription)\b|\b(deer|kayak|sailing|leash|shav(e|es|ed|ing|er)|belay(ing)?|climbing|camping|tent|tarp|hammock|the range|shooting range|target practice|hunting|police|officer|cop|deputy|on duty|holster|security guard|pharmacist|pharmacy|nurse|ipads?|laptops?|museum|stone tablets?|halloween|costume|prop|rehearsal|vitamins?|with food|with water|(the |my )?doctor (said|told me|prescribed|wants|ordered)|prescri(bed|ption)|refill|as (directed|prescribed)|like always|every (day|night|morning)|daily|bedtime|before bed|allerg(y|ies)|headache|blood pressure|antibiotics?|birth control|cholesterol|thyroid|tie (it|them|the)|knot for)\b/;
 const OVERDOSE_AMOUNT =
   /\ball\b|whole bottle|entire bottle|every (last |single )?(one|pill)|handful|bunch|\b([2-9]\d|\d{3})\b(?! ?(mg|mcg|units?|ml|iu|g)\b)/;
 
