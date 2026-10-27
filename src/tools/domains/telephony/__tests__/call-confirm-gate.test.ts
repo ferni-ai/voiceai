@@ -257,8 +257,8 @@ describe('calls on behalf wait for the caller', () => {
     it('a yes that adds someone, or a yes spoken over Ferni, rings nothing', async () => {
       const added = liveCall();
       await added.call('callOnBehalf', DAD, 'c1');
-      added.caller('Go ahead, call Bob.');
-      expect(await added.call('callAndConverse', DAD, 'c2')).toContain('NOT SENT YET');
+      added.caller('Go ahead, call Bob.'); // someone else: a redirect, which ends it
+      expect(await added.call('callAndConverse', DAD, 'c2')).toContain('Nothing was sent');
       const over = liveCall();
       await over.call('callOnBehalf', DAD, 'c1');
       over.session.agentState = 'speaking';

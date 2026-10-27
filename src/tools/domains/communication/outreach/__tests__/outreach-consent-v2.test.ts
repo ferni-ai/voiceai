@@ -285,14 +285,23 @@ describe('it never loops', () => {
 
 /** Security review of the first push: each of these could have placed a call the owner refused. */
 describe('deny by default', () => {
-  it('a no stays a no: Ferni asking again, even naming Dad, never revives it', async () => {
+  it('a no stays a no: Ferni asking again, even naming Dad, never places it', async () => {
     setConsentAsk(alwaysYes);
     const call = liveCall();
     await call.call('c1');
     call.owner("No, don't call him.");
     call.ferni('Okay. Should I go ahead and call Dad now?');
     call.owner('Yes.');
-    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+    // At most a fresh read-back, never a call off the old one.
+    expect(await call.call('c2')).toContain('NOT SENT YET. Read this');
+    expect(sends).toHaveLength(0);
+    // Ferni asking again without naming Dad doesn't even reopen it.
+    const bare = liveCall();
+    await bare.call('b1');
+    bare.owner('No.');
+    bare.ferni("I haven't actually dialed yet, though. Should I go ahead and call?");
+    bare.owner('Yes.');
+    expect(await bare.call('b2')).toContain("Okay, I won't call Dad.");
     // A deferral or a redirect is as final as a no.
     for (const ended of ['Call him tomorrow.', 'Okay, he can call me.']) {
       const again = liveCall();
@@ -405,5 +414,73 @@ describe('deny by default', () => {
     call.owner('Yes, go ahead and call Dad.');
     await call.call('c2');
     expect(sends).toHaveLength(1);
+  });
+
+  it('"Wait, which number?" is a question, not a no: answered, the next yes places it', async () => {
+    for (const ask of ['Wait, which number?', 'Hold on, which number is that?', 'Hang on, who?']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(ask);
+      call.ferni('The one ending in 0002.');
+      call.owner('Yes.');
+      await call.call('c2');
+    }
+    expect(sends).toHaveLength(3);
+    // A bare pause, or one with a no in it, is still a no.
+    for (const no of ['Hold on a second.', 'Wait, no, which number?']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(no);
+      expect(await call.call('c2'), no).toContain("Okay, I won't call Dad.");
+    }
+  });
+
+  it('asking again after a no gets a fresh read-back, never a call off those words', async () => {
+    for (const again of ['No, call him!', 'I said yes.', 'I said call him.', 'Call Dad.']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner('No.');
+      expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+      call.owner(again);
+      expect(await call.call('c3'), again).toContain('NOT SENT YET. Read this');
+      expect(sends, again).toHaveLength(0);
+      call.owner('Yes.');
+      await call.call('c4');
+      expect(sends, again).toHaveLength(1);
+      sends.length = 0;
+    }
+    // Someone else, or another no, never reopens it.
+    for (const not of ['No, call my mom.', "No, don't call him."]) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner('No.');
+      await call.call('c2');
+      call.owner(not);
+      expect(await call.call('c3'), not).not.toContain('NOT SENT YET');
+    }
+  });
+
+  it('clear-cut refusals are caught before the judge: an always-yes judge places none', async () => {
+    setConsentAsk(alwaysYes);
+    for (const reply of [
+      'Maybe.',
+      'Hmm, let me think about it.',
+      'Hmm, I guess.',
+      'Go ahead and call the doctor.',
+      'Yes, call 555-0199.',
+      'Yes, have Maya call him.',
+      'Just send him a text.',
+      'Sure, in an hour.',
+      'Yeah, give my brother a call.',
+      "Call him when he's awake.",
+      'go ahead and call peter',
+      'Oh yeah, sure, because that worked so well last time.',
+    ]) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(reply);
+      await call.call('c2');
+      expect(sends, reply).toHaveLength(0);
+    }
   });
 });

@@ -16,13 +16,7 @@
 
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isPlainNo } from './consent-words.js';
-import {
-  channelOf,
-  isReadBack,
-  mentionsChannel,
-  personOf,
-  type ConfirmState,
-} from './consent-window.js';
+import { channelOf, asksAgain, isReadBack, personOf, type ConfirmState } from './consent-window.js';
 import { dropConfirmThread } from './confirm-thread.js';
 import { stillWaitingReply, targetOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction, SessionLog } from './outreach-confirm.js';
@@ -46,12 +40,18 @@ function keyOf(action: Action): string {
   return `${channelOf(action)}:${address ?? name ?? action.toolId}`;
 }
 
-/** The owner asked for it again, in their own words, after it was closed. */
+/**
+ * After it was closed: the owner asked for this call again ("No, call him!", "I said yes"), or
+ * Ferni read this very action back (naming the person) and the owner answered. Either only
+ * allows a new read-back, never a call.
+ */
 function askedAgain(events: ConfirmEvent[], since: number, action: Action): boolean {
-  const channel = channelOf(action);
-  return events.some(
-    (e) =>
-      e.seq > since && e.kind === 'caller' && mentionsChannel(e.text, channel) && !isPlainNo(e.text)
+  const later = events.filter((e) => e.seq > since);
+  const reread = later.findIndex((e) => e.kind === 'agent' && isReadBack(e.text, action, true));
+  return later.some(
+    (e, i) =>
+      e.kind === 'caller' &&
+      (asksAgain(e.text, action) || (reread >= 0 && i > reread && !isPlainNo(e.text)))
   );
 }
 
@@ -90,12 +90,18 @@ export function forgetAsks(entry: SessionLog, action: Action): void {
 }
 
 /** Drops the stored action, closes it for this request, and says so honestly. */
-export function cancel(entry: SessionLog, pending: PendingAction, why: ConfirmState): string {
+export function cancel(
+  entry: SessionLog,
+  pending: PendingAction,
+  why: ConfirmState,
+  /** The final that ended it may itself ask again ("No, call him!"). */
+  sinceSeq = entry.seq
+): string {
   dropConfirmThread(pending);
   entry.pending = undefined;
   const key = keyOf(pending);
   const asks = (entry.asks ??= new Map<string, AskRecord>());
-  asks.set(key, { previews: asks.get(key)?.previews ?? 1, at: Date.now(), closedSeq: entry.seq });
+  asks.set(key, { previews: asks.get(key)?.previews ?? 1, at: Date.now(), closedSeq: sinceSeq });
   log.info({ toolId: pending.toolId, why }, 'OUTREACH_CONFIRM: cancelled, nothing sent');
   return (
     `Nothing was sent. Tell the caller, in a few words: "${honestLine(pending)}" Don't read it ` +

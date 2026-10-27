@@ -15,7 +15,7 @@
  */
 
 import { judge, judgedNow, type ConsentInput } from './consent-judge.js';
-import { isClearYes, isPlainNo, pronounOf, words } from './consent-words.js';
+import { isClearYes, isPlainNo, NOES, pronounOf, words } from './consent-words.js';
 import { familyOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction } from './outreach-confirm.js';
 
@@ -106,8 +106,17 @@ export function isReadBack(
 
 // STT marks most questions with "?"; these open one even without it ("Do it." does not).
 const ASKS = /^(what|whats|who|whos|where|when|why|how|hows|which)\b/;
+// "Wait, which number?": a question, not a no. It leaves the call waiting for the next answer.
+const PAUSES = /^(um |uh |oh |well )?(wait|hold on|hang on|one sec|one second|just a sec)\b/;
+const ASKS_FOR = /\b(which|who|whos|what|whats|where|when|how|tell me|remind me|repeat|again)\b/;
+const clarifies = (text: string): boolean => {
+  const line = words(text).join(' ');
+  const rest = line.replace(PAUSES, '');
+  if (!PAUSES.test(line) || words(rest).some((w) => NOES.includes(w))) return false;
+  return text.includes('?') || ASKS_FOR.test(rest);
+};
 const isQuestion = (text: string): boolean =>
-  text.includes('?') || ASKS.test(words(text).join(' '));
+  text.includes('?') || ASKS.test(words(text).join(' ')) || clarifies(text);
 
 /**
  * The owner's words that answer the latest read-back; 'void' if other tool output came between.
@@ -146,49 +155,89 @@ export function answerWindow(
 }
 
 // A yes is never taken beside these, from the fast path or the judge: a no, a later time, a
-// condition, or the action redirected to the owner ("he can call you", "check in with me").
-const VETO = new Set([
-  ...'no nope nah not dont never wait stop cancel instead but first myself'.split(' '),
-  ...'later soon after tomorrow tonight morning afternoon evening weekend'.split(' '),
-  ...'monday tuesday wednesday thursday friday saturday sunday'.split(' '),
-]);
-const REDIRECT =
-  /\b(call|text|ring|message) (you|me|us)\b|\bcheck in with (me|us)\b|\b(he|she|they) (can|could|should|will) (call|text|ring)\b/;
+// condition, a hedge ("maybe", "I guess", "because that worked so well"), another channel.
+const VETO = new Set(
+  words(`no nope nah not dont never wait stop cancel instead but first myself later soon after
+    tomorrow tonight morning afternoon evening weekend monday tuesday wednesday thursday friday
+    saturday sunday when if once until unless maybe perhaps guess suppose probably whatever because`)
+);
+const HEDGE =
+  /\b(let me think|think about it|not sure|in (an?|a few|\w+) (minutes?|hours?|bit|while))\b/;
+const CALL_WORD = /\b(call|calling|ring|dial|phone)\b/;
+const OTHER_WAY = /\b(text|texts|message|email|send)\b/;
 // Said at any point after the read-back, these end it for good (deny by default): a plain no, a
 // redirect, or a deferral. Ferni asking again doesn't undo them: the stored action is dropped,
 // and only a fresh read-back (a new preview, consent-loop.ts) can follow.
+const REDIRECT =
+  /\b(call|text|ring|message) (you|me|us)\b|\bcheck in with (me|us)\b|\b(he|she|they) (can|could|should|will) (call|text|ring)\b|\b(have|let|get) \w+ (call|text|ring)\b/;
 const DEFERRED = new Set(
   words('later tomorrow tonight instead monday tuesday wednesday thursday friday saturday sunday')
 );
+const OTHERS = new Set([...KIN, ...words('grandma grandpa cousin friend boss doctor neighbor')]);
+const AFTER_CALL = new Set(words('now right please them'));
+
+/**
+ * Whom "call X" / "give X a call" names: 'other' (another person, relative, name or number:
+ * a redirect), 'odd' (anything else: never a yes without asking), or undefined (this person).
+ */
+function callee(text: string, pending: PendingAction): 'other' | 'odd' | undefined {
+  const target = targetWords(pending);
+  const pronoun = pronounOf(target);
+  const number = (lastFour(pending) && String(pending.args.phoneNumber ?? pending.args.to)) || '';
+  const digits = number.replace(/\D/g, '');
+  if ((text.match(/\d[\d\s().-]{1,}\d/g) ?? []).some((n) => !digits.includes(n.replace(/\D/g, ''))))
+    return 'other';
+  let found: 'odd' | undefined;
+  const objects =
+    /\b(?:call|ring|dial),?\s+(?:my\s+|your\s+|the\s+)?([A-Za-z]+)|\bgive\s+(?:my\s+|your\s+|the\s+)?([A-Za-z]+)\s+a\s+call/gi;
+  for (const m of text.matchAll(objects)) {
+    const raw = m[1] ?? m[2];
+    const w = raw.toLowerCase();
+    if (target.includes(w) || w === pronoun || AFTER_CALL.has(w)) continue;
+    if (!pronoun && (w === 'him' || w === 'her')) continue;
+    if (OTHERS.has(w) || /^[A-Z]/.test(raw) || w === 'him' || w === 'her') return 'other';
+    found = 'odd';
+  }
+  return found;
+}
+
+/** "No, call him!", "I said yes": the owner asking for THIS call again, after a no. */
+export function asksAgain(
+  text: string,
+  pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>
+): boolean {
+  const p = pending as PendingAction;
+  const said = words(text);
+  const line = said.join(' ');
+  if (said.some((w) => VETO.has(w) && w !== 'no') || REDIRECT.test(line) || clarifies(text))
+    return false;
+  if (/\bi said (yes|yeah|call|go ahead)\b/.test(line)) return true;
+  return (
+    mentionsChannel(text, channelOf(p)) &&
+    callee(text, p) === undefined &&
+    /\b(call|text|ring|dial|message)\b/.test(line)
+  );
+}
 
 /** Any final since the read-back was stored, over Ferni or before he read it, that ends it. */
 export function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
   return events.some((e) => {
-    if (e.seq <= pending.createdSeq || e.kind !== 'caller') return false;
+    if (e.seq <= pending.createdSeq || e.kind !== 'caller' || clarifies(e.text)) return false;
     const said = words(e.text);
-    return isPlainNo(e.text) || REDIRECT.test(said.join(' ')) || said.some((w) => DEFERRED.has(w));
+    if (isPlainNo(e.text) || REDIRECT.test(said.join(' ')) || said.some((w) => DEFERRED.has(w)))
+      return true;
+    return callee(e.text, pending) === 'other';
   });
 }
-const CALL_WORD = /\b(call|calling|ring|dial|phone)\b/;
 
-/** "Call Peter", "call my sister", "call her" (for Dad): the call goes to someone else. */
-function callsSomeoneElse(turns: string[], target: readonly string[]): boolean {
-  const pronoun = pronounOf(target);
-  for (const m of turns.join(' ').matchAll(/\bcall,?\s+(?:my\s+|your\s+)?([A-Za-z]+)/gi)) {
-    const w = m[1].toLowerCase();
-    if (target.includes(w) || w === pronoun) continue;
-    if (KIN.has(w) || /^[A-Z]/.test(m[1]) || (pronoun && ['him', 'her'].includes(w))) return true;
-  }
-  return false;
-}
-
-export function vetoed(turns: string[], channel: Channel, target: readonly string[] = []): boolean {
+export function vetoed(turns: string[], pending: PendingAction): boolean {
+  const channel = channelOf(pending);
   const said = words(turns.join(' '));
   const line = said.join(' ');
-  if (said.some((w) => VETO.has(w)) || REDIRECT.test(line)) return true;
-  if (callsSomeoneElse(turns, target)) return true;
-  // "call" phrases never confirm a text.
-  return channel === 'text' && CALL_WORD.test(line);
+  if (said.some((w) => VETO.has(w)) || HEDGE.test(line)) return true;
+  if (turns.some((t) => callee(t, pending) !== undefined)) return true;
+  // "call" phrases never confirm a text, nor "text" a call.
+  return channel === 'text' ? CALL_WORD.test(line) : channel === 'call' && OTHER_WAY.test(line);
 }
 
 /** What the judge is told about this action and answer: no number, no message. */
@@ -218,8 +267,7 @@ export function windowState(
   if (turns.length === 0) return 'waiting';
   const channel = channelOf(pending);
   // An unanswered question is never a yes either ("Okay. How's it going?").
-  const target = targetWords(pending);
-  const veto = answer.overTalk || turns.some(isQuestion) || vetoed(turns, channel, target);
+  const veto = answer.overTalk || turns.some(isQuestion) || vetoed(turns, pending);
   if (!veto && isClearYes(turns.join(' '), targetWords(pending), pending.owner, channel === 'call'))
     return 'confirmed';
   const judged = judgedNow(pending, turns);

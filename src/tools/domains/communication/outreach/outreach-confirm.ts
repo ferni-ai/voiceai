@@ -151,7 +151,7 @@ function record(session: object, event: SessionEvent): void {
   if (event.kind !== 'caller' || !pending) return;
   // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
   if (confirmationState(pending, entry.events, Date.now()) === 'declined')
-    cancel(entry, pending, 'declined');
+    cancel(entry, pending, 'declined', entry.seq - 1);
   // Judged now, in parallel with the model's reply, so the tool call rarely waits on it.
   else void judgeConfirmation(pending, entry.events);
 }

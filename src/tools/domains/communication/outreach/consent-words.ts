@@ -171,7 +171,7 @@ export function isClearNo(text: string): boolean {
 // A reply that opens with one of these is a no to the read-back ("No, wait.", "Hold on, who?").
 const NO_OPENERS = [
   ...'no nope nah dont cancel wait stop'.split(' '),
-  ...'hold on|not now|not yet|never mind|no thanks'.split('|'),
+  ...'hold on|hang on|one sec|one second|not now|not yet|never mind|no thanks'.split('|'),
 ].map((p) => p.split(' '));
 const OPENER_FILLERS = new Set('um uh oh well actually hey ferni'.split(' '));
 
