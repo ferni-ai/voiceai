@@ -2945,6 +2945,70 @@
         }
       }
     },
+    "Good afternoon, %@.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good afternoon, %@."
+          }
+        }
+      }
+    },
     "Good afternoon.": {
       "localizations": {
         "ar": {
@@ -3009,6 +3073,70 @@
         }
       }
     },
+    "Good evening, %@.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good evening, %@."
+          }
+        }
+      }
+    },
     "Good evening.": {
       "localizations": {
         "ar": {
@@ -3069,6 +3197,70 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Good evening."
+          }
+        }
+      }
+    },
+    "Good morning, %@.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Good morning, %@."
           }
         }
       }
@@ -6845,6 +7037,70 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Unlock with %@"
+          }
+        }
+      }
+    },
+    "Up late, %@? I'm here.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Up late, %@? I'm here."
           }
         }
       }

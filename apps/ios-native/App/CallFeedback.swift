@@ -34,6 +34,25 @@ final class CallFeedback {
         }
     }
 
+    /// The feedback for a cue from Ferni's body: the join's note and landing
+    /// tap, and a touch's soft tap. The others stay silent.
+    nonisolated static func effect(for cue: KeyedCue) -> AvatarEffect? {
+        switch cue {
+        case .arrivalChime: .earcon(.arrival)
+        case .land: .haptic(.presence)
+        case .touch: .haptic(.touch)
+        default: nil
+        }
+    }
+
+    /// A cue from Ferni's body (the rig already limits a touch's tap to one every 2 s).
+    func play(_ cue: KeyedCue) {
+        if let effect = Self.effect(for: cue) { play(effect) } // earcons still pass the sound director's gates
+        #if DEBUG
+        if cue == .touch { UITestScenario.Counters.shared.touches += 1 }
+        #endif
+    }
+
     /// One prepared player per sound, on the call's own audio session.
     private func player(for name: String) -> AVAudioPlayer? {
         if let player = players[name] { return player }

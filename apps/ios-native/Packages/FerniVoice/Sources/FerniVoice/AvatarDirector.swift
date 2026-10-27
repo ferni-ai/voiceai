@@ -111,7 +111,10 @@ public struct AvatarDirector: Equatable, Sendable {
             if connection == .arriving { connection = .none }
             if !presencePlayed {
                 presencePlayed = true
-                effects += [.haptic(.presence), .earcon(.arrival)]
+                // Ferni's body plays the join and asks for the note and the tap on
+                // its landing (AvatarView, KeyedMoment.join). Under Reduce Motion
+                // there's no keyed join, so they play here.
+                if reduceMotion { effects += [.haptic(.presence), .earcon(.arrival)] }
             }
         case .agentState(let activity):
             effects += setTurn(Self.turn(for: activity), now: now)
