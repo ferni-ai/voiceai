@@ -10,6 +10,8 @@ import { join } from 'node:path';
 import { FLAG_EXPIRY_BACKFILL, parseBackfill } from '../flag-lifecycle-backfill.js';
 import {
   flagLifecycle,
+  type IssueLookup,
+  issueCounts,
   ISSUE_TBD_UNTIL,
   ISSUE_TBD_WARN_FROM,
   lifecycleWarnings,
@@ -107,9 +109,16 @@ describe('flag lifecycle: warnings (never failures)', () => {
 });
 
 const EXISTING = { isNew: false } as const;
-/** The nightly job has opened 'Flag expiry: voice' as #3001, and nothing for other owners. */
-const voiceIssueOpen = (owner: string): string | undefined =>
-  owner === 'voice' ? '#3001' : undefined;
+/**
+ * A fake GitHub: the nightly job has opened 'Flag expiry: voice' as #3001 (nothing for other
+ * owners), and #7, #12 and #3001 are open issues in this repo. #999999 does not exist.
+ */
+const OPEN = new Set(['#7', '#12', '#3001']);
+const asked: string[] = [];
+const fakeGitHub: IssueLookup = {
+  ownerIssue: (owner) => (asked.push(`owner ${owner}`), owner === 'voice' ? '#3001' : undefined),
+  isOpenIssue: (ref) => (asked.push(`issue ${ref}`), OPEN.has(ref)),
+};
 
 describe('flag lifecycle: the hard rule for a spec a PR adds or edits', () => {
   it('needs its own valid, future expires and an issue', () => {
@@ -149,7 +158,7 @@ describe('flag lifecycle: the hard rule for a spec a PR adds or edits', () => {
     expect(
       specProblems('X', exp({ expires: '2027-01-01', issue: 'TBD' }), '2026-10-23', {
         isNew: true,
-        ownerIssue: voiceIssueOpen,
+        issues: fakeGitHub,
       })
     ).toHaveLength(1);
     expect(
@@ -168,10 +177,13 @@ describe('flag lifecycle: the hard rule for a spec a PR adds or edits', () => {
       /edited after 2027-01-15 and its issue is 'TBD'/
     );
     expect(
-      specProblems('X', spec, '2027-01-15', { isNew: false, ownerIssue: voiceIssueOpen })
+      specProblems('X', spec, '2027-01-15', { isNew: false, issues: fakeGitHub })
     ).toEqual([]);
     expect(
-      specProblems('X', exp({ expires: '2027-03-01', issue: '#7' }), '2027-01-15', EXISTING)
+      specProblems('X', exp({ expires: '2027-03-01', issue: '#7' }), '2027-01-15', {
+        isNew: false,
+        issues: fakeGitHub,
+      })
     ).toEqual([]);
     expect(
       specProblems('X', exp({ expires: '2027-03-01', issue: 'soon' }), '2026-10-23', EXISTING)[0]
@@ -215,22 +227,42 @@ describe('flag lifecycle: after the grace date, touching a flag means fixing it'
       expect(touchedProblems(name, exp(), day)[0], day).toMatch(
         /touched after 2027-01-15 and its issue is 'TBD'/
       );
-    expect(touchedProblems(name, exp({ issue: '#12' }), '2027-01-15')).toEqual([]);
+    expect(touchedProblems(name, exp({ issue: '#12' }), '2027-01-15', fakeGitHub)).toEqual([]);
   });
 
   it("accepts the owner's open nightly issue for a backfilled flag, with no hand edit", () => {
     const name = Object.keys(FLAG_EXPIRY_BACKFILL)[0]!;
-    const asked: string[] = [];
-    const lookup = (owner: string): string | undefined => {
-      asked.push(owner);
-      return voiceIssueOpen(owner);
-    };
-    expect(touchedProblems(name, exp(), '2027-01-15', lookup)).toEqual([]); // owner voice: #3001
-    expect(touchedProblems(name, exp({ owner: 'memory' }), '2027-01-15', lookup)).toHaveLength(1);
+    expect(touchedProblems(name, exp(), '2027-01-15', fakeGitHub)).toEqual([]); // owner voice: #3001
+    expect(touchedProblems(name, exp({ owner: 'memory' }), '2027-01-15', fakeGitHub)).toHaveLength(1);
     // before the cut-off nothing is looked up (no gh call in CI until 2027-01-15)
     asked.length = 0;
-    expect(touchedProblems(name, exp(), '2027-01-14', lookup)).toEqual([]);
+    expect(touchedProblems(name, exp(), '2027-01-14', fakeGitHub)).toEqual([]);
+    expect(touchedProblems(name, exp({ issue: '#999999' }), '2027-01-14', fakeGitHub)).toEqual([]);
     expect(asked).toEqual([]);
+  });
+
+  it('from 2027-01-15 an issue number counts only if it is an OPEN issue in this repo', () => {
+    // before the cut-off the shape is enough, so nothing changes today
+    expect(issueCounts('#999999', '2027-01-14', undefined)).toBe(true);
+    expect(
+      specProblems('X', exp({ expires: '2027-01-01', issue: '#999999' }), '2026-10-27')
+    ).toEqual([]);
+    // from the cut-off: an open issue counts; a made-up number, or no lookup at all, doesn't
+    expect(issueCounts('#12', '2027-01-15', fakeGitHub)).toBe(true);
+    expect(issueCounts('#999999', '2027-01-15', fakeGitHub)).toBe(false);
+    expect(issueCounts('#12', '2027-01-15', undefined)).toBe(false); // fail closed
+    expect(
+      specProblems('X', exp({ expires: '2027-03-01', issue: '#999999' }), '2027-01-15', {
+        isNew: true,
+        issues: fakeGitHub,
+      })[0]
+    ).toMatch(/'#999999' is not an open issue in this repo/);
+    const name = Object.keys(FLAG_EXPIRY_BACKFILL)[0]!;
+    // a backfilled flag with a made-up number of its own: fails unless its owner issue is open
+    expect(
+      touchedProblems(name, exp({ owner: 'memory', issue: '#999999' }), '2027-01-15', fakeGitHub)[0]
+    ).toMatch(/'#999999' is not an open issue in this repo/);
+    expect(touchedProblems(name, exp({ issue: '#999999' }), '2027-01-15', fakeGitHub)).toEqual([]);
   });
 
   it('caps a new or edited expires at 180 days, and refuses TBD on an edit after the cut-off', () => {

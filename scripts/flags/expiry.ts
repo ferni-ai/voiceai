@@ -3,9 +3,11 @@
  *
  *   pnpm flags:expiry           CI (Quality Gates): fails only on what this change adds, edits or
  *                               touches (compared with the merge base, flag-lifecycle.ts); expired
- *                               and TBD experiments are warnings only. Past ISSUE_TBD_UNTIL a 'TBD'
- *                               experiment passes while its owner's nightly issue is open (looked
- *                               up with gh, only then; a failed lookup fails closed).
+ *                               and TBD experiments are warnings only. Past ISSUE_TBD_UNTIL an
+ *                               issue counts only if it is an open issue in this repo, and a 'TBD'
+ *                               experiment passes while its owner's nightly issue is open (asked
+ *                               with gh only then; a token that can't read issues fails closed,
+ *                               with an error, githubIssues).
  *   pnpm flags:expiry --issues  nightly (flag-expiry.yml): one open issue per owner listing its
  *                               expired or overdue experiments, closed once the list is empty.
  *
@@ -22,9 +24,10 @@ import {
 } from '../../apps/cli/src/commands/quality/merge-base.js';
 import { parseBackfill } from '../../src/config/flag-lifecycle-backfill.js';
 import {
+  ISSUE_TBD,
+  type IssueLookup,
   isoDay,
   lifecycleWarnings,
-  type OwnerIssue,
   specProblems,
   touchedProblems,
 } from '../../src/config/flag-lifecycle.js';
@@ -117,32 +120,67 @@ export function ownerIssuesFrom(
   return out;
 }
 
-const listOpenOwnerIssues = (): Array<{ number: number; title: string }> =>
-  JSON.parse(
-    execFileSync(
-      'gh',
-      ['issue', 'list', '--state', 'open', '--label', LABEL, '--limit', '200', '--json', 'number,title'],
-      { encoding: 'utf8' }
-    )
-  ) as Array<{ number: number; title: string }>;
+/** Runs gh and returns stdout; throws on a non-zero exit (a 404 for a missing issue included). */
+export type Gh = (args: string[]) => string;
+const runGh: Gh = (args) =>
+  execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
-/** A lookup that asks gh once, on first use, and fails closed (no owner issues) if gh fails. */
-export function lazyOwnerIssue(
-  list: () => ReadonlyArray<{ number: number; title: string }> = listOpenOwnerIssues
-): OwnerIssue {
-  let byOwner: Map<string, string> | undefined;
-  return (owner) => {
-    if (!byOwner) {
-      try {
-        byOwner = ownerIssuesFrom(list());
-      } catch (error) {
-        console.log(
-          `  (could not list the nightly flag-expiry issues, so none count: ${error instanceof Error ? error.message.split('\n')[0] : error})`
-        );
-        byOwner = new Map();
-      }
+const ISSUE_URL = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/issues\/(\d+)$/;
+
+/**
+ * What the Flag expiry check asks GitHub, lazily: nothing until the first question (asked only
+ * past ISSUE_TBD_UNTIL), then a probe that the token can read issues at all. A token without
+ * issues: read gets an empty list, not an error (verify of #2577, 2026-10-27), so an empty probe
+ * means "can't read issues". It is printed as an error and nothing counts (fail closed, loudly),
+ * never mistaken for "no owner issue is open".
+ */
+export function githubIssues(gh: Gh = runGh): IssueLookup {
+  let seen: { repo: string; byOwner: Map<string, string> } | null | undefined;
+  const open = new Map<string, boolean>();
+  const load = (): typeof seen => {
+    if (seen !== undefined) return seen;
+    try {
+      const probe = JSON.parse(gh(['api', 'repos/{owner}/{repo}/issues?state=all&per_page=1'])) as Array<{
+        repository_url?: string;
+      }>;
+      if (!Array.isArray(probe) || probe.length === 0)
+        throw new Error('the token sees no issue at all (state=all), so it lacks issues: read');
+      const repo = (probe[0]!.repository_url ?? '').replace(/^.*\/repos\//, '').toLowerCase();
+      const list = JSON.parse(
+        gh(['issue', 'list', '--state', 'open', '--label', LABEL, '--limit', '200', '--json', 'number,title'])
+      ) as Array<{ number: number; title: string }>;
+      seen = { repo, byOwner: ownerIssuesFrom(list) };
+    } catch (error) {
+      const why = error instanceof Error ? error.message.split('\n')[0] : String(error);
+      console.log(
+        `${process.env.GITHUB_ACTIONS ? '::error title=Flag expiry::' : '  ❌ '}Cannot read this repo's issues, so no issue number and no owner issue counts (${why}). The quality-gates job needs permissions: issues: read.`
+      );
+      seen = null;
     }
-    return byOwner.get(owner);
+    return seen;
+  };
+  return {
+    ownerIssue: (owner) => load()?.byOwner.get(owner),
+    isOpenIssue: (ref) => {
+      const s = load();
+      if (!s) return false;
+      const url = ISSUE_URL.exec(ref);
+      if (url && url[1]!.toLowerCase() !== s.repo) return false; // another repo's issue
+      const n = url ? url[2]! : /^#(\d+)$/.exec(ref)?.[1];
+      if (!n) return false;
+      if (!open.has(n)) {
+        try {
+          const i = JSON.parse(gh(['api', `repos/{owner}/{repo}/issues/${n}`])) as {
+            state?: string;
+            pull_request?: unknown;
+          };
+          open.set(n, i.state === 'open' && !i.pull_request);
+        } catch {
+          open.set(n, false); // 404: no such issue
+        }
+      }
+      return open.get(n)!;
+    },
   };
 }
 
@@ -202,7 +240,7 @@ function syncIssues(byOwner: Map<string, string[]>, owners: string[]): void {
     const body = join(tmpdir(), `flag-expiry-${owner}.md`);
     writeFileSync(
       body,
-      `Experiments owned by **${owner}** that are past their expiry or still have issue 'TBD' (src/config/flag-lifecycle.ts). For each: delete the flag, make it permanent (kind kill-switch/config), or move \`expires\` with a reason in \`context\`.\n\n${items.map((i) => `- ${i}`).join('\n')}\n\nUpdated nightly by .github/workflows/flag-expiry.yml.`
+      `Experiments owned by **${owner}** that are past their expiry or still have issue '${ISSUE_TBD}' (src/config/flag-lifecycle.ts). For each: delete the flag, make it permanent (kind kill-switch/config), or move \`expires\` with a reason in \`context\`.\n\n${items.map((i) => `- ${i}`).join('\n')}\n\nUpdated nightly by .github/workflows/flag-expiry.yml.`
     );
     if (existing) gh(['issue', 'edit', String(existing.number), '--body-file', body]);
     else gh(['issue', 'create', '--title', title, '--label', LABEL, '--body-file', body]);
@@ -241,15 +279,15 @@ function main(args: string[]): void {
   const edited = editedExperiments(head, baseSpecs);
   const touched = touchedFlags(texts, baseTexts).filter((n) => !edited.includes(n));
   const baseBackfill = readAtBase(base, [BACKFILL], root).get(BACKFILL);
-  const ownerIssue = lazyOwnerIssue();
+  const issues = githubIssues();
   const problems = [
     ...edited.flatMap((name) =>
       specProblems(name, head.get(name)!, today, {
         isNew: baseSpecs.get(name)?.kind !== 'experiment',
-        ownerIssue,
+        issues,
       })
     ),
-    ...touched.flatMap((name) => touchedProblems(name, head.get(name)!, today, ownerIssue)),
+    ...touched.flatMap((name) => touchedProblems(name, head.get(name)!, today, issues)),
     ...backfillProblems(
       baseBackfill === undefined ? null : parseBackfill(baseBackfill),
       parseBackfill(readFileSync(join(root, BACKFILL), 'utf8'))

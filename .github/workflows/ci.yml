@@ -1001,6 +1001,12 @@ jobs:
     name: Quality Gates (Blocking)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
+    # Read-only. Checkout needs contents; Flag expiry reads issues (from 2027-01-15: is an issue
+    # open, is the owner's nightly issue open). Without issues: read the token sees an empty list,
+    # not an error. No other step here calls the GitHub API.
+    permissions:
+      contents: read
+      issues: read
     needs: setup
     # Runs on pull_request too. Skipped there, it first ran in the merge queue, so
     # one PR that grew a 713-line file to 723 failed 15 of 15 merge groups and
@@ -1047,8 +1053,8 @@ jobs:
 
       # Blocks only a PR that adds, edits or touches an experiment flag out of order (src/config/
       # flag-lifecycle.ts); expired and TBD experiments are warning annotations here and a nightly
-      # issue (flag-expiry.yml). From 2027-01-15 it reads those open issues (read-only) so a TBD
-      # experiment passes while its owner's issue is open. ~2 s.
+      # issue (flag-expiry.yml). From 2027-01-15 it reads issues (the job's issues: read) so a TBD
+      # experiment passes while its owner's issue is open, and an issue counts only if open. ~2 s.
       - name: Flag expiry
         run: pnpm flags:expiry
         env:

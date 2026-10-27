@@ -18,7 +18,9 @@
  *   (touchedProblems);
  * - from ISSUE_TBD_UNTIL, an existing experiment it edits or touches needs a real issue: its
  *   own, or the open nightly 'Flag expiry: <owner>' issue for its owner, which counts for every
- *   flag that owner still has on 'TBD', so nobody has to hand-edit 350 specs;
+ *   flag that owner still has on 'TBD', so nobody has to hand-edit 350 specs. From that date an
+ *   issue number counts only if it is an OPEN issue in this repo (issueCounts): not a made-up
+ *   '#999999', and not a PR's number, since a PR closes when it merges;
  * - the backfill may only shrink or move dates earlier (scripts/flags/expiry.ts).
  * A unit test also fails while the backfill names a flag that is no longer an experiment.
  *
@@ -54,8 +56,31 @@ export const REAL_ISSUE = /^(?:#\d+|https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/iss
 export const isRealIssue = (issue: string | undefined): boolean =>
   !!issue && REAL_ISSUE.test(issue);
 
-/** The open nightly issue for an owner ('#123'), or undefined. Called only past ISSUE_TBD_UNTIL. */
-export type OwnerIssue = (owner: string) => string | undefined;
+/** What the Flag expiry check asks GitHub (scripts/flags/expiry.ts), and only past ISSUE_TBD_UNTIL. */
+export interface IssueLookup {
+  /** The open nightly 'Flag expiry: <owner>' issue ('#123'), or undefined. */
+  ownerIssue(owner: string): string | undefined;
+  /** True only for an OPEN issue (not a pull request) in this repo. */
+  isOpenIssue(ref: string): boolean;
+}
+
+/**
+ * Whether `issue` counts as a real tracking issue on `today`. Before ISSUE_TBD_UNTIL the shape is
+ * enough ('#123' or an issue URL). From then it must also be an open issue in this repo, so a
+ * made-up '#999999' or a merged PR's number stops counting; with no lookup, nothing counts.
+ */
+export function issueCounts(
+  issue: string | undefined,
+  today: string,
+  issues: IssueLookup | undefined
+): boolean {
+  if (!isRealIssue(issue)) return false;
+  if (today < ISSUE_TBD_UNTIL) return true;
+  return issues?.isOpenIssue(issue!) ?? false;
+}
+
+const notCountedWhy = (issue: string | undefined): string =>
+  isRealIssue(issue) ? `'${issue}' is not an open issue in this repo` : `its issue is '${issue ?? ISSUE_TBD}'`;
 
 /** The fields this module reads: a FlagSpec, or a spec parsed from a registry file's text. */
 interface LifecycleFields {
@@ -125,15 +150,14 @@ export function lifecycleWarnings(name: string, spec: LifecycleFields, today: st
 function tbdProblem(
   name: string,
   spec: LifecycleFields,
-  issue: string | undefined,
   today: string,
-  ownerIssue: OwnerIssue | undefined,
+  issues: IssueLookup | undefined,
   what: string
 ): string[] {
-  if (isRealIssue(issue) || today < ISSUE_TBD_UNTIL) return [];
-  if (spec.owner && ownerIssue?.(spec.owner)) return [];
+  if (today < ISSUE_TBD_UNTIL || issueCounts(spec.issue, today, issues)) return [];
+  if (spec.owner && issues?.ownerIssue(spec.owner)) return [];
   return [
-    `${name}: ${what} after ${ISSUE_TBD_UNTIL} and its issue is '${issue ?? ISSUE_TBD}'; put a real issue ('#123') in its spec, or wait for the nightly 'Flag expiry: ${spec.owner ?? '<owner>'}' issue to open`,
+    `${name}: ${what} after ${ISSUE_TBD_UNTIL} and ${notCountedWhy(spec.issue)}; put an open issue ('#123') in its spec, or wait for the nightly 'Flag expiry: ${spec.owner ?? '<owner>'}' issue to open`,
   ];
 }
 
@@ -147,7 +171,7 @@ export function specProblems(
   name: string,
   spec: Partial<LifecycleFields>,
   today: string,
-  opts: { isNew: boolean; ownerIssue?: OwnerIssue } = { isNew: true }
+  opts: { isNew: boolean; issues?: IssueLookup } = { isNew: true }
 ): string[] {
   if (spec.kind !== 'experiment') return [];
   const out: string[] = [];
@@ -168,14 +192,13 @@ export function specProblems(
       out.push(
         `${name}: a new experiment needs a real issue ('#123' or an issue URL) from day one, not '${spec.issue ?? ''}'; file it, then pnpm flags:new … --issue '#123'`
       );
+    else if (!issueCounts(spec.issue, today, opts.issues))
+      out.push(`${name}: a new experiment's issue ${notCountedWhy(spec.issue)}`);
   } else if (!spec.issue)
     out.push(`${name}: an edited experiment needs issue ('#123', an issue URL, or '${ISSUE_TBD}')`);
   else if (spec.issue !== ISSUE_TBD && !isRealIssue(spec.issue))
     out.push(`${name}: issue '${spec.issue}' is not '#123', an issue URL, or '${ISSUE_TBD}'`);
-  else
-    out.push(
-      ...tbdProblem(name, spec as LifecycleFields, spec.issue, today, opts.ownerIssue, 'edited')
-    );
+  else out.push(...tbdProblem(name, spec as LifecycleFields, today, opts.issues, 'edited'));
   return out;
 }
 
@@ -188,7 +211,7 @@ export function touchedProblems(
   name: string,
   spec: LifecycleFields,
   today: string,
-  ownerIssue?: OwnerIssue
+  issues?: IssueLookup
 ): string[] {
   if (spec.kind !== 'experiment') return [];
   const life = flagLifecycle(name, spec);
@@ -198,6 +221,6 @@ export function touchedProblems(
       `${name}: touched after ${MISSING_EXPIRES_GRACE} and still has no expires; add expires, issue and context to its spec`
     );
   }
-  out.push(...tbdProblem(name, spec, life.issue, today, ownerIssue, 'touched'));
+  out.push(...tbdProblem(name, { ...spec, issue: life.issue }, today, issues, 'touched'));
   return out;
 }

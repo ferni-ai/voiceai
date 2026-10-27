@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   backfillProblems,
   editedExperiments,
-  lazyOwnerIssue,
+  type Gh,
+  githubIssues,
   ownerIssuesFrom,
   specsOf,
   touchedFlags,
@@ -131,19 +132,75 @@ describe("flags:expiry, the nightly owner issue counts as a TBD flag's issue", (
     expect(Object.fromEntries(ownerIssuesFrom(open))).toEqual({ voice: '#3001', memory: '#3002' });
   });
 
-  it('asks gh once, on first use, and fails closed when gh fails', () => {
-    let calls = 0;
-    const lookup = lazyOwnerIssue(() => {
-      calls++;
-      return open;
-    });
-    expect(calls).toBe(0);
-    expect(lookup('voice')).toBe('#3001');
-    expect(lookup('tools')).toBeUndefined();
-    expect(calls).toBe(1);
-    const broken = lazyOwnerIssue(() => {
-      throw new Error('gh: not authenticated');
-    });
-    expect(broken('voice')).toBeUndefined();
+  /** A fake gh: routes the three calls githubIssues makes; `canRead: false` is a token without issues: read. */
+  function fakeGh(canRead = true): { gh: Gh; calls: string[] } {
+    const calls: string[] = [];
+    const issues: Record<string, object> = {
+      '12': { state: 'open' },
+      '13': { state: 'closed' },
+      '2577': { state: 'open', pull_request: { url: 'x' } }, // a PR, not an issue
+    };
+    const gh: Gh = (args) => {
+      const call = args.join(' ');
+      calls.push(call);
+      if (call.startsWith('api repos/{owner}/{repo}/issues?state=all'))
+        return JSON.stringify(
+          canRead ? [{ repository_url: 'https://api.github.com/repos/ferni-ai/voiceai' }] : []
+        );
+      if (call.startsWith('issue list')) return JSON.stringify(canRead ? open : []);
+      const n = /^api repos\/\{owner\}\/\{repo\}\/issues\/(\d+)$/.exec(call)?.[1];
+      if (n && canRead && issues[n]) return JSON.stringify(issues[n]);
+      throw new Error('gh: HTTP 404: Not Found');
+    };
+    return { gh, calls };
+  }
+
+  it('asks nothing until asked, then probes and lists once', () => {
+    const { gh, calls } = fakeGh();
+    const lookup = githubIssues(gh);
+    expect(calls).toEqual([]);
+    expect(lookup.ownerIssue('voice')).toBe('#3001');
+    expect(lookup.ownerIssue('tools')).toBeUndefined();
+    expect(calls.filter((c) => c.startsWith('api repos/{owner}/{repo}/issues?'))).toHaveLength(1);
+    expect(calls.filter((c) => c.startsWith('issue list'))).toHaveLength(1);
+  });
+
+  it('counts only an OPEN issue in this repo: not closed, not a PR, not missing, not another repo', () => {
+    const lookup = githubIssues(fakeGh().gh);
+    expect(lookup.isOpenIssue('#12')).toBe(true);
+    expect(lookup.isOpenIssue('https://github.com/ferni-ai/voiceai/issues/12')).toBe(true);
+    expect(lookup.isOpenIssue('#13')).toBe(false); // closed
+    expect(lookup.isOpenIssue('#2577')).toBe(false); // a pull request
+    expect(lookup.isOpenIssue('#999999')).toBe(false); // 404
+    expect(lookup.isOpenIssue('https://github.com/someone/else/issues/12')).toBe(false);
+  });
+
+  it('tells a token without issues: read from "no owner issue open", and fails closed loudly', () => {
+    const logs: string[] = [];
+    const log = console.log;
+    console.log = (m: string): void => void logs.push(m);
+    try {
+      const lookup = githubIssues(fakeGh(false).gh);
+      expect(lookup.ownerIssue('voice')).toBeUndefined();
+      expect(lookup.isOpenIssue('#12')).toBe(false);
+      const broken = githubIssues(() => {
+        throw new Error('gh: not authenticated');
+      });
+      expect(broken.ownerIssue('voice')).toBeUndefined();
+    } finally {
+      console.log = log;
+    }
+    expect(logs).toHaveLength(2);
+    expect(logs[0]).toMatch(/Cannot read this repo's issues.*lacks issues: read.*permissions: issues: read/);
+    expect(logs[1]).toMatch(/Cannot read this repo's issues.*not authenticated/);
+    // a token that CAN read issues, with no owner issue open, is quiet: that is a real answer
+    const quiet: string[] = [];
+    console.log = (m: string): void => void quiet.push(m);
+    try {
+      expect(githubIssues(fakeGh().gh).ownerIssue('tools')).toBeUndefined();
+    } finally {
+      console.log = log;
+    }
+    expect(quiet).toEqual([]);
   });
 });
