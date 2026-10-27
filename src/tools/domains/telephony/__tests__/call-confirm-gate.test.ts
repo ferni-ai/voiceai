@@ -117,11 +117,14 @@ describe('calls on behalf wait for the caller', () => {
     expect(sip.createRoom).not.toHaveBeenCalled();
   });
 
-  it('a no cancels it', async () => {
+  it('a no cancels it, says so, and the model trying again reads nothing back', async () => {
     const call = liveCall();
     await call.call('callAndConverse', CALL_DR_LEE, 'c1');
     call.caller('no, wait');
-    expect(await call.call('callAndConverse', CALL_DR_LEE, 'c2')).toContain('NOT SENT YET');
+    expect(await call.call('callAndConverse', CALL_DR_LEE, 'c2')).toContain(
+      "Okay, I won't call Dr. Lee."
+    );
+    expect(await call.call('callAndConverse', CALL_DR_LEE, 'c3')).not.toContain('NOT SENT YET');
     expect(dials()).toBe(0);
   });
 
@@ -141,7 +144,7 @@ describe('calls on behalf wait for the caller', () => {
   it('a yes rings exactly the number read back, once', async () => {
     const call = liveCall();
     await call.call('callOnBehalf', CALL_DR_LEE, 'c1');
-    call.caller('Yes, call her.');
+    call.caller('Yes, go ahead and call.');
     // The confirming call's own purpose is ignored: it dials and says what was read back.
     const placed = await call.call('callOnBehalf', { ...CALL_DR_LEE, purpose: 'chat' }, 'c2');
     expect(placed).toContain('calling Dr. Lee');

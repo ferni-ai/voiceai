@@ -461,12 +461,13 @@ describe('isClearYes', () => {
     expect(isClearYes('Yeah, go ahead and call.', [], [], true)).toBe(true);
     // With a text waiting, it would change what is sent.
     expect(isClearYes('Yeah, go ahead and call.')).toBe(false);
-    for (const yes of [
+    expect(isClearYes('Yes, you should.', [], [], true)).toBe(true);
+    // "Okay with me" and "give him a call" are the consent judge's (consent-judge-replay.test.ts).
+    for (const judged of [
       "Yes, it's okay with me. Give him a call.",
       "Yes, it's okay with me. Give him a call. and check in.",
-      'Yes, you should.',
     ]) {
-      expect(isClearYes(yes, [], [], true), yes).toBe(true);
+      expect(isClearYes(judged, [], [], true), judged).toBe(false);
     }
     // To "Should I call your dad?", "That's okay." is often "no thanks": never a yes alone.
     for (const decline of [
@@ -497,7 +498,7 @@ describe('isClearYes', () => {
     }
   });
 
-  it('"go ahead and call" confirms a waiting phone call, and voids a waiting text', () => {
+  it('"go ahead and call" confirms a waiting phone call, and never a waiting text', () => {
     const pending = (toolId: string): PendingAction =>
       ({
         toolId,
@@ -514,7 +515,7 @@ describe('isClearYes', () => {
       { kind: 'caller', text: 'Yeah, go ahead and call.', agentSpeaking: false, seq: 2 },
     ];
     expect(confirmationState(pending('callOnBehalf'), events, Date.now())).toBe('confirmed');
-    expect(confirmationState(pending('reachOut'), events, Date.now())).toBe('void');
+    expect(confirmationState(pending('reachOut'), events, Date.now())).toBe('unclear');
   });
 
   /** Security review of #2939: "call" beside a persona's name reads as a call to someone else. */
@@ -548,15 +549,19 @@ describe('isClearYes', () => {
   });
 
   it('takes a yes that restates the same action (owner call 2026-10-17)', () => {
-    for (const yes of [
+    for (const yes of ['Yeah, go ahead. Go ahead and call.', 'Yes, go ahead and make the call.']) {
+      expect(isClearYes(yes, [], [], true), yes).toBe(true);
+      // With a text waiting, a call is a different action.
+      expect(isClearYes(yes), yes).toBe(false);
+    }
+    // "Call her" names someone (her, not the Dad read back?): the consent judge's to read.
+    for (const judged of [
       'Uh, yeah, go ahead. Go ahead and give her a call.',
       'Yes, you, you need to call her.',
       'Yeah, call her now.',
       'Go ahead and call him.',
     ]) {
-      expect(isClearYes(yes, [], [], true), yes).toBe(true);
-      // With a text waiting, a call is a different action.
-      expect(isClearYes(yes), yes).toBe(false);
+      expect(isClearYes(judged, [], [], true), judged).toBe(false);
     }
     // A restatement that adds anything (someone else, a time, a different action) is not plain.
     for (const notYes of [
