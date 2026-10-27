@@ -28,12 +28,14 @@ import {
   CLASSIFIER_CHECK,
   resetClassifierChecks,
 } from '../../../services/safety/crisis-classifier-check.js';
+import { CHECK_SITUATION_PROMPT } from '../../../services/safety/crisis-classifier-check-situation.js';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { isCrisisCall } from '../../../services/wellbeing-tracking/after-call.js';
+import { heldAfter, noteCallerWords, resetMinorCare } from '../../../utils/minor-care.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { CRISIS_GATE_SIGNAL } from '../../safety/crisis-gate-signal.js';
 import { CRISIS_HELDOUT } from '../../__tests__/fixtures/crisis-heldout.js';
@@ -59,6 +61,17 @@ const logged: CrisisGenerateFn = async (_prompt, content) => {
   if (seen.companion === CLASSIFIER_CHECK) return NONE; // never logged: see the header
   return seen.earlier.includes(TELL) ? IMMINENT : NONE;
 };
+
+/** The check path's second read (means, place, plan, injury): stated for `stated` lines. */
+const SITUATION_NONE = '{"means":false,"place":false,"plan":false,"injury":false}';
+const SITUATION_STATED = '{"means":false,"place":true,"plan":false,"injury":false}';
+const withSituation =
+  (generate: CrisisGenerateFn, stated: readonly string[] = []): CrisisGenerateFn =>
+  async (prompt, content, signal) => {
+    if (prompt !== CHECK_SITUATION_PROMPT) return generate(prompt, content, signal);
+    const { latest } = JSON.parse(content) as { latest: string };
+    return stated.includes(latest) ? SITUATION_STATED : SITUATION_NONE;
+  };
 
 let calls = 0;
 beforeEach(() => {
@@ -87,11 +100,16 @@ async function collect(stream: ReadableStream<unknown> | null): Promise<string> 
 const opener = { wrap: (stream: ReadableStream<unknown>) => stream };
 
 /** A call: the lines so far, and what Ferni says to each new caller line through the gate. */
-function call(env: Record<string, string>, generate: CrisisGenerateFn = logged) {
+function call(
+  env: Record<string, string>,
+  classify: CrisisGenerateFn = logged,
+  options: { stated?: readonly string[]; generate?: CrisisGenerateFn; userId?: string } = {}
+) {
+  const generate = options.generate ?? withSituation(classify, options.stated);
   const sessionId = `call-${++calls}`;
   const events: Array<[string, unknown]> = [];
   const session = {
-    userData: { services: { sessionId } },
+    userData: { services: { sessionId }, ...(options.userId ? { userId: options.userId } : {}) },
     emit: (event: string, payload: unknown) => events.push([event, payload]),
     say: vi.fn(),
   };
@@ -427,5 +445,145 @@ describe('988 is spoken on every check outcome', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('eval round 2: minors never get the check', () => {
+  const MINOR_ON = { ...ON, MINOR_CARE: 'on' };
+  const AGE_Q = "How old are you, if you don't mind me asking?";
+  beforeEach(() => resetMinorCare());
+
+  it('a bare "15." answering Ferni\'s age question keeps the script', async () => {
+    const c = call(ON, reads([]));
+    c.lines.push(['assistant', AGE_Q]);
+    await c.say('15.', 'Thanks for telling me.');
+    await c.say(TELL, READY);
+    expect(isScript(await c.say('Yes.'))).toBe(true);
+  });
+
+  it('a session MINOR_CARE holds keeps the script', async () => {
+    const c = call(MINOR_ON, reads([]));
+    noteCallerWords(c.sessionId, '15.', { asked: AGE_Q, env: MINOR_ON });
+    await c.say(TELL, READY);
+    expect(isScript(await c.say('Yes.'))).toBe(true);
+  });
+
+  it('a user MINOR_CARE holds on another session keeps the script', async () => {
+    heldAfter('earlier-session', "I'm 15 years old.", { env: MINOR_ON, userId: 'user-teen' });
+    const c = call(MINOR_ON, reads([]), { userId: 'user-teen' });
+    await c.say(TELL, READY);
+    expect(isScript(await c.say('Yes.'))).toBe(true);
+  });
+
+  it('a caller held by the time they answer "I\'m fine" gets the script, not the conversation', async () => {
+    const c = call(MINOR_ON, reads([]));
+    await c.say(TELL, READY);
+    expect(await c.say('Yes.')).toBe(CLASSIFIER_CHECK);
+    noteCallerWords(c.sessionId, '15.', { asked: AGE_Q, env: MINOR_ON });
+    expect(isScript(await c.say("I'm fine."))).toBe(true);
+  });
+
+  it('an adult with MINOR_CARE on still gets the check (the guard is not a blanket refusal)', async () => {
+    const c = call(MINOR_ON, reads([]));
+    await c.say(TELL, READY);
+    expect(await c.say('Yes.')).toBe(CLASSIFIER_CHECK);
+  });
+});
+
+describe('eval round 2: words that state means, a place, a plan or an injury get the script', () => {
+  it('a stated situation keeps the script, never the check', async () => {
+    const c = call(ON, reads([]), { stated: ['Yes.'] });
+    await c.say(TELL, READY);
+    const heard = await c.say('Yes.');
+    expect(isScript(heard)).toBe(true);
+  });
+
+  it.each([
+    ['an unusable second read', async () => 'not json'],
+    [
+      'a failed second read',
+      async () => {
+        throw new Error('down');
+      },
+    ],
+  ])('%s keeps the script (fails closed)', async (_name, situation) => {
+    const generate: CrisisGenerateFn = async (prompt, content, signal) =>
+      prompt === CHECK_SITUATION_PROMPT ? situation() : reads([])(prompt, content, signal);
+    const c = call(ON, reads([]), { generate });
+    await c.say(TELL, READY);
+    expect(isScript(await c.say('Yes.'))).toBe(true);
+  });
+
+  it('flag off never asks the second read', async () => {
+    const seen: string[] = [];
+    const generate: CrisisGenerateFn = async (prompt, content, signal) => {
+      seen.push(prompt);
+      return withSituation(reads([]))(prompt, content, signal);
+    };
+    const c = call(OFF, reads([]), { generate });
+    await c.say(TELL, READY);
+    expect(isScript(await c.say('Yes.'))).toBe(true);
+    expect(seen).not.toContain(CHECK_SITUATION_PROMPT);
+  });
+});
+
+describe('eval round 2: once cleared, the call keeps its alarm', () => {
+  const NEXT = "it's fine, I won't be a problem much longer";
+  const classify =
+    (next: string): CrisisGenerateFn =>
+    async (prompt, content, signal) =>
+      (JSON.parse(content) as { latest: string }).latest === NEXT
+        ? next
+        : reads([])(prompt, content, signal);
+
+  it('a crisis read about the caller after a clear gets the script, not guidance', async () => {
+    const c = call(ON, classify('{"risk":"crisis","subject":"self"}'));
+    await c.say(TELL, READY);
+    expect(await c.say('Yes.')).toBe(CLASSIFIER_CHECK);
+    expect(await c.say("I'm fine.")).toBe(REPLY);
+    expect(isScript(await c.say(NEXT))).toBe(true);
+  });
+
+  it('the same crisis read with the flag off is guidance (the script above is the alarm kept)', async () => {
+    const c = call(OFF, classify('{"risk":"crisis","subject":"self"}'));
+    await c.say(TELL, READY);
+    await c.say('Yes.');
+    expect(isScript(await c.say(NEXT))).toBe(false);
+  });
+
+  it('a crisis-level pattern after a clear gets the script', async () => {
+    const line = "I hope I don't wake up tomorrow";
+    const c = call(ON, reads([]));
+    await c.say(TELL, READY);
+    await c.say('Yes.');
+    expect(await c.say("I'm fine.")).toBe(REPLY);
+    expect(isScript(await c.say(line))).toBe(true);
+  });
+
+  it("a worry about someone else after a clear is not the caller's alarm", async () => {
+    const c = call(ON, classify('{"risk":"crisis","subject":"third_party"}'));
+    await c.say(TELL, READY);
+    await c.say('Yes.');
+    expect(await c.say("I'm fine.")).toBe(REPLY);
+    expect(isScript(await c.say(NEXT))).toBe(false);
+  });
+});
+
+describe('eval round 2: only a check heard through its 988 sentence can clear', () => {
+  const CUT =
+    'Just checking in, are you safe right now? And if you ever need it, you can call or text';
+
+  it('cut off before 988 finished, then silence: the script', async () => {
+    const c = call(ON, reads([]));
+    await c.say(TELL, READY);
+    expect(await c.say('Yes.', CUT)).toBe(CLASSIFIER_CHECK);
+    expect(isScript(await c.silence())).toBe(true);
+  });
+
+  it('cut off before 988 finished, then "I\'m fine.": the script', async () => {
+    const c = call(ON, reads([]));
+    await c.say(TELL, READY);
+    await c.say('Yes.', CUT);
+    expect(isScript(await c.say("I'm fine."))).toBe(true);
   });
 });

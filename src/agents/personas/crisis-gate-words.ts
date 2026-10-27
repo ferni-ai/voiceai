@@ -1,11 +1,13 @@
 /**
- * Two readers of a reply's chat context for the crisis gate (crisis-gate.ts),
- * moved out of it unchanged so it stays under the 500-line limit.
+ * Readers of a reply's chat context for the crisis gate (crisis-gate.ts), and
+ * its fixed-text reply, moved out of it unchanged so it stays under the
+ * 500-line limit.
  *
  * @module agents/personas/crisis-gate-words
  */
 
 import type { llm } from '@livekit/agents';
+import { ReadableStream } from 'node:stream/web';
 import type { AdjudicatorLine } from '../../services/safety/crisis-adjudicator.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 
@@ -35,4 +37,18 @@ export function sessionScope(userData: unknown): string | undefined {
     (userData as { services?: { sessionId?: string } } | undefined)?.services?.sessionId ||
     undefined
   );
+}
+
+/** The caller's userId, when the session knows it (MINOR_CARE's userHeld follows it). */
+export const callerUserId = (userData: unknown): string | undefined =>
+  (userData as { userId?: string } | undefined)?.userId || undefined;
+
+/** A reply stream that speaks one fixed text. */
+export function textReply(text: string): ReadableStream<llm.ChatChunk | string | object> {
+  return new ReadableStream<llm.ChatChunk | string | object>({
+    start(controller) {
+      controller.enqueue(text);
+      controller.close();
+    },
+  });
 }

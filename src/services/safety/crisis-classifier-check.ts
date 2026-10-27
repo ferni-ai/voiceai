@@ -14,17 +14,23 @@
  * 4. Patterns are untouched. 5. Only the words spoken change: the check is the
  *    same 'replace' decision with the alarm's kind, so every consumer still
  *    sees the imminent read. Per call, in memory; logs never carry words.
+ * Eval of #2961 (round 2): never the check for a caller who may be a minor
+ * (MINOR_CARE, or an age stated or answered on the call), nor for words that
+ * state means, a place, a plan or an injury (crisis-classifier-check-situation.ts);
+ * only an answer to a check whose 988 sentence was heard in full clears it;
+ * once cleared, any later risk read on the call gets the script (afterClear).
  *
  * @module CrisisClassifierCheck
  */
 
 import { setTimeout as sleep } from 'node:timers/promises';
 import { flagOn } from '../../config/env-flag.js';
-import { statesUnder18 } from '../../utils/minor-care.js';
+import { likelyMinor, statesUnder18, userHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 import { clearAnswer } from './crisis-classifier-check-words.js';
+import type { CheckSituation } from './crisis-classifier-check-situation.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
 
 const log = createLogger({ module: 'CrisisClassifierCheck' });
@@ -59,6 +65,8 @@ interface Check {
   answering?: string;
   answers: Map<string, boolean>;
   closed: boolean;
+  /** An answer cleared it: from here on, any risk read on the call gets the script. */
+  cleared: boolean;
 }
 const checks = new Map<string, Check>();
 
@@ -69,7 +77,7 @@ const loose = (text?: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 const CHECK_WORDS = loose(CLASSIFIER_CHECK);
-/** Ferni's line is the check, in full and last. */
+/** Ferni's line is the check, in full and last: its 988 sentence was heard. */
 const asked = (line?: string): boolean => loose(line).endsWith(CHECK_WORDS);
 /** Ferni said at least the start of the check (an interrupted reply keeps what played). */
 const began = (line: string): boolean =>
@@ -86,25 +94,54 @@ function fresh(call: string | undefined, now = Date.now()): Check | undefined {
 const note = (outcome: string, why: string): void =>
   log.info({ outcome, why }, 'CRISIS_CLASSIFIER_CHECK');
 
-/** The alarm turn: its words, the patterns' decision and reading, callRiskBeforeTurn. */
-export interface AlarmTurn {
+/** The call's lines, oldest first, by speaker (crisis-gate-words.ts callTranscript). */
+type Lines = ReadonlyArray<{ speaker: 'caller' | 'ferni'; text: string }>;
+
+/** Who is calling: the session, its user, and every line said so far. */
+interface Caller {
   call?: string;
+  userId?: string;
   latest: string;
-  earlier: readonly string[];
+  earlier?: readonly string[];
   companion?: string;
+  lines?: Lines;
+  env?: Env;
+}
+
+/**
+ * The caller may be a minor: MINOR_CARE holds the session or its user, or a line says under 18,
+ * read with the Ferni line it answers (a bare "15." after "How old are you?").
+ */
+function soundsMinor(c: Caller): boolean {
+  if (likelyMinor(c.call) || userHeld(c.userId, c.env)) return true;
+  const said: Array<[string, string | undefined]> = [[c.latest, c.companion]];
+  for (const line of c.earlier ?? []) said.push([line, undefined]);
+  let ferni: string | undefined;
+  for (const line of c.lines ?? []) {
+    if (line.speaker === 'ferni') ferni = line.text;
+    else said.push([line.text, ferni]);
+  }
+  return said.some(([line, q]) => statesUnder18(line) || statesUnder18(line, q));
+}
+
+/** The alarm turn: its words, the patterns' decision and reading, callRiskBeforeTurn. */
+export interface AlarmTurn extends Caller {
+  earlier: readonly string[];
   patterns: string;
   detection: CrisisDetectionResult;
   priorRisk: boolean;
-  env?: Env;
+  /** The second read (crisis-classifier-check-situation.ts); anything but 'none' keeps the script. */
+  situation?: CheckSituation;
   now?: number;
 }
 
-function refusal(turn: AlarmTurn): string | null {
+/** Why the alarm keeps the script, or null for the check. `reread`: the alarm turn read again. */
+function refusal(turn: AlarmTurn, reread = false): string | null {
   if (!turn.call) return 'no_call';
   if (turn.patterns !== 'pass' || patternsFound(turn.detection)) return 'pattern';
-  if (turn.priorRisk !== false) return 'prior_risk';
-  // A caller who said they are under 18 keeps the script.
-  if ([turn.latest, ...turn.earlier].some((line) => statesUnder18(line))) return 'minor';
+  if (!reread && turn.priorRisk !== false) return 'prior_risk';
+  if (soundsMinor(turn)) return 'minor';
+  if (turn.situation !== 'none') return turn.situation === 'stated' ? 'situation' : 'unread';
   return null;
 }
 
@@ -112,10 +149,18 @@ function refusal(turn: AlarmTurn): string | null {
 const sameAlarm = (kept: Check, turn: AlarmTurn): boolean =>
   !kept.closed && kept.answering === undefined && kept.alarm === loose(turn.companion);
 
-function remember(call: string, check: Omit<Check, 'answers' | 'closed'>): void {
+function remember(call: string, check: Omit<Check, 'answers' | 'closed' | 'cleared'>): void {
   const oldest = checks.size >= MAX_CALLS ? checks.keys().next().value : undefined;
   if (oldest !== undefined) checks.delete(oldest);
-  checks.set(call, { ...check, answers: new Map(), closed: false });
+  checks.set(call, { ...check, answers: new Map(), closed: false, cleared: false });
+}
+
+/** Why this alarm keeps the script; an alarm turn read again that gets it closes its check. */
+function scriptWhy(kept: Check | undefined, turn: AlarmTurn): string | null {
+  if (kept && !sameAlarm(kept, turn)) return 'checked_before';
+  const why = refusal(turn, !!kept);
+  if (kept && why !== null) kept.closed = true;
+  return why;
 }
 
 /**
@@ -131,7 +176,7 @@ export function checkInstead<D extends { action: string }>(stronger: D, turn: Al
     const now = turn.now ?? Date.now();
     const window = new Set([turn.latest, ...turn.earlier.slice(-5)].map(loose).filter(Boolean));
     const kept = fresh(turn.call, now);
-    const why = kept ? (sameAlarm(kept, turn) ? null : 'checked_before') : refusal(turn);
+    const why = scriptWhy(kept, turn);
     if (why !== null || turn.call === undefined) {
       note('script', why ?? 'no_call');
       return stronger;
@@ -142,6 +187,29 @@ export function checkInstead<D extends { action: string }>(stronger: D, turn: Al
     return { ...script, script: CLASSIFIER_CHECK };
   } catch (error) {
     log.warn({ error: error instanceof Error ? error.name : 'unknown' }, 'Check failed');
+    return stronger;
+  }
+}
+
+/**
+ * Rule 1 with the second read: asks it only when nothing else keeps the script, then
+ * checkInstead. Fails closed: a failed read is 'unread', which keeps the script.
+ */
+export async function checkOrScript<D extends { action: string }>(
+  stronger: D,
+  turn: AlarmTurn,
+  read: () => Promise<CheckSituation>
+): Promise<D> {
+  try {
+    if (stronger.action !== 'replace' || !flagOn('CRISIS_CLASSIFIER_CHECK', turn.env)) {
+      return stronger;
+    }
+    const kept = fresh(turn.call, turn.now);
+    const open = kept ? sameAlarm(kept, turn) : true;
+    const asks = open && refusal({ ...turn, situation: 'none' }, !!kept) === null;
+    const situation = asks ? await read().catch((): CheckSituation => 'unread') : undefined;
+    return checkInstead(stronger, { ...turn, situation });
+  } catch {
     return stronger;
   }
 }
@@ -164,7 +232,7 @@ export interface CheckAnswer {
 /** This turn as the answer to the call's check, or null when it is not one. */
 export function checkAnswer(
   call: string | undefined,
-  said: { latest: string; companion?: string; ferni?: readonly string[] },
+  said: Caller & { ferni?: readonly string[] },
   detection: CrisisDetectionResult,
   now = Date.now()
 ): CheckAnswer | null {
@@ -187,11 +255,13 @@ export function checkAnswer(
   const { script } = kept;
   const decide = (cleared: boolean, why: string): boolean => {
     kept.answers.set(loose(said.latest), cleared);
+    if (cleared) kept.cleared = true;
     note(cleared ? 'cleared' : 'script', why);
     return cleared;
   };
   let why = now - kept.at > CHECK_ANSWER_MS ? 'late' : null;
-  if (!asked(said.companion)) why = 'not_asked'; // Ferni said something else, or was cut off
+  // Only a check heard through its 988 sentence can clear: cut off, or something else said, is not.
+  if (!asked(said.companion)) why = 'not_asked';
   if (patternsFound(detection)) why = 'pattern';
   const shut = { now: script, script, unread: () => script, clears: async () => false };
   if (why) {
@@ -207,12 +277,43 @@ export function checkAnswer(
         const all = [verdict, ...(reads ? await reads() : [])];
         if (all.some((v) => !v)) return decide(false, 'missing_read');
         if (all.some((v) => v?.risk === 'imminent')) return decide(false, 'imminent');
+        // A caller who may be a minor never goes back to the conversation on an "I'm fine".
+        if (soundsMinor({ ...said, call })) return decide(false, 'minor');
         return clearAnswer(said.latest) ? decide(true, 'clear') : decide(false, 'unclear');
       } catch {
         return decide(false, 'error');
       }
     },
   };
+}
+
+/**
+ * The gate's step once the turn's read is in: an answer to the check that does not clear it, or a
+ * risk read after a clear (afterClear), gets the script; null lets the turn go on.
+ */
+export async function checkVerdict(
+  check: CheckAnswer | null,
+  call: string | undefined,
+  verdict: CrisisVerdict | null,
+  reads?: () => Promise<ReadonlyArray<CrisisVerdict | null>>
+): Promise<Replace | null> {
+  if (check) return (await check.clears(verdict, reads)) ? null : check.script;
+  return afterClear(call, { verdict });
+}
+
+/**
+ * The gate's step for a turn: the answer to the call's check (`check`), and the decision: the
+ * script at once when nothing read can clear it, the alarm's script for a pattern after a clear
+ * (afterClear), or the patterns' decision unchanged.
+ */
+export function checkTurn<D extends { action: string }>(
+  said: Caller & { ferni?: readonly string[] },
+  detection: CrisisDetectionResult,
+  patterns: D
+): { check: CheckAnswer | null; decision: D | Replace } {
+  const check = checkAnswer(said.call, said, detection);
+  if (check) return { check, decision: check.now ?? patterns };
+  return { check, decision: afterClear(said.call, { decision: patterns }) ?? patterns };
 }
 
 /** Rule 3: Ferni's last line is the check, no caller words since (null: unknown), Ferni about
@@ -224,7 +325,11 @@ export function checkUnanswered(
 ): Replace | null {
   const kept = fresh(call, now);
   if (!kept || kept.closed) return null;
-  const spoke = words ? words.latest.trim() !== '' || !asked(words.companion) : !!kept.answering;
+  // Ferni's last line is the check, whole or cut off before its 988 sentence ended.
+  const checkLast = (line?: string): boolean => asked(line) || began(line ?? '');
+  const spoke = words
+    ? words.latest.trim() !== '' || !checkLast(words.companion)
+    : !!kept.answering;
   if (spoke) return null;
   kept.closed = true;
   note('script', words ? 'no_answer' : 'silence');
@@ -252,6 +357,24 @@ export function watchCheck(
   };
   arm(gate.decision);
   gate.escalation?.then(arm).catch(() => undefined);
+}
+
+/**
+ * Rule 5: after a clear, a later turn's risk (a pattern decision, or a crisis or imminent read
+ * about the caller) gets the alarm's script, not guidance or the model: the call keeps its alarm.
+ */
+export function afterClear(
+  call: string | undefined,
+  risk: { decision?: { action: string }; verdict?: CrisisVerdict | null }
+): Replace | null {
+  const kept = fresh(call);
+  if (!kept?.cleared) return null;
+  const { decision, verdict } = risk;
+  const read =
+    verdict?.risk === 'imminent' || (verdict?.risk === 'crisis' && verdict.subject === 'self');
+  if (!read && (!decision || decision.action === 'pass')) return null;
+  note('script', 'after_clear');
+  return kept.script;
 }
 
 /** Rule 2: once the latest answer in the window cleared, the classifier's input without the
