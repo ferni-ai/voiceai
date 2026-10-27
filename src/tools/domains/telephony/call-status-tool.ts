@@ -21,7 +21,7 @@ import { getConfirmThreadPort } from '../communication/outreach/confirm-thread.j
 import { liveSessionFor } from '../../registry/live-session.js';
 
 export interface CallQuery {
-  /** Person words ("dad", "doug"), as call-status names them. */
+  /** Person words ("dad", "sam"), as call-status names them. */
   readonly words: readonly string[];
   readonly phone?: string;
 }
