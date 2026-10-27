@@ -39,6 +39,7 @@ const AUTH = {
   root: 'Bearer owner',
   anon: `Bearer ${token('anon1', 'anonymous')}`,
   u1: `Bearer ${token('u1')}`,
+  u2: `Bearer ${token('u2')}`,
   service: `Bearer ${token('svc', 'custom', { service_account: true })}`,
 } as const;
 type Who = keyof typeof AUTH;
@@ -89,6 +90,7 @@ describe.skipIf(!HOST)('firestore.rules lockdown (Firestore emulator)', () => {
   const tool = `marketplace_tools/${RUN}-t1`;
   const install = `marketplace_installations/${RUN}-i1`;
   const webhook = `developer_webhooks/${RUN}-w1`;
+  const activity = `bogle_users/u1/activity/${RUN}-a1`;
 
   beforeAll(async () => {
     await seed(feedback, { userId: 'u2', sessionId: 's1', userMessage: 'private words' });
@@ -99,6 +101,24 @@ describe.skipIf(!HOST)('firestore.rules lockdown (Firestore emulator)', () => {
     });
     await seed(install, { userId: 'u1', itemId: 't1', enabled: true });
     await seed(webhook, { publisherId: 'u1', url: 'https://example.com/hook' });
+    await seed(activity, { kind: 'call', state: 'asked' });
+    await seed(`${activity}/events/000001`, { seq: 1, to: 'asked' });
+  });
+
+  describe('activity ledger', () => {
+    it('lets the owner read their records and events, nobody else', async () => {
+      expect(await get('u1', activity)).toBe(200);
+      expect(await get('u1', `${activity}/events/000001`)).toBe(200);
+      expect(await get('u2', activity)).toBe(403);
+      expect(await get('anon', `${activity}/events/000001`)).toBe(403);
+    });
+
+    it('denies every client write, the owner included; the server writes', async () => {
+      expect(await update('u1', activity, { state: 'done' }, ['state'])).toBe(403);
+      expect(await create('u1', `${activity}/events/000002`, { seq: 2 })).toBe(403);
+      expect(await create('u1', `bogle_users/u1/activity/${RUN}-a2`, { kind: 'call' })).toBe(403);
+      expect(await update('service', activity, { state: 'confirmed' }, ['state'])).toBe(200);
+    });
   });
 
   describe('analytics data', () => {
