@@ -20,6 +20,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
 });
 
 import { detectCrisis, guardFromDetection, IN_DANGER_NOW } from '../crisis-guard.js';
+import { TOKEN } from '../crisis-means-exempt.js';
 import { resolveMeansInHandMode } from '../crisis-means-in-hand.js';
 import { noteMeansInHandShadow, readsImminentLive, tierOf } from '../crisis-means-shadow.js';
 import {
@@ -307,5 +308,61 @@ describe('live: the exemption is scoped to the means token (security review, rou
     "i'm taking my pills now with food",
   ])('the r1 medication check-ins still get no 911: "%s"', (text) => {
     expect(live(text)).toEqual(off(text));
+  });
+});
+
+describe('the exemption knows every means word the forms can match', () => {
+  // Written out by hand on purpose: if the exemption's word list ever drifts from the forms', a
+  // word the forms match would slip past the per-word check (security review, round 3).
+  const FORM_WORDS = [
+    'pills',
+    'pill',
+    'meds',
+    'tablets',
+    'gun',
+    'pistol',
+    'rope',
+    'noose',
+    'razor',
+    'blade',
+    'blades',
+    'them',
+    'em',
+    'these',
+    'those',
+    'everything',
+    'bottle',
+    'handful',
+    'tylenol',
+    'advil',
+    'ibuprofen',
+    'acetaminophen',
+    'paracetamol',
+    'aspirin',
+    'benadryl',
+    'xanax',
+    'ambien',
+    'oxy',
+    'oxycodone',
+    'oxycontin',
+    'percocet',
+    'vicodin',
+    'sleeping pills',
+    'painkillers',
+    'insulin',
+    'lithium',
+    'seroquel',
+    'klonopin',
+    'valium',
+  ];
+  it.each(FORM_WORDS)('"%s" is a means word', (word) => {
+    expect([...`i have the ${word} right here`.matchAll(TOKEN)].map((m) => m[1])).toContain(word);
+  });
+
+  it('a match with a means word the check-in does not cover is not exempt', () => {
+    // "my heart pills" is a check-in, the pistol in the same clause is not.
+    const text = 'i have my heart pills and the pistol right here';
+    expect(off(text).indicators).not.toContain('imminent_danger');
+    expect(live(text).indicators).toContain('imminent_danger');
   });
 });

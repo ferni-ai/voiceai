@@ -17,6 +17,7 @@
  */
 
 import { exemptedMeans, type MeansKind } from './crisis-means-exempt.js';
+import { DRUG_WORDS, RUN_ON, WEAPON_WORDS } from './crisis-means-words.js';
 import { explicitModifier } from './crisis-modifiers.js';
 
 export type MeansInHandMode = 'off' | 'shadow' | 'live';
@@ -32,7 +33,8 @@ export function resolveMeansInHandMode(
 /** Tools and toys called guns, and ropes for play or work, are not the means. */
 const TOOL_GUN = String.raw`(?<!\b(?:nail|glue|water|nerf|toy|heat|staple|spray|paint|caulk|caulking|squirt|bb|airsoft|paintball|grease|massage|label|price|tattoo|foam|bubble|glitter|radar|speed|scan|scanner|barcode|drill|rivet|tape|dart|flare|starter|laser|cap|finger|hot glue|thermometer|temperature|temp|brad|tack|stud|ice|snow|hot|silicone|tire|air|\w+ing) )`;
 const PLAY_ROPE = String.raw`(?<!\b(?:jump|jumping|skip|skipping|tow|climbing|tug of war|clothes|bungee|dog|swing) )`;
-const MEANS = String.raw`(?:pills|meds|tablets|${TOOL_GUN}gun|pistol|${PLAY_ROPE}rope|noose|razor|blades?)`;
+const GUARDED: Record<string, string> = { gun: `${TOOL_GUN}gun`, rope: `${PLAY_ROPE}rope` };
+const MEANS = `(?:${['pills', 'meds', 'tablets', ...WEAPON_WORDS].map((w) => GUARDED[w] ?? w).join('|')})`;
 const WHERE = String.raw`(?:right here|in my hands?|in front of me)(?: (?:right here|in my hands?|in front of me|right now))?`;
 const PILLS_TAKEN = String.raw`(?:them|em|these|those|every (?:last |single )?(?:one|pill)(?: i have)?|all of (?:them|em|these|those|the pills|my pills)|(?:all )?(?:the|my) (?:pills|meds|tablets)|(?:these |those )?(?:pills|meds|tablets)|the (?:whole|entire) bottle|everything|a (?:bottle|handful)(?: of (?:pills|meds|tablets|them|sleeping pills|painkillers))?)`;
 /**
@@ -43,8 +45,6 @@ const RISK_GERUND = String.raw`(?:taking|swallowing|downing|ending|dying|bleedin
 const EVERYDAY_AFTER_COMMA = String.raw`(?:to|for|so|because|cause|cuz|since|like|as|with|from|which|that'?s|(?:it'?s|it is) (?:time )?for|they'?re for|should i|can i|do i|how|what|when|where|is it|are they|tie|tying|count|counting|shave|shaving|belay|belaying|clean|cleaning|sort|sorting|trim|trimming|wrap|wrapping|we'?re|we are|we'?ll|we'?ve|locked|unloaded|in the (?:safe|case|holster|drawer)|the (?:dog|cat|puppy|kitten|vet|deer|boat|kayak|tent)'?s?|my (?:dog|cat|puppy|kitten)'?s?|(?!${RISK_GERUND})\w{3,}ing|my (?:[\w-]+ )?(?:meds|medication|medicine|pills|vitamins|antidepressants|antibiotics|prescription|dose|doctor|nurse|pharmacist)|the (?:doctor|nurse|pharmacist)|i'?m (?:about to |going to |just )?(?:shav|count|clean|ty|tie|trim|hunt|climb|belay|sort|organiz|cook|bak)\w*|i'?m cutting (?!myself|my (?:wrists?|arms?|thighs?|legs|skin)))\b`;
 /** "and" ends the clause, unless an everyday plan follows ("and we're going sailing"). */
 const EVERYDAY_AFTER_AND = String.raw`(?:we'?re|we are|we'?ll|then (?:go|going|head|heading) to (?:bed|sleep|work|school)|the (?:deer|dog|boat))\b`;
-/** Run-on speech-to-text has no punctuation: a goodbye or a plea right after still ends it. */
-const RUN_ON = String.raw`goodbye|bye|i love you|love you|i'?m sorry|sorry|i'?m scared|please|forgive me|don'?t (?:call|tell|try|come|stop)|tell (?:my|everyone|them|him|her)|nobody|no one|i can'?t|i'?m done|it'?s over`;
 const CLAUSE_END = String.raw`(?= *(?:$|[.!?;]|,(?! *${EVERYDAY_AFTER_COMMA})|and\b(?! ${EVERYDAY_AFTER_AND})|but\b|now\b|right now\b|ready\b|loaded\b|it'?s\b|already\b|just now\b|(?:${RUN_ON})\b))`;
 const SELF_HARM_DONE = String.raw`(?:bleeding|blood everywhere|overdos\w*|took (?:all )?(?:the|my) (?:pills|meds)|took them all|swallowed (?:them|the|all|my)|(?:pills|meds) are (?:working|kicking in)|noose|the rope (?:held|is around)|cut my wrists?)`;
 const DID_IT = String.raw`\bi (?:just |finally |actually |already )?(?:did it|went through with it)\b`;
@@ -55,7 +55,7 @@ const DID_IT = String.raw`\bi (?:just |finally |actually |already )?(?:did it|we
 const DOSE_TAKEN = String.raw`(?:(?:them|em|these|those) all|all of (?:them|em|these|those|the pills|my pills|my meds)|all (?:the|my) (?:pills|meds|tablets)|the (?:whole|entire) bottle|everything|every (?:last |single )?(?:one|pill)(?: i (?:have|had))?|a (?:bottle|handful|bunch|whole bottle)(?: of (?:pills|meds|tablets|them|sleeping pills|painkillers))?|(?:like |about |maybe |over )?(?:[2-9]\d|\d{3}) (?:of (?:them|em|my pills|my meds)|pills|tablets))`;
 /** A strength is not a count: "500 mg of tylenol", "25 units of insulin". */
 const NOT_A_UNIT = String.raw`(?! ?(?:mg|mgs|mcg|µg|ug|milligrams?|micrograms?|grams?|g|units?|u|ml|mls|milliliters?|millilitres?|cc|iu|drops?|puffs?|mmol|percent|%)\b)`;
-const DRUGS = String.raw`(?:tylenol|advil|ibuprofen|acetaminophen|paracetamol|aspirin|benadryl|xanax|ambien|oxy(?:codone|contin)?|percocet|vicodin|sleeping pills|painkillers|insulin|lithium|seroquel|klonopin|valium)`;
+const DRUGS = `(?:${DRUG_WORDS.join('|')})`;
 
 /**
  * The forms, in order. Each must end its clause (or run on with "and", "now", a goodbye). `kind`

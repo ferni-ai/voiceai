@@ -15,12 +15,16 @@
  * @module CrisisMeansExempt
  */
 
+import { MEANS_WORDS, PILL_KIND, RUN_ON } from './crisis-means-words.js';
+
 export type MeansKind = 'pills' | 'means';
 
 const BREAK = /[.!?;,]|\b(?:but|and|so)\b/g;
-const PILLS = /^(?:pills|meds|tablets|medication|medicine|them|em|these|those)$/;
-const TOKEN =
-  /\b(pills|meds|tablets|medication|medicine|them|em|these|those|guns?|pistol|rope|noose|razors?|blades?)\b/g;
+/** Every means word the forms can match, longest first: built from their own lists. */
+export const TOKEN = new RegExp(
+  String.raw`\b(${[...MEANS_WORDS].sort((a, b) => b.length - a.length).join('|')})\b`,
+  'g'
+);
 const MODIFIER = String.raw`(?:heart|blood pressure|bp|morning|night|nighttime|evening|daily|allergy|allergies|thyroid|cholesterol|diabetes|vitamin|vitamins|anxiety|anti anxiety|anti-anxiety|asthma|seizure|birth control|iron|adhd|stomach|reflux|migraine|usual|regular|prescription)`;
 const MY_MEDS = new RegExp(
   String.raw`(?<!\ball )\bmy (?:${MODIFIER} ){0,2}(?:pills|meds|medication|medicine|prescription)\b`
@@ -29,8 +33,10 @@ const CHECK_IN =
   /\b(like always|as usual|with (food|water|breakfast|lunch|dinner)|as (directed|prescribed)|(the |my )?doctor (said|told me|prescribed|wants|ordered)|every (day|night|morning|evening)|before bed|at bedtime|refill)\b/;
 const PURPOSE =
   /\b(shav(e|es|ed|ing)|belay(ing)?|(for|at|on) (the |a )?(range|shooting range|hunt|hunting trip|target practice|camping trip|climbing gym|deer stand)|hunting|target practice|jump rope|costume|prop|halloween|rehearsal)\b/;
-const IMMINENT_WORDS =
-  /\ball\b|whole bottle|entire bottle|every (last |single )?(one|pill)|handful|bunch|\b([2-9]\d|\d{3})\b(?! ?(mg|mcg|units?|ml|iu|g)\b)|\b(them|em|these|those)( all)? (now|right now)\b|\b(goodbye|bye|i love you|forgive me|i'?m sorry|don'?t (call|tell|try|come|stop)|tell (my|everyone|them|him|her)|it'?s over)\b/;
+/** Imminent whatever the setting: an amount, "them now", a goodbye (the forms' own run-on list). */
+const IMMINENT_WORDS = new RegExp(
+  String.raw`\ball\b|whole bottle|entire bottle|every (?:last |single )?(?:one|pill)|handful|bunch|\b(?:[2-9]\d|\d{3})\b(?! ?(?:mg|mcg|units?|ml|iu|g)\b)|\b(?:them|em|these|those)(?: all)? (?:now|right now)\b|\b(?:${RUN_ON})\b`
+);
 
 /** The sub-clause of `text` that holds position `at`. */
 function clauseAt(text: string, at: number): string {
@@ -61,7 +67,7 @@ export function exemptedMeans(
     tokens.length > 0 &&
     tokens.every((token) => {
       const clause = clauseAt(text, start + token.index);
-      if (kind === 'pills' || PILLS.test(token[1])) {
+      if (kind === 'pills' || PILL_KIND.has(token[1])) {
         return MY_MEDS.test(clause) || CHECK_IN.test(clause);
       }
       return PURPOSE.test(clause);
