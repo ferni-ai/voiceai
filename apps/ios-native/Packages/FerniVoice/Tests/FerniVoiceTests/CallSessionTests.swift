@@ -90,6 +90,13 @@ final class CallSessionTests: XCTestCase {
     private var tokens = Tokens()
     private var audio = FakeAudio()
 
+    /// The crisis mark is app-wide: a test that hears the crisis signal and
+    /// never hangs up left it set, and the next call to end wasn't "good".
+    override func setUp() async throws {
+        try await super.setUp()
+        CrisisMarker.reset()
+    }
+
     /// Timeouts: 5 s by default, so a Ferni who's there is never raced by the
     /// watchdog (his join reaches the session through the room's AsyncStream
     /// and a task hop, which on a loaded CI runner took longer than the old
