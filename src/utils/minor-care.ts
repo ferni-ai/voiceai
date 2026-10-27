@@ -237,6 +237,14 @@ export function bindSessionPhone(sessionId: string, e164: string): void {
       log.warn({ error: String(error) }, 'MINOR_CARE phone hold listener failed');
     }
   }
+  // Not held yet: a number another call left on hold holds this call too (minor-care-purge.ts).
+  if (fresh && !likely.has(sessionId)) {
+    try {
+      onPhoneBound(sessionId, e164);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'MINOR_CARE phone bound listener failed');
+    }
+  }
 }
 
 export function sessionPhone(sessionId: string): string | undefined {
@@ -272,6 +280,13 @@ let onPhoneHeld: (e164: string) => void = () => {};
 
 export function setOnPhoneHeld(listener: (e164: string) => void): void {
   onPhoneHeld = listener;
+}
+
+/** Told when a session not yet held is bound to a number (minor-care-purge.ts reads its hold). */
+let onPhoneBound: (sessionId: string, e164: string) => void = () => {};
+
+export function setOnPhoneBound(listener: (sessionId: string, e164: string) => void): void {
+  onPhoneBound = listener;
 }
 
 /** This session is held and bound to a user: tell the listener, once per (session, user). Never throws. */
@@ -322,11 +337,23 @@ export function noteCallerWords(
     return true;
   }
   if (!statesUnder18(text, options.asked)) return false;
+  hold(sessionId, 'MINOR_CARE likely minor');
+  return true;
+}
+
+function hold(sessionId: string, why: string): void {
   touch(sessionId);
   if (likely.size > MAX_SESSIONS) evictIdle();
-  log.info({ sessionId }, 'MINOR_CARE likely minor');
+  log.info({ sessionId }, why);
   announceHold(sessionId);
-  return true;
+}
+
+/**
+ * Held as if the caller had said they're under 18 (the same note, owner rule, purge and records):
+ * MINOR_CARE_SHARED_HOLD, a call from a number a held call left on hold. Flag off: nothing.
+ */
+export function holdSession(sessionId: string, env: Env = process.env): void {
+  if (minorCareOn(env) && !likely.has(sessionId)) hold(sessionId, 'MINOR_CARE held number');
 }
 
 export function likelyMinor(sessionId: string | undefined): boolean {
