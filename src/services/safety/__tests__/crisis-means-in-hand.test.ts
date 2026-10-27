@@ -170,13 +170,17 @@ describe('the security-review bypasses', () => {
 });
 
 describe('round 2 (verifier r1 follow-ups)', () => {
-  it.each(["she texted me 'i took them all'", 'she texted me "i took them all"'])(
-    "someone else's reported words are not the caller's 911: %s",
-    (text) => {
-      expect(live(text)).toEqual(off(text));
-      expect(imminent(live(text))).toBe(false);
-    }
-  );
+  it.each([
+    "she texted me 'i took them all'",
+    'she texted me "i took them all"',
+    // These read nothing only because of the reported-speech softener.
+    'my brother texted me i took a whole bottle of tylenol',
+    'he told me i did it, i took the pills',
+    'she said i took 40 tylenol',
+  ])("someone else's reported words are not the caller's 911: %s", (text) => {
+    expect(live(text)).toEqual(off(text));
+    expect(imminent(live(text))).toBe(false);
+  });
 
   it.each(['the nail gun is in my hand', "the nail gun is in my hand and i'm going to use it now"])(
     'a tool called a gun is not the means, in any form: "%s"',
