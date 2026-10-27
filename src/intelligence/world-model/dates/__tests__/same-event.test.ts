@@ -175,7 +175,21 @@ describe('the same event, stored again under a nearby date, is asked once', () =
   it('(b2) only how it went, good or bad, is the answer; no outcome word is no answer', () => {
     const told = (value: string) =>
       fact({ id: 'b', value, eventDate: ago(1), source: { kind: 'summary', sessionId: 'call-1' } });
-    for (const value of ['pretty well', 'okay', 'it was rough', 'went badly', 'not great', 'so-so'])
+    for (const value of [
+      'pretty well',
+      'okay',
+      'it was rough',
+      'went badly',
+      'not great',
+      'so-so',
+      'he did well',
+      'fine, thanks',
+      'much better',
+      'everything went well',
+      'rough day',
+      'kind of rough',
+      'not bad at all',
+    ])
       expect(dueDate([asked({}), told(value)], TODAY), value).toBeNull();
     for (const value of [
       'going out',

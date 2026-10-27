@@ -48,7 +48,8 @@ const OUTCOME =
   'well good great fine ok okay alright smooth smoothly amazing fantastic perfect wonderful lovely ' +
   'rough bad badly awful terrible horrible hard tough better worse so-so';
 const HOW =
-  'went go going pretty really very so all quite not too it is was she he they her his doing';
+  'went go going did pretty really very so all quite not too much lot super kind of bit little actually ' +
+  'everything it is was she he they her his we you doing at day today thanks thank';
 
 /** Both kinds of outcome word, as event words see them (stemmed). Built on first use, not at import. */
 let outcome: Set<string> | undefined;
