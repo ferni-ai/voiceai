@@ -36,6 +36,7 @@ struct FerniApp: App {
                 .task {
                     await model.account.start()
                     await model.team.refresh()
+                    await model.homeLine.refresh()
                     await model.minimumBuild.check()
                 }
                 // Consent belongs to whoever is signed in: switch with them.
@@ -56,11 +57,22 @@ struct FerniApp: App {
                     if phase == .ended, model.call.lastCallWasGood, let uid = model.account.user?.uid {
                         CheckInAsk().recordGoodCall(uid: uid)
                     }
+                    switch phase {
+                    case .ended, .failed: model.callEndedAt = .now
+                    default: break
+                    }
                 }
                 // The watch shows the call as it is now.
                 .onChange(of: model.remoteState) { _, state in model.watchRemote?.publish(state) }
                 // What Ferni remembers locks again whenever the app leaves the foreground.
-                .onChange(of: scenePhase) { _, phase in if phase != .active { model.memoryLock.lock() } }
+                .onChange(of: scenePhase) { old, phase in
+                    if phase == .active {
+                        model.cameBack(now: .now)
+                    } else {
+                        model.memoryLock.lock()
+                        if old == .active { model.wentAway(now: .now) }
+                    }
+                }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
                 }
@@ -86,6 +98,23 @@ final class AppModel {
     let minimumBuild: MinimumBuild
     let callRemembered: CallRemembered
     let memoryLock = MemoryLock()
+    let homeLine: HomeLineStore
+    /// Bumped when Ferni should wake on a return (Welcome).
+    var wakeCount = 0
+    @ObservationIgnored var callEndedAt: Date?
+    @ObservationIgnored private var wentAwayAt: Date?
+
+    func wentAway(now: Date) { wentAwayAt = now }
+
+    /// Back in the foreground: yesterday's goodbye goes, Ferni wakes after a
+    /// long time away, and Home's line is fetched again (delight gap 1).
+    func cameBack(now: Date) {
+        let r = Welcome.onReturn(callEndedAt: callEndedAt, wasActiveAt: wentAwayAt, inCall: call.isActive, now: now)
+        if r.forgetCall { call.forgetLastCall(); callEndedAt = nil }
+        if r.wake { wakeCount += 1 }
+        wentAwayAt = nil
+        if r.forgetCall || r.wake { Task { await homeLine.refresh() } }
+    }
     @ObservationIgnored private(set) var watchRemote: WatchRemote?
     let liveActivity = LiveActivityController()
     let push: PushStore
@@ -168,12 +197,13 @@ final class AppModel {
         Task { await push.reconcile(uid: uid) }
         guard old != nil, old != uid else { return } // first launch keeps what's loading
         forgetPerson()
-        Task { await team.refresh() }
+        Task { await team.refresh(); await homeLine.refresh() }
     }
 
     private func forgetPerson() {
         memory.reset()
         memoryLock.reset()
+        homeLine.reset()
         team.reset()
         call.forgetLastCall()
         UserDefaults.standard.removeObject(forKey: "ferni.call.hasTalked")
@@ -187,6 +217,7 @@ final class AppModel {
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
         callRemembered = CallRemembered(api: api)
+        homeLine = HomeLineStore(api: api)
         minimumBuild = MinimumBuild(api: api, currentBuild: (Bundle.main.infoDictionary?["CFBundleVersion"] as? String).flatMap(Int.init))
         #if DEBUG
         let apnsEnvironment = "sandbox"
@@ -239,6 +270,7 @@ final class AppModel {
     /// wired as soon as the model exists, before the app finishes launching.
     private func installSystemHandlers() {
         EndCallIntent.end = { [weak self] in await self?.call.end() }
+        MuteCallIntent.mute = { [weak self] in await self?.call.muteFromLockScreen() }
         TalkIntent.handler = { [weak self] personaID in self?.talk(to: personaID) }
         FerniAppDelegate.onToken = { [weak self] token in
             guard let self else { return }

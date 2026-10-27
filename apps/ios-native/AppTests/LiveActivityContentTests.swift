@@ -31,6 +31,21 @@ final class LiveActivityContentTests: XCTestCase {
         }
     }
 
+    /// Hanging up shows a short "Talk soon." for the same person, never the
+    /// last live state ("Ferni's listening") over a dead End button.
+    func testTheFinalStateIsTheGoodbye() {
+        let live = CallActivityAttributes.ContentState(state: .listening, personaID: "maya", personaName: "Maya", muted: true)
+        let last = LiveActivityController.final(after: live)
+        XCTAssertEqual(last.state, .ended)
+        XCTAssertEqual(last.personaID, "maya")
+        XCTAssertFalse(last.muted)
+    }
+
+    func testMuteShowsOnTheLockScreen() {
+        XCTAssertEqual(LiveActivityController.content(phase: .live, onHold: false, pose: .listening, personaID: "ferni", muted: true)?.muted, true)
+        XCTAssertEqual(LiveActivityController.content(phase: .live, onHold: false, pose: .listening, personaID: "ferni")?.muted, false)
+    }
+
     func testItNamesWhoIsOnTheCall() {
         let content = LiveActivityController.content(phase: .live, onHold: false, pose: .speaking, personaID: "maya")
         XCTAssertEqual(content?.personaID, "maya")
