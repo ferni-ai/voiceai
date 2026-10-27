@@ -42,7 +42,8 @@ import {
 } from './contact-pick-v2.js';
 import type { ResolvedContact } from './types.js';
 
-const log = getLogger().child({ module: 'owner-contact' });
+/** Read at call time: test files that mock safe-logger load this module through call-confirm. */
+const log = () => getLogger();
 
 type Store = typeof import('../../../services/contacts/index.js');
 export type ContactRow = Awaited<ReturnType<Store['getContacts']>>[number];
@@ -265,10 +266,10 @@ export async function rememberOnYes(
         ? await save(userId, await resolveOwnerContact(userId, given.who, e164), given, e164)
         : 'invalid';
     } catch (error) {
-      log.warn({ userId, error: String(error) }, 'CONTACT_SAVE_ON_YES: save failed');
+      log().warn({ userId, error: String(error) }, 'CONTACT_SAVE_ON_YES: save failed');
       outcome = 'failed';
     }
   }
-  log.info({ userId, outcome }, '📇 CONTACT_SAVE_ON_YES');
+  log().info({ userId, outcome }, '📇 CONTACT_SAVE_ON_YES');
   return outcome;
 }
