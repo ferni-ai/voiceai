@@ -51,6 +51,7 @@ import {
   ownerSessionFor,
   sessionBoundAt,
   sessionPhone,
+  setOnPhoneHeld,
   setOnUserHeld,
   sharedId,
 } from '../../utils/minor-care.js';
@@ -65,11 +66,15 @@ const log = createLogger({ module: 'minor-care-purge' });
  */
 export function shareHold(userId: string, sessionId?: string): void {
   void recordSharedHold(userId);
-  const phone = (sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1];
+  sharePhoneHold((sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1]);
+}
+function sharePhoneHold(phone: string | undefined): void {
   const phoneId = phoneHoldId(phone);
   if (phoneId) void recordSharedHold(phoneId);
 }
 setOnUserHeld(shareHold);
+// A number bound after its session was held (the SIP caller joined late): held from then.
+setOnPhoneHeld(sharePhoneHold);
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);

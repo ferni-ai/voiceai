@@ -303,6 +303,7 @@ export interface DirectorNotesInput {
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
   await installWrapUp(input);
+  (await import('./ai-notice-wiring.js')).installAiNotice(input); // AI_NOTICE_SPOKEN repeat
   // DIRECTOR_SEES_SCENE: both are framed for the persona speaking, each line labelled.
   const { directorSeesScene } = await import('../personas/director-cast.js');
   const seesScene = directorSeesScene();
