@@ -81,6 +81,7 @@ const MUST_ERASE = [
   'bogle_users/{uid}/summaries',
   'bogle_users/{uid}/conversations',
   'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
+  'bogle_users/{uid}/facts', // bi-temporal facts (facts-store.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/wellbeing_snapshots',

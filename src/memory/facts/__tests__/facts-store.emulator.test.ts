@@ -1,0 +1,129 @@
+/**
+ * The facts store on the Firestore emulator: real transactions (two writers racing
+ * on one attribute end with one current fact), the readers' real queries, the
+ * record leaving with the person (the "take your story" export) and going with the
+ * account (eraseUserRecord).
+ *
+ *   firebase emulators:exec --only firestore --project demo-memory-facts \
+ *     "pnpm vitest run src/memory/facts/__tests__/facts-store.emulator.test.ts"
+ */
+import type { Firestore as AdminFirestore } from 'firebase-admin/firestore';
+import type { Firestore } from '@google-cloud/firestore';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { eraseUserRecord } from '../../../services/platform/erase-user-record.js';
+import {
+  countUserRecords,
+  exportUserRecords,
+} from '../../../services/platform/user-records-export.js';
+import { proposeFact, type FactProposal } from '../../writer/memory-writer.js';
+import { getCurrentFacts, getFactsAsOf, listFactHistory } from '../facts-store.js';
+
+// The shared setup fakes Firestore for every test; here the reads and writes reach the emulator
+vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
+vi.mock('../../../services/identity/firebase-auth.js', () => ({
+  ensureFirebaseAdmin: () => true,
+  deleteFirebaseUser: vi.fn(async () => true),
+  getFirebaseUserOrThrow: vi.fn(async () => null),
+}));
+
+const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+process.env.GCLOUD_PROJECT ??= 'demo-memory-facts';
+const ON = { MEMORY_FACTS: 'on' };
+
+let db: Firestore;
+beforeAll(async () => {
+  if (!emulator) return;
+  const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+  db = getAdminFirestore() as AdminFirestore as unknown as Firestore;
+});
+
+const uidOf = (tag: string): string => `fact-${tag}-${Date.now().toString(36)}`;
+const T0 = new Date('2026-10-01T12:00:00.000Z');
+const T1 = new Date('2026-10-20T12:00:00.000Z');
+const city = (value: string, key: string, extra: Partial<FactProposal> = {}): FactProposal => ({
+  subjectId: 'self',
+  attribute: 'city',
+  value,
+  source: 'manual',
+  sourceKey: key,
+  at: T0,
+  ...extra,
+});
+const count = async (uid: string): Promise<number> =>
+  (await db.collection('bogle_users').doc(uid).collection('facts').get()).size;
+
+describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
+  it('ADD, UPDATE, NOOP and a retry, read back by now, by history and as of a date', async () => {
+    const uid = uidOf('life');
+    await proposeFact(db, uid, city('Tampa', 'k1'), ON);
+    expect(await proposeFact(db, uid, city('Tampa', 'k1'), ON)).toMatchObject({ duplicate: true });
+    expect(await proposeFact(db, uid, city('tampa', 'k2', { at: T1 }), ON)).toMatchObject({
+      op: 'noop',
+    });
+    const next = await proposeFact(
+      db,
+      uid,
+      city('Austin', 'k3', { at: T1, validFrom: T1.toISOString() }),
+      ON
+    );
+    expect(next).toMatchObject({ ok: true, op: 'update' });
+
+    expect(await count(uid)).toBe(2);
+    expect((await getCurrentFacts(db, uid, 'self', 'city', ON)).map((f) => f.value)).toEqual([
+      'Austin',
+    ]);
+    expect((await listFactHistory(db, uid, 'self', 'city', ON)).map((f) => f.value)).toEqual([
+      'Tampa',
+      'Austin',
+    ]);
+    const asOf = async (d: Date): Promise<string[]> =>
+      (await getFactsAsOf(db, uid, 'self', 'city', d, ON)).map((f) => f.value);
+    expect(await asOf(new Date(T1.getTime() - 1))).toEqual(['Tampa']);
+    expect(await asOf(T1)).toEqual(['Austin']);
+  }, 30_000);
+
+  it('three writers racing on one attribute end with exactly one current fact', async () => {
+    const uid = uidOf('race');
+    await proposeFact(db, uid, city('Tampa', 'k0'), ON);
+    const results = await Promise.all(
+      ['Austin', 'Denver', 'Boston'].map((v, i) =>
+        proposeFact(db, uid, city(v, `k${i + 1}`, { at: new Date(T1.getTime() + i * 1000) }), ON)
+      )
+    );
+    expect(results.every((r) => r.ok)).toBe(true);
+    expect(await count(uid)).toBe(4);
+    expect(await getCurrentFacts(db, uid, 'self', 'city', ON)).toHaveLength(1);
+  }, 60_000);
+
+  it('writes nothing while off, or for a non-member', async () => {
+    const uid = uidOf('off');
+    expect(await proposeFact(db, uid, city('Tampa', 'k1'), {})).toMatchObject({
+      reason: 'disabled',
+    });
+    expect(await proposeFact(db, `onbehalf:${uid}`, city('Tampa', 'k1'), ON)).toMatchObject({
+      reason: 'not_member',
+    });
+    expect(await count(uid)).toBe(0);
+    expect(await count(`onbehalf:${uid}`)).toBe(0);
+  }, 30_000);
+
+  it('the export carries every fact; erasure removes them all and only theirs', async () => {
+    const uid = uidOf('erase');
+    const other = uidOf('keep');
+    for (const u of [uid, other]) {
+      await proposeFact(db, u, city('Tampa', 'k1'), ON);
+      await proposeFact(db, u, city('Austin', 'k2', { at: T1 }), ON);
+      await proposeFact(db, u, { ...city('a beagle named Biscuit', 'k3'), attribute: 'pet' }, ON);
+    }
+    const out = await exportUserRecords(uid, undefined, db as never);
+    const rows = out['bogle_users/{uid}/facts'] as Array<Record<string, unknown>>;
+    expect(rows.map((r) => r.value).sort()).toEqual(['Austin', 'Tampa', 'a beagle named Biscuit']);
+    expect(await countUserRecords(uid, undefined, db as never)).toBe(3);
+
+    await eraseUserRecord(uid, db as never);
+
+    expect(await count(uid)).toBe(0);
+    expect(await count(other)).toBe(3);
+  }, 60_000);
+});
