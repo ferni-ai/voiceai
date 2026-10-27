@@ -71,7 +71,10 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const settle = () => new Promise<void>((r) => void setImmediate(r));
+const settle = () =>
+  new Promise<void>((r) => {
+    setTimeout(r, 0);
+  });
 
 async function identify(room: FakeRoom) {
   const sessionId = `call-${++seq}`;

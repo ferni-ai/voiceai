@@ -60,9 +60,13 @@ async function call(sessionId: string): Promise<void> {
     }),
   });
   await vi.waitFor(() => expect(userData.lastAgentResponse).toBeTruthy());
-  await new Promise<void>((r) => void setImmediate(r));
+  await new Promise<void>((r) => {
+    setTimeout(r, 0);
+  });
   session.emit(voice.AgentSessionEventTypes.Close, {});
-  await new Promise<void>((r) => void setTimeout(r, 20));
+  await new Promise<void>((r) => {
+    setTimeout(r, 20);
+  });
 }
 
 describe('reply recorder → life ledger under MINOR_CARE', () => {
