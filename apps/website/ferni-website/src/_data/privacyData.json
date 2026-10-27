@@ -1,6 +1,6 @@
 {
   "_about": "One source for the privacy policy's 'Your data at a glance' table, its provider table, and /privacy/data.json. scripts/__tests__/privacy-data.test.ts checks that every provider named in privacy.njk is listed here, and every provider here handles at least one kind of data.",
-  "lastReviewed": "2026-10-21",
+  "lastReviewed": "2026-10-26",
   "processors": [
     {
       "name": "Google Cloud",
@@ -43,9 +43,14 @@
       "data": "Email address, name, email content"
     },
     {
+      "name": "Apple",
+      "does": "Delivers notifications to the iPhone app, if you allow them",
+      "data": "Your iPhone's push token, and a short alert that says only what kind of thing is waiting, never what you said"
+    },
+    {
       "name": "Sentry",
-      "does": "Error reports from our servers, with personal details removed",
-      "data": "What failed and where in our code, with personal details removed"
+      "does": "Crash reports from the iPhone app and error reports from our servers, with personal details removed",
+      "data": "What failed and where in our code, and the kind of phone. Never your account or what you said"
     },
     {
       "name": "Google Analytics",
@@ -111,6 +116,13 @@
       "processors": ["Google Analytics"]
     },
     {
+      "type": "iPhone push token",
+      "detail": "Only if you allow notifications in the iPhone app",
+      "why": "Only to deliver Ferni's notifications to your phone",
+      "kept": "Until you delete your account",
+      "processors": ["Google Cloud", "Apple"]
+    },
+    {
       "type": "Server logs",
       "detail": "IP address, times, pages and errors",
       "why": "Security and fixing problems",
@@ -118,8 +130,8 @@
       "processors": ["Google Cloud"]
     },
     {
-      "type": "Error reports",
-      "detail": "What failed and where in our code. Account details are left out, and emails, phone numbers and what you said are removed from the report",
+      "type": "Crash and error reports",
+      "detail": "What failed and where in our code. Crash reports from the iPhone app carry no account, name, screenshots or anything you said, and aren't linked to you. Server error reports leave out account details, and emails, phone numbers and what you said are removed",
       "why": "To find and fix bugs",
       "kept": "Up to 90 days, then Sentry deletes them",
       "processors": ["Sentry"]
