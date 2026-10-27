@@ -6,8 +6,10 @@
  * synchronous site that never asks it, like assessSafety) gave no crisis
  * response. These lines must get the imminent script with the classifier
  * timed out, through the real guard, the turn pipeline and assessSafety.
+ *
+ * All of it with CRISIS_MEANS_IN_HAND=live; off and shadow are in crisis-means-in-hand.test.ts.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/safe-logger.js', () => {
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), trace: vi.fn() };
@@ -21,6 +23,13 @@ import {
   assessSafety,
   getCrisisResponse,
 } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
+
+beforeAll(() => {
+  vi.stubEnv('CRISIS_MEANS_IN_HAND', 'live');
+});
+afterAll(() => {
+  vi.unstubAllEnvs();
+});
 
 /** The caller's own means in hand, or an attempt underway or just made. */
 const IMMINENT_MEANS = [
@@ -61,8 +70,8 @@ const NOT_THE_CALLERS_IMMINENT = [
 
 /**
  * Look-alikes the forms must not take: each one carries on past the means into
- * an ordinary purpose. (Medication talk that ends the same way, "i'm taking my
- * pills now", does read imminent: that cost is accepted toward recall.)
+ * an ordinary purpose. (Medication talk that ends the same way with no possessive,
+ * "i'm taking them now", does read imminent: that cost is accepted toward recall.)
  */
 const BENIGN_LOOKALIKES = [
   'i have the rope right here for the camping trip',

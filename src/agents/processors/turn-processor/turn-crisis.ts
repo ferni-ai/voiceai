@@ -39,6 +39,7 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
+import { noteMeansInHandShadow } from '../../../services/safety/crisis-means-shadow.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -140,11 +141,15 @@ export function startTurnCrisis(
     groundedReads?: readonly CrisisGenerateFn[];
   } = {}
 ): TurnCrisis {
-  const found = detectCrisis(
-    userText,
-    toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined),
-    { recentMessages: userData?.recentTranscripts }
-  );
+  const voice = toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined);
+  const crisisOptions = { recentMessages: userData?.recentTranscripts };
+  const found = detectCrisis(userText, voice, crisisOptions);
+  // CRISIS_MEANS_IN_HAND=shadow: the read above is main's; log the tier live would give (#2697).
+  noteMeansInHandShadow(options.sessionId, found, {
+    text: userText,
+    voice,
+    options: crisisOptions,
+  });
   // The answer to a grounded release's direct question: anything but a clear no counts as a match.
   const screened = screenAnswer(options.sessionId || undefined, {
     latest: userText,

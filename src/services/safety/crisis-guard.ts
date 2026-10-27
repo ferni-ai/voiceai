@@ -25,7 +25,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
-import { meansAtHandImminent } from './crisis-means-at-hand.js';
+import { meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
@@ -44,9 +44,7 @@ import {
 
 const log = createLogger({ module: 'CrisisGuard' });
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export interface VoiceEmotionContext {
   primary: string;
@@ -87,13 +85,13 @@ export interface CrisisDetectionOptions {
    * current message is ignored, so userData.recentTranscripts can be passed as is.
    */
   recentMessages?: readonly string[];
+  /** Overrides CRISIS_MEANS_IN_HAND for this read (crisis-means-shadow.ts reads it live). */
+  meansInHand?: 'off' | 'shadow' | 'live';
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
 
-// ============================================================================
 // CRISIS DETECTION
-// ============================================================================
 
 interface TextScore {
   severity: number;
@@ -109,17 +107,14 @@ interface TextScore {
 }
 
 /** Score one message from its words alone. */
-function scoreText(text: string): TextScore {
+function scoreText(text: string, live: boolean): TextScore {
   const indicators: string[] = [];
   let severity = 0;
   let implicitHits = 0;
   let language: 'en' | 'es' | undefined;
-  // A plan escalates this, not softened words that name their own means ("pills here lol").
-  let signalSeverity = 0;
-  const add = (indicator: string, level: number, signal = true): void => {
+  const add = (indicator: string, level: number): void => {
     if (!indicators.includes(indicator)) indicators.push(indicator);
     severity = Math.max(severity, level);
-    if (signal) signalSeverity = Math.max(signalSeverity, level);
   };
 
   // Spans already softened: a second pattern matching the same words
@@ -129,7 +124,7 @@ function scoreText(text: string): TextScore {
   let softSelf = false;
   let tierSoft = false;
   let hardSelf = false;
-  for (const { re, tag, imminent, namesMeans } of EXPLICIT_CRISIS_PATTERNS) {
+  for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
     const match = re.exec(text);
     if (!match) continue;
     const start = match.index;
@@ -148,8 +143,7 @@ function scoreText(text: string): TextScore {
       implicitHits++;
       softSelf = tierSoft = true;
     } else if (modifier) {
-      const frame = modifier === 'history' ? 'crisis_history' : `${modifier}_frame`;
-      add(frame, SEVERITY.passive, namesMeans !== true);
+      add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
       hardSelf = true;
     } else {
       hardSelf = true;
@@ -196,7 +190,7 @@ function scoreText(text: string): TextScore {
 
   // A negation or idiom alone ("I'd never take the pills I have") is not a
   // signal a plan can escalate.
-  const genuineSignal = signalSeverity >= SEVERITY.passive || implicitHits > softenedHits;
+  const genuineSignal = severity >= SEVERITY.passive || implicitHits > softenedHits;
   if (
     genuineSignal &&
     severity < SEVERITY.explicit &&
@@ -206,8 +200,14 @@ function scoreText(text: string): TextScore {
     add('plan_or_means', SEVERITY.explicit);
   }
 
-  // The caller's own risk words with the means at hand lead with 911 (#2697).
-  if (meansAtHandImminent(text, indicators, softened)) add('imminent_danger', SEVERITY.explicit);
+  // CRISIS_MEANS_IN_HAND=live (#2697): means in hand said plainly, or beside ending words: 911.
+  const means = live ? meansInHandRead(text, indicators, softened) : null;
+  if (means) {
+    hardSelf = true;
+    if (means === 'self_harm') add('self_harm', 0);
+    add('explicit_crisis_language', SEVERITY.explicit);
+    add('imminent_danger', SEVERITY.explicit);
+  }
 
   // A worry about someone else outranks the caller's own words only when those are negated,
   // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill
@@ -232,7 +232,7 @@ function scoreText(text: string): TextScore {
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
 export const sessionSeverityOf = (message: string): number =>
-  scoreText(normalize(message)).sessionSeverity;
+  scoreText(normalize(message), resolveMeansInHandMode() === 'live').sessionSeverity;
 
 /** Detect crisis indicators in user message */
 export function detectCrisis(
@@ -241,7 +241,8 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const score = scoreText(text);
+  const live = (options?.meansInHand ?? resolveMeansInHandMode()) === 'live';
+  const score = scoreText(text, live);
   const indicators = [...score.indicators];
   let { severity, subject } = score;
 
@@ -251,7 +252,7 @@ export function detectCrisis(
     .map(normalize)
     .filter((m) => m.length > 0 && m !== text)
     .slice(-5)
-    .map((m) => scoreText(m).sessionSeverity);
+    .map((m) => scoreText(m, live).sessionSeverity);
   const priorPeak = Math.max(0, ...prior);
   const priorDistressTurns = prior.filter((v) => v >= SEVERITY.implicit).length;
   const signalNow = (subject === 'self' && severity >= SEVERITY.implicit) || score.contextHit;
@@ -447,9 +448,7 @@ export function applyClassifierVerdict(
   };
 }
 
-// ============================================================================
 // PRE-RESPONSE GUARD
-// ============================================================================
 
 /** The pre-response decision for an already computed detection. */
 export function guardFromDetection(crisis: CrisisDetectionResult): CrisisGuardResult {
