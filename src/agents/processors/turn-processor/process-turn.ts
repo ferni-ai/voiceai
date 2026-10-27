@@ -36,7 +36,7 @@ import {
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
 import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
-
+import { ownerWriteId, ownerWritesBlocked } from '../../../services/identity/owner-write-gate.js';
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
 import {
   applyRoutingResult,
@@ -227,11 +227,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // USER CORRECTIONS: Auto-detect and record when user corrects Ferni (fire-and-forget)
   if (
-    services.userId &&
+    ownerWriteId(services.userId) &&
     userText.trim().length > 0 &&
     (userData.lastAgentResponse?.length ?? 0) > 0
   ) {
-    const uid = services.userId;
+    const uid = services.userId!;
     const prevFerni = userData.lastAgentResponse as string;
     const personaId = ctx.persona?.id;
     safeFireAndForget(
@@ -385,8 +385,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     );
   }
 
-  // COACHING INTELLIGENCE
-  if (services.userId) {
+  // COACHING INTELLIGENCE and the learners below: none under an onbehalf: id (on-behalf call)
+  if (services.userId && !ownerWritesBlocked(services.userId)) {
     initializeVoiceTracking(services.sessionId);
 
     recordVoiceTurn(services.sessionId, userText, {
@@ -845,7 +845,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   );
 
   // Creative You topic recording
-  const userIdForCreativeYou = services.userId;
+  const userIdForCreativeYou = ownerWriteId(services.userId);
   if (userIdForCreativeYou && analysisResult.analysis.topics?.detected?.length > 0) {
     safeFireAndForget(
       async () => {
@@ -1237,7 +1237,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // INTELLIGENT OUTREACH
-  const { userId } = services;
+  const userId = ownerWriteId(services.userId);
   if (userId && userText.length > 10) {
     publishOutreachExtraction(userId, services.sessionId, {
       message: userText,

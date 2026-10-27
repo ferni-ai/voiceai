@@ -19,9 +19,19 @@ final class AvatarDirectorTests: XCTestCase {
         var d = AvatarDirector()
         _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
         XCTAssertEqual(d.pose, .arriving)
-        XCTAssertEqual(d.send(.agentJoined, now: ms(500)), [.haptic(.presence), .earcon(.arrival)])
+        XCTAssertEqual(d.send(.agentJoined, now: ms(500)), [], "the body's keyed join plays the chime and haptic (gap 4)")
         _ = d.send(.agentState(.speaking), now: ms(500))
         XCTAssertEqual(d.pose, .speaking, "the first turn of a call doesn't wait")
+    }
+
+    /// Under Reduce Motion there's no keyed join, so the director still gives
+    /// the arrival its note and its tap.
+    func testUnderReduceMotionTheJoinIsStillHeardAndFelt() {
+        var d = AvatarDirector()
+        d.reduceMotion = true
+        _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
+        XCTAssertEqual(d.send(.agentJoined, now: ms(500)), [.haptic(.presence), .earcon(.arrival)])
+        XCTAssertEqual(d.send(.agentJoined, now: ms(900)), [], "once per call")
     }
 
     func testAQuickFlickerNeverShows() {

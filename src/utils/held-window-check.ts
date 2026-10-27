@@ -6,6 +6,7 @@
  *
  * @module utils/held-window-check
  */
+import { withTimeout } from './async.js';
 
 let check: (userId: string, at: number) => boolean = () => false;
 export function setHeldWindowCheck(next: (userId: string, at: number) => boolean): void {
@@ -28,12 +29,15 @@ export function withoutHeldAt<T>(userId: string, items: T[], at: (item: T) => un
   return items.filter((item) => !madeWhileHeld(userId, at(item)));
 }
 
-/** When each user's stored windows were last read: at most once a minute (oldest dropped). */
-const loadedAt = new Map<string, number>();
+/** How long a request waits for the stored windows; past it, the reader serves nothing. */
+export const HELD_READ_TIMEOUT_MS = 2000;
 
 /**
- * withoutHeldAt, after `load` (loadHeldWindows) read the user's stored windows, so a process that
- * never saw the purge, an API server, applies them too. Rejects when they can't be read.
+ * withoutHeldAt, after `load` (loadHeldWindows) read the user's stored windows on this request, so
+ * a process that never saw the purge, an API server, applies a window another process stored a
+ * moment ago. Never cached: a cached "none" served a held item until it expired (#2906 verifier,
+ * point 5), and no signal reaches every process when a window is stored. One doc read per request.
+ * Rejects when the windows can't be read in HELD_READ_TIMEOUT_MS (the callers serve nothing).
  */
 export async function withoutHeldStored<T>(
   userId: string,
@@ -41,9 +45,6 @@ export async function withoutHeldStored<T>(
   at: (item: T) => unknown,
   load: (userId: string) => Promise<unknown>
 ): Promise<T[]> {
-  if (Date.now() - (loadedAt.get(userId) ?? 0) > 60_000) {
-    await load(userId);
-    if (loadedAt.delete(userId) || loadedAt.size < 5000) loadedAt.set(userId, Date.now());
-  }
+  await withTimeout(load(userId), HELD_READ_TIMEOUT_MS, 'MINOR_CARE held windows read');
   return withoutHeldAt(userId, items, at);
 }
