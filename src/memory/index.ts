@@ -678,7 +678,6 @@ export type {
 export {
   captureMultiplePeople,
   capturePersonEntity,
-  // Storage
   createEntity,
   createMention,
   deleteEntity,
@@ -695,7 +694,6 @@ export {
   getRelationshipsForEntity,
   hasEntityStore,
   initializeEntityStore,
-  // Integration
   isEntityStoreReady,
   listPersonEntities,
   mergeEntities,

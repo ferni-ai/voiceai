@@ -55,8 +55,6 @@ export {
   searchEntities,
   getAllEntities,
   getEntitiesByType,
-  listPersonEntities,
-  setPersonPhone,
   // Mention operations
   createMention,
   getMentionsForEntity,
@@ -69,6 +67,7 @@ export {
   hasEntityStore,
   getEntityStoreStats,
 } from './storage.js';
+export { listPersonEntities, setPersonPhone } from './person-phone.js';
 
 // ============================================================================
 // RESOLVER EXPORTS

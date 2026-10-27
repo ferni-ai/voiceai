@@ -304,6 +304,7 @@ async function saveContactForFuture(
   contactQuery: string,
   phone: string
 ): Promise<void> {
+  if (flagOn('CONTACT_SAVE_ON_YES')) return; // saved on the yes instead (call-confirm.ts onYes), or refused
   try {
     const { upsertContact } =
       await import('../../../services/contacts/contact-relationship-service.js');
@@ -380,12 +381,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             };
             log.info({ contactQuery, phone: '***' }, 'Using provided phone number for new contact');
 
-            // Save this contact for future use (async, don't wait); CONTACT_SAVE_ON_YES saved it
-            // on the yes instead (call-confirm.ts onYes), or refused to
-            if (!flagOn('CONTACT_SAVE_ON_YES'))
-              saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
-                log.warn({ error: String(err) }, 'Failed to save contact for future');
-              });
+            // Save this contact for future use (async, don't wait)
+            saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
+              log.warn({ error: String(err) }, 'Failed to save contact for future');
+            });
           }
         }
 

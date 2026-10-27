@@ -635,27 +635,3 @@ export async function getEntityStoreStats(userId: string): Promise<{
  * Alias for getRelationshipsForEntity - backward compatibility
  */
 export const getEntityRelationships = getRelationshipsForEntity;
-
-/**
- * Every person, unordered: an orderBy drops documents missing that field, and the migration
- * scripts wrote people without lastMentioned or salience (telephony/owner-contact.ts).
- */
-export async function listPersonEntities(userId: string, limit = 500): Promise<Entity[]> {
-  const ref = await getEntitiesRef(userId);
-  const snapshot = await ref.where('type', '==', 'person').limit(limit).get();
-  return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })) as Entity[];
-}
-
-/** Set a person's phone in contact.phone (what telephony reads) and attributes.phone if set. */
-export async function setPersonPhone(
-  userId: string,
-  entityId: string,
-  e164: string,
-  inAttributes: boolean
-): Promise<void> {
-  const ref = await getEntitiesRef(userId);
-  const fields = { 'contact.phone': e164, ...(inAttributes && { 'attributes.phone': e164 }) };
-  await ref.doc(entityId).update(cleanForFirestore({ ...fields, updatedAt: new Date() }));
-  invalidateEntity(userId, entityId);
-  invalidateUserCache(userId);
-}
