@@ -29,13 +29,14 @@ vi.mock('../../../services/voice/voice-speaker-change.js', () => ({
 
 const { setGlobalStore } = await import('../../../services/identity/user-identification.js');
 const { identifyUser } = await import('../user-identification-handler.js');
+const { PHONE_WATCH_MS, rememberCallerPhone } =
+  await import('../../voice-agent-entry/caller-recognition.js');
 const { bindSessionUser, noteCallerWords, resetMinorCare, sessionPhone } =
   await import('../../../utils/minor-care.js');
 const { setHoldStore } = await import('../../../services/outreach/minor-care-shared-hold.js');
 const { phoneHoldId } = await import('../../../services/outreach/checkin-replies.js');
 
 const PHONE = '+15550001234'; // synthetic
-const PHONE_WATCH_MS = 30_000; // caller-recognition.ts
 const sip = (attributes: Record<string, string> = { 'sip.phoneNumber': PHONE }) => ({
   identity: 'sip_caller',
   attributes,
@@ -102,6 +103,30 @@ describe('identifyUser binds the caller number whenever the SIP caller joins', (
     p.attributes['sip.phoneNumber'] = PHONE;
     room.emit('participantAttributesChanged', { 'sip.phoneNumber': PHONE }, p);
     expect(sessionPhone(sessionId)).toBe(PHONE);
+  });
+
+  it("binds from the participant's attributes, not only the changed set", async () => {
+    const room = new FakeRoom();
+    const { sessionId } = await identify(room);
+    const p = sip({});
+    room.join(p);
+    p.attributes['sip.phoneNumber'] = PHONE; // already set when another attribute changes
+    p.attributes['sip.callStatus'] = 'active';
+    room.emit('participantAttributesChanged', { 'sip.callStatus': 'active' }, p);
+    expect(sessionPhone(sessionId)).toBe(PHONE);
+  });
+
+  it('binding the same number again writes no second phone# record', async () => {
+    const room = new FakeRoom();
+    const { sessionId, userId } = await identify(room);
+    bindSessionUser(sessionId, userId);
+    noteCallerWords(sessionId, "I'm 14 years old");
+    room.join();
+    await settle();
+    expect(writes).toEqual([userId, phoneHoldId(PHONE)]);
+    rememberCallerPhone(sessionId, room as never); // e.g. recognizePhoneSession's bind
+    await settle();
+    expect(writes).toEqual([userId, phoneHoldId(PHONE)]);
   });
 
   it('a held call whose caller joins late writes the phone# record when the number arrives', async () => {
