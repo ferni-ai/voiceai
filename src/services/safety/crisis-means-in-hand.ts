@@ -16,6 +16,7 @@
  * @module CrisisMeansInHand
  */
 
+import { exemptedMeans, type MeansKind } from './crisis-means-exempt.js';
 import { explicitModifier } from './crisis-modifiers.js';
 
 export type MeansInHandMode = 'off' | 'shadow' | 'live';
@@ -56,14 +57,11 @@ const DOSE_TAKEN = String.raw`(?:(?:them|em|these|those) all|all of (?:them|em|t
 const NOT_A_UNIT = String.raw`(?! ?(?:mg|mgs|mcg|µg|ug|milligrams?|micrograms?|grams?|g|units?|u|ml|mls|milliliters?|millilitres?|cc|iu|drops?|puffs?|mmol|percent|%)\b)`;
 const DRUGS = String.raw`(?:tylenol|advil|ibuprofen|acetaminophen|paracetamol|aspirin|benadryl|xanax|ambien|oxy(?:codone|contin)?|percocet|vicodin|sleeping pills|painkillers|insulin|lithium|seroquel|klonopin|valium)`;
 
-/** The forms, in order. Each must end its clause (or run on with "and", "now", a goodbye). */
 /**
- * Which everyday exemption a form takes (none for the rest: means on the body, an overdose by
- * count or dose word, "i did it", cutting now). 'pills': the caller's own medication in the same
- * clause. 'means': that, for pills, or an everyday setting in the same sentence.
+ * The forms, in order. Each must end its clause (or run on with "and", "now", a goodbye). `kind`
+ * marks the two an everyday check-in or purpose may hold back (crisis-means-exempt.ts).
  */
-type Exempt = 'pills' | 'means';
-const FORMS: ReadonlyArray<{ re: RegExp; tag: 'suicidal' | 'self_harm'; exempt?: Exempt }> = [
+const FORMS: ReadonlyArray<{ re: RegExp; tag: 'suicidal' | 'self_harm'; kind?: MeansKind }> = [
   // Means on the body: "the noose is around my neck", "gun pointed at my head".
   {
     re: /\bnoose (is )?(around|on) my neck\b|\b(gun|pistol|revolver) (is )?(pointed|aimed) at my (head|chest|temple|face)\b|\b(knife|blade|razor) (is )?(to|against|on) my (wrists?|throat|neck)\b|\bloaded (gun|pistol|revolver)\b[^.!?]{0,20}\b(next to me|in my lap|in my hand)\b/,
@@ -84,7 +82,7 @@ const FORMS: ReadonlyArray<{ re: RegExp; tag: 'suicidal' | 'self_harm'; exempt?:
         String.raw`|\b(?:my|the|these|all the)(?: [\w-]+'?s)? ${MEANS} (?:are|is) ${WHERE}\b${CLAUSE_END}`
     ),
     tag: 'suicidal',
-    exempt: 'means',
+    kind: 'means',
   },
   // "i'm taking them now", "i'm about to take them all now".
   {
@@ -93,7 +91,7 @@ const FORMS: ReadonlyArray<{ re: RegExp; tag: 'suicidal' | 'self_harm'; exempt?:
         String.raw`|\b(?:i'?m )?(?:going to|about to) (?:take|swallow) ${PILLS_TAKEN}(?: all)? (?:now|right now)\b${CLAUSE_END}`
     ),
     tag: 'suicidal',
-    exempt: 'pills',
+    kind: 'pills',
   },
   // "i swallowed a handful of pills", "just took them all".
   {
@@ -146,33 +144,6 @@ const REPORTED =
   /\b(he|she|they|my (\w+ )?(friend|brother|sister|mom|mother|dad|father|son|daughter|kid|child|wife|husband|partner|boyfriend|girlfriend|cousin|roommate|coworker|neighbor))('s| is| was)? (said|says|texted|texts|wrote|writes|told me|posted|messaged|keeps saying|just said)\b/;
 /** A quote opened after the reporting words and still open where the match starts. */
 const QUOTED = new RegExp(String.raw`${REPORTED.source}[^"]*"[^"]*$`);
-/** Whose medication: someone else's is not a check-in ("my mom's pills", "my grandmas pills"). */
-const OTHERS = String.raw`(?:mom|mother|dad|father|grandma|grandmother|grandpa|grandfather|nana|nan|papa|wife|husband|son|daughter|kid|kids|brother|sister|partner|friend|roommate|boyfriend|girlfriend|aunt|uncle|cousin)'?s?`;
-/** The caller's own medication, in the clause: "i'm taking my meds now", "with food". */
-const MED_CHECKIN = new RegExp(
-  String.raw`(?<!\ball )\bmy (?!${OTHERS}\b)(?:[\w-]+ ){0,2}(?:pills|meds|medication|medicine|prescription)\b|\b(?:vitamins?|with food|with water|(?:the |my )?doctor (?:said|told me|prescribed|wants|ordered)|prescri(?:bed|ption)|refill|as (?:directed|prescribed)|like always|every (?:day|night|morning)|daily|bedtime|before bed|allerg(?:y|ies)|headache|blood pressure|antibiotics?|birth control|cholesterol|thyroid|pharmacist|pharmacy|nurse)\b`
-);
-/** An everyday setting for a tool or weapon, in the sentence: shaving, the range, a costume. */
-const SETTING =
-  /\b(deer|kayak|sailing|leash|shav(e|es|ed|ing|er)|belay(ing)?|climbing|camping|tent|tarp|hammock|the range|shooting range|target practice|hunting|police|officer|cop|deputy|on duty|holster|security guard|pharmacist|pharmacy|nurse|ipads?|laptops?|museum|stone tablets?|halloween|costume|prop|rehearsal|tie (it|them|the)|knot for)\b/;
-/** Words that make it imminent whatever the setting: an amount, "them now", a goodbye. */
-const IMMINENT_WORDS = new RegExp(
-  String.raw`\ball\b|whole bottle|entire bottle|every (?:last |single )?(?:one|pill)|handful|bunch|\b(?:[2-9]\d|\d{3})\b(?! ?(?:mg|mcg|units?|ml|iu|g)\b)|\b(?:them|em|these|those)(?: all)? (?:now|right now)\b|\b(?:${RUN_ON})\b`
-);
-const PILLS_WORD = /\b(pills|meds|tablets|medication)\b/;
-
-/** Whether an everyday exemption covers the match: scoped to its clause or sentence, never the call. */
-function exempted(text: string, start: number, end: number, exempt: Exempt | undefined): boolean {
-  if (!exempt || IMMINENT_WORDS.test(text)) return false;
-  const breaks = /[.!?;,]|\bbut\b|\band\b|\bso\b/;
-  const clause = `${text.slice(0, start).split(breaks).pop() ?? ''}${text.slice(start, end)}${text.slice(end).split(breaks)[0] ?? ''}`;
-  const pills = exempt === 'pills' || PILLS_WORD.test(text.slice(start, end));
-  if (pills && MED_CHECKIN.test(clause)) return true;
-  if (exempt !== 'means') return false;
-  const sentence = `${text.slice(0, start).split(/[.!?]/).pop() ?? ''}${text.slice(start, end)}${text.slice(end).split(/[.!?]/)[0] ?? ''}`;
-  return SETTING.test(sentence);
-}
-
 /** Softened in a way the shared modifiers miss: negated means, or not happening. */
 export function meansSoftened(text: string, start: number, end: number): boolean {
   const span = text.slice(start, end);
@@ -204,17 +175,20 @@ export function meansInHandRead(
 ): 'suicidal' | 'self_harm' | null {
   const free = (start: number, end: number): boolean =>
     !softened.some(([s, e]) => start < e && end > s) && !meansSoftened(text, start, end);
-  for (const { re, tag, exempt } of FORMS) {
-    const m = re.exec(text);
-    if (!m) continue;
-    const end = m.index + m[0].length;
-    if (exempted(text, m.index, end, exempt) || !free(m.index, end)) continue;
-    if (explicitModifier(text, m.index, end, true) === null) return tag;
+  // Every match, not the first: an exempt or softened one must not hide a later real one.
+  for (const { re, tag, kind } of FORMS) {
+    for (const m of text.matchAll(new RegExp(re.source, 'g'))) {
+      const end = m.index + m[0].length;
+      if (exemptedMeans(text, m.index, end, kind) || !free(m.index, end)) continue;
+      if (explicitModifier(text, m.index, end, true) === null) return tag;
+    }
   }
   // Ending words already read explicit, with the means at hand: 911 first (severity unchanged).
   if (!indicators.includes('explicit_crisis_language') && !indicators.includes('plan_or_means')) {
     return null;
   }
-  const means = MEANS_AT_HAND.exec(text);
-  return means && free(means.index, means.index + means[0].length) ? 'suicidal' : null;
+  for (const m of text.matchAll(new RegExp(MEANS_AT_HAND.source, 'g'))) {
+    if (free(m.index, m.index + m[0].length)) return 'suicidal';
+  }
+  return null;
 }

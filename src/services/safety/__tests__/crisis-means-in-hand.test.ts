@@ -172,7 +172,6 @@ describe('live: everyday look-alikes', () => {
     'i have my anti anxiety pills in my hand',
     "i'm taking my meds now",
     "i'm taking them now, my antidepressants, like the doctor said",
-    'i have the tablets in front of me, ipads for the class',
     'the rope is in my hands, hauling the canoe onto the dock',
     'i have a blade in my hand, sanding down the shelf',
     'the gun is right here, locked in the safe',
@@ -226,7 +225,7 @@ describe('live: the medication check-in covers its own clause, never the whole c
     // The check-in covers its own clause, not the next one.
     "i took my vitamins this morning, i'm taking the pills now",
     // A setting covers its own sentence, not the next one.
-    'we went camping last week. i have the gun in my hand',
+    'we went camping last week. i have the rope in my hands',
   ])('a check-in or setting elsewhere does not cover the means: "%s"', (text) => {
     expect(off(text).indicators).not.toContain('imminent_danger');
     expect(live(text).indicators).toContain('imminent_danger');
@@ -254,6 +253,59 @@ describe('live: the medication check-in covers its own clause, never the whole c
     'my meds are right here on the counter',
     "i'm going to take my pills now",
   ])('an ordinary check-in still gets no 911: "%s"', (text) => {
+    expect(live(text)).toEqual(off(text));
+  });
+});
+
+describe('live: the exemption is scoped to the means token (security review, round 2)', () => {
+  it.each([
+    'i took my meds and i have the gun right here',
+    'i took my meds this morning and i have the rope in my hands',
+    'i took my meds this morning, the gun is right here',
+  ])('a check-in beside a weapon never covers the weapon: "%s"', (text) => {
+    expect(off(text).indicators).not.toContain('imminent_danger');
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it('a later real match is read even when the first is exempt', () => {
+    const text = 'i have my heart pills right here. i have the pills right here';
+    expect(live('i have my heart pills right here')).toEqual(
+      off('i have my heart pills right here')
+    );
+    expect(off(text).indicators).not.toContain('imminent_danger');
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it.each([
+    "my coworker's pills are right here",
+    "my stepdad's pills are right here",
+    "my ex's meds are right here",
+    'my neighbors pills are right here',
+    "i have my friend's pills right here",
+  ])('only an allowlisted word between "my" and the pills is a check-in: "%s"', (text) => {
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it('pills never take an everyday setting, only a check-in', () => {
+    const text = "i'm out hunting i have the pills right here";
+    expect(off(text).indicators).not.toContain('imminent_danger');
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it('a police officer is not an everyday purpose for the gun', () => {
+    const text = 'the cop left his gun and i have it in my hand';
+    expect(off(text).indicators).not.toContain('imminent_danger');
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it.each([
+    'i took my meds',
+    'i already took my meds',
+    'did you take your meds? yes i took them.',
+    "i'm taking my meds now",
+    'i have my blood pressure pills right here',
+    "i'm taking my pills now with food",
+  ])('the r1 medication check-ins still get no 911: "%s"', (text) => {
     expect(live(text)).toEqual(off(text));
   });
 });
