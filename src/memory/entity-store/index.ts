@@ -55,6 +55,8 @@ export {
   searchEntities,
   getAllEntities,
   getEntitiesByType,
+  listPersonEntities,
+  setPersonPhone,
   // Mention operations
   createMention,
   getMentionsForEntity,

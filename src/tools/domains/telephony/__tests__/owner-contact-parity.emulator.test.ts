@@ -56,7 +56,12 @@ let n = 0;
 async function turn(u: string, args: Record<string, unknown>, yes: boolean, sid?: string) {
   const registry = new ToolRegistry();
   for (const def of getTelephonyToolDefinitions()) registry.register(def);
-  const ctx: ToolContext = { userId: u, agentId: 'ferni', agentDisplayName: 'Ferni', sessionId: sid };
+  const ctx: ToolContext = {
+    userId: u,
+    agentId: 'ferni',
+    agentDisplayName: 'Ferni',
+    sessionId: sid,
+  };
   const session = { agentState: 'listening' };
   const listeners = outreachConfirmListeners(session);
   const call = async (callId: string) => {
@@ -115,26 +120,49 @@ type Turn = [string, string | undefined, boolean, string?];
 const N = '801-555-0142';
 const HOME = '801-555-0177';
 const SCENARIOS: Record<string, { seed?: (u: string) => Promise<void>; turns: Turn[] }> = {
-  fresh: { turns: [['my dad', N, true], ['dad', undefined, true]] },
-  noYes: { turns: [['my dad', N, false], ['dad', undefined, false]] },
+  fresh: {
+    turns: [
+      ['my dad', N, true],
+      ['dad', undefined, true],
+    ],
+  },
+  noYes: {
+    turns: [
+      ['my dad', N, false],
+      ['dad', undefined, false],
+    ],
+  },
   entityContactTwin: {
     seed: async (u) => {
       await seedEntity(u, 'Dad', 'dad', 'contact', '+18015550199');
       await seed([['Dad', '+18015550199', "User's dad", 'family']], u);
     },
-    turns: [['my dad', N, true], ['dad', undefined, true]],
+    turns: [
+      ['my dad', N, true],
+      ['dad', undefined, true],
+    ],
   },
   entityAttributes: {
     seed: (u) => seedEntity(u, 'Dad', 'dad', 'attributes', '+18015550199'),
-    turns: [["dad's", N, true], ['Dad', undefined, true]],
+    turns: [
+      ["dad's", N, true],
+      ['Dad', undefined, true],
+    ],
   },
   sharedMomCr: {
     seed: (u) => seed([['Mom', '+18015550177', "User's mom", 'family']], u),
-    turns: [['Doug', HOME, true], ['Doug', undefined, true], ['mom', undefined, true]],
+    turns: [
+      ['Doug', HOME, true],
+      ['Doug', undefined, true],
+      ['mom', undefined, true],
+    ],
   },
   sharedMomEntity: {
     seed: (u) => seedEntity(u, 'Mom', 'mom', 'contact', '+18015550177'),
-    turns: [['dad', HOME, true], ['dad', undefined, true]],
+    turns: [
+      ['dad', HOME, true],
+      ['dad', undefined, true],
+    ],
   },
   noSession: { turns: [['my dad', N, true, 'none']] },
   heldSession: { turns: [['my dad', N, true, 'held']] },
@@ -152,11 +180,15 @@ beforeEach(() => {
   vi.stubEnv('CONTACT_SAVE_ON_YES', '');
   vi.stubEnv('MINOR_CARE', 'on');
   vi.stubEnv('SIP_TRUNK_NUMBER', '+18015550100');
-  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}')));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('{}'))
+  );
   sip.createSipParticipant.mockClear();
 });
 afterAll(() => {
-  if (process.env.PARITY_OUT) writeFileSync(process.env.PARITY_OUT, JSON.stringify(record, null, 2));
+  if (process.env.PARITY_OUT)
+    writeFileSync(process.env.PARITY_OUT, JSON.stringify(record, null, 2));
 });
 
 describe.skipIf(!emulator)('CONTACT_SAVE_ON_YES off: the same turns as main', () => {
@@ -179,7 +211,11 @@ describe.skipIf(!emulator)('CONTACT_SAVE_ON_YES off: the same turns as main', ()
       out.push(await turn(u, args, yes, sessionId));
     }
     nextSession();
-    record[name] = { turns: out, dialed: sip.createSipParticipant.mock.calls.map((c) => c[1]), stored: await stored(u) };
+    record[name] = {
+      turns: out,
+      dialed: sip.createSipParticipant.mock.calls.map((c) => c[1]),
+      stored: await stored(u),
+    };
     if (!process.env.PARITY_OUT) expect(record[name]).toEqual(main[name]);
   });
 });

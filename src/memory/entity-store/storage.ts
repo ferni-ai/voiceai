@@ -655,7 +655,7 @@ export async function setPersonPhone(
 ): Promise<void> {
   const ref = await getEntitiesRef(userId);
   const fields = { 'contact.phone': e164, ...(inAttributes && { 'attributes.phone': e164 }) };
-  await ref.doc(entityId).update({ ...fields, updatedAt: new Date() });
+  await ref.doc(entityId).update(cleanForFirestore({ ...fields, updatedAt: new Date() }));
   invalidateEntity(userId, entityId);
   invalidateUserCache(userId);
 }

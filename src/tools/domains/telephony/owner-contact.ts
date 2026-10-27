@@ -44,7 +44,7 @@ import type { ResolvedContact } from './types.js';
 
 const log = getLogger().child({ module: 'owner-contact' });
 
-type Store = typeof import('../../../services/contacts/contact-relationship-service.js');
+type Store = typeof import('../../../services/contacts/index.js');
 export type ContactRow = Awaited<ReturnType<Store['getContacts']>>[number];
 
 /** An entity_store person, as much of it as this module reads. */
@@ -99,9 +99,9 @@ const entityPhones = (e: PersonRecord): string[] =>
 const rowPhones = (r: ContactRow): string[] => [digits(r.phone)].filter(Boolean);
 
 async function readPeople(userId: string): Promise<PersonRecord[]> {
-  const { isEntityStoreReady } = await import('../../../memory/entity-store/integration.js');
+  const { isEntityStoreReady } = await import('../../../memory/index.js');
   if (!isEntityStoreReady()) return []; // as the lookup: no entity store, only the legacy rows
-  const { listPersonEntities } = await import('../../../memory/entity-store/storage.js');
+  const { listPersonEntities } = await import('../../../memory/index.js');
   const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v : undefined);
   return (await listPersonEntities(userId)).map((e) => ({
     id: e.id,
@@ -114,8 +114,7 @@ async function readPeople(userId: string): Promise<PersonRecord[]> {
 }
 
 async function readRows(userId: string): Promise<ContactRow[]> {
-  const { loadContacts } =
-    await import('../../../services/contacts/contact-relationship-service.js');
+  const { loadContacts } = await import('../../../services/contacts/index.js');
   const load = await loadContacts(userId);
   if (!load.ok) throw new Error(`contacts unreadable: ${load.error}`); // never "nobody saved"
   return load.contacts;
@@ -172,12 +171,17 @@ export function askAboutNumber(
   e164: string
 ): { note: string; given: GivenNumber } {
   const differing = personPhones(found).filter((d) => d !== digits(e164));
-  const nobody = found.entities.length + found.rows.length === 0 && !contactSaveFields(found.key, undefined);
+  const nobody =
+    found.entities.length + found.rows.length === 0 && !contactSaveFields(found.key, undefined);
   const other = nobody ? undefined : found.others.entities[0]?.name || found.others.rows[0]?.name;
   let note = '';
+  // Two saved numbers for one name ("Sarah"): which one is unclear, so a yes saves nothing
+  if (!roleOf(found.key) && new Set(personPhones(found)).size > 1)
+    return { note, given: { who, e164, change: false, shared: [] } };
   if (differing.length > 0)
     note += `, and change ${found.name}'s saved number (now ending ${differing[0].slice(-4)}) to this one`;
-  if (other) note += ` (that's the number I have for ${other}: is ${found.name} at the same number?)`;
+  if (other)
+    note += ` (that's the number I have for ${other}: is ${found.name} at the same number?)`;
   const change = differing.length > 0;
   return { note, given: { who, e164, change, shared: otherIds(found) } };
 }
@@ -212,7 +216,7 @@ export type SaveOutcome =
 async function createRow(userId: string, key: string, e164: string): Promise<SaveOutcome> {
   const fields = contactSaveFields(key, undefined); // "them" / "contact" name nobody
   if (!fields) return 'unnamed';
-  const store = await import('../../../services/contacts/contact-relationship-service.js');
+  const store = await import('../../../services/contacts/index.js');
   const base = `phone_${e164}`;
   // upsertContact merges by contactId: never onto another person's row with this number
   const taken = (await store.getContacts(userId)).some((r) => r.contactId === base);
@@ -233,8 +237,8 @@ async function save(userId: string, found: OwnerContact, given: GivenNumber, e16
   );
   const staleRows = found.rows.filter((r) => digits(r.phone) !== d);
   if (staleEntities.length + staleRows.length === 0) return 'same';
-  const { setPersonPhone } = await import('../../../memory/entity-store/storage.js');
-  const store = await import('../../../services/contacts/contact-relationship-service.js');
+  const { setPersonPhone } = await import('../../../memory/index.js');
+  const store = await import('../../../services/contacts/index.js');
   for (const e of staleEntities)
     await setPersonPhone(userId, e.id, e164, e.attrPhone !== undefined); // eslint-disable-line no-await-in-loop -- few
   for (const r of staleRows) await store.upsertContact(userId, { ...r, phone: e164 }); // eslint-disable-line no-await-in-loop -- few
@@ -251,7 +255,8 @@ export async function rememberOnYes(
   if (!flagOn('CONTACT_SAVE_ON_YES') || !given) return 'off';
   let outcome: SaveOutcome;
   if (namesNoAccount(userId) || isSyntheticUserId(userId)) outcome = 'refused';
-  else if (!sessionId) outcome = 'no-session'; // the MINOR_CARE check needs it: fail closed
+  else if (!sessionId)
+    outcome = 'no-session'; // the MINOR_CARE check needs it: fail closed
   else if (writeHeld(userId, sessionId)) outcome = 'held';
   else {
     const e164 = savableNumber(given.e164);

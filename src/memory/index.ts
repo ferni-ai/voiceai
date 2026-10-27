@@ -697,6 +697,7 @@ export {
   initializeEntityStore,
   // Integration
   isEntityStoreReady,
+  listPersonEntities,
   mergeEntities,
   migrateAllUsers,
   // Migration
@@ -705,6 +706,7 @@ export {
   // Resolver
   resolvePerson,
   searchEntities,
+  setPersonPhone,
   updateEntity,
   upsertRelationship,
   whatDoWeKnowAbout,

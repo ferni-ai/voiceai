@@ -37,11 +37,7 @@ import { Firestore } from '@google-cloud/firestore';
 import { clearCache } from '../../../../services/contacts/contact-relationship-service.js';
 import { clearAllEntityCaches } from '../../../../memory/entity-store/entity-cache.js';
 import { initializeEntityStore } from '../../../../memory/entity-store/integration.js';
-import {
-  bindSessionUser,
-  noteCallerWords,
-  resetMinorCare,
-} from '../../../../utils/minor-care.js';
+import { bindSessionUser, noteCallerWords, resetMinorCare } from '../../../../utils/minor-care.js';
 import { ToolRegistry } from '../../../registry/index.js';
 import type { ToolContext } from '../../../registry/types.js';
 import { outreachConfirmListeners } from '../../communication/outreach/outreach-confirm.js';
@@ -109,8 +105,7 @@ async function entityDocs(userId: string): Promise<Doc[]> {
 /** Every stored document, serialized: a write anywhere changes it. */
 const snapshot = async (u: string) => JSON.stringify([await crDocs(u), await entityDocs(u)]);
 const writeCount = async (u: string) =>
-  (await crDocs(u)).length +
-  (await entityDocs(u)).filter((e) => e.updatedAt !== undefined).length;
+  (await crDocs(u)).length + (await entityDocs(u)).filter((e) => e.updatedAt !== undefined).length;
 
 async function seedEntity(
   userId: string,
@@ -158,7 +153,10 @@ beforeEach(() => {
   vi.stubEnv('CONTACT_SAVE_ON_YES', 'on');
   vi.stubEnv('MINOR_CARE', '');
   vi.stubEnv('SIP_TRUNK_NUMBER', '+18015550100');
-  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}')));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('{}'))
+  );
   sip.createSipParticipant.mockClear();
 });
 
@@ -242,7 +240,9 @@ describe.skipIf(!emulator)('CONTACT_SAVE_ON_YES on the emulator', () => {
       if (where !== 'cr') await seedEntity(u, 'mom-ent', 'Mom', 'mom', 'contact', HOME);
       if (where !== 'entity') await seed([['Mom', HOME, "User's mom", 'family']], u);
       nextSession();
-      const momBefore = JSON.stringify(named([...(await crDocs(u)), ...(await entityDocs(u))], 'mom'));
+      const momBefore = JSON.stringify(
+        named([...(await crDocs(u)), ...(await entityDocs(u))], 'mom')
+      );
       const args = { contactQuery: who, phoneNumber: '801-555-0177', purpose: 'hi' };
       const noYes = await turn(u, args, false);
       expect(noYes.preview).toContain(
@@ -292,7 +292,7 @@ describe.skipIf(!emulator)('CONTACT_SAVE_ON_YES on the emulator', () => {
       expect(await writeCount(u)).toBe(0);
     });
 
-    it('held by another of this user\'s sessions only: 0 writes', async () => {
+    it("held by another of this user's sessions only: 0 writes", async () => {
       const u = uid();
       const other = `other-${u}`;
       expect(noteCallerWords(other, "I'm 13 years old")).toBe(true);
