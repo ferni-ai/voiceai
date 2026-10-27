@@ -10,7 +10,7 @@
  */
 
 /** The name a relation is saved under, and the words people use for it. */
-const ROLES: Record<string, readonly string[]> = {
+export const ROLES: Record<string, readonly string[]> = {
   Mom: ['mom', 'mother', 'mum', 'mama', 'mommy', 'mummy'],
   Dad: ['dad', 'father', 'papa', 'daddy'],
   Sister: ['sister', 'sis'],

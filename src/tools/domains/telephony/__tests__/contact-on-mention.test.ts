@@ -6,12 +6,16 @@
  * read back but never placed, and saving only happened when a confirmed call was placed. At
  * 22:20 Ferni said it had no number for him.
  *
- * Drives the real gated callOnBehalf tool (read-back, the caller's words, dial) and the real
- * contact store over a fake Firestore that keeps documents, so "next session" drops the
+ * PR #2949 review (round 2): a changed number must land in the store it was found in (the
+ * entity store wins the next lookup), and a number shared with another contact (a home
+ * landline) must never change that contact: the read-back asks, and a yes saves a new one.
+ *
+ * Drives the real gated callOnBehalf tool (read-back, the caller's words, dial), the real
+ * contact store over a fake Firestore that keeps documents, and the real entity-store
+ * telephony half (telephony-contact.ts) over fake entity storage, so "next session" drops the
  * process cache and reads back what was persisted. Mocked only at the edges: LiveKit (what
- * rings a phone), fetch, the entity store, the profile store, the user_contacts fallback
- * search, the semantic-index hooks and (for the MINOR_CARE case) the hold check. All numbers
- * are fake (555-01xx).
+ * rings a phone), fetch, entity storage, the profile store, the user_contacts fallback search,
+ * the semantic-index hooks and (for the MINOR_CARE case) the hold check. All numbers are fake.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -58,10 +62,39 @@ vi.mock('../../../../services/data-layer/hooks/contacts-hooks.js', () => ({
   onContactChange: async () => undefined,
   onContactInteractionChange: async () => undefined,
 }));
-vi.mock('../../../../memory/entity-store/integration.js', () => ({
-  isEntityStoreReady: () => false,
-  findContactForTelephony: vi.fn(),
-}));
+/** entity_store/{uid}/entities as storage.ts would keep it: `${uid}/${id}` → entity. */
+const entities = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+vi.mock('../../../../memory/entity-store/storage.js', () => {
+  const key = (uid: string, id: string) => `${uid}/${id}`;
+  const get = async (uid: string, id: string) =>
+    structuredClone(entities.get(key(uid, id))) ?? null;
+  return {
+    findEntityByAlias: async (uid: string, q: string) =>
+      [...entities.values()].find(
+        (e) =>
+          e.userId === uid && (e.aliases as string[]).includes(q.toLowerCase().replace(/^my /, ''))
+      ) ?? null,
+    searchEntities: async () => [],
+    getEntity: get,
+    updateEntity: async (uid: string, id: string, updates: Record<string, unknown>) => {
+      const e = entities.get(key(uid, id));
+      if (!e) return null;
+      entities.set(key(uid, id), { ...e, ...structuredClone(updates) });
+      return get(uid, id);
+    },
+  };
+});
+// integration.ts's telephony entry points are thin wrappers over telephony-contact.ts (real here)
+vi.mock('../../../../memory/entity-store/integration.js', async () => {
+  const t = await vi.importActual<
+    typeof import('../../../../memory/entity-store/telephony-contact.js')
+  >('../../../../memory/entity-store/telephony-contact.js');
+  return {
+    isEntityStoreReady: () => true,
+    findContactForTelephony: t.lookUpTelephonyContact,
+    setPersonPhone: t.setPersonPhone,
+  };
+});
 vi.mock('../../../../services/global-services.js', () => ({ getGlobalServicesSync: () => null }));
 const held = vi.hoisted(() => new Set<string>());
 vi.mock('../../../../utils/minor-care.js', async (orig) => ({
@@ -88,6 +121,7 @@ const storedPhones = (userId = USER) =>
 
 beforeEach(() => {
   docs.clear();
+  entities.clear();
   held.clear();
   clearCache();
   stubCallEnv();
@@ -185,17 +219,6 @@ describe('a number given for a call is saved at the read-back', () => {
     nextSession();
     expect(storedPhones()).toEqual(['Dad|+18015550199']);
   });
-
-  it('the same number under another name: found by both ("Dad", also called Doug)', async () => {
-    await seed([['Dad', DAD, "User's dad", 'family']]);
-    expect(await rings('Doug')).toBeNull();
-    const ask = { contactQuery: 'Doug', phoneNumber: '801 555 0142', purpose: 'check in' };
-    expect(await liveCall().call(ask, 'c1')).toContain('NOT SENT YET');
-    nextSession();
-    expect(storedPhones()).toEqual([`Dad|${DAD}`]);
-    expect(await rings('Doug')).toBe(`Dad|${DAD}`);
-    expect(await rings('dad')).toBe(`Dad|${DAD}`);
-  });
 });
 
 describe('who and what is never saved', () => {
@@ -207,9 +230,9 @@ describe('who and what is never saved', () => {
     const tool = createCallOnBehalfTool({ userId, agentId: 'ferni', agentDisplayName: 'Ferni' });
     await tool.execute(ask, { toolCallId: 'x', ctx: {} } as never);
     const found = null;
-    expect(await rememberNumberGiven({ userId, contactQuery: 'dad', phone: DAD, found })).toBe(
-      'refused'
-    );
+    expect(
+      await rememberNumberGiven({ userId, contactQuery: 'dad', phone: DAD, found })
+    ).toMatchObject({ outcome: 'refused' });
     await new Promise((r) => {
       setTimeout(r, 20);
     });
@@ -231,7 +254,7 @@ describe('who and what is never saved', () => {
     const given = { userId: USER, contactQuery: 'dad', found: null };
     for (const phone of ['12345', '+1 555 123 4567', '(801) 555-0100']) {
       // eslint-disable-next-line no-await-in-loop -- one at a time
-      expect(await rememberNumberGiven({ ...given, phone })).toBe('invalid');
+      expect(await rememberNumberGiven({ ...given, phone })).toMatchObject({ outcome: 'invalid' });
     }
     expect(await liveCall().call({ ...ask, phoneNumber: '12345' }, 'c1')).toMatch(/^Nothing/);
     expect(docs.size).toBe(0);
@@ -245,5 +268,152 @@ describe('who and what is never saved', () => {
     call.caller('Yes.');
     expect(await call.call(ask, 'c2')).toContain('calling dad');
     await vi.waitFor(() => expect(storedPhones()).toEqual([`Dad|${DAD}`]));
+  });
+});
+
+const OLD = '+18015550199';
+/** Dad in the entity store, his number in the migration shape or the captured shape. */
+function seedEntityDad(shape: 'contact' | 'attributes', phone = OLD, userId = USER) {
+  entities.set(`${userId}/dad-entity`, {
+    id: 'dad-entity',
+    userId,
+    type: 'person',
+    canonicalName: 'Dad',
+    aliases: ['dad', 'father'],
+    specificRelation: 'dad',
+    attributes: {
+      _type: 'person',
+      relationship: 'father',
+      ...(shape === 'attributes' && { phone }),
+    },
+    ...(shape === 'contact' && { contact: { phone } }),
+  });
+}
+const entityPhones = () => {
+  const e = entities.get(`${USER}/dad-entity`) as {
+    contact?: { phone?: string };
+    attributes: { phone?: string };
+  };
+  return { contact: e.contact?.phone, attributes: e.attributes.phone };
+};
+const settle = () =>
+  new Promise((r) => {
+    setTimeout(r, 30);
+  });
+const dialed = () => sip.createSipParticipant.mock.calls.map((c) => String(c[1]));
+
+describe('a changed number lands where the next lookup reads it (entity store first)', () => {
+  it.each([
+    ['contact', false],
+    ['contact', true],
+    ['attributes', false],
+    ['attributes', true],
+  ] as const)(
+    "Dad's old number in entity %s.phone (legacy twin row: %s): a yes, and the next session dials the new one",
+    async (shape, legacyTwin) => {
+      seedEntityDad(shape);
+      if (legacyTwin) await seed([['Dad', OLD, "User's dad", 'family']]);
+      nextSession();
+      expect(await rings('dad')).toBe(`Dad|${OLD}`);
+
+      const call = liveCall();
+      const ask = { contactQuery: 'dad', phoneNumber: '801-555-0142', purpose: 'check in' };
+      expect(await call.call(ask, 'c1')).toContain(
+        "change Dad's saved number (now ending in 0199)"
+      );
+      call.caller('Yes.');
+      expect(await call.call(ask, 'c2')).toContain('calling Dad');
+      await settle();
+
+      nextSession();
+      expect(entityPhones()).toEqual({ contact: DAD, attributes: DAD });
+      expect(storedPhones()).toEqual(legacyTwin ? [`Dad|${DAD}`] : []); // never a second Dad
+      expect(await rings('dad')).toBe(`Dad|${DAD}`);
+      const next = liveCall();
+      await next.call({ contactQuery: 'dad', purpose: 'check in' }, 'n1');
+      next.caller('Yes.');
+      await next.call({ contactQuery: 'dad', purpose: 'check in' }, 'n2');
+      expect(dialed()).toEqual([DAD, DAD]);
+    }
+  );
+
+  it('a number captured in conversation (attributes.phone) is found by a call', async () => {
+    seedEntityDad('attributes', DAD);
+    expect(await rings('dad')).toBe(`Dad|${DAD}`);
+    vi.stubEnv('CONTACT_SAVE_ON_MENTION', 'off'); // as on main: only contact.phone was read
+    expect(await rings('dad')).toBeNull();
+  });
+});
+
+describe('a number shared with another contact never changes that contact', () => {
+  const HOME = '+18015550177';
+  const CELL = '+18015550188';
+  const callWithYes = async (contactQuery: string, phoneNumber: string, id: string) => {
+    const call = liveCall();
+    const ask = { contactQuery, phoneNumber, purpose: 'check in' };
+    const preview = await call.call(ask, `${id}1`);
+    call.caller('Yes.');
+    return { preview, placed: await call.call(ask, `${id}2`) };
+  };
+
+  it.each([
+    ['Doug', ''],
+    ['Doug', 'on'],
+    ['dad', ''],
+    ['dad', 'on'],
+  ])(
+    'Mom at home; "call %s at home", then at a cell; "call mom" (CONTACT_PICK_V2=%s)',
+    async (who, v2) => {
+      vi.stubEnv('CONTACT_PICK_V2', v2);
+      await seed([['Mom', HOME, "User's mom", 'family']]);
+      const mom = () => [...docs.values()].find((d) => d.name === 'Mom');
+      const before = structuredClone(mom());
+
+      const home = await callWithYes(who, '801-555-0177', 'h');
+      const them = who === 'dad' ? 'your dad' : who;
+      expect(home.preview).toContain(
+        `(that's the number I have for Mom: is ${them} at the same number?)`
+      );
+      expect(home.preview).not.toContain("change Mom's");
+      await settle();
+      nextSession();
+      expect(mom()).toEqual(before);
+      expect(await rings('mom')).toBe(`Mom|${HOME}`);
+      const saved = who === 'dad' ? 'Dad' : 'Doug';
+      // The default lookup's "dad" returns Mom when she is saved first (main, pinned in
+      // contact-pick.fixtures.ts; CONTACT_PICK_V2 fixes it): here the same home number
+      const mainDadBug = who === 'dad' && v2 === '';
+      expect(await rings(who)).toBe(mainDadBug ? `Mom|${HOME}` : `${saved}|${HOME}`);
+
+      const cell = await callWithYes(who, '801-555-0188', 'c');
+      expect(cell.preview).toContain(`change ${saved}'s saved number (now ending in 0177)`);
+      expect(cell.preview).not.toContain('Mom');
+      await settle();
+      nextSession();
+      expect(mom()).toEqual(before);
+      expect(await rings('mom')).toBe(`Mom|${HOME}`);
+      expect(await rings(who)).toBe(mainDadBug ? `Mom|${HOME}` : `${saved}|${CELL}`);
+      expect(dialed()).toEqual([HOME, CELL]); // each confirmed call rang what was read back
+      expect(storedPhones().sort()).toEqual([`${saved}|${CELL}`, `Mom|${HOME}`]);
+    }
+  );
+
+  it('with no yes to "is Doug at the same number?", nothing is saved for Doug', async () => {
+    await seed([['Dad', DAD, "User's dad", 'family']]);
+    const ask = { contactQuery: 'Doug', phoneNumber: '801 555 0142', purpose: 'check in' };
+    expect(await liveCall().call(ask, 'c1')).toContain("that's the number I have for Dad");
+    nextSession();
+    expect(storedPhones()).toEqual([`Dad|${DAD}`]);
+    expect(await rings('Doug')).toBeNull();
+  });
+
+  it('the owner\'s own words tie a name to a relation: "my dad, Doug" adds Doug to Dad', async () => {
+    await seed([['Dad', DAD, "User's dad", 'family']]);
+    const ask = { contactQuery: 'my dad, Doug', phoneNumber: '801 555 0142', purpose: 'check in' };
+    const preview = await liveCall().call(ask, 'c1');
+    expect(preview).not.toContain("that's the number I have");
+    nextSession();
+    expect(storedPhones()).toEqual([`Dad|${DAD}`]);
+    expect(await rings('Doug')).toBe(`Dad|${DAD}`);
   });
 });

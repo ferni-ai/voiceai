@@ -13,6 +13,8 @@ import { resolvePerson } from './entity-resolver.js';
 import { createMention, recordMention, hasEntityStore } from './storage.js';
 import { extractFacts, extractTopics } from './capture-extraction.js';
 import { getFirestoreDatabase } from '../../config/environment.js';
+import { lookUpTelephonyContact, type TelephonyContact } from './telephony-contact.js';
+export { setPersonPhone } from './telephony-contact.js';
 import type {
   PersonCaptureInput,
   CaptureContext,
@@ -413,43 +415,14 @@ export async function captureMultiplePeople(
 // ============================================================================
 
 /**
- * Find a contact for telephony (call/text)
- *
+ * Find a contact for telephony (call/text), from either number shape (telephony-contact.ts).
  * This replaces the fragmented contact lookup used by telephony tools.
  */
 export async function findContactForTelephony(
   userId: string,
   query: string
-): Promise<{
-  name: string;
-  phone: string;
-  relationship?: string;
-} | null> {
-  if (!isEntityStoreReady()) {
-    // Fall back to legacy lookup
-    return null;
-  }
-
-  const { findEntityByAlias, searchEntities } = await import('./storage.js');
-
-  // Try exact match first
-  let entity = await findEntityByAlias(userId, query, 'person');
-
-  // Try search if exact match fails
-  if (!entity) {
-    const results = await searchEntities(userId, query, { types: ['person'], limit: 1 });
-    entity = results[0] || null;
-  }
-
-  if (!entity || !entity.contact?.phone) {
-    return null;
-  }
-
-  return {
-    name: entity.canonicalName,
-    phone: entity.contact.phone,
-    relationship: entity.specificRelation,
-  };
+): Promise<TelephonyContact | null> {
+  return isEntityStoreReady() ? lookUpTelephonyContact(userId, query) : null; // else legacy
 }
 
 /**

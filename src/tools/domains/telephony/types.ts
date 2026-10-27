@@ -33,6 +33,7 @@ export type CallObjective =
 
 export interface ResolvedContact {
   id?: string;
+  entityId?: string; // set when the entity store answered (its number changes there)
   name: string;
   phone: string;
   relationship?: string; // "doctor", "mom", "restaurant"

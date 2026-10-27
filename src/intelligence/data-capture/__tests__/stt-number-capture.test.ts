@@ -6,10 +6,10 @@
  * it would be a contact named "Contact" that no one can ask for (callOnBehalf saves those
  * under the person asked for, contact-on-mention.ts).
  *
- * Runs the real capture; only the stores (entity store, user_contacts, contact_relationships)
+ * Both behind CONTACT_SAVE_ON_MENTION; off, capture is main's. Runs the real capture; only the stores (entity store, user_contacts, contact_relationships)
  * are faked. All numbers are fake (555-01xx).
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const written = vi.hoisted(() => [] as string[]);
 vi.mock('../../../memory/entity-store/integration.js', () => ({
@@ -38,6 +38,10 @@ beforeEach(async () => {
     setTimeout(r, 20); // the previous test's background saves land first
   });
   written.length = 0;
+  vi.stubEnv('CONTACT_SAVE_ON_MENTION', '');
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('numbers as speech-to-text writes them', () => {
@@ -68,5 +72,16 @@ describe('numbers as speech-to-text writes them', () => {
       setTimeout(r, 20);
     });
     expect(written).toEqual([]);
+  });
+});
+
+describe('CONTACT_SAVE_ON_MENTION=off: capture as on main', () => {
+  it('comma-split groups are not read as a number, and a number naming nobody is saved', async () => {
+    vi.stubEnv('CONTACT_SAVE_ON_MENTION', 'off');
+    const comma = await capture("My dad's number is 801, 555, 0142.");
+    expect(comma.captured[0].entity).toMatchObject({ relationship: 'father', phone: undefined });
+    const nameless = await capture('No, his number is 801-555-0142.');
+    expect(nameless.captured[0].storage.action).toBe('create');
+    await vi.waitFor(() => expect(written).toContain('user_contacts'));
   });
 });

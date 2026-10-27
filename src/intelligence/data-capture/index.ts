@@ -17,6 +17,7 @@
  * @module intelligence/data-capture
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { runBackground } from '../../utils/background-task.js';
 import { memoryHeld, userHeld } from '../../utils/minor-care.js';
@@ -77,20 +78,24 @@ const RELATIONSHIP_MAP: Record<string, string> = {
 // PHONE NUMBER EXTRACTION
 // ============================================================================
 
-// Groups may be split by a comma too: speech-to-text writes "801, 661, 6112" (prod 2026-10-26 18:47)
-const PHONE_PATTERNS = [
-  // Standard formats: (555) 123-4567, 555-123-4567, 555.123.4567, 555, 123, 4567
-  /\(?\d{3}\)?(?:,\s?|[-.\s])?\d{3}(?:,\s?|[-.\s])?\d{4}/,
-  // With country code: +1 555 123 4567, 1-555-123-4567
-  /\+?1?[-.\s]?\(?\d{3}\)?(?:,\s?|[-.\s])?\d{3}(?:,\s?|[-.\s])?\d{4}/,
-  // 10 digits together
-  /\b\d{10}\b/,
-  // 7 digits (local)
-  /\b\d{3}[-.\s]?\d{4}\b/,
-];
+// CONTACT_SAVE_ON_MENTION: groups may also be split by a comma, as speech-to-text writes them
+// ("801, 661, 6112", prod 2026-10-26 18:47); off, as before
+const phonePatterns = (): RegExp[] => {
+  const sep = flagOn('CONTACT_SAVE_ON_MENTION')
+    ? String.raw`(?:,\s?|[-.\s])?`
+    : String.raw`[-.\s]?`;
+  return [
+    // Standard formats: (555) 123-4567, 555-123-4567, 555.123.4567
+    new RegExp(String.raw`\(?\d{3}\)?${sep}\d{3}${sep}\d{4}`),
+    // With country code: +1 555 123 4567, 1-555-123-4567
+    new RegExp(String.raw`\+?1?[-.\s]?\(?\d{3}\)?${sep}\d{3}${sep}\d{4}`),
+    /\b\d{10}\b/, // 10 digits together
+    /\b\d{3}[-.\s]?\d{4}\b/, // 7 digits (local)
+  ];
+};
 
 function extractPhoneNumber(text: string): string | null {
-  for (const pattern of PHONE_PATTERNS) {
+  for (const pattern of phonePatterns()) {
     const match = text.match(pattern);
     if (match) {
       // Normalize to digits only
@@ -455,10 +460,11 @@ export async function processDataCapture(context: DataCaptureContext): Promise<D
     const intent = classifyIntent(transcript, hasContactInfo, hasRelationship);
 
     // Saved (and acknowledged) unless the caller is held under 18 (MINOR_CARE, minor-care.ts), or
-    // nothing says whose it is ("his number is …" would be a "Contact" no one can ask for)
+    // (CONTACT_SAVE_ON_MENTION) it names nobody: "his number is …" is a "Contact" no one asks for
     const saves = ['explicit_save', 'implicit_share', 'correction', 'relationship_mention'];
     const held = memoryHeld(context.sessionId) || userHeld(userId);
-    const shouldSave = saves.includes(intent) && !held && hasRelationship;
+    const whose = hasRelationship || !flagOn('CONTACT_SAVE_ON_MENTION');
+    const shouldSave = saves.includes(intent) && !held && whose;
 
     // Determine storage target (contacts for contact info, relationships for relationship-only)
     const storageTarget = hasContactInfo ? 'contacts' : 'relationships';

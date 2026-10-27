@@ -21,7 +21,12 @@ import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
 import { pickFromTie, type PickRow } from './contact-pick.js';
-import { relationWordOf, rememberNumberGiven, replaceConfirmed } from './contact-on-mention.js';
+import {
+  confirmedChanges,
+  pickIsSomeoneElse,
+  relationWordOf,
+  rememberNumberGiven,
+} from './contact-on-mention.js';
 import type {
   CallType,
   CallObjective,
@@ -79,11 +84,8 @@ async function findContact(
             '📇 Contact resolved from unified entity store'
           );
 
-          return {
-            name: entityResult.name,
-            phone: entityResult.phone,
-            relationship: entityResult.relationship,
-          };
+          const { entityId, name, phone, relationship } = entityResult;
+          return { entityId, name, phone, relationship };
         }
       }
     } catch (entityError) {
@@ -251,6 +253,16 @@ async function initiateOnBehalfCall(request: OnBehalfCallRequest): Promise<strin
   return initiator(request);
 }
 
+/** How a changed number reaches the entity store, which the lookup reads first. */
+function entityPhoneSetter(userId: string) {
+  return async (entityId: string, e164: string): Promise<boolean> =>
+    (await import('../../../memory/entity-store/integration.js')).setPersonPhone(
+      userId,
+      entityId,
+      e164
+    );
+}
+
 // ============================================================================
 // TOOL DEFINITION
 // ============================================================================
@@ -293,14 +305,22 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         let contact = pickFromTie(found, phoneNumber);
         if (typeof contact === 'string') return contact;
 
-        // A number given rings this call; it replaces a different saved one only on the yes to a
-        // read-back that said so, and is otherwise saved for next time (contact-on-mention.ts)
+        // A number given rings this call and is saved for next time; a saved number, or another
+        // person's contact, changes only on the yes that said so (contact-on-mention.ts)
         if (phoneNumber) {
           const normalizedPhone = phoneNumber.replace(/\D/g, ''); // Strip non-digits
           const { userId, sessionId } = ctx;
-          const replace = replaceConfirmed(params);
-          const given = { userId, sessionId, contactQuery, phone: phoneNumber, found, replace };
-          void rememberNumberGiven({ ...given, placing: true });
+          const given = {
+            userId,
+            sessionId,
+            contactQuery,
+            phone: phoneNumber,
+            found,
+            placing: true,
+          };
+          const setEntityPhone = entityPhoneSetter(userId);
+          void rememberNumberGiven({ ...given, ...confirmedChanges(params), setEntityPhone });
+          if (pickIsSomeoneElse(contact, contactQuery)) contact = null;
           log.info({ known: Boolean(contact) }, 'Using the phone number given');
           contact = contact
             ? { ...contact, phone: normalizedPhone }
