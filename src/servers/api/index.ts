@@ -1,8 +1,4 @@
-/**
- * UI/API Server
- *
- * Serves the frontend UI, provides API routes, and handles integrations.
- */
+/** UI/API Server: serves the frontend UI, provides API routes, and handles integrations. */
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
@@ -325,8 +321,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname)))
-    return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;
