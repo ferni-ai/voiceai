@@ -1,8 +1,6 @@
 /**
- * The fast path of the outbound confirm gate (outreach-confirm.ts): one pass over the caller's
- * words decides only the plain cases, a bare yes ("Yeah, go ahead.") or a bare no ("No, wait.").
- * Everything else goes to the consent judge (consent-judge.ts), which never turns doubt into a yes.
- *
+ * The confirm gate's fast path (outreach-confirm.ts): one pass decides only a bare yes ("Yeah, go
+ * ahead.") or a bare no ("No, wait."); the rest goes to the judge (consent-judge.ts).
  * @module tools/domains/communication/outreach/consent-words
  */
 
@@ -25,12 +23,8 @@ const FILLERS = [
     ' '
   ),
 ];
-// Only when the waiting action is itself a phone call, and only in fixed phrases: with a text
-// waiting, "Yes, call her." would change what is sent, and a bare "call" beside a filler ("Okay,
-// he can call.", "Yes, you should call.") may hand the call to someone else. Owner call 10-26:
-// "Yeah, go ahead and call." placed nothing. "Give him a call" only when "him" is the person read
-// back (a call to Dad); anything else with "call", and "it's okay with me", is the judge's
-// (consent-judge.ts): with a call to Dad waiting, "Yes, call her." is someone else.
+// Only with a phone call waiting, and only in fixed phrases: a bare "call" beside a filler ("Okay,
+// he can call.") may hand it to someone else. Any other "call" is the judge's (consent-judge.ts).
 const CALL_YES = ['go ahead and call', 'make the call'];
 const HIM = new Set('dad father brother husband son grandpa uncle'.split(' '));
 const HER = new Set('mom mum mother sister wife daughter grandma aunt'.split(' '));
@@ -49,11 +43,8 @@ function restatements(target: readonly string[]): Array<ReturnType<ReturnType<ty
   return pronoun ? [phrase(false)(`give ${pronoun} a call`)] : [];
 }
 const YES_STARTS = new Set(YES_PHRASES.map((p) => p.split(' ')[0]));
-/**
- * The words with each "go ahead and call" / "make the call" object dropped when it is the person
- * read back ("…call him" for Dad, "…call my dad", "…call Doug"); null when it is anyone or
- * anything else ("go ahead and call Peter", "…call my sister"): that is the judge's to read.
- */
+/** The words without "go ahead and call"'s object when it is the person read back ("…call him"
+ * for Dad, "…call Doug"); null for anyone else ("…call Peter"): that is the judge's to read. */
 function callObjects(said: string[], target: readonly string[]): string[] | null {
   const pronoun = pronounOf(target);
   const ok = new Set([...target, 'now', 'right', 'please', ...(pronoun ? [pronoun] : [])]);

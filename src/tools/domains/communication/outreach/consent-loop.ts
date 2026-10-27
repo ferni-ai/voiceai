@@ -1,9 +1,6 @@
 /**
  * What the gate does when a read-back isn't confirmed (outreach-confirm.ts), so it never loops.
- *
- * Owner call 10-26: eleven read-backs of one call to Dad, none placed. Each unconfirmed yes
- * dropped the stored call, and the model's next try read it back again, without end.
- *
+ * Owner call 10-26: eleven read-backs of one call to Dad, none placed.
  * - Unclear: the call stays stored, and Ferni asks ONE plain question ("Just to be sure: call
  *   Dad now?"). A second unclear answer cancels it.
  * - No: cancelled, with an honest line ("Okay, I won't call Dad.").
@@ -22,7 +19,6 @@ import { stillWaitingReply, targetOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction, SessionLog } from './outreach-confirm.js';
 
 const log = getLogger();
-
 /** Read-backs of one action in this request; closedSeq: cancelled (or over the limit) there. */
 export interface AskRecord {
   previews: number;
@@ -34,17 +30,13 @@ type Action = Pick<PendingAction, 'toolId' | 'args' | 'readBack'>;
 const MAX_PREVIEWS = 2;
 const ASK_MEMORY_MS = 10 * 60 * 1000;
 const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
-
 function keyOf(action: Action): string {
   const { address, name } = targetOf(action.args);
   return `${channelOf(action)}:${address ?? name ?? action.toolId}`;
 }
 
-/**
- * After it was closed: the owner asked for this call again ("No, call him!", "I said yes"), or
- * Ferni read this very action back (naming the person) and the owner answered. Either only
- * allows a new read-back, never a call.
- */
+/** After a close: the owner asked again ("No, call him!", "I said yes"), or Ferni read it back by
+ * name and the owner answered. Either allows only a new read-back, never a call. */
 function askedAgain(events: ConfirmEvent[], since: number, action: Action): boolean {
   const later = events.filter((e) => e.seq > since);
   const reread = later.findIndex((e) => e.kind === 'agent' && isReadBack(e.text, action, true));
@@ -109,11 +101,8 @@ export function cancel(
   );
 }
 
-/**
- * The model called the tool again for the stored action, and it isn't confirmed. Returns what
- * the tool says, or undefined when a new read-back should replace it (changed arguments,
- * expiry, or other tool output in between).
- */
+/** The model called the tool again and it isn't confirmed: what the tool says, or undefined when
+ * a new read-back should replace it (changed arguments, expiry, other tool output between). */
 export function unconfirmedReply(
   entry: SessionLog,
   pending: PendingAction,

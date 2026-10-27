@@ -1,12 +1,8 @@
 /**
  * The consent judge (CALL_CONSENT_CLASSIFIER, a kill switch, on by default): one flash-lite call
- * decides the replies the fast path (consent-words.ts) can't, as yes, no or unclear. Owner call
- * 10-26: word lists that took "Yes, it's okay with me. Give him a call." also took "Okay, he can
- * call you." (#2939); a model reading the read-back and the reply can tell them apart.
- * It hears the channel, the person's name, the number's last four digits and the owner's turns,
- * never the number or the message. A timeout, an error or an unusable reply is unclear, never
- * yes. Off: whatever the fast path can't decide is unclear, and the gate asks once.
- *
+ * decides what the fast path (consent-words.ts) can't, as yes, no or unclear. Word lists that took
+ * "Yes, it's okay with me. Give him a call." also took "Okay, he can call you." (#2939). A
+ * timeout, an error or an unusable reply is unclear, never yes; off, all of it is unclear.
  * @module tools/domains/communication/outreach/consent-judge
  */
 
@@ -15,14 +11,13 @@ import { getLogger } from '../../../../utils/safe-logger.js';
 
 const log = getLogger();
 
-type ConsentVerdict = 'yes' | 'no' | 'unclear';
 const REASONS = [
   ...['agreed', 'declined', 'redirect', 'other_person', 'other_channel'],
   ...['deferred', 'conditional', 'question', 'off_topic', 'error'],
 ] as const;
 type ConsentReason = (typeof REASONS)[number];
 export interface ConsentJudgement {
-  verdict: ConsentVerdict;
+  verdict: 'yes' | 'no' | 'unclear';
   reason: ConsentReason;
 }
 
@@ -33,11 +28,9 @@ export interface ConsentInput {
   last4?: string;
   turns: string[];
 }
-
 export function consentClassifierOn(env: Env = process.env): boolean {
   return flagOn('CALL_CONSENT_CLASSIFIER', env);
 }
-
 export const CONSENT_MODEL = 'gemini-3.5-flash-lite';
 /** Started on the owner's last final, so it is usually done before the model calls the tool. */
 export const CONSENT_TIMEOUT_MS = 1200;
@@ -70,7 +63,7 @@ export function consentUserText(input: ConsentInput): string {
 export function parseConsent(reply: string): ConsentJudgement | null {
   try {
     const p = JSON.parse(reply.match(/\{[\s\S]*\}/)?.[0] ?? '') as Record<string, unknown>;
-    const verdict = p.verdict as ConsentVerdict;
+    const verdict = p.verdict as ConsentJudgement['verdict'];
     if (!['yes', 'no', 'unclear'].includes(verdict)) return null;
     const reason = (REASONS as readonly unknown[]).includes(p.reason)
       ? (p.reason as ConsentReason)
@@ -83,8 +76,8 @@ export function parseConsent(reply: string): ConsentJudgement | null {
   }
 }
 
-/** Sends the prompt and the owner's words to a model and returns its raw text. */
-export type ConsentAsk = (system: string, input: string, signal: AbortSignal) => Promise<string>;
+/** Sends the prompt and the owner's words to a model and returns its raw text. */ export type ConsentAsk =
+  (system: string, input: string, signal: AbortSignal) => Promise<string>;
 
 const SCHEMA = {
   type: 'object',

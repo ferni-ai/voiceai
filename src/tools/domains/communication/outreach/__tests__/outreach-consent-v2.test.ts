@@ -470,6 +470,8 @@ describe('deny by default', () => {
       'Yes, call 555-0199.',
       'Yes, have Maya call him.',
       'Just send him a text.',
+      'Sure, send him a text instead of calling.',
+      'Okay, just email him.',
       'Sure, in an hour.',
       'Yeah, give my brother a call.',
       "Call him when he's awake.",
@@ -482,5 +484,58 @@ describe('deny by default', () => {
       await call.call('c2');
       expect(sends, reply).toHaveLength(0);
     }
+  });
+
+  it('a clarifying "wait" that also defers, redirects or hedges is not exempt', async () => {
+    setConsentAsk(alwaysYes);
+    for (const turn of [
+      'Wait, which number? Actually call him later.',
+      'Hold on, can my sister call him instead?',
+      'Wait, which number? Maybe.',
+    ]) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(turn);
+      call.ferni('The one ending in 0002.');
+      call.owner('Yes.');
+      await call.call('c2');
+      expect(sends, turn).toHaveLength(0);
+    }
+  });
+
+  it('a redirect split across finals ("call" | "my sister") is read whole', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Yes, go ahead and call');
+    call.owner('my sister.');
+    await call.call('c2');
+    expect(sends).toHaveLength(0);
+  });
+
+  it('"in 10 minutes" is a deferral, digits and all', async () => {
+    setConsentAsk(alwaysYes);
+    for (const later of ['Sure, in 10 minutes.', 'Yes, in 2 hours.', 'Okay, in 5 mins.']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(later);
+      await call.call('c2');
+      expect(sends, later).toHaveLength(0);
+    }
+  });
+
+  it('the judge\'s yes needs a word of agreement: a bare "Call." asks once', async () => {
+    setConsentAsk(alwaysYes);
+    for (const bare of ['Call.', 'You should call.']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(bare);
+      expect(await call.call('c2'), bare).toContain('Just to be sure: call Dad now?');
+    }
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Go for it.');
+    await call.call('c2');
+    expect(sends).toHaveLength(1);
   });
 });
