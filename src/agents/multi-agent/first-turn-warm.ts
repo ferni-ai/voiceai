@@ -9,9 +9,12 @@
 import { setImmediate as yieldToLoop } from 'node:timers/promises';
 import { flagOn } from '../../config/env-flag.js';
 
-/** Between two cold steps: a yield when FIRST_TURN_WARM is on. */
+/**
+ * Between two cold steps of the per-turn build. Callers run it only when
+ * FIRST_TURN_WARM is on (firstTurnWarmOn), so with the flag off it is never called.
+ */
 export const yieldIfFirstTurnWarm = async (): Promise<void> => {
-  if (flagOn('FIRST_TURN_WARM')) await yieldToLoop();
+  await yieldToLoop();
 };
 
 /** Whether call-path warm-up builds the Vertex client (FIRST_TURN_WARM). */

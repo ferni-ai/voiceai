@@ -188,11 +188,46 @@ export function rememberCallerRecognition(sessionId: string, r: CallerRecognitio
 export function rememberCallerPhone(
   sessionId: string,
   room: { remoteParticipants?: Map<string, SipParticipantLike> }
-): void {
+): boolean {
   for (const participant of room.remoteParticipants?.values() ?? []) {
-    const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
-    if (e164) return bindSessionPhone(sessionId, e164);
+    if (bindParticipantPhone(sessionId, participant)) return true;
   }
+  return false;
+}
+
+function bindParticipantPhone(sessionId: string, p: SipParticipantLike | undefined): boolean {
+  const e164 = toE164(p?.attributes?.['sip.phoneNumber']);
+  if (e164) bindSessionPhone(sessionId, e164);
+  return !!e164;
+}
+
+/** How long a call keeps listening for its SIP caller's number after identification. */
+export const PHONE_WATCH_MS = 30_000;
+
+/**
+ * rememberCallerPhone, and if no number is in the room yet, keep listening (never awaited) until
+ * the SIP caller joins or their attributes land, for up to `waitMs`. Identification often ends
+ * before the SIP participant is in the room (dev soak 2026-10-26), so a single read bound nothing.
+ */
+export function watchCallerPhone(
+  sessionId: string,
+  room: Partial<RoomLike> & { remoteParticipants?: Map<string, SipParticipantLike> },
+  waitMs = PHONE_WATCH_MS
+): void {
+  if (rememberCallerPhone(sessionId, room) || !room.on || !room.off) return;
+  const events = room as RoomLike;
+  const joined = (p: SipParticipantLike): void =>
+    void (bindParticipantPhone(sessionId, p) && stop());
+  const changed = (_: Record<string, string>, p: SipParticipantLike): void => joined(p);
+  const stop = (): void => {
+    clearTimeout(timer);
+    events.off('participantConnected', joined);
+    events.off('participantAttributesChanged', changed);
+  };
+  const timer = setTimeout(stop, waitMs);
+  timer.unref?.();
+  events.on('participantConnected', joined);
+  events.on('participantAttributesChanged', changed);
 }
 
 export function callerRecognitionFor(sessionId: string | undefined): CallerRecognition | undefined {

@@ -71,17 +71,14 @@ import { trackConversationTurn } from '../integrations/speech-metrics-integratio
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
 import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
+import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
   handleInterruption,
   updateSessionState,
   type TurnContext,
 } from './human-turn-intelligence.js';
-import {
-  isLikelyNoise,
-  validateTranscript,
-  type ValidationContext,
-} from './transcript-validator.js';
+import { isLikelyNoise, validateTranscript, type ValidationContext } from './transcript-validator.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import {
@@ -1289,7 +1286,7 @@ async function processFinalTranscript(
   // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
   const held = heldAfter(sessionId, event.transcript, { userId, asked });
-  const memoryUserId = held ? undefined : userId;
+  const memoryUserId = held ? undefined : ownerWriteId(userId); // nor an on-behalf call's id
 
   // ===============================================
   // 🧠 WS1: VALIDATE SPECULATIVE CONTEXT

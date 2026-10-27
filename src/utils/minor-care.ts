@@ -226,8 +226,17 @@ export const sessionBoundAt = (sessionId: string | undefined): number | undefine
 const sessionPhones = new Map<string, string>();
 
 export function bindSessionPhone(sessionId: string, e164: string): void {
+  const fresh = sessionPhones.get(sessionId) !== e164;
   sessionPhones.set(sessionId, e164);
   if (sessionPhones.size > MAX_SESSIONS) sessionPhones.delete(sessionPhones.keys().next().value!);
+  // The SIP caller joined after the hold was announced without a number: hold the number now.
+  if (fresh && announced.has(`${sessionId} ${sessionUsers.get(sessionId)}`)) {
+    try {
+      onPhoneHeld(e164);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'MINOR_CARE phone hold listener failed');
+    }
+  }
 }
 
 export function sessionPhone(sessionId: string): string | undefined {
@@ -256,6 +265,13 @@ const announced = new Set<string>();
 
 export function setOnUserHeld(listener: HoldListener): void {
   onUserHeld = listener;
+}
+
+/** Told when a held, announced session's number is bound only afterwards (minor-care-purge.ts). */
+let onPhoneHeld: (e164: string) => void = () => {};
+
+export function setOnPhoneHeld(listener: (e164: string) => void): void {
+  onPhoneHeld = listener;
 }
 
 /** This session is held and bound to a user: tell the listener, once per (session, user). Never throws. */
