@@ -34,6 +34,7 @@ import { getAuth, type Auth } from 'firebase-admin/auth';
 import {
   FieldPath,
   getFirestore,
+  type DocumentReference,
   type Firestore,
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
@@ -72,7 +73,10 @@ export const AUDITED_STORES: readonly OwnedStore[] = dedupeByLabel([
 
 export interface OrphanedKey {
   key: string;
-  /** Documents that hold the key: 1 or 0 for a store keyed by document id, the matches otherwise */
+  /**
+   * Documents that hold the key: the matches, or for a store keyed by document id 1 (the
+   * document), or the documents under it when only its subcollections survive
+   */
   docs: number;
 }
 
@@ -143,6 +147,19 @@ async function documentsPresent(
   return present;
 }
 
+/**
+ * Documents under a document that doesn't exist itself (a parent erased before its
+ * subcollections), at any depth, so a phantom key counts what it really holds.
+ */
+async function docsUnder(ref: DocumentReference): Promise<number> {
+  let docs = 0;
+  for (const sub of await ref.listCollections()) {
+    docs += (await sub.count().get()).data().count;
+    for (const child of await sub.listDocuments()) docs += await docsUnder(child);
+  }
+  return docs;
+}
+
 /** The candidates that pass conditions 2 and 3 (no record, no Firebase user) */
 async function orphanUids(
   db: Firestore,
@@ -186,7 +203,12 @@ export async function findOrphans(
         store.collection,
         found.map(([key]) => key)
       );
-      return { store, keys: found.map(([key]) => ({ key, docs: present.has(key) ? 1 : 0 })) };
+      const docs = async (key: string): Promise<number> =>
+        present.has(key) ? 1 : docsUnder(db.collection(store.collection).doc(key));
+      return {
+        store,
+        keys: await Promise.all(found.map(async ([key]) => ({ key, docs: await docs(key) }))),
+      };
     })
   );
 }
