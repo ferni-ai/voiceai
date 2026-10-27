@@ -399,6 +399,12 @@ export interface EntityIndexingPolicy {
   contentFields: string[];
   /** TTL in days (0 = no expiry) */
   ttlDays: number;
+  /**
+   * The index document expires ttlDays after it is written (its expireAt; search drops it
+   * after). Only where set: the other ttlDays were declared but never enforced, and
+   * enforcing them all would change what recall finds.
+   */
+  expireInIndex?: true;
 }
 
 /**

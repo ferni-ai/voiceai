@@ -23,6 +23,8 @@ export interface VectorDocument {
     timestamp?: Date;
     [key: string]: unknown;
   };
+  /** When the document expires: Firestore stores it as expireAt and search drops it after */
+  expireAt?: Date;
 }
 
 /**

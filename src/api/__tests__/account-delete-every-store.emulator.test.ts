@@ -94,6 +94,8 @@ const MUST_ERASE = [
   'developer_oauth_tokens[userId]',
   'feature_checkins[userId]',
   'context_injection_outcomes[injection.userId]',
+  'vectors[metadata.userId]', // the semantic index (#2971 verify)
+  'memory_vectors[metadata.userId]',
   'user_profiles[firebaseUid]',
   // The router's stores of each turn and correction (no words since 2026-10-25)
   'routing_events[userId]',

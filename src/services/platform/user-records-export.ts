@@ -221,6 +221,13 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
   { collection: 'semantic_routing_corrections', doc: 'uid' },
   // What the older agent remembered of the relationship: shared moments, inside jokes
   { collection: 'relationship_memories', field: 'userId' },
+  // The semantic index (user-stores.ts): the words and what kind of memory they are, never
+  // the embedding (a model's numbers, not the person's data)
+  ...(['vectors', 'memory_vectors'] as const).map((collection) => ({
+    collection,
+    field: 'metadata.userId',
+    fields: ['text', 'metadata', 'createdAt', 'updatedAt', 'expireAt'],
+  })),
   // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
   // family member's own activity (calls, minutes, last call), voice enrollment, self-
   // registration, or familyUserId, the key to that person's own record.
