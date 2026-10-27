@@ -4,7 +4,8 @@
  * with no pattern; the 988 script played, and the dictated lines kept the next
  * four turns imminent. Seth's decision, the same day:
  * 1. Imminent from the classifier alone (no pattern at all, no risk on the call
- *    before, a known call) speaks CLASSIFIER_CHECK instead, once a call.
+ *    before, a known call) speaks CLASSIFIER_CHECK instead, once a call. The
+ *    check always names 988, so no outcome withholds the line.
  * 2. Only a clear "I'm okay" (clearAnswer) to the check said in full, within
  *    CHECK_ANSWER_MS, with no pattern and no imminent or missing read, clears
  *    it, and the alarm's lines leave the classifier's window.
@@ -30,8 +31,13 @@ const log = createLogger({ module: 'CrisisClassifierCheck' });
 
 type Env = Record<string, string | undefined>;
 
-/** What Ferni says instead of the script (voice rules: no em dashes, no ellipses). */
-export const CLASSIFIER_CHECK = 'Just checking in, are you safe right now?';
+/**
+ * What Ferni says instead of the script. It always names 988, so even an answer
+ * that clears the alarm (a caller who masks with "I'm fine") has heard the line.
+ * Voice rules: no em dashes, no ellipses.
+ */
+export const CLASSIFIER_CHECK =
+  'Just checking in, are you safe right now? And if you ever need it, you can call or text 988 anytime, day or night.';
 /** No answer by then is no answer: about 3 s to say the check, then LiveKit's 15 s away timeout. */
 export const CHECK_ANSWER_MS = 20_000;
 const TTL_MS = 6 * 60 * 60 * 1000;

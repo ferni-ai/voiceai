@@ -76,6 +76,13 @@ describe('clearAnswer', () => {
   });
 });
 
+describe('the check', () => {
+  it('always names 988, so even a masked "I\'m fine" has heard the line', () => {
+    expect(CLASSIFIER_CHECK).toMatch(/\bcall or text 988\b/);
+    expect(CLASSIFIER_CHECK).not.toMatch(/—|…|\.\.\./); // voice rules: no em dashes, no ellipses
+  });
+});
+
 describe('checkInstead', () => {
   it('is off by default in the manifest, so main is unchanged', () => {
     expect(FLAG_MANIFEST.CRISIS_CLASSIFIER_CHECK.default).toBe('off');

@@ -130,7 +130,9 @@ function call(env: Record<string, string>, generate: CrisisGenerateFn = logged) 
   };
 }
 
-const isScript = (text: string): boolean => /988/.test(text);
+/** The full crisis script (the check names 988 too, but is not the script). */
+const isScript = (text: string): boolean => text !== CLASSIFIER_CHECK && /988/.test(text);
+const says988 = (text: string): boolean => /\b988\b/.test(text);
 
 describe('the 2026-10-26 incident, replayed through the gate', () => {
   it('flag off: identical to main, the script five times', async () => {
@@ -159,7 +161,9 @@ describe('the 2026-10-26 incident, replayed through the gate', () => {
   it('flag on: "Yes." gets the check, "It\'s not a crisis." clears it, "Ferni?" gets a reply', async () => {
     const c = call(ON);
     expect(await c.say(TELL, READY)).toBe(REPLY);
-    expect(await c.say('Yes.')).toBe(CLASSIFIER_CHECK);
+    const check = await c.say('Yes.');
+    expect(check).toBe(CLASSIFIER_CHECK);
+    expect(says988(check)).toBe(true); // a clear can never fully withhold the line
     expect(await c.say("It's not a crisis.")).toBe(REPLY);
     expect(await c.say('Ferni?')).toBe(REPLY);
   });
@@ -373,5 +377,55 @@ describe('held-out crisis lines, flag on, the classifier imminent on every one',
       heard.push(d && 'script' in d && d.script === CLASSIFIER_CHECK ? 'check' : 'other');
     }
     expect(heard.length).toBe(risky.length);
+  });
+});
+
+describe('988 is spoken on every check outcome', () => {
+  /** Everything Ferni said from the check on. */
+  const fromCheck = (lines: Array<['user' | 'assistant', string]>): string[] => {
+    const said = lines.filter(([r]) => r === 'assistant').map(([, t]) => t);
+    return said.slice(said.indexOf(CLASSIFIER_CHECK));
+  };
+
+  it('clear: the check itself names 988, then a normal reply', async () => {
+    const c = call(ON, reads([]));
+    await c.say(TELL, READY);
+    await c.say('Yes.');
+    expect(await c.say("I'm fine.")).toBe(REPLY);
+    expect(fromCheck(c.lines)).toEqual([CLASSIFIER_CHECK, REPLY]);
+    expect(says988(fromCheck(c.lines)[0]!)).toBe(true);
+  });
+
+  it('unclear: the check names 988, then the full script', async () => {
+    const c = call(ON, reads([]));
+    await c.say(TELL, READY);
+    await c.say('Yes.');
+    await c.say("I'm fine but I can't do this anymore");
+    const said = fromCheck(c.lines);
+    expect(said[0]).toBe(CLASSIFIER_CHECK);
+    expect(said.map(says988)).toEqual([true, true]);
+    expect(isScript(said[1]!)).toBe(true);
+  });
+
+  it('silence: the check names 988, then the full script', async () => {
+    const c = call(ON, reads([]));
+    await c.say(TELL, READY);
+    const check = await c.say('Yes.');
+    const after = await c.silence();
+    expect([says988(check), isScript(after)]).toEqual([true, true]);
+  });
+
+  it('timeout: the check names 988, then a late answer gets the full script', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const c = call(ON, reads([]));
+      await c.say(TELL, READY);
+      const check = await c.say('Yes.');
+      vi.setSystemTime(Date.now() + 21_000);
+      const late = await c.say("I'm fine.");
+      expect([says988(check), isScript(late)]).toEqual([true, true]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
