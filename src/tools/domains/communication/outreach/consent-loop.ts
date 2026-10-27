@@ -16,7 +16,13 @@
 
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isPlainNo } from './consent-words.js';
-import { channelOf, mentionsChannel, personOf, type ConfirmState } from './consent-window.js';
+import {
+  channelOf,
+  isReadBack,
+  mentionsChannel,
+  personOf,
+  type ConfirmState,
+} from './consent-window.js';
 import { dropConfirmThread } from './confirm-thread.js';
 import { stillWaitingReply, targetOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction, SessionLog } from './outreach-confirm.js';
@@ -83,7 +89,8 @@ export function forgetAsks(entry: SessionLog, action: Action): void {
   entry.asks?.delete(keyOf(action));
 }
 
-function cancel(entry: SessionLog, pending: PendingAction, why: ConfirmState): string {
+/** Drops the stored action, closes it for this request, and says so honestly. */
+export function cancel(entry: SessionLog, pending: PendingAction, why: ConfirmState): string {
   dropConfirmThread(pending);
   entry.pending = undefined;
   const key = keyOf(pending);

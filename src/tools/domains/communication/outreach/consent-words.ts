@@ -25,20 +25,25 @@ const FILLERS = [
     ' '
   ),
 ];
-// Only when the waiting action is itself a phone call, where they restate it: with a text
-// waiting, "Yes, call her." would change what is sent. Owner call 10-26: "Yeah, go ahead and
-// call." placed nothing. A bare "call" never rides beside a name filler: "Yeah, call Peter."
-// may mean Peter, not the call read back. "Call her" / "give him a call" and "it's okay with
-// me" are the judge's (consent-judge.ts): with a call to Dad waiting, "Yes, call her." is
-// someone else, and "That's okay." is often "no thanks".
-const CALL_YES = ['make the call'];
-const NAME_FILLERS = new Set(
-  'ferni fern maya jordan peter alex nayan buddy bud man dude pal'.split(' ')
-);
+// Only when the waiting action is itself a phone call, and only in fixed phrases: with a text
+// waiting, "Yes, call her." would change what is sent, and a bare "call" beside a filler ("Okay,
+// he can call.", "Yes, you should call.") may hand the call to someone else. Owner call 10-26:
+// "Yeah, go ahead and call." placed nothing. "Give him a call" only when "him" is the person read
+// back (a call to Dad); anything else with "call", and "it's okay with me", is the judge's
+// (consent-judge.ts): with a call to Dad waiting, "Yes, call her." is someone else.
+const CALL_YES = ['go ahead and call', 'make the call'];
+const HIM = new Set('dad father brother husband son grandpa uncle'.split(' '));
+const HER = new Set('mom mum mother sister wife daughter grandma aunt'.split(' '));
 const phrase = (yes: boolean) => (text: string) => ({ parts: text.split(' '), yes });
 const PHRASES = [...YES_PHRASES.map(phrase(true)), ...FILLERS.map(phrase(false))];
 const CALL_PHRASES = CALL_YES.map(phrase(true));
-const BARE_CALL = phrase(false)('call');
+/** "Give him a call" restates a call to Dad, never one to Doug (unknown) or to Mom. */
+function restatements(target: readonly string[]): Array<ReturnType<ReturnType<typeof phrase>>> {
+  const him = target.some((w) => HIM.has(w));
+  const her = target.some((w) => HER.has(w));
+  if (him === her) return [];
+  return [phrase(false)(`give ${him ? 'him' : 'her'} a call`)];
+}
 export const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
 // Never taken for a name the caller calls Ferni by: a word that could change what is sent
 // (who, when, how, how many), a question word or a no. "Yes, Tuesday." is not a plain yes.
@@ -81,7 +86,10 @@ export function isClearYes(
 ): boolean {
   // A question word is never a yes phrase, so "which one, yes" already fails below.
   if (text.includes('?')) return false;
-  if (onlyYes(words(text), call)) return true;
+  const said = words(text);
+  // "Call you / me / us" hands the action back, whatever surrounds it.
+  if (said.some((w, i) => w === 'call' && ['you', 'me', 'us'].includes(said[i + 1]))) return false;
+  if (onlyYes(said, call ? [...CALL_PHRASES, ...restatements(target)] : [])) return true;
   const parts = text.split(',');
   if (parts.length < 2) return false;
   const head = parts[0].trim().split(/\s+/);
@@ -97,7 +105,7 @@ export function isClearYes(
   };
   // No "call" beside a name, even one set off by a comma: STT's commas aren't the caller's
   // ("Yeah, call, Peter." may be "Yeah, call Peter.").
-  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest), false));
+  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest), []));
 }
 
 /**
@@ -107,9 +115,8 @@ export function isClearYes(
  * One pass over word positions (reached without a yes / with one), so no reply takes more than
  * words × phrases steps however many ways it splits.
  */
-function onlyYes(said: string[], call: boolean): boolean {
-  const bare = call && !said.some((word) => NAME_FILLERS.has(word));
-  const phrases = [...PHRASES, ...(call ? CALL_PHRASES : []), ...(bare ? [BARE_CALL] : [])];
+function onlyYes(said: string[], callPhrases: typeof PHRASES): boolean {
+  const phrases = [...PHRASES, ...callPhrases];
   const plain = said.map((_, i) => i === 0);
   const withYes = said.map(() => false);
   const done = [false, false];

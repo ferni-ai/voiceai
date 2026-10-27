@@ -62,10 +62,46 @@ export function mentionsChannel(text: string, channel: Channel): boolean {
   return CHANNEL_WORDS[channel].test(text);
 }
 
-/** Ferni asking about this action again: a question with its channel, naming nobody else. */
-export function isReadBack(text: string, channel: Channel, target: readonly string[]): boolean {
-  if (!text.includes('?') || !CHANNEL_WORDS[channel].test(text)) return false;
-  return !words(text).some((w) => KIN.has(w) && !target.includes(w));
+const lastFour = (pending: Pick<PendingAction, 'args'>): string | undefined => {
+  const raw = ['phoneNumber', 'to', 'contactPhone'].map((k) => pending.args[k]);
+  const digits = String(raw.find((v) => typeof v === 'string') ?? '').replace(/\D/g, '');
+  return digits.length >= 4 ? digits.slice(-4) : undefined;
+};
+// Never a read-back of THIS action: a later time, another way round ("call you back").
+const NOT_A_READ_BACK = new Set(words('later tomorrow tonight instead you back'));
+// The honest line's own re-ask (agents/personas/honest-line.ts NOT_YET), about the action waiting.
+const RE_ASK: Record<Channel, RegExp> = {
+  call: /^should i go ahead and call( him| her| them)?( now)?\?$/i,
+  text: /^should i go ahead and send it\?$/i,
+  other: /^should i go ahead and send it\?$/i,
+};
+const STOP = new Set(words('my the a your his her their'));
+
+/**
+ * Ferni reading this action back again: a question on its channel that repeats the person (or the
+ * number's last four digits), or the honest line's own "Should I go ahead and call?" (not when
+ * `strict`). Never with a later time or "you"/"back" in it, nor naming anyone else's kin.
+ */
+export function isReadBack(
+  text: string,
+  pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>,
+  strict = false
+): boolean {
+  const plain = text.replace(/<[^>]*>/g, ' ');
+  const ask = plain
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => s.trim().endsWith('?'))
+    .pop()
+    ?.trim();
+  const channel = channelOf(pending);
+  if (!ask || !CHANNEL_WORDS[channel].test(ask)) return false;
+  const said = words(plain);
+  const target = targetWords(pending as PendingAction).filter((w) => !STOP.has(w));
+  if (said.some((w) => NOT_A_READ_BACK.has(w) || (KIN.has(w) && !target.includes(w)))) return false;
+  const four = lastFour(pending);
+  const repeats =
+    target.some((w) => said.includes(w)) || (!!four && plain.replace(/\D/g, '').includes(four));
+  return repeats || (!strict && RE_ASK[channel].test(ask));
 }
 
 // STT marks most questions with "?"; these open one even without it ("Do it." does not).
@@ -81,8 +117,6 @@ export function answerWindow(
   pending: PendingAction,
   events: ConfirmEvent[]
 ): { turns: string[]; overTalk: boolean } | 'void' {
-  const channel = channelOf(pending);
-  const target = targetWords(pending);
   let delivered = false;
   let overTalk = false;
   let turns: Array<{ text: string; question: boolean }> = [];
@@ -99,7 +133,7 @@ export function answerWindow(
     // Words before the preview was read are not the answer.
     if (!delivered) continue;
     if (e.kind === 'agent') {
-      const again = isReadBack(e.text, channel, target);
+      const again = isReadBack(e.text, pending);
       turns = again ? [] : turns.filter((t) => !t.question);
       overTalk &&= !again;
       continue;
@@ -118,7 +152,23 @@ const VETO = new Set([
   ...'later soon after tomorrow tonight morning afternoon evening weekend'.split(' '),
   ...'monday tuesday wednesday thursday friday saturday sunday'.split(' '),
 ]);
-const REDIRECT = /\b(call|text|ring|message) (you|me|us)\b|\bcheck in with (me|us)\b/;
+const REDIRECT =
+  /\b(call|text|ring|message) (you|me|us)\b|\bcheck in with (me|us)\b|\b(he|she|they) (can|could|should|will) (call|text|ring)\b/;
+// Said at any point after the read-back, these end it for good (deny by default): a plain no, a
+// redirect, or a deferral. Ferni asking again doesn't undo them: the stored action is dropped,
+// and only a fresh read-back (a new preview, consent-loop.ts) can follow.
+const DEFERRED = new Set(
+  words('later tomorrow tonight instead monday tuesday wednesday thursday friday saturday sunday')
+);
+
+/** Any final since the read-back was stored, over Ferni or before he read it, that ends it. */
+export function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
+  return events.some((e) => {
+    if (e.seq <= pending.createdSeq || e.kind !== 'caller') return false;
+    const said = words(e.text);
+    return isPlainNo(e.text) || REDIRECT.test(said.join(' ')) || said.some((w) => DEFERRED.has(w));
+  });
+}
 const CALL_WORD = /\b(call|calling|ring|dial|phone)\b/;
 
 export function vetoed(turns: string[], channel: Channel): boolean {
@@ -131,14 +181,10 @@ export function vetoed(turns: string[], channel: Channel): boolean {
 
 /** What the judge is told about this action and answer: no number, no message. */
 function judgeInput(pending: PendingAction, turns: string[]): ConsentInput {
-  const raw = ['phoneNumber', 'to', 'contactPhone']
-    .map((k) => pending.args[k])
-    .find((v) => typeof v === 'string');
-  const digits = typeof raw === 'string' ? raw.replace(/\D/g, '') : '';
   return {
     channel: channelOf(pending),
     person: personOf(pending),
-    last4: digits.length >= 4 ? digits.slice(-4) : undefined,
+    last4: lastFour(pending),
     turns,
   };
 }
@@ -153,11 +199,11 @@ export function windowState(
   now: number
 ): ConfirmState {
   if (now > pending.expiresAt) return 'void';
+  if (endedBy(pending, events)) return 'declined';
   const answer = answerWindow(pending, events);
   if (answer === 'void') return 'void';
   const { turns } = answer;
   if (turns.length === 0) return 'waiting';
-  if (isPlainNo(turns[turns.length - 1])) return 'declined';
   const channel = channelOf(pending);
   // An unanswered question is never a yes either ("Okay. How's it going?").
   const veto = answer.overTalk || turns.some(isQuestion) || vetoed(turns, channel);

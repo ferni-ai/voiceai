@@ -13,6 +13,7 @@ import type { ToolDefinition } from '../../../../registry/types.js';
 import { consentUserText, setConsentAsk, type ConsentAsk } from '../consent-judge.js';
 import {
   confirmationState,
+  isClearYes,
   judgeConfirmation,
   outreachConfirmListeners,
   PLAN_ONLY,
@@ -62,6 +63,11 @@ function liveCall(toolId = 'callOnBehalf', what = 'a call') {
       return String(out);
     },
     owner: (text: string) => on.onTranscript({ transcript: text, isFinal: true }),
+    ownerOver: (text: string) => {
+      session.agentState = 'speaking';
+      on.onTranscript({ transcript: text, isFinal: true });
+      session.agentState = 'listening';
+    },
     ferni: (text: string) =>
       on.onItemAdded({ item: { role: 'assistant', type: 'message', textContent: text } }),
     otherTool: (callId: string) => on.onToolsExecuted({ functionCalls: [{ callId }] }),
@@ -274,5 +280,95 @@ describe('it never loops', () => {
     call.owner('Yes, go ahead.');
     await call.call('c3');
     expect(sends).toHaveLength(1);
+  });
+});
+
+/** Security review of the first push: each of these could have placed a call the owner refused. */
+describe('deny by default', () => {
+  it('a no stays a no: Ferni asking again, even naming Dad, never revives it', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.owner("No, don't call him.");
+    call.ferni('Okay. Should I go ahead and call Dad now?');
+    call.owner('Yes.');
+    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+    // A deferral or a redirect is as final as a no.
+    for (const ended of ['Call him tomorrow.', 'Okay, he can call me.']) {
+      const again = liveCall();
+      await again.call('d1');
+      again.owner(ended);
+      again.ferni("I haven't actually dialed yet, though. Should I go ahead and call?");
+      again.owner('Yes, go ahead.');
+      expect(await again.call('d2'), ended).toContain("Okay, I won't call Dad.");
+    }
+    expect(sends).toHaveLength(0);
+  });
+
+  it('a question that is not this read-back ("call you back", someone else) keeps the window', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Yes, but tell him I love him.');
+    call.ferni('Do you want me to call him back?');
+    call.owner('Yes.');
+    call.ferni('Should I call your mom?');
+    call.owner('Yes.');
+    expect(await call.call('c2')).not.toContain('Calling Dad');
+    expect(sends).toHaveLength(0);
+  });
+
+  it('a no said over Ferni, or before his read-back reached the model, declines', async () => {
+    setConsentAsk(alwaysYes);
+    // Over Ferni, before any other words: still a no.
+    const over = liveCall();
+    await over.call('o1');
+    over.ownerOver('No.');
+    over.owner('Yes, go ahead.');
+    expect(await over.call('o2')).toContain("Okay, I won't call Dad.");
+    // Before the preview was delivered: still a no.
+    const p = {
+      toolId: 'callOnBehalf',
+      userId: 'u',
+      readBack: 'a call to Dad at 555-123-0002',
+      args: { contactQuery: 'Dad', phoneNumber: DAD },
+      callId: 'c1',
+      createdSeq: 0,
+      expiresAt: Date.now() + 60_000,
+    } as unknown as PendingAction;
+    const events: ConfirmEvent[] = [
+      { kind: 'caller', text: 'Wait, no.', agentSpeaking: false, seq: 1 },
+      { kind: 'tool', callIds: ['c1'], seq: 2 },
+      { kind: 'caller', text: 'Yes, go ahead.', agentSpeaking: false, seq: 3 },
+    ];
+    expect(await judgeConfirmation(p, events)).toBe('declined');
+    expect(sends).toHaveLength(0);
+  });
+
+  it('"he can call" and other bare calls never confirm on the fast path', async () => {
+    const DAD_T = ['my', 'dad'];
+    for (const bare of [
+      'Okay, he can call.',
+      'Yes, she should call.',
+      'Yeah, they can call.',
+      'Yes, you should call.',
+      'Yeah, call.',
+      'Okay, he can call you.',
+      'Yes, go ahead and call me.',
+    ]) {
+      expect(isClearYes(bare, DAD_T, [], true), bare).toBe(false);
+    }
+    // Fixed phrases only, and "give him a call" only when "him" is the person read back.
+    expect(isClearYes('Yeah, go ahead and call.', DAD_T, [], true)).toBe(true);
+    expect(isClearYes('Yes, give him a call.', DAD_T, [], true)).toBe(true);
+    expect(isClearYes('Yes, give him a call.', ['mom'], [], true)).toBe(false);
+    expect(isClearYes('Yes, give him a call.', ['doug'], [], true)).toBe(false);
+    // Through the gate with the judge off: unclear (asks once), never sent.
+    vi.stubEnv('CALL_CONSENT_CLASSIFIER', 'off');
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Okay, he can call.');
+    expect(await call.call('c2')).not.toContain('Calling Dad');
+    expect(sends).toHaveLength(0);
   });
 });

@@ -30,7 +30,13 @@ import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
 import { consentClassifierOn } from './consent-judge.js';
-import { forgetAsks, previewAllowed, unconfirmedReply, type AskRecord } from './consent-loop.js';
+import {
+  cancel,
+  forgetAsks,
+  previewAllowed,
+  unconfirmedReply,
+  type AskRecord,
+} from './consent-loop.js';
 import { isClearNo, words } from './consent-words.js';
 import { judgeWindow, windowState, type ConfirmState } from './consent-window.js';
 import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
@@ -143,8 +149,9 @@ function record(session: object, event: SessionEvent): void {
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
   const { pending } = entry;
   if (event.kind !== 'caller' || !pending) return;
+  // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
   if (confirmationState(pending, entry.events, Date.now()) === 'declined')
-    dropConfirmThread(pending);
+    cancel(entry, pending, 'declined');
   // Judged now, in parallel with the model's reply, so the tool call rarely waits on it.
   else void judgeConfirmation(pending, entry.events);
 }
