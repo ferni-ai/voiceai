@@ -229,9 +229,9 @@ describe('SPOKEN_CREDENTIAL_FILTER on', () => {
   });
 });
 
-describe('SPOKEN_CREDENTIAL_FILTER off (the kill switch)', () => {
+describe('SPOKEN_CREDENTIAL_FILTER unset is the default: off', () => {
   beforeEach(() => {
-    vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'off');
+    vi.unstubAllEnvs(); // the env as shipped: the flag is read from the manifest default
   });
 
   it('deep extraction writes every fact, as on main', async () => {
