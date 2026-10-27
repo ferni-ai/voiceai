@@ -1069,6 +1069,11 @@ jobs:
       - name: Firestore index drift
         run: pnpm tsx scripts/ci/firestore-indexes-drift.ts
 
+      # Blocking: a file this PR leaves unimported, or more unused exports in a file than at
+      # the merge base, fails (knip.json; knip runs here and on the base). ~10 s.
+      - name: Dead code (knip ratchet)
+        run: pnpm quality:knip
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 

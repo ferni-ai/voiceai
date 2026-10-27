@@ -27,6 +27,10 @@ updates:
       minor-and-patch:
         patterns:
           - "*"
+        # knip gates CI (Quality Gates, dead-code step): its updates come alone, so a
+        # change in what it reports is reviewed on its own, not inside a 30-package bump.
+        exclude-patterns:
+          - "knip"
         update-types:
           - "minor"
           - "patch"

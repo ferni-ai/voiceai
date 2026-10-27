@@ -305,6 +305,300 @@ describe('a game start the agent never answers', () => {
   });
 });
 
+describe('each ack answers its own tap', () => {
+  const FAILED = "That game didn't start. Try asking Ferni to play it out loud.";
+
+  /** A tap in the picker, with the request id it sent the agent (game-picker.ui.ts). */
+  const tap = (gameType: string, requestId: string): void =>
+    void document.dispatchEvent(
+      new CustomEvent('ferni:game-started', {
+        detail: { gameId: gameType, gameType, gameName: gameType, awaitsAck: true, requestId },
+      })
+    );
+  const boardTitle = (): string =>
+    document.querySelector('.game-board-container')?.textContent ?? '';
+  /** The agent's state for a tic-tac-toe game with one move made (an X in the corner). */
+  const oneMoveMade = (): void =>
+    void document.dispatchEvent(
+      new CustomEvent('ferni:game-state-update', {
+        detail: {
+          gameType: 'tic-tac-toe',
+          status: 'active',
+          gameData: {
+            board: ['X', null, null, null, null, null, null, null, null],
+            userSymbol: 'X',
+            currentPlayer: 'O',
+          },
+        },
+      })
+    );
+  const twoMovesMade = (): void =>
+    void document.dispatchEvent(
+      new CustomEvent('ferni:game-state-update', {
+        detail: {
+          gameType: 'tic-tac-toe',
+          status: 'active',
+          gameData: {
+            board: ['X', null, null, null, 'X', 'O', null, null, null],
+            userSymbol: 'X',
+            currentPlayer: 'O',
+          },
+        },
+      })
+    );
+  const movesOnBoard = (): number =>
+    document.querySelectorAll('.game-board-container .ttt-cell.x').length;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    initGameBoard();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    destroyGameBoard();
+    document.querySelectorAll('.game-board-container').forEach((el) => el.remove());
+  });
+
+  describe('a late or out-of-order ack', () => {
+    it("an earlier tap's late failure leaves the new tap of the same game alone", () => {
+      tap('tic-tac-toe', 'r1');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(toastCalls.error).toEqual([FAILED]);
+      tap('tic-tac-toe', 'r2');
+
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: false })
+      );
+      expect(boardIsOpen()).toBe(true);
+      expect(toastCalls.error).toEqual([FAILED]);
+
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r2', success: true })
+      );
+      expect(toastCalls.success).toEqual(['Starting tic-tac-toe...']);
+      expect(boardIsOpen()).toBe(true);
+    });
+
+    it("an earlier tap's success does not confirm the newer tap", () => {
+      tap('tic-tac-toe', 'r1');
+      vi.advanceTimersByTime(2_000);
+      tap('tic-tac-toe', 'r2');
+
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      expect(toastCalls.success).toEqual([]);
+
+      // r2 is still unanswered: it didn't start, but r1 did, so its game stays on
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(toastCalls.error).toEqual([FAILED]);
+      expect(toastCalls.success).toEqual(['Starting tic-tac-toe...']);
+      expect(boardIsOpen()).toBe(true);
+    });
+
+    it("a replaced tap's failure, after the newer tap started, says nothing", () => {
+      tap('tic-tac-toe', 'r1');
+      tap('20-questions', 'r2');
+      deliver(
+        ack('text_game_start_ack', { gameType: '20-questions', requestId: 'r2', success: true })
+      );
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: false })
+      );
+      expect(toastCalls.error).toEqual([]);
+      expect(boardIsOpen()).toBe(true);
+    });
+
+    it("an earlier tap's success landing after the newer tap's keeps the newer game", () => {
+      tap('tic-tac-toe', 'r1');
+      tap('20-questions', 'r2');
+      // The agent ran r1 then r2, so it plays 20 Questions; r2's answer arrives first
+      deliver(
+        ack('text_game_start_ack', { gameType: '20-questions', requestId: 'r2', success: true })
+      );
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      expect(toastCalls.success).toEqual(['Starting 20-questions...']);
+      expect(boardTitle()).toContain('20-questions');
+    });
+
+    it('a failure naming a tap this call never made says nothing', () => {
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'gone', success: false })
+      );
+      expect(toastCalls.error).toEqual([]);
+    });
+
+    it('an older agent (no request ids): the same game tapped twice, one answer, settles the newer tap', () => {
+      tap('tic-tac-toe', 'r1');
+      tap('tic-tac-toe', 'r2'); // the agent got only this one
+      deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: true }));
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+      expect(toastCalls.error).toEqual([]);
+      expect(toastCalls.success).toEqual(['Starting tic-tac-toe...']);
+      expect(boardIsOpen()).toBe(true);
+    });
+
+    it("a tap's late success after the agent started another game by voice is not shown", () => {
+      tap('tic-tac-toe', 'r1');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      voiceStartsGame('20-questions');
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      expect(toastCalls.success).toEqual([]);
+      expect(boardTitle()).toContain('20-questions');
+    });
+
+    it('an agent that sends no request id still settles the tap by its game', () => {
+      tap('tic-tac-toe', 'r1');
+      deliver(ack('text_game_start_ack', { gameType: 'tic-tac-toe', success: true }));
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS * 2);
+      expect(toastCalls.success).toEqual(['Starting tic-tac-toe...']);
+      expect(toastCalls.error).toEqual([]);
+      expect(boardIsOpen()).toBe(true);
+    });
+  });
+
+  describe('a success after the timeout', () => {
+    it('puts the game back on the board: the agent is playing it', () => {
+      tap('tic-tac-toe', 'r1');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(boardIsOpen()).toBe(false);
+      expect(toastCalls.error).toEqual([FAILED]);
+
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      expect(boardIsOpen()).toBe(true);
+      expect(boardTitle()).toContain('tic-tac-toe');
+      expect(toastCalls.success).toEqual(['Starting tic-tac-toe...']);
+    });
+
+    it('is ignored while a newer tap waits (its ack decides)', () => {
+      tap('tic-tac-toe', 'r1');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      tap('20-questions', 'r2');
+
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      expect(toastCalls.success).toEqual([]);
+      expect(boardTitle()).toContain('20-questions');
+    });
+  });
+
+  describe('after the call ends', () => {
+    it("a timed-out tap's late success is not announced, nor drawn", () => {
+      tap('tic-tac-toe', 'r1');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(toastCalls.error).toEqual([FAILED]);
+      document.dispatchEvent(new CustomEvent('ferni:disconnected'));
+
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      expect(toastCalls.success).toEqual([]);
+      expect(boardIsOpen()).toBe(false);
+    });
+  });
+
+  describe('a tap that fails over a game started by voice', () => {
+    it('a music game (no board) timing out leaves the voice game on the board', () => {
+      voiceStartsGame('tic-tac-toe');
+      oneMoveMade();
+      tap('name-that-tune', 'r1');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(toastCalls.error).toEqual([FAILED]);
+      expect(boardIsOpen()).toBe(true);
+      expect(movesOnBoard()).toBe(1);
+    });
+
+    it('a text game timing out puts the voice game back, with its moves', () => {
+      voiceStartsGame('tic-tac-toe');
+      oneMoveMade();
+      tap('20-questions', 'r1');
+      expect(boardTitle()).toContain('20-questions');
+
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(boardIsOpen()).toBe(true);
+      expect(movesOnBoard()).toBe(1);
+    });
+
+    it('a text game the agent refused puts the voice game back', () => {
+      voiceStartsGame('tic-tac-toe');
+      oneMoveMade();
+      tap('20-questions', 'r1');
+      deliver(
+        ack('text_game_start_ack', { gameType: '20-questions', requestId: 'r1', success: false })
+      );
+      expect(toastCalls.error).toEqual([FAILED]);
+      expect(boardIsOpen()).toBe(true);
+      expect(movesOnBoard()).toBe(1);
+    });
+
+    it('once the voice game has ended, a failed tap closes the board', () => {
+      voiceStartsGame('tic-tac-toe');
+      document.dispatchEvent(
+        new CustomEvent('ferni:game-ended', { detail: { gameType: 'tic-tac-toe' } })
+      );
+      tap('20-questions', 'r1');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(boardIsOpen()).toBe(false);
+    });
+
+    it('a music game ending leaves the text game the agent runs to put back', () => {
+      voiceStartsGame('tic-tac-toe');
+      oneMoveMade();
+      document.dispatchEvent(
+        new CustomEvent('ferni:game-ended', { detail: { gameType: 'name-that-tune' } })
+      );
+      tap('20-questions', 'r1');
+      deliver(
+        ack('text_game_start_ack', { gameType: '20-questions', requestId: 'r1', success: false })
+      );
+      expect(boardIsOpen()).toBe(true);
+      expect(movesOnBoard()).toBe(1);
+    });
+
+    it('the voice game ending while the tap waits: a failed tap then closes the board', () => {
+      voiceStartsGame('tic-tac-toe');
+      oneMoveMade();
+      tap('20-questions', 'r1');
+      document.dispatchEvent(
+        new CustomEvent('ferni:game-ended', { detail: { gameType: 'tic-tac-toe' } })
+      );
+      deliver(
+        ack('text_game_start_ack', { gameType: '20-questions', requestId: 'r1', success: false })
+      );
+      expect(boardIsOpen()).toBe(false);
+    });
+
+    it('a voice move made while the tap waits is on the board it puts back', () => {
+      voiceStartsGame('tic-tac-toe');
+      oneMoveMade();
+      tap('20-questions', 'r1');
+      twoMovesMade();
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(boardIsOpen()).toBe(true);
+      expect(movesOnBoard()).toBe(2);
+    });
+
+    it('a confirmed tap becomes the game a later failed tap puts back', () => {
+      tap('tic-tac-toe', 'r1');
+      deliver(
+        ack('text_game_start_ack', { gameType: 'tic-tac-toe', requestId: 'r1', success: true })
+      );
+      oneMoveMade();
+      tap('20-questions', 'r2');
+      vi.advanceTimersByTime(GAME_ACK_TIMEOUT_MS);
+      expect(boardIsOpen()).toBe(true);
+      expect(movesOnBoard()).toBe(1);
+    });
+  });
+});
+
 describe('a practice that failed to start', () => {
   it('shows the error instead of leaving "Starting..." standing', () => {
     deliver(

@@ -43,7 +43,7 @@ final class AccessibilityAuditTests: XCTestCase {
     /// to fix. The 1-pt probe exists only in UI-test launches and is skipped.
     nonisolated static func handle(_ issue: XCUIAccessibilityAuditIssue, on screen: String) -> Bool {
         let element = issue.element
-        if element?.identifier == "uitest.environment" { return true }
+        if element?.identifier.hasPrefix("uitest.") == true { return true }
         if let label = element?.label, accepted.contains(where: {
             $0.screen.split(separator: "|").contains { screen.hasPrefix($0) } && issue.auditType == $0.type && label.hasPrefix($0.label)
         }) { return true }

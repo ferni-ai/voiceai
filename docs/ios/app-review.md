@@ -39,6 +39,8 @@ notes as a one-time link, never in this repository.
 
 | Feature | Where | Notes |
 |---|---|---|
+| Coming back | Home, after time away | After 20 minutes away the last call's goodbye clears; after 8 hours Ferni wakes as the app opens. The greeting and the room's light follow the clock. With `GET /api/home` (server route pending), Home greets the person by name if they said it and shows one light thread from last time; without it (as in review today), the time-of-day greeting. No server flag hides UI. |
+| Touch Ferni | Home, tap Ferni at rest | He dents where touched, glances at the finger and lights up, with one soft tap in the hand. After a quiet 20 s at rest a firefly may wander by, once. Not in a call (there, a tap while Ferni speaks interrupts). Reduce Motion: a glance and a blink only. |
 | Talk to Ferni (a voice call) | Home, the Talk button | The first time, the consent screen comes first. It names the processors (Google, Anthropic, Cartesia, LiveKit). |
 | Microphone permission | First call | "Ferni listens only while you're talking together, so you can talk out loud." Denied: Home explains and offers Open Settings. |
 | The call on the system | During a call | LiveCommunicationKit shows the call on the Lock Screen and in the system call UI. AirPods mute and the Lock Screen's end button work. |
