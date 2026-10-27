@@ -58,7 +58,7 @@ const lastTen = (v: unknown): string =>
     .slice(-10);
 const time = (v: unknown): number => new Date(String(v ?? '')).getTime() || 0;
 
-/** "my Dad Doug" → ["dad", "doug"]. */
+/** "my Dad Sam" → ["dad", "sam"]. */
 export function queryWords(text: string): string[] {
   const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
   return [...new Set(words.flatMap((w) => (STOP.has(w) ? [] : [personWord(w) ?? []].flat())))];

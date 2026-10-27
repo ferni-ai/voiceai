@@ -100,7 +100,7 @@ function callStatusDefinition(): ToolDefinition {
           'asks "did you call my dad?", "how did the call go?" or "what did she say?". Read-only: ' +
           'it never calls anyone. Never use callOnBehalf to answer such a question.',
         parameters: z.object({
-          contactQuery: z.string().describe('Who: a name or relationship, e.g. "dad" or "Doug"'),
+          contactQuery: z.string().describe('Who: a name or relationship, e.g. "dad" or "Sam"'),
         }),
         execute: async ({ contactQuery }, opts) => {
           const session = (opts as { ctx?: { session?: object } } | undefined)?.ctx?.session;

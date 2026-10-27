@@ -19,7 +19,7 @@ const HOUR = 3_600_000;
 const iso = (ms: number): string => new Date(ms).toISOString();
 const DAD = {
   contactQuery: 'dad',
-  resolvedContact: { name: 'Doug', phone: '+18016616112', relationship: 'father' },
+  resolvedContact: { name: 'Sam', phone: '+13125550142', relationship: 'father' },
 };
 const MOM_RESULT = {
   callId: 'onbehalf_1792940418192_6vrey',
@@ -31,7 +31,7 @@ const MOM_RESULT = {
 const dadResult = (at: number, status = 'completed') => ({
   callId: 'call_dad',
   capturedAt: iso(at),
-  request: { contactQuery: 'Doug', contactName: 'Doug', contactPhone: '+18016616112' },
+  request: { contactQuery: 'Sam', contactName: 'Sam', contactPhone: '+13125550142' },
   outcome: { status, transcriptSummary: 'He is resting after the stroke and says hi.' },
 });
 const records = (deferred: object[] = [], results: object[] = []) => ({
@@ -63,14 +63,14 @@ describe('recallFrom', () => {
     const call = recallFrom({ words: ['dad'] }, records([held]), NOW);
     expect(call?.state).toBe('set');
     expect(recallLine(call, 'dad', NOW)).toMatch(
-      /^Not called yet: the call to Doug is set for tomorrow at 9:00\sAM their time/
+      /^Not called yet: the call to Sam is set for tomorrow at 9:00\sAM their time/
     );
   });
 
   it('a read-back with no yes is awaiting it, by name', () => {
-    const awaiting = [{ name: 'Call Doug', at: NOW - 3 * HOUR }];
-    const call = recallFrom({ words: ['doug'] }, { ...records(), awaiting }, NOW);
-    expect(call).toMatchObject({ state: 'awaiting_yes', name: 'Doug' });
+    const awaiting = [{ name: 'Call Sam', at: NOW - 3 * HOUR }];
+    const call = recallFrom({ words: ['sam'] }, { ...records(), awaiting }, NOW);
+    expect(call).toMatchObject({ state: 'awaiting_yes', name: 'Sam' });
     expect(recallLine(call, 'dad', NOW)).toMatch(
       /never got the caller's yes, so nothing was dialed/
     );
@@ -84,10 +84,10 @@ describe('recallFrom', () => {
       createdAt: iso(NOW - HOUR),
       request: DAD,
     };
-    const q = { words: [], phone: '801-661-6112' };
+    const q = { words: [], phone: '312-555-0142' };
     expect(recallFrom(q, records([placed]), NOW)?.state).toBe('in_progress');
     expect(recallLine(recallFrom(q, records([placed]), NOW), 'dad', NOW)).toMatch(
-      /^The call to Doug went out 10 minutes ago/
+      /^The call to Sam went out 10 minutes ago/
     );
     expect(recallFrom(q, records([placed], [dadResult(NOW - 60_000)]), NOW)?.state).toBe('done');
   });
@@ -96,7 +96,7 @@ describe('recallFrom', () => {
     ['voicemail', /it went to voicemail/],
     ['no_answer', /nobody answered/],
   ])('a %s result is done, with that outcome and no callee words', (status, line) => {
-    const call = recallFrom({ words: ['doug'] }, records([], [dadResult(NOW - HOUR, status)]), NOW);
+    const call = recallFrom({ words: ['sam'] }, records([], [dadResult(NOW - HOUR, status)]), NOW);
     expect(call?.state).toBe('done');
     expect(recallLine(call, 'dad', NOW)).toMatch(line);
     expect(recallLine(call, 'dad', NOW)).not.toContain('Reported from');
@@ -104,20 +104,20 @@ describe('recallFrom', () => {
 
   it('a failed result is failed, with the reason', () => {
     const call = recallFrom(
-      { words: ['doug'] },
+      { words: ['sam'] },
       records([], [dadResult(NOW - HOUR, 'failed')]),
       NOW
     );
     expect(recallLine(call, 'dad', NOW)).toMatch(
-      /^Ferni tried to call Doug about an hour ago, but the call didn't connect/
+      /^Ferni tried to call Sam about an hour ago, but the call didn't connect/
     );
   });
 
   it('a call older than 30 days is not on record', () => {
     const old = dadResult(NOW - 31 * 24 * HOUR);
-    expect(recallFrom({ words: ['doug'] }, records([], [old]), NOW)).toBeUndefined();
+    expect(recallFrom({ words: ['sam'] }, records([], [old]), NOW)).toBeUndefined();
     expect(
-      recallFrom({ words: ['doug'] }, records([], [dadResult(NOW - 29 * 24 * HOUR)]), NOW)?.state
+      recallFrom({ words: ['sam'] }, records([], [dadResult(NOW - 29 * 24 * HOUR)]), NOW)?.state
     ).toBe('done');
     expect(recallLine(undefined, 'dad', NOW)).toMatch(/^No call to dad in the last 30 days/);
   });
@@ -165,13 +165,13 @@ describe('guards and helpers', () => {
   );
   it('a verified uid may', () => expect(mayRecall('vdSfkCCXaiXpnVCvgKxHMYrNFr72')).toBe(true));
   it('names the person, not the possessive', () =>
-    expect(queryWords('my Father Doug')).toEqual(['dad', 'doug']));
+    expect(queryWords('my Father Sam')).toEqual(['dad', 'sam']));
   it('blocks a new read-back only for a recent call that went out, was answered or awaits a yes', () => {
     const at = NOW - HOUR;
-    expect(blocksNewCall({ state: 'done', name: 'Doug', at }, NOW)).toBe(true);
-    expect(blocksNewCall({ state: 'done', name: 'Doug', at: NOW - 49 * HOUR }, NOW)).toBe(false);
+    expect(blocksNewCall({ state: 'done', name: 'Sam', at }, NOW)).toBe(true);
+    expect(blocksNewCall({ state: 'done', name: 'Sam', at: NOW - 49 * HOUR }, NOW)).toBe(false);
     // Mom, answered 10-25 15:01, asked 10-26 18:46 (about 28 h): told before a new read-back.
     expect(blocksNewCall({ state: 'done', name: 'Mom', at: NOW - 28 * HOUR }, NOW)).toBe(true);
-    expect(blocksNewCall({ state: 'failed', name: 'Doug', at }, NOW)).toBe(false);
+    expect(blocksNewCall({ state: 'failed', name: 'Sam', at }, NOW)).toBe(false);
   });
 });

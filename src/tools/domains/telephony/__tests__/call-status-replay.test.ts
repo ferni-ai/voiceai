@@ -5,7 +5,7 @@
  * Mocked only at the edges: Firestore (per-uid documents), the contact store.
  *
  * - 2026-10-26 21:46 UTC, "I don't know. Did you call my dad?": Ferni ran
- *   callOnBehalf and read back a fresh call (Doug, ***6112, "check in on him
+ *   callOnBehalf and read back a fresh call (Sam, ***0142, "check in on him
  *   after his stroke"). It had read that call back at 18:48 and never got a yes.
  * - 2026-10-25 15:54 and 2026-10-26 18:46, "Did you call my mom?": her call
  *   had been answered at about 15:01 on the 25th (onbehalf_1792940418192_6vrey,
@@ -38,7 +38,7 @@ vi.mock('../../../../services/superhuman/firestore-utils.js', () => {
   return { getFirestoreDb: () => db };
 });
 const CONTACTS = [
-  { id: 'c-doug', name: 'Doug', phone: '(801) 661-6112', relationship: 'father' },
+  { id: 'c-sam', name: 'Sam', phone: '(312) 555-0142', relationship: 'father' },
   { id: 'c-mom', name: 'Mom', phone: '(801) 555-3303', relationship: 'mother' },
 ];
 vi.mock('../../../../services/contacts/contact-relationship-service.js', () => ({
@@ -73,12 +73,12 @@ const SETH = 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
 const ASKED_DAD = Date.parse('2026-10-26T21:46:05Z');
 // Seth's 21:46 callOnBehalf, as the model sent it (the number is the one he gave at 18:47).
 const DAD_CALL = {
-  contactQuery: 'Doug',
-  phoneNumber: '801 661 6112',
+  contactQuery: 'Sam',
+  phoneNumber: '312 555 0142',
   purpose: 'check in on him after his stroke',
   recordingConsent: true,
 };
-const DAD_REQUEST = { contactQuery: 'Doug', contactName: 'Doug', contactPhone: '+18016616112' };
+const DAD_REQUEST = { contactQuery: 'Sam', contactName: 'Sam', contactPhone: '+13125550142' };
 const dadAnswered = {
   callId: 'call_dad_1850',
   capturedAt: '2026-10-26T18:50:00.000Z',
@@ -98,7 +98,7 @@ const dadHeld = {
   scheduledFor: '2026-10-27T15:00:00.000Z',
   timezone: 'America/Denver',
   createdAt: '2026-10-26T21:40:00.000Z',
-  request: { contactQuery: 'dad', resolvedContact: { name: 'Doug', phone: '+18016616112' } },
+  request: { contactQuery: 'dad', resolvedContact: { name: 'Sam', phone: '+13125550142' } },
 };
 
 /** A live call; `owner` is its speaker check (live-call-behaviors.ts), null when none ran. */
@@ -150,13 +150,13 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
     const call = liveCall();
     call.caller("I don't know. Did you call my dad?");
     const status = await call.call('callStatus', { contactQuery: 'dad' }, 's1');
-    expect(status).toMatch(/^Ferni called Doug about 3 hours ago, and they answered\./);
+    expect(status).toMatch(/^Ferni called Sam about 3 hours ago, and they answered\./);
     expect(status).toContain("> He's resting after the stroke and says hi.");
     // The 21:46 turn exactly: the model reached for callOnBehalf.
     const out = await call.call('callOnBehalf', DAD_CALL, 'c1');
     expect(out).not.toContain('NOT SENT YET');
     expect(out).toMatch(
-      /^Nothing new was read back\. Ferni called Doug about 3 hours ago, and they answered\./
+      /^Nothing new was read back\. Ferni called Sam about 3 hours ago, and they answered\./
     );
     // Told once: if he really wants another call, the next request reads it back.
     expect(await call.call('callOnBehalf', DAD_CALL, 'c2')).toContain('NOT SENT YET');
@@ -165,7 +165,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
   it('a dad call read back at 18:48 and never confirmed: "not yet, waiting for your yes"', async () => {
     const live = vi.fn(async () => [
       {
-        text: 'Call Doug',
+        text: 'Call Sam',
         createdAt: '2026-10-26T18:48:18.000Z',
         source: { store: 'outreach_confirm', ref: 'r1' },
         action: { tool: 'callOnBehalf', waitingOn: 'you' },
@@ -178,7 +178,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
     const call = liveCall();
     const status = await call.call('callStatus', { contactQuery: 'dad' }, 's1');
     expect(status).toMatch(
-      /^Not called: Ferni read back a call to Doug about 3 hours ago and never got the caller's yes/
+      /^Not called: Ferni read back a call to Sam about 3 hours ago and never got the caller's yes/
     );
     const out = await call.call('callOnBehalf', DAD_CALL, 'c1');
     expect(out).toMatch(/^Nothing new was read back\. Not called:/);
@@ -190,7 +190,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
     expect(await call.call('callOnBehalf', DAD_CALL, 'c1')).toContain('NOT SENT YET');
     call.caller('Did you call my dad?');
     expect(await call.call('callStatus', { contactQuery: 'my dad' }, 's1')).toMatch(
-      /^Not called: Ferni read back a call to Doug just now and never got the caller's yes/
+      /^Not called: Ferni read back a call to Sam just now and never got the caller's yes/
     );
   });
 
@@ -198,7 +198,7 @@ describe('"Did you call my dad?" (2026-10-26 21:46) and "my mom" (10-25, 10-26)'
     fs.users[SETH] = { deferred_calls: [dadHeld] };
     const call = liveCall();
     expect(await call.call('callStatus', { contactQuery: 'dad' }, 's1')).toMatch(
-      /^Not called yet: the call to Doug is set for tomorrow at 9:00\sAM their time/
+      /^Not called yet: the call to Sam is set for tomorrow at 9:00\sAM their time/
     );
     expect(await call.call('callOnBehalf', DAD_CALL, 'c1')).toMatch(/already set for/);
   });
