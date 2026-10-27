@@ -169,5 +169,18 @@ final class CriticRegressionTests: XCTestCase {
         let first = await events.next()
         XCTAssertEqual(first, .reconnecting, "the untrusted data never reached the call")
     }
+
+    /// Hanging up before the call's task has even started must stay hung up
+    /// (found while fixing critic M2: the task's first step set "connecting").
+    func testHangingUpAtOnceStaysEnded() async {
+        let session = CallSession(
+            fetchToken: { _ in CallToken(token: "t", url: "wss://x", room: "r", agentDispatched: true) },
+            makeRoom: { Room() }, audio: Audio(), defaults: UserDefaults(suiteName: "probe-\(UUID())")!
+        )
+        session.start()
+        await session.end()
+        try? await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(session.phase, .ended)
+    }
 }
 

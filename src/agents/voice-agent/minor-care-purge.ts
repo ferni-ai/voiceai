@@ -15,6 +15,11 @@ import {
   setMusicHeldWindow,
   withoutHeldMusicMemories,
 } from '../../audio/music-learning-persistence.js';
+import {
+  forgetReadMoments,
+  scrubHeldSince,
+} from '../../intelligence/context-builders/relationship/shared-moments.js';
+import { purgeHeldIndexEntries } from '../../services/data-layer/held-index-purge.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
@@ -27,6 +32,7 @@ import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.js';
 import {
+  heldSince,
   noteHeldWindow,
   recordedWhileHeld,
   scrubHeldDoc,
@@ -69,6 +75,15 @@ setOnUserHeld(shareHold);
 setMusicHeldWindow(recordedWhileHeld);
 // ...and scrubbed from the stored doc with them, so a failed music scrub is retried too
 addHeldScrub((id) => scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories));
+// ...and so are shared moments, Memory Lane captures (by when written) and the semantic index
+const fromHeld = (scrub: (id: string, since: number) => Promise<number>) => async (id: string) => {
+  const since = heldSince(id) ?? Infinity; // none known: nothing to scrub
+  return since === Infinity || (await scrub(id, since)) >= 0;
+};
+addHeldScrub(fromHeld((id, since) => scrubHeldSince(id, since)));
+const writtenAt = ['createdAt', 'updatedAt']; // a doc without createdAt: its last write
+addHeldScrub(fromHeld((id, since) => scrubHeldSince(id, since, 'memory_highlights', writtenAt)));
+addHeldScrub(fromHeld((id) => purgeHeldIndexEntries(id, (at) => recordedWhileHeld(id, at))));
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -122,6 +137,7 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     ['deep understanding', clearDeepUnderstandingUser],
     // songs that played during their moments (memory only); a later call would speak them back
     ['our songs', clearOurSongsUser],
+    ['shared moments read', forgetReadMoments], // deep-relationship's cache of them
   ];
   for (const [name, purge] of purges) {
     try {

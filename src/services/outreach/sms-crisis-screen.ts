@@ -18,6 +18,7 @@
  *
  * @module services/outreach/sms-crisis-screen
  */
+import { randomUUID } from 'node:crypto';
 import { flagModeOf } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -82,25 +83,101 @@ export async function smsCrisisReply(
   const mode = flagModeOf('SMS_CRISIS_SCREEN');
   const text = body.slice(0, SMS_MAX_CHARS);
   if (mode === 'off' || !text.trim()) return null;
+  if (mode === 'shadow') {
+    // Shadow never holds the reply: the read runs beside it. On Cloud Run the
+    // CPU may be throttled once the reply is sent, so the classifier's line can
+    // come late or not at all; the pattern and HELP fields are logged first,
+    // before any network call, so they always land.
+    // One random id per text pairs its two lines, so a pattern line with no
+    // classifier line reads as "the read never finished", not as "not a crisis".
+    const screenId = randomUUID();
+    const pattern = detectCrisis(text).isCrisis;
+    logScreen(mode, text, { crisis: pattern, pattern, risk: null }, 'pattern', screenId);
+    // Nothing in this chain may reject: the web server has no unhandledRejection
+    // handler, so a rejection here would crash it (#2914).
+    void screenSms(text, read)
+      .then((outcome) => logScreen(mode, text, outcome, 'classifier', screenId))
+      .catch(() => undefined);
+    return null;
+  }
+  const outcome = await screenSms(text, read);
+  logScreen(mode, text, outcome, 'classifier', randomUUID());
+  return outcome.crisis ? SMS_CRISIS_REPLY : null;
+}
+
+/** The read, falling back to the pattern guard alone when it throws. Never rejects. */
+async function screenSms(
+  text: string,
+  read: (text: string) => Promise<SmsCrisisRead>
+): Promise<SmsCrisisRead> {
   let outcome: SmsCrisisRead;
   try {
     outcome = await read(text);
   } catch (error) {
     const pattern = detectCrisis(text).isCrisis;
-    log.warn({ error: String(error), pattern }, 'SMS crisis read failed; pattern guard alone');
+    // The fields are built inside safeLog: String() of a thrown value with no
+    // string form (Object.create(null)) throws too.
+    safeLog(
+      'warn',
+      () => ({ error: String(error), pattern }),
+      'SMS crisis read failed; pattern guard alone'
+    );
     outcome = { crisis: pattern, pattern, risk: null };
   }
   // A bare stop or start keyword ("STOP", "opt out", "START") read as crisis by
   // the classifier alone got 988 over its consent notice: only a pattern hit
   // counts there. HELP and INFO are always read in full: someone in crisis
   // types "help", and 988 beside Twilio's HELP reply is better than silence.
-  const keyword = isExactKeyword(text) && !HELP_WORDS.has(normalizeSms(text));
-  if (keyword && !outcome.pattern) outcome = { ...outcome, crisis: false };
-  log.info(
-    { mode, crisis: outcome.crisis, pattern: outcome.pattern, risk: outcome.risk, keyword },
+  if (isKeywordOnly(text) && !outcome.pattern) outcome = { ...outcome, crisis: false };
+  return outcome;
+}
+
+function isKeywordOnly(text: string): boolean {
+  return isExactKeyword(text) && !HELP_WORDS.has(normalizeSms(text));
+}
+
+/**
+ * Every log line in this file goes through here. A log failure must never change
+ * what the person gets back, in any mode: inside the request a throw becomes a
+ * 500 (no 988, no STOP confirmation), and in shadow's background read a rejection.
+ */
+function safeLog(
+  level: 'info' | 'warn',
+  fields: () => Record<string, unknown>,
+  message: string
+): void {
+  try {
+    log[level](fields(), message);
+  } catch {
+    // Nothing to do: the reply goes out as it would without the line.
+  }
+}
+
+/** One line per read, with verdicts and booleans only, never the words. */
+function logScreen(
+  mode: 'shadow' | 'on',
+  text: string,
+  outcome: SmsCrisisRead,
+  stage: 'pattern' | 'classifier',
+  screenId: string
+): void {
+  // Twilio may answer HELP and INFO itself. `help` (any punctuation) and
+  // `bareHelp` (the word alone) tell the shadow logs whether they reach us.
+  safeLog(
+    'info',
+    () => ({
+      mode,
+      stage,
+      screenId,
+      crisis: outcome.crisis,
+      pattern: outcome.pattern,
+      risk: outcome.risk,
+      keyword: isKeywordOnly(text),
+      help: HELP_WORDS.has(normalizeSms(text)),
+      bareHelp: HELP_WORDS.has(text.trim().toLowerCase()),
+    }),
     'SMS_CRISIS_SCREEN'
   );
-  return mode === 'on' && outcome.crisis ? SMS_CRISIS_REPLY : null;
 }
 
 /**

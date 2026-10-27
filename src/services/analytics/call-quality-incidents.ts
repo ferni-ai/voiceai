@@ -14,7 +14,9 @@
  *
  * Never silent: a `failed` send (429, 5xx, fetch error, timeout) opens nothing, so the
  * next check retries it. `not_configured` (no webhook, nothing else raised it) also
- * opens nothing; it is logged once per incident so nobody believes it went out.
+ * opens nothing; it is logged once per incident so nobody believes it went out, and
+ * retried after `alertCooldownMs`, not every minute (no webhook won't appear in a
+ * minute, and each attempt logs a line).
  *
  * @module services/analytics/call-quality-incidents
  */
@@ -48,6 +50,8 @@ export class AlertIncidents {
   private readonly open = new Set<string>();
   private readonly firing = new Set<string>();
   private readonly unsentLogged = new Set<string>();
+  /** When `key` last came back `not_configured`; it waits `cooldownMs` before a retry. */
+  private readonly lastUnconfigured = new Map<string, number>();
 
   /** Start a check; the alerts seen before endCheck() are the ones still firing. */
   beginCheck(): void {
@@ -57,6 +61,8 @@ export class AlertIncidents {
   /** Whether alert `key`, firing at `now`, is due. Report the outcome with record(). */
   shouldSend(key: string, now: number, cooldownMs: number): boolean {
     this.firing.add(key);
+    const unconfigured = this.lastUnconfigured.get(key);
+    if (unconfigured !== undefined && now - unconfigured < cooldownMs) return false;
     const last = this.lastSent.get(key);
     const wait = this.open.has(key) ? ALERT_REPEAT_MS : cooldownMs;
     return last === undefined || now - last > wait;
@@ -64,6 +70,7 @@ export class AlertIncidents {
 
   /** The send for `key` at `now` ended in `result`; only a delivery opens the incident. */
   record(key: string, now: number, result: SlackDelivery, log: Log): void {
+    if (result.status === 'not_configured') this.lastUnconfigured.set(key, now); // not `failed`
     if (result.status === 'delivered') {
       this.lastSent.set(key, now);
       this.open.add(key);
@@ -87,5 +94,6 @@ export class AlertIncidents {
     this.open.clear();
     this.firing.clear();
     this.unsentLogged.clear();
+    this.lastUnconfigured.clear();
   }
 }

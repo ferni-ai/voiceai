@@ -20,6 +20,7 @@
  * @module memory/firestore-vector-store/forget-filter
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { withoutHeldAt } from '../../utils/held-window-check.js';
 import { forgetGeneration, forgottenTopicsOrNull } from '../recall/forget.js';
 import { isForgotten } from '../recall/session-recall.js';
 
@@ -121,9 +122,11 @@ export async function withoutForgotten<
   now = Date.now()
 ): Promise<T[]> {
   if (results.length === 0) return results;
+  // MINOR_CARE: nor what was indexed during a purged held call (held-index-purge.ts)
+  const live = withoutHeldAt(userId, results, (r) => r.document.metadata?.indexedAt);
   const topics = await topicsFor(userId, reads, now);
   if (topics === null) return [];
-  const kept = results.filter((r) => !isForgotten(r.document.text, topics));
+  const kept = live.filter((r) => !isForgotten(r.document.text, topics));
   const paths = [...new Set(kept.flatMap((r) => sourcePath(userId, r.document) ?? []))];
   if (paths.length === 0) return kept;
   let docs: Map<string, Record<string, unknown> | undefined>;
