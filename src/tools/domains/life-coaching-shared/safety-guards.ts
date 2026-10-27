@@ -7,8 +7,7 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
-import { IN_DANGER_NOW } from '../../../services/safety/crisis-guard.js';
-import { readsImminentLive } from '../../../services/safety/crisis-means-shadow.js'; // not the barrel (#2717)
+import { IN_DANGER_NOW, readsImminentLive } from '../../../services/safety/index.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
