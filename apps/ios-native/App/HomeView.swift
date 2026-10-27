@@ -40,6 +40,7 @@ struct HomeView: View {
                         if inCall { NameChip(personaID: call.avatar.personaID) }
                         avatar(call: call, size: inCall ? 240 : 200)
                             .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
+                            .zIndex(1) // Ferni and his shadow stay over the words' paper
                         if inCall {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
@@ -164,6 +165,8 @@ private struct RestingLine: View {
             }
         }
         .multilineTextAlignment(.center)
+        // The words sit on the paper, not on Ferni's light (see RoomPaper).
+        .onRoomPaper(date: now)
     }
 
     @ViewBuilder private func greeting(_ headline: String, _ detail: String) -> some View {

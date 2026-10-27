@@ -31,6 +31,46 @@ public struct RoomBackground: View {
     }
 }
 
+/// A clear patch of the room for words: the paper and the time of day's tint,
+/// without the persona light. Feathered wide, so it reads as the light
+/// falling off before the words rather than as a card.
+///
+/// Text on the persona wash measured 6.5:1 (#5C544A on #F3EFE8), but the
+/// dithered gradient under it made Apple's contrast audit fail every colour,
+/// #2C2520 at 13:1 included, and the same text on a flat patch of that same
+/// #F3EFE8 passed (2026-10-26). Words on the room sit on this instead: flat
+/// under the text, and the paper's own 7:1 for secondary text by day.
+public struct RoomPaper: View {
+    let date: Date
+    /// How far the patch reaches past the words: three blur radii, so the
+    /// feathering stops short of the text and the paper under it is flat.
+    static let blur: CGFloat = 24
+    static let reach = blur * 3
+
+    public init(date: Date = .now) { self.date = date }
+
+    public var body: some View {
+        let light = RoomLight(hour: Calendar.current.component(.hour, from: date))
+        ZStack {
+            FerniColor.background
+            light.tint.opacity(light.tintOpacity)
+        }
+        // Corners as round as the reach: every point of the words keeps the full reach.
+        .clipShape(RoundedRectangle(cornerRadius: Self.reach))
+        .padding(-Self.reach)
+        .blur(radius: Self.blur)
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
+    }
+}
+
+extension View {
+    /// Sets these words on `RoomPaper`, for text drawn over `RoomBackground`.
+    public func onRoomPaper(date: Date = .now) -> some View {
+        background { RoomPaper(date: date) }
+    }
+}
+
 /// How the room is lit at an hour of the day.
 public struct RoomLight: Equatable, Sendable {
     /// Persona wash opacity, within the north star's 6-10%.
