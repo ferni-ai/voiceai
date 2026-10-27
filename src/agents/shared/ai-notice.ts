@@ -36,13 +36,13 @@ export const OPENING_NOTICE = "Just so you know, I'm an AI, not a person.";
 export const REPEAT_NOTICE =
   "We've been talking a while, so a quick reminder, I'm an AI, not a person.";
 
-export const NOTICE_DAY_MS = 24 * 60 * 60 * 1000;
-export const NOTICE_REPEAT_MS = 3 * 60 * 60 * 1000;
+const NOTICE_DAY_MS = 24 * 60 * 60 * 1000;
+const NOTICE_REPEAT_MS = 3 * 60 * 60 * 1000;
 /** How long the first line waits for when this person last heard it; past that, it says it. */
-export const LOOKUP_WAIT_MS = 400;
+const LOOKUP_WAIT_MS = 400;
 
-export type NoticeChannel = 'app' | 'phone' | 'unknown';
-export type NoticeKind = 'opening' | 'repeat';
+type NoticeChannel = 'app' | 'phone' | 'unknown';
+type NoticeKind = 'opening' | 'repeat';
 
 export function aiNoticeEnabled(env: Env = process.env): boolean {
   return flagOn('AI_NOTICE_SPOKEN', env);
@@ -66,7 +66,7 @@ type NoticeCollection = FirebaseFirestore.CollectionReference | undefined;
 const notices = (userId: string): NoticeCollection =>
   getFirestoreDb()?.collection('bogle_users').doc(userId).collection('ai_notices');
 
-export const firestoreNoticeStore: NoticeStore = {
+const firestoreNoticeStore: NoticeStore = {
   async lastNoticeAt(userId) {
     const col = notices(userId);
     if (!col) throw new Error('no Firestore');
