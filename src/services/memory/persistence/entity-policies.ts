@@ -261,9 +261,7 @@ const insideJokePolicy: EntityIndexingPolicy = {
     maxPerUser: 50,
   },
   contentFields: ['joke', 'context', 'sharedMoment'],
-  // A shared moment's words are kept a year (utils/shared-moment-retention.ts), this copy too
-  ttlDays: 365,
-  expireInIndex: true,
+  ttlDays: 365, // enforced in data-layer/index-expiry.ts (a year, #2971)
 };
 
 const smallWinPolicy: EntityIndexingPolicy = {

@@ -85,7 +85,9 @@ describe.skipIf(!emulator)('semantic index: export and account deletion', () => 
     await seed(a);
     await seed(b);
     const persona = `ferni_persona_${n}_chunk_0`; // ownerless: shared persona knowledge
-    await db.doc(`vectors/${persona}`).set({ text: 'Ferni likes jazz', metadata: { source: 'persona' } });
+    await db
+      .doc(`vectors/${persona}`)
+      .set({ text: 'Ferni likes jazz', metadata: { source: 'persona' } });
 
     const out = await exportUserRecords(a, undefined, db);
     const rows = (out.vectors ?? []) as Array<Record<string, unknown>>;

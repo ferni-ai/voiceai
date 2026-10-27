@@ -8,7 +8,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { keepCandidate } from '../../../memory/firestore-vector-store/helpers.js';
 import { indexInsideJoke } from '../integrations/trust-integration.js';
-import { flushPendingChanges, indexExpireAt, onStoreChange } from '../store-hooks.js';
+import { indexExpireAt } from '../index-expiry.js';
+import { flushPendingChanges, onStoreChange } from '../store-hooks.js';
 
 const written = vi.hoisted(() => [] as Array<{ id: string; expireAt?: Date }>);
 

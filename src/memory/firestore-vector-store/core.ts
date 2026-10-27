@@ -554,7 +554,6 @@ export class FirestoreVectorStore implements VectorStoreContract {
           score: topKResult.similarities[i],
         }));
 
-        // Cache the results
         this.searchCache.set(query, queryEmbedding, results, options?.filter, { topK, minScore });
         return results;
       }

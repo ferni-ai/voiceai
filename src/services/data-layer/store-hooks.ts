@@ -14,7 +14,8 @@ import { embed } from '../../memory/embeddings.js';
 import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
 import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getEntityPolicy, getIndexingPolicy, shouldIndex } from './indexing-policy.js';
+import { indexExpireAt } from './index-expiry.js';
+import { getIndexingPolicy, shouldIndex } from './indexing-policy.js';
 import { enforceMaxPerUser, forgetIndexedDoc } from './max-per-user.js';
 import { trackIndexingError, trackIndexingOperation } from './observability.js';
 import type { ChangeType, EntityType, StoreChangeEvent } from './types.js';
@@ -141,11 +142,7 @@ export function onStoreChange(event: StoreChangeEvent): void {
   // Store the latest event (overwrites previous if rapid updates)
   pendingIndexes.set(key, { ...event, timestamp: new Date() });
 
-  // Clear existing timer
-  const existingTimer = debounceTimers.get(key);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-  }
+  clearTimeout(debounceTimers.get(key));
 
   // Set new timer using policy debounce time
   const timer = setTimeout(() => {
@@ -250,13 +247,6 @@ async function processChange(key: string): Promise<void> {
     );
     log.warn({ error: String(error), key }, 'Failed to process store change');
   }
-}
-
-/** When a policy that expires in the index (expireInIndex) has a document written now expire */
-export function indexExpireAt(entityType: EntityType, now: number = Date.now()): Date | undefined {
-  const policy = getEntityPolicy(entityType);
-  if (!policy?.expireInIndex || policy.ttlDays <= 0) return undefined;
-  return new Date(now + policy.ttlDays * 24 * 60 * 60 * 1000);
 }
 
 // ============================================================================
