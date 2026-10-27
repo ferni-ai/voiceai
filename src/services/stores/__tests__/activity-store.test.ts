@@ -51,7 +51,7 @@ describe('recordActivity', () => {
     expect(u).toMatchObject({ ok: true, activity: { revision: 2, state: 'in_progress' } });
     expect(docs.get('bogle_users/u1/activity/a1')).toMatchObject({ revision: 2 });
     expect(events()).toHaveLength(2);
-    const log = await activityEvents(db, 'u1', 'a1');
+    const log = await activityEvents(db, 'u1', 'a1', ON);
     expect(log.map((e) => [e.seq, e.from, e.to])).toEqual([
       [1, null, 'asked'],
       [2, 'asked', 'in_progress'],
@@ -163,5 +163,26 @@ describe('recordActivity', () => {
     });
     expect(paths()).toEqual([]);
     await expect(recordActivity(db, 'u1/x', create(), 0, ON)).rejects.toThrow('invalid user id');
+  });
+});
+
+describe('activity ids and the flag on reads', () => {
+  it('activityEvents returns nothing while the ledger is off, even with events stored', async () => {
+    const { db, events } = setup();
+    await recordActivity(db, 'u1', create(), 0, ON);
+    expect(events()).toHaveLength(1);
+    expect(await activityEvents(db, 'u1', 'a1', ON)).toHaveLength(1);
+    expect(await activityEvents(db, 'u1', 'a1', {})).toEqual([]);
+  });
+
+  it('refuses an id that addresses a nested path, and writes nothing', async () => {
+    const { db, paths } = setup();
+    await recordActivity(db, 'u1', create(), 0, ON);
+    const before = paths();
+    const nested: ActivityChange = { ...move('in_progress'), id: 'a1/events/000001' };
+    await expect(recordActivity(db, 'u1', nested, 1, ON)).rejects.toThrow(/invalid activity id/);
+    await expect(getActivity(db, 'u1', '../a1', ON)).rejects.toThrow(/invalid activity id/);
+    await expect(activityEvents(db, 'u1', 'a1/x', ON)).rejects.toThrow(/invalid activity id/);
+    expect(paths()).toEqual(before);
   });
 });

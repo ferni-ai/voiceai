@@ -52,8 +52,13 @@ const memberLedger = (uid: string): boolean => {
   return isMemberIdentity(uid);
 };
 
-export const activityDoc = (db: Firestore, uid: string, id: string): DocumentReference =>
-  db.collection('bogle_users').doc(uid).collection('activity').doc(id);
+const ACTIVITY_ID = /^[\w-]{1,200}$/;
+
+/** Throws on an id that would address another path (a nested event doc, say). */
+export const activityDoc = (db: Firestore, uid: string, id: string): DocumentReference => {
+  if (!ACTIVITY_ID.test(id)) throw new Error('activity ledger: refusing an invalid activity id');
+  return db.collection('bogle_users').doc(uid).collection('activity').doc(id);
+};
 
 /** One id per idempotency key, so a retried create finds the record it made. */
 const idFor = (change: ActivityChange): string =>
@@ -172,9 +177,10 @@ export async function listActivity(
 export async function activityEvents(
   db: Firestore,
   uid: string,
-  id: string
+  id: string,
+  env: Env = process.env
 ): Promise<ActivityEvent[]> {
-  if (!memberLedger(uid)) return [];
+  if (!activityLedgerEnabled(env) || !memberLedger(uid)) return [];
   const snap = await activityDoc(db, uid, id).collection('events').orderBy('seq').get();
   return snap.docs.map((d) => d.data() as ActivityEvent);
 }
