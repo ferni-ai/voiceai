@@ -1200,7 +1200,7 @@ function createWarningIcon(): SVGSVGElement {
 // RENDERING (Safe DOM construction)
 // ============================================================================
 
-function normalizeGameType(type: string): GameType | null {
+export function normalizeGameType(type: string): GameType | null {
   // Case-insensitive mapping for robustness
   const lowered = type.toLowerCase();
   const mapping: Record<string, GameType> = {

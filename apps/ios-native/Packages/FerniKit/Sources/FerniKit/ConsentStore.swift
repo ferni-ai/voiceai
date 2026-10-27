@@ -11,7 +11,7 @@ import Foundation
 @MainActor
 @Observable
 public final class ConsentStore {
-    public static let currentVersion = "2026-10-18"
+    public static let currentVersion = "2026-10-19"
 
     public struct Agreement: Codable, Equatable, Sendable {
         public let uid: String

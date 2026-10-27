@@ -1,6 +1,7 @@
 /**
  * GET /api/app-config/ios: nulls when unset or malformed (never blocks), the
- * configured minimum otherwise, public and cacheable for five minutes.
+ * configured minimum otherwise, public and cacheable for five minutes. Crisis
+ * mode is on unless IOS_CRISIS_MODE is exactly "off".
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -9,13 +10,13 @@ import { appConfigIos, handleAppConfigIos, MESSAGE_MAX_CHARS } from '../app-conf
 
 describe('appConfigIos', () => {
   it('is null and null when nothing is set', () => {
-    expect(appConfigIos({})).toEqual({ minimumBuild: null, message: null });
+    expect(appConfigIos({})).toEqual({ minimumBuild: null, message: null, crisisMode: true });
   });
 
   it('reads the minimum build and the message', () => {
     expect(
       appConfigIos({ IOS_MIN_BUILD: '1234', IOS_MIN_BUILD_MESSAGE: 'Please update.' })
-    ).toEqual({ minimumBuild: 1234, message: 'Please update.' });
+    ).toEqual({ minimumBuild: 1234, message: 'Please update.', crisisMode: true });
     expect(appConfigIos({ IOS_MIN_BUILD: ' 57 ' }).minimumBuild).toBe(57);
   });
 
@@ -50,8 +51,22 @@ describe('appConfigIos', () => {
     expect(appConfigIos({ IOS_MIN_BUILD: 'soon', IOS_MIN_BUILD_MESSAGE: 'Hi' })).toEqual({
       minimumBuild: null,
       message: 'Hi',
+      crisisMode: true,
     });
   });
+
+  it('keeps crisis mode on when IOS_CRISIS_MODE is unset', () => {
+    expect(appConfigIos({}).crisisMode).toBe(true);
+  });
+
+  it.each(['off', 'OFF ', ' Off\n'])('turns crisis mode off only for "off" (%j)', (raw) =>
+    expect(appConfigIos({ IOS_CRISIS_MODE: raw }).crisisMode).toBe(false)
+  );
+
+  it.each(['on', 'false', '0', 'no', 'disabled', '', ' ', 'of', 'offf', 'o ff', 'garbage'])(
+    'keeps crisis mode on for anything but "off" (%j)',
+    (raw) => expect(appConfigIos({ IOS_CRISIS_MODE: raw }).crisisMode).toBe(true)
+  );
 });
 
 describe('GET /api/app-config/ios', () => {
@@ -82,20 +97,31 @@ describe('GET /api/app-config/ios', () => {
     const res = await fetch(`${base}/api/app-config/ios`);
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toMatch(/application\/json/);
-    expect(await res.json()).toEqual({ minimumBuild: null, message: null });
+    expect(await res.json()).toEqual({ minimumBuild: null, message: null, crisisMode: true });
   });
 
   it('answers the configured values', async () => {
     env = { IOS_MIN_BUILD: '42', IOS_MIN_BUILD_MESSAGE: 'A newer Ferni is out.' };
     const res = await fetch(`${base}/api/app-config/ios`);
-    expect(await res.json()).toEqual({ minimumBuild: 42, message: 'A newer Ferni is out.' });
+    expect(await res.json()).toEqual({
+      minimumBuild: 42,
+      message: 'A newer Ferni is out.',
+      crisisMode: true,
+    });
+  });
+
+  it('answers crisisMode false when the switch is off', async () => {
+    env = { IOS_CRISIS_MODE: 'off' };
+    const res = await fetch(`${base}/api/app-config/ios`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ minimumBuild: null, message: null, crisisMode: false });
   });
 
   it('answers null, not an error, for a malformed minimum', async () => {
     env = { IOS_MIN_BUILD: 'twelve' };
     const res = await fetch(`${base}/api/app-config/ios`);
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ minimumBuild: null, message: null });
+    expect(await res.json()).toEqual({ minimumBuild: null, message: null, crisisMode: true });
   });
 
   it('is cacheable for five minutes, publicly', async () => {

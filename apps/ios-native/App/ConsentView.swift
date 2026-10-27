@@ -10,6 +10,11 @@ struct ConsentView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FerniSpace.rest) {
+                // Ferni stays in the room, small, reading along with you.
+                AvatarView(persona: .ferni, expression: .neutral, activity: .idle, reading: true)
+                    .frame(width: 72, height: 72)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
                 Text("Before we talk")
                     .font(FerniType.greeting)
                     .foregroundStyle(FerniColor.textPrimary)
@@ -68,8 +73,8 @@ struct ConsentView: View {
         that help Ferni hear, think and speak: Google (Gemini), Anthropic (Claude), \
         Cartesia (speech) and LiveKit (the call itself). They process it to answer you.
 
-        Ferni keeps notes so it can remember you. You can see, change or delete them, \
-        and you can take back this agreement any time in Settings.
+        I keep notes from our talks so I can remember you. You can see, change or \
+        delete them, and you can take back this agreement any time in Settings.
         """
 }
 

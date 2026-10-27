@@ -32,12 +32,12 @@ export const LINK_KEYS = [
   ...['errandId', 'reminderId', 'providerRef'],
 ] as const;
 
-export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
+type ActivityKind = (typeof ACTIVITY_KINDS)[number];
 export type ActivityState = (typeof ACTIVITY_STATES)[number];
-export type ActivityReason = (typeof ACTIVITY_REASONS)[number];
-export type OutcomeStatus = (typeof OUTCOME_STATUSES)[number];
-export type ToldChannel = (typeof TOLD_CHANNELS)[number];
-export type ActivityLinks = Partial<Record<(typeof LINK_KEYS)[number], string>>;
+type ActivityReason = (typeof ACTIVITY_REASONS)[number];
+type OutcomeStatus = (typeof OUTCOME_STATUSES)[number];
+type ToldChannel = (typeof TOLD_CHANNELS)[number];
+type ActivityLinks = Partial<Record<(typeof LINK_KEYS)[number], string>>;
 
 /** The shape version this build writes; a record with any other is quarantined. */
 export const LEDGER_VERSION = 1;
@@ -51,7 +51,7 @@ export interface Subject {
   readonly name: string;
   readonly relationship?: string;
 }
-export interface Asked {
+interface Asked {
   readonly at: string;
   readonly sessionId: string;
   /** The owner's request in their words, at most LIMITS.words. */
@@ -64,7 +64,7 @@ export interface Outcome {
   readonly theySaid?: string;
   readonly actionItems: readonly string[];
 }
-export interface Told {
+interface Told {
   readonly at: string;
   readonly sessionId: string;
   readonly channel: ToldChannel;
