@@ -1,9 +1,9 @@
 /**
  * CRISIS_MEANS_IN_HAND (#2697, #2717 round 1): off | shadow (default) | live.
  *
- * Shadow and off read every line exactly as main; shadow logs the tier live would give, with the
- * session id and no words. Live adds the imminent forms, and nothing else: a dose strength is not
- * a count, and negated, hypothetical or everyday means add no indicator at all.
+ * Off and shadow read every line exactly as main. Live adds the imminent read of the live forms
+ * only (LIVE_FORMS); the other forms never change a read. In shadow and live, the shadow log names
+ * the tier and the form any form would give, with the session id and no words.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,30 +19,20 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return { createLogger: () => logger, getLogger: () => logger, default: logger, logger };
 });
 
-import { detectCrisis, guardFromDetection, IN_DANGER_NOW } from '../crisis-guard.js';
-import { TOKEN } from '../crisis-means-exempt.js';
-import { resolveMeansInHandMode } from '../crisis-means-in-hand.js';
+import { detectCrisis } from '../crisis-guard.js';
+import { LIVE_FORMS, resolveMeansInHandMode } from '../crisis-means-in-hand.js';
 import { noteMeansInHandShadow, readsImminentLive, tierOf } from '../crisis-means-shadow.js';
-import {
-  assessSafety,
-  getCrisisResponse,
-} from '../../../tools/domains/life-coaching-shared/safety-guards.js';
+import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
 
 const live = (text: string) => detectCrisis(text, undefined, { meansInHand: 'live' });
 const off = (text: string) => detectCrisis(text, undefined, { meansInHand: 'off' });
-
-const NEW_IMMINENT = [
-  "i have the pills right here and i'm taking them now",
-  'i swallowed every pill i have',
-  'the knife is against my throat',
-  'im taking them all now goodbye',
-  'i took the whole bottle im scared',
-];
+const all = (text: string) => detectCrisis(text, undefined, { meansInHand: 'all' });
+const imminent = (r: { indicators: string[] }) => r.indicators.includes('imminent_danger');
 
 beforeEach(() => logged.info.mockClear());
 afterEach(() => vi.unstubAllEnvs());
 
-describe('the mode', () => {
+describe('the mode and the live set', () => {
   it('is shadow unless set to off or live', () => {
     expect(resolveMeansInHandMode({})).toBe('shadow');
     expect(resolveMeansInHandMode({ CRISIS_MEANS_IN_HAND: 'yes' })).toBe('shadow');
@@ -50,319 +40,131 @@ describe('the mode', () => {
     expect(resolveMeansInHandMode({ CRISIS_MEANS_IN_HAND: 'off' })).toBe('off');
   });
 
-  it.each(NEW_IMMINENT)('off and shadow read "%s" exactly as main; live reads 911', (text) => {
-    const main = off(text);
-    expect(main.indicators).not.toContain('imminent_danger');
-    // '' is unset: the default, whatever the process was started with.
-    for (const mode of ['', 'shadow', 'off']) {
-      vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
-      expect(detectCrisis(text)).toEqual(main);
-      expect(assessSafety(text).flags).not.toContain('suicidal: imminent means or attempt');
-    }
-    vi.stubEnv('CRISIS_MEANS_IN_HAND', 'live');
-    const read = detectCrisis(text);
-    expect(read.indicators).toContain('imminent_danger');
-    expect(guardFromDetection(read).replacementResponse).toContain(IN_DANGER_NOW);
-    expect(assessSafety(text).level).toBe('crisis');
-    expect(getCrisisResponse(assessSafety(text))).toContain('911');
+  it('keeps the two forms with held-out false 911s shadow-only', () => {
+    expect([...LIVE_FORMS].sort()).toEqual(
+      [
+        'cutting_now',
+        'did_it',
+        'drug_count',
+        'ending_beside_means',
+        'means_with_intent',
+        'on_body',
+        'took_dose',
+      ].sort()
+    );
   });
+
+  it.each(['the noose is around my neck', "i have the pills right here and i'm taking them now"])(
+    'off and shadow read "%s" exactly as main; live reads 911',
+    (text) => {
+      expect(imminent(off(text))).toBe(false);
+      // '' is unset: the default, whatever the process was started with.
+      for (const mode of ['', 'shadow', 'off']) {
+        vi.stubEnv('CRISIS_MEANS_IN_HAND', mode);
+        expect(detectCrisis(text)).toEqual(off(text));
+        expect(assessSafety(text).flags).not.toContain('suicidal: imminent means or attempt');
+      }
+      vi.stubEnv('CRISIS_MEANS_IN_HAND', 'live');
+      expect(imminent(detectCrisis(text))).toBe(true);
+      expect(assessSafety(text).level).toBe('crisis');
+    }
+  );
 
   it('shadow keeps assessSafety as on main for words the patterns already read imminent', () => {
     const text = 'the gun is in my mouth';
-    expect(off(text).indicators).toContain('imminent_danger');
+    expect(imminent(off(text))).toBe(true);
     expect(readsImminentLive(text, {})).toBe(false);
     expect(readsImminentLive(text, { CRISIS_MEANS_IN_HAND: 'live' })).toBe(true);
   });
 });
 
-describe('shadow logs the tier live would give, never the words', () => {
-  const words = "i have the pills right here and i'm taking them now";
+describe('shadow-only forms never change a read, even live', () => {
+  it.each([
+    ['i have the pills right here', 'means_in_hand'],
+    ['the pills are right here', 'means_in_hand'],
+    ["i'm taking them now", 'taking_now'],
+    ["i'm taking all my pills now goodbye", 'taking_now'],
+  ])('"%s" (%s)', (text, form) => {
+    expect(live(text)).toEqual(off(text));
+    expect(all(text).indicators).toContain(`means_form:${form}`);
+  });
+});
 
-  it('logs session id, reader and tier when live would read the turn differently', () => {
-    const tier = noteMeansInHandShadow('call-1', off(words), { text: words }, {});
-    expect(tier).toBe('imminent');
-    expect(logged.info).toHaveBeenCalledTimes(1);
+describe('the shadow log names the tier and the form, never the words', () => {
+  const words = 'i have the pills right here';
+
+  it.each(['', 'live'])('logs a shadow-only form (mode "%s")', (mode) => {
+    const env = { CRISIS_MEANS_IN_HAND: mode };
+    const got = noteMeansInHandShadow('call-1', off(words), { text: words }, env);
+    expect(got).toEqual({ tier: 'imminent', form: 'means_in_hand' });
     const [fields] = logged.info.mock.calls[0] as [Record<string, unknown>];
-    expect(fields).toEqual({ sessionId: 'call-1', reader: 'means_in_hand', tier: 'imminent' });
+    expect(fields).toEqual({
+      sessionId: 'call-1',
+      reader: 'means_in_hand',
+      tier: 'imminent',
+      form: 'means_in_hand',
+    });
     expect(JSON.stringify(logged.info.mock.calls)).not.toContain('pills');
   });
 
-  it('logs nothing when the tier is the same, or when off or live', () => {
+  it('logs nothing when off, when no form fires, or when the turn already has that tier', () => {
+    const offEnv = { CRISIS_MEANS_IN_HAND: 'off' };
+    expect(noteMeansInHandShadow('c', off(words), { text: words }, offEnv)).toBeNull();
     const plain = 'what should i cook for dinner';
-    expect(noteMeansInHandShadow('call-2', off(plain), { text: plain }, {})).toBeNull();
-    for (const mode of ['off', 'live']) {
-      const env = { CRISIS_MEANS_IN_HAND: mode };
-      expect(noteMeansInHandShadow('call-3', off(words), { text: words }, env)).toBeNull();
-    }
+    expect(noteMeansInHandShadow('c', off(plain), { text: plain }, {})).toBeNull();
+    const liveForm = 'the noose is around my neck';
+    expect(noteMeansInHandShadow('c', live(liveForm), { text: liveForm }, {})).toBeNull();
     expect(logged.info).not.toHaveBeenCalled();
   });
 
   it('names the tiers by what the caller hears', () => {
-    expect(tierOf(live(words))).toBe('imminent');
+    expect(tierOf(live('the noose is around my neck'))).toBe('imminent');
     expect(tierOf(off('i want to kill myself'))).toBe('block');
     expect(tierOf(off('what should i cook for dinner'))).toBe('none');
   });
 });
 
-describe('live: a dose strength is not a pill count (r1 blocker 2)', () => {
-  it.each([
-    'i took 500 mg of tylenol for my headache',
-    'took 200mg of ibuprofen',
-    'i took 25 units of insulin before dinner',
-    'i took 300 mg of lithium like always',
-    'i took 20 ml of benadryl syrup',
-    'i took 81 mg of aspirin',
-    'i took 40 iu of insulin',
-  ])('"%s" reads as on main', (text) => {
-    expect(live(text)).toEqual(off(text));
-    expect(live(text).indicators).not.toContain('imminent_danger');
-  });
-
-  it.each(['i took 40 tylenol', 'i took like 50 advil an hour ago', 'took 30 xanax'])(
-    'a count still reads 911: "%s"',
-    (text) => expect(live(text).indicators).toContain('imminent_danger')
-  );
-});
-
-describe('live: negated or hypothetical means block the 911 tier and add nothing (r1 blocker 3)', () => {
-  it.each([
-    'i have no pills right here',
-    "i don't have any pills in my hand",
-    "i'd never have the pills right here",
-    "i wouldn't ever have the rope right here",
-    "i promised i wouldn't have the pills in my hand",
-    'my therapist asked if i have the pills right here and i said no',
-    'what if i had the pills right here',
-    'imagine if i had the gun in my hand',
-    'i dreamed i had the gun in my hand',
-    'in my dream i had the pills in my hand',
-    'there is a song called the gun is in my hand',
-    'lol im taking them now',
-    "i wouldn't say i'm taking them now",
-  ])('"%s" reads exactly as on main', (text) => {
-    expect(live(text)).toEqual(off(text));
-  });
-
-  it.each([
-    "i want to die but i don't have the pills right here",
-    'i want to kill myself, i have no gun in my hand',
-  ])('ending words keep their own read, never lower than main: "%s"', (text) => {
-    expect(off(text).severity).toBeGreaterThanOrEqual(0.85);
-    expect(live(text)).toEqual(off(text));
-    expect(live(text).indicators).not.toContain('imminent_danger');
-  });
-
-  it.each([
-    "i can't take it anymore i have the pills right here",
-    'no i have the pills right here',
-    "i'm not okay i have the pills right here",
-    'i want to die and the gun is loaded',
-  ])('a negation elsewhere does not soften the means: "%s"', (text) => {
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-});
-
-describe('live: everyday look-alikes', () => {
-  it.each([
-    'i have the rope right here, tie it to the tent',
-    'i have the razor in my hand, shaving my legs',
-    'at the shooting range with the pistol in my hand',
-    'the drill gun is in my hand',
-    'i have the jump rope right here',
-    'i have my blood pressure pills right here',
-    'i have my anti anxiety pills in my hand',
-    "i'm taking my meds now",
-    "i'm taking them now, my antidepressants, like the doctor said",
-    'the rope is in my hands, hauling the canoe onto the dock',
-    'i have a blade in my hand, sanding down the shelf',
-    'the gun is right here, locked in the safe',
-    'got the pills right here, it is time for dads evening dose',
-    "i have the rope right here and we're going camping",
-    'my caulking gun is in my hand',
-    'the thermometer gun is in my hand',
-  ])('"%s" reads as on main', (text) => {
-    expect(live(text)).toEqual(off(text));
-  });
-
-  it.each([
-    "she said i'm taking them now and then she hung up",
-    'my brother texted "i did it, i took them all"',
-  ])('someone else\'s reported words are not the caller\'s 911: "%s"', (text) => {
-    expect(live(text)).toEqual(off(text));
-  });
-
-  it.each([
-    "they said i'm better off dead so i'm taking them all now",
-    'the blade is right here, cutting myself tonight',
-    'i have the gun right here, loading it now',
-  ])('risk after the comma or a report still reads 911: "%s"', (text) => {
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it.each([
-    "i'm taking them now, goodbye.",
-    'im taking them now i love you',
-    'i took them all dont tell anyone',
-  ])('a goodbye after the means still ends the clause: "%s"', (text) =>
-    expect(live(text).indicators).toContain('imminent_danger')
-  );
-});
-
-describe('live: the medication check-in covers its own clause, never the whole call', () => {
-  // Security review on #2717: a whole-message "my meds" switch turned off every form.
+/**
+ * Every bypass the security review found across four rounds, on the exemption layer this design
+ * deleted. Each line either reaches no 911 script from a live form, or is a real crisis line a live
+ * form reads correctly.
+ */
+describe('the security-review bypasses', () => {
   it.each([
     'i took my meds this morning and the noose is around my neck',
     "i'm on my blood pressure pills and the gun is pointed at my head",
     'i had a headache all day and the razor is against my wrist',
-    'i took my vitamins. the noose is around my neck',
-  ])('a check-in clause beside means on the body still reads 911: "%s"', (text) => {
-    expect(off(text).indicators).not.toContain('imminent_danger');
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it.each([
-    // An everyday setting never covers the forms that name means on the body.
     'i was shaving and now the razor is against my wrist',
-    // The check-in covers its own clause, not the next one.
-    "i took my vitamins this morning, i'm taking the pills now",
-    // A setting covers its own sentence, not the next one.
-    'we went camping last week. i have the rope in my hands',
-  ])('a check-in or setting elsewhere does not cover the means: "%s"', (text) => {
-    expect(off(text).indicators).not.toContain('imminent_danger');
-    expect(live(text).indicators).toContain('imminent_danger');
+    "i have the guns in my hand and i'm doing it now",
+    "i have the knives in my hand and i'm doing it now",
+    "i have a bottle in my hand and i'm doing it now",
+    "i have everything in my hand and i'm doing it now",
+    'i took 15 pills',
+    'i swallowed 1200 tablets',
+    'i took a bottle',
+    // A softened first match never hides a real second one.
+    'years ago i took them all. today i just took them all',
+  ])('a real crisis line a live form reads: "%s"', (text) => {
+    expect(imminent(off(text))).toBe(false);
+    expect(imminent(live(text))).toBe(true);
   });
 
-  it.each([
-    "i'm taking all my pills now goodbye",
-    "i have my pills right here and i'm taking them now",
-    "i'm taking my meds now, goodbye everyone",
-  ])('imminence words override the check-in: "%s"', (text) => {
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it.each([
-    "my mom's pills are right here",
-    "my grandmas pills are in my hand and i'm taking them",
-  ])('someone else\'s medication is not the caller\'s check-in: "%s"', (text) =>
-    expect(live(text).indicators).toContain('imminent_danger')
-  );
-
-  it.each([
-    "i'm taking my meds now",
-    'i have my heart pills right here',
-    "i'm taking my pills now like always",
-    'my meds are right here on the counter',
-    "i'm going to take my pills now",
-  ])('an ordinary check-in still gets no 911: "%s"', (text) => {
-    expect(live(text)).toEqual(off(text));
-  });
-});
-
-describe('live: the exemption is scoped to the means token (security review, round 2)', () => {
   it.each([
     'i took my meds and i have the gun right here',
-    'i took my meds this morning and i have the rope in my hands',
     'i took my meds this morning, the gun is right here',
-  ])('a check-in beside a weapon never covers the weapon: "%s"', (text) => {
-    expect(off(text).indicators).not.toContain('imminent_danger');
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it('a later real match is read even when the first is exempt', () => {
-    const text = 'i have my heart pills right here. i have the pills right here';
-    expect(live('i have my heart pills right here')).toEqual(
-      off('i have my heart pills right here')
-    );
-    expect(off(text).indicators).not.toContain('imminent_danger');
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it.each([
+    'i have my heart pills right here. i have the pills right here',
     "my coworker's pills are right here",
     "my stepdad's pills are right here",
     "my ex's meds are right here",
-    'my neighbors pills are right here',
-    "i have my friend's pills right here",
-  ])('only an allowlisted word between "my" and the pills is a check-in: "%s"', (text) => {
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it('pills never take an everyday setting, only a check-in', () => {
-    const text = "i'm out hunting i have the pills right here";
-    expect(off(text).indicators).not.toContain('imminent_danger');
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it('a police officer is not an everyday purpose for the gun', () => {
-    const text = 'the cop left his gun and i have it in my hand';
-    expect(off(text).indicators).not.toContain('imminent_danger');
-    expect(live(text).indicators).toContain('imminent_danger');
-  });
-
-  it.each([
-    'i took my meds',
-    'i already took my meds',
-    'did you take your meds? yes i took them.',
+    'the cop left his gun right here',
+    'the cop left his gun and i have it in my hand',
+    "i'm out hunting i have the pills right here",
+    "i have my pills right here and i'm taking them now",
     "i'm taking my meds now",
     'i have my blood pressure pills right here',
-    "i'm taking my pills now with food",
-  ])('the r1 medication check-ins still get no 911: "%s"', (text) => {
+    'at the shooting range with the pistol in my hand',
+    'i have the tablets in front of me, ipads for the class',
+  ])('no live form reads it; the classifier decides: "%s"', (text) => {
     expect(live(text)).toEqual(off(text));
-  });
-});
-
-describe('the exemption knows every means word the forms can match', () => {
-  // Written out by hand on purpose: if the exemption's word list ever drifts from the forms', a
-  // word the forms match would slip past the per-word check (security review, round 3).
-  const FORM_WORDS = [
-    'pills',
-    'pill',
-    'meds',
-    'tablets',
-    'gun',
-    'pistol',
-    'rope',
-    'noose',
-    'razor',
-    'blade',
-    'blades',
-    'them',
-    'em',
-    'these',
-    'those',
-    'everything',
-    'bottle',
-    'handful',
-    'tylenol',
-    'advil',
-    'ibuprofen',
-    'acetaminophen',
-    'paracetamol',
-    'aspirin',
-    'benadryl',
-    'xanax',
-    'ambien',
-    'oxy',
-    'oxycodone',
-    'oxycontin',
-    'percocet',
-    'vicodin',
-    'sleeping pills',
-    'painkillers',
-    'insulin',
-    'lithium',
-    'seroquel',
-    'klonopin',
-    'valium',
-  ];
-  it.each(FORM_WORDS)('"%s" is a means word', (word) => {
-    expect([...`i have the ${word} right here`.matchAll(TOKEN)].map((m) => m[1])).toContain(word);
-  });
-
-  it('a match with a means word the check-in does not cover is not exempt', () => {
-    // "my heart pills" is a check-in, the pistol in the same clause is not.
-    const text = 'i have my heart pills and the pistol right here';
-    expect(off(text).indicators).not.toContain('imminent_danger');
-    expect(live(text).indicators).toContain('imminent_danger');
   });
 });

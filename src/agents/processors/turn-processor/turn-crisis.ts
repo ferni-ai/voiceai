@@ -144,7 +144,7 @@ export function startTurnCrisis(
   const voice = toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined);
   const crisisOptions = { recentMessages: userData?.recentTranscripts };
   const found = detectCrisis(userText, voice, crisisOptions);
-  // CRISIS_MEANS_IN_HAND=shadow: the read above is main's; log the tier live would give (#2697).
+  // CRISIS_MEANS_IN_HAND (#2697): log the tier and form any means form would give; no read changes.
   noteMeansInHandShadow(options.sessionId, found, {
     text: userText,
     voice,

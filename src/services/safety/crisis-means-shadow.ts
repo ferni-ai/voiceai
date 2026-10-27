@@ -1,10 +1,11 @@
 /**
  * CRISIS_MEANS_IN_HAND (crisis-means-in-hand.ts, #2697) outside the guard itself.
  *
- * - shadow (the default): the turn's read stays exactly as on main. When the means-in-hand forms
- *   would read the turn differently, one line logs the tier live would give: the session id and
- *   the tier, never the caller's words.
- * - live: assessSafety reads the guard's imminent read as crisis and leads with 911.
+ * - shadow (the default) and live: when any form, live or shadow-only, would read the turn
+ *   differently from the read the turn used, one line logs the tier it would give and the form: the
+ *   session id, the tier and the form name, never the caller's words. That is the data a shadow
+ *   form is promoted from.
+ * - live: assessSafety reads the guard's imminent read (the live forms) as crisis and leads with 911.
  *
  * @module CrisisMeansShadow
  */
@@ -31,21 +32,22 @@ export function tierOf(read: CrisisDetectionResult): MeansTier {
 }
 
 /**
- * Shadow: log the tier the live forms would give this turn, when it differs from the read the
- * turn used. Returns that tier, or null when nothing was logged. Changes no read.
+ * Shadow and live: log the tier and the form every form would give this turn, when that tier
+ * differs from the read the turn used. Returns what was logged, or null. Changes no read.
  */
 export function noteMeansInHandShadow(
   sessionId: string | undefined,
   read: CrisisDetectionResult,
   args: { text: string; voice?: VoiceEmotionContext; options?: CrisisDetectionOptions },
   env: Record<string, string | undefined> = process.env
-): MeansTier | null {
-  if (resolveMeansInHandMode(env) !== 'shadow') return null;
-  const live = detectCrisis(args.text, args.voice, { ...args.options, meansInHand: 'live' });
-  const tier = tierOf(live);
-  if (tier === tierOf(read)) return null;
-  log.info({ sessionId, reader: 'means_in_hand', tier }, 'CRISIS_MEANS_IN_HAND_SHADOW');
-  return tier;
+): { tier: MeansTier; form: string } | null {
+  if (resolveMeansInHandMode(env) === 'off') return null;
+  const all = detectCrisis(args.text, args.voice, { ...args.options, meansInHand: 'all' });
+  const tier = tierOf(all);
+  const form = all.indicators.find((i) => i.startsWith('means_form:'))?.slice('means_form:'.length);
+  if (!form || tier === tierOf(read)) return null;
+  log.info({ sessionId, reader: 'means_in_hand', tier, form }, 'CRISIS_MEANS_IN_HAND_SHADOW');
+  return { tier, form };
 }
 
 /** live only: the guard reads these words as imminent (assessSafety leads with 911). */

@@ -25,7 +25,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
-import { meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
+import { meansFormsOf, meansInHandRead, resolveMeansInHandMode } from './crisis-means-in-hand.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   HIGH_DISTRESS_VOICE_EMOTIONS,
@@ -85,8 +85,8 @@ export interface CrisisDetectionOptions {
    * current message is ignored, so userData.recentTranscripts can be passed as is.
    */
   recentMessages?: readonly string[];
-  /** Overrides CRISIS_MEANS_IN_HAND for this read (crisis-means-shadow.ts reads it live). */
-  meansInHand?: 'off' | 'shadow' | 'live';
+  /** Overrides CRISIS_MEANS_IN_HAND for this read; 'all' is the shadow log's (crisis-means-shadow.ts). */
+  meansInHand?: 'off' | 'shadow' | 'live' | 'all';
 }
 
 export const CRISIS_SEVERITY = SEVERITY; // the tiers, for callers that weigh a read (caller-text.ts)
@@ -107,7 +107,7 @@ interface TextScore {
 }
 
 /** Score one message from its words alone. */
-function scoreText(text: string, live: boolean): TextScore {
+function scoreText(text: string, forms: ReturnType<typeof meansFormsOf>): TextScore {
   const indicators: string[] = [];
   let severity = 0;
   let implicitHits = 0;
@@ -200,11 +200,12 @@ function scoreText(text: string, live: boolean): TextScore {
     add('plan_or_means', SEVERITY.explicit);
   }
 
-  // CRISIS_MEANS_IN_HAND=live (#2697): means in hand said plainly, or beside ending words: 911.
-  const means = live ? meansInHandRead(text, indicators, softened) : null;
+  // CRISIS_MEANS_IN_HAND (#2697): a live form reads 911; 'all' (the shadow log) names the form.
+  const means = meansInHandRead(text, indicators, softened, forms);
   if (means) {
     hardSelf = true;
-    if (means === 'self_harm') add('self_harm', 0);
+    if (means.tag === 'self_harm') add('self_harm', 0);
+    if (forms === 'all') add(`means_form:${means.form}`, 0);
     add('explicit_crisis_language', SEVERITY.explicit);
     add('imminent_danger', SEVERITY.explicit);
   }
@@ -232,7 +233,7 @@ function scoreText(text: string, live: boolean): TextScore {
 
 /** What one earlier message counts for in a later turn's session check (crisis-who.ts reads it too). */
 export const sessionSeverityOf = (message: string): number =>
-  scoreText(normalize(message), resolveMeansInHandMode() === 'live').sessionSeverity;
+  scoreText(normalize(message), meansFormsOf(resolveMeansInHandMode())).sessionSeverity;
 
 /** Detect crisis indicators in user message */
 export function detectCrisis(
@@ -241,8 +242,8 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const live = (options?.meansInHand ?? resolveMeansInHandMode()) === 'live';
-  const score = scoreText(text, live);
+  const forms = meansFormsOf(options?.meansInHand ?? resolveMeansInHandMode());
+  const score = scoreText(text, forms);
   const indicators = [...score.indicators];
   let { severity, subject } = score;
 
@@ -252,7 +253,7 @@ export function detectCrisis(
     .map(normalize)
     .filter((m) => m.length > 0 && m !== text)
     .slice(-5)
-    .map((m) => scoreText(m, live).sessionSeverity);
+    .map((m) => scoreText(m, forms).sessionSeverity);
   const priorPeak = Math.max(0, ...prior);
   const priorDistressTurns = prior.filter((v) => v >= SEVERITY.implicit).length;
   const signalNow = (subject === 'self' && severity >= SEVERITY.implicit) || score.contextHit;
