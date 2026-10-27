@@ -19,8 +19,8 @@
     },
     {
       "name": "OpenAI",
-      "does": "Backup when our main model is unavailable",
-      "data": "Conversation text, only when it's used as the backup"
+      "does": "Backup for our main model; voice-journal transcription; summaries of calls Ferni makes for you; practice chats",
+      "data": "Conversation text when it's the backup; voice-journal recordings; transcripts of calls Ferni makes for you; practice-chat messages"
     },
     {
       "name": "LiveKit",
