@@ -175,7 +175,7 @@ export function meansInHandRead(
   indicators: readonly string[],
   softened: ReadonlyArray<readonly [number, number]>
 ): 'suicidal' | 'self_harm' | null {
-  const free = (start: number, end: number) =>
+  const free = (start: number, end: number): boolean =>
     !softened.some(([s, e]) => start < e && end > s) && !meansSoftened(text, start, end);
   const everyday = EVERYDAY.test(text) && !OVERDOSE_AMOUNT.test(text);
   for (const { re, tag } of FORMS) {
