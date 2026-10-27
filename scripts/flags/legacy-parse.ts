@@ -64,9 +64,32 @@ function attached(text: string, file: string, node: ts.Node, sf: ts.SourceFile):
   };
 }
 
+/**
+ * True when `code` holds a // or /* comment outside its string and template literals. The
+ * TypeScript scanner tokenises it, so the // in an issue URL ('https://github.com/…'), a quoted
+ * 'a // b' or an escaped quote before // is string text, not a comment. Template literals with
+ * ${…} are rescanned at each closing brace so their text stays text too.
+ */
+export function hasInnerComment(code: string): boolean {
+  const sc = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, code);
+  const braces: number[] = []; // per open template: `{` depth inside its current ${…}
+  for (let t = sc.scan(); t !== ts.SyntaxKind.EndOfFileToken; t = sc.scan()) {
+    if (t === ts.SyntaxKind.SingleLineCommentTrivia || t === ts.SyntaxKind.MultiLineCommentTrivia)
+      return true;
+    if (t === ts.SyntaxKind.TemplateHead) braces.push(0);
+    else if (t === ts.SyntaxKind.OpenBraceToken && braces.length > 0) braces[braces.length - 1]!++;
+    else if (t === ts.SyntaxKind.CloseBraceToken && braces.length > 0) {
+      if (braces[braces.length - 1] === 0) {
+        if (sc.reScanTemplateToken(false) === ts.SyntaxKind.TemplateTail) braces.pop();
+      } else braces[braces.length - 1]!--;
+    }
+  }
+  return false;
+}
+
 /** Refuses an entry with a comment inside it: only comments above or after it move with it. */
 function noInnerComment(text: string, file: string, node: ts.Node, name: string): void {
-  if (/\/[/*]/.test(node.getText())) {
+  if (hasInnerComment(node.getText())) {
     fail(
       file,
       text,
