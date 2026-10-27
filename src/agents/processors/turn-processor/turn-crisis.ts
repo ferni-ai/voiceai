@@ -39,7 +39,7 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import { startWhoRead } from '../../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
-import { noteMeansInHandShadow } from '../../../services/safety/crisis-means-shadow.js';
+import { noteMeansInHandShadow } from '../../../services/safety/index.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
