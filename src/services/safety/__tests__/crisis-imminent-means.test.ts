@@ -116,6 +116,10 @@ describe('softened live forms read as on main (r1 blocker 3)', () => {
     'years ago i took a whole bottle of pills',
     'my brother said he took a whole bottle of tylenol',
     "i'd never have the pills in my hand and be taking them now",
+    // Only the means softeners catch these (the shared modifiers miss them).
+    "what if i have the pills in my hand and i'm taking them now",
+    "in my dream i have the pills in my hand and i'm taking them now",
+    "i don't have the pills in my hand and i'm taking them now",
   ])('"%s"', (text) => {
     expect(detectCrisis(text)).toEqual(detectCrisis(text, undefined, { meansInHand: 'off' }));
   });
