@@ -371,4 +371,39 @@ describe('deny by default', () => {
     expect(await call.call('c2')).not.toContain('Calling Dad');
     expect(sends).toHaveLength(0);
   });
+
+  it('"go ahead and call" names nobody but the person read back, or it is not a fast yes', async () => {
+    const DAD_T = ['my', 'dad'];
+    for (const other of [
+      'Go ahead and call Peter.',
+      'Yes, go ahead and call my sister.',
+      'Okay, make the call to Mom.',
+      'Go ahead and call her.',
+    ]) {
+      expect(isClearYes(other, DAD_T, [], true), other).toBe(false);
+    }
+    for (const same of [
+      'Go ahead and call him.',
+      'Yes, go ahead and call Dad.',
+      'Yeah, go ahead and call my dad now.',
+      'Okay, make the call.',
+    ]) {
+      expect(isClearYes(same, DAD_T, [], true), same).toBe(true);
+    }
+    // Even if the model said yes, someone else after "call" is a redirect: never confirmed.
+    setConsentAsk(alwaysYes);
+    for (const other of ['Go ahead and call Peter.', 'Yes, go ahead and call my sister.']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(other);
+      expect(await call.call('c2'), other).not.toContain('Calling Dad');
+    }
+    expect(sends).toHaveLength(0);
+    // The person read back, by name or as "him", still places it.
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Yes, go ahead and call Dad.');
+    await call.call('c2');
+    expect(sends).toHaveLength(1);
+  });
 });

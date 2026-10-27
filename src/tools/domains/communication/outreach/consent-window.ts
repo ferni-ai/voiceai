@@ -15,7 +15,7 @@
  */
 
 import { judge, judgedNow, type ConsentInput } from './consent-judge.js';
-import { isClearYes, isPlainNo, words } from './consent-words.js';
+import { isClearYes, isPlainNo, pronounOf, words } from './consent-words.js';
 import { familyOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction } from './outreach-confirm.js';
 
@@ -171,10 +171,22 @@ export function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean
 }
 const CALL_WORD = /\b(call|calling|ring|dial|phone)\b/;
 
-export function vetoed(turns: string[], channel: Channel): boolean {
+/** "Call Peter", "call my sister", "call her" (for Dad): the call goes to someone else. */
+function callsSomeoneElse(turns: string[], target: readonly string[]): boolean {
+  const pronoun = pronounOf(target);
+  for (const m of turns.join(' ').matchAll(/\bcall,?\s+(?:my\s+|your\s+)?([A-Za-z]+)/gi)) {
+    const w = m[1].toLowerCase();
+    if (target.includes(w) || w === pronoun) continue;
+    if (KIN.has(w) || /^[A-Z]/.test(m[1]) || (pronoun && ['him', 'her'].includes(w))) return true;
+  }
+  return false;
+}
+
+export function vetoed(turns: string[], channel: Channel, target: readonly string[] = []): boolean {
   const said = words(turns.join(' '));
   const line = said.join(' ');
   if (said.some((w) => VETO.has(w)) || REDIRECT.test(line)) return true;
+  if (callsSomeoneElse(turns, target)) return true;
   // "call" phrases never confirm a text.
   return channel === 'text' && CALL_WORD.test(line);
 }
@@ -206,7 +218,8 @@ export function windowState(
   if (turns.length === 0) return 'waiting';
   const channel = channelOf(pending);
   // An unanswered question is never a yes either ("Okay. How's it going?").
-  const veto = answer.overTalk || turns.some(isQuestion) || vetoed(turns, channel);
+  const target = targetWords(pending);
+  const veto = answer.overTalk || turns.some(isQuestion) || vetoed(turns, channel, target);
   if (!veto && isClearYes(turns.join(' '), targetWords(pending), pending.owner, channel === 'call'))
     return 'confirmed';
   const judged = judgedNow(pending, turns);

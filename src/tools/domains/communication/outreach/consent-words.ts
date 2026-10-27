@@ -37,12 +37,37 @@ const HER = new Set('mom mum mother sister wife daughter grandma aunt'.split(' '
 const phrase = (yes: boolean) => (text: string) => ({ parts: text.split(' '), yes });
 const PHRASES = [...YES_PHRASES.map(phrase(true)), ...FILLERS.map(phrase(false))];
 const CALL_PHRASES = CALL_YES.map(phrase(true));
-/** "Give him a call" restates a call to Dad, never one to Doug (unknown) or to Mom. */
-function restatements(target: readonly string[]): Array<ReturnType<ReturnType<typeof phrase>>> {
+/** "him" for a call to Dad, "her" for Mom; undefined for a name ("Doug") or both. */
+export function pronounOf(target: readonly string[]): 'him' | 'her' | undefined {
   const him = target.some((w) => HIM.has(w));
   const her = target.some((w) => HER.has(w));
-  if (him === her) return [];
-  return [phrase(false)(`give ${him ? 'him' : 'her'} a call`)];
+  return him === her ? undefined : him ? 'him' : 'her';
+}
+/** "Give him a call" restates a call to Dad, never one to Doug (unknown) or to Mom. */
+function restatements(target: readonly string[]): Array<ReturnType<ReturnType<typeof phrase>>> {
+  const pronoun = pronounOf(target);
+  return pronoun ? [phrase(false)(`give ${pronoun} a call`)] : [];
+}
+const YES_STARTS = new Set(YES_PHRASES.map((p) => p.split(' ')[0]));
+/**
+ * The words with each "go ahead and call" / "make the call" object dropped when it is the person
+ * read back ("…call him" for Dad, "…call my dad", "…call Doug"); null when it is anyone or
+ * anything else ("go ahead and call Peter", "…call my sister"): that is the judge's to read.
+ */
+function callObjects(said: string[], target: readonly string[]): string[] | null {
+  const pronoun = pronounOf(target);
+  const ok = new Set([...target, 'now', 'right', 'please', ...(pronoun ? [pronoun] : [])]);
+  const out: string[] = [];
+  for (let i = 0; i < said.length; i++) {
+    out.push(said[i]);
+    const ends = (p: string): boolean =>
+      p.split(' ').every((w, j, all) => said[i - all.length + 1 + j] === w);
+    if (!ends('go ahead and call') && !ends('make the call')) continue;
+    for (; i + 1 < said.length && !YES_STARTS.has(said[i + 1]); i++) {
+      if (!ok.has(said[i + 1])) return null;
+    }
+  }
+  return out;
 }
 export const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
 // Never taken for a name the caller calls Ferni by: a word that could change what is sent
@@ -89,7 +114,9 @@ export function isClearYes(
   const said = words(text);
   // "Call you / me / us" hands the action back, whatever surrounds it.
   if (said.some((w, i) => w === 'call' && ['you', 'me', 'us'].includes(said[i + 1]))) return false;
-  if (onlyYes(said, call ? [...CALL_PHRASES, ...restatements(target)] : [])) return true;
+  const plain = call ? callObjects(said, target) : said;
+  if (plain === null) return false;
+  if (onlyYes(plain, call ? [...CALL_PHRASES, ...restatements(target)] : [])) return true;
   const parts = text.split(',');
   if (parts.length < 2) return false;
   const head = parts[0].trim().split(/\s+/);
