@@ -100,7 +100,7 @@ const ASKS_FOR = /\b(which|who|whos|what|whats|where|when|how|tell me|remind me|
 const clarifies = (text: string): boolean => {
   const line = words(text).join(' ');
   const rest = line.replace(PAUSES, '');
-  if (!PAUSES.test(line) || REDIRECT.test(rest) || HEDGE.test(text.toLowerCase())) return false;
+  if (!PAUSES.test(line) || REDIRECT.test(rest) || hedges(text)) return false;
   if (words(rest).some((w) => NOES.includes(w) || VETO.has(w) || DEFERRED.has(w))) return false;
   return text.includes('?') || ASKS_FOR.test(rest);
 };
@@ -148,9 +148,12 @@ const VETO = new Set(
     tomorrow tonight morning afternoon evening weekend monday tuesday wednesday thursday friday
     saturday sunday when if once until unless maybe perhaps guess suppose probably whatever because`)
 );
-// Tested on the raw text, so "in 10 minutes" keeps its digits.
 const HEDGE =
   /\b(let me think|think about it|not sure|in (an?|a few|\d+|\w+) (minutes?|mins?|hours?|hrs?|bit|while))\b/;
+// Normalised like words(), keeping digits: "let me... think", "not-sure", "in 10 minutes".
+const lower = (t: string): string => t.toLowerCase().replace(/['’]/g, '');
+const norm = (t: string): string => lower(t).replace(/[^a-z0-9]+/g, ' ');
+const hedges = (text: string): boolean => HEDGE.test(norm(text));
 const AGREES =
   /\b(yes|yeah|yep|yup|ya|sure|ok|okay|alright|absolutely|definitely|certainly|of course|please|go ahead|go for it|do it|fine|sounds good|thats right|correct)\b/;
 const CALL_WORD = /\b(call|calling|ring|dial|phone)\b/;
@@ -188,7 +191,6 @@ function callee(text: string, pending: PendingAction): 'other' | 'odd' | undefin
   }
   return found;
 }
-
 /** "No, call him!", "I said yes": the owner asking for THIS call again, after a no. */
 export function asksAgain(
   text: string,
@@ -206,7 +208,6 @@ export function asksAgain(
     /\b(call|text|ring|dial|message)\b/.test(line)
   );
 }
-
 /** Any final since the read-back was stored, over Ferni or before he read it, that ends it. */
 export function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
   const said = events.flatMap((e) =>
@@ -224,13 +225,12 @@ export function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean
   // read together: STT may split "call" | "my sister".
   return said.some((t) => ends(t) || (isPlainNo(t) && !clarifies(t))) || ends(said.join(' '));
 }
-
 export function vetoed(turns: string[], pending: PendingAction): boolean {
   const channel = channelOf(pending);
   const said = words(turns.join(' '));
   const line = said.join(' ');
   const joined = turns.join(' ');
-  if (said.some((w) => VETO.has(w)) || HEDGE.test(joined.toLowerCase())) return true;
+  if (said.some((w) => VETO.has(w)) || hedges(joined)) return true;
   if ([...turns, joined].some((t) => callee(t, pending) !== undefined)) return true;
   // "call" phrases never confirm a text, nor "text" a call.
   return channel === 'text' ? CALL_WORD.test(line) : channel === 'call' && OTHER_WAY.test(line);

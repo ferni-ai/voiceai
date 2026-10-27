@@ -538,4 +538,29 @@ describe('deny by default', () => {
     await call.call('c2');
     expect(sends).toHaveLength(1);
   });
+
+  it('a hedge is caught however STT punctuates it ("let me... think", "in a  bit")', async () => {
+    setConsentAsk(alwaysYes);
+    for (const hedge of [
+      'Okay, let me... think about it.',
+      'Sure, let me… think about it.',
+      'Yeah, I’m not-sure.',
+      'Okay, in a  bit.',
+      'Okay, in 10 minutes.',
+    ]) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(hedge);
+      await call.call('c2');
+      expect(sends, hedge).toHaveLength(0);
+    }
+    // A clarifying "wait" that hedges is not exempt either.
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Wait, which number? In a  bit.');
+    call.ferni('The one ending in 0002.');
+    call.owner('Yes.');
+    await call.call('c2');
+    expect(sends).toHaveLength(0);
+  });
 });
