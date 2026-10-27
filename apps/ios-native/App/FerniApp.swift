@@ -397,6 +397,7 @@ final class AppModel {
             lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
             agentLevel: level
         )
+        call.breadcrumb = { CrashReporting.breadcrumb(category: "call.audio", reason: $0, state: $1) }
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
         feedback.isAtRest = { [call] in !call.isActive }
         #if DEBUG
@@ -410,7 +411,7 @@ final class AppModel {
             case .home: break
             case .consent: isAskingConsent = true
             case .settings: isShowingSettings = true
-            case .call, .handoff, .waitlist, .connecting, .reconnecting, .onHold, .failed, .crisisDuringTool:
+            case .call, .handoff, .waitlist, .connecting, .reconnecting, .onHold, .failed, .crisisDuringTool, .silentAudio:
                 call.start(personaID: PersonaRegistry.ferni.id)
             case .remember:
                 call.start(personaID: PersonaRegistry.ferni.id)

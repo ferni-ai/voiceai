@@ -220,8 +220,9 @@ final class SystemCallAudioTests: XCTestCase {
     private let rooms = CallSessionTests.Rooms()
     private let tokens = CallSessionTests.Tokens()
 
-    private func call(_ engine: Engine) -> CallSession {
+    private func call(_ engine: Engine, session: Session? = nil, audioStart: Duration = .seconds(3)) -> CallSession {
         let rooms = rooms, tokens = tokens
+        let real = session.map { SystemCallAudio(systemManagesCalls: true, engine: { engine.record($0) }, session: $0) }
         return CallSession(
             fetchToken: { _ in
                 tokens.requests.append("ferni")
@@ -232,10 +233,11 @@ final class SystemCallAudioTests: XCTestCase {
                 rooms.made.append(room)
                 return room
             },
-            audio: Audio(recorded(engine)),
+            audio: Audio(real ?? recorded(engine)),
             lifecycle: lifecycle,
             agentTimeout: .seconds(5),
             arrivingAfter: .milliseconds(50),
+            audioStartTimeout: audioStart,
             defaults: UserDefaults(suiteName: "system-audio-\(UUID().uuidString)")!
         )
     }
@@ -307,5 +309,27 @@ final class SystemCallAudioTests: XCTestCase {
         rooms.made[0].send(.disconnected(byUs: false))
         await until(session.phase == .failed(.connectionLost))
         XCTAssertEqual(engine.now, "off", "failed: \(engine.all)")
+    }
+
+    /// 4. The system takes the call and never activates its audio (the
+    /// January 2026 iPad): the engine was held off for it, so the call was
+    /// silent. The app activates the session and turns the engine on, and the
+    /// abandoned system call taking "its" audio back later leaves it on.
+    func testWhenTheSystemNeverActivatesTheAppStartsTheEngine() async {
+        let engine = Engine()
+        let audioSession = Session()
+        let session = call(engine, session: audioSession, audioStart: .milliseconds(300))
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertEqual(engine.now, "off", "held for the system: \(engine.all)")
+        await until(engine.now == "on")
+        XCTAssertEqual(audioSession.active, [true], "the app activated the session")
+        XCTAssertEqual(audioSession.category, .playAndRecord)
+
+        lifecycle.ask.yield(.audio(active: false))
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(engine.now, "on", "a late deactivation: \(engine.all)")
+        await session.end()
+        XCTAssertEqual(engine.now, "off", "ended: \(engine.all)")
     }
 }

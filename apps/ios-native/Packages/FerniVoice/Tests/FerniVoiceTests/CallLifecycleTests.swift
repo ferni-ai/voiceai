@@ -11,8 +11,12 @@ final class CallLifecycleTests: XCTestCase {
         let ask: AsyncStream<LifecycleRequest>.Continuation
         var refuse = false
         private(set) var log: [String] = []
+        /// How many times the mic had been asked for when the system's call began.
+        var micAsks: (() -> Int)?
+        private(set) var micAsksAtBegin: Int?
         init() { (requests, ask) = AsyncStream.makeStream(of: LifecycleRequest.self) }
         func begin(id: UUID, name: String) async throws {
+            micAsksAtBegin = micAsks?()
             log.append("begin \(name)")
             if refuse { throw URLError(.cancelled) }
         }
@@ -25,17 +29,24 @@ final class CallLifecycleTests: XCTestCase {
     private var room = CallSessionTests.FakeRoom()
     private let audio = CallSessionTests.FakeAudio()
 
-    private func session(agentTimeout: Duration = .milliseconds(200)) -> CallSession {
+    private var breadcrumbs: [String] = []
+
+    /// `audioStart`: long by default, so only the audio-start tests ever see
+    /// the watchdog, however slow the runner.
+    private func session(agentTimeout: Duration = .milliseconds(200), audioStart: Duration = .seconds(60)) -> CallSession {
         let room = room
-        return CallSession(
+        let call = CallSession(
             fetchToken: { _ in CallToken(token: "t", url: "wss://x", room: "r", agentDispatched: true) },
             makeRoom: { room },
             audio: audio,
             lifecycle: lifecycle,
             agentTimeout: agentTimeout,
             arrivingAfter: .milliseconds(50), // "on the way" soon, as in CallSessionTests
+            audioStartTimeout: audioStart,
             defaults: UserDefaults(suiteName: "lifecycle-\(UUID().uuidString)")!
         )
+        call.breadcrumb = { [weak self] reason, _ in self?.breadcrumbs.append(reason) }
+        return call
     }
 
     private func until(_ condition: @autoclosure () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
@@ -169,6 +180,90 @@ final class CallLifecycleTests: XCTestCase {
         await until(audio.ownership == [true, false])
         room.send(.agentJoined(attributes: [:]))
         await until(call.phase == .live)
+    }
+
+    // MARK: - The audio starts, or the call says so (App Review, January 2026)
+
+    /// The system takes the call but never activates its audio: live would be
+    /// silence. The app starts the audio itself and the call carries on, and
+    /// the next call doesn't wait on the system at all.
+    func testWhenTheSystemNeverStartsTheAudioTheAppDoes() async {
+        let rooms = CallSessionTests.Rooms()
+        let call = CallSession(
+            fetchToken: { _ in CallToken(token: "t", url: "wss://x", room: "r", agentDispatched: true) },
+            makeRoom: { let room = rooms.next(); rooms.made.append(room); return room },
+            audio: audio, lifecycle: lifecycle, audioStartTimeout: .milliseconds(100),
+            defaults: UserDefaults(suiteName: "lifecycle-\(UUID().uuidString)")!
+        )
+        call.breadcrumb = { [weak self] reason, _ in self?.breadcrumbs.append(reason) }
+        call.start()
+        await until(call.phase == .live)
+        XCTAssertEqual(audio.ownership, [true])
+        await until(audio.ownership == [true, false])
+        XCTAssertEqual(call.phase, .live)
+        await until(rooms.made.first?.micStates == [true, true])
+        XCTAssertEqual(breadcrumbs, ["system_audio_missing", "own_audio_started"])
+
+        await call.end()
+        call.start()
+        await until(call.phase == .live && rooms.made.count == 2)
+        XCTAssertEqual(lifecycle.log.filter { $0.hasPrefix("begin") }.count, 1, "the next call skips the system")
+        XCTAssertEqual(audio.ownership.last, false)
+    }
+
+    /// Neither the system nor the app can start the audio: never a silent
+    /// "live". The call ends with the problem in words and Try again.
+    func testIfTheAudioCantStartTheCallEndsWithRetry() async {
+        audio.refuseOwnAudio = true
+        let call = session(audioStart: .milliseconds(100))
+        call.start()
+        await until(call.phase == .failed(.audioDidNotStart))
+        XCTAssertEqual(room.disconnects, 1)
+        await until(lifecycle.log.last == "failed")
+        XCTAssertEqual(breadcrumbs, ["system_audio_missing", "own_audio_failed"])
+        XCTAssertFalse(CallProblem.audioDidNotStart.message.isEmpty)
+
+        // Try again: straight to the app's own audio, and still no sound says
+        // so (not "check your connection").
+        call.start()
+        await until(audio.ownership.count == 3 && call.phase == .failed(.audioDidNotStart))
+        XCTAssertEqual(audio.ownership, [true, false, false])
+        XCTAssertEqual(lifecycle.log.filter { $0.hasPrefix("begin") }.count, 1)
+    }
+
+    /// The usual case: the system activates the audio as its call starts.
+    /// The watchdog leaves that call exactly as it was.
+    func testAudioTheSystemStartsOnTimeIsLeftAlone() async {
+        let call = session(audioStart: .milliseconds(100))
+        call.start()
+        lifecycle.ask.yield(.audio(active: true))
+        await until(call.phase == .live)
+        try? await Task.sleep(for: .milliseconds(400))
+        XCTAssertEqual(audio.ownership, [true], "the app never took the audio")
+        XCTAssertEqual(room.micStates, [true])
+        XCTAssertTrue(breadcrumbs.isEmpty)
+        XCTAssertEqual(call.phase, .live)
+    }
+
+    /// The mic is asked for before the system's call begins, so a first-time
+    /// prompt never races the system call UI.
+    func testTheMicIsAskedBeforeTheSystemsCallBegins() async {
+        let audio = audio
+        lifecycle.micAsks = { audio.micRequests }
+        let call = session()
+        call.start()
+        await until(call.phase == .live)
+        XCTAssertEqual(lifecycle.micAsksAtBegin, 1)
+    }
+
+    /// No mic, no call: the system's call never begins and no room is joined.
+    func testNoMicrophoneNoSystemCall() async {
+        audio.micAllowed = false
+        let call = session()
+        call.start()
+        await until(call.phase == .failed(.microphoneDenied))
+        XCTAssertFalse(lifecycle.log.contains { $0.hasPrefix("begin") }, "\(lifecycle.log)")
+        XCTAssertNil(room.connectedTo)
     }
 }
 

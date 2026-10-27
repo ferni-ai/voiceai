@@ -6,6 +6,8 @@ enum Screen: String, CaseIterable {
     case home, consent, settings, call, waitlist
     /// The call's other states (design audit P2 #20).
     case connecting, reconnecting, onHold, failed
+    /// The system never starts the call's audio (App Review, January 2026).
+    case silentAudio
     /// A tool starts, then the agent's crisis level (crisis mode, R16).
     case crisisDuringTool
     /// A call that ends after 2 s: the "I'll remember" card.
@@ -22,7 +24,7 @@ enum Screen: String, CaseIterable {
         case .connecting: app.buttons["Cancel"]
         case .reconnecting: app.staticTexts.matching(NSPredicate(format: "label == 'Reconnecting…'")).firstMatch
         case .onHold: app.buttons["Resume call"]
-        case .failed: app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Try again'")).firstMatch
+        case .failed, .silentAudio: app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Try again'")).firstMatch
         }
     }
 }

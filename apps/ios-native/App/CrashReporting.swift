@@ -49,6 +49,16 @@ enum CrashReporting {
         #endif
     }
 
+    /// A breadcrumb the next crash report carries: what kind of thing
+    /// happened (`reason`) and a machine state, never anything said or shown.
+    static func breadcrumb(category: String, reason: String, state: String) {
+        #if canImport(Sentry)
+        let crumb = Breadcrumb(level: .warning, category: category)
+        crumb.data = ["reason": reason, "state": state]
+        SentrySDK.addBreadcrumb(crumb)
+        #endif
+    }
+
     static func start(info: [String: Any]? = Bundle.main.infoDictionary) {
         guard let dsn = CrashPolicy.dsn(from: info) else { return }
         #if canImport(Sentry)

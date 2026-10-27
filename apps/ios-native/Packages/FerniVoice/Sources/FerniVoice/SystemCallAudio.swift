@@ -154,7 +154,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     public func systemAudio(active: Bool) {
         systemActive.withLock { $0 = active }
         if active { try? configure() }
-        setEngine(active ? .default : .none)
+        // The app took the audio over when the system never activated it: a
+        // late word from the system's abandoned call leaves the engine on.
+        setEngine(active || ownActive.withLock({ $0 }) ? .default : .none)
     }
 
     public func callEnded() {

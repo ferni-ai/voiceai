@@ -54,4 +54,15 @@ final class CallStatesUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Cancel"].exists)
         attachScreenshot("call-failed")
     }
+
+    /// The January 2026 rejection: the system takes the call and its audio
+    /// never starts. Within seconds the call says so and offers Try again,
+    /// never a silent "live" with End call.
+    func testACallWhoseSoundNeverStartsSaysSoAndOffersTryAgain() {
+        let app = XCUIApplication.ferni(.silentAudio)
+        XCTAssertTrue(Screen.silentAudio.ready(in: app).waitForExistence(timeout: 20), "Try again")
+        XCTAssertTrue(app.staticTexts["The sound didn't start. Try again in a moment."].exists, "why, in words")
+        XCTAssertFalse(app.buttons["End call"].exists)
+        attachScreenshot("call-silent-audio")
+    }
 }
