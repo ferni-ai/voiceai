@@ -207,3 +207,41 @@ describe('live: everyday look-alikes', () => {
     expect(live(text).indicators).toContain('imminent_danger')
   );
 });
+
+describe('live: the medication check-in covers its own clause, never the whole call', () => {
+  // Security review on #2717: a whole-message "my meds" switch turned off every form.
+  it.each([
+    'i took my meds this morning and the noose is around my neck',
+    "i'm on my blood pressure pills and the gun is pointed at my head",
+    'i had a headache all day and the razor is against my wrist',
+    'i took my vitamins. the noose is around my neck',
+  ])('a check-in clause beside means on the body still reads 911: "%s"', (text) => {
+    expect(off(text).indicators).not.toContain('imminent_danger');
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it.each([
+    "i'm taking all my pills now goodbye",
+    "i have my pills right here and i'm taking them now",
+    "i'm taking my meds now, goodbye everyone",
+  ])('imminence words override the check-in: "%s"', (text) => {
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it.each([
+    "my mom's pills are right here",
+    "my grandmas pills are in my hand and i'm taking them",
+  ])('someone else\'s medication is not the caller\'s check-in: "%s"', (text) =>
+    expect(live(text).indicators).toContain('imminent_danger')
+  );
+
+  it.each([
+    "i'm taking my meds now",
+    'i have my heart pills right here',
+    "i'm taking my pills now like always",
+    'my meds are right here on the counter',
+    "i'm going to take my pills now",
+  ])('an ordinary check-in still gets no 911: "%s"', (text) => {
+    expect(live(text)).toEqual(off(text));
+  });
+});
