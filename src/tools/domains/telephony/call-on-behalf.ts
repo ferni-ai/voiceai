@@ -17,6 +17,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { flagOn } from '../../../config/env-flag.js';
 import { callOnBehalfSchema } from './call-on-behalf-schema.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, Tool } from '../../registry/types.js';
@@ -62,6 +63,12 @@ async function findContact(
   userId: string
 ): Promise<ResolvedContact | { choices: ResolvedContact[]; ask: string } | null> {
   try {
+    // CONTACT_SAVE_ON_YES: the person as both stores hold them, "my dad" too (owner-contact.ts)
+    if (flagOn('CONTACT_SAVE_ON_YES')) {
+      const { oneNumber, resolveOwnerContact } = await import('./owner-contact.js');
+      const one = oneNumber(await resolveOwnerContact(userId, contactQuery).catch(() => null));
+      if (one) return one;
+    }
     // =========================================================================
     // PRIMARY: Try unified entity store first
     // =========================================================================
@@ -373,10 +380,12 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             };
             log.info({ contactQuery, phone: '***' }, 'Using provided phone number for new contact');
 
-            // Save this contact for future use (async, don't wait)
-            saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
-              log.warn({ error: String(err) }, 'Failed to save contact for future');
-            });
+            // Save this contact for future use (async, don't wait); CONTACT_SAVE_ON_YES saved it
+            // on the yes instead (call-confirm.ts onYes), or refused to
+            if (!flagOn('CONTACT_SAVE_ON_YES'))
+              saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
+                log.warn({ error: String(err) }, 'Failed to save contact for future');
+              });
           }
         }
 

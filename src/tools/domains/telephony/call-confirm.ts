@@ -8,7 +8,16 @@
  */
 
 import type { ConfirmSpec } from '../communication/outreach/outreach-confirm.js';
+import { flagOn } from '../../../config/env-flag.js';
 import { checkDialableNumber } from '../../../utils/dialable-number.js';
+import {
+  askAboutNumber,
+  GIVEN,
+  rememberOnYes,
+  resolveOwnerContact,
+  savableNumber,
+  type GivenNumber,
+} from './owner-contact.js';
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 /** "My Dad" and "dad" are the same person to call. */
@@ -44,6 +53,7 @@ export const callConfirm: ConfirmSpec = {
     let name = who;
     let raw = text(args.phoneNumber);
     let relationship: string | undefined;
+    const given = raw !== ''; // the owner's own number for them, not one looked up
     if (!raw) {
       const { findContact } = await import('./call-on-behalf.js');
       const contact = await findContact(who, userId);
@@ -67,9 +77,26 @@ export const callConfirm: ConfirmSpec = {
     // A call to this number already set for later: say so, rather than read back a second one.
     const waiting = now ? undefined : await pendingCallTo(userId, number.e164);
     if (waiting) return alreadySetReply(name, waiting);
+    // CONTACT_SAVE_ON_YES: what a yes also saves for them (owner-contact.ts); nothing is saved yet
+    const save = given ? await numberToSave(userId, who, number.e164) : undefined;
     return {
-      args: { ...args, phoneNumber: number.e164 },
-      readBack: `a call to ${name} at ${number.spoken}${now ? ', right now' : ''}${purpose ? `, to ${purpose}` : ''}`,
+      args: { ...args, phoneNumber: number.e164, ...(save && { [GIVEN]: save.given }) },
+      readBack: `a call to ${name} at ${number.spoken}${now ? ', right now' : ''}${purpose ? `, to ${purpose}` : ''}${save?.note ?? ''}`,
     };
   },
+  onYes: rememberOnYes,
 };
+
+/** Flag on: who the given number is for, and what the read-back must say a yes changes. */
+async function numberToSave(
+  userId: string,
+  who: string,
+  e164: string
+): Promise<{ note: string; given: GivenNumber } | undefined> {
+  if (!flagOn('CONTACT_SAVE_ON_YES') || !savableNumber(e164)) return undefined;
+  try {
+    return askAboutNumber(await resolveOwnerContact(userId, who, e164), who, e164);
+  } catch {
+    return undefined; // a store that can't be read saves nothing; the call still reads back
+  }
+}

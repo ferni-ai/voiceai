@@ -345,6 +345,22 @@ export interface ConfirmSpec {
    * a spec with `sameAction` must take the same args (callOnBehalf, callAndConverse).
    */
   sameAction?: (stored: Record<string, unknown>, next: Record<string, unknown>) => boolean;
+  /**
+   * Run on the caller's yes, just before the action it confirmed (never for a plan), with the
+   * prepared args and this session's id: e.g. keep a number the owner gave (owner-contact.ts).
+   */
+  onYes?: (args: Record<string, unknown>, userId: string, sessionId?: string) => Promise<unknown>;
+}
+
+/** The tool's execute, with spec.onYes first whenever it runs an action rather than a plan. */
+function withOnYes(spec: ConfirmSpec, ctx: ToolContext, execute: Execute): Execute {
+  const { onYes } = spec;
+  if (!onYes) return execute;
+  return async (a, o) => {
+    const args = (a ?? {}) as Record<string | symbol, unknown>;
+    if (!args[PLAN_ONLY]) await onYes(args as Record<string, unknown>, ctx.userId, ctx.sessionId);
+    return execute(a, o);
+  };
 }
 
 /** What OUTREACH_SERVER_CONFIRM's half (outreach-server-confirm.ts) borrows from this gate. */
@@ -380,7 +396,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
     ...def,
     create: (ctx: ToolContext): Tool => {
       const tool = def.create(ctx);
-      const execute = (tool as { execute: Execute }).execute.bind(tool);
+      const execute = withOnYes(spec, ctx, (tool as { execute: Execute }).execute.bind(tool));
       const gate = { gate: serverGate, toolId: def.id, spec, execute };
       const gated = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
         if (spec.applies && !spec.applies(args)) return execute(args, opts);
