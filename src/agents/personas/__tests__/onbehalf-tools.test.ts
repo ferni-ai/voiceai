@@ -57,6 +57,11 @@ describe('tools on an on-behalf call', () => {
     expect(request).toEqual(expect.arrayContaining(OWN_ACCOUNT));
   });
 
+  it('an anon: caller is outside this gate: own-account tools stay as on main', async () => {
+    const { request } = await offered('anon:caller-55e1', 's-anon-1');
+    expect(request).toEqual(expect.arrayContaining(OWN_ACCOUNT));
+  });
+
   it('kill switch off: offered as before', async () => {
     vi.stubEnv('ONBEHALF_WRITE_GATE', 'off');
     const { request } = await offered('onbehalf:test123', 's-onbehalf-2');
