@@ -17,7 +17,7 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
 import ts from 'typescript';
 import { pathToFileURL } from 'url';
-import { DECISIONS, type DomainDecision, type Fingerprint } from './decisions.js';
+import { DECISIONS, NOT_DECIDERS, type DomainDecision, type Fingerprint } from './decisions.js';
 import { basePathOf, diffAgainstBase, readAtBase, resolveBase } from './merge-base.js';
 
 export interface DecisionHit {
@@ -29,7 +29,11 @@ export interface DecisionHit {
 
 const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|^src\/(tests|e2e)\/)/;
 export const isProductionSource = (f: string): boolean =>
-  f.startsWith('src/') && /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !TEST.test(f);
+  f.startsWith('src/') &&
+  /\.tsx?$/.test(f) &&
+  !f.endsWith('.d.ts') &&
+  !TEST.test(f) &&
+  !NOT_DECIDERS.some((p) => f.startsWith(p));
 
 /**
  * The text with comments blanked (line numbers kept). Strings, template literals and regex
@@ -142,6 +146,19 @@ export interface Gained {
   before: number;
   after: number;
   lines: DecisionHit[];
+  /** The hits whose text the base didn't have: the new decider lines, shown on failure. */
+  fresh: DecisionHit[];
+}
+
+/** Hits in `now` beyond the ones `then` already had with the same text (a multiset difference). */
+function freshHits(now: DecisionHit[], then: DecisionHit[]): DecisionHit[] {
+  const left = new Map<string, number>();
+  for (const h of then) left.set(h.text, (left.get(h.text) ?? 0) + 1);
+  return now.filter((h) => {
+    const n = left.get(h.text) ?? 0;
+    if (n > 0) left.set(h.text, n - 1);
+    return n === 0;
+  });
 }
 
 /** Decisions whose fingerprint count in `file` rose from `baseText` (null: a new file) to `headText`. */
@@ -149,7 +166,11 @@ export function gained(file: string, headText: string, baseText: string | null, 
   const now = hits(file, headText, decisions);
   const then = baseText === null ? [] : hits(file, baseText, decisions); // judged at the head path: a move is free
   return decisions
-    .map((d) => ({ file, decision: d.id, before: count(then, d.id), after: count(now, d.id), lines: now.filter((h) => h.decision === d.id) }))
+    .map((d) => {
+      const lines = now.filter((h) => h.decision === d.id);
+      const fresh = freshHits(lines, then.filter((h) => h.decision === d.id));
+      return { file, decision: d.id, before: count(then, d.id), after: count(now, d.id), lines, fresh };
+    })
     .filter((g) => g.after > g.before);
 }
 
@@ -186,7 +207,7 @@ function main(): void {
     for (const w of worse) {
       const d = DECISIONS.find((x) => x.id === w.decision)!;
       say(`  ${w.decision}  ${w.file}: ${w.before} → ${w.after}`);
-      for (const h of w.lines.slice(0, 3)) say(`      ${h.line}: ${h.text.slice(0, 110)}`);
+      for (const h of (w.fresh.length > 0 ? w.fresh : w.lines).slice(0, 3)) say(`      ${h.line}: ${h.text.slice(0, 110)}`);
       say(`      fix: ask ${d.owner.module}#${d.owner.fn} instead of deciding here`);
     }
     say('\nA deliberate new owner? Change it in apps/cli/src/commands/quality/decisions.ts (CODEOWNERS asks its owner to review).');

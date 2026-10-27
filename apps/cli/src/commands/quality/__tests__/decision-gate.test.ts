@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
-import { gained, hits, stripComments } from '../decision-gate.js';
-import { DECISIONS, type DomainDecision } from '../decisions.js';
+import { gained, hits, isProductionSource, stripComments } from '../decision-gate.js';
+import { DECISIONS, NOT_DECIDERS, type DomainDecision } from '../decisions.js';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../../../../..');
 const byId = (id: string): DomainDecision => DECISIONS.find((d) => d.id === id)!;
@@ -55,6 +55,7 @@ describe('decision gate: what counts as a decider (the real registry)', () => {
       'src/tools/domains/crisis/index.ts',
       'src/services/human-transfer/crisis-signals.ts',
       'src/intelligence/context-builders/safety/x.ts',
+      'src/agents/personas/phrase-loops-safety.generated.ts',
     ]) {
       expect(ids(p, list), p).toEqual([]);
     }
@@ -105,6 +106,32 @@ describe('decision gate: what counts as a decider (the real registry)', () => {
   });
 });
 
+describe('decision gate: the two false positives from the #2563 verify (2026-10-26)', () => {
+  it("counts the generated safety wording as the crisis owner's: a crisis copy edit + regenerate passes", () => {
+    const real = readFileSync(join(REPO, 'src/agents/personas/phrase-loops-safety.generated.ts'), 'utf8');
+    const regenerated = real.replace(
+      "export const SAFETY_WORDING: readonly string[] = [\n",
+      "export const SAFETY_WORDING: readonly string[] = [\n  'If you are having suicidal thoughts, you are not alone.',\n"
+    );
+    expect(regenerated).not.toBe(real);
+    expect(gained('src/agents/personas/phrase-loops-safety.generated.ts', regenerated, real)).toEqual([]);
+    // the same list anywhere else in personas/ is still a second crisis detector
+    expect(gained('src/agents/personas/other-wording.ts', regenerated, null).map((g) => g.decision)).toEqual([
+      'crisis-risk',
+    ]);
+  });
+
+  it('does not scan flag specs: a new QUIET_HOURS_* flag file is not a quiet-hours decider', () => {
+    expect(NOT_DECIDERS).toEqual(['src/config/flags/']);
+    expect(isProductionSource('src/config/flags/QUIET_HOURS_PLANTED_V2.ts')).toBe(false);
+    expect(isProductionSource('src/config/flags/index.generated.ts')).toBe(false);
+    // the same text outside flags/ still counts, and flag readers elsewhere are still scanned
+    expect(isProductionSource('src/config/quiet-hours-config.ts')).toBe(true);
+    const flagFile = "export const QUIET_HOURS_PLANTED_V2 = {\n  default: 'off',\n  owner: 'outreach',\n  kind: 'experiment',\n} as const;\n";
+    expect(ids('src/services/outreach/x.ts', flagFile)).toEqual(['contact-permission:1']);
+  });
+});
+
 describe('decision gate: only what the change adds fails', () => {
   const before = "const a = 1;\nconst WORDS = ['suicidal'];\n";
 
@@ -113,6 +140,7 @@ describe('decision gate: only what the change adds fails', () => {
     const g = gained('src/tools/x.ts', before + "const RE = /self-harm/i;\n", before);
     expect(g.map((x) => `${x.decision} ${x.before}→${x.after}`)).toEqual(['crisis-risk 1→2']);
     expect(g[0]!.lines.map((l) => l.line)).toEqual([2, 3]);
+    expect(g[0]!.fresh.map((l) => l.line)).toEqual([3]); // the failure shows the new line, not the old one
   });
 
   it('counts a new file from zero, and judges a moved file at its new path (a move is free)', () => {
