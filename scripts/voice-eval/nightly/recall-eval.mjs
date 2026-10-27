@@ -15,7 +15,8 @@
 //   --rejudge grade transcripts already in --out instead of calling
 // Env: RECALL_JUDGE_K (panel size, default 3), JUDGE_MODEL (default pro), GCP_PROJECT.
 // Exit 1 when a recall-ledger check or the invented-call gate (above its known gap) in
-// capabilities.json FAILs; 2 harness error. Seeds a dev database only, never '(default)'.
+// capabilities.json FAILs; 2 harness error, a question no judge graded included. Seeds a dev
+// database only, never '(default)'.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -57,7 +58,12 @@ export function verdicts(summary, caps) {
 /** The database an eval owner is seeded in; throws for prod's '(default)' or a real uid. */
 export function seedTarget(env, uid, vars = process.env) {
   const database = evalDatabase(env, { vars });
-  if (database === '(default)') throw new Error(`refusing to seed ${database} (prod's database)`);
+  const name = String(database ?? '')
+    .replace(/["'`]/g, '')
+    .trim()
+    .toLowerCase();
+  if (name === '(default)' || name === '')
+    throw new Error(`refusing to seed "${database}" (prod's)`);
   if (!/^voice-eval-./.test(uid)) throw new Error('seed: uid must start with voice-eval-');
   return database;
 }
@@ -102,7 +108,7 @@ export function report(graded, meta, file) {
   writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
   console.log(score.renderTable(summary, meta.plant ? `recall (${meta.plant})` : 'recall'));
   for (const r of v.rows) console.log(`${r.verdict.padEnd(4)} ${r.cap}.${r.id}=${r.value ?? '-'}`);
-  return v.exit;
+  return summary.unjudged ? 2 : v.exit; // a judge that failed is a harness error, never a pass
 }
 
 async function main(argv) {

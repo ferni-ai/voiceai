@@ -101,7 +101,8 @@ export function summarize(graded) {
 
 /** The value a scorecard check reads from a recall summary (field: overall, bucket.<b>, ...). */
 export function recallValue(summary, field) {
-  if (!summary || !summary.n) return { value: null, n: 0 };
+  // A question no judge graded counts as neither right nor invented: the whole night is no data.
+  if (!summary || !summary.n || summary.unjudged !== 0) return { value: null, n: 0 };
   if (field.startsWith('bucket.')) {
     const b = summary.buckets?.[field.slice(7)];
     return { value: b?.n ? b.rate : null, n: b?.n ?? 0 };

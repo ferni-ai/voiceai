@@ -27,9 +27,98 @@ export function renderWhen(text, now, tz) {
   );
 }
 
-// The ledger state a history entry is in (a call with no status is scheduled, not placed).
-const STATE = { completed: 'done', delivered: 'done', pending: 'scheduled', open: 'confirmed' };
-const ledgerState = (h) => (FAILED.has(h.status) ? 'failed' : STATE[h.status ?? 'pending']);
+// The activity ledger as lane 1a (#2958, src/services/activity) writes it: each history entry is
+// a create, then for anything that happened an update with its outcome, applied the way its
+// applyChange applies them (recall.test.mjs replays them through it and compares).
+const SOURCE = 'recall-eval';
+const REASONS = new Set(['call_hours', 'quiet_hours', 'owner_declined', 'owner_asked_later']);
+const OUTCOME = {
+  completed: 'reached',
+  voicemail: 'voicemail',
+  no_answer: 'no_answer',
+  busy: 'busy',
+  failed: 'failed',
+  delivered: 'delivered',
+};
+const FIELDS =
+  'v kind subject subjectKeys asked state reason scheduledFor outcome told followUps links source revision appliedKeys createdAt updatedAt'.split(
+    ' '
+  );
+const BOOKKEEPING = new Set(['revision', 'updatedAt', 'appliedKeys', 'source', 'subjectKeys']);
+const defined = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+const clip = (x, max) => (x === undefined ? undefined : x.trim().slice(0, max) || undefined);
+const norm = (n) =>
+  n
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 100);
+const keysOf = (s) =>
+  [s.contactId && `contact:${s.contactId}`, norm(s.name) && `name:${norm(s.name)}`].filter(Boolean);
+const changed = (a, b) =>
+  FIELDS.filter((f) => !BOOKKEEPING.has(f) && JSON.stringify(a[f]) !== JSON.stringify(b[f]));
+const event = (id, seq, at, op, from, doc, fields, reason) =>
+  defined({ activityId: id, seq, at, op, from, to: doc.state, fields, source: SOURCE, reason });
+
+/** The create (and, for what happened, the update) a history entry makes in the ledger. */
+export function ledgerChanges(h, c, id, made, t, sessionId) {
+  if (h.kind === 'call' && h.reason !== undefined && !REASONS.has(h.reason))
+    throw new Error(`recall world: reason ${h.reason} is not in the ledger's list`);
+  const subject = h.to
+    ? defined({ contactId: h.to, name: c.name, relationship: c.relationship })
+    : { name: 'you' };
+  const links = { call: h.status ? 'onBehalfCallId' : 'deferredCallId', reminder: 'reminderId' };
+  Object.assign(links, { promise: 'followThroughId', email: 'providerRef' });
+  const ahead = (h.kind === 'call' && !h.status) || h.kind === 'reminder';
+  const words = clip(
+    h.kind === 'email' ? h.reason : h.kind === 'promise' ? h.text : undefined,
+    200
+  );
+  const record = defined({
+    kind: h.kind,
+    subject,
+    asked: defined({ at: made, sessionId, words }),
+    state: h.kind === 'promise' ? 'confirmed' : ahead ? 'scheduled' : 'asked',
+    reason: h.kind === 'call' ? h.reason : undefined,
+    scheduledFor: ahead ? t : undefined,
+    links: { [links[h.kind]]: id },
+  });
+  const status = h.status ?? (h.kind === 'email' ? 'delivered' : undefined); // a sent email
+  if (!status || status === 'open' || status === 'pending') return { record };
+  const actionItems = (h.actionItems ?? []).slice(0, 5).map((x) => x.trim().slice(0, 200));
+  const summary = clip(h.summary ?? h.subject ?? h.text, 280);
+  const outcome = defined({ status: OUTCOME[status], summary, theySaid: clip(h.theySaid, 280) });
+  const failed = !['completed', 'delivered'].includes(status);
+  const reason = { voicemail: 'voicemail', no_answer: 'no_answer', busy: 'busy' }[status];
+  const told = h.told === false ? undefined : [{ at: t, sessionId, channel: 'voice' }];
+  const patch = { state: failed ? 'failed' : 'done', outcome: { ...outcome, actionItems }, told };
+  return {
+    record,
+    patch: defined({ ...patch, reason: failed ? (reason ?? 'failed_provider') : undefined }),
+  };
+}
+
+/** The ledger doc and its events after record (+ patch), as applyChange writes them. */
+export function applyLedger(id, { record, patch }, made, t) {
+  const { kind, subject, asked, state, reason, scheduledFor, links } = record;
+  const doc = defined({
+    ...{ v: 1, kind, subject, state, subjectKeys: keysOf(subject), asked, reason, scheduledFor },
+    ...{ told: [], followUps: [], links, source: SOURCE, revision: 1, appliedKeys: [] },
+    ...{ createdAt: made, updatedAt: made },
+  });
+  const events = [event(id, 1, made, 'create', null, doc, changed({}, doc), reason)];
+  if (!patch) return { doc, events };
+  const { reason: kept, ...base } = doc;
+  const moved = patch.state !== doc.state;
+  const next = defined({
+    ...{ ...base, reason: patch.reason ?? (moved ? undefined : kept), state: patch.state },
+    ...{ outcome: patch.outcome, told: [...doc.told, ...(patch.told ?? [])], revision: 2 },
+    updatedAt: t,
+  });
+  const update = event(id, 2, t, 'update', doc.state, next, changed(doc, next), patch.reason);
+  return { doc: next, events: [...events, update] };
+}
 
 /** [{ path, data }] for one world seeded as uid. */
 export function docsFor(world, uid, now, { plant } = {}) {
@@ -124,30 +213,14 @@ export function docsFor(world, uid, now, { plant } = {}) {
         updatedAt: t,
       });
     }
-    const subject = h.to
-      ? { contactId: h.to, name: c.name, relationship: c.relationship }
-      : { name: 'you' };
-    const outcome = h.status && {
-      status: h.status,
-      summary,
-      actionItems: h.actionItems ?? [],
-      ...(h.theySaid && { theySaid: h.theySaid }),
-    };
-    add('activity', id, {
-      kind: h.kind,
-      subject,
-      asked: { at: t },
-      state: ledgerState(h),
-      ...(h.reason && { reason: h.reason }),
-      ...(h.kind === 'call' && !h.status && { scheduledFor: t }),
-      ...(outcome && { outcome }),
-      told: [],
-      followUps: [],
-      links: {},
-      revision: 1,
-      createdAt: t,
-      updatedAt: t,
-    });
+    // Written when it was asked: a day before a reminder fires, now for anything still ahead.
+    const nowIso = now.toISOString();
+    const remind = at(now, tz, (h.daysAgo ?? 0) + 1).toISOString();
+    const made = h.kind === 'reminder' ? remind : t > nowIso ? nowIso : t;
+    const changes = ledgerChanges(h, c, id, made, t, `recall-eval-${world.id}`);
+    const ledger = applyLedger(id, changes, made, t);
+    add('activity', id, ledger.doc);
+    for (const e of ledger.events) add(`activity/${id}/events`, String(e.seq), e);
   }
   return docs;
 }

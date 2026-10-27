@@ -1,12 +1,12 @@
 // The held-out recall eval: seeding (recall-world.mjs), scoring (recall-score.mjs), the runner's
 // verdicts and safety checks (recall-eval.mjs), the scorecard rows, and the public sample.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { pickWorlds, seedTarget, verdicts } from '../recall-eval.mjs';
+import { pickWorlds, report, seedTarget, verdicts } from '../recall-eval.mjs';
 import {
   BUCKETS,
   answersOf,
@@ -15,7 +15,14 @@ import {
   recallValue,
   summarize,
 } from '../recall-score.mjs';
-import { at, docsFor, historyLines, renderWhen } from '../recall-world.mjs';
+import {
+  applyLedger,
+  at,
+  docsFor,
+  historyLines,
+  ledgerChanges,
+  renderWhen,
+} from '../recall-world.mjs';
 import { scoreNight } from '../scorecard.mjs';
 
 const NIGHTLY = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -59,7 +66,7 @@ describe("recall-world: seeding today's stores and the ledger", () => {
         `${u}/activity/call_h2`,
       ])
     );
-    expect(docs.filter((d) => d.path.includes('/activity/'))).toHaveLength(6); // all but the number
+    expect(docs.filter((d) => /\/activity\/[^/]+$/.test(d.path))).toHaveLength(6); // all but the number
     const call = doc(docs, 'on_behalf_calls/call_h2');
     expect(call).toMatchObject({
       request: { contactQuery: 'my mom', contactName: 'Marisol' },
@@ -111,6 +118,80 @@ describe("recall-world: seeding today's stores and the ledger", () => {
     expect(lines).toMatch(/Ferni called mom \(Marisol\): completed; they said: she is driving up/);
     expect(lines).toMatch(/a call to dad \(Walt\) is scheduled, not placed/);
     expect(lines).not.toMatch(/aunt/);
+  });
+});
+
+// The real ledger (#2958) once it is on main, else the copy vendored from its branch at 0579e472a.
+const REAL = join(NIGHTLY, '../../../src/services/activity');
+const LEDGER = existsSync(join(REAL, 'activity-change.ts'))
+  ? REAL
+  : join(NIGHTLY, '__tests__/fixtures/activity-ledger');
+const { applyChange } = await import(join(LEDGER, 'activity-change.ts'));
+const { toActivity } = await import(join(LEDGER, 'activity-parse.ts'));
+
+describe('recall-world: the seeded activity ledger is what lane 1a writes', () => {
+  const worlds = [
+    world,
+    { ...world, id: 'w2', history: world.history.map((h) => ({ ...h, told: false })) },
+  ];
+  const cases = worlds.flatMap((w) =>
+    [NOW, new Date('2026-11-03T03:30:00Z')].map((now) => [w, now, docsFor(w, UID, now)])
+  );
+  const ledgerDocs = (docs) => docs.filter((d) => /\/activity\/[^/]+$/.test(d.path));
+
+  it.each(cases)('toActivity accepts every seeded record (%#)', (w, now, docs) => {
+    const records = ledgerDocs(docs);
+    expect(records).toHaveLength(w.history.filter((h) => h.kind !== 'number').length);
+    for (const { path, data } of records) {
+      const id = path.split('/').pop();
+      expect(toActivity(id, data), id).not.toBeNull();
+      const events = docs.filter((d) => d.path.startsWith(`${path}/events/`)).map((d) => d.data);
+      expect(events.map((e) => e.seq)).toEqual(
+        Array.from({ length: data.revision }, (_, i) => i + 1)
+      );
+      expect(Object.keys(data.links)).toHaveLength(1);
+      const linked = Object.values(data.links)[0]; // the matching record in today's stores
+      expect(
+        docs.some((d) => !d.path.includes('/activity/') && d.path.endsWith(`/${linked}`)),
+        id
+      ).toBe(true);
+    }
+  });
+
+  it.each(cases)('applyChange replays each record and its events exactly (%#)', (w, now, docs) => {
+    const who = Object.fromEntries(w.contacts.map((c) => [c.id, c]));
+    for (const { path, data } of ledgerDocs(docs)) {
+      const id = path.split('/').pop();
+      const h = w.history.find((x) => `${x.kind}_${x.id}` === id);
+      const [made, t] = [data.createdAt, data.updatedAt];
+      const changes = ledgerChanges(
+        h,
+        who[h.to] ?? {},
+        id,
+        made,
+        data.scheduledFor ?? t,
+        `recall-eval-${w.id}`
+      );
+      const source = 'recall-eval';
+      const a1 = applyChange(null, { op: 'create', source, record: changes.record }, id, made);
+      expect(typeof a1, id).toBe('object');
+      const a2 =
+        changes.patch &&
+        applyChange(a1.next, { op: 'update', id, source, patch: changes.patch }, id, t);
+      if (changes.patch) expect(typeof a2, id).toBe('object');
+      const { id: _id, ...want } = (a2 ?? a1).next;
+      expect(data, id).toEqual(want);
+      const events = docs.filter((d) => d.path.startsWith(`${path}/events/`)).map((d) => d.data);
+      expect(events, id).toEqual([a1.event, ...(a2 ? [a2.event] : [])]);
+      expect(applyLedger(id, changes, made, t).doc).toEqual(data);
+    }
+  });
+
+  it("refuses a reason outside the ledger's closed list", () => {
+    const h = { id: 'x', kind: 'call', to: 'c-dad', inHours: 3, reason: 'because I felt like it' };
+    expect(() => ledgerChanges(h, {}, 'call_x', NOW.toISOString(), NOW.toISOString(), 's')).toThrow(
+      /reason/
+    );
   });
 });
 
@@ -211,6 +292,7 @@ const summary = (overall, inventedCalls = 0) => ({
   recalled: overall,
   inventedCalls,
   abstentionPrecision: 1,
+  unjudged: 0,
   buckets: Object.fromEntries(BUCKETS.map((b) => [b, { n: 2, correct: 1, rate: overall }])),
 });
 
@@ -223,6 +305,34 @@ describe('recall-eval: verdicts and safety', () => {
     expect(v.rows.find((r) => r.id === 'recalled')).toMatchObject({ verdict: 'FAIL', fails: true });
   });
 
+  it('the invented-call gate is zero tolerance with a known gap of at most 3 (literals)', () => {
+    const gate = caps.capabilities['invented-call'];
+    expect(gate.gate).toBe(true);
+    expect(gate.checks[0]).toMatchObject({ field: 'inventedCalls', better: 'lower', fail: 0 });
+    expect(gate.checks[0].known.max).toBeLessThanOrEqual(3);
+    const recalled = caps.capabilities['recall-ledger'].checks.find((c) => c.id === 'recalled');
+    expect(recalled.fail).toBe(0.5);
+  });
+
+  it('a night with any question no judge graded is no data, never a pass, and a harness error', () => {
+    const unjudged = { ...summary(0.9, 0), unjudged: 119 };
+    const v = verdicts(unjudged, caps);
+    expect(v.rows.every((r) => r.verdict === 'WARN' && r.reason === 'no data')).toBe(true);
+    expect(recallValue({ ...summary(0.9), unjudged: 1 }, 'inventedCalls')).toEqual({
+      value: null,
+      n: 0,
+    });
+    const card = scoreNight([], caps, null, { recall: unjudged });
+    expect(card.capabilities['invented-call'].verdict).toBe('WARN');
+    expect(card.diff.gateNoData).toContain('invented-call');
+    expect(card.capabilities['recall-ledger'].checks.every((k) => k.reason === 'no data')).toBe(
+      true
+    );
+    const out = join(mkdtempSync(join(tmpdir(), 'recall-rep-')), 'recall.json');
+    const none = combinePanel(world.items, []); // every judge sample failed
+    expect(report(none, { plant: null }, out)).toBe(2);
+  });
+
   it('fails on any invented call (zero tolerance, above a known gap)', () => {
     const gate = caps.capabilities['invented-call'].checks[0];
     const max = gate.known?.max ?? 0;
@@ -233,7 +343,9 @@ describe('recall-eval: verdicts and safety', () => {
   it("never seeds prod's database or a real account", () => {
     expect(seedTarget('dev', UID, {})).toBe('ferni-dev');
     expect(() => seedTarget('prod', UID, {})).toThrow(/prod/);
-    expect(() => seedTarget('dev', UID, { EVAL_DEV_DATABASE: '(default)' })).toThrow(/prod/);
+    for (const db of ['(default)', '(DEFAULT)', ' (default)', '"(default)"', "'(Default)' ", '  '])
+      expect(() => seedTarget('dev', UID, { EVAL_DEV_DATABASE: db })).toThrow(/prod/);
+    expect(() => seedTarget('local', UID, { EVAL_DEV_DATABASE: ' (DEFAULT) ' })).toThrow(/prod/);
     expect(() => seedTarget('dev', 'owner-uid-123', {})).toThrow(/voice-eval-/);
   });
 
@@ -258,7 +370,7 @@ describe('recall-eval: verdicts and safety', () => {
       { encoding: 'utf8', env: { ...process.env, EVAL_DEV_DATABASE: '' } }
     );
     expect(r.status).toBe(0);
-    expect(r.stdout).toMatch(/^PLAN sample-1: 15 docs, 10 questions$/m);
+    expect(r.stdout).toMatch(/^PLAN sample-1: 25 docs, 10 questions$/m);
   });
 });
 
