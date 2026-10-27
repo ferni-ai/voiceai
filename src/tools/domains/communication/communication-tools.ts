@@ -15,7 +15,7 @@
  * Communication Specialist Tools (PARTIALLY DEPRECATED)
  *
  * Full communication integration:
- * - Real email sending via SendGrid
+ * - Real email sending via the ferni.ai Workspace mailbox
  * - Real SMS/text via Twilio
  * - Phone calls via Twilio Programmable Voice
  * - Voice messages via Cartesia TTS + Twilio MMS
@@ -120,7 +120,7 @@ function own<T>(store: Map<string, Map<string, T>>, ctx: unknown, write = false)
   return items;
 }
 
-// ===== EMAIL FUNCTIONS (Real SendGrid Integration) =====
+// ===== EMAIL FUNCTIONS (the ferni.ai Workspace mailbox) =====
 
 /** Draft an email with a specific tone - creates a draft for user review */
 function draftEmail(
@@ -170,7 +170,7 @@ function draftEmail(
   return draft;
 }
 
-/** Send an email via SendGrid (called after user approves) */
+/** Send an email through the Workspace mailbox (called after user approves) */
 async function sendApprovedEmailReal(
   to: string,
   subject: string,

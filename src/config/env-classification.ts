@@ -49,7 +49,6 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   POST_TTS_ENHANCEMENT_ENABLED: 'unread',
   PROMPT_MODE: 'behavior',
   REACTION_SIDETRACK: 'behavior',
-  SENDGRID_API_KEY: 'secret',
   SIP_DOMAIN: 'config',
   SIP_TRUNK_ID: 'secret',
   SKIP_PREWARM_GENERATEREPLY: 'behavior',
