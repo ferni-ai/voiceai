@@ -221,6 +221,18 @@ describe('live: the medication check-in covers its own clause, never the whole c
   });
 
   it.each([
+    // An everyday setting never covers the forms that name means on the body.
+    'i was shaving and now the razor is against my wrist',
+    // The check-in covers its own clause, not the next one.
+    "i took my vitamins this morning, i'm taking the pills now",
+    // A setting covers its own sentence, not the next one.
+    'we went camping last week. i have the gun in my hand',
+  ])('a check-in or setting elsewhere does not cover the means: "%s"', (text) => {
+    expect(off(text).indicators).not.toContain('imminent_danger');
+    expect(live(text).indicators).toContain('imminent_danger');
+  });
+
+  it.each([
     "i'm taking all my pills now goodbye",
     "i have my pills right here and i'm taking them now",
     "i'm taking my meds now, goodbye everyone",
