@@ -12,13 +12,18 @@
  * clause, so a clause-final "ready when you are." and a stressed "I am NOT"
  * stay as written, as does "That is, ..." (a comma follows). Off, nothing changes.
  *
- * An auxiliary (is / am / are / will) contracts only when what follows starts its
- * complement (the Following Valent Constraint: Hudson et al., J. Linguistics 2026).
- * "Who you are matters" and "where it is now" keep the full form: the next word is
- * an adverb or a new verb, and "you're matters" isn't English. So the next word
- * must be on a small allowlist of complement starters (a determiner, "not",
- * "going", an adjective, an -ing or -ed form), and nothing contracts right after a
- * wh-word, "as" or "than". Missing a contraction is safe; a wrong one isn't.
+ * An auxiliary (is / am / are / will) contracts only when its subject OPENS the
+ * clause (the start of the push, after . ! ? ; : or after a clause-opening "No,",
+ * "Yeah,", "Well,") and what follows starts its complement (the Following Valent
+ * Constraint: Hudson et al., J. Linguistics 2026). Every red-team line has that
+ * shape ("That is a massive shift", "No, I am not going"), and an embedded clause
+ * never does, so "how worried you are about this", "the way you are right now" and
+ * "who you are matters" keep the full form whatever word comes next ("you're
+ * about this" isn't English). The next word must still be on a small allowlist of
+ * complement starters (a determiner, "not", "going", an adjective, an -ing or -ed
+ * form), so "What is it?" stays too. A negation ("do not", "was not") contracts
+ * anywhere. Nothing inside quotes or a `code span` is touched: a quoted phrase is
+ * someone's exact words. Missing a contraction is safe; a wrong one isn't.
  *
  * @module speech/tts-gateway/director/spoken-contractions
  */
@@ -91,10 +96,28 @@ const WILL_STARTERS = new Set(
   ).split(' ')
 );
 
-/** After one of these the auxiliary is stranded: "who you are", "as easy as it is". */
-const GAP_OPENERS = new Set(
-  'who what where when why how as than wherever however whatever whoever whichever'.split(' ')
+/** Words that open a clause before its subject: "No, I am not going", "Yeah, it is a lot". */
+const CLAUSE_OPENERS = new Set(
+  'no yeah yes yep nope oh ah well okay ok so honestly look hey ugh hmm hm mm'.split(' ')
 );
+
+/** Markup right before the pair ("[laughter] It is", '<break/> It is') doesn't hide a clause start. */
+const TRAILING_MARKUP = /(?:\s*(?:<[^>]*>|\[[^\]]*\]))+\s*$/;
+
+/** Does the pair at `at` open its clause: the push start, after . ! ? ; : or after "No,"? */
+function opensClause(all: string, at: number): boolean {
+  const before = all.slice(0, at).replace(TRAILING_MARKUP, '');
+  if (/^\s*$/.test(before) || /[.!?;:]\s*$/.test(before)) return true;
+  const lead = /(?:^|[.!?;:])\s*([A-Za-z]+),\s*$/.exec(before);
+  return lead !== null && CLAUSE_OPENERS.has(lead[1].toLowerCase());
+}
+
+/** Is `at` inside "double quotes", curly quotes or a `code span`? Then the words are someone's own. */
+function quoted(all: string, at: number): boolean {
+  const before = all.slice(0, at);
+  const count = (re: RegExp): number => (before.match(re) ?? []).length;
+  return count(/"/g) % 2 === 1 || count(/`/g) % 2 === 1 || count(/\u201c/g) > count(/\u201d/g);
+}
 
 /** Does the next word start the auxiliary's complement? `after` is the text after the pair. */
 function complementFollows(full: string, after: string): boolean {
@@ -119,9 +142,9 @@ export function contractForSpeech(text: string, hit: () => void): string {
   return PATTERNS.reduce(
     (acc, [re, short, negation]) =>
       acc.replace(re, (found: string, at: number, all: string) => {
+        if (quoted(all, at)) return found;
         if (!negation) {
-          const before = /([A-Za-z']+)\s+$/.exec(all.slice(0, at));
-          if (before && GAP_OPENERS.has(before[1].toLowerCase())) return found;
+          if (!opensClause(all, at)) return found;
           if (!complementFollows(found.split(/\s+/).join(' '), all.slice(at + found.length))) {
             return found;
           }

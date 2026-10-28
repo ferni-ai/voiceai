@@ -49,10 +49,17 @@ describe('SPOKEN_CONTRACTIONS', () => {
     expect(normalizeForSpeech('I am sure it is not that bad.').count).toBe(2);
   });
 
-  it('on: "I will not" is "I won\'t" and "that is not" is "that\'s not"', () => {
+  it('on: "I will not" is "I won\'t"; "It is not" opening a sentence is "It\'s not"', () => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say('I will not tell anyone. It is not a joke.')).toBe(
+      "I won't tell anyone. It's not a joke."
+    );
+  });
+
+  it('on: a negation contracts mid-clause, a subject + auxiliary does not', () => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
     expect(say('I will not tell anyone, and that is not a joke.')).toBe(
-      "I won't tell anyone, and that's not a joke."
+      "I won't tell anyone, and that isn't a joke."
     );
   });
 
@@ -86,6 +93,54 @@ describe('SPOKEN_CONTRACTIONS', () => {
   ])('on: a stranded auxiliary keeps the full form: %s', (line) => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
     expect(normalizeForSpeech(line)).toEqual({ text: line, count: 0 });
+  });
+
+  /** Lead re-verify FAIL on 968abbd7f (PR #2347): a wh-phrase + adjective stranded the auxiliary. */
+  it.each([
+    'I can see how worried you are about this.',
+    'I know how hard it is out there.',
+    'Look how happy you are right now.',
+    'Look how far we are right now.',
+    'What a mess it is right now!',
+    'I love the way you are right now.',
+    'See how good it is out here.',
+    'I wonder how quiet it is back there.',
+    'Notice how calm you are really.',
+  ])('on: an auxiliary inside an embedded clause keeps the full form: %s', (line) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(normalizeForSpeech(line)).toEqual({ text: line, count: 0 });
+  });
+
+  it.each([
+    ['However hard it is out there, we are fine.', 'However hard it is out there, we are fine.'],
+    ['It is amazing how strong you are still.', "It's amazing how strong you are still."],
+  ])('on: only the clause-opening pair contracts: %s', (line, spoken) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say(line)).toBe(spoken);
+  });
+
+  it.each([
+    ['Yeah, it is a lot.', "Yeah, it's a lot."],
+    ['Okay. Honestly, that is a massive shift.', "Okay. Honestly, that's a massive shift."],
+    ['Long day; you are so tired.', "Long day; you're so tired."],
+    ['[sigh] It is a lot.', "[sigh] It's a lot."],
+  ])('on: a pair that opens its clause contracts: %s', (line, contracted) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say(line)).toBe(contracted);
+  });
+
+  it.each([
+    'He wrote "it is a thing" on the wall.',
+    'She said \u201cI am not going\u201d and left.',
+    'Type `it is a test` there.',
+    'The word "cannot" is long.',
+    'The sign says "do not disturb" all week.',
+    'Type `did not work` in the box.',
+  ])('on: quotes and code spans are spoken as with the flag off: %s', (line) => {
+    const off = normalizeForSpeech(line);
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(normalizeForSpeech(line)).toEqual(off);
+    expect(off.text).toMatch(/\b(it is|I am|cannot|do not|did not)\b/);
   });
 
   it('on: "That is who I am today" contracts only the pair with a complement', () => {
