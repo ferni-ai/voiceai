@@ -14,6 +14,7 @@ import { toast } from './whisper.ui.js';
 import { contentIcon } from './icons/content-icons.js';
 
 const log = createLogger('GamePicker');
+let gameRequestSeq = 0; // numbers each tap's requestId (unique in this page load)
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -481,32 +482,30 @@ class GamePickerUI {
         return;
       }
 
-      // Determine the correct message type based on category
-      // Reflection games are text-based, so treat them the same as text games
+      // The message type follows the category; reflection games are text games too
       const isTextGame = category === 'text' || game.category === 'text' ||
                          category === 'reflection' || game.category === 'reflection';
       
-      // Send game start request via data channel
+      // Send game start request via data channel; the ack echoes requestId (agent-ack-handlers.ts)
+      const requestId = `game-${Date.now().toString(36)}-${++gameRequestSeq}`;
       const message = JSON.stringify({
         type: isTextGame ? 'text_game_start_request' : 'game_start_request',
         gameType: gameId,
         gameCategory: game.category,
+        requestId,
         timestamp: Date.now(),
       });
 
       log.info({ gameId, isTextGame, message }, '🎮 Sending game start request');
       
-      await room.localParticipant.publishData(
-        new TextEncoder().encode(message),
-        { reliable: true }
-      );
+      await room.localParticipant.publishData(new TextEncoder().encode(message), { reliable: true });
       
       log.info({ gameId }, '🎮 Game start request sent successfully');
 
       const gameName = t(game.nameKey);
       // 🤲 Sidekick: Dispatch game started event for avatar sidekick
       document.dispatchEvent(new CustomEvent('ferni:game-started', {
-        detail: { gameId, gameType: gameId, gameName, category: game.category }
+        detail: { gameId, gameType: gameId, gameName, category: game.category, awaitsAck: true, requestId }
       }));
 
       // 🤲 Sidekick: For reflection games, also dispatch meditation event
@@ -516,9 +515,8 @@ class GamePickerUI {
         }));
       }
 
-      // Close picker and show success
+      // Close the picker; "Starting..." waits for the agent's ack (agent-ack-handlers.ts)
       this.hide();
-      this.showSuccess(t('gamePicker.starting', { game: gameName }));
       
     } catch (error) {
       log.error({ error, gameId }, '🎮 Failed to start game');
@@ -528,14 +526,6 @@ class GamePickerUI {
         card.classList.remove('game-card--loading');
       }
     }
-  }
-
-  /**
-   * Show success toast
-   */
-  private showSuccess(message: string): void {
-    log.debug({ message }, '🎮 Toast: success');
-    toast.success(message);
   }
 
   /**

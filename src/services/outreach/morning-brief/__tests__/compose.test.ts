@@ -101,6 +101,19 @@ describe('cleanItem', () => {
     expect(cleanItem("I'll call Mindy about Thanksgiving.")).toBe('call Mindy about Thanksgiving');
     expect(cleanItem("Mindy's birthday")).toBe("Mindy's birthday");
   });
+
+  it('drops a number written with dashes, slashes or other digits', () => {
+    // Dashes become ", " after the scrub, so a dashed number must go first.
+    for (const phone of [
+      '801–555–0199',
+      '801—555—0199',
+      '801/555/0199',
+      '801_555_0199',
+      '٨٠١٥٥٥٠١٩٩',
+    ]) {
+      expect(cleanItem(`text ${phone} back`)).not.toMatch(/\p{Nd}{3}/u);
+    }
+  });
 });
 
 describe('nothing in a brief can carry someone else\'s phishing', () => {

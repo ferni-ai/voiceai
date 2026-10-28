@@ -8,6 +8,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { directSendHeld } from '../../../services/communication-service.js';
+import { rawSendRetired } from '../../../services/messaging/consent-reach.js';
 import { cleanForFirestore, toSafeDate } from '../../../utils/firestore-utils.js';
 import type { ToolExecutionContext } from './types.js';
 
@@ -43,8 +45,8 @@ export async function executeLegacyFallback(
     // Try to persist to Firestore WITH EMBEDDING for semantic recall
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Generate embedding for semantic recall later
         let embedding: number[] | null = null;
@@ -122,8 +124,7 @@ export async function executeLegacyFallback(
       }
     }
 
-    // Return empty string for silent execution
-    return '';
+    return ''; // silent execution
   }
 
   if (fnLower === 'recallfrommemory') {
@@ -165,8 +166,8 @@ export async function executeLegacyFallback(
         });
 
         // 2. Also get recent facts from Firestore for recency boost
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         interface MemoryItem {
           content: string;
@@ -335,8 +336,8 @@ export async function executeLegacyFallback(
 
         // Fallback to basic text search if semantic fails
         try {
-          const { getFirestore } = await import('firebase-admin/firestore');
-          const db = getFirestore();
+          const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+          const db = getAdminFirestore();
           const factsSnapshot = await db
             .collection('bogle_users')
             .doc(ctx.userId)
@@ -384,8 +385,8 @@ export async function executeLegacyFallback(
     log.info({ memory, confirmationType, userId: ctx.userId }, '💪 Reinforcing memory');
 
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       // Find the memory and boost its confidence
       const snapshot = await db
@@ -444,8 +445,8 @@ export async function executeLegacyFallback(
     // If we have userId, try to update in Firestore
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Generate new embedding for semantic search
         let newEmbedding: number[] | null = null;
@@ -520,8 +521,8 @@ export async function executeLegacyFallback(
     // If we have userId, try to get real relationship data
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Get user profile
         const profileDoc = await db.collection('bogle_users').doc(ctx.userId).get();
@@ -809,8 +810,8 @@ export async function executeLegacyFallback(
     // Store habit in Firestore with behavior science structure
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitId = `habit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         await db
@@ -862,8 +863,8 @@ export async function executeLegacyFallback(
     // Update habit tracking in Firestore
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Find the habit by name
         const habitsSnapshot = await db
@@ -937,8 +938,8 @@ export async function executeLegacyFallback(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitsSnapshot = await db
           .collection('bogle_users')
@@ -970,8 +971,8 @@ export async function executeLegacyFallback(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitsSnapshot = await db
           .collection('bogle_users')
@@ -1113,7 +1114,6 @@ export async function executeLegacyFallback(
     }
 
     try {
-      // Check if voice synthesis is available
       const { isVoiceSynthesisAvailable, generateVoiceMessage } =
         await import('../../../services/outreach/voice-synthesis.js');
 
@@ -1136,6 +1136,8 @@ export async function executeLegacyFallback(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Voice messages need a phone number.`;
       }
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
 
       // Generate the voice message
       log.info({ persona, messageLength: message.length }, '🎤 Generating voice message');
@@ -1149,9 +1151,8 @@ export async function executeLegacyFallback(
         return 'Had trouble generating the voice message. Want me to try again or send a text instead?';
       }
 
-      // Send via MMS using Twilio
-
-      // Twilio MMS requires a media URL - we have it from GCS
+      const retired = rawSendRetired(); // MESSAGING_PIPELINE (MMS, media URL from GCS)
+      if (retired) return retired;
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -1161,7 +1162,6 @@ export async function executeLegacyFallback(
         return `Voice message ready! Here's the preview: ${voiceMessage.audioUrl}\n\nBut I can't send it yet - messaging isn't fully configured.`;
       }
 
-      // Send MMS with audio attachment
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {
@@ -1217,7 +1217,6 @@ export async function executeLegacyFallback(
     }
 
     try {
-      // Find the contact
       const { searchContacts } =
         await import('../../../services/contacts/contact-relationship-service.js');
       const matches = await searchContacts(ctx.userId, contactName);
@@ -1231,8 +1230,10 @@ export async function executeLegacyFallback(
       if (!contact.phone) {
         return `${contact.name} doesn't have a phone number saved. Text messages need a phone number.`;
       }
-
-      // Check Twilio credentials
+      if (await directSendHeld(contact.phone, 'text', { userId: ctx.userId }))
+        return 'Not sent: held.'; // MINOR_CARE_SHARED_HOLD
+      const retired = rawSendRetired(); // MESSAGING_PIPELINE
+      if (retired) return retired;
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -1242,7 +1243,6 @@ export async function executeLegacyFallback(
         return `I'd send "${message}" to ${contact.name}, but messaging isn't set up yet. Want me to help you draft it for copy-paste?`;
       }
 
-      // Send SMS via Twilio
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
         {
@@ -1793,8 +1793,8 @@ export async function executeLegacyFallback(
     // Store as memory
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
         await db
           .collection('bogle_users')
           .doc(ctx.userId)
@@ -1819,8 +1819,8 @@ export async function executeLegacyFallback(
     log.info({ search }, '📝 Getting notes');
     if (!ctx.userId) return "I'll need to know who you are to get your notes.";
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
       const notesSnapshot = await db
         .collection('bogle_users')
         .doc(ctx.userId)
@@ -2163,35 +2163,33 @@ export async function executeLegacyFallback(
       '🗣️ Set spoken language'
     );
     if (!targetLanguage) {
-      return `Which language would you like me to speak? I support English, Spanish, Japanese, German, French, and more.`;
+      return `Which language would you like? I only speak English on calls for now, but I'll remember it.`;
     }
-    // Import and use the language service
     const { languageService } = await import('../../../services/language/index.js');
-    // Pass sessionId for real-time state consistency
     const result = await languageService().setLanguage(
       ctx.userId || 'anonymous',
       targetLanguage,
       ctx.sessionId
     );
     if (result.success) {
-      return result.confirmationMessage || `I'll speak ${targetLanguage} now.`;
+      return result.confirmationMessage || `I'll remember you'd like ${targetLanguage}.`;
     }
-    return result.error || `I couldn't switch to that language.`;
+    return result.error || `I couldn't save that language.`;
   }
 
   if (fnLower === 'listsupportedlanguages' || fnLower === 'getsupportedlanguages') {
     log.info({ userId: ctx.userId }, '🗣️ List supported languages');
-    const { languageService } = await import('../../../services/language/index.js');
-    const languages = await languageService().getSupportedLanguages();
-    const formatted = languages.map((l) => l.displayName).join(', ');
-    return `I can speak: ${formatted}. Which would you prefer?`;
+    const { getSupportedLanguagesList, languageHelpListMessage } =
+      await import('../../../services/language/index.js');
+    return languageHelpListMessage(getSupportedLanguagesList());
   }
 
   if (fnLower === 'getcurrentlanguage' || fnLower === 'getspokenlanguage') {
     log.info({ userId: ctx.userId }, '🗣️ Get current language');
-    const { languageService } = await import('../../../services/language/index.js');
+    const { languageService, currentCallLanguageMessage } =
+      await import('../../../services/language/index.js');
     const current = await languageService().getCurrentLanguage(ctx.userId || 'anonymous');
-    return `I'm currently speaking ${current.displayName}.`;
+    return currentCallLanguageMessage(current.code, current.displayName);
   }
 
   return null;

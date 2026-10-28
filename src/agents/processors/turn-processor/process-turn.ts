@@ -36,7 +36,7 @@ import {
 import { updateUserContextForHandoff } from '../../../tools/handoff/index.js';
 import { safeFireAndForget } from '../../../utils/safe-fire-and-forget.js';
 import { processConversationForLearning } from '../../../intelligence/predictive/index.js';
-
+import { ownerWriteId, ownerWritesBlocked } from '../../../services/identity/owner-write-gate.js';
 import { shouldUseIntelligentRouting } from '../../../tools/semantic-router/advanced/intelligent/index.js';
 import {
   applyRoutingResult,
@@ -110,7 +110,7 @@ import {
   processUserResponseForResonance,
 } from '../../integrations/better-than-human-integration.js';
 
-import { crisisSummary, hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
+import { hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -158,7 +158,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const trace = isDev ? createTurnTrace(services.sessionId) : null;
 
   diag.user('Processing user turn', {
-    preview: userText.slice(0, 100),
+    userTextLength: userText?.length ?? 0,
   });
 
   if (!userText || userText.trim().length === 0) {
@@ -181,7 +181,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       );
       diag.debug('📊 Memory response recorded', {
         memoryIds: ctx.lastSurfacedMemoryIds,
-        userTextPreview: userText.slice(0, 50),
+        textChars: userText.length,
       });
     } catch (error) {
       diag.warn('Memory response tracking failed', { error: String(error) });
@@ -227,11 +227,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // USER CORRECTIONS: Auto-detect and record when user corrects Ferni (fire-and-forget)
   if (
-    services.userId &&
+    ownerWriteId(services.userId) &&
     userText.trim().length > 0 &&
     (userData.lastAgentResponse?.length ?? 0) > 0
   ) {
-    const uid = services.userId;
+    const uid = services.userId!;
     const prevFerni = userData.lastAgentResponse as string;
     const personaId = ctx.persona?.id;
     safeFireAndForget(
@@ -385,8 +385,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     );
   }
 
-  // COACHING INTELLIGENCE
-  if (services.userId) {
+  // COACHING INTELLIGENCE and the learners below: none under an onbehalf: id (on-behalf call)
+  if (services.userId && !ownerWritesBlocked(services.userId)) {
     initializeVoiceTracking(services.sessionId);
 
     recordVoiceTurn(services.sessionId, userText, {
@@ -750,9 +750,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
       diag.debug('🎯 FTIS: Will use generateReply for natural response', {
         tool: ftisResult.toolResult.toolId,
-        result:
-          ftisResult.toolResult.output?.slice(0, 100) ||
-          ftisResult.toolResult.speakableResponse?.slice(0, 100),
+        resultChars: (ftisResult.toolResult.output ?? ftisResult.toolResult.speakableResponse ?? '').length,
       });
 
       return {
@@ -847,7 +845,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   );
 
   // Creative You topic recording
-  const userIdForCreativeYou = services.userId;
+  const userIdForCreativeYou = ownerWriteId(services.userId);
   if (userIdForCreativeYou && analysisResult.analysis.topics?.detected?.length > 0) {
     safeFireAndForget(
       async () => {
@@ -1239,7 +1237,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   }
 
   // INTELLIGENT OUTREACH
-  const { userId } = services;
+  const userId = ownerWriteId(services.userId);
   if (userId && userText.length > 10) {
     publishOutreachExtraction(userId, services.sessionId, {
       message: userText,
@@ -1291,7 +1289,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       emotion: analysis.emotion.primary,
       distress: analysis.emotion.distressLevel.toFixed(2),
       intent: analysis.intent.primary,
-      topics: analysis.topics.detected.slice(0, 3),
+      topicCount: analysis.topics.detected.length,
       phase: analysis.state.phase,
       contextCount: injections.length,
       emotionalTrajectory: emotionalState.trajectory,
@@ -1482,7 +1480,7 @@ If they're just conversing, respond naturally without a tool call.`,
     }
   }
 
-  const finalCrisis = await turnCrisis.resolve();
+  const finalCrisis = await turnCrisis.summary();
 
   // DEV TELEMETRY: Complete trace
   trace?.complete();
@@ -1509,7 +1507,7 @@ If they're just conversing, respond naturally without a tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: crisisSummary(finalCrisis, await turnCrisis.softCheck()),
+    crisis: finalCrisis,
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,

@@ -19,6 +19,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { runBackground } from '../../utils/background-task.js';
+import { memoryHeld, userHeld } from '../../utils/minor-care.js';
 import type {
   DataCaptureContext,
   DataCaptureResult,
@@ -460,12 +461,10 @@ export async function processDataCapture(context: DataCaptureContext): Promise<D
     const hasRelationship = !!(contactEntity.relationship || contactEntity.name);
     const intent = classifyIntent(transcript, hasContactInfo, hasRelationship);
 
-    // Determine storage action - now includes relationship_mention for "call my mom" style phrases
-    const shouldSave =
-      intent === 'explicit_save' ||
-      intent === 'implicit_share' ||
-      intent === 'correction' ||
-      intent === 'relationship_mention';
+    // Saved (and acknowledged) unless the caller is held under 18: MINOR_CARE, minor-care.ts
+    const saves = ['explicit_save', 'implicit_share', 'correction', 'relationship_mention'];
+    const held = memoryHeld(context.sessionId) || userHeld(userId);
+    const shouldSave = saves.includes(intent) && !held;
 
     // Determine storage target (contacts for contact info, relationships for relationship-only)
     const storageTarget = hasContactInfo ? 'contacts' : 'relationships';

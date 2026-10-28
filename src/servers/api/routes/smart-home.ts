@@ -11,9 +11,16 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { sealTokens } from '../../../utils/token-at-rest.js';
+import {
+  openSmartHomeCredentials,
+  readSmartHomeCredentials,
+} from '../../../services/smart-home/user-credentials.js';
+import { assertNoEncryptedValues, hueSaveInput, lifxSaveInput } from './smart-home-guards.js';
+import { HUE_NEEDS_REMOTE_ACCESS } from '../../../services/smart-home/hue-remote-access.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
@@ -76,6 +83,13 @@ function sendError(res: ServerResponse, statusCode: number, message: string): vo
   sendJson(res, statusCode, { error: message });
 }
 
+/** The caller verified at the door, never a userId from the query or body; 401 without one. */
+function requireCaller(req: IncomingMessage, res: ServerResponse): string | null {
+  const userId = getUserId(req);
+  if (!userId) sendError(res, 401, 'Authentication required');
+  return userId;
+}
+
 async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -94,36 +108,30 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>>
 }
 
 function getSmartHomeCollection() {
-  return getFirestore().collection('bogle_users');
+  return getAdminFirestore().collection('bogle_users');
 }
 
-async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
+export async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
   try {
-    const doc = await getSmartHomeCollection()
-      .doc(userId)
-      .collection('smart_home')
-      .doc(integration)
-      .get();
-
-    if (!doc.exists) return null;
-    return doc.data() as T;
+    return await readSmartHomeCredentials<T>(userId, integration);
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to get credentials');
     return null;
   }
 }
 
-async function saveCredentials<T extends object>(
+export async function saveCredentials<T extends object>(
   userId: string,
   integration: string,
   credentials: T
 ): Promise<void> {
   try {
-    await getSmartHomeCollection()
-      .doc(userId)
-      .collection('smart_home')
-      .doc(integration)
-      .set(credentials, { merge: true });
+    assertNoEncryptedValues(credentials); // never seal (or later decrypt) a submitted enc_ value
+    // Fail closed: a read error throws here, so the set below never replaces a record we could not read.
+    const existing =
+      (await readSmartHomeCredentials<Record<string, unknown>>(userId, integration)) ?? {};
+    const ref = getSmartHomeCollection().doc(userId).collection('smart_home').doc(integration);
+    await ref.set(sealTokens({ ...existing, ...credentials })); // replaced whole: no plaintext left
   } catch (error) {
     log.error({ error, userId, integration }, 'Failed to save credentials');
     throw error;
@@ -143,50 +151,23 @@ async function deleteCredentials(userId: string, integration: string): Promise<v
 // PHILIPS HUE HANDLERS
 // ============================================================================
 
-async function handleHueStatus(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleHueStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     const credentials = await getCredentials<HueCredentials>(userId, 'hue');
 
-    if (!credentials?.bridgeIp || !credentials?.username) {
+    // No server-side call to the bridge: it is on the home LAN (see hue-remote-access).
+    if (!credentials?.username) {
       sendJson(res, 200, { connected: false });
       return;
     }
-
-    // Try to get lights
-    const response = await fetch(
-      `http://${credentials.bridgeIp}/api/${credentials.username}/lights`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-
-    if (!response.ok) {
-      sendJson(res, 200, { connected: false, error: 'Bridge not reachable' });
-      return;
-    }
-
-    const lights = (await response.json()) as Record<
-      string,
-      { name: string; state: { on: boolean } }
-    >;
-    const lightList = Object.entries(lights).map(([_id, light]) => ({
-      name: light.name,
-      on: light.state.on,
-    }));
-
     sendJson(res, 200, {
-      connected: true,
-      bridgeIp: credentials.bridgeIp,
-      lightCount: lightList.length,
-      lights: lightList.slice(0, 5),
+      connected: false,
+      saved: true,
+      needsRemoteAccess: true,
+      message: HUE_NEEDS_REMOTE_ACCESS,
     });
   } catch (error) {
     log.error({ error, userId }, 'Hue status check failed');
@@ -196,19 +177,15 @@ async function handleHueStatus(
 
 async function handleHueSave(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, bridgeIp, username } = body as {
-      userId: string;
-      bridgeIp: string;
-      username: string;
-    };
-
-    if (!userId || !bridgeIp || !username) {
-      sendError(res, 400, 'userId, bridgeIp, and username required');
+    const input = hueSaveInput(getUserId(req), await parseBody(req));
+    if ('error' in input) {
+      sendError(res, input.status, input.error);
       return;
     }
-
-    await saveCredentials(userId, 'hue', { bridgeIp, username });
+    await saveCredentials(input.userId, 'hue', {
+      bridgeIp: input.bridgeIp,
+      username: input.username,
+    });
     sendJson(res, 200, { success: true });
   } catch (error) {
     log.error({ error }, 'Hue save failed');
@@ -216,16 +193,9 @@ async function handleHueSave(req: IncomingMessage, res: ServerResponse): Promise
   }
 }
 
-async function handleHueDisconnect(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleHueDisconnect(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     await deleteCredentials(userId, 'hue');
@@ -240,16 +210,9 @@ async function handleHueDisconnect(
 // LIFX HANDLERS
 // ============================================================================
 
-async function handleLifxStatus(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleLifxStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     const credentials = await getCredentials<LifxCredentials>(userId, 'lifx');
@@ -289,15 +252,12 @@ async function handleLifxStatus(
 
 async function handleLifxSave(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, token } = body as { userId: string; token: string };
-
-    if (!userId || !token) {
-      sendError(res, 400, 'userId and token required');
+    const input = lifxSaveInput(getUserId(req), await parseBody(req));
+    if ('error' in input) {
+      sendError(res, input.status, input.error);
       return;
     }
-
-    await saveCredentials(userId, 'lifx', { token });
+    await saveCredentials(input.userId, 'lifx', { token: input.token });
     sendJson(res, 200, { success: true });
   } catch (error) {
     log.error({ error }, 'LIFX save failed');
@@ -305,16 +265,9 @@ async function handleLifxSave(req: IncomingMessage, res: ServerResponse): Promis
   }
 }
 
-async function handleLifxDisconnect(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleLifxDisconnect(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     await deleteCredentials(userId, 'lifx');
@@ -441,16 +394,9 @@ async function getValidSonosCredentials(userId: string): Promise<SonosCredential
   return credentials;
 }
 
-async function handleSonosStatus(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleSonosStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     // Use getValidSonosCredentials which handles token refresh
@@ -487,7 +433,7 @@ async function handleSonosStatus(
 
     if (data.households.length > 0) {
       const groupsRes = await fetch(
-        `https://api.ws.sonos.com/control/api/v1/households/${data.households[0].id}/groups`,
+        `https://api.ws.sonos.com/control/api/v1/households/${encodeURIComponent(data.households[0].id)}/groups`,
         {
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
           signal: AbortSignal.timeout(10000),
@@ -637,16 +583,9 @@ async function handleSonosCallback(
   }
 }
 
-async function handleSonosDisconnect(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleSonosDisconnect(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     await deleteCredentials(userId, 'sonos');
@@ -661,16 +600,9 @@ async function handleSonosDisconnect(
 // HOMEKIT HANDLERS
 // ============================================================================
 
-async function handleHomeKitStatus(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleHomeKitStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     // HomeKit state is synced from iOS app
@@ -682,7 +614,7 @@ async function handleHomeKitStatus(
     }
 
     // Get device/scene counts from the synced data
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const devicesSnapshot = await db
       .collection('bogle_users')
       .doc(userId)
@@ -717,60 +649,40 @@ async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Pro
   // This endpoint is called by iOS app to sync HomeKit data
   // Requires authentication header from iOS app
   try {
-    const body = await parseBody(req);
-    const { userId, homeData, authToken } = body as {
-      userId: string;
-      authToken: string;
-      homeData: {
+    // The user is the uid of the verified token (header or body authToken); body.userId is ignored.
+    const { homeData, authToken } = (await parseBody(req)) as {
+      authToken?: string;
+      homeData?: {
         homeName: string;
         devices: unknown[];
         scenes: unknown[];
         rooms: string[];
       };
     };
-
-    if (!userId || !homeData) {
-      sendError(res, 400, 'userId and homeData required');
-      return;
-    }
-
-    // Validate auth token - the iOS app should send the user's Firebase auth token
-    // This ensures only the authenticated user can sync their own HomeKit data
-    const authHeader = req.headers.authorization;
-    if (!authHeader && !authToken) {
+    const token = req.headers.authorization?.replace('Bearer ', '') || authToken;
+    if (!token) {
       sendError(res, 401, 'Authentication required');
       return;
     }
-
-    const token = authHeader?.replace('Bearer ', '') || authToken;
-
-    // Verify the Firebase ID token
-    if (!token) {
-      sendError(res, 401, 'Missing authentication token');
-      return;
-    }
-
+    let userId: string;
     try {
       const verifiedToken = await verifyFirebaseToken(token);
       if (!isVerifiedToken(verifiedToken)) {
         sendError(res, 401, 'Invalid authentication token');
         return;
       }
-      if (verifiedToken.uid !== userId) {
-        log.warn(
-          { tokenUid: verifiedToken.uid, requestUserId: userId },
-          'SECURITY: HomeKit sync userId mismatch'
-        );
-        sendError(res, 403, 'User ID mismatch');
-        return;
-      }
+      userId = verifiedToken.uid;
     } catch (err) {
       log.error({ error: String(err) }, 'Firebase token verification failed');
       sendError(res, 401, 'Authentication failed');
       return;
     }
+    if (!homeData) {
+      sendError(res, 400, 'homeData required');
+      return;
+    }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const homekitRef = db.collection('bogle_users').doc(userId).collection('homekit');
 
     // Save config
@@ -817,26 +729,12 @@ async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Pro
  * Get pending HomeKit commands for iOS app to execute
  * Called by iOS app to poll for commands
  */
-async function handleHomeKitCommands(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
-
-  // Validate auth - iOS app must be authenticated
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    sendError(res, 401, 'Authentication required');
-    return;
-  }
+async function handleHomeKitCommands(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const commandsRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -877,27 +775,24 @@ async function handleHomeKitCommandComplete(
   res: ServerResponse
 ): Promise<void> {
   try {
-    const body = await parseBody(req);
-    const { userId, commandId, success, error } = body as {
-      userId: string;
-      commandId: string;
-      success: boolean;
-      error?: string;
-    };
-
-    if (!userId || !commandId) {
-      sendError(res, 400, 'userId and commandId required');
-      return;
-    }
-
-    // Validate auth
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // The caller verified at the door (bindVerifiedIdentity checks the bearer
+    // token); body.userId is ignored, so no one can complete another user's commands.
+    const userId = getUserId(req);
+    if (!userId) {
       sendError(res, 401, 'Authentication required');
       return;
     }
+    const { commandId, success, error } = (await parseBody(req)) as {
+      commandId?: unknown;
+      success?: boolean;
+      error?: string;
+    };
+    if (typeof commandId !== 'string' || !commandId || commandId.includes('/')) {
+      sendError(res, 400, 'commandId required');
+      return;
+    }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const commandRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -935,23 +830,16 @@ async function handleHomeKitCommandComplete(
   }
 }
 
-async function handleHomeKitDisconnect(
-  req: IncomingMessage,
-  res: ServerResponse,
-  parsedUrl: URL
-): Promise<void> {
-  const userId = getUserId(req) || getQueryParam(parsedUrl, 'userId');
-  if (!userId) {
-    sendError(res, 400, 'userId required');
-    return;
-  }
+async function handleHomeKitDisconnect(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const userId = requireCaller(req, res);
+  if (!userId) return;
 
   try {
     // Delete HomeKit config
     await deleteCredentials(userId, 'homekit');
 
     // Also delete devices and scenes
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const devicesRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -1013,7 +901,7 @@ export async function handleSmartHomeRoutes(
 
   // GET /api/smart-home/hue/status
   if (pathname === '/api/smart-home/hue/status' && req.method === 'GET') {
-    await handleHueStatus(req, res, parsedUrl);
+    await handleHueStatus(req, res);
     return true;
   }
 
@@ -1025,7 +913,7 @@ export async function handleSmartHomeRoutes(
 
   // DELETE /api/smart-home/hue/disconnect
   if (pathname === '/api/smart-home/hue/disconnect' && req.method === 'DELETE') {
-    await handleHueDisconnect(req, res, parsedUrl);
+    await handleHueDisconnect(req, res);
     return true;
   }
 
@@ -1035,7 +923,7 @@ export async function handleSmartHomeRoutes(
 
   // GET /api/smart-home/lifx/status
   if (pathname === '/api/smart-home/lifx/status' && req.method === 'GET') {
-    await handleLifxStatus(req, res, parsedUrl);
+    await handleLifxStatus(req, res);
     return true;
   }
 
@@ -1047,7 +935,7 @@ export async function handleSmartHomeRoutes(
 
   // DELETE /api/smart-home/lifx/disconnect
   if (pathname === '/api/smart-home/lifx/disconnect' && req.method === 'DELETE') {
-    await handleLifxDisconnect(req, res, parsedUrl);
+    await handleLifxDisconnect(req, res);
     return true;
   }
 
@@ -1057,7 +945,7 @@ export async function handleSmartHomeRoutes(
 
   // GET /api/smart-home/sonos/status
   if (pathname === '/api/smart-home/sonos/status' && req.method === 'GET') {
-    await handleSonosStatus(req, res, parsedUrl);
+    await handleSonosStatus(req, res);
     return true;
   }
 
@@ -1075,7 +963,7 @@ export async function handleSmartHomeRoutes(
 
   // DELETE /api/smart-home/sonos/disconnect
   if (pathname === '/api/smart-home/sonos/disconnect' && req.method === 'DELETE') {
-    await handleSonosDisconnect(req, res, parsedUrl);
+    await handleSonosDisconnect(req, res);
     return true;
   }
 
@@ -1085,7 +973,7 @@ export async function handleSmartHomeRoutes(
 
   // GET /api/smart-home/homekit/status
   if (pathname === '/api/smart-home/homekit/status' && req.method === 'GET') {
-    await handleHomeKitStatus(req, res, parsedUrl);
+    await handleHomeKitStatus(req, res);
     return true;
   }
 
@@ -1097,13 +985,13 @@ export async function handleSmartHomeRoutes(
 
   // DELETE /api/smart-home/homekit/disconnect
   if (pathname === '/api/smart-home/homekit/disconnect' && req.method === 'DELETE') {
-    await handleHomeKitDisconnect(req, res, parsedUrl);
+    await handleHomeKitDisconnect(req, res);
     return true;
   }
 
   // GET /api/smart-home/homekit/commands (called by iOS app to poll for commands)
   if (pathname === '/api/smart-home/homekit/commands' && req.method === 'GET') {
-    await handleHomeKitCommands(req, res, parsedUrl);
+    await handleHomeKitCommands(req, res);
     return true;
   }
 

@@ -77,7 +77,8 @@ async function turn(c: Case): Promise<{ sessionId: string; userId: string }> {
     autoOptimizer: { processUserMessage: w.feedback },
   });
   handler({
-    transcript: 'My mom says I spend too long on my phone, and honestly I feel sad and happy at once.',
+    transcript:
+      'My mom says I spend too long on my phone, and honestly I feel sad and happy at once.',
     isFinal: true,
   } as never);
   await new Promise<void>((resolve) => {
@@ -118,6 +119,35 @@ describe('transcript-handler: held caller under 18', () => {
   it('the per-user flush timers see the hold (userHeld, keyed by userId)', async () => {
     const { userId } = await turn('held');
     expect(userHeld(userId)).toBe(true);
+  });
+});
+
+describe('transcript-handler: a bare "16." answering Ferni asking their age', () => {
+  it("holds the user: Ferni's last line reaches the detector as `asked`", async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const sessionId = `transcript-asked-${++n}`;
+    const userId = `user-${sessionId}`;
+    const { handler } = createTranscriptHandler({
+      room: stub(),
+      session: stub(),
+      services: stub(),
+      sessionPersona: { id: 'ferni', name: 'Ferni' } as never,
+      conversationManager: { isAgentSpeaking: () => false } as never,
+      voiceHumanization: null,
+      userData: { userId, turnCount: 3, lastAgentResponse: 'Wait, how old are you?' } as never,
+      userId,
+      sessionId,
+      silenceContext: { topicsDiscussed: [], memorableMoments: [] } as never,
+      dynamicToolLoader: {
+        processMessage: async () => [],
+        getLoadedDomains: () => [],
+        getToolsForDomains: () => ({}),
+      },
+      agent: stub(),
+      autoOptimizer: { processUserMessage: w.feedback },
+    });
+    handler({ transcript: '16.', isFinal: true } as never);
+    await vi.waitFor(() => expect(userHeld(userId)).toBe(true), { timeout: 2_000 });
   });
 });
 

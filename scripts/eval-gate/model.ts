@@ -9,6 +9,9 @@
  *   pnpm tsx scripts/tool-retrieval/router-examples.ts
  *   GOOGLE_CLOUD_PROJECT=<p> pnpm tsx scripts/eval-gate/model.ts [--json] [--write-baseline]
  *
+ * EVAL_GATE_SUITES=crisis_classifier,... runs and compares only those suites
+ * (CI picks them with suites.mjs from the changed paths); unset runs all three.
+ *
  * ADC only, and never on the local embedding fallback (no semantic meaning).
  * Per run: ~1,260 flash-lite calls and ~16k embeddings, a few cents, ~1-2 min.
  */
@@ -29,7 +32,7 @@ import {
 import { createVertexEmbedder, getSharedToolIndex } from '../../src/tools/retrieval/dense-index.js';
 import { embedCallers } from '../memory-eval/recall-bench.js';
 import { scoreAt, type BenchCaller } from '../memory-eval/recall-bench-lib.js';
-import { report } from './gate-lib.js';
+import { report, selectSuites } from './gate-lib.js';
 
 const CRISIS_REPS = 3;
 const here = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
@@ -127,8 +130,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (!process.env.GOOGLE_CLOUD_PROJECT) throw new Error('Set GOOGLE_CLOUD_PROJECT (Vertex, ADC)');
   if (!(getEmbeddingProvider() instanceof VertexAIEmbeddings))
     throw new Error('Embeddings are not Vertex: refusing to compare another backend');
-  const parts = await Promise.all([semanticRecall(), crisisClassifier(), toolRetrieval()]);
+  const runners: Record<string, () => Promise<Record<string, number>>> = {
+    semantic_recall: semanticRecall,
+    crisis_classifier: crisisClassifier,
+    tool_retrieval: toolRetrieval,
+  };
+  const suites = selectSuites(process.env.EVAL_GATE_SUITES, Object.keys(runners));
+  const parts = await Promise.all(suites.map((s) => runners[s]()));
   const current = Object.assign({}, ...parts) as Record<string, number>;
   if (args.includes('--json')) console.log(JSON.stringify(current, null, 2));
-  process.exit(report(here('../../evals/baselines/model.json'), current, args));
+  process.exit(report(here('../../evals/baselines/model.json'), current, args, suites));
 }

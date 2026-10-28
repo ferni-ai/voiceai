@@ -36,7 +36,11 @@ export function buildPrompt(
   const retry = feedback.length
     ? `\n\nYOUR LAST DRAFT WAS REJECTED. Fix every one of these and change nothing else:\n${feedback.map((i) => `- [${i.rule}] ${i.message}`).join('\n')}`
     : '';
-  return `You are drafting a post for Ferni's ${type.audience === 'developer' ? 'developer blog' : 'blog'}. Nobody reviews it: a draft that passes the checks is published as written.
+  const review =
+    type.audience === 'developer'
+      ? 'A judge scores it for honesty, voice and whether it matters to developers, and it publishes only if it passes.'
+      : "A judge scores it for honesty, voice and whether it matters to the reader, and then Ferni's owner reads it: it publishes only if both say yes.";
+  return `You are drafting a post for Ferni's ${type.audience === 'developer' ? 'developer blog' : 'blog'}. ${review}
 
 WHAT TO WRITE
 ${type.brief}

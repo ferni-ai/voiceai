@@ -39,7 +39,6 @@ export {
 // Real-time collection hooks
 export {
   memoryLaneRealTime,
-  captureCommitment,
   captureDream,
   captureInsideJoke,
   captureMilestone,

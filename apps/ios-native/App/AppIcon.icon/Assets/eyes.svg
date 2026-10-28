@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni's eyes for the layered app icon, from
+     apps/web/public/design-system/assets/icons/app-icon-ios-simple.svg (scaled 180 -> 1024, background removed). -->
+<svg width="1024" height="1024" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="65" cy="84" rx="17.5" ry="23" fill="url(#eyeFill)"/>
+  <ellipse cx="115" cy="84" rx="17.5" ry="23" fill="url(#eyeFill)"/>
+</svg>

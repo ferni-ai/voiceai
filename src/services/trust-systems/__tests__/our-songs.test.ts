@@ -152,7 +152,7 @@ describe('Our Songs Integration', () => {
         topic: 'career',
       };
 
-      const memory = recordOurSong(params);
+      const memory = recordOurSong(params)!;
 
       expect(memory.id).toBeTruthy();
       expect(memory.song.name).toBe('Test Song');
@@ -182,11 +182,9 @@ describe('Our Songs Integration', () => {
         momentType: 'breakthrough',
         emotion: 'tearful',
         context: 'realized something profound',
-        memorableQuote: 'I finally understand',
-      });
+      })!;
 
       expect(updated.moment.type).toBe('breakthrough');
-      expect(updated.moment.memorableQuote).toBe('I finally understand');
       expect(updated.significance).toBe('life_changing');
     });
 
@@ -197,7 +195,7 @@ describe('Our Songs Integration', () => {
         momentType: 'vulnerable',
         emotion: 'tearful',
         context: 'opened up about loss',
-      });
+      })!;
 
       expect(memory.canSuggest).toBe(false);
     });
@@ -241,7 +239,6 @@ describe('Our Songs Integration', () => {
         momentType: 'celebration',
         emotion: 'excited',
         context: 'got engaged',
-        memorableQuote: 'She said yes!',
       });
 
       // Check for callback when song plays

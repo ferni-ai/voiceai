@@ -130,7 +130,8 @@ export async function rawKeysOnScreen(page: Page): Promise<string[]> {
   });
 }
 
-const DIALOGS = '[role="dialog"], [role="alertdialog"]';
+// dialog[open]: a native <dialog> has the role without the attribute (What Ferni Knows, Chip In)
+const DIALOGS = '[role="dialog"], [role="alertdialog"], dialog[open]';
 
 /** Dialogs on screen right now (visible, opaque enough to read, usable). */
 export async function shownDialogs(page: Page): Promise<string[]> {

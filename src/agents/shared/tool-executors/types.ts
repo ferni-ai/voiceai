@@ -11,6 +11,11 @@ export interface ToolExecutionContext {
   userId?: string;
   sessionId?: string;
   personaId?: string;
+  /**
+   * MINOR_CARE: the caller is held, as read by a caller in another process (text chat reads
+   * the shared hold; utils/minor-care.ts only sees holds made in its own process).
+   */
+  held?: boolean;
   /** User's IP-detected location (for weather, local content) */
   userLocation?: {
     city?: string;

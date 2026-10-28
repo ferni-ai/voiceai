@@ -3508,8 +3508,6 @@
     "accessLevelFullDesc": "可以与所有团队成员对话",
     "accessLevelLimited": "受限访问",
     "accessLevelLimitedDesc": "仅限 Ferni",
-    "accessLevelSupervised": "受监督",
-    "accessLevelSupervisedDesc": "通话时你会收到通知",
     "eyebrow": "家庭",
     "addMember": "添加家庭成员",
     "emptyText": "添加通过电话联系 Ferni 的家庭成员。系统会自动识别他们，他们也可以与 Ferni 进行专属的对话。",
@@ -3611,7 +3609,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "沟通与人际关系",
+        "role": "沟通教练兼幕僚长",
         "description": "我帮你应对各种对话、巩固人际关系，并更好地表达自己。",
         "unlockHint": "与 Ferni 分享一个关于人际关系的故事",
         "unlockedMessage": "我注意到了一些值得探讨的模式。",
@@ -5340,8 +5338,6 @@
     "from": "从",
     "beyondTheApp": "应用之外",
     "beyondTheAppDesc": "在重要的时刻，无论你在哪里，我都会陪伴你。",
-    "emailUpdates": "邮件更新",
-    "emailUpdatesDesc": "里程碑庆祝与每周回顾",
     "smsMessages": "短信消息",
     "smsDesc": "当我注意到某些情况时的快速记录",
     "milestoneCelebrations": "里程碑庆祝",
@@ -7971,6 +7967,9 @@
     "improving": "在上升",
     "declining": "最近稍低一些",
     "trendUnavailable": "这个趋势没有加载出来。稍后再试一次。",
+    "notTalkedLately": "最近我们没聊到这些：",
+    "asOfOnce": "截至{date} · 聊到过 1 次",
+    "asOfCount": "截至{date} · 聊到过 {count} 次",
     "trendUp": "上升",
     "trendDown": "下降",
     "trendStable": "持平",
@@ -10125,9 +10124,10 @@
     "title": "我记住的那些小事",
     "subtitle": "这样你就不必操心了",
     "emptyTitle": "还没有设置任何内容",
-    "emptySubtitle": "想让我每天早上向你问好？提醒你伸个懒腰？我都可以做到哦。",
+    "emptySubtitle": "告诉我你想定期做的事，我会把它存在这里。",
     "emptyButton": "给我看一些灵感",
     "addNew": "添加新内容",
+    "notRunningYet": "我把它们存在这里。它们还不会自动运行。",
     "triggers": {
       "dailyAt": "每天 {time}",
       "dailyUnset": "每天的固定时间",
@@ -10243,6 +10243,7 @@
       "one": "你获得了 {count} 颗种子！"
     },
     "couldNotLoadMemories": "没能加载我记得的内容。再试一次？",
+    "credentialNotKept": "Ferni 不会保存密码或各种代码，所以这条已删除。",
     "memoryCorrected": "明白了，我会这样记住。"
   },
   "trustSignals": {

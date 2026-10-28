@@ -9,20 +9,24 @@ import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installQuietHoursWriter } from '../../services/messaging/voice-quiet-hours.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
+import { noteLiveSession } from '../../tools/registry/live-session.js';
 import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
   installBackchannelHook,
   setBargeInFastPath,
 } from './barge-in-fastpath.js';
+import { liveCallSoftPause, onBargeInVerdict } from './barge-in-soft-pause.js';
 import {
   isOutreachConfirmOn,
   outreachConfirmListeners,
@@ -30,10 +34,18 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
-import { followThroughOpenerEnabled, followThroughReplyListeners } from './follow-through-opener.js';
+import {
+  followThroughOpenerEnabled,
+  followThroughReplyListeners,
+} from './follow-through-opener.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
-import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
+import {
+  installFinishedTurnEndpointing,
+  installUnfinishedTurnHold,
+  reportUnfinishedTurnHolds,
+} from './unfinished-turn.js';
+import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
 import {
   holdsStandDown,
@@ -41,6 +53,9 @@ import {
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
+import { attachCallTimeline } from '../shared/call-timeline-session.js';
+import { attachCutReplyHistory } from '../shared/cut-reply-history.js';
+import { addRecallNote, type RecallAgent } from './recall-note.js';
 
 const log = getLogger();
 
@@ -59,6 +74,10 @@ export interface LiveCallBehaviorsInput {
 
 export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   const { session, sessionEventHandlers, cleanupFunctions, sessionId, userId } = input;
+  // CALL_TIMELINE: the whole call in order, sounds and cut replies too (call-timeline.ts)
+  cleanupFunctions.push(attachCallTimeline(session as never, { sessionId, userId }));
+  // CUT_REPLY_IN_HISTORY: a cut reply stays in the chat, marked (cut-reply-history.ts, #2422)
+  cleanupFunctions.push(attachCutReplyHistory(session as never, { sessionId }));
   const sessionWithEvents = input.sessionWithEvents as {
     on: (event: string, handler: Handler) => void;
   };
@@ -86,17 +105,23 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // Stop Ferni within ~a second of a clear interruption (barge-in-fastpath.ts);
   // LiveKit's barge-in model still handles backchannels and short overlaps.
   if (process.env.BARGE_IN_FASTPATH !== 'off') {
+    // BARGE_IN_SOFT_PAUSE=on: pause first, cut only when confirmed (barge-in-soft-pause.ts).
+    const softPause = liveCallSoftPause(input);
     const bargeIn = createBargeInFastPath({
       interrupt: () => {
         noteBargeIn(session, 'fastpath');
         try {
           session.interrupt();
+          return true;
         } catch (error) {
           log.warn({ sessionId, error: String(error) }, 'barge-in fast path: interrupt failed');
+          return false;
         }
       },
       log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH'),
+      softPause,
     });
+    if (softPause) onBargeInVerdict(input, bargeIn.onOverlapDecision);
     setBargeInFastPath(session, bargeIn);
     sessionWithEvents.on('user_input_transcribed', bargeIn.onTranscript);
     sessionWithEvents.on('agent_state_changed', bargeIn.onAgentState);
@@ -113,6 +138,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // callUser rings the caller's verified phone through outreach (call-user-port.ts).
   installCallUserPort();
+  // setQuietHours saves to the prefs "When I'll Check In" shows (quiet-hours-port.ts).
+  installQuietHoursWriter();
   // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
   installConfirmThreadPort();
   // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
@@ -128,6 +155,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       session
     )
   );
+  // A call placed from this one reports back here by its real id (tools/registry/live-session.ts).
+  cleanupFunctions.push(noteLiveSession(session, sessionId));
 
   // Answer a caller turn that was left hanging (turn-keeper.ts).
   if (process.env.TURN_KEEPER !== 'off') {
@@ -174,7 +203,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // the model already waits through unfinished thoughts (turn-detector-sole.ts).
   const sole = holdsStandDown(session);
   if (!sole) {
-    installUnfinishedTurnHold(session);
+    if (installUnfinishedTurnHold(session)) reportUnfinishedTurnHolds(session, sessionId);
     // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
     const detach = installFinishedTurnEndpointing(
       session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
@@ -228,7 +257,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
   if (isOutreachConfirmOn()) {
-    const confirm = outreachConfirmListeners(session, () => speakerIsAccountOwner(sessionId));
+    const owner = () => speakerIsAccountOwner(sessionId);
+    const confirm = outreachConfirmListeners(session, owner, confirmNote(session, sessionId));
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
@@ -250,6 +280,17 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
   }
+}
+
+/** OUTREACH_SERVER_CONFIRM: what the caller's yes sent reaches the model as a mid-call note. */
+function confirmNote(session: { currentAgent: unknown }, sessionId: string) {
+  return (text: string): void => {
+    try {
+      addRecallNote(session.currentAgent as RecallAgent, text);
+    } catch (error) {
+      log.warn({ sessionId, error: String(error) }, 'OUTREACH_SERVER_CONFIRM: note not added');
+    }
+  };
 }
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
@@ -306,17 +347,36 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
+    // The spoken backchannel path stays quiet while clips play (clip-mode.ts).
+    const { noteUsesClips } = await import('../../speech/live-backchanneling/clip-mode.js');
+    cleanupFunctions.push(noteUsesClips(sessionId));
     const { attachTurnOpeningSound, earlyOpeningWaitMs, turnOpeningSoundEnabled } =
       await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
+    const { forgetLaughs, noteTurnOpened } = await import('../personas/laugh-ledger.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
+    cleanupFunctions.push(() => forgetLaughs(sessionId));
     const earlyWaitMs = earlyOpeningWaitMs();
+    // A clip heard before the reply ("Mm"): the TURN_RECEIPT's firstAnyAudioMs counts it.
+    const heard = (played: boolean): boolean => {
+      if (played) noteTurnTiming(sessionId, 'openerAudio', clips.wireDelayMs());
+      return played;
+    };
     if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
-          clips,
+          {
+            ...clips,
+            // LAUGH_CAP: the reply a clip opens must not open with a laugh too (laugh-ledger.ts).
+            // openerClip: the same clip, reported as 'opener' (CLIENT_SIGNALS_V2, sound-signal.ts).
+            playClip: (text) => {
+              const played = heard(clips.openerClip(text));
+              if (played) noteTurnOpened(sessionId);
+              return played;
+            },
+          },
           input.lastUserFinalTranscript,
           (since) => replyAudioSince(sessionId, since),
           earlyWaitMs === null
@@ -331,6 +391,21 @@ export async function startTurnSounds(input: TurnSoundsInput) {
               }
         )
       );
+    }
+    // SLOW_TURN_SOUND: one "Mm" on a slow turn nothing else filled (slow-turn-sound.ts).
+    if (flagOn('SLOW_TURN_SOUND')) {
+      const { attachSlowTurnSoundToCall } = await import('../integrations/slow-turn-wiring.js');
+      const slowTurnClip = (text: string) => heard(clips.slowTurnClip(text));
+      const slowClips = { ...clips, playClip: slowTurnClip }; // conducted as 'slow_turn'
+      cleanupFunctions.push(
+        attachSlowTurnSoundToCall(session, sessionId, slowClips, input.personaId)
+      );
+    }
+    // TOOL_ACK_CLIP: "Let me look." in the persona's voice as a tool starts (tool-ack-clip.ts).
+    if (flagOn('TOOL_ACK_CLIP')) {
+      const { attachToolAckClipToCall } = await import('../integrations/tool-ack-clip-wiring.js');
+      const ackClips = { ...clips, playClip: (text: string) => heard(clips.toolAckClip(text)) };
+      cleanupFunctions.push(attachToolAckClipToCall(session, sessionId, ackClips, input.personaId));
     }
     // A backchannel is a move too, on the reply whose answer it is heard in.
     const play = clips.playClip;

@@ -34,12 +34,13 @@ import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { EdgeCache } from '../../../services/cache/edge-cache.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { onForgetReadMoments, recordSharedMoment, withoutHeldMoments } from './shared-moments.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    return getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    return getAdminFirestore();
   } catch {
     return null;
   }
@@ -58,6 +59,9 @@ const relationshipCache = new EdgeCache<Partial<RelationshipHistory>>({
   staleWhileRevalidate: true,
   staleTtlMs: 120000, // 2 minute stale grace period
 });
+
+// MINOR_CARE purge: drop what this process read for the user (it may hold a held call's moments)
+onForgetReadMoments((userId) => relationshipCache.delete(`relationship:${userId}`));
 
 // Minimum turns before fetching deep relationship data
 const MIN_TURNS_FOR_RELATIONSHIP = 3;
@@ -144,8 +148,10 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
 
     const userData = userDoc.data() as Record<string, unknown> | undefined;
 
-    const sharedMoments = jokesSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) =>
-      doc.data()
+    // Never an expired moment, or one made during a purged held call (shared-moments.ts)
+    const sharedMoments = withoutHeldMoments(
+      userId,
+      jokesSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data())
     );
     const runningJokes: RunningJoke[] = sharedMoments
       .filter((m: Record<string, unknown>) => m.type === 'running_gag')
@@ -458,61 +464,6 @@ async function markMilestoneCelebrated(userId: string, milestoneKey: string): Pr
 }
 
 // ============================================================================
-// SHARED MOMENT RECORDING (Call from turn handler)
-// ============================================================================
-
-/**
- * Record a shared moment (joke, phrase, callback moment)
- * Call this when detecting significant moments
- */
-async function recordSharedMomentInternal(
-  userId: string,
-  moment: {
-    type: 'phrase' | 'running_gag' | 'callback_moment';
-    content: string;
-    whatTheySaid: string;
-    triggers?: string[];
-    significance?: 'life_changing' | 'meaningful' | 'warm' | 'fun';
-  }
-): Promise<void> {
-  try {
-    const db = await getFirestoreDb();
-    if (!db) return;
-
-    const momentId = `moment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('shared_moments')
-      .doc(momentId)
-      .set(
-        cleanForFirestore({
-          id: momentId,
-          type: moment.type,
-          content: moment.content,
-          origin: {
-            whatTheySaid: moment.whatTheySaid,
-            timestamp: new Date(),
-          },
-          triggers: moment.triggers || [],
-          significance: moment.significance || 'warm',
-          callbackCount: 0,
-          callbackReception: 'unknown',
-          createdAt: new Date(),
-        })
-      );
-
-    log.info(
-      { userId, type: moment.type, content: moment.content.slice(0, 50) },
-      '💫 Shared moment recorded'
-    );
-  } catch (err) {
-    log.debug({ error: String(err) }, 'Could not record shared moment');
-  }
-}
-
-// ============================================================================
 // REGISTRATION
 // ============================================================================
 
@@ -524,4 +475,4 @@ registerContextBuilder({
   build: buildDeepRelationshipContext,
 });
 
-export { buildDeepRelationshipContext, recordSharedMomentInternal as recordSharedMoment };
+export { buildDeepRelationshipContext, recordSharedMoment };

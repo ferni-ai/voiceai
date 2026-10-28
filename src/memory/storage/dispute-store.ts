@@ -1,17 +1,19 @@
 /**
  * Firestore side of disputes (memory/recall/dispute.ts): the caller's facts
- * in both fact collections and their recent call summaries.
+ * in both fact collections, their open world facts, and their recent call summaries.
  *
  * @module memory/storage/dispute-store
  */
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { firestoreForgetStore } from '../recall/forget.js';
+import { closeWorldFacts, firestoreForgetStore, openWorldFacts } from '../recall/forget.js';
 import type { DisputeStore } from '../recall/dispute.js';
 
 /** Facts in both fact collections (forget.ts), and bogle_users/{uid}/summaries. */
 export const firestoreDisputeStore: DisputeStore = {
   facts: (userId) => firestoreForgetStore.facts(userId),
+  worldFacts: openWorldFacts,
+  markWorldFacts: closeWorldFacts,
   async summaries(userId) {
     const db = getFirestoreDb();
     if (!db) return [];

@@ -67,7 +67,7 @@ export interface AuthConfig {
   optional?: boolean;
   /** Require admin privileges */
   requireAdmin?: boolean;
-  /** Allow dev mode bypass */
+  /** Accept the development-only X-Admin-Key dev-mode bypass (default true; false sends 401) */
   allowDevMode?: boolean;
 }
 
@@ -316,8 +316,8 @@ export async function requireAuth(
     return null;
   }
 
-  // Dev mode not allowed in this context
-  if (auth.isDevMode && !allowDevMode && !IS_DEV) {
+  // Dev mode not allowed here. No !IS_DEV: dev-mode only exists in development (#2143)
+  if (auth.isDevMode && !allowDevMode) {
     log.warn({ url: req.url, userId: auth.userId }, 'Dev mode not allowed');
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
@@ -386,7 +386,7 @@ export function requireAuthSync(
     return null;
   }
 
-  if (auth.isDevMode && !allowDevMode && !IS_DEV) {
+  if (auth.isDevMode && !allowDevMode) {
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
   }

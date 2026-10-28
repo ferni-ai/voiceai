@@ -146,9 +146,9 @@ async function queueToFirestore(event: IntelligenceEvent): Promise<void> {
     return;
   }
 
-  // Use direct Firestore access for queue
-  const admin = await import('firebase-admin');
-  const db = admin.default.firestore();
+  // Use direct Firestore access for queue, in this process's database
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  const db = getAdminFirestore();
 
   const queuedAt = new Date();
   await db.collection('intelligence_queue').add({
@@ -362,7 +362,8 @@ export async function publishIntelligenceEventsBatch(
     payload: unknown;
   }>
 ): Promise<void> {
-  if (events.length === 0) return;
+  // Same gate as publishIntelligenceEvent: this path wrote intelligence_queue unflagged
+  if (events.length === 0 || !flagOn('INTELLIGENCE_QUEUE')) return;
 
   const formattedEvents = events.map((e) => ({
     eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,

@@ -178,7 +178,7 @@ export async function buildContextInjections(
     injections.push(functionCallingReinforcement);
     diag.debug('🔧 Function calling reinforcement added', {
       turnCount: currentTurnCount,
-      userTextPreview: userText.slice(0, 50),
+      userTextLength: userText.length,
     });
   }
 
@@ -342,7 +342,7 @@ export async function buildContextInjections(
         'buildIntegratedContext'
       ),
       buildHumanTransferInjections(userText, services.userId, services.sessionId),
-      buildCrisisHistoryInjection(services.userId || 'unknown'),
+      buildCrisisHistoryInjection(services.userId, services.sessionId),
       buildToolHistoryInjection(builderInput),
     ]);
 
@@ -811,7 +811,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       (userData as Record<string, unknown>).lastValueEvent = {
         type: valueEvent.type,
         eventId: valueEvent.id,
-        message: userText.slice(0, 100),
         timestamp: valueEvent.createdAt,
       };
 

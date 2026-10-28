@@ -183,7 +183,9 @@ describe('remembered contacts', () => {
     ]);
 
     expect(sendSMS).toHaveBeenCalledTimes(1);
-    expect(sendSMS).toHaveBeenCalledWith('+15550000002', 'Thinking of you today.');
+    expect(sendSMS).toHaveBeenCalledWith('+15550000002', 'Thinking of you today.', {
+      userId: 'u-send',
+    });
     expect(result.skipped).toEqual([
       expect.objectContaining({ contactId: 'grandpa', reason: REMEMBERED_SKIP_REASON }),
     ]);

@@ -4,7 +4,10 @@
  * Their answer is kept as that tune's name (tune-state.ts) and their quiet
  * window plays it from then on; now and then, on a light turn, he may say it.
  * "Stop whistling" turns the sounds off for them. Verified owners only, never
- * on a crisis turn, and only ever in a reply to something they said.
+ * on a crisis turn, and only ever in a reply to something they said. The tune
+ * is one he made up: no history, no origin, no family memory, and the name is
+ * theirs. NAMED_TUNE_NOTE logs each note given, and each remark that got none
+ * and why (no caller words).
  *
  * @module agents/personas/named-tune-note
  */
@@ -22,6 +25,10 @@ import { isHeavyMood } from '../integrations/presence-watcher.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { priorCallsOf } from './personal-beats.js';
 import { callerVenting } from './turn-extras.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'NamedTune' });
 
 /** How long after a whistle the caller can still bring it up, or answer the naming question. */
 export const ASK_WINDOW_MS = 3 * 60_000;
@@ -90,6 +97,10 @@ export interface TuneTurn {
   mood?: string;
 }
 
+/** It has no past: said with every note that names or owns the tune. */
+const NO_HISTORY =
+  "It's a tune you made up: never give it a history, an origin, or a memory of anyone whistling it.";
+
 /** The note for this reply, or ''. */
 export function namedTuneNote(
   turn: TuneTurn,
@@ -97,23 +108,44 @@ export function namedTuneNote(
   env: Env = process.env,
   now = Date.now()
 ): string {
-  const call = readyCall(turn, store, env);
-  if (!call) return '';
-  const stopped = stop(call, turn, store);
-  if (stopped !== null || turn.careful) return turn.careful ? '' : (stopped ?? '');
-  return (
-    naming(call, turn, store, now) ?? remark(call, turn, now) ?? mention(call, turn, store, now)
-  );
+  if (!namedTuneEnabled(env)) return '';
+  const { note, step } = decide(turn, store, now);
+  const remarked = remarksOnTune(turn.words) || asksToStopTune(turn.words);
+  // Which note, or why a remark got none; ids and steps only, never their words.
+  if (note || remarked) log.info({ sessionId: turn.sessionId, step }, 'NAMED_TUNE_NOTE');
+  return note;
 }
 
-/** The call's state once a verified caller's record is read; null with the flag off or otherwise. */
-function readyCall(turn: TuneTurn, store: TuneStore, env: Env): CallTune | null {
-  if (!namedTuneEnabled(env) || !turn.sessionId) return null;
+function decide(turn: TuneTurn, store: TuneStore, now: number): { note: string; step: string } {
+  const call = readyCall(turn, store);
+  if (typeof call === 'string') return { note: '', step: call };
+  const stopped = stop(call, turn, store);
+  if (turn.careful) return { note: '', step: 'skip:careful' };
+  if (stopped !== null) return { note: stopped, step: 'stop' };
+  const named = naming(call, turn, store, now);
+  if (named !== null) return { note: named, step: named ? 'named' : 'naming:wait' };
+  const remarked = remark(call, turn, now);
+  if (remarked !== null) return { note: remarked, step: 'remark' };
+  const mentioned = mention(call, turn, store, now);
+  return { note: mentioned, step: mentioned ? 'mention' : played(call, now) };
+}
+
+/** Why a remark asked nothing: no tune of his this call, or too long ago. */
+function played(call: CallTune, now: number): string {
+  if (!call.played) return 'skip:nothing_played';
+  return now - call.played.at > ASK_WINDOW_MS ? 'skip:played_too_long_ago' : 'skip:none';
+}
+
+/** The call's state once a verified caller's record is read, else why not. */
+function readyCall(turn: TuneTurn, store: TuneStore): CallTune | string {
+  if (!turn.sessionId) return 'skip:no_session';
   const { userId } = turn;
-  if (!turn.verified || turn.memoryHeld || !userId || userId === 'anonymous') return null;
+  if (!turn.verified) return 'skip:not_verified_owner';
+  if (turn.memoryHeld) return 'skip:memory_held';
+  if (!isMemberIdentity(userId)) return 'skip:not_member';
   const call = callTune(turn.sessionId);
   loadCallerTune(call, userId, store);
-  return call.state === 'ready' ? call : null;
+  return call.state === 'ready' ? call : 'skip:record_loading';
 }
 
 /** "Stop whistling" after a whistle this call: kept, even on a crisis turn. */
@@ -134,7 +166,7 @@ function naming(call: CallTune, turn: TuneTurn, store: TuneStore, now: number): 
   call.spoken = true;
   const { tuneId } = asking;
   saveCallerTune(call, { tuneId, name, namedAt: now, mentionedAtCall: turn.priorCalls }, store);
-  return `[They named your tune "${name}". Say the name back and that it's theirs now, in a few words.]`;
+  return `[They named your tune "${name}". Take their name as is: say it back and that it's theirs now, in a few words. Don't rename it or correct them. ${NO_HISTORY}]`;
 }
 
 /** They noticed: own it, and ask them to name it if it has no name yet. */
@@ -144,10 +176,10 @@ function remark(call: CallTune, turn: TuneTurn, now: number): string | null {
   const { name, tuneId } = call.record;
   if (name && tuneId === played.tuneId) {
     call.spoken = true;
-    return `[They noticed you ${did(played.kind)} "${name}", the tune they named. Own it playfully, in a few words.]`;
+    return `[They noticed you ${did(played.kind)} "${name}", the tune they named. Own it playfully, in a few words. ${NO_HISTORY}]`;
   }
   call.asking = { tuneId: played.tuneId, at: now };
-  return `[You ${did(played.kind)} a few bars of a tune you made up, and they noticed. Own it playfully, like "Guilty. It's a tune I made up and it doesn't have a name. Want to name it?"]`;
+  return `[You ${did(played.kind)} a few bars of a tune you made up, and they noticed. Own it in a few words, then ask them to name it, and end your reply on that question, like "Guilty. It's a tune I made up and it doesn't have a name yet. Want to name it?" ${NO_HISTORY}]`;
 }
 
 /** Their tune just played on a light turn, and it hasn't come up for a few calls. */

@@ -87,7 +87,7 @@ Recommendation: Consider Nx or custom affected detection for:
 
 | Tool | Coverage | Frequency |
 |------|----------|-----------|
-| CodeQL | JavaScript/TypeScript | Daily + PRs |
+| CodeQL | JavaScript/TypeScript | Main + weekly (off PRs since 2026-10-23) |
 | Gitleaks | Secrets | Daily + PRs |
 | pnpm audit | Dependencies | Daily + PRs |
 | TruffleHog | Secrets | CI runs |

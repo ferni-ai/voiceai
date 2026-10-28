@@ -35,6 +35,8 @@ export interface ContactSettingsState {
   drafts: Drafts;
   phoneInvalid: boolean;
   channels: string[]; // check-in channels besides in-app: 'sms' | 'call' | 'email'
+  /** The server's outreach on/off (outreachEnabled); undefined until it answers. */
+  reachOn?: boolean;
   error?: string;
   success?: string;
 }

@@ -225,3 +225,21 @@ export function deferFirstTurn(
     },
   };
 }
+
+/**
+ * The turn-1 deferral for a session's pusher, or undefined when turn 1 is not
+ * deferred: the flag is off, a later persona takes the session, or the process
+ * is warm.
+ */
+export function deferralForSession(
+  hook: UserTurnHook,
+  session: object,
+  env: Record<string, string | undefined>,
+  userData: unknown
+): FirstTurnDeferral | undefined {
+  return firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
+    ? deferFirstTurn(hook, {
+        voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
+      })
+    : undefined;
+}

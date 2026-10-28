@@ -33,14 +33,17 @@ import { firestoreRevivedStore } from '../../memory/storage/revived-store.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { isForgottenPassage } from '../../memory/recall/episodes.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
+import { deferralForSession, noteUserTurn } from './first-turn-defer.js';
+import { firstTurnWarmOn, yieldIfFirstTurnWarm } from './first-turn-warm.js';
+import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
+import { carriesSafety } from '../processors/turn-processor/safety-note.js';
+import { heldForPreemptive } from './preempt-stable-context.js';
 import {
-  deferFirstTurn,
-  firstTurnDeferEnabled,
-  hadUserTurn,
-  noteUserTurn,
-  turnPipelineWarm,
-} from './first-turn-defer.js';
-import { MAX_PUSHED_CONTEXT_CHARS, TURN_CONTEXT_HEADER } from './turn-context-header.js';
+  pushedNotesText,
+  safetyOnlyNote,
+  TURN_CONTEXT_SAFETY,
+  withHeldSafety,
+} from './pushed-notes.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -103,9 +106,11 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       const { startVoicePatterns } =
         await import('../../conversation/humanization/voice-pattern-session.js');
       await startVoicePatterns(deps.services.sessionId, deps.services.userId);
+      if (firstTurnWarmOn()) await yieldIfFirstTurnWarm(); // between cold steps: back to back they starve the audio pump
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
+      if (firstTurnWarmOn()) await yieldIfFirstTurnWarm();
       const userData = deps.userData as UserData & {
         turnCount?: number;
         userSpeakingStartTime?: number;
@@ -181,8 +186,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
  */
 export { TURN_CONTEXT_HEADER };
 
-/** The key, in a pushed note's `extra`, of the caller's words it was built for. */
-export const TURN_CONTEXT_FOR = 'turnContextFor';
+// The key, in a pushed note's `extra`, of the caller's words it was built for (turn-context-header.ts).
+export { TURN_CONTEXT_FOR };
 
 interface ChatItemView {
   id: string;
@@ -250,7 +255,11 @@ export function withoutStaleTurnContext<T extends { items: ChatItemView[]; copy(
     'STALE_TURN_CONTEXT_DROPPED'
   );
   const ctx = chatCtx.copy();
-  ctx.items = ctx.items.filter((item) => !stale.has(item.id));
+  // A stale note's safety guidance still goes (#2642): only the rest of it is dropped.
+  ctx.items = ctx.items.flatMap((item) => {
+    if (!stale.has(item.id)) return [item];
+    return safetyOnlyNote(item, TURN_CONTEXT_HEADER) ?? [];
+  });
   return ctx;
 }
 
@@ -333,12 +342,21 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
   let userSpeaking = false;
 
   let pendingFor = '';
+  let pendingSafety: string[] = []; // its crisis or safety notes (safety-note.ts), whole
 
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
+    // PREEMPT_STABLE_CONTEXT: wait out a preemptive reply, unless it carries safety guidance.
+    const retry = () => void tryPush();
+    if (pendingSafety.length === 0 && heldForPreemptive(agent, 'turn-context', retry)) return;
     const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
-    const extra = { [TURN_CONTEXT_FOR]: pendingFor };
+    const safety = pendingSafety.join('\n\n');
+    const extra = {
+      [TURN_CONTEXT_FOR]: pendingFor,
+      ...(safety && { [TURN_CONTEXT_SAFETY]: safety }),
+    };
     pending = null;
+    pendingSafety = [];
     try {
       const chatCtx = agent.chatCtx.copy();
       if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
@@ -377,10 +395,16 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
       if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
-        .map((item) => (item as { textContent?: string }).textContent?.trim())
-        .filter((text): text is string => Boolean(text));
+        .map((item) => ({
+          safety: carriesSafety(item as never),
+          text: (item as { textContent?: string }).textContent?.trim() ?? '',
+        }))
+        .filter((note) => note.text !== '');
       if (notes.length === 0) return;
-      pending = notes.join('\n\n').slice(0, MAX_PUSHED_CONTEXT_CHARS);
+      // Safety guidance still waiting goes ahead of a later note, never replaced by it (#2642).
+      const all = withHeldSafety(pendingSafety, notes);
+      pending = pushedNotesText(all); // safety guidance first and never cut (#2618)
+      pendingSafety = all.filter((note) => note.safety).map((note) => note.text);
       pendingFor = forText;
       await tryPush();
     },
@@ -415,12 +439,7 @@ export function attachTurnContextPusher(
   options: { env?: Record<string, string | undefined>; userData?: unknown } = {}
 ): () => Promise<void> {
   const { env = process.env, userData } = options;
-  const deferral =
-    firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
-      ? deferFirstTurn(hook, {
-          voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
-        })
-      : undefined;
+  const deferral = deferralForSession(hook, session, env, userData);
   const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
   const onTranscript = (event: unknown) => {

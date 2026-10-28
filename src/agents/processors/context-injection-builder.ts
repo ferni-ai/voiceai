@@ -211,10 +211,7 @@ export async function buildContextInjections(
   );
   if (functionCallingReinforcement) {
     injections.push(functionCallingReinforcement);
-    diag.debug('Function calling reinforcement added', {
-      turnCount: currentTurnCount,
-      userTextPreview: userText.slice(0, 50),
-    });
+    diag.debug('Function calling reinforcement added', { turnCount: currentTurnCount });
   }
 
   // A source that fails or misses its budget is dropped from this turn's
@@ -409,7 +406,7 @@ export async function buildContextInjections(
       'buildIntegratedContext'
     ),
     buildHumanTransferInjections(userText, services.userId, services.sessionId),
-    buildCrisisHistoryInjection(services.userId || 'unknown'),
+    buildCrisisHistoryInjection(services.userId, services.sessionId),
   ]);
 
   // ============================================================================
@@ -905,7 +902,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       (userData as Record<string, unknown>).lastValueEvent = {
         type: valueEvent.type,
         eventId: valueEvent.id,
-        message: userText.slice(0, 100),
         timestamp: valueEvent.createdAt,
       };
 
