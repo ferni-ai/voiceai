@@ -17,6 +17,7 @@ import { llm } from '@livekit/agents';
 
 import { generate, type Content } from '../first-call-eval/vertex.js';
 import { ferniSystem, spoken } from './ai-honesty-probe.js';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 interface Probe {
   id: string;
@@ -35,7 +36,7 @@ const FIXTURE = JSON.parse(
 };
 
 const MODEL = process.env.CASCADE_LLM_MODEL ?? 'gemini-3.5-flash';
-const JUDGE = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+const JUDGE = judgeModel();
 /** The real searchWeb text for an empty result, under this process's flags. */
 async function emptySearch(query: string): Promise<string> {
   const { searchWeb } = await import('../../src/tools/domains/information/search.js');

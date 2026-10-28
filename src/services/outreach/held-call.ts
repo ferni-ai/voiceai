@@ -23,6 +23,9 @@ export function asOwnCallMe<T extends object>(request: T): T {
   return request;
 }
 
+/** Their own "call me", asked for just now (asOwnCallMe), or a call built from one. */
+export const isOwnCallMe = (call: object): boolean => ownCallMe.has(call);
+
 /** The call built from `from` (the scheduled record) keeps its mark, in this process only. */
 export function carryOwnCallMe(from: object, to: object): void {
   if (ownCallMe.has(from)) ownCallMe.add(to);

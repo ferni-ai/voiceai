@@ -71,9 +71,22 @@ export function isCommonWord(word: string): boolean {
   return w.length < 2 || w.length > 20 || NOT_NAMES.has(w);
 }
 
+/**
+ * "Ferni" however it was typed or transcribed: "Ferni!", "FERNI", " ferni ", fullwidth
+ * "Ｆｅｒｎｉ", "Férni" (NFKD, marks and punctuation stripped, lower case). Prod saved
+ * Ferni's own name as a caller's; only this exact spelling is refused ("Fern" is a name).
+ */
+export function isFerniSpelling(name: string): boolean {
+  const bare = name
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[\p{P}\p{S}]/gu, '');
+  return bare.trim().toLowerCase() === 'ferni';
+}
+
 /** A common word or a team name: never the caller's name, in any case. */
 export function rejectsAsName(word: string): boolean {
-  return isCommonWord(word) || TEAM_NAMES.has(word.trim().toLowerCase());
+  return isCommonWord(word) || TEAM_NAMES.has(word.trim().toLowerCase()) || isFerniSpelling(word);
 }
 
 /** A word as transcribed that can be the caller's name. */

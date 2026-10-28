@@ -2,10 +2,16 @@ import * as timersPromises from 'node:timers/promises';
 import { llm } from '@livekit/agents';
 import { describe, expect, it, vi } from 'vitest';
 import { flagOn } from '../../../config/env-flag.js';
+import { yieldIfFirstTurnWarm } from '../first-turn-warm.js';
 
 vi.mock('node:timers/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:timers/promises')>();
   return { ...actual, setImmediate: vi.fn(actual.setImmediate) };
+});
+
+vi.mock('../first-turn-warm.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../first-turn-warm.js')>();
+  return { ...actual, yieldIfFirstTurnWarm: vi.fn(actual.yieldIfFirstTurnWarm) };
 });
 import {
   createTurnIntelligenceHook,
@@ -36,6 +42,19 @@ describe('resolveTurnIntelligenceMode', () => {
 });
 
 describe('createTurnIntelligenceHook', () => {
+  it('never calls the yield with FIRST_TURN_WARM off, as on main', async () => {
+    const handle = vi.fn(async () => {});
+    const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
+    vi.stubEnv('FIRST_TURN_WARM', '');
+    try {
+      vi.mocked(yieldIfFirstTurnWarm).mockClear();
+      await hook(llm.ChatContext.empty(), userMessage('long day'));
+      expect(yieldIfFirstTurnWarm).not.toHaveBeenCalled(); // removing the guard fails this
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('yields to the event loop between cold steps only with FIRST_TURN_WARM on', async () => {
     const yielded = vi.mocked(timersPromises.setImmediate);
     const handle = vi.fn(async () => {});

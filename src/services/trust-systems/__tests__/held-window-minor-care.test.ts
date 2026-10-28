@@ -30,6 +30,8 @@ vi.mock('@google-cloud/firestore', () => ({
 vi.mock('../../superhuman/semantic-intelligence/index.js', () => ({
   clearSemanticIntelligenceCache: () => undefined,
 }));
+// #2906's index scrub runs with these (addHeldScrub); the vector store isn't under test here
+vi.mock('../../data-layer/held-index-purge.js', () => ({ purgeHeldIndexEntries: async () => 0 }));
 
 type Ref = { get: () => Promise<unknown>; set: (d: unknown, o?: unknown) => Promise<void> };
 const firestore: FakeEngagementFirestore = createFakeEngagementFirestore();
@@ -462,7 +464,7 @@ describe('MINOR_CARE: the held window is stored, so every process drops what it 
     });
   }
 
-  it('the purge stores its window for 90 days; a scrub that failed is redone at the next session start, in any process', async () => {
+  it('the purge stores its window, with no TTL until scrubbed; a scrub that failed is redone at the next session start, in any process', async () => {
     const u = uid('Y');
     await seed(u);
     vi.stubEnv('MINOR_CARE', 'on');
@@ -474,7 +476,7 @@ describe('MINOR_CARE: the held window is stored, so every process drops what it 
     expect(window).toHaveLength(1);
     expect(window[0].scrubbed).toBe(false);
     expect(window[0].end - window[0].start).toBeGreaterThanOrEqual(0);
-    expect(holdDoc(u)!.expireAt!.getTime() - window[0].end).toBe(90 * DAY);
+    expect(holdDoc(u)!.expireAt, 'unscrubbed: it must not expire first').toBeNull();
     await endProc(p);
     failTransactions.delete(u); // Firestore is back
     const q = await proc(); // the next call lands on another process
@@ -484,6 +486,7 @@ describe('MINOR_CARE: the held window is stored, so every process drops what it 
     expect(stored(u).voice).toEqual({ OLD: 12, HELD: 0, NEW: 0 });
     expect(stored(u).momentum).toEqual({ OLD: 1, HELD: 0, NEW: 0 });
     expect(holdDoc(u)?.windows?.map((w) => w.scrubbed)).toEqual([true]);
+    expect(holdDoc(u)!.expireAt!.getTime() - window[0].end).toBe(90 * DAY); // kept 90 days once clean
     await endProc(q);
   });
 

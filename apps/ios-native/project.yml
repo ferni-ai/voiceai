@@ -20,6 +20,8 @@ packages:
     path: Packages/FerniVoice
   FerniDesign:
     path: Packages/FerniDesign
+  FerniLink:
+    path: Packages/FerniLink
   Sentry:
     url: https://github.com/getsentry/sentry-cocoa
     exactVersion: 9.30.0
@@ -45,12 +47,16 @@ targets:
       - path: App
         excludes:
           - Info.plist
+          # Kept current by scripts/build-string-catalog.py, not built in for 1.0.
+          - Localizable.xcstrings
       - path: Shared
     dependencies:
       - package: FerniKit
       - package: FerniVoice
       - package: FerniDesign
       - package: Sentry
+      - package: FerniLink
+      - target: FerniWatch
       - target: FerniLive
         embed: true
     info:
@@ -60,6 +66,20 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        # CarPlay (voice-based conversation, iOS 26.4) is built and tested but not
+        # registered until Apple grants com.apple.developer.carplay-voice-based-conversation.
+        # To ship it: add that entitlement above and, under UIApplicationSceneManifest,
+        # UISceneConfigurations: {CPTemplateApplicationSceneSessionRoleApplication:
+        # [{UISceneClassName: CPTemplateApplicationScene,
+        #   UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate}]}.
+        # 1.0 is English only (delight gap 9): most of the catalog was English
+        # placeholders. Add languages back here, and stop excluding the catalog
+        # below, once real translations exist.
+        CFBundleLocalizations: [en]
+        # ferniapp:// only answers the web's Apple Health link with a note (App/DeepLink.swift).
+        CFBundleURLTypes:
+          - CFBundleURLName: com.sethdford.ferni
+            CFBundleURLSchemes: [ferniapp]
         # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
         SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false
@@ -68,16 +88,18 @@ targets:
         CADisableMinimumFrameDurationOnPhone: true
         LSRequiresIPhoneOS: true
         UILaunchScreen:
+          # The room's colour only: Ferni is drawn live, and a logo here would
+          # flash before him (HIG, Launching; delight gap 3).
           UIColorName: LaunchBackground
-          UIImageName: LaunchLogo
         # One window: a call is one session, and a second iPad window would share it.
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        # Calls keep talking with the screen locked, reported to the system through
-        # LiveCommunicationKit (a VoIP call app). Nothing else runs in the background.
+        # Calls keep talking with the screen locked on audio, reported to the system
+        # through LiveCommunicationKit. Outgoing calls only and no PushKit, so no VoIP
+        # mode (guideline 2.5.4). Nothing else runs in the background.
         UIBackgroundModes:
           - audio
-          - voip
+        NSFaceIDUsageDescription: Ferni uses Face ID to keep what Ferni remembers just for you.
         NSMicrophoneUsageDescription: Ferni listens only while you're talking together, so you can talk out loud.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -116,6 +138,19 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.apptests
         GENERATE_INFOPLIST_FILE: YES
 
+  # The accessibility audit and App Store screenshots, against UITestScenario.
+  FerniUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: Ferni
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Ferni
+
   # The call on the Lock Screen and in the Dynamic Island.
   FerniLive:
     type: app-extension
@@ -140,6 +175,52 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.live
         TARGETED_DEVICE_FAMILY: "1,2"
 
+  # The Apple Watch remote for the call on the iPhone (never its own call).
+  FerniWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: Watch
+      - path: WatchShared
+      - path: App/AppIcon.icon
+    dependencies:
+      - package: FerniLink
+      - target: FerniWatchWidgets
+        embed: true
+    info:
+      path: Watch/Info.plist
+      properties:
+        CFBundleDisplayName: Ferni
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.sethdford.ferni
+        WKRunsIndependentlyOfCompanionApp: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.watchkitapp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  FerniWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: WatchWidgets
+      - path: WatchShared
+    info:
+      path: WatchWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Ferni
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.watchkitapp.widgets
+
 schemes:
   Ferni:
     build:
@@ -156,9 +237,21 @@ schemes:
         - package: FerniKit/FerniKitTests
         - package: FerniVoice/FerniVoiceTests
         - package: FerniDesign/FerniDesignTests
+        - package: FerniLink/FerniLinkTests
     profile:
       config: Release
     analyze:
       config: Debug
     archive:
       config: Release
+
+  # UI tests against UITestScenario (no network, account, mic or sound).
+  FerniUITests:
+    build:
+      targets:
+        Ferni: all
+        FerniUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - FerniUITests

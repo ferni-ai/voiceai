@@ -36,7 +36,7 @@ import {
   loadVoiceDeps as loadVoiceDepsPhase,
   type VoiceDeps,
 } from '../voice-agent/phases/index.js';
-
+import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
 import { finops } from '../../services/observability/finops.js';
 import { classifyCallEnd, roomDisconnectEndReason } from '../../services/analytics/call-end-reason.js';
 import {
@@ -492,7 +492,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
 
       // Thread continuity (non-blocking)
-      if (userId) {
+      if (ownerWriteId(userId)) { // threads are an account's own (ONBEHALF_WRITE_GATE)
         void (async () => {
           try {
             const { buildThreadContext } =

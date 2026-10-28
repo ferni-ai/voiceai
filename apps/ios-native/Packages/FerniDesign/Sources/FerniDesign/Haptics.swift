@@ -5,6 +5,8 @@ import UIKit
 /// at most; never per turn, per expression or per breath.
 public enum HapticCue: String, CaseIterable, Equatable, Sendable {
     case presence, firstWord, handoff, goodbye, error, reconnected
+    /// Ferni was touched at rest: the softest single tap.
+    case touch
 }
 
 public protocol HapticPlaying {
@@ -53,6 +55,7 @@ public final class CoreHapticsPlayer: HapticPlaying {
         case .goodbye: [(0, 0.35, 0.2, 0.2), (0.25, 0.2, 0.2, 0.2)]
         case .error: [(0, 0.6, 0.5, 0), (0.08, 0.4, 0.5, 0), (0.16, 0.3, 0.5, 0)]
         case .reconnected: [(0, 0.3, 0.4, 0)]
+        case .touch: [(0, 0.22, 0.15, 0)]
         }
     }
 

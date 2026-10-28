@@ -15,6 +15,11 @@ import {
   setMusicHeldWindow,
   withoutHeldMusicMemories,
 } from '../../audio/music-learning-persistence.js';
+import {
+  forgetReadMoments,
+  scrubHeldSince,
+} from '../../intelligence/context-builders/relationship/shared-moments.js';
+import { purgeHeldIndexEntries } from '../../services/data-layer/held-index-purge.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
@@ -27,6 +32,7 @@ import { clearSocialGraph } from '../../services/social-graph/index.js';
 import { clearSemanticIntelligenceCache } from '../../services/superhuman/semantic-intelligence/index.js';
 import { clearTrustSystemsUser } from '../../services/trust-systems/persistence.js';
 import {
+  heldSince,
   noteHeldWindow,
   recordedWhileHeld,
   scrubHeldDoc,
@@ -42,9 +48,11 @@ import { clearOurSongsUser } from '../../services/trust-systems/index.js';
 import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
 import {
+  derivedHold,
   ownerSessionFor,
   sessionBoundAt,
   sessionPhone,
+  setOnPhoneHeld,
   setOnUserHeld,
   sharedId,
 } from '../../utils/minor-care.js';
@@ -55,20 +63,35 @@ const log = createLogger({ module: 'minor-care-purge' });
 /**
  * MINOR_CARE_SHARED_HOLD: the shared record (no words) for the user, and for the caller's number
  * (keyed by its hash), since a text from that number resolves to whatever account the number
- * names, not the call's anon: or account id. A phone: id is its own number.
+ * names, not the call's anon: or account id. A phone: id is its own number. A call held only by
+ * its number's hold (derivedHold) never writes the number's: only an age said extends it.
  */
 export function shareHold(userId: string, sessionId?: string): void {
   void recordSharedHold(userId);
-  const phone = (sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1];
+  if (derivedHold(sessionId)) return;
+  sharePhoneHold((sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1]);
+}
+function sharePhoneHold(phone: string | undefined): void {
   const phoneId = phoneHoldId(phone);
   if (phoneId) void recordSharedHold(phoneId);
 }
 setOnUserHeld(shareHold);
+// A number bound after its session was held (the SIP caller joined late): held from then.
+setOnPhoneHeld(sharePhoneHold);
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);
 // ...and scrubbed from the stored doc with them, so a failed music scrub is retried too
 addHeldScrub((id) => scrubHeldDoc(id, 'music_learning', 'memories', withoutHeldMusicMemories));
+// ...and so are shared moments, Memory Lane captures (by when written) and the semantic index
+const fromHeld = (scrub: (id: string, since: number) => Promise<number>) => async (id: string) => {
+  const since = heldSince(id) ?? Infinity; // none known: nothing to scrub
+  return since === Infinity || (await scrub(id, since)) >= 0;
+};
+addHeldScrub(fromHeld((id, since) => scrubHeldSince(id, since)));
+const writtenAt = ['createdAt', 'updatedAt']; // a doc without createdAt: its last write
+addHeldScrub(fromHeld((id, since) => scrubHeldSince(id, since, 'memory_highlights', writtenAt)));
+addHeldScrub(fromHeld((id) => purgeHeldIndexEntries(id, (at) => recordedWhileHeld(id, at))));
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -122,6 +145,7 @@ export function purgeHeldUser(userId: string, sessionId?: string, startedAt?: nu
     ['deep understanding', clearDeepUnderstandingUser],
     // songs that played during their moments (memory only); a later call would speak them back
     ['our songs', clearOurSongsUser],
+    ['shared moments read', forgetReadMoments], // deep-relationship's cache of them
   ];
   for (const [name, purge] of purges) {
     try {

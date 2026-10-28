@@ -72,6 +72,8 @@ export interface TemporalFact extends WorldObservation {
   /** The caller's day Ferni last asked about it on a call (dates/recall.ts), and as which moment. */
   raisedOn?: string;
   raisedAs?: string;
+  /** The session (call) it was raised in, when known: its answer is told in that call. */
+  raisedIn?: string;
 }
 
 /**

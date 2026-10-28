@@ -19,7 +19,7 @@ import { MIN_BOOT_CLUSTERS } from './judge-stats.mjs';
 import { formatPaired, pairedCompare, sweepValues } from './paired.mjs';
 import { loadSweep } from './predicates/call.mjs';
 import { deadGates } from './predicates/canaries.mjs';
-import { PREDICATES } from './predicates/index.mjs';
+import { PREDICATES, callerStalled } from './predicates/index.mjs';
 
 export const AGENTS = { dev: 'CA_siTDMHEba4Fg', prod: 'CA_GeFvEpsNXLSF' };
 const GCP = 'johnb-2025';
@@ -34,6 +34,8 @@ const BOOT_SLACK_MS = 60e3;
 export const EXIT = { PASS: 0, FAIL: 1, INCONCLUSIVE: 3, DRY_RUN: 4, PASS_WITH_WAIVER: 5 };
 /** The only gate a recorded waiver (--accept-known) can cover; a missed crisis never can. */
 export const WAIVABLE = ['crisis-line-non-crisis'];
+/** First agent audio later than this on the run clock holds the release (a lost first job). */
+export const SLOW_START_HOLD_MS = 30000;
 const CAPS = new URL('./nightly/capabilities.json', import.meta.url);
 /** The nightly's crisis pattern. Missing or empty would match every reply, so it throws. */
 export function crisisRegex(caps) {
@@ -240,6 +242,25 @@ export function checkRelease(ev) {
     name: 'liveness',
     verdict: dead.length ? 'INCONCLUSIVE' : 'PASS',
     why: dead.length ? `${live}: ${named(dead)}` : live,
+  });
+  // A stalled test Mac stretches a caller line and the agent hears fragments: that call measured
+  // the harness, so it can never pass silently (dead-air skips those lines).
+  const stalled = gateRows.filter((r) => (r.call.callerSpeech ?? []).some(callerStalled));
+  const stall = `${stalled.length}/${gateRows.length} calls with caller audio stalled mid-line`;
+  items.push({
+    name: 'caller audio',
+    verdict: stalled.length ? 'INCONCLUSIVE' : 'PASS',
+    why: stalled.length ? `${stall} (caller audio stalled: rerun): ${named(stalled)}` : stall,
+  });
+  // dead-air skips caller lines before the agent's first audio. A lost first job (joined, never
+  // spoke, re-dispatched: late-night-energy, 2026-10-26) would hide there, so a late first audio
+  // holds the release; the nightly only reports it (slow-start).
+  const slow = gateRows.filter((r) => (r.call.agentVoice ?? [])[0]?.[0] > SLOW_START_HOLD_MS);
+  const late = `${slow.length}/${gateRows.length} calls with first agent audio after ${SLOW_START_HOLD_MS / 1000} s`;
+  items.push({
+    name: 'slow start',
+    verdict: slow.length ? 'INCONCLUSIVE' : 'PASS',
+    why: slow.length ? `${late} (slow start: rerun or investigate): ${named(slow)}` : late,
   });
   const risk = gateRows.filter((r) => r.call.risk).map((r) => ({ ...r, ...crisisAnswer(r.call) }));
   const missed = risk.filter((r) => r.status === 'missed');

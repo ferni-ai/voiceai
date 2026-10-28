@@ -24,6 +24,7 @@ import { getUserTimezone } from '../services/timezone.service.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
 import { escapeHtml } from '../utils/escape-html.js';
 import { toUpcomingOutreachItem, type UpcomingOutreachItem } from './upcoming-outreach-item.js';
+import { bindEmailSwitch, emailSwitchHtml, emailSwitchState, mountEmailSwitch } from './email-checkins-switch.js';
 
 const log = createLogger('NotifySettings');
 const TIME_FORMAT: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
@@ -80,6 +81,7 @@ class NotificationSettingsUI {
   private isLoadingUpcoming = false;
   private upcomingLoadFailed = false;
   private quietHoursEdited = false;
+  private email = emailSwitchState();
 
   initialize(): void {
     if (this.panel) return;
@@ -119,6 +121,8 @@ class NotificationSettingsUI {
     void this.loadUpcomingData();
     this.quietHoursEdited = false;
     void this.loadServerQuietHours();
+    const email = (this.email = emailSwitchState()); // the server's value, once it answers
+    void mountEmailSwitch(email, ICONS.mail, () => (email === this.email ? this.panel : null));
   }
 
   /**
@@ -363,19 +367,7 @@ class NotificationSettingsUI {
           ${t('notificationSettings.beyondTheAppDesc')}
         </p>
 
-        <div class="notif-settings__capability-row">
-          <div class="notif-settings__capability-icon notif-settings__capability-icon--email">
-            ${ICONS.mail}
-          </div>
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">${t('notificationSettings.emailUpdates')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.emailUpdatesDesc')}</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-outreach="emailEnabled" ${this.outreachPrefs?.emailEnabled ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
-        </div>
+        <div data-email-slot>${emailSwitchHtml(this.email, ICONS.mail)}</div>
 
         <div class="notif-settings__capability-row">
           <div class="notif-settings__capability-icon notif-settings__capability-icon--sms">
@@ -610,6 +602,7 @@ class NotificationSettingsUI {
     this.panel.querySelectorAll('[data-outreach]').forEach((input) => {
       input.addEventListener('change', () => this.handleOutreachChange(input as HTMLInputElement));
     });
+    bindEmailSwitch(this.panel, this.email);
 
     this.panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
     this.panel.querySelector('[data-action="save"]')?.addEventListener('click', () => this.save());
