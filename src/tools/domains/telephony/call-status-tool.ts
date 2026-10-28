@@ -40,7 +40,7 @@ export interface RecalledCall {
   /** Screened: what they said or a summary of it; reported speech only. */
   readonly said?: string;
 }
-export type Recalled = RecalledCall | undefined | 'unread';
+type Recalled = RecalledCall | undefined | 'unread';
 
 /** The records side, installed by the live call (call-recall.ts installCallRecallPort). */
 export interface CallRecallPort {
@@ -113,7 +113,7 @@ function portFor(userId: string | undefined, session: object | undefined): CallR
   return p;
 }
 
-export const NOT_THE_OWNER =
+const NOT_THE_OWNER =
   'Nothing to report: only the account owner can ask about calls Ferni made for them.';
 
 /**

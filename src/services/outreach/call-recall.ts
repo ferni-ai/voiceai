@@ -35,13 +35,13 @@ import {
 
 const log = createLogger({ module: 'CallRecall' });
 
-export const RECALL_WINDOW_MS = 30 * 86_400_000;
+const RECALL_WINDOW_MS = 30 * 86_400_000;
 /** A call this recent (read back, placed, or answered) is told before a new one is read back. */
-export const RECENT_CALL_MS = 2 * 86_400_000;
+const RECENT_CALL_MS = 2 * 86_400_000;
 /** A held call this late is dropped, not placed (deferred-calls.ts). */
 const LATE_AFTER_MS = 12 * 60 * 60 * 1000;
 
-export function callStatusRecallOn(env: Env = process.env): boolean {
+function callStatusRecallOn(env: Env = process.env): boolean {
   return flagOn('CALL_STATUS_RECALL', env);
 }
 
@@ -210,7 +210,7 @@ export function recallLine(
 }
 
 /** The records side of callStatus (tools/domains/telephony/call-status-tool.ts). */
-export const callRecallAdapter: CallRecallPort = {
+const callRecallAdapter: CallRecallPort = {
   enabled: () => callStatusRecallOn(),
   mayRecall,
   queryWords,
