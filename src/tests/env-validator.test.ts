@@ -134,7 +134,7 @@ describe('Environment Validator', () => {
   });
 
   describe('getFeatureAvailability', () => {
-    it('should return all false when no env vars set', () => {
+    it('should return false for keyed services when no env vars set', () => {
       const features = getFeatureAvailability();
 
       expect(features.livekitCore).toBe(false);
@@ -143,7 +143,8 @@ describe('Environment Validator', () => {
       expect(features.postgresMemory).toBe(false);
       expect(features.firestoreMemory).toBe(false);
       expect(features.redisCache).toBe(false);
-      expect(features.emailNotifications).toBe(false);
+      // Email goes through the Gmail Workspace mailbox, which needs no key
+      expect(features.emailNotifications).toBe(true);
       expect(features.smsNotifications).toBe(false);
       expect(features.plaidBanking).toBe(false);
       expect(features.spotifyMusic).toBe(false);
