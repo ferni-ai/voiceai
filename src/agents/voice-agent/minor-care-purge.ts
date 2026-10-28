@@ -48,9 +48,11 @@ import { clearOurSongsUser } from '../../services/trust-systems/index.js';
 import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
 import {
+  derivedHold,
   ownerSessionFor,
   sessionBoundAt,
   sessionPhone,
+  setOnPhoneHeld,
   setOnUserHeld,
   sharedId,
 } from '../../utils/minor-care.js';
@@ -61,15 +63,21 @@ const log = createLogger({ module: 'minor-care-purge' });
 /**
  * MINOR_CARE_SHARED_HOLD: the shared record (no words) for the user, and for the caller's number
  * (keyed by its hash), since a text from that number resolves to whatever account the number
- * names, not the call's anon: or account id. A phone: id is its own number.
+ * names, not the call's anon: or account id. A phone: id is its own number. A call held only by
+ * its number's hold (derivedHold) never writes the number's: only an age said extends it.
  */
 export function shareHold(userId: string, sessionId?: string): void {
   void recordSharedHold(userId);
-  const phone = (sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1];
+  if (derivedHold(sessionId)) return;
+  sharePhoneHold((sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1]);
+}
+function sharePhoneHold(phone: string | undefined): void {
   const phoneId = phoneHoldId(phone);
   if (phoneId) void recordSharedHold(phoneId);
 }
 setOnUserHeld(shareHold);
+// A number bound after its session was held (the SIP caller joined late): held from then.
+setOnPhoneHeld(sharePhoneHold);
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);

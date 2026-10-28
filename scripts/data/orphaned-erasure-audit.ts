@@ -29,7 +29,7 @@
  */
 
 import { pathToFileURL } from 'node:url';
-import { applicationDefault, deleteApp, initializeApp } from 'firebase-admin/app';
+import { applicationDefault, deleteApp, initializeApp, type App } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import {
   FieldPath,
@@ -242,6 +242,11 @@ export async function runAudit(options: {
   return { lines, total };
 }
 
+/** The database FIRESTORE_DATABASE names ('(default)' when unset): never a different one */
+export function openDatabase(app: App): Firestore {
+  return getFirestore(app, getFirestoreDatabase());
+}
+
 function parseArgs(argv: readonly string[]): { project: string } {
   let project: string | undefined;
   for (let i = 0; i < argv.length; i++) {
@@ -269,7 +274,7 @@ async function main(): Promise<void> {
   );
   try {
     const run = await runAudit({
-      db: getFirestore(app, getFirestoreDatabase()),
+      db: openDatabase(app),
       auth: getAuth(app),
     });
     for (const line of run.lines) console.log(line);

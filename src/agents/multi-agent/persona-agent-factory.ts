@@ -33,6 +33,7 @@ import {
 import { getModelProvider } from '../model-provider/index.js';
 import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
 import { isPhoneParticipant } from '../integrations/pre-stt-frame-processor.js';
+import { noteNoticeChannel } from '../shared/ai-notice.js';
 import { roomInputOptions } from './room-input-options.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
 import { attachCallWrapUp } from '../shared/call-wrap-up.js';
@@ -166,6 +167,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     });
     mark('setup_persona_agent_done');
     if (!context.isHandoff) markCallStageSoon(sessionId, 'context_built');
+    noteNoticeChannel(sessionId, isPhoneParticipant(context.userParticipant)); // AI_NOTICE_SPOKEN record
     // Ferni ends the call after a mutual goodbye: phone callers with PHONE_GOODBYE
     // (phone-goodbye.ts), app callers with CALL_WRAP_UP (call-wrap-up.ts).
     await attachCallWrapUp(agentSetup.agent, {

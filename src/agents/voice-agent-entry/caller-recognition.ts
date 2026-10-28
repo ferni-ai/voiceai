@@ -24,7 +24,14 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
-import { bindSessionPhone, setVerifiedOwnerCheck } from '../../utils/minor-care.js';
+import {
+  bindSessionPhone,
+  holdSession,
+  setOnPhoneBound,
+  setVerifiedOwnerCheck,
+} from '../../utils/minor-care.js';
+import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
+import { sharedHeldStrict } from '../../services/outreach/minor-care-shared-hold.js';
 import {
   beginReturningCaller,
   returningCallerEnabled,
@@ -188,11 +195,61 @@ export function rememberCallerRecognition(sessionId: string, r: CallerRecognitio
 export function rememberCallerPhone(
   sessionId: string,
   room: { remoteParticipants?: Map<string, SipParticipantLike> }
-): void {
+): boolean {
   for (const participant of room.remoteParticipants?.values() ?? []) {
-    const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
-    if (e164) return bindSessionPhone(sessionId, e164);
+    if (bindParticipantPhone(sessionId, participant)) return true;
   }
+  return false;
+}
+
+function bindParticipantPhone(sessionId: string, p: SipParticipantLike | undefined): boolean {
+  const e164 = toE164(p?.attributes?.['sip.phoneNumber']);
+  if (e164) bindSessionPhone(sessionId, e164);
+  return !!e164;
+}
+
+/**
+ * MINOR_CARE_SHARED_HOLD: a call from a number with a live hold (minor_care_holds/phone#<hash>, the
+ * key minor-care-purge's shareHold writes) is held from when the number is bound here, at the start
+ * or by a late SIP join, whether or not the caller says their age again: every phone call gets a
+ * fresh anon: id, so only the number links it to the held call (dev soak 2026-10-27: 89 docs).
+ * Fail closed (sharedHeldStrict): a record not read within STRICT_READ_MS holds the call. What was
+ * written before is dropped by the end-of-call purge. Flag off: no read. Registered here, where
+ * every number is bound, so no load order can skip it.
+ */
+async function holdIfNumberHeld(sessionId: string, e164: string): Promise<void> {
+  const phoneId = phoneHoldId(e164); // undefined without LOG_HASH_SECRET: no record can exist
+  if (phoneId && (await sharedHeldStrict(phoneId))) holdSession(sessionId);
+}
+setOnPhoneBound((sessionId, e164) => void holdIfNumberHeld(sessionId, e164));
+
+/** How long a call keeps listening for its SIP caller's number after identification. */
+export const PHONE_WATCH_MS = 30_000;
+
+/**
+ * rememberCallerPhone, and if no number is in the room yet, keep listening (never awaited) until
+ * the SIP caller joins or their attributes land, for up to `waitMs`. Identification often ends
+ * before the SIP participant is in the room (dev soak 2026-10-26), so a single read bound nothing.
+ */
+export function watchCallerPhone(
+  sessionId: string,
+  room: Partial<RoomLike> & { remoteParticipants?: Map<string, SipParticipantLike> },
+  waitMs = PHONE_WATCH_MS
+): void {
+  if (rememberCallerPhone(sessionId, room) || !room.on || !room.off) return;
+  const events = room as RoomLike;
+  const joined = (p: SipParticipantLike): void =>
+    void (bindParticipantPhone(sessionId, p) && stop());
+  const changed = (_: Record<string, string>, p: SipParticipantLike): void => joined(p);
+  const stop = (): void => {
+    clearTimeout(timer);
+    events.off('participantConnected', joined);
+    events.off('participantAttributesChanged', changed);
+  };
+  const timer = setTimeout(stop, waitMs);
+  timer.unref?.();
+  events.on('participantConnected', joined);
+  events.on('participantAttributesChanged', changed);
 }
 
 export function callerRecognitionFor(sessionId: string | undefined): CallerRecognition | undefined {

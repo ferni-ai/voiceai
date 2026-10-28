@@ -31,8 +31,8 @@ import {
   rememberDispatchIdentity,
   callerRecognitionEnabled,
   recognizePhoneSession,
-  rememberCallerPhone,
   startReturningCaller,
+  watchCallerPhone,
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
 import { newAnonymousId } from '../../services/identity/anonymous-session-id.js';
@@ -210,8 +210,9 @@ export async function identifyUser(
   await startReturningCaller(room, sessionId, userId).catch((e: unknown) => {
     diag.warn('Returning caller lookup failed', { error: String(e) });
   });
-  // MINOR_CARE_SHARED_HOLD: a held phone call also holds texts from and to its number
-  rememberCallerPhone(sessionId, room);
+  // MINOR_CARE_SHARED_HOLD: a held phone call also holds texts from and to its number. The SIP
+  // caller often joins after this point, so it keeps listening; never awaited (the greeting).
+  watchCallerPhone(sessionId, room);
 
   return {
     // PRIVACY: a caller nobody named (no dispatch metadata, a failed lookup, or a number that
