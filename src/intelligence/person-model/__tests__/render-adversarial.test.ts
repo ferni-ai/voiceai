@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_RENDERED_CHARS, renderPersonModel } from '../render.js';
 import type { Person, PersonModel, Provenance } from '../types.js';
+import { hasContactData } from '../util.js';
 import { ago, NOW } from './fixtures.js';
 
 const built = (d = 0.1): Provenance => ({
@@ -384,3 +385,24 @@ describe('ADV 5 contact guard keeps ordinary text', () => {
     expect(out).toContain('- ask how the 5k went');
   });
 });
+
+describe('round 3: every separator and spoken email forms', () => {
+  const leaks = [
+    'call Pat on 555\u2013123\u20134567',
+    'call Pat on 555\u2014123\u20144567',
+    'call Pat on 555\u2212123\u22124567',
+    'call Pat on 555,123,4567',
+    'call Pat on 555:123:4567',
+    'call Pat on 555*123*4567',
+    'email jo at  example . com',
+    'email jo at gmail',
+  ];
+  it.each(leaks)('treats %j as contact data', (text) => {
+    expect(hasContactData(text)).toBe(true);
+  });
+  const ordinary = ['meet Jo at noon', 'dinner at 7:30 at Luigi', '3 kids, 2 dogs', 'Room 101'];
+  it.each(ordinary)('keeps %j', (text) => {
+    expect(hasContactData(text)).toBe(false);
+  });
+});
+

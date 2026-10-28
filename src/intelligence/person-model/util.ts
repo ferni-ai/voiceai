@@ -18,14 +18,17 @@ export const DAY = 86_400_000;
  * and other format characters (\p{Cf}), slashes, underscores, dots, dashes, parens.
  * Runs on text already folded to ASCII digits (see hasContactData).
  */
-const DIGIT_RUN = /(?:\d[\s\p{Z}\p{Cf}/_.()-]*){7,}/u;
+// Anything that isn't a letter separates digits: dashes of every kind, commas,
+// colons, invisible characters. Only a letter breaks a run.
+const DIGIT_RUN = /(?:\d[^\p{L}\d]*){7,}/u;
 
 /** An "@", or an email spelled out: "(at)", "[at]", "jo at example.com", "example dot com". */
 const OBFUSCATED_EMAIL = [
   /@/,
   /[([{]\s*at\s*[)\]}]/i,
   /[([{]\s*dot\s*[)\]}]/i,
-  /[\w-]+(?:\.[\w-]+)*\s+at\s+[\w-]+(?:\.[a-z]{2,}|(?:\s+dot\s+[a-z]{2,}))/i,
+  /[\w-]+(?:\.[\w-]+)*\s+at\s+[\w-]+(?:\s*\.\s*[a-z]{2,}|(?:\s+dot\s+\S{2,}))/iu,
+  /\bat\s+(?:gmail|googlemail|yahoo|hotmail|outlook|icloud|aol|proton(?:mail)?)\b/i,
   /\bdot\s+(?:com|net|org|edu|gov|io|co|us|uk)\b/i,
 ];
 
