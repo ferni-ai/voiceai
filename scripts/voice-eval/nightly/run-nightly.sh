@@ -10,6 +10,7 @@
 #   NIGHTLY_ISSUE       tracking issue for the public comment, verdicts only (default 2407)
 #   NIGHTLY_CLEANUP_MIN_AGE_H  cleanup-users --min-age-hours (default 1)
 #   NIGHTLY_LANES       directory holding a.txt and b.txt (default lanes/ beside this script)
+#   NIGHTLY_LANE_B_DELAY_S  seconds lane B starts after lane A (default 20)
 # Exit: scorecard's 0 (nothing new) / 1 (new FAIL or regression) / 2 (harness or deploy
 # error), 3 when ferni-dev is claimed by someone else. On exit or a signal, a trap stops the
 # lanes (every run.sh under them), cleans up, reports, and only then releases the claim.
@@ -22,8 +23,14 @@ DRY=${NIGHTLY_DRY_RUN:-0}
 P=ferni-dev CONF=$ROOT/livekit.toml DEV_AGENT=CA_siTDMHEba4Fg GCP=johnb-2025
 CLAIM=$HOME/.claude/coordination/claim.py BOARD=$HOME/.claude/coordination/board.md
 ISSUE=${NIGHTLY_ISSUE-2407} LANES_DIR=${NIGHTLY_LANES:-$HERE/lanes}
+# A call that runs longer than this is killed so the rest of its lane still runs
+# (2026-10-23: one hung converse.mjs held lane B for 47 min).
+CALL_MAX_S=${NIGHTLY_CALL_MAX_S:-900}
+LANE_B_DELAY_S=${NIGHTLY_LANE_B_DELAY_S:-20}
 # claim.py names its owner by session id: the sweep always claims as itself, never as the caller
 export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
+# Vertex Gemini requests from this run carry billing label ferni_job=nightly_sweep
+export GEMINI_BILLING_JOB=nightly_sweep
 RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID="" RUNNER=$$
 cd "$ROOT" || exit 2
 
@@ -125,7 +132,7 @@ do_deploy() {
 }
 # One lane file: "ENV | scenario | label | uid | capability" per line.
 lane() {
-  local file=$1 llog=$2 envs sc label uid cap rc name
+  local file=$1 llog=$2 envs sc label uid cap rc name cpid wpid tflag
   name=$(basename "$file" .txt)
   while IFS='|' read -r envs sc label uid cap; do
     envs=$(trim "$envs"); sc=$(trim "${sc:-}"); label=$(trim "${label:-}"); uid=$(trim "${uid:-}")
@@ -143,8 +150,18 @@ lane() {
       # shellcheck disable=SC2086,SC2163 # ENV is a list of VAR=val words, split on purpose
       [ "$envs" = - ] || export $envs
       exec "$EVAL/run.sh" dev "$sc" "$TAG$label" ${uid:+"$uid"}
-    ) > "$OUT/runlogs/$sc-$TAG$label.out" 2>&1 < /dev/null
+    ) > "$OUT/runlogs/$sc-$TAG$label.out" 2>&1 < /dev/null &
+    cpid=$!
+    tflag=$OUT/runlogs/.timeout-$cpid
+    { sleep "$CALL_MAX_S" && : > "$tflag" && say "TIMEOUT $sc $label after ${CALL_MAX_S}s" >> "$llog" \
+      && stop_jobs "$cpid"; } 2> /dev/null &
+    wpid=$!
+    wait "$cpid"
     rc=$?
+    # A timed-out call dies on TERM before stop_jobs reaches its KILL step: let the
+    # watchdog finish, or a child that ignores TERM outlives it.
+    if [ -e "$tflag" ]; then wait "$wpid" 2> /dev/null; rm -f "$tflag"
+    else pkill -P "$wpid" 2> /dev/null; kill "$wpid" 2> /dev/null; wait "$wpid" 2> /dev/null; fi
     say "END $sc $label rc=$rc" >> "$llog"
   done < "$file"
   say "LANE DONE" >> "$llog"
@@ -156,7 +173,10 @@ do_lanes() {
   T0=$(iso_ago 60)
   lane "$LANES_DIR/a.txt" "$OUT/laneA.log" &
   LANE_PIDS=$!
-  lane "$LANES_DIR/b.txt" "$OUT/laneB.log" &
+  # Lane B starts LANE_B_DELAY_S after lane A, so two lanes don't dial the one warm dev server in
+  # the same second. 1 s steps: a SIGKILLed runner leaves no sleeping lane behind.
+  { for ((i = 0; i < LANE_B_DELAY_S; i++)); do kill -0 "$RUNNER" 2> /dev/null || exit 0; sleep 1; done
+    kill -0 "$RUNNER" 2> /dev/null && lane "$LANES_DIR/b.txt" "$OUT/laneB.log"; } &
   LANE_PIDS="$LANE_PIDS $!"
   # shellcheck disable=SC2086
   wait $LANE_PIDS
@@ -170,8 +190,10 @@ tonight() { # tonight's scored test runs in scripts/voice-eval/out
     [ -f "${f%.json}.score.json" ] && printf '%s\0' "$f"
   done
 }
+# Pro, explicitly: the scorecard's judge checks compare tonight with earlier
+# nights judged by Pro, and judges now default to Flash (scripts/lib/judge-model.mjs).
 do_judge() {
-  tonight | JUDGE_K=2 GCP_PROJECT=$GCP xargs -0 -n 1 -P 4 node "$EVAL/judge.mjs" >> "$OUT/judge.log" 2>&1 \
+  tonight | JUDGE_K=2 JUDGE_MODEL=pro GCP_PROJECT=$GCP xargs -0 -n 1 -P 4 node "$EVAL/judge.mjs" >> "$OUT/judge.log" 2>&1 \
     || log "some judge calls failed (see judge.log)"
 }
 do_collect() {
@@ -196,16 +218,16 @@ do_scorecard() {
   [ $RC = 2 ] && STATUS=harness-error REASON="scorecard exit 2 (see scorecard.log)"
 }
 
-# Erases the generated voice-eval users older than the min age in dev's database. While
-# dev still writes to '(default)' (the prod database, until the ferni-dev cutover) it only
-# does the dry run and reports the count.
+# Erases the generated voice-eval users older than the min age in dev's database (ferni-dev
+# since the 2026-10-23 cutover). If dev resolves to '(default)', the prod database (e.g.
+# EVAL_DEV_DATABASE='(default)' as a rollback), it only does the dry run and reports the count.
 do_cleanup() {
   local db out n age=${NIGHTLY_CLEANUP_MIN_AGE_H:-1}
   db=$(node "$EVAL/eval-database.mjs" dev) || return 1
   out=$(npx tsx "$EVAL/cleanup-users.ts" --project $GCP --env dev --min-age-hours "$age" 2>&1)
   printf '%s\n' "$out" >> "$OUT/cleanup.log"
   n=$(printf '%s\n' "$out" | sed -n 's/^Dry run\. To delete these \([0-9][0-9]*\):$/\1/p')
-  if [ "$db" = '(default)' ]; then log "cleanup: dev writes to (default) until cutover; dry run only, ${n:-?} would go"; return 0; fi
+  if [ -z "$db" ] || [ "$db" = '(default)' ]; then log "cleanup: dev resolves to '${db}', not a dev database; dry run only, ${n:-?} would go"; return 0; fi
   [ "${n:-0}" -gt 0 ] || return 0
   npx tsx "$EVAL/cleanup-users.ts" --project $GCP --env dev --min-age-hours "$age" --execute --confirm "$n" \
     >> "$OUT/cleanup.log" 2>&1
@@ -225,7 +247,7 @@ finish() {
   trap '' INT TERM
   # shellcheck disable=SC2086 # pid list
   [ "$DRY" = 1 ] || stop_jobs $LANE_PIDS
-  [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only while dev uses (default))" do_cleanup
+  [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only if dev resolves to (default))" do_cleanup
   [ "$STATUS" = ok ] || [ "$DRY" = 1 ] || write_status "$STATUS" "$REASON"
   step report "board.md line + gh issue comment ${ISSUE:-<unset: skipped>} --body-file $OUT/COMMENT.md" do_report
   [ "$DRY" = 1 ] || stop_jobs $RENEW_PID
@@ -254,7 +276,7 @@ if [ "${NIGHTLY_DEPLOY:-1}" = 1 ]; then
 fi
 step lanes "lanes a + b in parallel, label $TAG<label>, memlive uid $MEMLIVE" do_lanes
 [ "$DRY" = 1 ] && { LANES=1; lane "$LANES_DIR/a.txt" /dev/null; lane "$LANES_DIR/b.txt" /dev/null; }
-step judge "judge.mjs (JUDGE_K=2, GCP_PROJECT=$GCP) on tonight's runs, 4 at a time" do_judge
+step judge "judge.mjs (JUDGE_K=2, JUDGE_MODEL=pro, GCP_PROJECT=$GCP) on tonight's runs, 4 at a time" do_judge
 step collect "copy scripts/voice-eval/out/*-$TAG*.json to $OUT/runs" do_collect
 step logs "gcloud logging read cloud-agents for agent $DEV_AGENT over the lanes' window + boot lines" do_logs \
   || log "log capture failed; summary will be missing"

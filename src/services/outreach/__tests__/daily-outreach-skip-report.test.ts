@@ -111,6 +111,25 @@ describe('daily outreach skip report', () => {
     expect(deliver).not.toHaveBeenCalled();
   });
 
+  it('QUIET_HOURS_FROM_PREFS: inside the window saved in the menu it is quiet hours; off, as before', async () => {
+    seedUser('user-a');
+    const doc = docs.get('bogle_users/user-a') ?? {};
+    // 11:00 New York, inside a saved 10:00 to 12:00 (the scheduler's own 21:00 to 08:00 is not).
+    docs.set('bogle_users/user-a', {
+      ...doc,
+      messagingPrefs: { quietStart: '10:00', quietEnd: '12:00', zone: 'America/New_York' },
+    });
+    process.env.QUIET_HOURS_FROM_PREFS = 'on';
+    try {
+      expect((await runDailyOutreach()).skipReasons).toEqual({ 'In quiet hours': 1 });
+    } finally {
+      delete process.env.QUIET_HOURS_FROM_PREFS;
+    }
+    expect((await runDailyOutreach()).skipReasons).toEqual({
+      'No grounded reason to reach out': 1,
+    });
+  });
+
   it('counts plain-phrase reasons and buckets free text as "other"', () => {
     expect(
       skipReasonCounts([

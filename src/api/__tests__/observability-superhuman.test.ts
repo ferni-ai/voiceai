@@ -33,9 +33,10 @@ vi.mock('../../services/data/redis-pubsub.js', () => ({
   getRedisPubSubStatus: vi.fn(() => ({ connected: false })),
 }));
 
-// Mock auth middleware
+// Mock auth middleware. `viewer` is who the signed-in caller is for each test.
+const viewer = vi.hoisted(() => ({ userId: 'test-user', isAdmin: false }));
 vi.mock('../auth-middleware.js', () => ({
-  requireAuth: vi.fn(async () => ({ userId: 'test-user', isAdmin: false })),
+  requireAuth: vi.fn(async () => ({ userId: viewer.userId, isAdmin: viewer.isAdmin })),
   requireAdmin: vi.fn(async () => ({ userId: 'admin-user', isAdmin: true })),
   rateLimit: vi.fn(() => false), // Don't rate limit in tests
 }));
@@ -80,6 +81,11 @@ import {
   getSuperhumanActivationStats,
   clearSuperhumanActivationEvents,
 } from '../../services/observability/superhuman-metrics.js';
+// The buffer the route actually serves (superhuman-metrics.ts above is a separate module)
+import {
+  emitSuperhumanActivation,
+  clearSuperhumanActivationEvents as clearServedEvents,
+} from '../../services/observability/superhuman-events.js';
 
 // ============================================================================
 // Test Helpers
@@ -126,6 +132,9 @@ describe('Observability Routes - Superhuman Endpoint', () => {
     vi.clearAllMocks();
     // Clear superhuman events buffer for isolated tests
     clearSuperhumanActivationEvents();
+    clearServedEvents();
+    viewer.userId = 'test-user';
+    viewer.isAdmin = false;
   });
 
   describe('recordSuperhumanActivation', () => {
@@ -244,9 +253,9 @@ describe('Observability Routes - Superhuman Endpoint', () => {
 
   describe('GET /api/observability/superhuman', () => {
     it('should return superhuman activation metrics', async () => {
-      // First emit an event so there's data
-      recordSuperhumanActivation({
-        userId: 'user-route-1',
+      // First emit an event so there's data (the viewer's own call)
+      emitSuperhumanActivation({
+        userId: 'test-user',
         persona: 'alex',
         capabilities: ['communication_intelligence'],
         cacheHit: true,
@@ -279,23 +288,21 @@ describe('Observability Routes - Superhuman Endpoint', () => {
       expect(Array.isArray(data.stats.topCapabilities)).toBe(true);
 
       // Verify events structure
-      expect(Array.isArray(data.recentEvents)).toBe(true);
-      if (data.recentEvents.length > 0) {
-        const event = data.recentEvents[data.recentEvents.length - 1];
-        expect(event.userId).toBeDefined();
-        expect(event.persona).toBeDefined();
-        expect(event.capabilities).toBeDefined();
-        expect(typeof event.cacheHit).toBe('boolean');
-        expect(typeof event.durationMs).toBe('number');
-        expect(event.timestamp).toBeDefined();
-      }
+      expect(data.recentEvents).toHaveLength(1);
+      const event = data.recentEvents[0];
+      expect(event.userId).toBe('test-user');
+      expect(event.persona).toBe('alex');
+      expect(event.capabilities).toEqual(['communication_intelligence']);
+      expect(event.cacheHit).toBe(true);
+      expect(event.durationMs).toBe(75);
+      expect(event.timestamp).toBeDefined();
     });
 
     it('should respect limit parameter', async () => {
-      // Emit multiple events
+      // Emit multiple events, all the viewer's own
       for (let i = 0; i < 10; i++) {
-        recordSuperhumanActivation({
-          userId: `user-limit-${i}`,
+        emitSuperhumanActivation({
+          userId: 'test-user',
           persona: 'ferni',
           capabilities: ['commitment_keeper'],
           cacheHit: i % 2 === 0,
@@ -313,7 +320,8 @@ describe('Observability Routes - Superhuman Endpoint', () => {
       await handleObservabilityRoutes(req, res, '/api/observability/superhuman');
 
       const data = JSON.parse(res._data);
-      expect(data.count).toBeLessThanOrEqual(5);
+      expect(data.count).toBe(5);
+      expect(data.recentEvents).toHaveLength(5);
     });
 
     it('should use default limit of 50 when not specified', async () => {
@@ -347,6 +355,96 @@ describe('Observability Routes - Superhuman Endpoint', () => {
       // Verify it's a valid ISO date string
       const date = new Date(data.collectedAt);
       expect(date.toISOString()).toBe(data.collectedAt);
+    });
+  });
+
+  // A signed-in caller who is not an admin sees the totals and their own calls only.
+  // Synthetic ids; each test serializes the WHOLE body so nested fields count too.
+  describe('GET /api/observability/superhuman - other callers stay private', () => {
+    const USER_A = 'synthetic-user-a-1111';
+    const USER_B = 'synthetic-user-b-2222';
+
+    function seedTwoCallers(): void {
+      for (let i = 0; i < 3; i++) {
+        emitSuperhumanActivation({
+          userId: USER_A,
+          persona: 'ferni',
+          capabilities: ['commitment_keeper'],
+          cacheHit: true,
+          durationMs: 100,
+        });
+        emitSuperhumanActivation({
+          userId: USER_B,
+          persona: 'maya',
+          capabilities: ['predictive_coaching'],
+          cacheHit: false,
+          durationMs: 300,
+        });
+      }
+    }
+
+    async function getBody(url = '/api/observability/superhuman'): Promise<string> {
+      const req = createMockRequest({ url, method: 'GET', headers: { host: 'localhost:3002' } });
+      const res = createMockResponse();
+      expect(await handleObservabilityRoutes(req, res, '/api/observability/superhuman')).toBe(true);
+      expect(res._statusCode).toBe(200);
+      return res._data;
+    }
+
+    it("a non-admin's response contains no other caller's id anywhere", async () => {
+      seedTwoCallers();
+      viewer.userId = USER_A;
+      viewer.isAdmin = false;
+
+      const raw = await getBody();
+      expect(raw).not.toContain(USER_B);
+
+      const data = JSON.parse(raw);
+      expect(data.recentEvents).toHaveLength(3);
+      expect(data.count).toBe(3);
+      for (const e of data.recentEvents) expect(e.userId).toBe(USER_A);
+      // Totals still cover every call
+      expect(data.stats.totalActivations).toBe(6);
+      expect(data.stats.byPersona).toEqual({ ferni: 3, maya: 3 });
+    });
+
+    it('a non-admin with no calls of their own sees totals and no rows', async () => {
+      seedTwoCallers();
+      viewer.userId = 'synthetic-user-c-3333';
+      viewer.isAdmin = false;
+
+      const raw = await getBody();
+      expect(raw).not.toContain(USER_A);
+      expect(raw).not.toContain(USER_B);
+      const data = JSON.parse(raw);
+      expect(data.recentEvents).toEqual([]);
+      expect(data.count).toBe(0);
+      expect(data.stats.totalActivations).toBe(6);
+    });
+
+    it("limit counts the viewer's own rows, not everyone's", async () => {
+      seedTwoCallers();
+      viewer.userId = USER_A;
+      viewer.isAdmin = false;
+
+      const raw = await getBody('/api/observability/superhuman?limit=2');
+      expect(raw).not.toContain(USER_B);
+      const data = JSON.parse(raw);
+      expect(data.recentEvents).toHaveLength(2);
+      for (const e of data.recentEvents) expect(e.userId).toBe(USER_A);
+    });
+
+    it("an admin still gets every caller's rows", async () => {
+      seedTwoCallers();
+      viewer.userId = 'synthetic-admin';
+      viewer.isAdmin = true;
+
+      const data = JSON.parse(await getBody());
+      expect(data.recentEvents).toHaveLength(6);
+      expect(new Set(data.recentEvents.map((e: { userId: string }) => e.userId))).toEqual(
+        new Set([USER_A, USER_B])
+      );
+      expect(data.stats.totalActivations).toBe(6);
     });
   });
 

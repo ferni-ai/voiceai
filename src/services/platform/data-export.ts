@@ -25,7 +25,7 @@ import { getCognitiveMemoryService } from '../memory/cognitive-memory.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GDPR export uses generic shapes
 type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
-import { erasureSteps } from './erasure-step.js';
+import { erasureErrorCode, erasureSteps } from './erasure-step.js';
 import { EXPORT_CATEGORIES } from './export-categories.js';
 import { ExportBudget, ExportLimitError, serialisedBytes } from './bounded-reader.js';
 import { countUserRecords, exportUserRecords } from './user-records-export.js';
@@ -775,16 +775,11 @@ class DataExportService {
       deletionResults['gmail_send_grant'] = deletionResults['google_calendar_grant'] = true;
 
       // 1. Delete engagement data
-      try {
-        const store = await getEngagementStore();
-        await store.deleteUserData(userId);
-        deletionResults['engagement'] = true;
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete engagement data');
-        deletionResults['engagement'] = false;
-      }
+      await step('engagement', 'Failed to delete engagement data', async () => {
+        await (await getEngagementStore()).deleteUserData(userId);
+      });
 
-      // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed
+      // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed.
       const { eraseUserRecord } = await import('./erase-user-record.js');
       await eraseUserRecord(userId);
       try {
@@ -792,7 +787,7 @@ class DataExportService {
         await getDefaultStore().deleteProfile(userId);
         deletionResults['profile'] = true;
       } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete profile');
+        log.warn({ error: erasureErrorCode(e), userId }, 'Failed to delete profile');
         deletionResults['profile'] = false;
       }
 
@@ -827,49 +822,18 @@ class DataExportService {
         await deleteAnswerCardsForUser(userId);
       });
 
-      // 7. Delete conversation history (if method exists)
-      try {
-        const service = getConversationHistoryService();
-        // Type narrowing for optional deleteHistory method
-        interface WithDeleteHistory {
-          deleteHistory?: (userId: string) => Promise<void>;
-        }
-        const serviceWithDelete = service as unknown as WithDeleteHistory;
-        if (typeof serviceWithDelete.deleteHistory === 'function') {
-          await serviceWithDelete.deleteHistory(userId);
-          deletionResults['conversations'] = true;
-        } else {
-          log.debug({ userId }, 'Conversation history deleteHistory method not available');
-          deletionResults['conversations'] = false;
-        }
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete conversation history');
-        deletionResults['conversations'] = false;
-      }
-
-      // 8. Delete cognitive memories (if method exists)
-      try {
-        const memoryService = getCognitiveMemoryService();
-        interface WithDeleteAllMemories {
-          deleteAllMemories?: (userId: string) => Promise<void>;
-        }
-        const memoryWithDelete = memoryService as unknown as WithDeleteAllMemories;
-        if (typeof memoryWithDelete.deleteAllMemories === 'function') {
-          await memoryWithDelete.deleteAllMemories(userId);
-          deletionResults['cognitive'] = true;
-        } else {
-          log.debug({ userId }, 'Cognitive memory deleteAllMemories method not available');
-          deletionResults['cognitive'] = false;
-        }
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete cognitive memories');
-        deletionResults['cognitive'] = false;
-      }
+      // 7. Conversations are not deleted here: bogle_users/{uid}/conversations (timelines
+      // included) is erased with the user record in step 2.
+      // 8. Cognitive memory is not deleted here: it is an in-process Map of per-session state,
+      // with nothing persisted to erase.
 
       log.info({ userId, deletionResults }, '🗑️ User data deletion completed');
       return deletionResults;
     } catch (error) {
-      log.error({ error, userId, deletionResults }, 'Failed to delete all user data');
+      log.error(
+        { error: erasureErrorCode(error), userId, deletionResults },
+        'Failed to delete all user data'
+      );
       throw error;
     }
   }

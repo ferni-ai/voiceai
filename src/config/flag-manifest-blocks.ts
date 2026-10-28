@@ -81,6 +81,9 @@ export const FLAGS_STYLE_TO_TOOL = {
   // off: teammates unlock with conversations and streaks; on: every teammate is on every team (team-by-need-flag.ts)
   TEAM_BY_NEED: { default: 'off', owner: 'tools', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the hello reads a commitment's or topic's day with the deterministic resolver
+  // ("on the 30th", "in two weeks") instead of word lists (understanding/temporal, #2452)
+  TEMPORAL_RESOLVER: { default: 'off', owner: 'voice', kind: 'experiment' },
   THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
@@ -94,6 +97,14 @@ export const FLAGS_STYLE_TO_TOOL = {
   TOOLS_SAME_TURN: { default: 'off', owner: 'tools', kind: 'experiment' },
   // callUser places a real call to the verified phone; off keeps the honest stub
   TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // that call rings with the persona's live agent (LiveKit SIP), not Twilio <Say>
+  CALL_USER_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // every other call to the user's own verified phone rings live too (live-agent-call.ts)
+  CALL_PROACTIVE_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // callUser's reply says whether the persona or a recorded message rang (call-placed-reply.ts)
+  CALL_PLACED_HONEST_REPLY: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // an answered "call me" from the app ends the app call; the phone agent carries on (call-me-moves-to-phone.ts)
+  CALL_ME_MOVES_TO_PHONE: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_EMPTY_RESULT_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },

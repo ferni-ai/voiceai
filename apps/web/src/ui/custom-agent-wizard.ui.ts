@@ -38,6 +38,7 @@ import {
 } from '../services/custom-agent.service.js';
 import { openMemoryInput, toAddMemoryRequest } from './memory-input-modal.ui.js';
 import { effectiveVoiceOption, renderCloneVoiceOption, visibleAgentTypes, voiceCopyKey } from './voice-clone-entry.js';
+import { bindVoiceCards, ensureVoiceLibrary, renderVoiceLibrary, stopVoicePreview, VOICE_PICKER_CSS } from './voice-library-picker.js';
 
 const log = createLogger('CustomAgentWizard');
 
@@ -564,41 +565,18 @@ function renderVoiceCloneUI(): string {
  * Renders voice library UI
  */
 function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): string {
-  return `
-    <div class="voice-library-section">
-      <div class="voice-grid">
-        ${voices
-          .map(
-            (voice) => `
-          <button 
-            class="voice-card ${draft.selectedVoiceId === voice.id ? 'voice-card--selected' : ''}" 
-            data-voice-id="${voice.id}"
-          >
-            <div class="voice-avatar">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-              </svg>
-            </div>
-            <div class="voice-info">
-              <h4 class="voice-name">${voice.name}</h4>
-              <p class="voice-description">${t(voice.descriptionKey)}</p>
-              <div class="voice-tags">
-                ${voice.tags.map((tag) => `<span class="voice-tag">${t(`voiceLibrary.tags.${tag}`, tag)}</span>`).join('')}
-              </div>
-            </div>
-            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('accessibility.preview')}">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-              </svg>
-            </button>
-          </button>
-        `
-          )
-          .join('')}
-      </div>
-    </div>
-  `;
+  return renderVoiceLibrary(voices, draft.selectedVoiceId);
+}
+
+/** Wires the cards, and redraws them once the server's voice list loads (or fails). */
+function bindVoiceLibrary(root: ParentNode): void {
+  bindVoiceCards(root, handleVoiceSelect);
+  ensureVoiceLibrary(() => {
+    const content = wizardModal?.querySelector('#voice-content');
+    if (!content || effectiveVoiceOption(draft.voiceOption) !== 'library') return;
+    content.innerHTML = renderVoiceLibraryUI(getVoiceLibrary());
+    bindVoiceCards(content, handleVoiceSelect);
+  });
 }
 
 /**
@@ -938,9 +916,7 @@ function attachStepListeners(): void {
       content.querySelectorAll('.voice-option').forEach((btn) => {
         btn.addEventListener('click', handleVoiceOptionSelect);
       });
-      content.querySelectorAll('.voice-card').forEach((card) => {
-        card.addEventListener('click', handleVoiceSelect);
-      });
+      bindVoiceLibrary(content);
       const recordBtn = content.querySelector('#record-btn');
       recordBtn?.addEventListener('click', toggleRecording);
       const clearBtn = content.querySelector('#clear-recording');
@@ -1042,7 +1018,7 @@ function handleVoiceOptionSelect(e: Event): void {
   });
   btn.classList.add('voice-option--selected');
   
-  // Re-render voice content
+  stopVoicePreview();
   const voiceContent = wizardModal?.querySelector('#voice-content');
   if (voiceContent) {
     const voices = getVoiceLibrary();
@@ -1054,9 +1030,7 @@ function handleVoiceOptionSelect(e: Event): void {
       uploadInput?.addEventListener('change', handleAudioUpload);
     } else if (option === 'library') {
       voiceContent.innerHTML = renderVoiceLibraryUI(voices);
-      voiceContent.querySelectorAll('.voice-card').forEach((card) => {
-        card.addEventListener('click', handleVoiceSelect);
-      });
+      bindVoiceLibrary(voiceContent);
     } else {
       voiceContent.innerHTML = `<p class="voice-skip-message">${t('customAgentWizard.voiceOption.laterMessage')}</p>`;
     }
@@ -1065,20 +1039,9 @@ function handleVoiceOptionSelect(e: Event): void {
   soundUI.play('click');
 }
 
-function handleVoiceSelect(e: Event): void {
-  const card = (e.currentTarget as HTMLElement);
-  const voiceId = card.dataset.voiceId;
-  
-  if (voiceId) {
-    draft.selectedVoiceId = voiceId;
-    
-    wizardModal?.querySelectorAll('.voice-card').forEach((c) => {
-      c.classList.remove('voice-card--selected');
-    });
-    card.classList.add('voice-card--selected');
-    
-    soundUI.play('click');
-  }
+function handleVoiceSelect(voiceId: string): void {
+  draft.selectedVoiceId = voiceId;
+  soundUI.play('click');
 }
 
 function handleSliderChange(e: Event): void {
@@ -2020,6 +1983,8 @@ function getWizardStyles(): string {
       color: var(--color-text-on-accent);
     }
     
+    ${VOICE_PICKER_CSS}
+
     .voice-skip-message {
       text-align: center;
       color: var(--color-text-muted);

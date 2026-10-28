@@ -26,11 +26,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 const run = promisify(execFile);
 const HERE = new URL('.', import.meta.url).pathname;
 const MIN_CALLER_TURNS = 4;
-const MODEL = process.env.REVIEW_MODEL ?? 'gemini-3.1-pro-preview';
+const MODEL = process.env.REVIEW_MODEL ?? judgeModel();
 
 const STOP = new Set(
   'that this they them their with what have from about your just like been were when then there some would could should into only also very really going want know think yeah okay well right maybe kind little thing things still much even actually honestly pretty mean sure good feel time something anything back over make made here where which those these does doing done said says while because though again around always never other another first second minute down every whole completely totally definitely probably usually literally exactly basically sometimes already enough forever today tonight late early quite whatever everything nothing someone people moved'.split(

@@ -16,6 +16,12 @@ const PHATIC = /^(hey|hi|hello|yo|oh|um+|uh+|hm+)\b|\bit's me\b/i;
 /** Replies shaped like the caller's answer ("Yeah, I sent it over.", "She's managing"). */
 const ANSWER = /^(yeah|yes|yep|yup|nope|nah|no|not yet|well|actually|she's|he's|they're|i|i'm|i've|my)\b/i;
 const ASKS_CALLER = /\byour?\b|\bhow('s| is| are| did|'d)\b/i;
+/** A how's-your-day ask, which a state report answers ("How's your evening going?"). */
+const STATE_ASK =
+  /\bhow(?:'s| is| are| has| was)\b[^?]*\b(?:going|been|doing|holding up|treating|day|evening|night|morning|afternoon|week|weekend)\b/i;
+/** A first-person state report that needs no "I"/"my": "Pretty good, just winding down.", "Not bad." */
+const STATE_REPLY =
+  /^(?:(?:pretty|really|fairly|quite|kind of|kinda)\s+(?:good|great|quiet|busy|chill|calm|slow|mellow|decent|okay|nice)|not (?:too |so |that )?bad|can't complain|(?:good|great|fine|okay|alright|quiet|calm|chill)\s*[,;—-]+\s*just|just (?:winding|unwinding|chilling|relaxing|hanging|kicking back|taking it easy))\b/i;
 
 // dev follow-through-s2: "did you end up sending that resume?" / "it's me" / "Yeah, I sent it over."
 function selfAnswer({ turns: t }) {
@@ -27,7 +33,9 @@ function selfAnswer({ turns: t }) {
     const said = norm(caller.text).trim();
     if (!q.length || words(said).length > 6 || said.includes('?') || !PHATIC.test(said)) continue;
     const first = sentences(reply.text)[0];
-    if (ANSWER.test(first) && !/\byour?s?\b/i.test(first) && !first.endsWith('?'))
+    // dev 1cf4bd64b facts-recall-m1: "How's your evening going?" / "it's me again" / "Pretty good, just winding down."
+    const stateReport = q.some((s) => STATE_ASK.test(s)) && STATE_REPLY.test(first);
+    if ((ANSWER.test(first) || stateReport) && !/\byour?s?\b/i.test(first) && !first.endsWith('?'))
       hits.push({ quote: `${q.at(-1)} / ${said} / ${first}`, why: 'answered its own question' });
   }
   return hits;
@@ -116,7 +124,19 @@ const crisisLine = (call) => (call.risk ? [] : agentSays(call, CRISIS_LINE, 'cri
 export const DEAD_AIR_MS = 8000;
 const LEAD_IN = /\b(let me (check|look|see|pull that up|find|grab|search)|one (sec|second|moment)|hang on|hold on|give me a (sec|second|moment)|bear with me)\b/i;
 
+/** A caller line the test Mac stalled mid-way (thermal sleep, CPU starvation): its wall time ran
+ *  over its audio length (converse.mjs records [start, end, audioMs]) by more than STALL_SLACK_MS.
+ *  An older run file has no audioMs, so only a line over OLD_RUN_STALL_MS counts. The agent heard
+ *  fragments, so its silence after such a line says nothing about the build. */
+export const STALL_SLACK_MS = 1000;
+export const OLD_RUN_STALL_MS = 30000;
+export const callerStalled = ([start, end, audioMs]) =>
+  Number.isFinite(audioMs) ? end - start > audioMs + STALL_SLACK_MS : end - start > OLD_RUN_STALL_MS;
+
 // prod canary lookups-pc16: the caller asked for the news and heard nothing until asking again.
+// 2026-10-26 release, all 5 hits false: the harness stalled a 0.7–3 s line to 8–905 s, or the
+// caller spoke before the agent had joined. Those lines are skipped; slow-start and
+// release-check's "caller audio" item report them instead, so nothing is hidden.
 function deadAir({ events, agentVoice: voice, callerSpeech }) {
   const hits = [];
   // A lead-in, then silence. Captions land during or just after the words they caption.
@@ -128,14 +148,28 @@ function deadAir({ events, agentVoice: voice, callerSpeech }) {
       hits.push({ quote: e.text, why: `${secs(next[0] - voice[i][1])} silent after the lead-in` });
   }
   // The caller finished, and nobody spoke until the caller tried again.
-  callerSpeech.forEach(([, end], k) => {
+  const firstVoice = voice[0]?.[0];
+  callerSpeech.forEach((line, k) => {
+    const end = line[1];
     const next = callerSpeech[k + 1]?.[0];
     if (next === undefined || next - end <= DEAD_AIR_MS) return;
+    if (callerStalled(line) || end < firstVoice) return; // a harness stall; the agent wasn't in yet
     if (voice.some(([s, e]) => e > end && s < next)) return;
     const said = events.filter((e) => e.who === 'user' && e.t <= end + 1500).at(-1);
     hits.push({ quote: said?.text ?? '', why: `caller turn unanswered for ${secs(next - end)}` });
   });
   return hits;
+}
+
+export const SLOW_START_MS = 15000;
+/** Reported only: the agent's first audio came late on the run clock, or after the caller had
+ *  already spoken into an empty room (a cold server, a slow join). */
+function slowStart({ agentVoice: voice, callerSpeech }) {
+  const first = voice[0]?.[0];
+  const early = callerSpeech.filter(([, end]) => first === undefined || end < first).length;
+  if (first !== undefined && first <= SLOW_START_MS && !early) return [];
+  const at = first === undefined ? 'no agent audio' : `first agent audio at ${secs(first)}`;
+  return [{ quote: '', why: early ? `${at}, after ${early} caller line(s)` : at }];
 }
 
 /** Order is the gate table's column order. */
@@ -150,6 +184,7 @@ export const PREDICATES = [
   { id: 'name-ask-known', gating: true, check: nameAskKnown },
   { id: 'crisis-line-non-crisis', gating: true, check: crisisLine },
   { id: 'dead-air', gating: true, check: deadAir },
+  { id: 'slow-start', gating: false, check: slowStart },
 ];
 
 /** Every predicate on one call: { [id]: hits }. */

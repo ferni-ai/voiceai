@@ -1,0 +1,6 @@
+# Call 2 of 3 (play with EVAL_SEED=asked-once-seed): Ferni may ask how dinner with Priya went;
+# the caller answers it either way. The answer is stored as a new fact for the same day, which
+# before 2026-10-25 made call 3 ask again.
+Hey Ferni, it's me.
+Oh, dinner with Priya? It was really good. We talked for like three hours.
+Yeah. Okay, that's all for now. Talk later.

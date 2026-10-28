@@ -35,7 +35,7 @@ export function attachMindNote(
   const onTranscript = (event: unknown) => {
     const transcript = (event as { transcript?: string }).transcript;
     const note = transcript ? mind.noteFor(transcript) : null;
-    if (note) addRecallNote(agent, note);
+    if (note) addRecallNote(agent, note, transcript);
   };
   const onAgentState = (event: unknown) => {
     if ((event as { newState?: string }).newState === 'speaking') mind.newTurn();

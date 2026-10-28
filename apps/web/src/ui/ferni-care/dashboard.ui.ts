@@ -511,7 +511,7 @@ export class FerniCareDashboard {
     }
 
     return `
-      <div class="ferni-routines">
+      <div class="ferni-routines"><div class="ferni-routine__trigger" data-routines-note>${t('ferniCare.notRunningYet')}</div>
         ${this.workflows.map((wf) => this.renderRoutineCard(wf)).join('')}
         <button class="ferni-add-btn" data-action="create-routine">
           ${ICONS.plus}

@@ -790,12 +790,12 @@ export function importFlowProfile(profile: FlowProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all conversational flow state (for testing)
- */
+export const forgetFlowUser = (userId: string): boolean => userProfiles.delete(userId);
+
+/** Reset all conversational flow state (for testing) */
 export function resetConversationalFlow(): void {
   userProfiles.clear();
   sessionStates.clear();

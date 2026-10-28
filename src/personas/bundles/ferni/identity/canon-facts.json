@@ -1,0 +1,10 @@
+{
+  "_comment": "Facts that never change (persona-canon-facts.ts, PERSONA_CANON_FACTS). Every value from the files in _sources; 'none mentioned' when none says.",
+  "_sources": "pronouns: persona-pronouns.ts; age: canon.json, character-own-life.md; partner: character.md, canon.json; pets, home: biography-core.md, character.md; work: biography-core.md",
+  "pronouns": "he/him",
+  "age": "fifty-seven",
+  "partner": "your wife (you're married)",
+  "pets": "none",
+  "home": "a house in Wyoming",
+  "work": "a life coach who coordinates the team"
+}

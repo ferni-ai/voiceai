@@ -16,6 +16,7 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 import { getUserTips as getPersistentTips, saveTip, type TipRecord } from './persistence.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { userHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'TipJar' });
 
@@ -63,7 +64,8 @@ export async function create(params: {
     id: `tip_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
     userId,
     amountCents,
-    message,
+    // MINOR_CARE, decided at creation: a held caller's note is never kept, even after the hold
+    ...(userHeld(userId) ? { held: true } : { message }),
     createdAt: new Date(),
     status: 'pending',
   };
@@ -77,6 +79,7 @@ export async function create(params: {
     message: tip.message,
     status: tip.status,
     createdAt: tip.createdAt.toISOString(),
+    ...(tip.held ? { held: true } : {}),
   };
   await saveTip(userId, tipRecord);
 
@@ -95,13 +98,14 @@ export async function complete(tipId: string, stripePaymentId: string): Promise<
     throw new Error('Tip not found');
   }
 
+  // A webhook retry completes the same tip again: count it once
+  if (tip.status !== 'completed') {
+    totalTipsCents += tip.amountCents;
+    tipCount++;
+  }
   tip.status = 'completed';
   tip.stripePaymentId = stripePaymentId;
-  tip.completedAt = new Date();
-
-  // Update totals
-  totalTipsCents += tip.amountCents;
-  tipCount++;
+  tip.completedAt ??= new Date();
 
   // Persist the update
   const tipRecord: TipRecord = {
@@ -112,6 +116,7 @@ export async function complete(tipId: string, stripePaymentId: string): Promise<
     stripePaymentId: tip.stripePaymentId,
     createdAt: tip.createdAt.toISOString(),
     completedAt: tip.completedAt.toISOString(),
+    ...(tip.held ? { held: true } : {}),
   };
   await saveTip(tip.userId, tipRecord);
 

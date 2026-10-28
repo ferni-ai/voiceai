@@ -27,6 +27,8 @@ import { characterSheet } from './character-spark.js';
 import { withHonesty } from './ai-honesty.js';
 import { isFtisEnabled } from '../../config/tool-config.js'; // centralized FTIS mode check
 import { withReflection } from './troubles-talk.js';
+import { withCanonFacts } from '../../personas/persona-canon-facts.js';
+import { honestVariant } from '../shared/honest-actions.js';
 
 const log = createLogger({ module: 'PromptLoader' });
 
@@ -429,14 +431,9 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
  * Load tool usage guidance (conceptual knowledge about WHEN to use tools).
  *
  * This is SEPARATE from JSON format instructions and should be loaded for ALL providers,
- * including those with native function calling (OpenAI Realtime).
- *
- * Contains:
- * - Handoff triggers (which topic → which persona)
- * - Coordinator awareness matrix
- * - Phone call mechanics
- * - Game triggers
- * - Triage vs handoff logic
+ * including those with native function calling (OpenAI Realtime). Handoff triggers, phone
+ * calls, games and triage, plus shared-capabilities.md. PROMPT_HONEST_ACTIONS=on reads
+ * each file's .honest.md sibling instead (shared/honest-actions.ts).
  *
  * @param bundleDir - The persona bundle directory
  * @returns Tool usage guidance content, or null if provider doesn't need it
@@ -454,8 +451,9 @@ async function loadToolUsageGuidance(bundleDir: string): Promise<string | null> 
   }
 
   // Plus what every persona can do (music, timers, reminders, weather): dev call 2026-10-12
-  const own = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
-  const guidance = [own, await loadSharedFile('shared-capabilities.md')].filter(Boolean);
+  const own = await loadFile(bundleDir, honestVariant('identity/tool-usage-guidance.md'));
+  const shared = await loadSharedFile(honestVariant('shared-capabilities.md'));
+  const guidance = [own, shared].filter(Boolean);
   log.debug({ bundleDir, own: !!own }, `${provider.getLogPrefix()} Loaded tool usage guidance`);
   return guidance.length ? guidance.join('\n\n') : null;
 }
@@ -493,11 +491,9 @@ export function promptMode(env: Record<string, string | undefined> = process.env
 }
 
 /**
- * Load and assemble a persona's system prompt from modular files.
- *
- * @param personaId - The persona ID (e.g., 'ferni', 'maya-santos', 'alex')
+ * Load and assemble a persona's system prompt from modular files, ending with
+ * its canon facts line when PERSONA_CANON_FACTS is on (persona-canon-facts.ts).
  * @param mode - 'voice_agent' for lean prompt, 'full_context' for rich prompt
- * @returns The assembled system prompt string
  */
 export async function loadSystemPrompt(
   personaId: string,
@@ -505,9 +501,10 @@ export async function loadSystemPrompt(
 ): Promise<string> {
   if (promptMode() === 'character' && mode === 'voice_agent') {
     const character = await loadCharacterPrompt(personaId);
-    if (character) return adaptSpeechMarkup(withReflection(character));
+    if (character) return withCanonFacts(personaId, adaptSpeechMarkup(withReflection(character)));
   }
-  return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
+  const prompt = adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
+  return withCanonFacts(personaId, prompt);
 }
 
 /** identity/character.md (+ spark and own life, character-spark.ts) and tool-usage guidance, or null. */

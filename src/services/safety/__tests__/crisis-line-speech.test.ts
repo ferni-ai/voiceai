@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CRISIS_LINE_SPOKEN,
   crisisLineSpeechTransform,
+  offersCrisisLine,
   speakCrisisLine,
 } from '../crisis-line-speech.js';
 
@@ -109,5 +110,43 @@ describe('crisisLineSpeechTransform', () => {
   it('with SPEAK_988_DIGITS off passes text through unchanged', async () => {
     const chunks = ['Call ninety-', 'eight-eight or text 988.'];
     expect((await stream(chunks, { SPEAK_988_DIGITS: 'off' })).join('')).toBe(chunks.join(''));
+  });
+});
+
+describe('offersCrisisLine (a finished transcript, written forms kept)', () => {
+  it.each([
+    'You can call or text 988, any time.',
+    'the 988 Suicide & Crisis Lifeline.',
+    'You can call or text 9-8-8 any time',
+    'You can call 9 8 8 whenever you need',
+    'You can call or text nine eight eight any time',
+    'Nine-eight-eight is there around the clock.',
+    'please call ninety-eight-eight tonight',
+    'nine eighty-eight is free',
+    'the Suicide and Crisis Lifeline',
+    'There is a crisis line you can call',
+    'the Crisis Text Line is there too',
+    'You can call the suicide hotline any time.',
+    "There's a crisis hotline you can call.",
+    'You can call nine, eight, eight.',
+    'text HOME to 741741',
+    'text home to 741-741',
+    'text HOME to 7 4 1 7 4 1',
+    'text home to seven four one seven four one',
+    '988',
+  ])('a crisis line: %s', (line) => {
+    expect(offersCrisisLine(line)).toBe(true);
+  });
+
+  it.each([
+    'That trip cost $988 all in.',
+    'I watched a film from 1988 last night.',
+    'Order 98812 shipped today.',
+    'Text home to say you are running late.',
+    'Your crisis of confidence will pass.',
+    'The suicide rate in the study fell.',
+    'How was the week?',
+  ])('not a crisis line: %s', (line) => {
+    expect(offersCrisisLine(line)).toBe(false);
   });
 });

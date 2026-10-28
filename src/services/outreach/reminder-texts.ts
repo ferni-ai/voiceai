@@ -28,12 +28,15 @@ import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { extendReminderPromise } from '../superhuman/semantic-intelligence/promise-keeper.js';
 import type { ScheduledReminder } from '../scheduling/reminder-scheduler.js';
 import {
+  installReminderOwnNumber,
   installReminderTextGuard,
   type GuardedTextOutcome,
 } from '../scheduling/reminder-text-guard.js';
 import { toE164 } from './checkin-replies.js';
+import { mayReachForOwner } from '../messaging/consent-reach.js';
 import {
   defaultTextDeps,
+  isOwnVerifiedPhone,
   resolveCheckinPhone,
   sendGuardedText,
   sendOnBehalfText,
@@ -120,7 +123,13 @@ export async function guardReminderText(
     const now = deps.text.now();
     const morning = quietHoursEnd(now, r.timezone);
     if (morning) return holdUntil(r, morning);
-    const t = { userId: r.userId, body: reminderText(r), kind: 'reminder' as const };
+    // A reminder they set: it comes through with "Ferni can reach out" off (Seth, 2026-10-25)
+    const t = {
+      userId: r.userId,
+      body: reminderText(r),
+      kind: 'reminder' as const,
+      personSet: true,
+    };
     const outcome = await deps.sendOwn(
       { ...t, refId: r.id, minGapMs: REMINDER_TEXT_GAP_MS },
       deps.text
@@ -149,4 +158,7 @@ export async function guardReminderText(
 /** Install the guarded sender in this process; deliverReminder uses it when REMINDER_SMS_DEFAULT is on. */
 export function installReminderTexts(): void {
   installReminderTextGuard((r) => guardReminderText(r));
+  installReminderOwnNumber(async (userId, phone, channel) =>
+    mayReachForOwner(userId, phone, channel, isOwnVerifiedPhone)
+  );
 }
