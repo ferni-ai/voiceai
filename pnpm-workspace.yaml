@@ -36,6 +36,7 @@ overrides:
   '@google-cloud/firestore': '8.0.0'
   'fast-xml-parser@>=4 <4.5.4': '4.5.7'
   'websocket-driver@<0.7.5': '0.7.5'
+  're2js@>=2.2.0 <2.8.7': '^2.8.7'
   'tar@>=7 <7.5.21': '7.5.22'
   '@fastify/busboy@>=3 <4': '^3.2.1'
   '@grpc/grpc-js@>=1 <2': '^1.14.5'
