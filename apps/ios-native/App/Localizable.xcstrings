@@ -3329,6 +3329,70 @@
         }
       }
     },
+    "How's %@ going?": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "How's %@ going?"
+          }
+        }
+      }
+    },
     "I agree, let's talk": {
       "localizations": {
         "ar": {
@@ -3517,6 +3581,70 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "I'm here whenever you want to talk again."
+          }
+        }
+      }
+    },
+    "I've been thinking about %@.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "I've been thinking about %@."
           }
         }
       }
@@ -3901,6 +4029,70 @@
           "stringUnit": {
             "state": "translated",
             "value": "較多"
+          }
+        }
+      }
+    },
+    "Mute call": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Mute call"
           }
         }
       }
@@ -5821,6 +6013,70 @@
           "stringUnit": {
             "state": "translated",
             "value": "聊聊"
+          }
+        }
+      }
+    },
+    "Talk about this": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Talk about this"
           }
         }
       }

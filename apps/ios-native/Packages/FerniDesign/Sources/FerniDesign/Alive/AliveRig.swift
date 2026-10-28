@@ -1,8 +1,9 @@
 import Foundation
 import simd
 
-/// Ferni's body over time: the alive prototype's frame loop, minus the
-/// web-only bits (pointer, firefly, particles, WebAudio). Every frame it
+/// Ferni's body over time: the alive prototype's frame loop, including the
+/// touch, tears, firefly and particles (drawn by the view's overlay), minus
+/// WebAudio (the app plays the cues). Every frame it
 /// turns the expression, the call state and Ferni's real voice level into
 /// spring targets, steps the springs, lays hand-keyed moments and the family
 /// table on top, and returns the shader's uniforms. Deterministic for a seed,
@@ -19,6 +20,8 @@ public final class AliveRig {
     /// Hold every pose exactly at its target (still images, tests).
     public var still = false
     public var dark = false
+    /// Reading along (the consent sheet): eyes down, slow blinks.
+    public var reading = false
 
     // MARK: State
 
@@ -126,13 +129,132 @@ public final class AliveRig {
 
     func flash(_ id: String, seconds: Double) { overlay = (id, time + seconds * tempo) }
 
+    // MARK: Touch, tears, the firefly and particles
+
+    /// Something the prototype drew around Ferni, for the view's overlay. In
+    /// Ferni radii from his centre, y up.
+    public struct Particle: Equatable, Sendable {
+        public enum Kind: Sendable { case sparkle, heart, firefly }
+        public var kind: Kind
+        public var x: Double, y: Double, size: Double, alpha: Double
+    }
+
+    public private(set) var particles: [Particle] = []
+
+    private struct Spark { var kind: Particle.Kind; var x, y, vx, vy, size, born, life: Double }
+    private var sparks: [Spark] = []
+    private var pending: [KeyedCue] = []
+    private var pokeDir = SIMD3<Double>(0, 0.3, 0.95)
+    private var pokeTimes: [Double] = []
+    private var lastTouchCue = -10.0
+    private var quietSince = 0.0
+    private var fireflyStart: Double?, fireflyDone = false
+    private var nextSparkle = 0.0
+    private var tearT = 0.0, tearA = 0.0
+
+    /// A finger on Ferni at `point`, in Ferni radii from his centre (y up):
+    /// a jelly dent there, a glance at the finger, a small flash of delight,
+    /// and one soft tap in the hand at most every 2 s. After five in ten
+    /// seconds it's only a calm "I'm here" look. Nothing is counted or kept.
+    public func poke(at point: SIMD2<Double>) {
+        let len = simd_length(point)
+        let p = len > 1 ? point / len : point
+        quietSince = time
+        if fireflyStart != nil { fireflyStart = nil; fireflyDone = true }
+        pokeTimes = pokeTimes.filter { time - $0 < 10 } + [time]
+        pokeDir = simd_normalize(SIMD3(p.x, p.y, max((1 - simd_length_squared(p)).squareRoot(), 0.25)))
+        gazeTarget = SIMD2(clamp(p.x, -0.85, 0.85), clamp(p.y, -0.7, 0.7))
+        nextSaccade = time + 1.4
+        if reduceMotion {
+            scheduleBlink(at: time)
+        } else if pokeTimes.count >= 5 {
+            flash("content", seconds: 1.6)
+            scheduleBlink(at: time + 0.15, slow: true)
+            self[.poke].v += 2.5
+        } else {
+            flash(pokeTimes.count % 2 == 1 ? "happy" : "surprised", seconds: 0.7)
+            self[.poke].v += 9
+            self[.squash].v += 1.2
+        }
+        if time - lastTouchCue >= 2 {
+            lastTouchCue = time
+            pending.append(.touch)
+        }
+    }
+
+    private func stepTears(_ face: Face, dt: Double) -> SIMD4<Float> {
+        let crying = face.effect == "tears"
+        tearA += ((crying ? 1 : 0) - tearA) * min(1, dt * 3)
+        if tearA > 0.01 { tearT += dt * (reduceMotion ? 0.5 : 1) }
+        let left = (tearT / 2.6).truncatingRemainder(dividingBy: 1), right = ((tearT + 1.3) / 2.6).truncatingRemainder(dividingBy: 1)
+        return SIMD4(Float(left), Float(right), Float(tearA), Float(tearA))
+    }
+
+    /// Once a session, after 20 s at rest with no touch, a firefly wanders by
+    /// for seven seconds and Ferni watches it.
+    private func stepFirefly() -> SIMD4<Float> {
+        if activity != .idle || reduceMotion {
+            if fireflyStart != nil { fireflyStart = nil; fireflyDone = true }
+            quietSince = max(quietSince, time)
+            return .zero
+        }
+        if fireflyStart == nil, !fireflyDone, time - quietSince >= 20 { fireflyStart = time }
+        guard let start = fireflyStart else { return .zero }
+        let t = time - start, life = 7.0
+        if t > life { fireflyStart = nil; fireflyDone = true; return .zero }
+        let x = -1.9 + t / life * 3.8 + 0.25 * sin(t * 2.3)
+        let y = 0.75 + 0.35 * sin(t * 1.7) + 0.1 * sin(t * 5.1)
+        let w = min(1, t, life - t) * (0.75 + 0.25 * sin(t * 9))
+        gazeTarget = SIMD2(clamp(x / 1.6, -0.85, 0.85), clamp((y - 0.05) / 1.25, -0.7, 0.7))
+        nextSaccade = time + 0.5
+        sparks.append(Spark(kind: .firefly, x: x, y: y, vx: 0, vy: 0, size: 0.09, born: time, life: 0))
+        return SIMD4(Float(x), Float(y), 0.9, Float(w * 0.8))
+    }
+
+    /// Sparkles and hearts for the cues that ask for them, and a few sparkles
+    /// while the expression itself sparkles. None under Reduce Motion.
+    private func stepParticles(_ face: Face, dt: Double) {
+        sparks.removeAll { $0.kind == .firefly || time - $0.born > $0.life }
+        guard !reduceMotion else { sparks.removeAll(); particles = []; return }
+        func burst(_ kind: Particle.Kind, _ n: Int) {
+            for _ in 0..<n {
+                let a = rng.range(0, 2 * .pi), r = rng.range(1.05, 1.3)
+                if kind == .heart {
+                    sparks.append(Spark(kind: .heart, x: rng.range(-0.7, 0.7), y: rng.range(0.6, 1.0), vx: rng.range(-0.08, 0.08),
+                                        vy: rng.range(0.35, 0.55), size: rng.range(0.14, 0.2), born: time, life: 1.6))
+                } else {
+                    sparks.append(Spark(kind: .sparkle, x: cos(a) * r, y: sin(a) * r, vx: cos(a) * 0.25, vy: sin(a) * 0.25,
+                                        size: rng.range(0.08, 0.14), born: time, life: rng.range(0.7, 1.0)))
+                }
+            }
+        }
+        for cue in cues {
+            if cue == .sparkle { burst(.sparkle, 6) }
+            if cue == .heart { burst(.heart, 3) }
+        }
+        if face.effect == "sparkle", overlay == nil, time >= nextSparkle {
+            burst(.sparkle, 1)
+            nextSparkle = time + 0.5
+        }
+        if sparks.count > 24 { sparks.removeFirst(sparks.count - 24) }
+        for i in sparks.indices where sparks[i].kind != .firefly {
+            sparks[i].x += sparks[i].vx * dt
+            sparks[i].y += sparks[i].vy * dt
+        }
+        particles = sparks.map { s in
+            let alpha = s.kind == .firefly ? 1 : sin(.pi * clamp((time - s.born) / s.life, 0, 1))
+            return Particle(kind: s.kind, x: s.x, y: s.y, size: s.size, alpha: alpha)
+        }
+    }
+
     // MARK: Frame
 
     /// Advances to `now` (seconds since the view woke) and returns the uniforms.
     public func frame(at now: Double) -> AliveUniforms {
         let dt = min(0.05, max(0, now - time))
         time = now
-        cues.removeAll()
+        cues = pending
+        pending.removeAll()
         let m = motion
         let face = Face.of(faceID())
         apply(face, m: m)
@@ -159,7 +281,8 @@ public final class AliveRig {
         let breathing = still ? 0 : breath(face) * m
         self[.squash].t = face.squash + breathing + env * 0.04 * m
         self[.posY].t = face.posY + (still ? 0 : sin(now * 1.05) * 0.03 * m) + env * 0.02 * m
-        self[.glow].t = face.glow + env * 0.45
+        // Connecting: he leans in, his light rising, eyes up for whoever is coming.
+        self[.glow].t = face.glow + env * 0.45 + (activity == .arriving ? 0.3 * m : 0)
         self[.posX].t = 0
         self[.ringY].t = self[.posY].x
         self[.ringS].t = 1
@@ -172,7 +295,11 @@ public final class AliveRig {
         applyKeyed(dt)
         if still { for i in s.indices { s[i].x = s[i].t; s[i].v = 0 } }
         if colourT < 1 { colourT = min(1, colourT + dt / 0.55) }
-        return uniforms(now)
+        var u = uniforms(now)
+        u.fly = stepFirefly()
+        u.tear = stepTears(face, dt: dt)
+        stepParticles(face, dt: dt)
+        return u
     }
 
     func faceID() -> String {
@@ -217,6 +344,8 @@ public final class AliveRig {
             if simd_distance(gazeTarget, prev) > 0.25, rng.unit() < 0.35 { scheduleBlink(at: time + 0.01) }
             nextSaccade = time + rng.range(1.1, 3.4)
         }
+        if reading, focus == nil { gazeTarget.y = min(gazeTarget.y, f.gy - 0.4) }
+        if activity == .arriving, focus == nil { gazeTarget.y = max(gazeTarget.y, 0.4) }
         let drift = still ? .zero : SIMD2(sin(time * .pi * 2 / 8) * 0.04, sin(time * .pi * 2 / 8 * 1.3 + 1) * 0.03)
         self[.gx].t = clamp(gazeTarget.x + drift.x, -0.85, 0.85) * max(m, 0.5)
         self[.gy].t = clamp(gazeTarget.y + drift.y, -0.7, 0.7) * max(m, 0.5)
@@ -307,7 +436,7 @@ public final class AliveRig {
             blink = blinkFrom + (seg.to - blinkFrom) * eased
             if u >= 1 { blinkSeg = nil }
         } else if !still, time >= nextBlink {
-            scheduleBlink(at: time, slow: expression == "sleepy" || expression == "drowsy")
+            scheduleBlink(at: time, slow: reading || expression == "sleepy" || expression == "drowsy")
         }
     }
 
@@ -353,7 +482,7 @@ public final class AliveRig {
         u.lids = SIMD4(lid(self[.topL].x + lidGaze + (1 - self[.topL].x) * blink),
                        lid(self[.topR].x + lidGaze + (1 - self[.topR].x) * blink),
                        lid(self[.botL].x + blink * 0.15 + env * 0.2), lid(self[.botR].x + blink * 0.15 + env * 0.2))
-        u.poke.w = Float(clamp(self[.poke].x, -0.6, 0.6))
+        u.poke = SIMD4(SIMD3<Float>(pokeDir), Float(clamp(self[.poke].x, -0.6, 0.6)))
         if let guest = guestPersona {
             u.guest = SIMD4(Float(g.x.x), Float(g.y.x), Float(g.s.x), 1)
             u.guestEye = SIMD4(Float(g.gx.x), Float(g.gy.x), Float(clamp(1 - abs(time - g.blinkAt - 0.075) / 0.075, 0, 1)),

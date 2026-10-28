@@ -47,6 +47,8 @@ targets:
       - path: App
         excludes:
           - Info.plist
+          # Kept current by scripts/build-string-catalog.py, not built in for 1.0.
+          - Localizable.xcstrings
       - path: Shared
     dependencies:
       - package: FerniKit
@@ -70,8 +72,14 @@ targets:
         # UISceneConfigurations: {CPTemplateApplicationSceneSessionRoleApplication:
         # [{UISceneClassName: CPTemplateApplicationScene,
         #   UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate}]}.
-        # The web app's locales (App/Localizable.xcstrings, scripts/build-string-catalog.py).
-        CFBundleLocalizations: [en, en-GB, ar, de, es, fr, he, ja, ko, zh-Hans, zh-Hant]
+        # 1.0 is English only (delight gap 9): most of the catalog was English
+        # placeholders. Add languages back here, and stop excluding the catalog
+        # below, once real translations exist.
+        CFBundleLocalizations: [en]
+        # ferniapp:// only answers the web's Apple Health link with a note (App/DeepLink.swift).
+        CFBundleURLTypes:
+          - CFBundleURLName: com.sethdford.ferni
+            CFBundleURLSchemes: [ferniapp]
         # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
         SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false
@@ -80,8 +88,9 @@ targets:
         CADisableMinimumFrameDurationOnPhone: true
         LSRequiresIPhoneOS: true
         UILaunchScreen:
+          # The room's colour only: Ferni is drawn live, and a logo here would
+          # flash before him (HIG, Launching; delight gap 3).
           UIColorName: LaunchBackground
-          UIImageName: LaunchLogo
         # One window: a call is one session, and a second iPad window would share it.
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

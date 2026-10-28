@@ -172,10 +172,13 @@ describe('no decryption oracle', () => {
     expect(state.docs.size).toBe(0);
   });
 
-  it('a route-sealed doc is opened, never decrypted, even if it holds an enc_ value', async () => {
-    const ciphertext = await encryptSensitive('victim-secret');
-    state.docs.set('bogle_users/uid-A/smart_home/lifx', { ...sealTokens({ token: ciphertext }) });
-    expect(await routes.getCredentials('uid-A', 'lifx')).toEqual({ token: ciphertext });
+  it('a route-sealed doc decrypts only enc_ values bound to its own user and field', async () => {
+    const victim = await encryptSensitive(
+      'victim-secret',
+      creds.smartHomeAad('victim', 'lifx', 'token')
+    );
+    state.docs.set('bogle_users/uid-A/smart_home/lifx', { ...sealTokens({ token: victim }) });
+    expect(await routes.getCredentials('uid-A', 'lifx')).toBeNull();
   });
 
   it('ciphertext is bound to its user and field: replayed into another doc it does not open', async () => {
