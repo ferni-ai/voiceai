@@ -155,9 +155,8 @@ export async function installToolRetrieval(
 }
 
 /**
- * Turn understanding (TURN_UNDERSTANDING=shadow): a small model reads the caller's turn while
- * they talk; when Ferni starts replying, one TURN_UNDERSTANDING record logs its answer next to
- * what the regexes decided. No transcript text is logged. Null when off.
+ * Turn understanding (TURN_UNDERSTANDING=shadow): a small model reads the caller's turn; when Ferni
+ * starts replying, one record logs its answer beside the regexes. No transcript text. Null when off.
  */
 export async function installTurnUnderstanding(
   session: Session,
