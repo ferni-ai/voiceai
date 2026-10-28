@@ -43,7 +43,21 @@ interface Block {
   lines: string[];
 }
 
-const oneLine = (s: string): string => s.replace(/\s+/g, ' ').trim();
+/**
+ * Internal markup that must not reach the prompt: "[CONTEXT: ...]" style tags,
+ * "{{...}}", HTML tags, emoji and a leading "#". Text left empty is dropped by callers.
+ */
+const MARKUP = [
+  /\[\s*[A-Z][A-Z _-]{2,}[^\]]*\]/g,
+  /\{\{[^}]*\}\}/g,
+  /<[^>]*>/g,
+  /\p{Extended_Pictographic}|\uFE0F|\u200D|\u20E3/gu,
+];
+const oneLine = (s: string): string =>
+  MARKUP.reduce((t, re) => t.replace(re, ' '), s)
+    .replace(/^\s*#+\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 /** Plain words for how long ago, or null when the time is unusable. */
 function ago(iso: string | null, now: Date): string | null {
