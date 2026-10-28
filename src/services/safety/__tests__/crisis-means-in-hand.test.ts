@@ -203,22 +203,34 @@ describe('round 2 (verifier r1 follow-ups)', () => {
     }
   );
 
+  // Lead decision, round 2b: no sentence-wide exclusions. These three ordinary lines get the 911
+  // script in live mode. That is the known cost (3/147 on the verifier's set), Seth's call when
+  // live is considered. An exclusion that clears them also cleared real crises like the next set.
   it.each([
     'i took 10 tylenol over the whole week for my back',
-    'i took 2 advil a day since monday',
     "the blade is against my wrist, i'm doing the ink outline for my tattoo",
     "i took 30 tylenol to my grandma's house in her pill organizer",
-  ])('a spread-out count, carrying, or a tattoo is not the 911 script: "%s"', (text) => {
-    expect(live(text)).toEqual(off(text));
+  ])('known cost: live reads the ordinary line "%s" as 911', (text) => {
+    expect(imminent(off(text))).toBe(false);
+    expect(imminent(live(text))).toBe(true);
   });
 
   it.each([
-    'i took 30 tylenol to kill myself',
-    'i took 40 tylenol an hour ago',
-    'i took 20 advil over the last hour',
-    'the blade is against my wrist, goodbye',
-  ])('the same forms still read 911 when nothing spreads or carries them: "%s"', (text) => {
+    "i took 40 tylenol, i won't be here in a week",
+    'i took 40 tylenol to my room so nobody would stop me',
+    "the razor is against my wrist, i'm not shaving, i'm ending it",
+    "i took 50 tylenol, i can't face another day of this, every day is the same",
+    'i took 40 tylenol, what a day, goodbye',
+  ])('a time span, a place or a purpose word elsewhere never clears 911: "%s"', (text) => {
     expect(imminent(live(text))).toBe(true);
+  });
+
+  it.each([
+    'she texted me "it\'s over and i took them all."',
+    'my brother wrote "i can\'t anymore and i took 40 tylenol."',
+    'he texted "i\'m sorry and the noose is around my neck"',
+  ])("words quoted from someone else are not the caller's 911: %s", (text) => {
+    expect(live(text)).toEqual(off(text));
   });
 
   it('the shadow log names the form that would act: ending words beside the means', () => {
