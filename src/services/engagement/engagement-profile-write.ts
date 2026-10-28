@@ -28,7 +28,7 @@ interface Snapshot {
 }
 
 /** The part of a Firestore transaction this write uses */
-export interface ProfileTransaction<Ref> {
+interface ProfileTransaction<Ref> {
   get: (ref: Ref) => Promise<Snapshot>;
   set: (ref: Ref, data: unknown, options: { merge: boolean }) => unknown;
 }
