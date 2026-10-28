@@ -1,3 +1,4 @@
+import FerniKit
 import XCTest
 @testable import Ferni
 
@@ -23,19 +24,33 @@ final class NextDayTests: XCTestCase {
         XCTAssertFalse(r.wake)
     }
 
-    /// The name only when the person said it (the server sends it only then).
-    func testTheGreetingUsesTheNameWhenThereIsOne() {
-        XCTAssertEqual(Greeting.headline(hour: 9, firstVisit: false, name: "Sam"), "Good morning, Sam.")
-        XCTAssertEqual(Greeting.headline(hour: 9, firstVisit: false, name: nil), "Good morning.")
-        XCTAssertEqual(Greeting.headline(hour: 2, firstVisit: false, name: "Sam"), "Up late, Sam? I'm here.")
-        XCTAssertEqual(Greeting.headline(hour: 9, firstVisit: true, name: "Sam"), "Hi, I'm Ferni.")
+    private func words(_ home: HomeLineStore.Home?, ended: Bool = false, hour: Int = 9, hasTalked: Bool = true) -> [String] {
+        let w = RestingWords.words(home: home, ended: ended, hour: hour, hasTalked: hasTalked)
+        return [w.headline, w.detail]
     }
 
-    /// Home's thread from last time replaces the generic line; the ended
-    /// call's goodbye still wins right after a call.
-    func testHomesLineWhenThereIsOne() {
-        XCTAssertEqual(RestingWords.detail(ended: false, homeLine: "How did the interview go?"), "How did the interview go?")
-        XCTAssertEqual(RestingWords.detail(ended: false, homeLine: nil), "Whenever you're ready, I'm here.")
-        XCTAssertEqual(RestingWords.detail(ended: true, homeLine: "How did the interview go?"), "I'm here whenever you want to talk again.")
+    /// The follow-up is in the person's own words; Ferni frames it as a question.
+    func testAFollowUpBecomesFernisQuestion() {
+        let home = HomeLineStore.Home(greeting: .followUp(text: "the interview on Thursday", topicID: "9f2c"), note: nil)
+        XCTAssertEqual(words(home), ["Good morning.", "How's the interview on Thursday going?"])
+    }
+
+    func testTimeOfDayAndNothingUseTheClockAndTheOpenInvitation() {
+        let home = HomeLineStore.Home(greeting: .timeOfDay, note: nil)
+        XCTAssertEqual(words(home, hour: 20), ["Good evening.", "Whenever you're ready, I'm here."])
+        XCTAssertEqual(words(nil, hour: 20), ["Good evening.", "Whenever you're ready, I'm here."])
+    }
+
+    /// The server knows about calls on other devices: its firstVisit (or not)
+    /// wins; without an answer, this device's own history decides.
+    func testFirstVisitFollowsTheServerWhenItAnswers() {
+        XCTAssertEqual(words(.init(greeting: .firstVisit, note: nil), hasTalked: true)[0], "Hi, I'm Ferni.")
+        XCTAssertEqual(words(.init(greeting: .timeOfDay, note: nil), hasTalked: false)[0], "Good morning.")
+        XCTAssertEqual(words(nil, hasTalked: false)[0], "Hi, I'm Ferni.")
+    }
+
+    func testRightAfterACallItsTheGoodbye() {
+        let home = HomeLineStore.Home(greeting: .followUp(text: "the move", topicID: nil), note: nil)
+        XCTAssertEqual(words(home, ended: true), ["Talk soon.", "I'm here whenever you want to talk again."])
     }
 }

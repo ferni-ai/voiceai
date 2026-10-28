@@ -16,7 +16,7 @@
 
 import { diag } from '../../../services/diagnostic-logger.js';
 import { flagOn } from '../../../config/env-flag.js';
-import { isSharedPlaceholderId } from '../../../utils/synthetic-user.js';
+import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
@@ -382,8 +382,10 @@ export async function buildHumanTransferInjections(
 
     const signals = humanTransfer.detectCrisisSignals(userText);
 
-    if (userId && signals.severity > 0) {
-      logCrisisSignal(userId, signals, userText, sessionId).catch((err: Error) => {
+    // PRIVACY: under the caller's own id or the session's anon: id; never a shared 'unknown'
+    if (signals.severity > 0) {
+      const caller = callerIdFor(userId, sessionId);
+      logCrisisSignal(caller, signals, userText, sessionId).catch((err: Error) => {
         diag.debug('Crisis signal logging failed', { error: String(err) });
       });
     }
@@ -436,18 +438,20 @@ async function withinBudget<T>(work: Promise<T>, fallback: T, ms: number): Promi
 
 /**
  * Build crisis history context injection for users who had recent crisis.
- * PRIVACY: no id or a placeholder id reads nothing; a shared bucket holds other callers' crises.
+ * PRIVACY: read as the caller (callerIdFor, like the writer): a member's own id, else
+ * this session's anon: id. Never a shared bucket, which holds other callers' crises.
  */
 export async function buildCrisisHistoryInjection(
-  userId: string | undefined
+  userId: string | undefined,
+  sessionId?: string
 ): Promise<ContextInjection | null> {
-  if (userId === undefined || isSharedPlaceholderId(userId)) return null;
   try {
     const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
 
     // CALL_START_TRIM: a slow read no longer holds the turn; it keeps loading and
     // the next turn uses it (hadRecentCrisis keeps the answer for a minute).
-    const check = hadRecentCrisis(userId, 7);
+    const caller = callerIdFor(userId, sessionId);
+    const check = hadRecentCrisis(caller, 7);
     const { hasCrisis, lastCrisis } = flagOn('CALL_START_TRIM')
       ? await withinBudget(check, { hasCrisis: false }, CRISIS_READ_BUDGET_MS)
       : await check;
@@ -477,7 +481,7 @@ export async function buildCrisisHistoryInjection(
     sections.push('This is better-than-human: we remember what matters.');
 
     diag.info('🔁 Crisis follow-up context injected', {
-      userId,
+      userId: caller,
       daysSince,
       escalationType: lastCrisis.escalationType,
     });
