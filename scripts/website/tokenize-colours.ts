@@ -14,6 +14,9 @@
  * literal in light mode and the alias, which dark-mode-surfaces.css sets only in
  * dark mode, in dark. The whole var() becomes a role only when the role matches
  * both: its light value is the literal and its dark value is the alias.
+ * Page variables work the same way: a template that declares
+ * :root { --ferni: #4a6741 } and reads var(--ferni) has its dark value set by
+ * dark-mode-surfaces.css, so var(--ferni) becomes the role that matches both.
  *
  * Usage: pnpm tsx scripts/website/tokenize-colours.ts <file...> [--write]
  *   Without --write it only prints the report.
@@ -46,6 +49,12 @@ export const CANDIDATES: Record<Kind, string[]> = {
     'success',
     'error',
     'warning',
+    'ferni-text',
+    'peter-text',
+    'alex-text',
+    'maya-text',
+    'jordan-text',
+    'nayan-text',
   ],
   surface: [
     'surface-base',
@@ -76,6 +85,7 @@ const KIND_OF: Array<[RegExp, Kind]> = [
 
 const LITERAL =
   /(?<![\w&#-])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![\w-])|\brgba?\([^()]*\)|(?<![\w-])(?:white|black)(?![\w-])/gi;
+const VAR_USE = /var\(\s*(--[\w-]+)\s*\)/g;
 /** var(--page-x, <literal>) */
 const ALIAS = new RegExp(`var\\(\\s*(--page-[\\w-]+)\\s*,\\s*(${LITERAL.source})\\s*\\)`, 'gi');
 
@@ -123,10 +133,23 @@ export function roleTable(roles: ThemeRole[]): RoleTable {
   return table;
 }
 
-/** The --page-* aliases a stylesheet declares, with their (dark-mode) values. */
-export function pageAliases(css: string): Map<string, string> {
-  const found = mask(css).matchAll(/(--page-[\w-]+)\s*:\s*([^;{}]+);/g);
-  return new Map([...found].map((m) => [m[1]!, m[2]!.trim()]));
+/** The custom properties a stylesheet's :root rules declare, with their values. */
+export function rootAliases(css: string): Map<string, string> {
+  const aliases = new Map<string, string>();
+  for (const block of mask(css).matchAll(/:root(?::root)?\s*\{([^{}]*)\}/g)) {
+    for (const m of block[1]!.matchAll(/(--[\w-]+)\s*:\s*([^;{}]+)/g)) {
+      aliases.set(m[1]!, m[2]!.trim());
+    }
+  }
+  return aliases;
+}
+
+/** A page variable's light value: a literal, or the literal fallback of a var(). */
+function lightLiteral(value: string): string | undefined {
+  const m = new RegExp(`^(?:var\\(\\s*--[\\w-]+\\s*,\\s*)?(${LITERAL.source})\\s*\\)?$`, 'i').exec(
+    value.trim()
+  );
+  return m?.[1];
 }
 
 function normalise(literal: string): string {
@@ -164,6 +187,8 @@ export function tokenize(
   const unmatched: Unmatched[] = [];
   const edits: Array<[number, number, string]> = [];
   const lineAt = (offset: number): number => masked.slice(0, offset).split('\n').length;
+  /** This file's light :root variables (name → literal); filled before any rewrite. */
+  const pageLight = new Map<string, string>();
 
   const declarations = (start: number, end: number, dark: boolean): void => {
     const body = masked.slice(start, end);
@@ -181,6 +206,16 @@ export function tokenize(
         edits.push([at, at + a[0].length, `var(${role})`]);
         changes.push({ line: lineAt(at), property, literal: a[0], role });
         swapped.push([a.index!, a.index! + a[0].length]);
+      }
+      for (const v of kind && !dark && !property.startsWith('--') ? m[2]!.matchAll(VAR_USE) : []) {
+        const light = pageLight.get(v[1]!);
+        const alias = aliases.get(v[1]!);
+        const pair = light && alias && `${normalise(light)}|${normalise(alias)}`;
+        const role = pair && !guardedReason(m[2]!, v.index!) && table[kind!].byPair.get(pair);
+        if (!role) continue;
+        const at = valueStart + v.index!;
+        edits.push([at, at + v[0].length, `var(${role})`]);
+        changes.push({ line: lineAt(at), property, literal: v[0], role });
       }
       for (const lit of m[2]!.matchAll(LITERAL)) {
         if (swapped.some(([from, to]) => lit.index! >= from && lit.index! < to)) continue;
@@ -200,7 +235,17 @@ export function tokenize(
     }
   };
 
-  const rules = (start: number, end: number, atRules: string[]): void => {
+  type Visit = (prelude: string, start: number, end: number, dark: boolean) => void;
+  const visitDeclarations: Visit = (_prelude, start, end, dark) => declarations(start, end, dark);
+  const collectPageLight: Visit = (prelude, start, end, dark) => {
+    if (dark || prelude !== ':root') return;
+    for (const m of masked.slice(start, end).matchAll(/(--[\w-]+)\s*:\s*([^;{}]+)/g)) {
+      const literal = lightLiteral(m[2]!);
+      if (literal) pageLight.set(m[1]!, literal);
+    }
+  };
+
+  const rules = (start: number, end: number, atRules: string[], visit: Visit): void => {
     let from = start;
     for (let i = start; i < end; i++) {
       const ch = masked[i];
@@ -210,22 +255,26 @@ export function tokenize(
       let depth = 1;
       let j = i + 1;
       for (; j < end && depth > 0; j++) depth += masked[j] === '{' ? 1 : masked[j] === '}' ? -1 : 0;
-      if (prelude.startsWith('@')) rules(i + 1, j - 1, [...atRules, prelude]);
+      if (prelude.startsWith('@')) rules(i + 1, j - 1, [...atRules, prelude], visit);
       else {
         const dark = DARK_SELECTOR.test(prelude) || atRules.some((a) => DARK_MEDIA.test(a));
-        declarations(i + 1, j - 1, dark);
+        visit(prelude, i + 1, j - 1, dark);
       }
       i = j - 1;
       from = j;
     }
   };
 
-  if (!isTemplate) rules(0, masked.length, []);
-  else {
-    for (const m of masked.matchAll(/(<style\b[^>]*>)([\s\S]*?)<\/style>/gi)) {
-      const start = m.index! + m[1]!.length;
-      rules(start, start + m[2]!.length, []);
-    }
+  const styleBlocks = isTemplate
+    ? [...masked.matchAll(/(<style\b[^>]*>)([\s\S]*?)<\/style>/gi)].map((m): [number, number] => {
+        const start = m.index! + m[1]!.length;
+        return [start, start + m[2]!.length];
+      })
+    : [[0, masked.length] as [number, number]];
+  for (const visit of [collectPageLight, visitDeclarations]) {
+    for (const [start, end] of styleBlocks) rules(start, end, [], visit);
+  }
+  if (isTemplate) {
     for (const m of masked.matchAll(/\bstyle=(["'])([\s\S]*?)\1/gi)) {
       const start = m.index! + m[0].indexOf(m[2]!);
       declarations(start, start + m[2]!.length, false);
@@ -248,7 +297,7 @@ function main(argv: string[]): void {
   }
   const table = roleTable(themeRoles());
   const surfaces = 'apps/website/ferni-website/src/css/dark-mode-surfaces.css';
-  const aliases = pageAliases(fs.readFileSync(path.join(REPO_ROOT, surfaces), 'utf8'));
+  const aliases = rootAliases(fs.readFileSync(path.join(REPO_ROOT, surfaces), 'utf8'));
   for (const file of files) {
     const result = tokenize(
       fs.readFileSync(file, 'utf8'),

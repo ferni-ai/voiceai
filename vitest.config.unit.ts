@@ -59,6 +59,8 @@ export default defineConfig({
     ],
     testTimeout: 20000, // Reasonable timeout for unit tests with mocking
     hookTimeout: 20000,
+    // Writes the gitignored flag barrel and env-name list (src/config/generated-lists.ts).
+    globalSetup: ['./src/config/__tests__/generate-lists-setup.ts'],
     setupFiles: ['./src/tests/setup.ts'],
     // Pull requests run `--changed`: only the tests whose imports reach a changed
     // file (ci.yml, Unit Tests). A change to any of these runs the whole suite,

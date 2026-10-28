@@ -662,12 +662,12 @@ export function importLifeRhythmProfile(profile: LifeRhythmProfile): void {
 }
 
 // ============================================================================
-// RESET (for testing)
+// RESET: one user (MINOR_CARE purge), or everyone (tests)
 // ============================================================================
 
-/**
- * Reset all life rhythm prediction state (for testing)
- */
+export const forgetLifeRhythmUser = (userId: string): boolean => userProfiles.delete(userId);
+
+/** Reset all life rhythm prediction state (for testing) */
 export function resetLifeRhythmPrediction(): void {
   userProfiles.clear();
 }

@@ -65,7 +65,9 @@ const DAY = 24 * 60 * 60 * 1000;
 const emailUser = vi.fn(async () => ({ success: true }));
 const textUser = vi.fn(async () => ({ success: true }));
 const getContactInfo = vi.fn(async () => ({ email: 'me@example.com', timezone: 'UTC' }));
-const deps = { emailUser, textUser, getContactInfo };
+// Outreach on, email turned on: what these tests are about (pause: milestone-outreach-pause.test.ts)
+const consent = vi.fn(async () => ({ enabled: true, channels: ['email', 'sms'] }));
+const deps = { emailUser, textUser, getContactInfo, consent };
 
 /** A stored call as realtime-memory writes it: Firestore Timestamps, turnCount. */
 function call(daysAgo: number, extra: Doc = {}): Doc {

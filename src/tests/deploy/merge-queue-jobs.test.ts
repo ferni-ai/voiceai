@@ -143,11 +143,36 @@ describe('the unit shards cover the whole suite on a full run', () => {
   const matrix =
     /^ {8}shard: \$\{\{ fromJSON\(\((.+)\) && '\[([^\]]*)\]' \|\| '\[1\]'\) \}\}$/m.exec(ci);
   const full = /^ {6}FULL_SUITE: \$\{\{ (.+) \}\}$/m.exec(ci);
+  const setup = /^ {2}setup:\n([\s\S]*?)(?=^ {2}[\w-]+:\n)/m.exec(ci)?.[1] ?? '';
 
   it('builds the matrix from exactly the FULL_SUITE condition', () => {
     expect(matrix?.[1]).toBeTruthy();
     expect(full?.[1]).toBeTruthy();
     expect(matrix?.[1]).toBe(full?.[1]);
+  });
+
+  // A PR whose diff hits a vitest forceRerunTriggers file runs the whole suite under
+  // `--changed`; on one shard that timed out (#2508). Setup's answer must widen the
+  // matrix, and only an explicit 'false' may narrow it (an empty output runs four).
+  it('gives a PR four shards when setup says --changed will run the whole suite', () => {
+    expect(full?.[1]).toBe(
+      "github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') || needs.setup.outputs.unit-full-suite != 'false' || needs.setup.outputs.full-tests == 'true'"
+    );
+    expect(setup).toMatch(/^ {6}unit-full-suite: \$\{\{ steps\.unit-full\.outputs\.needed \}\}$/m);
+    expect(setup).toMatch(
+      /^ {8}id: unit-full\n(?: {8}.*\n)*? {8}run: node scripts\/ci\/unit-full-suite-needed\.mjs HEAD\^1 \|\| echo "needed=true" >> "\$GITHUB_OUTPUT"$/m
+    );
+  });
+
+  // #2717 (crisis safety) went green on shard 1 alone; the label that widens it is
+  // easy to forget and does not re-run CI once added. Setup's full-tests answers
+  // from the PR's files (which paths count: src/tests/ci/merge-queue-scope.test.ts).
+  it('gives a PR four shards when it touches crisis-safety or memory code', () => {
+    expect(full?.[1]).toContain("needs.setup.outputs.full-tests == 'true'");
+    expect(setup).toMatch(/^ {6}full-tests: \$\{\{ steps\.risky\.outputs\.matched \}\}$/m);
+    expect(setup).toMatch(
+      /^ {8}id: risky\n {8}uses: \.\/\.github\/actions\/pr-changes\n {8}with:\n {10}include: '\^src\/.+'$/m
+    );
   });
 
   it('creates as many shards as each one divides the suite into, and the gate expects that many', () => {
@@ -157,5 +182,21 @@ describe('the unit shards cover the whole suite on a full run', () => {
     expect(shards).toEqual(['1', '2', '3', '4']);
     expect(Number(runs)).toBe(shards.length);
     expect(Number(gate)).toBe(shards.length);
+  });
+
+  // A cancelled or skipped required check counts as passed, so the gate must run
+  // whatever the shards did and turn red unless every one succeeded.
+  const gateJob = /^ {2}test-unit:\n([\s\S]*?)(?=^ {2}[\w-]+:\n)/m.exec(ci)?.[1] ?? '';
+
+  it('the Unit Tests gate still runs when a shard fails or is cancelled', () => {
+    expect(gateJob).toMatch(/^ {4}needs: \[setup, test-unit-shard\]$/m);
+    expect(gateJob).toMatch(/^ {4}if: always\(\) && /m);
+  });
+
+  it('the Unit Tests gate fails unless setup and every shard succeeded', () => {
+    expect(gateJob).toMatch(
+      // `exit 1` inside this branch: no line between `then` and it may be the branch's `fi`.
+      /if \[ "\$SETUP" != success \] \|\| \[ "\$SHARDS" != success \]; then\n(?:(?! *fi\n).*\n)*? +exit 1\n +fi\n/
+    );
   });
 });

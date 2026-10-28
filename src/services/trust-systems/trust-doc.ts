@@ -14,6 +14,7 @@ import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseTrustProfile } from './parse-trust-profile.js';
 import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import { writeHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'TrustDoc' });
 
@@ -68,13 +69,16 @@ export async function readTrustDoc<T>(
   }
 }
 
-/** Write one trust system's profile. Returns false for a null profile or a failed write. */
+/**
+ * Write one trust system's profile. Returns false for a null profile, a failed write, or a caller
+ * under 18 (MINOR_CARE: a session-end or periodic save during or right after a held call).
+ */
 export async function writeTrustDoc<T>(
   userId: string,
   systemName: string,
   profile: T | null
 ): Promise<boolean> {
-  if (profile === null || profile === undefined) return false;
+  if (profile === null || profile === undefined || writeHeld(userId)) return false;
   try {
     const doc: FirestoreTrustDoc = {
       data: JSON.stringify(profile),

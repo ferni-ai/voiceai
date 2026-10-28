@@ -31,6 +31,7 @@ import {
   noteFollowUpOffered,
   type FollowUpAnswer,
 } from '../../../services/trust-systems/commitment-follow-through.js';
+import { isCommitmentSingleWriterOn } from '../../../services/superhuman/commitment-single-writer.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -61,14 +62,18 @@ async function buildCommitmentFollowUpContext(
 
   if (!userId) return [];
 
-  // Process user's message for new commitments and progress
+  // Process user's message for new commitments and progress. With COMMITMENT_SINGLE_WRITER
+  // on (mid-call, process.env holds this caller's flags) the after-call judge is the only
+  // writer, so no new one is stored here; progress, answers and follow-ups run as before.
   const { newCommitments, progressUpdates, followUpsDue, answers } = await processCommitments(
     userId,
     userText,
     {
       recentTopics: userData?.recentTopics,
       emotion: analysis?.emotion?.primary,
-    }
+      judgedOnly: isCommitmentSingleWriterOn(),
+    },
+    services?.sessionId // MINOR_CARE: a held call stores nothing here
   );
 
   const injections: ContextInjection[] = answers.flatMap(answerGuidance);

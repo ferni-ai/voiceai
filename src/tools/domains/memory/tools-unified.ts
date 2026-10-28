@@ -17,10 +17,11 @@ import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
 import {
   NO_EARLIER_CONVERSATION,
+  rememberToRecall,
   searchEarlierConversations,
   thisCallOf,
 } from '../../../services/memory/index.js';
-import { memoryHeld } from '../../../utils/minor-care.js';
+import { writeHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -199,12 +200,11 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         (userData.keyMoments ??= []).push(`[${category}] ${fact}`);
 
         // MINOR_CARE=on: nothing kept past this call for a caller under 18 (minor-care.ts)
-        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+        if (!userId || writeHeld(userId, getSessionId({ ctx: toolCtx }))) {
           log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return REMEMBERED_THIS_CALL;
         }
 
-        // Write to unified memory service
         const result = await memoryService.write({
           userId,
           content: fact,
@@ -219,6 +219,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
           void announceMemorySaved({ sessionId, userId, id: result.memoryId, fact, category });
+          void rememberToRecall(userId, { fact, memoryId: result.memoryId, category, sessionId });
           return REMEMBERED;
         }
         // Never an empty result (tool-output-guard.ts): say whether it was kept
@@ -260,7 +261,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+        if (!userId || writeHeld(userId, getSessionId({ ctx: toolCtx }))) {
           log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return "I'll remember that.";
         }

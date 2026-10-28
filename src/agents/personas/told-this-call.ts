@@ -12,12 +12,21 @@
  * repeated, and his recent distinctive lines. The next request carries it as a
  * note (the director computes it on every reply; see turn-request.ts).
  *
- * TOLD_THIS_CALL=off turns it off.
+ * TOLD_THIS_CALL=off turns it off. PHRASE_LOOP_GUARD=on adds the stock phrases he
+ * keeps reusing (phrase-loops.ts).
  *
  * @module agents/personas/told-this-call
  */
 
+import { crisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
 import type { Line } from './director-notes.js';
+import {
+  formatPhraseLoops,
+  isSafetyLine,
+  phraseLoopGuardOn,
+  phraseLoops,
+  type PhraseLoop,
+} from './phrase-loops.js';
 
 export function toldThisCallEnabled(
   env: Record<string, string | undefined> = process.env
@@ -36,6 +45,8 @@ export interface Told {
   recentLines: string[];
   /** The caller's latest words ask for a story or about Ferni himself. */
   askedAboutFerni: boolean;
+  /** PHRASE_LOOP_GUARD=on: stock phrases in two or more recent replies; absent when off. */
+  loops?: PhraseLoop[];
 }
 
 /** Capitalized words that are grammar or filler, not something Ferni brought up. */
@@ -184,6 +195,7 @@ export function toldThisCall(lines: Line[], userName?: string, speaking?: string
     repeated: repeated.map((q) => q.sentence),
     recentLines,
     askedAboutFerni: Boolean(lastUser && ASKS_ABOUT_FERNI.test(lastUser.text)),
+    ...(phraseLoopGuardOn() ? { loops: phraseLoops(lines) } : {}),
   };
 }
 
@@ -206,7 +218,30 @@ export function formatTold(told: Told): string {
   }
   const quotes = [...told.repeated, ...told.recentLines].slice(0, MAX_QUOTES).map(quote);
   if (quotes.length) parts.push(`Don't say again: ${quotes.map((q) => `"${q}"`).join('; ')}`);
+  const loops = formatPhraseLoops(told.loops ?? []);
+  if (loops) parts.push(loops);
   return parts.length ? `[Already said this call: ${parts.join(' ')}]` : '';
+}
+
+/**
+ * The record without the names, quotes and phrases `keep` rejects (director-notes.ts
+ * told()). On a call with crisis risk noted (`sessionId`), no phrase loops and no
+ * quotes at all: a crisis-guided request must never be told to drop wording
+ * (crisis-call-risk.ts). A line of the safety scripts is never quoted on any call
+ * (#2797: "Don't say again" had quoted "Are you somewhere safe right now?").
+ */
+export function keptTold(told: Told, keep: (text: string) => boolean, sessionId?: string): Told {
+  const { loops: all, ...rest } = told;
+  const crisis = Boolean(sessionId && crisisRiskNoted(sessionId));
+  const loops = all && !crisis ? all : undefined;
+  const quotable = (line: string): boolean => !crisis && keep(line) && !isSafetyLine(line);
+  return {
+    ...rest,
+    names: told.names.filter((n) => keep(n.name)),
+    repeated: told.repeated.filter(quotable),
+    recentLines: told.recentLines.filter(quotable),
+    ...(loops ? { loops: loops.filter((l) => keep(l.phrase)) } : {}),
+  };
 }
 
 /** The note for the next reply from the call's lines so far. */

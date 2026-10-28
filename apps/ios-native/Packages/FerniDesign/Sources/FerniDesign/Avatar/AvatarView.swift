@@ -1,58 +1,206 @@
 import SwiftUI
 
-/// Ferni, live: one view for the whole app, drawn by `AvatarRenderer` on a
-/// single TimelineView clock (ios-motion-spec §6.10).
+/// Ferni, live: the GPU-rendered body from the owner's alive prototype
+/// (`AliveShader`), moved by `AliveRig` on a single TimelineView clock
+/// (ios-motion-spec §6.10).
 ///
-/// Display rate (120 Hz on ProMotion) only while speaking; 30 fps otherwise and
-/// always in Low Power Mode or when the device is hot; paused when the app isn't
-/// active. Reduce Motion keeps blinks and the mouth and drops scale and gaze.
-/// The first 600 ms are the wake (eyes open, glow comes up); input works from
-/// the first frame.
+/// The view takes a square slot in the layout; the Metal canvas extends past
+/// it (headroom for hops, the ring and the corner teammate) so Ferni is never
+/// clipped. Display rate (120 Hz on ProMotion) only while speaking; 30 fps
+/// otherwise and always in Low Power Mode or when the device is hot; paused
+/// when the app isn't active or something covers Ferni (`covered`). Reduce Motion scales motion to 35% and skips
+/// the big moments.
 public struct AvatarView: View {
     let persona: WindowPersona
     let expression: AvatarExpression
     let activity: AvatarActivity
     let level: @Sendable () -> Float
     let name: String
+    let covered: Bool
+    let onCue: ((KeyedCue) -> Void)?
+    let reading: Bool
+    let wake: Int
+    let personSpeaking: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @State private var clock = Clock()
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.displayScale) private var displayScale
+    @State private var rig = AliveRig()
+    @State private var woke = Date()
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
+    @State private var slot = CGSize.zero
+    @State private var arrivingSince: Date?
+    @State private var arrivedThisCall = false
 
-    /// - Parameter level: Ferni's raw voice level, read once per frame.
+    /// Canvas size and Ferni's place in it, in slot widths.
+    static let canvas = CGSize(width: 1.7, height: 1.5)
+    static let radius = 0.30, lift = 0.1
+    /// Expressions that earn the hand-keyed "big win".
+    static let wins: Set<AvatarExpression> = [.cheering, .proud, .excited]
+    /// The part of the slot a finger can touch: Ferni himself (radius 0.30 of
+    /// the slot) with a little slop, never the slot's corners.
+    static let touchScale = 0.7
+
+    /// - Parameters:
+    ///   - level: Ferni's voice level from the remote audio track, read once per frame.
+    ///   - onCue: what the body asks the app for (a haptic on a touch, a chime on landing), after each frame.
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
-        name: String = "Ferni", level: @escaping @Sendable () -> Float = { 0 }
+        name: String = "Ferni", covered: Bool = false, wake: Int = 0, personSpeaking: Bool = false,
+        level: @escaping @Sendable () -> Float = { 0 },
+        reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
     ) {
         self.persona = persona
         self.expression = expression
         self.activity = activity
         self.name = name
+        self.covered = covered
         self.level = level
+        self.onCue = onCue
+        self.reading = reading
+        self.wake = wake
+        self.personSpeaking = personSpeaking
     }
 
     public var body: some View {
-        let throttled = lowPower || hot
-        let cadence: Double? = activity == .speaking && !throttled ? nil : 1.0 / 30
-        TimelineView(.animation(minimumInterval: cadence, paused: scenePhase != .active)) { timeline in
-            let frame = clock.frame(
-                at: timeline.date, persona: persona, expression: expression, activity: activity,
-                level: Double(level()), reduceMotion: reduceMotion, lowPower: throttled
-            )
-            Canvas { context, size in AvatarRenderer.draw(frame, in: &context, size: size) }
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                GeometryReader { geo in
+                    let side = min(geo.size.width, geo.size.height)
+                    if let renderer = AliveRenderer.shared {
+                        let throttled = lowPower || hot
+                        let clock = Self.schedule(
+                            speaking: activity == .speaking, throttled: throttled,
+                            covered: covered, active: scenePhase == .active
+                        )
+                        TimelineView(.animation(minimumInterval: clock.interval, paused: clock.paused)) { timeline in
+                            let u = frame(at: timeline.date)
+                            let w = side * Self.canvas.width, h = side * Self.canvas.height, r = side * Self.radius
+                            ZStack {
+                                AliveMetalView(
+                                    renderer: renderer, uniforms: u,
+                                    radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
+                                    scale: Self.renderScale(display: displayScale, throttled: throttled)
+                                )
+                                AliveParticles(
+                                    particles: rig.particles,
+                                    centre: CGPoint(x: w / 2 + CGFloat(u.pos.x) * r, y: h / 2 + side * Self.lift - CGFloat(u.pos.y) * r),
+                                    radius: r
+                                )
+                            }
+                        }
+                        .frame(width: side * Self.canvas.width, height: side * Self.canvas.height)
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2 - side * Self.lift)
+                    } else {
+                        AvatarPortrait(persona: persona) // no Metal: Ferni at rest
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { slot = $0 }
+            // At rest Ferni can be touched; in a call only the app's own gestures apply.
+            .contentShape(.interaction, Circle().scale(Self.touchScale))
+            .gesture(SpatialTapGesture().onEnded { touch(at: $0.location) }, including: activity == .idle ? .all : .none)
+            .accessibilityElement()
+            .accessibilityLabel(name)
+            .accessibilityValue(Self.words(for: activity, name: name))
+            .onAppear {
+                rig.show(persona, animated: false)
+                if let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
+            }
+            .onChange(of: persona) { _, next in
+                // In a call a new teammate arrives at the family table; at home the light just changes.
+                if activity == .idle { rig.show(next) } else { rig.handOff(to: next) }
+            }
+            .onChange(of: activity) { previous, next in
+                if next == .arriving, previous == .idle { arrivingSince = .now }
+                let waited = arrivingSince.map { Date.now.timeIntervalSince($0) } ?? 0
+                switch Self.joinPlan(from: previous, to: next, waited: waited, reduceMotion: reduceMotion, arrived: arrivedThisCall) {
+                case .hop: rig.play(.join); arrivedThisCall = true
+                case .settle: [KeyedCue.arrivalChime, .land].forEach { onCue?($0) }; arrivedThisCall = true
+                case .none: if next != .arriving, previous == .arriving { arrivedThisCall = true }
+                }
+                if next == .idle { arrivedThisCall = false; arrivingSince = nil }
+                if next == .idle, previous != .idle, previous != .arriving {
+                    if !reduceMotion { rig.play(.goodbye) }
+                    rig.dismissGuest()
+                }
+            }
+            // Back after a long time away: he wakes where he is, as on opening the app.
+            .onChange(of: wake) { _, _ in
+                if activity == .idle, let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
+            }
+            .onChange(of: expression) { _, next in
+                if Self.winPlays(next, reduceMotion: reduceMotion, personSpeaking: personSpeaking) { rig.play(.win) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
+                lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+            }
+            .onReceive(NotificationCenter.default.publisher(for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
+                hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
+            }
+    }
+
+    /// A tap at `location` in the slot, as a point in Ferni radii from his centre.
+    private func touch(at location: CGPoint) {
+        let side = min(slot.width, slot.height)
+        guard side > 0 else { return }
+        let r = side * Self.radius
+        rig.poke(at: SIMD2((location.x - slot.width / 2) / r, (slot.height / 2 - location.y) / r))
+    }
+
+    /// One frame: this moment's inputs into the rig, out come the uniforms.
+    private func frame(at date: Date) -> AliveUniforms {
+        rig.activity = activity
+        rig.expression = expression.rawValue
+        rig.voiceLevel = level()
+        rig.reduceMotion = reduceMotion
+        rig.reading = reading
+        let dark = colorScheme == .dark
+        rig.dark = dark
+        var u = rig.frame(at: date.timeIntervalSince(woke))
+        // After the frame, never during it: the app's handlers may change state.
+        if let onCue, !rig.cues.isEmpty {
+            let cues = rig.cues
+            Task { @MainActor in cues.forEach(onCue) }
         }
-        .aspectRatio(1, contentMode: .fit)
-        .accessibilityElement()
-        .accessibilityLabel(name)
-        .accessibilityValue(Self.words(for: activity, name: name))
-        .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
-            lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
-        }
-        .onReceive(NotificationCenter.default.publisher(for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
-            hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
-        }
+        u.light(dark: dark, roomTop: linear(hex: dark ? "#1e1a16" : "#faf8f5"), roomBottom: linear(hex: dark ? "#14110e" : "#efe9e0"))
+        return u
+    }
+
+    /// What plays when Ferni first appears: he wakes where he is (gap 3).
+    /// Under Reduce Motion he's simply there.
+    static func launchMoment(reduceMotion: Bool) -> KeyedMoment? { reduceMotion ? nil : .wake }
+
+    /// What Ferni's body does when he joins a call (gap 4): the keyed join
+    /// (`hop`); for a join under ~300 ms only its note and tap (`settle`), so
+    /// a fast join never feels slowed down; nothing under Reduce Motion (the
+    /// director plays the note and tap) or after he already arrived this call.
+    enum JoinPlan: Equatable { case hop, settle, none }
+
+    static func joinPlan(from: AvatarActivity, to: AvatarActivity, waited: Double, reduceMotion: Bool, arrived: Bool) -> JoinPlan {
+        guard from == .arriving, to == .listening || to == .speaking, !arrived, !reduceMotion else { return .none }
+        return waited < 0.3 ? .settle : .hop
+    }
+
+    /// The big win (a spin and hops) plays for a celebrating face, never while
+    /// the person is speaking (it would spin over them) and not under Reduce Motion.
+    static func winPlays(_ expression: AvatarExpression, reduceMotion: Bool, personSpeaking: Bool) -> Bool {
+        wins.contains(expression) && !reduceMotion && !personSpeaking
+    }
+
+    /// Ferni draws at the screen's own scale (3x on most iPhones, gap 8), at
+    /// most 3x; 1.5x in Low Power Mode or when the device is hot.
+    static func renderScale(display: CGFloat, throttled: Bool) -> CGFloat {
+        throttled ? 1.5 : min(max(display, 1), 3)
+    }
+
+    /// Frame interval (nil = the display's rate) and whether the clock is paused.
+    static func schedule(speaking: Bool, throttled: Bool, covered: Bool, active: Bool) -> (interval: Double?, paused: Bool) {
+        (speaking && !throttled ? nil : 1.0 / 30, covered || !active)
     }
 
     static func words(for activity: AvatarActivity, name: String) -> String {
@@ -66,40 +214,9 @@ public struct AvatarView: View {
         case .error: "\(name) couldn't connect"
         }
     }
+}
 
-    /// Per-view timekeeping: when the view woke, when the activity last changed,
-    /// and the voice smoothing. A reference type so drawing never writes view state.
-    final class Clock {
-        private let woke = Date()
-        private var activity: AvatarActivity?
-        private var activitySince = Date()
-        private var smoother = LevelSmoother()
-        private var lastFrame: Date?
-
-        func age(at now: Date) -> Double { now.timeIntervalSince(woke) }
-
-        func frame(
-            at now: Date, persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
-            level: Double, reduceMotion: Bool, lowPower: Bool
-        ) -> AvatarFrame {
-            if activity != self.activity {
-                self.activity = activity
-                activitySince = now
-            }
-            let dt = lastFrame.map { now.timeIntervalSince($0) } ?? 0
-            lastFrame = now
-            let smoothed = Double(smoother.step(toward: Float(level), dt: dt))
-
-            var f = AvatarFrame()
-            f.persona = persona
-            f.expression = expression
-            f.activity = activity
-            f.level = activity == .speaking ? smoothed : 0
-            f.time = age(at: now)
-            f.activityAge = now.timeIntervalSince(activitySince)
-            f.reduceMotion = reduceMotion
-            f.lowPower = lowPower
-            return f
-        }
-    }
+/// What Ferni is doing, as the avatar shows it.
+public enum AvatarActivity: Equatable, Sendable {
+    case idle, arriving, listening, thinking, speaking, reconnecting, error
 }

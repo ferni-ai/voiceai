@@ -20,7 +20,7 @@ import { noteCallerJoined } from './sip-caller.js';
 import { errorText, writeIdentityDiagnostics, writeParticipantReady } from './startup-log.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
-import { injectUserAwareness } from './user-awareness-injection.js';
+import { injectUserAwareness, rememberedProfile } from './user-awareness-injection.js';
 import { identifyWithCallStartStages } from './call-start-identify.js';
 
 // Event cleanup registry for proper memory management
@@ -36,7 +36,7 @@ import {
   loadVoiceDeps as loadVoiceDepsPhase,
   type VoiceDeps,
 } from '../voice-agent/phases/index.js';
-
+import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
 import { finops } from '../../services/observability/finops.js';
 import { classifyCallEnd, roomDisconnectEndReason } from '../../services/analytics/call-end-reason.js';
 import {
@@ -65,7 +65,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 // Submodule imports
 import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
-import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
+import { buildSessionPersona, callerSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
@@ -310,7 +310,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Start call-quality clock as early as possible so stages reflect true latency.
     try {
       const { startCall } = await import('../../services/analytics/call-quality-monitor.js');
-      startCall(sessionId, undefined, sessionPersona.id);
+      startCall(sessionId, undefined, sessionPersona.id, callType);
       await markCallStageSafe(sessionId, 'session_start');
     } catch {
       /* non-fatal */
@@ -336,7 +336,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
     const { userId: identifiedUserId, userName, userAccent, verified } = identified;
     userId = identifiedUserId ?? null;
-
+    personaId = (sessionPersona = await callerSessionPersona(sessionPersona, userId, e2e)).id; // CUSTOM_AGENT_LIVE
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {
       sessionId,
@@ -428,7 +428,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Read the profile as it stands now: session init decided "returning" before the deferred load.
       const awareness = injectUserAwareness({
         sessionId,
-        userProfile: services.userProfile,
+        userProfile: await rememberedProfile(userId, services.userProfile),
         userData,
         isReturningUser,
         userName,
@@ -492,7 +492,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
 
       // Thread continuity (non-blocking)
-      if (userId) {
+      if (ownerWriteId(userId)) { // threads are an account's own (ONBEHALF_WRITE_GATE)
         void (async () => {
           try {
             const { buildThreadContext } =
@@ -649,7 +649,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         sessionId,
         sessionPersona,
         // After applyCallerFlags (STEP 4), so the prompt has this caller's flags.
-        systemPrompt: await loadCallerPrompt(sessionPersona.id),
+        systemPrompt: await loadCallerPrompt(sessionPersona),
         modelBaseInstructions,
         userId,
         userAccent,

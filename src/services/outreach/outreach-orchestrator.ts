@@ -384,8 +384,8 @@ export class OutreachOrchestrator extends EventEmitter {
   // ==========================================================================
 
   /**
-   * Send a push notification.
-   * This is medium-touch outreach - for moderate-confidence predictions.
+   * Send a push notification (medium-touch outreach). Returns null when it wasn't
+   * delivered (no device registered, every token refused, FCM down, push not set up).
    */
   async sendPushNotification(
     userId: string,
@@ -398,24 +398,6 @@ export class OutreachOrchestrator extends EventEmitter {
     }
   ): Promise<OutreachEvent | null> {
     const personaId = context.personaId || 'ferni';
-
-    // Store outreach context for conversation bridge
-    try {
-      const { storeOutreachContext } = await import('./conversation-context-bridge.js');
-      await storeOutreachContext({
-        outreachId: `push_${userId}_${Date.now()}`,
-        userId,
-        type: (context.trigger as 'ml_prediction' | 'thinking_of_you') || 'thinking_of_you',
-        personaId,
-        message,
-        channel: 'push',
-        sentAt: new Date(),
-        reason: context.trigger || 'Proactive check-in',
-        triggerDetails: context.metadata,
-      });
-    } catch (err) {
-      log.warn({ error: String(err) }, 'Failed to store outreach context for push');
-    }
 
     // Create outreach event
     const event: OutreachEvent = {
@@ -438,8 +420,6 @@ export class OutreachOrchestrator extends EventEmitter {
     // Emit for delivery
     this.emit('outreach:push', event);
 
-    log.info({ userId, personaId, trigger: context.trigger }, '🔔 Push notification sent');
-
     // Attempt to deliver, and record it for learning
     const delivered = await deliverAndRecord({
       userId,
@@ -449,8 +429,27 @@ export class OutreachOrchestrator extends EventEmitter {
       outreachId: `push_${userId}_${Date.now()}`,
       reason: context.trigger || 'proactive',
     });
-    if (delivered) this.telemetry.successfulDeliveries++;
+    if (!delivered) return null;
+    this.telemetry.successfulDeliveries++;
+    log.info({ userId, personaId, trigger: context.trigger }, '🔔 Push notification sent');
 
+    // Context for the conversation bridge: only for a push that arrived
+    try {
+      const { storeOutreachContext } = await import('./conversation-context-bridge.js');
+      await storeOutreachContext({
+        outreachId: `push_${userId}_${Date.now()}`,
+        userId,
+        type: (context.trigger as 'ml_prediction' | 'thinking_of_you') || 'thinking_of_you',
+        personaId,
+        message,
+        channel: 'push',
+        sentAt: new Date(),
+        reason: context.trigger || 'Proactive check-in',
+        triggerDetails: context.metadata,
+      });
+    } catch (err) {
+      log.warn({ error: String(err) }, 'Failed to store outreach context for push');
+    }
     return event;
   }
 

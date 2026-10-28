@@ -71,7 +71,7 @@ function expandMatrix(name: string, text: string): string[] {
  * Whether a job-level `if:` is true for the event (refs/heads/main for push).
  * `outputs` overrides named `needs.X.outputs.Y` values (the rest read as 'true')
  * and `needs.X.result` values (the rest read as 'success'). Workflow inputs and
- * workflow_run payload fields read as '': these events carry neither.
+ * workflow_run and issue payload fields read as '': these events carry neither.
  */
 function evaluate(cond: string, event: Event, outputs: Record<string, string> = {}): boolean {
   const src = cond
@@ -81,6 +81,7 @@ function evaluate(cond: string, event: Event, outputs: Record<string, string> = 
     .replace(/github\.event\.pull_request\.labels\.\*\.name/g, '[]')
     .replace(/github\.event\.inputs\.\w+/g, "''")
     .replace(/github\.event\.workflow_run\.[\w.]+/g, "''")
+    .replace(/github\.event\.issue\.[\w.]+/g, "''")
     .replace(/\binputs\.\w+/g, "''")
     .replace(/github\.repository\b/g, "'o/r'")
     .replace(/github\.event_name/g, `'${event}'`)

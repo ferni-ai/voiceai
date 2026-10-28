@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { llm } from '@livekit/agents';
 import { modelsToWarm, warmPromptCache, withPairedToolCalls } from '../cache-warm.js';
 import { FastLaneLLM } from '../fast-lane.js';
+import { HedgedLLM } from '../hedged-llm.js';
 
 class FakeStream extends llm.LLMStream {
   constructor(
@@ -21,6 +22,13 @@ class FakeStream extends llm.LLMStream {
       this.fake.emit('error', { error: new Error('quota') } as never);
       return;
     }
+    // A cold primary: its first chunk comes after the hedge delay (the stream is closed first).
+    if (this.fake.delayMs > 0) {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, this.fake.delayMs);
+      });
+      if (this.abortController.signal.aborted) return;
+    }
     for (const content of ['Hey', ' there', '.']) {
       this.queue.put({ id: this.fake.name, delta: { role: 'assistant', content } });
     }
@@ -32,7 +40,8 @@ class FakeLLM extends llm.LLM {
   closed = 0;
   constructor(
     readonly name: string,
-    readonly fail = false
+    readonly fail = false,
+    readonly delayMs = 0
   ) {
     super();
     this.on('error', () => undefined);
@@ -122,5 +131,38 @@ describe('a warm during a tool call (prod call 2026-10-17)', () => {
     const chat = llm.ChatContext.empty();
     chat.insert(output('orphan'));
     expect(withPairedToolCalls(chat).items).toHaveLength(0);
+  });
+});
+
+describe('CACHE_WARM_PRIMARY: the warm goes to the primary, not the hedge', () => {
+  const on = { CASCADE_CACHE_WARM: 'on', CACHE_WARM_PRIMARY: 'on' };
+
+  it("off: a slow primary's warm is raced by the backup, which wins and closes it", async () => {
+    const primary = new FakeLLM('primary', false, 200);
+    const backup = new FakeLLM('backup');
+    const hedged = new HedgedLLM(primary, backup, 20);
+    expect(modelsToWarm(hedged, { CASCADE_CACHE_WARM: 'on' })).toEqual([hedged]);
+    await warmPromptCache(sessionWith(hedged), { CASCADE_CACHE_WARM: 'on' });
+    expect(backup.requests).toHaveLength(1); // the backup answered the warm
+    expect(primary.closed).toBeGreaterThan(0);
+  });
+
+  it('on: warms the primary directly, never the backup, even when slow', async () => {
+    const primary = new FakeLLM('primary', false, 200);
+    const backup = new FakeLLM('backup');
+    const hedged = new HedgedLLM(primary, backup, 20);
+    expect(modelsToWarm(hedged, on)).toEqual([primary]);
+    await warmPromptCache(sessionWith(hedged), on);
+    expect(primary.requests).toEqual([{ said: ['You are Ferni.', 'Hey.'], tools: ['quickTimer'] }]);
+    expect(backup.requests).toHaveLength(0);
+  });
+
+  it("on: unwraps the fast lane's hedges to each one's primary", () => {
+    const fast = new FakeLLM('fast');
+    const primary = new FakeLLM('primary');
+    const main = new HedgedLLM(primary, new FakeLLM('backup'), 1300);
+    const lane = new FastLaneLLM(new HedgedLLM(fast, main, 400), main);
+    expect(modelsToWarm(lane, on)).toEqual([fast, primary]);
+    expect(modelsToWarm(lane, { CASCADE_CACHE_WARM: 'on' })).toEqual([lane.fast, main]);
   });
 });

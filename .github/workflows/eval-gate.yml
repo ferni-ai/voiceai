@@ -3,6 +3,20 @@ name: Eval Gate
 # Regressions in recall, crisis reads and tool retrieval fail the PR instead of
 # reaching calls. Each suite is compared with evals/baselines/*.json (value and
 # allowed band per metric); re-baselining is a deliberate diff to those files.
+#
+# Gemini cost: the model job's crisis suite is ~1,260 Flash Lite calls a run. It
+# ran on every push to every PR matching the paths below (65-190 runs a day), so
+# the model job now runs a suite only when the change can move it:
+#   pull_request   the suites whose files the PR changes (scripts/eval-gate/suites.mjs);
+#                  none -> the job reports success without calling Vertex
+#   push to main   the same choice on the pushed range: main is measured after
+#                  every merge that can move a score (this check is not required,
+#                  so a red PR can still merge)
+#   schedule       every suite, daily: drift in the hosted model, and anything the
+#                  path list misses
+#   workflow_dispatch  every suite
+# No merge_group trigger: the queue waits only on required checks, and this one
+# is not required, so a queue run would be paid for and never read.
 on:
   pull_request:
     branches: [main]
@@ -15,11 +29,25 @@ on:
       - 'src/speech/tts-gateway/director/**'
       - 'src/tools/retrieval/**'
       - 'src/tools/semantic-router/**'
+      # Shared files the model suites import (see scripts/eval-gate/suites.mjs).
+      - 'src/config/gemini-config.ts'
+      - 'src/config/model-provider-config.ts'
+      - 'src/config/realtime-model.ts'
+      - 'src/config/thinking-defaults.ts'
+      - 'src/config/vertex-flag.ts'
+      - 'src/utils/text-utils.ts'
+      - 'src/utils/phrase-match.ts'
+      - 'src/utils/safety-whole-word.ts'
+      - 'src/utils/embedding-api-error.ts'
       - 'scripts/eval-gate/**'
       - 'scripts/memory-eval/**'
       - 'scripts/tool-retrieval/router-examples.ts'
       - 'evals/**'
       - '.github/workflows/eval-gate.yml'
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 9 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -35,6 +63,8 @@ env:
 jobs:
   offline:
     name: Offline evals (no model)
+    # Free and fast, so unchanged: PRs and manual runs only.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -70,7 +100,7 @@ jobs:
 
   model:
     name: Model evals (Vertex)
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Keyless: an OIDC token, accepted by the eval-gate provider only for this
@@ -79,22 +109,55 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+
+      # The changed paths decide the suites (see the header). If the change set
+      # cannot be read, every suite runs: this fails toward measuring, not skipping.
+      - name: Decide which suites this change can move
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request)
+              files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename') || files='*'
+              # The API lists at most 3,000 files.
+              [ "$(printf '%s\n' "$files" | wc -l)" -lt 3000 ] || files='*' ;;
+            push)
+              # Compare lists at most 300 files; a new-branch push has no "before".
+              files=$(gh api "repos/$GITHUB_REPOSITORY/compare/$BEFORE...$GITHUB_SHA" \
+                --jq 'if (.files | length) >= 300 then "*" else .files[].filename end') || files='*' ;;
+            *) files='*' ;;
+          esac
+          suites=$(printf '%s\n' "$files" | node scripts/eval-gate/suites.mjs)
+          echo "suites=$suites" >> "$GITHUB_OUTPUT"
+          echo "Model suites for this $EVENT: ${suites:-none (no file they read changed)}"
+          echo "### Model evals: ${suites:-skipped, no file the model suites read changed}" >> "$GITHUB_STEP_SUMMARY"
+
+      - if: steps.decide.outputs.suites != ''
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - if: steps.decide.outputs.suites != ''
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
+        if: steps.decide.outputs.suites != ''
         run: pnpm install --frozen-lockfile
 
       - name: Authenticate to Google Cloud (Workload Identity Federation)
+        if: steps.decide.outputs.suites != ''
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: projects/1031920444452/locations/global/workloadIdentityPools/github-pool/providers/ferni-voiceai-eval-gate
           service_account: ferni-ci-eval@johnb-2025.iam.gserviceaccount.com
 
       - name: Build the router example set
+        if: contains(steps.decide.outputs.suites, 'tool_retrieval')
         run: |
           mkdir -p scripts/tool-retrieval/out
           pnpm tsx scripts/tool-retrieval/router-examples.ts
@@ -102,7 +165,11 @@ jobs:
           LOG_LEVEL: silent
 
       - name: Compare with evals/baselines/model.json
+        if: steps.decide.outputs.suites != ''
         run: pnpm tsx scripts/eval-gate/model.ts
         env:
           GOOGLE_CLOUD_PROJECT: johnb-2025
           LOG_LEVEL: silent
+          EVAL_GATE_SUITES: ${{ steps.decide.outputs.suites }}
+          # Labels these calls on the Gemini bill (label support: #2888).
+          GEMINI_BILLING_JOB: ci_eval_gate

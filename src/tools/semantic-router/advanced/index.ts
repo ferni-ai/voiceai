@@ -25,9 +25,7 @@ export {
   // Re-exports from feedback-store
   recordFeedback,
   recordCorrection,
-  learnUserPhrase,
   getUserVocabulary,
-  matchUserPhrases,
   updateCalibration,
   calibrateConfidence,
   getFeedbackStats,

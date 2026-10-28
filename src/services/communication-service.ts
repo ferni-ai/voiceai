@@ -124,6 +124,15 @@ export async function sendAppEmail(email: OutgoingEmail): Promise<EmailSendResul
 }
 
 /**
+ * The List-Unsubscribe mailto for 'bulk' mail that has no unsubscribe endpoint:
+ * the app's From mailbox (EMAIL_FROM), which a person reads. admin@ is the
+ * Workspace user when EMAIL_FROM is unset (docs/runbooks/email-via-workspace.md).
+ */
+export function unsubscribeMailbox(): string {
+  return process.env.EMAIL_FROM?.trim() || 'admin@ferni.ai';
+}
+
+/**
  * Send a plain-text (or HTML) email from Ferni.
  *
  * @param to - Recipient email address
@@ -208,15 +217,48 @@ export async function sendEmail(
 // SMS SERVICE
 // ============================================================================
 
+/** Who a text is for, so a MINOR_CARE_SHARED_HOLD on their account stops it too. */
+export interface SmsOptions {
+  /** The member it is for or from (their account), when known. */
+  userId?: string;
+  /** Asked for in the call just now (a verification code): a hold doesn't stop it. */
+  askedNow?: boolean;
+}
+
 /**
- * Send an SMS via Twilio
+ * MINOR_CARE_SHARED_HOLD: `to`, or the account opts.userId, is held by a call under 18 and this
+ * was not asked for just now. For senders that may not import services/outreach (a lower layer).
  */
-export async function sendSMS(to: string, message: string): Promise<string> {
+export async function textHeld(to: string, opts: SmsOptions = {}): Promise<boolean> {
+  const { heldSender } = await import('./outreach/checkin-replies.js');
+  return !opts.askedNow && heldSender(opts.userId, to);
+}
+
+/**
+ * textHeld for the senders that reach Twilio themselves (in-call tools, the group call, voice
+ * messages, family check-ins): true when that text or call must not go. Logged without the number.
+ */
+export async function directSendHeld(
+  to: string,
+  what: 'text' | 'call',
+  opts: SmsOptions = {}
+): Promise<boolean> {
+  if (!(await textHeld(to, opts))) return false;
+  getLogger().info({ what }, 'Not sent: MINOR_CARE_SHARED_HOLD');
+  return true;
+}
+
+/**
+ * Send an SMS via Twilio. MINOR_CARE_SHARED_HOLD: never to an account (opts.userId) or a number
+ * a call held under 18, unless asked for just now (the code they asked for).
+ */
+export async function sendSMS(to: string, message: string, opts: SmsOptions = {}): Promise<string> {
   // Validate phone number
   const phoneValidation = validatePhone(to);
   if (!phoneValidation.valid) {
     throw new Error(`Invalid phone number: ${sanitizePhoneForLog(to)}`);
   }
+  if (await textHeld(to, opts)) throw new Error('SMS not sent: held');
 
   // Check Twilio credentials
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
