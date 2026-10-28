@@ -420,8 +420,11 @@ describe('the public sample', () => {
   });
 });
 
+// run.sh is a zsh script for the eval machine; CI's Linux runners have no zsh.
+const hasZsh = spawnSync('zsh', ['-c', 'true']).status === 0;
+
 describe('run.sh reads scenarios from EVAL_SCENARIO_DIR', () => {
-  it('plans a call from a scenario outside the repo', () => {
+  it.skipIf(!hasZsh)('plans a call from a scenario outside the repo', () => {
     const dir = mkdtempSync(join(tmpdir(), 'recall-scen-'));
     writeFileSync(join(dir, 'recall-x.txt'), 'Hello.\n');
     const r = spawnSync(
