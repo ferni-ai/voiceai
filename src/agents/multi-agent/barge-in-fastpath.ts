@@ -163,7 +163,9 @@ export function createBargeInFastPath(deps: {
   /** BARGE_IN_SOFT_PAUSE=on: sustained speech pauses Ferni until confirmed. */
   softPause?: SoftPause;
 }): BargeInFastPath {
-  const setTimer = deps.setTimer ?? setTimeout;
+  const setTimer =
+    deps.setTimer ??
+    ((fn: () => void, ms: number) => setTimeout(fn, ms) as ReturnType<typeof setTimeout>);
   const clearTimer = deps.clearTimer ?? clearTimeout;
   let agentSpeaking = false;
   let callerSpeaking = false;

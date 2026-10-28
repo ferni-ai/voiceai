@@ -144,7 +144,9 @@ export function createNeverSilentGuard(deps: {
 }): NeverSilentGuard {
   const { session } = deps;
   const now = deps.now ?? Date.now;
-  const setTimer = deps.setTimer ?? setTimeout;
+  const setTimer =
+    deps.setTimer ??
+    ((fn: () => void, ms: number) => setTimeout(fn, ms) as ReturnType<typeof setTimeout>);
   const clearTimer = deps.clearTimer ?? clearTimeout;
   const hang = deps.hangMs ?? NEVER_SILENT_HANG_MS;
   const toolHold = deps.toolHoldMs ?? NEVER_SILENT_TOOL_HOLD_MS;

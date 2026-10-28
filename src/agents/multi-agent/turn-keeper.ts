@@ -93,7 +93,9 @@ export function createTurnKeeper(deps: {
   const now = deps.now ?? Date.now;
   let speakingSince: number | undefined;
   let lastSpokeMs = 0;
-  const setTimer = deps.setTimer ?? setTimeout;
+  const setTimer =
+    deps.setTimer ??
+    ((fn: () => void, ms: number) => setTimeout(fn, ms) as ReturnType<typeof setTimeout>);
   const clearTimer = deps.clearTimer ?? clearTimeout;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pending: string | undefined; // latest final transcript not yet answered
