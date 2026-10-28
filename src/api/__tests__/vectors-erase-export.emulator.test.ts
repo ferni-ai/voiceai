@@ -16,6 +16,12 @@ import { exportUserRecords } from '../../services/platform/user-records-export.j
 // The shared setup fakes Firestore for every test; here the reads and writes reach the emulator
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
+// A query's embedding: the same vector every document here is stored with
+vi.mock('../../memory/embeddings.js', () => ({
+  embed: async () => Array.from({ length: 768 }, (_, i) => (i % 7) / 7),
+  embedBatch: async (texts: string[]) =>
+    texts.map(() => Array.from({ length: 768 }, (_, i) => (i % 7) / 7)),
+}));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   ensureFirebaseAdmin: () => true,
   deleteFirebaseUser: vi.fn(async () => true),
@@ -138,5 +144,32 @@ describe.skipIf(!emulator)('semantic index: export and account deletion', () => 
     await eraseUserRecord(a, db);
     expect(await leftFor(a)).toEqual({ vectors: 0, memory_vectors: 0 });
     expect((await db.doc(`bogle_users/${a}`).get()).exists).toBe(false);
+  }, 60_000);
+});
+
+describe.skipIf(!emulator)('semantic index: recall drops expired documents', () => {
+  it('search and searchByEmbedding return a live inside joke and a fact, never an expired joke', async () => {
+    const uid = `vec-recall-${String(Date.now()).slice(-7)}`;
+    const add = async (id: string, expireAt?: Date) =>
+      index.addDocument({
+        id,
+        text: `${id} words`,
+        embedding,
+        metadata: { source: 'store_auto_sync', userId: uid, entityType: 'inside_joke' },
+        expireAt,
+      });
+    await add(`trust_inside_joke_${uid}-live`, new Date(Date.now() + YEAR_MS));
+    await add(`trust_inside_joke_${uid}-expired`, new Date(Date.now() - 60_000));
+    await add(`fact_${uid}_1`); // no expiry: kept
+    const live = [`fact_${uid}_1`, `trust_inside_joke_${uid}-live`];
+    // The expired one is still stored (TTL deletes late): only the readers drop it
+    expect(await left('vectors', uid)).toBe(3);
+
+    const options = { topK: 5, filter: { userId: uid } };
+    const byEmbedding = await index.searchByEmbedding(embedding, options);
+    expect(byEmbedding.map((r) => r.document.id).sort()).toEqual(live);
+    index.invalidateSearchCacheForUser(uid); // else the text search is served from that result
+    const byText = await index.search(`what was funny with ${uid}`, options);
+    expect(byText.map((r) => r.document.id).sort()).toEqual(live);
   }, 60_000);
 });
