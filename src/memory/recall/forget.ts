@@ -61,8 +61,8 @@ export { isForgotten };
 
 const log = createLogger({ module: 'forget' });
 
-/** Fact collections recall has read; a forgotten topic is marked in both. */
-const FACT_COLLECTIONS = ['dynamic_facts', 'extracted_facts'] as const;
+/** Fact collections recall has read, and the bi-temporal facts store (MEMORY_FACTS); a forgotten topic is marked in each. */
+const FACT_COLLECTIONS = ['dynamic_facts', 'extracted_facts', 'facts'] as const;
 /** A topic matching more than this share of the caller's facts (and more than a few) is too broad. */
 const MAX_SHARE = 0.3;
 const MAX_UNASKED = 5;
@@ -124,7 +124,7 @@ export const LAST_SUMMARY_FIELDS = ['lastConversationSummary', 'lastCallerSummar
 
 /** The text a fact document is about, in either collection's shape. */
 export function factText(d: Record<string, unknown>): string {
-  return ['entityName', 'key', 'value', 'fact', 'content']
+  return ['entityName', 'key', 'attribute', 'value', 'fact', 'content']
     .map((k) => (typeof d[k] === 'string' ? (d[k] as string) : ''))
     .join(' ');
 }

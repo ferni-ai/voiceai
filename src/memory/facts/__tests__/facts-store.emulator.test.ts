@@ -16,8 +16,18 @@ import {
   exportUserRecords,
 } from '../../../services/platform/user-records-export.js';
 import { proposeFact, type FactProposal } from '../../writer/memory-writer.js';
+import { forgetTopic } from '../../recall/forget.js';
 import { getCurrentFacts, getFactsAsOf, listFactHistory } from '../facts-store.js';
 
+// forgetTopic reads through getFirestoreDb, which the shared setup fakes: use the real client here
+vi.mock('../../../utils/firestore-utils.js', async () => {
+  const actual = await vi.importActual<typeof import('../../../utils/firestore-utils.js')>(
+    '../../../utils/firestore-utils.js'
+  );
+  return { ...actual, getFirestoreDb: vi.fn(actual.getFirestoreDb) };
+});
+vi.mock('../../retrieval/conversation-index.js', () => ({ removeConversationDocument: vi.fn() }));
+vi.mock('../../retrieval/semantic-memory-search.js', () => ({ removeIndexedMemory: vi.fn() }));
 // The shared setup fakes Firestore for every test; here the reads and writes reach the emulator
 vi.mock('firebase-admin/app', async () => vi.importActual('firebase-admin/app'));
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
@@ -107,6 +117,28 @@ describe.skipIf(!emulator)('facts store (Firestore emulator)', () => {
     expect(await count(uid)).toBe(0);
     expect(await count(`onbehalf:${uid}`)).toBe(0);
   }, 30_000);
+
+  it('"forget that" reaches the facts store: marked, or deleted with FORGET_DELETES', async () => {
+    for (const deletes of [false, true]) {
+      const uid = uidOf(deletes ? 'del' : 'mark');
+      const pet = { ...city('a beagle named Biscuit', 'k1'), attribute: 'pet' as const };
+      await proposeFact(db, uid, pet, ON);
+      await proposeFact(db, uid, city('Tampa', 'k2'), ON);
+      const env = deletes ? { FORGET_DELETES: 'on' } : {};
+      expect(await forgetTopic(uid, 'Biscuit', undefined, undefined, env)).toMatchObject({
+        kind: 'forgotten',
+        marked: 1,
+      });
+      const rows = (await db.collection('bogle_users').doc(uid).collection('facts').get()).docs;
+      const byValue = Object.fromEntries(rows.map((d) => [d.get('value'), d.get('forgottenAt')]));
+      expect(byValue['Tampa']).toBeNull();
+      if (deletes) expect(Object.keys(byValue)).toEqual(['Tampa']);
+      else expect(typeof byValue['a beagle named Biscuit']).toBe('string');
+      expect(
+        (await getCurrentFacts(db, uid, undefined, undefined, ON)).map((f) => f.value)
+      ).toEqual(['Tampa']);
+    }
+  }, 60_000);
 
   it('the export carries every fact; erasure removes them all and only theirs', async () => {
     const uid = uidOf('erase');

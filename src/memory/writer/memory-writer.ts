@@ -1,21 +1,16 @@
 /**
- * The memory writer: the only writer of the facts store (memory call sheet plan,
- * section 2). It reconciles a proposed fact against the stored ones in one
- * transaction, by code (exact subject and attribute; values trimmed, case-folded,
- * phones as E.164):
- *
+ * The memory writer: the only writer of the facts store. It reconciles a proposed fact
+ * against the stored ones in one transaction, by code (exact subject and attribute;
+ * values trimmed, case-folded, phones as E.164):
  *   ADD     nothing current says this.
- *   UPDATE  a single-valued attribute has a different current value: the old fact
- *           gets validTo, retiredAt and supersededBy, and is kept. Multi-valued
- *           attributes (pets, goals) add instead.
+ *   UPDATE  a single-valued attribute has a new value: the old fact gets validTo,
+ *           retiredAt and supersededBy and is kept. Multi-valued ones (pets) add.
  *   NOOP    already known: only lastConfirmedAt moves.
- *
- * Idempotent per (source, sourceKey): the id derives from the pair. No-op while
- * MEMORY_FACTS is off; member facts only; logs ids and ops, never a value.
+ * Idempotent per (source, sourceKey). Member facts only, nothing while MEMORY_FACTS is
+ * off, ids and ops in logs, never a value.
  *
  * @module memory/writer/memory-writer
  */
-
 import { createHash } from 'crypto';
 import type { Firestore, Transaction } from '@google-cloud/firestore';
 import { memoryFactsEnabled } from '../../config/memory-facts-flag.js';
@@ -25,6 +20,7 @@ import {
   isFactId,
   isSingleValued,
   normalizeValue,
+  toFact,
   valueKey,
   type Fact,
   type FactAttribute,
@@ -34,7 +30,6 @@ import { factDoc, factsQuery, isCurrent, memberFacts, parseFacts } from '../fact
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'memory-writer' });
-
 export interface FactProposal {
   readonly subjectId: string;
   readonly attribute: FactAttribute;
@@ -51,18 +46,24 @@ export interface FactProposal {
 
 type Refusal = 'disabled' | 'not_member' | 'invalid' | 'unreadable';
 export type ProposeResult =
-  | {
-      readonly ok: true;
-      readonly op: 'add' | 'update' | 'noop';
-      readonly fact: Fact;
-      readonly duplicate: boolean;
-    }
-  | { readonly ok: false; readonly reason: Refusal };
+  | { ok: true; op: 'add' | 'update' | 'noop'; fact: Fact; duplicate: boolean }
+  | { ok: false; reason: Refusal };
 
 const stored = ({ id: _id, ...rest }: Fact): Omit<Fact, 'id'> => rest;
 const ms = (iso: string): number => Date.parse(iso);
 const laterOf = (a: string, b: string | null): string => (b !== null && ms(b) > ms(a) ? b : a);
-
+/** Writes only if every fact parses as stored (toFact), so a bad field never leaves half an UPDATE. */
+function commit(
+  db: Firestore,
+  tx: Transaction,
+  uid: string,
+  facts: readonly Fact[],
+  done: ProposeResult
+): ProposeResult {
+  if (facts.some((f) => toFact(f.id, stored(f)) === null)) return { ok: false, reason: 'invalid' };
+  for (const f of facts) tx.set(factDoc(db, uid, f.id), stored(f));
+  return done;
+}
 async function reconcile(
   db: Firestore,
   tx: Transaction,
@@ -74,8 +75,7 @@ async function reconcile(
     .update(`${p.source}\u0000${p.sourceKey}`)
     .digest('hex')
     .slice(0, 20);
-  const ref = factDoc(db, uid, id);
-  const own = await tx.get(ref);
+  const own = await tx.get(factDoc(db, uid, id));
   const peers = await tx.get(factsQuery(db, uid, p.subjectId, p.attribute));
   if (own.exists) {
     const fact = parseFacts(uid, [own])[0];
@@ -90,8 +90,7 @@ async function reconcile(
   const same = current.find((f) => valueKey(f.value) === key);
   if (same) {
     const fact = { ...same, lastConfirmedAt: laterOf(now, same.lastConfirmedAt) };
-    tx.set(factDoc(db, uid, same.id), stored(fact));
-    return { ok: true, op: 'noop', fact, duplicate: false };
+    return commit(db, tx, uid, [fact], { ok: true, op: 'noop', fact, duplicate: false });
   }
   const validFrom = p.validFrom ?? null;
   // prettier-ignore
@@ -102,12 +101,14 @@ async function reconcile(
     sensitive: p.sensitive ?? false, forgottenAt: null, lastConfirmedAt: now,
   };
   const replaced = isSingleValued(p.attribute) ? current : [];
-  for (const old of replaced) {
-    const validTo = laterOf(validFrom ?? now, old.validFrom);
-    tx.set(factDoc(db, uid, old.id), stored({ ...old, validTo, retiredAt: now, supersededBy: id }));
-  }
-  tx.set(ref, stored(fact));
-  return { ok: true, op: replaced.length > 0 ? 'update' : 'add', fact, duplicate: false };
+  const retired = replaced.map((old) => ({
+    ...old,
+    validTo: laterOf(validFrom ?? now, old.validFrom),
+    retiredAt: now,
+    supersededBy: id,
+  }));
+  const op = replaced.length > 0 ? 'update' : 'add';
+  return commit(db, tx, uid, [...retired, fact], { ok: true, op, fact, duplicate: false });
 }
 
 /** ADD, UPDATE or NOOP, whichever the stored facts call for. */
@@ -122,10 +123,8 @@ export async function proposeFact(
   const value = normalizeValue(p.attribute, p.value);
   if (
     !value ||
-    !((p.confidence ?? 0) >= 0 && (p.confidence ?? 0) <= 1) ||
-    !isFactId(p.subjectId) ||
     !isFactId(p.sourceKey) ||
-    !(p.sourceEpisodeId == null || isFactId(p.sourceEpisodeId))
+    !(p.at === undefined || (p.at instanceof Date && !Number.isNaN(p.at.getTime())))
   ) {
     return { ok: false, reason: 'invalid' };
   }

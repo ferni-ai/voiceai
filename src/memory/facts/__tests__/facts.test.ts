@@ -80,6 +80,25 @@ describe('the fact parser', () => {
     expect(normalizeValue('email_present', 'true')).toBe('true');
     expect(normalizeValue('other', '')).toBeNull();
   });
+
+  it('rejects seven or more digits however they are written or separated', () => {
+    const numbers = [
+      '5 5 5 0 1 4 2 1 2 3',
+      '555·0142·123',
+      '５５５０１４２１２３', // full-width
+      '٥٥٥٠١٤٢١٢٣', // Arabic-Indic
+      'reach him at 555 0142',
+      '555.0142',
+    ];
+    for (const n of numbers) expect(normalizeValue('other', n), n).toBeNull();
+    for (const n of numbers) expect(normalizeValue('health_note', n), n).toBeNull();
+    // fewer than seven stay, and the E.164 phone and a dated birthday are still allowed
+    expect(normalizeValue('other', 'two dogs and 3 cats')).toBe('two dogs and 3 cats');
+    expect(normalizeValue('phone', '٥٥٥٠١٤٢١٢٣')).toBeNull();
+    expect(normalizeValue('phone', '727·555·0142')).toBeNull();
+    expect(normalizeValue('phone', '(727) 555-0142')).toBe('+17275550142');
+    expect(normalizeValue('birthday', '1960-04-12')).toBe('1960-04-12');
+  });
 });
 
 describe('proposeFact', () => {
@@ -217,6 +236,44 @@ describe('proposeFact', () => {
     expect(await getCurrentFacts(db, 'onbehalf:call-9', undefined, undefined, ON)).toEqual([]);
   });
 
+  it('refuses a number written with spaces, dots or other digits, and stores nothing', async () => {
+    const { db, paths } = setup();
+    for (const [i, value] of [
+      '5 5 5 0 1 4 2 1 2 3',
+      '555·0142·123',
+      '５５５０１４２１２３',
+      '٥٥٥٠١٤٢١٢٣',
+    ].entries()) {
+      const p = { ...city(value, `k${i}`), attribute: 'health_note' as const };
+      expect(await proposeFact(db, 'u1', p, ON), value).toEqual({ ok: false, reason: 'invalid' });
+    }
+    expect(paths()).toEqual([]);
+  });
+
+  it('writes only what the parser would read: a bad field refuses the whole proposal', async () => {
+    const { db, docs } = setup();
+    await added(db, city('Tampa', 'k0'));
+    const before = structuredClone(Object.fromEntries(docs));
+    const bad: Array<[string, Partial<FactProposal>]> = [
+      ['validFrom text', { validFrom: 'last spring' }],
+      ['validFrom number', { validFrom: 12345 as never }],
+      ['attribute', { attribute: 'shoe_size' as never }],
+      ['source', { source: 'a_guess' as never }],
+      ['sensitive', { sensitive: 'yes' as never }],
+      ['confidence', { confidence: Number.NaN }],
+      ['at invalid date', { at: new Date('nope') }],
+      ['at text', { at: '2026-10-01' as never }],
+      ['subject', { subjectId: 'a/b' }],
+      ['episode', { sourceEpisodeId: '../x' }],
+    ];
+    for (const [name, extra] of bad) {
+      // a would-be UPDATE: the old city must not be retired when the new fact is refused
+      const r = await proposeFact(db, 'u1', city('Austin', `k-${name}`, extra), ON);
+      expect(r, name).toEqual({ ok: false, reason: 'invalid' });
+      expect(Object.fromEntries(docs), name).toEqual(before);
+    }
+  });
+
   it('writes and reads nothing while MEMORY_FACTS is off', async () => {
     const { db, paths } = setup();
     expect(await proposeFact(db, 'u1', city('Tampa', 'k1'), {})).toEqual({
@@ -266,6 +323,34 @@ describe('forgotten and unreadable facts', () => {
     expect((await getCurrentFacts(db, 'u1', undefined, undefined, ON)).map((f) => f.id)).toEqual([
       'kept',
     ]);
+  });
+
+  it('leaves out a fact about a forgotten topic, by value or by attribute, in every reader', async () => {
+    const { db, docs } = setup();
+    await added(db, { ...city('a beagle named Biscuit', 'k1'), attribute: 'pet' });
+    await added(db, city('Tampa', 'k2', { at: T1 }));
+    const names = async (): Promise<string[][]> => [
+      (await getCurrentFacts(db, 'u1', undefined, undefined, ON)).map((f) => f.value),
+      (await getFactsAsOf(db, 'u1', 'self', 'pet', T1, ON)).map((f) => f.value),
+      (await listFactHistory(db, 'u1', 'self', 'pet', ON)).map((f) => f.value),
+    ];
+    expect(await names()).toEqual([
+      ['Tampa', 'a beagle named Biscuit'],
+      ['a beagle named Biscuit'],
+      ['a beagle named Biscuit'],
+    ]);
+
+    docs.set('bogle_users/u1/memory_state/forgotten', { topics: ['Biscuit'] }); // not marked forgottenAt
+    expect(await names()).toEqual([['Tampa'], [], []]);
+    docs.set('bogle_users/u1/memory_state/forgotten', { topics: ['city'] }); // the attribute
+    expect((await names())[0]).toEqual(['a beagle named Biscuit']);
+  });
+
+  it('returns nothing when the forgotten topics cannot be read', async () => {
+    const { db, docs } = setup();
+    await added(db, city('Tampa', 'k1'));
+    docs.set('bogle_users/u1/memory_state/forgotten', { topics: 'Biscuit' });
+    expect(await getCurrentFacts(db, 'u1', undefined, undefined, ON)).toEqual([]);
   });
 
   it('skips a document of another shape and leaves it as it is', async () => {

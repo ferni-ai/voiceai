@@ -19,11 +19,10 @@ const FACT_SOURCES = ['deep_extraction', 'after_call', 'live_tool', 'onboarding'
 export type FactSource = (typeof FACT_SOURCES)[number];
 
 /** One value at a time: a new value replaces the old. The rest (pets, goals...) can hold several. */
-const SINGLE_VALUED = new Set(
-  'phone email_present city employer role relation birthday'.split(' ')
-);
-export const isSingleValued = (a: FactAttribute): boolean => SINGLE_VALUED.has(a);
+const SINGLE = new Set('phone email_present city employer role relation birthday'.split(' '));
+export const isSingleValued = (a: FactAttribute): boolean => SINGLE.has(a);
 
+// prettier-ignore
 export interface Fact {
   readonly v: typeof FACT_VERSION;
   readonly id: string;
@@ -31,24 +30,17 @@ export interface Fact {
   readonly attribute: FactAttribute;
   /** At most 200 chars. A phone is E.164; email_present is 'true' or 'false', never the address. */
   readonly value: string;
-  readonly validFrom: string | null;
-  readonly validTo: string | null;
-  readonly learnedAt: string;
-  readonly retiredAt: string | null;
-  readonly supersededBy: string | null;
-  readonly sourceEpisodeId: string | null;
-  readonly source: FactSource;
-  readonly confidence: number;
-  readonly sensitive: boolean;
-  readonly forgottenAt: string | null;
-  readonly lastConfirmedAt: string;
+  readonly validFrom: string | null; readonly validTo: string | null;
+  readonly learnedAt: string; readonly retiredAt: string | null;
+  readonly supersededBy: string | null; readonly sourceEpisodeId: string | null;
+  readonly source: FactSource; readonly confidence: number; readonly sensitive: boolean;
+  readonly forgottenAt: string | null; readonly lastConfirmedAt: string;
 }
 
-const VALUE_MAX = 200;
 const E164 = /^\+[1-9]\d{6,14}$/;
 const DATE_LIKE = /^(\d{4}-)?\d{2}-\d{2}$/;
-// seven digits, with spaces or punctuation between, is a number someone could dial
-const PHONE_LIKE = /(?:\+?\d[\s().-]?){7,}/;
+// Seven digits in any script, whatever sits between them, is a number someone could dial
+const DIGITS = /\p{Nd}/gu;
 
 function e164(raw: string): string | null {
   const digits = raw.replace(/[\s().-]/g, '');
@@ -63,12 +55,12 @@ function e164(raw: string): string | null {
 /** The value as stored, or null if it may not be stored for this attribute. */
 export function normalizeValue(attribute: FactAttribute, raw: string): string | null {
   const value = raw.normalize('NFKC').replace(/\s+/g, ' ').trim();
-  if (!value || value.length > VALUE_MAX) return null;
+  if (!value || value.length > 200) return null;
   if (attribute === 'phone') return e164(value);
   if (attribute === 'email_present') return value === 'true' || value === 'false' ? value : null;
   if (value.includes('@')) return null;
   if (attribute === 'birthday' && DATE_LIKE.test(value)) return value;
-  return PHONE_LIKE.test(value) ? null : value;
+  return (value.match(DIGITS)?.length ?? 0) >= 7 ? null : value;
 }
 
 /** What two values are compared by: same fact, however it was cased or spaced. */

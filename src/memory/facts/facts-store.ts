@@ -1,27 +1,24 @@
 /**
- * Reads of bogle_users/{uid}/facts (memory call sheet plan, lane M8); the memory
- * writer is the only writer. No-ops while MEMORY_FACTS is off, reads only a
- * member's own facts, never returns a forgotten one, logs ids only.
+ * Reads of bogle_users/{uid}/facts; the memory writer is the only writer. Member facts
+ * only, nothing while MEMORY_FACTS is off, never a forgotten fact, ids in logs only.
  *
  * @module memory/facts/facts-store
  */
-
 import type { DocumentReference, Firestore, Query } from '@google-cloud/firestore';
 import { memoryFactsEnabled } from '../../config/memory-facts-flag.js';
 import type { Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { factText, isForgotten, parseTopics } from '../recall/forget.js';
 import { toFact, type Fact, type FactAttribute } from './fact.js';
 
 const log = createLogger({ module: 'facts-store' });
-
 const UID = /^[\w:.@+-]{1,200}$/;
 /** True for a member's own facts; throws on an id that would address another path. */
 export const memberFacts = (uid: string): boolean => {
   if (!UID.test(uid)) throw new Error('facts: refusing an invalid user id');
   return isMemberIdentity(uid);
 };
-
 const FACT_ID = /^[\w-]{1,200}$/;
 /** Throws on an id that would address another path (a nested doc, say). */
 export const factDoc = (db: Firestore, uid: string, id: string): DocumentReference => {
@@ -29,8 +26,7 @@ export const factDoc = (db: Firestore, uid: string, id: string): DocumentReferen
   return db.collection('bogle_users').doc(uid).collection('facts').doc(id);
 };
 
-const MAX_READ = 500;
-/** A person's facts, narrowed by subject and attribute. Two equality filters need no index. */
+/** A person's facts by subject and attribute; two equality filters need no index. */
 export function factsQuery(
   db: Firestore,
   uid: string,
@@ -40,13 +36,13 @@ export function factsQuery(
   let q = db.collection('bogle_users').doc(uid).collection('facts') as Query;
   if (subjectId) q = q.where('subjectId', '==', subjectId);
   if (attribute) q = q.where('attribute', '==', attribute);
-  return q.limit(MAX_READ);
+  return q.limit(500);
 }
 
 /** The facts this build wrote; any other shape is skipped and logged by id. */
 export function parseFacts(
   uid: string,
-  docs: ReadonlyArray<{ id: string; data(): unknown }>
+  docs: ReadonlyArray<{ id: string; data: () => unknown }>
 ): Fact[] {
   return docs.flatMap((d) => {
     const f = toFact(d.id, d.data());
@@ -57,10 +53,16 @@ export function parseFacts(
 
 export const isCurrent = (f: Fact): boolean =>
   f.validTo === null && f.retiredAt === null && f.forgottenAt === null;
-
 const ms = (iso: string): number => Date.parse(iso);
 
-/** The member's matching facts that pass `keep` (never a forgotten one), newest learned first. */
+/** The topics the owner asked to forget; null when they can't be read, so readers fail closed. */
+async function forgottenWords(db: Firestore, uid: string): Promise<string[] | null> {
+  const doc = db.collection('bogle_users').doc(uid).collection('memory_state').doc('forgotten');
+  const snap = await doc.get();
+  return parseTopics(snap.exists ? snap.data()?.topics : undefined);
+}
+
+/** Matching facts that pass `keep`, newest learned first; none forgotten or about a forgotten topic. */
 async function read(
   db: Firestore,
   uid: string,
@@ -70,9 +72,16 @@ async function read(
   attribute?: FactAttribute
 ): Promise<Fact[]> {
   if (!memoryFactsEnabled(env) || !memberFacts(uid)) return [];
+  const topics = await forgottenWords(db, uid);
+  if (!topics) return [];
   const snap = await factsQuery(db, uid, subjectId, attribute).get();
   return parseFacts(uid, snap.docs)
-    .filter((f) => f.forgottenAt === null && keep(f))
+    .filter(
+      (f) =>
+        f.forgottenAt === null &&
+        keep(f) &&
+        !isForgotten(factText({ attribute: f.attribute, value: f.value }), topics)
+    )
     .sort((a, b) => ms(b.learnedAt) - ms(a.learnedAt));
 }
 
@@ -85,10 +94,7 @@ export const getCurrentFacts = (
   env: Env = process.env
 ): Promise<Fact[]> => read(db, uid, env, isCurrent, subjectId, attribute);
 
-/**
- * What was true at `asOf`, including facts since replaced. A fact with no validFrom
- * is taken to have been true since before Ferni learned it.
- */
+/** What was true at `asOf`, replaced facts included; no validFrom means true before it was learned. */
 export const getFactsAsOf = (
   db: Firestore,
   uid: string,
