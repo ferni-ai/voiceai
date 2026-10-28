@@ -29,11 +29,12 @@
  */
 
 import { pathToFileURL } from 'node:url';
-import { applicationDefault, deleteApp, initializeApp } from 'firebase-admin/app';
+import { applicationDefault, deleteApp, initializeApp, type App } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import {
   FieldPath,
   getFirestore,
+  type DocumentReference,
   type Firestore,
   type QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
@@ -72,7 +73,10 @@ export const AUDITED_STORES: readonly OwnedStore[] = dedupeByLabel([
 
 export interface OrphanedKey {
   key: string;
-  /** Documents that hold the key: 1 or 0 for a store keyed by document id, the matches otherwise */
+  /**
+   * Documents that hold the key: the matches, or for a store keyed by document id 1 (the
+   * document), or the documents under it when only its subcollections survive
+   */
   docs: number;
 }
 
@@ -143,6 +147,19 @@ async function documentsPresent(
   return present;
 }
 
+/**
+ * Documents under a document that doesn't exist itself (a parent erased before its
+ * subcollections), at any depth, so a phantom key counts what it really holds.
+ */
+async function docsUnder(ref: DocumentReference): Promise<number> {
+  let docs = 0;
+  for (const sub of await ref.listCollections()) {
+    docs += (await sub.count().get()).data().count;
+    for (const child of await sub.listDocuments()) docs += await docsUnder(child);
+  }
+  return docs;
+}
+
 /** The candidates that pass conditions 2 and 3 (no record, no Firebase user) */
 async function orphanUids(
   db: Firestore,
@@ -186,7 +203,12 @@ export async function findOrphans(
         store.collection,
         found.map(([key]) => key)
       );
-      return { store, keys: found.map(([key]) => ({ key, docs: present.has(key) ? 1 : 0 })) };
+      const docs = async (key: string): Promise<number> =>
+        present.has(key) ? 1 : docsUnder(db.collection(store.collection).doc(key));
+      return {
+        store,
+        keys: await Promise.all(found.map(async ([key]) => ({ key, docs: await docs(key) }))),
+      };
     })
   );
 }
@@ -220,6 +242,11 @@ export async function runAudit(options: {
   return { lines, total };
 }
 
+/** The database FIRESTORE_DATABASE names ('(default)' when unset): never a different one */
+export function openDatabase(app: App): Firestore {
+  return getFirestore(app, getFirestoreDatabase());
+}
+
 function parseArgs(argv: readonly string[]): { project: string } {
   let project: string | undefined;
   for (let i = 0; i < argv.length; i++) {
@@ -247,7 +274,7 @@ async function main(): Promise<void> {
   );
   try {
     const run = await runAudit({
-      db: getFirestore(app, getFirestoreDatabase()),
+      db: openDatabase(app),
       auth: getAuth(app),
     });
     for (const line of run.lines) console.log(line);

@@ -39,6 +39,8 @@ notes as a one-time link, never in this repository.
 
 | Feature | Where | Notes |
 |---|---|---|
+| Coming back | Home, after time away | After 20 minutes away the last call's goodbye clears; after 8 hours Ferni wakes as the app opens. The greeting and the room's light follow the clock. With `GET /api/home` (server route in review), Home asks about one light thread from last time ("How's the interview on Thursday going?") and may show a note from Ferni with Talk about this; without it, the time-of-day greeting. No server flag hides UI. |
+| Touch Ferni | Home, tap Ferni at rest | He dents where touched, glances at the finger and lights up, with one soft tap in the hand. After a quiet 20 s at rest a firefly may wander by, once. Not in a call (there, a tap while Ferni speaks interrupts). Reduce Motion: a glance and a blink only. |
 | Talk to Ferni (a voice call) | Home, the Talk button | The first time, the consent screen comes first. It names the processors (Google, Anthropic, Cartesia, LiveKit). |
 | Microphone permission | First call | "Ferni listens only while you're talking together, so you can talk out loud." Denied: Home explains and offers Open Settings. |
 | The call on the system | During a call | LiveCommunicationKit shows the call on the Lock Screen and in the system call UI. AirPods mute and the Lock Screen's end button work. |
@@ -50,14 +52,17 @@ notes as a one-time link, never in this repository.
 | Teammates | Home, the team row (iPad: sidebar, then Team) | Choose who answers next. Locked teammates say why. |
 | The family table | During a call, when Ferni brings in a teammate | The teammate peeks in, they greet and swap, and the room light changes. |
 | "I'll remember" | Home, after a call | Up to three things Ferni kept, each with Forget. |
+| Your next step | Home, after a call where you said you'd do something | The step in your words with its time. Add to Calendar opens the system's event sheet (EventKitUI; no calendar permission is asked, and the app can't read the calendar). Share opens the share sheet for Reminders, Things, Todoist or anything else. Needs the review account to have said something it will do. |
 | What Ferni remembers | Settings, then What Ferni remembers (iPad: sidebar) | View and forget memories. |
 | Account and Sign in with Apple | Settings, then Account | Links the anonymous account to an Apple ID. |
 | Delete account (5.1.1(v)) | Settings, then Delete account | Deletes the account and its data on the server, and revokes Sign in with Apple. The revoke needs PR #2004. |
 | Withdraw consent | Settings, then Privacy | Ferni asks again before the next call. |
+| Teammates in Spotlight | Spotlight: type a teammate's name or what they help with ("money", "habits") | Only teammates the person has met are indexed (a new account: Ferni). Opening one goes through Talk, so consent comes first. Shortcuts offers the same teammates. Memories, people and follow-ups are never indexed. |
 | Siri, Shortcuts, Action button | "Talk to Ferni", "Call Ferni", "Talk to Maya on Ferni" | App Intents. Talk always goes through consent; End is the Live Activity's button. |
 | Control Center and Lock Screen control | Controls gallery, "Talk to Ferni" | |
 | iPad | Sidebar (Talk, Team, What Ferni remembers, Settings) | In a landscape call, captions sit beside Ferni. Keyboard: Command-Return talks, Command-Period ends, Command-M mutes. |
-| Languages | System language | The web app's 11 locales. Untranslated strings show in English. |
+| The web's Apple Health link | `ferniapp://healthkit/authorize` (from Ferni on the web, on an iPhone) | Opens Ferni with "Health sharing isn't in the iPhone app yet." The app has no HealthKit; no link starts a call or changes anything. |
+| Languages | English | 1.0 ships in English only (most of the catalog was still English placeholders). The app declares `en` and builds no other language; the String Catalog stays in the repository for real translations later. |
 | Accessibility | Throughout | Dynamic Type, VoiceOver labels and actions (including Interrupt while Ferni speaks), Reduce Motion (Ferni moves at 35% and skips the big moments). |
 | Crash reports | Not visible | Sentry, only in builds that carry a DSN. No user, screenshots, view hierarchy or replay. |
 
