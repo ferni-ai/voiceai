@@ -14,6 +14,7 @@
 
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { writeProfileUnlessErased, type ProfileWriteDb } from './engagement-profile-write.js';
 import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../daily-rituals.js';
 import {
   averageRealAccuracy,
@@ -100,7 +101,7 @@ interface WriteBatch {
   commit: () => Promise<unknown>;
 }
 
-interface Firestore {
+interface Firestore extends ProfileWriteDb<DocumentReference> {
   collection: (path: string) => CollectionReference;
   batch: () => WriteBatch;
 }
@@ -210,10 +211,9 @@ export class EngagementStore {
 
     if (this.db) {
       try {
-        await this.db
-          .collection(this.COLLECTION)
-          .doc(profile.userId)
-          .set(cleanForFirestore(profile), { merge: true });
+        const doc = cleanForFirestore(profile);
+        if (!(await writeProfileUnlessErased(this.db, this.COLLECTION, profile.userId, doc)))
+          this.memoryCache.delete(profile.userId);
       } catch (error) {
         getLogger().warn({ error, userId: profile.userId }, 'Failed to save engagement profile');
       }

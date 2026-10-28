@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateId } from '../../utils/id-generator.js';
+import { clampMomentWords, momentExpireAt } from '../../utils/shared-moment-retention.js';
 import {
   loadRelationshipMemory,
   saveRelationshipMemory,
@@ -237,17 +238,16 @@ export class RelationshipEngine {
   // MOMENT RECORDING
   // ============================================================================
 
-  /**
-   * Record a shared moment
-   */
+  /** A shared moment: 80 characters of their words, kept a year (shared-moment-retention.ts) */
   recordMoment(type: SharedMomentType, summary: string, details?: MomentDetails): SharedMoment {
     const moment: SharedMoment = {
       id: generateId(),
       type,
-      summary,
+      summary: clampMomentWords(summary),
       sessionNumber: this.memory.totalSessions,
       timestamp: new Date(),
-      userPhrase: details?.userPhrase,
+      expireAt: momentExpireAt(),
+      userPhrase: details?.userPhrase && clampMomentWords(details.userPhrase),
       significance: details?.significance ?? 0.5,
       topic: details?.topic,
       callbackCount: 0,
