@@ -45,17 +45,13 @@ import { clearResonanceUser } from '../../personas/shared/personality-resonance-
 import { clearArcCache } from '../../intelligence/context-builders/relationship/arc/storage.js';
 import { clearDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget-user.js';
 import { clearOurSongsUser } from '../../services/trust-systems/index.js';
-import {
-  recordSharedHold,
-  sharedHeldStrict,
-} from '../../services/outreach/minor-care-shared-hold.js';
+import { recordSharedHold } from '../../services/outreach/minor-care-shared-hold.js';
 import { phoneHoldId } from '../../services/outreach/checkin-replies.js';
 import {
-  holdSession,
+  derivedHold,
   ownerSessionFor,
   sessionBoundAt,
   sessionPhone,
-  setOnPhoneBound,
   setOnPhoneHeld,
   setOnUserHeld,
   sharedId,
@@ -67,10 +63,12 @@ const log = createLogger({ module: 'minor-care-purge' });
 /**
  * MINOR_CARE_SHARED_HOLD: the shared record (no words) for the user, and for the caller's number
  * (keyed by its hash), since a text from that number resolves to whatever account the number
- * names, not the call's anon: or account id. A phone: id is its own number.
+ * names, not the call's anon: or account id. A phone: id is its own number. A call held only by
+ * its number's hold (derivedHold) never writes the number's: only an age said extends it.
  */
 export function shareHold(userId: string, sessionId?: string): void {
   void recordSharedHold(userId);
+  if (derivedHold(sessionId)) return;
   sharePhoneHold((sessionId && sessionPhone(sessionId)) || userId.match(/^phone:(.+)$/)?.[1]);
 }
 function sharePhoneHold(phone: string | undefined): void {
@@ -80,20 +78,6 @@ function sharePhoneHold(phone: string | undefined): void {
 setOnUserHeld(shareHold);
 // A number bound after its session was held (the SIP caller joined late): held from then.
 setOnPhoneHeld(sharePhoneHold);
-
-/**
- * A call from a number with a live hold (minor_care_holds/phone#<hash>, the key shareHold writes)
- * is held from when the number is known, at the start or by a late SIP join, whether or not the
- * caller says their age again: every phone call gets a fresh anon: id, so only the number links
- * it to the held call (dev soak 2026-10-27: 89 docs). Fail closed (sharedHeldStrict): a record
- * that can't be read within STRICT_READ_MS holds the call. What was written before the hold is
- * dropped by the end-of-call purge (purgeHeldUser, from the session's start). Flag off: no read.
- */
-async function holdIfNumberHeld(sessionId: string, e164: string): Promise<void> {
-  const phoneId = phoneHoldId(e164); // undefined without LOG_HASH_SECRET: no record can exist
-  if (phoneId && (await sharedHeldStrict(phoneId))) holdSession(sessionId);
-}
-setOnPhoneBound((sessionId, e164) => void holdIfNumberHeld(sessionId, e164));
 // Music memories made during a purged held call are dropped on every read and save, as the
 // timer-flushed trust stores' are (held-window.ts holds the windows).
 setMusicHeldWindow(recordedWhileHeld);

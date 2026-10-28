@@ -61,24 +61,32 @@ class FakeRoom extends EventEmitter {
   }
 }
 
-/** minor_care_holds, by doc id. A read of any id throws while `failReads` is set. */
+/** minor_care_holds, by doc id: heldUntil. A read throws while `failReads`, never answers while `hangReads`. */
 const holds = new Map<string, number>();
 const reads: string[] = [];
+const writes: string[] = [];
 let failReads = false;
+let hangReads = false;
 let seq = 0;
 
 beforeEach(() => {
   resetMinorCare();
   holds.clear();
   reads.length = 0;
+  writes.length = 0;
   failReads = false;
+  hangReads = false;
   setHoldStore({
     heldUntil: async (id) => {
       reads.push(id);
       if (failReads) throw new Error('unavailable');
+      if (hangReads) await new Promise(() => {});
       return holds.get(id);
     },
-    write: async () => undefined,
+    write: async (id, record) => {
+      writes.push(id);
+      holds.set(id, record.heldUntil);
+    },
   });
   setGlobalStore(store);
   vi.stubEnv('MINOR_CARE', 'on');
@@ -86,7 +94,10 @@ beforeEach(() => {
   vi.stubEnv('LOG_HASH_SECRET', 'synthetic-test-secret');
   vi.stubEnv('CALLER_RECOGNITION', 'off'); // the soak's dev and prod setting
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
 afterAll(() => setHoldStore());
 
 const settle = () =>
@@ -139,6 +150,7 @@ describe('a call from a held number is held from the start (MINOR_CARE_SHARED_HO
     expect(reads).toEqual([phoneHoldId(PHONE)]);
     expectHeld(sessionId, userId);
     expect(await ledgerSaved(userId, sessionId)).toBe(0);
+    expect(writes).toEqual([userId]); // the user's own hold record: texts to this account held
   });
 
   it('an expired hold does not hold', async () => {
@@ -200,5 +212,77 @@ describe('a call from a held number is held from the start (MINOR_CARE_SHARED_HO
     expect(recordedWhileHeld(userId, writtenBeforeBind)).toBe(false);
     purgeHeldUser(userId, sessionId, startedAt); // what cleanup-handler runs when memoryHeld
     expect(recordedWhileHeld(userId, writtenBeforeBind)).toBe(true);
+  });
+});
+
+describe('a hold derived from the number never extends the number (round 2)', () => {
+  it("a derived call writes the user's record but leaves phone# heldUntil unchanged, start to end", async () => {
+    const until = Date.now() + 5 * HOUR;
+    seedHold(PHONE, until);
+    const room = new FakeRoom();
+    room.join();
+    const startedAt = Date.now();
+    const { sessionId, userId } = await call(room);
+    expectHeld(sessionId, userId);
+    purgeHeldUser(userId, sessionId, startedAt); // the call's end
+    await settle();
+    expect(writes).toEqual([userId, userId]);
+    expect(holds.get(phoneHoldId(PHONE) ?? '')).toBe(until);
+  });
+
+  it('an age said again on a derived call refreshes the number as a detection does', async () => {
+    const until = Date.now() + 1 * HOUR;
+    seedHold(PHONE, until);
+    const room = new FakeRoom();
+    room.join();
+    const { sessionId, userId } = await call(room);
+    expect(writes).toEqual([userId]);
+    minorCareNote(sessionId, "I'm 14 years old", { userId });
+    await settle();
+    expect(writes).toEqual([userId, userId, phoneHoldId(PHONE)]);
+    expect(holds.get(phoneHoldId(PHONE) ?? '')).toBeGreaterThan(until + 4 * HOUR);
+  });
+
+  it('after the original 6 h the number is no longer held, though it called in between', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const t0 = Date.now();
+    seedHold(PHONE, t0 + 6 * HOUR); // the teen's call
+    vi.setSystemTime(t0 + 1 * HOUR);
+    const first = new FakeRoom();
+    first.join();
+    const a = await call(first);
+    expectHeld(a.sessionId, a.userId);
+    purgeHeldUser(a.userId, a.sessionId, t0 + 1 * HOUR);
+    await settle();
+    vi.setSystemTime(t0 + 6 * HOUR + 60_000);
+    const second = new FakeRoom();
+    second.join();
+    const b = await call(second);
+    expect(memoryHeld(b.sessionId)).toBe(false);
+    expect(await ledgerSaved(b.userId, b.sessionId)).toBe(1);
+  });
+
+  it.each(['5550001234', '1 (555) 000-1234', 'sip:+15550001234@trunk.example'])(
+    'a SIP number spelled %s gives the same key the hold was written under',
+    async (spelled) => {
+      seedHold(PHONE, Date.now() + 5 * HOUR);
+      const room = new FakeRoom();
+      room.join(sip(spelled));
+      const { sessionId, userId } = await call(room);
+      expect(reads).toEqual([phoneHoldId(PHONE)]);
+      expectHeld(sessionId, userId);
+    }
+  );
+
+  it('a read that never answers holds the call within about a second (fail closed)', async () => {
+    hangReads = true;
+    const room = new FakeRoom();
+    room.join();
+    const { sessionId, userId } = await call(room);
+    expect(memoryHeld(sessionId)).toBe(false); // still reading
+    await new Promise<void>((r) => {
+      setTimeout(r, 1200); // past STRICT_READ_MS
+    });
+    expectHeld(sessionId, userId);
   });
 });
