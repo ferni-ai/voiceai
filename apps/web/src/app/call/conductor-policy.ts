@@ -1,14 +1,11 @@
 /**
- * Conductor policy: every rule that decides whether a channel write happens,
- * in one table and one gate. Today each engine keeps (or forgets) its own
- * cooldown, which is how connect.mp3 restarts and haptics stack; here a write
- * either passes or is traced as `policy drop <reason>`.
+ * Conductor policy: every rule that decides whether a channel write happens, in
+ * one table (CONDUCTOR_POLICY) and one gate. A write passes or is traced as
+ * `policy drop <reason>`, so connect.mp3 can't restart and haptics can't stack.
  *
- * Character: warm & unhurried. Poses run slower with only a hint of spring,
- * nothing grows past 1.06, nothing bounces while the user is upset, delight is
- * earned and budgeted, and Ferni never celebrates while the user is upset. The
- * constants live in CONDUCTOR_POLICY so a later PR can source them from
- * design-system tokens without touching the rules.
+ * Character: warm & unhurried. Poses are slower with a hint of spring; nothing
+ * grows past 1.06; tender, upset and crisis never bounce or grow; celebrations
+ * are earned and budgeted; crisis is quiet (a caring face, no sound) until it passes.
  */
 
 import type { ReducedMotionSimplification, Sequence } from '../../config/motion-sequences.js';
@@ -21,6 +18,7 @@ import type {
   Priority,
   WriteContext,
 } from './conductor.js';
+import { clampMotion, isStillEasing } from './conductor-motion.js';
 import type { ChannelId } from './conductor-trace.js';
 
 export type SoundSetting = 'full' | 'essential' | 'off';
@@ -38,11 +36,14 @@ export const CONDUCTOR_POLICY = {
     stateDurationScale: 1.15,
     /** Neutral poses keep a hint of spring (peaks ~1.02): light and a little playful. */
     poseEasing: 'springGentle',
-    /** Tender, upset or crisis: heavy and slow, never bounces (no overshoot), poses and moments. */
+    /** Tender, upset or crisis: heavy and slow. Any curve that leaves 0..1 becomes this one. */
     gentleEasing: 'gentle',
     remapEasings: ['spring', 'anticipate'],
     maxScale: 1.06,
+    /** Tender, upset or crisis: nothing grows past its resting size. */
+    softMaxScale: 1,
     minTranslateY: -8,
+    /** Only an earned big celebration, in a neutral mood, may pass maxScale. */
     overshootExempt: 'celebration_big',
   },
   sound: {
@@ -69,6 +70,8 @@ export const CONDUCTOR_POLICY = {
     perCall: { big: 1, small: 3 },
     minGapMs: 90_000,
     sequences: ['celebration_small', 'celebration_big', 'streak_milestone', 'team_unlock'],
+    /** A celebration asked for as a plain sequence still needs a reason, budget and gap. */
+    celebrations: { celebration_small: 'small', celebration_big: 'big' },
   },
   /** Token step `element` → the one channel that writes it. Others stay with legacy UI. */
   elements: {
@@ -85,18 +88,15 @@ const P = CONDUCTOR_POLICY;
 /** `includes` over the literal tuples in CONDUCTOR_POLICY. */
 const has = (list: readonly string[], v: string): boolean => list.includes(v);
 const upsetLike = (mood: Mood): boolean => mood === 'upset' || mood === 'crisis';
-
-const clampMotion = (key: string, v: unknown): unknown => {
-  if (typeof v !== 'number') return Array.isArray(v) ? v.map((x) => clampMotion(key, x)) : v;
-  if (key.startsWith('scale')) return Math.min(v, P.character.maxScale);
-  return key === 'translateY' ? Math.max(v, P.character.minTranslateY) : v;
-};
+/** The sequence a moment plays, or why it is dropped. */
+type Verdict = { readonly play: string } | string;
 
 /** Reduced motion, character and mood shaping: the shaped write, or the drop reason. */
 function shapeCommand(
   cmd: ChannelCommand,
   w: WriteContext,
-  reducedMotion: boolean
+  reducedMotion: boolean,
+  earnedBig: boolean
 ): ChannelCommand | string {
   const ch = cmd.channel;
   let { durationMs, easing, action, params } = cmd;
@@ -109,14 +109,18 @@ function shapeCommand(
     }
   }
   if (w.layer === 'state') durationMs = Math.round(durationMs * P.character.stateDurationScale);
-  // Tender, upset, crisis: nothing springs. Neutral poses soften to a gentle spring; moments keep theirs.
-  if (easing && has(P.character.remapEasings, easing)) {
-    if (w.mood !== 'neutral') easing = P.character.gentleEasing;
-    else if (w.layer === 'state') easing = P.character.poseEasing;
+  // Tender, upset, crisis: nothing bounces. Neutral poses soften to a gentle spring; moments keep theirs.
+  const soft = w.mood !== 'neutral';
+  if (easing && soft && !isStillEasing(easing)) easing = P.character.gentleEasing;
+  else if (easing && w.layer === 'state' && has(P.character.remapEasings, easing)) {
+    easing = P.character.poseEasing;
   }
-  const exempt = w.sequenceId === P.character.overshootExempt && w.mood === 'neutral';
+  const exempt = earnedBig && w.sequenceId === P.character.overshootExempt && !soft;
   if (params && !exempt) {
-    params = Object.fromEntries(Object.entries(params).map(([k, v]) => [k, clampMotion(k, v)]));
+    const max = soft ? P.character.softMaxScale : P.character.maxScale;
+    params = Object.fromEntries(
+      Object.entries(params).map(([k, v]) => [k, clampMotion(k, v, max, P.character.minTranslateY)])
+    );
   }
   if (ch === 'haptic' && upsetLike(w.mood)) action = P.haptic.moodPattern;
   const hold = params?.holdMs;
@@ -136,6 +140,8 @@ class CallGate implements CallPolicy {
   private face: { name: string; at: number } | null = null;
   private lastValue = new Map<ChannelId, string>();
   private delights = { big: 0, small: 0, at: -Infinity };
+  /** An earned big celebration was let through: only it may pass the scale cap. */
+  private earnedBig = false;
   private pinned: string | null = null;
 
   constructor(
@@ -144,7 +150,7 @@ class CallGate implements CallPolicy {
   ) {}
 
   write(raw: ChannelCommand, w: WriteContext): ChannelCommand | string {
-    const cmd = shapeCommand(raw, w, this.reducedMotion);
+    const cmd = shapeCommand(raw, w, this.reducedMotion, this.earnedBig);
     if (typeof cmd === 'string') return cmd;
     return this.admit(cmd, w) ?? cmd;
   }
@@ -211,18 +217,11 @@ class CallGate implements CallPolicy {
     return null;
   }
 
-  moment(beat: MomentBeat, mood: Mood, now: number): { readonly play: string } | string {
-    if (beat.kind === 'delight') {
-      if (upsetLike(mood)) return `delight:mood=${mood}`;
-      if (!has(P.delight.reasons, beat.reason)) return `delight:reason=${beat.reason}`;
-      const size = mood === 'tender' ? 'small' : beat.size;
-      if (this.delights[size] >= P.delight.perCall[size]) return `delight:${size}:budget`;
-      if (now - this.delights.at < P.delight.minGapMs) return `delight:${size}:gap`;
-      this.delights[size] += 1;
-      this.delights.at = now;
-      return { play: `celebration_${size}` };
-    }
+  moment(beat: MomentBeat, mood: Mood, now: number): Verdict {
+    if (beat.kind === 'delight') return this.delight(beat.size, beat.reason, mood, now);
     const id = beat.id;
+    const celebration = (P.delight.celebrations as Readonly<Record<string, 'small' | 'big'>>)[id];
+    if (celebration) return this.delight(celebration, undefined, mood, now);
     if (upsetLike(mood) && has(P.delight.sequences, id)) return `moment:${id}:mood=${mood}`;
     if (has(P.moments.oncePerAttempt, id)) {
       if (this.once.has(id)) return `moment:${id}:once`;
@@ -231,8 +230,30 @@ class CallGate implements CallPolicy {
     return { play: id };
   }
 
+  /** Delight is earned: a listed reason, never while upset, within the budget and gap. */
+  private delight(
+    asked: 'small' | 'big',
+    reason: string | undefined,
+    mood: Mood,
+    now: number
+  ): Verdict {
+    if (upsetLike(mood)) return `delight:mood=${mood}`;
+    if (!reason || !has(P.delight.reasons, reason)) return `delight:reason=${reason ?? 'none'}`;
+    const size = mood === 'tender' ? 'small' : asked;
+    if (this.delights[size] >= P.delight.perCall[size]) return `delight:${size}:budget`;
+    if (now - this.delights.at < P.delight.minGapMs) return `delight:${size}:gap`;
+    this.delights[size] += 1;
+    this.delights.at = now;
+    if (size === 'big') this.earnedBig = true;
+    return { play: `celebration_${size}` };
+  }
+
   onMood(mood: Mood): ChannelCommand | null {
-    if (mood !== 'crisis' || this.pinned) return null;
+    if (mood !== 'crisis') {
+      this.pinned = null; // the crisis has passed: faces are free again
+      return null;
+    }
+    if (this.pinned) return null;
     this.pinned = P.face.crisis[0];
     const params = { expression: this.pinned, source: 'choreography' };
     return { channel: 'face', action: 'expression', params, durationMs: 0, origin: 'mood' };

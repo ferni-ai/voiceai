@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import type { WriteContext } from '../../src/app/call/conductor.js';
+import type { ChannelCommand, WriteContext } from '../../src/app/call/conductor.js';
 import { CONDUCTOR_POLICY, createCharacterPolicy } from '../../src/app/call/conductor-policy.js';
 import { count, type TraceEntry } from '../../src/app/call/conductor-trace.js';
 import { EASING } from '../../src/config/animation-constants.js';
@@ -37,6 +37,18 @@ function character(reducedMotion = false, extra: Readonly<Record<string, Sequenc
 
 const drops = (t: readonly TraceEntry[], reason: string): number =>
   count(t, 'policy', 'drop', reason);
+
+/** One call's gate, driven directly: no conductor, no clock. */
+const gate = () => createCharacterPolicy({ reducedMotion: false, sound: 'full' }).forCall();
+const ctx = (patch: Partial<WriteContext> = {}): WriteContext => ({
+  layer: 'moment',
+  sequenceId: 'test',
+  runId: 1,
+  state: 'listening',
+  mood: 'neutral',
+  now: 0,
+  ...patch,
+});
 
 describe('conductor policy: the six call moments', () => {
   it('arrival: one connect sound, one join haptic, glow attached, even if agent_connected arrives twice', async () => {
@@ -112,9 +124,10 @@ describe('conductor policy: the six call moments', () => {
     const h = character();
     await h.arrive();
     h.go('speaking');
-    h.conductor.beat({ kind: 'sequence', id: 'celebration_small' });
+    h.conductor.beat({ kind: 'delight', size: 'small', reason: 'achievement' });
     await h.clock.advance(1500);
     const t = h.trace();
+    expect(count(t, 'glow', 'celebrate')).toBe(1); // the celebration itself plays
     expect(count(t, 'sound', 'play', 'celebration.small')).toBe(0);
     expect(drops(t, 'sound:celebration.small:quiet-speaking')).toBe(1);
   });
@@ -295,14 +308,37 @@ describe('conductor policy: one test per character rule', () => {
   });
 
   it('overshoot: only an earned big celebration in a neutral mood may pass the 1.06 cap', async () => {
+    const props = { scale: [1, 1.2, 1], translateY: [0, -20, 0] };
     const big = seq('celebration_big', 500, true, [
-      { element: 'avatar', animation: 'burst', duration: 500, properties: { scale: [1, 1.2, 1] } },
+      { element: 'avatar', animation: 'burst', duration: 500, properties: props },
     ]);
+    // Unearned: a plain celebration_big beat has no reason, so it never plays at all.
+    const plain = character(false, { celebration_big: big });
+    await plain.arrive();
+    plain.conductor.beat({ kind: 'sequence', id: 'celebration_big' });
+    await plain.clock.advance(600);
+    expect(drops(plain.trace(), 'delight:reason=none')).toBe(1);
+    expect(plain.played.filter((c) => c.action === 'burst')).toHaveLength(0);
+
+    // Unearned, and reaching the gate anyway: capped like everything else.
+    const call = gate();
+    const burst: ChannelCommand = {
+      channel: 'body',
+      action: 'burst',
+      durationMs: 500,
+      origin: 'celebration_big',
+    };
+    const w = ctx({ sequenceId: 'celebration_big' });
+    expect(call.write({ ...burst, params: props }, w)).toMatchObject({
+      params: { scale: [1, 1.06, 1], translateY: [0, -8, 0] },
+    });
+
+    // Earned: the full burst.
     const h = character(false, { celebration_big: big });
     await h.arrive();
     h.conductor.beat({ kind: 'delight', size: 'big', reason: 'achievement' });
     await h.clock.advance(600);
-    expect(h.played.find((c) => c.action === 'burst')?.params).toEqual({ scale: [1, 1.2, 1] });
+    expect(h.played.find((c) => c.action === 'burst')?.params).toEqual(props);
     expect(CONDUCTOR_POLICY.character.maxScale).toBe(1.06);
   });
 
@@ -339,5 +375,139 @@ describe('conductor policy: one test per character rule', () => {
     expect(call.write(buzz, w)).toEqual(buzz);
     expect(call.write(buzz, { ...w, now: 5000 })).toBe('haptic:tap:per-beat');
     expect(call.write(buzz, { ...w, runId: 8, now: 5000 })).toEqual(buzz);
+  });
+});
+
+/** Lowest and highest point of an easing token's curve; CSS keywords stay in 0..1. */
+function yRange(value: string): [number, number] {
+  const n = '\\s*(-?[\\d.]+)\\s*';
+  const m = new RegExp(`^cubic-bezier\\(${n},${n},${n},${n}\\)$`).exec(value);
+  if (!m) return [0, 1];
+  const [y1, y2] = [Number(m[2]), Number(m[4])];
+  let [lo, hi] = [0, 1];
+  for (let i = 0; i <= 1000; i++) {
+    const t = i / 1000;
+    const y = 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t ** 2 * y2 + t ** 3;
+    [lo, hi] = [Math.min(lo, y), Math.max(hi, y)];
+  }
+  return [lo, hi];
+}
+const tokenName = (key: string): string =>
+  key.toLowerCase().replace(/_([a-z])/g, (_m, c: string) => c.toUpperCase());
+
+describe('conductor policy: the rules the first verify could not turn red', () => {
+  it.each(['tender', 'upset', 'crisis'] as const)(
+    '%s: every easing token that leaves 0..1, and any unknown curve, becomes gentle',
+    (mood) => {
+      const call = gate();
+      const names = [
+        ...Object.keys(EASING).map(tokenName),
+        'bounce',
+        'springHeavy',
+        'elastic.out(1, 0.7)',
+      ];
+      let bouncy = 0;
+      for (const [i, easing] of names.entries()) {
+        const cmd: ChannelCommand = {
+          channel: 'body',
+          action: 'move',
+          durationMs: 300,
+          origin: 'x',
+          easing,
+        };
+        const out = call.write(cmd, ctx({ mood, runId: i }));
+        if (typeof out === 'string') throw new Error(out);
+        const key = easing.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase();
+        const value = (EASING as Readonly<Record<string, string>>)[key];
+        const [lo, hi] = value ? yRange(value) : [-Infinity, Infinity];
+        const still = lo >= -1e-9 && hi <= 1 + 1e-9;
+        expect([easing, out.easing]).toEqual([easing, still ? easing : 'gentle']);
+        if (!still) bouncy += 1;
+      }
+      expect(bouncy).toBeGreaterThanOrEqual(10); // spring, anticipate, elastic, springGentle, ...
+      // Neutral keeps a moment's own curve.
+      const neutral = call.write(
+        { channel: 'body', action: 'move', durationMs: 300, origin: 'x', easing: 'elastic' },
+        ctx({ runId: 99 })
+      );
+      expect(neutral).toMatchObject({ easing: 'elastic' });
+    }
+  );
+
+  it.each(['tender', 'upset', 'crisis'] as const)(
+    '%s: a scale pop never grows past resting size',
+    (mood) => {
+      const pop = { channel: 'body', action: 'pop', durationMs: 300, origin: 'x' } as const;
+      const params = { scale: [0.97, 1.03, 1], translateY: [0, -4, 0] };
+      expect(gate().write({ ...pop, params }, ctx({ mood }))).toMatchObject({
+        params: { scale: [0.97, 1, 1], translateY: [0, -4, 0] },
+      });
+      expect(gate().write({ ...pop, params }, ctx())).toMatchObject({ params });
+    }
+  );
+
+  it('upset and crisis: haptics soften to softTap; neutral and tender keep their pattern', () => {
+    const buzz = { channel: 'haptic', action: 'success', durationMs: 0, origin: 'x' } as const;
+    expect(gate().write(buzz, ctx({ mood: 'upset' }))).toMatchObject({ action: 'softTap' });
+    expect(gate().write(buzz, ctx({ mood: 'crisis' }))).toMatchObject({ action: 'softTap' });
+    expect(gate().write(buzz, ctx({ mood: 'tender' }))).toMatchObject({ action: 'success' });
+    expect(gate().write(buzz, ctx())).toMatchObject({ action: 'success' });
+  });
+
+  it('delight budget: one big and three small per call; the second big and fourth small drop', () => {
+    const call = gate();
+    const min = 90_000;
+    const delight = (size: 'small' | 'big', at: number) =>
+      call.moment({ kind: 'delight', size, reason: 'achievement' }, 'neutral', at);
+    expect(delight('big', 0)).toEqual({ play: 'celebration_big' });
+    expect(delight('big', min)).toBe('delight:big:budget');
+    expect(delight('small', min)).toEqual({ play: 'celebration_small' });
+    expect(delight('small', 2 * min)).toEqual({ play: 'celebration_small' });
+    expect(delight('small', 3 * min)).toEqual({ play: 'celebration_small' });
+    expect(delight('small', 4 * min)).toBe('delight:small:budget');
+  });
+
+  it('a plain celebration sequence beat needs a reason like any delight', () => {
+    const call = gate();
+    expect(call.moment({ kind: 'sequence', id: 'celebration_small' }, 'neutral', 0)).toBe(
+      'delight:reason=none'
+    );
+    expect(call.moment({ kind: 'sequence', id: 'celebration_big' }, 'neutral', 0)).toBe(
+      'delight:reason=none'
+    );
+    expect(call.moment({ kind: 'sequence', id: 'celebration_big' }, 'upset', 0)).toBe(
+      'delight:mood=upset'
+    );
+  });
+
+  it('upset: streak and team-unlock sequences are dropped; neutral plays them', () => {
+    for (const id of ['streak_milestone', 'team_unlock']) {
+      expect(gate().moment({ kind: 'sequence', id }, 'upset', 0)).toBe(`moment:${id}:mood=upset`);
+      expect(gate().moment({ kind: 'sequence', id }, 'crisis', 0)).toBe(`moment:${id}:mood=crisis`);
+      expect(gate().moment({ kind: 'sequence', id }, 'neutral', 0)).toEqual({ play: id });
+    }
+  });
+
+  it('sound: the same track cannot replay within 2 s; at 2 s it plays', () => {
+    const call = gate();
+    const chime = { channel: 'sound', action: 'play', durationMs: 0, origin: 'x' } as const;
+    const play = (now: number) =>
+      call.write({ ...chime, params: { track: 'ui.chime' } }, ctx({ now }));
+    expect(play(0)).toMatchObject({ action: 'play' });
+    expect(play(1999)).toBe('sound:ui.chime:cooldown');
+    expect(play(2000)).toMatchObject({ action: 'play' });
+  });
+
+  it('crisis: the caring face pin releases when the crisis passes', async () => {
+    const h = character();
+    await h.arrive();
+    const m = h.mark();
+    h.setContext({ mood: 'crisis' });
+    h.conductor.beat({ kind: 'expression', name: 'happy' });
+    expect(drops(h.since(m), 'face:happy:crisis-pinned')).toBe(1);
+    h.setContext({ mood: 'neutral' });
+    await h.clock.advance(1300); // past the 1.2 s face dwell
+    h.conductor.beat({ kind: 'expression', name: 'happy' });
+    expect(count(h.since(m), 'face', 'expression', 'happy')).toBe(1);
   });
 });
