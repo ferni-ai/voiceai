@@ -86,9 +86,9 @@ describe('home speaker tools that reach no speaker (#1447)', () => {
     [
       'intercomCall',
       { room: 'office' },
-      "I couldn't start an intercom call to office: I can't reach your home speakers yet, so nothing was played.",
+      "I couldn't start an intercom call to office: I can't reach your home speakers yet, so the call didn't go through.",
     ],
-  ])('%s says nothing was played, in a plain sentence', async (id, args, sentence) => {
+  ])('%s says it did not happen, in a plain sentence', async (id, args, sentence) => {
     const said = await run(homeTools, id, args);
     expect(said).toBe(sentence);
     expect(said).not.toMatch(DONE);

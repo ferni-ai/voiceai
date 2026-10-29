@@ -203,19 +203,26 @@ describe('recentContext with RECENT_CONTEXT_TIMEFRAME', () => {
   }
   const threePm = { date: '2026-10-28T19:00:00Z', topicsDiscussed: ['garden plans'], insights: [] };
 
-  it("on, no call zone: the account's stored zone sets the day (3 PM session is today)", async () => {
+  // 10 PM last night in New York (02:00 UTC Oct 28): inside the rolling 24 h from 9 PM, but
+  // before New York's midnight. Only a stored-zone lookup can tell it from today's.
+  const lastNight = { date: '2026-10-28T02:00:00Z', topicsDiscussed: ['late movie'], insights: [] };
+
+  it("on, no call zone: the account's stored zone sets the day (last night's session is not today)", async () => {
     profile.zone = NY;
-    const said = await askAtNineThen('u-2757-stored', 'today', [threePm]);
-    expect(said).toContain('garden plans');
-    expect(said).toContain('**1 conversation(s)**');
+    const said = await askAtNineThen('u-2757-stored', 'today', [threePm, lastNight]);
     profile.zone = undefined;
+    expect(said).toContain('garden plans');
+    expect(said).not.toContain('late movie');
+    expect(said).toContain('**1 conversation(s)**');
   });
 
-  it('on, a stored zone the profile cannot supply (store down): rolling 24 h, still not UTC', async () => {
+  it('on, the stored zone cannot be read (store down): rolling 24 h keeps both, still not UTC', async () => {
     profile.fail = true;
-    const said = await askAtNineThen('u-2757-down', 'today', [threePm]);
+    const said = await askAtNineThen('u-2757-down', 'today', [threePm, lastNight]);
     profile.fail = false;
     expect(said).toContain('garden plans');
+    expect(said).toContain('late movie');
+    expect(said).toContain('**2 conversation(s)**');
   });
 
   it('on, no zone anywhere: rolling window keeps 6 h ago for today, drops 30 h ago', async () => {

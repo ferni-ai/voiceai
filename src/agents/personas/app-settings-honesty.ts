@@ -1,20 +1,25 @@
 /**
- * What a caller can change in the app, and where (#2460).
+ * What Ferni can change for a caller, and that nothing else is promised (#2460).
  *
  * A caller asked to make Ferni's voice a woman's; he said "you can change my voice to a female
- * one in the settings of the app". No such setting exists: nothing told him what the app's
- * settings are, so he guessed. With APP_SETTINGS_HONESTY=on the prompt carries the list, built
- * from the catalogs that decide it (the accents the voice is localized to, the cosmetics the
- * web lists under Make It Yours), and says which screens exist only on the web. It is a list of
- * what exists, not a claim that nothing else does: the prompt still sends anything unlisted to
- * "I'm not sure the app does that".
+ * one in the settings of the app". No such setting exists: nothing told him what he can do, so
+ * he guessed. With APP_SETTINGS_HONESTY=on the prompt names only what Ferni can do himself
+ * through real tools, plus Make It Yours as the web lists it. It names no other screen: a hand-
+ * kept list of screens drifted every time the web hid or added a row (round 2 of #3050). Any
+ * other setting gets "I'm not sure the app has that".
  *
  * @module agents/personas/app-settings-honesty
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { ACCENT_DISPLAY_NAMES, SUPPORTED_ACCENTS } from '../../config/voice-accents.js';
 import { LISTED_COSMETICS_FOR_SALE, type CosmeticType } from '../../services/seeds/index.js';
+
+/** The tools that change a setting for the caller; the prompt names each, a test finds each. */
+export const SETTING_TOOL_IDS = {
+  quietHours: 'setQuietHours',
+  alertPreferences: 'setAlertPreferences',
+  appLanguage: 'setAppLanguage',
+} as const;
 
 /** The cosmetics the web lists, as a caller would say them (the default theme is the light one). */
 const COSMETIC_WORDS: Partial<Record<CosmeticType, string>> = {
@@ -39,37 +44,12 @@ function makeItYours(): string {
   const themes = LISTED_COSMETICS_FOR_SALE.filter((c) => c.type === 'ui-theme').map((c) =>
     themeName(c.id)
   );
-  return `Make It Yours (${[...words, ...(themes.length ? [`the light theme and ${orList(themes)}`] : [])].join(', ')})`;
+  return [...words, ...(themes.length ? [`the light theme and ${orList(themes)}`] : [])].join(', ');
 }
-
-/** The screens only the website has, one phrase each; the accents come from the accent catalog. */
-export function webOnlySettings(): string[] {
-  const accents = SUPPORTED_ACCENTS.map((a) => ACCENT_DISPLAY_NAMES[a].replace(' English', ''));
-  return [
-    `How I Sound (your accent: ${orList(accents)} English)`,
-    makeItYours(),
-    'light or dark mode',
-    "When I'll Check In (notifications)",
-    "When I'll Reach Out",
-    'How I reach you (their number, and whether you text, call or leave a note)',
-    'Recognizing You (Voice ID)',
-    'Home & Family',
-    'their calendar and devices',
-    'Privacy & your data (export or delete it)',
-  ];
-}
-
-/** What the iPhone app has, as its own screens call them. */
-const IPHONE_SETTINGS = [
-  'Call sounds',
-  'what Ferni remembers (with a memory lock)',
-  'Help',
-  'sign out',
-  'delete account',
-];
 
 export function appSettingsHonesty(): string {
-  return `What they can change, by where: on the website, ${webOnlySettings().join('; ')}. The iPhone app has fewer: ${IPHONE_SETTINGS.join(', ')}; none of the website's settings above are in it. You can set quiet hours and alert preferences for them yourself, and switch the app language. Your voice itself stays yours: there's no setting for a woman's voice, a man's voice or anyone else's. Asked to change it, say so plainly, and that your teammates have voices of their own if they'd like to talk with one of them. Asked about a setting not named here, say you're not sure the app does that.`;
+  const t = SETTING_TOOL_IDS;
+  return `What you can do for them: set their quiet hours (${t.quietHours}), their alert preferences (${t.alertPreferences}) and the app's language (${t.appLanguage}). Offer it: "I can set that for you." They can also choose ${makeItYours()} under Make It Yours. Your voice itself stays yours: there's no setting for a woman's voice, a man's voice or anyone else's. Asked to change it, say so plainly, and that your teammates have voices of their own if they'd like to talk with one of them. Asked about any other setting, say "I'm not sure the app has that. You could check the settings menu." Never name a screen or say a setting exists.`;
 }
 
 /** The honesty rule, with the app's true settings after it when the flag is on. */

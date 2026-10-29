@@ -307,7 +307,7 @@ const intercomCallDef: ToolDefinition = {
       execute: async ({ room }) => {
         log.info({ agentId: ctx.agentId, room }, '📞 Starting intercom call');
 
-        return `I couldn't start an intercom call to ${room}: ${NO_HOME_SPEAKERS}`;
+        return `I couldn't start an intercom call to ${room}: I can't reach your home speakers yet, so the call didn't go through.`;
       },
     });
   },
