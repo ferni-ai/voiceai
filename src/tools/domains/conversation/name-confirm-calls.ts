@@ -57,7 +57,7 @@ export function noteCallerTurn(session: object, words: string, turn: number, own
 export const ownerOnTheLine = (session: object): boolean => turns.get(session)?.owner === true;
 
 const first = (name: string): string => name.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
-export const sameName = (a: string, b: string | undefined): boolean => !!b && first(a) === first(b);
+const sameName = (a: string, b: string | undefined): boolean => !!b && first(a) === first(b);
 
 /**
  * Name-correction got a yes to its own "Sam from now on?" on caller turn `turn`:

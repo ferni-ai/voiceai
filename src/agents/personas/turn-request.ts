@@ -96,8 +96,19 @@ import { clearBurstOffer } from './vocal-bursts.js';
 import { callSeed, signalsFor, styleFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
 
-/** The verified owner is on the line: rememberName may rename the account (remember-name.ts). */
-const nameOwner = (session: object): boolean => accountMayKeepName(session, sessionIsVerifiedOwner);
+/**
+ * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
+ * Never on a crisis turn, and a check that throws is "not the owner": it must never cost the
+ * turn its reply (crisis-event-record.test.ts, every dependency throwing).
+ */
+const nameOwner = (session: object, crisis: boolean): boolean => {
+  if (crisis) return false;
+  try {
+    return accountMayKeepName(session, sessionIsVerifiedOwner);
+  } catch {
+    return false;
+  }
+};
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -221,7 +232,11 @@ export function withTurnReminder(
       plain,
     }),
     // CALL_ME_VOCATIVE=on: "call me, Ferni" rings; "call me Fern" is asked about (call-me-note.ts)
-    callMeNote(chatCtx, session, words, { plain, careful: crisis, owner: nameOwner(session) }),
+    callMeNote(chatCtx, session, words, {
+      plain,
+      careful: crisis,
+      owner: nameOwner(session, crisis),
+    }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
