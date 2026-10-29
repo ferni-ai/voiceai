@@ -1,98 +1,77 @@
 /**
- * The confirm gate's fast path (outreach-confirm.ts): one pass decides only a bare yes ("Yeah, go
- * ahead.") or a bare no ("No, wait."); the rest goes to the judge (consent-judge.ts).
+ * The allow-list (outreach-confirm.ts, consent-window.ts): a call or text goes out on an answer
+ * only when ALL of it, normalised, is agreement plus optional filler: the person read back, "now",
+ * "please", "thanks", Ferni's name. Any other word asks once instead. Block lists never converged
+ * (#2962 rounds 1-3: sarcasm, idioms, "have his wife call him", "ring him at the house").
  * @module tools/domains/communication/outreach/consent-words
  */
 
-// Replies made only of these count as a yes. Longest first, so "yes please" beats "yes".
-const YES_PHRASES = [
-  ...'go ahead|do it|send it|send them|please do|please send|thats right|sounds good'.split('|'),
-  ...'yes yeah yep yup ya sure ok okay correct absolutely definitely'.split(' '),
-];
-// Words a yes may carry that add nothing to send: a name for whoever is speaking, a filler, or an
-// echo of the question ("Should I call her?" "Yes, she should."). Never a yes on their own.
-// Owner calls 10-14..10-16 placed nothing on "Go ahead, Ferni." and "Yes, she should."
-// Owner call 10-17 placed nothing on "Uh, yeah, go ahead. Go ahead and give her a call." and
-// "Yes, you, you need to call her.": a yes may restate the same action, never add to it.
-const FILLERS = [
-  ...'thank you|that works|you can|for sure|of course'.split('|'),
-  ...'you need to|need to|right now'.split('|'),
-  ...'and you now'.split(' '),
-  ...'she should|he should|they should|you should|she can|he can|they can'.split('|'),
-  ...'please thanks ferni fern maya jordan peter alex nayan buddy bud man dude pal um uh oh hey'.split(
-    ' '
+// Agreement. Owner calls 10-24..10-26: "Yeah, go ahead.", "Sure.", "Yes, you should."
+const YES = [
+  ...'go ahead|go for it|please do|do it|thats right|of course|sounds good|you should|you can'.split(
+    '|'
   ),
+  ...'uh huh|mm hmm|mm hm|its okay with me|its ok with me|thats okay with me|thats fine with me'.split(
+    '|'
+  ),
+  ...'yes yeah yep yup ya sure ok okay alright correct absolutely definitely mhm mhmm'.split(' '),
 ];
-// Only with a phone call waiting, and only in fixed phrases: a bare "call" beside a filler ("Okay,
-// he can call.") may hand it to someone else. Any other "call" is the judge's (consent-judge.ts).
-const CALL_YES = ['go ahead and call', 'make the call'];
+// Ferni's name and its STT mishearings (agents/personas/name-mishear.ts). Owner call 10-18: "Uh, go ahead, Fred."
+const FERNI = 'ferni fernie ferny furny fred freddy freddie'.split(' ');
+// Never a yes alone: politeness, filler, Ferni's name.
+const FILLERS = [
+  ...'thank you|right now'.split('|'),
+  ...'please thanks now and um uh oh so well hey'.split(' '),
+  ...FERNI,
+];
 const HIM = new Set('dad father brother husband son grandpa uncle'.split(' '));
 const HER = new Set('mom mum mother sister wife daughter grandma aunt'.split(' '));
-const phrase = (yes: boolean) => (text: string) => ({ parts: text.split(' '), yes });
-const PHRASES = [...YES_PHRASES.map(phrase(true)), ...FILLERS.map(phrase(false))];
-const CALL_PHRASES = CALL_YES.map(phrase(true));
+const STOP = new Set('my the a your his her their'.split(' '));
 /** "him" for a call to Dad, "her" for Mom; undefined for a name ("Doug") or both. */
 export function pronounOf(target: readonly string[]): 'him' | 'her' | undefined {
   const him = target.some((w) => HIM.has(w));
   const her = target.some((w) => HER.has(w));
   return him === her ? undefined : him ? 'him' : 'her';
 }
-/** "Give him a call" restates a call to Dad, never one to Doug (unknown) or to Mom. */
-function restatements(target: readonly string[]): Array<ReturnType<ReturnType<typeof phrase>>> {
-  const pronoun = pronounOf(target);
-  return pronoun ? [phrase(false)(`give ${pronoun} a call`)] : [];
+interface Phrase {
+  parts: string[];
+  yes: boolean;
+  /** A phrase ending in a bare "call" never runs into a name: "go ahead and call Fred". */
+  notBefore?: ReadonlySet<string>;
 }
-const YES_STARTS = new Set(YES_PHRASES.map((p) => p.split(' ')[0]));
-/** The words without "go ahead and call"'s object when it is the person read back ("…call him"
- * for Dad, "…call Doug"); null for anyone else ("…call Peter"): that is the judge's to read. */
-function callObjects(said: string[], target: readonly string[]): string[] | null {
+const phrase = (text: string, yes: boolean, notBefore?: ReadonlySet<string>): Phrase => ({
+  parts: text.split(' '),
+  yes,
+  notBefore,
+});
+
+/** The phrases allowed for this action: who it reaches decides which "call X" restates it. */
+function allowed(target: readonly string[], owner: readonly string[], call: boolean): Phrase[] {
+  const people = target.filter((w) => !STOP.has(w));
   const pronoun = pronounOf(target);
-  const ok = new Set([...target, 'now', 'right', 'please', ...(pronoun ? [pronoun] : [])]);
-  const out: string[] = [];
-  for (let i = 0; i < said.length; i++) {
-    out.push(said[i]);
-    const ends = (p: string): boolean =>
-      p.split(' ').every((w, j, all) => said[i - all.length + 1 + j] === w);
-    if (!ends('go ahead and call') && !ends('make the call')) continue;
-    for (; i + 1 < said.length && !YES_STARTS.has(said[i + 1]); i++) {
-      if (!ok.has(said[i + 1])) return null;
-    }
-  }
-  return out;
+  const objects = [
+    ...(pronoun ? [pronoun] : ['him', 'her', 'them']),
+    ...people.flatMap((w) => [w, `my ${w}`]),
+  ];
+  const names = new Set([...FERNI, ...owner]);
+  const out = [
+    ...YES.map((t) => phrase(t, true)),
+    ...[...FILLERS, ...owner, ...people].map((t) => phrase(t, false)),
+  ];
+  if (!call)
+    return [...out, ...'send it|send them|please send'.split('|').map((t) => phrase(t, true))];
+  return [
+    ...out,
+    phrase('go ahead and call', true, names),
+    phrase('make the call', true),
+    ...objects.flatMap((o) => [phrase(`call ${o}`, true), phrase(`give ${o} a call`, true)]),
+    phrase('check in', false),
+  ];
 }
-export const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
-// Never taken for a name the caller calls Ferni by: a word that could change what is sent
-// (who, when, how, how many), a question word or a no. "Yes, Tuesday." is not a plain yes.
-const NOT_A_NAME = new Set([
-  ...NOES,
-  ...`call ring dial phone text email message send tell ask voicemail facetime who what when where
-    why how which instead also too again both all everyone first later now noon today tonight
-    tomorrow morning afternoon evening monday tuesday wednesday thursday friday saturday sunday
-    mom mum mother dad father sister brother wife husband son daughter grandma grandpa aunt
-    uncle cousin friend boss doctor her him them me us it that this there here`.split(/\s+/),
-]);
-
-// Names that may address Ferni inside a yes: the personas (as in FILLERS) and STT mishearings of
-// "Ferni" (agents/personas/name-mishear.ts, plus "fred" and "freddie", taken as the name only
-// here: in other speech "Fred" is as likely a real person). Owner call 10-18: "Uh, go ahead, Fred."
-const FERNI_NAMES = new Set([
-  ...'ferni fern maya jordan peter alex nayan'.split(' '),
-  ...'freddy freddie fred fernie ferny furny'.split(' '),
-]);
-
-export const words = (text: string): string[] =>
-  text
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .match(/[a-z]+/g) ?? [];
 
 /**
- * A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob".
- * It may also carry one name set off by a comma at its start or end ("Uh, go ahead, Fred."),
- * but only a name that leaves the action as read back: Ferni's (or a persona's) name or a
- * mishearing of it, the owner's own first name (`owner`), or the person the action reaches
- * (`target`: "Yes, go ahead, Mike." for a call to Mike restates it). Any other name voids the
- * yes: with a call to Mike waiting, "Yes, go ahead, Bob." may mean Bob. Never a NOT_A_NAME word.
+ * Whether the reply is a plain yes: wholly allow-listed phrases, at least one of them agreement,
+ * no "?". Digits are kept, so "go ahead and call 555-0199" is not plain.
  */
 export function isClearYes(
   text: string,
@@ -100,41 +79,21 @@ export function isClearYes(
   owner: readonly string[] = [],
   call = false
 ): boolean {
-  // A question word is never a yes phrase, so "which one, yes" already fails below.
   if (text.includes('?')) return false;
-  const said = words(text);
-  // "Call you / me / us" hands the action back, whatever surrounds it.
-  if (said.some((w, i) => w === 'call' && ['you', 'me', 'us'].includes(said[i + 1]))) return false;
-  const plain = call ? callObjects(said, target) : said;
-  if (plain === null) return false;
-  if (onlyYes(plain, call ? [...CALL_PHRASES, ...restatements(target)] : [])) return true;
-  const parts = text.split(',');
-  if (parts.length < 2) return false;
-  const head = parts[0].trim().split(/\s+/);
-  const tail = parts[parts.length - 1].trim().replace(/[.!…]+$/, '');
-  const options: Array<[string, string]> = [
-    [head[head.length - 1], [...head.slice(0, -1), ...parts.slice(1)].join(' ')],
-  ];
-  if (!/\s/.test(tail)) options.push([tail, parts.slice(0, -1).join(' ')]);
-  const isName = (w: string): boolean => {
-    const name = w.toLowerCase();
-    if (!/^[A-Z][a-z]+$/.test(w) || NOT_A_NAME.has(name)) return false;
-    return FERNI_NAMES.has(name) || target.includes(name) || owner.includes(name);
-  };
-  // No "call" beside a name, even one set off by a comma: STT's commas aren't the caller's
-  // ("Yeah, call, Peter." may be "Yeah, call Peter.").
-  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest), []));
+  const said =
+    text
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .match(/[a-z0-9]+/g) ?? [];
+  return onlyYes(said, allowed(target, owner, call));
 }
 
 /**
- * Whether the words split wholly into yes phrases and fillers, with at least one yes. Every phrase
- * that fits at a point is tried, not just the first in the lists: "you" (a filler) used to win over
- * "you should", leaving "should" alone, so "Yes, you should." placed nothing (owner call 10-26).
- * One pass over word positions (reached without a yes / with one), so no reply takes more than
- * words × phrases steps however many ways it splits.
+ * Whether the words split wholly into the phrases, with at least one yes. Every phrase that fits
+ * at a point is tried. One pass over word positions (reached without a yes / with one), so no
+ * reply takes more than words × phrases steps however many ways it splits.
  */
-function onlyYes(said: string[], callPhrases: typeof PHRASES): boolean {
-  const phrases = [...PHRASES, ...callPhrases];
+function onlyYes(said: string[], phrases: Phrase[]): boolean {
   const plain = said.map((_, i) => i === 0);
   const withYes = said.map(() => false);
   const done = [false, false];
@@ -145,14 +104,22 @@ function onlyYes(said: string[], callPhrases: typeof PHRASES): boolean {
   };
   for (let i = 0; i < said.length; i++) {
     if (!plain[i] && !withYes[i]) continue;
-    for (const { parts, yes } of phrases) {
+    for (const { parts, yes, notBefore } of phrases) {
       if (!parts.every((part, j) => said[i + j] === part)) continue;
+      if (notBefore?.has(said[i + parts.length])) continue;
       if (plain[i]) reach(i + parts.length, yes);
       if (withYes[i]) reach(i + parts.length, true);
     }
   }
   return done[1];
 }
+
+export const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
+export const words = (text: string): string[] =>
+  text
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .match(/[a-z]+/g) ?? [];
 
 /** Whether any word of it is a no ("not", "don't", "wait"): never a plain yes, maybe not a no. */
 export function isClearNo(text: string): boolean {

@@ -1,8 +1,7 @@
 /**
  * The consent judge (CALL_CONSENT_CLASSIFIER, a kill switch, on by default): one flash-lite call
- * decides what the fast path (consent-words.ts) can't, as yes, no or unclear. Word lists that took
- * "Yes, it's okay with me. Give him a call." also took "Okay, he can call you." (#2939). A
- * timeout, an error or an unusable reply is unclear, never yes; off, all of it is unclear.
+ * reads the answer as yes, no or unclear. It can only take a plain yes away (consent-window.ts),
+ * never make one. A timeout, an error or an unusable reply is unclear and changes nothing.
  * @module tools/domains/communication/outreach/consent-judge
  */
 
@@ -46,7 +45,7 @@ unclear: everything else, including
 - conditional: a condition, a change or an extra instruction ("Yes, but...", "call him and tell him...");
 - question: a question, or a fresh request with no agreement word ("You should call.", "Call.");
 - off_topic: about something else, grudging or sarcastic ("Fine, whatever.", "Wow, yes, what a brilliant plan.").
-Never answer yes when unsure.`;
+Turns may be split mid-sentence, and the owner may call Ferni by name ("Yes," then "Ferni."): neither is a refusal. Never answer yes when unsure.`;
 
 /** The owner's words as data, one per line, so nothing in them reads as an instruction. */
 export function consentUserText(input: ConsentInput): string {

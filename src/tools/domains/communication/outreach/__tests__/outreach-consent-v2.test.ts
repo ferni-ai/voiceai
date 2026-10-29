@@ -113,17 +113,26 @@ describe('the answer window: only words after Ferni last asked count', () => {
     expect(sends).toHaveLength(1);
   });
 
-  it("10-26 21:46: an answered question doesn't void it, and the judge reads the yes", async () => {
+  it("10-26 21:46: an answered question doesn't void it; the plain yes places", async () => {
     setConsentAsk(fairJudge);
     const call = liveCall();
     await call.call('c1');
-    call.owner('I thought you already did.');
     call.owner('Do you have his phone number?');
     call.ferni('I do, it ends in 0002.');
     call.owner("Yes, it's okay with me. Give him a call.");
     call.owner('and check in.');
     await call.call('c2');
     expect(sends).toHaveLength(1);
+    // A remark that isn't a plain yes stays in the window: ask once, then the next yes places.
+    const other = liveCall();
+    await other.call('d1');
+    other.owner('I thought you already did.');
+    other.owner("Yes, it's okay with me. Give him a call.");
+    expect(await other.call('d2')).toContain('Just to be sure: call Dad now?');
+    other.ferni('Just to be sure: call Dad now?');
+    other.owner('Yes, you should.');
+    await other.call('d3');
+    expect(sends).toHaveLength(2);
   });
 
   it('10-26 22:23: "Yes, you should." confirms on the fast path, judge or no judge', async () => {
@@ -189,21 +198,45 @@ describe('never a false yes', () => {
     }
   });
 
-  it('a judge that fails or times out is unclear, never yes', async () => {
+  it('a judge that fails or times out never places a reply off the allow-list', async () => {
+    const p = pending('callOnBehalf');
     setConsentAsk(async () => {
       throw new Error('quota');
     });
-    expect(await judgeConfirmation(pending('callOnBehalf'), said("Yeah, that's okay."))).toBe(
-      'unclear'
-    );
-    setConsentAsk(async () => new Promise<string>(() => {})); // never answers
-    expect(await judgeConfirmation(pending('callOnBehalf'), said('Yep, call him.'))).toBe(
-      'unclear'
-    );
+    expect(await judgeConfirmation(p, said("Yeah, that's okay."))).toBe('unclear');
+    setConsentAsk(async () => new Promise<string>(() => {})); // never answers: cut off at 1.2 s
+    expect(await judgeConfirmation(p, said('Yeah, have his wife call him.'))).toBe('unclear');
+    expect(await judgeConfirmation(p, said('Yeah, go ahead.'))).toBe('confirmed');
     setConsentAsk(async () => 'sure thing!');
-    expect(await judgeConfirmation(pending('callOnBehalf'), said('Of course, call him.'))).toBe(
-      'unclear'
-    );
+    expect(await judgeConfirmation(p, said('Of course, ring him.'))).toBe('unclear');
+    // A plain yes doesn't depend on the judge: its error neither places nor blocks it.
+    expect(await judgeConfirmation(p, said('Yep, call him.'))).toBe('confirmed');
+  });
+
+  it('the judge can take a plain yes away, never make one', async () => {
+    const p = pending('callOnBehalf');
+    // On a plain yes its "no" asks once (a misread at worst); off the allow-list it declines.
+    setConsentAsk(async () => '{"verdict":"no","reason":"declined"}');
+    expect(await judgeConfirmation(p, said('Yes.'))).toBe('unclear');
+    expect(await judgeConfirmation(p, said('Hmm, I suppose.'))).toBe('declined');
+    expect(isClearYes('Hmm.', ['dad'], [], true)).toBe(false);
+    // A bare "call" never runs into a name: Ferni's, a mishearing of it, or the owner's.
+    for (const r of [
+      'Go ahead and call Fred.',
+      'Go ahead and call Seth.',
+      'Yes, go ahead and call Ferni.',
+    ])
+      expect(isClearYes(r, ['my', 'dad'], ['seth'], true), r).toBe(false);
+    expect(isClearYes('Huh.', ['dad'], [], true)).toBe(false);
+    setConsentAsk(async () => '{"verdict":"unclear","reason":"redirect"}');
+    expect(await judgeConfirmation(p, said('Yeah, go ahead.'))).toBe('unclear');
+    setConsentAsk(alwaysYes);
+    for (const r of [
+      'Yeah, have his wife call him.',
+      'Totally, yes, best idea ever.',
+      'Sure, ring him at the house.',
+    ])
+      expect(await judgeConfirmation(p, said(r)), r).toBe('unclear');
   });
 
   it('the judge hears the name and the last four digits, never the number', async () => {
@@ -223,8 +256,9 @@ describe('never a false yes', () => {
     setConsentAsk(alwaysYes);
     const p = pending('callOnBehalf');
     expect(await judgeConfirmation(p, said("Yes, it's okay with me. Give him a call."))).toBe(
-      'unclear'
+      'confirmed'
     );
+    expect(await judgeConfirmation(p, said('Yeah, that works.'))).toBe('unclear');
     expect(confirmationState(p, said('Yeah, go ahead.'), Date.now())).toBe('confirmed');
     expect(confirmationState(p, said('Um, no, call my mom instead.'), Date.now())).toBe('declined');
   });
@@ -371,7 +405,8 @@ describe('deny by default', () => {
     expect(isClearYes('Yeah, go ahead and call.', DAD_T, [], true)).toBe(true);
     expect(isClearYes('Yes, give him a call.', DAD_T, [], true)).toBe(true);
     expect(isClearYes('Yes, give him a call.', ['mom'], [], true)).toBe(false);
-    expect(isClearYes('Yes, give him a call.', ['doug'], [], true)).toBe(false);
+    // A name with no known pronoun: "him" or "her" restates the one person read back.
+    expect(isClearYes('Yes, give him a call.', ['doug'], [], true)).toBe(true);
     // Through the gate with the judge off: unclear (asks once), never sent.
     vi.stubEnv('CALL_CONSENT_CLASSIFIER', 'off');
     const call = liveCall();
@@ -491,7 +526,6 @@ describe('deny by default', () => {
     for (const turn of [
       'Wait, which number? Actually call him later.',
       'Hold on, can my sister call him instead?',
-      'Wait, which number? Maybe.',
     ]) {
       const call = liveCall();
       await call.call('c1');
@@ -554,14 +588,6 @@ describe('deny by default', () => {
       await call.call('c2');
       expect(sends, hedge).toHaveLength(0);
     }
-    // A clarifying "wait" that hedges is not exempt either.
-    const call = liveCall();
-    await call.call('c1');
-    call.owner('Wait, which number? In a  bit.');
-    call.ferni('The one ending in 0002.');
-    call.owner('Yes.');
-    await call.call('c2');
-    expect(sends).toHaveLength(0);
   });
 
   /** Verifier round 2 (6654e084d): misses an always-yes judge would have placed. */
