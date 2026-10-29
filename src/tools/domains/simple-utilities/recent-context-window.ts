@@ -4,13 +4,14 @@
  * getHistory takes only a limit, so "what did we talk about today" answered with the last 20
  * sessions, last month's included, under the label "Timeframe: today". With
  * RECENT_CONTEXT_TIMEFRAME=on the sessions are kept only when their date falls inside the
- * timeframe's window in the caller's own zone: the call's, else the account's stored one:
+ * timeframe's window in the call's own zone (userTimeZone; for a phone call, phone-parity.ts records
+ * the account's zone only when the caller is its verified owner):
  *
  * - today: since local midnight; yesterday: the local day before
  * - this-week: the last 7 local days, today included; last-week: the 7 days before those
  * - this-month: since the 1st of the local month; all-time: everything fetched
  *
- * With no zone at all (most phone callers) a calendar day would be UTC's, and a 9 PM Eastern
+ * With no zone at all (a phone caller who is not the verified owner) a calendar day would be UTC's, and a 9 PM Eastern
  * caller's 3 PM session is "yesterday" there. So no day is guessed: the window rolls back from
  * now instead (today: 24 h, yesterday: the 24 h before, this-week: 7 days, last-week: the 7
  * before, this-month: 30 days).
@@ -91,18 +92,6 @@ export function sessionsInTimeframe<S extends { date: string }>(
   });
 }
 
-/** The zone saved on the account's profile (contactInfo), or undefined: unset, invalid or unreadable. */
-async function storedTimeZone(userId: string): Promise<string | undefined> {
-  try {
-    const { getProfileStore } = await import('../../../memory/index.js');
-    const profile = await (await getProfileStore()).getProfile(userId);
-    const zone: unknown = profile?.contactInfo?.timezone;
-    return isValidTimeZone(zone) ? zone : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * The caller's conversation history for recentContext: inside the timeframe with the flag on,
  * else the last 20 sessions as before. `outsideWindow` counts the sessions read and left out,
@@ -119,7 +108,7 @@ export async function historyInTimeframe(
   const store = getConversationHistoryService();
   if (!flagOn('RECENT_CONTEXT_TIMEFRAME')) return store.getHistory(ids.userId, UNFILTERED_FETCH);
   const history = await store.getHistory(ids.userId, WINDOW_FETCH);
-  const zone = userTimeZone(ids) ?? (await storedTimeZone(ids.userId));
+  const zone = userTimeZone(ids);
   const sessions = sessionsInTimeframe(history.sessions, timeframe, zone, now);
   return { ...history, sessions, outsideWindow: history.sessions.length - sessions.length };
 }
