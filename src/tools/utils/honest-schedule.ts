@@ -18,3 +18,9 @@ export function asksToRepeat(...texts: Array<string | undefined>): boolean {
 /** Appended when a repeat was asked for and only one occurrence was stored. */
 export const NO_REPEAT_YET =
   " It does not repeat: repeating reminders aren't supported yet. Tell them plainly you can remind them this once but can't do it every time yet.";
+
+/**
+ * Said in place of "I'll remind you" by a tool that stores no reminder job
+ * (#1439): nothing fires later, so the reply must not promise that it will.
+ */
+export const NO_TIMED_REMINDER = "Noted, but I can't set a timed reminder for that here.";
