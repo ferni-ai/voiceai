@@ -104,7 +104,7 @@ function eitherAnswer(p: Pending, words: string): Outcome {
 }
 
 /** A caller turn: their words and its number (callerTurns), shared by its preemptive and final requests. */
-export interface CallerTurn {
+interface CallerTurn {
   words: string;
   count: number;
 }
