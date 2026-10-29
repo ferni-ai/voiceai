@@ -27,6 +27,7 @@
 import { flagOn } from '../../../../config/env-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
+import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
 import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
@@ -352,13 +353,17 @@ export interface ConfirmSpec {
   onYes?: (args: Record<string, unknown>, userId: string, sessionId?: string) => Promise<unknown>;
 }
 
-/** The tool's execute, with spec.onYes first whenever it runs an action rather than a plan. */
+/**
+ * The tool's execute, with spec.onYes first whenever it runs an action rather than a plan. The
+ * session id is the live call's (live-session.ts): prod builds these tools without one.
+ */
 function withOnYes(spec: ConfirmSpec, ctx: ToolContext, execute: Execute): Execute {
   const { onYes } = spec;
   if (!onYes) return execute;
   return async (a, o) => {
     const args = (a ?? {}) as Record<string | symbol, unknown>;
-    if (!args[PLAN_ONLY]) await onYes(args as Record<string, unknown>, ctx.userId, ctx.sessionId);
+    const sessionId = liveSessionIdOf(o) ?? ctx.sessionId;
+    if (!args[PLAN_ONLY]) await onYes(args as Record<string, unknown>, ctx.userId, sessionId);
     return execute(a, o);
   };
 }

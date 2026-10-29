@@ -39,6 +39,8 @@ import { clearAllEntityCaches } from '../../../../memory/entity-store/entity-cac
 import { initializeEntityStore } from '../../../../memory/entity-store/integration.js';
 import { bindSessionUser, noteCallerWords, resetMinorCare } from '../../../../utils/minor-care.js';
 import { ToolRegistry } from '../../../registry/index.js';
+import { noteLiveSession } from '../../../registry/live-session.js';
+import { perCallerTool } from '../../../registry/per-caller-tool.js';
 import type { ToolContext } from '../../../registry/types.js';
 import { outreachConfirmListeners } from '../../communication/outreach/outreach-confirm.js';
 import { getTelephonyToolDefinitions } from '../index.js';
@@ -276,6 +278,78 @@ describe.skipIf(!emulator)('CONTACT_SAVE_ON_YES on the emulator', () => {
     nextSession();
     expect(named(await crDocs(u), 'doug')).toEqual([]);
     expect(JSON.stringify(named(await crDocs(u), 'mom'))).toBe(momBefore);
+  });
+
+  describe('built as prod builds it: no sessionId, the live call registered (gateway)', () => {
+    /** perCallerTool with a gateway ctx: the caller and the session come only from the run. */
+    function gatewayCall(userId: string, liveId: string | undefined) {
+      const registry = new ToolRegistry();
+      for (const def of getTelephonyToolDefinitions()) registry.register(def);
+      const session = { agentState: 'listening' };
+      const release = liveId ? noteLiveSession(session, liveId) : () => undefined;
+      const listeners = outreachConfirmListeners(session);
+      const tool = perCallerTool(registry.get('callOnBehalf')!, {
+        agentId: 'gateway',
+        agentDisplayName: 'Tool Gateway',
+      });
+      const call = async (args: Record<string, unknown>, callId: string) => {
+        const opts = { ctx: { session, userData: { userId } }, toolCallId: callId };
+        const out = await tool.execute(args as never, opts as never);
+        listeners.onToolsExecuted({ functionCalls: [{ callId }] });
+        return String(out);
+      };
+      const say = (t: string) => listeners.onTranscript({ transcript: t, isFinal: true });
+      return { call, say, release };
+    }
+    const args = { contactQuery: 'my dad', phoneNumber: '801-555-0142', purpose: 'hi' };
+
+    it('the yes saves (1 write) and the next session dials the number', async () => {
+      const u = uid();
+      const g = gatewayCall(u, `live-${u}`);
+      const preview = await g.call(args, 'g1');
+      await settle();
+      expect(preview).toContain('NOT SENT YET');
+      expect(await writeCount(u)).toBe(0);
+      g.say('Yes.');
+      await g.call(args, 'g2');
+      await settle();
+      g.release();
+      expect(await writeCount(u)).toBe(1);
+      nextSession();
+      const next = gatewayCall(u, `live2-${u}`);
+      expect(await next.call({ contactQuery: 'dad', purpose: 'hi' }, 'g3')).toContain(
+        'a call to Dad at 801-555-0142'
+      );
+      next.say('Yes.');
+      await next.call({ contactQuery: 'dad', purpose: 'hi' }, 'g4');
+      next.release();
+      expect(dialed()).toEqual([N1, N1]);
+    });
+
+    it('a live call MINOR_CARE holds, seen only by its live session id: 0 writes', async () => {
+      vi.stubEnv('MINOR_CARE', 'on');
+      const u = uid();
+      expect(noteCallerWords(`live-${u}`, "I'm 13 years old")).toBe(true);
+      const g = gatewayCall(u, `live-${u}`);
+      await g.call(args, 'h1');
+      g.say('Yes.');
+      await g.call(args, 'h2');
+      await settle();
+      g.release();
+      expect(await writeCount(u)).toBe(0);
+      expect(dialed()).toEqual([N1]);
+    });
+
+    it('no live session registered and none at build: 0 writes (the call still rings)', async () => {
+      const u = uid();
+      const g = gatewayCall(u, undefined);
+      await g.call(args, 'n1');
+      g.say('Yes.');
+      await g.call(args, 'n2');
+      await settle();
+      expect(await writeCount(u)).toBe(0);
+      expect(dialed()).toEqual([N1]);
+    });
   });
 
   describe('MINOR_CARE and the session id', () => {
