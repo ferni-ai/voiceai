@@ -223,6 +223,13 @@ const { orchestrator } = await initializeMultiAgentSession({
 2. **Cost**: Two agents briefly overlap during handoff (both running momentarily)
 3. **Tools**: Uses existing JSON function calling workaround (all tools available)
 
+## Tool sets per agent
+
+Every agent build (first agent, handoff, fallback) runs `withAlwaysOnTools` (`everyday-basics.ts`), then the 64 cap in `agent-setup.ts`; mid-call offers go through `updateAgentTools` (`shared/tool-updater.ts`).
+
+- `SPECIALIST_TOOLS`: a specialist gets its own list (`specialist-tool-sets.ts`).
+- `PERSONA_TOOLSETS`: every persona gets one fixed set of 40 tools or fewer (`persona-toolsets.ts`, picks in `persona-toolset-picks.ts`): the shared core with the safety set first, the session's team tools, then its beat and head tools. Mid-call offers add nothing; a handoff builds the next persona's set. The invariant test holds the safety set identical on every persona.
+
 ## Production Deployment
 
 ```bash
