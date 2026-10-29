@@ -35,6 +35,7 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { calendarDaysSince, daysAgoInWords } from '../../utils/calendar-days.js';
 import * as notYet from './greeting-not-yet.js';
 import * as stranger from './first-call-stranger.js';
+import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
 import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -60,22 +61,24 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
  * The hello's direction for this persona. Never the playful one after a heavy
  * last call (what they talked about reads as heavy-moment.ts does) or when
  * welcome-back held back a tender thread: a tease is no way to pick that up.
- * A first call (`last.firstCall`) gets the stranger's hello (first-call-stranger.ts);
- * `introAs` is set on a first call (FIRST_CALL_INTRO).
+ * A first call (`last.firstCall`) gets the stranger's hello (first-call-stranger.ts), a
+ * caller Ferni can't place (`last.unplaced`) its no-claim twin; `introAs` (FIRST_CALL_INTRO).
  */
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
-  last: { topic?: string; tender?: boolean; firstCall?: boolean } = {},
+  last: { topic?: string; tender?: boolean; firstCall?: boolean; unplaced?: boolean } = {},
   introAs?: string
 ): string {
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
   const base = last.firstCall
     ? stranger.STRANGER_GREETING_DIRECTION
-    : playful && !careful
-      ? PLAYFUL_GREETING_DIRECTION
-      : GREETING_DIRECTION;
+    : last.unplaced
+      ? stranger.UNPLACED_GREETING_DIRECTION
+      : playful && !careful
+        ? PLAYFUL_GREETING_DIRECTION
+        : GREETING_DIRECTION;
   return introAs ? withFirstCallIntro(base, introAs) : base;
 }
 
@@ -398,7 +401,9 @@ export async function directedGreeting(
     returningCallerGreeting(sessionId) ??
     unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
   const firstCall = isNew && !unknown; // never greeted as an old friend
-  const stage = firstCall ? ('stranger' as const) : ('friend' as const);
+  // No account, no past calls (UNKNOWN_CALLER_HONEST): met, never greeted as a friend.
+  const unplaced = isUnplacedCaller(userData?.userId, history !== undefined);
+  const stage = firstCall || unplaced ? ('stranger' as const) : ('friend' as const);
   const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });
   const introAs = unknown ? undefined : introName;
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
@@ -420,7 +425,7 @@ export async function directedGreeting(
     greetingDirection(
       personaId,
       process.env,
-      { topic: history?.lastTopic, tender: back?.heldBack, firstCall },
+      { topic: history?.lastTopic, tender: back?.heldBack, firstCall, unplaced },
       introAs
     ) +
     (win ? WIN_DIRECTION : '') +
@@ -451,7 +456,7 @@ export async function directedGreeting(
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
-    rejectIf: firstCall ? stranger.impliesSharedPast : undefined,
+    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : undefined,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (
