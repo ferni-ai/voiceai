@@ -68,7 +68,10 @@ export const recallFromMemoryUnifiedDef: ToolDefinition = {
           ),
       }),
       execute: async ({ topic }, { ctx: toolCtx }) => {
-        log.info({ agentId: ctx.agentId, topic }, '🧠 [UNIFIED] Recall from memory');
+        log.info(
+          { agentId: ctx.agentId, topicChars: topic.length },
+          '🧠 [UNIFIED] Recall from memory'
+        );
 
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
@@ -132,7 +135,10 @@ export const recallPreviousConversationUnifiedDef: ToolDefinition = {
           ),
       }),
       execute: async ({ query }, { ctx: toolCtx }) => {
-        log.info({ agentId: ctx.agentId, query }, '🧠 [UNIFIED] Semantic recall');
+        log.info(
+          { agentId: ctx.agentId, queryChars: query.length },
+          '🧠 [UNIFIED] Semantic recall'
+        );
 
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
@@ -190,7 +196,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ fact, category, importance }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, fact, category, importance },
+          { agentId: ctx.agentId, factChars: fact.length, category, importance },
           '🧠 [UNIFIED] Remember about user'
         );
 
@@ -258,7 +264,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ fact, type, emotionalWeight }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, fact, type, emotionalWeight },
+          { agentId: ctx.agentId, factChars: fact.length, type, emotionalWeight },
           '🧠 [UNIFIED] Remember important fact'
         );
 
@@ -347,7 +353,7 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ context, memoryToSurface, connectionReason }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, context, connectionReason },
+          { agentId: ctx.agentId, contextChars: context.length },
           '🧠 [BETTER-THAN-HUMAN] Surface relevant memory'
         );
 
@@ -421,7 +427,7 @@ export const predictUserNeedUnifiedDef: ToolDefinition = {
       }),
       execute: async ({ context, prediction, confidence, suggestedAction }, { ctx: toolCtx }) => {
         log.info(
-          { agentId: ctx.agentId, context, prediction, confidence },
+          { agentId: ctx.agentId, confidence, contextChars: context?.length ?? 0 },
           '🔮 [BETTER-THAN-HUMAN] Predict user need'
         );
 
