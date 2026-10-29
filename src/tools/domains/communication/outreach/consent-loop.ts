@@ -12,13 +12,12 @@
  */
 
 import { getLogger } from '../../../../utils/safe-logger.js';
-import { isPlainNo } from './consent-words.js';
 import {
   askOnceLine,
   asksAgain,
   channelOf,
-  isReadBack,
   personOf,
+  VERB,
   type ConfirmState,
 } from './consent-window.js';
 import { dropConfirmThread } from './confirm-thread.js';
@@ -35,21 +34,14 @@ export interface AskRecord {
 type Action = Pick<PendingAction, 'toolId' | 'args' | 'readBack'>;
 const MAX_PREVIEWS = 2;
 const ASK_MEMORY_MS = 10 * 60 * 1000;
-const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
 function keyOf(action: Action): string {
   const { address, name } = targetOf(action.args);
   return `${channelOf(action)}:${address ?? name ?? action.toolId}`;
 }
-/** After a close: the owner asked again ("No, call him!", "I said yes"), or Ferni read it back by
- * name and the owner answered. Either allows only a new read-back, never a call. */
+/** After a close: the owner asked again in their own words ("No, call him!", "I said yes").
+ * That allows only a new read-back, never a call. */
 function askedAgain(events: ConfirmEvent[], since: number, action: Action): boolean {
-  const later = events.filter((e) => e.seq > since);
-  const reread = later.findIndex((e) => e.kind === 'agent' && isReadBack(e.text, action, true));
-  return later.some(
-    (e, i) =>
-      e.kind === 'caller' &&
-      (asksAgain(e.text, action) || (reread >= 0 && i > reread && !isPlainNo(e.text)))
-  );
+  return events.some((e) => e.seq > since && e.kind === 'caller' && asksAgain(e.text, action));
 }
 function honestLine(action: Action): string {
   return `Okay, I won't ${VERB[channelOf(action)]} ${personOf(action)}.`;

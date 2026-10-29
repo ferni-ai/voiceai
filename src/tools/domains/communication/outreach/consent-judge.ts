@@ -48,11 +48,9 @@ unclear: everything else, including
 Turns may be split mid-sentence, and the owner may call Ferni by name ("Yes," then "Ferni."): neither is a refusal. Never answer yes when unsure.`;
 
 /** The owner's words as data, one per line, so nothing in them reads as an instruction. */
+export const WHAT = { call: 'a phone call', text: 'a text', other: 'a message' } as const;
 export function consentUserText(input: ConsentInput): string {
-  const what =
-    input.channel === 'other'
-      ? 'a message'
-      : `a ${input.channel === 'call' ? 'phone call' : 'text'}`;
+  const what = WHAT[input.channel];
   const number = input.last4 ? ` (number ending ${input.last4})` : '';
   const turns = input.turns.map((t, i) => `${i + 1}. ${JSON.stringify(t)}`).join('\n');
   return `Read-back: ${what} to ${JSON.stringify(input.person)}${number}, now.\nOwner's reply, in order:\n${turns}`;
@@ -75,40 +73,61 @@ export function parseConsent(reply: string): ConsentJudgement | null {
   }
 }
 
-/** Sends the prompt and the owner's words to a model and returns its raw text. */ export type ConsentAsk =
-  (system: string, input: string, signal: AbortSignal) => Promise<string>;
+/** Sends the prompt and the owner's words to a model and returns its raw text. */
+export type ConsentAsk = (system: string, input: string, signal: AbortSignal) => Promise<string>;
 
+const VERDICT = { type: 'string', enum: ['yes', 'no', 'unclear'] };
 const SCHEMA = {
   type: 'object',
-  properties: {
-    verdict: { type: 'string', enum: ['yes', 'no', 'unclear'] },
-    reason: { type: 'string', enum: REASONS.slice(0, -1) },
-  },
+  properties: { verdict: VERDICT, reason: { type: 'string', enum: REASONS.slice(0, -1) } },
   required: ['verdict', 'reason'],
 };
 
-/** The repo's fast classifier call (as turn-understanding.ts): flash-lite, JSON, no thinking. */
-export const geminiConsentAsk: ConsentAsk = async (system, input, signal) => {
-  const { getGeminiClient } = await import('../../../../config/gemini-config.js');
-  const client = (await getGeminiClient()) as {
-    models: { generateContent: (req: unknown) => Promise<{ text?: string }> };
-  } | null;
-  if (!client) return '';
-  const response = await client.models.generateContent({
-    model: CONSENT_MODEL,
-    contents: [{ role: 'user', parts: [{ text: input }] }],
-    config: {
-      systemInstruction: system,
-      temperature: 0,
-      maxOutputTokens: 40,
-      responseMimeType: 'application/json',
-      responseJsonSchema: SCHEMA,
-      thinkingConfig: { thinkingBudget: 0 },
-      abortSignal: signal,
-    },
+/** The repo's fast classifier call (as turn-understanding.ts): flash-lite, JSON, no thinking.
+ * Also reads Ferni's turns (consent-readback.ts), with that schema. */
+export const geminiAsk =
+  (schema: object): ConsentAsk =>
+  async (system, input, signal) => {
+    const { getGeminiClient } = await import('../../../../config/gemini-config.js');
+    const client = (await getGeminiClient()) as {
+      models: { generateContent: (req: unknown) => Promise<{ text?: string }> };
+    } | null;
+    if (!client) return '';
+    const response = await client.models.generateContent({
+      model: CONSENT_MODEL,
+      contents: [{ role: 'user', parts: [{ text: input }] }],
+      config: {
+        systemInstruction: system,
+        temperature: 0,
+        maxOutputTokens: 40,
+        responseMimeType: 'application/json',
+        responseJsonSchema: schema,
+        thinkingConfig: { thinkingBudget: 0 },
+        abortSignal: signal,
+      },
+    });
+    return response.text ?? '';
+  };
+export const geminiConsentAsk = geminiAsk(SCHEMA);
+
+/** The model's reply within the cap, or null when it took longer (the call is then aborted). */
+export async function replyWithin(
+  model: ConsentAsk,
+  system: string,
+  input: string,
+  timeoutMs: number
+): Promise<string | null> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => (controller.abort(), resolve(null)), timeoutMs);
   });
-  return response.text ?? '';
-};
+  try {
+    return await Promise.race([model(system, input, controller.signal), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 let ask: ConsentAsk = geminiConsentAsk;
 let waitMs = CONSENT_TIMEOUT_MS;
@@ -125,49 +144,39 @@ export async function classifyConsent(
   input: ConsentInput,
   timeoutMs = waitMs
 ): Promise<ConsentJudgement> {
-  const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<null>((resolve) => {
-    timer = setTimeout(() => (controller.abort(), resolve(null)), timeoutMs);
-  });
   const started = Date.now();
   try {
-    const reply = await Promise.race([
-      ask(CONSENT_PROMPT, consentUserText(input), controller.signal),
-      timeout,
-    ]);
+    const reply = await replyWithin(ask, CONSENT_PROMPT, consentUserText(input), timeoutMs);
     const judged = (reply === null ? null : parseConsent(reply)) ?? UNCLEAR;
     log.info({ ...judged, latencyMs: Date.now() - started }, 'CALL_CONSENT_JUDGE');
     return judged;
   } catch (error) {
     log.warn({ error: String(error), latencyMs: Date.now() - started }, 'CALL_CONSENT_JUDGE');
     return UNCLEAR;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
-interface Judged {
-  key: string;
-  done?: ConsentJudgement;
-  run: Promise<ConsentJudgement>;
+interface Once {
+  done?: unknown;
+  run: Promise<unknown>;
 }
-/** One judgement per pending action and answer: the turn note and the tool share it. */
-const judged = new WeakMap<object, Judged>();
+/** One model call per stored action and input: the turn's end, the turn note and the tool share it. */
+const calls = new WeakMap<object, Map<string, Once>>();
+export async function once<T>(action: object, key: string, start: () => Promise<T>): Promise<T> {
+  const mine = calls.get(action) ?? new Map<string, Once>();
+  calls.set(action, mine);
+  const entry: Once = mine.get(key) ?? { run: start() };
+  if (!mine.has(key)) void entry.run.then((v) => (entry.done = v));
+  mine.set(key, entry);
+  return entry.run as Promise<T>;
+}
+/** That call's answer, once it has one. */
+export const onceDone = <T>(action: object, key: string): T | undefined =>
+  calls.get(action)?.get(key)?.done as T | undefined;
 
 /** Starts (or joins) the judgement of these turns for this pending action. */
-export async function judge(pending: object, input: ConsentInput): Promise<ConsentJudgement> {
-  const key = input.turns.join('\n');
-  const prior = judged.get(pending);
-  if (prior?.key === key) return prior.run;
-  const entry: Judged = { key, run: classifyConsent(input) };
-  void entry.run.then((r) => (entry.done = r));
-  judged.set(pending, entry);
-  return entry.run;
-}
-
+export const judge = async (pending: object, input: ConsentInput): Promise<ConsentJudgement> =>
+  once(pending, `consent:${input.turns.join('\n')}`, async () => classifyConsent(input));
 /** The finished judgement of exactly these turns, if there is one yet. */
-export function judgedNow(pending: object, turns: string[]): ConsentJudgement | undefined {
-  const prior = judged.get(pending);
-  return prior?.key === turns.join('\n') ? prior.done : undefined;
-}
+export const judgedNow = (pending: object, turns: string[]): ConsentJudgement | undefined =>
+  onceDone(pending, `consent:${turns.join('\n')}`);

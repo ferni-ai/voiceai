@@ -7,17 +7,12 @@
  */
 
 // Agreement. Owner calls 10-24..10-26: "Yeah, go ahead.", "Sure.", "Yes, you should."
-const YES = [
-  ...'go ahead|go for it|please do|do it|thats right|of course|sounds good|you should|you can'.split(
+const YES =
+  'go ahead|go for it|please do|do it|thats right|of course|sounds good|you should|you can|uh huh|mm hmm|mm hm|its okay with me|its ok with me|thats okay with me|thats fine with me|yes|yeah|yep|yup|ya|sure|ok|okay|alright|correct|absolutely|definitely|mhm|mhmm'.split(
     '|'
-  ),
-  ...'uh huh|mm hmm|mm hm|its okay with me|its ok with me|thats okay with me|thats fine with me'.split(
-    '|'
-  ),
-  ...'yes yeah yep yup ya sure ok okay alright correct absolutely definitely mhm mhmm'.split(' '),
-];
+  );
 // Ferni's name and its STT mishearings (agents/personas/name-mishear.ts). Owner call 10-18: "Uh, go ahead, Fred."
-const FERNI = 'ferni fernie ferny furny fred freddy freddie'.split(' ');
+export const FERNI = 'ferni fernie ferny furny fred freddy freddie'.split(' ');
 // Never a yes alone: politeness, filler, Ferni's name.
 const FILLERS = [
   ...'thank you|right now'.split('|'),
@@ -26,6 +21,14 @@ const FILLERS = [
 ];
 const HIM = new Set('dad father brother husband son grandpa uncle'.split(' '));
 const HER = new Set('mom mum mother sister wife daughter grandma aunt'.split(' '));
+export const KIN = new Set([...HIM, ...HER]);
+/** Not now: the owner deferring, or Ferni offering another time. */
+export const LATER =
+  'later tomorrow tonight instead monday tuesday wednesday thursday friday saturday sunday'.split(
+    ' '
+  );
+/** Anyone but the person read back, when named this way ("call my sister", "your boss"). */
+export const OTHERS = new Set([...KIN, ...'cousin friend boss doctor neighbor'.split(' ')]);
 const STOP = new Set('my the a your his her their'.split(' '));
 /** "him" for a call to Dad, "her" for Mom; undefined for a name ("Doug") or both. */
 export function pronounOf(target: readonly string[]): 'him' | 'her' | undefined {

@@ -24,6 +24,7 @@
  * @module tools/domains/communication/outreach/outreach-confirm
  */
 
+import { isDeepStrictEqual } from 'node:util';
 import { flagOn } from '../../../../config/env-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
@@ -38,7 +39,12 @@ import {
   type AskRecord,
 } from './consent-loop.js';
 import { isClearNo, words } from './consent-words.js';
-import { judgeWindow, windowState, type ConfirmState } from './consent-window.js';
+import {
+  classifyFerniTurn,
+  judgeWindow,
+  windowState,
+  type ConfirmState,
+} from './consent-window.js';
 import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
 import {
   gateInFamily,
@@ -148,7 +154,10 @@ function record(session: object, event: SessionEvent): void {
   entry.events.push({ ...event, seq: ++entry.seq });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
   const { pending } = entry;
-  if (event.kind !== 'caller' || !pending) return;
+  if (!pending) return;
+  // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it.
+  if (event.kind === 'agent') void classifyFerniTurn(pending, event.text, consentClassifierOn());
+  if (event.kind !== 'caller') return;
   // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
   if (confirmationState(pending, entry.events, Date.now()) === 'declined')
     cancel(entry, pending, 'declined', entry.seq - 1);
@@ -200,18 +209,6 @@ export function confirmedActionNote(session: object): string {
     `details. Don't ask again, and don't say it's done before the tool says so.`
   );
 }
-
-/** The same request, word for word: anything changed (who, what, how) is read back afresh. */
-const sorted = (v: unknown): unknown =>
-  v && typeof v === 'object' && !Array.isArray(v)
-    ? Object.fromEntries(
-        Object.keys(v)
-          .sort()
-          .map((k) => [k, sorted((v as Record<string, unknown>)[k])])
-      )
-    : v;
-const sameRequest = (a: unknown, b: unknown): boolean =>
-  JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
 
 /** Whether this call carries on the stored action: the same tool, or `sameAction` says so. */
 function continues(
@@ -350,7 +347,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
             await attestOnConfirm(ctx.userId, pending.args);
             return sentConfirmThread(pending, execute(pending.args, opts));
           }
-          const same = sameRequest(pending.requested, args);
+          const same = isDeepStrictEqual(pending.requested, args); // anything changed is read back afresh
           const expiresAt = Date.now() + CONFIRM_WINDOW_MS;
           const reply = unconfirmedReply(entry, pending, state, { callId, same, expiresAt });
           if (reply !== undefined) return reply;

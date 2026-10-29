@@ -8,9 +8,10 @@
  * The owner's 10-26 turns are paraphrased here (no health details, no real number).
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ToolDefinition } from '../../../../registry/types.js';
 import { consentUserText, setConsentAsk, type ConsentAsk } from '../consent-judge.js';
+import { readBackUserText, setReadBackAsk, vetoed, type ActionFacts } from '../consent-readback.js';
 import {
   confirmationState,
   isClearYes,
@@ -87,8 +88,12 @@ const fairJudge: ConsentAsk = async (_system, input) => {
 };
 const alwaysYes: ConsentAsk = async () => '{"verdict":"yes","reason":"agreed"}';
 
+/** Ferni's turn classifier stubbed to always say read-back: only the vetoes take it away. */
+const alwaysReadBack: ConsentAsk = async () => '{"kind":"readback"}';
+beforeEach(() => setReadBackAsk(alwaysReadBack));
 afterEach(() => {
   setConsentAsk(undefined);
+  setReadBackAsk(undefined);
   vi.unstubAllEnvs();
   sends.length = 0;
 });
@@ -135,13 +140,25 @@ describe('the answer window: only words after Ferni last asked count', () => {
     expect(sends).toHaveLength(2);
   });
 
-  it('10-26 22:23: "Yes, you should." confirms on the fast path, judge or no judge', async () => {
-    vi.stubEnv('CALL_CONSENT_CLASSIFIER', 'off');
+  it('10-26 22:23: "Yes, you should." confirms on the fast path', async () => {
     const call = liveCall();
     await call.call('c1');
     call.ferni('Should I go ahead and call Dad now?');
     call.owner('Yes, you should.');
     await call.call('c2');
+    expect(sends).toHaveLength(1);
+  });
+
+  it('with the kill switch off, a re-ask it cannot read asks once, and a yes to that places', async () => {
+    vi.stubEnv('CALL_CONSENT_CLASSIFIER', 'off');
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni('Should I go ahead and call Dad now?');
+    call.owner('Yes, you should.');
+    expect(await call.call('c2')).toContain('Just to be sure: call Dad now?');
+    call.ferni('Just to be sure: call Dad now?');
+    call.owner('Yes.');
+    await call.call('c3');
     expect(sends).toHaveLength(1);
   });
 
@@ -326,10 +343,9 @@ describe('deny by default', () => {
     call.owner("No, don't call him.");
     call.ferni('Okay. Should I go ahead and call Dad now?');
     call.owner('Yes.');
-    // At most a fresh read-back, never a call off the old one.
-    expect(await call.call('c2')).toContain('NOT SENT YET. Read this');
+    // Ferni asking again doesn't reopen it: only the owner's own words do (askedAgain).
+    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
     expect(sends).toHaveLength(0);
-    // Ferni asking again without naming Dad doesn't even reopen it.
     const bare = liveCall();
     await bare.call('b1');
     bare.owner('No.');
@@ -739,5 +755,128 @@ describe('deny by default', () => {
     again.owner('Yes.');
     await again.call('d2');
     expect(sends).toHaveLength(2);
+  });
+});
+
+/** Verifier round 6 (53528bb88): a word matcher missed 15 of 20 logged read-backs and checked
+ * only the last question. Ferni's turn is now classified as it ends; vetoes run first. */
+describe("Ferni's turn: read-back, another question, or none", () => {
+  const facts: ActionFacts = {
+    channel: 'call',
+    person: 'Dad',
+    target: ['dad'],
+    digits: '15551230002',
+    owner: ['sam'],
+    askOnce: 'Just to be sure: call Dad now?',
+  };
+  const READ =
+    "I'm ready to call Dad at the number ending 0002, right now. Should I go ahead and call him?";
+
+  it('a second question or a redirect anywhere in the turn never places, even if the model says read-back', async () => {
+    setConsentAsk(alwaysYes);
+    const turns = [
+      'Should I wait until six? Should I call him now?',
+      "I'll try his work line. Should I call him now?",
+      'His other number ends in 0199. Should I call him?',
+      'Should I hold off? Just to be sure: call Dad now?',
+      'Want me to wait till he is up? Should I go ahead and call?',
+      'I can text his wife instead, or should I call him now?',
+      "I'm sorry about the stroke. Is he okay? Should I call him now?",
+      'Should I call her now?',
+      'Should I have Priya call him now?',
+    ];
+    for (const turn of turns) {
+      expect(vetoed(turn, facts), turn).toBe(true);
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner('Hmm.');
+      call.ferni(turn);
+      call.owner('Yes.');
+      expect(await call.call('c2'), turn).toContain('Just to be sure: call Dad now?');
+      expect(sends, turn).toHaveLength(0);
+    }
+  });
+
+  it('paraphrased read-backs pass the vetoes, and a yes to one places', async () => {
+    const paraphrases = [
+      'Should I go ahead and make that call right now?',
+      'Ready for me to call him now?',
+      "I've got your dad's number, ending 0002. Should I go ahead with that?",
+      'I can ring him right now to check in, if you would like me to go ahead?',
+      'Do you want me to try dialing him again?',
+      "I haven't dialed yet. Should I go ahead and call? Sound good to you?",
+      'I can call him at 5 5 5 1 2 3 0 0 0 2 to say hello. Should I go ahead and call?',
+    ];
+    for (const turn of paraphrases) {
+      expect(vetoed(turn, facts), turn).toBe(false);
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(turn);
+      call.owner('Yes.');
+      await call.call('c2');
+    }
+    expect(sends).toHaveLength(paraphrases.length);
+  });
+
+  it('the model hears the person, relation and last four, never the number', () => {
+    const text = readBackUserText(
+      { ...facts, target: ['my', 'dad'] },
+      'Dialing 555-123-0002, five five five one two three oh oh oh two. Should I call him?'
+    );
+    expect(text).toContain('"Dad" (the owner\'s dad), number ending 0002');
+    expect(text).not.toMatch(/555|five five/);
+  });
+
+  it('classifies the turn once, as it ends, before the owner answers', async () => {
+    const asked: string[] = [];
+    setReadBackAsk(async (_s, input) => (asked.push(input), '{"kind":"readback"}'));
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni('Should I go ahead and make that call now?');
+    expect(asked).toHaveLength(1);
+    call.owner('Yes.');
+    await call.call('c2');
+    expect(asked).toHaveLength(1);
+    expect(sends).toHaveLength(1);
+  });
+
+  it('the classifier has until the owner answers; deciding before it is done asks once, never places', async () => {
+    const slow: ConsentAsk = async () =>
+      new Promise((resolve) => setTimeout(() => resolve('{"kind":"readback"}'), 450));
+    setReadBackAsk(slow);
+    const quick = liveCall();
+    await quick.call('c1');
+    quick.ferni('Should I go ahead and make that call now?');
+    quick.owner('Yes.');
+    // Decided at once: the grace (300 ms) ends before the classifier (450 ms) does.
+    expect(await quick.call('c2')).toContain('Just to be sure: call Dad now?');
+    expect(sends).toHaveLength(0);
+    const usual = liveCall();
+    await usual.call('d1');
+    usual.ferni('Should I go ahead and make that call now?');
+    await new Promise((resolve) => setTimeout(resolve, 500)); // the owner hears it and answers
+    usual.owner('Yes.');
+    await usual.call('d2');
+    expect(sends).toHaveLength(1);
+  });
+
+  it('fails closed: another question, a timeout, an error or a garbled reply asks once', async () => {
+    const never: ConsentAsk = async () => new Promise<string>(() => undefined);
+    const cases: Array<[ConsentAsk, number]> = [
+      [async () => '{"kind":"other_question"}', 1200],
+      [never, 20],
+      [async () => Promise.reject(new Error('down')), 1200],
+      [async () => 'sure', 1200],
+    ];
+    for (const [model, wait] of cases) {
+      setReadBackAsk(model, wait);
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni('Should I go ahead and make that call now?');
+      call.owner('Yes.');
+      expect(await call.call('c2')).toContain('Just to be sure: call Dad now?');
+    }
+    expect(sends).toHaveLength(0);
   });
 });

@@ -8,7 +8,15 @@
  */
 
 import { judge, judgedNow, type ConsentInput } from './consent-judge.js';
-import { isClearYes, isPlainNo, NOES, pronounOf, words } from './consent-words.js';
+import {
+  CHANNEL_WORDS,
+  digitRuns,
+  ferniTurnNow,
+  ferniTurnOf,
+  READBACK_GRACE_MS,
+} from './consent-readback.js';
+import type { ActionFacts, FerniTurn } from './consent-readback.js';
+import { isClearYes, isPlainNo, LATER, NOES, OTHERS, pronounOf, words } from './consent-words.js';
 import { familyOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction } from './outreach-confirm.js';
 
@@ -20,17 +28,6 @@ export function channelOf(pending: Pick<PendingAction, 'toolId' | 'args'>): Chan
   if (PLACES_A_CALL.has(pending.toolId) || family === 'call') return 'call';
   return family === 'text' || pending.toolId === 'quickText' ? 'text' : 'other';
 }
-
-const CHANNEL_WORDS: Record<Channel, RegExp> = {
-  call: /\b(call|dial|ring|phone)/i,
-  text: /\b(text|message|send)/i,
-  other: /\b(send|email|post|go ahead)/i,
-};
-const KIN = new Set(
-  words(
-    'mom mum mother dad father sister brother wife husband son daughter grandma grandpa aunt uncle'
-  )
-);
 
 /** Whom it reaches, in words: the names asked for and the name read back ("a call to Dad at …"). */
 const NAME_KEYS = ['contactQuery', 'contactName', 'contact', 'friendName', 'recipientName'];
@@ -48,68 +45,33 @@ export function personOf(pending: Pick<PendingAction, 'readBack' | 'args'>): str
   return named || (asked as string | undefined) || 'them';
 }
 
-export function mentionsChannel(text: string, channel: Channel): boolean {
-  return CHANNEL_WORDS[channel].test(text);
-}
-
-const lastFour = (pending: Pick<PendingAction, 'args'>): string | undefined => {
+const numberOf = (pending: Pick<PendingAction, 'args'>): string => {
   const raw = ['phoneNumber', 'to', 'contactPhone'].map((k) => pending.args[k]);
-  const digits = String(raw.find((v) => typeof v === 'string') ?? '').replace(/\D/g, '');
-  return digits.length >= 4 ? digits.slice(-4) : undefined;
+  return String(raw.find((v) => typeof v === 'string') ?? '').replace(/\D/g, '');
 };
-// Never a read-back of THIS action: a later time, another way round ("call you back").
-const NOT_A_READ_BACK = new Set(words('later tomorrow tonight instead you back'));
 const STOP = new Set(words('my the a your his her their'));
-const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
-const tokens = (t: string): string =>
-  (
-    t
-      .toLowerCase()
-      .replace(/['’]/g, '')
-      .match(/[a-z0-9]+/g) ?? []
-  ).join(' ');
+export const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
 
 /** The one question the gate has Ferni ask when an answer isn't a plain yes (consent-loop.ts). */
 export function askOnceLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
   return `Just to be sure: ${VERB[channelOf(pending)]} ${personOf(pending)} now?`;
 }
 
-/**
- * Ferni asking about THIS action again, proven from the stored action, not guessed: his last
- * question is the gate's own ask-once line, or "Should I (go ahead and) call <the person read
- * back, or their pronoun> (at <its last four digits>) (now)?" (the honest line's re-ask and the
- * read-back's question). `strict`: it must name the person or the digits. Never with "later",
- * "you", "back" or someone else's relative anywhere in the turn. Anything else is another question.
- */
-export function isReadBack(
+const factsOf = (pending: PendingAction): ActionFacts => ({
+  channel: channelOf(pending),
+  person: personOf(pending),
+  target: targetWords(pending).filter((w) => !STOP.has(w)),
+  digits: numberOf(pending),
+  owner: pending.owner ?? [],
+  askOnce: askOnceLine(pending),
+});
+/** Classifies Ferni's turn for the stored action, from when it ends (consent-readback.ts). */
+export const classifyFerniTurn = async (
+  pending: PendingAction,
   text: string,
-  pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>,
-  strict = false
-): boolean {
-  const plain = text.replace(/<[^>]*>/g, ' ');
-  const ask =
-    plain
-      .split(/(?<=[.!?])\s+/)
-      .filter((s) => s.trim().endsWith('?'))
-      .pop() ?? '';
-  const target = targetWords(pending as PendingAction).filter((w) => !STOP.has(w));
-  const said = words(plain);
-  if (said.some((w) => NOT_A_READ_BACK.has(w) || (KIN.has(w) && !target.includes(w)))) return false;
-  if (tokens(ask) === tokens(askOnceLine(pending))) return true;
-  const pronoun = pronounOf(target);
-  const named = target.flatMap((w) => [w, `my ${w}`]).join('|') || 'x';
-  const obj = strict ? named : `${named}|${pronoun ?? 'him|her|them'}`;
-  const four = lastFour(pending) ?? 'x';
-  const what =
-    channelOf(pending) === 'call'
-      ? `(call|dial|ring|phone)( (${obj}))?( (at|on)( the number)?( ending)?( in)? ${four})?`
-      : `(send it|send (the|that|this) (text|message)( to (${obj}))?|text (${obj}))`;
-  const form = `^(should i|shall i|can i|do you want me to|want me to)( go ahead and)? ${what}( right)?( now)?$`;
-  const match = new RegExp(form).exec(tokens(ask));
-  return (
-    !!match && (!strict || match[0].includes(four) || target.some((w) => match[0].includes(w)))
-  );
-}
+  on: boolean,
+  graceMs?: number
+): Promise<void> => ferniTurnOf(pending, factsOf(pending), text, on, graceMs);
 
 // STT marks most questions with "?"; these open one even without it ("Do it." does not).
 const ASKS = /^(what|whats|who|whos|where|when|why|how|hows|which)\b/;
@@ -158,8 +120,9 @@ export function answerWindow(
     // Words before the preview was read are not the answer.
     if (!delivered) continue;
     if (e.kind === 'agent') {
-      const again = isReadBack(e.text, pending);
-      const asked = e.text.includes('?');
+      const kind = ferniTurnNow(pending, factsOf(pending), e.text);
+      const again = kind === 'readback';
+      const asked = kind === 'other_question';
       turns = again || asked ? [] : turns.filter((t) => !t.detail);
       blocked = !again && (asked || blocked);
       overTalk &&= !again;
@@ -175,19 +138,13 @@ export function answerWindow(
 // Said any time after the read-back, these end it for good: only a fresh read-back can follow.
 const REDIRECT =
   /\b(call|text|ring|message) (you|me|us)\b|\bcheck in with (me|us)\b|\b(he|she|they) (can|could|should|will) (call|text|ring)\b|\b(have|let|get) \w+ (call|text|ring)\b|\b(get|ask|tell) \w+ to (call|text|ring)\b/;
-const DEFERRED = new Set(
-  words('later tomorrow tonight instead monday tuesday wednesday thursday friday saturday sunday')
-);
-const OTHERS = new Set([...KIN, ...words('grandma grandpa cousin friend boss doctor neighbor')]);
+const DEFERRED = new Set(LATER);
 const AFTER_CALL = new Set(words('now right please them'));
 /** "Call Peter", "call my sister", "call 555-0199": another person or number, which ends it. */
 function callsSomeoneElse(text: string, pending: PendingAction): boolean {
   const target = targetWords(pending);
   const pronoun = pronounOf(target);
-  const number = (lastFour(pending) && String(pending.args.phoneNumber ?? pending.args.to)) || '';
-  const digits = number.replace(/\D/g, '');
-  if ((text.match(/\d[\d\s().-]{1,}\d/g) ?? []).some((n) => !digits.includes(n.replace(/\D/g, ''))))
-    return true;
+  if (digitRuns(text).some((n) => !numberOf(pending).includes(n))) return true;
   const objects =
     /\b(?:call|ring|dial|give)[,.]?\s+(?:(?:um|uh|er|oh|so|well|like)[,.]?\s+)*(?:my\s+|your\s+|the\s+)?([A-Za-z]+)/gi;
   for (const m of text.matchAll(objects)) {
@@ -211,7 +168,7 @@ export function asksAgain(
   if (REDIRECT.test(line) || clarifies(text, p)) return false;
   if (/\bi said (yes|yeah|call|go ahead)\b/.test(line)) return true;
   return (
-    mentionsChannel(text, channelOf(p)) &&
+    CHANNEL_WORDS[channelOf(p)].test(line) &&
     !callsSomeoneElse(text, p) &&
     /\b(call|text|ring|dial|message)\b/.test(line)
   );
@@ -269,11 +226,21 @@ export async function judgeWindow(
   events: ConfirmEvent[],
   on: boolean
 ): Promise<void> {
+  // Ferni's turns since the read-back: classified since each ended; deciding waits only a grace.
+  const said = events.filter((e) => e.seq > pending.createdSeq);
+  const grace = READBACK_GRACE_MS;
+  await Promise.all(
+    said.map(async (e) => e.kind === 'agent' && classifyFerniTurn(pending, e.text, on, grace))
+  );
   const state = windowState(pending, events, Date.now());
   if (!on || (state !== 'unclear' && state !== 'confirmed')) return;
   const answer = answerWindow(pending, events);
   if (answer === 'void' || judgedNow(pending, answer.turns)) return;
   // The judge hears the person, channel and last four digits: never the number or message.
-  const [channel, person, last4] = [channelOf(pending), personOf(pending), lastFour(pending)];
+  const [channel, person, last4] = [
+    channelOf(pending),
+    personOf(pending),
+    numberOf(pending).slice(-4) || undefined,
+  ];
   await judge(pending, { channel, person, last4, turns: answer.turns });
 }
