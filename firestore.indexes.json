@@ -562,6 +562,14 @@
         { "fieldPath": "priorityKey", "order": "ASCENDING" }
       ]
     },
+    {
+      "collectionGroup": "waitlist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "seatExpiresAt", "order": "ASCENDING" }
+      ]
+    },
 
     {
       "collectionGroup": "unified_memories",
