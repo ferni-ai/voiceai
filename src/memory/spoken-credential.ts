@@ -341,10 +341,18 @@ export const IDENTIFIER_WORDS = new Set(
 const digitsOnly = (rest: readonly string[]): string =>
   rest.length > 0 && rest.every((w) => /^\d+$/.test(w)) ? rest.join('') : '';
 
+/** "my password, hunter2, I use everywhere": the secret set off by commas right after the word. */
+const APPOSITIVE = /\b(?:password|passcode|passphrase|pin)\s*[,:]\s*([^\s,]+)\s*(?:,|$)/i;
+
+/** "the answer to my security question is what was my first pet": a question, not its answer. */
+const ASKS = new Set('about regarding what which who where when why how whether if'.split(' '));
+
 const IDENTIFIER_RULES: ReadonlyArray<{
   category: CredentialCategory;
   context: RegExp;
   secret: (rest: readonly string[]) => boolean;
+  /** The secret runs to the end of the value, past identifier words ("my dog's name Biscuit"). */
+  whole?: true;
 }> = [
   {
     category: 'ssn',
@@ -359,7 +367,7 @@ const IDENTIFIER_RULES: ReadonlyArray<{
   {
     category: 'bank-account',
     context: term(
-      '(?:bank|checking|savings) account(?: number| no)?|account (?:number|no)|acct(?: number| no)?'
+      '(?:bank|checking|savings) account(?: number| no)?|account (?:number|no)|acct(?: number| no)?|account'
     ),
     secret: (rest) => /^\d{4,17}$/.test(digitsOnly(rest)),
   },
@@ -384,7 +392,63 @@ const IDENTIFIER_RULES: ReadonlyArray<{
     context: term('(?:mothers|mother|moms|mom|mums|mum) maiden name'),
     secret: (rest) => looksLikeSecretWords(rest, 3),
   },
+  {
+    category: 'security-answer',
+    context: term('(?:answer to (?:the |my )?)?(?:security|secret) question'),
+    secret: (rest) => looksLikeSecretWords(rest, 3) && !rest.some((w) => ASKS.has(w)),
+  },
+  {
+    category: 'one-time-code',
+    context: term(
+      '(?:texted|text message|sms|emailed) code|code (?:they|you|he|she|it|someone|somebody|the bank) (?:texted|sent|emailed)(?: me| to me)?'
+    ),
+    secret: (rest) => /^\d{4,8}$/.test(digitsOnly(rest)),
+  },
+  {
+    category: 'access-code',
+    context: term(
+      'code for (?:the |my )?(?:front |back |side )?(?:door|gate|garage|alarm|house|building|apartment|lockbox)'
+    ),
+    secret: looksLikeCode,
+  },
+  {
+    // "the password is my dog's name Biscuit": a name given is the secret, not a hint
+    category: 'password',
+    context: term('password|passcode|passphrase|pin'),
+    secret: (rest) => rest.length <= 6 && /(?:^| )names? \S/.test(rest.join(' ')),
+    whole: true,
+  },
 ];
+
+/**
+ * The words a rule's context names as its secret: those after it up to the next identifier
+ * word, or, when none follow, those just before it ("4821, the code for the front door").
+ */
+function restAround(
+  context: RegExp,
+  keyPhrase: string,
+  valueWords: readonly string[],
+  whole: boolean
+): string[] | null {
+  const phrase = `${keyPhrase} ${valueWords.join(' ')}`;
+  const m = context.exec(phrase);
+  if (!m) return null;
+  const all = phrase.split(' ').filter(Boolean);
+  const keyLength = all.length - valueWords.length;
+  const end =
+    phrase.slice(0, m.index).split(' ').filter(Boolean).length + m[0].trim().split(' ').length;
+  const cut = (ws: string[]): string[] => {
+    const stop = whole ? -1 : ws.findIndex((w) => IDENTIFIER_WORDS.has(w));
+    return (stop < 0 ? ws : ws.slice(0, stop)).filter((w) => !FILLER.has(w));
+  };
+  // "account balance is 1200": the key goes on to name something else
+  if (all.slice(end, keyLength).some((w) => !FILLER.has(w) && !IDENTIFIER_WORDS.has(w)))
+    return null;
+  const after = cut(end <= keyLength ? [...valueWords] : all.slice(end));
+  if (after.length > 0) return after;
+  const before = all.slice(keyLength, end - m[0].trim().split(' ').length).reverse();
+  return cut(before).reverse();
+}
 
 /** A shaped secret anywhere in the value, or an identifier named in the key or value. */
 function identifierCategory(
@@ -394,10 +458,13 @@ function identifierCategory(
 ): CredentialCategory | null {
   const shaped = shapedSecrets(value)[0];
   if (shaped !== undefined) return shaped.category;
-  const phrase = `${keyPhrase} ${valueWords.join(' ')}`;
-  const last = valueWords.reduce((at, w, i) => (IDENTIFIER_WORDS.has(w) ? i : at), -1);
-  const rest = valueWords.slice(last + 1).filter((w) => !FILLER.has(w));
-  return IDENTIFIER_RULES.find((r) => r.context.test(phrase) && r.secret(rest))?.category ?? null;
+  const aside = APPOSITIVE.exec(value)?.[1]?.toLowerCase() ?? '';
+  if (aside && !DESCRIBES.has(aside) && !FILLER.has(aside)) return 'password';
+  for (const r of IDENTIFIER_RULES) {
+    const rest = restAround(r.context, keyPhrase, valueWords, r.whole === true);
+    if (rest !== null && r.secret(rest)) return r.category;
+  }
+  return null;
 }
 
 /** What the predicate reads text with, so the free-text redactor reads it the same way. */
