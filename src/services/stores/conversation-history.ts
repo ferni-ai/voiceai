@@ -9,6 +9,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { getEngagementStore } from '../engagement/engagement-store.js';
+import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 // ============================================================================
 // TYPES
@@ -77,7 +78,7 @@ class ConversationHistoryService {
         const store = await getEngagementStore();
         await store.addConversationSession(
           userId,
-          fullSession as unknown as Record<string, unknown>
+          redactCredentialsIn(fullSession) as unknown as Record<string, unknown>
         );
         getLogger().info(
           { userId, sessionId: id, personaId: session.personaId },

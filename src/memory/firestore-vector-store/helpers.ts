@@ -9,6 +9,20 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { ownedBy, ownerId } from '../retrieval/vector-ownership.js';
 import type { CollectionReference, FieldVector, Query } from './types.js';
+import { redactCredentials, redactCredentialsIn } from '../credential-redaction.js';
+import type { VectorDocument } from '../vector-store-interface.js';
+
+/**
+ * The document without a credential the caller said in its text or metadata (#2385). An
+ * embedding the caller computed from the old text is dropped, so the store embeds the new one.
+ */
+export function withoutCredentials(doc: VectorDocument): VectorDocument {
+  const text = redactCredentials(doc.text);
+  const metadata = redactCredentialsIn(doc.metadata);
+  if (text === doc.text) return { ...doc, metadata };
+  const { embedding: _embeddedFromSecret, ...rest } = doc;
+  return { ...rest, text, metadata };
+}
 
 /**
  * Safely extract embedding array with validation.

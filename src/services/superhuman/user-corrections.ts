@@ -17,6 +17,7 @@ import {
   onImplicitPreferenceChange,
 } from '../data-layer/hooks/learning-hooks.js';
 import type { UserCorrectionEntity, ImplicitPreferenceEntity } from '../data-layer/types.js';
+import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = getLogger().child({ module: 'user-corrections' });
 
@@ -190,12 +191,10 @@ export function categorizeCorrection(
   return 'other';
 }
 
-/**
- * Record a user correction
- */
+/** Record a user correction, without a credential the caller said in it (#2385) */
 export async function recordCorrection(
   userId: string,
-  correction: {
+  said: {
     whatFerniSaid: string;
     whatUserCorrected: string;
     correctInformation: string;
@@ -203,6 +202,7 @@ export async function recordCorrection(
   }
 ): Promise<string> {
   if (writeHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
+  const correction = redactCredentialsIn(said);
   try {
     const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const category = categorizeCorrection(correction.whatFerniSaid, correction.whatUserCorrected);
@@ -349,14 +349,13 @@ export async function searchCorrections(userId: string, query: string): Promise<
 // IMPLICIT PREFERENCES
 // ============================================================================
 
-/**
- * Record an implicit preference (inferred from behavior)
- */
+/** Record an implicit preference (inferred from behavior), its evidence without credentials */
 export async function recordImplicitPreference(
   userId: string,
-  preference: Omit<ImplicitPreferenceEntity, 'firstObserved' | 'lastConfirmed' | 'contradicted'>
+  observed: Omit<ImplicitPreferenceEntity, 'firstObserved' | 'lastConfirmed' | 'contradicted'>
 ): Promise<string> {
   if (writeHeld(userId)) return ''; // MINOR_CARE: nothing kept for a held caller under 18
+  const preference = redactCredentialsIn(observed);
   try {
     const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const now = new Date().toISOString();

@@ -15,6 +15,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { onInsideJokeChange } from '../data-layer/hooks/trust-hooks.js';
+import { redactCredentials } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'InsideJokeMemory' });
 
@@ -72,12 +73,15 @@ export interface CallbackOpportunity {
 export async function recordSharedMoment(
   userId: string,
   type: SharedMomentType,
-  essence: string,
-  context: string,
+  essenceSaid: string,
+  contextSaid: string,
   triggerKeywords: string[],
-  callbackPhrase: string,
+  callbackSaid: string,
   resonance = 0.7
 ): Promise<string | null> {
+  const essence = redactCredentials(essenceSaid); // what the caller said, without a credential
+  const context = redactCredentials(contextSaid);
+  const callbackPhrase = redactCredentials(callbackSaid);
   const db = getFirestoreDb();
   if (!db) {
     log.debug({ userId }, 'Firestore not available, skipping shared moment');
