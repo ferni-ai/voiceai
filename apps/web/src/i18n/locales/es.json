@@ -10309,7 +10309,6 @@
     "connectFirstToManage": "Conéctate primero y luego nos encargamos de eso.",
     "monthlyLimitReached": "Alcanzamos nuestro límite mensual. Me encantaría seguir hablando...",
     "enableMicPrompt": "Me encantaría escuchar tu voz, ¿activas el acceso al micrófono?",
-    "agentJoined": "{name} se unió",
     "seeYouNextTime": "¡Hasta la próxima!",
     "handoffFailed": "No logré contactarles en este momento. ¡Pero sigo aquí!",
     "personaBack": "¡{name} está de vuelta!",
@@ -10927,7 +10926,10 @@
     "endTalk": "Desconectar",
     "connectingCancel": "Conectando. Toca para cancelar",
     "connectingNow": "Conectando…",
-    "tapToCancel": "Toca para cancelar"
+    "tapToCancel": "Toca para cancelar",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "Tu camino",

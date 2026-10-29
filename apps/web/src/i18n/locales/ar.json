@@ -10585,7 +10585,6 @@
     "connectFirstToManage": "يرجى الاتصال أولاً، ثم يمكننا إدارة ذلك.",
     "monthlyLimitReached": "لقد وصلنا إلى الحد الشهري الأقصى. أودّ حقاً مواصلة الحديث...",
     "enableMicPrompt": "أودّ سماع صوتك - هل تسمح بالوصول إلى الميكروفون؟",
-    "agentJoined": "انضمّ {name}",
     "seeYouNextTime": "إلى اللقاء في المرة القادمة!",
     "handoffFailed": "تعذّر الوصول إليهم الآن. لكنني لا أزال هنا!",
     "personaBack": "عاد {name}!",
@@ -11277,7 +11276,10 @@
     "endTalk": "إنهاء",
     "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء",
     "connectingNow": "جارٍ الاتصال…",
-    "tapToCancel": "اضغط للإلغاء"
+    "tapToCancel": "اضغط للإلغاء",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "رحلتك",

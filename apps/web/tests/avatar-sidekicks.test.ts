@@ -177,15 +177,15 @@ describe('Avatar Sidekicks UI', () => {
   });
 
   describe('showSidekickPair()', () => {
-    it('should show icons on both sides', () => {
+    it('shows only the lead icon: one sidekick on screen at a time', () => {
       showSidekickPair('sparkles', 'heart');
       vi.runAllTimers();
       
       const leftSlot = avatarContainer.querySelector('.sidekick-slot--left');
       const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
       
-      expect(leftSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
+      expect(leftSlot?.querySelectorAll('.sidekick-icon')).toHaveLength(1);
+      expect(rightSlot?.querySelector('.sidekick-icon')).toBeNull();
     });
   });
 
@@ -228,8 +228,8 @@ describe('Avatar Sidekicks UI', () => {
     it('should have celebrate convenience function', () => {
       avatarSidekicks.celebrate();
       vi.runAllTimers();
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
+      // A pair shows its lead icon only: one sidekick on screen at a time.
+      expect(avatarContainer.querySelectorAll('.sidekick-icon')).toHaveLength(1);
     });
 
     it('should have music convenience function', () => {
@@ -350,60 +350,19 @@ describe('Event Integration', () => {
     vi.useRealTimers();
   });
 
-  describe('Celebration Events', () => {
-    it('should show sidekick on ferni:big-win event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:big-win'));
-      vi.runAllTimers();
-      
-      // Should show both sparkles and party (pair)
-      const leftSlot = avatarContainer.querySelector('.sidekick-slot--left');
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(leftSlot?.querySelector('.sidekick-icon') || rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-
-    it('should show sidekick on ferni:small-win event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:small-win'));
-      vi.runAllTimers();
-      
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-  });
-
-  describe('Milestone Events', () => {
-    it('should show sidekicks on ferni:team-unlock event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:team-unlock'));
-      vi.runAllTimers();
-      
-      const leftSlot = avatarContainer.querySelector('.sidekick-slot--left');
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(leftSlot?.querySelector('.sidekick-icon') || rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-
-    it('should show trophy on ferni:milestone event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:milestone'));
-      vi.runAllTimers();
-      
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-  });
-
   describe('Conversation Events', () => {
-    it('should show wave on ferni:conversation-start event (window)', () => {
+    it('shows nothing on ferni:conversation-start (the arrival is his face)', () => {
       window.dispatchEvent(new CustomEvent('ferni:conversation-start'));
       vi.runAllTimers();
       
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
+      expect(document.querySelectorAll('.sidekick-icon')).toHaveLength(0);
     });
 
-    it('should show brain on ferni:thinking event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:thinking'));
+    it('shows no brain on ferni:thinking (sent only while connecting)', () => {
+      document.dispatchEvent(new CustomEvent('ferni:thinking', { detail: { thinking: true } }));
       vi.runAllTimers();
       
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
+      expect(document.querySelectorAll('.sidekick-icon')).toHaveLength(0);
     });
   });
 
@@ -481,74 +440,6 @@ describe('Event Integration', () => {
     });
   });
 
-  describe('Progress & Goals Events', () => {
-    it('should show trophy and confetti on ferni:goal-achieved event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:goal-achieved', {
-        detail: { newMilestonesCount: 1 }
-      }));
-      vi.runAllTimers();
-      
-      // Should show pair
-      const leftSlot = avatarContainer.querySelector('.sidekick-slot--left');
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(leftSlot?.querySelector('.sidekick-icon') || rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-
-    it('should show trending up on ferni:progress-tracked event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:progress-tracked', {
-        detail: { conversationCount: 10 }
-      }));
-      vi.runAllTimers();
-      
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-
-    it('should show lightbulb on ferni:insights-generated event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:insights-generated', {
-        detail: { totalInsights: 5 }
-      }));
-      vi.runAllTimers();
-      
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-  });
-
-  describe('Special Date Events', () => {
-    it('should show cake and gift on ferni:birthday-reminder event', () => {
-      document.dispatchEvent(new CustomEvent('ferni:birthday-reminder'));
-      vi.runAllTimers();
-      
-      // Should show pair
-      const leftSlot = avatarContainer.querySelector('.sidekick-slot--left');
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(leftSlot?.querySelector('.sidekick-icon') || rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-  });
-
-  describe('Emotion Events', () => {
-    it('should show sparkles on strong happy emotion', () => {
-      document.dispatchEvent(new CustomEvent('ferni:emotion-detected', {
-        detail: { emotion: 'happy', intensity: 0.8 }
-      }));
-      vi.runAllTimers();
-      
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeTruthy();
-    });
-
-    it('should NOT show sidekick on weak emotion (intensity < 0.6)', () => {
-      document.dispatchEvent(new CustomEvent('ferni:emotion-detected', {
-        detail: { emotion: 'happy', intensity: 0.4 }
-      }));
-      vi.runAllTimers();
-      
-      const rightSlot = avatarContainer.querySelector('.sidekick-slot--right');
-      expect(rightSlot?.querySelector('.sidekick-icon')).toBeFalsy();
-    });
-  });
-
   describe('Event Listener Cleanup', () => {
     it('should not respond to events after dispose', () => {
       dispose();
@@ -561,8 +452,10 @@ describe('Event Integration', () => {
       coachElement.appendChild(avatarContainer);
       document.body.appendChild(coachElement);
       
-      // Dispatch event - should not create sidekicks since disposed
-      document.dispatchEvent(new CustomEvent('ferni:big-win'));
+      // Dispatch a live event - should not create sidekicks since disposed
+      document.dispatchEvent(new CustomEvent('ferni:music-state', {
+        detail: { state: 'playing', isAmbient: true }
+      }));
       vi.runAllTimers();
       
       // No sidekick should be created

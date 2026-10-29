@@ -10214,7 +10214,6 @@
     "connectFirstToManage": "Verbinde dich zuerst, dann können wir uns darum kümmern.",
     "monthlyLimitReached": "Wir haben unser monatliches Limit erreicht. Ich würde so gerne weiterreden...",
     "enableMicPrompt": "Ich würde so gerne deine Stimme hören – gibst du mir Zugriff auf das Mikrofon?",
-    "agentJoined": "{name} ist jetzt dabei",
     "seeYouNextTime": "Bis zum nächsten Mal!",
     "handoffFailed": "Ich kann gerade niemanden erreichen. Aber ich bin ja noch hier!",
     "personaBack": "{name} ist wieder da!",
@@ -10807,7 +10806,10 @@
     "endTalk": "Auflegen",
     "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen",
     "connectingNow": "Verbindung wird hergestellt…",
-    "tapToCancel": "Zum Abbrechen tippen"
+    "tapToCancel": "Zum Abbrechen tippen",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "Deine Reise",
