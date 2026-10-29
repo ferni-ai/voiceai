@@ -169,6 +169,9 @@ export const CALLER_TEXT_GUARD =
 /** Hard cap on one reported call in the prompt, whatever its lines hold. */
 const REPORT_BLOCK_MAX = 1200;
 
+/** The report fence's and the result tag's own words, neutralised inside quoted callee text. */
+const REPORT_MARKS = /Reported from Ferni's call|\(end of report|\[call-result/gi;
+
 /**
  * Frames one call result as reported speech in the prompt: a labelled, fenced,
  * length-capped block whose every line is quoted and flattened to one line.
@@ -191,7 +194,11 @@ export function reportedFromCall(name: string | undefined, lines: string[]): str
     const shown = isRiskyCallerText(kept)
       ? [safety ? crisisCallerLine(label) : '', riskyCallerLine(label)].filter(Boolean).join(' ')
       : kept;
-    if (shown) quoted.push(`> ${shown}`);
+    // The callee's words can never open or close a report of their own (call-narration.ts reads the fence).
+    if (shown)
+      quoted.push(
+        `> ${shown.replace(REPORT_MARKS, (mark) => mark.replace(/ /g, '\u00a0').replace('[', '('))}`
+      );
     budget -= flat.length;
   }
   return [
