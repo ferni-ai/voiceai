@@ -1,9 +1,11 @@
 /**
  * Take Your Story carries the reports a person made, with their own words: the replies they
- * reported (POST /api/reports, reply_reports). The voice agent stores a call's turns as
- * session-manager does, the real route stores the reports, then the real export runs on the
- * Firestore emulator. Only the person's own reports leave, and only the allowlisted fields.
+ * reported (POST /api/reports, reply_reports) and the calls that felt off (POST
+ * /api/call-telemetry, call_felt_off). The voice agent stores a call's turns as session-manager
+ * does, the real routes store the reports, then the real export runs on the Firestore emulator.
+ * Only the person's own reports leave, and only the allowlisted fields.
  */
+import { readFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Firestore } from '@google-cloud/firestore';
@@ -40,17 +42,22 @@ const authenticate = async (req: IncomingMessage) => {
 beforeAll(async () => {
   if (!emulator) return;
   const { handleReplyReportRoutes } = await import('../reply-reports/reply-report-routes.js');
+  const { handleCallTelemetryRoutes } = await import('../call-telemetry/call-telemetry-routes.js');
   const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
   db = getFirestoreDb() as Firestore;
   server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://x');
-    void handleReplyReportRoutes(req, res, url.pathname, {
-      authenticate,
-      getDb: () => db,
-      now: Date.now,
-    }).then((handled) => {
+    const deps = { authenticate, getDb: () => db, now: Date.now };
+    void (async () => {
+      if (await handleReplyReportRoutes(req, res, url.pathname, deps)) return;
+      const handled = await handleCallTelemetryRoutes(req, res, url.pathname, {
+        ...deps,
+        mode: () => 'reports', // CALL_TELEMETRY=reports: felt-off reports on
+        roomHolder: async () => 'mine', // the room claim is not under test here
+        recordSummary: async () => {},
+      });
       if (!handled) res.writeHead(404).end();
-    });
+    })();
   });
   await new Promise<void>((resolve) => {
     server.listen(0, '127.0.0.1', resolve);
@@ -79,6 +86,24 @@ async function report(uid: string, body: Record<string, unknown>): Promise<void>
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-test-uid': uid },
     body: JSON.stringify({ sessionId: 'voice-1760799600000', reason: 'harmful', ...body }),
+  });
+  expect(res.status).toBe(201);
+}
+
+/** "That felt off", as the iPhone app sends it (the iOS fixture), with or without a note */
+const FELT_OFF = JSON.parse(
+  readFileSync(
+    new URL('../call-telemetry/__tests__/fixtures/felt-off.json', import.meta.url),
+    'utf8'
+  )
+) as Record<string, unknown>;
+
+async function feltOff(uid: string, note?: string): Promise<void> {
+  const { note: _fixtureNote, ...body } = FELT_OFF;
+  const res = await fetch(`${base}/api/call-telemetry`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-test-uid': uid },
+    body: JSON.stringify(note === undefined ? body : { ...body, note }),
   });
   expect(res.status).toBe(201);
 }
@@ -136,5 +161,33 @@ describe.skipIf(!emulator)('export carries the reports a person made (Firestore 
     // And B's export has B's report, not A's
     const theirs = (await exportOf(b)).reply_reports as Array<Record<string, unknown>>;
     expect(theirs.map((r) => r.note)).toEqual(['B note: not for A']);
+  }, 60_000);
+
+  it("call_felt_off: the person's felt-off notes, nobody else's, allowlisted fields", async () => {
+    const [a, b] = [newUser(), newUser()];
+    await feltOff(a, 'A felt off: you talked over me twice');
+    await feltOff(a); // a tap with no note
+    await feltOff(b, 'B felt off: not for A');
+
+    const out = await exportOf(a);
+    const rows = out.call_felt_off as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.note ?? null).sort()).toEqual([
+      'A felt off: you talked over me twice',
+      null,
+    ]);
+    // Nothing of B's
+    expect(JSON.stringify(out)).not.toContain('B felt off');
+    expect(JSON.stringify(out)).not.toContain(b);
+    // Only the allowlisted fields: no uid, room names, call measurements, versions or status
+    const keys = ['id', 'tapAt', 'sinceLiveMs', 'createdAt', 'expiresAt'];
+    const noted = rows.find((r) => r.note !== undefined);
+    const bare = rows.find((r) => r.note === undefined);
+    expect(Object.keys(noted ?? {}).sort()).toEqual([...keys, 'note'].sort());
+    expect(Object.keys(bare ?? {}).sort()).toEqual([...keys].sort());
+    expect(JSON.stringify(rows)).not.toContain('ios-'); // the room names
+
+    const theirs = (await exportOf(b)).call_felt_off as Array<Record<string, unknown>>;
+    expect(theirs.map((r) => r.note)).toEqual(['B felt off: not for A']);
   }, 60_000);
 });

@@ -120,4 +120,12 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
       'createdAt',
     ],
   },
+  // "That felt off" reports from their calls (call-telemetry-store.ts): their note, when they
+  // tapped and how far into the call. Not the uid, room names, the call measurements, versions
+  // or the triage status.
+  {
+    collection: 'call_felt_off',
+    field: 'uid',
+    fields: ['note', 'tapAt', 'sinceLiveMs', 'createdAt', 'expiresAt'],
+  },
 ];
