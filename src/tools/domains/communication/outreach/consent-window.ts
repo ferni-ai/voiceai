@@ -7,7 +7,8 @@
  * @module tools/domains/communication/outreach/consent-window
  */
 
-import { judge, judgedNow, type ConsentInput } from './consent-judge.js';
+import { askOnceLine, channelOf, numberOf, personOf, STOP, targetWords } from './consent-action.js';
+import { judge, judgedNow } from './consent-judge.js';
 import {
   CHANNEL_WORDS,
   digitRuns,
@@ -17,45 +18,9 @@ import {
 } from './consent-readback.js';
 import type { ActionFacts, FerniTurn } from './consent-readback.js';
 import { isClearYes, isPlainNo, LATER, NOES, OTHERS, pronounOf, words } from './consent-words.js';
-import { familyOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction } from './outreach-confirm.js';
 
-export type Channel = ConsentInput['channel'];
 export type ConfirmState = 'confirmed' | 'waiting' | 'void' | 'unclear' | 'declined';
-const PLACES_A_CALL = new Set(['callOnBehalf', 'callAndConverse', 'callUser']);
-export function channelOf(pending: Pick<PendingAction, 'toolId' | 'args'>): Channel {
-  const family = familyOf(pending.toolId, pending.args);
-  if (PLACES_A_CALL.has(pending.toolId) || family === 'call') return 'call';
-  return family === 'text' || pending.toolId === 'quickText' ? 'text' : 'other';
-}
-
-/** Whom it reaches, in words: the names asked for and the name read back ("a call to Dad at …"). */
-const NAME_KEYS = ['contactQuery', 'contactName', 'contact', 'friendName', 'recipientName'];
-function targetWords(pending: PendingAction): string[] {
-  const asked = NAME_KEYS.flatMap((k) => words(String(pending.args[k] ?? '')));
-  return [...asked, ...words(personOf(pending))];
-}
-
-/** The person in the read-back ("a call to Dad at 555…" → "Dad"), else the name asked for. */
-export function personOf(pending: Pick<PendingAction, 'readBack' | 'args'>): string {
-  const named = / to (.+?)(?: at |, |$)/.exec(pending.readBack)?.[1]?.trim();
-  const asked = NAME_KEYS.map((k) => pending.args[k]).find(
-    (a) => typeof a === 'string' && a.trim()
-  );
-  return named || (asked as string | undefined) || 'them';
-}
-
-const numberOf = (pending: Pick<PendingAction, 'args'>): string => {
-  const raw = ['phoneNumber', 'to', 'contactPhone'].map((k) => pending.args[k]);
-  return String(raw.find((v) => typeof v === 'string') ?? '').replace(/\D/g, '');
-};
-const STOP = new Set(words('my the a your his her their'));
-export const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
-
-/** The one question the gate has Ferni ask when an answer isn't a plain yes (consent-loop.ts). */
-export function askOnceLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
-  return `Just to be sure: ${VERB[channelOf(pending)]} ${personOf(pending)} now?`;
-}
 
 const factsOf = (pending: PendingAction): ActionFacts => ({
   channel: channelOf(pending),
@@ -96,16 +61,21 @@ const asksDetail = (text: string, pending: PendingAction): boolean => {
 };
 const clarifies = (text: string, pending: PendingAction): boolean =>
   PAUSES.test(words(text).join(' ')) && asksDetail(text, pending);
-// "Did you call my dad?": asking whether it happened is neither a yes nor a no (callStatus answers).
+// "Did you call my dad?": asking whether it happened. A turn that is only that, naming no one
+// else, leaves the window as it was (callStatus answers it); mixed with anything else it is a
+// question, so Ferni asks once. Its words always stay in the checks below (verifier round 8:
+// "Did you call my mom yet? Sure, go ahead." must not place).
 const STATUS =
   /^(so |and |but |um |uh )?(did|have|has) (you|ferni|it|he|she) (already |actually |ever )?(call|called|text|texted|ring|rang|reach|reached|dial|dialed|dialled|send|sent|get through)\b/;
-/** The owner's words without status questions ("I don't know. Did you call my dad?" → "I don't know."). */
-const withoutStatus = (text: string): string =>
-  text
-    .split(/(?<=[.!?])\s+/)
-    .filter((s) => !(s.trim().endsWith('?') && STATUS.test(words(s).join(' '))))
-    .join(' ')
-    .trim();
+const statusOnly = (text: string): boolean => {
+  const said = text.split(/(?<=[.!?])\s+/).filter((s) => words(s).length > 0);
+  return (
+    said.length > 0 && said.every((s) => s.trim().endsWith('?') && STATUS.test(words(s).join(' ')))
+  );
+};
+/** Another line or number for the person: "his work line", "his new number", "the other one". */
+const ANOTHER_LINE =
+  /\b(work|cell|cellphone|mobile|office|landline|line)\b|\b(other|another|different|new|newer|second|backup) (phone )?(number|one)\b/;
 const isQuestion = (text: string): boolean =>
   text.includes('?') || ASKS.test(words(text).join(' ')) || PAUSES.test(words(text).join(' '));
 
@@ -141,11 +111,10 @@ function answerWindow(
       overTalk &&= !again;
       continue;
     }
-    const text = withoutStatus(e.text); // a status question leaves the window as it was
-    if (!text) continue;
+    if (neutral(e.text, pending)) continue; // only a status question: the window stays as it was
     // Words over Ferni are not the answer, and once it has begun they keep it from being a yes.
     if (e.agentSpeaking) overTalk ||= turns.length > 0;
-    else turns.push({ text, detail: asksDetail(text, pending) });
+    else turns.push({ text: e.text, detail: asksDetail(e.text, pending) });
   }
   return { turns: turns.map((t) => t.text), overTalk: overTalk || blocked };
 }
@@ -178,7 +147,8 @@ export function asksAgain(
 ): boolean {
   const p = pending as PendingAction;
   // "No wait, yes, call him.": the last clause from a yes on is a plain yes that calls them.
-  const clauses = withoutStatus(text)
+  if (statusOnly(text)) return false;
+  const clauses = text
     .split(/[,.;!?]+/)
     .map((c) => c.trim())
     .filter(Boolean);
@@ -186,7 +156,7 @@ export function asksAgain(
   const tail = from >= 0 ? clauses.slice(from).join(' ') : '';
   if (/\bcall\b/i.test(tail) && isClearYes(tail, targetWords(p), p.owner, channelOf(p) === 'call'))
     return true;
-  const said = words(withoutStatus(text));
+  const said = words(text);
   const line = said.join(' ');
   if (said.some((w) => DEFERRED.has(w) || (NOES.includes(w) && w !== 'no'))) return false;
   if (REDIRECT.test(line) || clarifies(text, p)) return false;
@@ -197,33 +167,68 @@ export function asksAgain(
     /\b(call|text|ring|dial|message)\b/.test(line)
   );
 }
-/** Any final since the read-back was stored, over Ferni or before he read it, that ends it.
- * `plainNo` false: only a deferral, a redirect or someone else, which a fresh read-back can't
- * reopen either (consent-loop.ts); a plain no can be. */
-function endedBy(pending: PendingAction, events: ConfirmEvent[], plainNo = true): boolean {
-  const said = events.flatMap((e) =>
-    e.seq > pending.createdSeq && e.kind === 'caller' && withoutStatus(e.text)
-      ? [withoutStatus(e.text)]
-      : []
-  );
-  const ends = (text: string): boolean => {
-    const w = words(text);
-    return (
-      REDIRECT.test(w.join(' ')) ||
-      /\bnot (now|yet|today)\b/.test(w.join(' ')) ||
-      w.some((x) => DEFERRED.has(x)) ||
-      callsSomeoneElse(text, pending)
-    );
-  };
-  // A clarifying "Wait, which number?" is exempt from the plain-no check only. Finals are also
-  // read together: STT may split "call" | "my sister".
+/** A deferral or a redirect: "later", "not now", "call me", "have Priya call him". */
+const deferredOrRedirected = (text: string): boolean => {
+  const line = words(text).join(' ');
   return (
-    said.some((t) => ends(t) || (plainNo && isPlainNo(t) && !clarifies(t, pending))) ||
-    ends(said.join(' '))
+    REDIRECT.test(line) ||
+    /\bnot (now|yet|today)\b/.test(line) ||
+    words(text).some((x) => DEFERRED.has(x))
   );
+};
+/** A status question only, about no one else and no other time: neither a yes nor a no. */
+const neutral = (text: string, pending: PendingAction): boolean =>
+  statusOnly(text) &&
+  !deferredOrRedirected(text) &&
+  !callsSomeoneElse(text, pending) &&
+  !ANOTHER_LINE.test(words(text).join(' '));
+// "No." or "No, don't call him.": a no that says nothing else. "No, the other one." is not.
+const BARE_NO = new Set(
+  words(
+    'no nope nah dont not never mind cancel stop wait hold on hang please thanks thank you okay ok um uh oh well actually sorry call him her them it that'
+  )
+);
+const bareNo = (text: string, pending: PendingAction): boolean =>
+  words(text).every((w) => BARE_NO.has(w) || targetWords(pending).includes(w));
+
+/** The owner's finals in (from, to]: by default, since the read-back was stored. */
+const callerTurns = (
+  pending: PendingAction,
+  events: ConfirmEvent[],
+  from = pending.createdSeq,
+  to = Infinity
+): string[] =>
+  events.flatMap((e) => (e.seq > from && e.seq < to && e.kind === 'caller' ? [e.text] : []));
+/** Ends it for good, whatever follows: a deferral, a redirect, someone else (a status question
+ * naming someone stays a question instead: "Did you call my dad?" with Sam the dad pending). */
+const endsForGood = (text: string, pending: PendingAction): boolean =>
+  deferredOrRedirected(text) || (!statusOnly(text) && callsSomeoneElse(text, pending));
+
+/** Any final since the read-back was stored, over Ferni or before he read it, that ends it.
+ * Finals are also read together: STT may split "call" | "my sister". A clarifying "Wait, which
+ * number?" is exempt from the plain-no check only. */
+function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
+  const said = callerTurns(pending, events);
+  const joined = said.filter((t) => !statusOnly(t)).join(' ');
+  const no = (t: string): boolean => isPlainNo(t) && !clarifies(t, pending);
+  return said.some((t) => endsForGood(t, pending) || no(t)) || endsForGood(joined, pending);
 }
-export const endedForGood = (pending: PendingAction, events: ConfirmEvent[]): boolean =>
-  endedBy(pending, events, false);
+/** Whether a fresh read-back may reopen it after a cancel (consent-loop.ts): only after a bare no
+ * or doubt, never a deferral, a redirect, someone else, or a no that names another number or line
+ * ("No, use his new number."). `from`/`to`: the owner's words in between are read too ("Call my
+ * sister instead." before Ferni re-reads Dad). */
+export function reopenable(
+  pending: PendingAction,
+  events: ConfirmEvent[],
+  from?: number,
+  to?: number
+): boolean {
+  const said = callerTurns(pending, events, from, to);
+  const elsewhere = (t: string): boolean => ANOTHER_LINE.test(words(t).join(' '));
+  const ends = (t: string): boolean => deferredOrRedirected(t) || callsSomeoneElse(t, pending);
+  const finalNo = (t: string): boolean => isPlainNo(t) && !bareNo(t, pending);
+  return !said.some((t) => ends(t) || elsewhere(t) || finalNo(t)) && !ends(said.join(' '));
+}
 /** Where it stands now: the fast path's answer, else the judge's if it has finished. */
 export function windowState(
   pending: PendingAction,

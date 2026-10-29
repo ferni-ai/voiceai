@@ -13,15 +13,12 @@
 
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { READBACK_GRACE_MS } from './consent-readback.js';
+import { askOnceLine, channelOf, personOf, VERB } from './consent-action.js';
 import {
-  askOnceLine,
   asksAgain,
-  channelOf,
   classifyFerniTurn,
-  endedForGood,
+  reopenable,
   ferniTurn,
-  personOf,
-  VERB,
   type ConfirmState,
 } from './consent-window.js';
 import { dropConfirmThread } from './confirm-thread.js';
@@ -93,8 +90,8 @@ export function cancel(
   entry.pending = undefined;
   // A plain no (or a second unclear) may be reopened by a fresh read-back; a deferral or a
   // redirect may not: "Later." then "Should I go ahead and call?" then "Yes." isn't a yes to now.
-  const reopenable = !endedForGood(pending, entry.events);
-  entry.closed = reopenable ? { action: pending, seq: sinceSeq, at: Date.now() } : undefined;
+  const again = reopenable(pending, entry.events);
+  entry.closed = again ? { action: pending, seq: sinceSeq, at: Date.now() } : undefined;
   const key = keyOf(pending);
   const asks = (entry.asks ??= new Map<string, AskRecord>());
   asks.set(key, { previews: asks.get(key)?.previews ?? 1, at: Date.now(), closedSeq: sinceSeq });
@@ -120,6 +117,11 @@ export async function reopenClosed(
   );
   const fresh = reads.filter((e) => ferniTurn(closed.action, e.text) === 'readback').pop();
   if (!fresh) return;
+  // The owner's words since the cancel count too: "Call my sister instead." then a re-read of Dad.
+  if (!reopenable(closed.action, entry.events, closed.seq, fresh.seq)) {
+    entry.closed = undefined;
+    return;
+  }
   Object.assign(closed.action, { createdSeq: fresh.seq - 1, reopened: true, asked: false });
   closed.action.expiresAt = Date.now() + windowMs;
   [entry.pending, entry.closed] = [closed.action, undefined];

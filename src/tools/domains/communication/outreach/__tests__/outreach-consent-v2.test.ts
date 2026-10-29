@@ -403,6 +403,66 @@ describe('deny by default', () => {
     expect(await later.call('l2')).toContain("Okay, I won't call Dad.");
   });
 
+  /** Verifier round 8 (02f6a2827): a status question was dropped from the turn, so a redirect
+   * rode inside it. Now it is neutral only as the whole turn; its words always count. */
+  it('a status question mixed with anything else is a question: Ferni asks once, never places', async () => {
+    setConsentAsk(alwaysYes);
+    const READ =
+      "I'm ready to call Dad at 555-123-0002, right now. Should I go ahead and call him?";
+    const mixed = [
+      'Have you texted him? Go ahead.',
+      'Did you text him yet? Go ahead and do it.',
+      'Did you call my mom yet? Sure, go ahead.',
+      'Did you reach his work line? Okay, go ahead.',
+      'Have you called him on his cell? Yes, do it.',
+      'Did you call my sister? Yes.',
+      'Did you already send him the text? Go for it.',
+      'Did you call Priya? Yeah.',
+    ];
+    for (const turn of mixed) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(turn);
+      // A question (ask once), or a redirect (cancel): never ignored as a status question.
+      expect(await call.call('c2'), turn).toMatch(
+        /Just to be sure: call Dad now\?|I won't call Dad/
+      );
+      expect(sends, turn).toHaveLength(0);
+    }
+    // A status question about another time ends it, even alone.
+    const later = liveCall();
+    await later.call('l1');
+    later.ferni(READ);
+    later.owner('Did you call him?');
+    later.ferni('Not yet.');
+    later.owner('Did you call him tomorrow?');
+    later.owner('Yes.');
+    expect(await later.call('l2')).toContain("Okay, I won't call Dad.");
+    expect(sends).toHaveLength(0);
+  });
+
+  it('a fresh read-back never reopens a call the owner redirected or moved to another line', async () => {
+    setConsentAsk(alwaysYes);
+    const flows: Array<[string, string?]> = [
+      ['No.', 'Call my sister instead.'],
+      ['No, the other one.'],
+      ['No, use his new number.'],
+      ['No, after his nap.'],
+    ];
+    for (const [no, between] of flows) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(no);
+      expect(await call.call('c2'), no).toContain("Okay, I won't call Dad.");
+      if (between) call.owner(between);
+      call.ferni('Should I go ahead and call your dad?');
+      call.owner('Yes.');
+      await call.call('c3');
+      expect(sends, `${no} ${between ?? ''}`).toHaveLength(0);
+    }
+  });
+
   it('a status question ("Did you call my dad?") is neither a yes nor a no', async () => {
     const call = liveCall();
     await call.call('c1');
