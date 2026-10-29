@@ -23,7 +23,7 @@ import { recordContactYes } from '../services/messaging/consent-grants.js';
 import { recordHolderCode } from '../services/messaging/holder-verification.js';
 import { smsCrisisReply, withCrisisReply } from '../services/outreach/sms-crisis-screen.js';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { isSignedByTwilio } from './twilio-callback-signature.js';
+import { isSignedByTwilio, twilioSignedUrl } from './twilio-callback-signature.js';
 
 const log = getLogger().child({ module: 'outreach-webhook-routes' });
 
@@ -73,6 +73,11 @@ async function parseBody(req: IncomingMessage): Promise<ParsedRequest> {
 function sendJSON(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
+}
+
+/** The public URL Twilio signed this request over; undefined makes the handler refuse it. */
+function signedUrl(req: IncomingMessage, pathname: string, body: Record<string, unknown>) {
+  return twilioSignedUrl(req, req.url || pathname, body as Record<string, string>) ?? undefined;
 }
 
 function sendTwiML(res: ServerResponse, twiml: string): void {
@@ -132,7 +137,7 @@ export async function handleOutreachWebhookRoutes(
     if (webhookPath === '/twilio/sms-status' && method === 'POST') {
       const { body } = await parseBody(req);
       const signature = req.headers['x-twilio-signature'] as string;
-      const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
+      const fullUrl = signedUrl(req, pathname, body);
 
       const result = await handleSMSStatusWebhook(
         body as unknown as Parameters<typeof handleSMSStatusWebhook>[0],
@@ -152,7 +157,7 @@ export async function handleOutreachWebhookRoutes(
     if (webhookPath === '/twilio/sms-inbound' && method === 'POST') {
       const { body } = await parseBody(req);
       const signature = req.headers['x-twilio-signature'] as string;
-      const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
+      const fullUrl = signedUrl(req, pathname, body);
 
       const result = await handleInboundSMSWebhook(
         body as unknown as Parameters<typeof handleInboundSMSWebhook>[0],
@@ -184,7 +189,7 @@ export async function handleOutreachWebhookRoutes(
     if (webhookPath === '/twilio/call-status' && method === 'POST') {
       const { body } = await parseBody(req);
       const signature = req.headers['x-twilio-signature'] as string;
-      const fullUrl = `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}${req.url}`;
+      const fullUrl = signedUrl(req, pathname, body);
 
       const result = await handleCallStatusWebhook(
         body as unknown as Parameters<typeof handleCallStatusWebhook>[0],
