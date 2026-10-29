@@ -14,7 +14,7 @@
  */
 import type { LogFn } from './warmup.js';
 
-export const WARM_BUDGET_MS = 3_000;
+const WARM_BUDGET_MS = 3_000;
 
 /** Never written: read once to open the shared client. */
 const SHARED_WARMUP_DOC = '_warmup/shared';
