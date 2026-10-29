@@ -36,6 +36,12 @@ const PAUSE_REQUESTS_HELD_MS: ReadonlyArray<readonly [string, number]> = [
   ['can you wait', UNPUNCTUATED_HOLD_MS],
   ['just wait', UNPUNCTUATED_HOLD_MS],
   ['will you hold on', DANGLING_HOLD_MS],
+  // Seth, 2026-10-29: callers go on after these too; 1500 ms is their pre-#3047 hold.
+  ['enough', UNPUNCTUATED_HOLD_MS],
+  ['Quiet', UNPUNCTUATED_HOLD_MS],
+  ['pause', UNPUNCTUATED_HOLD_MS],
+  ['pause it', UNPUNCTUATED_HOLD_MS],
+  ['please pause', UNPUNCTUATED_HOLD_MS],
 ];
 
 /** A pause request, or a stop word, with the caller going on: always a held turn. */
@@ -64,6 +70,12 @@ const CONTINUATIONS = [
   "don't stop",
   'I wish you would stop and',
   'you can stop worrying about it',
+  'enough about me, how are you',
+  'quiet down, the kids are sleeping',
+  'pause for a second while I think',
+  'enough of that, tell me about your day',
+  'quiet please, the baby is asleep',
+  'pause it there and let me think',
 ];
 
 describe('unfinishedness', () => {
@@ -127,10 +139,17 @@ describe('unfinishedness', () => {
       'could you please stop it now',
       'you can stop',
       'just enough',
-      'pause',
       'Pause the music please',
+      'stop it',
+      'stop that',
+      'stop talking',
+      'stop playing',
+      'turn it off',
+      'shut it off',
       'shh',
       'Shhh',
+      'shush',
+      'be quiet',
       "That's enough",
       'no, stop',
       'okay turn it off',
@@ -313,6 +332,30 @@ describe('LiveKit end of turn on an unfinished sentence (patched)', () => {
     expect(b.createSpeechTask).toHaveBeenCalledTimes(1); // #3047: the fragment is answered
   });
 
+  it.each([
+    ['enough', 'enough about me, how are you?'],
+    ['quiet', 'quiet down, the kids are sleeping.'],
+    ['pause', 'pause for a second while I think.'],
+  ])(
+    'does not reply to "%s" when the caller goes on, unless the flag is on',
+    async (word, joined) => {
+      const fn = await onEndOfTurn();
+      vi.stubEnv('PAUSE_REQUEST_COMMITS_TURN', 'off');
+      const a = activity();
+      a.audioRecognition.audioTranscript = word;
+      expect(await fn.call(a, { newTranscript: word })).toBe(false);
+      expect(a.createSpeechTask).not.toHaveBeenCalled(); // no reply to the fragment
+      a.audioRecognition.audioTranscript = joined;
+      expect(await fn.call(a, { newTranscript: joined })).toBe(true);
+      expect(a.createSpeechTask).toHaveBeenCalledTimes(1);
+
+      vi.stubEnv('PAUSE_REQUEST_COMMITS_TURN', 'on');
+      const b = activity();
+      b.audioRecognition.audioTranscript = word;
+      expect(await fn.call(b, { newTranscript: word })).toBe(true); // as on main today
+    }
+  );
+
   it('commits a lone "wait" and "please wait" at once only with the flag on', async () => {
     const fn = await onEndOfTurn();
     for (const [flag, committed] of [
@@ -329,11 +372,11 @@ describe('LiveKit end of turn on an unfinished sentence (patched)', () => {
   });
 
   it.each(['off', 'on'])(
-    'commits "stop", "that\'s enough", "you can stop" at once (flag %s)',
+    'commits "stop", "that\'s enough", "you can stop", "be quiet", "pause the music" at once (flag %s)',
     async (flag) => {
       vi.stubEnv('PAUSE_REQUEST_COMMITS_TURN', flag);
       const fn = await onEndOfTurn();
-      for (const said of ['stop', "that's enough", 'you can stop']) {
+      for (const said of ['stop', "that's enough", 'you can stop', 'be quiet', 'pause the music']) {
         const a = activity();
         a.audioRecognition.audioTranscript = said;
         expect(await fn.call(a, { newTranscript: said }), said).toBe(true);

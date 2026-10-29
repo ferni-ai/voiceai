@@ -73,20 +73,31 @@ const WHOLE_SHORT_REPLIES = new Set(['no', 'nope', 'nah', 'hi', 'hello', 'hey', 
 // prettier-ignore
 const STOP_COMMANDS = [
   'stop', 'stop it', 'stop that', 'stop the music', 'stop talking', 'stop playing',
-  'pause', 'pause it', 'pause the music', 'turn it off', 'shut it off', 'enough',
-  'thats enough', 'quiet', 'be quiet', 'shh', 'shush',
+  'pause the music', 'turn it off', 'shut it off', 'just enough', 'thats enough',
+  'be quiet', 'shh', 'shush',
 ].map((command) => command.split(' '));
 
 /**
  * A pause request is not a stop: "hold on", "hang on", "wait" ("no wait", "wait
- * wait wait", "can you wait", "just wait", "please wait", "will you hold on").
+ * wait wait", "can you wait", "just wait", "please wait", "will you hold on"),
+ * and the bare "enough", "quiet", "pause" ("pause it"): "enough about me, how
+ * are you", "quiet down, the kids are sleeping", "pause for a second while I
+ * think" (Seth, 2026-10-29).
  * A caller who says "hold on" usually keeps talking ("...let me think about
  * what I want to say"), and the first final arrives alone: committing it made
  * Ferni answer "hold on" in all 14 split-final pairs the #3047 verifier tried
  * (#2657, Seth 2026-10-29). So they wait like any unpunctuated turn, unless
  * PAUSE_REQUEST_COMMITS_TURN=on, which restores #3047's immediate commit.
  */
-const PAUSE_REQUESTS = [['hold', 'on'], ['hang', 'on'], ['wait']];
+const PAUSE_REQUESTS = [
+  ['hold', 'on'],
+  ['hang', 'on'],
+  ['wait'],
+  ['enough'],
+  ['quiet'],
+  ['pause'],
+  ['pause', 'it'],
+];
 
 // prettier-ignore
 const COMMAND_LEAD_IN = new Set([

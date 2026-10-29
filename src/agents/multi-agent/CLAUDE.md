@@ -133,13 +133,16 @@ unchanged.
 `unfinished-turn.ts` holds a turn that ink-2 left unpunctuated, so Ferni doesn't answer half a sentence.
 Two kinds of whole-turn command are special (#2657):
 
-- **Stop commands** ("stop", "can you stop", "that's enough", "pause", "shh") commit at once, no
-  flag: something is playing over the caller (prod AJ_JbTguxw4hwRw, the stop came 4.4 s late).
+- **Stop commands** ("stop", "can you stop", "stop it/that/talking/the music", "that's enough",
+  "be quiet", "pause the music", "turn it off", "shh") commit at once, no flag: something is playing over the caller (prod AJ_JbTguxw4hwRw, the stop came 4.4 s late).
 - **Pause requests** ("hold on", "hang on", "wait", and "no wait", "please wait", "can you wait",
-  "will you hold on") are held like any unpunctuated turn. A caller who says "hold on" usually
+  "will you hold on"; and a bare "enough", "quiet", "pause", "pause it") are held like any unpunctuated turn. A caller who says "hold on" usually
   keeps talking ("...let me think about what I want to say"), and the first final arrives alone, so
   committing it made Ferni answer "hold on" in all 14 split-final pairs the #3047 verifier tried
-  (Seth, 2026-10-29). `PAUSE_REQUEST_COMMITS_TURN=on` (default off) restores #3047's immediate commit.
+  (Seth, 2026-10-29). Seth's second call, same day: a bare "enough", "quiet" or "pause" waits too,
+  because callers go on ("enough about me, how are you", "quiet down, the kids are sleeping",
+  "pause for a second while I think"); their clear forms ("that's enough", "be quiet", "pause the
+  music") stay stop commands. `PAUSE_REQUEST_COMMITS_TURN=on` (default off) restores #3047's immediate commit.
 
 Keep a new "stop" phrase in `STOP_COMMANDS` only if the caller genuinely wants Ferni silent now; a
 phrase the caller tends to follow with more words belongs in `PAUSE_REQUESTS`.
