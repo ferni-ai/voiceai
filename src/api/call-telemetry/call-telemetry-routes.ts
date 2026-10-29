@@ -22,7 +22,7 @@ import * as felt from './call-telemetry-store.js';
 
 const log = createLogger({ module: 'CallTelemetry' });
 
-export const CALL_TELEMETRY_PATH = '/api/call-telemetry';
+const CALL_TELEMETRY_PATH = '/api/call-telemetry';
 
 export interface CallTelemetryDeps {
   /** Verify the caller, or answer 401 and return null. */
