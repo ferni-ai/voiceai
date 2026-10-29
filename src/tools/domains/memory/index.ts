@@ -32,8 +32,8 @@ import {
   recallPreviousConversationUnifiedDef as recallPreviousConversationDef,
   rememberImportantFactUnifiedDef as rememberImportantFactDef,
   surfaceRelevantMemoryUnifiedDef as surfaceRelevantMemoryDef,
+  predictUserNeedUnifiedDef as predictUserNeedDef,
 } from './tools-unified.js';
-import { predictUserNeedUnifiedDef as predictUserNeedDef } from './predict-user-need.js';
 
 // Keep legacy tools that aren't unified yet
 import { getRelationshipSummaryDef, updateMemoryDef, forgetMemoryDef } from './tools.js';

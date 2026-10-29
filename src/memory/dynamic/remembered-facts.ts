@@ -28,7 +28,8 @@
  * (keepForRecall says what happened), so it runs whatever REMEMBER_TO_RECALL
  * says, checks the forgotten topics whatever FORGET_EVERY_READER says (failing
  * closed: a topic list that can't be read keeps nothing), and keeps no phone
- * number or email as a free-text fact (hasContactData).
+ * number or email as a free-text fact (hasContactData, handed in by the agent
+ * process, since intelligence imports memory; until it is, nothing is kept).
  *
  * Firestore: storage/remembered-fact-store.ts, handed in by the agent process
  * (agents/remembered-fact-store-register.ts); until it is, nothing is written.
@@ -37,7 +38,6 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { hasContactData } from '../../intelligence/person-model/util.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { errorClass } from '../../utils/error-class.js';
@@ -111,14 +111,23 @@ export interface RememberedFactStore {
 }
 
 let registered: RememberedFactStore | null = null;
+/** True for a phone number or email in any spelling (intelligence's hasContactData). */
+export type ContactDataCheck = (text: string) => boolean;
+let contactGuard: ContactDataCheck | null = null;
 
 /** Called once by the agent process with the Firestore store; null unplugs (tests). */
 export function useRememberedFactStore(store: RememberedFactStore | null): void {
   registered = store;
 }
 
+/** Called once by the agent process with the contact-data rule; null unplugs (tests). */
+export function useContactDataCheck(check: ContactDataCheck | null): void {
+  contactGuard = check;
+}
+
 export interface RememberToRecallDeps {
   store?: RememberedFactStore;
+  contactData?: ContactDataCheck;
   embedding?: FactEmbeddingDeps;
   secretCheck?: SecretCheckDeps;
   env?: Env;
@@ -162,8 +171,12 @@ export async function keepForRecall(
     const doc = rememberedFactDoc(r, (deps.now?.() ?? new Date()).toISOString());
     if (!doc) return { kind: 'refused', reason: r.fact.trim() ? 'credential' : 'empty' };
     const value = String(doc.data.value);
-    if (memoryToolsHonestOn(deps.env) && hasContactData(value)) {
-      return { kind: 'refused', reason: 'contact' };
+    // Every caller of the writer (remember, rememberImportantFact, replaceRemembered) gets this;
+    // with no guard handed in, nothing is kept (fails closed)
+    if (memoryToolsHonestOn(deps.env)) {
+      const contactData = deps.contactData ?? contactGuard;
+      if (!contactData) return { kind: 'failed' };
+      if (contactData(value)) return { kind: 'refused', reason: 'contact' };
     }
     // The word rules miss phrasings (#2514): nothing reaches the embedder or the store without a clear no
     const secret = await readSecret(value, deps.secretCheck);

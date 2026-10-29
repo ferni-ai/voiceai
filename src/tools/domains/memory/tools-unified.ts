@@ -28,15 +28,15 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { getSessionId } from '../../utils/tool-helpers.js';
 import { announceRemembered } from './remember-moment.js';
 import { announceMemorySaved } from './memory-saved.js';
-import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
+import { importantReply, REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import {
+  guessReply,
   isKept,
   keepFact,
   memoryToolsHonestOn,
   notKeptReply,
   rememberReply,
 } from './honest-memory.js';
-import { predictUserNeedUnifiedDef } from './predict-user-need.js';
 
 const log = getLogger();
 
@@ -334,36 +334,7 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
           void announceMemorySaved({ sessionId, userId, id: savedId, fact, category: type });
         }
 
-        // Human responses
-        const responses: Record<string, string[]> = {
-          life_event: [
-            `That's a significant moment in your life. I'll remember this.`,
-            `Thank you for trusting me with that. It's important.`,
-          ],
-          decision: [
-            `That's a big decision. I'll keep this in mind.`,
-            `I understand the weight of that choice. I won't forget.`,
-          ],
-          breakthrough: [
-            `That's wonderful progress! I'm so glad you shared that.`,
-            `What a breakthrough. This is really important.`,
-          ],
-          milestone: [
-            `Congratulations on reaching that milestone. I'll remember this moment.`,
-            `That's worth celebrating. I'll keep this in mind.`,
-          ],
-          concern: [
-            `I hear that this is weighing on you. I'll remember.`,
-            `That concern is valid. I'll keep this in mind.`,
-          ],
-          default: [
-            `I'll hold onto that. It feels important.`,
-            `Thank you for trusting me with that.`,
-          ],
-        };
-
-        const options = responses[type] || responses.default;
-        return options[Math.floor(Math.random() * options.length)];
+        return importantReply(type);
       },
     });
   },
@@ -436,6 +407,79 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
         }
 
         return NOTHING_TO_SURFACE;
+      },
+    });
+  },
+};
+
+// ============================================================================
+// PREDICT USER NEED (Better-Than-Human, Unified)
+// ============================================================================
+
+export const predictUserNeedUnifiedDef: ToolDefinition = {
+  id: 'predictUserNeed',
+  name: 'Predict User Need',
+  description:
+    'Anticipate what the user might need based on context, time, patterns, or upcoming events.',
+  domain: 'memory',
+  tags: ['memory', 'proactive', 'better-than-human', 'anticipatory', 'prediction', 'unified'],
+
+  create: (ctx: ToolContext): Tool => {
+    const memoryService = getUnifiedMemoryService();
+
+    return llm.tool({
+      description: getToolDescription('predictUserNeed'),
+      parameters: z.object({
+        context: z.string().describe('What triggered this prediction'),
+        prediction: z.string().describe('What you predict they might need'),
+        confidence: z
+          .enum(['high', 'medium', 'low'])
+          .describe('How confident you are in this prediction'),
+        suggestedAction: z.string().optional().describe('Optional suggested action to take'),
+      }),
+      execute: async ({ context, prediction, confidence, suggestedAction }, { ctx: toolCtx }) => {
+        log.info({ agentId: ctx.agentId, confidence }, '🔮 [BETTER-THAN-HUMAN] Predict user need');
+
+        const userData = toolCtx.userData as UserData;
+        const userId = userData.userId || ctx.userId;
+
+        if (memoryToolsHonestOn()) {
+          // A guess is never stored as a memory; only what is stored is read beside it
+          const found = userId
+            ? await memoryService.search({ query: prediction, userId, limit: 2, minScore: 0.4 })
+            : null;
+          return guessReply(prediction, suggestedAction, found);
+        }
+
+        if (userId) {
+          // Record the prediction for learning
+          await memoryService.write({
+            userId,
+            content: `Prediction: ${prediction} (context: ${context})`,
+            type: 'event',
+            importance: confidence === 'high' ? 'high' : 'medium',
+            metadata: {
+              type: 'anticipatory_prediction',
+              confidence,
+              context,
+              suggestedAction,
+            },
+          });
+
+          // Search for relevant context to enhance prediction
+          const result = await memoryService.search({
+            query: prediction,
+            userId,
+            limit: 2,
+            minScore: 0.4,
+          });
+
+          if (result) {
+            return `Based on what I know about you: ${prediction}. ${result}`;
+          }
+        }
+
+        return suggestedAction || prediction;
       },
     });
   },
