@@ -1,12 +1,11 @@
 /**
- * The app's former raw-SendGrid senders go through the email port, so
- * EMAIL_PROVIDER (SendGrid by default, the ferni.ai Workspace under gmail)
- * reaches them too: circuit-breaker alerts, trust check-ins, concierge
- * requests, unified outreach email and the Plaid bank-link email.
+ * The app's former raw-provider senders go through the email port, the ferni.ai
+ * Workspace mailbox (the only transport): circuit-breaker alerts, trust check-ins,
+ * concierge requests, unified outreach email and the Plaid bank-link email.
  *
  * Each case drives the site's real entry point with a stubbed port and checks
- * the email it hands over (recipient, kind, subject) and that nothing was
- * fetched from api.sendgrid.com.
+ * the email it hands over (recipient, kind, subject) and that no mail was sent
+ * by a direct fetch to some provider.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EmailSender, EmailSendResult, OutgoingEmail } from '../../types/email-sender.js';
@@ -37,8 +36,9 @@ const fetchSpy = vi.fn(async (url: string | URL) => {
   }
   return new Response('{}', { status: 200 });
 });
-const sendGridCalls = () =>
-  fetchSpy.mock.calls.filter(([url]) => String(url).includes('api.sendgrid.com'));
+/** Fetches other than Plaid's: a site mailing around the port would show up here. */
+const directMailCalls = () =>
+  fetchSpy.mock.calls.filter(([url]) => !String(url).includes('plaid.com'));
 
 beforeEach(() => {
   port.sent.length = 0;
@@ -46,7 +46,6 @@ beforeEach(() => {
   port.result = { ok: true, provider: 'gmail', messageId: 'm-1' };
   fetchSpy.mockClear();
   vi.stubGlobal('fetch', fetchSpy);
-  vi.stubEnv('SENDGRID_API_KEY', 'sg-key-that-must-not-be-used');
 });
 
 describe('circuit-breaker alert email', () => {
@@ -66,7 +65,7 @@ describe('circuit-breaker alert email', () => {
       subject: '🚨 Circuit Breaker OPEN: gemini-llm',
     });
     expect(port.sent[0]!.text).toContain('Failure Count: 5');
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 });
 
@@ -98,7 +97,7 @@ describe('trust check-in email', () => {
       text: item.message,
     });
     expect(port.sent[0]!.subject).toContain('Sam');
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 
   it('a port failure is a failed, retryable delivery', async () => {
@@ -142,7 +141,7 @@ describe('concierge email', () => {
         subject: 'Quote Request for Sam',
       }),
     ]);
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 
   it('with no transport it reports failure instead of a simulated success', async () => {
@@ -179,10 +178,10 @@ describe('unified outreach email', () => {
         tags: ['reengagement_warmth', 'ferni-outreach'],
       }),
     ]);
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 
-  it('follows the port for availability, not a SendGrid key', async () => {
+  it('follows the port for availability', async () => {
     port.configured = false;
     const { deliver, getChannelStatus } = await import('../outreach/unified-delivery.js');
     expect((await getChannelStatus()).email.available).toBe(false);
@@ -221,6 +220,6 @@ describe('Plaid bank-link email', () => {
       subject: '🔐 Securely Link Your Bank Account',
     });
     expect(port.sent[0]!.html).toContain('https://app.ferni.ai/link?token=link-sandbox-1&user=u-1');
-    expect(sendGridCalls()).toHaveLength(0);
+    expect(directMailCalls()).toHaveLength(0);
   });
 });

@@ -142,8 +142,6 @@ export interface AppConfig {
   // Optional integrations
   integrations: {
     alphaVantage?: string;
-    sendgrid?: string;
-    resend?: string;
     hume?: string;
     openai?: string;
     slackAlertsWebhook?: string;
@@ -259,8 +257,6 @@ export function loadConfig(): AppConfig {
 
     integrations: {
       alphaVantage: process.env.ALPHA_VANTAGE_API_KEY,
-      sendgrid: process.env.SENDGRID_API_KEY,
-      resend: process.env.RESEND_API_KEY,
       hume: process.env.HUME_API_KEY,
       openai: process.env.OPENAI_API_KEY,
       slackAlertsWebhook: process.env.SLACK_ALERTS_WEBHOOK_URL,

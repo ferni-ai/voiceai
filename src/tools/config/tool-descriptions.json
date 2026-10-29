@@ -3708,7 +3708,7 @@
       "file": "src/tools/domains/trauma-support/index.ts"
     },
     "sendApprovedEmail": {
-      "description": "Send an email that has been drafted and approved by the user. IMPORTANT: Only use after showing the draft to the user and getting their confirmation. This actually sends the email via SendGrid.",
+      "description": "Send an email that has been drafted and approved by the user. IMPORTANT: Only use after showing the draft to the user and getting their confirmation. This actually sends the email from Ferni's mailbox.",
       "file": "src/tools/communication-tools.ts"
     },
     "sendEmail": {

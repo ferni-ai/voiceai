@@ -1,6 +1,6 @@
 /**
  * communication-service's email functions go through the email port, so the
- * EMAIL_PROVIDER switch reaches reminders by email and every other caller.
+ * one transport (the ferni.ai Workspace mailbox) reaches reminders by email and every other caller.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EmailSender, OutgoingEmail } from '../../types/email-sender.js';
@@ -42,7 +42,6 @@ describe('communication-service email via the transport port', () => {
         to: 'sam@example.com',
         subject: 'Reminder: call mom',
         text: 'Call mom at 5',
-        from: 'hello@ferni.ai',
         fromName: 'Ferni',
         kind: 'transactional',
       },

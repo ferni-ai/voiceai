@@ -38,8 +38,8 @@
       "data": "Phone number, message content, phone call audio"
     },
     {
-      "name": "SendGrid",
-      "does": "Email delivery",
+      "name": "Google Workspace",
+      "does": "Email delivery, from Ferni's ferni.ai mailbox",
       "data": "Email address, name, email content"
     },
     {
@@ -64,7 +64,7 @@
       "detail": "Email, phone number, name, optional photo",
       "why": "So you can sign in and Ferni can reach you",
       "kept": "Until you delete your account",
-      "processors": ["Google Cloud", "Twilio", "SendGrid"]
+      "processors": ["Google Cloud", "Twilio", "Google Workspace"]
     },
     {
       "type": "Conversations and memories",

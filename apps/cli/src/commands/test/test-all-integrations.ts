@@ -3,7 +3,7 @@
  * Comprehensive Integration Test Suite
  *
  * Tests ALL external integrations end-to-end:
- * 1. Communication: SendGrid, Twilio SMS, Twilio Voice
+ * 1. Communication: email (the ferni.ai Workspace mailbox), Twilio SMS, Twilio Voice
  * 2. Places: Google Places API
  * 3. Banking: Plaid (sandbox mode)
  * 4. Music: Spotify
@@ -66,28 +66,19 @@ function checkEnvVar(name: string): string {
 }
 
 // ============================================================================
-// SENDGRID TESTS
+// EMAIL TESTS (the ferni.ai Workspace mailbox; no API key)
 // ============================================================================
 
-async function testSendGrid(): Promise<void> {
-  console.log(`\n${CYAN}━━━ SendGrid Email ━━━${NC}`);
-
-  await runTest('SendGrid', 'API key configured', async () => {
-    const key = checkEnvVar('SENDGRID_API_KEY');
-    return `Key: ${key.slice(0, 10)}...`;
-  });
-
-  await runTest('SendGrid', 'From email configured', async () => {
-    return checkEnvVar('SENDGRID_FROM_EMAIL');
-  });
+async function testEmail(): Promise<void> {
+  console.log(`\n${CYAN}━━━ Email (Workspace) ━━━${NC}`);
 
   if (isLiveMode && process.env.TEST_EMAIL) {
-    await runTest('SendGrid', 'Send test email', async () => {
+    await runTest('Email', 'Send test email', async () => {
       const { sendEmail } = await import('../src/services/communication-service.js');
       const result = await sendEmail(
         process.env.TEST_EMAIL!,
         '✅ Ferni Integration Test',
-        `This email confirms SendGrid is working!\n\nTimestamp: ${new Date().toISOString()}`
+        `This email confirms Workspace email is working!\n\nTimestamp: ${new Date().toISOString()}`
       );
       return result;
     });
@@ -483,7 +474,7 @@ async function main(): Promise<void> {
   }
 
   // Run all tests
-  await testSendGrid();
+  await testEmail();
   await testTwilio();
   await testGooglePlaces();
   await testCartesia();

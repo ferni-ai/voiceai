@@ -9,6 +9,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { keepLetters } from '../domain/person-key.js';
 import {
   createEntity,
   getEntity,
@@ -180,10 +181,8 @@ function normalizeRelationship(term: string): {
   type: SimpleRelationshipType;
   specific?: string;
 } | null {
-  const normalized = term
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z\s-]/g, '');
+  // Any script's letters (an ASCII-only class emptied "мама"); ASCII output is unchanged
+  const normalized = keepLetters(term, '-');
 
   // Direct lookup
   if (RELATIONSHIP_ALIASES[normalized]) {
