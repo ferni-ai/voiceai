@@ -74,6 +74,8 @@ User Speech
 | `memory-continuity.ts` | Cross-session memory continuity (reconnect context) |
 | `voice-context-capture.ts` | Voice-specific capture (tone, pace, emotion from audio signals) |
 | `metrics.ts` | Observability metrics (capture latency, queue depth, extraction timing) |
+| `remembered-facts.ts` | The remembered-fact writer: what a caller asks Ferni to remember, written to `dynamic_facts` where recall reads it (REMEMBER_TO_RECALL; with MEMORY_TOOLS_HONEST the memory tools answer from it, and it also refuses contact data and fails closed on forgotten topics) |
+| `replace-remembered.ts` | updateMemory under MEMORY_TOOLS_HONEST: writes the correction through the writer, then forgets the fact it names; no match or a tie changes nothing |
 | `index.ts` | Module exports |
 
 ## Three-Layer Memory Architecture
