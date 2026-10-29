@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../../src/config/motion-flags.js';
+
 interface RecordedTween {
   target: unknown;
   vars: { ease?: string; duration?: number; scaleY?: number; attr?: { d: string } };
@@ -28,7 +30,6 @@ vi.mock('../../../src/utils/gsap-setup.js', () => {
 });
 
 import {
-  WEIGHTED_EASING_FLAG_KEY,
   expressionMotion,
   expressionWeight,
   getMoodBaseline,
@@ -149,7 +150,7 @@ describe('ferni-expressions setExpression with ferni:weighted-easing', () => {
   });
 
   it('flag on: sad glides with sine.inOut and no squeeze', async () => {
-    localStorage.setItem(WEIGHTED_EASING_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.weightedEasing, 'true');
     const fx = await freshExpressions();
     fx.setExpression('sad', 300);
     const lids = lidTweens();
@@ -159,7 +160,7 @@ describe('ferni-expressions setExpression with ferni:weighted-easing', () => {
   });
 
   it('flag on + reduced motion: a 150 ms crossfade', async () => {
-    localStorage.setItem(WEIGHTED_EASING_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.weightedEasing, 'true');
     setReducedMotion(true);
     const fx = await freshExpressions();
     fx.setExpression('celebrating', 600);
@@ -169,7 +170,7 @@ describe('ferni-expressions setExpression with ferni:weighted-easing', () => {
   });
 
   it('flag on: a held reaction settles back to the mood baseline', async () => {
-    localStorage.setItem(WEIGHTED_EASING_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.weightedEasing, 'true');
     const fx = await freshExpressions();
     fx.setExpression('warm', 300);
     fx.setExpression('surprised', 300, 1000);
