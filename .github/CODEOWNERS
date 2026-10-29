@@ -20,3 +20,26 @@
 /apps/cli/src/commands/quality/ @sethdford
 /scripts/flags/ @sethdford
 /src/config/flag-lifecycle* @sethdford
+
+# Autonomy lanes (scripts/ci/autonomy-policy.json; the "Autonomy Lanes" check). Crisis:
+# 988 and referral, AI-disclosure notices, minor protections. Evaluator: the code that
+# grades changes, so the loop can't grade its own homework. Keep these lines identical to
+# the policy's paths (scripts/ci/__tests__/codeowners-covers-policy.test.ts checks it).
+/src/services/safety/** @sethdford
+/src/agents/safety/** @sethdford
+/src/tools/domains/crisis/** @sethdford
+/src/agents/shared/ai-notice.ts @sethdford
+/src/agents/multi-agent/ai-notice-wiring.ts @sethdford
+/src/config/flags/AI_NOTICE_SPOKEN.ts @sethdford
+/src/utils/minor-care*.ts @sethdford
+/src/services/human-transfer/** @sethdford
+/scripts/voice-eval/** @sethdford
+# Scenarios aren't evaluator code (no owner), except the crisis ones re-owned below.
+/scripts/voice-eval/scenarios/**
+/scripts/voice-eval/scenarios/*crisis* @sethdford
+/scripts/voice-eval/scenarios/minor-care-* @sethdford
+/scripts/voice-eval/release-check.mjs @sethdford
+/scripts/autonomy/** @sethdford
+/scripts/ci/autonomy-policy.json @sethdford
+/scripts/ci/autonomy-lanes.ts @sethdford
+/scripts/ci/lead-verified.ts @sethdford

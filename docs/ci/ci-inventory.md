@@ -133,6 +133,20 @@ until main requires code-owner review (#2547) or the workflow moves to a main-pi
 trigger. `issue_comment` runs log a
 verdict but do not update the PR check, so re-run the check after a new verdict.
 
+### autonomy-lanes.yml (reports until it is a required check)
+
+**Purpose:** Keep protected lanes behind the right hands (rules:
+`scripts/ci/autonomy-lanes.ts`, lanes: `scripts/ci/autonomy-policy.json`, both always run
+from main's copy). A **crisis** PR (988 and referral, AI-disclosure notices, minor
+protections) needs an approving review from `sethdford` on its exact head commit. A
+crisis path counts for every author; a crisis changed line (added or removed) counts only
+for the loop's app, `ferni-loop[bot]`. An **evaluator** PR (the code that grades changes)
+needs the `ferni-eval` app as author, or the same approval. **Privacy** is reported only;
+the local arm gate already requires a verifier PASS there. Runs on PRs, reviews and
+merge_group; fails only on merge_group, and the queue acts on it only once `Autonomy
+Lanes` is a required check. The policy's crisis and evaluator paths are also in
+`.github/CODEOWNERS` (`codeowners-covers-policy.test.ts` keeps them in step).
+
 ### design-system.yml
 
 **Purpose:** Validate design tokens, build packages
