@@ -17,6 +17,7 @@ import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
 import { handoffStartMessages } from './handoff-messages.js';
+import { handoffFailedSaySo, sayHandoffFailed } from './handoff-failed-say-so.js';
 import type { handleHandoffFromDataChannel } from './multi-agent-entry.js';
 import type { AgentOrchestrator } from './orchestrator.js';
 
@@ -92,8 +93,9 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
     noteTurnTiming(sessionId, 'handoffPublished', 0);
 
     // With one session per call the tool hands the next persona to the SDK: it stops
-    // waiting once that persona is built (ready-agents.ts)
+    // waiting once that persona is built (ready-agents.ts), before the swap
     const handoffTool = { targetId: targetPersonaId, greetingSpoken: false };
+    let toldItWorked = false;
     const result = await call.runHandoff(
       call.orchestrator,
       targetPersonaId,
@@ -101,19 +103,17 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
       call.services,
       (agent) => {
         offerAgent(sessionId, targetPersonaId, agent);
+        toldItWorked = true;
         handoffEvents.emit('handoffHandlerComplete', { ...handoffTool, success: true });
       }
     );
 
     if (!result.success) {
-      log.warn({ targetPersonaId, error: result.error }, '🎭 LLM handoff failed');
-      await call.publish({
-        type: 'handoff_failed',
-        target: targetPersonaId,
-        error: result.error,
-        rollbackTo: currentPersonaId,
-        timestamp: Date.now(),
-      });
+      await reportFailure(
+        call,
+        { targetPersonaId, rollbackTo: currentPersonaId, toldItWorked },
+        result.error
+      );
     }
 
     handoffEvents.emit('handoffHandlerComplete', {
@@ -126,5 +126,37 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
   } finally {
     withdrawAgent(sessionId, targetPersonaId); // if the tool never took it
     call.lock.release();
+  }
+}
+
+interface FailedHandoff {
+  targetPersonaId: string;
+  rollbackTo: string | null;
+  /** The tool was told the handoff worked (the next persona was built) */
+  toldItWorked: boolean;
+}
+
+/**
+ * The app is told a handoff failed and who to show. When the tool had been told it worked,
+ * only the app would know otherwise: HANDOFF_FAILED_SAY_SO tells the persona still on the
+ * call, which says so (handoff-failed-say-so.ts).
+ */
+async function reportFailure(
+  call: LlmHandoffCall,
+  failed: FailedHandoff,
+  error?: string
+): Promise<void> {
+  const { targetPersonaId, rollbackTo } = failed;
+  log.warn({ targetPersonaId, error }, '🎭 LLM handoff failed');
+  await call.publish({
+    type: 'handoff_failed',
+    target: targetPersonaId,
+    error,
+    rollbackTo,
+    timestamp: Date.now(),
+  });
+  if (failed.toldItWorked && handoffFailedSaySo()) {
+    const sessionId = String(call.services.sessionId);
+    await sayHandoffFailed(call.orchestrator.getActiveAgent(), targetPersonaId, sessionId);
   }
 }
