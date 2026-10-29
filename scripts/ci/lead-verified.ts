@@ -308,9 +308,9 @@ export function toPullRequest(number: number, raw: RawPull): PullRequest {
   };
 }
 
-const gh = (args: string[]): any =>
+export const gh = (args: string[]): any =>
   JSON.parse(execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
-const pages = (path: string): any[] => gh(['api', '--paginate', '--slurp', path]).flat();
+export const pages = (path: string): any[] => gh(['api', '--paginate', '--slurp', path]).flat();
 
 /** Escape a reason for a markdown table cell: backslashes first, then pipes. */
 export function tableCell(text: string): string {

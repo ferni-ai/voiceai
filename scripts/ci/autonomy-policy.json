@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "lanes": {
+    "crisis": {
+      "paths": [
+        "src/services/safety/**",
+        "src/agents/safety/**",
+        "src/tools/domains/crisis/**",
+        "src/agents/shared/ai-notice.ts",
+        "src/agents/multi-agent/ai-notice-wiring.ts",
+        "src/config/flags/AI_NOTICE_SPOKEN.ts",
+        "src/utils/minor-care*.ts",
+        "src/services/human-transfer/**",
+        "scripts/voice-eval/scenarios/*crisis*",
+        "scripts/voice-eval/scenarios/minor-care-*",
+        "scripts/voice-eval/release-check.mjs",
+        "scripts/ci/autonomy-policy.json"
+      ],
+      "changedLinePatterns": [
+        "\\b988\\b",
+        "MINOR_CARE",
+        "minorCare|memoryHeld\\(",
+        "suicid|self-?harm",
+        "aiNotice|AI_NOTICE"
+      ]
+    },
+    "privacy": {
+      "paths": ["src/**", "apps/**", "!**/*.md"],
+      "pathPattern": "(grief|bereave|persistence/|identity|user-id|caller-id|placeholder|synthetic-write|privacy|erase|erasure|forget|recall|user-stores|tool-policy|persona-tool|protected-tool|startup-log|call-log|logger|telemetry|transcript)"
+    },
+    "evaluator": {
+      "paths": [
+        "scripts/voice-eval/**",
+        "!scripts/voice-eval/scenarios/**",
+        "scripts/autonomy/**",
+        "scripts/ci/lead-verified.ts",
+        "scripts/ci/autonomy-lanes.ts"
+      ]
+    }
+  },
+  "approvers": { "crisis": ["sethdford"] },
+  "evaluatorAuthors": ["ferni-eval[bot]", "sethdford"],
+  "loopAuthors": ["ferni-loop[bot]"]
+}
