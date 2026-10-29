@@ -52,12 +52,12 @@ import { FieldValue, type Firestore } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
+import { factText, forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
-export { isForgotten };
+export { isForgotten, factText };
 
 const log = createLogger({ module: 'forget' });
 
@@ -121,13 +121,6 @@ export function worldFactText(f: Omit<WorldFactRef, 'id' | 'validTo'>): string {
 
 /** The profile fields the next call's greeting and prompt read as "last time". */
 export const LAST_SUMMARY_FIELDS = ['lastConversationSummary', 'lastCallerSummary'] as const;
-
-/** The text a fact document is about, in either collection's shape. */
-export function factText(d: Record<string, unknown>): string {
-  return ['entityName', 'key', 'attribute', 'value', 'fact', 'content']
-    .map((k) => (typeof d[k] === 'string' ? (d[k] as string) : ''))
-    .join(' ');
-}
 
 const forgetGenerations = new Map<string, number>();
 function bumpForgetGeneration(userId: string): void {

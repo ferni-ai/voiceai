@@ -1,6 +1,6 @@
 /**
  * Text folding and a light stemmer for matching forget requests to memories
- * (session-recall.ts forgetTokens / isForgotten, shared by every recall
+ * (forgotten.ts forgetTokens / isForgotten, shared by every recall
  * reader: facts, open threads, episode quotes, call summaries).
  *
  * The tokenizer kept a-z0-9 only and dropped a plural "s", so a forgotten
@@ -12,7 +12,7 @@
  * ("ex-wife" = "exwife"), and each word stemmed. Synonyms and nicknames
  * ("Bob" for "Robert") are out of scope.
  *
- * @module memory/recall/forget-tokens
+ * @module memory/domain/forget-tokens
  */
 
 /** Accents removed (NFKD), straight apostrophes, hyphens inside words joined; case kept. */
