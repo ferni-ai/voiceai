@@ -100,8 +100,11 @@ vi.mock('../../../../memory/retrieval/semantic-memory-search.js', () => ({
 import '../../../../agents/remembered-fact-store-register.js';
 import { firestoreRecallStore } from '../../../../agents/multi-agent/recall-firestore-store.js';
 import { loadRecallSnapshot } from '../../../../memory/recall/session-recall.js';
-import { rememberAboutUserUnifiedDef, rememberImportantFactUnifiedDef } from '../tools-unified.js';
-import { predictUserNeedUnifiedDef } from '../tools-unified.js';
+import {
+  predictUserNeedUnifiedDef,
+  rememberAboutUserUnifiedDef,
+  rememberImportantFactUnifiedDef,
+} from '../tools-unified.js';
 import { updateMemoryDef } from '../tools.js';
 import { AMBIGUOUS, NO_MATCH, UPDATED } from '../honest-memory.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from '../remember-results.js';

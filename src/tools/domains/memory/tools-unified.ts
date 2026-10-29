@@ -29,14 +29,7 @@ import { getSessionId } from '../../utils/tool-helpers.js';
 import { announceRemembered } from './remember-moment.js';
 import { announceMemorySaved } from './memory-saved.js';
 import { importantReply, REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
-import {
-  guessReply,
-  isKept,
-  keepFact,
-  memoryToolsHonestOn,
-  notKeptReply,
-  rememberReply,
-} from './honest-memory.js';
+import * as honest from './honest-memory.js'; // MEMORY_TOOLS_HONEST
 
 const log = getLogger();
 
@@ -206,19 +199,12 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         // Store in session for awareness tools (backward compat)
         (userData.keyMoments ??= []).push(`[${category}] ${fact}`);
-
-        const sessionId = getSessionId({ ctx: toolCtx });
-        if (memoryToolsHonestOn()) {
-          // Written only where recall reads it, and answered from that write (honest-memory.ts)
-          const kept = await keepFact(userId, sessionId, fact, category);
-          if (kept.kind === 'kept' && userId) {
-            void announceRemembered({ userId, sessionId, fact, category });
-            void announceMemorySaved({ sessionId, userId, id: kept.id, fact, category });
-          }
-          return rememberReply(kept);
+        if (honest.memoryToolsHonestOn()) {
+          return honest.rememberHonestly(toolCtx, userId, fact, category);
         }
+
         // MINOR_CARE=on: nothing kept past this call for a caller under 18 (minor-care.ts)
-        if (!userId || writeHeld(userId, sessionId)) {
+        if (!userId || writeHeld(userId, getSessionId({ ctx: toolCtx }))) {
           log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return REMEMBERED_THIS_CALL;
         }
@@ -234,6 +220,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         if (result.success) {
           log.debug({ memoryId: result.memoryId }, 'Memory written successfully');
           // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
+          const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
           void announceMemorySaved({ sessionId, userId, id: result.memoryId, fact, category });
           void rememberToRecall(userId, { fact, memoryId: result.memoryId, category, sessionId });
@@ -249,35 +236,6 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 // ============================================================================
 // REMEMBER IMPORTANT FACT (Unified)
 // ============================================================================
-
-/** rememberImportantFact's memories write (flag off); the memory id when it was stored. */
-async function writeImportantMemory(
-  memoryService: ReturnType<typeof getUnifiedMemoryService>,
-  userId: string,
-  fact: string,
-  type: string,
-  emotionalWeight: string
-): Promise<string | undefined> {
-  const memoryType =
-    type === 'life_event' || type === 'milestone'
-      ? 'milestone'
-      : type === 'concern'
-        ? 'emotion'
-        : type === 'decision'
-          ? 'commitment'
-          : 'event';
-  const result = await memoryService.write({
-    userId,
-    content: fact,
-    type: memoryType,
-    importance:
-      emotionalWeight === 'heavy' ? 'critical' : emotionalWeight === 'medium' ? 'high' : 'medium',
-    metadata: { type, emotionalWeight, source: 'explicit_important' },
-  });
-  if (!result.success) return undefined;
-  log.debug({ memoryId: result.memoryId }, 'Important fact written');
-  return result.memoryId;
-}
 
 export const rememberImportantFactUnifiedDef: ToolDefinition = {
   id: 'rememberImportantFact',
@@ -307,31 +265,55 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        const honest = memoryToolsHonestOn();
-        const sessionId = getSessionId({ ctx: toolCtx }); // memory_saved, CLIENT_SIGNALS_V2
-        if (!userId || writeHeld(userId, sessionId)) {
+        if (!userId || writeHeld(userId, getSessionId({ ctx: toolCtx }))) {
           log.warn('No memory write: no userId, or MINOR_CARE holds this call');
-          return honest ? REMEMBERED_THIS_CALL : "I'll remember that.";
+          return honest.notWrittenReply();
         }
 
         // "Decided to talk to Jordan" is a teammate on this call, not their life (teammate-talk.ts)
-        if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) {
-          return honest ? REMEMBERED_THIS_CALL : "I'll remember that.";
-        }
+        if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) return honest.notWrittenReply();
 
         // Store in session
         (userData.keyMoments ??= []).push(`[${type}/${emotionalWeight}] ${fact}`);
+        if (honest.memoryToolsHonestOn()) {
+          return honest.rememberImportantHonestly(toolCtx, userId, fact, type);
+        }
 
-        // MEMORY_TOOLS_HONEST: one copy, where recall reads it, and answered from that write
-        const kept = honest ? await keepFact(userId, sessionId, fact, type) : null;
-        if (kept && !isKept(kept)) return notKeptReply(kept);
-        const savedId = kept
-          ? kept.kind === 'kept'
-            ? kept.id
-            : undefined
-          : await writeImportantMemory(memoryService, userId, fact, type, emotionalWeight);
-        if (savedId) {
-          void announceMemorySaved({ sessionId, userId, id: savedId, fact, category: type });
+        // Map type to memory type
+        const memoryType =
+          type === 'life_event' || type === 'milestone'
+            ? 'milestone'
+            : type === 'concern'
+              ? 'emotion'
+              : type === 'decision'
+                ? 'commitment'
+                : 'event';
+
+        // Write to unified memory service
+        const result = await memoryService.write({
+          userId,
+          content: fact,
+          type: memoryType as
+            'fact' | 'preference' | 'event' | 'emotion' | 'commitment' | 'milestone',
+          importance:
+            emotionalWeight === 'heavy'
+              ? 'critical'
+              : emotionalWeight === 'medium'
+                ? 'high'
+                : 'medium',
+          metadata: { type, emotionalWeight, source: 'explicit_important' },
+        });
+
+        if (result.success) {
+          log.debug({ memoryId: result.memoryId }, 'Important fact written');
+          const sessionId = getSessionId({ ctx: toolCtx }); // memory_saved, CLIENT_SIGNALS_V2
+          void announceMemorySaved({
+            sessionId,
+            userId,
+            id: result.memoryId,
+            fact,
+            category: type,
+          });
         }
 
         return importantReply(type);
@@ -438,17 +420,16 @@ export const predictUserNeedUnifiedDef: ToolDefinition = {
         suggestedAction: z.string().optional().describe('Optional suggested action to take'),
       }),
       execute: async ({ context, prediction, confidence, suggestedAction }, { ctx: toolCtx }) => {
-        log.info({ agentId: ctx.agentId, confidence }, '🔮 [BETTER-THAN-HUMAN] Predict user need');
+        log.info(
+          { agentId: ctx.agentId, context, prediction, confidence },
+          '🔮 [BETTER-THAN-HUMAN] Predict user need'
+        );
 
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
-
-        if (memoryToolsHonestOn()) {
-          // A guess is never stored as a memory; only what is stored is read beside it
-          const found = userId
-            ? await memoryService.search({ query: prediction, userId, limit: 2, minScore: 0.4 })
-            : null;
-          return guessReply(prediction, suggestedAction, found);
+        // A guess is never stored as a memory
+        if (honest.memoryToolsHonestOn()) {
+          return honest.guessHonestly(userId, prediction, suggestedAction);
         }
 
         if (userId) {
