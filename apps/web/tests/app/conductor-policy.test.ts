@@ -260,6 +260,22 @@ describe('conductor policy: one test per character rule', () => {
     expect(CONDUCTOR_POLICY.character.stateDurationScale).toBe(1.15);
   });
 
+  it.each(['tender', 'upset', 'crisis'] as const)(
+    '%s: a pose that would spring is eased gently, never bouncy; only neutral springs',
+    async (mood) => {
+      const h = character();
+      await h.arrive();
+      h.go('user_speaking');
+      const lean = () =>
+        h.played.filter((c) => c.origin === 'turn_user' && c.action === 'lean').pop();
+      expect(lean()?.easing).toBe('springGentle');
+      h.go('listening');
+      h.setContext({ mood });
+      h.go('user_speaking');
+      expect(lean()?.easing).toBe('gentle');
+    }
+  );
+
   it('upset: poses and moments that would spring are eased gently instead, never bouncy', async () => {
     const calm = character();
     await calm.arrive();
