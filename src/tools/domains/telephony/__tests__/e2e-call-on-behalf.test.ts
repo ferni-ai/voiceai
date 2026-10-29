@@ -99,20 +99,32 @@ vi.mock('../compliance.js', async () => {
 // Mock Firestore
 const mockFirestoreSet = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const mockFirestoreAdd = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'mock-doc-id' }));
+/** Every subcollection name asked for under a user doc, e.g. 'on_behalf_calls' */
+const subcollectionsTouched = vi.hoisted(() => [] as string[]);
 vi.mock('../../../../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => ({
     collection: () => ({
       doc: () => ({
-        collection: () => ({
-          doc: () => ({
-            set: mockFirestoreSet,
-          }),
-          add: mockFirestoreAdd,
-        }),
+        collection: (name: string) => {
+          subcollectionsTouched.push(name);
+          return {
+            doc: () => ({
+              set: mockFirestoreSet,
+            }),
+            add: mockFirestoreAdd,
+          };
+        },
         set: mockFirestoreSet,
       }),
     }),
   }),
+}));
+
+// The semantic-index hook a follow-up action goes to (the live copy of it)
+const mockOnFollowUpActionChange = vi.hoisted(() => vi.fn());
+vi.mock('../../../../services/data-layer/hooks/misc-hooks.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../services/data-layer/hooks/misc-hooks.js')>()),
+  onFollowUpActionChange: mockOnFollowUpActionChange,
 }));
 
 // Mock LiveKit for active session injection
@@ -654,16 +666,26 @@ describe('E2E: Call On Behalf Flow', () => {
         callbackTime: 'in 30 minutes',
       };
 
+      subcollectionsTouched.length = 0;
       await captureCallResult('call-followup-test', outcome, request);
 
-      // Should create follow-up action in Firestore
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
+      // The callback follow-up goes to the semantic index...
+      expect(mockOnFollowUpActionChange).toHaveBeenCalledWith(
+        'test-user-e2e',
+        'call-followup-test-callback',
         expect.objectContaining({
-          type: 'callback',
+          actionType: 'callback',
           description: expect.stringContaining('Acme Insurance'),
           scheduledFor: 'in 30 minutes',
-        })
+          relatedCallId: 'call-followup-test',
+          status: 'pending',
+        }),
+        'create'
       );
+      // ...and no longer to bogle_users/{uid}/follow_up_actions, which nothing read
+      // (memory v2 C5a). The call result itself is still stored.
+      expect(subcollectionsTouched).toContain('on_behalf_calls');
+      expect(subcollectionsTouched).not.toContain('follow_up_actions');
     });
   });
 });
