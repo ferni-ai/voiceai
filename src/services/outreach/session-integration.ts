@@ -51,6 +51,8 @@ export interface SessionEndData {
   userId: string;
   sessionId: string;
   personaId: string;
+  /** Every persona that spoke on the call (active-persona.ts); unset means only `personaId` */
+  personasVisited?: string[];
   turns: ConversationTurn[];
   summary?: ConversationSummary;
   durationMinutes: number;
@@ -433,8 +435,9 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
   }
 
   // 🌱 MAYA HABIT OUTREACH: Post-session habit checks
-  // If the session was with Maya (habits), check for streak/milestone triggers
-  if (personaId === 'maya-santos' || personaId === 'maya') {
+  // If Maya (habits) spoke on the call, check for streak/milestone triggers
+  const personasVisited = data.personasVisited ?? [personaId];
+  if (personasVisited.some((id) => id === 'maya-santos' || id === 'maya')) {
     try {
       const mayaResults = await analyzeMayaHabitSession(userId, data.sessionId);
       triggersCreated += mayaResults.triggersCreated;

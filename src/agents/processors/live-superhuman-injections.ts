@@ -42,6 +42,7 @@ import type {
   ProgressUpdateResult,
 } from '../../services/superhuman/commitment-keeper-e2e.js';
 import type { PersonaId } from '../../memory/cross-persona/index.js';
+import { activePersonaIdOn } from '../../services/session/active-persona.js';
 
 const log = createLogger({ module: 'LiveSuperhumanInjections' });
 
@@ -976,7 +977,8 @@ async function loadCommitmentE2EAsync(
       userId: ctx.userId,
       sessionId: ctx.sessionId,
       transcript: ctx.userText,
-      personaId: (ctx.services?.personaId || 'ferni') as PersonaId,
+      // ACTIVE_PERSONA_ID: the persona speaking now; off, every commitment was Ferni's as before
+      personaId: ((activePersonaIdOn() && ctx.services?.personaId) || 'ferni') as PersonaId,
       topic: ctx.currentTopic,
       emotionalContext: {
         primary: ctx.emotionalState.primary,

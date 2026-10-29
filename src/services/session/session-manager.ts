@@ -147,6 +147,7 @@ import type { CreateSessionOptions, SessionServices } from '../types.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../handoff/handoff-state.js';
+import { personasVisitedOf, startPersonaOf } from './active-persona.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {
@@ -742,6 +743,7 @@ export async function createSessionServices(
     sessionId,
     userId,
     personaId,
+    startPersonaId: personaId,
     sessionStartTime: Date.now(),
     realtimeConversationId,
     userProfile,
@@ -1949,7 +1951,7 @@ export async function createSessionServices(
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
                 userId: validatedUserId,
-                personaId: services.personaId || 'ferni',
+                personaId: startPersonaOf(services), // unread by the extractor
                 userName: userProfile.preferredName || userProfile.name,
                 existingMemory: updatedProfile.humanMemory,
                 sessionEmotion: summary?.emotionalArc,
@@ -2079,7 +2081,10 @@ export async function createSessionServices(
             const outreachResult = await analyzeSessionForOutreach({
               userId: validatedUserId,
               sessionId,
-              personaId: services.personaId || 'ferni',
+              // Follow-ups stay with the call's first persona (S2 decides beat owners);
+              // the Maya habit check runs if Maya spoke at all (ACTIVE_PERSONA_ID)
+              personaId: startPersonaOf(services),
+              personasVisited: personasVisitedOf(services),
               turns: turns.map((t) => ({
                 role: t.role as 'user' | 'assistant',
                 content: t.content,

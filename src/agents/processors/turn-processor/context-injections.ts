@@ -437,6 +437,7 @@ export async function buildContextInjections(
               analysis,
               turnCount: userData.turnCount || 0,
               totalConversations: services.userProfile?.totalConversations,
+              services,
             }),
             IMPORTANT_TIMEOUT_MS,
             superhumanFallback,
