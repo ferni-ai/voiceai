@@ -32,8 +32,7 @@ export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
  */
 export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
   bogle_users: [
-    // the activity ledger: what Ferni did or promised for them (activity-store.ts)
-    'activity',
+    'activity', // the activity ledger: what Ferni did or promised for them (activity-store.ts)
     'alarms',
     'analytics',
     'behavioral_intelligence',
@@ -159,10 +158,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
   semantic_routing_corrections: ['corrections'],
 };
 
-/**
- * Collections under each document of an exported store, exported as stored under
- * "<label>/(any id)/<sub>": the activity ledger's per-record event log.
- */
+/** Sub-collections of each doc in an exported store, exported as "<label>/(any id)/<sub>" (the ledger's event log) */
 export const NESTED_STORES: Readonly<Record<string, readonly string[]>> = {
   'bogle_users/{uid}/activity': ['events'],
 };
