@@ -6,7 +6,8 @@
  *
  * Text is first put in one reading, so the same address written differently matches:
  * the shared contact-data fold (NFKC, digits in any script, digits said as words), a said
- * dot (" dot ", "-dot-") written ".", letters spelled after a dot joined ("dot a i"),
+ * dot (" dot ", "-dot-") written ".", letters spelled after a dot joined, any number ("dot a
+ * i", "dot o n l i n e"),
  * lower case. Then whole addresses are compared, never parts: "verify.ferni.ai" is
  * not "ferni.ai", and "notifications@ferni.ai" is not "hello@ferni.ai".
  *
@@ -22,7 +23,7 @@
  */
 import type { HouseFacts } from '../../config/house-facts.js';
 import { containsContactData, contactNumberRuns, foldContactText } from '../../memory/index.js';
-import { TLDS } from './iana-tlds.js';
+import { ALT_ROOT_ENDINGS, TLDS } from './iana-tlds.js';
 
 /** The addresses a sentence may give: lower case, numbers as national digits. */
 export interface Addresses {
@@ -62,20 +63,27 @@ function normalise(text: string): string {
     .replace(/\s{1,3}dot\s{1,3}/giu, '.')
     .replace(/-dot-/giu, '.')
     .replace(
-      /\.((?:\p{L} ){1,3}\p{L})(?![\p{L}\p{N}])/gu,
+      /\.((?:\p{L} )+\p{L})(?![\p{L}\p{N}])/gu,
       (_m, letters: string) => `.${letters.replace(/ /g, '')}`
     )
     .toLowerCase();
 }
 
 /**
- * A website: the last label is a root-zone ending (the complete IANA list), punycode, or has a
- * non-ASCII letter (an IDN ending or a lookalike letter). Ordinary text with a dot in it
- * ("node.js", "Okay.Great", "v2.0.1", "3.5") ends in none of them, so it is left alone.
+ * A website: the last label is a root-zone ending (the complete IANA list), an alternate-root
+ * one (ALT_ROOT_ENDINGS), punycode, or has a non-ASCII letter (an IDN ending or a lookalike
+ * letter). Ordinary text with a dot in it ("node.js", "Okay.Great", "v2.0.1", "3.5") ends in
+ * none of them, so it is left alone.
  */
 const isSite = (host: string): boolean => {
   const last = host.slice(host.lastIndexOf('.') + 1);
-  return TLDS.has(last) || last.startsWith('xn--') || /[^\x00-\x7f]/u.test(last);
+  const version = /^(?:\d+\.)+$/u.test(host.slice(0, host.length - last.length)); // "3.x", "2.0.x"
+  return (
+    TLDS.has(last) ||
+    (ALT_ROOT_ENDINGS.has(last) && !version) ||
+    last.startsWith('xn--') ||
+    /[^\x00-\x7f]/u.test(last)
+  );
 };
 const hostKey = (host: string): string => host.replace(/^www\./u, '');
 /** National digits: "+1 (727) 555-0142" and "727.555.0142" are both "7275550142". */

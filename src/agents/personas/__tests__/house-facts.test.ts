@@ -326,6 +326,11 @@ describe('only trusted sources ground an address (round 5)', () => {
     'Go to glowfriend dot r u.',
     'Go to evil.xn--p1ai.',
     'Go to evil dot ru.',
+    'Go to evil.onion.',
+    'Go to evil.eth.',
+    'Go to evil dot crypto.',
+    'Go to evil dot o n l i n e.',
+    'Go to evil dot s t o r e.',
     'Go to evil.\u0441om.',
     'Write to jo at glowfriend dot help.',
   ])('an invented host of any ending is found nowhere: %s', async (line) => {
@@ -481,7 +486,7 @@ describe('streaming', () => {
   });
 
   it('a run with nowhere safe to cut is bounded in time and loses nothing', async () => {
-    for (const run of ['x-dot-'.repeat(3000), 'a '.repeat(4000)]) {
+    for (const run of ['y-dot-'.repeat(3000), 'a '.repeat(4000)]) {
       const { parts, ms } = await drain(run);
       expect(ms).toBeLessThan(200);
       expect(parts.join('')).toBe(run);

@@ -119,3 +119,13 @@ zuerich zw
 
 /** Every root-zone ending, lower case. */
 export const TLDS: ReadonlySet<string> = new Set(IANA_TLDS.trim().split(/\s+/u));
+
+/**
+ * Endings that are not in the root zone but are websites to someone: special-use names
+ * (RFC 6761 and friends), Tor and I2P, and the alternate-root blockchain naming systems.
+ */
+export const ALT_ROOT_ENDINGS: ReadonlySet<string> = new Set(
+  'onion eth local internal i2p bit crypto nft wallet x zil dao blockchain coin arpa test localhost'.split(
+    ' '
+  )
+);

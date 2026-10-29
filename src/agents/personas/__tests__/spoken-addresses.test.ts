@@ -55,6 +55,14 @@ describe('a website: the complete IANA list, punycode, or a non-ASCII ending', (
     'evil.ru',
     'evil dot ru',
     'evil.xn--p1ai',
+    'evil.onion',
+    'evil.eth',
+    'evil dot crypto',
+    'evil.i2p',
+    'evil.home.arpa',
+    'evil.localhost',
+    'evil dot o n l i n e',
+    'evil dot s t o r e',
     'evil.xn--zzzz9a',
     'evil.\u0441om',
   ])('%s is a website', (host) => {
@@ -73,6 +81,8 @@ describe('a website: the complete IANA list, punycode, or a non-ASCII ending', (
     'Put a dot on the map',
     'run node.js',
     'Okay.Great',
+    'Python 3.x is out',
+    'node 2.0.x',
   ])('ordinary text with a dot passes: %s', (text) => {
     expect(judgeAddresses(text, FACTS)).toBe('ok');
   });
@@ -138,6 +148,9 @@ describe('no catastrophic backtracking', () => {
     ['repeated -dot-', 'x-dot-'.repeat(3000)],
     ['repeated written dots', 'a.'.repeat(5000)],
     ['said dots', 'a dot '.repeat(2000)],
+    ['spelled letters', 'a '.repeat(25000)],
+    ['spelled letters after a dot', `evil dot ${'a '.repeat(25000)}`],
+    ['spelled letters, broken at the end', `evil dot ${'a '.repeat(25000)}1`],
     ['email-ish', 'hello at '.repeat(1200)],
   ])('%s: checked and collected in under 50 ms', (_name, text) => {
     expect(ms(() => judgeAddresses(text, FACTS))).toBeLessThan(50);
