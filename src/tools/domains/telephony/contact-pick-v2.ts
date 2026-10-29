@@ -9,12 +9,14 @@
  * @module tools/domains/telephony/contact-pick-v2
  */
 
-/** The name a relation is saved under, and the words people use for it. */
+import { OWNER_LEAD, nameTokens, relationWords } from '../../../memory/index.js';
+
+/** The name a relation is saved under, and the words people use for it (one map: person-key). */
 const ROLES: Record<string, readonly string[]> = {
-  Mom: ['mom', 'mother', 'mum', 'mama', 'mommy', 'mummy'],
-  Dad: ['dad', 'father', 'papa', 'daddy'],
-  Sister: ['sister', 'sis'],
-  Brother: ['brother', 'bro'],
+  Mom: relationWords('mother'),
+  Dad: relationWords('father'),
+  Sister: relationWords('sister'),
+  Brother: relationWords('brother'),
 };
 
 /** What the picker needs from a stored contact (contact-relationship-service.ts). */
@@ -29,14 +31,11 @@ export interface PickRow {
 /** One contact to ring, or a question for the caller (dial nothing), or none. */
 export type ContactPick<T> = { contact: T } | { choices: T[]; ask: string } | null;
 
-/** Letters and digits in any script ("李明", "Ольга"), lowercased. */
-export const words = (s: unknown): string[] =>
-  typeof s === 'string' ? (s.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []) : [];
+/** Letters, marks and digits in any script ("李明", "Ольга", "रेखा"), folded. */
+export const words = (s: unknown): string[] => (typeof s === 'string' ? nameTokens(s) : []);
 export const norm = (s: unknown): string => words(s).join(' ');
 export const digits = (s: unknown): string =>
   typeof s === 'string' ? s.replace(/\D/g, '').slice(-10) : '';
-
-const OWNER_LEAD = /^\s*(?:my|the|our)\s+/i;
 
 /** "My Mom" → "mom", "the dentist" → "dentist", "our sister" → "sister". */
 export function normalizeContactQuery(query: string): string {

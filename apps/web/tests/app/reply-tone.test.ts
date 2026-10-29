@@ -6,6 +6,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../src/config/motion-flags.js';
+
 const face = vi.hoisted(() => ({ current: 'neutral' as string }));
 
 vi.mock('../../src/utils/logger.js', () => ({
@@ -25,7 +27,6 @@ vi.mock('../../src/ui/presence.ui.js', () => ({
 
 import {
   REPLY_TONE_EXPRESSIONS,
-  REPLY_TONE_FLAG_KEY,
   breathRateForSpeed,
   handleReplyTone,
   resetReplyTone,
@@ -63,7 +64,7 @@ describe('reply tone, flag off', () => {
 });
 
 describe('reply tone, flag on', () => {
-  beforeEach(() => localStorage.setItem(REPLY_TONE_FLAG_KEY, 'true'));
+  beforeEach(() => localStorage.setItem(MOTION_FLAG_KEYS.replyTone, 'true'));
 
   it.each(Object.entries(REPLY_TONE_EXPRESSIONS))(
     'rests %s replies on the %s face',

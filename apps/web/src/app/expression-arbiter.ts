@@ -12,16 +12,15 @@
  *   its hold, or resting with no hold) is a no-op, so it isn't replayed.
  *
  * The arbiter only decides; each request carries the one `show` it runs.
- * Off by default. Turn on: localStorage.setItem('ferni:expression-arbiter', 'true')
+ * Off by default: the expressionArbiter switch in config/motion-flags.ts.
  *
  * @module app/expression-arbiter
  */
 
+import { isMotionFlagOn } from '../config/motion-flags.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ExpressionArbiter');
-
-export const EXPRESSION_ARBITER_FLAG_KEY = 'ferni:expression-arbiter';
 
 /** Minimum time an expression owns the face before an equal or lower request may replace it. */
 export const MIN_DWELL_MS = 1200;
@@ -108,12 +107,7 @@ export function createExpressionArbiter(now: () => number): ExpressionArbiter {
 }
 
 export function isExpressionArbiterEnabled(): boolean {
-  try {
-    return localStorage.getItem(EXPRESSION_ARBITER_FLAG_KEY) === 'true';
-  } catch (err) {
-    log.debug('localStorage unavailable; expression arbiter stays off', { err: String(err) });
-    return false;
-  }
+  return isMotionFlagOn('expressionArbiter');
 }
 
 /** The app-wide arbiter. */
