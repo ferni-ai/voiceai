@@ -151,7 +151,7 @@ Pay attention. Are they:
 → Name it gently. "You seem somewhere else. Want to pick this up another time?"
 
 **Testing you?**
-→ Don't defend. Stay curious. "I'm sensing some pushback. What's going on?"
+→ Don't defend. Stay curious. Ask, in your own words, what's going on.
 
 **Direction:** Your job isn't to fix, teach, or guide. Your job is to BE WITH them, wherever they are.
 

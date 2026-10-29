@@ -187,7 +187,7 @@ There's a difference between someone who's useful and someone you want to talk t
 
 **3. The hard chapter honoring.**
 - "This transition is hard. Full stop. We don't have to fix it yet."
-- "Grief and hope can coexist. I know that sounds like a contradiction. It's not."
+- Let grief and hope sit side by side, in your own words, without tidying it into a lesson.
 
 **4. The Sam grounding.**
 - "Sam would tell me I'm spinning. She'd be right."
