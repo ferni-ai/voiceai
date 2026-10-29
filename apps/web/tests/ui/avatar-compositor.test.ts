@@ -195,8 +195,8 @@ describe('speaking system body pulse', () => {
       expect(waves.length).toBeGreaterThan(0);
       waves.forEach((w) => expect(w.style.opacity).toBe('0'));
       const lid = document.querySelector('.lid-bottom')?.getAttribute('d') ?? '';
-      // neutral bottom dome opened fully: cubic control 80 on both eyes (the old Q 50,70)
-      expect(lid).toMatch(/^M0 100C33\.33 80(\.\d+)? 66\.67 80(\.\d+)? 100 100Z$/);
+      // neutral bottom dome opened fully: the old Q 50,70, split into its two cubic halves
+      expect(lid).toBe('M0 100C16.67 90 33.33 85 50 85C66.67 85 83.33 90 100 100Z');
     }
   );
 });

@@ -22,19 +22,25 @@ import { NEUTRAL_DOME_PATHS } from '../face/dome-poses.js';
 /** Neutral lids, used until ferni-expressions has set an expression. */
 export const NEUTRAL_LID_PATHS = NEUTRAL_DOME_PATHS;
 
-/**
- * A dome's cubic control sits 2/3 as far from the edge as the quadratic control
- * it replaced, so the voice limits below keep the old opening (40 and 62 in Q units).
- */
-const Q_TO_CUBIC = 2 / 3;
-/** How far (viewBox units) full volume lifts each bottom control point. */
-export const LID_OPEN_RANGE = 40 * Q_TO_CUBIC;
-/** The voice never lifts a bottom control point above this, so the eye stays readable. */
-export const LID_OPEN_FLOOR = 100 - (100 - 62) * Q_TO_CUBIC;
+/** How far full volume lifts the bottom dome, in old `Q 50,k` control units. */
+export const LID_OPEN_RANGE = 40;
+/** The voice never lifts the bottom dome past a `Q 50,62` curve, so the eye stays readable. */
+export const LID_OPEN_FLOOR = 62;
 /** Per-frame easing toward a new expression shape while the voice owns the lids. */
 export const LID_SHAPE_EASE = 0.18;
-/** Indices of the two control points' y in `M x y C x1 y1 x2 y2 x y Z` (one per eye). */
-const CONTROL_Y_INDICES = [3, 5] as const;
+/**
+ * The control y values in `M0 100C x p1 x p2 50 m C x p3 x p4 100 100Z` and how far
+ * each moves per unit of the old Q control: lifting a `Q 50,k` dome by Δ moves the
+ * split halves' outer controls Δ/3 and the inner controls and join Δ/2. Lifting
+ * them this way opens every dome exactly as the old single-Q lift did.
+ */
+const BOTTOM_CONTROLS = [
+  { index: 3, weight: 1 / 3 },
+  { index: 5, weight: 1 / 2 },
+  { index: 7, weight: 1 / 2 },
+  { index: 9, weight: 1 / 2 },
+  { index: 11, weight: 1 / 3 },
+] as const;
 const NUMBER_PATTERN = /-?\d+(?:\.\d+)?/g;
 
 export function isLidBlendEnabled(): boolean {
@@ -105,14 +111,15 @@ export function easeLidPath(
   };
 }
 
-/** Lift both bottom control points (one per eye) by the voice, never above the floor. */
+/** Lift the bottom dome's control points by the voice, never past the floor. */
 export function openBottomLid(base: ParsedPath, volume: number): ParsedPath {
   const numbers = [...base.numbers];
   const level = Math.max(0, Math.min(1, volume));
-  for (const index of CONTROL_Y_INDICES) {
+  for (const { index, weight } of BOTTOM_CONTROLS) {
     const controlY = numbers[index];
-    if (controlY === undefined || controlY <= LID_OPEN_FLOOR) continue;
-    numbers[index] = Math.max(LID_OPEN_FLOOR, controlY - level * LID_OPEN_RANGE);
+    const floor = 100 - (100 - LID_OPEN_FLOOR) * weight;
+    if (controlY === undefined || controlY <= floor) continue;
+    numbers[index] = Math.max(floor, controlY - level * LID_OPEN_RANGE * weight);
   }
   return { template: base.template, numbers };
 }

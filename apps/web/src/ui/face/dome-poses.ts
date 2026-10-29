@@ -2,37 +2,44 @@
  * Dome poses: the white caps over the head's top and bottom edge that carry
  * Ferni's expression (ivory #E6DFD4 in midnight, never the page colour).
  *
- * Every dome is one cubic curve in the overlay's 100×100 viewBox:
- *   top     M0 0C33.33 a 66.67 b 100 0Z
- *   bottom  M0 100C33.33 c 66.67 d 100 100Z
- * One shape for every pose means any two poses blend number by number (GSAP
- * attr tween, ferni:lid-blend) and never snap. The x controls sit at 100/3
- * and 200/3, which makes x(t) = 100t: that is the exact cubic form of the old
- * `Q 50,k` domes, so the approved shapes are unchanged.
+ * Every dome is two cubics that meet at x = 50, one over each eye, in the
+ * overlay's 100×100 viewBox:
+ *   top     M0 0C16.67 p1 33.33 p2 50 mC66.67 p3 83.33 p4 100 0Z
+ *   bottom  the same mirrored from y = 100
+ * Why two: one 0-to-0 cubic is t(1-t)·linear, so it has a single peak and can
+ * never draw worried's knitted-brow notch at the centre. Every pose uses this
+ * same form, so any two poses blend number by number (GSAP attr tween,
+ * ferni:lid-blend) and never snap. The x controls are evenly spaced, so x is
+ * linear in t on each half: that makes the old `Q 50,k` domes exact here
+ * (each is the quadratic split at x = 50), and so is main's two-Q worried. A
+ * single-cubic pose (CONCEPTS' `C33 a 67 b`) is exact too, split at t = .5.
  *
- * Poses store a depth per eye, as a % of the head diameter: [left, right].
- * With both eyes equal it is the dome's depth at the centre (old `Q 50,k`
- * top = depth k/2). Each eye's value sets the control point over that eye, so
- * the left and right halves of a dome can differ (skeptical today, wink later).
- * A negative depth bows the cap outside the head, where it is clipped away.
+ * A curve is five pulls, left to right: how far each control point (and the
+ * join, `centre`) sits in from the cap's edge, in viewBox units. Symmetric
+ * poses are written as a depth, % of the head diameter (old `Q 50,k` top =
+ * depth k/2). A negative pull bows the cap outside the head, where it is
+ * clipped away.
  */
 
-/** Depth per eye, % of the head diameter. */
-export type EyeDepths = readonly [left: number, right: number];
+/** Pulls in from the cap's edge: left half's two controls, the join at x = 50, right half's two. */
+export type DomeCurve = readonly [
+  leftOuter: number,
+  leftInner: number,
+  centre: number,
+  rightInner: number,
+  rightOuter: number,
+];
 
 export interface DomePose {
-  top: EyeDepths;
-  bottom: EyeDepths;
+  top: DomeCurve;
+  bottom: DomeCurve;
   /** Cheek dimple opacity, 0–1, for warm expressions. */
   dimpleOpacity: number;
   sparkle: boolean;
 }
 
-/** A cubic with both controls at y = c peaks at 0.75c, so control = depth × 4/3. */
-const DEPTH_TO_CONTROL = 4 / 3;
-/** Exact Q→C x controls (100/3, 200/3) at two decimals: within 0.002 of the old curve. */
-const CONTROL_X_LEFT = '33.33';
-const CONTROL_X_RIGHT = '66.67';
+/** Evenly spaced x for the two halves (100/6 steps at two decimals: within 0.004 of exact). */
+const CONTROL_X = ['16.67', '33.33', '66.67', '83.33'] as const;
 /** Domes stop at least 7/100 of the diameter short of the eye top (eyes start at 36). */
 export const MAX_DOME_DEPTH = 29;
 
@@ -40,16 +47,18 @@ function formatNumber(value: number): string {
   return String(Math.round(value * 100) / 100);
 }
 
-export function topDomePath([left, right]: EyeDepths): string {
-  const a = formatNumber(left * DEPTH_TO_CONTROL);
-  const b = formatNumber(right * DEPTH_TO_CONTROL);
-  return `M0 0C${CONTROL_X_LEFT} ${a} ${CONTROL_X_RIGHT} ${b} 100 0Z`;
+function domePath(edgeY: number, direction: 1 | -1, curve: DomeCurve): string {
+  const [p1, p2, m, p3, p4] = curve.map((pull) => formatNumber(edgeY + direction * pull));
+  const [x1, x2, x3, x4] = CONTROL_X;
+  return `M0 ${edgeY}C${x1} ${p1} ${x2} ${p2} 50 ${m}C${x3} ${p3} ${x4} ${p4} 100 ${edgeY}Z`;
 }
 
-export function bottomDomePath([left, right]: EyeDepths): string {
-  const c = formatNumber(100 - left * DEPTH_TO_CONTROL);
-  const d = formatNumber(100 - right * DEPTH_TO_CONTROL);
-  return `M0 100C${CONTROL_X_LEFT} ${c} ${CONTROL_X_RIGHT} ${d} 100 100Z`;
+export function topDomePath(curve: DomeCurve): string {
+  return domePath(0, 1, curve);
+}
+
+export function bottomDomePath(curve: DomeCurve): string {
+  return domePath(100, -1, curve);
 }
 
 export interface DomePaths {
@@ -61,16 +70,30 @@ export function domePaths(pose: Pick<DomePose, 'top' | 'bottom'>): DomePaths {
   return { top: topDomePath(pose.top), bottom: bottomDomePath(pose.bottom) };
 }
 
-/** Both eyes at the same depth. */
+/**
+ * Two quadratic halves, `Q 25,left 50,centre` and `Q 75,right 100,0`, as cubics
+ * (each control moves 2/3 of the way from its end point toward the Q control).
+ */
+export function quadraticHalves(left: number, centre: number, right: number): DomeCurve {
+  const third = (from: number, to: number): number => from + ((to - from) * 2) / 3;
+  return [third(0, left), third(centre, left), centre, third(centre, right), third(0, right)];
+}
+
+/** The old symmetric `Q 50,k` dome of this depth (k = 2 × depth), split at the centre. */
+function dome(depth: number): DomeCurve {
+  return quadraticHalves(depth, depth, depth);
+}
+
+/** Both eyes alike, top and bottom given as depths. */
 function even(top: number, bottom: number, dimpleOpacity = 0, sparkle = false): DomePose {
-  return { top: [top, top], bottom: [bottom, bottom], dimpleOpacity, sparkle };
+  return { top: dome(top), bottom: dome(bottom), dimpleOpacity, sparkle };
 }
 
 /**
  * Brand-aligned emotional range, one entry per EmotionalExpression (ferni-expressions
- * binds it to that type, so a missing pose fails typecheck). Depths are unchanged from
- * the `Q 50,k` table they replace; skeptical and worried were two-segment paths and
- * are now the closest single cubic (max error 1.2 and 3 viewBox units).
+ * binds it to that type, so a missing pose fails typecheck). Every shape is unchanged
+ * from the `Q 50,k` table it replaces, worried's two Qs included; skeptical's two Qs
+ * met at x = 60, so it is the closest smooth fit (max error 0.4 viewBox units).
  */
 export const DOME_POSES = {
   neutral: even(-5, -5),
@@ -78,8 +101,18 @@ export const DOME_POSES = {
   delighted: even(14, 9, 1, true), // Happy + full dimples + warmth sparkle
   surprised: even(-9, -9), // Wide open - present and attentive
   curious: even(7.5, 0), // Tilted - genuinely interested, not performative
-  skeptical: { top: [21.75, -6], bottom: [0, 0], dimpleOpacity: 0, sparkle: false }, // Left lid lowered - direct but caring
-  worried: even(18, 2.5), // Heavy lids - genuine concern
+  skeptical: {
+    top: [10.7, 15.3, 8.9, 2.5, -5.8],
+    bottom: dome(0),
+    dimpleOpacity: 0,
+    sparkle: false,
+  }, // Asymmetric lid - direct but caring
+  worried: {
+    top: quadraticHalves(25, 15, 25),
+    bottom: dome(2.5),
+    dimpleOpacity: 0,
+    sparkle: false,
+  }, // Knitted brow - genuine concern
   sad: even(17.5, 0), // Droopy - empathetic presence
   sleepy: even(27.5, 15), // Heavy lids - winding down
   thinking: even(6, 2.5), // Slight squint, looking up/away
