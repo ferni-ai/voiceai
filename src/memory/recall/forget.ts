@@ -53,11 +53,18 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { factText, forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
+import {
+  addForgottenTopic,
+  firestoreForgottenStore,
+  forgetGenerationSeen,
+  noteUnstoredForget,
+} from '../adapters/firestore/forgotten-store.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgetCallStartReads } from '../../utils/call-start-reads.js';
 
 export { isForgotten, factText };
+export { parseTopics } from '../adapters/firestore/forgotten-store.js';
 
 const log = createLogger({ module: 'forget' });
 
@@ -88,8 +95,11 @@ export interface ForgetStore {
   markForgotten: (userId: string, refs: StoredFactRef[], at: string) => Promise<void>;
   /** Deletes the facts and their copies; returns those it did not delete, to be marked (FORGET_DELETES). */
   deleteFacts?: (userId: string, refs: StoredFactRef[]) => Promise<StoredFactRef[]>;
-  /** Records a topic as stored (storedTopic) and, for a later tokenizer to re-derive, as asked. */
-  addTopic: (userId: string, topic: string, asked?: string) => Promise<void>;
+  /**
+   * Records a topic as stored (storedTopic) and, for a later tokenizer to re-derive, as asked;
+   * returns the stored forget generation, when the store keeps one.
+   */
+  addTopic: (userId: string, topic: string, asked?: string) => Promise<number | void>;
   /** The recorded topics; null when they can't be read (no store, malformed), [] when there are none. */
   topics: (userId: string) => Promise<string[] | null>;
   /** The caller's open world facts (world-model/temporal); none when absent. */
@@ -122,17 +132,15 @@ export function worldFactText(f: Omit<WorldFactRef, 'id' | 'validTo'>): string {
 /** The profile fields the next call's greeting and prompt read as "last time". */
 export const LAST_SUMMARY_FIELDS = ['lastConversationSummary', 'lastCallerSummary'] as const;
 
-const forgetGenerations = new Map<string, number>();
-function bumpForgetGeneration(userId: string): void {
-  forgetGenerations.set(userId, (forgetGenerations.get(userId) ?? 0) + 1);
-}
 /**
- * Changes whenever this process records a forget for the caller, so a cache
- * of their forgotten topics (firestore-vector-store/forget-filter.ts) knows
- * to read them again at once rather than after its TTL.
+ * The caller's forget generation as stored (memory_state/forgotten), the
+ * highest this process has read or written: it changes with a forget made
+ * here, or one made elsewhere once any read here sees it, so a cache of
+ * their forgotten topics (firestore-vector-store/forget-filter.ts,
+ * forget-topics-source.ts) reads them again at once rather than after its TTL.
  */
 export function forgetGeneration(userId: string): number {
-  return forgetGenerations.get(userId) ?? 0;
+  return forgetGenerationSeen(userId);
 }
 
 /** Forget a topic. Throws only if the store does; see forgetForCaller. */
@@ -156,9 +164,9 @@ export async function forgetTopic(
   const earlier = facts.filter(
     (f) => typeof f.data.forgottenAt === 'string' && isForgotten(factText(f.data), [tokens])
   );
-  await store.addTopic(userId, tokens, topic.trim());
+  const generation = await store.addTopic(userId, tokens, topic.trim());
   noteForgotten(userId, tokens);
-  bumpForgetGeneration(userId);
+  if (typeof generation !== 'number') noteUnstoredForget(userId);
   // Open follow-ups about it close too (best effort; the delivery job checks again).
   await closeForgottenFollowUps(userId, (text) => isForgotten(text, [tokens]), now);
   const marking = [...matched, ...earlier];
@@ -168,7 +176,6 @@ export async function forgetTopic(
   if (hidden.length > 0) await store.markForgotten(userId, hidden, now.toISOString());
   const worldIds = world.filter((f) => isForgotten(worldFactText(f), [tokens])).map((f) => f.id);
   if (worldIds.length > 0) await store.markWorldFacts?.(userId, worldIds, now.toISOString());
-  bumpForgetGeneration(userId);
   // What either matcher reads as the topic, so nothing a save would clear is
   // left for the next call start. Last, so a failure leaves only this to
   // retry; it throws, and the caller is told the forget didn't go through.
@@ -287,16 +294,6 @@ export async function forgottenTopics(
 ): Promise<string[]> {
   const topics = await forgottenTopicsOrNull(userId, store);
   return topics ?? [];
-}
-
-/**
- * The stored topics field: none recorded is [], anything else that isn't a
- * list of strings is unreadable (null), so readers fail closed.
- */
-export function parseTopics(raw: unknown): string[] | null {
-  if (raw === undefined || raw === null) return [];
-  if (!Array.isArray(raw) || !raw.every((t) => typeof t === 'string')) return null;
-  return raw;
 }
 
 /**
@@ -438,27 +435,7 @@ export const firestoreForgetStore: ForgetStore = {
   async addTopic(userId, topic, asked) {
     const db = getFirestoreDb();
     if (!db) return;
-    const ref = db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('memory_state')
-      .doc('forgotten');
-    await db.runTransaction(async (tx) => {
-      const doc = await tx.get(ref);
-      const topics: unknown = doc.exists ? doc.data()?.topics : [];
-      const list = Array.isArray(topics) ? topics.map(String) : [];
-      // What was asked is kept too, so a later tokenizer can re-derive the topic.
-      const rawAsked: unknown = doc.exists ? doc.data()?.asked : [];
-      const askedList = Array.isArray(rawAsked) ? rawAsked.map(String) : [];
-      const nextAsked = asked && !askedList.includes(asked) ? [...askedList, asked] : askedList;
-      if (!list.includes(topic) || nextAsked !== askedList) {
-        tx.set(
-          ref,
-          { topics: list.includes(topic) ? list : [...list, topic], asked: nextAsked },
-          { merge: true }
-        );
-      }
-    });
+    return addForgottenTopic(db, userId, topic, asked);
   },
   async topics(userId) {
     const db = getFirestoreDb();
@@ -483,11 +460,5 @@ export const firestoreForgetStore: ForgetStore = {
 
 /** The topics recorded in `db` (memory_state/forgotten), parsed as parseTopics does. */
 export async function readForgottenTopics(db: Firestore, userId: string): Promise<string[] | null> {
-  const doc = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('memory_state')
-    .doc('forgotten')
-    .get();
-  return parseTopics(doc.exists ? doc.data()?.topics : undefined);
+  return (await firestoreForgottenStore(db).readForgotten(userId)).topics;
 }

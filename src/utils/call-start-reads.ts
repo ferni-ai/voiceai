@@ -89,6 +89,11 @@ export function forgetCallStartReads(userId: string): void {
   shared.delete(userDaysKey(userId));
 }
 
+/** Drop one shared read (call after writing what it read). */
+export function dropCallStartRead(key: string): void {
+  shared.delete(key);
+}
+
 /** Close the window and drop everything (tests). */
 export function resetCallStartReads(): void {
   shared.clear();

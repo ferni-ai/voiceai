@@ -9,7 +9,8 @@ import { memoryFactsEnabled } from '../../config/memory-facts-flag.js';
 import type { Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { factText, isForgotten, parseTopics } from '../recall/forget.js';
+import { factText, isForgotten } from '../domain/forgotten.js';
+import { firestoreForgottenStore } from '../adapters/firestore/forgotten-store.js';
 import { toFact, type Fact, type FactAttribute } from './fact.js';
 
 const log = createLogger({ module: 'facts-store' });
@@ -55,13 +56,6 @@ export const isCurrent = (f: Fact): boolean =>
   f.validTo === null && f.retiredAt === null && f.forgottenAt === null;
 const ms = (iso: string): number => Date.parse(iso);
 
-/** The topics the owner asked to forget; null when they can't be read, so readers fail closed. */
-async function forgottenWords(db: Firestore, uid: string): Promise<string[] | null> {
-  const doc = db.collection('bogle_users').doc(uid).collection('memory_state').doc('forgotten');
-  const snap = await doc.get();
-  return parseTopics(snap.exists ? snap.data()?.topics : undefined);
-}
-
 /** Matching facts that pass `keep`, newest learned first; none forgotten or about a forgotten topic. */
 async function read(
   db: Firestore,
@@ -72,7 +66,8 @@ async function read(
   attribute?: FactAttribute
 ): Promise<Fact[]> {
   if (!memoryFactsEnabled(env) || !memberFacts(uid)) return [];
-  const topics = await forgottenWords(db, uid);
+  // The owner's forgotten topics; null when they can't be read, so this fails closed.
+  const { topics } = await firestoreForgottenStore(db).readForgotten(uid);
   if (!topics) return [];
   const snap = await factsQuery(db, uid, subjectId, attribute).get();
   return parseFacts(uid, snap.docs)
