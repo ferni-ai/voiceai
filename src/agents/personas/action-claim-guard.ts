@@ -63,6 +63,7 @@ import {
 } from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import { withHouseFactsGuard } from './house-facts.js';
 import { CRISIS_TALK } from './emergency-claim.js';
 import { honestLine, inPlace, type MissReason } from './honest-line.js';
 import { emergencyCheck, emergencyCorrection } from './emergency-correction.js';
@@ -79,14 +80,13 @@ import {
 import { kindsRunThisTurn, offerFor, promisedAction } from './action-promises.js';
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
+import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 const log = createLogger({ module: 'ActionClaimGuard' });
 
 /** A calendar tool that books a schedule item, so it saves to Ferni's own list here (#1547). */
 const isCalendarCreate = (name: string): boolean =>
   /calendar/i.test(name) && kindsOfTool(name).includes('schedule');
-
-type Chunk = llm.ChatChunk | string | object;
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -100,13 +100,6 @@ export function actionClaimPastEnabled(env: Env = process.env): boolean {
 /** Stream turns with no action in play (off: every turn holds, as before). */
 export function actionClaimStreamEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_STREAM', env);
-}
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const delta = (chunk as Partial<llm.ChatChunk> | null)?.delta;
-  if (delta === undefined || (delta.toolCalls?.length ?? 0) > 0) return undefined;
-  return delta.content ?? '';
 }
 
 function toolNamesOf(chunk: Chunk): string[] {
@@ -219,10 +212,14 @@ export async function withActionClaimCheck<T>(
     ? askedCallLookup(words, who.userId, calls)
     : undefined;
   const checked = await checkActionClaims(reply, chatCtx, tools, env, asked, firstWords);
-  return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
+  return withHouseFactsGuard(
+    withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni'),
+    chatCtx,
+    env
+  );
 }
 
-/** The claim check alone; withActionClaimCheck also runs the caller voice guard after it. */
+/** The claim check alone; withActionClaimCheck runs the caller voice and house facts guards after it. */
 async function checkActionClaims<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },

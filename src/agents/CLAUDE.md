@@ -239,6 +239,22 @@ pnpm vitest run src/agents/__tests__/e2e/
 
 See `__tests__/README.md` for test helpers and mock factories.
 
+### Reply guards
+
+Every model reply passes through `personas/ferni-agent.ts` `llmNode`, then
+`withActionClaimCheck` (`personas/action-claim-guard.ts`), which runs, in order:
+the action-claim check, the caller voice guard (`caller-voice-guard.ts`) and the
+house facts guard (`house-facts.ts`, `HOUSE_FACTS`, off by default). Guards read
+the stream through `personas/reply-chunks.ts` (`contentOf`, `hasToolCall`); don't
+add another copy.
+
+**House facts (#3001).** Ferni's own website, the number texts come from and the
+email From address come only from `src/config/house-facts.ts` (LANDING_URL/APP_URL,
+TWILIO_PHONE_NUMBER, EMAIL_FROM). With `HOUSE_FACTS=on` the honesty prompt
+(`ai-honesty.ts` `withHonesty`) states them, and a sentence that gives Ferni's own
+web address, email or number that isn't one of them becomes "I don't have that in
+front of me." An unset value is named as unknown, never guessed.
+
 ---
 
 ## Rules

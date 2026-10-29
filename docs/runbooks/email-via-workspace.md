@@ -33,7 +33,7 @@ the Gmail API sends it from a ferni.ai mailbox. Tracking issue: #1848.
 | Env var | Default | Meaning |
 |---|---|---|
 | `EMAIL_PROVIDER` | `sendgrid` | `gmail` switches to the Workspace |
-| `EMAIL_FROM` | `admin@ferni.ai` | From address: the mailbox, or a send-as alias of it |
+| `EMAIL_FROM` | `admin@ferni.ai` | From address: the mailbox, or a send-as alias of it. Read only through `configuredEmailFrom` (`src/config/house-facts.ts`); with `HOUSE_FACTS=on` it is also the email sender Ferni names when asked, so set it on the voice agent too. |
 | `EMAIL_FROM_NAME` | `Ferni` | From display name |
 | `EMAIL_MAILBOX` | `EMAIL_FROM` | The Workspace **user** to impersonate (JWT `sub`). Set it when `EMAIL_FROM` is an alias. |
 | `EMAIL_MAILER_SA` | `ferni-mailer@johnb-2025.iam.gserviceaccount.com` | The delegated service account |
