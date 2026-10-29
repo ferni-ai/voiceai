@@ -8,8 +8,9 @@
  *   "I'm ready when you're.", "Big Papa it's.", "what that's."
  *
  * With MIRROR_GRAMMAR_GUARD=on, "no" becomes "nah" only when it stands alone
- * as a reply, and a pair is contracted only when another word follows it in
- * the same chunk. Off (the default), the patterns are the old ones.
+ * as a reply. Off (the default), every "no" does. Contractions no longer depend
+ * on the flag: mirroring uses the shared rule (utils/spoken-contractions.ts),
+ * which never contracts a clause-final or stranded pair.
  *
  * @module @ferni/superhuman/mirroring-grammar
  */
@@ -17,16 +18,6 @@
 /** MIRROR_GRAMMAR_GUARD, read from env; off unless set to 'on'. */
 export function mirrorGrammarGuardEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.MIRROR_GRAMMAR_GUARD === 'on';
-}
-
-/**
- * The pattern for an expanded pair ("you are") to contract. Guarded, it needs
- * a following word in the chunk, so a clause-final "you are." stays as it is.
- */
-export function contractionPattern(expanded: string, guard = mirrorGrammarGuardEnabled()): RegExp {
-  return guard
-    ? new RegExp(`\\b${expanded}\\b(?=\\s+[a-z])`, 'gi')
-    : new RegExp(`\\b${expanded}\\b`, 'gi');
 }
 
 /**

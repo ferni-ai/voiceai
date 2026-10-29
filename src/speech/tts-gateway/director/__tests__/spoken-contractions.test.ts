@@ -1,9 +1,25 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
+import { prosodyTags } from '../../providers/cartesia.js';
+import { DirectorEngine } from '../engine.js';
+import { leverModes } from '../gate.js';
 import { normalizeForSpeech } from '../normalize.js';
-import { spokenContractionsEnabled } from '../spoken-contractions.js';
 
-const say = (text: string): string => normalizeForSpeech(text).text;
+/** A whole reply, from its first word. */
+const say = (text: string): string => normalizeForSpeech(text, '').text;
+
+/** Pushes as the director gets them: each knows what the reply said before it. */
+const sayPushes = (...pushes: string[]): string => {
+  let said = '';
+  return pushes
+    .map((push) => {
+      const out = normalizeForSpeech(push, said).text;
+      said += push;
+      return out;
+    })
+    .join('');
+};
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -29,14 +45,10 @@ const RED_TEAM_LINES: ReadonlyArray<readonly [string, string]> = [
 ];
 
 describe('SPOKEN_CONTRACTIONS', () => {
-  it('is off unless set to on', () => {
-    expect(spokenContractionsEnabled({})).toBe(false);
-    expect(spokenContractionsEnabled({ SPOKEN_CONTRACTIONS: 'true' })).toBe(false);
-    expect(spokenContractionsEnabled({ SPOKEN_CONTRACTIONS: 'on' })).toBe(true);
-  });
-
-  it.each(RED_TEAM_LINES)('off: %s is spoken exactly as written', (line) => {
-    expect(normalizeForSpeech(line)).toEqual({ text: line, count: 0 });
+  it.each(RED_TEAM_LINES)('off (unset or "off"): %s is spoken exactly as written', (line) => {
+    expect(normalizeForSpeech(line, '')).toEqual({ text: line, count: 0 });
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'off');
+    expect(normalizeForSpeech(line, '')).toEqual({ text: line, count: 0 });
   });
 
   it.each(RED_TEAM_LINES)('on: %s', (line, contracted) => {
@@ -46,7 +58,7 @@ describe('SPOKEN_CONTRACTIONS', () => {
 
   it('on: counts each contraction for the shadow log', () => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
-    expect(normalizeForSpeech('I am sure it is not that bad.').count).toBe(2);
+    expect(normalizeForSpeech('I am sure it is not that bad.', '').count).toBe(2);
   });
 
   it('on: "I will not" is "I won\'t"; "It is not" opening a sentence is "It\'s not"', () => {
@@ -56,11 +68,12 @@ describe('SPOKEN_CONTRACTIONS', () => {
     );
   });
 
-  it('on: a negation contracts mid-clause, a subject + auxiliary does not', () => {
+  it('on: a negation contracts mid-clause, a subject + auxiliary only where it opens one', () => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
     expect(say('I will not tell anyone, and that is not a joke.')).toBe(
-      "I won't tell anyone, and that isn't a joke."
+      "I won't tell anyone, and that's not a joke."
     );
+    expect(say('I am sure it is not that bad.')).toBe("I'm sure it isn't that bad.");
   });
 
   it.each([
@@ -89,10 +102,9 @@ describe('SPOKEN_CONTRACTIONS', () => {
     'I lost track of where that is anymore.',
     'I will tomorrow.',
     'Look at what there is to do.',
-    'It is as easy as it is now.',
   ])('on: a stranded auxiliary keeps the full form: %s', (line) => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
-    expect(normalizeForSpeech(line)).toEqual({ text: line, count: 0 });
+    expect(normalizeForSpeech(line, '')).toEqual({ text: line, count: 0 });
   });
 
   /** Lead re-verify FAIL on 968abbd7f (PR #2347): a wh-phrase + adjective stranded the auxiliary. */
@@ -108,12 +120,13 @@ describe('SPOKEN_CONTRACTIONS', () => {
     'Notice how calm you are really.',
   ])('on: an auxiliary inside an embedded clause keeps the full form: %s', (line) => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
-    expect(normalizeForSpeech(line)).toEqual({ text: line, count: 0 });
+    expect(normalizeForSpeech(line, '')).toEqual({ text: line, count: 0 });
   });
 
   it.each([
-    ['However hard it is out there, we are fine.', 'However hard it is out there, we are fine.'],
+    ['However hard it is out there, we are fine.', "However hard it is out there, we're fine."],
     ['It is amazing how strong you are still.', "It's amazing how strong you are still."],
+    ['It is as easy as it is now.', "It's as easy as it is now."],
   ])('on: only the clause-opening pair contracts: %s', (line, spoken) => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
     expect(say(line)).toBe(spoken);
@@ -136,10 +149,12 @@ describe('SPOKEN_CONTRACTIONS', () => {
     'The word "cannot" is long.',
     'The sign says "do not disturb" all week.',
     'Type `did not work` in the box.',
+    "Their motto is 'I am because we are.'",
+    'He said \u2018it is not over\u2019 twice.',
   ])('on: quotes and code spans are spoken as with the flag off: %s', (line) => {
-    const off = normalizeForSpeech(line);
+    const off = normalizeForSpeech(line, '');
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
-    expect(normalizeForSpeech(line)).toEqual(off);
+    expect(normalizeForSpeech(line, '')).toEqual(off);
     expect(off.text).toMatch(/\b(it is|I am|cannot|do not|did not)\b/);
   });
 
@@ -166,5 +181,109 @@ describe('SPOKEN_CONTRACTIONS', () => {
   ])('on: a complement after the auxiliary still contracts: %s', (line, contracted) => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
     expect(say(line)).toBe(contracted);
+  });
+
+  it.each([
+    ['That is huge.', "That's huge."],
+    ['I am here.', "I'm here."],
+    ['There is time.', "There's time."],
+    ['Hmm, it is tricky.', "Hmm, it's tricky."],
+    ['I know it is a lot, but you are not alone.', "I know it's a lot, but you're not alone."],
+    ['I know how you are feeling.', "I know how you're feeling."],
+  ])('on: wider coverage now the clause check holds: %s', (line, contracted) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say(line)).toBe(contracted);
+  });
+
+  it.each(['I am too.', 'They are lately.', 'You are though.', 'I am still.'])(
+    'on: a lone adverb ending the clause strands the auxiliary: %s',
+    (line) => {
+      vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+      expect(say(line)).toBe(line);
+      // A word after the adverb gives it something to modify: the pair contracts.
+      expect(say(line.replace('.', ' tired.'))).toMatch(/^(I'm|They're|You're) /);
+    }
+  );
+
+  it.each([
+    ['It Is What It Is.', 'title case'],
+    ['That is Bob.', 'a capital follows'],
+    ['It is 5 already.', 'a digit follows'],
+    ['You do not NEED to.', 'a stressed word follows a negation'],
+    ['I cannot STAND it.', 'a stressed word follows "cannot"'],
+  ])('on: needs a lowercase word after the pair: %s (%s)', (line) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say(line)).toBe(line);
+  });
+
+  /** Verifier FAIL on f37e7c45a (PR #2347): a push or a markup part that starts mid-sentence. */
+  describe('on: a piece that starts mid-sentence', () => {
+    it.each([
+      [
+        ['I can see how worried ', 'you are about this.'],
+        'I can see how worried you are about this.',
+      ],
+      [['Look how far ', 'we are right now.'], 'Look how far we are right now.'],
+      [['What a mess ', 'it is right now!'], 'What a mess it is right now!'],
+    ])('the first push cut at a word (continuation-tts 150 ms): %j', (pushes, spoken) => {
+      vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+      expect(sayPushes(...pushes)).toBe(spoken);
+    });
+
+    it.each([
+      [
+        'I can see how worried [sigh] you are about this.',
+        'I can see how worried [sigh] you are about this.',
+      ],
+      [
+        'Look how tired <break time="200ms"/> you are right now.',
+        'Look how tired <break time="200ms"/> you are right now.',
+      ],
+      [
+        'It is so funny how [laughter] you are always right about this stuff.',
+        "It's so funny how [laughter] you are always right about this stuff.",
+      ],
+      ['He said "[sigh] I am not coming back."', 'He said "[sigh] I am not coming back."'],
+    ])('markup in the middle of a sentence: %s', (line, spoken) => {
+      vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+      expect(say(line)).toBe(spoken);
+    });
+
+    it('a push after a sentence end, or after "and", still contracts', () => {
+      vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+      expect(sayPushes("It's a lot. ", 'It is a lot.')).toBe("It's a lot. It's a lot.");
+      expect(sayPushes('That is a ', 'massive shift.')).toBe("That's a massive shift.");
+      expect(sayPushes('It is late, and ', 'you are exhausted.')).toBe(
+        "It's late, and you're exhausted."
+      );
+      expect(sayPushes('Long day. [sigh] ', 'It is a lot.')).toBe("Long day. [sigh] It's a lot.");
+    });
+
+    it('without what came before, a pair at the start keeps the full form', () => {
+      vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+      expect(normalizeForSpeech('That is a massive shift.').text).toBe('That is a massive shift.');
+      // Inside the piece, the clause is still known.
+      expect(normalizeForSpeech('you see. That is a massive shift.').text).toBe(
+        "you see. That's a massive shift."
+      );
+    });
+
+    it('the director carries the reply into each push', () => {
+      vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+      const engine = new DirectorEngine({
+        modes: leverModes({ SPEECH_DIRECTOR: 'live', SPEECH_DIRECTOR_NORMALIZE: 'live' }),
+        voiceId: LESTER_PRO_V3_VOICE_ID,
+        carry: { speed: 1 },
+        cues: { takeSighs: () => 0, opensWithSpokenSigh: false, opensWithSigh: false },
+        renderTags: prosodyTags,
+      });
+      const spoken = [
+        ...engine.take('That is so hard. I can see how worried '),
+        ...engine.take('you are about this.'),
+        ...engine.finish(),
+      ].join('');
+      expect(spoken).toContain("That's so hard.");
+      expect(spoken).toContain('how worried you are about this.');
+    });
   });
 });

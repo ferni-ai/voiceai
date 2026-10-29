@@ -21,7 +21,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import type { LinguisticProfile, MirroringApplication, MirroringResult } from './types.js';
-import { contractionPattern, noToNahPattern } from './mirroring-grammar.js';
+import { noToNahPattern } from './mirroring-grammar.js';
+import { contractForSpeech } from '../../utils/spoken-contractions.js';
 
 const logger = createLogger({ module: 'LinguisticMirroring' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
@@ -183,7 +184,7 @@ export class LinguisticMirroringEngine {
     appliedMirroring.push(...vocabResult.applications);
 
     // 2. Apply contraction mirroring
-    const contractionResult = this.applyContractionMirroring(mirroredResponse);
+    const contractionResult = this.applyContractionMirroring(mirroredResponse, '');
     mirroredResponse = contractionResult.text;
     appliedMirroring.push(...contractionResult.applications);
 
@@ -212,9 +213,11 @@ export class LinguisticMirroringEngine {
    * word-level substitutions (vocabulary, contractions, formality).
    * It skips comfort filler insertion which requires sentence boundaries.
    *
-   * Used by: tts-wrapper.ts transform pipeline
+   * Used by: tts-wrapper.ts transform pipeline. `before` is the reply's text before
+   * this chunk ('' at its start; undefined if not known): a chunk can start
+   * mid-sentence, where "you are" may not contract ("how worried you are about this").
    */
-  applyStreamingSafeMirroring(chunk: string): string {
+  applyStreamingSafeMirroring(chunk: string, before?: string): string {
     // Need enough samples to mirror effectively
     if (this.profile.sampleCount < 3 || !chunk.trim()) {
       return chunk;
@@ -226,7 +229,7 @@ export class LinguisticMirroringEngine {
     result = this.applyVocabularyMirroring(result).text;
 
     // 2. Apply contraction mirroring (word-for-word swaps)
-    result = this.applyContractionMirroring(result).text;
+    result = this.applyContractionMirroring(result, before).text;
 
     // 3. Apply formality mirroring (word-for-word swaps)
     result = this.applyFormalityMirroring(result).text;
@@ -477,59 +480,25 @@ export class LinguisticMirroringEngine {
     return { text: result, applications };
   }
 
-  private applyContractionMirroring(text: string): {
+  private applyContractionMirroring(
+    text: string,
+    before: string | undefined
+  ): {
     text: string;
     applications: MirroringApplication[];
   } {
-    let result = text;
     const applications: MirroringApplication[] = [];
-
-    const contractionMap: Record<string, string> = {
-      'I am': "I'm",
-      'you are': "you're",
-      'we are': "we're",
-      'they are': "they're",
-      'is not': "isn't",
-      'are not': "aren't",
-      'will not': "won't",
-      'can not': "can't",
-      'do not': "don't",
-      'did not': "didn't",
-      'could not': "couldn't",
-      'would not': "wouldn't",
-      'should not': "shouldn't",
-      'it is': "it's",
-      'that is': "that's",
-      'there is': "there's",
-      'here is': "here's",
-    };
-
-    if (this.profile.usesContractions) {
-      // User uses contractions - contract our response
-      for (const [expanded, contracted] of Object.entries(contractionMap)) {
-        const regex = contractionPattern(expanded);
-        if (regex.test(result)) {
-          const original = result;
-          // Keep a capital at the start of a sentence: "It is" becomes "It's", not "it's".
-          result = result.replace(regex, (m) =>
-            m[0] === m[0].toUpperCase()
-              ? contracted[0].toUpperCase() + contracted.slice(1)
-              : contracted
-          );
-          if (result !== original) {
-            applications.push({
-              type: 'formality',
-              original: expanded,
-              mirrored: contracted,
-            });
-          }
-        }
-      }
-    }
     // A caller who says "I am" still hears contractions: never expand ours. Expanding made
     // every persona stilted after one such line ("I am Jordan . it is really cool", prod
     // 2026-10-17), against the prompt's "always use contractions".
+    if (!this.profile.usesContractions) return { text, applications };
 
+    // A caller who uses contractions gets ours contracted, by the shared spoken rule.
+    const result = contractForSpeech(text, before, (original, mirrored) => {
+      if (!applications.some((a) => a.original === original)) {
+        applications.push({ type: 'formality', original, mirrored });
+      }
+    });
     return { text: result, applications };
   }
 

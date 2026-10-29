@@ -287,7 +287,7 @@ const LEGACY_FLAG_MANIFEST = {
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
-  // on: mirroring keeps English: "nah" only for a standalone no, no clause-final contractions (conversation/superhuman/mirroring-grammar.ts)
+  // on: mirroring says "nah" only for a standalone no (conversation/superhuman/mirroring-grammar.ts)
   MIRROR_GRAMMAR_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -383,8 +383,8 @@ const LEGACY_FLAG_MANIFEST = {
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: the speech director contracts "that is" / "it is" / "I am not" when a complement follows
-  // (speech/tts-gateway/director/spoken-contractions.ts, #2334). Audible only with
+  // on: the speech director contracts "that is" / "it is" / "I am not" where its subject opens
+  // the clause (utils/spoken-contractions.ts, #2334). Audible only with
   // SPEECH_DIRECTOR=live and the normalize lever up.
   SPOKEN_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: a fact holding a code, password or PIN the caller said aloud is not stored (memory/spoken-credential.ts)

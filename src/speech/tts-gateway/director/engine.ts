@@ -161,6 +161,8 @@ export class DirectorEngine {
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
   private spokenSighChecked = false;
+  /** The reply's words so far, as pushed: normalize needs to know if a push starts mid-sentence. */
+  private said = '';
   /** Tags of a first push whose only words were the spoken sigh: they lead the next. */
   private stashedLead: { tags: string; prosody: SSMLProsodyConfig } | undefined;
 
@@ -201,7 +203,8 @@ export class DirectorEngine {
         return [];
       }
       const first = !this.opened;
-      const normalized = normalizeForSpeech(body);
+      const normalized = normalizeForSpeech(body, this.said);
+      this.said += body;
       this.stats.normalizations += normalized.count;
 
       const planned = this.planPhrases.accept(normalized.text, first);
