@@ -4,21 +4,15 @@ import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
 import { prosodyTags } from '../../providers/cartesia.js';
 import { DirectorEngine } from '../engine.js';
 import { leverModes } from '../gate.js';
-import { normalizeForSpeech } from '../normalize.js';
+import { normalizeForSpeech, replyNormalizer } from '../normalize.js';
 
 /** A whole reply, from its first word. */
 const say = (text: string): string => normalizeForSpeech(text, '').text;
 
 /** Pushes as the director gets them: each knows what the reply said before it. */
 const sayPushes = (...pushes: string[]): string => {
-  let said = '';
-  return pushes
-    .map((push) => {
-      const out = normalizeForSpeech(push, said).text;
-      said += push;
-      return out;
-    })
-    .join('');
+  const normalize = replyNormalizer();
+  return pushes.map((push) => normalize(push).text).join('');
 };
 
 afterEach(() => {

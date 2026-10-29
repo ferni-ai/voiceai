@@ -226,3 +226,13 @@ export function normalizeForSpeech(text: string, before?: string): NormalizeResu
     .join('');
   return { text: out, count };
 }
+
+/** normalizeForSpeech for one reply's pushes, in order: each push knows what came before it. */
+export function replyNormalizer(): (push: string) => NormalizeResult {
+  let said = '';
+  return (push) => {
+    const out = normalizeForSpeech(push, said);
+    said += push;
+    return out;
+  };
+}

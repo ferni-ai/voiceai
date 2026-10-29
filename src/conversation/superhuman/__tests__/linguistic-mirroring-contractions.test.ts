@@ -73,5 +73,12 @@ describe('contraction mirroring', () => {
         'you are about to win.'
       );
     });
+
+    it('streamingMirror carries the reply from chunk to chunk', () => {
+      const mirror = casual.streamingMirror();
+      expect(mirror('I can see how worried ')).toBe('I can see how worried ');
+      expect(mirror('you are about this. ')).toBe('you are about this. ');
+      expect(mirror('It is late now.')).toBe("It's late now.");
+    });
   });
 });

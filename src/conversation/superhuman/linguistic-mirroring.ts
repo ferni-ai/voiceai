@@ -240,6 +240,16 @@ export class LinguisticMirroringEngine {
     return result;
   }
 
+  /** applyStreamingSafeMirroring for one reply's chunks, in order: each knows the text before it. */
+  streamingMirror(): (chunk: string) => string {
+    let said = '';
+    return (chunk) => {
+      const out = this.applyStreamingSafeMirroring(chunk, said);
+      said += chunk;
+      return out;
+    };
+  }
+
   /**
    * Check if this engine has learned enough to apply mirroring
    */
