@@ -7,10 +7,11 @@ import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it, vi } from 'vitest';
 
-const notes = vi.hoisted(() => ({ throws: true }));
+const notes = vi.hoisted(() => ({ throws: true, calls: 0 }));
 vi.mock('../call-me-note.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   callMeNote: () => {
+    notes.calls += 1;
     if (notes.throws) throw new Error('a note builder failed');
     return '';
   },
@@ -18,6 +19,9 @@ vi.mock('../call-me-note.js', async (importOriginal) => ({
 
 const { withTurnReminder } = await import('../turn-request.js');
 const { gatedReply } = await import('../crisis-gate.js');
+const { buildCrisisGuidance, detectCrisis } = await import('../../safety/crisis-guard.js');
+const { resetCrisisClassifierCache } =
+  await import('../../../services/safety/crisis-classifier.js');
 
 function request(said: string): llm.ChatContext {
   const c = llm.ChatContext.empty();
@@ -25,6 +29,19 @@ function request(said: string): llm.ChatContext {
   c.addMessage({ role: 'user', content: said });
   return c;
 }
+
+const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
+const said = (stream: unknown) => async (): Promise<string> => {
+  let out = '';
+  for await (const chunk of stream as AsyncIterable<unknown>) out += String(chunk);
+  return out;
+};
+const lastUser = (ctx: llm.ChatContext): string =>
+  (
+    ctx.items
+      .filter((i) => i.type === 'message' && (i as llm.ChatMessage).role === 'user')
+      .at(-1) as llm.ChatMessage
+  ).textContent ?? '';
 
 describe('withTurnReminder never throws', () => {
   it('a throwing note builder: the request as sent, not an exception', () => {
@@ -63,5 +80,31 @@ describe('withTurnReminder never throws', () => {
     let said = '';
     for await (const chunk of out as unknown as AsyncIterable<unknown>) said += String(chunk);
     expect(said).toContain('I hear you.');
+  });
+  it('a guided crisis turn keeps its guidance when a builder throws', async () => {
+    resetCrisisClassifierCache();
+    notes.calls = 0;
+    const SAID = "I hope I don't wake up tomorrow";
+    const model = vi.fn(
+      async (_ctx: llm.ChatContext) =>
+        new ReadableStream<string>({
+          start(c) {
+            c.enqueue('I am here with you.');
+            c.close();
+          },
+        })
+    );
+    const out = await gatedReply(
+      request(SAID),
+      { userData: undefined } as never,
+      model as never,
+      { wrap: (s: unknown) => s } as never,
+      { env: PATTERNS_ONLY }
+    );
+    expect(notes.calls).toBeGreaterThan(0); // the builder ran, and threw
+    const sent = lastUser(model.mock.calls[0]![0]);
+    expect(sent.startsWith(SAID)).toBe(true);
+    expect(sent).toContain(buildCrisisGuidance(detectCrisis(SAID)));
+    expect(await said(out)()).toContain('I am here with you.');
   });
 });
