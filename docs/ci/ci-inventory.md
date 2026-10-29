@@ -146,7 +146,9 @@ who can push can claim his, and authorship never signs. His own crisis PRs, whic
 won't let him approve, merge with his ruleset admin bypass. A crisis path counts for
 every author. A crisis changed line (added or removed) counts when the loop's app,
 `ferni-loop[bot]`, opened the PR or authored or committed any commit in it, or when a
-commit has no linked account (fails closed); so does any binary file in such a PR. A
+commit has no linked account (fails closed); so do any binary file in such a PR and
+any import of a crisis module (a relative specifier by the path it resolves to, any other
+by its name). A
 path git had to quote or that holds a control character puts the PR in every lane. An
 **evaluator** PR (the code that grades changes, this workflow and CODEOWNERS) needs the
 `ferni-eval` app as opener with every commit verified by GitHub and committed by the app

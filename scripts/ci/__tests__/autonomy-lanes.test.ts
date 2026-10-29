@@ -11,6 +11,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import {
   changedLinesOf,
   classify,
+  importsOf,
   diffInputs,
   evaluate,
   loadPolicy,
@@ -256,8 +257,9 @@ describe('fail closed', () => {
 
   it('binary file in a loop PR is crisis', () => {
     const image = 'src/personas/bundles/x/avatar.png';
-    expect(classify([image], [], 'ferni-loop[bot]', policy, [image])).toEqual(['crisis']);
-    expect(classify([image], [], 'app/ferni-agent', policy, [image])).toEqual([]);
+    const extras = { binaryFiles: [image] };
+    expect(classify([image], [], 'ferni-loop[bot]', policy, extras)).toEqual(['crisis']);
+    expect(classify([image], [], 'app/ferni-agent', policy, extras)).toEqual([]);
   });
 
   it('the check itself and CODEOWNERS are evaluator code', () => {
@@ -372,6 +374,50 @@ describe('crisis wiring outside crisis paths', () => {
     loopOnly(["+import { transfer } from '../services/human-transfer/index.js';"]);
   });
 
+  /** Lanes for a one-line change to `file` adding `line`, as the loop and as ferni-agent. */
+  const importLanes = (file: string, line: string) => {
+    const diff = [
+      `diff --git a/${file} b/${file}`,
+      `--- a/${file}`,
+      `+++ b/${file}`,
+      '@@ -0,0 +1 @@',
+      `+${line}`,
+    ].join('\n');
+    const imports = importsOf(diff);
+    const lines = changedLinesOf(diff);
+    return [
+      classify([file], lines, 'ferni-loop[bot]', policy, { imports }),
+      classify([file], lines, 'app/ferni-agent', policy, { imports }),
+    ];
+  };
+
+  it('relative import of a crisis module is crisis for the loop', () => {
+    const file = 'src/agents/processors/turn-processor/x.ts';
+    for (const spec of ['./turn-crisis', './turn-crisis.js', './safety-note']) {
+      expect(importLanes(file, `import { a } from '${spec}';`)).toEqual([['crisis'], []]);
+    }
+    // The same name somewhere it doesn't resolve to a crisis module is not crisis.
+    const elsewhere = 'src/agents/other/x.ts';
+    expect(importLanes(elsewhere, "import { a } from './turn-crisis';")).toEqual([[], []]);
+  });
+
+  it('relative parent import into services/safety is crisis for the loop', () => {
+    const file = 'src/services/memory/x.ts';
+    // '../safety' names no crisis word: only resolving it (to safety/index.ts) catches it.
+    expect(importLanes(file, "import { screen } from '../safety';")).toEqual([['crisis'], []]);
+    expect(importLanes(file, "const g = require('../safety/crisis-guard');")).toEqual([
+      ['crisis'],
+      [],
+    ]);
+  });
+
+  it('a specifier that cannot be resolved falls back to crisis name segments', () => {
+    const file = 'src/agents/x.ts';
+    expect(importLanes(file, "import { a } from '@ferni/turn-crisis';")).toEqual([['crisis'], []]);
+    expect(importLanes(file, "import { a } from '@/services/safety/x';")).toEqual([['crisis'], []]);
+    expect(importLanes(file, "import { a } from '@ferni/greetings';")).toEqual([[], []]);
+  });
+
   it('spelled-out 988 is crisis for the loop', () => {
     loopOnly(['+  "call or text nine eight eight"']);
     loopOnly(['+  hotline: "Nine-Eight-Eight"']);
@@ -474,6 +520,7 @@ describe('diffInputs against a real repository', () => {
   write('src/services/safety/caf\u00e9-gate.ts', 'export const x = 1;\n');
   write('src/services/safety/model.bin', Buffer.from('\u0000\u0001\u0000MINOR_CARE\n'));
   write(PERSONA, '++ call 988\n');
+  write('src/services/memory/with space.ts', "import { screen } from '../safety';\n");
   // A textconv driver that blanks the content must not hide it from the diff.
   write('.gitattributes', '*.ts diff=blank\n');
   git('config', 'diff.blank.textconv', 'true');
@@ -488,9 +535,17 @@ describe('diffInputs against a real repository', () => {
     expect(classify(safety, [], 'app/ferni-agent', policy)).toEqual(['crisis']);
   });
 
+  it('imports carry the file they were changed in', () => {
+    const ref = { file: 'src/services/memory/with space.ts', specifier: '../safety' };
+    expect(inputs.imports).toContainEqual(ref);
+    const extras = { imports: inputs.imports };
+    expect(classify([ref.file], [], 'ferni-loop[bot]', policy, extras)).toEqual(['crisis']);
+  });
+
   it('binary file in a crisis path is crisis', () => {
     expect(inputs.binaryFiles).toEqual(['src/services/safety/model.bin']);
-    expect(classify([], [], 'app/ferni-agent', policy, inputs.binaryFiles)).toEqual(['crisis']);
+    const extras = { binaryFiles: inputs.binaryFiles };
+    expect(classify([], [], 'app/ferni-agent', policy, extras)).toEqual(['crisis']);
     // --text: a binary file's content is still screened.
     expect(inputs.changedLines.some((l) => l.includes('MINOR_CARE'))).toBe(true);
   });

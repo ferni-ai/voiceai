@@ -26,7 +26,7 @@
  */
 import { execFileSync } from 'child_process';
 import { appendFileSync, readFileSync } from 'fs';
-import { dirname, join } from 'path';
+import { dirname, join, posix } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { gh, gitOps, pages, parseQueueRef, queueMembers, tableCell } from './lead-verified.ts';
 
@@ -34,7 +34,7 @@ export type Lane = 'crisis' | 'privacy' | 'evaluator';
 export type Policy = {
   version: number;
   lanes: {
-    crisis: { paths: string[]; changedLinePatterns: string[] };
+    crisis: { paths: string[]; changedLinePatterns: string[]; importFallbackPattern: string };
     privacy: { paths: string[]; pathPattern: string };
     evaluator: { paths: string[] };
   };
@@ -57,9 +57,13 @@ export type PullInput = {
   reviews: Review[];
   /** Files git reports as binary: their content can't be screened line by line. */
   binaryFiles?: string[];
+  /** Specifiers on changed lines, for the loop's crisis-import screen. */
+  imports?: ImportRef[];
   /** Every commit's identities; null when they couldn't be read (fails closed). */
   commits?: CommitIdentity[] | null;
 };
+/** A module specifier imported, required or re-exported on a changed line of `file`. */
+export type ImportRef = { file: string; specifier: string };
 export type Verdict = { ok: boolean; reasons: string[] };
 
 export const POLICY_PATH = join(dirname(fileURLToPath(import.meta.url)), 'autonomy-policy.json');
@@ -110,14 +114,51 @@ export function inPaths(path: string, globs: string[]): boolean {
  * starts with `++ ` renders as `+++ ...` and is content like any other.
  */
 export function changedLinesOf(diff: string): string[] {
-  const lines: string[] = [];
+  return hunkLines(diff).map((l) => l.line);
+}
+
+/**
+ * Each changed line with the file it belongs to: the `+++ b/` path, or the `--- a/` path
+ * of a deleted file. '' when git quoted the name (the caller can't resolve against it).
+ */
+function hunkLines(diff: string): { file: string; line: string }[] {
+  const lines: { file: string; line: string }[] = [];
   let inHunk = false;
+  let file = '';
   for (const l of diff.split('\n')) {
-    if (l.startsWith('diff --git ')) inHunk = false;
+    if (l.startsWith('diff --git ')) [inHunk, file] = [false, ''];
     else if (l.startsWith('@@')) inHunk = true;
-    else if (inHunk && /^[+-]/.test(l)) lines.push(l);
+    else if (inHunk) {
+      if (/^[+-]/.test(l)) lines.push({ file, line: l });
+    } else if (l.startsWith('--- a/') || l.startsWith('+++ b/'))
+      file = l.slice(6).replace(/\t$/, '');
   }
   return lines;
+}
+
+const SPECIFIER = /(?:\bimport\b|\brequire\s*\(|\bfrom\b)[^'"`]*['"`]([^'"`]+)['"`]/g;
+
+/** Every import, require or `from` specifier on a changed line of a unified diff. */
+export function importsOf(diff: string): ImportRef[] {
+  return hunkLines(diff).flatMap(({ file, line }) =>
+    [...line.matchAll(SPECIFIER)].map((m) => ({ file, specifier: m[1] }))
+  );
+}
+
+/**
+ * The repository paths a relative specifier can load, resolved against its file's
+ * directory: as written, with a .js-style extension swapped for .ts, with .ts added, and
+ * as a directory's index.ts. Null when it can't be resolved (not relative, file unknown,
+ * or outside the repository).
+ */
+export function importTargets({ file, specifier }: ImportRef): string[] | null {
+  if (!file || !specifier.startsWith('.')) return null;
+  const path = posix.normalize(posix.join(posix.dirname(file), specifier));
+  if (path.startsWith('..')) return null;
+  const ext = posix.extname(path);
+  if (ext && !/^\.[cm]?jsx?$/.test(ext)) return [path];
+  const stem = ext ? path.slice(0, -ext.length) : path;
+  return [path, `${stem}.ts`, `${stem}/index.ts`];
 }
 
 /** A path git had to quote, or with a control character: can't be matched reliably. */
@@ -126,14 +167,16 @@ const ALL_LANES: Lane[] = ['crisis', 'privacy', 'evaluator'];
 
 /**
  * Fails closed: an odd path is in every lane, and a binary file in a loop PR is crisis
- * (its content can't be screened). Binary files count by path like any other file.
+ * (its content can't be screened). Binary files count by path like any other file. A loop
+ * PR's import of a crisis module is crisis: a relative specifier by the path it resolves
+ * to, any other by `importFallbackPattern`.
  */
 export function classify(
   changedFiles: string[],
   changedLines: string[],
   contributors: string | string[],
   policy: Policy,
-  binaryFiles: string[] = []
+  { binaryFiles = [], imports = [] }: Pick<PullInput, 'binaryFiles' | 'imports'> = {}
 ): Lane[] {
   const files = [...changedFiles, ...binaryFiles];
   if (files.some(isOddPath)) return [...ALL_LANES];
@@ -141,12 +184,18 @@ export function classify(
   const loop = new Set(policy.loopAuthors.map(normalizeLogin));
   const isLoop = [contributors].flat().some((login) => loop.has(normalizeLogin(login)));
   const crisisLine = crisis.changedLinePatterns.map((p) => new RegExp(p, 'i'));
+  const fallback = new RegExp(crisis.importFallbackPattern, 'i');
+  const crisisImport = (ref: ImportRef) => {
+    const targets = importTargets(ref);
+    return targets ? targets.some((t) => inPaths(t, crisis.paths)) : fallback.test(ref.specifier);
+  };
   const privacyPath = new RegExp(privacy.pathPattern, 'i');
   const lanes: Lane[] = [];
   if (
     files.some((f) => inPaths(f, crisis.paths)) ||
     (isLoop && binaryFiles.length > 0) ||
-    (isLoop && changedLines.some((l) => crisisLine.some((re) => re.test(l))))
+    (isLoop && changedLines.some((l) => crisisLine.some((re) => re.test(l)))) ||
+    (isLoop && imports.some(crisisImport))
   ) {
     lanes.push('crisis');
   }
@@ -208,7 +257,7 @@ function verifiedBy(pr: PullInput, logins: string[]): string | null {
  */
 export function evaluate(pr: PullInput, policy: Policy): Verdict {
   const contributors = contributorsOf(pr, policy);
-  const lanes = classify(pr.files, pr.changedLines, contributors, policy, pr.binaryFiles);
+  const lanes = classify(pr.files, pr.changedLines, contributors, policy, pr);
   if (lanes.length === 0) return { ok: true, reasons: ['no autonomy lane'] };
   const approvers = policy.approvers.crisis;
   const approver = approvedOnHead(pr, approvers);
@@ -262,7 +311,7 @@ export function readCommits(read: () => any[], expected: number): CommitIdentity
 export function diffInputs(
   range: string,
   cwd = process.cwd()
-): Pick<PullInput, 'files' | 'binaryFiles' | 'changedLines'> {
+): Pick<PullInput, 'files' | 'binaryFiles' | 'changedLines' | 'imports'> {
   const diff = (...args: string[]) =>
     execFileSync(
       'git',
@@ -282,10 +331,12 @@ export function diffInputs(
     .split('\0')
     .filter((entry) => entry.startsWith('-\t-\t'))
     .map((entry) => entry.slice(4));
+  const content = diff('--text', '--no-textconv', '-U0');
   return {
     files: diff('--name-only', '-z').split('\0').filter(Boolean),
     binaryFiles,
-    changedLines: changedLinesOf(diff('--text', '--no-textconv', '-U0')),
+    changedLines: changedLinesOf(content),
+    imports: importsOf(content),
   };
 }
 

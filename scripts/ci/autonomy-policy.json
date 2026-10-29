@@ -27,7 +27,8 @@
         "(?:\\bimport\\b|\\brequire\\s*\\(|\\bfrom\\b).*['\"`][^'\"`]*(?:services/safety|agents/safety|domains/crisis|human-transfer|minor-care|ai-notice)",
         "nine[- ]?eight[- ]?eight",
         "['\"]98['\"]\\s*\\+"
-      ]
+      ],
+      "importFallbackPattern": "(?:/safety/|crisis|safety-note|human-transfer|minor-care|ai-notice)"
     },
     "privacy": {
       "paths": ["src/**", "apps/**", "!**/*.md"],
