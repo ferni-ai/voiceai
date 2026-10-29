@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "groups": {
+    "session": [
+      { "marker": "Raw job.metadata", "emitter": "src/agents/voice-agent-entry/startup-log.ts" },
+      { "marker": "Ending session wait", "emitter": "src/agents/voice-agent-entry/index.ts" }
+    ],
+    "turn": [
+      { "marker": "TURN_RECEIPT", "emitter": "src/agents/shared/turn-receipt.ts" },
+      { "marker": "REPLY_GAP", "emitter": "src/agents/multi-agent/turn-observers.ts" },
+      { "marker": "SESSION_INTERRUPT", "emitter": "src/agents/multi-agent/live-call-behaviors.ts" }
+    ],
+    "minor": [
+      { "marker": "MINOR_CARE likely minor", "emitter": "src/utils/minor-care.ts" },
+      { "marker": "MINOR_CARE shadow: likely minor", "emitter": "src/utils/minor-care.ts" }
+    ],
+    "crisis": [
+      { "marker": "Crisis event (shadow)", "emitter": "src/agents/safety/crisis-event-record.ts" },
+      { "marker": "Crisis event recorded", "emitter": "src/services/safety/index.ts" },
+      {
+        "marker": "🚨 Crisis signal detected",
+        "emitter": "src/services/safety/crisis-detection.ts"
+      },
+      {
+        "marker": "🚨 CRISIS DETECTED - Overriding response",
+        "emitter": "src/services/safety/crisis-guard.ts"
+      },
+      {
+        "marker": "💙 Generated crisis response",
+        "emitter": "src/services/safety/crisis-response.ts"
+      }
+    ]
+  }
+}
