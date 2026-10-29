@@ -140,23 +140,27 @@ verdict but do not update the PR check, so re-run the check after a new verdict.
 **Purpose:** Keep protected lanes behind the right hands (rules:
 `scripts/ci/autonomy-lanes.ts`, lanes: `scripts/ci/autonomy-policy.json`, both always run
 from main's copy). A **crisis** PR (988 and referral, AI-disclosure notices, minor
-protections) needs an approving review from `sethdford` on its exact head commit, or
-`sethdford` as its author (GitHub won't let him approve his own PR). A crisis path counts
-for every author; a crisis changed line (added or removed) counts only for the loop's app,
-`ferni-loop[bot]`, and so does any binary file in a loop PR. A path git had to quote or
-that holds a control character puts the PR in every lane. An **evaluator** PR (the code that grades changes)
-needs the `ferni-eval` app as author, or the same approval. **Privacy** is reported only;
-the local arm gate already requires a verifier PASS there. Runs on PRs, reviews and
-merge_group; fails only on merge_group, and the queue acts on it only once `Autonomy
+protections) needs an approving review from `sethdford` on its exact head commit, with
+no exception: commit author and committer logins come from the commit email, so anyone
+who can push can claim his, and authorship never signs. His own crisis PRs, which GitHub
+won't let him approve, merge with his ruleset admin bypass. A crisis path counts for
+every author. A crisis changed line (added or removed) counts when the loop's app,
+`ferni-loop[bot]`, opened the PR or authored or committed any commit in it, or when a
+commit has no linked account (fails closed); so does any binary file in such a PR. A
+path git had to quote or that holds a control character puts the PR in every lane. An
+**evaluator** PR (the code that grades changes, this workflow and CODEOWNERS) needs the
+`ferni-eval` app as opener with every commit verified by GitHub and committed by the app
+(what committing through the GitHub API produces; a git push can't), or the same
+approval. **Privacy** is reported only; the local arm gate already requires a verifier
+PASS there. Runs on PRs, reviews and merge_group; fails only on merge_group, where each
+queued PR is judged on its current head, and the queue acts on it only once `Autonomy
 Lanes` is a required check. The policy's crisis and evaluator paths are also in
-`.github/CODEOWNERS` (`codeowners-covers-policy.test.ts` keeps them in step). A loop
-commit pushed onto someone else's PR is screened too (any commit author or committer
-counts), and an approver's authorship signs only when they authored and committed every
-commit. Like Lead Verified, the workflow file runs from the PR's own merge or queue
-commit; what stops a PR editing it is the main ruleset's required code-owner review on
-`.github/workflows/` (on, checked 2026-10-29). Known gap: stale approvals aren't
-dismissed on push, so a code-owner approval given before a later edit to this workflow
-still satisfies that rule (the check itself only counts approvals on the exact head).
+`.github/CODEOWNERS` (`codeowners-covers-policy.test.ts` keeps them in step). Like Lead
+Verified, the workflow file runs from the PR's own merge or queue commit; what stops a
+PR editing it is the main ruleset's required code-owner review on `.github/workflows/`
+(on, checked 2026-10-29). Known gap: stale approvals aren't dismissed on push, so a
+code-owner approval given before a later edit to this workflow still satisfies that
+rule (the check itself only counts approvals on the exact head).
 
 ### design-system.yml
 

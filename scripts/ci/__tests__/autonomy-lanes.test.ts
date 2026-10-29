@@ -36,7 +36,13 @@ const GIT_ENV = {
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
 };
-const by = (author: string, committer = author): CommitIdentity => ({ author, committer });
+const by = (author: string, committer = author, verified = false): CommitIdentity => ({
+  author,
+  committer,
+  verified,
+});
+/** What the ferni-eval app gets by committing through the GitHub API: a verified commit. */
+const EVAL_COMMIT = by('ferni-eval[bot]', 'ferni-eval[bot]', true);
 const SETH = by('sethdford');
 const AGENT = by('ferni-agent[bot]');
 const LOOP = by('ferni-loop[bot]');
@@ -189,19 +195,40 @@ describe('evaluate', () => {
     const r = evaluate(pr({ files: [EVAL] }), policy);
     expect(r.ok).toBe(false);
     expect(r.reasons[0]).toMatch(
-      /^evaluator lane: ferni-agent\[bot\] and its commits are not all evaluator authors/
+      /^evaluator lane: ferni-agent\[bot\] is not an evaluator author with verified commits/
     );
   });
 
   it('evaluator path by ferni-eval[bot] passes', () => {
     for (const author of ['ferni-eval[bot]', 'app/ferni-eval']) {
-      const commits = [by('ferni-eval[bot]')];
+      const commits = [EVAL_COMMIT];
       expect(evaluate(pr({ author, files: [EVAL], commits }), policy).ok).toBe(true);
     }
   });
 
+  it('eval PR with verified ferni-eval commits passes', () => {
+    const p = pr({ author: 'ferni-eval[bot]', files: [EVAL], commits: [EVAL_COMMIT, EVAL_COMMIT] });
+    expect(evaluate(p, policy)).toEqual({
+      ok: true,
+      reasons: ['evaluator lane: verified commits by ferni-eval[bot]'],
+    });
+    // Verified commits by an opener who is not an evaluator author don't count.
+    const agent = by('ferni-agent[bot]', 'ferni-agent[bot]', true);
+    expect(evaluate(pr({ files: [EVAL], commits: [agent] }), policy).ok).toBe(false);
+  });
+
+  it('eval PR with an unverified commit needs approval', () => {
+    // A git push claiming the app's identity: right logins, no GitHub signature.
+    const pushed = by('ferni-eval[bot]', 'ferni-eval[bot]', false);
+    const p = pr({ author: 'ferni-eval[bot]', files: [EVAL], commits: [EVAL_COMMIT, pushed] });
+    expect(evaluate(p, policy).ok).toBe(false);
+    expect(evaluate({ ...p, commits: [] }, policy).ok).toBe(false);
+    expect(evaluate({ ...p, reviews: [approval(HEAD)] }, policy).ok).toBe(true);
+  });
+
   it('evaluator PR opened by ferni-eval with a ferni-agent commit needs approval', () => {
-    const commits = [by('ferni-eval[bot]'), AGENT];
+    // Verified, but committed by another identity.
+    const commits = [EVAL_COMMIT, by('ferni-agent[bot]', 'ferni-agent[bot]', true)];
     const p = pr({ author: 'ferni-eval[bot]', files: [EVAL], commits });
     expect(evaluate(p, policy).ok).toBe(false);
   });
@@ -241,10 +268,25 @@ describe('fail closed', () => {
 });
 
 describe('approver authorship', () => {
-  it('crisis PR authored by sethdford passes', () => {
-    const r = evaluate(pr({ author: 'sethdford', files: [SAFETY, EVAL], commits: [SETH] }), policy);
-    expect(r.ok).toBe(true);
-    expect(r.reasons[0]).toBe('crisis lane: authored by approver sethdford');
+  it('seth-authored crisis PR still needs an approval review', () => {
+    // Commit logins come from emails, so authorship never signs; Seth's own crisis PRs
+    // merge with his ruleset admin bypass.
+    for (const commits of [[SETH], [by('sethdford', 'sethdford', true)]]) {
+      const p = pr({ author: 'sethdford', files: [SAFETY], commits });
+      expect(evaluate(p, policy)).toEqual({
+        ok: false,
+        reasons: ['crisis lane: needs sethdford approval on bbb'],
+      });
+    }
+  });
+
+  it('commit spoofing sethdford email is not a sign-off', () => {
+    // A loop push with Seth's email: GitHub attributes it to sethdford, unverified.
+    for (const author of ['sethdford', 'ferni-loop[bot]', 'app/ferni-agent']) {
+      const commits = [SETH, SETH];
+      expect(evaluate(pr({ author, files: [SAFETY], commits }), policy).ok).toBe(false);
+      expect(evaluate(pr({ author, files: [EVAL], commits }), policy).ok).toBe(false);
+    }
   });
 
   it('crisis PR authored by ferni-agent with no approval fails', () => {
@@ -252,8 +294,9 @@ describe('approver authorship', () => {
   });
 
   it('a bot or app form of the approver login is not a sign-off', () => {
-    for (const author of ['app/sethdford', 'sethdford[bot]']) {
-      expect(evaluate(pr({ author, files: [SAFETY] }), policy).ok).toBe(false);
+    for (const login of ['app/sethdford', 'sethdford[bot]']) {
+      const reviews = [approval(HEAD, 'APPROVED', login)];
+      expect(evaluate(pr({ files: [SAFETY], reviews }), policy).ok).toBe(false);
     }
   });
 });
@@ -276,29 +319,34 @@ describe('who pushed, not only who opened', () => {
     }
   });
 
-  it('seth-authored PR with only seth commits is signed', () => {
-    const p = pr({ author: 'sethdford', files: [SAFETY], commits: [SETH, SETH] });
-    expect(evaluate(p, policy)).toEqual({
-      ok: true,
-      reasons: ['crisis lane: authored by approver sethdford'],
-    });
-    expect(evaluate({ ...p, commits: [] }, policy).ok).toBe(false);
+  it('commit with no linked login is screened as loop', () => {
+    for (const unlinked of [by('', 'ferni-agent[bot]'), by('ferni-agent[bot]', '')]) {
+      const r = evaluate(pr({ ...content988, commits: [AGENT, unlinked] }), policy);
+      expect(r).toEqual({ ok: false, reasons: ['crisis lane: needs sethdford approval on bbb'] });
+    }
   });
 
   it('commits API error fails closed', () => {
-    const ok = [{ author: { login: 'sethdford' }, committer: { login: 'sethdford' } }];
-    expect(readCommits(() => ok, 1)).toEqual([SETH]);
+    const ok = [
+      {
+        author: { login: 'sethdford' },
+        committer: { login: 'sethdford' },
+        commit: { verification: { verified: true } },
+      },
+    ];
+    expect(readCommits(() => ok, 1)).toEqual([by('sethdford', 'sethdford', true)]);
+    expect(readCommits(() => [{ author: null, committer: null }], 1)).toEqual([by('')]);
     const fail = () => {
       throw new Error('HTTP 502');
     };
     expect(readCommits(fail, 1)).toBeNull();
     // The REST list stops at 250 commits: a short read is not the whole PR.
     expect(readCommits(() => ok, 251)).toBeNull();
-    // Unreadable commits: screened as the loop's, and no self sign-off.
+    // Unreadable commits: screened as the loop's.
     expect(evaluate(pr({ ...content988, commits: null }), policy).ok).toBe(false);
     const seth = evaluate(pr({ author: 'sethdford', files: [SAFETY], commits: null }), policy);
     expect(seth.ok).toBe(false);
-    expect(seth.reasons).toContain('commits unreadable: screened as the loop, no self sign-off');
+    expect(seth.reasons).toContain('commits unreadable: screened as the loop');
   });
 });
 

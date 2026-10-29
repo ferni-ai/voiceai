@@ -5,12 +5,12 @@
  * autonomy-policy.json next to this file (main's copy in CI, never the PR's).
  *
  * - crisis: a file under a crisis path (any author), or, when the loop (`loopAuthors`)
- *   opened the PR or authored or committed any of its commits, a changed line matching a
- *   crisis pattern in any file. Needs an APPROVED review from `approvers.crisis` on the
- *   exact head commit, or an approver's own PR (every commit theirs). Other authors'
- *   content-only crisis edits keep the local arm gate's verifier rule instead.
- * - evaluator: a file under an evaluator path. Needs a PR wholly by `evaluatorAuthors`, or
- *   the crisis sign-off.
+ *   opened the PR or authored or committed any of its commits (or a commit has no linked
+ *   account), a changed line matching a crisis pattern in any file. Needs an APPROVED
+ *   review from `approvers.crisis` on the exact head commit. Other authors' content-only
+ *   crisis edits keep the local arm gate's verifier rule instead.
+ * - evaluator: a file under an evaluator path. Needs an `evaluatorAuthors` opener whose
+ *   every commit GitHub verified with it as committer, or the crisis approval.
  * - privacy: a file under its paths whose path matches `pathPattern` (the LANE rule of
  *   ~/.claude/hooks/pdlc/verify_arm_gate.py minus the crisis terms). Reported only: the arm
  *   gate already requires an independent verifier PASS there.
@@ -43,8 +43,12 @@ export type Policy = {
   loopAuthors: string[];
 };
 export type Review = { login: string; state: string; commitId: string };
-/** A commit's GitHub logins; '' when its email isn't linked to an account. */
-export type CommitIdentity = { author: string; committer: string };
+/**
+ * A commit's GitHub logins ('' when its email isn't linked to an account) and whether
+ * GitHub verified its signature. Logins come from the commit's email, so anyone who can
+ * push can claim any of them; only a verified signature proves who made the commit.
+ */
+export type CommitIdentity = { author: string; committer: string; verified: boolean };
 export type PullInput = {
   head: string;
   author: string;
@@ -172,30 +176,35 @@ function approvedOnHead(pr: PullInput, approvers: string[]): string | null {
 
 /**
  * Who put code in the PR: its opener and every commit's author and committer. Commits
- * that couldn't be read count as the loop's (fails closed).
+ * that couldn't be read, or with an author or committer no account is linked to, count
+ * as the loop's (fails closed).
  */
 function contributorsOf(pr: PullInput, policy: Policy): string[] {
-  if (pr.commits === null) return [pr.author, ...policy.loopAuthors];
-  return [pr.author, ...(pr.commits ?? []).flatMap((c) => [c.author, c.committer])];
-}
-
-/**
- * The opener's login when it is one of `logins` and every commit was authored and
- * committed by one of them too; null otherwise, and when the commits are unknown.
- */
-function ownedBy(pr: PullInput, logins: string[]): string | null {
-  const allowed = new Set(logins.map(normalizeLogin));
-  const own = (login: string) => allowed.has(normalizeLogin(login));
   const commits = pr.commits ?? [];
-  const every = commits.length > 0 && commits.every((c) => own(c.author) && own(c.committer));
-  return own(pr.author) && every ? normalizeLogin(pr.author) : null;
+  const unattributed = commits.some((c) => !c.author || !c.committer);
+  const loop = pr.commits === null || unattributed ? policy.loopAuthors : [];
+  return [pr.author, ...commits.flatMap((c) => [c.author, c.committer]), ...loop];
 }
 
 /**
- * Crisis needs an approver's sign-off on the head: their approving review, or a PR they
- * opened, authored and committed entirely themselves (GitHub won't let an author approve
- * their own PR). Only the user login counts; a bot or app form of it never does.
- * Evaluator needs the same from an evaluator author, or the approver's sign-off.
+ * The opener's login when it is one of `logins` and GitHub verified every commit's
+ * signature with the opener as committer: what the ferni-eval app gets by committing
+ * through the GitHub API, and what a git push by anyone else can't produce. Null
+ * otherwise, and when the commits are unknown.
+ */
+function verifiedBy(pr: PullInput, logins: string[]): string | null {
+  const opener = normalizeLogin(pr.author);
+  if (!logins.map(normalizeLogin).includes(opener)) return null;
+  const commits = pr.commits ?? [];
+  const own = (c: CommitIdentity) => c.verified && normalizeLogin(c.committer) === opener;
+  return commits.length > 0 && commits.every(own) ? opener : null;
+}
+
+/**
+ * Crisis needs an APPROVED review by an approver on the exact head, with no exception:
+ * commit logins can be spoofed, so authorship never signs. Seth's own crisis PRs (he
+ * can't approve them) merge with his ruleset admin bypass. Evaluator needs an evaluator
+ * author whose every commit is verified (see verifiedBy), or the same approval.
  */
 export function evaluate(pr: PullInput, policy: Policy): Verdict {
   const contributors = contributorsOf(pr, policy);
@@ -203,33 +212,27 @@ export function evaluate(pr: PullInput, policy: Policy): Verdict {
   if (lanes.length === 0) return { ok: true, reasons: ['no autonomy lane'] };
   const approvers = policy.approvers.crisis;
   const approver = approvedOnHead(pr, approvers);
-  const selfSigned = ownedBy(pr, approvers);
-  const signed = approver
-    ? `approved by ${approver} on ${short(pr.head)}`
-    : selfSigned
-      ? `authored by approver ${selfSigned}`
-      : null;
+  const approved = approver ? `approved by ${approver} on ${short(pr.head)}` : null;
   const needApproval = `needs ${approvers.join(' or ')} approval on ${short(pr.head)}`;
   let ok = true;
   const reasons: string[] = [];
   for (const lane of lanes) {
     if (lane === 'crisis') {
-      ok &&= signed !== null;
-      reasons.push(`crisis lane: ${signed ?? needApproval}`);
+      ok &&= approved !== null;
+      reasons.push(`crisis lane: ${approved ?? needApproval}`);
     } else if (lane === 'evaluator') {
-      const evaluator = ownedBy(pr, policy.evaluatorAuthors);
-      ok &&= evaluator !== null || signed !== null;
+      const evaluator = verifiedBy(pr, policy.evaluatorAuthors);
+      ok &&= evaluator !== null || approved !== null;
       const author = normalizeLogin(pr.author);
-      const notEvaluator = `${author} and its commits are not all evaluator authors; ${needApproval}`;
+      const notEvaluator = `${author} is not an evaluator author with verified commits; ${needApproval}`;
       reasons.push(
-        `evaluator lane: ${evaluator ? `authored by ${evaluator}` : (signed ?? notEvaluator)}`
+        `evaluator lane: ${evaluator ? `verified commits by ${evaluator}` : (approved ?? notEvaluator)}`
       );
     } else {
       reasons.push('privacy lane: the local arm gate requires an independent verifier PASS');
     }
   }
-  if (pr.commits === null)
-    reasons.push('commits unreadable: screened as the loop, no self sign-off');
+  if (pr.commits === null) reasons.push('commits unreadable: screened as the loop');
   return { ok, reasons };
 }
 
@@ -243,6 +246,7 @@ export function readCommits(read: () => any[], expected: number): CommitIdentity
     const commits = read().map((c) => ({
       author: String(c.author?.login ?? ''),
       committer: String(c.committer?.login ?? ''),
+      verified: c.commit?.verification?.verified === true,
     }));
     return commits.length === expected ? commits : null;
   } catch {
