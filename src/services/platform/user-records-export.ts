@@ -16,6 +16,7 @@
 
 import { BoundedReader, ExportBudget, openExportDb, type ReadDoc } from './bounded-reader.js';
 import { toPlain, type Plain } from './export-redaction.js';
+import { OWNED_ELSEWHERE } from './user-records-owned-elsewhere.js';
 
 export { ExportBudget, ExportLimitError, EXPORT_BUDGET_LIMITS } from './bounded-reader.js';
 
@@ -171,102 +172,6 @@ export const WITHHELD_STORES: Readonly<Record<string, string>> = {
   deferred_calls: 'in-flight call queue: a held-back call waits here until its hour',
   system: 'pipeline bookkeeping (when memory maintenance last ran)',
 };
-
-/**
- * Stores outside those records: a document keyed by the uid, or documents naming it.
- * `linked`: the documents naming a phone profile proven to be the person are theirs too
- * (the proof erasure uses, erasure-keys.ts).
- */
-export const OWNED_ELSEWHERE: ReadonlyArray<
-  | { collection: string; doc: 'uid' }
-  | { collection: string; field: string; fields?: readonly string[]; linked?: true }
-> = [
-  { collection: 'user_seeds', doc: 'uid' }, // seed balance and history (Seeds card)
-  { collection: 'engagement_profiles', doc: 'uid' },
-  { collection: 'households', doc: 'uid' },
-  // People You've Told Me About: the person's own account of their people, from their calls
-  // Its schema is known (ContactRelationship), so its fields are allowlisted too.
-  {
-    collection: 'contact_relationships',
-    field: 'userId',
-    fields: [
-      'contactId',
-      'name',
-      'email',
-      'phone',
-      'relationship',
-      'notes',
-      'firstInteraction',
-      'lastInteraction',
-      'interactionCount',
-      'strengthScore',
-      'avgResponseTimeHours',
-      'preferredChannel',
-      'bestTimeToReach',
-      'topics',
-      'recentContext',
-      'importantDates',
-      'pendingFollowUp',
-      'lastFollowUpDate',
-      'createdAt',
-      'updatedAt',
-    ],
-  },
-  { collection: 'contact_interactions', field: 'userId' },
-  // The router's record of the person's turns and corrections: which tool it picked, how
-  // sure it was, lengths and phrase hashes, never the words (bandit-persistence.ts,
-  // firestore-persistence.ts, feedback-store.ts)
-  { collection: 'routing_events', field: 'userId' },
-  { collection: 'semantic_router_corrections', field: 'userId' },
-  { collection: 'semantic_routing_feedback', field: 'userId' },
-  { collection: 'semantic_routing_vocabulary', doc: 'uid' },
-  { collection: 'semantic_routing_corrections', doc: 'uid' },
-  // What the older agent remembered of the relationship: shared moments, inside jokes
-  { collection: 'relationship_memories', field: 'userId' },
-  // The semantic index (user-stores.ts): the words and what kind of memory they are, never
-  // the embedding (a model's numbers, not the person's data)
-  ...(['vectors', 'memory_vectors'] as const).map((collection) => ({
-    collection,
-    field: 'metadata.userId',
-    fields: ['text', 'metadata', 'createdAt', 'updatedAt', 'expireAt'],
-  })),
-  // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
-  // family member's own activity (calls, minutes, last call), voice enrollment, self-
-  // registration, or familyUserId, the key to that person's own record.
-  {
-    collection: 'sponsored_identities',
-    field: 'sponsorUserId',
-    fields: [
-      'displayName',
-      'preferredName',
-      'relationship',
-      'phoneNumber',
-      'accessLevel',
-      'allowedPersonas',
-      'notes',
-      'status',
-      'createdAt',
-      'updatedAt',
-    ],
-  },
-  // Crisis scripts spoken on their calls (safety recordCrisisEvent): ids, enums, times, no words
-  {
-    collection: 'crisis_events',
-    field: 'userId',
-    fields: [
-      'userId',
-      'sessionId',
-      'personaId',
-      'crisisType',
-      'severity',
-      'reader',
-      'resourcesProvided',
-      'createdAt',
-      'expireAt',
-    ],
-    linked: true,
-  },
-];
 
 /**
  * Stores kept in one partition per day, read in every partition by the owner field.
