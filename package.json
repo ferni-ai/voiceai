@@ -442,7 +442,6 @@
     "@livekit/protocol": "1.52.1",
     "@livekit/rtc-node": "1.1.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "^11.8.0",
     "@simplewebauthn/server": "14.0.3",
     "chalk": "6.0.1",

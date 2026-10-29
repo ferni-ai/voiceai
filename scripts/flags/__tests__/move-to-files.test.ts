@@ -28,7 +28,7 @@ export const FLAGS_A = {
   // over two lines
   AA_ONE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // describes AB_MODE but sits above AB_MISPLACED
-  AB_MISPLACED: { default: 'sendgrid', owner: 'platform', kind: 'config' },
+  AB_MISPLACED: { default: 'gmail', owner: 'platform', kind: 'config' },
   AB_MODE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
 } as const satisfies Record<string, FlagSpec>;
 
@@ -70,7 +70,7 @@ describe('legacy-parse', () => {
     const blocks = parseLegacy('b', BLOCKS);
     expect(blocks.entries.map((e) => [e.name, e.block, e.spec.default])).toEqual([
       ['AA_ONE', 'FLAGS_A', 'off'],
-      ['AB_MISPLACED', 'FLAGS_A', 'sendgrid'],
+      ['AB_MISPLACED', 'FLAGS_A', 'gmail'],
       ['AB_MODE', 'FLAGS_A', 'cartesia-cascade'],
       ['ZZ_KEEP', 'FLAGS_Z', '1800000'],
     ]);
@@ -183,7 +183,7 @@ describe('flags:move', () => {
         "export const AA_ONE = {\n  default: 'off',\n  owner: 'voice',\n  kind: 'experiment',\n} as const satisfies FlagSpec;\n"
     );
     expect(read(root, 'flags/AB_MISPLACED.ts')).toContain(
-      "// describes AB_MODE but sits above AB_MISPLACED\nexport const AB_MISPLACED = {\n  default: 'sendgrid',"
+      "// describes AB_MODE but sits above AB_MISPLACED\nexport const AB_MISPLACED = {\n  default: 'gmail',"
     );
     expect(read(root, 'flags/AB_MODE.ts')).toContain(
       "from '../flag-spec.js';\n\nexport const AB_MODE = {\n  default: 'cartesia-cascade',"
@@ -202,7 +202,7 @@ describe('flags:move', () => {
     );
     expect(JSON.parse(readFileSync(fixture, 'utf8'))).toEqual({
       AA_ONE: { default: 'off', owner: 'voice', kind: 'experiment' },
-      AB_MISPLACED: { default: 'sendgrid', owner: 'platform', kind: 'config' },
+      AB_MISPLACED: { default: 'gmail', owner: 'platform', kind: 'config' },
       AB_MODE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
     });
   });
