@@ -56,11 +56,12 @@ export function callMeNote(
   chatCtx: llm.ChatContext,
   session: object,
   words: string,
-  opts: { plain?: boolean; careful?: boolean } = {},
+  opts: { plain?: boolean; careful?: boolean; owner?: boolean } = {},
   env: Env = process.env
 ): string {
   if (!callMeVocativeEnabled(env)) return '';
-  noteCallerTurn(session, words, callerTurns(chatCtx.items)); // rememberName's confirm (remember-name.ts)
+  // rememberName's confirm, and whether its save may rename the account (remember-name.ts)
+  noteCallerTurn(session, words, callerTurns(chatCtx.items), opts.owner === true);
   if (!words || opts.careful === true) return '';
   const persona = personaFirstNameOf(session);
   const plain = opts.plain === true;

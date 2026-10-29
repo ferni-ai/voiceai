@@ -16,14 +16,13 @@ import { nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js'
 import { callMeVocativeEnabled } from '../../../utils/call-me-vocative.js';
 import { isCallbackTime } from '../../../utils/callback-time.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { stepFor } from './name-confirm-calls.js';
+import { ownerOnTheLine, stepFor } from './name-confirm-calls.js';
 import { nameLikeness, secondQuestion } from './name-likeness.js';
 
 export { callMeVocativeEnabled };
 
 /** What this reads and writes of the session's userData (services: services/types.ts). */
 interface NameToolUser {
-  userId?: string;
   name?: string;
   userName?: string;
   personaId?: string;
@@ -58,14 +57,13 @@ const noYesNote = (name: string, current: string | undefined): string =>
   `${current ? ` Keep calling them ${current}.` : ''} ${TAIL}`;
 
 /** The tool's write, as it is with the flag off: this call, then the profile, saved now. */
-async function save(name: string, user: NameToolUser): Promise<string> {
+async function save(name: string, user: NameToolUser, session: object): Promise<string> {
   getLogger().info(`Remembering user name: ${name}`);
   user.name = name;
   user.userName = name; // this call's name too: rememberName is the one writer with the flag on
   const { services } = user;
-  // Anyone may rename the call; only the verified owner renames the account (name-correction.ts).
-  const { accountMayKeepName } = await import('../../../agents/personas/name-correction.js');
-  if (services?.userProfile && (await accountMayKeepName(user))) {
+  // Anyone may rename the call; only the verified owner renames the account.
+  if (services?.userProfile && ownerOnTheLine(session)) {
     services.userProfile.name = name;
     services.userProfile.preferredName = name;
     try {
@@ -102,7 +100,7 @@ export async function rememberNameConfirmed(
     isYes: (words, asked) => isClearYes(words, [asked.toLowerCase()]),
   });
   const current = user.userName || onFile(user);
-  if (step.kind === 'save') return save(name, user);
+  if (step.kind === 'save') return save(name, user, session);
   if (step.kind === 'no') return noYesNote(name, current);
   getLogger().info({ second: step.second, hadName: !!current }, 'rememberName: waits for a yes');
   return step.second && like.kind === 'twice'

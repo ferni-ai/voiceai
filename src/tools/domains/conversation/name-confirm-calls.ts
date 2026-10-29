@@ -23,6 +23,8 @@
 interface Turn {
   turn: number;
   words: string;
+  /** The verified owner is on the line: a save may rename the account. */
+  owner: boolean;
 }
 
 interface Asked {
@@ -47,9 +49,12 @@ const answered = new WeakMap<object, Answer>();
 const agreed = new WeakMap<object, { turn: number; name?: string }>();
 
 /** Notes the caller's turn: `turn` counts their turns so far on this call, `words` are this turn's. */
-export function noteCallerTurn(session: object, words: string, turn: number): void {
-  if (words.trim()) turns.set(session, { turn, words });
+export function noteCallerTurn(session: object, words: string, turn: number, owner = false): void {
+  if (words.trim()) turns.set(session, { turn, words, owner });
 }
+
+/** Whether this turn's caller may rename the account (the agents layer decides; turn-request.ts). */
+export const ownerOnTheLine = (session: object): boolean => turns.get(session)?.owner === true;
 
 const first = (name: string): string => name.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
 export const sameName = (a: string, b: string | undefined): boolean => !!b && first(a) === first(b);
@@ -93,7 +98,7 @@ export function stepFor(
   name: string,
   opts: { twice: boolean; onFile?: string; isYes: (words: string, name: string) => boolean }
 ): Step {
-  const now = turns.get(session) ?? { turn: -1, words: '' };
+  const now = turns.get(session) ?? { turn: -1, words: '', owner: false };
   settle(session, now, opts.isYes);
   const reply = answered.get(session);
   const open = asked.get(session);
