@@ -192,8 +192,13 @@ import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-
 import { getCrashSummary } from './shared/crash-analytics.js';
 import { warmCallPath } from './gce/call-path-warmup.js';
 import { startProcessRuntime } from './gce/process-runtime.js';
-import { jobExecutorMode, startJobRunner, stopJobRunner } from './gce/job-runner.js';
-import { drainTimeoutMs, waitForActiveJobs } from './gce/drain.js';
+import {
+  activeJobCount,
+  drainJobRunner,
+  jobExecutorMode,
+  startJobRunner,
+} from './gce/job-runner.js';
+import { drainTimeoutMs } from './gce/drain.js';
 import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
@@ -255,6 +260,7 @@ async function main(): Promise<void> {
         uptimeMs: Date.now() - _startTime,
         memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         ...metrics,
+        activeJobs: activeJobCount(), // the children's calls in process mode
         crashes: crashSummary.totalCrashes,
         activeSessions: crashSummary.activeSessions,
         crashRate: crashSummary.crashRate,
@@ -308,8 +314,7 @@ const shutdown = async (signal: string): Promise<void> => {
   }
   isShuttingDown = true;
 
-  const { activeJobs } = getJobMetrics();
-  log(`Received ${signal}, shutting down...`, { activeJobs });
+  log(`Received ${signal}, shutting down...`, { activeJobs: activeJobCount() });
 
   // 1. Stop watchdog and health monitor
   try {
@@ -323,16 +328,16 @@ const shutdown = async (signal: string): Promise<void> => {
   // new jobs; the connection stays open so it doesn't re-dispatch the calls still running.
   prepareForShutdown();
 
-  // 3. Keep the calls alive until they end (drain.ts: 30 min, like LiveKit's SDK).
-  const drain = await waitForActiveJobs(() => getJobMetrics().activeJobs, drainTimeoutMs(), {
+  // 3. Keep the calls alive until they end (drain.ts: 30 min, like LiveKit's SDK), in
+  // this process or in the pool's children, then stop the job runner.
+  const drain = await drainJobRunner(drainTimeoutMs(), {
     pollMs: GCE_WORKER_STARTUP_DELAY_MS,
     onWait: (activeJobs, waitedMs) => log('Waiting for active jobs...', { activeJobs, waitedMs }),
   });
   log('Drain finished', { ...drain });
 
-  // 4. Now stop the job runner and timers, and close the connection.
+  // 4. Now stop the timers and close the connection.
   processRuntime.stop();
-  stopJobRunner();
   markLivekitDisconnected();
   stopPingKeepalive();
   stopPendingJobsCleanup();

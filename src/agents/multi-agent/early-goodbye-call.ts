@@ -37,6 +37,7 @@ export function earlyGoodbyeCall(
 ): EarlyGoodbyeCall {
   return {
     activeAgent: () => orchestrator.getActiveAgent(),
+    running: () => orchestrator.isHandoffInProgress() || Boolean(lock?.held()),
     busy: () =>
       orchestrator.isHandoffInProgress() ||
       Boolean(lock?.held()) ||
