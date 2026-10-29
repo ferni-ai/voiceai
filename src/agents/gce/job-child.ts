@@ -17,6 +17,7 @@ import { flushBqEvents } from '../../services/analytics/bq-events.js';
 import { setCallQualityForwarder } from '../../services/analytics/call-quality-monitor.js';
 import { pendingAfterCallTasks } from '../../services/session/after-call-tasks.js';
 import { registerGlobalErrorHandlers } from '../../utils/safe-fire-and-forget.js';
+import { warmFirestoreClients } from './child-firestore-warm.js';
 import { drainBackground } from './drain-background.js';
 import { runJobInProcess, setOnJobLifecycle, setWorkerId, shutdownJob } from './job-executor.js';
 import { asToChild, decodeJob, type ToChild, type ToParent } from './job-process-protocol.js';
@@ -97,6 +98,7 @@ async function main(): Promise<void> {
   const started = Date.now();
   await warmupResources(log);
   await warmCallPath(log);
+  await warmFirestoreClients(log); // the call's first reads, paid before it starts
   reportLoad();
 
   let busy = false;
