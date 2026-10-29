@@ -21,6 +21,7 @@
  */
 import type { HouseFacts } from '../../config/house-facts.js';
 import { containsContactData, contactNumberRuns, foldContactText } from '../../memory/index.js';
+import { plain } from './spoken-words.js';
 
 /** The addresses a sentence may give: lower case, numbers as national digits. */
 export interface Addresses {
@@ -161,32 +162,64 @@ export function inventsAddress(sentence: string, allowed: Addresses): boolean {
 
 /** The things Ferni has an address for. */
 const THING =
-  '(?:web ?site|site|web address|url|link|app|(?:phone |cell )?number|e-?mail(?: address)?|address|line|short ?code)';
+  '(?:web ?site|site|web address|url|link|app|(?:phone |cell |mobile )?number|phone|cell|mobile|e-?mail(?: address)?|address|line|handle|short ?code)';
 const SENT = '(?:texts?|calls?|e-?mails?|messages?)';
+/** Up to two words between "our" and the thing ("our new website"); each bounded, so linear. */
+const ADJ = '(?: [a-z]{1,15}){0,2}';
+const SEE_US = '(?:text|call|e-?mail|message|reach|contact|visit|find|see|download|get)';
+
+/**
+ * Text as the ownership shapes read it: the speech-to-text apostrophe fold (spoken-words
+ * `plain`), the other apostrophes ("\u02bc", full-width), compatibility forms, zero-width
+ * marks gone, one space between words, lower case.
+ */
+export const ownText = (text: string): string =>
+  plain(text.normalize('NFKC'))
+    .replace(/[\u02bc\u2032\u00b4`]/gu, "'")
+    .replace(/[\u200b-\u200d\u2060\ufeff]/gu, '')
+    .replace(/\s+/gu, ' ')
+    .toLowerCase();
+
 /**
  * The shapes that present an address as Ferni's own, in the one table both sides read:
- * `said` is Ferni speaking in the first person, `asked` the caller asking for his.
- * Short and bounded on purpose: this is a veto that only tightens, so a miss falls back
- * to provenance and a false hit only gives the honest line.
+ * `said` is Ferni speaking in the first person (or by name: `owners` is Ferni and the
+ * persona), `asked` the caller asking for his. Short and bounded on purpose: this is a
+ * veto that only tightens, so a miss falls back to provenance and a false hit only gives
+ * the honest line. Matched on ownText.
  */
-const OWN_SHAPES = {
-  said: new RegExp(
-    `\\b(?:our|my|ferni'?s)(?: own)? ${THING}\\b` +
-      `|\\b(?:text|call|e-?mail|message|reach|contact)(?: me| us) at\\b` +
-      `|\\b${SENT} from (?:me|us)\\b` +
-      `|\\bI(?:'m| am) at\\b|\\bfind (?:me|us) at\\b`,
-    'iu'
-  ),
-  asked: new RegExp(
-    `\\b(?:your|ferni'?s)(?: own)? (?:${THING}|${SENT})\\b` + `|\\b${SENT} (?:from|by) you\\b`,
-    'iu'
-  ),
-};
+function ownShapes(owners: readonly string[]): { said: RegExp; asked: RegExp } {
+  const name = owners
+    .map((o) => o.toLowerCase().replace(/[^a-z0-9]/gu, ''))
+    .filter(Boolean)
+    .join('|');
+  return {
+    said: new RegExp(
+      `\\b(?:our|my|(?:${name})'s)(?: own)?${ADJ} ${THING}\\b` +
+        `|\\bthe (?:${name})${ADJ} ${THING}\\b` +
+        `|\\b${SEE_US}(?: me| us)(?: online| here)? at\\b` +
+        `|\\b${SENT} from (?:me|us)\\b` +
+        `|\\bi(?:'m| am) at\\b`,
+      'u'
+    ),
+    asked: new RegExp(
+      `\\b(?:your|(?:${name})'s)(?: own)?${ADJ} (?:${THING}|${SENT})\\b` +
+        `|\\b${SENT} (?:from|by) you\\b`,
+      'u'
+    ),
+  };
+}
+const FERNI_SHAPES = ownShapes(['ferni']);
+const shapesFor = (persona?: string): ReturnType<typeof ownShapes> =>
+  persona && persona.toLowerCase() !== 'ferni' ? ownShapes(['ferni', persona]) : FERNI_SHAPES;
 
-/** True when the sentence gives an address as Ferni's own ("our website", "text me at"). */
-export const presentsAsOwn = (sentence: string): boolean =>
-  piecesOf(sentence).some((piece) => OWN_SHAPES.said.test(piece));
+/**
+ * True when the text gives an address as Ferni's own ("our new website", "the Ferni app",
+ * "Ferni's site", "text me at", "visit us at"). Whole text, not pieces: a phrase must not
+ * be cut in two before it is read.
+ */
+export const presentsAsOwn = (text: string, persona?: string): boolean =>
+  shapesFor(persona).said.test(ownText(text));
 
 /** True when the caller's words ask for Ferni's own website, number, email or sender. */
-export const asksForOwn = (callerWords: string): boolean =>
-  OWN_SHAPES.asked.test(callerWords.slice(-MAX_PIECE));
+export const asksForOwn = (callerWords: string, persona?: string): boolean =>
+  shapesFor(persona).asked.test(ownText(callerWords));

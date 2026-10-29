@@ -50,6 +50,14 @@ describe("Ferni's own address shapes", () => {
     'Please reach us at x.',
     'Texts from me come from 55512.',
     "I'm at x.com.",
+    'Our new website is x.com.',
+    'My brand new phone number is 5.',
+    'My cell is 727.',
+    'Download the Ferni app at x.com.',
+    'Visit us at x.com.',
+    'Ferni\u2019s site is x.com.',
+    'FERNI\u02bcS SITE',
+    'Our\u00a0\u00a0website\u200b is x.com.',
     'You can find me at x.com.',
   ])('said as ours: %s', (line) => expect(presentsAsOwn(line)).toBe(true));
 
@@ -59,7 +67,16 @@ describe("Ferni's own address shapes", () => {
     'Texts from my mom come from 727-555-0199.',
     'The latest email is from john@gmail.com.',
     'The number is on their site.',
+    "My mom's cell is 727-555-0199.",
+    'Go to chase.com and tap verify.',
+    "The pharmacy's number is 727-555-0111.",
   ])('not said as ours: %s', (line) => expect(presentsAsOwn(line)).toBe(false));
+
+  it('names the persona as the owner', () => {
+    expect(presentsAsOwn("Maya's number is 727-555-0123.", 'maya')).toBe(true);
+    expect(presentsAsOwn("Maya's number is 727-555-0123.")).toBe(false);
+    expect(asksForOwn('What is Maya\u2019s number?', 'maya')).toBe(true);
+  });
 
   it.each([
     "What's your website?",
@@ -76,7 +93,7 @@ describe("Ferni's own address shapes", () => {
   ])('not asked for his: %s', (words) => expect(asksForOwn(words)).toBe(false));
 
   it('is linear on hostile input', () => {
-    const text = 'our '.repeat(20000);
+    const text = 'our new '.repeat(20000) + 'our ' + 'a'.repeat(50000);
     const start = performance.now();
     presentsAsOwn(text);
     asksForOwn(text);

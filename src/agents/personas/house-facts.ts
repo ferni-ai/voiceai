@@ -17,10 +17,13 @@
  *   Otherwise the sentence is replaced, once per reply, with "I don't have that in
  *   front of me." A contact's number from a tool passes, an invented one fails
  *   wherever it appears.
- * - One veto, in one direction: an address given as Ferni's OWN ("our website", "text me
- *   at", or the caller just asked for his) must be a house fact, whatever the context
- *   says. Tool results are untrusted (a web page or inbound email can say "Ferni's
- *   website is ..."), so grounding can never make an address his (#3032 round 4).
+ * - One veto, in one direction, decided for the whole reply: once any fragment presents
+ *   an address as Ferni's OWN ("our new website", "the Ferni app", "Ferni's site", "text
+ *   me at"), or the caller just asked for his, every later address in that reply must be a
+ *   house fact or the caller's own (their turns this call, their profile's phone and
+ *   email), never a tool result: a web page or inbound email can say "Ferni's website is
+ *   ...". An address relayed with no self-reference ("the pharmacy's number is ...") is
+ *   still grounded as above: that is relaying, and call-on-behalf needs it (#3032 rounds 4-4b).
  *
  * Matching is spoken-addresses.ts. Grounding is read only when a sentence holds an
  * address that isn't a house fact, and each chat item is read once per call.
@@ -36,6 +39,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { NO_NEW_WORDS_NOTE, TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';
 import { recentSpoken } from './spoken-words.js';
 import {
@@ -104,25 +108,59 @@ function groundingText(item: GroundingItem): string {
 /** Each chat item's addresses, read once: items are the same objects turn after turn. */
 const itemAddresses = new WeakMap<object, Addresses>();
 
-/**
- * The addresses this call has grounded, plus the house facts: everything the caller
- * said, every tool result, and the context injected into the session (system notes,
- * the instructions with memory and the call sheet).
- */
-function allowedAddresses(chatCtx: { items: readonly unknown[] }, facts: HouseFacts): Addresses {
-  const allowed = factAddresses(facts);
+/** Adds each chat item's addresses (read once per item) to `into`, for the items `keep` picks. */
+function addItemAddresses(
+  chatCtx: { items: readonly unknown[] },
+  into: Addresses,
+  keep: (item: GroundingItem) => boolean
+): Addresses {
   for (const item of chatCtx.items) {
-    if (typeof item !== 'object' || item === null) continue;
+    if (typeof item !== 'object' || item === null || !keep(item as GroundingItem)) continue;
     let found = itemAddresses.get(item);
     if (!found) {
       found = collectAddresses(groundingText(item as GroundingItem), noAddresses());
       itemAddresses.set(item, found);
     }
     for (const key of ['hosts', 'emails', 'numbers'] as const) {
-      for (const value of found[key]) allowed[key].add(value);
+      for (const value of found[key]) into[key].add(value);
     }
   }
-  return allowed;
+  return into;
+}
+
+/**
+ * The addresses this call has grounded, plus the house facts: everything the caller
+ * said, every tool result, and the context injected into the session (system notes,
+ * the instructions with memory and the call sheet).
+ */
+const allowedAddresses = (chatCtx: { items: readonly unknown[] }, facts: HouseFacts): Addresses =>
+  addItemAddresses(chatCtx, factAddresses(facts), () => true);
+
+/** What the caller's own profile holds that they could give out (their phone and email). */
+export interface CallerContact {
+  phone?: string;
+  email?: string;
+}
+
+/** A caller turn: a user message that is not a note the turn machinery pushed as one. */
+const isCallerTurn = (item: GroundingItem): boolean => {
+  if (item.type !== 'message' || item.role !== 'user') return false;
+  const text = groundingText(item).trimStart();
+  return !text.startsWith(TURN_CONTEXT_HEADER) && text !== NO_NEW_WORDS_NOTE;
+};
+
+/**
+ * The addresses a caller may have given out as their own: the house facts, their own
+ * turns this call, and their own profile's phone and email. Never a tool result or an
+ * inbound email or text, which anyone can write.
+ */
+function callerOwnedAddresses(
+  chatCtx: { items: readonly unknown[] },
+  facts: HouseFacts,
+  contact?: CallerContact
+): Addresses {
+  const owned = addItemAddresses(chatCtx, factAddresses(facts), isCallerTurn);
+  return collectAddresses(`${contact?.phone ?? ''}\n${contact?.email ?? ''}`, owned);
 }
 
 /**
@@ -143,21 +181,32 @@ const isReplyStream = (s: unknown): s is ReadableStream<ReplyChunk> =>
 export async function withHouseFactsGuard<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
-  env: Env = process.env
+  env: Env = process.env,
+  who: { personaId?: string; contact?: CallerContact } = {}
 ): Promise<T> {
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
   const facts = factAddresses(houseFacts(env));
-  // Ferni's own address: only a house fact will do, however the context vouches for it
-  // (tool results are untrusted: a web page or inbound email can claim "our website is ...").
-  const callerAsked = recentSpoken(chatCtx, 'user', 2).some(asksForOwn);
-  // Read only when a sentence holds an address that isn't a house fact (most replies hold none).
+  // Ownership is decided for the whole reply, not a sentence at a time: once Ferni has
+  // presented an address as his own (or the caller asked for his), every later address
+  // must be a house fact or the caller's own. Tool results are untrusted (a web page or
+  // inbound email can claim "our website is ..."), so grounding can't make one his.
+  let own = recentSpoken(chatCtx, 'user', 2).some((words) => asksForOwn(words, who.personaId));
   let grounded: Addresses | undefined;
-  const invents = (sentence: string): boolean =>
-    inventsAddress(sentence, facts) &&
-    (callerAsked ||
-      presentsAsOwn(sentence) ||
-      inventsAddress(sentence, (grounded ??= allowedAddresses(chatCtx, houseFacts(env)))));
+  let callerOwned: Addresses | undefined;
+  // Read only when a sentence holds an address that isn't a house fact (most replies hold none).
+  const invents = (sentence: string): boolean => {
+    own ||= presentsAsOwn(sentence, who.personaId);
+    return (
+      inventsAddress(sentence, facts) &&
+      inventsAddress(
+        sentence,
+        own
+          ? (callerOwned ??= callerOwnedAddresses(chatCtx, houseFacts(env), who.contact))
+          : (grounded ??= allowedAddresses(chatCtx, houseFacts(env)))
+      )
+    );
+  };
   const reader = stream.getReader();
   let id = '';
   let stringChunks = true;
@@ -172,7 +221,7 @@ export async function withHouseFactsGuard<T>(
       };
       const decide = (sentence: string): void => {
         if (!invents(sentence)) return emit(sentence);
-        log.warn({ reason: 'not_grounded_or_not_ours' }, 'HOUSE_FACT_INVENTED');
+        log.warn({ reason: own ? 'not_a_house_fact' : 'not_grounded' }, 'HOUSE_FACT_INVENTED');
         if (!replaced) emit(`${NOT_IN_FRONT_OF_ME}${/\s$/.test(sentence) ? ' ' : ''}`);
         replaced = true;
       };
@@ -200,6 +249,7 @@ export async function withHouseFactsGuard<T>(
           }
           // A run with no sentence end is decided in pieces, so the buffer stays small.
           if (pending.length > 2 * MAX_HELD) {
+            own ||= presentsAsOwn(pending, who.personaId); // the whole buffer, before it is cut
             const pieces = piecesOf(pending, MAX_HELD);
             pending = pieces.pop() ?? '';
             pieces.forEach(decide);

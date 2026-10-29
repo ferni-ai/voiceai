@@ -278,9 +278,11 @@ closed: every web address, email or phone number Ferni speaks must be a house fa
 appear in this call's grounding (the caller's words, tool results, injected context),
 compared whole after normalising spoken forms (`personas/spoken-addresses.ts`, on the
 shared contact-data fold). Otherwise the sentence becomes "I don't have that in front
-of me." One veto, tightening only: an address given as Ferni's own ("our website", "text
-me at", or the caller just asked for his) must be a house fact, never grounded (tool
-results are untrusted: a web page or email can claim it). An unset fact is named as
+of me." One veto, tightening only, for the whole reply: once a fragment presents an address as
+Ferni's own ("our new website", "the Ferni app", "text me at") or the caller just asked
+for his, every later address in that reply must be a house fact or the caller's own (their
+turns, their profile's phone and email), never a tool result (a web page or email can claim
+it). An address relayed with no self-reference stays grounded. An unset fact is named as
 unknown, never guessed.
 
 ---
