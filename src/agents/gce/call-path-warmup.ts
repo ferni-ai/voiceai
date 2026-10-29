@@ -103,8 +103,7 @@ export interface RtcNative {
  * False when the module or the track could not be made. Never throws.
  */
 export async function warmRtcNative(
-  load: () => Promise<RtcNative> = async () =>
-    (await import('@livekit/rtc-node')) as unknown as RtcNative
+  load: () => Promise<RtcNative> = async () => import('@livekit/rtc-node')
 ): Promise<boolean> {
   try {
     const rtc = await load();
