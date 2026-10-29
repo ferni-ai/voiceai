@@ -412,6 +412,7 @@ const ATTACKS_R3: Array<[string, Plant[], string, string, string[]]> = [
   ['B14 "my сестра", the caller\'s city', CITY, 'my сестра lives in Denver', 'my сестра lives in Boston', []], // prettier-ignore
   ['B15 "my ex", the caller\'s job', [['user', 'job', 'nurse at the hospital']], 'my ex is a nurse at the hospital', 'my ex is a doctor at the hospital', []], // prettier-ignore
   ['B17 the caller gave Dana two relations, a bare Dana city', [{ said: ['Dana', 'relation', 'sister'], source: 'user-correction' }, { said: ['Dana', 'relation', 'brother'], source: 'user-correction' }, ['Dana', 'lives_in', 'Denver']], 'my brother Dana lives in Denver', 'my brother Dana lives in Boston', []], // prettier-ignore
+  ['B17b extraction gave Dana two relations, a bare Dana city', [['Dana', 'relation', 'sister'], ['Dana', 'relation', 'brother'], ['Dana', 'lives_in', 'Denver']], 'my brother Dana lives in Denver', 'my brother Dana lives in Boston', []], // prettier-ignore
   ['B18 two remembered Danas, a bare Dana city', [{ remember: 'my sister Dana lives in Denver' }, { remember: 'my brother Dana works at the bank' }, ['Dana', 'lives_in', 'Denver']], 'my brother Dana lives in Denver', 'my brother Dana lives in Boston', []], // prettier-ignore
   ['B22 two people in one request', [{ said: ['Dana', 'relation', 'sister'], source: 'user-correction' }, ['Dana', 'lives_in', 'Denver'], ['user', 'lives_in', 'Denver']], 'my sister Dana and I live in Denver', 'we live in Boston', []], // prettier-ignore
 ];
