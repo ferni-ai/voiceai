@@ -45,22 +45,6 @@ export const COSMETICS_FOR_SALE: readonly CosmeticForSale[] = [
   // a bought pack changed nothing. The web hides them; the server must not sell them either.
 ];
 
-/**
- * The themes that really change the look: the light default and Midnight. The others are the
- * light and dark themes plus an accent hue no stylesheet reads. Mirrors WORKING_THEMES in
- * apps/web/src/services/cosmetics-listed.ts (cosmetics-catalog.test.ts fails on drift).
- */
-const WORKING_THEMES: ReadonlySet<string> = new Set(['theme-default', 'theme-midnight']);
-
-/**
- * What the web's Make It Yours lists while VITE_PERSONALIZE_EXTRAS is unset, which it is
- * everywhere: the avatar skins and the working themes. The sound packs are identical silent
- * mp3s and the other themes change nothing, so the web hides them (listedCosmetics()).
- */
-export const LISTED_COSMETICS_FOR_SALE: readonly CosmeticForSale[] = COSMETICS_FOR_SALE.filter(
-  (item) => item.type === 'avatar-skin' || (item.type === 'ui-theme' && WORKING_THEMES.has(item.id))
-);
-
 const BY_ID = new Map(COSMETICS_FOR_SALE.map((item) => [item.id, item]));
 
 /** The item for sale with this id, or undefined (unknown, or a default item). */

@@ -8,7 +8,6 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   COSMETICS_FOR_SALE,
-  LISTED_COSMETICS_FOR_SALE,
   cosmeticForSale,
   DEFAULT_COSMETICS,
   isDefaultCosmetic,
@@ -81,34 +80,6 @@ describe('server cosmetics catalog matches the web catalog', () => {
     for (const item of COSMETICS_FOR_SALE) {
       expect(Number.isInteger(item.price) && item.price > 0, item.id).toBe(true);
     }
-  });
-});
-
-describe('the listed cosmetics match what the web lists', () => {
-  const LISTED = fileURLToPath(
-    new URL('../../../../apps/web/src/services/cosmetics-listed.ts', import.meta.url)
-  );
-  const source = readFileSync(LISTED, 'utf8');
-
-  it('the web still hides extras behind VITE_PERSONALIZE_EXTRAS and lists skins plus its working themes', () => {
-    expect(source).toContain('isPersonalizeExtrasOn()');
-    expect(source).toMatch(
-      /c\.type === 'avatar-skin' \|\| \(c\.type === 'ui-theme' && WORKING_THEMES\.has\(c\.id\)\)/
-    );
-  });
-
-  it('lists the avatar skins for sale and the web working themes that are for sale', () => {
-    const webThemes = [
-      ...(/WORKING_THEMES = new Set\(\[([^\]]*)\]\)/.exec(source)?.[1] ?? '').matchAll(
-        /'([^']+)'/g
-      ),
-    ].map((m) => m[1]);
-    expect(webThemes.length).toBeGreaterThan(0);
-    const expected = COSMETICS_FOR_SALE.filter(
-      (c) => c.type === 'avatar-skin' || (c.type === 'ui-theme' && webThemes.includes(c.id))
-    ).map((c) => c.id);
-    expect(LISTED_COSMETICS_FOR_SALE.map((c) => c.id)).toEqual(expected);
-    expect(LISTED_COSMETICS_FOR_SALE.some((c) => c.type === 'sound-pack')).toBe(false);
   });
 });
 
