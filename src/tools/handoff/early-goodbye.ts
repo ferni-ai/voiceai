@@ -169,7 +169,9 @@ interface SpeechEvents {
 function watchSpeech(session: unknown, early: Said): void {
   const s = (session ?? {}) as SpeechEvents;
   if (typeof s.on !== 'function' || typeof s.off !== 'function') return;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  // stop is defined below; the timer only fires after this function returns.
+  const timer = setTimeout(() => stop(), EARLY_GOODBYE_TTL_MS);
+  timer.unref?.();
   const onCreated = (ev: unknown): void => {
     const { source, speechHandle } = (ev ?? {}) as {
       source?: string;
@@ -186,8 +188,6 @@ function watchSpeech(session: unknown, early: Said): void {
     early.stopWatching = undefined;
   };
   early.stopWatching = stop;
-  timer = setTimeout(stop, EARLY_GOODBYE_TTL_MS);
-  timer.unref?.();
   s.on(SPEECH_CREATED, onCreated);
 }
 
@@ -274,7 +274,9 @@ async function joinedAnyway(call: EarlyGoodbyeCall, target: string): Promise<boo
   const until = Date.now() + JOINED_SETTLE_MS;
   while (call.running?.() && Date.now() < until) {
     // eslint-disable-next-line no-await-in-loop -- polling until the other handoff settles
-    await new Promise((resolve) => setTimeout(resolve, SETTLE_POLL_MS));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, SETTLE_POLL_MS);
+    });
   }
   const agent = call.activeAgent();
   return Boolean(agent && target && plain(agent.personaId) === plain(target));
