@@ -150,4 +150,8 @@ describe('persona builders by live persona id (#2836)', () => {
     // A real person's name never resolves to a persona (alias-resolution.test.ts).
     expect(await builderRunFor('joel')).toEqual([]);
   });
+
+  it('gives a persona with no id no builder instead of throwing', async () => {
+    expect(await builderRunFor(undefined as unknown as string)).toEqual([]);
+  });
 });

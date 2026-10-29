@@ -97,7 +97,8 @@ const personaBuilderCache = new Map<CanonicalPersonaId, PersonaContextBuilder>()
  * none, its flag is off, or the id is unknown (a custom agent is not Ferni).
  */
 async function getPersonaBuilder(personaId: string): Promise<PersonaContextBuilder | null> {
-  if (!isKnownId(personaId)) return null;
+  // persona.id comes from runtime config; a missing id gets no builder rather than a throw.
+  if (typeof personaId !== 'string' || !isKnownId(personaId)) return null;
   const canonical = toCanonical(personaId);
   const entry = PERSONA_BUILDERS[canonical];
   if (!entry || (entry.flag && !flagOn(entry.flag))) return null;
