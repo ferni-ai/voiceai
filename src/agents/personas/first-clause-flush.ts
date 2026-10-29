@@ -96,14 +96,14 @@ export function findFirstClauseEnd(text: string, minChars = FIRST_CLAUSE_MIN_CHA
  */
 export function clauseSafeFor(
   callYes: boolean,
-  unheard: { askedHow: boolean } | null,
+  unheard: { askedHow: boolean; yesTold?: boolean } | null,
   actionTalk: (clause: string) => boolean
 ): (clause: string) => boolean {
   return (clause) =>
     claimedAction(clause) === null &&
     !(callYes && bareOnIt(clause)) &&
     promisedAction(clause) === null &&
-    !(unheard && narratesCallOutcome(clause, unheard.askedHow)) &&
+    !(unheard && narratesCallOutcome(clause, unheard.askedHow, unheard.yesTold)) &&
     !actionTalk(clause);
 }
 

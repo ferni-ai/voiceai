@@ -98,13 +98,16 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 ## Quality Workflows
 
-### lead-verified.yml (enforced in the merge queue)
+### lead-verified.yml (enforced on PRs and in the merge queue)
 
 **Purpose:** Check that the exact code a PR merges was independently verified
 (rules: `scripts/ci/lead-verified.ts`, always run from main's copy, never the PR's).
-Runs on PRs, PR comments and merge_group. On a PR it only reports. On merge_group it
-fails (since 2026-10-25) when a queued head is NOT_VERIFIED or the evidence can't be read
-(ERROR). The queue drops the PR only while `Lead Verified` is a required check (rollout:
+Runs on PRs, PR comments and merge_group. It fails when the head is NOT_VERIFIED or the
+evidence can't be read (ERROR): on merge_group since 2026-10-25, and on PRs since
+2026-10-29, so an armed but unverified PR waits outside the queue instead of entering it,
+failing and ejecting every group behind it (one sweep that day armed 13 unverified PRs).
+Comment-triggered runs only report: they don't update the PR's check, so
+`post-lead-verify.sh` re-runs the PR's check after it posts. The queue drops the PR only while `Lead Verified` is a required check (rollout:
 merge this, then add the context to main's required checks). The only allowed author, for
 both the `lead-verify` status and bound comments, is `ferni-verifier[bot]`. A green "Lead
 Verified" on a PR page is not verification; the evidence is that app's
@@ -116,6 +119,10 @@ Verified" on a PR page is not verification; the evidence is that app's
 `scripts/ci/post-lead-verify.sh <pr> <head-sha> pass|fail "<what you ran>"`. It refuses
 any SHA that is not the head and posts the `lead-verify` status (the only tamper-proof
 evidence) plus a comment whose first line is `RESULT_verifier=PASS sha=<40-hex head>`.
+Then it waits for the PR's Lead Verified run on that head to finish and re-runs it (as
+`ferni-agent`, which may re-run Actions; the verifier app may not), unless a PASS finds it
+passing already. Exit 5: the verdict is posted but the check wasn't re-run; re-run it by
+hand (`gh run rerun <id>`) or it updates on the next push.
 A hand-written comment counts only if that marker starts a line outside quotes and code
 fences, the author is in `LEAD_VERIFIED_AUTHORS` (see above), and it is never
 edited. Prose verdicts, reviews and auto-merge text never verify. Any FAIL wording

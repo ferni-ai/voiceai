@@ -17,3 +17,4 @@ import '../services/outreach/after-call-checkin-register.js';
 import './fact-supersession-register.js';
 import './personas/move-outcomes-register.js';
 import './wellbeing-register.js';
+import './summary-joke-retention-register.js';

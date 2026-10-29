@@ -48,13 +48,15 @@ vi.mock('@livekit/agents', () => ({
 
 // Mock Twilio client
 const mockTwilioCall = vi.hoisted(() => vi.fn());
-vi.mock('twilio', () => ({
-  default: vi.fn(() => ({
-    calls: {
-      create: mockTwilioCall,
-    },
-  })),
-}));
+vi.mock('twilio', async (importOriginal) => {
+  const actual = await importOriginal<{ default: typeof import('twilio') }>();
+  // The real validateRequest checks webhook signatures; only the client is faked.
+  const client = Object.assign(
+    vi.fn(() => ({ calls: { create: mockTwilioCall } })),
+    { validateRequest: actual.default.validateRequest }
+  );
+  return { default: client };
+});
 
 // Mock orchestrator - must return valid call ID
 const mockOrchestratorInitiateCall = vi.hoisted(() => vi.fn());
@@ -187,6 +189,8 @@ const TEST_WEBHOOK_PATH = '/api/webhooks/call-status';
 // Sign webhook requests the way Twilio does so the handler's real signature
 // check runs in tests rather than being bypassed.
 initializeTwilioWebhooks(TEST_TWILIO_AUTH_TOKEN);
+// Twilio signs the public URL it was given (WEBHOOK_BASE_URL), not the Host header (#2679).
+process.env.WEBHOOK_BASE_URL = `https://${TEST_WEBHOOK_HOST}`;
 
 function signTwilioPayload(url: string, params: Record<string, string>): string {
   const data = Object.keys(params)

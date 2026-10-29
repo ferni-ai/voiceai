@@ -61,6 +61,40 @@ const DANGLING_WORDS = new Set([
 /** Short replies that are whole turns even when ink leaves them unpunctuated. */
 const WHOLE_SHORT_REPLIES = new Set(['no', 'nope', 'nah', 'hi', 'hello', 'hey', 'bye', 'thanks']);
 
+/**
+ * A stop, pause or wait command is a whole turn too (#2657). Prod
+ * AJ_JbTguxw4hwRw: with music playing, "Hey, Ferni, can you stop" came
+ * unpunctuated, was held twice, and the stop came 4.4 s after the caller
+ * finished. It is the turn where waiting hurts most: something is playing
+ * over the caller. Only the whole turn counts: an optional lead-in ("hey
+ * Ferni", "can you", "please"), the command, an optional "please" or "now".
+ * "Don't stop", "I can't stop" and "stop and" are still held.
+ */
+// prettier-ignore
+const STOP_COMMANDS = [
+  'stop', 'stop it', 'stop that', 'stop the music', 'stop talking', 'stop playing',
+  'pause', 'pause it', 'pause the music', 'turn it off', 'shut it off', 'enough',
+  'thats enough', 'quiet', 'be quiet', 'hold on', 'hang on', 'wait', 'shh', 'shush',
+].map((command) => command.split(' '));
+// prettier-ignore
+const STOP_LEAD_IN = new Set([
+  'hey', 'hi', 'ferni', 'ok', 'okay', 'oh', 'no', 'wait', 'please', 'can', 'could', 'would',
+  'will', 'you', 'just',
+]);
+const STOP_TAIL = new Set(['please', 'now']);
+
+/** The whole turn asks Ferni to stop, pause or wait ("can you stop", "hold on", "shh"). */
+function isStopCommand(ws: readonly string[]): boolean {
+  const said = ws.map((w) => (/^sh+$/.test(w) ? 'shh' : w)); // "Shhh", "Sh"
+  let end = said.length;
+  while (end > 0 && STOP_TAIL.has(said[end - 1])) end--;
+  return STOP_COMMANDS.some((command) => {
+    const start = end - command.length;
+    if (start < 0 || command.some((w, i) => said[start + i] !== w)) return false;
+    return said.slice(0, start).every((w) => STOP_LEAD_IN.has(w));
+  });
+}
+
 export type Unfinishedness = 'finished' | 'dangling' | 'unpunctuated';
 
 export function unfinishedness(transcript: string): Unfinishedness {
@@ -70,6 +104,8 @@ export function unfinishedness(transcript: string): Unfinishedness {
   if (ws.length === 0) return 'finished';
   if (/[.?!]$/.test(text) && !/\.\.\.$/.test(text)) return 'finished';
   if (/(,|-|—|…|\.\.\.)$/.test(text)) return 'dangling';
+  // Before the dangling words: "hold on" ends on one.
+  if (isStopCommand(ws)) return 'finished';
   // Before the backchannel check: "um", "uh" and "yeah, um" are backchannel
   // words too, but someone ending on them is gathering a thought.
   if (DANGLING_WORDS.has(ws[ws.length - 1])) return 'dangling';
