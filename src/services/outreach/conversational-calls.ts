@@ -275,7 +275,6 @@ async function initiateCall(
     const twilio = await import('twilio');
     const client = twilio.default(twilioSid, twilioToken);
 
-    // Build TwiML
     const twiml = buildCallTwiML(call, options);
 
     // Create the call
