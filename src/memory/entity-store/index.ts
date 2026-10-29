@@ -67,6 +67,7 @@ export {
   hasEntityStore,
   getEntityStoreStats,
 } from './storage.js';
+export { listPersonEntities, setPersonPhone } from './person-phone.js';
 
 // ============================================================================
 // RESOLVER EXPORTS
