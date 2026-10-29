@@ -10,8 +10,8 @@
  * date fails the Flag expiry check (scripts/flags/expiry.ts) against the merge base: a new or
  * edited experiment carries expires, issue and context in its own spec instead.
  *
- * The 2026-10-24..27 groups and 16 of the 2026-10-23 names were grandfathered when main was
- * merged on 2026-10-26/27: 55 experiments that landed on main after this list was cut, same rule.
+ * The 2026-10-24..29 groups and 16 of the 2026-10-23 names were grandfathered when main was
+ * merged on 2026-10-26..29: 57 experiments that landed on main after this list was cut, same rule.
  *
  * @module config/flag-lifecycle-backfill
  */
@@ -160,6 +160,8 @@ const GROUPS: readonly BackfillGroup[] = [
     flags: 'CONTACT_PICK_V2 CRISIS_EVENT_RECORD HANDOFF_EARLY_GOODBYE MIND_BUILD',
   },
   { firstSeen: '2026-10-27', expires: '2027-01-25', flags: 'AI_NOTICE_SPOKEN' },
+  { firstSeen: '2026-10-28', expires: '2027-01-26', flags: 'ACTIVITY_LEDGER' },
+  { firstSeen: '2026-10-29', expires: '2027-01-27', flags: 'MEMORY_FACTS' },
 ];
 
 export const FLAG_EXPIRY_BACKFILL: Readonly<
