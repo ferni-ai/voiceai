@@ -178,15 +178,17 @@ describe('the turn reminder', () => {
 
 describe('handoffConsent hears "talk to 9" as asking for Nayan', () => {
   it('is asked for Nayan, not for Maya, when aliases may count', () => {
-    expect(handoffConsent(chat('Can I talk to 9?'), 'Nayan Patel', ON)).toBe('asked');
-    expect(handoffConsent(chat('Can I talk to 9?'), 'Maya Santos', ON)).toBe('none');
-    expect(handoffConsent(chat('Can I talk to Fred?'), 'Ferni', ON)).toBe('asked');
+    expect(handoffConsent(chat('Can I talk to 9?'), 'Nayan Patel', ON, true)).toBe('asked');
+    expect(handoffConsent(chat('Can I talk to 9?'), 'Maya Santos', ON, true)).toBe('none');
+    expect(handoffConsent(chat('Can I talk to Fred?'), 'Ferni', ON, true)).toBe('asked');
     expect(handoffConsent(chat('Can I talk to 9?'), 'Nayan Patel')).toBe('none');
+    // The flag alone isn't enough: only holdUnaskedHandoff opts in, and not on a guided turn
+    expect(handoffConsent(chat('Can I talk to 9?'), 'Nayan Patel', ON)).toBe('none');
   });
 
   it('is not asked for Nayan after an agent line that gave 988', () => {
     const ctx = chat('connect me to nine', 'You can call or text 988 any time, day or night.');
-    expect(handoffConsent(ctx, 'Nayan Patel', ON)).toBe('none');
+    expect(handoffConsent(ctx, 'Nayan Patel', ON, true)).toBe('none');
   });
 });
 
@@ -245,14 +247,16 @@ describe('never consent from an alias on a call with crisis handling', () => {
   it.each(['guide', 'replace', undefined])(
     'holds it on a turn marked %s (or never marked)',
     (action) => {
-      expect(hold(runCtx('Can I talk to 9?', action))?.unavailable).toBe(true);
+      expect(hold(runCtx('Can I talk to 9?', action))?.instruction).toMatch(/^Not transferred/);
     }
   );
 
   it.each(['guide', 'replace'])(
     'holds "connect me to nine" on a pass turn after a %s turn',
     (action) => {
-      expect(hold(runCtx('connect me to nine', action, 'pass'))?.unavailable).toBe(true);
+      expect(hold(runCtx('connect me to nine', action, 'pass'))?.instruction).toMatch(
+        /^Not transferred/
+      );
     }
   );
 

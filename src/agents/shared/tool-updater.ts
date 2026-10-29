@@ -40,6 +40,7 @@ import {
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
 import { flagOn } from '../../config/env-flag.js';
+import { personaToolsetsEnabled } from '../../config/persona-toolsets-flag.js';
 import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
@@ -95,6 +96,7 @@ let warnedMetaTool = false;
  * TOOL_CORE_STATIC: the call's tools only gain the core tools it lacks, or
  * the tools findTools found (`pin`), appended uncapped below
  * APPEND_ONLY_TOOL_CAP; other offers (topic domains, the catalog) are ignored.
+ * PERSONA_TOOLSETS (without TOOL_CORE_STATIC): every offer is ignored.
  *
  * @param agent - The voice agent instance
  * @param offeredTools - New tools to add (merged with existing)
@@ -119,6 +121,8 @@ export async function updateAgentTools(
   const { domains = [], silentMerge = false, forceSync = false, pin = false } = options;
   const target = asToolCapable(agent);
   const staticCore = staticCoreToolsEnabled();
+  // PERSONA_TOOLSETS: the agent's set is fixed when it is built (persona-toolsets.ts).
+  if (personaToolsetsEnabled() && !staticCore) return true;
   // PERSONA_TOOL_POLICY: no mid-call update gives the persona on the call a tool it forbids
   // (the agent's own persona, from agent setup). Off: no await, so the tools still
   // reach the agent synchronously, as before the policy.

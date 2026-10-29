@@ -115,15 +115,35 @@ const userIdOf = (userData: unknown): string | undefined =>
   (userData as { userId?: string } | undefined)?.userId;
 
 /**
+ * The request with this turn's notes. Never throws: when a note builder does, the turn gets
+ * the request as sent rather than no reply at all. gatedReply adds crisis guidance after this,
+ * so a guided turn keeps it (2026-10-29: an owner check threw on a crisis turn, #2996).
+ */
+export function withTurnReminder(
+  request: llm.ChatContext,
+  session: object,
+  options: TurnReminderOptions = {}
+): llm.ChatContext {
+  try {
+    return buildTurnReminder(request, session, options);
+  } catch (error) {
+    log.warn({ error: String(error) }, "TURN_REMINDER_FAILED: replying without this turn's notes");
+    return request;
+  }
+}
+
+type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean };
+
+/**
  * A copy of the context with the turn reminder, plus what Ferni has already
  * told on this call, the team line (locked-teammates.ts), and the director's
  * notes for this reply, if any, and without per-turn context built for an
  * earlier turn (turn-intelligence.ts).
  */
-export function withTurnReminder(
+function buildTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean; closeLoop?: boolean } = {}
+  options: TurnReminderOptions
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
