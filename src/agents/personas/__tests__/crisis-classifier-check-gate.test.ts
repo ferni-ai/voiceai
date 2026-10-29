@@ -483,6 +483,31 @@ describe('eval round 2: minors never get the check', () => {
     expect(isScript(await c.say("I'm fine."))).toBe(true);
   });
 
+  it.each([
+    ["i'm 15", undefined],
+    ["I'm fifteen.", undefined],
+    ['fifteen', AGE_Q],
+    ['15.', AGE_Q],
+  ] as const)(
+    'an age said on the call ("%s"), MINOR_CARE off, keeps the script even far back',
+    async (age, asked) => {
+      const c = call(ON, reads([]));
+      if (asked) c.lines.push(['assistant', asked]);
+      await c.say(age, 'Thanks for telling me.');
+      for (let i = 0; i < 6; i++) await c.say(`ok, thing ${i}`); // past the classifier's 5 lines
+      await c.say(TELL, READY);
+      expect(isScript(await c.say('Yes.'))).toBe(true);
+    }
+  );
+
+  it('the same call with no age said gets the check (the forms above are what keep the script)', async () => {
+    const c = call(ON, reads([]));
+    await c.say("i'm good", 'Thanks for telling me.');
+    for (let i = 0; i < 6; i++) await c.say(`ok, thing ${i}`);
+    await c.say(TELL, READY);
+    expect(await c.say('Yes.')).toBe(CLASSIFIER_CHECK);
+  });
+
   it('an adult with MINOR_CARE on still gets the check (the guard is not a blanket refusal)', async () => {
     const c = call(MINOR_ON, reads([]));
     await c.say(TELL, READY);
@@ -496,6 +521,20 @@ describe('eval round 2: words that state means, a place, a plan or an injury get
     await c.say(TELL, READY);
     const heard = await c.say('Yes.');
     expect(isScript(heard)).toBe(true);
+  });
+
+  it('a plan said long before the alarm (past the classifier window) keeps the script', async () => {
+    const PLAN = 'i already wrote the notes, saturday is when i do it';
+    const generate: CrisisGenerateFn = async (prompt, content, signal) => {
+      if (prompt !== CHECK_SITUATION_PROMPT) return reads([])(prompt, content, signal);
+      const { earlier } = JSON.parse(content) as { earlier: string[] };
+      return earlier.includes(PLAN) ? SITUATION_STATED : SITUATION_NONE;
+    };
+    const c = call(ON, reads([]), { generate });
+    await c.say(PLAN, 'Mm, I hear you.');
+    for (let i = 0; i < 6; i++) await c.say(`ok, thing ${i}`);
+    await c.say(TELL, READY);
+    expect(isScript(await c.say('Yes.'))).toBe(true);
   });
 
   it.each([

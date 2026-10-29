@@ -52,13 +52,13 @@ import {
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import { checkUnanswered } from '../../services/safety/crisis-classifier-check.js'; // CRISIS_CLASSIFIER_CHECK
 import {
   checkOrScript,
   checkTurn,
-  checkUnanswered,
   checkVerdict,
   watchCheck,
-} from '../../services/safety/crisis-classifier-check.js'; // CRISIS_CLASSIFIER_CHECK
+} from '../../services/safety/crisis-classifier-check-turn.js';
 import { readCheckSituation } from '../../services/safety/crisis-classifier-check-situation.js';
 import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {

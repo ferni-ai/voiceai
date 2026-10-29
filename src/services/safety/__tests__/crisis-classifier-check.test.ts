@@ -9,16 +9,14 @@ import { FLAG_MANIFEST } from '../../../config/flag-manifest.js';
 import {
   CHECK_ANSWER_MS,
   CLASSIFIER_CHECK,
-  afterClear,
   checkAnswer,
   checkInstead,
-  checkOrScript,
   checkUnanswered,
   resetClassifierChecks,
   reviewedWindow,
-  watchCheck,
   type AlarmTurn,
 } from '../crisis-classifier-check.js';
+import { afterClear, checkOrScript, watchCheck } from '../crisis-classifier-check-turn.js';
 import { clearAnswer } from '../crisis-classifier-check-words.js';
 import type { CheckSituation } from '../crisis-classifier-check-situation.js';
 import { heldAfter, noteCallerWords, resetMinorCare } from '../../../utils/minor-care.js';

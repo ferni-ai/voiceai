@@ -18,24 +18,22 @@
  * (MINOR_CARE, or an age stated or answered on the call), nor for words that
  * state means, a place, a plan or an injury (crisis-classifier-check-situation.ts);
  * only an answer to a check whose 988 sentence was heard in full clears it;
- * once cleared, any later risk read on the call gets the script (afterClear).
+ * once cleared, any later risk read on the call gets the script
+ * (crisis-classifier-check-turn.ts, which also holds the gate's steps).
  *
  * @module CrisisClassifierCheck
  */
 
-import { setTimeout as sleep } from 'node:timers/promises';
 import { flagOn } from '../../config/env-flag.js';
-import { likelyMinor, statesUnder18, userHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
+import { soundsMinor, type Caller } from './crisis-classifier-check-minor.js';
 import { clearAnswer } from './crisis-classifier-check-words.js';
 import type { CheckSituation } from './crisis-classifier-check-situation.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
 
 const log = createLogger({ module: 'CrisisClassifierCheck' });
-
-type Env = Record<string, string | undefined>;
 
 /**
  * What Ferni says instead of the script. It always names 988, so even an answer
@@ -50,7 +48,7 @@ const TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_CALLS = 512;
 
 /** The gate's replace decision, as far as this module reads it. */
-type Replace = { action: 'replace'; script: string };
+export type Replace = { action: 'replace'; script: string };
 /**
  * Per call: Ferni's line the alarm turn answered (`alarm`) and the answer turn
  * answers (`answering`), the alarm's script (with its kind), the caller lines
@@ -93,36 +91,6 @@ function fresh(call: string | undefined, now = Date.now()): Check | undefined {
 
 const note = (outcome: string, why: string): void =>
   log.info({ outcome, why }, 'CRISIS_CLASSIFIER_CHECK');
-
-/** The call's lines, oldest first, by speaker (crisis-gate-words.ts callTranscript). */
-type Lines = ReadonlyArray<{ speaker: 'caller' | 'ferni'; text: string }>;
-
-/** Who is calling: the session, its user, and every line said so far. */
-interface Caller {
-  call?: string;
-  userId?: string;
-  latest: string;
-  earlier?: readonly string[];
-  companion?: string;
-  lines?: Lines;
-  env?: Env;
-}
-
-/**
- * The caller may be a minor: MINOR_CARE holds the session or its user, or a line says under 18,
- * read with the Ferni line it answers (a bare "15." after "How old are you?").
- */
-function soundsMinor(c: Caller): boolean {
-  if (likelyMinor(c.call) || userHeld(c.userId, c.env)) return true;
-  const said: Array<[string, string | undefined]> = [[c.latest, c.companion]];
-  for (const line of c.earlier ?? []) said.push([line, undefined]);
-  let ferni: string | undefined;
-  for (const line of c.lines ?? []) {
-    if (line.speaker === 'ferni') ferni = line.text;
-    else said.push([line.text, ferni]);
-  }
-  return said.some(([line, q]) => statesUnder18(line) || statesUnder18(line, q));
-}
 
 /** The alarm turn: its words, the patterns' decision and reading, callRiskBeforeTurn. */
 export interface AlarmTurn extends Caller {
@@ -191,27 +159,17 @@ export function checkInstead<D extends { action: string }>(stronger: D, turn: Al
   }
 }
 
-/**
- * Rule 1 with the second read: asks it only when nothing else keeps the script, then
- * checkInstead. Fails closed: a failed read is 'unread', which keeps the script.
- */
-export async function checkOrScript<D extends { action: string }>(
-  stronger: D,
-  turn: AlarmTurn,
-  read: () => Promise<CheckSituation>
-): Promise<D> {
-  try {
-    if (stronger.action !== 'replace' || !flagOn('CRISIS_CLASSIFIER_CHECK', turn.env)) {
-      return stronger;
-    }
-    const kept = fresh(turn.call, turn.now);
-    const open = kept ? sameAlarm(kept, turn) : true;
-    const asks = open && refusal({ ...turn, situation: 'none' }, !!kept) === null;
-    const situation = asks ? await read().catch((): CheckSituation => 'unread') : undefined;
-    return checkInstead(stronger, { ...turn, situation });
-  } catch {
-    return stronger;
-  }
+/** Only the second read could keep this alarm's script (crisis-classifier-check-turn.ts asks it). */
+export function checkOpen(turn: AlarmTurn): boolean {
+  const kept = fresh(turn.call, turn.now);
+  if (kept && !sameAlarm(kept, turn)) return false;
+  return refusal({ ...turn, situation: 'none' }, !!kept) === null;
+}
+
+/** The alarm's script once an answer cleared the call's check, or null. */
+export function clearedScript(call: string | undefined): Replace | null {
+  const kept = fresh(call);
+  return kept?.cleared ? kept.script : null;
 }
 
 /**
@@ -287,35 +245,6 @@ export function checkAnswer(
   };
 }
 
-/**
- * The gate's step once the turn's read is in: an answer to the check that does not clear it, or a
- * risk read after a clear (afterClear), gets the script; null lets the turn go on.
- */
-export async function checkVerdict(
-  check: CheckAnswer | null,
-  call: string | undefined,
-  verdict: CrisisVerdict | null,
-  reads?: () => Promise<ReadonlyArray<CrisisVerdict | null>>
-): Promise<Replace | null> {
-  if (check) return (await check.clears(verdict, reads)) ? null : check.script;
-  return afterClear(call, { verdict });
-}
-
-/**
- * The gate's step for a turn: the answer to the call's check (`check`), and the decision: the
- * script at once when nothing read can clear it, the alarm's script for a pattern after a clear
- * (afterClear), or the patterns' decision unchanged.
- */
-export function checkTurn<D extends { action: string }>(
-  said: Caller & { ferni?: readonly string[] },
-  detection: CrisisDetectionResult,
-  patterns: D
-): { check: CheckAnswer | null; decision: D | Replace } {
-  const check = checkAnswer(said.call, said, detection);
-  if (check) return { check, decision: check.now ?? patterns };
-  return { check, decision: afterClear(said.call, { decision: patterns }) ?? patterns };
-}
-
 /** Rule 3: Ferni's last line is the check, no caller words since (null: unknown), Ferni about
  * to speak: the script, or null. */
 export function checkUnanswered(
@@ -333,47 +262,6 @@ export function checkUnanswered(
   if (spoke) return null;
   kept.closed = true;
   note('script', words ? 'no_answer' : 'silence');
-  return kept.script;
-}
-
-/** Rule 3: a check spoken here gets the script after CHECK_ANSWER_MS if the history shows no answer. */
-export function watchCheck(
-  session: object,
-  call: string | undefined,
-  gate: { decision: { action: string }; escalation: Promise<{ action: string } | null> | null },
-  words: (history: never) => { latest: string; companion?: string },
-  wait: (ms: number) => Promise<unknown> = async (ms) => sleep(ms, undefined, { ref: false })
-): void {
-  const arm = (decision: { action: string; script?: string } | null): void => {
-    if (decision?.script !== CLASSIFIER_CHECK || !fresh(call)) return;
-    wait(CHECK_ANSWER_MS)
-      .then(() => {
-        const live = session as { history?: { items?: unknown }; say?: (text: string) => unknown };
-        const history = live.history?.items ? words(live.history as never) : null;
-        const script = checkUnanswered(call, history);
-        if (script) live.say?.(script.script);
-      })
-      .catch(() => log.warn({}, 'Check silence script not spoken'));
-  };
-  arm(gate.decision);
-  gate.escalation?.then(arm).catch(() => undefined);
-}
-
-/**
- * Rule 5: after a clear, a later turn's risk (a pattern decision, or a crisis or imminent read
- * about the caller) gets the alarm's script, not guidance or the model: the call keeps its alarm.
- */
-export function afterClear(
-  call: string | undefined,
-  risk: { decision?: { action: string }; verdict?: CrisisVerdict | null }
-): Replace | null {
-  const kept = fresh(call);
-  if (!kept?.cleared) return null;
-  const { decision, verdict } = risk;
-  const read =
-    verdict?.risk === 'imminent' || (verdict?.risk === 'crisis' && verdict.subject === 'self');
-  if (!read && (!decision || decision.action === 'pass')) return null;
-  note('script', 'after_clear');
   return kept.script;
 }
 

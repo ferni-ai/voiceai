@@ -32,7 +32,7 @@ import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../safety/crisis-s
 import { LATE_WORDS_MERGED, type LateWordsMergedEvent } from '../shared/late-words-event.js';
 import { callerWords, startCrisisGate } from './crisis-gate.js';
 import { recordCrisisOnCall, replaceKind } from '../safety/crisis-event-record.js';
-import { watchCheck } from '../../services/safety/crisis-classifier-check.js';
+import { watchCheck } from '../../services/safety/crisis-classifier-check-turn.js';
 import { sessionScope } from './crisis-gate-words.js';
 
 const log = createLogger({ module: 'LateWords' });
