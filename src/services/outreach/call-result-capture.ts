@@ -23,10 +23,7 @@ import { completedAtFor, contactForOwner, type StepOutcome } from './call-result
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
+/** One call's result as stored: what was asked, and how it went. */
 export interface StoredCallResult {
   callId: string;
   userId: string;
