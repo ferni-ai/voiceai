@@ -297,6 +297,13 @@ describe('updateMemory replaces only a fact about the same person', () => {
     expect(fs.docs).toEqual(before);
   });
 
+  it("one relation owning another (my sister's husband): unclear, the husband's job untouched", async () => {
+    extracted('husband', 'job', 'doctor');
+    const before = new Map(fs.docs);
+    expect(await update("my sister's husband is a doctor", "my sister's husband is a dentist")).toBe(UNCLEAR); // prettier-ignore
+    expect(fs.docs).toEqual(before);
+  });
+
   it("the right person (Sam is the brother on file): the brother's city is corrected", async () => {
     SAM.forEach((f) => extracted(...f));
     expect(await update('my brother lives in Boston', 'my brother lives in Chicago')).toBe(UPDATED);
