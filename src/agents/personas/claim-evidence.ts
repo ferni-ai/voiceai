@@ -15,10 +15,13 @@
  * so "Rita", "Rita Smith", "José", "Dr. Patel" and "your aunt" all meet the record they fit. A claim
  * that names no one is about the people the caller's last words named; with none named, its kind of
  * record must exist for exactly one person. Anything else fails closed: the claim is rewritten.
+ * "Calling her now" stands only on a tool run on this call, "today" / "yesterday" only on a record
+ * from then (rolling: the caller's zone isn't known here). Junk records are skipped; errors read as none.
  *
  * @module agents/personas/claim-evidence
  */
 import { personKey, relationOf } from '../../memory/domain/index.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type { StoredCallResult } from '../../services/outreach/call-result-capture.js';
 import { sameWord, topicWords } from '../multi-agent/caller-words.js';
 import { callActions, kindsOfTool } from './action-claims.js';
@@ -33,6 +36,8 @@ interface Done {
   keys: Set<string>;
   /** A stored call: whether they answered. Undefined: placed on this call, no result yet. */
   through?: boolean;
+  /** A stored call: when its result came in (ms). Undefined: placed on this call. */
+  at?: number;
   /** What the stored result says they said, if anything. */
   report: string;
 }
@@ -44,7 +49,8 @@ export interface ClaimEvidence {
   told(sentence: string): boolean;
 }
 
-const RECORDS_MS = 30 * 86_400_000;
+const DAY_MS = 86_400_000;
+const RECORDS_MS = 30 * DAY_MS;
 /** How long the reply waits for the records; past it there are none, and claims fail closed. */
 const READ_MS = 1200;
 
@@ -60,15 +66,16 @@ export async function callRecordsFor(userId: string | undefined): Promise<Stored
     .catch((): StoredCallResult[] => []);
   return Promise.race([read, late]).finally(() => clearTimeout(timer));
 }
-
+const log = createLogger({ module: 'ClaimEvidence' });
 const SKIP = new Set('my your our the his her their dr mr mrs ms miss prof'.split(' '));
 /** Every key a name or relation can be met by: each name token, and the relation it names. */
 function keysOf(...phrases: ReadonlyArray<string | undefined>): Set<string> {
   const keys = new Set<string>();
   for (const phrase of phrases) {
-    const relation = phrase ? relationOf(phrase) : undefined;
+    if (typeof phrase !== 'string') continue;
+    const relation = relationOf(phrase);
     if (relation) keys.add(`rel:${relation}`);
-    for (const token of phrase?.split(/[^\p{L}\p{M}'’-]+/u) ?? []) {
+    for (const token of phrase.split(/[^\p{L}\p{M}'’-]+/u)) {
       const word = relationOf(token);
       if (word) keys.add(`rel:${word}`);
       else if (token && !SKIP.has(token.toLowerCase())) keys.add(personKey(token));
@@ -124,6 +131,22 @@ const CALL_WORDS = new Set(
     ' '
   )
 );
+/** A call or text under way or just made: a tool run on this call backs it, never a stored one. */
+const UNDER_WAY =
+  /\b(?:calling|dialing|dialling|ringing|phoning|texting|messaging)\b|\bjust (?:called|rang|phoned|dialed|texted|messaged|sent|reached|talked|spoke)\b/i;
+const TODAY =
+  /\b(?:today|this (?:morning|afternoon|evening)|tonight|(?:an|a few|a couple of) hours? ago|minutes ago)\b/i;
+const YESTERDAY = /\b(?:yesterday|last night)\b/i;
+/** How old a stored record may be to back this sentence (rolling windows). */
+const maxAge = (sentence: string): number =>
+  TODAY.test(sentence) ? DAY_MS : YESTERDAY.test(sentence) ? 2 * DAY_MS : RECORDS_MS;
+
+/** A stored doc the reader can use: partial docs (written with merge) and junk are skipped. */
+const usable = (r: unknown): r is StoredCallResult =>
+  [r, (r as StoredCallResult)?.outcome, (r as StoredCallResult)?.request].every(
+    (v) => typeof v === 'object' && v !== null
+  );
+
 /** Words someone said or felt on the call: these must be in the record's report. */
 const QUOTES = /\b(?:said|says|told|mentioned|asked|wants?|misses|sends?|sounded|seemed|loved)\b/i;
 
@@ -138,20 +161,51 @@ const argsOf = (raw: string | undefined): string[] => {
   }
 };
 
-/** What Ferni did, from `records` (callRecordsFor) and the tools that ran on this call. */
+/** No records and nothing run: every call or text claim not running in this reply is rewritten. */
+const CLOSED: ClaimEvidence = {
+  unbacked: (_s, kind, calling) => (kind === 'call' || kind === 'send') && !calling.has(kind),
+  told: () => false,
+};
+/** run(), or `closed` when it throws (logged by error name only). */
+function guarded<R>(run: () => R, closed: R): R {
+  try {
+    return run();
+  } catch (error) {
+    log.warn({ error: (error as Error)?.name }, 'CLAIM_EVIDENCE_FAILED');
+    return closed;
+  }
+}
+
+/**
+ * What Ferni did, from `records` (callRecordsFor) and the tools that ran on this call. Never throws:
+ * an error reads as no records, and past that as nothing done.
+ */
 export function claimEvidence(
   chatCtx: { items: readonly unknown[] },
-  records: readonly StoredCallResult[]
+  records: readonly unknown[]
+): ClaimEvidence {
+  const evidence =
+    guarded<ClaimEvidence | null>(() => evidenceFrom(chatCtx, records), null) ??
+    guarded(() => evidenceFrom(chatCtx, []), CLOSED);
+  return {
+    unbacked: (...a) => guarded(() => evidence.unbacked(...a), CLOSED.unbacked(...a)),
+    told: (sentence) => guarded(() => evidence.told(sentence), false),
+  };
+}
+
+function evidenceFrom(
+  chatCtx: { items: readonly unknown[] },
+  records: readonly unknown[]
 ): ClaimEvidence {
   const now = Date.now();
-  const done: Done[] = records
-    .filter((r) => now - Date.parse(r.capturedAt) <= RECORDS_MS)
-    .map((r) => ({
-      kind: 'call',
-      keys: keysOf(r.request.contactName, r.request.contactQuery, r.request.contactRelationship),
-      through: r.outcome.status === STATUS_OK,
-      report: [r.outcome.message, r.outcome.transcriptSummary, r.outcome.outcome].join(' '),
-    }));
+  // Each stored call's age is checked against the sentence (covering): thirty days at most.
+  const done: Done[] = records.filter(usable).map((r) => ({
+    kind: 'call',
+    keys: keysOf(r.request.contactName, r.request.contactQuery, r.request.contactRelationship),
+    through: r.outcome.status === STATUS_OK,
+    at: Date.parse(r.capturedAt),
+    report: [r.outcome.message, r.outcome.transcriptSummary, r.outcome.outcome].join(' '),
+  }));
   const items = chatCtx.items as readonly Seen[];
   const named = new Map<string, string[]>(); // a tool call's id → the contact its arguments named
   let request: Array<Set<string>> = [];
@@ -170,8 +224,8 @@ export function claimEvidence(
   const { awaiting } = callActions(chatCtx);
   const meets = (who: Set<string>, d: Done) => [...who].some((k) => d.keys.has(k));
   /** The records `ok` keeps for whom this sentence is about, or null when they don't cover them. */
-  const covering = (sentence: string, ok: (d: Done) => boolean): Done[] | null => {
-    const good = done.filter(ok);
+  const covering = (sentence: string, ok: (d: Done) => boolean, oldest = maxAge(sentence)) => {
+    const good = done.filter((d) => ok(d) && (d.at === undefined || now - d.at <= oldest));
     const who = personsIn(sentence);
     const targets = who.length ? who : namedBy(lastWords);
     if (targets.length === 0) {
@@ -196,7 +250,9 @@ export function claimEvidence(
       if (kind !== 'call' && kind !== 'send') return false;
       if (calling.has(kind) || awaiting.has(kind)) return false;
       // Any call of theirs backs "I called her"; how it went is a story (told).
-      return covering(sentence, (d) => d.kind === kind) === null;
+      // Under way or just made: only a run on this call, never an earlier stored call (#3006).
+      const oldest = UNDER_WAY.test(sentence) ? -1 : maxAge(sentence);
+      return covering(sentence, (d) => d.kind === kind, oldest) === null;
     },
     told(sentence) {
       if (TELLS_FAILURE.test(sentence))

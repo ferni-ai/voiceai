@@ -23,6 +23,8 @@ import { lookupClaim } from '../announced-check.js';
 import { NO_RECORD_LINE } from '../call-narration.js';
 import type { CallRecords } from '../../../services/outreach/call-status.js';
 import { storeFor, withStored, type StoredCall } from './call-result-fixtures.js';
+import * as capture from '../../../services/outreach/call-result-capture.js';
+import * as callerWords from '../../multi-agent/caller-words.js';
 import { callRecordsFor, claimEvidence } from '../claim-evidence.js';
 import {
   clearOutboundCallContext,
@@ -422,6 +424,127 @@ describe('GROUNDED_CLAIMS reads the call records, never the chat', () => {
       (await guard(env, items, ['quickText'], [line])).text;
     expect(await texts(ON)).not.toBe(line);
     expect(await texts(OFF)).toBe(line);
+  });
+});
+
+describe('GROUNDED_CLAIMS: when a record is from, and a store that fails', () => {
+  const rita: StoredCall = { name: 'Rita', relationship: 'mother', status: 'completed' };
+  /** The guard over a store that holds `records` and answers after `ms`, for the caller's `words`. */
+  const over = async (
+    records: unknown[],
+    words: string,
+    line: string,
+    tools: string[] = [],
+    ms = 0
+  ) => {
+    const read = vi
+      .spyOn(capture, 'getRecentCallResults')
+      .mockImplementation(
+        () => new Promise((done) => setTimeout(() => done(records as never), ms))
+      );
+    try {
+      return (
+        await guard(
+          ON,
+          [said('Hey Sam.'), user(words)],
+          ['callOnBehalf', 'quickText'],
+          [line, ...tools.map(toolCall)]
+        )
+      ).text;
+    } finally {
+      read.mockRestore();
+    }
+  };
+  /** Rita's completed call, stored through the real producers `days` ago. */
+  const ritaStored = async (days = 0) => {
+    const userId = `u-when-${++n}`;
+    await storeFor(userId, [withStored(said('Hi.'), rita)]);
+    const at = new Date(Date.now() - days * 86_400_000).toISOString();
+    return (await capture.getRecentCallResults(userId, 20)).map((r) => ({ ...r, capturedAt: at }));
+  };
+
+  it('a call under way or just made needs a run on this call, not an earlier record (#3006)', async () => {
+    const earlier = await ritaStored(3);
+    for (const line of [
+      "I'm calling her now.",
+      'Calling her now.',
+      "I've just called her, she picked up.",
+      "Yes, I've called her, it's ringing now.",
+    ]) {
+      expect(await over(earlier, 'Call my mom', line)).not.toBe(line);
+      // The call tool in this reply backs it.
+      if (!line.includes('picked up'))
+        expect(await over(earlier, 'Call my mom', line, ['callOnBehalf'])).toBe(line);
+    }
+    // An earlier record still backs a plain answer about it.
+    expect(await over(earlier, 'Did you call my mom?', 'Yes, I called her.')).toBe(
+      'Yes, I called her.'
+    );
+  });
+
+  it('"today" and "yesterday" need a record from then', async () => {
+    const line = 'Yes, I called her today and she picked up.';
+    expect(await over(await ritaStored(20), 'Did you call my mom today?', line)).not.toBe(line);
+    expect(await over(await ritaStored(0), 'Did you call my mom today?', line)).toBe(line);
+    const yesterday = 'Yes, I called her yesterday.';
+    expect(await over(await ritaStored(20), 'Did you call my mom?', yesterday)).not.toBe(yesterday);
+    expect(await over(await ritaStored(1), 'Did you call my mom?', yesterday)).toBe(yesterday);
+  });
+
+  it('a malformed record is skipped: no throw, and it backs nothing', async () => {
+    const at = new Date().toISOString();
+    const line = 'Yes, I called her. She picked up.';
+    for (const junk of [
+      null,
+      { capturedAt: at, request: { contactName: 'Rita', contactRelationship: 'mother' } },
+      { capturedAt: at, outcome: { status: 'completed' } },
+      { capturedAt: at, request: { contactName: 7 }, outcome: { status: 'completed' } },
+    ])
+      expect(await over([junk], 'Did you call my mom?', line)).not.toBe(line);
+    // Next to junk, a good record still counts.
+    expect(await over([null, ...(await ritaStored())], 'Did you call my mom?', line)).toBe(line);
+  });
+
+  it('any error reading the records reads as none', () => {
+    const throwing = Object.defineProperty({}, 'outcome', {
+      get: () => {
+        throw new Error('bad doc');
+      },
+    });
+    const evidence = claimEvidence({ items: [user('Did you call my mom?')] }, [throwing]);
+    expect(evidence.unbacked('Yes, I called her.', 'call', new Set())).toBe(true);
+    expect(evidence.told('She picked up.')).toBe(false);
+    expect(evidence.unbacked('Calling her now.', 'call', new Set(['call']))).toBe(false);
+    // No records is not nothing done: a call placed on this call still backs its claim.
+    const placed = [
+      user('Call Lee about Friday.'),
+      result('callOnBehalf', "Got it! I'm calling Lee now to ask about Friday."),
+    ];
+    expect(
+      claimEvidence({ items: placed }, [throwing]).unbacked('I called Lee.', 'call', new Set())
+    ).toBe(false);
+  });
+
+  it('an error while judging a sentence reads as no record for it', async () => {
+    const records = await ritaStored();
+    const evidence = claimEvidence({ items: [user('Did you call my mom?')] }, records);
+    const quote = 'She said it was good to hear from you.'; // her own words
+    expect(evidence.told(quote)).toBe(true);
+    const words = vi.spyOn(callerWords, 'topicWords').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    try {
+      expect(evidence.told(quote)).toBe(false);
+    } finally {
+      words.mockRestore();
+    }
+  });
+
+  it('a store slower than the budget backs nothing; one within it does', async () => {
+    const records = await ritaStored();
+    const line = 'Yes, I called her.';
+    expect(await over(records, 'Did you call my mom?', line, [], 50)).toBe(line);
+    expect(await over(records, 'Did you call my mom?', line, [], 1500)).not.toBe(line);
   });
 });
 
