@@ -424,19 +424,11 @@ export async function buildContextInjections(
               userText,
               currentTopic,
               emotionalState,
-              voiceEmotion: userData.voiceEmotion
-                ? {
-                    primary: userData.voiceEmotion.primary,
-                    confidence: userData.voiceEmotion.confidence,
-                    stressLevel: userData.voiceEmotion.stressLevel,
-                    valence: userData.voiceEmotion.valence,
-                    anxietyMarkers: userData.voiceEmotion.anxietyMarkers,
-                    prosody: userData.voiceEmotion.prosody,
-                  }
-                : undefined,
+              voiceEmotion: userData.voiceEmotion,
               analysis,
               turnCount: userData.turnCount || 0,
               totalConversations: services.userProfile?.totalConversations,
+              services,
             }),
             IMPORTANT_TIMEOUT_MS,
             superhumanFallback,

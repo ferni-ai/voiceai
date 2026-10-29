@@ -147,6 +147,7 @@ import type { CreateSessionOptions, SessionServices } from '../types.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../handoff/handoff-state.js';
+import { personasVisitedOf, startPersonaOf } from './active-persona.js';
 
 // Intelligence persistence - unified save/load for all learning engines
 import {
@@ -1939,8 +1940,7 @@ export async function createSessionServices(
           }
 
           // ================================================================
-          // 🧠 HUMAN MEMORY: Extract relationship signals from conversation
-          // Dates, values, dreams, fears, growth markers, comfort patterns...
+          // 🧠 HUMAN MEMORY: relationship signals (dates, values, dreams, fears, growth, comfort)
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
@@ -1949,7 +1949,7 @@ export async function createSessionServices(
             if (turns.length > 0) {
               const signals = extractHumanSignals(turns, {
                 userId: validatedUserId,
-                personaId: services.personaId || 'ferni',
+                personaId: startPersonaOf(services), // unread by the extractor
                 userName: userProfile.preferredName || userProfile.name,
                 existingMemory: updatedProfile.humanMemory,
                 sessionEmotion: summary?.emotionalArc,
@@ -2072,14 +2072,14 @@ export async function createSessionServices(
             getLogger().debug({ error: String(indexErr) }, 'User memory indexer not available');
           }
 
-          // 📤 Analyze session for proactive outreach opportunities
-          // This extracts commitments, detects emotional state, and creates outreach triggers
+          // 📤 Outreach: commitments, emotional state and follow-up triggers from the call
           try {
             const { analyzeSessionForOutreach } = await import('../outreach/session-integration.js');
             const outreachResult = await analyzeSessionForOutreach({
               userId: validatedUserId,
               sessionId,
-              personaId: services.personaId || 'ferni',
+              personaId: startPersonaOf(services), // follow-ups stay with it (S2 decides owners)
+              personasVisited: personasVisitedOf(services), // the Maya habit check reads it
               turns: turns.map((t) => ({
                 role: t.role as 'user' | 'assistant',
                 content: t.content,
