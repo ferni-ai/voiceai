@@ -58,7 +58,6 @@ export interface LifeSynthesis {
   compoundingAreas: string[];
   valuesRevealed: string[];
   timeHorizon: 'short' | 'medium' | 'long' | 'unknown';
-  seasonOfLife: string;
 }
 
 export interface WisdomMetrics {

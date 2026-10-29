@@ -71,7 +71,7 @@ function isSignificantWin(win: CEOWin): boolean {
 
 export function detectCelebrationOpportunities(
   goalsOverview: GoalsOverview,
-  planningMetrics: PlanningMetrics,
+  _planningMetrics: PlanningMetrics, // scores, not facts: no longer read (#3044)
   memoryInsights: MemoryInsights,
   ceoWins: CEOWin[] = []
 ): string[] {
@@ -133,9 +133,6 @@ export function detectCelebrationOpportunities(
   }
 
   // Planning metrics celebration
-  if (planningMetrics.eventSuccessPredictor >= 80) {
-    opportunities.push('🌟 Event Success Predictor at 80%+ - this person is READY to plan big!');
-  }
 
   // Memory-based opportunities
   if (memoryInsights.totalMemories > 30) {
@@ -189,19 +186,9 @@ export function generateProactiveDiscoveries(
     );
   }
 
-  // Planning metrics discoveries
-  for (const pattern of briefing.planningMetrics.patterns.slice(0, 2)) {
-    discoveries.push(pattern);
-  }
-
   // Life stage discoveries
   if (briefing.lifeStageContext.transitionSignals.length > 0) {
     discoveries.push(`🔄 ${briefing.lifeStageContext.transitionSignals[0]}`);
-  }
-
-  // Seasonal discoveries
-  if (briefing.seasonalContext.seasonalOpportunities.length > 0) {
-    discoveries.push(briefing.seasonalContext.seasonalOpportunities[0]);
   }
 
   // Timeline alerts as discoveries
@@ -230,11 +217,6 @@ export function generateTimelineAlerts(
   // Financial constraints affecting timeline
   if (peterInsights.budgetHealth === 'stressed') {
     alerts.push('💸 Budget stress may impact milestone timelines - plan for flexibility');
-  }
-
-  // No current goals
-  if (goalsOverview.activeGoals === 0) {
-    alerts.push("📝 No active goals yet - what's the next chapter they're dreaming about?");
   }
 
   // Upcoming deadlines

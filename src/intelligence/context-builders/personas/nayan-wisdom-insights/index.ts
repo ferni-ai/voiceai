@@ -45,6 +45,8 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { hasAnyProviderConnected } from '../../../../services/calendar/index.js';
+import { loadBriefingStores } from '../briefing-stores.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -101,7 +103,6 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
     compoundingAreas: [],
     valuesRevealed: [],
     timeHorizon: 'unknown',
-    seasonOfLife: 'unknown',
   };
   const defaultTeamSynthesis: TeamSynthesis = {
     peterPattern: null,
@@ -113,6 +114,7 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
   };
 
   // Each promise has its own catch to prevent one failure from crashing all
+  await loadBriefingStores(userId);
   const [lifeSynthesis, teamSynthesis, calendarContext] = await Promise.all([
     synthesizeLifeContext(userId).catch((e) => {
       log.warn({ error: String(e) }, 'Failed to synthesize life context');
@@ -122,7 +124,10 @@ async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing>
       log.warn({ error: String(e) }, 'Failed to synthesize team insights');
       return defaultTeamSynthesis;
     }),
-    buildCalendarWisdomContext(userId).catch(() => null),
+    // An unconnected calendar is not a light week (#3044)
+    hasAnyProviderConnected(userId)
+      .then((connected) => (connected ? buildCalendarWisdomContext(userId) : null))
+      .catch(() => null),
   ]);
 
   const valuesAlignment = analyzeValuesAlignment(lifeSynthesis, userId);
@@ -202,6 +207,7 @@ async function buildNayanWisdomInsightsContext(
   try {
     const briefing = await buildNayanBriefing(userId);
     const briefingLines = formatNayanBriefing(briefing, handoffBriefing, turnCount);
+    if (briefingLines.length === 0) return injections; // nothing true to say
 
     // Get superhuman context (narrative, values, dreams, seasonal)
     // V3 Semantic Intelligence needs current conversation context

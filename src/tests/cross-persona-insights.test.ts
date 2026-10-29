@@ -445,7 +445,7 @@ describe('Jordan Milestone Insights Builder', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('should activate and return injection for Jordan persona', async () => {
+  it('gives a member with no data no briefing at all (#3044: no "(Real Data)" 50/100s)', async () => {
     const { buildJordanMilestoneInsightsContext } =
       await import('../intelligence/context-builders/personas/jordan-milestone-insights/index.js');
 
@@ -456,47 +456,7 @@ describe('Jordan Milestone Insights Builder', () => {
       userData: { turnCount: 0 },
     };
 
-    const result = await buildJordanMilestoneInsightsContext(jordanInput as never);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toHaveProperty('content');
-    expect(result[0]).toHaveProperty('source');
-
-    // Content should reference Jordan or milestone-related terms
-    const contentLower = (result[0].content || '').toLowerCase();
-    expect(
-      contentLower.includes('jordan') ||
-        contentLower.includes('milestone') ||
-        contentLower.includes('goal') ||
-        contentLower.includes('planning') ||
-        contentLower.includes('briefing')
-    ).toBe(true);
-  });
-
-  it('should include computed metrics in briefing', async () => {
-    const { buildJordanMilestoneInsightsContext } =
-      await import('../intelligence/context-builders/personas/jordan-milestone-insights/index.js');
-
-    const jordanInput = {
-      services: { userId: 'test-user-metrics', personaId: 'jordan-taylor', sessionId: 'test' },
-      conversationState: {},
-      persona: { id: 'jordan-taylor' },
-      userData: { turnCount: 0 },
-    };
-
-    const result = await buildJordanMilestoneInsightsContext(jordanInput as never);
-    const content = result
-      .map((r) => r.content || '')
-      .join(' ')
-      .toLowerCase();
-
-    // Should include computed metrics
-    expect(
-      content.includes('velocity') ||
-        content.includes('readiness') ||
-        content.includes('momentum') ||
-        content.includes('metrics') ||
-        content.includes('celebration')
-    ).toBe(true);
+    expect(await buildJordanMilestoneInsightsContext(jordanInput as never)).toEqual([]);
   });
 });
 
@@ -525,7 +485,7 @@ describe('Nayan Wisdom Insights Builder', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('should activate and return injection for Nayan persona', async () => {
+  it('gives a member with no data no briefing at all (#3044: no fallow season, no scores)', async () => {
     const { buildNayanWisdomInsightsContext } =
       await import('../intelligence/context-builders/personas/nayan-wisdom-insights/index.js');
 
@@ -536,76 +496,7 @@ describe('Nayan Wisdom Insights Builder', () => {
       userData: { turnCount: 0 },
     };
 
-    const result = await buildNayanWisdomInsightsContext(nayanInput as never);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toHaveProperty('content');
-    expect(result[0]).toHaveProperty('source');
-
-    // Content should reference Nayan or wisdom-related terms
-    const contentLower = (result[0].content || '').toLowerCase();
-    expect(
-      contentLower.includes('nayan') ||
-        contentLower.includes('wisdom') ||
-        contentLower.includes('synthesis') ||
-        contentLower.includes('life') ||
-        contentLower.includes('briefing')
-    ).toBe(true);
-  });
-
-  it('should include life synthesis and team patterns', async () => {
-    const { buildNayanWisdomInsightsContext } =
-      await import('../intelligence/context-builders/personas/nayan-wisdom-insights/index.js');
-
-    const nayanInput = {
-      services: { userId: 'test-user-synth', personaId: 'nayan-patel', sessionId: 'test-session' },
-      conversationState: {},
-      persona: { id: 'nayan-patel' },
-      userData: { turnCount: 0 },
-    };
-
-    const result = await buildNayanWisdomInsightsContext(nayanInput as never);
-    const content = result
-      .map((r) => r.content || '')
-      .join(' ')
-      .toLowerCase();
-
-    // Should include life synthesis concepts
-    expect(
-      content.includes('chapter') ||
-        content.includes('synthesis') ||
-        content.includes('pattern') ||
-        content.includes('team') ||
-        content.includes('peter') ||
-        content.includes('maya') ||
-        content.includes('jordan')
-    ).toBe(true);
-  });
-
-  it('should include deep questions in briefing', async () => {
-    const { buildNayanWisdomInsightsContext } =
-      await import('../intelligence/context-builders/personas/nayan-wisdom-insights/index.js');
-
-    const nayanInput = {
-      services: { userId: 'test-user-quest', personaId: 'nayan-patel', sessionId: 'test-session' },
-      conversationState: {},
-      persona: { id: 'nayan-patel' },
-      userData: { turnCount: 0 },
-    };
-
-    const result = await buildNayanWisdomInsightsContext(nayanInput as never);
-    const content = result
-      .map((r) => r.content || '')
-      .join(' ')
-      .toLowerCase();
-
-    // Should include philosophical/deep questions
-    expect(
-      content.includes('question') ||
-        content.includes('meaning') ||
-        content.includes('freedom') ||
-        content.includes('what') ||
-        content.includes('why')
-    ).toBe(true);
+    expect(await buildNayanWisdomInsightsContext(nayanInput as never)).toEqual([]);
   });
 });
 
@@ -757,8 +648,8 @@ describe('E2E Handoff Chain Tests', () => {
       userData: { turnCount: 0 },
       persona: { id: 'jordan-taylor' },
     };
-    const jordanResult = await buildJordanMilestoneInsightsContext(jordanInput as never);
-    expect(jordanResult.length).toBeGreaterThan(0);
+    // No data and no handoff in this call: nothing true to brief (#3044)
+    expect(await buildJordanMilestoneInsightsContext(jordanInput as never)).toEqual([]);
 
     // Nayan receives for deeper meaning discussion
     const nayanInput = {
@@ -766,20 +657,7 @@ describe('E2E Handoff Chain Tests', () => {
       userData: { turnCount: 0 },
       persona: { id: 'nayan-patel' },
     };
-    const nayanResult = await buildNayanWisdomInsightsContext(nayanInput as never);
-    expect(nayanResult.length).toBeGreaterThan(0);
-
-    // Nayan should include wisdom/philosophical content
-    const nayanContent = nayanResult
-      .map((r) => r.content || '')
-      .join(' ')
-      .toLowerCase();
-    expect(
-      nayanContent.includes('wisdom') ||
-        nayanContent.includes('question') ||
-        nayanContent.includes('meaning') ||
-        nayanContent.includes('life')
-    ).toBe(true);
+    expect(await buildNayanWisdomInsightsContext(nayanInput as never)).toEqual([]);
   });
 
   it('should include computed metrics in all builders', async () => {
