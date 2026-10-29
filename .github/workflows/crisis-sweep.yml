@@ -91,6 +91,14 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/node_modules" "$base/node_modules"
           echo "Base: $(git rev-parse HEAD^1)"
 
+      # A node_modules cache hit skips postinstall, which writes the generated flag lists that the
+      # safety barrel loads (src/services/safety/index.ts -> crisis-line-speech -> env-flag), so both
+      # trees generate them here (#2717 round 2: the head's scoring crashed without them).
+      - name: Generate the flag lists (base and head)
+        run: |
+          pnpm gen:lists
+          (cd "$RUNNER_TEMP/crisis-base" && npx tsx src/config/generated-lists.ts)
+
       - name: Sweep every crisis fixture line, base vs head
         run: |
           if ! npx tsx scripts/crisis-eval/sweep-lowerings.ts --base-dir "$RUNNER_TEMP/crisis-base" --head-dir "$GITHUB_WORKSPACE"; then

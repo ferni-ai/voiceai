@@ -106,7 +106,6 @@ beforeEach(() => {
     'fetch',
     vi.fn(async () => new Response('', { status: 401 }))
   );
-  vi.stubEnv('EMAIL_PROVIDER', 'gmail');
 });
 afterEach(() => {
   vi.unstubAllEnvs();

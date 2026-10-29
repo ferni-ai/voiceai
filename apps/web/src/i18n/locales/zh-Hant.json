@@ -10214,7 +10214,6 @@
     "connectFirstToManage": "先連線，我們再來處理這個吧。",
     "monthlyLimitReached": "我們已經達到本月的上限了。我好想繼續跟你聊聊...",
     "enableMicPrompt": "我很想聽聽你的聲音——要開啟麥克風權限嗎？",
-    "agentJoined": "{name} 已加入",
     "seeYouNextTime": "下次見囉！",
     "handoffFailed": "現在聯絡不上他們。不過我還在這裡陪你！",
     "personaBack": "{name} 回來了！",
@@ -10807,7 +10806,10 @@
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消",
     "connectingNow": "正在連線…",
-    "tapToCancel": "輕點即可取消"
+    "tapToCancel": "輕點即可取消",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

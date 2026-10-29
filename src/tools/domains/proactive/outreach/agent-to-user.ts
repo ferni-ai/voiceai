@@ -351,7 +351,10 @@ Use when you need to reach them right now outside of the conversation.`,
             const email = await port?.verifiedEmail?.(ctx.userId);
             if (!email)
               return "I can't email you yet: there's no verified email address on your account.";
-            await sendEmail(email, `Message from ${personaName}`, message);
+            await sendEmail(email, `Message from ${personaName}`, message, false, {
+              userId: ctx.userId,
+              trigger: 'agent-to-user',
+            });
             return `📧 Email sent!`;
           }
 
