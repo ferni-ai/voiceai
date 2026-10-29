@@ -36,14 +36,8 @@ export function pronounOf(target: readonly string[]): 'him' | 'her' | undefined 
 interface Phrase {
   parts: string[];
   yes: boolean;
-  /** A phrase ending in a bare "call" never runs into a name: "go ahead and call Fred". */
-  notBefore?: ReadonlySet<string>;
 }
-const phrase = (text: string, yes: boolean, notBefore?: ReadonlySet<string>): Phrase => ({
-  parts: text.split(' '),
-  yes,
-  notBefore,
-});
+const phrase = (text: string, yes: boolean): Phrase => ({ parts: text.split(' '), yes });
 
 /** The phrases allowed for this action: who it reaches decides which "call X" restates it. */
 function allowed(target: readonly string[], owner: readonly string[], call: boolean): Phrase[] {
@@ -53,7 +47,6 @@ function allowed(target: readonly string[], owner: readonly string[], call: bool
     ...(pronoun ? [pronoun] : ['him', 'her', 'them']),
     ...people.flatMap((w) => [w, `my ${w}`]),
   ];
-  const names = new Set([...FERNI, ...owner]);
   const out = [
     ...YES.map((t) => phrase(t, true)),
     ...[...FILLERS, ...owner, ...people].map((t) => phrase(t, false)),
@@ -62,7 +55,7 @@ function allowed(target: readonly string[], owner: readonly string[], call: bool
     return [...out, ...'send it|send them|please send'.split('|').map((t) => phrase(t, true))];
   return [
     ...out,
-    phrase('go ahead and call', true, names),
+    phrase('go ahead and call', true),
     phrase('make the call', true),
     ...objects.flatMap((o) => [phrase(`call ${o}`, true), phrase(`give ${o} a call`, true)]),
     phrase('check in', false),
@@ -85,6 +78,9 @@ export function isClearYes(
       .toLowerCase()
       .replace(/['’]/g, '')
       .match(/[a-z0-9]+/g) ?? [];
+  // No name but the person read back after a "call", fillers or not: "go ahead and call, um, Fred".
+  const named = new Set([...FERNI, ...owner]);
+  if (said.some((w, i) => named.has(w) && said.slice(0, i).includes('call'))) return false;
   return onlyYes(said, allowed(target, owner, call));
 }
 
@@ -104,9 +100,8 @@ function onlyYes(said: string[], phrases: Phrase[]): boolean {
   };
   for (let i = 0; i < said.length; i++) {
     if (!plain[i] && !withYes[i]) continue;
-    for (const { parts, yes, notBefore } of phrases) {
+    for (const { parts, yes } of phrases) {
       if (!parts.every((part, j) => said[i + j] === part)) continue;
-      if (notBefore?.has(said[i + parts.length])) continue;
       if (plain[i]) reach(i + parts.length, yes);
       if (withYes[i]) reach(i + parts.length, true);
     }

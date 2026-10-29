@@ -93,18 +93,21 @@ export function isReadBack(
 
 // STT marks most questions with "?"; these open one even without it ("Do it." does not).
 const ASKS = /^(what|whats|who|whos|where|when|why|how|hows|which)\b/;
-// "Wait, which number?": a question, not a no. It leaves the call waiting for the next answer.
+// "Wait, which number?": asking only for a detail of the read-back (who, which number, what
+// time), nothing more. Ferni's answer drops it from the window; any other question stays in it,
+// so a later yes reaches at most a fresh read-back. "Hold on, can I call him myself?" is a no.
 const PAUSES = /^(um |uh |oh |well )?(wait|hold on|hang on|one sec|one second|just a sec)\b/;
-const ASKS_FOR = /\b(which|who|whos|what|whats|where|when|how|tell me|remind me|repeat|again)\b/;
-const clarifies = (text: string): boolean => {
-  const line = words(text).join(' ');
-  const rest = line.replace(PAUSES, '');
-  if (!PAUSES.test(line) || REDIRECT.test(rest)) return false;
-  if (words(rest).some((w) => NOES.includes(w) || DEFERRED.has(w))) return false;
-  return text.includes('?') || ASKS_FOR.test(rest);
+const DETAIL = new Set(
+  words(`which what whats who whos where when how hows number phone name time is its it the that
+    this was again his her their one sorry say repeat tell me remind do you have did and um uh oh`)
+);
+const asksDetail = (text: string): boolean => {
+  const rest = words(text).join(' ').replace(PAUSES, '');
+  return isQuestion(text) && words(rest).every((w) => DETAIL.has(w));
 };
+const clarifies = (text: string): boolean => PAUSES.test(words(text).join(' ')) && asksDetail(text);
 const isQuestion = (text: string): boolean =>
-  text.includes('?') || ASKS.test(words(text).join(' ')) || clarifies(text);
+  text.includes('?') || ASKS.test(words(text).join(' ')) || PAUSES.test(words(text).join(' '));
 
 /** The owner's words answering the latest read-back ('void': other tool output came between).
  * overTalk: words over Ferni after the answer began (maybe his own voice): never a yes. */
@@ -114,7 +117,7 @@ export function answerWindow(
 ): { turns: string[]; overTalk: boolean } | 'void' {
   let delivered = false;
   let overTalk = false;
-  let turns: Array<{ text: string; question: boolean }> = [];
+  let turns: Array<{ text: string; detail: boolean }> = [];
   for (const e of events) {
     if (e.seq <= pending.createdSeq) continue;
     if (e.kind === 'tool') {
@@ -129,13 +132,13 @@ export function answerWindow(
     if (!delivered) continue;
     if (e.kind === 'agent') {
       const again = isReadBack(e.text, pending);
-      turns = again ? [] : turns.filter((t) => !t.question);
+      turns = again ? [] : turns.filter((t) => !t.detail);
       overTalk &&= !again;
       continue;
     }
     // Words over Ferni are not the answer, and once it has begun they keep it from being a yes.
     if (e.agentSpeaking) overTalk ||= turns.length > 0;
-    else turns.push({ text: e.text, question: isQuestion(e.text) });
+    else turns.push({ text: e.text, detail: asksDetail(e.text) });
   }
   return { turns: turns.map((t) => t.text), overTalk };
 }
@@ -157,9 +160,9 @@ function callsSomeoneElse(text: string, pending: PendingAction): boolean {
   if ((text.match(/\d[\d\s().-]{1,}\d/g) ?? []).some((n) => !digits.includes(n.replace(/\D/g, ''))))
     return true;
   const objects =
-    /\b(?:call|ring|dial),?\s+(?:my\s+|your\s+|the\s+)?([A-Za-z]+)|\bgive\s+(?:my\s+|your\s+|the\s+)?([A-Za-z]+)\s+a\s+call/gi;
+    /\b(?:call|ring|dial|give)[,.]?\s+(?:(?:um|uh|er|oh|so|well|like)[,.]?\s+)*(?:my\s+|your\s+|the\s+)?([A-Za-z]+)/gi;
   for (const m of text.matchAll(objects)) {
-    const raw = m[1] ?? m[2];
+    const raw = m[1];
     const w = raw.toLowerCase();
     if (target.includes(w) || w === pronoun || AFTER_CALL.has(w)) continue;
     if (!pronoun && (w === 'him' || w === 'her')) continue;

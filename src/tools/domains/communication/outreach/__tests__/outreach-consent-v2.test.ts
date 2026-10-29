@@ -644,4 +644,46 @@ describe('deny by default', () => {
     call.owner('You can call him now.');
     expect(await call.call('c2')).toContain('Just to be sure: call Dad now?');
   });
+
+  /** Security review of e4bc3b355. */
+  it('only a question asking for a detail drops out of the window; anything more never places off the old read-back', async () => {
+    setConsentAsk(alwaysYes);
+    for (const turn of [
+      'Wait, which number? Maybe after lunch.',
+      'Hold on, can I call him myself first?',
+      'Can I call him myself first?',
+      'Who is that? Let me think.',
+    ]) {
+      const call = liveCall();
+      await call.call('c1');
+      call.owner(turn);
+      call.ferni('The one ending in 0002.');
+      call.owner('Yes.');
+      expect(await call.call('c2'), turn).not.toContain('Calling Dad');
+      expect(sends, turn).toHaveLength(0);
+    }
+    // A detail question, answered, still lets the next yes place it.
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Hang on, what was his number again?');
+    call.ferni('It ends in 0002.');
+    call.owner('Yes.');
+    await call.call('c2');
+    expect(sends).toHaveLength(1);
+  });
+
+  it('a filler never hides a name after a bare "call"', async () => {
+    for (const r of [
+      'Go ahead and call um Fred.',
+      'Yeah, go ahead and call, uh, Peter.',
+      'Yes, call him, um, Seth.',
+    ])
+      expect(isClearYes(r, ['my', 'dad'], ['seth'], true), r).toBe(false);
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('Yeah, call, uh, Peter.');
+    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+    expect(sends).toHaveLength(0);
+  });
 });
