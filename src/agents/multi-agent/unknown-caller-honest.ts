@@ -14,7 +14,11 @@
  * - The hello: a caller with no account and no past calls is met, never
  *   greeted as a friend (greeting-direction.ts).
  * - The model's instructions: nothing from this call is kept, so no promise to
- *   remember them; if they ask, say so and how to be remembered.
+ *   remember them. No pitch to sign in: this note is built before anyone says
+ *   their age, and a caller who sounds under 18 must never be steered toward an
+ *   account (Ferni is 18+; MINOR_CARE_NOTE in minor-care.ts answers for them).
+ * - Call-start awareness: "you don't know who this is yet", not "first
+ *   conversation" (firstTalkNote, returning-caller.ts).
  *
  * What is actually kept for such a caller: nothing, unless RETURNING_CALLER
  * looked their number up (returning-caller.ts: at most a first name and one
@@ -50,16 +54,9 @@ export function greetsAsFriend(line: string): boolean {
 }
 
 const NOTHING_KEPT =
-  "nothing from this call is kept after it ends: if they call again, you won't remember them or anything they said";
+  "Nothing from this call is kept after it ends: if they call again, you won't remember them or anything they said";
 const ALMOST_NOTHING_KEPT =
-  'almost nothing from this call is kept: at most their first name and one short line, for a month';
-
-/**
- * The one way to be remembered that always holds. Not "call from your number":
- * a number counts only with CALLER_RECOGNITION and a signed carrier
- * attestation (caller-recognition.ts), which no caller can promise themselves.
- */
-const HOW_TO_BE_KEPT = 'signing in to Ferni on the app or the website keeps your conversations';
+  'Almost nothing from this call is kept: at most their first name and one short line, for a month';
 
 /**
  * The model-instructions block for a caller nothing is kept for, or '' (flag
@@ -78,6 +75,6 @@ export function unsavedCallerNote(
 
 ## What You Keep From This Call
 
-They aren't signed in, so ${kept}. Never promise to remember them, to pick up where you left off, or to follow up. If they ask, or seem to expect you to remember, say so plainly in one sentence: ${HOW_TO_BE_KEPT}. Don't bring it up otherwise.
+${kept}. Never promise to remember them, to pick up where you left off, or to follow up; if they ask, say so plainly.
 `;
 }

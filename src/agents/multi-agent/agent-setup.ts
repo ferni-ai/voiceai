@@ -146,7 +146,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
-import { unsavedCallerNote } from './unknown-caller-honest.js';
+import { isUnplacedCaller, unsavedCallerNote } from './unknown-caller-honest.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
@@ -406,7 +406,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
-        userAwareness.push(firstTalkNote(sessionId)); // or a returning caller's note
+        userAwareness.push(firstTalkNote(sessionId, isUnplacedCaller(userId, false)));
       }
 
       // Key relationship facts (if available)
