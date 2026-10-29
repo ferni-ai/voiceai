@@ -9,6 +9,10 @@
  * lower case. Then whole addresses are compared, never parts: "verify.ferni.ai" is
  * not "ferni.ai", and "notifications@ferni.ai" is not "hello@ferni.ai".
  *
+ * Ferni's OWN address is a separate question (presentsAsOwn, asksForOwn): grounding
+ * can't vouch for it, because tool results (web pages, inbound email) are untrusted and
+ * can say "Ferni's website is ..." (#3032 security review, round 4).
+ *
  * Every pattern is linear: a label is alphanumerics joined by single hyphens, so no
  * input has two readings (a label that could also take "-dot-" backtracked for
  * minutes, #3032 review), and each checked piece is at most MAX_PIECE characters.
@@ -154,3 +158,35 @@ function inventsIn(piece: string, allowed: Addresses): boolean {
 export function inventsAddress(sentence: string, allowed: Addresses): boolean {
   return piecesOf(sentence).some((piece) => inventsIn(piece, allowed));
 }
+
+/** The things Ferni has an address for. */
+const THING =
+  '(?:web ?site|site|web address|url|link|app|(?:phone |cell )?number|e-?mail(?: address)?|address|line|short ?code)';
+const SENT = '(?:texts?|calls?|e-?mails?|messages?)';
+/**
+ * The shapes that present an address as Ferni's own, in the one table both sides read:
+ * `said` is Ferni speaking in the first person, `asked` the caller asking for his.
+ * Short and bounded on purpose: this is a veto that only tightens, so a miss falls back
+ * to provenance and a false hit only gives the honest line.
+ */
+const OWN_SHAPES = {
+  said: new RegExp(
+    `\\b(?:our|my|ferni'?s)(?: own)? ${THING}\\b` +
+      `|\\b(?:text|call|e-?mail|message|reach|contact)(?: me| us) at\\b` +
+      `|\\b${SENT} from (?:me|us)\\b` +
+      `|\\bI(?:'m| am) at\\b|\\bfind (?:me|us) at\\b`,
+    'iu'
+  ),
+  asked: new RegExp(
+    `\\b(?:your|ferni'?s)(?: own)? (?:${THING}|${SENT})\\b` + `|\\b${SENT} (?:from|by) you\\b`,
+    'iu'
+  ),
+};
+
+/** True when the sentence gives an address as Ferni's own ("our website", "text me at"). */
+export const presentsAsOwn = (sentence: string): boolean =>
+  piecesOf(sentence).some((piece) => OWN_SHAPES.said.test(piece));
+
+/** True when the caller's words ask for Ferni's own website, number, email or sender. */
+export const asksForOwn = (callerWords: string): boolean =>
+  OWN_SHAPES.asked.test(callerWords.slice(-MAX_PIECE));

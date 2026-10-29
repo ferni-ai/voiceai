@@ -7,8 +7,10 @@ import { describe, expect, it } from 'vitest';
 import {
   collectAddresses,
   factAddresses,
+  asksForOwn,
   inventsAddress,
   noAddresses,
+  presentsAsOwn,
 } from '../spoken-addresses.js';
 
 const FACTS = factAddresses({
@@ -36,6 +38,49 @@ describe('one reading', () => {
 
   it('a decimal or a date is no address', () => {
     expect(inventsAddress('That is 3.5 out of 5, since 2026-10-29.', FACTS)).toBe(false);
+  });
+});
+
+describe("Ferni's own address shapes", () => {
+  it.each([
+    'Our website is x.com.',
+    'my number is 5',
+    "Ferni's email address is a@b.co",
+    'You can text me at 727.',
+    'Please reach us at x.',
+    'Texts from me come from 55512.',
+    "I'm at x.com.",
+    'You can find me at x.com.',
+  ])('said as ours: %s', (line) => expect(presentsAsOwn(line)).toBe(true));
+
+  it.each([
+    'Your newest email is from sarah@example.com.',
+    "Your mom's number is 727-555-0199.",
+    'Texts from my mom come from 727-555-0199.',
+    'The latest email is from john@gmail.com.',
+    'The number is on their site.',
+  ])('not said as ours: %s', (line) => expect(presentsAsOwn(line)).toBe(false));
+
+  it.each([
+    "What's your website?",
+    'What number do your texts come from?',
+    'what is your phone number',
+    'Which number do texts from you come from?',
+  ])('asked for his: %s', (words) => expect(asksForOwn(words)).toBe(true));
+
+  it.each([
+    "What's my mom's number?",
+    "What's your mom's number?",
+    'Which website verifies my number?',
+    'Read me my newest email.',
+  ])('not asked for his: %s', (words) => expect(asksForOwn(words)).toBe(false));
+
+  it('is linear on hostile input', () => {
+    const text = 'our '.repeat(20000);
+    const start = performance.now();
+    presentsAsOwn(text);
+    asksForOwn(text);
+    expect(performance.now() - start).toBeLessThan(50);
   });
 });
 

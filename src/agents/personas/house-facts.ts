@@ -15,8 +15,12 @@
  *   sentence about texts) must be a house fact or appear in this call's grounding:
  *   the caller's words, tool results, or the context injected into the session.
  *   Otherwise the sentence is replaced, once per reply, with "I don't have that in
- *   front of me." Nobody's address is judged by who it belongs to: a contact's number
- *   from a tool passes, an invented one fails wherever it appears.
+ *   front of me." A contact's number from a tool passes, an invented one fails
+ *   wherever it appears.
+ * - One veto, in one direction: an address given as Ferni's OWN ("our website", "text me
+ *   at", or the caller just asked for his) must be a house fact, whatever the context
+ *   says. Tool results are untrusted (a web page or inbound email can say "Ferni's
+ *   website is ..."), so grounding can never make an address his (#3032 round 4).
  *
  * Matching is spoken-addresses.ts. Grounding is read only when a sentence holds an
  * address that isn't a house fact, and each chat item is read once per call.
@@ -33,11 +37,14 @@ import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';
+import { recentSpoken } from './spoken-words.js';
 import {
   collectAddresses,
   factAddresses,
+  asksForOwn,
   inventsAddress,
   noAddresses,
+  presentsAsOwn,
   piecesOf,
   type Addresses,
 } from './spoken-addresses.js';
@@ -141,11 +148,16 @@ export async function withHouseFactsGuard<T>(
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
   const facts = factAddresses(houseFacts(env));
+  // Ferni's own address: only a house fact will do, however the context vouches for it
+  // (tool results are untrusted: a web page or inbound email can claim "our website is ...").
+  const callerAsked = recentSpoken(chatCtx, 'user', 2).some(asksForOwn);
   // Read only when a sentence holds an address that isn't a house fact (most replies hold none).
   let grounded: Addresses | undefined;
   const invents = (sentence: string): boolean =>
     inventsAddress(sentence, facts) &&
-    inventsAddress(sentence, (grounded ??= allowedAddresses(chatCtx, houseFacts(env))));
+    (callerAsked ||
+      presentsAsOwn(sentence) ||
+      inventsAddress(sentence, (grounded ??= allowedAddresses(chatCtx, houseFacts(env)))));
   const reader = stream.getReader();
   let id = '';
   let stringChunks = true;
@@ -160,7 +172,7 @@ export async function withHouseFactsGuard<T>(
       };
       const decide = (sentence: string): void => {
         if (!invents(sentence)) return emit(sentence);
-        log.warn({ reason: 'ungrounded_address' }, 'HOUSE_FACT_INVENTED');
+        log.warn({ reason: 'not_grounded_or_not_ours' }, 'HOUSE_FACT_INVENTED');
         if (!replaced) emit(`${NOT_IN_FRONT_OF_ME}${/\s$/.test(sentence) ? ' ' : ''}`);
         replaced = true;
       };
