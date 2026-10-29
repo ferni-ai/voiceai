@@ -15,6 +15,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { ContextHandler } from './cartesia-socket.js';
+import type { WordTiming } from '../word-timings.js';
 
 /** The slice of CartesiaSocket a reply stream needs (tests pass a fake). */
 export interface ReplySocket {
@@ -31,12 +32,15 @@ export interface ReplyStream extends AsyncIterable<ArrayBuffer> {
   end(): void;
   /** Stop generating (the user interrupted). Ends the audio immediately. */
   cancel(): void;
+  /** Word timings received since the last call, when the request asked for them. */
+  takeWordTimings?(): WordTiming[];
 }
 
 export class CartesiaReplyStream implements ReplyStream {
   readonly contextId = randomUUID();
 
   private readonly queue: ArrayBuffer[] = [];
+  private timings: WordTiming[] = [];
   private sending: Promise<void> = Promise.resolve();
   private wake: (() => void) | null = null;
   private done = false;
@@ -51,6 +55,9 @@ export class CartesiaReplyStream implements ReplyStream {
     },
     onDone: () => this.finish(),
     onError: (error) => this.finish(error),
+    onTimestamps: (words) => {
+      this.timings.push(...words);
+    },
   };
 
   /**
@@ -73,6 +80,12 @@ export class CartesiaReplyStream implements ReplyStream {
     if (this.ended || this.done) return;
     this.ended = true;
     this.enqueueSend('', false);
+  }
+
+  takeWordTimings(): WordTiming[] {
+    const words = this.timings;
+    this.timings = [];
+    return words;
   }
 
   cancel(): void {

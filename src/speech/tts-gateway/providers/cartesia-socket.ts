@@ -23,6 +23,7 @@ import { WebSocket } from 'ws';
 
 import { registerInterval } from '../../../utils/interval-manager.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { parseWordTimestamps, type WordTiming } from '../word-timings.js';
 
 const log = createLogger({ module: 'CartesiaSocket' });
 
@@ -30,6 +31,8 @@ export interface ContextHandler {
   onChunk(pcm: ArrayBuffer): void;
   onDone(): void;
   onError(error: Error): void;
+  /** Word timings for audio on this context (requests sent with add_timestamps). */
+  onTimestamps?(words: WordTiming[]): void;
 }
 
 interface CartesiaMessage {
@@ -39,6 +42,7 @@ interface CartesiaMessage {
   done?: boolean;
   error?: string;
   message?: string;
+  word_timestamps?: unknown;
 }
 
 /** The slice of a ws WebSocket this class uses (tests pass a fake). */
@@ -262,6 +266,10 @@ export class CartesiaSocket {
       if (pcm.byteLength > 0) {
         handler.onChunk(pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength));
       }
+    }
+    if (message.type === 'timestamps' && handler.onTimestamps) {
+      const words = parseWordTimestamps(message.word_timestamps);
+      if (words.length > 0) handler.onTimestamps(words);
     }
     if (message.type === 'done' || message.done === true) {
       this.handlers.delete(message.context_id!);
