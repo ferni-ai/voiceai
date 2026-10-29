@@ -146,6 +146,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
+import { unsavedCallerNote } from './unknown-caller-honest.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
@@ -353,7 +354,6 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // the date/time from the VERY FIRST MOMENT (including greeting)
     // =========================================================================
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
-    // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
     // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's: the zone the
     // call settled (browser, else a verified owner's profile zone, never a sponsor's).
@@ -365,8 +365,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     const worldNowRule = worldNowEnabled() ? `${WORLD_NOW_RULE}\n` : '';
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
-    modelBaseInstructions =
-      baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness;
+    const who = outboundAwareness || unsavedCallerNote(userId, sessionId); // UNKNOWN_CALLER_HONEST
+    modelBaseInstructions = baseInstructions + dateTimeContext + worldNowRule + cityContext + who;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : await forgotten.profileForPrompt(services);
