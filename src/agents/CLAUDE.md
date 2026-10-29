@@ -273,17 +273,16 @@ add another copy.
 **House facts (#3001).** Ferni's own website, the number texts come from and the
 email From address come only from `src/config/house-facts.ts` (LANDING_URL/APP_URL,
 TWILIO_PHONE_NUMBER, EMAIL_FROM). With `HOUSE_FACTS=on` the honesty prompt
-(`ai-honesty.ts` `withHonesty`) states them, and the guard checks provenance, failing
-closed: every web address, email or phone number Ferni speaks must be a house fact or
-appear in this call's grounding (the caller's words, tool results, injected context),
-compared whole after normalising spoken forms (`personas/spoken-addresses.ts`, on the
-shared contact-data fold). Otherwise the sentence becomes "I don't have that in front
-of me." One veto, tightening only, for the whole reply: once a fragment presents an address as
-Ferni's own ("our new website", "the Ferni app", "text me at") or the caller just asked
-for his, every later address in that reply must be a house fact or the caller's own (their
-turns, their profile's phone and email), never a tool result (a web page or email can claim
-it). An address relayed with no self-reference stays grounded. An unset fact is named as
-unknown, never guessed.
+(`ai-honesty.ts` `withHonesty`) states them, and the guard checks provenance from trusted
+sources only, failing closed: every web address, email or phone number Ferni speaks must
+be a house fact or appear in the caller's turns or profile, the injected context, or the
+output of a first-party tool on `FIRST_PARTY_TOOLS` (contacts, call status, saved memory).
+Web search, fetched pages, inbound email and texts, invites and any unlisted tool are
+untrusted and never ground an address; compared whole, a website by shape (any dotted token
+ending in letters), after normalising spoken forms (`personas/spoken-addresses.ts`). A
+sentence with an address found only in untrusted output becomes `CANT_VOUCH`; one found
+nowhere becomes "I don't have that in front of me." There is no "whose address is it"
+parsing. An unset fact is named as unknown, never guessed.
 
 ---
 

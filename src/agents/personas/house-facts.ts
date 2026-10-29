@@ -10,20 +10,19 @@
  * - the prompt (ai-honesty.ts withHonesty) states the true facts and that any other
  *   address is not his to give;
  * - every reply is checked a sentence at a time (withActionClaimCheck, before the
- *   claim check re-splits "SITE.AI" at the capital). Provenance, failing closed: any
- *   web address, email or phone number in a sentence (and a 5-6 digit sender in a
- *   sentence about texts) must be a house fact or appear in this call's grounding:
- *   the caller's words, tool results, or the context injected into the session.
- *   Otherwise the sentence is replaced, once per reply, with "I don't have that in
- *   front of me." A contact's number from a tool passes, an invented one fails
- *   wherever it appears.
- * - One veto, in one direction, decided for the whole reply: once any fragment presents
- *   an address as Ferni's OWN ("our new website", "the Ferni app", "Ferni's site", "text
- *   me at"), or the caller just asked for his, every later address in that reply must be a
- *   house fact or the caller's own (their turns this call, their profile's phone and
- *   email), never a tool result: a web page or inbound email can say "Ferni's website is
- *   ...". An address relayed with no self-reference ("the pharmacy's number is ...") is
- *   still grounded as above: that is relaying, and call-on-behalf needs it (#3032 rounds 4-4b).
+ *   claim check re-splits "SITE.AI" at the capital). Provenance from TRUSTED sources
+ *   only, failing closed: any web address, email or phone number in a sentence (and a
+ *   5-6 digit sender in a sentence about texts) must be a house fact or appear in
+ *   - the caller's own turns, or their profile's phone and email;
+ *   - the context the server injected (instructions, memory, call sheet, notes);
+ *   - the output of a first-party tool that returns the user's own data (FIRST_PARTY_TOOLS).
+ *   Everything else is untrusted and never grounds an address: web search and fetch,
+ *   inbound email and texts, calendar invites, and any tool not on that list. There is no
+ *   parsing of whose address it is (#3032 rounds 2-4 patched that three times): a web page
+ *   saying "Ferni's website is evil.com" simply cannot make evil.com sayable.
+ *   A sentence with an address found only in untrusted output is replaced, once per
+ *   reply, with CANT_VOUCH; one found nowhere, with "I don't have that in front of me."
+ *   The cost, accepted: a pharmacy number from a web search is not read out.
  *
  * Matching is spoken-addresses.ts. Grounding is read only when a sentence holds an
  * address that isn't a house fact, and each chat item is read once per call.
@@ -39,23 +38,23 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { NO_NEW_WORDS_NOTE, TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';
-import { recentSpoken } from './spoken-words.js';
 import {
   collectAddresses,
   factAddresses,
-  asksForOwn,
-  inventsAddress,
+  judgeAddresses,
   noAddresses,
-  presentsAsOwn,
-  piecesOf,
+  safeCut,
   type Addresses,
+  type Verdict,
 } from './spoken-addresses.js';
 
 const log = createLogger({ module: 'HouseFacts' });
 
 export const NOT_IN_FRONT_OF_ME = "I don't have that in front of me.";
+export const CANT_VOUCH = "I found one online, but I can't vouch for it, so I won't read it out.";
+/** A run with no safe place to cut is decided whole at this size (hostile input; no address is this long). */
+const MAX_UNCUT = 2400;
 /** A run with no sentence end is decided in pieces of this size, so the buffer stays small. */
 const MAX_HELD = 300;
 
@@ -88,10 +87,11 @@ export function withHouseFacts(rule: string, env: Env = process.env): string {
     : rule;
 }
 
-/** The text of one chat item that can ground an address; Ferni's own words never do. */
+/** The text of one chat item; Ferni's own words never ground anything. */
 interface GroundingItem {
   type?: string;
   role?: string;
+  name?: string;
   content?: unknown;
   textContent?: string;
   output?: unknown;
@@ -105,63 +105,64 @@ function groundingText(item: GroundingItem): string {
   return parts.filter((part): part is string => typeof part === 'string').join('\n');
 }
 
+/**
+ * Tools that return the user's own data (their contacts, their calls, what they told
+ * Ferni to remember), so their output can ground an address. Any other tool is
+ * untrusted, and so is a new one until someone adds it here.
+ */
+const FIRST_PARTY_TOOLS = new Set([
+  'getContactInfo',
+  'getContactInsights',
+  'getContactsNeedingAttention',
+  'getContactInteractionHistory',
+  'getContactReminders',
+  'callStatus',
+  'recallFromMemory',
+  'recallPreviousConversation',
+  'getRelationshipSummary',
+]);
+/** A tool result from a tool that is not on the list: web pages, inbound mail, invites, anything new. */
+const isUntrusted = (item: GroundingItem): boolean =>
+  item.type === 'function_call_output' && !FIRST_PARTY_TOOLS.has(item.name ?? '');
+
 /** Each chat item's addresses, read once: items are the same objects turn after turn. */
 const itemAddresses = new WeakMap<object, Addresses>();
-
-/** Adds each chat item's addresses (read once per item) to `into`, for the items `keep` picks. */
-function addItemAddresses(
-  chatCtx: { items: readonly unknown[] },
-  into: Addresses,
-  keep: (item: GroundingItem) => boolean
-): Addresses {
-  for (const item of chatCtx.items) {
-    if (typeof item !== 'object' || item === null || !keep(item as GroundingItem)) continue;
-    let found = itemAddresses.get(item);
-    if (!found) {
-      found = collectAddresses(groundingText(item as GroundingItem), noAddresses());
-      itemAddresses.set(item, found);
-    }
-    for (const key of ['hosts', 'emails', 'numbers'] as const) {
-      for (const value of found[key]) into[key].add(value);
-    }
-  }
-  return into;
-}
-
-/**
- * The addresses this call has grounded, plus the house facts: everything the caller
- * said, every tool result, and the context injected into the session (system notes,
- * the instructions with memory and the call sheet).
- */
-const allowedAddresses = (chatCtx: { items: readonly unknown[] }, facts: HouseFacts): Addresses =>
-  addItemAddresses(chatCtx, factAddresses(facts), () => true);
 
 /** Who is speaking, as the session knows it: the persona, and the caller's own profile contact. */
 export interface HouseFactsWho {
   personaId?: string;
   userProfile?: { contactInfo?: { phone?: string; email?: string } } | null;
 }
-type CallerContact = NonNullable<HouseFactsWho['userProfile']>['contactInfo'];
-
-/** A caller turn: a user message that is not a note the turn machinery pushed as one. */
-const isCallerTurn = (item: GroundingItem): boolean => {
-  if (item.type !== 'message' || item.role !== 'user') return false;
-  const text = groundingText(item).trimStart();
-  return !text.startsWith(TURN_CONTEXT_HEADER) && text !== NO_NEW_WORDS_NOTE;
-};
 
 /**
- * The addresses a caller may have given out as their own: the house facts, their own
- * turns this call, and their own profile's phone and email. Never a tool result or an
- * inbound email or text, which anyone can write.
+ * What this call can vouch for (`trusted`: the house facts, the caller's profile, their
+ * turns, the injected context, first-party tool output) and what only untrusted output
+ * held (`online`, used only to pick the wording).
  */
-function callerOwnedAddresses(
+function groundedAddresses(
   chatCtx: { items: readonly unknown[] },
   facts: HouseFacts,
-  contact?: CallerContact
-): Addresses {
-  const owned = addItemAddresses(chatCtx, factAddresses(facts), isCallerTurn);
-  return collectAddresses(`${contact?.phone ?? ''}\n${contact?.email ?? ''}`, owned);
+  who: HouseFactsWho
+): { trusted: Addresses; online: Addresses } {
+  const contact = who.userProfile?.contactInfo;
+  const trusted = collectAddresses(
+    `${contact?.phone ?? ''}\n${contact?.email ?? ''}`,
+    factAddresses(facts)
+  );
+  const online = noAddresses();
+  for (const item of chatCtx.items) {
+    if (typeof item !== 'object' || item === null) continue;
+    let found = itemAddresses.get(item);
+    if (!found) {
+      found = collectAddresses(groundingText(item as GroundingItem), noAddresses());
+      itemAddresses.set(item, found);
+    }
+    const into = isUntrusted(item as GroundingItem) ? online : trusted;
+    for (const key of ['hosts', 'emails', 'numbers'] as const) {
+      for (const value of found[key]) into[key].add(value);
+    }
+  }
+  return { trusted, online };
 }
 
 /**
@@ -188,29 +189,12 @@ export async function withHouseFactsGuard<T>(
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
   const facts = factAddresses(houseFacts(env));
-  // Ownership is decided for the whole reply, not a sentence at a time: once Ferni has
-  // presented an address as his own (or the caller asked for his), every later address
-  // must be a house fact or the caller's own. Tool results are untrusted (a web page or
-  // inbound email can claim "our website is ..."), so grounding can't make one his.
-  let own = recentSpoken(chatCtx, 'user', 2).some((words) => asksForOwn(words, who.personaId));
-  let grounded: Addresses | undefined;
-  let callerOwned: Addresses | undefined;
   // Read only when a sentence holds an address that isn't a house fact (most replies hold none).
-  const invents = (sentence: string): boolean => {
-    own ||= presentsAsOwn(sentence, who.personaId);
-    return (
-      inventsAddress(sentence, facts) &&
-      inventsAddress(
-        sentence,
-        own
-          ? (callerOwned ??= callerOwnedAddresses(
-              chatCtx,
-              houseFacts(env),
-              who.userProfile?.contactInfo
-            ))
-          : (grounded ??= allowedAddresses(chatCtx, houseFacts(env)))
-      )
-    );
+  let grounded: ReturnType<typeof groundedAddresses> | undefined;
+  const verdict = (sentence: string): Verdict => {
+    if (false) return 'ok';
+    grounded ??= groundedAddresses(chatCtx, houseFacts(env), who);
+    return judgeAddresses(sentence, grounded.trusted, grounded.online);
   };
   const reader = stream.getReader();
   let id = '';
@@ -225,9 +209,11 @@ export async function withHouseFactsGuard<T>(
           );
       };
       const decide = (sentence: string): void => {
-        if (!invents(sentence)) return emit(sentence);
-        log.warn({ reason: own ? 'not_a_house_fact' : 'not_grounded' }, 'HOUSE_FACT_INVENTED');
-        if (!replaced) emit(`${NOT_IN_FRONT_OF_ME}${/\s$/.test(sentence) ? ' ' : ''}`);
+        const found = verdict(sentence);
+        if (found === 'ok') return emit(sentence);
+        log.warn({ reason: found }, 'HOUSE_FACT_INVENTED');
+        const line = found === 'online' ? CANT_VOUCH : NOT_IN_FRONT_OF_ME;
+        if (!replaced) emit(`${line}${/\s$/.test(sentence) ? ' ' : ''}`);
         replaced = true;
       };
       let pending = '';
@@ -252,12 +238,13 @@ export async function withHouseFactsGuard<T>(
             decide(pending.slice(0, end));
             pending = pending.slice(end);
           }
-          // A run with no sentence end is decided in pieces, so the buffer stays small.
-          if (pending.length > 2 * MAX_HELD) {
-            own ||= presentsAsOwn(pending, who.personaId); // the whole buffer, before it is cut
-            const pieces = piecesOf(pending, MAX_HELD);
-            pending = pieces.pop() ?? '';
-            pieces.forEach(decide);
+          // A run with no sentence end is decided in pieces, never cut inside an address
+          // (" dot ", " at ", digits): with no safe place it waits, up to MAX_UNCUT.
+          while (pending.length > 2 * MAX_HELD) {
+            const cut = safeCut(pending, MAX_HELD);
+            if (cut === 0 && pending.length <= MAX_UNCUT) break;
+            decide(pending.slice(0, cut || pending.length));
+            pending = pending.slice(cut || pending.length);
           }
         }
         if (pending) decide(pending);

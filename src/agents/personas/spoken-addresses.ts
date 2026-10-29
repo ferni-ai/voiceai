@@ -1,27 +1,27 @@
 /**
  * Web addresses, emails and phone numbers in what Ferni says, matched by provenance:
- * each must be a house fact or appear in the call's grounding (the caller's words,
- * tool results, injected context). Used by the house facts guard (house-facts.ts).
+ * each must be a house fact or appear in TRUSTED grounding (see house-facts.ts for what
+ * is trusted). Nothing here asks whose address it is: that kind of parsing never
+ * converged (#3032 rounds 2-4), so provenance is the whole rule.
  *
  * Text is first put in one reading, so the same address written differently matches:
- * the shared contact-data fold (digits in any script, digits said as words), a said
+ * the shared contact-data fold (NFKC, digits in any script, digits said as words), a said
  * dot (" dot ", "-dot-") written ".", letters spelled after a dot joined ("dot a i"),
  * lower case. Then whole addresses are compared, never parts: "verify.ferni.ai" is
  * not "ferni.ai", and "notifications@ferni.ai" is not "hello@ferni.ai".
  *
- * Ferni's OWN address is a separate question (presentsAsOwn, asksForOwn): grounding
- * can't vouch for it, because tool results (web pages, inbound email) are untrusted and
- * can say "Ferni's website is ..." (#3032 security review, round 4).
+ * A website is recognised by SHAPE, not by an allowlist of endings: any dotted token
+ * whose last label is two or more letters (any script) or punycode. An ending list
+ * fails open (".help", ".ru", "xn--p1ai", a Greek omicron in ".cοm" all passed).
  *
- * Every pattern is linear: a label is alphanumerics joined by single hyphens, so no
- * input has two readings (a label that could also take "-dot-" backtracked for
- * minutes, #3032 review), and each checked piece is at most MAX_PIECE characters.
+ * Every pattern is linear: a label is alphanumerics joined by hyphens, so no input has
+ * two readings (a label that could also take "-dot-" backtracked for minutes, #3032
+ * review). Long text is checked in pieces that are never cut inside an address.
  *
  * @module agents/personas/spoken-addresses
  */
 import type { HouseFacts } from '../../config/house-facts.js';
 import { containsContactData, contactNumberRuns, foldContactText } from '../../memory/index.js';
-import { plain } from './spoken-words.js';
 
 /** The addresses a sentence may give: lower case, numbers as national digits. */
 export interface Addresses {
@@ -33,19 +33,16 @@ export interface Addresses {
 const MAX_PIECE = 300;
 /** Grounding is read in bigger pieces: it is long, and only extraction runs on it. */
 const MAX_GROUNDING_PIECE = 2000;
+/** Longer than any address (host 253, email 320), so a hard cut still leaves each whole in one piece. */
+const OVERLAP = 340;
 
-const LABEL = '[\\p{L}\\p{N}]+(?:-[\\p{L}\\p{N}]+)*';
+const LABEL = '[\\p{L}\\p{N}]+(?:-+[\\p{L}\\p{N}]+)*';
 const HOST = `${LABEL}(?:\\.${LABEL})+`;
 const EMAIL_G = new RegExp(
   `(?<![\\p{L}\\p{N}._%+-])([\\p{L}\\p{N}._%+-]{1,64})(\\s{0,3}@\\s{0,3}|\\s{1,3}at\\s{1,3})(${HOST})(?![\\p{L}\\p{N}-])`,
   'gu'
 );
 const HOST_G = new RegExp(`(?<![\\p{L}\\p{N}.@-])(?:https?://)?(${HOST})(?![\\p{L}\\p{N}-])`, 'gu');
-const TLDS = new Set(
-  'com net org ai am io co app us me info biz dev xyz tv ly fm gg online site tech health care life chat link edu gov uk ca'.split(
-    ' '
-  )
-);
 /**
  * "it at site.com" or "the app is at site.com" names a website, not a mailbox: before a
  * grounded host, these words are no mailbox. Any other word is ("help at site.com").
@@ -70,12 +67,8 @@ function normalise(text: string): string {
     .toLowerCase();
 }
 
-/** A host that is a website: some label after the first is a known ending ("3.5" is not). */
-const isSite = (host: string): boolean =>
-  host
-    .split('.')
-    .slice(1)
-    .some((l) => TLDS.has(l));
+/** A website by shape: the last label is two or more letters (any script) or punycode; "3.5" is not. */
+const isSite = (host: string): boolean => /(?:^|\.)(?:\p{L}{2,}|xn--[a-z0-9-]+)$/u.test(host);
 const hostKey = (host: string): string => host.replace(/^www\./u, '');
 /** National digits: "+1 (727) 555-0142" and "727.555.0142" are both "7275550142". */
 function numberKey(run: string): string {
@@ -83,19 +76,37 @@ function numberKey(run: string): string {
   return digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
 }
 
-function cutAt(text: string, max: number): number {
-  const space = text.lastIndexOf(' ', max);
-  return space > max / 2 ? space + 1 : max;
+/** A token that may be part of an address: the words "dot"/"at", digits said or written, one letter, @ . - + ( . */
+const JOINS =
+  /^(?:dot|at|zero|oh|one|two|three|four|five|six|seven|eight|nine|\p{L})$|[\d@]|[\p{L}\p{N}][.-]+[\p{L}\p{N}]|^[.\-+(]|[.\-+(]$/u;
+const joins = (token: string | undefined): boolean =>
+  token !== undefined && JOINS.test(token.toLowerCase().replace(/[,;:!?"')\]]+$/u, ''));
+
+/**
+ * Where to cut `text` near `max`: just after a space that has no part of an address on
+ * either side (not beside " dot ", " at ", a digit run, spelled letters), or 0 if none.
+ */
+export function safeCut(text: string, max: number): number {
+  for (let i = Math.min(max, text.length - 1); i > 0; i -= 1) {
+    if (text[i] !== ' ') continue;
+    const before = /(\S+)$/u.exec(text.slice(Math.max(0, i - 60), i))?.[1];
+    const after = /^\s*(\S+)/u.exec(text.slice(i, i + 60))?.[1];
+    if (!joins(before) && !joins(after)) return i + 1;
+  }
+  return 0;
 }
 
-/** The text in pieces of at most `max` characters, cut at spaces where it can be. */
-export function piecesOf(text: string, max = MAX_PIECE): string[] {
+/**
+ * The text in pieces of about `max` characters, cut at safe spaces. With no safe space the
+ * cut is hard but the next piece starts OVERLAP earlier, so any address is whole in one.
+ */
+function piecesOf(text: string, max: number): string[] {
   const pieces: string[] = [];
   let rest = text;
   while (rest.length > max) {
-    const cut = cutAt(rest, max);
-    pieces.push(rest.slice(0, cut));
-    rest = rest.slice(cut);
+    const cut = safeCut(rest, max);
+    pieces.push(rest.slice(0, cut || max + OVERLAP));
+    rest = rest.slice(cut || max);
   }
   return [...pieces, rest];
 }
@@ -131,95 +142,46 @@ export function factAddresses(facts: HouseFacts): Addresses {
   return known;
 }
 
-/** True when one piece gives an address that `allowed` doesn't hold. */
-function inventsIn(piece: string, allowed: Addresses): boolean {
-  let invented = false;
+/** What a sentence's addresses come to: all fine, found only in untrusted text, or found nowhere. */
+export type Verdict = 'ok' | 'online' | 'nowhere';
+
+/** The verdict for one piece; `online` is what untrusted text held (for the wording only). */
+function verdictIn(piece: string, trusted: Addresses, online: Addresses): Verdict {
+  let verdict: Verdict = 'ok';
+  const miss = (kind: keyof Addresses, key: string): void => {
+    if (verdict !== 'nowhere') verdict = online[kind].has(key) ? 'online' : 'nowhere';
+  };
   let rest = normalise(piece).replace(EMAIL_G, (_m, local: string, at: string, host: string) => {
-    const site = at.trim() === 'at' && SITE_WORDS.has(local) && allowed.hosts.has(hostKey(host));
-    if (!site && !allowed.emails.has(`${local}@${host}`)) invented = true;
+    const site = at.trim() === 'at' && SITE_WORDS.has(local) && trusted.hosts.has(hostKey(host));
+    if (!site && !trusted.emails.has(`${local}@${host}`)) miss('emails', `${local}@${host}`);
     return ' ';
   });
   rest = rest.replace(HOST_G, (m: string, host: string) => {
     if (!isSite(host)) return m;
-    if (!allowed.hosts.has(hostKey(host))) invented = true;
+    if (!trusted.hosts.has(hostKey(host))) miss('hosts', hostKey(host));
     return ' ';
   });
-  if (invented) return true;
   // No digit, "@", "at" or "dot" left: no number or email can be (skips three folds).
-  if (!/[@%&\d]|\b(?:at|dot)\b/u.test(rest)) return false;
+  if (!/[@%&\d]|\b(?:at|dot)\b/u.test(rest)) return verdict;
   for (const run of contactNumberRuns(rest, SENDER_WORD.test(rest) ? 5 : 7)) {
-    if (!allowed.numbers.has(numberKey(run))) return true;
+    if (!trusted.numbers.has(numberKey(run))) miss('numbers', numberKey(run));
     rest = rest.replace(run, ' ');
   }
   // A shape the extraction above can't take apart ("jo (at) acme", "at gmail") fails closed.
-  return containsContactData(rest);
+  return containsContactData(rest) ? 'nowhere' : verdict;
 }
 
-/** True when the sentence gives a web address, email or number that `allowed` doesn't hold. */
-export function inventsAddress(sentence: string, allowed: Addresses): boolean {
-  return piecesOf(sentence).some((piece) => inventsIn(piece, allowed));
+/** Whether the sentence's web addresses, emails and numbers are all in `trusted`. */
+export function judgeAddresses(
+  sentence: string,
+  trusted: Addresses,
+  online: Addresses = noAddresses()
+): Verdict {
+  let verdict: Verdict = 'ok';
+  for (const piece of piecesOf(sentence, MAX_PIECE)) {
+    const v = verdictIn(piece, trusted, online);
+    if (v === 'nowhere') return v;
+    if (v === 'online') verdict = v;
+  }
+  return verdict;
 }
-
-/** The things Ferni has an address for. */
-const THING =
-  '(?:web ?site|site|web address|url|link|app|(?:phone |cell |mobile )?number|phone|cell|mobile|e-?mail(?: address)?|address|line|handle|short ?code)';
-const SENT = '(?:texts?|calls?|e-?mails?|messages?)';
-/** Up to two words between "our" and the thing ("our new website"); each bounded, so linear. */
-const ADJ = '(?: [a-z]{1,15}){0,2}';
-const SEE_US = '(?:text|call|e-?mail|message|reach|contact|visit|find|see|download|get)';
-
-/**
- * Text as the ownership shapes read it: the speech-to-text apostrophe fold (spoken-words
- * `plain`), the other apostrophes ("\u02bc", full-width), compatibility forms, zero-width
- * marks gone, one space between words, lower case.
- */
-const ownText = (text: string): string =>
-  plain(text.normalize('NFKC'))
-    .replace(/[\u02bc\u2032\u00b4`]/gu, "'")
-    .replace(/[\u200b-\u200d\u2060\ufeff]/gu, '')
-    .replace(/\s+/gu, ' ')
-    .toLowerCase();
-
-/**
- * The shapes that present an address as Ferni's own, in the one table both sides read:
- * `said` is Ferni speaking in the first person (or by name: `owners` is Ferni and the
- * persona), `asked` the caller asking for his. Short and bounded on purpose: this is a
- * veto that only tightens, so a miss falls back to provenance and a false hit only gives
- * the honest line. Matched on ownText.
- */
-function ownShapes(owners: readonly string[]): { said: RegExp; asked: RegExp } {
-  const name = owners
-    .map((o) => o.toLowerCase().replace(/[^a-z0-9]/gu, ''))
-    .filter(Boolean)
-    .join('|');
-  return {
-    said: new RegExp(
-      `\\b(?:our|my|(?:${name})'s)(?: own)?${ADJ} ${THING}\\b` +
-        `|\\bthe (?:${name})${ADJ} ${THING}\\b` +
-        `|\\b${SEE_US}(?: me| us)(?: online| here)? at\\b` +
-        `|\\b${SENT} from (?:me|us)\\b` +
-        `|\\bi(?:'m| am) at\\b`,
-      'u'
-    ),
-    asked: new RegExp(
-      `\\b(?:your|(?:${name})'s)(?: own)?${ADJ} (?:${THING}|${SENT})\\b` +
-        `|\\b${SENT} (?:from|by) you\\b`,
-      'u'
-    ),
-  };
-}
-const FERNI_SHAPES = ownShapes(['ferni']);
-const shapesFor = (persona?: string): ReturnType<typeof ownShapes> =>
-  persona && persona.toLowerCase() !== 'ferni' ? ownShapes(['ferni', persona]) : FERNI_SHAPES;
-
-/**
- * True when the text gives an address as Ferni's own ("our new website", "the Ferni app",
- * "Ferni's site", "text me at", "visit us at"). Whole text, not pieces: a phrase must not
- * be cut in two before it is read.
- */
-export const presentsAsOwn = (text: string, persona?: string): boolean =>
-  shapesFor(persona).said.test(ownText(text));
-
-/** True when the caller's words ask for Ferni's own website, number, email or sender. */
-export const asksForOwn = (callerWords: string, persona?: string): boolean =>
-  shapesFor(persona).asked.test(ownText(callerWords));

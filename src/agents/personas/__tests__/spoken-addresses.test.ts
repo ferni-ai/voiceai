@@ -7,10 +7,9 @@ import { describe, expect, it } from 'vitest';
 import {
   collectAddresses,
   factAddresses,
-  asksForOwn,
-  inventsAddress,
+  judgeAddresses,
   noAddresses,
-  presentsAsOwn,
+  safeCut,
 } from '../spoken-addresses.js';
 
 const FACTS = factAddresses({
@@ -32,72 +31,77 @@ describe('one reading', () => {
   });
 
   it('a 5-6 digit number counts only in a sentence about texts', () => {
-    expect(inventsAddress('The house costs 25000 dollars.', FACTS)).toBe(false);
-    expect(inventsAddress('Texts come from 25000.', FACTS)).toBe(true);
+    expect(judgeAddresses('The house costs 25000 dollars.', FACTS)).toBe('ok');
+    expect(judgeAddresses('Texts come from 25000.', FACTS)).toBe('nowhere');
   });
 
   it('a decimal or a date is no address', () => {
-    expect(inventsAddress('That is 3.5 out of 5, since 2026-10-29.', FACTS)).toBe(false);
+    expect(judgeAddresses('That is 3.5 out of 5, since 2026-10-29.', FACTS)).toBe('ok');
   });
 });
 
-describe("Ferni's own address shapes", () => {
+describe('a website is recognised by shape, not by its ending', () => {
   it.each([
-    'Our website is x.com.',
-    'my number is 5',
-    "Ferni's email address is a@b.co",
-    'You can text me at 727.',
-    'Please reach us at x.',
-    'Texts from me come from 55512.',
-    "I'm at x.com.",
-    'Our new website is x.com.',
-    'My brand new phone number is 5.',
-    'My cell is 727.',
-    'Download the Ferni app at x.com.',
-    'Visit us at x.com.',
-    'Ferni\u2019s site is x.com.',
-    'FERNI\u02bcS SITE',
-    'Our\u00a0\u00a0website\u200b is x.com.',
-    'You can find me at x.com.',
-  ])('said as ours: %s', (line) => expect(presentsAsOwn(line)).toBe(true));
-
-  it.each([
-    'Your newest email is from sarah@example.com.',
-    "Your mom's number is 727-555-0199.",
-    'Texts from my mom come from 727-555-0199.',
-    'The latest email is from john@gmail.com.',
-    'The number is on their site.',
-    "My mom's cell is 727-555-0199.",
-    'Go to chase.com and tap verify.',
-    "The pharmacy's number is 727-555-0111.",
-  ])('not said as ours: %s', (line) => expect(presentsAsOwn(line)).toBe(false));
-
-  it('names the persona as the owner', () => {
-    expect(presentsAsOwn("Maya's number is 727-555-0123.", 'maya')).toBe(true);
-    expect(presentsAsOwn("Maya's number is 727-555-0123.")).toBe(false);
-    expect(asksForOwn('What is Maya\u2019s number?', 'maya')).toBe(true);
+    'glowfriend.help',
+    'glowfriend.ru',
+    'glowfriend.xn--p1ai',
+    'xn--80ak6aa92e.com',
+    '\u043f\u0440\u0438\u043c\u0435\u0440.\u0440\u0444',
+    'ferni.c\u03bfm',
+    'glowfriend\uff0ehelp',
+    'glowfriend dot help',
+    'glowfriend dot r u',
+    'GLOWFRIEND.QQQ',
+  ])('%s is a website', (host) => {
+    expect(judgeAddresses(`Go to ${host} now`, FACTS)).toBe('nowhere');
+    expect(collectAddresses(`Go to ${host} now`, noAddresses()).hosts.size).toBe(1);
   });
 
-  it.each([
-    "What's your website?",
-    'What number do your texts come from?',
-    'what is your phone number',
-    'Which number do texts from you come from?',
-  ])('asked for his: %s', (words) => expect(asksForOwn(words)).toBe(true));
+  it.each(['3.5', '2026-10-29', 'v2.0.1', 'a.m', 'e.g', '1.5x', 'U.S'])('%s is not', (token) => {
+    expect(judgeAddresses(`That is ${token} ok`, FACTS)).toBe('ok');
+  });
 
-  it.each([
-    "What's my mom's number?",
-    "What's your mom's number?",
-    'Which website verifies my number?',
-    'Read me my newest email.',
-  ])('not asked for his: %s', (words) => expect(asksForOwn(words)).toBe(false));
+  it('the house hosts pass, and a lookalike does not', () => {
+    expect(judgeAddresses('Go to ferni.ai or app dot ferni dot ai', FACTS)).toBe('ok');
+    expect(judgeAddresses('Go to ferni.help', FACTS)).toBe('nowhere');
+  });
 
-  it('is linear on hostile input', () => {
-    const text = 'our new '.repeat(20000) + 'our ' + 'a'.repeat(50000);
-    const start = performance.now();
-    presentsAsOwn(text);
-    asksForOwn(text);
-    expect(performance.now() - start).toBeLessThan(50);
+  it('says whether an address was found only in untrusted text', () => {
+    const online = collectAddresses('See glowfriend.help', noAddresses());
+    expect(judgeAddresses('Go to glowfriend.help', FACTS, online)).toBe('online');
+    expect(judgeAddresses('Go to glowfriend.help or other.help', FACTS, online)).toBe('nowhere');
+  });
+});
+
+describe('a held run is cut only outside an address', () => {
+  it.each([
+    ['beside " dot "', 'aaaa bbbb cccc evil dot com tail'],
+    ['beside " at "', 'aaaa bbbb cccc help at evil tail'],
+    ['inside a number', 'aaaa bbb 727 555 0142 tail text'],
+    ['beside spoken digits', 'aaaa bbb seven two seven five tail'],
+    ['inside spelled letters', 'aaaa bbb x n d a s h tail'],
+  ])('%s', (_name, text) => {
+    const cut = safeCut(text, 20);
+    const before = text.slice(0, cut).trim().split(' ').pop() ?? '';
+    const after = text.slice(cut).split(' ')[0] ?? '';
+    expect(cut).toBeGreaterThan(0);
+    for (const token of [before, after]) {
+      expect(token).not.toMatch(/^(?:dot|at|seven|two|five|\d+|[a-z])$/);
+    }
+  });
+
+  it('returns 0 when there is no safe place', () => {
+    expect(safeCut('1 2 3 4 5 6 7 8 9 1 2 3 4 5', 20)).toBe(0);
+    expect(safeCut('nospacesatalleverythinginonelongtoken', 20)).toBe(0);
+  });
+
+  it('a number at a hard cut is still judged whole (overlapping pieces)', () => {
+    expect(judgeAddresses(`${'z'.repeat(294)} 7275550123 tail`, FACTS)).toBe('nowhere');
+  });
+
+  it('a long unspaced token is still judged whole (overlapping pieces)', () => {
+    const text = `${'a'.repeat(280)}.evil.com ${'b '.repeat(40)}`;
+    expect(judgeAddresses(text, FACTS)).toBe('nowhere');
   });
 });
 
@@ -120,7 +124,7 @@ describe('no catastrophic backtracking', () => {
     ['said dots', 'a dot '.repeat(2000)],
     ['email-ish', 'hello at '.repeat(1200)],
   ])('%s: checked and collected in under 50 ms', (_name, text) => {
-    expect(ms(() => inventsAddress(text, FACTS))).toBeLessThan(50);
+    expect(ms(() => judgeAddresses(text, FACTS))).toBeLessThan(50);
     expect(ms(() => collectAddresses(text, noAddresses()))).toBeLessThan(50);
   });
 });
