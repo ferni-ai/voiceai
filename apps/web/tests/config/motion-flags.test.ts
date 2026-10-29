@@ -30,7 +30,6 @@ const BUILD_NAMES: Record<MotionFlag, string> = {
   expressionArbiter: 'VITE_EXPRESSION_ARBITER',
   replyTone: 'VITE_REPLY_TONE',
   soundDirector: 'VITE_SOUND_DIRECTOR',
-  idleLife: 'VITE_IDLE_LIFE',
 };
 const FLAGS = Object.keys(BUILD_NAMES) as MotionFlag[];
 
@@ -45,7 +44,7 @@ afterEach(() => {
 });
 
 describe('isMotionFlagOn', () => {
-  it('knows exactly the 14 switches', () => {
+  it('knows exactly the 13 switches', () => {
     expect(Object.keys(MOTION_FLAG_KEYS).sort()).toEqual([...FLAGS].sort());
   });
 

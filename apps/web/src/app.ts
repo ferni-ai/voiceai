@@ -1255,7 +1255,7 @@ class VoiceAIApp {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
       (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // turns on unless ferni:avatar-turns=off; gestures need ferni:turn-gestures
-      (await import('./ui/avatar-motion/idle-presence.js')).initIdlePresence(); // off unless ferni:natural-blink / ferni:idle-life
+      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
