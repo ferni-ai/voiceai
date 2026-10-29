@@ -28,6 +28,8 @@ vi.mock('../../../tools/domains/engagement/future-letters.js', async (importOrig
 }));
 
 const { directedGreeting, WIN_DIRECTION } = await import('../greeting-direction.js');
+const { rememberCallLaunch, PEP_TALK_DIRECTION } = await import('../../shared/call-launch-hint.js');
+const { rememberCallerRecognition } = await import('../../voice-agent-entry/caller-recognition.js');
 const { letterOfferDirection } =
   await import('../../../tools/domains/engagement/future-letters.js');
 const lastDirection = (): string =>
@@ -51,5 +53,40 @@ describe('a due letter opens the call ahead of a win', () => {
     } finally {
       due.letter = true;
     }
+  });
+});
+
+describe('the letter still yields, and is marked only when offered', () => {
+  it("yields to the caller's own reason for calling", async () => {
+    rememberCallLaunch(
+      'gl-3',
+      { kind: 'bookend', ref: 'a'.repeat(24) },
+      { CALL_LAUNCH_CONTEXT: 'on' }
+    );
+    await directedGreeting('gl-3', 'jordan-taylor', { userId: 'voice-eval-u3', userName: 'Sam' });
+    expect(lastDirection()).toContain(PEP_TALK_DIRECTION);
+    expect(lastDirection()).not.toContain(letterOfferDirection(letter));
+  });
+
+  it('is never read to a caller the line does not recognise', async () => {
+    rememberCallerRecognition('gl-4', { status: 'maybe', attestation: 'B' });
+    await directedGreeting('gl-4', 'jordan-taylor', { userId: 'voice-eval-u4', userName: 'Sam' });
+    expect(lastDirection()).not.toContain(letterOfferDirection(letter));
+  });
+
+  it('is marked offered only when the spoken line offers it', async () => {
+    letter.mark.mockClear();
+    directedText.mockResolvedValueOnce({
+      text: 'Hey Sam, good to hear you!',
+      source: 'actor',
+    } as never);
+    await directedGreeting('gl-5', 'jordan-taylor', { userId: 'voice-eval-u5', userName: 'Sam' });
+    expect(letter.mark).not.toHaveBeenCalled();
+    directedText.mockResolvedValueOnce({
+      text: 'Hey Sam, the letter you wrote yourself is ready. Want to hear it?',
+      source: 'actor',
+    } as never);
+    await directedGreeting('gl-6', 'jordan-taylor', { userId: 'voice-eval-u6', userName: 'Sam' });
+    expect(letter.mark).toHaveBeenCalledTimes(1);
   });
 });
