@@ -28,6 +28,10 @@ const DONE =
   /\bsent!|\bbroadcasting to\b|\bannouncing to\b|\bstarting intercom\b|\badded\b|\bmarked\b/i;
 
 describe('reminder promises with no job behind them (#1439)', () => {
+  it('the no-reminder line is a plain sentence with no "Noted," lead', () => {
+    expect(NO_TIMED_REMINDER).toBe("I can't set a timed reminder for that.");
+  });
+
   it('setBirthday notes the birthday and says no reminder is set', async () => {
     const said = await run(socialTools, 'setBirthday', { name: 'Maria', date: 'March 15' });
     expect(said).toContain('Maria');
@@ -69,13 +73,24 @@ describe('reminder promises with no job behind them (#1439)', () => {
 
 describe('home speaker tools that reach no speaker (#1447)', () => {
   it.each([
-    ['broadcastMessage', { message: 'dinner in five', target: 'kitchen' }, /^Not broadcast/],
-    ['announceDinner', {}, /^Not announced/],
-    ['intercomCall', { room: 'office' }, /^No intercom call to office/],
-  ])('%s says nothing was sent', async (id, args, opening) => {
+    [
+      'broadcastMessage',
+      { message: 'dinner in five', target: 'kitchen' },
+      "I couldn't broadcast that to the kitchen: I can't reach your home speakers yet, so nothing was played.",
+    ],
+    [
+      'announceDinner',
+      {},
+      "I couldn't announce dinner: I can't reach your home speakers yet, so nothing was played.",
+    ],
+    [
+      'intercomCall',
+      { room: 'office' },
+      "I couldn't start an intercom call to office: I can't reach your home speakers yet, so nothing was played.",
+    ],
+  ])('%s says nothing was played, in a plain sentence', async (id, args, sentence) => {
     const said = await run(homeTools, id, args);
-    expect(said).toMatch(opening);
-    expect(said).toContain('nothing was sent or played');
+    expect(said).toBe(sentence);
     expect(said).not.toMatch(DONE);
     expect(said).not.toMatch(/\bI can broadcast\b|would you like me to send/i);
   });

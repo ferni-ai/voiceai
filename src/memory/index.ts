@@ -23,6 +23,7 @@
 // Store interfaces and implementations, in-memory and production
 export { getDefaultStore, InMemoryStore, resetDefaultStore } from './in-memory-store.js';
 export { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
+export { getProfileStore } from './profile-store.js';
 export { FirestoreStore, getFirestoreStore, resetFirestoreStore } from './firestore-store.js';
 export { getPostgresStore, PostgresStore, resetPostgresStore } from './postgres-store.js';
 export { getRedisCache, RedisCache, resetRedisCache } from './redis-cache.js';

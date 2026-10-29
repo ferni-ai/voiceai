@@ -260,8 +260,7 @@ const findContractorDef: ToolDefinition = {
  * No speaker integration plays a message yet (Home Assistant, Google Home and
  * Alexa broadcast are unbuilt), so these tools say nothing was sent (#1447).
  */
-const NO_HOME_SPEAKERS =
-  "I can't reach your home speakers from here, so nothing was sent or played.";
+const NO_HOME_SPEAKERS = "I can't reach your home speakers yet, so nothing was played.";
 
 const broadcastMessageDef: ToolDefinition = {
   id: 'broadcastMessage',
@@ -285,7 +284,7 @@ const broadcastMessageDef: ToolDefinition = {
         log.info({ agentId: ctx.agentId, message, target }, '📢 Broadcasting message');
 
         const targetStr = target === 'all' ? 'all speakers' : `the ${target.replace('_', ' ')}`;
-        return `Not broadcast to ${targetStr}: ${NO_HOME_SPEAKERS}`;
+        return `I couldn't broadcast that to ${targetStr}: ${NO_HOME_SPEAKERS}`;
       },
     });
   },
@@ -308,7 +307,7 @@ const intercomCallDef: ToolDefinition = {
       execute: async ({ room }) => {
         log.info({ agentId: ctx.agentId, room }, '📞 Starting intercom call');
 
-        return `No intercom call to ${room}: ${NO_HOME_SPEAKERS}`;
+        return `I couldn't start an intercom call to ${room}: ${NO_HOME_SPEAKERS}`;
       },
     });
   },
@@ -335,7 +334,7 @@ const announceDinnerDef: ToolDefinition = {
         const message = customMessage || 'Dinner is ready! Come and get it!';
         log.info({ agentId: ctx.agentId, message }, '🍽️ Announcing dinner');
 
-        return `Not announced: ${NO_HOME_SPEAKERS}`;
+        return `I couldn't announce dinner: ${NO_HOME_SPEAKERS}`;
       },
     });
   },

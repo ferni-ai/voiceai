@@ -22,6 +22,16 @@ vi.mock('../../../../services/stores/conversation-history.js', () => ({
     },
   }),
 }));
+const profile = vi.hoisted(() => ({ zone: undefined as string | undefined, fail: false }));
+vi.mock('../../../../memory/index.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../memory/index.js')>()),
+  getProfileStore: async () => ({
+    getProfile: async () => {
+      if (profile.fail) throw new Error('profile store down');
+      return profile.zone ? { contactInfo: { timezone: profile.zone } } : { contactInfo: {} };
+    },
+  }),
+}));
 vi.mock('../../../../services/superhuman/semantic-intelligence/promise-keeper.js', () => ({
   recordReminderPromise: vi.fn(async () => {}),
 }));
@@ -101,6 +111,35 @@ describe('sessionsInTimeframe', () => {
   });
 });
 
+describe('sessionsInTimeframe with no zone: rolling windows, never a UTC day', () => {
+  // 9 PM Eastern on Oct 28 (01:00 UTC Oct 29): UTC's "today" is only the last hour.
+  const NINE_PM = new Date('2026-10-29T01:00:00Z');
+  const threePm = '2026-10-28T19:00:00Z'; // 3 PM Eastern, 6 h ago
+  const dayAndAHalfAgo = '2026-10-27T13:00:00Z';
+  const fiveDaysAgo = '2026-10-24T01:00:00Z';
+  const nineDaysAgo = '2026-10-20T01:00:00Z';
+  const dates = [threePm, dayAndAHalfAgo, fiveDaysAgo, nineDaysAgo];
+
+  it('today is the last 24 h: the 3 PM session is kept (a UTC day would drop it)', () => {
+    expect(kept('today', dates, undefined as never, NINE_PM)).toEqual([threePm]);
+    expect(kept('today', dates, 'Etc/UTC', NINE_PM)).toEqual([]); // the bug a UTC fallback made
+  });
+
+  it('yesterday is the 24 h before that; this-week 7 days; last-week the 7 before', () => {
+    expect(kept('yesterday', dates, undefined as never, NINE_PM)).toEqual([dayAndAHalfAgo]);
+    expect(kept('this-week', dates, undefined as never, NINE_PM)).toEqual([
+      threePm,
+      dayAndAHalfAgo,
+      fiveDaysAgo,
+    ]);
+    expect(kept('last-week', dates, undefined as never, NINE_PM)).toEqual([nineDaysAgo]);
+  });
+
+  it('an invalid zone is no zone', () => {
+    expect(kept('today', dates, 'Not/AZone', NINE_PM)).toEqual([threePm]);
+  });
+});
+
 describe('recentContext with RECENT_CONTEXT_TIMEFRAME', () => {
   const userId = 'u-2757';
   const prev = process.env.RECENT_CONTEXT_TIMEFRAME;
@@ -144,5 +183,77 @@ describe('recentContext with RECENT_CONTEXT_TIMEFRAME', () => {
     expect(said).toContain('garden plans');
     expect(said).not.toContain('old tax return');
     expect(said).toContain('**1 conversation(s)**');
+  });
+
+  /** A 9 PM Eastern phone caller (no call zone) asks about today; the 3 PM session is 6 h old. */
+  async function askAtNineThen(
+    userId: string,
+    timeframe: string,
+    sessions: Array<{ date: string; topicsDiscussed: string[]; insights: string[] }>
+  ): Promise<string> {
+    process.env.RECENT_CONTEXT_TIMEFRAME = 'on';
+    vi.useFakeTimers({ now: new Date('2026-10-29T01:00:00Z'), toFake: ['Date'] });
+    setRecentContextTopicsReader(async () => []);
+    history.sessions = sessions;
+    const def = essentialsToolDefinitions.find((d) => d.id === 'recentContext')!;
+    const tool = def.create({ userId, agentId: 'ferni', agentDisplayName: 'Ferni' } as never) as {
+      execute: (args: Record<string, unknown>) => Promise<string>;
+    };
+    return tool.execute({ timeframe });
+  }
+  const threePm = { date: '2026-10-28T19:00:00Z', topicsDiscussed: ['garden plans'], insights: [] };
+
+  it("on, no call zone: the account's stored zone sets the day (3 PM session is today)", async () => {
+    profile.zone = NY;
+    const said = await askAtNineThen('u-2757-stored', 'today', [threePm]);
+    expect(said).toContain('garden plans');
+    expect(said).toContain('**1 conversation(s)**');
+    profile.zone = undefined;
+  });
+
+  it('on, a stored zone the profile cannot supply (store down): rolling 24 h, still not UTC', async () => {
+    profile.fail = true;
+    const said = await askAtNineThen('u-2757-down', 'today', [threePm]);
+    profile.fail = false;
+    expect(said).toContain('garden plans');
+  });
+
+  it('on, no zone anywhere: rolling window keeps 6 h ago for today, drops 30 h ago', async () => {
+    profile.zone = undefined;
+    const old = { date: '2026-10-27T19:00:00Z', topicsDiscussed: ['old tax return'], insights: [] };
+    const said = await askAtNineThen('u-2757-nozone', 'today', [threePm, old]);
+    expect(said).toContain('garden plans');
+    expect(said).not.toContain('old tax return');
+    const week = await askAtNineThen('u-2757-nozone', 'this-week', [threePm, old]);
+    expect(week).toContain('old tax return');
+  });
+
+  it('on, empty window but earlier sessions exist: never says first chat in a while', async () => {
+    profile.zone = NY;
+    const said = await askAtNineThen('u-2757-empty', 'today', [
+      { date: '2026-09-30T14:00:00Z', topicsDiscussed: ['old tax return'], insights: [] },
+    ]);
+    expect(said).toContain('No conversation records found for today');
+    expect(said).toContain('We have talked before');
+    expect(said).not.toMatch(/first chat in a while/i);
+    profile.zone = undefined;
+  });
+
+  it('on, no sessions at all: the first-chat line is still true and stays', async () => {
+    const said = await askAtNineThen('u-2757-none', 'today', []);
+    expect(said).toContain('first chat in a while');
+  });
+
+  it('off: an empty reply reads as before, whatever else exists', async () => {
+    delete process.env.RECENT_CONTEXT_TIMEFRAME;
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    setRecentContextTopicsReader(async () => []);
+    history.sessions = [];
+    const def = essentialsToolDefinitions.find((d) => d.id === 'recentContext')!;
+    const tool = def.create({ userId: 'u-2757-off', agentId: 'ferni' } as never) as {
+      execute: (args: Record<string, unknown>) => Promise<string>;
+    };
+    const said = await tool.execute({ timeframe: 'today' });
+    expect(said).toContain('This might be our first chat in a while!');
   });
 });

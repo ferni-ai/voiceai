@@ -591,7 +591,11 @@ const recentContextDef: ToolDefinition = {
               }
             } else {
               response += `No conversation records found for ${timeframe.replace(/-/g, ' ')}.\n\n`;
-              response += `This might be our first chat in a while!\n`;
+              // Sessions read but outside the window: we have talked, so never "first chat" (#2757).
+              const talkedBefore = 'outsideWindow' in history && history.outsideWindow > 0;
+              response += talkedBefore
+                ? `We have talked before, just not in that stretch.\n`
+                : `This might be our first chat in a while!\n`;
               response += `What's on your mind today?`;
             }
           } else {

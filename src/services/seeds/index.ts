@@ -4,4 +4,4 @@
  * @module services/seeds
  */
 
-export { COSMETICS_FOR_SALE, type CosmeticType } from './cosmetics-catalog.js';
+export { LISTED_COSMETICS_FOR_SALE, type CosmeticType } from './cosmetics-catalog.js';

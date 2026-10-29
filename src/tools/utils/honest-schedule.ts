@@ -23,4 +23,4 @@ export const NO_REPEAT_YET =
  * Said in place of "I'll remind you" by a tool that stores no reminder job
  * (#1439): nothing fires later, so the reply must not promise that it will.
  */
-export const NO_TIMED_REMINDER = "Noted, but I can't set a timed reminder for that here.";
+export const NO_TIMED_REMINDER = "I can't set a timed reminder for that.";
