@@ -121,11 +121,23 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
     ],
   },
   // "That felt off" reports from their calls (call-telemetry-store.ts): their note, when they
-  // tapped and how far into the call. Not the uid, room names, the call measurements, versions
-  // or the triage status.
+  // tapped, how far into the call and their second tap, and their own call as measured: the
+  // summary (device, route, mute and hold time, interrupts) and the ring of the last 30 s (when
+  // they spoke, muted or held; rooms only as an index). Numbers and closed enums, nobody else's
+  // data, no secrets. Not the uid, room names, whether the room was proven, the app build (a
+  // copy of summarySoFar's), the server version or the triage status.
   {
     collection: 'call_felt_off',
     field: 'uid',
-    fields: ['note', 'tapAt', 'sinceLiveMs', 'createdAt', 'expiresAt'],
+    fields: [
+      'note',
+      'tapAt',
+      'sinceLiveMs',
+      'tapAgainMs',
+      'summarySoFar',
+      'ring',
+      'createdAt',
+      'expiresAt',
+    ],
   },
 ];

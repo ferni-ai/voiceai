@@ -98,6 +98,8 @@ const FELT_OFF = JSON.parse(
   )
 ) as Record<string, unknown>;
 
+const fixtureSummary = FELT_OFF.summarySoFar as Record<string, Record<string, unknown>>;
+
 async function feltOff(uid: string, note?: string): Promise<void> {
   const { note: _fixtureNote, ...body } = FELT_OFF;
   const res = await fetch(`${base}/api/call-telemetry`, {
@@ -179,13 +181,32 @@ describe.skipIf(!emulator)('export carries the reports a person made (Firestore 
     // Nothing of B's
     expect(JSON.stringify(out)).not.toContain('B felt off');
     expect(JSON.stringify(out)).not.toContain(b);
-    // Only the allowlisted fields: no uid, room names, call measurements, versions or status
-    const keys = ['id', 'tapAt', 'sinceLiveMs', 'createdAt', 'expiresAt'];
+    // Only the allowlisted fields: no uid, room names, room proof, app build, versions or status
+    const keys = [
+      'id',
+      'tapAt',
+      'sinceLiveMs',
+      'tapAgainMs',
+      'summarySoFar',
+      'ring',
+      'createdAt',
+      'expiresAt',
+    ];
     const noted = rows.find((r) => r.note !== undefined);
     const bare = rows.find((r) => r.note === undefined);
     expect(Object.keys(noted ?? {}).sort()).toEqual([...keys, 'note'].sort());
     expect(Object.keys(bare ?? {}).sort()).toEqual([...keys].sort());
     expect(JSON.stringify(rows)).not.toContain('ios-'); // the room names
+    // Their own call as measured: when they spoke, and their device
+    const ring = noted?.ring as { samples: Array<Record<string, unknown>> };
+    expect(ring.samples[0]).toHaveProperty('userSpeaking');
+    const summary = noted?.summarySoFar as Record<string, Record<string, unknown>>;
+    expect(summary.build.deviceModel).toBe(fixtureSummary.build.deviceModel);
+    // export-redaction drops call.tokenMs (a latency, but "token" is a credential word); the
+    // rest of the call summary leaves
+    const { tokenMs: _latency, ...callWithoutToken } = fixtureSummary.call;
+    expect(summary.call).toEqual(callWithoutToken);
+    expect(Object.keys(summary).sort()).toEqual(Object.keys(fixtureSummary).sort());
 
     const theirs = (await exportOf(b)).call_felt_off as Array<Record<string, unknown>>;
     expect(theirs.map((r) => r.note)).toEqual(['B felt off: not for A']);
