@@ -1288,3 +1288,4 @@ export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
+export { keepLetters, nameTokens, OWNER_LEAD, relationWords } from './domain/person-key.js';
