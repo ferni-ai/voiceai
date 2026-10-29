@@ -1183,6 +1183,3 @@ export type {
   DataCaptureContext,
   DataCaptureResult,
 } from './data-capture/types.js';
-
-// Contact data (a phone number or an email in any spelling), never kept as a free-text memory
-export { hasContactData } from './person-model/util.js';

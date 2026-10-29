@@ -18,11 +18,11 @@ import {
   replaceRemembered,
   type KeepOutcome,
   type ReplaceOutcome,
-} from '../../../memory/index.js';
+} from '../../../services/memory/index.js';
 import { writeHeld } from '../../../utils/minor-care.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
-export { memoryToolsHonestOn } from '../../../memory/index.js';
+export { memoryToolsHonestOn } from '../../../services/memory/index.js';
 
 const NOT_SAVED = {
   contact:

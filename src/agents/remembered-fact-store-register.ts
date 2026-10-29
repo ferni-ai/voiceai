@@ -13,9 +13,9 @@
  * @module agents/remembered-fact-store-register
  */
 import { CLASSIFICATION_MODEL } from '../config/gemini-config.js';
-import { hasContactData } from '../intelligence/index.js';
+import { hasContactData } from '../intelligence/person-model/index.js';
 import { useContactDataCheck, useRememberedFactStore } from '../memory/dynamic/remembered-facts.js';
-import { useRememberedFactControl } from '../memory/index.js';
+import { useRememberedFactControl } from '../services/memory/index.js';
 import { firestoreMemoryControlStore } from '../memory/storage/memory-control-store.js';
 import { useSecretModel } from '../memory/secret-check.js';
 import { firestoreRememberedFactStore } from '../memory/storage/remembered-fact-store.js';

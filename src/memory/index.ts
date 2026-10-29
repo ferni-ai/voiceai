@@ -1280,17 +1280,6 @@ export default {
 export { forgottenInProcess, forgottenTopicsOrNull, worldFactText } from './recall/forget.js';
 export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js';
 export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
-// The remembered-fact writer, for the memory tools (MEMORY_TOOLS_HONEST)
-export {
-  keepForRecall,
-  memoryToolsHonestOn,
-  type KeepOutcome,
-} from './dynamic/remembered-facts.js';
-export {
-  replaceRemembered,
-  useRememberedFactControl,
-  type ReplaceOutcome,
-} from './dynamic/replace-remembered.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { containsContactData } from './domain/contact-data.js';
