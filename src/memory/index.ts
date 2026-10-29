@@ -1,8 +1,7 @@
 /**
  * Memory Module
  *
- * Comprehensive memory system for the voice AI agent.
- * Provides persistent user profiles, semantic search, and conversation history.
+ * Memory system for the voice AI agent: persistent user profiles, semantic search and history.
  *
  * Store Selection (auto-selected based on environment):
  * - Development: InMemoryStore (fast, ephemeral)
