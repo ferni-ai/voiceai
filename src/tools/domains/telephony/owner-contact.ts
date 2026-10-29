@@ -46,10 +46,10 @@ import type { ResolvedContact } from './types.js';
 const log = () => getLogger();
 
 type Store = typeof import('../../../services/contacts/index.js');
-export type ContactRow = Awaited<ReturnType<Store['getContacts']>>[number];
+type ContactRow = Awaited<ReturnType<Store['getContacts']>>[number];
 
 /** An entity_store person, as much of it as this module reads. */
-export interface PersonRecord {
+interface PersonRecord {
   id: string;
   name: string;
   aliases: string[];
