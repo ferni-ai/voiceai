@@ -2,13 +2,19 @@
  * The call miner (ferni-call-reviewer) finds calls, turns and crisis or minor
  * moments by matching these log messages in Cloud Logging. A renamed message
  * fails no build and throws no error: the miner just goes blind. This test makes
- * the rename fail CI instead. Each marker must still sit inside a logger call or
- * stderr write in its emitter file; a copy left in a comment does not count.
+ * the rename fail CI instead.
+ *
+ * Each row pins `count`: how many times its emitter puts the marker inside a
+ * logger call, a write, or a call to one of the row's `wrappers` (local
+ * functions that log their argument, like minor-care.ts's hold()). Renaming or
+ * deleting any one of those sites changes the count. Copies in comments and in
+ * other code don't count.
  *
  * Some lines are built by a helper and written elsewhere (startup-log.ts builds
- * the job-metadata line, metadata-parser.ts writes it). Their entry names the
- * helper and the writing file in `via`: the helper must return the marker, and
- * the writing file must still pass the helper's result to a write or logger call.
+ * the job-metadata line, metadata-parser.ts writes it). Their row names the
+ * helper and the writing file in `via`: `count` is then how many of the helper's
+ * returned strings carry the marker, and the writing file must still pass the
+ * helper's result to a write or logger call.
  *
  * Markers in the `external` group come from the LiveKit SDK, outside this repo,
  * so only their presence in the contract is checked.
@@ -20,6 +26,10 @@ import { describe, expect, it } from 'vitest';
 interface LogMarker {
   marker: string;
   emitter: string;
+  /** Emitting sites in the emitter (or returned strings in `via.helper`). */
+  count?: number;
+  /** Local functions in the emitter that log their argument. */
+  wrappers?: string[];
   /** For a line a helper builds: the file that writes it and the helper's name. */
   via?: { file: string; helper: string };
 }
@@ -48,28 +58,61 @@ function withoutComments(source: string): string {
 const bounded = (marker: string): string => `(?<!\\w)${escapeRegExp(marker)}(?!\\w)`;
 
 /**
- * A logger call (log.info, diag.tool, the GCE worker's bare log()) or a write
- * (process.stderr.write, or an injected write()) whose arguments match `pattern`.
+ * Opens a logger call (log.info, diag.tool, the GCE worker's bare log()), a
+ * write (process.stderr.write, or an injected write()) or a call to a wrapper.
  */
-const inWriteOrLogCall = (pattern: string): RegExp =>
-  new RegExp(`(\\.(info|warn|error|debug|tool|session|write)|\\b(log|write))\\([^;]*${pattern}`);
+const callOpener = (wrappers: string[] = []): string =>
+  `(\\.(info|warn|error|debug|tool|session|write)|(?<![\\w.])(${['log', 'write', ...wrappers]
+    .map(escapeRegExp)
+    .join('|')}))\\(`;
 
-function isEmittedIn(source: string, marker: string): boolean {
-  return inWriteOrLogCall(bounded(marker)).test(withoutComments(source));
+const RETURNED_STRING = `\\breturn\\s*\\(?\\s*['"\`]`;
+
+/** Occurrences of the marker whose statement, up to the marker, opens with `opener`. */
+function sitesAfter(code: string, marker: string, opener: string): number {
+  const open = new RegExp(opener);
+  return [...code.matchAll(new RegExp(bounded(marker), 'g'))].filter(({ index }) =>
+    open.test(code.slice(code.lastIndexOf(';', index) + 1, index))
+  ).length;
 }
 
-/** True when `helper`'s body returns a string expression containing the marker. */
-function isReturnedBy(source: string, helper: string, marker: string): boolean {
-  const body = new RegExp(`function\\s+${escapeRegExp(helper)}\\s*\\([\\s\\S]*?\\n}`).exec(
-    withoutComments(source)
+function emittingSites(source: string, marker: string, wrappers: string[] = []): number {
+  return sitesAfter(withoutComments(source), marker, callOpener(wrappers));
+}
+
+/** A top-level function's parameter names and its source up to its closing brace. */
+function functionNamed(source: string, name: string): { params: string[]; body: string } | null {
+  const match = new RegExp(
+    `function\\s+${escapeRegExp(name)}\\s*\\(([^)]*)\\)[^{]*\\{[\\s\\S]*?\\n}`
+  ).exec(withoutComments(source));
+  if (!match) return null;
+  const params = match[1]
+    .split(',')
+    .map((param) => param.split(/[:=?]/)[0].trim())
+    .filter(Boolean);
+  return { params, body: match[0] };
+}
+
+/** True when the wrapper passes one of its parameters as a logger call's message. */
+function logsItsArgument(source: string, wrapper: string): boolean {
+  const fn = functionNamed(source, wrapper);
+  if (!fn) return false;
+  return fn.params.some((param) =>
+    new RegExp(`${callOpener()}[^;]*[(,]\\s*${escapeRegExp(param)}\\s*\\)`).test(fn.body)
   );
-  if (!body) return false;
-  return new RegExp(`\\breturn\\s*\\(?\\s*['"\`][^;]*${bounded(marker)}`).test(body[0]);
+}
+
+/** How many of the helper's returned strings carry the marker; -1 when there is no helper. */
+function returnedSites(source: string, helper: string, marker: string): number {
+  const fn = functionNamed(source, helper);
+  return fn ? sitesAfter(fn.body, marker, RETURNED_STRING) : -1;
 }
 
 /** True when the helper's result goes straight into a write or logger call. */
 const isHelperWrittenIn = (source: string, helper: string): boolean =>
-  inWriteOrLogCall(`(?<![\\w.])${escapeRegExp(helper)}\\(`).test(withoutComments(source));
+  new RegExp(`${callOpener()}[^;]*(?<![\\w.])${escapeRegExp(helper)}\\(`).test(
+    withoutComments(source)
+  );
 
 const read = (file: string): string => {
   const path = join(REPO_ROOT, file);
@@ -84,31 +127,44 @@ describe('log-marker contract', () => {
     for (const group of GROUPS) expect(contract.groups[group].length).toBeGreaterThan(0);
   });
 
-  it('matches a marker in a logger call or write, but not in a comment or a bare string', () => {
-    expect(isEmittedIn("log.info({ sessionId }, 'REPLY_GAP');", 'REPLY_GAP')).toBe(true);
-    expect(isEmittedIn('// One REPLY_GAP line per turn\nlog.info({}, "other");', 'REPLY_GAP')).toBe(
-      false
-    );
-    expect(isEmittedIn("const kind = 'REPLY_GAP';", 'REPLY_GAP')).toBe(false);
+  it('counts a marker in a logger call or write, not in a comment or other code', () => {
+    expect(emittingSites("log.info({ sessionId }, 'REPLY_GAP');", 'REPLY_GAP')).toBe(1);
+    expect(
+      emittingSites('// One REPLY_GAP line per turn\nlog.info({}, "other");', 'REPLY_GAP')
+    ).toBe(0);
+    expect(emittingSites("const kind = 'REPLY_GAP';", 'REPLY_GAP')).toBe(0);
     // The miner matches TURN_RECEIPT etc. as the whole message, so a longer name is a rename.
-    expect(isEmittedIn("log.info({}, 'REPLY_GAPS');", 'REPLY_GAP')).toBe(false);
-    expect(isEmittedIn('return `REPLY_GAP = ${ms}`;', 'REPLY_GAP')).toBe(false);
-    expect(isEmittedIn("log('REPLY_GAP', { ms });", 'REPLY_GAP')).toBe(true);
-    expect(isEmittedIn("diag.tool('REPLY_GAP', {});", 'REPLY_GAP')).toBe(true);
+    expect(emittingSites("log.info({}, 'REPLY_GAPS');", 'REPLY_GAP')).toBe(0);
+    expect(emittingSites('return `REPLY_GAP = ${ms}`;', 'REPLY_GAP')).toBe(0);
+    expect(emittingSites("log('REPLY_GAP', { ms });", 'REPLY_GAP')).toBe(1);
+    expect(emittingSites("diag.tool('REPLY_GAP', {});", 'REPLY_GAP')).toBe(1);
+    const twoSites =
+      "log.info({}, 'REPLY_GAP');\nconst e = 'REPLY_GAP';\nlog.warn({}, 'REPLY_GAP');";
+    expect(emittingSites(twoSites, 'REPLY_GAP')).toBe(2);
+  });
+
+  it('counts a call to a declared wrapper, and checks the wrapper logs its argument', () => {
+    const source =
+      "function hold(id: string, why: string): void {\n  log.info({ id }, why);\n}\nhold(id, 'REPLY_GAP');";
+    expect(emittingSites(source, 'REPLY_GAP')).toBe(0);
+    expect(emittingSites(source, 'REPLY_GAP', ['hold'])).toBe(1);
+    expect(logsItsArgument(source, 'hold')).toBe(true);
+    expect(logsItsArgument(source.replace('}, why)', "}, 'held')"), 'hold')).toBe(false);
+    expect(logsItsArgument(source, 'release')).toBe(false);
   });
 
   it('checks a helper-built line at both ends: the helper returns it, a call writes it', () => {
     const helper =
-      'function gapLine(ms) {\n  return (\n    `head\\n` +\n    `REPLY_GAP: ${ms}\\n`\n  );\n}';
-    expect(isReturnedBy(helper, 'gapLine', 'REPLY_GAP')).toBe(true);
-    expect(isReturnedBy(helper, 'otherLine', 'REPLY_GAP')).toBe(false);
+      'function gapLine(ms) {\n  if (!ms) return `REPLY_GAP: none`;\n  return (\n    `head\\n` +\n    `REPLY_GAP: ${ms}\\n`\n  );\n}';
+    expect(returnedSites(helper, 'gapLine', 'REPLY_GAP')).toBe(2);
+    expect(returnedSites(helper, 'otherLine', 'REPLY_GAP')).toBe(-1);
     expect(
-      isReturnedBy(
+      returnedSites(
         'function gapLine() {\n  return build({ e: "REPLY_GAP" });\n}',
         'gapLine',
         'REPLY_GAP'
       )
-    ).toBe(false);
+    ).toBe(0);
     expect(isHelperWrittenIn('process.stderr.write(gapLine(ms));', 'gapLine')).toBe(true);
     expect(isHelperWrittenIn("add('x', (e) => write(gapLine(e)));", 'gapLine')).toBe(true);
     expect(
@@ -130,19 +186,27 @@ describe('log-marker contract', () => {
 
   it.each(entries)(
     'every miner marker is still emitted by its emitter: $group "$marker"',
-    ({ marker, emitter, via }) => {
+    ({ marker, emitter, count, wrappers = [], via }) => {
       const source = read(emitter);
       const fix = 'update the call miner and log-markers.json together';
+      expect(Number.isInteger(count) && count! >= 1, `"${marker}" needs a count >= 1`).toBe(true);
+      for (const wrapper of wrappers) {
+        expect(
+          logsItsArgument(source, wrapper),
+          `${wrapper}() in ${emitter} no longer logs its argument; ${fix}`
+        ).toBe(true);
+      }
       if (!via) {
-        expect(isEmittedIn(source, marker), `${emitter} no longer emits "${marker}"; ${fix}`).toBe(
-          true
-        );
+        expect(
+          emittingSites(source, marker, wrappers),
+          `${emitter} emits "${marker}" a different number of times; ${fix}`
+        ).toBe(count);
         return;
       }
       expect(
-        isReturnedBy(source, via.helper, marker),
-        `${via.helper}() in ${emitter} no longer returns "${marker}"; ${fix}`
-      ).toBe(true);
+        returnedSites(source, via.helper, marker),
+        `${via.helper}() in ${emitter} returns "${marker}" a different number of times; ${fix}`
+      ).toBe(count);
       expect(
         isHelperWrittenIn(read(via.file), via.helper),
         `${via.file} no longer writes ${via.helper}()'s line; ${fix}`
