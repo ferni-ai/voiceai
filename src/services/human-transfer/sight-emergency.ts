@@ -5,12 +5,13 @@
  * arrived. The medical check took any "i can't see" as an emergency (severity 10),
  * logged a crisis signal, and the crisis follow-up note rode every later turn.
  *
- * With the flag on, main's alarm stands for every "i can't see" except one that
- * plainly points at an everyday thing: a screen, a text, an app, the menu, a sign,
- * "what you mean", "the point", glasses, the lights being off, a video call, "can't
- * see myself doing that". Any acute cue overrides that and keeps the alarm. So the
- * flag can only drop an alarm for an everyday "can't see" with no acute cue; it never
- * drops one main gives for anything else (held-out tests pin this line by line).
+ * With the flag on, main's alarm stands for every "i can't see" except an utterance
+ * that is ONLY one everyday "can't see" clause: a screen, a text, an app, the menu, a
+ * sign, "what you mean", "the point", glasses, the lights being off, a video call,
+ * "can't see myself doing that", with optional filler and a short enumerated tail
+ * (JUST_EVERYDAY). Any other word keeps the alarm (fail closed), and an acute cue
+ * keeps it as well. So the flag never drops an alarm main gives for anything more
+ * than that one clause (held-out tests pin this line by line).
  * It also adds alarms main missed: sight loss said outright ("i went blind", "my
  * vision went dark"), and anyone's "can't see" ("my dad can't see") with an acute cue.
  *
@@ -77,16 +78,34 @@ const ACUTE_CUES = [
   /\bcan'?t see\b[\s\S]*\bcan'?t see\b/, // "i can't see! i can't see!"
 ];
 
-/** Words that plainly put "can't see" on an everyday thing. Only these can drop main's alarm. */
-const EVERYDAY = [
-  /\b(?:screens?|texts?|messages?|e-?mails?|apps?|pages?|pictures?|photos?|captions?|subtitles?|menu|board|signs?|tv|television|attachments?|notifications?|comments?|posts?|buttons?|invite|calendar|folder|files?|links?|map|website|tablet|laptop|computer|monitor|phone|inbox|font|print|label|score|game|stage|slides?|recipe|price|deadline|form|clock)\b/,
-  /\bcan'?t see (?:why|how|what (?:you|she|he|they)\b|where (?:i|you|we|he|she) (?:parked|put|left)|the (?:point|problem|end|reason|difference|appeal|harm|issue)|any (?:reason|point|problem|way)|anything wrong|(?:myself|him|her|us|them|it) (?:\w+ )?\w+ing\b)/,
-  /\b(?:glasses|contacts|contact lens(?:es)?)\b/,
-  /\b(?:power (?:went|is) out|power'?s out|lights? (?:are |is |went |'s )?(?:off|out)|lamp|bulb|pitch (?:dark|black)|dark in here|too dark|light'?s (?:broken|out)|blackout|outage|the sun|glare|fog\w*|rain|snow|cloud\w*|stars|moon|sky)\b/,
-  /\b(?:zoom|facetime|video call|webcam)\b|\bcan'?t see you (?:on|in) (?:the )?(?:call|video|camera)\b/,
-  /\bblocking\b|\bin front of (?:me|us)\b|\bover the (?:fence|wall|crowd)\b|\bfrom (?:the back|bed|here|these seats|where i'?m sitting|my seat)\b/,
-  /\b(?:keys|wallet|remote|parked)\b/,
-];
+/*
+ * JUST_EVERYDAY: the only words that can drop main's alarm. The whole utterance must
+ * be one everyday "can't see" clause and nothing else: an everyday object or context,
+ * optional filler, and at most a short benign tail, all enumerated. A second clause,
+ * a body part, a feeling, "please", "help", a place or an activity, or any word not
+ * listed here keeps the alarm (fail closed).
+ */
+const FILLER = String.raw`(?:u+m+|u+h+|uhm|h+m+|oh|ok|okay|so|well|like|sorry|lol|ha(?:ha)+|yeah|honestly|actually|hey)`;
+const DET = String.raw`(?:the|your|my|his|her|their|our|this|that|these|those|a|any|its)`;
+const ADJ = String.raw`(?:new|last|latest|shared|little|tiny|small|top|bottom|whole|other|same|first|group|live|zoom|hidden|instagram)`;
+const THING = String.raw`(?:screens?|phone screen|texts?|text messages?|messages?|e-?mails?|apps?|pages?|pictures?|photos?|pics?|captions?|subtitles?|menu|board|whiteboard|signs?|tv|television|attachments?|notifications?|comments?|posts?|buttons?|invites?|calendar invite|calendar|folders?|files?|links?|map|website|site|tablet|laptop|computer|monitor|phone|inbox|font|print|label|score|game|stage|slides?|recipe|price|deadline|form|clock|chat|video|reply|replies|voicemail|document|doc|results?|feed|stream|story|receipt|tracking number|scoreboard|caller id|downloads)`;
+const NP = String.raw`(?:${DET} )?(?:${ADJ} )?${THING}(?: (?:on|in|from) (?:${DET} )?(?:${ADJ} )?${THING})?`;
+const FIGURATIVE = String.raw`(?:the point(?: of (?:it|that|this))?|why|how|what you mean|what you meant|what you're getting at|what you are getting at|you on (?:the |this )?(?:zoom|video|call|camera|screen|facetime)|myself (?:doing|living|working|moving) (?:that|there|it|this)(?: job)?)`;
+const CONTEXT = String.raw`(?:the power (?:went|is) out|the power's out|the lights? (?:are|is|went) (?:off|out)|it'?s (?:too |pitch )?dark(?: in here)?|the lamp (?:burned|went) out|the light'?s (?:broken|out)|my glasses are (?:in the other room|upstairs|downstairs|in the car)|i (?:don'?t have|forgot|left) my (?:reading )?(?:glasses|contacts)(?: on| in| at home| upstairs)?|my contacts are out)`;
+const TAIL = String.raw`(?:yet|right now|now|on my end|anymore|any more|at all|either|what you sent|the text you mean|can you resend it|can you send it again|it never came through|it hasn'?t come through|it didn'?t come through|it hasn'?t (?:loaded|shown up|come up)|it won'?t load|it'?s not loading|it'?s still loading|it froze|on my (?:phone|screen)|without my (?:reading )?(?:glasses|contacts)|for some reason|from here)`;
+const SEP = String.raw`(?:,? )`;
+const JUST_EVERYDAY = new RegExp(
+  String.raw`^(?:${FILLER}${SEP})*i (?:can'?t|cannot|can not) see(?: (?:${NP}|${FIGURATIVE}|(?:anything|something) (?:on|in) ${NP})(?:${SEP}${TAIL})*| (?:it|them|that)(?:${SEP}${TAIL})+|${SEP}(?:because |since )?${CONTEXT})(?:${SEP}${FILLER})*$`
+);
+
+/** The utterance as one plain line: lower case, straight apostrophes, no end punctuation. */
+const plain = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, ' ')
+    .replace(/[\s.!?…]+$/, '')
+    .trim();
 
 /** True when these (lower-cased) words describe sight lost to a medical emergency. */
 function sightEmergency(text: string): boolean {
@@ -95,7 +114,7 @@ function sightEmergency(text: string): boolean {
     ACUTE_CUES.some((p) => p.test(text)) ||
     (WENT_DARK.test(text) && !LIGHT_OUT.test(text)) ||
     ((SEES_NOTHING.test(text) || TOTAL_LOSS.test(text)) && SUDDEN_OR_DISTRESS.test(text));
-  if (MAIN_SEE.test(text)) return acute || !EVERYDAY.some((p) => p.test(text));
+  if (MAIN_SEE.test(text)) return acute || !JUST_EVERYDAY.test(plain(text));
   return SAYS_CANT_SEE.test(text) && acute;
 }
 

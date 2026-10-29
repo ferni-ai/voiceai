@@ -91,6 +91,13 @@ const SAME_CALL_NOTE_TURNS = 3;
  * main. One logged earlier on this call counts for SAME_CALL_NOTE_TURNS caller turns
  * after its own; a new signal on the call is newer and restarts the count. Without
  * a turn on either side (an older doc, no counter) it counts as on main.
+ *
+ * Turns are userData.turnCount, which goes up per final STT transcript: no counter
+ * of committed caller turns exists in prod (dev-telemetry's is dev-only). A spoken
+ * turn split into several finals burns several, so the note can fade after fewer
+ * than 3 replies, never later. With 10+ crisis-level signals on this call, an
+ * earlier call's crisis falls outside the read (10 kept of 50 read), so nothing
+ * follows up once the same-call note fades; the in-call crisis path is engaged then.
  */
 export function followUpCrisis(
   crises: readonly CrisisEventRecord[] | undefined,
