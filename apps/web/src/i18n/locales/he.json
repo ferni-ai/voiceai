@@ -10306,7 +10306,6 @@
     "connectFirstToManage": "קודם כדאי להתחבר, ואז נוכל לנהל את זה.",
     "monthlyLimitReached": "הגענו למגבלה החודשית שלנו. אשמח מאוד להמשיך לדבר...",
     "enableMicPrompt": "אשמח לשמוע את קולך - לאפשר גישה למיקרופון?",
-    "agentJoined": "{name} איתנו עכשיו",
     "seeYouNextTime": "להתראות בפעם הבאה!",
     "handoffFailed": "לא הצלחנו להשיג אותם כרגע. אבל אני עדיין כאן!",
     "personaBack": "{name} שוב כאן!",
@@ -10922,7 +10921,10 @@
     "endTalk": "ניתוק",
     "connectingCancel": "מתחבר. הקש לביטול",
     "connectingNow": "מתחבר…",
-    "tapToCancel": "הקש לביטול"
+    "tapToCancel": "הקש לביטול",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "המסע האישי",
