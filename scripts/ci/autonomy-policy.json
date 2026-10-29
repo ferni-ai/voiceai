@@ -34,7 +34,9 @@
         "!scripts/voice-eval/scenarios/**",
         "scripts/autonomy/**",
         "scripts/ci/lead-verified.ts",
-        "scripts/ci/autonomy-lanes.ts"
+        "scripts/ci/autonomy-lanes.ts",
+        ".github/workflows/autonomy-lanes.yml",
+        ".github/CODEOWNERS"
       ]
     }
   },

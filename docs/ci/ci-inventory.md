@@ -138,9 +138,11 @@ verdict but do not update the PR check, so re-run the check after a new verdict.
 **Purpose:** Keep protected lanes behind the right hands (rules:
 `scripts/ci/autonomy-lanes.ts`, lanes: `scripts/ci/autonomy-policy.json`, both always run
 from main's copy). A **crisis** PR (988 and referral, AI-disclosure notices, minor
-protections) needs an approving review from `sethdford` on its exact head commit. A
-crisis path counts for every author; a crisis changed line (added or removed) counts only
-for the loop's app, `ferni-loop[bot]`. An **evaluator** PR (the code that grades changes)
+protections) needs an approving review from `sethdford` on its exact head commit, or
+`sethdford` as its author (GitHub won't let him approve his own PR). A crisis path counts
+for every author; a crisis changed line (added or removed) counts only for the loop's app,
+`ferni-loop[bot]`, and so does any binary file in a loop PR. A path git had to quote or
+that holds a control character puts the PR in every lane. An **evaluator** PR (the code that grades changes)
 needs the `ferni-eval` app as author, or the same approval. **Privacy** is reported only;
 the local arm gate already requires a verifier PASS there. Runs on PRs, reviews and
 merge_group; fails only on merge_group, and the queue acts on it only once `Autonomy

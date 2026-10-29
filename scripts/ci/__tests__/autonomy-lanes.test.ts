@@ -3,14 +3,15 @@
  * whether it carries what each lane needs (an owner approval on the exact head, or an
  * evaluator author). main() runs as a subprocess on a fixture PR.
  */
-import { spawnSync } from 'child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { execFileSync, spawnSync } from 'child_process';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   changedLinesOf,
   classify,
+  diffInputs,
   evaluate,
   loadPolicy,
   matchesGlob,
@@ -70,10 +71,36 @@ describe('classify', () => {
   });
 
   it('diff headers are not changed lines', () => {
-    const diff = ['--- a/src/x/988.ts', '+++ b/src/x/988.ts', '+ok', '-gone', ' context'].join(
-      '\n'
-    );
-    expect(changedLinesOf(diff)).toEqual(['+ok', '-gone']);
+    const diff = [
+      'diff --git a/src/x/988.ts b/src/x/988.ts',
+      '--- a/src/x/988.ts',
+      '+++ b/src/x/988.ts',
+      '@@ -1 +1 @@',
+      '+ok',
+      '-gone',
+      ' context',
+      'diff --git a/src/y/988.ts b/src/y/988.ts',
+      '--- a/src/y/988.ts',
+      '+++ b/src/y/988.ts',
+      '@@ -0,0 +1 @@',
+      '+next',
+    ].join('\n');
+    expect(changedLinesOf(diff)).toEqual(['+ok', '-gone', '+next']);
+  });
+
+  it('crisis line disguised as a +++ header is still caught', () => {
+    // An added line whose text is `++ call 988` renders as `+++ call 988`.
+    const diff = [
+      `diff --git a/${PERSONA} b/${PERSONA}`,
+      `--- a/${PERSONA}`,
+      `+++ b/${PERSONA}`,
+      '@@ -0,0 +1,2 @@',
+      '+++ call 988',
+      '--- 988 removed',
+    ].join('\n');
+    const lines = changedLinesOf(diff);
+    expect(lines).toEqual(['+++ call 988', '--- 988 removed']);
+    expect(classify([PERSONA], lines, 'ferni-loop[bot]', policy)).toEqual(['crisis']);
   });
 
   it('plain persona change has no lane', () => {
@@ -161,6 +188,100 @@ describe('evaluate', () => {
   it('crisis and evaluator are judged independently', () => {
     const files = [SAFETY, EVAL];
     expect(evaluate(pr({ author: 'ferni-eval[bot]', files }), policy).ok).toBe(false);
+  });
+});
+
+describe('fail closed', () => {
+  it('control-character path is in every lane', () => {
+    for (const odd of ['src/personas/a\u0001b.ts', 'docs/x\n.md', '"src/personas/q.ts"']) {
+      expect(classify([odd], [], 'app/ferni-agent', policy)).toEqual([
+        'crisis',
+        'privacy',
+        'evaluator',
+      ]);
+    }
+  });
+
+  it('binary file in a loop PR is crisis', () => {
+    const image = 'src/personas/bundles/x/avatar.png';
+    expect(classify([image], [], 'ferni-loop[bot]', policy, [image])).toEqual(['crisis']);
+    expect(classify([image], [], 'app/ferni-agent', policy, [image])).toEqual([]);
+  });
+
+  it('the check itself and CODEOWNERS are evaluator code', () => {
+    for (const f of ['.github/workflows/autonomy-lanes.yml', '.github/CODEOWNERS']) {
+      expect(evaluate(pr({ files: [f] }), policy).ok).toBe(false);
+    }
+  });
+});
+
+describe('approver authorship', () => {
+  it('crisis PR authored by sethdford passes', () => {
+    const r = evaluate(pr({ author: 'sethdford', files: [SAFETY, EVAL] }), policy);
+    expect(r.ok).toBe(true);
+    expect(r.reasons[0]).toBe('crisis lane: authored by approver sethdford');
+  });
+
+  it('crisis PR authored by ferni-agent with no approval fails', () => {
+    expect(evaluate(pr({ author: 'app/ferni-agent', files: [SAFETY] }), policy).ok).toBe(false);
+  });
+
+  it('a bot or app form of the approver login is not a sign-off', () => {
+    for (const author of ['app/sethdford', 'sethdford[bot]']) {
+      expect(evaluate(pr({ author, files: [SAFETY] }), policy).ok).toBe(false);
+    }
+  });
+});
+
+describe('diffInputs against a real repository', () => {
+  const root = mkdtempSync(join(tmpdir(), 'autonomy-diff-'));
+  const env = {
+    ...process.env,
+    GIT_AUTHOR_NAME: 't',
+    GIT_AUTHOR_EMAIL: 't@example.invalid',
+    GIT_COMMITTER_NAME: 't',
+    GIT_COMMITTER_EMAIL: 't@example.invalid',
+    GIT_CONFIG_GLOBAL: '/dev/null',
+    GIT_CONFIG_NOSYSTEM: '1',
+  };
+  const git = (...args: string[]) =>
+    execFileSync('git', args, { cwd: root, encoding: 'utf8', env }).trim();
+  const write = (path: string, data: string | Buffer) => {
+    mkdirSync(join(root, path, '..'), { recursive: true });
+    writeFileSync(join(root, path), data);
+  };
+  git('init', '-q', '-b', 'main');
+  write('README.md', 'base\n');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'base');
+  write('src/services/safety/caf\u00e9-gate.ts', 'export const x = 1;\n');
+  write('src/services/safety/model.bin', Buffer.from('\u0000\u0001\u0000MINOR_CARE\n'));
+  write(PERSONA, '++ call 988\n');
+  // A textconv driver that blanks the content must not hide it from the diff.
+  write('.gitattributes', '*.ts diff=blank\n');
+  git('config', 'diff.blank.textconv', 'true');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'change');
+  const inputs = diffInputs('main~1...main', root);
+  afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+  it('non-ASCII path under src/services/safety/ classifies crisis', () => {
+    expect(inputs.files).toContain('src/services/safety/caf\u00e9-gate.ts');
+    const safety = inputs.files.filter((f) => f.startsWith('src/services/safety/caf'));
+    expect(classify(safety, [], 'app/ferni-agent', policy)).toEqual(['crisis']);
+  });
+
+  it('binary file in a crisis path is crisis', () => {
+    expect(inputs.binaryFiles).toEqual(['src/services/safety/model.bin']);
+    expect(classify([], [], 'app/ferni-agent', policy, inputs.binaryFiles)).toEqual(['crisis']);
+    // --text: a binary file's content is still screened.
+    expect(inputs.changedLines.some((l) => l.includes('MINOR_CARE'))).toBe(true);
+  });
+
+  it('a +++-looking added line and textconv-hidden content still reach the loop screen', () => {
+    expect(inputs.changedLines).toContain('+++ call 988');
+    expect(inputs.changedLines).toContain('+export const x = 1;');
+    expect(classify([PERSONA], inputs.changedLines, 'ferni-loop[bot]', policy)).toEqual(['crisis']);
   });
 });
 

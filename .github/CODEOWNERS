@@ -43,3 +43,4 @@
 /scripts/ci/autonomy-policy.json @sethdford
 /scripts/ci/autonomy-lanes.ts @sethdford
 /scripts/ci/lead-verified.ts @sethdford
+/.github/workflows/autonomy-lanes.yml @sethdford

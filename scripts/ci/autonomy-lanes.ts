@@ -48,6 +48,8 @@ export type PullInput = {
   files: string[];
   changedLines: string[];
   reviews: Review[];
+  /** Files git reports as binary: their content can't be screened line by line. */
+  binaryFiles?: string[];
 };
 export type Verdict = { ok: boolean; reasons: string[] };
 
@@ -93,19 +95,39 @@ export function inPaths(path: string, globs: string[]): boolean {
   return !excluded && globs.some((g) => !g.startsWith('!') && matchesGlob(path, g));
 }
 
-/** The added and removed lines of a unified diff, without the `+++`/`---` file headers. */
+/**
+ * The added and removed lines of a unified diff. `---`/`+++` are file headers only between
+ * a `diff --git` line and that file's first `@@`; inside a hunk, an added line whose text
+ * starts with `++ ` renders as `+++ ...` and is content like any other.
+ */
 export function changedLinesOf(diff: string): string[] {
-  return diff
-    .split('\n')
-    .filter((l) => /^[+-]/.test(l) && !l.startsWith('+++ ') && !l.startsWith('--- '));
+  const lines: string[] = [];
+  let inHunk = false;
+  for (const l of diff.split('\n')) {
+    if (l.startsWith('diff --git ')) inHunk = false;
+    else if (l.startsWith('@@')) inHunk = true;
+    else if (inHunk && /^[+-]/.test(l)) lines.push(l);
+  }
+  return lines;
 }
 
+/** A path git had to quote, or with a control character: can't be matched reliably. */
+const isOddPath = (path: string) => path.startsWith('"') || /[\u0000-\u001f\u007f]/.test(path);
+const ALL_LANES: Lane[] = ['crisis', 'privacy', 'evaluator'];
+
+/**
+ * Fails closed: an odd path is in every lane, and a binary file in a loop PR is crisis
+ * (its content can't be screened). Binary files count by path like any other file.
+ */
 export function classify(
-  files: string[],
+  changedFiles: string[],
   changedLines: string[],
   author: string,
-  policy: Policy
+  policy: Policy,
+  binaryFiles: string[] = []
 ): Lane[] {
+  const files = [...changedFiles, ...binaryFiles];
+  if (files.some(isOddPath)) return [...ALL_LANES];
   const { crisis, privacy, evaluator } = policy.lanes;
   const isLoop = policy.loopAuthors.map(normalizeLogin).includes(normalizeLogin(author));
   const crisisLine = crisis.changedLinePatterns.map((p) => new RegExp(p, 'i'));
@@ -113,6 +135,7 @@ export function classify(
   const lanes: Lane[] = [];
   if (
     files.some((f) => inPaths(f, crisis.paths)) ||
+    (isLoop && binaryFiles.length > 0) ||
     (isLoop && changedLines.some((l) => crisisLine.some((re) => re.test(l))))
   ) {
     lanes.push('crisis');
@@ -141,31 +164,77 @@ function approvedOnHead(pr: PullInput, approvers: string[]): string | null {
   return [...decided].find(([, state]) => state === 'APPROVED')?.[0] ?? null;
 }
 
+/**
+ * Crisis needs an approver's sign-off on the head: their approving review, or their own
+ * authorship (GitHub won't let an author approve their own PR). Only the user login
+ * counts; a bot or app form of it never does. Evaluator needs an evaluator author or the
+ * same sign-off.
+ */
 export function evaluate(pr: PullInput, policy: Policy): Verdict {
-  const lanes = classify(pr.files, pr.changedLines, pr.author, policy);
+  const lanes = classify(pr.files, pr.changedLines, pr.author, policy, pr.binaryFiles);
   if (lanes.length === 0) return { ok: true, reasons: ['no autonomy lane'] };
+  const author = normalizeLogin(pr.author);
   const approvers = policy.approvers.crisis;
   const approver = approvedOnHead(pr, approvers);
+  const signed = approver
+    ? `approved by ${approver} on ${short(pr.head)}`
+    : approvers.map(normalizeLogin).includes(author)
+      ? `authored by approver ${author}`
+      : null;
   const needApproval = `needs ${approvers.join(' or ')} approval on ${short(pr.head)}`;
-  const approved = `approved by ${approver} on ${short(pr.head)}`;
   let ok = true;
   const reasons: string[] = [];
   for (const lane of lanes) {
     if (lane === 'crisis') {
-      ok &&= approver !== null;
-      reasons.push(`crisis lane: ${approver ? approved : needApproval}`);
+      ok &&= signed !== null;
+      reasons.push(`crisis lane: ${signed ?? needApproval}`);
     } else if (lane === 'evaluator') {
-      const author = normalizeLogin(pr.author);
       const isEvaluator = policy.evaluatorAuthors.map(normalizeLogin).includes(author);
-      ok &&= isEvaluator || approver !== null;
+      ok &&= isEvaluator || signed !== null;
       const notEvaluator = `author ${author} is not an evaluator author; ${needApproval}`;
-      const why = isEvaluator ? `authored by ${author}` : approver ? approved : notEvaluator;
-      reasons.push(`evaluator lane: ${why}`);
+      reasons.push(
+        `evaluator lane: ${isEvaluator ? `authored by ${author}` : (signed ?? notEvaluator)}`
+      );
     } else {
       reasons.push('privacy lane: the local arm gate requires an independent verifier PASS');
     }
   }
   return { ok, reasons };
+}
+
+/**
+ * Files, binary files and changed lines of a diff range. Names come NUL-separated and
+ * unquoted; content is diffed as text with no textconv or external driver, so no filter
+ * can hide what changed. --no-renames: a file moved out of a lane still shows its old path.
+ */
+export function diffInputs(
+  range: string,
+  cwd = process.cwd()
+): Pick<PullInput, 'files' | 'binaryFiles' | 'changedLines'> {
+  const diff = (...args: string[]) =>
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'core.quotePath=false',
+        'diff',
+        '--no-color',
+        '--no-ext-diff',
+        '--no-renames',
+        ...args,
+        range,
+      ],
+      { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 1024 }
+    );
+  const binaryFiles = diff('--numstat', '-z')
+    .split('\0')
+    .filter((entry) => entry.startsWith('-\t-\t'))
+    .map((entry) => entry.slice(4));
+  return {
+    files: diff('--name-only', '-z').split('\0').filter(Boolean),
+    binaryFiles,
+    changedLines: changedLinesOf(diff('--text', '--no-textconv', '-U0')),
+  };
 }
 
 type Context = { repo: string; policy: Policy; mainRef: string };
@@ -181,18 +250,10 @@ function loadPull({ repo, mainRef }: Context, n: number): PullInput {
   const api = `repos/${repo}/pulls/${n}`;
   const pull = gh(['api', api]);
   const head: string = pull.head.sha;
-  // --no-renames: a file moved out of a lane still shows its old path.
-  const range = `${mainRef}...${head}`;
-  const diff = (...args: string[]) =>
-    execFileSync('git', ['diff', '--no-color', '--no-ext-diff', '--no-renames', ...args, range], {
-      encoding: 'utf8',
-      maxBuffer: 1024 * 1024 * 1024,
-    });
   return {
     head,
     author: String(pull.user?.login ?? ''),
-    files: diff('--name-only').split('\n').filter(Boolean),
-    changedLines: changedLinesOf(diff('-U0')),
+    ...diffInputs(`${mainRef}...${head}`),
     reviews: pages(`${api}/reviews?per_page=100`).map((r) => ({
       login: String(r.user?.login ?? ''),
       state: String(r.state ?? ''),
