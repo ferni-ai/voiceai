@@ -55,9 +55,9 @@ const MIN_DIALABLE = 7;
 // counts: its "2019" is a year only if nothing dialable sits next to it. A run over
 // 40 characters is never ordinary. The run is read by a left-to-right tokenizer
 // (longest token, then one separator), not a backtracking regex.
-// A run is an amount only when the WHOLE run is one amount right after a currency
-// sign, with no leading zero and at most 6 whole digits: "$450,000", "€ 2,400.50".
-// "$1,250,000", "$5550142123" and "727 555 $0142" count as dialable.
+// Amounts get no allowance: one of 6 digits or fewer, cents included ("$450,000",
+// "$1,234.56"), is under the threshold anyway, and a bigger one could hold a number
+// ("$55,501.42" is 555-0142 plus a digit). So "$12,345.67" is refused, the safe way.
 const DASH = '\\-\\u2010-\\u2015\\u2212';
 const YEAR = '(?:19|20)\\d\\d';
 const MONTH_DAY = '(?:0?[1-9]|[12]\\d|3[01])';
@@ -93,18 +93,10 @@ function isOrdinaryRun(run: string): boolean {
   }
 }
 
-const AMOUNT = '(?:0|[1-9]\\d{0,2}(?:,\\d{3})?|[1-9]\\d{3,5})(?:\\.\\d{1,2})?';
-const ONE_AMOUNT = new RegExp(`^${AMOUNT}$`);
-const SIGN_BEFORE = /\p{Sc}\s?$/u;
-
 function hasDialableRun(folded: string): boolean {
-  for (const m of folded.matchAll(RUN)) {
-    const run = m[0];
-    if (run.replace(/\D/g, '').length < MIN_DIALABLE || isOrdinaryRun(run)) continue;
-    const signed = SIGN_BEFORE.test(folded.slice(Math.max(0, m.index - 2), m.index));
-    if (!(signed && ONE_AMOUNT.test(run))) return true;
-  }
-  return false;
+  return (folded.match(RUN) ?? []).some(
+    (run) => run.replace(/\D/g, '').length >= MIN_DIALABLE && !isOrdinaryRun(run)
+  );
 }
 
 // Stored values get a backstop the prompt guard doesn't need: letters do not reset
@@ -113,6 +105,8 @@ function hasDialableRun(folded: string): boolean {
 // amount, date, time, or ZIP ending the value ("1245 Oak St, 33701"). Several such
 // tokens can't add up to a number: "zip 33701, $0142" counts 9.
 const MAX_LOOSE_DIGITS = MIN_DIALABLE - 1;
+// No leading zero ("$0142" is no price). Over 6 digits never gets here: the run check refuses it.
+const AMOUNT = '(?:0|[1-9]\\d{0,2}(?:,\\d{3})?|[1-9]\\d{3,5})(?:\\.\\d{1,2})?';
 const DATE =
   `${YEAR}[/.${DASH}]${MONTH_DAY}[/.${DASH}]${MONTH_DAY}` +
   `|${MONTH_DAY}[/.${DASH}]${MONTH_DAY}(?:[/.${DASH}](?:${YEAR}|\\d\\d))?`;

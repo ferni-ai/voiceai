@@ -55,6 +55,9 @@ const PHONES: Array<[string, string]> = [
   ['large signed amount', 'send $5550142123'],
   ['large grouped amount', 'send $5,550,142,123'],
   ['amount over six whole digits', 'wire $7,275,550'],
+  // cents count toward the 6-digit cap: "$55,501.42" holds 555-0142
+  ['amount with cents over six digits', 'wire $55,501.42'],
+  ['bare cents amount', '$5,550,142.00'],
 ];
 const SEPARATORS: Array<[string, string]> = [
   ['nbsp', ' '],
@@ -234,6 +237,8 @@ const ORDINARY = [
   'on ２０２６-１０-２０',
   'oh, one more thing',
   'no one knows',
+  'paid $1,234.56 on 2026-10-20',
+  '$999,999',
 ];
 // Ordinary-looking values that are refused, each with its reason (see the PR body).
 const REFUSED = [
@@ -243,6 +248,8 @@ const REFUSED = [
   'Pat works at Yahoo now',
   // 7 whole digits: an amount that large could be a phone number ("$5,550,142").
   'sold for $1,250,000',
+  // 7 digits with the cents: the same shape as "$55,501.42". Rare; refused the safe way.
+  'paid $12,345.67',
 ];
 
 // Kept in a prompt, refused as a stored fact: 7 digits outside any date, time, year or amount.
@@ -280,6 +287,8 @@ describe('isContactValueAllowed and toE164: the facts store exceptions', () => {
       expect(containsContactData(v), v).toBe(false); // the prompt guard reads runs only
       expect(isContactValueAllowed('other', v), v).toBe(false);
     }
+    expect(isContactValueAllowed('other', 'paid $55,501.42')).toBe(false); // cents count
+    expect(isContactValueAllowed('other', 'paid $1,234.56 in 2019')).toBe(true);
     // digits inside recognised dates, years, times, amounts and an ending ZIP don't count
     for (const v of ORDINARY.filter((t) => !STORED_REFUSED.includes(t)))
       expect(isContactValueAllowed('other', v), v).toBe(true);
