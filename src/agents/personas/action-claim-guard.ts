@@ -58,7 +58,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { bareOnIt, callActions, claimedAction, pastClaim, kindsOfTool } from './action-claims.js';
 import { isLookupTool, lookupKind, withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
-import { withHouseFactsGuard } from './house-facts.js';
+import { withHouseFactsGuard, type HouseFactsWho } from './house-facts.js';
 import { CRISIS_TALK } from './emergency-claim.js';
 import { honestLine, inPlace, type ClaimKind, type MissReason } from './honest-line.js';
 import type { Kinds, SeenActions } from './honest-line.js';
@@ -195,14 +195,7 @@ export async function withActionClaimCheck<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
   tools: { functionTools?: Record<string, unknown> },
-  caller:
-    | string
-    | {
-        personaId?: string;
-        userId?: string;
-        calls?: CallRecords;
-        userProfile?: { contactInfo?: { phone?: string; email?: string } } | null;
-      } = 'ferni',
+  caller: string | ({ userId?: string; calls?: CallRecords } & HouseFactsWho) = 'ferni',
   env: Env = process.env
 ): Promise<T> {
   const who = typeof caller === 'string' ? { personaId: caller } : caller;
@@ -215,10 +208,7 @@ export async function withActionClaimCheck<T>(
     ? askedCallLookup(words, who.userId, calls)
     : undefined;
   // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
-  const facts = withHouseFactsGuard(reply, chatCtx, env, {
-    personaId: who.personaId,
-    contact: who.userProfile?.contactInfo,
-  });
+  const facts = withHouseFactsGuard(reply, chatCtx, env, who);
   const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }

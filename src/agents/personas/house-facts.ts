@@ -136,11 +136,12 @@ function addItemAddresses(
 const allowedAddresses = (chatCtx: { items: readonly unknown[] }, facts: HouseFacts): Addresses =>
   addItemAddresses(chatCtx, factAddresses(facts), () => true);
 
-/** What the caller's own profile holds that they could give out (their phone and email). */
-export interface CallerContact {
-  phone?: string;
-  email?: string;
+/** Who is speaking, as the session knows it: the persona, and the caller's own profile contact. */
+export interface HouseFactsWho {
+  personaId?: string;
+  userProfile?: { contactInfo?: { phone?: string; email?: string } } | null;
 }
+type CallerContact = NonNullable<HouseFactsWho['userProfile']>['contactInfo'];
 
 /** A caller turn: a user message that is not a note the turn machinery pushed as one. */
 const isCallerTurn = (item: GroundingItem): boolean => {
@@ -182,7 +183,7 @@ export async function withHouseFactsGuard<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },
   env: Env = process.env,
-  who: { personaId?: string; contact?: CallerContact } = {}
+  who: HouseFactsWho = {}
 ): Promise<T> {
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
@@ -202,7 +203,11 @@ export async function withHouseFactsGuard<T>(
       inventsAddress(
         sentence,
         own
-          ? (callerOwned ??= callerOwnedAddresses(chatCtx, houseFacts(env), who.contact))
+          ? (callerOwned ??= callerOwnedAddresses(
+              chatCtx,
+              houseFacts(env),
+              who.userProfile?.contactInfo
+            ))
           : (grounded ??= allowedAddresses(chatCtx, houseFacts(env)))
       )
     );
