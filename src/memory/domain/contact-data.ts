@@ -10,12 +10,16 @@
  * - alternate email spellings: "-at-", "_at_", "·" or "。" as the dot, "period",
  *   "dot c o m", "d0t", "dotcom";
  * - Ethiopic numerals (not decimal digits in Unicode);
- * - in rendered text, digits split by letters or letter-like marks ("555-O142",
+ * - in rendered text, digits split by letters or letter-like marks ("727-555-O142",
  *   "call 72755 or, 50142", katakana "ー", Arabic tatweel, "ǀ", the Hangul filler);
- *   stored values catch these through their 7-digit total;
+ *   stored values catch letter-split numbers once they total 7+ digits ("555-O142"
+ *   holds only 6 and is stored);
  * - in rendered text, a run that is exactly one full date is kept, so "on 2026-10-20
  *   call 555" renders (the replaced check refused every 7+ digit run); stored values
  *   refuse it.
+ *
+ * Refused where the replaced checks kept it: a spoken count of 7+ number words
+ * ("one two three four five six seven"), because spoken digits are folded to digits.
  *
  * Pure: no I/O, imports nothing. Credentials (keys, card numbers, SSNs) are a
  * different concern and live in memory/credential-shapes.ts.
