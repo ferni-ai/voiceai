@@ -13,7 +13,14 @@
 
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isPlainNo } from './consent-words.js';
-import { channelOf, asksAgain, isReadBack, personOf, type ConfirmState } from './consent-window.js';
+import {
+  askOnceLine,
+  asksAgain,
+  channelOf,
+  isReadBack,
+  personOf,
+  type ConfirmState,
+} from './consent-window.js';
 import { dropConfirmThread } from './confirm-thread.js';
 import { stillWaitingReply, targetOf } from './outreach-confirm-family.js';
 import type { ConfirmEvent, PendingAction, SessionLog } from './outreach-confirm.js';
@@ -113,7 +120,7 @@ export function unconfirmedReply(
   Object.assign(pending, { callId: next.callId, createdSeq: entry.seq, expiresAt: next.expiresAt });
   if (state === 'waiting') return stillWaitingReply(pending.readBack, pending.toolId);
   pending.asked = true;
-  const ask = `Just to be sure: ${VERB[channelOf(pending)]} ${personOf(pending)} now?`;
+  const ask = askOnceLine(pending);
   log.info({ toolId: pending.toolId }, 'OUTREACH_CONFIRM: unclear, asking once');
   return (
     `NOT SENT YET: the caller's answer wasn't a clear yes. Ask exactly this, once, and nothing ` +

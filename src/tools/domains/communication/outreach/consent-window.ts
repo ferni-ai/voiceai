@@ -59,36 +59,56 @@ const lastFour = (pending: Pick<PendingAction, 'args'>): string | undefined => {
 };
 // Never a read-back of THIS action: a later time, another way round ("call you back").
 const NOT_A_READ_BACK = new Set(words('later tomorrow tonight instead you back'));
-// The honest line's own re-ask (agents/personas/honest-line.ts NOT_YET), about the action waiting.
-const RE_ASK: Record<Channel, RegExp> = {
-  call: /^should i go ahead and call( him| her| them)?( now)?\?$/i,
-  text: /^should i go ahead and send it\?$/i,
-  other: /^should i go ahead and send it\?$/i,
-};
 const STOP = new Set(words('my the a your his her their'));
+const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
+const tokens = (t: string): string =>
+  (
+    t
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .match(/[a-z0-9]+/g) ?? []
+  ).join(' ');
 
-/** Ferni asking about THIS action again: it repeats the person or last four digits, or is the
- * honest line's own re-ask (not when `strict`); never "later"/"you"/"back" or someone else's kin. */
+/** The one question the gate has Ferni ask when an answer isn't a plain yes (consent-loop.ts). */
+export function askOnceLine(pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>): string {
+  return `Just to be sure: ${VERB[channelOf(pending)]} ${personOf(pending)} now?`;
+}
+
+/**
+ * Ferni asking about THIS action again, proven from the stored action, not guessed: his last
+ * question is the gate's own ask-once line, or "Should I (go ahead and) call <the person read
+ * back, or their pronoun> (at <its last four digits>) (now)?" (the honest line's re-ask and the
+ * read-back's question). `strict`: it must name the person or the digits. Never with "later",
+ * "you", "back" or someone else's relative anywhere in the turn. Anything else is another question.
+ */
 export function isReadBack(
   text: string,
   pending: Pick<PendingAction, 'toolId' | 'args' | 'readBack'>,
   strict = false
 ): boolean {
   const plain = text.replace(/<[^>]*>/g, ' ');
-  const ask = plain
-    .split(/(?<=[.!?])\s+/)
-    .filter((s) => s.trim().endsWith('?'))
-    .pop()
-    ?.trim();
-  const channel = channelOf(pending);
-  if (!ask || !CHANNEL_WORDS[channel].test(ask)) return false;
-  const said = words(plain);
+  const ask =
+    plain
+      .split(/(?<=[.!?])\s+/)
+      .filter((s) => s.trim().endsWith('?'))
+      .pop() ?? '';
   const target = targetWords(pending as PendingAction).filter((w) => !STOP.has(w));
+  const said = words(plain);
   if (said.some((w) => NOT_A_READ_BACK.has(w) || (KIN.has(w) && !target.includes(w)))) return false;
-  const four = lastFour(pending);
-  const repeats =
-    target.some((w) => said.includes(w)) || (!!four && plain.replace(/\D/g, '').includes(four));
-  return repeats || (!strict && RE_ASK[channel].test(ask));
+  if (tokens(ask) === tokens(askOnceLine(pending))) return true;
+  const pronoun = pronounOf(target);
+  const named = target.flatMap((w) => [w, `my ${w}`]).join('|') || 'x';
+  const obj = strict ? named : `${named}|${pronoun ?? 'him|her|them'}`;
+  const four = lastFour(pending) ?? 'x';
+  const what =
+    channelOf(pending) === 'call'
+      ? `(call|dial|ring|phone)( (${obj}))?( (at|on)( the number)?( ending)?( in)? ${four})?`
+      : `(send it|send (the|that|this) (text|message)( to (${obj}))?|text (${obj}))`;
+  const form = `^(should i|shall i|can i|do you want me to|want me to)( go ahead and)? ${what}( right)?( now)?$`;
+  const match = new RegExp(form).exec(tokens(ask));
+  return (
+    !!match && (!strict || match[0].includes(four) || target.some((w) => match[0].includes(w)))
+  );
 }
 
 // STT marks most questions with "?"; these open one even without it ("Do it." does not).
@@ -99,18 +119,24 @@ const ASKS = /^(what|whats|who|whos|where|when|why|how|hows|which)\b/;
 const PAUSES = /^(um |uh |oh |well )?(wait|hold on|hang on|one sec|one second|just a sec)\b/;
 const DETAIL = new Set(
   words(`which what whats who whos where when how hows number phone name time is its it the that
-    this was again his her their one sorry say repeat tell me remind do you have did and um uh oh`)
+    this was again one sorry say repeat tell me remind do you have did and um uh oh`)
 );
-const asksDetail = (text: string): boolean => {
+// "his" only for a call to Dad: "Wait, do you have her number?" asks about someone else.
+const OWN = { him: ['his'], her: ['her'] } as const;
+const asksDetail = (text: string, pending: PendingAction): boolean => {
   const rest = words(text).join(' ').replace(PAUSES, '');
-  return isQuestion(text) && words(rest).every((w) => DETAIL.has(w));
+  const pronoun = pronounOf(targetWords(pending));
+  const own: readonly string[] = pronoun ? OWN[pronoun] : ['his', 'her', 'their'];
+  return isQuestion(text) && words(rest).every((w) => DETAIL.has(w) || own.includes(w));
 };
-const clarifies = (text: string): boolean => PAUSES.test(words(text).join(' ')) && asksDetail(text);
+const clarifies = (text: string, pending: PendingAction): boolean =>
+  PAUSES.test(words(text).join(' ')) && asksDetail(text, pending);
 const isQuestion = (text: string): boolean =>
   text.includes('?') || ASKS.test(words(text).join(' ')) || PAUSES.test(words(text).join(' '));
 
 /** The owner's words answering the latest read-back ('void': other tool output came between).
- * overTalk: words over Ferni after the answer began (maybe his own voice): never a yes. */
+ * overTalk: words over Ferni after the answer began (maybe his own voice), or an answer to a
+ * question of Ferni's that isn't a read-back of this action: never a yes. */
 export function answerWindow(
   pending: PendingAction,
   events: ConfirmEvent[]
@@ -118,6 +144,7 @@ export function answerWindow(
   let delivered = false;
   let overTalk = false;
   let turns: Array<{ text: string; detail: boolean }> = [];
+  let blocked = false; // Ferni asked something else: no yes counts until he reads it back again
   for (const e of events) {
     if (e.seq <= pending.createdSeq) continue;
     if (e.kind === 'tool') {
@@ -132,15 +159,17 @@ export function answerWindow(
     if (!delivered) continue;
     if (e.kind === 'agent') {
       const again = isReadBack(e.text, pending);
-      turns = again ? [] : turns.filter((t) => !t.detail);
+      const asked = e.text.includes('?');
+      turns = again || asked ? [] : turns.filter((t) => !t.detail);
+      blocked = !again && (asked || blocked);
       overTalk &&= !again;
       continue;
     }
     // Words over Ferni are not the answer, and once it has begun they keep it from being a yes.
     if (e.agentSpeaking) overTalk ||= turns.length > 0;
-    else turns.push({ text: e.text, detail: asksDetail(e.text) });
+    else turns.push({ text: e.text, detail: asksDetail(e.text, pending) });
   }
-  return { turns: turns.map((t) => t.text), overTalk };
+  return { turns: turns.map((t) => t.text), overTalk: overTalk || blocked };
 }
 
 // Said any time after the read-back, these end it for good: only a fresh read-back can follow.
@@ -179,7 +208,7 @@ export function asksAgain(
   const said = words(text);
   const line = said.join(' ');
   if (said.some((w) => DEFERRED.has(w) || (NOES.includes(w) && w !== 'no'))) return false;
-  if (REDIRECT.test(line) || clarifies(text)) return false;
+  if (REDIRECT.test(line) || clarifies(text, p)) return false;
   if (/\bi said (yes|yeah|call|go ahead)\b/.test(line)) return true;
   return (
     mentionsChannel(text, channelOf(p)) &&
@@ -202,7 +231,9 @@ export function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean
   };
   // A clarifying "Wait, which number?" is exempt from the plain-no check only. Finals are also
   // read together: STT may split "call" | "my sister".
-  return said.some((t) => ends(t) || (isPlainNo(t) && !clarifies(t))) || ends(said.join(' '));
+  return (
+    said.some((t) => ends(t) || (isPlainNo(t) && !clarifies(t, pending))) || ends(said.join(' '))
+  );
 }
 /** Where it stands now: the fast path's answer, else the judge's if it has finished. */
 export function windowState(

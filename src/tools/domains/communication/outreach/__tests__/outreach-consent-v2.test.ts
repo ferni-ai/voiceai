@@ -686,4 +686,58 @@ describe('deny by default', () => {
     expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
     expect(sends).toHaveLength(0);
   });
+
+  /** Verifier round 5 (5dfb792f9): a yes to another question of Ferni's placed the stored call. */
+  it('a yes to a question that is not a read-back of this call never places; Ferni asks once', async () => {
+    setConsentAsk(alwaysYes);
+    const flows: Array<[string | undefined, string, string]> = [
+      [
+        'Wait, which number?',
+        'It ends in 0002. Should I wait until tonight, when he is up?',
+        'Yes.',
+      ],
+      [
+        'Hold on, what is his number?',
+        'It ends in 0002. Would you rather I just text him?',
+        'Yes.',
+      ],
+      ['Wait, who?', 'Your dad. Or did you mean your brother?', 'Yeah.'],
+      [
+        'Wait, which number?',
+        'It ends in 0002. Do you want me to try his work line instead?',
+        'Yes.',
+      ],
+      ['Wait, do you have her number?', "I have your mom's number too.", 'Yes.'],
+      [undefined, "I'm sorry about the stroke. Is he doing okay?", 'Yes.'],
+      [undefined, 'Want me to text him a heads-up first?', 'Yes.'],
+      [undefined, 'Should I wait until after his nap?', 'Yes.'],
+    ];
+    for (const [owner, ferni, yes] of flows) {
+      const call = liveCall();
+      await call.call('c1');
+      if (owner) call.owner(owner);
+      call.ferni(ferni);
+      call.owner(yes);
+      const out = await call.call('c2');
+      expect(sends, ferni).toHaveLength(0);
+      if (!owner?.includes('her')) expect(out, ferni).toContain('Just to be sure: call Dad now?');
+    }
+    // A yes to the gate's own question, or to a read-back of this call, still places.
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni('Is he doing okay?');
+    call.owner('Yes.');
+    await call.call('c2');
+    call.ferni('Just to be sure: call Dad now?');
+    call.owner('Yes.');
+    await call.call('c3');
+    expect(sends).toHaveLength(1);
+    const again = liveCall();
+    await again.call('d1');
+    again.ferni('Is he doing okay?');
+    again.ferni('Okay. Should I go ahead and call him now?');
+    again.owner('Yes.');
+    await again.call('d2');
+    expect(sends).toHaveLength(2);
+  });
 });
