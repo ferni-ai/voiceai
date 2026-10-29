@@ -22,6 +22,7 @@ import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { formatStoredLocalTime } from '../../../utils/time-zone.js';
 import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
 import { forgottenFor, withoutForgottenLines } from './recent-context-forget.js';
+import { historyInTimeframe } from './recent-context-window.js';
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 
 const log = getLogger();
@@ -517,14 +518,9 @@ const recentContextDef: ToolDefinition = {
         const keep = (text: string): boolean => forgotten !== null && !forgotten(text);
 
         try {
-          // Query conversation history service
-          const { getConversationHistoryService } =
-            await import('../../../services/stores/conversation-history.js');
-          const conversationHistoryService = getConversationHistoryService();
-
           if (ctx.userId) {
-            // getHistory takes only a limit: timeframe labels the reply but filters nothing (#2719).
-            const history = await conversationHistoryService.getHistory(ctx.userId, 20);
+            // RECENT_CONTEXT_TIMEFRAME=on: only the sessions inside the timeframe (#2757).
+            const history = await historyInTimeframe(ctx, timeframe);
 
             if (history && history.sessions && history.sessions.length > 0) {
               const sessions = history.sessions.map((s) =>
@@ -595,7 +591,11 @@ const recentContextDef: ToolDefinition = {
               }
             } else {
               response += `No conversation records found for ${timeframe.replace(/-/g, ' ')}.\n\n`;
-              response += `This might be our first chat in a while!\n`;
+              // Sessions read but outside the window: we have talked, so never "first chat" (#2757).
+              const talkedBefore = 'outsideWindow' in history && history.outsideWindow > 0;
+              response += talkedBefore
+                ? `We have talked before, just not in that stretch.\n`
+                : `This might be our first chat in a while!\n`;
               response += `What's on your mind today?`;
             }
           } else {
