@@ -21,6 +21,51 @@ import {
 import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
 import type { TurnReceipt } from '../../shared/turn-receipt.js';
 
+const PAUSE_OFF = { PAUSE_REQUEST_COMMITS_TURN: 'off' };
+const PAUSE_ON = { PAUSE_REQUEST_COMMITS_TURN: 'on' };
+
+/** Pause requests and how long main held each before #3047 (and holds again with the flag off). */
+const PAUSE_REQUESTS_HELD_MS: ReadonlyArray<readonly [string, number]> = [
+  ['hold on', DANGLING_HOLD_MS],
+  ['Hang on', DANGLING_HOLD_MS],
+  ['wait', UNPUNCTUATED_HOLD_MS],
+  ['please wait', UNPUNCTUATED_HOLD_MS],
+  ['no wait', UNPUNCTUATED_HOLD_MS],
+  ['oh no wait', UNPUNCTUATED_HOLD_MS],
+  ['wait wait wait', UNPUNCTUATED_HOLD_MS],
+  ['can you wait', UNPUNCTUATED_HOLD_MS],
+  ['just wait', UNPUNCTUATED_HOLD_MS],
+  ['will you hold on', DANGLING_HOLD_MS],
+];
+
+/** A pause request, or a stop word, with the caller going on: always a held turn. */
+const CONTINUATIONS = [
+  'hold on, let me think',
+  'hold on let me think about what I want to say',
+  'Hold on, I need to find my keys',
+  'hang on a second while I check',
+  'hang on, my other line is ringing',
+  'wait, I wanted to ask',
+  'wait I wanted to ask you something',
+  'wait what did you just say',
+  'no wait that is not what I meant',
+  'oh no wait I forgot to mention',
+  'wait wait wait that is not right',
+  'can you wait a second',
+  'can you wait until I am done',
+  'just wait until you hear this',
+  'please wait while I get my glasses',
+  'will you hold on for a moment',
+  'will you hold on to this for me',
+  'can you stop by the store',
+  'Hey Ferni can you stop by the store on the way',
+  'stop me if I am rambling',
+  'please stop telling me what to do',
+  "don't stop",
+  'I wish you would stop and',
+  'you can stop worrying about it',
+];
+
 describe('unfinishedness', () => {
   it('holds the fragments ink ended turns on in the 2026-10-03 call', () => {
     for (const fragment of [
@@ -72,7 +117,7 @@ describe('unfinishedness', () => {
     expect(unfinishedness('mm-hmm')).toBe('finished');
   });
 
-  it('answers a stop, pause or wait command at once, punctuated or not (#2657)', () => {
+  it('answers a stop command at once, punctuated or not, flag or no flag (#2657)', () => {
     // prod AJ_JbTguxw4hwRw: music playing, held twice, the stop came 4.4 s late
     expect(unfinishedTurnHoldMs('Hey, Ferni, can you')).toBe(UNPUNCTUATED_HOLD_MS); // lead-in alone
     for (const command of [
@@ -80,9 +125,8 @@ describe('unfinishedness', () => {
       'stop',
       'Stop the music',
       'could you please stop it now',
-      'hold on',
-      'Hang on',
-      'wait',
+      'you can stop',
+      'just enough',
       'pause',
       'Pause the music please',
       'shh',
@@ -91,8 +135,33 @@ describe('unfinishedness', () => {
       'no, stop',
       'okay turn it off',
     ]) {
-      expect(unfinishedness(command), command).toBe('finished');
-      expect(unfinishedTurnHoldMs(command), command).toBe(0);
+      for (const env of [PAUSE_OFF, PAUSE_ON]) {
+        expect(unfinishedness(command, env), command).toBe('finished');
+        expect(unfinishedTurnHoldMs(command, env), command).toBe(0);
+      }
+    }
+  });
+
+  it('holds a lone pause request as main did before #3047 (PAUSE_REQUEST_COMMITS_TURN off)', () => {
+    // "hold on" ends on a dangling word (2 s); "wait" is just unpunctuated (1.5 s).
+    for (const [request, ms] of PAUSE_REQUESTS_HELD_MS) {
+      expect(unfinishedTurnHoldMs(request, PAUSE_OFF), request).toBe(ms);
+      expect(unfinishedTurnHoldMs(request, {}), `${request} (unset)`).toBe(ms);
+    }
+  });
+
+  it('commits a lone pause request at once when PAUSE_REQUEST_COMMITS_TURN is on (#3047)', () => {
+    for (const [request] of PAUSE_REQUESTS_HELD_MS) {
+      expect(unfinishedness(request, PAUSE_ON), request).toBe('finished');
+      expect(unfinishedTurnHoldMs(request, PAUSE_ON), request).toBe(0);
+    }
+  });
+
+  it('holds a pause request that the caller goes on past, flag or no flag', () => {
+    for (const sentence of CONTINUATIONS) {
+      for (const env of [PAUSE_OFF, PAUSE_ON]) {
+        expect(unfinishedTurnHoldMs(sentence, env), sentence).toBeGreaterThan(0);
+      }
     }
   });
 
@@ -161,7 +230,10 @@ function activity() {
 
 describe('LiveKit end of turn on an unfinished sentence (patched)', () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
 
   it('does not reply to "We don\'t get" while the caller may go on', async () => {
     const fn = await onEndOfTurn();
@@ -220,6 +292,55 @@ describe('LiveKit end of turn on an unfinished sentence (patched)', () => {
     vi.advanceTimersByTime(UNPUNCTUATED_HOLD_MS + DANGLING_HOLD_MS);
     expect(a.audioRecognition.runEOUDetection).not.toHaveBeenCalled(); // nothing was held
   });
+
+  it('does not reply to "hold on" when the caller goes on, unless the flag is on (#2657)', async () => {
+    // The #3047 verifier's split final: "hold on" | "hold on let me think about what I want to say".
+    const joined = 'hold on let me think about what I want to say.'; // ink punctuates a finished sentence
+    vi.stubEnv('PAUSE_REQUEST_COMMITS_TURN', 'off');
+    const fn = await onEndOfTurn();
+    const a = activity();
+    a.audioRecognition.audioTranscript = 'hold on';
+    expect(await fn.call(a, { newTranscript: 'hold on' })).toBe(false);
+    expect(a.createSpeechTask).not.toHaveBeenCalled(); // no reply to the fragment
+    a.audioRecognition.audioTranscript = joined;
+    expect(await fn.call(a, { newTranscript: joined })).toBe(true);
+    expect(a.createSpeechTask).toHaveBeenCalledTimes(1); // one reply, to the whole sentence
+
+    vi.stubEnv('PAUSE_REQUEST_COMMITS_TURN', 'on');
+    const b = activity();
+    b.audioRecognition.audioTranscript = 'hold on';
+    expect(await fn.call(b, { newTranscript: 'hold on' })).toBe(true);
+    expect(b.createSpeechTask).toHaveBeenCalledTimes(1); // #3047: the fragment is answered
+  });
+
+  it('commits a lone "wait" and "please wait" at once only with the flag on', async () => {
+    const fn = await onEndOfTurn();
+    for (const [flag, committed] of [
+      ['off', false],
+      ['on', true],
+    ] as const) {
+      vi.stubEnv('PAUSE_REQUEST_COMMITS_TURN', flag);
+      for (const said of ['hang on', 'wait', 'please wait']) {
+        const a = activity();
+        a.audioRecognition.audioTranscript = said;
+        expect(await fn.call(a, { newTranscript: said }), `${said} (${flag})`).toBe(committed);
+      }
+    }
+  });
+
+  it.each(['off', 'on'])(
+    'commits "stop", "that\'s enough", "you can stop" at once (flag %s)',
+    async (flag) => {
+      vi.stubEnv('PAUSE_REQUEST_COMMITS_TURN', flag);
+      const fn = await onEndOfTurn();
+      for (const said of ['stop', "that's enough", 'you can stop']) {
+        const a = activity();
+        a.audioRecognition.audioTranscript = said;
+        expect(await fn.call(a, { newTranscript: said }), said).toBe(true);
+        expect(a.createSpeechTask).toHaveBeenCalledTimes(1);
+      }
+    }
+  );
 
   it('answers finished turns without waiting', async () => {
     const fn = await onEndOfTurn();

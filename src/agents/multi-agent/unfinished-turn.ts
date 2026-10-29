@@ -21,6 +21,7 @@
  *
  * @module agents/multi-agent/unfinished-turn
  */
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
 import { isBackchannel, words } from './barge-in-fastpath.js';
 import { TURN_KEEPER_GRACE_MS } from './turn-keeper.js';
@@ -62,42 +63,53 @@ const DANGLING_WORDS = new Set([
 const WHOLE_SHORT_REPLIES = new Set(['no', 'nope', 'nah', 'hi', 'hello', 'hey', 'bye', 'thanks']);
 
 /**
- * A stop, pause or wait command is a whole turn too (#2657). Prod
- * AJ_JbTguxw4hwRw: with music playing, "Hey, Ferni, can you stop" came
- * unpunctuated, was held twice, and the stop came 4.4 s after the caller
- * finished. It is the turn where waiting hurts most: something is playing
- * over the caller. Only the whole turn counts: an optional lead-in ("hey
- * Ferni", "can you", "please"), the command, an optional "please" or "now".
- * "Don't stop", "I can't stop" and "stop and" are still held.
+ * A stop command is a whole turn too (#2657). Prod AJ_JbTguxw4hwRw: with music
+ * playing, "Hey, Ferni, can you stop" came unpunctuated, was held twice, and the
+ * stop came 4.4 s after the caller finished. It is the turn where waiting hurts
+ * most: something is playing over the caller. Only the whole turn counts: an
+ * optional lead-in ("hey Ferni", "can you", "please"), the command, an optional
+ * "please" or "now". "Don't stop", "I can't stop" and "stop and" are still held.
  */
 // prettier-ignore
 const STOP_COMMANDS = [
   'stop', 'stop it', 'stop that', 'stop the music', 'stop talking', 'stop playing',
   'pause', 'pause it', 'pause the music', 'turn it off', 'shut it off', 'enough',
-  'thats enough', 'quiet', 'be quiet', 'hold on', 'hang on', 'wait', 'shh', 'shush',
+  'thats enough', 'quiet', 'be quiet', 'shh', 'shush',
 ].map((command) => command.split(' '));
+
+/**
+ * A pause request is not a stop: "hold on", "hang on", "wait" ("no wait", "wait
+ * wait wait", "can you wait", "just wait", "please wait", "will you hold on").
+ * A caller who says "hold on" usually keeps talking ("...let me think about
+ * what I want to say"), and the first final arrives alone: committing it made
+ * Ferni answer "hold on" in all 14 split-final pairs the #3047 verifier tried
+ * (#2657, Seth 2026-10-29). So they wait like any unpunctuated turn, unless
+ * PAUSE_REQUEST_COMMITS_TURN=on, which restores #3047's immediate commit.
+ */
+const PAUSE_REQUESTS = [['hold', 'on'], ['hang', 'on'], ['wait']];
+
 // prettier-ignore
-const STOP_LEAD_IN = new Set([
+const COMMAND_LEAD_IN = new Set([
   'hey', 'hi', 'ferni', 'ok', 'okay', 'oh', 'no', 'wait', 'please', 'can', 'could', 'would',
   'will', 'you', 'just',
 ]);
-const STOP_TAIL = new Set(['please', 'now']);
+const COMMAND_TAIL = new Set(['please', 'now']);
 
-/** The whole turn asks Ferni to stop, pause or wait ("can you stop", "hold on", "shh"). */
-function isStopCommand(ws: readonly string[]): boolean {
+/** The whole turn is one of `commands` ("can you stop", "no wait", "shh"). */
+function isCommand(ws: readonly string[], commands: ReadonlyArray<readonly string[]>): boolean {
   const said = ws.map((w) => (/^sh+$/.test(w) ? 'shh' : w)); // "Shhh", "Sh"
   let end = said.length;
-  while (end > 0 && STOP_TAIL.has(said[end - 1])) end--;
-  return STOP_COMMANDS.some((command) => {
+  while (end > 0 && COMMAND_TAIL.has(said[end - 1])) end--;
+  return commands.some((command) => {
     const start = end - command.length;
     if (start < 0 || command.some((w, i) => said[start + i] !== w)) return false;
-    return said.slice(0, start).every((w) => STOP_LEAD_IN.has(w));
+    return said.slice(0, start).every((w) => COMMAND_LEAD_IN.has(w));
   });
 }
 
 export type Unfinishedness = 'finished' | 'dangling' | 'unpunctuated';
 
-export function unfinishedness(transcript: string): Unfinishedness {
+export function unfinishedness(transcript: string, env: Env = process.env): Unfinishedness {
   // Closing quotes and brackets don't change where the sentence ends.
   const text = transcript.trim().replace(/["')\]]+$/, '');
   const ws = words(text);
@@ -105,7 +117,8 @@ export function unfinishedness(transcript: string): Unfinishedness {
   if (/[.?!]$/.test(text) && !/\.\.\.$/.test(text)) return 'finished';
   if (/(,|-|—|…|\.\.\.)$/.test(text)) return 'dangling';
   // Before the dangling words: "hold on" ends on one.
-  if (isStopCommand(ws)) return 'finished';
+  if (isCommand(ws, STOP_COMMANDS)) return 'finished';
+  if (flagOn('PAUSE_REQUEST_COMMITS_TURN', env) && isCommand(ws, PAUSE_REQUESTS)) return 'finished';
   // Before the backchannel check: "um", "uh" and "yeah, um" are backchannel
   // words too, but someone ending on them is gathering a thought.
   if (DANGLING_WORDS.has(ws[ws.length - 1])) return 'dangling';
@@ -114,8 +127,8 @@ export function unfinishedness(transcript: string): Unfinishedness {
 }
 
 /** How long to wait for more before answering this turn; 0 answers at once. */
-export function unfinishedTurnHoldMs(transcript: string): number {
-  const kind = unfinishedness(transcript);
+export function unfinishedTurnHoldMs(transcript: string, env: Env = process.env): number {
+  const kind = unfinishedness(transcript, env);
   if (kind === 'finished') return 0;
   return Math.min(kind === 'dangling' ? DANGLING_HOLD_MS : UNPUNCTUATED_HOLD_MS, MAX_HOLD_MS);
 }
