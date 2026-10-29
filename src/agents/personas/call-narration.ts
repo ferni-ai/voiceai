@@ -88,6 +88,9 @@ const SAID_YES =
 /** After a dropped story: the other person's words or how they were ("She sounded great."). */
 const CALLEE_TALK =
   /^\W*(?:and |so |but )?(?:she|he|they|(?!It\b|That\b|This\b|There\b|The\b|What\b)[A-Z][a-z]+)(?:'s| is| was| were| sounded| seemed| says| said| sends?| told| asked| misses| missed| loved| wants| wanted| mentioned| thanked| laughed)\b/i;
+/** GROUNDED_CLAIMS: someone's words or how they sounded on the call: told only from its record. */
+const CALLEE_SPEECH =
+  /^\W*(?:and |so |but )?(?:[Ss]he|[Hh]e|[Tt]hey|\p{Lu}\p{Ll}+) (?:said|says|told|asked|mentioned|wants|wanted|misses|missed|sends?|sounded|seemed|thanked|laughed|loved|picked up|answered)\b/u;
 const ASKED_HOW =
   /\bhow(?:'d| did) (?:it|the|that)\b[^.?!]{0,40}\bgo\b|\bdid you (?:call|reach|talk to)\b/i;
 
@@ -230,7 +233,9 @@ export function callOutcomeUnheard(
   let dropped = false; // a story was dropped in this reply
   const tells = (sentence: string): boolean => {
     // GROUNDED_CLAIMS: a result that came back for the people it names lets the story stand.
-    const story = narratesCallOutcome(sentence, askedHow, yesTold) && !evidence?.told(sentence);
+    const speech = grounded && CALLEE_SPEECH.test(sentence.trim());
+    const story =
+      (narratesCallOutcome(sentence, askedHow, yesTold) || speech) && !evidence?.told(sentence);
     dropped ||= story;
     return story || (grounded && dropped && CALLEE_TALK.test(sentence.trim()));
   };

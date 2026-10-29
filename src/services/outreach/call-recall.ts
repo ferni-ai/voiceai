@@ -19,7 +19,6 @@ import { isMemberIdentity } from '../identity/member-identity.js';
 import { isUnverifiedUserId } from '../identity/unverified-user-id.js';
 import {
   CALLER_TEXT_GUARD,
-  callResultTag,
   callerText,
   reportedFromCall,
   screenedCallerText,
@@ -102,14 +101,7 @@ function fromResult(doc: Doc): RecalledCall {
     status === 'voicemail' && o.voicemailLeft === true ? ' and Ferni left a message' : '';
   const words = status === 'completed' ? o.message || o.transcriptSummary || o.outcome : '';
   const said = screenedCallerText(String(words ?? ''), name, 240);
-  return {
-    state: 'done',
-    name,
-    at,
-    detail: HOW[status] + left,
-    said,
-    through: status === 'completed',
-  };
+  return { state: 'done', name, at, detail: HOW[status] + left, said };
 }
 
 const awaitingAs =
@@ -210,16 +202,11 @@ export function recallLine(
     return `Not called yet: the call to ${name} is set for ${call.detail ?? 'later'} their time, because of calling hours. Say that; don't offer a new call.`;
   if (call.state === 'in_progress')
     return `The call to ${name} went out ${when}, and there's no word yet on how it went. Say it's under way; don't offer a new call or guess how it went.`;
-  // GROUNDED_CLAIMS: the server's status line first (caller-text.ts callResultTag); off, none.
   if (call.state === 'failed')
-    return [
-      ...callResultTag(name, false),
-      `Ferni tried to call ${name} ${when}, but ${call.detail ?? "it didn't go through"}. Say so honestly, once.`,
-    ].join('\n');
+    return `Ferni tried to call ${name} ${when}, but ${call.detail ?? "it didn't go through"}. Say so honestly, once.`;
   const head = `Ferni called ${name} ${when}, and ${call.detail ?? 'it went through'}. Answer from this; don't offer a new call unless the caller asks for one.`;
-  const tag = callResultTag(name, call.through === true);
-  if (!call.said) return [...tag, head].join('\n');
-  return [...tag, head, CALLER_TEXT_GUARD, ...reportedFromCall(name, [call.said])].join('\n');
+  if (!call.said) return head;
+  return [head, CALLER_TEXT_GUARD, ...reportedFromCall(name, [call.said])].join('\n');
 }
 
 /** The records side of callStatus (tools/domains/telephony/call-status-tool.ts). */

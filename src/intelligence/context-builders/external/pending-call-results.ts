@@ -23,13 +23,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import {
-  CALLER_TEXT_GUARD,
-  callResultTag,
-  PENDING_CALLS_END,
-  PENDING_CALLS_HEADER,
-  reportedFromCall,
-} from '../../../services/outreach/caller-text.js';
+import { CALLER_TEXT_GUARD, reportedFromCall } from '../../../services/outreach/caller-text.js';
 import { voicemailWords } from '../../../services/outreach/voicemail-outcome.js';
 
 const log = createLogger({ module: 'PendingBackgroundResults' });
@@ -50,8 +44,6 @@ interface PendingCallResult {
   delivered?: boolean;
   /** status 'voicemail' only: Ferni really spoke a message (voicemail-outcome.ts). */
   voicemailLeft?: boolean;
-  /** The record itself said 'completed': `status` defaults to it when the record is silent. */
-  connected?: boolean;
 }
 
 // ============================================================================
@@ -102,7 +94,6 @@ export async function getPendingCallResults(userId: string): Promise<PendingCall
         callId: doc.id,
         contactName: data.request?.contactName || data.request?.contactQuery || 'someone',
         status: data.outcome?.status || 'completed',
-        connected: data.outcome?.status === 'completed',
         outcome: data.outcome?.outcome || 'Call completed',
         objectiveAchieved: data.outcome?.objectiveAchieved ?? true,
         callbackRequired: data.outcome?.callbackRequired ?? false,
@@ -179,24 +170,10 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
     return null;
   }
 
-  const text = formatPendingCallResults(results);
-
-  // Mark as delivered (fire and forget - don't block on this)
-  const callIds = results.map((r) => r.callId);
-  void markCallResultsDelivered(userId, callIds);
-
-  return text;
-}
-
-/**
- * The block the agent is told, one report per result. With GROUNDED_CLAIMS each report follows the
- * server's own status line (caller-text.ts callResultTag): through only when the record said
- * 'completed', since `status` defaults to that when the record is silent.
- */
-export function formatPendingCallResults(results: readonly PendingCallResult[]): string {
+  // Build context for the agent
   const lines: string[] = [
     '',
-    PENDING_CALLS_HEADER,
+    '## 📞 PENDING CALL UPDATES (Tell the user!)',
     '',
     "While they were away, you made calls on their behalf. Tell them what happened! This is a 'Better Than Human' moment - friends forget to follow up, but you don't.",
     '',
@@ -229,14 +206,10 @@ export function formatPendingCallResults(results: readonly PendingCallResult[]):
       body.push(`📝 Action items: ${result.actionItems.join(', ')}`);
     }
 
-    lines.push(
-      ...callResultTag(result.contactName, result.connected === true),
-      ...reportedFromCall(result.contactName, body),
-      ''
-    );
+    lines.push(...reportedFromCall(result.contactName, body), '');
   }
 
-  lines.push(PENDING_CALLS_END);
+  lines.push('**How to tell them:**');
   lines.push('- Weave it naturally into your greeting');
   lines.push("- If successful: 'Oh! While you were away, I called [name] - [outcome]!'");
   lines.push('- If voicemail: say only what the line above says (a message left, or none).');
@@ -244,6 +217,11 @@ export function formatPendingCallResults(results: readonly PendingCallResult[]):
     "- If failed: 'I tried reaching [name] but couldn't get through. Want me to try again?'"
   );
   lines.push('');
+
+  // Mark as delivered (fire and forget - don't block on this)
+  const callIds = results.map((r) => r.callId);
+  void markCallResultsDelivered(userId, callIds);
+
   return lines.join('\n');
 }
 

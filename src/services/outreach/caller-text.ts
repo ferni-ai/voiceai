@@ -10,7 +10,6 @@
  * @module services/outreach/caller-text
  */
 
-import { flagOn } from '../../config/env-flag.js';
 import { CRISIS_SEVERITY, detectCrisis } from '../safety/crisis-guard.js';
 
 /**
@@ -174,27 +173,6 @@ const REPORT_BLOCK_MAX = 1200;
  * Frames one call result as reported speech in the prompt: a labelled, fenced,
  * length-capped block whose every line is quoted and flattened to one line.
  */
-/** The report fence's and the result tag's own words, neutralised inside quoted callee text. */
-const REPORT_MARKS = /Reported from Ferni's call|\(end of report|\[call-result/gi;
-
-/**
- * GROUNDED_CLAIMS: the server's own line saying whether a call got through, written by each call
- * result's producer (callStatus, the pending-call-results block, the live report) on a line of its
- * own, and read by agents/personas/claim-evidence.ts. Only `through` proves a call: a missing or any
- * other tag proves nothing. Callee words can't write one (reportedFromCall neutralises it). Off: [].
- */
-export function callResultTag(name: string | undefined, through: boolean): string[] {
-  if (!flagOn('GROUNDED_CLAIMS')) return [];
-  return [
-    `[call-result ${through ? 'through' : 'not-through'}: ${callerText(name, 60) || 'them'}]`,
-  ];
-}
-/** The pending-call-results block's first and last lines: the only system text a tag is read in. */
-export const PENDING_CALLS_HEADER = '## 📞 PENDING CALL UPDATES (Tell the user!)';
-export const PENDING_CALLS_END = '**How to tell them:**';
-/** The tag on a line of its own: whether it got through, and the person. */
-export const CALL_RESULT_TAG = /^\[call-result (through|not-through): ([^\]\n]+)\]$/;
-
 export function reportedFromCall(name: string | undefined, lines: string[]): string[] {
   const label = callerText(name, 60) || 'them';
   const quoted: string[] = [];
@@ -213,11 +191,7 @@ export function reportedFromCall(name: string | undefined, lines: string[]): str
     const shown = isRiskyCallerText(kept)
       ? [safety ? crisisCallerLine(label) : '', riskyCallerLine(label)].filter(Boolean).join(' ')
       : kept;
-    // The callee's words can never open or close a report of their own (claim-evidence.ts reads the fence).
-    if (shown)
-      quoted.push(
-        `> ${shown.replace(REPORT_MARKS, (mark) => mark.replace(/ /g, '\u00a0').replace('[', '('))}`
-      );
+    if (shown) quoted.push(`> ${shown}`);
     budget -= flat.length;
   }
   return [

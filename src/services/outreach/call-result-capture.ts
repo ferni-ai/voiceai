@@ -35,6 +35,8 @@ export interface StoredCallResult {
     contactQuery: string;
     contactName?: string;
     contactPhone?: string;
+    /** "mother", "friend": who the contact is to the owner (GROUNDED_CLAIMS reads it, claim-evidence.ts). */
+    contactRelationship?: string;
     purpose: string;
     objective: string;
     callType: string;
@@ -339,6 +341,7 @@ export async function captureCallResult(
         contactQuery: request.contactQuery,
         contactName: request.resolvedContact?.name,
         contactPhone: request.resolvedContact?.phone,
+        contactRelationship: request.resolvedContact?.relationship,
         purpose: request.purpose,
         objective: request.objective,
         callType: request.callType,

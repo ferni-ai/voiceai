@@ -1,193 +1,208 @@
 /**
- * What the conversation shows Ferni did, person by person (GROUNDED_CLAIMS).
+ * What Ferni did, person by person, read from the server's own records (GROUNDED_CLAIMS).
  *
- * #3037 verify, round 2: a call result backed every call claim, whoever it was
- * for and however it went. A report about Rita let "Yes, I've called your dad
- * too, he says hi" stand; a "Couldn't connect" report let "I talked to Rita and
- * she said she's fine" stand; and a real call to Lee kept "I'm calling Ana now".
- *
- * Here each call or text is kept with the people it was for:
- * - a call or text tool that went out on this call: the people its result names
- *   ("I'm calling Rita now", "Text sent to Jo"), and the one person the caller's
- *   request named, when it named only one ("Call my mom" makes Rita "mom" too);
- * - a call result the server wrote with its status tag (caller-text.ts
- *   callResultTag: callStatus, the pending-call-results note): the person, and
- *   whether it got through. Only an explicit `through` counts; free text never does;
- * - asked "did you call my mom?", the records' name for that call (call-status.ts)
- *   ties "mom" to a person a result names.
- * A claim stands only when every person it names is covered; a claim that names
- * no one ("I've called her") needs any call or text of its kind. People are keyed
- * the way memory keys them (memory/domain/person-key.ts).
+ * #3037/#3056 verify: evidence read from the conversation could be forged or missed. A tag in
+ * the prompt was absent from the unified "while they were away" note, never reached the chat on
+ * a live report, and keyed "Rita Smith" apart from "Rita". So nothing here is read from what
+ * anyone said or from a result's wording:
+ * - the call records (bogle_users/{uid}/on_behalf_calls), read through call-result-capture.ts's
+ *   own reader, the store every call result is written to and the openers and callStatus read:
+ *   each with the contact's name, the relation the request used ("my mom") and the outcome status.
+ *   Only status 'completed' is a call that got through; anything else is one that didn't;
+ * - a call or text tool that ran on this call: the contact its arguments named, or the one person
+ *   the caller's request named. There is no text record store, so a text is only ever backed here.
+ * People are keyed the way memory keys them (memory/domain), over every name token and the relation,
+ * so "Rita", "Rita Smith", "José", "Dr. Patel" and "your aunt" all meet the record they fit. A claim
+ * that names no one is about the people the caller's last words named; with none named, its kind of
+ * record must exist for exactly one person. Anything else fails closed: the claim is rewritten.
  *
  * @module agents/personas/claim-evidence
  */
 import { personKey, relationOf } from '../../memory/domain/index.js';
-import type { FerniCall } from '../../services/outreach/call-status.js';
+import type { StoredCallResult } from '../../services/outreach/call-result-capture.js';
+import { sameWord, topicWords } from '../multi-agent/caller-words.js';
 import { callActions, kindsOfTool } from './action-claims.js';
 import type { ClaimKind } from './honest-line.js';
-import {
-  CALL_RESULT_TAG,
-  PENDING_CALLS_END,
-  PENDING_CALLS_HEADER,
-} from '../../services/outreach/caller-text.js';
-import { callAskedAbout } from './call-narration.js';
 import { spokenOf, type Item } from './spoken-words.js';
 
 type Kind = 'call' | 'send';
-type Seen = Item & { output?: unknown };
+type Seen = Item & { output?: unknown; callId?: string; args?: string };
+/** One call or text Ferni made: who it was for, and how it went. */
+interface Done {
+  kind: Kind;
+  keys: Set<string>;
+  /** A stored call: whether they answered. Undefined: placed on this call, no result yet. */
+  through?: boolean;
+  /** What the stored result says they said, if anything. */
+  report: string;
+}
 
-/** What the conversation shows: who each call or text was for. */
 export interface ClaimEvidence {
-  /**
-   * A call or text claim in this sentence has nothing behind it: no tool of its kind in this reply
-   * (`calling`) or waiting on a yes, and no call or text shown for every person it names.
-   */
+  /** A call or text claim here has no tool of its kind in this reply, no yes pending, and no record for whom it names. */
   unbacked(sentence: string, kind: ClaimKind, calling: ReadonlySet<ClaimKind>): boolean;
-  /** A story of a call in this sentence is covered by a result that came back. */
+  /** A story of a call here has a record that went that way for whom it names, and its quotes are in the record. */
   told(sentence: string): boolean;
 }
 
-/** Capitalised words that are never a person in a result or a request. */
-const NOT_A_NAME = new Set(
-  'I Ferni It That This There The She He They We You Yes Yeah Yep No Not Nothing Hey Hi Okay Ok So Well Oh Good Great Sure Now Then Text Message Email Call Calling Sent Done Say Answer Reported Monday Tuesday Wednesday Thursday Friday Saturday Sunday January February March April May June July August September October November December'.split(
-    ' '
-  )
-);
-const nameKey = (word: string): string | undefined =>
-  NOT_A_NAME.has(word) ? undefined : personKey(word);
-const relationKey = (word: string): string | undefined => {
-  const relation = relationOf(word);
-  return relation ? `rel:${relation}` : undefined;
-};
+const RECORDS_MS = 30 * 86_400_000;
+/** How long the reply waits for the records; past it there are none, and claims fail closed. */
+const READ_MS = 1200;
 
-/** The people a result or a request names: "Calling Lee at 555-0143" → lee, "Text my sister" → rel:sister. */
-function namedIn(text: string): string[] {
-  const keys = new Set<string>();
-  for (const m of text.matchAll(/\b(?:my|your|her|his|our) ([a-z]+)\b/gi)) {
-    const key = relationKey(m[1]);
-    if (key) keys.add(key);
-  }
-  // A name mid-sentence: the first word of a sentence is capitalised anyway ("Call Lee." names Lee).
-  for (const m of text.matchAll(/(?<![.!?]\s*|^\s*)\b([A-Z][a-z]+)\b/g)) {
-    const key = nameKey(m[1]);
-    if (key) keys.add(key);
-  }
-  return [...keys];
+/** This user's recent call results from the store, or [] (not a member, slow, or unreadable). */
+export async function callRecordsFor(userId: string | undefined): Promise<StoredCallResult[]> {
+  if (!userId) return [];
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<StoredCallResult[]>((resolve) => {
+    timer = setTimeout(() => resolve([]), READ_MS);
+  });
+  const read = import('../../services/outreach/call-result-capture.js')
+    .then(({ getRecentCallResults }) => getRecentCallResults(userId, 20))
+    .catch((): StoredCallResult[] => []);
+  return Promise.race([read, late]).finally(() => clearTimeout(timer));
 }
 
-/** Whom an action verb in Ferni's sentence is aimed at, or who is said to have said or felt something. */
-const OBJECT =
-  /\b(?:called|calling|rang|rung|ringing|phoned|phoning|dialed|dialing|reached|reaching|texted|texting|messaged|messaging|emailed|emailing|talked to|spoken? (?:to|with)|got through to|got (?:a ?hold|ahold) of|heard back from|sent (?:it |that |this )?to|give|giving)\s+((?:your|my) [a-z]+|[A-Z][a-z]+)/g;
-const SUBJECT =
-  /\b((?:your|my) [a-z]+|[A-Z][a-z]+)(?:'s| is| was| says| said| sounded| told| mentioned| sends)\b/g;
-
-/** The people one sentence of Ferni's names as the ones he called, texted or heard from. */
-function personsIn(sentence: string): string[] {
-  const text = sentence.replace(/[‘’]/g, "'");
+const SKIP = new Set('my your our the his her their dr mr mrs ms miss prof'.split(' '));
+/** Every key a name or relation can be met by: each name token, and the relation it names. */
+function keysOf(...phrases: ReadonlyArray<string | undefined>): Set<string> {
   const keys = new Set<string>();
-  for (const re of [OBJECT, SUBJECT]) {
-    for (const m of text.matchAll(re)) {
-      const [first, second] = m[1].split(' ');
-      const key = second ? relationKey(second) : nameKey(first);
-      if (key) keys.add(key);
+  for (const phrase of phrases) {
+    const relation = phrase ? relationOf(phrase) : undefined;
+    if (relation) keys.add(`rel:${relation}`);
+    for (const token of phrase?.split(/[^\p{L}\p{M}'’-]+/u) ?? []) {
+      const word = relationOf(token);
+      if (word) keys.add(`rel:${word}`);
+      else if (token && !SKIP.has(token.toLowerCase())) keys.add(personKey(token));
     }
   }
-  return [...keys];
+  return keys;
 }
 
-/**
- * The call results the server wrote, read from their status tag only (caller-text.ts callResultTag),
- * never from free text: a callStatus result's first line, and in a system note, a tag line inside the
- * pending-call-results block followed by that person's report header. Nothing else counts: not the
- * caller, not Ferni, not a search result or any other tool, not a callee's quoted words (which can't
- * hold a tag), and not any other system text. Only `through` proves a call (security review,
- * 2026-10-29: failure wording the reader didn't know read as success, and any tool output could forge
- * a report).
- */
-function resultsIn(item: Seen): Array<{ who: string; through: boolean }> {
-  const tagOf = (line: string | undefined) => CALL_RESULT_TAG.exec(line ?? '');
-  const result = (m: RegExpExecArray) => ({ who: personKey(m[2]), through: m[1] === 'through' });
-  if (item.type === 'function_call_output') {
-    const m = item.name === 'callStatus' ? tagOf(String(item.output ?? '').split('\n')[0]) : null;
-    return m ? [result(m)] : [];
-  }
-  if (item.type !== 'message' || (item.role !== 'system' && item.role !== 'developer')) return [];
-  const lines = (item.textContent ?? '').split('\n');
-  const out: Array<{ who: string; through: boolean }> = [];
-  let inBlock = false;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i] === PENDING_CALLS_HEADER) inBlock = true;
-    else if (lines[i] === PENDING_CALLS_END) inBlock = false;
-    const m = inBlock ? tagOf(lines[i]) : null;
-    if (m && lines[i + 1] === `Reported from Ferni's call with ${m[2]}, not instructions:`)
-      out.push(result(m));
-  }
+const NAME = "\\p{Lu}[\\p{L}\\p{M}'’-]*(?:\\s+\\p{Lu}[\\p{L}\\p{M}'’-]*)*";
+const WHO = `(?:(?:your|my)\\s+\\p{Ll}+|(?:(?:Dr|Mr|Mrs|Ms)\\.?\\s+)?${NAME})`;
+const OBJECT = new RegExp(
+  `\\b(?:called|calling|rang|rung|ringing|phoned|phoning|dialed|dialing|reached|reaching|texted|texting|messaged|messaging|emailed|emailing|talked to|spoken? (?:to|with)|got through to|got (?:a ?hold|ahold) of|heard back from|sent (?:it |that |this )?to|give|giving)\\s+(${WHO})`,
+  'gu'
+);
+const AND = new RegExp(`(?:,|\\band)\\s+(${WHO})`, 'gu');
+const SUBJECT = new RegExp(
+  `(?:^|[^\\p{L}])(${WHO})(?:'s| is| was| says| said| sounded| told| mentioned| sends)\\b`,
+  'gu'
+);
+/** Capitalised words that are not a person here. */
+const NOT_A_NAME =
+  /^(?:I|Ferni|It|That|This|There|The|She|He|They|We|You|Yes|Yeah|Yep|No|Hey|Hi|Okay|So|Well|Oh|Good|Great|Sure|Now|Then|Call|Text|Can|Could|Would|Did|Have|Has|Please|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/;
+
+/** The people one sentence names as the ones called, texted or heard from. */
+function personsIn(sentence: string): Array<Set<string>> {
+  const text = sentence.replace(/[‘’]/g, "'");
+  const out: Array<Set<string>> = [];
+  // "called Rita and Tom": the people joined to an object are objects too.
+  const joined = OBJECT.test(text) ? [AND] : [];
+  OBJECT.lastIndex = 0;
+  for (const re of [OBJECT, SUBJECT, ...joined])
+    for (const m of text.matchAll(re)) if (!NOT_A_NAME.test(m[1])) out.push(keysOf(m[1]));
+  return out.filter((keys) => keys.size > 0);
+}
+
+/** The people the caller's words name: "my mom", "Rita Smith" (a sentence's first word aside). */
+function namedBy(words: string): Array<Set<string>> {
+  const out = [...words.matchAll(/\b(?:my|your)\s+(\p{Ll}+)/gu)]
+    .map((m) => keysOf(m[1]))
+    .filter((keys) => [...keys].some((k) => k.startsWith('rel:')));
+  for (const m of words.matchAll(new RegExp(`(?<![.!?]\\s*|^\\s*)(${NAME})`, 'gu')))
+    if (!NOT_A_NAME.test(m[1])) out.push(keysOf(m[1]));
   return out;
 }
 
-/** A sentence telling a call that didn't go through: that stands when such a result came back. */
+const STATUS_OK = 'completed';
+/** A sentence telling a call that didn't go through. */
 const TELLS_FAILURE =
   /\b(?:no ?one|nobody) (?:picked up|answered)\b|\brang out\b|\bvoicemail\b|\bline was busy\b|\bdidn't (?:pick up|answer|connect|go through)\b|\bI tried\b/i;
-/** The caller asks about a text from an earlier day: its record isn't readable here, so it isn't denied. */
-const ASKS_EARLIER_TEXT =
-  /\b(?:did|have) you (?:already |actually )?(?:text|texted|message|messaged|email|emailed|send|sent)\b.*\b(?:yesterday|last (?:night|week|time)|the other day|earlier|before)\b/i;
+/** The call itself (its status backs it) and the words that frame a quote: never an invented detail. */
+const CALL_WORDS = new Set(
+  'call called calling picked pick answered answer reached rang ring phone talked spoke chatted earlier today yesterday ago she he they her him them his say said says tell told mention mentioned ask asked one'.split(
+    ' '
+  )
+);
+/** Words someone said or felt on the call: these must be in the record's report. */
+const QUOTES = /\b(?:said|says|told|mentioned|asked|wants?|misses|sends?|sounded|seemed|loved)\b/i;
 
-/** What `chatCtx` shows Ferni did; `asked` is the records' status of the call the caller asked about. */
+const argsOf = (raw: string | undefined): string[] => {
+  try {
+    const args = JSON.parse(raw ?? '{}') as Record<string, unknown>;
+    return ['contact', 'contactQuery', 'contactName', 'to', 'recipient', 'name']
+      .map((k) => args[k])
+      .filter((v): v is string => typeof v === 'string');
+  } catch {
+    return [];
+  }
+};
+
+/** What Ferni did, from `records` (callRecordsFor) and the tools that ran on this call. */
 export function claimEvidence(
   chatCtx: { items: readonly unknown[] },
-  asked?: FerniCall | 'none'
+  records: readonly StoredCallResult[]
 ): ClaimEvidence {
+  const now = Date.now();
+  const done: Done[] = records
+    .filter((r) => now - Date.parse(r.capturedAt) <= RECORDS_MS)
+    .map((r) => ({
+      kind: 'call',
+      keys: keysOf(r.request.contactName, r.request.contactQuery, r.request.contactRelationship),
+      through: r.outcome.status === STATUS_OK,
+      report: [r.outcome.message, r.outcome.transcriptSummary, r.outcome.outcome].join(' '),
+    }));
   const items = chatCtx.items as readonly Seen[];
-  const placed: Record<Kind, Set<string>> = { call: new Set(), send: new Set() };
-  const any: Record<Kind, boolean> = { call: false, send: false };
-  const through = new Set<string>();
-  let failed = false;
-  let request: string[] = [];
+  const named = new Map<string, string[]>(); // a tool call's id → the contact its arguments named
+  let request: Array<Set<string>> = [];
   let lastWords = '';
   for (const item of items) {
-    if (item.type === 'message' && item.role === 'user') {
-      const words = spokenOf(item);
-      if (words) [request, lastWords] = [namedIn(words), words];
-    }
-    for (const report of resultsIn(item)) {
-      if (report.through) through.add(report.who);
-      else failed = true;
-    }
-    const output = item.type === 'function_call_output';
-    const text = output ? String(item.output ?? '') : '';
-    if (!output || callActions({ items: [item] }).done.size === 0) continue;
-    const kinds = kindsOfTool(item.name ?? '').filter(
-      (k): k is Kind => k === 'call' || k === 'send'
-    );
-    const people = [...namedIn(text), ...(request.length === 1 ? request : [])];
-    for (const kind of kinds) {
-      any[kind] = true;
-      people.forEach((p) => placed[kind].add(p));
-    }
+    if (item.type === 'message' && item.role === 'user' && spokenOf(item))
+      [lastWords, request] = [spokenOf(item), namedBy(spokenOf(item))];
+    if (item.type === 'function_call') named.set(item.callId ?? '', argsOf(item.args));
+    if (item.type !== 'function_call_output' || !callActions({ items: [item] }).done.size) continue;
+    const contact = named.get(item.callId ?? '') ?? [];
+    // Whom the tool's arguments named, and the one person the request named ("Text my sister" + "Jo").
+    const keys = new Set([...keysOf(...contact), ...(request.length === 1 ? request[0] : [])]);
+    for (const kind of kindsOfTool(item.name ?? ''))
+      if (kind === 'call' || kind === 'send') done.push({ kind, keys, report: '' });
   }
-  // "Did you call my mom?": the records name that call's person; a result for them covers "mom".
-  const askedWho = callAskedAbout(lastWords, true)?.person;
-  if (askedWho && asked && asked !== 'none' && asked.name && through.has(personKey(asked.name)))
-    through.add(personKey(askedWho));
-  const covered = (seen: ReadonlySet<string>, anyAtAll: boolean, sentence: string): boolean => {
-    const people = personsIn(sentence);
-    return people.length ? people.every((p) => seen.has(p)) : anyAtAll;
-  };
   const { awaiting } = callActions(chatCtx);
-  const backs = (kind: Kind, sentence: string): boolean => {
-    if (kind === 'send')
-      return ASKS_EARLIER_TEXT.test(lastWords) || covered(placed.send, any.send, sentence);
-    const calls = new Set([...placed.call, ...through]);
-    return covered(calls, any.call || through.size > 0, sentence);
+  const meets = (who: Set<string>, d: Done) => [...who].some((k) => d.keys.has(k));
+  /** The records `ok` keeps for whom this sentence is about, or null when they don't cover them. */
+  const covering = (sentence: string, ok: (d: Done) => boolean): Done[] | null => {
+    const good = done.filter(ok);
+    const who = personsIn(sentence);
+    const targets = who.length ? who : namedBy(lastWords);
+    if (targets.length === 0) {
+      // Nobody named anywhere: only when every such record is the same one person.
+      const one = good.length > 0 && good.every((d) => meets(good[0].keys, d) || d.keys.size === 0);
+      return one ? good : null;
+    }
+    const hits = targets.map((t) => good.filter((d) => meets(t, d)));
+    return hits.every((h) => h.length > 0) ? hits.flat() : null;
+  };
+  /** Each word a quote is about is one the record's report has. */
+  const inReport = (sentence: string, hits: Done[]): boolean => {
+    if (!QUOTES.test(sentence)) return true;
+    const report = topicWords(hits.map((d) => d.report).join(' '));
+    const names = new Set(hits.flatMap((d) => [...d.keys]));
+    return topicWords(sentence)
+      .filter((w) => !names.has(personKey(w)) && !CALL_WORDS.has(w.replace(/'\w+$/, '')))
+      .every((w) => report.some((r) => sameWord(w, r)));
   };
   return {
     unbacked(sentence, kind, calling) {
       if (kind !== 'call' && kind !== 'send') return false;
-      return !calling.has(kind) && !awaiting.has(kind) && !backs(kind, sentence);
+      if (calling.has(kind) || awaiting.has(kind)) return false;
+      // Any call of theirs backs "I called her"; how it went is a story (told).
+      return covering(sentence, (d) => d.kind === kind) === null;
     },
     told(sentence) {
-      if (failed && TELLS_FAILURE.test(sentence)) return true;
-      return covered(through, through.size > 0, sentence);
+      if (TELLS_FAILURE.test(sentence))
+        return covering(sentence, (d) => d.through === false) !== null;
+      const hits = covering(sentence, (d) => d.through === true);
+      return hits !== null && inReport(sentence, hits);
     },
   };
 }

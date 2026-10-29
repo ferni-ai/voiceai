@@ -31,8 +31,6 @@ export interface FerniCall {
   state: FerniCallState;
   /** When a held call rings, in the recipient's time ("later today at 9:00 AM"). */
   when?: string;
-  /** The contact's name on a call that has a result ("Rita" for "my mom"). */
-  name?: string;
 }
 
 type Doc = Record<string, unknown>;
@@ -128,10 +126,7 @@ export function callStatusOf(
     .sort((a, b) => time(b.capturedAt) - time(a.capturedAt))[0];
   if (result) {
     const status = (result.outcome as { status?: unknown } | undefined)?.status;
-    const r = (result.request ?? {}) as Doc;
-    const name =
-      String(((r.resolvedContact ?? {}) as Doc).name ?? r.contactName ?? '') || undefined;
-    return { state: status === 'completed' ? 'completed' : 'failed', name };
+    return { state: status === 'completed' ? 'completed' : 'failed' };
   }
   const last = calls.sort((a, b) => time(b.createdAt) - time(a.createdAt))[0];
   if (!last) return undefined;

@@ -39,8 +39,6 @@ export interface RecalledCall {
   readonly detail?: string;
   /** Screened: what they said or a summary of it; reported speech only. */
   readonly said?: string;
-  /** 'done': they answered (the record's status was 'completed'), not voicemail or no answer. */
-  readonly through?: boolean;
 }
 type Recalled = RecalledCall | undefined | 'unread';
 
