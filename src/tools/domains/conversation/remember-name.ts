@@ -1,18 +1,13 @@
 /**
  * rememberName with CALL_ME_VOCATIVE=on (conversation-tools.ts hands the call
- * here; with the flag off the tool is unchanged).
- *
- * PR #2698 made "call me X" a confirm-before-rename flow, but rememberName
- * wrote profile.name and preferredName at once, so the model could rename the
- * caller and skip the question. Here a new name is never written on the
- * call that names it: the model is told to ask "Want me to call you X from
- * now on?", and the name is saved when the tool is called again for it on
- * the caller's next turn and that turn is a clear yes (isClearYes, the yes
- * that sends a text). Which name is being confirmed follows the tool calls
- * (name-confirm-calls.ts). A first name is checked the same way, as #2698
- * checks it. Ferni's own name is refused; a name like it or a teammate's is
- * asked about twice (name-likeness.ts); a callback time ("later", "in five
- * minutes") is never a name (utils/callback-time.ts).
+ * here; with the flag off the tool is unchanged), and then the one writer of the
+ * caller's name. A new name is never written on the call that names it: the
+ * model asks "Want me to call you X from now on?", and the name is saved when
+ * the tool is called again for it on the caller's next turn and that turn is a
+ * clear yes (isClearYes), or name-correction heard that yes (agreeTo). Which name
+ * is confirmed follows the tool calls (name-confirm-calls.ts). Ferni's own name is
+ * refused; a name like it or a teammate's is asked about twice (name-likeness.ts);
+ * a callback time ("later") is never a name (utils/callback-time.ts).
  *
  * @module tools/domains/conversation/remember-name
  */
