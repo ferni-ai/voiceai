@@ -138,7 +138,7 @@ export class PhoneCaller {
       to: target.phone,
       from: TWILIO_PHONE_NUMBER,
       url: `${process.env.API_BASE_URL}/api/concierge/call-handler`,
-      statusCallback: `${process.env.API_BASE_URL}/api/concierge/call-status`,
+      // No concierge status route exists yet; one must check Twilio's signature.
       timeout: timeout,
       machineDetection: 'DetectMessageEnd', // Handle voicemail
     });
