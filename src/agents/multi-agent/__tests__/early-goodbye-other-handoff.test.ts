@@ -112,7 +112,16 @@ async function startCall() {
       lock.release();
     }
   };
-  return { orchestrator, tap };
+  /** The model's own handoff, the way llm-handoff.ts runs one: it carries onAgentReady */
+  const modelHandoff = async (target: string) => {
+    if (!(await lock.acquire())) return { success: false, error: 'locked' };
+    try {
+      return await handleHandoffFromDataChannel(orchestrator, target, 'llm', services(), () => {});
+    } finally {
+      lock.release();
+    }
+  };
+  return { orchestrator, tap, modelHandoff };
 }
 
 /** The model's handoffToFerni, called by Maya */
@@ -177,6 +186,16 @@ describe('HANDOFF_EARLY_GOODBYE and a tap during the setup', () => {
     expect(orchestrator.getCurrentPersonaId()).toBe('peter-john');
     expect(spawned).not.toContain('ferni');
     expect(result).toMatchObject({ error: expect.stringMatching(/They chose Peter instead/) });
+  }, 30_000);
+
+  it("the model's own handoff to Peter during the setup is not the caller choosing", async () => {
+    const { modelHandoff } = await startCall();
+    const tool = toolToFerni();
+    await after(250);
+    await modelHandoff('peter-john');
+    const result = await tool;
+    // Only a tap (no onAgentReady) supersedes the tool's handoff (#3048)
+    expect(String(result.error ?? '')).not.toMatch(/chose/);
   }, 30_000);
 
   it('a tap to Peter at 100 ms, the goodbye still queued: it never plays', async () => {
