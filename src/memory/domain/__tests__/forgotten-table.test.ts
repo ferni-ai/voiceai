@@ -23,6 +23,7 @@ const table = JSON.parse(
 ) as {
   capturedFrom: string;
   texts: string[];
+  topics: string[];
   topicSets: string[][];
   isForgotten: string[];
   isForgottenPassage: string[];
@@ -41,6 +42,19 @@ describe('the forget matcher matches main, cell for cell', () => {
     const ones = (rows: string[]) => rows.join('').split('1').length - 1;
     expect(ones(table.isForgotten)).toBeGreaterThan(50);
     expect(ones(table.isForgottenPassage)).toBeGreaterThan(ones(table.isForgotten));
+    // Cells only the passage rule's distinctive word (5+ letters, or 4+ digits) decides.
+    const at = (rows: string[], text: string, topic: string) =>
+      rows[table.texts.indexOf(text)]![table.topicSets.findIndex((s) => s.join() === topic)];
+    for (const [text, topic] of [
+      ['felix broke his arm', 'Felix party'],
+      ['Piano recital on Sunday', 'piano lessons'],
+      ['Filed the 2024 return late', '2024 taxes'],
+    ]) {
+      expect([
+        at(table.isForgotten, text, topic),
+        at(table.isForgottenPassage, text, topic),
+      ]).toEqual(['0', '1']);
+    }
   });
 
   it('isForgotten', () => {
@@ -52,8 +66,7 @@ describe('the forget matcher matches main, cell for cell', () => {
   });
 
   it('forgetTokens and storedTopic', () => {
-    // The capture's strings: every text, then each single topic (topicSets[1..40]).
-    const all = [...table.texts, ...table.topicSets.slice(1, 41).map((s) => s[0]!)];
+    const all = [...table.texts, ...table.topics];
     expect(all).toHaveLength(table.forgetTokens.length);
     expect(all.map((s) => forgetTokens(s))).toEqual(table.forgetTokens);
     expect(all.map((s) => storedTopic(s))).toEqual(table.storedTopic);
