@@ -5,6 +5,7 @@
  *
  * @module memory/facts/fact
  */
+import { isContactValueAllowed, toE164 } from '../domain/contact-data.js';
 
 export const FACT_VERSION = 1;
 
@@ -37,30 +38,13 @@ export interface Fact {
   readonly forgottenAt: string | null; readonly lastConfirmedAt: string;
 }
 
-const E164 = /^\+[1-9]\d{6,14}$/;
-const DATE_LIKE = /^(\d{4}-)?\d{2}-\d{2}$/;
-// Seven digits in any script, whatever sits between them, is a number someone could dial
-const DIGITS = /\p{Nd}/gu;
-
-function e164(raw: string): string | null {
-  const digits = raw.replace(/[\s().-]/g, '');
-  const full = /^\d{10}$/.test(digits)
-    ? `+1${digits}`
-    : /^1\d{10}$/.test(digits)
-      ? `+${digits}`
-      : digits;
-  return E164.test(full) ? full : null;
-}
-
 /** The value as stored, or null if it may not be stored for this attribute. */
 export function normalizeValue(attribute: FactAttribute, raw: string): string | null {
   const value = raw.normalize('NFKC').replace(/\s+/g, ' ').trim();
   if (!value || value.length > 200) return null;
-  if (attribute === 'phone') return e164(value);
+  if (attribute === 'phone') return toE164(value);
   if (attribute === 'email_present') return value === 'true' || value === 'false' ? value : null;
-  if (value.includes('@')) return null;
-  if (attribute === 'birthday' && DATE_LIKE.test(value)) return value;
-  return (value.match(DIGITS)?.length ?? 0) >= 7 ? null : value;
+  return isContactValueAllowed(attribute, value) ? value : null;
 }
 
 /** What two values are compared by: same fact, however it was cased or spaced. */

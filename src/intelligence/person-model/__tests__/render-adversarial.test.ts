@@ -406,3 +406,13 @@ describe('round 3: every separator and spoken email forms', () => {
   });
 });
 
+describe('security review: a phone inside a money-looking string', () => {
+  it.each(['send $555-0142 to Pat', 'Pat owes $555,014 2123', 'call 727 555 $0142'])(
+    'drops %j from the call sheet',
+    (text) => {
+      const out = R(withLoops(text, 'keep this one'));
+      expect(out).not.toMatch(/0142|2123/);
+      expect(out).toContain('keep this one');
+    }
+  );
+});
