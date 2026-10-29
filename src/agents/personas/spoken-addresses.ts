@@ -173,7 +173,7 @@ const SEE_US = '(?:text|call|e-?mail|message|reach|contact|visit|find|see|downlo
  * `plain`), the other apostrophes ("\u02bc", full-width), compatibility forms, zero-width
  * marks gone, one space between words, lower case.
  */
-export const ownText = (text: string): string =>
+const ownText = (text: string): string =>
   plain(text.normalize('NFKC'))
     .replace(/[\u02bc\u2032\u00b4`]/gu, "'")
     .replace(/[\u200b-\u200d\u2060\ufeff]/gu, '')
