@@ -1,7 +1,7 @@
 /**
  * The call room, through the controls' real wiring: with its flag on, a call
  * hides Home's chrome, the state line follows the agent and mute, End is
- * "End", and back keeps the call. With the flag off, none of it happens.
+ * "End call", and back keeps the call. With the flag off, none of it happens.
  */
 
 import { readFileSync } from 'fs';
@@ -75,7 +75,9 @@ describe('call room, flag on', () => {
 
   it('the state line follows the call, the agent and mute', () => {
     setConnectionState('connecting');
-    expect(line()).toBe('Connecting');
+    expect(line()).toBe('Calling Ferni…');
+    setConnectionState('reconnecting');
+    expect(line()).toBe('Reconnecting…');
     setConnectionState('connected');
     setAudioState('listening');
     expect(line()).toBe("Ferni's listening");
@@ -95,11 +97,11 @@ describe('call room, flag on', () => {
     expect(el?.previousElementSibling?.id).toBe('personaName');
   });
 
-  it('labels the end control "End"', () => {
+  it('labels the end control "End call"', () => {
     setConnectionState('connected');
-    expect(endLabel()).toBe('End');
+    expect(endLabel()).toBe('End call');
     setConnectionState('disconnected');
-    expect(endLabel()).toBe('End');
+    expect(endLabel()).toBe('End call');
   });
 
   it('back during the call keeps it, re-pushes the entry and shows the hint', async () => {
@@ -109,7 +111,7 @@ describe('call room, flag on', () => {
     expect(appState.get('connection')).toBe('connected');
     expect(history.state).toEqual({ ferniCall: true });
     expect(showToast).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'Tap End to hang up', priority: 'system' })
+      expect.objectContaining({ message: 'Tap End call to hang up', priority: 'system' })
     );
   });
 });
@@ -123,7 +125,7 @@ describe('call room, flag off', () => {
     appState.set('isMuted', true);
     expect(inRoom()).toBe(false);
     expect(document.querySelector('.call-room-state')).toBeNull();
-    expect(endLabel()).toBe('Disconnect');
+    expect(endLabel()).toBe('End call');
   });
 
   it('pushes no history entry on connect', () => {

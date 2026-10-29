@@ -17,21 +17,30 @@ import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { audioService } from '../../services/audio.service.js';
 import { gsap } from '../../utils/gsap-setup.js';
 import { getLidBasePaths } from '../ferni-expressions.ui.js';
+import { NEUTRAL_DOME_PATHS } from '../face/dome-poses.js';
 
 /** Neutral lids, used until ferni-expressions has set an expression. */
-export const NEUTRAL_LID_PATHS = {
-  top: 'M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z',
-  bottom: 'M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z',
-} as const;
+export const NEUTRAL_LID_PATHS = NEUTRAL_DOME_PATHS;
 
-/** How far (viewBox units) full volume lifts the bottom curve's control point. */
+/** How far full volume lifts the bottom dome, in old `Q 50,k` control units. */
 export const LID_OPEN_RANGE = 40;
-/** The voice never lifts the bottom curve above this, so the eye stays readable. */
+/** The voice never lifts the bottom dome past a `Q 50,62` curve, so the eye stays readable. */
 export const LID_OPEN_FLOOR = 62;
 /** Per-frame easing toward a new expression shape while the voice owns the lids. */
 export const LID_SHAPE_EASE = 0.18;
-/** Index of the first quadratic control point's y in `M x,y Q cx,cy ...`. */
-const CONTROL_Y_INDEX = 3;
+/**
+ * The control y values in `M0 100C x p1 x p2 50 m C x p3 x p4 100 100Z` and how far
+ * each moves per unit of the old Q control: lifting a `Q 50,k` dome by Δ moves the
+ * split halves' outer controls Δ/3 and the inner controls and join Δ/2. Lifting
+ * them this way opens every dome exactly as the old single-Q lift did.
+ */
+const BOTTOM_CONTROLS = [
+  { index: 3, weight: 1 / 3 },
+  { index: 5, weight: 1 / 2 },
+  { index: 7, weight: 1 / 2 },
+  { index: 9, weight: 1 / 2 },
+  { index: 11, weight: 1 / 3 },
+] as const;
 const NUMBER_PATTERN = /-?\d+(?:\.\d+)?/g;
 
 export function isLidBlendEnabled(): boolean {
@@ -102,14 +111,16 @@ export function easeLidPath(
   };
 }
 
-/** Lift the bottom curve's control point by the voice, never above the floor. */
+/** Lift the bottom dome's control points by the voice, never past the floor. */
 export function openBottomLid(base: ParsedPath, volume: number): ParsedPath {
   const numbers = [...base.numbers];
-  const controlY = numbers[CONTROL_Y_INDEX];
-  if (controlY === undefined || controlY <= LID_OPEN_FLOOR)
-    return { template: base.template, numbers };
   const level = Math.max(0, Math.min(1, volume));
-  numbers[CONTROL_Y_INDEX] = Math.max(LID_OPEN_FLOOR, controlY - level * LID_OPEN_RANGE);
+  for (const { index, weight } of BOTTOM_CONTROLS) {
+    const controlY = numbers[index];
+    const floor = 100 - (100 - LID_OPEN_FLOOR) * weight;
+    if (controlY === undefined || controlY <= floor) continue;
+    numbers[index] = Math.max(floor, controlY - level * LID_OPEN_RANGE * weight);
+  }
   return { template: base.template, numbers };
 }
 
