@@ -1,5 +1,5 @@
 /**
- * Measures replies that announce a look-up and then make no tool call.
+ * Replies that announce a look-up, or report one, with no tool behind them.
  *
  * Prod call 2026-10-17: asked for the weather, a teammate said "I'll check the
  * current weather for <city> right now." and called no tool. Ten seconds later
@@ -9,10 +9,16 @@
  *
  * Every reply the model writes passes through here untouched (ferni-agent.ts
  * llmNode, by way of action-claim-guard.ts). When the reply's words announce a
- * check ("I'll check", "let me look that up") and the same reply calls no
- * tool, one ANNOUNCED_CHECK_NO_TOOL line is logged: how many tools were open
- * and whether a live-data tool was among them, never the words.
+ * check ("I'll check", "let me look that up", "I'll look for") and the same
+ * reply calls no tool, one ANNOUNCED_CHECK_NO_TOOL line is logged: how many
+ * tools were open and whether a live-data tool was among them, never the words.
  * ANNOUNCED_CHECK_LOG=off turns the log off.
+ *
+ * With GROUNDED_CLAIMS=on the action-claim guard also acts on these (#3003,
+ * prod 2026-10-28: "Yeah, I checked." with no search, and "I'll look for one
+ * more" ending a turn the caller then waited 68 s on). lookupClaim reads a
+ * sentence: 'past' for "I checked", "I searched", "I looked it up", "I tried
+ * searching"; 'announced' for a check still to come.
  *
  * @module agents/personas/announced-check
  */
@@ -30,13 +36,38 @@ export function announcedCheckLogEnabled(env: Env = process.env): boolean {
   return flagOn('ANNOUNCED_CHECK_LOG', env);
 }
 
-/** "I'll check", "let me look that up", "checking now", "give me a sec to pull it up". */
+/** "I'll check", "let me look that up", "I'll look for", "checking now", "give me a sec to pull it up". */
 const ANNOUNCES =
-  /\b(?:i'll|i will|let me|lemme|i'm going to|i'm gonna|i am going to|gonna)\s+(?:just\s+|quickly\s+|go\s+|quick\s+)?(?:check(?!\s+(?:in|back|on you)\b)|look(?:\s+(?:that|it|this|those))?\s+up|look into|pull(?:\s+(?:that|it|this|up))|find out|search|grab (?:the|that|it)|see what)\b|\bchecking (?:on |that |it |the |now|right now)|\bone (?:sec|second|moment),? (?:let me|i'll)\b/i;
+  /\b(?:i'll|i will|let me|lemme|i'm going to|i'm gonna|i am going to|gonna)\s+(?:just\s+|quickly\s+|go\s+|quick\s+)?(?:check(?!\s+(?:in|back|on you)\b)|look(?:\s+(?:that|it|this|those))?\s+up|look (?:into|for|around|online)|pull(?:\s+(?:that|it|this|up))|find out|search|grab (?:the|that|it)|see what)\b|\bchecking (?:on |that |it |the |now|right now)|\bone (?:sec|second|moment),? (?:let me|i'll)\b/i;
 
 /** Curly apostrophes from the model read as straight ones. */
 export function announcesCheck(text: string): boolean {
   return ANNOUNCES.test(text.replace(/[‘’]/g, "'"));
+}
+
+/** A look-up reported done: "I checked", "I've searched", "I looked it up", "I tried searching". */
+const LOOKED_UP =
+  /\bi(?:'ve| have)? (?:just |already |also |quickly )?(?:checked(?! (?:in|out|on|back|with)\b)|searched|googled|looked (?:it|that|this|them|those) up|looked (?:into|online|around)|pulled (?:it|that|this) up|tried (?:searching|looking|to (?:search|look|find)))\b/;
+/** A question, a supposition, Ferni's own life or a habit: not a report of a look-up in this call. */
+const NOT_A_LOOKUP =
+  /\?|\b(?:if|when|whenever|before|after|yesterday|ago|used to|my|myself|every|last (?:night|week|month|year|time))\b/;
+/** An offer to look ("if you want, I'll check"): the caller's yes is what starts it. */
+const OFFERED = /\?|\b(?:want me to|if you (?:want|like)|i can|i could|should i|shall i)\b/;
+
+/** Whether one sentence reports a look-up ('past') or announces one ('announced'), or null. */
+export function lookupClaim(sentence: string): 'past' | 'announced' | null {
+  const text = sentence
+    .replace(/[‘’]/g, "'")
+    .replace(/"[^"]*"|“[^”]*”/g, ' ')
+    .toLowerCase();
+  if (LOOKED_UP.test(text)) return NOT_A_LOOKUP.test(text) ? null : 'past';
+  return announcesCheck(text) && !OFFERED.test(text) ? 'announced' : null;
+}
+
+/** The guard's kind for a look-up claim: a reported one always, an announced one only while held. */
+export function lookupKind(sentence: string, held: boolean): 'lookup' | null {
+  const said = lookupClaim(sentence);
+  return said === 'past' || (said === 'announced' && held) ? 'lookup' : null;
 }
 
 function textOf(chunk: Chunk): string {
@@ -61,6 +92,11 @@ const LIVE_DATA_TOOLS = new Set([
   'getCurrentContext',
   'findTools',
 ]);
+
+/** A tool that can look something up: a live-data tool, or any read ("getCalendarToday", "findContact"). */
+export function isLookupTool(name: string): boolean {
+  return LIVE_DATA_TOOLS.has(name) || /^(?:get|find|search|check|list|look)[A-Z_]/.test(name);
+}
 
 /** Enough of a reply to find an announcement; replies are a few sentences. */
 const MAX_CHARS = 2000;
