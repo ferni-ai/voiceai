@@ -1,7 +1,7 @@
 /**
  * Lid blend: emotion shapes the window, voice opens it.
  *
- * Behind `ferni:lid-blend` (localStorage, off by default). With it on, the
+ * Behind the lidBlend switch (config/motion-flags.ts, off by default). With it on, the
  * speaking system's lid layer starts from the *current expression's* lid
  * paths (exported by ferni-expressions) and adds the voice opening to the
  * bottom curve, instead of rewriting both lids from a neutral base every
@@ -13,15 +13,11 @@
  * "Speaking + Emotion": "emotion provides shape, speech provides opening".
  */
 
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { audioService } from '../../services/audio.service.js';
 import { gsap } from '../../utils/gsap-setup.js';
-import { createLogger } from '../../utils/logger.js';
 import { getLidBasePaths } from '../ferni-expressions.ui.js';
 import { NEUTRAL_DOME_PATHS } from '../face/dome-poses.js';
-
-const log = createLogger('LidBlend');
-
-export const LID_BLEND_FLAG_KEY = 'ferni:lid-blend';
 
 /** Neutral lids, used until ferni-expressions has set an expression. */
 export const NEUTRAL_LID_PATHS = NEUTRAL_DOME_PATHS;
@@ -42,12 +38,7 @@ const CONTROL_Y_INDICES = [3, 5] as const;
 const NUMBER_PATTERN = /-?\d+(?:\.\d+)?/g;
 
 export function isLidBlendEnabled(): boolean {
-  try {
-    return localStorage.getItem(LID_BLEND_FLAG_KEY) === 'true';
-  } catch (error) {
-    log.debug('Could not read the lid blend flag, treating it as off', error);
-    return false;
-  }
+  return isMotionFlagOn('lidBlend');
 }
 
 /** Smooth toward a target with attack when it rises and release when it falls. */

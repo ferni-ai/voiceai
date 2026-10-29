@@ -1,7 +1,7 @@
 /**
  * Natural blink: Ferni's eyes blink like a person's, on the eyes only.
  *
- * Behind `ferni:natural-blink` (localStorage, off by default). With it on:
+ * Behind the naturalBlink switch (config/motion-flags.ts, off by default). With it on:
  * - blink-scheduler.ts decides when: irregular 2-8 s gaps, the odd double
  *   blink, and a blink at most turn changes (the `ferni:avatar-turn` event);
  * - each blink is a short close-and-open on the two `.eye-main` ellipses,
@@ -18,12 +18,12 @@
  */
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
+import { isMotionFlagOn } from '../../config/motion-flags.js';
 import { createLogger } from '../../utils/logger.js';
 import { createBlinkScheduler, type BlinkScheduler, type BlinkWeight } from './blink-scheduler.js';
 
 const log = createLogger('NaturalBlink');
 
-export const NATURAL_BLINK_FLAG_KEY = 'ferni:natural-blink';
 /** Dispatched on window once per settled turn change (see turn-driver). */
 export const AVATAR_TURN_EVENT = 'ferni:avatar-turn';
 /** Set on `#coach` while natural blink owns the blinks. */
@@ -64,12 +64,7 @@ export const NATURAL_BLINK_CSS = `
 `;
 
 export function isNaturalBlinkEnabled(): boolean {
-  try {
-    return localStorage.getItem(NATURAL_BLINK_FLAG_KEY) === 'true';
-  } catch (error) {
-    log.debug('Could not read the natural blink flag, treating it as off', error);
-    return false;
-  }
+  return isMotionFlagOn('naturalBlink');
 }
 
 function prefersReducedMotion(): boolean {
