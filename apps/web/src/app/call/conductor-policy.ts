@@ -63,15 +63,22 @@ export const CONDUCTOR_POLICY = {
   face: {
     minDwellMs: 1200,
     positive: ['happy', 'delighted', 'excited', 'joy'],
+    /** Teasing faces: neutral moods only, never while tender, upset or in crisis. */
+    playful: ['winking', 'mischievous', 'sheepish', 'amused', 'doubleTake'],
     crisis: ['holdingSpace', 'empathetic'],
   },
   delight: {
-    reasons: ['achievement', 'streak', 'breakthrough', 'laughter', 'first_meeting'],
+    /** What you DID, never how often you showed up: no streaks, no unlocks (Seth, 2026-10-29). */
+    reasons: ['achievement', 'breakthrough', 'laughter', 'first_meeting'],
     perCall: { big: 1, small: 3 },
     minGapMs: 90_000,
-    sequences: ['celebration_small', 'celebration_big', 'streak_milestone', 'team_unlock'],
-    /** A celebration asked for as a plain sequence still needs a reason, budget and gap. */
-    celebrations: { celebration_small: 'small', celebration_big: 'big' },
+    /** Celebration sequences asked for directly pass the same gate, with this size and reason. */
+    asSequence: {
+      celebration_small: { size: 'small' },
+      celebration_big: { size: 'big' },
+      streak_milestone: { size: 'small', reason: 'streak' },
+      team_unlock: { size: 'small', reason: 'unlock' },
+    },
   },
   /** Token step `element` → the one channel that writes it. Others stay with legacy UI. */
   elements: {
@@ -90,6 +97,8 @@ const has = (list: readonly string[], v: string): boolean => list.includes(v);
 const upsetLike = (mood: Mood): boolean => mood === 'upset' || mood === 'crisis';
 /** The sequence a moment plays, or why it is dropped. */
 type Verdict = { readonly play: string } | string;
+/** A delight asked for: how big, and why. */
+type DelightAsk = { readonly size: 'small' | 'big'; readonly reason?: string };
 
 /** Reduced motion, character and mood shaping: the shaped write, or the drop reason. */
 function shapeCommand(
@@ -209,6 +218,7 @@ class CallGate implements CallPolicy {
     const name = String(cmd.params?.expression ?? cmd.action);
     if (this.pinned && !has(P.face.crisis, name)) return `face:${name}:crisis-pinned`;
     if (upsetLike(w.mood) && has(P.face.positive, name)) return `face:${name}:mood=${w.mood}`;
+    if (w.mood !== 'neutral' && has(P.face.playful, name)) return `face:${name}:mood=${w.mood}`;
     if (this.face?.name === name) return `face:${name}:showing`;
     if (cmd.origin === 'beat' && this.face && w.now - this.face.at < P.face.minDwellMs) {
       return `face:${name}:dwell`;
@@ -218,11 +228,10 @@ class CallGate implements CallPolicy {
   }
 
   moment(beat: MomentBeat, mood: Mood, now: number): Verdict {
-    if (beat.kind === 'delight') return this.delight(beat.size, beat.reason, mood, now);
+    if (beat.kind === 'delight') return this.delight(beat, mood, now);
     const id = beat.id;
-    const celebration = (P.delight.celebrations as Readonly<Record<string, 'small' | 'big'>>)[id];
-    if (celebration) return this.delight(celebration, undefined, mood, now);
-    if (upsetLike(mood) && has(P.delight.sequences, id)) return `moment:${id}:mood=${mood}`;
+    const asDelight = (P.delight.asSequence as Readonly<Record<string, DelightAsk>>)[id];
+    if (asDelight) return this.delight(asDelight, mood, now);
     if (has(P.moments.oncePerAttempt, id)) {
       if (this.once.has(id)) return `moment:${id}:once`;
       this.once.add(id);
@@ -231,12 +240,7 @@ class CallGate implements CallPolicy {
   }
 
   /** Delight is earned: a listed reason, never while upset, within the budget and gap. */
-  private delight(
-    asked: 'small' | 'big',
-    reason: string | undefined,
-    mood: Mood,
-    now: number
-  ): Verdict {
+  private delight({ size: asked, reason }: DelightAsk, mood: Mood, now: number): Verdict {
     if (upsetLike(mood)) return `delight:mood=${mood}`;
     if (!reason || !has(P.delight.reasons, reason)) return `delight:reason=${reason ?? 'none'}`;
     const size = mood === 'tender' ? 'small' : asked;

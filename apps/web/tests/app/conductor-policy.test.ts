@@ -6,6 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import type { Mood } from '../../src/app/call/call-types.js';
 import type { ChannelCommand, WriteContext } from '../../src/app/call/conductor.js';
 import { CONDUCTOR_POLICY, createCharacterPolicy } from '../../src/app/call/conductor-policy.js';
 import { count, type TraceEntry } from '../../src/app/call/conductor-trace.js';
@@ -215,9 +216,9 @@ describe('conductor policy: motion, mood and character', () => {
     const h = character();
     await h.arrive();
     h.conductor.beat({ kind: 'delight', size: 'small', reason: 'just_because' as never });
-    h.conductor.beat({ kind: 'delight', size: 'small', reason: 'streak' });
+    h.conductor.beat({ kind: 'delight', size: 'small', reason: 'breakthrough' });
     await h.clock.advance(2000);
-    h.conductor.beat({ kind: 'delight', size: 'small', reason: 'streak' });
+    h.conductor.beat({ kind: 'delight', size: 'small', reason: 'breakthrough' });
     const t = h.trace();
     expect(drops(t, 'delight:reason=just_because')).toBe(1);
     expect(drops(t, 'delight:small:gap')).toBe(1);
@@ -480,13 +481,46 @@ describe('conductor policy: the rules the first verify could not turn red', () =
     );
   });
 
-  it('upset: streak and team-unlock sequences are dropped; neutral plays them', () => {
-    for (const id of ['streak_milestone', 'team_unlock']) {
-      expect(gate().moment({ kind: 'sequence', id }, 'upset', 0)).toBe(`moment:${id}:mood=upset`);
-      expect(gate().moment({ kind: 'sequence', id }, 'crisis', 0)).toBe(`moment:${id}:mood=crisis`);
-      expect(gate().moment({ kind: 'sequence', id }, 'neutral', 0)).toEqual({ play: id });
-    }
+  it('streaks and unlocks are never celebrated, even in a neutral mood', async () => {
+    const call = gate();
+    const streak = { kind: 'delight', size: 'small', reason: 'streak' } as const;
+    expect(call.moment(streak, 'neutral', 0)).toBe('delight:reason=streak');
+    const asked = (id: string, mood: Mood = 'neutral') =>
+      call.moment({ kind: 'sequence', id }, mood, 0);
+    expect(asked('streak_milestone')).toBe('delight:reason=streak');
+    expect(asked('team_unlock')).toBe('delight:reason=unlock');
+    expect(asked('streak_milestone', 'upset')).toBe('delight:mood=upset');
+    expect(asked('team_unlock', 'crisis')).toBe('delight:mood=crisis');
+    // End to end: a streak beat on a calm call celebrates nothing.
+    const h = character();
+    await h.arrive();
+    h.conductor.beat(streak);
+    await h.clock.advance(2000);
+    expect(count(h.trace(), 'glow', 'celebrate')).toBe(0);
   });
+
+  it.each(['tender', 'upset', 'crisis'] as const)(
+    '%s: playful faces (wink, mischief, sheepish, amused, double-take) are dropped',
+    (mood) => {
+      const face = (expression: string, action = 'expression'): ChannelCommand => ({
+        channel: 'face',
+        action,
+        params: { expression },
+        durationMs: 200,
+        origin: 'x',
+      });
+      for (const name of ['winking', 'mischievous', 'sheepish', 'amused']) {
+        expect(gate().write(face(name), ctx({ mood }))).toBe(`face:${name}:mood=${mood}`);
+        expect(gate().write(face(name), ctx())).toMatchObject({ params: { expression: name } });
+      }
+      const doubleTake = face('doubleTake', 'micro');
+      expect(gate().write(doubleTake, ctx({ mood }))).toBe(`face:doubleTake:mood=${mood}`);
+      expect(gate().write(doubleTake, ctx())).toMatchObject({ action: 'micro' });
+      expect(gate().write(face('warm'), ctx({ mood }))).toMatchObject({
+        params: { expression: 'warm' },
+      });
+    }
+  );
 
   it('sound: the same track cannot replay within 2 s; at 2 s it plays', () => {
     const call = gate();
