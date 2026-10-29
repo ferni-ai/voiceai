@@ -203,7 +203,7 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
     //   await initializeOutreachSystem();
     //   getLogger().info('📬 Proactive outreach system initialized');
     // } catch (error) {
-    //   getLogger().warn({ error }, 'Outreach system init skipped (requires Twilio/SendGrid config)');
+    //   getLogger().warn({ error }, 'Outreach system init skipped (requires Twilio config)');
     // }
 
     // Start session cleanup to prevent orphaned session memory leaks
