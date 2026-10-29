@@ -25,7 +25,7 @@ import {
   type RememberedFact as ShownFact,
 } from '../recall/memory-control.js';
 import { contentWords } from '../recall/session-recall.js';
-import { personKey } from '../domain/person-key.js';
+import { normalizeName } from '../domain/person-key.js';
 import { relationsFrom, sameSubject, subjectOfFact, subjectOfText } from './fact-subject.js';
 import { keepForRecall, type KeepOutcome, type RememberToRecallDeps } from './remembered-facts.js';
 
@@ -60,24 +60,32 @@ export type ReplaceOutcome =
  */
 function named(
   facts: readonly ShownFact[],
+  stored: ReadonlyArray<Record<string, unknown>>,
   original: string
 ): ShownFact | 'ambiguous' | 'unclear' | null {
   const want = contentWords(original);
   if (want.size === 0) return null;
-  const names = new Set(facts.filter((f) => f.subject !== 'you').map((f) => personKey(f.subject)));
-  const relations = relationsFrom(facts);
-  const asked = subjectOfText(original, names);
+  const known = new Set(
+    facts.filter((f) => f.subject !== 'you').map((f) => normalizeName(f.subject))
+  );
+  const asked = subjectOfText(original, known);
   if (asked.kind === 'unclear') return 'unclear';
+  const relations = relationsFrom(stored, known);
   const need = Math.max(Math.min(2, want.size), Math.ceil(want.size / 2));
   const scored = facts
     .filter((f) => !f.earlier)
     .map((f) => {
-      const have = contentWords(`${f.subject} ${f.detail}`);
-      return { f, n: [...want].filter((w) => have.has(w)).length };
+      const about = subjectOfFact(f, relations, known);
+      // The caller's own facts read as theirs: "user works as a nurse" ~ "you | job: nurse"
+      const have = contentWords(`${about.kind === 'owner' ? 'user' : ''} ${f.subject} ${f.detail}`);
+      return { f, about, have, n: [...want].filter((w) => have.has(w)).length };
     })
-    .filter((s) => s.n >= need)
-    .map((s) => ({ ...s, about: subjectOfFact(s.f, relations, names) }));
-  const same = scored.filter((s) => sameSubject(asked, s.about)).sort((a, b) => b.n - a.n);
+    .filter((s) => s.n >= need);
+  // "my job ...": the caller's fact about that thing, never another of theirs
+  const thing = asked.kind === 'owner' && asked.thing ? [...contentWords(asked.thing)] : [];
+  const same = scored
+    .filter((s) => sameSubject(asked, s.about) && thing.every((w) => s.have.has(w)))
+    .sort((a, b) => b.n - a.n);
   if (same.length === 0) return scored.some((s) => s.about.kind === 'unclear') ? 'unclear' : null;
   if (same.length > 1 && same[1].n === same[0].n) return 'ambiguous';
   return same[0].f;
@@ -92,7 +100,12 @@ export async function replaceRemembered(
   const store = deps.control ?? control;
   if (!store || !isMemberIdentity(userId)) return { kind: 'failed' };
   try {
-    const old = named(await listRemembered(userId, store), change.original);
+    const [shown, stored] = await Promise.all([listRemembered(userId, store), store.facts(userId)]);
+    const old = named(
+      shown,
+      stored.map((f) => f.data),
+      change.original
+    );
     if (old === null) return { kind: 'no_match' };
     if (old === 'ambiguous' || old === 'unclear') return { kind: old };
     const fact = { fact: change.updated, category: 'correction', sessionId: change.sessionId };

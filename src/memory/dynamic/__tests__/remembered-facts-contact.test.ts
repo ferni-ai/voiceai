@@ -76,7 +76,7 @@ describe('keepForRecall refuses contact data', () => {
 describe('replaceRemembered goes through the same refusal', () => {
   it('on: a correction to a phone number is refused, and the old fact is not forgotten', async () => {
     const forget = vi.fn(async () => undefined);
-    const old = { entityName: 'user', key: 'asked_to_remember', value: 'Dana lives in Denver', confidence: 1 }; // prettier-ignore
+    const old = { entityName: 'user', key: 'asked_to_remember', value: 'my sister Dana lives in Denver', confidence: 1 }; // prettier-ignore
     const control: MemoryControlStore = {
       facts: async () => [{ id: 'f1', data: old }],
       fact: async () => old,
@@ -88,7 +88,7 @@ describe('replaceRemembered goes through the same refusal', () => {
     const s = store();
     const got = await replaceRemembered(
       'u-contact-5',
-      { original: 'Dana lives in Denver', updated: PHONE },
+      { original: 'my sister Dana lives in Denver', updated: PHONE },
       { store: s.store, control, env: HONEST }
     );
     expect(got).toEqual({ kind: 'not_kept', kept: { kind: 'refused', reason: 'contact' } });
