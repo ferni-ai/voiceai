@@ -6,9 +6,9 @@ Date: 2026-10-29. Status: plan, approved by Seth ("keep going"). Follows `2026-1
 
 Adding agents is already possible:
 
-- **Custom agents:** `services/custom-agent/` stores them per user (`createCustomAgent`, `updateAgentVoice`, `getActiveCustomAgents`).
+- **Custom agents:** `src/services/custom-agent/` stores them per user (`createCustomAgent`, `updateAgentVoice`, `getActiveCustomAgents`).
 - **Marketplace:** `apps/marketplace-agents/` has a development guide and a registry.
-- **Developer tool servers:** they register through `personas/bundles/mcp-loader.ts` (`developer_mcp_servers`, http only; stdio only from the first-party allowlist).
+- **Developer tool servers:** they register through `src/personas/bundles/mcp-loader.ts` (`developer_mcp_servers`, http or websocket only; stdio only from the first-party allowlist).
 
 What's missing is a bar every agent must clear. The six built-in specialists show the cost:
 
@@ -28,7 +28,7 @@ The routing evidence (`SOTA tool routing for voice agents`, 2026-10-29):
 - Gemini never used a search tool.
 - Live per-turn retrieval lost its earlier test.
 
-So the voice call keeps a fixed set of about 40 tools or fewer per persona, and capability grows behind it, not inside it:
+So the voice call keeps a fixed set of 40 tools or fewer per persona, and capability grows behind it, not inside it:
 
 1. **A service behind each beat.** The persona holds one or two beat tools (facades with an `action` parameter). The service behind them can use many tools, its own models and long-running analysis, in any language, over HTTP or MCP. Peter's finance service is the first.
 2. **Work outside the call.** Heavy questions run asynchronously. The answer arrives by text or opens the next call (beats plan, rounds lane S5).
@@ -55,7 +55,7 @@ Built-in, marketplace or user-made, every agent provides:
 An agent joins a call only after passing:
 
 1. **Package test:** it has a beat, a toolset of 40 or fewer, the safety set intact, a service contract test and a desk.
-2. **Prober beat calls on dev:** it acts on what's open, scored on yes/no rubric items, with 0 invented access excuses.
+2. **Prober beat calls on dev:** it acts on what's open, passing at least 4 of 5 yes/no rubric items, with 0 invented access excuses.
 3. **Crisis and minor-care held-out checks:** unchanged from the core agent.
 4. **Capability-funnel row:** it is counted from day one (arrivals, briefings, beat-tool calls).
 
@@ -74,7 +74,7 @@ The threshold is a beat seen in at least 5% of tool-needing turns over 4 weeks w
 ## Order
 
 1. **Now (4–6 weeks):** beats plan lanes S0–S12, persona toolsets and facades (routing plan Phases 0–2), and Peter's finance service as the first beat service.
-2. **Then:** an agent package spec and test kit (`personas/package/`), with the six moved onto it one at a time.
+2. **Then:** an agent package spec and test kit (`src/personas/package/`), with the six moved onto it one at a time.
 3. **Then:** new built-in agents where the threshold says so, and the marketplace and user-made agents behind the same gates.
 
 ## Done means
