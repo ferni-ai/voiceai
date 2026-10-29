@@ -7,7 +7,7 @@
 type Json = Record<string, unknown>;
 
 export interface FakeEngagementFirestore {
-  db: { collection: (name: string) => unknown };
+  db: { collection: (name: string) => unknown; runTransaction: unknown };
   /** Every stored document, by path. */
   docs: Map<string, Json>;
   /** Writes to a path this matches throw, as an unavailable Firestore would. */
@@ -76,8 +76,27 @@ export function createFakeEngagementFirestore(): FakeEngagementFirestore {
     },
   });
 
+  type Ref = ReturnType<typeof docRef>;
+  /** Reads go straight through; writes apply once the function resolves, as a commit does */
+  const runTransaction = async <T>(
+    fn: (tx: {
+      get: (ref: Ref) => ReturnType<Ref['get']>;
+      set: (ref: Ref, data: Json, opts?: { merge?: boolean }) => void;
+    }) => Promise<T>
+  ): Promise<T> => {
+    const writes: Array<() => Promise<void>> = [];
+    const result = await fn({
+      get: async (ref) => ref.get(),
+      set: (ref, data, opts) => {
+        writes.push(async () => ref.set(data, opts));
+      },
+    });
+    for (const write of writes) await write();
+    return result;
+  };
+
   return {
-    db: { collection: (name: string) => query(name, []) },
+    db: { collection: (name: string) => query(name, []), runTransaction },
     docs,
     failWrites,
     failReads,

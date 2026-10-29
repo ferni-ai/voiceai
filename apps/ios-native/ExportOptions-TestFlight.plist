@@ -16,7 +16,12 @@
 	<true/>
 	<key>uploadSymbols</key>
 	<true/>
+	<!-- false, so the build that internal testers try can also go to App Review.
+	     A build uploaded as internal-only can never be submitted, and the build
+	     Apple reviews must be the one we tested (#2868). Uploading doesn't send
+	     it to external testers or to review: both are separate steps in App
+	     Store Connect. -->
 	<key>testFlightInternalTestingOnly</key>
-	<true/>
+	<false/>
 </dict>
 </plist>

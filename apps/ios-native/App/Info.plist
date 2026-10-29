@@ -17,16 +17,6 @@
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
-		<string>en-GB</string>
-		<string>ar</string>
-		<string>de</string>
-		<string>es</string>
-		<string>fr</string>
-		<string>he</string>
-		<string>ja</string>
-		<string>ko</string>
-		<string>zh-Hans</string>
-		<string>zh-Hant</string>
 	</array>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
@@ -34,6 +24,17 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.sethdford.ferni</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ferniapp</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>FerniAPIBaseURL</key>
@@ -63,8 +64,6 @@
 	<dict>
 		<key>UIColorName</key>
 		<string>LaunchBackground</string>
-		<key>UIImageName</key>
-		<string>LaunchLogo</string>
 	</dict>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

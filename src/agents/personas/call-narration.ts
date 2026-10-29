@@ -76,6 +76,15 @@ const CALL_TALK =
 const OWN_CALL =
   /\b(?:i|we) (?:called|rang|phoned|talked|spoke|chatted|caught up|facetimed)\b|\b(?:she|he|they) (?:said|told me|picked up|answered|didn't (?:pick up|answer))\b|\bwent (?:great|well|fine|good)\b/i;
 const REPORTED = /\bReported from Ferni's call\b/;
+/**
+ * callStatus (telephony/call-status-tool.ts, also told by callOnBehalf) found the call's result: Ferni
+ * called (or tried), so telling how it went stands. Owner call 2026-10-26 18:46: asked about an
+ * answered call, Ferni said it didn't "know how that call went yet".
+ */
+const toldByStatus = (item: Item & { output?: unknown }): boolean =>
+  item.type === 'function_call_output' &&
+  (item.name === 'callStatus' || item.name === 'callOnBehalf') &&
+  /(?:^|\. )Ferni (?:called|tried to call) /.test(String(item.output ?? ''));
 /** The caller asks Ferni about a call he was asked to make; the group names the person, if any. */
 const ASKED_ABOUT = [
   /\bhow(?:'d| did| was) (?:it|things|that|the call|your call) go(?:ing)? with (?:my |the |your )?([a-z]+)/i,
@@ -168,7 +177,7 @@ export function callOutcomeUnheard(
   asked?: AskedCallStatus
 ): { askedHow: boolean; asked?: AskedCallStatus } | null {
   const items = chatCtx.items as readonly Item[];
-  if (items.some((item) => REPORTED.test(textOf(item)))) return null;
+  if (items.some((item) => REPORTED.test(textOf(item)) || toldByStatus(item))) return null;
   if (asked !== undefined && asked !== 'none' && asked.state === 'completed') return null;
   const lines = items.filter((item) => item.type === 'message' && item.role !== 'system');
   const recent = lines.slice(-4).map(spoken);

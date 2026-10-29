@@ -151,9 +151,15 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   ...byField('odId', 'analytics_sessions'),
   ...byField('firebaseUid', 'user_profiles'), // access grants; the email-keyed ones too (erase-other-keys)
   ...byField('injection.userId', 'context_injection_outcomes'),
+  // The semantic index: the person's words (facts, memories, inside jokes, summaries) with
+  // their embeddings. vectors is FirestoreVectorStore's, memory_vectors the unified store's;
+  // ownerless documents (persona knowledge) and placeholder owners are nobody's and stay.
+  ...byField('metadata.userId', 'vectors', 'memory_vectors'),
   ...byField('text.userId', 'feature_held_texts'), // texts held for them (a Focus, quiet hours), with the text
   { collection: 'reply_reports', field: 'uid' }, // replies they reported, with their own words
   { collection: 'reply_report_quota', doc: 'uid' },
+  { collection: 'call_felt_off', field: 'uid' }, // "That felt off" reports, with their note
+  { collection: 'call_felt_off_quota', doc: 'uid' },
   // the sponsor's daily holder-verification text count; the same collection's phone_{hash}
   // docs are each number's own send record, uid-free, kept like a STOP (holder-send-ledger.ts)
   { collection: 'holder_verification_sends', doc: 'uid' },

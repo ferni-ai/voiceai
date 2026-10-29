@@ -17,8 +17,6 @@ import { resolve } from 'path';
 // Map of GCP Secret names to environment variable names
 const SECRET_MAPPING: Record<string, string> = {
   // Communication
-  'sendgrid-api-key': 'SENDGRID_API_KEY',
-  'sendgrid-from-email': 'SENDGRID_FROM_EMAIL',
   'twilio-account-sid': 'TWILIO_ACCOUNT_SID',
   'twilio-auth-token': 'TWILIO_AUTH_TOKEN',
   'twilio-phone-number': 'TWILIO_PHONE_NUMBER',
@@ -143,7 +141,6 @@ function main() {
     NODE_ENV: 'development',
     GCP_PROJECT_ID: PROJECT_ID,
     PERSONA_ID: 'ferni',
-    SENDGRID_FROM_NAME: 'Ferni',
     PLAID_LINK_BASE_URL: 'https://app.ferni.ai/plaid-link',
   };
 
@@ -166,7 +163,7 @@ function main() {
   ];
 
   const categories: Record<string, string[]> = {
-    COMMUNICATION: ['SENDGRID_', 'TWILIO_'],
+    COMMUNICATION: ['EMAIL_', 'TWILIO_'],
     GOOGLE: ['GOOGLE_'],
     LIVEKIT: ['LIVEKIT_'],
     TTS: ['CARTESIA_'],

@@ -1,12 +1,9 @@
-/**
- * UI/API Server
- *
- * Serves the frontend UI, provides API routes, and handles integrations.
- */
+/** UI/API Server: serves the frontend UI, provides API routes, and handles integrations. */
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
 import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
+import '../../services/outreach/phone-hash-key-boot.js'; // which LOG_HASH_SECRET (fingerprint)
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -122,6 +119,7 @@ import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.j
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
+import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -872,8 +870,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
     if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
     if (await handleReplyReportRoutes(req, res, pathname)) return;
+    if (await handleCallTelemetryRoutes(req, res, pathname)) return;
 
-    // Brand routes
     if (pathname.startsWith('/api/brand')) {
       const handled = await handleBrandRoutes(req, res, pathname);
       if (handled) return;
@@ -895,7 +893,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Commands routes
     if (pathname.startsWith('/api/commands')) {
       const handled = await handleCommandsRoutes(req, res, pathname);
       if (handled) return;

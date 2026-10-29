@@ -167,12 +167,12 @@ const ENV_METADATA: Record<string, Partial<EnvVarInfo>> = {
   },
 
   // Communication (Alex)
-  SENDGRID_API_KEY: {
+  EMAIL_FROM: {
     category: 'Communication',
-    description: 'SendGrid API key for email',
+    description: 'From address of the ferni.ai Workspace mailbox (email has no API key)',
     required: false,
-    example: 'SG.xxx',
-    sensitive: true,
+    example: 'hello@ferni.ai',
+    sensitive: false,
   },
   TWILIO_ACCOUNT_SID: {
     category: 'Communication',

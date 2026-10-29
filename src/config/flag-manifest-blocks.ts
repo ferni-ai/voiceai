@@ -23,7 +23,6 @@ export const FLAGS_DISABLE_TO_EOT = {
   DISABLE_VAD: { default: 'off', owner: 'voice', kind: 'config' },
   DISPUTE_DENIED_FACTS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Ferni rests calm and lifts on bright words (director/emotion-lift.ts)
-  EMAIL_PROVIDER: { default: 'sendgrid', owner: 'platform', kind: 'config' },
   EMOTION_LIFT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ENABLE_EMBEDDING_WORKER: { default: 'off', owner: 'platform', kind: 'experiment' },
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },

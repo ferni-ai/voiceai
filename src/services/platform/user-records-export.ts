@@ -16,6 +16,7 @@
 
 import { BoundedReader, ExportBudget, openExportDb, type ReadDoc } from './bounded-reader.js';
 import { toPlain, type Plain } from './export-redaction.js';
+import { OWNED_ELSEWHERE } from './user-records-owned-elsewhere.js';
 
 export { ExportBudget, ExportLimitError, EXPORT_BUDGET_LIMITS } from './bounded-reader.js';
 
@@ -35,6 +36,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'alarms',
     'analytics',
     'behavioral_intelligence',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'bth_signals',
     'coaching_intelligence',
     'commitments',
@@ -55,8 +57,11 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     // facts the person told, written by the memory tools (memory-executor.ts,
     // legacy-fallback-executor.ts) and erased by forget.ts; not in the 2026-10 listings (#2366)
     'extracted_facts',
+    // bi-temporal facts about people: ids, subjects, values, validity (facts-store.ts)
+    'facts',
     'ferni_commitments',
     'follow_through',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'follow_up_actions',
     'future_self_letters',
     'human_memory',
@@ -83,6 +88,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'outreach_attempts',
     'outreach_history',
     'persona_affinities',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'persona_interactions',
     'persona_life_updates',
     'persona_told',
@@ -116,6 +122,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'temporal_snapshots',
     'topic_patterns',
     'trust',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'trust_moments',
     'trust_profiles',
     'utility_preferences',
@@ -171,95 +178,6 @@ export const WITHHELD_STORES: Readonly<Record<string, string>> = {
 };
 
 /**
- * Stores outside those records: a document keyed by the uid, or documents naming it.
- * `linked`: the documents naming a phone profile proven to be the person are theirs too
- * (the proof erasure uses, erasure-keys.ts).
- */
-export const OWNED_ELSEWHERE: ReadonlyArray<
-  | { collection: string; doc: 'uid' }
-  | { collection: string; field: string; fields?: readonly string[]; linked?: true }
-> = [
-  { collection: 'user_seeds', doc: 'uid' }, // seed balance and history (Seeds card)
-  { collection: 'engagement_profiles', doc: 'uid' },
-  { collection: 'households', doc: 'uid' },
-  // People You've Told Me About: the person's own account of their people, from their calls
-  // Its schema is known (ContactRelationship), so its fields are allowlisted too.
-  {
-    collection: 'contact_relationships',
-    field: 'userId',
-    fields: [
-      'contactId',
-      'name',
-      'email',
-      'phone',
-      'relationship',
-      'notes',
-      'firstInteraction',
-      'lastInteraction',
-      'interactionCount',
-      'strengthScore',
-      'avgResponseTimeHours',
-      'preferredChannel',
-      'bestTimeToReach',
-      'topics',
-      'recentContext',
-      'importantDates',
-      'pendingFollowUp',
-      'lastFollowUpDate',
-      'createdAt',
-      'updatedAt',
-    ],
-  },
-  { collection: 'contact_interactions', field: 'userId' },
-  // The router's record of the person's turns and corrections: which tool it picked, how
-  // sure it was, lengths and phrase hashes, never the words (bandit-persistence.ts,
-  // firestore-persistence.ts, feedback-store.ts)
-  { collection: 'routing_events', field: 'userId' },
-  { collection: 'semantic_router_corrections', field: 'userId' },
-  { collection: 'semantic_routing_feedback', field: 'userId' },
-  { collection: 'semantic_routing_vocabulary', doc: 'uid' },
-  { collection: 'semantic_routing_corrections', doc: 'uid' },
-  // What the older agent remembered of the relationship: shared moments, inside jokes
-  { collection: 'relationship_memories', field: 'userId' },
-  // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
-  // family member's own activity (calls, minutes, last call), voice enrollment, self-
-  // registration, or familyUserId, the key to that person's own record.
-  {
-    collection: 'sponsored_identities',
-    field: 'sponsorUserId',
-    fields: [
-      'displayName',
-      'preferredName',
-      'relationship',
-      'phoneNumber',
-      'accessLevel',
-      'allowedPersonas',
-      'notes',
-      'status',
-      'createdAt',
-      'updatedAt',
-    ],
-  },
-  // Crisis scripts spoken on their calls (safety recordCrisisEvent): ids, enums, times, no words
-  {
-    collection: 'crisis_events',
-    field: 'userId',
-    fields: [
-      'userId',
-      'sessionId',
-      'personaId',
-      'crisisType',
-      'severity',
-      'reader',
-      'resourcesProvided',
-      'createdAt',
-      'expireAt',
-    ],
-    linked: true,
-  },
-];
-
-/**
  * Stores kept in one partition per day, read in every partition by the owner field.
  * semantic_router_events/{YYYY-MM-DD}/events: which tool the router picked for each of the
  * person's turns, how sure it was and how long it took, never the words (routing-analytics.ts).
@@ -285,6 +203,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/team_insights', // Team Insights
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
   'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
+  'bogle_users/{uid}/facts', // bi-temporal facts (MEMORY_FACTS)
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
   'users/{uid}/shared_memories',

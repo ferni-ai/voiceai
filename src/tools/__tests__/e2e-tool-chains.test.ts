@@ -47,7 +47,12 @@ vi.mock('../domains/shared/index.js', () => ({
   isLifeCoachAnalyticsEnabled: vi.fn(() => false),
 }));
 
-vi.mock('../../memory/index.js', () => ({
+// The real person-key helpers: the telephony tools build their relation table
+// from them at import time.
+vi.mock('../../memory/index.js', async () => ({
+  ...(await vi.importActual<typeof import('../../memory/domain/person-key.js')>(
+    '../../memory/domain/person-key.js'
+  )),
   memoryService: {
     remember: vi.fn().mockResolvedValue({ success: true }),
     recall: vi.fn().mockResolvedValue({ success: true, facts: [] }),
