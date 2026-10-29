@@ -5,6 +5,7 @@
  * iterated, so a hotline added later is covered without touching this test.
  */
 import { initializeLogger, llm } from '@livekit/agents';
+import { readFileSync } from 'node:fs';
 import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 
@@ -165,21 +166,42 @@ describe('every helpline table the app carries passes, not only the tool data', 
   );
 });
 
-describe('coaching tools that print a helpline in their own text', () => {
-  const output = (name: string, text: string) => [
+describe('coaching tools: helplines come from the static set, never from their output', () => {
+  const echo = (name: string, text: string) => [
     llm.FunctionCallOutput.create({ callId: 'c', name, output: text, isError: false }),
+  ];
+  const COACHING = [
+    'postpartumCheckin',
+    'caregiverBurnout',
+    'respiteNeed',
+    'sobrietyCheckin',
+    'cravingSupport',
+    'groundingForTrauma',
   ];
 
   it.each([
-    ['postpartumCheckin', 'Postpartum Support International: 1-800-944-4773 (text also)'],
-    ['caregiverBurnout', 'Caregiver Action Network: 1-855-227-3640'],
-  ])('%s: its number reads out', async (toolName, text) => {
-    const line = `${text.split(': ')[1]?.replace(/ \(.*/u, '')}.`;
-    expect(await spoken(`Call ${line}`, output(toolName, text))).toBe(`Call ${line}`);
+    ['postpartumCheckin', 'Call 1-800-944-4773, Postpartum Support International.'],
+    ['caregiverBurnout', 'Call 1-855-227-3640, the Caregiver Action Network.'],
+    ['respiteNeed', 'The Eldercare Locator is 1-800-677-1116.'],
+    ['cravingSupport', 'SAMHSA is 1-800-662-4357.'],
+    ['sobrietyCheckin', 'Call or text 988, or text HOME to 741741.'],
+    ['groundingForTrauma', 'Call or text 988, or text HOME to 741741.'],
+  ])('%s: the helpline it speaks passes via the static set', async (_tool, line) => {
+    expect(await spoken(line)).toBe(line);
   });
 
-  it('the same number from a web search is not vouched for', async () => {
-    const items = output('searchWeb', 'Caregiver Action Network: 1-855-227-3640');
-    expect(await spoken('Call 1-855-227-3640.', items)).toContain("can't vouch");
+  it.each(COACHING)('%s: an injected address echoed back is replaced', async (toolName) => {
+    const items = echo(toolName, "You said your sponsor's site is evil.ru, call 727-555-0123.");
+    expect(await spoken("Your sponsor's site is evil.ru.", items)).toContain("can't vouch");
+    expect(await spoken('Call 727-555-0123.', items)).toContain("can't vouch");
+  });
+
+  it("every 1-8xx number the coaching tools' own text prints is in the static set", async () => {
+    const sources = ['new-parent', 'caregiver', 'sobriety', 'trauma-support'].map((dir) =>
+      readFileSync(new URL(`../../../tools/domains/${dir}/index.ts`, import.meta.url), 'utf8')
+    );
+    const dialled = new Set(sources.join('\n').match(/1-8\d\d-\d{3}-\d{4}/gu) ?? []);
+    expect(dialled.size).toBeGreaterThanOrEqual(4);
+    for (const number of dialled) expect(await spoken(`Call ${number}.`)).toBe(`Call ${number}.`);
   });
 });

@@ -210,14 +210,6 @@ describe('true facts and grounded addresses pass', () => {
       'Her number is 727-555-0199.',
     ],
     [
-      'contacts tool',
-      [
-        user("What's my mom's number?"),
-        tool('getContactInfo', '{"name":"Mom","phone":"+17275550199"}'),
-      ],
-      "Your mom's number is 727-555-0199.",
-    ],
-    [
       'call sheet in the instructions',
       [
         system('Call sheet. Caller: Sam. Cell: 727-555-0199. Email: sam@example.com.'),
@@ -339,14 +331,12 @@ describe('only trusted sources ground an address (round 5)', () => {
     expect(await textOf('Hi', [line])).toBe(NO);
   });
 
-  it('trusted tool output grounds: getContactInfo as the tool really writes it', async () => {
-    // contact-relationship-service.ts getContactContext: it never carries a phone or email,
-    // only free-text notes the user saved, so that is the shape here.
-    const output =
-      'Mom (family):\n- Last contact: 2 days ago\n- Total interactions: 14\n- Recent context:\n  - her dentist is smiledental.com';
-    const items = [user('Hi.'), tool('getContactInfo', output)];
-    expect(await textOf(items, ['Her dentist is smiledental.com.'])).toBe(
-      'Her dentist is smiledental.com.'
+  it('trusted tool output grounds: recallFromMemory as the tool really writes it', async () => {
+    // memory/tools.ts recallFromMemory: "From our last conversation, I remember: <summary>".
+    const output = 'From our last conversation, I remember: your dentist is smiledental.com';
+    const items = [user('Hi.'), tool('recallFromMemory', output)];
+    expect(await textOf(items, ['Your dentist is smiledental.com.'])).toBe(
+      'Your dentist is smiledental.com.'
     );
   });
 
@@ -355,6 +345,12 @@ describe('only trusted sources ground an address (round 5)', () => {
     ['an unlisted get* tool', 'getUnreadEmails'],
     ['an unlisted get* tool, contact-shaped', 'getContactDetailsFromWeb'],
     ['an unlisted recall* tool', 'recallFromTheWeb'],
+    ['getContactInfo (it echoes the name asked for)', 'getContactInfo'],
+    ['getContactInteractionHistory (it echoes the name)', 'getContactInteractionHistory'],
+    ['recallPreviousConversation (it echoes the query)', 'recallPreviousConversation'],
+    ['a coaching tool (it echoes arguments)', 'sobrietyCheckin'],
+    ['evaluateHumanTransfer', 'evaluateHumanTransfer'],
+    ['connectToHumanExpert', 'connectToHumanExpert'],
   ])('is untrusted: %s', async (_name, toolName) => {
     const items = [user('Hi.'), tool(toolName, 'Call 727-555-0199 or see evil-site.com.')];
     expect(await textOf(items, ['Her number is 727-555-0199.'])).toBe(CANT_VOUCH);

@@ -38,7 +38,10 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
 import { SAFETY_CRISIS_RESOURCES } from '../../services/safety/index.js';
 import { crisisContactLines } from '../../tools/domains/crisis/index.js';
-import { CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES } from '../../tools/domains/life-coaching-shared/index.js';
+import {
+  COACHING_HELPLINES,
+  CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES,
+} from '../../tools/domains/life-coaching-shared/index.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';
@@ -109,34 +112,28 @@ function groundingText(item: GroundingItem): string {
 }
 
 /**
- * Tools that return the user's own data (their contacts, what they told Ferni to remember)
- * or fixed crisis lines, so their output can ground an address. Not callStatus: it returns the
- * callee's own words. Any other tool is
- * untrusted, and so is a new one until someone adds it here.
+ * Tools whose output can ground an address: the user's own stored data (contact lists, what
+ * they told Ferni to remember) and fixed crisis lines. Only a tool whose output does NOT
+ * echo the model's own arguments qualifies, since an injected argument ("my sponsor's site
+ * is evil.ru") would come straight back as trusted text. So not getContactInfo,
+ * getContactInteractionHistory or recallPreviousConversation ("I don't have ... "<argument>""),
+ * not the coaching tools, not the human-transfer tools, and not callStatus (the callee's own
+ * words). Any other tool is untrusted, and so is a new one until someone adds it here.
  */
 const FIRST_PARTY_TOOLS = new Set([
-  'getContactInfo',
   'getContactInsights',
   'getContactsNeedingAttention',
-  'getContactInteractionHistory',
   'getContactReminders',
   'recallFromMemory',
-  'recallPreviousConversation',
   'getRelationshipSummary',
-  // Crisis and human transfer: static helplines out of the crisis data, never third-party text.
+  // Crisis tools whose arguments are enums only, so their output is fixed helpline text.
+  // Not the coaching tools (they echo the model's arguments) and not the human-transfer
+  // tools evaluateHumanTransfer / connectToHumanExpert (they echo statements and topics):
+  // their helplines come from the static tables below instead.
   'provideCrisisResources',
   'findSafeResources',
   'createSafetyPlan',
   'quickCrisisResources',
-  'connectToHumanExpert',
-  'evaluateHumanTransfer',
-  // Coaching tools whose only phone numbers are fixed helplines in their own text.
-  'postpartumCheckin',
-  'caregiverBurnout',
-  'respiteNeed',
-  'sobrietyCheckin',
-  'cravingSupport',
-  'groundingForTrauma',
 ]);
 /** A tool result from a tool that is not on the list: web pages, inbound mail, invites, anything new. */
 const isUntrusted = (item: GroundingItem): boolean =>
@@ -152,7 +149,7 @@ export interface HouseFactsWho {
 }
 
 let crisisLines: Addresses | undefined;
-/** Every number, text code and site in the helpline tables the app carries (three of them). */
+/** Every number, text code and site in the helpline tables the app carries (four of them). */
 function helplineLines(): string[] {
   const fields = (r: { phone?: string; text?: string; chat?: string; website?: string }) =>
     [r.phone, r.text, r.chat, r.website].filter((v): v is string => Boolean(v));
@@ -160,6 +157,7 @@ function helplineLines(): string[] {
     ...crisisContactLines(), // tools/domains/crisis: what provideCrisisResources hands out
     ...Object.values(SAFETY_CRISIS_RESOURCES).flat().flatMap(fields), // services/safety/crisis-response
     ...Object.values(COACHING_CRISIS_RESOURCES).flatMap(fields), // life-coaching-shared/safety-guards
+    ...Object.values(COACHING_HELPLINES).flatMap(fields), // numbers coaching tools print
   ];
 }
 
