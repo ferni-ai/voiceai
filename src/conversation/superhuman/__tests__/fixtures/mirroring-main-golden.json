@@ -1,0 +1,953 @@
+{
+  "about": "linguistic-mirroring.ts streaming contractions on origin/main fdda60c4d (#2347): the verifier's mirror-ab, mirror-mid and mirror-fresh lines, as sentence chunks, MIRROR_GRAMMAR_GUARD off and on",
+  "cases": [
+    {
+      "guard": "off",
+      "chunks": [
+        "That is a massive shift.<break time=\"80ms\"/> ",
+        "I am so sorry, that is a lot."
+      ],
+      "main": "That's a massive shift.<break time=\"80ms\"/> I'm so sorry, that's a lot."
+    },
+    { "guard": "off", "chunks": ["Ready when you are."], "main": "Ready when you're." },
+    {
+      "guard": "off",
+      "chunks": ["I'm ready when you are.<break time=\"80ms\"/> ", "Let's go."],
+      "main": "I'm ready when you're.<break time=\"80ms\"/> Let's go."
+    },
+    { "guard": "off", "chunks": ["Big Papa it is."], "main": "Big Papa it's." },
+    { "guard": "off", "chunks": ["So that is what it is."], "main": "So that's what it's." },
+    { "guard": "off", "chunks": ["It is not your fault."], "main": "It isn't your fault." },
+    { "guard": "off", "chunks": ["That is not fair to you."], "main": "That isn't fair to you." },
+    {
+      "guard": "off",
+      "chunks": ["You are not alone in this."],
+      "main": "You're not alone in this."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Honestly it is not a big deal."],
+      "main": "Honestly it isn't a big deal."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I can not believe he said that."],
+      "main": "I can't believe he said that."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I cannot believe he said that."],
+      "main": "I cannot believe he said that."
+    },
+    {
+      "guard": "off",
+      "chunks": ["You do not have to decide tonight."],
+      "main": "You don't have to decide tonight."
+    },
+    {
+      "guard": "off",
+      "chunks": ["He was not trying to hurt you."],
+      "main": "He was not trying to hurt you."
+    },
+    { "guard": "off", "chunks": ["She does not know yet."], "main": "She does not know yet." },
+    { "guard": "off", "chunks": ["I will be right here."], "main": "I will be right here." },
+    {
+      "guard": "off",
+      "chunks": ["What is going on with you?"],
+      "main": "What is going on with you?"
+    },
+    { "guard": "off", "chunks": ["What is it?"], "main": "What is it?" },
+    {
+      "guard": "off",
+      "chunks": ["Is it?<break time=\"80ms\"/> ", "I think it is."],
+      "main": "Is it?<break time=\"80ms\"/> I think it's."
+    },
+    { "guard": "off", "chunks": ["Yes, I am."], "main": "Yes, I'm." },
+    {
+      "guard": "off",
+      "chunks": ["I am NOT going to let that slide."],
+      "main": "I'm NOT going to let that slide."
+    },
+    { "guard": "off", "chunks": ["It IS a lot."], "main": "It's a lot." },
+    { "guard": "off", "chunks": ["IT IS WHAT IT IS."], "main": "It's WHAT It's." },
+    {
+      "guard": "off",
+      "chunks": ["It Is What It Is is my favourite show."],
+      "main": "It's What It's is my favourite show."
+    },
+    {
+      "guard": "off",
+      "chunks": ["He said, \"I am not coming back.\""],
+      "main": "He said, \"I'm not coming back.\""
+    },
+    {
+      "guard": "off",
+      "chunks": ["Your note says 'it is done' at the top."],
+      "main": "Your note says 'it's done' at the top."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Type `do not disturb` in settings."],
+      "main": "Type `don't disturb` in settings."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I can see how worried you are about this."],
+      "main": "I can see how worried you're about this."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I know how hard it is out there."],
+      "main": "I know how hard it's out there."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Look how happy you are right now."],
+      "main": "Look how happy you're right now."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I love the way you are right now."],
+      "main": "I love the way you're right now."
+    },
+    { "guard": "off", "chunks": ["Who you are matters."], "main": "Who you're matters." },
+    { "guard": "off", "chunks": ["I think you are right."], "main": "I think you're right." },
+    { "guard": "off", "chunks": ["I know it is a lot."], "main": "I know it's a lot." },
+    { "guard": "off", "chunks": ["And that is okay."], "main": "And that's okay." },
+    { "guard": "off", "chunks": ["But it is still hard."], "main": "But it's still hard." },
+    {
+      "guard": "off",
+      "chunks": ["If you are up for it, we can try."],
+      "main": "If you're up for it, we can try."
+    },
+    { "guard": "off", "chunks": ["Here is the thing."], "main": "Here's the thing." },
+    { "guard": "off", "chunks": ["There is no rush."], "main": "There's no rush." },
+    {
+      "guard": "off",
+      "chunks": ["We are going to figure this out."],
+      "main": "We're going to figure this out."
+    },
+    {
+      "guard": "off",
+      "chunks": ["They are so lucky to have you."],
+      "main": "They're so lucky to have you."
+    },
+    { "guard": "off", "chunks": ["I am here."], "main": "I'm here." },
+    { "guard": "off", "chunks": ["I am with you."], "main": "I'm with you." },
+    { "guard": "off", "chunks": ["That is huge."], "main": "That's huge." },
+    {
+      "guard": "off",
+      "chunks": ["Okay, it is late.<break time=\"80ms\"/> ", "You are exhausted."],
+      "main": "Okay, it's late.<break time=\"80ms\"/> You're exhausted."
+    },
+    {
+      "guard": "off",
+      "chunks": ["How bad do you think it is right now?"],
+      "main": "How bad do you think it's right now?"
+    },
+    {
+      "guard": "off",
+      "chunks": ["How hard do you think it is out there?"],
+      "main": "How hard do you think it's out there?"
+    },
+    {
+      "guard": "off",
+      "chunks": ["That's how worried I think you are about this."],
+      "main": "That's how worried I think you're about this."
+    },
+    {
+      "guard": "off",
+      "chunks": ["What a mess it is right now!"],
+      "main": "What a mess it's right now!"
+    },
+    { "guard": "off", "chunks": ["It is what it is."], "main": "It's what it's." },
+    { "guard": "off", "chunks": ["The truth is it is hard."], "main": "The truth is it's hard." },
+    {
+      "guard": "off",
+      "chunks": ["The question is not whether you can."],
+      "main": "The question isn't whether you can."
+    },
+    {
+      "guard": "off",
+      "chunks": ["My dad is not well.<break time=\"80ms\"/> ", "He is not eating."],
+      "main": "My dad isn't well.<break time=\"80ms\"/> He isn't eating."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Whatever it is, you are not alone."],
+      "main": "Whatever it's, you're not alone."
+    },
+    { "guard": "off", "chunks": ["Seth, it is fine."], "main": "Seth, it's fine." },
+    {
+      "guard": "off",
+      "chunks": ["Mom says you are the best."],
+      "main": "Mom says you're the best."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I hope you are doing okay."],
+      "main": "I hope you're doing okay."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Wow, you are on fire today."],
+      "main": "Wow, you're on fire today."
+    },
+    {
+      "guard": "off",
+      "chunks": ["No, I am not going to say your feelings are valid."],
+      "main": "No, I'm not going to say your feelings are valid."
+    },
+    { "guard": "off", "chunks": ["I am sure."], "main": "I'm sure." },
+    {
+      "guard": "off",
+      "chunks": ["Are they?<break time=\"80ms\"/> ", "I bet they are."],
+      "main": "Are they?<break time=\"80ms\"/> I bet they're."
+    },
+    { "guard": "off", "chunks": ["I'm so glad you are here."], "main": "I'm so glad you're here." },
+    {
+      "guard": "off",
+      "chunks": ["Sounds like you are exhausted."],
+      "main": "Sounds like you're exhausted."
+    },
+    {
+      "guard": "off",
+      "chunks": ["It sounds like it is a lot."],
+      "main": "It sounds like it's a lot."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Seems like they are close."],
+      "main": "Seems like they're close."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Now that you are home, rest."],
+      "main": "Now that you're home, rest."
+    },
+    {
+      "guard": "off",
+      "chunks": ["As long as you are safe, that's what matters."],
+      "main": "As long as you're safe, that's what matters."
+    },
+    {
+      "guard": "off",
+      "chunks": ["The fact that you are asking says a lot."],
+      "main": "The fact that you're asking says a lot."
+    },
+    {
+      "guard": "off",
+      "chunks": ["The moment you are ready, tell me."],
+      "main": "The moment you're ready, tell me."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Mom says you are the best."],
+      "main": "Mom says you're the best."
+    },
+    { "guard": "off", "chunks": ["The truth is it is hard."], "main": "The truth is it's hard." },
+    { "guard": "off", "chunks": ["Looks like it is raining."], "main": "Looks like it's raining." },
+    { "guard": "off", "chunks": ["Glad it is over."], "main": "Glad it's over." },
+    { "guard": "off", "chunks": ["Maybe it is time."], "main": "Maybe it's time." },
+    { "guard": "off", "chunks": ["Probably it is nothing."], "main": "Probably it's nothing." },
+    { "guard": "off", "chunks": ["Wait, so you are moving?"], "main": "Wait, so you're moving?" },
+    { "guard": "off", "chunks": ["Oh wow, you are kidding."], "main": "Oh wow, you're kidding." },
+    { "guard": "off", "chunks": ["Funny, I am the same way."], "main": "Funny, I'm the same way." },
+    { "guard": "off", "chunks": ["Good thing it is Friday."], "main": "Good thing it's Friday." },
+    { "guard": "off", "chunks": ["Turns out they are fine."], "main": "Turns out they're fine." },
+    {
+      "guard": "off",
+      "chunks": ["Guess what, I am free tonight."],
+      "main": "Guess what, I'm free tonight."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Honestly you are doing great."],
+      "main": "Honestly you're doing great."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Sometimes it is just a bad day."],
+      "main": "Sometimes it's just a bad day."
+    },
+    { "guard": "off", "chunks": ["Right now it is late."], "main": "Right now it's late." },
+    {
+      "guard": "off",
+      "chunks": ["Tonight it is just you and me."],
+      "main": "Tonight it's just you and me."
+    },
+    { "guard": "off", "chunks": ["Like I said, it is okay."], "main": "Like I said, it's okay." },
+    {
+      "guard": "off",
+      "chunks": ["Remember, you are not alone."],
+      "main": "Remember, you're not alone."
+    },
+    { "guard": "off", "chunks": ["Of course I am here."], "main": "Of course I'm here." },
+    { "guard": "off", "chunks": ["Clearly you are tired."], "main": "Clearly you're tired." },
+    { "guard": "off", "chunks": ["Wow, that is huge."], "main": "Wow, that's huge." },
+    { "guard": "off", "chunks": ["Then it is settled."], "main": "Then it's settled." },
+    {
+      "guard": "off",
+      "chunks": ["What I love is that you are so kind to her."],
+      "main": "What I love is that you're so kind to her."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I love how you are always there for her."],
+      "main": "I love how you're always there for her."
+    },
+    {
+      "guard": "off",
+      "chunks": ["That's what I am here for."],
+      "main": "That's what I'm here for."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I wonder what you are up to this weekend."],
+      "main": "I wonder what you're up to this weekend."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Someone who you are close to can help."],
+      "main": "Someone who you're close to can help."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Here's what it is: you are tired."],
+      "main": "Here's what it's: you're tired."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I know where you are coming from."],
+      "main": "I know where you're coming from."
+    },
+    { "guard": "off", "chunks": ["Tell me how it is going."], "main": "Tell me how it's going." },
+    {
+      "guard": "off",
+      "chunks": ["However you are feeling is okay."],
+      "main": "However you're feeling is okay."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Whatever happens, I am in your corner."],
+      "main": "Whatever happens, I'm in your corner."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Who cares what they think, you are great."],
+      "main": "Who cares what they think, you're great."
+    },
+    {
+      "guard": "off",
+      "chunks": ["When you are ready, call me."],
+      "main": "When you're ready, call me."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Wherever you are, I am rooting for you."],
+      "main": "Wherever you're, I'm rooting for you."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I see what you are saying."],
+      "main": "I see what you're saying."
+    },
+    {
+      "guard": "off",
+      "chunks": ["That's how it is going to be."],
+      "main": "That's how it's going to be."
+    },
+    {
+      "guard": "off",
+      "chunks": ["What matters is you are safe."],
+      "main": "What matters is you're safe."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I'm not sure how much it is worth."],
+      "main": "I'm not sure how much it's worth."
+    },
+    {
+      "guard": "off",
+      "chunks": ["How are you?<break time=\"80ms\"/> ", "I am good."],
+      "main": "How are you?<break time=\"80ms\"/> I'm good."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Do you think it is too late?"],
+      "main": "Do you think it's too late?"
+    },
+    {
+      "guard": "off",
+      "chunks": ["Did you know it is her birthday?"],
+      "main": "Did you know it's her birthday?"
+    },
+    {
+      "guard": "off",
+      "chunks": ["Call 'em and tell them you are coming."],
+      "main": "Call 'em and tell them you're coming."
+    },
+    {
+      "guard": "off",
+      "chunks": ["I'll be up 'til late, so I am around."],
+      "main": "I'll be up 'til late, so I'm around."
+    },
+    {
+      "guard": "off",
+      "chunks": ["It's 'cause you are a good friend."],
+      "main": "It's 'cause you're a good friend."
+    },
+    {
+      "guard": "off",
+      "chunks": ["The kids' room is a mess, but it is fine."],
+      "main": "The kids' room is a mess, but it's fine."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Rock 'n' roll is back, and I am here for it."],
+      "main": "Rock 'n' roll is back, and I'm here for it."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Honestly, I am proud of you."],
+      "main": "Honestly, I'm proud of you."
+    },
+    {
+      "guard": "off",
+      "chunks": ["You know what, that is fair."],
+      "main": "You know what, that's fair."
+    },
+    { "guard": "off", "chunks": ["We are almost there."], "main": "We're almost there." },
+    { "guard": "off", "chunks": ["They are gonna love it."], "main": "They're gonna love it." },
+    { "guard": "off", "chunks": ["It is not that deep."], "main": "It isn't that deep." },
+    { "guard": "off", "chunks": ["I do not know."], "main": "I don't know." },
+    { "guard": "off", "chunks": ["You are kidding me."], "main": "You're kidding me." },
+    { "guard": "off", "chunks": ["I am Jordan, by the way."], "main": "I'm Jordan, by the way." },
+    { "guard": "off", "chunks": ["Here is the plan."], "main": "Here's the plan." },
+    {
+      "guard": "off",
+      "chunks": ["There is a chance it is nothing."],
+      "main": "There's a chance it's nothing."
+    },
+    { "guard": "off", "chunks": ["I can not wait."], "main": "I can't wait." },
+    {
+      "guard": "off",
+      "chunks": ["Wow.<break time=\"80ms\"/> ", "That is so you."],
+      "main": "Wow.<break time=\"80ms\"/> That's so you."
+    },
+    {
+      "guard": "off",
+      "chunks": ["So what you are saying is it is over?"],
+      "main": "So what you're saying is it's over?"
+    },
+    {
+      "guard": "off",
+      "chunks": ["Remember how happy you are when you are outside."],
+      "main": "Remember how happy you're when you're outside."
+    },
+    {
+      "guard": "off",
+      "chunks": ["No idea where it is, but I am looking."],
+      "main": "No idea where it's, but I'm looking."
+    },
+    {
+      "guard": "off",
+      "chunks": ["Look at what a good dad you are being."],
+      "main": "Look at what a good dad you're being."
+    },
+    {
+      "guard": "off",
+      "chunks": ["It doesn't matter who you are, you are welcome here."],
+      "main": "It doesn't matter who you're, you're welcome here."
+    },
+    {
+      "guard": "off",
+      "chunks": ["What you are doing is brave."],
+      "main": "What you're doing is brave."
+    },
+    {
+      "guard": "off",
+      "chunks": ["How lucky are we that it is sunny?"],
+      "main": "How lucky are we that it's sunny?"
+    },
+    {
+      "guard": "off",
+      "chunks": ["That is the way it is, you are right."],
+      "main": "That's the way it's, you're right."
+    },
+    {
+      "guard": "on",
+      "chunks": [
+        "That is a massive shift.<break time=\"80ms\"/> ",
+        "I am so sorry, that is a lot."
+      ],
+      "main": "That's a massive shift.<break time=\"80ms\"/> I'm so sorry, that's a lot."
+    },
+    { "guard": "on", "chunks": ["Ready when you are."], "main": "Ready when you are." },
+    {
+      "guard": "on",
+      "chunks": ["I'm ready when you are.<break time=\"80ms\"/> ", "Let's go."],
+      "main": "I'm ready when you are.<break time=\"80ms\"/> Let's go."
+    },
+    { "guard": "on", "chunks": ["Big Papa it is."], "main": "Big Papa it is." },
+    { "guard": "on", "chunks": ["So that is what it is."], "main": "So that's what it is." },
+    { "guard": "on", "chunks": ["It is not your fault."], "main": "It isn't your fault." },
+    { "guard": "on", "chunks": ["That is not fair to you."], "main": "That isn't fair to you." },
+    {
+      "guard": "on",
+      "chunks": ["You are not alone in this."],
+      "main": "You're not alone in this."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Honestly it is not a big deal."],
+      "main": "Honestly it isn't a big deal."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I can not believe he said that."],
+      "main": "I can't believe he said that."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I cannot believe he said that."],
+      "main": "I cannot believe he said that."
+    },
+    {
+      "guard": "on",
+      "chunks": ["You do not have to decide tonight."],
+      "main": "You don't have to decide tonight."
+    },
+    {
+      "guard": "on",
+      "chunks": ["He was not trying to hurt you."],
+      "main": "He was not trying to hurt you."
+    },
+    { "guard": "on", "chunks": ["She does not know yet."], "main": "She does not know yet." },
+    { "guard": "on", "chunks": ["I will be right here."], "main": "I will be right here." },
+    {
+      "guard": "on",
+      "chunks": ["What is going on with you?"],
+      "main": "What is going on with you?"
+    },
+    { "guard": "on", "chunks": ["What is it?"], "main": "What is it?" },
+    {
+      "guard": "on",
+      "chunks": ["Is it?<break time=\"80ms\"/> ", "I think it is."],
+      "main": "Is it?<break time=\"80ms\"/> I think it is."
+    },
+    { "guard": "on", "chunks": ["Yes, I am."], "main": "Yes, I am." },
+    {
+      "guard": "on",
+      "chunks": ["I am NOT going to let that slide."],
+      "main": "I'm NOT going to let that slide."
+    },
+    { "guard": "on", "chunks": ["It IS a lot."], "main": "It's a lot." },
+    { "guard": "on", "chunks": ["IT IS WHAT IT IS."], "main": "It's WHAT IT IS." },
+    {
+      "guard": "on",
+      "chunks": ["It Is What It Is is my favourite show."],
+      "main": "It's What It's is my favourite show."
+    },
+    {
+      "guard": "on",
+      "chunks": ["He said, \"I am not coming back.\""],
+      "main": "He said, \"I'm not coming back.\""
+    },
+    {
+      "guard": "on",
+      "chunks": ["Your note says 'it is done' at the top."],
+      "main": "Your note says 'it's done' at the top."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Type `do not disturb` in settings."],
+      "main": "Type `don't disturb` in settings."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I can see how worried you are about this."],
+      "main": "I can see how worried you're about this."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I know how hard it is out there."],
+      "main": "I know how hard it's out there."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Look how happy you are right now."],
+      "main": "Look how happy you're right now."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I love the way you are right now."],
+      "main": "I love the way you're right now."
+    },
+    { "guard": "on", "chunks": ["Who you are matters."], "main": "Who you're matters." },
+    { "guard": "on", "chunks": ["I think you are right."], "main": "I think you're right." },
+    { "guard": "on", "chunks": ["I know it is a lot."], "main": "I know it's a lot." },
+    { "guard": "on", "chunks": ["And that is okay."], "main": "And that's okay." },
+    { "guard": "on", "chunks": ["But it is still hard."], "main": "But it's still hard." },
+    {
+      "guard": "on",
+      "chunks": ["If you are up for it, we can try."],
+      "main": "If you're up for it, we can try."
+    },
+    { "guard": "on", "chunks": ["Here is the thing."], "main": "Here's the thing." },
+    { "guard": "on", "chunks": ["There is no rush."], "main": "There's no rush." },
+    {
+      "guard": "on",
+      "chunks": ["We are going to figure this out."],
+      "main": "We're going to figure this out."
+    },
+    {
+      "guard": "on",
+      "chunks": ["They are so lucky to have you."],
+      "main": "They're so lucky to have you."
+    },
+    { "guard": "on", "chunks": ["I am here."], "main": "I'm here." },
+    { "guard": "on", "chunks": ["I am with you."], "main": "I'm with you." },
+    { "guard": "on", "chunks": ["That is huge."], "main": "That's huge." },
+    {
+      "guard": "on",
+      "chunks": ["Okay, it is late.<break time=\"80ms\"/> ", "You are exhausted."],
+      "main": "Okay, it's late.<break time=\"80ms\"/> You're exhausted."
+    },
+    {
+      "guard": "on",
+      "chunks": ["How bad do you think it is right now?"],
+      "main": "How bad do you think it's right now?"
+    },
+    {
+      "guard": "on",
+      "chunks": ["How hard do you think it is out there?"],
+      "main": "How hard do you think it's out there?"
+    },
+    {
+      "guard": "on",
+      "chunks": ["That's how worried I think you are about this."],
+      "main": "That's how worried I think you're about this."
+    },
+    {
+      "guard": "on",
+      "chunks": ["What a mess it is right now!"],
+      "main": "What a mess it's right now!"
+    },
+    { "guard": "on", "chunks": ["It is what it is."], "main": "It's what it is." },
+    { "guard": "on", "chunks": ["The truth is it is hard."], "main": "The truth is it's hard." },
+    {
+      "guard": "on",
+      "chunks": ["The question is not whether you can."],
+      "main": "The question isn't whether you can."
+    },
+    {
+      "guard": "on",
+      "chunks": ["My dad is not well.<break time=\"80ms\"/> ", "He is not eating."],
+      "main": "My dad isn't well.<break time=\"80ms\"/> He isn't eating."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Whatever it is, you are not alone."],
+      "main": "Whatever it is, you're not alone."
+    },
+    { "guard": "on", "chunks": ["Seth, it is fine."], "main": "Seth, it's fine." },
+    {
+      "guard": "on",
+      "chunks": ["Mom says you are the best."],
+      "main": "Mom says you're the best."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I hope you are doing okay."],
+      "main": "I hope you're doing okay."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Wow, you are on fire today."],
+      "main": "Wow, you're on fire today."
+    },
+    {
+      "guard": "on",
+      "chunks": ["No, I am not going to say your feelings are valid."],
+      "main": "No, I'm not going to say your feelings are valid."
+    },
+    { "guard": "on", "chunks": ["I am sure."], "main": "I'm sure." },
+    {
+      "guard": "on",
+      "chunks": ["Are they?<break time=\"80ms\"/> ", "I bet they are."],
+      "main": "Are they?<break time=\"80ms\"/> I bet they are."
+    },
+    { "guard": "on", "chunks": ["I'm so glad you are here."], "main": "I'm so glad you're here." },
+    {
+      "guard": "on",
+      "chunks": ["Sounds like you are exhausted."],
+      "main": "Sounds like you're exhausted."
+    },
+    {
+      "guard": "on",
+      "chunks": ["It sounds like it is a lot."],
+      "main": "It sounds like it's a lot."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Seems like they are close."],
+      "main": "Seems like they're close."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Now that you are home, rest."],
+      "main": "Now that you're home, rest."
+    },
+    {
+      "guard": "on",
+      "chunks": ["As long as you are safe, that's what matters."],
+      "main": "As long as you're safe, that's what matters."
+    },
+    {
+      "guard": "on",
+      "chunks": ["The fact that you are asking says a lot."],
+      "main": "The fact that you're asking says a lot."
+    },
+    {
+      "guard": "on",
+      "chunks": ["The moment you are ready, tell me."],
+      "main": "The moment you're ready, tell me."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Mom says you are the best."],
+      "main": "Mom says you're the best."
+    },
+    { "guard": "on", "chunks": ["The truth is it is hard."], "main": "The truth is it's hard." },
+    { "guard": "on", "chunks": ["Looks like it is raining."], "main": "Looks like it's raining." },
+    { "guard": "on", "chunks": ["Glad it is over."], "main": "Glad it's over." },
+    { "guard": "on", "chunks": ["Maybe it is time."], "main": "Maybe it's time." },
+    { "guard": "on", "chunks": ["Probably it is nothing."], "main": "Probably it's nothing." },
+    { "guard": "on", "chunks": ["Wait, so you are moving?"], "main": "Wait, so you're moving?" },
+    { "guard": "on", "chunks": ["Oh wow, you are kidding."], "main": "Oh wow, you're kidding." },
+    { "guard": "on", "chunks": ["Funny, I am the same way."], "main": "Funny, I'm the same way." },
+    { "guard": "on", "chunks": ["Good thing it is Friday."], "main": "Good thing it's Friday." },
+    { "guard": "on", "chunks": ["Turns out they are fine."], "main": "Turns out they're fine." },
+    {
+      "guard": "on",
+      "chunks": ["Guess what, I am free tonight."],
+      "main": "Guess what, I'm free tonight."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Honestly you are doing great."],
+      "main": "Honestly you're doing great."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Sometimes it is just a bad day."],
+      "main": "Sometimes it's just a bad day."
+    },
+    { "guard": "on", "chunks": ["Right now it is late."], "main": "Right now it's late." },
+    {
+      "guard": "on",
+      "chunks": ["Tonight it is just you and me."],
+      "main": "Tonight it's just you and me."
+    },
+    { "guard": "on", "chunks": ["Like I said, it is okay."], "main": "Like I said, it's okay." },
+    {
+      "guard": "on",
+      "chunks": ["Remember, you are not alone."],
+      "main": "Remember, you're not alone."
+    },
+    { "guard": "on", "chunks": ["Of course I am here."], "main": "Of course I'm here." },
+    { "guard": "on", "chunks": ["Clearly you are tired."], "main": "Clearly you're tired." },
+    { "guard": "on", "chunks": ["Wow, that is huge."], "main": "Wow, that's huge." },
+    { "guard": "on", "chunks": ["Then it is settled."], "main": "Then it's settled." },
+    {
+      "guard": "on",
+      "chunks": ["What I love is that you are so kind to her."],
+      "main": "What I love is that you're so kind to her."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I love how you are always there for her."],
+      "main": "I love how you're always there for her."
+    },
+    {
+      "guard": "on",
+      "chunks": ["That's what I am here for."],
+      "main": "That's what I'm here for."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I wonder what you are up to this weekend."],
+      "main": "I wonder what you're up to this weekend."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Someone who you are close to can help."],
+      "main": "Someone who you're close to can help."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Here's what it is: you are tired."],
+      "main": "Here's what it is: you're tired."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I know where you are coming from."],
+      "main": "I know where you're coming from."
+    },
+    { "guard": "on", "chunks": ["Tell me how it is going."], "main": "Tell me how it's going." },
+    {
+      "guard": "on",
+      "chunks": ["However you are feeling is okay."],
+      "main": "However you're feeling is okay."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Whatever happens, I am in your corner."],
+      "main": "Whatever happens, I'm in your corner."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Who cares what they think, you are great."],
+      "main": "Who cares what they think, you're great."
+    },
+    {
+      "guard": "on",
+      "chunks": ["When you are ready, call me."],
+      "main": "When you're ready, call me."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Wherever you are, I am rooting for you."],
+      "main": "Wherever you are, I'm rooting for you."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I see what you are saying."],
+      "main": "I see what you're saying."
+    },
+    {
+      "guard": "on",
+      "chunks": ["That's how it is going to be."],
+      "main": "That's how it's going to be."
+    },
+    {
+      "guard": "on",
+      "chunks": ["What matters is you are safe."],
+      "main": "What matters is you're safe."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I'm not sure how much it is worth."],
+      "main": "I'm not sure how much it's worth."
+    },
+    {
+      "guard": "on",
+      "chunks": ["How are you?<break time=\"80ms\"/> ", "I am good."],
+      "main": "How are you?<break time=\"80ms\"/> I'm good."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Do you think it is too late?"],
+      "main": "Do you think it's too late?"
+    },
+    {
+      "guard": "on",
+      "chunks": ["Did you know it is her birthday?"],
+      "main": "Did you know it's her birthday?"
+    },
+    {
+      "guard": "on",
+      "chunks": ["Call 'em and tell them you are coming."],
+      "main": "Call 'em and tell them you're coming."
+    },
+    {
+      "guard": "on",
+      "chunks": ["I'll be up 'til late, so I am around."],
+      "main": "I'll be up 'til late, so I'm around."
+    },
+    {
+      "guard": "on",
+      "chunks": ["It's 'cause you are a good friend."],
+      "main": "It's 'cause you're a good friend."
+    },
+    {
+      "guard": "on",
+      "chunks": ["The kids' room is a mess, but it is fine."],
+      "main": "The kids' room is a mess, but it's fine."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Rock 'n' roll is back, and I am here for it."],
+      "main": "Rock 'n' roll is back, and I'm here for it."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Honestly, I am proud of you."],
+      "main": "Honestly, I'm proud of you."
+    },
+    {
+      "guard": "on",
+      "chunks": ["You know what, that is fair."],
+      "main": "You know what, that's fair."
+    },
+    { "guard": "on", "chunks": ["We are almost there."], "main": "We're almost there." },
+    { "guard": "on", "chunks": ["They are gonna love it."], "main": "They're gonna love it." },
+    { "guard": "on", "chunks": ["It is not that deep."], "main": "It isn't that deep." },
+    { "guard": "on", "chunks": ["I do not know."], "main": "I don't know." },
+    { "guard": "on", "chunks": ["You are kidding me."], "main": "You're kidding me." },
+    { "guard": "on", "chunks": ["I am Jordan, by the way."], "main": "I'm Jordan, by the way." },
+    { "guard": "on", "chunks": ["Here is the plan."], "main": "Here's the plan." },
+    {
+      "guard": "on",
+      "chunks": ["There is a chance it is nothing."],
+      "main": "There's a chance it's nothing."
+    },
+    { "guard": "on", "chunks": ["I can not wait."], "main": "I can't wait." },
+    {
+      "guard": "on",
+      "chunks": ["Wow.<break time=\"80ms\"/> ", "That is so you."],
+      "main": "Wow.<break time=\"80ms\"/> That's so you."
+    },
+    {
+      "guard": "on",
+      "chunks": ["So what you are saying is it is over?"],
+      "main": "So what you're saying is it's over?"
+    },
+    {
+      "guard": "on",
+      "chunks": ["Remember how happy you are when you are outside."],
+      "main": "Remember how happy you're when you're outside."
+    },
+    {
+      "guard": "on",
+      "chunks": ["No idea where it is, but I am looking."],
+      "main": "No idea where it is, but I'm looking."
+    },
+    {
+      "guard": "on",
+      "chunks": ["Look at what a good dad you are being."],
+      "main": "Look at what a good dad you're being."
+    },
+    {
+      "guard": "on",
+      "chunks": ["It doesn't matter who you are, you are welcome here."],
+      "main": "It doesn't matter who you are, you're welcome here."
+    },
+    {
+      "guard": "on",
+      "chunks": ["What you are doing is brave."],
+      "main": "What you're doing is brave."
+    },
+    {
+      "guard": "on",
+      "chunks": ["How lucky are we that it is sunny?"],
+      "main": "How lucky are we that it's sunny?"
+    },
+    {
+      "guard": "on",
+      "chunks": ["That is the way it is, you are right."],
+      "main": "That's the way it is, you're right."
+    }
+  ]
+}

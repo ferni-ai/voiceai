@@ -289,6 +289,8 @@ const LEGACY_FLAG_MANIFEST = {
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
   // on: mirroring keeps English: "nah" only for a standalone no, no clause-final contractions (conversation/superhuman/mirroring-grammar.ts)
   MIRROR_GRAMMAR_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: mirroring contracts by the shared rule (utils/spoken-contractions.ts, #2347); off, by its legacy map, as on main
+  MIRROR_SHARED_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
@@ -383,6 +385,10 @@ const LEGACY_FLAG_MANIFEST = {
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the speech director contracts "that is" / "it is" / "I am not" where its subject opens
+  // the clause (utils/spoken-contractions.ts, #2334). Audible only with
+  // SPEECH_DIRECTOR=live and the normalize lever up.
+  SPOKEN_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: a fact holding a code, password or PIN the caller said aloud is not stored (memory/spoken-credential.ts)
   SPOKEN_CREDENTIAL_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
