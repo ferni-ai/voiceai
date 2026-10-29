@@ -68,7 +68,7 @@
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
     "typescript": "^5.3.0",
-    "vite": "^8.3.4",
+    "vite": "^6.4.5",
     "vite-bundle-visualizer": "1.2.1",
     "vitest": "^5.0.5"
   },
