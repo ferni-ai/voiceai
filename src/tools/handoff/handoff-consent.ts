@@ -21,6 +21,7 @@
  */
 
 import type { llm } from '@livekit/agents';
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { latestUserText } from '../retrieval/turn-tool-retrieval.js';
 import { misheardTeammates, teammateHeardAs } from './teammate-names.js';
 
@@ -56,39 +57,77 @@ function names(text: string, agentName: string): boolean {
 const ASKS_FOR_SOMEONE =
   /\b(talk|speak|chat)\s+(to|with)\s+(your|one of your|a teammate|the team)\b|\b(transfer|hand|pass|switch)\s+me\s+(over|off|to)\b|\bput\s+(them|him|her)\s+on\b/i;
 
+/**
+ * HANDOFF_HELD_TRUTHFUL: "bring him in", "can I talk to her", "get him on", "put her
+ * through". Counted only after Ferni named that teammate (namedLately): on its own,
+ * "I need to talk to him about the rent" is about someone else.
+ */
+const ASKS_BY_PRONOUN =
+  /\b(talk|speak|chat)\s+(to|with)\s+(him|her|them)\b|\b(bring|get|put)\s+(him|her|them)\s+(in|on|over|through)\b/i;
+
+/** How many of Ferni's lines a pronoun can point back to */
+const NAMED_LATELY_LINES = 3;
+
+function heldTruthful(env: Env = process.env): boolean {
+  return flagOn('HANDOFF_HELD_TRUTHFUL', env);
+}
+
 /** A yes to an offer. A no anywhere in the reply wins ("yeah no", "sure, but not now"). */
 const YES =
   /\b(yes|yeah|yep|yup|sure|ok|okay|please|absolutely|definitely|go ahead|sounds good|let'?s do it|why not|do it)\b/i;
 const NO = /\b(no|nah|nope|not now|not really|don'?t|later|i'?m good)\b/i;
 
-/** What Ferni said just before the caller's latest turn. */
-function previousAgentText(chatCtx: llm.ChatContext): string {
+/** Ferni's last `count` lines before the caller's latest turn, latest first. */
+function agentLinesBefore(chatCtx: llm.ChatContext, count: number): string[] {
+  const lines: string[] = [];
   let seenUser = false;
-  for (let i = chatCtx.items.length - 1; i >= 0; i--) {
+  for (let i = chatCtx.items.length - 1; i >= 0 && lines.length < count; i--) {
     const item = chatCtx.items[i];
     if (item.type !== 'message') continue;
     if (item.role === 'user') seenUser = true;
-    else if (item.role === 'assistant' && seenUser) return item.textContent ?? '';
+    else if (item.role === 'assistant' && seenUser) lines.push(item.textContent ?? '');
   }
-  return '';
+  return lines;
 }
 
 /** Whether the caller asked to talk to `agentName`, said yes to an offer of them, or neither. */
-export function handoffConsent(chatCtx: llm.ChatContext, agentName: string): HandoffConsent {
+export function handoffConsent(
+  chatCtx: llm.ChatContext,
+  agentName: string,
+  env: Env = process.env
+): HandoffConsent {
   const said = latestUserText(chatCtx) ?? '';
   if (names(said, agentName) || ASKS_FOR_SOMEONE.test(said)) return 'asked';
-  if (YES.test(said) && !NO.test(said) && names(previousAgentText(chatCtx), agentName)) {
-    return 'agreed';
-  }
+  const namedLately = (): boolean =>
+    agentLinesBefore(chatCtx, NAMED_LATELY_LINES).some((line) => names(line, agentName));
+  if (heldTruthful(env) && ASKS_BY_PRONOUN.test(said) && namedLately()) return 'asked';
+  const previous = agentLinesBefore(chatCtx, 1)[0] ?? '';
+  if (YES.test(said) && !NO.test(said) && names(previous, agentName)) return 'agreed';
   return 'none';
 }
 
-/** The tool result when a handoff is held back: answer them yourself. */
-export function heldHandoff(agentName: string): {
-  unavailable: true;
-  instruction: string;
-} {
+type HeldHandoff =
+  { unavailable: true; instruction: string } | { transferred: false; instruction: string };
+
+/**
+ * The tool result when a handoff is held back: answer them yourself. With
+ * HANDOFF_HELD_TRUTHFUL it never says `unavailable`: Ferni read that as the teammate
+ * being away and said so ("Nate's away from his desk", #2387), and the director, which
+ * sees each tool result's start (director-tool-state.ts), wrote "Alex is unavailable".
+ */
+function heldHandoff(agentName: string, env: Env = process.env): HeldHandoff {
   const first = agentName.split(/\s+/)[0];
+  if (heldTruthful(env)) {
+    return {
+      transferred: false,
+      instruction:
+        `Not transferred yet: they haven't asked for ${first} by name or said yes to them. ` +
+        `${first} is free, so never say ${first} is away, busy or unavailable, and don't make up ` +
+        `a reason. Answer them yourself, the way a friend would. If they asked for someone and ` +
+        `you're not sure who, ask who they mean. If ${first} would really help, offer once, ` +
+        `casually, and transfer only if they say yes.`,
+    };
+  }
   return {
     unavailable: true,
     instruction:
@@ -114,9 +153,9 @@ export function holdUnaskedHandoff(
   runCtx: unknown,
   agentName: string,
   toCoordinator: boolean,
-  env: Record<string, string | undefined> = process.env
-): ReturnType<typeof heldHandoff> | null {
+  env: Env = process.env
+): HeldHandoff | null {
   const chatCtx = historyOf(runCtx);
   if (!handoffAskFirstEnabled(env) || toCoordinator || !chatCtx) return null;
-  return handoffConsent(chatCtx, agentName) === 'none' ? heldHandoff(agentName) : null;
+  return handoffConsent(chatCtx, agentName, env) === 'none' ? heldHandoff(agentName, env) : null;
 }

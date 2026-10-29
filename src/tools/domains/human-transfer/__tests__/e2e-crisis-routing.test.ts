@@ -35,18 +35,25 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
 
 // Mock llm.tool (llm.LLM is extended by model-provider/ollama-llm-adapter.ts, which this
 // test reaches transitively via injection-builders — it must exist as a class)
-vi.mock('@livekit/agents', () => ({
-  llm: {
-    tool: vi.fn((config) => ({
-      description: config.description,
-      parameters: config.parameters,
-      execute: config.execute,
-    })),
-    LLM: class MockLLM {},
-    LLMStream: class MockLLMStream {},
-    RealtimeModel: class MockRealtimeModel {},
-  },
-}));
+// Only llm is stubbed; the rest is the real package, which the injection-builder
+// import chain needs (personas → audio → voice.BackgroundAudioPlayer).
+vi.mock('@livekit/agents', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@livekit/agents')>();
+  return {
+    ...actual,
+    llm: {
+      ...actual.llm,
+      tool: vi.fn((config) => ({
+        description: config.description,
+        parameters: config.parameters,
+        execute: config.execute,
+      })),
+      LLM: class MockLLM {},
+      LLMStream: class MockLLMStream {},
+      RealtimeModel: class MockRealtimeModel {},
+    },
+  };
+});
 
 // Import after mocks
 import { getToolDefinitions } from '../index.js';
@@ -372,7 +379,7 @@ describe('Integration: buildHumanTransferInjections', () => {
     expect(crisisInjection).not.toBeNull();
     if (crisisInjection) {
       expect(crisisInjection.priority).toBeGreaterThanOrEqual(88);
-      expect(crisisInjection.category).toBe('better_than_human');
+      expect(crisisInjection.category).toBe('crisis_transfer'); // a safety category (safety-note.ts)
       expect(crisisInjection.content).toBeDefined();
     }
   });

@@ -14,6 +14,7 @@ import { llm } from '@livekit/agents';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { judgeCommitment } from '../../../utils/commitment-quality.js';
+import { MINOR_CARE_NOT_SAVED, writeHeld } from '../../../utils/minor-care.js';
 import {
   detectCommitment,
   saveCommitment,
@@ -23,6 +24,7 @@ import {
   type CommitmentType,
   type CommitmentStatus,
 } from '../../../services/superhuman/commitment-keeper.js';
+import { requestedFieldsFor } from '../../../services/superhuman/index.js';
 
 const log = getLogger();
 
@@ -126,8 +128,11 @@ const recordCommitmentDef: ToolDefinition = {
             followUpAfter: targetDateMs || now + 3 * 24 * 60 * 60 * 1000,
             status: 'active' as const,
             followUpCount: 0,
+            // Asked for by name: still shown with COMMITMENT_SINGLE_WRITER on (as readers decide it).
+            ...(await requestedFieldsFor(ctx.userId)),
           });
 
+          if (writeHeld(ctx.userId)) return MINOR_CARE_NOT_SAVED; // the save held too: no promise
           // Build a human-friendly response
           let response = `Got it - I'll remember that you ${summary}`;
 

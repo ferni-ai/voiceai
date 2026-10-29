@@ -123,9 +123,7 @@ const loadedUsers = new Set<string>();
 /** Active flush locks to prevent concurrent writes per user */
 const flushLocks = new Map<string, Promise<void>>();
 
-/**
- * Execute with lock to prevent concurrent flushes for the same user
- */
+/** Execute with lock to prevent concurrent flushes for the same user */
 async function withFlushLock(userId: string, fn: () => Promise<void>): Promise<void> {
   // Wait for any existing flush to complete
   const existingLock = flushLocks.get(userId);
@@ -146,6 +144,9 @@ export type PredictiveModel = 'markov' | 'time_series' | 'reinforcement';
 
 /** `${userId}/${model}` whose last read errored: never saved over until a later read succeeds. */
 const readFailed = new Set<string>();
+/** MINOR_CARE purges per user, and per `${userId}/${model}` the count when its latest read began. */
+const purges = new Map<string, number>();
+const readBegan = new Map<string, number>();
 
 /** True (and logged) while a model's stored state is unread because its last read errored. */
 function holdSave(userId: string, model: PredictiveModel): boolean {
@@ -156,9 +157,10 @@ function holdSave(userId: string, model: PredictiveModel): boolean {
 
 /** Null means nothing stored; a read error also answers null, but holds back the model's saves. */
 async function loadModelState<T>(userId: string, model: PredictiveModel): Promise<T | null> {
+  const key = `${userId}/${model}`;
+  readBegan.set(key, purges.get(userId) ?? 0); // a purge while this read is out voids it
   const firestore = getFirestoreDb();
   if (!firestore) return null;
-  const key = `${userId}/${model}`;
   try {
     const doc = await firestore
       .collection('bogle_users')
@@ -179,9 +181,7 @@ async function loadModelState<T>(userId: string, model: PredictiveModel): Promis
 // MARKOV PERSISTENCE
 // ============================================================================
 
-/**
- * Save Markov model state to Firestore
- */
+/** Save Markov model state to Firestore */
 export async function saveMarkovState(userId: string, data: MarkovPersistenceData): Promise<void> {
   if (holdSave(userId, 'markov')) return;
   const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
@@ -217,9 +217,7 @@ export async function loadMarkovState(userId: string): Promise<MarkovPersistence
 // TIME SERIES PERSISTENCE
 // ============================================================================
 
-/**
- * Save time series model state to Firestore
- */
+/** Save time series model state to Firestore */
 export async function saveTimeSeriesState(
   userId: string,
   data: TimeSeriesPersistenceData
@@ -276,9 +274,7 @@ export async function loadTimeSeriesState(
 // REINFORCEMENT LEARNING PERSISTENCE
 // ============================================================================
 
-/**
- * Save reinforcement learning state to Firestore
- */
+/** Save reinforcement learning state to Firestore */
 export async function saveReinforcementState(
   userId: string,
   data: ReinforcementPersistenceData
@@ -341,9 +337,7 @@ export async function loadReinforcementState(
 // COMMUNITY PATTERNS PERSISTENCE
 // ============================================================================
 
-/**
- * Save community-wide patterns (aggregated, anonymous)
- */
+/** Save community-wide patterns (aggregated, anonymous) */
 export async function saveCommunityPatterns(data: MarkovPersistenceData): Promise<void> {
   const firestore = getFirestoreDb();
   if (!firestore) return;
@@ -363,9 +357,7 @@ export async function saveCommunityPatterns(data: MarkovPersistenceData): Promis
   }
 }
 
-/**
- * Load community-wide patterns
- */
+/** Load community-wide patterns */
 export async function loadCommunityPatterns(): Promise<MarkovPersistenceData | null> {
   const firestore = getFirestoreDb();
   if (!firestore) return null;
@@ -388,9 +380,7 @@ export async function loadCommunityPatterns(): Promise<MarkovPersistenceData | n
 // BATCH OPERATIONS
 // ============================================================================
 
-/**
- * Mark a user's ML state as dirty (needs persistence)
- */
+/** Mark a user's ML state as dirty (needs persistence) */
 export function markDirty(userId: string): void {
   dirtyUsers.add(userId);
 }
@@ -400,9 +390,37 @@ export function isUserLoaded(userId: string, model: PredictiveModel): boolean {
   return loadedUsers.has(`${userId}/${model}`);
 }
 
-/** Mark a model loaded for the user, unless its last read errored (a later load retries). */
+/** Mark a model loaded, unless its last read errored (a later load retries) or a MINOR_CARE
+ * purge landed while it was out (the next model created must read again before it saves). */
 export function markUserLoaded(userId: string, model: PredictiveModel): void {
-  if (!readFailed.has(`${userId}/${model}`)) loadedUsers.add(`${userId}/${model}`);
+  const key = `${userId}/${model}`;
+  const began = readBegan.get(key);
+  if (began !== undefined && began !== (purges.get(userId) ?? 0)) return;
+  if (!readFailed.has(key)) loadedUsers.add(key);
+}
+
+/** MINOR_CARE purge: the next session reloads from storage before anything is written. */
+export function forgetLoadedUser(userId: string): void {
+  purges.set(userId, (purges.get(userId) ?? 0) + 1);
+  for (const key of loadedUsers) if (key.startsWith(`${userId}/`)) loadedUsers.delete(key);
+  dirtyUsers.delete(userId);
+}
+
+/** Saves for each model whose stored state was loaded here: saving another would replace it. */
+function loadedSaves(
+  userId: string,
+  getMarkovData: (userId: string) => MarkovPersistenceData | null,
+  getTimeSeriesData: (userId: string) => TimeSeriesPersistenceData | null,
+  getReinforcementData: (userId: string) => ReinforcementPersistenceData | null
+): Promise<void>[] {
+  const markov = isUserLoaded(userId, 'markov') ? getMarkovData(userId) : null;
+  const timeSeries = isUserLoaded(userId, 'time_series') ? getTimeSeriesData(userId) : null;
+  const rl = isUserLoaded(userId, 'reinforcement') ? getReinforcementData(userId) : null;
+  return [
+    ...(markov ? [saveMarkovState(userId, markov)] : []),
+    ...(timeSeries ? [saveTimeSeriesState(userId, timeSeries)] : []),
+    ...(rl ? [saveReinforcementState(userId, rl)] : []),
+  ];
 }
 
 /**
@@ -420,31 +438,12 @@ export async function flushDirtyUsers(
   let errors = 0;
 
   for (const userId of Array.from(dirtyUsers)) {
-    // Check if we should flush (respect interval)
-    const lastFlush = lastFlushTime.get(userId) || 0;
-    if (now - lastFlush < FLUSH_INTERVAL_MS) {
-      continue; // Skip - too soon
-    }
+    if (now - (lastFlushTime.get(userId) ?? 0) < FLUSH_INTERVAL_MS) continue; // too soon
 
     try {
-      // Save all model types in parallel
-      const markovData = getMarkovData(userId);
-      const timeSeriesData = getTimeSeriesData(userId);
-      const reinforcementData = getReinforcementData(userId);
-
-      const promises: Promise<void>[] = [];
-
-      if (markovData) {
-        promises.push(saveMarkovState(userId, markovData));
-      }
-      if (timeSeriesData) {
-        promises.push(saveTimeSeriesState(userId, timeSeriesData));
-      }
-      if (reinforcementData) {
-        promises.push(saveReinforcementState(userId, reinforcementData));
-      }
-
-      await Promise.all(promises);
+      await Promise.all(
+        loadedSaves(userId, getMarkovData, getTimeSeriesData, getReinforcementData)
+      );
 
       dirtyUsers.delete(userId);
       lastFlushTime.set(userId, now);
@@ -473,23 +472,7 @@ export async function forceFlushUser(
   getReinforcementData: (userId: string) => ReinforcementPersistenceData | null
 ): Promise<void> {
   return withFlushLock(userId, async () => {
-    const markovData = getMarkovData(userId);
-    const timeSeriesData = getTimeSeriesData(userId);
-    const reinforcementData = getReinforcementData(userId);
-
-    const promises: Promise<void>[] = [];
-
-    if (markovData) {
-      promises.push(saveMarkovState(userId, markovData));
-    }
-    if (timeSeriesData) {
-      promises.push(saveTimeSeriesState(userId, timeSeriesData));
-    }
-    if (reinforcementData) {
-      promises.push(saveReinforcementState(userId, reinforcementData));
-    }
-
-    await Promise.all(promises);
+    await Promise.all(loadedSaves(userId, getMarkovData, getTimeSeriesData, getReinforcementData));
 
     dirtyUsers.delete(userId);
     lastFlushTime.set(userId, Date.now());
@@ -503,9 +486,7 @@ export async function forceFlushUser(
 let initialized = false;
 let flushIntervalHandle: NodeJS.Timeout | null = null;
 
-/**
- * Initialize persistence layer with periodic flushing
- */
+/** Initialize persistence layer with periodic flushing */
 export function initializePersistence(
   getMarkovData: (userId: string) => MarkovPersistenceData | null,
   getTimeSeriesData: (userId: string) => TimeSeriesPersistenceData | null,
@@ -522,9 +503,7 @@ export function initializePersistence(
   log.info('🧠 Predictive ML persistence initialized');
 }
 
-/**
- * Shutdown persistence layer (flush remaining data)
- */
+/** Shutdown persistence layer (flush remaining data) */
 export async function shutdownPersistence(
   getMarkovData: (userId: string) => MarkovPersistenceData | null,
   getTimeSeriesData: (userId: string) => TimeSeriesPersistenceData | null,

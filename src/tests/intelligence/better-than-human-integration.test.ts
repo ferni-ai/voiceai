@@ -65,6 +65,13 @@ vi.mock('firebase-admin', () => {
   };
 });
 
+// The aggregators get their client from getAdminFirestore(); hand them the
+// mocked admin.firestore() above, so the "unavailable" case below still applies.
+vi.mock('../../utils/firebase-admin-app.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/firebase-admin-app.js')>()),
+  getAdminFirestore: () => admin.firestore(),
+}));
+
 // Mock contacts service (both paths used in codebase)
 vi.mock('../../services/contacts.js', () => ({
   getContacts: vi.fn().mockResolvedValue([

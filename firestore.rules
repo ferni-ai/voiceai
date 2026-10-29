@@ -92,6 +92,12 @@ service cloud.firestore {
         allow read: if isOwner(userId) || isServiceAccount();
         allow write: if isServiceAccount();
       }
+
+      // Facts (memory/facts/facts-store.ts): what Ferni knows about people, some of it
+      // sensitive. Read and written only by the server's memory writer, never a client.
+      match /facts/{factId} {
+        allow read, write: if isServiceAccount();
+      }
     }
     
     // ============================================================================
@@ -126,6 +132,11 @@ service cloud.firestore {
     }
 
     match /reply_report_quota/{uid} {
+      allow read, write: if false;
+    }
+
+    // Daily email counters (api/waitlist-email-quota.ts): server only
+    match /ops_email_quota/{day} {
       allow read, write: if false;
     }
 

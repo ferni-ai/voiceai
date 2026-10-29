@@ -34,6 +34,7 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { withEarlyGoodbye } from './early-goodbye.js';
 import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
 import { holdHandoffThroughTalk } from './held-handoff-speech.js';
@@ -483,8 +484,7 @@ export async function buildHandoffTools(
           `🔍 Handoff tool runtime context for ${def.agentName}`
         );
 
-        // FIX BUG: Extract conversation context for cognitive handoff
-        // This ensures the receiving persona gets cognitive context about the user
+        // FIX BUG: Extract conversation context, so the receiving persona knows the user
         const emotionalState = userData?.lastEmotionAnalysis?.primary || 'neutral';
         const topics = userData?.conversationTopics || [];
         const sessionId = userData?.services?.sessionId;
@@ -501,21 +501,21 @@ export async function buildHandoffTools(
 
         // The multi-agent handler that runs this handoff only hears the persona: keep why
         noteHandoffReason(sessionId, def.agentId, reason, context_summary);
-        // The generic executor, with runtime user context (unlock check) and cognitive context
-        const result = await executeHandoff(def.agentId, reason, {
-          context: context_summary ? { summary: context_summary } : undefined,
-          userProfile: runtimeUserProfile,
-          subscriptionTier: runtimeTier,
-          // Pass conversation context for cognitive handoff
-          emotionalState,
-          topics,
-          sessionId,
-          // Pass voice emotion for better-than-human entrance adaptation
-          voiceEmotion,
-        });
+        // The executor with runtime user context; HANDOFF_EARLY_GOODBYE: honest if it then fails
+        const result = await withEarlyGoodbye(sessionId, def.agentName, (onCleared) =>
+          executeHandoff(def.agentId, reason, {
+            context: context_summary ? { summary: context_summary } : undefined,
+            userProfile: runtimeUserProfile,
+            subscriptionTier: runtimeTier,
+            emotionalState, // conversation context for a cognitive handoff
+            topics,
+            sessionId,
+            voiceEmotion, // for better-than-human entrance adaptation
+            onCleared, // the goodbye, once the checks pass
+          })
+        );
 
-        // 🐛 FIX BUG-008: Clear stale conversation context after successful handoff
-        // Without this, the new persona would see messages from the previous persona's conversation
+        // 🐛 FIX BUG-008: clear stale topics after a handoff, or the new persona sees the old ones
         if (result.success && userData) {
           userData.conversationTopics = [];
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona

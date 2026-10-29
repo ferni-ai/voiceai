@@ -296,8 +296,8 @@ async function testHomeKit(): Promise<void> {
 
   await runTest('HomeKit', 'Check sync status', async () => {
     // HomeKit data is stored in Firestore, synced from iOS
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../src/utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const configDoc = await db
       .collection('bogle_users')

@@ -86,6 +86,7 @@ afterEach(async () => {
   m.disposeNaturalBlink();
   document.getElementById('natural-blink-styles')?.remove();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe('with the flag off', () => {
@@ -110,6 +111,23 @@ describe('with the flag off', () => {
         c.keyframes.some((k) => /scaleY\(0\.15\)/.test(String(k.transform)))
     );
     expect(zen).toHaveLength(1);
+  });
+});
+
+describe('with the build value on (VITE_NATURAL_BLINK)', () => {
+  it('claims the eyes with no browser override', async () => {
+    vi.stubEnv('VITE_NATURAL_BLINK', 'on');
+    const m = await import('../../../src/ui/avatar-motion/natural-blink.js');
+    expect(m.initNaturalBlink()).toBe(true);
+    expect(document.getElementById('coach')?.hasAttribute(m.NATURAL_BLINK_ATTR)).toBe(true);
+  });
+
+  it("stays off in a browser that overrides it with 'off'", async () => {
+    vi.stubEnv('VITE_NATURAL_BLINK', 'on');
+    localStorage.setItem(FLAG, 'off');
+    const m = await import('../../../src/ui/avatar-motion/natural-blink.js');
+    expect(m.initNaturalBlink()).toBe(false);
+    expect(document.getElementById('coach')?.hasAttribute(m.NATURAL_BLINK_ATTR)).toBe(false);
   });
 });
 

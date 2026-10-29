@@ -214,7 +214,7 @@ describe('FirestoreVectorStore', () => {
 
       expect(stats.documentCount).toBeGreaterThan(0);
       expect(stats.bySource).toBeDefined();
-      expect(stats.bySource['persona']).toBe(1);
+      expect(stats.bySource?.['persona']).toBe(1);
       expect(stats.usingFallback).toBe(true);
     });
   });

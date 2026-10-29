@@ -30,6 +30,29 @@ const SPELLED = String.raw`\b(?:ninety${SEP}eighty?|nine${SEP}eighty)${SEP}eight
 const DIGITS = String.raw`(?<![\w$€£#]|\d[.,])(?:988|9-8-8|9 8 8)(?![\w%]|[.,]\d)`;
 const LINE = new RegExp(`${SPELLED}|${DIGITS}`, 'gi');
 const CUE = /^(?:call|calling|text|texting|dial|dialing|line|lifeline|hotline|crisis|suicide)$/i;
+
+/** Written transcripts also put commas between the words; the speech rewrite keeps SEP. */
+const LIST_SEP = String.raw`[\s,-]+`;
+/** The line already in words: "nine eight eight", "nine-eight-eight", "nine, eight, eight". */
+const SPOKEN = String.raw`\bnine${LIST_SEP}eight${LIST_SEP}eight\b`;
+/** The Crisis Text Line's number: 741741, 741-741, 7 4 1 7 4 1, or in words. */
+const TEXT_LINE_NUMBER = String.raw`(?<![\w$])7[\s-]?4[\s-]?1[\s-]?7[\s-]?4[\s-]?1(?!\w)|\bseven${SEP}four${SEP}one${SEP}seven${SEP}four${SEP}one\b`;
+const OFFERED = new RegExp(`${SPELLED}|${DIGITS}|${SPOKEN}|${TEXT_LINE_NUMBER}`, 'i');
+/** A crisis line by name: a lifeline, a crisis or suicide (hot)line, the Crisis Text Line. */
+const NAMED = /\blifeline\b|\b(?:crisis|suicide)\s+(?:text\s+)?(?:hot)?line\b/i;
+
+/**
+ * Whether text gives someone a crisis line, in any form a reply writes it:
+ * 988 as digits (988, 9-8-8, 9 8 8, with or without a cue word, never "$988"
+ * or part of a longer number), spelled out ("nine eight eight",
+ * "ninety-eight-eight", "nine-eighty-eight"), the Crisis Text Line's number
+ * (741741 in digits or words), or a line by name ("Suicide and Crisis
+ * Lifeline", "crisis line", "Crisis Text Line"). For readers of a finished
+ * transcript (wellbeing-tracking/after-call.ts), which keeps what was written.
+ */
+export function offersCrisisLine(text: string): boolean {
+  return OFFERED.test(text) || NAMED.test(text);
+}
 /** How many words either side of a digit form are searched for a cue. */
 const CUE_WINDOW = 3;
 

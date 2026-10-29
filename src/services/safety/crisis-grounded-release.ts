@@ -12,31 +12,34 @@
  * shadow.
  *
  * This asks a narrower question with evidence. Two independent model reads
- * of the call each say whether the flagged line could be about danger (and
- * quote the words if so), and which earlier line it is about, quoted exactly.
- * The turn gets the soft check (SOFT_CRISIS_CHECK: Ferni stays in the
- * conversation, checks in once if anything suggests it, and gives 988 on any
- * mention of self-harm) instead of the script only when every one of these holds:
+ * of the call, with different prompts (an everyday-or-danger read, and a
+ * C-SSRS-structured read of ideation, method, intent, plan and timeframe),
+ * must both find nothing. The turn then gets GROUNDED_LIGHT_TOUCH instead of
+ * the script: Ferni answers in its own voice and asks one direct screening
+ * question (SCREEN_QUESTION). On the caller's next turn, anything but a clear
+ * no takes the crisis path with 988 (screenPositive). Round 3 released 40 of
+ * 40 new risky lines built only from allowed words with both reads fooled
+ * ("After dinner I'll try again."): word rules cannot prove a release safe,
+ * so the direct question is the safety net (Seth, 2026-10-22: "Ask directly,
+ * gently"). Only when every one of these holds:
  *   - the classifier alone read the turn imminent: the patterns found nothing;
- *   - nothing on the call found risk before this turn, other than turns a
- *     grounded release explained (crisis-call-risk.ts), and fewer than
- *     MAX_RELEASES_PER_CALL were released;
+ *   - nothing on the call found risk before this turn, and no turn on this
+ *     call was released before (MAX_RELEASES_PER_CALL = 1);
  *   - Ferni's line did not raise safety, and the caller is not agreeing with it;
- *   - something came before this turn (an earlier caller line or Ferni's
- *     line), no earlier caller line matches a pattern, the line is at most
- *     MAX_WORDS words, and it names no care arrangement, farewell message or
- *     means (NEVER_RELEASED);
- *   - both reads quote no danger words, decide "everyday", and name the
- *     everyday matter;
- *   - the flagged line names something said earlier itself (an earlier
- *     caller line or Ferni's last): a content word in common that is not a
- *     time word, a vague word or a name (anchorWords). The code checks this.
- *     A replay with held-out lines released "I've decided. It's tonight." and
- *     "Make sure David knows it wasn't his fault." after dinner plans with
- *     every model tried, with or without thinking; this rule stops both.
- * Anything else, any error, timeout or unparsed reply, keeps the script. A
- * line with no conversation before it can never be released: there is
- * nothing to ground it in.
+ *   - the caller said something before this turn, no earlier caller line
+ *     matches a pattern, and the line is at most MAX_WORDS words;
+ *   - no held word anywhere in the call, de-leeted (crisis-release-words.ts
+ *     ALWAYS_HOLD), and EVERY word of the line is everyday or an everyday
+ *     event (EVERYDAY, EVENTS: an allowlist with no exemptions), plain letters;
+ *   - an event in the line (dinner, the game) is one the caller already named,
+ *     and the first read's "about" names that same event (eventTopics);
+ *   - both reads find no danger and call the line everyday.
+ * The code's own rules hold even when both reads are wrong
+ * (crisis-gate-grounded-release.test.ts drives the lead's 71 risky lines with
+ * both reads fooled). Round 1's deny list released 27 of 71 new risky lines;
+ * round 2's allowlist exempted any word the caller said earlier, and 39 of 88
+ * rode in on those words; hence no exemptions at all.
+ * Anything else, any error, timeout or unparsed reply, keeps the script.
  *
  * shadow: decides and logs off the escalation path; the script is unchanged.
  * Privacy: logs carry decisions and reasons, never the transcript.
@@ -56,6 +59,8 @@ import {
 } from './crisis-call-risk.js';
 import type { CrisisGenerateFn, CrisisVerdict } from './crisis-classifier.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
+import { allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
+import { noteScreenAsked, resetGroundedScreen } from './crisis-grounded-screen.js';
 
 const log = createLogger({ module: 'CrisisGroundedRelease' });
 
@@ -82,27 +87,12 @@ export interface GroundedInput {
 export const DEFAULT_GROUNDED_RELEASE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite'];
 /** The reply is already held for the classifier; past this the script stands. */
 export const DEFAULT_GROUNDED_RELEASE_TIMEOUT_MS = 1500;
-export const MAX_RELEASES_PER_CALL = 3;
+/** One release per call: a later imminent read on the same call keeps the script. */
+export const MAX_RELEASES_PER_CALL = 1;
 const MAX_WORDS = 30;
 const MIN_QUOTE_WORDS = 2;
 const MAX_EARLIER = 8;
 const MAX_LINE_CHARS = 400;
-
-/**
- * Lines that keep the script whatever the reads say. Replays (2026-10-21) had
- * both models call these everyday after an errand: arranging care for kids or
- * a pet, a message of sorry, love or goodbye passed on, and named means. A
- * list may only keep the script here, never take it away.
- */
-const NEVER_RELEASED = new RegExp(
-  [
-    '\\b(?:tak(?:e|es|ing)|took|watch(?:es|ing)?|keep(?:s|ing)?|kept|feed(?:s|ing)?|fed|ha(?:ve|s|ving)|mind(?:s|ing)?|look(?:s|ing)? after|car(?:e|es|ing) for|pick(?:s|ing)? up|walk(?:s|ing)?)\\b.{0,40}\\b(?:dogs?|cats?|pets?|puppy|kitten|kids?|children|son|daughter|baby|babies|fish|bird|horse)\\b',
-    "\\b(?:dogs?|cats?|pets?|puppy|kitten|kids?|children|son|daughter|baby)\\b.{0,40}\\b(?:for a while|for good|from now on|after i'm|when i'm gone|if anything happens)",
-    '\\b(?:sorry|forgive|fault|blame|proud of|remember me|love (?:her|him|them|you)|i love|miss (?:her|him|them|you)|goodbye|good bye|farewell|thank(?:s| you) for everything|adios)\\b',
-    '\\b(?:pills?|meds|medication|bottle|overdose|od|gun|rifle|pistol|rope|noose|knife|razor|blade|bridge|tracks|roof|ledge|charcoal|bleach|carbon monoxide|exhaust)\\b',
-    '\\b(?:will|my|a) letters?\\b|\\bwill\\b.{0,20}\\b(?:things|stuff|house|car|money)\\b|\\b(?:giv(?:e|es|ing)|gave|given) (?:away|you|them|her|him)\\b',
-  ].join('|')
-);
 
 export const GROUNDED_RELEASE_PROMPT = `An automated safety screen flagged the caller's LAST line in this voice call as possible suicide, self-harm or danger. Nothing else in the call was flagged. Screens like this misfire on everyday words such as "tonight", "bye", "go", "ready", "done", "take", "permission" or "last", when the conversation shows what they are about.
 
@@ -115,11 +105,75 @@ Answer three things:
 
 A missed crisis is far worse than a false alarm. Return JSON only: {"danger":"...","about":"...","decision":"everyday"|"flag"}`;
 
+/**
+ * The second read asks a different question, so the two are not fooled the
+ * same way: the C-SSRS screen's items, each "none" or the caller's words.
+ */
+export const GROUNDED_RELEASE_CSSRS_PROMPT = `You screen a voice call for suicide and self-harm risk using the Columbia (C-SSRS) items. The input is the call, oldest first; "caller" lines are the caller's words, the "ferni" line is the AI companion's.
+
+For EVERY caller line, in any language, slang, misspelling or joke, fill each item with the caller's own words that show it, or "none":
+- "wish_dead": wishing to be dead, not wake up, disappear, not be around, being a burden;
+- "ideation": thoughts of killing or hurting themselves, or someone else being at risk;
+- "method": any means or way (pills, a weapon, a height, water, a car, a rope, cutting, "taking something");
+- "intent": meaning to act, a decision, "doing it", "going through with it";
+- "plan_time": a plan, a time or a place, or getting ready (letters, goodbyes, giving things away);
+then "everyday": true only if every item is "none" and the last caller line is plainly ordinary talk about something already said in the call.
+
+If unsure about any item, fill it. Return JSON only: {"wish_dead":"...","ideation":"...","method":"...","intent":"...","plan_time":"...","everyday":true|false}`;
+
+const CSSRS_ITEMS = ['wish_dead', 'ideation', 'method', 'intent', 'plan_time'] as const;
+
+/** A C-SSRS read: everyday only when every item is "none" and the line names an earlier event. */
+export function parseCssrsRead(
+  reply: string,
+  callerLines: readonly string[],
+  latest: string
+): ReadWhy {
+  const json = typeof reply === 'string' ? reply.match(/\{[\s\S]*\}/)?.[0] : undefined;
+  if (!json) return 'unparsed';
+  try {
+    const parsed = JSON.parse(json) as Record<string, unknown>;
+    for (const item of CSSRS_ITEMS) {
+      const value = parsed[item];
+      if (typeof value !== 'string') return 'unparsed';
+      if (value.trim() && value.trim().toLowerCase() !== 'none') return 'danger_quoted';
+    }
+    if (parsed.everyday !== true) return parsed.everyday === false ? 'flag' : 'unparsed';
+    return eventTopics(latest, callerLines).size > 0 ? 'everyday' : 'not_named';
+  } catch {
+    return 'unparsed';
+  }
+}
+
+/** Each read's prompt and parser, by position: two different questions. */
+const READERS = [
+  { prompt: GROUNDED_RELEASE_PROMPT, parse: parseGroundedRead },
+  { prompt: GROUNDED_RELEASE_CSSRS_PROMPT, parse: parseCssrsRead },
+] as const;
+
+/** Room for the C-SSRS read's six fields: a cut-off reply fails to parse and holds. */
+const GROUNDED_READ_MAX_TOKENS = 256;
+
+/**
+ * What a released turn's reply model is told. The direct question itself is
+ * not left to the model: the reply gate appends SCREEN_QUESTION as the last
+ * sentence (crisis-gate.ts, withScreenQuestion). No hint that the words were
+ * probably everyday, which would bias the reply.
+ */
+export const GROUNDED_LIGHT_TOUCH = `[SAFETY - DIRECT CHECK]
+A safety screen flagged the caller's last words. One gentle, direct question about their safety is added right after your reply.
+1. Answer what they said the way you normally would, in your own voice, briefly
+2. End without a question of your own, and add no check-in, no lecture and no hotline: the added question is the check-in`;
+
 export function resolveGroundedReleaseMode(
   env: Record<string, string | undefined> = process.env
 ): GroundedReleaseMode {
   const raw = env.CRISIS_GROUNDED_RELEASE?.trim().toLowerCase();
-  return raw === 'live' || raw === 'shadow' ? raw : 'off';
+  // Live only where the reply gate is explicitly live: it appends the direct question
+  // (crisis-gate.ts). Unset or anything else: a release would carry no question, so shadow.
+  const guard = env.CRISIS_GUARD_MODE?.trim();
+  if (raw === 'live') return guard === 'live' ? 'live' : 'shadow';
+  return raw === 'shadow' ? raw : 'off';
 }
 
 /** Lower case, letters and digits only, single spaces. */
@@ -164,66 +218,33 @@ export function groundedReleaseEligible(args: {
     const { latest, earlier, companion } = linesOf(input);
     if (!latest || loose(latest).split(' ').length > MAX_WORDS || endorses(latest)) return false;
     if (companion && SAFETY_TALK.test(loose(companion))) return false;
-    if (NEVER_RELEASED.test(loose(latest))) return false;
-    // A first turn may lean on Ferni's line alone (a bare "yeah" to a greeting); nothing else.
-    if (earlier.length === 0 && !companion) return false;
-    return !earlier.some((line) => {
+    // The event must come from the caller's own earlier words, so a first turn is never read.
+    if (earlier.length === 0) return false;
+    // Held anywhere in the call (crisis-release-words.ts), or a pattern hit on any earlier line.
+    if ([latest, ...earlier].some(alwaysHold)) return false;
+    const patternEarlier = earlier.some((line) => {
       const scored = detectCrisis(line);
       return scored.severity > 0 || scored.indicators.length > 0;
     });
+    if (patternEarlier) return false;
+    // The allowlist, no exemptions, and an everyday event the caller already named.
+    return allEveryday(latest) && eventTopics(latest, earlier).size > 0;
   } catch {
     return false;
   }
 }
 
 /**
- * Words that cannot anchor a line to an everyday matter: function words, time
- * words ("tonight" is what the classifier misreads), and vague ones.
- */
-const NOT_ANCHORS = new Set(
-  (
-    'about after again also always another anything anyone anymore around back been before being ' +
-    'better could didn doesn done down each else even ever every everyone everything ferni fine ' +
-    'from going gone gonna good have having here into just know last later least like little long ' +
-    'make many maybe more most much need never next nothing okay only other over really ready ' +
-    'right said same should since some someone something soon still sure take than thank thanks ' +
-    'that their them then there these they thing things think this those time today tomorrow ' +
-    'tonight told until very wait want well were what when where which while will with without ' +
-    'would yeah your yours'
-  ).split(' ')
-);
-
-/**
- * Content words of the caller's line that can anchor it: four letters or more,
- * not in NOT_ANCHORS, and not a name (capitalized after the first word of a
- * sentence: "Make sure David knows" must not anchor to "invite David").
- */
-export function anchorWords(line: string): Set<string> {
-  const out = new Set<string>();
-  for (const sentence of String(line ?? '').split(/[.!?]+/)) {
-    sentence
-      .trim()
-      .split(/\s+/)
-      .forEach((raw, i) => {
-        const word = loose(raw).replace(/'.*$/, '');
-        if (word.length < 4 || NOT_ANCHORS.has(word)) return;
-        if (i > 0 && /^[A-Z]/.test(raw)) return;
-        out.add(word);
-      });
-  }
-  return out;
-}
-
-/**
  * One read's verdict: everyday only with no danger quoted, the matter named,
- * and the flagged line itself naming something said earlier in the call (an
- * anchor word in common, checked here, not taken from the model). "It's
- * tonight" after dinner plans names nothing; "Dinner is tonight" names the
- * dinner. A read's quote is often the flagged line itself, so it is not matched.
+ * and that matter one of the line's own everyday events the caller already
+ * named (eventTopics: checked here, not taken from the model). Only the
+ * caller's own lines count, never Ferni's: Ferni asking "how was work?" must
+ * not make "I'm checking out of work" an event. "It's tonight" after dinner
+ * plans names nothing; "Dinner is tonight" names the dinner.
  */
 export function parseGroundedRead(
   reply: string,
-  sources: readonly string[],
+  callerLines: readonly string[],
   latest: string
 ): ReadWhy {
   const json = typeof reply === 'string' ? reply.match(/\{[\s\S]*\}/)?.[0] : undefined;
@@ -236,19 +257,19 @@ export function parseGroundedRead(
     if (danger.trim()) return 'danger_quoted';
     if (decision === 'flag') return 'flag';
     if (loose(about).split(' ').filter(Boolean).length < MIN_QUOTE_WORDS) return 'quote_missing';
-    const anchors = anchorWords(latest);
-    const named = sources.some((line) => {
-      const said = new Set(
-        loose(line)
-          .split(' ')
-          .map((w) => w.replace(/'.*$/, ''))
-      );
-      return [...anchors].some((w) => said.has(w));
-    });
-    return named ? 'everyday' : 'not_named';
+    return namesTopic(about, latest, callerLines) ? 'everyday' : 'not_named';
   } catch {
     return 'unparsed';
   }
+}
+
+/**
+ * The read named the event the line is about: a word of its `about` is one of
+ * the line's event topics (crisis-release-words.ts eventTopics).
+ */
+function namesTopic(about: string, latest: string, callerLines: readonly string[]): boolean {
+  const topics = eventTopics(latest, callerLines);
+  return (wordsOf(about) ?? loose(about).split(' ')).some((w) => topics.has(w.replace(/'s$/, '')));
 }
 
 /** The call as both reads see it: earlier caller lines, Ferni's last line, the flagged one. */
@@ -264,8 +285,9 @@ export function groundedTranscript(input: GroundedInput): string {
 /** One read with a timeout. Never rejects. */
 async function readOnce(
   generate: CrisisGenerateFn,
+  reader: (typeof READERS)[number],
   transcript: string,
-  sources: readonly string[],
+  callerLines: readonly string[],
   latest: string,
   timeoutMs: number
 ): Promise<ReadWhy> {
@@ -279,10 +301,10 @@ async function readOnce(
   });
   try {
     const reply = await Promise.race([
-      generate(GROUNDED_RELEASE_PROMPT, transcript, controller.signal),
+      generate(reader.prompt, transcript, controller.signal),
       timeout,
     ]);
-    return reply === null ? 'timeout' : parseGroundedRead(reply, sources, latest);
+    return reply === null ? 'timeout' : reader.parse(reply, callerLines, latest);
   } catch {
     return 'error';
   } finally {
@@ -296,11 +318,12 @@ export async function readGrounded(
   generates: readonly CrisisGenerateFn[],
   timeoutMs = DEFAULT_GROUNDED_RELEASE_TIMEOUT_MS
 ): Promise<{ release: boolean; reads: ReadWhy[] }> {
-  const { latest, earlier, companion } = linesOf(input);
-  const sources = companion ? [...earlier, companion] : earlier;
+  const { latest, earlier } = linesOf(input);
   const transcript = groundedTranscript(input);
   const reads = await Promise.all(
-    generates.map((g) => readOnce(g, transcript, sources, latest, timeoutMs))
+    generates.map((g, i) =>
+      readOnce(g, READERS[i % READERS.length], transcript, earlier, latest, timeoutMs)
+    )
   );
   return { release: reads.length > 0 && reads.every((r) => r === 'everyday'), reads };
 }
@@ -315,6 +338,7 @@ const recent = new Map<string, { at: number; run: Promise<boolean> }>();
 /** For tests. */
 export function resetGroundedRelease(): void {
   recent.clear();
+  resetGroundedScreen();
 }
 
 /**
@@ -332,20 +356,26 @@ export function groundedRelease(
   try {
     const env = args.env ?? process.env;
     const mode = resolveGroundedReleaseMode(env);
-    if (mode === 'off' || !groundedReleaseEligible(args)) return Promise.resolve(false);
+    if (mode === 'off') return Promise.resolve(false);
     const startedAt = Date.now();
     const key = JSON.stringify([args.call, mode, groundedTranscript(args.input)]);
     for (const [k, v] of recent) if (startedAt - v.at > RECENT_TTL_MS) recent.delete(k);
+    // The turn's other path shares the run it started, before eligibility is asked again:
+    // once this turn is released, the one-release cap must not make the two paths disagree.
     let run = recent.get(key)?.run;
+    if (!run && !groundedReleaseEligible(args)) return Promise.resolve(false);
     if (!run) {
       const generates =
         args.generates ??
         (defaultGenerates ??= DEFAULT_GROUNDED_RELEASE_MODELS.map((m) =>
-          createGeminiAdjudicatorGenerate(m)
+          createGeminiAdjudicatorGenerate(m, GROUNDED_READ_MAX_TOKENS)
         ));
       run = readGrounded(args.input, generates, timeoutFrom(env))
         .then(({ release, reads }) => {
-          if (release && mode === 'live') explainCrisisTurn(args.call, args.input.latest);
+          if (release && mode === 'live') {
+            explainCrisisTurn(args.call, args.input.latest);
+            if (args.call) noteScreenAsked(args.call, args.input);
+          }
           const stats = { mode, source: args.source, release, reads };
           log.info({ ...stats, latencyMs: Date.now() - startedAt }, 'CRISIS_GROUNDED_RELEASE');
           return release && mode === 'live';

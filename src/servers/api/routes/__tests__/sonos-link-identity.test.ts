@@ -23,7 +23,12 @@ vi.mock('../../../../services/identity/firebase-auth.js', () => ({
 const savedFor = vi.hoisted(() => [] as string[]);
 vi.mock('firebase-admin/firestore', () => {
   const doc = (id: string) => ({
-    collection: () => ({ doc: () => ({ set: async () => void savedFor.push(id) }) }),
+    collection: () => ({
+      doc: () => ({
+        get: async () => ({ exists: false }),
+        set: async () => void savedFor.push(id),
+      }),
+    }),
   });
   return { getFirestore: () => ({ collection: () => ({ doc }) }) };
 });

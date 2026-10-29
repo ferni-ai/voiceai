@@ -71,7 +71,10 @@ vi.mock('@google-cloud/firestore', async (orig) => ({
 }));
 
 import { createPersistenceStore } from '../../services/persistence/index.js';
-import { recordVoiceSample } from '../../services/trust-systems/voice-prosody-learning.js';
+import {
+  loadVoiceProsodyUser,
+  recordVoiceSample,
+} from '../../services/trust-systems/voice-prosody-learning.js';
 import {
   initializeOutreachPersistence,
   setPreferences,
@@ -195,13 +198,15 @@ describe('createPersistenceStore holds by default', () => {
 });
 
 describe('placeholder ids are never held', () => {
+  // Not held, and never written either: the store keeps no shared bucket at all
+  // (services/persistence/__tests__/shared-placeholder.test.ts).
   it.each(['anonymous', 'Anonymous', 'default', 'unknown', ' '])('%j', async (id) => {
     caller('held', id);
     expect(userHeld(id)).toBe(false);
     const s = store();
     s.set(id, { note: 'shared bucket' });
     await tick(1_000);
-    expect(written.some((w) => JSON.stringify(w.data).includes('shared bucket'))).toBe(true);
+    expect(written.some((w) => JSON.stringify(w.data).includes('shared bucket'))).toBe(false);
   });
 
   it('a per-device anon:<id> is one caller, so it is held', () => {
@@ -231,6 +236,7 @@ describe('voice prosody (built on the shared store, 10 s sync)', () => {
     ['off', true],
   ])('%s: their voice and topic written = %s', async (c, writes) => {
     const { userId } = caller(c);
+    await loadVoiceProsodyUser(userId); // session start reads their stored voice back first
     recordVoiceSample(userId, VOICE, { conversationContext: 'math class' });
     await tick(10_000);
     expect(wrote(userId, 'math class')).toBe(writes);
@@ -238,6 +244,7 @@ describe('voice prosody (built on the shared store, 10 s sync)', () => {
 
   it('a hold that starts mid-call stops the next write', async () => {
     const who = caller('mid');
+    await loadVoiceProsodyUser(who.userId);
     recordVoiceSample(who.userId, VOICE, { conversationContext: 'before' });
     await tick(10_000);
     expect(wrote(who.userId, 'before')).toBe(true);
@@ -304,7 +311,7 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     failing.set('/minor_care_deleted/', {
       left: 1,
       failed: 0,
-      during: () => s.delete(held.userId),
+      during: () => void s.delete(held.userId), // not awaited: the delete waits for this write
     });
     await tick(1_000);
     expect(failing.get('/minor_care_deleted/')?.failed).toBe(1);

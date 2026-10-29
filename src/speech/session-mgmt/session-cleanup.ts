@@ -18,7 +18,6 @@ import { clearFerniEnergy } from '../tts-gateway/director/ferni-energy.js';
 import { resetSessionBackchannelingSystem } from '../backchanneling.js';
 import { clearSessionContextId } from '../cartesia-context-patch.js';
 import { clearReplyAudioPlan } from '../reply-audio-plan.js';
-import { clearCognitiveSpeechState } from '../cognitive-speech-integration.js';
 import { resetPronunciationMemory } from '../pronunciation-memory.js';
 import { resetSessionWPMTracker } from '../speech-context.js';
 import { getTtsContextService } from '../tts-context.js';
@@ -242,7 +241,6 @@ export function cleanupSpeechSession(
   safeCleanup('ferniEnergy', () => clearFerniEnergy(sessionId));
   safeCleanup('wpmTracker', () => resetSessionWPMTracker(sessionId));
   safeCleanup('backchanneling', () => resetSessionBackchannelingSystem(sessionId));
-  safeCleanup('cognitiveSpeech', () => clearCognitiveSpeechState(sessionId));
   safeCleanup('ttsContext', () => getTtsContextService().clearSession(sessionId));
   safeCleanup('pronunciationMemory', () => resetPronunciationMemory(sessionId));
   safeCleanup('cartesiaContext', () => clearSessionContextId(sessionId));

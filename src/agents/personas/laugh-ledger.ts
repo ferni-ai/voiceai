@@ -71,7 +71,7 @@ function ledgerOf(sessionId: string): Ledger {
 }
 
 /** The caller laughed, joked, or told good news or a happy surprise. */
-function callerCue(said: string): boolean {
+export function callerCue(said: string): boolean {
   return (
     callerLaughed(said) || callerBright(said) || classifyBackchannelContext(said) === 'surprise'
   );

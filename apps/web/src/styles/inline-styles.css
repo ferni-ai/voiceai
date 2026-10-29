@@ -3822,7 +3822,7 @@ body {
 
 .avatar-lid-overlay {
   position: absolute;
-  inset: 0;
+  inset: -1px; /* 1px past the head so no grey-green hairline shows between cap and edge (C4) */
   border-radius: 50%;
   overflow: hidden;
   pointer-events: none;
@@ -3836,10 +3836,14 @@ body {
 
 .avatar-lid-overlay .lid-top,
 .avatar-lid-overlay .lid-bottom {
-  /* The lids take the page colour on purpose: the light lid dropping over the eyes is the
-     "cap" that carries the expression (Seth, 2026-10-11). Don't recolour it to the face. */
-  fill: var(--color-background-primary, #1a1612);
-  transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  fill: #ffffff; /* the white cap carries the expression (Seth 10-23); midnight: ivory, never the face */
+  /* no CSS transition on d: GSAP owns the dome motion */
+}
+[data-theme='midnight'] .avatar-lid-overlay :is(.lid-top, .lid-bottom) { fill: #e6dfd4; }
+.avatar-lid-overlay .lid-rim {
+  stroke: var(--persona-primary);
+  stroke-width: 1px;
+  opacity: 0.35;
 }
 
 /* NOTE: .brow-left, .brow-right removed - they caused visual artifacts (dark oval above eyes) */
@@ -3875,11 +3879,6 @@ body {
 
 /* Reduced motion - disable lid transitions */
 @media (prefers-reduced-motion: reduce) {
-  .avatar-lid-overlay .lid-top,
-  .avatar-lid-overlay .lid-bottom {
-    transition: none;
-  }
-
   .avatar-lid-overlay .brow-left,
   .avatar-lid-overlay .brow-right {
     transition: none;

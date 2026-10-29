@@ -12,7 +12,9 @@
 
 import { embed } from '../../memory/embeddings.js';
 import { getFirestoreVectorStore } from '../../memory/firestore-vector-store/index.js';
+import { writeHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexExpireAt } from './index-expiry.js';
 import { getIndexingPolicy, shouldIndex } from './indexing-policy.js';
 import { enforceMaxPerUser, forgetIndexedDoc } from './max-per-user.js';
 import { trackIndexingError, trackIndexingOperation } from './observability.js';
@@ -20,7 +22,6 @@ import type { ChangeType, EntityType, StoreChangeEvent } from './types.js';
 
 const log = createLogger({ module: 'store-hooks' });
 
-// Re-export types for convenience
 export type { ChangeType, EntityType, StoreChangeEvent, StoreType } from './types.js';
 
 // ============================================================================
@@ -141,11 +142,7 @@ export function onStoreChange(event: StoreChangeEvent): void {
   // Store the latest event (overwrites previous if rapid updates)
   pendingIndexes.set(key, { ...event, timestamp: new Date() });
 
-  // Clear existing timer
-  const existingTimer = debounceTimers.get(key);
-  if (existingTimer) {
-    clearTimeout(existingTimer);
-  }
+  clearTimeout(debounceTimers.get(key));
 
   // Set new timer using policy debounce time
   const timer = setTimeout(() => {
@@ -192,11 +189,10 @@ async function processChange(key: string): Promise<void> {
       return;
     }
 
-    // Check indexing policy
-    const { shouldIndex: doIndex, reason } = shouldIndex(
-      event.entityType as EntityType,
-      event.metadata || {}
-    );
+    // Check indexing policy. MINOR_CARE: nothing for a held caller (held-index-purge.ts: before it)
+    const { shouldIndex: doIndex, reason } = writeHeld(event.userId)
+      ? { shouldIndex: false, reason: 'MINOR_CARE hold' }
+      : shouldIndex(event.entityType as EntityType, event.metadata || {});
 
     if (!doIndex) {
       log.debug({ key, reason }, 'Skipping index - policy check failed');
@@ -204,18 +200,20 @@ async function processChange(key: string): Promise<void> {
       return;
     }
 
-    // Enforce maxPerUser limits
     await enforceMaxPerUser(vectorStore, event.userId, event.entityType as EntityType, docId);
 
-    // Generate embedding
     const embedding = await embed(event.content);
+    // MINOR_CARE: the hold may have begun while it embedded; checked again right before the write
+    if (writeHeld(event.userId)) return void skippedCount++;
 
-    // Index to semantic memory via Firestore vector store
+    // Index to semantic memory; the store's fields last, so a caller's metadata can't replace them
     await vectorStore.addDocument({
       id: docId,
       text: event.content,
       embedding,
+      expireAt: indexExpireAt(event.entityType as EntityType),
       metadata: {
+        ...event.metadata,
         userId: event.userId,
         storeType: event.storeType,
         entityType: event.entityType,
@@ -223,7 +221,6 @@ async function processChange(key: string): Promise<void> {
         source: 'store_auto_sync',
         indexedAt: new Date().toISOString(),
         changeType: event.changeType,
-        ...event.metadata,
       },
     });
 

@@ -59,7 +59,8 @@ starts with no rules: every read and write allowed).
 4. **Prove it before you claim it.** Run the tests that cover the change and
    `pnpm typecheck`. For voice behaviour, run the eval harness on dev and paste
    the numbers in the PR (skill: `voice-eval`). "Done" means merged, deployed
-   to dev from `main`, and checked there.
+   to dev from `main`, and checked there. Every new test or gate must be seen
+   to fail: break the code it covers (or run it on main) and say so in the PR.
 5. **Merge through the queue**: `gh pr merge <n> --auto`, with no
    `--squash` (the queue squashes; passing it errors and leaves auto-merge
    off). Never `gh pr update-branch` a PR that is already queued.
@@ -106,6 +107,35 @@ checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
   full stops, or the model writes `,,`.
 - **No AI-disclosure prompt changes.** Ferni speaks as himself.
 
+## How we build (Seth, 2026-10-29: "this must be the way we develop code")
+
+Every change leaves the code cleaner than it found it. The measurable version
+is `docs/DEFINITION-OF-CLEAN.md` §3–§5; these are the rules a PR is reviewed
+against:
+
+- **One way to do each thing.** Before writing a helper, search for it
+  (`git grep`). Extend the existing one or move it into the shared module;
+  never add a second copy. Shared rules live in one place per context, e.g.
+  `src/memory/domain/` (contact data, person keys, forgotten topics).
+- **Clean architecture inside a context.** Pure rules in `domain/`, store
+  interfaces in `ports/`, I/O in `adapters/` (the only code that imports
+  Firestore or a vendor SDK), orchestration in `use-cases/`, tools and prompt
+  injection in `delivery/`. Callers import the context's `index.ts`. The
+  architecture gate enforces it (`pnpm quality:arch`).
+- **Names say what a thing does,** for a reader who has never seen the code:
+  `contact-data.ts`, `recall-people.ts`, `call-sheet.ts`, not `utils2.ts`,
+  `helpers.ts`, `manager.ts`, `v2`. Folders name a capability, not a layer
+  pile (`memory/`, not `services/misc/`).
+- **No dead code.** Delete what nothing calls, with grep proof, in the same PR
+  that replaces it (`pnpm quality:knip` fails new dead code). No flags left on
+  forever: a flag is removed once its rollout is done.
+- **Docs that match the code.** A plan for any multi-PR change in
+  `docs/plans/YYYY-MM-DD-<topic>.md`; a short `CLAUDE.md` per context that is
+  updated in the PR that changes what it describes. A wrong doc is a bug.
+- **Small, verified, flag-off PRs.** ≤ ~400 reviewable lines, new behaviour
+  behind an off-by-default flag, an independent verifier's pass on the exact
+  head before merge, fixtures fictional (555-01xx numbers, made-up names).
+
 ## Code conventions that aren't obvious from the code
 
 - **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
@@ -121,6 +151,10 @@ checks; reviewable lines are counted by `scripts/ci/reviewable.sh`).
 - **Frontend**: colors, durations and shadows come from design tokens
   (`var(--color-*)`); edit `design-system/tokens/*.json` and run
   `pnpm tokens:sync`. Never edit `*.generated.*`.
+- **Flags**: `pnpm flags:new NAME --default off --owner <area> --kind experiment`
+  writes `src/config/flags/NAME.ts`; commit only that file. The flag barrel and
+  the env-name list (`src/config/**/*.generated.ts`) are gitignored: install,
+  typecheck, build and tests regenerate them (`pnpm gen:lists` by hand).
 - **Tests**: Vitest, next to the code in `__tests__/`. A test named after a
   behaviour must fail when the behaviour is missing: no `>= 0` or `true` asserts.
 
@@ -134,6 +168,7 @@ pnpm lint:fix                # eslint autofix
 pnpm quality                 # typecheck + lint + format + builders (before a PR)
 pnpm tsx apps/cli/src/commands/quality/ratchet.ts   # the CI quality ratchet
 pnpm build:fast              # esbuild
+pnpm gen:lists               # flag barrel + env-name list (gitignored)
 ```
 
 ## Where to look (load on demand)

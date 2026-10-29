@@ -172,10 +172,11 @@ Users can manage family phone callers from:
 **Settings Menu → Your People → Family Phone Access**
 
 This opens the Family Identities management panel where users can:
-- Add family members with their phone numbers
-- View call history and statistics
-- Approve or decline pending self-registrations
-- Set access levels (full, limited, supervised)
+- Add, edit and remove family members with their phone numbers
+
+Not in the panel yet: call history (nothing records calls), approving
+self-registrations, and access levels. "Supervised" (sponsor notified of calls)
+was removed because nothing sends that notification. See #2774.
 
 ## Troubleshooting
 
@@ -208,7 +209,7 @@ Check the Twilio Debugger:
 
 1. **Webhook Signature Verification** - Consider adding Twilio signature verification
 2. **Phone Number Privacy** - Phone numbers are masked in logs and responses
-3. **Access Levels** - Use `limited` or `supervised` for sensitive situations
+3. **Access Levels** - `limited` is the only restriction (set through the API, not the panel)
 4. **Voice Enrollment** - Enable for additional caller verification
 
 ## Related Documentation

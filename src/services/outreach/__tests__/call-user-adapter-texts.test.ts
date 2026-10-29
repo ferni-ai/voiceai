@@ -18,6 +18,12 @@ vi.mock('../../../utils/caller-time-zone.js', () => ({ userTimeZone: () => h.zon
 vi.mock('../../identity/firebase-auth.js', () => ({ getFirebaseUser: async () => h.user }));
 vi.mock('../conversational-calls.js', () => ({ scheduleProactiveCall: vi.fn() }));
 vi.mock('../user-reach.js', () => ({ userReach: async () => ({ phone: '+18015550100' }) }));
+// The menu's quiet hours (QUIET_HOURS_FROM_PREFS); the reader is tested in quiet-hours-from-prefs.
+const savedQuiet = vi.hoisted(() => vi.fn(async (_userId: string) => false));
+vi.mock('../quiet-hours.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSavedQuietNow: savedQuiet,
+}));
 
 import { callUserAdapter, installCallUserPort } from '../call-user-adapter.js';
 import { verifiedAddressFor } from '../../engagement/engagement-reach-port.js';
@@ -55,6 +61,20 @@ describe('textOwner', () => {
     expect(h.guarded).not.toHaveBeenCalled();
     await callUserAdapter.textOwner!('uid-1', 'hi', { askedNow: true });
     expect(h.guarded).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('textOwner and the quiet hours saved in the menu', () => {
+  it('holds a text Ferni starts inside them; one they just asked for still goes', async () => {
+    vi.useFakeTimers({ now: NOON_NY });
+    savedQuiet.mockResolvedValue(true);
+    const unasked = await callUserAdapter.textOwner!('uid-1', 'hi', { askedNow: false });
+    expect(unasked).toEqual({ sent: false, reason: "it's quiet hours where you are" });
+    expect(savedQuiet).toHaveBeenCalledWith('uid-1');
+    expect(h.guarded).not.toHaveBeenCalled();
+    await callUserAdapter.textOwner!('uid-1', 'hi', { askedNow: true });
+    expect(h.guarded).toHaveBeenCalledTimes(1);
+    savedQuiet.mockResolvedValue(false);
   });
 });
 

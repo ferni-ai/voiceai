@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { ownerRefusal } from '../../../utils/consent-port.js';
 import type {
   ConciergeTarget,
   ConciergeResult,
@@ -213,6 +214,9 @@ export class SmsSender {
    * Send SMS via Twilio
    */
   private async sendViaTwilio(to: string, body: string): Promise<{ messageSid: string }> {
+    // MESSAGING_PIPELINE: a business needs this member's text grant too, and an opt-out stops it.
+    const refused = await ownerRefusal(this.userId, to, 'sms');
+    if (refused) throw new Error(`SMS not sent: ${refused}`);
     // Production Twilio integration
     /*
     const twilio = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
@@ -221,7 +225,7 @@ export class SmsSender {
       to,
       from: TWILIO_PHONE_NUMBER,
       body,
-      statusCallback: `${process.env.API_BASE_URL}/api/concierge/sms-status`,
+      // No concierge status route exists yet; one must check Twilio's signature.
     });
 
     return { messageSid: message.sid };

@@ -375,12 +375,12 @@
     "languageCurrent": "{language} (current)"
   },
   "session": {
-    "connecting": "Connecting...",
+    "connecting": "Connecting…",
     "connected": "Connected",
     "disconnected": "Disconnected",
-    "listening": "Listening...",
-    "thinking": "Thinking...",
-    "speaking": "Speaking...",
+    "listening": "Listening…",
+    "thinking": "Thinking…",
+    "speaking": "Speaking…",
     "tapToSpeak": "Tap to speak",
     "holdToSpeak": "Hold to speak",
     "releaseToSend": "Release to send",
@@ -388,11 +388,11 @@
     "sessionEnded": "Session ended",
     "goodbye": "Goodbye",
     "end": "End",
-    "untilNextTime": "Until next time...",
+    "untilNextTime": "Until next time",
     "endConversation": "End conversation",
     "endConversationGoodbye": "End conversation - Goodbye",
     "takeCare": "Take care.",
-    "ending": "Ending..."
+    "ending": "Call ended"
   },
   "memoryBrowser": {
     "eyebrow": "Your Journey",
@@ -1435,6 +1435,8 @@
     },
     "smsDisclosure": "Turn on texts and Ferni will text this number with reminders and check-ins, up to 3 a day. Msg & data rates may apply. Reply STOP to cancel, HELP for help.",
     "smsTerms": "SMS terms",
+    "reachOut": "Ferni can reach out",
+    "reachOutDesc": "Check-ins and calls Ferni starts on its own. Your own reminders still come through.",
     "callDisclosure": "Ferni will only call this number when you ask, or for check-ins you've turned on.",
     "errorChannelsRefresh": "I couldn't turn that on just yet. Refresh the page and try again?"
   },
@@ -3077,9 +3079,9 @@
   },
   "tryFirst": {
     "subtitle": "Say hello first. Sign in whenever you want to keep the conversation.",
-    "talkNow": "Talk to Ferni now",
+    "talkNow": "Talk to Ferni",
     "noAccount": "No account needed. Just say hello.",
-    "connecting": "Connecting",
+    "connecting": "Calling {name}…",
     "inCall": "You're talking with Ferni. Say whatever's on your mind.",
     "endCall": "End call",
     "keepTitle": "Want to keep this conversation?",
@@ -3569,8 +3571,6 @@
     "accessLevelFullDesc": "Can talk to all team members",
     "accessLevelLimited": "Limited",
     "accessLevelLimitedDesc": "Only Ferni",
-    "accessLevelSupervised": "Supervised",
-    "accessLevelSupervisedDesc": "You get notified of calls",
     "eyebrow": "Family",
     "addMember": "Add Family Member",
     "calls": {
@@ -3663,7 +3663,7 @@
       },
       "alex": {
         "displayName": "Alex",
-        "role": "Communication & Relationships",
+        "role": "Communication Coach & Chief of Staff",
         "description": "I help you navigate conversations, strengthen relationships, and express yourself better.",
         "name": "Alex Chen"
       },
@@ -5363,8 +5363,8 @@
     "from": "From",
     "beyondTheApp": "Beyond the App",
     "beyondTheAppDesc": "When moments matter, I'll meet you where you are.",
-    "emailUpdates": "Email Updates",
-    "emailUpdatesDesc": "Milestone celebrations and weekly recaps",
+    "emailCheckins": "Check-ins by email",
+    "emailCheckinsDesc": "Whether I can check in with you by email. Off means no check-in emails.",
     "smsMessages": "SMS Messages",
     "smsDesc": "Quick check-ins when I notice something",
     "milestoneCelebrations": "Milestone Celebrations",
@@ -6322,7 +6322,40 @@
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
     "quoted": "\"{text}\"",
     "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again.",
-    "loadFailed": "I couldn't load your Chronicle just now. Your entries are safe. Try again in a little while."
+    "loadFailed": "I couldn't load your Chronicle just now. Your entries are safe. Try again in a little while.",
+    "signedOut": "You need to sign in first.",
+    "offline": "This needs a connection. I'll be here when you're back.",
+    "emptyHowItFills": "Nothing here yet. Write a thought here, or ask me in a call to put something in your journal, and I'll keep it for you.",
+    "insights": {
+      "rising": {
+        "title": "Lighter lately",
+        "text": "Your recent entries feel lighter. Something's shifting."
+      },
+      "heavy": {
+        "title": "Heavier days",
+        "text": "Things have felt heavier lately. I'm here when you want to talk."
+      },
+      "theme": {
+        "title": "It keeps coming up",
+        "text": "{theme} keeps coming up in what you write. What's drawing you there?"
+      }
+    },
+    "list": {
+      "title": "What you've kept",
+      "showMore": "Show more",
+      "edit": "Edit",
+      "delete": "Delete",
+      "editLabel": "Edit your entry from {date}",
+      "deleteLabel": "Delete your entry from {date}",
+      "editorLabel": "Your entry",
+      "save": "Save",
+      "cancel": "Cancel",
+      "deleteConfirm": "Delete this entry? It can't be brought back.",
+      "confirmDelete": "Delete it",
+      "keep": "Keep it",
+      "saveFailed": "That didn't save. Want to try again?",
+      "deleteFailed": "That didn't delete. Want to try again?"
+    }
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",
@@ -7268,21 +7301,6 @@
     "milestone": "Milestone"
   },
   "voiceLibrary": {
-    "emma": {
-      "description": "Warm and friendly voice, perfect for supportive conversations"
-    },
-    "james": {
-      "description": "Clear and professional voice, ideal for mentors and advisors"
-    },
-    "sarah": {
-      "description": "Gentle and soothing voice, great for legacy personas"
-    },
-    "alex": {
-      "description": "Energetic and motivating voice, perfect for coaches"
-    },
-    "morgan": {
-      "description": "Calm and balanced voice, suitable for any persona type"
-    },
     "tags": {
       "warm": "Warm",
       "friendly": "Friendly",
@@ -7298,6 +7316,19 @@
       "calm": "Calm",
       "balanced": "Balanced",
       "neutral": "Neutral"
+    },
+    "loading": "Loading voices...",
+    "loadFailed": "Couldn't load the voices. Close this and try again.",
+    "playSample": "Play a sample of {name}",
+    "gender": {
+      "female": "Woman",
+      "male": "Man"
+    },
+    "accent": {
+      "american": "American",
+      "british": "British",
+      "australian": "Australian",
+      "indian": "Indian English"
     }
   },
   "agentTypes": {
@@ -8006,6 +8037,9 @@
     "improving": "Trending up",
     "declining": "A bit lower lately",
     "trendUnavailable": "This trend didn't load. Try again in a bit.",
+    "notTalkedLately": "We haven't talked about these lately:",
+    "asOfOnce": "As of {date} · came up once",
+    "asOfCount": "As of {date} · came up {count} times",
     "trendUp": "up",
     "trendDown": "down",
     "trendStable": "stable",
@@ -8405,7 +8439,8 @@
     "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
-    "connected": "Connected"
+    "connected": "Connected",
+    "statusFailed": "Couldn't check just now"
   },
   "yourPeople": {
     "section": "Relationships",
@@ -10201,9 +10236,10 @@
     "title": "Little things I remember",
     "subtitle": "So you don't have to",
     "emptyTitle": "Nothing set up yet",
-    "emptySubtitle": "Want me to greet you each morning? Remind you to stretch? I can do that.",
+    "emptySubtitle": "Tell me something you'd like to do regularly and I'll save it here.",
     "emptyButton": "Show me some ideas",
     "addNew": "Add something new",
+    "notRunningYet": "I keep these here for you. They don't run on their own yet.",
     "triggers": {
       "dailyAt": "Every day at {time}",
       "dailyUnset": "Every day at a set time",
@@ -10298,7 +10334,6 @@
     },
     "monthlyLimitReached": "We've reached our monthly limit. I'd love to keep talking...",
     "enableMicPrompt": "I'd love to hear your voice - enable mic access?",
-    "agentJoined": "{name} joined",
     "seeYouNextTime": "See you next time!",
     "handoffFailed": "Couldn't reach them right now. I'm still here though!",
     "personaBack": "{name} is back!",
@@ -10878,18 +10913,21 @@
     "micHelpIos": "Open your iPhone Settings, find this browser, and turn on Microphone. Then come back and try again.",
     "micHelpAndroid": "Tap the icon left of the address bar, then Permissions, then set Microphone to Allow. Then try again.",
     "micHelpDesktop": "Open your browser’s site settings (the icon left of the address bar), set Microphone to Allow, then try again.",
-    "endTalk": "Disconnect",
-    "connectingCancel": "Connecting. Tap to cancel",
-    "connectingNow": "Connecting…",
-    "tapToCancel": "Tap to cancel"
+    "endTalk": "End call",
+    "connectingCancel": "Calling {name}. Tap to cancel.",
+    "connectingNow": "Calling {name}…",
+    "tapToCancel": "Tap to cancel",
+    "stillCalling": "Still reaching {name}…",
+    "stillCallingCancel": "Still reaching {name}. Tap to cancel.",
+    "reconnecting": "Reconnecting…"
   },
   "callRoom": {
-    "connecting": "Connecting",
+    "connecting": "Calling {name}…",
     "listening": "{name}'s listening",
     "talking": "{name}'s talking",
     "muted": "You're muted",
-    "end": "End",
-    "backHint": "Tap End to hang up"
+    "end": "End call",
+    "backHint": "Tap End call to hang up"
   },
   "analyticsDashboard": {
     "title": "Your Journey",

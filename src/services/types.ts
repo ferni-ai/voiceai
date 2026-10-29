@@ -59,7 +59,8 @@ import type { HumanizingStateUpdate } from './humanizing-state.js';
 export interface SessionCore {
   sessionId: string;
   userId?: string;
-  personaId?: string; // Current persona ID for persona-specific memory retrieval
+  personaId?: string; // The persona speaking now; follows handoffs with ACTIVE_PERSONA_ID (active-persona.ts)
+  startPersonaId?: string; // The persona the call started with; never changes
   sessionStartTime: number; // Timestamp when session started
   realtimeConversationId?: string; // Firestore conversation ID for real-time turn persistence
 }
@@ -180,7 +181,6 @@ export interface SessionContextMethods {
  */
 export interface SessionSpeechMethods {
   getSpeechContext: (text?: string, userEmotion?: string) => SpeechContext;
-  tagWithSsml: (text: string) => string;
 }
 
 /**

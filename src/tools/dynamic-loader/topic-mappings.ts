@@ -100,8 +100,8 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   organized: ['productivity'],
   planning: ['productivity', 'life-planning'],
   plan: ['productivity', 'life-planning'],
-  routine: ['habits', 'productivity'],
-  routines: ['habits', 'productivity'],
+  routine: ['habits', 'routines'], // createRoutine: the store What I Do For You reads
+  routines: ['habits', 'routines'],
   morning: ['habits', 'awareness'],
   evening: ['habits', 'awareness'],
   work: ['productivity'],

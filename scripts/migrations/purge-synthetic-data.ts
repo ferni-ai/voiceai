@@ -24,6 +24,7 @@
 import { pathToFileURL } from 'node:url';
 import { isSyntheticPhone, syntheticOwnerPrefix } from '../../src/utils/synthetic-user.js';
 import { destructiveMode, refusalMessage } from '../destructive-gate.js';
+import { getFirestoreDatabase } from '../../src/config/environment.js';
 
 /** Collections whose {owner} document, and everything under it, belongs to the owner. */
 export const OWNER_ROOTS = ['bogle_users', 'users', 'entity_store', 'engagement_profiles'];
@@ -162,7 +163,7 @@ export async function main(argv: readonly string[] = process.argv, db?: PurgeDb)
   }
   if (!db) {
     const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({ projectId }) as unknown as PurgeDb;
+    db = new Firestore({ projectId, databaseId: getFirestoreDatabase() }) as unknown as PurgeDb;
   }
 
   const plan = await planPurge(db);

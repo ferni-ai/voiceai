@@ -7,7 +7,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getVoiceIdForPersona, isValidVoiceId, VOICE_IDS } from '../voice-ids.js';
+import {
+  FERNI_CALM_B_VOICE_ID,
+  getVoiceIdForPersona,
+  isValidVoiceId,
+  VOICE_IDS,
+} from '../voice-ids.js';
+import { getDefaultVoiceConfig } from '../cartesia-config.js';
 
 describe('Voice IDs', () => {
   // Store original env vars to restore after each test
@@ -196,6 +202,26 @@ describe('Voice IDs', () => {
       it('should fall back to Ferni for unknown persona', () => {
         expect(getVoiceIdForPersona('unknown-persona')).toBe(VOICE_IDS.FERNI);
         expect(getVoiceIdForPersona('')).toBe(VOICE_IDS.FERNI);
+      });
+    });
+
+    describe("Ferni's voice (Seth's 2026-10-20 pick)", () => {
+      const FIRST_PRINCIPAL_2 = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+      const OVERRIDE = 'abababab-abab-4bab-8bab-abababababab';
+
+      it('defaults to First Principal 2, not calm B, with no override', () => {
+        expect(getVoiceIdForPersona('ferni')).toBe(FIRST_PRINCIPAL_2);
+        expect(FERNI_CALM_B_VOICE_ID).toBe('2e7f8a26-1627-4d66-88dc-293c297c1619');
+        expect(getVoiceIdForPersona('ferni')).not.toBe(FERNI_CALM_B_VOICE_ID);
+      });
+
+      it('gives every Ferni alias and the unknown-persona fallback the override', () => {
+        vi.stubEnv('FERNI_VOICE_ID', OVERRIDE);
+        for (const id of ['ferni', 'jack-b', 'coach', 'life-coach', 'unknown-persona', '']) {
+          expect(getVoiceIdForPersona(id)).toBe(OVERRIDE);
+        }
+        expect(getVoiceIdForPersona('maya-santos')).toBe(VOICE_IDS.MAYA_SANTOS);
+        expect(getDefaultVoiceConfig().voiceId).toBe(OVERRIDE); // the bundle-failed fallback
       });
     });
 
