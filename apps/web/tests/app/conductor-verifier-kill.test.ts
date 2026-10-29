@@ -1,6 +1,8 @@
 /**
  * The independent verifier's kill tests for #2998 round 6, adopted verbatim
- * (only this comment and prettier formatting differ). Each asserts a stated
+ * (only this comment and prettier formatting differ; KGAP's assertions were
+ * made unconditional in round 8, as its guard let it pass with no
+ * assertions). Each asserts a stated
  * rule of the character policy and turns red under the mutant it was written
  * to kill (voiceai-evidence/motion-audit-2026-10-29/v2998r6/).
  */
@@ -262,6 +264,11 @@ describe('verifier kill tests 2998r6', () => {
       .trace()
       .filter(([, c, a, d]) => c === 'sound' && a === 'play' && d === 'celebration.small')
       .map(([t]) => t);
-    if (plays.length === 2) expect(plays[1]! - plays[0]!).toBeGreaterThanOrEqual(90_000);
+    // The first plays at 7210; the second, asked at 94410 (90 s after the first was
+    // ASKED but only 87.2 s after it PLAYED), is dropped for the gap.
+    expect(plays).toEqual([7210]);
+    const policyDrops = h.trace().filter(([, c, a]) => c === 'policy' && a === 'drop');
+    expect(policyDrops.map(([t, , , d]) => [t, d])).toContainEqual([94_410, 'delight:small:gap']);
+    expect(policyDrops.filter(([, , , d]) => d?.startsWith('delight:'))).toHaveLength(1);
   });
 });

@@ -184,3 +184,53 @@ describe('conductor policy: the 90 s gap is measured from when a delight PLAYS',
     expect(twoEarned().at(2, 185_000)).toMatchObject({ action: 'celebrate' }); // exactly 90 s
   });
 });
+
+/**
+ * The independent verifier's r7 kill tests (KN7, KN11, KN15), adopted verbatim
+ * apart from test names and formatting (voiceai-evidence/motion-audit-2026-10-29/v2998r7/).
+ */
+describe('conductor policy: a delight refused at play time is used up, and any delight that played starts the gap', () => {
+  const glowCmd: ChannelCommand = {
+    channel: 'glow',
+    action: 'celebrate',
+    durationMs: 600,
+    origin: 'x',
+  };
+  const ledgerOk = (v: unknown) => typeof v !== 'string' || !v.startsWith('delight:');
+  const w = (seq: 'celebration_small' | 'celebration_big', runId: number, now: number) => ({
+    ...ctx({ sequenceId: seq, runId, now }),
+  });
+  const small = { kind: 'delight', size: 'small', reason: 'achievement' } as const;
+  const big = { kind: 'delight', size: 'big', reason: 'achievement' } as const;
+
+  // KN11
+  it('a big that played starts the play-time gap too: a small earned later drops 1 s after it', () => {
+    const call = gate();
+    expect(call.moment(big, 'neutral', 0)).toEqual({ play: 'celebration_big' });
+    expect(call.moment(small, 'neutral', 90_000)).toEqual({ play: 'celebration_small' });
+    expect(ledgerOk(call.write(glowCmd, w('celebration_big', 1, 95_000)))).toBe(true);
+    expect(call.write(glowCmd, w('celebration_small', 2, 96_000))).toMatch(/^delight:.*gap/);
+  });
+
+  // KN7
+  it('a delight refused for the gap is used up: a never-asked celebration run later is unearned', () => {
+    const call = gate();
+    call.moment(small, 'neutral', 0);
+    call.moment(small, 'neutral', 90_000);
+    expect(ledgerOk(call.write(glowCmd, w('celebration_small', 1, 95_000)))).toBe(true);
+    expect(call.write(glowCmd, w('celebration_small', 2, 96_000))).toMatch(/gap/);
+    expect(call.write(glowCmd, w('celebration_small', 3, 200_000))).toMatch(/^delight:.*unearned/);
+  });
+
+  // KN15
+  it('a run refused for the gap never takes a later earn: the run that earned it plays', () => {
+    const call = gate();
+    call.moment(small, 'neutral', 0);
+    call.moment(small, 'neutral', 90_000);
+    expect(ledgerOk(call.write(glowCmd, w('celebration_small', 1, 95_000)))).toBe(true);
+    expect(call.write(glowCmd, w('celebration_small', 2, 96_000))).toMatch(/gap/);
+    expect(call.moment(small, 'neutral', 185_000)).toEqual({ play: 'celebration_small' });
+    expect(call.write(glowCmd, w('celebration_small', 2, 185_001))).toMatch(/^delight:.*gap/);
+    expect(ledgerOk(call.write(glowCmd, w('celebration_small', 3, 185_002)))).toBe(true);
+  });
+});
