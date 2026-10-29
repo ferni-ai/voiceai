@@ -67,7 +67,6 @@ const KNOWN_UNINDEXED = new Set([
   'src/services/calendar/meeting-followup-automation.ts meeting_outcomes (processedAt asc, endTime asc)',
   'src/services/calendar/meeting-memory-service.ts meeting_interactions (personEmail asc, date desc)',
   'src/services/cameo/cameo-analytics.ts history (personaId asc, timestamp desc)',
-  'src/services/concierge/tracker/task-tracker.ts concierge_requests (status asc, createdAt desc)',
   'src/services/concierge/tracker/task-tracker.ts concierge_requests (userId asc, status asc, createdAt desc)',
   'src/services/contacts/contact-relationship-service.ts contact_interactions (userId asc, contactId asc, type asc, date desc)',
   'src/services/contacts/gift-suggestions.ts gift_history (contactId asc, date desc)',
