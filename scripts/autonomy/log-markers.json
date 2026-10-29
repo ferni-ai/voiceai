@@ -7,6 +7,10 @@
         "emitter": "src/agents/gce-voice-worker.ts"
       },
       {
+        "marker": "[job-child",
+        "emitter": "src/agents/gce/job-child.ts"
+      },
+      {
         "marker": "Starting job",
         "emitter": "src/agents/gce/job-executor.ts"
       },
@@ -16,7 +20,11 @@
       },
       {
         "marker": "Raw job.metadata",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/metadata-parser.ts",
+          "helper": "jobMetadataLine"
+        }
       },
       {
         "marker": "Ending session wait",
@@ -28,35 +36,67 @@
       },
       {
         "marker": "- userId:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "- hasProfile:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "- hasName:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "- isReturningUser:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "- totalConversations:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "- lastConversationSummary:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "- lastContact:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "- issues:",
-        "emitter": "src/agents/voice-agent-entry/startup-log.ts"
+        "emitter": "src/agents/voice-agent-entry/startup-log.ts",
+        "via": {
+          "file": "src/agents/voice-agent-entry/startup-log.ts",
+          "helper": "identityDiagnosticsText"
+        }
       },
       {
         "marker": "[voice-agent-entry]   ",
@@ -94,7 +134,11 @@
       },
       {
         "marker": "👤 [USER STATE]",
-        "emitter": "src/agents/multi-agent/session-event-log.ts"
+        "emitter": "src/agents/multi-agent/session-event-log.ts",
+        "via": {
+          "file": "src/agents/multi-agent/session-event-log.ts",
+          "helper": "userStateLine"
+        }
       },
       {
         "marker": "Director: actor line",
