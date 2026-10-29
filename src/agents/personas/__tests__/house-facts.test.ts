@@ -168,10 +168,15 @@ describe('inventsHouseFact', () => {
 });
 
 describe('no catastrophic backtracking (#3032 review)', () => {
+  /** Best of three, so a busy CI box doesn't fail it; backtracking takes minutes, not ms. */
   const ms = (run: () => unknown): number => {
-    const start = performance.now();
-    run();
-    return performance.now() - start;
+    const times: number[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const start = performance.now();
+      run();
+      times.push(performance.now() - start);
+    }
+    return Math.min(...times);
   };
 
   it.each([
@@ -179,7 +184,6 @@ describe('no catastrophic backtracking (#3032 review)', () => {
     ['repeated -dot-', 'x-dot-'.repeat(3000)],
     ['repeated written dots', 'a.'.repeat(5000)],
   ])('%s: checked in under 50 ms', (_name, text) => {
-    inventsHouseFact('Warm up: our site is glowfriend.ai.', true, FACTS); // compile, not count
     expect(ms(() => inventsHouseFact(text, true, FACTS))).toBeLessThan(50);
     expect(ms(() => inventsHouseFact(`Our website is ${text}`, false, FACTS))).toBeLessThan(50);
   });
