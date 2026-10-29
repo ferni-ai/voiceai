@@ -58,6 +58,14 @@ const PHONES: Array<[string, string]> = [
   // cents count toward the 6-digit cap: "$55,501.42" holds 555-0142
   ['amount with cents over six digits', 'wire $55,501.42'],
   ['bare cents amount', '$5,550,142.00'],
+  // space-joined years and times no longer hide a number (third review)
+  ['years then digits', 'call 1955 2014 0142'],
+  ['two years', 'call 1987 2015'],
+  ['year list', 'call 1987, 2015, 2020'],
+  ['times', 'call 12:30 14:20 01:42'],
+  ['date then digits', 'call 2026-10-20 0142'],
+  ['date in an unkept shape', 'call 5550/01/42'],
+  ['a range of three years', 'call 1987-2015-2020'],
 ];
 const SEPARATORS: Array<[string, string]> = [
   ['nbsp', ' '],
@@ -119,6 +127,9 @@ const EMAILS = [
   'jo at gmail, she answers fast',
   'jo at Yahoo dot',
   'jo at protonmail',
+  'jo at the.com', // a determiner is excluded only before a space
+  'jo at my.org',
+  'jo at example. co.uk', // or before another ".label"
 ];
 
 describe('containsContactData: every leak shape is caught', () => {
@@ -127,6 +138,10 @@ describe('containsContactData: every leak shape is caught', () => {
   });
   it.each(SEPARATORS)('phone separated by %s', (_label, sep) => {
     expect(containsContactData(`call Pat on ${SEP(sep)}`)).toBe(true);
+  });
+  it('email: any 2+ letter label after ". " ending the text ("jo at example. co")', () => {
+    expect(containsContactData('jo at example. co')).toBe(true);
+    expect(containsContactData('write to jo at example. co')).toBe(true);
   });
   it.each(EMAILS)('email: %s', (text) => {
     expect(containsContactData(text)).toBe(true);
@@ -158,7 +173,6 @@ const ORDINARY = [
   'back by 10-11pm',
   'called twice at 3 and 4 pm',
   '2 or 3 or 4 apartments at 1200 a month',
-  'meeting 12:00-1:30',
   'tickets 2 x 45 dollars',
   'weighs 180 lbs, 6 ft 2',
   'order #12345',
@@ -213,7 +227,6 @@ const ORDINARY = [
   '1987-03-14',
   'March 14, 1987',
   '14 March 1987',
-  '1987/03/14',
   '1987-3-14',
   '1987-03-14T00:00:00Z',
   'March 14th',
@@ -226,13 +239,10 @@ const ORDINARY = [
   'lives in apt 12B',
   'blood pressure 128/82',
   'St. Petersburg',
-  // the allowance's own shapes
-  'born 1987, 2015 moved',
+  // the two kept run shapes: one full date, one two-year range
   'lived there 2015-2019',
   'lived there 1998–2004',
   'paid € 2,400.50 on 2026-10-20',
-  'from 10/20-10/25',
-  'on 2026-10-20 15:30',
   'on ٢٠٢٦-١٠-٢٠',
   'on ２０２６-１０-２０',
   'oh, one more thing',
@@ -250,10 +260,44 @@ const REFUSED = [
   'sold for $1,250,000',
   // 7 digits with the cents: the same shape as "$55,501.42". Rare; refused the safe way.
   'paid $12,345.67',
+  // Fail closed (#3009 third review): a 7+ digit run is kept only when it is exactly one
+  // full date (YYYY-MM-DD, MM/DD/YYYY) or one two-year range (1987-2015).
+  'meeting 12:00-1:30', // a time range: no allowance for times
+  'on 2026-10-20 15:30', // a date and a time in one run
+  '1987/03/14', // YYYY/MM/DD is neither kept date shape
+  'born 1987, 2015 moved', // two years in a list, not a dash range
+  'from 10/20-10/25', // two short dates in one run
+  // "X at Y. Z" at the very end of the text reads as "jo at example. co".
+  'Pat was at work. Busy',
 ];
 
-// Kept in a prompt, refused as a stored fact: 7 digits outside any date, time, year or amount.
-const STORED_REFUSED = ['2 or 3 or 4 apartments at 1200 a month'];
+// Kept in a prompt, refused as a stored fact: a stored free-text value may hold at most
+// 6 digits in total, however letters split them. Dates belong in typed fields
+// (validFrom, a birthday attribute), not in free text.
+const STORED_REFUSED = [
+  '2 or 3 or 4 apartments at 1200 a month',
+  'on 2026-10-20 at 3pm',
+  'born in 1987, moved 2015',
+  "mom's 70th birthday is June 5th, 2026",
+  'save $15,000 by 2027',
+  'run the 2027-04-19 marathon',
+  'appointment with Dr. Patel on 2026-11-03',
+  'graduated 2008, started at Acme 2015',
+  'lives at 1245 Oak St, 33701',
+  'wedding anniversary 06/12/2010',
+  '03/14/1987',
+  '1987-03-14',
+  '1987-3-14',
+  '1987-03-14T00:00:00Z',
+  'bought the house in 2019 for $450,000',
+  'flight UA 1234 on 11/03',
+  'lived there 2015-2019',
+  'lived there 1998–2004',
+  'paid € 2,400.50 on 2026-10-20',
+  'on ٢٠٢٦-١٠-٢٠',
+  'on ２０２６-１０-２０',
+  'paid $1,234.56 on 2026-10-20',
+];
 
 describe('containsContactData: ordinary values are kept', () => {
   it.each(ORDINARY)('keeps %j', (text) => {
@@ -274,47 +318,46 @@ describe('isContactValueAllowed and toE164: the facts store exceptions', () => {
     expect(isContactValueAllowed('phone', '(727) 555-0142')).toBe(true);
     expect(isContactValueAllowed('phone', 'jo@example.com')).toBe(false);
   });
-  it('a stored value refuses 7+ loose digits even when letters split them', () => {
+  it('a stored value refuses 7+ digits in total, however letters split them', () => {
     const split = [
       'call 555 then 0142',
       'five five five and zero one four two',
       'ask 727, 555, or 0142',
-      // only ONE amount, date, time or ZIP is discounted, and "$0142" is no amount
       'born 1987, zip 33701 and $0142',
       'on 10/20 pay $555 at 01:42',
+      'born 1987 and 1988 and 0142', // years are not discounted next to other digits
     ];
     for (const v of split) {
       expect(containsContactData(v), v).toBe(false); // the prompt guard reads runs only
       expect(isContactValueAllowed('other', v), v).toBe(false);
     }
-    expect(isContactValueAllowed('other', 'paid $55,501.42')).toBe(false); // cents count
-    expect(isContactValueAllowed('other', 'paid $1,234.56 in 2019')).toBe(true);
-    // digits inside recognised dates, years, times, amounts and an ending ZIP don't count
+    expect(isContactValueAllowed('other', 'paid $1,234.56')).toBe(true); // 6 digits
+    expect(isContactValueAllowed('other', 'since 2019, 12 kids')).toBe(true); // 6 digits
     for (const v of ORDINARY.filter((t) => !STORED_REFUSED.includes(t)))
       expect(isContactValueAllowed('other', v), v).toBe(true);
     for (const v of STORED_REFUSED) expect(isContactValueAllowed('other', v), v).toBe(false);
   });
-  it('a birthday may be a bare date; a phone is refused under every other attribute', () => {
+  it('a birthday may be exactly one ISO date; nothing else with 7+ digits is stored', () => {
     expect(isContactValueAllowed('birthday', '1960-04-12')).toBe(true);
-    expect(isContactValueAllowed('birthday', '04-12')).toBe(true);
+    expect(isContactValueAllowed('birthday', '1987-03-14')).toBe(true);
+    expect(isContactValueAllowed('birthday', '04-12')).toBe(true); // 4 digits
+    for (const v of ['03/14/1987', '1987-3-14', '1987-03-14T00:00:00Z', '1987-13-01', '5550-14-21'])
+      expect(isContactValueAllowed('birthday', v), v).toBe(false);
+    expect(isContactValueAllowed('other', '1987-03-14')).toBe(false); // only a birthday
     for (const attr of ['other', 'city', 'employer', 'pet', 'goal', 'birthday']) {
       expect(isContactValueAllowed(attr, '727-555-0142'), attr).toBe(false);
       expect(isContactValueAllowed(attr, 'jane at example dot com'), attr).toBe(false);
-      expect(isContactValueAllowed(attr, 'born in 1987, moved 2015'), attr).toBe(true);
+      expect(isContactValueAllowed(attr, 'born in 1987, moved 2015'), attr).toBe(false);
     }
   });
 });
 
 describe('containsContactData: long input', () => {
-  it('a long run of date-like groups is read in linear time and never counts as ordinary', () => {
+  it('a long run of date-like groups is read in linear time and counts as dialable', () => {
     const started = performance.now();
     expect(containsContactData(`${'12-'.repeat(5_000)}12`)).toBe(true);
     expect(containsContactData(`${'12/12/12 '.repeat(5_000)}12`)).toBe(true);
     expect(performance.now() - started).toBeLessThan(50);
-    // the 40-character cap: 7 years fit (40 chars), an eighth does not
-    const years = [1987, 1988, 1989, 1990, 1991, 1992, 1993];
-    expect(containsContactData(`lived ${years.join(', ')}`)).toBe(false);
-    expect(containsContactData(`lived ${[...years, 1994].join(', ')}`)).toBe(true);
   });
   it('stays linear on long unbroken strings (no regex backtracking blow-up)', () => {
     const started = Date.now();
