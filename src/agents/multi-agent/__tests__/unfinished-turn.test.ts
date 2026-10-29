@@ -72,6 +72,46 @@ describe('unfinishedness', () => {
     expect(unfinishedness('mm-hmm')).toBe('finished');
   });
 
+  it('answers a stop, pause or wait command at once, punctuated or not (#2657)', () => {
+    // prod AJ_JbTguxw4hwRw: music playing, held twice, the stop came 4.4 s late
+    expect(unfinishedTurnHoldMs('Hey, Ferni, can you')).toBe(UNPUNCTUATED_HOLD_MS); // lead-in alone
+    for (const command of [
+      'Hey, Ferni, can you stop',
+      'stop',
+      'Stop the music',
+      'could you please stop it now',
+      'hold on',
+      'Hang on',
+      'wait',
+      'pause',
+      'Pause the music please',
+      'shh',
+      'Shhh',
+      "That's enough",
+      'no, stop',
+      'okay turn it off',
+    ]) {
+      expect(unfinishedness(command), command).toBe('finished');
+      expect(unfinishedTurnHoldMs(command), command).toBe(0);
+    }
+  });
+
+  it('still holds a turn that only mentions stopping or goes on past it', () => {
+    for (const held of [
+      "don't stop",
+      "I can't stop",
+      'stop and',
+      'stop,',
+      'wait what',
+      'hold on to',
+      'please',
+      'they never stop',
+      'Hey Ferni can you stop by the store',
+    ]) {
+      expect(unfinishedTurnHoldMs(held), held).toBeGreaterThan(0);
+    }
+  });
+
   it('installs on the session unless UNFINISHED_TURN_HOLD=off', () => {
     const on: { unfinishedTurnHoldMs?: unknown } = {};
     expect(installUnfinishedTurnHold(on, {})).toBe(true);
@@ -166,6 +206,19 @@ describe('LiveKit end of turn on an unfinished sentence (patched)', () => {
     a.audioRecognition.speaking = true;
     vi.advanceTimersByTime(DANGLING_HOLD_MS);
     expect(a.audioRecognition.runEOUDetection).not.toHaveBeenCalled();
+  });
+
+  it('commits "Hey, Ferni, can you stop" at once instead of holding it (#2657)', async () => {
+    const fn = await onEndOfTurn();
+    const held = activity();
+    held.audioRecognition.audioTranscript = 'Hey, Ferni, can you';
+    expect(await fn.call(held, { newTranscript: 'Hey, Ferni, can you' })).toBe(false);
+    const a = activity();
+    a.audioRecognition.audioTranscript = 'Hey, Ferni, can you stop';
+    expect(await fn.call(a, { newTranscript: 'Hey, Ferni, can you stop' })).toBe(true);
+    expect(a.createSpeechTask).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(UNPUNCTUATED_HOLD_MS + DANGLING_HOLD_MS);
+    expect(a.audioRecognition.runEOUDetection).not.toHaveBeenCalled(); // nothing was held
   });
 
   it('answers finished turns without waiting', async () => {
