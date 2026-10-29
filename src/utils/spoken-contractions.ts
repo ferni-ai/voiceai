@@ -23,10 +23,11 @@
  *   "what is" needs a complement ("What is it?" stays).
  * A negation ("do not", "was not") contracts anywhere a word follows.
  *
- * `contractBroadly` is mirroring's older, wider rule, kept while
- * MIRROR_SHARED_CONTRACTIONS is off (the default): main's 17 pairs, contracted mid-clause
- * ("Sounds like you're exhausted"), minus its bugs: a stranded or clause-final
- * auxiliary, a pair in caps or title case, and quoted words stay as written.
+ * Mode 'mirroring' (linguistic mirroring with MIRROR_SHARED_CONTRACTIONS=on) keeps
+ * mirroring's breadth: a subject + auxiliary contracts mid-clause wherever a word follows
+ * ("Sounds like you're exhausted", "I'm Jordan"), unless it comes right after a fronted
+ * wh-phrase ("how worried you are about this", "what a mess it is right now", "who you
+ * are matters"). The other guards are the same.
  *
  * @module utils/spoken-contractions
  */
@@ -74,9 +75,16 @@ function fullForm(full: string, wordAfter: string, strict: boolean): RegExp {
 
 const isNegation = (full: string): boolean => /\bnot$|^cannot$/.test(full);
 
-/** Strict: a lowercase word must follow, so a stressed "I am NOT" stays. */
+/** Which caller: the speech director (strict) or mirroring (MIRROR_SHARED_CONTRACTIONS=on). */
+export type ContractMode = 'director' | 'mirroring';
+
+/**
+ * The director needs a lowercase word next, so a stressed "I am NOT" stays; mirroring
+ * takes any word, as it always did ("I'm Jordan").
+ */
 const PATTERNS = PAIRS.map(([full, short]) => ({
-  re: fullForm(full, String.raw`(?=\s+[a-z])`, true),
+  director: fullForm(full, String.raw`(?=\s+[a-z])`, true),
+  mirroring: fullForm(full, String.raw`(?=\s+[A-Za-z])`, true),
   full,
   short,
   negation: isNegation(full),
@@ -127,6 +135,26 @@ const FRONTED =
 const PROGRESSIVE =
   /^\s+(?:gonna|(?!(?:during|nothing|something|anything|everything|morning|evening)\b)[a-z]{2,}ing)\b/;
 
+/**
+ * Mirroring: a wh-word right before the pair, with up to three fronted words and an
+ * optional "do you think" / "I think" between: "how worried (I think) you are",
+ * "what a mess it is", "who you are". A verb or "that" in between ("What I love is
+ * that you are") means the wh-phrase belongs to another clause. Group 1: fronted words.
+ */
+const WH_RIGHT_BEFORE =
+  /\b(?:how|what|who|whoever|where|wherever|whatever|however|the\s+way)((?:\s+(?!(?:that|is|are|was|were|am|i|you|we|they|he|she|it)\b)[a-z'-]+){0,3})(?:\s+(?:(?:do|did)\s+you|i|you|we|they|he|she)\s+(?:think|know|guess|feel|say|said|believe|mean|bet|hope))?\s*$/i;
+/** After a lone wh-word, these show the auxiliary's complement went to the front: "who you are matters". */
+const STRANDED_NEXT =
+  /^\s+(?:is|was|matters|means|counts|makes|says|now|today|tonight|anymore|these\s+days|right\s+now|out\s+there|back\s+there)\b/;
+/** These next words show the complement is still after the pair: "what you are worried about". */
+const COMPLEMENT_NEXT = /^\s+(?:like|worth|(?!indeed\b)[a-z]{3,}ed)\b/;
+
+function strandedAfterWh(said: string, after: string): boolean {
+  const wh = WH_RIGHT_BEFORE.exec(said.replace(TRAILING_MARKUP, ''));
+  if (!wh || PROGRESSIVE.test(after) || COMPLEMENT_NEXT.test(after)) return false;
+  return wh[1].trim() !== '' || STRANDED_NEXT.test(after);
+}
+
 /** Markup right before the pair ("[laughter] It is", '<break/> It is') says nothing about the clause. */
 const TRAILING_MARKUP = /(?:\s*(?:<[^>]*>|\[[^\]]*\]))+\s*$/;
 
@@ -143,8 +171,11 @@ function opensClause(said: string): boolean {
 /** Is the end of `said` inside quotes or a code span? */
 function quoted(said: string): boolean {
   const count = (re: RegExp): number => (said.match(re) ?? []).length;
-  // An opening quote is followed by a letter, or ends `said` (the pair comes right after it).
-  const singleOpen = count(/(?:^|[\s([—“"])['‘](?=[A-Za-z]|$)/g);
+  // An opening quote is followed by a letter, or ends `said` (the pair comes right after it);
+  // an elision ('em, 'til, 'cause, 'n') is not a quote.
+  const singleOpen = count(
+    /(?:^|[\s([—“"])['‘](?=[A-Za-z]|$)(?!(?:em|til|cause|cos|cuz|n|bout|round|kay|tis|twas|s)\b)/gi
+  );
   const singleClose = count(/(?<=[A-Za-z.,!?])['’](?![A-Za-z])/g);
   return (
     count(/"/g) % 2 === 1 ||
@@ -173,23 +204,24 @@ function matchCase(found: string, short: string): string {
 
 /**
  * `text` with full forms contracted. `before` is everything already said in this
- * reply ('' at its start); `undefined` when not known, and then a pair at the very
- * start of `text` keeps its full form. `hit` is called once per contraction.
+ * reply ('' at its start); `undefined` when not known, and then the director keeps a
+ * pair at the very start of `text` in full. `hit` is called once per contraction.
  */
 export function contractForSpeech(
   text: string,
   before: string | undefined,
-  hit: (full: string, short: string) => void = () => {}
+  hit: (full: string, short: string) => void = () => {},
+  mode: ContractMode = 'director'
 ): string {
   const lead = before ?? UNKNOWN_START;
   return PATTERNS.reduce(
-    (acc, { re, full, short, negation }) =>
-      acc.replace(re, (found: string, at: number, all: string) => {
+    (acc, pattern) =>
+      acc.replace(pattern[mode], (found: string, at: number, all: string) => {
+        const { full, short, negation } = pattern;
         const said = lead + all.slice(0, at);
         if (quoted(said)) return found;
         const after = all.slice(at + found.length);
-        const unstranded = opensClause(said) || (!full.endsWith('will') && PROGRESSIVE.test(after));
-        if (!negation && !(unstranded && complementFollows(full, after))) return found;
+        if (!negation && !auxiliaryFits(mode, full, said, after)) return found;
         hit(full, short);
         return matchCase(found, short);
       }),
@@ -197,60 +229,14 @@ export function contractForSpeech(
   );
 }
 
-/** Mirroring's older table and order (MIRROR_SHARED_CONTRACTIONS off): "it is not" → "it isn't". */
-const BROAD_PAIRS: ReadonlyArray<readonly [string, string]> = [
-  ['I am', "I'm"],
-  ['you are', "you're"],
-  ['we are', "we're"],
-  ['they are', "they're"],
-  ['is not', "isn't"],
-  ['are not', "aren't"],
-  ['will not', "won't"],
-  ['can not', "can't"],
-  ['do not', "don't"],
-  ['did not', "didn't"],
-  ['could not', "couldn't"],
-  ['would not', "wouldn't"],
-  ['should not', "shouldn't"],
-  ['it is', "it's"],
-  ['that is', "that's"],
-  ['there is', "there's"],
-  ['here is', "here's"],
-];
-
-/** After a fronted wh-word, these next words show the complement is still there. */
-const NOT_STRANDED = /^\s+(?:like\b|(?!indeed\b)[a-z]{3,}ed\b)/;
-
-/**
- * Mirroring's wider rule: a pair contracts mid-clause wherever a word follows, as it
- * always did ("Sounds like you're exhausted", "I'm Jordan"). Fixed, flag or not: an
- * auxiliary needs a word after it ("ready when you are." stays) and is never contracted
- * after a fronted wh-word ("how worried you are about this"); a pair in caps or title
- * case, or inside quotes or a code span, stays. `negationNeedsWord`: MIRROR_GRAMMAR_GUARD,
- * which still decides whether a clause-final "I do not." contracts.
- */
-export function contractBroadly(
-  text: string,
-  before: string | undefined,
-  negationNeedsWord: boolean,
-  hit: (full: string, short: string) => void = () => {}
-): string {
-  const lead = before ?? UNKNOWN_START;
-  return BROAD_PAIRS.reduce((acc, [full, short]) => {
-    const negation = isNegation(full);
-    const wordAfter = negation && !negationNeedsWord ? '' : String.raw`(?=\s+[A-Za-z])`;
-    const re = fullForm(full, wordAfter, false);
-    return acc.replace(re, (found: string, at: number, all: string) => {
-      const said = lead + all.slice(0, at);
-      if (quoted(said)) return found;
-      const after = all.slice(at + found.length);
-      const stranded =
-        FRONTED.test(said.replace(TRAILING_MARKUP, '')) &&
-        !PROGRESSIVE.test(after) &&
-        !NOT_STRANDED.test(after);
-      if (!negation && stranded) return found;
-      hit(full, short);
-      return matchCase(found, short);
-    });
-  }, text);
+function auxiliaryFits(mode: ContractMode, full: string, said: string, after: string): boolean {
+  if (mode === 'mirroring') {
+    if (strandedAfterWh(said, after)) return false;
+    // A capital next ("I am Jordan") skips the complement check, except where it needs a verb.
+    return /^\s+[a-z]/.test(after)
+      ? complementFollows(full, after)
+      : !full.endsWith('will') && full !== 'what is';
+  }
+  const unstranded = opensClause(said) || (!full.endsWith('will') && PROGRESSIVE.test(after));
+  return unstranded && complementFollows(full, after);
 }

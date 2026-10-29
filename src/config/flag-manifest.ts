@@ -287,9 +287,9 @@ const LEGACY_FLAG_MANIFEST = {
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
-  // on: mirroring says "nah" only for a standalone no, and a clause-final "I do not." stays (conversation/superhuman/mirroring-grammar.ts)
+  // on: mirroring keeps English: "nah" only for a standalone no, no clause-final contractions (conversation/superhuman/mirroring-grammar.ts)
   MIRROR_GRAMMAR_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: mirroring contracts by the speech director's strict rule, not its wider one (utils/spoken-contractions.ts, #2347)
+  // on: mirroring contracts by the shared rule (utils/spoken-contractions.ts, #2347); off, by its legacy map, as on main
   MIRROR_SHARED_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },

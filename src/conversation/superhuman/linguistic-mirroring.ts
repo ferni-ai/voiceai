@@ -21,12 +21,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import type { LinguisticProfile, MirroringApplication, MirroringResult } from './types.js';
-import {
-  mirrorGrammarGuardEnabled,
-  mirrorSharedContractionsEnabled,
-  noToNahPattern,
-} from './mirroring-grammar.js';
-import { contractBroadly, contractForSpeech } from '../../utils/spoken-contractions.js';
+import { mirrorContractions, noToNahPattern } from './mirroring-grammar.js';
 
 const logger = createLogger({ module: 'LinguisticMirroring' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
@@ -496,28 +491,9 @@ export class LinguisticMirroringEngine {
 
   private applyContractionMirroring(
     text: string,
-    before: string | undefined
-  ): {
-    text: string;
-    applications: MirroringApplication[];
-  } {
-    const applications: MirroringApplication[] = [];
-    // A caller who says "I am" still hears contractions: never expand ours. Expanding made
-    // every persona stilted after one such line ("I am Jordan . it is really cool", prod
-    // 2026-10-17), against the prompt's "always use contractions".
-    if (!this.profile.usesContractions) return { text, applications };
-
-    // A caller who uses contractions gets ours contracted: the wider rule, or with
-    // MIRROR_SHARED_CONTRACTIONS=on the speech director's stricter one.
-    const hit = (original: string, mirrored: string): void => {
-      if (!applications.some((a) => a.original === original)) {
-        applications.push({ type: 'formality', original, mirrored });
-      }
-    };
-    const result = mirrorSharedContractionsEnabled()
-      ? contractForSpeech(text, before, hit)
-      : contractBroadly(text, before, mirrorGrammarGuardEnabled(), hit);
-    return { text: result, applications };
+    before?: string
+  ): { text: string; applications: MirroringApplication[] } {
+    return mirrorContractions(text, this.profile.usesContractions, before);
   }
 
   private applyFormalityMirroring(text: string): {

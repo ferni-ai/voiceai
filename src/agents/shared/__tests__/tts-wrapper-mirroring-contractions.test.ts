@@ -1,12 +1,13 @@
 /**
- * Mirroring on the live reply path contracts by utils/spoken-contractions.ts (#2347).
+ * With MIRROR_SHARED_CONTRACTIONS=on, mirroring on the live reply path contracts by
+ * utils/spoken-contractions.ts (#2347).
  * The wrapper tells it what the reply said before each chunk: upstream buffering
  * hands mirroring whole sentences, so a quote opened in one sentence is still open in
  * the next, and a stranded pair arrives inside one chunk.
  */
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { voice } from '@livekit/agents';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getLinguisticMirroring } from '../../../conversation/superhuman/linguistic-mirroring.js';
 
@@ -26,7 +27,12 @@ vi.mock('../../../speech/tts-gateway/index.js', async (importOriginal) => ({
 }));
 
 describe('tts-wrapper: mirroring contracts with the reply so far', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('keeps a stranded pair and a quote across chunks; contracts outside them', async () => {
+    vi.stubEnv('MIRROR_SHARED_CONTRACTIONS', 'on');
     const userId = 'mirroring-contractions-user';
     const engine = getLinguisticMirroring(userId);
     for (const line of ["I'm good.", "we're hanging out", "it's fine, don't worry"]) {

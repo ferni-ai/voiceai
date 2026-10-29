@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { seededChance } from '../../utils/random-generator.js';
 import { LinguisticMirroringEngine } from '../linguistic-mirroring.js';
-import { mirrorGrammarGuardEnabled, noToNahPattern } from '../mirroring-grammar.js';
+import {
+  contractionPattern,
+  mirrorGrammarGuardEnabled,
+  noToNahPattern,
+} from '../mirroring-grammar.js';
 
 /** An engine that has heard three casual lines, so it mirrors contractions and formality. */
 const casualCaller = (): LinguisticMirroringEngine => {
@@ -32,21 +36,21 @@ describe('MIRROR_GRAMMAR_GUARD', () => {
     expect(mirrorGrammarGuardEnabled({ MIRROR_GRAMMAR_GUARD: 'on' })).toBe(true);
   });
 
-  describe('flag off: "no" mirroring is unchanged', () => {
-    it('turns every "no" into "nah"; a clause-final pair stays (the shared rule, #2347)', () => {
+  describe('flag off: mirroring is unchanged', () => {
+    it('still contracts a clause-final pair and turns every "no" into "nah"', () => {
       pinCasualRoll();
       const engine = casualCaller();
       expect(engine.getProfile().formalityLevel).toBe('casual');
-      // Before #2347 the flag-off path said "I'm ready when you're.".
-      expect(engine.applyStreamingSafeMirroring("I'm ready when you are.", '')).toBe(
-        "I'm ready when you are."
+      expect(engine.applyStreamingSafeMirroring("I'm ready when you are.")).toBe(
+        "I'm ready when you're."
       );
-      expect(engine.applyStreamingSafeMirroring('There is no need for that.', '')).toBe(
+      expect(engine.applyStreamingSafeMirroring('There is no need for that.')).toBe(
         "There's nah need for that."
       );
     });
 
-    it('keeps the old "no" pattern', () => {
+    it('keeps the old patterns', () => {
+      expect(contractionPattern('you are', false).source).toBe('\\byou are\\b');
       expect(noToNahPattern(false).source).toBe('\\bno\\b(?!\\w)');
     });
   });
@@ -56,11 +60,11 @@ describe('MIRROR_GRAMMAR_GUARD', () => {
       vi.stubEnv('MIRROR_GRAMMAR_GUARD', 'on');
       const engine = casualCaller();
       // Prod 2026-10-19: "ready when you're.", "Big Papa it's.", "what that's."
-      expect(engine.applyStreamingSafeMirroring("I'm ready when you are.", '')).toBe(
+      expect(engine.applyStreamingSafeMirroring("I'm ready when you are.")).toBe(
         "I'm ready when you are."
       );
-      expect(engine.applyStreamingSafeMirroring('Big Papa it is.', '')).toBe('Big Papa it is.');
-      expect(engine.applyStreamingSafeMirroring("I don't know what that is?", '')).toBe(
+      expect(engine.applyStreamingSafeMirroring('Big Papa it is.')).toBe('Big Papa it is.');
+      expect(engine.applyStreamingSafeMirroring("I don't know what that is?")).toBe(
         "I don't know what that is?"
       );
     });
@@ -68,7 +72,7 @@ describe('MIRROR_GRAMMAR_GUARD', () => {
     it('still contracts a pair that a word follows', () => {
       vi.stubEnv('MIRROR_GRAMMAR_GUARD', 'on');
       const engine = casualCaller();
-      expect(engine.applyStreamingSafeMirroring('It is late, and you are right.', '')).toBe(
+      expect(engine.applyStreamingSafeMirroring('It is late, and you are right.')).toBe(
         "It's late, and you're right."
       );
     });
@@ -78,13 +82,13 @@ describe('MIRROR_GRAMMAR_GUARD', () => {
       pinCasualRoll();
       const engine = casualCaller();
       // Prod 2026-10-19: "nah more wild accusations", "nah need for that kind of language".
-      expect(engine.applyStreamingSafeMirroring('No more wild accusations, I promise.', '')).toBe(
+      expect(engine.applyStreamingSafeMirroring('No more wild accusations, I promise.')).toBe(
         'No more wild accusations, I promise.'
       );
-      expect(engine.applyStreamingSafeMirroring('There is no need for that.', '')).toBe(
+      expect(engine.applyStreamingSafeMirroring('There is no need for that.')).toBe(
         "There's no need for that."
       );
-      expect(engine.applyStreamingSafeMirroring("No, I didn't hang up. No.", '')).toBe(
+      expect(engine.applyStreamingSafeMirroring("No, I didn't hang up. No.")).toBe(
         "nah, I didn't hang up. nah."
       );
     });
