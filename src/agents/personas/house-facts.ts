@@ -68,36 +68,62 @@ export function withHouseFacts(rule: string, env: Env = process.env): string {
     : rule;
 }
 
-const DOT = '(?:\\.|\\s+dot\\s+|-dot-)';
-/** A website, written or said: "site.com", "site dot ai", "call-dot-com". Not a contact-data shape. */
+/**
+ * Inputs are tokenised before any pattern runs, so no pattern has to choose between
+ * readings: a said dot (" dot ", "-dot-") becomes "." by plain replacements, and a
+ * label is alphanumerics joined by single hyphens. A label that could also swallow
+ * "-dot-" backtracked for minutes on a long hyphen run (#3032 review). Each checked
+ * piece is at most MAX_CHECK characters as well.
+ */
+const MAX_CHECK = 300;
+const saidDots = (text: string): string =>
+  text.replace(/\s{1,3}dot\s{1,3}/giu, '.').replace(/-dot-/giu, '.');
+const LABEL = '[\\p{L}\\p{N}]+(?:-[\\p{L}\\p{N}]+)*';
+/** A website once dots are written: "site.com", "app.site.ai". Not a contact-data shape. */
 const WEB_ADDRESS = new RegExp(
-  `(?<![\\p{L}\\p{N}])[\\p{L}\\p{N}][\\p{L}\\p{N}-]*(?:${DOT}[\\p{L}\\p{N}-]+)*${DOT}(?:com|net|org|ai|am|io|co|app|us|me|info|biz|dev|xyz|tv|ly|fm|gg|online|site|tech|health|care|life|chat|link)(?![\\p{L}\\p{N}])`,
+  `(?<![\\p{L}\\p{N}.-])${LABEL}(?:\\.${LABEL})*\\.(?:com|net|org|ai|am|io|co|app|us|me|info|biz|dev|xyz|tv|ly|fm|gg|online|site|tech|health|care|life|chat|link)(?![\\p{L}\\p{N}])`,
   'iu'
 );
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-/** Never inside a longer name: nothing joined before ("verify.", "verify dot "), nor after. */
-const START = '(?<![\\p{L}\\p{N}.@-])(?<!dot\\s{1,3})';
-const END = `(?![\\p{L}\\p{N}-]|${DOT}[\\p{L}\\p{N}])`;
-/** A host as written or said: "app.ferni.ai", "app dot ferni dot ai". */
-const hostForms = (host: string): string => `${host.split('.').map(escape).join(DOT)}${END}`;
+/** A true host, never inside a longer name: nothing joined before ("verify."), nor after. */
+const START = '(?<![\\p{L}\\p{N}.@-])';
+const END = '(?![\\p{L}\\p{N}-]|\\.[\\p{L}\\p{N}])';
 
-/** The sentence with every true fact taken out, so only an untrue address is left. */
-function withoutFacts(sentence: string, facts: HouseFacts): string {
-  let rest = sentence;
+/** The (tokenised) piece with every true fact taken out, so only an untrue address is left. */
+function withoutFacts(piece: string, facts: HouseFacts): string {
+  let rest = piece;
   if (facts.emailFrom) {
     const [local, host] = facts.emailFrom.split('@');
-    const said = `(?<![\\p{L}\\p{N}._%+-])${escape(local ?? '')}(?:\\s*@\\s*|\\s+at\\s+)${hostForms(host ?? '')}`;
+    const said = `(?<![\\p{L}\\p{N}._%+-])${escape(local ?? '')}(?:\\s{0,3}@\\s{0,3}|\\s{1,3}at\\s{1,3})${escape(host ?? '')}${END}`;
     rest = rest.replace(new RegExp(said, 'giu'), ' ');
   }
   const hosts = [facts.webApp, facts.website].filter((h): h is string => Boolean(h));
   for (const host of hosts.sort((a, b) => b.length - a.length)) {
-    const site = `${START}(?:https?://)?(?:www${DOT})?${hostForms(host)}`;
+    const site = `${START}(?:https?://)?(?:www\\.)?${escape(host)}${END}`;
     rest = rest.replace(new RegExp(site, 'giu'), ' ');
   }
   const texts = facts.textsFrom && toE164(facts.textsFrom);
   return rest.replace(/\+?\d[\d\s().-]{5,}\d/g, (run) =>
     texts && toE164(run) === texts ? ' ' : run
   );
+}
+
+/** Where to cut text longer than `max`: after the last space in its second half, else at max. */
+function cutAt(text: string, max: number): number {
+  const space = text.lastIndexOf(' ', max);
+  return space > max / 2 ? space + 1 : max;
+}
+
+/** The text in pieces of at most MAX_CHECK characters, cut at spaces where it can be. */
+function piecesOf(text: string): string[] {
+  const pieces: string[] = [];
+  let rest = text;
+  while (rest.length > MAX_CHECK) {
+    const cut = cutAt(rest, MAX_CHECK);
+    pieces.push(rest.slice(0, cut));
+    rest = rest.slice(cut);
+  }
+  return [...pieces, rest];
 }
 
 /** The caller asking for Ferni's own site, sender, number or email. */
@@ -107,7 +133,9 @@ const ASKS_OURS =
 const GIVES_OURS =
   /\b(?:our|my|ferni'?s|the app'?s) (?:own )?(?:website|web ?site|site|web address|url|link|(?:phone )?number|e-?mail(?: address)?|address|short ?code)\b|\b(?:texts?|messages?|e-?mails?|notifications?|codes?)\b[^.?!]*\b(?:come|comes|coming|will be|are|is) (?:sent )?from\b|\bwe(?:'re| are) (?:at|on)\b|\b(?:reach|find|text|call|e-?mail|write to) (?:me|us) at\b/i;
 
-const hasAddress = (text: string): boolean => containsContactData(text) || WEB_ADDRESS.test(text);
+/** An address left in tokenised text (said dots already written as "."). */
+const hasAddress = (tokens: string): boolean =>
+  containsContactData(tokens) || WEB_ADDRESS.test(tokens);
 
 /**
  * True when the sentence gives Ferni's own address and one it gives is not a house
@@ -118,8 +146,10 @@ export function inventsHouseFact(
   callerAsked: boolean,
   facts: HouseFacts
 ): boolean {
-  if (!callerAsked && !GIVES_OURS.test(sentence)) return false;
-  return hasAddress(withoutFacts(sentence, facts));
+  return piecesOf(sentence).some(
+    (piece) =>
+      (callerAsked || GIVES_OURS.test(piece)) && hasAddress(withoutFacts(saidDots(piece), facts))
+  );
 }
 
 /**
@@ -145,7 +175,9 @@ export async function withHouseFactsGuard<T>(
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
   const facts = houseFacts(env);
-  const callerAsked = recentSpoken(chatCtx, 'user', 1).some((t) => ASKS_OURS.test(t));
+  const callerAsked = recentSpoken(chatCtx, 'user', 1).some((t) =>
+    ASKS_OURS.test(t.slice(-MAX_CHECK))
+  );
   const reader = stream.getReader();
   let id = '';
   let stringChunks = true;
@@ -182,6 +214,12 @@ export async function withHouseFactsGuard<T>(
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             decide(pending.slice(0, end));
             pending = pending.slice(end);
+          }
+          // A run with no sentence end is decided in pieces, so the buffer stays small.
+          while (pending.length > 2 * MAX_CHECK) {
+            const cut = cutAt(pending, MAX_CHECK);
+            decide(pending.slice(0, cut));
+            pending = pending.slice(cut);
           }
         }
         if (pending) decide(pending);

@@ -9,7 +9,12 @@ import { describe, expect, it } from 'vitest';
 
 import { withActionClaimCheck } from '../action-claim-guard.js';
 import { withHonesty } from '../ai-honesty.js';
-import { houseFactsPrompt, inventsHouseFact, NOT_IN_FRONT_OF_ME } from '../house-facts.js';
+import {
+  houseFactsPrompt,
+  inventsHouseFact,
+  NOT_IN_FRONT_OF_ME,
+  withHouseFactsGuard,
+} from '../house-facts.js';
 
 initializeLogger({ pretty: false, level: 'warn' });
 
@@ -159,6 +164,53 @@ describe('inventsHouseFact', () => {
   it('needs an address: a sentence about the site with none passes', () => {
     expect(inventsHouseFact('Our website has a menu.', true, FACTS)).toBe(false);
     expect(inventsHouseFact('Our website is glowfriend.ai.', false, FACTS)).toBe(true);
+  });
+});
+
+describe('no catastrophic backtracking (#3032 review)', () => {
+  const ms = (run: () => unknown): number => {
+    const start = performance.now();
+    run();
+    return performance.now() - start;
+  };
+
+  it.each([
+    ['hyphen run then a said dot', `${'a-'.repeat(5000)}dot com`],
+    ['repeated -dot-', 'x-dot-'.repeat(3000)],
+    ['repeated written dots', 'a.'.repeat(5000)],
+  ])('%s: checked in under 50 ms', (_name, text) => {
+    inventsHouseFact('Warm up: our site is glowfriend.ai.', true, FACTS); // compile, not count
+    expect(ms(() => inventsHouseFact(text, true, FACTS))).toBeLessThan(50);
+    expect(ms(() => inventsHouseFact(`Our website is ${text}`, false, FACTS))).toBeLessThan(50);
+  });
+
+  it('a long run with no sentence end streams through in pieces, nothing lost', async () => {
+    const text = 'x-dot-'.repeat(3000);
+    const start = performance.now();
+    const out = await withHouseFactsGuard(
+      new ReadableStream<string>({
+        start(c) {
+          c.enqueue(text);
+          c.close();
+        },
+      }),
+      { items: [] },
+      ON
+    );
+    const parts: string[] = [];
+    for await (const part of out as unknown as AsyncIterable<string>) parts.push(part);
+    expect(performance.now() - start).toBeLessThan(50);
+    expect(parts.join('')).toBe(text);
+    // Decided a piece at a time, so the buffer never holds the whole run.
+    expect(parts.length).toBeGreaterThan(10);
+  });
+
+  it('a long caller message is read in under 50 ms', async () => {
+    const items = [llm.ChatMessage.create({ role: 'user', content: 'what website '.repeat(1000) })];
+    const start = performance.now();
+    const out = await withHouseFactsGuard(streamOf('Fine.'), { items }, ON);
+    for await (const _part of out as unknown as AsyncIterable<unknown>) void _part;
+    expect(performance.now() - start).toBeLessThan(50);
   });
 });
 
