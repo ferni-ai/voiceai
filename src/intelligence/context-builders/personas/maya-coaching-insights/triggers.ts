@@ -61,7 +61,9 @@ export function detectProactiveTriggers(
   }
 
   // Challenge triggers
-  if (metrics.consistencyIndex > 70 && !habitHealth.keystoneActive) {
+  // The metrics are scores over habits; with none they are defaults, not facts (#3044).
+  const hasHabits = habitHealth.activeHabits > 0;
+  if (hasHabits && metrics.consistencyIndex > 70 && !habitHealth.keystoneActive) {
     triggers.push({
       type: 'challenge',
       message: 'Consistency is strong - ready to identify a keystone habit',
@@ -70,7 +72,7 @@ export function detectProactiveTriggers(
     });
   }
 
-  if (metrics.momentumScore > 70 && habitHealth.activeHabits < 5) {
+  if (hasHabits && metrics.momentumScore > 70 && habitHealth.activeHabits < 5) {
     triggers.push({
       type: 'challenge',
       message: 'High momentum - consider adding a new tiny habit',
@@ -80,7 +82,7 @@ export function detectProactiveTriggers(
   }
 
   // Insight triggers
-  if (metrics.cascadePotential > 60) {
+  if (hasHabits && metrics.cascadePotential > 60) {
     triggers.push({
       type: 'insight',
       message: 'Habits are starting to cascade - help them see the connections',
