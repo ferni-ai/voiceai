@@ -24,8 +24,10 @@
  * @module tools/domains/communication/outreach/outreach-confirm
  */
 
+import { flagOn } from '../../../../config/env-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
+import { liveSessionIdOf } from '../../../registry/live-session.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { dropConfirmThread, openConfirmThread, sentConfirmThread } from './confirm-thread.js';
 import { serverConfirmOn, type Kin } from './outreach-confirm-family.js';
@@ -105,6 +107,11 @@ function logFor(session: object): SessionLog {
   const entry = sessions.get(session) ?? { seq: 0, events: [] };
   sessions.set(session, entry);
   return entry;
+}
+
+/** The read-back waiting on this caller's yes, if any (telephony/call-status-tool.ts). */
+export function pendingFor(session: object | undefined): PendingAction | undefined {
+  return session ? sessions.get(session)?.pending : undefined;
 }
 
 /** Whether the person on this call is known not to be the account owner (outreachConfirmListeners). */
@@ -336,7 +343,8 @@ export interface ConfirmSpec {
   prepare: (
     args: Record<string, unknown>,
     userId: string,
-    plan: (args: Record<string, unknown>) => Promise<unknown>
+    plan: (args: Record<string, unknown>) => Promise<unknown>,
+    session?: object
   ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
   /**
    * Whether a call (to any tool with this spec) is the action read back, `stored` being the
@@ -344,6 +352,26 @@ export interface ConfirmSpec {
    * a spec with `sameAction` must take the same args (callOnBehalf, callAndConverse).
    */
   sameAction?: (stored: Record<string, unknown>, next: Record<string, unknown>) => boolean;
+  /**
+   * Run on the caller's yes, just before the action it confirmed (never for a plan), with the
+   * prepared args and this session's id: e.g. keep a number the owner gave (owner-contact.ts).
+   */
+  onYes?: (args: Record<string, unknown>, userId: string, sessionId?: string) => Promise<unknown>;
+}
+
+/**
+ * The tool's execute, with spec.onYes first whenever it runs an action rather than a plan. The
+ * session id is the live call's (live-session.ts): prod builds these tools without one.
+ */
+function withOnYes(spec: ConfirmSpec, ctx: ToolContext, execute: Execute): Execute {
+  const { onYes } = spec;
+  if (!onYes) return execute;
+  return async (a, o) => {
+    const args = (a ?? {}) as Record<string | symbol, unknown>;
+    const sessionId = liveSessionIdOf(o) ?? ctx.sessionId;
+    if (!args[PLAN_ONLY]) await onYes(args as Record<string, unknown>, ctx.userId, sessionId);
+    return execute(a, o);
+  };
 }
 
 /** What OUTREACH_SERVER_CONFIRM's half (outreach-server-confirm.ts) borrows from this gate. */
@@ -356,6 +384,21 @@ const serverGate: ConfirmGate = {
   planOnly: PLAN_ONLY,
   planned: PLANNED,
 };
+const CALL_CHANNELS = ['call', 'voicemail', 'conversation'];
+
+/**
+ * MESSAGING_PIPELINE: the owner's yes to a planned text or call is their
+ * attestation that the contact is happy to hear from Ferni on that channel,
+ * recorded only for a friends-and-family owner (consent-grants.ts).
+ */
+async function attestOnConfirm(userId: string, args: Record<string, unknown>): Promise<void> {
+  const planned = (args as { [PLANNED]?: Planned })[PLANNED];
+  if (!planned?.to || planned.channel === 'email') return;
+  if (!flagOn('MESSAGING_PIPELINE')) return;
+  const { recordOwnerAttestation } = await import('../../../../utils/consent-port.js');
+  const channel = CALL_CHANNELS.includes(planned.channel) ? 'call' : 'sms';
+  await recordOwnerAttestation(planned.to, channel, userId);
+}
 
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
@@ -364,7 +407,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
     ...def,
     create: (ctx: ToolContext): Tool => {
       const tool = def.create(ctx);
-      const execute = (tool as { execute: Execute }).execute.bind(tool);
+      const execute = withOnYes(spec, ctx, (tool as { execute: Execute }).execute.bind(tool));
       const gate = { gate: serverGate, toolId: def.id, spec, execute };
       const gated = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
         if (spec.applies && !spec.applies(args)) return execute(args, opts);
@@ -399,12 +442,16 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
             { toolId: def.id, previewedBy: pending.toolId },
             'OUTREACH_CONFIRM: caller said yes, sending'
           );
+          await attestOnConfirm(ctx.userId, pending.args);
           return sentConfirmThread(pending, execute(pending.args, opts));
         }
         if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent
         entry.pending = undefined;
-        const prepared = await spec.prepare(args, ctx.userId, async (a) =>
-          execute({ ...a, [PLAN_ONLY]: true }, opts)
+        const prepared = await spec.prepare(
+          args,
+          ctx.userId,
+          async (a) => execute({ ...a, [PLAN_ONLY]: true }, opts),
+          session
         );
         if (typeof prepared === 'string') return prepared;
         entry.pending = {

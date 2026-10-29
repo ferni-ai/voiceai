@@ -50,8 +50,10 @@ async function getTeamInsights(
   userId: string
 ): Promise<void> {
   try {
-    // Build insight briefing for all personas (use 'ferni' as default target)
-    const briefing = await buildInsightBriefingForHandoff(userId, 'ferni' as PersonaId);
+    // Read the stored insights now: the voice agent (another process) writes them
+    const briefing = await buildInsightBriefingForHandoff(userId, 'ferni' as PersonaId, {
+      fresh: true,
+    });
     const teamStatus = await generateTeamStatus(userId);
 
     // Format insights for frontend
@@ -116,7 +118,9 @@ async function triggerInsightScan(
     await scanForCrossPersonaInsights(userId);
 
     // Return the updated insights
-    const briefing = await buildInsightBriefingForHandoff(userId, 'ferni' as PersonaId);
+    const briefing = await buildInsightBriefingForHandoff(userId, 'ferni' as PersonaId, {
+      fresh: true,
+    });
 
     sendJSON(res, {
       success: true,

@@ -97,6 +97,11 @@ export interface OnBehalfCallRequest {
 
   /** Set on the one retry of a missed call: the call it retries. */
   retryOf?: string;
+
+  /** The owner explicitly asked to call now (CALL_NOW_OWNER_OVERRIDE, call-now-override.ts). */
+  callNow?: boolean;
+  /** The owner said yes again after hearing it's late or early where the callee is. */
+  lateConfirmed?: boolean;
 }
 
 export interface CallOutcome {
@@ -118,4 +123,7 @@ export interface CallOutcome {
 
   /** What the person asked Ferni to pass on to the user, in their (screened) words. */
   message?: string;
+
+  /** status 'voicemail' only: Ferni really spoke a message (services/outreach/voicemail-outcome.ts). */
+  voicemailLeft?: boolean;
 }

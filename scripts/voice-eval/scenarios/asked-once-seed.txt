@@ -1,0 +1,6 @@
+# Call 1 of 3 (asked-once, memory audit 2026-10-25): the caller mentions a dated plan with a
+# named friend that is already over, so the next call has a passed date to ask about
+# (FRIEND_FOLLOWUPS, dates/recall.ts). They don't say how it went yet.
+Hey Ferni, quick one tonight.
+I finally had dinner with my friend Priya last night. We'd been trying to plan it for months.
+I'll tell you about it another time. I'm wiped. Talk soon.

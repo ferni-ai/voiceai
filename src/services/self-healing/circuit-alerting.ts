@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getEmailSender } from '../email-transport/index.js';
 import type { CircuitState } from './circuit-breaker.js';
 
 const log = createLogger({ module: 'circuit-alerting' });
@@ -245,26 +246,18 @@ async function sendEmailAlert(event: CircuitEvent, severity: AlertSeverity): Pro
     return false;
   }
 
-  const apiKey = process.env.SENDGRID_API_KEY;
-  if (!apiKey) {
+  // The app transport: the ferni.ai Workspace mailbox
+  const mail = getEmailSender();
+  if (!mail.isConfigured()) {
     return false;
   }
 
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: config.alertEmail }] }],
-        from: { email: 'alerts@ferni.ai', name: 'Ferni Alerts' },
-        subject: `🚨 Circuit Breaker OPEN: ${event.circuitName}`,
-        content: [
-          {
-            type: 'text/plain',
-            value: `Circuit Breaker Alert
+  const res = await mail.send({
+    to: config.alertEmail,
+    fromName: 'Ferni Alerts',
+    subject: `🚨 Circuit Breaker OPEN: ${event.circuitName}`,
+    kind: 'transactional',
+    text: `Circuit Breaker Alert
 
 Service: ${event.circuitName}
 State Change: ${event.oldState} → ${event.newState}
@@ -276,17 +269,11 @@ ${event.details?.failures !== undefined ? `Failure Count: ${event.details.failur
 This is an automated alert from Ferni's self-healing system.
 Check the circuit breaker dashboard: https://app.ferni.ai/health/circuits
 `,
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    return response.ok || response.status === 202;
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to send email alert');
-    return false;
+  });
+  if (!res.ok) {
+    log.warn({ provider: res.provider, status: res.status, error: res.error }, 'Failed to send email alert'); // prettier-ignore
   }
+  return res.ok;
 }
 
 // ============================================================================

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 // In-memory Firestore: collection -> doc id -> data
 const { store, email } = vi.hoisted(() => ({
@@ -166,7 +166,10 @@ describe('waitlist check', () => {
   });
 
   it('admin approval: a founding member on the free tier, an existing active grant keeps its tier', async () => {
-    vi.stubEnv('SENDGRID_API_KEY', ''); // the welcome email is skipped, never sent
+    // An unconfigured transport: the welcome email is skipped, never sent.
+    const { setEmailSenderForTests } = await import('../../services/email-transport/index.js');
+    setEmailSenderForTests({ provider: 'gmail', isConfigured: () => false, send: vi.fn() });
+    onTestFinished(() => setEmailSenderForTests(null));
     const fresh = 'fresh@example.com';
     coll('waitlist').set(docId(fresh), { email: fresh, status: 'pending' });
     expect((await approve(fresh)).status).toBe(200);

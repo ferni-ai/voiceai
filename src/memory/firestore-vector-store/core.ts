@@ -270,9 +270,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     await this.initialize();
   }
 
-  /**
-   * Add a document to the vector store.
-   */
+  /** Add a document to the vector store. */
   async addDocument(doc: VectorDocument): Promise<void> {
     await this.ensureInitialized();
 
@@ -310,6 +308,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         metadata: doc.metadata,
         createdAt: new Date(),
         updatedAt: new Date(),
+        expireAt: doc.expireAt, // a policy's expiry (store-hooks.ts); none is kept
         needsEmbedding, // Flag for background job to retry embedding generation
       });
 
@@ -364,9 +363,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
   /** Remove a document from the store; true only when the persisted copy is gone. */
   async removeDocument(id: string): Promise<boolean> {
     await this.ensureInitialized();
-
     this.fallbackCache.delete(id);
-
     if (this.useFallback || !this.db) {
       return false; // only the cache was reached
     }
@@ -381,9 +378,13 @@ export class FirestoreVectorStore implements VectorStoreContract {
     }
   }
 
-  /**
-   * Get a document by ID.
-   */
+  /** MINOR_CARE purge: the cache's documents (migrated to Firestore on recovery); fallback mode. */
+  async cached(filter?: VectorFilter): Promise<{ docs: VectorDocument[]; fallback: boolean }> {
+    await this.ensureInitialized();
+    return { docs: this.fallbackCache.list(filter), fallback: this.useFallback || !this.db };
+  }
+
+  /** Get a document by ID. */
   async getDocument(id: string): Promise<VectorDocument | undefined> {
     await this.ensureInitialized();
 
@@ -553,7 +554,6 @@ export class FirestoreVectorStore implements VectorStoreContract {
           score: topKResult.similarities[i],
         }));
 
-        // Cache the results
         this.searchCache.set(query, queryEmbedding, results, options?.filter, { topK, minScore });
         return results;
       }

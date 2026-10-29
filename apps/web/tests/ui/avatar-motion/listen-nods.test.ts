@@ -3,11 +3,12 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { MOTION_FLAG_KEYS } from '../../../src/config/motion-flags.js';
+
 import {
   createListenNods,
   isListenNodsEnabled,
   listenCueFrom,
-  LISTEN_NODS_FLAG_KEY,
   MAX_WIRE_DELAY_MS,
   MIN_NOD_GAP_MS,
   type ListenNodDeps,
@@ -172,16 +173,16 @@ describe('createListenNods', () => {
 });
 
 describe('isListenNodsEnabled', () => {
-  beforeEach(() => localStorage.removeItem(LISTEN_NODS_FLAG_KEY));
+  beforeEach(() => localStorage.removeItem(MOTION_FLAG_KEYS.listenNods));
 
   it('is off by default', () => {
     expect(isListenNodsEnabled()).toBe(false);
   });
 
   it('is on only for the string true', () => {
-    localStorage.setItem(LISTEN_NODS_FLAG_KEY, '1');
+    localStorage.setItem(MOTION_FLAG_KEYS.listenNods, '1');
     expect(isListenNodsEnabled()).toBe(false);
-    localStorage.setItem(LISTEN_NODS_FLAG_KEY, 'true');
+    localStorage.setItem(MOTION_FLAG_KEYS.listenNods, 'true');
     expect(isListenNodsEnabled()).toBe(true);
   });
 });

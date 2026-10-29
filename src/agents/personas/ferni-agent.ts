@@ -30,6 +30,7 @@ import { generateReply } from '../shared/generate-reply-gateway.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { dropLeadingSaidBy } from './said-by.js';
+import { withCutReplyCheck } from './cut-reply-guard.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
@@ -671,9 +672,9 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   /**
    * Every LLM request goes through here: crisis-gated with the turn reminder (crisis-gate.ts),
    * this turn's tools, no empty tool result (tool-output-guard.ts), no claimed action no tool
-   * did (action-claim-guard.ts), no capped "you still there?" (presence-check.ts), no
-   * leading "(Name said:)" copied off a handoff's marked history (said-by.ts). An
-   * unprompted reply gets a caller turn, not the SDK's "." (caller-turn.ts), and a tool
+   * did (action-claim-guard.ts), no capped "you still there?" (presence-check.ts), no leading
+   * "(Name said:)" off a handoff's history (said-by.ts), no copied cut-off mark, repeats logged
+   * (cut-reply-guard.ts). An unprompted reply gets a caller turn (caller-turn.ts), and a tool
    * call written as text is never spoken, captioned or saved (tool-markup-strip.ts).
    */
   async llmNode(
@@ -685,7 +686,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const sessionId = (this.session.userData?.services as { sessionId?: string } | undefined)
       ?.sessionId;
-    const model = async (request: llm.ChatContext) => {
+    const model = withCutReplyCheck(this.session, async (request: llm.ChatContext) => {
       const ctx = withCallerTurn(request);
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
       const text = withToolMarkupStrip(
@@ -693,7 +694,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
         logToolMarkup('llm', sessionId)
       );
       return withActionClaimCheck(text, ctx, tools, this.session.userData) as never;
-    };
+    });
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;
   }
@@ -701,7 +702,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
 
   /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
-  private readonly openerGate = new OpenerGate();
+  private readonly openerGate = new OpenerGate().forSession(() => this.session);
 
   /**
    * Replies go through the shared wrappedTtsNode (../shared/tts-wrapper.ts): leaked JSON tool

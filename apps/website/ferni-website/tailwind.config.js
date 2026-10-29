@@ -1,3 +1,5 @@
+const generated = require('./tailwind.config.generated.js');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -6,105 +8,15 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Ferni Design System Colors - References CSS variables from design-tokens.css
+      // Colours come from the generated file (CSS variable references from
+      // design-system/tokens), including the theme-role utilities bg-surface-*,
+      // text-primary/secondary/muted and border-subtle/strong.
       // Note: Opacity modifiers (bg-ferni/50) won't work with CSS vars - use glow variants instead
+      backgroundColor: generated.backgroundColor,
+      textColor: generated.textColor,
+      borderColor: generated.borderColor,
       colors: {
-        // Zen Theme (Light Mode) - Primary
-        paper: {
-          DEFAULT: 'var(--color-bg-primary)',
-          cream: 'var(--color-bg-elevated)',
-          sand: 'var(--color-bg-secondary)',
-          warm: '#ebe6df', // Not in tokens yet
-        },
-        ink: {
-          DEFAULT: 'var(--color-text-primary)',
-          muted: 'var(--color-text-secondary)',
-          light: 'var(--color-text-muted)',
-          faded: 'var(--color-text-dimmed)',
-        },
-        // Accent (CTA buttons, links)
-        accent: {
-          DEFAULT: 'var(--color-accent)',
-          hover: 'var(--color-accent-hover)',
-          pressed: 'var(--color-accent-pressed)',
-          glow: 'var(--color-accent-glow)',
-        },
-        // Persona Colors - Single source of truth from design-tokens.css
-        ferni: {
-          DEFAULT: 'var(--color-ferni)',
-          dark: 'var(--color-ferni-secondary)',
-          glow: 'var(--color-ferni-glow)',
-        },
-        jack: {
-          DEFAULT: 'var(--color-jack)',
-          dark: 'var(--color-jack-secondary)',
-          glow: 'var(--color-jack-glow)',
-        },
-        peter: {
-          DEFAULT: 'var(--color-peter)',
-          dark: 'var(--color-peter-secondary)',
-          glow: 'var(--color-peter-glow)',
-        },
-        alex: {
-          DEFAULT: 'var(--color-alex)',
-          dark: 'var(--color-alex-secondary)',
-          glow: 'var(--color-alex-glow)',
-        },
-        maya: {
-          DEFAULT: 'var(--color-maya)',
-          dark: 'var(--color-maya-secondary)',
-          glow: 'var(--color-maya-glow)',
-        },
-        jordan: {
-          DEFAULT: 'var(--color-jordan)',
-          dark: 'var(--color-jordan-secondary)',
-          glow: 'var(--color-jordan-glow)',
-        },
-        nayan: {
-          DEFAULT: 'var(--color-nayan)',
-          dark: 'var(--color-nayan-secondary)',
-          glow: 'var(--color-nayan-glow)',
-        },
-        // Marketplace personas
-        eli: {
-          DEFAULT: 'var(--color-eli)',
-          dark: 'var(--color-eli-secondary)',
-          glow: 'var(--color-eli-glow)',
-        },
-        marcus: {
-          DEFAULT: 'var(--color-marcus)',
-          dark: 'var(--color-marcus-secondary)',
-          glow: 'var(--color-marcus-glow)',
-        },
-        kenji: {
-          DEFAULT: 'var(--color-kenji)',
-          dark: 'var(--color-kenji-secondary)',
-          glow: 'var(--color-kenji-glow)',
-        },
-        carmen: {
-          DEFAULT: 'var(--color-carmen)',
-          dark: 'var(--color-carmen-secondary)',
-          glow: 'var(--color-carmen-glow)',
-        },
-        amara: {
-          DEFAULT: 'var(--color-amara)',
-          dark: 'var(--color-amara-secondary)',
-          glow: 'var(--color-amara-glow)',
-        },
-        sasha: {
-          DEFAULT: 'var(--color-sasha)',
-          dark: 'var(--color-sasha-secondary)',
-          glow: 'var(--color-sasha-glow)',
-        },
-        ray: {
-          DEFAULT: 'var(--color-ray)',
-          dark: 'var(--color-ray-secondary)',
-          glow: 'var(--color-ray-glow)',
-        },
-        // Semantic
-        success: 'var(--color-success)',
-        error: 'var(--color-error)',
-        warning: 'var(--color-warning)',
+        ...generated.colors,
         // Night theme colors for dark sections
         night: {
           DEFAULT: '#1a1512',

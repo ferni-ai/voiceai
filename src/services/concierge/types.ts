@@ -220,10 +220,6 @@ export interface ConciergeResultData {
   // Additional notes
   notes?: string;
   caveats?: string[];
-
-  // Reply content (from SMS/email webhooks)
-  messageBody?: string;
-  emailBody?: string;
 }
 
 export interface ConciergeRecommendation {

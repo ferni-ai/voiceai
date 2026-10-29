@@ -44,7 +44,10 @@ const FIRST_PERSON =
 const URL_LIKE = /\b(?:https?:\/\/|www\.)\S+/giu;
 const EMAIL_LIKE = /\S+@\S+/gu;
 const DOMAIN_LIKE = /[\p{L}\p{N}-]+[.。｡][\p{L}]{2,}\S*/gu;
-const PHONE_LIKE = /\+?\d[\d\s().-]{6,}\d/gu;
+// Any script's digits (NFKC leaves Arabic-Indic ones alone) and any dash, slash,
+// underscore or backslash: cleanItem turns dashes into ", " after this runs, so
+// "415–555–0132" has to go here or it reaches the brief as "415, 555, 0132".
+const PHONE_LIKE = /\+?\p{Nd}[\p{Nd}\s()._/\\\-\u2010-\u2015\u2212\uFE58\uFE63]{6,}\p{Nd}/gu;
 
 // Invisible and pictographic characters go first: removed after the scrub, they
 // could join "evil.🙂com" back into a link.

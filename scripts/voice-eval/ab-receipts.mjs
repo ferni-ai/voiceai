@@ -30,7 +30,24 @@ export const METRICS = [
     pick: (r) => (r.tokens?.prompt ? (100 * (r.tokens.promptCached ?? 0)) / r.tokens.prompt : null),
   },
   { name: 'pauseHoldMs', pick: (r) => r.pauseHoldMs },
+  // Tool turns (turn-receipt-tool-timing.ts, 2026-10-25): null on receipts written before.
+  {
+    name: 'toolFirstAudioMs',
+    pick: (r) => (r.tools?.called?.length ? r.timing?.firstAudioMs : null),
+  },
+  { name: 'answerAudioMs', pick: (r) => r.audio?.answerAudioMs },
+  { name: 'ackClipMs', pick: (r) => r.audio?.ackClipMs },
+  {
+    name: 'llmRequests',
+    pick: (r) => r.timing?.requests?.filter((q) => !q.cancelled).length ?? null,
+  },
+  { name: 'toolExecMs', pick: (r) => sumOrNull(Object.values(r.tools?.execMs ?? {})) },
 ];
+
+/** The sum of a turn's numbers, or null when it has none. */
+export function sumOrNull(xs) {
+  return xs.length ? xs.reduce((n, x) => n + x, 0) : null;
+}
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 

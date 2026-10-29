@@ -41,7 +41,7 @@ const REQUIRED_CI = [
 function ciRun(d: string, id: string, jobs: Record<string, string> = {}): string {
   const all: Record<string, string> = {
     'Setup & Cache Dependencies': 'success',
-    'Overlay Gallery (visual + contrast)': 'skipped', // not required
+    'Overlay Gallery (visual + contrast)': 'skipped', // required on PRs only; skipped in queue and push runs
     ...Object.fromEntries(REQUIRED_CI.map((n) => [n, 'success'])),
     ...jobs,
   };

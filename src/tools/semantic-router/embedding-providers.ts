@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { EmbeddingApiError } from '../../utils/embedding-api-error.js';
 import { getCachedEmbedding, cacheEmbedding } from './registry.js';
 import type { EmbeddingProvider, EmbeddingVector } from './types.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
@@ -73,8 +74,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI embedding failed: ${error}`);
+      throw new EmbeddingApiError('OpenAI', response.status);
     }
 
     const data = (await response.json()) as {
@@ -133,8 +133,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
         });
 
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`OpenAI batch embedding failed: ${error}`);
+          throw new EmbeddingApiError('OpenAI', response.status);
         }
 
         const data = (await response.json()) as {
@@ -204,8 +203,7 @@ export class GoogleEmbeddingProvider implements EmbeddingProvider {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Google embedding failed: ${error}`);
+      throw new EmbeddingApiError('Google', response.status);
     }
 
     const data = (await response.json()) as {
@@ -269,8 +267,7 @@ export class GoogleEmbeddingProvider implements EmbeddingProvider {
         );
 
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Google batch embedding failed: ${error}`);
+          throw new EmbeddingApiError('Google', response.status);
         }
 
         const data = (await response.json()) as {

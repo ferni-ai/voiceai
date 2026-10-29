@@ -50,6 +50,31 @@ export function compare(baseline: Baseline, current: Record<string, number>): Ro
   });
 }
 
+/** EVAL_GATE_SUITES ("a,b"): the suites to run, in `all` order; unset or blank runs all. */
+export function selectSuites(spec: string | undefined, all: readonly string[]): string[] {
+  const picked = (spec ?? '').split(',').map((s) => s.trim()).filter(Boolean); // prettier-ignore
+  const unknown = picked.filter((s) => !all.includes(s));
+  if (unknown.length) throw new Error(`unknown eval suite(s): ${unknown.join(', ')}`);
+  return picked.length ? all.filter((s) => picked.includes(s)) : [...all];
+}
+
+/**
+ * The baseline limited to the metrics of `suites` (metric names are
+ * `<suite>.<metric>`). Inside a chosen suite a missing metric still fails.
+ */
+export function onlySuites(baseline: Baseline, suites: readonly string[]): Baseline {
+  const of = (s: string) => (name: string) => name.startsWith(`${s}.`);
+  const names = Object.keys(baseline.metrics);
+  for (const s of suites)
+    if (!names.some(of(s))) throw new Error(`${baseline.suite}: no baseline metrics for ${s}`);
+  const metrics = Object.fromEntries(
+    Object.entries(baseline.metrics).filter(([name]) => suites.some((s) => of(s)(name)))
+  );
+  const partial = Object.keys(metrics).length < names.length;
+  const suite = partial ? `${baseline.suite}, only ${suites.join(', ')}` : baseline.suite;
+  return { ...baseline, suite, metrics };
+}
+
 export const failed = (rows: Row[]): boolean =>
   rows.some((r) => r.status === 'REGRESSED' || r.status === 'MISSING');
 
@@ -99,13 +124,19 @@ export function serialize(b: Baseline): string {
   return `${head.slice(0, -2)},\n  "metrics": {\n${rows.join(',\n')}\n  }\n}\n`;
 }
 
-/** Print and summarize the comparison (or rewrite the baseline); 1 on any regression. */
+/**
+ * Print and summarize the comparison (or rewrite the baseline); 1 on any
+ * regression. With `suites`, only those suites' metrics are compared; a
+ * re-baseline always needs every metric.
+ */
 export function report(
   path: string,
   current: Record<string, number>,
-  args: readonly string[]
+  args: readonly string[],
+  suites?: readonly string[]
 ): number {
-  const baseline = readBaseline(path);
+  const full = readBaseline(path);
+  const baseline = suites && !args.includes('--write-baseline') ? onlySuites(full, suites) : full;
   if (args.includes('--write-baseline')) {
     writeFileSync(
       path,

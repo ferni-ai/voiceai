@@ -520,78 +520,16 @@ export async function generatePrompt(
 // VOICE LIBRARY (Pre-made voices)
 // ============================================================================
 
-export interface PreMadeVoice {
-  id: string;
-  name: string;
-  descriptionKey: string;
-  previewUrl: string;
-  gender: 'male' | 'female' | 'neutral';
-  age: 'young' | 'middle' | 'mature';
-  accent?: string;
-  tags: string[];
-}
-
-const VOICE_LIBRARY: PreMadeVoice[] = [
-  {
-    id: 'cartesia-friendly-female',
-    name: 'Emma',
-    descriptionKey: 'voiceLibrary.emma.description',
-    previewUrl: '/assets/voice-previews/emma.mp3',
-    gender: 'female',
-    age: 'middle',
-    tags: ['warm', 'friendly', 'supportive'],
-  },
-  {
-    id: 'cartesia-professional-male',
-    name: 'James',
-    descriptionKey: 'voiceLibrary.james.description',
-    previewUrl: '/assets/voice-previews/james.mp3',
-    gender: 'male',
-    age: 'mature',
-    tags: ['professional', 'authoritative', 'clear'],
-  },
-  {
-    id: 'cartesia-gentle-female',
-    name: 'Sarah',
-    descriptionKey: 'voiceLibrary.sarah.description',
-    previewUrl: '/assets/voice-previews/sarah.mp3',
-    gender: 'female',
-    age: 'mature',
-    tags: ['gentle', 'soothing', 'warm'],
-  },
-  {
-    id: 'cartesia-energetic-male',
-    name: 'Alex',
-    descriptionKey: 'voiceLibrary.alex.description',
-    previewUrl: '/assets/voice-previews/alex.mp3',
-    gender: 'male',
-    age: 'young',
-    tags: ['energetic', 'motivating', 'dynamic'],
-  },
-  {
-    id: 'cartesia-calm-neutral',
-    name: 'Morgan',
-    descriptionKey: 'voiceLibrary.morgan.description',
-    previewUrl: '/assets/voice-previews/morgan.mp3',
-    gender: 'neutral',
-    age: 'middle',
-    tags: ['calm', 'balanced', 'neutral'],
-  },
-];
-
-/**
- * Gets the list of available pre-made voices
- */
-export function getVoiceLibrary(): PreMadeVoice[] {
-  return VOICE_LIBRARY;
-}
-
-/**
- * Gets a specific voice from the library
- */
-export function getVoiceFromLibrary(voiceId: string): PreMadeVoice | undefined {
-  return VOICE_LIBRARY.find((v) => v.id === voiceId);
-}
+export {
+  getVoiceFromLibrary,
+  getVoiceLibrary,
+  getVoiceLibraryFailedAt,
+  getVoiceLibraryState,
+  loadVoiceLibrary,
+  voicePreviewUrl,
+  type PreMadeVoice,
+  type VoiceLibraryState,
+} from './voice-library.service.js';
 
 // ============================================================================
 // AGENT TYPE HELPERS

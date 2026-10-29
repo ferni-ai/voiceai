@@ -69,7 +69,7 @@ describe('backchannel_played', () => {
     ok = false;
     expect(play(LAUGH_CLIP)).toBe(false);
     expect(send.mock.calls).toEqual([
-      ['backchannel_played', { kind: 'backchannel', wireDelayMs: 57 }],
+      ['backchannel_played', { kind: 'backchannel', wireDelayMs: 57, label: 'Mm-hmm' }],
     ]);
   });
 
@@ -82,8 +82,8 @@ describe('backchannel_played', () => {
     expect(clips!.live.playClip(LAUGH_CLIP)).toBe(true);
     await flush();
     expect(sent).toEqual([
-      { type: 'backchannel_played', kind: 'backchannel', wireDelayMs: 650 },
-      { type: 'backchannel_played', kind: 'laugh', wireDelayMs: 650 },
+      { type: 'backchannel_played', kind: 'backchannel', wireDelayMs: 650, label: 'Mm-hmm' },
+      { type: 'backchannel_played', kind: 'laugh', wireDelayMs: 650, label: 'laughter' },
     ]);
     // The turn-opening clip goes through the top-level playClip: no nod.
     expect(clips!.playClip('Hmm')).toBe(true);

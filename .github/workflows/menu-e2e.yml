@@ -57,7 +57,7 @@ jobs:
       - id: menu
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(apps/web/|src/(api|servers|services|memory|config|types|utils)/|e2e/signed-in/|playwright\.(signed-in|menu-e2e)\.config\.ts$|firebase\.json$|firestore\.(rules|indexes\.json)$|package\.json$|pnpm-lock\.yaml$|scripts/ci/menu-e2e-no-skips\.mjs$|\.github/workflows/menu-e2e\.yml$|\.github/actions/)'
+          include: '^(apps/web/|src/(api|servers|services|memory|config|types|utils)/|e2e/signed-in/|playwright\.(signed-in|menu-e2e)\.config\.ts$|firebase\.json$|firestore\.(rules|indexes\.json)$|package\.json$|pnpm-lock\.yaml$|scripts/ci/(menu-e2e-no-skips|prod-web-flags)\.mjs$|\.github/workflows/deploy-firebase\.yml$|deploy/ui-server/env\.yaml$|\.github/workflows/menu-e2e\.yml$|\.github/actions/)'
           merge-group: 'true'
 
   contracts:
@@ -167,7 +167,13 @@ jobs:
           LIVEKIT_URL: wss://livekit.localhost.invalid
           LIVEKIT_API_KEY: ci-placeholder
           LIVEKIT_API_SECRET: ci-placeholder-not-a-secret
+          JOURNAL_ONE_STORE: 'on' # as on the prod web server: the Chronicle can edit and delete
+        # With prod's on/off flags (deploy/ui-server/env.yaml): MEMORY_VIEW=on answers What Ferni Knows
         run: |
+          # No pipe: a failed read must fail the step (the default shell has no pipefail)
+          node scripts/ci/prod-web-flags.mjs server > e2e-logs/server-flags.env
+          cat e2e-logs/server-flags.env
+          set -a; . e2e-logs/server-flags.env; set +a
           nohup npx tsx src/servers/api/index.ts > e2e-logs/api.log 2>&1 &
           for _ in $(seq 1 90); do
             curl -s -o /dev/null http://localhost:3002/api/ecobee/status && exit 0
@@ -175,8 +181,25 @@ jobs:
           done
           echo "::error::API server did not start"; tail -80 e2e-logs/api.log; exit 1
 
-      - name: Start web app (emulator sign-in)
+      # Built with prod's VITE_* flags (deploy-firebase.yml, resolved from the repo variables),
+      # so the walk sees app.ferni.ai's menu: What Ferni Knows, Chip In, no Your Contribution.
+      - name: Start web app (emulator sign-in, prod flags)
         working-directory: apps/web
+        # Only the variables deploy-firebase.yml builds with (prod-web-flags.mjs checks the
+        # list both ways); never toJSON(vars), since a step's env is printed in a public log.
+        # The Venmo handle never enters the job: only whether it is set; the walk uses a placeholder.
+        env:
+          PROD_VAR_VITE_VENMO_CHIP_IN: ${{ vars.VITE_VENMO_CHIP_IN }}
+          PROD_VAR_VITE_VENMO_HANDLE_SET: ${{ vars.VITE_VENMO_HANDLE != '' }}
+          PROD_VAR_VITE_CAPTIONS_V2: ${{ vars.VITE_CAPTIONS_V2 }}
+          PROD_VAR_VITE_CAPTIONS_BREATH: ${{ vars.VITE_CAPTIONS_BREATH }}
+          PROD_VAR_VITE_CAPTIONS_HEARD: ${{ vars.VITE_CAPTIONS_HEARD }}
+          PROD_VAR_VITE_MEMORY_VIEW: ${{ vars.VITE_MEMORY_VIEW }}
+          PROD_VAR_VITE_PROMISES_PANEL: ${{ vars.VITE_PROMISES_PANEL }}
+          PROD_VAR_VITE_TOAST_REGION: ${{ vars.VITE_TOAST_REGION }}
+          PROD_VAR_VITE_TRY_FIRST: ${{ vars.VITE_TRY_FIRST }}
+          PROD_VAR_VITE_APPLE_WEB_SIGNIN: ${{ vars.VITE_APPLE_WEB_SIGNIN }}
+          PROD_VAR_VITE_CALL_WRAP_UP: ${{ vars.VITE_CALL_WRAP_UP }}
         run: |
           cat > .env.development.local <<'EOF'
           VITE_USE_FIREBASE_EMULATORS=true
@@ -187,6 +210,8 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
           VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
           EOF
+          node ../../scripts/ci/prod-web-flags.mjs web >> .env.development.local
+          node ../../scripts/ci/prod-web-flags.mjs diff >> "$GITHUB_STEP_SUMMARY"
           nohup pnpm exec vite --port 3004 --strictPort > ../../e2e-logs/web.log 2>&1 &
           for _ in $(seq 1 90); do
             curl -sf http://localhost:3004 >/dev/null && exit 0

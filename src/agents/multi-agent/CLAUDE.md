@@ -99,7 +99,33 @@ await orchestrator.handoff({
 | `persona-agent-factory.ts` | Creates agents with full capabilities |
 | `agent-setup.ts` | Reusable agent setup (Gemini, TTS, handlers) |
 | `multi-agent-entry.ts` | Entry point for multi-agent sessions |
+| `greeting-direction.ts` | The hello: what the director is told, and the lines it turns away |
+| `first-call-stranger.ts` | A first meeting's hello: no tease, no shared past |
+| `unknown-caller-honest.ts` | A caller Ferni can't place: met, never promised memory (`UNKNOWN_CALLER_HONEST`) |
 | `index.ts` | Exports |
+
+## Callers Ferni Can't Place
+
+A caller with no account (`isMemberIdentity` false: an `anon:` id, minted fresh for
+every unrecognised call) and no past calls. Nothing is stored for them, and the next
+call has a new id, so Ferni starts from nothing every time (#3002).
+
+With `UNKNOWN_CALLER_HONEST=on` (default off):
+
+- **The hello** is a first meeting's (`UNPLACED_GREETING_DIRECTION`): warm, no tease,
+  no shared past, and no claim that it is their first call, since it may be their
+  fifth. Lines like "speak of the devil" or "I was just thinking about you" are
+  turned away for the scripted stranger's hello (#3007).
+- **The model's instructions** say nothing from the call is kept and never to promise
+  to remember them or follow up. No pitch to sign in: the note is built before anyone
+  says their age, and Ferni is 18+, so a caller who sounds under 18 must never be
+  steered toward an account (`MINOR_CARE_NOTE` answers for them). A `RETURNING_CALLER`
+  lookup keeps a first name and one line for 30 days, and the note says so instead.
+- **Call-start awareness** says "you don't know who this is yet", not "first
+  conversation" (`firstTalkNote`).
+
+Members (accounts, `phone:`, `device:`, test accounts) and calls Ferni places are
+unchanged.
 
 ## Integration Status
 
@@ -195,6 +221,13 @@ const { orchestrator } = await initializeMultiAgentSession({
 1. **Startup Time**: Each new agent takes ~2-3 seconds to initialize (Gemini session + TTS + handlers)
 2. **Cost**: Two agents briefly overlap during handoff (both running momentarily)
 3. **Tools**: Uses existing JSON function calling workaround (all tools available)
+
+## Tool sets per agent
+
+Every agent build (first agent, handoff, fallback) runs `withAlwaysOnTools` (`everyday-basics.ts`), then the 64 cap in `agent-setup.ts`; mid-call offers go through `updateAgentTools` (`shared/tool-updater.ts`).
+
+- `SPECIALIST_TOOLS`: a specialist gets its own list (`specialist-tool-sets.ts`).
+- `PERSONA_TOOLSETS`: every persona gets one fixed set of 40 tools or fewer (`persona-toolsets.ts`, picks in `persona-toolset-picks.ts`): the shared core with the safety set first, the session's team tools, then its beat and head tools. Mid-call offers add nothing; a handoff builds the next persona's set. The invariant test holds the safety set identical on every persona.
 
 ## Production Deployment
 

@@ -24,12 +24,23 @@ const python3 = spawnSync('/bin/sh', ['-c', 'command -v python3'], {
 }).stdout.trim();
 
 /** A fake root + HOME; every stub appends one line to EVENTS, in order. */
-function sandbox(lanes, { claimErr = '', runSh = '' } = {}) {
+function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
   const t = mkdtempSync(join(tmpdir(), 'nightly-run-'));
   const ev = join(t, 'events.log');
   const n = join(t, 'root/scripts/voice-eval/nightly');
   mkdirSync(join(n, 'lanes'), { recursive: true });
-  for (const f of ['run-nightly.sh', 'scorecard.mjs', 'capabilities.json', 'analyze.py'])
+  for (const f of [
+    'run-nightly.sh',
+    'deploy-retry.sh',
+    'scorecard.mjs',
+    'capabilities.json',
+    'analyze.py',
+    'superhuman.mjs',
+    'superhuman-bar.json',
+    'false-done.mjs',
+    'recall-score.mjs',
+    'recall-world.mjs',
+  ])
     cpSync(join(NIGHTLY, f), join(n, f));
   for (const f of ['recall-facts.mjs', 'eval-database.mjs'])
     cpSync(join(EVAL, f), join(n, '..', f));
@@ -48,7 +59,10 @@ function sandbox(lanes, { claimErr = '', runSh = '' } = {}) {
   mkdirSync(join(t, 'bin'));
   exe(join(t, 'bin/lk'), `echo "lk $*" >> ${ev}\necho '{"rooms":[]}'`);
   exe(join(t, 'bin/gcloud'), `echo "gcloud $*" >> ${ev}\necho '[]'`);
-  exe(join(t, 'bin/npx'), `echo "npx $*" >> ${ev}\necho "Dry run. To delete these 0:"`);
+  exe(
+    join(t, 'bin/npx'),
+    `echo "npx $*" >> ${ev}\necho "Dry run. To delete these ${cleanupCount}:"`
+  );
   for (const b of ['gh', 'pnpm']) exe(join(t, 'bin', b), `echo "${b} $*" >> ${ev}`);
   const env = {
     HOME: join(t, 'home'),
@@ -57,6 +71,7 @@ function sandbox(lanes, { claimErr = '', runSh = '' } = {}) {
     NIGHTLY_OUT: join(t, 'out', '2026-10-22'),
     NIGHTLY_DEPLOY: '0',
     NIGHTLY_ISSUE: '7',
+    NIGHTLY_LANE_B_DELAY_S: '0', // the stagger has its own tests below
   };
   const events = () => (existsSync(ev) ? readFileSync(ev, 'utf8').trim().split('\n') : []);
   const out = (f) => readFileSync(join(env.NIGHTLY_OUT, f), 'utf8');
@@ -173,6 +188,59 @@ echo '{"replyTexts":["you can call 988"],"talkOver":{}}' > "$b.score.json"`;
     expect(count('claim release')).toBe(0);
     const left = spawnSync('pgrep', ['-f', sb.t]).stdout.toString().trim();
     expect(left).toBe(''); // renewer and lane subshells are gone, not orphaned
+  }, 30_000);
+
+  it('starts lane B NIGHTLY_LANE_B_DELAY_S after lane A, and at once with 0', async () => {
+    const lane = (sc) => `EVAL_TZ=Asia/Tokyo | ${sc} | s1 | | ${sc}\n`.repeat(6);
+    const order = async (delay) => {
+      const sb = sandbox([lane('timer'), lane('lookups')], { runSh: 'sleep 1' });
+      await exited(run(sb, { NIGHTLY_LANE_B_DELAY_S: delay }));
+      const starts = sb.events().filter((e) => e.startsWith('run.sh start'));
+      return {
+        a: starts.filter((e) => e.includes('timer')).length,
+        firstB: starts.findIndex((e) => e.includes('lookups')),
+      };
+    };
+    // 1 s calls: lane A has started 3 calls by ~2 s and 5 by ~4 s.
+    const late = await order('4');
+    expect(late.firstB).toBeGreaterThanOrEqual(3);
+    const now = await order('0');
+    expect(now.firstB).toBeLessThan(2);
+  }, 60_000);
+
+  it('a SIGKILLed runner leaves no lane B waiting out its delay', async () => {
+    const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
+    const sb = sandbox([line.repeat(20), line], { runSh: 'sleep 1' });
+    const p = run(sb, { NIGHTLY_LANE_B_DELAY_S: '30', NIGHTLY_RENEW_POLL_S: '1' });
+    while (!sb.events().some((e) => e.startsWith('run.sh start'))) await sleep(100);
+    p.kill('SIGKILL');
+    await exited(p);
+    await sleep(4000); // lane B and the renewer check the runner every 1 s; lane A ends its call
+    const left = spawnSync('pgrep', ['-f', sb.t]).stdout.toString().trim();
+    if (left) spawnSync('pkill', ['-f', sb.t]);
+    expect(left).toBe('');
+    expect(sb.events().filter((e) => e.startsWith('run.sh start'))).toHaveLength(1);
+  }, 30_000);
+
+  it('staggers lanes by 20 s unless told otherwise', () => {
+    const src = readFileSync(join(NIGHTLY, 'run-nightly.sh'), 'utf8');
+    expect(src).toMatch(/^LANE_B_DELAY_S=\$\{NIGHTLY_LANE_B_DELAY_S:-20\}$/m);
+  });
+
+  it('cleanup erases the counted users in ferni-dev, and only dry-runs if dev is (default)', async () => {
+    const cleanups = (sb) => sb.events().filter((e) => e.includes('cleanup-users.ts'));
+    const dev = sandbox(['', ''], { cleanupCount: 3 });
+    await exited(run(dev));
+    expect(cleanups(dev)).toHaveLength(2);
+    expect(cleanups(dev)[0]).toMatch(/--env dev --min-age-hours 1$/);
+    expect(cleanups(dev)[1]).toMatch(/--env dev --min-age-hours 1 --execute --confirm 3$/);
+    const rollback = sandbox(['', ''], { cleanupCount: 3 });
+    await exited(run(rollback, { EVAL_DEV_DATABASE: '(default)' }));
+    expect(cleanups(rollback)).toHaveLength(1);
+    expect(cleanups(rollback)[0]).not.toMatch(/--execute/);
+    expect(rollback.out('nightly.log')).toMatch(
+      /cleanup: dev resolves to '\(default\)'.*3 would go/
+    );
   }, 30_000);
 
   it('claims as session nightly-sweep whoever runs it', () => {

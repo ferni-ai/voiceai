@@ -15,13 +15,24 @@
  */
 
 import type { FastCaptureResult } from './dynamic/fast-capture.js';
+import { comparableId, nonAccountPrefixOf } from '../utils/synthetic-user.js';
 
 /** The session id prefix every on-behalf call session carries. */
 export const ON_BEHALF_USER_PREFIX = 'onbehalf:';
 
-/** True for the pseudo-user of an on-behalf call session: nothing is remembered for it. */
+/**
+ * True for the pseudo-user of an on-behalf call session: nothing is remembered for it.
+ *
+ * Compared as comparableId gives it, like isSharedPlaceholderId, isMemberIdentity and
+ * callerIdFor, so 'ONBEHALF:x', ' onbehalf:x' or a zero-width/full-width disguise can't be
+ * "not a member" to the memory guards and "not third-party" to ownerWritesBlocked at once.
+ * A bare 'onbehalf:' counts too: it names nobody, and third-party is the side that writes
+ * nothing.
+ */
 export function isThirdPartyCallUser(userId: string | null | undefined): boolean {
-  return typeof userId === 'string' && userId.startsWith(ON_BEHALF_USER_PREFIX);
+  return (
+    typeof userId === 'string' && nonAccountPrefixOf(comparableId(userId)) === ON_BEHALF_USER_PREFIX
+  );
 }
 
 /** What fast capture returns for a third party: nothing found, nothing queued. */

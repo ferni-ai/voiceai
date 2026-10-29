@@ -354,11 +354,11 @@ const PODCAST_SUGGESTIONS: Record<string, MediaSuggestion[]> = {
   ],
 };
 
-// ============================================================================
-// IN-MEMORY STORAGE
-// ============================================================================
+// In-memory storage
 
 const userPreferences = new Map<string, MediaPreferences>();
+/** MINOR_CARE (purgeHeldUser): forget one user. */
+export const forgetMediaUser = (userId: string): boolean => userPreferences.delete(userId);
 
 // ============================================================================
 // PREFERENCE MANAGEMENT

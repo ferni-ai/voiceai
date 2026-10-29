@@ -41,7 +41,15 @@ vi.mock('../../agents/shared/session-closing-tracker.js', () => ({
 
 import { startProcessRuntime } from '../../agents/gce/process-runtime.js';
 import { installUiServerPorts } from '../../services/outreach/ui-server-ports.js';
-import { consentBlocks, consentCheckRegistered, registerConsentCheck } from '../consent-port.js';
+import { registerMessagingConsent } from '../../services/messaging/consent.js';
+import {
+  consentBlocks,
+  consentCheckRegistered,
+  grantChecksRegistered,
+  registerConsentCheck,
+  registerGrantChecks,
+  thirdPartyRefusal,
+} from '../consent-port.js';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
@@ -49,25 +57,55 @@ const ON = { MESSAGING_PIPELINE: 'on' };
 
 /** The real check ran: it refuses a number it can't read; the unregistered port lets the owner through. */
 async function realCheckRegistered(): Promise<boolean> {
-  return consentCheckRegistered() && (await consentBlocks('', 'sms', async () => true, ON)) !== null;
+  return (
+    consentCheckRegistered() && (await consentBlocks('', 'sms', async () => true, ON)) !== null
+  );
 }
 
-afterEach(() => registerConsentCheck(undefined));
+/**
+ * The real per-owner grant check ran too: consent-grants.ts refuses a number it
+ * can't read, where the unregistered port lets the owner's own number through.
+ * It reads the process env, so the pipeline is switched on there.
+ */
+async function realGrantsRegistered(): Promise<boolean> {
+  vi.stubEnv('MESSAGING_PIPELINE', 'on');
+  return (
+    grantChecksRegistered() &&
+    (await thirdPartyRefusal('owner-1', '', 'sms', async () => true, ON)) !== null
+  );
+}
+
+afterEach(() => {
+  registerConsentCheck(undefined);
+  registerGrantChecks(undefined);
+  vi.unstubAllEnvs();
+});
 
 describe('the consent check is registered in every process that sends', () => {
   it('the UI server (installUiServerPorts, at start-up)', async () => {
     expect(await realCheckRegistered()).toBe(false);
+    expect(await realGrantsRegistered()).toBe(false);
     installUiServerPorts();
     expect(await realCheckRegistered()).toBe(true);
+    expect(await realGrantsRegistered()).toBe(true);
   });
 
   it('the call processes (startProcessRuntime: voice worker and per-call child)', async () => {
     expect(await realCheckRegistered()).toBe(false);
+    expect(await realGrantsRegistered()).toBe(false);
     startProcessRuntime(() => undefined).stop();
     expect(await realCheckRegistered()).toBe(true);
+    expect(await realGrantsRegistered()).toBe(true);
     for (const entry of ['src/agents/gce-voice-worker.ts', 'src/agents/gce/job-child.ts']) {
       expect(read(entry), entry).toMatch(/startProcessRuntime\(log\)/);
     }
+  });
+
+  it('registerMessagingConsent, the call each worker below makes, registers the grant checks too', async () => {
+    expect(await realGrantsRegistered()).toBe(false);
+    registerMessagingConsent();
+    expect(await realCheckRegistered()).toBe(true);
+    expect(await realGrantsRegistered()).toBe(true);
   });
 
   it.each([

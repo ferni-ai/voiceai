@@ -21,6 +21,7 @@
 import type { Firestore } from '@google-cloud/firestore';
 import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
+import { judgedRowText, singleWriterFor } from '../superhuman/commitment-single-writer.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { CALLER_PROVENANCE, isForgotten, undisputed } from '../../memory/recall/session-recall.js';
@@ -70,9 +71,13 @@ async function openCommitments(
   forgotten: readonly string[]
 ): Promise<SourceItem[]> {
   const docs = await firestoreCommitmentStore.active(userId);
+  const judgedOnly = await singleWriterFor(userId);
   return docs.flatMap((d) => {
-    const c = toOpenCommitment(d.id, d.data);
-    if (!c || isForgotten(c.statement, forgotten)) return [];
+    const c = toOpenCommitment(d.id, d.data, { judgedOnly });
+    // A judged row's resolved statement may not name the person: check its person too.
+    if (!c || isForgotten(judgedOnly ? judgedRowText(d.data) : c.statement, forgotten)) return [];
+    // A money or credential item is raised only on a call, never in a follow-through text.
+    if (c.sensitive) return [];
     return [
       {
         kind: 'commitment' as const,

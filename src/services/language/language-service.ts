@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { forgetCallStartReads, readUserDocOnce } from '../../utils/call-start-reads.js';
+import { canSpeakLanguageLive, languageNotLiveMessage } from './live-capability.js';
 
 const log = createLogger({ module: 'LanguageService' });
 
@@ -854,10 +855,6 @@ export async function loadUserLanguagePreference(
 }
 
 // ============================================================================
-// EXPORTS
-// ============================================================================
-
-// ============================================================================
 // TTS LANGUAGE HELPERS
 // ============================================================================
 
@@ -911,12 +908,9 @@ export function languageService() {
         // Try to parse the language name/code
         const parsed = parseLanguageName(languageCode);
         if (!parsed) {
-          const supported = getSupportedLanguagesList()
-            .map((l) => l.name)
-            .join(', ');
           return {
             success: false,
-            error: `I don't support "${languageCode}" yet. I can speak: ${supported}.`,
+            error: `I'm not sure which language ${languageCode} is. Could you say it another way?`,
           };
         }
 
@@ -936,7 +930,9 @@ export function languageService() {
         const config = getLanguageConfig(parsed);
         return {
           success: true,
-          confirmationMessage: `Perfect! I'll speak ${config.displayName} now.`,
+          confirmationMessage: canSpeakLanguageLive(parsed)
+            ? `Perfect! I'll speak ${config.displayName} now.`
+            : languageNotLiveMessage(config.displayName),
         };
       } catch (error) {
         log.error({ error: String(error), userId, languageCode }, 'Failed to set language');

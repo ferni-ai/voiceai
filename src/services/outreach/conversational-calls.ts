@@ -15,12 +15,16 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { consentBlocks } from '../messaging/consent.js';
+import { ownerRefusal } from '../messaging/consent-reach.js';
+import { heldSender } from './checkin-replies.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
 import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
+import { carryOwnCallMe, heldCall } from './held-call.js';
+import { deferredCallRequest, pausedCall } from './outreach-pause.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
+import { twilioCallbackUrl } from './webhooks/twilio-callback-url.js';
 
 const log = createLogger({ module: 'ConversationalCalls' });
 
@@ -41,6 +45,7 @@ export interface ProactiveCallRequest {
   maxDuration?: number; // seconds
   enableConversation?: boolean; // Allow two-way talk?
   voicemailFallback?: boolean; // Leave message if no answer?
+  askedFor?: boolean; // they asked for or set it: a pause doesn't stop it (outreach-pause.ts)
 }
 
 export interface CallResult {
@@ -59,7 +64,7 @@ export interface CallResult {
     | 'no_answer'
     | 'failed';
   error?: string;
-  // Extended result properties for active calls
+  live?: boolean; // the persona's live agent rang (live-agent-call.ts), not a Twilio <Say>
   context?: OutboundCallContext;
   initiatedAt?: string;
   answeredAt?: string;
@@ -146,13 +151,9 @@ function getPersonaVoiceSettings(personaId: string): VoiceSettings {
   return settings[personaId] || settings['ferni'];
 }
 
-// ============================================================================
-// CALL SCHEDULING
-// ============================================================================
+// --- CALL SCHEDULING ---
 
-/**
- * Schedule a proactive outreach call
- */
+/** Schedule a proactive outreach call */
 export async function scheduleProactiveCall(request: ProactiveCallRequest): Promise<CallResult> {
   const {
     userId,
@@ -174,14 +175,16 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
-    // MESSAGING_PIPELINE: every proactive call stops at a call opt-out. A call-hours hold is
-    // re-checked when placed (deferred-calls.ts); no job ever dials a stored quiet-hours call.
-    const refused = await consentBlocks(normalizedPhone, 'call', true);
+    if (await heldCall(request)) return { success: false, error: 'Not calling: held' };
+    if (await pausedCall(request)) return { success: false, error: 'Not calling: outreach paused' };
+    // MESSAGING_PIPELINE: the member's own number or one they hold a call grant for, never past an
+    // opt-out. A call-hours hold is re-checked when placed (deferred-calls.ts), never stale.
+    const refused = await ownerRefusal(userId, normalizedPhone, 'call');
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
     // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
     const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
-    const call = { kind: 'proactive' as const, request: { ...request, scheduledFor: undefined } };
+    const call = { kind: 'proactive' as const, request: deferredCallRequest(request) };
     const due = requestedFor <= new Date();
     const deferral = due && (await holdForCallHours(userId, call, held));
     if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
@@ -192,7 +195,6 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     const quiet = !!hours?.quiet;
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;
-
     const enhancedSSML = enhanceSSMLForCall(ssml, personaId);
 
     const scheduledCall: ScheduledCall = {
@@ -209,7 +211,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
       maxAttempts: 3,
       createdAt: new Date().toISOString(),
     };
-
+    carryOwnCallMe(request, scheduledCall); // the dial re-check (initiateCall) knows it too
     await saveScheduledCall(scheduledCall);
 
     // If scheduled for now or past, initiate immediately
@@ -233,9 +235,7 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
   }
 }
 
-/**
- * Initiate an outbound call using Twilio + LiveKit
- */
+/** Initiate an outbound call using Twilio + LiveKit */
 async function initiateCall(
   call: ScheduledCall,
   options: {
@@ -245,16 +245,17 @@ async function initiateCall(
   }
 ): Promise<CallResult> {
   try {
+    if (await heldCall(call)) {
+      await updateCallStatus(call.id, 'cancelled'); // MINOR_CARE_SHARED_HOLD, re-checked at the dial
+      return { success: false, error: 'Not calling: held' };
+    }
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
     if (await ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
-
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
-
     if (!twilioSid || !twilioToken || !twilioPhone) {
       log.warn({ callId: call.id }, 'Twilio not configured - call simulated');
-
       // In development, simulate the call
       if (process.env.NODE_ENV === 'development') {
         await updateCallStatus(call.id, 'completed', {
@@ -274,7 +275,6 @@ async function initiateCall(
     const twilio = await import('twilio');
     const client = twilio.default(twilioSid, twilioToken);
 
-    // Build TwiML
     const twiml = buildCallTwiML(call, options);
 
     // Create the call
@@ -285,7 +285,7 @@ async function initiateCall(
       machineDetection: options.voicemailFallback ? 'DetectMessageEnd' : 'Enable',
       machineDetectionTimeout: 3,
       timeout: 30, // Ring for 30 seconds max
-      statusCallback: `${process.env.APP_URL || 'https://app.ferni.ai'}/api/outreach/webhooks/twilio/conversational-call-status`,
+      statusCallback: twilioCallbackUrl('/api/outreach/webhooks/twilio/conversational-call-status'),
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
     });
 
@@ -527,6 +527,7 @@ export type { ScheduledCall as OutboundCall };
 export interface OutboundCallContext {
   // Simple mode (backward compatible)
   userId?: string;
+  askedFor?: boolean; // they asked for or scheduled it (ProactiveCallRequest.askedFor)
   phoneNumber?: string;
   message?: string;
   ssml?: string;
@@ -611,7 +612,6 @@ export function getConversationalCallService(): ConversationalCallService {
     serviceInstance = {
       isConfigured: isConversationalCallsConfigured,
       makeCall: async (ctx: OutboundCallContext): Promise<CallResult> => {
-        // Extract values with fallbacks
         const userId = ctx.userId || ctx.user?.id || '';
         const phoneNumber = ctx.phoneNumber || ctx.user?.phone || '';
         const message = ctx.message || ctx.approach?.primaryGoal || '';
@@ -622,6 +622,8 @@ export function getConversationalCallService(): ConversationalCallService {
             error: 'Missing required fields: userId, phoneNumber, or message',
           };
         }
+        if (await heldSender(userId, phoneNumber))
+          return { success: false, error: 'Not calling: held' }; // MINOR_CARE_SHARED_HOLD
 
         return scheduleProactiveCall({
           userId,
@@ -699,12 +701,8 @@ export function isConversationalCallsConfigured(): boolean {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
 }
 
-/**
- * Make a conversational call (legacy API)
- * @deprecated Use scheduleProactiveCall directly
- */
+/** Make a conversational call (legacy API). @deprecated Use scheduleProactiveCall directly */
 export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
-  // Extract values with fallbacks
   const userId = context.userId || context.user?.id || '';
   const phoneNumber = context.phoneNumber || context.user?.phone || '';
   const message = context.message || context.approach?.primaryGoal || '';
@@ -712,6 +710,7 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
   if (!userId || !phoneNumber || !message) {
     return { success: false, error: 'Missing required fields: userId, phoneNumber, or message' };
   }
+  if (await heldSender(userId, phoneNumber)) return { success: false, error: 'Not calling: held' };
 
   return scheduleProactiveCall({
     userId,
@@ -721,6 +720,7 @@ export async function makeConversationalCall(context: OutboundCallContext): Prom
     personaId: context.personaId || context.persona || 'ferni',
     reason: context.reason || context.trigger?.reason || 'outbound_call',
     maxDuration: context.maxDuration || context.approach?.maxDuration,
+    askedFor: context.askedFor,
   });
 }
 
