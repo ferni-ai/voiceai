@@ -110,6 +110,7 @@ jobs:
           VITE_EXPRESSION_ARBITER: ${{ vars.VITE_EXPRESSION_ARBITER }}
           VITE_REPLY_TONE: ${{ vars.VITE_REPLY_TONE }}
           VITE_SOUND_DIRECTOR: ${{ vars.VITE_SOUND_DIRECTOR }}
+          VITE_IDLE_LIFE: ${{ vars.VITE_IDLE_LIFE }}
           # Android app links (apps/web/scripts/asset-links.ts): the signing
           # SHA-256 fingerprint(s), comma separated. Unset serves [] as before.
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}

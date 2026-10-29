@@ -213,6 +213,7 @@ jobs:
           PROD_VAR_VITE_EXPRESSION_ARBITER: ${{ vars.VITE_EXPRESSION_ARBITER }}
           PROD_VAR_VITE_REPLY_TONE: ${{ vars.VITE_REPLY_TONE }}
           PROD_VAR_VITE_SOUND_DIRECTOR: ${{ vars.VITE_SOUND_DIRECTOR }}
+          PROD_VAR_VITE_IDLE_LIFE: ${{ vars.VITE_IDLE_LIFE }}
         run: |
           cat > .env.development.local <<'EOF'
           VITE_USE_FIREBASE_EMULATORS=true

@@ -421,6 +421,7 @@ jobs:
             --build-arg VITE_EXPRESSION_ARBITER="${{ vars.VITE_EXPRESSION_ARBITER }}" \
             --build-arg VITE_REPLY_TONE="${{ vars.VITE_REPLY_TONE }}" \
             --build-arg VITE_SOUND_DIRECTOR="${{ vars.VITE_SOUND_DIRECTOR }}" \
+            --build-arg VITE_IDLE_LIFE="${{ vars.VITE_IDLE_LIFE }}" \
             .
 
           # Push all tags
