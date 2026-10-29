@@ -77,7 +77,8 @@ function normalise(text: string): string {
  */
 const isSite = (host: string): boolean => {
   const last = host.slice(host.lastIndexOf('.') + 1);
-  const version = /^(?:\d+\.)+$/u.test(host.slice(0, host.length - last.length)); // "3.x", "2.0.x"
+  // Only "3.x" / "2.0.x" (a version) is ordinary text; every other alternate-root ending is a site.
+  const version = last === 'x' && /^(?:\d{1,3}\.){1,3}$/u.test(host.slice(0, host.length - 1));
   return (
     TLDS.has(last) ||
     (ALT_ROOT_ENDINGS.has(last) && !version) ||

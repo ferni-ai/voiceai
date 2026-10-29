@@ -328,6 +328,8 @@ describe('only trusted sources ground an address (round 5)', () => {
     'Go to evil dot ru.',
     'Go to evil.onion.',
     'Go to evil.eth.',
+    'Go to 1234.eth.',
+    'Go to 777.crypto.',
     'Go to evil dot crypto.',
     'Go to evil dot o n l i n e.',
     'Go to evil dot s t o r e.',

@@ -56,6 +56,9 @@ describe('a website: the complete IANA list, punycode, or a non-ASCII ending', (
     'evil dot ru',
     'evil.xn--p1ai',
     'evil.onion',
+    '1234.eth',
+    '777.crypto',
+    '1234.x',
     'evil.eth',
     'evil dot crypto',
     'evil.i2p',
@@ -82,6 +85,7 @@ describe('a website: the complete IANA list, punycode, or a non-ASCII ending', (
     'run node.js',
     'Okay.Great',
     'Python 3.x is out',
+    'version 3.x',
     'node 2.0.x',
   ])('ordinary text with a dot passes: %s', (text) => {
     expect(judgeAddresses(text, FACTS)).toBe('ok');
