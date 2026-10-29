@@ -4,8 +4,10 @@
  * Checked twice. When a delight is asked for: a listed reason, never while
  * upset, within the per-call budget and the gap between any two delights.
  * And again at play time: a celebration write plays only for the run it was
- * earned for, and never once the user is upset or in crisis, so a delight that
- * was queued or already playing when the mood turned yields instead.
+ * earned for, never once the user is upset or in crisis (a delight that was
+ * queued or already playing when the mood turned yields instead), and never
+ * within 90 s of the last one that PLAYED: a delight that waited in the queue
+ * and comes up too soon is dropped, not deferred.
  */
 import type { Mood } from './call-types.js';
 import type { WriteContext } from './conductor.js';
@@ -39,7 +41,12 @@ const sizeOf = (sequenceId: string): Size | null =>
 /** One call's delight budget, and the celebrations it has earned. */
 export class DelightLedger {
   private spent: Record<Size, number> = { small: 0, big: 0 };
+  /** The last delight asked for or played: the ask-time gap is measured from it. */
   private lastAt = -Infinity;
+  /** The last delight that actually played: the play-time gap is measured from it. */
+  private lastPlayedAt = -Infinity;
+  /** A run refused at play time for coming too soon; its later writes stay refused. */
+  private refusedRun: number | null = null;
   /** Earned, not yet playing, oldest first. */
   private waiting: Size[] = [];
   /** The run playing an earned celebration. */
@@ -73,10 +80,17 @@ export class DelightLedger {
     if (!size) return null;
     if (upsetLike(w.mood)) return `delight:${w.sequenceId}:mood=${w.mood}`;
     if (this.playing?.runId === w.runId) return null;
+    if (this.refusedRun === w.runId) return `delight:${w.sequenceId}:gap`;
     const i = this.waiting.indexOf(size);
     if (i < 0) return `delight:${w.sequenceId}:unearned`;
-    this.waiting.splice(i, 1);
+    this.waiting.splice(i, 1); // used either way: too soon is dropped, never deferred
+    if (w.now - this.lastPlayedAt < this.rules.minGapMs) {
+      this.refusedRun = w.runId;
+      return `delight:${w.sequenceId}:gap`;
+    }
     this.playing = { runId: w.runId, size };
+    this.lastPlayedAt = w.now;
+    this.lastAt = Math.max(this.lastAt, w.now);
     return null;
   }
 
