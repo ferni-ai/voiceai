@@ -89,6 +89,7 @@ import {
 } from '../../../intelligence/context-builders/engagement/referral-prompt.js';
 
 import type { ConversationDynamicsResult } from '../conversation-dynamics.js';
+import { callerTurnOf } from '../../shared/caller-turn-count.js';
 
 /**
  * Build all context injections for the LLM
@@ -341,8 +342,8 @@ export async function buildContextInjections(
         behavioralFallback,
         'buildIntegratedContext'
       ),
-      buildHumanTransferInjections(userText, services.userId, services.sessionId, currentTurnCount),
-      buildCrisisHistoryInjection(services.userId, services.sessionId, currentTurnCount),
+      buildHumanTransferInjections(userText, services.userId, services.sessionId, callerTurnOf(userData)),
+      buildCrisisHistoryInjection(services.userId, services.sessionId, callerTurnOf(userData)),
       buildToolHistoryInjection(builderInput),
     ]);
 

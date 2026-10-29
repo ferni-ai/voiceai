@@ -102,6 +102,44 @@ describe('flag on: an everyday word with anything more keeps the alarm', () => {
   });
 });
 
+/**
+ * The acute-cue list is a second guard behind JUST_EVERYDAY: a lone everyday clause
+ * that carries a cue still alarms. Removing the list used to break no test, because
+ * every multi-clause line is already kept by the structural rule. One everyday phrase
+ * reaches it today: "tracking number" holds the cue "numb". Each line below is one
+ * everyday clause, so only the cue keeps its alarm. Pinned as it behaves (it alarms);
+ * the crisis lane never lowers an alarm, and the cue list's regexes are not changed.
+ */
+const LONE_EVERYDAY_WITH_A_CUE = [
+  "i can't see the tracking number",
+  "i can't see the tracking number, it never came through",
+  "um, i can't see the tracking number on my phone",
+];
+/** The same clauses with a thing that carries no cue: these are dropped, so the cue is what differs. */
+const LONE_EVERYDAY_NO_CUE = [
+  "i can't see the receipt",
+  "i can't see the receipt, it never came through",
+  "um, i can't see the receipt on my phone",
+];
+
+describe('flag on: an acute cue in a lone everyday clause keeps the alarm (second guard)', () => {
+  it.each(LONE_EVERYDAY_WITH_A_CUE)('alarms: %s', (line) => {
+    flag('on');
+    expect(read(line).signals.medicalEmergency).toBe(true);
+    expect(read(line).decision.type).toBe('crisis_immediate');
+  });
+
+  it.each(LONE_EVERYDAY_NO_CUE)('control, dropped without the cue: %s', (line) => {
+    flag('on');
+    expect(read(line).signals.medicalEmergency).toBe(false);
+  });
+
+  it.each(LONE_EVERYDAY_WITH_A_CUE)('flag off (main) alarms too: %s', (line) => {
+    flag('off');
+    expect(read(line).signals.medicalEmergency).toBe(true);
+  });
+});
+
 /** Utterances that are only an everyday clause: the flag drops these alarms. */
 const JUST_EVERYDAY = [
   "I can't see your text, it never came through",

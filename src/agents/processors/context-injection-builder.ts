@@ -106,6 +106,7 @@ import {
 // WS3: Prompt compression (sub-300ms latency optimization)
 import { categorizeQuery, compressInjectionContent } from '../shared/prompt-compressor.js';
 import { isOptimizationEnabled } from '../shared/performance/latency-feature-flags.js';
+import { callerTurnOf } from '../shared/caller-turn-count.js';
 
 // ============================================================================
 // TYPES
@@ -405,8 +406,8 @@ export async function buildContextInjections(
       behavioralFallback,
       'buildIntegratedContext'
     ),
-    buildHumanTransferInjections(userText, services.userId, services.sessionId, currentTurnCount),
-    buildCrisisHistoryInjection(services.userId, services.sessionId, currentTurnCount),
+    buildHumanTransferInjections(userText, services.userId, services.sessionId, callerTurnOf(userData)),
+    buildCrisisHistoryInjection(services.userId, services.sessionId, callerTurnOf(userData)),
   ]);
 
   // ============================================================================

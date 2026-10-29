@@ -108,12 +108,14 @@ every other crisis follows up exactly as before. Held-out sets in
 `CRISIS_SAME_CALL_NOTE_FADES` (off by default; Seth's call: fade after a few
 turns): the follow-up note for a crisis logged earlier on this call shows for the
 next 3 caller turns, then stops; a new crisis signal on the call restarts the 3
-turns. The signal doc carries its caller turn (`userData.turnCount`) when the flag
+turns. The signal doc carries its caller turn (`userData.callerTurn`) when the flag
 is on, and `followUpCrisis` (`crisis-signals.ts`) picks the note. The immediate
-alarm, in-call crisis handling and cross-call notes are unchanged. Two limits:
-`turnCount` counts final STT transcripts, not committed caller turns (no such
-counter exists in prod), so a turn split into several finals makes the note fade
-after fewer than 3 replies; and with 10+ crisis-level signals on one call, an
+alarm, in-call crisis handling and cross-call notes are unchanged. The turn comes
+from `shared/caller-turn-count.ts`: the turn context pusher names each caller turn,
+so a turn spoken in several final transcripts counts once. It is not `userData.turnCount`,
+which the live voice path steps twice per utterance (`handler-setup.ts`, then
+`processFinalTranscript`); that double step is left as is for its other readers.
+One limit: with 10+ crisis-level signals on one call, an
 earlier call's crisis falls outside the 10-record read, so no note follows the fade.
 
 ---
