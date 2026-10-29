@@ -547,10 +547,7 @@ export function recordKnowledgeCapture(
 /**
  * Update knowledge graph initialization status
  */
-export function recordKnowledgeGraphStatus(
-  entityStoreReady: boolean,
-  initAttempted: boolean
-): void {
+export function recordKnowledgeGraphStatus(entityStoreReady: boolean, initAttempted: boolean): void {
   knowledgeGraphMetrics.entityStoreReady = entityStoreReady;
   knowledgeGraphMetrics.initializationAttempted = initAttempted;
 }
@@ -703,9 +700,7 @@ export function getMemoryHealthStatus(): MemoryHealthStatus {
   let stmStatus: 'ok' | 'warning' | 'error' = 'ok';
   if (stmMetrics.promotionSuccessRate < 0.95) {
     stmStatus = 'warning';
-    issues.push(
-      `STM promotion success rate low: ${Math.round(stmMetrics.promotionSuccessRate * 100)}%`
-    );
+    issues.push(`STM promotion success rate low: ${Math.round(stmMetrics.promotionSuccessRate * 100)}%`);
   }
   if (stmMetrics.promotionSuccessRate < 0.8) {
     stmStatus = 'error';
@@ -716,15 +711,11 @@ export function getMemoryHealthStatus(): MemoryHealthStatus {
   let deepStatus: 'ok' | 'backlogged' | 'failing' = 'ok';
   if (deepExtractionMetrics.currentQueueDepth > 50) {
     deepStatus = 'backlogged';
-    issues.push(
-      `Deep extraction queue backlogged: ${deepExtractionMetrics.currentQueueDepth} jobs`
-    );
+    issues.push(`Deep extraction queue backlogged: ${deepExtractionMetrics.currentQueueDepth} jobs`);
   }
   if (deepExtractionMetrics.totalJobsFailed > deepExtractionMetrics.totalJobsProcessed * 0.1) {
     deepStatus = 'failing';
-    issues.push(
-      `Deep extraction failure rate high: ${deepExtractionMetrics.totalJobsFailed} failed`
-    );
+    issues.push(`Deep extraction failure rate high: ${deepExtractionMetrics.totalJobsFailed} failed`);
   }
 
   // Knowledge graph health
@@ -740,10 +731,9 @@ export function getMemoryHealthStatus(): MemoryHealthStatus {
 
   // Human signal health
   let hsStatus: 'ok' | 'degraded' | 'offline' = 'ok';
-  const llmRate =
-    humanSignalMetrics.totalExtractions > 0
-      ? humanSignalMetrics.llmExtractions / humanSignalMetrics.totalExtractions
-      : 1;
+  const llmRate = humanSignalMetrics.totalExtractions > 0
+    ? humanSignalMetrics.llmExtractions / humanSignalMetrics.totalExtractions
+    : 1;
   if (llmRate < 0.5) {
     hsStatus = 'degraded';
     issues.push(`LLM extraction rate low: ${Math.round(llmRate * 100)}% (using regex fallback)`);
@@ -751,15 +741,17 @@ export function getMemoryHealthStatus(): MemoryHealthStatus {
   }
   if (humanSignalMetrics.persistenceSuccessRate < 0.9) {
     hsStatus = 'degraded';
-    issues.push(
-      `Human signal persistence failing: ${Math.round(humanSignalMetrics.persistenceSuccessRate * 100)}%`
-    );
+    issues.push(`Human signal persistence failing: ${Math.round(humanSignalMetrics.persistenceSuccessRate * 100)}%`);
   }
 
   // Overall health
   let overall: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
   if (issues.length > 0) overall = 'degraded';
-  if (deepStatus === 'failing' || kgStatus === 'offline' || stmStatus === 'error') {
+  if (
+    deepStatus === 'failing' ||
+    kgStatus === 'offline' ||
+    stmStatus === 'error'
+  ) {
     overall = 'unhealthy';
   }
 
@@ -769,10 +761,7 @@ export function getMemoryHealthStatus(): MemoryHealthStatus {
       fastCapture: { status: fastCaptureStatus, avgLatencyMs: fastCaptureMetrics.avgLatencyMs },
       stmBuffer: { status: stmStatus, activeSessions: stmMetrics.activeSessions },
       deepExtraction: { status: deepStatus, queueDepth: deepExtractionMetrics.currentQueueDepth },
-      knowledgeGraph: {
-        status: kgStatus,
-        entityStoreReady: knowledgeGraphMetrics.entityStoreReady,
-      },
+      knowledgeGraph: { status: kgStatus, entityStoreReady: knowledgeGraphMetrics.entityStoreReady },
       humanSignals: { status: hsStatus, llmRate },
     },
     issues,

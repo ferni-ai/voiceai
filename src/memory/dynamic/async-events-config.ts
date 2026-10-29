@@ -126,7 +126,10 @@ export function safeEmitEvent(event: string, data: unknown): boolean {
  *
  * @returns a function that removes the listener, or null if it wasn't registered
  */
-export function safeOnEvent(event: string, handler: (data: unknown) => void): (() => void) | null {
+export function safeOnEvent(
+  event: string,
+  handler: (data: unknown) => void
+): (() => void) | null {
   if (!asyncEventsConfig) {
     log.warn({ event }, 'AsyncEvents not configured, cannot register listener');
     return null;

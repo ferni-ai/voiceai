@@ -596,7 +596,12 @@ async function bridgeCrossPersonaEntities(sessionId: string, userId: string): Pr
       await import('../cross-persona/shared-memory-api.js');
     const buffer = getSTMBuffer(sessionId, userId);
     const personaId = (buffer?.turns[0]?.personaId || 'ferni') as
-      'ferni' | 'peter' | 'maya' | 'jordan' | 'alex' | 'nayan';
+      | 'ferni'
+      | 'peter'
+      | 'maya'
+      | 'jordan'
+      | 'alex'
+      | 'nayan';
 
     const frequentEntities = getFrequentEntities(sessionId, 10);
     let sharedCount = 0;

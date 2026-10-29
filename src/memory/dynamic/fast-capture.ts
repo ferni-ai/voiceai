@@ -677,15 +677,15 @@ async function queueDeepExtraction(job: DeepExtractionJob): Promise<string> {
 
     if (emitted) {
       log.info(
-        {
-          jobId,
-          userId: job.userId,
+        { 
+          jobId, 
+          userId: job.userId, 
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
           priority,
           entityHints: job.fastCaptureHints.mentionedEntities.length,
           emotionSignals: job.fastCaptureHints.emotionSignals.length,
-        },
+        }, 
         '🧠 [MEMORY-AUDIT] Queued deep extraction job'
       );
     } else {
@@ -695,10 +695,7 @@ async function queueDeepExtraction(job: DeepExtractionJob): Promise<string> {
       );
     }
   } catch (error) {
-    log.warn(
-      { error: String(error), jobId },
-      '🧠 [MEMORY-AUDIT] Failed to queue deep extraction (non-blocking)'
-    );
+    log.warn({ error: String(error), jobId }, '🧠 [MEMORY-AUDIT] Failed to queue deep extraction (non-blocking)');
   }
 
   return jobId;
