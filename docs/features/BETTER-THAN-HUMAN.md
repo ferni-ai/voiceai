@@ -89,19 +89,19 @@ if (decision.type !== 'none') {
 ### Medical reads and the crisis follow-up (#3000)
 
 `detectCrisisSignals` scores a medical emergency at severity 10, and every turn
-with a signal is logged to `crisis_signals`, which the crisis follow-up note reads.
-Two flags, both off by default, close a false-alarm loop seen in prod (a caller's
-"I can't see." about a text became a whole call framed as a crisis):
+with a signal is logged to `crisis_signals`, which the crisis follow-up note reads
+on every later turn. In prod a caller's "I can't see." about a text became a whole
+call framed as a crisis.
 
-- `CRISIS_SIGHT_NEEDS_CUE`: "can't see" is a medical emergency only with an acute
-  medical cue (an eye harmed, a stroke sign, an injury, an ambulance, or a sudden
-  loss with nothing seen); sight loss said outright always counts
-  (`sight-emergency.ts`). Off, any "i can't see" counts. A held-out set in
-  `__tests__/fixtures/` pins recall and false alarms.
-- `CRISIS_FOLLOW_UP_PRIOR_CALLS`: the follow-up note comes from a crisis on an
-  earlier call. One logged earlier on this call counts only while the safety path
-  holds risk on the call (`crisisRiskNoted`); in-call crises are handled by the
-  crisis gate, not this note.
+`CRISIS_SIGHT_NEEDS_CUE` (off by default, `sight-emergency.ts`) keeps main's alarm
+for every "i can't see" except one that plainly points at an everyday thing (a
+screen, a text, an app, the menu, "what you mean", glasses, the lights being off, a
+video call, "can't see myself doing that") with no acute cue. Any acute cue (an eye
+harmed, stroke signs, a head injury, low sugar, pills, "woke up", "emergency", a
+repeated "I can't see!") keeps the alarm. Sight loss said outright ("I went blind")
+always counts. A suppressed line is never logged, so no follow-up note follows;
+every other crisis follows up exactly as before. Held-out sets in
+`__tests__/fixtures/` pin never-lower line by line.
 
 ---
 

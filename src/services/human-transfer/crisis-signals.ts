@@ -79,21 +79,6 @@ export function crisisFromSignal(
   };
 }
 
-/**
- * The crisis the cross-call follow-up note is about (CRISIS_FOLLOW_UP_PRIOR_CALLS,
- * #3000): the newest from an earlier call. One logged earlier on this call counts
- * only while the safety path holds risk on the call (`riskNoted`, crisisRiskNoted:
- * a crisis pattern, the crisis script, or a classifier read that stood), so a
- * lexical-only read like "i can't see" about a text no longer rides every turn.
- */
-export function followUpCrisis(
-  crises: readonly CrisisEventRecord[] | undefined,
-  sessionId: string | undefined,
-  riskNoted: (sessionId: string) => boolean
-): CrisisEventRecord | undefined {
-  return crises?.find((c) => !sessionId || c.sessionId !== sessionId || riskNoted(sessionId));
-}
-
 /** The caller's crisis-level signals since `since`, newest first (at most 10). Throws on read errors. */
 export async function crisisLevelSignalsSince(
   db: Pick<FirebaseFirestore.Firestore, 'collection'>,

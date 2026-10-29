@@ -17,7 +17,6 @@
 import { diag } from '../../../services/diagnostic-logger.js';
 import { flagOn } from '../../../config/env-flag.js';
 import { callerIdFor } from '../../../services/identity/call-caller-id.js';
-import { crisisRiskNoted } from '../../../services/safety/index.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
@@ -447,20 +446,17 @@ export async function buildCrisisHistoryInjection(
   sessionId?: string
 ): Promise<ContextInjection | null> {
   try {
-    const transfer = await import('../../../services/human-transfer/index.js');
+    const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
 
     // CALL_START_TRIM: a slow read no longer holds the turn; it keeps loading and
     // the next turn uses it (hadRecentCrisis keeps the answer for a minute).
     const caller = callerIdFor(userId, sessionId);
-    const check = transfer.hadRecentCrisis(caller, 7);
-    const recent = flagOn('CALL_START_TRIM')
+    const check = hadRecentCrisis(caller, 7);
+    const { hasCrisis, lastCrisis } = flagOn('CALL_START_TRIM')
       ? await withinBudget(check, { hasCrisis: false }, CRISIS_READ_BUDGET_MS)
       : await check;
-    const lastCrisis = flagOn('CRISIS_FOLLOW_UP_PRIOR_CALLS')
-      ? transfer.followUpCrisis(recent.crises, sessionId, crisisRiskNoted)
-      : recent.lastCrisis;
 
-    if (!recent.hasCrisis || !lastCrisis) {
+    if (!hasCrisis || !lastCrisis) {
       return null;
     }
 

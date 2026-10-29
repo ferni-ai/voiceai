@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { SIGHT_MEDICAL } from './sight-emergency.js';
+import { SENSE_LOSS_MEDICAL } from './sight-emergency.js';
 import type {
   EscalationType,
   EscalationDecision,
@@ -94,8 +94,7 @@ const SUBSTANCE_CRISIS_PATTERNS = [
 
 const MEDICAL_EMERGENCY_PATTERNS = [
   /\bi('m| am) having (chest pain|a heart attack|a stroke)/i,
-  /\bi can't (breathe|feel|move)/i,
-  SIGHT_MEDICAL, // "can't see" (#3000, CRISIS_SIGHT_NEEDS_CUE)
+  SENSE_LOSS_MEDICAL, // "i can't breathe/see/feel/move" (#3000: CRISIS_SIGHT_NEEDS_CUE)
   /\bi('m| am) (bleeding|losing blood)/i,
   /\bi think i('m| am) (dying|having a medical emergency)/i,
 ];
@@ -493,6 +492,7 @@ export function classifyWithContext(
     rawSignals: [...currentSignals.rawSignals, ...historicalSignals.rawSignals],
   };
 
+  // Get base decision
   const decision = classifyEscalation(mergedSignals);
 
   // Adjust based on user profile

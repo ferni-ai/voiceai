@@ -26,7 +26,7 @@ export { detectCrisis, getHighestSeverityCrisis, isCrisisActive } from './crisis
 export { detectCrisis as scoreCrisisLanguage, IN_DANGER_NOW } from './crisis-guard.js';
 export { noteMeansInHandShadow, readsImminentLive } from './crisis-means-shadow.js';
 // Whether anything on a call noted crisis risk (crisis-call-risk.ts): after-call writers skip it.
-export { crisisRiskNoted, crisisRiskThisCall } from './crisis-call-risk.js';
+export { crisisRiskThisCall } from './crisis-call-risk.js';
 export { offersCrisisLine } from './crisis-line-speech.js';
 
 export type {
