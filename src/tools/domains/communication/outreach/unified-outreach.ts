@@ -736,7 +736,7 @@ export function getUnifiedOutreachDefinition(): ToolDefinition {
       "Reach out to someone - I'll choose the best channel, craft a personalized message, and handle the delivery.",
     domain: 'communication',
     tags: ['outreach', 'call', 'text', 'email', 'conversation', 'contact', 'message'],
-    requiredServices: ['twilio', 'sendgrid'],
+    requiredServices: ['twilio', 'email'],
     create: createUnifiedOutreachTool,
   };
 }

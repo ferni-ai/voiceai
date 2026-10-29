@@ -15,7 +15,6 @@
  * Required env vars for full coverage:
  *   - GOOGLE_API_KEY (enables Google Places, Calendar tests)
  *   - TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER (SMS/calls)
- *   - SENDGRID_API_KEY, SENDGRID_FROM_EMAIL (email)
  *   - OPENTABLE_API_KEY, RESY_API_KEY (restaurant reservations)
  *   - STRIPE_SECRET_KEY (subscription tests)
  *   - DATABASE_URL or GOOGLE_CLOUD_PROJECT (memory persistence)
@@ -154,7 +153,6 @@ const restaurantTests: TestSuite = {
 const communicationTests: TestSuite = {
   name: 'Communication Services',
   isConfigured: () =>
-    !!(process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL) ||
     !!(
       process.env.TWILIO_ACCOUNT_SID &&
       process.env.TWILIO_AUTH_TOKEN &&
@@ -461,7 +459,6 @@ async function main(): Promise<void> {
   console.log('\n📊 Service Configuration:');
   console.log(`  Google API: ${process.env.GOOGLE_API_KEY ? '✅' : '❌'}`);
   console.log(`  Twilio: ${process.env.TWILIO_ACCOUNT_SID ? '✅' : '❌'}`);
-  console.log(`  SendGrid: ${process.env.SENDGRID_API_KEY ? '✅' : '❌'}`);
   console.log(`  Cartesia: ${process.env.CARTESIA_API_KEY ? '✅' : '❌'}`);
   console.log(
     `  Database: ${process.env.DATABASE_URL || process.env.GOOGLE_CLOUD_PROJECT ? '✅' : '❌'}`

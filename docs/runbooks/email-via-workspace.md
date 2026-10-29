@@ -1,5 +1,10 @@
 # App email through the ferni.ai Google Workspace
 
+> **2026-10-27 (#2947): the Workspace is the only email transport.** Ferni doesn't
+> use SendGrid (Seth). `EMAIL_PROVIDER`, the SendGrid adapter and the SendGrid
+> secrets are gone from the code and the deploy, so the provider switch and the
+> rollback below no longer apply. The setup steps still do.
+
 App email (waitlist approval, newsletter welcome, admin notices, reminders by
 email, maintenance-job email, alerts) used to go out through SendGrid. Every
 SendGrid send now fails with 401, so app email moves to the ferni.ai Workspace:
