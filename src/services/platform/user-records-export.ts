@@ -55,6 +55,8 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     // facts the person told, written by the memory tools (memory-executor.ts,
     // legacy-fallback-executor.ts) and erased by forget.ts; not in the 2026-10 listings (#2366)
     'extracted_facts',
+    // bi-temporal facts about people: ids, subjects, values, validity (facts-store.ts)
+    'facts',
     'ferni_commitments',
     'follow_through',
     'follow_up_actions',
@@ -292,6 +294,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/team_insights', // Team Insights
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
   'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
+  'bogle_users/{uid}/facts', // bi-temporal facts (MEMORY_FACTS)
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
   'users/{uid}/shared_memories',
