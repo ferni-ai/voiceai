@@ -9,9 +9,9 @@
  *
  * Every reply the model writes passes through here untouched (ferni-agent.ts
  * llmNode, by way of action-claim-guard.ts). When the reply's words announce a
- * check ("I'll check", "let me look that up", "I'll look for") and the same
- * reply calls no tool, one ANNOUNCED_CHECK_NO_TOOL line is logged: how many
- * tools were open and whether a live-data tool was among them, never the words.
+ * check ("I'll check", "let me look that up") and the same reply calls no
+ * tool, one ANNOUNCED_CHECK_NO_TOOL line is logged: how many tools were open
+ * and whether a live-data tool was among them, never the words.
  * ANNOUNCED_CHECK_LOG=off turns the log off.
  *
  * With GROUNDED_CLAIMS=on the action-claim guard also acts on these (#3003,
@@ -27,6 +27,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { spokenOf, type Item } from './spoken-words.js';
 
 const log = createLogger({ module: 'AnnouncedCheck' });
 
@@ -36,9 +37,9 @@ export function announcedCheckLogEnabled(env: Env = process.env): boolean {
   return flagOn('ANNOUNCED_CHECK_LOG', env);
 }
 
-/** "I'll check", "let me look that up", "I'll look for", "checking now", "give me a sec to pull it up". */
+/** "I'll check", "let me look that up", "checking now", "give me a sec to pull it up". */
 const ANNOUNCES =
-  /\b(?:i'll|i will|let me|lemme|i'm going to|i'm gonna|i am going to|gonna)\s+(?:just\s+|quickly\s+|go\s+|quick\s+)?(?:check(?!\s+(?:in|back|on you)\b)|look(?:\s+(?:that|it|this|those))?\s+up|look (?:into|for|around|online)|pull(?:\s+(?:that|it|this|up))|find out|search|grab (?:the|that|it)|see what)\b|\bchecking (?:on |that |it |the |now|right now)|\bone (?:sec|second|moment),? (?:let me|i'll)\b/i;
+  /\b(?:i'll|i will|let me|lemme|i'm going to|i'm gonna|i am going to|gonna)\s+(?:just\s+|quickly\s+|go\s+|quick\s+)?(?:check(?!\s+(?:in|back|on you)\b)|look(?:\s+(?:that|it|this|those))?\s+up|look into|pull(?:\s+(?:that|it|this|up))|find out|search|grab (?:the|that|it)|see what)\b|\bchecking (?:on |that |it |the |now|right now)|\bone (?:sec|second|moment),? (?:let me|i'll)\b/i;
 
 /** Curly apostrophes from the model read as straight ones. */
 export function announcesCheck(text: string): boolean {
@@ -51,6 +52,9 @@ const LOOKED_UP =
 /** A question, a supposition, Ferni's own life or a habit: not a report of a look-up in this call. */
 const NOT_A_LOOKUP =
   /\?|\b(?:if|when|whenever|before|after|yesterday|ago|used to|my|myself|every|last (?:night|week|month|year|time))\b/;
+/** "I'll look for one more", "let me look around": a check still to come (GROUNDED_CLAIMS only). */
+const LOOK_FOR =
+  /\b(?:i'll|i will|let me|lemme|i'm going to|i'm gonna)\s+(?:just\s+|quickly\s+)?look (?:for|around|online)\b/;
 /** An offer to look ("if you want, I'll check"): the caller's yes is what starts it. */
 const OFFERED = /\?|\b(?:want me to|if you (?:want|like)|i can|i could|should i|shall i)\b/;
 
@@ -61,7 +65,8 @@ export function lookupClaim(sentence: string): 'past' | 'announced' | null {
     .replace(/"[^"]*"|“[^”]*”/g, ' ')
     .toLowerCase();
   if (LOOKED_UP.test(text)) return NOT_A_LOOKUP.test(text) ? null : 'past';
-  return announcesCheck(text) && !OFFERED.test(text) ? 'announced' : null;
+  const announced = announcesCheck(text) || LOOK_FOR.test(text);
+  return announced && !OFFERED.test(text) ? 'announced' : null;
 }
 
 /** The guard's kind for a look-up claim: a reported one always, an announced one only while held. */
@@ -96,6 +101,26 @@ const LIVE_DATA_TOOLS = new Set([
 /** A tool that can look something up: a live-data tool, or any read ("getCalendarToday", "findContact"). */
 export function isLookupTool(name: string): boolean {
   return LIVE_DATA_TOOLS.has(name) || /^(?:get|find|search|check|list|look)[A-Z_]/.test(name);
+}
+
+/**
+ * A look-up tool ran since the caller last spoke, or just before a short follow-up ("Are you
+ * sure?"), so "Yeah, I checked" may stand. A new question starts over: a search for the weather
+ * never backs "I checked" about the pharmacy.
+ */
+export function lookedUpLately(chatCtx: { items: readonly unknown[] }): boolean {
+  const items = chatCtx.items as ReadonlyArray<Item & { name?: string }>;
+  let followUp = false;
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.type === 'function_call_output' && isLookupTool(item.name ?? '')) return true;
+    if (item.type !== 'message' || item.role !== 'user') continue;
+    const words = spokenOf(item).split(/\s+/).filter(Boolean).length;
+    if (words === 0) continue; // a per-turn note, not the caller
+    if (followUp || words > 4) return false;
+    followUp = true;
+  }
+  return false;
 }
 
 /** Enough of a reply to find an announcement; replies are a few sentences. */

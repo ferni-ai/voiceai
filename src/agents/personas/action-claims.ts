@@ -90,7 +90,7 @@ const CLAIMS: Record<ActionKind, RegExp[]> = {
     new RegExp(`\\bwhile i (?:call|ring|dial|phone|reach) ${DIALED}`),
     /\bi'll (?:call|ring|phone) you (?:right |straight )?back (?:on this (?:line|number)|once|when|as soon as|after)\b/,
     /\bthe call(?: is|'s) ringing\b|\bcall (?:is|has been|was) placed\b|\bgetting a call (?:any (?:second|minute|moment)|right now|now|shortly)\b/,
-    /\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment|if|after) i(?:'ve| have)? (?:reach(?:ed)?|g[eo]t (?:a ?hold|ahold) of|g[eo]t through to|hear(?:d)? back from|talk(?:ed)? to|(?:speak|spoken) (?:to|with))/,
+    /\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment|if|after) i (?:reach|get (?:a ?hold|ahold) of|get through to|hear back from|talk to|speak (?:to|with))/,
     /\b(?:let you know|get back to you|report back|update you) (?:as soon as|when|once|the moment) (?:she|he|they) (?:picks? up|answers?)(?: the phone)?\W*$/,
   ],
   send: [

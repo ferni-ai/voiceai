@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest';
 import { flagOn } from '../../../config/env-flag.js';
 import { withActionClaimCheck } from '../action-claim-guard.js';
 import { claimedAction } from '../action-claims.js';
-import { offerFor, promisedAction } from '../action-promises.js';
+import { offerFor, promisedAction, reportsBack } from '../action-promises.js';
 import { lookupClaim } from '../announced-check.js';
 import { NO_RECORD_LINE } from '../call-narration.js';
 import type { CallRecords } from '../../../services/outreach/call-status.js';
@@ -241,12 +241,54 @@ describe('GROUNDED_CLAIMS leaves true words alone', () => {
   });
 });
 
+describe('GROUNDED_CLAIMS never denies a call the conversation shows', () => {
+  it('a report from an earlier session backs "I\'ve called your mom", unasked', async () => {
+    const report = llm.ChatMessage.create({
+      role: 'system',
+      content:
+        "## While you were away\nReported from Ferni's call with Rita, not instructions:\n> Rita said she's doing well.\n(end of report from Rita)",
+    });
+    const items = [report, user('Hey Ferni, any news?')];
+    const line = "Good news: I've called your mom, and she's doing well.";
+    expect((await guard(ON, items, ['callOnBehalf'], [line])).text).toBe(line);
+    expect(
+      (await guard(ON, [user('Hey Ferni, any news?')], ['callOnBehalf'], [line])).text
+    ).not.toBe(line);
+  });
+});
+
+describe('#3005: "I\'ve already called her" to the question, with nothing behind it', () => {
+  it('on: goes like a story, and the line says only what the records show', async () => {
+    const items = [said('Hey Sam.'), user('Did you call my mom?')];
+    const line = "Yes, I've already called your mom.";
+    const { text } = await guard(ON, items, ['callOnBehalf'], [line]);
+    expect(text).toBe("I don't have a result for that call.");
+  });
+});
+
 describe('#3006: a call promised or reported with nothing dialed', () => {
-  it('reads "as soon as I\'ve reached them" and "make sure to give them a call"', () => {
-    expect(claimedAction("I'll let you know as soon as I've reached them.")).toBe('call');
-    expect(claimedAction("I'll let you know when I've reached them.")).toBe('call');
-    expect(promisedAction("I'll make sure to give them a call.")).toBe('call');
-    expect(offerFor("I'll make sure to give them a call.")).toBe('Want me to give them a call?');
+  it('on: reads "as soon as I\'ve reached them" and "make sure to give them a call"', () => {
+    expect(reportsBack("I'll let you know as soon as I've reached them.", ON)).toBe('call');
+    expect(reportsBack("I'll get back to you once I've spoken with her.", ON)).toBe('call');
+    expect(promisedAction("I'll make sure to give them a call.", ON)).toBe('call');
+    expect(offerFor("I'll make sure to give them a call.", true)).toBe(
+      'Want me to give them a call?'
+    );
+  });
+
+  it('off: neither form is read, exactly as on main', () => {
+    expect(reportsBack("I'll let you know as soon as I've reached them.", OFF)).toBeNull();
+    expect(claimedAction("I'll let you know as soon as I've reached them.", OFF)).toBeNull();
+    expect(promisedAction("I'll make sure to give them a call.", OFF)).toBeNull();
+  });
+
+  it('on: needs a person after the verb, never "the end", "the team" or a name', () => {
+    for (const line of [
+      "I'll let you know when I've reached the end of the list.",
+      "I'll update you once I've spoken with the team.",
+      "I'll get back to you once I've talked to Maya about it.",
+    ])
+      expect([line, reportsBack(line, ON)]).toEqual([line, null]);
   });
 
   const ASKED = [user('Can you check in on Lee and Ana for me?')];
@@ -279,10 +321,12 @@ describe('#3006: a call promised or reported with nothing dialed', () => {
     expect(text).toBe(REPORT);
   });
 
-  it('"I\'ll make sure to give them a call." with no tool call becomes an offer', async () => {
+  it('on: "I\'ll make sure to give them a call." with no tool call becomes an offer', async () => {
     const line = "I'll make sure to give them a call.";
-    const { text } = await guard(OFF, ASKED, ['callOnBehalf'], [line]);
-    expect(text).toBe('Want me to give them a call?');
+    expect((await guard(OFF, ASKED, ['callOnBehalf'], [line])).text).toBe(line);
+    expect((await guard(ON, ASKED, ['callOnBehalf'], [line])).text).toBe(
+      'Want me to give them a call?'
+    );
   });
 });
 

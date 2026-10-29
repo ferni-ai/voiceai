@@ -138,9 +138,13 @@ never toward silence: a dropped claim always leaves words behind.
   `action-promises.ts` ("I'll text him"), `call-narration.ts` (how a call went),
   `announced-check.ts` ("I checked", "let me look").
 - `GROUNDED_CLAIMS` (off by default) ties claims to real state: a call or
-  message claim stands only on its tool's run, "I checked" only on a tool run
-  this turn, "let me look" only on a tool call in the reply, and a "yes, I did"
-  about a call only on its result in the conversation (#3003, #3005, #3006).
+  message claim stands only on its tool's run or on evidence in the
+  conversation (a call result, or the caller asking about an earlier session),
+  "I checked" only on a look-up tool run, "let me look" only on a look-up call
+  in the reply, and a "yes, I did" about a call only on its result in the
+  conversation (#3003, #3005, #3006). Never deny a real action: a denial that
+  offers a duplicate call is worse than the claim. Off, behaviour is exactly
+  main's; new claim shapes go behind the flag until verified.
 - Extend these modules for a new claim shape; don't add a second guard.
 
 ---

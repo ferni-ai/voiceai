@@ -68,11 +68,11 @@ import {
   askedCallLine,
   askedCallLookup,
   callOutcomeUnheard,
-  narratesCallOutcome,
+  claimsFromBefore,
   unheardLine,
   type AskedCallStatus,
 } from './call-narration.js';
-import { kindsRunThisTurn, offerFor, promisedAction } from './action-promises.js';
+import { kindsRunThisTurn, offerFor, promisedAction, reportsBack } from './action-promises.js';
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 
@@ -263,6 +263,7 @@ async function checkActionClaims<T>(
                 : null;
   // A tool that ran since the caller last spoke already answers a promise of its kind.
   const ranThisTurn = kindsRunThisTurn(chatCtx);
+  const before: Kinds = claimsFromBefore(chatCtx); // a call result in the conversation, or asked
   /** Why a promise ("I'll text him") is not kept yet, or null when it may stand (action-promises.ts). */
   const unkept = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     calling.has(kind) || ranThisTurn.has(kind) || (awaiting.has(kind) && !yesTurn)
@@ -275,7 +276,7 @@ async function checkActionClaims<T>(
       : (missing(kind, calling) ?? 'uncalled');
   /** GROUNDED_CLAIMS: a held call or message claim with no run of its tool behind it. */
   const unbacked = (kind: ClaimKind, calling: Kinds): MissReason | null => {
-    const ran = [calling, ranThisTurn, done, awaiting].some((kinds) => kinds.has(kind));
+    const ran = [calling, ranThisTurn, done, awaiting, before].some((kinds) => kinds.has(kind));
     return grounded && hold && (kind === 'call' || kind === 'send') && !ran ? 'uncalled' : null;
   };
   /**
@@ -286,12 +287,12 @@ async function checkActionClaims<T>(
     if (isEmergency(text))
       return { kind: 'call', reason: 'emergency', claimed: 'call', promised: null } as const;
     // On the yes to a call, "I'm on it" says the call is under way too.
-    const claimed = claimedAction(text) ?? (ahead('call') && bareOnIt(text) ? 'call' : null);
+    const onIt = ahead('call') && bareOnIt(text) ? 'call' : null;
+    const claimed = claimedAction(text) ?? reportsBack(text, env) ?? onIt;
     // "I'll text him then": a promise only a tool call in this reply keeps (action-promises.ts).
-    const promised = hold ? promisedAction(text) : null;
+    const promised = hold ? promisedAction(text, env) : null;
     // "I booked it.": only with its tool open and none run, in this reply or earlier on the call.
     const past = !claimed && actionClaimPastEnabled(env) ? pastClaim(text) : null;
-    // "I checked", "let me look": a promise only a tool run keeps (GROUNDED_CLAIMS).
     const lookup = grounded && !claimed && !past && !promised ? lookupKind(text, hold) : null;
     const kind = claimed ?? past ?? promised ?? lookup;
     const reason = !kind
@@ -307,7 +308,6 @@ async function checkActionClaims<T>(
   const ahead = (kind: ClaimKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
   // FIRST_CLAUSE_FLUSH: a held reply's first clause goes early when it names no action (first-clause-flush.ts).
   const firstClause = new FirstClauseFlush(hold && firstClauseFlushEnabled(env));
-  // GROUNDED_CLAIMS: "I checked," never goes early either.
   const talk = (c: string): boolean =>
     ACTION_TALK.test(plain(c)) || (grounded && !!lookupKind(c, true));
   const clauseSafe = clauseSafeFor(ahead('call'), unheard, talk);
@@ -391,7 +391,7 @@ async function checkActionClaims<T>(
         const waits = reason === 'uncalled' || reason === 'promised';
         if (reason === 'failed' || reason === 'elsewhere' || (waits && hold)) {
           // An unkept promise is asked as an offer instead ("Want me to text him?").
-          const offer = reason === 'promised' ? offerFor(whole) : undefined;
+          const offer = reason === 'promised' ? offerFor(whole, grounded) : undefined;
           deferred = {
             kind,
             reason,
@@ -408,7 +408,7 @@ async function checkActionClaims<T>(
       };
       /** A story of how an unheard call went: dropped, and said honestly once. */
       const told = (text: string): boolean => {
-        if (!unheard || !narratesCallOutcome(text, unheard.askedHow, unheard.yesTold)) return false;
+        if (!unheard?.tells(text)) return false;
         log.warn({ kind: 'call', reason: 'unheard', held: hold }, 'ACTION_CLAIM_DROPPED');
         if (said) return true;
         said = true;
@@ -438,7 +438,7 @@ async function checkActionClaims<T>(
               firstClause.close();
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
-            if (names.length > 0) calling.add('lookup'); // any tool call answers "let me look"
+            if (names.some(isLookupTool)) calling.add('lookup'); // a look-up keeps "let me look"
             if (names.some(isCalendarCreate)) calendarCalled = true;
             // A create came after the claim. A create only saves to Ferni's own list (#1547), so the
             // claim is still false: the honest line replaces it, and what followed goes out after.
