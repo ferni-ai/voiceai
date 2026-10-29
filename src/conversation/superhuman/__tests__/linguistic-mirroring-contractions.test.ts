@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LinguisticMirroringEngine } from '../linguistic-mirroring.js';
 
@@ -29,46 +29,84 @@ describe('contraction mirroring', () => {
   });
 
   /**
-   * The contraction rule is shared with the speech director (utils/spoken-contractions.ts,
-   * #2347). Mirroring keeps every contraction it made, except where the auxiliary is
-   * stranded: there it used to break English.
+   * #2347: mirroring contracts by utils/spoken-contractions.ts. Off (the default),
+   * `contractBroadly` keeps main's breadth and fixes only its bugs; with
+   * MIRROR_SHARED_CONTRACTIONS=on it uses the speech director's strict rule.
    */
-  describe('the shared rule: before and after #2347', () => {
+  describe('contraction rule: before and after #2347', () => {
     const casual = heard("I'm good.", "we're hanging out", "it's fine, don't worry");
 
-    it.each([
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    /** Main got these right mid-clause; flag off must keep every one. */
+    const MID_CLAUSE: ReadonlyArray<readonly [string, string]> = [
       ['It is late, and you are right.', "It's late, and you're right."],
-      ['That is a massive shift.', "That's a massive shift."],
       ['Here is the thing: there is time.', "Here's the thing: there's time."],
-      [
-        'I know you are tired, but we are going to figure it out.',
-        "I know you're tired, but we're going to figure it out.",
-      ],
+      ["I'm so glad you are here.", "I'm so glad you're here."],
+      ['Sounds like you are exhausted.', "Sounds like you're exhausted."],
+      ['Maybe it is time.', "Maybe it's time."],
+      ['Of course I am here.', "Of course I'm here."],
+      ['Mom says you are the best.', "Mom says you're the best."],
       ['I know how you are feeling.', "I know how you're feeling."],
-      ['I did not mean it, and I do not mind.', "I didn't mean it, and I don't mind."],
-      ["I'm ready when you are.", "I'm ready when you are."],
-    ])('unchanged: %s', (line, mirrored) => {
+      ['I know what you are worried about.', "I know what you're worried about."],
+      ['It is not your fault.', "It isn't your fault."],
+      ['I can not believe it.', "I can't believe it."],
+      ['I am Jordan.', "I'm Jordan."],
+    ];
+
+    it.each(MID_CLAUSE)('flag off, unchanged from main: %s', (line, mirrored) => {
       expect(casual.applyStreamingSafeMirroring(line, '')).toBe(mirrored);
     });
 
+    /** Main's bugs, fixed with the flag off too: each was its output before #2347. */
     it.each([
       ['I can see how worried you are about this.', "I can see how worried you're about this."],
       ['Look how far we are right now.', "Look how far we're right now."],
       ['I love the way you are right now.', "I love the way you're right now."],
       ['Who you are matters.', "Who you're matters."],
       ['What a mess it is right now!', "What a mess it's right now!"],
-      ['I am too.', "I'm too."],
-    ])('a stranded auxiliary keeps the full form: %s (was %j)', (line) => {
+      ['How bad do you think it is right now?', "How bad do you think it's right now?"],
+      ["I'm ready when you are.", "I'm ready when you're."],
+      ['Big Papa it is.', "Big Papa it's."],
+      ['It IS a lot.', "It's a lot."],
+      ['IT IS WHAT IT IS.', "It's WHAT It's."],
+      ['He said, "I am not coming back."', 'He said, "I\'m not coming back."'],
+      ["Your note says 'it is done' at the top.", "Your note says 'it's done' at the top."],
+      ['Type `do not disturb` in settings.', "Type `don't disturb` in settings."],
+    ])('flag off, a bug main had stays fixed: %s (main: %j)', (line) => {
       expect(casual.applyStreamingSafeMirroring(line, '')).toBe(line);
     });
 
-    it('a streamed chunk that starts mid-sentence keeps the full form; after a sentence it contracts', () => {
+    it('flag off: MIRROR_GRAMMAR_GUARD still decides a clause-final negation', () => {
+      expect(casual.applyStreamingSafeMirroring('I do not.', '')).toBe("I don't.");
+      vi.stubEnv('MIRROR_GRAMMAR_GUARD', 'on');
+      expect(casual.applyStreamingSafeMirroring('I do not.', '')).toBe('I do not.');
+    });
+
+    it('flag on: the strict rule, with its new pairs and order', () => {
+      vi.stubEnv('MIRROR_SHARED_CONTRACTIONS', 'on');
+      expect(casual.applyStreamingSafeMirroring('It is not your fault.', '')).toBe(
+        "It's not your fault."
+      );
+      expect(casual.applyStreamingSafeMirroring('It was not my fault. I will be here.', '')).toBe(
+        "It wasn't my fault. I'll be here."
+      );
+      expect(casual.applyStreamingSafeMirroring('Sounds like you are exhausted.', '')).toBe(
+        'Sounds like you are exhausted.'
+      );
+      expect(casual.applyStreamingSafeMirroring('I am too.', '')).toBe('I am too.');
+    });
+
+    it('a chunk keeps a stranded pair when the wh-word came in an earlier chunk', () => {
       expect(
         casual.applyStreamingSafeMirroring('you are about this.', 'I can see how worried ')
       ).toBe('you are about this.');
       expect(casual.applyStreamingSafeMirroring('you are about to win.', 'Honestly? ')).toBe(
         "you're about to win."
       );
+      vi.stubEnv('MIRROR_SHARED_CONTRACTIONS', 'on');
       expect(casual.applyStreamingSafeMirroring('you are about to win.')).toBe(
         'you are about to win.'
       );

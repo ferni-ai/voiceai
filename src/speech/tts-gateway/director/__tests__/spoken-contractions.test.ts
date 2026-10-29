@@ -144,6 +144,7 @@ describe('SPOKEN_CONTRACTIONS', () => {
     'The sign says "do not disturb" all week.',
     'Type `did not work` in the box.',
     "Their motto is 'I am because we are.'",
+    "Your note says 'it is not done' yet.",
     'He said \u2018it is not over\u2019 twice.',
   ])('on: quotes and code spans are spoken as with the flag off: %s', (line) => {
     const off = normalizeForSpeech(line, '');
@@ -208,6 +209,28 @@ describe('SPOKEN_CONTRACTIONS', () => {
   ])('on: needs a lowercase word after the pair: %s (%s)', (line) => {
     vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
     expect(say(line)).toBe(line);
+  });
+
+  /** Re-verify FAIL on a1aa3896b (PR #2347): "think" after a fronted wh-phrase is no clause start. */
+  it.each([
+    'How bad do you think it is right now?',
+    'How hard do you think it is out there?',
+    "That's how worried I think you are about this.",
+    'How tired do you feel you are right now?',
+    'What a mess I think it is right now!',
+    'Do you think it is fine?',
+  ])('on: a fronted wh-phrase or "do you think" keeps the full form: %s', (line) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(normalizeForSpeech(line, '')).toEqual({ text: line, count: 0 });
+  });
+
+  it.each([
+    ['I think it is fine.', "I think it's fine."],
+    ['How was it? I think it is fine.', "How was it? I think it's fine."],
+    ['I know how, but I think it is fine.', "I know how, but I think it's fine."],
+  ])('on: "I think" still opens a clause with no wh-phrase before it: %s', (line, spoken) => {
+    vi.stubEnv('SPOKEN_CONTRACTIONS', 'on');
+    expect(say(line)).toBe(spoken);
   });
 
   /** Verifier FAIL on f37e7c45a (PR #2347): a push or a markup part that starts mid-sentence. */

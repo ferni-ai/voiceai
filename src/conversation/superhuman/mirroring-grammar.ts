@@ -8,12 +8,18 @@
  *   "I'm ready when you're.", "Big Papa it's.", "what that's."
  *
  * With MIRROR_GRAMMAR_GUARD=on, "no" becomes "nah" only when it stands alone
- * as a reply. Off (the default), every "no" does. Contractions no longer depend
- * on the flag: mirroring uses the shared rule (utils/spoken-contractions.ts),
- * which never contracts a clause-final or stranded pair.
+ * as a reply. Off (the default), every "no" does; it also lets a clause-final
+ * negation contract ("I don't."). Contractions come from utils/spoken-contractions.ts:
+ * the wider `contractBroadly`, or with MIRROR_SHARED_CONTRACTIONS=on the director's
+ * stricter rule. Neither contracts a clause-final or stranded auxiliary.
  *
  * @module @ferni/superhuman/mirroring-grammar
  */
+
+/** MIRROR_SHARED_CONTRACTIONS, read from env; off unless set to 'on'. */
+export function mirrorSharedContractionsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.MIRROR_SHARED_CONTRACTIONS === 'on';
+}
 
 /** MIRROR_GRAMMAR_GUARD, read from env; off unless set to 'on'. */
 export function mirrorGrammarGuardEnabled(env: NodeJS.ProcessEnv = process.env): boolean {

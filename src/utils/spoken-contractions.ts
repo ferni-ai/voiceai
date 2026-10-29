@@ -23,6 +23,11 @@
  *   "what is" needs a complement ("What is it?" stays).
  * A negation ("do not", "was not") contracts anywhere a word follows.
  *
+ * `contractBroadly` is mirroring's older, wider rule, kept while
+ * MIRROR_SHARED_CONTRACTIONS is off (the default): main's 17 pairs, contracted mid-clause
+ * ("Sounds like you're exhausted"), minus its bugs: a stranded or clause-final
+ * auxiliary, a pair in caps or title case, and quoted words stay as written.
+ *
  * @module utils/spoken-contractions
  */
 
@@ -56,21 +61,26 @@ const PAIRS: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /**
- * Whole-word match with a lowercase word after it. Only the first letter may be a
- * capital ("It is", "it is"): a case-blind match would let "I am NOT" and a title
- * ("It Is What It Is") through.
+ * Whole-word match of `full`, then `wordAfter` (a lookahead). Only the first letter may
+ * be a capital ("It is", "it is"): a case-blind match would let "IT IS" and a title ("It
+ * Is What It Is") through. `strict`: "I" only as a capital, and any spacing between words.
  */
-const PATTERNS = PAIRS.map(([full, short]) => {
+function fullForm(full: string, wordAfter: string, strict: boolean): RegExp {
   const first = full[0];
-  const head = first === 'I' ? 'I' : `[${first}${first.toUpperCase()}]`;
-  const body = full.slice(1).replace(' ', String.raw`\s+`);
-  return {
-    re: new RegExp(String.raw`\b${head}${body}\b(?=\s+[a-z])`, 'g'),
-    full,
-    short,
-    negation: /\bnot$|^cannot$/.test(full),
-  };
-});
+  const head = strict && first === 'I' ? 'I' : `[${first.toLowerCase()}${first.toUpperCase()}]`;
+  const body = full.slice(1).replace(' ', strict ? String.raw`\s+` : ' ');
+  return new RegExp(String.raw`\b${head}${body}\b${wordAfter}`, 'g');
+}
+
+const isNegation = (full: string): boolean => /\bnot$|^cannot$/.test(full);
+
+/** Strict: a lowercase word must follow, so a stressed "I am NOT" stays. */
+const PATTERNS = PAIRS.map(([full, short]) => ({
+  re: fullForm(full, String.raw`(?=\s+[a-z])`, true),
+  full,
+  short,
+  negation: isNegation(full),
+}));
 
 /** Words that start a complement after "what is": "What is going on", not "What is it?". */
 const WHAT_IS_STARTERS = new Set(
@@ -95,11 +105,20 @@ const STRANDERS = new Set(
   ).split(' ')
 );
 
-/** What opens a clause right before a subject: punctuation, or a conjunction / "I think". */
-const CLAUSE_LEAD = new RegExp(
-  String.raw`(?:^|[.!?;:,—–]|\b(?:and|but|so|or|because|cause|if|when|while|since|though|although|unless|until|think|know|guess|hope|bet|feel|mean|swear|promise|believe))\s*$`,
-  'i'
-);
+/** Clause starts right before a subject: punctuation, a conjunction, or "I think" and the like. */
+const PUNCT_LEAD = /(?:^|[.!?;:,—–])\s*$/;
+const CONJ_LEAD =
+  /\b(?:and|but|so|or|because|cause|if|when|while|since|though|although|unless|until)\s*$/i;
+const VERB_LEAD = /\b(?:think|know|guess|hope|bet|feel|mean|swear|promise|believe)\s*$/i;
+/** "How bad do you think it is": a question's "think" doesn't open a new clause. */
+const ASKED = /\b(?:do|did|don't|didn't)\s+you\s+\w+\s*$/i;
+
+/**
+ * A wh-word or "the way" earlier in the clause fronted the auxiliary's complement:
+ * "how worried (I think) you are about this", "what a mess it is", "who you are".
+ */
+const FRONTED =
+  /\b(?:how|what|who|whoever|where|wherever|whatever|however|the\s+way)\b[^.!?;:,—–]*$/i;
 
 /**
  * An -ing form after is / am / are makes it a progressive auxiliary, which nothing can
@@ -115,13 +134,17 @@ const TRAILING_MARKUP = /(?:\s*(?:<[^>]*>|\[[^\]]*\]))+\s*$/;
 const UNKNOWN_START = '\u0000';
 
 function opensClause(said: string): boolean {
-  return CLAUSE_LEAD.test(said.replace(TRAILING_MARKUP, ''));
+  const text = said.replace(TRAILING_MARKUP, '');
+  if (PUNCT_LEAD.test(text)) return true;
+  if (FRONTED.test(text)) return false;
+  return CONJ_LEAD.test(text) || (VERB_LEAD.test(text) && !ASKED.test(text));
 }
 
 /** Is the end of `said` inside quotes or a code span? */
 function quoted(said: string): boolean {
   const count = (re: RegExp): number => (said.match(re) ?? []).length;
-  const singleOpen = count(/(?:^|[\s([—“"])['‘](?=[A-Za-z])/g);
+  // An opening quote is followed by a letter, or ends `said` (the pair comes right after it).
+  const singleOpen = count(/(?:^|[\s([—“"])['‘](?=[A-Za-z]|$)/g);
   const singleClose = count(/(?<=[A-Za-z.,!?])['’](?![A-Za-z])/g);
   return (
     count(/"/g) % 2 === 1 ||
@@ -172,4 +195,62 @@ export function contractForSpeech(
       }),
     text
   );
+}
+
+/** Mirroring's older table and order (MIRROR_SHARED_CONTRACTIONS off): "it is not" → "it isn't". */
+const BROAD_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  ['I am', "I'm"],
+  ['you are', "you're"],
+  ['we are', "we're"],
+  ['they are', "they're"],
+  ['is not', "isn't"],
+  ['are not', "aren't"],
+  ['will not', "won't"],
+  ['can not', "can't"],
+  ['do not', "don't"],
+  ['did not', "didn't"],
+  ['could not', "couldn't"],
+  ['would not', "wouldn't"],
+  ['should not', "shouldn't"],
+  ['it is', "it's"],
+  ['that is', "that's"],
+  ['there is', "there's"],
+  ['here is', "here's"],
+];
+
+/** After a fronted wh-word, these next words show the complement is still there. */
+const NOT_STRANDED = /^\s+(?:like\b|(?!indeed\b)[a-z]{3,}ed\b)/;
+
+/**
+ * Mirroring's wider rule: a pair contracts mid-clause wherever a word follows, as it
+ * always did ("Sounds like you're exhausted", "I'm Jordan"). Fixed, flag or not: an
+ * auxiliary needs a word after it ("ready when you are." stays) and is never contracted
+ * after a fronted wh-word ("how worried you are about this"); a pair in caps or title
+ * case, or inside quotes or a code span, stays. `negationNeedsWord`: MIRROR_GRAMMAR_GUARD,
+ * which still decides whether a clause-final "I do not." contracts.
+ */
+export function contractBroadly(
+  text: string,
+  before: string | undefined,
+  negationNeedsWord: boolean,
+  hit: (full: string, short: string) => void = () => {}
+): string {
+  const lead = before ?? UNKNOWN_START;
+  return BROAD_PAIRS.reduce((acc, [full, short]) => {
+    const negation = isNegation(full);
+    const wordAfter = negation && !negationNeedsWord ? '' : String.raw`(?=\s+[A-Za-z])`;
+    const re = fullForm(full, wordAfter, false);
+    return acc.replace(re, (found: string, at: number, all: string) => {
+      const said = lead + all.slice(0, at);
+      if (quoted(said)) return found;
+      const after = all.slice(at + found.length);
+      const stranded =
+        FRONTED.test(said.replace(TRAILING_MARKUP, '')) &&
+        !PROGRESSIVE.test(after) &&
+        !NOT_STRANDED.test(after);
+      if (!negation && stranded) return found;
+      hit(full, short);
+      return matchCase(found, short);
+    });
+  }, text);
 }

@@ -1,9 +1,8 @@
 /**
- * Mirroring on the live reply path contracts by the shared spoken rule (#2347). The
- * wrapper tells it what the reply said before each chunk; without that, a chunk's
- * opening pair is never contracted (its start could be mid-sentence). Upstream
- * buffering hands mirroring whole sentences here, so the stranded pair below arrives
- * inside one chunk.
+ * Mirroring on the live reply path contracts by utils/spoken-contractions.ts (#2347).
+ * The wrapper tells it what the reply said before each chunk: upstream buffering
+ * hands mirroring whole sentences, so a quote opened in one sentence is still open in
+ * the next, and a stranded pair arrives inside one chunk.
  */
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { voice } from '@livekit/agents';
@@ -27,14 +26,20 @@ vi.mock('../../../speech/tts-gateway/index.js', async (importOriginal) => ({
 }));
 
 describe('tts-wrapper: mirroring contracts with the reply so far', () => {
-  it('keeps a stranded pair, and contracts the pair opening a later chunk', async () => {
+  it('keeps a stranded pair and a quote across chunks; contracts outside them', async () => {
     const userId = 'mirroring-contractions-user';
     const engine = getLinguisticMirroring(userId);
     for (const line of ["I'm good.", "we're hanging out", "it's fine, don't worry"]) {
       engine.analyzeMessage(line);
     }
     const { wrappedTtsNode } = await import('../tts-wrapper.js');
-    const chunks = ['I can see how worried ', 'you are about this', '. ', 'It is late now.'];
+    const chunks = [
+      'I can see how worried ',
+      'you are about this. ',
+      'He said, "I am so tired. ',
+      'It is late now." ',
+      'It is late now.',
+    ];
     await wrappedTtsNode(
       {} as voice.Agent,
       new ReadableStream<string>({
@@ -49,6 +54,7 @@ describe('tts-wrapper: mirroring contracts with the reply so far', () => {
     expect(spoken).toHaveLength(1);
     const words = spoken[0].replace(/<[^>]*>/g, '');
     expect(words).toContain('how worried you are about this');
-    expect(words).toContain("It's late now.");
+    expect(words).toContain('"I am so tired.');
+    expect(words).toMatch(/It is late now\." +It's late now\./);
   });
 });
