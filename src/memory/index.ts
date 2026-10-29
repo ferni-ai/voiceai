@@ -234,8 +234,6 @@ export {
   type RetrievedMemory,
 } from './advanced-retrieval.js';
 
-// --- NEW v2 MODULES ---
-
 // Result Type Pattern (error handling)
 export {
   all,

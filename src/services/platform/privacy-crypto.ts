@@ -423,22 +423,15 @@ export async function detokenizeAsync(token: string): Promise<string | null> {
 // DATA MINIMIZATION HELPERS
 // ============================================================================
 
+const PII_FIELDS = 'phone email name address ssn password token voiceSketch'.split(' ');
+
 /**
  * Strip PII from an object for logging: named PII fields are redacted, and so is any
  * other string value holding a phone number or email (the shared contact-data rule).
  */
 export function stripPII<T extends Record<string, unknown>>(
   obj: T,
-  fieldsToStrip: string[] = [
-    'phone',
-    'email',
-    'name',
-    'address',
-    'ssn',
-    'password',
-    'token',
-    'voiceSketch',
-  ]
+  fieldsToStrip: string[] = PII_FIELDS
 ): Partial<T> {
   const result: Partial<T> = {};
 
