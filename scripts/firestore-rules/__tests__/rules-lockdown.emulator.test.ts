@@ -91,6 +91,7 @@ describe.skipIf(!HOST)('firestore.rules lockdown (Firestore emulator)', () => {
   const install = `marketplace_installations/${RUN}-i1`;
   const webhook = `developer_webhooks/${RUN}-w1`;
   const activity = `bogle_users/u1/activity/${RUN}-a1`;
+  const fact = `bogle_users/u1/facts/${RUN}-f1`;
 
   beforeAll(async () => {
     await seed(feedback, { userId: 'u2', sessionId: 's1', userMessage: 'private words' });
@@ -103,6 +104,7 @@ describe.skipIf(!HOST)('firestore.rules lockdown (Firestore emulator)', () => {
     await seed(webhook, { publisherId: 'u1', url: 'https://example.com/hook' });
     await seed(activity, { kind: 'call', state: 'asked' });
     await seed(`${activity}/events/000001`, { seq: 1, to: 'asked' });
+    await seed(fact, { subjectId: 'self', attribute: 'city', value: 'Tampa' });
   });
 
   describe('activity ledger', () => {
@@ -118,6 +120,17 @@ describe.skipIf(!HOST)('firestore.rules lockdown (Firestore emulator)', () => {
       expect(await create('u1', `${activity}/events/000002`, { seq: 2 })).toBe(403);
       expect(await create('u1', `bogle_users/u1/activity/${RUN}-a2`, { kind: 'call' })).toBe(403);
       expect(await update('service', activity, { state: 'confirmed' }, ['state'])).toBe(200);
+    });
+  });
+
+  describe('facts', () => {
+    it('lets no client read or write them, the owner included; the server does', async () => {
+      expect(await get('u1', fact)).toBe(403);
+      expect(await get('anon', fact)).toBe(403);
+      expect(await update('u1', fact, { value: 'Austin' }, ['value'])).toBe(403);
+      expect(await create('u1', `bogle_users/u1/facts/${RUN}-f2`, { value: 'x' })).toBe(403);
+      expect(await get('service', fact)).toBe(200);
+      expect(await update('service', fact, { value: 'Austin' }, ['value'])).toBe(200);
     });
   });
 

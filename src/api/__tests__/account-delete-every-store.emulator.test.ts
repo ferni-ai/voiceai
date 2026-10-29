@@ -83,6 +83,7 @@ const MUST_ERASE = [
   'bogle_users/{uid}/conversations/conv_1/timeline', // CALL_TIMELINE (call-timeline.ts)
   'bogle_users/{uid}/activity', // the activity ledger (activity-store.ts)
   'bogle_users/{uid}/activity/a_1/events', // each record's event log
+  'bogle_users/{uid}/facts', // bi-temporal facts (facts-store.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
   'bogle_users/{uid}/wellbeing_snapshots',
@@ -96,6 +97,8 @@ const MUST_ERASE = [
   'developer_oauth_tokens[userId]',
   'feature_checkins[userId]',
   'context_injection_outcomes[injection.userId]',
+  'vectors[metadata.userId]', // the semantic index (#2971 verify)
+  'memory_vectors[metadata.userId]',
   'user_profiles[firebaseUid]',
   // The router's stores of each turn and correction (no words since 2026-10-25)
   'routing_events[userId]',
