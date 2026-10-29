@@ -308,6 +308,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         metadata: doc.metadata,
         createdAt: new Date(),
         updatedAt: new Date(),
+        expireAt: doc.expireAt, // a policy's expiry (store-hooks.ts); none is kept
         needsEmbedding, // Flag for background job to retry embedding generation
       });
 
@@ -553,7 +554,6 @@ export class FirestoreVectorStore implements VectorStoreContract {
           score: topKResult.similarities[i],
         }));
 
-        // Cache the results
         this.searchCache.set(query, queryEmbedding, results, options?.filter, { topK, minScore });
         return results;
       }
