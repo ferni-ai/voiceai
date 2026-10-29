@@ -252,11 +252,13 @@ add another copy.
 **House facts (#3001).** Ferni's own website, the number texts come from and the
 email From address come only from `src/config/house-facts.ts` (LANDING_URL/APP_URL,
 TWILIO_PHONE_NUMBER, EMAIL_FROM). With `HOUSE_FACTS=on` the honesty prompt
-(`ai-honesty.ts` `withHonesty`) states them, and a sentence that gives Ferni's own
-web address, email or number that isn't one of them becomes "I don't have that in
-front of me." Only Ferni's own addresses are checked: the caller's or anyone else's
-("your email", "texts from my mom") pass. An unset value is named as unknown, never
-guessed.
+(`ai-honesty.ts` `withHonesty`) states them, and the guard checks provenance, failing
+closed: every web address, email or phone number Ferni speaks must be a house fact or
+appear in this call's grounding (the caller's words, tool results, injected context),
+compared whole after normalising spoken forms (`personas/spoken-addresses.ts`, on the
+shared contact-data fold). Otherwise the sentence becomes "I don't have that in front
+of me." Nobody's address is judged by who it belongs to. An unset fact is named as
+unknown, never guessed.
 
 ---
 

@@ -9,20 +9,20 @@
  * HOUSE_FACTS=on (off by default) does two things:
  * - the prompt (ai-honesty.ts withHonesty) states the true facts and that any other
  *   address is not his to give;
- * - every reply (withActionClaimCheck in action-claim-guard.ts, before the claim check
- *   re-splits sentences) is checked a sentence at a time. A sentence that gives a web
- *   address, email address or phone number for Ferni himself (the caller just asked
- *   for his, or the sentence says "our website", "texts from me come from", "email us
- *   at") and holds one that is not a house fact is replaced, once per reply, with
- *   "I don't have that in front of me." Anyone else's address is left alone.
+ * - every reply is checked a sentence at a time (withActionClaimCheck, before the
+ *   claim check re-splits "SITE.AI" at the capital). Provenance, failing closed: any
+ *   web address, email or phone number in a sentence (and a 5-6 digit sender in a
+ *   sentence about texts) must be a house fact or appear in this call's grounding:
+ *   the caller's words, tool results, or the context injected into the session.
+ *   Otherwise the sentence is replaced, once per reply, with "I don't have that in
+ *   front of me." Nobody's address is judged by who it belongs to: a contact's number
+ *   from a tool passes, an invented one fails wherever it appears.
  *
- * Emails and numbers are found by the shared contact-data rule
- * (memory/domain/contact-data.ts). That rule does not cover a bare website, so
- * WEB_ADDRESS below finds one ("site.com", "site dot ai", "call-dot-com"). True
- * facts are taken out of the sentence first, so only what is left can trip it.
- *
- * Sentences are held until they end; with the action-claim defaults they already are,
- * so this adds no wait (TURN_RECEIPT carries the flag). Logs never carry the words.
+ * Matching is spoken-addresses.ts. Grounding is read only when a sentence holds an
+ * address that isn't a house fact, and each chat item is read once per call.
+ * Sentences are held until they end, across Gemini's usage-only chunks; with the
+ * action-claim defaults they already are, so this adds no wait (TURN_RECEIPT carries
+ * the flag). Logs never carry the words.
  *
  * @module agents/personas/house-facts
  */
@@ -30,15 +30,23 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
-import { containsContactData, toE164 } from '../../memory/index.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { contentOf, type ReplyChunk } from './reply-chunks.js';
-import { recentSpoken } from './spoken-words.js';
+import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';
+import {
+  collectAddresses,
+  factAddresses,
+  inventsAddress,
+  noAddresses,
+  piecesOf,
+  type Addresses,
+} from './spoken-addresses.js';
 
 const log = createLogger({ module: 'HouseFacts' });
 
 export const NOT_IN_FRONT_OF_ME = "I don't have that in front of me.";
+/** A run with no sentence end is decided in pieces of this size, so the buffer stays small. */
+const MAX_HELD = 300;
 
 function houseFactsEnabled(env: Env = process.env): boolean {
   return flagOn('HOUSE_FACTS', env);
@@ -69,132 +77,45 @@ export function withHouseFacts(rule: string, env: Env = process.env): string {
     : rule;
 }
 
-/**
- * Inputs are tokenised before any pattern runs, so no pattern has to choose between
- * readings: a said dot (" dot ", "-dot-") becomes "." by plain replacements, and a
- * label is alphanumerics joined by single hyphens. A label that could also swallow
- * "-dot-" backtracked for minutes on a long hyphen run (#3032 review). Each checked
- * piece is at most MAX_CHECK characters as well.
- */
-const MAX_CHECK = 300;
-const DIGIT_WORDS = 'zero one two three four five six seven eight nine'.split(' ');
-/**
- * The piece as one reading: a said dot (" dot ", "-dot-") written as ".", letters
- * spelled after it joined ("dot a i" is ".ai"), and digits said as words written as
- * digits ("eight eight eight" is "888"), so a true number said aloud still matches.
- */
-const tokenise = (text: string): string =>
-  text
-    .replace(/\s{1,3}dot\s{1,3}/giu, '.')
-    .replace(/-dot-/giu, '.')
-    .replace(
-      /\.((?:\p{L} ){1,3}\p{L})(?![\p{L}\p{N}])/gu,
-      (_m, letters: string) => `.${letters.replace(/ /g, '')}`
-    )
-    .replace(/\b(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)\b/giu, (w) =>
-      String(Math.max(0, DIGIT_WORDS.indexOf(w.toLowerCase())))
-    );
-const LABEL = '[\\p{L}\\p{N}]+(?:-[\\p{L}\\p{N}]+)*';
-/** A website once dots are written: "site.com", "app.site.ai". Not a contact-data shape. */
-const WEB_ADDRESS = new RegExp(
-  `(?<![\\p{L}\\p{N}.-])${LABEL}(?:\\.${LABEL})*\\.(?:com|net|org|ai|am|io|co|app|us|me|info|biz|dev|xyz|tv|ly|fm|gg|online|site|tech|health|care|life|chat|link)(?![\\p{L}\\p{N}])`,
-  'iu'
-);
-const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-/** A true host, never inside a longer name: nothing joined before ("verify."), nor after. */
-const START = '(?<![\\p{L}\\p{N}.@-])';
-const END = '(?![\\p{L}\\p{N}-]|\\.[\\p{L}\\p{N}])';
-
-/** The (tokenised) piece with every true fact taken out, so only an untrue address is left. */
-function withoutFacts(piece: string, facts: HouseFacts): string {
-  let rest = piece;
-  if (facts.emailFrom) {
-    const [local, host] = facts.emailFrom.split('@');
-    const said = `(?<![\\p{L}\\p{N}._%+-])${escape(local ?? '')}(?:\\s{0,3}@\\s{0,3}|\\s{1,3}at\\s{1,3})${escape(host ?? '')}${END}`;
-    rest = rest.replace(new RegExp(said, 'giu'), ' ');
-  }
-  const hosts = [facts.webApp, facts.website].filter((h): h is string => Boolean(h));
-  for (const host of hosts.sort((a, b) => b.length - a.length)) {
-    const site = `${START}(?:https?://)?(?:www\\.)?${escape(host)}${END}`;
-    rest = rest.replace(new RegExp(site, 'giu'), ' ');
-  }
-  const texts = facts.textsFrom && toE164(facts.textsFrom);
-  return rest.replace(/\+?\d[\d\s().,-]{5,}\d/g, (run) =>
-    texts && toE164(run.replace(/,/g, '')) === texts ? ' ' : run
-  );
+/** The text of one chat item that can ground an address; Ferni's own words never do. */
+interface GroundingItem {
+  type?: string;
+  role?: string;
+  content?: unknown;
+  textContent?: string;
+  output?: unknown;
+}
+function groundingText(item: GroundingItem): string {
+  if (item.type === 'function_call_output')
+    return typeof item.output === 'string' ? item.output : '';
+  if (item.type !== 'message' || item.role === 'assistant') return '';
+  if (typeof item.textContent === 'string') return item.textContent;
+  const parts = Array.isArray(item.content) ? item.content : [item.content];
+  return parts.filter((part): part is string => typeof part === 'string').join('\n');
 }
 
-/** Where to cut text longer than `max`: after the last space in its second half, else at max. */
-function cutAt(text: string, max: number): number {
-  const space = text.lastIndexOf(' ', max);
-  return space > max / 2 ? space + 1 : max;
-}
+/** Each chat item's addresses, read once: items are the same objects turn after turn. */
+const itemAddresses = new WeakMap<object, Addresses>();
 
-/** The text in pieces of at most MAX_CHECK characters, cut at spaces where it can be. */
-function piecesOf(text: string): string[] {
-  const pieces: string[] = [];
-  let rest = text;
-  while (rest.length > MAX_CHECK) {
-    const cut = cutAt(rest, MAX_CHECK);
-    pieces.push(rest.slice(0, cut));
-    rest = rest.slice(cut);
+/**
+ * The addresses this call has grounded, plus the house facts: everything the caller
+ * said, every tool result, and the context injected into the session (system notes,
+ * the instructions with memory and the call sheet).
+ */
+function allowedAddresses(chatCtx: { items: readonly unknown[] }, facts: HouseFacts): Addresses {
+  const allowed = factAddresses(facts);
+  for (const item of chatCtx.items) {
+    if (typeof item !== 'object' || item === null) continue;
+    let found = itemAddresses.get(item);
+    if (!found) {
+      found = collectAddresses(groundingText(item as GroundingItem), noAddresses());
+      itemAddresses.set(item, found);
+    }
+    for (const key of ['hosts', 'emails', 'numbers'] as const) {
+      for (const value of found[key]) allowed[key].add(value);
+    }
   }
-  return [...pieces, rest];
-}
-
-const OWN_THING =
-  '(?:website|web ?site|site|web address|url|link|(?:phone |cell )?number|e-?mail(?: address)?|address|short ?code)';
-const SENT = '(?:texts?|messages?|e-?mails?|notifications?|codes?)';
-const SENT_FROM = '(?:come|comes|coming|came|be sent|get sent|are sent|is sent|go out) from';
-/**
- * The caller asking for Ferni's own site, sender, number or email: "your website",
- * "texts from you", "what number do you text from", and two ownerless forms from
- * the prod calls that only Ferni's own texts fit ("what address do the texts come
- * from", "what website do I use to verify my number").
- */
-const ASKS_OURS = new RegExp(
-  `\\b(?:your|ferni'?s|the app'?s)(?: own| app'?s?)? ${OWN_THING}\\b` +
-    `|\\b${SENT} (?:from|by) (?:you|ferni|the app)\\b` +
-    `|\\b(?:do|does|did|will|would|can) (?:you|ferni) (?:text|e-?mail|message|send)\\b` +
-    `|\\b(?:what|which|where)\\b[^.?!]{0,30}\\bthe ${SENT} ${SENT_FROM}\\b` +
-    `|\\b(?:verify|confirm|add|register|update) (?:my )?(?:phone |cell )?number\\b`,
-  'iu'
-);
-/** Someone or something else named: "texts from my mom", "for my insurance", "for the marathon". */
-const SOMEONE_ELSE =
-  /\b(?:from|for|with|at|by|to) (?:my|her|his|their|the|a|an) (?!(?:phone|cell|number|account|app|website|site|menu|settings)\b)\p{L}+|\b(?:from|for|with|at|by) (?!Ferni\b)\p{Lu}\p{L}+/u;
-/**
- * Ferni giving an address as his own: "our website", "my email", "texts from me
- * come from", "I text you from", "reach us at". Another owner ("your email", "her
- * texts", "the latest email is from") is never his.
- */
-const GIVES_OURS = new RegExp(
-  `\\b(?:our|my|ferni'?s|the app'?s) (?:own )?${OWN_THING}\\b` +
-    `|\\b(?:our|my) ${SENT}\\b[^.?!]{0,40}\\b${SENT_FROM}\\b` +
-    `|\\b${SENT} (?:from|by) (?:me|us|ferni|the app)\\b[^.?!]{0,40}\\b${SENT_FROM}\\b` +
-    `|\\bI(?:'ll| will)? (?:text|e-?mail|message) (?:you )?from\\b` +
-    `|\\bwe(?:'re| are) (?:at|on)\\b` +
-    `|\\b(?:reach|find|text|call|e-?mail|write to) (?:me|us|ferni) at\\b`,
-  'iu'
-);
-
-/** An address left in tokenised text (said dots already written as "."). */
-const hasAddress = (tokens: string): boolean =>
-  containsContactData(tokens) || WEB_ADDRESS.test(tokens);
-
-/**
- * True when the sentence gives Ferni's own address and one it gives is not a house
- * fact. `callerAsked`: the caller's latest words asked for one.
- */
-export function inventsHouseFact(
-  sentence: string,
-  callerAsked: boolean,
-  facts: HouseFacts
-): boolean {
-  return piecesOf(sentence).some(
-    (piece) =>
-      (callerAsked || GIVES_OURS.test(piece)) && hasAddress(withoutFacts(tokenise(piece), facts))
-  );
+  return allowed;
 }
 
 /**
@@ -219,11 +140,12 @@ export async function withHouseFactsGuard<T>(
 ): Promise<T> {
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
-  const facts = houseFacts(env);
-  const callerAsked = recentSpoken(chatCtx, 'user', 1).some((t) => {
-    const words = t.slice(-MAX_CHECK);
-    return ASKS_OURS.test(words) && !SOMEONE_ELSE.test(words);
-  });
+  const facts = factAddresses(houseFacts(env));
+  // Read only when a sentence holds an address that isn't a house fact (most replies hold none).
+  let grounded: Addresses | undefined;
+  const invents = (sentence: string): boolean =>
+    inventsAddress(sentence, facts) &&
+    inventsAddress(sentence, (grounded ??= allowedAddresses(chatCtx, houseFacts(env))));
   const reader = stream.getReader();
   let id = '';
   let stringChunks = true;
@@ -237,8 +159,8 @@ export async function withHouseFactsGuard<T>(
           );
       };
       const decide = (sentence: string): void => {
-        if (!inventsHouseFact(sentence, callerAsked, facts)) return emit(sentence);
-        log.warn({ reason: callerAsked ? 'caller_asked' : 'gives_ours' }, 'HOUSE_FACT_INVENTED');
+        if (!invents(sentence)) return emit(sentence);
+        log.warn({ reason: 'ungrounded_address' }, 'HOUSE_FACT_INVENTED');
         if (!replaced) emit(`${NOT_IN_FRONT_OF_ME}${/\s$/.test(sentence) ? ' ' : ''}`);
         replaced = true;
       };
@@ -247,8 +169,11 @@ export async function withHouseFactsGuard<T>(
         for (let next = await reader.read(); !next.done; next = await reader.read()) {
           const content = contentOf(next.value);
           if (content === undefined) {
-            if (pending) decide(pending);
-            pending = '';
+            // A tool call goes out after the words before it. Other chunks with no text
+            // (Gemini's usage chunk after every piece) pass by without cutting the
+            // sentence held, as in the claim guard (action-claim-guard-spacing.test.ts).
+            if (hasToolCall(next.value) && pending) decide(pending);
+            if (hasToolCall(next.value)) pending = '';
             controller.enqueue(next.value);
             continue;
           }
@@ -262,10 +187,10 @@ export async function withHouseFactsGuard<T>(
             pending = pending.slice(end);
           }
           // A run with no sentence end is decided in pieces, so the buffer stays small.
-          while (pending.length > 2 * MAX_CHECK) {
-            const cut = cutAt(pending, MAX_CHECK);
-            decide(pending.slice(0, cut));
-            pending = pending.slice(cut);
+          if (pending.length > 2 * MAX_HELD) {
+            const pieces = piecesOf(pending, MAX_HELD);
+            pending = pieces.pop() ?? '';
+            pieces.forEach(decide);
           }
         }
         if (pending) decide(pending);

@@ -1,7 +1,8 @@
 /**
- * Ferni never makes up his own website or the address his texts and emails come
- * from (house-facts.ts, #3001). The prod shapes are rewritten with made-up names
- * ("glowfriend", "mindmeadow") and 555-01xx numbers.
+ * Ferni never makes up a web address, email or phone number (house-facts.ts, #3001):
+ * each one he says must be a house fact or grounded in the call (the caller's words,
+ * tool results, injected context). The prod shapes and every verifier and security
+ * review probe on #3032 are here, with made-up names and 555-01xx numbers.
  */
 import { initializeLogger, llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
@@ -9,12 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import { withActionClaimCheck } from '../action-claim-guard.js';
 import { withHonesty } from '../ai-honesty.js';
-import {
-  houseFactsPrompt,
-  inventsHouseFact,
-  NOT_IN_FRONT_OF_ME,
-  withHouseFactsGuard,
-} from '../house-facts.js';
+import { houseFactsPrompt, NOT_IN_FRONT_OF_ME, withHouseFactsGuard } from '../house-facts.js';
 
 initializeLogger({ pretty: false, level: 'warn' });
 
@@ -23,19 +19,22 @@ const ON = {
   TWILIO_PHONE_NUMBER: '+17275550142',
   EMAIL_FROM: 'hello@ferni.ai',
 };
-const FACTS = {
-  website: 'ferni.ai',
-  webApp: 'app.ferni.ai',
-  textsFrom: '+17275550142',
-  emailFrom: 'hello@ferni.ai',
-};
+const NO = NOT_IN_FRONT_OF_ME;
 const ASKS_SITE = 'What website do I use to verify my phone number?';
 const ASKS_SENDER = 'And what address do the texts come from?';
+
+const user = (content: string) => llm.ChatMessage.create({ role: 'user', content });
+const said = (content: string) => llm.ChatMessage.create({ role: 'assistant', content });
+const system = (content: string) => llm.ChatMessage.create({ role: 'system', content });
+let calls = 0;
+const tool = (name: string, output: string) =>
+  llm.FunctionCallOutput.create({ callId: `t${++calls}`, name, output, isError: false });
 
 const chunk = (content: string): llm.ChatChunk => ({
   id: 'r',
   delta: { role: 'assistant', content },
 });
+const USAGE = { id: 'r', usage: { completionTokens: 1, promptTokens: 9 } } as llm.ChatChunk;
 const toolCall: llm.ChatChunk = {
   id: 'r',
   delta: {
@@ -54,11 +53,11 @@ function streamOf(...parts: Array<string | llm.ChatChunk>): ReadableStream<llm.C
 
 /** The reply as it leaves the real llmNode path (withActionClaimCheck), words joined. */
 async function spoken(
-  callerSaid: string,
+  context: string | unknown[],
   parts: Array<string | llm.ChatChunk>,
   env: Record<string, string> = ON
 ): Promise<{ text: string; chunks: llm.ChatChunk[] }> {
-  const items = [llm.ChatMessage.create({ role: 'user', content: callerSaid })];
+  const items = typeof context === 'string' ? [user(context)] : context;
   const out = await withActionClaimCheck(
     Promise.resolve(streamOf(...parts)),
     { items },
@@ -70,90 +69,74 @@ async function spoken(
   for await (const c of out as unknown as AsyncIterable<llm.ChatChunk>) chunks.push(c);
   return { text: chunks.map((c) => c.delta?.content ?? '').join(''), chunks };
 }
+const textOf = async (...args: Parameters<typeof spoken>) => (await spoken(...args)).text;
 
-describe('withActionClaimCheck with HOUSE_FACTS', () => {
-  const REPLY = ['Sure! Just head to mind', 'meadow.com and tap verify. ', 'Anything else?'];
+/** The guard alone, for lines the claim check answers first on the full path ("I'll call ..."). */
+async function guardOnly(items: unknown[], line: string): Promise<string> {
+  const out = await withHouseFactsGuard(streamOf(line), { items }, ON);
+  let text = '';
+  for await (const c of out as unknown as AsyncIterable<llm.ChatChunk>) {
+    text += c.delta?.content ?? '';
+  }
+  return text;
+}
 
-  it('off: an invented website goes out as written (the prod bug)', async () => {
-    const { text } = await spoken(ASKS_SITE, REPLY, { ...ON, HOUSE_FACTS: 'off' });
-    expect(text).toContain('mindmeadow.com');
-    expect(text).not.toContain(NOT_IN_FRONT_OF_ME);
+describe('flag off: as on main', () => {
+  it('returns the very stream it was given', async () => {
+    const src = streamOf('Go to verify.', 'ferni.ai. ', 'Texts come from 727-555-0199.');
+    expect(await withHouseFactsGuard(src, { items: [] }, { HOUSE_FACTS: 'off' })).toBe(src);
   });
 
-  it('on: the invented website is replaced by the honest line, the rest stays', async () => {
-    const { text, chunks } = await spoken(ASKS_SITE, REPLY);
-    expect(text).not.toContain('mindmeadow');
-    expect(text).toBe(`Sure! ${NOT_IN_FRONT_OF_ME} Anything else?`);
+  it('an invented website goes out as written (the prod bug)', async () => {
+    const reply = ['Sure! Just head to mind', 'meadow.com and tap verify. ', 'Anything else?'];
+    expect(await textOf(ASKS_SITE, reply, { ...ON, HOUSE_FACTS: 'off' })).toBe(reply.join(''));
+  });
+});
+
+describe('invented addresses are replaced, wherever they appear', () => {
+  it('the prod shape: the sentence goes, the rest stays, the chunks keep their id', async () => {
+    const reply = ['Sure! Just head to mind', 'meadow.com and tap verify. ', 'Anything else?'];
+    const { text, chunks } = await spoken(ASKS_SITE, reply);
+    expect(text).toBe(`Sure! ${NO} Anything else?`);
     expect(chunks.every((c) => c.id === 'r')).toBe(true);
   });
 
   it.each([
-    'You can verify it at glowfriend dot ai.',
-    "It's talk-dot-com, then tap verify.",
-    'Go to heartbeam.ai and sign in.',
-    'Oh, definitely dot com.',
-    "It's glowfriend.am, I'm sure of it.",
-  ])('on, caller asked for the site: "%s" is replaced', async (line) => {
-    const { text } = await spoken(ASKS_SITE, [line]);
-    expect(text).toBe(NOT_IN_FRONT_OF_ME);
+    [ASKS_SITE, 'You can verify it at glowfriend dot ai.'],
+    [ASKS_SITE, "It's talk-dot-com, then tap verify."],
+    [ASKS_SITE, 'Oh, definitely dot com.'],
+    [ASKS_SITE, "It's glowfriend.am, I'm sure of it."],
+    [ASKS_SITE, 'Go to fernihelp dot a i.'],
+    [ASKS_SITE, 'Write to help at ferni dot ai.'],
+    [ASKS_SITE, 'Write to jo (at) glowfriend (dot) ai.'],
+    ['Hi', 'Email jo at gmail later.'],
+    [ASKS_SITE, 'Go to Glowfriend.Ai today.'],
+    [ASKS_SITE, 'Go to GLOWFRIEND.AI today.'],
+    ['Which website verifies my number?', 'Go to verifyglow.com.'],
+    ["What's your website? I want to tell my mom.", "It's glowfriend.ai."],
+    ['How do I verify my number on Ferni?', 'Go to fernihelp.com.'],
+    ['How was your day?', 'Our website is GLOWFRIEND.AI.'],
+    ['Hi', 'Email us at help@glowfriend.ai.'],
+    ['How was your day?', 'You can reach us at support@ferni.ai.'],
+    ['How was your day?', 'Our number is 727-555-0123.'],
+    [ASKS_SENDER, 'They come from alerts at glowfriend dot ai.'],
+    [ASKS_SENDER, 'Texts come from notification@glowfriend.ai.'],
+    [ASKS_SENDER, 'They come from 727-555-0199.'],
+    [ASKS_SENDER, 'They come from seven two seven, five five five, zero one nine nine.'],
+    ['What is your phone number?', "It's 727-555-0123."],
+    ['What number do texts from you come from?', 'From 727-555-0123.'],
+    ['Which address do texts come from?', 'They come from alerts@glowfriend.ai.'],
+    ['What number do the texts come from?', 'They come from short code 55501.'],
+    [
+      'What number do the texts come from for the verification code?',
+      'They come from 727-555-0123.',
+    ],
+    ['Where do the texts from my bank come from?', 'Bank texts come from 24273.'],
+    ['Any new email?', 'The latest email is from john@example.com.'],
+  ])('"%s" / "%s"', async (asked, line) => {
+    expect(await textOf(asked, [line])).toBe(NO);
   });
 
-  it.each([
-    'They come from alerts at glowfriend dot ai.',
-    'Texts come from notification@glowfriend.ai.',
-    'They come from 727-555-0199.',
-  ])('on, caller asked for the sender: "%s" is replaced', async (line) => {
-    const { text } = await spoken(ASKS_SENDER, [line]);
-    expect(text).toBe(NOT_IN_FRONT_OF_ME);
-  });
-
-  it('says the honest line once however many sentences it replaces', async () => {
-    const { text } = await spoken(ASKS_SITE, [
-      'Try glowfriend.ai. ',
-      'Or maybe heartbeam.ai. ',
-      'One of those.',
-    ]);
-    expect(text).toBe(`${NOT_IN_FRONT_OF_ME} One of those.`);
-  });
-
-  it.each([
-    [ASKS_SITE, 'Open app.ferni.ai, then the menu, under How I reach you.'],
-    [ASKS_SITE, 'Our website is https://www.ferni.ai, and the app is at app dot ferni dot ai.'],
-    [ASKS_SENDER, 'Texts come from (727) 555-0142, and email from hello at ferni dot ai.'],
-    [ASKS_SENDER, 'Email comes from hello@ferni.ai.'],
-  ])('lets the true facts through, written or said: "%s" / "%s"', async (asked, line) => {
-    expect((await spoken(asked, [line])).text).toBe(line);
-  });
-
-  it.each([
-    'Go to verify.ferni.ai.',
-    'Go to ferni.ai.glowfriend.com.',
-    'Email comes from notifications@ferni.ai.',
-    'Head to verify dot ferni dot ai.',
-  ])('replaces a lookalike of a true fact: "%s"', async (line) => {
-    expect((await spoken(ASKS_SITE, [line])).text).toBe(NOT_IN_FRONT_OF_ME);
-  });
-
-  it('replaces an address Ferni gives as his own even when nobody asked', async () => {
-    const { text } = await spoken('How was your day?', ['Good! Our website is glowfriend.ai.']);
-    expect(text).toBe(`Good! ${NOT_IN_FRONT_OF_ME}`);
-  });
-
-  it('with no number configured, any sender number is replaced', async () => {
-    const { TWILIO_PHONE_NUMBER: _unset, ...noNumber } = ON;
-    const { text } = await spoken(ASKS_SENDER, ['They come from 727-555-0142.'], noNumber);
-    expect(text).toBe(NOT_IN_FRONT_OF_ME);
-  });
-
-  it('checks the words before a tool call and passes the call through', async () => {
-    const { text, chunks } = await spoken(ASKS_SITE, ['Try glowfriend.ai.', toolCall]);
-    expect(text).toBe(NOT_IN_FRONT_OF_ME);
-    expect(chunks.some((c) => (c.delta?.toolCalls?.length ?? 0) > 0)).toBe(true);
-  });
-});
-
-// The verifier's probes on #3032 (comment 6504461165), with fictional names and numbers.
-describe('verifier probes: invented or lookalike addresses are replaced', () => {
   it.each([
     'Go to verify.ferni.ai.',
     'Head to ferni.ai.example.com.',
@@ -163,140 +146,180 @@ describe('verifier probes: invented or lookalike addresses are replaced', () => 
     'Try www.ferni.app.',
     'Visit https://ferni.ai.example.com/verify.',
     'Visit ferni dot co.',
-    'Go to fernihelp dot com.',
-    'Go to fernihelp dot a i.',
     'Try ferni.io.',
     'It is FERNI.AI.EXAMPLE.COM.',
-    'Go to Glowfriend.Ai today.',
-    'Go to GLOWFRIEND.AI today.',
-  ])('asked for the site: "%s"', async (line) => {
-    expect((await spoken(ASKS_SITE, [line])).text).toBe(NOT_IN_FRONT_OF_ME);
-  });
-
-  it.each([
-    'Texts come from notifications@ferni.ai.',
-    'They come from 727-555-0199.',
+    'Email comes from notifications@ferni.ai.',
     'Email comes from hello@ferni.ai.example.com.',
     'Email comes from xhello@ferni.ai.',
-    'They come from seven two seven, five five five, zero one nine nine.',
-  ])('asked for the sender: "%s"', async (line) => {
-    expect((await spoken(ASKS_SENDER, [line])).text).toBe(NOT_IN_FRONT_OF_ME);
+  ])('a lookalike of a house fact: "%s"', async (line) => {
+    expect(await textOf(ASKS_SITE, [line])).toBe(NO);
+  });
+
+  it('says the honest line once however many sentences it replaces', async () => {
+    const reply = ['Try glowfriend.ai. ', 'Or maybe heartbeam.ai. ', 'One of those.'];
+    expect(await textOf(ASKS_SITE, reply)).toBe(`${NO} One of those.`);
+  });
+
+  it("Ferni's own earlier words don't ground an address", async () => {
+    const items = [user('Hi'), said('Our site is glowfriend.ai.'), user('What was the site?')];
+    expect(await textOf(items, ["It's glowfriend.ai."])).toBe(NO);
+  });
+});
+
+describe('true facts and grounded addresses pass', () => {
+  it.each([
+    [ASKS_SITE, 'Open app.ferni.ai, then the menu, under How I reach you.'],
+    [
+      ASKS_SITE,
+      'Our website is https://www.ferni.ai/verify, and the app is at app dot ferni dot ai.',
+    ],
+    [ASKS_SITE, 'It is ferni dot a i.'],
+    [ASKS_SENDER, 'Texts come from (727) 555-0142, and email from hello at ferni dot ai.'],
+    [ASKS_SENDER, 'Texts come from +1 727 555 0142.'],
+    [ASKS_SENDER, 'They come from seven two seven, five five five, zero one four two.'],
+    ['Where can I read about Ferni?', "We're on ferni.ai."],
+  ])('house fact: "%s" / "%s"', async (asked, line) => {
+    expect(await textOf(asked, [line])).toBe(line);
   });
 
   it.each([
-    'Our website is glowfriend.ai.',
-    'Our website is GLOWFRIEND.AI.',
-    'You can reach us at support@ferni.ai.',
-    'Our number is 727-555-0123.',
-  ])('given as his own, unasked: "%s"', async (line) => {
-    expect((await spoken('How was your day?', [line])).text).toBe(NOT_IN_FRONT_OF_ME);
+    [
+      'caller said it',
+      [user('Any good recipe sites? I like seriouseats.com.')],
+      'Try seriouseats.com for that.',
+    ],
+    [
+      'caller said it, spelled',
+      [user("Tell Sarah, she's sarah at example dot com.")],
+      'Sarah is sarah@example.com.',
+    ],
+    [
+      'caller said it turns earlier',
+      [user('My dentist is smiledental.com.'), said('Got it.'), user("What's the site again?")],
+      "It's smiledental.com.",
+    ],
+    [
+      'caller said it in words',
+      [user('Text my sister at seven two seven, five five five, zero one nine nine.')],
+      'Her number is 727-555-0199.',
+    ],
+    [
+      'contacts tool',
+      [
+        user("What's my mom's number?"),
+        tool('getContact', '{"name":"Mom","phone":"+17275550199"}'),
+      ],
+      "Your mom's number is 727-555-0199.",
+    ],
+    [
+      'email tool',
+      [
+        user('Read me my newest email.'),
+        tool('readInbox', '[{"from":"sarah@example.com","subject":"Invoice"}]'),
+      ],
+      'Your newest email is from sarah@example.com, about the invoice.',
+    ],
+    [
+      'texts tool',
+      [user('Any new texts?'), tool('readTexts', 'From (727) 555-0199: running late')],
+      'Your newest text is from 727-555-0199, it says running late.',
+    ],
+    [
+      'bank named earlier, search result',
+      [
+        user('My bank keeps texting me about fraud.'),
+        said('That sounds stressful.'),
+        user('What number do the texts come from?'),
+        tool(
+          'searchWeb',
+          'Example Bank fraud alerts are sent from 1-800-555-0100 and short code 55512.'
+        ),
+      ],
+      'They come from 1 (800) 555-0100, or the short code 55512.',
+    ],
+    [
+      'call sheet in the instructions',
+      [
+        system('Call sheet. Caller: Sam. Cell: 727-555-0199. Email: sam@example.com.'),
+        user('Draft a text to Bob saying he can reach me at my cell.'),
+      ],
+      "Here's your text: Hey Bob, you can reach me at 727-555-0199.",
+    ],
+    [
+      'memory note, a signature',
+      [
+        system('Remembered: Sam Lee, sam@example.com, samsbakery.com.'),
+        user('Write my signature for me.'),
+      ],
+      'How about: Sam Lee, sam@example.com, samsbakery.com.',
+    ],
+  ])('%s', async (_name, items, line) => {
+    expect(await textOf(items, [line])).toBe(line);
   });
 
   it.each([
-    [['Sure, go to mind', 'meadow.', 'com and tap verify.'], NOT_IN_FRONT_OF_ME],
-    [['Sure, go to mindmeadow', '.', 'com.'], NOT_IN_FRONT_OF_ME],
-    [['Our web', 'site is glow', 'friend dot ', 'ai. Bye.'], `${NOT_IN_FRONT_OF_ME} Bye.`],
-    [['Go to ferni.', 'ai.example.com. Done.'], `${NOT_IN_FRONT_OF_ME} Done.`],
+    [
+      [user('My email is sam@example.com, send it there.')],
+      'Got it, I will send it to sam@example.com.',
+    ],
+    [[user('Can you call the pharmacy at 727-555-0111?')], "Sure, I'll call 727-555-0111."],
+  ])('on the guard alone: %j', async (items, line) => {
+    expect(await guardOnly(items, line)).toBe(line);
+  });
+
+  it.each([
+    ['a label added to a grounded host', 'Go to verify.smiledental.com.'],
+    ['a grounded host with a label after it', 'Go to smiledental.com.example.net.'],
+    ['another mailbox at a grounded host', 'Write to billing@smiledental.com.'],
+    ['a grounded mailbox on another host', 'Write to frontdesk@smiledental.co.'],
+  ])('a lookalike built from grounded parts is replaced: %s', async (_name, line) => {
+    const items = [user('My dentist is smiledental.com, frontdesk@smiledental.com.')];
+    expect(await textOf(items, [line])).toBe(NO);
+  });
+});
+
+describe('streaming', () => {
+  it.each([
+    [['Sure, go to mind', 'meadow.', 'com and tap verify.'], NO],
+    [['Sure, go to mindmeadow', '.', 'com.'], NO],
+    [['Our web', 'site is glow', 'friend dot ', 'ai. Bye.'], `${NO} Bye.`],
+    [['Go to ferni.', 'ai.example.com. Done.'], `${NO} Done.`],
     [['Go to ferni', '.ai', '. Done.'], 'Go to ferni.ai. Done.'],
     [['Go to app.', 'ferni.', 'ai. Done.'], 'Go to app.ferni.ai. Done.'],
   ])('split across chunks: %j', async (parts, want) => {
-    expect((await spoken(ASKS_SITE, parts)).text).toBe(want);
-  });
-});
-
-describe("verifier probes: true facts and other people's addresses pass", () => {
-  it.each([
-    [ASKS_SENDER, 'Texts come from 727-555-0142.'],
-    [ASKS_SENDER, 'Texts come from +1 727 555 0142.'],
-    [ASKS_SENDER, 'They come from seven two seven, five five five, zero one four two.'],
-    [ASKS_SITE, 'It is ferni dot a i.'],
-    ['How was your day?', 'Our website is https://www.ferni.ai/verify.'],
-    ['How was your day?', 'The app is at app.ferni.ai.'],
-    ['Where can I read about Ferni?', "We're on ferni.ai."],
-  ])('true fact: "%s" / "%s"', async (asked, line) => {
-    expect((await spoken(asked, [line])).text).toBe(line);
+    expect(await textOf(ASKS_SITE, parts)).toBe(want);
   });
 
   it.each([
-    ["What's my mom's number?", "Your mom's number is 727-555-0199."],
-    ['What number do texts from my mom come from?', 'Her texts come from 727-555-0199.'],
-    ['Read me my newest email.', 'Your newest email is from sarah@example.com, about the invoice.'],
-    ['Any new email?', 'The latest email is from john@example.com.'],
-    ['Any new texts?', 'The message is from 727-555-0199.'],
-    ['Read my texts.', 'Your newest text is from 727-555-0199, it says running late.'],
-    ['Check my email.', 'Your latest email is from sarah at example dot com.'],
-    ['What is my email on file?', 'Your email is sam@example.com.'],
-    ['Send me the recap.', "I'll email it to sam@example.com."],
-    ['What is my business website again?', 'Your website is samsbakery.com.'],
-    ["What's the website for my dentist? I need to log in to my account.", "It's smiledental.com."],
-    ['What website do I use to verify my insurance?', 'Their site is acmehealth.com.'],
+    [['Our website is glow', USAGE, 'friend.ai. ', USAGE, 'Bye.'], `${NO} Bye.`],
+    [['Go to verify.', USAGE, 'ferni.ai. ', USAGE], `${NO} `],
+    [['Go to mind', USAGE, 'meadow.com.', USAGE], NO],
+    [['Our site is glowfriend dot', USAGE, ' ai.', USAGE], NO],
     [
-      'Which website should I use to sign up for the marathon?',
-      'You can sign up at runsignup.com.',
+      ['Go to app.', USAGE, 'ferni.ai, then the menu.', USAGE],
+      'Go to app.ferni.ai, then the menu.',
     ],
-    ['What site was that bakery you mentioned?', "It's bluebirdbakery.com."],
-    ['Where do the texts from my bank come from?', 'Bank texts come from 727-555-0177.'],
-    ["What's the link for the recipe?", 'It is on seriouseats.com.'],
-    ["Tell me Sarah's email.", 'Sarah is sarah at example dot com.'],
-    ['What address do the emails from my landlord come from?', 'They come from rent@example.com.'],
-    ['Any good recipe sites?', 'Try seriouseats.com for that.'],
-    ['What website do I use to verify my number for my bank?', 'Use bankofexample.com.'],
-    ['What number do the texts come from, the ones from Chase?', 'They come from 727-555-0177.'],
-    ['Text my sister at 727-555-0199.', "I'll text 727-555-0199, okay?"],
-  ])('"%s" / "%s"', async (asked, line) => {
-    expect((await spoken(asked, [line])).text).toBe(line);
-  });
-});
-
-describe('verifier probes on the guard alone (the claim check would answer these first)', () => {
-  it.each([
-    ['My email is sam@example.com, send it there.', 'Got it, I will send it to sam@example.com.'],
-    ['Can you call the pharmacy at 727-555-0111?', "Sure, I'll call 727-555-0111."],
-  ])('"%s" / "%s" passes', async (asked, line) => {
-    const items = [llm.ChatMessage.create({ role: 'user', content: asked })];
-    const out = await withHouseFactsGuard(streamOf(line), { items }, ON);
-    let text = '';
-    for await (const c of out as unknown as AsyncIterable<llm.ChatChunk>)
-      text += c.delta?.content ?? '';
-    expect(text).toBe(line);
-  });
-});
-
-describe('inventsHouseFact', () => {
-  it('needs an address: a sentence about the site with none passes', () => {
-    expect(inventsHouseFact('Our website has a menu.', true, FACTS)).toBe(false);
-    expect(inventsHouseFact('Our website is glowfriend.ai.', false, FACTS)).toBe(true);
-  });
-});
-
-describe('no catastrophic backtracking (#3032 review)', () => {
-  /** Best of three, so a busy CI box doesn't fail it; backtracking takes minutes, not ms. */
-  const ms = (run: () => unknown): number => {
-    const times: number[] = [];
-    for (let i = 0; i < 3; i += 1) {
-      const start = performance.now();
-      run();
-      times.push(performance.now() - start);
-    }
-    return Math.min(...times);
-  };
-
-  it.each([
-    ['hyphen run then a said dot', `${'a-'.repeat(5000)}dot com`],
-    ['repeated -dot-', 'x-dot-'.repeat(3000)],
-    ['repeated written dots', 'a.'.repeat(5000)],
-  ])('%s: checked in under 50 ms', (_name, text) => {
-    expect(ms(() => inventsHouseFact(text, true, FACTS))).toBeLessThan(50);
-    expect(ms(() => inventsHouseFact(`Our website is ${text}`, false, FACTS))).toBeLessThan(50);
+  ])("held whole across Gemini's usage chunks: %j", async (parts, want) => {
+    const { text, chunks } = await spoken(ASKS_SITE, parts);
+    expect(text).toBe(want);
+    expect(chunks.filter((c) => (c as { usage?: unknown }).usage).length).toBe(
+      parts.filter((p) => p === USAGE).length
+    );
   });
 
-  it('a long run with no sentence end streams through in pieces, nothing lost', async () => {
-    const text = 'x-dot-'.repeat(3000);
+  it('checks the words before a tool call and passes the call through', async () => {
+    const { text, chunks } = await spoken(ASKS_SITE, ['Try glowfriend.ai.', toolCall]);
+    expect(text).toBe(NO);
+    expect(chunks.some((c) => (c.delta?.toolCalls?.length ?? 0) > 0)).toBe(true);
+  });
+
+  it('a long run with no sentence end streams in pieces, nothing lost', async () => {
+    const run = 'x-dot-'.repeat(3000);
     const start = performance.now();
     const out = await withHouseFactsGuard(
       new ReadableStream<string>({
         start(c) {
-          c.enqueue(text);
+          c.enqueue(run);
           c.close();
         },
       }),
@@ -306,16 +329,15 @@ describe('no catastrophic backtracking (#3032 review)', () => {
     const parts: string[] = [];
     for await (const part of out as unknown as AsyncIterable<string>) parts.push(part);
     expect(performance.now() - start).toBeLessThan(50);
-    expect(parts.join('')).toBe(text);
-    // Decided a piece at a time, so the buffer never holds the whole run.
+    expect(parts.join('')).toBe(run);
     expect(parts.length).toBeGreaterThan(10);
   });
 
-  it('a long caller message is read in under 50 ms', async () => {
-    const items = [llm.ChatMessage.create({ role: 'user', content: 'what website '.repeat(1000) })];
+  it('a long conversation is read quickly, and only when a sentence needs it', async () => {
+    const items = [user(`${'what website '.repeat(1000)} glowfriend.ai`)];
     const start = performance.now();
-    const out = await withHouseFactsGuard(streamOf('Fine.'), { items }, ON);
-    for await (const _part of out as unknown as AsyncIterable<unknown>) void _part;
+    expect(await guardOnly(items, 'Fine.')).toBe('Fine.');
+    expect(await guardOnly(items, "It's glowfriend.ai.")).toBe("It's glowfriend.ai.");
     expect(performance.now() - start).toBeLessThan(50);
   });
 });
