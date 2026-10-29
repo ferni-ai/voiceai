@@ -24,21 +24,32 @@
             if (String(localStorage.key(i)).indexOf('firebase:authUser:') === 0) remembered = true;
           }
           var home = location.pathname === '/' || location.pathname.indexOf('/grow/') === 0;
-          if (gateFirst && !remembered && home) document.documentElement.classList.add('gate-first');
-          // The copy mirrors the try-first gate when the real one will have it (src/config/try-first-flag.ts)
-          var tryFirst = localStorage.getItem('ferni:flag:try-first');
-          if (tryFirst === 'true' || (tryFirst !== 'false' && '%VITE_TRY_FIRST%' === 'true')) {
-            document.documentElement.classList.add('gate-first-try');
+          if (gateFirst && !remembered && home) {
+            document.documentElement.classList.add('gate-first');
+            // Everything below serves only the copy, so a build with the flag off, and
+            // anyone signed in, load exactly what they did before gate-first paint.
+            // The copy holds until its avatar decodes (script after #gateFirst): fetch it now.
+            var preload = document.createElement('link');
+            preload.rel = 'preload';
+            preload.as = 'image';
+            preload.href = '/ferni-avatar.svg';
+            document.head.appendChild(preload);
+            // The copy mirrors the try-first gate when the real one will have it (src/config/try-first-flag.ts)
+            var tryFirst = localStorage.getItem('ferni:flag:try-first');
+            if (tryFirst === 'true' || (tryFirst !== 'false' && '%VITE_TRY_FIRST%' === 'true')) {
+              document.documentElement.classList.add('gate-first-try');
+            }
           }
         } catch (e) {}
       })();
     </script>
     <link rel="stylesheet" href="/design-system/tokens.css" />
-    <link rel="preload" as="image" href="/ferni-avatar.svg" />
     <style id="gate-first-style">
       /* Mirrors the sign-in gate (src/ui/sign-in-gate.ui.ts): the real one replaces it in one frame, nothing moves */
       html.gate-first #app, html.sign-in-gate-up #app { visibility: hidden; }
       html.gate-first #gateFirst { display: flex; }
+      /* Laid out from the start, so nothing shifts, but unseen until its avatar can paint: never words beside an empty circle */
+      html.gate-first:not(.gate-first-ready) #gateFirst { visibility: hidden; }
       html:not(.gate-first-try) .gate-first-paint__try, html.gate-first-try .gate-first-paint__subtitle--sign-in,
       html:not(.gate-first-try) .gate-first-paint__subtitle--try { display: none; }
       .gate-first-paint { position: fixed; inset: 0; z-index: var(--z-system); flex-direction: column;
@@ -200,6 +211,22 @@
         <p class="gate-first-paint__footer">By continuing, you agree to our <a href="https://ferni.ai/terms" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="https://ferni.ai/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
       </div>
     </div>
+    <script id="gate-first-ready">
+      // Show the copy and its avatar in the same frame (motion audit P8). On a slow
+      // phone the words painted a frame before the image decoded. Waits at most
+      // 300 ms (DURATION.SLOW, src/config/animation-constants.ts), so a slow or
+      // missing image never leaves the screen blank; showGateOverApp in
+      // src/ui/gate-first.ui.ts holds the real gate for its avatar the same way.
+      (function () {
+        var root = document.documentElement;
+        if (!root.classList.contains('gate-first')) return;
+        var ready = function () { root.classList.add('gate-first-ready'); };
+        var avatar = document.querySelector('#gateFirst .gate-first-paint__logo');
+        setTimeout(ready, 300);
+        if (avatar && typeof avatar.decode === 'function') avatar.decode().then(ready, ready);
+        else ready();
+      })();
+    </script>
 
     <!-- ================================================================
        STATUS ISLAND - Apple Dynamic Island inspired

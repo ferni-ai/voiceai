@@ -9,6 +9,8 @@
  * The frame-by-frame check in a browser is tests/first-paint/first-paint.spec.ts.
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DURATION } from '../../src/config/animation-constants.js';
 
@@ -29,9 +31,18 @@ const html = document.documentElement;
 const overlay = (): HTMLElement | null => document.querySelector('.sign-in-gate-overlay');
 const copy = (): HTMLElement | null => document.getElementById('gateFirst');
 
+/** The rules that hide and pause Home: index.html's critical style and paused-when-hidden.css. */
+const read = (path: string): string => readFileSync(resolve(__dirname, path), 'utf8');
+const homeRules =
+  read('../../index.html').match(/<style id="gate-first-style">([\s\S]*?)<\/style>/)![1]! +
+  read('../../src/styles/paused-when-hidden.css');
+const app = (): HTMLElement => document.getElementById('app')!;
+const coach = (): HTMLElement => document.getElementById('coach')!;
+
 /** The page as index.html leaves it: the copy up when `painted`, Home underneath. */
 function page(painted: boolean): void {
   html.className = painted ? 'gate-first' : '';
+  document.head.innerHTML = `<style>${homeRules}</style>`;
   document.body.innerHTML = `
     <div id="gateFirst" class="gate-first-paint" hidden><img class="gate-first-paint__logo" src="/ferni-avatar.svg" /></div>
     <div id="app"><div id="coach"></div></div>`;
@@ -51,6 +62,8 @@ afterEach(() => {
   hideSignInGate();
   vi.runAllTimers();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
+  document.head.innerHTML = '';
   document.body.innerHTML = '';
   html.className = '';
 });
@@ -111,15 +124,32 @@ describe('signed out on a cold start, the copy painted', () => {
   });
 });
 
-describe('no copy (flag off, or a sign-out mid-session)', () => {
-  it('hides Home as the gate starts to fade in, so they never show through each other', async () => {
+describe('no copy: a sign-out mid-session', () => {
+  it('hides and pauses Home as the gate starts to fade in, so they never show through each other', async () => {
     page(false);
+    expect(getComputedStyle(app()).visibility).not.toBe('hidden');
     void showSignInGate();
     await vi.waitFor(() => expect(overlay()).not.toBeNull());
     expect(decode).not.toHaveBeenCalled(); // nothing to match: the fade covers the decode
     expect(overlay()!.style.transition).toBe('');
     expect(overlay()!.classList.contains('visible')).toBe(true);
     expect(html.classList.contains(GATE_UP_CLASS)).toBe(true);
+    expect(getComputedStyle(app()).visibility).toBe('hidden');
+    expect(getComputedStyle(coach()).animationPlayState).toBe('paused');
+  });
+});
+
+describe('kill switch: VITE_GATE_FIRST=false', () => {
+  it('opens the gate as before gate-first paint: a fade-in, Home visible and running under it', async () => {
+    vi.stubEnv('VITE_GATE_FIRST', 'false');
+    page(false); // the head script paints no copy with the flag off
+    void showSignInGate();
+    await vi.waitFor(() => expect(overlay()).not.toBeNull());
+    expect(overlay()!.style.transition).toBe(''); // the fade runs
+    expect(overlay()!.classList.contains('visible')).toBe(true);
+    expect(html.classList.contains(GATE_UP_CLASS)).toBe(false);
+    expect(getComputedStyle(app()).visibility).not.toBe('hidden');
+    expect(getComputedStyle(coach()).animationPlayState).not.toBe('paused');
   });
 });
 

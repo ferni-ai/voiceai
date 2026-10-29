@@ -14,7 +14,10 @@
  *
  * Turn it off for a build with VITE_GATE_FIRST=false, or for one browser with
  * localStorage `ferni:flag:gate-first` = 'false' ('true' forces it on). The
- * head script reads both, since it runs before any module loads.
+ * head script reads both, since it runs before any module loads. Off, all of
+ * it is off: no copy, and the gate fades in over Home as it did before.
+ * The copy also waits for its avatar to decode (index.html, #gate-first-ready),
+ * so its words never paint beside an empty circle.
  *
  * The session hint is kept whether or not the flag is on, so a returning
  * person never sees a sign-in screen on their next visit.
@@ -30,8 +33,12 @@ const log = createLogger('GateFirst');
 
 /** Read by the head script in index.html: '1' means a session was signed in last time. */
 export const SESSION_HINT_KEY = 'ferni:session-hint';
+/** Browser override of the build flag, read by the head script in index.html too: 'true' or 'false'. */
+const GATE_FIRST_STORAGE_KEY = 'ferni:flag:gate-first';
 /** Set on <html> by the head script in index.html. */
 export const GATE_FIRST_CLASS = 'gate-first';
+/** Set on <html> by index.html once the copy's avatar can paint: the copy shows only then. */
+const COPY_READY_CLASS = 'gate-first-ready';
 const PLACEHOLDER_ID = 'gateFirst';
 /** On <html> while the sign-in gate covers the app: index.html hides #app, paused-when-hidden.css pauses it. */
 export const GATE_UP_CLASS = 'sign-in-gate-up';
@@ -47,6 +54,22 @@ export function rememberSessionHint(signedIn: boolean): void {
   }
 }
 
+/**
+ * The kill switch, read the way the head script in index.html reads it. Off
+ * (VITE_GATE_FIRST=false), the sign-in gate opens as it did before gate-first
+ * paint: a fade-in over Home, with nothing hidden or paused.
+ */
+function isGateFirstEnabled(): boolean {
+  try {
+    const override = localStorage.getItem(GATE_FIRST_STORAGE_KEY);
+    if (override === 'true') return true;
+    if (override === 'false') return false;
+  } catch (error) {
+    log.debug('localStorage unavailable for the gate-first flag', { error: String(error) });
+  }
+  return import.meta.env.VITE_GATE_FIRST !== 'false';
+}
+
 /** True while the static copy of the gate is on screen. */
 export function isGateFirstPainted(): boolean {
   return (
@@ -59,7 +82,10 @@ export function isGateFirstPainted(): boolean {
 function imageReady(img: HTMLImageElement | null): Promise<void> {
   if (!img || typeof img.decode !== 'function') return Promise.resolve();
   const decoded = img.decode().catch(() => undefined);
-  return Promise.race([decoded, new Promise<void>((resolve) => setTimeout(resolve, DURATION.SLOW))]);
+  return Promise.race([
+    decoded,
+    new Promise<void>((resolve) => setTimeout(resolve, DURATION.SLOW)),
+  ]);
 }
 
 /**
@@ -67,7 +93,7 @@ function imageReady(img: HTMLImageElement | null): Promise<void> {
  * than once. While the sign-in gate is up it keeps #app hidden itself.
  */
 export function revealApp(): void {
-  document.documentElement.classList.remove(GATE_FIRST_CLASS);
+  document.documentElement.classList.remove(GATE_FIRST_CLASS, COPY_READY_CLASS);
   document.getElementById(PLACEHOLDER_ID)?.remove();
 }
 
@@ -88,11 +114,13 @@ export function settleGateFirst(signedIn: boolean, showAppNow: boolean = signedI
  * Put the sign-in gate on screen with Home hidden (and paused) under it, so the
  * two never show through each other. Over the gate-first copy it takes the
  * copy's place in one frame, once its avatar can paint; otherwise it fades in.
+ * With the flag off it only fades in, Home visible underneath, as before.
  */
 export async function showGateOverApp(overlay: HTMLElement): Promise<void> {
   const replacingCopy = isGateFirstPainted();
   if (replacingCopy) await imageReady(overlay.querySelector('img'));
-  document.documentElement.classList.add(GATE_UP_CLASS);
+  // The kill switch must roll all of this back, not just the copy
+  if (isGateFirstEnabled()) document.documentElement.classList.add(GATE_UP_CLASS);
   document.body.appendChild(overlay);
   if (replacingCopy) {
     overlay.style.transition = 'none'; // same layout as the copy: no fade, never two on screen

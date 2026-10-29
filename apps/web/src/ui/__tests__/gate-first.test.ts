@@ -6,7 +6,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { runInThisContext } from 'node:vm';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { DURATION } from '../../config/animation-constants.js';
 
 type AuthListener = (state: { isAuthenticated: boolean }) => void;
 const auth = vi.hoisted(() => ({ listeners: [] as AuthListener[] }));
@@ -17,12 +18,14 @@ vi.mock('../../services/firebase-auth.service.js', () => ({
   }),
 }));
 
-const { settleGateFirst, revealApp, isGateFirstPainted, SESSION_HINT_KEY } = await import('../gate-first.ui.js');
+const { settleGateFirst, revealApp, isGateFirstPainted, SESSION_HINT_KEY } =
+  await import('../gate-first.ui.js');
 
 const html = readFileSync(resolve(__dirname, '../../../index.html'), 'utf8');
 const headScript = html.match(/<script>\s*([\s\S]*?)<\/script>/)![1]!;
 const criticalStyle = html.match(/<style id="gate-first-style">([\s\S]*?)<\/style>/)![1]!;
 const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)![1]!;
+const copyReadyScript = html.match(/<script id="gate-first-ready">([\s\S]*?)<\/script>/)![1]!;
 
 /** A cold start: storage as left by the last visit, then index.html's head script. */
 function coldStart(opts: {
@@ -39,23 +42,42 @@ function coldStart(opts: {
   document.head.innerHTML = `<meta name="theme-color" content="" /><style>${criticalStyle}</style>`;
   document.body.innerHTML = body;
   // Vite replaces %VITE_*% at build time; unset, it stays literal
-  let script = opts.buildFlag ? headScript.replace('%VITE_GATE_FIRST%', opts.buildFlag) : headScript;
+  let script = opts.buildFlag
+    ? headScript.replace('%VITE_GATE_FIRST%', opts.buildFlag)
+    : headScript;
   if (opts.tryFirstBuild) script = script.replace('%VITE_TRY_FIRST%', opts.tryFirstBuild);
   runInThisContext(script); // the same global jsdom fills, like the browser's inline script
+  runInThisContext(copyReadyScript); // the parser reaches it right after #gateFirst
 }
 
 const app = (): HTMLElement => document.getElementById('app')!;
 const placeholder = (): HTMLElement | null => document.getElementById('gateFirst');
 const homeVisible = (): boolean => getComputedStyle(app()).visibility !== 'hidden';
-const placeholderShown = (): boolean => !!placeholder() && getComputedStyle(placeholder()!).display !== 'none';
+const placeholderShown = (): boolean =>
+  !!placeholder() && getComputedStyle(placeholder()!).display !== 'none';
 
 const shown = (selector: string): boolean =>
   [...placeholder()!.querySelectorAll<HTMLElement>(selector)].every((el) => {
-    for (let e: HTMLElement | null = el; e; e = e.parentElement) if (getComputedStyle(e).display === 'none') return false;
+    for (let e: HTMLElement | null = el; e; e = e.parentElement)
+      if (getComputedStyle(e).display === 'none') return false;
     return true;
   });
 
-beforeEach(() => vi.useFakeTimers());
+/** The copy and its avatar, as a person sees them (both are laid out from the first frame). */
+const copySeen = (): boolean => getComputedStyle(placeholder()!).visibility !== 'hidden';
+const avatarSeen = (): boolean =>
+  getComputedStyle(placeholder()!.querySelector('.gate-first-paint__logo')!).visibility !==
+  'hidden';
+
+let decode: Mock<() => Promise<void>>;
+beforeEach(() => {
+  vi.useFakeTimers();
+  decode = vi.fn(() => Promise.resolve());
+  Object.defineProperty(HTMLImageElement.prototype, 'decode', {
+    configurable: true,
+    value: decode,
+  });
+});
 afterEach(() => {
   vi.useRealTimers();
   revealApp();
@@ -150,6 +172,56 @@ describe('flag on (the default), nobody signed in', () => {
     coldStart({ path: '/cli-auth' });
     expect(homeVisible()).toBe(true);
     expect(placeholderShown()).toBe(false);
+  });
+});
+
+describe('flag on: the copy waits for its avatar', () => {
+  it('stays unseen while the avatar decodes, then the words and the avatar show in one step', async () => {
+    let decoded!: () => void;
+    decode.mockImplementation(() => new Promise<void>((resolve) => (decoded = resolve)));
+    coldStart({});
+    expect(placeholderShown()).toBe(true); // laid out, so nothing shifts when it shows
+    expect(copySeen()).toBe(false); // no words beside an empty circle
+    expect(homeVisible()).toBe(false); // and not Home either
+
+    decoded();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(copySeen()).toBe(true);
+    expect(avatarSeen()).toBe(true);
+  });
+
+  it('a slow avatar holds it no longer than DURATION.SLOW, so the screen is never left blank', async () => {
+    decode.mockImplementation(() => new Promise<void>(() => undefined)); // never decodes
+    coldStart({});
+    await vi.advanceTimersByTimeAsync(DURATION.SLOW - 1);
+    expect(copySeen()).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(copySeen()).toBe(true);
+    expect(avatarSeen()).toBe(true);
+  });
+
+  it('a broken avatar does not hold it at all', async () => {
+    decode.mockImplementation(() => Promise.reject(new Error('EncodingError')));
+    coldStart({});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(copySeen()).toBe(true);
+  });
+
+  it('flag off or signed in: nothing waits, nothing is fetched early, no copy classes', () => {
+    for (const opts of [
+      { buildFlag: 'false' as const, tryFirstBuild: 'true' as const },
+      { tryFirstBuild: 'true' as const, storage: { [SESSION_HINT_KEY]: '1' } },
+    ]) {
+      vi.clearAllTimers();
+      coldStart(opts);
+      expect(decode).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(document.head.querySelector('link[rel="preload"]')).toBeNull();
+      expect(
+        [...document.documentElement.classList].filter((c) => c.startsWith('gate-first'))
+      ).toEqual([]);
+      expect(homeVisible()).toBe(true);
+    }
   });
 });
 

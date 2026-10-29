@@ -31,10 +31,28 @@ import { installSampler, summarize, type Capture } from './sampler';
 const SAMPLE_MS = 2500;
 const ACCEPT_MS = 1000;
 
-for (const tryFirst of [true, false]) {
-  test(`signed out, try-first ${tryFirst ? 'on (prod)' : 'off'}: one screen, one avatar, nothing animating unseen`, async ({
+/**
+ * `avatarLateMs` delays the avatar on purpose: on a slow CI runner the copy's
+ * words once painted a frame before its image had decoded. The copy now waits
+ * for it (index.html, #gate-first-ready), and this case proves that on any machine.
+ */
+const CASES = [
+  { tryFirst: true, avatarLateMs: 0 },
+  { tryFirst: false, avatarLateMs: 0 },
+  { tryFirst: true, avatarLateMs: 200 },
+];
+
+for (const { tryFirst, avatarLateMs } of CASES) {
+  const name = `try-first ${tryFirst ? 'on (prod)' : 'off'}${avatarLateMs ? `, avatar ${avatarLateMs} ms late` : ''}`;
+  test(`signed out, ${name}: one screen, one avatar, nothing animating unseen`, async ({
     page,
   }, testInfo) => {
+    if (avatarLateMs) {
+      await page.route(/\/ferni-avatar\.svg$/, async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, avatarLateMs));
+        await route.continue();
+      });
+    }
     if (!process.env.FIRST_PAINT_WEB_FONTS) {
       await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort());
     }
@@ -59,10 +77,10 @@ for (const tryFirst of [true, false]) {
     const dir = process.env.FIRST_PAINT_REPORT;
     if (dir) {
       mkdirSync(dir, { recursive: true });
-      const name = `${testInfo.project.name}-try-first-${tryFirst ? 'on' : 'off'}`;
-      writeFileSync(join(dir, `${name}.json`), JSON.stringify({ window1s, all, capture }, null, 1));
+      const file = `${testInfo.project.name}-try-first-${tryFirst ? 'on' : 'off'}${avatarLateMs ? `-avatar-late-${avatarLateMs}` : ''}`;
+      writeFileSync(join(dir, `${file}.json`), JSON.stringify({ window1s, all, capture }, null, 1));
     }
-    console.log(testInfo.project.name, `try-first ${tryFirst}`, JSON.stringify({ window1s, all }));
+    console.log(testInfo.project.name, name, JSON.stringify({ window1s, all }));
 
     // The sampler ran, and the real gate came up inside the sampled window
     expect(all.frames, 'frames sampled').toBeGreaterThan(30);
