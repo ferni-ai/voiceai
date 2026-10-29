@@ -5,8 +5,8 @@
  * see" except one that plainly points at an everyday thing with no acute cue, and
  * adds alarms for sight loss said outright. Run through the real path
  * (detectCrisisSignals + classifyEscalation) on:
- * - fixtures/cant-see-verifier.json: the independent verifier's set for #3034,
- *   verbatim (85 emergencies, 60 everyday, 18 breathe/feel/move);
+ * - fixtures/cant-see-verifier.json and cant-see-verifier-2.json: the independent
+ *   verifier's sets for #3034, verbatim (85/60 plus 18 breathe/feel/move; 70/62);
  * - fixtures/cant-see-heldout-{1,2,3}.json: each by a separate author who never saw
  *   the rule. Set 3 was not tuned on.
  *
@@ -24,6 +24,7 @@ const VERIFIER = load('cant-see-verifier');
 /** Flag-on counts each set pins: emergencies caught (a floor) and false alarms (a ceiling). */
 const SETS = [
   { name: 'verifier', set: VERIFIER, caught: 84, falseAlarms: 6 },
+  { name: 'verifier 2', set: load('cant-see-verifier-2'), caught: 69, falseAlarms: 31 },
   { name: 'set 1', set: load('cant-see-heldout-1'), caught: 30, falseAlarms: 7 },
   { name: 'set 2', set: load('cant-see-heldout-2'), caught: 40, falseAlarms: 10 },
   { name: 'set 3 (blind)', set: load('cant-see-heldout-3'), caught: 42, falseAlarms: 8 },
@@ -73,6 +74,10 @@ describe('the prod line: "I can\'t see." about a text', () => {
 
 /** An everyday word with an acute cue: the cue wins and main's alarm stands. */
 const EVERYDAY_WITH_ACUTE = [
+  // the verifier's r2 never-lower misses (#3034 comment 6504025409), verbatim
+  "i was watching tv and now i can't see anything, help",
+  "i can't see the menu, the words are all jumbled and my mouth feels weird",
+  "i can't see the computer, i got splashed with cleaner at work",
   "i can't see the screen, my eye is bleeding",
   "i can't see my phone, everything is double",
   "i can't see the tv and my face feels numb",
@@ -90,7 +95,7 @@ describe('flag on: an acute cue overrides an everyday word', () => {
 });
 
 describe('flag off is main, byte for byte', () => {
-  const every = [VERIFIER, ...SETS.slice(1).map((s) => s.set)].flatMap((s) => [
+  const every = SETS.map((s) => s.set).flatMap((s) => [
     ...s.emergency,
     ...s.everyday,
     ...(s.breathe_feel_move ?? []),

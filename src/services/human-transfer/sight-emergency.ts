@@ -35,6 +35,8 @@ const SAYS_CANT_SEE = new RegExp(`\\b${CANT}\\b`);
 const SEES_NOTHING = new RegExp(
   `\\b${CANT}(?:(?: (?:anything|a thing|at all|now|anymore|right now))+(?! (?:on|in|at|from|past|over|out|without|because)\\b)|(?=\\s*(?:$|[.!?,;:])))`
 );
+/** "can't see anything", wherever it is: with a call for help or a sudden onset, always an alarm. */
+const TOTAL_LOSS = new RegExp(`\\b${CANT} (?:anything|a thing)\\b`);
 const SUDDEN_OR_DISTRESS = /\b(?:suddenly|all of a sudden|out of nowhere|just now|help|scared)\b/;
 
 /** Sight loss said outright: an emergency on its own. */
@@ -65,9 +67,9 @@ const ACUTE_CUES = [
   /\b(?:floaters|flashes|spots|curtain|double|seeing stars)\b|\bblind\b(?! (?:without|spot))|\bout of (?:my|his|her|one|the) (?:left |right )?eye\b/,
   /\b(?:with )?the lights? (?:are|is) (?:still )?on\b/, // can't see with the lights on: not the dark
   /\b(?:numb\w*|tingl\w*|droop\w*|slurr\w*|stroke|seizure|dizz\w*|faint\w*|pass(?:ed|ing)? out|collaps\w*|headache|migraine|spinning|confus\w*|terrified)\b/,
-  /\b(?:one|left|right) side\b|\bhalf of\b|\b(?:arm|hand|leg|face|side|mouth)s?\b[^.!?]{0,20}\b(?:won'?t|doesn'?t|can'?t|isn'?t) (?:work|move|grip)\w*|\b(?:arm|leg|face|side)s? (?:feels?|is|are|went|gone) (?:\w+ )?(?:heavy|weak|dead|numb|funny|weird)\b/,
-  /\b(?:speech|words?|talking|voice)\b[^.!?]{0,20}\b(?:weird|wrong|slurr\w*|garbled|funny|strange)\b|\bnot making (?:any )?sense\b|\b(?:won'?t|can'?t|isn'?t) (?:talk|speak)\w*|\bnot answering (?:me )?(?:right|properly)\b/,
-  /\bhit (?:in |on )?(?:the |his |her |my )?head\b|\b(?:bang\w*|bump\w*|smack\w*) (?:my|his|her) head\b|\bhead hit\b|\bwindshield\b|\bhit by\b|\bpunch\w*|\bacid\b|\bchemicals?\b|\b(?:i|he|she|they)(?: just)? fell\b|\bfell (?:down|over|off|in)\b|\bon the floor\b/,
+  /\b(?:one|left|right) side\b|\bhalf of\b|\b(?:arm|hand|leg|face|side|mouth)s?\b[^.!?]{0,20}\b(?:won'?t|doesn'?t|can'?t|isn'?t) (?:work|move|grip)\w*|\b(?:arm|leg|face|side|mouth)s? (?:feels?|looks?|is|are|went|gone) (?:\w+ )?(?:heavy|weak|dead|numb|funny|weird|strange|droopy)\b/,
+  /\b(?:speech|words?|talking|voice)\b[^.!?]{0,20}\b(?:weird|wrong|slurr\w*|garbled|funny|strange|jumbl\w*|mixed up|scrambled)\b|\bjumbl\w*|\bcan'?t get (?:my |the )?words out\b|\bnot making (?:any )?sense\b|\b(?:won'?t|can'?t|isn'?t) (?:talk|speak)\w*|\bnot answering (?:me )?(?:right|properly)\b/,
+  /\bhit (?:in |on )?(?:the |his |her |my )?head\b|\b(?:bang\w*|bump\w*|smack\w*) (?:my|his|her) head\b|\bhead hit\b|\bwindshield\b|\bhit by\b|\bpunch\w*|\b(?:acid|chemicals?|bleach|cleaner|splash\w*|spray\w*)\b|\b(?:i|he|she|they)(?: just)? fell\b|\bfell (?:down|over|off|in)\b|\bon the floor\b/,
   /\bin (?:so much |a lot of |terrible )?pain\b|\bit hurts\b|\bhead(?:'s)? (?:hurts?|is (?:killing|pounding)|killing)\b|\bblood\b|\bbleed\w*/,
   /\b(?:sugar|blood sugar|blood pressure|insulin|diabet\w*|overdos\w*|pills|carbon monoxide|allergic|surgery|pregnant|fever|stiff neck|throw(?:ing)? up|vomit\w*|explosion|accident|smoke|breath\w*)\b|\btook (?:something|too many|too much)\b/,
   /\b(?:woke up|stood up|stand up|emergency|ambulance|911|nine one one)\b|\bcall (?:someone|somebody|for help|an ambulance)\b/,
@@ -90,12 +92,11 @@ const EVERYDAY = [
 function sightEmergency(text: string): boolean {
   if (SIGHT_LOSS.some((p) => p.test(text))) return true;
   const acute =
-    ACUTE_CUES.some((p) => p.test(text)) || (WENT_DARK.test(text) && !LIGHT_OUT.test(text));
+    ACUTE_CUES.some((p) => p.test(text)) ||
+    (WENT_DARK.test(text) && !LIGHT_OUT.test(text)) ||
+    ((SEES_NOTHING.test(text) || TOTAL_LOSS.test(text)) && SUDDEN_OR_DISTRESS.test(text));
   if (MAIN_SEE.test(text)) return acute || !EVERYDAY.some((p) => p.test(text));
-  return (
-    SAYS_CANT_SEE.test(text) &&
-    (acute || (SEES_NOTHING.test(text) && SUDDEN_OR_DISTRESS.test(text)))
-  );
+  return SAYS_CANT_SEE.test(text) && acute;
 }
 
 /**
