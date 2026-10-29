@@ -171,8 +171,11 @@ export async function gateInFamily(c: FamilyCall): Promise<unknown> {
   const { gate } = c;
   const early = familyAnswer(c, familyOf(c.toolId, c.args), targetOf(c.args));
   if (early !== undefined) return early;
-  const prepared = await c.spec.prepare(c.args, c.userId, async (a) =>
-    c.execute({ ...a, [gate.planOnly]: true }, c.opts)
+  const prepared = await c.spec.prepare(
+    c.args,
+    c.userId,
+    async (a) => c.execute({ ...a, [gate.planOnly]: true }, c.opts),
+    c.session
   );
   if (typeof prepared === 'string') return prepared;
   const planned = (prepared.args as Record<symbol, unknown>)[gate.planned] as Planned | undefined;
