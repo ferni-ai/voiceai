@@ -348,6 +348,10 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
 // SURFACE RELEVANT MEMORY (Better-Than-Human, Unified)
 // ============================================================================
 
+/** Search found nothing: say so, so a guessed memory is never presented as remembered. */
+const NOTHING_TO_SURFACE =
+  "No stored memory matched, so don't bring this up as something you remember.";
+
 export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
   id: 'surfaceRelevantMemory',
   name: 'Surface Relevant Memory',
@@ -376,7 +380,7 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
         const userId = userData.userId || ctx.userId;
 
         if (!userId) {
-          return memoryToSurface;
+          return NOTHING_TO_SURFACE;
         }
 
         // Search for the actual memory to verify it exists
@@ -409,7 +413,8 @@ export const surfaceRelevantMemoryUnifiedDef: ToolDefinition = {
           }
         }
 
-        return memoryToSurface;
+        // Never hand the model's own guess back as a memory.
+        return NOTHING_TO_SURFACE;
       },
     });
   },
