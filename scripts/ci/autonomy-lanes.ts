@@ -5,14 +5,14 @@
  * autonomy-policy.json next to this file (main's copy in CI, never the PR's).
  *
  * - crisis: a file under a crisis path (any author), or, in a loop PR, a changed line
- *   matching a crisis pattern or naming a crisis module's export (`symbolsFile`), a binary
- *   file, or an import of a crisis module. A loop PR is one whose head branch starts with
- *   `loopBranchPrefix`: that's the anchor GitHub enforces, through a ruleset that lets the
- *   loop's app push only there (SETUP.md). Commit logins (`loopAuthors` as opener, author
- *   or committer, or no linked account) also count, but they come from emails anyone can
- *   set, so they only add screening. Needs an APPROVED review from `approvers.crisis` on
- *   the exact head commit. Other authors' content-only crisis edits keep the local arm
- *   gate's verifier rule instead.
+ *   matching a crisis pattern or naming a screened crisis-module export (`symbolsFile`),
+ *   a binary file, or an import of a crisis module. A loop PR is one whose head branch
+ *   starts with `loopBranchPrefix`: that's the anchor GitHub enforces, through a ruleset
+ *   that lets the loop's app push only there (SETUP.md). Commit logins (`loopAuthors` as
+ *   opener, author or committer, or no linked account) also count, but they come from
+ *   emails anyone can set, so they only add screening. Needs an APPROVED review from
+ *   `approvers.crisis` on the exact head commit. Other authors' content-only crisis edits
+ *   keep the local arm gate's verifier rule instead.
  * - evaluator: a file under an evaluator path. Needs an `evaluatorAuthors` opener whose
  *   every commit GitHub verified with it as committer, or the crisis approval.
  * - privacy: a file under its paths whose path matches `pathPattern` (the LANE rule of
@@ -42,9 +42,11 @@ export type Policy = {
       paths: string[];
       changedLinePatterns: string[];
       importFallbackPattern: string;
-      /** JSON list of every name the crisis modules export, next to the policy. */
+      /** Generated JSON next to the policy: `exported` crisis-module names and the `screened` ones. */
       symbolsFile: string;
-      /** Filled by loadPolicy from symbolsFile. */
+      /** Exported names screened even though a non-crisis module exports them too. */
+      alwaysScreen: string[];
+      /** The screened names, filled by loadPolicy from symbolsFile. */
       symbols?: string[];
     };
     privacy: { paths: string[]; pathPattern: string };
@@ -87,7 +89,9 @@ export const POLICY_PATH = join(dirname(fileURLToPath(import.meta.url)), 'autono
 export function loadPolicy(path = POLICY_PATH): Policy {
   const policy = JSON.parse(readFileSync(path, 'utf8')) as Policy;
   const symbols = join(dirname(path), policy.lanes.crisis.symbolsFile);
-  policy.lanes.crisis.symbols = JSON.parse(readFileSync(symbols, 'utf8')) as string[];
+  policy.lanes.crisis.symbols = (
+    JSON.parse(readFileSync(symbols, 'utf8')) as { screened: string[] }
+  ).screened;
   return policy;
 }
 

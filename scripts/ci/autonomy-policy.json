@@ -33,7 +33,8 @@
         "['\"]9['\"]\\s*\\+"
       ],
       "importFallbackPattern": "(?:/safety/|crisis|safety-note|human-transfer|minor-care|ai-notice)",
-      "symbolsFile": "autonomy-crisis-symbols.generated.json"
+      "symbolsFile": "autonomy-crisis-symbols.generated.json",
+      "alwaysScreen": ["addSafetyNote", "detectCrisis"]
     },
     "privacy": {
       "paths": ["src/**", "apps/**", "!**/*.md"],

@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 /**
- * Every name exported by a module under the crisis paths of autonomy-policy.json. A loop
- * PR whose changed line mentions one (a call site disabled, a barrel import dropped) is in
- * the crisis lane, so the list (the policy's `symbolsFile`) has to stay complete: the unit
- * test scripts/ci/__tests__/crisis-symbols.test.ts fails when it differs from the source.
+ * The names exported by modules under the crisis paths of autonomy-policy.json, written to
+ * the policy's `symbolsFile` as `exported` (all of them) and `screened`. A loop PR whose
+ * changed line mentions a screened name (a call site disabled, a barrel import dropped) is
+ * in the crisis lane. A name some non-crisis module in src/ also exports (`domain`,
+ * `normalize`) can't identify crisis wiring, so only crisis-only names are screened, plus
+ * the policy's reviewed `alwaysScreen` list. The unit test
+ * scripts/ci/__tests__/crisis-symbols.test.ts fails when the file differs from the source,
+ * so a new export can't be missed.
  *
  *   node --experimental-strip-types scripts/ci/crisis-symbols.ts --write
  *
@@ -52,21 +56,29 @@ function exportedNames(path: string, text: string): string[] {
   return names;
 }
 
-/** The sorted, distinct names the crisis modules export, read from the working tree at `root`. */
-export function crisisExports(root: string): string[] {
-  const { paths } = rawPolicy().lanes.crisis;
-  const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+export type CrisisSymbols = { exported: string[]; screened: string[] };
+
+/** Every name the crisis modules export, and the ones a loop PR is screened for. */
+export function crisisSymbols(root: string): CrisisSymbols {
+  const { paths, alwaysScreen } = rawPolicy().lanes.crisis;
+  const sources = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
     .split('\0')
-    .filter((f) => SOURCE.test(f) && !TEST.test(f) && inPaths(f, paths));
-  const names = files.flatMap((f) => exportedNames(f, readFileSync(join(root, f), 'utf8')));
-  return [...new Set(names)].filter((n) => n !== 'default').sort();
+    .filter((f) => SOURCE.test(f) && !TEST.test(f));
+  const namesIn = (files: string[]) =>
+    new Set(files.flatMap((f) => exportedNames(f, readFileSync(join(root, f), 'utf8'))));
+  const crisis = namesIn(sources.filter((f) => inPaths(f, paths)));
+  const elsewhere = namesIn(sources.filter((f) => f.startsWith('src/') && !inPaths(f, paths)));
+  crisis.delete('default');
+  const exported = [...crisis].sort();
+  const screened = exported.filter((n) => !elsewhere.has(n) || alwaysScreen.includes(n));
+  return { exported, screened };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-  const names = crisisExports(root);
+  const symbols = crisisSymbols(root);
   if (process.argv.includes('--write')) {
-    writeFileSync(symbolsPath(), `${JSON.stringify(names, null, 2)}\n`);
+    writeFileSync(symbolsPath(), `${JSON.stringify(symbols, null, 2)}\n`);
   }
-  console.log(`${names.length} crisis symbols`);
+  console.log(`${symbols.exported.length} exported, ${symbols.screened.length} screened`);
 }
