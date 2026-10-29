@@ -99,14 +99,14 @@ vi.mock('../../../../memory/retrieval/semantic-memory-search.js', () => ({
 // The agent process wires the Firestore fact store (gce/job-executor.ts loads this).
 import '../../../../agents/remembered-fact-store-register.js';
 import { firestoreRecallStore } from '../../../../agents/multi-agent/recall-firestore-store.js';
-import { loadRecallSnapshot } from '../../../../memory/recall/session-recall.js';
+import { formatRecall, loadRecallSnapshot } from '../../../../memory/recall/session-recall.js';
 import {
   predictUserNeedUnifiedDef,
   rememberAboutUserUnifiedDef,
   rememberImportantFactUnifiedDef,
 } from '../tools-unified.js';
 import { updateMemoryDef } from '../tools.js';
-import { AMBIGUOUS, NO_MATCH, UNCLEAR, UPDATED } from '../honest-memory.js';
+import { AMBIGUOUS, NO_MATCH, UPDATED } from '../honest-memory.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from '../remember-results.js';
 import type { ToolDefinition } from '../../../registry/types.js';
 
@@ -196,158 +196,14 @@ describe('rememberImportantFact', () => {
   });
 });
 
-describe('updateMemory', () => {
-  const update = async (originalFact: string, updatedFact: string) =>
-    run(updateMemoryDef, { originalFact, updatedFact, reason: 'correction' });
-
-  it('on: replaces the fact recall holds; the next call recalls the new one only', async () => {
-    vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
-    await remember('my sister Dana lives in Denver');
-    expect(await recalled()).toEqual(['my sister Dana lives in Denver']);
-    expect(await update('my sister lives in Denver', 'my sister Dana lives in Boston now')).toBe(
-      UPDATED
-    );
-    expect(await recalled()).toEqual(['my sister Dana lives in Boston now']);
-  });
-
-  it('on: nothing matches, nothing is written, and it says so', async () => {
-    vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
-    await remember('my sister Dana lives in Denver');
-    const before = new Map(fs.docs);
-    expect(await update('my dog is a beagle', 'my dog is a corgi')).toBe(NO_MATCH);
-    expect(fs.docs).toEqual(before);
-    expect(await recalled()).toEqual(['my sister Dana lives in Denver']);
-  });
-
-  it('on: two facts match equally, nothing is changed', async () => {
-    vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
-    await remember('my sister Dana lives in Denver');
-    await remember('my sister Mia lives in Austin');
-    expect(await update('my sister lives', 'my sister lives in Boston')).toBe(AMBIGUOUS);
-    expect((await recalled()).sort()).toEqual([
-      'my sister Dana lives in Denver',
-      'my sister Mia lives in Austin',
-    ]);
-  });
-
-  it('off: changes nothing recall reads and returns nothing, as before', async () => {
-    vi.stubEnv('REMEMBER_TO_RECALL', 'on'); // so there is a fact to (not) update
-    await remember('my sister Dana lives in Denver');
-    await vi.waitFor(() => expect(factDocs()).toHaveLength(1));
-    expect(await update('sister lives in Denver', 'my sister Dana lives in Boston')).toBe('');
-    expect(await recalled()).toEqual(['my sister Dana lives in Denver']);
-  });
-});
-
 /** A fact as the after-call extraction writes it (not one the caller asked to remember). */
 const extracted = (entityName: string, key: string, value: string, source = 'deep_extraction') =>
   fs.docs.set(
     `bogle_users/${uid}/dynamic_facts/x_${entityName}_${key}_${value}`.replace(/\s/g, '_'),
-    {
-      entityName,
-      key,
-      value,
-      confidence: 0.9,
-      extractedAt: '2026-10-01T00:00:00.000Z',
-      source,
-    }
+    { entityName, key, value, confidence: 0.9, extractedAt: '2026-10-01T00:00:00.000Z', source }
   );
 
 type Seed = [entity: string, key: string, value: string];
-const SAM: Seed[] = [
-  ['Sam', 'lives_in', 'Boston'],
-  ['Sam', 'relation', 'brother'],
-];
-const JOB: Seed[] = [['user', 'job', 'nurse at the hospital']];
-
-// The independent verify of #3021 (/Volumes/Work/verify/3021-probes): shared words, another person
-const WRONG_PERSON: Array<[string, Seed[], string, string]> = [
-  ["another relative's birthday", [['Dad', 'birthday', 'May 3']], "Mom's birthday is May 3", "Mom's birthday is May 5"], // prettier-ignore
-  ["a brother's city, correcting a sister's", SAM, 'my sister lives in Boston', 'my sister lives in Chicago'], // prettier-ignore
-  ["a brother's city, the sister's possessive", SAM, "my sister's city is Boston", "my sister's city is Chicago"], // prettier-ignore
-  ["the caller's job, correcting a spouse's", JOB, 'my husband is a nurse at the hospital', 'my husband is a doctor'], // prettier-ignore
-  ["the caller's allergy, correcting a child's", [['user', 'allergy', 'peanuts']], "my son's allergy is peanuts", "my son's allergy is shellfish"], // prettier-ignore
-];
-
-describe('updateMemory replaces only a fact about the same person', () => {
-  const update = async (originalFact: string, updatedFact: string) =>
-    run(updateMemoryDef, { originalFact, updatedFact, reason: 'correction' });
-  beforeEach(() => vi.stubEnv('MEMORY_TOOLS_HONEST', 'on'));
-
-  it.each(WRONG_PERSON)(
-    'refuses: %s; nothing forgotten, nothing written',
-    async (_, seeds, was, now) => {
-      seeds.forEach((f) => extracted(...f));
-      const before = new Map(fs.docs);
-      const recalledBefore = await recalled();
-      expect(await update(was, now)).not.toBe(UPDATED);
-      expect(fs.docs).toEqual(before);
-      expect(await recalled()).toEqual(recalledBefore);
-    }
-  );
-
-  it("another person's pet: nothing matched", async () => {
-    extracted('Rex', 'species', 'dog');
-    extracted('Rex', 'breed', 'beagle');
-    const before = new Map(fs.docs);
-    expect(await update('my cat is a beagle mix', 'my cat is a tabby')).toBe(NO_MATCH);
-    expect(fs.docs).toEqual(before);
-  });
-
-  it('whose it is cannot be read: unclear, nothing written', async () => {
-    extracted('Rex', 'breed', 'beagle');
-    const before = new Map(fs.docs);
-    expect(await update('his dog is a beagle', 'his dog is a corgi')).toBe(UNCLEAR);
-    expect(fs.docs).toEqual(before);
-  });
-
-  it("one relation owning another (my sister's husband): unclear, the husband's job untouched", async () => {
-    extracted('husband', 'job', 'doctor');
-    const before = new Map(fs.docs);
-    expect(await update("my sister's husband is a doctor", "my sister's husband is a dentist")).toBe(UNCLEAR); // prettier-ignore
-    expect(fs.docs).toEqual(before);
-  });
-
-  it("the right person (the caller said Sam is their brother): the brother's city is corrected", async () => {
-    extracted('Sam', 'lives_in', 'Boston');
-    extracted('Sam', 'relation', 'brother', 'user-correction');
-    expect(await update('my brother lives in Boston', 'my brother lives in Chicago')).toBe(UPDATED);
-    expect((await recalled()).sort()).toEqual(['brother', 'my brother lives in Chicago']);
-  });
-
-  it('a capitalised name opening the request, alone: unclear, nothing written', async () => {
-    extracted('Dana', 'lives_in', 'Denver');
-    const before = new Map(fs.docs);
-    expect(await update('Dana lives in Denver', 'Dana lives in Boston')).toBe(UNCLEAR);
-    expect(fs.docs).toEqual(before);
-  });
-
-  it('a name on file with its relation beside it ("Dana, my sister,"): corrected', async () => {
-    extracted('Dana', 'lives_in', 'Denver');
-    expect(await update('Dana, my sister, lives in Denver', 'Dana, my sister, lives in Boston')).toBe(UPDATED); // prettier-ignore
-  });
-
-  it('a relation only an extraction gave (not the caller): nothing matched', async () => {
-    SAM.forEach((f) => extracted(...f));
-    const before = new Map(fs.docs);
-    expect(await update('my brother lives in Boston', 'my brother lives in Chicago')).toBe(
-      NO_MATCH
-    );
-    expect(fs.docs).toEqual(before);
-  });
-
-  it("the caller's own fact: their job is corrected", async () => {
-    JOB.forEach((f) => extracted(...f));
-    expect(await update('I work as a nurse at the hospital', 'I work as a teacher')).toBe(UPDATED);
-    expect(await recalled()).toEqual(['I work as a teacher']);
-  });
-
-  it('two facts about the same person match equally: still refused', async () => {
-    await remember('my sister Dana lives in Denver');
-    await remember('my sister Mia lives in Austin');
-    expect(await update('my sister lives', 'my sister lives in Boston')).toBe(AMBIGUOUS);
-  });
-});
 
 /** What recall holds, as entity|key|value, for "was anything else forgotten?". */
 async function liveFacts(): Promise<string[]> {
@@ -365,6 +221,89 @@ async function plant(seeds: readonly Plant[]): Promise<void> {
     else extracted(...p.said, p.source);
   }
 }
+
+const update = async (originalFact: string, updatedFact: string, userName?: string) => {
+  const tool = updateMemoryDef.create({ agentId: 'ferni' } as never) as unknown as {
+    execute: (a: Record<string, unknown>, o: unknown) => Promise<string>;
+  };
+  const userData = { userId: uid, ...(userName && { userName }) };
+  return tool.execute({ originalFact, updatedFact, reason: 'correction' }, { ctx: { userData } });
+};
+
+describe('updateMemory: only the one fact quoted exactly', () => {
+  beforeEach(() => vi.stubEnv('MEMORY_TOOLS_HONEST', 'on'));
+
+  it('a remembered sentence, quoted: replaced; the next call recalls the new one only', async () => {
+    await remember('my sister Dana lives in Denver');
+    expect(await update('my sister Dana lives in Denver', 'my sister Dana lives in Boston')).toBe(UPDATED); // prettier-ignore
+    expect(await recalled()).toEqual(['my sister Dana lives in Boston']);
+  });
+
+  it("the recall note's line, quoted with its [said ...] note: replaced", async () => {
+    extracted('Dana', 'lives_in', 'Denver');
+    extracted('user', 'lives_in', 'Denver');
+    expect(await update('- Dana: lives in = Denver [said 28 days ago]', "the user's sister Dana lives in Boston")).toBe(UPDATED); // prettier-ignore
+    expect(await liveFacts()).toEqual(["user|asked_to_remember|the user's sister Dana lives in Boston", 'user|lives_in|Denver']); // prettier-ignore
+  });
+
+  it("the caller's own line, under the name the recall note uses: replaced", async () => {
+    extracted('user', 'job', 'nurse');
+    expect(await update('Sam: job = nurse', "the user's job: teacher", 'Sam')).toBe(UPDATED);
+    expect(await liveFacts()).toEqual(["user|asked_to_remember|the user's job: teacher"]);
+  });
+
+  it('case, spacing, quotes and a trailing full stop are ignored', async () => {
+    await remember('my sister Dana lives in Denver');
+    expect(await update('  "My sister  Dana lives in denver."', 'my sister Dana lives in Boston')).toBe(UPDATED); // prettier-ignore
+  });
+
+  it("the dog's name, quoted: only that; the dog-hair allergy is kept", async () => {
+    extracted('user', 'allergic_to', 'dog hair');
+    extracted('user', 'dog_name', 'Rex');
+    expect(await update('dog name: Rex', "the user's dog is named Max")).toBe(UPDATED);
+    expect(await liveFacts()).toEqual(["user|allergic_to|dog hair", "user|asked_to_remember|the user's dog is named Max"]); // prettier-ignore
+  });
+
+  it.each([
+    ["the user's dog: Max", [['user', 'allergic_to', 'dog hair']] as Seed[]],
+    ['my sister lives in Denver', [['Dana', 'lives_in', 'Denver']] as Seed[]],
+    ['Dana lives in Denver', [['Dana', 'lives_in', 'Denver']] as Seed[]],
+    ['Dana: lives in = Denve', [['Dana', 'lives_in', 'Denver']] as Seed[]],
+    ['lives in = Denver and more', [['Dana', 'lives_in', 'Denver']] as Seed[]],
+    ['Denv', [['Dana', 'lives_in', 'Denver']] as Seed[]],
+    ['', [['Dana', 'lives_in', 'Denver']] as Seed[]],
+  ])('a near miss (%j): nothing written, and it says so', async (was, seeds) => {
+    seeds.forEach((f) => extracted(...f));
+    const before = new Map(fs.docs);
+    expect(await update(was, 'something new')).toBe(NO_MATCH);
+    expect(fs.docs).toEqual(before);
+  });
+
+  it('two facts read exactly as quoted: refused, nothing changed', async () => {
+    extracted('Dana', 'lives_in', 'Denver');
+    extracted('user', 'lives_in', 'Denver');
+    const before = new Map(fs.docs);
+    expect(await update('Denver', 'Boston')).toBe(AMBIGUOUS);
+    expect(fs.docs).toEqual(before);
+  });
+
+  it('a forgotten fact, quoted: nothing matched', async () => {
+    extracted('Sam', 'lives_in', 'Boston');
+    fs.docs.set(`bogle_users/${uid}/memory_state/forgotten`, { topics: ['Sam'] });
+    expect(await update('Sam: lives in = Boston', 'Sam lives in Chicago')).toBe(NO_MATCH);
+  });
+
+  it('off: changes nothing recall reads and returns nothing, as before', async () => {
+    vi.stubEnv('MEMORY_TOOLS_HONEST', '');
+    vi.stubEnv('REMEMBER_TO_RECALL', 'on'); // so there is a fact to (not) update
+    await remember('my sister Dana lives in Denver');
+    await vi.waitFor(() => expect(factDocs()).toHaveLength(1));
+    expect(await update('my sister Dana lives in Denver', 'my sister Dana lives in Boston')).toBe(
+      ''
+    );
+    expect(await recalled()).toEqual(['my sister Dana lives in Denver']);
+  });
+});
 
 const DANA_SISTER: Plant[] = [
   ['Dana', 'relation', 'sister'],
@@ -417,12 +356,29 @@ const ATTACKS_R3: Array<[string, Plant[], string, string, string[]]> = [
   ['B22 two people in one request', [{ said: ['Dana', 'relation', 'sister'], source: 'user-correction' }, ['Dana', 'lives_in', 'Denver'], ['user', 'lives_in', 'Denver']], 'my sister Dana and I live in Denver', 'we live in Boston', []], // prettier-ignore
 ];
 
-describe('updateMemory forgets nothing about anyone but the person named', () => {
-  const update = async (originalFact: string, updatedFact: string) =>
-    run(updateMemoryDef, { originalFact, updatedFact, reason: 'correction' });
+// The first independent verify of #3021: shared words about another person
+const R1: Array<[string, Plant[], string, string, string[]]> = [
+  ["another relative's birthday", [['Dad', 'birthday', 'May 3']], "Mom's birthday is May 3", "Mom's birthday is May 5", []], // prettier-ignore
+  ["a brother's city, correcting a sister's", [['Sam', 'lives_in', 'Boston'], ['Sam', 'relation', 'brother']], 'my sister lives in Boston', 'my sister lives in Chicago', []], // prettier-ignore
+  ["the caller's job, correcting a spouse's", [['user', 'job', 'nurse at the hospital']], 'my husband is a nurse at the hospital', 'my husband is a doctor', []], // prettier-ignore
+  ["the caller's allergy, correcting a child's", [['user', 'allergy', 'peanuts']], "my son's allergy is peanuts", "my son's allergy is shellfish", []], // prettier-ignore
+];
+// The fourth: one shared word, the right person's wrong fact
+const R4: Array<[string, Plant[], string, string, string[]]> = [
+  ["C2 the user's dog vs the dog-hair allergy", [['user', 'allergic_to', 'dog hair']], "the user's dog: Bella", "the user's dog: Max", []], // prettier-ignore
+  ['C4 "I live in Denver" vs favorite city', [['user', 'favorite_city', 'Denver']], 'I live in Denver', 'I live in Boston', []], // prettier-ignore
+  ['C7 me and dana', [['Dana', 'lives_in', 'Denver'], ['user', 'lives_in', 'Denver']], 'me and dana live in Denver', 'we live in Boston', []], // prettier-ignore
+  ["C10 Mom's car vs Mom's car insurance", [['Mom', 'car_insurance', 'State Farm']], "Mom's car: Honda", "Mom's car: Toyota", []], // prettier-ignore
+  ["C11 the user's favorite vs favorite color", [['user', 'favorite_color', 'blue']], "the user's favorite: pizza", "the user's favorite: tacos", []], // prettier-ignore
+  ["C12 a partner's business partner", [['Lee', 'relation', 'partner'], ['Lee', 'business_partner', 'Kim'], ['user', 'business_partner', 'Kim']], "my partner's business partner: Kim", "my partner's business partner: Jo", []], // prettier-ignore
+  ["C16 the user's car vs car insurance", [['user', 'car_insurance', 'Geico']], "the user's car: Honda", "the user's car: Toyota", []], // prettier-ignore
+  ['C17 "I work downtown" vs gym', [['user', 'gym', 'downtown YMCA']], 'I work downtown', 'I work uptown', []], // prettier-ignore
+];
+
+describe('updateMemory forgets nothing it was not quoted: every verify round', () => {
   beforeEach(() => vi.stubEnv('MEMORY_TOOLS_HONEST', 'on'));
 
-  it.each([...ATTACKS, ...ATTACKS_R3])('%s', async (_, seeds, was, now, allowed) => {
+  it.each([...R1, ...ATTACKS, ...ATTACKS_R3, ...R4])('%s', async (_, seeds, was, now, allowed) => {
     await plant(seeds);
     const before = await liveFacts();
     await update(was, now);
@@ -430,62 +386,52 @@ describe('updateMemory forgets nothing about anyone but the person named', () =>
     const forgotten = before.filter((f) => !after.includes(f));
     expect(forgotten.filter((f) => !allowed.includes(f))).toEqual([]);
   });
+});
 
-  // Natural corrections on a natural fact base: what they cost in "unclear"
+describe('updateMemory, quoting what recall showed (product check)', () => {
+  beforeEach(() => vi.stubEnv('MEMORY_TOOLS_HONEST', 'on'));
+  // A natural fact base; the model quotes each line of the recall note it was given
   const BASE: Plant[] = [
     ['Dana', 'relation', 'sister'], ['Dana', 'lives_in', 'Denver'], ['user', 'job', 'nurse'],
     ['user', 'favorite_color', 'blue'], ['Dana', 'birthday', 'May 3'], ['user', 'kids', 'two'],
     ['Rex', 'species', 'dog'], ['Rex', 'breed', 'beagle'], ['Mom', 'lives_in', 'Florida'],
     { remember: 'User is allergic to peanuts' }, { remember: 'Has a standing yoga class on Tuesdays' },
   ]; // prettier-ignore
-  const NATURAL: Array<[string, string, string]> = [
-    ['My sister Dana lives in Denver', 'My sister Dana lives in Boston', UPDATED],
-    ["Dana's birthday is May 3", "Dana's birthday is May 5", UPDATED],
-    ['User works as a nurse', 'User works as a doctor', UPDATED],
-    ['works as a nurse', 'works as a nurse practitioner', UNCLEAR],
-    ["User's favorite color is blue", "User's favorite color is green", UPDATED],
-    ['Has two kids', 'Has three kids', UNCLEAR],
-    ['Their dog Rex is a beagle', 'Their dog Rex is a corgi', UNCLEAR],
-    ['Mom lives in Florida', 'Mom lives in Georgia', UPDATED],
-    ['She lives in Denver', 'She lives in Boston', UNCLEAR],
-    ['User is allergic to peanuts', 'User is allergic to tree nuts', UPDATED],
-    ['Yoga class is on Tuesdays', 'Yoga class is on Thursdays', UNCLEAR],
-    ['The user has a yoga class on Tuesdays', 'The user has a yoga class on Thursdays', UNCLEAR],
+  const NOTE_LINES: Array<[string, string]> = [
+    ['Dana: lives in = Denver', 'Dana|lives_in|Denver'],
+    ['Dana: birthday = May 3', 'Dana|birthday|May 3'],
+    ['Dana: relation = sister', 'Dana|relation|sister'],
+    ['them: job = nurse', 'user|job|nurse'],
+    ['them: favorite color = blue', 'user|favorite_color|blue'],
+    ['them: kids = two', 'user|kids|two'],
+    ['Rex: species = dog', 'Rex|species|dog'],
+    ['Rex: breed = beagle', 'Rex|breed|beagle'],
+    ['Mom: lives in = Florida', 'Mom|lives_in|Florida'],
+    ['them: asked to remember = User is allergic to peanuts', 'user|asked_to_remember|User is allergic to peanuts'], // prettier-ignore
+    ['them: asked to remember = Has a standing yoga class on Tuesdays', 'user|asked_to_remember|Has a standing yoga class on Tuesdays'], // prettier-ignore
+    ['beagle', 'Rex|breed|beagle'],
   ];
-  // The same corrections, phrased the way updateMemory's originalFact description asks
-  const DESCRIBED: Array<[string, string, string]> = [
-    ["the user's sister Dana lives in Denver", "the user's sister Dana lives in Boston", UPDATED],
-    [
-      "the user's sister Dana's birthday: May 3",
-      "the user's sister Dana's birthday: May 5",
-      UPDATED,
-    ],
-    ["the user's job: nurse", "the user's job: doctor", UPDATED],
-    ['the user works as a nurse', 'the user works as a nurse practitioner', UPDATED],
-    ["the user's favorite color: blue", "the user's favorite color: green", UPDATED],
-    ['the user has two kids', 'the user has three kids', UPDATED],
-    ["the user's dog Rex is a beagle", "the user's dog Rex is a corgi", UNCLEAR],
-    ["the user's mom lives in Florida", "the user's mom lives in Georgia", UPDATED],
-    ["the user's sister Dana lives in Denver", "the user's sister Dana lives in Austin", UPDATED],
-    ['the user is allergic to peanuts', 'the user is allergic to tree nuts', UPDATED],
-    ["the user's yoga class: Tuesdays", "the user's yoga class: Thursdays", UNCLEAR],
-    ['the user has a yoga class on Tuesdays', 'the user has a yoga class on Thursdays', UNCLEAR],
-  ];
-  it.each(DESCRIBED)('as described: %s', async (was, now, expected) => {
+
+  it('every line the recall note shows reads as one of these quotes', async () => {
     await plant(BASE);
-    expect(await update(was, now)).toBe(expected);
+    const note =
+      formatRecall((await loadRecallSnapshot(firestoreRecallStore, uid)).facts, []) ?? '';
+    for (const [line] of NOTE_LINES.slice(0, -1)) expect(note).toContain(`- ${line} [said`);
   });
 
-  it('a fact remembered the described way ("the user has ...") can be corrected later', async () => {
-    await remember('the user has a standing yoga class on Tuesdays');
-    expect(await update("the user's yoga class: Tuesdays", "the user's yoga class: Thursdays")).toBe(UPDATED); // prettier-ignore
-    expect(await recalled()).toEqual(["the user's yoga class: Thursdays"]);
-  });
-
-  it.each(NATURAL)('natural: %s', async (was, now, expected) => {
-    await plant(BASE);
-    expect(await update(was, now)).toBe(expected);
-  });
+  it.each(NOTE_LINES)(
+    'quoted %j: replaced, and only that fact is forgotten',
+    async (line, fact) => {
+      await plant(BASE);
+      const note =
+        formatRecall((await loadRecallSnapshot(firestoreRecallStore, uid)).facts, []) ?? '';
+      const shown = note.split('\n').find((l) => l.startsWith(`- ${line} [`)) ?? line; // with its [said ...] note
+      const before = await liveFacts();
+      expect(await update(shown, 'the corrected detail')).toBe(UPDATED);
+      const after = await liveFacts();
+      expect(before.filter((f) => !after.includes(f))).toEqual([fact]);
+    }
+  );
 });
 
 describe('predictUserNeed', () => {

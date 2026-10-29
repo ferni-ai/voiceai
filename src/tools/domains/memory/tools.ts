@@ -415,12 +415,10 @@ export const updateMemoryDef: ToolDefinition = {
       parameters: z.object({
         originalFact: z
           .string()
-          .describe(
-            'Whose fact, then the fact: "the user\'s job: nurse", "the user\'s sister Dana\'s birthday: May 3"'
-          ),
+          .describe('The memory copied exactly as shown to you, e.g. "Dana: lives in = Denver"'),
         updatedFact: z
           .string()
-          .describe('The corrected fact, the same way: "the user\'s job: teacher"'),
+          .describe('The corrected fact, whose it is first: "the user\'s sister lives in Boston"'),
         reason: z
           .string()
           .optional()

@@ -98,24 +98,21 @@ export async function rememberImportantHonestly(
 
 export const UPDATED = 'Updated for next time. Carry on; no need to mention it.';
 export const NO_MATCH =
-  "No saved memory matched that, so nothing was changed. Don't say it was updated; if it matters, remember the new detail instead.";
+  "No saved memory reads exactly like that, so nothing was changed. Don't say it was updated; offer to remember the new detail instead.";
 export const AMBIGUOUS =
-  'More than one saved memory matched, so nothing was changed. Ask which one they mean.';
-export const UNCLEAR =
-  "It isn't clear whose detail that is, so nothing was changed. Ask whose it is.";
+  'More than one saved memory reads exactly like that, so nothing was changed. Ask which one they mean.';
 const NOT_UPDATED = "It couldn't be updated for next time. Don't say it was changed; carry on.";
 
 const UPDATE_REPLY: Record<Exclude<ReplaceOutcome['kind'], 'not_kept'>, string> = {
   replaced: UPDATED,
   no_match: NO_MATCH,
   ambiguous: AMBIGUOUS,
-  unclear: UNCLEAR,
   half_done:
     'The new detail is saved, but the old one could not be cleared yet. Carry on; no need to mention it.',
   failed: NOT_UPDATED,
 };
 
-/** updateMemory: replace the remembered fact `originalFact` names, and say what happened. */
+/** updateMemory: replace the remembered fact `originalFact` quotes, and say what happened. */
 export async function updateRemembered(
   toolCtx: unknown,
   userId: string | undefined,
@@ -124,7 +121,11 @@ export async function updateRemembered(
 ): Promise<string> {
   const sessionId = getSessionId({ ctx: toolCtx });
   if (!userId || writeHeld(userId, sessionId)) return NOT_UPDATED;
-  const change = { original: originalFact, updated: updatedFact, sessionId };
+  // How the recall note names the caller, so its line can be quoted as shown
+  const shown = (toolCtx as { userData?: { userName?: unknown; name?: unknown } })?.userData;
+  const name = shown?.userName ?? shown?.name;
+  const userName = typeof name === 'string' && name ? name : undefined;
+  const change = { original: originalFact, updated: updatedFact, sessionId, userName };
   const done = await replaceRemembered(userId, change);
   return done.kind === 'not_kept' ? notKeptReply(done.kept) : UPDATE_REPLY[done.kind];
 }
