@@ -241,14 +241,17 @@ describe('updateMemory', () => {
 
 /** A fact as the after-call extraction writes it (not one the caller asked to remember). */
 const extracted = (entityName: string, key: string, value: string, source = 'deep_extraction') =>
-  fs.docs.set(`bogle_users/${uid}/dynamic_facts/x_${entityName}_${key}`.replace(/\s/g, '_'), {
-    entityName,
-    key,
-    value,
-    confidence: 0.9,
-    extractedAt: '2026-10-01T00:00:00.000Z',
-    source,
-  });
+  fs.docs.set(
+    `bogle_users/${uid}/dynamic_facts/x_${entityName}_${key}_${value}`.replace(/\s/g, '_'),
+    {
+      entityName,
+      key,
+      value,
+      confidence: 0.9,
+      extractedAt: '2026-10-01T00:00:00.000Z',
+      source,
+    }
+  );
 
 type Seed = [entity: string, key: string, value: string];
 const SAM: Seed[] = [
@@ -393,12 +396,32 @@ const ATTACKS: Array<[string, Plant[], string, string, string[]]> = [
   ['A20 owner request, remembered other person', [{ remember: 'Dana lives in Denver' }, ['user', 'lives_in', 'Denver']], 'I live in Denver', 'I live in Boston', ['user|lives_in|Denver']], // prettier-ignore
 ];
 
+// The third independent verify of #3021 (/Volumes/Work/verify/3021-probes/v3021r3-fresh)
+const CITY: Plant[] = [['user', 'lives_in', 'Denver']];
+const ATTACKS_R3: Array<[string, Plant[], string, string, string[]]> = [
+  ['B1 "my bank", the caller\'s bank and Dana at a bank', [['user', 'bank', 'Chase downtown'], ['Dana', 'works_at', 'the bank downtown']], 'my bank is Chase downtown', 'my bank is Ally online', ['user|bank|Chase downtown']], // prettier-ignore
+  ['B11 "my ex", the caller\'s city', CITY, 'my ex lives in Denver', 'my ex lives in Boston', []],
+  ['B12 "my bf", the caller\'s city', CITY, 'my bf lives in Denver', 'my bf lives in Boston', []],
+  [
+    'B13 "my 妹妹", the caller\'s city',
+    CITY,
+    'my 妹妹 lives in Denver',
+    'my 妹妹 lives in Boston',
+    [],
+  ],
+  ['B14 "my сестра", the caller\'s city', CITY, 'my сестра lives in Denver', 'my сестра lives in Boston', []], // prettier-ignore
+  ['B15 "my ex", the caller\'s job', [['user', 'job', 'nurse at the hospital']], 'my ex is a nurse at the hospital', 'my ex is a doctor at the hospital', []], // prettier-ignore
+  ['B17 the caller gave Dana two relations, a bare Dana city', [{ said: ['Dana', 'relation', 'sister'], source: 'user-correction' }, { said: ['Dana', 'relation', 'brother'], source: 'user-correction' }, ['Dana', 'lives_in', 'Denver']], 'my brother Dana lives in Denver', 'my brother Dana lives in Boston', []], // prettier-ignore
+  ['B18 two remembered Danas, a bare Dana city', [{ remember: 'my sister Dana lives in Denver' }, { remember: 'my brother Dana works at the bank' }, ['Dana', 'lives_in', 'Denver']], 'my brother Dana lives in Denver', 'my brother Dana lives in Boston', []], // prettier-ignore
+  ['B22 two people in one request', [{ said: ['Dana', 'relation', 'sister'], source: 'user-correction' }, ['Dana', 'lives_in', 'Denver'], ['user', 'lives_in', 'Denver']], 'my sister Dana and I live in Denver', 'we live in Boston', []], // prettier-ignore
+];
+
 describe('updateMemory forgets nothing about anyone but the person named', () => {
   const update = async (originalFact: string, updatedFact: string) =>
     run(updateMemoryDef, { originalFact, updatedFact, reason: 'correction' });
   beforeEach(() => vi.stubEnv('MEMORY_TOOLS_HONEST', 'on'));
 
-  it.each(ATTACKS)('%s', async (_, seeds, was, now, allowed) => {
+  it.each([...ATTACKS, ...ATTACKS_R3])('%s', async (_, seeds, was, now, allowed) => {
     await plant(seeds);
     const before = await liveFacts();
     await update(was, now);
@@ -428,6 +451,36 @@ describe('updateMemory forgets nothing about anyone but the person named', () =>
     ['Yoga class is on Tuesdays', 'Yoga class is on Thursdays', UNCLEAR],
     ['The user has a yoga class on Tuesdays', 'The user has a yoga class on Thursdays', UNCLEAR],
   ];
+  // The same corrections, phrased the way updateMemory's originalFact description asks
+  const DESCRIBED: Array<[string, string, string]> = [
+    ["the user's sister Dana lives in Denver", "the user's sister Dana lives in Boston", UPDATED],
+    [
+      "the user's sister Dana's birthday: May 3",
+      "the user's sister Dana's birthday: May 5",
+      UPDATED,
+    ],
+    ["the user's job: nurse", "the user's job: doctor", UPDATED],
+    ['the user works as a nurse', 'the user works as a nurse practitioner', UPDATED],
+    ["the user's favorite color: blue", "the user's favorite color: green", UPDATED],
+    ['the user has two kids', 'the user has three kids', UPDATED],
+    ["the user's dog Rex is a beagle", "the user's dog Rex is a corgi", UNCLEAR],
+    ["the user's mom lives in Florida", "the user's mom lives in Georgia", UPDATED],
+    ["the user's sister Dana lives in Denver", "the user's sister Dana lives in Austin", UPDATED],
+    ['the user is allergic to peanuts', 'the user is allergic to tree nuts', UPDATED],
+    ["the user's yoga class: Tuesdays", "the user's yoga class: Thursdays", UNCLEAR],
+    ['the user has a yoga class on Tuesdays', 'the user has a yoga class on Thursdays', UNCLEAR],
+  ];
+  it.each(DESCRIBED)('as described: %s', async (was, now, expected) => {
+    await plant(BASE);
+    expect(await update(was, now)).toBe(expected);
+  });
+
+  it('a fact remembered the described way ("the user has ...") can be corrected later', async () => {
+    await remember('the user has a standing yoga class on Tuesdays');
+    expect(await update("the user's yoga class: Tuesdays", "the user's yoga class: Thursdays")).toBe(UPDATED); // prettier-ignore
+    expect(await recalled()).toEqual(["the user's yoga class: Thursdays"]);
+  });
+
   it.each(NATURAL)('natural: %s', async (was, now, expected) => {
     await plant(BASE);
     expect(await update(was, now)).toBe(expected);

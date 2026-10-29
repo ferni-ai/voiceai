@@ -4378,7 +4378,7 @@
       "file": "src/tools/proactive.ts"
     },
     "updateMemory": {
-      "description": "To update existing memories. Execute. Use when user says.",
+      "description": "Change something you remember about the user when they correct it or it has changed (a new job, a move). Say whose fact it is. Nothing changes unless exactly one saved memory about that person matches.",
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL silently to update existing memories. Execute without announcing. Use when user says"
     },

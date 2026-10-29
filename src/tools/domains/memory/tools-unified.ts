@@ -188,7 +188,9 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
       parameters: z.object({
         fact: z
           .string()
-          .describe('The important fact to remember (e.g., "has two kids", "retiring next year")'),
+          .describe(
+            'Whose fact, then the fact: "the user has two kids", "the user\'s sister Dana is moving to Denver"'
+          ),
         category: z
           .enum(['personal', 'financial', 'emotional', 'goal', 'preference'])
           .describe('Category of the fact'),
@@ -256,7 +258,11 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('rememberImportantFact'),
       parameters: z.object({
-        fact: z.string().describe('The critically important fact'),
+        fact: z
+          .string()
+          .describe(
+            'Whose fact, then the fact: "the user retires next year", "the user\'s mom has cancer"'
+          ),
         type: z
           .enum(['life_event', 'decision', 'breakthrough', 'milestone', 'concern'])
           .describe('Type of fact'),

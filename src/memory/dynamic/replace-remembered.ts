@@ -25,7 +25,7 @@ import {
   type RememberedFact as ShownFact,
 } from '../recall/memory-control.js';
 import { contentWords } from '../recall/session-recall.js';
-import { normalizeName } from '../domain/person-key.js';
+import { normalizeName, relationOf } from '../domain/person-key.js';
 import { relationsFrom, sameSubject, subjectOfFact, subjectOfText } from './fact-subject.js';
 import { keepForRecall, type KeepOutcome, type RememberToRecallDeps } from './remembered-facts.js';
 
@@ -52,8 +52,8 @@ export type ReplaceOutcome =
 
 /**
  * The one shown fact `original` names: about the same person (fact-subject.ts), then the
- * most content words in common, at least two (one for a one-word description) and at
- * least half of them. Shared words about someone else never count: correcting "my
+ * most content words in common, at least half of what it says about them (its words
+ * minus the person's own). Shared words about someone else never count: correcting "my
  * husband is a nurse" must not touch the caller's own job. A tie is 'ambiguous', and a
  * request or a fact whose person can't be read is 'unclear': replacing the wrong one
  * would lose a true memory.
@@ -63,22 +63,29 @@ function named(
   stored: ReadonlyArray<Record<string, unknown>>,
   original: string
 ): ShownFact | 'ambiguous' | 'unclear' | null {
-  const want = contentWords(original);
-  if (want.size === 0) return null;
+  const all = contentWords(original);
+  if (all.size === 0) return null;
   const known = new Set(
     facts.filter((f) => f.subject !== 'you').map((f) => normalizeName(f.subject))
   );
   const asked = subjectOfText(original, known);
   if (asked.kind === 'unclear') return 'unclear';
+  // What it says about them, not who: "my brother Dana" can't match on "brother" and "Dana"
+  const want = [...all].filter((w) =>
+    asked.kind === 'person'
+      ? !(asked.relation && relationOf(w) === asked.relation) && normalizeName(w) !== asked.name
+      : w !== 'user' && w !== 'caller'
+  );
+  if (want.length === 0) return null;
   const relations = relationsFrom(stored, known);
-  const need = Math.max(Math.min(2, want.size), Math.ceil(want.size / 2));
+  const need = Math.max(1, Math.ceil(want.length / 2));
   const scored = facts
     .filter((f) => !f.earlier)
     .map((f) => {
       const about = subjectOfFact(f, relations, known);
       // The caller's own facts read as theirs: "user works as a nurse" ~ "you | job: nurse"
       const have = contentWords(`${about.kind === 'owner' ? 'user' : ''} ${f.subject} ${f.detail}`);
-      return { f, about, have, n: [...want].filter((w) => have.has(w)).length };
+      return { f, about, have, n: want.filter((w) => have.has(w)).length };
     })
     .filter((s) => s.n >= need);
   // "my job ...": the caller's fact about that thing, never another of theirs

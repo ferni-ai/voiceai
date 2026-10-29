@@ -23,6 +23,7 @@
  * @module memory/dynamic/fact-subject
  */
 import { normalizeName, relationOf } from '../domain/person-key.js';
+import { contentWords } from '../recall/session-recall.js';
 
 export type FactSubject =
   /** `thing`: what of theirs it is about ("my job" → "job"), when the request says. */
@@ -33,6 +34,7 @@ export type FactSubject =
 
 const UNCLEAR: FactSubject = { kind: 'unclear' };
 const SELF = new Set(['i', "i'm", "i've", "i'd", "i'll", 'me', 'myself', 'mine', 'user', 'caller']);
+const WITH_ME = new Set(['i', 'me', 'we', 'us', 'myself']);
 const OWN = new Set(['my', 'our', 'user', 'caller']); // "my sister", "user's son"
 const WORD = /[\p{L}\p{M}][\p{L}\p{M}'’-]*/gu;
 
@@ -95,6 +97,8 @@ export function subjectOfText(text: string, known: ReadonlySet<string>): FactSub
   } else if (SELF.has(lower(first)) || OWN.has(head)) {
     // "my job ...", "user's favorite color ...": what of theirs it is about
     const thing = (head === 'my' || head === 'our' || possessive(first)) && words[i + 1];
+    // "my ex", "my bf", "my 妹妹": a thing no word of which can be checked is not proven theirs
+    if (thing && contentWords(thing).size === 0) return UNCLEAR;
     subject = { kind: 'owner', ...(thing && { thing: bare(thing) }) };
   } else if (capitalised(first) && possessive(first)) {
     subject = { kind: 'person', name: normalizeName(head) }; // "Dana's birthday ..."
@@ -115,6 +119,8 @@ export function subjectOfText(text: string, known: ReadonlySet<string>): FactSub
   }
   const own = subject.kind === 'person' ? subject.name : undefined;
   for (let j = next; j < words.length; j++) {
+    // "my sister Dana and I ...": the caller and someone
+    if (subject.kind === 'person' && WITH_ME.has(lower(words[j]))) return UNCLEAR;
     const other = otherPerson(words, j, known);
     if (other && other !== own) return UNCLEAR; // the caller and someone, or two people
   }
@@ -139,6 +145,8 @@ export function subjectOfFact(
   const relation = relationOf(fact.subject);
   if (relation) return { kind: 'person', relation };
   const name = normalizeName(fact.subject);
+  // Two people by one name (a sister Dana and a brother Dana): a fact naming only "Dana" is either
+  if (relations.conflicted.has(name)) return UNCLEAR;
   const given = relations.given.get(name);
   const claimed = relations.claimed.get(name);
   return { kind: 'person', name, ...(given && { relation: given }), ...(claimed && { claimed }) };
@@ -176,6 +184,8 @@ export interface Relations {
   given: ReadonlyMap<string, string>;
   /** Any source, the caller's included: only ever a reason to refuse. */
   claimed: ReadonlyMap<string, ReadonlySet<string>>;
+  /** Names given two relations: more than one person may have that name. */
+  conflicted: ReadonlySet<string>;
 }
 
 /**
@@ -209,6 +219,7 @@ export function relationsFrom(
     if (given.has(name) && given.get(name) !== relation) conflict.add(name);
     given.set(name, relation);
   }
+  for (const [name, rels] of claimed) if (rels.size > 1) conflict.add(name);
   for (const name of conflict) given.delete(name); // said two ways: no relation is proven
-  return { given, claimed };
+  return { given, claimed, conflicted: conflict };
 }

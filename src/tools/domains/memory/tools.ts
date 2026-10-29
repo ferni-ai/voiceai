@@ -413,8 +413,14 @@ export const updateMemoryDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('updateMemory'),
       parameters: z.object({
-        originalFact: z.string().describe('What you currently remember that needs updating'),
-        updatedFact: z.string().describe('The corrected or updated information'),
+        originalFact: z
+          .string()
+          .describe(
+            'Whose fact, then the fact: "the user\'s job: nurse", "the user\'s sister Dana\'s birthday: May 3"'
+          ),
+        updatedFact: z
+          .string()
+          .describe('The corrected fact, the same way: "the user\'s job: teacher"'),
         reason: z
           .string()
           .optional()
