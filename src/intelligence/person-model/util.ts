@@ -4,7 +4,7 @@
  *
  * @module intelligence/person-model/util
  */
-import { isForgotten } from '../../memory/index.js';
+import { containsContactData, isForgotten } from '../../memory/index.js';
 import type { FollowUpKind } from '../../services/follow-through/index.js';
 import { wallTimeIn } from '../../utils/time-zone.js';
 import type { Provenance } from './types.js';
@@ -13,35 +13,8 @@ export type Doc = Record<string, unknown>;
 
 export const DAY = 86_400_000;
 
-/**
- * Digits across any separators: spaces and other Unicode spaces (\p{Z}), zero-width
- * and other format characters (\p{Cf}), slashes, underscores, dots, dashes, parens.
- * Runs on text already folded to ASCII digits (see hasContactData).
- */
-// Anything that isn't a letter separates digits: dashes of every kind, commas,
-// colons, invisible characters. Only a letter breaks a run.
-const DIGIT_RUN = /(?:\d[^\p{L}\d]*){7,}/u;
-
-/** An "@", or an email spelled out: "(at)", "[at]", "jo at example.com", "example dot com". */
-const OBFUSCATED_EMAIL = [
-  /@/,
-  /[([{]\s*at\s*[)\]}]/i,
-  /[([{]\s*dot\s*[)\]}]/i,
-  /[\w-]+(?:\.[\w-]+)*\s+at\s+[\w-]+(?:\s*\.\s*[a-z]{2,}|(?:\s+dot\s+\S{2,}))/iu,
-  /\bat\s+(?:gmail|googlemail|yahoo|hotmail|outlook|icloud|aol|proton(?:mail)?)\b/i,
-  /\bdot\s+(?:com|net|org|edu|gov|io|co|us|uk)\b/i,
-];
-
-/**
- * Contact data, never stored or rendered: a run of 7+ digits in any script and
- * with any separators, or an email in any spelling. NFKC first folds full-width
- * digits and "\uFF20" to ASCII; every other decimal digit (Arabic-Indic...) is
- * counted as a digit, its value being irrelevant here.
- */
-export function hasContactData(text: string): boolean {
-  const folded = text.normalize('NFKC').replace(/\p{Nd}/gu, '0');
-  return DIGIT_RUN.test(folded) || OBFUSCATED_EMAIL.some((re) => re.test(folded));
-}
+/** Contact data, never stored or rendered: the one shared rule (memory/domain/contact-data). */
+export const hasContactData = containsContactData;
 
 export const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 export const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
