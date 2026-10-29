@@ -12,6 +12,7 @@
 
 import { getHabitCalendarContextForBuilder } from '../../../../services/habits/habit-calendar-integration.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -184,9 +185,7 @@ async function buildMayaCoachingInsightsContext(
 
   // Only for Maya
   const currentPersona = (services as { personaId?: string })?.personaId || '';
-  const isMaya = ['maya', 'maya-santos', 'habits-coach'].includes(
-    currentPersona.toLowerCase()
-  );
+  const isMaya = ['maya', 'maya-santos', 'habits-coach'].includes(currentPersona.toLowerCase());
 
   if (!isMaya) return injections;
 
@@ -197,7 +196,9 @@ async function buildMayaCoachingInsightsContext(
   const sessionId = services?.sessionId || userId;
   const session = getSession(sessionId);
 
-  const handoffBriefing = analyzeHandoffForMaya();
+  const handoffBriefing = analyzeHandoffForMaya(
+    takeHandoffArrival(services?.sessionId, 'maya-santos')
+  );
   const isHandoff = handoffBriefing !== null;
 
   // Inject on first turn, handoff, or every 10 turns

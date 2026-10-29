@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -266,7 +267,9 @@ async function buildPeterResearchInsightsContext(
   const session = getSession(sessionId);
 
   // Check if this is a handoff situation
-  const handoffBriefing = analyzeHandoffContext();
+  const handoffBriefing = analyzeHandoffContext(
+    takeHandoffArrival(services?.sessionId, 'peter-john')
+  );
   const isHandoff = handoffBriefing !== null;
 
   // Determine when to inject briefing

@@ -67,6 +67,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -252,7 +253,9 @@ async function buildJordanMilestoneInsightsContext(
   const sessionId = services?.sessionId || userId;
   const session = getSession(sessionId);
 
-  const handoffBriefing = analyzeHandoffForJordan();
+  const handoffBriefing = analyzeHandoffForJordan(
+    takeHandoffArrival(services?.sessionId, 'jordan-taylor')
+  );
   const isHandoff = handoffBriefing !== null;
 
   // Inject on first turn, handoff, or every 10 turns

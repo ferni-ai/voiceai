@@ -45,6 +45,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { takeHandoffArrival } from '../../../../tools/handoff/index.js';
 import {
   BuilderCategory,
   createHighInjection,
@@ -77,7 +78,12 @@ import { analyzeValuesAlignment } from './values-alignment.js';
 import { computeWisdomMetrics } from './wisdom-metrics.js';
 import { detectWisdomOpportunities } from './wisdom-opportunities.js';
 
-import type { LifeSynthesis, NayanInsightBriefing, TeamSynthesis } from './types.js';
+import type {
+  HandoffBriefing,
+  LifeSynthesis,
+  NayanInsightBriefing,
+  TeamSynthesis,
+} from './types.js';
 import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:nayan-wisdom-insights' });
@@ -90,9 +96,10 @@ export { clearAllNayanWisdomSessions, clearNayanWisdomSession };
 // BUILD BRIEFING
 // ============================================================================
 
-async function buildNayanBriefing(userId: string): Promise<NayanInsightBriefing> {
-  const handoffBriefing = analyzeHandoffForNayan();
-
+async function buildNayanBriefing(
+  userId: string,
+  handoffBriefing: HandoffBriefing | null
+): Promise<NayanInsightBriefing> {
   // Default fallback values for graceful degradation
   const defaultLifeSynthesis: LifeSynthesis = {
     lifeChapter: 'unknown',
@@ -188,7 +195,9 @@ async function buildNayanWisdomInsightsContext(
   const sessionId = services?.sessionId || userId;
   const session = getSession(sessionId);
 
-  const handoffBriefing = analyzeHandoffForNayan();
+  const handoffBriefing = analyzeHandoffForNayan(
+    takeHandoffArrival(services?.sessionId, 'nayan-patel')
+  );
   const isHandoff = handoffBriefing !== null;
 
   // Inject on first turn, handoff, or every 15 turns (Nayan is more patient)
@@ -200,7 +209,7 @@ async function buildNayanWisdomInsightsContext(
   if (!shouldInject) return injections;
 
   try {
-    const briefing = await buildNayanBriefing(userId);
+    const briefing = await buildNayanBriefing(userId, handoffBriefing);
     const briefingLines = formatNayanBriefing(briefing, handoffBriefing, turnCount);
 
     // Get superhuman context (narrative, values, dreams, seasonal)
