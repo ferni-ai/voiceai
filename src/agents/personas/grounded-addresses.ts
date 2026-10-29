@@ -9,7 +9,7 @@
  */
 import { type HouseFacts } from '../../config/house-facts.js';
 import { SAFETY_CRISIS_RESOURCES } from '../../services/safety/index.js';
-import { crisisContactLines } from '../../tools/domains/crisis/index.js';
+import { CRISIS_RESOURCES as TOOL_CRISIS_RESOURCES } from '../../tools/domains/crisis/index.js';
 import {
   COACHING_HELPLINES,
   CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES,
@@ -81,8 +81,22 @@ let crisisLines: Addresses | undefined;
 function helplineLines(): string[] {
   const fields = (r: { phone?: string; text?: string; chat?: string; website?: string }) =>
     [r.phone, r.text, r.chat, r.website].filter((v): v is string => Boolean(v));
+  // provideCrisisResources hands out these contact lines. A vanity number written with its
+  // digits after it ("...-NAMI (6264)") is also read as the digits it is dialled with.
+  const toolLines = Object.values(TOOL_CRISIS_RESOURCES).flatMap((r) =>
+    [
+      r.primary.contact,
+      r.secondary?.contact,
+      ...(r.additional ?? []).flatMap((a) => [a.contact, a.url]),
+    ]
+      .filter((v): v is string => Boolean(v))
+      .flatMap((line) => {
+        const dialled = line.replace(/-[A-Z]{3,}\s*\((\d{4})\)/gu, '-$1');
+        return dialled === line ? [line] : [line, dialled];
+      })
+  );
   return [
-    ...crisisContactLines(), // tools/domains/crisis: what provideCrisisResources hands out
+    ...toolLines, // tools/domains/crisis
     ...Object.values(SAFETY_CRISIS_RESOURCES).flat().flatMap(fields), // services/safety/crisis-response
     ...Object.values(COACHING_CRISIS_RESOURCES).flatMap(fields), // life-coaching-shared/safety-guards
     ...Object.values(COACHING_HELPLINES).flatMap(fields), // numbers coaching tools print

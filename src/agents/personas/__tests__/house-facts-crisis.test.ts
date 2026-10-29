@@ -11,8 +11,10 @@ import { describe, expect, it } from 'vitest';
 
 import { generateCrisisResponse } from '../../../services/safety/crisis-response.js';
 import { SAFETY_CRISIS_RESOURCES } from '../../../services/safety/index.js';
-import { definitions as crisisTools } from '../../../tools/domains/crisis/index.js';
-import { CRISIS_RESOURCES } from '../../../tools/domains/crisis/crisis-resources.js';
+import {
+  CRISIS_RESOURCES,
+  definitions as crisisTools,
+} from '../../../tools/domains/crisis/index.js';
 import { definitions as transferTools } from '../../../tools/domains/human-transfer/index.js';
 import { CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES } from '../../../tools/domains/life-coaching-shared/index.js';
 import type { ToolContext } from '../../../tools/registry/types.js';
