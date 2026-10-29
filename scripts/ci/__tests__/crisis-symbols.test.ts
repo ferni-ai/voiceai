@@ -7,7 +7,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import { classify, loadPolicy } from '../autonomy-lanes.js';
-import { crisisSymbols, symbolsPath } from '../crisis-symbols.js';
+import { builtInNames, crisisSymbols, symbolsPath } from '../crisis-symbols.js';
 
 const ROOT = join(__dirname, '../../..');
 const PERSONA = 'src/personas/bundles/x/content.ts';
@@ -31,6 +31,15 @@ describe('crisis symbols', () => {
       const line = `+  const x = ${name}(y);`;
       expect(classify([PERSONA], [line], 'ferni-loop[bot]', policy)).toEqual([]);
     }
+  });
+
+  it('export named like a built-in method is not screened', () => {
+    // crisis-modifiers.ts exports normalize(); every other use is str.normalize('NFKC').
+    expect(builtInNames()).toContain('normalize');
+    expect(derived.exported).toContain('normalize');
+    expect(derived.screened).not.toContain('normalize');
+    const line = "+  const key = name.normalize('NFKC');";
+    expect(classify([PERSONA], [line], 'ferni-loop[bot]', loadPolicy())).toEqual([]);
   });
 
   it('crisis-critical names stay screened, colliding ones through alwaysScreen', () => {

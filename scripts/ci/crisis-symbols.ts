@@ -3,9 +3,9 @@
  * The names exported by modules under the crisis paths of autonomy-policy.json, written to
  * the policy's `symbolsFile` as `exported` (all of them) and `screened`. A loop PR whose
  * changed line mentions a screened name (a call site disabled, a barrel import dropped) is
- * in the crisis lane. A name some non-crisis module in src/ also exports (`domain`,
- * `normalize`) can't identify crisis wiring, so only crisis-only names are screened, plus
- * the policy's reviewed `alwaysScreen` list. The unit test
+ * in the crisis lane. A name some non-crisis module in src/ also exports (`domain`), or a
+ * built-in method's name (`normalize`), can't identify crisis wiring, so only the other
+ * names are screened, plus the policy's reviewed `alwaysScreen` list. The unit test
  * scripts/ci/__tests__/crisis-symbols.test.ts fails when the file differs from the source,
  * so a new export can't be missed.
  *
@@ -58,6 +58,33 @@ function exportedNames(path: string, text: string): string[] {
 
 export type CrisisSymbols = { exported: string[]; screened: string[] };
 
+/**
+ * Names of built-in methods and properties (`str.normalize(...)`, `arr.includes(...)`): a
+ * crisis export named like one can't identify crisis wiring either. Read from the
+ * built-ins themselves, never from a hand list.
+ */
+export function builtInNames(): Set<string> {
+  const builtIns: object[] = [
+    String,
+    Array,
+    Object,
+    Number,
+    Promise,
+    Map,
+    Set,
+    Function,
+    Date,
+    RegExp,
+  ];
+  const owners = [
+    ...builtIns.flatMap((b) => [b, (b as { prototype: object }).prototype]),
+    JSON,
+    Math,
+    Reflect,
+  ];
+  return new Set(owners.flatMap((o) => Object.getOwnPropertyNames(o)));
+}
+
 /** Every name the crisis modules export, and the ones a loop PR is screened for. */
 export function crisisSymbols(root: string): CrisisSymbols {
   const { paths, alwaysScreen } = rawPolicy().lanes.crisis;
@@ -70,7 +97,9 @@ export function crisisSymbols(root: string): CrisisSymbols {
   const elsewhere = namesIn(sources.filter((f) => f.startsWith('src/') && !inPaths(f, paths)));
   crisis.delete('default');
   const exported = [...crisis].sort();
-  const screened = exported.filter((n) => !elsewhere.has(n) || alwaysScreen.includes(n));
+  const builtIn = builtInNames();
+  const ambiguous = (n: string) => elsewhere.has(n) || builtIn.has(n);
+  const screened = exported.filter((n) => !ambiguous(n) || alwaysScreen.includes(n));
   return { exported, screened };
 }
 
