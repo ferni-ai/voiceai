@@ -99,6 +99,7 @@ await orchestrator.handoff({
 | `persona-agent-factory.ts` | Creates agents with full capabilities |
 | `agent-setup.ts` | Reusable agent setup (Gemini, TTS, handlers) |
 | `multi-agent-entry.ts` | Entry point for multi-agent sessions |
+| `handoff-desk.ts` | What the teammate is handed: the caller's asks and unfinished actions, and a first line that names them (`HANDOFF_DESK`) |
 | `greeting-direction.ts` | The hello: what the director is told, and the lines it turns away |
 | `first-call-stranger.ts` | A first meeting's hello: no tease, no shared past |
 | `unknown-caller-honest.ts` | A caller Ferni can't place: met, never promised memory (`UNKNOWN_CALLER_HONEST`) |
