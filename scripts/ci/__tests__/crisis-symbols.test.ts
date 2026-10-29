@@ -31,6 +31,14 @@ describe('crisis symbols', () => {
     expect(loadPolicy().lanes.crisis.symbols).toEqual(derived.screened);
   });
 
+  it('only crisis modules under src/ are scanned, not crisis-path tooling', () => {
+    // scripts/ci/crisis-symbols.ts and scripts/voice-eval/release-check.mjs are crisis
+    // paths for review, not crisis behaviour.
+    for (const name of ['builtInNames', 'crisisSymbols', 'checkRelease', 'REPO']) {
+      expect(derived.exported).not.toContain(name);
+    }
+  });
+
   it('generic export shared with non-crisis modules is not screened', () => {
     const policy = loadPolicy();
     for (const name of ['domain', 'definitions', 'getToolDefinitions', 'plain']) {

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * The names exported by modules under the crisis paths of autonomy-policy.json, written to
- * the policy's `symbolsFile` as `exported` (all of them) and `screened`. A loop PR whose
+ * The names exported by modules under the crisis paths of autonomy-policy.json in src/,
+ * written to the policy's `symbolsFile` as `exported` (all of them) and `screened`. Crisis
+ * paths outside src/ (this tooling, the release check) are owned for review, but they
+ * aren't crisis behaviour, so their exports are not crisis symbols. A loop PR whose
  * changed line mentions a screened name (a call site disabled, a barrel import dropped) is
  * in the crisis lane. A name some non-crisis module in src/ also exports (`domain`), or a
  * built-in method's name (`normalize`), can't identify crisis wiring, so only the other
@@ -153,7 +155,7 @@ export function crisisSymbols(root: string, previous: string[] = []): CrisisSymb
     .split('\0')
     .filter((f) => SOURCE.test(f) && !TEST.test(f));
   const text = (f: string) => readFileSync(join(root, f), 'utf8');
-  const crisisFiles = sources.filter((f) => inPaths(f, paths));
+  const crisisFiles = sources.filter((f) => f.startsWith('src/') && inPaths(f, paths));
   const crisis = new Set(crisisFiles.flatMap((f) => moduleExports(f, text(f)).all));
   const elsewhere = new Set(
     sources
