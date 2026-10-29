@@ -1,7 +1,21 @@
 /**
  * Contact data: the one rule for "may this text be stored or rendered?". A phone
- * number or an email, in any script or spelling, is never kept in memory or put in a
- * prompt. Ordinary numbers (dates, times, years, prices, house numbers) are kept.
+ * number or an email is not kept in memory or put in a prompt. Its contract is to be
+ * never worse than the checks it replaced (the parity table in its tests); it is not a
+ * complete spoken-language detector, which is a later classifier lane.
+ *
+ * Not caught (all also missed by the replaced checks, unless noted):
+ * - spoken digits beyond single words and "double"/"triple" ("tens" such as "fifty-five",
+ *   the letter "o", "nought");
+ * - alternate email spellings: "-at-", "_at_", "·" or "。" as the dot, "period",
+ *   "dot c o m", "d0t", "dotcom";
+ * - Ethiopic numerals (not decimal digits in Unicode);
+ * - in rendered text, digits split by letters or letter-like marks ("555-O142",
+ *   "call 72755 or, 50142", katakana "ー", Arabic tatweel, "ǀ", the Hangul filler);
+ *   stored values catch these through their 7-digit total;
+ * - in rendered text, a run that is exactly one full date is kept, so "on 2026-10-20
+ *   call 555" renders (the replaced check refused every 7+ digit run); stored values
+ *   refuse it.
  *
  * Pure: no I/O, imports nothing. Credentials (keys, card numbers, SSNs) are a
  * different concern and live in memory/credential-shapes.ts.
@@ -30,8 +44,8 @@ const DIGIT_WORDS = 'zero one two three four five six seven eight nine'.split(' 
 /**
  * The text every check reads: NFKC (full-width, circled and superscript digits,
  * "＠", "．"), invisible format characters (zero-width, soft hyphen, bidi marks)
- * removed, every decimal digit in ASCII, and spoken digits ("five five five") as
- * digits, so a dictated number counts the same as a typed one.
+ * removed, every decimal digit in ASCII, and single spoken digits ("five five five",
+ * "oh", "double five") as digits.
  */
 function fold(text: string): string {
   return text
@@ -40,6 +54,9 @@ function fold(text: string): string {
     .replace(/\p{Nd}/gu, (d) => (d >= '0' && d <= '9' ? d : asciiDigit(d)))
     .replace(/\b(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)\b/gi, (w) =>
       String(Math.max(0, DIGIT_WORDS.indexOf(w.toLowerCase())))
+    )
+    .replace(/\b(double|triple)\s+(\d)\b/gi, (_m, n: string, d: string) =>
+      d.repeat(n.toLowerCase() === 'double' ? 2 : 3)
     );
 }
 
@@ -51,19 +68,26 @@ const digitCount = (s: string): number => s.replace(/\D/g, '').length;
 
 // Fail closed. A run of 7+ digits is dialable unless the WHOLE run is one of two
 // shapes a phone number never takes: one full date (2026-10-20, 06/12/2010) or one
-// two-year range (1987-2015). Every other ordinary number of that size (two years
-// in a list, a time range, a big price) is refused: each allow-list rule we added
-// beyond these leaked a number (#2962, #3009 reviews).
+// ascending range of two plausible years, exactly YYYY-YYYY (1987-2015; "2015-1987"
+// is a number). Every other ordinary number of that size (two years in a list, a
+// time range, a big price) is refused: each allow-list rule we added beyond these
+// leaked a number (#2962, #3009 reviews).
 const YEAR = '(?:19|20)\\d\\d';
 const MONTH = '(?:0?[1-9]|1[0-2])';
 const DAY = '(?:0?[1-9]|[12]\\d|3[01])';
-const DASH = '\\-\\u2010-\\u2015\\u2212';
-const KEPT_RUN = new RegExp(
-  `^(?:${YEAR}-${MONTH}-${DAY}|${MONTH}/${DAY}/${YEAR}|${YEAR}\\s?[${DASH}]\\s?${YEAR})$`
-);
+const FULL_DATE = new RegExp(`^(?:${YEAR}-${MONTH}-${DAY}|${MONTH}/${DAY}/${YEAR})$`);
+const YEAR_RANGE = /^(\d{4})[-\u2010-\u2015\u2212](\d{4})$/;
+
+function isYearRange(run: string): boolean {
+  const m = YEAR_RANGE.exec(run);
+  const [from, to] = [Number(m?.[1]), Number(m?.[2])];
+  return from >= 1900 && to <= 2100 && from < to;
+}
 
 const hasDialableRun = (folded: string): boolean =>
-  (folded.match(RUN) ?? []).some((run) => digitCount(run) >= MIN_DIALABLE && !KEPT_RUN.test(run));
+  (folded.match(RUN) ?? []).some(
+    (run) => digitCount(run) >= MIN_DIALABLE && !FULL_DATE.test(run) && !isYearRange(run)
+  );
 
 // Spoken emails. "X at Y" is an address only with a domain ending after it:
 //  - "at example.com": a dot with no space, then letters (any script, so "cοm" with
@@ -73,12 +97,15 @@ const hasDialableRun = (folded: string): boolean =>
 //    ("She was at work. Busy week"), so it counts only for a common TLD, or for any
 //    2+ letter label that ends the text or is followed by another ".label";
 //  - "at example dot com" / "dot c0m".
-// A determiner followed by a space is not a domain ("meet at the dot com office"),
-// but "jo at the.com" is. Parts are capped at RFC lengths (64, 63) so no pattern
-// backtracks over a long unbroken string.
+// Punctuation may sit before "at" ("jo, at", "(jo) at"), and "at sign" counts as
+// "at". The local part is capped at 64 characters so no pattern backtracks over a
+// long unbroken string; the domain at 253 (a whole domain name).
 const LOCAL = '[\\p{L}\\p{N}_.+-]{1,64}';
-const DOMAIN = '(?!(?:the|a|an|my|your|his|her|our|their|this|that)\\s)[\\p{L}\\p{N}_-]{1,63}';
-const AT = `${LOCAL}\\s+at\\s+${DOMAIN}`;
+const DOMAIN = '[\\p{L}\\p{N}_-]{1,253}';
+// Clause punctuation and closing brackets only: none of them can be part of LOCAL, so
+// the two never trade characters while backtracking.
+const BEFORE_AT = `(?:\\s+|[,;:!?)\\]}>"']{1,3}\\s*)`;
+const AT = `${LOCAL}${BEFORE_AT}at(?:\\s+(?:sign|symbol))?\\s+${DOMAIN}`;
 const PROVIDERS = 'gmail|googlemail|yahoo|hotmail|outlook|icloud|aol|proton(?:mail)?';
 const PLACES = 'office|offices|hq|headquarters|campus|building|store|team|conference';
 const EMAIL: readonly RegExp[] = [
@@ -89,12 +116,13 @@ const EMAIL: readonly RegExp[] = [
   new RegExp(`${AT}\\.\\s+(?:com|net|org|edu|gov|io)\\b`, 'iu'),
   new RegExp(`${AT}\\.\\s+\\p{L}{2,}(?:\\s*$|\\.[\\p{L}\\p{N}])`, 'iu'),
   new RegExp(`${AT}\\s+dot\\s+\\S{2,}`, 'iu'),
+  /\bdot\s+(?:com|net|org|edu|gov|io|co|us|uk)\b/i, // kept exactly as the replaced check had it
   // "at" a mail provider ("email jo at gmail later"), unless a place noun follows
   // ("meet at gmail HQ"). Cost: "works at Yahoo" is refused too.
   new RegExp(`\\bat\\s+(?:${PROVIDERS})\\b(?!\\s+(?:${PLACES})\\b)`, 'i'),
 ];
 
-/** True when the text holds a phone number or an email address in any spelling. */
+/** True when the text holds a phone number or an email address (see the gaps above). */
 export function containsContactData(text: string): boolean {
   const folded = fold(text);
   return hasDialableRun(folded) || EMAIL.some((re) => re.test(folded));

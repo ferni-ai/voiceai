@@ -66,6 +66,9 @@ const PHONES: Array<[string, string]> = [
   ['date then digits', 'call 2026-10-20 0142'],
   ['date in an unkept shape', 'call 5550/01/42'],
   ['a range of three years', 'call 1987-2015-2020'],
+  ['a spaced year range', 'call 1987 - 2015'],
+  ['double and triple', 'seven two seven double five five oh one four two'],
+  ['triple', 'triple five oh one four two'],
 ];
 const SEPARATORS: Array<[string, string]> = [
   ['nbsp', ' '],
@@ -129,6 +132,13 @@ const EMAILS = [
   'jo at protonmail',
   'jo at the.com', // a determiner is excluded only before a space
   'jo at my.org',
+  'jo at their.com',
+  // punctuation before "at", and "at sign", where no "dot com" rule could help
+  'his email is jo, at example.org',
+  'email (jo) at example.org',
+  'jo; at example dot ai',
+  'jo at sign example.org',
+  'jo at symbol example dot ai',
   'jo at example. co.uk', // or before another ".label"
 ];
 
@@ -190,7 +200,6 @@ const ORDINARY = [
   'born in 1985',
   'lives at 221 Baker Street',
   'a 10 year plan',
-  'meet at the dot com office',
   'visit at example parks',
   'on 2026-10-20 at 3pm',
   'ran 5 miles at 6 am for 45 minutes',
@@ -254,6 +263,8 @@ const ORDINARY = [
 const REFUSED = [
   // "<word> at <word> dot com" is exactly how an address is dictated ("jo at example dot com").
   'wait at home dot com stuff',
+  // "dot com" on its own is refused, exactly as the replaced check did.
+  'meet at the dot com office',
   // "at" a mail provider with no place noun after it reads as "jo at gmail".
   'Pat works at Yahoo now',
   // 7 whole digits: an amount that large could be a phone number ("$5,550,142").
@@ -305,6 +316,60 @@ describe('containsContactData: ordinary values are kept', () => {
   });
   it.each(REFUSED)('refuses %j (reason in the list above)', (text) => {
     expect(containsContactData(text)).toBe(true);
+  });
+});
+
+// Never worse than main: every form main's checks caught (person-model hasContactData for
+// rendered text, facts normalizeValue for stored values) that a #3009 verifier round
+// found this guard missing. Each must stay caught. One known exception, declared in the
+// module header: rendered text keeps a run that is exactly one full date, so "on
+// 2026-10-20 call 555" renders (main refused every 7+ digit run); it is stored-only below.
+const MAIN_CAUGHT_RENDERED = [
+  'her number is 2015-1987', // a descending "range" is a number
+  'his email is jo, at example dot com',
+  'email (jo) at example dot com',
+  'jo at sign example dot com',
+  `jo at ${'d'.repeat(64)} dot com`,
+  `jo at ${'d'.repeat(64)}.com`,
+  'jo at the dot com',
+  'jo at your dot com',
+  'jo at their . com',
+  'jo at example dot com',
+  'example dot com',
+  'jo(at)example.com',
+  'jo [at] example [dot] com',
+  'email jo at  example . com',
+  'email jo at gmail',
+  'jo@example.com',
+  'call Pat on 727\u2013555\u20130142',
+  'call Pat on 727,555,0142',
+  'call Pat on ５５５０１４２',
+  'call Pat on ٥٥٥٠١٤٢',
+];
+const MAIN_CAUGHT_STORED = [
+  'her number is 2015-1987',
+  'call 72755 or, 50142',
+  'call 72755 then CA 50142',
+  'born 1987 then 2015 then 2019',
+  'moved 2015, left 1987, back 55',
+  'on 2026-10-20 call 555',
+  'jane@example.com',
+  '555-0142',
+  '5 5 5 0 1 4 2',
+];
+
+describe('parity: never worse than main', () => {
+  it.each(MAIN_CAUGHT_RENDERED)('rendered text still refuses %j', (text) => {
+    expect(containsContactData(text)).toBe(true);
+  });
+  it.each(MAIN_CAUGHT_STORED)('a stored value still refuses %j', (text) => {
+    expect(isContactValueAllowed('other', text)).toBe(false);
+  });
+  it('a two-year range is kept only ascending, plausible and exactly YYYY-YYYY', () => {
+    for (const t of ['lived there 1987-2015', 'lived there 1998\u20132004', 'from 2099-2100'])
+      expect(containsContactData(t), t).toBe(false);
+    for (const t of ['2015-1987', '2015-2015', '1899-1950', '2050-2101', '1987 -2015'])
+      expect(containsContactData(`call ${t}`), t).toBe(true);
   });
 });
 
