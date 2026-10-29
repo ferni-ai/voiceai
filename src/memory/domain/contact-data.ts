@@ -53,7 +53,9 @@ const MIN_DIALABLE = 7;
 // range (12:00-1:30), or years (1987, 2015; 2015-2019). Each token is a shape a phone
 // number does not take, and the WHOLE run must parse, so "(727) 012-2019" still
 // counts: its "2019" is a year only if nothing dialable sits next to it.
-// Money is masked before runs are read: a currency sign and an amount ($450,000).
+// Money is not masked first (a mask could hide half a number: "$555-0142"). A run is
+// an amount only when the WHOLE run is one well-formed amount right after a currency
+// sign: "$450,000", "€ 1,250,000.50". "$5551234567" and "727 555 $0142" are not.
 const DASH = '\\-\\u2010-\\u2015\\u2212';
 const YEAR = '(?:19|20)\\d\\d';
 const MONTH_DAY = '(?:0?[1-9]|[12]\\d|3[01])';
@@ -65,15 +67,34 @@ const TIME = '(?:[01]?\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?';
 const TOKEN = `(?:${DATE}|${TIME}|${YEAR})`;
 const JOIN = `(?:\\s*[,${DASH}]\\s*|\\s+)`;
 const ORDINARY_RUN = new RegExp(`^${TOKEN}(?:${JOIN}${TOKEN})*$`);
-// "$15,000", "€ 1,250,000.50", "$450": never followed by more digits, so "$5551234567" stays a run.
-const MONEY = /\p{Sc}\s?(?:\d{1,3}(?:,\d{3})+|\d{1,6})(?:\.\d{1,2})?(?![.,]?\d)/gu;
+const AMOUNT = '(?:\\d{1,3}(?:,\\d{3})+|\\d{1,6})(?:\\.\\d{1,2})?';
+const ONE_AMOUNT = new RegExp(`^${AMOUNT}$`);
+const SIGN_BEFORE = /\p{Sc}\s?$/u;
 
 function hasDialableRun(folded: string): boolean {
-  for (const run of folded.replace(MONEY, ' amount ').match(RUN) ?? []) {
-    const digits = run.replace(/\D/g, '').length;
-    if (digits >= MIN_DIALABLE && !ORDINARY_RUN.test(run.trim())) return true;
+  for (const m of folded.matchAll(RUN)) {
+    const run = m[0];
+    if (run.replace(/\D/g, '').length < MIN_DIALABLE || ORDINARY_RUN.test(run)) continue;
+    const signed = SIGN_BEFORE.test(folded.slice(Math.max(0, m.index - 2), m.index));
+    if (!(signed && ONE_AMOUNT.test(run))) return true;
   }
   return false;
+}
+
+// Stored values get a backstop the prompt guard doesn't need: letters do not reset
+// it. 7+ digits anywhere in the value ("call 555 then 0142") are refused, except
+// digits inside a recognised date, time, year, amount, or a ZIP ending the value
+// ("1245 Oak St, 33701"), so "born in 1987, moved 2015" is still kept.
+const MAX_LOOSE_DIGITS = MIN_DIALABLE - 1;
+const LOOSE_TOKENS = [
+  new RegExp(`\\p{Sc}\\s?${AMOUNT}(?![.,]?\\d)`, 'gu'),
+  new RegExp(`(?<!\\d)${TOKEN}(?!\\d)`, 'g'),
+  /(?:,\s*|\b[A-Z]{2}\s+)\d{5}(?:-\d{4})?[^\p{L}\d]*$/u,
+];
+
+function looseDigits(folded: string): number {
+  const rest = LOOSE_TOKENS.reduce((t, re) => t.replace(re, ' '), folded);
+  return rest.replace(/\D/g, '').length;
 }
 
 // Spoken emails. "X at Y" is an address only with a domain ending after it:
@@ -129,10 +150,10 @@ const BIRTHDAY = /^(\d{4}-)?\d{2}-\d{2}$/;
 /**
  * May this value be stored under this attribute? A phone attribute holds only an
  * E.164 number, a birthday may be a bare date; every other value must hold no
- * contact data at all.
+ * contact data, and no more than 6 digits outside recognised ordinary tokens.
  */
 export function isContactValueAllowed(attribute: string, value: string): boolean {
   if (attribute === 'phone') return toE164(value) !== null;
   if (attribute === 'birthday' && BIRTHDAY.test(value)) return true;
-  return !containsContactData(value);
+  return !containsContactData(value) && looseDigits(fold(value)) <= MAX_LOOSE_DIGITS;
 }

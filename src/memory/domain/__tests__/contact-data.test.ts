@@ -43,6 +43,14 @@ const PHONES: Array<[string, string]> = [
   ['a phone after a date', 'on 2026-10-20 call 555 0142'],
   ['a phone behind a dollar sign', 'send $5550142 to 7275550142'],
   ['comma groups behind a dollar sign', '$727,555,0142'],
+  // a currency sign never masks part of a number (security review of #C1)
+  ['money then dashes', 'send $555-0142'],
+  ['money then dashes and more', 'send $555-0142-123'],
+  ['money comma groups', '$555,014,2123'],
+  ['money comma group then digits', '$555,014 2123'],
+  ['money after digits', 'call 727 555 $0142'],
+  ['small money then digits', 'pay $72 7555 0142'],
+  ['money with a space', '$ 555 0142'],
 ];
 const SEPARATORS: Array<[string, string]> = [
   ['nbsp', ' '],
@@ -232,6 +240,9 @@ const REFUSED = [
   'Pat works at Yahoo now',
 ];
 
+// Kept in a prompt, refused as a stored fact: 7 digits outside any date, time, year or amount.
+const STORED_REFUSED = ['2 or 3 or 4 apartments at 1200 a month'];
+
 describe('containsContactData: ordinary values are kept', () => {
   it.each(ORDINARY)('keeps %j', (text) => {
     expect(containsContactData(text)).toBe(false);
@@ -251,6 +262,21 @@ describe('isContactValueAllowed and toE164: the facts store exceptions', () => {
     expect(isContactValueAllowed('phone', '(727) 555-0142')).toBe(true);
     expect(isContactValueAllowed('phone', 'jo@example.com')).toBe(false);
   });
+  it('a stored value refuses 7+ loose digits even when letters split them', () => {
+    const split = [
+      'call 555 then 0142',
+      'five five five and zero one four two',
+      'ask 727, 555, or 0142',
+    ];
+    for (const v of split) {
+      expect(containsContactData(v), v).toBe(false); // the prompt guard reads runs only
+      expect(isContactValueAllowed('other', v), v).toBe(false);
+    }
+    // digits inside recognised dates, years, times, amounts and an ending ZIP don't count
+    for (const v of ORDINARY.filter((t) => !STORED_REFUSED.includes(t)))
+      expect(isContactValueAllowed('other', v), v).toBe(true);
+    for (const v of STORED_REFUSED) expect(isContactValueAllowed('other', v), v).toBe(false);
+  });
   it('a birthday may be a bare date; a phone is refused under every other attribute', () => {
     expect(isContactValueAllowed('birthday', '1960-04-12')).toBe(true);
     expect(isContactValueAllowed('birthday', '04-12')).toBe(true);
@@ -267,11 +293,11 @@ describe('containsContactData: long input', () => {
     const started = Date.now();
     for (const s of [
       'word.'.repeat(40_000),
-      'a.'.repeat(40_000) + ' at b',
-      'x.'.repeat(30_000) + 'x at y',
+      `${'a.'.repeat(40_000)} at b`,
+      `${'x.'.repeat(30_000)}x at y`,
     ])
       expect(containsContactData(s)).toBe(false);
-    expect(containsContactData('x'.repeat(70) + ' at example dot com')).toBe(true);
+    expect(containsContactData(`${'x'.repeat(70)} at example dot com`)).toBe(true);
     expect(Date.now() - started).toBeLessThan(2_000);
   });
 });
