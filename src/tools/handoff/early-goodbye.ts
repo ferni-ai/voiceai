@@ -299,7 +299,6 @@ function joined(sessionId: string, early: Said | null, result: HandoffResult): H
   };
 }
 
-/** The caller turned to someone else first: no honest line (that handoff speaks), no claim. */
 /** The caller tapped someone else during the setup: that handoff won, this one never ran. */
 async function choseOther(
   chosen: string,
@@ -375,13 +374,22 @@ function toldTheTruth(
   };
 }
 
-/** The goodbye this handoff already said, taken once; null when none or stale. */
-export function takeEarlyGoodbye(sessionId: string, target: string, now = Date.now()): Said | null {
+/**
+ * The goodbye this handoff already said, taken once; null when none or stale. `tap`: the
+ * caller tapped `target` in the app. Only a tap beats the tool's waiting handoff: the model's
+ * own handoff to someone else is not the caller choosing (two in a row, or both at once).
+ */
+export function takeEarlyGoodbye(
+  sessionId: string,
+  target: string,
+  { tap }: { tap: boolean } = { tap: false },
+  now = Date.now()
+): Said | null {
   const early = said.get(sessionId);
   said.delete(sessionId);
   // A tap to someone else while the tool's handoff waits: the tap wins (toolHandoffSuperseded)
   const tool = toolHandoffs.get(sessionId);
-  if (tool && tool.to !== plain(target)) tool.chosen = plain(target);
+  if (tap && tool && tool.to !== plain(target)) tool.chosen = plain(target);
   if (!early) return null;
   // A handoff to someone else: that goodbye must not play before this one
   if (early.to !== plain(target)) {
