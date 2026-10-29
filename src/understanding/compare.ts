@@ -32,7 +32,7 @@ const ATTUNE_AS_AFFECT: Record<string, TurnReading['affect_text']['label']> = {
 };
 
 /** What both the reading and the rules decide, as comparable values. */
-export interface SharedFields {
+interface SharedFields {
   answered: boolean;
   affect: string;
   bad_news: boolean;
@@ -41,7 +41,7 @@ export interface SharedFields {
   day_ahead: boolean;
 }
 
-export function sharedFromReading(r: TurnReading): SharedFields {
+function sharedFromReading(r: TurnReading): SharedFields {
   return {
     answered: r.answered_prior_question === 'yes' || r.answered_prior_question === 'partial',
     affect: r.affect_text.label,
@@ -53,7 +53,7 @@ export function sharedFromReading(r: TurnReading): SharedFields {
   };
 }
 
-export function sharedFromRules(rules: RulesRead): SharedFields {
+function sharedFromRules(rules: RulesRead): SharedFields {
   return {
     answered: rules.answer,
     affect: ATTUNE_AS_AFFECT[rules.attune] ?? 'neutral',
