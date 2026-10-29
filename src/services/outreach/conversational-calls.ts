@@ -24,6 +24,7 @@ import { carryOwnCallMe, heldCall } from './held-call.js';
 import { deferredCallRequest, pausedCall } from './outreach-pause.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
+import { twilioCallbackUrl } from './webhooks/twilio-callback-url.js';
 
 const log = createLogger({ module: 'ConversationalCalls' });
 
@@ -274,7 +275,6 @@ async function initiateCall(
     const twilio = await import('twilio');
     const client = twilio.default(twilioSid, twilioToken);
 
-    // Build TwiML
     const twiml = buildCallTwiML(call, options);
 
     // Create the call
@@ -285,7 +285,7 @@ async function initiateCall(
       machineDetection: options.voicemailFallback ? 'DetectMessageEnd' : 'Enable',
       machineDetectionTimeout: 3,
       timeout: 30, // Ring for 30 seconds max
-      statusCallback: `${process.env.APP_URL || 'https://app.ferni.ai'}/api/outreach/webhooks/twilio/conversational-call-status`,
+      statusCallback: twilioCallbackUrl('/api/outreach/webhooks/twilio/conversational-call-status'),
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
     });
 
