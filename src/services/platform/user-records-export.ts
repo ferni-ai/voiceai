@@ -55,6 +55,8 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     // facts the person told, written by the memory tools (memory-executor.ts,
     // legacy-fallback-executor.ts) and erased by forget.ts; not in the 2026-10 listings (#2366)
     'extracted_facts',
+    // bi-temporal facts about people: ids, subjects, values, validity (facts-store.ts)
+    'facts',
     'ferni_commitments',
     'follow_through',
     'follow_up_actions',
@@ -221,6 +223,13 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
   { collection: 'semantic_routing_corrections', doc: 'uid' },
   // What the older agent remembered of the relationship: shared moments, inside jokes
   { collection: 'relationship_memories', field: 'userId' },
+  // The semantic index (user-stores.ts): the words and what kind of memory they are, never
+  // the embedding (a model's numbers, not the person's data)
+  ...(['vectors', 'memory_vectors'] as const).map((collection) => ({
+    collection,
+    field: 'metadata.userId',
+    fields: ['text', 'metadata', 'createdAt', 'updatedAt', 'expireAt'],
+  })),
   // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
   // family member's own activity (calls, minutes, last call), voice enrollment, self-
   // registration, or familyUserId, the key to that person's own record.
@@ -285,6 +294,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/team_insights', // Team Insights
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
   'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
+  'bogle_users/{uid}/facts', // bi-temporal facts (MEMORY_FACTS)
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
   'users/{uid}/shared_memories',
