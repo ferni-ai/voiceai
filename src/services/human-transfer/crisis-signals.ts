@@ -33,6 +33,8 @@ export interface CrisisEventRecord {
   channel?: string;
   resources?: string[];
   sessionId?: string;
+  /** The caller turn it was logged on (CRISIS_SAME_CALL_NOTE_FADES). */
+  turn?: number;
 }
 
 /** A detection with no signals set; stored signals are laid over it. */
@@ -76,7 +78,33 @@ export function crisisFromSignal(
     urgency: decision.urgency,
     reason: decision.reason,
     sessionId: typeof doc.sessionId === 'string' ? doc.sessionId : undefined,
+    ...(typeof doc.turn === 'number' ? { turn: doc.turn } : {}),
   };
+}
+
+/** Caller turns a same-call crisis follow-up note lasts (CRISIS_SAME_CALL_NOTE_FADES). */
+const SAME_CALL_NOTE_TURNS = 3;
+
+/**
+ * The crisis the follow-up note is about, newest first (CRISIS_SAME_CALL_NOTE_FADES,
+ * #3000; Seth: fade after a few turns). A crisis from an earlier call counts as on
+ * main. One logged earlier on this call counts for SAME_CALL_NOTE_TURNS caller turns
+ * after its own; a new signal on the call is newer and restarts the count. Without
+ * a turn on either side (an older doc, no counter) it counts as on main.
+ */
+export function followUpCrisis(
+  crises: readonly CrisisEventRecord[] | undefined,
+  sessionId: string | undefined,
+  turn: number | undefined
+): CrisisEventRecord | undefined {
+  return crises?.find(
+    (c) =>
+      !sessionId ||
+      c.sessionId !== sessionId ||
+      c.turn === undefined ||
+      turn === undefined ||
+      turn - c.turn <= SAME_CALL_NOTE_TURNS
+  );
 }
 
 /** The caller's crisis-level signals since `since`, newest first (at most 10). Throws on read errors. */

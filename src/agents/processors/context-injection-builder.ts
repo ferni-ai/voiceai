@@ -405,8 +405,8 @@ export async function buildContextInjections(
       behavioralFallback,
       'buildIntegratedContext'
     ),
-    buildHumanTransferInjections(userText, services.userId, services.sessionId),
-    buildCrisisHistoryInjection(services.userId, services.sessionId),
+    buildHumanTransferInjections(userText, services.userId, services.sessionId, currentTurnCount),
+    buildCrisisHistoryInjection(services.userId, services.sessionId, currentTurnCount),
   ]);
 
   // ============================================================================

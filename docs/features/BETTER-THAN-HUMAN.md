@@ -103,6 +103,13 @@ always counts. A suppressed line is never logged, so no follow-up note follows;
 every other crisis follows up exactly as before. Held-out sets in
 `__tests__/fixtures/` pin never-lower line by line.
 
+`CRISIS_SAME_CALL_NOTE_FADES` (off by default; Seth's call: fade after a few
+turns): the follow-up note for a crisis logged earlier on this call shows for the
+next 3 caller turns, then stops; a new crisis signal on the call restarts the 3
+turns. The signal doc carries its caller turn (`userData.turnCount`) when the flag
+is on, and `followUpCrisis` (`crisis-signals.ts`) picks the note. The immediate
+alarm, in-call crisis handling and cross-call notes are unchanged.
+
 ---
 
 ## 2. Apple Health Integration
