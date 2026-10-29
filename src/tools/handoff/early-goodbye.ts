@@ -266,7 +266,7 @@ export async function withEarlyGoodbye(
 }
 
 /** The longest a failed tool waits for a handoff still running (a tap) before it reports. */
-export const JOINED_SETTLE_MS = 8_000;
+const JOINED_SETTLE_MS = 8_000;
 const SETTLE_POLL_MS = 50;
 
 /** After the handoff that is running settles: is `target` the persona on the call? */
