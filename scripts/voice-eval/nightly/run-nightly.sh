@@ -33,6 +33,8 @@ export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
 export GEMINI_BILLING_JOB=nightly_sweep
 RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID="" RUNNER=$$
 cd "$ROOT" || exit 2
+# shellcheck source=scripts/voice-eval/nightly/deploy-retry.sh
+. "$HERE/deploy-retry.sh" || exit 2
 
 say() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 log() { if [ "$DRY" = 1 ]; then return; fi; say "$*" >> "$OUT/nightly.log"; }
@@ -124,7 +126,7 @@ do_deploy() {
     && [ "$(echo "$rooms" | grep -c '│ RM_')" = 0 ] \
     && git rev-parse HEAD > .build-sha \
     && cp docker/Dockerfile.agent ./Dockerfile \
-    && { lk agent deploy --project $P --config "$CONF" -y . > "$dlog" 2>&1; rm -f Dockerfile .build-sha; } \
+    && { deploy_with_retry "$dlog" 60 lk agent deploy --project $P --config "$CONF" -y .; rm -f Dockerfile .build-sha; } \
     && ! grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" "$dlog" \
     && ! grep "unable to deploy agent" "$dlog" | grep -qv "bufio.Scanner" \
     && for _ in $(seq 1 16); do live && break; sleep 15; done \
