@@ -51,6 +51,10 @@ const PHONES: Array<[string, string]> = [
   ['money after digits', 'call 727 555 $0142'],
   ['small money then digits', 'pay $72 7555 0142'],
   ['money with a space', '$ 555 0142'],
+  // an amount holds at most 6 whole digits (push security review)
+  ['large signed amount', 'send $5550142123'],
+  ['large grouped amount', 'send $5,550,142,123'],
+  ['amount over six whole digits', 'wire $7,275,550'],
 ];
 const SEPARATORS: Array<[string, string]> = [
   ['nbsp', ' '],
@@ -223,7 +227,6 @@ const ORDINARY = [
   'born 1987, 2015 moved',
   'lived there 2015-2019',
   'lived there 1998–2004',
-  'sold for $1,250,000',
   'paid € 2,400.50 on 2026-10-20',
   'from 10/20-10/25',
   'on 2026-10-20 15:30',
@@ -232,12 +235,14 @@ const ORDINARY = [
   'oh, one more thing',
   'no one knows',
 ];
-// Ordinary-looking values that are refused, with the reason (see the PR body).
+// Ordinary-looking values that are refused, each with its reason (see the PR body).
 const REFUSED = [
   // "<word> at <word> dot com" is exactly how an address is dictated ("jo at example dot com").
   'wait at home dot com stuff',
   // "at" a mail provider with no place noun after it reads as "jo at gmail".
   'Pat works at Yahoo now',
+  // 7 whole digits: an amount that large could be a phone number ("$5,550,142").
+  'sold for $1,250,000',
 ];
 
 // Kept in a prompt, refused as a stored fact: 7 digits outside any date, time, year or amount.
@@ -247,7 +252,7 @@ describe('containsContactData: ordinary values are kept', () => {
   it.each(ORDINARY)('keeps %j', (text) => {
     expect(containsContactData(text)).toBe(false);
   });
-  it.each(REFUSED)('refuses %j (reads as a dictated address)', (text) => {
+  it.each(REFUSED)('refuses %j (reason in the list above)', (text) => {
     expect(containsContactData(text)).toBe(true);
   });
 });
@@ -267,6 +272,9 @@ describe('isContactValueAllowed and toE164: the facts store exceptions', () => {
       'call 555 then 0142',
       'five five five and zero one four two',
       'ask 727, 555, or 0142',
+      // only ONE amount, date, time or ZIP is discounted, and "$0142" is no amount
+      'born 1987, zip 33701 and $0142',
+      'on 10/20 pay $555 at 01:42',
     ];
     for (const v of split) {
       expect(containsContactData(v), v).toBe(false); // the prompt guard reads runs only
@@ -289,6 +297,16 @@ describe('isContactValueAllowed and toE164: the facts store exceptions', () => {
 });
 
 describe('containsContactData: long input', () => {
+  it('a long run of date-like groups is read in linear time and never counts as ordinary', () => {
+    const started = performance.now();
+    expect(containsContactData(`${'12-'.repeat(5_000)}12`)).toBe(true);
+    expect(containsContactData(`${'12/12/12 '.repeat(5_000)}12`)).toBe(true);
+    expect(performance.now() - started).toBeLessThan(50);
+    // the 40-character cap: 7 years fit (40 chars), an eighth does not
+    const years = [1987, 1988, 1989, 1990, 1991, 1992, 1993];
+    expect(containsContactData(`lived ${years.join(', ')}`)).toBe(false);
+    expect(containsContactData(`lived ${[...years, 1994].join(', ')}`)).toBe(true);
+  });
   it('stays linear on long unbroken strings (no regex backtracking blow-up)', () => {
     const started = Date.now();
     for (const s of [

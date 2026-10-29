@@ -52,29 +52,55 @@ const MIN_DIALABLE = 7;
 // ordinary number tokens: a date (2026-10-20, 06/12/2010, 10/20), a time or time
 // range (12:00-1:30), or years (1987, 2015; 2015-2019). Each token is a shape a phone
 // number does not take, and the WHOLE run must parse, so "(727) 012-2019" still
-// counts: its "2019" is a year only if nothing dialable sits next to it.
-// Money is not masked first (a mask could hide half a number: "$555-0142"). A run is
-// an amount only when the WHOLE run is one well-formed amount right after a currency
-// sign: "$450,000", "€ 1,250,000.50". "$5551234567" and "727 555 $0142" are not.
+// counts: its "2019" is a year only if nothing dialable sits next to it. A run over
+// 40 characters is never ordinary. The run is read by a left-to-right tokenizer
+// (longest token, then one separator), not a backtracking regex.
+// A run is an amount only when the WHOLE run is one amount right after a currency
+// sign, with no leading zero and at most 6 whole digits: "$450,000", "€ 2,400.50".
+// "$1,250,000", "$5550142123" and "727 555 $0142" count as dialable.
 const DASH = '\\-\\u2010-\\u2015\\u2212';
 const YEAR = '(?:19|20)\\d\\d';
 const MONTH_DAY = '(?:0?[1-9]|[12]\\d|3[01])';
-const DATE_SEP = `[/.${DASH}]`;
-const DATE =
-  `(?:${YEAR}${DATE_SEP}${MONTH_DAY}${DATE_SEP}${MONTH_DAY}` +
-  `|${MONTH_DAY}${DATE_SEP}${MONTH_DAY}(?:${DATE_SEP}(?:${YEAR}|\\d\\d))?)`;
 const TIME = '(?:[01]?\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?';
-const TOKEN = `(?:${DATE}|${TIME}|${YEAR})`;
-const JOIN = `(?:\\s*[,${DASH}]\\s*|\\s+)`;
-const ORDINARY_RUN = new RegExp(`^${TOKEN}(?:${JOIN}${TOKEN})*$`);
-const AMOUNT = '(?:\\d{1,3}(?:,\\d{3})+|\\d{1,6})(?:\\.\\d{1,2})?';
+const MAX_ORDINARY_RUN = 40;
+const sticky = (src: string): RegExp => new RegExp(`(?:${src})(?!\\d)`, 'y');
+// A date's separators match each other; a 2-digit year only after "/" or ".".
+const RUN_TOKENS = [
+  `${YEAR}([/.${DASH}])${MONTH_DAY}\\1${MONTH_DAY}`,
+  `${MONTH_DAY}([/.])${MONTH_DAY}\\1(?:${YEAR}|\\d\\d)`,
+  `${MONTH_DAY}([${DASH}])${MONTH_DAY}\\1${YEAR}`,
+  `${MONTH_DAY}/${MONTH_DAY}`,
+  TIME,
+  YEAR,
+].map(sticky);
+const RUN_JOIN = new RegExp(`\\s*[,${DASH}]\\s*|\\s+`, 'y');
+
+function isOrdinaryRun(run: string): boolean {
+  if (run.length > MAX_ORDINARY_RUN) return false;
+  for (let i = 0; ;) {
+    let len = 0;
+    for (const re of RUN_TOKENS) {
+      re.lastIndex = i;
+      len = Math.max(len, re.exec(run)?.[0].length ?? 0);
+    }
+    if (len === 0) return false;
+    i += len;
+    if (i === run.length) return true;
+    RUN_JOIN.lastIndex = i;
+    const join = RUN_JOIN.exec(run)?.[0].length ?? 0;
+    if (join === 0) return false;
+    i += join;
+  }
+}
+
+const AMOUNT = '(?:0|[1-9]\\d{0,2}(?:,\\d{3})?|[1-9]\\d{3,5})(?:\\.\\d{1,2})?';
 const ONE_AMOUNT = new RegExp(`^${AMOUNT}$`);
 const SIGN_BEFORE = /\p{Sc}\s?$/u;
 
 function hasDialableRun(folded: string): boolean {
   for (const m of folded.matchAll(RUN)) {
     const run = m[0];
-    if (run.replace(/\D/g, '').length < MIN_DIALABLE || ORDINARY_RUN.test(run)) continue;
+    if (run.replace(/\D/g, '').length < MIN_DIALABLE || isOrdinaryRun(run)) continue;
     const signed = SIGN_BEFORE.test(folded.slice(Math.max(0, m.index - 2), m.index));
     if (!(signed && ONE_AMOUNT.test(run))) return true;
   }
@@ -82,19 +108,30 @@ function hasDialableRun(folded: string): boolean {
 }
 
 // Stored values get a backstop the prompt guard doesn't need: letters do not reset
-// it. 7+ digits anywhere in the value ("call 555 then 0142") are refused, except
-// digits inside a recognised date, time, year, amount, or a ZIP ending the value
-// ("1245 Oak St, 33701"), so "born in 1987, moved 2015" is still kept.
+// it. 7+ digits anywhere in the value ("call 555 then 0142") are refused. Years never
+// count ("born in 1987, moved 2015"), and ONE other token is discounted: the largest
+// amount, date, time, or ZIP ending the value ("1245 Oak St, 33701"). Several such
+// tokens can't add up to a number: "zip 33701, $0142" counts 9.
 const MAX_LOOSE_DIGITS = MIN_DIALABLE - 1;
-const LOOSE_TOKENS = [
+const DATE =
+  `${YEAR}[/.${DASH}]${MONTH_DAY}[/.${DASH}]${MONTH_DAY}` +
+  `|${MONTH_DAY}[/.${DASH}]${MONTH_DAY}(?:[/.${DASH}](?:${YEAR}|\\d\\d))?`;
+const ONE_TOKEN = [
   new RegExp(`\\p{Sc}\\s?${AMOUNT}(?![.,]?\\d)`, 'gu'),
-  new RegExp(`(?<!\\d)${TOKEN}(?!\\d)`, 'g'),
-  /(?:,\s*|\b[A-Z]{2}\s+)\d{5}(?:-\d{4})?[^\p{L}\d]*$/u,
+  new RegExp(`(?<!\\d)(?:${DATE}|${TIME})(?!\\d)`, 'g'),
+  /(?:,\s*|\b[A-Z]{2}\s+)\d{5}(?:-\d{4})?[^\p{L}\d]*$/gu,
 ];
+const YEARS = new RegExp(`(?<!\\d)${YEAR}(?!\\d)`, 'g');
+const digitCount = (s: string): number => s.replace(/\D/g, '').length;
 
 function looseDigits(folded: string): number {
-  const rest = LOOSE_TOKENS.reduce((t, re) => t.replace(re, ' '), folded);
-  return rest.replace(/\D/g, '').length;
+  let best = { at: 0, len: 0, digits: 0 };
+  for (const re of ONE_TOKEN)
+    for (const m of folded.matchAll(re))
+      if (digitCount(m[0]) > best.digits)
+        best = { at: m.index, len: m[0].length, digits: digitCount(m[0]) };
+  const rest = `${folded.slice(0, best.at)} ${folded.slice(best.at + best.len)}`;
+  return digitCount(rest.replace(YEARS, ' '));
 }
 
 // Spoken emails. "X at Y" is an address only with a domain ending after it:
