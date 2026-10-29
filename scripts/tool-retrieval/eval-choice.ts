@@ -15,12 +15,15 @@
  * (TOOL_CORE_STATIC: the static core, findTools searching the whole catalog
  * and appending what it finds, as the pinner does); count (the tool-count sweep: TOOL_COUNT tools,
  * the 20 head tools first, then the registry in a TOOL_SEED shuffle, plus the request's labelled
- * tool; tool-count-set.mjs). EVAL_LABELS=head keeps only requests for the 20 tools prod and dev
- * calls used (2026-10-04..11). EVAL_NEGATIVES=1 adds the no-tool small talk
+ * tool; tool-count-set.mjs); persona (PERSONA_TOOLSETS: TOOL_PERSONA's fixed set, with that
+ * persona's prompt; a request whose label is outside the set stays in, as "out of set"; score with
+ * persona-toolset-score.mjs). EVAL_LABELS=head keeps only requests for the 20 tools prod and dev
+ * calls used (2026-10-04..11); EVAL_LABELS=persona only those whose label is in TOOL_PERSONA's
+ * set. EVAL_NEGATIVES=1 adds the no-tool small talk
  * (fixtures/no-tool-negatives-v1.json, label null; score with tool-count-sweep.mjs, not
  * choice-score.mjs).
  *
- * usage: [TOOL_SET=today|core|count] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
+ * usage: [TOOL_SET=today|core|count|persona] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
  * Writes scripts/tool-retrieval/out/choice-<label>.json and prints a summary.
  * Score 2+ seeds (the same seeds for both builds) with choice-score.mjs: pooled rate, floor,
  * paired diff. Its --out file, saved as <night>/tool-choice.json, is the nightly scorecard's
@@ -49,6 +52,9 @@ import { capToolsToLimit, getEssentialTools } from '../../src/config/tool-config
 import { DEFAULT_ESSENTIAL_DOMAINS } from '../../src/tools/dynamic-loader/index.js';
 import { updateAgentTools } from '../../src/agents/shared/tool-updater.js';
 import { staticCoreCallTools } from '../../src/agents/shared/static-core-tools.js';
+import { buildEmergencyToolset } from '../../src/agents/multi-agent/emergency-toolset.js';
+import { personaToolset } from '../../src/agents/multi-agent/persona-toolsets.js';
+import { getCanonicalPersonaId } from '../../src/personas/voice-registry.js';
 import { loadTestSet } from './test-set.mjs';
 import { countOrder, countSet } from './tool-count-set.mjs';
 
@@ -56,12 +62,13 @@ const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
 const seed = Number(seedArg || 1);
 const MODEL = process.env.CASCADE_LLM_MODEL || 'gemini-3.5-flash';
-const TOOL_SETS = ['retrieval', 'today', 'core', 'count'] as const;
+const TOOL_SETS = ['retrieval', 'today', 'core', 'count', 'persona'] as const;
 const TOOL_SET = (process.env.TOOL_SET || 'retrieval') as (typeof TOOL_SETS)[number];
 if (!TOOL_SETS.includes(TOOL_SET))
   throw new Error(`TOOL_SET must be one of ${TOOL_SETS.join(', ')}`);
 const TOOL_COUNT = Number(process.env.TOOL_COUNT || 40);
 const TOOL_SEED = Number(process.env.TOOL_SEED || 1);
+const PERSONA = getCanonicalPersonaId(process.env.TOOL_PERSONA || 'ferni');
 const CONCURRENCY = 6;
 const MAX_STEPS = 3;
 /** Look-up tools the model often calls before acting, with a plausible answer. */
@@ -96,6 +103,15 @@ const catalog = new llm.ToolContext({
   [FIND_TOOLS]: createFindToolsTool() as unknown as llm.FunctionTool,
 } as unknown as Record<string, llm.AnonFunctionTool>);
 
+/** TOOL_PERSONA's set; the registry's handoffs cut to its teammates, as a session's own build is. */
+function personaTools(): Record<string, unknown> {
+  const team = Object.keys(buildEmergencyToolset(PERSONA)).filter((n) => n !== 'endCall');
+  const input = Object.fromEntries(
+    Object.entries(built.tools).filter(([n]) => !n.startsWith('handoffTo') || team.includes(n))
+  );
+  return personaToolset(input, PERSONA);
+}
+
 // The tool set a live turn sends without retrieval (TOOL_SET today|core): the
 // same for every request, built with the production code.
 const asTools = (r: Record<string, unknown>) =>
@@ -103,6 +119,7 @@ const asTools = (r: Record<string, unknown>) =>
 async function fixedSet(): Promise<llm.ToolContext | null> {
   if (TOOL_SET === 'retrieval' || TOOL_SET === 'count') return null;
   const essentialDomains = DEFAULT_ESSENTIAL_DOMAINS as ToolDomain[];
+  if (TOOL_SET === 'persona') return new llm.ToolContext(asTools(personaTools()));
   if (TOOL_SET === 'core') {
     const core = await staticCoreCallTools(built.tools, 'eval', undefined, {
       id: 'ferni',
@@ -159,7 +176,8 @@ const countTools = (label: string | null): llm.ToolContext =>
   );
 
 process.env.PROMPT_MODE ??= 'character';
-const system = await loadSystemPrompt('ferni');
+// TOOL_PERSONA's prompt for any set (unset: Ferni's), so a persona's arms differ only in tools.
+const system = await loadSystemPrompt(process.env.TOOL_PERSONA ? PERSONA : 'ferni');
 const embedder = createVertexEmbedder();
 const manual = loadIntentManual();
 const genai = new GoogleGenAI({
@@ -171,8 +189,12 @@ const genai = new GoogleGenAI({
 // The frozen, reviewed test set (test-set.mjs): the same 2,375 rows as the out/generated-test.json
 // behind the September runs, in the same order, so seeds draw the same requests.
 // Deterministic sample.
+// EVAL_LABELS=persona: only requests whose label is in TOOL_PERSONA's set (paired runs of any set).
+const inPersonaSet = process.env.EVAL_LABELS === 'persona' ? personaTools() : null;
 const all = (loadTestSet() as Array<{ query: string; tool: string | null }>).filter(
-  (item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool ?? '')
+  (item) =>
+    (process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool ?? '')) &&
+    (!inPersonaSet || (item.tool ?? '') in inPersonaSet)
 );
 let s = seed;
 const rand = (): number => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
@@ -363,7 +385,12 @@ console.log(
       findRescued: ok.filter((r) => r.usedFind && r.final === r.label).length,
       toolsSentMedian: med(ok.map((r) => r.sent)),
       promptTokensMedian: med(ok.map((r) => r.promptTokens)),
-      toolSet: TOOL_SET === 'count' ? `count:${TOOL_COUNT}:seed${TOOL_SEED}` : TOOL_SET,
+      toolSet:
+        TOOL_SET === 'count'
+          ? `count:${TOOL_COUNT}:seed${TOOL_SEED}`
+          : TOOL_SET === 'persona'
+            ? `persona:${PERSONA}`
+            : TOOL_SET,
       findMsMedian: med(ok.flatMap((r) => (r.findMs === undefined ? [] : [r.findMs]))),
       afterFindStepMsMedian: med(
         ok.flatMap((r) => (r.afterFindMs === undefined ? [] : [r.afterFindMs]))
