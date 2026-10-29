@@ -119,7 +119,11 @@ const EXCLUDED_NAMES: ReadonlySet<string> = new Set([
 export const excludedSubcollection = (name: string): boolean =>
   SCHEDULING_NAME.test(name) || EXCLUDED_NAMES.has(name);
 
-/** What is copied: the erasure catalog minus EXCLUDED_STORES. */
+/**
+ * What is copied: the erasure catalog minus EXCLUDED_STORES. The semantic index (vectors,
+ * memory_vectors) is copied: the person's own words, and dev recall searches it; the owner
+ * query is the exact metadata.userId match, so nobody else's documents come along.
+ */
 export const COPIED_STORES: readonly OwnedStore[] = ERASED_STORES.filter(
   (s) => !Object.hasOwn(EXCLUDED_STORES, storeLabel(s))
 );

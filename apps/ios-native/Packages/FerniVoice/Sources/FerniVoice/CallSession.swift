@@ -184,6 +184,16 @@ public final class CallSession {
         captions.clear()
     }
 
+    /// A different person on this phone (sign-out, account deleted): the last
+    /// call goes, and they're new to Ferni, in memory as well as on disk
+    /// (critic L1). A call in progress is left alone.
+    public func forgetPerson() {
+        guard !isActive else { return }
+        forgetLastCall()
+        hasTalked = false
+        defaults.removeObject(forKey: Self.hasTalkedKey)
+    }
+
     public func toggleMute() async {
         if await setMuted(!isMuted), let id = callID { await lifecycle?.setMuted(id: id, muted: isMuted) }
     }
@@ -383,7 +393,7 @@ public final class CallSession {
                 avatar.send(.expression(result.expression, hold: hold))
             }
         case .caption(let chunk):
-            captions.apply(chunk)
+            captions.apply(chunk, room: roomName)
         case .reconnecting:
             if phase == .live { phase = .reconnecting }
             avatar.send(.reconnecting)

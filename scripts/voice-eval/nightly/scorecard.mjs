@@ -6,7 +6,8 @@
 // usage: scorecard.mjs <OUT> [--capabilities FILE] [--prev FILE|none] [--bar superhuman [--write DIR]]
 //   OUT holds runs/ (<scenario>-<label>.json with .score.json and .judge.json
 //   beside it), summary.json (analyze.py) and, when tool choice ran, tool-choice.json
-//   (scripts/tool-retrieval/choice-score.mjs --out). The previous night is the newest
+//   (scripts/tool-retrieval/choice-score.mjs --out) and, when the recall eval ran, recall.json
+//   (recall-eval.mjs --summary). The previous night is the newest
 //   sibling <YYYY-MM-DD>/scorecard.json before OUT whose status is "ok".
 // Writes OUT/scorecard.json, OUT/REPORT.md and OUT/COMMENT.md (verdicts and
 // numbers only: COMMENT.md is posted to a public issue), each with the better-than-human
@@ -31,6 +32,7 @@ import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkRun, parseChecks } from '../recall-facts.mjs';
 import { claimedContact } from './false-done.mjs';
+import { recallValue } from './recall-score.mjs';
 import { loadBar, prevBar, renderBar, scoreBar } from './superhuman.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -97,6 +99,8 @@ export function metric(check, runs, caps, extra = {}) {
         value: n ? t.filter((r) => r.score.replyTexts.some(claimedContact)).length : null,
         n,
       };
+    case 'recall': // recall-eval.mjs's numbers (OUT/recall.json); a planted-regression run is no data
+      return extra.recall?.plant ? { value: null, n: 0 } : recallValue(extra.recall, check.field);
     case 'callsNotMatching':
       return { value: n ? t.filter((r) => !replyHit(r, re)).length : null, n };
     case 'ownOpener': {
@@ -420,12 +424,20 @@ function main(argv) {
   const prev =
     p === 'none' ? null : p ? { ...JSON.parse(readFileSync(p, 'utf8')), file: p } : findPrev(out);
   const toolChoice = readJson(join(out, 'tool-choice.json'));
-  const { capabilities, diff } = scoreNight(runs, caps, prev, { toolChoice });
+  const recall = readJson(join(out, 'recall.json'));
+  const { capabilities, diff } = scoreNight(runs, caps, prev, { toolChoice, recall });
   const barOf = (dir) =>
     scoreBar(loadNight(dir), bar, caps, metric, {
       toolChoice: readJson(join(dir, 'tool-choice.json')),
     });
-  const superhuman = scoreBar(runs, bar, caps, metric, { toolChoice }, prevBar(prev, barOf));
+  const superhuman = scoreBar(
+    runs,
+    bar,
+    caps,
+    metric,
+    { toolChoice, recall },
+    prevBar(prev, barOf)
+  );
   const build = existsSync(join(out, 'build.txt'))
     ? readFileSync(join(out, 'build.txt'), 'utf8').trim()
     : null;

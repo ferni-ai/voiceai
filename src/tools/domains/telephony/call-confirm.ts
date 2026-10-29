@@ -47,7 +47,7 @@ function sameCall(stored: Record<string, unknown>, next: Record<string, unknown>
 
 export const callConfirm: ConfirmSpec = {
   sameAction: sameCall,
-  prepare: async (args, userId) => {
+  prepare: async (args, userId, _plan, session) => {
     const who = text(args.contactQuery) || 'them';
     const purpose = text(args.purpose);
     let name = who;
@@ -77,6 +77,10 @@ export const callConfirm: ConfirmSpec = {
     // A call to this number already set for later: say so, rather than read back a second one.
     const waiting = now ? undefined : await pendingCallTo(userId, number.e164);
     if (waiting) return alreadySetReply(name, waiting);
+    // Just called (CALL_STATUS_RECALL): "did you call my dad?" gets that status, not a new call.
+    const { statusBeforeReadBack } = await import('./call-status-tool.js');
+    const told = await statusBeforeReadBack(userId, number.e164, name, session);
+    if (told) return told;
     // CONTACT_SAVE_ON_YES: what a yes also saves for them (owner-contact.ts); nothing is saved yet
     const save = given ? await numberToSave(userId, who, number.e164) : undefined;
     return {
