@@ -16,22 +16,31 @@
           if (meta) meta.setAttribute('content', color);
           // Gate-first paint (src/ui/gate-first.ui.ts): signed out on the home
           // path, paint the sign-in layout instead of a Home that cannot act yet.
+          // On unless VITE_GATE_FIRST=false or this browser's override says 'false'.
           var flag = localStorage.getItem('ferni:flag:gate-first');
-          var gateFirst = flag === 'true' || (flag !== 'false' && '%VITE_GATE_FIRST%' === 'true');
+          var gateFirst = flag === 'true' || (flag !== 'false' && '%VITE_GATE_FIRST%' !== 'false');
           var remembered = localStorage.getItem('ferni:session-hint') === '1';
           for (var i = 0; i < localStorage.length; i++) {
             if (String(localStorage.key(i)).indexOf('firebase:authUser:') === 0) remembered = true;
           }
           var home = location.pathname === '/' || location.pathname.indexOf('/grow/') === 0;
           if (gateFirst && !remembered && home) document.documentElement.classList.add('gate-first');
+          // The copy mirrors the try-first gate when the real one will have it (src/config/try-first-flag.ts)
+          var tryFirst = localStorage.getItem('ferni:flag:try-first');
+          if (tryFirst === 'true' || (tryFirst !== 'false' && '%VITE_TRY_FIRST%' === 'true')) {
+            document.documentElement.classList.add('gate-first-try');
+          }
         } catch (e) {}
       })();
     </script>
     <link rel="stylesheet" href="/design-system/tokens.css" />
+    <link rel="preload" as="image" href="/ferni-avatar.svg" />
     <style id="gate-first-style">
-      /* Mirrors the sign-in gate (src/ui/sign-in-gate.ui.ts) so the real one fades in over it without a jump */
-      html.gate-first #app { visibility: hidden; }
+      /* Mirrors the sign-in gate (src/ui/sign-in-gate.ui.ts): the real one replaces it in one frame, nothing moves */
+      html.gate-first #app, html.sign-in-gate-up #app { visibility: hidden; }
       html.gate-first #gateFirst { display: flex; }
+      html:not(.gate-first-try) .gate-first-paint__try, html.gate-first-try .gate-first-paint__subtitle--sign-in,
+      html:not(.gate-first-try) .gate-first-paint__subtitle--try { display: none; }
       .gate-first-paint { position: fixed; inset: 0; z-index: var(--z-system); flex-direction: column;
         align-items: center; justify-content: center; padding: var(--space-xl, 2.618rem);
         background: var(--color-background-primary); }
@@ -42,10 +51,14 @@
         margin: 0 0 var(--space-sm, 0.5rem); font-family: var(--font-display, inherit); }
       .gate-first-paint__subtitle { font-size: 1rem; line-height: 1.5; color: var(--color-text-secondary);
         margin: 0 0 var(--space-xl, 2.618rem); }
+      .gate-first-paint__buttons { display: flex; flex-direction: column; gap: var(--space-md, 1rem); }
+      .gate-first-paint__try { order: -1; display: flex; flex-direction: column; gap: var(--space-sm); }
       .gate-first-paint__btn { display: flex; align-items: center; justify-content: center; gap: var(--space-sm, 0.5rem);
-        width: 100%; min-height: 52px; padding: var(--space-md, 1rem) var(--space-lg, 1.618rem); border: none;
+        min-height: 52px; padding: var(--space-md, 1rem) var(--space-lg, 1.618rem); border: none;
         border-radius: var(--radius-lg, 12px); font-size: 1rem; font-weight: 500; background: #fff; color: #1f1f1f;
         cursor: progress; }
+      .gate-first-paint__btn--try { background: var(--color-accent-primary); color: var(--color-text-on-accent); }
+      .gate-first-paint__note { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--color-text-secondary); }
       .gate-first-paint__footer { margin-top: var(--space-xl, 2.618rem); font-size: 0.75rem; color: var(--color-text-muted); }
       .gate-first-paint__footer a { color: var(--color-text-secondary); text-decoration: underline; }
     </style>
@@ -167,7 +180,13 @@
           <span class="ai-companion-label"><span class="ai-companion-label-text" data-i18n="aiLabel.role.lifeCoach">Life coach</span></span>
         </div>
         <h1 id="gate-first-title" class="gate-first-paint__title" data-i18n="auth.welcome">Welcome to Ferni</h1>
-        <p class="gate-first-paint__subtitle" data-i18n="auth.subtitle">Sign in to start your journey. Your conversations, memories, and progress will be saved across all your devices.</p>
+        <p class="gate-first-paint__subtitle gate-first-paint__subtitle--sign-in" data-i18n="auth.subtitle">Sign in to start your journey. Your conversations, memories, and progress will be saved across all your devices.</p>
+        <p class="gate-first-paint__subtitle gate-first-paint__subtitle--try" data-i18n="tryFirst.subtitle">Say hello first. Sign in whenever you want to keep the conversation.</p>
+        <div class="gate-first-paint__buttons">
+        <div class="gate-first-paint__try">
+          <button type="button" class="gate-first-paint__btn gate-first-paint__btn--try" disabled aria-busy="true" data-i18n="tryFirst.talkNow">Talk to Ferni now</button>
+          <p class="gate-first-paint__note" data-i18n="tryFirst.noAccount">No account needed. Just say hello.</p>
+        </div>
         <button type="button" class="gate-first-paint__btn" disabled aria-busy="true">
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -177,6 +196,7 @@
           </svg>
           <span data-i18n="auth.continueWithGoogle">Continue with Google</span>
         </button>
+        </div>
         <p class="gate-first-paint__footer">By continuing, you agree to our <a href="https://ferni.ai/terms" target="_blank" rel="noopener noreferrer">Terms</a> and <a href="https://ferni.ai/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
       </div>
     </div>
