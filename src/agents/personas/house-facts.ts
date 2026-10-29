@@ -36,7 +36,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
-import { crisisContactLines } from '../../tools/domains/crisis/crisis-resources.js';
+import { crisisContactLines } from '../../tools/domains/crisis/index.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';

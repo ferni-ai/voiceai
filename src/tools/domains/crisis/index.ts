@@ -27,6 +27,8 @@ import { z } from 'zod';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { CRISIS_FALLBACK_RESPONSE, CRISIS_RESOURCES } from './crisis-resources.js';
 
+export { crisisContactLines } from './crisis-resources.js';
+
 // ============================================================================
 // GROUNDING EXERCISES
 // ============================================================================
