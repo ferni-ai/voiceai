@@ -11,7 +11,7 @@
  * edited experiment carries expires, issue and context in its own spec instead.
  *
  * The 2026-10-24..29 groups and 16 of the 2026-10-23 names were grandfathered when main was
- * merged on 2026-10-26..29: 58 experiments that landed on main after this list was cut, same rule.
+ * merged on 2026-10-26..29: 59 experiments that landed on main after this list was cut, same rule.
  *
  * @module config/flag-lifecycle-backfill
  */
@@ -162,7 +162,11 @@ const GROUPS: readonly BackfillGroup[] = [
   { firstSeen: '2026-10-27', expires: '2027-01-25', flags: 'AI_NOTICE_SPOKEN' },
   { firstSeen: '2026-10-28', expires: '2027-01-26', flags: 'ACTIVITY_LEDGER' },
   // CRISIS_MEANS_IN_HAND: tracked in issue #2697 (the backfill has no issue field)
-  { firstSeen: '2026-10-29', expires: '2027-01-27', flags: 'CRISIS_MEANS_IN_HAND MEMORY_FACTS' },
+  {
+    firstSeen: '2026-10-29',
+    expires: '2027-01-27',
+    flags: 'CALL_TELEMETRY CRISIS_MEANS_IN_HAND MEMORY_FACTS',
+  },
 ];
 
 export const FLAG_EXPIRY_BACKFILL: Readonly<
