@@ -381,7 +381,7 @@ export async function captureCallResult(
       : await sendCallResultPushNotification(request, outcome, callId);
 
     // 6. Send email notification (tangible record of the call)
-    const email = await sendCallResultEmail(request, outcome, callId);
+    const mailSent = await sendCallResultEmail(request, outcome, callId);
 
     // 7. Create calendar event for callback if needed
     await createCallbackCalendarEvent(request, outcome, callId);
@@ -393,7 +393,7 @@ export async function captureCallResult(
     await storeInUnifiedResults(request, outcome, callId);
     await tellOwnerIfOn({ request, outcome, callId, live: injectedToActive });
 
-    log.info({ callId, userId: request.userId, push, email }, 'Call result captured'); // what each did
+    log.info({ callId, userId: request.userId, pushStatus: push, mailStatus: mailSent }, 'Call result captured'); // sent, failed or skipped
   } catch (error) {
     log.error({ error: String(error), callId }, 'Failed to capture call result');
     throw error;
@@ -510,9 +510,8 @@ async function sendCallResultEmail(
       tags: ['on-behalf-call', outcome.status],
     });
     // A failure logs a code only: never the address or the body.
-    const fields = { callId, userId: request.userId, code: sent.success ? undefined : (sent.status ?? 'send_failed') }; // prettier-ignore
-    if (sent.success) log.info(fields, 'Email notification sent for call result');
-    else log.warn(fields, 'Email notification NOT sent');
+    if (sent.success) log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+    else log.warn({ callId, userId: request.userId, code: sent.status ?? 'send_failed' }, 'Email notification NOT sent'); // prettier-ignore
     return sent.success ? 'sent' : 'failed';
   } catch (error) {
     // Don't fail the whole capture if email fails

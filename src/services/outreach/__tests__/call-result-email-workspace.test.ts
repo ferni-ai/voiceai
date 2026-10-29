@@ -113,7 +113,7 @@ describe('call report-back email (captureCallResult)', () => {
     expect(sent.metadata).toMatchObject({ userId: 'u-ok', outreachId: 'call-u-ok' });
     expect(fetchMock).not.toHaveBeenCalled(); // no other provider exists
     expect(said('Email notification sent for call result')).toHaveLength(1);
-    expect(summary()).toMatchObject({ email: 'sent' });
+    expect(summary()).toMatchObject({ mailStatus: 'sent' });
   });
 
   it('a transport failure is logged as a failure with a code, never as sent', async () => {
@@ -126,7 +126,7 @@ describe('call report-back email (captureCallResult)', () => {
     expect(failed).toHaveLength(1);
     expect(failed[0].fields).toMatchObject({ code: '401' });
     expect(JSON.stringify(failed)).not.toContain(OWNER);
-    expect(summary()).toMatchObject({ email: 'failed' });
+    expect(summary()).toMatchObject({ mailStatus: 'failed' });
   });
 
   it('says "your mom" when the contact was never resolved, never "my mom"', async () => {
