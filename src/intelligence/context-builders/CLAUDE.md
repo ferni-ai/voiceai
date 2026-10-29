@@ -211,6 +211,8 @@ These specialized builders provide deep insights when entering a persona. Most a
 | `personas/joel-dickson-insights/` | Nate | 1 file | Nate Holloway financial insights |
 | `personas/ferni-coordinator-insights.ts` | Ferni | Standalone | Smart handoff suggestions |
 
+On a call these run from `getPersonaBuilder` (`agents/processors/injection-builders/intelligence-builders.ts`), keyed by canonical persona id (`personas/persona-ids.ts`). Maya's, Jordan's, Alex's and Nayan's never ran before #2836 and each waits behind a `PERSONA_BRIEFING_*` flag (off) until it is fixed; the flag file says what is wrong.
+
 The `personas/` directory also contains 20+ standalone builder files for persona-specific context (backstory, catchphrases, humor, vulnerability, voice DNA, etc.).
 
 ### Key Files
