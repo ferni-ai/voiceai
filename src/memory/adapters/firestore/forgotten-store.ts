@@ -5,8 +5,11 @@
  * own reads (intelligence/pondering/ponder-job.ts, ponder-user.ts).
  *
  * - A call start reads it once: while the call-start window is open
- *   (utils/call-start-reads.ts) every reader shares one read, and a forget
- *   written in this process drops the shared read so the next one is fresh.
+ *   (utils/call-start-reads.ts) readers that start within SHARED_READ_MS of
+ *   a read share it, and a forget written in this process drops the shared
+ *   read so the next one is fresh. A forget written by another process (the
+ *   app) is in every read that starts SHARED_READ_MS after it, so a cache
+ *   filled from a shared read is at most that much older than it looks.
  * - `generation` is stored with the topics and goes up by one in the same
  *   transaction as each forget, so it survives a restart and is seen by
  *   every process. This process keeps only the highest stored generation it
@@ -22,6 +25,12 @@ import type { ForgottenState, ForgottenStore } from '../../ports/forgotten-store
 const forgottenDoc = (db: Firestore, userId: string) =>
   db.collection('bogle_users').doc(userId).collection('memory_state').doc('forgotten');
 const sharedKey = (userId: string): string => `forgotten:${userId}`;
+/**
+ * How long after a shared read starts another reader may join it. The call
+ * start's readers start together (within milliseconds), so this keeps them
+ * at one read, and bounds how stale a joined read can be.
+ */
+const SHARED_READ_MS = 2_000;
 
 /**
  * The stored topics field: none recorded is [], anything else that isn't a
@@ -67,7 +76,11 @@ export function firestoreForgottenStore(db: Firestore | null | undefined): Forgo
   return {
     async readForgotten(userId) {
       if (!db) return { topics: null, generation: 0 };
-      const state = await readOncePerCallStart(sharedKey(userId), () => readState(db, userId));
+      const state = await readOncePerCallStart(
+        sharedKey(userId),
+        () => readState(db, userId),
+        SHARED_READ_MS
+      );
       noteGeneration(userId, state.generation);
       // Each reader gets its own list, so none can change another's.
       return { topics: state.topics && [...state.topics], generation: state.generation };

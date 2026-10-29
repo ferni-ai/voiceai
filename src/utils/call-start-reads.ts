@@ -11,7 +11,9 @@
  * The window opens only in the voice agent (voice-agent-entry), for 15 s from
  * the start of a call, so API servers and later in-call reads behave exactly as
  * before. Writes that go through the store or the language preference drop the
- * shared entry, so a read after them is fresh.
+ * shared entry, so a read after them is fresh. A key whose doc another process
+ * can change mid-call (the caller's forgotten topics) passes `shareForMs`, so
+ * only readers that start within that long of the shared read join it.
  *
  * @module utils/call-start-reads
  */
@@ -19,7 +21,7 @@
 const DEFAULT_WINDOW_MS = 15_000;
 
 let windowEndsAt = 0;
-const shared = new Map<string, Promise<unknown>>();
+const shared = new Map<string, { read: Promise<unknown>; startedAt: number }>();
 
 /** Start sharing reads for the next `windowMs`; any earlier call's entries are dropped. */
 export function openCallStartReadWindow(windowMs = DEFAULT_WINDOW_MS, now = Date.now()): void {
@@ -29,19 +31,27 @@ export function openCallStartReadWindow(windowMs = DEFAULT_WINDOW_MS, now = Date
 
 /**
  * Run `read` once per key while the window is open; outside it, run it as usual.
- * A failed read is not kept, so the next caller retries.
+ * A failed read is not kept, so the next caller retries. With `shareForMs`, a
+ * reader joins the shared read only within that long of when it started;
+ * a later one reads again (and that read is shared next).
  */
-export function readOncePerCallStart<T>(key: string, read: () => Promise<T>): Promise<T> {
-  if (Date.now() >= windowEndsAt) {
+export function readOncePerCallStart<T>(
+  key: string,
+  read: () => Promise<T>,
+  shareForMs = Infinity
+): Promise<T> {
+  const now = Date.now();
+  if (now >= windowEndsAt) {
     if (shared.size > 0) shared.clear();
     return read();
   }
   const existing = shared.get(key);
-  if (existing) return existing as Promise<T>;
+  if (existing && now - existing.startedAt < shareForMs) return existing.read as Promise<T>;
   const pending = read();
-  shared.set(key, pending);
+  const entry = { read: pending, startedAt: now };
+  shared.set(key, entry);
   pending.catch(() => {
-    if (shared.get(key) === pending) shared.delete(key);
+    if (shared.get(key) === entry) shared.delete(key);
   });
   return pending;
 }

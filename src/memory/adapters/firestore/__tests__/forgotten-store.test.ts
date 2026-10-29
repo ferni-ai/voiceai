@@ -5,9 +5,11 @@
  * - a forget during the call is seen by the next read;
  * - the forget generation is stored with the topics, so a restart (fresh
  *   modules) still knows it and still honours the topics;
- * - a forget raced with a read never splits topics from their generation.
+ * - a forget raced with a read never splits topics from their generation;
+ * - a forget written by another process during the call is in every read
+ *   that starts SHARED_READ_MS after the shared one, caches included.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from '../../../../services/outreach/proactive-channels/__tests__/path-firestore.js';
 
 /** Every get of a forgotten doc is counted (transactions included, which reset before measuring). */
@@ -164,5 +166,82 @@ describe('the forget generation is stored', () => {
     }
     expect(docs.get(DOC)).toMatchObject({ topics: ['Larkspur', 'biopsy'], generation: 2 });
     expect(m.forget.forgetGeneration(UID)).toBe(2);
+  });
+});
+
+describe('a forget written by another process during the call', () => {
+  const T0 = Date.UTC(2026, 0, 5, 9, 0, 0);
+  const SHARED_READ_S = 2; // SHARED_READ_MS in forgotten-store.ts
+  const at = (s: number) => vi.setSystemTime(T0 + s * 1000);
+  const hit = [{ document: { id: 'fx-1', text: 'Larkspur Analytics sent a new offer letter' } }];
+  /** The app's forgetForCaller in its own process: the doc changes, this process isn't told. */
+  const forgetElsewhere = () =>
+    docs.set(DOC, { topics: ['Okafor', 'Larkspur Analytics'], generation: 3 });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    at(0);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function callStartThenForget(forgetAtS: number) {
+    docs.set(DOC, { topics: ['Okafor'], generation: 2 });
+    const m = await load();
+    m.reads.openCallStartReadWindow();
+    await callStart(m); // the shared read starts at 0 s
+    at(forgetAtS);
+    forgetElsewhere();
+    return m;
+  }
+
+  it('vector search at 14.5 s drops the forgotten memory at once (was ~30 s)', async () => {
+    const m = await callStartThenForget(0.5);
+    const { withoutForgotten } = await import('../../../firestore-vector-store/forget-filter.js');
+    at(14.5);
+    docs.reads = 0;
+    expect(await withoutForgotten(UID, hit)).toEqual([]);
+    expect(docs.reads).toBe(1); // a read of its own, not the call start's
+    expect(m.forget.forgetGeneration(UID)).toBe(3);
+  });
+
+  it('forget-topics-source at 14.5 s has the topic at once', async () => {
+    await callStartThenForget(5);
+    const src = await import('../../../recall/forget-topics-source.js');
+    at(14.5);
+    expect(await src.readTopics(UID)).toEqual(['Okafor', 'Larkspur Analytics']);
+  });
+
+  it('a direct reader sees it once SHARED_READ_MS has passed since the shared read began', async () => {
+    const m = await callStartThenForget(0.5);
+    at(SHARED_READ_S - 0.01);
+    expect(await m.forget.forgottenTopicsOrNull(UID)).toEqual(['Okafor']); // joined the 0 s read
+    at(SHARED_READ_S);
+    expect(await m.forget.forgottenTopicsOrNull(UID)).toEqual(['Okafor', 'Larkspur Analytics']);
+  });
+
+  it('worst case: a cache filled from a joined read holds it for its TTL, no longer', async () => {
+    await callStartThenForget(0.5);
+    const { withoutForgotten } = await import('../../../firestore-vector-store/forget-filter.js');
+    const { TOPICS_TTL_MS } = await import('../../../recall/forget-topics-source.js');
+    const fillS = SHARED_READ_S - 0.01; // the last moment to join the 0 s read
+    at(fillS);
+    expect(await withoutForgotten(UID, hit)).toEqual(hit); // stale, from the 0 s read
+    at(fillS + TOPICS_TTL_MS / 1000 - 0.01);
+    expect(await withoutForgotten(UID, hit)).toEqual(hit);
+    at(fillS + TOPICS_TTL_MS / 1000); // < 0.5 s forget + 2 s + 15 s
+    expect(await withoutForgotten(UID, hit)).toEqual([]);
+  });
+
+  it('readers that start together still share one read', async () => {
+    docs.set(DOC, { topics: ['Okafor'], generation: 2 });
+    const m = await load();
+    m.reads.openCallStartReadWindow();
+    docs.reads = 0;
+    await callStart(m);
+    at(0.2); // a straggler joins
+    await m.forget.forgottenTopicsOrNull(UID);
+    expect(docs.reads).toBe(1);
   });
 });
