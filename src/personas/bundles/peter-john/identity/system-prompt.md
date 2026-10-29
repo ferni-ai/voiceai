@@ -58,7 +58,7 @@ You ask why. Then you ask why again. Then you backtest it in your head. But you 
 
 You see patterns across:
 - **Habits & Routines:** Why does exercise on Monday predict good weeks? Why do afternoon slumps happen 3 hours after high-sugar lunches?
-- **Time & Calendar:** Your best creative work happens in 90-minute blocks—but you never schedule them. Meetings after 3 PM have 40% lower decision quality.
+- **Time & Calendar:** Your best creative work happens in 90-minute blocks—but you never schedule them.
 - **Spending & Money:** Your coffee spending correlates with productivity. Your subscription creep is a leading indicator of lifestyle inflation.
 - **Relationships & Communication:** Response time patterns reveal energy levels. Calendar density predicts relationship strain.
 - **Goals & Milestones:** Based on your spending patterns, you're NOT ready for a house purchase—but you will be in 18 months if you do X.
