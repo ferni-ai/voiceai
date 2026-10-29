@@ -9,11 +9,12 @@
  * HOUSE_FACTS=on (off by default) does two things:
  * - the prompt (ai-honesty.ts withHonesty) states the true facts and that any other
  *   address is not his to give;
- * - every reply (withActionClaimCheck in action-claim-guard.ts) is checked a sentence
- *   at a time: a sentence that gives a web address, email address or phone number
- *   for Ferni itself (the caller just asked for one, or the sentence says "our
- *   website", "the texts come from", "email us at") and holds one that is not a
- *   house fact is replaced, once per reply, with "I don't have that in front of me."
+ * - every reply (withActionClaimCheck in action-claim-guard.ts, before the claim check
+ *   re-splits sentences) is checked a sentence at a time. A sentence that gives a web
+ *   address, email address or phone number for Ferni himself (the caller just asked
+ *   for his, or the sentence says "our website", "texts from me come from", "email us
+ *   at") and holds one that is not a house fact is replaced, once per reply, with
+ *   "I don't have that in front of me." Anyone else's address is left alone.
  *
  * Emails and numbers are found by the shared contact-data rule
  * (memory/domain/contact-data.ts). That rule does not cover a bare website, so
@@ -76,8 +77,23 @@ export function withHouseFacts(rule: string, env: Env = process.env): string {
  * piece is at most MAX_CHECK characters as well.
  */
 const MAX_CHECK = 300;
-const saidDots = (text: string): string =>
-  text.replace(/\s{1,3}dot\s{1,3}/giu, '.').replace(/-dot-/giu, '.');
+const DIGIT_WORDS = 'zero one two three four five six seven eight nine'.split(' ');
+/**
+ * The piece as one reading: a said dot (" dot ", "-dot-") written as ".", letters
+ * spelled after it joined ("dot a i" is ".ai"), and digits said as words written as
+ * digits ("eight eight eight" is "888"), so a true number said aloud still matches.
+ */
+const tokenise = (text: string): string =>
+  text
+    .replace(/\s{1,3}dot\s{1,3}/giu, '.')
+    .replace(/-dot-/giu, '.')
+    .replace(
+      /\.((?:\p{L} ){1,3}\p{L})(?![\p{L}\p{N}])/gu,
+      (_m, letters: string) => `.${letters.replace(/ /g, '')}`
+    )
+    .replace(/\b(?:zero|oh|one|two|three|four|five|six|seven|eight|nine)\b/giu, (w) =>
+      String(Math.max(0, DIGIT_WORDS.indexOf(w.toLowerCase())))
+    );
 const LABEL = '[\\p{L}\\p{N}]+(?:-[\\p{L}\\p{N}]+)*';
 /** A website once dots are written: "site.com", "app.site.ai". Not a contact-data shape. */
 const WEB_ADDRESS = new RegExp(
@@ -103,8 +119,8 @@ function withoutFacts(piece: string, facts: HouseFacts): string {
     rest = rest.replace(new RegExp(site, 'giu'), ' ');
   }
   const texts = facts.textsFrom && toE164(facts.textsFrom);
-  return rest.replace(/\+?\d[\d\s().-]{5,}\d/g, (run) =>
-    texts && toE164(run) === texts ? ' ' : run
+  return rest.replace(/\+?\d[\d\s().,-]{5,}\d/g, (run) =>
+    texts && toE164(run.replace(/,/g, '')) === texts ? ' ' : run
   );
 }
 
@@ -126,12 +142,41 @@ function piecesOf(text: string): string[] {
   return [...pieces, rest];
 }
 
-/** The caller asking for Ferni's own site, sender, number or email. */
-const ASKS_OURS =
-  /\b(?:what|which|where)\b[^.?!]*\b(?:website|web ?site|site|web address|url|link)\b[^.?!]*\b(?:verify|verif\w+|sign(?:ing)? up|log ?in|my (?:number|account|phone)|your|you guys|y'all|ferni|the app)\b|\b(?:texts?|messages?|e-?mails?|notifications?|codes?)\b[^.?!]*\b(?:come|comes|coming|came|be|sent)\b[^.?!]*\bfrom\b|\b(?:your|ferni'?s|the app'?s) (?:own )?(?:website|web ?site|site|web address|url|link|(?:phone )?number|e-?mail(?: address)?|address|short ?code)\b/i;
-/** Ferni's sentence giving an address as his own: "our website", "texts come from", "email us at". */
-const GIVES_OURS =
-  /\b(?:our|my|ferni'?s|the app'?s) (?:own )?(?:website|web ?site|site|web address|url|link|(?:phone )?number|e-?mail(?: address)?|address|short ?code)\b|\b(?:texts?|messages?|e-?mails?|notifications?|codes?)\b[^.?!]*\b(?:come|comes|coming|will be|are|is) (?:sent )?from\b|\bwe(?:'re| are) (?:at|on)\b|\b(?:reach|find|text|call|e-?mail|write to) (?:me|us) at\b/i;
+const OWN_THING =
+  '(?:website|web ?site|site|web address|url|link|(?:phone |cell )?number|e-?mail(?: address)?|address|short ?code)';
+const SENT = '(?:texts?|messages?|e-?mails?|notifications?|codes?)';
+const SENT_FROM = '(?:come|comes|coming|came|be sent|get sent|are sent|is sent|go out) from';
+/**
+ * The caller asking for Ferni's own site, sender, number or email: "your website",
+ * "texts from you", "what number do you text from", and two ownerless forms from
+ * the prod calls that only Ferni's own texts fit ("what address do the texts come
+ * from", "what website do I use to verify my number").
+ */
+const ASKS_OURS = new RegExp(
+  `\\b(?:your|ferni'?s|the app'?s)(?: own| app'?s?)? ${OWN_THING}\\b` +
+    `|\\b${SENT} (?:from|by) (?:you|ferni|the app)\\b` +
+    `|\\b(?:do|does|did|will|would|can) (?:you|ferni) (?:text|e-?mail|message|send)\\b` +
+    `|\\b(?:what|which|where)\\b[^.?!]{0,30}\\bthe ${SENT} ${SENT_FROM}\\b` +
+    `|\\b(?:verify|confirm|add|register|update) (?:my )?(?:phone |cell )?number\\b`,
+  'iu'
+);
+/** Someone or something else named: "texts from my mom", "for my insurance", "for the marathon". */
+const SOMEONE_ELSE =
+  /\b(?:from|for|with|at|by|to) (?:my|her|his|their|the|a|an) (?!(?:phone|cell|number|account|app|website|site|menu|settings)\b)\p{L}+|\b(?:from|for|with|at|by) (?!Ferni\b)\p{Lu}\p{L}+/u;
+/**
+ * Ferni giving an address as his own: "our website", "my email", "texts from me
+ * come from", "I text you from", "reach us at". Another owner ("your email", "her
+ * texts", "the latest email is from") is never his.
+ */
+const GIVES_OURS = new RegExp(
+  `\\b(?:our|my|ferni'?s|the app'?s) (?:own )?${OWN_THING}\\b` +
+    `|\\b(?:our|my) ${SENT}\\b[^.?!]{0,40}\\b${SENT_FROM}\\b` +
+    `|\\b${SENT} (?:from|by) (?:me|us|ferni|the app)\\b[^.?!]{0,40}\\b${SENT_FROM}\\b` +
+    `|\\bI(?:'ll| will)? (?:text|e-?mail|message) (?:you )?from\\b` +
+    `|\\bwe(?:'re| are) (?:at|on)\\b` +
+    `|\\b(?:reach|find|text|call|e-?mail|write to) (?:me|us|ferni) at\\b`,
+  'iu'
+);
 
 /** An address left in tokenised text (said dots already written as "."). */
 const hasAddress = (tokens: string): boolean =>
@@ -148,7 +193,7 @@ export function inventsHouseFact(
 ): boolean {
   return piecesOf(sentence).some(
     (piece) =>
-      (callerAsked || GIVES_OURS.test(piece)) && hasAddress(withoutFacts(saidDots(piece), facts))
+      (callerAsked || GIVES_OURS.test(piece)) && hasAddress(withoutFacts(tokenise(piece), facts))
   );
 }
 
@@ -175,9 +220,10 @@ export async function withHouseFactsGuard<T>(
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
   const facts = houseFacts(env);
-  const callerAsked = recentSpoken(chatCtx, 'user', 1).some((t) =>
-    ASKS_OURS.test(t.slice(-MAX_CHECK))
-  );
+  const callerAsked = recentSpoken(chatCtx, 'user', 1).some((t) => {
+    const words = t.slice(-MAX_CHECK);
+    return ASKS_OURS.test(words) && !SOMEONE_ELSE.test(words);
+  });
   const reader = stream.getReader();
   let id = '';
   let stringChunks = true;

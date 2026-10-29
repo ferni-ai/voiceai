@@ -211,15 +211,13 @@ export async function withActionClaimCheck<T>(
   const asked = actionClaimGuardEnabled(env)
     ? askedCallLookup(words, who.userId, calls)
     : undefined;
-  const checked = await checkActionClaims(reply, chatCtx, tools, env, asked, firstWords);
-  return withHouseFactsGuard(
-    withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni'),
-    chatCtx,
-    env
-  );
+  // House facts read the model's own words, before the claim check re-splits "SITE.AI" at the capital.
+  const facts = withHouseFactsGuard(reply, chatCtx, env);
+  const checked = await checkActionClaims(facts, chatCtx, tools, env, asked, firstWords);
+  return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
 }
 
-/** The claim check alone; withActionClaimCheck runs the caller voice and house facts guards after it. */
+/** The claim check alone; withActionClaimCheck runs the house facts guard before it, the caller voice guard after. */
 async function checkActionClaims<T>(
   reply: Promise<T> | T,
   chatCtx: { items: readonly unknown[] },

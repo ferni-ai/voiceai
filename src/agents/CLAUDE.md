@@ -243,8 +243,9 @@ See `__tests__/README.md` for test helpers and mock factories.
 
 Every model reply passes through `personas/ferni-agent.ts` `llmNode`, then
 `withActionClaimCheck` (`personas/action-claim-guard.ts`), which runs, in order:
-the action-claim check, the caller voice guard (`caller-voice-guard.ts`) and the
-house facts guard (`house-facts.ts`, `HOUSE_FACTS`, off by default). Guards read
+the house facts guard (`house-facts.ts`, `HOUSE_FACTS`, off by default; first, on the
+model's own words), the action-claim check and the caller voice guard
+(`caller-voice-guard.ts`). Guards read
 the stream through `personas/reply-chunks.ts` (`contentOf`, `hasToolCall`); don't
 add another copy.
 
@@ -253,7 +254,9 @@ email From address come only from `src/config/house-facts.ts` (LANDING_URL/APP_U
 TWILIO_PHONE_NUMBER, EMAIL_FROM). With `HOUSE_FACTS=on` the honesty prompt
 (`ai-honesty.ts` `withHonesty`) states them, and a sentence that gives Ferni's own
 web address, email or number that isn't one of them becomes "I don't have that in
-front of me." An unset value is named as unknown, never guessed.
+front of me." Only Ferni's own addresses are checked: the caller's or anyone else's
+("your email", "texts from my mom") pass. An unset value is named as unknown, never
+guessed.
 
 ---
 
