@@ -124,28 +124,6 @@ export {
 } from './migration.js';
 
 // ============================================================================
-// DUAL-WRITE EXPORTS
-// ============================================================================
-
-export {
-  configureDualWrite,
-  isDualWriteEnabled,
-  setDualWriteEnabled,
-  interceptContactWrite,
-  interceptRelationshipNetworkWrite,
-  interceptCommitmentWrite,
-  interceptDreamWrite,
-  interceptValueWrite,
-  batchInterceptContacts,
-  getMigrationStatus,
-  getAllMigrationStatus,
-  updateMigrationStatus,
-  type DualWriteConfig,
-  type CollectionMigrationStatus,
-  type DualWriteResult,
-} from './dual-write.js';
-
-// ============================================================================
 // LEGACY ADAPTER EXPORTS
 // ============================================================================
 
