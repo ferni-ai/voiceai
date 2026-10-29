@@ -282,6 +282,13 @@ describe('approver authorship', () => {
     }
   });
 
+  it('seth-authored evaluator PR needs an approval review', () => {
+    // Authorship never signs, even with his own verified commits: he uses admin bypass.
+    const commits = [by('sethdford', 'sethdford', true)];
+    const p = pr({ author: 'sethdford', files: [EVAL], commits });
+    expect(evaluate(p, policy).ok).toBe(false);
+  });
+
   it('commit spoofing sethdford email is not a sign-off', () => {
     // A loop push with Seth's email: GitHub attributes it to sethdford, unverified.
     for (const author of ['sethdford', 'ferni-loop[bot]', 'app/ferni-agent']) {
@@ -305,6 +312,17 @@ describe('approver authorship', () => {
 
 describe('who pushed, not only who opened', () => {
   const content988 = { files: [PERSONA], changedLines: ['+ "call or text 988"'] };
+
+  it('PR from a loop/ branch is screened even with sethdford commits', () => {
+    // Commit logins come from emails; only the loop's app can push to loop/ (ruleset).
+    const p = pr({ ...content988, author: 'sethdford', commits: [SETH, SETH] });
+    expect(evaluate({ ...p, headRef: 'loop/tune-greeting' }, policy)).toEqual({
+      ok: false,
+      reasons: ['crisis lane: needs sethdford approval on bbb'],
+    });
+    expect(evaluate({ ...p, headRef: 'feat/tune-greeting' }, policy).ok).toBe(true);
+    expect(evaluate({ ...p, headRef: 'feat/loop/x' }, policy).ok).toBe(true);
+  });
 
   it('loop commit pushed onto a ferni-agent PR is screened', () => {
     for (const loop of [LOOP, by('ferni-agent[bot]', 'ferni-loop[bot]')]) {
@@ -422,6 +440,34 @@ describe('crisis wiring outside crisis paths', () => {
     loopOnly(['+  "call or text nine eight eight"']);
     loopOnly(['+  hotline: "Nine-Eight-Eight"']);
     loopOnly(["+  const n = '98' + '8';"]);
+  });
+
+  it('9-8-8 in a persona file is crisis for the loop', () => {
+    loopOnly(['+  "call or text 9-8-8"']);
+    loopOnly(['+  "dial 9 8 8 any time"']);
+    loopOnly(['-  "9.8.8"']);
+  });
+
+  it('string-split 988 is crisis for the loop', () => {
+    loopOnly(["+  const n = '9' + '88';"]);
+    loopOnly(['+  const n = "9"+"8"+"8";']);
+  });
+
+  it('removing addSafetyNote from a barrel destructure is crisis for the loop', () => {
+    // turn-handler.ts imports it from the processors barrel, which is not a crisis path.
+    loopOnly(['-  addSafetyNote,']);
+    loopOnly(['-      addSafetyNote(']);
+  });
+
+  it('neutralising scoreCrisisLanguage is crisis for the loop', () => {
+    loopOnly([
+      '-    if (scoreCrisisLanguage(text).isCrisis) {',
+      '+    if (false && scoreCrisisLanguage(text).isCrisis) {',
+    ]);
+    // Whole words only: a longer identifier that contains one is not a mention.
+    expect(
+      classify([PERSONA], ['+ const myscoreCrisisLanguageX = 1;'], 'ferni-loop[bot]', policy)
+    ).toEqual([]);
   });
 });
 

@@ -16,7 +16,9 @@
         "scripts/voice-eval/scenarios/*crisis*",
         "scripts/voice-eval/scenarios/minor-care-*",
         "scripts/voice-eval/release-check.mjs",
-        "scripts/ci/autonomy-policy.json"
+        "scripts/ci/autonomy-policy.json",
+        "scripts/ci/autonomy-crisis-symbols.generated.json",
+        "scripts/ci/crisis-symbols.ts"
       ],
       "changedLinePatterns": [
         "\\b988\\b",
@@ -26,9 +28,12 @@
         "aiNotice|AI_NOTICE",
         "(?:\\bimport\\b|\\brequire\\s*\\(|\\bfrom\\b).*['\"`][^'\"`]*(?:services/safety|agents/safety|domains/crisis|human-transfer|minor-care|ai-notice)",
         "nine[- ]?eight[- ]?eight",
-        "['\"]98['\"]\\s*\\+"
+        "\\b9\\W{0,3}8\\W{0,3}8\\b",
+        "['\"]98['\"]\\s*\\+",
+        "['\"]9['\"]\\s*\\+"
       ],
-      "importFallbackPattern": "(?:/safety/|crisis|safety-note|human-transfer|minor-care|ai-notice)"
+      "importFallbackPattern": "(?:/safety/|crisis|safety-note|human-transfer|minor-care|ai-notice)",
+      "symbolsFile": "autonomy-crisis-symbols.generated.json"
     },
     "privacy": {
       "paths": ["src/**", "apps/**", "!**/*.md"],
@@ -47,6 +52,7 @@
     }
   },
   "approvers": { "crisis": ["sethdford"] },
-  "evaluatorAuthors": ["ferni-eval[bot]", "sethdford"],
-  "loopAuthors": ["ferni-loop[bot]"]
+  "evaluatorAuthors": ["ferni-eval[bot]"],
+  "loopAuthors": ["ferni-loop[bot]"],
+  "loopBranchPrefix": "loop/"
 }

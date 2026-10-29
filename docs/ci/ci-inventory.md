@@ -144,16 +144,22 @@ protections) needs an approving review from `sethdford` on its exact head commit
 no exception: commit author and committer logins come from the commit email, so anyone
 who can push can claim his, and authorship never signs. His own crisis PRs, which GitHub
 won't let him approve, merge with his ruleset admin bypass. A crisis path counts for
-every author. A crisis changed line (added or removed) counts when the loop's app,
-`ferni-loop[bot]`, opened the PR or authored or committed any commit in it, or when a
-commit has no linked account (fails closed); so do any binary file in such a PR and
-any import of a crisis module (a relative specifier by the path it resolves to, any other
-by its name). A
-path git had to quote or that holds a control character puts the PR in every lane. An
-**evaluator** PR (the code that grades changes, this workflow and CODEOWNERS) needs the
-`ferni-eval` app as opener with every commit verified by GitHub and committed by the app
-(what committing through the GitHub API produces; a git push can't), or the same
-approval. **Privacy** is reported only; the local arm gate already requires a verifier
+every author. In a **loop PR**, a changed line (added or removed) also counts when it
+matches a crisis pattern (988 in any written form) or names any export of a crisis
+module (`autonomy-crisis-symbols.generated.json`, kept exact by
+`crisis-symbols.test.ts`), and so do any binary file and any import of a crisis module (a
+relative specifier by the path it resolves to, any other by its name). A loop PR is one
+whose head branch starts with `loop/`; this depends on a ruleset that lets the
+`ferni-loop` app push only to `loop/**` (SETUP.md). Commit attribution can't establish
+it: author and committer logins come from the commit email, which anyone with push access
+can set (this Mac's default git identity reads as sethdford). A `ferni-loop[bot]` opener,
+author or committer, or a commit with no linked account, adds the screen; none of them
+can remove it. A path git had to quote or that holds a control character puts the PR in
+every lane. An **evaluator** PR (the code that grades changes, this workflow and
+CODEOWNERS) needs the `ferni-eval` app as opener with every commit verified by GitHub
+and committed by the app (what committing through the GitHub API produces; a git push
+can't), or the same approval; Seth's own evaluator PRs, like his crisis ones, merge with
+his admin bypass. **Privacy** is reported only; the local arm gate already requires a verifier
 PASS there. Runs on PRs, reviews and merge_group; fails only on merge_group, where each
 queued PR is judged on its current head, and the queue acts on it only once `Autonomy
 Lanes` is a required check. The policy's crisis and evaluator paths are also in

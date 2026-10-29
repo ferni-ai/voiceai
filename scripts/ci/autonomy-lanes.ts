@@ -4,11 +4,15 @@
  * lane needs before it may merge. The lanes and who may pass them live in
  * autonomy-policy.json next to this file (main's copy in CI, never the PR's).
  *
- * - crisis: a file under a crisis path (any author), or, when the loop (`loopAuthors`)
- *   opened the PR or authored or committed any of its commits (or a commit has no linked
- *   account), a changed line matching a crisis pattern in any file. Needs an APPROVED
- *   review from `approvers.crisis` on the exact head commit. Other authors' content-only
- *   crisis edits keep the local arm gate's verifier rule instead.
+ * - crisis: a file under a crisis path (any author), or, in a loop PR, a changed line
+ *   matching a crisis pattern or naming a crisis module's export (`symbolsFile`), a binary
+ *   file, or an import of a crisis module. A loop PR is one whose head branch starts with
+ *   `loopBranchPrefix`: that's the anchor GitHub enforces, through a ruleset that lets the
+ *   loop's app push only there (SETUP.md). Commit logins (`loopAuthors` as opener, author
+ *   or committer, or no linked account) also count, but they come from emails anyone can
+ *   set, so they only add screening. Needs an APPROVED review from `approvers.crisis` on
+ *   the exact head commit. Other authors' content-only crisis edits keep the local arm
+ *   gate's verifier rule instead.
  * - evaluator: a file under an evaluator path. Needs an `evaluatorAuthors` opener whose
  *   every commit GitHub verified with it as committer, or the crisis approval.
  * - privacy: a file under its paths whose path matches `pathPattern` (the LANE rule of
@@ -34,13 +38,23 @@ export type Lane = 'crisis' | 'privacy' | 'evaluator';
 export type Policy = {
   version: number;
   lanes: {
-    crisis: { paths: string[]; changedLinePatterns: string[]; importFallbackPattern: string };
+    crisis: {
+      paths: string[];
+      changedLinePatterns: string[];
+      importFallbackPattern: string;
+      /** JSON list of every name the crisis modules export, next to the policy. */
+      symbolsFile: string;
+      /** Filled by loadPolicy from symbolsFile. */
+      symbols?: string[];
+    };
     privacy: { paths: string[]; pathPattern: string };
     evaluator: { paths: string[] };
   };
   approvers: { crisis: string[] };
   evaluatorAuthors: string[];
   loopAuthors: string[];
+  /** Head branches only the loop's app can push to (a ruleset enforces it). */
+  loopBranchPrefix: string;
 };
 export type Review = { login: string; state: string; commitId: string };
 /**
@@ -57,6 +71,8 @@ export type PullInput = {
   reviews: Review[];
   /** Files git reports as binary: their content can't be screened line by line. */
   binaryFiles?: string[];
+  /** The PR's head branch name. */
+  headRef?: string;
   /** Specifiers on changed lines, for the loop's crisis-import screen. */
   imports?: ImportRef[];
   /** Every commit's identities; null when they couldn't be read (fails closed). */
@@ -69,7 +85,10 @@ export type Verdict = { ok: boolean; reasons: string[] };
 export const POLICY_PATH = join(dirname(fileURLToPath(import.meta.url)), 'autonomy-policy.json');
 
 export function loadPolicy(path = POLICY_PATH): Policy {
-  return JSON.parse(readFileSync(path, 'utf8')) as Policy;
+  const policy = JSON.parse(readFileSync(path, 'utf8')) as Policy;
+  const symbols = join(dirname(path), policy.lanes.crisis.symbolsFile);
+  policy.lanes.crisis.symbols = JSON.parse(readFileSync(symbols, 'utf8')) as string[];
+  return policy;
 }
 
 /** One login form: gh prints an App as `app/<slug>`, REST as `<slug>[bot]`. */
@@ -184,6 +203,8 @@ export function classify(
   const loop = new Set(policy.loopAuthors.map(normalizeLogin));
   const isLoop = [contributors].flat().some((login) => loop.has(normalizeLogin(login)));
   const crisisLine = crisis.changedLinePatterns.map((p) => new RegExp(p, 'i'));
+  const symbols = crisis.symbols ?? [];
+  if (symbols.length) crisisLine.push(wholeWords(symbols));
   const fallback = new RegExp(crisis.importFallbackPattern, 'i');
   const crisisImport = (ref: ImportRef) => {
     const targets = importTargets(ref);
@@ -202,6 +223,12 @@ export function classify(
   if (files.some((f) => inPaths(f, privacy.paths) && privacyPath.test(f))) lanes.push('privacy');
   if (files.some((f) => inPaths(f, evaluator.paths))) lanes.push('evaluator');
   return lanes;
+}
+
+/** One case-sensitive regex matching any of `names` as a whole identifier. */
+function wholeWords(names: string[]): RegExp {
+  const alternatives = names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  return new RegExp(`(?<![\\w$])(?:${alternatives})(?![\\w$])`);
 }
 
 const short = (sha: string) => sha.slice(0, 9);
@@ -224,14 +251,17 @@ function approvedOnHead(pr: PullInput, approvers: string[]): string | null {
 }
 
 /**
- * Who put code in the PR: its opener and every commit's author and committer. Commits
+ * Who put code in the PR: its opener and every commit's author and committer. A head
+ * branch under `loopBranchPrefix` is the loop's: commit logins come from emails anyone
+ * can set, but a ruleset lets only the loop's app push there (and only there). Commits
  * that couldn't be read, or with an author or committer no account is linked to, count
- * as the loop's (fails closed).
+ * as the loop's too (fails closed).
  */
 function contributorsOf(pr: PullInput, policy: Policy): string[] {
   const commits = pr.commits ?? [];
   const unattributed = commits.some((c) => !c.author || !c.committer);
-  const loop = pr.commits === null || unattributed ? policy.loopAuthors : [];
+  const loopBranch = (pr.headRef ?? '').startsWith(policy.loopBranchPrefix);
+  const loop = pr.commits === null || unattributed || loopBranch ? policy.loopAuthors : [];
   return [pr.author, ...commits.flatMap((c) => [c.author, c.committer]), ...loop];
 }
 
@@ -356,6 +386,7 @@ function loadPull({ repo, mainRef }: Context, n: number): PullInput {
   return {
     head,
     author: String(pull.user?.login ?? ''),
+    headRef: String(pull.head.ref ?? ''),
     ...diffInputs(`${mainRef}...${head}`),
     commits: readCommits(() => pages(`${api}/commits?per_page=100`), Number(pull.commits)),
     reviews: pages(`${api}/reviews?per_page=100`).map((r) => ({

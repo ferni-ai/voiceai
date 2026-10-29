@@ -44,6 +44,8 @@
 /scripts/voice-eval/release-check.mjs @sethdford
 /scripts/autonomy/** @sethdford
 /scripts/ci/autonomy-policy.json @sethdford
+/scripts/ci/autonomy-crisis-symbols.generated.json @sethdford
+/scripts/ci/crisis-symbols.ts @sethdford
 /scripts/ci/autonomy-lanes.ts @sethdford
 /scripts/ci/lead-verified.ts @sethdford
 /.github/workflows/autonomy-lanes.yml @sethdford
