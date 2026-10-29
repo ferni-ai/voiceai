@@ -4,12 +4,13 @@
  * lane needs before it may merge. The lanes and who may pass them live in
  * autonomy-policy.json next to this file (main's copy in CI, never the PR's).
  *
- * - crisis: a file under a crisis path (any author), or, for PRs by the loop
- *   (`loopAuthors`), a changed line matching a crisis pattern in any file. Needs an
- *   APPROVED review from `approvers.crisis` on the exact head commit. Other authors'
+ * - crisis: a file under a crisis path (any author), or, when the loop (`loopAuthors`)
+ *   opened the PR or authored or committed any of its commits, a changed line matching a
+ *   crisis pattern in any file. Needs an APPROVED review from `approvers.crisis` on the
+ *   exact head commit, or an approver's own PR (every commit theirs). Other authors'
  *   content-only crisis edits keep the local arm gate's verifier rule instead.
- * - evaluator: a file under an evaluator path. Needs an `evaluatorAuthors` author, or an
- *   approval as for crisis.
+ * - evaluator: a file under an evaluator path. Needs a PR wholly by `evaluatorAuthors`, or
+ *   the crisis sign-off.
  * - privacy: a file under its paths whose path matches `pathPattern` (the LANE rule of
  *   ~/.claude/hooks/pdlc/verify_arm_gate.py minus the crisis terms). Reported only: the arm
  *   gate already requires an independent verifier PASS there.
@@ -42,6 +43,8 @@ export type Policy = {
   loopAuthors: string[];
 };
 export type Review = { login: string; state: string; commitId: string };
+/** A commit's GitHub logins; '' when its email isn't linked to an account. */
+export type CommitIdentity = { author: string; committer: string };
 export type PullInput = {
   head: string;
   author: string;
@@ -50,6 +53,8 @@ export type PullInput = {
   reviews: Review[];
   /** Files git reports as binary: their content can't be screened line by line. */
   binaryFiles?: string[];
+  /** Every commit's identities; null when they couldn't be read (fails closed). */
+  commits?: CommitIdentity[] | null;
 };
 export type Verdict = { ok: boolean; reasons: string[] };
 
@@ -122,14 +127,15 @@ const ALL_LANES: Lane[] = ['crisis', 'privacy', 'evaluator'];
 export function classify(
   changedFiles: string[],
   changedLines: string[],
-  author: string,
+  contributors: string | string[],
   policy: Policy,
   binaryFiles: string[] = []
 ): Lane[] {
   const files = [...changedFiles, ...binaryFiles];
   if (files.some(isOddPath)) return [...ALL_LANES];
   const { crisis, privacy, evaluator } = policy.lanes;
-  const isLoop = policy.loopAuthors.map(normalizeLogin).includes(normalizeLogin(author));
+  const loop = new Set(policy.loopAuthors.map(normalizeLogin));
+  const isLoop = [contributors].flat().some((login) => loop.has(normalizeLogin(login)));
   const crisisLine = crisis.changedLinePatterns.map((p) => new RegExp(p, 'i'));
   const privacyPath = new RegExp(privacy.pathPattern, 'i');
   const lanes: Lane[] = [];
@@ -165,21 +171,43 @@ function approvedOnHead(pr: PullInput, approvers: string[]): string | null {
 }
 
 /**
- * Crisis needs an approver's sign-off on the head: their approving review, or their own
- * authorship (GitHub won't let an author approve their own PR). Only the user login
- * counts; a bot or app form of it never does. Evaluator needs an evaluator author or the
- * same sign-off.
+ * Who put code in the PR: its opener and every commit's author and committer. Commits
+ * that couldn't be read count as the loop's (fails closed).
+ */
+function contributorsOf(pr: PullInput, policy: Policy): string[] {
+  if (pr.commits === null) return [pr.author, ...policy.loopAuthors];
+  return [pr.author, ...(pr.commits ?? []).flatMap((c) => [c.author, c.committer])];
+}
+
+/**
+ * The opener's login when it is one of `logins` and every commit was authored and
+ * committed by one of them too; null otherwise, and when the commits are unknown.
+ */
+function ownedBy(pr: PullInput, logins: string[]): string | null {
+  const allowed = new Set(logins.map(normalizeLogin));
+  const own = (login: string) => allowed.has(normalizeLogin(login));
+  const commits = pr.commits ?? [];
+  const every = commits.length > 0 && commits.every((c) => own(c.author) && own(c.committer));
+  return own(pr.author) && every ? normalizeLogin(pr.author) : null;
+}
+
+/**
+ * Crisis needs an approver's sign-off on the head: their approving review, or a PR they
+ * opened, authored and committed entirely themselves (GitHub won't let an author approve
+ * their own PR). Only the user login counts; a bot or app form of it never does.
+ * Evaluator needs the same from an evaluator author, or the approver's sign-off.
  */
 export function evaluate(pr: PullInput, policy: Policy): Verdict {
-  const lanes = classify(pr.files, pr.changedLines, pr.author, policy, pr.binaryFiles);
+  const contributors = contributorsOf(pr, policy);
+  const lanes = classify(pr.files, pr.changedLines, contributors, policy, pr.binaryFiles);
   if (lanes.length === 0) return { ok: true, reasons: ['no autonomy lane'] };
-  const author = normalizeLogin(pr.author);
   const approvers = policy.approvers.crisis;
   const approver = approvedOnHead(pr, approvers);
+  const selfSigned = ownedBy(pr, approvers);
   const signed = approver
     ? `approved by ${approver} on ${short(pr.head)}`
-    : approvers.map(normalizeLogin).includes(author)
-      ? `authored by approver ${author}`
+    : selfSigned
+      ? `authored by approver ${selfSigned}`
       : null;
   const needApproval = `needs ${approvers.join(' or ')} approval on ${short(pr.head)}`;
   let ok = true;
@@ -189,17 +217,37 @@ export function evaluate(pr: PullInput, policy: Policy): Verdict {
       ok &&= signed !== null;
       reasons.push(`crisis lane: ${signed ?? needApproval}`);
     } else if (lane === 'evaluator') {
-      const isEvaluator = policy.evaluatorAuthors.map(normalizeLogin).includes(author);
-      ok &&= isEvaluator || signed !== null;
-      const notEvaluator = `author ${author} is not an evaluator author; ${needApproval}`;
+      const evaluator = ownedBy(pr, policy.evaluatorAuthors);
+      ok &&= evaluator !== null || signed !== null;
+      const author = normalizeLogin(pr.author);
+      const notEvaluator = `${author} and its commits are not all evaluator authors; ${needApproval}`;
       reasons.push(
-        `evaluator lane: ${isEvaluator ? `authored by ${author}` : (signed ?? notEvaluator)}`
+        `evaluator lane: ${evaluator ? `authored by ${evaluator}` : (signed ?? notEvaluator)}`
       );
     } else {
       reasons.push('privacy lane: the local arm gate requires an independent verifier PASS');
     }
   }
+  if (pr.commits === null)
+    reasons.push('commits unreadable: screened as the loop, no self sign-off');
   return { ok, reasons };
+}
+
+/**
+ * Commit identities from a REST `pulls/{n}/commits` read; null when the read fails or
+ * returns fewer than the PR's `expected` commits (the list stops at 250), so a missing
+ * loop commit can't go unseen.
+ */
+export function readCommits(read: () => any[], expected: number): CommitIdentity[] | null {
+  try {
+    const commits = read().map((c) => ({
+      author: String(c.author?.login ?? ''),
+      committer: String(c.committer?.login ?? ''),
+    }));
+    return commits.length === expected ? commits : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -254,6 +302,7 @@ function loadPull({ repo, mainRef }: Context, n: number): PullInput {
     head,
     author: String(pull.user?.login ?? ''),
     ...diffInputs(`${mainRef}...${head}`),
+    commits: readCommits(() => pages(`${api}/commits?per_page=100`), Number(pull.commits)),
     reviews: pages(`${api}/reviews?per_page=100`).map((r) => ({
       login: String(r.user?.login ?? ''),
       state: String(r.state ?? ''),
@@ -302,7 +351,9 @@ function checkQueue(ctx: Context, ref: string): Row[] {
     fetchRef(`+refs/heads/${name}:${local}`);
     const subjects = gitOps(process.cwd(), ctx.mainRef).queued(local);
     const { members, unnamed } = queueMembers(queued.pr, subjects);
-    const rows = members.map((n) => checkPr(ctx, n, n === queued.pr ? queued.sha : undefined));
+    // Each PR on its current head: the ref's sha is the commit the entry is built on, not
+    // the PR head, and a push ejects the PR from the queue anyway.
+    const rows = members.map((n) => checkPr(ctx, n));
     if (unnamed.length) {
       const reason = `queued commit names no PR: ${unnamed.join('; ')}`;
       rows.push({ pr: 'merge queue', head: '', verdict: 'ERROR', reason });

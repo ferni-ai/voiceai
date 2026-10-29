@@ -11,6 +11,8 @@
         "src/config/flags/AI_NOTICE_SPOKEN.ts",
         "src/utils/minor-care*.ts",
         "src/services/human-transfer/**",
+        "src/agents/processors/turn-processor/turn-crisis.ts",
+        "src/agents/processors/turn-processor/safety-note.ts",
         "scripts/voice-eval/scenarios/*crisis*",
         "scripts/voice-eval/scenarios/minor-care-*",
         "scripts/voice-eval/release-check.mjs",
@@ -21,7 +23,10 @@
         "MINOR_CARE",
         "minorCare|memoryHeld\\(",
         "suicid|self-?harm",
-        "aiNotice|AI_NOTICE"
+        "aiNotice|AI_NOTICE",
+        "(?:\\bimport\\b|\\brequire\\s*\\(|\\bfrom\\b).*['\"`][^'\"`]*(?:services/safety|agents/safety|domains/crisis|human-transfer|minor-care|ai-notice)",
+        "nine[- ]?eight[- ]?eight",
+        "['\"]98['\"]\\s*\\+"
       ]
     },
     "privacy": {

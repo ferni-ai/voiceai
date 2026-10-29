@@ -104,7 +104,10 @@ export function markers(body: string): Markers {
   };
 }
 
-/** gh-readonly-queue/<base>/pr-<N>-<sha> → the PR number and head SHA it queues. */
+/**
+ * gh-readonly-queue/<base>/pr-<N>-<sha> → the queued PR's number, and the SHA the entry is
+ * built on (main, or the entry ahead of it in the queue): not the PR's head.
+ */
 export function parseQueueRef(ref: string): { base: string; pr: number; sha: string } | null {
   const m = /^(?:refs\/heads\/)?gh-readonly-queue\/(.+)\/pr-(\d+)-([0-9a-f]{40})$/.exec(ref.trim());
   return m ? { base: m[1], pr: Number(m[2]), sha: m[3] } : null;

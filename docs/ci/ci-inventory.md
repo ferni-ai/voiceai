@@ -128,9 +128,11 @@ in" (no conflict, no extra edit), which carries the verdict forward.
 its PRs are the `(#N)` titles of the commits above main, plus the PR the ref names. Each
 PR is judged on its current head. A commit with no PR number blocks the group. Known
 gaps: a PR whose head moves after queueing is judged on the new head, not the queued one,
-and the PR can still edit the workflow file (not the evaluator, which comes from main)
-until main requires code-owner review (#2547) or the workflow moves to a main-pinned
-trigger. `issue_comment` runs log a
+and the workflow file runs from the PR's own merge or queue commit (the evaluator comes
+from main). What stops a PR editing it is the main ruleset's required code-owner review
+on `.github/workflows/` (on, checked 2026-10-29), but stale approvals aren't dismissed on
+push, so an approval given before a later workflow edit still counts until the workflow
+moves to a main-pinned trigger. `issue_comment` runs log a
 verdict but do not update the PR check, so re-run the check after a new verdict.
 
 ### autonomy-lanes.yml (reports until it is a required check)
@@ -147,7 +149,14 @@ needs the `ferni-eval` app as author, or the same approval. **Privacy** is repor
 the local arm gate already requires a verifier PASS there. Runs on PRs, reviews and
 merge_group; fails only on merge_group, and the queue acts on it only once `Autonomy
 Lanes` is a required check. The policy's crisis and evaluator paths are also in
-`.github/CODEOWNERS` (`codeowners-covers-policy.test.ts` keeps them in step).
+`.github/CODEOWNERS` (`codeowners-covers-policy.test.ts` keeps them in step). A loop
+commit pushed onto someone else's PR is screened too (any commit author or committer
+counts), and an approver's authorship signs only when they authored and committed every
+commit. Like Lead Verified, the workflow file runs from the PR's own merge or queue
+commit; what stops a PR editing it is the main ruleset's required code-owner review on
+`.github/workflows/` (on, checked 2026-10-29). Known gap: stale approvals aren't
+dismissed on push, so a code-owner approval given before a later edit to this workflow
+still satisfies that rule (the check itself only counts approvals on the exact head).
 
 ### design-system.yml
 

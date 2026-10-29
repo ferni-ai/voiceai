@@ -4,7 +4,7 @@
  * evaluator author). main() runs as a subprocess on a fixture PR.
  */
 import { execFileSync, spawnSync } from 'child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -16,14 +16,30 @@ import {
   loadPolicy,
   matchesGlob,
   normalizeLogin,
+  readCommits,
+  type CommitIdentity,
   type PullInput,
 } from '../autonomy-lanes.js';
+import { FAKE_GH } from './fake-gh.js';
 
 const policy = loadPolicy();
 const HEAD = 'bbb';
 const PERSONA = 'src/personas/bundles/x/content.ts';
 const SAFETY = 'src/services/safety/x.ts';
 const EVAL = 'scripts/voice-eval/judge.mjs';
+const GIT_ENV = {
+  ...process.env,
+  GIT_AUTHOR_NAME: 't',
+  GIT_AUTHOR_EMAIL: 't@example.invalid',
+  GIT_COMMITTER_NAME: 't',
+  GIT_COMMITTER_EMAIL: 't@example.invalid',
+  GIT_CONFIG_GLOBAL: '/dev/null',
+  GIT_CONFIG_NOSYSTEM: '1',
+};
+const by = (author: string, committer = author): CommitIdentity => ({ author, committer });
+const SETH = by('sethdford');
+const AGENT = by('ferni-agent[bot]');
+const LOOP = by('ferni-loop[bot]');
 const approval = (commitId: string, state = 'APPROVED', login = 'sethdford') => ({
   login,
   state,
@@ -172,13 +188,22 @@ describe('evaluate', () => {
   it('evaluator path by ferni-agent fails', () => {
     const r = evaluate(pr({ files: [EVAL] }), policy);
     expect(r.ok).toBe(false);
-    expect(r.reasons[0]).toMatch(/^evaluator lane: author ferni-agent\[bot\] is not an evaluator/);
+    expect(r.reasons[0]).toMatch(
+      /^evaluator lane: ferni-agent\[bot\] and its commits are not all evaluator authors/
+    );
   });
 
   it('evaluator path by ferni-eval[bot] passes', () => {
     for (const author of ['ferni-eval[bot]', 'app/ferni-eval']) {
-      expect(evaluate(pr({ author, files: [EVAL] }), policy).ok).toBe(true);
+      const commits = [by('ferni-eval[bot]')];
+      expect(evaluate(pr({ author, files: [EVAL], commits }), policy).ok).toBe(true);
     }
+  });
+
+  it('evaluator PR opened by ferni-eval with a ferni-agent commit needs approval', () => {
+    const commits = [by('ferni-eval[bot]'), AGENT];
+    const p = pr({ author: 'ferni-eval[bot]', files: [EVAL], commits });
+    expect(evaluate(p, policy).ok).toBe(false);
   });
 
   it('evaluator path by ferni-agent passes with an owner approval on head', () => {
@@ -217,7 +242,7 @@ describe('fail closed', () => {
 
 describe('approver authorship', () => {
   it('crisis PR authored by sethdford passes', () => {
-    const r = evaluate(pr({ author: 'sethdford', files: [SAFETY, EVAL] }), policy);
+    const r = evaluate(pr({ author: 'sethdford', files: [SAFETY, EVAL], commits: [SETH] }), policy);
     expect(r.ok).toBe(true);
     expect(r.reasons[0]).toBe('crisis lane: authored by approver sethdford');
   });
@@ -233,19 +258,163 @@ describe('approver authorship', () => {
   });
 });
 
+describe('who pushed, not only who opened', () => {
+  const content988 = { files: [PERSONA], changedLines: ['+ "call or text 988"'] };
+
+  it('loop commit pushed onto a ferni-agent PR is screened', () => {
+    for (const loop of [LOOP, by('ferni-agent[bot]', 'ferni-loop[bot]')]) {
+      const r = evaluate(pr({ ...content988, commits: [AGENT, loop] }), policy);
+      expect(r).toEqual({ ok: false, reasons: ['crisis lane: needs sethdford approval on bbb'] });
+    }
+    expect(evaluate(pr({ ...content988, commits: [AGENT] }), policy).ok).toBe(true);
+  });
+
+  it('seth-authored PR with a ferni-agent commit needs approval', () => {
+    for (const other of [AGENT, by('sethdford', 'web-flow'), by('', 'sethdford')]) {
+      const p = pr({ author: 'sethdford', files: [SAFETY], commits: [SETH, other] });
+      expect(evaluate(p, policy).ok).toBe(false);
+    }
+  });
+
+  it('seth-authored PR with only seth commits is signed', () => {
+    const p = pr({ author: 'sethdford', files: [SAFETY], commits: [SETH, SETH] });
+    expect(evaluate(p, policy)).toEqual({
+      ok: true,
+      reasons: ['crisis lane: authored by approver sethdford'],
+    });
+    expect(evaluate({ ...p, commits: [] }, policy).ok).toBe(false);
+  });
+
+  it('commits API error fails closed', () => {
+    const ok = [{ author: { login: 'sethdford' }, committer: { login: 'sethdford' } }];
+    expect(readCommits(() => ok, 1)).toEqual([SETH]);
+    const fail = () => {
+      throw new Error('HTTP 502');
+    };
+    expect(readCommits(fail, 1)).toBeNull();
+    // The REST list stops at 250 commits: a short read is not the whole PR.
+    expect(readCommits(() => ok, 251)).toBeNull();
+    // Unreadable commits: screened as the loop's, and no self sign-off.
+    expect(evaluate(pr({ ...content988, commits: null }), policy).ok).toBe(false);
+    const seth = evaluate(pr({ author: 'sethdford', files: [SAFETY], commits: null }), policy);
+    expect(seth.ok).toBe(false);
+    expect(seth.reasons).toContain('commits unreadable: screened as the loop, no self sign-off');
+  });
+});
+
+describe('crisis wiring outside crisis paths', () => {
+  const loopOnly = (lines: string[]) => {
+    expect(classify([PERSONA], lines, 'ferni-loop[bot]', policy)).toEqual(['crisis']);
+    expect(classify([PERSONA], lines, 'app/ferni-agent', policy)).toEqual([]);
+  };
+
+  it('turn-processor crisis wiring files are crisis paths', () => {
+    for (const f of ['turn-crisis.ts', 'safety-note.ts']) {
+      const path = `src/agents/processors/turn-processor/${f}`;
+      expect(classify([path], [], 'app/ferni-agent', policy)).toEqual(['crisis']);
+    }
+  });
+
+  it('deleting a crisis import in a non-crisis file is crisis for the loop', () => {
+    loopOnly(["-import { screenTurn } from '../../services/safety/screen.js';"]);
+    loopOnly(["-} from '../agents/safety/router.js';"]);
+    loopOnly(['-const t = require("../tools/domains/crisis/index");']);
+    loopOnly(["-  const m = await import('../../utils/minor-care.js');"]);
+    loopOnly(["-export * from './shared/ai-notice.js';"]);
+    loopOnly(["+import { transfer } from '../services/human-transfer/index.js';"]);
+  });
+
+  it('spelled-out 988 is crisis for the loop', () => {
+    loopOnly(['+  "call or text nine eight eight"']);
+    loopOnly(['+  hotline: "Nine-Eight-Eight"']);
+    loopOnly(["+  const n = '98' + '8';"]);
+  });
+});
+
+describe('main() on a merge group', () => {
+  const SCRIPT = join(__dirname, '../autonomy-lanes.ts');
+  const R = 'ferni-ai/voiceai';
+  const root = mkdtempSync(join(tmpdir(), 'autonomy-queue-'));
+  const seed = join(root, 'seed');
+  const work = join(root, 'work');
+  const bin = join(root, 'bin');
+  const fixtures = join(root, 'fixtures.json');
+  const git = (cwd: string, ...args: string[]) =>
+    execFileSync('git', args, { cwd, encoding: 'utf8', env: GIT_ENV }).trim();
+  const commitOn = (from: string, file: string, msg: string) => {
+    git(seed, 'checkout', '-q', '--detach', from);
+    mkdirSync(join(seed, file, '..'), { recursive: true });
+    writeFileSync(join(seed, file), `${msg}\n`);
+    git(seed, 'add', '-A');
+    git(seed, 'commit', '-q', '-m', msg);
+    return git(seed, 'rev-parse', 'HEAD');
+  };
+  mkdirSync(seed, { recursive: true });
+  mkdirSync(bin);
+  writeFileSync(join(bin, 'gh'), FAKE_GH);
+  chmodSync(join(bin, 'gh'), 0o755);
+  git(seed, 'init', '-q', '-b', 'main');
+  writeFileSync(join(seed, 'README.md'), 'base\n');
+  git(seed, 'add', '-A');
+  git(seed, 'commit', '-q', '-m', 'base');
+  const BASE = git(seed, 'rev-parse', 'HEAD');
+  const HEAD7 = commitOn(BASE, SAFETY, 'pr 7 head');
+  const QUEUED = commitOn(BASE, SAFETY, 'land the safety change (#7)');
+  // The real shape: the ref names the commit the entry is built on, not the PR head
+  // (gh-readonly-queue/main/pr-3038-66d4441c… was #3021's squash; #3038's head was 2efb419a).
+  const QUEUE_REF = `gh-readonly-queue/main/pr-7-${BASE}`;
+  const origin = join(root, 'origin.git');
+  git(root, 'init', '-q', '--bare', '-b', 'main', origin);
+  git(seed, 'push', '-q', origin, `${BASE}:refs/heads/main`, `${HEAD7}:refs/pull/7/head`);
+  git(seed, 'push', '-q', origin, `${QUEUED}:refs/heads/${QUEUE_REF}`);
+  git(root, 'clone', '-q', origin, work);
+  afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+  const run = (reviews: unknown[]) => {
+    const api = `repos/${R}/pulls/7`;
+    const user = { login: 'ferni-agent[bot]' };
+    const fx = {
+      [api]: { pages: [{ number: 7, head: { sha: HEAD7 }, user, commits: 1 }] },
+      [`${api}/commits`]: { pages: [[{ author: user, committer: user }]] },
+      [`${api}/reviews`]: { pages: [reviews] },
+    };
+    writeFileSync(fixtures, JSON.stringify(fx));
+    const env: Record<string, string> = { ...process.env } as Record<string, string>;
+    for (const k of ['GITHUB_STEP_SUMMARY', 'PR_NUMBER', 'PR_HEAD', 'AUTONOMY_LANES_FIXTURE'])
+      delete env[k];
+    const r = spawnSync(process.execPath, ['--experimental-strip-types', SCRIPT], {
+      cwd: work,
+      encoding: 'utf8',
+      env: {
+        ...env,
+        PATH: `${bin}:${process.env.PATH}`,
+        FAKE_GH_FIXTURES: fixtures,
+        REPO: R,
+        QUEUE_REF,
+        AUTONOMY_LANES_ENFORCE: '1',
+      },
+    });
+    return { code: r.status, out: `${r.stdout}${r.stderr}` };
+  };
+
+  it('a queued PR approved on its head passes although the ref names another commit', () => {
+    expect(HEAD7).not.toBe(BASE);
+    const r = run([{ user: { login: 'sethdford' }, state: 'APPROVED', commit_id: HEAD7 }]);
+    expect(r.out).toContain(`PR #7 ${HEAD7.slice(0, 9)}: OK: crisis lane: approved by sethdford`);
+    expect(r.code).toBe(0);
+  });
+
+  it('the same queued PR with no approval on its head fails', () => {
+    const r = run([{ user: { login: 'sethdford' }, state: 'APPROVED', commit_id: BASE }]);
+    expect(r.out).toContain(`needs sethdford approval on ${HEAD7.slice(0, 9)}`);
+    expect(r.code).toBe(1);
+  });
+});
+
 describe('diffInputs against a real repository', () => {
   const root = mkdtempSync(join(tmpdir(), 'autonomy-diff-'));
-  const env = {
-    ...process.env,
-    GIT_AUTHOR_NAME: 't',
-    GIT_AUTHOR_EMAIL: 't@example.invalid',
-    GIT_COMMITTER_NAME: 't',
-    GIT_COMMITTER_EMAIL: 't@example.invalid',
-    GIT_CONFIG_GLOBAL: '/dev/null',
-    GIT_CONFIG_NOSYSTEM: '1',
-  };
   const git = (...args: string[]) =>
-    execFileSync('git', args, { cwd: root, encoding: 'utf8', env }).trim();
+    execFileSync('git', args, { cwd: root, encoding: 'utf8', env: GIT_ENV }).trim();
   const write = (path: string, data: string | Buffer) => {
     mkdirSync(join(root, path, '..'), { recursive: true });
     writeFileSync(join(root, path), data);
