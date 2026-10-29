@@ -75,3 +75,105 @@ Tokens: the top 10 tools average ~1.2k tokens, top 20 ~2.5k (vs ~28k for the
 - The always-on core set, recently used tools and a findTool fallback, which
   the runtime design adds on top of retrieval.
 - Multi-turn context ("yes, do that"): the queries here are single turns.
+
+# Tool-count sweep: Phase 0 (2026-10-29)
+
+Question: is gemini-3.5-flash more accurate at choosing a tool from 40 tools than from 96 (the
+prod median offered per turn)? Kill criterion (`SOTA tool routing for voice agents`, Phase 0): if
+40 is not at least 2 points better than 96, paired and beyond noise, pruning is hygiene, not an
+accuracy fix.
+
+## Method
+
+- `TOOL_SET=count TOOL_COUNT=<k> TOOL_SEED=1 EVAL_NEGATIVES=1 eval-choice.ts 300 <seed>`.
+  Each request gets `k` tools: the 20 prod head tools (`HEAD`; `askForTeammate` is not
+  registered, so 19), then the registry (the 1,165 tools `inventory.ts` lists) in one seeded
+  shuffle, plus the request's labelled tool in its own place. The same `TOOL_SEED` for every
+  size, so a request's 40-tool set is a subset of its 64-, 96- and 130-tool sets
+  (`tool-count-set.mjs`, unit-tested). Comparisons are paired on the same requests.
+- 300 spoken requests x 2 sample seeds (the frozen v1 set, the same draws as September's 82%
+  runs), 2 runs per size, plus 60 fictional no-tool small-talk lines
+  (`fixtures/no-tool-negatives-v1.json`) in every file. 200 of 6,000 request rows have a label that
+  is no longer registered (gitDiff, Sonos, movies...) and are not scored.
+- Scores (`tool-count-sweep.mjs`): right-or-equivalent (labelled tool, or one the strict judge
+  says serves as well); missed call (no tool); lookalike (another tool the judge rejected); false
+  call (any tool on a no-tool line). Paired diff with a request-resampled 95% CI
+  (`pairedChoice`); exact McNemar per run (pooling both runs would count each request twice).
+- 7,200 rows, about 8,100 model calls (plus 1,610 for the second distractor draw below). 4
+  errored rows (1 more in the second draw), all a pre-existing harness gap (the model returned two parallel calls after a
+  lookup and the harness answered one: Vertex 400); no quota errors.
+
+Reproduce (about 2.5 min per file at the harness's concurrency of 6):
+
+```bash
+for run in 1 2; do for seed in 1 2; do for k in 20 40 64 96 130; do
+  TOOL_SET=count TOOL_COUNT=$k TOOL_SEED=1 EVAL_NEGATIVES=1 \
+    npx tsx scripts/tool-retrieval/eval-choice.ts 300 $seed count$k-r$run-s$seed
+done; done; done
+node scripts/tool-retrieval/tool-count-sweep.mjs scripts/tool-retrieval/out 40:96 20:130
+```
+
+## Results (gemini-3.5-flash, Ferni character prompt, distractor draw TOOL_SEED=1)
+
+| tools | right-or-equiv, mean (run 1 / run 2) | missed call | lookalike | false call on negatives (run 1 / run 2) |
+| ----- | ------------------------------------ | ----------- | --------- | --------------------------------------- |
+| 20    | **94.1%** (94.0 / 94.1)              | 4.1%        | 1.8%      | 2.5% (2.5 / 2.5)                        |
+| 40    | **91.7%** (91.4 / 92.1)              | 3.4%        | 4.9%      | 1.7% (1.7 / 1.7)                        |
+| 64    | **90.3%** (90.5 / 90.0)              | 3.2%        | 6.6%      | 0.8% (1.7 / 0.0)                        |
+| 96    | **88.7%** (88.6 / 88.8)              | 1.8%        | 9.5%      | 1.7% (1.7 / 1.7)                        |
+| 130   | **86.2%** (86.0 / 86.3)              | 2.9%        | 11.0%     | 3.8% (4.2 / 3.3)                        |
+
+n = 1,157-1,160 scored rows per size (580 per run); rerun noise is 0.1-0.7 points.
+
+| pair      | paired diff [95% CI]     | McNemar run 1      | McNemar run 2      |
+| --------- | ------------------------ | ------------------ | ------------------ |
+| 40 vs 96  | **+2.6 pts [0.3, 4.8]**  | b=35 c=20, p=0.058 | b=34 c=15, p=0.009 |
+| 20 vs 130 | **+7.8 pts [5.1, 10.7]** | b=60 c=14, p<1e-7  | b=61 c=16, p<1e-6  |
+| 20 vs 40  | +2.5 pts [0.4, 4.6]      |                    |                    |
+| 64 vs 96  | +1.0 pts [-1.2, 3.2]     |                    |                    |
+| 96 vs 130 | +2.8 pts [0.7, 5.0]      |                    |                    |
+
+(b = right only at the smaller size, c = right only at the larger.)
+
+**Second distractor draw** (`TOOL_SEED=2`, 40 and 96 only, 1 run): 93.1% vs 89.3%, **+3.3 pts
+[0.9, 5.7]**, McNemar b=34 c=13, p=0.003; lookalike 4.5% vs 9.7%. The slope does not depend on
+which random tools pad the set.
+
+Top lookalikes (label → called, count over both runs):
+
+- 20: checkCameoOpportunity→handoffToPeter 4; flagConnectionConcernForMaya→addRelationship 3;
+  riskAnalysis→handoffToPeter 2; setBirthday→addRelationship 2; makeRestaurantReservation→searchWeb 2
+- 40: remindThesis→getTheses 4; flagProcrastinationPatternForMaya→rememberAboutUser 4;
+  deleteCalendarEvent→searchWeb 4; motivationCoaching→getStarted 2; suggestEventTiming→getTheses 2
+- 64: flagProcrastinationPatternForMaya→rememberAboutUser 4; bankAccount→saveContactInfo 2;
+  scheduleJoy→detectCalendarIssues 2; getGameHistory→getTheses 2; checkRelationshipHealth→listRelationships 2
+- 96: identifyAngerTriggers→understandAnger 4; remindThesis→getTheses 4;
+  flagConnectionConcernForMaya→addRelationship 4; proactiveInsights→getMorningBriefing 3;
+  deleteCalendarEvent→detectCalendarIssues 3
+- 130: perfectionismTriggers→understandPerfectionism 5; boundaryCoaching→identifyBoundaryNeeds 4;
+  proactiveInsights→getMorningBriefing 4; readSMS→searchWeb 3; triggerAutomation→listWebhooks 3
+
+False calls on negatives are almost all `getTodaySignificance` (a head tool) on openers like
+"what's new with you?"; at 130, `startTextGame` and `getWeather` join in.
+
+## Verdict: PASS (pruning helps), with a small margin
+
+40 tools beat 96 by 2.6 points on one distractor draw and 3.3 on another. Both clear the 2-point
+bar as point estimates, and both CIs exclude zero, so the gain is beyond the ~1-point rerun noise.
+The curve falls steadily from 94% at 20 to 86% at 130, about 1 point per 14 tools. The mechanism is
+lookalikes: their rate doubles from 40 to 96 (4.9% → 9.5%) as more near-duplicates land in the set,
+while missed calls fall slightly (3.4% → 1.8%). The CI lower bounds (0.3, 0.9) are under 2, so the
+true 40-vs-96 gain could be as small as about 1 point. Read this as "pruning is an accuracy lever
+of about 2-4 points", not as a guaranteed 2.
+
+Caveats:
+
+- Distractors are random registry tools. Prod's 96 is not random: it is the essential domains plus
+  keyword topics, which hold more same-domain lookalikes (setReminder / scheduleReminder). The
+  absolute rates here (86-94%) are higher than the retrieval-mode 82% for that reason and because
+  the label is always present. A persona set is not random either, so measure the real Phase 1 sets
+  on this harness before claiming a number for them.
+- Requests are single spoken turns from the synthetic v1 set, with no ASR noise and no
+  multi-turn context.
+- The negatives are 60 lines written for this run; false-call rates of 1-4% rest on 1-5 calls per
+  run.
