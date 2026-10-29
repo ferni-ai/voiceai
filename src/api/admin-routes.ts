@@ -99,10 +99,10 @@ async function handleGetCallers(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -148,10 +148,10 @@ async function handleGetVisitors(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -230,24 +230,7 @@ async function handleTriggerReport(res: ServerResponse): Promise<void> {
     const { generateDailyReport } = await import('../services/admin/daily-report.js');
     const { generateDailyReportHTML, generateDailyReportPlainText } =
       await import('../services/admin/daily-report-template.js');
-    const { sendEmail, isEmailDeliveryAvailable, initializeEmailDelivery } =
-      await import('../services/outreach/delivery/email-delivery.js');
-
-    // Initialize email if not already done
-    if (!isEmailDeliveryAvailable()) {
-      const apiKey = process.env.SENDGRID_API_KEY;
-      if (!apiKey) {
-        throw new Error('SENDGRID_API_KEY not configured');
-      }
-      initializeEmailDelivery({
-        provider: 'sendgrid',
-        apiKey,
-        fromEmail: process.env.SENDGRID_FROM_EMAIL || 'hello@ferni.ai',
-        fromName: process.env.SENDGRID_FROM_NAME || 'Ferni',
-        trackOpens: true,
-        trackClicks: true,
-      });
-    }
+    const { sendEmail } = await import('../services/outreach/delivery/email-delivery.js');
 
     const reportData = await generateDailyReport();
     const html = generateDailyReportHTML(reportData);

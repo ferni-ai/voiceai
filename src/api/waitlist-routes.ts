@@ -19,7 +19,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import admin from 'firebase-admin';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -37,6 +37,9 @@ import {
 import { addSigninToWaitlist, keepWaitlistReferral, offeredReferral } from './waitlist-record.js';
 import { handleWaitlistQueueRoutes, QUEUE_ROUTE_PATHS } from './waitlist-queue-routes.js';
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
+import { getEmailSender, type OutgoingEmail } from '../services/email-transport/index.js';
+import { unsubscribeMailbox } from '../services/communication-service.js';
+import { waitlistEmailAllowed, type WaitlistEmailBucket } from './waitlist-email-quota.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -164,7 +167,8 @@ export async function handleWaitlistRoutes(
   }
 
   try {
-    if (QUEUE_ROUTE_PATHS.has(pathname) && (await handleWaitlistQueueRoutes(req, res, pathname))) return true; // /me, /join
+    if (QUEUE_ROUTE_PATHS.has(pathname) && (await handleWaitlistQueueRoutes(req, res, pathname)))
+      return true; // /me, /join
     // POST /api/waitlist - Add email to waitlist
     if (pathname === '/api/waitlist' && req.method === 'POST') {
       return await handleSignup(req, res);
@@ -257,7 +261,7 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
 
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Filter out undefined values - Firestore rejects undefined
     const signup: WaitlistSignup = {
@@ -333,7 +337,7 @@ async function handleFeatureVote(req: IncomingMessage, res: ServerResponse): Pro
 
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Increment vote count atomically (using feature stats collection)
     const featureRef = db.collection('roadmap_feature_stats').doc(featureId);
@@ -409,7 +413,7 @@ async function handleGetVotes(res: ServerResponse, featureId: string): Promise<b
 
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     const doc = await db.collection('roadmap_feature_stats').doc(featureId).get();
     const votes = doc.exists ? doc.data()?.votes || 0 : 0;
@@ -456,7 +460,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
   try {
     ensureFirebaseInitialized();
     const auth = admin.auth();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Verify Firebase token
     const decodedToken = await auth.verifyIdToken(idToken);
@@ -614,17 +618,34 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
   .map((e) => e.trim())
   .filter(Boolean);
 
+/** True when the app transport (the ferni.ai Workspace mailbox) can send. */
+function waitlistMailReady(what: string): boolean {
+  const ready = getEmailSender().isConfigured();
+  if (!ready) log.debug({ what }, 'Email not configured, skipping');
+  return ready;
+}
+
+/** Send through the app transport. Never throws; a failure is logged (no addresses). */
+async function sendWaitlistMail(
+  what: string,
+  bucket: WaitlistEmailBucket,
+  email: OutgoingEmail
+): Promise<boolean> {
+  ensureFirebaseInitialized();
+  const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
+  const recipients = Array.isArray(email.to) ? email.to.length : 1;
+  if (!(await waitlistEmailAllowed(getAdminFirestore, what, bucket, recipients))) return false;
+  const res = await getEmailSender().send(email);
+  if (res.ok) log.info({ what, provider: res.provider }, 'Waitlist email sent');
+  else log.warn({ what, provider: res.provider, status: res.status, error: res.error }, 'Waitlist email failed'); // prettier-ignore
+  return res.ok;
+}
+
 /**
  * Send notification to admin when someone joins the waitlist
  */
 async function notifyAdminOfSignup(email: string, source: string, phone?: string): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) {
-    log.debug('SendGrid not configured, skipping admin notification');
-    return;
-  }
+  if (!waitlistMailReady('admin notification')) return;
 
   const approveUrl = buildApprovalUrl(email);
 
@@ -701,35 +722,14 @@ APPROVE NOW: ${approveUrl}
 
 View waitlist: https://ferni.ai/admin/waitlist/`;
 
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${sendgridApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: ADMIN_NOTIFICATION_EMAILS.map((e) => ({ email: e })) }],
-        from: { email: fromEmail, name: 'Ferni Waitlist' },
-        subject,
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: html },
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      log.info(
-        { adminEmail: ADMIN_NOTIFICATION_EMAILS },
-        'Admin notification sent for waitlist signup'
-      );
-    } else {
-      log.warn({ status: response.status }, 'Failed to send admin notification');
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Error sending admin notification');
-  }
+  await sendWaitlistMail('admin notification', 'signupNotice', {
+    to: ADMIN_NOTIFICATION_EMAILS,
+    fromName: 'Ferni Waitlist',
+    subject,
+    text,
+    html,
+    kind: 'transactional',
+  });
 }
 
 // ============================================================================
@@ -842,7 +842,7 @@ async function approveUserAndGrantAccess(
   approvedBy: string
 ): Promise<{ success: boolean; phone?: string; error?: string }> {
   ensureFirebaseInitialized();
-  const db = getFirestore();
+  const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
   // Find the waitlist entry
   const docId = Buffer.from(email.toLowerCase().trim()).toString('base64').replace(/[/+=]/g, '_');
@@ -884,9 +884,11 @@ async function approveUserAndGrantAccess(
     });
   } else {
     // Fire-and-forget: send welcome email
-    void sendWelcomeEmail(email).catch((err) => {
-      log.warn({ error: String(err) }, 'Failed to send welcome email');
-    });
+    void sendWelcomeEmail(email, approvedBy === 'admin-api' ? 'approved' : 'adminNotice').catch(
+      (err) => {
+        log.warn({ error: String(err) }, 'Failed to send welcome email');
+      }
+    );
   }
 
   return { success: true, phone: waitlistData.phone };
@@ -959,10 +961,7 @@ async function notifyAdminOfWelcomeCall(
   callSid: string,
   usedCartesiaVoice: boolean
 ): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) return;
+  if (!waitlistMailReady('welcome call notice')) return;
 
   const voiceType = usedCartesiaVoice ? "Ferni's real voice (Cartesia)" : 'Twilio fallback voice';
 
@@ -1007,18 +1006,12 @@ async function notifyAdminOfWelcomeCall(
 </body>
 </html>`;
 
-  await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${sendgridApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: ADMIN_NOTIFICATION_EMAILS.map((e) => ({ email: e })) }],
-      from: { email: fromEmail, name: 'Ferni' },
-      subject: `📞 ✅ Welcome Call Made: ${email}`,
-      content: [{ type: 'text/html', value: html }],
-    }),
+  await sendWaitlistMail('welcome call notice', 'adminNotice', {
+    to: ADMIN_NOTIFICATION_EMAILS,
+    fromName: 'Ferni',
+    subject: `📞 ✅ Welcome Call Made: ${email}`,
+    html,
+    kind: 'transactional',
   });
 }
 
@@ -1030,10 +1023,7 @@ async function notifyAdminOfWelcomeCallFailure(
   phone: string,
   error: string
 ): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) return;
+  if (!waitlistMailReady('welcome call failure notice')) return;
 
   const html = `
 <!DOCTYPE html>
@@ -1075,32 +1065,22 @@ async function notifyAdminOfWelcomeCallFailure(
 </body>
 </html>`;
 
-  await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${sendgridApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: ADMIN_NOTIFICATION_EMAILS.map((e) => ({ email: e })) }],
-      from: { email: fromEmail, name: 'Ferni' },
-      subject: `⚠️ Welcome Call Failed: ${email}`,
-      content: [{ type: 'text/html', value: html }],
-    }),
+  await sendWaitlistMail('welcome call failure notice', 'adminNotice', {
+    to: ADMIN_NOTIFICATION_EMAILS,
+    fromName: 'Ferni',
+    subject: `⚠️ Welcome Call Failed: ${email}`,
+    html,
+    kind: 'transactional',
   });
 }
 
 /**
- * Send welcome email when no phone provided
+ * Send welcome email when no phone provided. An admin-API approval (requireAdmin) is
+ * uncapped; a one-click email-link approval counts as an admin notice (its token is a
+ * reusable ~48 h bearer link, see waitlist-email-quota.ts).
  */
-async function sendWelcomeEmail(email: string): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) {
-    log.debug('SendGrid not configured, skipping welcome email');
-    return;
-  }
+async function sendWelcomeEmail(email: string, bucket: WaitlistEmailBucket): Promise<void> {
+  if (!waitlistMailReady('welcome email')) return;
 
   const appUrl = 'https://app.ferni.ai';
 
@@ -1156,32 +1136,14 @@ Open Ferni: ${appUrl}
 
 Just reply if you need anything. I'm here. 🌱`;
 
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${sendgridApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email }] }],
-        from: { email: fromEmail, name: 'Ferni' },
-        subject: "You're in! Welcome to Ferni 🌿",
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: html },
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      log.info({ email: hashEmail(email) }, 'Welcome email sent');
-    } else {
-      log.warn({ status: response.status }, 'Failed to send welcome email');
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Error sending welcome email');
-  }
+  await sendWaitlistMail('welcome email', bucket, {
+    to: email,
+    fromName: 'Ferni',
+    subject: "You're in! Welcome to Ferni 🌿",
+    text,
+    html,
+    kind: 'transactional',
+  });
 }
 
 /**
@@ -1300,13 +1262,7 @@ function getPersonalSignoff(): { name: string; role: string | null } {
  * Send newsletter subscription confirmation email with deep personalization
  */
 async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
-
-  if (!sendgridApiKey) {
-    log.debug('SendGrid not configured, skipping newsletter welcome email');
-    return;
-  }
+  if (!waitlistMailReady('newsletter welcome')) return;
 
   // Deep personalization elements
   const firstName = extractNameFromEmail(email);
@@ -1425,35 +1381,16 @@ ferni.ai - Building AI that feels human`;
   // Personalized subject line
   const subject = firstName ? `Welcome to Ferni, ${firstName}` : 'Welcome to Ferni';
 
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${sendgridApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email }] }],
-        from: { email: fromEmail, name: 'Ferni' },
-        subject,
-        content: [
-          { type: 'text/plain', value: text },
-          { type: 'text/html', value: html },
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      log.info(
-        { email: hashEmail(email), personalized: !!firstName },
-        'Newsletter welcome email sent'
-      );
-    } else {
-      log.warn({ status: response.status }, 'Failed to send newsletter welcome email');
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Error sending newsletter welcome email');
-  }
+  // A newsletter is mail they can opt out of: 'bulk', with a List-Unsubscribe mailto
+  await sendWaitlistMail('newsletter welcome', 'public', {
+    to: email,
+    fromName: 'Ferni',
+    subject,
+    text,
+    html,
+    kind: 'bulk',
+    unsubscribe: { mailto: unsubscribeMailbox() },
+  });
 }
 
 /**
@@ -1545,7 +1482,7 @@ function generateApprovalResultPage(
 async function handleAdminList(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     const url = new URL(req.url || '/', `http://${req.headers.host}`);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 250);
@@ -1605,7 +1542,7 @@ async function handleAdminList(req: IncomingMessage, res: ServerResponse): Promi
 async function handleAdminStats(res: ServerResponse): Promise<boolean> {
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Get total count
     const countSnapshot = await db.collection('waitlist').count().get();
@@ -1677,7 +1614,7 @@ async function handleAdminStats(res: ServerResponse): Promise<boolean> {
 async function handleAdminExport(res: ServerResponse): Promise<boolean> {
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     const snapshot = await db.collection('waitlist').orderBy('timestamp', 'desc').get();
 

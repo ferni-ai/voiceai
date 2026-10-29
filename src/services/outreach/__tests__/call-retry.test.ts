@@ -38,6 +38,25 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({
     };
   },
 }));
+const consentMem = vi.hoisted(() => ({ store: undefined as unknown }));
+vi.mock('../../messaging/consent.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../messaging/consent.js')>();
+  const { memoryConsentStore } = await import('../../messaging/__tests__/memory-consent.js');
+  consentMem.store = memoryConsentStore().store;
+  return {
+    ...real,
+    consentBlocks: async (...[phone, channel, allow]: Parameters<typeof real.consentBlocks>) =>
+      real.consentBlocks(phone, channel, allow, {
+        env: process.env,
+        store: consentMem.store as never,
+        now: () => new Date(),
+      }),
+  };
+});
+vi.mock('../guarded-text.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../guarded-text.js')>()),
+  isOwnVerifiedPhone: async () => false, // Doug is the owner's dad, not the owner
+}));
 vi.mock('../on-behalf-call-orchestrator.js', () => ({
   getOnBehalfCallOrchestrator: () => ({ initiateCall }),
 }));
@@ -90,7 +109,10 @@ const storedDispatch = () =>
 const schedule = (c = call(), deps = {}) => scheduleCallRetry(c, { now: () => NOW, ...deps });
 const at = (iso: string) => ({ now: () => new Date(iso) });
 
-beforeEach(() => {
+beforeEach(async () => {
+  consentMem.store = (
+    await import('../../messaging/__tests__/memory-consent.js')
+  ).memoryConsentStore().store;
   rows = [];
   firestoreUp = true;
   optOutListDown = false;
@@ -288,6 +310,45 @@ describe('placing the retry', () => {
       'completed',
       expect.objectContaining({ success: true, channel: 'on_behalf_call' })
     );
+  });
+
+  it('MESSAGING_PIPELINE: a call opt-out only in consent/{phoneHash} refuses the retry', async () => {
+    await schedule();
+    const signed = storedDispatch();
+    const inHours = at('2026-10-11T17:01:00.000Z');
+    const { writeOptOut } = await import('../../messaging/consent.js');
+    const { phoneHash } = await import('../checkin-replies.js');
+    const env = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
+    const hash = phoneHash('+18015550123', env) as string;
+    await writeOptOut(hash, 'call', 'voice-call', {
+      env,
+      store: consentMem.store as never,
+      now: () => NOW,
+    });
+    vi.stubEnv('MESSAGING_PIPELINE', 'on');
+    vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
+    expect(await placeCallRetry(signed, 'seth', inHours)).toMatchObject({
+      success: false,
+      error: 'Recipient asked not to be called',
+    });
+    expect(initiateCall).not.toHaveBeenCalled();
+    vi.stubEnv('MESSAGING_PIPELINE', 'off');
+    expect(await placeCallRetry(signed, 'seth', inHours)).toEqual({ success: true });
+  });
+
+  it('MESSAGING_PIPELINE: a retry to someone who never agreed to calls is not placed; one who did is', async () => {
+    await schedule();
+    const signed = storedDispatch();
+    const inHours = at('2026-10-11T17:01:00.000Z');
+    vi.stubEnv('MESSAGING_PIPELINE', 'on');
+    vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
+    expect(await placeCallRetry(signed, 'seth', inHours)).toMatchObject({ success: false });
+    expect(initiateCall).not.toHaveBeenCalled();
+    const { recordOwnerAttestation } = await import('../../messaging/consent-grants.js');
+    const env = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
+    const deps = { env, store: consentMem.store as never, now: () => NOW };
+    await recordOwnerAttestation('+18015550123', 'call', 'seth', deps, async () => true);
+    expect(await placeCallRetry(signed, 'seth', inHours)).toEqual({ success: true });
   });
 
   it('refuses anything not signed, not this user, opted out, out of hours or flag off', async () => {

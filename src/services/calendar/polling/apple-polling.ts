@@ -18,6 +18,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { appleCalendarProvider } from '../providers/apple-provider.js';
 import { importEventsFromProvider } from '../unified-calendar-store.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { getFirestoreDatabase } from '../../../config/environment.js';
 
 const log = getLogger();
 
@@ -58,7 +59,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
     return db;
   } catch (error) {

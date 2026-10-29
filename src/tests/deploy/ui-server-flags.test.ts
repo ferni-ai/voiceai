@@ -39,6 +39,9 @@ const SERVER_FLAGS = [
   'TEAM_BY_NEED=on',
   // The web server places the on-behalf calls the agent defers, so it runs the do-not-call check too.
   'ON_BEHALF_DNC_CHECK=on',
+  // Alex's 8am text brief: the job runs, but sends only to people whose own flag is on
+  // (feature_flag_overrides; Seth only, 2026-10-19). MORNING_BRIEF_COMMITMENTS stays off.
+  'MORNING_BRIEF=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
@@ -61,15 +64,16 @@ describe('web-server flags survive a deploy', () => {
     expect(dockerfile).toMatch(/ARG VITE_PROMISES_PANEL=""\nENV VITE_PROMISES_PANEL=\$VITE_PROMISES_PANEL/);
   });
 
-  it('sends app email through the ferni.ai Workspace, switchable back by repo variable', () => {
+  it('sends app email through the ferni.ai Workspace, with no provider switch', () => {
     // The step's env holds the repo variables; the script reads them from the shell.
     const workflow = read('.github/workflows/deploy-production.yml');
     const at = workflow.indexOf('id: deploy');
     const stepEnv = workflow.slice(at, workflow.indexOf('run: |', at));
-    expect(stepEnv).toContain("EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'gmail' }}");
+    expect(stepEnv).not.toContain('EMAIL_PROVIDER');
     expect(stepEnv).toContain("EMAIL_FROM: ${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}");
     const env = workflowEnv();
-    expect(env).toContain('EMAIL_PROVIDER=$EMAIL_PROVIDER');
+    expect(env.join('\n')).not.toContain('EMAIL_PROVIDER');
+    expect(workflowSecrets().join('\n')).not.toMatch(/SENDGRID/);
     expect(env).toContain('EMAIL_FROM=$EMAIL_FROM');
   });
 

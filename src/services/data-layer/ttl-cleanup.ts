@@ -93,6 +93,7 @@ export const TTL_CONFIGS: TTLConfig[] = [
   },
 
   // Session and interaction data - medium TTL
+  // Legacy: no writer since memory v2 C5a; kept so the old docs still expire.
   {
     path: 'persona_interactions',
     ttlDays: 180,
@@ -133,6 +134,30 @@ export const TTL_CONFIGS: TTLConfig[] = [
 // ============================================================================
 // CLEANUP FUNCTIONS
 // ============================================================================
+
+/**
+ * Thrown, not reported, when the client cannot run aggregate counts. Every real
+ * firebase-admin client can, so this is a stub or fake reaching the code: in the
+ * Data Layer E2E nightly the test setup's in-memory fake did, and a dry run that
+ * logged it per collection as "may not exist" read as eleven quiet failures.
+ */
+export class TTLCleanupClientError extends Error {
+  constructor() {
+    super(
+      'TTL cleanup got a Firestore client without Query.count(): a stub or fake, ' +
+        'not firebase-admin (utils/firebase-admin-app.ts getAdminFirestore()).'
+    );
+    this.name = 'TTLCleanupClientError';
+  }
+}
+
+function requireCountQueries(db: FirebaseFirestore.Firestore): void {
+  // Builds a query locally; nothing is sent.
+  const probe = db.collection('ttl_cleanup_probe').where('createdAt', '<', new Date(0));
+  if (typeof (probe as { count?: unknown }).count !== 'function') {
+    throw new TTLCleanupClientError();
+  }
+}
 
 /**
  * Delete documents older than TTL cutoff from a collection
@@ -229,10 +254,12 @@ export async function runTTLCleanup(options?: {
   try {
     // Get Firestore instance
     const admin = (await import('firebase-admin')).default;
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }
-    const db = admin.firestore();
+    const db = getAdminFirestore();
+    if (options?.dryRun) requireCountQueries(db);
 
     // Filter collections if specified
     const configs = options?.collections
@@ -266,10 +293,7 @@ export async function runTTLCleanup(options?: {
             '🔍 Dry run count'
           );
         } catch (error) {
-          log.warn(
-            { error: String(error), collection: config.path },
-            'Dry run count failed (collection may not exist)'
-          );
+          log.warn({ error: String(error), collection: config.path }, 'Dry run count failed');
           results.push({
             collection: config.path,
             deleted: 0,
@@ -290,6 +314,10 @@ export async function runTTLCleanup(options?: {
       }
     }
   } catch (error) {
+    if (error instanceof TTLCleanupClientError) {
+      log.error({ error: error.message }, 'TTL cleanup refused: wrong Firestore client');
+      throw error;
+    }
     log.error({ error: String(error) }, 'TTL cleanup initialization failed');
     totalErrors++;
   }
@@ -329,10 +357,11 @@ export async function runUserDataCleanup(userId: string): Promise<CleanupReport>
 
   try {
     const admin = (await import('firebase-admin')).default;
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }
-    const db = admin.firestore();
+    const db = getAdminFirestore();
 
     // Collections that store user data
     const userCollections = [

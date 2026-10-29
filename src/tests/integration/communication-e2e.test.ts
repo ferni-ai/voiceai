@@ -2,7 +2,6 @@
  * E2E Integration Tests for Communication Services
  *
  * These tests validate REAL API integrations:
- * - SendGrid email delivery
  * - Twilio SMS delivery
  * - Twilio voice calls
  * - Google Calendar events
@@ -13,12 +12,10 @@
  * To run with real APIs:
  * ```bash
  * # Set credentials in .env.test or export them
- * export SENDGRID_API_KEY=your_key
  * export TWILIO_ACCOUNT_SID=your_sid
  * export TWILIO_AUTH_TOKEN=your_token
  * export TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
  * export TEST_PHONE_NUMBER=+1xxxxxxxxxx  # Your test number
- * export TEST_EMAIL=your_test@email.com
  *
  * npx vitest run src/tests/integration/communication-e2e.test.ts
  * ```
@@ -32,12 +29,6 @@ import { getLogger } from '../../utils/safe-logger.js';
 // ============================================================================
 
 interface TestConfig {
-  sendgrid: {
-    apiKey: string;
-    fromEmail: string;
-    testRecipient: string;
-    configured: boolean;
-  };
   twilio: {
     accountSid: string;
     authToken: string;
@@ -54,12 +45,6 @@ interface TestConfig {
 
 function getTestConfig(): TestConfig {
   return {
-    sendgrid: {
-      apiKey: process.env.SENDGRID_API_KEY || '',
-      fromEmail: process.env.SENDGRID_FROM_EMAIL || 'test@ferni.ai',
-      testRecipient: process.env.TEST_EMAIL || '',
-      configured: !!(process.env.SENDGRID_API_KEY && process.env.TEST_EMAIL),
-    },
     twilio: {
       accountSid: process.env.TWILIO_ACCOUNT_SID || '',
       authToken: process.env.TWILIO_AUTH_TOKEN || '',
@@ -100,116 +85,6 @@ function reportStatus(status: IntegrationStatus): void {
   integrationResults.push(status);
   getLogger().info(status, `Integration status: ${status.service}`);
 }
-
-// ============================================================================
-// SENDGRID E2E TESTS
-// ============================================================================
-
-describe('SendGrid Email Integration', () => {
-  const config = getTestConfig();
-
-  beforeAll(() => {
-    if (!config.sendgrid.configured) {
-      console.log('⚠️  SendGrid not configured - skipping E2E tests');
-      console.log('   Set SENDGRID_API_KEY and TEST_EMAIL to enable');
-    }
-  });
-
-  it.skipIf(!config.sendgrid.configured)('should send a real email via SendGrid', async () => {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${config.sendgrid.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: config.sendgrid.testRecipient }] }],
-        from: {
-          email: config.sendgrid.fromEmail,
-          name: 'Ferni E2E Test',
-        },
-        subject: `🧪 E2E Test Email - ${new Date().toISOString()}`,
-        content: [
-          {
-            type: 'text/plain',
-            value: `This is an automated E2E test email from Ferni.\n\nTimestamp: ${new Date().toISOString()}\nTest ID: ${Date.now()}`,
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    const status: IntegrationStatus = {
-      service: 'sendgrid',
-      configured: true,
-      tested: true,
-      working: response.status === 202,
-      lastTested: new Date(),
-      details: { status: response.status },
-    };
-
-    if (!response.ok && response.status !== 202) {
-      const error = await response.text();
-      status.lastError = error;
-      status.working = false;
-    }
-
-    reportStatus(status);
-
-    expect(response.status).toBe(202);
-    console.log('✅ SendGrid email sent successfully');
-  });
-
-  it.skipIf(!config.sendgrid.configured)('should handle rate limiting gracefully', async () => {
-    // Send multiple emails to test rate handling
-    const results: number[] = [];
-
-    for (let i = 0; i < 3; i++) {
-      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${config.sendgrid.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: config.sendgrid.testRecipient }] }],
-          from: { email: config.sendgrid.fromEmail, name: 'Ferni Rate Test' },
-          subject: `Rate Test ${i + 1}/3 - ${Date.now()}`,
-          content: [{ type: 'text/plain', value: `Test ${i + 1}` }],
-        }),
-        signal: AbortSignal.timeout(10000),
-      });
-      results.push(response.status);
-    }
-
-    // All should succeed (202) or some might be rate limited (429)
-    const allValid = results.every((s) => s === 202 || s === 429);
-    expect(allValid).toBe(true);
-  });
-
-  it('should report configuration status', () => {
-    reportStatus({
-      service: 'sendgrid',
-      configured: config.sendgrid.configured,
-      tested: false,
-      working: false,
-      details: {
-        hasApiKey: !!config.sendgrid.apiKey,
-        hasFromEmail: !!config.sendgrid.fromEmail,
-        hasTestRecipient: !!config.sendgrid.testRecipient,
-      },
-    });
-
-    if (!config.sendgrid.configured) {
-      console.log('📋 SendGrid Configuration Status:');
-      console.log(`   - API Key: ${config.sendgrid.apiKey ? '✓' : '✗ Missing'}`);
-      console.log(`   - From Email: ${config.sendgrid.fromEmail ? '✓' : '✗ Missing'}`);
-      console.log(`   - Test Recipient: ${config.sendgrid.testRecipient ? '✓' : '✗ Missing'}`);
-    }
-
-    expect(true).toBe(true); // Config check always passes
-  });
-});
 
 // ============================================================================
 // TWILIO SMS E2E TESTS
@@ -601,7 +476,6 @@ describe('Integration Summary', () => {
     const config = getTestConfig();
 
     const services = [
-      { name: 'SendGrid Email', key: 'sendgrid', configured: config.sendgrid.configured },
       { name: 'Twilio SMS', key: 'twilio-sms', configured: config.twilio.configured },
       { name: 'Twilio Voice', key: 'twilio-voice', configured: config.twilio.configured },
       { name: 'Google Calendar', key: 'google-calendar', configured: config.calendar.configured },
@@ -623,9 +497,6 @@ describe('Integration Summary', () => {
     console.log('-'.repeat(60));
 
     const envVars = [
-      ['SENDGRID_API_KEY', config.sendgrid.apiKey ? '✓' : '✗'],
-      ['SENDGRID_FROM_EMAIL', config.sendgrid.fromEmail ? '✓' : '✗'],
-      ['TEST_EMAIL', config.sendgrid.testRecipient ? '✓' : '✗'],
       ['TWILIO_ACCOUNT_SID', config.twilio.accountSid ? '✓' : '✗'],
       ['TWILIO_AUTH_TOKEN', config.twilio.authToken ? '✓' : '✗'],
       ['TWILIO_PHONE_NUMBER', config.twilio.phoneNumber ? '✓' : '✗'],

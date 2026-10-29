@@ -2,7 +2,7 @@
  * Tool-choice accuracy: does the production model call the right tool when it
  * gets the tool set a live turn would send?
  *
- * For each spoken test request (out/generated-test.json, never indexed), build
+ * For each spoken test request (fixtures/choice-test-v1.json, never indexed), build
  * the live turn's tool set (core + per-turn retrieval, src/tools/retrieval),
  * send it to the production model with Ferni's character prompt, and record
  * the tool it calls. When it calls findTools, run the lookup and the model's
@@ -13,13 +13,20 @@
  * (what a live call sends now: the first agent's 64 essentials, then the
  * post-greeting update to 88, both through the production cap code); core
  * (TOOL_CORE_STATIC: the static core, findTools searching the whole catalog
- * and appending what it finds, as the pinner does). EVAL_LABELS=head keeps
- * only requests for the 20 tools prod and dev calls used (2026-10-04..11).
+ * and appending what it finds, as the pinner does); count (the tool-count sweep: TOOL_COUNT tools,
+ * the 20 head tools first, then the registry in a TOOL_SEED shuffle, plus the request's labelled
+ * tool; tool-count-set.mjs). EVAL_LABELS=head keeps only requests for the 20 tools prod and dev
+ * calls used (2026-10-04..11). EVAL_NEGATIVES=1 adds the no-tool small talk
+ * (fixtures/no-tool-negatives-v1.json, label null; score with tool-count-sweep.mjs, not
+ * choice-score.mjs).
  *
- * usage: [TOOL_SET=today|core] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
+ * usage: [TOOL_SET=today|core|count] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
  * Writes scripts/tool-retrieval/out/choice-<label>.json and prints a summary.
+ * Score 2+ seeds (the same seeds for both builds) with choice-score.mjs: pooled rate, floor,
+ * paired diff. Its --out file, saved as <night>/tool-choice.json, is the nightly scorecard's
+ * tool-choice capability.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -42,15 +49,19 @@ import { capToolsToLimit, getEssentialTools } from '../../src/config/tool-config
 import { DEFAULT_ESSENTIAL_DOMAINS } from '../../src/tools/dynamic-loader/index.js';
 import { updateAgentTools } from '../../src/agents/shared/tool-updater.js';
 import { staticCoreCallTools } from '../../src/agents/shared/static-core-tools.js';
+import { loadTestSet } from './test-set.mjs';
+import { countOrder, countSet } from './tool-count-set.mjs';
 
 const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
 const seed = Number(seedArg || 1);
 const MODEL = process.env.CASCADE_LLM_MODEL || 'gemini-3.5-flash';
-const TOOL_SETS = ['retrieval', 'today', 'core'] as const;
+const TOOL_SETS = ['retrieval', 'today', 'core', 'count'] as const;
 const TOOL_SET = (process.env.TOOL_SET || 'retrieval') as (typeof TOOL_SETS)[number];
 if (!TOOL_SETS.includes(TOOL_SET))
   throw new Error(`TOOL_SET must be one of ${TOOL_SETS.join(', ')}`);
+const TOOL_COUNT = Number(process.env.TOOL_COUNT || 40);
+const TOOL_SEED = Number(process.env.TOOL_SEED || 1);
 const CONCURRENCY = 6;
 const MAX_STEPS = 3;
 /** Look-up tools the model often calls before acting, with a plausible answer. */
@@ -90,7 +101,7 @@ const catalog = new llm.ToolContext({
 const asTools = (r: Record<string, unknown>) =>
   r as unknown as Record<string, llm.AnonFunctionTool>;
 async function fixedSet(): Promise<llm.ToolContext | null> {
-  if (TOOL_SET === 'retrieval') return null;
+  if (TOOL_SET === 'retrieval' || TOOL_SET === 'count') return null;
   const essentialDomains = DEFAULT_ESSENTIAL_DOMAINS as ToolDomain[];
   if (TOOL_SET === 'core') {
     const core = await staticCoreCallTools(built.tools, 'eval', undefined, {
@@ -141,11 +152,15 @@ const HEAD = new Set([
   'connectToHumanExpert',
   'addRelationship',
 ]);
+const countNames = countOrder(Object.keys(built.tools), [...HEAD], TOOL_SEED);
+const countTools = (label: string | null): llm.ToolContext =>
+  new llm.ToolContext(
+    countSet(countNames, TOOL_COUNT, label).map((name) => catalog.functionTools[name])
+  );
 
 process.env.PROMPT_MODE ??= 'character';
 const system = await loadSystemPrompt('ferni');
 const embedder = createVertexEmbedder();
-const index = await getSharedToolIndex(embedder);
 const manual = loadIntentManual();
 const genai = new GoogleGenAI({
   vertexai: true,
@@ -153,20 +168,26 @@ const genai = new GoogleGenAI({
   location: 'global',
 });
 
+// The frozen, reviewed test set (test-set.mjs): the same 2,375 rows as the out/generated-test.json
+// behind the September runs, in the same order, so seeds draw the same requests.
 // Deterministic sample.
-const all = (
-  JSON.parse(readFileSync('scripts/tool-retrieval/out/generated-test.json', 'utf8')) as Array<{
-    query: string;
-    tool: string;
-  }>
-).filter((item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool));
+const all = (loadTestSet() as Array<{ query: string; tool: string | null }>).filter(
+  (item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool ?? '')
+);
 let s = seed;
 const rand = (): number => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
-const sample = [...all].sort(() => rand() - 0.5).slice(0, n);
+const negatives =
+  process.env.EVAL_NEGATIVES === '1'
+    ? (JSON.parse(
+        readFileSync(new URL('./fixtures/no-tool-negatives-v1.json', import.meta.url), 'utf8')
+      ) as Array<{ query: string; tool: null }>)
+    : [];
+const sample = [...[...all].sort(() => rand() - 0.5).slice(0, n), ...negatives];
 
 interface Row {
   query: string;
-  label: string;
+  /** null: a no-tool negative, which must not call a tool. */
+  label: string | null;
   first: string | null;
   final: string | null;
   usedFind: boolean;
@@ -179,6 +200,8 @@ interface Row {
   afterFindMs?: number;
   /** A different tool than the label that does the user's job about as well (judged). */
   sufficient?: boolean;
+  /** The judge failed, so sufficient is false: an unjudged miss still counts as a miss. */
+  judgeError?: boolean;
   error?: string;
 }
 
@@ -192,7 +215,7 @@ The intended tool was ${gold}: ${describe(gold)}
 The assistant called ${got}: ${describe(got)}
 Would ${got} serve this user's request about as well as the intended tool? Be strict: a loosely related tool does not count. Answer JSON {"verdict":"yes"|"no"}`;
   const r = await genai.models.generateContent({
-    model: 'gemini-3.5-flash',
+    model: process.env.CHOICE_JUDGE_MODEL || 'gemini-3.5-flash',
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
       responseMimeType: 'application/json',
@@ -216,11 +239,11 @@ async function ask(contents: Content[], tools: llm.ToolContext) {
   });
 }
 
-async function run(item: { query: string; tool: string }): Promise<Row> {
+async function run(item: { query: string; tool: string | null }): Promise<Row> {
   const retrieval = new TurnToolRetrieval({
     sessionId: 'eval',
     embedder,
-    index: async () => index,
+    index: () => getSharedToolIndex(embedder),
     domainOf: (tool) => manual.tools[tool]?.domain,
   });
   const started = Date.now();
@@ -236,10 +259,12 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
     ms: 0,
   };
   try {
-    const pick = fixed ? null : await retrieval.pick(item.query);
-    const sent = fixed ?? (pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog));
+    const counted = TOOL_SET === 'count' ? countTools(item.tool) : null;
+    const pick = fixed || counted ? null : await retrieval.pick(item.query);
+    const sent =
+      fixed ?? counted ?? (pick ? retrieval.select(catalog, pick) : retrieval.withoutPick(catalog));
     row.sent = Object.keys(sent.functionTools).length;
-    row.labelSent = item.tool in sent.functionTools;
+    row.labelSent = item.tool !== null && item.tool in sent.functionTools;
     const contents: Content[] = [{ role: 'user', parts: [{ text: item.query }] }];
     // Follow the model's steps like the agent does: lookups (context, memory,
     // findTools) get a plausible answer and the model goes on; the first
@@ -290,8 +315,13 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
         { role: 'user', parts: [{ functionResponse: { name: call.name, response: { output } } }] }
       );
     }
-    if (row.final && row.final !== item.tool && row.final !== FIND_TOOLS) {
-      row.sufficient = await judge(item.query, item.tool, row.final);
+    if (item.tool && row.final && row.final !== item.tool && row.final !== FIND_TOOLS) {
+      // The choice is already known to be a miss; a judge failure (429, bad JSON) must not turn it
+      // into an errored row, which choice-score drops: only misses would vanish and the rate rise.
+      row.sufficient = await judge(item.query, item.tool, row.final).catch(() => {
+        row.judgeError = true;
+        return false;
+      });
     }
   } catch (error) {
     row.error = String(error).slice(0, 200);
@@ -306,9 +336,11 @@ for (let i = 0; i < sample.length; i += CONCURRENCY) {
   process.stderr.write(`\r${rows.length}/${sample.length}`);
 }
 process.stderr.write('\n');
+mkdirSync('scripts/tool-retrieval/out', { recursive: true });
 writeFileSync(`scripts/tool-retrieval/out/choice-${label}.json`, JSON.stringify(rows, null, 1));
 
-const ok = rows.filter((r) => !r.error);
+const ok = rows.filter((r) => !r.error && r.label !== null);
+const neg = rows.filter((r) => !r.error && r.label === null);
 const pct = (k: number): string => `${((100 * k) / Math.max(1, ok.length)).toFixed(1)}%`;
 const med = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
 console.log(
@@ -317,17 +349,21 @@ console.log(
       label,
       model: MODEL,
       n: ok.length,
-      errors: rows.length - ok.length,
+      errors: rows.filter((r) => r.error).length,
+      // Misses the judge couldn't rule on, scored as misses: a broken judge shows here.
+      judgeErrors: ok.filter((r) => r.judgeError).length,
       labelSent: pct(ok.filter((r) => r.labelSent).length),
       calledLabel: pct(ok.filter((r) => r.final === r.label).length),
       calledLabelOrEquivalent: pct(ok.filter((r) => r.final === r.label || r.sufficient).length),
       calledOther: pct(ok.filter((r) => r.final && r.final !== r.label).length),
       noCall: pct(ok.filter((r) => !r.final).length),
+      negatives: neg.length,
+      negativesCalled: neg.filter((r) => r.final).length,
       usedFind: pct(ok.filter((r) => r.usedFind).length),
       findRescued: ok.filter((r) => r.usedFind && r.final === r.label).length,
       toolsSentMedian: med(ok.map((r) => r.sent)),
       promptTokensMedian: med(ok.map((r) => r.promptTokens)),
-      toolSet: TOOL_SET,
+      toolSet: TOOL_SET === 'count' ? `count:${TOOL_COUNT}:seed${TOOL_SEED}` : TOOL_SET,
       findMsMedian: med(ok.flatMap((r) => (r.findMs === undefined ? [] : [r.findMs]))),
       afterFindStepMsMedian: med(
         ok.flatMap((r) => (r.afterFindMs === undefined ? [] : [r.afterFindMs]))

@@ -7308,10 +7308,7 @@ async function handleRuntimeWatch(isContainer: boolean, args: string[]): Promise
   // Check which notification channels are configured
   const channels: string[] = ['Terminal'];
   if (process.env.SLACK_WEBHOOK_URL || process.env.FERNI_SLACK_WEBHOOK) channels.push('Slack');
-  if (
-    (process.env.SENDGRID_API_KEY || process.env.MAILGUN_API_KEY) &&
-    (process.env.FERNI_ALERT_EMAIL || process.env.ALERT_EMAIL)
-  )
+  if (process.env.MAILGUN_API_KEY && (process.env.FERNI_ALERT_EMAIL || process.env.ALERT_EMAIL))
     channels.push('Email');
   if (
     process.env.TWILIO_ACCOUNT_SID &&
@@ -7585,14 +7582,12 @@ async function sendSlackAlert(
   }
 }
 
-// Send email alert via SendGrid or Mailgun
+// Send email alert via Mailgun (this CLI runs outside the app's Workspace mailer)
 async function sendEmailAlert(
   ferniMessage: string,
   analysis: { severity: string; issue: string },
   isContainer: boolean
 ): Promise<void> {
-  // Support both SendGrid and Mailgun
-  const sendgridKey = process.env.SENDGRID_API_KEY;
   const mailgunKey = process.env.MAILGUN_API_KEY;
   const mailgunDomain = process.env.MAILGUN_DOMAIN;
   const toEmail = process.env.FERNI_ALERT_EMAIL || process.env.ALERT_EMAIL;
@@ -7643,29 +7638,7 @@ async function sendEmailAlert(
 </html>`;
 
   try {
-    if (sendgridKey) {
-      // SendGrid API
-      await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${sendgridKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: toEmail }] }],
-          from: { email: fromEmail, name: 'Ferni' },
-          subject,
-          content: [
-            {
-              type: 'text/plain',
-              value: `${ferniMessage}\n\nSeverity: ${analysis.severity}\nIssue: ${analysis.issue}`,
-            },
-            { type: 'text/html', value: htmlBody },
-          ],
-        }),
-      });
-      console.log(`  ${colors.dim}(Email sent to ${toEmail})${colors.reset}`);
-    } else if (mailgunKey && mailgunDomain) {
+    if (mailgunKey && mailgunDomain) {
       // Mailgun API
       const formData = new URLSearchParams();
       formData.append('from', `Ferni <${fromEmail}>`);

@@ -7,7 +7,7 @@
  *
  * Three checks per reply. A contradiction checker in code (canon slots: age,
  * hometown, siblings, Japan, wife), deliberately not shared with the code
- * under test. A Gemini judge (JUDGE_MODEL, default gemini-3.1-pro-preview)
+ * under test. A Gemini judge (JUDGE_MODEL, default flash; pro for Pro)
  * reading the canon, everything he said on earlier calls and this call,
  * NLI-style: a claim contradicts only when both can't be true given the days
  * between (finishing a book he was reading is life moving on, not a
@@ -18,6 +18,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { execFile, execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
+import { judgeModel } from '../lib/judge-model.mjs';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -112,7 +113,7 @@ const parse = (text: string): Verdict[] => {
 
 async function askGemini(prompt: string): Promise<Verdict[]> {
   const project = process.env.GOOGLE_CLOUD_PROJECT;
-  const model = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+  const model = judgeModel();
   const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
   for (let attempt = 0; ; attempt++) {
     const token = execFileSync('gcloud', ['auth', 'print-access-token']).toString().trim();

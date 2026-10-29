@@ -36,6 +36,16 @@ describe('call quality across processes', () => {
     expect(getRecentCalls()).toEqual([]);
   });
 
+  it("a placed call's job type rides startCall, so the worker times it from pickup", async () => {
+    const sent: Array<[string, unknown[]]> = [];
+    setCallQualityForwarder((op, args) => void sent.push([op, args]));
+    startCall('call-4', 'user-4', 'ferni', 'on_behalf_call');
+    expect(sent).toEqual([['startCall', ['call-4', 'user-4', 'ferni', 'on_behalf_call']]]);
+    setCallQualityForwarder(null);
+    await replayCallQuality('startCall', sent[0]?.[1] ?? [], () => undefined);
+    expect(getActiveCalls().map((c) => [c.callId, c.outbound])).toEqual([['call-4', true]]);
+  });
+
   it('the worker replays them into its own monitor, and ignores anything else', async () => {
     const logs: string[] = [];
     const log = (msg: string) => void logs.push(msg);

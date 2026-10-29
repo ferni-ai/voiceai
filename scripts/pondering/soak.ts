@@ -19,7 +19,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getApps, initializeApp } from 'firebase-admin/app';
-import { FieldPath, getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { FieldPath, type Firestore } from 'firebase-admin/firestore';
 import { callLLM } from '../../src/services/llm-utils.js';
 import { ponder, type PonderLlm } from '../../src/intelligence/pondering/pondering.js';
 import {
@@ -35,6 +35,7 @@ import {
   parseSoakArgs,
   serviceHasPondering,
 } from './soak-lib.js';
+import { getAdminFirestore } from '../../src/utils/firebase-admin-app.js';
 
 const PROJECT = 'johnb-2025';
 const REGION = 'us-central1';
@@ -81,7 +82,7 @@ async function evalUserIds(db: Firestore, limit: number): Promise<string[]> {
 async function main(): Promise<void> {
   const args = parseSoakArgs(process.argv.slice(2));
   if (getApps().length === 0) initializeApp({ projectId: PROJECT });
-  const db = getFirestore();
+  const db = getAdminFirestore();
   if (args.job) {
     // The job's own cohort and filters, every eligible caller treated as due; writes nothing.
     const env = { ...SOAK_ENV, PONDERING_USERS: process.env.PONDERING_USERS };

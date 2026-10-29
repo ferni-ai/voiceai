@@ -73,6 +73,7 @@ describe('what is copied', () => {
   it('copies none of the excluded stores, phone_mappings first among them', () => {
     const copied = COPIED_STORES.map(storeLabel);
     expect(copied).not.toContain('phone_mappings[userId]');
+    expect(copied).not.toContain('consent[grants.{uid}]'); // a contact's record, not the person's
     for (const label of Object.keys(EXCLUDED_STORES)) expect(copied).not.toContain(label);
     expect(copied.length + Object.keys(EXCLUDED_STORES).length).toBe(labels.length);
   });
@@ -138,6 +139,9 @@ describe('what is copied', () => {
         "user_gifts/{uid}",
         "profiles/{uid}",
         "feature_flag_overrides/{uid}",
+        "minor_care_holds/{uid}",
+        "semantic_routing_vocabulary/{uid}",
+        "semantic_routing_corrections/{uid}",
         "apple_health_status/{uid}",
         "apple_health_data/{uid}",
         "analytics_users/{uid}",
@@ -176,15 +180,22 @@ describe('what is copied', () => {
         "marketplace_installations[userId]",
         "trust_analytics[userId]",
         "routing_events[userId]",
+        "semantic_router_corrections[userId]",
+        "semantic_routing_feedback[userId]",
         "game_analytics_events[userId]",
         "bth_production_events[userId]",
         "feature_checkins[userId]",
         "relationship_memories[userId]",
+        "answer_cards[userId]",
         "share_links[ownerId]",
         "analytics_sessions[odId]",
         "context_injection_outcomes[injection.userId]",
+        "vectors[metadata.userId]",
+        "memory_vectors[metadata.userId]",
         "reply_reports[uid]",
         "reply_report_quota/{uid}",
+        "call_felt_off[uid]",
+        "call_felt_off_quota/{uid}",
       ]
     `);
   });

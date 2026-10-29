@@ -31,6 +31,7 @@ import { detectCrisis } from '../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../safety/crisis-shadow.js';
 import { LATE_WORDS_MERGED, type LateWordsMergedEvent } from '../shared/late-words-event.js';
 import { startCrisisGate } from './crisis-gate.js';
+import { recordCrisisOnCall, replaceKind } from '../safety/crisis-event-record.js';
 
 const log = createLogger({ module: 'LateWords' });
 
@@ -126,6 +127,9 @@ export function lateWordsMerger(
     session.interrupt?.();
     if (decision.action === 'replace') session.say?.(decision.script);
     else session.generateReply?.({ instructions: decision.guidance });
+    // CRISIS_EVENT_RECORD: after the script is queued, on a later tick; never throws
+    const reader = decision === gate.decision ? 'pattern' : 'classifier';
+    recordCrisisOnCall(session, decision.action, reader, replaceKind(decision));
   };
 
   return {

@@ -13,7 +13,7 @@
  * sent, so overlapping runs can't send it twice. One found more than two hours
  * late is marked 'missed' rather than sent: "call your mom" is noise the next
  * morning. A reminder we can't reach by its chosen channel (no valid phone or
- * email, or no Twilio/SendGrid credentials on this server) goes to the app's
+ * email, or no Twilio/email transport on this server) goes to the app's
  * message panel instead of failing.
  *
  * A reminder Ferni promised ("I'll remind you Sunday") settles that promise:
@@ -63,7 +63,7 @@ function isPhone(address: string): boolean {
   return /^\+[1-9]\d{7,14}$/.test(digits) || /^1?\d{10}$/.test(digits);
 }
 
-/** Whether this server can send on a channel (Twilio/SendGrid credentials present). */
+/** Whether this server can send on a channel (Twilio credentials, the email transport). */
 function channelUp(method: ReminderDeliveryMethod, status?: ChannelStatus): boolean {
   if (!status) return true;
   if (method === 'sms' || method === 'voice_message') return status.sms.available;

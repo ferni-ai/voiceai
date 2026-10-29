@@ -33,6 +33,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
 import { refuseOtherUsersJournal } from './journal-owner.js';
+import { editableEntryIds, handleChronicleEntryChange } from './journal-chronicle-entry.js';
 import { getVerifiedUserId } from '../servers/api/request-identity.js';
 import { useJournalEntryStore } from '../services/journal/journal-ports.js';
 import { firestoreJournalStore } from '../services/stores/journal-store.js';
@@ -69,6 +70,7 @@ export async function handleJournalRoutes(
   }
 
   try {
+    if (await handleChronicleEntryChange(req, res, pathname)) return true; // PUT/DELETE one entry
     // POST /api/journal/prompt - Get a single prompt
     if (method === 'POST' && pathname === '/api/journal/prompt') {
       const body = await parseBody<{
@@ -535,12 +537,10 @@ interface ChronicleData {
     mood?: string;
     audioUrl?: string;
     themes?: string[];
+    editable: boolean; // in the one store: PUT/DELETE .../chronicle/entry/:id can change it
   }>;
-  insights: Array<{
-    icon: string;
-    title: string;
-    text: string;
-  }>;
+  /** Worded by the panel (chronicle.insights.<kind>); no English, no streak or count. */
+  insights: Array<{ kind: 'rising' | 'heavy' | 'theme'; icon: string; theme?: string }>;
   prompts: Array<{
     id: string;
     category: string;
@@ -550,7 +550,6 @@ interface ChronicleData {
   }>;
   stats: {
     totalEntries: number;
-    currentStreak: number;
     averageMood?: string;
     moodTrend?: 'improving' | 'declining' | 'stable';
     entriesThisWeek: number;
@@ -561,13 +560,12 @@ interface ChronicleData {
 async function getChronicleData(userId: string): Promise<ChronicleData> {
   const journalService = getJournalService();
 
-  // Fetch recent entries and stats in parallel
-  const [entries, stats] = await Promise.all([
-    journalService.getAllEntries(userId, {
-      limit: 20,
-      sortOrder: 'desc',
-    }),
+  // The newest 50 (the panel pages them), stats, and which ones the store holds;
+  // a store failure is a 500 here, never an empty Chronicle
+  const [entries, stats, editable] = await Promise.all([
+    journalService.getAllEntries(userId, { limit: 50, sortOrder: 'desc' }),
     journalService.getStats(userId),
+    editableEntryIds(userId),
   ]);
 
   // Transform entries for Chronicle UI
@@ -579,6 +577,7 @@ async function getChronicleData(userId: string): Promise<ChronicleData> {
     mood: entry.mood?.label,
     audioUrl: entry.audioUrl,
     themes: entry.themes,
+    editable: editable.has(entry.id),
   }));
 
   // Generate insights from entries
@@ -616,7 +615,6 @@ async function getChronicleData(userId: string): Promise<ChronicleData> {
     prompts,
     stats: {
       totalEntries: stats.totalEntries,
-      currentStreak: stats.currentStreak,
       averageMood: stats.averageMood?.label,
       moodTrend: stats.moodTrend,
       entriesThisWeek: stats.entriesThisWeek,
@@ -632,39 +630,14 @@ function generateChronicleInsights(
     themes?: string[];
     createdAt: Date;
   }>,
-  stats: {
-    currentStreak: number;
-    averageMood?: { label: string };
-    moodTrend?: string;
-  }
+  stats: { moodTrend?: string }
 ): ChronicleData['insights'] {
+  // No streak and no entry count: the brand rubric rules out "in a row" and counting
   const insights: ChronicleData['insights'] = [];
-
-  // Streak insight
-  if (stats.currentStreak >= 3) {
-    insights.push({
-      icon: 'flame',
-      title: `${stats.currentStreak}-Day Streak`,
-      text:
-        stats.currentStreak >= 7
-          ? "A full week of reflection. You're building something powerful."
-          : "You're showing up for yourself. That consistency matters.",
-    });
-  }
-
-  // Mood trend insight
   if (stats.moodTrend === 'improving' && entries.length >= 5) {
-    insights.push({
-      icon: 'trending-up',
-      title: 'Rising Energy',
-      text: "Your recent entries show a lighter spirit. Something's shifting.",
-    });
+    insights.push({ kind: 'rising', icon: 'trendUp' });
   } else if (stats.moodTrend === 'declining' && entries.length >= 5) {
-    insights.push({
-      icon: 'heart',
-      title: 'Heavy Days',
-      text: "I notice things have felt heavier lately. I'm here when you need to talk.",
-    });
+    insights.push({ kind: 'heavy', icon: 'heart' });
   }
 
   // Theme pattern insight
@@ -677,24 +650,9 @@ function generateChronicleInsights(
     .filter(([, count]) => count >= 3)
     .sort((a, b) => b[1] - a[1])[0];
 
-  if (dominantTheme) {
-    insights.push({
-      icon: 'sparkles',
-      title: 'Recurring Theme',
-      text: `${dominantTheme[0]} keeps coming up in your thoughts. What's drawing you there?`,
-    });
-  }
+  if (dominantTheme) insights.push({ kind: 'theme', icon: 'sparkles', theme: dominantTheme[0] });
 
-  // Entry count insight
-  if (entries.length >= 10) {
-    insights.push({
-      icon: 'book',
-      title: 'Growing Archive',
-      text: `${entries.length} entries captured. Your future self will thank you for this.`,
-    });
-  }
-
-  return insights.slice(0, 3); // Return top 3 insights
+  return insights;
 }
 
 function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {

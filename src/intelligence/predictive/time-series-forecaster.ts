@@ -1,17 +1,13 @@
 /**
  * Time Series Forecaster
- *
  * TRUE PREDICTIVE INTELLIGENCE: Forecast mood, energy, and engagement over time.
- *
  * Unlike simple rules like "if Sunday → anxious", this uses actual time-series
  * forecasting to predict continuous values based on historical patterns.
- *
  * Techniques:
  * - Exponential smoothing for trend detection
  * - Seasonal decomposition (weekly, monthly cycles)
  * - Anomaly detection for unusual states
  * - Confidence intervals for predictions
- *
  * @module intelligence/predictive/time-series-forecaster
  */
 
@@ -157,6 +153,10 @@ const CONFIG = {
 // ============================================================================
 
 const userProfiles = new Map<string, TimeSeriesProfile>();
+/** MINOR_CARE: drop a held caller under 18's state, so it is never written later. */
+export function clearHeldTimeSeriesUser(userId: string): void {
+  userProfiles.delete(userId);
+}
 
 // ============================================================================
 // MAIN FUNCTIONS
@@ -425,7 +425,7 @@ function getOrCreateProfile(userId: string): TimeSeriesProfile {
     userProfiles.set(userId, profile);
 
     // Async load from Firestore (don't block)
-    if (!isUserLoaded(userId)) {
+    if (!isUserLoaded(userId, 'time_series')) {
       void loadTimeSeriesProfileFromFirestore(userId);
     }
   }
@@ -493,10 +493,10 @@ async function loadTimeSeriesProfileFromFirestore(userId: string): Promise<void>
         log.debug({ userId, totalPoints }, 'Loaded time series profile from Firestore');
       }
     }
-    markUserLoaded(userId);
+    markUserLoaded(userId, 'time_series');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load time series profile');
-    markUserLoaded(userId); // Don't retry
+    markUserLoaded(userId, 'time_series'); // Don't retry
   }
 }
 

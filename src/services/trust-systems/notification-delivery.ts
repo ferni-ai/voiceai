@@ -1,9 +1,8 @@
 /**
  * Notification Delivery Service
- *
  * Actually delivers proactive outreach notifications via:
  * - Push notifications (web/mobile)
- * - Email (Sendgrid/Postmark)
+ * - Email (the app transport: the ferni.ai Workspace mailbox)
  * - SMS (Twilio)
  *
  * Philosophy: The best check-ins feel like they came from a friend
@@ -17,12 +16,11 @@ import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getOutreachVoiceConfig, routeToPersona } from '../outreach/persona-outreach-formatter.js';
 import type { OutreachItem } from './outreach-integration.js';
+import { textHeld } from '../communication-service.js';
 
 const log = createLogger({ module: 'NotificationDelivery' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// --- TYPES ---
 
 export type DeliveryChannel = 'push' | 'email' | 'sms' | 'voice';
 
@@ -67,9 +65,7 @@ export interface UserChannelConfig {
   enabledChannels: DeliveryChannel[];
 }
 
-// ============================================================================
-// TEMPLATES - Warm, human language
-// ============================================================================
+// --- TEMPLATES - Warm, human language ---
 
 const PUSH_TEMPLATES: Record<string, { icon: string; badge: number }> = {
   thinking_of_you: {
@@ -216,8 +212,7 @@ export async function deliverEmail(
   };
 
   try {
-    // Use Sendgrid or Postmark
-    const sent = await sendEmailViaSendgrid(payload);
+    const sent = await sendEmailViaTransport(payload);
 
     if (sent) {
       log.info(
@@ -252,6 +247,9 @@ export async function deliverEmail(
  * Deliver via SMS
  */
 export async function deliverSms(item: OutreachItem, phone: string): Promise<DeliveryResult> {
+  // MINOR_CARE_SHARED_HOLD: no text to an account or number a call held under 18
+  if (await textHeld(phone, { userId: item.userId }))
+    return { success: false, channel: 'sms', error: 'Not sent: held', retryable: false };
   // Keep SMS short and sweet
   const body = truncateForSms(item.message);
 
@@ -305,6 +303,8 @@ export async function deliverVoice(
 
     const result = await callWithPersonaVoice(phone, item.message, personaId, {
       fallbackToTwilioVoice: true,
+      ownerUid: item.userId,
+      userId: item.userId,
     });
 
     if (result.success) {
@@ -344,7 +344,6 @@ export async function deliverToUser(
   item: OutreachItem,
   config: UserChannelConfig
 ): Promise<DeliveryResult> {
-  // Try preferred channel first
   const preferredResult = await tryChannel(item, config, config.preferredChannel);
   if (preferredResult.success) {
     return preferredResult;
@@ -636,45 +635,31 @@ async function getFirebaseAdmin(): Promise<typeof import('firebase-admin') | nul
 }
 
 /**
- * Send email via Sendgrid
+ * Send email through the app transport (the ferni.ai Workspace mailbox). A
+ * check-in is mail they can opt out of, so it goes as 'bulk' with a
+ * List-Unsubscribe mailto.
  */
-async function sendEmailViaSendgrid(payload: EmailPayload): Promise<boolean> {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  if (!apiKey) {
-    log.warn('SENDGRID_API_KEY not configured');
+async function sendEmailViaTransport(payload: EmailPayload): Promise<boolean> {
+  const { isEmailConfigured, sendAppEmail, unsubscribeMailbox } =
+    await import('../communication-service.js');
+  if (!isEmailConfigured()) {
+    log.warn('Email transport not configured');
     return false;
   }
-
-  try {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: payload.to }] }],
-        from: { email: 'hello@ferni.ai', name: 'Ferni' },
-        reply_to: { email: payload.replyTo || 'hello@ferni.ai' },
-        subject: payload.subject,
-        content: [
-          { type: 'text/plain', value: payload.text },
-          ...(payload.html ? [{ type: 'text/html', value: payload.html }] : []),
-        ],
-      }),
-    });
-
-    if (response.status === 202) {
-      return true;
-    }
-
-    const error = await response.text();
-    log.error({ status: response.status, error }, 'Sendgrid error');
-    return false;
-  } catch (error) {
-    log.error({ error }, 'Sendgrid request failed');
-    return false;
+  const res = await sendAppEmail({
+    to: payload.to,
+    fromName: 'Ferni',
+    replyTo: payload.replyTo || 'hello@ferni.ai',
+    subject: payload.subject,
+    text: payload.text,
+    html: payload.html,
+    kind: 'bulk',
+    unsubscribe: { mailto: unsubscribeMailbox() },
+  });
+  if (!res.ok) {
+    log.error({ provider: res.provider, status: res.status, error: res.error }, 'Email send failed'); // prettier-ignore
   }
+  return res.ok;
 }
 
 /**

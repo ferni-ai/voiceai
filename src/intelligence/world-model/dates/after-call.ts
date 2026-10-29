@@ -15,7 +15,9 @@
  */
 import { forgottenTopicsOrNull, isForgotten } from '../../../memory/index.js';
 import { envForCaller, type CohortStore } from '../../../services/platform/cohort-flags.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { callLLM } from '../../../services/llm-utils.js';
+import { writeHeld } from '../../../utils/minor-care.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   transcriptOf,
@@ -76,7 +78,10 @@ export async function datesFromCall(
 
 /** The task body; exported so tests can run it with a fake model and store. */
 export async function extractDatesAfterCall(ctx: DatesCall, deps: DatesDeps = {}): Promise<void> {
-  if (!ctx.userId || ctx.userId === 'anonymous') return;
+  // Never an unrecognised caller (anon:) or the third party on a call placed for someone (onbehalf:).
+  if (!isMemberIdentity(ctx.userId)) return;
+  // MINOR_CARE: also held when another of this caller's sessions is (writeHeld, minor-care.ts).
+  if (writeHeld(ctx.userId, ctx.sessionId)) return;
   // DATES_THAT_MATTER as this caller's call had it: process.env may hold the next caller's.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!datesThatMatterOn(env)) return;

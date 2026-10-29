@@ -10,7 +10,9 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { TurnToolRetrieval } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { PersonaId } from '../../personas/types.js';
 import type { SpeakerLog } from '../personas/director-persona.js';
+import { installTurnReading } from '../personas/turn-reading-shadow.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
+import { callChannelOf, rememberCallChannel } from '../personas/director-channel.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = getLogger();
@@ -68,6 +70,7 @@ export interface ToolRetrievalInput {
     getCurrentTools(): Record<string, unknown>;
   };
   cleanupFunctions: Cleanup;
+  phone?: boolean; // a phone (SIP) caller: PAUSE_HOLD_PHONE_CAP (pause-hold.ts)
 }
 
 /**
@@ -152,10 +155,7 @@ export async function installToolRetrieval(
 }
 
 /**
- * Turn understanding (TURN_UNDERSTANDING=shadow): a small model reads the
- * caller's turn while they talk; when Ferni starts replying, one
- * TURN_UNDERSTANDING record logs its answer next to what the regexes decided.
- * No transcript text is logged. Null when off.
+ * Turn understanding (TURN_UNDERSTANDING=shadow): a model reads caller turns; no transcript logged.
  */
 export async function installTurnUnderstanding(
   session: Session,
@@ -182,6 +182,7 @@ export async function installTurnUnderstanding(
     await promptOnCall(session)
   );
   setTurnUnderstander(session, understander);
+  const reading = installTurnReading(session, cleanupFunctions); // schema v0.1 in the record
   const finals: string[] = [];
   const onState = (ev: unknown): void => {
     if ((ev as { newState?: string }).newState !== 'speaking') return;
@@ -197,7 +198,7 @@ export async function installTurnUnderstanding(
       laughed: callerLaughed(turn),
       context: classifyBackchannelContext(turn),
     };
-    log.info(
+    reading.emit(
       {
         ready: Boolean(u),
         covered: seen ? Math.round(seen.covered * 100) / 100 : null,
@@ -217,7 +218,7 @@ export async function installTurnUnderstanding(
             }
           : null,
       },
-      'TURN_UNDERSTANDING'
+      (record) => log.info(record, 'TURN_UNDERSTANDING')
     );
     understander.newTurn(turn);
   };
@@ -232,6 +233,7 @@ export async function installTurnUnderstanding(
       const turn = [...finals, transcript].join(' ');
       if (isFinal) {
         finals.push(transcript);
+        reading.onFinal(turn);
         void understander.settle(turn);
       } else understander.onTurnText(turn);
     },
@@ -242,6 +244,7 @@ export async function installTurnUnderstanding(
 export async function installTurnListeners(
   input: ToolRetrievalInput
 ): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
+  rememberCallChannel(input.session, input.phone); // DIRECTOR_KNOWS_CHANNEL reads it
   // One REPLY_GAP line per caller turn (reply-gap.ts): the wait the caller hears.
   const { attachReplyGap, createLoopDelayProbe } = await import('../shared/reply-gap.js');
   const loop = createLoopDelayProbe();
@@ -261,21 +264,18 @@ export async function installTurnListeners(
       getAgentToolCount(now(input.agent) as never)
     )
   );
-  // PAUSE_HOLD: a reply to a turn ink ended hesitantly waits out the pause (pause-hold.ts).
-  // It stands down when LiveKit's end-of-turn model decides alone (turn-detector-sole.ts).
-  const { attachPauseHold } = await import('../../speech/output-control/pause-hold.js');
-  const { holdsStandDown } = await import('../shared/turn-detector-sole.js');
-  const detachPauseHold = holdsStandDown(input.session)
-    ? null
-    : attachPauseHold(input.session as never, input.sessionId);
-  if (detachPauseHold) input.cleanupFunctions.push(detachPauseHold);
+  // PAUSE_HOLD: a hesitant turn's reply waits out the pause (pause-hold-wiring.ts).
+  const { installPauseHold } = await import('./pause-hold-wiring.js');
+  await installPauseHold(input);
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
-  if (!retrieval && !understanding) return null;
+  const intent = (await import('../personas/internals-intent.js')).installInternalsIntent(input);
+  if (!retrieval && !understanding && !intent) return null;
   return {
     onTranscript(transcript, isFinal) {
       retrieval?.onTranscript(transcript, isFinal);
       understanding?.onTranscript(transcript, isFinal);
+      intent?.onTranscript(transcript, isFinal);
     },
   };
 }
@@ -303,6 +303,7 @@ export interface DirectorNotesInput {
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
   await installWrapUp(input);
+  (await import('./ai-notice-wiring.js')).installAiNotice(input); // AI_NOTICE_SPOKEN repeat
   // DIRECTOR_SEES_SCENE: both are framed for the persona speaking, each line labelled.
   const { directorSeesScene } = await import('../personas/director-cast.js');
   const seesScene = directorSeesScene();
@@ -317,7 +318,14 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
   // DIRECTOR_PERSONA_AWARE: after a handoff in one session, direct the persona on the call.
   const speakers = sceneSpeakers ?? (await speakerLog(session, cleanupFunctions));
   const { stageFor } = await import('../personas/director-scene.js');
-  const director = new Director({ sessionId, userName, writeNotes, speaking: speakers?.now });
+  const director = new Director({
+    sessionId,
+    userName,
+    writeNotes,
+    speaking: speakers?.now,
+    personaId: () => personaIdOf(session), // DIRECTOR_DIRECTS: directs from the persona's sheet
+    channel: () => callChannelOf(session), // DIRECTOR_KNOWS_CHANNEL: app or phone
+  });
   setDirector(session, director);
   // The director sees Ferni's tool calls as they start and finish (director-tool-state.ts).
   const { directorSeesTools, watchToolsForDirector } =
@@ -449,7 +457,7 @@ async function installDeliberation(
       understandingOfLastTurn(session),
       memory,
       mind ?? '',
-      speakers ? (personaIdOf(session) ?? 'ferni') : undefined
+      personaIdOf(session) ?? 'ferni' // read with DIRECTOR_SEES_SCENE or DIRECTOR_DIRECTS on
     );
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);

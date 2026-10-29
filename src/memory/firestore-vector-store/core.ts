@@ -18,6 +18,7 @@ import type {
   VectorDocument,
   VectorFilter,
   VectorSearchResult,
+  VectorStoreStats,
 } from '../vector-store-interface.js';
 import type {
   FirestoreVectorConfig,
@@ -269,9 +270,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     await this.initialize();
   }
 
-  /**
-   * Add a document to the vector store.
-   */
+  /** Add a document to the vector store. */
   async addDocument(doc: VectorDocument): Promise<void> {
     await this.ensureInitialized();
 
@@ -309,6 +308,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
         metadata: doc.metadata,
         createdAt: new Date(),
         updatedAt: new Date(),
+        expireAt: doc.expireAt, // a policy's expiry (store-hooks.ts); none is kept
         needsEmbedding, // Flag for background job to retry embedding generation
       });
 
@@ -363,9 +363,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
   /** Remove a document from the store; true only when the persisted copy is gone. */
   async removeDocument(id: string): Promise<boolean> {
     await this.ensureInitialized();
-
     this.fallbackCache.delete(id);
-
     if (this.useFallback || !this.db) {
       return false; // only the cache was reached
     }
@@ -380,9 +378,13 @@ export class FirestoreVectorStore implements VectorStoreContract {
     }
   }
 
-  /**
-   * Get a document by ID.
-   */
+  /** MINOR_CARE purge: the cache's documents (migrated to Firestore on recovery); fallback mode. */
+  async cached(filter?: VectorFilter): Promise<{ docs: VectorDocument[]; fallback: boolean }> {
+    await this.ensureInitialized();
+    return { docs: this.fallbackCache.list(filter), fallback: this.useFallback || !this.db };
+  }
+
+  /** Get a document by ID. */
   async getDocument(id: string): Promise<VectorDocument | undefined> {
     await this.ensureInitialized();
 
@@ -552,7 +554,6 @@ export class FirestoreVectorStore implements VectorStoreContract {
           score: topKResult.similarities[i],
         }));
 
-        // Cache the results
         this.searchCache.set(query, queryEmbedding, results, options?.filter, { topK, minScore });
         return results;
       }
@@ -756,41 +757,36 @@ export class FirestoreVectorStore implements VectorStoreContract {
   }
 
   /**
-   * Get store statistics.
+   * Store statistics. Firestore is one count() aggregation (~1 read per 1,000
+   * docs); it used to read all 93k vector docs, ~0.5 GB, per health probe
+   * (2026-10-22 audit, gap 6). documentCount counts every doc, metadata or not.
+   * bySource/byCategory are null when Firestore was counted (open-ended values
+   * no aggregation can break down); otherwise they cover the fallback cache.
    */
-  async getStats(): Promise<{
-    documentCount: number;
-    bySource: Record<string, number>;
-    byCategory: Record<string, number>;
-    usingFallback: boolean;
-  }> {
+  async getStats(): Promise<VectorStoreStats> {
     await this.ensureInitialized();
 
     const cacheStats = this.fallbackCache.getStats();
-    let documentCount = cacheStats.count;
-    const bySource = { ...cacheStats.bySource };
-    const byCategory = { ...cacheStats.byCategory };
+    const cacheOnly: VectorStoreStats = {
+      documentCount: cacheStats.count,
+      bySource: { ...cacheStats.bySource },
+      byCategory: { ...cacheStats.byCategory },
+      usingFallback: this.useFallback,
+    };
+    if (this.useFallback || !this.db) return cacheOnly;
 
-    if (!this.useFallback && this.db) {
-      try {
-        const snapshot = await this.db.collection(this.COLLECTION_NAME).get();
-        for (const doc of snapshot.docs) {
-          const data = doc.data();
-          if (!data?.metadata) continue;
-
-          documentCount++;
-          const meta = data.metadata as VectorDocument['metadata'];
-          bySource[meta.source] = (bySource[meta.source] || 0) + 1;
-          if (meta.category) {
-            byCategory[meta.category] = (byCategory[meta.category] || 0) + 1;
-          }
-        }
-      } catch (error) {
-        log.warn({ error: String(error) }, 'getStats failed');
-      }
+    try {
+      const counted = await this.db.collection(this.COLLECTION_NAME).count().get();
+      return {
+        documentCount: cacheStats.count + counted.data().count,
+        bySource: null,
+        byCategory: null,
+        usingFallback: this.useFallback,
+      };
+    } catch (error) {
+      log.warn({ error: String(error) }, 'getStats failed');
+      return cacheOnly;
     }
-
-    return { documentCount, bySource, byCategory, usingFallback: this.useFallback };
   }
 
   /**

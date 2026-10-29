@@ -27,6 +27,7 @@ import {
   recentCallerTurns,
 } from '../../adaptive-ssml/heavy-moment.js';
 import type { Valence } from './emotion.js';
+import type { LaughGate } from './types.js';
 import {
   decideTeamLaughter,
   ferniLightStyle,
@@ -53,6 +54,7 @@ export interface LaughterInput {
   teamVoices?: boolean;
   /** FERNI_LIGHT_TOUCH=on: Ferni laughs by the team rules with a reachable floor (team-laughter.ts). */
   lightTouch?: boolean;
+  laughGate?: LaughGate; // LAUGH_CAP (types.ts)
 }
 
 const TOPIC_WEIGHT: Record<Valence, 'light' | 'medium' | 'heavy'> = {
@@ -68,7 +70,8 @@ const LAUGHTER_TAG = /\[laughter\]/i;
 export type LaughterWho = Pick<
   LaughterInput,
   'sessionId' | 'personaId' | 'turn' | 'userEmotion' | 'comfortLevel' | 'teamVoices' | 'lightTouch'
->;
+> &
+  Pick<LaughterInput, 'laughGate'>;
 
 /** Where to add `[laughter]` for this reply, or undefined for none. */
 export function decideReplyLaughter(input: LaughterInput): LaughPlacement | undefined {
@@ -85,6 +88,8 @@ export function decideReplyLaughter(input: LaughterInput): LaughPlacement | unde
     if (team) noteWrittenLaughter(input.sessionId, input.turn, input.userText);
     return undefined;
   }
+  // LAUGH_CAP: the call's laugh ledger has the last word, whichever rules ask.
+  if (input.laughGate && !input.laughGate.mayLaugh()) return undefined;
   if (team) return decideTeamLaughter(input, team);
   const decision = decideLaughter(
     {

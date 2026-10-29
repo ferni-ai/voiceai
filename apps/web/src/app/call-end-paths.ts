@@ -78,6 +78,17 @@ export function noteConversationEnd(event: ConversationEndEvent): void {
   }
 }
 
+/**
+ * The agent took back its goodbye (`conversation_continue`, conversation-continue.ts):
+ * the call carries on, so its end is no longer planned, the ceremony is off, and a
+ * later hang-up plays its own sound.
+ */
+export function noteConversationContinue(): void {
+  goodbyeDone = false;
+  plannedGoodbye = false;
+  setWrappingUp(false);
+}
+
 /** The room closed under us after a planned goodbye: the planned end, so no "dropped" notice. */
 export function afterConversationEnd(): boolean {
   return plannedGoodbye;

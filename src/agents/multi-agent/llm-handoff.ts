@@ -11,9 +11,11 @@
  * @module agents/multi-agent/llm-handoff
  */
 import { handoffEvents } from '../../handoff/index.js';
+import { earlyGoodbyePending, toolHandoffSuperseded } from '../../tools/handoff/early-goodbye.js';
 import { offerAgent, withdrawAgent } from '../../tools/handoff/ready-agents.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { noteTurnTiming } from '../../speech/output-control/turn-timing.js';
 import { handoffStartMessages } from './handoff-messages.js';
 import type { handleHandoffFromDataChannel } from './multi-agent-entry.js';
 import type { AgentOrchestrator } from './orchestrator.js';
@@ -47,12 +49,37 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
     log.warn('🎭 voiceSwitch event missing persona ID');
     return;
   }
+  const sessionId = String(call.services.sessionId);
+  noteTurnTiming(sessionId, 'handoffEvent', 0); // the turn's TURN_RECEIPT timing.handoffSteps
   if (!(await call.lock.acquire())) {
     log.warn({ targetPersonaId }, '🔒 Handoff already in progress, ignoring LLM request');
+    // HANDOFF_EARLY_GOODBYE: after a goodbye, answer the tool now, not at its timeout (dead air)
+    if (earlyGoodbyePending(String(call.services.sessionId))) {
+      handoffEvents.emit('handoffHandlerComplete', {
+        targetId: targetPersonaId,
+        success: false,
+        greetingSpoken: false,
+        instructionsUpdated: false,
+        error: 'Handoff already in progress',
+      });
+    }
     return;
   }
-  const sessionId = String(call.services.sessionId);
+  noteTurnTiming(sessionId, 'handoffLock', 0);
   try {
+    // HANDOFF_EARLY_GOODBYE: a tap to someone else came first and won; this handoff never runs
+    const chosen = toolHandoffSuperseded(sessionId, targetPersonaId);
+    if (chosen) {
+      log.info({ targetPersonaId, chosen }, '🎭 LLM handoff dropped: the caller tapped another');
+      handoffEvents.emit('handoffHandlerComplete', {
+        targetId: targetPersonaId,
+        success: false,
+        greetingSpoken: false,
+        instructionsUpdated: false,
+        error: `The caller chose ${chosen}`,
+      });
+      return;
+    }
     const currentPersonaId = call.orchestrator.getCurrentPersonaId();
     log.info(
       { from: currentPersonaId, to: targetPersonaId, toolThought: event.previousAgentId },
@@ -62,6 +89,7 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
       // eslint-disable-next-line no-await-in-loop -- in order: the app reads them in sequence
       await call.publish(m);
     }
+    noteTurnTiming(sessionId, 'handoffPublished', 0);
 
     // With one session per call the tool hands the next persona to the SDK: it stops
     // waiting once that persona is built (ready-agents.ts)

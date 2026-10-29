@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { AudioSource } from '@livekit/rtc-node';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { AudioResampler, AudioSource } from '@livekit/rtc-node';
 import {
   CANCEL_WINDOW_MS,
   clipFrames,
@@ -80,6 +80,16 @@ describe('clipFrames', () => {
     const peak = (fs: Int16Array[]) => Math.max(...fs.flatMap((f) => Array.from(f, Math.abs)));
     expect(peak(loud)).toBeGreaterThan(7000);
     expect(Math.abs(peak(soft) - peak(loud) / 2)).toBeLessThan(200);
+  });
+
+  it('frees its native resampler', () => {
+    const close = vi.spyOn(AudioResampler.prototype, 'close');
+    try {
+      clipFrames(clip(100));
+      expect(close).toHaveBeenCalledTimes(1);
+    } finally {
+      close.mockRestore();
+    }
   });
 });
 

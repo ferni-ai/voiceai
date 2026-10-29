@@ -24,7 +24,10 @@ counts for nothing. Anyone in no cohort gets the agent's own values.
 
 Only switches in `COHORT_FLAGS` can be set: behaviour, never infrastructure or secrets.
 Anything else is dropped and logged. Values are `on` or `off`, except `TURN_LENGTH` and
-`TURN_TEXTURE`, which take `learned` or `off`.
+`TURN_TEXTURE`, which take `learned` or `off`, and `PREEMPT_STABLE_CONTEXT`, which also
+takes `defer`. The latency switches (`ACTION_CLAIM_STREAM`, `PREEMPT_STABLE_CONTEXT`,
+`CACHE_WARM_PRIMARY`, `HANDOFF_CACHE_WARM`) are here so a dev A/B can give each eval
+caller its arm and run both arms in the same hour.
 
 ## Audiences (cohort ids)
 

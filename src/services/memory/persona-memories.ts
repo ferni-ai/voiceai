@@ -194,6 +194,8 @@ export interface AlexMemory extends Memory {
 const memoriesCache = new Map<string, Memory>();
 const dirtyUsers = new Set<string>();
 const loadedUsers = new Set<string>();
+/** Users whose stored memories failed to read: never saved over until a later read succeeds. */
+const readFailed = new Set<string>();
 
 // ============================================================================
 // SESSION DATA MANAGER INTEGRATION
@@ -213,9 +215,9 @@ export function clearUserMemoriesCache(userId: string): void {
     }
   }
 
-  // Clear tracking sets
   loadedUsers.delete(userId);
   dirtyUsers.delete(userId);
+  readFailed.delete(userId);
 
   getLogger().debug({ userId, cleared }, '🧹 PersonaMemories user cache cleared');
 }
@@ -227,6 +229,7 @@ export function clearAllMemoriesCache(): void {
   memoriesCache.clear();
   loadedUsers.clear();
   dirtyUsers.clear();
+  readFailed.clear();
   getLogger().info('🧹 PersonaMemories all caches cleared');
 }
 
@@ -269,22 +272,20 @@ function generateId(): string {
   return `mem_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-/**
- * Load memories from user profile into cache
- */
+/** Load memories into the cache. A read error is not "no memories": the user stays unloaded and in
+ * readFailed (so saves hold back) and the next load retries. A missing profile loads as empty. */
 async function loadMemoriesForUser(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   try {
     const store = await getProfileStore();
-    const profile = await store.getProfile(userId);
-
+    const profile = await store.getProfileStrict(userId);
+    readFailed.delete(userId);
     if (!profile?.personaMemories) {
       loadedUsers.add(userId);
       return;
     }
 
-    // Load each persona's memories into cache
     for (const [personaKey, memories] of Object.entries(profile.personaMemories)) {
       if (!memories) continue;
 
@@ -318,8 +319,8 @@ async function loadMemoriesForUser(userId: string): Promise<void> {
       'Loaded persona memories from profile'
     );
   } catch (error) {
-    getLogger().warn({ error, userId }, 'Failed to load persona memories');
-    loadedUsers.add(userId); // Mark as loaded to prevent repeated failures
+    readFailed.add(userId);
+    getLogger().warn({ error, userId }, 'Failed to load persona memories; not saving over them');
   }
 }
 
@@ -328,7 +329,11 @@ async function loadMemoriesForUser(userId: string): Promise<void> {
  */
 export async function saveMemoriesForUser(userId: string): Promise<void> {
   if (!dirtyUsers.has(userId)) return;
-
+  if (readFailed.has(userId)) await loadMemoriesForUser(userId); // retry the failed read
+  if (readFailed.has(userId)) {
+    getLogger().warn({ userId }, 'Persona memories read failed; not saving over them');
+    return; // still dirty, so a later save tries again
+  }
   try {
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
@@ -336,18 +341,13 @@ export async function saveMemoriesForUser(userId: string): Promise<void> {
 
     const userMemories = Array.from(memoriesCache.values()).filter((m) => m.userId === userId);
 
-    // Organize by persona
     const personaMemories: NonNullable<UserProfile['personaMemories']> = {};
 
     for (const mem of userMemories) {
       const field = PERSONA_FIELD_MAP[mem.personaId];
       if (!field) continue;
 
-      if (!personaMemories[field]) {
-        personaMemories[field] = [];
-      }
-
-      // Build memory entry conforming to base persona memory structure
+      personaMemories[field] ??= [];
       const memoryEntry: BasePersonaMemoryEntry = {
         id: mem.id,
         type: mem.type,
@@ -360,8 +360,7 @@ export async function saveMemoriesForUser(userId: string): Promise<void> {
         timesReferenced: mem.timesReferenced,
       };
 
-      // Push to the appropriate persona array
-      // Type assertion needed because field is computed at runtime
+      // field is computed at runtime, hence the assertion
       (personaMemories[field] as BasePersonaMemoryEntry[]).push(memoryEntry);
     }
 

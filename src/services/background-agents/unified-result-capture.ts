@@ -284,14 +284,11 @@ async function sendPushNotification(result: BackgroundResult): Promise<void> {
     const { sendPushNotification: sendPush, isPushNotificationsAvailable } =
       await import('../outreach/delivery/push-notifications.js');
 
-    if (!isPushNotificationsAvailable()) {
-      return;
-    }
-
+    if (!isPushNotificationsAvailable()) return;
     const title = buildPushTitle(result);
     const body = result.summary;
 
-    await sendPush({
+    const results = await sendPush({
       userId: result.userId,
       outreachId: result.id,
       personaId: result.initiatedBy,
@@ -306,47 +303,44 @@ async function sendPushNotification(result: BackgroundResult): Promise<void> {
       priority: result.priority === 'urgent' ? 'high' : 'normal',
       clickAction: '/activity', // Navigate to activity history
     });
-
-    log.info({ userId: result.userId, resultId: result.id }, 'Push notification sent');
+    // No device token comes back as { success: false }, never a throw: only a delivery is "sent".
+    const error = results.some((r) => r.success) ? undefined : (results[0]?.error ?? 'not sent');
+    const fields = { userId: result.userId, resultId: result.id, error };
+    if (error) log.warn(fields, 'Push notification NOT sent');
+    else log.info(fields, 'Push notification sent');
   } catch (error) {
     log.warn({ error: String(error), resultId: result.id }, 'Failed to send push notification');
   }
 }
 
-/**
- * Send email notification for result
- */
-async function sendEmailNotification(result: BackgroundResult): Promise<void> {
+/** Send the email notification; what it returns is what the transport answered (#2947). */
+async function sendEmailNotification(
+  result: BackgroundResult
+): Promise<'sent' | 'failed' | 'skipped'> {
+  const fields = { userId: result.userId, resultId: result.id };
   try {
     const { sendEmail, isEmailDeliveryAvailable } =
       await import('../outreach/delivery/email-delivery.js');
+    const email = isEmailDeliveryAvailable() ? await getUserEmail(result.userId) : null;
+    if (!email) return 'skipped';
 
-    if (!isEmailDeliveryAvailable()) {
-      return;
-    }
-
-    // Get user's email
-    const email = await getUserEmail(result.userId);
-    if (!email) {
-      return;
-    }
-
-    const subject = buildEmailSubject(result);
-    const body = buildEmailBody(result);
-
-    await sendEmail({
+    const sent = await sendEmail({
       to: email,
-      subject,
-      body,
+      subject: buildEmailSubject(result),
+      body: buildEmailBody(result),
       personaId: result.initiatedBy,
       userId: result.userId,
       outreachId: result.id,
       tags: ['background-result', result.type],
     });
-
-    log.info({ userId: result.userId, resultId: result.id }, 'Email notification sent');
+    // A failure logs a code only: never the address or the body.
+    if (!sent.success)
+      log.warn({ ...fields, code: sent.status ?? 'send_failed' }, 'Email notification NOT sent');
+    else log.info(fields, 'Email notification sent');
+    return sent.success ? 'sent' : 'failed';
   } catch (error) {
-    log.warn({ error: String(error), resultId: result.id }, 'Failed to send email notification');
+    log.warn({ ...fields, code: (error as Error)?.name ?? 'error' }, 'Failed to send email notification'); // prettier-ignore
+    return 'failed';
   }
 }
 
@@ -508,15 +502,14 @@ export async function captureBackgroundResult(params: {
     if (!params.skipPush) await sendPushNotification(result);
 
     // 4. Send email for high priority results
-    if (result.priority === 'urgent' || result.priority === 'high') {
-      await sendEmailNotification(result);
-    }
+    const urgent = result.priority === 'urgent' || result.priority === 'high';
+    const email = urgent ? await sendEmailNotification(result) : 'skipped';
 
     if (sentToActive) {
       await markResultsDelivered(result.userId, [result.id], 'voice');
     }
 
-    log.info({ resultId: result.id, sentToActive }, 'Background result captured successfully');
+    log.info({ resultId: result.id, sentToActive, email }, 'Background result captured');
 
     return result;
   } catch (error) {

@@ -99,7 +99,33 @@ await orchestrator.handoff({
 | `persona-agent-factory.ts` | Creates agents with full capabilities |
 | `agent-setup.ts` | Reusable agent setup (Gemini, TTS, handlers) |
 | `multi-agent-entry.ts` | Entry point for multi-agent sessions |
+| `greeting-direction.ts` | The hello: what the director is told, and the lines it turns away |
+| `first-call-stranger.ts` | A first meeting's hello: no tease, no shared past |
+| `unknown-caller-honest.ts` | A caller Ferni can't place: met, never promised memory (`UNKNOWN_CALLER_HONEST`) |
 | `index.ts` | Exports |
+
+## Callers Ferni Can't Place
+
+A caller with no account (`isMemberIdentity` false: an `anon:` id, minted fresh for
+every unrecognised call) and no past calls. Nothing is stored for them, and the next
+call has a new id, so Ferni starts from nothing every time (#3002).
+
+With `UNKNOWN_CALLER_HONEST=on` (default off):
+
+- **The hello** is a first meeting's (`UNPLACED_GREETING_DIRECTION`): warm, no tease,
+  no shared past, and no claim that it is their first call, since it may be their
+  fifth. Lines like "speak of the devil" or "I was just thinking about you" are
+  turned away for the scripted stranger's hello (#3007).
+- **The model's instructions** say nothing from the call is kept and never to promise
+  to remember them or follow up. No pitch to sign in: the note is built before anyone
+  says their age, and Ferni is 18+, so a caller who sounds under 18 must never be
+  steered toward an account (`MINOR_CARE_NOTE` answers for them). A `RETURNING_CALLER`
+  lookup keeps a first name and one line for 30 days, and the note says so instead.
+- **Call-start awareness** says "you don't know who this is yet", not "first
+  conversation" (`firstTalkNote`).
+
+Members (accounts, `phone:`, `device:`, test accounts) and calls Ferni places are
+unchanged.
 
 ## Integration Status
 

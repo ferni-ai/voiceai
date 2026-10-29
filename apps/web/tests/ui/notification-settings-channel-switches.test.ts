@@ -1,15 +1,23 @@
 /**
- * The SMS and email switches in "When I'll Check In" reach the server, on and off.
+ * When I'll Check In: the email switch shows and saves the SERVER's value.
  *
- * They used to send `disabledChannels`, which the server ignored, and nothing at
- * all for switching one back on. Now the panel sends the switches the person
- * changed (smsEnabled/emailEnabled), and only those: the rest of its copy is
- * this browser's and may be stale, so saving quiet hours never flips texts.
- * Texts themselves have no switch here (#2059): they are turned on only in
- * Contact Settings, next to the disclosure, so this tests the email switch.
+ * It was "Email Updates": it showed this browser's copy (ferni-outreach-prefs)
+ * and promised "milestone celebrations and weekly recaps". No weekly recap
+ * exists, and milestone emails don't read it. What reads it is the daily
+ * check-in run (automated-scheduler.ts, outreachPreferences.channels), which
+ * GET /api/outreach/preferences reports as `allowedChannels`. The panel can't
+ * grant email consent that was never given, so the row shows only while email
+ * is on there, and stays for the visit once switched off so it can go back on.
+ * Texts have no switch here (#2059): they go on next to the disclosure.
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const enUS = JSON.parse(
+  readFileSync(resolve(__dirname, '../../src/i18n/locales/en-US.json'), 'utf8')
+) as { notificationSettings: Record<string, string> };
 
 const apiGet = vi.fn();
 const apiPost = vi.fn();
@@ -18,8 +26,39 @@ vi.mock('../../src/services/push-preference.js', () => ({ applyPushPreference: v
 vi.mock('../../src/services/timezone.service.js', () => ({
   getUserTimezone: () => 'America/New_York',
 }));
+const toast = vi.hoisted(() => ({
+  error: vi.fn(),
+  success: vi.fn(),
+  info: vi.fn(),
+  warning: vi.fn(),
+}));
+vi.mock('../../src/ui/whisper.ui.js', () => ({ toast, whisper: toast }));
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const flush = async (): Promise<void> => {
+  for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+};
+const emailBox = (): HTMLInputElement | null => document.querySelector('[data-email-checkins]');
+const preferencePosts = (): unknown[] =>
+  apiPost.mock.calls
+    .filter(([url]) => url === '/api/outreach/preferences')
+    .map(([, body]) => (body as { preferences: unknown }).preferences);
+
+/** What GET /api/outreach/preferences answers (outreach.routes.ts), in order. */
+function serverChannels(...answers: Array<string[] | null>): void {
+  let n = 0;
+  apiGet.mockImplementation(async (url: string) => {
+    if (url !== '/api/outreach/preferences')
+      return { ok: true, status: 200, data: { upcoming: [] } };
+    const channels = answers[Math.min(n++, answers.length - 1)];
+    return channels
+      ? {
+          ok: true,
+          status: 200,
+          data: { success: true, allowedChannels: channels, outreachEnabled: true },
+        }
+      : { ok: false, status: 500, error: 'boom' };
+  });
+}
 
 async function openPanel(): Promise<void> {
   vi.resetModules();
@@ -28,23 +67,15 @@ async function openPanel(): Promise<void> {
   await flush();
 }
 
-function flip(name: 'smsEnabled' | 'emailEnabled', on: boolean): void {
-  const box = document.querySelector<HTMLInputElement>(`[data-outreach="${name}"]`);
-  if (!box) throw new Error(`missing ${name}`);
+function flip(on: boolean): void {
+  const box = emailBox();
+  if (!box) throw new Error('no email switch');
   box.checked = on;
   box.dispatchEvent(new Event('change'));
 }
 
-async function save(): Promise<Record<string, unknown> | undefined> {
-  document.querySelector<HTMLButtonElement>('[data-action="save"]')?.click();
-  await flush();
-  const call = apiPost.mock.calls.find(([url]) => url === '/api/outreach/preferences');
-  return (call?.[1] as { preferences: Record<string, unknown> } | undefined)?.preferences;
-}
-
 beforeEach(() => {
   localStorage.clear();
-  apiGet.mockResolvedValue({ ok: true, status: 200, data: { upcoming: [] } });
   apiPost.mockResolvedValue({ ok: true, status: 200, data: { success: true } });
 });
 
@@ -52,29 +83,110 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("When I'll Check In: SMS and email switches", () => {
-  it('switching email off sends emailEnabled: false (not the ignored disabledChannels)', async () => {
+describe("When I'll Check In: check-ins by email", () => {
+  it('shows the server value, not the one this browser saved', async () => {
+    localStorage.setItem('ferni-outreach-prefs', JSON.stringify({ emailEnabled: false }));
+    serverChannels(['sms', 'email']);
     await openPanel();
-    flip('emailEnabled', false);
-    expect(await save()).toEqual({ emailEnabled: false });
+    expect(emailBox()?.checked).toBe(true);
+    expect(emailBox()?.getAttribute('role')).toBe('switch');
   });
 
-  it('switching email back on is sent too', async () => {
-    localStorage.setItem('ferni-outreach-prefs', JSON.stringify({ emailEnabled: false }));
+  it("is not offered when the server has email off, whatever this browser's copy says", async () => {
+    localStorage.setItem('ferni-outreach-prefs', JSON.stringify({ emailEnabled: true }));
+    serverChannels(['sms']);
     await openPanel();
-    flip('emailEnabled', true);
-    expect(await save()).toEqual({ emailEnabled: true });
+    expect(emailBox()).toBeNull();
+  });
+
+  it('is not offered when the server did not answer', async () => {
+    localStorage.setItem('ferni-outreach-prefs', JSON.stringify({ emailEnabled: true }));
+    serverChannels(null);
+    await openPanel();
+    expect(emailBox()).toBeNull();
+  });
+
+  it('says only what it sends: check-ins, no weekly recaps or milestones', async () => {
+    serverChannels(['email']);
+    await openPanel();
+    const row = emailBox()!.closest('.notif-settings__capability-row')!;
+    expect(row.querySelector('.notif-settings__label')?.textContent).toBe('Check-ins by email');
+    expect(row.querySelector('.notif-settings__desc')?.textContent).toBe(
+      'Whether I can check in with you by email. Off means no check-in emails.'
+    );
+    expect(enUS.notificationSettings.emailCheckins).toBe('Check-ins by email');
+    expect(enUS.notificationSettings.emailCheckinsDesc).toBe(
+      'Whether I can check in with you by email. Off means no check-in emails.'
+    );
+    expect(document.body.textContent).not.toMatch(/weekly recap/i);
+    expect(enUS.notificationSettings).not.toHaveProperty('emailUpdatesDesc');
+  });
+
+  it('switching off saves emailEnabled: false right away (the server drops email itself)', async () => {
+    serverChannels(['sms', 'email']);
+    await openPanel();
+    flip(false);
+    await flush();
+    expect(preferencePosts()).toEqual([{ emailEnabled: false }]);
+    expect(emailBox()?.checked).toBe(false); // still there, so it can go back on
+  });
+
+  it('stays for the rest of the visit once off, through a redraw, and goes back on', async () => {
+    // open: email on; when it goes back on, the server has it off (as this switch left it)
+    serverChannels(['email'], []);
+    await openPanel();
+    flip(false);
+    await flush();
+    const tab = (name: string) =>
+      document.querySelector<HTMLElement>(`.notif-settings__tab[data-tab="${name}"]`)!.click();
+    tab('upcoming');
+    tab('settings'); // redraws the settings tab from this visit's state
+    await flush();
+    expect(emailBox()).not.toBeNull();
+    expect(emailBox()?.checked).toBe(false);
+    flip(true);
+    await flush();
+    expect(preferencePosts()).toEqual([{ emailEnabled: false }, { allowedChannels: ['email'] }]);
+    expect(emailBox()?.checked).toBe(true);
+  });
+
+  it('switching back on sends the list read just now, plus email', async () => {
+    // open: texts and email on; texts went off elsewhere and calls on before email goes back on
+    serverChannels(['sms', 'email'], ['call']);
+    await openPanel();
+    flip(false);
+    await flush();
+    flip(true);
+    await flush();
+    expect(preferencePosts()).toEqual([
+      { emailEnabled: false },
+      { allowedChannels: ['call', 'email'] },
+    ]);
+  });
+
+  it('a failed save puts the switch back and shows the error toast', async () => {
+    serverChannels(['email']);
+    await openPanel();
+    apiPost.mockResolvedValueOnce({ ok: false, status: 500, error: 'boom' });
+    flip(false);
+    await flush();
+    expect(emailBox()?.checked).toBe(true);
+    expect(toast.error).toHaveBeenCalledWith("Couldn't save that. Try again?");
+  });
+
+  it('Save sends no email change: the switch already saved itself', async () => {
+    serverChannels(['email']);
+    await openPanel();
+    document.querySelector<HTMLButtonElement>('[data-action="save"]')?.click();
+    await flush();
+    expect(preferencePosts()).toEqual([{}]);
   });
 
   it('texts have no switch here: they go on only next to the disclosure', async () => {
+    serverChannels(['sms', 'email']);
     await openPanel();
     expect(document.querySelector('[data-outreach="smsEnabled"]')).toBeNull();
+    expect(document.querySelector('[data-outreach="emailEnabled"]')).toBeNull();
     expect(document.querySelector('[data-action="open-contact-texts"]')).not.toBeNull();
-  });
-
-  it('a save that changed no switch sends none, so a stale copy flips nothing', async () => {
-    localStorage.setItem('ferni-outreach-prefs', JSON.stringify({ smsEnabled: false }));
-    await openPanel();
-    expect(await save()).toEqual({});
   });
 });

@@ -9,7 +9,7 @@
  */
 
 import { getProfileStore } from '../../../memory/profile-store.js';
-import { createHmac } from 'crypto';
+import twilio from 'twilio';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { recordResponseEvent } from '../analytics.js';
@@ -21,7 +21,10 @@ import { findContactByPhone, markContactResponded } from '../../contacts/optimal
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
+import { heldSender } from '../checkin-replies.js';
+import { answerCallMe, NO_CALL } from '../sms-call-me.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -207,7 +210,9 @@ export function onInboundMessage(handler: InboundMessageHandler): void {
 // ============================================================================
 
 /**
- * Validate Twilio webhook signature (HMAC-SHA1 as per Twilio's specification).
+ * Validate a Twilio webhook signature over `url` plus the posted form fields, with the
+ * Twilio SDK's validateRequest (constant-time compare, port spellings). `url` must be the
+ * URL Twilio was given (api/twilio-callback-signature.ts builds it).
  * The token comes from initializeTwilioWebhooks, else TWILIO_AUTH_TOKEN: nothing deployed
  * calls initializeTwilioWebhooks, so without the env fallback every signature was refused.
  */
@@ -223,15 +228,7 @@ export function validateTwilioSignature(
   }
 
   try {
-    // Build the data string: URL + sorted params concatenated
-    const sortedKeys = Object.keys(params).sort();
-    let data = url;
-    for (const key of sortedKeys) {
-      data += key + params[key];
-    }
-    const expectedSignature = createHmac('sha1', authToken).update(data).digest('base64');
-
-    return signature === expectedSignature;
+    return Boolean(signature) && twilio.validateRequest(authToken, signature, url, params);
   } catch (error) {
     log.error({ error }, 'Signature validation error');
     return false;
@@ -406,15 +403,9 @@ export async function handleInboundSMSWebhook(
       calculateEngagement(Body) === 'high' ? 9 : calculateEngagement(Body) === 'medium' ? 6 : 3,
   });
 
-  if (userId !== 'unknown') {
-    log.info({ userId, from: From }, 'SMS response attributed to user');
-  }
+  if (isMemberIdentity(userId)) log.info({ userId, from: From }, 'SMS response attributed to user');
 
-  // =========================================================================
-  // ML TIMING LEARNING - Check if this is a response from a known contact
-  // =========================================================================
-  // If the inbound message is from a phone number we've sent TO (a contact),
-  // update the ML timing model to record that they responded.
+  // ML TIMING LEARNING: a reply from a number we texted (a contact) updates the timing model.
   try {
     const contactLookup = await findContactByPhone(From);
     if (contactLookup) {
@@ -437,18 +428,15 @@ export async function handleInboundSMSWebhook(
     }
   } catch (mlError) {
     // Don't fail the webhook if ML tracking fails
-    log.warn(
-      { error: String(mlError), from: From },
-      'Failed to update ML timing for contact response'
-    );
+    log.warn({ error: mlError, from: From }, 'Failed to update ML timing for contact response');
   }
 
-  // =========================================================================
-  // BIDIRECTIONAL ROUTING - Route to appropriate agent
-  // =========================================================================
-  if (userId !== 'unknown') {
+  // BIDIRECTIONAL ROUTING: to the right agent
+  if (isMemberIdentity(userId)) {
     try {
-      const routeResult = await routeInboundSMS(userId, From, Body, said?.kind === 'maybe-opt-out');
+      const stop = said?.kind === 'maybe-opt-out';
+      const held = await heldSender(userId, From); // MINOR_CARE_SHARED_HOLD: answered, not kept
+      const routeResult = await routeInboundSMS(userId, From, Body, stop, held);
 
       log.info(
         {
@@ -460,14 +448,16 @@ export async function handleInboundSMSWebhook(
         '🔀 SMS routed to agent'
       );
 
-      if (routeResult.shouldInitiateCall && routeResult.responseMessage) {
-        return {
-          success: true,
-          twiml: generateTwiML(routeResult.responseMessage),
-        };
+      if (routeResult.shouldInitiateCall) {
+        const persona = routeResult.routeDecision.agentId;
+        const reply = routeResult.callNow ? await answerCallMe(userId, From, persona) : NO_CALL;
+        return { success: true, twiml: generateTwiML(reply) }; // says only what was done
       }
     } catch (routeError) {
-      log.warn({ error: String(routeError), userId }, 'Failed to route inbound SMS');
+      // The raw value, not String(): that throws on a value with no string form,
+      // outside the logger's guard, and the reply became a 500. The logger
+      // redacts errors (redactErrorValue).
+      log.warn({ error: routeError, userId }, 'Failed to route inbound SMS');
       // Continue with default handling
     }
   }
@@ -610,10 +600,7 @@ export async function handleCallStatusWebhook(
       }
     } catch (mlError) {
       // Don't fail the webhook if ML tracking fails
-      log.warn(
-        { error: String(mlError), to: payload.To },
-        'Failed to update ML timing for call response'
-      );
+      log.warn({ error: mlError, to: payload.To }, 'Failed to update ML timing for call response');
     }
   }
 

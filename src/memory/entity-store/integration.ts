@@ -8,14 +8,16 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { keepRemembered } from '../recall/forget-every-reader.js';
 import { resolvePerson } from './entity-resolver.js';
 import { createMention, recordMention, hasEntityStore } from './storage.js';
+import { extractFacts, extractTopics } from './capture-extraction.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 import type {
   PersonCaptureInput,
   CaptureContext,
   CaptureResult,
   MentionType,
-  ExtractedFact,
 } from './types.js';
 
 const log = createLogger({ module: 'entity-store:integration' });
@@ -45,6 +47,7 @@ export async function initializeEntityStore(): Promise<void> {
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: getFirestoreDatabase(),
     });
 
     await db.collection('entity_store').doc('_health').get();
@@ -366,75 +369,6 @@ export function analyzeSentiment(text: string): number {
 
   // Clamp to -1 to 1 range (should already be, but be safe)
   return Math.max(-1, Math.min(1, normalized));
-}
-
-// ============================================================================
-// TOPIC EXTRACTION
-// ============================================================================
-
-/**
- * Extract topics from transcript (simple keyword extraction)
- */
-function extractTopics(transcript: string): string[] {
-  const topics: string[] = [];
-  const lower = transcript.toLowerCase();
-
-  // Topic patterns
-  const topicPatterns: Array<{ pattern: RegExp; topic: string }> = [
-    { pattern: /\b(work|job|office|career|boss|meeting)\b/, topic: 'work' },
-    { pattern: /\b(health|sick|hospital|doctor|surgery|medical)\b/, topic: 'health' },
-    { pattern: /\b(family|mom|dad|brother|sister|kids|children)\b/, topic: 'family' },
-    { pattern: /\b(money|pay|salary|bills|financial|budget)\b/, topic: 'finances' },
-    { pattern: /\b(wedding|engaged|married|anniversary)\b/, topic: 'relationship' },
-    { pattern: /\b(birthday|holiday|christmas|thanksgiving|celebration)\b/, topic: 'celebration' },
-    { pattern: /\b(school|college|university|class|exam|grade)\b/, topic: 'education' },
-    { pattern: /\b(move|moving|house|apartment|home)\b/, topic: 'housing' },
-    { pattern: /\b(trip|vacation|travel|flight|visit)\b/, topic: 'travel' },
-  ];
-
-  for (const { pattern, topic } of topicPatterns) {
-    if (pattern.test(lower)) {
-      topics.push(topic);
-    }
-  }
-
-  return topics;
-}
-
-/**
- * Extract facts from input and context
- */
-function extractFacts(input: PersonCaptureInput, context: CaptureContext): ExtractedFact[] {
-  const facts: ExtractedFact[] = [];
-
-  if (input.phone) {
-    facts.push({
-      type: 'attribute',
-      key: 'phone',
-      value: input.phone,
-      confidence: 0.95,
-    });
-  }
-
-  if (input.email) {
-    facts.push({
-      type: 'attribute',
-      key: 'email',
-      value: input.email,
-      confidence: 0.95,
-    });
-  }
-
-  if (input.relationship) {
-    facts.push({
-      type: 'relationship',
-      key: 'relationship_to_user',
-      value: input.relationship,
-      confidence: 0.9,
-    });
-  }
-
-  return facts;
 }
 
 // ============================================================================
@@ -1004,8 +938,7 @@ export async function checkProactiveSurfacing(
       { userId, turnNumber: options.turnNumber, opportunitiesFound: opportunities.length },
       'Proactive surfacing check complete'
     );
-
-    return opportunities;
+    return await keepRemembered(userId, opportunities); // FORGET_EVERY_READER
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Proactive surfacing check failed');
     return [];

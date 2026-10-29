@@ -31,6 +31,18 @@ interface EmbeddingBatch {
   rejecters: Array<(error: Error) => void>;
 }
 
+/**
+ * The worker never answered for one text. The message is fixed and the text's
+ * length rides as a property: whoever catches this logs it, and the text is the
+ * caller's words.
+ */
+export class EmbeddingTimeoutError extends Error {
+  constructor(readonly textLength: number) {
+    super('Embedding timeout');
+    this.name = 'EmbeddingTimeoutError';
+  }
+}
+
 // ============================================================================
 // WORKER INTEGRATION STATE
 // ============================================================================
@@ -127,7 +139,7 @@ function flushBatch(): void {
       const pending = pendingEmbeddings.get(key);
       if (pending) {
         pendingEmbeddings.delete(key);
-        pending.reject(new Error(`Embedding timeout for: ${text.substring(0, 50)}...`));
+        pending.reject(new EmbeddingTimeoutError(text.length));
       }
     }, EMBEDDING_TIMEOUT_MS);
   });

@@ -45,6 +45,17 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "434D91902D51D8F0BAB70042"
+               BuildableName = "FerniAppTests.xctest"
+               BlueprintName = "FerniAppTests"
+               ReferencedContainer = "container:Ferni.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "FerniKitTests"
                BuildableName = "FerniKitTests"
                BlueprintName = "FerniKitTests"
@@ -71,6 +82,17 @@
                BuildableName = "FerniDesignTests"
                BlueprintName = "FerniDesignTests"
                ReferencedContainer = "container:Packages/FerniDesign">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FerniLinkTests"
+               BuildableName = "FerniLinkTests"
+               BlueprintName = "FerniLinkTests"
+               ReferencedContainer = "container:Packages/FerniLink">
             </BuildableReference>
          </TestableReference>
       </Testables>

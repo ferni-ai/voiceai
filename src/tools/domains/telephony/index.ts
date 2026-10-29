@@ -24,6 +24,10 @@ import { createTelephonyTools } from './telephony.js';
 
 // Import on-behalf call tool
 import { createCallOnBehalfTool } from './call-on-behalf.js';
+// The requesting call's real session id, read from LiveKit's run context (row 12 of the audit).
+import { withLiveSessionId } from '../../registry/live-session.js';
+// "Did you call my dad?": read-only status from the owner's own call records
+import { callStatusReply } from './call-status-tool.js';
 
 // The call path that really rings the user's phone
 import { callUserDef } from '../proactive/outreach/agent-to-user.js';
@@ -79,6 +83,33 @@ function callUserDefinition(refusal: unknown): ToolDefinition {
   };
 }
 
+/** callStatus: read-only, never calls anyone (call-status-tool.ts). */
+function callStatusDefinition(): ToolDefinition {
+  return {
+    id: 'callStatus',
+    name: 'Call Status',
+    description: 'Whether Ferni already called someone for the owner, and how it went',
+    domain: 'telephony',
+    tags: ['telephony', 'phone', 'status', 'history'],
+    create: (ctx: ToolContext): Tool =>
+      llm.tool({
+        description:
+          'Check whether you already called someone for the caller and how it went: not yet ' +
+          '(waiting for their yes, or set for a later hour), under way, done (answered, ' +
+          'voicemail, no answer, and what they said), or failed. Use it whenever the caller ' +
+          'asks "did you call my dad?", "how did the call go?" or "what did she say?". Read-only: ' +
+          'it never calls anyone. Never use callOnBehalf to answer such a question.',
+        parameters: z.object({
+          contactQuery: z.string().describe('Who: a name or relationship, e.g. "dad" or "Sam"'),
+        }),
+        execute: async ({ contactQuery }, opts) => {
+          const session = (opts as { ctx?: { session?: object } } | undefined)?.ctx?.session;
+          return callStatusReply(ctx.userId, contactQuery, session);
+        },
+      }),
+  };
+}
+
 // ============================================================================
 // LEGACY TOOL WRAPPER
 // ============================================================================
@@ -129,7 +160,7 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       domain: 'telephony',
       tags: ['telephony', 'outbound', 'autonomous', 'on-behalf'],
       requiredServices: ['twilio'],
-      create: (ctx: ToolContext) => createCallOnBehalfTool(ctx),
+      create: (ctx: ToolContext) => withLiveSessionId(ctx, createCallOnBehalfTool),
     },
     // Personal conversational calls: agent calls family/friends for the user
     // This is an alias for callOnBehalf with personal call defaults
@@ -141,8 +172,9 @@ function getTelephonyToolDefinitions(): ToolDefinition[] {
       domain: 'telephony',
       tags: ['telephony', 'outbound', 'personal', 'conversation'],
       requiredServices: ['twilio'],
-      create: (ctx: ToolContext) => createCallOnBehalfTool(ctx),
+      create: (ctx: ToolContext) => withLiveSessionId(ctx, createCallOnBehalfTool),
     },
+    callStatusDefinition(),
   ];
 }
 
@@ -161,6 +193,8 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   telephonyTools
 );
 
-export { getTelephonyToolDefinitions };
+export { getTelephonyToolDefinitions, callStatusReply };
+export { setCallRecallPort } from './call-status-tool.js';
+export type { CallQuery, CallRecallPort, RecalledCall, SeenCall } from './call-status-tool.js';
 
 export default getToolDefinitions;

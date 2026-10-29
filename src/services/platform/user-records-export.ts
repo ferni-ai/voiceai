@@ -16,6 +16,7 @@
 
 import { BoundedReader, ExportBudget, openExportDb, type ReadDoc } from './bounded-reader.js';
 import { toPlain, type Plain } from './export-redaction.js';
+import { OWNED_ELSEWHERE } from './user-records-owned-elsewhere.js';
 
 export { ExportBudget, ExportLimitError, EXPORT_BUDGET_LIMITS } from './bounded-reader.js';
 
@@ -35,6 +36,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'alarms',
     'analytics',
     'behavioral_intelligence',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'bth_signals',
     'coaching_intelligence',
     'commitments',
@@ -52,8 +54,14 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'dynamic_relationships',
     'emotional_arcs',
     'energy_readings',
+    // facts the person told, written by the memory tools (memory-executor.ts,
+    // legacy-fallback-executor.ts) and erased by forget.ts; not in the 2026-10 listings (#2366)
+    'extracted_facts',
+    // bi-temporal facts about people: ids, subjects, values, validity (facts-store.ts)
+    'facts',
     'ferni_commitments',
     'follow_through',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'follow_up_actions',
     'future_self_letters',
     'human_memory',
@@ -80,6 +88,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'outreach_attempts',
     'outreach_history',
     'persona_affinities',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'persona_interactions',
     'persona_life_updates',
     'persona_told',
@@ -113,6 +122,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'temporal_snapshots',
     'topic_patterns',
     'trust',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'trust_moments',
     'trust_profiles',
     'utility_preferences',
@@ -149,6 +159,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'weather_history',
   ],
   households: [],
+  semantic_routing_corrections: ['corrections'],
 };
 
 /** Stores that exist under a person's record and are withheld on purpose, with why */
@@ -166,65 +177,14 @@ export const WITHHELD_STORES: Readonly<Record<string, string>> = {
   system: 'pipeline bookkeeping (when memory maintenance last ran)',
 };
 
-/** Stores outside those records: a document keyed by the uid, or documents naming it */
-export const OWNED_ELSEWHERE: ReadonlyArray<
-  | { collection: string; doc: 'uid' }
-  | { collection: string; field: string; fields?: readonly string[] }
-> = [
-  { collection: 'user_seeds', doc: 'uid' }, // seed balance and history (Seeds card)
-  { collection: 'engagement_profiles', doc: 'uid' },
-  { collection: 'households', doc: 'uid' },
-  // People You've Told Me About: the person's own account of their people, from their calls
-  // Its schema is known (ContactRelationship), so its fields are allowlisted too.
-  {
-    collection: 'contact_relationships',
-    field: 'userId',
-    fields: [
-      'contactId',
-      'name',
-      'email',
-      'phone',
-      'relationship',
-      'notes',
-      'firstInteraction',
-      'lastInteraction',
-      'interactionCount',
-      'strengthScore',
-      'avgResponseTimeHours',
-      'preferredChannel',
-      'bestTimeToReach',
-      'topics',
-      'recentContext',
-      'importantDates',
-      'pendingFollowUp',
-      'lastFollowUpDate',
-      'createdAt',
-      'updatedAt',
-    ],
-  },
-  { collection: 'contact_interactions', field: 'userId' },
-  // What the older agent remembered of the relationship: shared moments, inside jokes
-  { collection: 'relationship_memories', field: 'userId' },
-  // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
-  // family member's own activity (calls, minutes, last call), voice enrollment, self-
-  // registration, or familyUserId, the key to that person's own record.
-  {
-    collection: 'sponsored_identities',
-    field: 'sponsorUserId',
-    fields: [
-      'displayName',
-      'preferredName',
-      'relationship',
-      'phoneNumber',
-      'accessLevel',
-      'allowedPersonas',
-      'notes',
-      'status',
-      'createdAt',
-      'updatedAt',
-    ],
-  },
-];
+/**
+ * Stores kept in one partition per day, read in every partition by the owner field.
+ * semantic_router_events/{YYYY-MM-DD}/events: which tool the router picked for each of the
+ * person's turns, how sure it was and how long it took, never the words (routing-analytics.ts).
+ */
+export const PARTITIONED_STORES = [
+  { collection: 'semantic_router_events', sub: 'events', field: 'userId' },
+] as const;
 
 /**
  * Stores a menu panel reads or the voice agent writes (menu audit 2026-10-12). The
@@ -243,6 +203,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/team_insights', // Team Insights
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
   'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
+  'bogle_users/{uid}/facts', // bi-temporal facts (MEMORY_FACTS)
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
   'users/{uid}/shared_memories',
@@ -252,6 +213,38 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'engagement_profiles/{uid}',
   'contact_relationships',
 ];
+
+/**
+ * Top-level fields a store keeps although the secret filter drops their name, because
+ * there they are the person's data, not a credential (#2336). Only at a document's top
+ * level, only where listed, and only under the exact name (Key or KEY is still dropped):
+ * the same name nested in a value, or a `key` in any other store, is still dropped, and a
+ * kept field holding a credential-looking value is too.
+ *
+ * - key, in dynamic_facts: the fact's attribute ("Biscuit | breed = golden retriever").
+ *
+ * Session references (sessionId, sessionIds, firstSessionId, ...) need no entry: the
+ * secret filter no longer drops them anywhere (#2366).
+ */
+const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  'bogle_users/{uid}/dynamic_facts': ['key'],
+};
+
+/**
+ * Top-level fields that are maps keyed by the person's or the model's own words, so a short
+ * key like "pin", "code" or "access" there is data (#2366). A credential's name (bankToken,
+ * apiKey) is still dropped there, and the values still go through the value filter.
+ *
+ * The profile docs (bogle_users/{uid}, users/{uid}) are exported whole, filtered by name and
+ * value, not projected to a field allowlist: UserProfile has ~600 fields and hundreds of
+ * writers, too many to list here (#2366).
+ *
+ * - attributes, in dynamic_entities: whatever the model heard about the person or thing
+ *   ({role: 'manager', pin: 'the blue one'}), written by deep-extraction-worker.ts.
+ */
+const DATA_MAPS: Readonly<Record<string, readonly string[]>> = {
+  'bogle_users/{uid}/dynamic_entities': ['attributes'],
+};
 
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(fields.filter((f) => f in data).map((f) => [f, data[f]]));
@@ -272,7 +265,7 @@ type Store =
  * Every store exported for the person, as paths. Each is theirs by construction: their own
  * {uid} document and its allowlisted subcollections, or an owner-field query on their uid.
  */
-function storesFor(userId: string): Store[] {
+function storesFor(userId: string, linkedIds: readonly string[]): Store[] {
   const stores: Store[] = [];
   const tree = (root: string): void => {
     stores.push({ label: `${root}/{uid}`, kind: 'doc', path: `${root}/${userId}` });
@@ -288,16 +281,48 @@ function storesFor(userId: string): Store[] {
   for (const store of OWNED_ELSEWHERE) {
     if ('doc' in store) tree(store.collection);
     else {
-      stores.push({
-        label: store.collection,
-        kind: 'collection',
-        path: store.collection,
-        where: { field: store.field, equals: userId },
-        fields: store.fields,
-      });
+      // Rows of one store share its label, whichever of the person's ids they name
+      for (const owner of store.linked ? [userId, ...linkedIds] : [userId]) {
+        stores.push({
+          label: store.collection,
+          kind: 'collection',
+          path: store.collection,
+          where: { field: store.field, equals: owner },
+          fields: store.fields,
+        });
+      }
     }
   }
   return stores;
+}
+
+/** The phone profiles proven to be the person, as erasure finds them (read-only; throws as it does) */
+async function linkedIdsFor(db: FirebaseFirestore.Firestore, userId: string): Promise<string[]> {
+  const { gatherErasureKeys } = await import('./erasure-keys.js');
+  return (await gatherErasureKeys(db, userId)).linkedUserIds;
+}
+
+/**
+ * The partitions holding the person's documents, one store each under one label. The days
+ * are listed, then all counted at once: reading every day in turn could outlast the deadline.
+ */
+async function partitionStores(reader: BoundedReader, userId: string): Promise<Store[]> {
+  const perStore = await Promise.all(
+    PARTITIONED_STORES.map(async (p) => {
+      const where = { field: p.field, equals: userId };
+      const paths = (await reader.listDocIds(p.collection)).map(
+        (d) => `${p.collection}/${d}/${p.sub}`
+      );
+      const counts = await Promise.all(
+        paths.map(async (path) => reader.countCollection(path, { where }))
+      );
+      const label = `${p.collection}/*/${p.sub}`;
+      return paths
+        .filter((_, i) => (counts[i] ?? 0) > 0)
+        .map((path): Store => ({ label, kind: 'collection', path, where }));
+    })
+  );
+  return perStore.flat();
 }
 
 /**
@@ -311,14 +336,19 @@ export async function exportUserRecords(
   firestore?: FirebaseFirestore.Firestore,
   onPage?: (label: string, docs: number) => void
 ): Promise<Record<string, Plain>> {
-  const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
-  const plain = (doc: ReadDoc, fields?: readonly string[]): Plain =>
-    toPlain(fields ? pick(doc.data, fields) : doc.data, budget);
+  const db = await openExportDb(userId, firestore);
+  const reader = new BoundedReader(budget, db);
+  const linked = await linkedIdsFor(db, userId);
+  const plain = (store: Store, doc: ReadDoc): Plain => {
+    const fields = store.kind === 'collection' ? store.fields : undefined;
+    const data = fields ? pick(doc.data, fields) : doc.data;
+    return toPlain(data, budget, KEPT_FIELDS[store.label], DATA_MAPS[store.label]);
+  };
   const out: Record<string, Plain> = {};
-  for (const store of storesFor(userId)) {
+  for (const store of [...storesFor(userId, linked), ...(await partitionStores(reader, userId))]) {
     if (store.kind === 'doc') {
       const doc = await reader.readDoc(store.path);
-      if (doc) out[store.label] = plain(doc);
+      if (doc) out[store.label] = plain(store, doc);
       continue;
     }
     const docs = await reader.readCollection(store.path, {
@@ -327,9 +357,11 @@ export async function exportUserRecords(
     });
     const rows = docs.map((d) => ({
       id: d.id,
-      ...(plain(d, store.fields) as Record<string, Plain>),
+      ...(plain(store, d) as Record<string, Plain>),
     }));
-    if (rows.length > 0) out[store.label] = rows;
+    // A partitioned store's days share one label
+    const earlier = out[store.label];
+    if (rows.length > 0) out[store.label] = [...(Array.isArray(earlier) ? earlier : []), ...rows];
   }
   return out;
 }
@@ -340,9 +372,11 @@ export async function countUserRecords(
   budget: ExportBudget = new ExportBudget(),
   firestore?: FirebaseFirestore.Firestore
 ): Promise<number> {
-  const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
+  const db = await openExportDb(userId, firestore);
+  const reader = new BoundedReader(budget, db);
+  const linked = await linkedIdsFor(db, userId);
   let count = 0;
-  for (const store of storesFor(userId)) {
+  for (const store of [...storesFor(userId, linked), ...(await partitionStores(reader, userId))]) {
     if (store.kind === 'doc') count += (await reader.docExists(store.path)) ? 1 : 0;
     else count += await reader.countCollection(store.path, { where: store.where });
   }

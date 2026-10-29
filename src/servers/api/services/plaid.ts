@@ -118,7 +118,7 @@ export async function storeToken(
 
   // Persist to Firestore
   try {
-    await tokenStore.setImmediate(userId, sealTokensForMerge(data));
+    await tokenStore.setImmediate(userId, sealTokensForMerge(data), { safeWithoutRead: true });
     log.info(
       { userId: userId.substring(0, 8), institution: institution?.name || 'Unknown' },
       'Stored Plaid token'

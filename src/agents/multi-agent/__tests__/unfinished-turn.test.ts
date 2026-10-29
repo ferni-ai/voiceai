@@ -5,6 +5,7 @@
  * Dev call, 2026-10-03: "We don't get" | "caught up in reviews." got a reply
  * to "We don't get"; so did "When you go to sleep, what do you dream" | "of?".
  */
+import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -13,9 +14,12 @@ import {
   DANGLING_HOLD_MS,
   UNPUNCTUATED_HOLD_MS,
   installUnfinishedTurnHold,
+  reportUnfinishedTurnHolds,
   unfinishedTurnHoldMs,
   unfinishedness,
 } from '../unfinished-turn.js';
+import { attachTurnReceipts } from '../../shared/turn-receipt-session.js';
+import type { TurnReceipt } from '../../shared/turn-receipt.js';
 
 describe('unfinishedness', () => {
   it('holds the fragments ink ended turns on in the 2026-10-03 call', () => {
@@ -66,6 +70,46 @@ describe('unfinishedness', () => {
     // a lone "yeah" or "mm-hmm" is still a whole turn
     expect(unfinishedness('Yeah')).toBe('finished');
     expect(unfinishedness('mm-hmm')).toBe('finished');
+  });
+
+  it('answers a stop, pause or wait command at once, punctuated or not (#2657)', () => {
+    // prod AJ_JbTguxw4hwRw: music playing, held twice, the stop came 4.4 s late
+    expect(unfinishedTurnHoldMs('Hey, Ferni, can you')).toBe(UNPUNCTUATED_HOLD_MS); // lead-in alone
+    for (const command of [
+      'Hey, Ferni, can you stop',
+      'stop',
+      'Stop the music',
+      'could you please stop it now',
+      'hold on',
+      'Hang on',
+      'wait',
+      'pause',
+      'Pause the music please',
+      'shh',
+      'Shhh',
+      "That's enough",
+      'no, stop',
+      'okay turn it off',
+    ]) {
+      expect(unfinishedness(command), command).toBe('finished');
+      expect(unfinishedTurnHoldMs(command), command).toBe(0);
+    }
+  });
+
+  it('still holds a turn that only mentions stopping or goes on past it', () => {
+    for (const held of [
+      "don't stop",
+      "I can't stop",
+      'stop and',
+      'stop,',
+      'wait what',
+      'hold on to',
+      'please',
+      'they never stop',
+      'Hey Ferni can you stop by the store',
+    ]) {
+      expect(unfinishedTurnHoldMs(held), held).toBeGreaterThan(0);
+    }
   });
 
   it('installs on the session unless UNFINISHED_TURN_HOLD=off', () => {
@@ -164,10 +208,79 @@ describe('LiveKit end of turn on an unfinished sentence (patched)', () => {
     expect(a.audioRecognition.runEOUDetection).not.toHaveBeenCalled();
   });
 
+  it('commits "Hey, Ferni, can you stop" at once instead of holding it (#2657)', async () => {
+    const fn = await onEndOfTurn();
+    const held = activity();
+    held.audioRecognition.audioTranscript = 'Hey, Ferni, can you';
+    expect(await fn.call(held, { newTranscript: 'Hey, Ferni, can you' })).toBe(false);
+    const a = activity();
+    a.audioRecognition.audioTranscript = 'Hey, Ferni, can you stop';
+    expect(await fn.call(a, { newTranscript: 'Hey, Ferni, can you stop' })).toBe(true);
+    expect(a.createSpeechTask).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(UNPUNCTUATED_HOLD_MS + DANGLING_HOLD_MS);
+    expect(a.audioRecognition.runEOUDetection).not.toHaveBeenCalled(); // nothing was held
+  });
+
   it('answers finished turns without waiting', async () => {
     const fn = await onEndOfTurn();
     const a = activity();
     expect(await fn.call(a, { newTranscript: 'Why do you keep forgetting?' })).toBe(true);
     expect(a.createSpeechTask).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The TURN_RECEIPT's unfinishedTurnMs: what the hold really cost the turn, decision to commit.
+describe('unfinished-turn hold on the TURN_RECEIPT', () => {
+  beforeEach(() => vi.useFakeTimers({ now: 5_000_000 }));
+  afterEach(() => vi.useRealTimers());
+
+  function receipts() {
+    const session = new EventEmitter();
+    const out: TurnReceipt[] = [];
+    const detach = attachTurnReceipts(session as never, {
+      sessionId: 'RM_unfinished',
+      userId: 'uid-1',
+      persona: () => 'ferni',
+      emit: (r) => out.push(r),
+      env: {},
+    });
+    /** LiveKit committed the turn, and Ferni answered it. */
+    const committed = () => {
+      session.emit('metrics_collected', {
+        metrics: { type: 'eou_metrics', endOfUtteranceDelayMs: 300, lastSpeakingTimeMs: 1 },
+      });
+      session.emit('agent_state_changed', { newState: 'speaking' });
+      session.emit('agent_state_changed', { newState: 'listening' });
+    };
+    return { out, detach, committed };
+  }
+
+  it('counts a hold that ran out, from the decision to the commit', async () => {
+    const fn = await onEndOfTurn();
+    const a = activity();
+    reportUnfinishedTurnHolds(a.agentSession, 'RM_unfinished');
+    const r = receipts();
+    a.audioRecognition.audioTranscript = "I don't say she goes";
+    expect(await fn.call(a, { newTranscript: "I don't say she goes" })).toBe(false);
+    vi.advanceTimersByTime(UNPUNCTUATED_HOLD_MS);
+    expect(await fn.call(a, { newTranscript: "I don't say she goes" })).toBe(true); // the re-run
+    r.committed();
+    expect(r.out[0].holds.unfinishedTurnMs).toBe(UNPUNCTUATED_HOLD_MS);
+    r.detach();
+  });
+
+  it('counts nothing when the caller went on and finished the sentence', async () => {
+    const fn = await onEndOfTurn();
+    const a = activity();
+    reportUnfinishedTurnHolds(a.agentSession, 'RM_unfinished');
+    const r = receipts();
+    a.audioRecognition.audioTranscript = "We don't get";
+    await fn.call(a, { newTranscript: "We don't get" });
+    vi.advanceTimersByTime(400);
+    a.audioRecognition.audioTranscript = "We don't get caught up in reviews.";
+    expect(await fn.call(a, { newTranscript: "We don't get caught up in reviews." })).toBe(true);
+    r.committed();
+    expect(r.out[0].holds.unfinishedTurnMs).toBeNull();
+    r.detach();
   });
 });

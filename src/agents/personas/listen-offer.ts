@@ -44,6 +44,9 @@ export const LISTEN_OFFER: readonly RegExp[] = [
 const CRISIS =
   /\b(?:988|741741|911|crisis|hotline|lifeline|emergency|suicid\w*|(?:hurt|kill)(?:ing)? yourself|end(?:ing)? your life)\b/i;
 
+/** Whether a reply mentions a crisis resource; such a reply is never changed (phrase-loops.ts too). */
+export const mentionsCrisisResource = (text: string): boolean => CRISIS.test(text);
+
 /** A clause ends at punctuation followed by space, or at a spaced dash. */
 const CLAUSE_END = /(?:[,;:.!?…]+|\s[—–-])\s+/g;
 const SENTENCE_END = /[.!?…]/;
