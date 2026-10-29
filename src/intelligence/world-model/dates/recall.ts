@@ -16,6 +16,14 @@
  * and the interview never does. Asked is per subject, day and moment, not per
  * fact: the caller's answer is often stored as another fact for the same day,
  * and asking it again 16 minutes later was the 2026-10-25 memory audit's loop.
+ * The answer is not always stored under the same day either (re-dated to the
+ * call day, "the other day" read another way, the day in another zone, or a
+ * second event minted from it). A one-time date that is the SAME event as one
+ * asked about lately (same-event.ts: a supersession chain, told in the call
+ * that asked, or the same kind and words within a few days) counts as asked;
+ * another event of that person the same week is still its own thing. Yearly
+ * dates (birthdays, anniversaries) are never matched that way, and the same
+ * fact's other moment is still allowed ("soon", then "how did it go?").
  * Dates marked to confirm are left out: Ferni never asks about a day he
  * may have wrong. Only the caller's own dates (by "ferni" is a promise of his).
  * The guards the in-call reader has apply here too: no guesses (confidence
@@ -37,6 +45,7 @@ import {
 } from '../temporal/store.js';
 import { MIN_CONFIDENCE } from '../temporal/in-call.js';
 import { AVOID_THREAD, avoidedTopics } from '../temporal/types.js';
+import { askedEvent, personKey, sameEventAsked, type AskedEvent } from './same-event.js';
 import type { DateFact } from './store.js';
 import { daysBetween, nextOccurrence } from './timex.js';
 
@@ -65,7 +74,7 @@ const PASSED_DAYS = 10;
 const ONCE_AHEAD_DAYS = 1;
 const YEARLY_AHEAD_DAYS = 7;
 /** Raised once; a yearly date may come back next year. */
-const QUIET_DAYS = 20;
+export const QUIET_DAYS = 20;
 
 /** Stored words as one short line: no newlines or long text reach the note. */
 const oneLine = (s: string | undefined, max = 60): string =>
@@ -88,6 +97,8 @@ export interface DueOptions {
   forgotten?: readonly string[];
   /** The caller's IANA zone: the day a fact was told on is theirs (UTC without). */
   timeZone?: string;
+  /** Told the id of each fact left out as an event already asked about under a nearby day. */
+  onSameEvent?: (factId: string) => void;
 }
 
 interface Screen {
@@ -96,16 +107,23 @@ interface Screen {
   hidden: string[];
   /** People they asked not to bring up something about. */
   avoided: Set<string>;
+  /** Dates asked about within QUIET_DAYS, open or closed facts alike. */
+  askedEvents: AskedEvent[];
+  onSameEvent?: (factId: string) => void;
   timeZone: string;
 }
 
-const dayKey = (f: RaisableDate): string => `${f.subjectKey}|${f.eventDate ?? f.monthDay ?? ''}`;
+const dayOf = (f: RaisableDate): string => f.eventDate ?? f.monthDay ?? '';
+const dayKey = (f: RaisableDate): string => `${personKey(f)}|${dayOf(f)}`;
 
 function screenOf(facts: readonly RaisableDate[], today: string, opts: DueOptions): Screen {
   const asked = new Set<string>();
+  const askedEvents: AskedEvent[] = [];
   for (const f of facts) {
-    if (f.raisedOn && daysBetween(f.raisedOn, today) < QUIET_DAYS)
-      asked.add(`${dayKey(f)}|${f.raisedAs ?? '*'}`);
+    if (!f.raisedOn || daysBetween(f.raisedOn, today) >= QUIET_DAYS) continue;
+    asked.add(`${dayKey(f)}|${f.raisedAs ?? '*'}`);
+    const event = askedEvent(f);
+    if (event) askedEvents.push(event);
   }
   const avoided = new Set(
     facts
@@ -115,7 +133,8 @@ function screenOf(facts: readonly RaisableDate[], today: string, opts: DueOption
       .map((f) => f.subjectKey)
   );
   const hidden = [...(opts.forgotten ?? []), ...avoidedTopics(facts)];
-  return { asked, hidden, avoided, timeZone: opts.timeZone ?? 'UTC' };
+  const timeZone = opts.timeZone ?? 'UTC';
+  return { asked, hidden, avoided, askedEvents, onSameEvent: opts.onSameEvent, timeZone };
 }
 
 /** The caller's own open event, sure enough to ask about, and nothing they'd rather not hear about. */
@@ -144,7 +163,20 @@ function dueOne(f: RaisableDate, today: string, screen: Screen): DueDate | null 
   const told = Date.parse(f.observedAt);
   if (moment === 'today' && told && callMomentFor(new Date(told), screen.timeZone).date === today)
     return null;
+  const day = dayAfter(today, days);
+  if (
+    f.recurrence !== 'yearly' &&
+    sameEventAsked(f, day, moment, screen.askedEvents, screen.timeZone)
+  ) {
+    screen.onSameEvent?.(f.id);
+    return null;
+  }
   return { id: f.id, moment, what: `${whose(f)} ${oneLine(f.value)}`, days };
+}
+
+/** The day n days after a YYYY-MM-DD (before, when n is negative). */
+function dayAfter(day: string, n: number): string {
+  return new Date(Date.parse(`${day}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 }
 
 const RANK: Record<DateMoment, number> = { today: 0, passed: 1, soon: 2 };
@@ -180,7 +212,15 @@ export interface DatesRecallDeps {
   userId: string;
   store?: WorldFactStore;
   /** Saves the day and moment a date was raised; the default writes them on the fact. */
-  mark?: (userId: string, factId: string, day: string, moment: DateMoment) => Promise<void>;
+  mark?: (
+    userId: string,
+    factId: string,
+    day: string,
+    moment: DateMoment,
+    sessionId?: string
+  ) => Promise<void>;
+  /** The call's session: a raise records it, so the answer told in this call is known as one. */
+  sessionId?: string;
   now?: () => Date;
   /** The caller's IANA zone: dates are stored by their day, so today is theirs too (UTC without). */
   timezone?: string;
@@ -203,17 +243,28 @@ export function createDatesRecall(deps: DatesRecallDeps): DatesRecall {
   let given = false;
   const store = deps.store ?? createFirestoreWorldFactStore();
   const topics = deps.forgotten ?? forgottenTopicsOrNull;
-  const ready = Promise.all([store.listOpen(deps.userId), topics(deps.userId)])
-    .then(([facts, forgotten]) => {
+  // What was asked about lately, from closed facts too: the asked one is often closed by its answer.
+  const since = dayAfter(today, 1 - QUIET_DAYS);
+  const raisedLately = store.listRaisedSince?.(deps.userId, since) ?? Promise.resolve([]);
+  const ready = Promise.all([store.listOpen(deps.userId), raisedLately, topics(deps.userId)])
+    .then(([open, raised, forgotten]) => {
       const timeZone = deps.timezone ?? 'UTC';
       // What they asked to forget can't be read: raise nothing rather than risk it.
       if (forgotten === null)
-        return log.warn({ open: facts.length }, 'Dates not raised: forgotten topics unreadable');
-      due = dueDate(facts as RaisableDate[], today, { forgotten, timeZone });
-      const events = facts.filter((f) => f.attribute === 'event').length;
+        return log.warn({ open: open.length }, 'Dates not raised: forgotten topics unreadable');
+      const ids = new Set(open.map((f) => f.id));
+      const facts = [...open, ...raised.filter((f) => !ids.has(f.id))] as RaisableDate[];
+      const sameEvent: string[] = [];
+      due = dueDate(facts, today, { forgotten, timeZone, onSameEvent: (id) => sameEvent.push(id) });
+      const events = open.filter((f) => f.attribute === 'event').length;
       // Ids and counts only, never the caller's words.
-      const counts = { open: facts.length, events, id: due?.id ?? null };
+      const counts = { open: open.length, raised: raised.length, events, id: due?.id ?? null };
       if (due) log.info({ ...counts, moment: due.moment, days: due.days }, 'Date to raise');
+      else if (sameEvent.length > 0)
+        log.info(
+          { ...counts, id: sameEvent[0], skipped: sameEvent.length, reason: 'same_event_asked' },
+          'No date to raise'
+        );
       else log.info(counts, 'No date to raise');
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Dates not loaded'));
@@ -224,8 +275,14 @@ export function createDatesRecall(deps: DatesRecallDeps): DatesRecall {
       if (!due || given) return;
       given = true;
       log.info({ id: due.id, moment: due.moment }, 'Date raised');
-      (deps.mark ?? markFactRaised)(deps.userId, due.id, today, due.moment).catch(
-        (error: unknown) => log.warn({ error: String(error) }, 'Date not marked raised')
+      const mark = deps.mark ?? markFactRaised;
+      // Its session, when the call has one: the answer told in this call is known as one.
+      const { userId, sessionId } = deps;
+      const marked = sessionId
+        ? mark(userId, due.id, today, due.moment, sessionId)
+        : mark(userId, due.id, today, due.moment);
+      marked.catch((error: unknown) =>
+        log.warn({ error: String(error) }, 'Date not marked raised')
       );
     },
   };
@@ -238,7 +295,7 @@ const NO_DATES: DatesRecall = {
 };
 
 /** The call's dates recall with FRIEND_FOLLOWUPS=on; one that has nothing when off. */
-export function datesRecallFor(userId: string): DatesRecall {
+export function datesRecallFor(userId: string, sessionId?: string): DatesRecall {
   if (!friendFollowUpsOn()) return NO_DATES;
-  return createDatesRecall({ userId, timezone: userTimeZone({ userId }) });
+  return createDatesRecall({ userId, sessionId, timezone: userTimeZone({ userId }) });
 }

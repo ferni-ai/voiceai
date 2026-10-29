@@ -93,6 +93,7 @@ export const TTL_CONFIGS: TTLConfig[] = [
   },
 
   // Session and interaction data - medium TTL
+  // Legacy: no writer since memory v2 C5a; kept so the old docs still expire.
   {
     path: 'persona_interactions',
     ttlDays: 180,

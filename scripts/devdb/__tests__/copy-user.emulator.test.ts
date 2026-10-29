@@ -7,7 +7,7 @@
  *   firebase emulators:exec --only firestore:ferni-dev --project demo-devdb \
  *     "pnpm vitest run -c vitest.config.unit.ts scripts/devdb/__tests__/copy-user.emulator.test.ts"
  */
-import { Firestore, Timestamp } from '@google-cloud/firestore';
+import { FieldValue, Firestore, Timestamp, type VectorValue } from '@google-cloud/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { copyUser } from '../copy-user.js';
@@ -95,6 +95,29 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
     expect((copied as Timestamp).isEqual(AT)).toBe(true);
     // the source is untouched
     expect(await paths(source)).toHaveLength(23);
+  });
+
+  it("copies the person's semantic index by the exact owner match, embeddings included", async () => {
+    const embedding = FieldValue.vector([0.1, 0.2, 0.3]);
+    const index: Array<[string, Record<string, unknown>]> = [
+      ['vectors/trust_inside_joke_mine', { text: 'mine', embedding, metadata: { userId: ME } }],
+      ['vectors/theirs', { text: 'theirs', embedding, metadata: { userId: OTHER } }],
+      ['vectors/spaced', { text: 'decoy', metadata: { userId: ` ${ME}` } }],
+      ['vectors/top-level', { text: 'decoy', userId: ME, metadata: {} }],
+      ['vectors/persona_chunk_0', { text: 'persona knowledge', metadata: { source: 'persona' } }],
+      [`memory_vectors/${ME}:m1`, { text: 'mine', embedding, metadata: { userId: ME } }],
+      [`memory_vectors/${OTHER}:m1`, { text: 'theirs', metadata: { userId: OTHER } }],
+    ];
+    for (const [path, data] of index) await source.doc(path).set(data);
+
+    const counts = await copyUser({ source, dest, uids: [ME], apply: true });
+
+    expect(counts['vectors[metadata.userId]']?.copied).toBe(1);
+    expect(counts['memory_vectors[metadata.userId]']?.copied).toBe(1);
+    const copied = (await paths(dest)).filter((p) => /^(memory_)?vectors\//.test(p));
+    expect(copied).toEqual([`memory_vectors/${ME}:m1`, 'vectors/trust_inside_joke_mine']);
+    const joke = await dest.doc('vectors/trust_inside_joke_mine').get();
+    expect((joke.get('embedding') as VectorValue).toArray()).toEqual([0.1, 0.2, 0.3]);
   });
 
   it('skips what dev already has unless --overwrite', async () => {

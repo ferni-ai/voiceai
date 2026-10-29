@@ -134,11 +134,12 @@ async function decryptFields<T extends object>(
 // ============================================================================
 
 /**
- * A smart_home doc as any reader should see it. A doc the web routes sealed is
- * opened and returned as is: its fields came from user input or the routes,
- * and are never decrypted (decrypting them would let a user submit someone
- * else's enc_ value and get it back as plaintext). Only a doc this module
- * wrote (no envelope) has its enc_ fields decrypted, bound to this user.
+ * A smart_home doc as any reader should see it. Both shapes get their enc_ fields
+ * decrypted, each bound to this user, integration and field (smartHomeAad): a doc
+ * this module wrote with raw enc_ fields, and a doc the web routes sealed whose
+ * opened envelope still holds enc_ fields the agent wrote. A ciphertext that does
+ * not open for this doc (another user, field or integration, or tampered) throws,
+ * so a caller never gets a partial or plaintext-from-elsewhere value.
  * Docs that are not token-shaped (homekit) come back as stored.
  */
 export async function openSmartHomeCredentials<T>(
@@ -148,9 +149,32 @@ export async function openSmartHomeCredentials<T>(
 ): Promise<T | null> {
   if (stored === null || typeof stored !== 'object') return null;
   if (typeof (stored as { encrypted?: unknown }).encrypted === 'string') {
-    return openTokens<T>(stored, `smart_home/${integration}`);
+    const opened = openTokens<DocumentData>(stored, `smart_home/${integration}`);
+    return opened ? ((await decryptFields(userId, integration, opened)) as T) : null;
   }
   return (await decryptFields(userId, integration, stored as DocumentData)) as T;
+}
+
+/**
+ * Reads and opens a credential doc. Returns null only when the doc does not exist.
+ * A read error, or a record that will not open, throws: a caller must not treat an
+ * unreadable record as "no record" (saveCredentials would then overwrite it).
+ */
+export async function readSmartHomeCredentials<T>(
+  userId: string,
+  integration: string
+): Promise<T | null> {
+  const doc = await getAdminFirestore()
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('smart_home')
+    .doc(integration)
+    .get();
+
+  if (!doc.exists) return null;
+  const opened = await openSmartHomeCredentials<T>(userId, integration, doc.data());
+  if (opened === null) throw new Error(`smart_home/${integration} record could not be opened`);
+  return opened;
 }
 
 /**

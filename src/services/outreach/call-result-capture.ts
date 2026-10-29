@@ -19,6 +19,7 @@ import { logCallResultOutcome } from '../follow-through/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import { voicemailWords } from './voicemail-outcome.js';
+import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -41,7 +42,7 @@ export interface StoredCallResult {
   capturedAt: string;
 }
 
-export interface FollowUpAction {
+interface FollowUpAction {
   id: string;
   callId: string;
   userId: string;
@@ -57,7 +58,6 @@ export interface FollowUpAction {
 
 // In-memory store for development/testing
 const callResultStore = new Map<string, StoredCallResult>();
-const followUpActionsStore = new Map<string, FollowUpAction[]>();
 
 /** Store a call result in Firestore (with in-memory fallback) */
 async function storeCallResult(result: StoredCallResult): Promise<void> {
@@ -233,12 +233,12 @@ async function injectToActiveSession(
 // ============================================================================
 
 /** Create follow-up actions based on call outcome */
-async function createFollowUpActions(
+function createFollowUpActions(
   userId: string,
   callId: string,
   outcome: CallOutcome,
   request: OnBehalfCallRequest
-): Promise<void> {
+): void {
   const actions: FollowUpAction[] = [];
 
   // If callback is required, schedule it
@@ -268,49 +268,30 @@ async function createFollowUpActions(
     }
   }
 
-  // Store follow-up actions
-  if (actions.length > 0) {
-    try {
-      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-        getFirestoreDb: null,
-      }));
-
-      const db = getFirestoreDb ? getFirestoreDb() : null;
-
-      if (db) {
-        for (const action of actions) {
-          await db
-            .collection('bogle_users')
-            .doc(userId)
-            .collection('follow_up_actions')
-            .doc(action.id)
-            .set(cleanForFirestore(action));
-
-          void onFollowUpActionChange(
-            userId,
-            action.id,
-            {
-              actionType: action.type,
-              description: action.description,
-              relatedCallId: action.callId,
-              scheduledFor: action.scheduledFor,
-              priority: 'medium',
-              status: 'pending',
-              createdAt: action.createdAt,
-            },
-            'create'
-          );
-        }
-      } else {
-        // In-memory fallback
-        const existing = followUpActionsStore.get(userId) || [];
-        followUpActionsStore.set(userId, [...existing, ...actions]);
-      }
-
-      log.info({ userId, callId, actionCount: actions.length }, 'Follow-up actions created');
-    } catch (error) {
-      log.error({ error: String(error), userId }, 'Failed to create follow-up actions');
+  // Index each action to semantic memory. They used to be stored in
+  // bogle_users/{uid}/follow_up_actions too, but nothing read those docs, so that
+  // write is gone (memory v2 C5a).
+  if (actions.length === 0) return;
+  try {
+    for (const action of actions) {
+      onFollowUpActionChange(
+        userId,
+        action.id,
+        {
+          actionType: action.type,
+          description: action.description,
+          relatedCallId: action.callId,
+          scheduledFor: action.scheduledFor,
+          priority: 'medium',
+          status: 'pending',
+          createdAt: action.createdAt,
+        },
+        'create'
+      );
     }
+    log.info({ userId, callId, actionCount: actions.length }, 'Follow-up actions created');
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to create follow-up actions');
   }
 }
 
@@ -375,25 +356,24 @@ export async function captureCallResult(
     // 4. Not live: step 9 keeps it for While You Were Away (the next call's opener reads it)
 
     // 5. Push (reaches them even if disconnected), unless CALL_RESULT_TEXT texts them below
-    if (!callResultTextOn()) await sendCallResultPushNotification(request, outcome, callId);
+    const push: StepOutcome = callResultTextOn()
+      ? 'skipped'
+      : await sendCallResultPushNotification(request, outcome, callId);
 
     // 6. Send email notification (tangible record of the call)
-    await sendCallResultEmail(request, outcome, callId);
+    const mailSent = await sendCallResultEmail(request, outcome, callId);
 
     // 7. Create calendar event for callback if needed
     await createCallbackCalendarEvent(request, outcome, callId);
 
     // 8. Create follow-up actions
-    await createFollowUpActions(request.userId, callId, outcome, request);
+    createFollowUpActions(request.userId, callId, outcome, request);
 
     // 9. Store in unified background results (for "While You Were Away")
     await storeInUnifiedResults(request, outcome, callId);
     await tellOwnerIfOn({ request, outcome, callId, live: injectedToActive });
 
-    log.info(
-      { callId, userId: request.userId },
-      'Call result captured successfully (push + email + calendar + unified)'
-    );
+    log.info({ callId, userId: request.userId, pushStatus: push, mailStatus: mailSent }, 'Call result captured'); // sent, failed or skipped
   } catch (error) {
     log.error({ error: String(error), callId }, 'Failed to capture call result');
     throw error;
@@ -408,17 +388,17 @@ async function sendCallResultPushNotification(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
   callId: string
-): Promise<void> {
+): Promise<StepOutcome> {
   try {
     const { sendPushNotification, isPushNotificationsAvailable } =
       await import('./delivery/push-notifications.js');
 
     if (!isPushNotificationsAvailable()) {
       log.debug({ callId }, 'Push notifications not available, skipping');
-      return;
+      return 'skipped';
     }
 
-    const contactName = request.resolvedContact?.name || request.contactQuery;
+    const contactName = request.resolvedContact?.name || contactForOwner(request.contactQuery);
 
     // Build notification content based on outcome
     let title: string;
@@ -454,10 +434,12 @@ async function sendCallResultPushNotification(
       priority: 'high',
       clickAction: '/calls', // Navigate to call history
     });
-    notePushOutcome(log, results, { callId, userId: request.userId, for: 'call result' });
+    const fields = { callId, userId: request.userId, for: 'call result' };
+    return notePushOutcome(log, results, fields) ? 'sent' : 'failed';
   } catch (error) {
     // Don't fail the whole capture if push fails
     log.warn({ error: String(error), callId }, 'Failed to send push notification');
+    return 'failed';
   }
 }
 
@@ -469,7 +451,7 @@ async function sendCallResultEmail(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
   callId: string
-): Promise<void> {
+): Promise<StepOutcome> {
   try {
     const email = await getUserEmail(request.userId);
     if (!email) {
@@ -477,24 +459,18 @@ async function sendCallResultEmail(
         { callId, userId: request.userId },
         'No email configured, skipping email notification'
       );
-      return;
+      return 'skipped';
     }
 
     const { sendEmail, isEmailDeliveryAvailable } = await import('./delivery/email-delivery.js');
 
     if (!isEmailDeliveryAvailable()) {
       log.debug({ callId }, 'Email delivery not available, skipping');
-      return;
+      return 'skipped';
     }
 
-    const contactName = request.resolvedContact?.name || request.contactQuery;
-    const completedAt = new Date().toLocaleString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    const contactName = request.resolvedContact?.name || contactForOwner(request.contactQuery);
+    const completedAt = completedAtFor(request.userTimezone);
 
     // Build warm, human email content
     const { subject, body } = buildCallResultEmailContent(
@@ -513,12 +489,14 @@ async function sendCallResultEmail(
       outreachId: callId,
       tags: ['on-behalf-call', outcome.status],
     });
-    if (!sent.success) throw new Error(sent.error || 'email not sent');
-
-    log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+    // A failure logs a code only: never the address or the body.
+    if (sent.success) log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+    else log.warn({ callId, userId: request.userId, code: sent.status ?? 'send_failed' }, 'Email notification NOT sent'); // prettier-ignore
+    return sent.success ? 'sent' : 'failed';
   } catch (error) {
     // Don't fail the whole capture if email fails
-    log.warn({ error: String(error), callId }, 'Failed to send email notification');
+    log.warn({ callId, code: (error as Error)?.name ?? 'error' }, 'Failed to send email notification'); // prettier-ignore
+    return 'failed';
   }
 }
 
@@ -581,7 +559,7 @@ function buildCallResultEmailContent(
     lines.push('');
   }
 
-  lines.push(`*Completed: ${completedAt}*`);
+  if (completedAt) lines.push(`*Completed: ${completedAt}*`);
 
   return { subject, body: lines.join('\n') };
 }
@@ -868,30 +846,3 @@ export async function getRecentCallResults(
   }
 }
 
-/** Get pending follow-up actions for a user */
-export async function getPendingFollowUps(userId: string): Promise<FollowUpAction[]> {
-  if (!isMemberIdentity(userId.trim())) return [];
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-      getFirestoreDb: null,
-    }));
-
-    const db = getFirestoreDb ? getFirestoreDb() : null;
-
-    if (db) {
-      const snapshot = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('follow_up_actions')
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      return snapshot.docs.map((doc: { data: () => unknown }) => doc.data() as FollowUpAction);
-    }
-
-    return followUpActionsStore.get(userId) || [];
-  } catch (error) {
-    log.debug({ error: String(error), userId }, 'Failed to get pending follow-ups');
-    return [];
-  }
-}

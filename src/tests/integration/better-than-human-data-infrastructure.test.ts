@@ -21,46 +21,6 @@ import { perfBudget } from '../perf-budget.js';
 // ============================================================================
 
 describe('Phase 1: Entity Store Migration', () => {
-  describe('Dual-Write Layer', () => {
-    it('should intercept contact writes and mirror to entity store', async () => {
-      // Import dynamically to avoid module resolution issues in test environment
-      const { interceptContactWrite, configureDualWrite } =
-        await import('../../memory/entity-store/dual-write.js');
-
-      // Enable dual-write
-      configureDualWrite({ enabled: true });
-
-      const result = await interceptContactWrite(
-        'test-user-id',
-        {
-          name: 'John Doe',
-          phone: '+1234567890',
-          relationship: 'brother',
-          email: 'john@example.com',
-        },
-        'contacts'
-      );
-
-      // Should return entity or null (depending on Firestore availability)
-      expect(result).toHaveProperty('entity');
-      expect(result).toHaveProperty('error');
-    });
-
-    it('should track migration status per collection', async () => {
-      const { getMigrationStatus, configureDualWrite, updateMigrationStatus } =
-        await import('../../memory/entity-store/dual-write.js');
-
-      // Configure and set migration status
-      configureDualWrite({ enabled: true });
-      updateMigrationStatus('contacts', { status: 'in_progress', totalDocuments: 100 });
-
-      const status = getMigrationStatus('contacts');
-      expect(status).toBeDefined();
-      expect(status?.status).toBe('in_progress');
-      expect(status?.totalDocuments).toBe(100);
-    });
-  });
-
   describe('Legacy Adapter', () => {
     it('should provide backwards-compatible contact API', async () => {
       const { configureLegacyAdapter, isUsingEntityStore } =

@@ -131,13 +131,11 @@ function isSmsConfigured(): boolean {
 }
 
 /**
- * Check if email sending is configured
+ * Email goes through the ferni.ai Workspace mailbox (services/email-transport),
+ * which needs no API key, so it is always offered; a failed send reports itself.
  */
 function isEmailConfigured(): boolean {
-  const sendgrid = process.env.SENDGRID_API_KEY;
-  const resend = process.env.RESEND_API_KEY;
-
-  return Boolean(sendgrid || resend);
+  return true;
 }
 
 /**

@@ -12,6 +12,7 @@ import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { withoutQuickShortcuts } from '../shared/quick-shortcuts-real-only.js';
 import { heldAfter, lastFerniLine, minorCareNote } from '../../utils/minor-care.js';
 import {
@@ -376,13 +377,14 @@ export async function toolsForTurn(
   // Not a verified owner (an anon: caller included): nothing that reaches other people.
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores
   // anything. The phone-safe set holds no tool that reaches others, so it covers both.
+  // ONBEHALF_WRITE_GATE: a call placed for a member (onbehalf:) acts on nobody's account either.
   const others = mayReachOthers(userIdOf(session.userData), sessionId, sessionIsVerifiedOwner);
   const held = heldAfter(sessionId, callerWords(chatCtx), {
     asked: lastFerniLine(chatCtx.items),
     userId: userIdOf(session.userData), // userHeld follows
   });
   const allowed =
-    phoneOnlyIdentity(sessionId) || held
+    phoneOnlyIdentity(sessionId) || held || ownerWritesBlocked(userIdOf(session.userData))
       ? await withoutAccountTools(toolCtx, state)
       : others
         ? toolCtx
@@ -426,9 +428,10 @@ async function withoutReachingOthers(
 }
 
 /**
- * A caller known only by their phone number: every tool not on the phone-safe
+ * A caller known only by their phone number, or a session on no account (the
+ * person on a call placed for a member): every tool not on the phone-safe
  * allowlist leaves the request and the agent itself, so a call to one can't
- * run (phone-safe-tools.ts).
+ * run (phone-safe-tools.ts). endCall, support and handoffs stay.
  */
 interface ToolHolder {
   readonly toolCtx: llm.ToolContext;

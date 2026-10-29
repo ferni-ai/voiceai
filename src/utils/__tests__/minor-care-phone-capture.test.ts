@@ -9,8 +9,8 @@
  *
  * The writers #2729 missed hold the same way: corrections and implicit preferences, stated
  * preferences, data capture (entity store, contacts, contact_relationships), FRIEND_REPAIR,
- * the relationship engine and personality profile behind recordUnifiedMoment, Creative You topics
- * and BTH signals.
+ * the relationship engine and personality profile behind recordUnifiedMoment and Creative You
+ * topics. (The BTH signal writer, bth_signals, was deleted in memory v2 C5a: nothing read it.)
  *
  * Each case runs the real writer with only storage faked, after the real detector read the
  * caller's words the way the phone path does (session-init binds the anon user,
@@ -148,11 +148,6 @@ import {
 import { createPersonalityService } from '../../personality/v2/index.js';
 import { recordConversationTopics } from '../../services/creative-you/conversation-integration.js';
 import { getCreativeYouPersistence } from '../../services/creative-you/persistence.js';
-import {
-  flushBTHSignalQueue,
-  logBTHSignal,
-  resetBTHSignalLogger,
-} from '../../services/analytics/bth-signal-logger.js';
 
 type Case = 'held' | 'owner' | 'off';
 const CASES: Case[] = ['held', 'owner', 'off'];
@@ -188,7 +183,6 @@ beforeEach(() => {
 });
 afterEach(() => {
   resetMinorCare();
-  resetBTHSignalLogger();
   clearAllRelationshipEngines();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
@@ -405,21 +399,6 @@ describe('MINOR_CARE: an anonymous phone caller who said "I\'m only 14."', () =>
     recordConversationTopics(userId, ['friendship', 'school'], sessionId);
     const stored = await settled(userId, c !== 'held');
     expect(stored).toEqual(c === 'held' ? [] : [`topic_history/${userId}`]);
-  });
-
-  it.each(CASES)('BTH signals for the caller are not written when held (%s)', async (c) => {
-    const { sessionId, userId } = phoneCall(c);
-    const payload = { signalType: 'concern_detected', intensity: 0.9 };
-    logBTHSignal({
-      userId,
-      sessionId,
-      personaId: 'ferni',
-      signalType: 'concern_detected',
-      payload,
-    });
-    await flushBTHSignalQueue();
-    const signals = storedFor(userId).filter((p) => p.includes('/bth_signals/'));
-    expect(signals.length).toBe(c === 'held' ? 0 : 1);
   });
 
   it('the note tells Ferni not to promise to remember', () => {

@@ -190,8 +190,12 @@ describe('what is copied', () => {
         "share_links[ownerId]",
         "analytics_sessions[odId]",
         "context_injection_outcomes[injection.userId]",
+        "vectors[metadata.userId]",
+        "memory_vectors[metadata.userId]",
         "reply_reports[uid]",
         "reply_report_quota/{uid}",
+        "call_felt_off[uid]",
+        "call_felt_off_quota/{uid}",
       ]
     `);
   });

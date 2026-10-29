@@ -46,13 +46,15 @@ public enum KeyChannel: Sendable, CaseIterable {
 /// What a keyed moment asks the app for at a given frame (sound, sparkle).
 public enum KeyedCue: Equatable, Sendable {
     case arrivalChime, pop, sparkle, land, hop, whoosh, giggle, heart
+    /// A finger on Ferni: one soft tap in the hand, at most every 2 s.
+    case touch
 }
 
 /// Hand-keyed moments: poses on exact frames at 60 fps, each key with its own
 /// ease. Secondary motion (shear, ring, jelly) stays on springs, so the keys
 /// drive the pose and physics adds the overlap. From the alive prototype's KEYED.
 public enum KeyedMoment: String, CaseIterable, Sendable {
-    case arrival, win, goodbye
+    case arrival, win, goodbye, wake, join
 
     public struct Key: Sendable {
         public let frame: Double, value: Double, ease: KeyEase
@@ -63,6 +65,8 @@ public enum KeyedMoment: String, CaseIterable, Sendable {
         case .arrival: 128
         case .win: 110
         case .goodbye: 168
+        case .wake: 66
+        case .join: 84
         }
     }
 
@@ -83,6 +87,8 @@ public enum KeyedMoment: String, CaseIterable, Sendable {
         case .arrival: Self.arrivalKeys
         case .win: Self.winKeys
         case .goodbye: Self.goodbyeKeys
+        case .wake: Self.wakeKeys
+        case .join: Self.joinKeys
         }
     }
 
@@ -91,6 +97,8 @@ public enum KeyedMoment: String, CaseIterable, Sendable {
         case .arrival: [(28, .arrivalChime), (65, .pop), (84, .sparkle), (94, .land)]
         case .win: [(18, .hop), (22, .whoosh), (34, .sparkle), (46, .land), (50, .giggle), (62, .hop), (74, .land)]
         case .goodbye: [(16, .heart)]
+        case .wake: []
+        case .join: [(12, .arrivalChime), (24, .sparkle), (28, .land)]
         }
     }
 
@@ -118,6 +126,30 @@ public enum KeyedMoment: String, CaseIterable, Sendable {
         .glow: k([(0, 0, .linear), (30, 0.5, .out), (46, 0.35, .inOut), (86, 0.7, .out), (124, 0.35, .inOut)]),
         .halo: k([(0, 0, .linear), (32, 0.55, .out), (60, 0.3, .inOut), (88, 0.6, .out), (124, 0.3, .inOut)]),
         .blush: k([(0, 0, .linear), (84, 0, .hold), (90, 0.6, .out), (124, 0, .inOut)]),
+    ]
+
+    /// Opening the app: Ferni is already in the room, eyes closed; he opens
+    /// them, blinks once and his light comes up. Silent, about a second, and
+    /// in place (the drop-in arrival is for when he joins a call).
+    private static let wakeKeys: [KeyChannel: [Key]] = [
+        .top: k([(0, 1, .linear), (12, 1, .hold), (26, 0.12, .out), (34, 0.12, .linear), (37, 1, .snap),
+                 (43, 0.08, .out), (60, 0.1, .inOut)]),
+        .squash: k([(0, 0.97, .linear), (20, 1.03, .out), (36, 1, .inOut)]),
+        .gazeY: k([(0, -0.2, .linear), (24, 0.05, .out), (60, 0, .inOut)]),
+        .glow: k([(0, 0.05, .linear), (30, 0.6, .out), (64, 0.3, .inOut)]),
+        .halo: k([(0, 0, .linear), (30, 0.4, .out), (64, 0.25, .inOut)]),
+    ]
+
+    /// Joining a call: Ferni is already in the room, so he arrives in place.
+    /// A dip, a hop with the note at its top, a landing you feel, a smile.
+    private static let joinKeys: [KeyChannel: [Key]] = [
+        .posY: k([(0, 0, .linear), (6, -0.04, .out), (16, 0.22, .out), (28, -0.04, .in), (36, 0.01, .out), (46, 0, .inOut)]),
+        .squash: k([(0, 1, .linear), (6, 0.9, .out), (12, 1.12, .snap), (22, 1.04, .inOut), (28, 0.9, .in),
+                    (34, 1.05, .out), (46, 1, .inOut)]),
+        .eyeSY: k([(0, 1, .linear), (12, 1, .hold), (14, 1.15, .snap), (30, 1, .inOut)]),
+        .arch: k([(0, 0, .linear), (14, 0, .hold), (22, 0.55, .out), (60, 0.55, .linear), (80, 0, .inOut)]),
+        .glow: k([(0, 0.45, .linear), (14, 0.75, .out), (80, 0.35, .inOut)]),
+        .halo: k([(0, 0.3, .linear), (16, 0.6, .out), (80, 0.3, .inOut)]),
     ]
 
     private static let winKeys: [KeyChannel: [Key]] = [

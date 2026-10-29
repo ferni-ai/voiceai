@@ -11,11 +11,15 @@
  * rebuilds what it derives from them (a voice baseline, win counts). The purge also rewrites the
  * stored docs without them (scrubHeldDoc), so they don't sit in Firestore until the next call.
  *
- * The window is stored too (minor_care_holds/{userId}.windows, kept KEEP_DAYS), because the scrub
- * can fail, or the process can die before it commits, and the next call may run in any process
- * (prod runs 1 to 8 replicas). Each session start reads the stored windows back before the stores
- * load (loadHeldWindows), and redoes a scrub that never completed. A read that fails keeps the
- * stores unwritable for that user (reload-before-save.ts), never "no windows".
+ * The window is stored too (minor_care_holds/{userId}.windows), because the scrub can fail, or the
+ * process can die before it commits, and the next call may run in any process (prod runs 1 to 8
+ * replicas). Each session start reads the stored windows back before the stores load
+ * (loadHeldWindows), and redoes a scrub that never completed; so does the held-scrub sweep, for a
+ * caller who never calls again (held-scrub-sweep.ts). A read that fails keeps the stores
+ * unwritable for that user (reload-before-save.ts), never "no windows".
+ *
+ * A window is kept KEEP_DAYS after its purge only once it is scrubbed. Until then it is never
+ * pruned and the doc has no TTL: the window is all that hides entries still stored.
  *
  * @module services/trust-systems/held-window
  */
@@ -98,7 +102,7 @@ export async function scrubHeldDoc<T extends object>(
 
 // ---- The stored windows: minor_care_holds/{userId} (minor-care-shared-hold.ts writes heldUntil there)
 
-/** A stored window is kept 90 days after its purge: pruned on every read and write, and the TTL. */
+/** A scrubbed window is kept 90 days after its purge: pruned on every read and write, and the TTL. */
 export const KEEP_DAYS = 90;
 const KEEP_MS = KEEP_DAYS * 24 * 60 * 60 * 1000;
 const MAX_STORED = 50;
@@ -117,13 +121,24 @@ function storedWindows(data: Record<string, unknown> | undefined, now: number): 
   return list
     .filter((w) => typeof w?.start === 'number' && typeof w.end === 'number')
     .map((w) => ({ start: w.start!, end: w.end!, scrubbed: w.scrubbed === true }))
-    .filter((w) => w.end + KEEP_MS > now);
+    .filter((w) => !w.scrubbed || w.end + KEEP_MS > now); // unscrubbed: kept until it is
+}
+
+/** The newest MAX_STORED windows, except that an unscrubbed one is never dropped. */
+function capped(list: StoredWindow[]): StoredWindow[] {
+  let excess = list.length - MAX_STORED;
+  return list.filter((w) => {
+    if (excess <= 0 || !w.scrubbed) return true;
+    excess--; // the oldest scrubbed go first
+    return false;
+  });
 }
 
 /**
- * Rewrite the stored windows, in a transaction. keepUntil: KEEP_DAYS after the latest purge; the
- * hold write never sets expireAt (the TTL) before it. Each write adds or keeps one window, so it is
- * always later than heldUntil (6 h).
+ * Rewrite the stored windows, in a transaction. Once every window is scrubbed, keepUntil (and
+ * expireAt, the TTL) is KEEP_DAYS after the latest purge; each write adds or keeps one window, so
+ * it is always later than heldUntil (6 h). While one is unscrubbed both are null (a TTL policy
+ * skips a field that isn't a timestamp), and unscrubbedSince, its purge, is what the sweep finds.
  */
 async function updateStored(
   userId: string,
@@ -134,10 +149,13 @@ async function updateStored(
   await db.runTransaction(async (tx) => {
     const data = (await tx.get(ref)).data();
     const next = change(storedWindows(data, Date.now()));
-    if (!next) return;
-    const list = next.slice(-MAX_STORED);
-    const keepUntil = Math.max(...list.map((w) => w.end + KEEP_MS));
-    tx.set(ref, { windows: list, keepUntil, expireAt: new Date(keepUntil) }, { merge: true });
+    if (!next?.length) return;
+    const list = capped(next);
+    const pending = list.filter((w) => !w.scrubbed).map((w) => w.end);
+    const keepUntil = pending.length ? null : Math.max(...list.map((w) => w.end + KEEP_MS));
+    const expireAt = keepUntil === null ? null : new Date(keepUntil);
+    const unscrubbedSince = pending.length ? Math.min(...pending) : null;
+    tx.set(ref, { windows: list, keepUntil, expireAt, unscrubbedSince }, { merge: true });
   });
 }
 
@@ -159,7 +177,7 @@ export async function storeHeldWindow(
 }
 
 /** The scrub covered every window this process knows for the user: mark those stored. */
-export async function markHeldWindowsScrubbed(userId: string): Promise<void> {
+export async function markHeldWindowsScrubbed(userId: string): Promise<boolean> {
   const known = windows.get(userId) ?? [];
   const covered = (w: StoredWindow) => known.some(([a, b]) => a === w.start && b === w.end);
   try {
@@ -168,10 +186,35 @@ export async function markHeldWindowsScrubbed(userId: string): Promise<void> {
         ? list.map((w) => (covered(w) ? { ...w, scrubbed: true } : w))
         : null
     );
+    return true;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'MINOR_CARE held window not marked scrubbed');
+    return false;
   }
 }
+
+/**
+ * A retry failed: rewrite the doc by the rules above, so one stored before them (with a TTL while
+ * unscrubbed) never expires first. Never rejects.
+ */
+export async function keepUnscrubbedWindows(userId: string): Promise<void> {
+  await updateStored(userId, (list) => (list.some((w) => !w.scrubbed) ? list : null)).catch(
+    (error) => log.warn({ error: String(error), userId }, 'MINOR_CARE held windows not rewritten')
+  );
+}
+
+/** loadHeldWindows for the sweep, whatever this process's MINOR_CARE. Rejects on a failed read. */
+export async function loadStoredHeldWindows(userId: string): Promise<{ unscrubbed: boolean }> {
+  const stored = storedWindows((await holdRef(userId).get()).data(), Date.now());
+  for (const w of stored) noteHeldWindow(userId, w.start, w.end);
+  return { unscrubbed: stored.some((w) => !w.scrubbed) };
+}
+
+/** Purges of this doc's windows still unscrubbed (stored data; no read). */
+export const unscrubbedEnds = (data: Record<string, unknown> | undefined): number[] =>
+  storedWindows(data, Date.now())
+    .filter((w) => !w.scrubbed)
+    .map((w) => w.end);
 
 /**
  * Session start, in any process: read the user's stored windows into memory, so every read drops

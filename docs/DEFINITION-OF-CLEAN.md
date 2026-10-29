@@ -55,6 +55,9 @@ Measured on dev before anything ships; the user listens before prod.
 | Logs, not console | `lint-brand.ts` `no-console-log` in app code | may not increase (today 1,219) |
 | One way to do each thing | duplicate tools per job (`scripts/tool-retrieval/eval-choice.ts`: lookalike confusion) | the time context first: `docs/plans/2026-09-30-tool-bounded-contexts.md` |
 | Honest tests | a test named for a behavior fails when it's broken | review + `verify-before-you-claim` |
+| No duplicated rules | the same rule implemented twice (name normalisation, contact-data detection, identity guards, forgotten-topic matching) | `kernel-duplicates` gate, extended to these (memory v2 lane C4); each copy found is collapsed into its context's `domain/` |
+| No dead code | unused exports and files (`pnpm quality:knip`) | no new dead code, every PR |
+| Clear names | files and folders named for what they do (no `utils2`, `helpers`, `manager`, `v2`, acronyms) | review |
 
 ### 4. Clean architecture
 
@@ -62,7 +65,15 @@ Measured on dev before anything ships; the user listens before prod.
 |---|---|---|
 | Layers point inward | `pnpm quality:arch` (import AST vs `architecture-layers.ts`) | no new violating edge (per-edge baseline) |
 | No per-caller state at module level | singletons that hold a user/session (the tool loader and timer handler were) | each found one is fixed with a test (PR #121, 02eba4269) |
+| Clean layers inside a context | `domain/` pure, `ports/` interfaces, `adapters/` the only Firestore and vendor imports, `use-cases/`, `delivery/` | `quality:arch`: `@google-cloud/firestore` in `VENDOR_PACKAGES`, adapters mapped to L1, a purity rule for `domain/` (memory first: lane C4 of `docs/plans/2026-10-29-memory-v2-retro-and-architecture.md`) |
 | The docs agents read match production | `CLAUDE.md` claims vs `livekit*.toml`, the model factory | reviewed when the stack changes |
+
+### 5. Clean docs
+
+| Standard | Measure | Gate |
+|---|---|---|
+| A plan for multi-PR work | `docs/plans/YYYY-MM-DD-<topic>.md`, linked from each PR | review |
+| A current `CLAUDE.md` per context | updated in the PR that changes what it describes | review; a wrong doc is filed as a bug |
 
 ## How it's enforced
 

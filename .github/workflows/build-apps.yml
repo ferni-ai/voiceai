@@ -69,7 +69,7 @@ jobs:
       - id: ios
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(apps/ios-native/|\.github/workflows/build-apps\.yml$)'
+          include: '^(apps/ios-native/|\.github/workflows/(build-apps|ios-testflight)\.yml$)'
 
   build-ios:
     name: iOS build and test
@@ -82,7 +82,7 @@ jobs:
         github.event.inputs.platforms == 'mobile' ||
         github.event.inputs.platforms == 'ios'
       )
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 60
     env:
       SPM_DIR: ${{ github.workspace }}/.spm
@@ -90,13 +90,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
-        with:
-          xcode-version: latest-stable
+      # The one Xcode for iOS builds (apps/ios-native/.xcode-version), shared with
+      # the TestFlight lane; fails loudly if the image lacks it.
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_$(cat apps/ios-native/.xcode-version).app" || { ls -d /Applications/Xcode*.app; exit 1; }
+          xcodebuild -version
 
-      - name: Xcode version
-        run: xcodebuild -version
+      - name: Xcode pin
+        run: apps/ios-native/scripts/check-xcode-pin.sh
 
       # No timers or delayed dispatch in the avatar and call (one clock, one state machine).
       - name: Motion rules
@@ -138,6 +140,18 @@ jobs:
         # launched is retried, once, with a warning (scripts/ci-test.sh).
         run: scripts/ci-test.sh "${{ steps.sim.outputs.udid }}" "$SPM_DIR" "$RUNNER_TEMP"
 
+      # Apple's accessibility audit at the default size and AX5, Reduce Motion
+      # and Reduce Transparency, and the Talk button's hit area (UITests).
+      - name: Accessibility audit (iPhone, gating)
+        working-directory: apps/ios-native
+        run: scripts/ui-audit.sh gate "iPhone 17 Pro Max" "$SPM_DIR" "$RUNNER_TEMP"
+
+      # Reported as a warning with the finding count until the iPad is clean;
+      # then switch "report" to "gate".
+      - name: Accessibility audit (iPad, reported)
+        working-directory: apps/ios-native
+        run: scripts/ui-audit.sh report "iPad Pro 13-inch (M5)" "$SPM_DIR" "$RUNNER_TEMP"
+
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v7
@@ -146,7 +160,14 @@ jobs:
           path: |
             ${{ runner.temp }}/*.xcresult
             ${{ runner.temp }}/app-tests*.log
+            ${{ runner.temp }}/ui-audit-*.log
           retention-days: 14
+
+      # The archive checks themselves (build number, one version everywhere,
+      # English only), on synthetic bundles.
+      - name: Archive checks self-test
+        working-directory: apps/ios-native
+        run: scripts/test-archive-checks.sh
 
       # Tags and manual runs also check that a Release archive builds. It is
       # unsigned: signing and upload stay manual in Xcode.
@@ -163,9 +184,11 @@ jobs:
             -skipPackagePluginValidation \
             -skipMacroValidation \
             archive \
+            CURRENT_PROJECT_VERSION="$(scripts/build-number.sh)" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+          scripts/check-archive.sh "$RUNNER_TEMP/Ferni.xcarchive"
 
       - name: Upload iOS archive
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'

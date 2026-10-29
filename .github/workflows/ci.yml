@@ -940,7 +940,7 @@ jobs:
 
       - name: Check for secrets
         if: steps.scan-range.outcome == 'success' && steps.scan-range.outputs.commits != '0'
-        uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
+        uses: trufflesecurity/trufflehog@31ce31ee1abbcc7dc8eee5764c17121c3044c8b2 # v3.99.7
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
@@ -1059,6 +1059,11 @@ jobs:
       # checked-in gcloud listings in scripts/ci/fixtures/firestore-indexes/. ~2 s.
       - name: Firestore index drift
         run: pnpm tsx scripts/ci/firestore-indexes-drift.ts
+
+      # Blocking: a file this PR leaves unimported, or more unused exports in a file than at
+      # the merge base, fails (knip.json; knip runs here and on the base). ~10 s.
+      - name: Dead code (knip ratchet)
+        run: pnpm quality:knip
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates

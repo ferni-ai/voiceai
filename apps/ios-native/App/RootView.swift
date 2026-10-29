@@ -25,7 +25,7 @@ struct RootView: View {
         var symbol: String {
             switch self {
             case .talk: "waveform"
-            case .team: "person.3"
+            case .team: "person.2" // person.3 is wider than the sidebar's icon column
             case .remembers: "heart.text.square"
             case .settings: "gearshape"
             }
@@ -33,7 +33,15 @@ struct RootView: View {
     }
 
     var body: some View {
+        @Bindable var model = model
         layout
+            .alert(model.notice ?? "", isPresented: Binding(
+                get: { model.notice != nil }, set: { if !$0 { model.notice = nil; model.noticeDetail = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                if let detail = model.noticeDetail { Text(detail) }
+            }
             // Only a build the server names as too old; nothing can dismiss it.
             .fullScreenCover(isPresented: .constant(model.minimumBuild.updateRequired)) {
                 UpdateRequiredView(message: model.minimumBuild.message)
@@ -44,18 +52,29 @@ struct RootView: View {
         if width == .regular {
             NavigationSplitView {
                 List(Section.allCases, id: \.self, selection: $section) { item in
-                    Label(item.title, systemImage: item.symbol)
+                    Label {
+                        // The selected row's words in the accent green measured 4.54:1
+                        // on the grey selection; the primary text colour is clear of it.
+                        Text(item.title)
+                            .foregroundStyle(section == item ? FerniColor.textPrimary : Color.primary)
+                    } icon: {
+                        Image(systemName: item.symbol)
+                    }
                 }
                 .navigationTitle("Ferni")
             } detail: {
-                switch section ?? .talk {
-                case .talk: HomeView(showsAccountButton: false)
-                case .team: NavigationStack { TeamScreen(team: model.team) { section = .talk } }
-                case .remembers: NavigationStack { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
-                case .settings: SettingsView(showsDone: false)
+                Group {
+                    switch section ?? .talk {
+                    case .talk: HomeView(showsAccountButton: false)
+                    case .team: NavigationStack { TeamScreen(team: model.team) { section = .talk } }
+                    case .remembers: NavigationStack { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
+                    case .settings: SettingsView(showsDone: false)
+                    }
                 }
+                // The accent stays out of the sidebar: green text on the grey
+                // selection fell below 4.5:1.
+                .tint(FerniColor.accent)
             }
-            .tint(FerniColor.accent)
             .onChange(of: model.call.isActive) { _, active in if active { section = .talk } }
         } else {
             HomeView()
@@ -91,6 +110,7 @@ struct TeamScreen: View {
                     }
                 }
                 .frame(minHeight: 64)
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .disabled(!here)

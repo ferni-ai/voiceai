@@ -9,6 +9,10 @@ struct CallAvatar: View {
     let call: CallSession
     /// A sheet or cover hides Ferni, so the avatar stops drawing.
     var covered = false
+    /// Bumped when the person comes back after a long time away: Ferni wakes.
+    var wake = 0
+    /// What the body asks for (a touch's haptic).
+    var onCue: ((KeyedCue) -> Void)?
 
     var body: some View {
         let avatar = call.avatar
@@ -19,9 +23,13 @@ struct CallAvatar: View {
             activity: Self.activity(avatar.pose),
             name: PersonaRegistry.get(avatar.personaID).name,
             covered: covered,
-            level: { [level = call.agentLevel] in level.level }
+            wake: wake,
+            personSpeaking: call.isUserSpeaking,
+            level: { [level = call.agentLevel] in level.level },
+            onCue: onCue
         )
-        .contentShape(Circle())
+        // AvatarView's own shape (Ferni, not his whole square) is the hit area
+        // for this tap too; an outer shape here would replace it.
         .onTapGesture { if speaking { Task { await call.interrupt() } } }
         .accessibilityHint(speaking ? "Tap to interrupt" : "")
         .accessibilityActions {
@@ -192,6 +200,7 @@ struct CallControls: View {
                             .font(.title)
                             .foregroundStyle(FerniColor.onError)
                             .frame(width: 72, height: 72)
+                            .contentShape(.circle)
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.error).interactive(), in: .circle)
@@ -207,6 +216,9 @@ struct CallControls: View {
                             .font(FerniType.button)
                             .foregroundStyle(FerniColor.onAccent)
                             .frame(maxWidth: 420, minHeight: 56)
+                            // A plain button hit-tests only what it draws: without this,
+                            // only the words started a call, not the glass around them.
+                            .contentShape(.capsule)
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.accent).interactive(), in: .capsule)
@@ -226,6 +238,7 @@ struct CallControls: View {
                 .font(.title2)
                 .foregroundStyle(FerniColor.textPrimary)
                 .frame(width: 60, height: 60)
+                .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)

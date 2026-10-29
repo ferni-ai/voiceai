@@ -3,20 +3,18 @@
  *
  * Handles incoming webhooks from:
  * - Twilio (SMS status, inbound SMS, call status)
- * - SendGrid/Resend (email events)
  * - Push notification interactions
+ *
+ * No email event webhooks: email goes out through the ferni.ai Workspace mailbox
+ * only (Seth, 2026-10-27, #2947), which has no delivery-event callback, and no
+ * email carries an open pixel or tracked link.
  */
 
-import { getClientIp } from '../utils/client-ip.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   handleSMSStatusWebhook,
   handleInboundSMSWebhook,
   handleCallStatusWebhook,
-  handleSendGridWebhook,
-  handleResendWebhook,
-  handleOpenTracking,
-  handleClickTracking,
 } from '../services/outreach/webhooks/index.js';
 import { handlePushInteraction } from '../services/outreach/delivery/push-notifications.js';
 import { recordCheckinReply } from '../services/outreach/checkin-replies.js';
@@ -26,7 +24,6 @@ import { recordHolderCode } from '../services/messaging/holder-verification.js';
 import { smsCrisisReply, withCrisisReply } from '../services/outreach/sms-crisis-screen.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio } from './twilio-callback-signature.js';
-import { URL } from 'url';
 
 const log = getLogger().child({ module: 'outreach-webhook-routes' });
 
@@ -83,22 +80,6 @@ function sendTwiML(res: ServerResponse, twiml: string): void {
   res.end(twiml);
 }
 
-function sendPixel(res: ServerResponse): void {
-  // 1x1 transparent GIF
-  const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
-  res.writeHead(200, {
-    'Content-Type': 'image/gif',
-    'Content-Length': pixel.length,
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-  });
-  res.end(pixel);
-}
-
-function sendRedirect(res: ServerResponse, url: string): void {
-  res.writeHead(302, { Location: url });
-  res.end();
-}
-
 // ============================================================================
 // ROUTE HANDLER
 // ============================================================================
@@ -111,10 +92,6 @@ function sendRedirect(res: ServerResponse, url: string): void {
  * - POST /api/outreach/webhooks/twilio/sms-inbound
  * - POST /api/outreach/webhooks/twilio/call-status
  * - POST /api/outreach/webhooks/twilio/conversational-call-status
- * - POST /api/outreach/webhooks/sendgrid
- * - POST /api/outreach/webhooks/resend
- * - GET  /api/outreach/webhooks/email/open
- * - GET  /api/outreach/webhooks/email/click
  * - POST /api/outreach/webhooks/push/interaction
  */
 export async function handleOutreachWebhookRoutes(
@@ -219,79 +196,6 @@ export async function handleOutreachWebhookRoutes(
         sendTwiML(res, result.twiml);
       } else {
         sendJSON(res, 200, { success: true });
-      }
-      return true;
-    }
-
-    // ========================================================================
-    // EMAIL WEBHOOKS
-    // ========================================================================
-
-    // SendGrid Webhook
-    if (webhookPath === '/sendgrid' && method === 'POST') {
-      const { body, rawBody } = await parseBody(req);
-      const signature = req.headers['x-twilio-email-event-webhook-signature'] as string;
-      const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'] as string;
-
-      const events = Array.isArray(body) ? body : [body];
-      const result = await handleSendGridWebhook(
-        events as Parameters<typeof handleSendGridWebhook>[0],
-        signature,
-        timestamp,
-        rawBody
-      );
-
-      sendJSON(res, 200, { success: result.success, processed: result.processed });
-      return true;
-    }
-
-    // Resend Webhook
-    if (webhookPath === '/resend' && method === 'POST') {
-      const { body, rawBody } = await parseBody(req);
-      const signature = req.headers['svix-signature'] as string;
-      const webhookId = req.headers['svix-id'] as string;
-      const timestamp = req.headers['svix-timestamp'] as string;
-
-      const result = await handleResendWebhook(
-        body as unknown as Parameters<typeof handleResendWebhook>[0],
-        signature,
-        webhookId,
-        timestamp,
-        rawBody
-      );
-
-      sendJSON(res, 200, { success: result.success });
-      return true;
-    }
-
-    // Email Open Tracking Pixel
-    if (webhookPath === '/email/open' && method === 'GET') {
-      const url = new URL(req.url || '', `https://${req.headers.host}`);
-      const messageId = url.searchParams.get('mid');
-
-      if (messageId) {
-        const userAgent = req.headers['user-agent'];
-        const ip = getClientIp(req);
-        await handleOpenTracking(messageId, userAgent, ip);
-      }
-
-      sendPixel(res);
-      return true;
-    }
-
-    // Email Click Tracking Redirect
-    if (webhookPath === '/email/click' && method === 'GET') {
-      const url = new URL(req.url || '', `https://${req.headers.host}`);
-      const messageId = url.searchParams.get('mid');
-      const encodedUrl = url.searchParams.get('url');
-
-      if (messageId && encodedUrl) {
-        const userAgent = req.headers['user-agent'];
-        const ip = getClientIp(req);
-        const originalUrl = await handleClickTracking(messageId, encodedUrl, userAgent, ip);
-        sendRedirect(res, originalUrl);
-      } else {
-        sendRedirect(res, 'https://ferni.ai');
       }
       return true;
     }

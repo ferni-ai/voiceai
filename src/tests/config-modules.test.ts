@@ -252,14 +252,12 @@ describe('environment.ts', () => {
 
     it('should load optional integration keys', async () => {
       process.env.ALPHA_VANTAGE_API_KEY = 'alpha-key';
-      process.env.SENDGRID_API_KEY = 'sendgrid-key';
       process.env.YELP_API_KEY = 'yelp-key';
 
       const { loadConfig } = await import('../config/environment.js');
       const config = loadConfig();
 
       expect(config.integrations.alphaVantage).toBe('alpha-key');
-      expect(config.integrations.sendgrid).toBe('sendgrid-key');
       expect(config.integrations.yelp).toBe('yelp-key');
     });
   });
