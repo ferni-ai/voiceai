@@ -42,7 +42,7 @@ export const CHANNEL_WORDS = {
   other: /\b(send|email|post|go ahead)\b/,
 };
 const OTHER_CHANNEL = {
-  call: /\b(texts?|texting|message|email|voicemail)\b/,
+  call: /\b(texts?|texting|message|email|voicemail|facetime|whatsapp|video|zoom|skype)\b/,
   text: /\b(call|calling|dial|ring|phone)\b/,
   other: /$^/,
 };
@@ -79,15 +79,26 @@ const someoneElse = (w: string, target: string[]): boolean =>
   [w, w.replace(/s$/, '')].some((x) => OTHERS.has(x)) &&
   !target.some((t) => w === t || w === `${t}s`);
 /** A capitalised name, not opening a sentence, that isn't the person, the owner or Ferni. */
+// Capitalised with a lower-case letter: "Priya", "FaceTime"; not "OK".
+const NAME = /^[A-Z](?=[A-Za-z]*[a-z])[A-Za-z]+$/;
+// A name opening a sentence as its subject ("Priya is with him."), unless it's a common word.
+const SUBJECT = /^([A-Za-z]+)(?:['’]s)? (is|was|has|had|can|could|will|would|says|said|just|and)\b/;
+const NOT_NAMES = new Set(
+  words(
+    'it its that this there here what who he she they we you i everything nothing someone everyone'
+  )
+);
 function namesSomeoneElse(text: string, facts: ActionFacts): boolean {
-  const known = new Set([...facts.target, ...facts.owner, ...FERNI]);
-  return sentences(text).some((s) =>
-    s
+  const known = new Set([...facts.target, ...facts.owner, ...FERNI, ...NOT_NAMES]);
+  const other = (w: string): boolean => NAME.test(w) && !known.has(w.toLowerCase());
+  return sentences(text).some((s) => {
+    const [first = '', ...rest] = s
+      .trim()
       .split(/\s+/)
-      .slice(1)
-      .map((w) => w.replace(/^[^A-Za-z]+|(['’]s)?[^A-Za-z]*$/g, ''))
-      .some((w) => /^[A-Z][a-z]+$/.test(w) && !known.has(w.toLowerCase()))
-  );
+      .map((w) => w.replace(/^[^A-Za-z]+|(['’]s)?[^A-Za-z]*$/g, ''));
+    const subject = SUBJECT.exec(s.trim().replace(/^[^A-Za-z]+/, ''))?.[1];
+    return rest.some(other) || (subject === first && other(first));
+  });
 }
 
 /** Never a read-back, whatever the model says: another time, line, number, person or channel, a
@@ -110,7 +121,7 @@ export function vetoed(text: string, facts: ActionFacts): boolean {
   );
 }
 
-export const READBACK_PROMPT = `Ferni, a voice assistant, has an action ready for its owner and needs the owner's go-ahead. Classify what Ferni ASKS in his latest turn. Return JSON only: {"kind":"readback"|"other_question"|"no_question"}
+const READBACK_PROMPT = `Ferni, a voice assistant, has an action ready for its owner and needs the owner's go-ahead. Classify what Ferni ASKS in his latest turn. Return JSON only: {"kind":"readback"|"other_question"|"no_question"}
 readback: every question in the turn asks whether to go ahead with THIS action, to this person, now. Paraphrases count ("Should I go ahead and make that call now?", "Ready for me to call him?", "Do you want me to try dialing him again?", "Should I go ahead with that?", "...if you'd like me to go ahead?", a read-back followed by "Sound good?"). Statements around the question don't change it: sympathy, "I haven't dialed yet", the number, or the errand, even when the errand mentions other people or asks the person to do something ("to say hi and ask her to call you back").
 other_question: Ferni asks anything else, anywhere in the turn, even beside a read-back: waiting or another time ("Should I wait until six?"), another number or line, another person, a text instead of a call (or the reverse), a choice ("or would you rather...?"), a pronoun that doesn't fit the person ("her" for a man's name), how someone is, or any other question.
 no_question: the turn asks nothing (an answer or a statement, e.g. "It ends in 4417.").
@@ -122,7 +133,7 @@ const SCHEMA = {
   required: ['kind'],
 };
 /** From the end of Ferni's turn: the owner still has to hear it and answer (~1.5-3 s). */
-export const READBACK_CEILING_MS = 4000;
+const READBACK_CEILING_MS = 4000;
 /** How long deciding the owner's answer may wait for an unfinished classification. */
 export const READBACK_GRACE_MS = 300;
 let ask: ConsentAsk = geminiAsk(SCHEMA);

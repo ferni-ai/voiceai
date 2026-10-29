@@ -30,11 +30,11 @@ export interface ConsentInput {
 export function consentClassifierOn(env: Env = process.env): boolean {
   return flagOn('CALL_CONSENT_CLASSIFIER', env);
 }
-export const CONSENT_MODEL = 'gemini-3.5-flash-lite';
+const CONSENT_MODEL = 'gemini-3.5-flash-lite';
 /** Started on the owner's last final, so it is usually done before the model calls the tool. */
-export const CONSENT_TIMEOUT_MS = 1200;
+const CONSENT_TIMEOUT_MS = 1200;
 
-export const CONSENT_PROMPT = `Ferni, a voice assistant, read an action back to its owner and asked whether to go ahead. Decide whether the owner's reply agrees to THAT action, to THAT person, now. Return JSON only: {"verdict":"yes"|"no"|"unclear","reason":"${REASONS.slice(0, -1).join('"|"')}"}
+const CONSENT_PROMPT = `Ferni, a voice assistant, read an action back to its owner and asked whether to go ahead. Decide whether the owner's reply agrees to THAT action, to THAT person, now. Return JSON only: {"verdict":"yes"|"no"|"unclear","reason":"${REASONS.slice(0, -1).join('"|"')}"}
 yes (reason agreed): the owner plainly agreed to this action to this person now, e.g. "Yeah, go ahead and call.", "Yes, it's okay with me. Give him a call.", "Yes, you should call him.", "That's fine with me.", "Yep, call him." for a call to a man, "Sure, text her." for a text to a woman. Saying why, as the read-back's own errand ("and check in", "see how he's doing", "say hi"), is still agreement.
 no (reason declined): the owner declined or cancelled, e.g. "No.", "Don't call him.", "Not now.", "Never mind.", "I'll call him myself."
 unclear: everything else, including
@@ -57,7 +57,7 @@ export function consentUserText(input: ConsentInput): string {
 }
 
 /** The model's JSON, or null when it is not one of the closed answers. */
-export function parseConsent(reply: string): ConsentJudgement | null {
+function parseConsent(reply: string): ConsentJudgement | null {
   try {
     const p = JSON.parse(reply.match(/\{[\s\S]*\}/)?.[0] ?? '') as Record<string, unknown>;
     const verdict = p.verdict as ConsentJudgement['verdict'];
@@ -108,7 +108,7 @@ export const geminiAsk =
     });
     return response.text ?? '';
   };
-export const geminiConsentAsk = geminiAsk(SCHEMA);
+const geminiConsentAsk = geminiAsk(SCHEMA);
 
 /** The model's reply within the cap, or null when it took longer (the call is then aborted). */
 export async function replyWithin(
@@ -140,10 +140,7 @@ export function setConsentAsk(next: ConsentAsk | undefined, timeoutMs = CONSENT_
 const UNCLEAR: ConsentJudgement = { verdict: 'unclear', reason: 'error' };
 
 /** Never throws, and never says yes for a timeout, an error or a reply it can't read. */
-export async function classifyConsent(
-  input: ConsentInput,
-  timeoutMs = waitMs
-): Promise<ConsentJudgement> {
+async function classifyConsent(input: ConsentInput, timeoutMs = waitMs): Promise<ConsentJudgement> {
   const started = Date.now();
   try {
     const reply = await replyWithin(ask, CONSENT_PROMPT, consentUserText(input), timeoutMs);

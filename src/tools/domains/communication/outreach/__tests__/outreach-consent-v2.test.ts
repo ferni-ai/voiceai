@@ -336,32 +336,83 @@ describe('it never loops', () => {
 
 /** Security review of the first push: each of these could have placed a call the owner refused. */
 describe('deny by default', () => {
-  it('a no stays a no: Ferni asking again, even naming Dad, never places it', async () => {
+  it('a no stays a no until Ferni reads the call back afresh; only a yes to that places', async () => {
     setConsentAsk(alwaysYes);
+    // The no ends it: a yes with no read-back after it places nothing.
     const call = liveCall();
     await call.call('c1');
     call.owner("No, don't call him.");
-    call.ferni('Okay. Should I go ahead and call Dad now?');
     call.owner('Yes.');
-    // Ferni asking again doesn't reopen it: only the owner's own words do (askedAgain).
     expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
-    expect(sends).toHaveLength(0);
-    const bare = liveCall();
-    await bare.call('b1');
-    bare.owner('No.');
-    bare.ferni("I haven't actually dialed yet, though. Should I go ahead and call?");
-    bare.owner('Yes.');
-    expect(await bare.call('b2')).toContain("Okay, I won't call Dad.");
-    // A deferral or a redirect is as final as a no.
-    for (const ended of ['Call him tomorrow.', 'Okay, he can call me.']) {
-      const again = liveCall();
-      await again.call('d1');
-      again.owner(ended);
-      again.ferni("I haven't actually dialed yet, though. Should I go ahead and call?");
-      again.owner('Yes, go ahead.');
-      expect(await again.call('d2'), ended).toContain("Okay, I won't call Dad.");
+    // Ferni asking about something else, or another time, doesn't reopen it.
+    for (const ferni of ['Okay. Is he doing all right?', 'Should I call him tomorrow instead?']) {
+      const other = liveCall();
+      await other.call('o1');
+      other.owner('No.');
+      other.ferni(ferni);
+      other.owner('Yes.');
+      expect(await other.call('o2'), ferni).toContain("Okay, I won't call Dad.");
     }
     expect(sends).toHaveLength(0);
+    // A fresh read-back of the same call (the classifier says so) reopens it for the next yes,
+    // as on main (verifier round 7): "No." then "Okay. Should I go ahead and call Dad?" then "Yes."
+    const again = liveCall();
+    await again.call('d1');
+    again.owner('No.');
+    expect(await again.call('d2')).toContain("Okay, I won't call Dad.");
+    again.ferni('Okay. Should I go ahead and call Dad now?');
+    again.owner('Yes.');
+    await again.call('d3');
+    expect(sends).toHaveLength(1);
+    // Reopened, an answer that isn't plain asks once, and a yes to that places.
+    const unsure = liveCall();
+    await unsure.call('u1');
+    unsure.owner('No.');
+    unsure.ferni('Okay. Should I go ahead and call Dad now?');
+    unsure.owner('Actually yes, call him.');
+    expect(await unsure.call('u2')).toContain('Just to be sure: call Dad now?');
+    unsure.ferni('Just to be sure: call Dad now?');
+    unsure.owner('Yes.');
+    await unsure.call('u3');
+    expect(sends).toHaveLength(2);
+    // A deferral or a redirect is final: a re-read asking about now doesn't reopen it.
+    for (const ended of ['Call him tomorrow.', 'Okay, he can call me.', 'Not now.', 'Later.']) {
+      const final = liveCall();
+      await final.call('f1');
+      final.owner(ended);
+      final.ferni("I haven't actually dialed yet, though. Should I go ahead and call?");
+      final.owner('Yes, go ahead.');
+      expect(await final.call('f2'), ended).toContain("Okay, I won't call Dad.");
+    }
+    expect(sends).toHaveLength(2);
+  });
+
+  it('"No wait, yes, call him." is the owner asking again: a fresh read-back, then a yes places', async () => {
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('No wait, yes, call him.');
+    expect(await call.call('c2')).toContain('NOT SENT YET. Read this');
+    call.ferni('Should I go ahead and call Dad now?');
+    call.owner('Yes.');
+    await call.call('c3');
+    expect(sends).toHaveLength(1);
+    // A tail that isn't a plain yes doesn't ask again.
+    const later = liveCall();
+    await later.call('l1');
+    later.owner('No wait, yes, call him tomorrow.');
+    expect(await later.call('l2')).toContain("Okay, I won't call Dad.");
+  });
+
+  it('a status question ("Did you call my dad?") is neither a yes nor a no', async () => {
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni('Should I go ahead and call Dad now?');
+    call.owner('Did you call my dad?');
+    expect(await call.call('c2')).toContain('still waiting');
+    call.ferni("Not yet, I haven't dialed. Should I go ahead and call him?");
+    call.owner('Yes.');
+    await call.call('c3');
+    expect(sends).toHaveLength(1);
   });
 
   it('a question that is not this read-back ("call you back", someone else) keeps the window', async () => {
@@ -796,6 +847,29 @@ describe("Ferni's turn: read-back, another question, or none", () => {
       expect(await call.call('c2'), turn).toContain('Just to be sure: call Dad now?');
       expect(sends, turn).toHaveLength(0);
     }
+  });
+
+  it('each veto alone blocks a read-back the model would accept', async () => {
+    setConsentAsk(alwaysYes);
+    const one: Array<[string, string]> = [
+      ['digits', 'Should I call him at 0199?'],
+      ['other channel', 'Should I go ahead and call, or send a text?'],
+      ['other number', 'I found a different number for him. Should I call that number?'],
+      ['hold off', 'Should I hold off, or call him now?'],
+      ['a name opening a sentence', 'Priya is with him. Should I call him now?'],
+      ['a mixed-case app', 'Should I call him on FaceTime?'],
+    ];
+    for (const [veto, turn] of one) {
+      expect(vetoed(turn, facts), veto).toBe(true);
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(turn);
+      call.owner('Yes.');
+      expect(await call.call('c2'), veto).toContain('Just to be sure: call Dad now?');
+    }
+    expect(sends).toHaveLength(0);
+    // Not a name: a common word opening a sentence.
+    expect(vetoed('It is ready. Should I call him now?', facts)).toBe(false);
   });
 
   it('paraphrased read-backs pass the vetoes, and a yes to one places', async () => {

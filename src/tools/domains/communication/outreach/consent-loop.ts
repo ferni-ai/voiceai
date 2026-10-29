@@ -12,10 +12,14 @@
  */
 
 import { getLogger } from '../../../../utils/safe-logger.js';
+import { READBACK_GRACE_MS } from './consent-readback.js';
 import {
   askOnceLine,
   asksAgain,
   channelOf,
+  classifyFerniTurn,
+  endedForGood,
+  ferniTurn,
   personOf,
   VERB,
   type ConfirmState,
@@ -87,6 +91,10 @@ export function cancel(
 ): string {
   dropConfirmThread(pending);
   entry.pending = undefined;
+  // A plain no (or a second unclear) may be reopened by a fresh read-back; a deferral or a
+  // redirect may not: "Later." then "Should I go ahead and call?" then "Yes." isn't a yes to now.
+  const reopenable = !endedForGood(pending, entry.events);
+  entry.closed = reopenable ? { action: pending, seq: sinceSeq, at: Date.now() } : undefined;
   const key = keyOf(pending);
   const asks = (entry.asks ??= new Map<string, AskRecord>());
   asks.set(key, { previews: asks.get(key)?.previews ?? 1, at: Date.now(), closedSeq: sinceSeq });
@@ -95,6 +103,27 @@ export function cancel(
     `Nothing was sent. Tell the caller, in a few words: "${honestLine(pending)}" Don't read it ` +
     `back or ask again unless they ask for it in their own words.`
   );
+}
+
+/** A cancelled action Ferni has since read back afresh (the classifier says so, past the vetoes):
+ * it is stored again, its window starting at that read-back, so the next yes can place it. */
+export async function reopenClosed(
+  entry: SessionLog,
+  on: boolean,
+  windowMs: number
+): Promise<void> {
+  const closed = entry.closed;
+  if (entry.pending || !closed || Date.now() - closed.at > windowMs) return;
+  const reads = entry.events.flatMap((e) => (e.seq > closed.seq && e.kind === 'agent' ? [e] : []));
+  await Promise.all(
+    reads.map(async (e) => classifyFerniTurn(closed.action, e.text, on, READBACK_GRACE_MS))
+  );
+  const fresh = reads.filter((e) => ferniTurn(closed.action, e.text) === 'readback').pop();
+  if (!fresh) return;
+  Object.assign(closed.action, { createdSeq: fresh.seq - 1, reopened: true, asked: false });
+  closed.action.expiresAt = Date.now() + windowMs;
+  [entry.pending, entry.closed] = [closed.action, undefined];
+  log.info({ toolId: closed.action.toolId }, 'OUTREACH_CONFIRM: read back afresh after a cancel');
 }
 
 /** The model called the tool again and it isn't confirmed: what the tool says, or undefined when
@@ -109,7 +138,10 @@ export function unconfirmedReply(
   if (state === 'declined' || (state === 'unclear' && pending.asked))
     return cancel(entry, pending, state);
   // Its next answer is to what Ferni says now, so judge from here.
-  Object.assign(pending, { callId: next.callId, createdSeq: entry.seq, expiresAt: next.expiresAt });
+  Object.assign(pending, {
+    ...{ callId: next.callId, createdSeq: entry.seq, expiresAt: next.expiresAt },
+    reopened: false, // the window now waits for this reply to reach the model
+  });
   if (state === 'waiting') return stillWaitingReply(pending.readBack, pending.toolId);
   pending.asked = true;
   const ask = askOnceLine(pending);

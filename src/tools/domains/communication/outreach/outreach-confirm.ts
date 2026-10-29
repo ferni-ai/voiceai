@@ -36,6 +36,7 @@ import {
   cancel,
   forgetAsks,
   previewAllowed,
+  reopenClosed,
   unconfirmedReply,
   type AskRecord,
 } from './consent-loop.js';
@@ -109,6 +110,8 @@ export interface PendingAction {
   owner?: string[];
   /** Ferni already asked once whether it is still wanted (consent-loop.ts). */
   asked?: boolean;
+  /** Stored again after a cancel, from Ferni's fresh read-back: its window starts there. */
+  reopened?: boolean;
   /** The arguments the read-back was made from: a call with the same ones is the same request. */
   requested?: Record<string, unknown>;
 }
@@ -125,6 +128,8 @@ export interface SessionLog {
   note?: (text: string) => void;
   /** Read-backs per action in this request, so none loops (consent-loop.ts). */
   asks?: Map<string, AskRecord>;
+  /** The action last cancelled, and when: a fresh read-back of it may reopen it (consent-loop.ts). */
+  closed?: { action: PendingAction; seq: number; at: number };
 }
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
@@ -160,10 +165,12 @@ function record(session: object, event: SessionEvent): void {
   entry.events.push({ ...event, seq: ++entry.seq });
   if (entry.events.length > MAX_EVENTS) entry.events.shift();
   const { pending } = entry;
-  if (!pending) return;
-  // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it.
-  if (event.kind === 'agent') void classifyFerniTurn(pending, event.text, consentClassifierOn());
-  if (event.kind !== 'caller') return;
+  // Ferni's turn is classified as it ends, so the owner's yes doesn't wait on it; after a cancel
+  // too, since a fresh read-back may reopen it.
+  const action = pending ?? entry.closed?.action;
+  if (event.kind === 'agent' && action)
+    void classifyFerniTurn(action, event.text, consentClassifierOn());
+  if (event.kind !== 'caller' || !pending) return;
   // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
   if (confirmationState(pending, entry.events, Date.now()) === 'declined')
     cancel(entry, pending, 'declined', entry.seq - 1);
@@ -358,6 +365,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         }
         if (serverConfirmOn())
           return gateInFamily({ ...gate, session, entry, args, opts, callId, userId: ctx.userId });
+        await reopenClosed(entry, consentClassifierOn(), CONFIRM_WINDOW_MS);
         const { pending } = entry;
         if (pending && continues(pending, def.id, spec, args) && pending.userId === ctx.userId) {
           const state = await judgeConfirmation(pending, entry.events);
@@ -391,6 +399,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         const action = { toolId: def.id, args: prepared.args, readBack: prepared.readBack };
         const enough = previewAllowed(entry, action);
         if (enough !== undefined) return enough;
+        entry.closed = undefined;
         entry.pending = {
           toolId: def.id,
           userId: ctx.userId,
