@@ -41,7 +41,8 @@ export function briefedHandoffs(env: Record<string, string | undefined> = proces
   return env.BRIEFED_HANDOFF === 'on';
 }
 
-const firstName = (personaId: string): string => getPersonaDisplayName(personaId).split(/\s+/)[0];
+export const personaFirstName = (personaId: string): string =>
+  getPersonaDisplayName(personaId).split(/\s+/)[0];
 
 /**
  * What the outgoing persona says as it hands over: the pair's banter, or a
@@ -53,7 +54,7 @@ export function departureLine(from: string, to: string, env = process.env): stri
   const banter = getHandoffBanter(from, to);
   if (banter) return banter;
   return handoffAskFirstEnabled(env)
-    ? `Sure, here's ${firstName(to)}.`
+    ? `Sure, here's ${personaFirstName(to)}.`
     : `Let me hand you off to ${getPersonaDisplayName(to)}.`;
 }
 
@@ -65,7 +66,7 @@ export function departureLine(from: string, to: string, env = process.env): stri
 export function arrivalLine(to: string, from: string, env = process.env): string {
   const banter = getArrivingBanter(to, from);
   if (banter) return banter;
-  return handoffAskFirstEnabled(env) ? `Hey, it's ${firstName(to)}.` : "Hey! What's up?";
+  return handoffAskFirstEnabled(env) ? `Hey, it's ${personaFirstName(to)}.` : "Hey! What's up?";
 }
 
 export interface BriefTurn {
