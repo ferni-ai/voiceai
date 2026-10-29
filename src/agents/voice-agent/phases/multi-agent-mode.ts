@@ -67,7 +67,7 @@ export interface MultiAgentModeResult {
 // HANDOFF LOCK (Promise-based mutex pattern)
 // ============================================================================
 
-interface HandoffLock {
+export interface HandoffLock {
   acquire: () => Promise<boolean>;
   release: () => void;
   /** A handoff holds the lock now (HANDOFF_EARLY_GOODBYE: no goodbye then) */
@@ -78,7 +78,7 @@ interface HandoffLock {
  * Creates a promise-based mutex for handoff synchronization.
  * Prevents concurrent handoff requests from racing.
  */
-function createHandoffLock(): HandoffLock {
+export function createHandoffLock(): HandoffLock {
   let handoffInProgress = false;
   let handoffPromise: Promise<void> = Promise.resolve();
   let releaseHandoffLock: (() => void) | null = null;
