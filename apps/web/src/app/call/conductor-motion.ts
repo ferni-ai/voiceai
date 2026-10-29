@@ -1,35 +1,41 @@
 /**
- * Motion limits for the conductor's character policy: which easing curves are
- * "still" (they never leave 0..1, so nothing overshoots its target or winds up
- * behind its start), and the clamp on how far a pop may grow or lift.
+ * Motion limits for the conductor's character policy: how far each easing
+ * curve travels (does it overshoot its target, or wind up behind its start?),
+ * and the clamp on how far a pop may grow or lift.
  */
 import { EASING } from '../../config/animation-constants.js';
 
-/** True when a cubic-bezier with these y control points leaves 0..1 (overshoot or wind-up). */
-const leavesUnitRange = (y1: number, y2: number): boolean => {
+/** Lowest and highest point of a cubic-bezier with these y control points. */
+const yRange = (y1: number, y2: number): readonly [number, number] => {
+  let [lo, hi] = [0, 1];
   for (let i = 0; i <= 200; i++) {
     const t = i / 200;
     const y = 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t ** 2 * y2 + t ** 3;
-    if (y < -1e-9 || y > 1 + 1e-9) return true;
+    [lo, hi] = [Math.min(lo, y), Math.max(hi, y)];
   }
-  return false;
+  return [lo, hi];
 };
 
-/** Easing tokens (camelCase, as sequences name them) that never leave 0..1. An allow-list:
- *  an unknown name (bounce, springHeavy, a GSAP string) counts as bouncy. */
-const STILL_EASINGS: ReadonlySet<string> = new Set(
-  Object.entries(EASING)
-    .filter(([, value]) => {
-      const n = String.raw`\s*(-?[\d.]+)\s*`;
-      const m = new RegExp(`^cubic-bezier\\(${n},${n},${n},${n}\\)$`).exec(value);
-      if (!m) return true; // linear and the ease-* keywords never overshoot
-      return !leavesUnitRange(Number(m[2]), Number(m[4]));
-    })
-    .map(([key]) => key.toLowerCase().replace(/_([a-z])/g, (_m, c: string) => c.toUpperCase()))
+/** How far each easing token (camelCase, as sequences name it) travels; keywords stay in 0..1. */
+const RANGES: ReadonlyMap<string, readonly [number, number]> = new Map(
+  Object.entries(EASING).map(([key, value]) => {
+    const n = String.raw`\s*(-?[\d.]+)\s*`;
+    const m = new RegExp(`^cubic-bezier\\(${n},${n},${n},${n}\\)$`).exec(value);
+    const name = key.toLowerCase().replace(/_([a-z])/g, (_m, c: string) => c.toUpperCase());
+    return [name, m ? yRange(Number(m[2]), Number(m[4])) : ([0, 1] as const)] as const;
+  })
 );
+const EPSILON = 1e-9;
 
-/** True for an easing token that never overshoots or winds up; false for any other name. */
-export const isStillEasing = (name: string): boolean => STILL_EASINGS.has(name);
+/** True for an easing token that never winds up below 0 nor rises past `ceiling`. An allow-list:
+ *  an unknown name (bounce, springHeavy, a GSAP string) is never within. */
+export const easingStaysWithin = (name: string, ceiling: number): boolean => {
+  const range = RANGES.get(name);
+  return range !== undefined && range[0] >= -EPSILON && range[1] <= ceiling + EPSILON;
+};
+
+/** The highest point an easing token reaches (1 = no overshoot), or undefined if unknown. */
+export const easingPeak = (name: string): number | undefined => RANGES.get(name)?.[1];
 
 /** Caps every scale value at `maxScale` and every lift at `minTranslateY` (arrays too). */
 export const clampMotion = (

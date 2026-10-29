@@ -7,8 +7,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Mood } from '../../src/app/call/call-types.js';
-import type { ChannelCommand, WriteContext } from '../../src/app/call/conductor.js';
-import { CONDUCTOR_POLICY, createCharacterPolicy } from '../../src/app/call/conductor-policy.js';
+import type { ChannelCommand, MomentBeat, WriteContext } from '../../src/app/call/conductor.js';
+import { CONDUCTOR_POLICY } from '../../src/app/call/conductor-character.js';
+import { createCharacterPolicy } from '../../src/app/call/conductor-policy.js';
 import { count, type TraceEntry } from '../../src/app/call/conductor-trace.js';
 import { EASING } from '../../src/config/animation-constants.js';
 import { REDUCED_MOTION, type Sequence } from '../../src/config/motion-sequences.js';
@@ -263,8 +264,7 @@ function peak(token: string): number {
 
 describe('conductor policy: one test per character rule', () => {
   it('gentle springs: calm poses peak near 1.02, upset curves never overshoot', () => {
-    const { poseEasing, gentleEasing, remapEasings } = CONDUCTOR_POLICY.character;
-    expect(remapEasings).toEqual(['spring', 'anticipate']);
+    const { poseEasing, gentleEasing } = CONDUCTOR_POLICY.character;
     expect(poseEasing).toBe('springGentle');
     expect(gentleEasing).toBe('gentle');
     expect(peak(poseEasing)).toBeGreaterThan(1.01); // a hint of play...
@@ -321,16 +321,17 @@ describe('conductor policy: one test per character rule', () => {
     expect(drops(plain.trace(), 'delight:reason=none')).toBe(1);
     expect(plain.played.filter((c) => c.action === 'burst')).toHaveLength(0);
 
-    // Unearned, and reaching the gate anyway: capped like everything else.
+    // Unearned, and reaching the gate anyway: dropped; any other sequence is capped.
     const call = gate();
     const burst: ChannelCommand = {
       channel: 'body',
       action: 'burst',
       durationMs: 500,
-      origin: 'celebration_big',
+      origin: 'x',
     };
     const w = ctx({ sequenceId: 'celebration_big' });
-    expect(call.write({ ...burst, params: props }, w)).toMatchObject({
+    expect(call.write({ ...burst, params: props }, w)).toBe('delight:celebration_big:unearned');
+    expect(call.write({ ...burst, params: props }, ctx())).toMatchObject({
       params: { scale: [1, 1.06, 1], translateY: [0, -8, 0] },
     });
 
@@ -447,7 +448,7 @@ describe('conductor policy: the rules the first verify could not turn red', () =
     }
   );
 
-  it('upset and crisis: haptics soften to softTap; neutral and tender keep their pattern', () => {
+  it('upset and crisis: haptics are softened to softTap, not silenced; neutral and tender keep theirs', () => {
     const buzz = { channel: 'haptic', action: 'success', durationMs: 0, origin: 'x' } as const;
     expect(gate().write(buzz, ctx({ mood: 'upset' }))).toMatchObject({ action: 'softTap' });
     expect(gate().write(buzz, ctx({ mood: 'crisis' }))).toMatchObject({ action: 'softTap' });
@@ -483,7 +484,7 @@ describe('conductor policy: the rules the first verify could not turn red', () =
 
   it('streaks and unlocks are never celebrated, even in a neutral mood', async () => {
     const call = gate();
-    const streak = { kind: 'delight', size: 'small', reason: 'streak' } as const;
+    const streak: MomentBeat = { kind: 'delight', size: 'small', reason: 'streak' as never };
     expect(call.moment(streak, 'neutral', 0)).toBe('delight:reason=streak');
     const asked = (id: string, mood: Mood = 'neutral') =>
       call.moment({ kind: 'sequence', id }, mood, 0);
@@ -509,7 +510,16 @@ describe('conductor policy: the rules the first verify could not turn red', () =
         durationMs: 200,
         origin: 'x',
       });
-      for (const name of ['winking', 'mischievous', 'sheepish', 'amused']) {
+      for (const name of [
+        'winking',
+        'mischievous',
+        'sheepish',
+        'amused',
+        'playful',
+        'cheeky',
+        'silly',
+        'teasing',
+      ]) {
         expect(gate().write(face(name), ctx({ mood }))).toBe(`face:${name}:mood=${mood}`);
         expect(gate().write(face(name), ctx())).toMatchObject({ params: { expression: name } });
       }
@@ -532,16 +542,222 @@ describe('conductor policy: the rules the first verify could not turn red', () =
     expect(play(2000)).toMatchObject({ action: 'play' });
   });
 
-  it('crisis: the caring face pin releases when the crisis passes', async () => {
-    const h = character();
-    await h.arrive();
-    const m = h.mark();
-    h.setContext({ mood: 'crisis' });
-    h.conductor.beat({ kind: 'expression', name: 'happy' });
-    expect(drops(h.since(m), 'face:happy:crisis-pinned')).toBe(1);
-    h.setContext({ mood: 'neutral' });
-    await h.clock.advance(1300); // past the 1.2 s face dwell
-    h.conductor.beat({ kind: 'expression', name: 'happy' });
-    expect(count(h.since(m), 'face', 'expression', 'happy')).toBe(1);
+  it.each(['neutral', 'tender'] as const)(
+    'crisis: the caring face pin releases when the mood moves on to %s',
+    async (mood) => {
+      const h = character();
+      await h.arrive();
+      const m = h.mark();
+      h.setContext({ mood: 'crisis' });
+      h.conductor.beat({ kind: 'expression', name: 'warm' });
+      expect(drops(h.since(m), 'face:warm:crisis-pinned')).toBe(1);
+      h.setContext({ mood });
+      await h.clock.advance(1300); // past the 1.2 s face dwell
+      h.conductor.beat({ kind: 'expression', name: 'warm' });
+      expect(count(h.since(m), 'face', 'expression', 'warm')).toBe(1);
+    }
+  );
+});
+
+describe('conductor policy: delight is checked again when it plays', () => {
+  const smallWin: MomentBeat = { kind: 'delight', size: 'small', reason: 'achievement' };
+  const bigWin: MomentBeat = { kind: 'delight', size: 'big', reason: 'achievement' };
+
+  it.each(['upset', 'crisis'] as const)(
+    'a delight queued behind a handoff never plays once the mood turns %s',
+    async (mood) => {
+      const h = character();
+      await h.arrive();
+      h.go('handoff_out', { handoffTo: 'maya' }); // not interruptible: the delight waits
+      h.conductor.beat(smallWin);
+      const m = h.mark();
+      h.setContext({ mood });
+      await h.clock.advance(5000);
+      const t = h.since(m);
+      expect(drops(t, `moment:celebration_small:mood=${mood}`)).toBe(1);
+      // Cancelled in the queue, so it never even starts (and never reaches the play-time check).
+      expect(t.filter(([, , , d]) => d?.startsWith('delight:celebration_small'))).toHaveLength(0);
+      expect(count(t, 'glow', 'celebrate')).toBe(0);
+      expect(count(t, 'sound', 'play', 'celebration.small')).toBe(0);
+    }
+  );
+
+  it.each(['upset', 'crisis'] as const)(
+    'an earned big celebration yields softly when the mood turns %s 50 ms in',
+    async (mood) => {
+      const h = character();
+      await h.arrive();
+      h.conductor.beat(bigWin);
+      await h.clock.advance(50); // the overlay is up; bounce, sound and haptic start at 100 ms
+      const m = h.mark();
+      h.setContext({ mood });
+      await h.clock.advance(4000);
+      const t = h.since(m);
+      expect(count(t, 'policy', 'yield', 'celebration_big')).toBe(1);
+      expect(h.settled).toContain('colour'); // settles to its end pose, never snaps back
+      expect(count(t, 'sound', 'play')).toBe(0);
+      expect(t.filter(([, c]) => c === 'haptic')).toHaveLength(0);
+      expect(count(t, 'body', 'joyBounce')).toBe(0);
+    }
+  );
+
+  it('at play time a celebration write drops while upset, and an earn is forgotten', () => {
+    const call = gate();
+    const glow: ChannelCommand = {
+      channel: 'glow',
+      action: 'celebrate',
+      durationMs: 600,
+      origin: 'x',
+    };
+    const w = ctx({ sequenceId: 'celebration_small', runId: 9 });
+    expect(call.moment(smallWin, 'neutral', 0)).toEqual({ play: 'celebration_small' });
+    expect(call.write(glow, { ...w, mood: 'upset' })).toBe('delight:celebration_small:mood=upset');
+    call.onMood('upset'); // the earn is forgotten, its budget stays spent
+    expect(call.write(glow, w)).toBe('delight:celebration_small:unearned');
   });
+
+  it('an earned big passes the cap only in its own run, and not once the mood turns tender', () => {
+    const call = gate();
+    const pop: ChannelCommand = {
+      channel: 'body',
+      action: 'pop',
+      durationMs: 600,
+      origin: 'x',
+      params: { scale: [1, 1.2, 1], scaleX: [1, 1.2], scaleY: [1, 1.2] },
+    };
+    const w = ctx({ sequenceId: 'celebration_big', runId: 5 });
+    expect(call.moment(bigWin, 'neutral', 0)).toEqual({ play: 'celebration_big' });
+    expect(call.write(pop, w)).toMatchObject({ params: pop.params });
+    const flat = { scale: [1, 1, 1], scaleX: [1, 1], scaleY: [1, 1] };
+    expect(call.write(pop, { ...w, mood: 'tender' })).toMatchObject({ params: flat });
+    expect(call.write(pop, { ...w, runId: 6 })).toBe('delight:celebration_big:unearned');
+    // scaleX/scaleY are capped like scale: at 1.06 in a calm mood, 1.0 in a soft one.
+    const capped = { scale: [1, 1.06, 1], scaleX: [1, 1.06], scaleY: [1, 1.06] };
+    expect(gate().write(pop, ctx())).toMatchObject({ params: capped });
+    expect(gate().write(pop, ctx({ mood: 'upset' }))).toMatchObject({ params: flat });
+  });
+
+  it('tender turns a big delight into a small one', () => {
+    expect(gate().moment(bigWin, 'tender', 0)).toEqual({ play: 'celebration_small' });
+  });
+});
+
+describe('conductor policy: the delight budget, gap and reasons', () => {
+  const win = (size: 'small' | 'big', reason: string = 'achievement'): MomentBeat => ({
+    kind: 'delight',
+    size,
+    reason: reason as never,
+  });
+
+  it('90 s between any two delights, whatever their size', () => {
+    const call = gate();
+    expect(call.moment(win('small'), 'neutral', 0)).toEqual({ play: 'celebration_small' });
+    expect(call.moment(win('small'), 'neutral', 89_999)).toBe('delight:small:gap');
+    expect(call.moment(win('big'), 'neutral', 60_000)).toBe('delight:big:gap');
+    expect(call.moment(win('big'), 'neutral', 90_000)).toEqual({ play: 'celebration_big' });
+  });
+
+  it('every call starts with a fresh budget', () => {
+    const policy = createCharacterPolicy({ reducedMotion: false, sound: 'full' });
+    const first = policy.forCall();
+    expect(first.moment(win('big'), 'neutral', 0)).toEqual({ play: 'celebration_big' });
+    expect(first.moment(win('big'), 'neutral', 100_000)).toBe('delight:big:budget');
+    expect(policy.forCall().moment(win('big'), 'neutral', 0)).toEqual({ play: 'celebration_big' });
+  });
+
+  it.each(['achievement', 'breakthrough', 'laughter', 'first_meeting'])(
+    '%s is earned when calm, never while upset or in crisis',
+    (reason) => {
+      expect(gate().moment(win('small', reason), 'neutral', 0)).toEqual({
+        play: 'celebration_small',
+      });
+      expect(gate().moment(win('small', reason), 'upset', 0)).toBe('delight:mood=upset');
+      expect(gate().moment(win('small', reason), 'crisis', 0)).toBe('delight:mood=crisis');
+    }
+  );
+
+  it('a streak is never earned, whatever size it asks for', () => {
+    expect(gate().moment(win('big', 'streak'), 'neutral', 0)).toBe('delight:reason=streak');
+    expect(gate().moment(win('small', 'streak'), 'neutral', 0)).toBe('delight:reason=streak');
+  });
+});
+
+describe('conductor policy: crisis is quiet, then sound comes back', () => {
+  const play = (track: string): ChannelCommand => ({
+    channel: 'sound',
+    action: 'play',
+    durationMs: 0,
+    origin: 'x',
+    params: { track },
+  });
+
+  it('crisis silences the persona too; once it passes, sound plays again', () => {
+    const call = gate();
+    call.onMood('crisis');
+    expect(call.write(play('persona.maya'), ctx({ mood: 'crisis' }))).toBe(
+      'sound:persona.maya:mood=crisis'
+    );
+    expect(call.write(play('ui.chime'), ctx({ mood: 'crisis' }))).toBe(
+      'sound:ui.chime:mood=crisis'
+    );
+    call.onMood('neutral');
+    expect(call.write(play('ui.chime'), ctx({ now: 5000 }))).toMatchObject({ action: 'play' });
+    expect(call.write(play('persona.maya'), ctx({ now: 5000 }))).toMatchObject({ action: 'play' });
+  });
+});
+
+describe('conductor policy: neutral poses allow nothing livelier than springGentle', () => {
+  it('every easing token, and any unknown curve, fits under the springGentle ceiling', () => {
+    const call = gate();
+    const ceiling = peak('springGentle');
+    const names = [...Object.keys(EASING).map(tokenName), 'bounce', 'springHeavy'];
+    const lively: string[] = [];
+    for (const [i, easing] of names.entries()) {
+      const cmd: ChannelCommand = {
+        channel: 'body',
+        action: 'lean',
+        durationMs: 300,
+        origin: 'x',
+        easing,
+      };
+      const out = call.write(cmd, ctx({ layer: 'state', runId: i }));
+      if (typeof out === 'string') throw new Error(out);
+      const key = easing.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase();
+      const value = (EASING as Readonly<Record<string, string>>)[key];
+      const [lo, hi] = value ? yRange(value) : [-Infinity, Infinity];
+      const fits = lo >= -1e-9 && hi <= ceiling + 1e-9;
+      expect([easing, out.easing]).toEqual([easing, fits ? easing : 'springGentle']);
+      if (!fits) lively.push(easing);
+    }
+    for (const name of ['spring', 'anticipate', 'elastic', 'springBouncy', 'springStrong']) {
+      expect(lively).toContain(name);
+    }
+    for (const name of ['playful', 'easeOutBack', 'bounce', 'springHeavy']) {
+      expect(lively).toContain(name);
+    }
+    // organic peaks at ~1.008, under springGentle's ~1.020, so it stays.
+    expect(lively).not.toContain('organic');
+    // A neutral moment keeps its own curve.
+    const moment: ChannelCommand = {
+      channel: 'body',
+      action: 'pop',
+      durationMs: 300,
+      origin: 'x',
+      easing: 'elastic',
+    };
+    expect(call.write(moment, ctx({ runId: 99 }))).toMatchObject({ easing: 'elastic' });
+  });
+});
+
+it.each(['upset', 'crisis'] as const)('%s: joyful and proud faces drop too', (mood) => {
+  for (const expression of ['joyful', 'proud', 'pleased', 'glad']) {
+    const face: ChannelCommand = {
+      channel: 'face',
+      action: 'expression',
+      durationMs: 200,
+      origin: 'x',
+      params: { expression },
+    };
+    expect(gate().write(face, ctx({ mood }))).toBe(`face:${expression}:mood=${mood}`);
+  }
 });
