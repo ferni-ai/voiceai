@@ -10,9 +10,9 @@
  * lower case. Then whole addresses are compared, never parts: "verify.ferni.ai" is
  * not "ferni.ai", and "notifications@ferni.ai" is not "hello@ferni.ai".
  *
- * A website is recognised by SHAPE, not by an allowlist of endings: any dotted token
- * whose last label is two or more letters (any script) or punycode. An ending list
- * fails open (".help", ".ru", "xn--p1ai", a Greek omicron in ".cοm" all passed).
+ * A website is recognised by its last label: on the COMPLETE IANA root-zone list (iana-tlds.ts),
+ * punycode, or non-ASCII. A partial list failed open (".help", ".ru", "xn--p1ai", a Greek
+ * omicron in ".cοm" all passed); shape alone over-fired on "node.js" and "Okay.Great".
  *
  * Every pattern is linear: a label is alphanumerics joined by hyphens, so no input has
  * two readings (a label that could also take "-dot-" backtracked for minutes, #3032
@@ -22,6 +22,7 @@
  */
 import type { HouseFacts } from '../../config/house-facts.js';
 import { containsContactData, contactNumberRuns, foldContactText } from '../../memory/index.js';
+import { TLDS } from './iana-tlds.js';
 
 /** The addresses a sentence may give: lower case, numbers as national digits. */
 export interface Addresses {
@@ -67,8 +68,15 @@ function normalise(text: string): string {
     .toLowerCase();
 }
 
-/** A website by shape: the last label is two or more letters (any script) or punycode; "3.5" is not. */
-const isSite = (host: string): boolean => /(?:^|\.)(?:\p{L}{2,}|xn--[a-z0-9-]+)$/u.test(host);
+/**
+ * A website: the last label is a root-zone ending (the complete IANA list), punycode, or has a
+ * non-ASCII letter (an IDN ending or a lookalike letter). Ordinary text with a dot in it
+ * ("node.js", "Okay.Great", "v2.0.1", "3.5") ends in none of them, so it is left alone.
+ */
+const isSite = (host: string): boolean => {
+  const last = host.slice(host.lastIndexOf('.') + 1);
+  return TLDS.has(last) || last.startsWith('xn--') || /[^\x00-\x7f]/u.test(last);
+};
 const hostKey = (host: string): string => host.replace(/^www\./u, '');
 /** National digits: "+1 (727) 555-0142" and "727.555.0142" are both "7275550142". */
 function numberKey(run: string): string {

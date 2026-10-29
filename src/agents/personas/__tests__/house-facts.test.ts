@@ -324,7 +324,9 @@ describe('only trusted sources ground an address (round 5)', () => {
     'Go to glowfriend\uff0ehelp.',
     'Go to glowfriend dot help.',
     'Go to glowfriend dot r u.',
-    'Go to glowfriend dot x n dash dash p 1 a i.',
+    'Go to evil.xn--p1ai.',
+    'Go to evil dot ru.',
+    'Go to evil.\u0441om.',
     'Write to jo at glowfriend dot help.',
   ])('an invented host of any ending is found nowhere: %s', async (line) => {
     expect(await textOf('Hi', [line])).toBe(NO);

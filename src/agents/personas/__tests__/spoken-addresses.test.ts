@@ -40,7 +40,7 @@ describe('one reading', () => {
   });
 });
 
-describe('a website is recognised by shape, not by its ending', () => {
+describe('a website: the complete IANA list, punycode, or a non-ASCII ending', () => {
   it.each([
     'glowfriend.help',
     'glowfriend.ru',
@@ -51,14 +51,30 @@ describe('a website is recognised by shape, not by its ending', () => {
     'glowfriend\uff0ehelp',
     'glowfriend dot help',
     'glowfriend dot r u',
-    'GLOWFRIEND.QQQ',
+    'GLOWFRIEND.HELP',
+    'evil.ru',
+    'evil dot ru',
+    'evil.xn--p1ai',
+    'evil.xn--zzzz9a',
+    'evil.\u0441om',
   ])('%s is a website', (host) => {
     expect(judgeAddresses(`Go to ${host} now`, FACTS)).toBe('nowhere');
     expect(collectAddresses(`Go to ${host} now`, noAddresses()).hosts.size).toBe(1);
   });
 
-  it.each(['3.5', '2026-10-29', 'v2.0.1', 'a.m', 'e.g', '1.5x', 'U.S'])('%s is not', (token) => {
-    expect(judgeAddresses(`That is ${token} ok`, FACTS)).toBe('ok');
+  it.each([
+    'That is 3.5 ok',
+    'since 2026-10-29',
+    'version v2.0.1',
+    'a.m',
+    'e.g',
+    '1.5x',
+    'U.S',
+    'Put a dot on the map',
+    'run node.js',
+    'Okay.Great',
+  ])('ordinary text with a dot passes: %s', (text) => {
+    expect(judgeAddresses(text, FACTS)).toBe('ok');
   });
 
   it('the house hosts pass, and a lookalike does not', () => {
