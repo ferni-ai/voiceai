@@ -1,0 +1,66 @@
+/**
+ * With MIRROR_SHARED_CONTRACTIONS=on, mirroring on the live reply path contracts by
+ * utils/spoken-contractions.ts (#2347).
+ * The wrapper tells it what the reply said before each chunk: upstream buffering
+ * hands mirroring whole sentences, so a quote opened in one sentence is still open in
+ * the next, and a stranded pair arrives inside one chunk.
+ */
+import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
+import type { voice } from '@livekit/agents';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { getLinguisticMirroring } from '../../../conversation/superhuman/linguistic-mirroring.js';
+
+const spoken: string[] = [];
+
+async function drain(text: NodeReadableStream<string>): Promise<null> {
+  let all = '';
+  for await (const chunk of text) all += chunk;
+  spoken.push(all);
+  return null;
+}
+
+vi.mock('../../../speech/tts-gateway/index.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../speech/tts-gateway/index.js')>()),
+  isTTSGatewayEnabled: () => true,
+  createGatewayTTSNode: () => drain,
+}));
+
+describe('tts-wrapper: mirroring contracts with the reply so far', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('keeps a stranded pair and a quote across chunks; contracts outside them', async () => {
+    vi.stubEnv('MIRROR_SHARED_CONTRACTIONS', 'on');
+    const userId = 'mirroring-contractions-user';
+    const engine = getLinguisticMirroring(userId);
+    for (const line of ["I'm good.", "we're hanging out", "it's fine, don't worry"]) {
+      engine.analyzeMessage(line);
+    }
+    const { wrappedTtsNode } = await import('../tts-wrapper.js');
+    const chunks = [
+      'I can see how worried ',
+      'you are about this. ',
+      'He said, "I am so tired. ',
+      'It is late now." ',
+      'It is late now.',
+    ];
+    await wrappedTtsNode(
+      {} as voice.Agent,
+      new ReadableStream<string>({
+        start(c) {
+          for (const chunk of chunks) c.enqueue(chunk);
+          c.close();
+        },
+      }),
+      {} as voice.ModelSettings,
+      { sessionContext: { sessionId: 'mirroring-1', personaId: 'ferni', turnNumber: 3, userId } }
+    );
+    expect(spoken).toHaveLength(1);
+    const words = spoken[0].replace(/<[^>]*>/g, '');
+    expect(words).toContain('how worried you are about this');
+    expect(words).toContain('"I am so tired.');
+    expect(words).toMatch(/It is late now\." +It's late now\./);
+  });
+});
