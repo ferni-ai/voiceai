@@ -45,7 +45,7 @@ unclear: everything else, including
 - deferred: a later time ("later", "tomorrow", "on Monday", "again tonight");
 - conditional: a condition, a change or an extra instruction ("Yes, but...", "call him and tell him...");
 - question: a question, or a fresh request with no agreement word ("You should call.", "Call.");
-- off_topic: about something else, or grudging ("Fine, whatever.").
+- off_topic: about something else, grudging or sarcastic ("Fine, whatever.", "Wow, yes, what a brilliant plan.").
 Never answer yes when unsure.`;
 
 /** The owner's words as data, one per line, so nothing in them reads as an instruction. */
@@ -68,9 +68,9 @@ export function parseConsent(reply: string): ConsentJudgement | null {
     const reason = (REASONS as readonly unknown[]).includes(p.reason)
       ? (p.reason as ConsentReason)
       : 'off_topic';
-    // A yes must say it is agreement; anything else it says is a reason not to take it.
-    if (verdict === 'yes' && reason !== 'agreed') return { verdict: 'unclear', reason };
-    return { verdict, reason };
+    // A yes must be agreement and a no a decline; any other reason asks once instead.
+    const fits = verdict === 'unclear' || reason === (verdict === 'yes' ? 'agreed' : 'declined');
+    return { verdict: fits ? verdict : 'unclear', reason };
   } catch {
     return null;
   }

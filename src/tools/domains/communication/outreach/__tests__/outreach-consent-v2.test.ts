@@ -563,4 +563,59 @@ describe('deny by default', () => {
     await call.call('c2');
     expect(sends).toHaveLength(0);
   });
+
+  /** Verifier round 2 (6654e084d): misses an always-yes judge would have placed. */
+  const neverPlaced = async (reply: string): Promise<void> => {
+    const call = liveCall();
+    await call.call('c1');
+    call.owner(reply);
+    await call.call('c2');
+    expect(sends, reply).toHaveLength(0);
+  };
+  it('sarcasm is never a yes', async () => {
+    setConsentAsk(alwaysYes);
+    for (const r of [
+      'Wow, yes, what a brilliant plan.',
+      'Oh sure, great idea, he loves hearing from me at 2 a.m.',
+      "Yeah right, like he'd pick up.",
+    ])
+      await neverPlaced(r);
+  });
+  it('"get Bob to call him" is a redirect', async () => {
+    setConsentAsk(alwaysYes);
+    await neverPlaced('Yeah, get Bob to call him.');
+    await neverPlaced('Okay, ask Priya to call him.');
+  });
+  it('"in a sec", "in like ten min" and "eventually" defer', async () => {
+    setConsentAsk(alwaysYes);
+    for (const r of [
+      'Okay, in a sec.',
+      'yes in like ten min',
+      'Sure... eventually.',
+      'Yes, at some point.',
+    ])
+      await neverPlaced(r);
+  });
+  it('"give Bob\'s dad a call" names someone else', async () => {
+    setConsentAsk(alwaysYes);
+    await neverPlaced("Yeah, give Bob's dad a call.");
+  });
+  it('another line for the same person is not a yes to the number read back', async () => {
+    setConsentAsk(alwaysYes);
+    for (const r of [
+      'Yeah, call him on his work line.',
+      'Sure, call his cell.',
+      'Yes, try his other number.',
+      'Okay, call him at the office.',
+    ])
+      await neverPlaced(r);
+  });
+
+  it('a judge "no" that is not a decline asks once instead of cancelling', async () => {
+    setConsentAsk(async () => '{"verdict":"no","reason":"redirect"}');
+    const call = liveCall();
+    await call.call('c1');
+    call.owner('You can call him now.');
+    expect(await call.call('c2')).toContain('Just to be sure: call Dad now?');
+  });
 });

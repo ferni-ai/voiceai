@@ -26,7 +26,6 @@ export interface AskRecord {
   closedSeq?: number;
 }
 type Action = Pick<PendingAction, 'toolId' | 'args' | 'readBack'>;
-
 const MAX_PREVIEWS = 2;
 const ASK_MEMORY_MS = 10 * 60 * 1000;
 const VERB = { call: 'call', text: 'text', other: 'send that to' } as const;
@@ -34,7 +33,6 @@ function keyOf(action: Action): string {
   const { address, name } = targetOf(action.args);
   return `${channelOf(action)}:${address ?? name ?? action.toolId}`;
 }
-
 /** After a close: the owner asked again ("No, call him!", "I said yes"), or Ferni read it back by
  * name and the owner answered. Either allows only a new read-back, never a call. */
 function askedAgain(events: ConfirmEvent[], since: number, action: Action): boolean {
@@ -46,7 +44,6 @@ function askedAgain(events: ConfirmEvent[], since: number, action: Action): bool
       (asksAgain(e.text, action) || (reread >= 0 && i > reread && !isPlainNo(e.text)))
   );
 }
-
 function honestLine(action: Action): string {
   return `Okay, I won't ${VERB[channelOf(action)]} ${personOf(action)}.`;
 }

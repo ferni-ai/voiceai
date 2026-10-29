@@ -148,8 +148,9 @@ const VETO = new Set(
     tomorrow tonight morning afternoon evening weekend monday tuesday wednesday thursday friday
     saturday sunday when if once until unless maybe perhaps guess suppose probably whatever because`)
 );
+// Hedges, deferrals and sarcasm ("Oh sure, great idea", "Wow, yes, what a brilliant plan").
 const HEDGE =
-  /\b(let me think|think about it|not sure|in (an?|a few|\d+|\w+) (minutes?|mins?|hours?|hrs?|bit|while))\b/;
+  /\b(let me think|think about it|not sure|in (like )?(an?|a few|\d+|\w+) (minutes?|mins?|hours?|hrs?|secs?|seconds?|bit|while)|eventually|at some point|some ?day|not yet|yeah right|oh sure|great idea|brilliant plan|what a|like (hed|shed|theyd|he would|she would))\b/;
 // Normalised like words(), keeping digits: "let me... think", "not-sure", "in 10 minutes".
 const lower = (t: string): string => t.toLowerCase().replace(/['’]/g, '');
 const norm = (t: string): string => lower(t).replace(/[^a-z0-9]+/g, ' ');
@@ -158,17 +159,16 @@ const AGREES =
   /\b(yes|yeah|yep|yup|ya|sure|ok|okay|alright|absolutely|definitely|certainly|of course|please|go ahead|go for it|do it|fine|sounds good|thats right|correct)\b/;
 const CALL_WORD = /\b(call|calling|ring|dial|phone)\b/;
 const OTHER_WAY = /\b(text|texts|message|email|send)\b/;
-// Said at any point after the read-back, these end it for good (deny by default): a plain no, a
-// redirect, or a deferral. Ferni asking again doesn't undo them: the stored action is dropped,
-// and only a fresh read-back (a new preview, consent-loop.ts) can follow.
+// Said any time after the read-back, these end it for good: only a fresh read-back can follow.
 const REDIRECT =
-  /\b(call|text|ring|message) (you|me|us)\b|\bcheck in with (me|us)\b|\b(he|she|they) (can|could|should|will) (call|text|ring)\b|\b(have|let|get) \w+ (call|text|ring)\b/;
+  /\b(call|text|ring|message) (you|me|us)\b|\bcheck in with (me|us)\b|\b(he|she|they) (can|could|should|will) (call|text|ring)\b|\b(have|let|get) \w+ (call|text|ring)\b|\b(get|ask|tell) \w+ to (call|text|ring)\b/;
 const DEFERRED = new Set(
   words('later tomorrow tonight instead monday tuesday wednesday thursday friday saturday sunday')
 );
 const OTHERS = new Set([...KIN, ...words('grandma grandpa cousin friend boss doctor neighbor')]);
 const AFTER_CALL = new Set(words('now right please them'));
-
+const OTHER_LINE =
+  /\b(work|cell|mobile|office|home|other) (line|number|phone)\b|\b(on|at) (his|her|the) (cell|mobile|office|work)\b/i;
 /** Whom "call X" / "give X a call" names: 'other' (another person or number: a redirect), 'odd'
  * (anything else: never a yes without asking), or undefined (the person read back). */
 function callee(text: string, pending: PendingAction): 'other' | 'odd' | undefined {
@@ -178,7 +178,9 @@ function callee(text: string, pending: PendingAction): 'other' | 'odd' | undefin
   const digits = number.replace(/\D/g, '');
   if ((text.match(/\d[\d\s().-]{1,}\d/g) ?? []).some((n) => !digits.includes(n.replace(/\D/g, ''))))
     return 'other';
-  let found: 'odd' | undefined;
+  if (/\b(call|ring|dial|give)\s+[a-z]+['’]s\b/i.test(text)) return 'other'; // "give Bob's dad a call"
+  // Another line for the same person ("his work line", "at the office"): read it back anew.
+  let found: 'odd' | undefined = OTHER_LINE.test(text) ? 'odd' : undefined;
   const objects =
     /\b(?:call|ring|dial),?\s+(?:my\s+|your\s+|the\s+)?([A-Za-z]+)|\bgive\s+(?:my\s+|your\s+|the\s+)?([A-Za-z]+)\s+a\s+call/gi;
   for (const m of text.matchAll(objects)) {
