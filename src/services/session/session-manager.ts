@@ -743,7 +743,6 @@ export async function createSessionServices(
     sessionId,
     userId,
     personaId,
-    startPersonaId: personaId,
     sessionStartTime: Date.now(),
     realtimeConversationId,
     userProfile,
@@ -1941,8 +1940,7 @@ export async function createSessionServices(
           }
 
           // ================================================================
-          // 🧠 HUMAN MEMORY: Extract relationship signals from conversation
-          // Dates, values, dreams, fears, growth markers, comfort patterns...
+          // 🧠 HUMAN MEMORY: relationship signals (dates, values, dreams, fears, growth, comfort)
           // ================================================================
           try {
             const { extractHumanSignals, mergeSignalsIntoMemory } =
@@ -2074,17 +2072,14 @@ export async function createSessionServices(
             getLogger().debug({ error: String(indexErr) }, 'User memory indexer not available');
           }
 
-          // 📤 Analyze session for proactive outreach opportunities
-          // This extracts commitments, detects emotional state, and creates outreach triggers
+          // 📤 Outreach: commitments, emotional state and follow-up triggers from the call
           try {
             const { analyzeSessionForOutreach } = await import('../outreach/session-integration.js');
             const outreachResult = await analyzeSessionForOutreach({
               userId: validatedUserId,
               sessionId,
-              // Follow-ups stay with the call's first persona (S2 decides beat owners);
-              // the Maya habit check runs if Maya spoke at all (ACTIVE_PERSONA_ID)
-              personaId: startPersonaOf(services),
-              personasVisited: personasVisitedOf(services),
+              personaId: startPersonaOf(services), // follow-ups stay with it (S2 decides owners)
+              personasVisited: personasVisitedOf(services), // the Maya habit check reads it
               turns: turns.map((t) => ({
                 role: t.role as 'user' | 'assistant',
                 content: t.content,

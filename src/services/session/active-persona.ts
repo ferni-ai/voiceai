@@ -6,7 +6,7 @@
  * Maya heard was recorded as Ferni's and the after-call Maya habit check never ran.
  *
  * - `services.personaId`: the persona speaking now. With the flag on it follows each handoff.
- * - `services.startPersonaId`: the persona the call started with. It never changes.
+ * - `services.startPersonaId`: the persona the call started with, kept at the first handoff.
  * - `services.handoffState.metPersonas`: every persona that spoke on this call.
  *
  * @module services/session/active-persona
@@ -24,11 +24,12 @@ export function activePersonaIdOn(): boolean {
 /** A handoff to `toPersonaId` completed: it is the persona speaking now, and has spoken on the call. */
 export function noteHandoffComplete(services: CallPersonas, toPersonaId: string): void {
   if (!activePersonaIdOn()) return;
+  services.startPersonaId ??= services.personaId;
   services.personaId = toPersonaId;
   markPersonaMet(services.handoffState, toPersonaId);
 }
 
-/** The persona the call started with (older services objects only have `personaId`). */
+/** The persona the call started with (`personaId` itself until the first handoff). */
 export function startPersonaOf(services: CallPersonas): string {
   return services.startPersonaId || services.personaId || 'ferni';
 }

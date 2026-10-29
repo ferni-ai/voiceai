@@ -51,8 +51,7 @@ export interface SessionEndData {
   userId: string;
   sessionId: string;
   personaId: string;
-  /** Every persona that spoke on the call (active-persona.ts); unset means only `personaId` */
-  personasVisited?: string[];
+  personasVisited?: string[]; // every persona that spoke (active-persona.ts); unset: personaId only
   turns: ConversationTurn[];
   summary?: ConversationSummary;
   durationMinutes: number;
@@ -434,10 +433,8 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     log.warn({ error, userId }, 'Failed to record predictive signals');
   }
 
-  // 🌱 MAYA HABIT OUTREACH: Post-session habit checks
-  // If Maya (habits) spoke on the call, check for streak/milestone triggers
-  const personasVisited = data.personasVisited ?? [personaId];
-  if (personasVisited.some((id) => id === 'maya-santos' || id === 'maya')) {
+  // 🌱 MAYA HABIT OUTREACH: if Maya (habits) spoke on the call, check streak/milestone triggers
+  if ((data.personasVisited ?? [personaId]).some((id) => id === 'maya-santos' || id === 'maya')) {
     try {
       const mayaResults = await analyzeMayaHabitSession(userId, data.sessionId);
       triggersCreated += mayaResults.triggersCreated;
