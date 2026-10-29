@@ -43,6 +43,8 @@ interface Answer extends Asked {
 const turns = new WeakMap<object, Turn>();
 const asked = new WeakMap<object, Asked>();
 const answered = new WeakMap<object, Answer>();
+/** Name-correction's yes this turn (agreeTo); no name: that turn's yes didn't count. */
+const agreed = new WeakMap<object, { turn: number; name?: string }>();
 
 /** Notes the caller's turn: `turn` counts their turns so far on this call, `words` are this turn's. */
 export function noteCallerTurn(session: object, words: string, turn: number): void {
@@ -51,6 +53,23 @@ export function noteCallerTurn(session: object, words: string, turn: number): vo
 
 const first = (name: string): string => name.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
 export const sameName = (a: string, b: string | undefined): boolean => !!b && first(a) === first(b);
+
+/**
+ * Name-correction's own question ("Sam from now on?") got a yes on caller turn
+ * `turn`. The rename is this tool's: the yes lets rememberName save that name
+ * on that turn. The first request of a turn decides for the rest of it, so the
+ * tool-reply request (same words) can't decide again; and a yes while this tool
+ * is asking about another name is that name's, not this one's ("call me Sam, or
+ * actually Jamie", then "yes": #2924 round-2 verify). Returns whether it counts.
+ */
+export function agreeTo(session: object, name: string, turn: number): boolean {
+  const before = agreed.get(session);
+  if (before?.turn === turn) return before.name !== undefined && sameName(before.name, name);
+  const open = asked.get(session);
+  const toolAsksOther = !!open && turn - open.turn <= 1 && !sameName(open.name, name);
+  agreed.set(session, { turn, name: toolAsksOther ? undefined : name });
+  return !toolAsksOther;
+}
 
 export type Step = { kind: 'ask'; second: boolean } | { kind: 'save' } | { kind: 'no' };
 
@@ -92,6 +111,11 @@ export function stepFor(
   }
   if (open && open.turn === now.turn && sameName(open.name, name))
     return { kind: 'ask', second: open.second };
+  const yes = agreed.get(session);
+  if (yes?.turn === now.turn && yes.name !== undefined && sameName(yes.name, name)) {
+    if (open) asked.delete(session);
+    return { kind: 'save' };
+  }
   if (sameName(name, opts.onFile)) {
     if (open) asked.delete(session);
     return { kind: 'save' };

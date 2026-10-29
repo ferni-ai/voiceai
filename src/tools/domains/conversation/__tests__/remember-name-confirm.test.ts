@@ -175,19 +175,20 @@ describe('a stale or replaced name never wins (rows 2a-2e)', () => {
     expect(c.userProfile.preferredName).toBe(newer);
   });
 
-  it('2b NAME_CORRECTION=on: the correction settles Jamie, then late calls for Sam', async () => {
+  it('2b NAME_CORRECTION=on: the correction gets the yes to Jamie, and only the tool saves it', async () => {
     flags('on', 'on');
     const c = call();
     turn(c, 'call me Sam');
     await tool(c, 'Sam');
     turn(c, 'actually, call me Jamie');
     turn(c, 'yes');
+    expect(c.userData.userName).toBe('Seth'); // name-correction writes nothing (one writer)
+    expect(kind(await tool(c, 'Sam'))).toBe('ask'); // the yes was Jamie's: Sam starts over
+    expect(kind(await tool(c, 'Jamie'))).toBe('stored');
     expect(c.userData.userName).toBe('Jamie');
-    expect(kind(await tool(c, 'Sam'))).toBe('ask'); // starts over, inherits no yes
     turn(c, 'great, thanks');
     await tool(c, 'Sam');
-    expect(c.userProfile.name).toBe('Seth');
-    expect(c.saveProfile).not.toHaveBeenCalled();
+    expect(c.userProfile).toMatchObject({ name: 'Jamie', preferredName: 'Jamie' });
   });
 
   it('2c another writer renames the profile while Sam waits: the yes to Sam still saves Sam', async () => {

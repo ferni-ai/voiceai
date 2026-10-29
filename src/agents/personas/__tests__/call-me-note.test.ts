@@ -140,7 +140,7 @@ describe('the confirm flow (flag on)', () => {
     return { session, persist, say };
   };
 
-  it('a new name waits, and a yes on the next turn saves it once', () => {
+  it('a new name waits; a yes on the next turn hands the save to rememberName', () => {
     const { session, persist, say } = setup();
     expect(say('Just call me Pete')).toContain('("Pete from now on?")');
     expect(say('Just call me Pete')).toContain('("Pete from now on?")'); // the final request, same turn
@@ -148,12 +148,12 @@ describe('the confirm flow (flag on)', () => {
     expect(persist).not.toHaveBeenCalled();
 
     const yes = say('Yeah, go ahead.');
-    expect(yes).toContain('their name is Pete, not Seth');
-    say('Yeah, go ahead.'); // the final request, same turn: no second write
-    expect(session.userData.userName).toBe('Pete');
-    expect(session.userData.services.userProfile.preferredName).toBe('Pete');
-    expect(persist).toHaveBeenCalledTimes(1);
-    expect(persist).toHaveBeenCalledWith('u1', 'Pete');
+    expect(yes).toContain('Call rememberName with "Pete" now');
+    say('Yeah, go ahead.'); // the final request, same turn
+    // rememberName is the one writer (remember-name-owner.test.ts): nothing written here.
+    expect(session.userData.userName).toBe('Seth');
+    expect(session.userData.services.userProfile.preferredName).toBe('Seth');
+    expect(persist).not.toHaveBeenCalled();
   });
 
   it.each(['yes', 'Yes, Sam.', 'Sam.', 'yeah, Sam, not Seth', 'yes, call me Sam', 'mhm'])(
@@ -161,9 +161,9 @@ describe('the confirm flow (flag on)', () => {
     (answer) => {
       const { session, persist, say } = setup();
       say('Please call me Sam');
-      say(answer);
-      expect(session.userData.userName).toBe('Sam');
-      expect(persist).toHaveBeenCalledWith('u1', 'Sam');
+      expect(say(answer)).toContain('Call rememberName with "Sam" now');
+      expect(session.userData.userName).toBe('Seth');
+      expect(persist).not.toHaveBeenCalled();
     }
   );
 
@@ -183,10 +183,10 @@ describe('the confirm flow (flag on)', () => {
     const { session, persist, say } = setup();
     say('call me Sam');
     expect(say('No, call me Samuel')).toContain('("Samuel from now on?")');
-    say('yes');
-    expect(session.userData.userName).toBe('Samuel');
-    expect(persist).toHaveBeenCalledTimes(1);
-    expect(persist).toHaveBeenCalledWith('u1', 'Samuel');
+    const yes = say('yes');
+    expect(yes).toContain('Call rememberName with "Samuel" now');
+    expect(yes).not.toContain('"Sam"');
+    expect(persist).not.toHaveBeenCalled();
   });
 
   it('"call me Fern": the answer decides, ring or name', () => {
@@ -198,9 +198,10 @@ describe('the confirm flow (flag on)', () => {
 
     const named = setup();
     named.say('Can you call me Fern?');
-    expect(named.say('The name, call me Fern')).not.toContain(RING);
-    expect(named.session.userData.userName).toBe('Fern');
-    expect(named.persist).toHaveBeenCalledWith('u1', 'Fern');
+    const name = named.say('The name, call me Fern');
+    expect(name).not.toContain(RING);
+    expect(name).toContain('Call rememberName with "Fern" now');
+    expect(named.persist).not.toHaveBeenCalled();
 
     const neither = setup();
     neither.say('Can you call me Fern?');

@@ -65,6 +65,7 @@ const noYesNote = (name: string, current: string | undefined): string =>
 async function save(name: string, user: NameToolUser): Promise<string> {
   getLogger().info(`Remembering user name: ${name}`);
   user.name = name;
+  user.userName = name; // this call's name too: rememberName is the one writer with the flag on
   const { services } = user;
   if (services?.userProfile) {
     services.userProfile.name = name;
