@@ -125,7 +125,6 @@ const CLEANUP_WRITERS = [
   /^set bogle_users\/<id>\/relationship_arc\/data$/, // relationship arc
   /^set user_seeds\/<id>/, // seed economy
   /^set bogle_users\/<id>\/persona_affinities\//, // session lifecycle
-  /^add bogle_users\/<id>\/persona_interactions\//, // session lifecycle
   /^redis\.delete presence:<id>$/, // session lifecycle
   /^redis\.set suppress_outreach:<id>$/, // session lifecycle
   /^set bogle_users\/<id>\/humanization\/comfort$/, // humanization state

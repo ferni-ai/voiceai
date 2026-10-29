@@ -110,7 +110,6 @@ import type {
   EscalationType,
   EscalationDecision,
   TransferRequest,
-  TransferResult,
   TransferSummary,
 } from './types.js';
 
@@ -253,57 +252,6 @@ import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
 /**
- * Log transfer event for analytics and safety audit trail
- * SAFETY-CRITICAL: This creates an audit trail for crisis escalations
- */
-export async function logTransferEvent(
-  userId: string,
-  decision: EscalationDecision,
-  result: TransferResult,
-  sessionId?: string
-): Promise<void> {
-  log.info(
-    {
-      userId,
-      escalationType: decision.type,
-      urgency: decision.urgency,
-      transferSuccess: result.success,
-      channel: result.channel,
-    },
-    '📊 Transfer event logged'
-  );
-
-  // Store in Firestore for safety audit trail
-  try {
-    const db = getFirestoreDb();
-    if (!db) {
-      log.warn('Firestore not available for crisis logging');
-      return;
-    }
-
-    const record: CrisisEventRecord = {
-      userId,
-      timestamp: new Date().toISOString(),
-      escalationType: decision.type,
-      urgency: decision.urgency,
-      reason: decision.reason,
-      transferSuccess: result.success,
-      channel: result.channel,
-      resources: result.resources?.map((s: { name: string }) => s.name),
-      sessionId,
-    };
-
-    // Store in user's crisis history
-    await db.collection('bogle_users').doc(userId).collection('crisis_history').add(record);
-
-    log.info({ userId }, '🗄️ Crisis event stored in Firestore');
-  } catch (error) {
-    // Log error but don't fail - crisis support should never break
-    log.error({ error: String(error), userId }, '❌ Failed to store crisis event');
-  }
-}
-
-/**
  * Log crisis signal detection (even without transfer)
  * Used for tracking escalation patterns over time
  * Accepts CrisisSignals type returned by detectCrisisSignals()
@@ -403,9 +351,10 @@ async function queryCrisisHistory(userId: string, limitDays: number): Promise<Cr
  *
  * Reads the crisis-level signals in bogle_users/{uid}/crisis_signals
  * (crisis-signals.ts), which logCrisisSignal writes on the live turn path
- * (buildHumanTransferInjections). It used to read
- * crisis_history, whose only writer (logTransferEvent) nothing calls, so a
- * caller in crisis yesterday got no follow-up today.
+ * (buildHumanTransferInjections). It used to read crisis_history, whose only
+ * writer (logTransferEvent) nothing called, so a caller in crisis yesterday got
+ * no follow-up today. That writer is deleted (memory v2 C5a); crisis_history
+ * has no writer and old docs go with the account erase of bogle_users/{uid}.
  */
 export async function getCrisisHistory(
   userId: string,

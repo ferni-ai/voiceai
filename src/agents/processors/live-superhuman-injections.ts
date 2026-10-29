@@ -942,7 +942,7 @@ Your superpower: You know when to remind them of their light.
 
 /**
  * Save commitment asynchronously (fire-and-forget)
- * Uses the recordTrustMoment function for write-through persistence
+ * Uses recordTrustMoment, which indexes it to semantic memory
  */
 async function saveCommitmentAsync(
   userId: string,
@@ -952,7 +952,7 @@ async function saveCommitmentAsync(
 ): Promise<void> {
   try {
     const { recordTrustMoment } = await import('../../services/trust-systems/unified-recorder.js');
-    await recordTrustMoment(userId, {
+    recordTrustMoment(userId, {
       type: 'intention',
       content: `${type}: ${content}`,
       context: topic,

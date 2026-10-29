@@ -42,7 +42,7 @@ export interface StoredCallResult {
   capturedAt: string;
 }
 
-export interface FollowUpAction {
+interface FollowUpAction {
   id: string;
   callId: string;
   userId: string;
@@ -58,7 +58,6 @@ export interface FollowUpAction {
 
 // In-memory store for development/testing
 const callResultStore = new Map<string, StoredCallResult>();
-const followUpActionsStore = new Map<string, FollowUpAction[]>();
 
 /** Store a call result in Firestore (with in-memory fallback) */
 async function storeCallResult(result: StoredCallResult): Promise<void> {
@@ -234,12 +233,12 @@ async function injectToActiveSession(
 // ============================================================================
 
 /** Create follow-up actions based on call outcome */
-async function createFollowUpActions(
+function createFollowUpActions(
   userId: string,
   callId: string,
   outcome: CallOutcome,
   request: OnBehalfCallRequest
-): Promise<void> {
+): void {
   const actions: FollowUpAction[] = [];
 
   // If callback is required, schedule it
@@ -269,49 +268,30 @@ async function createFollowUpActions(
     }
   }
 
-  // Store follow-up actions
-  if (actions.length > 0) {
-    try {
-      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-        getFirestoreDb: null,
-      }));
-
-      const db = getFirestoreDb ? getFirestoreDb() : null;
-
-      if (db) {
-        for (const action of actions) {
-          await db
-            .collection('bogle_users')
-            .doc(userId)
-            .collection('follow_up_actions')
-            .doc(action.id)
-            .set(cleanForFirestore(action));
-
-          void onFollowUpActionChange(
-            userId,
-            action.id,
-            {
-              actionType: action.type,
-              description: action.description,
-              relatedCallId: action.callId,
-              scheduledFor: action.scheduledFor,
-              priority: 'medium',
-              status: 'pending',
-              createdAt: action.createdAt,
-            },
-            'create'
-          );
-        }
-      } else {
-        // In-memory fallback
-        const existing = followUpActionsStore.get(userId) || [];
-        followUpActionsStore.set(userId, [...existing, ...actions]);
-      }
-
-      log.info({ userId, callId, actionCount: actions.length }, 'Follow-up actions created');
-    } catch (error) {
-      log.error({ error: String(error), userId }, 'Failed to create follow-up actions');
+  // Index each action to semantic memory. They used to be stored in
+  // bogle_users/{uid}/follow_up_actions too, but nothing read those docs, so that
+  // write is gone (memory v2 C5a).
+  if (actions.length === 0) return;
+  try {
+    for (const action of actions) {
+      onFollowUpActionChange(
+        userId,
+        action.id,
+        {
+          actionType: action.type,
+          description: action.description,
+          relatedCallId: action.callId,
+          scheduledFor: action.scheduledFor,
+          priority: 'medium',
+          status: 'pending',
+          createdAt: action.createdAt,
+        },
+        'create'
+      );
     }
+    log.info({ userId, callId, actionCount: actions.length }, 'Follow-up actions created');
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to create follow-up actions');
   }
 }
 
@@ -387,7 +367,7 @@ export async function captureCallResult(
     await createCallbackCalendarEvent(request, outcome, callId);
 
     // 8. Create follow-up actions
-    await createFollowUpActions(request.userId, callId, outcome, request);
+    createFollowUpActions(request.userId, callId, outcome, request);
 
     // 9. Store in unified background results (for "While You Were Away")
     await storeInUnifiedResults(request, outcome, callId);
@@ -866,30 +846,3 @@ export async function getRecentCallResults(
   }
 }
 
-/** Get pending follow-up actions for a user */
-export async function getPendingFollowUps(userId: string): Promise<FollowUpAction[]> {
-  if (!isMemberIdentity(userId.trim())) return [];
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
-      getFirestoreDb: null,
-    }));
-
-    const db = getFirestoreDb ? getFirestoreDb() : null;
-
-    if (db) {
-      const snapshot = await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('follow_up_actions')
-        .orderBy('createdAt', 'desc')
-        .get();
-
-      return snapshot.docs.map((doc: { data: () => unknown }) => doc.data() as FollowUpAction);
-    }
-
-    return followUpActionsStore.get(userId) || [];
-  } catch (error) {
-    log.debug({ error: String(error), userId }, 'Failed to get pending follow-ups');
-    return [];
-  }
-}

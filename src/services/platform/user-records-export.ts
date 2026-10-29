@@ -36,6 +36,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'alarms',
     'analytics',
     'behavioral_intelligence',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'bth_signals',
     'coaching_intelligence',
     'commitments',
@@ -60,6 +61,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'facts',
     'ferni_commitments',
     'follow_through',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'follow_up_actions',
     'future_self_letters',
     'human_memory',
@@ -86,6 +88,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'outreach_attempts',
     'outreach_history',
     'persona_affinities',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'persona_interactions',
     'persona_life_updates',
     'persona_told',
@@ -119,6 +122,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'temporal_snapshots',
     'topic_patterns',
     'trust',
+    // legacy: no writer since memory v2 C5a; old docs are still exported
     'trust_moments',
     'trust_profiles',
     'utility_preferences',
