@@ -1,10 +1,10 @@
 /**
  * HANDOFF_HELD_TRUTHFUL (#2387), on the real handoff tool (buildHandoffTools) with
- * HANDOFF_ASK_FIRST on. Fictional versions of the prod calls in the issue:
- * - "bring him in, I want to talk to him" after Ferni offered the teammate twice and last
- *   called him "he" was held, and Ferni said the teammate was "away from his desk";
- * - "can I talk to Al?" was held (right: no name, no yes), and the director, reading the
- *   held result's start, wrote "Alex is actually unavailable right now".
+ * HANDOFF_ASK_FIRST on. Synthetic versions of the two situations in the issue:
+ * - a pronoun ask to bring the teammate in, after Ferni offered the teammate twice and last
+ *   called him "he", was held, and Ferni then claimed the teammate was away;
+ * - a short-name ask ("Al") was held (right: no name, no yes), and the director, reading
+ *   the held result's start, wrote that Alex was unavailable.
  *
  * As in handoff-ask-first-wiring.test.ts, a free caller's handoff to Alex is refused by
  * the unlock check ("Don't retry"): reaching that refusal proves the consent gate let the
@@ -30,7 +30,7 @@ function chat(...turns: Turn[]): llm.ChatContext {
 
 /** Ferni offered Alex twice, then called him "he" */
 const OFFERED: Turn[] = [
-  ['assistant', 'Alex is brilliant with tricky texts. Did you want me to bring him in to chat?'],
+  ['assistant', 'Alex is great at wording hard messages. Would you like me to bring him in?'],
   ['user', 'Hmm, maybe. Give me a sec.'],
   ['assistant', 'Sure, take your time. Alex would be happy to help.'],
   ['user', 'What would he even say?'],
@@ -69,7 +69,8 @@ afterEach(() => {
 });
 
 describe('"bring him in" after Ferni named the teammate', () => {
-  const bringHimIn = () => chat(...OFFERED, ['user', 'bring him in, I want to talk to him']);
+  const bringHimIn = () =>
+    chat(...OFFERED, ['user', 'go ahead and bring him in, I want a word with him']);
 
   it('off: held, as in the prod call', async () => {
     const result = await handoffToAlex(bringHimIn());
@@ -85,7 +86,8 @@ describe('"bring him in" after Ferni named the teammate', () => {
 });
 
 describe('a held handoff (the caller asked for "Al")', () => {
-  const askedForAl = () => chat(['assistant', 'Hey Sam, up late?'], ['user', 'can I talk to Al?']);
+  const askedForAl = () =>
+    chat(['assistant', 'Hey Sam, up late?'], ['user', 'could I speak to Al?']);
 
   it('off: the director reads "unavailable"', async () => {
     const result = await handoffToAlex(askedForAl());
