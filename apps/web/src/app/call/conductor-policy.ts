@@ -4,10 +4,11 @@
  * cooldown, which is how connect.mp3 restarts and haptics stack; here a write
  * either passes or is traced as `policy drop <reason>`.
  *
- * Character: warm & unhurried. Poses run slower and never spring, nothing grows
- * past 1.06, nothing bounces while the user is upset, delight is earned and
- * budgeted, and Ferni never celebrates while the user is upset. The constants live in CONDUCTOR_POLICY so a later PR can
- * source them from design-system tokens without touching the rules.
+ * Character: warm & unhurried. Poses run slower with only a hint of spring,
+ * nothing grows past 1.06, nothing bounces while the user is upset, delight is
+ * earned and budgeted, and Ferni never celebrates while the user is upset. The
+ * constants live in CONDUCTOR_POLICY so a later PR can source them from
+ * design-system tokens without touching the rules.
  */
 
 import type { ReducedMotionSimplification, Sequence } from '../../config/motion-sequences.js';
@@ -35,6 +36,9 @@ export const CONDUCTOR_POLICY = {
   moments: { maxQueue: 3, minGapMs: 500, oncePerAttempt: ['arrival_joined'] },
   character: {
     stateDurationScale: 1.15,
+    /** Calm poses keep a hint of spring (peaks ~1.02): light and a little playful. */
+    poseEasing: 'springGentle',
+    /** Upset or crisis: heavy and slow, never bounces (no overshoot), poses and moments. */
     gentleEasing: 'gentle',
     remapEasings: ['spring', 'anticipate'],
     maxScale: 1.06,
@@ -105,9 +109,11 @@ function shapeCommand(
     }
   }
   if (w.layer === 'state') durationMs = Math.round(durationMs * P.character.stateDurationScale);
-  // Poses are always gentle; a moment keeps its spring unless the caller is upset.
-  const calm = w.layer === 'state' || upsetLike(w.mood);
-  if (calm && easing && has(P.character.remapEasings, easing)) easing = P.character.gentleEasing;
+  // Upset: nothing springs. Otherwise poses soften to a gentle spring; moments keep theirs.
+  if (easing && has(P.character.remapEasings, easing)) {
+    if (upsetLike(w.mood)) easing = P.character.gentleEasing;
+    else if (w.layer === 'state') easing = P.character.poseEasing;
+  }
   const exempt = w.sequenceId === P.character.overshootExempt && w.mood === 'neutral';
   if (params && !exempt) {
     params = Object.fromEntries(Object.entries(params).map(([k, v]) => [k, clampMotion(k, v)]));

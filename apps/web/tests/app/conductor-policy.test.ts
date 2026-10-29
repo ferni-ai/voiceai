@@ -211,14 +211,14 @@ describe('conductor policy: motion, mood and character', () => {
     expect(count(t, 'glow', 'celebrate')).toBe(1);
   });
 
-  it('character: state poses run 1.15× slower with gentle easing; nothing overshoots', async () => {
+  it('character: state poses run 1.15× slower with a gentle spring; nothing overshoots', async () => {
     const h = character();
     await h.arrive();
     expect(h.played.find((c) => c.action === 'lean')?.durationMs).toBe(Math.round(600 * 1.15));
     expect(h.played.find((c) => c.action === 'anticipate')?.easing).toBe('spring'); // moment layer
     h.go('user_speaking');
     const userLean = h.played.find((c) => c.origin === 'turn_user' && c.action === 'lean');
-    expect(userLean).toMatchObject({ durationMs: Math.round(500 * 1.15), easing: 'gentle' });
+    expect(userLean).toMatchObject({ durationMs: Math.round(500 * 1.15), easing: 'springGentle' });
     h.go('listening');
     h.conductor.beat({ kind: 'sequence', id: 'overshoot' });
     await h.clock.advance(600);
@@ -236,17 +236,31 @@ function bezierY(token: string): [number, number] {
   return [Number(m[2]), Number(m[4])];
 }
 
+/** The highest point an easing token's curve reaches (1 = no overshoot). */
+function peak(token: string): number {
+  const [y1, y2] = bezierY(token);
+  let max = 0;
+  for (let i = 0; i <= 1000; i++) {
+    const t = i / 1000;
+    max = Math.max(max, 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t ** 2 * y2 + t ** 3);
+  }
+  return Math.round(max * 1e4) / 1e4;
+}
+
 describe('conductor policy: one test per character rule', () => {
-  it('gentle springs: poses swap spring/anticipate for a token curve that never overshoots', () => {
-    const { gentleEasing, remapEasings } = CONDUCTOR_POLICY.character;
-    expect(gentleEasing).toBe('gentle');
+  it('gentle springs: calm poses peak near 1.02, upset curves never overshoot', () => {
+    const { poseEasing, gentleEasing, remapEasings } = CONDUCTOR_POLICY.character;
     expect(remapEasings).toEqual(['spring', 'anticipate']);
-    for (const y of bezierY(gentleEasing)) expect(y >= 0 && y <= 1).toBe(true);
-    expect(Math.max(...bezierY('spring'))).toBeGreaterThan(1); // what it replaces does bounce
+    expect(poseEasing).toBe('springGentle');
+    expect(gentleEasing).toBe('gentle');
+    expect(peak(poseEasing)).toBeGreaterThan(1.01); // a hint of play...
+    expect(peak(poseEasing)).toBeLessThanOrEqual(1.025); // ...never a bounce
+    expect(peak(gentleEasing)).toBe(1); // heavy and slow: no overshoot at all
+    expect(peak('spring')).toBeGreaterThan(1.09); // what both replace
     expect(CONDUCTOR_POLICY.character.stateDurationScale).toBe(1.15);
   });
 
-  it('upset: a moment that would spring is eased gently instead, never bouncy', async () => {
+  it('upset: poses and moments that would spring are eased gently instead, never bouncy', async () => {
     const calm = character();
     await calm.arrive();
     calm.conductor.beat({ kind: 'sequence', id: 'overshoot' });
@@ -259,6 +273,9 @@ describe('conductor policy: one test per character rule', () => {
     upset.conductor.beat({ kind: 'sequence', id: 'overshoot' });
     await upset.clock.advance(600);
     expect(upset.played.find((c) => c.action === 'pop')?.easing).toBe('gentle');
+    upset.go('user_speaking');
+    const lean = upset.played.filter((c) => c.origin === 'turn_user' && c.action === 'lean').pop();
+    expect(lean?.easing).toBe('gentle');
   });
 
   it('overshoot: only an earned big celebration in a neutral mood may pass the 1.06 cap', async () => {
