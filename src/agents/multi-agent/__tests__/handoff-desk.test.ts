@@ -240,3 +240,91 @@ describe('HANDOFF_DESK: contact data never enters the desk', () => {
     );
   });
 });
+
+describe('HANDOFF_DESK: a follow-up the tool failed is not reported as set', () => {
+  /** The caller asks for a reminder; the tool answers in its own words (isError is never set). */
+  const deskAfter = (tool: string, output: string) =>
+    writeDesk(
+      {
+        personaId: 'ferni',
+        session: {
+          history: {
+            items: [
+              msg('user', 'Remind me to call the dentist at 3pm.'),
+              {
+                type: 'function_call',
+                callId: 'r1',
+                name: tool,
+                args: '{"message":"call the dentist"}',
+              },
+              { type: 'function_call_output', callId: 'r1', name: tool, output },
+            ],
+          },
+        },
+      },
+      'alex-chen',
+      { HANDOFF_DESK: 'on' }
+    );
+
+  it.each([
+    // productivity/reminders.ts:211, :129, and communication/index.ts:335
+    ['setReminder', "I couldn't set that reminder. Let me try again in a moment."],
+    ['setReminder', 'I couldn\'t understand "blah" as a time. Try something like "in 30 minutes".'],
+    ['scheduleReminder', "I can't send that follow-up to Rosa Vega: blocked. Nothing was sent."],
+  ])('%s answering %j is asked for, not done', (tool, output) => {
+    const text = formatDesk(deskAfter(tool, output) ?? never());
+    expect(text).not.toContain('Set on this call');
+    expect(text).toContain(`Asked for, not done (${tool}): call the dentist`);
+  });
+
+  it('a reminder the tool saved is set on this call', () => {
+    const text = formatDesk(
+      deskAfter(
+        'setReminder',
+        'Saved: 3:00 PM today, one reminder to "call the dentist", sent by text.'
+      ) ?? never()
+    );
+    expect(text).toContain('Set on this call (setReminder): call the dentist');
+    expect(text).not.toContain('Asked for, not done');
+  });
+
+  it('"Nothing was sent." after the first sentence still counts as a refused send', () => {
+    const desk = deskAfter(
+      'backgroundFollowUp',
+      "I can't send that follow-up to Rosa Vega: blocked. Nothing was sent. Want me to help you draft it?"
+    );
+    expect(desk?.unfinished).toContain('Asked for, not done: Nothing was sent.');
+  });
+});
+
+describe('HANDOFF_DESK: arrival-line hardening', () => {
+  const emptyDesk = () =>
+    writeDesk(
+      { personaId: 'ferni', session: { history: { items: [msg('user', 'Can I talk to Alex?')] } } },
+      'alex-chen',
+      { HANDOFF_DESK: 'on' }
+    );
+
+  it.each(['I hear the offer came through!', 'I know you wanted to sort out the move.'])(
+    'an empty desk does not say %j',
+    (line) => expect(arrivalFromDesk(emptyDesk(), line)).toBe("Hey, it's Alex.")
+  );
+
+  it('the action verb is lower-case mid-sentence', () => {
+    const desk = writeDesk(
+      {
+        personaId: 'ferni',
+        session: { history: { items: [msg('user', 'Text Rosa Vega that I landed safely.')] } },
+      },
+      'alex-chen',
+      { HANDOFF_DESK: 'on' }
+    );
+    expect(arrivalFromDesk(desk, undefined)).toBe(
+      'You wanted me to text Rosa Vega that you landed safely. Still want that?'
+    );
+  });
+});
+
+function never(): never {
+  throw new Error('the flag is on: a desk is written');
+}

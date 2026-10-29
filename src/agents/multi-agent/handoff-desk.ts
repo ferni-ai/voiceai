@@ -32,6 +32,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { containsContactData } from '../../memory/index.js';
 import { pendingFor } from '../../tools/domains/communication/outreach/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { TOOL_REFUSAL } from '../personas/action-claims.js';
 import { toSecondPerson } from './arrival-reason.js';
 import { topicWords } from './caller-words.js';
 import { arrivalLine, personaFirstName, readConversation } from './handoff-brief.js';
@@ -105,6 +106,9 @@ const FOLLOW_UPS = new Set([
 ]);
 const WHAT_KEYS = ['commitment', 'text', 'description', 'title', 'reminder', 'message', 'task'];
 const REFUSED = /^Nothing was (?:sent|dialed|posted)\b/;
+/** Tools say failure in words, never isError: true when any sentence is a refusal (action-claims.ts). */
+const saysNotDone = (output: string | undefined, said: RegExp = TOOL_REFUSAL): boolean =>
+  sentencesOf((output ?? '').replace(/[\u2018\u2019]/g, "'")).some((s) => said.test(s));
 
 interface ToolItem {
   type?: string;
@@ -147,15 +151,19 @@ function unfinishedFrom(session: unknown): string[] {
   const results = toolResults(session);
   const lastOutput = new Map(results.map((r) => [r.name, r.out.output]));
   const refused = [...lastOutput.values()]
-    .filter((output): output is string => output !== undefined && REFUSED.test(output))
-    .map((output) => withoutContactData(sentencesOf(output)[0] ?? ''))
+    .filter((output): output is string => saysNotDone(output, REFUSED))
+    .map((output) => withoutContactData(sentencesOf(output).find((s) => REFUSED.test(s)) ?? ''))
     .filter((said) => said !== '')
     .map((said) => `Asked for, not done: ${clip(said)}`);
   const followUps = results
-    .filter((r) => FOLLOW_UPS.has(r.name) && r.out.isError !== true)
-    .map((r) => ({ name: r.name, what: withoutContactData(argText(r.call?.args)) }))
+    .filter((r) => FOLLOW_UPS.has(r.name))
+    .map((r) => ({ r, what: withoutContactData(argText(r.call?.args)) }))
     .filter((f) => f.what !== '')
-    .map((f) => `Set on this call (${f.name}): ${clip(f.what)}`);
+    .map(({ r, what }) =>
+      r.out.isError === true || saysNotDone(r.out.output)
+        ? `Asked for, not done (${r.name}): ${clip(what)}`
+        : `Set on this call (${r.name}): ${clip(what)}`
+    );
   return [...refused, ...followUps].slice(-4);
 }
 
@@ -224,7 +232,13 @@ function wantedLine(sentence: string): string | undefined {
   const want = ask ? undefined : s.match(WANT);
   const rest = ask ?? want?.[2];
   if (!rest || topicWords(rest).length === 0) return undefined;
-  const words = toSecondPerson(rest).split(/\s+/).slice(0, 16).join(' ');
+  const words = toSecondPerson(rest)
+    .replace(/^(?:call|text|email|message|remind|book|send|schedule|tell|ask)\b/i, (v) =>
+      v.toLowerCase()
+    )
+    .split(/\s+/)
+    .slice(0, 16)
+    .join(' ');
   return `You wanted ${ask || want?.[1] ? 'me ' : ''}to ${words}. Still want that?`;
 }
 
@@ -242,7 +256,7 @@ function threadLine(desk: HandoffDesk): string | undefined {
 
 /** A line that says the teammate was briefed: "Ferni caught me up", "I've heard a little". */
 const BRIEFING_CLAIM =
-  /\b(?:caught me up|fill(?:ed)? me in|briefed me|up to speed|(?:told|tells) me|mentioned|passed (?:\w+ )?along|let me know|i'?ve heard|heard (?:that|you|about|a little)|said you|says you)\b/i;
+  /\b(?:caught me up|fill(?:ed)? me in|briefed me|up to speed|(?:told|tells) me|mentioned|passed (?:\w+ )?along|let me know|i'?ve heard|heard (?:that|you|about|a little)|hear\b|know you|said you|says you)\b/i;
 
 function claimsBriefing(line: string): boolean {
   return BRIEFING_CLAIM.test(line);
