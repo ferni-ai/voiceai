@@ -1,7 +1,7 @@
 /**
  * The daily admin report (scheduled job and the admin "trigger report" route)
- * used to throw 'SENDGRID_API_KEY not configured' before sending. With
- * EMAIL_PROVIDER=gmail it goes through the Workspace port with no SendGrid key.
+ * goes through the Workspace port, the app's only email transport, with no init
+ * and no key, and fails honestly when the transport says it failed.
  */
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -52,24 +52,22 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal('fetch', fetchMock);
   vi.stubEnv('OWNER_EMAIL', 'pat.example@gmail.com'); // made up
-  vi.stubEnv('SENDGRID_API_KEY', '');
 });
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
-describe('daily admin report without a SendGrid key', () => {
-  it('scheduled job: fails on the missing key when EMAIL_PROVIDER is unset', async () => {
-    vi.stubEnv('EMAIL_PROVIDER', '');
+describe('daily admin report through the Workspace port', () => {
+  it('scheduled job: a transport failure is a 500, not a sent report', async () => {
+    port.send.mockResolvedValueOnce({ ok: false, provider: 'gmail', status: 401, error: 'gmail 401' } as never); // prettier-ignore
     const { out, res } = response();
     await handleDailyAdminReport(res);
     expect(out.status).toBe(500);
-    expect(port.send).not.toHaveBeenCalled();
+    expect(port.send).toHaveBeenCalledTimes(1);
   });
 
-  it('scheduled job: sends through the Workspace port with EMAIL_PROVIDER=gmail', async () => {
-    vi.stubEnv('EMAIL_PROVIDER', 'gmail');
+  it('scheduled job: sends through the Workspace port', async () => {
     const { out, res } = response();
     await handleDailyAdminReport(res);
     expect(out.status).toBe(200);
@@ -81,8 +79,7 @@ describe('daily admin report without a SendGrid key', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('admin trigger-report: sends through the Workspace port with EMAIL_PROVIDER=gmail', async () => {
-    vi.stubEnv('EMAIL_PROVIDER', 'gmail');
+  it('admin trigger-report: sends through the Workspace port', async () => {
     const req = new EventEmitter() as IncomingMessage;
     req.method = 'POST';
     req.url = '/api/admin/trigger-report';

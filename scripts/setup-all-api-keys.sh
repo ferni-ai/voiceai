@@ -168,7 +168,6 @@ check_secret "livekit-api-key" "LiveKit Voice"
 
 echo ""
 echo "Communication:"
-check_secret "sendgrid-api-key" "SendGrid Email"
 check_secret "twilio-account-sid" "Twilio SMS/Calls"
 
 echo ""

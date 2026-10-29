@@ -632,7 +632,7 @@ export function createPlaidTools() {
             sendResult = 'failed';
           }
         } else {
-          // The app transport (EMAIL_PROVIDER): SendGrid by default, the ferni.ai Workspace under gmail
+          // The app transport: the ferni.ai Workspace mailbox
           const { isEmailConfigured, sendAppEmail } =
             await import('../../../services/communication-service.js');
           if (!isEmailConfigured()) {

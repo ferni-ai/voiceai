@@ -313,7 +313,7 @@ export function getVoiceDeliveryOptions(contact: ContactRelationship): VoiceDeli
       method: 'email_audio',
       label: 'Send via Email',
       description: `Send voice message as email attachment to ${contact.email}`,
-      available: !!process.env.SENDGRID_API_KEY,
+      available: true, // the Workspace mailbox needs no key
     });
   }
 

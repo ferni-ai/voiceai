@@ -306,7 +306,6 @@ import {
   type DeliveryChannel,
   type DeliveryConfig,
   type DeliveryStatus,
-  type EmailDeliveryConfig,
   type EmailMessage,
   type PushNotification,
   type PushNotificationConfig,
@@ -317,11 +316,9 @@ import {
 
 // Webhook Handlers
 import {
-  emailWebhooks,
   initializeWebhooks,
   onInboundMessage,
   twilioWebhooks,
-  type EmailTrackingEvent,
   type InboundMessage,
   type WebhooksConfig,
 } from './webhooks/index.js';
@@ -442,28 +439,7 @@ export async function initializeOutreachSystem(): Promise<void> {
       };
     }
 
-    // Email via SendGrid or Resend
-    if (process.env.SENDGRID_API_KEY) {
-      deliveryConfig.email = {
-        provider: 'sendgrid',
-        apiKey: process.env.SENDGRID_API_KEY,
-        fromEmail: process.env.EMAIL_FROM || 'hello@ferni.ai',
-        fromName: process.env.EMAIL_FROM_NAME || 'Ferni',
-        replyToEmail: process.env.EMAIL_REPLY_TO,
-        trackOpens: true,
-        trackClicks: true,
-      };
-    } else if (process.env.RESEND_API_KEY) {
-      deliveryConfig.email = {
-        provider: 'resend',
-        apiKey: process.env.RESEND_API_KEY,
-        fromEmail: process.env.EMAIL_FROM || 'hello@ferni.ai',
-        fromName: process.env.EMAIL_FROM_NAME || 'Ferni',
-        replyToEmail: process.env.EMAIL_REPLY_TO,
-        trackOpens: true,
-        trackClicks: true,
-      };
-    }
+    // Email needs no config here: it goes through the Workspace transport.
 
     // Push via Firebase
     if (process.env.FCM_PROJECT_ID && process.env.FCM_PRIVATE_KEY) {
@@ -485,8 +461,6 @@ export async function initializeOutreachSystem(): Promise<void> {
   try {
     initializeWebhooks({
       twilioAuthToken: process.env.TWILIO_AUTH_TOKEN,
-      sendgridWebhookKey: process.env.SENDGRID_WEBHOOK_KEY,
-      resendWebhookSecret: process.env.RESEND_WEBHOOK_SECRET,
     });
   } catch (error) {
     log.warn({ error }, 'Webhook handlers initialization failed');
@@ -1125,7 +1099,6 @@ export type {
   DeliveryChannel,
   DeliveryConfig,
   DeliveryStatus,
-  EmailDeliveryConfig,
   EmailMessage,
   PushNotification,
   PushNotificationConfig,
@@ -1135,9 +1108,9 @@ export type {
 };
 
 // Webhook Handlers
-export { emailWebhooks, initializeWebhooks, onInboundMessage, twilioWebhooks };
+export { initializeWebhooks, onInboundMessage, twilioWebhooks };
 
-export type { EmailTrackingEvent, InboundMessage, WebhooksConfig };
+export type { InboundMessage, WebhooksConfig };
 
 // A/B Testing
 export {
