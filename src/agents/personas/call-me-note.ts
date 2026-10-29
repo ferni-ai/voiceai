@@ -61,12 +61,13 @@ export function callMeNote(
 ): string {
   if (!callMeVocativeEnabled(env)) return '';
   // rememberName's confirm, and whether its save may rename the account (remember-name.ts)
-  noteCallerTurn(session, words, callerTurns(chatCtx.items), opts.owner === true);
+  const count = callerTurns(chatCtx.items);
+  noteCallerTurn(session, words, count, opts.owner === true);
   if (!words || opts.careful === true) return '';
   const persona = personaFirstNameOf(session);
   const plain = opts.plain === true;
   const ring = (): string => (calledUserThisCall(chatCtx.items) ? ALREADY : RING(persona));
-  const answered = settle(session, 'either', words);
+  const answered = settle(session, 'either', { words, count });
   if (answered && answered.outcome !== 'dropped') {
     if (answered.outcome === 'waiting') return eitherNote(answered.pending, persona, plain);
     return answered.outcome === 'ring' ? ring() : '';
@@ -76,17 +77,17 @@ export function callMeNote(
   if (reading.intent === 'did-you-call')
     return calledUserThisCall(chatCtx.items) ? '' : DID_YOU_CALL(plain);
   return reading.intent === 'ask' && reading.name
-    ? askEither(session, words, reading.name, plain)
+    ? askEither(session, count, reading.name, plain)
     : '';
 }
 
 /** "call me <a name like yours>": ask ring or name, and wait for the answer (name-confirm.ts). */
-function askEither(session: object, words: string, name: string, plain: boolean): string {
+function askEither(session: object, count: number, name: string, plain: boolean): string {
   const callerName = (session as { userData?: { userName?: string } }).userData?.userName;
   const pending = {
     kind: 'either' as const,
     name,
-    askedOn: words,
+    askedOn: count,
     ownName: firstOf(callerName) === name.toLowerCase(),
   };
   propose(session, pending);

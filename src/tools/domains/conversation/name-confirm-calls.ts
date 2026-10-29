@@ -102,9 +102,12 @@ export function stepFor(
   settle(session, now, opts.isYes);
   const reply = answered.get(session);
   const open = asked.get(session);
+  const yes = agreed.get(session);
+  const agreedNow = yes?.turn === now.turn && yes.name !== undefined && sameName(yes.name, name);
   if (reply && reply.on === now.turn && sameName(reply.name, name)) {
     if (open && !sameName(open.name, name)) asked.delete(session); // the newer call wins
-    if (!reply.yes) return { kind: 'no' };
+    // The turn heard a yes to this same name ("mhm", "Jamie."): it stands over this stricter check.
+    if (!reply.yes && !agreedNow) return { kind: 'no' };
     if (reply.twice && !reply.second) {
       answered.delete(session);
       return ask(session, name, now, true, true);
@@ -113,8 +116,7 @@ export function stepFor(
   }
   if (open && open.turn === now.turn && sameName(open.name, name))
     return { kind: 'ask', second: open.second };
-  const yes = agreed.get(session);
-  if (yes?.turn === now.turn && yes.name !== undefined && sameName(yes.name, name)) {
+  if (agreedNow) {
     if (open) asked.delete(session);
     return { kind: 'save' };
   }

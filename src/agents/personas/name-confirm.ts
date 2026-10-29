@@ -27,8 +27,11 @@ export type PendingKind = 'rename' | 'either';
 export interface Pending {
   kind: PendingKind;
   name: string;
-  /** The caller's words on the turn it was asked: the same words again are the same turn. */
-  askedOn: string;
+  /**
+   * The caller turn it was asked on (callerTurns). By turn, not words: a turn's
+   * preemptive and final requests can hear different words.
+   */
+  askedOn: number;
   /** `either` where the word is their own name already: only "ring or not" is open. */
   ownName?: boolean;
 }
@@ -41,7 +44,7 @@ export interface Settled {
 }
 
 const open = new WeakMap<object, Map<PendingKind, Pending>>();
-const done = new WeakMap<object, Map<PendingKind, Settled & { on: string }>>();
+const done = new WeakMap<object, Map<PendingKind, Settled & { on: number }>>();
 
 const mapOf = <T>(
   store: WeakMap<object, Map<PendingKind, T>>,
@@ -100,29 +103,38 @@ function eitherAnswer(p: Pending, words: string): Outcome {
   return ring ? 'ring' : 'name';
 }
 
+/** A caller turn: their words and its number (callerTurns), shared by its preemptive and final requests. */
+export interface CallerTurn {
+  words: string;
+  count: number;
+}
+
 /**
- * Settles the open `kind` question with this turn's `words`, or returns what
- * these same words settled already. `restated`: a name they stated this turn.
+ * Settles the open `kind` question with this turn's words, or returns what this
+ * same turn settled already. By turn number, never by words: a later "yes" is a
+ * new answer, not the earlier one again, and the final request can hear more
+ * words than the preemptive one. `restated`: a name they stated this turn.
  * Null with nothing open, or no words.
  */
 export function settle(
   session: object,
   kind: PendingKind,
-  words: string,
+  turn: CallerTurn,
   restated: string | null = null
 ): Settled | null {
-  if (!words.trim()) return null;
-  const pending = pendingOf(session, kind);
-  if (pending) {
-    if (pending.askedOn === words) return { pending, outcome: 'waiting' };
-    const outcome =
-      kind === 'rename' ? renameAnswer(pending, words, restated) : eitherAnswer(pending, words);
-    open.get(session)?.delete(kind);
-    mapOf(done, session).set(kind, { pending, outcome, on: words });
-    return { pending, outcome };
-  }
+  if (!turn.words.trim()) return null;
   const last = done.get(session)?.get(kind);
-  return last && last.on === words ? { pending: last.pending, outcome: last.outcome } : null;
+  if (last?.on === turn.count) return { pending: last.pending, outcome: last.outcome };
+  const pending = pendingOf(session, kind);
+  if (!pending) return null;
+  if (pending.askedOn === turn.count) return { pending, outcome: 'waiting' };
+  const outcome =
+    kind === 'rename'
+      ? renameAnswer(pending, turn.words, restated)
+      : eitherAnswer(pending, turn.words);
+  open.get(session)?.delete(kind);
+  mapOf(done, session).set(kind, { pending, outcome, on: turn.count });
+  return { pending, outcome };
 }
 
 /** The turn line while a new name waits for their yes. `plain`: no quoted example. */

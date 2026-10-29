@@ -277,7 +277,7 @@ function agreedNames(
 ): string[] {
   const names: string[] = [];
   for (const kind of ['rename', 'either'] as const) {
-    const done = settle(session, kind, turn.words, turn.heard);
+    const done = settle(session, kind, turn, turn.heard);
     const name = done?.pending.name;
     const agreed = done?.outcome === 'yes' || done?.outcome === 'name';
     if (!name || !agreed || sameName(name, currentName(session, user))) continue;
@@ -307,10 +307,11 @@ function confirmingNote(
   const heard = words
     ? heardName(words, currentName(session, user), session, lastAgentLine(chatCtx))
     : null;
-  const yes = agreedNames(session, user, { words, heard, count: callerTurns(chatCtx.items) });
+  const count = callerTurns(chatCtx.items);
+  const yes = agreedNames(session, user, { words, heard, count });
   const current = currentName(session, user);
   if (heard && !sameName(heard, current) && pendingOf(session, 'rename')?.name !== heard)
-    propose(session, { kind: 'rename', name: heard, askedOn: words });
+    propose(session, { kind: 'rename', name: heard, askedOn: count });
   const ask = pendingOf(session, 'rename');
   return [
     ...yes.map((name) => saveNote(name, current)),

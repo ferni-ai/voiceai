@@ -146,6 +146,25 @@ describe('name-correction asks, the tool saves (NAME_CORRECTION=on)', () => {
     expect(persisted).toEqual([]);
   });
 
+  it.each(['mhm', 'Jamie.', 'yeah, Jamie, not Seth'])(
+    'the tool asked about Jamie too; %j, a yes to the turn, saves it',
+    async (answer) => {
+      const c = call('on');
+      await c.turn('actually, call me Jamie', ['Jamie']); // both ask
+      const outs = await c.turn(answer, ['Jamie']);
+      expect(outs[0]).toContain('Name "Jamie" stored');
+      expect(final(c)).toEqual({ userName: 'Jamie', name: 'Jamie', preferredName: 'Jamie' });
+    }
+  );
+
+  it('the tool asked about Jamie too; "no" still saves nothing', async () => {
+    const c = call('on');
+    await c.turn('actually, call me Jamie', ['Jamie']);
+    const outs = await c.turn('no', ['Jamie']);
+    expect(outs[0]).not.toContain('stored');
+    expect(final(c).preferredName).toBe('Seth');
+  });
+
   it('its yes is not a yes to another name the tool calls for', async () => {
     const c = call('on');
     await c.turn('actually, call me Jamie');
