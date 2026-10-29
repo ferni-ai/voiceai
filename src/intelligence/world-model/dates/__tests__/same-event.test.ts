@@ -172,6 +172,29 @@ describe('the same event, stored again under a nearby date, is asked once', () =
     expect(dueDate([job, restated], TODAY)).toBeNull(); // 7 days apart: not (c), only (b1)
   });
 
+  it('(b2) only how it went, good or bad, is the answer', () => {
+    const told = (value: string) =>
+      fact({ id: 'b', value, eventDate: ago(1), source: { kind: 'summary', sessionId: 'call-1' } });
+    for (const value of ['pretty well', 'it was rough', 'he did well', 'fine, thanks'])
+      expect(dueDate([asked({}), told(value)], TODAY), value).toBeNull();
+    for (const value of ['going out', 'he quit, it went fine', 'went fine but she fell'])
+      expect(dueDate([asked({}), told(value)], TODAY)?.id, value).toBe('b');
+  });
+
+  it('(b1) the same words under another kind, told in the asking call, are another thing', () => {
+    const job = asked({ value: 'job interview', kind: 'event', eventDate: ago(8) });
+    const inCall = (kind: string) =>
+      fact({
+        id: 'b',
+        value: 'the interview',
+        kind,
+        eventDate: ago(1),
+        source: { kind: 'summary', sessionId: 'call-1' },
+      } as Partial<RaisableDate>);
+    expect(dueDate([job, inCall('event')], TODAY)).toBeNull();
+    expect(dueDate([job, inCall('medical')], TODAY)?.id).toBe('b');
+  });
+
   it(`(c) same kind and words within ${SAME_EVENT_DAYS} days, from any call`, () => {
     const job = asked({ value: 'job interview', kind: 'event' });
     const at = (gap: number) => later({ value: 'interview went great', eventDate: ago(2 + gap) });

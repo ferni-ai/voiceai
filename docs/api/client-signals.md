@@ -24,7 +24,10 @@ failed publish is logged and dropped, and never breaks the call.
   `rememberAboutUser` and `rememberImportantFact` tools
   (`src/tools/domains/memory/tools-unified.ts`) and the text-path memory executor
   (`src/agents/shared/tool-executors/memory-executor.ts`). Never before the write
-  finishes, never when it fails, and at most once per write.
+  finishes, never when it fails, and at most once per write. With
+  MEMORY_TOOLS_HONEST on, the two tools write `dynamic_facts` only (no `memories`
+  copy), and the signal follows that write: sent when the fact is newly created,
+  not when it was already on file or was refused.
 - **`id`:** an opaque handle for this memory, for a later "how did you know that?".
   It is the store's own id when that is a plain id (letters, digits, `_`, `-`, 6 to
   64 long), otherwise a random UUID. Treat it as opaque; never parse it.

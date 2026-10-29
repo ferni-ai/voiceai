@@ -126,6 +126,27 @@ Processes each conversation turn:
 User Speech → Transcription → Context Building → LLM → SSML → TTS → Audio
 ```
 
+### Reply honesty guard
+
+Every reply the model writes passes through `personas/action-claim-guard.ts`
+(from `ferni-agent.ts` llmNode) before speech. A sentence that claims a call,
+text, booking, reminder or save no tool carried out is dropped, and one honest
+line (`honest-line.ts`) or an offer goes in its place. Fail toward honesty,
+never toward silence: a dropped claim always leaves words behind.
+
+- What counts as a claim: `action-claims.ts` (done or under way),
+  `action-promises.ts` ("I'll text him"), `call-narration.ts` (how a call went),
+  `announced-check.ts` ("I checked", "let me look").
+- `GROUNDED_CLAIMS` (off by default) ties claims to real state: a call or
+  message claim stands only on its tool's run or on evidence in the
+  conversation (a call result, or the caller asking about an earlier session),
+  "I checked" only on a look-up tool run, "let me look" only on a look-up call
+  in the reply, and a "yes, I did" about a call only on its result in the
+  conversation (#3003, #3005, #3006). Never deny a real action: a denial that
+  offers a duplicate call is worse than the claim. Off, behaviour is exactly
+  main's; new claim shapes go behind the flag until verified.
+- Extend these modules for a new claim shape; don't add a second guard.
+
 ---
 
 ## Deployment
