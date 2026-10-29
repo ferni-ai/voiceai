@@ -11,7 +11,7 @@
  * @module agents/multi-agent/llm-handoff
  */
 import { handoffEvents } from '../../handoff/index.js';
-import { earlyGoodbyePending } from '../../tools/handoff/early-goodbye.js';
+import { earlyGoodbyePending, toolHandoffSuperseded } from '../../tools/handoff/early-goodbye.js';
 import { offerAgent, withdrawAgent } from '../../tools/handoff/ready-agents.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -67,6 +67,19 @@ export async function runLlmHandoff(call: LlmHandoffCall, event: VoiceSwitchEven
   }
   noteTurnTiming(sessionId, 'handoffLock', 0);
   try {
+    // HANDOFF_EARLY_GOODBYE: a tap to someone else came first and won; this handoff never runs
+    const chosen = toolHandoffSuperseded(sessionId, targetPersonaId);
+    if (chosen) {
+      log.info({ targetPersonaId, chosen }, '🎭 LLM handoff dropped: the caller tapped another');
+      handoffEvents.emit('handoffHandlerComplete', {
+        targetId: targetPersonaId,
+        success: false,
+        greetingSpoken: false,
+        instructionsUpdated: false,
+        error: `The caller chose ${chosen}`,
+      });
+      return;
+    }
     const currentPersonaId = call.orchestrator.getCurrentPersonaId();
     log.info(
       { from: currentPersonaId, to: targetPersonaId, toolThought: event.previousAgentId },
