@@ -13,6 +13,7 @@ import { createConversationTools } from '../conversation-tools.js';
 import { withTurnReminder } from '../../../../agents/personas/turn-request.js';
 
 const persisted = vi.hoisted(() => [] as string[]);
+const owner = vi.hoisted(() => ({ verified: true }));
 vi.mock('../../../../memory/firestore-store.js', () => ({
   getFirestoreStore: () => ({
     atomicProfileUpdate: vi.fn(
@@ -25,13 +26,14 @@ vi.mock('../../../../memory/firestore-store.js', () => ({
 }));
 vi.mock('../../../../agents/voice-agent-entry/caller-recognition.js', async (real) => ({
   ...(await real<object>()),
-  sessionIsVerifiedOwner: () => true,
+  sessionIsVerifiedOwner: () => owner.verified,
 }));
 
 const saved = { ...process.env };
 afterEach(() => {
   process.env = { ...saved };
   persisted.length = 0;
+  owner.verified = true;
 });
 
 type Exec = (a: { name: string }, o: { ctx: object }) => Promise<string>;
@@ -151,4 +153,19 @@ describe('name-correction asks, the tool saves (NAME_CORRECTION=on)', () => {
     expect(outs[0]).not.toContain('stored');
     expect(final(c).preferredName).toBe('Seth');
   });
+});
+
+describe('anyone may rename the call; only the verified owner, the account', () => {
+  it.each(['off', 'on'] as const)(
+    'NAME_CORRECTION=%s, not the verified owner: the call says Jamie, the account stays',
+    async (nc) => {
+      owner.verified = false;
+      const c = call(nc);
+      await c.turn('call me Jamie', ['Jamie']);
+      const outs = await c.turn('yes', ['Jamie']);
+      expect(outs[0]).toContain('Name "Jamie" stored');
+      expect(final(c)).toEqual({ userName: 'Jamie', name: 'Seth', preferredName: 'Seth' });
+      expect(persisted).toEqual([]);
+    }
+  );
 });

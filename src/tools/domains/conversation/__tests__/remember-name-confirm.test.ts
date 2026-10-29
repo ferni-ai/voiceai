@@ -15,6 +15,11 @@ import { withTurnReminder } from '../../../../agents/personas/turn-request.js';
 vi.mock('../../../../memory/firestore-store.js', () => ({
   getFirestoreStore: () => ({ atomicProfileUpdate: vi.fn(async () => null) }),
 }));
+// The account write is the verified owner's (remember-name-owner.test.ts covers anyone else).
+vi.mock('../../../../agents/voice-agent-entry/caller-recognition.js', async (real) => ({
+  ...(await real<object>()),
+  sessionIsVerifiedOwner: () => true,
+}));
 
 const saved = { ...process.env };
 afterEach(() => {

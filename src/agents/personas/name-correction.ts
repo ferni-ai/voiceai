@@ -194,6 +194,12 @@ function ownerMayKeep(user: SessionUser, deps: NameCorrectionDeps): boolean {
   return deps.verifiedOwner?.(sessionId) === true && !outboundOf(deps)(sessionId);
 }
 
+/** Whether rememberName may write this caller's name to the account (the same owner rule). */
+export async function accountMayKeepName(user: SessionUser): Promise<boolean> {
+  const { sessionIsVerifiedOwner } = await import('../voice-agent-entry/caller-recognition.js');
+  return ownerMayKeep(user, { verifiedOwner: sessionIsVerifiedOwner });
+}
+
 /**
  * Renames the caller for the rest of the call (session only) and, when the
  * account owner is proven to be the one on the line, on the account.

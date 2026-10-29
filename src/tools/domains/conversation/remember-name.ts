@@ -23,6 +23,7 @@ export { callMeVocativeEnabled };
 
 /** What this reads and writes of the session's userData (services: services/types.ts). */
 interface NameToolUser {
+  userId?: string;
   name?: string;
   userName?: string;
   personaId?: string;
@@ -62,7 +63,9 @@ async function save(name: string, user: NameToolUser): Promise<string> {
   user.name = name;
   user.userName = name; // this call's name too: rememberName is the one writer with the flag on
   const { services } = user;
-  if (services?.userProfile) {
+  // Anyone may rename the call; only the verified owner renames the account (name-correction.ts).
+  const { accountMayKeepName } = await import('../../../agents/personas/name-correction.js');
+  if (services?.userProfile && (await accountMayKeepName(user))) {
     services.userProfile.name = name;
     services.userProfile.preferredName = name;
     try {
