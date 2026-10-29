@@ -7,14 +7,17 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DOME_POSES, domePaths } from '../../../src/ui/face/dome-poses.js';
 
 vi.mock('../../../src/utils/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const FLAG = 'ferni:lid-blend';
-const HAPPY_TOP = 'M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z';
-const HAPPY_BOTTOM = 'M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z';
+const HAPPY = domePaths(DOME_POSES.happy);
+const SAD = domePaths(DOME_POSES.sad);
+const HAPPY_TOP = HAPPY.top;
+const HAPPY_BOTTOM = HAPPY.bottom; // control y 90 (old Q 85)
 
 let frames: FrameRequestCallback[] = [];
 function flushFrames(count = 1): void {
@@ -25,9 +28,15 @@ function flushFrames(count = 1): void {
   }
 }
 
+/** Both control points' y (left eye, right eye) in `M x y C x1 y1 x2 y2 x y Z`. */
+function controls(d: string | null | undefined): [number, number] {
+  const n = (d ?? '').match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  return [n[3] ?? NaN, n[5] ?? NaN];
+}
+/** The control y when both eyes agree; NaN otherwise. */
 function controlY(d: string | null | undefined): number {
-  const match = /Q 50,(-?[\d.]+)/.exec(d ?? '');
-  return match ? Number(match[1]) : NaN;
+  const [left, right] = controls(d);
+  return left === right ? left : NaN;
 }
 
 const lidTop = (): SVGPathElement =>
@@ -113,23 +122,53 @@ describe('lid-blend helpers', () => {
     expect(smoothByDirection(1, 0, 0.25, 0.08)).toBeCloseTo(0.92);
   });
 
-  it('opens the bottom curve from the given shape, never above the floor', async () => {
+  it('opens both bottom controls from the given shape, never above the floor', async () => {
     const m = await import('../../../src/ui/avatar-motion/lid-blend.js');
     const open = (d: string, v: number) => m.formatLidPath(m.openBottomLid(m.parseLidPath(d), v));
-    expect(controlY(open(m.NEUTRAL_LID_PATHS.bottom, 1))).toBe(70);
-    expect(controlY(open(m.NEUTRAL_LID_PATHS.bottom, 0))).toBe(110);
-    expect(controlY(open(HAPPY_BOTTOM, 0.5))).toBe(65);
-    expect(controlY(open(HAPPY_BOTTOM, 1))).toBe(m.LID_OPEN_FLOOR);
+    // Same opening as the old Q lids: Q 110→70, 85→65, floor 62 are cubic 106.67→80, 90→76.67, 74.67.
+    expect(controlY(open(m.NEUTRAL_LID_PATHS.bottom, 1))).toBeCloseTo(80, 1);
+    expect(controlY(open(m.NEUTRAL_LID_PATHS.bottom, 0))).toBeCloseTo(106.67, 1);
+    expect(controlY(open(HAPPY_BOTTOM, 0.5))).toBeCloseTo(76.67, 1);
+    expect(m.LID_OPEN_FLOOR).toBeCloseTo(74.67, 1);
+    expect(controlY(open(HAPPY_BOTTOM, 1))).toBeCloseTo(m.LID_OPEN_FLOOR, 1);
     expect(open(HAPPY_BOTTOM, 0)).toBe(HAPPY_BOTTOM);
   });
 
-  it('eases between shapes that share a template and snaps between ones that do not', async () => {
+  it("lifts both eyes' bottom controls (index 5 as well as 3), each clamped at the floor", async () => {
+    const m = await import('../../../src/ui/avatar-motion/lid-blend.js');
+    const asymmetric = 'M0 100C33.33 96 66.67 86 100 100Z';
+    const [left, right] = controls(
+      m.formatLidPath(m.openBottomLid(m.parseLidPath(asymmetric), 0.5))
+    );
+    expect(left).toBeCloseTo(96 - 0.5 * m.LID_OPEN_RANGE, 1); // 82.67
+    expect(right).toBeCloseTo(m.LID_OPEN_FLOOR, 1); // 86 - 13.33 = 72.67, held at 74.67
+    // a symmetric pose opens evenly
+    expect(controls(m.formatLidPath(m.openBottomLid(m.parseLidPath(HAPPY_BOTTOM), 0.5)))).toEqual([
+      76.67, 76.67,
+    ]);
+  });
+
+  it('halfway from happy to sad, both control points of both lids are halfway', async () => {
+    const m = await import('../../../src/ui/avatar-motion/lid-blend.js');
+    for (const lid of ['top', 'bottom'] as const) {
+      const eased = m.formatLidPath(
+        m.easeLidPath(m.parseLidPath(HAPPY[lid]), m.parseLidPath(SAD[lid]), 0.5)
+      );
+      const [hl, hr] = controls(HAPPY[lid]);
+      const [sl, sr] = controls(SAD[lid]);
+      const [el, er] = controls(eased);
+      expect(el).toBeCloseTo((hl + sl) / 2, 1);
+      expect(er).toBeCloseTo((hr + sr) / 2, 1);
+    }
+  });
+
+  it('eases between shapes that share a template and snaps only for a foreign shape', async () => {
     const m = await import('../../../src/ui/avatar-motion/lid-blend.js');
     const from = m.parseLidPath(m.NEUTRAL_LID_PATHS.top);
     const eased = m.easeLidPath(from, m.parseLidPath(HAPPY_TOP), 0.5);
-    expect(controlY(m.formatLidPath(eased))).toBeCloseTo(7.5);
-    const asymmetric = 'M 0,0 Q 30,20 60,5 Q 80,-5 100,0 L 100,0 L 0,0 Z';
-    expect(m.formatLidPath(m.easeLidPath(from, m.parseLidPath(asymmetric), 0.5))).toBe(asymmetric);
+    expect(controlY(m.formatLidPath(eased))).toBeCloseTo((-6.67 + 16.67) / 2, 1);
+    const foreign = 'M 0,0 Q 30,20 60,5 Q 80,-5 100,0 L 100,0 L 0,0 Z';
+    expect(m.formatLidPath(m.easeLidPath(from, m.parseLidPath(foreign), 0.5))).toBe(foreign);
   });
 });
 
@@ -144,8 +183,8 @@ describe('speaking system lid layer', () => {
     flushFrames(30);
     expect(lidTop().getAttribute('d')).toBe(HAPPY_TOP);
     const opened = controlY(lidBottom().getAttribute('d'));
-    expect(opened).toBeLessThan(85);
-    expect(opened).toBeGreaterThanOrEqual(62);
+    expect(opened).toBeLessThan(90);
+    expect(opened).toBeGreaterThanOrEqual(74.66);
   });
 
   it('with the flag on: the lids settle on the expression when speech ends', async () => {
@@ -188,7 +227,7 @@ describe('speaking system lid layer', () => {
     speakingSystem.updateVolume(0.6);
     flushFrames(10);
     expect(speakingSystem.currentVolume).toBe(0);
-    expect(controlY(lidBottom().getAttribute('d'))).toBe(85);
+    expect(controlY(lidBottom().getAttribute('d'))).toBe(90);
   });
 
   it('with the flag off: the speaking system leaves the expression lids alone', async () => {

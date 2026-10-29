@@ -17,25 +17,28 @@ import { audioService } from '../../services/audio.service.js';
 import { gsap } from '../../utils/gsap-setup.js';
 import { createLogger } from '../../utils/logger.js';
 import { getLidBasePaths } from '../ferni-expressions.ui.js';
+import { NEUTRAL_DOME_PATHS } from '../face/dome-poses.js';
 
 const log = createLogger('LidBlend');
 
 export const LID_BLEND_FLAG_KEY = 'ferni:lid-blend';
 
 /** Neutral lids, used until ferni-expressions has set an expression. */
-export const NEUTRAL_LID_PATHS = {
-  top: 'M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z',
-  bottom: 'M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z',
-} as const;
+export const NEUTRAL_LID_PATHS = NEUTRAL_DOME_PATHS;
 
-/** How far (viewBox units) full volume lifts the bottom curve's control point. */
-export const LID_OPEN_RANGE = 40;
-/** The voice never lifts the bottom curve above this, so the eye stays readable. */
-export const LID_OPEN_FLOOR = 62;
+/**
+ * A dome's cubic control sits 2/3 as far from the edge as the quadratic control
+ * it replaced, so the voice limits below keep the old opening (40 and 62 in Q units).
+ */
+const Q_TO_CUBIC = 2 / 3;
+/** How far (viewBox units) full volume lifts each bottom control point. */
+export const LID_OPEN_RANGE = 40 * Q_TO_CUBIC;
+/** The voice never lifts a bottom control point above this, so the eye stays readable. */
+export const LID_OPEN_FLOOR = 100 - (100 - 62) * Q_TO_CUBIC;
 /** Per-frame easing toward a new expression shape while the voice owns the lids. */
 export const LID_SHAPE_EASE = 0.18;
-/** Index of the first quadratic control point's y in `M x,y Q cx,cy ...`. */
-const CONTROL_Y_INDEX = 3;
+/** Indices of the two control points' y in `M x y C x1 y1 x2 y2 x y Z` (one per eye). */
+const CONTROL_Y_INDICES = [3, 5] as const;
 const NUMBER_PATTERN = /-?\d+(?:\.\d+)?/g;
 
 export function isLidBlendEnabled(): boolean {
@@ -111,14 +114,15 @@ export function easeLidPath(
   };
 }
 
-/** Lift the bottom curve's control point by the voice, never above the floor. */
+/** Lift both bottom control points (one per eye) by the voice, never above the floor. */
 export function openBottomLid(base: ParsedPath, volume: number): ParsedPath {
   const numbers = [...base.numbers];
-  const controlY = numbers[CONTROL_Y_INDEX];
-  if (controlY === undefined || controlY <= LID_OPEN_FLOOR)
-    return { template: base.template, numbers };
   const level = Math.max(0, Math.min(1, volume));
-  numbers[CONTROL_Y_INDEX] = Math.max(LID_OPEN_FLOOR, controlY - level * LID_OPEN_RANGE);
+  for (const index of CONTROL_Y_INDICES) {
+    const controlY = numbers[index];
+    if (controlY === undefined || controlY <= LID_OPEN_FLOOR) continue;
+    numbers[index] = Math.max(LID_OPEN_FLOOR, controlY - level * LID_OPEN_RANGE);
+  }
   return { template: base.template, numbers };
 }
 
