@@ -14,6 +14,7 @@ import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { keepRemembered, profileForCaller } from '../../../memory/index.js';
+import { memoryToolsHonestOn, updateRemembered } from './honest-memory.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -85,10 +86,7 @@ export const rememberAboutUserDef: ToolDefinition = {
         importance: z.enum(['low', 'medium', 'high']).describe('How important is this to remember'),
       }),
       execute: async ({ fact, category, importance }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, fact, category, importance },
-          'Remembering about user'
-        );
+        getLogger().info({ agentId: ctx.agentId, factChars: fact.length }, 'Remember about user');
 
         const userData = toolCtx.userData as UserData;
 
@@ -144,7 +142,7 @@ export const recallFromMemoryDef: ToolDefinition = {
           ),
       }),
       execute: async ({ topic }, { ctx: toolCtx }) => {
-        getLogger().info({ agentId: ctx.agentId, topic }, 'Trying to recall');
+        getLogger().info({ agentId: ctx.agentId, topicChars: topic.length }, 'Trying to recall');
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -201,7 +199,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
           ),
       }),
       execute: async ({ query }, { ctx: toolCtx }) => {
-        getLogger().info({ agentId: ctx.agentId, query }, 'Semantic recall');
+        getLogger().info({ agentId: ctx.agentId, queryChars: query.length }, 'Semantic recall');
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -214,7 +212,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
               return `I found something relevant in my memory: ${result}`;
             }
           } catch (error) {
-            getLogger().warn({ error, query }, 'Semantic recall error');
+            getLogger().warn({ error, queryChars: query.length }, 'Semantic recall error');
           }
         }
 
@@ -246,10 +244,7 @@ export const rememberImportantFactDef: ToolDefinition = {
         emotionalWeight: z.enum(['light', 'medium', 'heavy']).describe('Emotional significance'),
       }),
       execute: async ({ fact, type, emotionalWeight }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, fact, type, emotionalWeight },
-          'Saving important fact'
-        );
+        getLogger().info({ agentId: ctx.agentId, type, emotionalWeight }, 'Saving important fact');
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -418,18 +413,19 @@ export const updateMemoryDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('updateMemory'),
       parameters: z.object({
-        originalFact: z.string().describe('What you currently remember that needs updating'),
-        updatedFact: z.string().describe('The corrected or updated information'),
+        originalFact: z
+          .string()
+          .describe('The memory copied exactly as shown to you, e.g. "Dana: lives in = Denver"'),
+        updatedFact: z
+          .string()
+          .describe('The corrected fact, whose it is first: "the user\'s sister lives in Boston"'),
         reason: z
           .string()
           .optional()
           .describe('Why the update was needed (correction, change, addition)'),
       }),
       execute: async ({ originalFact, updatedFact, reason }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, originalFact, updatedFact, reason },
-          'Updating memory'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Updating memory'); // never the facts
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -456,8 +452,9 @@ export const updateMemoryDef: ToolDefinition = {
           );
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
+        // MEMORY_TOOLS_HONEST: replace the one fact quoted exactly, or say none was (honest-memory.ts)
+        if (!memoryToolsHonestOn()) return ''; // flag off: the in-call list only, as before
+        return updateRemembered(toolCtx, userData.userId, originalFact, updatedFact);
       },
     });
   },
