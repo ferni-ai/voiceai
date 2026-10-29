@@ -43,7 +43,7 @@ interface Answer extends Asked {
 const turns = new WeakMap<object, Turn>();
 const asked = new WeakMap<object, Asked>();
 const answered = new WeakMap<object, Answer>();
-/** Name-correction's yes this turn (agreeTo); no name: that turn's yes didn't count. */
+/** agreeTo's decision for a turn; no name: that turn's yes didn't count. */
 const agreed = new WeakMap<object, { turn: number; name?: string }>();
 
 /** Notes the caller's turn: `turn` counts their turns so far on this call, `words` are this turn's. */
@@ -55,12 +55,9 @@ const first = (name: string): string => name.trim().split(/\s+/)[0]?.toLowerCase
 export const sameName = (a: string, b: string | undefined): boolean => !!b && first(a) === first(b);
 
 /**
- * Name-correction's own question ("Sam from now on?") got a yes on caller turn
- * `turn`. The rename is this tool's: the yes lets rememberName save that name
- * on that turn. The first request of a turn decides for the rest of it, so the
- * tool-reply request (same words) can't decide again; and a yes while this tool
- * is asking about another name is that name's, not this one's ("call me Sam, or
- * actually Jamie", then "yes": #2924 round-2 verify). Returns whether it counts.
+ * Name-correction got a yes to its own "Sam from now on?" on caller turn `turn`:
+ * rememberName may save Sam on that turn. The turn's first request decides for
+ * the rest of it, and a yes while this tool asks about another name doesn't count.
  */
 export function agreeTo(session: object, name: string, turn: number): boolean {
   const before = agreed.get(session);
