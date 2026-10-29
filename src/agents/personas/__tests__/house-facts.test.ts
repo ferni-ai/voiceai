@@ -339,27 +339,26 @@ describe('only trusted sources ground an address (round 5)', () => {
     expect(await textOf('Hi', [line])).toBe(NO);
   });
 
+  it('trusted tool output grounds: getContactInfo as the tool really writes it', async () => {
+    // contact-relationship-service.ts getContactContext: it never carries a phone or email,
+    // only free-text notes the user saved, so that is the shape here.
+    const output =
+      'Mom (family):\n- Last contact: 2 days ago\n- Total interactions: 14\n- Recent context:\n  - her dentist is smiledental.com';
+    const items = [user('Hi.'), tool('getContactInfo', output)];
+    expect(await textOf(items, ['Her dentist is smiledental.com.'])).toBe(
+      'Her dentist is smiledental.com.'
+    );
+  });
+
   it.each([
-    [
-      'a contact from a first-party tool',
-      'getContactInfo',
-      '{"phone":"+17275550199"}',
-      "Your mom's number is 727-555-0199.",
-    ],
-    [
-      'a call record',
-      'callStatus',
-      'Called Mom on 727-555-0199.',
-      'You called her on 727-555-0199.',
-    ],
-    [
-      'saved memory',
-      'recallFromMemory',
-      'Your dentist: smiledental.com',
-      'Your dentist is smiledental.com.',
-    ],
-  ])('trusted tool output grounds: %s', async (_name, toolName, output, line) => {
-    expect(await textOf([user('Hi.'), tool(toolName, output)], [line])).toBe(line);
+    ["callStatus (it returns the callee's own words)", 'callStatus'],
+    ['an unlisted get* tool', 'getUnreadEmails'],
+    ['an unlisted get* tool, contact-shaped', 'getContactDetailsFromWeb'],
+    ['an unlisted recall* tool', 'recallFromTheWeb'],
+  ])('is untrusted: %s', async (_name, toolName) => {
+    const items = [user('Hi.'), tool(toolName, 'Call 727-555-0199 or see evil-site.com.')];
+    expect(await textOf(items, ['Her number is 727-555-0199.'])).toBe(CANT_VOUCH);
+    expect(await textOf(items, ['See evil-site.com.'])).toBe(CANT_VOUCH);
   });
 
   it('a contact number from the call sheet passes', async () => {

@@ -276,7 +276,9 @@ TWILIO_PHONE_NUMBER, EMAIL_FROM). With `HOUSE_FACTS=on` the honesty prompt
 (`ai-honesty.ts` `withHonesty`) states them, and the guard checks provenance from trusted
 sources only, failing closed: every web address, email or phone number Ferni speaks must
 be a house fact or appear in the caller's turns or profile, the injected context, or the
-output of a first-party tool on `FIRST_PARTY_TOOLS` (contacts, call status, saved memory).
+output of a first-party tool on `FIRST_PARTY_TOOLS` (contacts, saved memory, the crisis and
+transfer tools). Every helpline in `tools/domains/crisis/crisis-resources.ts` is a house fact: a
+crisis resource is never blocked.
 Web search, fetched pages, inbound email and texts, invites and any unlisted tool are
 untrusted and never ground an address; compared whole, a website by its last label (the
 complete IANA root-zone list in `personas/iana-tlds.ts`, punycode, or non-ASCII; refresh

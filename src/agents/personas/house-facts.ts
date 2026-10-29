@@ -36,6 +36,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
+import { crisisContactLines } from '../../tools/domains/crisis/crisis-resources.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';
@@ -106,8 +107,9 @@ function groundingText(item: GroundingItem): string {
 }
 
 /**
- * Tools that return the user's own data (their contacts, their calls, what they told
- * Ferni to remember), so their output can ground an address. Any other tool is
+ * Tools that return the user's own data (their contacts, what they told Ferni to remember)
+ * or fixed crisis lines, so their output can ground an address. Not callStatus: it returns the
+ * callee's own words. Any other tool is
  * untrusted, and so is a new one until someone adds it here.
  */
 const FIRST_PARTY_TOOLS = new Set([
@@ -116,10 +118,16 @@ const FIRST_PARTY_TOOLS = new Set([
   'getContactsNeedingAttention',
   'getContactInteractionHistory',
   'getContactReminders',
-  'callStatus',
   'recallFromMemory',
   'recallPreviousConversation',
   'getRelationshipSummary',
+  // Crisis and human transfer: static helplines out of the crisis data, never third-party text.
+  'provideCrisisResources',
+  'findSafeResources',
+  'createSafetyPlan',
+  'quickCrisisResources',
+  'connectToHumanExpert',
+  'evaluateHumanTransfer',
 ]);
 /** A tool result from a tool that is not on the list: web pages, inbound mail, invites, anything new. */
 const isUntrusted = (item: GroundingItem): boolean =>
@@ -132,6 +140,24 @@ const itemAddresses = new WeakMap<object, Addresses>();
 export interface HouseFactsWho {
   personaId?: string;
   userProfile?: { contactInfo?: { phone?: string; email?: string } } | null;
+}
+
+let crisisLines: Addresses | undefined;
+/**
+ * The house facts plus every crisis and helpline number out of the crisis data
+ * (tools/domains/crisis/crisis-resources.ts): a crisis resource is never blocked, whatever
+ * the context holds, and a hotline added to that data is covered without touching this file.
+ */
+function houseAddresses(facts: HouseFacts): Addresses {
+  const known = factAddresses(facts);
+  if (!crisisLines) {
+    crisisLines = noAddresses();
+    for (const line of crisisContactLines()) collectAddresses(line, crisisLines);
+  }
+  for (const key of ['hosts', 'emails', 'numbers'] as const) {
+    for (const value of crisisLines[key]) known[key].add(value);
+  }
+  return known;
 }
 
 /**
@@ -147,7 +173,7 @@ function groundedAddresses(
   const contact = who.userProfile?.contactInfo;
   const trusted = collectAddresses(
     `${contact?.phone ?? ''}\n${contact?.email ?? ''}`,
-    factAddresses(facts)
+    houseAddresses(facts)
   );
   const online = noAddresses();
   for (const item of chatCtx.items) {
@@ -188,11 +214,11 @@ export async function withHouseFactsGuard<T>(
 ): Promise<T> {
   const stream = await reply;
   if (!isReplyStream(stream) || !houseFactsEnabled(env)) return stream;
-  const facts = factAddresses(houseFacts(env));
+  const facts = houseAddresses(houseFacts(env));
   // Read only when a sentence holds an address that isn't a house fact (most replies hold none).
   let grounded: ReturnType<typeof groundedAddresses> | undefined;
   const verdict = (sentence: string): Verdict => {
-    if (false) return 'ok';
+    if (judgeAddresses(sentence, facts) === 'ok') return 'ok';
     grounded ??= groundedAddresses(chatCtx, houseFacts(env), who);
     return judgeAddresses(sentence, grounded.trusted, grounded.online);
   };

@@ -103,6 +103,61 @@ describe('a website: the complete IANA list, punycode, or a non-ASCII ending', (
   });
 });
 
+describe('ordinary speech is left alone (round 5 verification)', () => {
+  it.each([
+    'The temperature was at 98.6.',
+    'Rates are at 4.5 percent.',
+    'Meet me at 5.30pm.',
+    'Look at node.js.',
+    'Set it at 10.5.',
+    'It closes at 10.30 tonight.',
+    'Join at 5 dot 30.',
+    'Put a dot in the middle.',
+    'Put a dot on the map.',
+    'It has a polka dot pattern.',
+    'Polka dot is fun.',
+    'Your zip code is 33701.',
+    'The verification code is 482913.',
+    'Okay.Great, v2.0.1 is 3.5 times faster.',
+  ])('passes: %s', (line) => {
+    expect(judgeAddresses(line, FACTS)).toBe('ok');
+  });
+
+  it.each([
+    'Go to glowfriend.ai.',
+    'Go to evil dot ru.',
+    'Go to evil dot help.',
+    'Go to evil dot o n l i n e.',
+    'Write to jo at glowfriend dot help.',
+    'Write to jo at glowfriend.ai.',
+    'Email jo at gmail later.',
+  ])('an invented address is still found: %s', (line) => {
+    expect(judgeAddresses(line, FACTS)).toBe('nowhere');
+  });
+
+  it.each([
+    'Texts come from 55512.',
+    'Your texts are sent from 55512.',
+    'The short code is 55512.',
+    'Messages from 555123 are mine.',
+  ])('an invented short-code sender is still found: %s', (line) => {
+    expect(judgeAddresses(line, FACTS)).toBe('nowhere');
+  });
+
+  it('a spoken "at" needs a real ending to be an email, and "@" always is', () => {
+    expect(judgeAddresses('It was at 98.6', FACTS)).toBe('ok');
+    expect(judgeAddresses('Write to sam@98.6', FACTS)).toBe('nowhere');
+    expect(collectAddresses('It was at 98.6 and look at node.js', noAddresses()).emails.size).toBe(
+      0
+    );
+  });
+
+  it('a house number said with its hours is still the house number', () => {
+    const facts = factAddresses({ textsFrom: '+17275550142' });
+    expect(judgeAddresses('Texts come from 727-555-0142 (24/7).', facts)).toBe('ok');
+  });
+});
+
 describe('a held run is cut only outside an address', () => {
   it.each([
     ['beside " dot "', 'aaaa bbbb cccc evil dot com tail'],

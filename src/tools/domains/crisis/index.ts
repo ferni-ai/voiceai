@@ -25,175 +25,7 @@ import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js'
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-// ============================================================================
-// CRISIS RESOURCES DATABASE
-// ============================================================================
-
-interface CrisisResource {
-  primary: {
-    name: string;
-    contact: string;
-    available: string;
-    description: string;
-  };
-  secondary?: {
-    name: string;
-    contact: string;
-    available?: string;
-    description?: string;
-  };
-  additional?: Array<{ name: string; url?: string; contact?: string; description?: string }>;
-}
-
-const CRISIS_RESOURCES: Record<string, CrisisResource> = {
-  'suicide-self-harm': {
-    primary: {
-      name: '988 Suicide & Crisis Lifeline',
-      contact: 'Call or text 988',
-      available: '24/7',
-      description:
-        'Free, confidential support for people in distress, prevention and crisis resources',
-    },
-    secondary: {
-      name: 'Crisis Text Line',
-      contact: 'Text HOME to 741741',
-      available: '24/7',
-      description: 'Free, confidential crisis counseling via text',
-    },
-    additional: [
-      {
-        name: 'International Association for Suicide Prevention',
-        url: 'https://www.iasp.info/resources/Crisis_Centres/',
-      },
-    ],
-  },
-  'mental-health': {
-    primary: {
-      name: '988 Suicide & Crisis Lifeline',
-      contact: 'Call or text 988',
-      available: '24/7',
-      description: 'Mental health crisis support and resources',
-    },
-    secondary: {
-      name: 'NAMI Helpline',
-      contact: '1-800-950-NAMI (6264)',
-      available: 'Mon-Fri, 10am-10pm ET',
-      description: 'National Alliance on Mental Illness - information, referrals, and support',
-    },
-  },
-  'domestic-violence': {
-    primary: {
-      name: 'National Domestic Violence Hotline',
-      contact: '1-800-799-7233 (SAFE)',
-      available: '24/7',
-      description:
-        'Confidential support, safety planning, and resources for domestic violence survivors',
-    },
-    secondary: {
-      name: 'Text Support',
-      contact: 'Text START to 88788',
-      available: '24/7',
-    },
-  },
-  'sexual-assault': {
-    primary: {
-      name: 'RAINN National Sexual Assault Hotline',
-      contact: '1-800-656-4673 (HOPE)',
-      available: '24/7',
-      description: 'Confidential support from trained staff members',
-    },
-    secondary: {
-      name: 'Online Chat',
-      contact: 'https://www.rainn.org/get-help',
-      available: '24/7',
-    },
-  },
-  'substance-abuse': {
-    primary: {
-      name: 'SAMHSA National Helpline',
-      contact: '1-800-662-4357',
-      available: '24/7, 365 days',
-      description: 'Free, confidential treatment referrals and information service',
-    },
-    secondary: {
-      name: 'Alcoholics Anonymous',
-      contact: 'https://www.aa.org/find-aa',
-      description: 'Find local AA meetings',
-    },
-    additional: [
-      { name: 'Narcotics Anonymous', url: 'https://www.na.org/meetingsearch/' },
-      { name: 'SMART Recovery', url: 'https://www.smartrecovery.org/community/calendar.php' },
-    ],
-  },
-  'child-abuse': {
-    primary: {
-      name: 'Childhelp National Child Abuse Hotline',
-      contact: '1-800-422-4453 (4-A-CHILD)',
-      available: '24/7',
-      description: 'Professional crisis counselors for child abuse intervention and prevention',
-    },
-  },
-  'financial-crisis': {
-    primary: {
-      name: '211',
-      contact: 'Call 211 or text your zip code to 898211',
-      available: '24/7',
-      description: 'Connect to local services for housing, food, utilities, and more',
-    },
-    secondary: {
-      name: 'National Foundation for Credit Counseling',
-      contact: '1-800-388-2227',
-      description: 'Nonprofit credit counseling and debt management',
-    },
-  },
-  'general-distress': {
-    primary: {
-      name: '988 Suicide & Crisis Lifeline',
-      contact: 'Call or text 988',
-      available: '24/7',
-      description:
-        "Support for any emotional distress - you don't need to be suicidal to reach out",
-    },
-    secondary: {
-      name: 'Crisis Text Line',
-      contact: 'Text HOME to 741741',
-      available: '24/7',
-    },
-  },
-  'veteran-crisis': {
-    primary: {
-      name: 'Veterans Crisis Line',
-      contact: 'Call 988, then press 1',
-      available: '24/7',
-      description: 'Specialized support for veterans and their families',
-    },
-    secondary: {
-      name: 'Veterans Crisis Line Chat',
-      contact: 'https://www.veteranscrisisline.net/get-help-now/chat/',
-      available: '24/7',
-    },
-  },
-  'lgbtq-crisis': {
-    primary: {
-      name: 'Trevor Project',
-      contact: '1-866-488-7386',
-      available: '24/7',
-      description: 'Crisis intervention for LGBTQ+ young people',
-    },
-    secondary: {
-      name: 'Trevor Project Text/Chat',
-      contact: 'Text START to 678-678',
-      available: '24/7',
-    },
-    additional: [
-      {
-        name: 'Trans Lifeline',
-        contact: '1-877-565-8860',
-        description: 'Peer support for trans people',
-      },
-    ],
-  },
-};
+import { CRISIS_FALLBACK_RESPONSE, CRISIS_RESOURCES } from './crisis-resources.js';
 
 // ============================================================================
 // GROUNDING EXERCISES
@@ -295,12 +127,6 @@ const provideCrisisResourcesDef: ToolDefinition = {
       }),
       execute: async ({ crisisType, urgency }) => {
         // SAFETY-CRITICAL: Always return resources even on error
-        const FALLBACK_RESPONSE =
-          `If you're in crisis or need support right now:\n\n` +
-          `📞 **988 Suicide & Crisis Lifeline** - Call or text 988 (24/7)\n` +
-          `📱 **Crisis Text Line** - Text HOME to 741741 (24/7)\n\n` +
-          `You don't have to face this alone. These trained professionals are ready to help.`;
-
         // Track crisis tool usage for safety monitoring
         const tracker = isLifeCoachAnalyticsEnabled()
           ? trackToolUsage('provideCrisisResources', 'crisis', { agentId: ctx.agentId })
@@ -354,7 +180,7 @@ const provideCrisisResourcesDef: ToolDefinition = {
             'Crisis tool error - returning fallback resources'
           );
           tracker?.error(error instanceof Error ? error : String(error));
-          return FALLBACK_RESPONSE;
+          return CRISIS_FALLBACK_RESPONSE;
         }
       },
     });

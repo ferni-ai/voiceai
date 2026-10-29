@@ -54,13 +54,51 @@ const SITE_WORDS = new Set(
     ' '
   )
 );
-/** A 5 or 6 digit number counts in a sentence about texts (a short code sender). */
-const SENDER_WORD = /\b(?:short ?codes?|codes?|texts?|texting|messages?|sms)\b/u;
+/**
+ * A 5 or 6 digit number counts only where a sender is claimed ("texts come from 55512",
+ * "the short code is ..."). "Your zip code is 33701" or "the verification code is 482913" is
+ * ordinary speech, not an address.
+ */
+const SENDER_CLAIM =
+  /\b(?:come|comes|coming|came|sent|sends?|sending) from\b|\b(?:texts?|messages?|sms) from\b|\bshort ?codes?\b|\bsenders?\b/u;
+
+/**
+ * Said "dot" is a dot only where it reads as a web address. After a common ending
+ * ("evil dot com", "dot ru") it always is. After an ordinary English word that is also an
+ * ending ("polka dot is fun", "a dot in the map") it never is. Otherwise the word before must
+ * be a plausible host label (two or more characters, not a function word). Simple on purpose.
+ */
+const COMMON_ENDINGS = new Set(
+  'com net org edu gov mil io ai co app dev me us uk ru cn de info biz xyz online site tech store shop help'.split(
+    ' '
+  )
+);
+const ORDINARY_WORDS = new Set(
+  'is in it at as no so to be by do or an if my up we he are was for the of and but not you your this that with from have has had were'.split(
+    ' '
+  )
+);
+const NOT_A_HOST = new Set(
+  'a an the this that these those one two my your our his her their its some any each no not and or but so if as at by for from in of on to with is are was be it i we you he she they there here then than also just very really'.split(
+    ' '
+  )
+);
+const wordOf = (token: string): string => token.toLowerCase().replace(/[^\p{L}\p{N}-]/gu, '');
+function dotIsSaid(before: string, after: string): boolean {
+  const ending = wordOf(after.split(/[^\p{L}\p{N}-]/u)[0] ?? '');
+  if (COMMON_ENDINGS.has(ending)) return true;
+  if (ORDINARY_WORDS.has(ending)) return false;
+  const label = wordOf(before.split(/[^\p{L}\p{N}-]/u).pop() ?? '');
+  return label.length >= 2 && !NOT_A_HOST.has(label);
+}
 
 /** The text in one reading (see the module note). */
 function normalise(text: string): string {
   return foldContactText(text)
-    .replace(/\s{1,3}dot\s{1,3}/giu, '.')
+    .replace(/\b24\s*\/\s*7\b(?:,\s*365 days)?/giu, ' ') // "1-800-799-7233 (24/7)": hours, not digits of the number
+    .replace(/(\S{1,63})\s{1,3}dot\s{1,3}(?=(\S{1,24}))/giu, (m, before: string, after: string) =>
+      dotIsSaid(before, after) ? `${before}.` : `${before} `
+    )
     .replace(/-dot-/giu, '.')
     .replace(
       /\.((?:\p{L} )+\p{L})(?![\p{L}\p{N}])/gu,
@@ -83,7 +121,7 @@ const isSite = (host: string): boolean => {
     TLDS.has(last) ||
     (ALT_ROOT_ENDINGS.has(last) && !version) ||
     last.startsWith('xn--') ||
-    /[^\x00-\x7f]/u.test(last)
+    /[^\p{ASCII}]/u.test(last)
   );
 };
 const hostKey = (host: string): string => host.replace(/^www\./u, '');
@@ -137,11 +175,15 @@ export const noAddresses = (): Addresses => ({
 /** Adds every address in the text (numbers of 5+ digits) to `into`. */
 export function collectAddresses(text: string, into: Addresses): Addresses {
   for (const piece of piecesOf(text, MAX_GROUNDING_PIECE)) {
-    const rest = normalise(piece).replace(EMAIL_G, (_m, local: string, _at, host: string) => {
-      into.emails.add(`${local}@${host}`);
-      into.hosts.add(hostKey(host));
-      return ' ';
-    });
+    const rest = normalise(piece).replace(
+      EMAIL_G,
+      (_m, local: string, at: string, host: string) => {
+        if (!at.includes('@') && !isSite(host)) return `${local} ${host}`; // "was at 98.6": no email
+        into.emails.add(`${local}@${host}`);
+        into.hosts.add(hostKey(host));
+        return ' ';
+      }
+    );
     for (const [, host = ''] of rest.matchAll(HOST_G)) {
       if (isSite(host)) into.hosts.add(hostKey(host));
     }
@@ -169,6 +211,7 @@ function verdictIn(piece: string, trusted: Addresses, online: Addresses): Verdic
     if (verdict !== 'nowhere') verdict = online[kind].has(key) ? 'online' : 'nowhere';
   };
   let rest = normalise(piece).replace(EMAIL_G, (_m, local: string, at: string, host: string) => {
+    if (!at.includes('@') && !isSite(host)) return `${local} ${host}`; // "was at 98.6", "look at node.js"
     const site = at.trim() === 'at' && SITE_WORDS.has(local) && trusted.hosts.has(hostKey(host));
     if (!site && !trusted.emails.has(`${local}@${host}`)) miss('emails', `${local}@${host}`);
     return ' ';
@@ -180,7 +223,7 @@ function verdictIn(piece: string, trusted: Addresses, online: Addresses): Verdic
   });
   // No digit, "@", "at" or "dot" left: no number or email can be (skips three folds).
   if (!/[@%&\d]|\b(?:at|dot)\b/u.test(rest)) return verdict;
-  for (const run of contactNumberRuns(rest, SENDER_WORD.test(rest) ? 5 : 7)) {
+  for (const run of contactNumberRuns(rest, SENDER_CLAIM.test(rest) ? 5 : 7)) {
     if (!trusted.numbers.has(numberKey(run))) miss('numbers', numberKey(run));
     rest = rest.replace(run, ' ');
   }
