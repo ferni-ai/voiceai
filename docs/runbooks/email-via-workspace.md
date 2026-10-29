@@ -196,7 +196,8 @@ mail as processed) for the mailer.
   It still delivers to the same mailbox. The token maps to the user and the
   outreach.
 - Keep each sent message's `Message-ID` so `In-Reply-To` can thread a reply.
-- The existing reply handler (`handleEmailReplyWebhook` in
-  `src/api/concierge-routes.ts`) is a candidate place to route them.
+- There is no reply handler yet. The old unsigned concierge `email-reply`
+  webhook was removed because anyone could forge a reply through it; a new one
+  must authenticate its caller (for example a Pub/Sub push OIDC token).
 
 Treat reply text as untrusted input: it reaches a model.
