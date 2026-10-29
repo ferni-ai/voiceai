@@ -37,6 +37,8 @@ function sandbox(lanes, { claimErr = '', runSh = '', cleanupCount = 0 } = {}) {
     'superhuman.mjs',
     'superhuman-bar.json',
     'false-done.mjs',
+    'recall-score.mjs',
+    'recall-world.mjs',
   ])
     cpSync(join(NIGHTLY, f), join(n, f));
   for (const f of ['recall-facts.mjs', 'eval-database.mjs'])

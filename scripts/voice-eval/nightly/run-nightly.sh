@@ -192,6 +192,15 @@ tonight() { # tonight's scored test runs in scripts/voice-eval/out
 }
 # Pro, explicitly: the scorecard's judge checks compare tonight with earlier
 # nights judged by Pro, and judges now default to Flash (scripts/lib/judge-model.mjs).
+# The held-out recall eval (recall-eval.mjs): NIGHTLY_RECALL_WORLDS worlds a night (rotated), its
+# transcripts under $OUT/recall, numbers only in $OUT/recall.json for the scorecard. Runs only on a
+# machine that holds the held-out set (never in the repo); its exit 1 is the scorecard's to report.
+RECALL_SET=${NIGHTLY_RECALL_SET:-$HOME/Documents/voiceai-evidence/recall-eval/heldout/set.json}
+do_recall() {
+  node "$HERE/recall-eval.mjs" --set "$RECALL_SET" --worlds "${NIGHTLY_RECALL_WORLDS:-3}" \
+    --out "$OUT/recall" --summary "$OUT/recall.json" >> "$OUT/recall.log" 2>&1
+  [ $? != 2 ]
+}
 do_judge() {
   tonight | JUDGE_K=2 JUDGE_MODEL=pro GCP_PROJECT=$GCP xargs -0 -n 1 -P 4 node "$EVAL/judge.mjs" >> "$OUT/judge.log" 2>&1 \
     || log "some judge calls failed (see judge.log)"
@@ -276,6 +285,8 @@ if [ "${NIGHTLY_DEPLOY:-1}" = 1 ]; then
 fi
 step lanes "lanes a + b in parallel, label $TAG<label>, memlive uid $MEMLIVE" do_lanes
 [ "$DRY" = 1 ] && { LANES=1; lane "$LANES_DIR/a.txt" /dev/null; lane "$LANES_DIR/b.txt" /dev/null; }
+[ -f "$RECALL_SET" ] && { step recall "recall-eval.mjs: ${NIGHTLY_RECALL_WORLDS:-3} held-out worlds -> $OUT/recall.json" do_recall \
+  || log "recall eval failed (see recall.log)"; }
 step judge "judge.mjs (JUDGE_K=2, JUDGE_MODEL=pro, GCP_PROJECT=$GCP) on tonight's runs, 4 at a time" do_judge
 step collect "copy scripts/voice-eval/out/*-$TAG*.json to $OUT/runs" do_collect
 step logs "gcloud logging read cloud-agents for agent $DEV_AGENT over the lanes' window + boot lines" do_logs \

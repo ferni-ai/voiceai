@@ -108,6 +108,11 @@ function logFor(session: object): SessionLog {
   return entry;
 }
 
+/** The read-back waiting on this caller's yes, if any (telephony/call-status-tool.ts). */
+export function pendingFor(session: object | undefined): PendingAction | undefined {
+  return session ? sessions.get(session)?.pending : undefined;
+}
+
 /** Whether the person on this call is known not to be the account owner (outreachConfirmListeners). */
 export function speakerIsNotOwner(session: object): boolean {
   return sessions.get(session)?.speakerIsOwner?.() === false;
@@ -337,7 +342,8 @@ export interface ConfirmSpec {
   prepare: (
     args: Record<string, unknown>,
     userId: string,
-    plan: (args: Record<string, unknown>) => Promise<unknown>
+    plan: (args: Record<string, unknown>) => Promise<unknown>,
+    session?: object
   ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
   /**
    * Whether a call (to any tool with this spec) is the action read back, `stored` being the
@@ -420,8 +426,11 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         }
         if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent
         entry.pending = undefined;
-        const prepared = await spec.prepare(args, ctx.userId, async (a) =>
-          execute({ ...a, [PLAN_ONLY]: true }, opts)
+        const prepared = await spec.prepare(
+          args,
+          ctx.userId,
+          async (a) => execute({ ...a, [PLAN_ONLY]: true }, opts),
+          session
         );
         if (typeof prepared === 'string') return prepared;
         entry.pending = {
