@@ -24,6 +24,7 @@
  * | expressionArbiter | ferni:expression-arbiter    | VITE_EXPRESSION_ARBITER   |
  * | replyTone         | ferni:reply-tone            | VITE_REPLY_TONE           |
  * | soundDirector     | ferni:sound-director        | VITE_SOUND_DIRECTOR       |
+ * | idleLife          | ferni:idle-life             | VITE_IDLE_LIFE            |
  *
  * This is the only place these switches are read
  * (tests/config/motion-flags.test.ts fails on a direct read anywhere else).
@@ -66,6 +67,7 @@ const SWITCHES = {
     key: 'ferni:sound-director',
     build: () => import.meta.env.VITE_SOUND_DIRECTOR,
   },
+  idleLife: { key: 'ferni:idle-life', build: () => import.meta.env.VITE_IDLE_LIFE },
 } as const satisfies Record<string, { key: string; build: () => string | undefined }>;
 
 export type MotionFlag = keyof typeof SWITCHES;

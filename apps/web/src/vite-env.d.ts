@@ -24,6 +24,7 @@ interface ImportMetaEnv {
   readonly VITE_EXPRESSION_ARBITER?: string;
   readonly VITE_REPLY_TONE?: string;
   readonly VITE_SOUND_DIRECTOR?: string;
+  readonly VITE_IDLE_LIFE?: string;
   /** "true" starts the seeds economy, toast and display (config/seeds-flag.ts). Off: seeds are cut. */
   readonly VITE_SEEDS?: string;
 }
