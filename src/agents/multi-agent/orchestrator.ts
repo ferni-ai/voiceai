@@ -739,7 +739,8 @@ export class AgentOrchestrator {
     talk: TalkThrough | null = null
   ): Promise<void> {
     const { targetPersonaId } = request;
-    const early = takeEarlyGoodbye(this.sessionId, targetPersonaId); // said by the tool already
+    // said by the tool already. No onAgentReady: a tap in the app (multi-agent-entry.ts)
+    const early = takeEarlyGoodbye(this.sessionId, targetPersonaId, { tap: !request.onAgentReady });
     const goodbye = early?.text ?? this.getGoodbyePhrase(agent, request);
     const textToSpeak = goodbye || `Let me get ${getPersonaDisplayName(targetPersonaId)} for you.`;
 
