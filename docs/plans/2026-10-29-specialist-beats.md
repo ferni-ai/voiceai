@@ -40,6 +40,23 @@ The manifests already promise beats: Maya's domains include `habit-tracking`, `a
 
 Full report: `/Volumes/Work/verify/specialist-followup-2026-10-29/code.md` (local). UNCONFIRMED there: prod values of `PERSIST_AGENT_PROFILES`, `SPECIALIST_TOOLS` and `MORNING_BRIEF`.
 
+## What actually reached people (prod logs, 10-15 to 10-29, read-only)
+
+1. **Volume.** 15 texts were accepted by the provider and 2 emails went out. No push was verified, and no unprompted calls were placed.
+   - Every one went to **one** account; every gated path has a cohort of one.
+   - Nothing went out as Maya, Jordan or Alex, and 238 of 243 calls opened as Ferni.
+2. **The proactive tick does nothing.** It has run every minute since 10-18 (16,161 runs) and sent nothing.
+   - The promise trigger stands down when the person has talked since the promise (`triggers.ts:104-120`), and an active user always has.
+   - Only 4 commitments were captured in 14 days.
+3. **The morning brief has nothing to say.** It composes `nothing-today` every morning: no calendar, reminders or tasks. Commitments are excluded (`MORNING_BRIEF_COMMITMENTS` off).
+4. **Pondering has no Cloud Scheduler job.** The job was declared in `infra/cloud-scheduler-delivery.yaml` but never created, and the route got 0 requests in 30 days.
+5. **On-behalf call follow-ups are off.** `CALL_RESULT_TEXT` and `CALL_FOLLOWTHROUGH` are both off.
+6. **Failures are logged as successes.**
+   - The FCM helper returns "No push tokens registered" because no caller passes `onlyToken`, and earlier code logged "Push notification sent" anyway.
+   - On 10-24 a SendGrid 401 was logged as "Email notification sent". The Gmail-only fix (#2968) is on web but not yet on the prod agent.
+
+Full report: `/Volumes/Work/verify/specialist-followup-2026-10-29/delivery.md` (local).
+
 ## What this builds on (no new stores)
 
 | Existing plan                                                                        | What it gives this one                                                                                               |
@@ -107,15 +124,19 @@ Each lane is one PR of ≤ ~400 reviewable lines, behind an off-by-default flag,
 | **S7 Jordan's dates**                                                       | Dated facts (birthdays, trips, events) are extracted with `at`. Jordan follows up 14 days before and 1–2 days after.                                                                                                                                                                                                                                                       | A planted birthday fires exactly once at each cue, and not if cancelled (memory v2 R2).                                                                                                         | S5, R2                   |
 | **S8 Peter's patterns**                                                     | A monthly pattern pass over episodes and the ledger. Insights are stored with provenance `ferni-inferred`.                                                                                                                                                                                                                                                                 | Fixture with a planted pattern: one insight; with no pattern: none. Never states an inference as fact.                                                                                          | S5, R1                   |
 | **S9 Two-way texting**                                                      | An inbound text from a member goes into a text session with the same persona brain, guarded and replying as the thread's owner. The crisis screen runs first.                                                                                                                                                                                                              | A text answering Maya's follow-up gets Maya's reply within 60 s, and a crisis text gets the approved 988 reply (no persona). Opt-out is honoured.                                               | S0, S5                   |
+| **S11 Honest delivery**                                                     | Every send path records the provider's real result: push passes the token it means to use; email throws on a non-2xx. "Sent" is logged only on provider acceptance, and failures reach the ledger. Create the declared-but-missing `pondering` scheduler job, or delete its route and declaration.                                                                         | A forced provider failure on each channel logs `failed`, never `sent` (test per channel). The push helper with a registered token delivers on dev.                                              | ledger lane 2            |
+| **S12 Capture worth following up**                                          | Proactive triggers key on what's still **open**, not on "they've talked since". After-call extraction captures plans, promises and dates through the memory writer. `MORNING_BRIEF_COMMITMENTS` turns on once S4 reads the ledger.                                                                                                                                         | A fixture call with two real plans and a sign-off captures 2 items, not 3. A promise still open after the next call still triggers.                                                             | memory writer, S4        |
 | **S10 Honest edges**                                                        | Persona prompt rules: name what isn't connected and offer to connect; no invented reasons.                                                                                                                                                                                                                                                                                 | Judge rubric (yes/no): 0 invented access excuses across the persona eval set.                                                                                                                   | none                     |
 | **X1 Unknown callers and sexual content** (crisis lane, **Seth signs off**) | With an unidentified caller (no profile), a sexual topic gets a brief, warm boundary instead of engagement. No sexual-content entities are written to memory for unidentified callers. Also check why minor-care never flagged these calls.                                                                                                                                | A held-out set seen only by the verifier: 0 engaging replies, 0 such memory writes. Final copy approved by Seth.                                                                                | crisis lane              |
 
 ## Order
 
 1. **Now:** S0 (unblocks texts and call outcomes), S1a and S1b (small; they wake up four specialists' existing context), then S1 (the biggest felt gap). S10 and X1 (crisis lane) run in parallel.
-2. **After the ledger core:** S2, S3, S4.
+2. **With the ledger core:** S11 (honest delivery), then S2, S3, S4 and S12.
 3. **Then** S5, followed by S6, S7 and S8 in parallel (different files).
 4. **Last** S9, once S0 is in prod and S5 caps are proven.
+
+Throughout, **widen the cohorts**: once a lane proves itself on the owner, roll it out cohort by cohort. A path with one recipient can't show whether it works.
 
 ## How we'll know
 
