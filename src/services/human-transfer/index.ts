@@ -42,6 +42,7 @@
  * @module services/human-transfer
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // Re-export types
@@ -248,6 +249,8 @@ import { crisisLevelSignalsSince, type CrisisEventRecord } from './crisis-signal
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 
+export { followUpCrisis } from './crisis-signals.js';
+
 /** A non-member's signal is kept 90 days, like a crisis event (#2872): a TTL on expireAt. */
 const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -265,7 +268,8 @@ export async function logCrisisSignal(
   userId: string,
   signals: CrisisSignals,
   transcript?: string,
-  sessionId?: string
+  sessionId?: string,
+  turn?: number
 ): Promise<void> {
   // Only log if any crisis signals detected (severity > 0 or explicit flags)
   const hasSignals =
@@ -322,6 +326,8 @@ export async function logCrisisSignal(
           : { expireAt: new Date(Date.now() + NON_MEMBER_SIGNAL_RETENTION_MS) }),
         // Firestore rejects an undefined field, which dropped every signal logged without one
         ...(sessionId ? { sessionId } : {}),
+        // CRISIS_SAME_CALL_NOTE_FADES: the caller turn, so the same-call note can fade
+        ...(turn !== undefined && flagOn('CRISIS_SAME_CALL_NOTE_FADES') ? { turn } : {}),
       });
     forgetRecentCrisis(userId); // the next turn's check-in sees this signal
   } catch (error) {
@@ -368,7 +374,12 @@ export async function getCrisisHistory(
   }
 }
 
-type RecentCrisis = { hasCrisis: boolean; lastCrisis?: CrisisEventRecord };
+/** `crises`: every crisis-level event found, newest first (lastCrisis is the first). */
+type RecentCrisis = {
+  hasCrisis: boolean;
+  lastCrisis?: CrisisEventRecord;
+  crises?: CrisisEventRecord[];
+};
 
 /**
  * The crisis check-in runs every turn; the answer is kept for a minute so a
@@ -397,7 +408,9 @@ export function hadRecentCrisis(userId: string, withinDays = 7): Promise<RecentC
   for (const [k, v] of recentCrisis) if (now - v.at >= RECENT_CRISIS_TTL_MS) recentCrisis.delete(k);
   const result = queryCrisisHistory(userId, withinDays).then(
     (history): RecentCrisis =>
-      history.length === 0 ? { hasCrisis: false } : { hasCrisis: true, lastCrisis: history[0] },
+      history.length === 0
+        ? { hasCrisis: false }
+        : { hasCrisis: true, lastCrisis: history[0], crises: history },
     (error: unknown): RecentCrisis => {
       log.error({ error: String(error), userId }, 'Failed to get crisis history');
       if (recentCrisis.get(key)?.result === result) recentCrisis.delete(key);
