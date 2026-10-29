@@ -7,7 +7,8 @@
  * data. Only once it is kept is the old one forgotten, with every copy of it
  * (memory-control.ts, as the app's forget button does), so recall serves the new value
  * and never both, and a refused correction loses nothing. The old fact is the one the
- * caller's words name best; none, or two named equally well, and nothing is changed.
+ * caller's words name best among facts about the same person (fact-subject.ts); none,
+ * two named equally well, or a person that can't be read, and nothing is changed.
  *
  * Firestore: storage/memory-control-store.ts, handed in by the agent process
  * (agents/remembered-fact-store-register.ts); until it is, nothing is replaced.
@@ -24,6 +25,8 @@ import {
   type RememberedFact as ShownFact,
 } from '../recall/memory-control.js';
 import { contentWords } from '../recall/session-recall.js';
+import { personKey } from '../domain/person-key.js';
+import { relationsFrom, sameSubject, subjectOfFact, subjectOfText } from './fact-subject.js';
 import { keepForRecall, type KeepOutcome, type RememberToRecallDeps } from './remembered-facts.js';
 
 const log = createLogger({ module: 'ReplaceRemembered' });
@@ -39,6 +42,8 @@ export type ReplaceOutcome =
   | { kind: 'replaced' }
   | { kind: 'no_match' }
   | { kind: 'ambiguous' }
+  /** Whose fact it is can't be read, in the request or the fact it would replace. */
+  | { kind: 'unclear' }
   /** The new fact was not kept (why, as keepForRecall says); the old one stays. */
   | { kind: 'not_kept'; kept: KeepOutcome }
   /** The new fact is kept, but the old one could not be forgotten. */
@@ -46,13 +51,23 @@ export type ReplaceOutcome =
   | { kind: 'failed' };
 
 /**
- * The one shown fact `original` names: the most content words in common, at least two
- * (one for a one-word description) and at least half of them. A tie is 'ambiguous':
- * replacing the wrong one would lose a true memory.
+ * The one shown fact `original` names: about the same person (fact-subject.ts), then the
+ * most content words in common, at least two (one for a one-word description) and at
+ * least half of them. Shared words about someone else never count: correcting "my
+ * husband is a nurse" must not touch the caller's own job. A tie is 'ambiguous', and a
+ * request or a fact whose person can't be read is 'unclear': replacing the wrong one
+ * would lose a true memory.
  */
-function named(facts: readonly ShownFact[], original: string): ShownFact | 'ambiguous' | null {
+function named(
+  facts: readonly ShownFact[],
+  original: string
+): ShownFact | 'ambiguous' | 'unclear' | null {
   const want = contentWords(original);
   if (want.size === 0) return null;
+  const names = new Set(facts.filter((f) => f.subject !== 'you').map((f) => personKey(f.subject)));
+  const relations = relationsFrom(facts);
+  const asked = subjectOfText(original, names);
+  if (asked.kind === 'unclear') return 'unclear';
   const need = Math.max(Math.min(2, want.size), Math.ceil(want.size / 2));
   const scored = facts
     .filter((f) => !f.earlier)
@@ -61,10 +76,11 @@ function named(facts: readonly ShownFact[], original: string): ShownFact | 'ambi
       return { f, n: [...want].filter((w) => have.has(w)).length };
     })
     .filter((s) => s.n >= need)
-    .sort((a, b) => b.n - a.n);
-  if (scored.length === 0) return null;
-  if (scored.length > 1 && scored[1].n === scored[0].n) return 'ambiguous';
-  return scored[0].f;
+    .map((s) => ({ ...s, about: subjectOfFact(s.f, relations, names) }));
+  const same = scored.filter((s) => sameSubject(asked, s.about)).sort((a, b) => b.n - a.n);
+  if (same.length === 0) return scored.some((s) => s.about.kind === 'unclear') ? 'unclear' : null;
+  if (same.length > 1 && same[1].n === same[0].n) return 'ambiguous';
+  return same[0].f;
 }
 
 /** Replace the remembered fact `original` names with `updated`. Never throws. */
@@ -78,7 +94,7 @@ export async function replaceRemembered(
   try {
     const old = named(await listRemembered(userId, store), change.original);
     if (old === null) return { kind: 'no_match' };
-    if (old === 'ambiguous') return { kind: 'ambiguous' };
+    if (old === 'ambiguous' || old === 'unclear') return { kind: old };
     const fact = { fact: change.updated, category: 'correction', sessionId: change.sessionId };
     const kept = await keepForRecall(userId, fact, deps);
     if (kept.kind !== 'kept' && kept.kind !== 'already') return { kind: 'not_kept', kept };

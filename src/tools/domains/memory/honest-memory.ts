@@ -101,12 +101,15 @@ export const NO_MATCH =
   "No saved memory matched that, so nothing was changed. Don't say it was updated; if it matters, remember the new detail instead.";
 export const AMBIGUOUS =
   'More than one saved memory matched, so nothing was changed. Ask which one they mean.';
+export const UNCLEAR =
+  "It isn't clear whose detail that is, so nothing was changed. Ask whose it is.";
 const NOT_UPDATED = "It couldn't be updated for next time. Don't say it was changed; carry on.";
 
 const UPDATE_REPLY: Record<Exclude<ReplaceOutcome['kind'], 'not_kept'>, string> = {
   replaced: UPDATED,
   no_match: NO_MATCH,
   ambiguous: AMBIGUOUS,
+  unclear: UNCLEAR,
   half_done:
     'The new detail is saved, but the old one could not be cleared yet. Carry on; no need to mention it.',
   failed: NOT_UPDATED,

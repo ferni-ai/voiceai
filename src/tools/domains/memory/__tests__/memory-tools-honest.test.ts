@@ -106,7 +106,7 @@ import {
   rememberImportantFactUnifiedDef,
 } from '../tools-unified.js';
 import { updateMemoryDef } from '../tools.js';
-import { AMBIGUOUS, NO_MATCH, UPDATED } from '../honest-memory.js';
+import { AMBIGUOUS, NO_MATCH, UNCLEAR, UPDATED } from '../honest-memory.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from '../remember-results.js';
 import type { ToolDefinition } from '../../../registry/types.js';
 
@@ -214,7 +214,7 @@ describe('updateMemory', () => {
     vi.stubEnv('MEMORY_TOOLS_HONEST', 'on');
     await remember('my sister Dana lives in Denver');
     const before = new Map(fs.docs);
-    expect(await update('his dog is a beagle', 'his dog is a corgi')).toBe(NO_MATCH);
+    expect(await update('my dog is a beagle', 'my dog is a corgi')).toBe(NO_MATCH);
     expect(fs.docs).toEqual(before);
     expect(await recalled()).toEqual(['my sister Dana lives in Denver']);
   });
@@ -236,6 +236,83 @@ describe('updateMemory', () => {
     await vi.waitFor(() => expect(factDocs()).toHaveLength(1));
     expect(await update('sister lives in Denver', 'my sister Dana lives in Boston')).toBe('');
     expect(await recalled()).toEqual(['my sister Dana lives in Denver']);
+  });
+});
+
+/** A fact as the after-call extraction writes it (not one the caller asked to remember). */
+const extracted = (entityName: string, key: string, value: string) =>
+  fs.docs.set(`bogle_users/${uid}/dynamic_facts/x_${entityName}_${key}`.replace(/\s/g, '_'), {
+    entityName,
+    key,
+    value,
+    confidence: 0.9,
+    extractedAt: '2026-10-01T00:00:00.000Z',
+  });
+
+type Seed = [entity: string, key: string, value: string];
+const SAM: Seed[] = [
+  ['Sam', 'lives_in', 'Boston'],
+  ['Sam', 'relation', 'brother'],
+];
+const JOB: Seed[] = [['user', 'job', 'nurse at the hospital']];
+
+// The independent verify of #3021 (/Volumes/Work/verify/3021-probes): shared words, another person
+const WRONG_PERSON: Array<[string, Seed[], string, string]> = [
+  ["another relative's birthday", [['Dad', 'birthday', 'May 3']], "Mom's birthday is May 3", "Mom's birthday is May 5"], // prettier-ignore
+  ["a brother's city, correcting a sister's", SAM, 'my sister lives in Boston', 'my sister lives in Chicago'], // prettier-ignore
+  ["a brother's city, the sister's possessive", SAM, "my sister's city is Boston", "my sister's city is Chicago"], // prettier-ignore
+  ["the caller's job, correcting a spouse's", JOB, 'my husband is a nurse at the hospital', 'my husband is a doctor'], // prettier-ignore
+  ["the caller's allergy, correcting a child's", [['user', 'allergy', 'peanuts']], "my son's allergy is peanuts", "my son's allergy is shellfish"], // prettier-ignore
+];
+
+describe('updateMemory replaces only a fact about the same person', () => {
+  const update = async (originalFact: string, updatedFact: string) =>
+    run(updateMemoryDef, { originalFact, updatedFact, reason: 'correction' });
+  beforeEach(() => vi.stubEnv('MEMORY_TOOLS_HONEST', 'on'));
+
+  it.each(WRONG_PERSON)(
+    'refuses: %s; nothing forgotten, nothing written',
+    async (_, seeds, was, now) => {
+      seeds.forEach((f) => extracted(...f));
+      const before = new Map(fs.docs);
+      const recalledBefore = await recalled();
+      expect(await update(was, now)).not.toBe(UPDATED);
+      expect(fs.docs).toEqual(before);
+      expect(await recalled()).toEqual(recalledBefore);
+    }
+  );
+
+  it("another person's pet: nothing matched", async () => {
+    extracted('Rex', 'species', 'dog');
+    extracted('Rex', 'breed', 'beagle');
+    const before = new Map(fs.docs);
+    expect(await update('my cat is a beagle mix', 'my cat is a tabby')).toBe(NO_MATCH);
+    expect(fs.docs).toEqual(before);
+  });
+
+  it('whose it is cannot be read: unclear, nothing written', async () => {
+    extracted('Rex', 'breed', 'beagle');
+    const before = new Map(fs.docs);
+    expect(await update('his dog is a beagle', 'his dog is a corgi')).toBe(UNCLEAR);
+    expect(fs.docs).toEqual(before);
+  });
+
+  it("the right person (Sam is the brother on file): the brother's city is corrected", async () => {
+    SAM.forEach((f) => extracted(...f));
+    expect(await update('my brother lives in Boston', 'my brother lives in Chicago')).toBe(UPDATED);
+    expect((await recalled()).sort()).toEqual(['brother', 'my brother lives in Chicago']);
+  });
+
+  it("the caller's own fact: their job is corrected", async () => {
+    JOB.forEach((f) => extracted(...f));
+    expect(await update('I work as a nurse at the hospital', 'I work as a teacher')).toBe(UPDATED);
+    expect(await recalled()).toEqual(['I work as a teacher']);
+  });
+
+  it('two facts about the same person match equally: still refused', async () => {
+    await remember('my sister Dana lives in Denver');
+    await remember('my sister Mia lives in Austin');
+    expect(await update('my sister lives', 'my sister lives in Boston')).toBe(AMBIGUOUS);
   });
 });
 
