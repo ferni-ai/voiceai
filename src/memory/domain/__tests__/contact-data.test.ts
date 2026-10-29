@@ -280,6 +280,10 @@ const REFUSED = [
   'from 10/20-10/25', // two short dates in one run
   // "X at Y. Z" at the very end of the text reads as "jo at example. co".
   'Pat was at work. Busy',
+  // Spoken digits are folded, so a spoken count of 7+ number words is a dialable run.
+  // The replaced checks kept these.
+  'counted one, two, three, four, five, six, seven',
+  'one two three four five six seven eight',
 ];
 
 // Kept in a prompt, refused as a stored fact: a stored free-text value may hold at most
@@ -357,6 +361,32 @@ const MAIN_CAUGHT_STORED = [
   '555-0142',
   '5 5 5 0 1 4 2',
 ];
+
+// The date allowance keeps only real dates in two exact shapes. Each row is a near-date
+// that must still count as a dialable run.
+const NOT_DATES = [
+  '2026-99-99', // month and day out of range
+  '2026-13-01', // month 13
+  '2026-00-15', // month 0
+  '2026-12-32', // day 32
+  '1899-01-01', // year before 1900
+  '2100-01-01', // year after 2099
+  '13/01/2026', // day-first: month 13
+  '2026/10/20', // year first with slashes is not a kept shape
+];
+
+describe('the date allowance is pinned', () => {
+  it.each(NOT_DATES)('refuses %j in rendered text', (text) => {
+    expect(containsContactData(text)).toBe(true);
+    expect(containsContactData(`call ${text}`)).toBe(true);
+  });
+  it.each(['2026-10-20', '2026-1-5', '10/20/2026', '1/5/1999'])(
+    'keeps the real date %j',
+    (text) => {
+      expect(containsContactData(text)).toBe(false);
+    }
+  );
+});
 
 describe('parity: never worse than main', () => {
   it.each(MAIN_CAUGHT_RENDERED)('rendered text still refuses %j', (text) => {
