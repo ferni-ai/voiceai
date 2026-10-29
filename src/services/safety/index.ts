@@ -41,6 +41,7 @@ export type {
 // ============================================================================
 
 export {
+  CRISIS_RESOURCES as SAFETY_CRISIS_RESOURCES,
   generateCrisisResponse,
   getCrisisResources,
   getGroundingExercise,

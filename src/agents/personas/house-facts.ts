@@ -36,7 +36,9 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { houseFacts, type HouseFacts } from '../../config/house-facts.js';
+import { SAFETY_CRISIS_RESOURCES } from '../../services/safety/index.js';
 import { crisisContactLines } from '../../tools/domains/crisis/index.js';
+import { CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES } from '../../tools/domains/life-coaching-shared/index.js';
 import { WHERE_TO_ADD_NUMBER } from '../../tools/shared/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { contentOf, hasToolCall, type ReplyChunk } from './reply-chunks.js';
@@ -128,6 +130,13 @@ const FIRST_PARTY_TOOLS = new Set([
   'quickCrisisResources',
   'connectToHumanExpert',
   'evaluateHumanTransfer',
+  // Coaching tools whose only phone numbers are fixed helplines in their own text.
+  'postpartumCheckin',
+  'caregiverBurnout',
+  'respiteNeed',
+  'sobrietyCheckin',
+  'cravingSupport',
+  'groundingForTrauma',
 ]);
 /** A tool result from a tool that is not on the list: web pages, inbound mail, invites, anything new. */
 const isUntrusted = (item: GroundingItem): boolean =>
@@ -143,16 +152,27 @@ export interface HouseFactsWho {
 }
 
 let crisisLines: Addresses | undefined;
+/** Every number, text code and site in the helpline tables the app carries (three of them). */
+function helplineLines(): string[] {
+  const fields = (r: { phone?: string; text?: string; chat?: string; website?: string }) =>
+    [r.phone, r.text, r.chat, r.website].filter((v): v is string => Boolean(v));
+  return [
+    ...crisisContactLines(), // tools/domains/crisis: what provideCrisisResources hands out
+    ...Object.values(SAFETY_CRISIS_RESOURCES).flat().flatMap(fields), // services/safety/crisis-response
+    ...Object.values(COACHING_CRISIS_RESOURCES).flatMap(fields), // life-coaching-shared/safety-guards
+  ];
+}
+
 /**
- * The house facts plus every crisis and helpline number out of the crisis data
- * (tools/domains/crisis/crisis-resources.ts): a crisis resource is never blocked, whatever
- * the context holds, and a hotline added to that data is covered without touching this file.
+ * The house facts plus every crisis and helpline number out of those tables: a crisis
+ * resource is never blocked, whatever the context holds, and a hotline added to any of them
+ * is covered without touching this file.
  */
 function houseAddresses(facts: HouseFacts): Addresses {
   const known = factAddresses(facts);
   if (!crisisLines) {
     crisisLines = noAddresses();
-    for (const line of crisisContactLines()) collectAddresses(line, crisisLines);
+    for (const line of helplineLines()) collectAddresses(line, crisisLines);
   }
   for (const key of ['hosts', 'emails', 'numbers'] as const) {
     for (const value of crisisLines[key]) known[key].add(value);

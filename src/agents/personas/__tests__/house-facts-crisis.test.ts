@@ -8,9 +8,12 @@ import { initializeLogger, llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { describe, expect, it } from 'vitest';
 
+import { generateCrisisResponse } from '../../../services/safety/crisis-response.js';
+import { SAFETY_CRISIS_RESOURCES } from '../../../services/safety/index.js';
 import { definitions as crisisTools } from '../../../tools/domains/crisis/index.js';
 import { CRISIS_RESOURCES } from '../../../tools/domains/crisis/crisis-resources.js';
 import { definitions as transferTools } from '../../../tools/domains/human-transfer/index.js';
+import { CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES } from '../../../tools/domains/life-coaching-shared/index.js';
 import type { ToolContext } from '../../../tools/registry/types.js';
 import { withHouseFactsGuard } from '../house-facts.js';
 
@@ -108,5 +111,75 @@ describe('the real tool output reads back whole', () => {
     const lines = await toolLines(transferTools, 'quickCrisisResources', { situation });
     expect(lines.length).toBeGreaterThan(0);
     for (const l of lines) expect(await spoken(`${l}.`)).toBe(`${l}.`);
+  });
+});
+
+type Helpline = { phone?: string; text?: string; chat?: string; website?: string };
+/** One spoken line per way to reach a helpline in a table: call, text, or visit. */
+const reachLines = (r: Helpline): string[] => [
+  ...(r.phone ? [`You can call ${r.phone}.`] : []),
+  ...(r.text ? [`You can text ${r.text.replace(/^Text /u, '')}.`] : []),
+  ...(r.chat ? [`There is a chat at ${r.chat}.`] : []),
+  ...(r.website ? [`Their site is ${r.website}.`] : []),
+];
+
+describe('every helpline table the app carries passes, not only the tool data', () => {
+  const safety = Object.entries(SAFETY_CRISIS_RESOURCES).flatMap(([type, list]) =>
+    list.flatMap((r) => reachLines(r).map((line) => [`${type}: ${r.name}`, line] as const))
+  );
+  const coaching = Object.entries(COACHING_CRISIS_RESOURCES).flatMap(([key, r]) =>
+    reachLines(r).map((line) => [`${key}: ${r.name}`, line] as const)
+  );
+
+  it('has lines to iterate in both tables', () => {
+    expect(safety.length).toBeGreaterThan(20);
+    expect(coaching.length).toBeGreaterThan(8);
+  });
+
+  it.each(safety)('services/safety/crisis-response, %s', async (_name, line) => {
+    expect(await spoken(line)).toBe(line);
+  });
+
+  it.each(coaching)('life-coaching-shared/safety-guards, %s', async (_name, line) => {
+    expect(await spoken(line)).toBe(line);
+  });
+
+  it.each(Object.keys(SAFETY_CRISIS_RESOURCES))(
+    'generateCrisisResponse, %s: the spoken response reads out whole',
+    async (type) => {
+      const { fullResponse } = generateCrisisResponse({
+        signal: {
+          type: type as keyof typeof SAFETY_CRISIS_RESOURCES,
+          severity: 'critical',
+          confidence: 1,
+          matchedPatterns: [],
+          contextualFactors: [],
+        },
+        personaId: 'ferni',
+        timeOfDay: 'night',
+        isFirstMention: true,
+      });
+      expect(fullResponse).toMatch(/\d/);
+      expect(await spoken(fullResponse)).toBe(fullResponse);
+    }
+  );
+});
+
+describe('coaching tools that print a helpline in their own text', () => {
+  const output = (name: string, text: string) => [
+    llm.FunctionCallOutput.create({ callId: 'c', name, output: text, isError: false }),
+  ];
+
+  it.each([
+    ['postpartumCheckin', 'Postpartum Support International: 1-800-944-4773 (text also)'],
+    ['caregiverBurnout', 'Caregiver Action Network: 1-855-227-3640'],
+  ])('%s: its number reads out', async (toolName, text) => {
+    const line = `${text.split(': ')[1]?.replace(/ \(.*/u, '')}.`;
+    expect(await spoken(`Call ${line}`, output(toolName, text))).toBe(`Call ${line}`);
+  });
+
+  it('the same number from a web search is not vouched for', async () => {
+    const items = output('searchWeb', 'Caregiver Action Network: 1-855-227-3640');
+    expect(await spoken('Call 1-855-227-3640.', items)).toContain("can't vouch");
   });
 });
