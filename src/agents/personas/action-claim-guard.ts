@@ -68,11 +68,11 @@ import {
   askedCallLine,
   askedCallLookup,
   callOutcomeUnheard,
-  claimsFromBefore,
   unheardLine,
   type AskedCallStatus,
 } from './call-narration.js';
-import { kindsRunThisTurn, offerFor, promisedAction, reportsBack } from './action-promises.js';
+import { kindsRunThisTurn, offerFor, promisedAction, groundedClaim } from './action-promises.js';
+import { claimEvidence } from './claim-evidence.js';
 import { firestoreCallRecords, type CallRecords } from '../../services/outreach/call-status.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 
@@ -212,7 +212,7 @@ export async function withActionClaimCheck<T>(
   const words = lastCallerWords(chatCtx);
   const calls = who.calls ?? firestoreCallRecords;
   const asked = actionClaimGuardEnabled(env)
-    ? askedCallLookup(words, who.userId, calls)
+    ? askedCallLookup(words, who.userId, calls, flagOn('GROUNDED_CLAIMS', env))
     : undefined;
   const checked = await checkActionClaims(reply, chatCtx, tools, env, asked, firstWords);
   return withCallerVoiceGuard(checked, env, who.personaId ?? 'ferni');
@@ -245,7 +245,11 @@ async function checkActionClaims<T>(
   const isEmergency = emergencyCheck(chatCtx);
   // A story of how a call went that no result came back from (call-narration.ts).
   const callRan = [done, awaiting, failed, held].some((kinds) => kinds.has('call'));
-  const unheard = callOutcomeUnheard(chatCtx, callRan, await askedLookup, grounded);
+  const asked = await askedLookup;
+  const evidence = grounded ? claimEvidence(chatCtx, asked) : undefined; // who each was for
+  // GROUNDED_CLAIMS: a held call or text claim with no run of its tool, for those it names.
+  const unbacked = evidence && hold ? evidence.unbacked : () => false;
+  const unheard = callOutcomeUnheard(chatCtx, callRan, asked, evidence);
   /** Why a claim of this kind is false, or null when it may stand. */
   const missing = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     !open.has(kind)
@@ -263,7 +267,6 @@ async function checkActionClaims<T>(
                 : null;
   // A tool that ran since the caller last spoke already answers a promise of its kind.
   const ranThisTurn = kindsRunThisTurn(chatCtx);
-  const before: Kinds = claimsFromBefore(chatCtx); // a call result in the conversation, or asked
   /** Why a promise ("I'll text him") is not kept yet, or null when it may stand (action-promises.ts). */
   const unkept = (kind: ClaimKind, calling: Kinds): MissReason | null =>
     calling.has(kind) || ranThisTurn.has(kind) || (awaiting.has(kind) && !yesTurn)
@@ -274,11 +277,6 @@ async function checkActionClaims<T>(
     !open.has(kind) || calling.has(kind) || done.has(kind)
       ? null
       : (missing(kind, calling) ?? 'uncalled');
-  /** GROUNDED_CLAIMS: a held call or message claim with no run of its tool behind it. */
-  const unbacked = (kind: ClaimKind, calling: Kinds): MissReason | null => {
-    const ran = [calling, ranThisTurn, done, awaiting, before].some((kinds) => kinds.has(kind));
-    return grounded && hold && (kind === 'call' || kind === 'send') && !ran ? 'uncalled' : null;
-  };
   /**
    * What one sentence claims or promises, and why that is false (reason null: it may stand).
    * An emergency claim is judged first, so "I'll call 911 for you" never becomes an offer.
@@ -288,7 +286,7 @@ async function checkActionClaims<T>(
       return { kind: 'call', reason: 'emergency', claimed: 'call', promised: null } as const;
     // On the yes to a call, "I'm on it" says the call is under way too.
     const onIt = ahead('call') && bareOnIt(text) ? 'call' : null;
-    const claimed = claimedAction(text) ?? reportsBack(text, env) ?? onIt;
+    const claimed = claimedAction(text) ?? groundedClaim(text, env) ?? onIt;
     // "I'll text him then": a promise only a tool call in this reply keeps (action-promises.ts).
     const promised = hold ? promisedAction(text, env) : null;
     // "I booked it.": only with its tool open and none run, in this reply or earlier on the call.
@@ -298,7 +296,7 @@ async function checkActionClaims<T>(
     const reason = !kind
       ? null
       : claimed
-        ? (missing(kind, calling) ?? unbacked(kind, calling))
+        ? (missing(kind, calling) ?? (unbacked(text, kind, calling) ? 'uncalled' : null))
         : past
           ? unrun(past, calling)
           : unkept(kind, calling);

@@ -25,6 +25,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { triggerVoiceCallback } from '../../tools/domains/simple-utilities/voice-callbacks.js';
 import {
   CALLER_TEXT_GUARD,
+  callResultTag,
   callerText,
   reportedFromCall,
   screenedCallerText,
@@ -64,6 +65,7 @@ export function liveReportMessage(contactName: string, outcome: CallOutcome): st
   return [
     `the call you placed for them to ${name} just ended.`,
     CALLER_TEXT_GUARD,
+    ...callResultTag(name, outcome.status === 'completed'),
     ...reportedFromCall(name, lines),
   ].join('\n');
 }

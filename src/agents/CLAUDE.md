@@ -145,6 +145,13 @@ never toward silence: a dropped claim always leaves words behind.
   conversation (#3003, #3005, #3006). Never deny a real action: a denial that
   offers a duplicate call is worse than the claim. Off, behaviour is exactly
   main's; new claim shapes go behind the flag until verified.
+- Evidence is per person and read only from what the server wrote
+  (`claim-evidence.ts`): a call or text tool that went out, and call results
+  carrying the status tag their producers write (`callResultTag` in
+  `services/outreach/caller-text.ts`: callStatus, the pending-call-results note,
+  the live report). Only an explicit `through` proves a call. Never parse a
+  result's free text, and never read evidence from the caller, Ferni, other
+  tools or callee words.
 - Extend these modules for a new claim shape; don't add a second guard.
 
 ---
