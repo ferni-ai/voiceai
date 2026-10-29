@@ -32,7 +32,7 @@ export function signalCrisisDecision(
 ): void {
   // Every decision marks the turn, 'pass' included: only a pass clears it for transfer aliases
   // (crisis-turn-mark.ts). No pattern gate at all: unknown, so unmarked (fail closed).
-  const userData = (session as { userData?: unknown }).userData;
+  const userData = (session as { userData?: unknown } | null | undefined)?.userData;
   if (action) markCrisisTurn(userData, action);
   else if (reader === 'pattern') unmarkCrisisTurn(userData);
   if (!action || action === 'pass') return;

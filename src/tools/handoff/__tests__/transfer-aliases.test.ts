@@ -15,6 +15,8 @@ import { withTurnReminder } from '../../../agents/personas/turn-request.js';
 import { signalCrisisDecision } from '../../../agents/safety/crisis-gate-signal.js';
 import { crisisGuidedTurn, unmarkCrisisTurn } from '../../../services/safety/crisis-turn-mark.js';
 import { aliasesInTransfer, HEARD_IN_A_TRANSFER } from '../transfer-aliases.js';
+import { createSessionStateManager } from '../../../agents/session/session-state.js';
+import { createUserDataProxy } from '../../../agents/session/user-data-proxy.js';
 import { handoffConsent, holdUnaskedHandoff } from '../handoff-consent.js';
 import { heardTeammateNote, teammateHeardAs } from '../teammate-names.js';
 
@@ -214,6 +216,26 @@ describe('never consent from an alias on a call with crisis handling', () => {
     expect(crisisGuidedTurn(userData)).toBe(true);
     signalCrisisDecision(session, 'pass'); // a later, calm turn
     expect(crisisGuidedTurn(userData)).toBe(true);
+  });
+
+  it('a turn with no live gate fails closed on the live userData proxy, not only a plain object', () => {
+    // The live userData (user-data-proxy.ts) has no deleteProperty trap: a `delete` there kept the
+    // last turn's pass, so a no-gate turn read as passed (Opus verify of #2015).
+    const manager = createSessionStateManager('alias-proxy', 'ferni', {});
+    const userData = createUserDataProxy(manager, {}) as unknown as Record<string, unknown>;
+    const session = { userData, emit: () => true };
+    signalCrisisDecision(session, 'pass');
+    expect(crisisGuidedTurn(userData)).toBe(false);
+    signalCrisisDecision(session, undefined, 'pattern'); // the next turn: no live gate
+    expect(crisisGuidedTurn(userData)).toBe(true);
+  });
+
+  it("the classifier clearing a turn leaves the pattern gate's pass standing", () => {
+    const userData: Record<string, unknown> = {};
+    const session = { userData, emit: () => true };
+    signalCrisisDecision(session, 'pass', 'pattern');
+    signalCrisisDecision(session, undefined, 'classifier'); // no crisis: no decision to add
+    expect(crisisGuidedTurn(userData)).toBe(false);
   });
 
   it('lets "can I talk to 9?" through to Nayan on a call the gate passed', () => {

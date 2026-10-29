@@ -27,10 +27,14 @@ export function markCrisisTurn(userData: unknown, action: string): void {
   if (action !== 'pass') crisisCalls.add(data);
 }
 
-/** No live gate decided this turn (CRISIS_GUARD_MODE off or shadow): unknown. */
+/**
+ * No live gate decided this turn (CRISIS_GUARD_MODE off or shadow): unknown. Set, never
+ * `delete`d: the live userData is a proxy with no deleteProperty trap (user-data-proxy.ts), so
+ * a delete left the last turn's pass in place and aliases failed open (Opus verify, #2015).
+ */
 export function unmarkCrisisTurn(userData: unknown): void {
   const data = asObject(userData);
-  if (data) delete data[PASSED_TURN];
+  if (data) data[PASSED_TURN] = false;
 }
 
 /**
