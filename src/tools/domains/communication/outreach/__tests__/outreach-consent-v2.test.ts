@@ -1014,3 +1014,242 @@ describe("Ferni's turn: read-back, another question, or none", () => {
     expect(sends).toHaveLength(0);
   });
 });
+
+/** Round 10 (verifier round 9 on 1c0be918e): the same path the verifier drove, the classifier
+ * given its full 1.5 s and the real gate. Ferni's "No, I haven't." asks nothing (no_question). */
+describe('round 10: a status question is neutral only when it is nothing but the question', () => {
+  const READ = "I'm ready to call Dad at 555-123-0002, right now. Should I go ahead and call him?";
+  const RE = 'Okay. Should I go ahead and call him?';
+  beforeEach(() => setReadBackAsk(alwaysReadBack, 1500));
+
+  const NOT_NEUTRAL = [
+    'Did you text him?',
+    'Did you call him on WhatsApp?',
+    'Did you send him the message?',
+    'Did you call him at home?',
+    'Have you called his house?',
+    'Did you call him at his place?',
+    'Did you reach him at the hospital?',
+    'Did you call him after his nap?',
+    'Did you call him from my number?',
+    // the verifier's round 9 catches, which must keep asking once
+    'Did you call his cell?',
+    'Did you FaceTime him?',
+    'Did you leave him a voicemail?',
+    'Have you dialed the landline?',
+    'Did you call Priya?',
+    // no question mark (STT): still not the bare question
+    'Did you call him at home',
+  ];
+  const YESES = ["No, I haven't.", 'Okay, do it.', 'Go ahead.', 'Yes.'];
+
+  it('anything more than "did you call him (yet)?" is a question: the next yes never places', async () => {
+    setConsentAsk(alwaysYes);
+    for (const status of NOT_NEUTRAL) {
+      for (const yes of YESES.slice(1)) {
+        const call = liveCall();
+        await call.call('c1');
+        call.ferni(READ);
+        call.owner(status);
+        call.ferni("No, I haven't. I'm waiting on your go-ahead.");
+        call.owner(yes);
+        expect(await call.call('c2'), `${status} / ${yes}`).toMatch(
+          /Just to be sure: call Dad now\?|I won't call Dad/
+        );
+        expect(sends, `${status} / ${yes}`).toHaveLength(0);
+      }
+    }
+  });
+
+  it('...and Ferni asking once, then a yes, places (the question does not close it)', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    call.owner('Did you call him at home?');
+    call.ferni("No, I haven't.");
+    call.owner('Go ahead.');
+    expect(await call.call('c2')).toContain('Just to be sure: call Dad now?');
+    call.ferni('Just to be sure: call Dad now?');
+    call.owner('Yes.');
+    await call.call('c3');
+    expect(sends).toHaveLength(1);
+  });
+
+  it('the bare question stays neutral: the next yes places', async () => {
+    setConsentAsk(alwaysYes);
+    const neutral = [
+      'Did you call my dad?',
+      'Did you call him this evening?',
+      'Did you call him?',
+      'Have you called him yet?',
+      'Did you already call my dad today?',
+      'Did you reach him this morning?',
+      'Did you get a hold of him yet?',
+      'Have you called Dad?',
+    ];
+    for (const status of neutral) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(status);
+      call.ferni("Not yet, I'm waiting on your go-ahead.");
+      call.owner('Yes.');
+      await call.call('c2');
+      expect(sends, status).toHaveLength(1);
+      sends.length = 0;
+    }
+  });
+
+  it('a status question after a cancel never asks for the call again (Ferni may not re-read)', async () => {
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    call.owner('No.');
+    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+    call.owner('Did you call him?');
+    expect(await call.call('c3')).toContain("don't read it back again");
+    expect(sends).toHaveLength(0);
+  });
+
+  it('another line after a cancel, with no no in it, still blocks a re-read from reopening it', async () => {
+    setConsentAsk(alwaysYes);
+    for (const line of ['Try his cell.', 'Use his work line.', 'The other number, please.']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner('No.');
+      expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+      call.owner(line);
+      call.ferni(RE);
+      call.owner('Yes.');
+      await call.call('c3');
+      expect(sends, line).toHaveLength(0);
+    }
+  });
+
+  it('words said before the cancel count too: another line, asked once and not settled, then a re-read', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    call.owner('Try his cell.');
+    expect(await call.call('c2')).toContain('Just to be sure: call Dad now?');
+    call.ferni('Just to be sure: call Dad now?');
+    call.owner('Hmm.');
+    expect(await call.call('c3')).toContain("Okay, I won't call Dad.");
+    call.ferni(RE);
+    call.owner('Yes.');
+    await call.call('c4');
+    expect(sends).toHaveLength(0);
+  });
+
+  it('a deferral said before the cancel keeps a later re-read from reopening it', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    call.owner('No. Maybe later.');
+    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+    call.ferni(RE);
+    call.owner('Yes.');
+    await call.call('c3');
+    expect(sends).toHaveLength(0);
+  });
+});
+
+describe('round 10: a no that agrees in the same turn asks again; a no that says more stays a no', () => {
+  const READ = "I'm ready to call Dad at 555-123-0002, right now. Should I go ahead and call him?";
+  const RE = 'Okay. Should I go ahead and call him?';
+  beforeEach(() => setReadBackAsk(alwaysReadBack, 1500));
+
+  const AGREES = [
+    'No no no, yes.',
+    'No problem, go ahead.',
+    'No, sorry, yes.',
+    'No, I mean yes.',
+    "No, it's fine, go ahead.",
+    'Nah, go for it.',
+  ];
+  it('after Ferni re-reads it, "Yes." places (as on main)', async () => {
+    setConsentAsk(alwaysYes);
+    for (const turn of AGREES) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(turn);
+      call.ferni(RE);
+      call.owner('Yes.');
+      await call.call('c2');
+      expect(sends, turn).toHaveLength(1);
+      sends.length = 0;
+    }
+  });
+
+  it('...and when the model asks for the call again, the read-back is allowed', async () => {
+    for (const turn of AGREES) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(turn);
+      expect(await call.call('c2'), turn).toContain('NOT SENT YET. Read this');
+    }
+  });
+
+  it('it is still not a yes: nothing places without Ferni re-reading it', async () => {
+    setConsentAsk(alwaysYes);
+    for (const turn of AGREES) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(turn);
+      call.owner('Yes.');
+      expect(await call.call('c2'), turn).not.toContain('Calling Dad');
+      expect(sends, turn).toHaveLength(0);
+    }
+  });
+
+  it('"No, wait." / "No, hold on." / "No, not him." / "No, don\'t call him." stay reopenable', async () => {
+    setConsentAsk(alwaysYes);
+    for (const turn of ['No, wait.', 'No, hold on.', "No, don't call him.", 'No, not him.']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(turn);
+      expect(await call.call('c2'), turn).toContain("Okay, I won't call Dad.");
+      call.ferni(RE);
+      call.owner('Yes.');
+      await call.call('c3');
+      expect(sends, turn).toHaveLength(1);
+      sends.length = 0;
+    }
+  });
+
+  it('"No, don\'t call him." never places without a fresh read-back, nor on the model\'s say-so', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    call.owner("No, don't call him.");
+    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+    expect(await call.call('c3')).toContain("don't read it back again");
+    call.owner('Yes.');
+    expect(await call.call('c4')).toContain("don't read it back again");
+    expect(sends).toHaveLength(0);
+  });
+
+  it('a no that says anything else stays final: a read-back does not reopen it', async () => {
+    setConsentAsk(alwaysYes);
+    for (const turn of ['No, call my sister.', 'No, tomorrow, yes.', 'No, yes, but later.']) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(turn);
+      await call.call('c2');
+      call.ferni(RE);
+      call.owner('Yes.');
+      await call.call('c3');
+      expect(sends, turn).toHaveLength(0);
+    }
+  });
+});

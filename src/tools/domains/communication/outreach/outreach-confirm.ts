@@ -103,6 +103,8 @@ export interface PendingAction {
   args: Record<string, unknown>;
   callId: string;
   createdSeq: number;
+  /** Where the owner's words on this request begin, kept when an ask-once moves createdSeq on. */
+  startSeq?: number;
   expiresAt: number;
   /** OUTREACH_SERVER_CONFIRM: who it reaches and how to send it as read back (outreach-confirm-family.ts). */
   server?: Kin & { readBack: string; send: () => Promise<unknown> };

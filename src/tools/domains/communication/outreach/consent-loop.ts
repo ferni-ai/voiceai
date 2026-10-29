@@ -88,10 +88,8 @@ export function cancel(
 ): string {
   dropConfirmThread(pending);
   entry.pending = undefined;
-  // A plain no (or a second unclear) may be reopened by a fresh read-back; a deferral or a
-  // redirect may not: "Later." then "Should I go ahead and call?" then "Yes." isn't a yes to now.
-  const again = reopenable(pending, entry.events);
-  entry.closed = again ? { action: pending, seq: sinceSeq, at: Date.now() } : undefined;
+  // A fresh read-back may reopen it, unless the owner deferred or redirected (reopenClosed).
+  entry.closed = { action: pending, seq: sinceSeq, at: Date.now() };
   const key = keyOf(pending);
   const asks = (entry.asks ??= new Map<string, AskRecord>());
   asks.set(key, { previews: asks.get(key)?.previews ?? 1, at: Date.now(), closedSeq: sinceSeq });
@@ -117,12 +115,18 @@ export async function reopenClosed(
   );
   const fresh = reads.filter((e) => ferniTurn(closed.action, e.text) === 'readback').pop();
   if (!fresh) return;
-  // The owner's words since the cancel count too: "Call my sister instead." then a re-read of Dad.
-  if (!reopenable(closed.action, entry.events, closed.seq, fresh.seq)) {
+  // Every owner word counts, before the cancel and since: "Later." then "Should I go ahead and
+  // call?" then "Yes." isn't a yes to now, nor "Call my sister instead." then a re-read of Dad.
+  if (!reopenable(closed.action, entry.events, fresh.seq)) {
     entry.closed = undefined;
     return;
   }
-  Object.assign(closed.action, { createdSeq: fresh.seq - 1, reopened: true, asked: false });
+  Object.assign(closed.action, {
+    createdSeq: fresh.seq - 1,
+    startSeq: fresh.seq - 1,
+    reopened: true,
+    asked: false,
+  });
   closed.action.expiresAt = Date.now() + windowMs;
   [entry.pending, entry.closed] = [closed.action, undefined];
   log.info({ toolId: closed.action.toolId }, 'OUTREACH_CONFIRM: read back afresh after a cancel');
@@ -139,7 +143,9 @@ export function unconfirmedReply(
   if (!next.same || state === 'void' || state === 'confirmed') return undefined;
   if (state === 'declined' || (state === 'unclear' && pending.asked))
     return cancel(entry, pending, state);
-  // Its next answer is to what Ferni says now, so judge from here.
+  // Its next answer is to what Ferni says now, so judge from here (the earlier words still count
+  // for reopening it, see reopenable).
+  pending.startSeq ??= pending.createdSeq;
   Object.assign(pending, {
     ...{ callId: next.callId, createdSeq: entry.seq, expiresAt: next.expiresAt },
     reopened: false, // the window now waits for this reply to reach the model

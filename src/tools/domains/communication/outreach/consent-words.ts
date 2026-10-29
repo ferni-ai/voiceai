@@ -65,6 +65,13 @@ function allowed(target: readonly string[], owner: readonly string[], call: bool
   ];
 }
 
+/** The reply's words, lower-case, apostrophes dropped; digits kept (so "555-0199" is never plain). */
+const tokens = (text: string): string[] =>
+  text
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .match(/[a-z0-9]+/g) ?? [];
+
 /**
  * Whether the reply is a plain yes: wholly allow-listed phrases, at least one of them agreement,
  * no "?". Digits are kept, so "go ahead and call 555-0199" is not plain.
@@ -76,11 +83,7 @@ export function isClearYes(
   call = false
 ): boolean {
   if (text.includes('?')) return false;
-  const said =
-    text
-      .toLowerCase()
-      .replace(/['’]/g, '')
-      .match(/[a-z0-9]+/g) ?? [];
+  const said = tokens(text);
   // No name but the person read back after a "call", fillers or not: "go ahead and call, um, Fred".
   const named = new Set([...FERNI, ...owner]);
   if (said.some((w, i) => named.has(w) && said.slice(0, i).includes('call'))) return false;
@@ -136,4 +139,74 @@ export function isPlainNo(text: string): boolean {
   const said = words(text);
   const at = said.findIndex((w) => !OPENER_FILLERS.has(w));
   return at >= 0 && NO_OPENERS.some((p) => p.every((part, j) => said[at + j] === part));
+}
+
+// Words that may sit between a no and the agreement that takes it back: "No no no, yes.",
+// "No problem, go ahead.", "No, sorry, yes.", "No, I mean yes.", "No, it's fine, go ahead."
+const TAKES_BACK = new Set(
+  words('no nope nah problem sorry i mean meant its fine actually wait oh um uh well').concat(FERNI)
+);
+
+/**
+ * Whether a reply that opens with a no goes on to agree in the same turn: a no, then only
+ * take-back words, then a plain yes (the same allow-list as isClearYes). "No, don't call him." and
+ * "No, wait." are not: any other word keeps it a no.
+ */
+export function agreesAfterNo(
+  text: string,
+  target: readonly string[] = [],
+  owner: readonly string[] = [],
+  call = false
+): boolean {
+  if (!isPlainNo(text)) return false;
+  const said = tokens(text);
+  const from = said.findIndex((w) => !TAKES_BACK.has(w));
+  return from > 0 && isClearYes(said.slice(from).join(' '), target, owner, call);
+}
+
+/**
+ * Whether the whole turn is a neutral status question, as an allow-list like isClearYes: each
+ * sentence is exactly "did/have you" + call/reach/get hold of + the person read back (a pronoun,
+ * the name, or "my" + the relation) + optional yet/already/today/yesterday/this morning/this
+ * evening. Any other word (a channel, a place, a line, a time clause) makes it a question.
+ * `anyone`: the same shape about whoever ("Did you call my dad?" with Sam read back).
+ */
+export function isStatusQuestion(
+  text: string,
+  target: readonly string[] = [],
+  call = false,
+  anyone = false
+): boolean {
+  if (!call) return false;
+  const people = target.filter((w) => !STOP.has(w));
+  const pronoun = pronounOf(target);
+  const objects = anyone
+    ? ['him', 'her', 'them', 'my *', '*']
+    : [...(pronoun ? [pronoun] : ['him', 'her', 'them']), ...people.flatMap((w) => [w, `my ${w}`])];
+  const slots: string[][] = [
+    ['did you', 'have you'],
+    ['', 'already'],
+    'call|called|reach|reached|get a hold of|got a hold of|get ahold of|got ahold of'.split('|'),
+    objects,
+    ['', 'yet', 'already', 'today', 'yesterday', 'this morning', 'this evening'],
+  ];
+  const sentences = text.split(/[.!?]+/).filter((s) => tokens(s).length > 0);
+  return sentences.length > 0 && sentences.every((s) => inSlots(tokens(s), slots));
+}
+
+/** Whether the words are exactly one phrase from each slot, in order ("" skips a slot, "*" is any one word, never a number). */
+function inSlots(said: string[], slots: string[][]): boolean {
+  let at = [0];
+  for (const slot of slots) {
+    at = at.flatMap((i) =>
+      slot.flatMap((p) => {
+        const parts = p ? p.split(' ') : [];
+        const fits = parts.every((w, j) =>
+          w === '*' ? /^[a-z]+$/.test(said[i + j] ?? '') : said[i + j] === w
+        );
+        return fits ? [i + parts.length] : [];
+      })
+    );
+  }
+  return at.includes(said.length);
 }
