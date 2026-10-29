@@ -7,19 +7,27 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
 import { classify, loadPolicy } from '../autonomy-lanes.js';
-import { builtInNames, crisisSymbols, symbolsPath } from '../crisis-symbols.js';
+import {
+  builtInNames,
+  crisisSymbols,
+  droppedFromScreen,
+  ownDeclarations,
+  symbolsPath,
+  type CrisisSymbols,
+} from '../crisis-symbols.js';
 
 const ROOT = join(__dirname, '../../..');
 const PERSONA = 'src/personas/bundles/x/content.ts';
+const committed = JSON.parse(readFileSync(symbolsPath(), 'utf8')) as CrisisSymbols;
 // Derived once, at collection: it parses every source file (about 2 s).
-const derived = crisisSymbols(ROOT);
+const derived = crisisSymbols(ROOT, committed.previouslyScreened);
 
 describe('crisis symbols', () => {
   it("crisisSymbols matches the crisis modules' exports", () => {
     expect(derived.exported).toContain('scoreCrisisLanguage');
     expect(derived.exported).not.toContain('default');
     // On failure: node --experimental-strip-types scripts/ci/crisis-symbols.ts --write
-    expect(JSON.parse(readFileSync(symbolsPath(), 'utf8'))).toEqual(derived);
+    expect(committed).toEqual(derived);
     expect(loadPolicy().lanes.crisis.symbols).toEqual(derived.screened);
   });
 
@@ -42,6 +50,45 @@ describe('crisis symbols', () => {
     expect(classify([PERSONA], [line], 'ferni-loop[bot]', loadPolicy())).toEqual([]);
   });
 
+  it('a crisis symbol cannot drop out of the screen without a policy entry', () => {
+    const { unscreened } = loadPolicy().lanes.crisis;
+    expect(droppedFromScreen(committed, unscreened)).toEqual([]);
+    // The snapshot only grows: a regeneration keeps every name screened before.
+    expect(committed.previouslyScreened).toEqual(expect.arrayContaining(committed.screened));
+    expect(crisisSymbols(ROOT, ['zzzOnceScreened']).previouslyScreened).toContain(
+      'zzzOnceScreened'
+    );
+    // A namesake declared elsewhere would drop scoreCrisisLanguage from the screen:
+    const unscreenedNow = {
+      ...derived,
+      screened: derived.screened.filter((n) => n !== 'scoreCrisisLanguage'),
+    };
+    expect(droppedFromScreen(unscreenedNow, unscreened)).toEqual(['scoreCrisisLanguage']);
+    expect(droppedFromScreen(unscreenedNow, ['scoreCrisisLanguage'])).toEqual([]);
+    // A name no longer exported at all has left with its crisis module edit.
+    const gone = {
+      ...unscreenedNow,
+      exported: unscreenedNow.exported.filter((n) => n !== 'scoreCrisisLanguage'),
+    };
+    expect(droppedFromScreen(gone, unscreened)).toEqual([]);
+  });
+
+  it('only real declarations elsewhere make a crisis name ambiguous', () => {
+    const file = 'src/agents/processors/turn-processor/index.ts';
+    const text = [
+      "export { addSafetyNote } from './safety-note.js';",
+      "export * from './turn-crisis.js';",
+      "import { detectCrisis as detect } from '../../../services/safety/index.js';",
+      'export function detectCrisis(t: string) { return detect(t); }',
+      "import { helper } from './helper.js';",
+      'export { helper };',
+      'const own = 1;',
+      'export { own as ownName };',
+      'export function plainFn() {}',
+    ].join('\n');
+    expect(ownDeclarations(file, text).sort()).toEqual(['ownName', 'plainFn']);
+  });
+
   it('crisis-critical names stay screened, colliding ones through alwaysScreen', () => {
     const { alwaysScreen } = loadPolicy().lanes.crisis;
     for (const name of [
@@ -53,7 +100,10 @@ describe('crisis symbols', () => {
     ]) {
       expect(derived.screened).toContain(name);
     }
-    // These two are also exported outside the crisis paths (a barrel, a namesake).
-    expect(alwaysScreen).toEqual(['addSafetyNote', 'detectCrisis']);
+    // Reviewed: crisis-critical names that collide, or might, with exports elsewhere.
+    for (const name of alwaysScreen) {
+      expect(derived.exported).toContain(name);
+      expect(derived.screened).toContain(name);
+    }
   });
 });

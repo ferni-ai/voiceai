@@ -19,6 +19,11 @@
  *   ~/.claude/hooks/pdlc/verify_arm_gate.py minus the crisis terms). Reported only: the arm
  *   gate already requires an independent verifier PASS there.
  *
+ * The loop's content screen is lexical: a cheap first filter, not a proof. The behavioural
+ * backstop is Phase 3's frozen crisis suites, which run on every loop PR and reroute it to
+ * the crisis lane on any change in outcome; a TypeScript-resolver symbol check is a Phase 3
+ * candidate.
+ *
  * Globs: `**` crosses directories, `*` and `?` stay in one, a leading `!` excludes.
  * Changed lines are the `+`/`-` lines of the diff against the merge base, so a removed
  * line counts as much as an added one.
@@ -41,11 +46,15 @@ export type Policy = {
     crisis: {
       paths: string[];
       changedLinePatterns: string[];
+      /** Matched against a changed line joined up (see joinLine): 988 split across strings. */
+      joinedLinePatterns: string[];
       importFallbackPattern: string;
-      /** Generated JSON next to the policy: `exported` crisis-module names and the `screened` ones. */
+      /** Generated JSON beside the policy: crisis-module names, `exported` and `screened`. */
       symbolsFile: string;
       /** Exported names screened even though a non-crisis module exports them too. */
       alwaysScreen: string[];
+      /** Reviewed names allowed to leave the screen after being screened. */
+      unscreened: string[];
       /** The screened names, filled by loadPolicy from symbolsFile. */
       symbols?: string[];
     };
@@ -207,6 +216,7 @@ export function classify(
   const loop = new Set(policy.loopAuthors.map(normalizeLogin));
   const isLoop = [contributors].flat().some((login) => loop.has(normalizeLogin(login)));
   const crisisLine = crisis.changedLinePatterns.map((p) => new RegExp(p, 'i'));
+  const joined = crisis.joinedLinePatterns.map((p) => new RegExp(p));
   const symbols = crisis.symbols ?? [];
   if (symbols.length) crisisLine.push(wholeWords(symbols));
   const fallback = new RegExp(crisis.importFallbackPattern, 'i');
@@ -220,6 +230,7 @@ export function classify(
     files.some((f) => inPaths(f, crisis.paths)) ||
     (isLoop && binaryFiles.length > 0) ||
     (isLoop && changedLines.some((l) => crisisLine.some((re) => re.test(l)))) ||
+    (isLoop && changedLines.some((l) => joined.some((re) => re.test(joinLine(l))))) ||
     (isLoop && imports.some(crisisImport))
   ) {
     lanes.push('crisis');
@@ -227,6 +238,14 @@ export function classify(
   if (files.some((f) => inPaths(f, privacy.paths) && privacyPath.test(f))) lanes.push('privacy');
   if (files.some((f) => inPaths(f, evaluator.paths))) lanes.push('evaluator');
   return lanes;
+}
+
+/**
+ * A changed line with quotes, `+`, `${`, `}` and whitespace removed, so 988 split across
+ * strings (`'9' + '88'`, `` `9${'8'}8` ``) reads as one number again.
+ */
+export function joinLine(line: string): string {
+  return line.slice(1).replace(/\$\{|['"`+\s}]/g, '');
 }
 
 /** One case-sensitive regex matching any of `names` as a whole identifier. */

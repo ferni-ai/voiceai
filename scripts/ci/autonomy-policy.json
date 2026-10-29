@@ -27,14 +27,21 @@
         "suicid|self-?harm",
         "aiNotice|AI_NOTICE",
         "(?:\\bimport\\b|\\brequire\\s*\\(|\\bfrom\\b).*['\"`][^'\"`]*(?:services/safety|agents/safety|domains/crisis|human-transfer|minor-care|ai-notice)",
-        "nine[- ]?eight[- ]?eight",
-        "\\b9\\W{0,3}8\\W{0,3}8\\b",
-        "['\"]98['\"]\\s*\\+",
-        "['\"]9['\"]\\s*\\+"
+        "nine[- ]?eight[- ]?eight"
       ],
+      "joinedLinePatterns": ["(?<!\\d)988(?!\\d)", "(?<!\\d)9\\W{0,3}8\\W{0,3}8(?!\\d)"],
       "importFallbackPattern": "(?:/safety/|crisis|safety-note|human-transfer|minor-care|ai-notice)",
       "symbolsFile": "autonomy-crisis-symbols.generated.json",
-      "alwaysScreen": ["addSafetyNote", "detectCrisis"]
+      "alwaysScreen": [
+        "addSafetyNote",
+        "detectCrisis",
+        "hadRecentCrisis",
+        "CRISIS_QUIET_DAYS",
+        "getCrisisResources",
+        "getGroundingExercise",
+        "lastFerniLine"
+      ],
+      "unscreened": []
     },
     "privacy": {
       "paths": ["src/**", "apps/**", "!**/*.md"],

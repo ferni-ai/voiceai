@@ -12,6 +12,7 @@ import {
   changedLinesOf,
   classify,
   importsOf,
+  joinLine,
   diffInputs,
   evaluate,
   loadPolicy,
@@ -451,6 +452,22 @@ describe('crisis wiring outside crisis paths', () => {
   it('string-split 988 is crisis for the loop', () => {
     loopOnly(["+  const n = '9' + '88';"]);
     loopOnly(['+  const n = "9"+"8"+"8";']);
+  });
+
+  it('template-literal split 988 is crisis for the loop', () => {
+    loopOnly(["+  const line = `9${'8'}8`;"]);
+    expect(joinLine("+  `9${'8'}8`")).toBe('988');
+    loopOnly(['+  const line = `call ${9}${8}${8} now`;']);
+    // A year or a longer number that contains 988 is not the hotline.
+    expect(classify([PERSONA], ['+  born: 1988, id: 49881'], 'ferni-loop[bot]', policy)).toEqual(
+      []
+    );
+  });
+
+  it('backtick concatenation 988 is crisis for the loop', () => {
+    loopOnly(['+  const n = `9` + `88`;']);
+    expect(joinLine('+  `9` + `88`')).toBe('988');
+    loopOnly(['+  const n = `9` + `8` + `8`;']);
   });
 
   it('removing addSafetyNote from a barrel destructure is crisis for the loop', () => {
