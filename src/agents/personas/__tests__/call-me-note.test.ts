@@ -149,7 +149,8 @@ describe('the confirm flow (flag on)', () => {
 
     const yes = say('Yeah, go ahead.');
     expect(yes).toContain('Call rememberName with "Pete" now');
-    say('Yeah, go ahead.'); // the final request, same turn
+    // The final request is the one the model answers: it must carry the save too.
+    expect(say('Yeah, go ahead.')).toContain('Call rememberName with "Pete" now');
     // rememberName is the one writer (remember-name-owner.test.ts): nothing written here.
     expect(session.userData.userName).toBe('Seth');
     expect(session.userData.services.userProfile.preferredName).toBe('Seth');
