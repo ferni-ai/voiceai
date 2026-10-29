@@ -739,7 +739,7 @@ export class AgentOrchestrator {
     talk: TalkThrough | null = null
   ): Promise<void> {
     const { targetPersonaId } = request;
-    const early = takeEarlyGoodbye(this.sessionId, targetPersonaId); // said by the tool already
+    const early = takeEarlyGoodbye(this.sessionId, targetPersonaId, { tap: !request.onAgentReady }); // a tap: no onAgentReady
     const goodbye = early?.text ?? this.getGoodbyePhrase(agent, request);
     const textToSpeak = goodbye || `Let me get ${getPersonaDisplayName(targetPersonaId)} for you.`;
 
