@@ -472,7 +472,7 @@ export type ExternalService =
   | 'google-contacts' // Google Contacts API
   | 'spotify' // Music streaming
   | 'sonos' // Sonos speakers
-  | 'sendgrid' // Email service
+  | 'email' // Email (the ferni.ai Workspace mailbox)
   | 'twilio' // SMS/phone service
   | 'openweather' // Weather API
   | 'newsapi' // News aggregation
@@ -903,7 +903,7 @@ export class EnvironmentServiceRegistry implements ServiceRegistry {
     'google-contacts': () => !!process.env.GOOGLE_CONTACTS_CREDENTIALS,
     spotify: () => !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET),
     sonos: () => !!(process.env.SONOS_CLIENT_ID && process.env.SONOS_CLIENT_SECRET),
-    sendgrid: () => !!process.env.SENDGRID_API_KEY,
+    email: () => true, // the Workspace mailbox needs no key (services/email-transport)
     openweather: () => !!process.env.OPENWEATHER_API_KEY,
     newsapi: () => !!process.env.NEWS_API_KEY,
     'alpha-vantage': () => !!process.env.ALPHA_VANTAGE_API_KEY,

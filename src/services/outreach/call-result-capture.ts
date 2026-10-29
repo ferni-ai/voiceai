@@ -19,6 +19,7 @@ import { logCallResultOutcome } from '../follow-through/index.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import { voicemailWords } from './voicemail-outcome.js';
+import { completedAtFor, contactForOwner, type StepOutcome } from './call-result-words.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -375,10 +376,12 @@ export async function captureCallResult(
     // 4. Not live: step 9 keeps it for While You Were Away (the next call's opener reads it)
 
     // 5. Push (reaches them even if disconnected), unless CALL_RESULT_TEXT texts them below
-    if (!callResultTextOn()) await sendCallResultPushNotification(request, outcome, callId);
+    const push: StepOutcome = callResultTextOn()
+      ? 'skipped'
+      : await sendCallResultPushNotification(request, outcome, callId);
 
     // 6. Send email notification (tangible record of the call)
-    await sendCallResultEmail(request, outcome, callId);
+    const mailSent = await sendCallResultEmail(request, outcome, callId);
 
     // 7. Create calendar event for callback if needed
     await createCallbackCalendarEvent(request, outcome, callId);
@@ -390,10 +393,7 @@ export async function captureCallResult(
     await storeInUnifiedResults(request, outcome, callId);
     await tellOwnerIfOn({ request, outcome, callId, live: injectedToActive });
 
-    log.info(
-      { callId, userId: request.userId },
-      'Call result captured successfully (push + email + calendar + unified)'
-    );
+    log.info({ callId, userId: request.userId, pushStatus: push, mailStatus: mailSent }, 'Call result captured'); // sent, failed or skipped
   } catch (error) {
     log.error({ error: String(error), callId }, 'Failed to capture call result');
     throw error;
@@ -408,17 +408,17 @@ async function sendCallResultPushNotification(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
   callId: string
-): Promise<void> {
+): Promise<StepOutcome> {
   try {
     const { sendPushNotification, isPushNotificationsAvailable } =
       await import('./delivery/push-notifications.js');
 
     if (!isPushNotificationsAvailable()) {
       log.debug({ callId }, 'Push notifications not available, skipping');
-      return;
+      return 'skipped';
     }
 
-    const contactName = request.resolvedContact?.name || request.contactQuery;
+    const contactName = request.resolvedContact?.name || contactForOwner(request.contactQuery);
 
     // Build notification content based on outcome
     let title: string;
@@ -454,10 +454,12 @@ async function sendCallResultPushNotification(
       priority: 'high',
       clickAction: '/calls', // Navigate to call history
     });
-    notePushOutcome(log, results, { callId, userId: request.userId, for: 'call result' });
+    const fields = { callId, userId: request.userId, for: 'call result' };
+    return notePushOutcome(log, results, fields) ? 'sent' : 'failed';
   } catch (error) {
     // Don't fail the whole capture if push fails
     log.warn({ error: String(error), callId }, 'Failed to send push notification');
+    return 'failed';
   }
 }
 
@@ -469,7 +471,7 @@ async function sendCallResultEmail(
   request: OnBehalfCallRequest,
   outcome: CallOutcome,
   callId: string
-): Promise<void> {
+): Promise<StepOutcome> {
   try {
     const email = await getUserEmail(request.userId);
     if (!email) {
@@ -477,24 +479,18 @@ async function sendCallResultEmail(
         { callId, userId: request.userId },
         'No email configured, skipping email notification'
       );
-      return;
+      return 'skipped';
     }
 
     const { sendEmail, isEmailDeliveryAvailable } = await import('./delivery/email-delivery.js');
 
     if (!isEmailDeliveryAvailable()) {
       log.debug({ callId }, 'Email delivery not available, skipping');
-      return;
+      return 'skipped';
     }
 
-    const contactName = request.resolvedContact?.name || request.contactQuery;
-    const completedAt = new Date().toLocaleString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    const contactName = request.resolvedContact?.name || contactForOwner(request.contactQuery);
+    const completedAt = completedAtFor(request.userTimezone);
 
     // Build warm, human email content
     const { subject, body } = buildCallResultEmailContent(
@@ -513,12 +509,14 @@ async function sendCallResultEmail(
       outreachId: callId,
       tags: ['on-behalf-call', outcome.status],
     });
-    if (!sent.success) throw new Error(sent.error || 'email not sent');
-
-    log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+    // A failure logs a code only: never the address or the body.
+    if (sent.success) log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+    else log.warn({ callId, userId: request.userId, code: sent.status ?? 'send_failed' }, 'Email notification NOT sent'); // prettier-ignore
+    return sent.success ? 'sent' : 'failed';
   } catch (error) {
     // Don't fail the whole capture if email fails
-    log.warn({ error: String(error), callId }, 'Failed to send email notification');
+    log.warn({ callId, code: (error as Error)?.name ?? 'error' }, 'Failed to send email notification'); // prettier-ignore
+    return 'failed';
   }
 }
 
@@ -581,7 +579,7 @@ function buildCallResultEmailContent(
     lines.push('');
   }
 
-  lines.push(`*Completed: ${completedAt}*`);
+  if (completedAt) lines.push(`*Completed: ${completedAt}*`);
 
   return { subject, body: lines.join('\n') };
 }

@@ -7,6 +7,7 @@
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
+import { IN_DANGER_NOW, readsImminentLive } from '../../../services/safety/index.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
@@ -139,9 +140,9 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
 // ASSESSMENT FUNCTIONS
 // ============================================================================
 
-/**
- * Assess safety level of user's message
- */
+const IMMINENT_FLAG = 'suicidal: imminent means or attempt';
+
+/** Assess safety level of user's message */
 export function assessSafety(text: string): SafetyAssessment {
   const lower = text.toLowerCase();
   const flags: string[] = [];
@@ -169,6 +170,9 @@ export function assessSafety(text: string): SafetyAssessment {
       }
     }
   }
+
+  // Means in hand or an attempt underway (the guard's imminent read, #2697): none above.
+  if (readsImminentLive(text)) flags.push(IMMINENT_FLAG);
 
   let concernCount = 0;
   for (const indicator of CONCERNING_INDICATORS) {
@@ -213,6 +217,9 @@ export function getCrisisResponse(assessment: SafetyAssessment): string {
   if (assessment.level === 'crisis') {
     let response =
       "I'm really glad you told me this, and I want you to know I take it seriously.\n\n";
+    if (assessment.flags.includes(IMMINENT_FLAG)) {
+      response += `If you've taken something or you're in danger right now, ${IN_DANGER_NOW}\n\n`;
+    }
     response +=
       "What you're going through sounds really hard, and you deserve support from someone trained to help.\n\n";
 
@@ -301,9 +308,7 @@ export function needsProfessionalReferral(topic: string): {
   return { needs: false };
 }
 
-// ============================================================================
 // EMOTIONAL STATE SAFETY
-// ============================================================================
 
 /**
  * Check if emotional state warrants concern
@@ -319,9 +324,7 @@ export function getGroundingSuggestion(): string {
   return `Let's take a breath together first. Can you feel your feet on the ground? Notice 5 things you can see around you. You're here, in this moment, and you're safe.`;
 }
 
-// ============================================================================
 // SAFE BOUNDARIES FOR AI COACHING
-// ============================================================================
 
 /**
  * Topics we redirect to professionals
@@ -357,9 +360,7 @@ export function getTopicDisclaimer(topic: string): string | null {
   return null;
 }
 
-// ============================================================================
 // DOMAIN-AWARE SAFETY THRESHOLDS
-// ============================================================================
 
 /**
  * Some domains need stricter safety checks than others.
@@ -488,9 +489,7 @@ export function getDomainSensitivity(domain: string): DomainSensitivity {
   return DOMAIN_SENSITIVITY[domain] || 'standard';
 }
 
-// ============================================================================
 // CONVENIENCE WRAPPER
-// ============================================================================
 
 /**
  * Check if user input contains concerning content (domain-agnostic)
