@@ -14,6 +14,8 @@ import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { keepRemembered, profileForCaller } from '../../../memory/index.js';
+import { getSessionId } from '../../utils/tool-helpers.js';
+import { memoryToolsHonestOn, updateRemembered } from './honest-memory.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -100,7 +102,10 @@ export const rememberAboutUserDef: ToolDefinition = {
 
         // Feed to learning engine for persistence
         const { services } = userData;
-        if (services?.captureInsight && !memoryHeld((services as { sessionId?: string }).sessionId)) {
+        if (
+          services?.captureInsight &&
+          !memoryHeld((services as { sessionId?: string }).sessionId)
+        ) {
           const typeMap: Record<string, string> = {
             personal: 'relationship',
             financial: 'concern',
@@ -426,10 +431,7 @@ export const updateMemoryDef: ToolDefinition = {
           .describe('Why the update was needed (correction, change, addition)'),
       }),
       execute: async ({ originalFact, updatedFact, reason }, { ctx: toolCtx }) => {
-        getLogger().info(
-          { agentId: ctx.agentId, originalFact, updatedFact, reason },
-          'Updating memory'
-        );
+        getLogger().info({ agentId: ctx.agentId }, 'Updating memory'); // never the facts
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
@@ -456,8 +458,10 @@ export const updateMemoryDef: ToolDefinition = {
           );
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
+        // MEMORY_TOOLS_HONEST: replace the fact recall holds, or say none matched (honest-memory.ts)
+        if (!memoryToolsHonestOn()) return ''; // flag off: the in-call list only, as before
+        const sessionId = getSessionId({ ctx: toolCtx });
+        return updateRemembered({ userId: userData.userId, sessionId, originalFact, updatedFact });
       },
     });
   },

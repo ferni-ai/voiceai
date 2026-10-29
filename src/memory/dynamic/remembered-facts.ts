@@ -24,6 +24,12 @@
  * one forgotten while this fact was being embedded would land unmarked and
  * reach the call's vector recall (forget-every-reader.ts; fails closed).
  *
+ * MEMORY_TOOLS_HONEST=on: the remember tools answer from this write
+ * (keepForRecall says what happened), so it runs whatever REMEMBER_TO_RECALL
+ * says, checks the forgotten topics whatever FORGET_EVERY_READER says (failing
+ * closed: a topic list that can't be read keeps nothing), and keeps no phone
+ * number or email as a free-text fact (hasContactData).
+ *
  * Firestore: storage/remembered-fact-store.ts, handed in by the agent process
  * (agents/remembered-fact-store-register.ts); until it is, nothing is written.
  *
@@ -31,12 +37,13 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { hasContactData } from '../../intelligence/person-model/util.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { errorClass } from '../../utils/error-class.js';
 import { credentialInText } from '../credential-shapes.js';
 import { readSecret, type SecretCheckDeps } from '../secret-check.js';
-import { forgottenCheck } from '../recall/forget-every-reader.js';
+import { forgottenCheck, forgottenWithin } from '../recall/forget-every-reader.js';
 import { credentialCategory, logCredentialDrops } from '../spoken-credential.js';
 import { factDocId } from './extraction-firestore-docs.js';
 import { withFactEmbeddings, type FactEmbeddingDeps } from './fact-embeddings.js';
@@ -48,8 +55,12 @@ export const CALLER_ASSERTED = 'caller_asserted';
 export const REMEMBERED_ENTITY = 'user';
 export const REMEMBERED_KEY = 'asked_to_remember';
 
+export function memoryToolsHonestOn(env: Env = process.env): boolean {
+  return flagOn('MEMORY_TOOLS_HONEST', env);
+}
+
 export function rememberToRecallOn(env: Env = process.env): boolean {
-  return flagOn('REMEMBER_TO_RECALL', env);
+  return flagOn('REMEMBER_TO_RECALL', env) || memoryToolsHonestOn(env);
 }
 
 export interface RememberedFact {
@@ -114,41 +125,78 @@ export interface RememberToRecallDeps {
   now?: () => Date;
 }
 
+/** What keepForRecall did; `id` is the dynamic_facts document recall reads. */
+export type KeepOutcome =
+  | { kind: 'kept'; id: string }
+  /** The same fact text is already on file (one document per text, never overwritten). */
+  | { kind: 'already'; id: string }
+  | {
+      kind: 'refused';
+      reason: 'off' | 'not_member' | 'empty' | 'credential' | 'secret' | 'forgotten' | 'contact';
+    }
+  /** No store, an unreadable forgotten list, or a write that threw. */
+  | { kind: 'failed' };
+
+/** The topics check for a write: under MEMORY_TOOLS_HONEST always, and fails closed (null = unreadable). */
+async function forgottenFor(
+  userId: string,
+  env: Env | undefined
+): Promise<((text: string) => boolean) | 'unreadable' | null> {
+  if (!memoryToolsHonestOn(env)) return forgottenCheck(userId, 'remember-to-recall', env);
+  return (await forgottenWithin(userId, 'remember-to-recall')) ?? 'unreadable';
+}
+
 /**
- * With REMEMBER_TO_RECALL on, the remembered fact as a caller_asserted
- * dynamic_facts document, embedded on write. True when it created one. Never throws.
+ * With REMEMBER_TO_RECALL or MEMORY_TOOLS_HONEST on, the remembered fact as a
+ * caller_asserted dynamic_facts document, embedded on write. Never throws.
  */
+export async function keepForRecall(
+  userId: string,
+  r: RememberedFact,
+  deps: RememberToRecallDeps = {}
+): Promise<KeepOutcome> {
+  if (!rememberToRecallOn(deps.env)) return { kind: 'refused', reason: 'off' };
+  // Only a member's own: a placeholder or anon:/onbehalf: id is one bucket for many callers
+  if (!isMemberIdentity(userId)) return { kind: 'refused', reason: 'not_member' };
+  try {
+    const doc = rememberedFactDoc(r, (deps.now?.() ?? new Date()).toISOString());
+    if (!doc) return { kind: 'refused', reason: r.fact.trim() ? 'credential' : 'empty' };
+    const value = String(doc.data.value);
+    if (memoryToolsHonestOn(deps.env) && hasContactData(value)) {
+      return { kind: 'refused', reason: 'contact' };
+    }
+    // The word rules miss phrasings (#2514): nothing reaches the embedder or the store without a clear no
+    const secret = await readSecret(value, deps.secretCheck);
+    if (secret !== 'clear') {
+      if (secret === 'secret') log.info('Remembered fact holds a secret: not written for recall');
+      return secret === 'secret' ? { kind: 'refused', reason: 'secret' } : { kind: 'failed' };
+    }
+    const [data] = await withFactEmbeddings([doc.data], deps.embedding);
+    const store = deps.store ?? registered;
+    // Checked after the embedding: a forget during it marked nothing for this fact
+    const forgotten = await forgottenFor(userId, deps.env);
+    if (forgotten === 'unreadable') return { kind: 'failed' };
+    if (forgotten?.(value)) {
+      log.info('Remembered fact is about a forgotten topic: not written for recall');
+      return { kind: 'refused', reason: 'forgotten' };
+    }
+    if (!store) {
+      log.warn('REMEMBER_TO_RECALL is on but no fact store is registered');
+      return { kind: 'failed' };
+    }
+    const created = await store.create(userId, [{ id: doc.id, data }]);
+    return { kind: created > 0 ? 'kept' : 'already', id: doc.id };
+  } catch (error) {
+    log.warn({ error: errorClass(error) }, 'Remembered fact not written for recall');
+    return { kind: 'failed' };
+  }
+}
+
+/** keepForRecall, as true when it created the document. */
 export async function rememberToRecall(
   userId: string,
   r: RememberedFact,
   deps: RememberToRecallDeps = {}
 ): Promise<boolean> {
-  // Only a member's own: a placeholder or anon:/onbehalf: id is one bucket for many callers
-  if (!rememberToRecallOn(deps.env) || !isMemberIdentity(userId)) return false;
-  try {
-    const doc = rememberedFactDoc(r, (deps.now?.() ?? new Date()).toISOString());
-    if (!doc) return false;
-    // The word rules miss phrasings (#2514): nothing reaches the embedder or the store without a clear no
-    const secret = await readSecret(String(doc.data.value), deps.secretCheck);
-    if (secret !== 'clear') {
-      if (secret === 'secret') log.info('Remembered fact holds a secret: not written for recall');
-      return false;
-    }
-    const [data] = await withFactEmbeddings([doc.data], deps.embedding);
-    const store = deps.store ?? registered;
-    // Checked after the embedding: a forget during it marked nothing for this fact
-    const forgotten = await forgottenCheck(userId, 'remember-to-recall', deps.env);
-    if (forgotten?.(String(doc.data.value))) {
-      log.info('Remembered fact is about a forgotten topic: not written for recall');
-      return false;
-    }
-    if (!store) {
-      log.warn('REMEMBER_TO_RECALL is on but no fact store is registered');
-      return false;
-    }
-    return (await store.create(userId, [{ id: doc.id, data }])) > 0;
-  } catch (error) {
-    log.warn({ error: errorClass(error) }, 'Remembered fact not written for recall');
-    return false;
-  }
+  return (await keepForRecall(userId, r, deps)).kind === 'kept';
 }
