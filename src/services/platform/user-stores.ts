@@ -141,6 +141,7 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'bth_production_events',
     'phone_mappings',
     'feature_checkins', // texts sent to the person, with their replies
+    'local_calendar_events', // the calendar kept when no provider is linked (local-calendar-store.ts)
     'intelligence_queue', // queued turn events holding the person's words (INTELLIGENCE_QUEUE)
     'relationship_memories' // {uid}_{persona}: shared moments and inside jokes, older agent
   ),
@@ -167,7 +168,12 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
 
 /**
  * Sign-in credentials kept for the person: never exported (a live token in a file
- * people share), always erased. Credentials inside the two records go with them.
+ * people share), always erased. Credentials inside the two records go with them:
+ * Google Calendar, Gmail send, Spotify, Plaid, wearables (wearable_{provider}_tokens),
+ * smart home (LIFX, Sonos, HomeKit), webhooks and Siri tokens, social tokens all live
+ * under bogle_users/{uid}, and OAuth links and calendar providers under users/{uid}.
+ * apple_signin_tokens/{uid} is left out on purpose: revokeAppleSignIn reads it after
+ * this sweep to revoke the grant at Apple, then deletes it (account-routes.ts).
  */
 export const CREDENTIAL_STORES: readonly OwnedStore[] = [
   ...byId(
@@ -176,6 +182,9 @@ export const CREDENTIAL_STORES: readonly OwnedStore[] = [
     'ecobee_tokens',
     'ecobee_pending_auth',
     'eight_sleep_tokens',
+    // the old v1 callback's plaintext root copy; nothing reads or writes it now
+    // (google-calendar-token-store.ts), but documents of it are still in Firestore
+    'google_calendar_tokens',
     'oura_tokens',
     'verification_codes'
   ),

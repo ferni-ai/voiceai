@@ -260,6 +260,23 @@ GET /health/ready   # Readiness check (workers ready)
 
 ---
 
+## Integration Credentials on Account Deletion
+
+A new token store goes under `bogle_users/{uid}` (a `createPersistenceStore` default, or
+`createUserOAuthStore`), so account deletion removes it with the record. A store kept anywhere
+else must be added to `CREDENTIAL_STORES` in `services/platform/user-stores.ts`, and to
+`MUST_ERASE` in `api/__tests__/account-delete-every-store.emulator.test.ts`, or it survives
+"delete my account".
+
+| Provider | Revoked at the provider on deletion? |
+|---|---|
+| Google Calendar, Gmail send | Yes, `deleteAllData` step 0; queued in `pending_revocations` when Google is down |
+| Sign in with Apple | Yes, `revokeAppleSignIn` after the sweep (it reads `apple_signin_tokens/{uid}`, so that store isn't in the sweep) |
+| Oura, Whoop, Spotify, Ecobee, Plaid | No: only our copy is deleted (follow-up) |
+| LIFX | Not possible: no revoke API; the person removes the token at cloud.lifx.com/settings |
+
+---
+
 ## Related Docs
 
 - `CLAUDE.md` (root) - Full deployment guide
