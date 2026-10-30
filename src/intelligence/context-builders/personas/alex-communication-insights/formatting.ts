@@ -43,9 +43,6 @@ export function formatBriefingForInjection(
     known(userState.productivityMomentum)
       ? `• Productivity: ${userState.productivityMomentum}`
       : '',
-    userState.optimalCommunicationWindow
-      ? `• Best window: ${userState.optimalCommunicationWindow}`
-      : '',
     userState.stressSignals.length > 0
       ? `• Stress signals: ${userState.stressSignals.join(', ')}`
       : '',

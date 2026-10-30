@@ -91,15 +91,6 @@ export function detectProactiveTriggers(
     });
   }
 
-  if (moodIntelligence.optimalCoachingTime) {
-    triggers.push({
-      type: 'insight',
-      message: `Best energy is in the ${moodIntelligence.optimalCoachingTime} - schedule important habits then`,
-      priority: 'low',
-      timing: 'when_relevant',
-    });
-  }
-
   // Connection triggers
   if (habitHealth.habitStacks.length > 0) {
     triggers.push({

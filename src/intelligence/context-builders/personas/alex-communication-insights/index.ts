@@ -113,7 +113,6 @@ async function buildCommunicationBriefing(
     energyLevel: 'unknown',
     productivityMomentum: 'unknown',
     timeOfDayContext: 'unknown',
-    optimalCommunicationWindow: null,
   };
   const defaultMemoryContext: MemoryContext = {
     previousCommunicationTopics: [],

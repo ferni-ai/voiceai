@@ -9,6 +9,7 @@ const data = vi.hoisted(() => ({
   productivity: {} as Record<string, unknown>,
   goals: [] as Array<Record<string, unknown>>,
   loads: [] as string[],
+  moodLogs: [] as Array<{ date: string; mood: number; energy: number }>,
   calendarConnected: false,
   windows: vi.fn(async () => [
     {
@@ -45,7 +46,7 @@ vi.mock('../../../../services/stores/financial-store.js', () => ({
   }),
 }));
 vi.mock('../../../../services/engagement/gamification-store.js', () => ({
-  getGamificationStore: () => ({ getMoodLogs: async () => [] }),
+  getGamificationStore: () => ({ getMoodLogs: async () => data.moodLogs }),
 }));
 vi.mock('../../../../services/calendar/index.js', () => ({
   hasAnyProviderConnected: async () => data.calendarConnected,
@@ -106,6 +107,7 @@ beforeEach(() => {
   data.productivity = {};
   data.goals = [];
   data.loads = [];
+  data.moodLogs = [];
   data.calendarConnected = false;
   data.windows.mockClear();
 });
@@ -169,5 +171,37 @@ describe('Alex briefing', () => {
     );
     expect(data.windows).toHaveBeenCalled();
     expect(out).toContain('PROTECTED FOCUS WINDOWS');
+  });
+});
+
+describe('no best hour of day from the server clock (#3070 round 1)', () => {
+  // On a UTC server a 21:00 ET mood log reads as 01:00, so "Best window: morning" was false.
+  const lateEveningLogs = () => {
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    return [
+      { date: `${yesterday}T01:00:00Z`, mood: 8, energy: 9 },
+      { date: `${yesterday}T01:30:00Z`, mood: 8, energy: 9 },
+    ];
+  };
+
+  it('Alex says no "Best window" for a member with mood logs', async () => {
+    vi.stubEnv('TZ', 'UTC');
+    data.moodLogs = lateEveningLogs();
+    data.goals = [{ id: 'g-1', name: 'Lease deposit', targetAmount: 1500, currentAmount: 600 }];
+    const out = text(
+      await buildAlexCommunicationInsightsContext(input('alex-chen', 'member-0204'))
+    );
+    expect(out).not.toMatch(/Best (communication )?window|morning|afternoon|evening/i);
+    vi.unstubAllEnvs();
+  });
+
+  it('Maya says no "Best time for challenges" for a member with mood logs', async () => {
+    vi.stubEnv('TZ', 'UTC');
+    data.moodLogs = lateEveningLogs();
+    data.productivity = { enhancedHabits: [habit], weeklyReflections: [] };
+    const out = text(await buildMayaCoachingInsightsContext(input('maya-santos', 'member-0104')));
+    expect(out).toContain('MOOD INTELLIGENCE'); // the mood logs were read
+    expect(out).not.toMatch(/Best time|Best energy|: (morning|afternoon|evening)\b/);
+    vi.unstubAllEnvs();
   });
 });

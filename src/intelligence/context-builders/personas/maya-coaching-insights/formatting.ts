@@ -73,9 +73,6 @@ export function formatMayaBriefing(
       );
     }
     sections.push(`• Trend: ${moodIntelligence.recentMoodTrend}`);
-    if (moodIntelligence.optimalCoachingTime) {
-      sections.push(`• Best time for challenges: ${moodIntelligence.optimalCoachingTime}`);
-    }
     if (moodIntelligence.moodHabitCorrelations.length > 0) {
       sections.push(`• ${moodIntelligence.moodHabitCorrelations.join('; ')}`);
     }

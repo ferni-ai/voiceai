@@ -81,7 +81,6 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
   const defaultMoodIntelligence: MoodIntelligence = {
     recentMoodTrend: 'unknown',
     averageEnergy: 5,
-    optimalCoachingTime: null,
     moodHabitCorrelations: [],
     currentState: null,
     energyPatterns: [],
