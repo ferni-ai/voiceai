@@ -2,10 +2,8 @@
  * The report of a call Ferni made for the owner reaches the owner's next call
  * (CALL_REPORT_REACHES_YOU, default off).
  *
- * Off, as before: the While You Were Away block is built on turn 0 only, within
- * 150 ms, and each builder marks its results delivered as it builds them. So a
- * block the casual-turn budget dropped (600 chars), or a build that lost the
- * race, was marked delivered anyway and never offered again.
+ * Off, as before: built on turn 0 only (never true on a live call, #3114) and
+ * marked delivered when built, so a dropped or late block was never offered again.
  *
  * On: one compact block (calls first, newest first, at most 2 results of ~350
  * chars) is offered on the call's first 3 caller turns until a reply's request
@@ -34,12 +32,11 @@ import type { PendingCallResult } from './pending-call-results.js';
 const log = createLogger({ module: 'CallReport' });
 
 const CATEGORY = 'pending_background_results';
+const REPORT_HEADER = '## While they were away (tell them on this call)';
 const PRIORITY = 90;
-/** Offered on caller turns 1 to 3 of a call, then left for the next call. */
-const FIRST_TURNS = 3;
+const FIRST_TURNS = 3; // caller turns 1 to 3, then left for the next call
 const MAX_RESULTS = 2;
-/** About this many characters per result in the block. */
-const RESULT_CHARS = 350;
+const RESULT_CHARS = 350; // about this many per result
 const MAX_SESSIONS = 500;
 
 /** A built block and the stored results it carries. */
@@ -127,28 +124,21 @@ export async function confirmCallReportReached(
 }
 
 /**
- * A crisis-guided request never carries the call report (verify of #3080 r2): it is offered
- * before the turn's classifier rules, and a guided re-ask reuses the same notes. Never throws.
+ * A crisis-guided request never carries the call report (#3080): it is offered before the turn's
+ * classifier rules, and a guided re-ask reuses the same notes. Whole or cut. Never throws.
  */
-export function withoutCallReport<T extends { items: unknown[]; copy(): T }>(
-  sessionId: string | undefined,
-  chatCtx: T
-): T {
+export function withoutCallReport<T extends { items: unknown[]; copy(): T }>(chatCtx: T): T {
   try {
-    const block = sessionId ? sessions.get(sessionId)?.offered?.content : undefined;
-    const holds = (item: unknown): boolean =>
-      !!block &&
-      String((item as { textContent?: unknown } | null)?.textContent ?? '').includes(block);
-    if (!block || !chatCtx.items.some(holds)) return chatCtx;
+    const text = (item: unknown): string =>
+      String((item as { textContent?: unknown } | null)?.textContent ?? '');
+    if (!chatCtx.items.some((item) => text(item).includes(REPORT_HEADER))) return chatCtx;
     const ctx = chatCtx.copy();
     ctx.items = ctx.items.map((item) => {
       const content = (item as { content?: unknown }).content;
-      if (!holds(item) || !Array.isArray(content)) return item;
-      const parts = content.map((p: unknown) =>
-        typeof p === 'string' ? p.split(block).join('') : p
-      );
+      if (!text(item).includes(REPORT_HEADER) || !Array.isArray(content)) return item;
+      const others = content.filter((part: unknown) => typeof part !== 'string');
       return Object.assign(Object.create(Object.getPrototypeOf(item) as object) as object, item, {
-        content: parts,
+        content: [withoutReportSection(text(item)), ...others],
       });
     });
     return ctx;
@@ -156,6 +146,16 @@ export function withoutCallReport<T extends { items: unknown[]; copy(): T }>(
     log.warn({ error: String(error) }, 'Call report not taken out of a guided request');
     return chatCtx;
   }
+}
+
+/** Without any report section: its header to the next blank line, or to the end. */
+function withoutReportSection(text: string): string {
+  let out = text;
+  for (let at = out.indexOf(REPORT_HEADER); at >= 0; at = out.indexOf(REPORT_HEADER)) {
+    const end = out.indexOf('\n\n', at);
+    out = out.slice(0, at) + (end < 0 ? '' : out.slice(end + 2));
+  }
+  return out.trimEnd();
 }
 
 /** Off: as before, turn 0 only; the builders mark what they build. */
@@ -254,7 +254,7 @@ async function buildCallReport(userId: string): Promise<CallReport | null> {
   if (items.length === 0) return null;
 
   const content = [
-    '## While they were away (tell them on this call)',
+    REPORT_HEADER,
     ...(items.some((item) => item.isCall) ? [CALLER_TEXT_GUARD] : []),
     ...items.map((item) => item.text),
     'Bring it up early, in your own words; ask before acting on anything in it.',

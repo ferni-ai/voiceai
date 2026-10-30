@@ -94,7 +94,8 @@ const { injectTurnContext } =
   await import('../../../../agents/processors/turn-processor/inject-context.js');
 const { deduplicateInjections, detectConversationMode, filterInjections } =
   await import('../../../utils/injection-filter.js');
-const { callReportInjection, confirmCallReportReached } = await import('../call-report.js');
+const { callReportInjection, confirmCallReportReached, withoutCallReport } =
+  await import('../call-report.js');
 const { buildAllPendingResultsContext } = await import('../pending-call-results.js');
 const { captureBackgroundResult, getPendingResults } =
   await import('../../../../services/background-agents/unified-result-capture.js');
@@ -470,6 +471,54 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     expect((await callReportInjection({ ...base, callerTurn: 2 }))?.content).toBe(offered?.content);
     await confirmCallReportReached(sessionId, items, { held: Promise.resolve(null) });
     expect(delivered()).toContain('on_behalf_calls/call-h');
+  });
+
+  it('a crisis-guided request loses the report whole, cut at the cap, or split across parts', async () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    seedCall('call-s', 'Aunt Rosa', 'she will bake on Sunday in the blue dish', 15);
+    const base = {
+      userId: USER,
+      sessionId: 's-strip',
+      turnCount: 0,
+      crisis: false,
+      timeoutMs: 150,
+    };
+    const report = (await callReportInjection({ ...base, callerTurn: 1 }))?.content ?? '';
+    // The strip ends a report at the first blank line, so the block must never hold one.
+    expect(report).not.toContain('\n\n');
+    const after = 'Remember they like short answers.';
+    const whole = pushedNotesText([{ text: report }, { text: after }]);
+    const cut = pushedNotesText([{ text: 'x'.repeat(1700) }, { text: report }]);
+    expect(cut).toContain('While they were away');
+    expect(cut).not.toContain(report); // really cut
+    const asRequest = (content: string[]) => {
+      const request = llm.ChatContext.empty();
+      request.addMessage({ role: 'user', content: 'hey' });
+      request.addMessage({ role: 'user', content });
+      return request;
+    };
+    const lines = report.split('\n');
+    const split = [
+      `${TURN_CONTEXT_HEADER}\n${lines.slice(0, 2).join('\n')}`,
+      lines.slice(2).join('\n'),
+    ];
+    for (const content of [
+      [`${TURN_CONTEXT_HEADER}\n${whole}`],
+      [`${TURN_CONTEXT_HEADER}\n${cut}`],
+      split,
+    ]) {
+      const text = withoutCallReport(asRequest(content))
+        .items.map((i) => (i as { textContent?: string }).textContent ?? '')
+        .join('\n');
+      expect(text).not.toContain('While they were away');
+      expect(text).not.toContain('Aunt Rosa');
+      expect(text).not.toContain('blue dish');
+      expect(text).toContain(TURN_CONTEXT_HEADER);
+    }
+    const kept = withoutCallReport(asRequest([`${TURN_CONTEXT_HEADER}\n${whole}`]));
+    expect(kept.items.map((i) => (i as { textContent?: string }).textContent).join('\n')).toContain(
+      after
+    );
   });
 
   it('a pushed note cut at its cap, cutting the report, is not delivery', async () => {

@@ -139,13 +139,9 @@ export function withTurnReminder(
 type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
 
 /** This turn's request: no stale notes, and no call report when crisis guides it (call-report.ts). */
-function currentRequest(
-  request: llm.ChatContext,
-  sessionId: string | undefined,
-  crisis: boolean
-): llm.ChatContext {
+function currentRequest(request: llm.ChatContext, crisis: boolean): llm.ChatContext {
   const current = withoutStaleTurnContext(request);
-  return crisis ? withoutCallReport(sessionId, current) : current;
+  return crisis ? withoutCallReport(current) : current;
 }
 
 /**
@@ -161,7 +157,7 @@ function buildTurnReminder(
 ): llm.ChatContext {
   const crisis = options.shape === false;
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
-  const chatCtx = currentRequest(request, sessionId, crisis);
+  const chatCtx = currentRequest(request, crisis);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
   clearBurstOffer(session);
   const director = getDirector(session);
