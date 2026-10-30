@@ -356,10 +356,6 @@
           "name": "Apple Health",
           "description": "Ferni iOS 앱을 통해 연결"
         },
-        "fitbit": {
-          "name": "Fitbit",
-          "description": "걸음 수, 수면, 심박수"
-        },
         "garmin": {
           "name": "Garmin",
           "description": "활동 및 훈련 데이터"

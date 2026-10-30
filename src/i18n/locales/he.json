@@ -357,10 +357,6 @@
           "name": "Apple Health",
           "description": "התחברות דרך אפליקציית פרני ל-iOS"
         },
-        "fitbit": {
-          "name": "Fitbit",
-          "description": "צעדים, שינה וקצב לב"
-        },
         "garmin": {
           "name": "Garmin",
           "description": "נתוני פעילות ואימון"

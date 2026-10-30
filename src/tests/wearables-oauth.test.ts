@@ -33,8 +33,6 @@ describe('Wearables OAuth', () => {
   beforeEach(() => {
     vi.resetModules();
     // Set up test environment variables
-    process.env.FITBIT_CLIENT_ID = 'test-fitbit-id';
-    process.env.FITBIT_CLIENT_SECRET = 'test-fitbit-secret';
     process.env.OURA_CLIENT_ID = 'test-oura-id';
     process.env.OURA_CLIENT_SECRET = 'test-oura-secret';
     process.env.TOKEN_SERVER_PORT = '3001';
@@ -49,7 +47,6 @@ describe('Wearables OAuth', () => {
     it('should return true for configured providers', async () => {
       const { isProviderConfigured } = await import('../servers/token/oauth/wearables.js');
 
-      expect(isProviderConfigured('fitbit')).toBe(true);
       expect(isProviderConfigured('oura')).toBe(true);
     });
 
@@ -74,7 +71,6 @@ describe('Wearables OAuth', () => {
 
       const providers = getConfiguredProviders();
 
-      expect(providers).toContain('fitbit');
       expect(providers).toContain('oura');
       expect(providers).not.toContain('garmin');
       expect(providers).not.toContain('whoop');
@@ -85,13 +81,12 @@ describe('Wearables OAuth', () => {
     it('should return config for configured provider', async () => {
       const { getProviderConfig } = await import('../servers/token/oauth/wearables.js');
 
-      const config = getProviderConfig('fitbit');
+      const config = getProviderConfig('oura');
 
       expect(config).not.toBeNull();
-      expect(config?.clientId).toBe('test-fitbit-id');
-      expect(config?.authorizeUrl).toBe('https://www.fitbit.com/oauth2/authorize');
-      expect(config?.scopes).toContain('activity');
-      expect(config?.scopes).toContain('sleep');
+      expect(config?.clientId).toBe('test-oura-id');
+      expect(config?.authorizeUrl).toBe('https://cloud.ouraring.com/oauth/authorize');
+      expect(config?.scopes).toContain('daily');
     });
 
     it('should return null for unconfigured provider', async () => {
@@ -107,11 +102,11 @@ describe('Wearables OAuth', () => {
     it('should build correct OAuth authorization URL', async () => {
       const { buildAuthUrl } = await import('../servers/token/oauth/wearables.js');
 
-      const url = buildAuthUrl('fitbit', 'test-state-123');
+      const url = buildAuthUrl('oura', 'test-state-123');
 
       expect(url).not.toBeNull();
-      expect(url).toContain('https://www.fitbit.com/oauth2/authorize');
-      expect(url).toContain('client_id=test-fitbit-id');
+      expect(url).toContain('https://cloud.ouraring.com/oauth/authorize');
+      expect(url).toContain('client_id=test-oura-id');
       expect(url).toContain('response_type=code');
       expect(url).toContain('state=test-state-123');
       expect(url).toContain('scope=');
@@ -138,7 +133,7 @@ describe('Wearables OAuth', () => {
     it('should return null when no tokens stored', async () => {
       const { getTokens } = await import('../servers/token/oauth/wearables.js');
 
-      const tokens = await getTokens('fitbit', 'user-123');
+      const tokens = await getTokens('oura', 'user-123');
 
       expect(tokens).toBeNull();
     });
@@ -166,10 +161,8 @@ describe('Wearables OAuth', () => {
 
       const statuses = await getAllConnectionStatuses('user-123');
 
-      expect(statuses).toHaveLength(5); // apple_health + 4 OAuth providers
-      expect(statuses.find((s) => s.provider === 'apple_health')).toBeDefined();
-      expect(statuses.find((s) => s.provider === 'fitbit')).toBeDefined();
-      expect(statuses.find((s) => s.provider === 'oura')).toBeDefined();
+      // apple_health + the 3 web OAuth providers, and nothing retired
+      expect(statuses.map((s) => s.provider)).toEqual(['apple_health', 'oura', 'garmin', 'whoop']);
     });
 
     it('should include login URLs for configured providers', async () => {
@@ -177,8 +170,8 @@ describe('Wearables OAuth', () => {
 
       const statuses = await getAllConnectionStatuses('user-123');
 
-      const fitbitStatus = statuses.find((s) => s.provider === 'fitbit');
-      expect(fitbitStatus?.login_url).toContain('/wearables/fitbit/login');
+      const ouraStatus = statuses.find((s) => s.provider === 'oura');
+      expect(ouraStatus?.login_url).toContain('/wearables/oura/login');
 
       // Unconfigured providers should have null login_url
       const garminStatus = statuses.find((s) => s.provider === 'garmin');
@@ -193,21 +186,6 @@ describe('Wearables OAuth', () => {
       const appleStatus = statuses.find((s) => s.provider === 'apple_health');
       expect(appleStatus?.login_url).toBe('ferniapp://healthkit/authorize');
       expect(appleStatus?.configured).toBe(true);
-    });
-  });
-
-  describe('Fitbit scopes', () => {
-    it('should include all required health scopes', async () => {
-      const { getProviderConfig } = await import('../servers/token/oauth/wearables.js');
-
-      const config = getProviderConfig('fitbit');
-
-      expect(config?.scopes).toContain('activity');
-      expect(config?.scopes).toContain('heartrate');
-      expect(config?.scopes).toContain('sleep');
-      expect(config?.scopes).toContain('oxygen_saturation');
-      expect(config?.scopes).toContain('respiratory_rate');
-      expect(config?.scopes).toContain('temperature');
     });
   });
 

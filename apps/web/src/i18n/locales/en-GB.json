@@ -2500,10 +2500,6 @@
         "description": "Sync with Apple Watch and iPhone health data",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Connect your Fitbit device",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Sync with Garmin wearables",
         "name": "Garmin"
@@ -8320,7 +8316,7 @@
     "appleHealthDesc": "Sleep, activity, and heart rate data",
     "ouraDesc": "Sleep quality and readiness scores",
     "eightSleepDesc": "Sleep tracking and temperature",
-    "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
+    "wearablesDesc": "Garmin, Whoop, and more",
     "calendarDesc": "Events, meetings, and availability",
     "linkedInDesc": "Professional context and network",
     "spotifyDesc": "Music, mood playlists, listening history",

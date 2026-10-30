@@ -13,6 +13,7 @@ vi.mock('../google-calendar-token-store.js', () => ({
   removeTokens: vi.fn(),
   peekTokens: vi.fn(() => stored.tokens),
   listTokenUsers: vi.fn(async () => []),
+  googleTokenStore: { isRefreshBlocked: vi.fn(() => false) },
 }));
 
 const { hasCalendarScope } = await import('../google-link-scope.js');

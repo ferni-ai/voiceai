@@ -217,14 +217,14 @@ interface TerraSessionResponse {
 /**
  * Generate a Terra authentication session.
  * This creates a widget session URL that allows users to connect 300+ wearables
- * including Apple Health, Fitbit, Garmin, Samsung Health, and more.
+ * including Apple Health, Garmin, Samsung Health, and more.
  *
  * @see https://docs.tryterra.co/reference/generate-authentication-url
  */
 export async function generateTerraSession(
   userId: string,
   options?: {
-    /** Specific providers to show (e.g., ['APPLE', 'FITBIT', 'GARMIN']) */
+    /** Specific providers to show (e.g., ['APPLE', 'GARMIN']) */
     providers?: string[];
     /** Language for widget (e.g., 'en', 'es', 'fr') */
     language?: string;
@@ -491,18 +491,6 @@ export async function exchangeCodeForTokens(
         });
         break;
 
-      case 'fitbit':
-        tokenUrl = 'https://api.fitbit.com/oauth2/token';
-        // Fitbit requires Basic auth header with client credentials
-        body = new URLSearchParams({
-          code,
-          grant_type: 'authorization_code',
-          redirect_uri: platformConfig.redirectUri,
-        });
-        // Special handling for Fitbit - needs auth header
-        // We'll set headers differently below
-        break;
-
       case 'terra':
         // Terra uses webhook-based authentication - no code exchange needed
         // The handleTerraWebhook function processes auth callbacks
@@ -519,18 +507,9 @@ export async function exchangeCodeForTokens(
         return false;
     }
 
-    // Build headers - Fitbit requires Basic auth
     const headers: Record<string, string> = {
       'Content-Type': 'application/x-www-form-urlencoded',
     };
-
-    if (platform === 'fitbit') {
-      // Fitbit uses Basic auth with base64-encoded client_id:client_secret
-      const credentials = Buffer.from(
-        `${platformConfig.clientId}:${platformConfig.clientSecret}`
-      ).toString('base64');
-      headers['Authorization'] = `Basic ${credentials}`;
-    }
 
     const response = await fetch(tokenUrl, {
       method: 'POST',
@@ -615,7 +594,7 @@ export async function syncBiometrics(userId: string): Promise<BiometricSnapshot 
         snapshot = await fetchTerraData(userId, user.accessToken);
         break;
       default:
-        // HealthKit/Fitbit native: needs the companion iOS app, not implemented yet
+        // HealthKit: needs the companion iOS app, not implemented yet
         snapshot = devStubOrUnavailable(
           `Biometrics platform "${user.platform}" is not yet supported. Please configure a supported platform (Google Fit, Oura, Whoop, or Terra).`,
           () => createMockSnapshot(userId, user.platform)
@@ -679,14 +658,6 @@ async function refreshToken(userId: string): Promise<boolean> {
         });
         break;
 
-      case 'fitbit':
-        tokenUrl = 'https://api.fitbit.com/oauth2/token';
-        body = new URLSearchParams({
-          refresh_token: user.refreshToken,
-          grant_type: 'refresh_token',
-        });
-        break;
-
       case 'terra':
         // Terra doesn't use traditional OAuth refresh - it uses webhook-based data push
         // The Terra user ID remains valid indefinitely once authenticated via widget
@@ -699,17 +670,9 @@ async function refreshToken(userId: string): Promise<boolean> {
         return false;
     }
 
-    // Build headers - Fitbit requires Basic auth
     const headers: Record<string, string> = {
       'Content-Type': 'application/x-www-form-urlencoded',
     };
-
-    if (user.platform === 'fitbit') {
-      const credentials = Buffer.from(
-        `${platformConfig.clientId}:${platformConfig.clientSecret}`
-      ).toString('base64');
-      headers['Authorization'] = `Basic ${credentials}`;
-    }
 
     const response = await fetch(tokenUrl, {
       method: 'POST',
