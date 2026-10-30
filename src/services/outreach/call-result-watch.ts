@@ -14,7 +14,7 @@
  * bogle_users/{uid}/on_behalf_calls/{callId}, every POLL_MS until it holds
  * a result, then tells it through the same path
  * as the in-process report (call-result-live.ts tellLiveOnce: the claim on
- * `told.voice`, the crisis hold, the alert speaker, the guarded wording). A
+ * `liveReport`, the crisis hold, the alert speaker, the guarded wording). A
  * poll, not a listener: nothing in the agent holds Firestore listeners, and
  * one read every few seconds of one document, for one call, is cheap.
  *
@@ -28,7 +28,10 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { liveSessionFor } from '../../tools/registry/live-session.js';
 import { isMemberIdentity } from '../identity/member-identity.js';
 import { callResultLiveReportOn, reportableOutcome, tellLiveOnce } from './call-result-live.js';
-import type { OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
+import type { reportCallResultLive } from './call-result-live.js';
+
+/** The placed call's request, as the live report takes it. */
+type OnBehalfCallRequest = Parameters<typeof reportCallResultLive>[0];
 
 const log = createLogger({ module: 'call-result-watch' });
 
@@ -67,7 +70,7 @@ export function watchCallResult(
     const session = liveSessionFor(sessionId);
     if (!callId || !session || !isMemberIdentity(userId?.trim())) return null;
     const deps = { ...defaultDeps, ...overrides };
-    const closing = (session as { _closingSignal?: AbortSignal })._closingSignal;
+    const closing = (session as { _closingSignal?: AbortSignal } | undefined)?._closingSignal;
     let stopped = false;
     let poll: ReturnType<typeof setTimeout> | undefined;
 

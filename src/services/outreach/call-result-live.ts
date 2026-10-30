@@ -21,7 +21,8 @@
  * The owner's call may be in another worker than the one that captures the
  * result (LiveKit Cloud runs each call as its own job), so the call that placed
  * it also watches the result (call-result-watch.ts). Both paths claim the report
- * on the call record (`told.voice`) first, so the owner hears it once; neither
+ * on the call record (`liveReport`, live-report-record.ts) first, so the owner
+ * hears it once, and once it is heard it is delivered for the opener; neither
  * speaks while the owner's call has crisis risk (crisis-call-risk.ts): the
  * result waits for the next call's opener.
  *
@@ -39,6 +40,7 @@ import {
 import { callResultDetails } from './call-result-text.js';
 import { liveSessionFor } from '../../tools/registry/live-session.js';
 import { crisisRiskThisCall } from '../safety/index.js';
+import { claimVoiceReport, markLiveReportSpoken } from './live-report-record.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = createLogger({ module: 'call-result-live' });
@@ -84,47 +86,13 @@ export function reportableOutcome(value: unknown): CallOutcome | null {
     : null;
 }
 
-/** Claims this process already made, so its two paths never both speak (oldest dropped first). */
-const claimedHere = new Set<string>();
-const CLAIMS_KEPT = 500;
-
-/**
- * Claim the spoken report of this call, once across paths and workers: false when
- * it is already claimed (`told.voice`) or the owner was already texted (`delivered`).
- * Never throws. The other path that could speak this report runs where the owner's
- * call is, which is this process (liveSessionFor), so with no call record (stored in
- * memory) or a failed transaction, this process's own claim decides.
- */
-export async function claimVoiceReport(userId: string, callId: string): Promise<boolean> {
-  const key = `${userId}/${callId}`;
-  if (claimedHere.has(key)) return false;
-  claimedHere.add(key);
-  if (claimedHere.size > CLAIMS_KEPT) claimedHere.delete(claimedHere.values().next().value ?? '');
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) return true;
-    const ref = db.collection('bogle_users').doc(userId).collection('on_behalf_calls').doc(callId);
-    return await db.runTransaction(async (tx) => {
-      const fresh = await tx.get(ref);
-      if (!fresh.exists) return true;
-      const data = fresh.data() as { told?: { voice?: unknown }; delivered?: unknown } | undefined;
-      if (Boolean(data?.told?.voice) || Boolean(data?.delivered)) return false;
-      tx.update(ref, { 'told.voice': new Date().toISOString() });
-      return true;
-    });
-  } catch (error) {
-    log.warn({ callId, error: String(error) }, 'CALL_RESULT_LIVE_REPORT claim failed; told here');
-    return true;
-  }
-}
-
 type LiveTold = 'handed' | 'crisis_hold' | 'already_told' | 'not_handed';
 
 /**
  * Tell the owner in this live call, once: not on a call with crisis risk (held for
  * the next opener, re-checked when the speaker has its pause), and only if this
- * path wins the claim. Never throws.
+ * path wins the claim. Heard (CALL_ALERT_SPOKEN), it is marked delivered by voice.
+ * Never throws.
  */
 export async function tellLiveOnce(call: {
   session: object;
@@ -145,6 +113,7 @@ export async function tellLiveOnce(call: {
       priority: 'high',
       session,
       holdIf: crisis,
+      onSpoken: () => void markLiveReportSpoken(userId, outcome.callId),
     });
     return handed ? 'handed' : 'not_handed';
   } catch (error) {

@@ -252,7 +252,10 @@ export function createCallAlertSpeaker(
         if (cb.holdIf?.()) return say('CALL_ALERT_DROPPED', { ...fields, reason: 'held' });
         // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
         const outcome = await sayOnce(session, cb);
-        if (outcome === 'played') return say('CALL_ALERT_SPOKEN', fields);
+        if (outcome === 'played') {
+          cb.onSpoken?.();
+          return say('CALL_ALERT_SPOKEN', fields);
+        }
         if (outcome === 'requested')
           return say('CALL_ALERT_SPOKEN', { ...fields, unconfirmed: true });
         if (outcome !== 'cut') {
