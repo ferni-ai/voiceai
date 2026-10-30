@@ -6,7 +6,8 @@
  * - LIFX
  * - Ecobee
  *
- * DOMAIN: home; with SMART_HOME_LIFX on, smart-home (two caller-bound light tools)
+ * DOMAIN: home; with SMART_HOME_LIFX on, lifx-lights (two caller-bound light tools, their
+ * own domain so light words never load the vibe tools that share 'smart-home')
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -371,13 +372,14 @@ const smartHomeTools: ToolDefinition[] = [
  * Off, the tools above are built with no user (createSmartHomeTools()), so no
  * saved LIFX token is ever loaded, and their domain 'home' is not the
  * 'smart-home' domain loader.ts loads this module as. On, two LIFX-only tools
- * run as the call's verified caller (caller-lifx-tools.ts).
+ * run as the call's verified caller (caller-lifx-tools.ts), in their own
+ * lifx-lights domain (loader.ts DOMAIN_ALIASES).
  */
 
 const lifxTools: ToolDefinition[] = [
   {
     ...controlLightDef,
-    domain: 'smart-home',
+    domain: 'lifx-lights',
     create: (_ctx: ToolContext): Tool =>
       llm.tool({
         description:
@@ -395,7 +397,7 @@ const lifxTools: ToolDefinition[] = [
     id: 'listSmartDevices',
     name: 'List Smart Devices',
     description: 'List the lights linked to this account',
-    domain: 'smart-home',
+    domain: 'lifx-lights',
     tags: ['devices', 'lights', 'smart-home'],
     create: (_ctx: ToolContext): Tool =>
       llm.tool({
@@ -412,7 +414,7 @@ const lifxTools: ToolDefinition[] = [
 // ============================================================================
 
 const legacy = createDomainExport('home', smartHomeTools);
-const lifx = createDomainExport('smart-home', lifxTools);
+const lifx = createDomainExport('lifx-lights', lifxTools);
 
 /** Read when the domain loads: SMART_HOME_LIFX on gives the two caller-bound light tools. */
 export const getToolDefinitions = async (): Promise<ToolDefinition[]> =>

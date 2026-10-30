@@ -9,7 +9,7 @@ This document lists all environment variables required by tool domains. Tools wi
 | Marketing | Twitter, LinkedIn | `TWITTER_*`, `LINKEDIN_*` |
 | Referral | Twilio | `TWILIO_*` |
 | Concierge | Twilio | `TWILIO_*` |
-| Smart Home | Per-user LIFX / Sonos / Ecobee | `SONOS_*`, `ECOBEE_API_KEY`; LIFX needs no key: with `SMART_HOME_LIFX=on` the light tools (`controlLight`, `listSmartDevices`, domain `smart-home`) run only for a verified caller who saved their own LIFX token |
+| Smart Home | Per-user LIFX / Sonos / Ecobee | `SONOS_*`, `ECOBEE_API_KEY`; LIFX needs no key: with `SMART_HOME_LIFX=on` the light tools (`controlLight`, `listSmartDevices`, domain `lifx-lights`, one LIFX circuit breaker per credential) run only for a verified caller who saved their own LIFX token |
 | Local Search | Google Places | `GOOGLE_PLACES_API_KEY` |
 | Banking | Plaid | `PLAID_*` |
 | Music | Spotify | `SPOTIFY_*` |

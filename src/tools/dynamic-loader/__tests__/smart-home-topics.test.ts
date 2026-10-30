@@ -57,6 +57,15 @@ describe('light words load the smart-home tools (SMART_HOME_LIFX)', () => {
     expect(offered).not.toContain('listSmartDevices');
   });
 
+  it('on: with the vibe module loaded first, a light word offers exactly the two light tools', async () => {
+    vi.stubEnv('SMART_HOME_LIFX', 'on');
+    // Full-catalog and orchestrator paths load vibe, whose tools sit in 'smart-home',
+    // run as any session id and set the thermostat: light words must not reach them.
+    await loadToolDomainsLazy(['vibe', 'smart-home']);
+    const offered = await offeredFor('can you dim the lights');
+    expect(offered.sort()).toEqual(['controlLight', 'listSmartDevices']);
+  });
+
   it.each(['in light of what happened', 'a light lunch', 'the future looks dim'])(
     'on: "%s" is not a light request',
     async (said) => {

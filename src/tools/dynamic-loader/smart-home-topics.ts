@@ -1,6 +1,7 @@
 /**
- * Dynamic Tool Loader - the words that load the smart-home domain (the
- * caller's own LIFX lights) with SMART_HOME_LIFX=on.
+ * Dynamic Tool Loader - the words that load the lifx-lights domain (the
+ * caller's own LIFX lights) with SMART_HOME_LIFX=on. Not smart-home: the vibe
+ * tools share that domain, run as any session id and set the thermostat.
  *
  * No topic named smart-home, so "dim the bedroom lamp" never loaded the light
  * tools. These are whole words; "light" alone is not one ("in light of",
@@ -10,7 +11,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { TopicPattern } from './prediction-topics.js';
 
-const HOME = ['smart-home'] as const;
+const HOME = ['lifx-lights'] as const;
 
 const SMART_HOME_TOPIC_PATTERNS: readonly TopicPattern[] = [
   ['lights', HOME, /(?<![a-z])lights(?![a-z])/],

@@ -10,6 +10,7 @@
  * @module tools/domains/smart-home/caller-lifx-tools
  */
 
+import { createHash } from 'node:crypto';
 import { toolCallerId } from '../../registry/per-caller-tool.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { isUnverifiedUserId } from '../../../services/identity/unverified-user-id.js';
@@ -34,7 +35,13 @@ function verifiedCaller(opts: unknown): string | null {
   return isMemberIdentity(caller) && !isUnverifiedUserId(caller) ? caller : null;
 }
 
-type CallerLights = { refused: string } | { token: string; lights: SmartDevice[] };
+interface CallerLifx {
+  lifx: { token: string };
+  /** Its own circuit breaker: one caller's revoked token (401s) never opens LIFX for everyone. */
+  breakerKey: string;
+}
+
+type CallerLights = { refused: string } | { credential: CallerLifx; lights: SmartDevice[] };
 
 /** The verified caller's LIFX token and their LIFX lights; nothing from any other platform. */
 async function callerLights(opts: unknown): Promise<CallerLights> {
@@ -43,9 +50,11 @@ async function callerLights(opts: unknown): Promise<CallerLights> {
   const lifx = await getCredential(caller, 'lifx');
   const token = typeof lifx?.token === 'string' ? lifx.token.trim() : '';
   if (!token) return { refused: NOT_LINKED };
-  const found = await getLifxLights({ lifx: { token } });
+  const breakerKey = createHash('sha256').update(token).digest('hex').slice(0, 16);
+  const credential = { lifx: { token }, breakerKey };
+  const found = await getLifxLights(credential);
   const lights = found.filter((d) => d.platform === 'lifx' && d.type === 'light');
-  return lights.length > 0 ? { token, lights } : { refused: NO_LIGHTS };
+  return lights.length > 0 ? { credential, lights } : { refused: NO_LIGHTS };
 }
 
 function describe(light: SmartDevice): string {
@@ -80,7 +89,7 @@ export async function controlCallerLight(
         : light.state === 'on'
           ? 'off'
           : 'on';
-  const ok = await setLifxLight({ lifx: { token: own.token } }, light.id, power, brightness);
+  const ok = await setLifxLight(own.credential, light.id, power, brightness);
   if (!ok) return `I couldn't reach ${light.name}, so it wasn't changed.`;
   return brightness !== undefined
     ? `💡 **${light.name}** is now at ${brightness}%`

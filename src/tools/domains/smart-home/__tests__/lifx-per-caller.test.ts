@@ -61,6 +61,7 @@ const { getToolDefinitions } = await import('../index.js');
 
 const TOKEN_A = 'lifx-token-of-caller-a';
 const TOKEN_B = 'lifx-token-of-caller-b';
+const TOKEN_REVOKED = 'lifx-token-revoked-by-its-owner';
 
 function callFrom(userData: Record<string, unknown>): unknown {
   return { ctx: { userData } };
@@ -98,6 +99,9 @@ beforeEach(() => {
     const url = String(input);
     const headers = (init?.headers ?? {}) as Record<string, string>;
     h.lifxCalls.push({ url, method: init?.method ?? 'GET', auth: headers.Authorization ?? '' });
+    if (headers.Authorization === `Bearer ${TOKEN_REVOKED}`) {
+      return new globalThis.Response('{"error":"Bad token"}', { status: 401 });
+    }
     const body = url.endsWith('/lights/all')
       ? [{ id: 'd073d5', label: 'Bedroom Lamp', power: 'off', brightness: 0.4 }]
       : { results: [{ status: 'ok' }] };
@@ -113,11 +117,11 @@ afterEach(() => {
 describe('SMART_HOME_LIFX on', () => {
   beforeEach(() => vi.stubEnv('SMART_HOME_LIFX', 'on'));
 
-  it('offers only the two light tools, in the smart-home domain', async () => {
+  it('offers only the two light tools, in their own lifx-lights domain', async () => {
     const defs = await getToolDefinitions();
     expect(defs.map((d) => [d.id, d.domain])).toEqual([
-      ['controlLight', 'smart-home'],
-      ['listSmartDevices', 'smart-home'],
+      ['controlLight', 'lifx-lights'],
+      ['listSmartDevices', 'lifx-lights'],
     ]);
   });
 
@@ -194,6 +198,21 @@ describe('SMART_HOME_LIFX on', () => {
     expect(said).toMatch(/couldn't find a LIFX light called "thermostat"/);
     expect(h.ecobeeSet).not.toHaveBeenCalled();
     expect(h.lifxCalls.filter((c) => c.method === 'PUT')).toEqual([]);
+  });
+
+  it("one caller's revoked token opens only that credential's breaker, not every caller's", async () => {
+    h.docs.set('uid-r/lifx', { token: TOKEN_REVOKED });
+    h.docs.set('uid-c/lifx', { token: 'lifx-token-of-caller-c' });
+    const { list } = await lightTools();
+    for (let i = 0; i < 4; i++) {
+      await list.execute({}, callFrom({ userId: 'uid-r', verifiedCaller: true }));
+    }
+    // Three 401s open that credential's breaker, so the fourth never reaches LIFX.
+    expect(h.lifxCalls.filter((c) => c.auth === `Bearer ${TOKEN_REVOKED}`)).toHaveLength(3);
+
+    const said = await list.execute({}, callFrom({ userId: 'uid-c', verifiedCaller: true }));
+    expect(said).toContain('Bedroom Lamp');
+    expect(h.lifxCalls.at(-1)?.auth).toBe('Bearer lifx-token-of-caller-c');
   });
 
   it.each([
