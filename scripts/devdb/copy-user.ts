@@ -117,6 +117,7 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   scheduled_calls: QUEUE,
   contacts: `${OTHERS}: contacts`,
   on_behalf_calls: `${OTHERS}: third parties' numbers and what they said`,
+  activity: `${OTHERS}: the errand ledger keeps what the called person said (theySaid)`,
   reminders: SCHEDULING,
   outreach_attempts: SCHEDULING,
   outreach_history: SCHEDULING,
@@ -186,11 +187,10 @@ export const NOT_COPIED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
 };
 
 /**
- * A collection name excluded wherever it appears as a subcollection: the names
- * above, the collection of every EXCLUDED_STORES entry (credentials, queues,
- * other people's data), any reminders / *_reminders / outreach_* (SCHEDULING), and
- * any name holding a credential word (isSecretField: plaid_tokens, oauth_tokens,
- * wearable_whoop_tokens, passkeys, ...).
+ * A collection name excluded wherever it appears as a subcollection: the names above, the
+ * collection of every EXCLUDED_STORES entry (credentials, queues, other people's data), any
+ * reminders / *_reminders / outreach_* (SCHEDULING), and any name holding a credential word
+ * (isSecretField: plaid_tokens, oauth_tokens, wearable_whoop_tokens, passkeys, ...).
  * ferni_commitments is kept: Ferni reads it in calls for follow-through and
  * nothing on dev delivers from it.
  */
@@ -216,7 +216,7 @@ export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   action_trust active_context active_predictions ai_notices alarms ambient
   analytics anomalies anticipatory_planning apology_records associative_memory audit_log
   behavioral_finance behavioral_intelligence behavioral_patterns
-  behavioral_triggers biometric_readings blind_spots blockers briefings bth_feedback
+  behavioral_triggers biometric_readings blind_spots blockers booking_prefs briefings bth_feedback
   bth_signals burnout_patterns calendar calendar_data
   capacity career_data causal_timeseries celebration_balance celebration_momentum celebrations
   ceo_blockers ceo_decisions ceo_energy ceo_focus_sessions ceo_gratitude ceo_ideas ceo_journal
