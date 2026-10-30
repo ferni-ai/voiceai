@@ -26,14 +26,9 @@ const CLAIMS_KEPT = 500;
 /** When to look for the While You Were Away result: capture may store it after the report is heard. */
 const UNIFIED_TRIES_MS = [0, 5000, 15_000];
 
-type CallDoc = NonNullable<
-  ReturnType<typeof import('../superhuman/firestore-utils.js').getFirestoreDb>
->;
-
-async function callDoc(
-  userId: string,
-  callId: string
-): Promise<{ db: CallDoc; ref: ReturnType<ReturnType<CallDoc['collection']>['doc']> } | null> {
+/** The call doc and its database, or null with no Firestore (results kept in memory). */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Firestore's own types, inferred
+async function callDoc(userId: string, callId: string) {
   const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
   const db = getFirestoreDb();
   if (!db) return null;
@@ -87,7 +82,7 @@ export async function markLiveReportSpoken(userId: string, callId: string): Prom
       await import('../../intelligence/context-builders/external/pending-call-results.js');
     await markCallResultsDelivered(userId, [callId]);
     const { getPendingResults, markResultsDelivered } =
-      await import('../background-agents/unified-result-capture.js');
+      await import('../background-agents/index.js');
     for (const wait of UNIFIED_TRIES_MS) {
       // eslint-disable-next-line no-await-in-loop -- one look at a time, until it is stored
       await later(wait);
