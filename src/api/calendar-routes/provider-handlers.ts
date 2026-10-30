@@ -48,19 +48,31 @@ export async function handleAppleConnect(
       return;
     }
 
-    const success = await appleCalendarProvider.storeCredentials(userId, appleId, appPassword);
+    const result = await appleCalendarProvider.storeCredentials(userId, appleId, appPassword);
 
-    if (success) {
+    if (result.ok) {
       await registerApplePolling(userId);
       await pollAppleUser(userId);
 
       sendJson(res, { success: true, message: 'Apple Calendar connected' });
       log.info({ userId, appleId }, '🍎 Apple Calendar connected and polling registered');
-    } else {
+    } else if (result.reason === 'invalid_credentials') {
       sendJson(res, {
         success: false,
         error: "Invalid credentials. Make sure you're using an app-specific password.",
       });
+    } else {
+      // Nothing was stored (no sealing key, or the write failed): never say connected.
+      sendJson(
+        res,
+        {
+          success: false,
+          code: result.reason,
+          error:
+            "Couldn't save your Apple Calendar connection. Nothing was stored; please try again later.",
+        },
+        503
+      );
     }
   } catch (error) {
     log.error({ error, userId }, 'Failed to connect Apple Calendar');
