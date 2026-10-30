@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { envelopeFailure, envelopeIsStale, keyIdOf, openEnvelope } from '../token-encryption.js';
 import {
   openTokens,
+  resealCountsSnapshot,
   resealStale,
   sealTokens,
   tokenKeyIdLine,
@@ -43,9 +44,11 @@ const kidOf = (s: { encrypted: string }) => (JSON.parse(s.encrypted) as { kid?: 
 /** An in-memory record, standing in for the Firestore doc a store keeps its envelope in. */
 function record(initial: SealedTokens) {
   const doc = { encrypted: initial.encrypted };
-  const write = vi.fn(async (sealed: string) => void (doc.encrypted = sealed));
-  const readCurrent = vi.fn(async () => doc.encrypted);
-  return { doc, write, readCurrent };
+  const swap = vi.fn(async (sealed: string) => {
+    doc.encrypted = sealed;
+    return 'updated' as 'updated' | 'missing' | 'changed';
+  });
+  return { doc, swap };
 }
 
 describe('TOKEN_SEALING_KEY', () => {
@@ -70,7 +73,7 @@ describe('TOKEN_SEALING_KEY', () => {
     const rec = record(legacy);
     const outcome = await resealStale({ store: 't', stored: legacy.encrypted, value: RAW, ...rec });
     expect(outcome).toBe('resealed');
-    expect(rec.write).toHaveBeenCalledTimes(1);
+    expect(rec.swap).toHaveBeenCalledTimes(1);
     expect(kidOf(rec.doc)).toBe(keyIdOf(SEAL));
 
     env({ TOKEN_SEALING_KEY: SEAL }); // log secret rotated away
@@ -92,22 +95,32 @@ describe('TOKEN_SEALING_KEY', () => {
     expect(kidOf(rec.doc)).toBe(keyIdOf(SEAL));
   });
 
-  it('leaves the record alone when it changed since the read', async () => {
-    env({ LOG_HASH_SECRET: LEGACY });
-    const legacy = sealTokens(RAW);
-    env({ TOKEN_SEALING_KEY: SEAL, LOG_HASH_SECRET: LEGACY });
-    const rec = record({ encrypted: 'a refresh landed meanwhile' });
-    const outcome = await resealStale({ store: 't', stored: legacy.encrypted, value: RAW, ...rec });
-    expect(outcome).toBe('changed');
-    expect(rec.write).not.toHaveBeenCalled();
-  });
+  it.each(['changed', 'missing'] as const)(
+    'reports a record that is %s since the read, and counts it',
+    async (answer) => {
+      env({ LOG_HASH_SECRET: LEGACY });
+      const legacy = sealTokens(RAW);
+      env({ TOKEN_SEALING_KEY: SEAL, LOG_HASH_SECRET: LEGACY });
+      const rec = record(legacy);
+      rec.swap.mockResolvedValueOnce(answer);
+      const before = resealCountsSnapshot().changed;
+      const outcome = await resealStale({
+        store: 't',
+        stored: legacy.encrypted,
+        value: RAW,
+        ...rec,
+      });
+      expect(outcome).toBe('changed');
+      expect(resealCountsSnapshot().changed).toBe(before + 1);
+    }
+  );
 
   it('a failed write is reported, not thrown, and the old blob stays', async () => {
     env({ LOG_HASH_SECRET: LEGACY });
     const legacy = sealTokens(RAW);
     env({ TOKEN_SEALING_KEY: SEAL, LOG_HASH_SECRET: LEGACY });
     const rec = record(legacy);
-    rec.write.mockRejectedValueOnce(new Error('firestore down'));
+    rec.swap.mockRejectedValueOnce(new Error('firestore down'));
     const outcome = await resealStale({ store: 't', stored: legacy.encrypted, value: RAW, ...rec });
     expect(outcome).toBe('failed');
     expect(openTokens(rec.doc, 't')).toEqual(RAW);
@@ -157,8 +170,7 @@ describe('TOKEN_SEALING_KEY', () => {
     expect(await resealStale({ store: 't', stored: sealed.encrypted, value: RAW, ...rec })).toBe(
       'current'
     );
-    expect(rec.readCurrent).not.toHaveBeenCalled();
-    expect(rec.write).not.toHaveBeenCalled();
+    expect(rec.swap).not.toHaveBeenCalled();
   });
 
   it('a malformed value is ignored (the old key still seals), never used', () => {

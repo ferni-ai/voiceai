@@ -16,9 +16,16 @@ vi.mock('../../persistence/index.js', () => ({
   createPersistenceStore: () => ({
     get: async () => db.doc,
     load: async () => db.doc,
-    setImmediate: async (_uid: string, data: { encrypted: string; updated_at: number }) => {
-      setImmediate(data);
-      db.doc = data;
+    updateIfUnchanged: async (
+      _uid: string,
+      unchanged: (cur: { encrypted: string }) => boolean,
+      fields: { encrypted: string }
+    ) => {
+      if (!db.doc) return 'missing';
+      if (!unchanged(db.doc)) return 'changed';
+      setImmediate(fields);
+      db.doc = { ...db.doc, ...fields };
+      return 'updated';
     },
     delete: vi.fn(),
     shutdown: vi.fn().mockResolvedValue(undefined),

@@ -111,10 +111,10 @@ export async function getTokens(userId: string): Promise<OAuthTokens | null> {
           store: SPOTIFY_LINK_COLLECTION,
           stored: data.encrypted,
           value: decrypted,
-          readCurrent: async () =>
-            (await tokenStore.load(userId, { fresh: true, strict: true }))?.encrypted,
-          write: (encrypted) =>
-            tokenStore.setImmediate(userId, { encrypted, updated_at: data.updated_at }),
+          swap: (encrypted) =>
+            tokenStore.updateIfUnchanged(userId, (cur) => cur.encrypted === data.encrypted, {
+              encrypted,
+            }),
         });
         return decrypted;
       }

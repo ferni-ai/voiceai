@@ -30,10 +30,7 @@ const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 const AUTH_TAG_BYTES = 16;
 
 export type TokenKeySource =
-  | 'TOKEN_SEALING_KEY'
-  | 'OAUTH_ENCRYPTION_KEY'
-  | 'LOG_HASH_SECRET'
-  | 'none';
+  'TOKEN_SEALING_KEY' | 'OAUTH_ENCRYPTION_KEY' | 'LOG_HASH_SECRET' | 'none';
 
 const warnedBadSealingKey = new Set<string>();
 

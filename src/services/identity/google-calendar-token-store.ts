@@ -138,10 +138,10 @@ function resealToSealingKey(
     store: COLLECTION,
     stored: data.encrypted,
     value,
-    readCurrent: async () =>
-      (await tokenStore.load(userId, { fresh: true, strict: true }))?.encrypted,
-    write: (encrypted) =>
-      tokenStore.setImmediate(userId, { encrypted, updated_at: data.updated_at }),
+    swap: (encrypted) =>
+      tokenStore.updateIfUnchanged(userId, (cur) => cur.encrypted === data.encrypted, {
+        encrypted,
+      }),
   });
 }
 

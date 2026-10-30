@@ -139,31 +139,36 @@ function envelopeKidOf(sealed: string): string {
 }
 
 /**
- * Re-seal on read: after `stored` (an envelope string) opened to `value`, write
- * it back sealed with TOKEN_SEALING_KEY. Best effort and never throws: a failed
- * write leaves the old envelope, which still opens, and the next read retries.
+ * Re-seal on read: after `stored` (an envelope string) opened to `value`, ask `swap`
+ * to replace it with the same value sealed under TOKEN_SEALING_KEY. Best effort and
+ * never throws: a failed swap leaves the old envelope, which still opens, and the
+ * next read retries.
  *
- * The write is skipped when `readCurrent()` (a fresh read of the same field) no
- * longer returns `stored`: a refresh or a disconnect landed since, and writing
- * back what we opened would undo it. Unset TOKEN_SEALING_KEY: always 'current'.
+ * `swap` must be atomic against the stored record (PersistenceStore.updateIfUnchanged:
+ * an update() carrying the read's lastUpdateTime) and answer 'missing' or 'changed'
+ * instead of writing when the record was deleted or rewritten since the read. A plain
+ * set() would bring a disconnected account back or undo a refresh.
+ * Unset TOKEN_SEALING_KEY: always 'current', and `swap` is never called.
  */
 export async function resealStale(args: {
   store: string;
   stored: string;
   value: unknown;
-  readCurrent: () => Promise<string | undefined>;
-  write: (sealed: string) => Promise<void>;
+  swap: (sealed: string) => Promise<'updated' | 'missing' | 'changed'>;
 }): Promise<ResealOutcome> {
-  const { store, stored, value, readCurrent, write } = args;
+  const { store, stored, value, swap } = args;
   if (!envelopeIsStale(stored)) return 'current';
   const ids = { store, fromKid: envelopeKidOf(stored), toKid: tokenKeyId() };
   try {
-    if ((await readCurrent()) !== stored) {
+    const result = await swap(encryptData(value));
+    if (result !== 'updated') {
       resealCounts.changed += 1;
-      log.info({ ...ids, ...resealCounts }, 'Token re-seal skipped: record changed since read');
+      log.info(
+        { ...ids, result, ...resealCounts },
+        'Token re-seal skipped: record gone or changed'
+      );
       return 'changed';
     }
-    await write(encryptData(value));
     resealCounts.resealed += 1;
     log.info({ ...ids, ...resealCounts }, 'Token envelope re-sealed');
     return 'resealed';
