@@ -639,7 +639,7 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/marketing/index.js').then(async (m) => m.getToolDefinitions()),
     },
 
-    // === SMART HOME DOMAIN (Home Assistant integration) ===
+    // === SMART HOME DOMAIN ===
     {
       name: 'smart-home' as ToolDomain,
       loader: async () =>

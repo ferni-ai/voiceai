@@ -549,7 +549,7 @@ export function trackJobMetrics(job: JobTrace): void {
 | Service | Self-Healing Integration |
 |---------|-------------------------|
 | External APIs | `resilient-http.ts` with circuit breakers |
-| Smart Home | Circuit breakers for Home Assistant, Hue, LIFX |
+| Smart Home | Circuit breakers for Hue, LIFX |
 | Tool Execution | Automatic retry in `tool-wrapper.ts` |
 | Frontend API | `fetchWithRetry` + offline detection |
 | Context Service | Resilient remote calls with local fallback |
