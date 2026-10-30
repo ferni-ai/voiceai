@@ -36,9 +36,25 @@ const NO_GUESS =
  */
 const NO_FILL_IN =
   "Tell them in your own words that it didn't work and offer another way; don't guess at why, or describe how your search works.";
-function searchFailed(status: 'no_results' | 'error', text: string): string {
-  return flagOn('NO_INVENTED_INTERNALS') ? `[status: ${status}] ${text} ${NO_FILL_IN}` : text;
+function searchFailed(status: 'no_results' | 'error' | 'unconfigured', text: string): string {
+  const internals = flagOn('NO_INVENTED_INTERNALS');
+  // unconfigured is always typed: it is the one the model read as "nothing exists".
+  if (!internals && status !== 'unconfigured') return text;
+  return `[status: ${status}] ${text}${internals ? ` ${NO_FILL_IN}` : ''}`;
 }
+
+/**
+ * WEB_SEARCH_HONEST_FALLBACK=on. With WEB_SEARCH off there is no web search, only
+ * DuckDuckGo's Instant Answers (encyclopedia abstracts). On the 2026-10-30 dev
+ * sweep it said "No results" 6 of 6 times (a drive time, a Thai place, a fare, a
+ * movie, Mars weather), and after one the model gave "usually forty-five
+ * minutes to an hour" anyway. An empty instant answer proves nothing doesn't
+ * exist, so it says the search isn't available and that it doesn't know.
+ */
+export const NO_ESTIMATE =
+  "Don't guess or estimate: no time, distance, price, score or 'usually about' figure from memory.";
+export const CANT_SEARCH = `I can't search the web right now, so I couldn't find that and I don't know. Say so plainly. ${NO_ESTIMATE}`;
+const honestFallback = (): boolean => flagOn('WEB_SEARCH_HONEST_FALLBACK');
 
 /**
  * Search the web using DuckDuckGo Instant Answer API
@@ -51,6 +67,7 @@ export async function searchWeb(query: string): Promise<string> {
     );
 
     if (!response.ok) {
+      if (honestFallback()) return searchFailed('unconfigured', CANT_SEARCH);
       return searchFailed('error', `I couldn't search for that right now.`);
     }
 
@@ -61,18 +78,22 @@ export async function searchWeb(query: string): Promise<string> {
       Heading?: string;
     };
 
-    if (data.AbstractText) {
+    const abstract = data.AbstractText?.trim();
+    if (abstract) {
       const source = data.AbstractSource ? ` (via ${data.AbstractSource})` : '';
-      return data.AbstractText.slice(0, 600) + source;
+      return abstract.slice(0, 600) + source;
     }
 
-    if (data.RelatedTopics?.[0]?.Text) {
-      return data.RelatedTopics[0].Text.slice(0, 600);
+    const related = data.RelatedTopics?.[0]?.Text?.trim();
+    if (related) {
+      return related.slice(0, 600);
     }
 
+    if (honestFallback()) return searchFailed('unconfigured', CANT_SEARCH);
     return searchFailed('no_results', `No results for "${query}". ${NO_GUESS}`);
   } catch (error) {
     getLogger().warn(`Web search error: ${error}`);
+    if (honestFallback()) return searchFailed('unconfigured', CANT_SEARCH);
     return searchFailed('error', `The search didn't work just now. ${NO_GUESS}`);
   }
 }
