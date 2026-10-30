@@ -26,7 +26,8 @@ const SETS = [
   { name: 'A', minor: HELD_OUT_MINOR, notMinor: HELD_OUT_NOT_MINOR, recallFloor: 26 },
   // "too" no longer closes an age ("im 13 too" echoes a floor number), so "im sixteen too" is missed
   { name: 'B', minor: BLIND_MINOR, notMinor: BLIND_NOT_MINOR, recallFloor: 31 },
-  { name: 'C', minor: BLIND_C_MINOR, notMinor: BLIND_C_NOT_MINOR, recallFloor: 20 },
+  // 19, not 20: a laugh means not an age (r2 found 22 adult jokes flagged), so "im sixteen lol" is missed
+  { name: 'C', minor: BLIND_C_MINOR, notMinor: BLIND_C_NOT_MINOR, recallFloor: 19 },
   // the #3098 verifier's set; main caught 25 of 44 here
   { name: 'V', minor: VERIFIER_MINOR, notMinor: VERIFIER_NOT_MINOR, recallFloor: 33 },
 ] as const;

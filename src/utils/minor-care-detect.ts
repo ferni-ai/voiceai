@@ -74,8 +74,6 @@ const ENDS = String.raw`$|[.,!?;:]|(?:so|but|now)\b|${FILLER}|${RUN_ON}`;
  */
 const CLAUSE_END = String.raw`(?=\s*(?:${ENDS}|and\b(?!\s+a\s+half\b)|and\s+a\s+half\s*(?:${ENDS}|and\b)))`;
 const AGE_ENDS = new RegExp(`${ME_AGE}(?:like\\s+)?${AGE}${CLAUSE_END}`, 'gi');
-/** With a laugh, only a plain "I'm 13-17" (no "like 14") still reads as their age: "I'm fourteen lol". */
-const PLAIN_AGE_ENDS = new RegExp(`${ME_AGE}${AGE}${CLAUSE_END}`, 'gi');
 /** Ferni asked for a rating or an amount: "I'm 10." then answers that, not an age. */
 const ASKED_AMOUNT =
   /\b(?:scale|one to ten|1 to 10|1-10|rate|rating|out of (?:ten|10)|how (?:many|much|far|long|soon))\b/i;
@@ -172,11 +170,6 @@ export function askedAboutAge(ferniSaid: string | undefined): boolean {
   return !!ferniSaid && ASKED_AGE.test(ferniSaid);
 }
 
-/** A laugh undoes "I'm like 14" and the joke age 12, not a plain "I'm fourteen lol" or "I turned 15 lol". */
-function statesWhileLaughing(t: string): boolean {
-  return anyAge(PLAIN_AGE_ENDS, t, 18, 13) || anyAge(TURNED, t, 18, 13);
-}
-
 /**
  * The caller says, about themselves, that they are under 18. `asked` is
  * Ferni's previous line: a bare "I'm 16" or "16." counts only as the answer
@@ -184,13 +177,10 @@ function statesWhileLaughing(t: string): boolean {
  */
 export function statesUnder18(text: string, asked?: string): boolean {
   const t = text.replace(/[‘’]/g, "'");
-  return !RETRACTED.test(t) && statesAge(t, asked);
-}
-
-/** statesUnder18 once a retraction ("jk", "i mean fifty") is ruled out. */
-function statesAge(t: string, asked: string | undefined): boolean {
   if (GRADE.test(t) || IN_SCHOOL.test(t) || SCHOOL_YEAR.test(t)) return true;
-  if (LAUGH.test(t)) return statesWhileLaughing(t);
+  // Any laugh or take-back: "im 15 lol kidding", "im fifteen i mean fifty". Laughs after an age
+  // are mostly jokes (#3098 r2: 22 adult jokes flagged), so "I'm fourteen lol" is a known miss.
+  if (LAUGH.test(t) || RETRACTED.test(t)) return false;
   const aboutAge = askedAboutAge(asked) || AGE_WORDS.test(t);
   return (
     // A miss stores a child's details; a false hold costs an adult one call's memory.

@@ -14,7 +14,6 @@ describe('statesUnder18: spoken and unpunctuated ages', () => {
   it.each([
     // a filler after a spelled-out age
     'im fifteen btw',
-    "I'm fourteen lol",
     'i am thirteen so yeah',
     'im sixteen tho',
     'im 15 yeah',
@@ -23,7 +22,6 @@ describe('statesUnder18: spoken and unpunctuated ages', () => {
     'I just turned 14 last month.',
     'I turned fifteen last week',
     'i just turned sixteen this year',
-    'I turned 15 lol',
     // turning: a year older soon, so younger now
     'turning 16 next month',
     // years old, yo, and a half
@@ -145,5 +143,41 @@ describe('statesUnder18: spoken and unpunctuated ages', () => {
     expect(statesUnder18('turning 18 next week')).toBe(true);
     expect(statesUnder18("I'm turning 18 next week")).toBe(true);
     expect(statesUnder18('turning 19 next week')).toBe(false);
+  });
+});
+
+describe('statesUnder18: a laugh or a take-back means a joke, not an age (#3098 r2)', () => {
+  // Main's rule, kept on purpose: after a laugh the age is mostly a joke, so these misses are
+  // accepted ("I'm fourteen lol") rather than holding adults' memory on jokes.
+  it.each([
+    "I'm fourteen lol",
+    'I turned 15 lol',
+    'im 13 lmao no im 31',
+    'im 15 lol nah im 45',
+    'im fourteen lol not really',
+    'im 17 lol i wish i was',
+    'im 16 lol kidding',
+    "im 15 lol i'm joking",
+    'im 14 lol in my head',
+    'im fifteen lol at heart',
+    'im 17 lol my back says 70',
+    'im 16 lol nope 46',
+    'im 13 lol just joking',
+    'my therapist says im 14 lol',
+    'i turned 16 lol like thirty years ago',
+    'im fourteen lmao in my dreams',
+    'im 12 lol on the leaderboard',
+    'im fifteen i mean fifty',
+  ])('not flagged: %s', (said) => {
+    expect(statesUnder18(said)).toBe(false);
+  });
+
+  it.each([
+    // school wins over a joke elsewhere in the line
+    'im in 8th grade and my friend said jk after being mean',
+    // "i mean" a younger age is a correction, not a take-back
+    'im 14 i mean 15 next week',
+  ])('flagged: %s', (said) => {
+    expect(statesUnder18(said)).toBe(true);
   });
 });
