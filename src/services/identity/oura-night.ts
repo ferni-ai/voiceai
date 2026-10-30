@@ -13,7 +13,6 @@ const OURA_API_BASE = 'https://api.ouraring.com/v2/usercollection';
 const REQUEST_TIMEOUT_MS = 10_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Oura's own contributor scores (0-100), by Oura's names; one Oura left out is absent, not zero. */
 type Contributors = Record<string, number>;
 
 export interface OuraNight {
@@ -95,14 +94,12 @@ function contributors(doc: Doc | null): Contributors | null {
   );
 }
 
-/** The night's main sleep period: the longest real one, not a nap or a deleted record. */
 const mainPeriod = (periods: Doc[]): Doc | null =>
   periods
     .filter(isNight)
     .sort((a, b) => (num(b.total_sleep_duration) ?? 0) - (num(a.total_sleep_duration) ?? 0))[0] ??
   null;
 
-/** Join one night's documents (exported for tests, which feed it real-shaped payloads). */
 export function buildNight(
   day: string,
   dailySleep: Doc | null,

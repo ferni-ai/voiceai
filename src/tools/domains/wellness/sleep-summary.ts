@@ -16,8 +16,6 @@ export function ouraSleepToolEnabled(env: Env = process.env): boolean {
 }
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
-const SPEAK_ONLY =
-  'Say only what is in this result. Do not estimate or fill in any number it does not give.';
 
 const MESSAGES = {
   not_connected:
@@ -79,7 +77,7 @@ export async function sleepSummaryFor(
         sleep: result.night.sleep,
         totalSleepText: durationText(result.night.sleep?.totalSleepMinutes ?? null),
         readiness: result.night.readiness,
-        instruction: `${SPEAK_ONLY} "date" is the morning the sleep ended; if it is not the night they asked about, say which night it is.`,
+        instruction: `Say only what is in this result. Do not estimate or fill in any number it does not give. "date" is the morning the sleep ended; if it is not the night they asked about, say which night it is.`,
       };
     case 'no_data':
       return {
