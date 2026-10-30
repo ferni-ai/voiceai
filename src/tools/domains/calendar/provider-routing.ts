@@ -74,7 +74,7 @@ export async function routeWriteToProvider(
     return createOnConnected(userId, provider, params as CreateParams, ctx);
   }
   if (toolId === 'updateCalendarEvent' || toolId === 'deleteCalendarEvent') {
-    return changeOnConnected(toolId, userId, provider, params as ChangeParams, ctx);
+    return changeOnConnected(toolId, userId, provider, params as ChangeParams, ctx, !allWrites);
   }
   return null;
 }
@@ -119,11 +119,12 @@ async function changeOnConnected(
   userId: string,
   provider: WriteProvider,
   params: ChangeParams,
-  ctx: ToolContext
+  ctx: ToolContext,
+  outlookOnly = false
 ): Promise<string | null> {
   const event = await getEventById(userId, params.eventId);
-  // An item that only lives on Ferni's list keeps the Ferni path.
-  if (!event?.externalId) return null;
+  // An item that only lives on Ferni's list keeps the Ferni path; OUTLOOK_CONNECT alone writes Outlook's only.
+  if (!event?.externalId || (outlookOnly && event.source !== 'outlook')) return null;
   const target = isWriteProvider(event.source) ? event.source : provider;
   const label = PROVIDER_LABEL[target];
 

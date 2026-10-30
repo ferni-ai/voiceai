@@ -183,7 +183,7 @@ export async function handleOutlookDisconnect(
 ): Promise<void> {
   try {
     await stopOutlookSubscriptions(userId);
-    await outlookDisconnect(userId); // OUTLOOK_CONNECT: the sealed grant
+    await outlookDisconnect(userId); // the sealed grant, whatever OUTLOOK_CONNECT says; throws on failure
     await outlookCalendarProvider.disconnect(userId);
     sendJson(res, { success: true });
     log.info({ userId }, '📧 Outlook Calendar disconnected and webhooks stopped');

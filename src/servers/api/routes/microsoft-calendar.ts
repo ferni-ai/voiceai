@@ -202,7 +202,14 @@ export async function handleMicrosoftCalendarRoutes(
       return true;
     }
 
-    await ol.outlookDisconnect(userId); // OUTLOOK_CONNECT: the sealed grant
+    try {
+      await ol.outlookDisconnect(userId); // the sealed grant, whatever OUTLOOK_CONNECT says
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'Microsoft Calendar unlink failed');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: "Couldn't disconnect Microsoft Calendar, try again" }));
+      return true;
+    }
     await outlookCalendarProvider.disconnect(userId);
     log.info({ userId }, 'Microsoft Calendar unlinked');
 

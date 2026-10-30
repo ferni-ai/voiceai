@@ -47,6 +47,8 @@ export interface UserOAuthStore<T extends { refresh_token?: string }> {
   save: (userId: string, tokens: T) => Promise<void>;
   /** Remove a user's tokens (disconnect). */
   remove: (userId: string) => Promise<void>;
+  /** remove, then confirm the doc is gone: ok false when the delete failed or can't be confirmed. */
+  removeStrict: (userId: string) => Promise<{ ok: boolean }>;
   /** Every user with stored tokens: cached users plus a collection-group read. */
   listUsers: () => Promise<string[]>;
   /** Flush pending writes and clear the caches. */
@@ -201,6 +203,16 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
           { provider, error: (err as Error).message, userId: idTag(userId) },
           'Error removing OAuth tokens'
         );
+      }
+    },
+
+    async removeStrict(userId) {
+      await this.remove(userId);
+      if (!getFirestoreDb()) return { ok: true }; // nowhere a grant could be stored
+      try {
+        return { ok: (await docStore.load(userId, { fresh: true, strict: true })) === null };
+      } catch {
+        return { ok: false };
       }
     },
 

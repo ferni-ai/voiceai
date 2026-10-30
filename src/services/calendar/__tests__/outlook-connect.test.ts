@@ -39,6 +39,8 @@ const { smartCalendarTools } =
   await import('../../../tools/domains/calendar/calendar-connection-gate.js');
 const { outlookCalendarProvider } = await import('../providers/outlook-provider.js');
 const { outlookDisconnect } = await import('../index.js');
+const { handleOutlookDisconnect } =
+  await import('../../../api/calendar-routes/provider-handlers.js');
 
 const A = 'uid-alice-0000000000000000';
 const B = 'uid-bobby-0000000000000000';
@@ -171,6 +173,42 @@ describe('connect', () => {
   });
 });
 
+describe('disconnect', () => {
+  const disconnectRoute = async (uid: string) => {
+    const res = {
+      status: 0,
+      writeHead(code: number) {
+        this.status = code;
+        return this;
+      },
+      setHeader() {},
+      end() {},
+    };
+    await handleOutlookDisconnect({} as never, res as never, uid);
+    return res.status;
+  };
+
+  it('deletes the sealed grant with the flag off too', async () => {
+    await connect(A, 'code-a');
+    delete process.env.OUTLOOK_CONNECT;
+    expect(state.docs.has(docOf(A))).toBe(true);
+    expect(await disconnectRoute(A)).toBe(200);
+    expect(state.docs.has(docOf(A))).toBe(false);
+  });
+
+  it('a delete that fails answers 500, not success, and says so', async () => {
+    await connect(A, 'code-a');
+    state.failWrites.add(docOf(A));
+    try {
+      await expect(outlookDisconnect(A)).rejects.toThrow();
+      expect(await disconnectRoute(A)).toBe(500);
+      expect(state.docs.has(docOf(A))).toBe(true);
+    } finally {
+      state.failWrites.clear();
+    }
+  });
+});
+
 describe('calendar tools read Outlook live, for the caller only', () => {
   it("A's read shows A's event and never B's", async () => {
     await connect(A, 'code-a');
@@ -187,6 +225,27 @@ describe('calendar tools read Outlook live, for the caller only', () => {
     const reply = String(await today(A));
     expect(reply).not.toContain('Cancelled standup');
     expect(net.graphCalls.length).toBeGreaterThan(0);
+  });
+
+  it("B's read after both connected shows B's event and never A's", async () => {
+    await connect(A, 'code-a');
+    await connect(B, 'code-b');
+    const reply = String(await today(B));
+    expect(reply).toContain('Bobby private therapy');
+    expect(reply).not.toContain('Dentist');
+    expect(net.graphCalls.every((c) => c.auth === 'Bearer at-code-b')).toBe(true);
+  });
+
+  it('a failed read of the link doc is "couldn\'t reach", not clear or not connected', async () => {
+    await connect(A, 'code-a');
+    state.failReads = new Set([docOf(A)]);
+    try {
+      const reply = String(await today(A));
+      expect(reply).toMatch(/couldn't reach your Outlook calendar/);
+      expect(reply).not.toMatch(/clear|No calendar is connected/i);
+    } finally {
+      state.failReads = undefined;
+    }
   });
 
   it('a refresh Microsoft refuses (401 invalid_grant) is needs_reauth and is recorded', async () => {

@@ -33,9 +33,9 @@ export async function outlookLinkedOr(
   return (await (await outlookLink()).outlookLinkState(userId)) !== 'not_connected' || legacy();
 }
 
-/** Flag on: delete the sealed grant (disconnect). */
+/** Delete the sealed grant on any disconnect, flag on or off; throws when it wasn't deleted. */
 export async function outlookDisconnect(userId: string): Promise<void> {
-  if (outlookConnectOn()) await (await outlookLink()).disconnectOutlook(userId);
+  await (await outlookLink()).disconnectOutlook(userId);
 }
 
 export async function outlookConnect(

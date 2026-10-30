@@ -172,6 +172,29 @@ describe('Outlook connect with OUTLOOK_CONNECT on', () => {
   });
 });
 
+describe('unlink', () => {
+  const doc = 'bogle_users/uid-A/outlook_tokens/data';
+  const unlink = () =>
+    send('/auth/microsoft/unlink', { method: 'POST', headers: { authorization: 'Bearer tok-A' } });
+
+  it('a delete that fails answers 500 and keeps nothing hidden; with the flag off it still deletes', async () => {
+    const { cookie, state: st } = await startAndLogin();
+    await send(`/auth/microsoft/callback?code=c1&state=${encodeURIComponent(st)}`, {
+      headers: { cookie },
+    });
+    state.failWrites.add(doc);
+    const failed = await unlink();
+    state.failWrites.clear();
+    expect(failed.status).toBe(500);
+    expect(((await failed.json()) as { error: string }).error).toMatch(/Couldn't disconnect/);
+    expect(state.docs.has(doc)).toBe(true);
+
+    delete process.env.OUTLOOK_CONNECT;
+    expect((await unlink()).status).toBe(200);
+    expect(state.docs.has(doc)).toBe(false);
+  });
+});
+
 describe('pkce verifier', () => {
   const req = (cookie?: string) => ({ headers: cookie ? { cookie } : {} }) as never;
   const a = `__session=${'a'.repeat(43)}`;

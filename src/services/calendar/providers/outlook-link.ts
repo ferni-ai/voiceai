@@ -82,14 +82,21 @@ export async function connectOutlook(
 }
 
 /** Link state from the doc (a read error counts as not connected, for mode detection only). */
+/** Link state from the doc; a failed read is 'unreachable', never not_connected. */
 export async function outlookLinkState(
   userId: string
-): Promise<'connected' | 'needs_reauth' | 'not_connected'> {
-  return (await tokenStore().linkStatus(userId)).state;
+): Promise<'connected' | 'needs_reauth' | 'not_connected' | 'unreachable'> {
+  return tokenStore()
+    .linkStatus(userId, { fromDoc: true })
+    .then(
+      (s) => s.state,
+      () => 'unreachable' as const
+    );
 }
 
+/** Delete the sealed grant; throws when the delete failed, so a disconnect is never a false success. */
 export async function disconnectOutlook(userId: string): Promise<void> {
-  await tokenStore().remove(userId);
+  if (!(await tokenStore().removeStrict(userId)).ok) throw new Error('Outlook grant not deleted');
 }
 
 async function getAccess(userId: string): Promise<Access> {
