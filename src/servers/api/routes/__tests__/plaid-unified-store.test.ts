@@ -282,7 +282,7 @@ describe('flag off: the old path, unchanged', () => {
     const agent = await agentProcess();
     expect(await agent.getStoredAccessToken(A)).toBeNull(); // the file never saw the web link
     expect(await agent.storeAccessToken(B, ACCESS_B, 'item-b-1')).toEqual({ ok: true });
-    expect(h.file.get(B)).toEqual({ access_token: ACCESS_B, item_id: 'item-b-1' });
+    expect(h.file.get(B)).toEqual({ access_token: ACCESS_B, item_id: '' }); // as main: no Item id
     expect(state.docs.has(docPath(B))).toBe(false);
   });
 });

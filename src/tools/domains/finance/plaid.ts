@@ -263,12 +263,7 @@ export async function createLinkToken(userId: string): Promise<string> {
  * Exchange public token for access token after user links account
  * The public token comes from Plaid Link UI callback
  */
-export async function exchangePublicToken(publicToken: string): Promise<string | null> {
-  return (await exchangePublicTokenForItem(publicToken))?.access_token || null;
-}
-
-/** The exchange with the Item's id, which the sealed store keys Items by. */
-export async function exchangePublicTokenForItem(
+export async function exchangePublicToken(
   publicToken: string
 ): Promise<{ access_token: string; item_id: string } | null> {
   return plaidRequest<{ access_token: string; item_id: string }>('/item/public_token/exchange', {

@@ -56,7 +56,7 @@ describe('Banking Integration API', () => {
       const result = await exchangePublicToken('mock-public-token');
 
       // Null means API not configured or invalid token
-      expect(result === null || typeof result === 'string').toBe(true);
+      expect(result === null || typeof result.access_token === 'string').toBe(true);
       console.log('✅ Token exchange flow works');
     });
 

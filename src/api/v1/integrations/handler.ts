@@ -17,7 +17,6 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../../helpers.js';
 import { requireAuth, type AuthContext } from '../../auth-middleware.js';
 import { isCalendarLinked } from '../../../services/identity/link-state.js';
-import { flagOn } from '../../../config/env-flag.js';
 import {
   consumeOAuthLinkState,
   createOAuthLinkState,
@@ -396,7 +395,6 @@ export async function handleIntegrationsRoutes(
     if (subPath === '/banking/exchange-token' && method === 'POST') {
       // SECURITY: Use authenticated userId, ignore body.userId to prevent IDOR
       const userId = getTargetUserId(auth!, parsedUrl);
-
       const body = await parseBody<Record<string, unknown>>(req);
       const validation = ExchangeTokenSchema.safeParse(body);
       if (!validation.success) {
@@ -408,19 +406,13 @@ export async function handleIntegrationsRoutes(
       const { publicToken, institution } = validation.data;
 
       const banking = await getBankingServices();
-      const exchanged = await banking.exchangePublicTokenForItem(publicToken);
-
-      if (!exchanged?.access_token) {
-        sendJson(res, 400, { error: 'Failed to exchange token' });
-        return true;
-      }
-      const accessToken = exchanged.access_token;
-
-      // The file store (flag off) never kept the Item id; the sealed store keys Items by it.
-      const itemId = flagOn('PLAID_UNIFIED_STORE') ? exchanged.item_id : undefined;
-      const saved = await banking.storeAccessToken(userId, accessToken, itemId, institution);
-      if (!saved.ok) {
-        sendJson(res, 503, { error: 'Bank account could not be saved', code: saved.code });
+      const item = await banking.exchangePublicToken(publicToken);
+      const saved = item?.access_token
+        ? await banking.storeAccessToken(userId, item.access_token, item.item_id, institution)
+        : null;
+      if (!saved?.ok) {
+        if (saved) sendJson(res, 503, { error: 'Bank account not saved', code: saved.code });
+        else sendJson(res, 400, { error: 'Failed to exchange token' });
         return true;
       }
 

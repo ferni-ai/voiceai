@@ -5,7 +5,8 @@
  * PLAID_UNIFIED_STORE on: the sealed per-user store
  * (services/identity/plaid-item-store.ts), the record the web /plaid/exchange
  * writes, so the agent sees a bank linked on the web. Off (default): the
- * `.plaid-tokens.json` file (plaid-store.ts), exactly as before.
+ * `.plaid-tokens.json` file (plaid-store.ts), exactly as before; it never kept
+ * the Item id (the v1 exchange passed none), so it still gets none.
  *
  * When the flag is removed: delete plaid-store.ts and the flag-off branches here.
  *
@@ -33,7 +34,7 @@ export async function storeAccessToken(
   institution?: { institution_id?: string; name?: string }
 ): Promise<PlaidSaveResult> {
   if (!plaidUnifiedStore()) {
-    fileStore.storeAccessToken(userId, accessToken, itemId, institution);
+    fileStore.storeAccessToken(userId, accessToken, undefined, institution);
     return { ok: true };
   }
   return savePlaidItem(userId, { access_token: accessToken, item_id: itemId ?? '', institution });
