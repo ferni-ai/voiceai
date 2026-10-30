@@ -1209,7 +1209,6 @@
       "journaling": "היומן",
       "language": "שפה",
       "lifeContext": "העולם שלך",
-      "linkSpotify": "חיבור Spotify",
       "memoryBrowser": "מה שזכור לי",
       "musicalYou": "מוזיקה ביחד",
       "notifications": "מתי אעשה צ'ק-אין",
@@ -1219,7 +1218,6 @@
       "predictionAccuracy": "איך הולך לי",
       "progressAnalytics": "מה שלומך",
       "shareFerni": "להזמין חברים",
-      "spotifyConnected": "Spotify מחובר",
       "supportFerni": "לתמוך ב-Ferni",
       "supportFerniExpanded": "לתמוך ב-Ferni",
       "takeTour": "להכיר את המקום",
@@ -2437,10 +2435,6 @@
         "description": "סנכרון עם נתוני הבריאות של Apple Watch ו-iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "חיבור מכשיר ה-Fitbit שלך",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "סנכרון עם מכשירים לבישים של Garmin",
         "name": "Garmin"
@@ -2794,8 +2788,7 @@
       "askFerni": "או לבקש מ-Ferni לנגן משהו",
       "play": "הפעלה",
       "pause": "השהיה",
-      "skip": "דילוג",
-      "linkSpotify": "כדאי לחבר את Spotify בהגדרות כדי לשמוע שירים מלאים"
+      "skip": "דילוג"
     },
     "volume": "עוצמת קול",
     "skipped": "דולג",
@@ -8395,10 +8388,9 @@
     "appleHealthDesc": "נתוני שינה, פעילות ודופק",
     "ouraDesc": "איכות שינה ומדדי מוכנות",
     "eightSleepDesc": "מעקב שינה וטמפרטורה",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP ועוד",
+    "wearablesDesc": "Garmin, WHOOP ועוד",
     "calendarDesc": "אירועים, פגישות וזמינות",
     "linkedInDesc": "הקשר מקצועי ורשת קשרים",
-    "spotifyDesc": "מוזיקה, פלייליסטים לפי מצב רוח והיסטוריית האזנה",
     "ecobeeDesc": "טמפרטורה ונוחות בבית",
     "vibeControllerDesc": "שליטה במוזיקה, בתאורה ועוד",
     "connected": "מחובר"
@@ -9049,9 +9041,6 @@
     "trustJourneyExplore": "לחקור",
     "customizeTitle": "להתאים אישית את החוויה",
     "customizeMessage": "אפשר להתאים עיצובים, צלילים ועוד.",
-    "spotifyTitle": "חיבור Spotify",
-    "spotifyMessage": "אפשר לקשר את ה-Spotify כדי לקבוע את מצב הרוח במהלך השיחות שלנו.",
-    "spotifyConnect": "להתחבר",
     "maybeLater": "אולי מאוחר יותר"
   },
   "mentorTeachings": {

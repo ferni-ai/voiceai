@@ -53,6 +53,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'ecobee_tokens/{uid}': CREDENTIAL,
   'ecobee_pending_auth/{uid}': CREDENTIAL,
   'eight_sleep_tokens/{uid}': CREDENTIAL,
+  'google_calendar_tokens/{uid}': `${CREDENTIAL} (the old plaintext root copy)`,
   'oura_tokens/{uid}': CREDENTIAL,
   'verification_codes/{uid}': CREDENTIAL,
   'developer_oauth_tokens[userId]': CREDENTIAL,

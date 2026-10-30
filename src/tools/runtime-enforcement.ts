@@ -11,6 +11,7 @@
  * filtered out). This module provides observability and a safety net.
  */
 
+import { isGmailReadToolsOn } from '../config/gmail-read-tools.js';
 import { isCoach } from '../personas/persona-ids.js';
 import { getLogger } from '../utils/safe-logger.js';
 
@@ -40,6 +41,16 @@ export interface ToolCallMetrics {
 // ============================================================================
 // DOMAIN OWNERSHIP (mirrors role-boundaries.ts)
 // ============================================================================
+
+/** Gmail read tools (Alex): offered only under GMAIL_READ_TOOLS (config/gmail-read-tools.ts). */
+const GMAIL_READ_TOOLS_OWNED = [
+  'getInboxSummary',
+  'getUnreadEmails',
+  'searchInbox',
+  'triageInbox',
+  'getEmailThread',
+  'checkEmailFrom',
+];
 
 /**
  * Domain ownership map - which persona owns which tools
@@ -96,66 +107,64 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
   ],
   // Alex owns calendar/communication tools (from communication + calendar domains)
   // See: src/tools/domains/communication/index.ts, src/tools/domains/calendar/index.ts
-  'alex-chen': [
-    // Calendar Tools (Phase 1: Smart Calendar Management)
-    'getCalendarToday',
-    'getCalendarWeek',
-    'createCalendarEvent',
-    'updateCalendarEvent',
-    'deleteCalendarEvent',
-    'findFreeTime',
-    'checkAvailability',
-    'getDailyBriefing',
-    'suggestMeetingTime',
-    'detectCalendarIssues',
-    // Gmail Tools (Phase 2: Email Triage)
-    'getInboxSummary',
-    'getUnreadEmails',
-    'searchInbox',
-    'triageInbox',
-    'getEmailThread',
-    'checkEmailFrom',
-    // Contact Relationship Tools (Phase 3)
-    'getContactInsights',
-    'getContactsNeedingAttention',
-    'getContactInfo',
-    'saveContact',
-    'recordContactInteraction',
-    'setContactFollowUp',
-    'completeContactFollowUp',
-    // Message Validation Tools (Phase 4 - "Sleep on It")
-    'analyzeMessageTone',
-    'saveMessageForReview',
-    'getPendingMessages',
-    'getMessagesReadyForReview',
-    'reviewMessage',
-    'approveMessage',
-    'discardMessage',
-    // Legacy Calendar/Appointment Tools
-    'manageAppointment',
-    'scheduleReminder',
-    'manageContact',
-    'findBusiness',
-    // Communication Tools (sendMessage/draftMessage consolidated into reachOut)
-    'reachOut',
-    'analyzeMessage',
-    'rolePlayConversation',
-    'communicationStrategy',
-    'buildAssertiveness',
-    'planFollowUp',
-    // Enhanced Calendar Tools
-    'getPreMeetingBriefing',
-    'getPostMeetingFollowUp',
-    'recordMeetingOutcome',
-    'checkConflicts',
-    'smartReschedule',
-    'findBestTime',
-    // Better Than Human - Recovery & Wellbeing
-    'detectRecoveryNeeds',
-    'findRecoveryOpportunities',
-    'blockRecoveryTime',
-    'getCalendarLoadSummary',
-  ],
+  // A getter, so the Gmail read tools are owned only while the registry has them.
+  get 'alex-chen'(): string[] {
+    return [
+      // Calendar Tools (Phase 1: Smart Calendar Management)
+      'getCalendarToday',
+      'getCalendarWeek',
+      'createCalendarEvent',
+      'updateCalendarEvent',
+      'deleteCalendarEvent',
+      'findFreeTime',
+      'checkAvailability',
+      'getDailyBriefing',
+      'suggestMeetingTime',
+      'detectCalendarIssues',
+      // Gmail read tools: registered only under GMAIL_READ_TOOLS, so owned only then
+      ...(isGmailReadToolsOn() ? GMAIL_READ_TOOLS_OWNED : []),
+      // Contact Relationship Tools (Phase 3)
+      'getContactInsights',
+      'getContactsNeedingAttention',
+      'getContactInfo',
+      'saveContact',
+      'recordContactInteraction',
+      'setContactFollowUp',
+      'completeContactFollowUp',
+      // Message Validation Tools (Phase 4 - "Sleep on It")
+      'analyzeMessageTone',
+      'saveMessageForReview',
+      'getPendingMessages',
+      'getMessagesReadyForReview',
+      'reviewMessage',
+      'approveMessage',
+      'discardMessage',
+      // Legacy Calendar/Appointment Tools
+      'manageAppointment',
+      'scheduleReminder',
+      'manageContact',
+      'findBusiness',
+      // Communication Tools (sendMessage/draftMessage consolidated into reachOut)
+      'reachOut',
+      'analyzeMessage',
+      'rolePlayConversation',
+      'communicationStrategy',
+      'buildAssertiveness',
+      'planFollowUp',
+      // Enhanced Calendar Tools
+      'getPreMeetingBriefing',
+      'getPostMeetingFollowUp',
+      'recordMeetingOutcome',
+      'checkConflicts',
+      'smartReschedule',
+      'findBestTime',
+      // Better Than Human - Recovery & Wellbeing
+      'detectRecoveryNeeds',
+      'findRecoveryOpportunities',
+      'blockRecoveryTime',
+      'getCalendarLoadSummary',
+    ];
+  },
   // Jordan owns event/milestone/goal planning tools (from life-planning domain)
   // See: src/tools/domains/life-planning/index.ts
   'jordan-taylor': [

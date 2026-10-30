@@ -182,6 +182,10 @@ function createMockContext(): ToolContext {
   };
 }
 
+/** The call record was stored, its own fields only, so told.* (call-result-once.ts) survives. */
+const expectStored = (fields: object): void =>
+  expect(mockFirestoreSet).toHaveBeenCalledWith(expect.objectContaining(fields), expect.objectContaining({ mergeFields: expect.arrayContaining(['callId', 'outcome']) })); // prettier-ignore
+
 const TEST_TWILIO_AUTH_TOKEN = 'test-twilio-auth-token';
 const TEST_WEBHOOK_HOST = 'webhooks.test';
 const TEST_WEBHOOK_PATH = '/api/webhooks/call-status';
@@ -431,13 +435,7 @@ describe('E2E: Call On Behalf Flow', () => {
       await handleTwilioCallStatus(req, res);
 
       // Should capture with voicemail outcome
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          outcome: expect.objectContaining({
-            outcome: expect.stringContaining('voicemail'),
-          }),
-        })
-      );
+      expectStored({ outcome: expect.objectContaining({ outcome: expect.stringContaining('voicemail') }) }); // prettier-ignore
     });
   });
 
@@ -480,9 +478,7 @@ describe('E2E: Call On Behalf Flow', () => {
 
       // Kept as the call record the next call's opener reads (pending-call-results.ts),
       // not in pending_notifications, which nothing read (phone-calls audit, row 12)
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({ callId: 'call-disconnect-test' })
-      );
+      expectStored({ callId: 'call-disconnect-test' });
       expect(mockFirestoreAdd).not.toHaveBeenCalled();
     });
   });
@@ -518,16 +514,14 @@ describe('E2E: Call On Behalf Flow', () => {
       await expect(captureCallResult('call-active-test', outcome, request)).resolves.not.toThrow();
 
       // Should have stored the result in Firestore
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          callId: 'call-active-test',
-          userId: 'test-user-e2e',
-          outcome: expect.objectContaining({
-            status: 'completed',
-            objectiveAchieved: true,
-          }),
-        })
-      );
+      expectStored({
+        callId: 'call-active-test',
+        userId: 'test-user-e2e',
+        outcome: expect.objectContaining({
+          status: 'completed',
+          objectiveAchieved: true,
+        }),
+      });
 
       // Should have sent push notification
       expect(mockSendPushNotification).toHaveBeenCalledWith(
@@ -633,14 +627,12 @@ describe('E2E: Call On Behalf Flow', () => {
       await handleTwilioCallStatus(req, res);
 
       // Should capture with failure status
-      expect(mockFirestoreSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          outcome: expect.objectContaining({
-            status: 'failed',
-            outcome: 'Invalid phone number',
-          }),
-        })
-      );
+      expectStored({
+        outcome: expect.objectContaining({
+          status: 'failed',
+          outcome: 'Invalid phone number',
+        }),
+      });
     });
   });
 

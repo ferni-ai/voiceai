@@ -142,7 +142,7 @@ export interface ConciergeTarget {
   website?: string;
 
   // Source
-  source: 'google_places' | 'yelp' | 'user_contacts' | 'manual' | 'previous';
+  source: 'google_places' | 'user_contacts' | 'manual' | 'previous';
   sourceId?: string; // e.g., Google Place ID
   rating?: number;
   priceLevel?: number; // 1-4

@@ -36,11 +36,8 @@ export const INTEGRATIONS: Record<string, IntegrationConfig> = {
     id: 'gmail',
     name: 'Gmail',
     authType: 'oauth2',
-    scopes: [
-      'https://www.googleapis.com/auth/gmail.readonly',
-      'https://www.googleapis.com/auth/gmail.send',
-      'https://www.googleapis.com/auth/gmail.modify',
-    ],
+    // No scopes requested here: Gmail read is never granted (restricted scope, CASA), and
+    // gmail.send is its own grant (services/identity/gmail-send-as-user.ts).
     baseUrl: 'https://gmail.googleapis.com/gmail/v1',
     rateLimits: { requests: 250, windowMs: 60000 },
     docsUrl: 'https://developers.google.com/gmail/api',

@@ -1206,7 +1206,6 @@
       "journaling": "生活日誌",
       "language": "語言",
       "lifeContext": "你的生活點滴",
-      "linkSpotify": "連結 Spotify",
       "memoryBrowser": "我記下的回憶",
       "musicalYou": "音樂時光",
       "notifications": "我什麼時候來找你",
@@ -1216,7 +1215,6 @@
       "predictionAccuracy": "我的表現",
       "progressAnalytics": "你的近況",
       "shareFerni": "分享 Ferni",
-      "spotifyConnected": "已連結 Spotify",
       "supportFerni": "支持 Ferni",
       "supportFerniExpanded": "支持 Ferni",
       "takeTour": "帶我到處看看",
@@ -2419,10 +2417,6 @@
         "description": "同步 Apple Watch 和 iPhone 的健康數據",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "連結你的 Fitbit 裝置",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "同步你的 Garmin 穿戴式裝置",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "或者請 Ferni 播放點音樂",
       "play": "播放",
       "pause": "暫停",
-      "skip": "跳過",
-      "linkSpotify": "在設定中連結 Spotify 以收聽完整歌曲"
+      "skip": "跳過"
     },
     "volume": "音量",
     "skipped": "已跳過",
@@ -8349,10 +8342,9 @@
     "appleHealthDesc": "睡眠、活動與心率資料",
     "ouraDesc": "睡眠品質與準備度分數",
     "eightSleepDesc": "睡眠追蹤與溫度調節",
-    "wearablesDesc": "Fitbit、Garmin、WHOOP 等裝置",
+    "wearablesDesc": "Garmin、WHOOP 等裝置",
     "calendarDesc": "行事曆行程、會議與空檔時間",
     "linkedInDesc": "職涯背景與人脈網路",
-    "spotifyDesc": "音樂、心情歌單與播放紀錄",
     "ecobeeDesc": "居家溫度與舒適度",
     "vibeControllerDesc": "控制音樂、燈光等設備",
     "connected": "已連線"
@@ -8982,9 +8974,6 @@
     "trustJourneyExplore": "探索",
     "customizeTitle": "個人化你的體驗",
     "customizeMessage": "調整主題、聲音與更多設定。",
-    "spotifyTitle": "連結 Spotify",
-    "spotifyMessage": "連結你的 Spotify，在我們對話時營造最適合的心情氛圍。",
-    "spotifyConnect": "連結",
     "maybeLater": "稍後再說"
   },
   "mentorTeachings": {

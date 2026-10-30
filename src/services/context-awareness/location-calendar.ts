@@ -16,7 +16,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   getUserTokens,
-  refreshAccessToken,
+  refreshAccessTokenForUser,
   isCalendarConfigured,
   getEvents,
   generateAuthUrl,
@@ -178,13 +178,8 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
   // Check if token needs refresh
   if (tokens.expiry_date && tokens.expiry_date < Date.now() + 60000) {
     if (!tokens.refresh_token) return null;
-    try {
-      const refreshed = await refreshAccessToken(tokens.refresh_token);
-      return refreshed?.access_token || null;
-    } catch (error) {
-      log.debug({ error, userId }, 'Failed to refresh calendar token');
-      return null;
-    }
+    const refreshed = await refreshAccessTokenForUser(userId, tokens.refresh_token);
+    return refreshed?.access_token || null;
   }
 
   return tokens.access_token;
