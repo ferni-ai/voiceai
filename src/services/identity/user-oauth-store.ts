@@ -47,6 +47,8 @@ export interface UserOAuthStore<T extends { refresh_token?: string }> {
   save: (userId: string, tokens: T) => Promise<void>;
   /** Remove a user's tokens (disconnect). */
   remove: (userId: string) => Promise<void>;
+  /** Is a link doc stored (raw, decryptable or not)? Fresh, strict: throws when it can't be read. */
+  existsFresh: (userId: string) => Promise<boolean>;
   /** Every user with stored tokens: cached users plus a collection-group read. */
   listUsers: () => Promise<string[]>;
   /** Flush pending writes and clear the caches. */
@@ -204,6 +206,9 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
       }
     },
 
+    existsFresh: async (userId) =>
+      (await docStore.load(userId, { fresh: true, strict: true })) !== null,
+
     async listUsers() {
       const users = new Set(tokenCache.keys());
       const db = getFirestoreDb();
@@ -247,17 +252,17 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
 }
 
 /**
- * remove, then confirm the doc is gone: ok false when the delete failed or can't be
- * confirmed. remove() itself only logs a failed delete; its other callers keep that.
+ * remove, then confirm no doc is left (raw, so an undecryptable one counts): ok false when
+ * the delete failed or can't be confirmed, no database included. remove() itself only logs
+ * a failed delete; its other callers keep that.
  */
 export async function removeStrict<T extends { refresh_token?: string }>(
   store: UserOAuthStore<T>,
   userId: string
 ): Promise<{ ok: boolean }> {
   await store.remove(userId);
-  if (!getFirestoreDb()) return { ok: true }; // nowhere a grant could be stored
   try {
-    return { ok: (await store.readFresh(userId)) === null };
+    return { ok: !(await store.existsFresh(userId)) };
   } catch {
     return { ok: false };
   }

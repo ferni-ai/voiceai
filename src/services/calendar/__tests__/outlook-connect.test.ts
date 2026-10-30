@@ -207,6 +207,29 @@ describe('disconnect', () => {
       state.failWrites.clear();
     }
   });
+
+  it('no database (the strict read throws) is not a confirmed delete', async () => {
+    const { removeStrict } = await import('../../identity/user-oauth-store.js');
+    const noDb = {
+      remove: async () => undefined,
+      existsFresh: async () => {
+        throw new Error('No Firestore (outlook_tokens)');
+      },
+    };
+    expect(await removeStrict(noDb as never, A)).toEqual({ ok: false });
+  });
+
+  it('an undecryptable grant whose delete fails is still a failure (raw doc check)', async () => {
+    state.docs.set(docOf(A), { encrypted: '{"encrypted":true,"data":"not-ours"}', updated_at: 1 });
+    state.failWrites.add(docOf(A));
+    try {
+      await expect(outlookDisconnect(A)).rejects.toThrow();
+      expect(await disconnectRoute(A)).toBe(500);
+      expect(state.docs.has(docOf(A))).toBe(true);
+    } finally {
+      state.failWrites.clear();
+    }
+  });
 });
 
 describe('calendar tools read Outlook live, for the caller only', () => {
