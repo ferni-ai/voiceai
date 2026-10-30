@@ -40,6 +40,7 @@ import {
 } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { startWithin } from './music-start.js';
+import { listeningUnavailable, notLinkedReply, previewLinkHint } from './music-honesty.js';
 import { noteMusicRequest, playAmbientMusic, resetAmbientSession } from './ambient-play.js';
 import { getParameterDescription, getToolDescription } from '../../utils/tool-descriptions.js';
 
@@ -251,9 +252,9 @@ export async function playMusicUnified(query: string): Promise<string> {
     return result;
   }
 
-  // No Spotify: Use iTunes with "listening" framing
+  // No Spotify: say so (MUSIC_HONEST_WHEN_UNLINKED) or use iTunes with "listening" framing
   log.info({ query }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
-  return playViaItunesWithListeningFallback(query);
+  return (await listeningUnavailable()) ?? playViaItunesWithListeningFallback(query);
 }
 
 /**
@@ -584,11 +585,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     const baseResponse = `${intro}Here's "${track.name}" by ${track.artist}!${outro}`;
 
     // Add Spotify upsell if not linked (subtle, helpful)
-    const spotifyHint = !musicConfig.spotifyLinked
-      ? '\n\nPS: Link your Spotify for full songs instead of previews!'
-      : '';
-
-    return baseResponse + spotifyHint;
+    return baseResponse + previewLinkHint(musicConfig.spotifyLinked);
   } catch (error) {
     getLogger().error({ error, query }, '🎵 [iTunes] EXCEPTION in playViaItunes');
     return 'I had trouble finding that song. Try a different one?';
@@ -968,7 +965,7 @@ export function createMusicTools() {
       parameters: z.object({}),
       execute: async () => {
         if (!musicConfig.spotifyLinked) {
-          return "Spotify isn't linked yet. Link your account in settings to enjoy full songs!";
+          return notLinkedReply();
         }
         // Auto-detection handles source selection - Spotify is already active
         return "Spotify is linked and ready! I'll play full songs from your library.";

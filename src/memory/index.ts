@@ -1282,7 +1282,7 @@ export { aboutForgotten, forgottenWithin } from './recall/forget-every-reader.js
 export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
-export { containsContactData } from './domain/contact-data.js';
+export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
 export { keepLetters, nameTokens, OWNER_LEAD, relationWords } from './domain/person-key.js';

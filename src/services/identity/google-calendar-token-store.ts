@@ -20,6 +20,7 @@
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { resealStale } from '../../utils/token-at-rest.js';
 import { createPersistenceStore } from '../persistence/index.js';
 
 const log = createLogger({ module: 'GoogleCalendarTokenStore' });
@@ -33,6 +34,8 @@ export interface StoredGoogleCalendarTokens {
   /** Epoch ms when access_token expires. */
   expires_at: number;
   scope?: string;
+  /** insufficient_scope: the user's consent left out the calendar (GOOGLE_LINK_HONEST); the link reads as not connected. */
+  status?: string;
   updated_at?: number;
 }
 
@@ -110,6 +113,7 @@ async function loadTokens(userId: string): Promise<StoredGoogleCalendarTokens | 
       const decrypted = decryptData<StoredGoogleCalendarTokens>(data.encrypted);
       if (decrypted) {
         tokenCache.set(userId, decrypted);
+        void resealToSealingKey(userId, data, decrypted);
         return decrypted;
       }
     }
@@ -124,6 +128,23 @@ async function loadTokens(userId: string): Promise<StoredGoogleCalendarTokens | 
   if (savedMeanwhile) return savedMeanwhile;
   rememberMiss(userId);
   return null;
+}
+
+/** With TOKEN_SEALING_KEY set, move an envelope sealed under an older key to it (best effort). */
+function resealToSealingKey(
+  userId: string,
+  data: EncryptedTokenData,
+  value: StoredGoogleCalendarTokens
+): Promise<unknown> {
+  return resealStale({
+    store: COLLECTION,
+    stored: data.encrypted,
+    value,
+    swap: (encrypted) =>
+      tokenStore.updateIfUnchanged(userId, (cur) => cur.encrypted === data.encrypted, {
+        encrypted,
+      }),
+  });
 }
 
 /**

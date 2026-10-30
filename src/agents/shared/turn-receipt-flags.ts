@@ -15,6 +15,7 @@ import type { FlagName } from '../../config/flag-manifest.js';
 export const RECEIPT_FLAGS = [
   'ACTION_CLAIM_STREAM',
   'ACTION_CLAIM_GUARD',
+  'HOUSE_FACTS',
   'FIRST_CLAUSE_FLUSH',
   'PREEMPT_STABLE_CONTEXT',
   'PREEMPTIVE_TTS',
