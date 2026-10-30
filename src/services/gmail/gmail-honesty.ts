@@ -25,9 +25,15 @@ interface GmailUnavailable {
   say: string;
 }
 
-/** True for a Gmail response that means the grant lacks mail access. */
-export function isGmailNotPermitted(status: number, body: string): boolean {
-  return status === 403 || /insufficient\s*(authentication\s*)?(scopes?|permission)/i.test(body);
+/**
+ * Flag on: a Gmail 403 (or a missing-scope body) throws GmailNotPermittedError, which the
+ * callers must not turn into an empty inbox. Off: nothing happens, as before.
+ */
+export function assertGmailPermitted(status: number, body: string): void {
+  if (!isGoogleLinkHonest()) return;
+  if (status === 403 || /insufficient\s*(authentication\s*)?(scopes?|permission)/i.test(body)) {
+    throw new GmailNotPermittedError();
+  }
 }
 
 /** Runs a Gmail read; a not-permitted error becomes the honest result for the model. */

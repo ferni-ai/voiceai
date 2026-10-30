@@ -694,10 +694,9 @@ export interface ToolDefinition {
   /** Factory function to create the tool instance */
   create: (_ctx: ToolContext) => Tool;
 
-  /** External services required by this tool */
-  requiredServices?: ExternalService[];
+  requiredServices?: ExternalService[]; // external services this tool needs
   requiresEnv?: readonly string[]; // env vars it needs; never registered while one is unset (tool-availability.ts)
-  availableWhen?: () => boolean; // asked at registration; false means never registered (tool-availability.ts)
+  availableWhen?: () => boolean; // false at registration: never registered (tool-availability.ts)
 
   /** Tool is experimental/beta */
   experimental?: boolean;

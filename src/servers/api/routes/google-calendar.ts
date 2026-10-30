@@ -42,6 +42,19 @@ const GOOGLE_CALENDAR_REDIRECT_URI = googleCalendarRedirectUri(
 const GOOGLE_CALENDAR_SCOPE_PARAM = GOOGLE_CALENDAR_SCOPES.join(' ');
 
 /**
+ * Granular consent: the user unticked the calendar. The grant is kept (so disconnect can
+ * revoke it) but stored as unusable; the user goes back to where they started, told to reconnect.
+ */
+function redirectInsufficientScope(res: ServerResponse, userId: string, returnUrl: string): true {
+  log.warn({ userId }, 'Google link without the calendar scope stored as insufficient_scope');
+  const sep = returnUrl.includes('?') ? '&' : '?';
+  const query = `calendar=google&status=${INSUFFICIENT_SCOPE}&calendar_error=${INSUFFICIENT_SCOPE}`;
+  res.writeHead(302, { Location: `${returnUrl}${sep}${query}` });
+  res.end();
+  return true;
+}
+
+/**
  * Handle Google Calendar OAuth routes
  */
 export async function handleGoogleCalendarRoutes(
@@ -140,8 +153,6 @@ export async function handleGoogleCalendarRoutes(
 
       // Save tokens for this user (async - uses Firestore)
       const userId = stateData.uid;
-      // Granular consent: the user may have unticked the calendar. Keep the grant (so
-      // disconnect can revoke it) but store it as unusable and tell them to reconnect.
       const insufficient = isGoogleLinkHonest() && !hasCalendarScope(tokens.scope);
       await googleCalendarService.saveTokens(userId, {
         access_token: tokens.access_token,
@@ -150,15 +161,7 @@ export async function handleGoogleCalendarRoutes(
         scope: tokens.scope,
         ...(insufficient ? { status: INSUFFICIENT_SCOPE } : {}),
       });
-      if (insufficient) {
-        log.warn({ userId }, 'Google link without the calendar scope stored as insufficient_scope');
-        const sep = stateData.returnUrl.includes('?') ? '&' : '?';
-        res.writeHead(302, {
-          Location: `${stateData.returnUrl}${sep}calendar=google&status=${INSUFFICIENT_SCOPE}&calendar_error=${INSUFFICIENT_SCOPE}`,
-        });
-        res.end();
-        return true;
-      }
+      if (insufficient) return redirectInsufficientScope(res, userId, stateData.returnUrl);
 
       // Set up webhook watch channel for real-time sync
       try {
