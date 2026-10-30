@@ -1,7 +1,8 @@
 /**
  * A note builder that throws must never cost the turn its reply. 2026-10-29 an owner check
  * threw inside withTurnReminder on a crisis turn and gatedReply lost the crisis reply (#2996,
- * crisis-event-record.test.ts). withTurnReminder now falls back to the request as sent.
+ * crisis-event-record.test.ts). withTurnReminder no longer throws; since #3077 a turn whose note
+ * failed carries the unverified-speaker default (turn-reminder-fails-closed.test.ts).
  */
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
@@ -19,6 +20,7 @@ vi.mock('../call-me-note.js', async (importOriginal) => ({
 
 const { withTurnReminder } = await import('../turn-request.js');
 const { gatedReply } = await import('../crisis-gate.js');
+const { UNVERIFIED_SPEAKER_NOTE } = await import('../turn-note-guard.js');
 const { buildCrisisGuidance, detectCrisis } = await import('../../safety/crisis-guard.js');
 const { resetCrisisClassifierCache } =
   await import('../../../services/safety/crisis-classifier.js');
@@ -44,9 +46,11 @@ const lastUser = (ctx: llm.ChatContext): string =>
   ).textContent ?? '';
 
 describe('withTurnReminder never throws', () => {
-  it('a throwing note builder: the request as sent, not an exception', () => {
+  it('a throwing note builder: a request that says the speaker is unverified, not an exception', () => {
     const sent = request('long day, honestly');
-    expect(withTurnReminder(sent, {})).toBe(sent);
+    const out = withTurnReminder(sent, {});
+    expect(lastUser(out)).toContain(UNVERIFIED_SPEAKER_NOTE);
+    expect(lastUser(out).startsWith('long day, honestly')).toBe(true);
   });
 
   it('with nothing throwing, the notes are added as before', () => {
