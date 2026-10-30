@@ -17,8 +17,7 @@ import type { Tool } from '../../registry/types.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { isUnverifiedUserId } from '../../../services/identity/unverified-user-id.js';
 import { getCredential } from '../../../services/smart-home/user-credentials.js';
-import { getLifxLights, setLifxLight } from './lifx-lights.js';
-import type { SmartDevice } from './smart-home.js';
+import { getLifxLights, setLifxLight, type SmartDevice } from './smart-home.js';
 
 const NOT_VERIFIED = 'I can only change the lights for a signed-in account, so I left them alone.';
 const NOT_LINKED =

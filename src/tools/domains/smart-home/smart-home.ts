@@ -24,7 +24,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { getLifxLights, setLifxLight } from './lifx-lights.js';
+import { getLifxClient } from '../../../services/self-healing/index.js';
 import { HUE_NEEDS_REMOTE_ACCESS } from '../../../services/smart-home/hue-remote-access.js';
 import {
   getUserSmartHomeCredentials,
@@ -58,7 +58,8 @@ export interface SmartDevice {
     | 'other';
   state: string;
   attributes?: Record<string, unknown>;
-  platform: 'hue' | 'lifx' | 'nest' | 'sonos' | 'homekit' | 'ecobee';
+  platform:
+    'hue' | 'lifx' | 'nest' | 'sonos' | 'homekit' | 'ecobee';
   room?: string;
 }
 
@@ -103,6 +104,94 @@ async function getCredentials(userId: string): Promise<SmartHomeCredentials> {
  */
 function getHueLights(_credentials: SmartHomeCredentials): Promise<SmartDevice[]> {
   return Promise.resolve([]);
+}
+
+// ============================================================================
+// LIFX API (with self-healing + user credentials)
+// ============================================================================
+
+// Type for LIFX lights response
+interface LifxLight {
+  id?: string;
+  label?: string;
+  power?: string;
+  brightness?: number;
+  location?: { name: string };
+  group?: { name: string };
+}
+
+export async function getLifxLights(credentials: Pick<SmartHomeCredentials, 'lifx'>): Promise<SmartDevice[]> {
+  const lifxConfig = credentials.lifx;
+  if (!lifxConfig) {
+    return [];
+  }
+
+  const lifxClient = getLifxClient();
+
+  // Check circuit health
+  if (!lifxClient.isHealthy()) {
+    getLogger().debug('LIFX circuit is open, skipping request');
+    return [];
+  }
+
+  const { data: lights, error } = await lifxClient.get<LifxLight[]>(
+    'https://api.lifx.com/v1/lights/all',
+    { headers: { Authorization: `Bearer ${lifxConfig.token}` } }
+  );
+
+  if (error || !lights) {
+    if (error) {
+      getLogger().warn({ error: error.message }, 'LIFX API error');
+    }
+    return [];
+  }
+
+  return lights.map((light) => ({
+    id: `lifx_${light.id}`,
+    name: light.label || 'LIFX Light',
+    type: 'light' as const,
+    state: light.power || 'off',
+    attributes: { brightness: Math.round((light.brightness || 0) * 100) },
+    platform: 'lifx' as const,
+    room: light.group?.name || light.location?.name,
+  }));
+}
+
+export async function setLifxLight(
+  credentials: Pick<SmartHomeCredentials, 'lifx'>,
+  lightId: string,
+  power?: 'on' | 'off',
+  brightness?: number,
+  colorTemp?: number
+): Promise<boolean> {
+  const lifxConfig = credentials.lifx;
+  if (!lifxConfig) {
+    return false;
+  }
+
+  const lifxClient = getLifxClient();
+
+  if (!lifxClient.isHealthy()) {
+    getLogger().debug('LIFX circuit is open, cannot control light');
+    return false;
+  }
+
+  const id = lightId.replace('lifx_', '');
+  const body: Record<string, unknown> = {};
+  if (power) body.power = power;
+  if (brightness !== undefined) body.brightness = brightness / 100;
+  if (colorTemp !== undefined) body.color = `kelvin:${colorTemp}`;
+
+  const { error } = await lifxClient.put(`https://api.lifx.com/v1/lights/${id}/state`, body, {
+    headers: { Authorization: `Bearer ${lifxConfig.token}` },
+  });
+
+  if (error) {
+    getLogger().warn({ error: error.message, lightId }, 'LIFX light control failed');
+    return false;
+  }
+
+  return true;
 }
 
 // ============================================================================
@@ -294,15 +383,22 @@ export async function getAllDevices(userId?: string): Promise<SmartDevice[]> {
       };
 
   // Gather from all configured platforms in parallel
-  const [hueDevices, lifxDevices, sonosDevices, homekitDevices, ecobeeDevices] = await Promise.all([
-    credentials.hue ? getHueLights(credentials) : Promise.resolve([]),
-    credentials.lifx ? getLifxLights(credentials) : Promise.resolve([]),
-    credentials.sonos ? getSonosDevices(credentials) : Promise.resolve([]),
-    userId ? getHomeKitDevices(userId) : Promise.resolve([]),
-    getEcobeeDevices(userId),
-  ]);
+  const [hueDevices, lifxDevices, sonosDevices, homekitDevices, ecobeeDevices] =
+    await Promise.all([
+      credentials.hue ? getHueLights(credentials) : Promise.resolve([]),
+      credentials.lifx ? getLifxLights(credentials) : Promise.resolve([]),
+      credentials.sonos ? getSonosDevices(credentials) : Promise.resolve([]),
+      userId ? getHomeKitDevices(userId) : Promise.resolve([]),
+      getEcobeeDevices(userId),
+    ]);
 
-  devices.push(...hueDevices, ...lifxDevices, ...sonosDevices, ...homekitDevices, ...ecobeeDevices);
+  devices.push(
+    ...hueDevices,
+    ...lifxDevices,
+    ...sonosDevices,
+    ...homekitDevices,
+    ...ecobeeDevices
+  );
 
   return devices;
 }
