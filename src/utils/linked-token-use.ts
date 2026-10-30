@@ -12,10 +12,13 @@
  * A read outside a scoped call (a background job, a tool not built through
  * perCallerTool) is not recorded.
  *
- * SEAM: Google Calendar's getValidAccessToken (services/identity/
- * google-calendar-oauth.ts) reports today. The shared user token store (#3093)
- * should report from its one read path, so every provider on it gets the
- * fields with no per-provider change.
+ * Who reports: the shared user token store (services/identity/
+ * user-oauth-store.ts) on every read (connected / not_connected) and on a
+ * blocked refresh (needs_reauth), and the shared refresh handler
+ * (oauth-revocation.ts) on a revoked grant (needs_reauth), so a provider on the
+ * store gets the fields with no change of its own. A provider can add its own
+ * states (Google: expired with no refresh token; LIFX: unconfigured). The last
+ * report in a call wins: link_state is the link's state, not the call's result.
  *
  * @module utils/linked-token-use
  */

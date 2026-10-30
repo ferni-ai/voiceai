@@ -2,10 +2,15 @@
  * A tool call that reads a linked account's token says WHOSE token ran on its
  * "Tool execution tracked" line, as a keyed hash, never the uid (integration
  * plan lane S3: every end-to-end proof greps these lines). Runs the real seams:
- * perCallerTool scopes the call, Google Calendar's getValidAccessToken reports
- * the read, the tracking handler writes the line.
+ * perCallerTool scopes the call, the shared user token store (and Google
+ * Calendar's getValidAccessToken on it) reports the read, the tracking handler
+ * writes the line. Only Firestore is faked.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createMergeFakeFirestore,
+  newMergeFakeState,
+} from '../../../tests/helpers/merge-fake-firestore.js';
 
 const world = vi.hoisted(() => {
   process.env.LOG_HASH_SECRET = 'test-log-hash-secret';
@@ -15,7 +20,7 @@ const world = vi.hoisted(() => {
     handler: undefined as undefined | ((event: unknown) => void),
     tracked: [] as Array<Record<string, unknown>>,
     pending: [] as Array<Promise<unknown>>,
-    tokens: new Map<string, Record<string, unknown>>(),
+    db: null as unknown,
   };
 });
 
@@ -53,20 +58,23 @@ vi.mock('../../../tools/optimization/auto-optimizer.js', () => ({
 }));
 vi.mock('../../model-provider/index.js', () => ({ getModelProvider: () => ({ id: 'gemini' }) }));
 vi.mock('../tool-result-speech.js', () => ({ needsExplicitToolResultReply: () => false }));
-// The encrypted Firestore store; everything above it in the read path is real.
-vi.mock('../../../services/identity/google-calendar-token-store.js', () => ({
-  getTokens: async (uid: string) => world.tokens.get(uid),
-  saveTokens: vi.fn(async () => undefined),
-  removeTokens: vi.fn(async () => undefined),
-  peekTokens: (uid: string) => world.tokens.get(uid),
-  listTokenUsers: vi.fn(async () => []),
+// The real token store and persistence layer on the Firestore fake.
+vi.mock('@google-cloud/firestore', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  Firestore: class {
+    constructor() {
+      return world.db as object;
+    }
+  },
 }));
 
+const firestore = newMergeFakeState();
+world.db = createMergeFakeFirestore(firestore);
+
 import { bqHash } from '../../../services/analytics/bq-events.js';
-import {
-  clearFailedTokenStatus,
-  getValidAccessToken,
-} from '../../../services/identity/google-calendar-oauth.js';
+import { getValidAccessToken } from '../../../services/identity/google-calendar-oauth.js';
+import { googleTokenStore } from '../../../services/identity/google-calendar-token-store.js';
+import { createUserOAuthStore } from '../../../services/identity/user-oauth-store.js';
 import { perCallerTool } from '../../../tools/registry/per-caller-tool.js';
 import type { ToolContext, ToolDefinition } from '../../../tools/registry/types.js';
 import { setupToolTrackingHandler } from '../tool-tracking-handler.js';
@@ -111,9 +119,35 @@ async function turn(calls: Array<{ callId: string; caller: string }>) {
   return world.tracked;
 }
 
-beforeEach(() => {
-  world.tokens.clear();
-  for (const uid of [SETH, MOM]) clearFailedTokenStatus(uid);
+/** A provider that moves onto the shared store later: it reports with no code of its own. */
+const ouraStore = createUserOAuthStore<{ access_token: string; refresh_token?: string }>({
+  provider: 'oura',
+  collection: 'oura_tokens_test',
+});
+const readSleep = perCallerTool(
+  {
+    id: 'readSleep',
+    name: 'Read sleep',
+    description: 'Read the caller sleep',
+    domain: 'wellness',
+    create: (ctx: ToolContext) => ({
+      description: 'Read the caller sleep',
+      execute: async () => ((await ouraStore.get(ctx.userId)) ? 'You slept 7 hours.' : 'No ring.'),
+    }),
+  } as unknown as ToolDefinition,
+  {} as never
+);
+
+const link = (
+  uid: string,
+  tokens: { access_token: string; refresh_token: string; expires_at: number }
+) => googleTokenStore.save(uid, tokens);
+
+beforeEach(async () => {
+  await googleTokenStore.shutdown();
+  await ouraStore.shutdown();
+  firestore.docs.clear();
+  firestore.writes.length = 0;
   world.handler = undefined;
   world.pending.length = 0;
   setupToolTrackingHandler({
@@ -134,7 +168,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe('Tool execution tracked: whose linked token ran', () => {
   it("a calendar read carries the hash of the token owner's uid, and each caller gets their own", async () => {
     for (const uid of [SETH, MOM]) {
-      world.tokens.set(uid, {
+      await link(uid, {
         access_token: `ya29.${uid}`,
         refresh_token: 'r',
         expires_at: Date.now() + HOUR,
@@ -158,7 +192,7 @@ describe('Tool execution tracked: whose linked token ran', () => {
   });
 
   it('never logs the uid itself', async () => {
-    world.tokens.set(SETH, {
+    await link(SETH, {
       access_token: 'ya29.x',
       refresh_token: 'r',
       expires_at: Date.now() + HOUR,
@@ -172,7 +206,7 @@ describe('Tool execution tracked: whose linked token ran', () => {
   });
 
   it('an expired link with no refresh token shows as needs_reauth', async () => {
-    world.tokens.set(SETH, {
+    await link(SETH, {
       access_token: 'ya29.old',
       refresh_token: '',
       expires_at: Date.now() - HOUR,
@@ -183,8 +217,8 @@ describe('Tool execution tracked: whose linked token ran', () => {
     expect(line).toMatchObject({ link_uid_tag: bqHash('user', SETH), link_state: 'needs_reauth' });
   });
 
-  it('a grant Google says is revoked (invalid_grant) shows as needs_reauth', async () => {
-    world.tokens.set(MOM, {
+  it('a grant Google says is revoked (invalid_grant) shows as needs_reauth, and so does the next call', async () => {
+    await link(MOM, {
       access_token: 'ya29.old',
       refresh_token: 'r-mom',
       expires_at: Date.now() - HOUR,
@@ -194,9 +228,33 @@ describe('Tool execution tracked: whose linked token ran', () => {
       vi.fn(async () => new Response('{"error":"invalid_grant"}', { status: 400 }))
     );
 
-    const [line] = await turn([{ callId: 'call-1', caller: MOM }]);
+    const [revoked] = await turn([{ callId: 'call-1', caller: MOM }]);
+    const [blocked] = await turn([{ callId: 'call-2', caller: MOM }]);
 
-    expect(line).toMatchObject({ link_uid_tag: bqHash('user', MOM), link_state: 'needs_reauth' });
+    expect(revoked).toMatchObject({
+      link_uid_tag: bqHash('user', MOM),
+      link_state: 'needs_reauth',
+    });
+    expect(blocked).toMatchObject({
+      link_uid_tag: bqHash('user', MOM),
+      link_state: 'needs_reauth',
+    });
+  });
+
+  it('a provider on the shared store reports with no code of its own', async () => {
+    await ouraStore.save(SETH, { access_token: 'oura-at', refresh_token: 'oura-rt' });
+    const output = String(
+      await readSleep.execute({}, { toolCallId: 'sleep-1', ctx: { userData: { userId: SETH } } })
+    );
+    world.tracked.length = 0;
+    world.handler?.({ functionCallOutputs: [{ name: 'readSleep', callId: 'sleep-1', output }] });
+    await Promise.all(world.pending.splice(0));
+
+    expect(world.tracked[0]).toMatchObject({
+      link_provider: 'oura',
+      link_uid_tag: bqHash('user', SETH),
+      link_state: 'connected',
+    });
   });
 
   it('a caller with no link shows as not_connected', async () => {
