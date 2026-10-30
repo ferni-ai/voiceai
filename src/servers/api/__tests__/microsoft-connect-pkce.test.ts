@@ -195,6 +195,21 @@ describe('unlink', () => {
   });
 });
 
+describe('status', () => {
+  it('an unread link doc answers 503, never linked:true', async () => {
+    state.failReads = new Set(['bogle_users/uid-A/outlook_tokens/data']);
+    try {
+      const res = await send('/auth/microsoft/status', {
+        headers: { authorization: 'Bearer tok-A' },
+      });
+      expect(res.status).toBe(503);
+      expect(JSON.stringify(await res.json())).not.toContain('"linked":true');
+    } finally {
+      state.failReads = undefined;
+    }
+  });
+});
+
 describe('pkce verifier', () => {
   const req = (cookie?: string) => ({ headers: cookie ? { cookie } : {} }) as never;
   const a = `__session=${'a'.repeat(43)}`;

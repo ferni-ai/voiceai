@@ -26,7 +26,7 @@ import {
 } from '../../services/scheduling/calendar-busy-detection.js';
 import { appleCalendarProvider } from '../../services/calendar/providers/apple-provider.js';
 import { outlookCalendarProvider } from '../../services/calendar/providers/outlook-provider.js';
-import { outlookLinkedOr } from '../../services/calendar/index.js';
+import { outlookStatusLinked } from '../../services/calendar/index.js';
 import { getConflictSummary } from '../../services/calendar/conflict-resolver.js';
 import { stopAllUserChannels as stopGoogleWatchChannels } from '../../services/calendar/webhooks/google-webhook.js';
 
@@ -88,7 +88,7 @@ export async function handleSyncStatus(
     const [googleConnected, appleConnected, outlookConnected] = await Promise.all([
       isCalendarLinked(userId),
       appleCalendarProvider.isConnected(userId),
-      outlookLinkedOr(userId, () => outlookCalendarProvider.isConnected(userId)),
+      outlookStatusLinked(userId, () => outlookCalendarProvider.isConnected(userId)),
     ]);
 
     const conflicts = await getConflictSummary(userId);
@@ -239,7 +239,7 @@ export async function handleProvidersStatus(
     const [googleConnected, appleConnected, outlookConnected] = await Promise.all([
       isCalendarLinked(userId),
       appleCalendarProvider.isConnected(userId),
-      outlookLinkedOr(userId, () => outlookCalendarProvider.isConnected(userId)),
+      outlookStatusLinked(userId, () => outlookCalendarProvider.isConnected(userId)),
     ]);
 
     const outlookConfigured = outlookCalendarProvider.isConfigured();

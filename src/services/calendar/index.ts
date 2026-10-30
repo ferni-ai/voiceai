@@ -132,6 +132,8 @@ export {
   outlookConnectOn,
   outlookDisconnect,
   outlookLinkedOr,
+  outlookLinkUnknown,
+  outlookStatusLinked,
   pkceChallenge,
 } from './providers/outlook-state.js';
 

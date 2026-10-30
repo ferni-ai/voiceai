@@ -24,13 +24,30 @@ export class OutlookUnavailableError extends Error {
 export const pkceChallenge = (verifier: string): string =>
   createHash('sha256').update(verifier).digest('base64url');
 
-/** Flag on: is Outlook linked (connected or needing reconnecting)? Off: `legacy()`. */
+const linkState = async (userId: string) => (await outlookLink()).outlookLinkState(userId);
+
+/** Flag on: is Outlook linked (connected or needing reconnecting)? An unread link is not. Off: `legacy()`. */
 export async function outlookLinkedOr(
   userId: string,
   legacy: () => Promise<boolean>
 ): Promise<boolean> {
   if (!outlookConnectOn()) return legacy();
-  return (await (await outlookLink()).outlookLinkState(userId)) !== 'not_connected' || legacy();
+  const state = await linkState(userId);
+  return state === 'connected' || state === 'needs_reauth' || legacy();
+}
+
+/** Flag on and the Outlook link doc couldn't be read: the caller's calendar can't be fully checked. */
+export async function outlookLinkUnknown(userId: string): Promise<boolean> {
+  return outlookConnectOn() && (await linkState(userId)) === 'link_unknown';
+}
+
+/** For status replies: like outlookLinkedOr, but an unread link throws (an error, never linked:true). */
+export async function outlookStatusLinked(
+  userId: string,
+  legacy: () => Promise<boolean>
+): Promise<boolean> {
+  if (await outlookLinkUnknown(userId)) throw new Error('Outlook link could not be read');
+  return outlookLinkedOr(userId, legacy);
 }
 
 /** Delete the sealed grant on any disconnect, flag on or off; throws when it wasn't deleted. */

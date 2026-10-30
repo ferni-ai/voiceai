@@ -85,16 +85,18 @@ export async function connectOutlook(
   }
 }
 
-/** Link state from the doc (a read error counts as not connected, for mode detection only). */
-/** Link state from the doc; a failed read is 'unreachable', never not_connected. */
+/**
+ * Link state from the doc (fresh, strict). A failed read, no database included, is
+ * 'link_unknown': not linked, not unlinked, and never "Outlook couldn't be reached".
+ */
 export async function outlookLinkState(
   userId: string
-): Promise<'connected' | 'needs_reauth' | 'not_connected' | 'unreachable'> {
+): Promise<'connected' | 'needs_reauth' | 'not_connected' | 'link_unknown'> {
   return tokenStore()
     .linkStatus(userId, { fromDoc: true })
     .then(
       (s) => s.state,
-      () => 'unreachable' as const
+      () => 'link_unknown' as const
     );
 }
 

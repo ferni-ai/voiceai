@@ -20,8 +20,14 @@ import {
   notConnectedCreate,
   notConnectedWithList,
   outlookUnavailableLine,
+  CALENDAR_MAYBE_INCOMPLETE,
+  CALENDAR_UNCHECKED,
+  calendarUncheckedWrite,
 } from '../../../services/calendar/not-connected-copy.js';
-import { OutlookUnavailableError } from '../../../services/calendar/providers/outlook-state.js';
+import {
+  OutlookUnavailableError,
+  outlookLinkUnknown,
+} from '../../../services/calendar/providers/outlook-state.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { smartCalendarTools as rawSmartCalendarTools } from './smart-calendar-tools.js';
 import { routeWriteToProvider } from './provider-routing.js';
@@ -97,6 +103,17 @@ async function withOutlookHonesty(write: boolean, run: () => Promise<unknown>): 
   }
 }
 
+/** The other providers answered, but the Outlook link doc couldn't be read: say so, naming none. */
+const maybeIncomplete = (out: unknown, unknown: boolean): unknown =>
+  unknown && typeof out === 'string' ? `${out}\n${CALENDAR_MAYBE_INCOMPLETE}` : out;
+
+/** No other calendar and the Outlook link doc unread: no "none connected", no Outlook named. */
+async function uncheckedReply(mode: string, run: () => Promise<unknown>): Promise<string> {
+  if (mode === 'read' || mode === 'clear') return CALENDAR_UNCHECKED;
+  const result = await run(); // a write still lands on Ferni's own list
+  return calendarUncheckedWrite(typeof result === 'string' && FAILED_WRITE.test(result));
+}
+
 function gate(def: ToolDefinition): ToolDefinition {
   const mode = CLEAR_ONLY.has(def.id)
     ? 'clear'
@@ -115,14 +132,20 @@ function gate(def: ToolDefinition): ToolDefinition {
         execute: async (params: unknown, options: unknown) => {
           const { userId } = ctx;
           if (!userId) return original(params, options);
+          const unknown = await outlookLinkUnknown(userId); // OUTLOOK_CONNECT: link doc unread
           if (await isConnected(userId)) {
             // A write goes to the connected calendar when the flag is on (#1749); else the Ferni path.
-            return withOutlookHonesty(mode === 'create' || mode === 'change', async () => {
-              const routed =
-                mode === 'read' ? null : await routeWriteToProvider(def.id, userId, params, ctx);
-              return routed ?? original(params, options);
-            });
+            const out = await withOutlookHonesty(
+              mode === 'create' || mode === 'change',
+              async () => {
+                const routed =
+                  mode === 'read' ? null : await routeWriteToProvider(def.id, userId, params, ctx);
+                return routed ?? original(params, options);
+              }
+            );
+            return maybeIncomplete(out, unknown && (mode === 'read' || mode === 'clear'));
           }
+          if (unknown) return uncheckedReply(mode, () => original(params, options));
           if (mode === 'read') return notConnectedRead(def.id, userId);
           if (mode === 'clear') {
             const result: unknown = await original(params, options);

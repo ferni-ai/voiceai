@@ -39,6 +39,10 @@ const { smartCalendarTools } =
   await import('../../../tools/domains/calendar/calendar-connection-gate.js');
 const { outlookCalendarProvider } = await import('../providers/outlook-provider.js');
 const { outlookDisconnect } = await import('../index.js');
+const { handleProvidersStatus } = await import('../../../api/calendar-routes/status-handlers.js');
+const { isCalendarConfigured } = await import('../../identity/google-calendar-oauth.js');
+const { createEvent: createUnifiedEvent } = await import('../unified-calendar-store.js');
+const { CALENDAR_UNCHECKED, CALENDAR_MAYBE_INCOMPLETE } = await import('../not-connected-copy.js');
 const { handleOutlookDisconnect } =
   await import('../../../api/calendar-routes/provider-handlers.js');
 
@@ -259,13 +263,62 @@ describe('calendar tools read Outlook live, for the caller only', () => {
     expect(net.graphCalls.every((c) => c.auth === 'Bearer at-code-b')).toBe(true);
   });
 
-  it('a failed read of the link doc is "couldn\'t reach", not clear or not connected', async () => {
+  it('an unread link doc never names Outlook: no other calendar gets the neutral line', async () => {
     await connect(A, 'code-a');
     state.failReads = new Set([docOf(A)]);
     try {
-      const reply = String(await today(A));
-      expect(reply).toMatch(/couldn't reach your Outlook calendar/);
-      expect(reply).not.toMatch(/clear|No calendar is connected/i);
+      expect(String(await today(A))).toBe(CALENDAR_UNCHECKED);
+      const create = { title: 'Call the plumber', date: '2026-11-03', startTime: '09:30' };
+      const wrote = String(await tool('createCalendarEvent', A).execute(create, {}));
+      expect(wrote).toMatch(/couldn't check your calendar just now/);
+      expect(wrote).not.toMatch(/Outlook|none is connected/);
+      expect(net.graphCalls).toHaveLength(0);
+    } finally {
+      state.failReads = undefined;
+    }
+  });
+
+  it("an unread link doc for a Google caller: Google's events are read, Outlook never named", async () => {
+    const C = 'uid-carol-0000000000000000';
+    const google = vi.mocked(isCalendarConfigured);
+    google.mockImplementation(async (uid: string) => uid === C);
+    await createUnifiedEvent(
+      C,
+      { title: 'Google standup', startTime: new Date(), durationMinutes: 30 },
+      'google'
+    );
+    state.failReads = new Set([docOf(C)]);
+    try {
+      const reply = String(await today(C));
+      expect(reply).toContain('Google standup');
+      expect(reply).toContain(CALENDAR_MAYBE_INCOMPLETE);
+      expect(reply).not.toMatch(/Outlook/);
+      expect(net.graphCalls).toHaveLength(0);
+    } finally {
+      state.failReads = undefined;
+      google.mockImplementation(async () => false);
+    }
+  });
+
+  it('status never answers linked:true from an unread link doc', async () => {
+    await connect(A, 'code-a');
+    state.failReads = new Set([docOf(A)]);
+    const res = {
+      status: 0,
+      body: '',
+      writeHead(code: number) {
+        this.status = code;
+        return this;
+      },
+      setHeader() {},
+      end(b?: string) {
+        this.body = b ?? '';
+      },
+    };
+    try {
+      await handleProvidersStatus({} as never, res as never, A);
+      expect(res.status).toBe(500);
+      expect(res.body).not.toContain('"connected":true');
     } finally {
       state.failReads = undefined;
     }

@@ -61,6 +61,17 @@ async function finishOutlookConnect(
   return `${link.returnUrl}${link.returnUrl.includes('?') ? '&' : '?'}calendar=outlook&status=connected`;
 }
 
+/** Status: an Outlook link doc that can't be read answers 503, never linked:true or false. */
+async function statusLinked(res: ServerResponse, userId: string): Promise<boolean | null> {
+  try {
+    return await ol.outlookStatusLinked(userId, () => outlookCalendarProvider.isConnected(userId));
+  } catch {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: "Couldn't check the Microsoft Calendar link, try again" }));
+    return null;
+  }
+}
+
 /** Unlink: the sealed grant goes whatever OUTLOOK_CONNECT says; a failed delete answers 500. */
 async function deleteSealedGrant(res: ServerResponse, userId: string): Promise<boolean> {
   try {
@@ -190,9 +201,8 @@ export async function handleMicrosoftCalendarRoutes(
     }
 
     const configured = outlookCalendarProvider.isConfigured();
-    const connected = await ol.outlookLinkedOr(userId, () =>
-      outlookCalendarProvider.isConnected(userId)
-    );
+    const connected = await statusLinked(res, userId);
+    if (connected === null) return true;
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
