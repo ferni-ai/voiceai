@@ -11,6 +11,7 @@ Object.assign(process.env, {
   GOOGLE_CALENDAR_CLIENT_ID: 'g-id',
   GOOGLE_CALENDAR_CLIENT_SECRET: 'g-secret',
   OAUTH_ENCRYPTION_KEY: 'test-key',
+  GMAIL_SEND_AS_USER: 'on',
 });
 
 const docs = vi.hoisted(() => new Map<string, unknown>());
@@ -201,6 +202,17 @@ describe('sendAsUser', () => {
     failingReads.on = true;
     expect(await sendAsUser('user-a', MSG)).toEqual({ status: 'unreachable' });
     expect(calls).toHaveLength(0);
+  });
+
+  it('GMAIL_SEND_AS_USER off: not_connected, and Google is never called', async () => {
+    grant('user-a');
+    vi.stubEnv('GMAIL_SEND_AS_USER', 'off');
+    try {
+      expect(await sendAsUser('user-a', MSG)).toEqual({ status: 'not_connected' });
+      expect(calls).toHaveLength(0);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("user B never sends with user A's token", async () => {

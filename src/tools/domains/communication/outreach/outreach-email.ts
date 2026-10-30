@@ -18,13 +18,8 @@
  * @module tools/domains/communication/outreach/outreach-email
  */
 
-import { isGmailSendAsUserEnabled } from '../../../../config/gmail-send-flag.js';
 import {
-  recordInteraction,
-  type ContactRelationship,
-} from '../../../../services/contacts/contact-relationship-service.js';
-import {
-  getGmailSendAddress,
+  gmailSendFrom,
   sendAsUser,
   type GmailSendOutcome,
 } from '../../../../services/identity/gmail-send-as-user.js';
@@ -57,10 +52,9 @@ export async function emailSender(
   userId: string,
   pinned?: EmailFrom
 ): Promise<{ from?: EmailFrom; fromAddress?: string } | { error: string }> {
-  if (!isGmailSendAsUserEnabled()) return pinned === 'gmail' ? { from: 'gmail' } : {};
   if (pinned) return { from: pinned };
   try {
-    const fromAddress = await getGmailSendAddress(userId, true);
+    const fromAddress = await gmailSendFrom(userId); // null: flag off or no grant
     return fromAddress ? { from: 'gmail', fromAddress } : {};
   } catch {
     log.warn({ userId: userId.substring(0, 8) }, 'Gmail send grant could not be read');
@@ -70,16 +64,15 @@ export async function emailSender(
 
 interface OutreachEmail {
   userId: string;
-  contact: ContactRelationship;
+  contact: { name: string; email?: string };
   subject: string;
   message: string;
-  purpose: string;
   personaId: string;
   outreachId: string;
   from?: EmailFrom;
 }
 
-/** Send reachOut's email from the mailbox that was read back. */
+/** Send reachOut's email from the mailbox that was read back (the caller records it). */
 export async function sendOutreachEmail(e: OutreachEmail): Promise<OutreachResult> {
   const { contact, message } = e;
   const result = { channel: 'email' as const, message, contactName: contact.name };
@@ -90,9 +83,11 @@ export async function sendOutreachEmail(e: OutreachEmail): Promise<OutreachResul
   let sent: { success: boolean; error?: string };
   if (e.from === 'gmail') {
     // Read back as "from your Gmail": if that's switched off since, say so, never use Ferni's.
-    const out = isGmailSendAsUserEnabled()
-      ? await sendAsUser(e.userId, { to: contact.email, subject: e.subject, body: message })
-      : ({ status: 'not_connected' } as const);
+    const out = await sendAsUser(e.userId, {
+      to: contact.email,
+      subject: e.subject,
+      body: message,
+    });
     sent =
       out.status === 'sent'
         ? { success: true }
@@ -103,19 +98,6 @@ export async function sendOutreachEmail(e: OutreachEmail): Promise<OutreachResul
     sent = await sendEmail({ to, subject, body: message, personaId, userId, outreachId });
   }
   if (!sent.success) return { ...result, success: false, error: sent.error || 'Email failed.' };
-  await recordInteraction(e.userId, {
-    contactId: contact.id,
-    userId: e.userId,
-    date: new Date(),
-    type: 'email',
-    direction: 'outbound',
-    summary: `Email: ${e.purpose}`,
-  }).catch((err) =>
-    log.debug(
-      { error: String(err), contactId: contact.id },
-      'Failed to record email interaction (non-fatal)'
-    )
-  );
   const how = e.from === 'gmail' ? ' from your Gmail' : '';
   return { ...result, success: true, message: `📧 Emailed ${contact.name}${how}: "${message}"` };
 }

@@ -514,7 +514,23 @@ async function executeOutreach(
     if (channel === 'email') {
       const subject = generateSubject(intent, purpose, contact.name);
       const { from } = sender;
-      return await sendOutreachEmail({ ...ctx, subject, message, outreachId, from });
+      const result = await sendOutreachEmail({ ...ctx, subject, message, outreachId, from });
+      if (result.success) {
+        await recordInteraction(userId, {
+          contactId: contact.id,
+          userId,
+          date: new Date(),
+          type: 'email',
+          direction: 'outbound',
+          summary: `Email: ${purpose}`,
+        }).catch((err) =>
+          log.debug(
+            { error: String(err), contactId: contact.id },
+            'Failed to record email interaction (non-fatal)'
+          )
+        );
+      }
+      return result;
     }
 
     return {

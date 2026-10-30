@@ -26,6 +26,7 @@ import { createPersistenceStore } from '../persistence/index.js';
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { queueGoogleRevocation, revokeGoogleToken } from './google-revocations.js';
+import { isGmailSendAsUserEnabled } from '../../config/gmail-send-flag.js';
 import {
   googleCalendarClientId,
   googleCalendarClientSecret,
@@ -159,6 +160,14 @@ export async function getGmailSendAddress(userId: string, strict = false): Promi
   return (await loadTokens(userId, strict))?.email ?? null;
 }
 
+/**
+ * The address mail would go out from now: null when GMAIL_SEND_AS_USER is off
+ * or there is no grant. Throws when Firestore can't be read.
+ */
+export async function gmailSendFrom(userId: string): Promise<string | null> {
+  return isGmailSendAsUserEnabled() ? getGmailSendAddress(userId, true) : null;
+}
+
 /** Whether the user has a Gmail send grant. Throws when Firestore can't be read. */
 export async function hasGmailSendGrant(userId: string): Promise<boolean> {
   return !!(await store.load(userId, { fresh: true, strict: true }))?.encrypted;
@@ -205,7 +214,7 @@ interface GmailSendMessage {
 /** What happened to one send. Only 'sent' means the mail left. */
 export type GmailSendOutcome =
   | { status: 'sent'; messageId: string }
-  | { status: 'not_connected' } // no grant stored for this user
+  | { status: 'not_connected' } // no grant stored for this user, or GMAIL_SEND_AS_USER is off
   | { status: 'needs_reauth' } // refresh refused (invalid_grant) or Gmail answered 401
   | { status: 'not_permitted' } // Gmail answered 403
   | { status: 'unreachable' } // 5xx, 429, network error, timeout, or the grant couldn't be read
@@ -296,6 +305,7 @@ async function postSend(token: string, raw: string): Promise<Response | null> {
  * we thought valid gets one refresh and one retry. Logs ids and statuses only.
  */
 export async function sendAsUser(userId: string, msg: GmailSendMessage): Promise<GmailSendOutcome> {
+  if (!isGmailSendAsUserEnabled()) return { status: 'not_connected' };
   if (!ADDRESS.test(msg.to) || (msg.replyTo && !ADDRESS.test(msg.replyTo))) {
     return { status: 'bad_address' };
   }
