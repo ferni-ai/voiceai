@@ -23,7 +23,6 @@ export type ConnectionStatus = 'connected' | 'disconnected' | 'error';
 const TILE_IDS = {
   appleHealth: 'apple-health',
   oura: 'oura',
-  eightSleep: 'eight-sleep',
   wearables: 'wearables',
   googleCalendar: 'google-calendar',
   linkedin: 'linkedin',
@@ -38,7 +37,6 @@ export type IntegrationStatuses = Record<StatusKey, ConnectionStatus>;
 const V1_KEYS: StatusKey[] = [
   'appleHealth',
   'oura',
-  'eightSleep',
   'wearables',
   'googleCalendar',
   'linkedin',
@@ -60,7 +58,6 @@ function biometricKey(platform: string | undefined): StatusKey {
   const p = platform?.toLowerCase() ?? '';
   if (p.includes('apple')) return 'appleHealth';
   if (p.includes('oura')) return 'oura';
-  if (p.includes('eight') || p.includes('sleep')) return 'eightSleep';
   return 'wearables';
 }
 
