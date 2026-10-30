@@ -199,6 +199,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
   FRIEND_REPAIR: { default: 'off', owner: 'memory', kind: 'experiment' },
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: Jordan's hello may offer a letter to future you once its day has come (future-letters.ts)
+  FUTURE_LETTER_OPENER: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },

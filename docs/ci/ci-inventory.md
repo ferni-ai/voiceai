@@ -40,6 +40,28 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 - `frontend-quality` - Frontend-specific checks
 - `dependencies` - Outdated dependency check
 
+**How many unit shards a pull request gets** (`ci.yml`, `test-unit-shard`):
+
+| Pull request | Shards | What each runs |
+|--------------|--------|----------------|
+| Small affected set (at most 700 test files) | 1 | `vitest run --changed HEAD^1` |
+| Big affected set (over 700 files, e.g. any file under `src/config/flags/`) | 4 | `vitest run --changed HEAD^1 --shard=N/4`: a quarter of the affected files |
+| Diff hits a `forceRerunTriggers` file, touches crisis-safety or memory code, or carries `ci:full-tests` | 4 | a quarter of the whole suite, with coverage |
+
+- A file under `src/config/flags/` reaches ~1,500 test files through the generated barrel
+  `index.generated.ts`. One shard timed out on those at its 25 min (7 of 22 attempts in
+  four hours, 2026-10-29); a full run on four shards never took more than 14 min.
+- Setup counts the affected files with `scripts/ci/unit-affected-count.mjs`
+  (`vitest list --changed HEAD^1 --filesOnly`, about a minute) and outputs
+  `unit-affected-count` and `unit-affected-sharded`. The threshold is `THRESHOLD` in that
+  script. If the count fails, the PR gets four shards.
+- vitest applies `--shard` after `--changed` selects the files, so the four shards are
+  disjoint and together run the whole affected set. `vitest list` ignores `--shard`, so
+  use `vitest run --shard` (or the CI run) to see a shard's slice.
+- The "Unit Tests" check fails when the number of shards that ran is not the number the
+  run called for (4, or 1 for a small affected set). The matrix condition, `FULL_SUITE`
+  and `AFFECTED_SHARDED` are pinned together by `src/tests/deploy/merge-queue-jobs.test.ts`.
+
 **Optimizations Applied:**
 - Path filters (70% reduction in unnecessary runs)
 - Concurrency control (cancel-in-progress)
