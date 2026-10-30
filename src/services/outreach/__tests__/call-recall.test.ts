@@ -113,6 +113,16 @@ describe('recallFrom', () => {
     );
   });
 
+  it.each([
+    ["did you tell 'em", 'em'],
+    ["we've talked", 've'],
+    ["they're fine", 're'],
+    ["you'll see", 'll'],
+    ['ma’am', 'am'],
+  ])('a contraction leaves no two-letter piece: %j has no %j', (said, piece) =>
+    expect(queryWords(said)).not.toContain(piece)
+  );
+
   it("a possessive in the question never matches a contact with one (Dr. Lee's office)", () => {
     const lee = {
       callId: 'call_lee',
