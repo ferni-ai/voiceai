@@ -10,7 +10,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
 
-export const SESSION_CLOSE_TIMEOUT_MS = 3_000;
+const SESSION_CLOSE_TIMEOUT_MS = 3_000;
 
 export async function closeAgentSession(
   session: { close(): Promise<void> } | null | undefined,
