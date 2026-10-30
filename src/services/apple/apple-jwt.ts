@@ -1,11 +1,11 @@
 /**
  * Apple JWT Token Generation
  *
- * Generates JWT tokens for Apple APIs (MusicKit, WeatherKit)
+ * Generates JWT tokens for Apple APIs (MusicKit)
  *
  * Setup:
  * 1. Go to developer.apple.com/account/resources/authkeys
- * 2. Create a key with MusicKit and/or WeatherKit enabled
+ * 2. Create a key with MusicKit enabled
  * 3. Download the .p8 private key file
  * 4. Set environment variables:
  *    - APPLE_TEAM_ID (10-char team ID from membership page)
@@ -64,10 +64,10 @@ function getPrivateKey(): string {
 /**
  * Generate a JWT token for Apple APIs
  *
- * @param service - 'musickit' or 'weatherkit'
+ * @param service - 'musickit'
  * @param expirationHours - How long the token should be valid (default 12 hours)
  */
-export function generateAppleJWT(service: 'musickit' | 'weatherkit', expirationHours = 12): string {
+export function generateAppleJWT(service: 'musickit', expirationHours = 12): string {
   // Check cache first
   const cacheKey = service;
   const cached = tokenCache.get(cacheKey);
@@ -102,13 +102,6 @@ export function generateAppleJWT(service: 'musickit' | 'weatherkit', expirationH
       exp: expiration,
       // MusicKit requires origin claim for web apps
       // origin: 'https://your-domain.com', // Add if needed for web
-    };
-  } else if (service === 'weatherkit') {
-    payload = {
-      iss: APPLE_TEAM_ID,
-      iat: now,
-      exp: expiration,
-      sub: 'com.ferni.voiceai', // Your app's bundle ID
     };
   } else {
     throw new Error(`Unknown Apple service: ${service}`);
@@ -155,16 +148,8 @@ export function getMusicKitToken(): string {
   return generateAppleJWT('musickit');
 }
 
-/**
- * Get WeatherKit token
- */
-export function getWeatherKitToken(): string {
-  return generateAppleJWT('weatherkit');
-}
-
 export default {
   isAppleConfigured,
   generateAppleJWT,
   getMusicKitToken,
-  getWeatherKitToken,
 };

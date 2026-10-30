@@ -230,9 +230,9 @@ Without these, reservations fall back to phone calls via Twilio.
 2. Add redirect URI matching your production URL
 3. Set `SPOTIFY_REDIRECT_URI` environment variable to match
 
-### Apple Services (MusicKit & WeatherKit)
+### Apple Services (MusicKit)
 
-For Apple Music search and premium weather data:
+For Apple Music search:
 
 | Variable            | Required | Description                                     |
 | ------------------- | -------- | ----------------------------------------------- |
@@ -245,7 +245,7 @@ For Apple Music search and premium weather data:
 
 1. Go to [Apple Developer Account](https://developer.apple.com/account/)
 2. Navigate to **Keys** → **Create a Key**
-3. Enable **MusicKit** and **WeatherKit**
+3. Enable **MusicKit**
 4. Download the `.p8` private key file
 5. Add to `.env`:
 
@@ -259,7 +259,6 @@ MIGTAgEAMBMGByq...
 
 **Free Tier:** Apple Developer account ($99/year) includes:
 - MusicKit: 25,000 API calls/month
-- WeatherKit: 500,000 API calls/month
 
 ### Home Assistant (Smart Home)
 
