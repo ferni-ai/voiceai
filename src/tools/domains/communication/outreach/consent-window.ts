@@ -134,13 +134,7 @@ function callsSomeoneElse(text: string, pending: PendingAction): boolean {
     const w = raw.toLowerCase();
     if (target.includes(w) || w === pronoun || AFTER_CALL.has(w)) continue;
     if (!pronoun && (w === 'him' || w === 'her')) continue;
-    if (
-      OTHERS.has(w) ||
-      /^[A-Z]/.test(raw) ||
-      /[^\x00-\x7f]/.test(raw) ||
-      w === 'him' ||
-      w === 'her'
-    )
+    if (OTHERS.has(w) || /^[A-Z]/.test(raw) || /\P{ASCII}/u.test(raw) || w === 'him' || w === 'her')
       return true;
   }
   return false;
