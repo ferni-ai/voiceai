@@ -28,6 +28,16 @@ import {
 
 export const OAUTH_START_PATH = '/auth/oauth/start';
 
+/**
+ * Oura needs the app credentials, and in production a redirect URI registered on the Oura
+ * app: without OURA_REDIRECT_URI the flow falls back to localhost, which Oura rejects.
+ * Same credential test as token/oauth/wearables.ts, without loading its token store.
+ */
+function isOuraConfigured(): boolean {
+  if (!process.env.OURA_CLIENT_ID || !process.env.OURA_CLIENT_SECRET) return false;
+  return process.env.NODE_ENV !== 'production' || !!process.env.OURA_REDIRECT_URI;
+}
+
 /** Provider → the login route that redirects on to the provider. */
 const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['google_calendar', '/auth/google/login'],
@@ -48,6 +58,7 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
   ['spotify', { name: 'Spotify', isConfigured: () => isSpotifyConnectConfigured() }],
+  ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,
     { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabled },

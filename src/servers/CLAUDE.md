@@ -159,6 +159,21 @@ GET /spotify/callback?code=<code>&state=<state>
 GET /spotify/refresh?refresh_token=<token>
 ```
 
+### Oura (wearables)
+
+One connect path: the web calls `POST /auth/oauth/start { provider: 'oura' }`, then the
+browser goes to `/wearables/oura/login`, Oura sends it back to `/wearables/oura/callback`
+(`routes/wearables.ts`). Unlink is `POST /wearables/oura/unlink`. `/api/oura/*` is read-only
+data (`routes/oura.ts`). The grant is kept in `services/identity/oura-auth.ts` (sealed
+`oura_tokens/{uid}`), the store the voice agent reads too.
+
+| Env | Where | Meaning |
+|-----|-------|---------|
+| `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET` | UI server (connect) and the voice agent (token refresh) | Secret Manager `oura-client-id`, `oura-client-secret` |
+| `OURA_REDIRECT_URI` | UI server | Must equal a redirect registered on the Oura app: `https://app.ferni.ai/wearables/oura/callback`. Required in production (connect is refused as unavailable without it); elsewhere it falls back to `http://localhost:$PORT/wearables/oura/callback` |
+
+Without the id and secret the connect row is refused as unavailable (`oauth-start.ts`).
+
 ---
 
 ## Demo Rate Limiting

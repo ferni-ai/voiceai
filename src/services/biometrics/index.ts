@@ -126,11 +126,6 @@ const config = {
     clientSecret: process.env.GOOGLE_FIT_CLIENT_SECRET || '',
     redirectUri: process.env.GOOGLE_FIT_REDIRECT_URI || '',
   },
-  oura: {
-    clientId: process.env.OURA_CLIENT_ID || '',
-    clientSecret: process.env.OURA_CLIENT_SECRET || '',
-    redirectUri: process.env.OURA_REDIRECT_URI || '',
-  },
   whoop: {
     clientId: process.env.WHOOP_CLIENT_ID || '',
     clientSecret: process.env.WHOOP_CLIENT_SECRET || '',
@@ -174,17 +169,6 @@ export function getAuthorizationUrl(
         `scope=${encodeURIComponent(googleScopes)}&` +
         `state=${state}&` +
         `access_type=offline`
-      );
-
-    case 'oura':
-      const ouraScopes = scopes?.join(' ') || 'daily sleep activity heartrate';
-      return (
-        `https://cloud.ouraring.com/oauth/authorize?` +
-        `client_id=${config.oura.clientId}&` +
-        `redirect_uri=${encodeURIComponent(config.oura.redirectUri)}&` +
-        `response_type=code&` +
-        `scope=${encodeURIComponent(ouraScopes)}&` +
-        `state=${state}`
       );
 
     case 'whoop':
@@ -496,17 +480,6 @@ export async function exchangeCodeForTokens(
         });
         break;
 
-      case 'oura':
-        tokenUrl = 'https://api.ouraring.com/oauth/token';
-        body = new URLSearchParams({
-          client_id: platformConfig.clientId,
-          client_secret: platformConfig.clientSecret,
-          code,
-          grant_type: 'authorization_code',
-          redirect_uri: platformConfig.redirectUri,
-        });
-        break;
-
       case 'whoop':
         tokenUrl = 'https://api.prod.whoop.com/oauth/oauth2/token';
         body = new URLSearchParams({
@@ -667,16 +640,6 @@ async function refreshToken(userId: string): Promise<boolean> {
     switch (user.platform) {
       case 'googlefit':
         tokenUrl = 'https://oauth2.googleapis.com/token';
-        body = new URLSearchParams({
-          client_id: platformConfig.clientId,
-          client_secret: platformConfig.clientSecret,
-          refresh_token: user.refreshToken,
-          grant_type: 'refresh_token',
-        });
-        break;
-
-      case 'oura':
-        tokenUrl = 'https://api.ouraring.com/oauth/token';
         body = new URLSearchParams({
           client_id: platformConfig.clientId,
           client_secret: platformConfig.clientSecret,

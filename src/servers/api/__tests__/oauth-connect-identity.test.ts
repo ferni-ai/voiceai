@@ -15,13 +15,15 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 Object.assign(process.env, {
   GOOGLE_CALENDAR_CLIENT_ID: 'g-id',
   GOOGLE_CALENDAR_CLIENT_SECRET: 'g-secret',
   MICROSOFT_CLIENT_ID: 'm-id',
   MICROSOFT_CLIENT_SECRET: 'm-secret',
+  OURA_CLIENT_ID: 'o-id',
+  OURA_CLIENT_SECRET: 'o-secret',
   APPLE_CLIENT_ID: 'a-id',
   APPLE_TEAM_ID: 'a-team',
   APPLE_KEY_ID: 'a-key',
@@ -283,5 +285,39 @@ describe('POST /auth/oauth/start', () => {
     const b = await startAndLogin(flow, 'tok-B');
     await flow.callback(b.state, b.cookie);
     expect(flow.savedFor()).toEqual(['uid-B']);
+  });
+});
+
+describe('Oura needs a registered redirect URI in production', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  const startOura = () =>
+    send('/auth/oauth/start', {
+      method: 'POST',
+      headers: { authorization: 'Bearer tok-A', 'content-type': 'application/json' },
+      body: JSON.stringify({ provider: 'oura' }),
+    });
+
+  it('refuses as unavailable, not a localhost redirect Oura would reject', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('OURA_REDIRECT_URI', '');
+    const res = await startOura();
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({
+      error: "Oura isn't available right now",
+      unavailable: true,
+    });
+  });
+
+  it('starts once the redirect URI is set', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('OURA_REDIRECT_URI', 'https://app.ferni.ai/wearables/oura/callback');
+    expect((await startOura()).status).toBe(200);
+  });
+
+  it('outside production the localhost default still starts', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('OURA_REDIRECT_URI', '');
+    expect((await startOura()).status).toBe(200);
   });
 });
