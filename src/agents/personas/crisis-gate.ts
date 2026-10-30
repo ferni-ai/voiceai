@@ -73,7 +73,7 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
-import { crisisKindOf, replaceKind } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
+import { crisisKindOf } from '../safety/crisis-event-record.js'; // CRISIS_EVENT_RECORD
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { noteCrisisHold } from '../safety/crisis-hold-timing.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
@@ -94,7 +94,7 @@ const log = createLogger({ module: 'CrisisGate' });
 
 export type CrisisGateDecision =
   | { action: 'pass' }
-  | { action: 'guide'; guidance: string }
+  | { action: 'guide'; guidance: string; crisis?: true } // crisis: decisionFor's full guidance
   | { action: 'replace'; script: string; kind?: ReturnType<typeof crisisKindOf> };
 
 export interface CrisisGateTurn {
@@ -171,13 +171,14 @@ function sessionScope(userData: unknown): string | undefined {
   );
 }
 
-const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
+const guide = (guidance: string, crisis?: true): CrisisGateDecision =>
+  crisis ? { action: 'guide', guidance, crisis } : { action: 'guide', guidance };
 
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse, kind: crisisKindOf(crisis) };
   }
-  if (crisis.isCrisis) return { action: 'guide', guidance: buildCrisisGuidance(crisis) };
+  if (crisis.isCrisis) return guide(buildCrisisGuidance(crisis), true);
   return { action: 'pass' };
 }
 
@@ -433,9 +434,9 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => replyOpenedBySound(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
-  signalCrisisDecision(session, gate?.decision.action, 'pattern', replaceKind(gate?.decision));
+  signalCrisisDecision(session, gate?.decision.action, 'pattern', gate?.decision);
   gate?.escalation
-    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', replaceKind(d)))
+    ?.then((d) => signalCrisisDecision(session, d?.action, 'classifier', d))
     .catch(() => undefined);
   if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);

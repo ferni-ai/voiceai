@@ -263,6 +263,9 @@ const NON_MEMBER_SIGNAL_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
  * 'anon:'): that bucket would pool every id-less caller's crises. A non-member
  * (anon:<id>) has no account to erase or export it under, so like #2872's crisis
  * record it keeps no words, only the signal flags and ids, and expires in 90 days.
+ *
+ * Resolves true once the signal is stored; false when nothing was stored (no
+ * signal, a placeholder id, no Firestore, or a failed write, which is logged).
  */
 export async function logCrisisSignal(
   userId: string,
@@ -270,7 +273,7 @@ export async function logCrisisSignal(
   transcript?: string,
   sessionId?: string,
   turn?: number
-): Promise<void> {
+): Promise<boolean> {
   // Only log if any crisis signals detected (severity > 0 or explicit flags)
   const hasSignals =
     signals.suicidalIdeation ||
@@ -280,7 +283,7 @@ export async function logCrisisSignal(
     signals.severity > 0;
 
   if (!hasSignals) {
-    return;
+    return false;
   }
 
   log.warn(
@@ -296,13 +299,13 @@ export async function logCrisisSignal(
   );
   if (isSharedPlaceholderId(userId)) {
     log.warn({ sessionId }, 'Crisis signal not stored: shared placeholder id');
-    return;
+    return false;
   }
   const member = isMemberIdentity(userId);
 
   try {
     const db = getFirestoreDb();
-    if (!db) return;
+    if (!db) return false;
 
     await db
       .collection('bogle_users')
@@ -330,6 +333,7 @@ export async function logCrisisSignal(
         ...(turn !== undefined && flagOn('CRISIS_SAME_CALL_NOTE_FADES') ? { turn } : {}),
       });
     forgetRecentCrisis(userId); // the next turn's check-in sees this signal
+    return true;
   } catch (error) {
     // The code only, and only when it looks like one: a message can quote the caller
     const code = String((error as { code?: unknown } | null)?.code ?? '');
@@ -337,6 +341,7 @@ export async function logCrisisSignal(
       { userId, code: /^[\w.-]{1,40}$/.test(code) ? code : 'unknown' },
       'Failed to log crisis signal'
     );
+    return false;
   }
 }
 

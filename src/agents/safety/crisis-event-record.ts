@@ -47,7 +47,12 @@ const recordedCalls = new Set<string>();
 
 const PERSONA_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
 
-function idsOf(session: unknown): { sessionId?: string; userId?: string; personaId?: string } {
+/** The call's ids from its session (crisis-quiet-window.ts reads them too). */
+export function idsOf(session: unknown): {
+  sessionId?: string;
+  userId?: string;
+  personaId?: string;
+} {
   const ud = (session as { userData?: unknown } | undefined)?.userData as
     { userId?: unknown; personaId?: unknown; services?: { sessionId?: unknown } } | undefined;
   const str = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
