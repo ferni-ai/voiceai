@@ -78,6 +78,11 @@ function crisisRead(text: string): boolean {
   return read.isCrisis || (read.severity >= CRISIS_SEVERITY.implicit && !softened);
 }
 
+/** Crisis words in the text, or Ferni's crisisCallerLine standing in for them (any name). */
+export function carriesCrisis(text: string): boolean {
+  return text.includes(crisisCallerLine('').trim()) || crisisRead(text);
+}
+
 /** Cut at a word boundary, so a cut never leaves half a word (or half a link) behind. */
 export function cutAtWord(text: string, max: number): string {
   if (text.length <= max) return text;
