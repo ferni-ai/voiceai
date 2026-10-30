@@ -3,7 +3,8 @@
  * request fell back to a 30-second iTunes preview in silence; the tool also
  * told callers to "link your account in settings" where the connect route
  * answers 503 (integration audit, 2026-10-29). MUSIC_HONEST_WHEN_UNLINKED
- * makes the reply say what is true.
+ * makes the reply say what is true. Per-user Spotify will not be built
+ * (Developer Policy III.3), so no reply offers to link it, flag on or off.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -68,13 +69,23 @@ vi.mock('../../../../services/identity/spotify-auth.js', async (importOriginal) 
 }));
 
 import { resetAmbientSession, PREVIEW_NOTICE } from '../ambient-play.js';
-import { createMusicTools, playMusicUnified } from '../music.js';
-import { listeningUnavailable } from '../music-honesty.js';
+import {
+  createMusicTools,
+  initializeMusicConfig,
+  playMusicUnified,
+  SPOTIFY_HOUSE_READY,
+} from '../music.js';
+import { listeningUnavailable, NO_LINK_OFFER } from '../music-honesty.js';
 import { toolOutcome } from '../../../../agents/voice-agent/tool-outcome.js';
 
 const LISTEN = 'play Brown Eyed Girl on spotify';
 const HONEST =
   "Spotify isn't connected right now, so I can only play short previews. Want a preview?";
+const NOT_LINKED =
+  "Spotify isn't connected right now, so I can only play short previews. I can't play from your own Spotify account.";
+/** Any wording that offers the caller a Spotify link, which does not exist. */
+const LINK_OFFER =
+  /link it in settings|link your (spotify|account)|offer to link spotify for full songs/i;
 
 type Tool = { execute: (args: Record<string, unknown>) => Promise<string> };
 const tool = (name: 'playMusic' | 'useSpotify'): Tool =>
@@ -118,7 +129,8 @@ describe('flag on, revoked house token', () => {
     const second = await playMusicUnified('smooth jazz');
 
     expect(first).toContain("because Spotify isn't connected right now");
-    expect(first).not.toMatch(/link/i);
+    expect(first).toContain(NO_LINK_OFFER);
+    expect(first).not.toMatch(LINK_OFFER);
     expect(first).not.toContain(PREVIEW_NOTICE);
     expect(second).not.toContain("Spotify isn't connected");
   });
@@ -126,11 +138,11 @@ describe('flag on, revoked house token', () => {
   it('useSpotify does not tell the caller to link in settings', async () => {
     const reply = await tool('useSpotify').execute({});
 
-    expect(reply).toBe("Spotify isn't connected right now, so I can only play short previews.");
+    expect(reply).toBe(NOT_LINKED);
   });
 });
 
-describe('flag on: the link is offered only when the connect route is configured', () => {
+describe('flag on: no link is offered, whether or not the connect route is configured', () => {
   beforeEach(() => {
     vi.stubEnv('MUSIC_HONEST_WHEN_UNLINKED', 'on');
     world.spotify = { configured: true, revoked: false, token: null };
@@ -144,21 +156,20 @@ describe('flag on: the link is offered only when the connect route is configured
 
     expect(listening).toMatchObject({ spotify: 'unavailable', reason: 'auth_failed' });
     for (const text of [listening.say, useSpotify, ambient]) {
-      expect(text).not.toMatch(/settings|link/i);
+      expect(text).not.toMatch(LINK_OFFER);
+      expect(text).not.toMatch(/settings/i);
     }
   });
 
-  it('connect configured and the token merely failed: the settings link is offered', async () => {
+  it('connect configured and the token merely failed: still no link offer', async () => {
     vi.stubEnv('SPOTIFY_CLIENT_ID', 'client');
     vi.stubEnv('SPOTIFY_CLIENT_SECRET', 'secret');
 
     const listening = JSON.parse(await playMusicUnified(LISTEN));
     const useSpotify = await tool('useSpotify').execute({});
 
-    expect(listening.say).toBe(
-      "Spotify isn't connected right now, so I can only play short previews. You can link it in settings. Want a preview?"
-    );
-    expect(useSpotify).toContain('link it in settings');
+    expect(listening.say).toBe(HONEST);
+    expect(useSpotify).toBe(NOT_LINKED);
   });
 
   it('nothing configured at all: reason not_configured, no settings suggestion', async () => {
@@ -177,25 +188,52 @@ describe('flag on: the link is offered only when the connect route is configured
   });
 });
 
-describe('flag off: the reply is the one main sent', () => {
-  it('a Spotify request plays a preview, with no unavailable result', async () => {
+describe('flag off: a preview plays as before, with no link offer', () => {
+  it('a Spotify request plays a preview, with no unavailable result and no promise to queue it', async () => {
     const reply = await playMusicUnified(LISTEN);
 
     expect(reply).not.toContain('unavailable');
-    expect(reply).toMatch(/Brown Eyed Girl|full thing|full track|Open Spotify|open Spotify/);
+    expect(reply).toMatch(/Brown Eyed Girl|full thing|full track|full song/);
+    expect(reply).not.toMatch(/queue it up/i);
     expect(world.played).toEqual(['Brown Eyed Girl']);
   });
 
-  it('the first ambient preview ends with the old notice that offers a link', async () => {
+  it('an ambient preview never ends with a PS to link Spotify', async () => {
+    const reply = await playMusicUnified('upbeat acoustic guitar');
+
+    expect(reply).not.toMatch(LINK_OFFER);
+    expect(reply).not.toContain('PS:');
+  });
+
+  it('the first ambient preview ends with the notice, which tells the model not to offer a link', async () => {
     vi.stubEnv('MUSIC_CONTINUE_AS_ASKED', 'on');
 
     expect((await playMusicUnified('upbeat acoustic guitar')).endsWith(PREVIEW_NOTICE)).toBe(true);
+    expect(PREVIEW_NOTICE).toContain(NO_LINK_OFFER);
+    expect(PREVIEW_NOTICE).not.toMatch(LINK_OFFER);
   });
 
-  it('useSpotify keeps the old wording', async () => {
-    expect(await tool('useSpotify').execute({})).toBe(
-      "Spotify isn't linked yet. Link your account in settings to enjoy full songs!"
-    );
+  it('useSpotify says previews only and that it cannot use their own account', async () => {
+    expect(await tool('useSpotify').execute({})).toBe(NOT_LINKED);
+  });
+});
+
+describe('house Spotify working', () => {
+  afterEach(async () => {
+    world.spotify = { configured: true, revoked: true, token: null };
+    await initializeMusicConfig();
+  });
+
+  it("useSpotify never claims the caller's own library", async () => {
+    world.spotify = { configured: true, revoked: false, token: 'access-token' };
+    const useSpotify = tool('useSpotify');
+    await initializeMusicConfig();
+
+    const reply = await useSpotify.execute({});
+
+    expect(reply).toBe(SPOTIFY_HOUSE_READY);
+    expect(reply).toContain("I can't play from your own Spotify account.");
+    expect(reply).not.toMatch(/your library|linked and ready/i);
   });
 });
 
