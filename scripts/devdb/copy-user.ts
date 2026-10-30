@@ -91,6 +91,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'contact_groups[userId]': `${OTHERS}: contacts`,
   'ferni_actions[userId]': `${OTHERS}: who Ferni was asked to reach (phone, email), tool args`,
   'concierge_requests[userId]': `${OTHERS}: businesses called for the person, with transcripts`,
+  'feature_checkins[userId]': `${OTHERS}: texts sent for the person, with the recipient's phone and the callee's words`,
   'local_calendar_events[userId]': `${OTHERS}: events with attendees' email addresses`,
   'households/{uid}': `${OTHERS}: household members`,
   'voice_households[ownerId]': `${OTHERS}: household members' phones`,
@@ -167,6 +168,7 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   unified_entities: `${OTHERS}: people with their phones (contact.phone)`,
   visual_memories: `${OTHERS}: OCR of uploaded images (screenshots, cards, letters)`,
   tool_executions: `${OTHERS}: tool arguments and results (recipients, messages)`,
+  semantic_intelligence: `${OTHERS}: execution_records keeps the raw args of the last 100 tool calls`,
 };
 
 /**
@@ -261,7 +263,7 @@ export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   relationship_temperatures relationships research_synthesis response_quality
   revelation_profile rides risk_events routing_preferences sabotage_patterns sanctuary_stats
   saved_rituals seasonal_observations seasonal_planning self_awareness self_perception_gaps
-  semantic_correlations semantic_intelligence semantic_threads session_quality session_state
+  semantic_correlations semantic_threads session_quality session_state
   session_summaries sessions setback_patterns settings shared_memories shared_moments
   silence_patterns silence_records social_events social_graph spontaneous_sharing
   style_profile summaries superhuman superhuman_alerts superhuman_cache superhuman_predictive
@@ -284,8 +286,23 @@ export const copiedSubcollection = (name: string, underUserRecord: boolean): boo
 /**
  * What is copied: the erasure catalog minus EXCLUDED_STORES. The semantic index (vectors,
  * memory_vectors) is copied: the person's own words, and dev recall searches it; the owner
- * query is the exact metadata.userId match, so nobody else's documents come along.
+ * query is the exact metadata.userId match, so nobody else's documents come along. Its
+ * entries of the EXCLUDED_INDEX_TYPES (meeting_memory) are not copied.
  */
+/**
+ * Search-index entries (vectors, memory_vectors) left behind by type (metadata.entityType):
+ * the index copy of a store that is itself excluded, carrying other people's data.
+ */
+export const EXCLUDED_INDEX_TYPES: Readonly<Record<string, string>> = {
+  meeting_memory: `${OTHERS}: metadata.attendees holds attendees' emails (calendar-hooks.ts)`,
+};
+
+/** Whether a document is a search-index entry of an excluded type */
+export function excludedIndexEntry(data: Record<string, unknown> | undefined): boolean {
+  const type = (data?.metadata as { entityType?: unknown } | undefined)?.entityType;
+  return typeof type === 'string' && Object.hasOwn(EXCLUDED_INDEX_TYPES, type);
+}
+
 export const COPIED_STORES: readonly OwnedStore[] = ERASED_STORES.filter(
   (s) => !Object.hasOwn(EXCLUDED_STORES, storeLabel(s))
 );
@@ -402,6 +419,7 @@ export async function copyUser(opts: {
       const there = overwrite ? [] : await dest.getAll(...page.map((r) => dest.doc(r.path)));
       for (const [j, snap] of snaps.entries()) {
         if (!snap.exists) continue; // a parent that only holds subcollections
+        if (excludedIndexEntry(snap.data())) continue; // nor counted: it stays in prod
         count.found += 1;
         if (there[j]?.exists) {
           count.skipped += 1;

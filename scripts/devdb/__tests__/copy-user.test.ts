@@ -196,7 +196,6 @@ describe('what is copied', () => {
         "semantic_routing_feedback[userId]",
         "game_analytics_events[userId]",
         "bth_production_events[userId]",
-        "feature_checkins[userId]",
         "relationship_memories[userId]",
         "answer_cards[userId]",
         "share_links[ownerId]",
@@ -419,6 +418,7 @@ const THIRD_PARTY = [
   'unified_entities',
   'visual_memories',
   'tool_executions',
+  'semantic_intelligence',
 ];
 
 describe('other people stay in prod', () => {
@@ -436,13 +436,15 @@ describe('other people stay in prod', () => {
     expect([...docs.keys()].sort()).toEqual([`bogle_users/${REAL}`, 'entities/mine1']);
   });
 
-  it.each(['local_calendar_events[userId]', 'ferni_actions[userId]', 'concierge_requests[userId]'])(
-    'copies no %s store (attendees, people reached, businesses called)',
-    (label) => {
-      expect(COPIED_STORES.map(storeLabel)).not.toContain(label);
-      expect(Object.keys(EXCLUDED_STORES)).toContain(label);
-    }
-  );
+  it.each([
+    'local_calendar_events[userId]',
+    'ferni_actions[userId]',
+    'concierge_requests[userId]',
+    'feature_checkins[userId]',
+  ])('copies no %s store (attendees, people reached, businesses called)', (label) => {
+    expect(COPIED_STORES.map(storeLabel)).not.toContain(label);
+    expect(Object.keys(EXCLUDED_STORES)).toContain(label);
+  });
 
   it('copies no action_items: they sit under group_sessions, with participants', async () => {
     expect(COPIED_SUBCOLLECTIONS.has('action_items')).toBe(false);
@@ -514,5 +516,38 @@ describe('copied documents lose their secrets at every depth', () => {
     expect(docs.get(`bogle_users/${REAL}/dynamic_entities/e1`)).toEqual({
       attributes: { pin: 'the blue one' },
     });
+  });
+});
+
+describe('round 3: the search index, check-in texts, tool-call args', () => {
+  it("copies the person's index entries but not a meeting_memory, whose metadata holds attendees", async () => {
+    const docs = await copyInto({
+      ['vectors/mine']: { text: 'mine', metadata: { userId: REAL, entityType: 'memory' } },
+      ['vectors/meeting']: {
+        text: 'Meeting: sync',
+        metadata: { userId: REAL, entityType: 'meeting_memory', attendees: ['a@example.invalid'] },
+      },
+      ['memory_vectors/meeting']: {
+        text: 'Meeting: sync',
+        metadata: { userId: REAL, entityType: 'meeting_memory', attendees: ['a@example.invalid'] },
+      },
+    });
+    expect([...docs.keys()]).toEqual(['vectors/mine']);
+  });
+
+  it('copies no feature check-in text (the recipient phone, the callee quoted)', async () => {
+    const docs = await copyInto({
+      ['feature_checkins/c1']: { userId: REAL, text: 'they said yes', toLast4: '0009' },
+    });
+    expect([...docs.keys()]).toEqual([]);
+  });
+
+  it('copies no semantic_intelligence/execution_records (raw tool-call args)', async () => {
+    const docs = await copyInto({
+      [`bogle_users/${REAL}/semantic_intelligence/execution_records`]: {
+        records: [{ tool: 'send_text', args: { to: '+15550000009', message: 'hi' } }],
+      },
+    });
+    expect([...docs.keys()]).toEqual([]);
   });
 });

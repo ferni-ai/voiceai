@@ -126,6 +126,14 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
       ['vectors/spaced', { text: 'decoy', metadata: { userId: ` ${ME}` } }],
       ['vectors/top-level', { text: 'decoy', userId: ME, metadata: {} }],
       ['vectors/persona_chunk_0', { text: 'persona knowledge', metadata: { source: 'persona' } }],
+      // a meeting's index entry carries the attendees' emails: it stays in prod
+      [
+        'vectors/meeting',
+        {
+          text: 'mine',
+          metadata: { userId: ME, entityType: 'meeting_memory', attendees: ['a@x.invalid'] },
+        },
+      ],
       [`memory_vectors/${ME}:m1`, { text: 'mine', embedding, metadata: { userId: ME } }],
       [`memory_vectors/${OTHER}:m1`, { text: 'theirs', metadata: { userId: OTHER } }],
     ];

@@ -48,11 +48,16 @@ starts with no rules: every read and write allowed).
 `ferni-dev` (dry run unless `--apply`). Under `bogle_users/{uid}` and `users/{uid}`
 it copies only the subcollections in its `COPIED_SUBCOLLECTIONS` allowlist, and every
 copied document goes through the export's secret filter (token fields, sealed token
-records and credential-looking values are dropped at any depth). Credentials, queues
-and other people's data stay in prod: contacts, calendar events and meetings with
-attendees and their commitments, email correspondents, guest lists, people Ferni was
-asked to reach and what they said, OCR of uploaded images. A new subcollection fails
-`copy-user.test.ts` until it is classified there.
+records and credential-looking values are dropped at any depth). Credentials and
+queues stay in prod, and so do the known stores of other people's data: contacts,
+calendar events and meetings with attendees (and their search-index entries), email
+correspondents, guest lists, people Ferni was asked to reach and what they said,
+check-in texts, tool-call arguments, OCR of uploaded images. Still copied, deferred
+to lane DC2: contacts' phones and emails in `entity_store`, phone numbers kept as free
+text in `dynamic_facts` / `dynamic_entities` / deep-extraction docs, `info_preferences`
+saved locations (behind `REQUIRE_FIX_MEMORY`, off), and legacy `follow_up_actions` and
+`knowledge_graph` docs with no writer. A new subcollection fails `copy-user.test.ts`
+until it is classified there.
 
 ## How work ships (one small chunk at a time)
 
