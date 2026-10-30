@@ -244,37 +244,3 @@ describe('saves use only the verified caller', () => {
     expect(state.docs.size).toBe(0);
   });
 });
-
-describe('HomeKit command-complete uses only the verified caller', () => {
-  const pending = (uid: string) => `bogle_users/${uid}/homekit/commands/pending/c1`;
-  const complete = (body: object, authorization?: string) =>
-    realFetch(`${base}/api/smart-home/homekit/command-complete`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...(authorization ? { authorization } : {}) },
-      body: JSON.stringify(body),
-    });
-
-  it("ignores body.userId: completes only the verified caller's command", async () => {
-    state.docs.set(pending('victim'), { deviceId: 'd', action: 'on', timestamp: 1 });
-    state.docs.set(pending('uid-A'), { deviceId: 'd', action: 'on', timestamp: 1 });
-    const res = await complete(
-      { userId: 'victim', commandId: 'c1', success: true },
-      'Bearer tok-A'
-    );
-    expect(res.status).toBe(200);
-    expect(state.docs.has(pending('victim'))).toBe(true);
-    expect(state.docs.has(pending('uid-A'))).toBe(false);
-    expect(state.docs.get('bogle_users/uid-A/homekit/commands/history/c1')).toMatchObject({
-      success: true,
-    });
-  });
-
-  it('refuses an unverified bearer token or none at all', async () => {
-    state.docs.set(pending('victim'), { deviceId: 'd', action: 'on', timestamp: 1 });
-    for (const auth of ['Bearer not-a-real-token', undefined]) {
-      const res = await complete({ userId: 'victim', commandId: 'c1', success: true }, auth);
-      expect(res.status).toBe(401);
-    }
-    expect(state.docs.has(pending('victim'))).toBe(true);
-  });
-});

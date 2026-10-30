@@ -19,11 +19,7 @@ vi.mock('../../../../services/smart-home/user-credentials.js', () => ({
     hue: { bridgeIp: '10.0.0.5', username: 'fixturehueappkey' },
     lifx: null,
     sonos: null,
-    homeKit: null,
   })),
-}));
-vi.mock('../../../../services/smart-home/homekit-bridge.js', () => ({
-  getDevices: async () => [],
 }));
 vi.mock('../../../../services/identity/ecobee-auth.js', () => ({
   isEcobeeConfigured: async () => false,

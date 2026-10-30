@@ -72,8 +72,6 @@ const victimDocs = {
     refreshToken: 'r',
     expiresAt: Date.now() + 3_600_000,
   }),
-  'bogle_users/victim/smart_home/homekit': { enabled: true, homeName: 'Victim Home' },
-  'bogle_users/victim/homekit/commands/pending/c1': { deviceId: 'd', action: 'on', timestamp: 1 },
 };
 beforeEach(() => {
   h.db = createMergeFakeFirestore(state);
@@ -89,40 +87,31 @@ describe('a ?userId= query parameter is never an identity', () => {
     ['DELETE', 'lifx/disconnect'],
     ['GET', 'sonos/status'],
     ['DELETE', 'sonos/disconnect'],
-    ['GET', 'homekit/status'],
-    ['DELETE', 'homekit/disconnect'],
-    ['GET', 'homekit/commands'],
   ])('%s /api/smart-home/%s?userId=victim with no auth is refused', async (method, path) => {
     const res = await realFetch(`${base}/api/smart-home/${path}?userId=victim`, { method });
     expect(res.status).toBe(401);
     const body = JSON.stringify(await res.json());
-    expect(body).not.toMatch(/saved|connected":true|Victim Home|commands/);
+    expect(body).not.toMatch(/saved|connected":true/);
     for (const path of Object.keys(victimDocs)) expect(state.docs.has(path)).toBe(true);
   });
 });
 
-describe('HomeKit sync writes only the verified token uid', () => {
-  const sync = (body: object, authorization?: string) =>
-    realFetch(`${base}/api/smart-home/homekit/sync`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...(authorization ? { authorization } : {}) },
-      body: JSON.stringify(body),
+describe('the HomeKit bridge routes are gone (Apple keeps HomeKit data on the device)', () => {
+  it.each([
+    ['GET', 'homekit/status'],
+    ['POST', 'homekit/sync'],
+    ['DELETE', 'homekit/disconnect'],
+    ['GET', 'homekit/commands'],
+    ['POST', 'homekit/command-complete'],
+  ])('%s /api/smart-home/%s is not served, even for a verified caller', async (method, path) => {
+    const res = await realFetch(`${base}/api/smart-home/${path}`, {
+      method,
+      headers: { 'content-type': 'application/json', authorization: 'Bearer tok-A' },
+      ...(method === 'POST'
+        ? { body: JSON.stringify({ homeData: { homeName: 'Mine', devices: [{ id: 'd1' }] } }) }
+        : {}),
     });
-  const homeData = { homeName: 'Mine', devices: [{ id: 'd1' }], scenes: [], rooms: [] };
-
-  it('ignores body.userId and syncs into the caller, never the victim', async () => {
-    const res = await sync({ userId: 'victim', homeData }, 'Bearer tok-A');
-    expect(res.status).toBe(200);
-    expect(state.docs.get('bogle_users/uid-A/homekit/config')).toMatchObject({ homeName: 'Mine' });
-    expect(state.docs.has('bogle_users/victim/homekit/config')).toBe(false);
-    expect(state.docs.has('bogle_users/victim/homekit/devices/list/d1')).toBe(false);
-  });
-
-  it('refuses a sync with no token or an unverified one', async () => {
-    for (const auth of [undefined, 'Bearer forged']) {
-      const res = await sync({ userId: 'victim', homeData }, auth);
-      expect(res.status).toBe(401);
-    }
-    expect(state.docs.has('bogle_users/victim/homekit/config')).toBe(false);
+    expect(res.status).toBe(404);
+    expect([...state.docs.keys()].filter((k) => k.includes('/homekit'))).toEqual([]);
   });
 });
