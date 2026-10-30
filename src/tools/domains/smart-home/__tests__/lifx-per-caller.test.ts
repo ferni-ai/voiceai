@@ -34,10 +34,6 @@ vi.mock('../../../../utils/firebase-admin-app.js', () => ({
     }),
   }),
 }));
-vi.mock('../../../../services/smart-home/homekit-bridge.js', () => ({
-  getDevices: async () => [],
-  queueDeviceCommand: async () => undefined,
-}));
 vi.mock('../../../../services/identity/ecobee-auth.js', () => ({
   isEcobeeConfigured: async () => false,
 }));

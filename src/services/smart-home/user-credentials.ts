@@ -448,15 +448,6 @@ export async function hasAnySmartHomeIntegration(userId: string): Promise<boolea
 }
 
 /**
- * Whether this user saved a LIFX token. With SMART_HOME_LIFX on, the light tools
- * ask this per caller (a process env var cannot say whether this caller linked one).
- */
-export async function hasLinkedLifxToken(userId: string): Promise<boolean> {
-  const lifx = await getCredential(userId, 'lifx');
-  return typeof lifx?.token === 'string' && lifx.token.trim() !== '';
-}
-
-/**
  * Check if a specific integration is configured
  */
 export async function isIntegrationConfigured(
@@ -465,6 +456,15 @@ export async function isIntegrationConfigured(
 ): Promise<boolean> {
   const credential = await getCredential(userId, type);
   return credential !== null;
+}
+
+/**
+ * Whether this user saved a LIFX token. With SMART_HOME_LIFX on, the light tools
+ * ask this per caller (a process env var cannot say whether this caller linked one).
+ */
+export async function hasLinkedLifxToken(userId: string): Promise<boolean> {
+  const lifx = await getCredential(userId, 'lifx');
+  return typeof lifx?.token === 'string' && lifx.token.trim() !== '';
 }
 
 /**
