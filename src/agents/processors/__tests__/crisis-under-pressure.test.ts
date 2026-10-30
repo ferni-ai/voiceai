@@ -17,6 +17,7 @@ const CRISIS_TURN = [
   note('safety', 99, 150),
   note('crisis_response', 98, 150),
   note('crisis_follow_up', 85, 200),
+  note('scientific_early_warning', 95, 120),
   note('timing_state', 40, 60),
   note('tool_hint', 50, 60),
 ];
@@ -27,7 +28,12 @@ describe('crisis guidance under timing pressure', () => {
     (level) => {
       const kept = filterInjectionsByPressure(CRISIS_TURN, level).map((i) => i.category);
       expect(kept).toEqual(
-        expect.arrayContaining(['safety', 'crisis_response', 'crisis_follow_up'])
+        expect.arrayContaining([
+          'safety',
+          'crisis_response',
+          'crisis_follow_up',
+          'scientific_early_warning',
+        ])
       );
     }
   );

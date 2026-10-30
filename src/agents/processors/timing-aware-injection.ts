@@ -18,6 +18,7 @@
 import type { ContextInjection } from './types.js';
 import type { TimingState } from '../../intelligence/context-builders/awareness/system-state-awareness.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { SAFETY_CATEGORIES } from './turn-processor/safety-note.js';
 
 const log = createLogger({ module: 'timing-aware-injection' });
 
@@ -44,18 +45,12 @@ const TIER_1_ESSENTIAL = new Set([
 ]);
 
 /**
- * Crisis and safety guidance: kept whole and first, ahead of the count and char limits. The
+ * Crisis and safety guidance (safety-note.ts SAFETY_CATEGORIES): kept whole and first, ahead of the count and char limits. The
  * limits used to sort lowest priority first (the type says higher = more important), so under
  * severe or critical pressure the timing hints filled the slots and safety and crisis_response
  * were dropped on exactly the slow crisis turns (2026-10-30).
  */
-const SAFETY_FIRST = new Set([
-  'safety',
-  'crisis_response',
-  'safety_soft_check',
-  'crisis_transfer',
-  'crisis_follow_up',
-]);
+const SAFETY_FIRST = SAFETY_CATEGORIES;
 
 /**
  * Tier 2: High-Value - Include unless under severe pressure
@@ -211,8 +206,8 @@ export function filterInjectionsByPressure(
 function getAllowedCategories(pressureLevel: PressureLevel): Set<string> {
   const allowed = new Set<string>();
 
-  // Always include TIER 1
-  for (const cat of TIER_1_ESSENTIAL) {
+  // Always include TIER 1 and every safety category (safety-note.ts, the one list)
+  for (const cat of [...TIER_1_ESSENTIAL, ...SAFETY_FIRST]) {
     allowed.add(cat);
   }
 
