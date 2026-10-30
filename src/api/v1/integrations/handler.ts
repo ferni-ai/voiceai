@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../../helpers.js';
 import { requireAuth, type AuthContext } from '../../auth-middleware.js';
+import { isCalendarLinked } from '../../../services/identity/link-state.js';
 import {
   consumeOAuthLinkState,
   createOAuthLinkState,
@@ -191,12 +192,11 @@ export async function handleIntegrationsRoutes(
       // auth is guaranteed non-null here since this is not an OAuth route
       const userId = getTargetUserId(auth!, parsedUrl);
 
-      const calendar = await getCalendarServices();
       const banking = await getBankingServices();
       const social = await getSocialGraphServices();
 
       const biometricsConnected = await hasBiometricsConnectedAsync(userId);
-      const calendarConnected = await calendar.hasCalendarConnected(userId);
+      const calendarConnected = await isCalendarLinked(userId);
       const bankConnected = banking.hasLinkedAccounts(userId);
       const socialPeople = social.getImportantPeople(userId);
 
@@ -248,12 +248,7 @@ export async function handleIntegrationsRoutes(
       // For OAuth start, use the authenticated user's ID
       const userId = getTargetUserId(auth!, parsedUrl);
 
-      const validPlatforms: BiometricPlatform[] = [
-        'healthkit',
-        'googlefit',
-        'whoop',
-        'terra',
-      ];
+      const validPlatforms: BiometricPlatform[] = ['healthkit', 'googlefit', 'whoop', 'terra'];
       if (!validPlatforms.includes(platform)) {
         sendJson(res, 400, {
           error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`,
@@ -704,7 +699,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const cal = await getCalendarServices();
-      const connected = await cal.hasCalendarConnected(userId);
+      const connected = await isCalendarLinked(userId);
       const events = connected ? cal.getUpcomingEvents(userId) : [];
       const location = connected ? cal.getCurrentLocation(userId) : null;
 

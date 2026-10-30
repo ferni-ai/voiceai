@@ -20,6 +20,7 @@ import { consumeOAuthLinkState, peekOAuthLinkState } from '../../token/oauth-lin
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getVerifiedUserId } from '../request-identity.js';
 import { OAUTH_START_PATH } from './oauth-start.js';
+import { isLinkStatusV2, withLinkState } from '../../../services/identity/link-state.js';
 
 const log = createLogger({ module: 'WearablesRoutes' });
 
@@ -53,7 +54,10 @@ export async function handleWearablesRoutes(
       return true;
     }
 
-    const statuses = await wearables.getAllConnectionStatuses(user_id);
+    const legacy = await wearables.getAllConnectionStatuses(user_id);
+    const statuses = isLinkStatusV2()
+      ? await Promise.all(legacy.map((row) => withLinkState(user_id, row)))
+      : legacy;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ providers: statuses }));
     return true;
