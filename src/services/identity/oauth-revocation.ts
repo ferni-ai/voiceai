@@ -5,6 +5,7 @@
  * @module services/identity/oauth-revocation
  */
 
+import { noteLinkedTokenUse } from '../../utils/linked-token-use.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { UserOAuthStore } from './user-oauth-store.js';
 
@@ -70,6 +71,7 @@ export async function refreshWithRevocation<T extends { refresh_token?: string }
       log.error({ ...ids, error: (writeError as Error).message }, 'Could not record needs_reauth');
     }
     store.blockRefresh(userId);
+    noteLinkedTokenUse(store.provider, userId, 'needs_reauth');
     return null;
   }
 }

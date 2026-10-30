@@ -37,6 +37,8 @@ const ENV = {
   WEATHERKIT_PRIVATE_KEY: PEM,
 };
 const CREDS = weatherKitCredentials(ENV) as WeatherKitCredentials;
+// Tokens are minted at this fixed time, so every jwtVerify checks exp against it
+// (currentDate), never the real clock.
 const NOW = new Date(Date.UTC(2026, 9, 30, 12));
 const QUERY = {
   latitude: 47.6062,
@@ -182,12 +184,16 @@ describe('weatherKitToken', () => {
       sig
     );
     expect(ok).toBe(true);
-    await expect(jwtVerify(token, publicKey, { algorithms: ['ES256'] })).resolves.toBeTruthy();
+    await expect(
+      jwtVerify(token, publicKey, { algorithms: ['ES256'], currentDate: NOW })
+    ).resolves.toBeTruthy();
   });
 
   it('accepts a PEM whose newlines were stored as \\n', async () => {
     const creds = { ...CREDS, privateKey: PEM.replace(/\n/g, '\\n') };
-    await expect(jwtVerify(await weatherKitToken(creds, NOW), publicKey)).resolves.toBeTruthy();
+    await expect(
+      jwtVerify(await weatherKitToken(creds, NOW), publicKey, { currentDate: NOW })
+    ).resolves.toBeTruthy();
   });
 });
 
@@ -208,7 +214,7 @@ describe('getWeatherKitWeather request', () => {
     expect(w.searchParams.get('countryCode')).toBe('US');
     expect(w.searchParams.get('dataSets')?.split(',').sort()).toEqual([...ALL_SETS].sort());
     const token = calls[1].auth.replace(/^Bearer /, '');
-    await expect(jwtVerify(token, publicKey)).resolves.toBeTruthy();
+    await expect(jwtVerify(token, publicKey, { currentDate: NOW })).resolves.toBeTruthy();
   });
 
   it('requests next hour and alerts only where Apple offers them', async () => {

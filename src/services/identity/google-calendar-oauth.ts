@@ -29,6 +29,7 @@ import {
   refreshWithRevocation,
 } from './oauth-revocation.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { noteLinkedTokenUse } from '../../utils/linked-token-use.js';
 import { GOOGLE_CALENDAR_SCOPES } from '../../config/google-calendar-scopes.js';
 import { isInsufficientLink } from './google-link-scope.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
@@ -277,12 +278,14 @@ export async function getValidAccessToken(userId: string): Promise<string | null
   let tokens = await getUserTokens(userId);
   if (!tokens) {
     getLogger().debug({ userId }, 'No tokens found for user');
+    noteLinkedTokenUse('google_calendar', userId, 'not_connected'); // also a link without calendar consent
     return null;
   }
 
   if (areTokensExpired(tokens)) {
     if (!tokens.refresh_token) {
       getLogger().warn({ userId }, 'Tokens expired and no refresh token available');
+      noteLinkedTokenUse('google_calendar', userId, 'needs_reauth');
       return null;
     }
 
@@ -308,9 +311,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 // CALENDAR OPERATIONS
 // ============================================================================
 
-/**
- * List user's calendars (with rate limiting and circuit breaker protection)
- */
+/** List user's calendars (with rate limiting and circuit breaker protection) */
 export async function listCalendars(accessToken: string): Promise<CalendarListEntry[]> {
   const rateLimiter = getRateLimiter('google-calendar');
   if (!rateLimiter.tryAcquire()) {
@@ -333,9 +334,7 @@ export async function listCalendars(accessToken: string): Promise<CalendarListEn
   });
 }
 
-/**
- * Create a calendar event (with rate limiting and circuit breaker protection)
- */
+/** Create a calendar event (with rate limiting and circuit breaker protection) */
 export async function createEvent(
   accessToken: string,
   calendarId: string,
@@ -371,9 +370,7 @@ export async function createEvent(
   });
 }
 
-/**
- * Update a calendar event (with rate limiting)
- */
+/** Update a calendar event (with rate limiting) */
 export async function updateEvent(
   accessToken: string,
   calendarId: string,
@@ -406,9 +403,7 @@ export async function updateEvent(
   return (await response.json()) as CalendarEvent;
 }
 
-/**
- * Delete a calendar event (with rate limiting)
- */
+/** Delete a calendar event (with rate limiting) */
 export async function deleteEvent(
   accessToken: string,
   calendarId: string,
