@@ -127,12 +127,13 @@ describe('TURN_LENGTH=adaptive', () => {
     expect(substanceOf(said, 'share', { speaker: 'maya-santos' })).toBe('beat');
     expect(substanceOf(said, 'share', { speaker: 'ferni' })).toBeUndefined();
     process.env.TURN_LENGTH = 'adaptive';
-    const maya = styleFor(call(said), {}, true, {}, { speaker: 'maya-santos' });
+    // The speaker is the persona on the call, read from the session as the handoff tools read it.
+    const on = (personaId: string) => ({ userData: { personaId } });
+    const maya = styleFor(call(said), on('maya-santos'), true);
     expect(maya.text).toMatch(SUBSTANCE_LINE);
     expect(maya.turn?.extras).toContain('substance_beat');
-    expect(styleFor(call(said), {}, true, {}, { speaker: 'ferni' }).text).not.toMatch(
-      SUBSTANCE_LINE
-    );
+    expect(styleFor(call(said), on('ferni'), true).text).not.toMatch(SUBSTANCE_LINE);
+    expect(reminder('adaptive', call(said), on('maya-santos'))).toMatch(SUBSTANCE_LINE);
   });
 
   it('never changes a crisis turn, or the length on a call with crisis risk', () => {
