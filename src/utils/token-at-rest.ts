@@ -13,8 +13,10 @@ import { FieldValue } from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
 import {
   decryptData,
+  decryptionKeys,
   encryptData,
   envelopeFailure,
+  envelopeIsStale,
   resolveTokenKey,
   tokenKeyId,
 } from './token-encryption.js';
@@ -104,7 +106,75 @@ export function openSealedOrRaw<T>(stored: unknown, store: string): T | null {
   return openTokens<T>(stored, store);
 }
 
-/** The boot line the web server and the agent log, for comparing their keys. */
+/**
+ * The boot line the web server and the agent log, for comparing their keys. With
+ * TOKEN_SEALING_KEY set it also lists the key ids on the ring (ids only), so
+ * prod, dev and the UI can be compared; unset, the line is what it always was.
+ */
 export function tokenKeyIdLine(): string {
-  return `token_at_rest_kid=${tokenKeyId()} source=${resolveTokenKey().source}`;
+  const { source } = resolveTokenKey();
+  const line = `token_at_rest_kid=${tokenKeyId()} source=${source}`;
+  if (source !== 'TOKEN_SEALING_KEY') return line;
+  return `${line} ring=${decryptionKeys()
+    .map((k) => k.kid)
+    .join(',')}`;
+}
+
+export type ResealOutcome = 'resealed' | 'current' | 'changed' | 'failed';
+
+/** Re-seal counts for this process, logged with each outcome (never a uid or a token). */
+const resealCounts = { resealed: 0, changed: 0, failed: 0 };
+
+export function resealCountsSnapshot(): Readonly<typeof resealCounts> {
+  return { ...resealCounts };
+}
+
+function envelopeKidOf(sealed: string): string {
+  try {
+    const kid = (JSON.parse(sealed) as { kid?: unknown }).kid;
+    return typeof kid === 'string' ? kid : 'none';
+  } catch {
+    return 'none';
+  }
+}
+
+/**
+ * Re-seal on read: after `stored` (an envelope string) opened to `value`, ask `swap`
+ * to replace it with the same value sealed under TOKEN_SEALING_KEY. Best effort and
+ * never throws: a failed swap leaves the old envelope, which still opens, and the
+ * next read retries.
+ *
+ * `swap` must be atomic against the stored record (PersistenceStore.updateIfUnchanged:
+ * an update() carrying the read's lastUpdateTime) and answer 'missing' or 'changed'
+ * instead of writing when the record was deleted or rewritten since the read. A plain
+ * set() would bring a disconnected account back or undo a refresh.
+ * Unset TOKEN_SEALING_KEY: always 'current', and `swap` is never called.
+ */
+export async function resealStale(args: {
+  store: string;
+  stored: string;
+  value: unknown;
+  swap: (sealed: string) => Promise<'updated' | 'missing' | 'changed'>;
+}): Promise<ResealOutcome> {
+  const { store, stored, value, swap } = args;
+  if (!envelopeIsStale(stored)) return 'current';
+  const ids = { store, fromKid: envelopeKidOf(stored), toKid: tokenKeyId() };
+  try {
+    const result = await swap(encryptData(value));
+    if (result !== 'updated') {
+      resealCounts.changed += 1;
+      log.info(
+        { ...ids, result, ...resealCounts },
+        'Token re-seal skipped: record gone or changed'
+      );
+      return 'changed';
+    }
+    resealCounts.resealed += 1;
+    log.info({ ...ids, ...resealCounts }, 'Token envelope re-sealed');
+    return 'resealed';
+  } catch (err) {
+    resealCounts.failed += 1;
+    log.warn({ ...ids, ...resealCounts, error: (err as Error).message }, 'Token re-seal failed');
+    return 'failed';
+  }
 }

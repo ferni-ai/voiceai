@@ -1,13 +1,10 @@
 /**
  * Local Search Tools
  *
- * Find local businesses, restaurants, reviews using Google Places (primary)
- * with Yelp fallback. Users can also explicitly request a specific source.
- *
- * Strategy:
- * - Google Places = Primary (always available via GOOGLE_API_KEY)
- * - Yelp = Fallback + explicit requests (when YELP_API_KEY configured)
- * - User says "check Yelp" or "search Google" → honor explicit preference
+ * Find local businesses and restaurants through Google Places. Yelp was
+ * removed (2026-10-30, API terms section 9.4 ban generative-model use), and
+ * with it the Yelp-only review and phone-lookup tools. When Places is not
+ * configured the tools say they can't search instead of "couldn't find any".
  *
  * @module tools/domains/local-search
  */
@@ -20,25 +17,19 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { callerCityTools } from './caller-city-tools.js';
 import { callerCityMemoryOn, resolveSearchLocation } from './caller-city.js';
 
-import { detectExplicitSource, formatResults, unifiedSearch } from './unified-search.js';
+import {
+  formatResults,
+  isLocalSearchAvailable,
+  LOCAL_SEARCH_UNAVAILABLE,
+  unifiedSearch,
+} from './unified-search.js';
 import { pickRestaurantDef } from './restaurant-pick.js';
 import { isCoachLocalEnabled } from '../../../config/coach-local-flag.js';
 
-// Google Places (primary)
 import {
   getPlaceDetails as getGooglePlaceDetails,
   isGooglePlacesConfigured,
 } from '../../../services/google-places.js';
-
-// Yelp (fallback + explicit)
-import {
-  getBusinessDetails as getYelpDetails,
-  getBusinessReviews as getYelpReviews,
-  getBusinessByPhone as yelpPhoneLookup,
-  formatBusinessForSpeech as formatYelpBusiness,
-  formatReviewForSpeech as formatYelpReview,
-  isYelpConfigured,
-} from '../../../services/yelp.js';
 
 const log = getLogger();
 
@@ -62,46 +53,33 @@ const locationParam = z
 const searchLocalBusinessesDef: ToolDefinition = {
   id: 'searchLocalBusinesses',
   name: 'Search Local Businesses',
-  description:
-    'Search for local businesses (restaurants, shops, services). Uses Google Places with Yelp fallback.',
+  description: 'Search for local businesses (restaurants, shops, services) through Google Places.',
   domain: 'local-search',
-  tags: ['local', 'search', 'restaurants', 'businesses', 'google', 'yelp'],
+  tags: ['local', 'search', 'restaurants', 'businesses', 'google'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Search for local businesses like restaurants, coffee shops, gyms, salons. ' +
         'Searches near the caller unless they name a place. ' +
-        'Say "on Yelp" or "on Google" to use a specific source. ' +
-        'Returns ratings, reviews, price level, and hours.',
+        'Returns ratings, review counts, price level, and open status.',
       parameters: z.object({
         query: z
           .string()
           .describe('What to search for (e.g., "Italian restaurant", "coffee shop", "gym")'),
         location: locationParam,
         openNow: z.boolean().optional().describe('Only show places currently open'),
-        priceLevel: z
-          .string()
-          .optional()
-          .describe('Price filter: "1" ($), "2" ($$), "3" ($$$), "4" ($$$$)'),
       }),
-      execute: async ({ query, location: requested, openNow, priceLevel }, opts) => {
+      execute: async ({ query, location: requested, openNow }, opts) => {
+        if (!isLocalSearchAvailable()) return LOCAL_SEARCH_UNAVAILABLE;
         const location = await resolveSearchLocation(requested, opts, ctx);
         if (!location) return LOCATION_UNKNOWN;
         try {
           log.info({ query, location, userId: ctx.userId }, '🔍 Searching local businesses');
 
-          const explicitSource = detectExplicitSource(query);
-          // Remove "on yelp" / "on google" from query
-          const cleanQuery = query.replace(/\s+(on\s+)?(yelp|google)/gi, '').trim();
+          const results = await unifiedSearch(query, location, { openNow });
 
-          const results = await unifiedSearch(cleanQuery, location, {
-            openNow,
-            priceLevel,
-            explicitSource,
-          });
-
-          return formatResults(results, cleanQuery, location);
+          return formatResults(results, query, location);
         } catch (error) {
           log.error({ error: String(error) }, 'Local search failed');
           return "I had trouble searching. Let's try again in a moment.";
@@ -119,13 +97,12 @@ const findRestaurantsDef: ToolDefinition = {
   name: 'Find Restaurants',
   description: 'Find restaurants with ratings, reviews, and hours',
   domain: 'local-search',
-  tags: ['restaurants', 'dining', 'food', 'google', 'yelp'],
+  tags: ['restaurants', 'dining', 'food', 'google'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Find restaurants near the caller, or in an area they name. Great for dinner recommendations. ' +
-        'Say "on Yelp" or "on Google" to use a specific source.',
+        'Find restaurants near the caller, or in an area they name. Great for dinner recommendations.',
       parameters: z.object({
         location: locationParam,
         cuisine: z
@@ -133,23 +110,20 @@ const findRestaurantsDef: ToolDefinition = {
           .optional()
           .describe('Type of cuisine (e.g., "Italian", "Sushi", "Mexican")'),
         openNow: z.boolean().optional().describe('Only show restaurants currently open'),
-        priceLevel: z.string().optional().describe('Price range: "1" ($) to "4" ($$$$)'),
       }),
-      execute: async ({ location: requested, cuisine, openNow, priceLevel }, opts) => {
+      execute: async ({ location: requested, cuisine, openNow }, opts) => {
+        if (!isLocalSearchAvailable()) return LOCAL_SEARCH_UNAVAILABLE;
         const location = await resolveSearchLocation(requested, opts, ctx);
         if (!location) return LOCATION_UNKNOWN;
         try {
-          const query = cuisine ? `${cuisine} restaurant` : 'restaurant';
+          const cleanCuisine = (cuisine || '').trim();
+          const query = cleanCuisine ? `${cleanCuisine} restaurant` : 'restaurant';
           log.info({ query, location, userId: ctx.userId }, '🍽️ Finding restaurants');
 
-          const explicitSource = detectExplicitSource(cuisine || '');
-          const cleanCuisine = (cuisine || '').replace(/\s+(on\s+)?(yelp|google)/gi, '').trim();
-
-          const results = await unifiedSearch(
-            cleanCuisine ? `${cleanCuisine} restaurant` : 'restaurant',
-            location,
-            { openNow, priceLevel, explicitSource, restaurantsOnly: true }
-          );
+          const results = await unifiedSearch(query, location, {
+            openNow,
+            restaurantsOnly: true,
+          });
 
           if (results.length === 0) {
             return `I couldn't find ${cleanCuisine || 'any'} restaurants in ${location}. Try a different area or cuisine?`;
@@ -176,153 +150,39 @@ const getBusinessInfoDef: ToolDefinition = {
   name: 'Get Business Details',
   description: 'Get detailed information about a specific business',
   domain: 'local-search',
-  tags: ['business', 'details', 'hours', 'reviews'],
+  tags: ['business', 'details', 'hours'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Get detailed information about a specific business including hours, phone, and reviews.',
+        'Get detailed information about a specific business including hours, phone, and rating.',
       parameters: z.object({
-        businessId: z.string().describe('The business ID from a previous search'),
-        source: z.enum(['google', 'yelp']).describe('Which service the ID is from'),
+        businessId: z.string().describe('The Google place ID from a previous search'),
       }),
-      execute: async ({ businessId, source }) => {
+      execute: async ({ businessId }) => {
+        if (!isGooglePlacesConfigured()) return LOCAL_SEARCH_UNAVAILABLE;
         try {
-          log.info({ businessId, source, userId: ctx.userId }, '📋 Getting business details');
+          log.info({ businessId, userId: ctx.userId }, '📋 Getting business details');
 
-          if (source === 'google' && isGooglePlacesConfigured()) {
-            const details = await getGooglePlaceDetails(businessId);
-            if (!details) return "I couldn't find details for that business.";
+          const details = await getGooglePlaceDetails(businessId);
+          if (!details) return "I couldn't find details for that business.";
 
-            let response = `**${details.name}**\n\n`;
-            if (details.rating)
-              response += `⭐ ${details.rating} (${details.userRatingsTotal} reviews)\n`;
-            response += `📍 ${details.formattedAddress}\n`;
-            if (details.formattedPhoneNumber) response += `📞 ${details.formattedPhoneNumber}\n`;
-            if (details.website) response += `🌐 ${details.website}\n`;
-            if (details.openingHours) {
-              response += `\n**Hours:** ${details.openingHours.openNow ? '🟢 Open now' : '🔴 Closed'}\n`;
-              details.openingHours.weekdayText.slice(0, 3).forEach((day) => {
-                response += `  ${day}\n`;
-              });
-            }
-            return response;
+          let response = `**${details.name}**\n\n`;
+          if (details.rating)
+            response += `⭐ ${details.rating} (${details.userRatingsTotal} reviews)\n`;
+          response += `📍 ${details.formattedAddress}\n`;
+          if (details.formattedPhoneNumber) response += `📞 ${details.formattedPhoneNumber}\n`;
+          if (details.website) response += `🌐 ${details.website}\n`;
+          if (details.openingHours) {
+            response += `\n**Hours:** ${details.openingHours.openNow ? '🟢 Open now' : '🔴 Closed'}\n`;
+            details.openingHours.weekdayText.slice(0, 3).forEach((day) => {
+              response += `  ${day}\n`;
+            });
           }
-
-          if (source === 'yelp' && isYelpConfigured()) {
-            const details = await getYelpDetails(businessId);
-            if (!details) return "I couldn't find details for that business.";
-
-            let response = `**${details.name}**\n\n`;
-            response += `⭐ ${details.rating} (${details.review_count} reviews)\n`;
-            if (details.price) response += `💰 ${details.price}\n`;
-            response += `📍 ${details.location.display_address.join(', ')}\n`;
-            if (details.display_phone) response += `📞 ${details.display_phone}\n`;
-
-            // Get reviews
-            const reviews = await getYelpReviews(businessId, { limit: 2 });
-            if (reviews.length > 0) {
-              response += '\n**Recent Reviews:**\n';
-              reviews.forEach((r) => {
-                response += `• ${formatYelpReview(r)}\n`;
-              });
-            }
-
-            return response;
-          }
-
-          return "I couldn't get the business details. The source may not be configured.";
+          return response;
         } catch (error) {
           log.error({ error: String(error) }, 'Get business details failed');
           return "I couldn't get the business details.";
-        }
-      },
-    });
-  },
-};
-
-/**
- * Get business reviews (Yelp-specific, better review data)
- */
-const getBusinessReviewsDef: ToolDefinition = {
-  id: 'getBusinessReviews',
-  name: 'Get Business Reviews',
-  description: 'Get customer reviews for a business (uses Yelp for rich reviews)',
-  domain: 'local-search',
-  tags: ['reviews', 'ratings', 'yelp'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description: 'Get customer reviews for a business. Uses Yelp which has richer review data.',
-      parameters: z.object({
-        businessId: z.string().describe('The Yelp business ID'),
-        limit: z.number().optional().describe('Number of reviews (max 3)'),
-      }),
-      execute: async ({ businessId, limit }) => {
-        if (!isYelpConfigured()) {
-          return 'Reviews require Yelp integration. I can still help you search for businesses!';
-        }
-
-        try {
-          log.info({ businessId, userId: ctx.userId }, '💬 Getting business reviews');
-
-          const reviews = await getYelpReviews(businessId, { limit: Math.min(limit || 3, 3) });
-
-          if (reviews.length === 0) {
-            return "I couldn't find any reviews for this business yet.";
-          }
-
-          let response = `**Recent Reviews**\n\n`;
-          response += reviews.map((r) => formatYelpReview(r)).join('\n\n');
-
-          return response;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Get reviews failed');
-          return "I couldn't get the reviews.";
-        }
-      },
-    });
-  },
-};
-
-/**
- * Look up business by phone number (Yelp-specific feature)
- */
-const lookupByPhoneDef: ToolDefinition = {
-  id: 'lookupBusinessByPhone',
-  name: 'Lookup Business by Phone',
-  description: 'Find what business a phone number belongs to (uses Yelp)',
-  domain: 'local-search',
-  tags: ['phone', 'lookup', 'yelp'],
-
-  create: (ctx: ToolContext): Tool => {
-    return llm.tool({
-      description:
-        'Look up a business by its phone number. Useful for identifying mystery calls or finding business info.',
-      parameters: z.object({
-        phone: z.string().describe('The phone number to look up'),
-      }),
-      execute: async ({ phone }) => {
-        if (!isYelpConfigured()) {
-          return 'Phone lookup requires Yelp integration. Try searching by name instead!';
-        }
-
-        try {
-          log.info(
-            { phone: phone.slice(-4), userId: ctx.userId },
-            '📞 Looking up business by phone'
-          );
-
-          const business = await yelpPhoneLookup(phone);
-
-          if (!business) {
-            return "I couldn't find a business with that phone number. It might not be listed.";
-          }
-
-          return `That number belongs to **${business.name}**!\n\n${formatYelpBusiness(business, true)}`;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Phone lookup failed');
-          return "I couldn't look up that phone number.";
         }
       },
     });
@@ -341,17 +201,15 @@ const checkLocalSearchStatusDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Check which local search services (Google Places, Yelp) are configured.',
+      description: 'Check whether local search (Google Places) is configured.',
       parameters: z.object({}),
       execute: async () => {
         const google = isGooglePlacesConfigured();
-        const yelp = isYelpConfigured();
 
         let response = '**Local Search Status**\n\n';
-        response += `🗺️ Google Places: ${google ? '✅ Active (primary)' : '❌ Not configured'}\n`;
-        response += `⭐ Yelp: ${yelp ? '✅ Active (fallback + reviews)' : '❌ Not configured'}\n\n`;
+        response += `🗺️ Google Places: ${google ? '✅ Active' : '❌ Not configured'}\n\n`;
 
-        if (google || yelp) {
+        if (google) {
           response += 'I can help you find restaurants, shops, and services nearby!';
         } else {
           response +=
@@ -372,8 +230,6 @@ export const { domain, definitions } = createDomainExport('local-search', [
   searchLocalBusinessesDef,
   findRestaurantsDef,
   getBusinessInfoDef,
-  getBusinessReviewsDef,
-  lookupByPhoneDef,
   checkLocalSearchStatusDef,
   pickRestaurantDef,
   ...callerCityTools,

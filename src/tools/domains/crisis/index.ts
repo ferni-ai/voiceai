@@ -45,7 +45,7 @@ interface CrisisResource {
   additional?: Array<{ name: string; url?: string; contact?: string; description?: string }>;
 }
 
-const CRISIS_RESOURCES: Record<string, CrisisResource> = {
+export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   'suicide-self-harm': {
     primary: {
       name: '988 Suicide & Crisis Lifeline',

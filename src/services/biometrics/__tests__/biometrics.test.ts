@@ -61,11 +61,10 @@ describe('Biometrics', () => {
         'googlefit',
         'oura',
         'whoop',
-        'fitbit',
         'terra',
       ];
 
-      expect(platforms).toHaveLength(6);
+      expect(platforms).toHaveLength(5);
     });
 
     it('should have valid StressLevel values', () => {
@@ -164,11 +163,10 @@ describe('Biometrics', () => {
       expect(url).toContain('fitness.heart_rate.read');
     });
 
-    it('should generate Oura OAuth URL', () => {
-      const url = getAuthorizationUrl('oura', 'user-123', 'opaque-state');
-
-      expect(url).toContain('cloud.ouraring.com/oauth/authorize');
-      expect(url).toContain('response_type=code');
+    it('has no Oura connect of its own: Oura connects through the wearables flow', () => {
+      expect(() => getAuthorizationUrl('oura', 'user-123', 'opaque-state')).toThrow(
+        'Unsupported platform'
+      );
     });
 
     it('should generate Whoop OAuth URL', () => {
@@ -208,13 +206,6 @@ describe('Biometrics', () => {
       const url = getAuthorizationUrl('googlefit', 'user-123', 'opaque-state', customScopes);
 
       expect(url).toContain(encodeURIComponent(customScopes[0]));
-    });
-
-    it('should accept custom scopes for Oura', () => {
-      const customScopes = ['daily', 'sleep'];
-      const url = getAuthorizationUrl('oura', 'user-123', 'opaque-state', customScopes);
-
-      expect(url).toContain(encodeURIComponent(customScopes.join(' ')));
     });
 
     it('should accept custom scopes for Whoop', () => {
@@ -408,21 +399,11 @@ describe('Biometrics', () => {
   });
 
   describe('Platform-specific behavior', () => {
-    it('should handle Fitbit as terra aggregation', () => {
-      const platforms: BiometricPlatform[] = ['fitbit', 'terra'];
-
-      // Both should be valid platforms
-      platforms.forEach((platform) => {
-        expect(['healthkit', 'googlefit', 'oura', 'whoop', 'fitbit', 'terra']).toContain(platform);
-      });
-    });
-
     it('should have different URL formats for each platform (excluding Terra)', () => {
       // Terra excluded because it requires env vars - tested separately
       const urls = {
         healthkit: getAuthorizationUrl('healthkit', 'user', 's'),
         googlefit: getAuthorizationUrl('googlefit', 'user', 's'),
-        oura: getAuthorizationUrl('oura', 'user', 's'),
         whoop: getAuthorizationUrl('whoop', 'user', 's'),
       };
 

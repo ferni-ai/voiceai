@@ -88,10 +88,23 @@ function isYearRange(run: string): boolean {
   return from >= 1900 && to <= 2100 && from < to;
 }
 
-const hasDialableRun = (folded: string): boolean =>
-  (folded.match(RUN) ?? []).some(
-    (run) => digitCount(run) >= MIN_DIALABLE && !FULL_DATE.test(run) && !isYearRange(run)
+const numberRuns = (folded: string, minDigits: number): string[] =>
+  (folded.match(RUN) ?? []).filter(
+    (run) => digitCount(run) >= minDigits && !FULL_DATE.test(run) && !isYearRange(run)
   );
+
+const hasDialableRun = (folded: string): boolean => numberRuns(folded, MIN_DIALABLE).length > 0;
+
+/** The text as every check here reads it (fold): for callers comparing contact values. */
+export const foldContactText = (text: string): string => fold(text);
+
+/**
+ * Each number in the text with at least `minDigits` digits (7, dialable, by default),
+ * as written after folding, except one full date or year range.
+ */
+export function contactNumberRuns(text: string, minDigits = MIN_DIALABLE): string[] {
+  return numberRuns(fold(text), minDigits);
+}
 
 // Spoken emails. "X at Y" is an address only with a domain ending after it:
 //  - "at example.com": a dot with no space, then letters (any script, so "cοm" with

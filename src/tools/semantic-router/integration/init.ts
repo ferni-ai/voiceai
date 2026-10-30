@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isGeminiConfigured } from '../../../config/gemini-config.js';
 import {
   flushPersonalizationProfiles,
   initializePersonalization,
@@ -186,8 +187,7 @@ async function doInitialize(): Promise<void> {
 
         await initializeIntelligentRouter({
           enableBanditPersistence: true,
-          // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-          useGemini: !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+          useGemini: isGeminiConfigured(),
         });
 
         // Warm intelligent router cache
