@@ -16,7 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { onCalendarEventChange } from '../data-layer/hooks/calendar-hooks.js';
 import { recordCalendarSignal } from '../data-layer/domain-signals.js';
-import { outlookConnectOn } from './providers/outlook-state.js';
+import { withOutlookEvents } from './providers/outlook-state.js';
 import type {
   CalendarEvent,
   CalendarProvider,
@@ -194,27 +194,18 @@ export async function getEvents(
   const events = eventCache.get(userId) || new Map();
   const results: CalendarEvent[] = [];
 
-  // OUTLOOK_CONNECT: a linked Outlook is read live; a failure throws OutlookUnavailableError, never [].
-  const link = outlookConnectOn() ? await import('./providers/outlook-link.js') : null;
-  const outlook =
-    link && (await link.outlookLinked(userId))
-      ? await link.listOutlookEvents(userId, startDate, endDate)
-      : null;
   for (const event of events.values()) {
     if (event.status === 'cancelled') continue;
     if (event.syncStatus === 'deleted') continue;
-    if (outlook && event.source === 'outlook') continue; // the live copy wins
 
     // Check if event overlaps with date range
     if (event.endTime >= startDate && event.startTime <= endDate) {
       results.push(event);
     }
   }
-  if (outlook) results.push(...outlook.filter((e) => e.status !== 'cancelled'));
 
-  // Sort by start time
-  results.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-  return results;
+  // Sorted; OUTLOOK_CONNECT adds a linked Outlook live (throws OutlookUnavailableError, never [])
+  return withOutlookEvents(userId, startDate, endDate, results);
 }
 
 /**

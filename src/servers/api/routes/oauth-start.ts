@@ -10,7 +10,6 @@
  * @module servers/api/routes/oauth-start
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { flagOn } from '../../../config/env-flag.js';
 import { getVerifiedUserId } from '../request-identity.js';
 import { createOAuthLinkState } from '../../token/oauth-link-state.js';
 import { sanitizeReturnUrl } from '../../token/validation.js';
@@ -38,11 +37,6 @@ function isOuraConfigured(): boolean {
   return process.env.NODE_ENV !== 'production' || !!process.env.OURA_REDIRECT_URI;
 }
 
-function isOutlookConfigured(): boolean {
-  if (!flagOn('OUTLOOK_CONNECT')) return true; // off: unchanged, the login route answers 503
-  return Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
-}
-
 /**
  * Provider → the login route that redirects on to the provider. No Spotify: Ferni
  * doesn't link a person's Spotify account (Developer Policy III.3), so it is an
@@ -66,8 +60,6 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
   ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
-  // OUTLOOK_CONNECT: say "isn't available" instead of sending the browser to a raw 503.
-  ['microsoft_calendar', { name: 'Outlook', isConfigured: isOutlookConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,
     { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabled },

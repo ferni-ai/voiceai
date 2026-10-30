@@ -45,7 +45,7 @@ fake.db = createMergeFakeFirestore(state);
 const { bindVerifiedIdentity } = await import('../request-identity.js');
 const { handleOAuthStartRoute } = await import('../routes/oauth-start.js');
 const { handleMicrosoftCalendarRoutes } = await import('../routes/microsoft-calendar.js');
-const { setOAuthLinkStore } = await import('../../token/oauth-link-state.js');
+const { setOAuthLinkStore, pkceVerifierFor } = await import('../../token/oauth-link-state.js');
 
 const realFetch = globalThis.fetch;
 const tokenCalls: URLSearchParams[] = [];
@@ -151,20 +151,37 @@ describe('Outlook connect with OUTLOOK_CONNECT on', () => {
     expect(state.docs.size).toBe(0);
   });
 
-  it('without app credentials the start says Outlook is unavailable', async () => {
-    const id = process.env.MICROSOFT_CLIENT_ID;
-    delete process.env.MICROSOFT_CLIENT_ID;
-    try {
-      const res = await send('/auth/oauth/start', {
-        method: 'POST',
-        headers: { authorization: 'Bearer tok-A', 'content-type': 'application/json' },
-        body: JSON.stringify({ provider: 'microsoft_calendar' }),
-      });
-      expect(res.status).toBe(503);
-      expect(((await res.json()) as { unavailable?: boolean }).unavailable).toBe(true);
-    } finally {
-      process.env.MICROSOFT_CLIENT_ID = id;
-    }
+  it('status reports the link, and unlink deletes the sealed grant', async () => {
+    const { cookie, state: st } = await startAndLogin();
+    await send(`/auth/microsoft/callback?code=c1&state=${encodeURIComponent(st)}`, {
+      headers: { cookie },
+    });
+    const auth = { headers: { authorization: 'Bearer tok-A' } };
+    const before = (await (await send('/auth/microsoft/status', auth)).json()) as Record<
+      string,
+      unknown
+    >;
+    expect(before).toMatchObject({ linked: true });
+    await send('/auth/microsoft/unlink', { method: 'POST', ...auth });
+    expect(state.docs.has('bogle_users/uid-A/outlook_tokens/data')).toBe(false);
+    const after = (await (await send('/auth/microsoft/status', auth)).json()) as Record<
+      string,
+      unknown
+    >;
+    expect(after).toMatchObject({ linked: false });
+  });
+});
+
+describe('pkce verifier', () => {
+  const req = (cookie?: string) => ({ headers: cookie ? { cookie } : {} }) as never;
+  const a = `__session=${'a'.repeat(43)}`;
+  const b = `__session=${'b'.repeat(43)}`;
+  it('depends on the browser cookie, not only the state, and needs our cookie', () => {
+    expect(pkceVerifierFor(req(a), 's1')).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(pkceVerifierFor(req(a), 's1')).toBe(pkceVerifierFor(req(a), 's1'));
+    expect(pkceVerifierFor(req(a), 's1')).not.toBe(pkceVerifierFor(req(b), 's1'));
+    expect(pkceVerifierFor(req(a), 's1')).not.toBe(pkceVerifierFor(req(a), 's2'));
+    expect(pkceVerifierFor(req(), 's1')).toBeNull();
   });
 });
 

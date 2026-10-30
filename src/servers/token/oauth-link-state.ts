@@ -254,10 +254,8 @@ export async function consumeOAuthLinkState(
 }
 
 /**
- * A PKCE code_verifier (RFC 7636, 43 chars) for this flow, derived from the browser
- * binding cookie and the state, so nothing more is stored: the login route and the
- * callback both run in the starting browser, and someone holding the code and the
- * state (both in URLs) still lacks the HttpOnly cookie. Null without our cookie.
+ * A PKCE code_verifier (RFC 7636) for this flow from the HttpOnly binding cookie and the state,
+ * so nothing more is stored; a holder of the code and state (both in URLs) lacks the cookie.
  */
 export function pkceVerifierFor(req: IncomingMessage, state: string): string | null {
   const binding = readCookie(req, OAUTH_BINDING_COOKIE);

@@ -126,6 +126,14 @@ export {
 export { GoogleCalendarProvider } from './providers/google-provider.js';
 export { AppleCalendarProvider } from './providers/apple-provider.js';
 export { OutlookCalendarProvider } from './providers/outlook-provider.js';
+export {
+  OUTLOOK_SCOPES,
+  outlookConnect,
+  outlookConnectOn,
+  outlookDisconnect,
+  outlookLinkedOr,
+  pkceChallenge,
+} from './providers/outlook-state.js';
 
 // ============================================================================
 // BACKWARD COMPATIBILITY

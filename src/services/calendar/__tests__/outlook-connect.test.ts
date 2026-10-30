@@ -38,6 +38,7 @@ const { getCalendarMode } = await import('../calendar-service.js');
 const { smartCalendarTools } =
   await import('../../../tools/domains/calendar/calendar-connection-gate.js');
 const { outlookCalendarProvider } = await import('../providers/outlook-provider.js');
+const { outlookDisconnect } = await import('../index.js');
 
 const A = 'uid-alice-0000000000000000';
 const B = 'uid-bobby-0000000000000000';
@@ -164,7 +165,7 @@ describe('connect', () => {
 
   it('disconnect deletes the record', async () => {
     await connect(A, 'code-a');
-    await outlookCalendarProvider.disconnect(A);
+    await outlookDisconnect(A); // what /auth/microsoft/unlink and /calendar/outlook/disconnect call
     expect(state.docs.get(docOf(A))).toBeUndefined();
     expect(await link.outlookLinkState(A)).toBe('not_connected');
   });

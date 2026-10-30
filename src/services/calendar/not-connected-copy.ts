@@ -25,14 +25,9 @@ export const NOT_CONNECTED_CHANGE_FAILED =
   "I couldn't change that, and nothing changed on a calendar, since none is connected.";
 
 /** OUTLOOK_CONNECT: a linked Outlook that could not answer is never read out as an empty day. */
-export function outlookUnavailableLine(
-  state: 'not_connected' | 'needs_reauth' | 'unreachable',
-  write: boolean
-): string {
+export function outlookUnavailableLine(state: string, write: boolean): string {
   if (state === 'not_connected') return write ? NOT_CONNECTED_CREATE_FAILED : NOT_CONNECTED_READ;
-  const nothing = write
-    ? ', so nothing was added or changed'
-    : ", so I can't tell you what's on it";
+  const nothing = write ? ', so nothing was added or changed' : ", so I can't say what's on it";
   return state === 'needs_reauth'
     ? `Your Outlook calendar needs reconnecting${nothing}. You can reconnect it in Ferni's settings.`
     : `I couldn't reach your Outlook calendar just now${nothing}. Want me to try again in a minute?`;

@@ -1,16 +1,8 @@
 /**
- * Outlook under OUTLOOK_CONNECT: the person's Microsoft grant on the shared sealed
- * store (bogle_users/{uid}/outlook_tokens/data, services/identity/user-oauth-store.ts)
- * and the Graph calls the calendar tools make with it.
- *
- * Every read answers with events or an honest reason: not_connected, needs_reauth
- * (Microsoft refused the refresh: the person must connect again) or unreachable
- * (5xx, network, timeout). None of them is ever "no events". A grant is saved only
- * when a token key is set, so tokens never land in Firestore as plaintext.
- *
- * @module services/calendar/providers/outlook-link
+ * OUTLOOK_CONNECT: the Microsoft grant on the shared sealed store (bogle_users/{uid}/outlook_tokens)
+ * and the Graph calls the calendar tools make. A read gives events or throws why it can't
+ * (not_connected, needs_reauth, unreachable): never "no events". No token key, no grant stored.
  */
-import { createHash } from 'node:crypto';
 import {
   permanentGrantErrorClass,
   refreshWithRevocation,
@@ -20,15 +12,13 @@ import { createUserOAuthStore, type UserOAuthStore } from '../../identity/user-o
 import { createLogger } from '../../../utils/safe-logger.js';
 import { resolveTokenKey } from '../../../utils/token-encryption.js';
 import type { CalendarEvent } from '../types.js';
-import { OutlookCalendarProvider, type GraphEvent } from './outlook-provider.js';
-import { OutlookUnavailableError, outlookConnectOn, type OutlookState } from './outlook-state.js';
+import { outlookCalendarProvider, type GraphEvent } from './outlook-provider.js';
+import { OUTLOOK_SCOPES, OutlookUnavailableError, type OutlookState } from './outlook-state.js';
 
 const log = createLogger({ module: 'OutlookLink' });
 
 const AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0';
 const GRAPH_URL = 'https://graph.microsoft.com/v1.0';
-/** Delegated, no admin consent: personal and work accounts. No openid/profile, no mail. */
-export const OUTLOOK_SCOPES = 'offline_access User.Read Calendars.ReadWrite';
 const TIMEOUT_MS = 10_000;
 const EXPIRY_BUFFER_MS = 60_000;
 
@@ -40,10 +30,6 @@ type StoredOutlookTokens = { access_token: string; refresh_token: string; expire
 let store: UserOAuthStore<StoredOutlookTokens> | null = null;
 const tokenStore = (): UserOAuthStore<StoredOutlookTokens> =>
   (store ??= createUserOAuthStore({ provider: 'outlook', collection: 'outlook_tokens' }));
-
-/** PKCE S256 challenge for a verifier (RFC 7636). */
-export const pkceChallenge = (verifier: string): string =>
-  createHash('sha256').update(verifier).digest('base64url');
 
 async function tokenRequest(params: Record<string, string>): Promise<StoredOutlookTokens> {
   const response = await fetch(`${AUTH_URL}/token`, {
@@ -73,10 +59,7 @@ async function tokenRequest(params: Record<string, string>): Promise<StoredOutlo
   };
 }
 
-/**
- * Callback: trade the code (with its PKCE verifier) and keep the grant. 'no_key' when no
- * token key is set: nothing is written, the connect fails closed.
- */
+/** Callback: trade the code (with its PKCE verifier), keep the grant; 'no_key' writes nothing. */
 export async function connectOutlook(
   userId: string,
   code: string,
@@ -88,12 +71,8 @@ export async function connectOutlook(
     return 'no_key';
   }
   try {
-    const tokens = await tokenRequest({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-      code_verifier: verifier,
-    });
+    const grant = { grant_type: 'authorization_code', code, redirect_uri: redirectUri };
+    const tokens = await tokenRequest({ ...grant, code_verifier: verifier });
     await tokenStore().save(userId, tokens);
     return (await tokenStore().readFresh(userId)) ? 'saved' : 'failed';
   } catch (error) {
@@ -113,11 +92,6 @@ export async function disconnectOutlook(userId: string): Promise<void> {
   await tokenStore().remove(userId);
 }
 
-/** True when Outlook is linked under the flag (connected or needing reconnecting). */
-export async function outlookLinked(userId: string): Promise<boolean> {
-  return outlookConnectOn() && (await outlookLinkState(userId)) !== 'not_connected';
-}
-
 async function getAccess(userId: string): Promise<Access> {
   const s = tokenStore();
   let state: string;
@@ -130,9 +104,8 @@ async function getAccess(userId: string): Promise<Access> {
   if (s.isRefreshBlocked(userId)) return { status: 'needs_reauth' };
   const tokens = await s.get(userId);
   if (!tokens) return { status: 'unreachable' }; // a link doc whose envelope did not open
-  if (Date.now() < tokens.expires_at - EXPIRY_BUFFER_MS) {
+  if (Date.now() < tokens.expires_at - EXPIRY_BUFFER_MS)
     return { status: 'ok', token: tokens.access_token };
-  }
   const used = tokens.refresh_token;
   const fresh = await refreshWithRevocation(s, userId, used, async () => {
     const next = await tokenRequest({ grant_type: 'refresh_token', refresh_token: used });
@@ -175,23 +148,16 @@ export async function listOutlookEvents(
   start: Date,
   end: Date
 ): Promise<CalendarEvent[]> {
-  const range = `startDateTime=${start.toISOString()}&endDateTime=${end.toISOString()}`;
-  const result = await graph<{ value?: GraphEvent[] }>(
-    userId,
-    'GET',
-    `/me/calendarView?${range}&$top=100&$orderby=start/dateTime`
-  );
+  const range = `startDateTime=${start.toISOString()}&endDateTime=${end.toISOString()}&$top=100`;
+  const result = await graph<{ value?: GraphEvent[] }>(userId, 'GET', `/me/calendarView?${range}`);
   const events = (result.value ?? []).map((ge) =>
-    OutlookCalendarProvider.graphToCalendarEvent(ge, userId)
+    outlookCalendarProvider.graphToCalendarEvent(ge, userId)
   );
   log.info({ provider: 'outlook', count: events.length }, 'Outlook events read');
   return events;
 }
 
-/**
- * Create an event on the person's default Outlook calendar, times in UTC. No attendees:
- * Graph would email them invitations from the person's account. Returns the Graph id.
- */
+/** Create on the default Outlook calendar, in UTC; no attendees (Graph would email them invites). */
 export async function createOutlookEvent(
   userId: string,
   event: { title: string; description?: string; location?: string; start: Date; end: Date }

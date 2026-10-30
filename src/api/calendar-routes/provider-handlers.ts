@@ -11,6 +11,7 @@ import { sendError } from '../helpers.js';
 import { sendJson, checkRateLimitAndApply, readJsonBody } from './helpers.js';
 import { appleCalendarProvider } from '../../services/calendar/providers/apple-provider.js';
 import { outlookCalendarProvider } from '../../services/calendar/providers/outlook-provider.js';
+import { outlookDisconnect } from '../../services/calendar/index.js';
 import {
   registerUser as registerApplePolling,
   unregisterUser as unregisterApplePolling,
@@ -182,6 +183,7 @@ export async function handleOutlookDisconnect(
 ): Promise<void> {
   try {
     await stopOutlookSubscriptions(userId);
+    await outlookDisconnect(userId); // OUTLOOK_CONNECT: the sealed grant
     await outlookCalendarProvider.disconnect(userId);
     sendJson(res, { success: true });
     log.info({ userId }, '📧 Outlook Calendar disconnected and webhooks stopped');
