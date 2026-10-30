@@ -5,9 +5,7 @@
  * (deep links), handled in the iOS app.
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
- * Tokens are encrypted before storage for security.
- *
- * Oura's grant lives in services/identity/oura-auth.ts (sealed, also read by the agent).
+ * Tokens are encrypted before storage. Oura's live in services/identity/oura-auth.ts.
  */
 
 import crypto from 'crypto';
@@ -81,7 +79,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     clientSecret: process.env.OURA_CLIENT_SECRET,
     authorizeUrl: 'https://cloud.ouraring.com/oauth/authorize',
     tokenUrl: 'https://api.ouraring.com/oauth/token',
-    // The scopes the Oura app registers; 'sleep' is not an Oura v2 scope ('daily' covers sleep)
+    // The scopes the Oura app registers ('sleep' is not an Oura v2 scope; 'daily' covers sleep)
     scopes: ['personal', 'daily', 'heartrate', 'workout', 'tag', 'session', 'spo2'],
     redirectUri:
       process.env.OURA_REDIRECT_URI ||
@@ -291,7 +289,6 @@ export async function removeTokens(provider: WearableProvider, userId: string): 
   if (provider === 'apple_health') {
     return;
   }
-  // Oura revokes at Oura, then deletes; the generic delete below also clears the older per-user doc
   if (provider === 'oura') await ouraAuth.disconnectOura(userId);
 
   const key = cacheKey(provider, userId);
@@ -379,10 +376,8 @@ export async function getValidToken(
   provider: Exclude<WearableProvider, 'apple_health'>,
   userId: string
 ): Promise<string | null> {
-  if (provider === 'oura') {
-    const access = await ouraAuth.getOuraAccessToken(userId);
-    return access.status === 'ok' ? access.token : null;
-  }
+  if (provider === 'oura')
+    return ouraAuth.getOuraAccessToken(userId).then((a) => (a.status === 'ok' ? a.token : null));
   const userTokens = await getTokens(provider, userId);
   if (!userTokens) {
     return null;
@@ -535,7 +530,6 @@ export interface WearableConnectionStatus {
   provider: WearableProvider;
   configured: boolean;
   linked: boolean;
-  /** The provider refused the saved grant: the person has to connect again (Oura). */
   needs_reauth?: boolean;
   expires_at: number | null;
   login_url: string | null;
