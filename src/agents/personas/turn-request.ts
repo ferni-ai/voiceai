@@ -138,6 +138,16 @@ export function withTurnReminder(
 /** held: the crisis classifier's verdict this reply waits on (crisis-gate.ts holdUntilCleared). */
 type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
 
+/** This turn's request: no stale notes, and no call report when crisis guides it (call-report.ts). */
+function currentRequest(
+  request: llm.ChatContext,
+  sessionId: string | undefined,
+  crisis: boolean
+): llm.ChatContext {
+  const current = withoutStaleTurnContext(request);
+  return crisis ? withoutCallReport(sessionId, current) : current;
+}
+
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
  * told on this call, the team line (locked-teammates.ts), and the director's
@@ -151,9 +161,7 @@ function buildTurnReminder(
 ): llm.ChatContext {
   const crisis = options.shape === false;
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
-  // CALL_REPORT_REACHES_YOU: a crisis-guided reply never carries the call report (call-report.ts).
-  const current = withoutStaleTurnContext(request);
-  const chatCtx = crisis ? withoutCallReport(sessionId, current) : current;
+  const chatCtx = currentRequest(request, sessionId, crisis);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
   clearBurstOffer(session);
   const director = getDirector(session);

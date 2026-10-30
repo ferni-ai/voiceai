@@ -7,14 +7,12 @@
  * block the casual-turn budget dropped (600 chars), or a build that lost the
  * race, was marked delivered anyway and never offered again.
  *
- * On: one compact block (calls first, newest first, at most 2 results of about
- * 350 chars each) is offered on each of the call's first 3 caller turns until a
- * reply's request carries it. The injection filter keeps it in every mode but
- * crisis, and drops it beside any safety guidance (injection-filter.ts). Once
- * the call has had any crisis risk (crisis-call-risk.ts), it waits for the next
- * call. Only the results it carries are marked delivered, and only once a
- * request holds all of it and the reply made from it is released, never on a
- * crisis turn (confirmCallReportReached, called from turn-request.ts).
+ * On: one compact block (calls first, newest first, at most 2 results of ~350
+ * chars) is offered on the call's first 3 caller turns until a reply's request
+ * carries it. The filter keeps it in every mode but crisis and drops it beside
+ * safety guidance; after any crisis risk on the call it waits for the next call,
+ * and a crisis-guided request never carries it. Its results are marked delivered
+ * only when a request holds all of it and that reply is released (turn-request.ts).
  *
  * @module intelligence/context-builders/external/call-report
  */
@@ -47,10 +45,8 @@ const MAX_SESSIONS = 500;
 /** A built block and the stored results it carries. */
 interface CallReport {
   content: string;
-  /** background_results docs */
-  resultIds: string[];
-  /** on_behalf_calls docs */
-  callIds: string[];
+  resultIds: string[]; // background_results docs
+  callIds: string[]; // on_behalf_calls docs
 }
 
 interface SessionOffer {
@@ -131,10 +127,8 @@ export async function confirmCallReportReached(
 }
 
 /**
- * A crisis-guided request never carries the call report (verify of #3080, round 2). The report
- * is offered before the turn's crisis classifier rules, and a guided re-ask is built from the
- * same notes, so the block is taken out here, wherever it was added. A copy; the request as is
- * when nothing was offered. Never throws.
+ * A crisis-guided request never carries the call report (verify of #3080 r2): it is offered
+ * before the turn's classifier rules, and a guided re-ask reuses the same notes. Never throws.
  */
 export function withoutCallReport<T extends { items: unknown[]; copy(): T }>(
   sessionId: string | undefined,
@@ -142,20 +136,20 @@ export function withoutCallReport<T extends { items: unknown[]; copy(): T }>(
 ): T {
   try {
     const block = sessionId ? sessions.get(sessionId)?.offered?.content : undefined;
-    const holds = (item: unknown): boolean => {
-      const text = (item as { textContent?: unknown } | null)?.textContent;
-      return !!block && typeof text === 'string' && text.includes(block);
-    };
+    const holds = (item: unknown): boolean =>
+      !!block &&
+      String((item as { textContent?: unknown } | null)?.textContent ?? '').includes(block);
     if (!block || !chatCtx.items.some(holds)) return chatCtx;
     const ctx = chatCtx.copy();
     ctx.items = ctx.items.map((item) => {
       const content = (item as { content?: unknown }).content;
       if (!holds(item) || !Array.isArray(content)) return item;
-      const copy = Object.create(Object.getPrototypeOf(item) as object) as object;
-      const parts = content.map((part: unknown) =>
-        typeof part === 'string' ? part.split(block).join('') : part
+      const parts = content.map((p: unknown) =>
+        typeof p === 'string' ? p.split(block).join('') : p
       );
-      return Object.assign(copy, item, { content: parts });
+      return Object.assign(Object.create(Object.getPrototypeOf(item) as object) as object, item, {
+        content: parts,
+      });
     });
     return ctx;
   } catch (error) {
