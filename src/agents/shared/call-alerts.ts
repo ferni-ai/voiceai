@@ -249,6 +249,7 @@ export function createCallAlertSpeaker(
         );
         if (callEnded(session))
           return say('CALL_ALERT_DROPPED', { ...fields, reason: 'call_ended' });
+        if (cb.holdIf?.()) return say('CALL_ALERT_DROPPED', { ...fields, reason: 'held' });
         // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
         const outcome = await sayOnce(session, cb);
         if (outcome === 'played') return say('CALL_ALERT_SPOKEN', fields);
