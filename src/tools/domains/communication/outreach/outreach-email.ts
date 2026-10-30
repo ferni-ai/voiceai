@@ -33,15 +33,21 @@ const log = createLogger({ module: 'outreach-email' });
 export type EmailFrom = 'gmail' | 'ferni';
 
 const OFFER = "I can send it from Ferni's address instead if you'd like.";
+/**
+ * Every line starts "Nothing was sent:": that prefix is how the confirm gate
+ * knows a send failed (confirm-thread.ts outcomeOf), so the model isn't told
+ * it went out and a retry from Ferni's address isn't refused as "already placed".
+ */
+const NOT_SENT = 'Nothing was sent:';
 
 /** What the caller hears when their Gmail didn't send. Nothing was sent from anywhere. */
 const GMAIL_FAILED: Record<Exclude<GmailSendOutcome['status'], 'sent'>, string> = {
-  not_connected: `Your Gmail isn't connected for sending anymore, so nothing was sent. ${OFFER}`,
-  needs_reauth: `Google says your Gmail connection needs renewing, so nothing was sent. You can reconnect "send email as me" in the app. ${OFFER}`,
-  not_permitted: `Google didn't let me send from your Gmail, so nothing was sent. ${OFFER}`,
-  unreachable: `I couldn't reach Gmail just now, so nothing was sent. I can try again in a bit. ${OFFER}`,
-  rejected: `Gmail turned that email down, so nothing was sent. ${OFFER}`,
-  bad_address: "That email address doesn't look right, so nothing was sent.",
+  not_connected: `${NOT_SENT} your Gmail isn't connected for sending anymore. ${OFFER}`,
+  needs_reauth: `${NOT_SENT} Google says your Gmail connection needs renewing. You can reconnect "send email as me" in the app. ${OFFER}`,
+  not_permitted: `${NOT_SENT} Google didn't let me send from your Gmail. ${OFFER}`,
+  unreachable: `${NOT_SENT} I couldn't reach Gmail just now. I can try again in a bit. ${OFFER}`,
+  rejected: `${NOT_SENT} Gmail turned that email down. ${OFFER}`,
+  bad_address: `${NOT_SENT} that email address doesn't look right.`,
 };
 
 /**
@@ -58,7 +64,7 @@ export async function emailSender(
     return fromAddress ? { from: 'gmail', fromAddress } : {};
   } catch {
     log.warn({ userId: userId.substring(0, 8) }, 'Gmail send grant could not be read');
-    return { error: `I couldn't check your Gmail connection, so nothing was sent. ${OFFER}` };
+    return { error: `${NOT_SENT} I couldn't check your Gmail connection. ${OFFER}` };
   }
 }
 

@@ -18,7 +18,8 @@ export const reachOutConfirm: ConfirmSpec = {
     if (r.channel === 'conversation')
       return 'Nothing was sent: live calls need their own confirmation.';
     const planned: Planned = { contactId: r.contactId, to: r.to, channel: r.channel, from: r.from };
-    const how = CALLS.includes(r.channel) ? 'a call' : `a ${r.channel}`;
+    const article = r.channel === 'email' ? 'an' : 'a';
+    const how = CALLS.includes(r.channel) ? 'a call' : `${article} ${r.channel}`;
     const words = CALLS.includes(r.channel) ? 'where Ferni will open with' : 'saying';
     return {
       args: { ...args, customMessage: r.message, preferredChannel: r.channel, [PLANNED]: planned },

@@ -81,9 +81,13 @@ const ferniSends = () => vi.mocked(sendEmail).mock.calls.map(([m]) => m);
 const mime = (n = 0) =>
   Buffer.from(JSON.parse(gmailSends()[n].body).raw as string, 'base64url').toString('utf8');
 
+/** What the server told the model (OUTREACH_SERVER_CONFIRM notes), in order. */
+let notes: string[] = [];
+
 function liveCall(userId = 'user-a', owner: boolean | null = true, def?: ToolDefinition) {
   const session = { agentState: 'listening' };
-  const listeners = outreachConfirmListeners(session, owner === null ? undefined : () => owner);
+  const isOwner = owner === null ? undefined : () => owner;
+  const listeners = outreachConfirmListeners(session, isOwner, (n) => void notes.push(n));
   const reachOut = def ?? getOutreachToolDefinitions().find((d) => d.id === 'reachOut')!;
   const tool = reachOut.create({ userId, agentId: 'ferni', agentDisplayName: 'Ferni' });
   return {
@@ -98,6 +102,7 @@ function liveCall(userId = 'user-a', owner: boolean | null = true, def?: ToolDef
 
 beforeEach(() => {
   grants.clear();
+  notes = [];
   google = [];
   vi.stubEnv('GMAIL_SEND_AS_USER', 'on');
   vi.mocked(searchContacts).mockResolvedValue([PAT as never]);
@@ -125,7 +130,7 @@ describe('reachOut email from the caller’s own Gmail', () => {
     expect(gmailSends()).toHaveLength(0);
     expect(preview).toContain('NOT SENT YET');
     expect(preview).toContain(
-      'a email to Pat Rivera at pat.rivera@example.com from your Gmail, user-a@example.com, saying "Lunch Friday at noon?"'
+      'an email to Pat Rivera at pat.rivera@example.com from your Gmail, user-a@example.com, saying "Lunch Friday at noon?"'
     );
 
     call.caller('Yes, send it.');
@@ -182,7 +187,7 @@ describe('reachOut email from the caller’s own Gmail', () => {
 
       const preview = await call.call(TO_PAT, 'c1');
       expect(preview).toContain(
-        'a email to Pat Rivera at pat.rivera@example.com, saying "Lunch Friday at noon?"'
+        'an email to Pat Rivera at pat.rivera@example.com, saying "Lunch Friday at noon?"'
       );
       call.caller('yes');
       const sent = await call.call(TO_PAT, 'c2');
@@ -210,7 +215,7 @@ describe('reachOut email from the caller’s own Gmail', () => {
     const reply = await call.call(TO_PAT, 'c2');
 
     expect(reply).toContain('Google says your Gmail connection needs renewing');
-    expect(reply).toContain('nothing was sent');
+    expect(reply.startsWith('Nothing was sent:')).toBe(true);
     expect(reply).toContain("Ferni's address");
     expect(gmailSends()).toHaveLength(0);
     expect(ferniSends()).toHaveLength(0);
@@ -257,6 +262,48 @@ describe('reachOut email from the caller’s own Gmail', () => {
     expect(gmailSends()[0].auth).toBe('Bearer access-user-a');
     expect(ferniSends()).toHaveLength(0);
   });
+
+  // Each failure, under the server-sent yes: recorded as not placed (the model hears it failed,
+  // never "sent"), and Ferni's address, once picked, gets its own read-back and yes and sends once.
+  const failures: Array<[string, () => void, string]> = [
+    ['needs_reauth', () => grant('user-a', { expires_at: 0 }), 'needs renewing'],
+    ['unreachable', () => (sendReply = () => new Response('', { status: 503 })), 'reach Gmail'],
+    ['not_permitted', () => (sendReply = () => new Response('', { status: 403 })), "didn't let"],
+    ['rejected', () => (sendReply = () => new Response('', { status: 400 })), 'turned that'],
+    ['not_connected', () => undefined, "isn't connected"],
+  ];
+  it.each(failures)(
+    'OUTREACH_SERVER_CONFIRM, %s: not placed, the model hears it failed, Ferni only on a new yes',
+    async (status, setup, said) => {
+      vi.stubEnv('OUTREACH_SERVER_CONFIRM', 'on');
+      grant('user-a');
+      setup();
+      tokenReply = () => new Response(JSON.stringify({ error: 'invalid_grant' }), { status: 400 });
+      const call = liveCall();
+      expect(await call.call(TO_PAT, 'c1')).toContain('from your Gmail');
+      if (status === 'not_connected') grants.clear(); // disconnected after the read-back
+
+      call.caller('Yes, go ahead.');
+      await vi.waitFor(() => expect(notes.join('\n')).toContain('did not go through'), {
+        timeout: 4000,
+      });
+      expect(notes.join('\n')).toContain(said);
+      expect(notes.join('\n')).not.toContain("sent on the caller's yes");
+      expect(ferniSends()).toHaveLength(0);
+
+      const retry = await call.call({ ...TO_PAT, fromFerni: true }, 'c2');
+      expect(retry).not.toContain('Already placed');
+      expect(retry).toContain("pat.rivera@example.com from Ferni's address, saying");
+      expect(ferniSends()).toHaveLength(0);
+      call.caller('Yes, go ahead.');
+      await vi.waitFor(() => expect(notes.join('\n')).toContain("sent on the caller's yes"), {
+        timeout: 4000,
+      });
+      expect(await call.call({ ...TO_PAT, fromFerni: true }, 'c3')).toContain('Already placed');
+      expect(ferniSends()).toEqual([expect.objectContaining({ to: 'pat.rivera@example.com' })]);
+    },
+    15_000
+  );
 
   it("user B never sends with user A's token", async () => {
     grant('user-a');
