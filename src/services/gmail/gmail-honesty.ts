@@ -47,6 +47,15 @@ export interface GmailUnavailable {
   say: string;
 }
 
+/**
+ * What a Gmail read returns when it can't run: the old fallback ([] or null), or on the
+ * honest path a typed error, so no caller reads a missing token or failed call as no mail.
+ */
+export function gmailFallback<T>(fallback: T, cause: 'no_token' | 'failed'): T {
+  if (!gmailReadsHonest()) return fallback;
+  throw cause === 'no_token' ? new GmailNotPermittedError() : new GmailUnreachableError();
+}
+
 /** The typed result for a Gmail read that can't run. */
 export function gmailNotConnected(): GmailUnavailable {
   return { unavailable: GMAIL_NOT_PERMITTED, say: GMAIL_READ_NOT_CONNECTED };
