@@ -21,6 +21,10 @@ hours part is checked, so a wrong amount gets through when its leftover part mat
 The fix is to read the whole spoken amount ("an hour and fourteen minutes" is 74, "a dollar and
 ninety-five cents" is 195) and require that value in the tool output.
 
+**Word quantities aren't numbers.** Words like "half", "quarter", "couple" and "dozen" are never
+read as numbers, so the reply can't be wrong about them. Tool `"Runtime: 134 minutes"`, reply
+"It runs about an hour and a half." passes (134 minutes is closer to two and a quarter hours).
+
 **A rounded number near a real one, when hedged.** After "about", "around", "roughly", "nearly",
 "almost", "approximately" or "~", the number straight after the hedge may be within 5% of a tool
 number. "about four hundred and thirty" passes against 412. A number with no hedge must match
@@ -28,14 +32,31 @@ exactly.
 
 ## Faithful replies it flags (false positives)
 
-**A hedge that lands on a code doesn't carry on to the number after it.** Tool `UA 1549, 41 min`,
+**A hedge that lands on a code doesn't carry on to the number after it.** A hedge covers the
+number straight after it (one "a" or "an" and a unit suffix are fine: "about a forty-minute
+drive"), and never a code number ("about a 1530 flight"). Tool `UA 1549, 41 min`,
 reply "It's about UA 1549, forty minutes." flags 40, because "about" is followed by "UA", so
 nothing is hedged and 40 isn't 41.
+
+**Spoken decimals.** "point" isn't read, so a decimal's parts are graded as whole numbers. Tool
+`"Market size: 6.3 billion"`, reply "The market is about six-point-three billion dollars." flags 3.
+
+**General-knowledge names and the time of day.** Names that aren't in the tool output (an event,
+a mountain range), and a clock time Ferni adds, are flagged. Tool `"Rivertown Otters 5, Bay Gulls
+3, final"`, reply "The Otters won the World Series final." flags World Series. "It was nearly two
+in the morning when it ended." flags 2.
+
+**Broken caption fragments.** A capitalised fragment left mid-sentence by a cut or restarted
+caption reads as a name. Reply "Okay so Hang on, it is thirty-nine." flags Hang.
+
+**ISO datetimes with a time.** A date backs its weekday only when written as `YYYY-MM-DD` on its
+own. Tool `{"start":"2026-11-06T10:00"}`, reply "Your appointment is on Friday." flags Friday,
+although 2026-11-06 is a Friday. Real calendar tool output hasn't been checked for this form yet.
 
 **Months from ISO dates.** An ISO date backs its weekday but not its month. Tool
 `"date":"2026-04-15"`, reply "Registration opens in April." flags April.
 
-**Airline names against codes.** Tool `"flight":"B6 1188"`, reply "The JetBlue one, B6 1188,
+**Airline names against codes.** Tool `{"flight":"B6 1188","depart":"21:05"}`, reply "The JetBlue one, B6 1188,
 leaves at nine oh five." flags JetBlue. Nothing maps carrier codes to airline names.
 
 **Sentence-first subjects read as names.** A capitalised first word followed by "is", "are",

@@ -173,7 +173,11 @@ const hedgedNumbers = (text) =>
         /(?:\b(?:about|around|roughly|nearly|almost|approximately)\b|~)(?=\s*([^.;:!?]{1,60}))/gi
       ),
     ].flatMap((m) => {
-      const t = m[1].split(/[\s,]+/).filter(Boolean);
+      // "a forty-minute drive", "a 40-minute drive": the unit suffix isn't part of the number.
+      const t = m[1]
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .map((w) => w.replace(/-(?:minutes?|hours?|miles?|percent|dollars?|days?)$/i, ''));
       // "about an hour and fifty minutes": the hedge carries over the hours to the minutes.
       const lead = /^(?:a|an|\S+)\s+hours?(?:\s+and)?$/i.test(t.slice(0, 3).join(' '))
         ? 3
@@ -181,6 +185,10 @@ const hedgedNumbers = (text) =>
           ? 2
           : 0;
       let i = lead && (lead === 2 || /^(?:a|an)$/i.test(t[0]) || isNumberToken(t[0])) ? lead : 0;
+      // "about a forty-minute drive": one article between the hedge and the number.
+      if (!i && /^(?:a|an)$/i.test(t[0] ?? '') && isNumberToken(t[1] ?? '') && !isScale(t[1]))
+        i = 1;
+      const start = i;
       const run = [];
       for (; i < t.length; i++) {
         const w = t[i].toLowerCase();
@@ -191,7 +199,11 @@ const hedgedNumbers = (text) =>
         if (!joins) break;
         run.push(w);
       }
-      return run.length ? [...numbersIn(run.join(' '))].slice(0, 1) : [];
+      // A flight or code number is never a rounding: "about a 1530 flight", "around UA 1530".
+      const code = (w) => /^(?:flights?|[A-Z]{2}|[A-Z]\d|\d[A-Z])$/.test(w ?? '');
+      const isCode =
+        run.length === 1 && /^\d{3,}$/.test(run[0]) && (code(t[start - 1]) || code(t[i]));
+      return run.length && !isCode ? [...numbersIn(run.join(' '))].slice(0, 1) : [];
     })
   );
 /** Backed when the tool or caller said it; a hedged number may be within 5% of one. Never an

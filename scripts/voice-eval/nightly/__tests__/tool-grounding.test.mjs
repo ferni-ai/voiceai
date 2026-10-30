@@ -1057,6 +1057,22 @@ describe('verify round 4: the hedge reaches only the number straight after it', 
     const out = reply.includes('an hour') ? '"Duration: 1 h 41 min"' : F;
     expect(one(reply, out).details[0].invented).toEqual([]);
   });
+  // Round 5: "about a forty-minute drive" is the voice model's most common hedged shape (26 eval
+  // replies). One article and a unit suffix don't cancel the hedge; a code number is never hedged.
+  it.each([
+    ["It's about a forty-minute drive.", 41],
+    ["It's about a forty minute drive.", 41],
+    ['Roughly a forty-five minute drive.', 47],
+    ['It is around a twenty-minute drive.', 21],
+    ['There is around a seventy-five percent chance of rain.', 76],
+    ['It is about a 40-minute drive.', 41],
+  ])('green: %s (tool %i)', (reply, n) => {
+    expect(one(reply, `"Drive: ${n} minutes, rain ${n}%"`).details[0].invented).toEqual([]);
+  });
+  it('red: "about a 1530 flight" against UA 1549 (a code is never hedged)', () => {
+    expect(one('You want about a 1530 flight.', F).details[0].invented).toEqual([1530]);
+  });
+
   it('a second hedge outside 5% is red', () => {
     expect(
       one("It's about forty minutes and around four hundred dollars.", F).details[0].invented
