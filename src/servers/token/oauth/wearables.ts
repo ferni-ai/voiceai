@@ -5,8 +5,7 @@
  * (deep links), handled in the iOS app.
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
- * Tokens are encrypted before storage for security.
- * Oura's grant lives in services/identity/oura-auth.ts (sealed, also read by the agent).
+ * Tokens are encrypted before storage. Oura's live in services/identity/oura-auth.ts.
  */
 
 import crypto from 'crypto';
@@ -272,8 +271,7 @@ export async function removeTokens(provider: WearableProvider, userId: string): 
   if (provider === 'apple_health') {
     return;
   }
-  // Oura deletes its own record; the generic delete below also clears the older per-user doc
-  if (provider === 'oura') await ouraAuth.deleteUserTokens(userId);
+  if (provider === 'oura') await ouraAuth.disconnectOura(userId);
 
   const key = cacheKey(provider, userId);
   tokenCache.delete(key);
@@ -360,7 +358,8 @@ export async function getValidToken(
   provider: Exclude<WearableProvider, 'apple_health'>,
   userId: string
 ): Promise<string | null> {
-  if (provider === 'oura') return ouraAuth.getValidAccessToken(userId);
+  if (provider === 'oura')
+    return ouraAuth.getOuraAccessToken(userId).then((a) => (a.status === 'ok' ? a.token : null));
   const userTokens = await getTokens(provider, userId);
   if (!userTokens) {
     return null;
@@ -513,6 +512,7 @@ export interface WearableConnectionStatus {
   provider: WearableProvider;
   configured: boolean;
   linked: boolean;
+  needs_reauth?: boolean;
   expires_at: number | null;
   login_url: string | null;
 }
@@ -543,14 +543,14 @@ export async function getAllConnectionStatuses(
 
   for (const provider of providers) {
     const configured = isProviderConfigured(provider);
+    const link = provider === 'oura' && configured ? await ouraAuth.getOuraLink(userId) : null;
     const tokens = configured && provider !== 'oura' ? await getTokens(provider, userId) : null;
-    const linked =
-      provider === 'oura' ? configured && (await ouraAuth.isOuraConfigured(userId)) : !!tokens;
 
     statuses.push({
       provider,
       configured,
-      linked,
+      linked: provider === 'oura' ? link === 'connected' : !!tokens,
+      ...(link === 'needs_reauth' ? { needs_reauth: true } : {}),
       expires_at: tokens?.expires_at || null,
       login_url: configured
         ? `/wearables/${provider}/login?user_id=${encodeURIComponent(userId)}`

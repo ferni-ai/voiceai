@@ -2,8 +2,7 @@
  * Oura Ring data routes (read-only).
  *
  * Connecting and disconnecting are not here: they are the shared wearables flow
- * (POST /auth/oauth/start { provider: 'oura' }, then /wearables/oura/* and
- * POST /wearables/oura/unlink).
+ * (POST /auth/oauth/start { provider: 'oura' }, then /wearables/oura/*).
  *
  * 1. GET /api/oura/configured → Is the Oura app set up on this server
  * 2. GET /api/oura/status → Connection status and all data
@@ -13,7 +12,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { isOuraConfigured, isApiConfigured } from '../../../services/identity/oura-auth.js';
+import { getOuraLink, isApiConfigured } from '../../../services/identity/oura-auth.js';
 import {
   getSleepSummary,
   getReadinessSummary,
@@ -82,10 +81,13 @@ export async function handleOuraRoutes(
   // GET /api/oura/status - Get connection status and all data
   // ============================================================================
   if (pathname === '/api/oura/status' && req.method === 'GET') {
-    const connected = await isOuraConfigured(userId);
+    const link = await getOuraLink(userId);
 
-    if (!connected) {
-      sendJson(res, 200, { connected: false });
+    if (link !== 'connected') {
+      sendJson(res, 200, {
+        connected: false,
+        ...(link === 'needs_reauth' ? { needsReauth: true } : {}),
+      });
       return true;
     }
 

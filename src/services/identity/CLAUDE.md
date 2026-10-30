@@ -32,7 +32,7 @@ Identity services handle:
 | `apple-health-sync.ts` | Apple Health data sync |
 | `apple-health-types.ts` | Apple Health type definitions |
 | `ecobee-api.ts`, `ecobee-auth.ts`, `ecobee-types.ts` | Ecobee thermostat |
-| `oura-api.ts`, `oura-auth.ts`, `oura-types.ts` | Oura Ring |
+| `oura-api.ts`, `oura-auth.ts`, `oura-types.ts` | Oura Ring (`oura-auth.ts` owns the sealed per-user grant: refresh, `needs_reauth`, revoke; connect is the wearables flow) |
 | `spotify-room-service.ts`, `spotify-room-config-store.ts`, `spotify-room-types.ts` | Spotify Room integration |
 
 ### Contact & User Management
