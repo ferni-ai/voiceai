@@ -22,7 +22,7 @@
 type Env = Record<string, string | undefined>;
 
 /** A key name some Maps caller read before `GOOGLE_MAPS_SERVER_KEY` existed. */
-export type LegacyMapsKeyName = 'GOOGLE_MAPS_API_KEY' | 'GOOGLE_PLACES_API_KEY' | 'GOOGLE_API_KEY';
+type LegacyMapsKeyName = 'GOOGLE_MAPS_API_KEY' | 'GOOGLE_PLACES_API_KEY' | 'GOOGLE_API_KEY';
 
 /**
  * Each caller's pre-server-key chain, exactly as it read it before. Pick the
