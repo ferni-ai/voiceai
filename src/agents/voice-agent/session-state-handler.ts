@@ -759,6 +759,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     }
 
     if (event.oldState === 'speaking' && event.newState !== 'speaking') {
+      quiet?.onAgentDone(); // QUIET_AFTER_QUESTION (quiet-presence.ts)
       const speechEndTime = Date.now();
 
       // Calculate and track utterance duration (for adaptive echo prevention)
