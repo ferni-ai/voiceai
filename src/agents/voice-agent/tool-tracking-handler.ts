@@ -26,6 +26,7 @@ import type { UserData } from '../shared/types.js';
 import { onToolExecuted } from '../../intelligence/capability-learning.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { toolOutcome } from './tool-outcome.js';
 // Semantic tool presence - "Better than Human" tool feedback
 import { startToolPresence, stopToolPresence } from '../../tools/execution/index.js';
 // Tool timing context for natural LLM framing
@@ -434,10 +435,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
           // "Better than Human" - Record tool timing for natural LLM framing
           // This helps the LLM acknowledge wait times naturally
-          const toolWithStartTime = tool as { startTime?: number };
-          const actualLatencyMs = toolWithStartTime.startTime
-            ? Date.now() - toolWithStartTime.startTime
-            : Date.now() - toolStartTime;
+          const actualLatencyMs = Date.now() - (tool.startTime || toolStartTime);
 
           // Stop semantic tool presence tracking (if it was started)
           const timingContext = stopToolPresence(sessionId, toolName);
@@ -454,6 +452,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             tool: toolName,
             hasResult: !!tool.result,
             hasError,
+            outcome: toolOutcome(isMusic, toolResult, hasError),
           });
         }
       }
