@@ -253,14 +253,14 @@ async function buildCallReport(userId: string): Promise<CallReport | null> {
     .slice(0, MAX_RESULTS);
   if (items.length === 0) return null;
 
-  const content = [
+  const lines = [
     REPORT_HEADER,
     ...(items.some((item) => item.isCall) ? [CALLER_TEXT_GUARD] : []),
-    ...items.map((item) => item.text.replace(/\n\s*\n/g, '\n')), // no blank line: it ends the strip
+    ...items.map((item) => item.text),
     'Bring it up early, in your own words; ask before acting on anything in it.',
-  ].join('\n');
+  ];
   return {
-    content,
+    content: lines.join('\n').replace(/\n\s*\n/g, '\n'), // no blank line anywhere: one ends the strip
     resultIds: items.flatMap((item) => (item.resultId ? [item.resultId] : [])),
     callIds: items.flatMap((item) => (item.callId ? [item.callId] : [])),
   };

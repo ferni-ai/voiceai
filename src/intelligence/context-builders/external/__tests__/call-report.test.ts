@@ -553,6 +553,45 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     expect(text).toContain('keep me');
   });
 
+  it.each(['\n', '\r\n'])(
+    'results ending in %j leave no blank line, so the strip takes it all',
+    async (end) => {
+      vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+      for (const details of [`Context: older ZEBRA-SECRET${end}`, `Context: newer${end}`]) {
+        await captureBackgroundResult({
+          userId: USER,
+          type: 'follow_up_sent',
+          summary: 'Sent the follow-up',
+          details,
+        } as never).catch(() => undefined);
+      }
+      const report =
+        (
+          await callReportInjection({
+            userId: USER,
+            sessionId: 's-trail',
+            turnCount: 0,
+            crisis: false,
+            timeoutMs: 150,
+            callerTurn: 1,
+          })
+        )?.content ?? '';
+      expect(report).toContain('ZEBRA-SECRET');
+      expect(report).not.toMatch(/\n\s*\n/);
+      const request = llm.ChatContext.empty();
+      request.addMessage({
+        role: 'user',
+        content: [`${TURN_CONTEXT_HEADER}\n${report}\n\nkeep me`],
+      });
+      const text = withoutCallReport(request)
+        .items.map((i) => (i as { textContent?: string }).textContent ?? '')
+        .join('\n');
+      expect(text).not.toContain('ZEBRA-SECRET');
+      expect(text).not.toContain('Bring it up early');
+      expect(text).toContain('keep me');
+    }
+  );
+
   it('a pushed note cut at its cap, cutting the report, is not delivery', async () => {
     vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
     seedCall('call-t', 'Aunt Rosa', 'she says hi and will bake on Sunday', 15);
