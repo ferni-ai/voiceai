@@ -18,6 +18,7 @@
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
+import { closeAgentSession } from '../shared/close-agent-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -2205,25 +2206,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         }
       }
 
-      // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff
-      // session.close() can block if the session is in a draining state
-      log.info({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Calling session.close()...');
-      const closeStart = Date.now();
-      try {
-        const closeTimeout = new Promise<void>((_, reject) => {
-          setTimeout(() => reject(new Error('session.close() timeout')), 3000);
-        });
-        await Promise.race([session.close(), closeTimeout]);
-        log.info(
-          { sessionId, personaId: persona.id, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ✅ session.close() completed'
-        );
-      } catch (err) {
-        log.warn(
-          { error: String(err), sessionId, closeDurationMs: Date.now() - closeStart },
-          '🧹 [CLEANUP] ⚠️ session.close() error or timeout'
-        );
-      }
+      // Bounded: session.close() can block while the session drains during handoff.
+      await closeAgentSession(session, { sessionId, personaId: persona.id });
 
       log.info(
         { personaId: persona.id, sessionId, totalCleanupDurationMs: Date.now() - cleanupStart },
