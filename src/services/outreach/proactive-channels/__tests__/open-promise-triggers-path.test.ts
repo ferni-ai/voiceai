@@ -2,7 +2,8 @@
  * OPEN_PROMISE_TRIGGERS, end to end through the per-minute scheduler handler: a
  * promise Ferni didn't keep on the next call is still open, and with the flag on it
  * still sends its check-in; off, talking since stands it down (today's rule).
- * A promise asked about in a call is settled kept, so it never triggers.
+ * A promise asked about in a call is settled kept, so it never triggers. Flag or not,
+ * nothing goes out within CRISIS_QUIET_DAYS of a crisis-level signal.
  * Firestore is in memory; Firebase Auth and the Twilio send are stubbed at the SDK edge.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,6 +43,7 @@ vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
 const { justTalked, JUST_TALKED_HOURS } = await import('../../outreach-cadence.js');
+const { crisisFromSignal } = await import('../../../human-transfer/crisis-signals.js');
 
 const UID = 'member-uid-1';
 const PHONE = '+15555550123';
@@ -58,15 +60,26 @@ function seedUser(hoursAgo: number) {
     outreachPreferences: { channels: ['sms'] },
   });
 }
-/** "I'll check in about the move", said two days ago. */
-function seedPromise(outcome = 'open') {
+/** "I'll check in about the move", said `hoursAgo` hours ago (two days by default). */
+function seedPromise(outcome = 'open', hoursAgo = 48) {
   docs.set(`bogle_users/${UID}/ferni_commitments/p1`, {
     type: 'check_in',
     commitment: "I'll check in about the move",
     relatedTopic: 'the move',
-    madeAt: new Date(NOW.getTime() - 48 * HOUR).toISOString(),
+    madeAt: new Date(NOW.getTime() - hoursAgo * HOUR).toISOString(),
     outcome,
   });
+}
+const CRISIS_PATH = `bogle_users/${UID}/crisis_signals/c1`;
+/** A crisis-level signal `hoursAgo` hours ago, as logCrisisSignal writes it. */
+function seedCrisis(hoursAgo: number) {
+  const signal = {
+    timestamp: new Date(NOW.getTime() - hoursAgo * HOUR).toISOString(),
+    signals: { suicidalIdeation: true, severity: 9 },
+    sessionId: 'session-1',
+  };
+  expect(crisisFromSignal(UID, signal)?.escalationType).toBe('crisis_immediate');
+  docs.set(CRISIS_PATH, signal);
 }
 
 async function runHandler(): Promise<void> {
@@ -142,6 +155,35 @@ describe('a promise still open after the next call (OPEN_PROMISE_TRIGGERS)', () 
     seedUser(60); // last talked before the promise was made
     seedPromise();
 
+    await runHandler();
+    expect(texts).toEqual([{ to: PHONE, body: CHECK_IN }]);
+  });
+});
+
+describe('the crisis quiet window holds promise check-ins', () => {
+  it('on: a crisis on the call 13 h ago sends nothing; without it, the check-in goes', async () => {
+    process.env.OPEN_PROMISE_TRIGGERS = 'on';
+    seedUser(13);
+    seedPromise();
+    seedCrisis(13);
+
+    await runHandler();
+    expect(texts).toEqual([]);
+
+    docs.delete(CRISIS_PATH);
+    await runHandler();
+    expect(texts).toEqual([{ to: PHONE, body: CHECK_IN }]);
+  });
+
+  it('off: a crisis on the call where the promise was made sends nothing the next day', async () => {
+    seedUser(19.5); // that call ended half an hour after the promise
+    seedPromise('open', 20);
+    seedCrisis(20);
+
+    await runHandler();
+    expect(texts).toEqual([]);
+
+    docs.delete(CRISIS_PATH);
     await runHandler();
     expect(texts).toEqual([{ to: PHONE, body: CHECK_IN }]);
   });

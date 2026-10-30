@@ -14,6 +14,9 @@
  * - "Let me know how the interview goes" (a follow_up invitation): the
  *   evening after, "how did the interview go?".
  * - Either one that says she'd call ("I'll call you tomorrow") is a promised call.
+ * - None within CRISIS_QUIET_DAYS of a crisis-level signal (the shared rule in
+ *   human-transfer/crisis-signals.ts, as the pondered notes use), flag or not:
+ *   not even for a promise made on the call where the crisis came up.
  *
  * Read from bogle_users/{uid}/ferni_commitments (promise-keeper.ts). Missed
  * reminders, the user's own commitments and their world come from
@@ -25,6 +28,7 @@
 import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { CRISIS_QUIET_DAYS, hadCrisisWithin } from '../../human-transfer/crisis-signals.js';
 import {
   commitmentTriggers,
   reminderTriggers,
@@ -161,6 +165,7 @@ const rank = (t: ProactiveTrigger): number =>
 async function promiseTriggers(userId: string, ctx: TriggerContext): Promise<ProactiveTrigger[]> {
   const db = getFirestoreDb();
   if (!db) return [];
+  if (await hadCrisisWithin(db, userId, CRISIS_QUIET_DAYS, ctx.now)) return [];
   const snap = await db
     .collection('bogle_users')
     .doc(userId)
