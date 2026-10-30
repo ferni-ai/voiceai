@@ -1,18 +1,18 @@
 #!/usr/bin/env npx ts-node
 /**
  * Integration Validation Script
- * 
+ *
  * Validates all communication and scheduling integrations:
  * - Twilio SMS
  * - Twilio Voice
  * - Google Calendar
- * - Restaurant APIs (OpenTable, Resy, Yelp)
+ * - Restaurant search (Google Places)
  * - LiveKit SIP
- * 
+ *
  * Usage:
  *   npx ts-node scripts/validate-integrations.ts
  *   npx ts-node scripts/validate-integrations.ts --send-test  # Actually sends test messages
- * 
+ *
  * Environment variables required for full validation:
  *   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
  *   GOOGLE_CALENDAR_CREDENTIALS
@@ -77,7 +77,7 @@ async function checkTwilio(sendTest: boolean): Promise<void> {
     if (!accountSid) missing.push('TWILIO_ACCOUNT_SID');
     if (!authToken) missing.push('TWILIO_AUTH_TOKEN');
     if (!phoneNumber) missing.push('TWILIO_PHONE_NUMBER');
-    
+
     smsCheck.message = `Missing: ${missing.join(', ')}`;
     voiceCheck.message = smsCheck.message;
     addCheck(smsCheck);
@@ -107,7 +107,7 @@ async function checkTwilio(sendTest: boolean): Promise<void> {
         }
       );
 
-      const smsData = await smsResponse.json() as { sid?: string; message?: string };
+      const smsData = (await smsResponse.json()) as { sid?: string; message?: string };
 
       if (smsResponse.ok && smsData.sid) {
         smsCheck.status = 'validated';
@@ -175,7 +175,7 @@ async function checkGoogleCalendar(sendTest: boolean): Promise<void> {
   try {
     creds = JSON.parse(credentials);
     check.status = 'configured';
-    
+
     if (creds.private_key) {
       check.message = 'Service account credentials detected';
     } else if (creds.refresh_token) {
@@ -242,14 +242,17 @@ async function checkGooglePlaces(sendTest: boolean): Promise<void> {
       });
 
       if (response.ok) {
-        const data = await response.json() as { places?: unknown[] };
+        const data = (await response.json()) as { places?: unknown[] };
         check.status = 'validated';
         check.message = `API working - found ${data.places?.length || 0} restaurants`;
       } else {
-        const errorData = await response.json() as { error?: { message: string; status: string } };
+        const errorData = (await response.json()) as {
+          error?: { message: string; status: string };
+        };
         check.status = 'failed';
         if (errorData.error?.status === 'PERMISSION_DENIED') {
-          check.message = 'Places API (New) not enabled - enable at console.cloud.google.com/apis/library/places.googleapis.com';
+          check.message =
+            'Places API (New) not enabled - enable at console.cloud.google.com/apis/library/places.googleapis.com';
         } else {
           check.message = errorData.error?.message || `API error: ${response.status}`;
         }
@@ -299,7 +302,8 @@ function checkLiveKitSIP(): void {
 
 function checkAppointmentIntegration(): void {
   const hasTwilio = checkEnvVar('TWILIO_ACCOUNT_SID') && checkEnvVar('TWILIO_AUTH_TOKEN');
-  const hasCalendar = checkEnvVar('GOOGLE_CALENDAR_CLIENT_ID') || checkEnvVar('GOOGLE_CALENDAR_CREDENTIALS');
+  const hasCalendar =
+    checkEnvVar('GOOGLE_CALENDAR_CLIENT_ID') || checkEnvVar('GOOGLE_CALENDAR_CREDENTIALS');
   const hasWebhook = checkEnvVar('WEBHOOK_BASE_URL');
 
   const check: IntegrationCheck = {
@@ -335,22 +339,32 @@ function printResults(): void {
   console.log('═'.repeat(70));
 
   const categories = ['communication', 'calendar', 'telephony', 'reservations'] as const;
-  
+
   for (const category of categories) {
-    const categoryChecks = checks.filter(c => c.category === category);
+    const categoryChecks = checks.filter((c) => c.category === category);
     if (categoryChecks.length === 0) continue;
 
     console.log(`\n  ${category.toUpperCase()}`);
     console.log('  ' + '-'.repeat(66));
 
     for (const check of categoryChecks) {
-      const icon = check.status === 'validated' ? '✅' :
-                   check.status === 'configured' ? '🟡' :
-                   check.status === 'failed' ? '❌' : '⚪';
-      
-      const statusText = check.status === 'validated' ? 'VALIDATED' :
-                         check.status === 'configured' ? 'CONFIGURED' :
-                         check.status === 'failed' ? 'FAILED' : 'NOT CONFIGURED';
+      const icon =
+        check.status === 'validated'
+          ? '✅'
+          : check.status === 'configured'
+            ? '🟡'
+            : check.status === 'failed'
+              ? '❌'
+              : '⚪';
+
+      const statusText =
+        check.status === 'validated'
+          ? 'VALIDATED'
+          : check.status === 'configured'
+            ? 'CONFIGURED'
+            : check.status === 'failed'
+              ? 'FAILED'
+              : 'NOT CONFIGURED';
 
       console.log(`  ${icon} ${check.name.padEnd(30)} ${statusText.padEnd(15)}`);
       if (check.message) {
@@ -360,10 +374,10 @@ function printResults(): void {
   }
 
   // Summary
-  const validated = checks.filter(c => c.status === 'validated').length;
-  const configured = checks.filter(c => c.status === 'configured').length;
-  const notConfigured = checks.filter(c => c.status === 'not_configured').length;
-  const failed = checks.filter(c => c.status === 'failed').length;
+  const validated = checks.filter((c) => c.status === 'validated').length;
+  const configured = checks.filter((c) => c.status === 'configured').length;
+  const notConfigured = checks.filter((c) => c.status === 'not_configured').length;
+  const failed = checks.filter((c) => c.status === 'failed').length;
 
   console.log('\n' + '═'.repeat(70));
   console.log('  SUMMARY');
@@ -377,7 +391,8 @@ function printResults(): void {
   // Production readiness
   const criticalServices = ['Twilio SMS', 'Twilio Voice'];
   const criticalConfigured = checks.filter(
-    c => criticalServices.includes(c.name) && (c.status === 'configured' || c.status === 'validated')
+    (c) =>
+      criticalServices.includes(c.name) && (c.status === 'configured' || c.status === 'validated')
   ).length;
 
   if (criticalConfigured === criticalServices.length) {
@@ -386,7 +401,7 @@ function printResults(): void {
     console.log('\n  ⚠️  NOT PRODUCTION READY');
     console.log('     Missing critical services for communication features.');
     console.log('\n  To configure:');
-    
+
     for (const check of checks) {
       if (check.status === 'not_configured' && criticalServices.includes(check.name)) {
         console.log(`     ${check.name}:`);
@@ -415,7 +430,7 @@ async function main(): Promise<void> {
 
   if (sendTest) {
     console.log('\n🧪 Running in TEST MODE - will send actual test messages\n');
-    
+
     if (!process.env.TEST_EMAIL) {
       console.log('⚠️  TEST_EMAIL not set - email validation will be skipped');
     }
@@ -434,9 +449,8 @@ async function main(): Promise<void> {
   printResults();
 
   // Exit with error code if any critical services failed
-  const hasFailed = checks.some(c => c.status === 'failed');
+  const hasFailed = checks.some((c) => c.status === 'failed');
   process.exit(hasFailed ? 1 : 0);
 }
 
 main().catch(console.error);
-

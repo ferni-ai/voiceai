@@ -47,11 +47,7 @@ const results: ValidationResult[] = [];
 function log(result: ValidationResult): void {
   const icon = result.status === 'pass' ? '✅' : result.status === 'fail' ? '❌' : '⏭️';
   const color =
-    result.status === 'pass'
-      ? tint.green
-      : result.status === 'fail'
-        ? tint.red
-        : tint.yellow;
+    result.status === 'pass' ? tint.green : result.status === 'fail' ? tint.red : tint.yellow;
 
   console.log(`${icon} ${color(result.name)}: ${result.message}`);
   if (result.details) {
@@ -89,9 +85,8 @@ async function validate(
 async function validateSECEdgar(): Promise<void> {
   console.log(tint.bold('\n📊 SEC EDGAR (Peter)'));
 
-  const { getCIKByTicker, getCompanyFilings, generateSECInsight } = await import(
-    '../src/services/finance/sec-edgar.js'
-  );
+  const { getCIKByTicker, getCompanyFilings, generateSECInsight } =
+    await import('../src/services/finance/sec-edgar.js');
 
   await validate('CIK Lookup', async () => {
     const result = await getCIKByTicker('AAPL');
@@ -127,9 +122,8 @@ async function validateSECEdgar(): Promise<void> {
 async function validateLifeExpectancy(): Promise<void> {
   console.log(tint.bold('\n🧘 Life Expectancy (Nayan)'));
 
-  const { calculateLifeExpectancy, generateMortalityPerspective } = await import(
-    '../src/services/wisdom/life-expectancy.js'
-  );
+  const { calculateLifeExpectancy, generateMortalityPerspective } =
+    await import('../src/services/wisdom/life-expectancy.js');
 
   await validate('Life Expectancy Calculation', async () => {
     const result = calculateLifeExpectancy({
@@ -209,32 +203,6 @@ async function validateBiometrics(): Promise<void> {
   });
 }
 
-async function validateReservations(): Promise<void> {
-  console.log(tint.bold('\n🍽️ Restaurant Reservations (Jordan)'));
-
-  const hasOpenTable = !!process.env.OPENTABLE_API_KEY;
-  const hasResy = !!process.env.RESY_API_KEY;
-  const hasYelp = !!process.env.YELP_API_KEY;
-
-  log({
-    name: 'OpenTable',
-    status: hasOpenTable ? 'pass' : 'skip',
-    message: hasOpenTable ? 'Configured' : 'Not configured (set OPENTABLE_API_KEY)',
-  });
-
-  log({
-    name: 'Resy',
-    status: hasResy ? 'pass' : 'skip',
-    message: hasResy ? 'Configured' : 'Not configured (set RESY_API_KEY)',
-  });
-
-  log({
-    name: 'Yelp',
-    status: hasYelp ? 'pass' : 'skip',
-    message: hasYelp ? 'Configured' : 'Not configured (set YELP_API_KEY)',
-  });
-}
-
 async function validateGmail(): Promise<void> {
   console.log(tint.bold('\n📧 Gmail (Alex)'));
 
@@ -261,9 +229,7 @@ async function validateGmail(): Promise<void> {
     return {
       success: hasReadFunctions && hasSendFunctions,
       message: hasSendFunctions ? 'Read + Send capabilities available' : 'Read-only mode',
-      details: hasSendFunctions
-        ? 'sendEmail, createDraft, replyToThread all available'
-        : undefined,
+      details: hasSendFunctions ? 'sendEmail, createDraft, replyToThread all available' : undefined,
     };
   });
 }
@@ -280,7 +246,6 @@ async function main(): Promise<void> {
   await validateLifeExpectancy();
   await validateMarketData();
   await validateBiometrics();
-  await validateReservations();
   await validateGmail();
 
   // Summary

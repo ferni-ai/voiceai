@@ -31,12 +31,6 @@ vi.mock('../../../../services/calendar/calendar-bridge.js', () => ({
   updateCalendarSyncedItem: vi.fn(),
   removeCalendarSyncedItem: vi.fn(),
 }));
-vi.mock('../../../../services/restaurant-reservations.js', () => ({
-  searchRestaurants: vi.fn(async () => []),
-  bookReservation: vi.fn(),
-  isReservationServiceConfigured: () => false,
-  formatRestaurantForSpeech: () => '',
-}));
 
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { createAppointmentTools } from '../../../scheduling/appointments-tools.js';
@@ -122,7 +116,11 @@ describe('checkAvailability', () => {
     const tool = createAppointmentTools().checkAvailability as unknown as Exec;
     const reply = String(
       await tool.execute(
-        { businessName: 'Bern Steakhouse', businessPhone: '+15555550199', dateTime: 'tomorrow 7pm' },
+        {
+          businessName: 'Bern Steakhouse',
+          businessPhone: '+15555550199',
+          dateTime: 'tomorrow 7pm',
+        },
         opts
       )
     );

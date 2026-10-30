@@ -27,16 +27,6 @@ vi.mock('../../../../services/google-places.js', () => ({
     rs.map((r) => `${r.name}, open now`).join('; '),
 }));
 
-const reservations = vi.hoisted(() => ({
-  searchRestaurants: vi.fn(async (..._args: unknown[]) => []),
-}));
-vi.mock('../../../../services/restaurant-reservations.js', () => ({
-  searchRestaurants: reservations.searchRestaurants,
-  bookReservation: vi.fn(),
-  isReservationServiceConfigured: () => true,
-  formatRestaurantForSpeech: () => '',
-}));
-
 import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { getToolDefinitions } from '../index.js';
 
@@ -59,7 +49,6 @@ const tacos = { action: 'search', query: 'tacos' };
 
 beforeEach(() => {
   places.searchRestaurants.mockClear();
-  reservations.searchRestaurants.mockClear();
   vi.unstubAllEnvs();
   vi.stubEnv('PLACES_LOCATION', 'off');
 });
@@ -120,15 +109,15 @@ describe('the restaurant tool searches "nearby" only when it knows where that is
   it('flag off: searches "nearby" with no location (unchanged)', async () => {
     vi.stubEnv('PLACES_NEEDS_LOCATION', 'off');
     await runTool('restaurant', search);
-    expect(reservations.searchRestaurants).toHaveBeenCalledTimes(1);
-    expect(reservations.searchRestaurants.mock.calls[0][1]).toBe('nearby');
+    expect(places.searchRestaurants).toHaveBeenCalledTimes(1);
+    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('nearby');
   });
 
   it('flag on: asks instead, and searches the device city when there is one', async () => {
     vi.stubEnv('PLACES_NEEDS_LOCATION', 'on');
     expect(JSON.parse(await runTool('restaurant', search)).status).toBe('need_location');
-    expect(reservations.searchRestaurants).not.toHaveBeenCalled();
+    expect(places.searchRestaurants).not.toHaveBeenCalled();
     await runTool('restaurant', search, call({ city: 'St. George', regionCode: 'UT' }));
-    expect(reservations.searchRestaurants.mock.calls[0][1]).toBe('St. George, UT');
+    expect(places.searchRestaurants.mock.calls[0][0].location).toBe('St. George, UT');
   });
 });

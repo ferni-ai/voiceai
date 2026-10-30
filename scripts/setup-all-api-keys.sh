@@ -130,18 +130,6 @@ setup_secret "google-calendar-client-secret" \
   "Same OAuth client - copy Client Secret"
 
 # ============================================================================
-# RESTAURANT RESERVATIONS (Jordan)
-# ============================================================================
-
-echo ""
-echo "🍽️  RESTAURANT RESERVATIONS (Jordan)"
-echo ""
-
-echo "Note: OpenTable and Resy require partner applications"
-echo "      (Not available for self-service signup)"
-echo ""
-
-# ============================================================================
 # SUMMARY
 # ============================================================================
 

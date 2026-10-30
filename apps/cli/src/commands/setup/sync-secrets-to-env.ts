@@ -57,11 +57,6 @@ const SECRET_MAPPING: Record<string, string> = {
   // Tracking
   'aftership-api-key': 'AFTERSHIP_API_KEY',
 
-  // Restaurant Reservations (Jordan)
-  'opentable-api-key': 'OPENTABLE_API_KEY',
-  'resy-api-key': 'RESY_API_KEY',
-  'yelp-api-key': 'YELP_API_KEY',
-
   // Biometrics (Maya)
   'oura-client-id': 'OURA_CLIENT_ID',
   'oura-client-secret': 'OURA_CLIENT_SECRET',
@@ -172,7 +167,6 @@ function main() {
     RESEARCH: ['FINNHUB_', 'ALPHA_VANTAGE_', 'FRED_'],
     TRAVEL: ['AMADEUS_'],
     TRACKING: ['AFTERSHIP_'],
-    RESERVATIONS: ['OPENTABLE_', 'RESY_', 'YELP_'],
     BIOMETRICS: ['OURA_', 'WHOOP_', 'TERRA_', 'GOOGLE_FIT_'],
     ADMIN: ['ADMIN_', 'LOG_HASH_'],
     OBSERVABILITY: ['SENTRY_'],
@@ -243,22 +237,3 @@ function main() {
 }
 
 main();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
