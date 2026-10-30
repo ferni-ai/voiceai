@@ -116,11 +116,7 @@ describe('checkAvailability', () => {
     const tool = createAppointmentTools().checkAvailability as unknown as Exec;
     const reply = String(
       await tool.execute(
-        {
-          businessName: 'Bern Steakhouse',
-          businessPhone: '+15555550199',
-          dateTime: 'tomorrow 7pm',
-        },
+        { businessName: 'Bern Steakhouse', businessPhone: '+15555550199', dateTime: 'tomorrow 7pm' },
         opts
       )
     );

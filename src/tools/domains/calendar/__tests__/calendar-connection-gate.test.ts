@@ -158,7 +158,7 @@ describe('calendar tools with no calendar connected', () => {
     expect(String(out)).not.toMatch(/Standup|clear|no meetings|free|completely/i);
   });
 
-  it("createCalendarEvent saves to Ferni's own list and says nothing went to a calendar", async () => {
+  it('createCalendarEvent saves to Ferni\'s own list and says nothing went to a calendar', async () => {
     vi.mocked(createEvent).mockResolvedValue(standup as never);
     const out = await toolFor('createCalendarEvent').execute(
       { title: 'Lunch with Sam', date: '2026-10-18', startTime: '12:00' },
@@ -170,7 +170,7 @@ describe('calendar tools with no calendar connected', () => {
     expect(String(out)).toMatch(/isn't on your calendar/);
   });
 
-  it("deleteCalendarEvent deletes from Ferni's own list and says the calendar was not changed", async () => {
+  it('deleteCalendarEvent deletes from Ferni\'s own list and says the calendar was not changed', async () => {
     vi.mocked(deleteEvent).mockResolvedValue(true);
     const out = await toolFor('deleteCalendarEvent').execute({ eventId: 'e1' }, {});
     expect(deleteEvent).toHaveBeenCalledWith('user-1', 'e1');
@@ -191,9 +191,7 @@ describe('calendar tools with no calendar connected', () => {
   it("getCalendarToday with nothing connected names Ferni's own list when it has items", async () => {
     vi.mocked(getDayOverview).mockResolvedValue(busyDay);
     const out = String(await toolFor('getCalendarToday').execute({}, {}));
-    expect(out).toMatch(
-      /No calendar is connected, but on Ferni's own list for today you have: .*Standup with Priya/
-    );
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list for today you have: .*Standup with Priya/);
     expect(out).not.toMatch(/clear/i);
   });
 
@@ -208,9 +206,7 @@ describe('calendar tools with no calendar connected', () => {
   it("getCalendarWeek with nothing connected names Ferni's own list by day", async () => {
     vi.mocked(getWeekOverview).mockResolvedValueOnce({ days: [busyDay] } as never);
     const out = String(await toolFor('getCalendarWeek').execute({}, {}));
-    expect(out).toMatch(
-      /No calendar is connected, but on Ferni's own list for this week you have: .*Standup with Priya/
-    );
+    expect(out).toMatch(/No calendar is connected, but on Ferni's own list for this week you have: .*Standup with Priya/);
   });
 
   it('schedule views with nothing connected only change the "clear" wording', async () => {
@@ -219,17 +215,10 @@ describe('calendar tools with no calendar connected', () => {
       scheduleView('getUnifiedSchedule', 'Monday is clear. No scheduled items.'),
       scheduleView('getUnifiedSchedule', 'Reminder: call mom at 9.'),
       scheduleView('getUnifiedSchedule', 'This week: 0 scheduled items across 7 days.'),
-    ]).map(
-      (def) =>
-        def.create({ userId: 'user-1' } as never) as {
-          execute: (p: unknown, o: unknown) => Promise<unknown>;
-        }
-    );
+    ]).map((def) => def.create({ userId: 'user-1' } as never) as { execute: (p: unknown, o: unknown) => Promise<unknown> });
     expect(await clear.execute({}, {})).toBe(NOT_CONNECTED_READ);
     expect(await emptyWeek.execute({}, {})).toBe(NOT_CONNECTED_READ);
-    expect(await reminder.execute({}, {})).toMatch(
-      /^No calendar is connected, so this is Ferni's own list[\s\S]*Reminder: call mom at 9\./
-    );
+    expect(await reminder.execute({}, {})).toMatch(/^No calendar is connected, so this is Ferni's own list[\s\S]*Reminder: call mom at 9\./);
   });
 });
 
