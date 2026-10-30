@@ -482,10 +482,40 @@ describe('any callee text makes the hello calm, the outcome too (FERNI_PLAYFUL o
     expect(cue.direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
   });
 
-  it('with no call record, a reached result is assumed to hold their words: calm', async () => {
-    seed({ said: '' });
-    store.records.clear();
+  it.each(['completed', 'no_answer', 'voicemail'] as const)(
+    'with no call record, a %s result that did not fail is assumed to hold their words: calm',
+    async (status) => {
+      vi.stubEnv('FERNI_PLAYFUL', 'on');
+      party.on = true;
+      seed({ status });
+      store.records.clear();
+      const cue = await greet({ persona: 'ferni' });
+      expect(cue.direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
+      expect(cue.direction.startsWith(PLAYFUL_GREETING_DIRECTION)).toBe(false);
+      expect(cue.direction).not.toContain(anniversaryDirection(party.ask));
+    }
+  );
+
+  it.each([
+    ['no outcome', undefined],
+    ['an unknown status', { status: 'odd' }],
+  ] as const)('a record with %s counts as their words: calm', async (_l, outcome) => {
+    seed({});
+    (store.records.get('call-1') as Record<string, unknown>).outcome = outcome;
     expect((await greet()).direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
+  });
+
+  it('with no call record, a failed result stays plain', async () => {
+    seed({ status: 'failed' });
+    store.records.clear();
+    expect((await greet()).direction).not.toContain(opener.CALL_NEWS_CALM_DIRECTION);
+  });
+
+  it('a contact name with a number is never a label', async () => {
+    seed({ contactName: 'Unit 4B Rosa', contactQuery: 'apt 12 neighbour' });
+    const cue = await greet();
+    expect(JSON.stringify(cue.facts)).not.toMatch(/\d/);
+    expect(cue.facts['who you called for them']).toBe('the person you called');
   });
 
   it('a reached call whose outcome is only "Call completed" stays warm', async () => {

@@ -178,7 +178,7 @@ async function callRecord(
  * The tone: guarded on any crisis or risky signal, heavy on hard news, then calm whenever the
  * result holds any text from the callee (screens miss most third-person crisis lines, so it is
  * never assumed light); only status-only results are warm (reached) or plain (not reached).
- * With no call record, a reached result or any details count as callee text.
+ * With no call record, or one whose status is unknown, any result that did not fail counts.
  */
 function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: string): CallNewsTone {
   const words = [r.summary, r.details ?? '', ...(rec?.said ?? [])].filter((t) => t.trim());
@@ -187,7 +187,8 @@ function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: str
   const screen = screenCallerParts(all, who, 10_000);
   if (crisisRead(all) || screen.safety || screen.risky) return 'guarded';
   if (isHeavyMoment(words) || words.some((w) => WORRY.test(w))) return 'heavy';
-  if (Boolean(r.details?.trim()) || (rec ? rec.calleeText : r.status === 'success')) return 'calm';
+  const unknown = !rec?.status && r.status !== 'failed'; // a lost record write: assume they spoke
+  if (Boolean(r.details?.trim()) || rec?.calleeText || unknown) return 'calm';
   const status = rec?.status ?? (r.status === 'failed' ? 'failed' : undefined);
   if (status && status !== 'completed') return 'plain';
   return 'news';
