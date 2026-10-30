@@ -23,11 +23,11 @@ cp .env.example .env
 
 ### AI Services
 
-| Variable               | Description                                                      | Example      |
-| ---------------------- | ---------------------------------------------------------------- | ------------ |
-| `GOOGLE_CLOUD_PROJECT` | Gemini runs on Vertex AI in this project (ADC credentials)       | `johnb-2025` |
-| `GEMINI_LOCATION`      | Vertex location for Gemini (default `global`; keep it in the US) | `global`     |
-| `CARTESIA_API_KEY`     | Cartesia TTS API key                                             | `sk-...`     |
+| Variable               | Description                                                      | Example           |
+| ---------------------- | ---------------------------------------------------------------- | ----------------- |
+| `GOOGLE_CLOUD_PROJECT` | Gemini runs on Vertex AI in this project (ADC credentials)       | `your-project-id` |
+| `GEMINI_LOCATION`      | Vertex location for Gemini (default `global`; keep it in the US) | `global`          |
+| `CARTESIA_API_KEY`     | Cartesia TTS API key                                             | `sk-...`          |
 
 Gemini calls go through the shared client (`getGeminiClient()` in
 `src/config/gemini-config.ts`), which uses Vertex when `USE_VERTEX_AI` is not
