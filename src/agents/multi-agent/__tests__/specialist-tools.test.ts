@@ -11,6 +11,14 @@
  */
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+// getSleepSummary is on Maya's list but is built only with its flag (read when the wellness
+// domain loads) and the Oura app credentials, so these are set before anything imports it.
+vi.hoisted(() => {
+  process.env.OURA_SLEEP_TOOL = 'on';
+  process.env.OURA_CLIENT_ID = 'test-oura-id';
+  process.env.OURA_CLIENT_SECRET = 'test-oura-secret';
+});
+
 const captured = vi.hoisted(() => ({
   calls: [] as Array<{ before: string[]; after: string[]; ctx: unknown; handedTo: boolean }>,
 }));
@@ -105,10 +113,6 @@ interface Run {
 /** `persona`, handed the call by Ferni: the set given to and returned by withAlwaysOnTools. */
 async function handedTo(persona: string): Promise<Run> {
   captured.calls.length = 0;
-  // getSleepSummary is on Maya's list but registered only with its flag and the Oura app credentials
-  vi.stubEnv('OURA_SLEEP_TOOL', 'on');
-  vi.stubEnv('OURA_CLIENT_ID', 'test-oura-id');
-  vi.stubEnv('OURA_CLIENT_SECRET', 'test-oura-secret');
   await expect(
     setupPersonaAgent({
       persona: { id: persona, name: persona } as never,

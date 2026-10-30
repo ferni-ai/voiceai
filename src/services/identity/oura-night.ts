@@ -1,12 +1,8 @@
 /**
- * One night of Oura sleep, read for the person it belongs to: daily_sleep (score and
- * contributors), sleep (the period: durations, efficiency, latency, heart rate) and
- * daily_readiness, joined. Every number is one Oura sent; a field Oura left out is null,
- * never a default. A night Oura has no record of is `no_data`; a link that cannot be read
- * says why (`not_connected`, `needs_reauth`, `unavailable`) so the caller can say so.
- * Oura's `day` is the day the sleep ended, so "last night" is the latest `day` up to today.
- *
- * @module services/identity/oura-night
+ * One night of Oura sleep: daily_sleep (score, contributors), sleep (the period) and
+ * daily_readiness, joined. Every number is one Oura sent; a field Oura left out is null.
+ * A night with no record is `no_data`; a link that cannot be read says why. Oura's `day` is
+ * the day the sleep ended, so "last night" is the latest `day` up to today.
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import { getOuraAccessToken } from './oura-auth.js';
@@ -62,7 +58,7 @@ const record = (v: unknown): Doc | null =>
 const isoDay = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
 const isNight = (p: Doc): boolean => p.type === 'long_sleep' || p.type === 'sleep';
 
-/** One GET on a usercollection endpoint: its `data` array, or null when Oura did not answer. */
+/** One GET on a usercollection endpoint: its `data` array, or null if Oura did not answer. */
 async function collection(
   token: string,
   endpoint: string,

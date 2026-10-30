@@ -325,7 +325,6 @@ export function createWellnessTools() {
   };
 }
 
-/** getSleepSummary's tool shell; sleep-summary.ts holds what it says and does. */
 export function createSleepSummaryTool(
   description: string,
   run: (date: string | undefined, opts: unknown) => Promise<unknown>

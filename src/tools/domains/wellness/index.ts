@@ -17,7 +17,6 @@
  *   Medications: manageMedication, medicationSchedule
  *
  * Sleep: getSleepSummary reads the caller's Oura ring (OURA_SLEEP_TOOL, off by default).
- * The 'health' domain's sleep tools coach from what the caller says and read nothing.
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -26,6 +25,7 @@ import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 // Import legacy tool creators
 import { createWellnessTools } from './wellness-tools.js';
 import { createMedicationTools } from './medications.js';
+import { toolAvailable } from '../../registry/tool-availability.js';
 import { getSleepSummaryDef, ouraSleepToolEnabled } from './sleep-summary.js';
 
 // ============================================================================
@@ -106,20 +106,21 @@ function getMedicationToolDefinitions(): ToolDefinition[] {
 const wellnessTools: ToolDefinition[] = [
   ...getEmotionalWellnessToolDefinitions(),
   ...getMedicationToolDefinitions(),
-  getSleepSummaryDef,
+  ...(ouraSleepToolEnabled() ? [getSleepSummaryDef] : []), // the flag, at the source
 ];
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const { domain, definitions } = createDomainExport('wellness', wellnessTools);
+export const { getToolDefinitions, domain, definitions } = createDomainExport(
+  'wellness',
+  wellnessTools
+);
 
-/** What the registry loads: no getSleepSummary until OURA_SLEEP_TOOL is on. */
-export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
-  Promise.resolve(
-    definitions.filter((d) => d.id !== getSleepSummaryDef.id || ouraSleepToolEnabled())
-  );
+/** For agents that build tools directly: the registry's own rule, a tool whose env is unset is not offered. */
+export const availableDefinitions = (): ToolDefinition[] =>
+  definitions.filter((def) => toolAvailable(def));
 
 export { getEmotionalWellnessToolDefinitions, getMedicationToolDefinitions };
 
