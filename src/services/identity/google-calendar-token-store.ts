@@ -136,6 +136,27 @@ export async function readTokensFresh(userId: string): Promise<StoredGoogleCalen
   return data?.encrypted ? decryptData<StoredGoogleCalendarTokens>(data.encrypted) : null;
 }
 
+/** What the store holds for a user, for a status check (not for calling Google). */
+export type StoredTokenState =
+  | { kind: 'absent' }
+  /** A grant is stored but can't be opened (key ring changed): linked, not usable. */
+  | { kind: 'unreadable' }
+  | { kind: 'present'; tokens: StoredGoogleCalendarTokens };
+
+/**
+ * Whether a user has a stored grant. Answers from the cache when it can, else
+ * reads Firestore past the remembered miss. Throws when Firestore can't be
+ * read, so "no grant" is never confused with "couldn't look".
+ */
+export async function readTokenState(userId: string): Promise<StoredTokenState> {
+  const cached = tokenCache.get(userId);
+  if (cached) return { kind: 'present', tokens: cached };
+  const data = await tokenStore.load(userId, { fresh: true, strict: true });
+  if (!data?.encrypted) return { kind: 'absent' };
+  const tokens = decryptData<StoredGoogleCalendarTokens>(data.encrypted);
+  return tokens ? { kind: 'present', tokens } : { kind: 'unreadable' };
+}
+
 /** Save (encrypted) tokens for a user. */
 export async function saveTokens(
   userId: string,

@@ -38,6 +38,14 @@ export {
 // OAuth Manager
 export { OAuthManager, getOAuthManager } from './oauth-manager.js';
 
+// Connection status (what the connect callbacks wrote, per provider)
+export {
+  getLinkState,
+  isLinkProvider,
+  type LinkProvider,
+  type LinkState,
+} from './connection-status.js';
+
 // OAuth Token Store
 export {
   saveOAuthTokens,
