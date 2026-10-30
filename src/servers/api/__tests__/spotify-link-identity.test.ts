@@ -114,7 +114,7 @@ describe('POST /auth/oauth/start { provider: spotify }', () => {
     expect(await res.json()).toEqual({ error: 'Unknown provider' });
     expect(res.headers.get('set-cookie')).toBeNull(); // no state was minted
 
-    expect((await start('tok-A', 'fitbit')).status).toBe(200); // other providers still start
+    expect((await start('tok-A', 'whoop')).status).toBe(200); // other providers still start
   });
 });
 
