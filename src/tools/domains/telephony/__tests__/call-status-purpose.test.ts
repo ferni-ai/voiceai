@@ -225,6 +225,29 @@ describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
     expect(note).not.toMatch(/No, I haven't called/);
   });
 
+  it('a person with no call of their own is "not yet", never a call whose purpose names them', async () => {
+    const refill = result('call_refill', '2026-10-29T16:00:00.000Z', {
+      contactQuery: 'Corner Pharmacy',
+      contactName: 'Corner Pharmacy',
+      purpose: "ask about dad's prescription refill, and Kit's too",
+    });
+    const proactive: Doc = { ...tableHeld, callId: 'held_proactive', kind: 'proactive' };
+    const blueDoor = result('call_blue', '2026-10-28T16:00:00.000Z', {
+      contactQuery: 'Blue Door',
+      contactName: 'Blue Door',
+      contactPhone: '+15555550106',
+      purpose: 'ask the restaurant about a private room',
+    });
+    fs.users[OWNER] = { on_behalf_calls: [refill, blueDoor], deferred_calls: [proactive] };
+    vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
+    expect(await ask('the prescription')).toMatch(/^Ferni called Corner Pharmacy/);
+    expect(await ask('my dad')).toBe(none('my dad'));
+    // Kit is a saved contact: named, so a person, even though a purpose mentions Kit.
+    expect(await ask('Kit')).toBe(none('Kit'));
+    // A held proactive call (Ferni calling the owner) is not a second place to ask about.
+    expect(await ask('the restaurant')).toMatch(/^Ferni called Blue Door/);
+  });
+
   it('a new call is not held up by another call whose purpose names that person', async () => {
     const aboutKit = result('call_mom', '2026-10-29T17:30:00.000Z', {
       contactQuery: 'Mom',

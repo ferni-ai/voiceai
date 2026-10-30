@@ -33,6 +33,18 @@ const FILLER = new Set(
   ).split(' ')
 );
 
+/**
+ * Words that name a person, never a purpose: "did you call my dad?" with no call to dad
+ * must say so, not answer with the pharmacy call "about dad's prescription".
+ */
+const PEOPLE = new Set(
+  (
+    'mom mum mama mommy mother dad papa daddy father sis sister bro brother son daughter ' +
+    'wife husband partner grandma grandmother grandpa grandfather aunt uncle cousin niece ' +
+    'nephew friend boss kid kids baby'
+  ).split(' ')
+);
+
 /** What a call's objective is called in speech; 'general' and the like add nothing. */
 const OBJECTIVE_WORDS: Readonly<Record<string, readonly string[]>> = {
   reschedule: ['reschedule', 'rescheduling'],
@@ -44,9 +56,10 @@ const OBJECTIVE_WORDS: Readonly<Record<string, readonly string[]>> = {
 const tokens = (v: unknown): string[] =>
   typeof v === 'string' ? (v.toLowerCase().match(/[a-z]+/g) ?? []) : [];
 
-/** The words of a query that can name a purpose: whole words, filler and short words dropped. */
+/** The words of a query that can name a purpose: whole words; filler, people and short words dropped. */
 export function purposeWords(text: string | undefined): string[] {
-  return [...new Set(tokens(text).filter((w) => w.length >= 3 && !FILLER.has(w)))];
+  const named = tokens(text).filter((w) => w.length >= 3 && !FILLER.has(w) && !PEOPLE.has(w));
+  return [...new Set(named)];
 }
 
 /** Whether this call was about any of these purpose words (whole-word equality). */

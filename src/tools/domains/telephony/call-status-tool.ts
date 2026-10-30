@@ -136,7 +136,9 @@ export async function callStatusReply(
   if (!p || !userId) return NOT_THE_OWNER;
   const person = who.trim();
   if (!person) return 'Ask the caller who they mean.';
-  const q = { ...(await queryFor(p, userId, person)), topic: person };
+  const found = await queryFor(p, userId, person);
+  // A contact they named is a person, not a purpose: no call to them is "not yet".
+  const q = found.phone === undefined ? { ...found, topic: person } : found;
   const call = await p.recall(userId, q, await awaitingFor(p, userId, live, now), now);
   return p.line(call, person, now);
 }
