@@ -109,6 +109,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
  */
 export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   google_calendar_tokens: CREDENTIAL,
+  outlook_tokens: CREDENTIAL, // OUTLOOK_CONNECT's sealed Microsoft grant
   push_subscriptions: CREDENTIAL,
   voice_profile: 'the voiceprint that recognizes the caller, an authenticator',
   pending_messages: QUEUE,

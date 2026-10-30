@@ -115,12 +115,12 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
   dbInitAttempted = true;
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+    db = sharedFirestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: getFirestoreDatabase(),
-      // Safe here (this client is private to the layer): a nested `undefined` that slips past
-      // cleanForFirestore (e.g. inside an array of records) must not fail the whole batch.
+      // A nested `undefined` that slips past cleanForFirestore (e.g. inside an array of
+      // records) must not fail the whole batch. getFirestoreDb's client: same settings.
       ignoreUndefinedProperties: true,
     });
     log.info('Persistence layer Firestore initialized');

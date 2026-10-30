@@ -452,57 +452,24 @@ describe('Rate Limiter', () => {
 });
 
 // ============================================================================
-// TESTS: ENCRYPTION
+// TESTS: LEGACY ENCRYPTION (read-only; sealing is covered in apple-credential-sealing.test.ts)
 // ============================================================================
 
-describe('Encryption Utils', () => {
-  it('should encrypt and decrypt strings', async () => {
-    const { encrypt, decrypt } = await import('../utils/encryption.js');
+describe('Legacy calendar encryption', () => {
+  it('recognises only the old encrypted shape', async () => {
+    const { isLegacyEncrypted } = await import('../utils/encryption.js');
 
-    const originalText = 'my-secret-password';
-
-    const encrypted = encrypt(originalText);
-
-    // Should return EncryptedData object
-    expect(encrypted).toHaveProperty('encrypted');
-    expect(encrypted).toHaveProperty('iv');
-    expect(encrypted).toHaveProperty('tag');
-    expect(encrypted).toHaveProperty('version');
-
-    const decrypted = decrypt(encrypted);
-    expect(decrypted).toBe(originalText);
+    expect(isLegacyEncrypted({ encrypted: 'x', iv: 'y', tag: 'z', version: 1 })).toBe(true);
+    expect(isLegacyEncrypted('plain-text')).toBe(false);
+    expect(isLegacyEncrypted(null)).toBe(false);
+    expect(isLegacyEncrypted({ encrypted: 'x' })).toBe(false);
   });
 
-  it('should produce different ciphertext for same plaintext', async () => {
-    const { encrypt } = await import('../utils/encryption.js');
+  it('does not open a record with a truncated tag', async () => {
+    const { openLegacyCalendarSecret } = await import('../utils/encryption.js');
 
-    const text = 'same-text';
-    const encrypted1 = encrypt(text);
-    const encrypted2 = encrypt(text);
-
-    // Due to random IV, encryptions should differ
-    expect(encrypted1.encrypted).not.toBe(encrypted2.encrypted);
-    expect(encrypted1.iv).not.toBe(encrypted2.iv);
-  });
-
-  it('should handle decryption of valid ciphertext', async () => {
-    const { encrypt, decrypt } = await import('../utils/encryption.js');
-
-    const original = 'test-value-123';
-    const encrypted = encrypt(original);
-    const decrypted = decrypt(encrypted);
-
-    expect(decrypted).toBe(original);
-  });
-
-  it('should check if data is encrypted', async () => {
-    const { encrypt, isEncrypted } = await import('../utils/encryption.js');
-
-    const encrypted = encrypt('test');
-    expect(isEncrypted(encrypted)).toBe(true);
-    expect(isEncrypted('plain-text')).toBe(false);
-    expect(isEncrypted(null)).toBe(false);
-    expect(isEncrypted({})).toBe(false);
+    const record = { encrypted: 'AAAA', iv: 'AAAAAAAAAAAAAAAAAAAAAA==', tag: 'AAAA', version: 1 };
+    expect(openLegacyCalendarSecret(record)).toBeNull();
   });
 });
 

@@ -141,6 +141,9 @@ export const COHORT_FLAGS = [
   'REMINDER_IN_APP_PUSH',
   'WEB_PUSH_DELIVERY', // web server, per person (flagForUser): pushes, after-call ask
   'FOCUS_HOLD', // web server, per person (personFlagOn): POST /api/me/focus (api/routes/focus.ts)
+  // Crisis lane, owner first (Seth signed off 2026-10-30): read per turn by the crisis classifier
+  // after applyCallerFlags, so one person can try it before the agent's own flag goes on.
+  'CRISIS_IMMINENT_NEEDS_AGREEMENT',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);

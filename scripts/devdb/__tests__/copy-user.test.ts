@@ -101,6 +101,7 @@ describe('what is copied', () => {
       'contacts',
       'push_subscriptions',
       'google_calendar_tokens',
+      'outlook_tokens',
       'on_behalf_calls',
       'deferred_calls',
       'voice_profile',

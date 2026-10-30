@@ -4,6 +4,7 @@
 
 import type { ToolDomain } from '../registry/types.js';
 import { TOPIC_TO_DOMAINS } from './topic-mappings.js';
+import { TRAVEL_TOPIC_PATTERNS } from './travel-topics.js';
 
 /**
  * Topic keywords match whole words (with -s, -es, -ed or -ing). A plain substring test
@@ -12,10 +13,15 @@ import { TOPIC_TO_DOMAINS } from './topic-mappings.js';
  * Each false hit swapped the agent's tools mid-turn, which also discards the
  * SDK's preemptive reply.
  */
-export const TOPIC_PATTERNS: Array<[string, readonly ToolDomain[], RegExp]> = Object.entries(
-  TOPIC_TO_DOMAINS
-).map(([topic, domains]) => [
-  topic,
-  domains,
-  new RegExp(`(?<![a-z])${topic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:s|es|ed|ing)?(?![a-z])`),
-]);
+export const TOPIC_PATTERNS: Array<[string, readonly ToolDomain[], RegExp]> = [
+  ...Object.entries(TOPIC_TO_DOMAINS).map(
+    ([topic, domains]): [string, readonly ToolDomain[], RegExp] => [
+      topic,
+      domains,
+      new RegExp(
+        `(?<![a-z])${topic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:s|es|ed|ing)?(?![a-z])`
+      ),
+    ]
+  ),
+  ...TRAVEL_TOPIC_PATTERNS, // "drive", "fly", "flight" only in a travel phrase
+];

@@ -405,8 +405,8 @@ export async function searchEntitiesBM25(
   const { topK = 20, minScore = 0.1, types } = options;
 
   try {
-    const { Firestore, FieldPath } = await import('@google-cloud/firestore');
-    const db = new Firestore({
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+    const db = sharedFirestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
     });
