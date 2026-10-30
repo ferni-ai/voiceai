@@ -22,7 +22,7 @@ export const GMAIL_READ_NOT_CONNECTED = "I can't read your inbox; that isn't con
 const GMAIL_UNREACHABLE_SAY = "I couldn't reach your inbox just now, so I can't say what's in it.";
 
 /** True when a Gmail failure must be reported, not read as an empty inbox. */
-export function gmailReadsHonest(): boolean {
+function gmailReadsHonest(): boolean {
   return isGmailReadToolsOn() || isGoogleLinkHonest();
 }
 
@@ -35,7 +35,7 @@ export class GmailNotPermittedError extends Error {
 }
 
 /** A Gmail read failed for another reason (5xx, timeout, open breaker): nothing is known. */
-export class GmailUnreachableError extends Error {
+class GmailUnreachableError extends Error {
   constructor() {
     super(GMAIL_UNREACHABLE);
     this.name = 'GmailUnreachableError';

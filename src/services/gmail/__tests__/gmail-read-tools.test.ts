@@ -25,6 +25,7 @@ const { definitions: emailIntelligenceDefs } =
 const { GmailNotPermittedError, GMAIL_READ_NOT_CONNECTED } = await import('../gmail-honesty.js');
 const { getUnreadMessages } = await import('../gmail-service.js');
 const { ToolRegistry } = await import('../../../tools/registry/index.js');
+const { getToolOwner } = await import('../../../tools/runtime-enforcement.js');
 
 const NOT_CONNECTED = { unavailable: 'gmail_not_permitted', say: GMAIL_READ_NOT_CONNECTED };
 const EMPTY_CLAIM = /no (unread |recent )?emails|inbox is clear|no emails found/i;
@@ -98,6 +99,14 @@ describe('GMAIL_READ_TOOLS', () => {
   it('on: all eight read tools are offered', () => {
     process.env.GMAIL_READ_TOOLS = 'on';
     expect(READ_IDS.filter((id) => offered().includes(id))).toEqual(READ_IDS);
+  });
+
+  it('Alex owns the Gmail read tools only while they are registered', () => {
+    expect(getToolOwner('getUnreadEmails')).toBeNull();
+    expect(getToolOwner('getCalendarToday')).toBe('alex-chen');
+    process.env.GMAIL_READ_TOOLS = 'on';
+    expect(getToolOwner('getUnreadEmails')).toBe('alex-chen');
+    expect(getToolOwner('checkEmailFrom')).toBe('alex-chen');
   });
 
   it('on: a 403 is "can\'t read your inbox" from every read tool, never "no emails"', async () => {
