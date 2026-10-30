@@ -2,9 +2,9 @@
  * Smart Home Domain Tests
  *
  * Tests for smart home device control tools:
- * - Home Assistant tools
+ * - Smart home control tools
  * - Ecobee tools
- * - Generic smart home (Hue/LIFX/SmartThings)
+ * - Generic smart home (Hue/LIFX)
  *
  * Created as part of HEALTH-HOME-WELLNESS-AUDIT.md cleanup
  */
@@ -47,12 +47,6 @@ vi.mock('@livekit/agents', () => ({
 
 // Mock the self-healing clients
 vi.mock('../../../../services/self-healing/index.js', () => ({
-  getHomeAssistantClient: vi.fn(() => ({
-    isHealthy: () => true,
-    get: vi.fn(() => Promise.resolve({ data: [], error: null })),
-    post: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-    put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-  })),
   getHueClient: vi.fn(() => ({
     isHealthy: () => true,
     get: vi.fn(() => Promise.resolve({ data: {}, error: null })),
@@ -133,13 +127,13 @@ describe('Smart Home Domain', () => {
       });
     });
 
-    it('should include Home Assistant tools', () => {
-      const haTools = toolDefinitions.filter((t) =>
+    it('should include smart home control tools', () => {
+      const homeTools = toolDefinitions.filter((t) =>
         ['controlLight', 'setThermostat', 'activateScene', 'controlLock', 'getHomeStatus'].includes(
           t.id
         )
       );
-      expect(haTools.length).toBeGreaterThan(0);
+      expect(homeTools.length).toBeGreaterThan(0);
     });
 
     it('should include Ecobee tools if available', () => {
@@ -161,7 +155,7 @@ describe('Smart Home Domain', () => {
     });
   });
 
-  describe('Home Assistant Tools', () => {
+  describe('Smart Home Control Tools', () => {
     it('controlLight - should execute with room and action', async () => {
       const toolDef = toolDefinitions.find((t) => t.id === 'controlLight');
       if (!toolDef) {

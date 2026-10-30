@@ -39,7 +39,6 @@ const HIDDEN_MENU_ACTIONS: ReadonlySet<string> = new Set([
   // Integrations without prod credentials
   'spotify',
   'oura-settings',
-  'eight-sleep-settings',
   'apple-health-settings',
   'wearable-settings',
 ]);
@@ -81,7 +80,6 @@ const HIDDEN_PANELS: ReadonlySet<string> = new Set([
 const HIDDEN_INTEGRATIONS: ReadonlySet<string> = new Set([
   'apple-health',
   'oura',
-  'eight-sleep',
   'wearables',
   'spotify',
   'ecobee',

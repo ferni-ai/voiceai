@@ -4,7 +4,6 @@
  * Tests for health/wearable device integrations:
  * - Apple Health sync processing
  * - Oura Ring API
- * - Eight Sleep API
  * - Wearable integration service
  */
 
@@ -50,15 +49,13 @@ describe('WearableProvider Types', () => {
   it('should include all supported providers', () => {
     const providers: WearableProvider[] = [
       'apple_health',
-      'eight_sleep',
       'garmin',
       'oura',
       'whoop',
     ];
 
-    expect(providers).toHaveLength(5);
+    expect(providers).toHaveLength(4);
     expect(providers).toContain('apple_health');
-    expect(providers).toContain('eight_sleep');
     expect(providers).toContain('oura');
   });
 
@@ -418,124 +415,6 @@ describe('Oura Ring Integration', () => {
       expect(activity.steps).toBeGreaterThan(0);
       expect(activity.active_calories).toBeLessThan(activity.total_calories);
       expect(activity.high_activity_time).toBeLessThan(activity.medium_activity_time);
-    });
-  });
-});
-
-// ============================================================================
-// EIGHT SLEEP INTEGRATION
-// ============================================================================
-
-describe('Eight Sleep Integration', () => {
-  describe('OAuth URL Generation', () => {
-    it('should generate valid OAuth authorize URL', () => {
-      const clientId = 'test-client-id';
-      const redirectUri = 'https://example.com/callback';
-
-      const url = new URL('https://client-api.8slp.net/oauth/authorize');
-      url.searchParams.set('client_id', clientId);
-      url.searchParams.set('redirect_uri', redirectUri);
-      url.searchParams.set('response_type', 'code');
-
-      expect(url.origin).toBe('https://client-api.8slp.net');
-      expect(url.pathname).toBe('/oauth/authorize');
-      expect(url.searchParams.get('client_id')).toBe(clientId);
-    });
-  });
-
-  describe('Bed Temperature', () => {
-    it('should validate temperature ranges', () => {
-      // Eight Sleep uses -10 to +10 range for temperature levels
-      const coldest = -10;
-      const hottest = 10;
-      const neutral = 0;
-      const slightlyWarm = 3;
-
-      expect(coldest).toBeGreaterThanOrEqual(-10);
-      expect(hottest).toBeLessThanOrEqual(10);
-      expect(neutral).toBe(0);
-      expect(slightlyWarm).toBeGreaterThan(0);
-      expect(slightlyWarm).toBeLessThan(hottest);
-    });
-
-    it('should convert temperature level to Fahrenheit', () => {
-      // Approximate conversion for display
-      const levelToFahrenheit = (level: number): number => {
-        // Level 0 = ~86°F (bed neutral temp)
-        // Each level = ~2°F
-        return 86 + level * 2;
-      };
-
-      expect(levelToFahrenheit(0)).toBe(86);
-      expect(levelToFahrenheit(5)).toBe(96);
-      expect(levelToFahrenheit(-5)).toBe(76);
-    });
-  });
-
-  describe('Sleep Fitness Score', () => {
-    it('should validate sleep fitness components', () => {
-      const sleepFitness = {
-        overall: 85,
-        latency: 90, // How quickly fell asleep
-        routine: 75, // Consistency
-        sleep_quality: 88,
-        tosses_and_turns: 82, // Lower tossing = higher score
-      };
-
-      for (const [key, value] of Object.entries(sleepFitness)) {
-        expect(value).toBeGreaterThanOrEqual(0);
-        expect(value).toBeLessThanOrEqual(100);
-      }
-    });
-  });
-
-  describe('Bed Sides', () => {
-    it('should handle dual-zone temperatures', () => {
-      const bedState = {
-        leftSide: {
-          userId: 'user-1',
-          targetLevel: 3,
-          currentLevel: 2.8,
-          isActive: true,
-        },
-        rightSide: {
-          userId: 'user-2',
-          targetLevel: -2,
-          currentLevel: -1.5,
-          isActive: true,
-        },
-      };
-
-      expect(bedState.leftSide.targetLevel).not.toBe(bedState.rightSide.targetLevel);
-      expect(bedState.leftSide.isActive).toBe(true);
-      expect(bedState.rightSide.isActive).toBe(true);
-    });
-  });
-
-  describe('Sleep Stages', () => {
-    it('should track sleep stages correctly', () => {
-      const stages = [
-        { stage: 'awake', start: '2024-01-15T23:00:00', end: '2024-01-15T23:15:00' },
-        { stage: 'light', start: '2024-01-15T23:15:00', end: '2024-01-16T00:30:00' },
-        { stage: 'deep', start: '2024-01-16T00:30:00', end: '2024-01-16T02:00:00' },
-        { stage: 'rem', start: '2024-01-16T02:00:00', end: '2024-01-16T03:30:00' },
-        { stage: 'light', start: '2024-01-16T03:30:00', end: '2024-01-16T05:00:00' },
-        { stage: 'deep', start: '2024-01-16T05:00:00', end: '2024-01-16T06:00:00' },
-        { stage: 'awake', start: '2024-01-16T06:00:00', end: '2024-01-16T06:30:00' },
-      ];
-
-      const stageCounts = stages.reduce(
-        (acc, s) => {
-          acc[s.stage] = (acc[s.stage] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-
-      expect(stageCounts['deep']).toBe(2);
-      expect(stageCounts['rem']).toBe(1);
-      expect(stageCounts['light']).toBe(2);
-      expect(stageCounts['awake']).toBe(2);
     });
   });
 });

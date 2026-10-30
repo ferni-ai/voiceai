@@ -288,7 +288,7 @@ describe('MockSmartHome', () => {
 
   describe('Failure Simulation', () => {
     it('should simulate circuit breaker open', async () => {
-      mockHome.setPlatformBehavior('home_assistant', 'circuit_open');
+      mockHome.setPlatformBehavior('lifx', 'circuit_open');
 
       const result = await mockHome.controlDevice('light.living_room', 'on');
 
@@ -529,7 +529,7 @@ describe('Mock Home Factories', () => {
   it('createCircuitOpenHome should have all circuits open', () => {
     const config = createCircuitOpenHome();
 
-    expect(config.behaviors.home_assistant).toBe('circuit_open');
+    expect(config.behaviors.lifx).toBe('circuit_open');
     expect(config.behaviors.hue).toBe('circuit_open');
     expect(config.behaviors.ecobee).toBe('circuit_open');
   });

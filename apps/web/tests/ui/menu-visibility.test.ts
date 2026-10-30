@@ -43,7 +43,6 @@ const HIDDEN_ROWS = [
   'predictions',
   'spotify',
   'oura-settings',
-  'eight-sleep-settings',
   'apple-health-settings',
   'wearable-settings',
   // flagged off by default (VITE_PATTERN_INSIGHTS)

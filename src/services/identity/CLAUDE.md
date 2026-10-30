@@ -32,7 +32,6 @@ Identity services handle:
 | `apple-health-sync.ts` | Apple Health data sync |
 | `apple-health-types.ts` | Apple Health type definitions |
 | `ecobee-api.ts`, `ecobee-auth.ts`, `ecobee-types.ts` | Ecobee thermostat |
-| `eight-sleep-api.ts`, `eight-sleep-auth.ts`, `eight-sleep-types.ts` | Eight Sleep mattress |
 | `oura-api.ts`, `oura-auth.ts`, `oura-types.ts` | Oura Ring |
 | `spotify-room-service.ts`, `spotify-room-config-store.ts`, `spotify-room-types.ts` | Spotify Room integration |
 
