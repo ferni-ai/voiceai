@@ -124,12 +124,12 @@ export function numbersIn(text, { derive = false } = {}) {
     h * 100 + m, // 10:30 is "ten thirty"
     (h % 12 || 12) * 100 + m, // 20:15 is "eight fifteen"
   ]);
-  each(/(\d+)\.(\d{2})(?!\d)/g, ([d, c]) => [c, d * 100 + c]); // $12.50 is "twelve fifty"
+  each(/(\d+)\.(\d{2})(?!\d)/g, ([d, c]) => [d * 100 + c]); // $12.50 is "twelve fifty"
   each(/(\d{1,2})(?::\d{2})?\s*p\.?m\b/gi, ([h]) => [h + 12]); // 7pm is 19
   each(/(\d+)\s*(?:hours?|hrs?|h)\b\s*(?:and\s*)?(\d+)\s*(?:minutes?|mins?|m)\b/gi, ([h, m]) => [
     h * 60 + m,
   ]);
-  each(/(\d+)\s*(?:minutes?|mins?)\b/gi, ([m]) => [m / 60, Math.floor(m / 60), m % 60]); // 95: 1 h 35
+  each(/(\d+)\s*(?:minutes?|mins?)\b/gi, ([m]) => [m / 60, Math.floor(m / 60)]); // 534 min, 9 hours
   each(/(\d+)\s*(?:hours?|hrs?)\b/gi, ([h]) => [h * 60]);
   each(/(\d+(?:\.\d+)?)\s*(km|kilomet)/gi, ([v]) => [v / 1.609]);
   each(/(\d+(?:\.\d+)?)\s*(mi\b|miles?)/gi, ([v]) => [v * 1.609]);
@@ -140,6 +140,20 @@ export function numbersIn(text, { derive = false } = {}) {
   return out;
 }
 
+/** A price's cents and a duration's minutes past the hour back a number only in that same form:
+ *  $12.95 backs "twelve dollars and ninety-five cents", never "ninety-five reviews"; 95 minutes
+ *  backs "an hour and thirty-five minutes", never "thirty-five awards". */
+const partsOf = (text) => ({
+  cents: [...String(text).matchAll(/\d\.(\d{2})(?!\d)/g)].map((m) => Number(m[1])),
+  minutes: [...String(text).matchAll(/(\d+)\s*(?:minutes?|mins?)\b/gi)].map((m) => m[1] % 60),
+});
+const partsSaid = (text, unit) =>
+  new Set(
+    [...String(text).matchAll(new RegExp(`((?:[\\w-]+\\s+){1,3})${unit}\\b`, 'gi'))].flatMap(
+      (m) => [...numbersIn(m[1])]
+    )
+  );
+
 /** Numbers said right after a hedge ("about forty", "around nine hundred and sixty", "~40"). */
 const hedgedNumbers = (text) =>
   new Set(
@@ -147,7 +161,7 @@ const hedgedNumbers = (text) =>
       ...String(text).matchAll(
         /(?:\b(?:about|around|roughly|nearly|almost|approximately)\b|~)\s*([^.,;:!?]{1,40})/gi
       ),
-    ].flatMap((m) => [...numbersIn(m[1].split(/\s+/).slice(0, 5).join(' '))])
+    ].flatMap((m) => [...numbersIn(m[1].split(/\s+/).slice(0, 5).join(' '))].slice(0, 1))
   );
 /** Backed when the tool or caller said it; a hedged number may be within 5% of one. Never an
  *  unhedged number: "UA 1523" against "UA 1549" is an invented flight, not a rounding. */
@@ -307,8 +321,14 @@ export function gradeRun(run, tools, { context = '' } = {}) {
     ]);
     const words = backingWords(`${texts.join(' ')} ${callerText}`);
     const hedged = hedgedNumbers(reply);
+    const parts = texts.map(partsOf);
+    const part = (n, unit) =>
+      parts.some((p) => p[unit].includes(n)) &&
+      partsSaid(reply, unit === 'cents' ? 'cents' : 'minutes?').has(n);
     const invented = [
-      ...[...numbersIn(reply)].filter((n) => !backedNumber(n, nums, hedged)),
+      ...[...numbersIn(reply)].filter(
+        (n) => !backedNumber(n, nums, hedged) && !part(n, 'cents') && !part(n, 'minutes')
+      ),
       ...namesIn(reply).filter((name) => nameWords(name).some((w) => !backedWord(w, words))),
     ];
     details.push({ tools: outs.map((o) => o.name), question: said, reply, invented });

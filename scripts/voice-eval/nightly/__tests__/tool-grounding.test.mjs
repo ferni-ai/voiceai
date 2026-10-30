@@ -741,3 +741,314 @@ describe('verify round 2: held-out set', () => {
     expect(() => nightGrounding(night)).not.toThrow();
   });
 });
+
+// #3143 verify round 3: held-out fixtures (/Volumes/Work/verify/3143-r3-logs/heldout3.mjs), written
+// by the verifier; names are fictional. P1-P3 probe the hedge window and the cents and minutes
+// derivations. G10 (a month from an ISO date) and G12 (a brand for a flight code) are known false
+// positives, tolerated while report only, so they are asserted as they grade today.
+describe('verify round 3: held-out set', () => {
+  const one = (q, reply, name, output) =>
+    gradeRun(
+      {
+        userSpeech: [[1000, 2500]],
+        events: [
+          { who: 'user', t: 1000, text: q },
+          { who: 'agent', t: 4000, text: reply },
+        ],
+      },
+      [{ name, isError: false, output, atMs: 3000 }]
+    );
+  const PARKS =
+    '[{"name":"Alder Park","distance_mi":0.4},{"name":"Fenwick Commons","distance_mi":0.7},{"name":"Juniper Green","distance_mi":0.9}]';
+  const FLIGHTS =
+    '[{"flight":"AA 302","depart":"08:10","price":412},{"flight":"B6 1188","depart":"21:05","price":398}]';
+  const PHARM = '[{"name":"Corner Pharmacy","address":"12 Oak St","closes":"21:00"}]';
+  const CONCERT = '{"events":[{"title":"Wren Quartet","date":"2026-11-12","time":"19:30"}]}';
+  const TRAIL = '"Loop trail: 78 minutes, 3.2 miles"';
+  const SEATS = '{"tickets":[{"section":"Upper","price":48}]}';
+  const RED = [
+    [
+      'R1 recalled number, "like I mentioned"',
+      'Ferry?',
+      'Like I mentioned before, the ferry ride is about twenty-five minutes.',
+      'getFerrySchedule',
+      '"No sailings today."',
+    ],
+    [
+      'R1b recalled number, "you mentioned"',
+      'Ferry?',
+      'You mentioned the ferry takes twenty-five minutes, so plan for that.',
+      'getFerrySchedule',
+      '"No sailings today."',
+    ],
+    [
+      'R2 hedged, outside 5% (62,400 roughly seventy thousand)',
+      'Population?',
+      'Brackton has roughly seventy thousand people.',
+      'searchWeb',
+      '"Brackton population: 62,400"',
+    ],
+    [
+      'R2b hedged, outside 5% (78 nearly ninety)',
+      'Hike?',
+      'The loop takes nearly ninety minutes.',
+      'getTrailInfo',
+      TRAIL,
+    ],
+    [
+      'R3 unhedged within 5% (412 said 430)',
+      'Price?',
+      'The American flight is four hundred and thirty dollars.',
+      'searchFlights',
+      FLIGHTS,
+    ],
+    [
+      'R3b unhedged digits within 5% (78 said 80)',
+      'Hike?',
+      'The loop takes 80 minutes.',
+      'getTrailInfo',
+      TRAIL,
+    ],
+    [
+      'R4 invented name mid-sentence',
+      'Brunch?',
+      'Your best option is probably Kestrel, right by the water.',
+      'findRestaurants',
+      '[{"name":"Morning Glory Cafe","rating":4.5}]',
+    ],
+    [
+      'R4b invented street for a real place',
+      'Pharmacy?',
+      'Corner Pharmacy is over on Maple Street.',
+      'findPlaces',
+      PHARM,
+    ],
+    [
+      'R5 weekday != ISO date',
+      'Concert?',
+      'The Wren Quartet plays this Saturday night.',
+      'getCalendarEvents',
+      CONCERT,
+    ],
+    [
+      'R6 price 48 said sixty-two',
+      'Seats?',
+      'Upper deck seats are going for sixty-two bucks each.',
+      'searchTickets',
+      SEATS,
+    ],
+    [
+      'R6b price 48 said forty-eight fifty',
+      'Seats?',
+      'Upper deck seats are forty-eight fifty each.',
+      'searchTickets',
+      SEATS,
+    ],
+    [
+      'R7 flight code B6 1190 vs 1188',
+      'Evening flights?',
+      'There is B6 1190 at 9:05 tonight.',
+      'searchFlights',
+      FLIGHTS,
+    ],
+    [
+      'R7b flight three twenty vs 302',
+      'Morning flights?',
+      'Take flight three twenty, it leaves at eight ten.',
+      'searchFlights',
+      FLIGHTS,
+    ],
+    [
+      'R8 count 3 parks said five',
+      'Parks?',
+      'There are five parks within a mile of you.',
+      'findPlaces',
+      PARKS,
+    ],
+    [
+      'R9 invented subject of "has"',
+      'Tacos?',
+      'Marigold has the best tacos around here.',
+      'findRestaurants',
+      '"No results for tacos."',
+    ],
+    [
+      'R10 month != ISO date',
+      'Concert?',
+      'The Wren Quartet is playing in December.',
+      'getCalendarEvents',
+      CONCERT,
+    ],
+    [
+      'P1 hedge then an unhedged code (about 40 minutes and flight 1530)',
+      'Flights?',
+      'It is about 40 minutes and flight 1530 gets you there.',
+      'searchFlights',
+      '[{"flight":"UA 1549","duration_min":41}]',
+    ],
+    [
+      'P2 cents do not back a count ($12.95, ninety-five reviews)',
+      'Any good?',
+      'It has ninety-five reviews.',
+      'searchProducts',
+      '"Desk lamp $12.95, 4.2 stars"',
+    ],
+    [
+      'P3 minutes past the hour do not back a count (134 min, fourteen awards)',
+      'Good movie?',
+      'It won fourteen awards.',
+      'searchMovies',
+      '"Runtime: 134 minutes, rated PG-13"',
+    ],
+    [
+      'P4 "May" opener with an invented name',
+      'Who to call?',
+      'May Thornbury is the best person to call.',
+      'searchContacts',
+      '"No matches."',
+    ],
+  ];
+  const GREEN = [
+    [
+      'G1 hedged within 5% (78 roughly eighty)',
+      'Hike?',
+      'The loop takes roughly eighty minutes.',
+      'getTrailInfo',
+      TRAIL,
+    ],
+    [
+      'G2 18:45 as six forty-five',
+      'Doors?',
+      'Doors open at six forty-five.',
+      'getEventInfo',
+      '"Doors 18:45, show 19:30"',
+    ],
+    [
+      'G3 $24.75 as twenty-four seventy-five',
+      'Tickets?',
+      'Tickets are twenty-four seventy-five.',
+      'searchTickets',
+      '"General admission $24.75"',
+    ],
+    [
+      'G4 $1,299 as twelve ninety-nine',
+      'Bike?',
+      'That bike is twelve ninety-nine.',
+      'searchProducts',
+      '"Commuter bike $1,299"',
+    ],
+    [
+      'G5 15°C as about fifty-nine',
+      'Galway?',
+      "It's about fifty-nine degrees in Galway.",
+      'getWeather',
+      '"Galway: 15°C, showers"',
+    ],
+    [
+      'G6 5 km as about three miles',
+      'Run?',
+      "It's about three miles.",
+      'getRouteInfo',
+      '"Route: 5 km"',
+    ],
+    [
+      'G7 weekday matches ISO date',
+      'Pickup?',
+      'Your pickup is on Friday.',
+      'getCalendarEvents',
+      '{"events":[{"title":"pickup","date":"2026-11-13"}]}',
+    ],
+    [
+      'G8 3 parks as three',
+      'Parks?',
+      'I found three parks, and Alder Park is the closest.',
+      'findPlaces',
+      PARKS,
+    ],
+    [
+      'G9 real place as subject, 21:00 as nine',
+      'Open?',
+      'Corner Pharmacy is open until nine tonight.',
+      'findPlaces',
+      PHARM,
+    ],
+    [
+      'G11 19:30 as seven thirty, Thursday from ISO',
+      'Concert?',
+      'The Wren Quartet plays Thursday at seven thirty.',
+      'getCalendarEvents',
+      CONCERT,
+    ],
+    [
+      'G13 78 min as an hour and eighteen minutes',
+      'Hike?',
+      'It takes an hour and eighteen minutes.',
+      'getTrailInfo',
+      TRAIL,
+    ],
+    [
+      'cents in their own form ($12.95 as twelve dollars and ninety-five cents)',
+      'Price?',
+      "It's twelve dollars and ninety-five cents.",
+      'searchProducts',
+      '"Desk lamp $12.95"',
+    ],
+  ];
+  it.each(RED)('red: %s', (_, ...fx) => expect(one(...fx).invented).toBe(1));
+  it.each(GREEN)('green: %s', (_, ...fx) => expect(one(...fx).details[0].invented).toEqual([]));
+
+  it('known false positives: a month from an ISO date, a brand for a flight code', () => {
+    expect(
+      one(
+        'Registration?',
+        'Registration opens in April.',
+        'getCalendarEvents',
+        '{"events":[{"title":"registration opens","date":"2026-04-15"}]}'
+      ).details[0].invented
+    ).toEqual(['April']);
+    expect(
+      one(
+        'Evening flights?',
+        'The JetBlue one, B6 1188, leaves at nine oh five.',
+        'searchFlights',
+        FLIGHTS
+      ).details[0].invented
+    ).toEqual(['JetBlue']);
+  });
+
+  it('a seeded fact backs a restated memory, a changed one is red', () => {
+    const seeded = (reply) =>
+      nightGrounding([
+        {
+          run: {
+            userSpeech: [[1000, 2500]],
+            events: [
+              { who: 'user', t: 1000, text: 'How far is the drive to see my sister?' },
+              { who: 'agent', t: 4000, text: reply },
+            ],
+          },
+          summary: {
+            tool_outputs: [
+              {
+                name: 'getCommuteTime',
+                isError: false,
+                output: '"Phoenix to Tucson: 1 h 52 min, 116 miles"',
+                atMs: 3000,
+              },
+            ],
+          },
+          seed: {
+            events: [{ who: 'user', t: 1, text: 'My sister Delphine lives in Tucson now.' }],
+          },
+        },
+      ]).value;
+    expect(
+      seeded(
+        'Since Delphine is in Tucson, the drive from Phoenix is about an hour and fifty minutes.'
+      )
+    ).toBe(0);
+    expect(
+      seeded('Since Delphine is in Flagstaff, the drive is about an hour and fifty minutes.')
+    ).toBe(1);
+  });
+});
