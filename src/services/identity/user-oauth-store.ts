@@ -50,8 +50,8 @@ export interface UserOAuthStore<T extends { refresh_token?: string }> {
   listUsers: () => Promise<string[]>;
   /** Flush pending writes and clear the caches. */
   shutdown: () => Promise<void>;
-  /** connected / needs_reauth / not_connected, read fresh (another process may have recorded it). */
-  linkStatus: (userId: string) => Promise<LinkStatus>;
+  /** connected / needs_reauth / not_connected, read fresh (another process may have recorded it). `fromDoc`: the doc only, never this process's memory. */
+  linkStatus: (userId: string, opts?: { fromDoc?: boolean }) => Promise<LinkStatus>;
   /** Record needs_reauth on the link doc; false when there is no link or it is already recorded. */
   markNeedsReauth: (
     userId: string,

@@ -60,6 +60,13 @@ export function createExpiringSet(ttlMs: number, max = MAX_MISS_ENTRIES) {
 
 export type DocStore = ReturnType<typeof createPersistenceStore<LinkDoc>>;
 
+/** A link doc's state, from the doc alone (pure): no doc or no grant is not_connected. */
+function linkStatusFromDoc(doc: LinkDoc | null | undefined): LinkStatus {
+  if (!doc?.encrypted) return { state: 'not_connected' };
+  if (doc.needs_reauth) return { state: 'needs_reauth', needsReauth: doc.needs_reauth };
+  return { state: 'connected' };
+}
+
 /** The needs_reauth side of a link doc: read it, record it, and what this process has seen of it. */
 export function createReauthState<T extends { refresh_token?: string }>(docStore: DocStore) {
   const seen = new Map<string, NeedsReauth>();
@@ -67,16 +74,19 @@ export function createReauthState<T extends { refresh_token?: string }>(docStore
     forget: (userId: string): void => void seen.delete(userId),
     forgetAll: (): void => seen.clear(),
 
-    async linkStatus(userId: string): Promise<LinkStatus> {
-      const known = seen.get(userId);
+    /**
+     * `fromDoc`: skip this process's memory of a needs_reauth mark (a reconnect through another
+     * process leaves it stale), read the doc strictly (a failed read throws, never "not
+     * connected"), and correct the memory from what the doc says.
+     */
+    async linkStatus(userId: string, opts?: { fromDoc?: boolean }): Promise<LinkStatus> {
+      const known = opts?.fromDoc ? undefined : seen.get(userId);
       if (known) return { state: 'needs_reauth', needsReauth: known };
-      const doc = await docStore.load(userId, { fresh: true });
-      if (!doc?.encrypted) return { state: 'not_connected' };
-      if (doc.needs_reauth) {
-        seen.set(userId, doc.needs_reauth);
-        return { state: 'needs_reauth', needsReauth: doc.needs_reauth };
-      }
-      return { state: 'connected' };
+      const doc = await docStore.load(userId, { fresh: true, strict: opts?.fromDoc });
+      const status = linkStatusFromDoc(doc);
+      if (status.needsReauth) seen.set(userId, status.needsReauth);
+      else seen.delete(userId);
+      return status;
     },
 
     async markNeedsReauth(
