@@ -185,6 +185,7 @@ describe('what is copied', () => {
         "game_analytics_events[userId]",
         "bth_production_events[userId]",
         "feature_checkins[userId]",
+        "local_calendar_events[userId]",
         "relationship_memories[userId]",
         "answer_cards[userId]",
         "share_links[ownerId]",

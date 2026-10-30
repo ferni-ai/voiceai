@@ -2,7 +2,7 @@
  * Link status for the "What We're Connected To" tiles (connected-life.ui.ts).
  *
  * - Only tiles that render are checked: a hidden tile's status route is never
- *   called (config/menu-visibility.ts; Spotify was still polled while hidden).
+ *   called (config/menu-visibility.ts).
  * - The checks run side by side, not one after another (each can take its
  *   full 15 s timeout plus retries).
  * - A check that fails is 'error', not 'disconnected': "not connected" is a
@@ -13,7 +13,6 @@
 
 import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { isIntegrationVisible } from '../config/menu-visibility.js';
-import { getDeviceId } from '../state/app.state.js';
 import { t } from '../i18n/index.js';
 import { apiGet } from '../utils/api.js';
 
@@ -26,7 +25,6 @@ const TILE_IDS = {
   wearables: 'wearables',
   googleCalendar: 'google-calendar',
   linkedin: 'linkedin',
-  spotify: 'spotify',
   ecobee: 'ecobee',
 } as const;
 
@@ -86,12 +84,6 @@ export async function fetchIntegrationStatuses(): Promise<IntegrationStatuses> {
         if (i?.calendar?.connected) connected.add('googleCalendar');
         if (i?.linkedin?.connected) connected.add('linkedin');
       }
-    ),
-    // Spotify link status is per device (without device_id the server reports SDK config)
-    check<{ linked?: boolean }>(
-      shown('spotify') ? ['spotify'] : [],
-      () => apiGet('/spotify/status', { device_id: getDeviceId() }),
-      (data) => void (data.linked && connected.add('spotify'))
     ),
     check<{ providers?: Record<string, { connected: boolean }> }>(
       shown('googleCalendar') ? ['googleCalendar'] : [],

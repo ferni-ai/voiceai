@@ -8,6 +8,7 @@
  * @module tools/semantic-router/capability-checker
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { isLinkedInEnabled } from '../../config/linkedin-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -113,10 +114,12 @@ function isCalendarConfigured(): boolean {
 }
 
 /**
- * Check if smart home is configured
+ * Check if smart home is configured. With SMART_HOME_LIFX on, no process env
+ * decides: each light tool checks its own caller's saved LIFX token
+ * (getCredential, domains/smart-home/caller-lifx-tools.ts).
  */
 function isSmartHomeConfigured(): boolean {
-  // Check for any server-wide smart home integration (LIFX is per-user, no app secret)
+  if (flagOn('SMART_HOME_LIFX')) return true;
   return Boolean(process.env.SONOS_CLIENT_ID || process.env.ECOBEE_API_KEY);
 }
 

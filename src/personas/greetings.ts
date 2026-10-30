@@ -12,6 +12,9 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { getDefaultModel, TEMP_CREATIVE } from '../services/model-config.js';
+import { generateText } from '../config/generative-model.js';
+import { errorFields } from '../utils/error-class.js';
+import { flagOn } from '../config/env-flag.js';
 
 import { getDayContext } from './behaviors.js';
 import type { GreetingStyle, PersonaConfig } from './types.js';
@@ -572,7 +575,11 @@ export function generateStaticGreeting(
 // ============================================================================
 
 /**
- * Generate a dynamic greeting using Gemini API
+ * Generate a dynamic greeting with Gemini (Vertex, through the shared client).
+ *
+ * @returns the greeting, or null when the model's answer is too short to use
+ * @throws GeminiUnavailableError or GeminiCallError (status only): the caller
+ *   falls back to a compositional greeting
  */
 export async function generateDynamicGreeting(
   persona: PersonaConfig,
@@ -582,9 +589,6 @@ export async function generateDynamicGreeting(
     lastConversationSummary?: string;
   }
 ): Promise<string | null> {
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) return null;
-
   const { dayName, isWeekend } = getDayContext();
   const hour = new Date().getHours();
   const { isReturningUser, userName, lastConversationSummary } = options || {};
@@ -624,41 +628,21 @@ OUTPUT FORMAT: Include SSML tags for natural speech:
 
 Generate ONE greeting (2-4 sentences max). Be warm and natural.`;
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${getDefaultModel()}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: TEMP_CREATIVE,
-            maxOutputTokens: 150,
-          },
-        }),
-        signal: AbortSignal.timeout(800),
-      }
-    );
+  const text = (
+    await generateText({
+      model: getDefaultModel(),
+      prompt,
+      generationConfig: { temperature: TEMP_CREATIVE, maxOutputTokens: 150 },
+      timeoutMs: 800,
+    })
+  ).trim();
+  if (text.length < 10) return null;
 
-    if (!response.ok) return null;
-
-    const data = (await response.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (!text || text.length < 10) return null;
-
-    getLogger().info(
-      { source: 'gemini', length: text.length, persona: persona.id },
-      'Dynamic greeting generated'
-    );
-    return text;
-  } catch (error) {
-    getLogger().debug({ error }, 'Dynamic greeting failed, using static');
-    return null;
-  }
+  getLogger().info(
+    { source: 'gemini', length: text.length, persona: persona.id },
+    'Dynamic greeting generated'
+  );
+  return text;
 }
 
 // ============================================================================
@@ -1050,8 +1034,8 @@ async function generateGreetingWithoutLifeEvents(
     }
   }
 
-  // 4. 50% chance to try DYNAMIC generation (Gemini)
-  if (Math.random() < 0.5) {
+  // 4. 50% chance to try DYNAMIC generation (Gemini), behind DYNAMIC_GREETING
+  if (flagOn('DYNAMIC_GREETING') && Math.random() < 0.5) {
     try {
       const dynamicGreeting = await generateDynamicGreeting(persona, options);
       if (dynamicGreeting) {
@@ -1061,8 +1045,8 @@ async function generateGreetingWithoutLifeEvents(
         );
         return dynamicGreeting;
       }
-    } catch {
-      // Fall through to compositional
+    } catch (error) {
+      getLogger().warn(errorFields(error), 'Dynamic greeting failed, using compositional');
     }
   }
 
