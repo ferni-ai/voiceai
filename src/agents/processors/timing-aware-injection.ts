@@ -38,6 +38,23 @@ const TIER_1_ESSENTIAL = new Set([
   'system_state', // Current system state (music, timers)
   'timing_state', // Timing awareness (Phase 3)
   'tool_hint', // Tool execution hints
+  'safety_soft_check',
+  'crisis_transfer',
+  'crisis_follow_up',
+]);
+
+/**
+ * Crisis and safety guidance: kept whole and first, ahead of the count and char limits. The
+ * limits used to sort lowest priority first (the type says higher = more important), so under
+ * severe or critical pressure the timing hints filled the slots and safety and crisis_response
+ * were dropped on exactly the slow crisis turns (2026-10-30).
+ */
+const SAFETY_FIRST = new Set([
+  'safety',
+  'crisis_response',
+  'safety_soft_check',
+  'crisis_transfer',
+  'crisis_follow_up',
 ]);
 
 /**
@@ -239,11 +256,15 @@ function applyLimits(
   maxCount: number,
   maxChars: number
 ): ContextInjection[] {
-  const result: ContextInjection[] = [];
-  let totalChars = 0;
+  const isSafety = (i: ContextInjection): boolean =>
+    SAFETY_FIRST.has(i.category?.toLowerCase() || '');
+  const result = injections.filter(isSafety);
+  let totalChars = result.reduce((sum, i) => sum + (i.content?.length || 0), 0);
 
-  // Sort by priority (lower = more important)
-  const sorted = [...injections].sort((a, b) => (a.priority || 50) - (b.priority || 50));
+  // Higher priority = more important (ContextInjection.priority)
+  const sorted = injections
+    .filter((i) => !isSafety(i))
+    .sort((a, b) => (b.priority || 50) - (a.priority || 50));
 
   for (const injection of sorted) {
     if (result.length >= maxCount) {
