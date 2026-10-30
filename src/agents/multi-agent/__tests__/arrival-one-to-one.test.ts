@@ -1,7 +1,7 @@
 /**
  * HANDOFF_ARRIVAL_ONE_TO_ONE (#2503): an arriving teammate talks to one caller, not a room.
- * Fictional versions of the prod arrival lines in the issue ("Hey everyone, good evening.
- * I'm here and listening in."), through the real prepareBriefing with the flag off (as
+ * Synthetic group-address arrival lines of the shape the issue describes (a greeting plus
+ * "everyone", and "listening in"), through the real prepareBriefing with the flag off (as
  * today) and on; only the models are stubbed.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -50,7 +50,7 @@ async function arrive(said: string, env: Record<string, string>) {
 afterEach(() => clearArrivals());
 
 describe('the arrival on a one-to-one call', () => {
-  const GROUP_LINE = "Hey everyone, good evening. I'm here and listening in.";
+  const GROUP_LINE = "Hi everyone, good evening. I'm right here, listening in.";
 
   it('off: the group line is said as written, and the cue is unchanged', async () => {
     const off = await arrive(GROUP_LINE, OFF);
@@ -63,15 +63,12 @@ describe('the arrival on a one-to-one call', () => {
     const on = await arrive(GROUP_LINE, ON);
     expect(on.cue).toContain('This is a one-to-one call with one person');
     expect(on.cue).not.toContain("you're here and listening");
-    expect(on.line).toBe("Hey, good evening. I'm here and listening.");
+    expect(on.line).toBe("Hi, good evening. I'm right here, listening.");
   });
 
-  it('on: the second prod line loses "everyone" and keeps the rest', async () => {
-    const on = await arrive(
-      "Hey everyone, good evening. I'm all ears for whatever you've got going on.",
-      ON
-    );
-    expect(on.line).toBe("Hey, good evening. I'm all ears for whatever you've got going on.");
+  it('on: a second group line loses "everyone" and keeps the rest', async () => {
+    const on = await arrive("Hello everyone, good evening. I'm ready whenever you are.", ON);
+    expect(on.line).toBe("Hello, good evening. I'm ready whenever you are.");
   });
 });
 
