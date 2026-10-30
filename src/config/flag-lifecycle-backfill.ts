@@ -11,7 +11,7 @@
  * edited experiment carries expires, issue and context in its own spec instead.
  *
  * The 2026-10-24..29 groups and 16 of the 2026-10-23 names were grandfathered when main was
- * merged on 2026-10-26..29: 82 experiments that landed on main after this list was cut, same rule.
+ * merged on 2026-10-26..29: 83 experiments that landed on main after this list was cut, same rule.
  *
  * @module config/flag-lifecycle-backfill
  */
@@ -168,7 +168,7 @@ const GROUPS: readonly BackfillGroup[] = [
     flags:
       'ACTIVE_PERSONA_ID CALL_TELEMETRY CONTACT_SAVE_ON_YES CRISIS_MEANS_IN_HAND CRISIS_SAME_CALL_NOTE_FADES CRISIS_SIGHT_NEEDS_CUE GROUNDED_CLAIMS HANDOFF_ARRIVAL_ONE_TO_ONE HANDOFF_DESK HANDOFF_FAILED_SAY_SO HANDOFF_HELD_TRUTHFUL HELD_GOODBYE_CHECK_IN MEMORY_FACTS MEMORY_TOOLS_HONEST MIRROR_SHARED_CONTRACTIONS PAUSE_REQUEST_COMMITS_TURN PERSONA_BRIEFING_ALEX PERSONA_BRIEFING_JORDAN PERSONA_BRIEFING_MAYA PERSONA_BRIEFING_NAYAN PERSONA_TOOLSETS RECENT_CONTEXT_TIMEFRAME SPOKEN_CONTRACTIONS UNKNOWN_CALLER_HONEST',
   },
-  { firstSeen: '2026-10-30', expires: '2027-01-28', flags: 'FUTURE_LETTER_OPENER TRANSFER_NAME_ALIASES' },
+  { firstSeen: '2026-10-30', expires: '2027-01-28', flags: 'FUTURE_LETTER_OPENER SPEAK_PHONE_DIGITS TRANSFER_NAME_ALIASES' },
 ];
 
 export const FLAG_EXPIRY_BACKFILL: Readonly<
