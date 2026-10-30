@@ -20,10 +20,12 @@
  *   is only time words), and whether they left a message (never what it says).
  *   The message reaches the owner through the guarded call report (#3080).
  * - Tone from the status, with the crisis, risky and hard-news screens of their
- *   words as a backstop: a call that didn't get through is said plainly; a
- *   message is offered calmly, never playfully, since what it says is unknown;
- *   hard news gets "got a sec?"; any crisis or risky signal only "I need to
- *   tell you about your call".
+ *   words as a backstop. Whenever the result holds any text from the callee
+ *   (a message, an outcome or summary beyond a status line, details), the hello
+ *   is calm and offers it, never playful, since screens can't vouch for it.
+ *   Only a status-only result keeps the warm tone (reached) or is said plainly
+ *   (not reached). Hard news gets "got a sec?"; any crisis or risky signal only
+ *   "I need to tell you about your call".
  * - Never marked delivered here: the report still has to carry the message.
  *
  * @module agents/multi-agent/call-news-opener
@@ -65,6 +67,8 @@ const WORRY =
 const TIME_WORD =
   /^(?:today|tonight|tomorrow|this|next|morning|afternoon|evening|night|weekend|after|before|around|by|at|on|in|the|noon|midnight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|later|soon|am|pm|a\.m\.|p\.m\.)$/i;
 const CLOCK_TIME = /^(?:1[0-2]|0?[1-9])(?::[0-5]\d)?(?:am|pm|a\.m\.|p\.m\.)?$/i;
+/** A reached call's outcome that says nothing but that it happened (pending-call-results.ts default). */
+const STATUS_LINE = /^(?:call completed\.?)?$/i;
 const EMERGENCY_NUMBER = /9\D{0,3}1\D{0,3}1|9\D{0,3}8\D{0,3}8/;
 
 function callbackWhen(raw: string | undefined): string {
@@ -77,8 +81,8 @@ function callbackWhen(raw: string | undefined): string {
 
 export const CALL_NEWS_DIRECTION =
   ' You made a call for them since you last talked, and it comes first: say hello, then tell them in a few plain words how it went, from the call facts only. Never guess or make up what was said ("Hey Sam. I talked to Rosa. She\'d like you to call her back.").';
-export const CALL_NEWS_MESSAGE_DIRECTION =
-  ' You made a call for them and they left a message: no playful hello, even and calm. Say hello, then that you talked to them and they left a message, and ask if they want to hear it, naming who ("Hey Sam. I talked to Rosa; she left you a message. Want to hear it?"). Never guess or hint at what it says.';
+export const CALL_NEWS_CALM_DIRECTION =
+  ' You made a call for them and have news from it: no playful hello, even and calm. Say hello, then that you talked to them (or tried, as the call facts say) and offer to tell them about it, naming who ("Hey Sam. I talked to Rosa; she left you a message. Want to hear it?" or "Hey Sam. I talked to Rosa earlier. Want to hear how it went?"). Never guess or hint at what was said.';
 export const CALL_NEWS_PLAIN_DIRECTION =
   ' You tried a call for them and did not get through: say hello, then say so plainly, not cheerfully, naming who ("Hey Sam. I tried Rosa but it went to voicemail.").';
 export const CALL_NEWS_MORE_DIRECTION =
@@ -88,12 +92,12 @@ export const CALL_NEWS_HEAVY_DIRECTION =
 export const CALL_NEWS_GUARDED_DIRECTION =
   ' You made a call for them and something from it needs care: no cheerful hello. Say hello quietly, then only that you need to tell them about the call, naming who you called ("Hey Sam. I need to tell you about your call with your mom."). Nothing about what was said.';
 
-type CallNewsTone = 'news' | 'message' | 'plain' | 'heavy' | 'guarded';
+type CallNewsTone = 'news' | 'calm' | 'plain' | 'heavy' | 'guarded';
 type LineStatus = 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
 
 export interface CallNews {
   tone: CallNewsTone;
-  /** Heavy, guarded or a message: no playful hello, no celebration alongside it. */
+  /** Heavy, guarded or calm: no playful hello, no celebration alongside it. */
   careful: boolean;
   direction: string;
   facts: Record<string, string>;
@@ -106,6 +110,8 @@ interface CallRecord {
   callbackRequired: boolean;
   callbackTime?: string;
   hasMessage: boolean;
+  /** Any text from the callee: a message, a summary, action items, a reached call's outcome. */
+  calleeText: boolean;
   voicemailLeft: boolean;
   /** Their words, read only by the backstop screens, never passed on. */
   said: string[];
@@ -154,15 +160,25 @@ async function callRecord(
     callbackRequired: outcome.callbackRequired === true,
     callbackTime: text(outcome.callbackTime),
     hasMessage: text(outcome.message).trim() !== '',
+    calleeText: [
+      outcome.message,
+      outcome.transcriptSummary,
+      ...actions,
+      // Not reached, the outcome is Ferni's own status line (voicemail-outcome.ts and the like).
+      status === 'completed' && !STATUS_LINE.test(text(outcome.outcome).trim())
+        ? outcome.outcome
+        : '',
+    ].some((t) => text(t).trim() !== ''),
     voicemailLeft: outcome.voicemailLeft === true,
     said: [outcome.outcome, outcome.message, outcome.transcriptSummary, ...actions].map(text),
   };
 }
 
 /**
- * The tone: guarded on any crisis or risky signal, heavy on hard news, then careful whenever they
- * left a message (screens miss most third-person crisis lines, so what it says is never assumed
- * light), plain when not reached. With no call record, any details mean there may be a message.
+ * The tone: guarded on any crisis or risky signal, heavy on hard news, then calm whenever the
+ * result holds any text from the callee (screens miss most third-person crisis lines, so it is
+ * never assumed light); only status-only results are warm (reached) or plain (not reached).
+ * With no call record, a reached result or any details count as callee text.
  */
 function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: string): CallNewsTone {
   const words = [r.summary, r.details ?? '', ...(rec?.said ?? [])].filter((t) => t.trim());
@@ -171,7 +187,7 @@ function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: str
   const screen = screenCallerParts(all, who, 10_000);
   if (crisisRead(all) || screen.safety || screen.risky) return 'guarded';
   if (isHeavyMoment(words) || words.some((w) => WORRY.test(w))) return 'heavy';
-  if (rec ? rec.hasMessage : Boolean(r.details?.trim())) return 'message';
+  if (Boolean(r.details?.trim()) || (rec ? rec.calleeText : r.status === 'success')) return 'calm';
   const status = rec?.status ?? (r.status === 'failed' ? 'failed' : undefined);
   if (status && status !== 'completed') return 'plain';
   return 'news';
@@ -228,12 +244,12 @@ function callNewsOf(
   if (tone !== 'heavy' && tone !== 'guarded') Object.assign(facts, structuredFacts(rec, r));
   const direction = {
     news: CALL_NEWS_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
-    message: CALL_NEWS_MESSAGE_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
+    calm: CALL_NEWS_CALM_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
     plain: CALL_NEWS_PLAIN_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
     heavy: CALL_NEWS_HEAVY_DIRECTION,
     guarded: CALL_NEWS_GUARDED_DIRECTION,
   }[tone];
-  const careful = tone === 'heavy' || tone === 'guarded' || tone === 'message';
+  const careful = tone === 'heavy' || tone === 'guarded' || tone === 'calm';
   return { tone, careful, direction, facts };
 }
 

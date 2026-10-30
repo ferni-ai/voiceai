@@ -199,11 +199,7 @@ afterEach(() => {
 
 describe('call news opens the call, from structured fields only', () => {
   it('outranks the letter and the win: a reached call told warmly, from its status', async () => {
-    seed({
-      said: 'she wants you to bring the blue casserole dish Sunday',
-      callbackRequired: true,
-      callbackTime: 'tonight after 6pm',
-    });
+    seed({ callbackRequired: true, callbackTime: 'tonight after 6pm' }); // status only
     const cue = await greet();
     expect(cue.direction).toContain(opener.CALL_NEWS_DIRECTION);
     expect(cue.direction).not.toContain(WIN_DIRECTION);
@@ -221,7 +217,7 @@ describe('call news opens the call, from structured fields only', () => {
 
   it('a message makes it careful: neutral direction, offered, never told', async () => {
     const cue = await greet();
-    expect(cue.direction).toContain(opener.CALL_NEWS_MESSAGE_DIRECTION);
+    expect(cue.direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
     expect(cue.direction).not.toContain(opener.CALL_NEWS_DIRECTION);
     expect(cue.facts).toMatchObject({
       'how the call went': 'you reached them and talked',
@@ -299,7 +295,7 @@ describe('call news opens the call, from structured fields only', () => {
     seed(GOOD);
     store.records.clear();
     const cue = await greet();
-    expect(cue.direction).toContain(opener.CALL_NEWS_MESSAGE_DIRECTION);
+    expect(cue.direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
     expect(cue.facts['how the call went']).toBe('you reached them and talked');
     expect(cue.facts['they left a message for them']).toBeDefined();
   });
@@ -421,7 +417,7 @@ describe('whenever there is a message, the hello is careful (FERNI_PLAYFUL on)',
     expect(cue.direction).toMatch(
       new RegExp(
         [
-          opener.CALL_NEWS_MESSAGE_DIRECTION,
+          opener.CALL_NEWS_CALM_DIRECTION,
           opener.CALL_NEWS_HEAVY_DIRECTION,
           opener.CALL_NEWS_GUARDED_DIRECTION,
         ]
@@ -439,6 +435,62 @@ describe('whenever there is a message, the hello is careful (FERNI_PLAYFUL on)',
     expect(cue.direction.startsWith(PLAYFUL_GREETING_DIRECTION)).toBe(true);
     expect(cue.direction).toContain(opener.CALL_NEWS_DIRECTION);
     expect(cue.direction).toContain(anniversaryDirection(party.ask));
+  });
+});
+
+/** The verifier's dark fixtures (#3095 round 1), as a reached call's outcome text, no message. */
+const DARK_OUTCOMES = [
+  "she's thinking of ending it",
+  'took a bunch of pills last night',
+  "he's tired of living",
+  "she doesn't want to be alive anymore",
+  'says nobody would miss her if she was gone',
+  'he gave away his dog and said goodbye to everyone',
+  'everyone would be better off without me',
+  "she can't go on like this",
+  'she is in a dark place and talked about the bridge',
+  'ya no quiero vivir',
+];
+
+describe('any callee text makes the hello calm, the outcome too (FERNI_PLAYFUL on)', () => {
+  it.each(DARK_OUTCOMES)('%s', async (said) => {
+    vi.stubEnv('FERNI_PLAYFUL', 'on');
+    party.on = true;
+    seed({ said });
+    const cue = await greet({ persona: 'ferni' });
+    expect(cue.direction.startsWith(PLAYFUL_GREETING_DIRECTION)).toBe(false);
+    expect(cue.direction).not.toContain(opener.CALL_NEWS_DIRECTION);
+    expect(cue.direction).not.toContain(anniversaryDirection(party.ask));
+    expect(
+      [
+        opener.CALL_NEWS_CALM_DIRECTION,
+        opener.CALL_NEWS_HEAVY_DIRECTION,
+        opener.CALL_NEWS_GUARDED_DIRECTION,
+      ].some((d) => cue.direction.includes(d))
+    ).toBe(true);
+  });
+
+  it.each([
+    [
+      'a transcript summary on voicemail',
+      { status: 'voicemail', transcriptSummary: 'see you soon' },
+    ],
+    ['details with no record', { details: 'Rosa asked to pass on: "see you soon"' }],
+  ] as const)('%s is callee text too: calm', async (_l, call) => {
+    seed(call);
+    const cue = await greet();
+    expect(cue.direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
+  });
+
+  it('with no call record, a reached result is assumed to hold their words: calm', async () => {
+    seed({ said: '' });
+    store.records.clear();
+    expect((await greet()).direction).toContain(opener.CALL_NEWS_CALM_DIRECTION);
+  });
+
+  it('a reached call whose outcome is only "Call completed" stays warm', async () => {
+    seed({ said: 'Call completed' });
+    expect((await greet()).direction).toContain(opener.CALL_NEWS_DIRECTION);
   });
 });
 
@@ -482,7 +534,7 @@ describe('property: no callee word ever reaches the hello', () => {
         [
           opener.CALL_NEWS_DIRECTION,
           opener.CALL_NEWS_PLAIN_DIRECTION,
-          opener.CALL_NEWS_MESSAGE_DIRECTION,
+          opener.CALL_NEWS_CALM_DIRECTION,
           'yes; offer it, never guess what it says',
           opener.CALL_NEWS_HEAVY_DIRECTION,
           opener.CALL_NEWS_GUARDED_DIRECTION,
