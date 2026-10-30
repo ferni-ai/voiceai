@@ -110,7 +110,7 @@ function getHueLights(_credentials: SmartHomeCredentials): Promise<SmartDevice[]
 // LIFX API (with self-healing + user credentials)
 // ============================================================================
 
-// Type for LIFX lights response
+type LifxCredentialsOnly = Pick<SmartHomeCredentials, 'lifx'> & { breakerKey?: string };
 interface LifxLight {
   id?: string;
   label?: string;
@@ -120,13 +120,13 @@ interface LifxLight {
   group?: { name: string };
 }
 
-async function getLifxLights(credentials: SmartHomeCredentials): Promise<SmartDevice[]> {
+export async function getLifxLights(credentials: LifxCredentialsOnly): Promise<SmartDevice[]> {
   const lifxConfig = credentials.lifx;
   if (!lifxConfig) {
     return [];
   }
 
-  const lifxClient = getLifxClient();
+  const lifxClient = getLifxClient(credentials.breakerKey);
 
   // Check circuit health
   if (!lifxClient.isHealthy()) {
@@ -157,8 +157,8 @@ async function getLifxLights(credentials: SmartHomeCredentials): Promise<SmartDe
   }));
 }
 
-async function setLifxLight(
-  credentials: SmartHomeCredentials,
+export async function setLifxLight(
+  credentials: LifxCredentialsOnly,
   lightId: string,
   power?: 'on' | 'off',
   brightness?: number,
@@ -169,7 +169,7 @@ async function setLifxLight(
     return false;
   }
 
-  const lifxClient = getLifxClient();
+  const lifxClient = getLifxClient(credentials.breakerKey);
 
   if (!lifxClient.isHealthy()) {
     getLogger().debug('LIFX circuit is open, cannot control light');

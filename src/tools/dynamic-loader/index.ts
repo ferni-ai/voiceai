@@ -28,6 +28,8 @@ import type {
 import { DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js';
 import { TOPIC_PATTERNS } from './topic-patterns.js';
 import { predictionTopicPatterns } from './prediction-topics.js';
+import { smartHomeTopicPatterns } from './smart-home-topics.js';
+export { smartHomeTopicPatterns };
 import { flagOn } from '../../config/env-flag.js';
 import { LEAN_LOADER_DOMAINS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { SAME_TURN_TOPIC_PATTERNS } from './same-turn-topics.js';
@@ -130,6 +132,7 @@ export class DynamicToolLoader {
       ...TOPIC_PATTERNS,
       ...(flagOn('WEEKLY_PREDICTION') ? predictionTopicPatterns(this.toolContext?.userId) : []),
       ...(sameTurnToolsEnabled() ? SAME_TURN_TOPIC_PATTERNS : []),
+      ...smartHomeTopicPatterns(), // SMART_HOME_LIFX=on: "dim the lamp" loads the caller's lights
     ];
     for (const [topic, domains, pattern] of patterns) {
       if (pattern.test(lowerMessage)) {
