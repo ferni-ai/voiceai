@@ -16,6 +16,7 @@ import type { FunctionDeclaration } from '@google/generative-ai';
 import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { type ChatCaller, offeredChatTools, refuseChatTool } from './chat-tool-access.js';
+import { isGmailReadToolsOn } from '../config/gmail-read-tools.js';
 import { refuseUnadmittedCaller } from './admission.js';
 import { chatHold, chatToolContext } from './chat-minor-care.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
@@ -121,9 +122,15 @@ interface ChatToolDefinition {
   parameters?: Record<string, unknown>;
 }
 
+/** Gmail reads meet a 403 (no gmail.readonly), so they are offered only under GMAIL_READ_TOOLS. */
+const GMAIL_READ_CHAT_TOOLS: ReadonlySet<string> = new Set(['getUnreadEmails']);
+
 /** The tools this caller is offered: the only ones either route runs (chat-tool-access.ts). */
 async function offeredFor(caller: ChatCaller): Promise<ChatToolDefinition[]> {
-  return offeredChatTools(await getToolDefinitionsForChat(caller.userId), caller.isAdmin);
+  const catalog = (await getToolDefinitionsForChat(caller.userId)).filter(
+    (t) => isGmailReadToolsOn() || !GMAIL_READ_CHAT_TOOLS.has(t.name)
+  );
+  return offeredChatTools(catalog, caller.isAdmin);
 }
 
 /** The chat catalog: the same for every user and persona today. */

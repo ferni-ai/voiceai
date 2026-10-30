@@ -33,16 +33,9 @@ const log = createLogger({ module: 'oauth-manager' });
  * OAuth configurations for each provider
  * Credentials should be set via environment variables
  */
+// No gmail entry: Gmail read is never granted (restricted scope, CASA), and gmail.send
+// is its own grant (services/identity/gmail-send-as-user.ts).
 const OAUTH_CONFIGS: Record<string, Partial<OAuthConfig>> = {
-  gmail: {
-    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenUrl: 'https://oauth2.googleapis.com/token',
-    scopes: [
-      'https://www.googleapis.com/auth/gmail.readonly',
-      'https://www.googleapis.com/auth/gmail.send',
-      'https://www.googleapis.com/auth/gmail.modify',
-    ],
-  },
   google_calendar: {
     authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token',
@@ -446,7 +439,6 @@ export class OAuthManager {
    */
   private getIntegrationDisplayName(id: string): string {
     const displayNames: Record<string, string> = {
-      gmail: 'Gmail',
       google_calendar: 'Google Calendar',
       spotify: 'Spotify',
       uber: 'Uber',
