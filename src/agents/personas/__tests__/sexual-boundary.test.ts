@@ -180,3 +180,39 @@ describe('the read holds the call memory', () => {
     expect(sexualReadsSettled(sessionId)).toBeNull();
   });
 });
+
+describe('cues of being under 18 without a stated age', () => {
+  it('keep the boundary on after the caller is verified, and hold nothing by themselves', async () => {
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', 'on');
+    let owner = false;
+    setVerifiedOwnerCheck(() => owner);
+    const [cuedId, plainId] = [fresh(), fresh()];
+    await readCallerTurn(
+      { sessionId: cuedId, text: 'a turn' },
+      { understand: verdict('{"sexual": false, "young": true}') }
+    );
+    await readCallerTurn(
+      { sessionId: plainId, text: 'a turn' },
+      { understand: verdict('{"sexual": false, "young": false}') }
+    );
+    owner = true;
+    expect(replyRequest(plainId, 'so anyway')).not.toContain(SEXUAL_BOUNDARY_NOTE);
+    expect(replyRequest(cuedId, 'so anyway')).toContain(SEXUAL_BOUNDARY_NOTE);
+    expect(memoryHeld(cuedId)).toBe(false);
+  });
+
+  it('are still read after a hold, until found', async () => {
+    const sessionId = fresh();
+    const sexualOnly = verdict('{"sexual": true, "young": false}');
+    await readCallerTurn({ sessionId, text: 'one' }, { understand: sexualOnly, env: ON });
+    await readCallerTurn({ sessionId, text: 'two' }, { understand: sexualOnly, env: ON });
+    expect(sexualOnly).toHaveBeenCalledTimes(2);
+    const young = verdict('{"sexual": false, "young": true}');
+    expect(await readCallerTurn({ sessionId, text: 'three' }, { understand: young, env: ON })).toBe(
+      true
+    ); // a later clean turn never lifts the hold
+    await readCallerTurn({ sessionId, text: 'four' }, { understand: young, env: ON });
+    expect(young).toHaveBeenCalledTimes(1);
+    expect(memoryHeld(sessionId, ON)).toBe(true);
+  });
+});

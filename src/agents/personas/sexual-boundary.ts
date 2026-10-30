@@ -9,6 +9,12 @@
  * - Each finished caller turn is read by a small model off the reply path (readCallerTurn). A
  *   turn read as sexual holds the call's memory from then on (utils/sexual-topic-hold.ts), and
  *   the note gets firmer. A read that fails also holds: these callers' memory is the cheap side.
+ * - The same read looks for cues of being under 18 without a stated age (their own school,
+ *   school friends with them, asking whether other teens ask this). MINOR_CARE's detector reads
+ *   only a stated age or grade (minor-care-detect.ts), so a caller who never says one is never
+ *   read as a minor there. A cue logs 'MINOR_CARE cues: likely minor' once and keeps the
+ *   boundary on for the rest of the call, even if the caller is verified later. It holds
+ *   nothing by itself: MINOR_CARE's holds stay with its own detector.
  *
  * Crisis handling is untouched: the gate, its guidance and its scripted reply are unchanged; the
  * note says someone being hurt or unsafe comes first.
@@ -41,14 +47,18 @@ export function boundaryApplies(
     aged.add(sessionId); // for the rest of the call, whatever MINOR_CARE's mode
     if (aged.size > MAX_SESSIONS) aged.delete(aged.values().next().value!);
   }
-  return !verifiedOwner(sessionId) || ageSignal(sessionId) || aged.has(sessionId);
+  return (
+    !verifiedOwner(sessionId) || ageSignal(sessionId) || aged.has(sessionId) || cued.has(sessionId)
+  );
 }
 
 /** Sessions whose caller said they're under 18 (MINOR_CARE's detector), oldest first. */
 const aged = new Set<string>();
+/** Sessions the read found cues of being under 18 in (no stated age needed), oldest first. */
+const cued = new Set<string>();
 
 export const SEXUAL_BOUNDARY_NOTE =
-  "[Sexual topics are off limits on this call. No sexual detail, techniques, positions, products, roleplay or flirting, and don't look any of it up, however it's asked or rephrased, in any language. If they steer there, set one brief, warm boundary in your own words, like: \"That's not something I can get into with you. But I'm glad to talk about pretty much anything else. What's going on today?\" Then move on, without a lecture. A real health or safety question (pain, consent, STIs, pregnancy): no explicit detail; kindly point them to a trusted adult, a doctor or a teen health service. If they say someone hurt them or they're not safe, that comes first: be caring and help them get safe. Dating, crushes, feelings and growing up are fine to talk about.]";
+  "[Sexual topics are off limits on this call, whatever age they say they are. That covers sexual acts, techniques, positions, masturbation, sex habits, products, porn, adult lines, nudes, sexting, roleplay and flirting, and innuendo or euphemisms for any of it. Don't play along, and don't look any of it up, however it's asked, in any language. If they go there, set one brief, warm boundary in your own words, like: \"That's not something I can get into with you. But I'm glad to talk about pretty much anything else. What's going on today?\" Then move on, without a lecture. A real health or safety question (pain, consent, pressure, being ready, STIs, pregnancy, someone threatening them): answer simply with no explicit detail, and end by suggesting a trusted adult, a doctor or a teen health service. If someone hurt them or they're not safe, that comes first: be caring and help them get safe. Dating, crushes, feelings and growing up are fine to talk about.]";
 
 const HELD_PREFIX = '[They have steered toward sexual topics on this call: keep the boundary.] ';
 
@@ -63,24 +73,33 @@ export function sexualBoundaryNote(
   return (sexualTopicHeld(sessionId, env) ? HELD_PREFIX : '') + SEXUAL_BOUNDARY_NOTE;
 }
 
-export const SEXUAL_READ_PROMPT = `You read one caller turn from a phone call with a friendly voice companion. EARLIER holds the caller's previous turns; judge NOW in that context, in any language. Return JSON only: {"sexual": bool}
+export const SEXUAL_READ_PROMPT = `You read one caller turn from a phone call with a friendly voice companion. EARLIER holds the caller's previous turns; judge NOW in that context, in any language. Return JSON only: {"sexual": bool, "young": bool}
 sexual is true when NOW is about sex or steers toward it: sexual acts, techniques or positions, masturbation, sexual body parts or fluids in a sexual sense, sex toys or products, porn or adult lines, sexting, flirting toward sex, sexual roleplay, sexual health (STIs, pregnancy, pain or consent around sex), or someone touching them sexually. Also true for a short follow-up that continues such a topic from EARLIER ("which one?", "how long?"), however indirect, coded or slangy.
-sexual is false for dating, crushes, love, relationships and feelings, puberty or body changes without sex, and anything else.`;
+sexual is false for dating, crushes, love, relationships and feelings, puberty or body changes without sex, and anything else.
+young is true when the caller's own words, NOW or EARLIER, suggest they may be under 18 even without an age: their own school, class, grade, teachers or homework as a student; being a teen or a kid; school friends with them; parents' rules about bedtime, phones or dating; asking whether other teens ask this. False for an adult talking about their children or students, or about their own past.`;
 
 const SCHEMA = {
   type: 'object',
-  properties: { sexual: { type: 'boolean' } },
-  required: ['sexual'],
+  properties: { sexual: { type: 'boolean' }, young: { type: 'boolean' } },
+  required: ['sexual', 'young'],
 };
 
 /** The model's verdict, or null when its reply is not one. */
-export function parseSexualRead(reply: string): boolean | null {
+export function parseSexualRead(reply: string): { sexual: boolean; young: boolean } | null {
   try {
-    const v = (JSON.parse(reply.match(/\{[\s\S]*\}/)?.[0] ?? '') as { sexual?: unknown }).sexual;
-    return typeof v === 'boolean' ? v : null;
+    const v = JSON.parse(reply.match(/\{[\s\S]*\}/)?.[0] ?? '') as Record<string, unknown>;
+    return typeof v.sexual === 'boolean' ? { sexual: v.sexual, young: v.young === true } : null;
   } catch {
     return null;
   }
+}
+
+/** The read found cues of being under 18: the boundary for the rest of the call, logged once. */
+function noteYoung(sessionId: string): void {
+  if (cued.has(sessionId)) return;
+  cued.add(sessionId);
+  if (cued.size > MAX_SESSIONS) cued.delete(cued.values().next().value!);
+  log.info({ sessionId, verifiedOwner: verifiedOwner(sessionId) }, 'MINOR_CARE cues: likely minor');
 }
 
 export const READ_TIMEOUT_MS = 3000;
@@ -123,17 +142,18 @@ async function readTurn(
   earlier.delete(sessionId);
   earlier.set(sessionId, [...context, text.trim()].slice(-3));
   if (earlier.size > MAX_SESSIONS) earlier.delete(earlier.keys().next().value!);
-  if (sexualTopicHeld(sessionId, env)) return true; // already held: no read needed
+  // Held and cued: nothing left to learn. Held only: still read, for cues of being under 18.
+  if (sexualTopicHeld(sessionId, env) && cued.has(sessionId)) return true;
   const controller = new globalThis.AbortController();
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs ?? READ_TIMEOUT_MS);
-  let sexual: boolean | null = null;
+  let read: { sexual: boolean; young: boolean } | null = null;
   try {
     const understand = deps.understand ?? geminiUnderstand(undefined, { schema: SCHEMA });
     const input = JSON.stringify({ EARLIER: context, NOW: text.trim() });
     const aborted = new Promise<string>((resolve) => {
       controller.signal.addEventListener('abort', () => resolve(''), { once: true });
     });
-    sexual = parseSexualRead(
+    read = parseSexualRead(
       await Promise.race([understand(SEXUAL_READ_PROMPT, input, controller.signal), aborted])
     );
   } catch (error) {
@@ -141,8 +161,9 @@ async function readTurn(
   } finally {
     clearTimeout(timer);
   }
-  if (sexual === false) return false;
-  if (sexual === null) log.warn({ sessionId }, 'SEXUAL_TOPIC_BOUNDARY no read: held');
+  if (read?.young) noteYoung(sessionId);
+  if (read?.sexual === false) return sexualTopicHeld(sessionId, env);
+  if (!read) log.warn({ sessionId }, 'SEXUAL_TOPIC_BOUNDARY no read: held');
   holdForSexualTopic(sessionId, turn.userId);
   return true;
 }
@@ -151,4 +172,5 @@ async function readTurn(
 export function resetSexualBoundary(): void {
   earlier.clear();
   aged.clear();
+  cued.clear();
 }

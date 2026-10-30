@@ -280,6 +280,11 @@
         "marker": "MINOR_CARE shadow: likely minor",
         "emitter": "src/utils/minor-care.ts",
         "count": 1
+      },
+      {
+        "marker": "MINOR_CARE cues: likely minor",
+        "emitter": "src/agents/personas/sexual-boundary.ts",
+        "count": 1
       }
     ],
     "crisis": [
