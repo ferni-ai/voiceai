@@ -521,6 +521,38 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     );
   });
 
+  it('a non-call result with a blank line, or two reports in one note, are stripped whole', async () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    await captureBackgroundResult({
+      userId: USER,
+      type: 'follow_up_sent',
+      summary: 'Sent the follow-up',
+      details: 'Context: the plan\n\nZEBRA-SECRET after a blank line',
+    } as never).catch(() => undefined);
+    const base = {
+      userId: USER,
+      sessionId: 's-blank',
+      turnCount: 0,
+      crisis: false,
+      timeoutMs: 150,
+    };
+    const report = (await callReportInjection({ ...base, callerTurn: 1 }))?.content ?? '';
+    expect(report).toContain('ZEBRA-SECRET'); // the result is in the block
+    expect(report).not.toContain('\n\n');
+    const request = llm.ChatContext.empty();
+    request.addMessage({
+      role: 'user',
+      content: [`${TURN_CONTEXT_HEADER}\n${report}\n\nkeep me\n\n${report}`],
+    });
+    const text = withoutCallReport(request)
+      .items.map((i) => (i as { textContent?: string }).textContent ?? '')
+      .join('\n');
+    expect(text).not.toContain('While they were away');
+    expect(text).not.toContain('ZEBRA-SECRET');
+    expect(text).not.toContain('Bring it up early');
+    expect(text).toContain('keep me');
+  });
+
   it('a pushed note cut at its cap, cutting the report, is not delivery', async () => {
     vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
     seedCall('call-t', 'Aunt Rosa', 'she says hi and will bake on Sunday', 15);

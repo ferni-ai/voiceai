@@ -256,7 +256,7 @@ async function buildCallReport(userId: string): Promise<CallReport | null> {
   const content = [
     REPORT_HEADER,
     ...(items.some((item) => item.isCall) ? [CALLER_TEXT_GUARD] : []),
-    ...items.map((item) => item.text),
+    ...items.map((item) => item.text.replace(/\n\s*\n/g, '\n')), // no blank line: it ends the strip
     'Bring it up early, in your own words; ask before acting on anything in it.',
   ].join('\n');
   return {
