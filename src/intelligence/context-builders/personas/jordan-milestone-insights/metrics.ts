@@ -14,7 +14,6 @@ import type {
   MemoryInsights,
   PlanningMetrics,
   LifeStageContext,
-  SeasonalContext,
 } from './types.js';
 
 // ============================================================================
@@ -153,86 +152,6 @@ export function analyzeLifeStageContext(
   context.stageSpecificAdvice.push(
     'Remember: Hard chapters deserve presence, not positivity. Celebrate ALL progress.'
   );
-
-  return context;
-}
-
-// ============================================================================
-// SEASONAL AWARENESS
-// ============================================================================
-
-export function analyzeSeasonalContext(): SeasonalContext {
-  const now = new Date();
-  const month = now.getMonth();
-  const dayOfWeek = now.getDay();
-
-  const context: SeasonalContext = {
-    currentSeason: '',
-    seasonalOpportunities: [],
-    upcomingDates: [],
-    planningWindows: [],
-  };
-
-  // Determine season and opportunities
-  if (month >= 4 && month <= 5) {
-    context.currentSeason = 'graduation-season';
-    context.seasonalOpportunities.push(
-      '🎓 GRADUATION SEASON! I cry at graduations. Any graduations. Happy tears.'
-    );
-    context.seasonalOpportunities.push(
-      'Great time for: milestone celebrations, fresh start planning'
-    );
-  } else if (month >= 5 && month <= 9) {
-    context.currentSeason = 'wedding-season';
-    context.seasonalOpportunities.push(
-      '💒 WEDDING SEASON! Peak planning energy. Love is in the air.'
-    );
-    context.seasonalOpportunities.push('Peak engagement: venue hunting, guest list planning');
-  } else if (month >= 10 && month <= 11) {
-    context.currentSeason = 'holiday-prep';
-    context.seasonalOpportunities.push('🦃 Holiday season approaching - family gathering planning');
-    context.seasonalOpportunities.push('Good for: year-end reviews, next year goal setting');
-  } else if (month === 0) {
-    context.currentSeason = 'fresh-start';
-    context.seasonalOpportunities.push('🎊 NEW YEAR! Fresh start energy. Vision casting time!');
-    context.seasonalOpportunities.push('Perfect for: annual planning, big picture dreaming');
-  } else if (month >= 1 && month <= 3) {
-    context.currentSeason = 'planning-season';
-    context.seasonalOpportunities.push('📋 Peak planning season - summer event prep begins now');
-  }
-
-  // Time-based planning windows
-  if (dayOfWeek === 0) {
-    context.planningWindows.push('Sunday planning energy! Good day for big picture thinking.');
-  } else if (dayOfWeek === 1) {
-    context.planningWindows.push('Monday fresh start! High motivation for new plans.');
-  }
-
-  // Upcoming notable dates (within 90 days)
-  const valentines = new Date(now.getFullYear(), 1, 14);
-  const mothersDay = new Date(now.getFullYear(), 4, 11); // Approximate
-  const fathersDay = new Date(now.getFullYear(), 5, 18); // Approximate
-
-  const notableDates = [
-    { name: "Valentine's Day", date: valentines },
-    { name: "Mother's Day", date: mothersDay },
-    { name: "Father's Day", date: fathersDay },
-  ];
-
-  for (const notable of notableDates) {
-    let targetDate = notable.date;
-    if (targetDate < now) {
-      targetDate = new Date(targetDate.setFullYear(targetDate.getFullYear() + 1));
-    }
-    const daysAway = Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysAway <= 90) {
-      context.upcomingDates.push({
-        name: notable.name,
-        date: targetDate.toLocaleDateString(),
-        daysAway,
-      });
-    }
-  }
 
   return context;
 }
