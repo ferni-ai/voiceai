@@ -2494,10 +2494,6 @@
         "description": "المزامنة مع بيانات الصحة من Apple Watch وiPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "ربط جهاز Fitbit الخاص بكم",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "المزامنة مع أجهزة Garmin القابلة للارتداء",
         "name": "Garmin"
@@ -8538,7 +8534,7 @@
     "appleHealthDesc": "بيانات النوم، والنشاط، ومعدل ضربات القلب",
     "ouraDesc": "جودة النوم ومؤشرات الاستعداد",
     "eightSleepDesc": "تتبع النوم ودرجة الحرارة",
-    "wearablesDesc": "أجهزة Fitbit وGarmin وWHOOP وغيرها",
+    "wearablesDesc": "أجهزة Garmin وWHOOP وغيرها",
     "calendarDesc": "الفعاليات، والاجتماعات، والأوقات المتاحة",
     "linkedInDesc": "السياق المهني وشبكة العلاقات",
     "spotifyDesc": "الموسيقى، وقوائم تشغيل المزاج، وسجل الاستماع",

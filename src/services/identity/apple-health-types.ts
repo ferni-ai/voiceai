@@ -4,7 +4,7 @@
  * Type definitions for Apple Health integration.
  * Apple Health data comes from the native iOS app via sync API.
  *
- * Unlike Ecobee/Oura/Eight Sleep, Apple Health doesn't have a web API.
+ * Unlike Ecobee/Oura, Apple Health doesn't have a web API.
  * The native app reads HealthKit data and syncs it to our backend.
  */
 

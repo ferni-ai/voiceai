@@ -154,7 +154,7 @@ describe('GET /spotify/login', () => {
     const start = await fetch(`${base}/auth/oauth/start`, {
       method: 'POST',
       headers: { authorization: 'Bearer tok-A', 'content-type': 'application/json' },
-      body: JSON.stringify({ provider: 'fitbit' }),
+      body: JSON.stringify({ provider: 'whoop' }),
     });
     expect(start.status).toBe(200);
     const { url } = (await start.json()) as { url: string };

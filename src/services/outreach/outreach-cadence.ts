@@ -39,6 +39,14 @@ export function lastTalkedAt(user: Record<string, unknown>): number | undefined 
   return toTime(user.lastContact) ?? toTime(user.lastConversationDate);
 }
 
+/** No proactive message within this many hours of a call: what's open waits a little. */
+export const JUST_TALKED_HOURS = 12;
+
+/** True when they talked with Ferni less than JUST_TALKED_HOURS before `at` (ms). */
+export function justTalked(lastTalked: number | undefined, at: number): boolean {
+  return lastTalked !== undefined && at - lastTalked < JUST_TALKED_HOURS * 60 * 60 * 1000;
+}
+
 /**
  * Conversations the user has had with Ferni: the profile counter
  * (`totalConversations`, incremented by updateProfileFromSession for every

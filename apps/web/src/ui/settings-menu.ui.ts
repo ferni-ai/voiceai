@@ -59,7 +59,6 @@ export interface SettingsMenuUICallbacks {
   onSpotifyClick?: () => void;
   onVibeControllerClick?: () => void;
   onSmartHomeClick?: () => void;
-  onEightSleepClick?: () => void;
   onOuraClick?: () => void;
   onAppleHealthClick?: () => void;
   onTrustJourneyClick?: () => void;
@@ -1112,9 +1111,6 @@ class SettingsMenuUI {
         break;
       case 'smart-home':
         this.callbacks.onSmartHomeClick?.();
-        break;
-      case 'eight-sleep-settings':
-        this.callbacks.onEightSleepClick?.();
         break;
       case 'oura-settings':
         this.callbacks.onOuraClick?.();

@@ -94,7 +94,7 @@ setup_secret "terra-dev-id" \
 setup_secret "oura-client-id" \
   "Oura Ring - Client ID" \
   "https://cloud.ouraring.com/oauth2/applications" \
-  "Create app, Redirect URI: https://app.ferni.ai/api/oura/callback"
+  "Create app, Redirect URI: https://app.ferni.ai/wearables/oura/callback"
 
 setup_secret "oura-client-secret" \
   "Oura Ring - Client Secret" \

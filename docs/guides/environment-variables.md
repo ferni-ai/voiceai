@@ -225,9 +225,9 @@ booking or search API that a voice LLM may use.
 2. Add redirect URI matching your production URL
 3. Set `SPOTIFY_REDIRECT_URI` environment variable to match
 
-### Apple Services (MusicKit & WeatherKit)
+### Apple MusicKit
 
-For Apple Music search and premium weather data:
+For Apple Music search:
 
 | Variable            | Required | Description                                     |
 | ------------------- | -------- | ----------------------------------------------- |
@@ -240,7 +240,7 @@ For Apple Music search and premium weather data:
 
 1. Go to [Apple Developer Account](https://developer.apple.com/account/)
 2. Navigate to **Keys** → **Create a Key**
-3. Enable **MusicKit** and **WeatherKit**
+3. Enable **MusicKit**
 4. Download the `.p8` private key file
 5. Add to `.env`:
 
@@ -252,30 +252,25 @@ MIGTAgEAMBMGByq...
 -----END PRIVATE KEY-----"
 ```
 
-**Free Tier:** Apple Developer account ($99/year) includes:
-- MusicKit: 25,000 API calls/month
-- WeatherKit: 500,000 API calls/month
+**Free Tier:** Apple Developer account ($99/year) includes MusicKit: 25,000 API calls/month.
 
-### Home Assistant (Smart Home)
+### Apple WeatherKit (REST)
 
-Control smart home devices via Home Assistant:
+`src/services/apple/weatherkit.ts`. Its own key and a Services ID, so it never
+shares env names with APNs, Sign in with Apple or MusicKit. Without all four it
+returns `unconfigured` and calls nothing.
 
-| Variable               | Required | Description                              |
-| ---------------------- | -------- | ---------------------------------------- |
-| `HOME_ASSISTANT_URL`   | ✓        | Your Home Assistant URL                  |
-| `HOME_ASSISTANT_TOKEN` | ✓        | Long-lived access token                  |
+| Variable                 | Secret Manager (`johnb-2025`) | Description                                         |
+| ------------------------ | ----------------------------- | --------------------------------------------------- |
+| `APPLE_TEAM_ID`          | `apple-team-id`               | 10-character Team ID (JWT `iss`, first half of `id`) |
+| `WEATHERKIT_KEY_ID`      | `weatherkit-key-id`           | Key ID of a key with WeatherKit enabled (JWT `kid`)  |
+| `WEATHERKIT_SERVICE_ID`  | `weatherkit-service-id`       | The registered Services ID (JWT `sub`)               |
+| `WEATHERKIT_PRIVATE_KEY` | `weatherkit-private-key`      | The key's `.p8` PEM contents (`\n` escapes accepted) |
 
-**Setup:**
-
-1. Set up [Home Assistant](https://www.home-assistant.io/)
-2. Go to your profile → **Long-Lived Access Tokens**
-3. Create a new token
-4. Add to `.env`:
-
-```bash
-HOME_ASSISTANT_URL=http://homeassistant.local:8123
-HOME_ASSISTANT_TOKEN=eyJhbGciOi...your-long-token...
-```
+Licence (Apple Developer Program License Agreement, Attachment 8): show the
+Apple Weather attribution and legal link the client returns with every result,
+pass severe weather alerts through verbatim with the issuing agency, and do not
+cache weather data beyond temporary use. 500,000 calls/month are included.
 
 ---
 

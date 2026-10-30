@@ -251,9 +251,7 @@ export async function handleIntegrationsRoutes(
       const validPlatforms: BiometricPlatform[] = [
         'healthkit',
         'googlefit',
-        'oura',
         'whoop',
-        'fitbit',
         'terra',
       ];
       if (!validPlatforms.includes(platform)) {

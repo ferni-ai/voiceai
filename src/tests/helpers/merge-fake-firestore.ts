@@ -20,6 +20,8 @@ export interface MergeFakeState {
   failReads?: Set<string>;
   /** Write count per path, served as the snapshot's updateTime. */
   versions: Map<string, number>;
+  /** Runs at the start of every doc read, before the snapshot is taken (a write racing a read). */
+  beforeRead?: (path: string) => void;
   /** Runs before every write (e.g. to simulate a token refresh racing the migration). */
   beforeWrite?: (path: string) => void;
 }
@@ -107,6 +109,7 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
       path,
       id: path.split('/').pop() ?? '',
       get: async () => {
+        state.beforeRead?.(path);
         if (state.failReads?.has(path)) {
           throw Object.assign(new Error('simulated read failure'), { code: 14 });
         }

@@ -2438,10 +2438,6 @@
         "description": "Synchronise tes données de santé avec ton Apple Watch et ton iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Connecte ton appareil Fitbit",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Synchronise tes objets connectés Garmin",
         "name": "Garmin"
@@ -8398,7 +8394,7 @@
     "appleHealthDesc": "Données de sommeil, d'activité et de fréquence cardiaque",
     "ouraDesc": "Qualité du sommeil et score de préparation",
     "eightSleepDesc": "Suivi du sommeil et température",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP et plus encore",
+    "wearablesDesc": "Garmin, WHOOP et plus encore",
     "calendarDesc": "Événements, réunions et disponibilités",
     "linkedInDesc": "Contexte professionnel et réseau",
     "spotifyDesc": "Musique, playlists selon ton humeur et historique d'écoute",
