@@ -23,6 +23,7 @@ import {
   type StoredGoogleCalendarTokens,
 } from './google-calendar-token-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { noteLinkedTokenUse } from '../../utils/linked-token-use.js';
 import { GOOGLE_CALENDAR_SCOPES } from '../../config/google-calendar-scopes.js';
 import { isInsufficientLink } from './google-link-scope.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
@@ -309,18 +310,21 @@ export async function getValidAccessToken(userId: string): Promise<string | null
   // Check if this user's token is known to be permanently failed
   if (isTokenPermanentlyFailed(userId)) {
     getLogger().debug({ userId }, 'Skipping token refresh - token is marked as permanently failed');
+    noteLinkedTokenUse('google_calendar', userId, 'needs_reauth');
     return null;
   }
 
   let tokens = await getUserTokens(userId);
   if (!tokens) {
     getLogger().debug({ userId }, 'No tokens found for user');
+    noteLinkedTokenUse('google_calendar', userId, 'not_connected');
     return null;
   }
 
   if (areTokensExpired(tokens)) {
     if (!tokens.refresh_token) {
       getLogger().warn({ userId }, 'Tokens expired and no refresh token available');
+      noteLinkedTokenUse('google_calendar', userId, 'needs_reauth');
       return null;
     }
 
@@ -331,17 +335,21 @@ export async function getValidAccessToken(userId: string): Promise<string | null
       // Check if this is a permanent failure (invalid_grant, etc.)
       if (error instanceof TokenPermanentlyInvalidError) {
         markTokenAsFailed(userId);
+        noteLinkedTokenUse('google_calendar', userId, 'needs_reauth');
         getLogger().warn(
           { userId },
           'OAuth token permanently invalid - user needs to re-authenticate'
         );
       } else {
+        // A transient failure ran no token: only missing credentials are a link state.
+        if (!isOAuthConfigured()) noteLinkedTokenUse('google_calendar', userId, 'unconfigured');
         getLogger().error({ userId, error }, 'Failed to refresh tokens');
       }
       return null;
     }
   }
 
+  noteLinkedTokenUse('google_calendar', userId, 'connected');
   return tokens.access_token;
 }
 
@@ -349,9 +357,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 // CALENDAR OPERATIONS
 // ============================================================================
 
-/**
- * List user's calendars (with rate limiting and circuit breaker protection)
- */
+/** List user's calendars (with rate limiting and circuit breaker protection) */
 export async function listCalendars(accessToken: string): Promise<CalendarListEntry[]> {
   const rateLimiter = getRateLimiter('google-calendar');
   if (!rateLimiter.tryAcquire()) {
@@ -374,9 +380,7 @@ export async function listCalendars(accessToken: string): Promise<CalendarListEn
   });
 }
 
-/**
- * Create a calendar event (with rate limiting and circuit breaker protection)
- */
+/** Create a calendar event (with rate limiting and circuit breaker protection) */
 export async function createEvent(
   accessToken: string,
   calendarId: string,
@@ -412,9 +416,7 @@ export async function createEvent(
   });
 }
 
-/**
- * Update a calendar event (with rate limiting)
- */
+/** Update a calendar event (with rate limiting) */
 export async function updateEvent(
   accessToken: string,
   calendarId: string,
@@ -447,9 +449,7 @@ export async function updateEvent(
   return (await response.json()) as CalendarEvent;
 }
 
-/**
- * Delete a calendar event (with rate limiting)
- */
+/** Delete a calendar event (with rate limiting) */
 export async function deleteEvent(
   accessToken: string,
   calendarId: string,
