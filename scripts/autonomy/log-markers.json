@@ -33,7 +33,7 @@
       },
       {
         "marker": "Ending session wait",
-        "emitter": "src/agents/voice-agent-entry/index.ts",
+        "emitter": "src/agents/voice-agent-entry/run-until-call-ends.ts",
         "count": 1
       },
       {
