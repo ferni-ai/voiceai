@@ -24,6 +24,7 @@ import {
   screenedCallerText,
 } from './caller-text.js';
 import { about, firestoreCallRecords, personWord, type CallRecords } from './call-status.js';
+import { aboutPurpose, callStatusByPurposeOn, purposeWords } from './call-purpose.js';
 import { spokenWhen } from './held-call-clocks.js';
 import {
   setCallRecallPort,
@@ -111,13 +112,47 @@ const awaitingAs =
       ? [{ state: 'awaiting_yes', name: callerText(c.name.replace(/^call\s+/i, ''), 40), at: c.at }]
       : [];
 
-/** Where the latest call to this person stands, from the records; undefined when there is none. */
-export function recallFrom(
-  q: CallQuery,
-  input: { deferred: Doc[]; results: Doc[]; awaiting?: readonly SeenCall[] },
-  now: number
+interface Records {
+  deferred: Doc[];
+  results: Doc[];
+  awaiting?: readonly SeenCall[];
+}
+const anyCall = (): boolean => true;
+const noReadBacks = (): RecalledCall[] => [];
+
+/**
+ * Where the latest call to this person stands, from the records; undefined when there is none.
+ * None to the person, and CALL_STATUS_BY_PURPOSE on: the call whose purpose the words name.
+ */
+export function recallFrom(q: CallQuery, input: Records, now: number): RecalledCall | undefined {
+  return latestCall(input, now, (d) => matches(d, q), awaitingAs(q)) ?? byPurpose(q, input, now);
+}
+
+/** Calls to two or more people match the purpose: name them, so the caller is asked which. */
+function byPurpose(q: CallQuery, input: Records, now: number): RecalledCall | undefined {
+  const words = callStatusByPurposeOn() ? purposeWords(q.topic) : [];
+  if (words.length === 0) return undefined;
+  const hit = (d: Doc): boolean => aboutPurpose(d, words);
+  const deferred = input.deferred.filter((d) => d.kind === 'on_behalf' && hit(d));
+  const found = { deferred, results: input.results.filter(hit) };
+  const people = new Map<string, string>();
+  for (const d of [...found.deferred, ...found.results]) {
+    const r = (d.request ?? {}) as Doc;
+    const c = (r.resolvedContact ?? {}) as Doc;
+    const [name, phone] = [nameOf(d), lastTen(c.phone ?? r.contactPhone)];
+    people.set(phone === '' ? name.toLowerCase() : phone, name);
+  }
+  if (people.size > 1) return { state: 'which', name: [...people.values()].join(' or '), at: now };
+  return latestCall(found, now, anyCall, noReadBacks);
+}
+
+function latestCall(
+  input: Records,
+  now: number,
+  match: (d: Doc) => boolean,
+  seen: (c: SeenCall) => RecalledCall[]
 ): RecalledCall | undefined {
-  const deferred = input.deferred.filter((d) => d.kind === 'on_behalf' && matches(d, q));
+  const deferred = input.deferred.filter((d) => d.kind === 'on_behalf' && match(d));
   const waiting = deferred
     .filter((d) => d.status === 'pending' && now - time(d.scheduledFor) <= LATE_AFTER_MS)
     .sort((a, b) => time(a.scheduledFor) - time(b.scheduledFor))[0];
@@ -127,7 +162,7 @@ export function recallFrom(
     const detail = spokenWhen(new Date(at), zone, new Date(now));
     return { state: 'set', name: nameOf(waiting), at, detail };
   }
-  const events: RecalledCall[] = input.results.filter((d) => matches(d, q)).map(fromResult);
+  const events: RecalledCall[] = input.results.filter(match).map(fromResult);
   for (const d of deferred) {
     const at = time(d.placedAt ?? d.claimedAt ?? d.scheduledFor);
     if (d.status === 'placing' || d.status === 'placed')
@@ -135,7 +170,7 @@ export function recallFrom(
     const reason = DEFERRED_FAILED[String(d.status)];
     if (reason) events.push({ state: 'failed', name: nameOf(d), at, detail: reason });
   }
-  events.push(...(input.awaiting ?? []).flatMap(awaitingAs(q)));
+  events.push(...(input.awaiting ?? []).flatMap(seen));
   // Newest first; at the same instant a result beats the "placed" it closes.
   const rank = (e: RecalledCall): number => (e.state === 'done' || e.state === 'failed' ? 1 : 0);
   return events
@@ -196,6 +231,8 @@ export function recallLine(
     return `No call to ${person} in the last 30 days: Ferni hasn't called them. Say "not yet" plainly; offer to call only if the caller wants it.`;
   const { name } = call;
   const when = ago(call.at, now);
+  if (call.state === 'which')
+    return `More than one call Ferni made fits that: to ${name}. Ask the caller which one they mean; don't guess, and don't offer a new call.`;
   if (call.state === 'awaiting_yes')
     return `Not called: Ferni read back a call to ${name} ${when} and never got the caller's yes, so nothing was dialed. Say that plainly; read a call back only if they want it now.`;
   if (call.state === 'set')

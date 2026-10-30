@@ -24,6 +24,8 @@ export interface CallQuery {
   /** Person words ("dad", "sam"), as call-status names them. */
   readonly words: readonly string[];
   readonly phone?: string;
+  /** callStatus only: the caller's words, for a call found by its purpose (CALL_STATUS_BY_PURPOSE). */
+  readonly topic?: string;
 }
 /** A read-back waiting on the owner's yes: who, and when. */
 export interface SeenCall {
@@ -32,7 +34,8 @@ export interface SeenCall {
   readonly at: number;
 }
 export interface RecalledCall {
-  readonly state: 'awaiting_yes' | 'set' | 'in_progress' | 'done' | 'failed';
+  readonly state: 'awaiting_yes' | 'set' | 'in_progress' | 'done' | 'failed' | 'which';
+  /** 'which': the people whose calls the purpose words fit ("A or B"). */
   readonly name: string;
   readonly at: number;
   /** 'set': when it rings, their time. 'done': how it went. 'failed': why. */
@@ -133,7 +136,7 @@ export async function callStatusReply(
   if (!p || !userId) return NOT_THE_OWNER;
   const person = who.trim();
   if (!person) return 'Ask the caller who they mean.';
-  const q = await queryFor(p, userId, person);
+  const q = { ...(await queryFor(p, userId, person)), topic: person };
   const call = await p.recall(userId, q, await awaitingFor(p, userId, live, now), now);
   return p.line(call, person, now);
 }
