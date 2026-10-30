@@ -18,7 +18,7 @@ import type {
 const str = (x: unknown): string | undefined => (typeof x === 'string' ? x : undefined);
 
 /** A stored document as a sealed letter, or null if it isn't one. */
-export function toFutureLetter(id: string, data: unknown): FutureLetter | null {
+function toFutureLetter(id: string, data: unknown): FutureLetter | null {
   if (typeof data !== 'object' || data === null) return null;
   const d = data as Record<string, unknown>;
   const body = str(d.body);

@@ -60,12 +60,12 @@ export function setFutureLetterPorts(next: FutureLetterPorts | null): void {
   ports = next;
 }
 
-export function futureLetterOpenerOn(env: Env = process.env): boolean {
+function futureLetterOpenerOn(env: Env = process.env): boolean {
   return flagOn('FUTURE_LETTER_OPENER', env);
 }
 
 /** Jordan keeps the letters (the tool's own persona); nobody else offers one in a hello. */
-export const LETTER_KEEPER = 'jordan-taylor';
+const LETTER_KEEPER = 'jordan-taylor';
 const OFFER_AGAIN_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** "October 18, 2027" in the caller's zone (UTC when unknown). */
