@@ -5,7 +5,7 @@
  *
  * Dev e2e sweep 2026-10-30: "How long to drive from the Denver airport to
  * downtown Boulder?" and "cheapest one-way flight Denver to Phoenix" both went
- * to searchWeb: no topic word loaded the domains, and the call's first 64
+ * to searchWeb: no topic word offered either tool, and the call's first 64
  * tools hold neither tool. The call and each turn are built as in production
  * (first-agent-call.ts).
  */
@@ -17,6 +17,10 @@ import { startCall, turn, type Call } from './first-agent-call.js';
 const DRIVE = 'How long to drive from the Denver airport to downtown Boulder?';
 const FLIGHT = 'Cheapest one-way flight Denver to Phoenix next Friday?';
 const TOPIC_HEADROOM = 24; // MID_SESSION_TOPIC_TOOLS default (initial-tools.ts)
+// transportation's ride tools (cancelRide acts on a linked Uber account); travel brings its
+// two flight lookups only, not getTripSuggestions (travel-topics.ts TOPIC_ONLY_TOOLS)
+const NEVER_OFFERED = ['cancelRide', 'requestRide', 'scheduleRide', 'getRideStatus'];
+const NOT_FOR_FLIGHTS = [...NEVER_OFFERED, 'getTripSuggestions'];
 const log = { info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() };
 
 /** TOOLS_SAME_TURN off: the transcript handler's topic load and its deferred update. */
@@ -42,12 +46,22 @@ describe('TOOLS_SAME_TURN off', () => {
     const call = await startCall('commute-off');
     expect(call.initialNames).not.toContain('getCommuteTime');
 
-    expect(await deferredUpdate(call, DRIVE)).toContain('transportation');
+    expect(await deferredUpdate(call, DRIVE)).toEqual(['information']);
 
     const tools = Object.keys(call.agent.toolCtx.functionTools);
     expect(tools).toContain('getCommuteTime');
+    expect(tools).toEqual(expect.not.arrayContaining(NEVER_OFFERED));
     expect(tools.length).toBeLessThanOrEqual(DEFAULT_INITIAL_TOOL_LIMIT + TOPIC_HEADROOM);
     expect((await turn(call, 'And with traffic?')).request).toContain('getCommuteTime');
+  }, 120_000);
+
+  it('re-offers information for a drive question after a weather question loaded it', async () => {
+    const call = await startCall('commute-after-weather-off');
+    await deferredUpdate(call, "What's the weather forecast for tomorrow?");
+    expect(call.loader.isDomainLoaded('information')).toBe(true);
+
+    expect(await deferredUpdate(call, DRIVE)).toEqual(['information']);
+    expect(Object.keys(call.agent.toolCtx.functionTools)).toContain('getCommuteTime');
   }, 120_000);
 
   it('gives the agent searchFlights after a flight question', async () => {
@@ -56,7 +70,11 @@ describe('TOOLS_SAME_TURN off', () => {
 
     expect(await deferredUpdate(call, FLIGHT)).toContain('travel');
 
-    expect(Object.keys(call.agent.toolCtx.functionTools)).toContain('searchFlights');
+    const tools = Object.keys(call.agent.toolCtx.functionTools);
+    expect(tools).toContain('searchFlights');
+    expect(tools).toEqual(expect.not.arrayContaining(NOT_FOR_FLIGHTS));
+    // getCurrentTools (turn observers, handoffs) also brings travel's lookups only
+    expect(Object.keys(call.loader.getCurrentTools())).not.toContain('getTripSuggestions');
   }, 120_000);
 
   it('loads neither domain for the idioms', async () => {
@@ -79,13 +97,16 @@ describe('TOOLS_SAME_TURN on', () => {
 
     expect(t.request).toContain('getCommuteTime');
     expect(t.reply).toContain('getCommuteTime');
+    expect(t.request).toEqual(expect.not.arrayContaining(NEVER_OFFERED));
   }, 120_000);
 
   it('puts searchFlights in the request of the turn that asks for a flight', async () => {
     vi.stubEnv('TOOLS_SAME_TURN', 'on');
     const call = await startCall('flight-on');
 
-    expect((await turn(call, FLIGHT)).request).toContain('searchFlights');
+    const t = await turn(call, FLIGHT);
+    expect(t.request).toContain('searchFlights');
+    expect(t.request).toEqual(expect.not.arrayContaining(NOT_FOR_FLIGHTS));
   }, 120_000);
 
   it('keeps getCommuteTime when a bigger topic domain loads with it', async () => {

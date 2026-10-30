@@ -31,7 +31,7 @@ import { predictionTopicPatterns } from './prediction-topics.js';
 import { flagOn } from '../../config/env-flag.js';
 import { LEAN_LOADER_DOMAINS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { SAME_TURN_TOPIC_PATTERNS } from './same-turn-topics.js';
-import { DOMAIN_LEAD_TOOLS } from './travel-topics.js';
+import { TOPIC_LEAD_TOOLS, TOPIC_ONLY_TOOLS } from './travel-topics.js';
 
 // Re-export types
 export type {
@@ -53,6 +53,8 @@ export class DynamicToolLoader {
   private loadedDomains = new Map<ToolDomain, LoadedDomainState>();
   private toolContext: ToolContext | null = null;
   private unloadTimer: NodeJS.Timeout | null = null;
+  /** The last processMessage's lead tools, for its deferred update */
+  private leadTools: readonly string[] = [];
 
   constructor(config: Partial<DynamicLoaderConfig> = {}) {
     this.config = {
@@ -132,9 +134,11 @@ export class DynamicToolLoader {
       ...(flagOn('WEEKLY_PREDICTION') ? predictionTopicPatterns(this.toolContext?.userId) : []),
       ...(sameTurnToolsEnabled() ? SAME_TURN_TOPIC_PATTERNS : []),
     ];
+    const leadTools = new Set<string>();
     for (const [topic, domains, pattern] of patterns) {
       if (pattern.test(lowerMessage)) {
         detectedTopics.push(topic);
+        TOPIC_LEAD_TOOLS[topic]?.forEach((id) => leadTools.add(id));
         for (const domain of domains) {
           const currentScore = domainScores.get(domain) || 0;
           const priority = DOMAIN_PRIORITY[domain] || 10;
@@ -155,6 +159,7 @@ export class DynamicToolLoader {
     return {
       detectedTopics,
       suggestedDomains,
+      leadTools: [...leadTools],
       confidence,
     };
   }
@@ -298,6 +303,7 @@ export class DynamicToolLoader {
    */
   async processMessage(message: string): Promise<ToolDomain[]> {
     const detection = this.detectTopics(message);
+    this.leadTools = detection.leadTools;
 
     if (detection.confidence < 0.3 || detection.suggestedDomains.length === 0) {
       return [];
@@ -315,6 +321,8 @@ export class DynamicToolLoader {
         // Update last used
         const state = this.loadedDomains.get(domain)!;
         state.lastUsedAt = new Date();
+        // Re-offer a loaded domain whose asked-for tool an earlier cap may have cut
+        if (this.holdsLeadTool(domain)) loadedDomains.push(domain);
       }
     }
 
@@ -332,6 +340,11 @@ export class DynamicToolLoader {
     return loadedDomains;
   }
 
+  private holdsLeadTool(domain: ToolDomain): boolean {
+    const lead = this.leadTools;
+    return lead.length > 0 && toolRegistry.getByDomain(domain).some((d) => lead.includes(d.id));
+  }
+
   /**
    * Get tools for the current context
    */
@@ -343,8 +356,15 @@ export class DynamicToolLoader {
     const loadedDomainList = Array.from(this.loadedDomains.keys());
 
     // Build tools from loaded domains, plus the essential tools by id
+    // TOPIC_ONLY_TOOLS: such a domain brings only its listed tools
     const result = toolRegistry.buildToolSet(
-      { domains: loadedDomainList, optional: [...this.essentialToolIds()] },
+      {
+        domains: loadedDomainList.filter((d) => !TOPIC_ONLY_TOOLS[d]),
+        optional: [
+          ...this.essentialToolIds(),
+          ...loadedDomainList.flatMap((d) => TOPIC_ONLY_TOOLS[d] ?? []),
+        ],
+      },
       this.toolContext
     );
 
@@ -357,7 +377,10 @@ export class DynamicToolLoader {
    * update's 64-tool cap kept those and cut the new domain: getCommuteTime
    * stayed unavailable all call (local, 2026-10-08).
    */
-  getToolsForDomains(domains: readonly string[]): Record<string, Tool> {
+  getToolsForDomains(
+    domains: readonly string[],
+    leadTools: readonly string[] = this.leadTools
+  ): Record<string, Tool> {
     const ctx = this.toolContext;
     if (!ctx) {
       throw new Error('DynamicToolLoader not initialized');
@@ -372,16 +395,17 @@ export class DynamicToolLoader {
     // the update's cap ran out inside the first. "find me a taco place nearby"
     // loads information (57 tools) and local-search (6), and none of
     // local-search's tools landed.
-    // A domain's lead tools (getCommuteTime, searchFlights) go first in it.
     const perDomain = domains.filter(isDomain).map((domain) => {
-      const tools = Object.entries(toolRegistry.buildToolSet({ domains: [domain] }, ctx).tools);
-      const lead = DOMAIN_LEAD_TOOLS[domain] ?? [];
-      return [
-        ...lead.flatMap((name) => tools.filter(([id]) => id === name)),
-        ...tools.filter(([id]) => !lead.includes(id)),
-      ];
+      const only = TOPIC_ONLY_TOOLS[domain];
+      const spec = only ? { optional: [...only] } : { domains: [domain] };
+      return Object.entries(toolRegistry.buildToolSet(spec, ctx).tools);
     });
+    // The tools the turn's topics asked for (getCommuteTime, searchFlights) go first.
     const interleaved: Record<string, Tool> = {};
+    for (const id of leadTools) {
+      const entry = perDomain.flat().find(([name]) => name === id);
+      if (entry) interleaved[id] = entry[1];
+    }
     for (let i = 0; perDomain.some((tools) => i < tools.length); i++) {
       for (const tools of perDomain) {
         const entry = tools[i];

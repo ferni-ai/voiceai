@@ -1,6 +1,7 @@
 /**
- * Drive-time and flight questions load transportation (getCommuteTime) and
- * travel (searchFlights); the same words used as idioms load neither.
+ * Drive-time and flight questions ask for getCommuteTime (information) and
+ * searchFlights (travel), never the transportation ride tools; the same words
+ * used as idioms ask for neither.
  *
  * Dev e2e sweep 2026-10-30: both questions below went to searchWeb because no
  * topic word loaded either domain.
@@ -9,7 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { DynamicToolLoader } from '../index.js';
 
 const loader = new DynamicToolLoader({ enableAutoUnload: false, essentialDomains: [] });
-const domainsFor = (said: string) => loader.detectTopics(said.toLowerCase()).suggestedDomains;
+const detect = (said: string) => loader.detectTopics(said.toLowerCase());
+const domainsFor = (said: string) => detect(said).suggestedDomains;
 
 describe('travel topic words', () => {
   it.each([
@@ -21,8 +23,10 @@ describe('travel topic words', () => {
     'How long does it take to get to the airport?',
     'Is it a long drive to Vail?',
     'What is the drive time to Golden?',
-  ])('loads transportation for %j', (said) => {
-    expect(domainsFor(said)).toContain('transportation');
+  ])('asks for getCommuteTime from information for %j', (said) => {
+    expect(domainsFor(said)).toContain('information');
+    expect(domainsFor(said)).not.toContain('transportation');
+    expect(detect(said).leadTools[0]).toBe('getCommuteTime');
   });
 
   it.each([
@@ -31,12 +35,14 @@ describe('travel topic words', () => {
     "I want to fly to Boston next week, what's the airfare?",
     'How much is a plane ticket to Seattle?',
     "We're flying out of DIA on Sunday",
-  ])('loads travel for %j', (said) => {
+  ])('asks for searchFlights from travel for %j', (said) => {
     expect(domainsFor(said)).toContain('travel');
+    expect(detect(said).leadTools[0]).toBe('searchFlights');
   });
 
-  it('maps "travel" to the travel domain, which holds searchFlights', () => {
+  it('offers searchFlights for "travel"', () => {
     expect(domainsFor('I love to travel')).toContain('travel');
+    expect(detect('I love to travel').leadTools).toContain('searchFlights');
   });
 
   it.each([
@@ -50,9 +56,8 @@ describe('travel topic words', () => {
     'My fight or flight kicked in',
     'Read the directions on the bottle',
     'How far along are you in the book?',
-  ])('does not load transportation or travel for %j', (said) => {
-    const domains = domainsFor(said);
-    expect(domains).not.toContain('transportation');
-    expect(domains).not.toContain('travel');
+  ])('asks for no travel tool for %j', (said) => {
+    expect(detect(said).leadTools).toEqual([]);
+    expect(domainsFor(said)).not.toContain('travel');
   });
 });

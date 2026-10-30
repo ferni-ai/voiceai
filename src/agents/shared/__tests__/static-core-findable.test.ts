@@ -17,11 +17,13 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
   },
 }));
 
-const { isFindableDomain, NEVER_FINDABLE_DOMAINS, NEVER_PIN_TOOLS } =
+const { isFindableDomain, isFindableTool, NEVER_FINDABLE_DOMAINS, NEVER_PIN_TOOLS } =
   await import('../../../tools/dynamic-loader/findable-domains.js');
 const { DEFAULT_ESSENTIAL_DOMAINS, TOPIC_TO_DOMAINS } =
   await import('../../../tools/dynamic-loader/index.js');
-const { DenseToolIndex } = await import('../../../tools/retrieval/dense-index.js');
+const { DenseToolIndex, loadIntentManual } =
+  await import('../../../tools/retrieval/dense-index.js');
+const intentManual = loadIntentManual();
 const { fakeEmbedder } = await import('../../../tools/retrieval/__tests__/fake-embedder.js');
 const { TurnToolRetrieval, setTurnToolRetrieval } =
   await import('../../../tools/retrieval/turn-tool-retrieval.js');
@@ -113,9 +115,25 @@ describe('findable domains', () => {
   it('are the essential and topic-loadable domains, never developer, webhooks or settings', () => {
     const live = [...DEFAULT_ESSENTIAL_DOMAINS, ...Object.values(TOPIC_TO_DOMAINS).flat()];
     for (const d of live) expect(isFindableDomain(d)).toBe(!NEVER_FINDABLE_DOMAINS.includes(d));
-    for (const d of [...NEVER_FINDABLE_DOMAINS, 'smart-home', 'vehicle', undefined]) {
+    for (const d of [...NEVER_FINDABLE_DOMAINS, 'smart-home', 'travel', undefined]) {
       expect(isFindableDomain(d)).toBe(false);
     }
+  });
+
+  it('never the ride tools: drive words offer getCommuteTime from information, not transportation', () => {
+    const domainOf = (name: string) => intentManual.tools[name]?.domain;
+    expect(isFindableDomain('transportation')).toBe(false);
+    for (const name of [
+      'cancelRide',
+      'requestRide',
+      'scheduleRide',
+      'getRideStatus',
+      'comparePrices',
+    ]) {
+      expect(domainOf(name)).toBe('transportation');
+      expect(isFindableTool(name, domainOf(name))).toBe(false);
+    }
+    expect(isFindableTool('getCommuteTime', domainOf('getCommuteTime'))).toBe(true);
   });
 });
 
