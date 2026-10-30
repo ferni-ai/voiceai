@@ -161,7 +161,6 @@
   "src/services/integrations/oauth-token-store.ts": 1,
   "src/services/integrations/rate-limiter.ts": 2,
   "src/services/integrations/uber/uber-client.ts": 3,
-  "src/services/integrations/webhook-router.ts": 4,
   "src/services/llm/llm-dynamic-content.ts": 1,
   "src/services/meals/meal-planner.ts": 2,
   "src/services/observability/routing-metrics.ts": 3,
