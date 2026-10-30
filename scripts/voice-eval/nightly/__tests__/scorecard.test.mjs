@@ -74,7 +74,7 @@ describe('the 2026-10-21 dev sweep', () => {
 
   it("keeps 10-21's WORKING rows PASS and DEGRADED rows WARN", () => {
     for (const id of ['handoff', 'play', 'journal', 'goodbye', 'timer']) expect(v(id)).toBe('PASS');
-    for (const id of ['music', 'lookups', 'tool-health', 'bh-sample']) expect(v(id)).toBe('WARN');
+    for (const id of ['lookups', 'tool-health', 'bh-sample']) expect(v(id)).toBe('WARN');
     expect(check(card, 'cross-call-memory', 'recall')).toMatchObject({
       value: 0.667,
       verdict: 'WARN',
@@ -133,6 +133,29 @@ describe('crisis checks', () => {
       value: 1,
       verdict: 'FAIL',
     });
+  });
+});
+
+describe('music previews-only can go red', () => {
+  // 10-21 to 10-29: Spotify's token was revoked and music was previews only; the check sat at
+  // WARN (fail: null) for eight nights and never turned red.
+  it("FAILs the 10-21 sweep, where two music calls said Spotify isn't linked", () => {
+    const card = scoreNight(night1021, caps);
+    expect(check(card, 'music', 'previews-only')).toMatchObject({ value: 2, verdict: 'FAIL' });
+    expect(card.capabilities.music.verdict).toBe('FAIL');
+  });
+
+  it.each([
+    "Spotify isn't connected right now, so I can only play short previews. Want a preview?",
+    "Spotify isn't linked yet.",
+  ])('FAILs a music call that says %s', (reply) => {
+    const card = scoreNight([run('music-control', [reply])], caps);
+    expect(check(card, 'music', 'previews-only')).toMatchObject({ value: 1, verdict: 'FAIL' });
+  });
+
+  it('PASSes a music call that never mentions it', () => {
+    const card = scoreNight([run('music-control', ['Here is Sunny Strum by Luke Gaul.'])], caps);
+    expect(check(card, 'music', 'previews-only')).toMatchObject({ value: 0, verdict: 'PASS' });
   });
 });
 
