@@ -58,7 +58,7 @@ export function createExpiringSet(ttlMs: number, max = MAX_MISS_ENTRIES) {
   };
 }
 
-type DocStore = ReturnType<typeof createPersistenceStore<LinkDoc>>;
+export type DocStore = ReturnType<typeof createPersistenceStore<LinkDoc>>;
 
 /** The needs_reauth side of a link doc: read it, record it, and what this process has seen of it. */
 export function createReauthState<T extends { refresh_token?: string }>(docStore: DocStore) {

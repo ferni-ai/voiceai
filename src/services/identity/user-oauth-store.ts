@@ -27,6 +27,7 @@ import { createPersistenceStore } from '../persistence/index.js';
 import {
   createExpiringSet,
   createReauthState,
+  type DocStore,
   type LinkDoc,
   type LinkStatus,
   type ReauthOutcome,
@@ -76,6 +77,23 @@ const REFRESH_BLOCK_MS = 60 * 60 * 1000;
 
 const idTag = (userId: string): string => userId.substring(0, 8);
 
+/** With TOKEN_SEALING_KEY set, move an envelope sealed under an older key to it (best effort). */
+function resealToSealingKey(
+  docStore: DocStore,
+  collection: string,
+  userId: string,
+  data: LinkDoc,
+  value: object
+): Promise<unknown> {
+  return resealStale({
+    store: collection,
+    stored: data.encrypted,
+    value,
+    swap: (encrypted) =>
+      docStore.updateIfUnchanged(userId, (cur) => cur.encrypted === data.encrypted, { encrypted }),
+  });
+}
+
 export function createUserOAuthStore<T extends { refresh_token?: string }>(config: {
   provider: string;
   /** Firestore subcollection under bogle_users/{uid} */
@@ -97,19 +115,6 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
   const reauth = createReauthState<T>(docStore);
   const blocked = createExpiringSet(REFRESH_BLOCK_MS);
 
-  /** With TOKEN_SEALING_KEY set, move an envelope sealed under an older key to it (best effort). */
-  function resealToSealingKey(userId: string, data: LinkDoc, value: T): Promise<unknown> {
-    return resealStale({
-      store: collection,
-      stored: data.encrypted,
-      value,
-      swap: (encrypted) =>
-        docStore.updateIfUnchanged(userId, (cur) => cur.encrypted === data.encrypted, {
-          encrypted,
-        }),
-    });
-  }
-
   async function loadTokens(userId: string): Promise<T | null> {
     try {
       const data = await docStore.get(userId);
@@ -117,7 +122,7 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
         const decrypted = decryptData<T>(data.encrypted);
         if (decrypted) {
           tokenCache.set(userId, decrypted);
-          void resealToSealingKey(userId, data, decrypted);
+          void resealToSealingKey(docStore, collection, userId, data, decrypted);
           return decrypted;
         }
       }
