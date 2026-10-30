@@ -152,8 +152,7 @@ function buildTurnReminder(
   // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
   const corrected = crisis ? '' : safe.correctionNotesFor(chatCtx, session, process.env, plain);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
-  const thought =
-    options.shape !== false ? attempt('thought', () => thoughtFor(session, words), '') : '';
+  const thought = crisis ? '' : attempt('thought', () => thoughtFor(session, words), '');
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = safe.ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
@@ -169,10 +168,7 @@ function buildTurnReminder(
     attempt('director', () => director?.told(keep) ?? '', ''),
     safe.teamStatusNote(view, words),
     // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
-    safe.heardTeammateNote(
-      words,
-      safe.aliasNoteFor(view, session, chatCtx, options.shape === false)
-    ),
+    safe.heardTeammateNote(words, safe.aliasNoteFor(view, session, chatCtx, crisis)),
     notes,
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.
@@ -243,9 +239,7 @@ function buildTurnReminder(
     // PERSONA_VOICE=on: how this persona sounds, after the shared style so it wins (persona-voice.ts).
     safe.personaVoiceNote(view.currentAgentId, { careful: options.shape === false }),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
-    options.shape !== false
-      ? attempt('exit', () => exitFor(chatCtx, session, words, plain), '')
-      : '',
+    crisis ? '' : attempt('exit', () => exitFor(chatCtx, session, words, plain), ''),
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
     // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
@@ -265,8 +259,24 @@ function buildTurnReminder(
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     !crisis && !answering ? safe.repairNoteFor(chatCtx, session, process.env, plain) : '',
   ].filter(Boolean);
-  // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off. About the
-  // caller, so a failure counts as a dropped identity note.
+  const reminder = reminderText(session, words, turnNotes);
+  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
+  safe.noteReminder(session, {
+    reminder,
+    directorNotes: notes,
+    offered: offered.length,
+    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
+  });
+  return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/**
+ * The notes as one reminder, after the world facts (WORLD_FACTS_IN_CALL=on); with CONTEXT_PACKET=on
+ * the packet carries the same notes. A dropped identity note puts the unverified default first.
+ */
+function reminderText(session: object, words: string, turnNotes: string[]): string {
+  // Where their life stands (in-call-load.ts); nothing when off. About the caller, so a failure
+  // counts as a dropped identity note.
   const caller = callerOf(session);
   const lifeAt = {
     now: Date.now(),
@@ -285,17 +295,9 @@ function buildTurnReminder(
   const unverified = fallbackNote();
   if (unverified) turnNotes.unshift(unverified);
   const joined = [...facts, ...turnNotes].filter(Boolean).join(' ');
-  const reminder = packet
+  return packet
     ? attempt('packet', () => packetReminder(session, words, turnNotes, facts), joined)
     : joined;
-  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
-  safe.noteReminder(session, {
-    reminder,
-    directorNotes: notes,
-    offered: offered.length,
-    droppedIdx: offered.flatMap((note, i) => (!answering && keep(note) ? [] : [i])),
-  });
-  return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
 
 /** A note given twice, unless it pushes him into his internals (no-invented-internals.ts). */
