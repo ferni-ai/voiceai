@@ -89,6 +89,7 @@ const MUST_ERASE = [
   'bogle_users/{uid}/facts', // bi-temporal facts (facts-store.ts)
   'bogle_users/{uid}/user_contacts',
   'bogle_users/{uid}/outreach_attempts',
+  'bogle_users/{uid}/booking_prefs', // booking preferences (booking-prefs-store.ts)
   'bogle_users/{uid}/wellbeing_snapshots',
   'bogle_users/{uid}/trust_profiles',
   'bogle_users/{uid}/relationship_arc',

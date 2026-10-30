@@ -37,6 +37,8 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'alarms',
     'analytics',
     'behavioral_intelligence',
+    // how the owner likes things booked, per kind of place (booking-prefs-store.ts)
+    'booking_prefs',
     // legacy: no writer since memory v2 C5a; old docs are still exported
     'bth_signals',
     'coaching_intelligence',
@@ -206,6 +208,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/memory_highlights', // Memory Lane
   'bogle_users/{uid}/saved_rituals', // Build a Ritual
   'bogle_users/{uid}/journal',
+  'bogle_users/{uid}/booking_prefs', // how they like things booked (BOOKING_PREFS)
   'bogle_users/{uid}/team_insights', // Team Insights
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
   'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
