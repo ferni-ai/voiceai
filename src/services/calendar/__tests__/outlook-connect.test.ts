@@ -212,7 +212,7 @@ describe('disconnect', () => {
     const { removeStrict } = await import('../../identity/user-oauth-store.js');
     const noDb = {
       remove: async () => undefined,
-      existsFresh: async () => {
+      linkStatus: async () => {
         throw new Error('No Firestore (outlook_tokens)');
       },
     };
