@@ -61,6 +61,7 @@ vi.mock('@google-cloud/firestore', () => ({
   },
 }));
 vi.mock('../../token/oauth/wearables.js', () => ({
+  RETIRED_WEARABLE_PROVIDERS: ['fitbit'],
   isProviderConfigured: () => true,
   buildAuthUrl: (p: string, state: string) => `https://${p}.example/authorize?state=${state}`,
   exchangeCode: vi.fn(async () => ({ access_token: 'w', refresh_token: 'r', expires_at: 1 })),
