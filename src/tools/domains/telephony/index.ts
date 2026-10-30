@@ -196,5 +196,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 export { getTelephonyToolDefinitions, callStatusReply };
 export { setCallRecallPort } from './call-status-tool.js';
 export type { CallQuery, CallRecallPort, RecalledCall, SeenCall } from './call-status-tool.js';
+export type { CallOutcome, OnBehalfCallRequest } from './types.js';
 
 export default getToolDefinitions;
