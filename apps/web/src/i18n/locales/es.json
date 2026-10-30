@@ -1216,7 +1216,6 @@
       "journaling": "La crónica",
       "language": "Idioma",
       "lifeContext": "Tu mundo",
-      "linkSpotify": "Conectar Spotify",
       "memoryBrowser": "Lo que recuerdo",
       "musicalYou": "Música compartida",
       "notifications": "Cuándo haré el registro",
@@ -1227,7 +1226,6 @@
       "predictionAccuracy": "Cómo lo estoy haciendo",
       "progressAnalytics": "Cómo te va",
       "shareFerni": "Invita a alguien",
-      "spotifyConnected": "Spotify conectado",
       "supportFerni": "Apoya a Ferni",
       "supportFerniExpanded": "Apoya a Ferni",
       "takeTour": "Dame un recorrido",
@@ -2795,8 +2793,7 @@
       "askFerni": "O pídele a Ferni que reproduzca algo",
       "play": "Reproducir",
       "pause": "Pausar",
-      "skip": "Siguiente",
-      "linkSpotify": "Conecta Spotify en la configuración para escuchar canciones completas"
+      "skip": "Siguiente"
     },
     "volume": "Volumen",
     "skipped": "Omitido",
@@ -8401,7 +8398,6 @@
     "wearablesDesc": "Fitbit, Garmin, WHOOP y más",
     "calendarDesc": "Eventos, reuniones y disponibilidad",
     "linkedInDesc": "Contexto profesional y red de contactos",
-    "spotifyDesc": "Música, listas de reproducción según tu estado de ánimo e historial de reproducción",
     "ecobeeDesc": "Temperatura y comodidad del hogar",
     "vibeControllerDesc": "Controla la música, las luces y más",
     "connected": "Conectado"
@@ -9052,9 +9048,6 @@
     "trustJourneyExplore": "Explorar",
     "customizeTitle": "Personaliza tu experiencia",
     "customizeMessage": "Ajusta los temas, sonidos y más.",
-    "spotifyTitle": "Conectar Spotify",
-    "spotifyMessage": "Vincula tu Spotify para ambientar nuestras conversaciones.",
-    "spotifyConnect": "Conectar",
     "maybeLater": "Tal vez más tarde"
   },
   "mentorTeachings": {

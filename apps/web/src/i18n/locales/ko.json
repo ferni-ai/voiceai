@@ -1270,8 +1270,6 @@
       "notifications": "체크인 알림 시간",
       "toggleTheme": "라이트 / 다크 모드",
       "themeLanguage": "화면 스타일",
-      "linkSpotify": "Spotify 연결하기",
-      "spotifyConnected": "Spotify 연결됨",
       "vibeController": "분위기 설정하기",
       "spotifyRooms": "뮤직 룸",
       "thermostat": "스마트 홈 온도",
@@ -2776,8 +2774,7 @@
       "askFerni": "아니면 Ferni에게 음악을 틀어달라고 부탁해 보세요",
       "play": "재생",
       "pause": "일시 정지",
-      "skip": "건너뛰기",
-      "linkSpotify": "전체 곡을 들으려면 설정에서 Spotify를 연결해 주세요"
+      "skip": "건너뛰기"
     },
     "volume": "볼륨",
     "skipped": "건너뛰었어요",
@@ -8352,7 +8349,6 @@
     "wearablesDesc": "Fitbit, Garmin, WHOOP 등",
     "calendarDesc": "일정, 회의, 비는 시간",
     "linkedInDesc": "커리어 맥락과 네트워크",
-    "spotifyDesc": "음악, 기분별 플레이리스트, 감상 기록",
     "ecobeeDesc": "집안 온도와 쾌적함",
     "vibeControllerDesc": "음악, 조명 등 제어하기",
     "connected": "연결됨"
@@ -8982,10 +8978,7 @@
     "trustJourneyExplore": "둘러보기",
     "customizeTitle": "나에게 맞게 설정하기",
     "customizeMessage": "테마, 소리 등을 조절해 보세요.",
-    "spotifyMessage": "Spotify를 연결해서 대화하는 동안의 기분을 설정해 보세요.",
-    "spotifyConnect": "연결하기",
-    "maybeLater": "나중에 할게요",
-    "spotifyTitle": "Spotify 연결하기"
+    "maybeLater": "나중에 할게요"
   },
   "mentorTeachings": {
     "learningFrom": "배우는 중",

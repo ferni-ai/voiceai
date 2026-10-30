@@ -1,17 +1,14 @@
 /**
- * Spotify connect and token routes act for the verified caller only.
- *
- * GET /spotify/login?device_id=X redirected anyone to Spotify and saved the
- * resulting tokens under X; GET /spotify/token?device_id=X handed X's access
- * token to anyone; GET /spotify/token (no device_id) handed out the server's
- * own Spotify token; /spotify/status and /spotify/unlink read or removed any
- * device's link. Now a link starts at POST /auth/oauth/start (Bearer token),
- * is saved under the uid in the state record the callback consumes, and the
- * read/unlink routes use the verified caller, never an id from the URL.
+ * Ferni doesn't link a person's Spotify account (Developer Policy III.3 bars
+ * voice assistants that control Spotify; Development Mode caps an app at 5
+ * users). POST /auth/oauth/start refuses spotify as an unknown provider, the
+ * login/callback routes are gone, and status/token answer only for the house
+ * Web Playback SDK account. An old link can still be removed: GET
+ * /spotify/unlink deletes the verified caller's, never an id named in the URL.
  *
  * Real HTTP through bindVerifiedIdentity, the REAL oauth-start and spotify
- * handlers and oauth-link-state. Mocked: Firebase token verification, Spotify's
- * code exchange and token storage, and the server-token service.
+ * handlers and oauth-link-state. Mocked: Firebase token verification, the link
+ * store, and the server-token service.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -29,33 +26,17 @@ vi.mock('../../../services/identity/firebase-auth.js', () => ({
   ),
 }));
 
-// Per-account Spotify links, keyed by whatever id the route passes in.
+// Old per-account Spotify links, keyed by uid: delete only.
 const link = vi.hoisted(() => {
-  const store = new Map<string, { access_token: string; expires_at: number }>();
+  const store = new Map<string, { access_token: string }>();
   return {
     store,
-    configured: true,
-    saveTokens: vi.fn(async (id: string, tokens: { access_token: string; expires_at: number }) => {
-      store.set(id, tokens);
-    }),
     removeTokens: vi.fn(async (id: string) => {
       store.delete(id);
     }),
   };
 });
-vi.mock('../../token/oauth/spotify.js', () => ({
-  isConfigured: () => link.configured,
-  buildAuthUrl: (state: string) => `https://accounts.spotify.com/authorize?state=${state}`,
-  exchangeCode: vi.fn(async (code: string) => ({
-    access_token: `access-for-${code}`,
-    refresh_token: 'r',
-    expires_at: Date.now() + 3_600_000,
-  })),
-  saveTokens: link.saveTokens,
-  removeTokens: link.removeTokens,
-  getTokens: async (id: string) => link.store.get(id) ?? null,
-  getValidToken: async (id: string) => link.store.get(id)?.access_token ?? null,
-}));
+vi.mock('../../token/oauth/spotify.js', () => ({ removeTokens: link.removeTokens }));
 
 // The server's own Spotify account (Web Playback SDK token).
 vi.mock('../services/spotify.js', () => ({
@@ -105,7 +86,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   setOAuthLinkStore(null);
   link.store.clear();
-  link.configured = true;
   vi.stubEnv('SPOTIFY_CLIENT_ID', 'sp-id');
   vi.stubEnv('SPOTIFY_CLIENT_SECRET', 'sp-secret');
 });
@@ -113,128 +93,62 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-function get(path: string, opts: { token?: string; cookie?: string } = {}) {
+function get(path: string, opts: { token?: string } = {}) {
   const headers: Record<string, string> = {};
   if (opts.token) headers.authorization = `Bearer ${opts.token}`;
-  if (opts.cookie) headers.cookie = opts.cookie;
   return fetch(`${base}${path}`, { headers, redirect: 'manual' });
 }
 
-/** Run POST /auth/oauth/start + the login hop as `token`; returns state and cookie. */
-async function startLink(token: string, returnUrl = '/music') {
-  const start = await fetch(`${base}/auth/oauth/start`, {
+function start(token: string, provider: string) {
+  return fetch(`${base}/auth/oauth/start`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ provider: 'spotify', returnUrl }),
+    body: JSON.stringify({ provider, returnUrl: '/music' }),
   });
-  expect(start.status).toBe(200);
-  const cookie = (start.headers.get('set-cookie') ?? '').split(';')[0];
-  const { url } = (await start.json()) as { url: string };
-  const login = await get(url, { cookie });
-  const location = login.headers.get('location') ?? '';
-  return { url, login, location, cookie, state: new URL(location, base).searchParams.get('state') };
 }
 
-async function linkAs(token: string, code = 'c1') {
-  const { state, cookie } = await startLink(token);
-  const cb = await get(`/spotify/callback?code=${code}&state=${state}`, { cookie });
-  expect(cb.headers.get('location')).toBe('/music?spotify_linked=true');
-}
+describe('POST /auth/oauth/start { provider: spotify }', () => {
+  it('is not offered, even with Spotify app credentials set', async () => {
+    const res = await start('tok-A', 'spotify');
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Unknown provider' });
+    expect(res.headers.get('set-cookie')).toBeNull(); // no state was minted
 
-describe('GET /spotify/login', () => {
-  it('without a start-issued state: 401 and no redirect to Spotify', async () => {
-    for (const q of ['', '?device_id=victim', '?device_id=victim&state=forged']) {
-      const res = await get(`/spotify/login${q}`);
-      expect(res.status, q).toBe(401);
-      expect(res.headers.get('location'), q).toBeNull();
-    }
-  });
-
-  it('a state minted for another provider is refused', async () => {
-    const start = await fetch(`${base}/auth/oauth/start`, {
-      method: 'POST',
-      headers: { authorization: 'Bearer tok-A', 'content-type': 'application/json' },
-      body: JSON.stringify({ provider: 'fitbit' }),
-    });
-    expect(start.status).toBe(200);
-    const { url } = (await start.json()) as { url: string };
-    const state = new URL(url, base).searchParams.get('state') ?? '';
-    expect((await get(`/spotify/login?state=${state}`)).status).toBe(401);
-  });
-
-  it('503 when Spotify is not configured, at the start and at login', async () => {
-    vi.stubEnv('SPOTIFY_CLIENT_SECRET', '');
-    const start = await fetch(`${base}/auth/oauth/start`, {
-      method: 'POST',
-      headers: { authorization: 'Bearer tok-A', 'content-type': 'application/json' },
-      body: JSON.stringify({ provider: 'spotify' }),
-    });
-    expect(start.status).toBe(503);
-    expect(await start.json()).toEqual({
-      error: "Spotify isn't available right now",
-      unavailable: true,
-    });
-
-    link.configured = false;
-    expect((await get('/spotify/login?device_id=d1')).status).toBe(503);
-  });
-
-  it('with a bound state: redirects to Spotify carrying that state', async () => {
-    const { url, login, location, state } = await startLink('tok-A');
-    expect(url).toMatch(/^\/spotify\/login\?state=[\w-]{43}$/);
-    expect(login.status).toBe(302);
-    expect(location.startsWith('https://accounts.spotify.com/authorize')).toBe(true);
-    expect(state).toBe(new URL(url, base).searchParams.get('state'));
+    expect((await start('tok-A', 'fitbit')).status).toBe(200); // other providers still start
   });
 });
 
-describe('GET /spotify/callback', () => {
-  it('saves tokens under the bound uid, whatever the URL names', async () => {
-    const { state, cookie } = await startLink('tok-A');
-    const cb = await get(`/spotify/callback?code=c1&state=${state}&device_id=victim`, { cookie });
-    expect(cb.headers.get('location')).toBe('/music?spotify_linked=true');
-    expect(link.saveTokens.mock.calls.map((c) => c[0])).toEqual(['uid-A']);
-  });
-
-  it('refuses forged, reused and other-browser states', async () => {
-    const forged = await get('/spotify/callback?code=c&state=never-issued');
-    expect(forged.headers.get('location')).toBe('/?spotify_error=invalid_state');
-
-    const { state, cookie } = await startLink('tok-A');
-    await get(`/spotify/callback?code=c&state=${state}`, { cookie });
-    const reused = await get(`/spotify/callback?code=c&state=${state}`, { cookie });
-    expect(reused.headers.get('location')).toBe('/?spotify_error=invalid_state');
-
-    const other = await startLink('tok-B');
-    const elsewhere = await get(`/spotify/callback?code=c&state=${other.state}`, {
-      cookie: '__session=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    });
-    expect(elsewhere.headers.get('location')).toBe('/?spotify_error=invalid_state');
-
-    expect(link.saveTokens.mock.calls.map((c) => c[0])).toEqual(['uid-A']);
-  });
-});
-
-describe('GET /spotify/token?device_id=…', () => {
-  it('anonymous: 401, even for a linked id', async () => {
-    await linkAs('tok-A');
-    for (const id of ['d1', 'uid-A']) {
-      const res = await get(`/spotify/token?device_id=${id}`);
-      expect(res.status, id).toBe(401);
-      expect(await res.text()).not.toContain('access-for');
+describe('the per-user connect routes are gone', () => {
+  it('GET /spotify/login and /spotify/callback are not handled: no redirect, nothing saved', async () => {
+    for (const path of [
+      '/spotify/login?state=s',
+      '/spotify/login?device_id=d1',
+      '/spotify/callback?code=c1&state=s',
+    ]) {
+      const res = await get(path, { token: 'tok-A' });
+      expect(res.status, path).toBe(404);
+      expect(res.headers.get('location'), path).toBeNull();
     }
   });
 
-  it("returns the caller's own token; B cannot read A's by naming it", async () => {
-    await linkAs('tok-A', 'a-code');
+  it("GET /spotify/token?device_id=… is the admin-only server token, never a user's", async () => {
+    link.store.set('uid-A', { access_token: 'user-access' });
+    const res = await get('/spotify/token?device_id=d1', { token: 'tok-A' });
+    expect(res.status).toBe(403);
+    const body = await res.text();
+    expect(body).not.toContain('user-access');
+    expect(body).not.toContain('server-access-token');
+  });
 
-    const mine = await get('/spotify/token?device_id=d1', { token: 'tok-A' });
-    expect(mine.status).toBe(200);
-    expect(await mine.json()).toMatchObject({ linked: true, access_token: 'access-for-a-code' });
-
-    const theirs = await get('/spotify/token?device_id=uid-A', { token: 'tok-B' });
-    expect(theirs.status).toBe(404);
-    expect(await theirs.text()).not.toContain('access-for-a-code');
+  it('GET /spotify/status?device_id=… reports no per-user link and offers no connect', async () => {
+    link.store.set('uid-A', { access_token: 'user-access' });
+    const res = await get('/spotify/status?device_id=d1', { token: 'tok-A' });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      configured: true,
+      has_refresh_token: true,
+      has_web_device: false,
+    });
   });
 });
 
@@ -252,19 +166,8 @@ describe('GET /spotify/token (server Web Playback token)', () => {
   });
 });
 
-describe('GET /spotify/status?device_id=…', () => {
-  it('anonymous 401; each caller sees only their own link', async () => {
-    await linkAs('tok-A');
-    expect((await get('/spotify/status?device_id=uid-A')).status).toBe(401);
-
-    const a = await get('/spotify/status?device_id=d1', { token: 'tok-A' });
-    expect(await a.json()).toMatchObject({ spotify_configured: true, linked: true });
-
-    const b = await get('/spotify/status?device_id=uid-A', { token: 'tok-B' });
-    expect(await b.json()).toMatchObject({ linked: false });
-  });
-
-  it('without device_id: still the public SDK config status', async () => {
+describe('GET /spotify/status', () => {
+  it('the public SDK config status', async () => {
     const res = await get('/spotify/status');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
@@ -275,14 +178,15 @@ describe('GET /spotify/status?device_id=…', () => {
   });
 });
 
-describe('GET /spotify/unlink', () => {
-  it("anonymous 401; B naming A's id removes nothing of A's", async () => {
-    await linkAs('tok-A');
+describe('GET /spotify/unlink (delete only)', () => {
+  it("anonymous 401; B naming A's id removes nothing of A's; A removes their own", async () => {
+    link.store.set('uid-A', { access_token: 'user-access' });
     expect((await get('/spotify/unlink?device_id=uid-A')).status).toBe(401);
     expect((await get('/spotify/unlink?device_id=uid-A', { token: 'tok-B' })).status).toBe(200);
     expect(link.store.has('uid-A')).toBe(true);
 
-    expect((await get('/spotify/unlink?device_id=d1', { token: 'tok-A' })).status).toBe(200);
+    expect((await get('/spotify/unlink', { token: 'tok-A' })).status).toBe(200);
     expect(link.store.has('uid-A')).toBe(false);
+    expect(link.removeTokens.mock.calls.map((c) => c[0])).toEqual(['uid-B', 'uid-A']);
   });
 });

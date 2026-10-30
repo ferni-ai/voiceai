@@ -29,7 +29,7 @@ integrations/
 | Gmail | OAuth2 | ✅ Enabled |
 | Google Calendar | OAuth2 | ✅ Enabled |
 | Plaid | API Key | ✅ Enabled |
-| Spotify | OAuth2 | ✅ Enabled |
+| Spotify (house account only; no per-user link) | OAuth2 | ✅ Enabled |
 | Twilio | Basic | ✅ Enabled |
 | Uber | OAuth2 | ✅ Enabled |
 | Lyft | OAuth2 | ✅ Enabled |

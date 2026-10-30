@@ -1272,8 +1272,6 @@
       "notifications": "When I'll Check In",
       "toggleTheme": "Light / Dark",
       "themeLanguage": "Look & Feel",
-      "linkSpotify": "Connect Spotify",
-      "spotifyConnected": "Spotify Connected",
       "vibeController": "Set the Mood",
       "spotifyRooms": "Music Rooms",
       "thermostat": "Home Comfort",
@@ -2825,8 +2823,7 @@
       "askFerni": "Or ask Ferni to play something",
       "play": "Play",
       "pause": "Pause",
-      "skip": "Skip",
-      "linkSpotify": "Link Spotify in Settings for full songs"
+      "skip": "Skip"
     },
     "volume": "Volume",
     "skipped": "Skipped",
@@ -8323,7 +8320,6 @@
     "wearablesDesc": "Fitbit, Garmin, Whoop, and more",
     "calendarDesc": "Events, meetings, and availability",
     "linkedInDesc": "Professional context and network",
-    "spotifyDesc": "Music, mood playlists, listening history",
     "ecobeeDesc": "Home temperature and comfort",
     "vibeControllerDesc": "Control music, lights, and more",
     "connected": "Connected"
@@ -8954,9 +8950,6 @@
     "trustJourneyExplore": "Explore",
     "customizeTitle": "Customise your experience",
     "customizeMessage": "Adjust themes, sounds, and more.",
-    "spotifyTitle": "Connect Spotify",
-    "spotifyMessage": "Link your Spotify to set the mood during our conversations.",
-    "spotifyConnect": "Connect",
     "maybeLater": "Maybe later"
   },
   "mentorTeachings": {
