@@ -108,6 +108,10 @@ describe('TURN_LENGTH=adaptive', () => {
     expect(substanceWords('why?', 4)).toBe(SUBSTANCE.min + 1);
     expect(substanceWords('why?', 40)).toBe(40);
     expect(substanceWords('word '.repeat(80), 4)).toBe(SUBSTANCE.max);
+    // The question sizes it, not the story before it.
+    expect(substanceWords(`${'and then we went home. '.repeat(8)}remember?`, 4)).toBe(
+      SUBSTANCE.min + 1
+    );
   });
 
   it('answers what a look-up tool found with substance, and a finished action briefly', () => {

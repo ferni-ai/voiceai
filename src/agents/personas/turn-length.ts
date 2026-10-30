@@ -77,14 +77,21 @@ export function targetWords(
 }
 
 /**
- * A real answer, spoken: two to four sentences. The floor grows with the words they asked in, so
- * "why?" gets a short real answer and a detailed question a fuller one, never a lecture.
+ * A real answer, spoken: two to four sentences. The floor grows with the words of the question,
+ * not the story before it, so "why?" gets a short real answer and a detailed question a fuller
+ * one, never a lecture (offline, sized by the whole turn, a long story ending "remember?" got 60).
  */
 export const SUBSTANCE = { min: 25, max: 60 } as const;
 
+/** The words they asked in: the sentences with a question mark, else the whole turn. */
+function askedWords(said: string): number {
+  const asked = said.split(/(?<=[.!?])\s+/).filter((s) => s.includes('?'));
+  return countWords(asked.length ? asked.join(' ') : said);
+}
+
 /** Words for a reply that needs substance, from friends' draw for the same moment. */
 export function substanceWords(said: string, drawn: number): number {
-  return Math.min(SUBSTANCE.max, Math.max(drawn, SUBSTANCE.min + countWords(said)));
+  return Math.min(SUBSTANCE.max, Math.max(drawn, SUBSTANCE.min + askedWords(said)));
 }
 
 /** The length part of the reminder, for a target in words. */
