@@ -19,7 +19,9 @@ import {
   NOT_CONNECTED_READ,
   notConnectedCreate,
   notConnectedWithList,
+  outlookUnavailableLine,
 } from '../../../services/calendar/not-connected-copy.js';
+import { OutlookUnavailableError } from '../../../services/calendar/providers/outlook-state.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { smartCalendarTools as rawSmartCalendarTools } from './smart-calendar-tools.js';
 import { routeWriteToProvider } from './provider-routing.js';
@@ -85,6 +87,16 @@ function whatWasAsked(params: unknown): string | undefined {
     .join(', ');
 }
 
+/** OUTLOOK_CONNECT: a linked Outlook that can't answer says why (never "clear"); other errors pass. */
+async function withOutlookHonesty(write: boolean, run: () => Promise<unknown>): Promise<unknown> {
+  try {
+    return await run();
+  } catch (error) {
+    if (!(error instanceof OutlookUnavailableError)) throw error;
+    return outlookUnavailableLine(error.state, write);
+  }
+}
+
 function gate(def: ToolDefinition): ToolDefinition {
   const mode = CLEAR_ONLY.has(def.id)
     ? 'clear'
@@ -105,9 +117,11 @@ function gate(def: ToolDefinition): ToolDefinition {
           if (!userId) return original(params, options);
           if (await isConnected(userId)) {
             // A write goes to the connected calendar when the flag is on (#1749); else the Ferni path.
-            const routed =
-              mode === 'read' ? null : await routeWriteToProvider(def.id, userId, params, ctx);
-            return routed ?? original(params, options);
+            return withOutlookHonesty(mode === 'create' || mode === 'change', async () => {
+              const routed =
+                mode === 'read' ? null : await routeWriteToProvider(def.id, userId, params, ctx);
+              return routed ?? original(params, options);
+            });
           }
           if (mode === 'read') return notConnectedRead(def.id, userId);
           if (mode === 'clear') {

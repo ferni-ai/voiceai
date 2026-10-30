@@ -1,12 +1,14 @@
 /**
  * Writes to the calendar a caller has connected (#1749). Google sign-in keeps
  * OAuth tokens; Outlook and Apple keep a provider record. Each write reports
- * whether the provider took it, and never throws, so a reply can be honest.
+ * whether the provider took it, and never throws (except OutlookUnavailableError on a
+ * create, which the tool gate turns into an honest line), so a reply can be honest.
  *
  * @module services/calendar/provider-writes
  */
 import { isCalendarConfigured } from '../identity/google-calendar-oauth.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { OutlookUnavailableError, outlookConnectOn } from './providers/outlook-state.js';
 import { getProvider } from './providers/provider-registry.js';
 import { getProviderConnection } from './unified-calendar-store.js';
 import type { CalendarEvent } from './types.js';
@@ -25,6 +27,11 @@ export const PROVIDER_LABEL: Record<WriteProvider, string> = {
 /** The connected calendar writes go to, or null when none is connected. */
 export async function connectedWriteProvider(userId: string): Promise<WriteProvider | null> {
   if (await isCalendarConfigured(userId)) return 'google';
+  if (
+    outlookConnectOn() &&
+    (await (await import('./providers/outlook-link.js')).outlookLinked(userId))
+  )
+    return 'outlook';
   for (const name of ['outlook', 'apple'] as const) {
     if ((await getProviderConnection(userId, name))?.connected) return name;
   }
@@ -43,6 +50,8 @@ export async function createOnProvider(
     const externalId = await adapter.createEvent(userId, event);
     return externalId ? { ok: true, externalId } : { ok: false };
   } catch (error) {
+    // OUTLOOK_CONNECT: needs reconnecting / unreachable goes up to the tool gate, which says so.
+    if (error instanceof OutlookUnavailableError) throw error;
     log.error({ userId, provider, error: String(error) }, 'Provider create failed');
     return { ok: false };
   }

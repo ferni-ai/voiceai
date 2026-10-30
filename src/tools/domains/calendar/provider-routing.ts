@@ -7,6 +7,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { flagOn } from '../../../config/env-flag.js';
+import { outlookConnectOn } from '../../../services/calendar/providers/outlook-state.js';
 import { deleteEvent, getEventById, updateEvent } from '../../../services/calendar/index.js';
 import {
   connectedWriteProvider,
@@ -63,9 +64,11 @@ export async function routeWriteToProvider(
   params: unknown,
   ctx: ToolContext
 ): Promise<string | null> {
-  if (!flagOn(WRITE_TO_PROVIDER_FLAG)) return null;
+  // OUTLOOK_CONNECT routes a linked Outlook's writes on its own; other providers need the flag above.
+  const allWrites = flagOn(WRITE_TO_PROVIDER_FLAG);
+  if (!allWrites && !outlookConnectOn()) return null;
   const provider = await connectedWriteProvider(userId);
-  if (!provider) return null;
+  if (!provider || (!allWrites && provider !== 'outlook')) return null;
 
   if (toolId === 'createCalendarEvent') {
     return createOnConnected(userId, provider, params as CreateParams, ctx);

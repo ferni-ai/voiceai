@@ -123,6 +123,7 @@ const MUST_ERASE = [
   'bogle_users/{uid}/gmail_send_tokens',
   'bogle_users/{uid}/plaid_tokens',
   'bogle_users/{uid}/social_tokens',
+  'bogle_users/{uid}/outlook_tokens', // OUTLOOK_CONNECT's sealed grant
   'users/{uid}/oauth_tokens',
   'users/{uid}/calendar_providers', // Apple and Outlook calendar links
   'users/{uid}/outlook_subscriptions',

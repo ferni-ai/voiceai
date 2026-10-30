@@ -44,6 +44,7 @@ const SCOPES = ['openid', 'profile', 'offline_access', 'User.Read', 'Calendars.R
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { openTokens, sealTokensForMerge } from '../../../utils/token-at-rest.js';
+import { outlookConnectOn } from './outlook-state.js';
 
 let db: FirestoreType | null = null;
 // FIX: Promise-based singleton to prevent race condition
@@ -84,7 +85,7 @@ interface MicrosoftTokens {
   displayName?: string;
 }
 
-interface GraphEvent {
+export interface GraphEvent {
   id?: string;
   subject?: string;
   body?: { contentType: string; content: string };
@@ -349,6 +350,11 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
    * Check if user has connected their Microsoft account
    */
   async isConnected(userId: string): Promise<boolean> {
+    // OUTLOOK_CONNECT: the shared sealed store; a revoked grant is needs_reauth, not connected.
+    if (outlookConnectOn()) {
+      const link = await import('./outlook-link.js');
+      return (await link.outlookLinkState(userId)) === 'connected';
+    }
     const tokens = await this.getTokens(userId);
     return !!(tokens?.accessToken && tokens?.refreshToken);
   }
@@ -444,6 +450,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
    * Disconnect user's Microsoft account
    */
   async disconnect(userId: string): Promise<void> {
+    if (outlookConnectOn()) await (await import('./outlook-link.js')).disconnectOutlook(userId);
     await this.deleteTokens(userId);
     log.info({ userId }, 'Disconnected Microsoft account');
   }
@@ -470,7 +477,9 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
     try {
       const graphEvents = await client.getEvents(startDate, endDate, calendarId);
 
-      const events = graphEvents.map((ge) => this.graphToCalendarEvent(ge, userId));
+      const events = graphEvents.map((ge) =>
+        OutlookCalendarProvider.graphToCalendarEvent(ge, userId)
+      );
       log.debug({ userId, eventCount: events.length }, 'Fetched Outlook events');
 
       return events;
@@ -484,6 +493,11 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
    * Create event in Outlook Calendar
    */
   async createEvent(userId: string, event: CalendarEvent): Promise<string | null> {
+    if (outlookConnectOn()) {
+      const { startTime: start, endTime: end } = event;
+      const link = await import('./outlook-link.js');
+      return link.createOutlookEvent(userId, { ...event, start, end }); // throws when it can't
+    }
     const tokens = await this.getTokens(userId);
     if (!tokens) {
       log.warn({ userId }, 'No Microsoft tokens found');
@@ -694,7 +708,7 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
     }
   }
 
-  private graphToCalendarEvent(ge: GraphEvent, userId: string): CalendarEvent {
+  static graphToCalendarEvent(ge: GraphEvent, userId: string): CalendarEvent {
     const startTime = ge.start?.dateTime
       ? new Date(ge.start.dateTime + (ge.start.timeZone === 'UTC' ? 'Z' : ''))
       : new Date();
