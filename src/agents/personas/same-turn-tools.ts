@@ -27,6 +27,7 @@ import {
 } from '../../tools/orchestrator/persona-tool-policy.js';
 import { TOPIC_TO_DOMAINS } from '../../tools/dynamic-loader/topic-mappings.js';
 import { SAME_TURN_TOPIC_PATTERNS } from '../../tools/dynamic-loader/same-turn-topics.js';
+import { smartHomeTopicPatterns } from '../../tools/dynamic-loader/smart-home-topics.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
 import type { ToolDomain } from '../../tools/registry/types.js';
 import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
@@ -58,6 +59,7 @@ export async function preloadTopicDomains(): Promise<number> {
   const domains = new Set<ToolDomain>();
   for (const list of Object.values(TOPIC_TO_DOMAINS)) list.forEach((d) => domains.add(d));
   for (const [, list] of SAME_TURN_TOPIC_PATTERNS) list.forEach((d) => domains.add(d));
+  for (const [, list] of smartHomeTopicPatterns()) list.forEach((d) => domains.add(d));
   return loadToolDomainsLazy([...domains]);
 }
 

@@ -6,7 +6,7 @@
  * - LIFX
  * - Ecobee
  *
- * DOMAIN: home
+ * DOMAIN: home; with SMART_HOME_LIFX on, smart-home (two caller-bound light tools)
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -15,6 +15,11 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { NO_TIMED_REMINDER } from '../../utils/honest-schedule.js';
+import { flagOn } from '../../../config/env-flag.js';
+import { toolCallerId } from '../../registry/per-caller-tool.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { isUnverifiedUserId } from '../../../services/identity/unverified-user-id.js';
+import { hasLinkedLifxToken } from '../../../services/smart-home/user-credentials.js';
 
 // Import existing smart home functionality
 import { createSmartHomeTools, getAllDevices, controlDevice, activateScene } from './smart-home.js';
@@ -362,12 +367,81 @@ const smartHomeTools: ToolDefinition[] = [
 ];
 
 // ============================================================================
+// SMART_HOME_LIFX: THE CALLER'S OWN LIGHTS
+// ============================================================================
+
+/*
+ * Off, the tools above are built with no user (createSmartHomeTools()), so no
+ * saved LIFX token is ever loaded, and their domain 'home' is not the
+ * 'smart-home' domain loader.ts loads this module as, so a load of 'smart-home'
+ * found none of them. On, two tools run as the call's verified caller.
+ */
+
+const NOT_VERIFIED = 'I can only change the lights for a signed-in account, so I left them alone.';
+const NOT_LINKED =
+  "Your LIFX lights aren't linked yet, so I left them alone. Open Set the Mood in the app's menu and paste your LIFX token.";
+
+/**
+ * The call's own caller (LiveKit's opts.ctx.userData, never a model argument),
+ * when the server verified them (userData.verifiedCaller, voice-agent-entry):
+ * never an anon:, device:, phone: or onbehalf: id. Null for anyone else.
+ */
+function verifiedSmartHomeCaller(opts: unknown): string | null {
+  const userData = (opts as { ctx?: { userData?: { verifiedCaller?: unknown } } } | undefined)?.ctx
+    ?.userData;
+  if (userData?.verifiedCaller !== true) return null;
+  const caller = toolCallerId(opts);
+  return isMemberIdentity(caller) && !isUnverifiedUserId(caller) ? caller : null;
+}
+
+/** A light tool built per call for its verified caller, with that caller's own token. */
+function forVerifiedCaller(pick: 'controlLight' | 'listDevices', description?: string) {
+  return (_ctx: ToolContext): Tool => {
+    const shared: Tool = createSmartHomeTools()[pick]; // lends name and schema; never executed
+    return {
+      ...shared,
+      ...(description ? { description } : {}),
+      execute: async (args: unknown, opts: unknown): Promise<unknown> => {
+        const caller = verifiedSmartHomeCaller(opts);
+        if (!caller) return NOT_VERIFIED;
+        if (!(await hasLinkedLifxToken(caller))) return NOT_LINKED;
+        const own: Tool = createSmartHomeTools({ userId: caller })[pick];
+        return own.execute(args, opts);
+      },
+    };
+  };
+}
+
+const lifxTools: ToolDefinition[] = [
+  {
+    ...controlLightDef,
+    domain: 'smart-home',
+    create: forVerifiedCaller('controlLight'),
+  },
+  {
+    // Not 'listDevices': simple-utilities registers that id for phones and tablets.
+    id: 'listSmartDevices',
+    name: 'List Smart Devices',
+    description: 'List the lights linked to this account',
+    domain: 'smart-home',
+    tags: ['devices', 'lights', 'smart-home'],
+    create: forVerifiedCaller(
+      'listDevices',
+      "List the caller's linked smart lights and their state. Use when they ask which lights they have."
+    ),
+  },
+];
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'home',
-  smartHomeTools
-);
+const legacy = createDomainExport('home', smartHomeTools);
+const lifx = createDomainExport('smart-home', lifxTools);
+
+/** Read when the domain loads: SMART_HOME_LIFX on gives the two caller-bound light tools. */
+export const getToolDefinitions = async (): Promise<ToolDefinition[]> =>
+  flagOn('SMART_HOME_LIFX') ? lifx.definitions : legacy.definitions;
+export const { domain, definitions } = legacy;
 
 export default getToolDefinitions;

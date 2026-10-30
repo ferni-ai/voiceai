@@ -251,6 +251,7 @@ tools/
 | `decisions`      | Decision frameworks, values alignment |
 | `family`         | Parenting, family dynamics            |
 | `home`           | Maintenance, organization             |
+| `smart-home`     | Lights; with `SMART_HOME_LIFX` on, the verified caller's own LIFX token |
 | `learning`       | Education, skill development          |
 | `creativity`     | Hobbies, creative projects            |
 | `community`      | Volunteering, civic engagement        |
