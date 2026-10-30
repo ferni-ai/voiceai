@@ -24,15 +24,18 @@ const RING = 'Call callUser in this reply';
 const EITHER = 'either-or question';
 const CONFIRM = "Don't switch yet";
 
-function chat(said: string, opts: { called?: boolean } = {}): llm.ChatContext {
+/** A call so far: one caller line per turn, each after a Ferni line (callerTurns counts them). */
+function chat(said: string | string[], opts: { called?: boolean } = {}): llm.ChatContext {
   const ctx = llm.ChatContext.empty();
-  ctx.addMessage({ role: 'assistant', content: 'Hey, good to hear you.' });
-  if (opts.called) {
-    ctx.insert(
-      llm.FunctionCall.create({ callId: 'c1', name: 'callUser', args: '{"message":"hi"}' })
-    );
+  for (const line of [said].flat()) {
+    ctx.addMessage({ role: 'assistant', content: 'Hey, good to hear you.' });
+    if (opts.called) {
+      ctx.insert(
+        llm.FunctionCall.create({ callId: 'c1', name: 'callUser', args: '{"message":"hi"}' })
+      );
+    }
+    ctx.addMessage({ role: 'user', content: line });
   }
-  ctx.addMessage({ role: 'user', content: said });
   return ctx;
 }
 
@@ -43,10 +46,14 @@ function call(personaId = 'ferni', userName = 'Seth') {
   };
 }
 
-/** One turn as the live path runs it: the preemptive and the final request, same words. */
+const history = new WeakMap<object, string[]>();
+
+/** One caller turn as the live path runs it: the preemptive and the final request, same words. */
 function turn(session: object, said: string, opts: { called?: boolean } = {}): string {
-  withTurnReminder(chat(said, opts), session);
-  const last = withTurnReminder(chat(said, opts), session).items.at(-1);
+  const lines = [...(history.get(session) ?? []), said];
+  history.set(session, lines);
+  withTurnReminder(chat(lines, opts), session);
+  const last = withTurnReminder(chat(lines, opts), session).items.at(-1);
   return last?.type === 'message' ? (last.textContent ?? '') : '';
 }
 
@@ -132,28 +139,52 @@ describe('the confirm flow (flag on)', () => {
     };
     const persist = vi.fn(async (_userId: string, _name: string) => undefined);
     const deps = { persist, verifiedOwner: () => true, outbound: () => false };
-    const say = (words: string): string => {
-      const ctx = chat(words);
+    const lines: string[] = [];
+    /** One request of the current caller turn, hearing `words` (the final may hear more). */
+    const request = (words: string): string => {
+      lines[lines.length - 1] = words;
+      const ctx = chat(lines);
       const note = nameCorrectionNote(ctx, session, words, process.env, deps);
       return `${note} ${callMeNote(ctx, session, words)}`;
     };
-    return { session, persist, say };
+    /** A new caller turn: its preemptive and final requests; the final's note. */
+    const say = (words: string): string => {
+      lines.push(words);
+      request(words);
+      return request(words);
+    };
+    return { session, persist, say, request };
   };
 
-  it('a new name waits, and a yes on the next turn saves it once', () => {
-    const { session, persist, say } = setup();
+  it('a new name waits; a yes on the next turn hands the save to rememberName', () => {
+    const { session, persist, say, request } = setup();
     expect(say('Just call me Pete')).toContain('("Pete from now on?")');
-    expect(say('Just call me Pete')).toContain('("Pete from now on?")'); // the final request, same turn
     expect(session.userData.userName).toBe('Seth');
     expect(persist).not.toHaveBeenCalled();
 
-    const yes = say('Yeah, go ahead.');
-    expect(yes).toContain('their name is Pete, not Seth');
-    say('Yeah, go ahead.'); // the final request, same turn: no second write
-    expect(session.userData.userName).toBe('Pete');
-    expect(session.userData.services.userProfile.preferredName).toBe('Pete');
-    expect(persist).toHaveBeenCalledTimes(1);
-    expect(persist).toHaveBeenCalledWith('u1', 'Pete');
+    // The final request is the one the model answers: it must carry the save too.
+    expect(say('Yeah, go ahead.')).toContain('Call rememberName with "Pete" now');
+    // A tool-reply request of the same turn still does.
+    expect(request('Yeah, go ahead.')).toContain('Call rememberName with "Pete" now');
+    // rememberName is the one writer (remember-name-owner.test.ts): nothing written here.
+    expect(session.userData.userName).toBe('Seth');
+    expect(session.userData.services.userProfile.preferredName).toBe('Seth');
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('the final request keeps the save note when it hears more words than the preemptive', () => {
+    const { say, request } = setup();
+    say('Just call me Pete');
+    say('yes'); // preemptive
+    expect(request('yes, Pete is great')).toContain('Call rememberName with "Pete" now');
+  });
+
+  it('a yes they took back is not applied by a later, identical yes', () => {
+    const { say } = setup();
+    say('actually, call me Pete');
+    expect(say('yes')).toContain('Call rememberName with "Pete" now'); // the model didn't call it
+    say('hmm, on second thought just keep calling me Seth');
+    expect(say('yes')).not.toContain('Pete');
   });
 
   it.each(['yes', 'Yes, Sam.', 'Sam.', 'yeah, Sam, not Seth', 'yes, call me Sam', 'mhm'])(
@@ -161,9 +192,9 @@ describe('the confirm flow (flag on)', () => {
     (answer) => {
       const { session, persist, say } = setup();
       say('Please call me Sam');
-      say(answer);
-      expect(session.userData.userName).toBe('Sam');
-      expect(persist).toHaveBeenCalledWith('u1', 'Sam');
+      expect(say(answer)).toContain('Call rememberName with "Sam" now');
+      expect(session.userData.userName).toBe('Seth');
+      expect(persist).not.toHaveBeenCalled();
     }
   );
 
@@ -183,10 +214,10 @@ describe('the confirm flow (flag on)', () => {
     const { session, persist, say } = setup();
     say('call me Sam');
     expect(say('No, call me Samuel')).toContain('("Samuel from now on?")');
-    say('yes');
-    expect(session.userData.userName).toBe('Samuel');
-    expect(persist).toHaveBeenCalledTimes(1);
-    expect(persist).toHaveBeenCalledWith('u1', 'Samuel');
+    const yes = say('yes');
+    expect(yes).toContain('Call rememberName with "Samuel" now');
+    expect(yes).not.toContain('"Sam"');
+    expect(persist).not.toHaveBeenCalled();
   });
 
   it('"call me Fern": the answer decides, ring or name', () => {
@@ -198,9 +229,10 @@ describe('the confirm flow (flag on)', () => {
 
     const named = setup();
     named.say('Can you call me Fern?');
-    expect(named.say('The name, call me Fern')).not.toContain(RING);
-    expect(named.session.userData.userName).toBe('Fern');
-    expect(named.persist).toHaveBeenCalledWith('u1', 'Fern');
+    const name = named.say('The name, call me Fern');
+    expect(name).not.toContain(RING);
+    expect(name).toContain('Call rememberName with "Fern" now');
+    expect(named.persist).not.toHaveBeenCalled();
 
     const neither = setup();
     neither.say('Can you call me Fern?');

@@ -23,6 +23,7 @@ import {
   type CalendarEvent as GoogleCalendarEvent,
 } from '../../identity/google-calendar-oauth.js';
 import { disconnectGoogleCalendar } from '../../identity/google-calendar-disconnect.js';
+import { GOOGLE_CALENDAR_SCOPES } from '../../../config/google-calendar-scopes.js';
 
 const log = getLogger();
 
@@ -97,10 +98,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
    */
   isConfigured(): boolean {
     // Use the service check which can be mocked in tests
-    return (
-      isOAuthConfigured() ||
-      isGoogleCalendarOAuthConfigured()
-    );
+    return isOAuthConfigured() || isGoogleCalendarOAuthConfigured();
   }
 
   /**
@@ -126,10 +124,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
       throw new Error('GOOGLE_CALENDAR_CLIENT_ID not configured');
     }
 
-    const scopes = [
-      'https://www.googleapis.com/auth/calendar.readonly',
-      'https://www.googleapis.com/auth/calendar.events',
-    ].join(' ');
+    const scopes = GOOGLE_CALENDAR_SCOPES.join(' ');
 
     const params = new URLSearchParams({
       client_id: clientId,

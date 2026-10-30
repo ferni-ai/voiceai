@@ -184,7 +184,11 @@ class TimedReply implements ReplyStream {
 }
 
 const processor = getSSMLProcessor();
-/** Between LLM tokens; a hold of one token is 60 ms, so a 15 ms tolerance catches it. */
+/**
+ * Between LLM tokens; a hold of one token is 60 ms, so a 15 ms tolerance catches it.
+ * The latency tests run on a fake clock (setTimeout and Date.now, which is all the
+ * gate and the continuation path read), so the times are exact and take no wall time.
+ */
 const GAP = 60;
 const TOLERANCE = 15;
 const MID_CALL = [
@@ -194,11 +198,11 @@ const MID_CALL = [
 ];
 
 /** The first push of `reply`, its tokens `gaps[i]` ms apart, through gate and gateway. */
-async function firstPushOnce(
+async function firstPush(
   reply: string,
   hello: boolean,
   split: 'on' | 'off',
-  gap: (i: number) => number
+  gap: (i: number) => number = () => GAP
 ): Promise<{ at: number; text: string }> {
   vi.stubEnv('NAME_FALLING_SPLIT', split);
   const t0 = Date.now();
@@ -232,28 +236,25 @@ async function firstPushOnce(
       throw e;
     },
   });
-  for await (const _ of stream) {
-    /* drain */
-  }
+  const drained = (async () => {
+    for await (const _ of stream) {
+      /* drain */
+    }
+  })();
+  await vi.runAllTimersAsync();
+  await drained;
   return out.pushes[0];
 }
 
-/** The median of three runs, against timer noise. */
-async function firstPush(
-  reply: string,
-  hello: boolean,
-  split: 'on' | 'off',
-  gap: (i: number) => number = () => GAP
-): Promise<{ at: number; text: string }> {
-  const runs = [];
-  for (let i = 0; i < 3; i++) runs.push(await firstPushOnce(reply, hello, split, gap));
-  runs.sort((a, b) => a.at - b.at);
-  return runs[1];
-}
-
 describe('NAME_FALLING_SPLIT latency', () => {
-  beforeEach(() => vi.stubEnv('NAME_FALLING_INTONATION', 'on'));
-  afterEach(() => vi.unstubAllEnvs());
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.stubEnv('NAME_FALLING_INTONATION', 'on');
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
 
   it.each([
     ['That sounds really hard, and I am here for it.', false],

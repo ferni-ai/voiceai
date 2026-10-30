@@ -123,7 +123,6 @@ export async function getPeterFinancialInsights(userId: string): Promise<PeterFi
     await store.loadUserData(userId);
 
     const budget = store.getMainBudget(userId);
-    const goals = store.getActiveSavingsGoals(userId);
 
     if (budget) {
       const percentUsed = (budget.spent / budget.monthlyLimit) * 100;
@@ -153,34 +152,6 @@ export async function getPeterFinancialInsights(userId: string): Promise<PeterFi
       }
 
       insights.eventBudgetCapacity = remaining;
-
-      // Calculate savings velocity
-      if (goals.length > 0) {
-        const totalNeeded = goals.reduce((sum, g) => sum + (g.targetAmount - g.currentAmount), 0);
-        const savingsCapacity = remaining * 0.3; // Assume 30% could go to savings
-
-        if (savingsCapacity > 0 && totalNeeded > 0) {
-          const monthsNeeded = totalNeeded / savingsCapacity;
-          insights.monthsToGoalCompletion = Math.ceil(monthsNeeded);
-
-          if (monthsNeeded < 6) {
-            insights.savingsVelocity = 'rapid';
-            insights.financialReadiness.push(
-              `🚀 Peter calculates: ALL goals achievable in ~${Math.ceil(monthsNeeded)} months at current pace!`
-            );
-          } else if (monthsNeeded < 12) {
-            insights.savingsVelocity = 'steady';
-            insights.financialReadiness.push(
-              `Peter projects: Goals on track for completion within ${Math.ceil(monthsNeeded)} months`
-            );
-          } else {
-            insights.savingsVelocity = 'gradual';
-            insights.financialReadiness.push(
-              `Peter notes: Current pace suggests ${Math.ceil(monthsNeeded)} months to goal completion - may need acceleration`
-            );
-          }
-        }
-      }
     }
 
     // Check for celebration-related spending

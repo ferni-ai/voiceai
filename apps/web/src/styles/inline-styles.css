@@ -7197,52 +7197,6 @@ body {
 }
 
 /* ========================================================================
-       SPOTIFY STATUS - Minimal indicator
-       ======================================================================== */
-.spotify-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: var(--color-bg-glass);
-  backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-  -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border-subtle);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  color: var(--color-text-muted);
-  transition: all var(--transition-base);
-}
-
-.spotify-status.hidden {
-  display: none;
-}
-
-.spotify-status.ready {
-  color: #1db954;
-  background: rgba(29, 185, 84, 0.1);
-}
-
-.spotify-status.error {
-  color: var(--color-error);
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.spotify-status.playing {
-  color: #1db954;
-  background: rgba(29, 185, 84, 0.15);
-}
-
-.spotify-status.playing .spotify-icon {
-  animation: musicBounce 0.5s ease-in-out infinite alternate;
-}
-
-.spotify-icon {
-  font-size: var(--text-sm);
-}
-
-/* ========================================================================
        FOOTER - Minimal, elegant
        ======================================================================== */
 .footer-links {
