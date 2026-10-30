@@ -2,7 +2,6 @@
  * Smart Home Domain Tools
  *
  * Unified smart home control with support for multiple platforms:
- * - Home Assistant
  * - Philips Hue
  * - LIFX
  * - Ecobee
@@ -257,8 +256,8 @@ const findContractorDef: ToolDefinition = {
 // ============================================================================
 
 /**
- * No speaker integration plays a message yet (Home Assistant, Google Home and
- * Alexa broadcast are unbuilt), so these tools say nothing was sent (#1447).
+ * No speaker integration plays a message yet (Google Home and Alexa
+ * broadcast are unbuilt), so these tools say nothing was sent (#1447).
  */
 const NO_HOME_SPEAKERS = "I can't reach your home speakers yet, so nothing was played.";
 

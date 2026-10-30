@@ -214,10 +214,9 @@ describe('integration token stores encrypt at rest', () => {
   });
 
   it.each([
-    ['eight sleep', '../eight-sleep-auth.js', 'eight_sleep_tokens'],
     ['ecobee', '../ecobee-auth.js', 'ecobee_tokens'],
   ])('%s: sealed write, both reads, disconnect deletes', async (_name, path, collection) => {
-    const mod = (await import(path)) as typeof import('../eight-sleep-auth.js');
+    const mod = (await import(path)) as typeof import('../ecobee-auth.js');
     const tokens = {
       access_token: ACCESS,
       refresh_token: REFRESH,

@@ -116,11 +116,8 @@ function isCalendarConfigured(): boolean {
  * Check if smart home is configured
  */
 function isSmartHomeConfigured(): boolean {
-  // Check for any smart home integration
-  const homeAssistant = process.env.HOME_ASSISTANT_URL;
-  const smartThings = process.env.SMARTTHINGS_TOKEN;
-
-  return Boolean(homeAssistant || smartThings);
+  // Check for any server-wide smart home integration (LIFX is per-user, no app secret)
+  return Boolean(process.env.SONOS_CLIENT_ID || process.env.ECOBEE_API_KEY);
 }
 
 /**
