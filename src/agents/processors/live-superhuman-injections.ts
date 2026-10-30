@@ -42,6 +42,7 @@ import type {
   ProgressUpdateResult,
 } from '../../services/superhuman/commitment-keeper-e2e.js';
 import type { PersonaId } from '../../memory/cross-persona/index.js';
+import { activePersonaIdOn } from '../../services/session/active-persona.js';
 
 const log = createLogger({ module: 'LiveSuperhumanInjections' });
 
@@ -972,11 +973,11 @@ async function loadCommitmentE2EAsync(
     if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: it stores (minor-care.ts)
     const { detectCommitmentE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
 
-    const result = await detectCommitmentE2E({
+    return await detectCommitmentE2E({
       userId: ctx.userId,
       sessionId: ctx.sessionId,
       transcript: ctx.userText,
-      personaId: (ctx.services?.personaId || 'ferni') as PersonaId,
+      personaId: ((activePersonaIdOn() && ctx.services?.personaId) || 'ferni') as PersonaId, // off: Ferni's
       topic: ctx.currentTopic,
       emotionalContext: {
         primary: ctx.emotionalState.primary,
@@ -984,8 +985,6 @@ async function loadCommitmentE2EAsync(
       },
       mentionedEntities: ctx.mentionedEntities,
     });
-
-    return result;
   } catch {
     return null;
   }

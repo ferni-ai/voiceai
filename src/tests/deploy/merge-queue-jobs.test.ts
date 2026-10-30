@@ -135,20 +135,23 @@ describe('the merge queue runs the required checks and only those', () => {
   });
 });
 
-// The unit shard matrix and FULL_SUITE are two copies of one condition. If they
-// drift, a full run can create one shard that runs --shard=1/4 and the Unit Tests
-// gate passes on a quarter of the suite (the gate also checks the count at run time).
+// The unit shard matrix, FULL_SUITE and AFFECTED_SHARDED are copies of one condition.
+// If they drift, a full run can create one shard that runs --shard=1/4 and the Unit
+// Tests gate passes on a quarter of the suite (the gate also checks the count at run
+// time).
 describe('the unit shards cover the whole suite on a full run', () => {
   const ci = readFileSync(join(__dirname, '..', '..', '..', '.github/workflows/ci.yml'), 'utf8');
   const matrix =
     /^ {8}shard: \$\{\{ fromJSON\(\((.+)\) && '\[([^\]]*)\]' \|\| '\[1\]'\) \}\}$/m.exec(ci);
   const full = /^ {6}FULL_SUITE: \$\{\{ (.+) \}\}$/m.exec(ci);
+  const sharded = /^ {6}AFFECTED_SHARDED: \$\{\{ (.+) \}\}$/m.exec(ci);
   const setup = /^ {2}setup:\n([\s\S]*?)(?=^ {2}[\w-]+:\n)/m.exec(ci)?.[1] ?? '';
 
-  it('builds the matrix from exactly the FULL_SUITE condition', () => {
+  it('builds the matrix from exactly the FULL_SUITE and AFFECTED_SHARDED conditions', () => {
     expect(matrix?.[1]).toBeTruthy();
     expect(full?.[1]).toBeTruthy();
-    expect(matrix?.[1]).toBe(full?.[1]);
+    expect(sharded?.[1]).toBe("needs.setup.outputs.unit-affected-sharded == 'true'");
+    expect(matrix?.[1]).toBe(`${full?.[1]} || ${sharded?.[1]}`);
   });
 
   // A PR whose diff hits a vitest forceRerunTriggers file runs the whole suite under
@@ -178,10 +181,42 @@ describe('the unit shards cover the whole suite on a full run', () => {
   it('creates as many shards as each one divides the suite into, and the gate expects that many', () => {
     const shards = matrix?.[2].split(/,\s*/) ?? [];
     const runs = /--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/.exec(ci)?.[1];
-    const gate = /^ +true\) want=(\d+) ;;$/m.exec(ci)?.[1];
+    const affectedRuns = /args\+=\("--shard=\$SHARD\/(\d+)"\)/.exec(ci)?.[1];
+    const gate = /^ +true\/\* \| false\/true\) want=(\d+) ;;$/m.exec(ci)?.[1];
+    const single = /^ +false\/false\) want=(\d+) ;;$/m.exec(ci)?.[1];
     expect(shards).toEqual(['1', '2', '3', '4']);
     expect(Number(runs)).toBe(shards.length);
+    expect(Number(affectedRuns)).toBe(shards.length);
     expect(Number(gate)).toBe(shards.length);
+    expect(Number(single)).toBe(1);
+  });
+
+  // `--changed HEAD^1` on a flag file selects ~1,500 test files; one shard timed out
+  // on them (7 of 22 attempts, 2026-10-29). Setup counts the affected files and the
+  // shards split a big set four ways. Only an explicit 'true' splits it, so a PR that
+  // runs the whole suite (no count taken) never reads a stale answer.
+  it('splits a big affected set over the four shards, counted by setup', () => {
+    expect(setup).toMatch(
+      /^ {6}unit-affected-sharded: \$\{\{ steps\.unit-affected\.outputs\.sharded \}\}$/m
+    );
+    expect(setup).toMatch(
+      /^ {6}unit-affected-count: \$\{\{ steps\.unit-affected\.outputs\.count \}\}$/m
+    );
+    expect(setup).toMatch(
+      /^ {8}id: unit-affected\n(?: {8}.*\n)*? {8}run: node scripts\/ci\/unit-affected-count\.mjs HEAD\^1 \|\| echo "sharded=true" >> "\$GITHUB_OUTPUT"$/m
+    );
+    // Not counted (and so not run) where the PR already runs the whole suite.
+    const step = /^ {8}id: unit-affected\n((?: {8}.*\n)*)/m.exec(setup)?.[1] ?? '';
+    expect(step).toContain("steps.unit-full.outputs.needed == 'false'");
+    expect(step).toContain("steps.risky.outputs.matched != 'true'");
+    expect(step).toContain("'ci:full-tests'");
+    expect(sharded?.[1]).toBe("needs.setup.outputs.unit-affected-sharded == 'true'");
+    // The affected run takes its shard only when sharded, and still runs `--changed`.
+    expect(ci).toContain(
+      'args=(--config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests)'
+    );
+    expect(ci).toContain('if [ "$AFFECTED_SHARDED" = true ]; then args+=("--shard=$SHARD/4"); fi');
+    expect(ci).toContain('pnpm exec vitest run "${args[@]}"');
   });
 
   // A cancelled or skipped required check counts as passed, so the gate must run

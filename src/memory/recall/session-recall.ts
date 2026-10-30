@@ -17,7 +17,7 @@
 
 import type { InsideJokeRef } from '../../types/profile/inside-joke.js';
 import { insideJokesEnabled } from './inside-jokes-recall.js';
-import { lineKey } from '../operations/inside-jokes.js';
+import { jokeExpired, lineKey } from '../operations/inside-jokes.js';
 import { STOPWORDS, isForgotten } from '../domain/forgotten.js';
 // The shared forget matcher, re-exported for its existing importers.
 export { forgetTokens, isForgotten, storedTopic } from '../domain/forgotten.js';
@@ -398,7 +398,7 @@ export async function loadRecallSnapshot(
   const insideJokes: InsideJokeRef[] = [];
   for (const s of rawSummaries) {
     for (const item of Array.isArray(s.insideJokes) ? s.insideJokes : []) {
-      if (!item || typeof item !== 'object') continue;
+      if (!item || typeof item !== 'object' || jokeExpired(item)) continue; // a year on: gone
       const { bit, quote, speaker } = item as Partial<InsideJokeRef>;
       if (typeof bit !== 'string' || typeof quote !== 'string') continue;
       if (speaker !== 'user' && speaker !== 'assistant') continue;

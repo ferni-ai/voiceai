@@ -400,13 +400,8 @@ const STATE_MANAGER_MAPPINGS: Record<
   },
   relationshipStage: {
     // Note: No getter method - read from state directly
-    get: (m) => {
-      const state = m.getState();
-      // The relationship stage is stored in emotional state after setRelationshipStage
-      // Since there's no dedicated getter, check if previousRelationshipStage was set
-      // and use it as an indicator of the current stage
-      return state.emotional.previousRelationshipStage;
-    },
+    // No dedicated getter: setRelationshipStage records the stage in previousRelationshipStage
+    get: (m) => m.getState().emotional.previousRelationshipStage,
     set: (m, v) =>
       m.setRelationshipStage(v as 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor'),
   },
@@ -532,6 +527,10 @@ export function createUserDataProxy(
     ownKeys() {
       return [...Object.keys(STATE_MANAGER_MAPPINGS), ...Object.keys(directStorage)];
     },
+
+    // Without this trap `delete userData.x` hit the empty target and left x in place.
+    // Mapped fields have no unset in SessionStateManager, so delete leaves them alone.
+    deleteProperty: (_target, prop: string) => Reflect.deleteProperty(directStorage, prop),
 
     getOwnPropertyDescriptor(_target, prop: string) {
       if (prop in STATE_MANAGER_MAPPINGS || prop in directStorage) {

@@ -80,7 +80,6 @@ import {
 
 import { getResponseEnhancements } from '../../../speech/response-naturalness.js';
 import { valueCapture } from '../../../services/monetization/value-capture.js';
-
 import { getBetterThanHuman } from '../../../conversation/superhuman/index.js';
 
 import {
@@ -89,6 +88,7 @@ import {
 } from '../../../intelligence/context-builders/engagement/referral-prompt.js';
 
 import type { ConversationDynamicsResult } from '../conversation-dynamics.js';
+import { callerTurnOf } from '../../shared/caller-turn-count.js';
 
 /**
  * Build all context injections for the LLM
@@ -341,8 +341,8 @@ export async function buildContextInjections(
         behavioralFallback,
         'buildIntegratedContext'
       ),
-      buildHumanTransferInjections(userText, services.userId, services.sessionId),
-      buildCrisisHistoryInjection(services.userId, services.sessionId),
+      buildHumanTransferInjections(userText, services.userId, services.sessionId, callerTurnOf(userData)),
+      buildCrisisHistoryInjection(services.userId, services.sessionId, callerTurnOf(userData)),
       buildToolHistoryInjection(builderInput),
     ]);
 
@@ -424,19 +424,11 @@ export async function buildContextInjections(
               userText,
               currentTopic,
               emotionalState,
-              voiceEmotion: userData.voiceEmotion
-                ? {
-                    primary: userData.voiceEmotion.primary,
-                    confidence: userData.voiceEmotion.confidence,
-                    stressLevel: userData.voiceEmotion.stressLevel,
-                    valence: userData.voiceEmotion.valence,
-                    anxietyMarkers: userData.voiceEmotion.anxietyMarkers,
-                    prosody: userData.voiceEmotion.prosody,
-                  }
-                : undefined,
+              voiceEmotion: userData.voiceEmotion,
               analysis,
               turnCount: userData.turnCount || 0,
               totalConversations: services.userProfile?.totalConversations,
+              services,
             }),
             IMPORTANT_TIMEOUT_MS,
             superhumanFallback,

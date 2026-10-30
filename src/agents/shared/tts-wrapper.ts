@@ -818,10 +818,10 @@ export async function wrappedTtsNode(
     // Only apply if we've learned enough from user messages (3+ samples)
     if (mirroringEngine.hasLearnedEnough()) {
       let mirroringAppliedCount = 0;
-
+      const mirror = mirroringEngine.streamingMirror(); // knows when a chunk starts mid-sentence
       const linguisticMirroringTransform = new NodeTransformStream<string, string>({
         transform(chunk, controller) {
-          const mirrored = mirroringEngine.applyStreamingSafeMirroring(chunk);
+          const mirrored = mirror(chunk);
           if (mirrored !== chunk) {
             mirroringAppliedCount++;
           }

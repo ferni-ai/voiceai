@@ -15,6 +15,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
+import { NO_TIMED_REMINDER } from '../../utils/honest-schedule.js';
 
 // Import existing smart home functionality
 import { createSmartHomeTools, getAllDevices, controlDevice, activateScene } from './smart-home.js';
@@ -128,10 +129,10 @@ const homeMaintenanceReminderDef: ToolDefinition = {
           response += `- Test garage door auto-reverse\n`;
           response += `- Clean dryer vent\n`;
         } else if (action === 'add' && task) {
-          response += `✓ Added "${task}" to maintenance schedule`;
-          if (frequency) response += ` (${frequency})`;
+          // Nothing stores a schedule or a reminder job here (#1439).
+          response += `Noted "${task}"${frequency ? ` (${frequency})` : ''}. ${NO_TIMED_REMINDER}`;
         } else if (action === 'complete' && task) {
-          response += `✓ Marked "${task}" as complete.`;
+          response += `Noted that "${task}" is done; I don't keep a maintenance log here.`;
         }
 
         return response;
@@ -255,6 +256,12 @@ const findContractorDef: ToolDefinition = {
 // BROADCAST/INTERCOM TOOLS
 // ============================================================================
 
+/**
+ * No speaker integration plays a message yet (Home Assistant, Google Home and
+ * Alexa broadcast are unbuilt), so these tools say nothing was sent (#1447).
+ */
+const NO_HOME_SPEAKERS = "I can't reach your home speakers yet, so nothing was played.";
+
 const broadcastMessageDef: ToolDefinition = {
   id: 'broadcastMessage',
   name: 'Broadcast Message',
@@ -276,12 +283,8 @@ const broadcastMessageDef: ToolDefinition = {
       execute: async ({ message, target = 'all' }) => {
         log.info({ agentId: ctx.agentId, message, target }, '📢 Broadcasting message');
 
-        // This would integrate with Home Assistant, Google Home, or Alexa APIs
-        // For now, return a simulated response
-
         const targetStr = target === 'all' ? 'all speakers' : `the ${target.replace('_', ' ')}`;
-
-        return `Broadcasting to ${targetStr}: "${message}". Message sent! 📢`;
+        return `I couldn't broadcast that to ${targetStr}: ${NO_HOME_SPEAKERS}`;
       },
     });
   },
@@ -304,9 +307,7 @@ const intercomCallDef: ToolDefinition = {
       execute: async ({ room }) => {
         log.info({ agentId: ctx.agentId, room }, '📞 Starting intercom call');
 
-        // This would integrate with Home Assistant, Google Home, or Alexa APIs
-
-        return `Starting intercom to ${room}. Note: Two-way intercom requires smart speaker setup. For now, I can broadcast a message instead. Would you like me to send a message to ${room}?`;
+        return `I couldn't start an intercom call to ${room}: I can't reach your home speakers yet, so the call didn't go through.`;
       },
     });
   },
@@ -333,7 +334,7 @@ const announceDinnerDef: ToolDefinition = {
         const message = customMessage || 'Dinner is ready! Come and get it!';
         log.info({ agentId: ctx.agentId, message }, '🍽️ Announcing dinner');
 
-        return `Announcing to all speakers: "${message}" 🍽️`;
+        return `I couldn't announce dinner: ${NO_HOME_SPEAKERS}`;
       },
     });
   },

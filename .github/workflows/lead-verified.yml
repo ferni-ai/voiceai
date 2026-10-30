@@ -1,11 +1,12 @@
 name: Lead Verified
 
 # Was the exact code this PR merges independently verified? Rules:
-# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Reports on PRs and PR
-# comments; fails on merge_group when a queued head isn't verified. The queue acts on it
-# only while "Lead Verified" is a required check.
-# Re-runs when the evidence changes (comments, PR edits). issue_comment runs report in
-# the Actions log; they don't update the PR's check.
+# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Fails on a PR, and on
+# merge_group, when the head isn't verified, so an armed PR waits outside the queue
+# instead of ejecting the groups behind it. The queue acts on it only while
+# "Lead Verified" is a required check.
+# issue_comment runs report in the Actions log; they don't update the PR's check, so
+# post-lead-verify.sh re-runs the PR's check after it posts a verdict.
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
@@ -51,10 +52,11 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
-          # Enforced in the merge queue only (2026-10-25): there the evidence is read fresh
-          # for every queued head, and a NOT_VERIFIED or ERROR fails the group. On a PR it
-          # only reports, because comment-triggered runs don't update the PR's check.
-          LEAD_VERIFIED_ENFORCE: ${{ github.event_name == 'merge_group' && '1' || '' }}
+          # Enforced on PRs and in the merge queue. Queue only (2026-10-25) let any session
+          # arm unverified PRs: 2026-10-29 one sweep armed 13, and each would have entered
+          # the queue, failed there, and ejected every group behind it. A NOT_VERIFIED or
+          # ERROR now fails the PR's check too; comment runs still only report.
+          LEAD_VERIFIED_ENFORCE: ${{ github.event_name != 'issue_comment' && '1' || '' }}
           # Only the ferni-verifier app counts (2026-10-25: sessions now post as it via
           # ~/.claude/bin/post-lead-verify). A personal account would let any tool that
           # falls back to the owner's own gh login post a trusted PASS.
