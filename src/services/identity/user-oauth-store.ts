@@ -21,6 +21,7 @@
 
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { noteLinkedTokenUse } from '../../utils/linked-token-use.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { resealStale } from '../../utils/token-at-rest.js';
 import { createPersistenceStore } from '../persistence/index.js';
@@ -139,19 +140,25 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
     return null;
   }
 
+  async function readTokens(userId: string): Promise<T | null> {
+    const cached = tokenCache.get(userId);
+    if (cached) return cached;
+    if (misses.has(userId)) return null;
+    const pending = pendingLoads.get(userId);
+    if (pending) return pending;
+    const load = loadTokens(userId).finally(() => pendingLoads.delete(userId));
+    pendingLoads.set(userId, load);
+    return load;
+  }
+
   return {
     provider,
     peek: (userId) => tokenCache.get(userId) ?? null,
 
     async get(userId) {
-      const cached = tokenCache.get(userId);
-      if (cached) return cached;
-      if (misses.has(userId)) return null;
-      const pending = pendingLoads.get(userId);
-      if (pending) return pending;
-      const load = loadTokens(userId).finally(() => pendingLoads.delete(userId));
-      pendingLoads.set(userId, load);
-      return load;
+      const tokens = await readTokens(userId);
+      noteLinkedTokenUse(provider, userId, tokens ? 'connected' : 'not_connected');
+      return tokens;
     },
 
     async readFresh(userId) {
@@ -230,7 +237,11 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
       misses.delete(userId);
     },
 
-    isRefreshBlocked: (userId) => blocked.has(userId),
+    isRefreshBlocked: (userId) => {
+      const isBlocked = blocked.has(userId);
+      if (isBlocked) noteLinkedTokenUse(provider, userId, 'needs_reauth');
+      return isBlocked;
+    },
     blockRefresh: (userId) => blocked.add(userId),
   };
 }

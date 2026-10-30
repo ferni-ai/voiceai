@@ -26,7 +26,7 @@ import type { UserData } from '../shared/types.js';
 import { onToolExecuted } from '../../intelligence/capability-learning.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
-import { toolOutcome } from './tool-outcome.js';
+import { linkOutcome, toolOutcome } from './tool-outcome.js';
 // Semantic tool presence - "Better than Human" tool feedback
 import { startToolPresence, stopToolPresence } from '../../tools/execution/index.js';
 // Tool timing context for natural LLM framing
@@ -162,10 +162,6 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
       if (userData?.conversationState && event) {
         const convState = userData.conversationState;
 
-        // Get tool information from event
-        // The event structure varies by LLM backend:
-        // - OpenAI Realtime: { functionCallOutputs: [...] }
-        // - Gemini/Other: { tools: [...] } or direct tool object
         const toolInfo = event as ToolInfo;
 
         // Handle different event structures:
@@ -173,6 +169,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
         // 2. Legacy/Gemini: tools array or single tool object
         let toolCalls: Array<{
           name?: string;
+          callId?: string;
           result?: unknown;
           output?: unknown;
           error?: unknown;
@@ -184,6 +181,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           // OpenAI Realtime API structure - map output to result for consistency
           toolCalls = toolInfo.functionCallOutputs.map((fco) => ({
             name: fco.name,
+            callId: fco.callId,
             result: fco.output,
             error: fco.isError ? fco.output : undefined,
             isError: fco.isError,
@@ -453,6 +451,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             hasResult: !!tool.result,
             hasError,
             outcome: toolOutcome(isMusic, toolResult, hasError),
+            ...linkOutcome(tool.callId),
           });
         }
       }
