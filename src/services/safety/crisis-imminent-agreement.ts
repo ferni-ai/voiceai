@@ -105,6 +105,17 @@ export async function readTurn(
   return combineReads({ ...turn, ruled, plain: plain === undefined ? ruled : plain });
 }
 
+/**
+ * Extra cache-key parts for the classifier's shared reads. With the flag on, a turn's combined
+ * read depends on this call's flag and its own agreed risk, so it is shared only within the call.
+ */
+export function agreementCacheScope(
+  env: Record<string, string | undefined>,
+  call?: string
+): string[] {
+  return resolveImminentNeedsAgreement(env) ? [call ?? ''] : [];
+}
+
 /** The read for a turn read with and without the everyday rules. */
 export function combineReads(reads: TurnReads): CrisisVerdict | null {
   const read = moreSevereRead(reads.ruled, reads.plain);

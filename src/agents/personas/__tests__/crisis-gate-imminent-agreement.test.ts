@@ -59,7 +59,8 @@ beforeEach(() => {
 async function call(
   lines: string[],
   generate: CrisisGenerateFn,
-  env: Record<string, string>
+  env: Record<string, string>,
+  sessionId = `call-${calls}`
 ): Promise<CrisisGateDecision[]> {
   const ctx = llm.ChatContext.empty();
   ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
@@ -68,7 +69,7 @@ async function call(
     ctx.addMessage({ role: 'user', content: line });
     const gate = startCrisisGate(
       ctx.copy(),
-      { services: { sessionId: `call-${calls}` } },
+      { services: { sessionId } },
       {
         env,
         generate,
@@ -134,5 +135,25 @@ describe('flag on: real risk keeps the script', () => {
     const blocked = "I'm going to kill myself tonight.";
     const out = await call([...EARLIER, blocked, GOODBYE], INCIDENT, ON);
     expect(out.map((d) => d.action)).toEqual(['pass', 'pass', 'replace', 'replace']);
+  });
+});
+
+describe('a cached read never crosses calls', () => {
+  // One worker serves calls back to back, and each caller's flags are applied at call start;
+  // the classifier's 30 s cache must not hand one call's eased read to the next.
+  const SAME = [...EARLIER, FRAGMENT, GOODBYE];
+
+  it('a flag-on call, then a flag-off call with the same words: the second gets the script', async () => {
+    const first = await call(SAME, INCIDENT, ON, 'call-owner');
+    expect(first.map((d) => d.action)).toEqual(['pass', 'pass', 'guide', 'guide']);
+    const next = await call(SAME, INCIDENT, OFF, 'call-next');
+    expect(next.map((d) => d.action)).toEqual(['pass', 'pass', 'replace', 'replace']);
+  });
+
+  it('a flag-off call, then a flag-on call with the same words: the second is eased', async () => {
+    const first = await call(SAME, INCIDENT, OFF, 'call-a');
+    expect(first.map((d) => d.action)).toEqual(['pass', 'pass', 'replace', 'replace']);
+    const next = await call(SAME, INCIDENT, ON, 'call-b');
+    expect(next.map((d) => d.action)).toEqual(['pass', 'pass', 'guide', 'guide']);
   });
 });

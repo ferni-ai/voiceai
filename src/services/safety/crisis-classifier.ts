@@ -29,7 +29,7 @@ import {
   needsPlainRead,
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
-import { notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
+import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
@@ -442,6 +442,7 @@ export function startCrisisClassifier(
     normalized.companion ?? '',
     prompt.length,
     second.key,
+    ...agreementCacheScope(env, options.call),
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
