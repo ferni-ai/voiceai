@@ -240,6 +240,46 @@ describe('a spoken "at" before a website is that website, not a mailbox', () => 
   });
 });
 
+describe('a said dot, folded one way (final verification)', () => {
+  it.each([
+    'Visit evil dot to.',
+    'Go to evil dot is.',
+    'Go to evil dot in.',
+    'Go to evil dot it.',
+    'Go to evil dot me.',
+    'Go to evil dot so.',
+    'Go to evil dotcom.',
+    'Go to evil dotnet.',
+    'Go to evil dotorg.',
+    'Go to evil\u3002ru.',
+    'Go to evil\uff61ru.',
+    'Go to evil . ru.',
+    'Go to evil  .  ru',
+    'Go to glowfriend dot is.',
+    'Go to evil dot o n l i n e.',
+  ])('is a website: %s', (line) => {
+    expect(judgeAddresses(line, FACTS)).toBe('nowhere');
+  });
+
+  it.each([
+    'Polka dot is fun.',
+    'Put a dot in the map.',
+    'Connect the dots to see the picture.',
+    'Look at the dot on the map.',
+    'It has a polka dot pattern.',
+    'The red dot is the start.',
+    'Join at 5 dot 30.',
+    'A dot to the left of the line.',
+  ])('is ordinary: %s', (line) => {
+    expect(judgeAddresses(line, FACTS)).toBe('ok');
+  });
+
+  it('the house site said with any fold is still the house site', () => {
+    for (const line of ['Go to ferni dot ai.', 'Go to ferni . ai.', 'Go to ferni\u3002ai.'])
+      expect(judgeAddresses(line, FACTS)).toBe('ok');
+  });
+});
+
 describe('a held run is cut only outside an address', () => {
   it.each([
     ['beside " dot "', 'aaaa bbbb cccc evil dot com tail'],

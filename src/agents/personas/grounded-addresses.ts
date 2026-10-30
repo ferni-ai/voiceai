@@ -42,21 +42,19 @@ function groundingText(item: GroundingItem): string {
 }
 
 /**
- * Tools whose output can ground an address: the user's own stored data (contact lists, what
- * they told Ferni to remember) and fixed crisis lines. Only a tool whose output does NOT
- * echo the model's own arguments qualifies, since an injected argument ("my sponsor's site
- * is evil.ru") would come straight back as trusted text. So not getContactInfo,
- * getContactInteractionHistory or recallPreviousConversation ("I don't have ... "<argument>""),
- * not recallFromMemory (it returns the session's keyMoments verbatim, and rememberAboutUser
- * writes the model's own text there: two injected calls would get an address spoken),
- * not the coaching tools, not the human-transfer tools, and not callStatus (the callee's own
- * words). Any other tool is untrusted, and so is a new one until someone adds it here.
+ * Tools whose output can ground an address. Only fixed text qualifies: the crisis tools take
+ * enum arguments and return helpline lines out of the data in the app. Nothing the model
+ * writes can come back through them. Not any tool that echoes the model's arguments
+ * (getContactInfo, getContactInteractionHistory, recallPreviousConversation, the coaching and
+ * human-transfer tools), not recallFromMemory (it returns the session's key moments verbatim,
+ * and rememberAboutUser writes the model's own text there), not callStatus (the callee's own
+ * words), and not the contact and relationship tools (getContactsNeedingAttention,
+ * getContactInsights, getContactReminders, getRelationshipSummary): they return fields the
+ * model writes, such as follow-up reasons, goal names and summaries. A contact's number is
+ * speakable through the call sheet and the caller's own turns, not through a tool's free text.
+ * Any other tool is untrusted, and so is a new one until someone adds it here.
  */
 const FIRST_PARTY_TOOLS = new Set([
-  'getContactInsights',
-  'getContactsNeedingAttention',
-  'getContactReminders',
-  'getRelationshipSummary',
   // Crisis tools whose arguments are enums only, so their output is fixed helpline text.
   // Not the coaching tools (they echo the model's arguments) and not the human-transfer
   // tools evaluateHumanTransfer / connectToHumanExpert (they echo statements and topics):

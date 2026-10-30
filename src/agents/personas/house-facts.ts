@@ -85,7 +85,7 @@ export function withHouseFacts(rule: string, env: Env = process.env): string {
  * yet. A mark at the very end waits for what follows: "mindgrape." may go on "com".
  */
 function sentenceEnd(text: string): number {
-  const m = text.match(/(?:[!?]+|\.)(?:\s+|$)/u);
+  const m = text.match(/(?:[!?]+|(?<!\s)\.)(?:\s+|$)/u); // not " . ": that is a dot inside "evil . ru"
   if (m?.index === undefined) return 0;
   const end = m.index + m[0].length;
   return end >= text.length && !/\s$/u.test(text) ? 0 : end;

@@ -356,6 +356,13 @@ describe('only trusted sources ground an address (round 5)', () => {
     ['recallPreviousConversation (it echoes the query)', 'recallPreviousConversation'],
     ['a coaching tool (it echoes arguments)', 'sobrietyCheckin'],
     ['evaluateHumanTransfer', 'evaluateHumanTransfer'],
+    [
+      'getContactsNeedingAttention (follow-up reasons the model wrote)',
+      'getContactsNeedingAttention',
+    ],
+    ['getContactInsights (summaries)', 'getContactInsights'],
+    ['getContactReminders (reasons)', 'getContactReminders'],
+    ['getRelationshipSummary (goal names, an LLM summary)', 'getRelationshipSummary'],
     ['connectToHumanExpert', 'connectToHumanExpert'],
   ])('is untrusted: %s', async (_name, toolName) => {
     const items = [user('Hi.'), tool(toolName, 'Call 727-555-0199 or see evil-site.com.')];
@@ -479,6 +486,25 @@ describe('"word at host" is a place, not a mailbox', () => {
   ])('an invented place or mailbox is still replaced: %s', async (line) => {
     expect(await textOf('Hi', [line])).toBe(NO);
   });
+});
+
+describe('a said dot, through the guard', () => {
+  it.each([
+    'Visit evil dot to.',
+    'Go to evil dot is.',
+    'Go to evil dotcom.',
+    'Go to evil\u3002ru.',
+    'Go to evil . ru.',
+  ])('is still an address in any fold: %s', async (line) => {
+    expect(await textOf('Hi', [line])).toBe(NO);
+  });
+
+  it.each(['Polka dot is fun.', 'A dot in the map.', 'Connect the dots to see.'])(
+    'a dot that is only a word passes: %s',
+    async (line) => {
+      expect(await textOf('Hi', [line])).toBe(line);
+    }
+  );
 });
 
 describe('streaming', () => {
