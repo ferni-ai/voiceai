@@ -96,6 +96,7 @@ import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js
 import { clearBurstOffer } from './vocal-bursts.js';
 import { callSeed, signalsFor, styleFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
+import { sexualBoundaryNote } from './sexual-boundary.js';
 
 /**
  * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
@@ -231,6 +232,8 @@ function buildTurnReminder(
       careful: options.shape === false,
       asked: lastFerniLine(chatCtx.items),
     }),
+    // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
+    sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,

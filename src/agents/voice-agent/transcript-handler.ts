@@ -71,6 +71,7 @@ import { trackConversationTurn } from '../integrations/speech-metrics-integratio
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
 import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
+import { readCallerTurn } from '../personas/sexual-boundary.js';
 import { ownerWriteId } from '../../services/identity/owner-write-gate.js';
 import {
   analyzeTurnSignals,
@@ -1285,6 +1286,8 @@ async function processFinalTranscript(
   } = ctx;
   // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
   const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
+  // SEXUAL_TOPIC_BOUNDARY=on: read off the reply path; a sexual turn holds this call's memory.
+  void readCallerTurn({ sessionId, userId, text: event.transcript, asked });
   const held = heldAfter(sessionId, event.transcript, { userId, asked });
   const memoryUserId = held ? undefined : ownerWriteId(userId); // nor an on-behalf call's id
 

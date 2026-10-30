@@ -17,6 +17,7 @@
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { memoryHeld } from '../../utils/minor-care.js';
+import { sexualReadsSettled } from '../../utils/sexual-topic-hold.js';
 
 const log = createLogger({ module: 'after-call-tasks' });
 
@@ -103,14 +104,23 @@ async function runOne(
   }
 }
 
-/** Starts every registered task for this call and returns without waiting. */
+/**
+ * Starts every registered task for this call and returns without waiting. A read of the last
+ * turn still running (SEXUAL_TOPIC_BOUNDARY) is waited for first, counted as a pending task.
+ */
 export function runAfterCallTasks(ctx: AfterCallContext): void {
-  // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept.
+  const reading = sexualReadsSettled(ctx.sessionId);
+  if (!reading) return startAfterCallTasks(ctx);
+  const p = reading.then(() => startAfterCallTasks(ctx));
+  inFlight.add(p);
+  void p.finally(() => inFlight.delete(p));
+}
+
+function startAfterCallTasks(ctx: AfterCallContext): void {
+  // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept;
+  // SEXUAL_TOPIC_BOUNDARY=on: nor from a call held for a sexual topic.
   if (memoryHeld(ctx.sessionId)) {
-    log.info(
-      { sessionId: ctx.sessionId, skipped: tasks.size },
-      'After-call tasks held: MINOR_CARE'
-    );
+    log.info({ sessionId: ctx.sessionId, skipped: tasks.size }, 'After-call tasks held');
     return;
   }
   for (const [name, reg] of tasks) {
