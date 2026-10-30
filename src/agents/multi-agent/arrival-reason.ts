@@ -141,7 +141,12 @@ function handedBack(sentence: string): string | undefined {
     if (comma < 0 || s.slice(0, comma).split(/\s+/).length < 5) return undefined;
     s = s.slice(0, comma);
   }
-  return s
+  return toSecondPerson(s);
+}
+
+/** The caller's words as said back to them: "I'm late for my mom" → "you're late for your mom". */
+export function toSecondPerson(text: string): string {
+  return text
     .replace(/\bI (?:am|was)\b/g, (m) => (m.endsWith('am') ? 'you are' : 'you were'))
     .replace(
       /\b(?:I'm|I've|I'd|I'll|I|me|my|mine|myself)\b/gi,

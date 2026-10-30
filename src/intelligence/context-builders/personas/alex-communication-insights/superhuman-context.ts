@@ -21,12 +21,10 @@ import { createLogger } from '../../../../utils/safe-logger.js';
 import {
   buildSuperhumanCommunicationContext,
   buildQuickCommunicationContext,
-  communicationArchaeology,
   relationshipTemperature,
   unsaidWordsDetector,
   communicationDebt,
   strategicSilence,
-  unspokenNeeds,
 } from '../../../../tools/domains/communication/superhuman-tools/index.js';
 
 const log = createLogger({ module: 'context:alex-superhuman' });
@@ -157,105 +155,6 @@ export async function buildAlexQuickSuperhumanContext(userId: string): Promise<s
 }
 
 // ============================================================================
-// REAL-TIME PROCESSING
-// ============================================================================
-
-/**
- * Process user transcript for superhuman insights in real-time.
- * Call this on each turn to detect patterns.
- */
-export async function processTranscriptForSuperhuman(
-  userId: string,
-  transcript: string,
-  context?: { currentTopic?: string }
-): Promise<{
-  detectedDebt?: ReturnType<typeof communicationDebt.detect>[0];
-  detectedUnsaid?: ReturnType<typeof unsaidWordsDetector.detect>;
-  detectedNeed?: ReturnType<typeof unspokenNeeds.detect>;
-  communicationMention?: ReturnType<typeof communicationArchaeology.detectMention>;
-}> {
-  const results: {
-    detectedDebt?: ReturnType<typeof communicationDebt.detect>[0];
-    detectedUnsaid?: ReturnType<typeof unsaidWordsDetector.detect>;
-    detectedNeed?: ReturnType<typeof unspokenNeeds.detect>;
-    communicationMention?: ReturnType<typeof communicationArchaeology.detectMention>;
-  } = {};
-
-  try {
-    // Detect communication debt mentions
-    const debts = communicationDebt.detect(transcript);
-    if (debts.length > 0) {
-      results.detectedDebt = debts[0];
-
-      // Auto-record the debt (fire and forget)
-      void communicationDebt.record(userId, {
-        type: debts[0].type,
-        description: debts[0].description,
-        contactName: debts[0].contactName || 'Unknown',
-        priority: 'medium',
-        relationshipImportance: 5,
-        status: 'pending',
-      });
-    }
-
-    // Detect topic deflection (unsaid words)
-    const unsaidDetection = unsaidWordsDetector.detect(transcript, context?.currentTopic);
-    if (unsaidDetection.topicMentioned) {
-      results.detectedUnsaid = unsaidDetection;
-
-      // Track in session
-      unsaidWordsDetector.track(
-        userId,
-        unsaidDetection.topicMentioned,
-        unsaidDetection.wasDeflected,
-        transcript.slice(0, 100)
-      );
-    }
-
-    // Detect unspoken needs
-    const needDetection = unspokenNeeds.detect(transcript);
-    if (needDetection) {
-      results.detectedNeed = needDetection;
-    }
-
-    // Detect conversation mentions
-    const commMention = communicationArchaeology.detectMention(transcript, context);
-    if (commMention.detected) {
-      results.communicationMention = commMention;
-
-      // Auto-record the communication event
-      if (commMention.contactName && commMention.contactName !== 'Unknown') {
-        void communicationArchaeology.recordEvent(userId, {
-          userId,
-          type: commMention.type || 'mentioned',
-          contactName: commMention.contactName,
-          summary: transcript.slice(0, 200),
-          topics: commMention.topics || [],
-          sentiment: commMention.sentiment || 0,
-          emotionalWeight: 0.5,
-          occurredAt: Date.now(),
-        });
-
-        // Update relationship temperature
-        void relationshipTemperature.update(
-          userId,
-          commMention.contactName,
-          commMention.sentiment || 0,
-          transcript.slice(0, 100)
-        );
-      }
-    }
-  } catch (error) {
-    log.warn(
-      { error: String(error), userId },
-      'Failed to process transcript for superhuman insights'
-    );
-  }
-
-  return results;
-}
-
-// ============================================================================
 // SESSION MANAGEMENT
 // ============================================================================
 
@@ -281,7 +180,6 @@ export async function endSuperhumanSession(userId: string): Promise<void> {
 export const alexSuperhumanContext = {
   buildFull: buildAlexSuperhumanContext,
   buildQuick: buildAlexQuickSuperhumanContext,
-  processTranscript: processTranscriptForSuperhuman,
   endSession: endSuperhumanSession,
 };
 
