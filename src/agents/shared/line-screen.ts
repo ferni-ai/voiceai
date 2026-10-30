@@ -286,7 +286,7 @@ export async function proactivePickedUp(
     await import('../../intelligence/context-builders/external/proactive-session-context.js');
   const answered = () => markCallAnswered(sessionId);
   if (!getProactiveSessionContext(sessionId)?.movedFrom) {
-    const { isProactiveCall } = await import('../multi-agent/greeting-direction.js');
+    const { isProactiveCall } = await import('../multi-agent/proactive-opener.js');
     if (!(await isProactiveCall(sessionId))) return undefined;
     return waitForCallAnswered(room, participant, undefined, undefined, answered);
   }

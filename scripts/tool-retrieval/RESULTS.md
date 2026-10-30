@@ -177,3 +177,83 @@ Caveats:
   multi-turn context.
 - The negatives are 60 lines written for this run; false-call rates of 1-4% rest on 1-5 calls per
   run.
+
+# Persona toolsets: Phase 1 (2026-10-29)
+
+Question: with `PERSONA_TOOLSETS` (each persona one fixed set of 40 or fewer:
+`src/agents/multi-agent/persona-toolsets.ts`), does the model pick the right tool more often than
+with the 96-tool sets of Phase 0 and with today's prod set, and what does the set leave out?
+
+## Method
+
+- The set the harness offers is the production builder's (`personaToolset`) over the registry,
+  with the registry's handoffs cut to the persona's teammates: 38 tools (the cap of 40 keeps 2
+  slots for `findTools` and `endCall`). Every arm of a persona uses that persona's prompt.
+- **In set, paired:** `TOOL_PERSONA=<id> EVAL_LABELS=persona` keeps every frozen-set request whose
+  label is in the persona's set: 74 requests (37 tools x 2) per persona. Each runs once with the
+  persona set (`TOOL_SET=persona`), with the Phase 0 96-tool set (`TOOL_SET=count TOOL_COUNT=96
+TOOL_SEED=1`: the 20 head tools, random registry distractors, the label always in), and for
+  Ferni and Maya with today's prod set (`TOOL_SET=today`: the capped essentials plus the
+  post-greeting update, 88 tools, which omits some labels; a label it omits is its miss).
+- **Out of set:** a uniform sample of the frozen set (seed 1, as Phase 0 drew it: 300 for Ferni,
+  150 for Maya) plus the 60 negatives. A request whose label the 96 baseline offered but the
+  persona set does not is the coverage cost.
+- Scored by `persona-toolset-score.mjs`. About 2,450 model calls in all (one interrupted run
+  included), 1 run per arm. With n = 74 a paired CI is about ±10 points, so only large
+  differences are visible.
+
+```bash
+for p in ferni maya-santos; do
+  for set in persona today; do
+    TOOL_SET=$set TOOL_PERSONA=$p EVAL_LABELS=persona npx tsx scripts/tool-retrieval/eval-choice.ts 10000 1 inset-$p-${set/persona/set}
+  done
+  TOOL_SET=count TOOL_COUNT=96 TOOL_SEED=1 TOOL_PERSONA=$p EVAL_LABELS=persona \
+    npx tsx scripts/tool-retrieval/eval-choice.ts 10000 1 inset-$p-96
+done
+TOOL_SET=persona TOOL_PERSONA=ferni EVAL_NEGATIVES=1 npx tsx scripts/tool-retrieval/eval-choice.ts 300 1 persona-ferni-r1-s1
+node scripts/tool-retrieval/persona-toolset-score.mjs scripts/tool-retrieval/out
+```
+
+## Results (gemini-3.5-flash)
+
+In set, paired, 74 requests per row:
+
+| persona | baseline   | right-or-equiv: set / base | lookalike: set / base | missed: set / base | paired diff [95% CI]  | McNemar           |
+| ------- | ---------- | -------------------------- | --------------------- | ------------------ | --------------------- | ----------------- |
+| Ferni   | today (88) | **77.0 / 66.2**            | 12.2 / 29.7           | 10.8 / 4.1         | **+10.8 [0.0, 21.6]** | b=12 c=4, p=0.077 |
+| Maya    | today (88) | **82.4 / 65.8**            | 6.8 / 23.3            | 10.8 / 11.0        | **+16.4 [5.5, 27.4]** | b=16 c=4, p=0.012 |
+| Ferni   | 96         | 77.0 / 85.1                | 12.2 / 9.5            | 10.8 / 5.4         | -8.1 [-18.9, 2.7]     | b=5 c=11, p=0.21  |
+| Maya    | 96         | 82.4 / 85.1                | 6.8 / 8.1             | 10.8 / 6.8         | -2.7 [-10.8, 5.4]     | b=4 c=6, p=0.75   |
+| Alex*   | 96         | 75.7 / 85.1                | 9.5 / 8.1             | 14.9 / 6.8         | -9.5 [-18.9, 0.0]     | b=4 c=11, p=0.12  |
+| Jordan* | 96         | 81.1 / 82.4                | 6.8 / 10.8            | 12.2 / 6.8         | -1.4 [-10.8, 8.1]     | b=6 c=7, p=1.0    |
+| Nayan*  | 96         | 81.1 / 83.8                | 6.8 / 6.8             | 12.2 / 9.5         | -2.7 [-12.2, 6.8]     | b=5 c=7, p=0.77   |
+| Peter*  | 96         | 78.4 / 83.8                | 5.4 / 8.1             | 16.2 / 8.1         | -5.4 [-14.9, 4.1]     | b=4 c=8, p=0.39   |
+
+\* The 96 arm ran with Ferni's prompt and the set arm with the persona's own, so these rows mix
+prompt and tools.
+
+Out of set (uniform sample of the synthetic set):
+
+| persona | sampled | out of set  | served anyway | handed off | no call | other tool | false call on negatives |
+| ------- | ------- | ----------- | ------------- | ---------- | ------- | ---------- | ----------------------- |
+| Ferni   | 288     | 283 (98.3%) | 7.4%          | 7.8%       | 66.4%   | 22.3%      | 0 of 60                 |
+| Maya    | 144     | 141 (97.9%) | 7.1%          | 8.5%       | 73.8%   | 14.2%      | 0 of 60                 |
+
+## Reading
+
+- **Against today's prod set the persona sets win** for both personas measured: Ferni +10.8, Maya
+  +16.4 (p=0.012), with lookalike calls down from 23-30% to 7-12%. Most of Maya's gain is her own
+  tools, which today's set doesn't offer (13 of her 16 wins: `habitSetback`, `celebrateTinyWin`,
+  `logExercise`...).
+- **Against Phase 0's random 96 they do not win** (point estimates -1 to -10, no CI excludes 0).
+  A random 96 seldom holds the label's lookalikes; a persona set always does, because its shared
+  core keeps them: `connectToHumanExpert` lost to `evaluateHumanTransfer` and `updateMemory` to
+  `rememberAboutUser` on every persona. That is the caveat Phase 0 recorded (a persona set is not
+  random). Missed calls also rise, mostly handoffs the persona didn't make.
+- **The coverage cost is large on this set:** 98% of its labels are outside any one persona's
+  set, because the synthetic set spreads evenly over ~1,160 tools. Out of set, the model mostly
+  makes no call (66-74%) or hands off (8%); it serves 7% with an equivalent tool. Real traffic is
+  concentrated on the head (prod 2026-10-05..18: about 20 tools made every call), so this is an
+  upper bound; the prod reading is shadow retrieval's coverage (routing report, part 4).
+- Next, before a cohort: split the lookalike pairs inside the shared core (or give them
+  facades, Phase 2), and run the today-arm for the other four personas with their prompts.
