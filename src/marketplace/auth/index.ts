@@ -301,7 +301,7 @@ export function isValidExternalUrl(url: string): boolean {
  * of falling back to a key committed to this public repo, with which anyone
  * could turn a tool's user token back into a Ferni user id.
  */
-export class MarketplaceHmacUnavailableError extends Error {
+class MarketplaceHmacUnavailableError extends Error {
   readonly code = 'MARKETPLACE_HMAC_UNAVAILABLE';
   constructor() {
     super('MARKETPLACE_HMAC_SECRET is not set; refusing to sign a user token');
