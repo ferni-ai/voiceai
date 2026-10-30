@@ -10,10 +10,7 @@
  * @module tools/domains/smart-home/caller-lifx-tools
  */
 
-import { llm } from '@livekit/agents';
-import { z } from 'zod';
 import { toolCallerId } from '../../registry/per-caller-tool.js';
-import type { Tool } from '../../registry/types.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { isUnverifiedUserId } from '../../../services/identity/unverified-user-id.js';
 import { getCredential } from '../../../services/smart-home/user-credentials.js';
@@ -55,53 +52,44 @@ function describe(light: SmartDevice): string {
   return `${light.name}: ${light.state}${light.room ? ` (${light.room})` : ''}`;
 }
 
-/** Turn one of the caller's LIFX lights on, off or to a brightness. */
-export function callerControlLight(): Tool {
-  return llm.tool({
-    description:
-      "Turn one of the caller's own LIFX lights on or off, or set its brightness. Lights only.",
-    parameters: z.object({
-      room: z.string().describe('Light or room name (e.g., "bedroom lamp", "kitchen")'),
-      action: z.enum(['on', 'off', 'toggle']).describe('What to do with the light'),
-      brightness: z.number().min(0).max(100).optional().describe('Brightness level 0-100'),
-    }),
-    execute: async ({ room, action, brightness }, opts: unknown) => {
-      const own = await callerLights(opts);
-      if ('refused' in own) return own.refused;
-      const wanted = room.trim().toLowerCase();
-      const light = own.lights.find(
-        (d) => d.id === room || (wanted !== '' && d.name.toLowerCase().includes(wanted))
-      );
-      if (!light) {
-        return `I couldn't find a LIFX light called "${room}". Your lights: ${own.lights.map((d) => d.name).join(', ')}.`;
-      }
-      const power =
-        brightness !== undefined || action === 'on'
-          ? 'on'
-          : action === 'off'
-            ? 'off'
-            : light.state === 'on'
-              ? 'off'
-              : 'on';
-      const ok = await setLifxLight({ lifx: { token: own.token } }, light.id, power, brightness);
-      if (!ok) return `I couldn't reach ${light.name}, so it wasn't changed.`;
-      return brightness !== undefined
-        ? `💡 **${light.name}** is now at ${brightness}%`
-        : `💡 **${light.name}** is now ${power}`;
-    },
-  });
+export interface LightCommand {
+  room: string;
+  action: 'on' | 'off' | 'toggle';
+  brightness?: number;
 }
 
-/** List the caller's LIFX lights and their state. */
-export function callerListLights(): Tool {
-  return llm.tool({
-    description:
-      "List the caller's own linked LIFX lights and their state. Use when they ask which lights they have.",
-    parameters: z.object({}),
-    execute: async (_args: Record<string, never>, opts: unknown) => {
-      const own = await callerLights(opts);
-      if ('refused' in own) return own.refused;
-      return `**Your LIFX lights**\n${own.lights.map((d) => `• ${describe(d)}`).join('\n')}`;
-    },
-  });
+/** Turn one of the caller's LIFX lights on, off or to a brightness (the tool: index.ts). */
+export async function controlCallerLight(
+  { room, action, brightness }: LightCommand,
+  opts: unknown
+): Promise<string> {
+  const own = await callerLights(opts);
+  if ('refused' in own) return own.refused;
+  const wanted = room.trim().toLowerCase();
+  const light = own.lights.find(
+    (d) => d.id === room || (wanted !== '' && d.name.toLowerCase().includes(wanted))
+  );
+  if (!light) {
+    return `I couldn't find a LIFX light called "${room}". Your lights: ${own.lights.map((d) => d.name).join(', ')}.`;
+  }
+  const power =
+    brightness !== undefined || action === 'on'
+      ? 'on'
+      : action === 'off'
+        ? 'off'
+        : light.state === 'on'
+          ? 'off'
+          : 'on';
+  const ok = await setLifxLight({ lifx: { token: own.token } }, light.id, power, brightness);
+  if (!ok) return `I couldn't reach ${light.name}, so it wasn't changed.`;
+  return brightness !== undefined
+    ? `💡 **${light.name}** is now at ${brightness}%`
+    : `💡 **${light.name}** is now ${power}`;
+}
+
+/** List the caller's LIFX lights and their state (the tool: index.ts). */
+export async function listCallerLights(opts: unknown): Promise<string> {
+  const own = await callerLights(opts);
+  if ('refused' in own) return own.refused;
+  return `**Your LIFX lights**\n${own.lights.map((d) => `• ${describe(d)}`).join('\n')}`;
 }

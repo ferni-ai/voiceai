@@ -27,7 +27,7 @@ import {
 } from '../../tools/orchestrator/persona-tool-policy.js';
 import { TOPIC_TO_DOMAINS } from '../../tools/dynamic-loader/topic-mappings.js';
 import { SAME_TURN_TOPIC_PATTERNS } from '../../tools/dynamic-loader/same-turn-topics.js';
-import { smartHomeTopicPatterns } from '../../tools/dynamic-loader/smart-home-topics.js';
+import { smartHomeTopicPatterns } from '../../tools/dynamic-loader/index.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
 import type { ToolDomain } from '../../tools/registry/types.js';
 import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';

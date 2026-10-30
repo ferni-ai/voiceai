@@ -16,7 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { NO_TIMED_REMINDER } from '../../utils/honest-schedule.js';
 import { flagOn } from '../../../config/env-flag.js';
-import { callerControlLight, callerListLights } from './caller-lifx-tools.js';
+import { controlCallerLight, listCallerLights } from './caller-lifx-tools.js';
 
 // Import existing smart home functionality
 import { createSmartHomeTools, getAllDevices, controlDevice, activateScene } from './smart-home.js';
@@ -378,7 +378,17 @@ const lifxTools: ToolDefinition[] = [
   {
     ...controlLightDef,
     domain: 'smart-home',
-    create: (_ctx: ToolContext): Tool => callerControlLight(),
+    create: (_ctx: ToolContext): Tool =>
+      llm.tool({
+        description:
+          "Turn one of the caller's own LIFX lights on or off, or set its brightness. Lights only.",
+        parameters: z.object({
+          room: z.string().describe('Light or room name (e.g., "bedroom lamp", "kitchen")'),
+          action: z.enum(['on', 'off', 'toggle']).describe('What to do with the light'),
+          brightness: z.number().min(0).max(100).optional().describe('Brightness level 0-100'),
+        }),
+        execute: async (args, opts: unknown) => controlCallerLight(args, opts),
+      }),
   },
   {
     // Not 'listDevices': simple-utilities registers that id for phones and tablets.
@@ -387,7 +397,13 @@ const lifxTools: ToolDefinition[] = [
     description: 'List the lights linked to this account',
     domain: 'smart-home',
     tags: ['devices', 'lights', 'smart-home'],
-    create: (_ctx: ToolContext): Tool => callerListLights(),
+    create: (_ctx: ToolContext): Tool =>
+      llm.tool({
+        description:
+          "List the caller's own linked LIFX lights and their state. Use when they ask which lights they have.",
+        parameters: z.object({}),
+        execute: async (_args, opts: unknown) => listCallerLights(opts),
+      }),
   },
 ];
 
