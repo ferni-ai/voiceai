@@ -65,12 +65,15 @@ function allowed(target: readonly string[], owner: readonly string[], call: bool
   ];
 }
 
-/** The reply's words, lower-case, apostrophes dropped; digits kept (so "555-0199" is never plain). */
+/** The reply's words, lower-case, apostrophes dropped; digits kept (so "555-0199" is never plain).
+ * Letters of any script are words, and any other character that is not space or punctuation (an
+ * emoji, a symbol, a control character) is a token of its own that no allow-list phrase matches,
+ * so nothing the allow-list can't read is dropped before it is checked. */
 const tokens = (text: string): string[] =>
   text
     .toLowerCase()
     .replace(/['’]/g, '')
-    .match(/[a-z0-9]+/g) ?? [];
+    .match(/[\p{L}\p{M}\p{N}]+|[^\s\p{L}\p{M}\p{N}\p{P}]/gu) ?? [];
 
 /**
  * Whether the reply is a plain yes: wholly allow-listed phrases, at least one of them agreement,
@@ -116,11 +119,12 @@ function onlyYes(said: string[], phrases: Phrase[]): boolean {
 }
 
 export const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
+/** Letters of any script, and a token for any symbol or emoji (digits and punctuation separate). */
 export const words = (text: string): string[] =>
   text
     .toLowerCase()
     .replace(/['’]/g, '')
-    .match(/[a-z]+/g) ?? [];
+    .match(/[\p{L}\p{M}]+|[^\s\p{L}\p{M}\p{N}\p{P}]/gu) ?? [];
 
 /** Whether any word of it is a no ("not", "don't", "wait"): never a plain yes, maybe not a no. */
 export function isClearNo(text: string): boolean {

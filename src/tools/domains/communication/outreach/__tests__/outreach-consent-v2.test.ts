@@ -1369,3 +1369,127 @@ describe('round 10: a cancel that cannot be shown reopenable stays closed', () =
     expect(sends).toHaveLength(0);
   });
 });
+
+/** Verifier round 10: the tokenizer dropped every non-Latin word and every emoji before the
+ * allow-list looked, so "Did you call him <place in another script>?" read as a bare status
+ * question. Anything the allow-list can't read now stays in the turn and makes it not plain. */
+describe('round 10: text outside the allow-list is never dropped before it is checked', () => {
+  const READ = "I'm ready to call Dad at 555-123-0002, right now. Should I go ahead and call him?";
+  beforeEach(() => setReadBackAsk(alwaysReadBack, 1500));
+  const asksOnce = /Just to be sure: call Dad now\?|I won't call Dad/;
+
+  const STATUS_TAILS = [
+    'Did you call him 在家?', // at home, Chinese
+    'Did you call him дома?', // at home, Russian
+    'Did you call him 📞?', // telephone emoji
+    'Did you call him ؟ في المنزل', // Arabic
+    'Did you call him ऑफिस में?', // Hindi
+    'Did you call him 会社に?', // Japanese
+    'Did you call him? 在他妈妈家',
+    'Did you call him? 他不接',
+    'Did you call 他?', // "him" in Chinese
+    'Did you call him ≠?', // a symbol
+  ];
+  it('a status question with text in another script, or a symbol or emoji, is a question', async () => {
+    setConsentAsk(alwaysYes);
+    for (const status of STATUS_TAILS) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(status);
+      call.ferni("Not yet, I'm waiting on your go-ahead.");
+      call.owner('Yes.');
+      expect(await call.call('c2'), status).toMatch(asksOnce);
+      expect(sends, status).toHaveLength(0);
+    }
+  });
+
+  const YES_TAILS = [
+    'Yes, 但是不要现在.',
+    'Yes, не сейчас.',
+    'Yes 不要',
+    'Yes, call 妈妈.',
+    'Yeah, 明天再打.',
+    'Sure, מחר',
+    'Okay, 😡',
+    'Yes, ≠',
+    'Go ahead 😒',
+    'Yes 😂',
+    'Go ahead and call him 明天',
+    'Yes\u0000, not now',
+  ];
+  it('a yes with text in another script, or a symbol or emoji, is not a plain yes', async () => {
+    setConsentAsk(alwaysYes);
+    for (const yes of YES_TAILS) {
+      expect(isClearYes(yes, ['my', 'dad'], [], true), yes).toBe(false);
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(yes);
+      expect(await call.call('c2'), yes).toMatch(asksOnce);
+      expect(sends, yes).toHaveLength(0);
+    }
+    expect(isClearYes('Yes, go ahead.', ['my', 'dad'], [], true)).toBe(true);
+  });
+
+  it('another person named in another script after a cancel still blocks a re-read', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    call.owner('No.');
+    expect(await call.call('c2')).toContain("Okay, I won't call Dad.");
+    call.owner('Call маму.');
+    call.ferni('Okay. Should I go ahead and call him?');
+    call.owner('Yes.');
+    await call.call('c3');
+    expect(sends).toHaveLength(0);
+  });
+
+  it('a no that says more in another script, or with a symbol, is a final no: a re-read does not reopen it', async () => {
+    setConsentAsk(alwaysYes);
+    for (const no of [
+      'No, \u0434\u043e\u043c\u0430.',
+      'No, \u5728\u5bb6.',
+      'No \ud83d\ude21',
+      'Nah, \u2260',
+    ]) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(no);
+      await call.call('c2');
+      call.ferni('Okay. Should I go ahead and call him?');
+      call.owner('Yes.');
+      await call.call('c3');
+      expect(sends, no).toHaveLength(0);
+    }
+  });
+
+  it('the plain question stays neutral; a second sentence that is not one makes it a question', async () => {
+    setConsentAsk(alwaysYes);
+    const plain = liveCall();
+    await plain.call('c1');
+    plain.ferni(READ);
+    plain.owner('Did you call Dad?');
+    plain.ferni("Not yet, I'm waiting on your go-ahead.");
+    plain.owner('Yes.');
+    await plain.call('c2');
+    expect(sends).toHaveLength(1);
+    sends.length = 0;
+    for (const mixed of [
+      'Did you call him? And did you text him?',
+      'Did you call him? Did you text him?',
+      'Did you call him yet? Did you call his mom?',
+    ]) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(mixed);
+      call.ferni("Not yet, I'm waiting on your go-ahead.");
+      call.owner('Yes.');
+      expect(await call.call('c2'), mixed).toMatch(asksOnce);
+      expect(sends, mixed).toHaveLength(0);
+    }
+  });
+});

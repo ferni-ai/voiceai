@@ -128,13 +128,20 @@ function callsSomeoneElse(text: string, pending: PendingAction): boolean {
   const pronoun = pronounOf(target);
   if (digitRuns(text).some((n) => !numberOf(pending).includes(n))) return true;
   const objects =
-    /\b(?:call|ring|dial|give)[,.]?\s+(?:(?:um|uh|er|oh|so|well|like)[,.]?\s+)*(?:my\s+|your\s+|the\s+)?([A-Za-z]+)/gi;
+    /\b(?:call|ring|dial|give)[,.]?\s+(?:(?:um|uh|er|oh|so|well|like)[,.]?\s+)*(?:my\s+|your\s+|the\s+)?(\p{L}+)/giu;
   for (const m of text.matchAll(objects)) {
     const raw = m[1];
     const w = raw.toLowerCase();
     if (target.includes(w) || w === pronoun || AFTER_CALL.has(w)) continue;
     if (!pronoun && (w === 'him' || w === 'her')) continue;
-    if (OTHERS.has(w) || /^[A-Z]/.test(raw) || w === 'him' || w === 'her') return true;
+    if (
+      OTHERS.has(w) ||
+      /^[A-Z]/.test(raw) ||
+      /[^\x00-\x7f]/.test(raw) ||
+      w === 'him' ||
+      w === 'her'
+    )
+      return true;
   }
   return false;
 }
