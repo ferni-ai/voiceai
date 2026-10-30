@@ -15,7 +15,7 @@ import {
 } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
-import { memoryHeld } from '../../utils/minor-care.js';
+import { memoryHeld, minorHeld, sexualReadsSettled } from '../../utils/minor-care.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { purgeHeldUser } from './minor-care-purge.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
@@ -392,9 +392,9 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     });
   }
 
-  // Every writer that PERSISTS gets memoryUserId: undefined when MINOR_CARE holds the caller (under
-  // 18, not a verified owner) or the id is an on-behalf call's (onbehalf:, ONBEHALF_WRITE_GATE).
-  // The raw userId: in-memory clears, trial time, A/B and cognitive tallies; seeds, presence: held.
+  // memoryUserId: undefined when held (MINOR_CARE, or a sexual topic once its read settles) or an
+  // on-behalf call's id. Raw userId: in-memory clears, trial time, A/B, tallies; seeds held.
+  await sexualReadsSettled(sessionId);
   const [held, unowned] = [memoryHeld(sessionId), ownerWritesBlocked(userId)];
   const memoryUserId = held || unowned ? undefined : userId;
   // Async event for background processing (the trust and predictions workers persist on it)
@@ -1452,7 +1452,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     }
   }
 
-  if (held && userId) purgeHeldUser(userId, sessionId, services?.sessionStartTime); // MINOR_CARE
+  if (userId && minorHeld(sessionId)) purgeHeldUser(userId, sessionId, services?.sessionStartTime);
   const totalDuration = Date.now() - cleanupStart;
   diag.session('✅ Session cleanup complete', { totalDurationMs: totalDuration });
 }

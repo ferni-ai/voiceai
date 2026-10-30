@@ -33,9 +33,12 @@ export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
  */
 export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
   bogle_users: [
+    'activity', // the activity ledger: what Ferni did or promised for them (activity-store.ts)
     'alarms',
     'analytics',
     'behavioral_intelligence',
+    // how the owner likes things booked, per kind of place (booking-prefs-store.ts)
+    'booking_prefs',
     // legacy: no writer since memory v2 C5a; old docs are still exported
     'bth_signals',
     'coaching_intelligence',
@@ -162,6 +165,11 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
   semantic_routing_corrections: ['corrections'],
 };
 
+/** Sub-collections of each doc in an exported store, exported as "<label>/(any id)/<sub>" (the ledger's event log) */
+export const NESTED_STORES: Readonly<Record<string, readonly string[]>> = {
+  'bogle_users/{uid}/activity': ['events'],
+};
+
 /** Stores that exist under a person's record and are withheld on purpose, with why */
 export const WITHHELD_STORES: Readonly<Record<string, string>> = {
   push_subscriptions: 'web-push endpoint and keys: whoever holds them can push to the device',
@@ -200,9 +208,11 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/memory_highlights', // Memory Lane
   'bogle_users/{uid}/saved_rituals', // Build a Ritual
   'bogle_users/{uid}/journal',
+  'bogle_users/{uid}/booking_prefs', // how they like things booked (BOOKING_PREFS)
   'bogle_users/{uid}/team_insights', // Team Insights
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
   'bogle_users/{uid}/mind_model', // what Ferni understands about them (THEORY_OF_MIND)
+  'bogle_users/{uid}/activity', // the activity ledger (ACTIVITY_LEDGER)
   'bogle_users/{uid}/facts', // bi-temporal facts (MEMORY_FACTS)
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
@@ -296,6 +306,13 @@ function storesFor(userId: string, linkedIds: readonly string[]): Store[] {
   return stores;
 }
 
+/** `sub` under one document of a collection store, labelled for every document alike */
+const nested = (store: Store, docId: string, sub: string): Store => ({
+  label: `${store.label}/*/${sub}`,
+  kind: 'collection',
+  path: `${store.path}/${docId}/${sub}`,
+});
+
 /** The phone profiles proven to be the person, as erasure finds them (read-only; throws as it does) */
 async function linkedIdsFor(db: FirebaseFirestore.Firestore, userId: string): Promise<string[]> {
   const { gatherErasureKeys } = await import('./erasure-keys.js');
@@ -345,7 +362,9 @@ export async function exportUserRecords(
     return toPlain(data, budget, KEPT_FIELDS[store.label], DATA_MAPS[store.label]);
   };
   const out: Record<string, Plain> = {};
-  for (const store of [...storesFor(userId, linked), ...(await partitionStores(reader, userId))]) {
+  const stores = [...storesFor(userId, linked), ...(await partitionStores(reader, userId))];
+  // The loop also reads the nested stores it pushes onto the list
+  for (const store of stores) {
     if (store.kind === 'doc') {
       const doc = await reader.readDoc(store.path);
       if (doc) out[store.label] = plain(store, doc);
@@ -355,6 +374,9 @@ export async function exportUserRecords(
       where: store.where,
       onPage: (n) => onPage?.(store.label, n),
     });
+    for (const sub of NESTED_STORES[store.label] ?? []) {
+      stores.push(...docs.map((d) => nested(store, d.id, sub)));
+    }
     const rows = docs.map((d) => ({
       id: d.id,
       ...(plain(store, d) as Record<string, Plain>),
@@ -376,9 +398,14 @@ export async function countUserRecords(
   const reader = new BoundedReader(budget, db);
   const linked = await linkedIdsFor(db, userId);
   let count = 0;
-  for (const store of [...storesFor(userId, linked), ...(await partitionStores(reader, userId))]) {
+  const stores = [...storesFor(userId, linked), ...(await partitionStores(reader, userId))];
+  for (const store of stores) {
     if (store.kind === 'doc') count += (await reader.docExists(store.path)) ? 1 : 0;
     else count += await reader.countCollection(store.path, { where: store.where });
+    for (const sub of store.kind === 'doc' ? [] : (NESTED_STORES[store.label] ?? [])) {
+      const ids = await reader.listDocIds(store.path);
+      stores.push(...ids.map((id) => nested(store, id, sub)));
+    }
   }
   return count;
 }

@@ -1,7 +1,7 @@
 import type { Firestore } from '@google-cloud/firestore';
 
-// A Firestore fake with only the calls the follow-through and errand stores make:
-// documents by path, where (==, in, >=, <, <=), orderBy, limit, collectionGroup and
+// A Firestore fake with only the calls the follow-through, errand and booking-prefs stores
+// make: documents by path (get, delete), where (==, in, >=, <, <=), orderBy, limit, collectionGroup and
 // transactions. Transactions are optimistic like Firestore's: writes are buffered,
 // a read after a write throws, and a transaction whose reads (documents or queries)
 // changed before it commits runs again. Every write bumps a document's version, so
@@ -28,6 +28,9 @@ export function fakeFirestore() {
     id: path.split('/').pop() ?? '',
     collection: (name: string) => coll(`${path}/${name}`),
     get: async () => snapOf(path),
+    delete: async () => {
+      if (docs.delete(path)) versions.set(path, version(path) + 1);
+    },
   });
   const matches = (data: Record<string, unknown>, [f, op, v]: Cond): boolean => {
     const x = data[f];

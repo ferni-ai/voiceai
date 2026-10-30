@@ -94,12 +94,18 @@ export async function handlePlaidRoutes(
 
           // Store under authenticated user (never trust body user_id alone)
           const boundUserId = auth.userId;
-          await plaidService.storeToken(
+          const saved = await plaidService.storeToken(
             boundUserId,
             result.accessToken,
             result.itemId,
             institution
           );
+          if (!saved.ok) {
+            res.writeHead(503, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Bank account could not be saved', code: saved.code }));
+            resolve(true);
+            return;
+          }
 
           log.info(
             {
