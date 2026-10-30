@@ -116,21 +116,12 @@ interface EncryptedTokenData {
 // PERSISTENCE STORES (per provider)
 // ============================================================================
 
-/**
- * Providers whose API is gone but whose sealed tokens may still be stored. Fitbit's Web
- * API shut down 2026-10-30..11-02 (HTTP 410); people who linked it keep a token doc
- * until they unlink. These support removeTokens only: no login, refresh or API call.
- */
-export const RETIRED_WEARABLE_PROVIDERS = ['fitbit'] as const;
-export type RetiredWearableProvider = (typeof RETIRED_WEARABLE_PROVIDERS)[number];
-type StoredWearableProvider = WearableProvider | RetiredWearableProvider;
-
 const tokenStores = new Map<
-  StoredWearableProvider,
+  WearableProvider,
   ReturnType<typeof createPersistenceStore<EncryptedTokenData>>
 >();
 
-function getTokenStore(provider: StoredWearableProvider) {
+function getTokenStore(provider: WearableProvider) {
   if (!tokenStores.has(provider)) {
     tokenStores.set(
       provider,
@@ -149,7 +140,7 @@ function getTokenStore(provider: StoredWearableProvider) {
 // In-memory cache for decrypted tokens (fast access)
 const tokenCache = new Map<string, OAuthTokens>(); // key: `${provider}:${userId}`
 
-function cacheKey(provider: StoredWearableProvider, userId: string): string {
+function cacheKey(provider: WearableProvider, userId: string): string {
   return `${provider}:${userId}`;
 }
 
@@ -277,10 +268,7 @@ export async function saveTokens(
 /**
  * Remove tokens for a user
  */
-export async function removeTokens(
-  provider: StoredWearableProvider,
-  userId: string
-): Promise<void> {
+export async function removeTokens(provider: WearableProvider, userId: string): Promise<void> {
   if (provider === 'apple_health') {
     return;
   }

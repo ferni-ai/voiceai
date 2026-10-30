@@ -11,7 +11,6 @@
  *   GET  /wearables/{provider}/callback       → OAuth callback
  *   GET  /wearables/{provider}/token          → get valid access token
  *   POST /wearables/{provider}/unlink         → remove tokens
- *   POST /wearables/fitbit/unlink             → delete-only: Fitbit's API is gone, old tokens stay deletable
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -31,10 +30,7 @@ function withParam(returnUrl: string, key: string, value: string): string {
 }
 
 const OAUTH_PROVIDERS_PATTERN = 'oura|garmin|whoop';
-const UNLINK_PROVIDERS_PATTERN = [
-  'oura|garmin|whoop|apple_health',
-  ...wearables.RETIRED_WEARABLE_PROVIDERS,
-].join('|');
+const UNLINK_PROVIDERS_PATTERN = 'oura|garmin|whoop|apple_health';
 
 /**
  * Handle wearables OAuth routes
@@ -185,7 +181,7 @@ export async function handleWearablesRoutes(
     new RegExp(`^/wearables/(${UNLINK_PROVIDERS_PATTERN})/unlink$`)
   );
   if (unlinkMatch) {
-    const provider = unlinkMatch[1] as WearableProvider | wearables.RetiredWearableProvider;
+    const provider = unlinkMatch[1] as WearableProvider;
     const user_id = getVerifiedUserId(req);
 
     if (!user_id) {
