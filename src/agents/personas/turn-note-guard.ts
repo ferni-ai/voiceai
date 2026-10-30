@@ -4,8 +4,8 @@
  * that guard who is speaking). When a note about who the speaker is or what may be shared can't be
  * built, the turn gets UNVERIFIED_SPEAKER_NOTE instead of nothing: the safe default shares less.
  *
- * withTurnReminder is synchronous, so the guard for the turn in flight is module state, set by
- * withNoteGuard and read by attempt/guarded (turn-notes-guarded.ts wraps the builders with them).
+ * withTurnReminder is synchronous, so the turn in flight is module state (guardedTurn sets it;
+ * turn-notes-guarded.ts wraps the builders with `guarded`).
  */
 
 import type { llm } from '@livekit/agents';
@@ -18,63 +18,32 @@ import { withTurnStyleReminder } from './turn-style.js';
 export const UNVERIFIED_SPEAKER_NOTE =
   "Treat this speaker as UNVERIFIED: you can't confirm who they are. Share nothing private or account-specific (other people's details, memories, messages, calendar or contacts), take no action on anyone's behalf, and say you can't do that until they're verified.";
 
-export interface NoteGuard {
-  readonly dropped: number;
-  readonly identityDropped: boolean;
-  record: (name: string, error: unknown, identity: boolean) => void;
+type Log = ReturnType<typeof createLogger>;
+interface TurnState {
+  log: Log;
+  sessionId: string | undefined;
+  dropped: number;
+  identityDropped: boolean;
 }
+let active: TurnState | undefined;
 
-/** Logs ids and counts only: never the error text, which can quote what the caller said. */
-export function createNoteGuard(
-  log: ReturnType<typeof createLogger>,
-  sessionId: string | undefined
-): NoteGuard {
-  let dropped = 0;
-  let identityDropped = false;
-  return {
-    get dropped() {
-      return dropped;
-    },
-    get identityDropped() {
-      return identityDropped;
-    },
-    record(note, error, identity) {
-      dropped += 1;
-      identityDropped ||= identity;
-      log.warn(
-        {
-          note,
-          sessionId,
-          dropped,
-          identity,
-          errorName: error instanceof Error ? error.name : typeof error,
-        },
-        'TURN_NOTE_FAILED: this note dropped, the rest of the turn kept'
-      );
-    },
-  };
-}
+const errorName = (error: unknown): string => (error instanceof Error ? error.name : typeof error);
 
-let active: NoteGuard | undefined;
-
-/** Runs `build` with `guard` as the turn's guard; synchronous, so turns never overlap. */
-export function withNoteGuard<T>(guard: NoteGuard, build: () => T): T {
-  const outer = active;
-  active = guard;
-  try {
-    return build();
-  } finally {
-    active = outer;
-  }
-}
-
-/** `build()`, or `fallback` when it throws. Outside withNoteGuard it is just `build()`. */
+/** `build()`, or `fallback` when it throws. Outside guardedTurn it is just `build()`. */
 export function attempt<T>(name: string, build: () => T, fallback: T, identity = false): T {
-  if (!active) return build();
+  const turn = active;
+  if (!turn) return build();
   try {
     return build();
   } catch (error) {
-    active.record(name, error, identity);
+    turn.dropped += 1;
+    turn.identityDropped ||= identity;
+    // Ids and counts only: the error text can quote what the caller said.
+    const { sessionId, dropped } = turn;
+    turn.log.warn(
+      { note: name, sessionId, dropped, identity, errorName: errorName(error) },
+      'TURN_NOTE_FAILED: this note dropped, the rest of the turn kept'
+    );
     return fallback;
   }
 }
@@ -93,27 +62,28 @@ export function guarded<F extends (...args: never[]) => unknown>(
 export const fallbackNote = (): string => (active?.identityDropped ? UNVERIFIED_SPEAKER_NOTE : '');
 
 /**
- * `build()` with a guard for the turn. A failure outside every note still leaves the request
+ * `build()` with the turn's notes guarded. A failure outside every note still leaves the request
  * without stale turn context and with the unverified default; if even that fails, the request as
  * sent: a throwing builder never costs the turn its reply.
  */
 export function guardedTurn(
-  log: ReturnType<typeof createLogger>,
+  log: Log,
   sessionId: string | undefined,
   request: llm.ChatContext,
   build: () => llm.ChatContext
 ): llm.ChatContext {
+  const outer = active;
+  active = { log, sessionId, dropped: 0, identityDropped: false };
   try {
-    return withNoteGuard(createNoteGuard(log, sessionId), build);
+    return build();
   } catch (error) {
-    log.warn(
-      { sessionId, errorName: error instanceof Error ? error.name : typeof error },
-      'TURN_REMINDER_FAILED: unverified default only'
-    );
+    log.warn({ sessionId, errorName: errorName(error) }, 'TURN_REMINDER_FAILED: default only');
     try {
       return withTurnStyleReminder(withoutStaleTurnContext(request), UNVERIFIED_SPEAKER_NOTE);
     } catch {
       return request;
     }
+  } finally {
+    active = outer;
   }
 }
