@@ -325,4 +325,23 @@ export function createWellnessTools() {
   };
 }
 
+/** getSleepSummary's tool shell; sleep-summary.ts holds what it says and does. */
+export function createSleepSummaryTool(
+  description: string,
+  run: (date: string | undefined, opts: unknown) => Promise<unknown>
+) {
+  return llm.tool({
+    description,
+    parameters: z.object({
+      date: z
+        .string()
+        .optional()
+        .describe(
+          'The night to read, as the morning it ended, YYYY-MM-DD. Leave out for last night.'
+        ),
+    }),
+    execute: async ({ date }, opts) => run(date, opts),
+  });
+}
+
 export default createWellnessTools;

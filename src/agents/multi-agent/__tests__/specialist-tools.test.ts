@@ -105,6 +105,10 @@ interface Run {
 /** `persona`, handed the call by Ferni: the set given to and returned by withAlwaysOnTools. */
 async function handedTo(persona: string): Promise<Run> {
   captured.calls.length = 0;
+  // getSleepSummary is on Maya's list but registered only with its flag and the Oura app credentials
+  vi.stubEnv('OURA_SLEEP_TOOL', 'on');
+  vi.stubEnv('OURA_CLIENT_ID', 'test-oura-id');
+  vi.stubEnv('OURA_CLIENT_SECRET', 'test-oura-secret');
   await expect(
     setupPersonaAgent({
       persona: { id: persona, name: persona } as never,

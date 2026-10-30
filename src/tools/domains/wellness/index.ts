@@ -16,7 +16,8 @@
  *   Mindset: reframeBelief (money beliefs, imposter syndrome, perfectionism)
  *   Medications: manageMedication, medicationSchedule
  *
- * NOTE: Sleep tools are in 'health' domain, not here. See health.semantic.ts
+ * Sleep: getSleepSummary reads the caller's Oura ring (OURA_SLEEP_TOOL, off by default).
+ * The 'health' domain's sleep tools coach from what the caller says and read nothing.
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -25,6 +26,7 @@ import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 // Import legacy tool creators
 import { createWellnessTools } from './wellness-tools.js';
 import { createMedicationTools } from './medications.js';
+import { getSleepSummaryDef, ouraSleepToolEnabled } from './sleep-summary.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -104,16 +106,20 @@ function getMedicationToolDefinitions(): ToolDefinition[] {
 const wellnessTools: ToolDefinition[] = [
   ...getEmotionalWellnessToolDefinitions(),
   ...getMedicationToolDefinitions(),
+  getSleepSummaryDef,
 ];
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'wellness',
-  wellnessTools
-);
+export const { domain, definitions } = createDomainExport('wellness', wellnessTools);
+
+/** What the registry loads: no getSleepSummary until OURA_SLEEP_TOOL is on. */
+export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
+  Promise.resolve(
+    definitions.filter((d) => d.id !== getSleepSummaryDef.id || ouraSleepToolEnabled())
+  );
 
 export { getEmotionalWellnessToolDefinitions, getMedicationToolDefinitions };
 
