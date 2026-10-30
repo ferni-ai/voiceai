@@ -10,10 +10,11 @@
  * own collection with one writer (writer.ts) and one reader, and an architecture test
  * fails when any other module imports this file.
  *
- * Erased with the account (bogle_users/{uid} is deleted with everything under it) and
- * exported ("take your story", user-records-export.ts). Each row carries `expireAt`, 90
- * days on: the reader ignores a row past it, and the Firestore TTL policy declared in
- * firestore.indexes.json deletes it.
+ * Erased with the account (bogle_users/{uid} is deleted with everything under it),
+ * exported ("take your story", user-records-export.ts) and never copied to the dev
+ * database (scripts/devdb/copy-user.ts). Each row carries `expireAt`, 90 days on: the
+ * reader ignores a row past it. The Firestore TTL policy on call_memories.expireAt is
+ * created in prod first (an ops step), then declared in firestore.indexes.json.
  *
  * @module services/outreach/callee-memory/store
  */
@@ -36,13 +37,15 @@ export interface CallMemory {
   callId: string;
   /** ISO time the call's result was captured */
   at: string;
-  /** Their side of the call: screened lines, ≤ SAID_MAX characters in all */
+  /** Their side of the call: screened lines, ≤ 600 characters in all; empty with `concern` */
   said: string[];
   /** What they asked the owner to know or do */
   asked?: string;
   /** What they said they'd do ("will call back Friday"), with the day when one was named */
   promised?: { text: string; date?: string };
   mood?: CallMood;
+  /** Crisis or risky words came up: none of theirs are kept, only this and the date */
+  concern?: true;
   provenance: 'callee';
   expireAt: Date;
 }

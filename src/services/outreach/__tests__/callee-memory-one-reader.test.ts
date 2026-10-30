@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '..', '..', '..', '..');
 const SRC = join(ROOT, 'src');
+// scripts/ too: a dev-copy or maintenance script reading the store is a reader.
 const DIR = 'src/services/outreach/callee-memory/';
 
 function sources(dir: string, out: string[] = []): string[] {
@@ -26,7 +27,10 @@ function sources(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const FILES = sources(SRC).map((path) => ({ path, text: readFileSync(join(ROOT, path), 'utf8') }));
+const FILES = [...sources(SRC), ...sources(join(ROOT, 'scripts'))].map((path) => ({
+  path,
+  text: readFileSync(join(ROOT, path), 'utf8'),
+}));
 const importing = (target: RegExp): string[] =>
   FILES.filter(({ text }) => target.test(text))
     .map(({ path }) => path)
@@ -48,8 +52,9 @@ describe('call_memories: one writer, one reader, nothing else', () => {
     ]);
   });
 
-  it('no other module names the collection (the export allowlist lists it, read as stored)', () => {
-    expect(importing(/['"`]call_memories['"`]/)).toEqual([
+  it('no other module names the collection (export allowlist; dev-copy exclusion)', () => {
+    expect(importing(/['"`]call_memories['"`]|\bcall_memories\s*:/)).toEqual([
+      'scripts/devdb/copy-user.ts',
       `${DIR}store.ts`,
       'src/services/platform/user-records-export.ts',
     ]);

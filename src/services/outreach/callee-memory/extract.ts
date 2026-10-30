@@ -5,111 +5,35 @@
  * of the call, `message` what they asked to pass on, `callbackRequired`/`callbackTime`
  * the call back they asked for.
  *
- * Every line is the shared caller-text screen's (screenedCallerText) and is dropped
- * whole, never rewritten, when it holds contact data (containsContactData), a code or
- * number, money or credentials (isRiskyCallerText, MONEY), or speaks to the assistant
- * (addressesAssistant, from feat/contact-call-memory's call-memory-filter.ts). Nothing is
- * kept for a name that is the owner, the caller or Ferni, or a number.
+ * Nothing is kept for a child (any age) or text that reads as a minor's, or under a name
+ * that is the owner, the caller or Ferni, or a number. Crisis or risky text keeps none of
+ * their words: only `concern: true` and the date. Otherwise every line is the shared
+ * caller-text screen's (screenedCallerText) and is dropped whole when screen.ts's
+ * unsafeLine flags it.
  *
  * @module services/outreach/callee-memory/extract
  */
 
-import { containsContactData, OWNER_LEAD, personKey } from '../../../memory/index.js';
+import { personKey } from '../../../memory/index.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../../tools/domains/telephony/index.js';
 import { wallTimeIn } from '../../../utils/time-zone.js';
-import { callerText, isRiskyCallerText, screenedCallerText } from '../caller-text.js';
+import { callerText, screenedCallerText } from '../caller-text.js';
+import { calleeName, childContact, concerning, soundsMinor, unsafeLine } from './screen.js';
 import { CALL_MEMORY_TTL_MS, type CallMemory, type CallMood } from './store.js';
+
+/** One screened line, or undefined: anything unsafe drops the line, it is never rewritten. */
+function kept(raw: string | undefined, name: string, max: number, orders = true) {
+  const text = raw?.normalize('NFKC').trim();
+  if (!text || unsafeLine(text, orders)) return undefined;
+  const clean = screenedCallerText(text, name, max);
+  if (!clean || clean.includes('[removed]') || unsafeLine(clean, false)) return undefined;
+  return clean;
+}
 
 /** All of `said`, in characters. */
 const SAID_MAX = 600;
 const LINE_MAX = 300;
 const DAY_MS = 86_400_000;
-
-/** Words that are the owner, the person speaking or Ferni: no name holding one is kept. */
-const SELF_WORDS = new Set(
-  'me myself i you user caller speaker ferni assistant ai them him her someone somebody unknown my our the'.split(
-    ' '
-  )
-);
-/** A code, PIN or any other run of 4+ digits, or 3+ number words ("one two three"). */
-const CODE = /\d(?:[\s.-]?\d){3,}/;
-const NUMBER_WORD =
-  'zero|oh|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand';
-const SPELLED_NUMBER = new RegExp(`\\b(?:(?:${NUMBER_WORD})\\b[\\s,-]*){3,}`, 'i');
-const MONEY =
-  /\b(?:money|cash|owes?|owed|debts?|loans?|mortgage|rent|bills?|paycheck|salary|income|prices?|costs?|fees?|insurance|balance|refund|payments?|paid|pay)\b/i;
-/** Secrets with no "password" in them: a wifi key, a door code, a card "ending in". */
-const SECRET =
-  /\b(?:codes?|pins?|passphrase|passwords?|combination|combo|wi-?fi|network key|keys? to|card|visa|mastercard|amex|ending in|expir\w*)\b/i;
-/** A street address or where someone lives (feat/contact-call-memory's call-memory-filter.ts). */
-const ADDRESS =
-  /\b\d+\s+(?:[a-z]+\s+){1,3}(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|way|terrace|circle|parkway|pkwy|highway|hwy)\b|\b(?:address|apartment|apt|suite|zip ?code|p\.?\s?o\.? box)\b|\b(?:lives?|living|staying) (?:at|on)\b/i;
-const AT_ASSISTANT =
-  /\b(?:ferni|assistant|a\.?i\.?|chat ?bot|bot|system|prompts?|instructions?|developer|model)\b/i;
-/** Rules or a role for whoever reads this later. A pass-on may still say "tell him...". */
-const RULES = [
-  /\byou (?:should|must|need to|have to|ought to|will|are going to|are to|are now|are (?:a|an|her|his|my|the|their))\b/i,
-  /\b(?:remember to|make sure (?:to|you)|be sure to|from now on|from here on|going forward)\b/i,
-  /\b(?:ignore|disregard|override|act as|pretend|role-?play|play the role|respond as|answer as|speak as)\b/i,
-  // A few other languages' "instructions"/"prompt"/"ignore": defence in depth only (the
-  // reader's reported-speech guard is the structural defence).
-  /\b(?:instrucci\w*|anweisung\w*|consignes?|istruzion\w*|instru[cç][oõ]\w*|ignor[ae]\w*|olvid[ae]\w*|vergiss\w*|oublie\w*)\b/i,
-];
-/** An order opening a line of their side of the call: "tell...", "always...", "don't...". */
-const ORDER_OPENER =
-  /^\s*(?:please\s+|and\s+|so\s+)?(?:tell|ask|let|make|have|get|share|send|give|forward|show|book|buy|order|pay|call|text|email|remember|ignore|disregard|forget|override|always|never|don'?t|do not|stop|start|keep|be sure|make sure)\b/i;
-/** A word mixing Latin with Cyrillic or Greek letters: a look-alike hiding a word ("pаssword"). */
-const MIXED_SCRIPT =
-  /(?=[^\s]*\p{Script=Latin})(?=[^\s]*[\p{Script=Cyrillic}\p{Script=Greek}])[^\s]+/u;
-
-/** Words aimed at the assistant or its rules: read back later, they'd be planted instructions. */
-function addressesAssistant(text: string, orders = true): boolean {
-  return (
-    AT_ASSISTANT.test(text) ||
-    RULES.some((rule) => rule.test(text)) ||
-    (orders && ORDER_OPENER.test(text))
-  );
-}
-
-/** Contact data, a code or number, money, a secret, an address, a look-alike word, or words to the assistant. */
-function unsafe(text: string, orders: boolean): boolean {
-  return (
-    isRiskyCallerText(text) ||
-    containsContactData(text) ||
-    CODE.test(text) ||
-    SPELLED_NUMBER.test(text) ||
-    MONEY.test(text) ||
-    SECRET.test(text) ||
-    ADDRESS.test(text) ||
-    MIXED_SCRIPT.test(text) ||
-    addressesAssistant(text, orders)
-  );
-}
-
-/** One screened line, or undefined: anything unsafe drops the line, it is never rewritten. */
-function kept(raw: string | undefined, name: string, max: number, orders = true) {
-  const text = raw?.normalize('NFKC').trim();
-  if (!text || unsafe(text, orders)) return undefined;
-  const clean = screenedCallerText(text, name, max);
-  if (!clean || clean.includes('[removed]') || unsafe(clean, false)) return undefined;
-  return clean;
-}
-
-/** The name to keep them under, or null for a self-name, a number, no name or anything unsafe. */
-function calleeName(raw: string | undefined): string | null {
-  const name = callerText(raw, 60);
-  const words = name
-    .toLowerCase()
-    .split(/[^\p{L}'-]+/u)
-    .filter(Boolean);
-  if (!/\p{L}/u.test(name) || /\d/.test(name) || words.length === 0 || words.length > 5)
-    return null;
-  if (words.some((w) => SELF_WORDS.has(w)) && words.every((w) => SELF_WORDS.has(w) || w === 'and'))
-    return null;
-  if (/\b(?:me|myself|ferni|caller|user|speaker|assistant)\b/i.test(name)) return null;
-  if (name.includes('[removed]') || unsafe(name, false)) return null;
-  return name;
-}
 
 const sentences = (text: string | undefined): string[] =>
   (text ?? '').split(/(?<=[.!?])\s+/).filter((s) => s.trim());
@@ -189,11 +113,33 @@ export function calleeMemoryFrom({
   now = new Date(),
 }: CalleeCall): CallMemory | null {
   if (outcome.status !== 'completed') return null;
-  const named = [request.contactQuery, request.resolvedContact?.name].filter(Boolean);
+  const contact = request.resolvedContact;
+  const named = [request.contactQuery, contact?.name].filter(Boolean);
   if (named.length === 0 || named.some((n) => calleeName(n) === null)) return null;
-  const name = calleeName(request.resolvedContact?.name || request.contactQuery);
+  const name = calleeName(contact?.name || request.contactQuery);
   const [contactKey, ...aliases] = keysFor(request);
   if (!name || !contactKey) return null;
+  if (childContact([request.contactQuery, contact?.relationship, contact?.name])) return null;
+
+  const theirs = [
+    outcome.transcriptSummary,
+    outcome.message,
+    outcome.callbackTime,
+    outcome.outcome,
+    ...(outcome.actionItems ?? []),
+  ];
+  if (soundsMinor(theirs.filter(Boolean).join(' \n '))) return null;
+  const base = {
+    contactKey,
+    contactKeys: [contactKey, ...aliases],
+    contactName: name,
+    callId,
+    at: now.toISOString(),
+    provenance: 'callee' as const,
+    expireAt: new Date(now.getTime() + CALL_MEMORY_TTL_MS),
+  };
+  // Crisis or risky words: none of theirs are kept, only that something on the call worried Ferni.
+  if (concerning(theirs, name)) return { ...base, said: [], concern: true };
 
   const said: string[] = [];
   let room = SAID_MAX;
@@ -216,16 +162,10 @@ export function calleeMemoryFrom({
   const mood = moodOf(`${outcome.transcriptSummary ?? ''} ${outcome.outcome}`);
   const date = promise ? dayNamed(promise, now, request.userTimezone) : undefined;
   return {
-    contactKey,
-    contactKeys: [contactKey, ...aliases],
-    contactName: name,
-    callId,
-    at: now.toISOString(),
+    ...base,
     said,
     ...(asked ? { asked } : {}),
     ...(promise ? { promised: { text: promise, ...(date ? { date } : {}) } } : {}),
     ...(mood ? { mood } : {}),
-    provenance: 'callee',
-    expireAt: new Date(now.getTime() + CALL_MEMORY_TTL_MS),
   };
 }

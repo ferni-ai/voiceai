@@ -5,7 +5,10 @@
  *
  * CALLEE_MEMORY (default off): off, nothing is written. Only a verified member's own
  * record: never an onbehalf:, anon:, phone: or device: id, so the callee's session can
- * never write here, and the shared placeholder buckets never fill. Never throws: the
+ * never write here, and the shared placeholder buckets never fill. Nothing when MINOR_CARE
+ * holds the callee's session or the owner (writeHeld). That hold is only seen in the process
+ * that heard the call (the agent job); the Twilio fallback captures in the API server, where
+ * extract.ts's child-relation and minor-text refusals still apply. Never throws: the
  * call's report must not depend on this. Logs ids and counts, never words.
  *
  * @module services/outreach/callee-memory/writer
@@ -13,6 +16,7 @@
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../../tools/domains/telephony/index.js';
+import { writeHeld } from '../../../utils/minor-care.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { isMemberIdentity } from '../../identity/member-identity.js';
 import { isUnverifiedUserId } from '../../identity/unverified-user-id.js';
@@ -44,6 +48,8 @@ export async function rememberCallee(
 ): Promise<boolean> {
   try {
     if (!calleeMemoryOn() || !isOwner(request.userId)) return false;
+    // MINOR_CARE's one check: the callee's session (onbehalf:<callId>) or the owner is held.
+    if (writeHeld(request.userId.trim(), `onbehalf:${callId}`)) return false;
     const memory = calleeMemoryFrom({ callId, outcome, request, now });
     if (!memory) return false;
     const saved = await saveCallMemory(request.userId.trim(), memory);
