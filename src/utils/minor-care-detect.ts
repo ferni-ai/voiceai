@@ -25,7 +25,7 @@ const AT_HEART = String.raw`(?!\s+at heart\b)`;
 /** Without "I'm", a past age: "16 years old when I had her", "Sixteen years old is when I started". */
 const NOT_PAST = String.raw`(?![\s,]+(?:when i|is when|was when|at heart)\b)`;
 /** A spoken or typed filler that closes a stated age: "im fifteen btw", "I'm 14 lol" (no punctuation from speech-to-text). */
-const FILLER = String.raw`(?:btw|tho|though|lol+|lmf?ao|tbh|rn|right now|ok(?:ay)?|yeah|too|honestly|actually|you know|please)\b`;
+const FILLER = String.raw`(?:btw|tho|though|lol+|lmf?ao|tbh|rn|right now|ok(?:ay)?|yeah|honestly|actually|you know|please)\b`;
 /** "years old", "yrs old", "yo", "y/o": the age-word unit after a number ("15yo" has no space). */
 const OLD = String.raw`(?:(?:years?|yrs?)[\s-]*old|years?\s+of\s+age|y\/?o)\b`;
 /** What may follow a stated age: the end, a pause, "years old", or a joining word. Not a unit ("16 minutes"). */
@@ -40,7 +40,7 @@ const ME = String.raw`(?<!\blike\s)(?<!\bas if\s)(?<!\bas though\s)\b(?:i'm|im|i
  * said/says/goes/told me ("she said I'm 14", "my mom goes I'm 14"). "I (just) said I'm 14" or an
  * unclear subject counts as the caller's own words.
  */
-const NOT_REPORTED = String.raw`(?<!\b(?:she|he|they|(?:the|this|that|my|his|her|their|our|your|some|a|an)\s+[a-z']+)\s+(?:said|says|goes|told me|tells me)[,:]?\s+(?:that\s+)?["“”']?)`;
+const NOT_REPORTED = String.raw`(?<!\b(?:she|he|they|(?:the|this|that|my|his|her|their|our|your|some|a|an)\s+[a-z']+)\s+(?:said|says|goes|told me|tells me|keeps?\s+(?:saying|telling\s+(?:me|everyone|people|them)))[,:]?\s+(?:that\s+)?["“”']?)`;
 /** "I'm" in an age rule: the caller's own, unless clearly reported. */
 const ME_AGE = `${NOT_REPORTED}${ME}`;
 /** The start of what they said, after a filler: "um, 16 years old", "yeah, junior in high school". */
@@ -50,13 +50,18 @@ const AGE_WORDS =
   /\b(?:years?[\s-]+old|yrs?[\s-]+old|years?\s+of\s+age|turn(?:ing|ed)|birthday|b-?day)\b|(?:\b|(?<=\d))y\/?o\b/i;
 /** Joking, so not a stated age: "lol I feel like I'm 12", "I'm like 14 now haha". */
 const LAUGH = /\b(?:lol+|lmf?ao|rofl|ha(?:ha)+h?|he(?:he)+|jk|just kidding)\b|😂|🤣/i;
+/** Taking it back: "jk", "just kidding", "im 17 lol i wish" (at the end), "im fifteen i mean fifty". */
+const RETRACTED =
+  /\b(?:jk|j\/k|just kidding|(?:i'm|im) kidding|in dog years)\b|\bi wish\s*[.!?]*\s*$|\bi mean\s+(?:1[89]|[2-9]\d|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)\b/i;
 /** Ferni's previous line asked their age ("how old are you?"), so a bare "16." answers it. */
 const ASKED_AGE = /\b(?:how old|your age|what age|age are you)\b/i;
 
 /** "I'm 16", "im 14, so": an age only with age words or as the answer to "how old are you?". */
 const AGE_NOW = new RegExp(`${ME_AGE}${AGE}${AFTER_AGE}`, 'gi');
-/** "16 years old." or "15yo" at the start: their age, unless a past tense follows. */
-const YEARS_OLD = new RegExp(String.raw`${LEAD}${AGE}[\s-]*${OLD}${NOT_PAST}`, 'gi');
+/** "15yo son": someone else's age, not theirs. */
+const NOT_KIN = String.raw`(?!\s+(?:son|daughter|kid|child|boy|nephew|niece|grandson|granddaughter|brother|sister|stepson|stepdaughter)s?\b)`;
+/** "16 years old." or "15yo" at the start: their age, unless a past tense or a relative follows. */
+const YEARS_OLD = new RegExp(String.raw`${LEAD}${AGE}[\s-]*${OLD}${NOT_PAST}${NOT_KIN}`, 'gi');
 /** "I'm a 15 year old girl": always their age. */
 const A_YEARS_OLD = new RegExp(String.raw`${ME_AGE}a\s+${AGE}[\s-]*${OLD}${AT_HEART}`, 'gi');
 /** Speech-to-text runs clauses together: "im sixteen i just got my permit", "im seventeen my parents". */
@@ -79,16 +84,31 @@ const BARE_ANSWER = new RegExp(
   String.raw`^\s*(?:(?:um+|uh+|er+|well|oh|so|yeah|i'm|im|i am|just|only|almost)[,\s]+)*${AGE}(?:\s+and\s+a\s+half)?\s*[.!]*\s*$`,
   'gi'
 );
-/** When they turned it: "I just turned 14 last month", "I turned fifteen on Saturday". Not "15 years ago". */
-const WHEN = String.raw`(?=\s*(?:last|this|yesterday|today|recently|on|in)\b)`;
-/** "I just turned 15", or "just turned 14" with no "I" at the start: the age they are now. */
+const MONTH = String.raw`(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b`;
+const WEEKDAY = String.raw`(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)day\b`;
+/**
+ * When they turned it: "last month", "yesterday", "in March", "on Saturday", "on my birthday".
+ * Not "in foster care", "in 1998", "on a navy ship" (where, not when) or "15 years ago".
+ */
+const WHEN = String.raw`(?:(?:last|this)\s+(?:week(?:end)?|month|year|summer|spring|fall|winter|night|morning|${WEEKDAY})|yesterday|today|recently|in\s+${MONTH}|on\s+(?:${WEEKDAY}|my\s+(?:birthday|b-?day)))`;
+/** When a coming birthday is: "next month", "in July", "on Friday", "soon". */
+const SOON = String.raw`(?:next\s+(?:week|month|year)|this\s+(?:week|month|year|summer|spring|fall|winter)|in\s+${MONTH}|on\s+(?:${WEEKDAY}|my\s+(?:birthday|b-?day))|soon\b)`;
+/** With no "I", only a whole sentence is theirs: "just turned 14.", not "just turned 14 and already wants a phone". */
+const ALONE = String.raw`(?=\s*(?:$|[.!?]))`;
+/**
+ * "I just turned 15", "I turned 14 last month", or "just turned 14 (last week)." as a whole sentence:
+ * the age they are now. Never a story: "when I turned 16, my dad...", "the year I turned 15".
+ */
 const TURNED = new RegExp(
-  String.raw`(?:\bi\s+|${LEAD})(?:just\s+)?turned\s+${AGE}(?:${AFTER_AGE}|${WHEN})`,
+  String.raw`(?<!\bwhen\s)(?<!\bthe\s(?:year|day|summer|time)\s)\bi\s+(?:just\s+|only\s+)?turned\s+${AGE}(?:${AFTER_AGE}|(?=\s*${WHEN}))|${LEAD}just\s+turned\s+${AGE}(?:\s+${WHEN})?${ALONE}`,
   'gi'
 );
-/** "I'm turning 18 next month", "I turn 16 in May", "turning 16 next month": a year older soon, so younger now. */
+/**
+ * "I'm turning 18 next month", "I turn 16 in May", or "turning 16 next month." as a whole sentence: a
+ * year older soon, so younger now. Not "turning sixteen is a big deal for her" or "turning 18 in our family".
+ */
 const TURNING = new RegExp(
-  String.raw`(?:${ME_AGE}turning|\bi turn|${LEAD}turning)\s+${AGE}\b${NO_UNIT}`,
+  String.raw`(?:${ME_AGE}turning|\bi turn)\s+${AGE}\b${NO_UNIT}|${LEAD}turning\s+${AGE}\s+${SOON}${ALONE}`,
   'gi'
 );
 /** "I'll be 16 in March": only with a when (or age words), not "I'll be 10" (minutes, at the door). */
@@ -109,13 +129,13 @@ const GRADE_WORDS =
 const ORDINAL = String.raw`(?:(?:[1-9]|1[0-2])(?:st|nd|rd|th)|${GRADE_WORDS})`;
 /** "I'm in 10th grade", "I'm in the tenth grade", "I go to 9th grade", "I'm an eighth grader". */
 const GRADE = new RegExp(
-  String.raw`(?:${ME}(?:in\s+)?|\bi\s+(?:go to|attend)\s+)(?:the\s+)?${ORDINAL}\s+grade\b${AFTER_PRED}|${ME}an?\s+${ORDINAL}[\s-]*grader\b`,
+  String.raw`(?:${ME}(?:in\s+)?|\bi\s+(?:go to|attend)\s+)(?:the\s+)?${ORDINAL}\s+grade\b${AFTER_PRED}|${ME}an?\s+${ORDINAL}[\s-]*grader\b(?!')${AT_HEART}`,
   'i'
 );
 const SCHOOL = String.raw`(?:high|middle|junior high|elementary|grade)\s+school`;
 /** "I'm (still) in high school", "I go to middle school", "I'm a high schooler", or "Middle schooler." as an answer. */
 const IN_SCHOOL = new RegExp(
-  String.raw`(?:${ME}(?:still\s+)?in\s+|\bi\s+(?:go to|attend)\s+)${SCHOOL}\b${NOT_PARENT}${AFTER_PRED}|${ME}a\s+(?:high|middle)\s+schooler\b|${LEAD}(?:a\s+)?(?:high|middle)\s+schooler\b${AFTER_PRED}`,
+  String.raw`(?:${ME}(?:still\s+)?in\s+|\bi\s+(?:go to|attend)\s+)${SCHOOL}\b${NOT_PARENT}${AFTER_PRED}|${ME}a\s+(?:high|middle)\s+schooler\b|^\s*(?:(?:um+|uh+|well|oh|yeah|so)[,\s]+)*(?:a\s+)?(?:high|middle)\s+schooler\s*[.!]*\s*$`,
   'i'
 );
 /** "I'm a sophomore in high school", or just "Sophomore in high school." as an answer. */
@@ -130,7 +150,7 @@ function ageOf(word: string): number {
 
 function anyAge(re: RegExp, text: string, under: number, from = 6): boolean {
   for (const m of text.matchAll(re)) {
-    const age = ageOf(m[1] ?? '');
+    const age = ageOf(m.slice(1).find((g) => g !== undefined) ?? '');
     if (age >= from && age < under) return true;
   }
   return false;
@@ -164,6 +184,11 @@ function statesWhileLaughing(t: string): boolean {
  */
 export function statesUnder18(text: string, asked?: string): boolean {
   const t = text.replace(/[‘’]/g, "'");
+  return !RETRACTED.test(t) && statesAge(t, asked);
+}
+
+/** statesUnder18 once a retraction ("jk", "i mean fifty") is ruled out. */
+function statesAge(t: string, asked: string | undefined): boolean {
   if (GRADE.test(t) || IN_SCHOOL.test(t) || SCHOOL_YEAR.test(t)) return true;
   if (LAUGH.test(t)) return statesWhileLaughing(t);
   const aboutAge = askedAboutAge(asked) || AGE_WORDS.test(t);

@@ -50,6 +50,14 @@ describe('statesUnder18: spoken and unpunctuated ages', () => {
     'im fifteen years of age',
     'im only fourteen you know',
     'im only thirteen please dont tell my parents',
+    // round three: the narrowed "turned"/"turning" forms still catch a time
+    'i turned fourteen on sunday',
+    'i turned 16 in march',
+    'i turned 16 last summer',
+    'i only turned 15 last month',
+    'just turned 14 last week.',
+    'turning seventeen in july',
+    'im 14 i wish my mom would listen', // "i wish" retracts only at the end
   ])('flags %j', (said) => {
     expect(statesUnder18(said)).toBe(true);
   });
@@ -97,6 +105,38 @@ describe('statesUnder18: spoken and unpunctuated ages', () => {
     'my daughter is an eighth grader',
     'I teach eighth graders',
     "I'm 15 in line",
+    // round three (#3098 verify): adult backstory with "turned N in/on ..."
+    'I turned fourteen in foster care.',
+    'When I turned 16 in 1998, my dad bought me a truck.',
+    'When I turned 16, my dad bought me a truck.',
+    'i quit when i turned 17 in the army',
+    'i turned 17 on a navy ship',
+    'the year i turned fifteen in ohio was rough',
+    'the year i turned fifteen, my parents split up',
+    // "turning N" about someone else or a custom
+    'Turning sixteen is such a big deal for her.',
+    'turning 18 in our family means you move out',
+    'turning 16 next month my daughter wants a car',
+    'just turned 14 last month and already wants a phone',
+    // a bare "schooler" in a list of who's at home
+    'A middle schooler and a toddler.',
+    'high schooler and two little ones',
+    // taken back
+    'im 16 lol jk im 40',
+    'im 17 lol i wish',
+    'im sixteen i wish',
+    'im fifteen i mean fifty',
+    'im fifteen lol in dog years',
+    // a parent, an echoed number, a relative
+    "im an eighth grader's mom",
+    'im a ninth grader at heart lol',
+    'im 13 too',
+    '15yo son wont talk to me',
+    // reported speech, with or without a laugh
+    'my son keeps telling everyone im 16 lol',
+    'my niece keeps saying im fourteen now',
+    'she said im 14 lol',
+    'my sister goes im fifteen lol',
   ])('does not flag %j', (said) => {
     expect(statesUnder18(said)).toBe(false);
   });
