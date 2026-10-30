@@ -5,10 +5,13 @@
  * This is the first step in the concierge flow - finding who to call.
  */
 
-import { googleMapsKey } from '../../../config/google-maps-key.js';
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../../config/google-maps-key.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ConciergeDomain, DiscoveryOptions, DiscoveredBusiness } from '../types.js';
 import { PLACES_API_NEW, priceLevelToNumber } from '../../google-places.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.placesThenGeneral };
 
 const log = createLogger({ module: 'concierge-discovery' });
 
@@ -28,7 +31,7 @@ const DOMAIN_SEARCH_TERMS: Record<ConciergeDomain, string> = {
 
 /** The Places key, read per call (config/google-maps-key.ts). */
 function placesApiKey(): string {
-  return googleMapsKey('places');
+  return googleMapsKey(MAPS_KEY);
 }
 
 /**

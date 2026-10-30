@@ -17,20 +17,24 @@ import { z } from 'zod';
 import {
   googleMapsKey,
   googleMapsKeySource,
+  MAPS_KEY_LEGACY,
+  type MapsFailure,
   mapsHttpOutcome,
   mapsStatusOutcome,
-  type MapsFailure,
 } from '../../../config/google-maps-key.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { resolveCallerLocation } from '../../shared/caller-location.js';
 import { geocodeHere, getHereRoute } from './traffic-here.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.mapsThenGeneral };
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-// The Google key is resolved per call by googleMapsKey() (config/google-maps-key.ts).
+// The Google key is resolved per call by googleMapsKey(MAPS_KEY) above.
 const HERE_API_KEY = process.env.HERE_API_KEY || '';
 
 // ============================================================================
@@ -83,7 +87,7 @@ function failed(
   detail?: number | string
 ): { outcome: MapsFailure } {
   getLogger().warn(
-    { api, outcome, detail, keySource: googleMapsKeySource() },
+    { api, outcome, detail, keySource: googleMapsKeySource(MAPS_KEY) },
     'Google Maps lookup failed'
   );
   return { outcome };
@@ -96,7 +100,7 @@ async function getTrafficFromGoogle(
   origin: string,
   destination: string
 ): Promise<Lookup<TrafficInfo>> {
-  const key = googleMapsKey();
+  const key = googleMapsKey(MAPS_KEY);
   if (!key) return { outcome: 'unconfigured' };
 
   try {
@@ -166,7 +170,7 @@ async function getDirectionsFromGoogle(
   destination: string,
   mode: 'driving' | 'walking' | 'bicycling' | 'transit' = 'driving'
 ): Promise<Lookup<DirectionsInfo>> {
-  const key = googleMapsKey();
+  const key = googleMapsKey(MAPS_KEY);
   if (!key) return { outcome: 'unconfigured' };
 
   try {
@@ -343,6 +347,7 @@ export async function getDirections(
 
   const directions = await getDirectionsFromGoogle(origin, destination, mode);
   if (directions.outcome !== 'ok') {
+    getLogger().info({ outcome: directions.outcome }, '🗺️ No directions');
     return directions.outcome === 'no_data' ? NO_ROUTE : DIRECTIONS_FAILED;
   }
   return formatDirections(directions.value, mode);

@@ -13,7 +13,7 @@
  * @module services/context-awareness/location-calendar
  */
 
-import { googleMapsKey } from '../../config/google-maps-key.js';
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   getUserTokens,
@@ -24,6 +24,9 @@ import {
   exchangeCodeForTokens,
   type CalendarEvent as GoogleCalendarEvent,
 } from '../identity/google-calendar-oauth.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.mapsOnly };
 
 const log = createLogger({ module: 'LocationCalendar' });
 
@@ -365,7 +368,7 @@ export async function getTravelTime(
   destinationAddress: string
 ): Promise<TravelEvent | null> {
   const state = userStates.get(userId);
-  const mapsKey = googleMapsKey();
+  const mapsKey = googleMapsKey(MAPS_KEY);
   if (!state?.currentLocation || !mapsKey) return null;
 
   try {
@@ -375,7 +378,8 @@ export async function getTravelTime(
         `origin=${encodeURIComponent(origin)}&` +
         `destination=${encodeURIComponent(destinationAddress)}&` +
         `departure_time=now&` +
-        `key=${mapsKey}`
+        `key=${mapsKey}`,
+      { signal: AbortSignal.timeout(10000) } // runs inside the anticipation context build
     );
 
     if (!response.ok) return null;

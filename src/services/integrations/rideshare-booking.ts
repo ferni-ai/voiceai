@@ -7,7 +7,6 @@
  * @module services/integrations/rideshare-booking
  */
 
-import { googleMapsKey } from '../../config/google-maps-key.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
@@ -161,12 +160,12 @@ export async function getRideEstimates(
  * Geocode an address using Google Maps
  */
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const key = googleMapsKey();
-  if (!key) return null;
+  const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+  if (!GOOGLE_API_KEY) return null;
 
   try {
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
     );
     const data = await response.json();
 
@@ -187,7 +186,8 @@ async function getUberEstimates(
   pickup: { lat: number; lng: number },
   dropoff: { lat: number; lng: number }
 ): Promise<RideEstimate[]> {
-  // A placeholder: the Uber API requires OAuth and a partnership.
+  // Note: Uber API requires OAuth and partnership
+  // This is a placeholder for actual implementation
 
   log.debug({ pickup, dropoff }, 'Would fetch Uber estimates');
   return [];
@@ -214,15 +214,15 @@ async function getGoogleMapsEstimate(
   pickup: { lat: number; lng: number },
   dropoff: { lat: number; lng: number }
 ): Promise<RideEstimate | null> {
-  const key = googleMapsKey();
-  if (!key) return null;
+  const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+  if (!GOOGLE_API_KEY) return null;
 
   try {
     const response = await fetch(
       `https://maps.googleapis.com/maps/api/distancematrix/json?` +
         `origins=${pickup.lat},${pickup.lng}&` +
         `destinations=${dropoff.lat},${dropoff.lng}&` +
-        `key=${key}`
+        `key=${GOOGLE_API_KEY}`
     );
     const data = await response.json();
 

@@ -6,14 +6,18 @@
  * Single responsibility: Fetching and presenting weather information.
  *
  * APIs used (in priority order):
- * 1. Google Weather API (primary - fast; key from googleMapsKey(), config/google-maps-key.ts)
+ * 1. Google Weather API (primary - fast; key from googleMapsKey(MAPS_KEY), config/google-maps-key.ts)
  * 2. Open-Meteo (fallback - free, no key required, ~500ms slower)
  *
  * The key must allow the Weather API, or every lookup falls back to Open-Meteo.
  */
 
 import { flagOn } from '../../../config/env-flag.js';
-import { googleMapsKey, mapsHttpOutcome } from '../../../config/google-maps-key.js';
+import {
+  googleMapsKey,
+  MAPS_KEY_LEGACY,
+  mapsHttpOutcome,
+} from '../../../config/google-maps-key.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import {
@@ -22,6 +26,9 @@ import {
   formatLocationName,
   type GeocodingResult,
 } from './utils/geocoding.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.generalOnly };
 
 // ============================================================================
 // GOOGLE WEATHER API
@@ -58,10 +65,10 @@ interface GoogleWeatherResult {
  */
 async function tryGoogleWeather(location: string): Promise<GoogleWeatherResult> {
   const log = getLogger();
-  const apiKey = googleMapsKey();
+  const apiKey = googleMapsKey(MAPS_KEY);
 
   if (!apiKey) {
-    log.debug({ locationChars: location.length }, '🌤️ Google Weather skipped - no API key');
+    log.debug({ outcome: 'unconfigured' }, '🌤️ Google Weather skipped - no Maps key');
     return { weather: null, geo: null };
   }
 

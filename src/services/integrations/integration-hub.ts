@@ -7,7 +7,7 @@
  * @module services/integrations/integration-hub
  */
 
-import { googleMapsKey } from '../../config/google-maps-key.js';
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   IntegrationConfig,
@@ -21,6 +21,9 @@ import type {
 import { OAuthManager, getOAuthManager } from './oauth-manager.js';
 import { RateLimiter } from './rate-limiter.js';
 import { getConnectionStatus } from './oauth-token-store.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.mapsOnly };
 
 const log = createLogger({ module: 'integration-hub' });
 
@@ -460,7 +463,7 @@ export class IntegrationHub implements IntegrationRegistry {
       }
 
       // Google Maps takes its key as a query param
-      const mapsKey = integrationId === 'google_maps' ? googleMapsKey() : '';
+      const mapsKey = integrationId === 'google_maps' ? googleMapsKey(MAPS_KEY) : '';
       if (mapsKey) url.searchParams.set('key', mapsKey);
 
       const response = await fetch(url.toString(), {

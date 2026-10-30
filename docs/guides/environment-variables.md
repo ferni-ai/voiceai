@@ -147,14 +147,21 @@ Uses same Twilio credentials as SMS, plus optional:
 ### Google Maps Platform (geocoding, traffic, directions, weather, Places)
 
 Every Maps-family call takes its key from one resolver, `googleMapsKey()` in
-`src/config/google-maps-key.ts`, read per call. The first name that is set wins:
+`src/config/google-maps-key.ts`, read per call. `GOOGLE_MAPS_SERVER_KEY` (secret
+`google-maps-server-key` in project `johnb-2025`, API-restricted to Weather, Routes,
+Geocoding and Places, created 2026-10-30) wins for every caller. Until it is mounted,
+each caller falls back to exactly the names it read before (`MAPS_KEY_LEGACY`):
 
-| Order | Env var | Secret Manager secret (project `johnb-2025`) | Used for |
-| ----- | ------- | -------------------------------------------- | -------- |
-| 1 | `GOOGLE_MAPS_SERVER_KEY` | `google-maps-server-key` | All Maps calls. API-restricted to Weather, Routes, Geocoding and Places (created 2026-10-30). |
-| 2 | `GOOGLE_MAPS_API_KEY` | `google-maps-api-key` | Fallback for geocoding, traffic, directions, weather |
-| 2 | `GOOGLE_PLACES_API_KEY` | (Places-only key) | Fallback for Places lookups |
-| 3 | `GOOGLE_API_KEY` | `google-api-key` | Last fallback for both. This is also the Gemini key; don't rely on it for Maps. |
+| Caller | Fallback after `GOOGLE_MAPS_SERVER_KEY` |
+| ------ | --------------------------------------- |
+| Traffic, directions, capability checker | `GOOGLE_MAPS_API_KEY`, then `GOOGLE_API_KEY` |
+| Geocoding, weather | `GOOGLE_API_KEY` only |
+| Places (local search, restaurants, concierge discovery) | `GOOGLE_PLACES_API_KEY`, then `GOOGLE_API_KEY` |
+| Anticipation travel time, integration hub `google_maps` | `GOOGLE_MAPS_API_KEY` only |
+| Rideshare estimates | `GOOGLE_API_KEY`, read directly (not on the resolver; #3103 removes the file) |
+
+`GOOGLE_MAPS_API_KEY` comes from secret `google-maps-api-key`, which Google currently
+rejects (`REQUEST_DENIED`). `GOOGLE_API_KEY` is also the Gemini key; don't rely on it for Maps.
 
 The fallbacks keep today's behaviour until `GOOGLE_MAPS_SERVER_KEY` is mounted on the
 agent and the UI server. Mounting it is a deploy step, not a code change. Only the env

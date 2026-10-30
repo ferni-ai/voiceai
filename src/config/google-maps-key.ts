@@ -8,19 +8,44 @@
  *
  * 1. `GOOGLE_MAPS_SERVER_KEY` (secret `google-maps-server-key`, API-restricted
  *    to Weather, Routes, Geocoding and Places);
- * 2. then the names each caller read before, so nothing changes until it is
- *    mounted: `GOOGLE_MAPS_API_KEY` then `GOOGLE_API_KEY` for Maps calls,
- *    `GOOGLE_PLACES_API_KEY` then `GOOGLE_API_KEY` for Places calls.
+ * 2. then that caller's own legacy names, in the order it read them before
+ *    (`MAPS_KEY_LEGACY`), so nothing changes until the server key is mounted.
+ *    Each caller keeps its own chain: geocoding never moves onto
+ *    `GOOGLE_MAPS_API_KEY`, and a Maps-only caller never starts calling on
+ *    `GOOGLE_API_KEY`.
  *
  * The value is never logged; log `googleMapsKeySource()` (the env name) instead.
  *
  * @module config/google-maps-key
  */
 
-/** `places` callers keep their Places-only fallback key; every other Maps call is `maps`. */
-export type MapsKeyFamily = 'maps' | 'places';
-
 type Env = Record<string, string | undefined>;
+
+/** A key name some Maps caller read before `GOOGLE_MAPS_SERVER_KEY` existed. */
+export type LegacyMapsKeyName = 'GOOGLE_MAPS_API_KEY' | 'GOOGLE_PLACES_API_KEY' | 'GOOGLE_API_KEY';
+
+/**
+ * Each caller's pre-server-key chain, exactly as it read it before. Pick the
+ * one the caller used; never widen a chain, or a call starts on a key it never
+ * used (`GOOGLE_MAPS_API_KEY` is REQUEST_DENIED in prod; `GOOGLE_API_KEY` is
+ * the Gemini key).
+ */
+export const MAPS_KEY_LEGACY = {
+  /** Traffic, directions, the capability checker. */
+  mapsThenGeneral: ['GOOGLE_MAPS_API_KEY', 'GOOGLE_API_KEY'],
+  /** Places lookups. */
+  placesThenGeneral: ['GOOGLE_PLACES_API_KEY', 'GOOGLE_API_KEY'],
+  /** Geocoding and weather. */
+  generalOnly: ['GOOGLE_API_KEY'],
+  /** The anticipation travel-time lookup and the integration hub. */
+  mapsOnly: ['GOOGLE_MAPS_API_KEY'],
+} as const satisfies Record<string, readonly LegacyMapsKeyName[]>;
+
+export interface MapsKeyOptions {
+  /** The names this caller read before, in order (one of `MAPS_KEY_LEGACY`). */
+  legacy: readonly LegacyMapsKeyName[];
+  env?: Env;
+}
 
 /** What a Maps lookup came to, in the house tool-outcome words. */
 export type MapsOutcome =
@@ -28,39 +53,22 @@ export type MapsOutcome =
 
 export type MapsFailure = Exclude<MapsOutcome, 'ok'>;
 
-function candidates(family: MapsKeyFamily, env: Env): Array<[string, string | undefined]> {
-  const server: [string, string | undefined] = [
-    'GOOGLE_MAPS_SERVER_KEY',
-    env.GOOGLE_MAPS_SERVER_KEY,
-  ];
-  return family === 'places'
-    ? [
-        server,
-        ['GOOGLE_PLACES_API_KEY', env.GOOGLE_PLACES_API_KEY],
-        ['GOOGLE_API_KEY', env.GOOGLE_API_KEY],
-      ]
-    : [
-        server,
-        ['GOOGLE_MAPS_API_KEY', env.GOOGLE_MAPS_API_KEY],
-        ['GOOGLE_API_KEY', env.GOOGLE_API_KEY],
-      ];
+function resolve({ legacy, env = process.env }: MapsKeyOptions): [string, string] | undefined {
+  for (const name of ['GOOGLE_MAPS_SERVER_KEY', ...legacy]) {
+    const value = env[name]?.trim();
+    if (value) return [name, value];
+  }
+  return undefined;
 }
 
 /** The env name the key comes from, or undefined when none is set. Safe to log. */
-export function googleMapsKeySource(
-  family: MapsKeyFamily = 'maps',
-  env: Env = process.env
-): string | undefined {
-  return candidates(family, env).find(([, value]) => value?.trim())?.[0];
+export function googleMapsKeySource(options: MapsKeyOptions): string | undefined {
+  return resolve(options)?.[0];
 }
 
 /** The key for a Maps Platform call, or '' when none is set. Never log it. */
-export function googleMapsKey(family: MapsKeyFamily = 'maps', env: Env = process.env): string {
-  return (
-    candidates(family, env)
-      .find(([, value]) => value?.trim())?.[1]
-      ?.trim() ?? ''
-  );
+export function googleMapsKey(options: MapsKeyOptions): string {
+  return resolve(options)?.[1] ?? '';
 }
 
 /** A non-2xx HTTP status from a Maps API (Weather, Places, or a legacy web service). */

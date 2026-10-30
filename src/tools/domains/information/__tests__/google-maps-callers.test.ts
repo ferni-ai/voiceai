@@ -273,8 +273,12 @@ describe('no Maps caller reads a key env name directly', () => {
   const MAPS_HOSTS = /(maps|weather|places|routes)\.googleapis\.com/;
   const DIRECT_READ =
     /process\.env(\.|\[')(GOOGLE_API_KEY|GOOGLE_MAPS_API_KEY|GOOGLE_PLACES_API_KEY|GOOGLE_MAPS_SERVER_KEY)/;
-  // Unused, and removed by held PR #3108.
-  const PENDING_REMOVAL = new Set(['src/services/integrations/google-maps/maps-client.ts']);
+  // Left as they are on main because held PRs delete them: maps-client.ts (#3108, unused)
+  // and rideshare-booking.ts (#3103), which still reads GOOGLE_API_KEY itself.
+  const PENDING_REMOVAL = new Set([
+    'src/services/integrations/google-maps/maps-client.ts',
+    'src/services/integrations/rideshare-booking.ts',
+  ]);
 
   it('every src file that calls a Maps host imports googleMapsKey', () => {
     const root = join(__dirname, '../../../../..');

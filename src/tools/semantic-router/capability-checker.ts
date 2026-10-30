@@ -8,9 +8,12 @@
  * @module tools/semantic-router/capability-checker
  */
 
-import { googleMapsKey } from '../../config/google-maps-key.js';
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
 import { isLinkedInEnabled } from '../../config/linkedin-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.mapsThenGeneral };
 
 const log = createLogger({ module: 'capability-checker' });
 
@@ -140,7 +143,7 @@ function isEmailConfigured(): boolean {
  * Check if Maps API is configured
  */
 function isMapsConfigured(): boolean {
-  return Boolean(googleMapsKey());
+  return Boolean(googleMapsKey(MAPS_KEY));
 }
 
 /**

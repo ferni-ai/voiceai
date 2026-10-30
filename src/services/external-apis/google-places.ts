@@ -12,19 +12,22 @@
  * This replaces OpenTable/Resy/Yelp with a single, cost-effective API.
  * Reservations are handled via phone calls through the appointment system.
  *
- * Key: googleMapsKey('places') (config/google-maps-key.ts)
+ * Key: googleMapsKey(MAPS_KEY) (config/google-maps-key.ts)
  * Enable "Places API (New)" in Google Cloud Console
  */
 
-import { googleMapsKey } from '../../config/google-maps-key.js';
+import { googleMapsKey, MAPS_KEY_LEGACY } from '../../config/google-maps-key.js';
 import { getLogger } from '../../utils/safe-logger.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.placesThenGeneral };
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 /** Read per call, so a key mounted or rotated after import is used. */
-const placesKey = (): string => googleMapsKey('places');
+const placesKey = (): string => googleMapsKey(MAPS_KEY);
 export const PLACES_API_NEW = 'https://places.googleapis.com/v1';
 
 // ============================================================================

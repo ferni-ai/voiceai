@@ -9,7 +9,14 @@
  * @module tools/domains/local-search/places-locality
  */
 
-import { googleMapsKey, mapsHttpOutcome } from '../../../config/google-maps-key.js';
+import {
+  googleMapsKey,
+  MAPS_KEY_LEGACY,
+  mapsHttpOutcome,
+} from '../../../config/google-maps-key.js';
+
+/** The key chain this caller read before GOOGLE_MAPS_SERVER_KEY (config/google-maps-key.ts). */
+const MAPS_KEY = { legacy: MAPS_KEY_LEGACY.placesThenGeneral };
 
 const PLACES_API_NEW = 'https://places.googleapis.com/v1';
 
@@ -19,7 +26,7 @@ export interface CityMatch {
 
 /** The place ID of the city a name refers to, or null when Places finds no locality for it. Throws when the lookup itself fails. */
 export async function findCityByName(name: string): Promise<CityMatch | null> {
-  const apiKey = googleMapsKey('places');
+  const apiKey = googleMapsKey(MAPS_KEY);
   if (!apiKey) throw new Error('Places lookup failed: unconfigured');
 
   const response = await fetch(`${PLACES_API_NEW}/places:searchText`, {
