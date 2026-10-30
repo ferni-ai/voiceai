@@ -10,6 +10,7 @@
 import type { ToolDomain } from '../registry/types.js';
 import { LOCAL_PLACE_TOPICS } from './local-place-topics.js';
 import { SCREEN_TOPICS } from './screen-topics.js';
+import { TRAVEL_TOPICS } from './travel-topics.js';
 
 // ============================================================================
 // TOPIC TO DOMAIN MAPPING
@@ -242,8 +243,8 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   future: ['life-planning', 'dreams'],
   bucket: ['life-planning', 'dreams'], // bucket list
   legacy: ['meaning', 'life-planning'],
-  travel: ['life-planning', 'entertainment'],
-  vacation: ['life-planning', 'entertainment'],
+  travel: ['travel', 'life-planning'], // searchFlights, searchHotels, planTrip
+  vacation: ['travel', 'life-planning', 'entertainment'],
   trip: ['life-planning', 'calendar'],
   moving: ['life-planning'],
   move: ['life-planning'],
@@ -322,6 +323,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
 
   ...LOCAL_PLACE_TOPICS,
   ...SCREEN_TOPICS,
+  ...TRAVEL_TOPICS, // drive time, flights (travel-topics.ts)
 
   // =========================================================================
   // EMOTIONAL & SPIRITUAL TOPICS

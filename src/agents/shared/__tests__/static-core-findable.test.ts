@@ -113,7 +113,7 @@ describe('findable domains', () => {
   it('are the essential and topic-loadable domains, never developer, webhooks or settings', () => {
     const live = [...DEFAULT_ESSENTIAL_DOMAINS, ...Object.values(TOPIC_TO_DOMAINS).flat()];
     for (const d of live) expect(isFindableDomain(d)).toBe(!NEVER_FINDABLE_DOMAINS.includes(d));
-    for (const d of [...NEVER_FINDABLE_DOMAINS, 'smart-home', 'travel', undefined]) {
+    for (const d of [...NEVER_FINDABLE_DOMAINS, 'smart-home', 'vehicle', undefined]) {
       expect(isFindableDomain(d)).toBe(false);
     }
   });

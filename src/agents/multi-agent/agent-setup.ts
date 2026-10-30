@@ -1064,7 +1064,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
     const cappedCount = Object.keys(finalTools).length;
     const droppedCount = toolCount - cappedCount;
-
     log.info(
       {
         personaId: persona.id,
@@ -1072,6 +1071,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         cappedCount,
         effectiveLimit,
         droppedCount,
+        droppedTools: toolNames.filter((name) => !(name in finalTools)), // names, for sweeps
       },
       `🎯 TOOL CAP: ${toolCount} → ${cappedCount} tools (limit: ${effectiveLimit}, dropped: ${droppedCount})`
     );

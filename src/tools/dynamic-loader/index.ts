@@ -31,6 +31,7 @@ import { predictionTopicPatterns } from './prediction-topics.js';
 import { flagOn } from '../../config/env-flag.js';
 import { LEAN_LOADER_DOMAINS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { SAME_TURN_TOPIC_PATTERNS } from './same-turn-topics.js';
+import { DOMAIN_LEAD_TOOLS } from './travel-topics.js';
 
 // Re-export types
 export type {
@@ -371,9 +372,15 @@ export class DynamicToolLoader {
     // the update's cap ran out inside the first. "find me a taco place nearby"
     // loads information (57 tools) and local-search (6), and none of
     // local-search's tools landed.
-    const perDomain = domains
-      .filter(isDomain)
-      .map((domain) => Object.entries(toolRegistry.buildToolSet({ domains: [domain] }, ctx).tools));
+    // A domain's lead tools (getCommuteTime, searchFlights) go first in it.
+    const perDomain = domains.filter(isDomain).map((domain) => {
+      const tools = Object.entries(toolRegistry.buildToolSet({ domains: [domain] }, ctx).tools);
+      const lead = DOMAIN_LEAD_TOOLS[domain] ?? [];
+      return [
+        ...lead.flatMap((name) => tools.filter(([id]) => id === name)),
+        ...tools.filter(([id]) => !lead.includes(id)),
+      ];
+    });
     const interleaved: Record<string, Tool> = {};
     for (let i = 0; perDomain.some((tools) => i < tools.length); i++) {
       for (const tools of perDomain) {
