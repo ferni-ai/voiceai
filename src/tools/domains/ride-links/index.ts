@@ -27,6 +27,6 @@ const rideLinks = createDomainExport('ride-links', [openRideLinkDef]);
 /** Read when the domain loads: the tool only while RIDE_LINKS is on. */
 export const getToolDefinitions = async (): Promise<ToolDefinition[]> =>
   flagOn('RIDE_LINKS') ? rideLinks.definitions : [];
-export const { domain } = rideLinks;
+export const { domain, definitions } = rideLinks;
 
 export default getToolDefinitions;

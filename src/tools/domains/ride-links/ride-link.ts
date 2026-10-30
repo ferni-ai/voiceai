@@ -27,22 +27,22 @@ import { getCallUserPort, type TextOwnerResult } from '../proactive/outreach/cal
 
 const log = createLogger({ module: 'ride-link' });
 
-export const CANT_BOOK =
+const CANT_BOOK =
   "I can't book it for you, but here's a link that opens Uber with your trip filled in.";
-export const OFFER_TEXT =
+const OFFER_TEXT =
   "I can't book it for you, but I can text you a link that opens Uber with your trip filled in. Want me to send it?";
-export const TEXTED =
+const TEXTED =
   "I texted you a link that opens Uber with your trip filled in. I can't book it, so you finish it in Uber.";
-export const textNotSent = (reason = "the text didn't go through"): string =>
+const textNotSent = (reason = "the text didn't go through"): string =>
   `I didn't text you the link: ${reason}.`;
-export const NO_TEXT_IN_APP = "I can't text from here, but the link is right here in the app.";
-export const ASK_DESTINATION = 'Where are you headed?';
-export const ASK_PICKUP =
+const NO_TEXT_IN_APP = "I can't text from here, but the link is right here in the app.";
+const ASK_DESTINATION = 'Where are you headed?';
+const ASK_PICKUP =
   "Where should Uber pick you up? I don't know exactly where you are, so give me an address or a place.";
-export const notFound = (place: string): string =>
+const notFound = (place: string): string =>
   `I couldn't find "${place}", so I didn't make a link. Can you give me the address or a nearby landmark?`;
 
-export interface RideEnd {
+interface RideEnd {
   latitude: number;
   longitude: number;
   /** The caller's own words for the place, shown in Uber as its name */
@@ -50,7 +50,7 @@ export interface RideEnd {
 }
 
 /** A coordinate a ride can use: finite, in range, and not 0,0 (what a failed lookup defaults to). */
-export function usableCoordinates(p: { latitude: number; longitude: number }): boolean {
+function usableCoordinates(p: { latitude: number; longitude: number }): boolean {
   const { latitude: lat, longitude: lng } = p;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
   if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
@@ -64,7 +64,7 @@ export function usableCoordinates(p: { latitude: number; longitude: number }): b
  * https://developer.uber.com/docs/riders/ride-requests/tutorials/deep-links/introduction
  * (sections "Universal Deep Links", "m.uber.com Deep Links", "Location Object").
  */
-export function uberRideLink(pickup: RideEnd, drop: RideEnd): string {
+function uberRideLink(pickup: RideEnd, drop: RideEnd): string {
   const location = (end: RideEnd): string =>
     JSON.stringify({
       latitude: end.latitude,
@@ -77,14 +77,14 @@ export function uberRideLink(pickup: RideEnd, drop: RideEnd): string {
   return `https://m.uber.com/looking?${params.toString()}`;
 }
 
-export interface RideLinkArgs {
+interface RideLinkArgs {
   destination: string;
   pickup?: string;
   /** The caller said yes to a text of the link (phone calls) */
   sendText?: boolean;
 }
 
-export type RideLinkResult =
+type RideLinkResult =
   | { outcome: 'needs_input' | 'not_found' | 'text_not_sent'; say: string }
   | {
       outcome: 'link_ready' | 'offer_text' | 'texted';
@@ -93,7 +93,7 @@ export type RideLinkResult =
       delivery: 'app' | 'phone';
     };
 
-export interface RideLinkDeps {
+interface RideLinkDeps {
   geocode: (place: string) => Promise<GeocodingResult | null>;
   /** The line of a phone call (caller-recognition binds it); none in the app */
   phoneOf: (sessionId: string) => string | undefined;
