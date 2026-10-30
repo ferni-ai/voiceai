@@ -170,7 +170,8 @@ describe('integration token stores encrypt at rest', () => {
   it('oura: sealed write, both reads, disconnect deletes', async () => {
     const oura = await import('../oura-auth.js');
     tokenResponse();
-    expect((await oura.exchangeCodeForTokens('code', 'u-oura')).success).toBe(true);
+    const granted = await oura.exchangeAuthorizationCode('code', 'https://example.test/cb');
+    await oura.saveOuraTokens('u-oura', granted!);
     const stored = doc('oura_tokens/u-oura');
     expect(stored?.encrypted).toEqual(expect.any(String));
     noRawToken(stored);
@@ -180,25 +181,28 @@ describe('integration token stores encrypt at rest', () => {
       refresh_token: REFRESH,
       expires_at: Date.now() + 9e6,
     });
-    expect(await oura.getValidAccessToken('u-legacy')).toBe(ACCESS);
+    expect(await oura.getOuraAccessToken('u-legacy')).toEqual({ status: 'ok', token: ACCESS });
 
     state.docs.set('oura_tokens/u-sealed', structuredClone(stored!));
-    expect(await oura.getValidAccessToken('u-sealed')).toBe(ACCESS);
+    expect(await oura.getOuraAccessToken('u-sealed')).toEqual({ status: 'ok', token: ACCESS });
 
-    await oura.deleteUserTokens('u-oura');
+    await oura.disconnectOura('u-oura');
     expect(doc('oura_tokens/u-oura')).toBeUndefined();
   });
 
   it('a key mismatch is logged with the store and reason, not read as "not connected" silently', async () => {
     const oura = await import('../oura-auth.js');
     tokenResponse();
-    await oura.exchangeCodeForTokens('code', 'u-kid-a');
+    await oura.saveOuraTokens(
+      'u-kid-a',
+      (await oura.exchangeAuthorizationCode('code', 'https://example.test/cb'))!
+    );
     const sealed = structuredClone(doc('oura_tokens/u-kid-a')!);
     process.env.OAUTH_ENCRYPTION_KEY = 'fixture-other-key';
     try {
       state.docs.set('oura_tokens/u-kid-b', sealed);
       h.calls.length = 0;
-      expect(await oura.getValidAccessToken('u-kid-b')).toBeNull();
+      expect(await oura.getOuraAccessToken('u-kid-b')).toEqual({ status: 'unavailable' });
       const warning = h.calls.find(
         (args) => (args[0] as { reason?: string } | undefined)?.reason === 'kid-mismatch'
       );

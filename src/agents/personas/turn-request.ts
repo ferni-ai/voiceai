@@ -97,6 +97,7 @@ import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js
 import { clearBurstOffer } from './vocal-bursts.js';
 import { callSeed, signalsFor, styleFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
+import { sexualBoundaryNote } from './sexual-boundary.js';
 
 /**
  * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
@@ -153,7 +154,6 @@ export function withTurnReminder(
   }
 }
 
-/** held: the crisis classifier's verdict this reply waits on (crisis-gate.ts holdUntilCleared). */
 type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
 
 /**
@@ -232,6 +232,8 @@ function buildTurnReminder(
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
     minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
+    // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
+    sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,

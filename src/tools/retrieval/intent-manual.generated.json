@@ -3076,7 +3076,7 @@
     },
     "checkLocalSearchStatus": {
       "domain": "local-search",
-      "description": "Check which local search services (Google Places, Yelp) are configured.",
+      "description": "Check whether local search (Google Places) is configured.",
       "queries": [
         "Search for grocery stores with organic produce.",
         "Where can I get a COVID test?",
@@ -6476,7 +6476,7 @@
     },
     "findRestaurants": {
       "domain": "local-search",
-      "description": "Find restaurants in a specific area. Great for dinner recommendations. Say \"on Yelp\" or \"on Google\" to use a specific source.",
+      "description": "Find restaurants in a specific area. Great for dinner recommendations.",
       "queries": [
         "I feel empty. Find some food!",
         "What is , um, the closest resturant?",
@@ -7171,7 +7171,7 @@
     },
     "getBusinessInfo": {
       "domain": "local-search",
-      "description": "Get detailed information about a specific business including hours, phone, and reviews.",
+      "description": "Get detailed information about a specific business including hours, phone, and rating.",
       "queries": [
         "Find a good spot to get ice cream. quick",
         "What are the delivery options for that restaurant?",
@@ -7187,25 +7187,6 @@
         "How much does it cost to rent a car from Enterprise?"
       ],
       "descriptionHash": "bad805ee8a"
-    },
-    "getBusinessReviews": {
-      "domain": "local-search",
-      "description": "Get customer reviews for a business. Uses Yelp which has richer review data.",
-      "queries": [
-        "Check the reviews for that massage therapist.",
-        "What do people think of that dentist? right now",
-        "What's the general sentiment , so, towards that clothing store? asap",
-        "What are the customer experiences like at that bank branch?",
-        "okay so, Read some feedback for the daycare center.",
-        "well, What do customers say about the wait times at that restaurant? quick",
-        "Is that gym worth the money, according to reviews?",
-        "What's the overall rating , well, for that movie theatre?",
-        "What are people saying about that new restaurant?",
-        "I mean, Read the reviews for the closest laundromat.",
-        "What are the recent comments about that grocery store? right now",
-        "What are the common themes in the reviews for that museum?"
-      ],
-      "descriptionHash": "de12dd5dda"
     },
     "getCalendarLoadSummary": {
       "domain": "calendar",
@@ -11099,25 +11080,6 @@
         "when you get a chance, Track my anxiety levels."
       ],
       "descriptionHash": "c4df846e98"
-    },
-    "lookupBusinessByPhone": {
-      "domain": "local-search",
-      "description": "Look up a business by its phone number. Useful for identifying mystery calls or finding business info.",
-      "queries": [
-        "I'm getting calls from 555-2121",
-        "Buisness lookup for 555-4141 quick",
-        "Identify this number 555-6060",
-        "Find the business associated with 555-1212",
-        "555-2020, tell me who it is",
-        "eventually, Can you reverse search 555-5050?",
-        "555-3456 company info",
-        "I need to find out who owns 555-6767",
-        "let me think, Need the name for 555-3030",
-        "you know, I'd like to lookup the number 555-9393",
-        "no rush, Reverse look up 555-4040",
-        "okay so, Is 555-1234 a business?"
-      ],
-      "descriptionHash": "59d327a544"
     },
     "maintainBoundary": {
       "domain": "boundaries",
@@ -16347,7 +16309,7 @@
     },
     "searchLocalBusinesses": {
       "domain": "local-search",
-      "description": "Search for local businesses like restaurants, coffee shops, gyms, salons. Say \"on Yelp\" or \"on Google\" to use a specific source. Returns ratings, reviews, price level, and hours.",
+      "description": "Search for local businesses like restaurants, coffee shops, gyms, salons. Returns ratings, review counts, price level, and open status.",
       "queries": [
         "okay so, Search for a 24-hour diner.",
         "Find cheap coffee shops around here.",

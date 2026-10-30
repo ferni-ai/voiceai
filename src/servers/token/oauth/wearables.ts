@@ -1,17 +1,11 @@
 /**
  * Wearables OAuth Management
  *
- * Handles OAuth flows for wearable device integrations:
- * - Fitbit (Web OAuth 2.0)
- * - Oura (Web OAuth 2.0)
- * - Garmin (Web OAuth 2.0)
- * - Whoop (Web OAuth 2.0)
- *
- * Note: Apple HealthKit requires native iOS integration via deep links,
- * handled separately in the iOS app.
+ * Web OAuth 2.0 for Oura, Garmin and Whoop. Apple HealthKit is native iOS
+ * (deep links), handled in the iOS app.
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
- * Tokens are encrypted before storage for security.
+ * Tokens are encrypted before storage. Oura's live in services/identity/oura-auth.ts.
  */
 
 import crypto from 'crypto';
@@ -20,7 +14,7 @@ import type { WearableProvider } from '../../../services/wearable-integration/ty
 import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import * as ouraAuth from '../../../services/identity/oura-auth.js';
 
 const log = createLogger({ module: 'WearablesOAuth' });
 
@@ -62,30 +56,13 @@ interface ProviderConfig {
 }
 
 const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, ProviderConfig> = {
-  fitbit: {
-    clientId: process.env.FITBIT_CLIENT_ID,
-    clientSecret: process.env.FITBIT_CLIENT_SECRET,
-    authorizeUrl: 'https://www.fitbit.com/oauth2/authorize',
-    tokenUrl: 'https://api.fitbit.com/oauth2/token',
-    scopes: [
-      'activity',
-      'heartrate',
-      'sleep',
-      'profile',
-      'oxygen_saturation',
-      'respiratory_rate',
-      'temperature',
-    ],
-    redirectUri:
-      process.env.FITBIT_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/fitbit/callback`,
-  },
   oura: {
     clientId: process.env.OURA_CLIENT_ID,
     clientSecret: process.env.OURA_CLIENT_SECRET,
     authorizeUrl: 'https://cloud.ouraring.com/oauth/authorize',
     tokenUrl: 'https://api.ouraring.com/oauth/token',
-    scopes: ['daily', 'heartrate', 'session', 'sleep', 'workout', 'personal'],
+    // The scopes the Oura app registers ('sleep' is not an Oura v2 scope; 'daily' covers sleep)
+    scopes: ['personal', 'daily', 'heartrate', 'workout', 'tag', 'session', 'spo2'],
     redirectUri:
       process.env.OURA_REDIRECT_URI ||
       `http://localhost:${process.env.PORT || 3002}/wearables/oura/callback`,
@@ -199,17 +176,7 @@ export function getProviderConfig(
  * Get all configured providers
  */
 export function getConfiguredProviders(): WearableProvider[] {
-  const configured: WearableProvider[] = [];
-
-  for (const provider of Object.keys(PROVIDER_CONFIGS) as Array<
-    Exclude<WearableProvider, 'apple_health'>
-  >) {
-    if (isProviderConfigured(provider)) {
-      configured.push(provider);
-    }
-  }
-
-  return configured;
+  return (Object.keys(PROVIDER_CONFIGS) as WearableProvider[]).filter(isProviderConfigured);
 }
 
 // ============================================================================
@@ -268,6 +235,10 @@ export async function saveTokens(
   if (provider === 'apple_health') {
     return; // Apple HealthKit tokens managed natively
   }
+  if (provider === 'oura') {
+    await ouraAuth.saveOuraTokens(userId, { ...tokens, token_type: 'bearer' });
+    return;
+  }
 
   const key = cacheKey(provider, userId);
   const tokensWithTimestamp = {
@@ -300,6 +271,7 @@ export async function removeTokens(provider: WearableProvider, userId: string): 
   if (provider === 'apple_health') {
     return;
   }
+  if (provider === 'oura') await ouraAuth.disconnectOura(userId);
 
   const key = cacheKey(provider, userId);
   tokenCache.delete(key);
@@ -386,6 +358,8 @@ export async function getValidToken(
   provider: Exclude<WearableProvider, 'apple_health'>,
   userId: string
 ): Promise<string | null> {
+  if (provider === 'oura')
+    return ouraAuth.getOuraAccessToken(userId).then((a) => (a.status === 'ok' ? a.token : null));
   const userTokens = await getTokens(provider, userId);
   if (!userTokens) {
     return null;
@@ -422,6 +396,7 @@ export async function exchangeCode(
   if (!config?.clientId || !config?.clientSecret) {
     return null;
   }
+  if (provider === 'oura') return ouraAuth.exchangeAuthorizationCode(code, config.redirectUri);
 
   try {
     // Build token request body
@@ -508,12 +483,6 @@ export function buildAuthUrl(
     // Store verifier for use during token exchange
     pkceVerifiers.set(state, codeVerifier);
 
-    // Cleanup old verifiers (> 10 minutes)
-    const maxAge = 10 * 60 * 1000;
-    for (const [key, _] of pkceVerifiers) {
-      // No timestamps stored, so the caller cleans up (in production, Redis with a TTL)
-    }
-
     url.searchParams.set('code_challenge', codeChallenge);
     url.searchParams.set('code_challenge_method', 'S256');
 
@@ -543,6 +512,7 @@ export interface WearableConnectionStatus {
   provider: WearableProvider;
   configured: boolean;
   linked: boolean;
+  needs_reauth?: boolean;
   expires_at: number | null;
   login_url: string | null;
 }
@@ -566,7 +536,6 @@ export async function getAllConnectionStatuses(
 
   // Web OAuth providers
   const providers: Array<Exclude<WearableProvider, 'apple_health'>> = [
-    'fitbit',
     'oura',
     'garmin',
     'whoop',
@@ -574,12 +543,14 @@ export async function getAllConnectionStatuses(
 
   for (const provider of providers) {
     const configured = isProviderConfigured(provider);
-    const tokens = configured ? await getTokens(provider, userId) : null;
+    const link = provider === 'oura' && configured ? await ouraAuth.getOuraLink(userId) : null;
+    const tokens = configured && provider !== 'oura' ? await getTokens(provider, userId) : null;
 
     statuses.push({
       provider,
       configured,
-      linked: !!tokens,
+      linked: provider === 'oura' ? link === 'connected' : !!tokens,
+      ...(link === 'needs_reauth' ? { needs_reauth: true } : {}),
       expires_at: tokens?.expires_at || null,
       login_url: configured
         ? `/wearables/${provider}/login?user_id=${encodeURIComponent(userId)}`

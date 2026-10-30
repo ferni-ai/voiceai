@@ -11,7 +11,6 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getVerifiedUserId } from '../request-identity.js';
-import { isSpotifyConnectConfigured } from '../../../config/spotify-connect.js';
 import { createOAuthLinkState } from '../../token/oauth-link-state.js';
 import { sanitizeReturnUrl } from '../../token/validation.js';
 import { parseBodySafe } from '../../../utils/ddos-protection.js';
@@ -28,18 +27,30 @@ import {
 
 export const OAUTH_START_PATH = '/auth/oauth/start';
 
-/** Provider → the login route that redirects on to the provider. */
+/**
+ * Oura needs the app credentials, and in production a redirect URI registered on the Oura
+ * app: without OURA_REDIRECT_URI the flow falls back to localhost, which Oura rejects.
+ * Same credential test as token/oauth/wearables.ts, without loading its token store.
+ */
+function isOuraConfigured(): boolean {
+  if (!process.env.OURA_CLIENT_ID || !process.env.OURA_CLIENT_SECRET) return false;
+  return process.env.NODE_ENV !== 'production' || !!process.env.OURA_REDIRECT_URI;
+}
+
+/**
+ * Provider → the login route that redirects on to the provider. No Spotify: Ferni
+ * doesn't link a person's Spotify account (Developer Policy III.3), so it is an
+ * unknown provider here (token/oauth/spotify.ts).
+ */
 const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['google_calendar', '/auth/google/login'],
   [GMAIL_SEND_OAUTH_PROVIDER, '/auth/google/gmail-send/login'],
   ['microsoft_calendar', '/auth/microsoft/login'],
   ['apple_calendar', '/auth/apple/login'],
-  ['fitbit', '/wearables/fitbit/login'],
   ['oura', '/wearables/oura/login'],
   ['garmin', '/wearables/garmin/login'],
   ['whoop', '/wearables/whoop/login'],
   [LINKEDIN_PROVIDER, LINKEDIN_CONNECT_PATH],
-  ['spotify', '/spotify/login'],
 ]);
 
 /**
@@ -48,7 +59,7 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
  */
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
-  ['spotify', { name: 'Spotify', isConfigured: () => isSpotifyConnectConfigured() }],
+  ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,
     { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabled },

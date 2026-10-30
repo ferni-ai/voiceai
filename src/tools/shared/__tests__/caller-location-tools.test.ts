@@ -9,12 +9,7 @@
  * caller's location arrives per call in RunContext.userData, LiveKit's second
  * execute argument. These tests pass it only there.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// traffic.ts reads its API key when the module loads, before any test body runs.
-vi.hoisted(() => {
-  process.env.GOOGLE_MAPS_API_KEY = 'test-key';
-});
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/safe-logger.js', () => {
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -44,16 +39,6 @@ vi.mock('../../../services/google-places.js', () => ({
   findNearbyRestaurants: vi.fn(),
   formatRestaurantListForSpeech: vi.fn(),
   isGooglePlacesConfigured: () => true,
-}));
-vi.mock('../../../services/yelp.js', () => ({
-  searchBusinesses: vi.fn(async () => []),
-  searchRestaurants: vi.fn(async () => []),
-  getBusinessDetails: vi.fn(),
-  getBusinessReviews: vi.fn(),
-  getBusinessByPhone: vi.fn(),
-  formatBusinessForSpeech: vi.fn(),
-  formatReviewForSpeech: vi.fn(),
-  isYelpConfigured: () => false,
 }));
 
 const traffic = vi.hoisted(() => ({
@@ -186,8 +171,12 @@ describe('getCommuteTime / getDirections (information/traffic.ts)', () => {
   );
 
   beforeEach(() => {
+    vi.stubEnv('GOOGLE_MAPS_SERVER_KEY', 'test-key'); // read per call by googleMapsKey()
     vi.stubGlobal('fetch', fetchSpy);
     fetchSpy.mockClear();
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   /** The origin the tool sent to Google, read back from the request URL. */

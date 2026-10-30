@@ -16,9 +16,6 @@ const toast = vi.hoisted(() => ({
   warning: vi.fn(),
 }));
 vi.mock('../../src/ui/whisper.ui.js', () => ({ toast }));
-vi.mock('../../src/services/spotify.service.js', () => ({
-  spotifyService: { initialize: vi.fn(async () => false) },
-}));
 
 type Handler = (...args: unknown[]) => void;
 

@@ -53,6 +53,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'ecobee_tokens/{uid}': CREDENTIAL,
   'ecobee_pending_auth/{uid}': CREDENTIAL,
   'eight_sleep_tokens/{uid}': CREDENTIAL,
+  'google_calendar_tokens/{uid}': `${CREDENTIAL} (the old plaintext root copy)`,
   'oura_tokens/{uid}': CREDENTIAL,
   'verification_codes/{uid}': CREDENTIAL,
   'developer_oauth_tokens[userId]': CREDENTIAL,
@@ -92,6 +93,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
  */
 export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   google_calendar_tokens: CREDENTIAL,
+  outlook_tokens: CREDENTIAL, // OUTLOOK_CONNECT's sealed Microsoft grant
   push_subscriptions: CREDENTIAL,
   voice_profile: 'the voiceprint that recognizes the caller, an authenticator',
   pending_messages: QUEUE,

@@ -106,10 +106,9 @@ async function getFirestore(): Promise<FirestoreDB | null> {
 async function initializeFirestore(): Promise<FirestoreDB | null> {
   try {
     const firestore = await import('@google-cloud/firestore');
-    const { Firestore } = firestore;
     FieldValue = firestore.FieldValue as typeof FieldValue;
-
-    db = new Firestore({
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+    db = sharedFirestore({
       projectId: getGCPProjectId(),
       databaseId: getFirestoreDatabase(),
     }) as unknown as FirestoreDB;
