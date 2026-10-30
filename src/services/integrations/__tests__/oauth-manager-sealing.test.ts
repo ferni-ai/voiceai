@@ -19,8 +19,8 @@ vi.mock('../oauth-token-store.js', () => ({
 
 const { OAuthManager } = await import('../oauth-manager.js');
 
-const ENV = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REDIRECT_URI'];
-const savedEnv: Record<string, string | undefined> = {};
+// google_calendar: an OAUTH_CONFIGS entry on main (gmail was removed in #3140).
+const INTEGRATION = 'google_calendar';
 let manager: InstanceType<typeof OAuthManager>;
 
 function stateFrom(authUrl: string): string {
@@ -28,10 +28,12 @@ function stateFrom(authUrl: string): string {
 }
 
 beforeEach(() => {
-  for (const k of ENV) savedEnv[k] = process.env[k];
-  process.env.GMAIL_CLIENT_ID = 'test-client-id';
-  process.env.GMAIL_CLIENT_SECRET = 'test-client-secret';
-  process.env.GMAIL_REDIRECT_URI = 'https://app.example.test/api/oauth/callback/gmail';
+  vi.stubEnv('GOOGLE_CALENDAR_CLIENT_ID', 'test-client-id');
+  vi.stubEnv('GOOGLE_CALENDAR_CLIENT_SECRET', 'test-client-secret');
+  vi.stubEnv(
+    'GOOGLE_CALENDAR_REDIRECT_URI',
+    'https://app.example.test/api/oauth/callback/google_calendar'
+  );
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => ({
@@ -51,10 +53,7 @@ beforeEach(() => {
 afterEach(() => {
   manager.dispose();
   vi.unstubAllGlobals();
-  for (const k of ENV) {
-    if (savedEnv[k] === undefined) delete process.env[k];
-    else process.env[k] = savedEnv[k];
-  }
+  vi.unstubAllEnvs();
 });
 
 describe('OAuthManager.handleCallback with sealing unavailable', () => {
@@ -64,7 +63,7 @@ describe('OAuthManager.handleCallback with sealing unavailable', () => {
       error: 'secure storage is not set up',
       code: 'sealing_unavailable',
     });
-    const state = stateFrom(manager.getAuthorizationUrl('u1', 'gmail'));
+    const state = stateFrom(manager.getAuthorizationUrl('u1', INTEGRATION));
 
     const result = await manager.handleCallback('auth-code', state);
 
@@ -72,12 +71,12 @@ describe('OAuthManager.handleCallback with sealing unavailable', () => {
     expect(result.success).toBe(false);
     expect(result.tokens).toBeUndefined();
     expect(result.error).toBe('secure storage is not set up');
-    expect(result).toMatchObject({ userId: 'u1', integrationId: 'gmail' });
+    expect(result).toMatchObject({ userId: 'u1', integrationId: INTEGRATION });
   });
 
   it('control: a sealed save connects and returns the tokens', async () => {
     saveOAuthTokens.mockResolvedValue({ success: true });
-    const state = stateFrom(manager.getAuthorizationUrl('u1', 'gmail'));
+    const state = stateFrom(manager.getAuthorizationUrl('u1', INTEGRATION));
 
     const result = await manager.handleCallback('auth-code', state);
 
