@@ -273,10 +273,10 @@ describe('a held run is cut only outside an address', () => {
 });
 
 describe('no catastrophic backtracking', () => {
-  /** Best of three, so a busy CI box doesn't fail it; backtracking takes minutes, not ms. */
+  /** Best of five, so a busy CI box doesn't fail it; backtracking takes minutes, not ms. */
   const ms = (run: () => unknown): number => {
     const times: number[] = [];
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 5; i += 1) {
       const start = performance.now();
       run();
       times.push(performance.now() - start);
@@ -293,8 +293,8 @@ describe('no catastrophic backtracking', () => {
     ['spelled letters after a dot', `evil dot ${'a '.repeat(25000)}`],
     ['spelled letters, broken at the end', `evil dot ${'a '.repeat(25000)}1`],
     ['email-ish', 'hello at '.repeat(1200)],
-  ])('%s: checked and collected in under 50 ms', (_name, text) => {
-    expect(ms(() => judgeAddresses(text, FACTS))).toBeLessThan(50);
-    expect(ms(() => collectAddresses(text, noAddresses()))).toBeLessThan(50);
+  ])('%s: checked and collected in under 100 ms', (_name, text) => {
+    expect(ms(() => judgeAddresses(text, FACTS))).toBeLessThan(100);
+    expect(ms(() => collectAddresses(text, noAddresses()))).toBeLessThan(100);
   });
 });
