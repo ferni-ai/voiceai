@@ -183,14 +183,11 @@ const deferredOrRedirected = (text: string): boolean => {
     words(text).some((x) => DEFERRED.has(x))
   );
 };
-/** Neither a yes nor a no: the whole turn is exactly "Did you (already) call him / Dad / my dad
- * (yet)?" (consent-words.ts, an allow-list). Anything more is a question, so the next yes asks
- * once (verifier round 9: "Did you call him at home?" then "Yes." must not place). Its words stay
- * in every check below, so a redirect or a deferral inside it still ends the request. */
+/** Neither a yes nor a no: the whole turn is exactly "Did you (already) call him (yet)?" (an
+ * allow-list, consent-words.ts). Anything more is a question: the next yes asks once. */
 const neutral = (text: string, pending: PendingAction): boolean =>
   isStatusQuestion(text, targetWords(pending), channelOf(pending) === 'call');
-/** The same question about anyone ("Did you call my dad?" with Sam read back): never a yes, and
- * not an end by itself, so it asks once instead (it is not neutral, see above). */
+/** The same question about anyone ("Did you call my dad?" with Sam read back): not an end. */
 const asksStatus = (text: string, pending: PendingAction): boolean =>
   isStatusQuestion(text, targetWords(pending), channelOf(pending) === 'call', true);
 // "No." or "No, don't call him.": a no that says nothing else. "No, the other one." is not.
@@ -210,8 +207,7 @@ const callerTurns = (
   to = Infinity
 ): string[] =>
   events.flatMap((e) => (e.seq > from && e.seq < to && e.kind === 'caller' ? [e.text] : []));
-/** Ends it for good, whatever follows: a deferral, a redirect, someone else (a status question
- * naming someone stays a question instead: "Did you call my dad?" with Sam read back). */
+/** Ends it for good: a deferral, a redirect, someone else (a status question stays a question). */
 const endsForGood = (text: string, pending: PendingAction): boolean =>
   deferredOrRedirected(text) || (!asksStatus(text, pending) && callsSomeoneElse(text, pending));
 
@@ -225,10 +221,8 @@ function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
   return said.some((t) => endsForGood(t, pending) || no(t)) || endsForGood(joined, pending);
 }
 /** Whether a fresh read-back (at seq `to`) may reopen it after a cancel (consent-loop.ts): every
- * owner word since its read-back counts, through the cancel and up to the re-read. Only a bare no,
- * or a no that agrees in the same turn ("No, I mean yes."), or doubt; never a deferral, a
- * redirect, someone else, or a no naming another number or line ("No, use his new number.",
- * "Try his cell."), nor "Call my sister instead." before Ferni re-reads Dad. */
+ * owner word since its read-back counts, up to the re-read. Only a bare no, a no that agrees in
+ * the same turn, or doubt; never a deferral, a redirect, someone else or another line. */
 export function reopenable(pending: PendingAction, events: ConfirmEvent[], to: number): boolean {
   const said = callerTurns(pending, events, pending.startSeq, to);
   return (
@@ -238,8 +232,7 @@ export function reopenable(pending: PendingAction, events: ConfirmEvent[], to: n
   );
 }
 /** One owner turn that shuts the door on a re-read: a deferral, a redirect, someone else, another
- * line, or a no that says more. The gate also records it on the pending action as it is said
- * (`final`), so the buffer evicting the turn later can't reopen what it closed. */
+ * line, or a no that says more. The gate records it on the action as it is said (`final`). */
 export function foreclosesReopen(text: string, pending: PendingAction): boolean {
   const call = channelOf(pending) === 'call';
   return (
