@@ -8,6 +8,12 @@
  * Used by weather tools, traffic tools, and other location-based services.
  */
 
+import {
+  googleMapsKey,
+  googleMapsKeySource,
+  mapsHttpOutcome,
+  mapsStatusOutcome,
+} from '../../../../config/google-maps-key.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -29,13 +35,12 @@ export interface GeocodingResult {
 // ============================================================================
 
 /**
- * Google Geocoding API (~50-150ms, very fast)
- * Requires GOOGLE_API_KEY environment variable
+ * Google Geocoding API (~50-150ms, very fast). Key from googleMapsKey().
  */
 export async function geocodeWithGoogle(location: string): Promise<GeocodingResult | null> {
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = googleMapsKey();
   if (!apiKey) {
-    log.debug({ locationChars: location.length }, '📍 Google geocoding skipped - no API key');
+    log.debug({ outcome: 'unconfigured' }, '📍 Google geocoding skipped - no Maps key');
     return null;
   }
 
@@ -45,7 +50,12 @@ export async function geocodeWithGoogle(location: string): Promise<GeocodingResu
 
     if (!response.ok) {
       log.warn(
-        { locationChars: location.length, status: response.status },
+        {
+          locationChars: location.length,
+          status: response.status,
+          outcome: mapsHttpOutcome(response.status),
+          keySource: googleMapsKeySource(),
+        },
         '📍 Google geocoding HTTP error'
       );
       return null;
@@ -65,7 +75,13 @@ export async function geocodeWithGoogle(location: string): Promise<GeocodingResu
 
     if (data.status !== 'OK' || !data.results?.length) {
       log.warn(
-        { locationChars: location.length, status: data.status, error: data.error_message },
+        {
+          locationChars: location.length,
+          status: data.status,
+          error: data.error_message,
+          outcome: mapsStatusOutcome(data.status),
+          keySource: googleMapsKeySource(),
+        },
         '📍 Google geocoding returned no results'
       );
       return null;

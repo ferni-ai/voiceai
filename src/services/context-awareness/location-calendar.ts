@@ -13,6 +13,7 @@
  * @module services/context-awareness/location-calendar
  */
 
+import { googleMapsKey } from '../../config/google-maps-key.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   getUserTokens,
@@ -99,16 +100,6 @@ export interface AnticipationInsight {
   urgency: 'low' | 'medium' | 'high';
   timeUntil?: number; // minutes
 }
-
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-const config = {
-  maps: {
-    apiKey: process.env.GOOGLE_MAPS_API_KEY || '',
-  },
-};
 
 // ============================================================================
 // STATE - Location and context only (OAuth handled by google-calendar-oauth.ts)
@@ -374,7 +365,8 @@ export async function getTravelTime(
   destinationAddress: string
 ): Promise<TravelEvent | null> {
   const state = userStates.get(userId);
-  if (!state?.currentLocation || !config.maps.apiKey) return null;
+  const mapsKey = googleMapsKey();
+  if (!state?.currentLocation || !mapsKey) return null;
 
   try {
     const origin = `${state.currentLocation.latitude},${state.currentLocation.longitude}`;
@@ -383,7 +375,7 @@ export async function getTravelTime(
         `origin=${encodeURIComponent(origin)}&` +
         `destination=${encodeURIComponent(destinationAddress)}&` +
         `departure_time=now&` +
-        `key=${config.maps.apiKey}`
+        `key=${mapsKey}`
     );
 
     if (!response.ok) return null;

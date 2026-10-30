@@ -144,6 +144,27 @@ Uses same Twilio credentials as SMS, plus optional:
 
 ## Third-Party Integrations (Optional)
 
+### Google Maps Platform (geocoding, traffic, directions, weather, Places)
+
+Every Maps-family call takes its key from one resolver, `googleMapsKey()` in
+`src/config/google-maps-key.ts`, read per call. The first name that is set wins:
+
+| Order | Env var | Secret Manager secret (project `johnb-2025`) | Used for |
+| ----- | ------- | -------------------------------------------- | -------- |
+| 1 | `GOOGLE_MAPS_SERVER_KEY` | `google-maps-server-key` | All Maps calls. API-restricted to Weather, Routes, Geocoding and Places (created 2026-10-30). |
+| 2 | `GOOGLE_MAPS_API_KEY` | `google-maps-api-key` | Fallback for geocoding, traffic, directions, weather |
+| 2 | `GOOGLE_PLACES_API_KEY` | (Places-only key) | Fallback for Places lookups |
+| 3 | `GOOGLE_API_KEY` | `google-api-key` | Last fallback for both. This is also the Gemini key; don't rely on it for Maps. |
+
+The fallbacks keep today's behaviour until `GOOGLE_MAPS_SERVER_KEY` is mounted on the
+agent and the UI server. Mounting it is a deploy step, not a code change. Only the env
+name (`googleMapsKeySource()`) is ever logged, never the key.
+
+When the key is missing or Google rejects it, the caller hears an honest "I can't look up
+directions right now", not a line that blames the addresses. Lookups log a typed outcome:
+`unconfigured`, `unauthorized` (HTTP 401/403 or `REQUEST_DENIED`), `rate_limited`,
+`unreachable`, `no_data`.
+
 ### Google Calendar ⭐ CRITICAL for Smart Timing
 
 Required for: Calendar integration, smart outreach timing, appointment scheduling

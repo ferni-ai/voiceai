@@ -12,17 +12,19 @@
  * This replaces OpenTable/Resy/Yelp with a single, cost-effective API.
  * Reservations are handled via phone calls through the appointment system.
  *
- * Requires: GOOGLE_PLACES_API_KEY (Places-only key), else GOOGLE_API_KEY
+ * Key: googleMapsKey('places') (config/google-maps-key.ts)
  * Enable "Places API (New)" in Google Cloud Console
  */
 
+import { googleMapsKey } from '../../config/google-maps-key.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_API_KEY || '';
+/** Read per call, so a key mounted or rotated after import is used. */
+const placesKey = (): string => googleMapsKey('places');
 export const PLACES_API_NEW = 'https://places.googleapis.com/v1';
 
 // ============================================================================
@@ -86,8 +88,8 @@ export interface RestaurantSearchOptions {
 export async function searchRestaurants(
   options: RestaurantSearchOptions
 ): Promise<PlaceSearchResult[]> {
-  if (!GOOGLE_API_KEY) {
-    getLogger().warn('Google API key not configured for Places API');
+  if (!placesKey()) {
+    getLogger().warn({ outcome: 'unconfigured' }, 'No Google Maps key for Places API');
     return [];
   }
 
@@ -120,7 +122,7 @@ export async function searchRestaurants(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-Api-Key': placesKey(),
         'X-Goog-FieldMask':
           'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours',
       },
@@ -190,8 +192,8 @@ export function priceLevelToNumber(priceLevel?: string): number | undefined {
  * Get detailed information about a place using Places API (New)
  */
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
-  if (!GOOGLE_API_KEY) {
-    getLogger().warn('Google API key not configured for Places API');
+  if (!placesKey()) {
+    getLogger().warn({ outcome: 'unconfigured' }, 'No Google Maps key for Places API');
     return null;
   }
 
@@ -213,7 +215,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
 
     const response = await fetch(`${PLACES_API_NEW}/places/${encodeURIComponent(placeId)}`, {
       headers: {
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-Api-Key': placesKey(),
         'X-Goog-FieldMask': fieldMask,
       },
       signal: AbortSignal.timeout(10000),
@@ -296,8 +298,8 @@ export async function findNearbyRestaurants(
   radius = 1500,
   keyword?: string
 ): Promise<PlaceSearchResult[]> {
-  if (!GOOGLE_API_KEY) {
-    getLogger().warn('Google API key not configured for Places API');
+  if (!placesKey()) {
+    getLogger().warn({ outcome: 'unconfigured' }, 'No Google Maps key for Places API');
     return [];
   }
 
@@ -325,7 +327,7 @@ export async function findNearbyRestaurants(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
+        'X-Goog-Api-Key': placesKey(),
         'X-Goog-FieldMask':
           'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours',
       },
@@ -447,7 +449,7 @@ export function formatRestaurantListForSpeech(places: PlaceSearchResult[], limit
  * Check if Google Places API is configured
  */
 export function isGooglePlacesConfigured(): boolean {
-  return !!GOOGLE_API_KEY;
+  return !!placesKey();
 }
 
 export default {

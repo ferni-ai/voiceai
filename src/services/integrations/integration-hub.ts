@@ -7,6 +7,7 @@
  * @module services/integrations/integration-hub
  */
 
+import { googleMapsKey } from '../../config/google-maps-key.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   IntegrationConfig,
@@ -458,13 +459,9 @@ export class IntegrationHub implements IntegrationRegistry {
         }
       }
 
-      // Add API key as query param for Google Maps
-      if (integrationId === 'google_maps') {
-        const apiKey = process.env['GOOGLE_MAPS_API_KEY'];
-        if (apiKey) {
-          url.searchParams.set('key', apiKey);
-        }
-      }
+      // Google Maps takes its key as a query param
+      const mapsKey = integrationId === 'google_maps' ? googleMapsKey() : '';
+      if (mapsKey) url.searchParams.set('key', mapsKey);
 
       const response = await fetch(url.toString(), {
         method: config.method,

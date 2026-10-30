@@ -9,6 +9,8 @@
  * @module tools/domains/local-search/places-locality
  */
 
+import { googleMapsKey, mapsHttpOutcome } from '../../../config/google-maps-key.js';
+
 const PLACES_API_NEW = 'https://places.googleapis.com/v1';
 
 export interface CityMatch {
@@ -17,8 +19,8 @@ export interface CityMatch {
 
 /** The place ID of the city a name refers to, or null when Places finds no locality for it. Throws when the lookup itself fails. */
 export async function findCityByName(name: string): Promise<CityMatch | null> {
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_API_KEY || '';
-  if (!apiKey) throw new Error('Google Places API key is not configured');
+  const apiKey = googleMapsKey('places');
+  if (!apiKey) throw new Error('Places lookup failed: unconfigured');
 
   const response = await fetch(`${PLACES_API_NEW}/places:searchText`, {
     method: 'POST',
@@ -30,7 +32,11 @@ export async function findCityByName(name: string): Promise<CityMatch | null> {
     body: JSON.stringify({ textQuery: name, pageSize: 1, languageCode: 'en' }),
     signal: AbortSignal.timeout(5000),
   });
-  if (!response.ok) throw new Error(`Places lookup failed with status ${response.status}`);
+  if (!response.ok) {
+    throw new Error(
+      `Places lookup failed: ${mapsHttpOutcome(response.status)} (${response.status})`
+    );
+  }
 
   // A non-JSON reply's parse error quotes the start of the body, so it is replaced, not passed on.
   let data: { places?: Array<{ id?: unknown; types?: unknown }> };

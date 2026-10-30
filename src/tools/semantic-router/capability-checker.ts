@@ -8,6 +8,7 @@
  * @module tools/semantic-router/capability-checker
  */
 
+import { googleMapsKey } from '../../config/google-maps-key.js';
 import { isLinkedInEnabled } from '../../config/linkedin-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -139,7 +140,7 @@ function isEmailConfigured(): boolean {
  * Check if Maps API is configured
  */
 function isMapsConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_API_KEY);
+  return Boolean(googleMapsKey());
 }
 
 /**

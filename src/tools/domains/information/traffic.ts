@@ -14,6 +14,13 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import {
+  googleMapsKey,
+  googleMapsKeySource,
+  mapsHttpOutcome,
+  mapsStatusOutcome,
+  type MapsFailure,
+} from '../../../config/google-maps-key.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -23,13 +30,22 @@ import { geocodeHere, getHereRoute } from './traffic-here.js';
 // CONFIGURATION
 // ============================================================================
 
-// Use GOOGLE_API_KEY (general) or GOOGLE_MAPS_API_KEY (specific)
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_API_KEY || '';
+// The Google key is resolved per call by googleMapsKey() (config/google-maps-key.ts).
 const HERE_API_KEY = process.env.HERE_API_KEY || '';
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+/** A Google lookup: the value, or why there is none (unconfigured, unauthorized, ...). */
+type Lookup<T> = { outcome: 'ok'; value: T } | { outcome: MapsFailure };
+
+/** What the caller hears when a lookup fails. Never blames the addresses for a key or network fault. */
+const TRAFFIC_FAILED =
+  "I can't look up traffic right now, so I don't have a drive time for you. Google Maps or Waze will have it.";
+const DIRECTIONS_FAILED =
+  "I can't look up directions right now. Google Maps or Apple Maps will have them.";
+const NO_ROUTE = "I couldn't find a route between those two places.";
 
 interface TrafficInfo {
   origin: string;
@@ -60,14 +76,28 @@ interface DirectionsInfo {
 // GOOGLE MAPS API
 // ============================================================================
 
+/** Logs a failed lookup by outcome and key source (never the key or the addresses). */
+function failed(
+  api: string,
+  outcome: MapsFailure,
+  detail?: number | string
+): { outcome: MapsFailure } {
+  getLogger().warn(
+    { api, outcome, detail, keySource: googleMapsKeySource() },
+    'Google Maps lookup failed'
+  );
+  return { outcome };
+}
+
 /**
  * Get traffic time from Google Maps Distance Matrix API
  */
 async function getTrafficFromGoogle(
   origin: string,
   destination: string
-): Promise<TrafficInfo | null> {
-  if (!GOOGLE_MAPS_API_KEY) return null;
+): Promise<Lookup<TrafficInfo>> {
+  const key = googleMapsKey();
+  if (!key) return { outcome: 'unconfigured' };
 
   try {
     const params = new URLSearchParams({
@@ -75,13 +105,14 @@ async function getTrafficFromGoogle(
       destinations: destination,
       departure_time: 'now',
       traffic_model: 'best_guess',
-      key: GOOGLE_MAPS_API_KEY,
+      key,
     });
 
     const url = `https://maps.googleapis.com/maps/api/distancematrix/json?${params}`;
     const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
-    if (!response.ok) return null;
+    if (!response.ok)
+      return failed('distancematrix', mapsHttpOutcome(response.status), response.status);
 
     const data = (await response.json()) as {
       status: string;
@@ -97,10 +128,11 @@ async function getTrafficFromGoogle(
       }>;
     };
 
-    if (data.status !== 'OK') return null;
+    const status = mapsStatusOutcome(data.status);
+    if (status !== 'ok') return failed('distancematrix', status, data.status);
 
     const element = data.rows?.[0]?.elements?.[0];
-    if (!element || element.status !== 'OK') return null;
+    if (!element || element.status !== 'OK') return { outcome: 'no_data' };
 
     const normalDuration = Math.round((element.duration?.value || 0) / 60);
     const trafficDuration = Math.round((element.duration_in_traffic?.value || 0) / 60);
@@ -112,7 +144,7 @@ async function getTrafficFromGoogle(
     else if (delay <= 20) trafficCondition = 'heavy';
     else trafficCondition = 'severe';
 
-    return {
+    const value: TrafficInfo = {
       origin: data.origin_addresses?.[0] || origin,
       destination: data.destination_addresses?.[0] || destination,
       durationInTraffic: trafficDuration,
@@ -120,9 +152,9 @@ async function getTrafficFromGoogle(
       distance: element.distance?.text || 'Unknown',
       trafficCondition,
     };
+    return { outcome: 'ok', value };
   } catch (error) {
-    getLogger().warn({ error, origin, destination }, 'Google Maps API error');
-    return null;
+    return failed('distancematrix', 'unreachable', error instanceof Error ? error.name : 'unknown');
   }
 }
 
@@ -133,8 +165,9 @@ async function getDirectionsFromGoogle(
   origin: string,
   destination: string,
   mode: 'driving' | 'walking' | 'bicycling' | 'transit' = 'driving'
-): Promise<DirectionsInfo | null> {
-  if (!GOOGLE_MAPS_API_KEY) return null;
+): Promise<Lookup<DirectionsInfo>> {
+  const key = googleMapsKey();
+  if (!key) return { outcome: 'unconfigured' };
 
   try {
     const params = new URLSearchParams({
@@ -143,13 +176,14 @@ async function getDirectionsFromGoogle(
       mode,
       alternatives: 'true',
       departure_time: 'now',
-      key: GOOGLE_MAPS_API_KEY,
+      key,
     });
 
     const url = `https://maps.googleapis.com/maps/api/directions/json?${params}`;
     const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
-    if (!response.ok) return null;
+    if (!response.ok)
+      return failed('directions', mapsHttpOutcome(response.status), response.status);
 
     const data = (await response.json()) as {
       status: string;
@@ -167,7 +201,9 @@ async function getDirectionsFromGoogle(
       }>;
     };
 
-    if (data.status !== 'OK' || !data.routes?.length) return null;
+    const status = mapsStatusOutcome(data.status);
+    if (status !== 'ok') return failed('directions', status, data.status);
+    if (!data.routes?.length) return { outcome: 'no_data' };
 
     const route = data.routes[0];
     const leg = route.legs?.[0];
@@ -185,7 +221,7 @@ async function getDirectionsFromGoogle(
       distance: alt.legs?.[0]?.distance?.text || '',
     }));
 
-    return {
+    const value: DirectionsInfo = {
       origin,
       destination,
       distance: leg?.distance?.text || 'Unknown',
@@ -194,9 +230,9 @@ async function getDirectionsFromGoogle(
       warnings: route.warnings,
       alternatives: alternatives.length > 0 ? alternatives : undefined,
     };
+    return { outcome: 'ok', value };
   } catch (error) {
-    getLogger().warn({ error, origin, destination }, 'Google Directions API error');
-    return null;
+    return failed('directions', 'unreachable', error instanceof Error ? error.name : 'unknown');
   }
 }
 
@@ -254,17 +290,13 @@ export async function getTrafficTime(origin: string, destination: string): Promi
   getLogger().info({ origin, destination }, '🚗 Getting traffic info');
 
   // Try Google first, then HERE
-  let trafficInfo = await getTrafficFromGoogle(origin, destination);
-  if (!trafficInfo) {
-    trafficInfo = await getTrafficFromHERE(origin, destination);
-  }
+  const google = await getTrafficFromGoogle(origin, destination);
+  const trafficInfo =
+    google.outcome === 'ok' ? google.value : await getTrafficFromHERE(origin, destination);
 
   if (!trafficInfo) {
-    // No API configured
-    if (!GOOGLE_MAPS_API_KEY && !HERE_API_KEY) {
-      return `I don't have traffic data configured yet. To enable this:\n\n1. Get a Google Maps API key from console.cloud.google.com\n2. Enable Distance Matrix API\n3. Add GOOGLE_MAPS_API_KEY to your environment\n\nFor now, try Google Maps or Waze for traffic info.`;
-    }
-    return `I couldn't get traffic info for that route. Make sure both addresses are valid. Try being more specific with the addresses.`;
+    getLogger().info({ outcome: google.outcome }, '🚗 No traffic info');
+    return google.outcome === 'no_data' ? NO_ROUTE : TRAFFIC_FAILED;
   }
 
   return formatTrafficInfo(trafficInfo);
@@ -310,15 +342,10 @@ export async function getDirections(
   getLogger().info({ origin, destination, mode }, '🗺️ Getting directions');
 
   const directions = await getDirectionsFromGoogle(origin, destination, mode);
-
-  if (!directions) {
-    if (!GOOGLE_MAPS_API_KEY) {
-      return `I don't have navigation configured yet. For directions, try:\n• Google Maps\n• Apple Maps\n• Waze`;
-    }
-    return `I couldn't find directions for that route. Check that both addresses are valid.`;
+  if (directions.outcome !== 'ok') {
+    return directions.outcome === 'no_data' ? NO_ROUTE : DIRECTIONS_FAILED;
   }
-
-  return formatDirections(directions, mode);
+  return formatDirections(directions.value, mode);
 }
 
 function formatDirections(info: DirectionsInfo, mode: string): string {

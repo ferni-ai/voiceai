@@ -9,12 +9,7 @@
  * caller's location arrives per call in RunContext.userData, LiveKit's second
  * execute argument. These tests pass it only there.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// traffic.ts reads its API key when the module loads, before any test body runs.
-vi.hoisted(() => {
-  process.env.GOOGLE_MAPS_API_KEY = 'test-key';
-});
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/safe-logger.js', () => {
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -186,8 +181,12 @@ describe('getCommuteTime / getDirections (information/traffic.ts)', () => {
   );
 
   beforeEach(() => {
+    vi.stubEnv('GOOGLE_MAPS_SERVER_KEY', 'test-key'); // read per call by googleMapsKey()
     vi.stubGlobal('fetch', fetchSpy);
     fetchSpy.mockClear();
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   /** The origin the tool sent to Google, read back from the request URL. */
