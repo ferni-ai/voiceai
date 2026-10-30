@@ -79,7 +79,9 @@ describe('crisis symbols', () => {
       exported: unscreenedNow.exported.filter((n) => n !== 'scoreCrisisLanguage'),
     };
     expect(droppedFromScreen(gone, unscreened)).toEqual([]);
-  });
+    // This test parses the whole source tree a second time (about 2 s idle); the 20 s
+    // default timed out on a loaded CI shard, so it gets headroom without asserting less.
+  }, 120_000);
 
   it('only real declarations elsewhere make a crisis name ambiguous', () => {
     const file = 'src/agents/processors/turn-processor/index.ts';
