@@ -15,6 +15,19 @@ import { z } from 'zod';
 import { generateDomainInsight } from './helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import {
+  deliverDueLetter,
+  pendingLetterDates,
+  sealFutureLetter,
+  spokenDate,
+} from './future-letters.js';
+
+const DELIVERY_DAYS: Record<string, number> = {
+  '1-month': 30,
+  '3-months': 90,
+  '6-months': 180,
+  '1-year': 365,
+};
 // ============================================================================
 // FUTURE SELF LETTER
 // ============================================================================
@@ -26,7 +39,7 @@ export const futureSelfLetterDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'jordan', 'time-capsule', 'reflection'],
 
-  create: (_ctx: ToolContext): Tool => {
+  create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: getToolDescription('futureSelfLetter'),
       parameters: z.object({
@@ -52,37 +65,55 @@ export const futureSelfLetterDef: ToolDefinition = {
           };
         }
 
+        const caller = { userId: ctx.userId, sessionId: ctx.sessionId };
+
         if (action === 'seal' && content && deliveryDate) {
-          const deliveryDates: Record<string, number> = {
-            '1-month': 30,
-            '3-months': 90,
-            '6-months': 180,
-            '1-year': 365,
-          };
-
-          const days = deliveryDates[deliveryDate] || 30;
-          const deliveryDateObj = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-
+          const days = DELIVERY_DAYS[deliveryDate] ?? 30;
+          const deliverAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+          const on = spokenDate(deliverAt.toISOString());
+          const sealed = await sealFutureLetter(caller, content, deliverAt);
+          if (!sealed.kept) {
+            // Nothing was kept, so nothing is promised.
+            return {
+              response:
+                `I can't keep letters for you on this call, so I won't promise to hold it. ` +
+                `<break time=\"300ms\"/>If you want it later, save it somewhere you'll see on ${on}.`,
+              sealed: false,
+            };
+          }
           return {
             response:
               `Letter sealed. <break time=\"500ms\"/>` +
-              `I'll hold onto this until ${deliveryDateObj.toLocaleDateString()}.\n\n` +
-              `When the time comes, I'll deliver it. <break time=\"200ms\"/>` +
-              `It'll be like hearing from a friend you haven't talked to in a while— <break time=\"200ms\"/>` +
-              `yourself.`,
+              `I'll keep it until ${on}. <break time=\"200ms\"/>` +
+              `From then on, ask me for it and I'll read it back to you. <break time=\"200ms\"/>` +
+              `It'll be like hearing from a friend you haven't talked to in a while: yourself.`,
             sealed: true,
-            deliveryDate: deliveryDateObj.toISOString(),
-            preview: `${content.slice(0, 50)}...`,
+            deliveryDate: deliverAt.toISOString(),
           };
         }
 
+        if (action === 'check-pending') {
+          const dates = await pendingLetterDates(caller);
+          if (dates === null) return { response: `I can't look at your letters on this call.` };
+          if (dates.length === 0) return { response: `There are no letters waiting for you.` };
+          const list = dates.map((d) => spokenDate(d)).join(', ');
+          return { response: `You have ${dates.length} letter(s) waiting: ${list}.` };
+        }
+
         if (action === 'deliver') {
+          const letter = await deliverDueLetter(caller);
+          if (!letter) {
+            return {
+              response: `There's no letter from past-you ready to open yet.`,
+              hasLetter: false,
+            };
+          }
           return {
             response:
-              `A letter has arrived from past-you. <break time=\"500ms\"/>` +
-              `They wrote this for exactly this moment. <break time=\"300ms\"/>` +
-              `Ready to read what they had to say?`,
+              `A letter has arrived from past-you, written on ${spokenDate(letter.writtenAt)}. ` +
+              `<break time=\"500ms\"/>Here's what they wrote:\n\n${letter.body}`,
             hasLetter: true,
+            instruction: 'Read the letter to them exactly as written, then let them react.',
           };
         }
 
