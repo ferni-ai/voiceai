@@ -48,6 +48,7 @@ import {
 import * as stranger from './first-call-stranger.js';
 import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
 import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
+import { callNewsFor } from './call-news-opener.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -342,7 +343,7 @@ export async function directedGreeting(
     return calmGreeting(directed.text);
   }
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName, letter] =
+  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName, letter, news] =
     await Promise.all([
       checkInFor(userData?.userId, userData?.callerTimezone),
       winFor(userData?.userId),
@@ -361,6 +362,7 @@ export async function directedGreeting(
             })
           )
         : undefined,
+      inTime(callNewsFor({ userId: userData?.userId, sessionId, zone: userData?.callerTimezone })),
     ]);
   // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
   const unknown =
@@ -380,32 +382,41 @@ export async function directedGreeting(
   // A letter to future them on the day it was promised (future-letters.ts) is the opening's one
   // thread: a win, a check-in or a pondered ask waits for a later call; it never waits for them.
   // It still yields to an unknown caller (never someone else's letter) and to their own reason.
-  const letterNow = letter && !unknown && !launched ? letter : undefined;
+  // A call Ferni made for them (CALL_NEWS_OPENER) comes before all of those, the letter too.
+  const newsNow = news && !unknown && !launched ? news : undefined;
+  const letterNow = letter && !unknown && !launched && !newsNow ? letter : undefined;
+  const first = launched || letterNow || newsNow;
   const { win, checkIn } =
-    unknown || hold.sameDay || launched || letterNow ? {} : openingThread(openWin, dueCheckIn);
+    unknown || hold.sameDay || first ? {} : openingThread(openWin, dueCheckIn);
   // One thread per call: why they called, a win or what they said they'd do, then a pondered ask.
-  const ask =
-    win || checkIn || launched || letterNow || !hold.allows(pondered?.text) ? undefined : pondered;
+  const ask = win || checkIn || first || !hold.allows(pondered?.text) ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
   const back =
-    welcome && !unknown && !launched && !letterNow
+    welcome && !unknown && !first
       ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
+  const party = anniversary && !unknown && !newsNow?.careful ? anniversary : undefined;
   const direction =
     greetingDirection(
       personaId,
       process.env,
-      { topic: history?.lastTopic, tender: back?.heldBack, firstCall, unplaced },
+      {
+        topic: history?.lastTopic,
+        tender: back?.heldBack || newsNow?.careful,
+        firstCall,
+        unplaced,
+      },
       introAs
     ) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
-    (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
+    (party ? anniversaryDirection(party) : '') +
     (letterNow ? letterOfferDirection(letterNow) : '') +
-    (hold.sameDay ? notYet.SAME_DAY_DIRECTION : '') +
+    (newsNow?.direction ?? '') +
+    (hold.sameDay && !newsNow ? notYet.SAME_DAY_DIRECTION : '') +
     (unknown ? ` ${unknown}` : '') +
     launched;
   const directed = await directedText(sessionId, {
@@ -424,6 +435,7 @@ export async function directedGreeting(
         back
       ),
       ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
+      ...newsNow?.facts,
     },
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
@@ -431,14 +443,9 @@ export async function directedGreeting(
     rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : undefined,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
-  if (
-    anniversary &&
-    !unknown &&
-    directed.source === 'actor' &&
-    lineSaysAnniversary(spoken, anniversary)
-  )
-    anniversary.mark();
+  if (party && directed.source === 'actor' && lineSaysAnniversary(spoken, party)) party.mark();
   if (letterNow && directed.source === 'actor' && lineOffersLetter(spoken)) letterNow.mark();
+  if (newsNow && directed.source === 'actor') newsNow.markIfSaid(spoken);
   // One follow-up per call opener: having asked, the greeting keeps the first
   // recall note from asking about a thread too (greeting-claim.ts).
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {

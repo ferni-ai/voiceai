@@ -69,7 +69,7 @@ export function isRiskyCallerText(text: string): boolean {
  * negated, hyperbole or past ("I would never..."). Its async LLM second stage
  * can't run here: the screen is synchronous, as are its callers.
  */
-function crisisRead(text: string): boolean {
+export function crisisRead(text: string): boolean {
   if (!text.trim()) return false;
   const read = detectCrisis(text);
   const softened = read.indicators.some((i) =>
