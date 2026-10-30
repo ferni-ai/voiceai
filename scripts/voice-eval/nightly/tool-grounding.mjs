@@ -11,10 +11,11 @@
 // with atMs (agent clock minus run.wallT0), so each output is graded against the reply of the
 // caller turn it ran in. Formatting is matched, not guessed at: "39°F" backs "thirty-nine
 // degrees" (and 4 °C), "1:05" backs "an hour and five minutes", 19:00 backs "seven PM", 534
-// minutes backs "nine hours", a 3-item list backs "three", an ISO date backs its weekday, and a
-// number within 5% backs "about forty". Lexical, so the nightly reports it only (capabilities.json
-// tool-grounding, never exit 1) until real nights grade clean; #3143's verify found the first
-// version's false positives, now regression tests.
+// minutes backs "nine hours", 10:30 backs "ten thirty", a 3-item list backs "three", an ISO date
+// backs its weekday, and a hedged number ("about forty") may be within 5%. Nothing is skipped:
+// a remembered fact is backed by the caller's words or a seeded call's, never by "you told me".
+// Lexical, so the nightly reports it only (capabilities.json tool-grounding, never exit 1) until
+// real nights grade clean; #3143's two verify rounds are its regression tests.
 //
 // usage: tool-grounding.mjs <run.json> <agent-log.jsonl>   (one call's log lines; prints JSON)
 import { readFileSync, realpathSync } from 'node:fs';
@@ -55,8 +56,10 @@ function parseRun(words) {
     [cur, prev] = [cur + v, kind];
   }
   flush();
-  if (out.length === 2 && out.every((n) => !n.big && n.v >= 10 && n.v < 100))
-    return [out[0].v * 100 + out[1].v];
+  // Two halves are one number: a year ("twenty twenty-eight"), a time ("ten thirty", "seven
+  // fifteen"), a price ("twelve fifty", "one eighty-nine"). The tool side derives the same forms.
+  if (out.length === 2 && !out[0].big && !out[1].big && out[0].v >= 1 && out[1].v >= 10)
+    if (out[0].v < 100 && out[1].v < 100) return [out[0].v * 100 + out[1].v];
   return out.filter((n) => n.big || n.v > 1).map((n) => n.v); // a lone "one" is a word, not data
 }
 
@@ -114,12 +117,19 @@ export function numbersIn(text, { derive = false } = {}) {
   }
   if (!derive) return out;
   const each = (re, f) => [...s.matchAll(re)].forEach((m) => add(...f(m.slice(1).map(Number), m)));
-  each(/(\d{1,2}):(\d{2})(?!\d)/g, ([h, m]) => [h * 60 + m, h % 12 || 12, h + m / 60]); // 19:00 is 7
+  each(/(\d{1,2}):(\d{2})(?!\d)/g, ([h, m]) => [
+    h * 60 + m,
+    h % 12 || 12, // 19:00 is "seven"
+    h + m / 60,
+    h * 100 + m, // 10:30 is "ten thirty"
+    (h % 12 || 12) * 100 + m, // 20:15 is "eight fifteen"
+  ]);
+  each(/(\d+)\.(\d{2})(?!\d)/g, ([d, c]) => [c, d * 100 + c]); // $12.50 is "twelve fifty"
   each(/(\d{1,2})(?::\d{2})?\s*p\.?m\b/gi, ([h]) => [h + 12]); // 7pm is 19
   each(/(\d+)\s*(?:hours?|hrs?|h)\b\s*(?:and\s*)?(\d+)\s*(?:minutes?|mins?|m)\b/gi, ([h, m]) => [
     h * 60 + m,
   ]);
-  each(/(\d+)\s*(?:minutes?|mins?)\b/gi, ([m]) => [m / 60, Math.floor(m / 60)]); // 534 min, 9 hours
+  each(/(\d+)\s*(?:minutes?|mins?)\b/gi, ([m]) => [m / 60, Math.floor(m / 60), m % 60]); // 95: 1 h 35
   each(/(\d+)\s*(?:hours?|hrs?)\b/gi, ([h]) => [h * 60]);
   each(/(\d+(?:\.\d+)?)\s*(km|kilomet)/gi, ([v]) => [v / 1.609]);
   each(/(\d+(?:\.\d+)?)\s*(mi\b|miles?)/gi, ([v]) => [v * 1.609]);
@@ -130,9 +140,20 @@ export function numbersIn(text, { derive = false } = {}) {
   return out;
 }
 
-/** A reply number is backed when the tool or caller said it, or one within 5% ("about forty"). */
-const backedNumber = (n, backed) =>
-  backed.has(n) || [...backed].some((b) => b >= 20 && Math.abs(n - b) <= 0.05 * b);
+/** Numbers said right after a hedge ("about forty", "around nine hundred and sixty", "~40"). */
+const hedgedNumbers = (text) =>
+  new Set(
+    [
+      ...String(text).matchAll(
+        /(?:\b(?:about|around|roughly|nearly|almost|approximately)\b|~)\s*([^.,;:!?]{1,40})/gi
+      ),
+    ].flatMap((m) => [...numbersIn(m[1].split(/\s+/).slice(0, 5).join(' '))])
+  );
+/** Backed when the tool or caller said it; a hedged number may be within 5% of one. Never an
+ *  unhedged number: "UA 1523" against "UA 1549" is an invented flight, not a rounding. */
+const backedNumber = (n, backed, hedged) =>
+  backed.has(n) ||
+  (hedged.has(n) && [...backed].some((b) => b >= 20 && Math.abs(n - b) <= 0.05 * b));
 
 // Capitalised words that are not entities: openers, pronouns, units, times of day, the team and
 // the eval caller (EVAL_CALLER_NAME, as score.mjs reads it).
@@ -146,6 +167,16 @@ const STOP = new Set(
     .filter(Boolean)
 );
 const WEEKDAYS = 'sunday monday tuesday wednesday thursday friday saturday'.split(' ');
+const MONTHS =
+  'january february march april may june july august september october november december'.split(
+    ' '
+  );
+// Sentence-first subjects that are never names ("Everything is...", "Nothing was...").
+const OPENERS = new Set(
+  'i you he she we they it this that there here what which who one everything nothing something someone everyone each all both none traffic weather'.split(
+    ' '
+  )
+);
 const ABBR = Object.fromEntries(
   `st:street ave:avenue rd:road blvd:boulevard dr:drive ln:lane hwy:highway mt:mount mon:monday
   tue:tuesday wed:wednesday thu:thursday fri:friday sat:saturday sun:sunday jan:january
@@ -184,27 +215,20 @@ const nameWords = (name) =>
 const backedWord = (w, words) =>
   [w, w.replace(/e?s$/, ''), w.replace(/s$/, ''), `${w}s`].some((x) => words.has(x));
 
-// Not graded: someone addressed by name ("Morning, Seth."), and what Ferni says he remembers
-// ("you told me your mom flies in from Ohio"), which is memory, not this turn's lookup.
-const ADDRESSED =
-  /(,\s*|\b(?:hey|hi|hello|morning|evening|afternoon|night|thanks|okay)\s+)\p{Lu}[\p{L}'’]*(?=\s*[,.!?](?:\s|$))/gu;
-const RECALLED =
-  /\b(?:you (?:told|said|mentioned)|you were (?:saying|telling)|i remember|remember (?:you|when)|last time)\b/i;
-const gradedText = (reply) =>
-  reply
-    .replace(ADDRESSED, '$1')
-    .split(/(?<=[.!?;])\s+/)
-    .filter((clause) => !RECALLED.test(clause))
-    .join(' ');
-
-/** Capitalised runs ("Thai Orchid", "Congress Avenue"), skipping a sentence's own first word. */
+/** Capitalised runs ("Thai Orchid", "Congress Avenue"). A sentence's first word counts when it is
+ *  a weekday or month ("Thursday at ten is..."), or the subject of "is/are/was/has" and not a
+ *  common opener ("Nopalito is a great pick."). */
 export function namesIn(text) {
   const out = [];
   for (const sentence of String(text).split(/(?<=[.!?])\s+/)) {
     const words = sentence.replace(/[*_"“”]/g, ' ').match(/[\p{L}][\p{L}\d'’&-]*/gu) ?? [];
     let run = [];
     words.concat(['x']).forEach((w, k) => {
-      if (/^\p{Lu}/u.test(w) && !STOP.has(w) && k > 0) return void run.push(w);
+      const lower = wordsOf(w)[0] ?? '';
+      const subject = !OPENERS.has(lower) && /^(?:is|are|was|were|has|have)$/i.test(words[1] ?? '');
+      const first = WEEKDAYS.includes(lower) || MONTHS.includes(lower) || subject;
+      const name = /^\p{Lu}/u.test(w) && !STOP.has(w) && (k > 0 || first);
+      if (name) return void run.push(w);
       if (run.length) out.push(run.join(' '));
       run = [];
     });
@@ -220,7 +244,8 @@ const callerLines = (run) =>
     .join(' ');
 
 /**
- * The nightly metric (capabilities.json lookups.invented-data): calls with a lookup turn that said
+ * The nightly metric (capabilities.json tool-grounding.invented-data, report only): calls with a
+ * lookup turn that said
  * something nothing backs. Only calls with analyze.py's tool_outputs measure anything; a seeded
  * call's seed run is the caller's known history.
  */
@@ -281,10 +306,10 @@ export function gradeRun(run, tools, { context = '' } = {}) {
       ...numbersIn(callerText),
     ]);
     const words = backingWords(`${texts.join(' ')} ${callerText}`);
-    const graded = gradedText(reply);
+    const hedged = hedgedNumbers(reply);
     const invented = [
-      ...[...numbersIn(graded)].filter((n) => !backedNumber(n, nums)),
-      ...namesIn(graded).filter((name) => nameWords(name).some((w) => !backedWord(w, words))),
+      ...[...numbersIn(reply)].filter((n) => !backedNumber(n, nums, hedged)),
+      ...namesIn(reply).filter((name) => nameWords(name).some((w) => !backedWord(w, words))),
     ];
     details.push({ tools: outs.map((o) => o.name), question: said, reply, invented });
   }

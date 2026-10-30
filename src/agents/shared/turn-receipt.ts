@@ -323,11 +323,14 @@ export class TurnReceiptRecorder {
   /** A tool started running (`name` given) or returned (turn-receipt-tool-timing.ts). */
   readonly onToolRun = (callId: string, name?: string): void =>
     steps.noteToolRun(this.open().steps, callId, name, this.now);
-  onToolsExecuted(ev: steps.ToolsExecutedView): void {
+  onToolsExecuted(ev: {
+    functionCalls?: Array<{ name?: string }>;
+    functionCallOutputs?: Array<{ isError?: boolean } | undefined>;
+  }): void {
     const turn = this.open();
     turn.called.push(...(ev.functionCalls ?? []).map((c) => c.name ?? '?'));
     turn.toolErrors += (ev.functionCallOutputs ?? []).filter((o) => o?.isError).length;
-    steps.endToolRuns(turn.steps, this.now, ev);
+    steps.endToolRuns(turn.steps, this.now);
     turn.replied = true;
   }
 

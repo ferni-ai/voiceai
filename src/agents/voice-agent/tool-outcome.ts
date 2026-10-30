@@ -65,31 +65,3 @@ export function linkOutcome(callId: string | undefined): LinkOutcome | undefined
     link_state: use.state,
   };
 }
-
-/**
- * What any tool call came to, for TURN_RECEIPT tools.outcomes (turn-receipt-tool-timing.ts), so
- * a lookup turn that answered from no data can be told from one that had data (2026-10-30 dev
- * sweep: 6 of 6 searches came back "No results" and the receipt said only called/errors). Read
- * from the output where it passes; only the enum is kept. A thrown tool is `error`; an
- * unlinked account `not_connected`; a missing key or disabled service `unconfigured`; an empty
- * or "no results" reply `no_data`; anything else `data`.
- */
-export type ReceiptToolOutcome =
-  'data' | 'no_data' | 'unconfigured' | 'error' | 'not_connected' | 'unknown'; // the call's output wasn't in the event (turn-receipt-tool-timing.ts)
-
-const NOT_CONNECTED =
-  /\b(?:isn't|is not|not|aren't) (?:connected|linked)\b|\b(?:link|connect) your (?:\w+ )?account\b|\blink your spotify\b/i;
-const UNCONFIGURED =
-  /\b(?:isn't|is not|not) (?:configured|set up)\b|\bisn't available in this session\b|\bplayback is currently disabled\b|\bno api key\b/i;
-const NO_DATA =
-  /\[status: no_results\]|\bno results\b|\b(?:couldn't|could not|didn't|did not) find\b|\bnothing (?:came|turned) up\b|\bno (?:matches|data)\b/i;
-
-export function receiptToolOutcome(output: unknown, isError: boolean): ReceiptToolOutcome {
-  if (isError) return 'error';
-  const text = readable(output);
-  if (/\[status: error\]|\baudio system (?:isn't ready|didn't)/i.test(text)) return 'error';
-  if (NOT_CONNECTED.test(text)) return 'not_connected';
-  if (UNCONFIGURED.test(text)) return 'unconfigured';
-  if (!text.replace(/["\s[\]{}]|null/g, '') || NO_DATA.test(text)) return 'no_data';
-  return 'data';
-}
