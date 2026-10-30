@@ -3,8 +3,8 @@
  *
  * @module agents/shared/tool-executors/save-contact
  */
-import type { ContactRelationship } from '../../../services/contacts/contact-relationship-service.js';
-import { WHERE_TO_ADD_NUMBER } from '../../../tools/shared/where-to-add-number.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { WHERE_TO_ADD_NUMBER } from '../../../tools/shared/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SaveContact' });
@@ -14,16 +14,23 @@ const OWN_DETAILS_NOT_HERE = `I can't change your own number or email from here:
 
 /** Words that name the caller, not someone else. */
 const SELF_WORDS = new Set(['me', 'myself', 'my', 'mine', 'i', 'self', 'user', 'owner']);
-const RELATIONSHIPS = ['family', 'friend', 'colleague', 'acquaintance', 'professional', 'other'];
+const RELATIONSHIPS = [
+  'family',
+  'friend',
+  'colleague',
+  'acquaintance',
+  'professional',
+  'other',
+] as const;
 const FAMILY =
   /^(mom|mum|mother|dad|father|parent|sister|brother|sibling|son|daughter|wife|husband|spouse|grand\w*|aunt|uncle|cousin|niece|nephew)$/;
-type Relationship = NonNullable<ContactRelationship['relationship']>;
+type Relationship = (typeof RELATIONSHIPS)[number];
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
 function relationshipOf(said: string): Relationship | undefined {
   const lower = said.toLowerCase();
-  if (RELATIONSHIPS.includes(lower)) return lower as Relationship;
+  if ((RELATIONSHIPS as readonly string[]).includes(lower)) return lower as Relationship;
   return FAMILY.test(lower) ? 'family' : undefined;
 }
 
@@ -44,11 +51,10 @@ export async function saveContact(args: Record<string, unknown>, userId: string)
 
   if (!name) return OWN_DETAILS_NOT_HERE;
   if (!phone && !email) return `What's the best way to reach ${name}? Phone number or email?`;
-  if (userId === 'unknown') return 'I need to know who you are before I can save a contact.';
+  if (!isMemberIdentity(userId)) return 'I need to know who you are before I can save a contact.';
 
   try {
-    const { getContacts, upsertContact } =
-      await import('../../../services/contacts/contact-relationship-service.js');
+    const { getContacts, upsertContact } = await import('../../../services/contacts/index.js');
     const existing = (await getContacts(userId)).find(
       (c) => c.name.toLowerCase() === name.toLowerCase()
     );

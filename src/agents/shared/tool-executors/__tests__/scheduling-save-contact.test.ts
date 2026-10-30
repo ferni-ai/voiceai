@@ -46,7 +46,7 @@ vi.mock('../../../../tools/domains/proactive/outreach/index.js', () => ({
   getUserContactInfo: vi.fn(async (userId: string) => h.owner.get(userId)),
 }));
 
-vi.mock('../../../../services/contacts/contact-relationship-service.js', () => ({
+vi.mock('../../../../services/contacts/index.js', () => ({
   getContacts: vi.fn(async () => {
     if (h.storeFails) throw new Error('store down');
     return h.contacts;
@@ -141,6 +141,21 @@ describe('saveContact on the executor path', () => {
     expect(outreach.setUserContactInfo).not.toHaveBeenCalled();
     expect(h.owner.get(USER)).toEqual(OWNER_INFO);
   });
+
+  it.each(['anon:call-1', 'onbehalf:call-2', 'unknown'])(
+    'saves nothing for a caller with no account (%s)',
+    async (userId) => {
+      const reply = (await schedulingExecutor.execute(
+        'saveContact',
+        { name: 'Mom', phone: '555-0100' },
+        { ...ctx, userId }
+      )) as string;
+
+      expect(reply).toMatch(/need to know who you are/);
+      expect(h.contacts).toHaveLength(0);
+      expect(outreach.setUserContactInfo).not.toHaveBeenCalled();
+    }
+  );
 
   it("logs ids and counts, never the contact's name, number or email", async () => {
     await run('saveContact', {
