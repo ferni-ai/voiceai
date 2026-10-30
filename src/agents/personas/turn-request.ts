@@ -58,7 +58,10 @@ import { callMeNote } from './call-me-note.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
-import { confirmCallReportReached } from '../../intelligence/context-builders/external/call-report.js';
+import {
+  confirmCallReportReached,
+  withoutCallReport,
+} from '../../intelligence/context-builders/external/call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
@@ -146,16 +149,18 @@ function buildTurnReminder(
   session: object,
   options: TurnReminderOptions
 ): llm.ChatContext {
-  const chatCtx = withoutStaleTurnContext(request);
+  const crisis = options.shape === false;
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  // CALL_REPORT_REACHES_YOU: a crisis-guided reply never carries the call report (call-report.ts).
+  const current = withoutStaleTurnContext(request);
+  const chatCtx = crisis ? withoutCallReport(sessionId, current) : current;
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
   clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
-  const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
-  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
   // CALL_REPORT_REACHES_YOU: a call report this request carries is delivered once its reply is released.
   const reached = { latest: words, held: options.held };
   if (!crisis) void confirmCallReportReached(sessionId, chatCtx.items, reached);

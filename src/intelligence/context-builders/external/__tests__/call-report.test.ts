@@ -403,7 +403,9 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'live');
     seedCall('call-g', 'Aunt Rosa', 'she says hi', 15);
     /** One reply through the real gate, its request carrying the offered report. */
+    let requests: string[] = [];
     const reply = async (sessionId: string, words: string, verdict: string) => {
+      requests = [];
       const base = { userId: USER, sessionId, turnCount: 0, crisis: false, timeoutMs: 150 };
       const offered = await callReportInjection({ ...base, callerTurn: 1 });
       const request = llm.ChatContext.empty();
@@ -411,13 +413,17 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
       request.addMessage({ role: 'user', content: `${TURN_CONTEXT_HEADER}\n${offered?.content}` });
       request.addMessage({ role: 'assistant', content: 'Hey you.' });
       request.addMessage({ role: 'user', content: words });
-      const model = async () =>
-        new ReadableStream<string>({
+      const model = async (ctx: { items: readonly unknown[] }) => {
+        requests.push(
+          ctx.items.map((i) => (i as { textContent?: string }).textContent ?? '').join('\n')
+        );
+        return new ReadableStream<string>({
           start: (c) => {
             c.enqueue('ok');
             c.close();
           },
         });
+      };
       const session = { userData: { personaId: 'ferni', services: { sessionId } } };
       const opener = { wrap: (stream: unknown) => stream };
       const out = await gatedReply(request, session, model as never, opener as never, {
@@ -434,6 +440,11 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
       '{"risk":"crisis","subject":"self"}'
     );
     expect(delivered()).toEqual([]);
+    // The guided re-ask (988 guidance) is built from the same notes: the report is taken out.
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).toContain('While they were away');
+    expect(requests[1]).not.toContain('While they were away');
+    expect(requests[1]).not.toContain('she says hi');
     await reply(
       's-gate-released',
       'what should I cook tonight?',
@@ -452,6 +463,9 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     await confirmCallReportReached(sessionId, items, {
       held: Promise.resolve({ action: 'guide' }),
     });
+    expect(delivered()).toEqual([]);
+    // Any verdict means the gate dropped this reply, 'pass' included: nothing is marked.
+    await confirmCallReportReached(sessionId, items, { held: Promise.resolve({ action: 'pass' }) });
     expect(delivered()).toEqual([]);
     expect((await callReportInjection({ ...base, callerTurn: 2 }))?.content).toBe(offered?.content);
     await confirmCallReportReached(sessionId, items, { held: Promise.resolve(null) });

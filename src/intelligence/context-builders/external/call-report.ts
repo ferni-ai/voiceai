@@ -130,6 +130,40 @@ export async function confirmCallReportReached(
   }
 }
 
+/**
+ * A crisis-guided request never carries the call report (verify of #3080, round 2). The report
+ * is offered before the turn's crisis classifier rules, and a guided re-ask is built from the
+ * same notes, so the block is taken out here, wherever it was added. A copy; the request as is
+ * when nothing was offered. Never throws.
+ */
+export function withoutCallReport<T extends { items: unknown[]; copy(): T }>(
+  sessionId: string | undefined,
+  chatCtx: T
+): T {
+  try {
+    const block = sessionId ? sessions.get(sessionId)?.offered?.content : undefined;
+    const holds = (item: unknown): boolean => {
+      const text = (item as { textContent?: unknown } | null)?.textContent;
+      return !!block && typeof text === 'string' && text.includes(block);
+    };
+    if (!block || !chatCtx.items.some(holds)) return chatCtx;
+    const ctx = chatCtx.copy();
+    ctx.items = ctx.items.map((item) => {
+      const content = (item as { content?: unknown }).content;
+      if (!holds(item) || !Array.isArray(content)) return item;
+      const copy = Object.create(Object.getPrototypeOf(item) as object) as object;
+      const parts = content.map((part: unknown) =>
+        typeof part === 'string' ? part.split(block).join('') : part
+      );
+      return Object.assign(copy, item, { content: parts });
+    });
+    return ctx;
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Call report not taken out of a guided request');
+    return chatCtx;
+  }
+}
+
 /** Off: as before, turn 0 only; the builders mark what they build. */
 async function firstTurnOnly(turn: CallReportTurn): Promise<ContextInjection | null> {
   const { userId } = turn;
