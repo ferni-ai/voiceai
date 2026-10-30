@@ -20,7 +20,7 @@ import type {
 
 export function detectProactiveTriggers(
   lifeSynthesis: LifeSynthesis,
-  wisdomMetrics: WisdomMetrics,
+  _wisdomMetrics: WisdomMetrics, // scores, not facts: no longer read (#3044)
   existentialContext: ExistentialContext,
   valuesAlignment: ValuesAlignment
 ): WisdomTrigger[] {
@@ -33,27 +33,6 @@ export function detectProactiveTriggers(
       message: 'They come seeking meaning. The question matters more than the answer.',
       priority: 'high',
       timing: 'immediate',
-    });
-  }
-
-  // Legacy awareness triggers
-  if (existentialContext.legacyThinking && wisdomMetrics.legacyReadiness < 50) {
-    triggers.push({
-      type: 'reflection',
-      message:
-        'Legacy thinking emerging but not yet integrated. Help them see how today builds tomorrow.',
-      priority: 'medium',
-      timing: 'when_ready',
-    });
-  }
-
-  // Inner peace triggers
-  if (wisdomMetrics.innerPeaceIndex < 30) {
-    triggers.push({
-      type: 'reframe',
-      message: 'The striving is strong. Perhaps share the paradox: the destination is here.',
-      priority: 'high',
-      timing: 'when_ready',
     });
   }
 

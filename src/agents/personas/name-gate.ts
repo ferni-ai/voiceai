@@ -54,6 +54,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { applyVocatives, findVocatives, LETTER, type Vocative } from './name-vocatives.js';
+import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 export { applyVocatives, findVocatives, type Vocative } from './name-vocatives.js';
 // The TTS gateway needs the same first name (speech/tts-gateway/name-intonation.ts).
@@ -109,8 +110,6 @@ const SPOKEN = /\p{L}/u;
 /** Letters outside markup: what counts as words for timing. */
 const spoken = (t: string): boolean => SPOKEN.test(t.replace(/<[^>]*>|\[[^\]]*\]/g, ''));
 
-type Chunk = llm.ChatChunk | string | object;
-
 /** How long the gate held text back in one reply. */
 export interface NameGateTiming {
   /** From the reply's first spoken letters arriving to the first going out. */
@@ -122,15 +121,6 @@ export interface HistoryItem {
   type?: string;
   role?: string;
   textContent?: string;
-}
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const c = chunk as llm.ChatChunk;
-  if (c && typeof c === 'object' && 'delta' in c && c.delta && !c.delta.toolCalls?.length) {
-    return c.delta.content ?? '';
-  }
-  return undefined; // tool calls, usage, flush sentinels: not reply text
 }
 
 const messagesOf = (items: readonly HistoryItem[]): HistoryItem[] =>

@@ -457,6 +457,7 @@ export async function captureBackgroundResult(params: {
   relatedTaskId?: string;
   specificData?: Record<string, unknown>;
   skipPush?: boolean; // the caller tells the user its own way (one text)
+  skipEmail?: boolean; // the caller sends its own; else urgent and high results are emailed
 }): Promise<BackgroundResult> {
   const result = createBackgroundResult({
     userId: params.userId,
@@ -497,8 +498,7 @@ export async function captureBackgroundResult(params: {
     // 3. Push (works even if connected), unless the caller tells them itself
     if (!params.skipPush) await sendPushNotification(result);
 
-    // 4. Send email for high priority results
-    const urgent = result.priority === 'urgent' || result.priority === 'high';
+    const urgent = !params.skipEmail && ['urgent', 'high'].includes(result.priority); // 4. email
     const email = urgent ? await sendEmailNotification(result) : 'skipped';
 
     // A web-UI packet isn't speech: CALL_REPORT_REACHES_YOU=on notes it 'ui', voice still tells.

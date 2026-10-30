@@ -81,7 +81,7 @@ export type ToolDomain =
   | 'life-thesis' // Life thesis: capturing and recalling "why" across all life domains
   | 'marketing' // Social media management: content generation, publishing, analytics
   | 'referral' // Viral growth via voice calls
-  | 'smart-home' // Home Assistant, smart lights, thermostats, locks, scenes
+  | 'smart-home' // Smart lights, thermostats, locks, scenes
   | 'webhooks' // Webhook automations: IFTTT, Zapier, Home Assistant, Siri Shortcuts
   | 'books' // Book tracking, recommendations, reading lists
   | 'podcasts' // Podcast discovery, listening history, recommendations
@@ -381,7 +381,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'life-thesis': 'lifestyle', // Life thesis - cross-persona motivation capture
   marketing: 'communication', // Social media management and content publishing
   referral: 'communication', // Voice referral calls for viral growth
-  'smart-home': 'productivity', // Home Assistant integration for smart home control
+  'smart-home': 'productivity', // Smart home control: lights, thermostats, speakers
   webhooks: 'productivity', // Webhook automations for IFTTT, Zapier, etc.
   books: 'entertainment', // Book tracking, recommendations, reading lists
   podcasts: 'entertainment', // Podcast discovery, listening history
@@ -694,9 +694,9 @@ export interface ToolDefinition {
   /** Factory function to create the tool instance */
   create: (_ctx: ToolContext) => Tool;
 
-  /** External services required by this tool */
-  requiredServices?: ExternalService[];
+  requiredServices?: ExternalService[]; // external services this tool needs
   requiresEnv?: readonly string[]; // env vars it needs; never registered while one is unset (tool-availability.ts)
+  availableWhen?: () => boolean; // false at registration: never registered (tool-availability.ts)
 
   /** Tool is experimental/beta */
   experimental?: boolean;

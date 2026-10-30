@@ -9,7 +9,7 @@ This document lists all environment variables required by tool domains. Tools wi
 | Marketing | Twitter, LinkedIn | `TWITTER_*`, `LINKEDIN_*` |
 | Referral | Twilio | `TWILIO_*` |
 | Concierge | Twilio | `TWILIO_*` |
-| Smart Home | Home Assistant | `HOME_ASSISTANT_*` |
+| Smart Home | Per-user LIFX / Sonos / Ecobee | `SONOS_*`, `ECOBEE_API_KEY` |
 | Local Search | Google Places | `GOOGLE_PLACES_API_KEY` |
 | Banking | Plaid | `PLAID_*` |
 | Music | Spotify | `SPOTIFY_*` |
@@ -101,22 +101,6 @@ SPOTIFY_REFRESH_TOKEN=user_refresh_token
 - `user-modify-playback-state`
 - `user-read-currently-playing`
 - `streaming`
-
----
-
-## Home Assistant (Smart Home)
-
-**Used by:** `smart-home`
-
-```bash
-# Required
-HOME_ASSISTANT_URL=http://homeassistant.local:8123
-HOME_ASSISTANT_TOKEN=your_long_lived_access_token
-```
-
-**Get credentials:**
-1. In Home Assistant: Profile > Long-Lived Access Tokens
-2. Create token with descriptive name
 
 ---
 

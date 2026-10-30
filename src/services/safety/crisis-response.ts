@@ -81,7 +81,7 @@ export interface CrisisResponseContext {
 // CRISIS RESOURCES
 // ============================================================================
 
-const CRISIS_RESOURCES: Record<CrisisType, CrisisResource[]> = {
+export const CRISIS_RESOURCES: Record<CrisisType, CrisisResource[]> = {
   suicidal_ideation: [
     {
       name: '988 Suicide & Crisis Lifeline',

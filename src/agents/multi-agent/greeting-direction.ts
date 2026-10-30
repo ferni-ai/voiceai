@@ -40,6 +40,11 @@ import {
   proactiveReasonFacts,
   proactiveReasonOpenerEnabled,
 } from './proactive-opener.js';
+import {
+  letterOfferDirection,
+  letterToOffer,
+  lineOffersLetter,
+} from '../../tools/domains/engagement/future-letters.js';
 import * as stranger from './first-call-stranger.js';
 import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
 import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
@@ -337,7 +342,7 @@ export async function directedGreeting(
     return calmGreeting(directed.text);
   }
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName] =
+  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName, letter] =
     await Promise.all([
       checkInFor(userData?.userId, userData?.callerTimezone),
       winFor(userData?.userId),
@@ -346,6 +351,16 @@ export async function directedGreeting(
       anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
       stranger.isStrangerCall(userData, history),
       firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
+      userData?.userId // FUTURE_LETTER_OPENER: Jordan only, owner only
+        ? inTime(
+            letterToOffer({
+              userId: userData.userId,
+              sessionId,
+              personaId,
+              zone: userData.callerTimezone,
+            })
+          )
+        : undefined,
     ]);
   // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
   const unknown =
@@ -362,13 +377,18 @@ export async function directedGreeting(
   const hold = notYet.openingRestraint(history, userData?.callerTimezone);
   const dueCheckIn = hold.allows(openCheckIn) ? openCheckIn : undefined;
   const launched = launchDirection(takeCallLaunch(sessionId)); // CALL_LAUNCH_CONTEXT: their reason
+  // A letter to future them on the day it was promised (future-letters.ts) is the opening's one
+  // thread: a win, a check-in or a pondered ask waits for a later call; it never waits for them.
+  // It still yields to an unknown caller (never someone else's letter) and to their own reason.
+  const letterNow = letter && !unknown && !launched ? letter : undefined;
   const { win, checkIn } =
-    unknown || hold.sameDay || launched ? {} : openingThread(openWin, dueCheckIn);
+    unknown || hold.sameDay || launched || letterNow ? {} : openingThread(openWin, dueCheckIn);
   // One thread per call: why they called, a win or what they said they'd do, then a pondered ask.
-  const ask = win || checkIn || launched || !hold.allows(pondered?.text) ? undefined : pondered;
+  const ask =
+    win || checkIn || launched || letterNow || !hold.allows(pondered?.text) ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
   const back =
-    welcome && !unknown && !launched
+    welcome && !unknown && !launched && !letterNow
       ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
@@ -384,6 +404,7 @@ export async function directedGreeting(
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
     (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
+    (letterNow ? letterOfferDirection(letterNow) : '') +
     (hold.sameDay ? notYet.SAME_DAY_DIRECTION : '') +
     (unknown ? ` ${unknown}` : '') +
     launched;
@@ -417,6 +438,7 @@ export async function directedGreeting(
     lineSaysAnniversary(spoken, anniversary)
   )
     anniversary.mark();
+  if (letterNow && directed.source === 'actor' && lineOffersLetter(spoken)) letterNow.mark();
   // One follow-up per call opener: having asked, the greeting keeps the first
   // recall note from asking about a thread too (greeting-claim.ts).
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {

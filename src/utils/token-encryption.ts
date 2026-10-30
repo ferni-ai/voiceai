@@ -29,10 +29,34 @@ const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
  */
 const AUTH_TAG_BYTES = 16;
 
-export type TokenKeySource = 'OAUTH_ENCRYPTION_KEY' | 'LOG_HASH_SECRET' | 'none';
+export type TokenKeySource =
+  'TOKEN_SEALING_KEY' | 'OAUTH_ENCRYPTION_KEY' | 'LOG_HASH_SECRET' | 'none';
+
+const warnedBadSealingKey = new Set<string>();
+
+/**
+ * TOKEN_SEALING_KEY / TOKEN_SEALING_KEY_PREVIOUS: base64 of exactly 32 bytes
+ * (`openssl rand -base64 32`), used as the AES key as-is. Null when unset. A
+ * malformed value is ignored with one error naming the variable (never its
+ * value), so a typo degrades to the old key instead of sealing under a weak one.
+ */
+function sealingKeyFromEnv(name: 'TOKEN_SEALING_KEY' | 'TOKEN_SEALING_KEY_PREVIOUS') {
+  const value = process.env[name];
+  if (!value) return null;
+  if (/^[A-Za-z0-9+/_-]{43}=?$/.test(value) && Buffer.from(value, 'base64').length === 32) {
+    return value;
+  }
+  if (!warnedBadSealingKey.has(name)) {
+    warnedBadSealingKey.add(name);
+    log.error({ name }, 'Token sealing key ignored: not base64 of 32 bytes');
+  }
+  return null;
+}
 
 /** Which env var supplies the token key, and its raw value. The one resolution every caller shares. */
 export function resolveTokenKey(): { source: TokenKeySource; key: string } {
+  const sealing = sealingKeyFromEnv('TOKEN_SEALING_KEY');
+  if (sealing) return { source: 'TOKEN_SEALING_KEY', key: sealing };
   if (process.env.OAUTH_ENCRYPTION_KEY) {
     return { source: 'OAUTH_ENCRYPTION_KEY', key: process.env.OAUTH_ENCRYPTION_KEY };
   }
@@ -40,6 +64,13 @@ export function resolveTokenKey(): { source: TokenKeySource; key: string } {
     return { source: 'LOG_HASH_SECRET', key: process.env.LOG_HASH_SECRET };
   }
   return { source: 'none', key: '' };
+}
+
+/** The AES-256 key: a sealing key is used as-is, the older secrets are hashed to 32 bytes. */
+function keyBytes(source: TokenKeySource, key: string): Buffer {
+  return source === 'TOKEN_SEALING_KEY'
+    ? Buffer.from(key, 'base64')
+    : crypto.createHash('sha256').update(key).digest();
 }
 
 /** Key id of a raw key: the first 8 hex of HMAC-SHA256(key, "ferni-token-kid"). */
@@ -57,16 +88,28 @@ export function tokenKeyId(): string {
 }
 
 /**
- * The keys that may open an envelope: OAUTH_ENCRYPTION_KEY (the sealing key
- * when set), then LOG_HASH_SECRET as read-only legacy. Every envelope written
- * before the dedicated key exists was sealed with LOG_HASH_SECRET, so it must
- * stay on the ring until those are re-sealed, or they would all stop opening.
+ * The keys that may open an envelope, in order: TOKEN_SEALING_KEY (the sealing
+ * key when set), TOKEN_SEALING_KEY_PREVIOUS (rotation: sealed before the
+ * current key, read-only), OAUTH_ENCRYPTION_KEY, then LOG_HASH_SECRET as
+ * read-only legacy. Every envelope written before a dedicated key exists was
+ * sealed with LOG_HASH_SECRET, so it stays on the ring until those are
+ * re-sealed, or they would all stop opening.
  */
-export function decryptionKeys(): Array<{ key: string; kid: string }> {
-  const keys = [process.env.OAUTH_ENCRYPTION_KEY, process.env.LOG_HASH_SECRET].filter(
-    (k): k is string => typeof k === 'string' && k !== ''
-  );
-  return [...new Set(keys)].map((key) => ({ key, kid: keyIdOf(key) }));
+export function decryptionKeys(): Array<{ key: string; kid: string; source: TokenKeySource }> {
+  const candidates: Array<[TokenKeySource, string | null | undefined]> = [
+    ['TOKEN_SEALING_KEY', sealingKeyFromEnv('TOKEN_SEALING_KEY')],
+    ['TOKEN_SEALING_KEY', sealingKeyFromEnv('TOKEN_SEALING_KEY_PREVIOUS')],
+    ['OAUTH_ENCRYPTION_KEY', process.env.OAUTH_ENCRYPTION_KEY],
+    ['LOG_HASH_SECRET', process.env.LOG_HASH_SECRET],
+  ];
+  const seen = new Set<string>();
+  const ring: Array<{ key: string; kid: string; source: TokenKeySource }> = [];
+  for (const [source, key] of candidates) {
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    ring.push({ key, kid: keyIdOf(key), source });
+  }
+  return ring;
 }
 
 /**
@@ -89,7 +132,7 @@ export function openEnvelope<T>(encryptedStr: string): { value: T; kid: string }
   const ring = decryptionKeys();
   for (const candidate of typeof kid === 'string' ? ring.filter((k) => k.kid === kid) : ring) {
     try {
-      const derived = crypto.createHash('sha256').update(candidate.key).digest();
+      const derived = keyBytes(candidate.source, candidate.key);
       const decipher = crypto.createDecipheriv(
         ENCRYPTION_ALGORITHM,
         derived,
@@ -131,7 +174,7 @@ export function envelopeFailure(encryptedStr: string): { reason: string; envelop
  * OAuth tokens will not be stored without encryption in production.
  */
 function getEncryptionKey(): Buffer | null {
-  const { key } = resolveTokenKey();
+  const { source, key } = resolveTokenKey();
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (!key) {
@@ -149,7 +192,7 @@ function getEncryptionKey(): Buffer | null {
     return null;
   }
 
-  return crypto.createHash('sha256').update(key).digest();
+  return keyBytes(source, key);
 }
 
 /**
@@ -183,6 +226,21 @@ export function encryptData<T>(data: T): string {
   };
 
   return JSON.stringify(payload);
+}
+
+/**
+ * True when TOKEN_SEALING_KEY is set and this envelope was sealed under another
+ * key (or before kids existed): it should be re-sealed. Always false when the
+ * variable is unset, which is what keeps that case identical to before.
+ */
+export function envelopeIsStale(encryptedStr: string): boolean {
+  if (resolveTokenKey().source !== 'TOKEN_SEALING_KEY') return false;
+  try {
+    const parsed = JSON.parse(encryptedStr) as { kid?: unknown };
+    return looksLikeEnvelope(parsed) && parsed.kid !== tokenKeyId();
+  } catch {
+    return false;
+  }
 }
 
 /** An envelope, or something dressed as one: never handed back as plaintext. */

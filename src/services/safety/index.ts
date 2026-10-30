@@ -36,11 +36,15 @@ export type {
   CrisisType,
 } from './crisis-detection.js';
 
+// Whether crisis handling may touch a turn (handoff transfer aliases)
+export { crisisGuidedTurn, markCrisisTurn, unmarkCrisisTurn } from './crisis-turn-mark.js';
+
 // ============================================================================
 // CRISIS RESPONSE
 // ============================================================================
 
 export {
+  CRISIS_RESOURCES as SAFETY_CRISIS_RESOURCES,
   generateCrisisResponse,
   getCrisisResources,
   getGroundingExercise,

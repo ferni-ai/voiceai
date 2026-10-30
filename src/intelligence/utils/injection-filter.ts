@@ -44,6 +44,12 @@ export const ESSENTIAL_CATEGORIES = new Set([
   'identity',
   'boundaries', // Trust: Topics to avoid - critical for user safety/comfort
   'unsaid', // Trust: Emotional mismatches, permission seeking - "Better than Human" listening
+  // The crisis guidance that rides beside safety on later turns: the casual budget (600 chars)
+  // dropped crisis_follow_up by one character after a crisis turn ("okay sure" reads casual).
+  'safety_soft_check',
+  'crisis_transfer',
+  'crisis_follow_up',
+  'scientific_early_warning', // "provide crisis resources" (safety-coaching-builders.ts)
 ]);
 
 /**

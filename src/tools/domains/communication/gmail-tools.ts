@@ -20,6 +20,7 @@ import {
   formatInboxSummaryForSpeech,
   isGmailConfigured,
 } from '../../../services/gmail/gmail-service.js';
+import { honestGmailReadTools } from '../../../services/gmail/gmail-honesty.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
 
@@ -33,7 +34,7 @@ const log = getLogger();
  * Get Gmail tool definitions
  */
 export function getGmailToolDefinitions(): ToolDefinition[] {
-  return [
+  return honestGmailReadTools([
     // =========================================================================
     // getInboxSummary - Quick inbox overview
     // =========================================================================
@@ -357,7 +358,7 @@ export function getGmailToolDefinitions(): ToolDefinition[] {
         });
       },
     },
-  ];
+  ]);
 }
 
 // ============================================================================
