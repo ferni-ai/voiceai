@@ -176,4 +176,34 @@ describe('webhook-config-store sealing', () => {
     await new Promise((r) => setTimeout(r, 10));
     expect(docs.get('bogle_users/u1/webhooks/w2')).toEqual(legacy);
   });
+
+  it('update re-seals a legacy doc and deletes its leftover plaintext url/headers', async () => {
+    docs.set('bogle_users/u1/webhooks/w3', {
+      id: 'w3',
+      name: 'Old',
+      url: URL_SECRET,
+      headers: JSON.stringify({ Authorization: HEADER_SECRET }),
+      voiceTriggers: ['old'],
+      enabled: true,
+      successCount: 0,
+      failureCount: 0,
+    });
+    // Loaded with no key, so the read leaves the plaintext doc in place.
+    expect((await store.getWebhook('u1', 'w3')).data?.url).toBe(URL_SECRET);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(docs.get('bogle_users/u1/webhooks/w3')).toHaveProperty('url', URL_SECRET);
+
+    process.env.LOG_HASH_SECRET = 'test-only-hash-secret';
+    const result = await store.updateWebhook('u1', { id: 'w3', name: 'Renamed' });
+    expect(result.success).toBe(true);
+
+    const stored = docs.get('bogle_users/u1/webhooks/w3')!;
+    expect(stored).not.toHaveProperty('url');
+    expect(stored).not.toHaveProperty('headers');
+    expect(stored.encrypted).toBeTypeOf('string');
+    expect(stored.name).toBe('Renamed');
+    const bytes = JSON.stringify(stored);
+    expect(bytes).not.toContain('webhook-secret-abc123');
+    expect(bytes).not.toContain('header-secret-xyz789');
+  });
 });

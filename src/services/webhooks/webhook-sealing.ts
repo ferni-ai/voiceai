@@ -20,7 +20,7 @@ const WEBHOOKS_COLLECTION = 'webhooks';
  * (utils/token-at-rest, the repo's token key chain). With no key configured,
  * in any environment, a save is refused rather than written in plaintext.
  */
-export type WebhookSecrets = Pick<WebhookConfig, 'url' | 'headers'>;
+type WebhookSecrets = Pick<WebhookConfig, 'url' | 'headers'>;
 
 export const WEBHOOK_SEALING_REFUSED =
   "Webhooks can't be saved right now: secure storage isn't set up on this server. Nothing was saved.";
@@ -33,7 +33,7 @@ export function sealedRecord(webhook: WebhookConfig): Record<string, unknown> {
 }
 
 /** Legacy headers were written as a JSON string; current ones live in the envelope. */
-export function legacyHeaders(raw: unknown): Record<string, string> | undefined {
+function legacyHeaders(raw: unknown): Record<string, string> | undefined {
   if (typeof raw !== 'string') return (raw as Record<string, string> | undefined) ?? undefined;
   try {
     return JSON.parse(raw) as Record<string, string>;
