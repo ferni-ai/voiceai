@@ -41,7 +41,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
     source = new Firestore({ projectId, databaseId: '(default)' });
     dest = new Firestore({ projectId, databaseId: 'ferni-dev' });
     const seed: Array<[string, Record<string, unknown>]> = [
-      [`bogle_users/${ME}`, { name: 'me', createdAt: AT }],
+      [`bogle_users/${ME}`, { name: 'me', createdAt: AT, linkedInTokens: { access_token: 'x' } }],
       [`bogle_users/${ME}/memories/m1`, { text: 'mine', at: AT }],
       [`bogle_users/${ME}/memories/m1/notes/n1`, { deep: true }],
       // excluded names below depth 1, and under an owner-field doc: must stay behind
@@ -58,6 +58,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
       [`bogle_users/${ME}/outreach_attempts/o1`, { at: AT }],
       [`bogle_users/${ME}/ferni_commitments/f1`, { dueBy: 'tomorrow' }],
       [`outreach_profiles/${ME}`, { cadence: 'weekly' }],
+      // credentials and an unreviewed store under the user records: never copied
+      [`bogle_users/${ME}/smart_home/hue`, { bridgeKey: 'k' }],
+      [`bogle_users/${ME}/plaid_tokens/data`, { encrypted: 'e' }],
+      [`bogle_users/${ME}/a_store_nobody_reviewed/x`, { v: 1 }],
+      [`users/${ME}/calendar_providers/outlook`, { refreshToken: 'r' }],
       [`users/${ME}/journal/j1`, { entry: 'mine' }],
       [`entity_store/${ME}/entities/e1`, { name: 'mine' }],
       ['entities/mine1', { userId: ME, at: AT }],
@@ -90,11 +95,14 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
         `users/${ME}/journal/j1`,
       ].sort()
     );
+    const profile = (await dest.doc(`bogle_users/${ME}`).get()).data();
+    expect(profile).toHaveProperty('name', 'me');
+    expect(profile).not.toHaveProperty('linkedInTokens');
     const copied = (await dest.doc(`bogle_users/${ME}/memories/m1`).get()).get('at');
     expect(copied).toBeInstanceOf(Timestamp);
     expect((copied as Timestamp).isEqual(AT)).toBe(true);
     // the source is untouched
-    expect(await paths(source)).toHaveLength(23);
+    expect(await paths(source)).toHaveLength(27);
   });
 
   it("copies the person's semantic index by the exact owner match, embeddings included", async () => {

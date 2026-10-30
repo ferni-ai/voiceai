@@ -13,7 +13,10 @@
  * leave empty, so every store in it holds only this person's documents. Minus the
  * stores in EXCLUDED_STORES and EXCLUDED_SUBCOLLECTIONS below, each with its reason.
  * A store added to that catalog later is copied too; copy-user.test.ts pins the list,
- * so the addition shows up in review.
+ * so the addition shows up in review. Under the person's two records, bogle_users/{uid}
+ * and users/{uid}, only the subcollections in COPIED_SUBCOLLECTIONS are copied: a
+ * store nobody has reviewed (a new credential) stays behind, and the profile's token
+ * fields (PROFILE_TOKEN_FIELDS) are dropped from every copied document.
  *
  * Each document is copied with its id, its subcollections at any depth and its field
  * types (Timestamps stay Timestamps), in batches of at most 500 writes. Documents dev
@@ -30,7 +33,9 @@ import {
   storeLabel,
   type OwnedStore,
 } from '../../src/services/platform/user-stores.js';
+import { isSecretField } from '../../src/services/platform/export-redaction.js';
 import { isSyntheticUserId, namesNoAccount } from '../../src/utils/synthetic-user.js';
+import { withoutProfileTokenFields } from '../../src/utils/token-at-rest.js';
 
 export const SOURCE_DATABASE = '(default)';
 export const DEST_DATABASE = 'ferni-dev';
@@ -42,6 +47,7 @@ const QUEUE = 'an in-flight queue: the dev worker would send or place it for rea
 const SCHEDULING =
   'a scheduling store: a dev job runner reading it would text the person a second time';
 const OTHERS = "other people's identifiers or words, not the person's own";
+const DEVICE = 'a linked device or account (ids, webhook URLs, sync state): dev could act on it';
 
 /** Stores in ERASED_STORES that are not copied (labels as storeLabel writes them). */
 export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
@@ -102,12 +108,57 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   reminders: SCHEDULING,
   outreach_attempts: SCHEDULING,
   outreach_history: SCHEDULING,
+  // Credentials and integrations whose names hold no credential word (isSecretField
+  // catches the rest), then the queues, schedules and other people's data found when
+  // COPIED_SUBCOLLECTIONS was classified (2026-10-30)
+  smart_home: `${CREDENTIAL} (Hue, LIFX, Sonos keys)`,
+  spotify_links: CREDENTIAL,
+  calendar_providers: `${CREDENTIAL} (Outlook tokens)`,
+  homekit: DEVICE,
+  devices: DEVICE,
+  spotify_room_config: DEVICE,
+  webhooks: DEVICE,
+  outlook_subscriptions: DEVICE,
+  google_watch_channels: DEVICE,
+  apple_polling_state: DEVICE,
+  pending_events: QUEUE,
+  pending_rides: QUEUE,
+  scheduled_actions: QUEUE,
+  action_executions: QUEUE,
+  errands: `${QUEUE} (its effects outbox)`,
+  scheduled_outreach: SCHEDULING,
+  milestone_outreach: SCHEDULING,
+  goals_outreach: SCHEDULING,
+  proactive_outreach_log: SCHEDULING,
+  family_checkin_schedules: SCHEDULING,
+  meeting_followup_tasks: SCHEDULING,
+  family_checkin_calls: `${OTHERS}: family members' phones`,
+  contact_notes: `${OTHERS}: contacts`,
+  contact_timing: `${OTHERS}: contacts`,
+  guest_profiles: `${OTHERS}: event guests`,
+  guest_intelligence: `${OTHERS}: event guests`,
+  message_history: `${OTHERS}: messages sent on the person's behalf, with recipients`,
+  group_sessions: `${OTHERS}: group calls, with every participant's words`,
+};
+
+/**
+ * Names written under a user record that are left out of COPIED_SUBCOLLECTIONS but not
+ * excluded everywhere: elsewhere the same name holds ordinary data (cameo_engagements
+ * keeps a history). Each is written only below an excluded store.
+ */
+export const NOT_COPIED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
+  list: `${DEVICE}: homekit/devices/list`,
+  pending: `${QUEUE}: homekit/commands/pending, run on the real home`,
+  history: `${DEVICE}: homekit/commands/history`,
+  transcript: `${OTHERS}: group_sessions/{id}/transcript`,
 };
 
 /**
  * A collection name excluded wherever it appears as a subcollection: the names
  * above, the collection of every EXCLUDED_STORES entry (credentials, queues,
- * other people's data), and any reminders / *_reminders / outreach_* (SCHEDULING).
+ * other people's data), any reminders / *_reminders / outreach_* (SCHEDULING), and
+ * any name holding a credential word (isSecretField: plaid_tokens, oauth_tokens,
+ * wearable_whoop_tokens, passkeys, ...).
  * ferni_commitments is kept: Ferni reads it in calls for follow-through and
  * nothing on dev delivers from it.
  */
@@ -117,7 +168,89 @@ const EXCLUDED_NAMES: ReadonlySet<string> = new Set([
   ...Object.keys(EXCLUDED_STORES).map((label) => label.replace(/(\/\{uid\}|\[[^\]]+\])$/, '')),
 ]);
 export const excludedSubcollection = (name: string): boolean =>
-  SCHEDULING_NAME.test(name) || EXCLUDED_NAMES.has(name);
+  SCHEDULING_NAME.test(name) || EXCLUDED_NAMES.has(name) || isSecretField(name);
+
+/** The person's two records: below them, a subcollection is copied only if allowlisted */
+const USER_RECORDS: ReadonlySet<string> = new Set(['bogle_users', 'users']);
+
+/**
+ * The subcollections copied from under bogle_users/{uid} and users/{uid}, at any depth: an
+ * ALLOWLIST, so a store nobody has classified is never copied. copy-user.test.ts reads the
+ * code's writers and fails on a name that is in neither this list nor the exclusions.
+ * Credentials and authenticators are never listed here.
+ */
+export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
+  `
+  action_items action_trust active_context active_predictions ai_notices alarms ambient
+  analytics anomalies anticipatory_planning apology_records associative_memory audit_log
+  background_results behavioral_finance behavioral_intelligence behavioral_patterns
+  behavioral_triggers biometric_readings blind_spots blockers briefings bth_feedback
+  bth_signals burnout_patterns calendar calendar_conflicts calendar_data calendar_events
+  capacity career_data causal_timeseries celebration_balance celebration_momentum celebrations
+  ceo_blockers ceo_decisions ceo_energy ceo_focus_sessions ceo_gratitude ceo_ideas ceo_journal
+  ceo_priorities ceo_reflections ceo_weekly_reviews ceo_wins coach_media_picks
+  coaching_intelligence cognitive_learning commitment_checkins commitment_devices commitments
+  common_ground communication_debts communication_events communication_profiles
+  communication_style concierge_requests conflict_history conflict_records
+  consolidated_memories contemplative_practices contradiction_comfort conversation_patterns
+  conversation_plans conversation_scores conversation_summaries conversation_threads
+  conversations corrections correlations counterfactual_patterns counterfactuals crisis_signals
+  cross_persona_insights custom_agents cyclical_patterns decision_points decision_scores
+  decisions deep_understanding detected_milestones detected_patterns dreams dynamic_entities
+  dynamic_facts dynamic_relationships email_intelligence embedding_intelligence
+  emotion_vocabulary emotional_arcs emotional_patterns emotional_threads energy energy_data
+  energy_interactions energy_readings engagement_events enough_statements entities
+  event_history event_meanings event_pattern_memory event_patterns event_planning event_stories
+  experimentation experiments external_data extracted_facts extraction_history facts
+  favorite_places feedback ferni_actions ferni_commitments financial_data financial_goals
+  financial_profile fire_progress focus_sessions follow_through follow_up_actions follow_ups
+  friction_points future_letters future_self_letters gift_history goal_progress goals gratitude
+  growth_activities growth_markers growth_milestones habit_autopsies habit_completions
+  habit_dna habits handoff_preferences health_metrics health_summaries human_memory
+  human_signals humanization humor_history ideas identity_statements implementation_intentions
+  implicit_preferences important_dates info_preferences inside_jokes insight_tasks insights
+  insights_cache intentionDays intents investment_theses items journal key_moments
+  keystone_observations knowledge_graph knowledge_state learned_expressions learnings
+  legacy_statements life_automation life_chapters life_coaching life_coaching_analytics
+  life_events life_simulations life_synthesis life_theses life_trajectories
+  lifestyle_preferences linguistic_profiles lists marketplace_installs maya_gamification
+  maya_notifications meeting_commitments meeting_interactions meeting_outcomes memories
+  memory_capsules memory_graph_edges memory_highlights memory_links memory_protection
+  memory_state memory_systems meta milestone_detector milestones mind_model moments
+  monetization_fund_contributions monetization_journey monetization_tips
+  monetization_value_capture mood_calendar moods motivational_interviewing move_outcomes
+  music_learning narrative network notes notifications nudge_engine onboarding_arc open_loops
+  paradoxes pattern_mirror pattern_occurrences pattern_predictions patterns persona_affinities
+  persona_bonds persona_interactions persona_life_updates persona_told personal_dates
+  personality_profiles personality_resonance pets planning_coordination portfolio
+  post_event_learning practice_sessions practices pre_briefings predicted_handoffs predictions
+  predictive predictive_insights predictive_intelligence predictive_ml predictive_signals
+  preferences priorities proactive_insights profile promoted_entities protective_boundaries
+  quality_metrics quant_insights question_history reading_between_lines reading_list
+  recovery_events reinforcement_messages relational_graph relational_nodes relationship_arc
+  relationship_connections relationship_milestones relationship_network relationship_nodes
+  relationship_temperatures relationships research_synthesis response_quality
+  revelation_profile rides risk_events routing_preferences sabotage_patterns sanctuary_stats
+  saved_rituals seasonal_observations seasonal_planning self_awareness self_perception_gaps
+  semantic_correlations semantic_intelligence semantic_threads session_quality session_state
+  session_summaries sessions setback_patterns settings shared_memories shared_moments
+  silence_patterns silence_records social_events social_graph special_dates spontaneous_sharing
+  style_profile summaries superhuman superhuman_alerts superhuman_cache superhuman_predictive
+  superhuman_profiles surfaced_content surfacing_events system tasks team team_engagement
+  team_insights temporal_snapshots tendency_signals timers timing_intelligence tool_executions
+  topic_patterns transition_signals trust trust_moments trust_profiles trust_signals turns
+  unified_entities unified_memories unsaid_topics unspoken_needs utility_preferences
+  value_conflicts values visual_memories voice_biomarkers voice_contexts voice_memos
+  voice_prosody voice_sessions vulnerability_deposits vulnerability_tracking wellbeing
+  wellbeing_profile wellbeing_snapshots wins wisdom_incubation wisdom_patterns world_facts
+`
+    .trim()
+    .split(/\s+/)
+);
+
+/** Whether a subcollection is copied: never if excluded, and under a user record only if listed */
+export const copiedSubcollection = (name: string, underUserRecord: boolean): boolean =>
+  !excludedSubcollection(name) && (!underUserRecord || COPIED_SUBCOLLECTIONS.has(name));
 
 /**
  * What is copied: the erasure catalog minus EXCLUDED_STORES. The semantic index (vectors,
@@ -191,7 +324,11 @@ export async function copyUser(opts: {
   };
 
   /** Copy these documents (same paths in dev), then everything under each. */
-  const copyDocs = async (refs: DocumentReference[], count: StoreCount): Promise<void> => {
+  const copyDocs = async (
+    refs: DocumentReference[],
+    count: StoreCount,
+    underUserRecord: boolean
+  ): Promise<void> => {
     for (let i = 0; i < refs.length; i += PAGE) {
       const page = refs.slice(i, i + PAGE);
       const snaps = await source.getAll(...page);
@@ -205,13 +342,14 @@ export async function copyUser(opts: {
         }
         count.copied += 1;
         if (!apply) continue;
-        batch.set(dest.doc(snap.ref.path), rebind(snap.data(), dest) as Record<string, unknown>);
+        const data = withoutProfileTokenFields(snap.data() ?? {});
+        batch.set(dest.doc(snap.ref.path), rebind(data, dest) as Record<string, unknown>);
         if (++pending >= BATCH_LIMIT) await flush();
       }
       for (const ref of page) {
         for (const sub of await ref.listCollections()) {
-          if (excludedSubcollection(sub.id)) continue;
-          await copyDocs(await sub.listDocuments(), count);
+          if (!copiedSubcollection(sub.id, underUserRecord)) continue;
+          await copyDocs(await sub.listDocuments(), count, underUserRecord);
         }
       }
     }
@@ -221,12 +359,13 @@ export async function copyUser(opts: {
     const count: StoreCount = { found: 0, copied: 0, skipped: 0 };
     const collection = source.collection(store.collection);
     if ('doc' in store) {
-      await copyDocs([collection.doc(uid)], count);
+      await copyDocs([collection.doc(uid)], count, USER_RECORDS.has(store.collection));
     } else if ('field' in store) {
       const snap = await collection.where(store.field, '==', uid).select().get();
       await copyDocs(
         snap.docs.map((d) => d.ref),
-        count
+        count,
+        false
       );
     }
     if (count.found > 0) counts[storeLabel(store)] = count;

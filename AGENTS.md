@@ -44,6 +44,12 @@ rules only when `--only` names one entry, so start it with
 `firebase emulators:start --only firestore:ferni-dev` (plain `--only firestore`
 starts with no rules: every read and write allowed).
 
+`scripts/devdb/copy-user.ts --uid <uid>` copies one person's records from prod into
+`ferni-dev` (dry run unless `--apply`). Under `bogle_users/{uid}` and `users/{uid}`
+it copies only the subcollections in its `COPIED_SUBCOLLECTIONS` allowlist, and it
+drops the profile's token fields: credentials, queues and other people's data stay
+in prod. A new subcollection fails `copy-user.test.ts` until it is classified there.
+
 ## How work ships (one small chunk at a time)
 
 1. **Branch from `origin/main`**: `git fetch origin && git switch -c <type>/<slug> origin/main`.
