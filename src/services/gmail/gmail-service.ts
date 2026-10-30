@@ -18,6 +18,8 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { getValidAccessToken, isCalendarConfigured } from '../identity/google-calendar-oauth.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import { isGoogleLinkHonest } from '../../config/google-link-honest.js';
+import { GmailNotPermittedError, isGmailNotPermitted } from './gmail-honesty.js';
 
 const log = getLogger();
 
@@ -132,6 +134,10 @@ async function gmailRequest<T>(
 
     if (!response.ok) {
       const errorText = await response.text();
+      // Flag on: a 403 is "not permitted", which callers must not turn into an empty inbox.
+      if (isGoogleLinkHonest() && isGmailNotPermitted(response.status, errorText)) {
+        throw new GmailNotPermittedError();
+      }
       throw new Error(`Gmail API error: ${response.status} - ${errorText}`);
     }
 
@@ -263,6 +269,7 @@ export async function getInboxMessages(
     log.debug({ userId, count: messages.length }, 'Fetched Gmail messages');
     return messages;
   } catch (error) {
+    if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId }, 'Failed to get Gmail messages');
     return [];
   }
@@ -347,6 +354,7 @@ export async function getInboxStats(userId: string): Promise<InboxStats | null> 
       },
     };
   } catch (error) {
+    if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId }, 'Failed to get inbox stats');
     return null;
   }
@@ -393,6 +401,7 @@ export async function getEmailThread(
       isUnread: messages.some((m) => !m.isRead),
     };
   } catch (error) {
+    if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId, threadId }, 'Failed to get email thread');
     return null;
   }

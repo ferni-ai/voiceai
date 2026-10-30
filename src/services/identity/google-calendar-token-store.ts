@@ -33,6 +33,8 @@ export interface StoredGoogleCalendarTokens {
   /** Epoch ms when access_token expires. */
   expires_at: number;
   scope?: string;
+  /** insufficient_scope: the user's consent left out the calendar (GOOGLE_LINK_HONEST); the link reads as not connected. */
+  status?: string;
   updated_at?: number;
 }
 
