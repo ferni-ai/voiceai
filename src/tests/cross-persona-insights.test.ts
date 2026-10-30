@@ -157,7 +157,7 @@ describe('Alex Communication Insights Builder', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('should activate and return injection for Alex persona', async () => {
+  it('gives a member with no data no briefing at all (#3044: no defaults as facts)', async () => {
     const { buildAlexCommunicationInsightsContext } =
       await import('../intelligence/context-builders/personas/alex-communication-insights/index.js');
 
@@ -167,15 +167,7 @@ describe('Alex Communication Insights Builder', () => {
       persona: { id: 'alex-chen' },
     };
 
-    const result = await buildAlexCommunicationInsightsContext(alexInput as never);
-    expect(result.length).toBeGreaterThan(0);
-    // Check that injection has expected structure
-    expect(result[0]).toHaveProperty('content');
-    expect(result[0]).toHaveProperty('source');
-    // Content should reference Alex in some form
-    const contentLower = (result[0].content || '').toLowerCase();
-    const sourceLower = (result[0].source || '').toLowerCase();
-    expect(contentLower.includes('alex') || sourceLower.includes('alex')).toBe(true);
+    expect(await buildAlexCommunicationInsightsContext(alexInput as never)).toEqual([]);
   });
 });
 
@@ -365,7 +357,7 @@ describe('Maya Coaching Insights Builder', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('should activate and return injection for Maya persona', async () => {
+  it('gives a member with no data no briefing at all (#3044: no 0/100 dashboard)', async () => {
     const { buildMayaCoachingInsightsContext } =
       await import('../intelligence/context-builders/personas/maya-coaching-insights/index.js');
 
@@ -376,47 +368,7 @@ describe('Maya Coaching Insights Builder', () => {
       userData: { turnCount: 0 },
     };
 
-    const result = await buildMayaCoachingInsightsContext(mayaInput as never);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toHaveProperty('content');
-    expect(result[0]).toHaveProperty('source');
-
-    // Content should reference Maya or habit-related terms
-    const contentLower = (result[0].content || '').toLowerCase();
-    expect(
-      contentLower.includes('maya') ||
-        contentLower.includes('habit') ||
-        contentLower.includes('coaching') ||
-        contentLower.includes('streak') ||
-        contentLower.includes('briefing')
-    ).toBe(true);
-  });
-
-  it('should include coaching principles on first turn', async () => {
-    const { buildMayaCoachingInsightsContext } =
-      await import('../intelligence/context-builders/personas/maya-coaching-insights/index.js');
-
-    const mayaInput = {
-      services: { userId: 'test-user-coach', personaId: 'maya-santos', sessionId: 'test-session' },
-      conversationState: {},
-      persona: { id: 'maya-santos' },
-      userData: { turnCount: 0 },
-    };
-
-    const result = await buildMayaCoachingInsightsContext(mayaInput as never);
-
-    // Should include mindset injection with coaching principles
-    const allContent = result
-      .map((r) => r.content || '')
-      .join(' ')
-      .toLowerCase();
-    expect(
-      allContent.includes('compassion') ||
-        allContent.includes('celebrate') ||
-        allContent.includes('progress') ||
-        allContent.includes('patience') ||
-        allContent.includes('small')
-    ).toBe(true);
+    expect(await buildMayaCoachingInsightsContext(mayaInput as never)).toEqual([]);
   });
 });
 
@@ -728,19 +680,8 @@ describe('E2E Handoff Chain Tests', () => {
       userData: { turnCount: 0 },
       persona: { id: 'maya-santos' },
     };
-    const mayaResult = await buildMayaCoachingInsightsContext(mayaInput as never);
-    expect(mayaResult.length).toBeGreaterThan(0);
-
-    // Maya should have coaching context
-    const mayaContent = mayaResult
-      .map((r) => r.content || '')
-      .join(' ')
-      .toLowerCase();
-    expect(
-      mayaContent.includes('coaching') ||
-        mayaContent.includes('habit') ||
-        mayaContent.includes('maya')
-    ).toBe(true);
+    // No data and no handoff in this call: Maya has nothing true to brief (#3044)
+    expect(await buildMayaCoachingInsightsContext(mayaInput as never)).toEqual([]);
   });
 
   it('should support Jordan → Nayan handoff for deep questions', async () => {

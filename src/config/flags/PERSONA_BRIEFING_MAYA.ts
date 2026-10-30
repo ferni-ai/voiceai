@@ -1,8 +1,8 @@
 import type { FlagSpec } from '../flag-spec.js';
 
 // on: Maya gets her coaching briefing (maya-coaching-insights) at call start and on handoffs (#2836).
-// It never ran on a call before #2836. Off until it is fixed: a caller with no habits gets a 0/100
-// metrics dashboard and "Overall consistency needs support" as a struggle to address.
+// It never ran on a call before #2836. It no longer shows defaults as facts (#3044), but it reads
+// enhancedHabits, which nothing on the live path writes: real habit data waits on lane S6 (one store).
 export const PERSONA_BRIEFING_MAYA = {
   default: 'off',
   owner: 'intelligence',

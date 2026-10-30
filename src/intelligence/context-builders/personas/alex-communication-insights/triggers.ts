@@ -172,15 +172,5 @@ export function detectProactiveTriggers(
     });
   }
 
-  // Optimal timing suggestions
-  if (userState.optimalCommunicationWindow) {
-    triggers.push({
-      type: 'reminder',
-      message: `Best communication window: ${userState.optimalCommunicationWindow}`,
-      priority: 'low',
-      timing: 'when_relevant',
-    });
-  }
-
   return triggers;
 }
