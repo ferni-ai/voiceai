@@ -52,7 +52,6 @@ import {
   handleEcobeeRoutes,
   handleSmartHomeRoutes,
   handleVibeRoutes,
-  handleEightSleepRoutes,
   handleOuraRoutes,
   handleAppleHealthRoutes,
   handleAppleNotification,
@@ -365,11 +364,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // Push notification routes
   if (pathname.startsWith('/api/push')) {
     if (await handlePushRoutes(req, res, pathname)) return;
-  }
-
-  // Eight Sleep routes
-  if (pathname.startsWith('/api/eight-sleep')) {
-    if (await handleEightSleepRoutes(req, res, pathname, parsedUrl)) return;
   }
 
   // Oura Ring routes
