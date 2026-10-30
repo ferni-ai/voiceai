@@ -64,6 +64,7 @@ import { callMeNote } from './call-me-note.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
+import { noteCallReportReached, turnRequestFor } from './turn-call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
@@ -148,11 +149,12 @@ export function withTurnReminder(
     return buildTurnReminder(request, session, options);
   } catch (error) {
     log.warn({ error: String(error) }, "TURN_REMINDER_FAILED: replying without this turn's notes");
-    return request;
+    const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+    return turnRequestFor(request, sessionId, options.shape === false)[0]; // never throws
   }
 }
 
-type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean };
+type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
@@ -165,16 +167,17 @@ function buildTurnReminder(
   session: object,
   options: TurnReminderOptions
 ): llm.ChatContext {
-  const chatCtx = withoutStaleTurnContext(request);
+  const crisis = options.shape === false;
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  const [chatCtx, waits] = turnRequestFor(withoutStaleTurnContext(request), sessionId, crisis);
   // An invitation to open with a sound is for one request only (vocal-bursts.ts).
   clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
-  const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
-  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  noteCallReportReached(sessionId, chatCtx, { latest: words, held: options.held, crisis: waits });
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''
