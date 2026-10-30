@@ -34,7 +34,7 @@ import { checkRun, parseChecks } from '../recall-facts.mjs';
 import { claimedContact, falseMusicClaims } from './false-done.mjs';
 import { recallValue } from './recall-score.mjs';
 import { loadBar, prevBar, renderBar, scoreBar } from './superhuman.mjs';
-import { gradeRun } from './tool-grounding.mjs';
+import { nightGrounding } from './tool-grounding.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCENARIOS = join(HERE, '..', 'scenarios');
@@ -62,6 +62,7 @@ export function loadNight(out) {
         base,
         scenario: run?.meta?.scenario ?? base.replace(/-[^-]+$/, ''),
         run,
+        seed: run?.meta?.seed ? readJson(join(dir, `${base}.seed.json`)) : null,
         score: readJson(join(dir, f)),
         judge: readJson(join(dir, `${base}.judge.json`)),
         summary: summary.get(`${base}.json`) ?? null,
@@ -102,15 +103,8 @@ export function metric(check, runs, caps, extra = {}) {
       };
     case 'claimedMusic': // false-done.mjs: "it's playing now" with no music_state playing (report only)
       return { value: n ? t.filter((r) => falseMusicClaims(r.run).length).length : null, n };
-    case 'toolGrounding': {
-      // tool-grounding.mjs: calls that said a number or name their lookup tool's output doesn't
-      // back. Only calls with a lookup turn and analyze.py's tool_outputs measured anything.
-      const g = runs
-        .filter((r) => r.run && Array.isArray(r.summary?.tool_outputs))
-        .map((r) => gradeRun(r.run, r.summary.tool_outputs))
-        .filter((x) => x.turns);
-      return { value: g.length ? g.filter((x) => x.invented).length : null, n: g.length };
-    }
+    case 'toolGrounding': // tool-grounding.mjs: a number or name no lookup output backs
+      return nightGrounding(runs);
     case 'recall': // recall-eval.mjs's numbers (OUT/recall.json); a planted-regression run is no data
       return extra.recall?.plant ? { value: null, n: 0 } : recallValue(extra.recall, check.field);
     case 'callsNotMatching':

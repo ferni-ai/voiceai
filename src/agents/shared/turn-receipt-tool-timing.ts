@@ -20,8 +20,8 @@
  * - `timing.handoffSteps`: llm-handoff.ts's voiceSwitch event, lock and start
  *   messages, to split the handoff's wait between the tool and the goodbye.
  * - `tools.outcomes[]`: per executed tool, in the order of `tools.called`, what it came to
- *   (data, no_data, unconfigured, error, not_connected; tool-outcome.ts). The output is read
- *   where it passes and only the enum is kept.
+ *   (data, no_data, unconfigured, error, not_connected; tool-outcome.ts), or unknown when its
+ *   output isn't in the event. The output is read where it passes and only the enum is kept.
  *
  * These hooks run inside the SDK's tool start (SpeechHandle._itemAdded loops its
  * callbacks with no catch), llmNode and the session's events, so none of them
@@ -141,10 +141,13 @@ export function endToolRuns(s: ToolSteps, now: () => number, ev?: ToolsExecutedV
   });
   safely(() => {
     const outs = ev?.functionCallOutputs ?? [];
-    (ev?.functionCalls ?? []).forEach((call, i) => {
-      const out = (call.callId && outs.find((o) => o?.callId === call.callId)) || outs[i];
+    const calls = ev?.functionCalls ?? [];
+    // With call ids, only an id match counts: a missing output must not take its neighbour's.
+    const byId = calls.some((c) => c.callId);
+    calls.forEach((call, i) => {
+      const out = byId ? outs.find((o) => o?.callId && o.callId === call.callId) : outs[i];
       if (s.outcomes.length < MAX_ENTRIES)
-        s.outcomes.push(receiptToolOutcome(out?.output, out?.isError === true));
+        s.outcomes.push(out ? receiptToolOutcome(out.output, out.isError === true) : 'unknown');
     });
   });
 }

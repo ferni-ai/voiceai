@@ -10,8 +10,11 @@
 // (event.functionCallOutputs[]), which analyze.py keeps per call as summary.json tool_outputs
 // with atMs (agent clock minus run.wallT0), so each output is graded against the reply of the
 // caller turn it ran in. Formatting is matched, not guessed at: "39°F" backs "thirty-nine
-// degrees" (and 4 °C), "1:05" backs "an hour and five minutes" (and 65 minutes), "3.4" backs 3.
-// Lexical, so it can miss a paraphrased invention; it can't pass a new number or proper name.
+// degrees" (and 4 °C), "1:05" backs "an hour and five minutes", 19:00 backs "seven PM", 534
+// minutes backs "nine hours", a 3-item list backs "three", an ISO date backs its weekday, and a
+// number within 5% backs "about forty". Lexical, so the nightly reports it only (capabilities.json
+// tool-grounding, never exit 1) until real nights grade clean; #3143's verify found the first
+// version's false positives, now regression tests.
 //
 // usage: tool-grounding.mjs <run.json> <agent-log.jsonl>   (one call's log lines; prints JSON)
 import { readFileSync, realpathSync } from 'node:fs';
@@ -20,83 +23,129 @@ import { pathToFileURL } from 'node:url';
 /** A tool whose output is information to relay (getWeather, searchWeb, findRestaurants...). */
 export const isLookupTool = (name) => /^(?:get|search|find|lookup|check)[A-Z]/.test(name ?? '');
 
-const UNITS =
+const SMALL =
   'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'.split(
     ' '
   );
-const TENS = {
-  twenty: 20,
-  thirty: 30,
-  forty: 40,
-  fifty: 50,
-  sixty: 60,
-  seventy: 70,
-  eighty: 80,
-  ninety: 90,
-};
+const TENS = Object.fromEntries(
+  'twenty thirty forty fifty sixty seventy eighty ninety'.split(' ').map((w, i) => [w, 20 + i * 10])
+);
+const isNumberWord = (w) => SMALL.includes(w) || w in TENS;
+const isScale = (w) => w === 'hundred' || w === 'thousand';
 
-/** Spoken numbers, minus zero and one (too common as words). "twenty twenty-eight" is 2028. */
+/** One run of number words as numbers: "nine hundred and sixty" 960, "twenty twenty-eight" 2028. */
+function parseRun(words) {
+  const out = [];
+  let [total, cur, prev, big] = [0, 0, null, false];
+  const flush = () => {
+    if (prev) out.push({ v: total + cur, big });
+    [total, cur, prev, big] = [0, 0, null, false];
+  };
+  for (const w of words) {
+    if (w === 'and') continue;
+    if (isScale(w)) {
+      if (w === 'hundred') cur = (cur || 1) * 100;
+      else [total, cur] = [total + (cur || 1) * 1000, 0];
+      [prev, big] = ['H', true];
+      continue;
+    }
+    const v = w === 'a' ? 1 : (TENS[w] ?? SMALL.indexOf(w));
+    const kind = v < 10 ? 'u' : v < 20 ? 't' : 'T';
+    if (prev === 'u' || prev === 't' || (prev === 'T' && kind !== 'u')) flush(); // "eight thirty"
+    [cur, prev] = [cur + v, kind];
+  }
+  flush();
+  if (out.length === 2 && out.every((n) => !n.big && n.v >= 10 && n.v < 100))
+    return [out[0].v * 100 + out[1].v];
+  return out.filter((n) => n.big || n.v > 1).map((n) => n.v); // a lone "one" is a word, not data
+}
+
+/** Spoken numbers in text, a run of number words at a time; punctuation ends a run. */
 function spokenNumbers(text) {
-  const toks =
+  if (/[,.;:!?]/.test(text)) return text.split(/[,.;:!?]+/).flatMap(spokenNumbers);
+  const t =
     text
       .toLowerCase()
       .replace(/-/g, ' ')
       .match(/[a-z]+/g) ?? [];
   const out = [];
-  let prev = null; // the number that ended on the token before, for years
-  for (let i = 0; i < toks.length; i++) {
-    let v = null;
-    if (toks[i] in TENS) {
-      v = TENS[toks[i]];
-      const u = UNITS.indexOf(toks[i + 1]);
-      if (u >= 1 && u <= 9) ((v += u), i++);
-    } else if (UNITS.indexOf(toks[i]) >= 2) v = UNITS.indexOf(toks[i]);
-    if (v !== null && toks[i + 1] === 'hundred') ((v *= 100), i++);
-    if (v === null) {
-      prev = null;
-      continue;
+  let run = [];
+  t.forEach((w, i) => {
+    const joins =
+      isNumberWord(w) ||
+      (isScale(w) && run.length) ||
+      (w === 'a' && isScale(t[i + 1])) ||
+      (w === 'and' && run.some(isScale) && isNumberWord(t[i + 1]));
+    if (joins) return void run.push(w);
+    out.push(...parseRun(run));
+    run = [];
+  });
+  return [...out, ...parseRun(run)];
+}
+
+/** How many items each JSON list in a tool output holds ("I found three" for a 3-item list). */
+function listCounts(text) {
+  const counts = [];
+  const walk = (v) => {
+    if (Array.isArray(v)) counts.push(v.length);
+    if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    if (typeof v === 'string' && /^\s*[[{]/.test(v)) walk(parse(v));
+  };
+  const parse = (v) => {
+    try {
+      return JSON.parse(v);
+    } catch {
+      return null;
     }
-    if (prev !== null && prev >= 10 && prev < 100 && v >= 10 && v < 100) {
-      out.push(out.pop() * 100 + v); // a year said in two halves is one number
-      prev = null;
-      continue;
-    }
-    out.push(v);
-    prev = v;
-  }
-  return out;
+  };
+  walk(parse(text));
+  return counts;
 }
 
 /** Every number a text states, with what its formatting makes derivable. */
 export function numbersIn(text, { derive = false } = {}) {
   const s = String(text).replace(/(\d),(?=\d{3})/g, '$1');
   const out = new Set(spokenNumbers(s));
+  const add = (...vs) => vs.forEach((v) => Number.isFinite(v) && out.add(Math.round(v)));
   for (const m of s.matchAll(/(?<![\d.])(\d{1,6})(?:\.(\d+))?(?!\d)/g)) {
     const v = Number(m[2] ? `${m[1]}.${m[2]}` : m[1]);
-    out.add(Math.round(v));
-    if (derive) out.add(Math.floor(v)).add(Math.ceil(v));
+    add(v);
+    if (derive) add(Math.floor(v), Math.ceil(v));
   }
   if (!derive) return out;
-  for (const m of s.matchAll(/(\d{1,2}):(\d{2})(?!\d)/g)) out.add(Number(m[1]) * 60 + Number(m[2]));
-  for (const m of s.matchAll(
-    /(\d+)\s*(?:hours?|hrs?|h)\b\s*(?:and\s*)?(\d+)\s*(?:minutes?|mins?|m)\b/gi
-  ))
-    out.add(Number(m[1]) * 60 + Number(m[2]));
-  for (const m of s.matchAll(/(-?\d+(?:\.\d+)?)\s*°?\s*([FC])\b/g)) {
-    const v = Number(m[1]);
-    out.add(Math.round(m[2] === 'F' ? ((v - 32) * 5) / 9 : (v * 9) / 5 + 32));
-  }
+  const each = (re, f) => [...s.matchAll(re)].forEach((m) => add(...f(m.slice(1).map(Number), m)));
+  each(/(\d{1,2}):(\d{2})(?!\d)/g, ([h, m]) => [h * 60 + m, h % 12 || 12, h + m / 60]); // 19:00 is 7
+  each(/(\d{1,2})(?::\d{2})?\s*p\.?m\b/gi, ([h]) => [h + 12]); // 7pm is 19
+  each(/(\d+)\s*(?:hours?|hrs?|h)\b\s*(?:and\s*)?(\d+)\s*(?:minutes?|mins?|m)\b/gi, ([h, m]) => [
+    h * 60 + m,
+  ]);
+  each(/(\d+)\s*(?:minutes?|mins?)\b/gi, ([m]) => [m / 60, Math.floor(m / 60)]); // 534 min, 9 hours
+  each(/(\d+)\s*(?:hours?|hrs?)\b/gi, ([h]) => [h * 60]);
+  each(/(\d+(?:\.\d+)?)\s*(km|kilomet)/gi, ([v]) => [v / 1.609]);
+  each(/(\d+(?:\.\d+)?)\s*(mi\b|miles?)/gi, ([v]) => [v * 1.609]);
+  each(/(-?\d+(?:\.\d+)?)\s*°?\s*([FC])\b/g, ([v], m) => [
+    m[2] === 'F' ? ((v - 32) * 5) / 9 : (v * 9) / 5 + 32,
+  ]);
+  add(...listCounts(s));
   return out;
 }
 
-// Capitalised words that are not entities: openers, pronouns, units, the team and the eval caller.
+/** A reply number is backed when the tool or caller said it, or one within 5% ("about forty"). */
+const backedNumber = (n, backed) =>
+  backed.has(n) || [...backed].some((b) => b >= 20 && Math.abs(n - b) <= 0.05 * b);
+
+// Capitalised words that are not entities: openers, pronouns, units, times of day, the team and
+// the eval caller (EVAL_CALLER_NAME, as score.mjs reads it).
 const STOP = new Set(
   `I I'm I'll I've I'd Ferni Sam Maya Jordan Alex Nayan Peter Okay Ok Oh Yeah Yes Hey Hi Hmm Well So
   And But Let Sure Nice Good Great That This It It's There Here What Want Do Does Did You Your If Or
   Is Are Just No Not Also Honestly Right Then Now Maybe Sounds Looks Alright Plus Anything Sorry Hope
   Totally Thanks Try Want The A An My We How Why When Where Which Who Wow Ah Mm Anyway Actually
-  Celsius Fahrenheit`.split(/\s+/)
+  Celsius Fahrenheit Today Tonight Tomorrow Yesterday AM PM ${process.env.EVAL_CALLER_NAME ?? ''}`
+    .split(/\s+/)
+    .filter(Boolean)
 );
+const WEEKDAYS = 'sunday monday tuesday wednesday thursday friday saturday'.split(' ');
 const ABBR = Object.fromEntries(
   `st:street ave:avenue rd:road blvd:boulevard dr:drive ln:lane hwy:highway mt:mount mon:monday
   tue:tuesday wed:wednesday thu:thursday fri:friday sat:saturday sun:sunday jan:january
@@ -116,6 +165,38 @@ const wordsOf = (text) =>
       .match(/[\p{L}\d]+/gu) ?? []
   ).map((w) => ABBR[w] ?? w);
 
+/** Words a text backs: its own, and the weekday of each ISO date in it. */
+const backingWords = (text) =>
+  new Set([
+    ...wordsOf(text),
+    ...[...String(text).matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)].map(
+      (m) => WEEKDAYS[new Date(`${m[1]}T12:00:00Z`).getUTCDay()]
+    ),
+  ]);
+/** A name's capitalised words, spelled out ("Fahrenheit-wise" is Fahrenheit, a unit). */
+const nameWords = (name) =>
+  name
+    .split(/[\s-]+/)
+    .filter((p) => /^\p{Lu}/u.test(p) && !STOP.has(p))
+    .flatMap(wordsOf)
+    .filter((w) => !CONNECTORS.has(w) && w.length > 1);
+/** Backed as said, or as its singular or plural ("Australians" by "Australian"). */
+const backedWord = (w, words) =>
+  [w, w.replace(/e?s$/, ''), w.replace(/s$/, ''), `${w}s`].some((x) => words.has(x));
+
+// Not graded: someone addressed by name ("Morning, Seth."), and what Ferni says he remembers
+// ("you told me your mom flies in from Ohio"), which is memory, not this turn's lookup.
+const ADDRESSED =
+  /(,\s*|\b(?:hey|hi|hello|morning|evening|afternoon|night|thanks|okay)\s+)\p{Lu}[\p{L}'’]*(?=\s*[,.!?](?:\s|$))/gu;
+const RECALLED =
+  /\b(?:you (?:told|said|mentioned)|you were (?:saying|telling)|i remember|remember (?:you|when)|last time)\b/i;
+const gradedText = (reply) =>
+  reply
+    .replace(ADDRESSED, '$1')
+    .split(/(?<=[.!?;])\s+/)
+    .filter((clause) => !RECALLED.test(clause))
+    .join(' ');
+
 /** Capitalised runs ("Thai Orchid", "Congress Avenue"), skipping a sentence's own first word. */
 export function namesIn(text) {
   const out = [];
@@ -131,6 +212,26 @@ export function namesIn(text) {
   return out;
 }
 
+/** A run's caller lines, final captions only. */
+const callerLines = (run) =>
+  finals((run?.events ?? []).map((e) => ({ ...e, text: String(e.text ?? '') })))
+    .filter((e) => e.who === 'user')
+    .map((e) => e.text)
+    .join(' ');
+
+/**
+ * The nightly metric (capabilities.json lookups.invented-data): calls with a lookup turn that said
+ * something nothing backs. Only calls with analyze.py's tool_outputs measure anything; a seeded
+ * call's seed run is the caller's known history.
+ */
+export function nightGrounding(runs) {
+  const g = runs
+    .filter((r) => r.run && Array.isArray(r.summary?.tool_outputs))
+    .map((r) => gradeRun(r.run, r.summary.tool_outputs, { context: callerLines(r.seed) }))
+    .filter((x) => x.turns);
+  return { value: g.length ? g.filter((x) => x.invented).length : null, n: g.length };
+}
+
 /** Only the final caption of a line that grew ("Let" then "Let me look."). */
 function finals(events) {
   const out = [];
@@ -144,17 +245,16 @@ function finals(events) {
 
 /**
  * Grade one run. tools: [{ name, isError, output, atMs }] (atMs from run.wallT0; without it,
- * every output is graded against every reply). Returns { turns, invented, details }: turns that
- * called a lookup tool, how many said something no output backs, and per turn what it said.
+ * every output is graded against every reply). context: what else the caller is known to have
+ * said (a seeded call's caller lines, which memory recall can repeat). Returns { turns, invented,
+ * details }: turns that called a lookup tool, how many said something nothing backs, and per
+ * turn what it said.
  */
-export function gradeRun(run, tools) {
+export function gradeRun(run, tools, { context = '' } = {}) {
   const lookups = (tools ?? []).filter((o) => isLookupTool(o?.name));
   const events = finals((run?.events ?? []).map((e) => ({ ...e, text: String(e.text ?? '') })));
   const starts = (run?.userSpeech ?? []).map((s) => s[0]).sort((a, b) => a - b);
-  const callerText = events
-    .filter((e) => e.who === 'user')
-    .map((e) => e.text)
-    .join(' ');
+  const callerText = `${callerLines(run)} ${context}`;
   const turns = new Map(); // turn start -> outputs
   for (const o of lookups) {
     const at = Number.isFinite(o.atMs) && starts.length ? o.atMs : null;
@@ -173,19 +273,18 @@ export function gradeRun(run, tools) {
       .filter((e) => e.who === 'user' && e.t >= from && e.t < end)
       .map((e) => e.text)
       .join(' ');
-    const toolText = outs
-      .map((o) => (typeof o.output === 'string' ? o.output : JSON.stringify(o.output ?? '')))
-      .join(' ');
-    const backedNums = new Set([
-      ...numbersIn(toolText, { derive: true }),
+    const texts = outs.map((o) =>
+      typeof o.output === 'string' ? o.output : JSON.stringify(o.output ?? '')
+    );
+    const nums = new Set([
+      ...texts.flatMap((t) => [...numbersIn(t, { derive: true })]),
       ...numbersIn(callerText),
     ]);
-    const backedWords = new Set(wordsOf(`${toolText} ${callerText}`));
+    const words = backingWords(`${texts.join(' ')} ${callerText}`);
+    const graded = gradedText(reply);
     const invented = [
-      ...[...numbersIn(reply)].filter((n) => !backedNums.has(n)),
-      ...namesIn(reply).filter((name) =>
-        wordsOf(name).some((w) => !CONNECTORS.has(w) && w.length > 1 && !backedWords.has(w))
-      ),
+      ...[...numbersIn(graded)].filter((n) => !backedNumber(n, nums)),
+      ...namesIn(graded).filter((name) => nameWords(name).some((w) => !backedWord(w, words))),
     ];
     details.push({ tools: outs.map((o) => o.name), question: said, reply, invented });
   }

@@ -12,7 +12,15 @@ import { receiptToolOutcome } from '../../voice-agent/tool-outcome.js';
 
 const PRIVATE = 'Jane Doe, 555-0100, 39°F at 12 Fictional Lane';
 
-function turnWith(calls: Array<{ name: string; output?: unknown; isError?: boolean }>) {
+type Call = {
+  name: string;
+  output?: unknown;
+  isError?: boolean;
+  missing?: boolean;
+  noId?: boolean;
+};
+
+function turnWith(calls: Call[]) {
   const session = new EventEmitter();
   const receipts: TurnReceipt[] = [];
   const detach = attachTurnReceipts(session as never, {
@@ -26,10 +34,17 @@ function turnWith(calls: Array<{ name: string; output?: unknown; isError?: boole
     item: llm.ChatMessage.create({ role: 'user', content: 'what is the weather' }),
   });
   session.emit('function_tools_executed', {
-    functionCalls: calls.map((c, i) => ({ callId: `c${i}`, name: c.name })),
+    functionCalls: calls.map((c, i) => ({ callId: c.noId ? undefined : `c${i}`, name: c.name })),
     // Outputs in reverse order: matched by callId, not position.
     functionCallOutputs: calls
-      .map((c, i) => ({ callId: `c${i}`, name: c.name, output: c.output, isError: c.isError }))
+      .map((c, i) => ({
+        callId: c.noId ? undefined : `c${i}`,
+        name: c.name,
+        output: c.output,
+        isError: c.isError,
+        missing: c.missing,
+      }))
+      .filter((o) => !o.missing)
       .reverse(),
   });
   session.emit('conversation_item_added', {
@@ -61,6 +76,24 @@ describe('TURN_RECEIPT tools.outcomes', () => {
     const line = JSON.stringify(r);
     for (const s of ['Jane', '555-0100', 'Fictional', 'thai', 'Spotify isn'])
       expect(line).not.toContain(s);
+  });
+
+  it('with call ids, a missing output is unknown and never takes a neighbour by position', () => {
+    const [r] = turnWith([
+      { name: 'getWeather', output: '"39°F"' },
+      { name: 'searchWeb', missing: true },
+      { name: 'getNews', output: 'boom', isError: true },
+    ]);
+    expect(r.tools.outcomes).toEqual(['data', 'unknown', 'error']);
+  });
+
+  it('without call ids, outputs pair with calls by position', () => {
+    const [r] = turnWith([
+      { name: 'getNews', output: 'boom', isError: true, noId: true },
+      { name: 'getWeather', output: '"39°F"', noId: true },
+    ]);
+    // turnWith reverses outputs, so by position the first call gets the second output.
+    expect(r.tools.outcomes).toEqual(['data', 'error']);
   });
 
   it('a turn with no tools has an empty list', () => {

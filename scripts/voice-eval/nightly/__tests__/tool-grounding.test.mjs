@@ -251,3 +251,218 @@ describe('what is graded', () => {
     expect(runCli(tamper(DENVER, 'thirty-nine', 'fifty-five'))).toBe(1);
   });
 });
+
+// #3143 verify round 1: the independent fixtures (/Volumes/Work/verify/3143-logs/fixtures.mjs),
+// names made fictional, and the replies from the real 10-28 and 10-30 nightlies that the first
+// version flagged. One caller turn at 1000 ms, the tool at 3000 ms, the reply at 4000 ms.
+describe('verify round 1: independent fixtures', () => {
+  const one = (q, reply, name, output, context) =>
+    gradeRun(
+      {
+        userSpeech: [[1000, 2500]],
+        events: [
+          { who: 'user', t: 1000, text: q },
+          { who: 'agent', t: 4000, text: reply },
+        ],
+      },
+      [{ name, isError: false, output, atMs: 3000 }],
+      { context }
+    );
+  const INVENTED = [
+    [
+      'places',
+      'Thai place in Austin?',
+      'Try Lotus Garden or the Saffron Room.',
+      'findRestaurants',
+      '"No results for thai near Austin."',
+    ],
+    [
+      'unmentioned street',
+      'Thai place in Austin?',
+      'Thai Kitchen is good, it is over on Guadalupe Street.',
+      'findRestaurants',
+      '"Thai Kitchen (4.5 stars), 3009 Lamar Blvd"',
+    ],
+    [
+      'temperature',
+      'Weather in Denver?',
+      "It's sixty-two degrees and sunny.",
+      'getWeather',
+      '"Denver: 39°F, sunny, humidity 40%"',
+    ],
+    [
+      'percent',
+      'Rain tomorrow?',
+      "There's about a sixty percent chance of rain.",
+      'getWeatherForecast',
+      '"Tomorrow: 50°/41°, drizzle, 76% chance of rain"',
+    ],
+    [
+      'price',
+      'Flight to Phoenix?',
+      'The cheapest is one hundred forty-nine dollars on Southwest.',
+      'searchFlights',
+      '"Cheapest: $212 on Southwest, departs 7:05am"',
+    ],
+    [
+      'time, empty output',
+      'When does the pharmacy close?',
+      'It closes at nine tonight.',
+      'searchWeb',
+      '""',
+    ],
+    [
+      'time, no results',
+      'When does the pharmacy close?',
+      'It closes around eight thirty.',
+      'searchWeb',
+      '"No results for pharmacy hours."',
+    ],
+  ];
+  const FAITHFUL = [
+    [
+      'about forty for 39°F',
+      'Weather?',
+      "It's about forty degrees, pretty cloudy.",
+      'getWeather',
+      '"Denver: 39°F, mostly cloudy"',
+    ],
+    [
+      'a little after five',
+      'Sunset?',
+      'Sunset is a little after five tonight.',
+      'getWeather',
+      '"Sunset 5:07 PM, sunrise 7:12 AM"',
+    ],
+    [
+      'nine hundred and sixty km, nine hours',
+      'How far to Zion?',
+      "It's around nine hundred and sixty kilometers, about nine hours.",
+      'getCommuteTime',
+      '"Distance: 961 km. Current time: 534 minutes"',
+    ],
+    [
+      "the caller's own names",
+      'Is Blue Sushi on Pearl Street good? My friend Marisol loves it.',
+      'Blue Sushi gets solid reviews, and if Marisol loves it, Pearl Street is fun.',
+      'searchLocalBusinesses',
+      '"Blue Sushi Sake Grill: 4.3 stars"',
+    ],
+    [
+      'sentence-start caps, abbreviated weekdays',
+      'This weekend?',
+      'Okay so, Saturday looks wet. Sunday clears up. Honestly, Monday is nicest.',
+      'getWeatherForecast',
+      '"Sat: rain 80%. Sun: 55°. Mon: 60°, sunny"',
+    ],
+    [
+      'weekdays over ISO dates',
+      'Rain this weekend?',
+      'Rain on Saturday, then it dries out by Sunday.',
+      'getWeatherForecast',
+      '{"days":[{"date":"2026-10-31","summary":"rain"},{"date":"2026-11-01","summary":"clear"}]}',
+    ],
+    [
+      'a count of the list',
+      'Thai places near me?',
+      'I found three nearby: Thai Orchid, Bangkok Garden and Siam House.',
+      'findRestaurants',
+      '[{"name":"Thai Orchid"},{"name":"Bangkok Garden"},{"name":"Siam House"}]',
+    ],
+    [
+      'the caller addressed by name',
+      'Weather?',
+      "Morning, Robin. It's thirty-nine and cloudy.",
+      'getWeather',
+      '"39°F, cloudy"',
+    ],
+    [
+      'seven PM for 19:00',
+      'When does the game start?',
+      'Tipoff is at seven PM tonight.',
+      'getSports',
+      '"Nuggets vs Lakers, 19:00 local"',
+    ],
+    [
+      'a plural demonym',
+      'Any news?',
+      'Australians are following a big court appeal today.',
+      'getNews',
+      '"Australian mushroom murderer loses appeal"',
+    ],
+    [
+      'a unit and a time word mid-sentence',
+      'Weather?',
+      "It's cloudy, Fahrenheit-wise thirty-nine, and Tomorrow looks better.",
+      'getWeather',
+      '"39F cloudy; tomorrow sunny"',
+    ],
+    [
+      'a remembered fact on a lookup turn',
+      'My calendar?',
+      "Your calendar isn't connected, but you told me your mom flies in from Ohio next Saturday.",
+      'getCalendarToday',
+      '"No calendar is connected yet."',
+    ],
+    [
+      'half past nine',
+      'When does it open?',
+      'It opens at half past nine.',
+      'searchLocalBusinesses',
+      '"Opens 9:30 AM"',
+    ],
+    ['°F to °C', 'In Celsius?', "That's about four degrees Celsius.", 'getWeather', '"39°F"'],
+  ];
+  it.each(INVENTED)('red: %s', (_, ...fx) => expect(one(...fx).invented).toBe(1));
+  it.each(FAITHFUL)('green: %s', (_, ...fx) => expect(one(...fx).details[0].invented).toEqual([]));
+
+  it('reads a fact the caller gave in a seeded call (context) as theirs', () => {
+    const fx = [
+      'My calendar?',
+      'Your mom lands from Ohio on Saturday.',
+      'getCalendarToday',
+      '"No calendar is connected yet."',
+    ];
+    expect(one(...fx).details[0].invented).toEqual(['Ohio', 'Saturday']);
+    expect(one(...fx, 'My mom flies in from Ohio next Saturday.').invented).toBe(0);
+  });
+
+  it('reads 12-hour and 24-hour times both ways', () => {
+    const fx = (reply, out) => one('When?', reply, 'getSports', out).details[0].invented;
+    expect(fx('Tipoff is at 19:30.', '"Tipoff 7:30 PM"')).toEqual([]);
+    expect(fx('Tipoff is at seven thirty.', '"Tipoff 19:30"')).toEqual([]);
+    expect(fx('Tipoff is at 20:30.', '"Tipoff 7:30 PM"')).toEqual([20]);
+  });
+
+  it('parses spoken numbers whole', () => {
+    expect([...numbersIn('nine hundred and sixty')]).toEqual([960]);
+    expect([...numbersIn('one hundred forty-nine')]).toEqual([149]);
+    expect([...numbersIn('two thousand three hundred and five')]).toEqual([2305]);
+    expect([...numbersIn('a hundred, eight thirty, one thing')]).toEqual([100, 8, 30]);
+  });
+
+  it.each([
+    // nightly 2026-10-30, lookups: the drive the first version flagged
+    [
+      'How long to drive to Zion from here?',
+      "Looks like it's about nine hours of driving, around nine hundred and sixty kilometers.",
+      'getCommuteTime',
+      '"Zion National Park: 961 km, about 534 minutes in current traffic."',
+    ],
+    [
+      'Any news?',
+      'Looks like Australians are dealing with a mushroom murder appeal being lost.',
+      'getNews',
+      '"Australian mushroom murderer loses appeal."',
+    ],
+    // nightlies 10-28 and 10-30, memory-recall on a calendar turn
+    [
+      'What do I have going on?',
+      "We haven't hooked up your calendar yet. But I do remember you saying your mom flies in from Ohio next Saturday.",
+      'getCalendarToday',
+      '"No calendar is connected yet."',
+    ],
+  ])('real nightly reply stays green: %s', (...fx) => {
+    expect(one(...fx).details[0].invented).toEqual([]);
+  });
+});

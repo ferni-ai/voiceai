@@ -74,7 +74,8 @@ export function linkOutcome(callId: string | undefined): LinkOutcome | undefined
  * unlinked account `not_connected`; a missing key or disabled service `unconfigured`; an empty
  * or "no results" reply `no_data`; anything else `data`.
  */
-export type ReceiptToolOutcome = 'data' | 'no_data' | 'unconfigured' | 'error' | 'not_connected';
+export type ReceiptToolOutcome =
+  'data' | 'no_data' | 'unconfigured' | 'error' | 'not_connected' | 'unknown'; // the call's output wasn't in the event (turn-receipt-tool-timing.ts)
 
 const NOT_CONNECTED =
   /\b(?:isn't|is not|not|aren't) (?:connected|linked)\b|\b(?:link|connect) your (?:\w+ )?account\b|\blink your spotify\b/i;

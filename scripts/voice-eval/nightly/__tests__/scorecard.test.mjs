@@ -449,7 +449,7 @@ describe('a FAIL that turns into no data', () => {
 });
 
 // tool-grounding.mjs through the scorecard: analyze.py's tool_outputs against the run's reply.
-describe('lookups invented-data (tool grounding)', () => {
+describe('tool-grounding invented-data (report only)', () => {
   const lookup = (reply, output = '"Right now in Denver, Colorado: 39°F with mostly cloudy."') =>
     run('lookups', [reply], {
       run: {
@@ -468,31 +468,54 @@ describe('lookups invented-data (tool grounding)', () => {
         tool_outputs: [{ name: 'getWeather', isError: false, output, atMs: 14327 }],
       },
     });
+  const grounding = (card) => check(card, 'tool-grounding', 'invented-data');
 
   it('PASSes a reply that says what the tool returned', () => {
     const card = scoreNight([lookup('About thirty-nine degrees and cloudy.')], caps);
-    expect(check(card, 'lookups', 'invented-data')).toMatchObject({
-      value: 0,
-      n: 1,
-      verdict: 'PASS',
-    });
+    expect(grounding(card)).toMatchObject({ value: 0, n: 1, verdict: 'PASS' });
   });
 
-  it('FAILs a changed temperature, and exits 1 the night it first FAILs', () => {
+  it('WARNs and counts a changed temperature, and never exits 1 (report only)', () => {
     const card = scoreNight([lookup('About fifty-five degrees and cloudy.')], caps);
-    expect(check(card, 'lookups', 'invented-data')).toMatchObject({
-      value: 1,
-      n: 1,
-      verdict: 'FAIL',
+    expect(grounding(card)).toMatchObject({ value: 1, n: 1, verdict: 'WARN' });
+    expect(card.capabilities['tool-grounding']).toMatchObject({
+      verdict: 'WARN',
+      reportOnly: true,
     });
-    expect(card.capabilities.lookups.verdict).toBe('FAIL');
-    expect(card.diff.newFail).toContain('lookups');
-    expect(card.diff.exit).toBe(1);
+    expect(card.diff.reportOnly).toContain('tool-grounding');
+    expect(card.diff.newFail).not.toContain('tool-grounding');
+    const prev = scoreNight([lookup('About thirty-nine degrees and cloudy.')], caps);
+    const worse = scoreNight([lookup('About fifty-five degrees.')], caps, {
+      capabilities: prev.capabilities,
+    });
+    expect(worse.diff.regressions.join(' ')).not.toMatch(/tool-grounding/);
   });
 
-  it('FAILs a place the empty search never returned', () => {
+  it('counts a place the empty search never returned', () => {
     const r = lookup('Try Thai Orchid on Congress Avenue.', '"No results for \\"thai food\\"."');
-    expect(check(scoreNight([r], caps), 'lookups', 'invented-data').value).toBe(1);
+    expect(grounding(scoreNight([r], caps)).value).toBe(1);
+  });
+
+  it("reads a seeded call's seed as the caller's history", () => {
+    const r = lookup('Your mom lands from Ohio on Saturday, and it is thirty-nine out.');
+    r.run.meta.seed = 'memory-seed';
+    expect(grounding(scoreNight([r], caps)).value).toBe(1);
+    r.seed = { events: [{ t: 1, who: 'user', text: 'My mom flies in from Ohio next Saturday.' }] };
+    expect(grounding(scoreNight([r], caps)).value).toBe(0);
+  });
+
+  it('loadNight reads <base>.seed.json only for a seeded run', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'night-seed-'));
+    mkdirSync(join(dir, 'runs'));
+    const put = (f, o) => writeFileSync(join(dir, 'runs', f), JSON.stringify(o));
+    put('memory-recall-s1.json', { meta: { scenario: 'memory-recall', seed: 'memory-seed' } });
+    put('memory-recall-s1.score.json', { replyTexts: [] });
+    put('memory-recall-s1.seed.json', { events: [{ who: 'user', text: 'Ohio' }] });
+    put('lookups-s1.json', { meta: { scenario: 'lookups', seed: '' } });
+    put('lookups-s1.score.json', { replyTexts: [] });
+    const [lookups, memory] = loadNight(dir);
+    expect(memory.seed.events[0].text).toBe('Ohio');
+    expect(lookups.seed).toBeNull();
   });
 
   it('is no data (WARN), never PASS, without tool_outputs or a lookup turn', () => {
@@ -501,10 +524,7 @@ describe('lookups invented-data (tool grounding)', () => {
     const music = lookup('Here you go.', '"ok"');
     music.summary.tool_outputs[0].name = 'playMusic';
     for (const r of [old, music])
-      expect(check(scoreNight([r], caps), 'lookups', 'invented-data')).toMatchObject({
-        value: null,
-        verdict: 'WARN',
-      });
+      expect(grounding(scoreNight([r], caps))).toMatchObject({ value: null, verdict: 'WARN' });
   });
 
   it('WARNs (report only) a music claim with no music_state playing', () => {
