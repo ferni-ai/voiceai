@@ -46,6 +46,7 @@ describe('no committed token keys', () => {
     for (const rel of [
       'services/integrations/oauth-token-store.ts',
       'services/webhooks/webhook-config-store.ts',
+      'services/webhooks/webhook-sealing.ts',
     ]) {
       const text = readFileSync(join(SRC, rel), 'utf8');
       expect(text, rel).not.toMatch(
