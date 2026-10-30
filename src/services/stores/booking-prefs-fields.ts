@@ -5,9 +5,6 @@
  * - kind: dentist | doctor | restaurant | salon | general (bookingKindOf maps free text);
  * - days: mon..sun; windows: early_morning (before 9) | morning (9-12) | midday (12-2) |
  *   afternoon (2-5) | evening (after 5); earliest and latest: "HH:MM", 24-hour;
- * - askFor: a name ("Dr. Lee"): 1 to 4 words of letters, apostrophes, hyphens and periods,
- *   at most 40 characters (a period only ends a word), no digit, and no word instructions are made of ("always", "book",
- *   "ignore", "system", "you"...). Anything else is refused whole, never cut;
  * - restaurants only: partySize 1 to 20, seating indoor | outdoor | window | booth | bar | quiet;
  * - dentist, doctor, general: insurance, one canonical carrier name from a closed list
  *   (CARRIERS) matched in the text. No match, or two carriers, stores nothing; the text
@@ -15,7 +12,10 @@
  * - updatedAt, and per field who said it (said_by_owner | inferred) and when. An inferred
  *   value never replaces one the owner said.
  *
- * There is no free-text field (no notes): lexical screens for free text never converge.
+ * There is no free-text field: no notes, and no name to ask for. Lexical screens for free text
+ * never converge (#3160 r1 and r2: instructions got through hyphenated, run together, in
+ * look-alike or other alphabets, or spelled out). Who to ask for will be a link to a saved
+ * contact, not text.
  *
  * @module services/stores/booking-prefs-fields
  */
@@ -30,7 +30,6 @@ export const FIELDS = [
   'windows',
   'earliest',
   'latest',
-  'askFor',
   'partySize',
   'seating',
   'insurance',
@@ -65,21 +64,6 @@ const ALIASES = Object.entries(CARRIERS)
   .flatMap(([name, words]) => words.map((w) => [w, name] as const))
   .sort((a, b) => b[0].length - a[0].length);
 
-/** Words instructions are made of; a name holding one is refused ("always book the suite") */
-const INSTRUCTION_WORDS = new Set(
-  (
-    'a about above act after all always and any approve as ask assistant at be book booking ' +
-    'call can cancel charge com confirm developer disregard does dot every everything ' +
-    'for forget from give http https ignore in instead instruction instructions is it make ' +
-    'me must my never new next not now of on only or override pay please pretend previous ' +
-    'prompt reply rule rules say says send should slash system tell than that the them ' +
-    'then this time to update upgrade use when with www yes you your'
-  ).split(' ')
-);
-const MAX_NAME_CHARS = 40;
-const MAX_NAME_WORDS = 4;
-/** A word of a name: letters, apostrophes and hyphens, and a period only at its end ("Dr.") */
-const NAME_WORD = /^\p{L}[\p{L}'’-]*\.?$/u;
 const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export interface Prefs {
@@ -87,7 +71,6 @@ export interface Prefs {
   windows?: Array<(typeof WINDOWS)[number]>;
   earliest?: string;
   latest?: string;
-  askFor?: string;
   partySize?: number;
   seating?: (typeof SEATING)[number];
   insurance?: string;
@@ -114,17 +97,6 @@ const fold = (s: string): string =>
     .replace(/\p{Cf}+/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
-
-/** A name to ask for, or undefined: 1 to 4 name-shaped words, no digit, no instruction word */
-function nameOf(raw: unknown): string | undefined {
-  if (typeof raw !== 'string') return undefined;
-  const name = fold(raw);
-  const words = name.split(' ');
-  if (!name || name.length > MAX_NAME_CHARS || words.length > MAX_NAME_WORDS) return undefined;
-  if (!words.every((w) => NAME_WORD.test(w))) return undefined;
-  const plain = (w: string): string => w.toLowerCase().replace(/[.'’-]+/g, '');
-  return words.some((w) => INSTRUCTION_WORDS.has(plain(w))) ? undefined : name;
-}
 
 /** The one carrier the text names, as its canonical name; none or two: undefined */
 function carrierOf(raw: unknown): string | undefined {
@@ -156,7 +128,6 @@ export function clean(kind: BookingKind, raw: PrefsInput): Prefs {
     windows: listOf(WINDOWS, raw.windows),
     earliest: typeof earliest === 'string' && CLOCK.test(earliest) ? earliest : undefined,
     latest: typeof latest === 'string' && CLOCK.test(latest) ? latest : undefined,
-    askFor: nameOf(raw.askFor),
     partySize:
       dining && typeof size === 'number' && Number.isInteger(size) && size >= 1 && size <= 20
         ? size
