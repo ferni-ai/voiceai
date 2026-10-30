@@ -23,6 +23,12 @@ vi.mock('../../../../utils/safe-logger.js', () => {
     safeLog: () => logger,
   };
 });
+// The real Places client, with "is a key configured" under test control.
+const places = vi.hoisted(() => ({ configured: true }));
+vi.mock('../../../../services/google-places.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  isGooglePlacesConfigured: () => places.configured,
+}));
 vi.mock('@livekit/agents', () => ({
   llm: { tool: vi.fn((config) => config) },
   log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -64,6 +70,7 @@ function calledUrls(): string[] {
 }
 
 beforeEach(() => {
+  places.configured = true;
   fetchMock.mockReset();
   respondWith([]);
   vi.stubGlobal('fetch', fetchMock);
@@ -117,26 +124,12 @@ describe('local search without Yelp', () => {
 });
 
 describe('local search with no Places key', () => {
-  const saved = {
-    places: process.env.GOOGLE_PLACES_API_KEY,
-    google: process.env.GOOGLE_API_KEY,
-  };
-
-  afterEach(() => {
-    process.env.GOOGLE_PLACES_API_KEY = saved.places;
-    if (saved.google === undefined) delete process.env.GOOGLE_API_KEY;
-    else process.env.GOOGLE_API_KEY = saved.google;
-  });
-
   it.each(['findRestaurants', 'searchLocalBusinesses', 'getBusinessInfo'])(
     '%s says it cannot search and makes no call',
     async (id) => {
-      delete process.env.GOOGLE_PLACES_API_KEY;
-      delete process.env.GOOGLE_API_KEY;
-      vi.resetModules();
-      const fresh = await import('../index.js');
+      places.configured = false;
 
-      const reply = await tool(fresh.definitions, id).execute({
+      const reply = await tool(definitions, id).execute({
         query: 'pizza',
         cuisine: 'Thai',
         location: 'Tampa',

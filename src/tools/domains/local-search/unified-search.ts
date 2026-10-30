@@ -86,7 +86,7 @@ export function formatResults(results: SearchResult[], query: string, location: 
 
 /** True when a place source is configured (only Google Places is left). */
 export function isLocalSearchAvailable(): boolean {
-  return true;
+  return isGooglePlacesConfigured();
 }
 
 /**
