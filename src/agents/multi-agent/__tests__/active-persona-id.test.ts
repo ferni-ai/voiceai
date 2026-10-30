@@ -9,7 +9,7 @@
  * The orchestrator, entry, setter, capture and outreach code are real; agents, stores and
  * publishers are fakes.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PersonaAgent } from '../orchestrator.js';
 import type { SessionServices } from '../../../services/types.js';
 
@@ -98,6 +98,7 @@ vi.mock('../../../services/predictive-insights/data-collector.js', () => ({
   onSessionEnd: vi.fn(async () => undefined),
 }));
 
+const { AgentOrchestrator } = await import('../orchestrator.js');
 const { initializeMultiAgentSession } = await import('../multi-agent-entry.js');
 const { buildLiveSuperhumanInjections } =
   await import('../../processors/live-superhuman-injections.js');
@@ -140,7 +141,15 @@ async function callHandedToMaya(flag: 'on' | 'off'): Promise<SessionServices> {
   return services;
 }
 
+beforeEach(() => {
+  // Each handoff line is waited out for its estimated length (seconds); nothing plays here
+  vi.spyOn(
+    AgentOrchestrator.prototype as unknown as { estimateSpeechDuration: (t: string) => number },
+    'estimateSpeechDuration'
+  ).mockReturnValue(0);
+});
 afterEach(() => {
+  vi.restoreAllMocks();
   stored.memories.length = 0;
   stored.commitments.length = 0;
   stored.habitChecks = 0;
