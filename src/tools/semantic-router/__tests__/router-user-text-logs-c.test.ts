@@ -25,23 +25,21 @@ vi.mock('../advanced/index.js', async (importOriginal) => ({
   recordEmotionalDataPoint: (...args: unknown[]) => void recorded.push(args),
 }));
 
+// Google embeddings go to Vertex through the shared client: every text gets the same small vector.
+vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../config/gemini-config.js')>()),
+  isGeminiConfigured: () => true,
+  getGeminiClient: async () => ({
+    models: {
+      embedContent: async ({ contents }: { contents: string[] }) => ({
+        embeddings: contents.map(() => ({ values: [1, 0, 0, 0] })),
+      }),
+    },
+  }),
+}));
+
 import { EmbeddingTimeoutError, queueEmbeddingForWorker } from '../embedding-worker-integration.js';
 import { routeVoiceInput } from '../voice-integration.js';
-
-/** A Google embeddings endpoint that answers every text with the same small vector. */
-async function fakeEmbeddings(_url: string, init?: { body?: string }) {
-  const body = JSON.parse(init?.body ?? '{}') as { requests?: unknown[] };
-  const values = [1, 0, 0, 0];
-  return {
-    ok: true,
-    status: 200,
-    json: async () =>
-      body.requests
-        ? { embeddings: body.requests.map(() => ({ values })) }
-        : { embedding: { values } },
-    text: async () => '',
-  };
-}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -67,8 +65,7 @@ describe('caller text outside the logs', () => {
   });
 
   it('voice routing records the emotional data point without a snippet of the words', async () => {
-    vi.stubEnv('GOOGLE_API_KEY', 'k');
-    vi.stubGlobal('fetch', fakeEmbeddings); // router start-up embeds the tool set
+    // router start-up embeds the tool set through the mocked client
     await routeVoiceInput(SENTINEL, {
       userId: 'u1',
       sessionId: 's1',

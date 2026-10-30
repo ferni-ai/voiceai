@@ -4,20 +4,39 @@
  * utterance, and callers log the error. The thrown message keeps the provider and
  * the numeric status; the log line carries the class and status only.
  */
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const logged = vi.hoisted(() => [] as unknown[][]);
 const SENTINEL = 'my sister Dolores has stage-three lupus';
 
 vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
   const capture = (...args: unknown[]) => void logged.push(args);
-  const logger = { debug: capture, info: capture, warn: capture, error: capture, child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) };
+  const logger = {
+    debug: capture,
+    info: capture,
+    warn: capture,
+    error: capture,
+    child: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  };
   return {
     ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
     createLogger: () => logger,
     getLogger: () => logger,
   };
 });
+
+// Google embeddings go to Vertex through the shared client; its SDK error can quote the input too.
+vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../config/gemini-config.js')>()),
+  isGeminiConfigured: () => true,
+  getGeminiClient: async () => ({
+    models: {
+      embedContent: async () => {
+        throw Object.assign(new Error(`quota exceeded for input: ${SENTINEL}`), { status: 429 });
+      },
+    },
+  }),
+}));
 
 import { GoogleEmbeddingProvider, OpenAIEmbeddingProvider } from '../embedding-providers.js';
 import { semanticSplit } from '../multi-intent/semantic-splitter.js';
@@ -32,37 +51,39 @@ function echoingFetch() {
   }));
 }
 
-const calls: Array<[string, (t: string) => Promise<unknown>]> = [
-  ['OpenAI embed', (t) => new OpenAIEmbeddingProvider({ apiKey: 'k', useCache: false }).embed(t)],
+const calls: Array<[string, string, (t: string) => Promise<unknown>]> = [
+  [
+    'OpenAI embed',
+    'OpenAI',
+    (t) => new OpenAIEmbeddingProvider({ apiKey: 'k', useCache: false }).embed(t),
+  ],
   [
     'OpenAI embedBatch',
+    'OpenAI',
     (t) => new OpenAIEmbeddingProvider({ apiKey: 'k', useCache: false }).embedBatch([t]),
   ],
-  ['Google embed', (t) => new GoogleEmbeddingProvider({ apiKey: 'k', useCache: false }).embed(t)],
+  ['Google embed', 'Vertex AI', (t) => new GoogleEmbeddingProvider({ useCache: false }).embed(t)],
   [
     'Google embedBatch',
-    (t) => new GoogleEmbeddingProvider({ apiKey: 'k', useCache: false }).embedBatch([t]),
+    'Vertex AI',
+    (t) => new GoogleEmbeddingProvider({ useCache: false }).embedBatch([t]),
   ],
 ];
 
 describe('semantic router embedding errors', () => {
-  beforeAll(() => {
-    vi.stubEnv('GOOGLE_API_KEY', 'k'); // the default provider getEmbedding() picks
-  });
-
   afterEach(() => {
     vi.unstubAllGlobals();
     logged.length = 0;
   });
 
-  it.each(calls)('%s throws the status, not the response body', async (name, call) => {
+  it.each(calls)('%s throws the status, not the response body', async (_name, provider, call) => {
     vi.stubGlobal('fetch', echoingFetch());
     const thrown = (await call(SENTINEL).then(
       () => undefined,
       (e: unknown) => e
     )) as Error & { status?: number };
     expect(thrown.name).toBe('EmbeddingApiError');
-    expect(thrown.message).toBe(`${name.split(' ')[0]} API error: 429`);
+    expect(thrown.message).toBe(`${provider} API error: 429`);
     expect(thrown.message).not.toContain(SENTINEL);
     expect(thrown.status).toBe(429);
   });
