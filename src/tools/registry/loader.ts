@@ -887,7 +887,7 @@ export async function autoRegisterAllDomains(): Promise<void> {
         ),
     },
 
-    // === LOCAL SEARCH DOMAIN (Google Places + Yelp) ===
+    // === LOCAL SEARCH DOMAIN (Google Places) ===
     {
       name: 'local-search' as ToolDomain,
       loader: async () =>
