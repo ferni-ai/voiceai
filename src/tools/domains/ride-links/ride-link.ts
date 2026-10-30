@@ -10,18 +10,20 @@
  * longer resolves, 2026-10-30).
  *
  * Delivery: in the app the result carries the link. On a phone call it offers
- * to text it, and texts only when the caller says yes (sendText), through
- * twilio-sms sendSMS, which stops at an SMS opt-out and a minor-care hold.
+ * to text it, and texts only when the caller says yes (sendText), to the
+ * verified phone on their account through the call-user port's textOwner (the
+ * guarded sender: STOP, texts off, holds). No port or no number: not sent.
  *
  * @module tools/domains/ride-links/ride-link
  */
 
-import { sendSMS } from '../../../services/external-apis/twilio-sms.js';
 import { sessionPhone } from '../../../utils/minor-care.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { toolCallerId } from '../../registry/per-caller-tool.js';
 import { isUnspecifiedLocation } from '../../shared/caller-location.js';
+import { getSessionId } from '../../utils/tool-helpers.js';
 import { geocodeWithGoogle, type GeocodingResult } from '../information/utils/geocoding.js';
+import { getCallUserPort, type TextOwnerResult } from '../proactive/outreach/call-user-port.js';
 
 const log = createLogger({ module: 'ride-link' });
 
@@ -31,7 +33,8 @@ export const OFFER_TEXT =
   "I can't book it for you, but I can text you a link that opens Uber with your trip filled in. Want me to send it?";
 export const TEXTED =
   "I texted you a link that opens Uber with your trip filled in. I can't book it, so you finish it in Uber.";
-export const TEXT_NOT_SENT = "I couldn't text you the link, so nothing was sent.";
+export const textNotSent = (reason = "the text didn't go through"): string =>
+  `I didn't text you the link: ${reason}.`;
 export const NO_TEXT_IN_APP = "I can't text from here, but the link is right here in the app.";
 export const ASK_DESTINATION = 'Where are you headed?';
 export const ASK_PICKUP =
@@ -92,23 +95,20 @@ export type RideLinkResult =
 
 export interface RideLinkDeps {
   geocode: (place: string) => Promise<GeocodingResult | null>;
+  /** The line of a phone call (caller-recognition binds it); none in the app */
   phoneOf: (sessionId: string) => string | undefined;
-  text: (to: string, body: string, opts: { userId?: string }) => Promise<string | null>;
+  /** Text the account owner at their verified phone, through the guarded sender */
+  textOwner: (userId: string, body: string) => Promise<TextOwnerResult>;
 }
+
+const NO_TEXTING: TextOwnerResult = { sent: false, reason: "texting isn't set up here" };
 
 const defaultDeps: RideLinkDeps = {
   geocode: geocodeWithGoogle,
   phoneOf: sessionPhone,
-  text: sendSMS,
+  textOwner: async (userId, body) =>
+    (await getCallUserPort()?.textOwner?.(userId, body, { askedNow: true })) ?? NO_TEXTING,
 };
-
-/** The call's session id (userData.services.sessionId), never a model argument. */
-function sessionIdOf(opts: unknown): string | undefined {
-  const userData = (opts as { ctx?: { userData?: { services?: { sessionId?: unknown } } } })?.ctx
-    ?.userData;
-  const id = userData?.services?.sessionId;
-  return typeof id === 'string' ? id : undefined;
-}
 
 async function locate(place: string, deps: RideLinkDeps): Promise<RideEnd | null> {
   const geo = await deps.geocode(place);
@@ -132,9 +132,9 @@ export async function openRideLink(
   if (!pickup) return { outcome: 'not_found', say: notFound(pickupPlace) };
   const link = uberRideLink(pickup, drop);
 
-  const sessionId = sessionIdOf(opts);
-  const phone = sessionId ? deps.phoneOf(sessionId) : undefined;
-  if (!phone) {
+  const sessionId = getSessionId(opts as { ctx?: unknown });
+  const onPhone = sessionId !== undefined && deps.phoneOf(sessionId) !== undefined;
+  if (!onPhone) {
     const say = args.sendText ? `${CANT_BOOK} ${NO_TEXT_IN_APP}` : CANT_BOOK;
     log.info({ outcome: 'link_ready', delivery: 'app' }, 'openRideLink');
     return { outcome: 'link_ready', say, link, delivery: 'app' };
@@ -142,8 +142,8 @@ export async function openRideLink(
   if (!args.sendText) return { outcome: 'offer_text', say: OFFER_TEXT, link, delivery: 'phone' };
 
   const body = `Your Uber link from Ferni, trip filled in. Ferni can't book rides, so you confirm it in Uber: ${link}`;
-  const sid = await deps.text(phone, body, { userId: toolCallerId(opts) });
-  log.info({ outcome: sid ? 'texted' : 'text_not_sent', delivery: 'phone' }, 'openRideLink');
-  if (!sid) return { outcome: 'text_not_sent', say: TEXT_NOT_SENT };
+  const sent = await deps.textOwner(toolCallerId(opts), body);
+  log.info({ outcome: sent.sent ? 'texted' : 'text_not_sent', delivery: 'phone' }, 'openRideLink');
+  if (!sent.sent) return { outcome: 'text_not_sent', say: textNotSent(sent.reason) };
   return { outcome: 'texted', say: TEXTED, link, delivery: 'phone' };
 }

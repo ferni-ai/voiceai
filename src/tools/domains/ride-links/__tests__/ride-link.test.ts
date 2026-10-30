@@ -1,26 +1,26 @@
 /**
  * openRideLink (RIDE_LINKS): the real geocoder (Google's response stubbed at
- * fetch), the real link builder and the real twilio-sms sender with its
- * consent check. Fixtures are fictional (555-01xx numbers, made-up places).
+ * fetch), the real link builder, and texts through the call-user port the call
+ * session installs (its textOwner is the guarded sender: STOP, texts off,
+ * holds; guarded-text.test.ts covers those). Fixtures are fictional.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CallUserPort } from '../../proactive/outreach/call-user-port.js';
 
 vi.hoisted(() => {
-  Object.assign(process.env, {
-    GOOGLE_API_KEY: 'test-key',
-    TWILIO_ACCOUNT_SID: 'AC_test',
-    TWILIO_AUTH_TOKEN: 'token',
-    TWILIO_PHONE_NUMBER: '+12025550100',
-  });
+  process.env.GOOGLE_API_KEY = 'test-key';
 });
-const twilio = vi.hoisted(() => ({
-  create: vi.fn(async (_m: { to: string; body: string }) => ({ sid: 'SM1', status: 'queued' })),
-}));
-vi.mock('twilio', () => ({ default: () => ({ messages: { create: twilio.create } }) }));
 
 const { openRideLink } = await import('../ride-link.js');
 const { bindSessionPhone } = await import('../../../../utils/minor-care.js');
-const { registerConsentCheck } = await import('../../../../utils/consent-port.js');
+const { setCallUserPort } = await import('../../proactive/outreach/call-user-port.js');
+
+/** The guarded sender's answer for this test, and every text it was asked to send. */
+let refusal: string | undefined;
+const textOwner = vi.fn(async (_userId: string, _body: string, _opts: { askedNow: boolean }) =>
+  refusal ? { sent: false, reason: refusal } : { sent: true }
+);
+const port = { verifiedPhone: async () => undefined, call: vi.fn(), textOwner } as CallUserPort;
 
 /** What Google's geocoder knows: the place's words → its coordinates. */
 const PLACES: Record<string, { lat: number; lng: number }> = {
@@ -64,13 +64,14 @@ async function ride(...args: Parameters<typeof openRideLink>) {
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchSpy);
   bindSessionPhone('session-phone', PHONE);
-  registerConsentCheck(async () => null);
-  twilio.create.mockClear();
+  setCallUserPort(port);
+  refusal = undefined;
+  textOwner.mockClear();
   fetchSpy.mockClear();
 });
 afterEach(() => {
   vi.unstubAllGlobals();
-  registerConsentCheck(undefined);
+  setCallUserPort(undefined);
 });
 
 describe('the link carries the geocoded trip', () => {
@@ -130,36 +131,43 @@ describe('a place the geocoder cannot find gets honest words and no link', () =>
   );
 });
 
-describe('on a phone call it texts only on a yes, and only with consent', () => {
+describe('on a phone call it texts only on a yes, through the guarded sender', () => {
   it('first ask: offers a text and sends nothing', async () => {
     const result = await ride(TRIP, PHONE_CALL);
     expect(result.outcome).toBe('offer_text');
     expect(result.say).toMatch(/Want me to send it\?$/);
-    expect(twilio.create).not.toHaveBeenCalled();
+    expect(textOwner).not.toHaveBeenCalled();
   });
 
-  it('yes, consent allows: one text to the caller line, carrying the link', async () => {
+  it('yes: one text to the caller account, asked for now, carrying the link', async () => {
     const result = await ride({ ...TRIP, sendText: true }, PHONE_CALL);
     expect(result.outcome).toBe('texted');
-    expect(twilio.create).toHaveBeenCalledTimes(1);
-    const msg = twilio.create.mock.calls[0][0];
-    expect(msg.to).toBe(PHONE);
+    expect(textOwner).toHaveBeenCalledTimes(1);
+    const [userId, body, opts] = textOwner.mock.calls[0];
+    expect(userId).toBe('caller-1');
+    expect(opts).toEqual({ askedNow: true });
     if (!('link' in result)) throw new Error('no link');
-    expect(msg.body).toContain(result.link);
-    said.push(msg.body);
+    expect(body).toContain(result.link);
+    said.push(body);
   });
 
-  it('yes, but the number opted out: nothing sent, and it says so', async () => {
-    registerConsentCheck(async () => 'opted-out');
+  it('yes, but the guarded sender refuses (STOP): it says why, and claims no text', async () => {
+    refusal = 'you replied STOP to my texts';
     const result = await ride({ ...TRIP, sendText: true }, PHONE_CALL);
-    expect(twilio.create).not.toHaveBeenCalled();
     expect(result.outcome).toBe('text_not_sent');
-    expect(result.say).toBe("I couldn't text you the link, so nothing was sent.");
+    expect(result.say).toBe("I didn't text you the link: you replied STOP to my texts.");
   });
 
-  it('in the app a text asked for is not sent: there is no number', async () => {
+  it('yes, but no sender is installed: nothing sent, and it says so', async () => {
+    setCallUserPort(undefined);
+    const result = await ride({ ...TRIP, sendText: true }, PHONE_CALL);
+    expect(result.outcome).toBe('text_not_sent');
+    expect(result.say).toBe("I didn't text you the link: texting isn't set up here.");
+  });
+
+  it('in the app a text asked for is not sent', async () => {
     const result = await ride({ ...TRIP, sendText: true }, APP);
-    expect(twilio.create).not.toHaveBeenCalled();
+    expect(textOwner).not.toHaveBeenCalled();
     expect(result.outcome).toBe('link_ready');
   });
 });

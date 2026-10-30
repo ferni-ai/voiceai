@@ -459,4 +459,24 @@ export function createTrafficTools() {
   };
 }
 
+const rideLinkParams = z.object({
+  destination: z.string().describe("Where they're going, in their words"),
+  pickup: z.string().optional().describe('Pickup address or place they named; leave out if unsaid'),
+  sendText: z.boolean().optional().describe('True only after they said yes to a text of the link'),
+});
+
+/** openRideLink's SDK tool (RIDE_LINKS): built here, where tools meet LiveKit; ride-links has the rest. */
+export function rideLinkTool(
+  run: (args: z.infer<typeof rideLinkParams>, opts: unknown) => Promise<unknown>
+): ReturnType<typeof llm.tool> {
+  return llm.tool({
+    description:
+      'The caller wants a ride (Uber, taxi, cab, a car somewhere). Makes a link that opens Uber with pickup ' +
+      "and drop-off filled in. It books nothing: never say a ride is booked or on its way. Say the result's " +
+      '`say`, never the link. On a phone call set sendText only after they say yes to a text.',
+    parameters: rideLinkParams,
+    execute: async (args, opts: unknown) => run(args, opts),
+  });
+}
+
 export default createTrafficTools;
