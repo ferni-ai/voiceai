@@ -785,7 +785,6 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       feedbackTriggerEngine.onAgentFinishedSpeaking(sessionId, lastAgentMessage);
 
       // 📊 Contextual Feedback: Schedule feedback check after natural pause
-      // Clear any existing timer
       if (feedbackPromptTimer) {
         clearTimeout(feedbackPromptTimer);
         feedbackPromptTimer = null;
