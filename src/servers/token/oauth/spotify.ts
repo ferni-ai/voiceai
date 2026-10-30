@@ -9,6 +9,7 @@ import type { OAuthTokens } from '../../shared/types.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { resealStale } from '../../../utils/token-at-rest.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SpotifyOAuth' });
@@ -105,6 +106,16 @@ export async function getTokens(userId: string): Promise<OAuthTokens | null> {
       const decrypted = decryptData<OAuthTokens>(data.encrypted);
       if (decrypted) {
         tokenCache.set(userId, decrypted);
+        // With TOKEN_SEALING_KEY set, move an older envelope to it (best effort).
+        void resealStale({
+          store: SPOTIFY_LINK_COLLECTION,
+          stored: data.encrypted,
+          value: decrypted,
+          readCurrent: async () =>
+            (await tokenStore.load(userId, { fresh: true, strict: true }))?.encrypted,
+          write: (encrypted) =>
+            tokenStore.setImmediate(userId, { encrypted, updated_at: data.updated_at }),
+        });
         return decrypted;
       }
     }
