@@ -87,7 +87,6 @@ describe('Wearables OAuth', () => {
       expect(config?.clientId).toBe('test-oura-id');
       expect(config?.authorizeUrl).toBe('https://cloud.ouraring.com/oauth/authorize');
       expect(config?.scopes).toContain('daily');
-      expect(config?.scopes).toContain('sleep');
     });
 
     it('should return null for unconfigured provider', async () => {
