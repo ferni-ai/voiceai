@@ -11,17 +11,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ToolDefinition } from '../../../../registry/types.js';
 import { consentUserText, setConsentAsk, type ConsentAsk } from '../consent-judge.js';
+import { cancel, reopenClosed } from '../consent-loop.js';
 import { readBackUserText, setReadBackAsk, vetoed, type ActionFacts } from '../consent-readback.js';
 import {
   confirmationState,
   isClearYes,
   judgeConfirmation,
   outreachConfirmListeners,
+  pendingFor,
   PLAN_ONLY,
   withOutreachConfirmation,
   type ConfirmEvent,
   type ConfirmSpec,
   type PendingAction,
+  type SessionLog,
 } from '../outreach-confirm.js';
 
 const DAD = '+15551230002';
@@ -57,6 +60,7 @@ function liveCall(toolId = 'callOnBehalf', what = 'a call') {
     agentDisplayName: 'Ferni',
   }) as { execute: (a: unknown, o: unknown) => Promise<unknown> };
   return {
+    session,
     /** The model calls the tool; its output then reaches the model. */
     call: async (callId: string, args: Record<string, unknown> = { contactQuery: 'my dad' }) => {
       const out = await tool.execute(args, { ctx: { session }, toolCallId: callId });
@@ -1251,5 +1255,117 @@ describe('round 10: a no that agrees in the same turn asks again; a no that says
       await call.call('c3');
       expect(sends, turn).toHaveLength(0);
     }
+  });
+});
+
+/** Fail closed on the evidence (security review of round 10): whether a cancel may reopen is
+ * decided when it happens and kept; evidence that left the 50-event buffer is never read as "none". */
+describe('round 10: a cancel that cannot be shown reopenable stays closed', () => {
+  const READ = "I'm ready to call Dad at 555-123-0002, right now. Should I go ahead and call him?";
+  const RE = 'Okay. Should I go ahead and call him?';
+  beforeEach(() => setReadBackAsk(alwaysReadBack, 1500));
+
+  const action = (final?: boolean): PendingAction =>
+    ({
+      toolId: 'callOnBehalf',
+      userId: 'u',
+      readBack: 'a call to Dad at 555-123-0002',
+      args: { contactQuery: 'Dad', phoneNumber: DAD },
+      callId: 'c1',
+      createdSeq: 0,
+      expiresAt: Date.now() + 60_000,
+      final,
+    }) as unknown as PendingAction;
+  /** A session whose owner said `owner` (seq `first`), then Ferni re-read it. */
+  const session = (
+    owner: string,
+    over: { first?: number; final?: boolean; sticky?: boolean } = {}
+  ): SessionLog => {
+    const first = over.first ?? 1;
+    return {
+      seq: first + 1,
+      events: [
+        { kind: 'caller', text: owner, agentSpeaking: false, seq: first },
+        { kind: 'agent', text: RE, seq: first + 1 },
+      ],
+      closed: {
+        action: action(over.sticky),
+        seq: first,
+        at: Date.now(),
+        final: over.final ?? false,
+      },
+    } as unknown as SessionLog;
+  };
+  const reopens = async (entry: SessionLog): Promise<boolean> => {
+    await reopenClosed(entry, true, 60_000);
+    return entry.pending !== undefined;
+  };
+
+  it('control: a bare no, and a no that agrees, are reopened by a fresh read-back', async () => {
+    for (const no of ['No.', 'No, I mean yes.', 'No problem, go ahead.']) {
+      expect(await reopens(session(no)), no).toBe(true);
+    }
+  });
+
+  it('a cancel decided final stays closed, however clean the buffer looks now', async () => {
+    expect(await reopens(session('No.', { final: true }))).toBe(false);
+  });
+
+  it('a sticky deferral/redirect flag on the action keeps it closed', async () => {
+    expect(await reopens(session('No.', { sticky: true }))).toBe(false);
+  });
+
+  it('events evicted from the buffer since the read-back: closed, never "nothing said"', async () => {
+    // the action began at seq 0 and the buffer now starts at 40: what was said between is gone
+    expect(await reopens(session('No.', { first: 40 }))).toBe(false);
+  });
+
+  it('the gate marks a still-pending action final as the owner says it; a no that agrees, or doubt, does not', async () => {
+    const finals: Array<[string, boolean]> = [
+      ['Try his cell.', true],
+      ['No.', false],
+      ['No, I mean yes.', false],
+      ['Hmm.', false],
+    ];
+    for (const [turn, final] of finals) {
+      const call = liveCall();
+      await call.call('c1');
+      call.ferni(READ);
+      call.owner(turn);
+      expect(pendingFor(call.session)?.final === true, turn).toBe(final);
+    }
+  });
+
+  it('cancel() decides at the time whether it may ever reopen: sticky flag, evicted, or a closing word', () => {
+    const cancelled = (owner: string, over: { first?: number; sticky?: boolean }): boolean => {
+      const entry = session(owner, over);
+      const pending = entry.closed!.action;
+      entry.closed = undefined;
+      cancel(entry, pending, 'declined', 1);
+      return entry.closed!.final;
+    };
+    expect(cancelled('No.', {})).toBe(false);
+    expect(cancelled('No, I mean yes.', {})).toBe(false);
+    expect(cancelled('No.', { sticky: true })).toBe(true);
+    expect(cancelled('No.', { first: 40 })).toBe(true);
+    expect(cancelled('Try his cell.', {})).toBe(true);
+    expect(cancelled('No, after his nap.', {})).toBe(true);
+  });
+
+  it('end to end: a redirect, then enough chatter to evict it, then a re-read and "Yes." never places', async () => {
+    setConsentAsk(alwaysYes);
+    const call = liveCall();
+    await call.call('c1');
+    call.ferni(READ);
+    call.owner('Try his cell.');
+    expect(await call.call('c2')).toContain('Just to be sure: call Dad now?');
+    call.ferni('Just to be sure: call Dad now?');
+    // the buffer holds 50 events: the redirect is gone, the ask-once tool output is not
+    for (let i = 0; i < 48; i++) call.owner('Hmm.');
+    expect(await call.call('c3')).toContain("Okay, I won't call Dad.");
+    call.ferni(RE);
+    call.owner('Yes.');
+    await call.call('c4');
+    expect(sends).toHaveLength(0);
   });
 });

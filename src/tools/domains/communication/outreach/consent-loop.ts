@@ -39,6 +39,12 @@ function keyOf(action: Action): string {
   const { address, name } = targetOf(action.args);
   return `${channelOf(action)}:${address ?? name ?? action.toolId}`;
 }
+/** The buffer no longer holds every event since the read-back: what was said can't be read. */
+const evicted = (entry: SessionLog, pending: PendingAction): boolean => {
+  const first = entry.events[0]?.seq;
+  // Every event after the read-back (startSeq, which is never later than the cancel) must be there.
+  return first === undefined || first > (pending.startSeq ?? pending.createdSeq) + 1;
+};
 /** After a close: the owner asked again in their own words ("No, call him!", "I said yes").
  * That allows only a new read-back, never a call. */
 function askedAgain(events: ConfirmEvent[], since: number, action: Action): boolean {
@@ -88,8 +94,13 @@ export function cancel(
 ): string {
   dropConfirmThread(pending);
   entry.pending = undefined;
-  // A fresh read-back may reopen it, unless the owner deferred or redirected (reopenClosed).
-  entry.closed = { action: pending, seq: sinceSeq, at: Date.now() };
+  // Whether a fresh read-back may ever reopen it is decided now, while the owner's words are still
+  // in the buffer, and kept (reopenClosed); the words that come later are read then.
+  const final =
+    pending.final === true ||
+    evicted(entry, pending) ||
+    !reopenable(pending, entry.events, Infinity);
+  entry.closed = { action: pending, seq: sinceSeq, at: Date.now(), final };
   const key = keyOf(pending);
   const asks = (entry.asks ??= new Map<string, AskRecord>());
   asks.set(key, { previews: asks.get(key)?.previews ?? 1, at: Date.now(), closedSeq: sinceSeq });
@@ -115,9 +126,16 @@ export async function reopenClosed(
   );
   const fresh = reads.filter((e) => ferniTurn(closed.action, e.text) === 'readback').pop();
   if (!fresh) return;
-  // Every owner word counts, before the cancel and since: "Later." then "Should I go ahead and
-  // call?" then "Yes." isn't a yes to now, nor "Call my sister instead." then a re-read of Dad.
-  if (!reopenable(closed.action, entry.events, fresh.seq)) {
+  // Fail closed: a final cancel (decided when it happened) or evidence that has left the buffer
+  // never reopens; otherwise every owner word counts, before the cancel and since: "Later." then
+  // "Should I go ahead and call?" then "Yes." isn't a yes to now, nor "Call my sister instead."
+  // then a re-read of Dad.
+  if (
+    closed.final ||
+    closed.action.final ||
+    evicted(entry, closed.action) ||
+    !reopenable(closed.action, entry.events, fresh.seq)
+  ) {
     entry.closed = undefined;
     return;
   }

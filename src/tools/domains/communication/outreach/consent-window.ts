@@ -224,14 +224,25 @@ function endedBy(pending: PendingAction, events: ConfirmEvent[]): boolean {
  * "Try his cell."), nor "Call my sister instead." before Ferni re-reads Dad. */
 export function reopenable(pending: PendingAction, events: ConfirmEvent[], to: number): boolean {
   const said = callerTurns(pending, events, pending.startSeq, to);
+  return (
+    !said.some((t) => foreclosesReopen(t, pending)) &&
+    !deferredOrRedirected(said.join(' ')) &&
+    !callsSomeoneElse(said.join(' '), pending)
+  );
+}
+/** One owner turn that shuts the door on a re-read: a deferral, a redirect, someone else, another
+ * line, or a no that says more. The gate also records it on the pending action as it is said
+ * (`final`), so the buffer evicting the turn later can't reopen what it closed. */
+export function foreclosesReopen(text: string, pending: PendingAction): boolean {
   const call = channelOf(pending) === 'call';
-  const elsewhere = (t: string): boolean => ANOTHER_LINE.test(words(t).join(' '));
-  const ends = (t: string): boolean => deferredOrRedirected(t) || callsSomeoneElse(t, pending);
-  const finalNo = (t: string): boolean =>
-    isPlainNo(t) &&
-    !bareNo(t, pending) &&
-    !agreesAfterNo(t, targetWords(pending), pending.owner, call);
-  return !said.some((t) => ends(t) || elsewhere(t) || finalNo(t)) && !ends(said.join(' '));
+  return (
+    deferredOrRedirected(text) ||
+    callsSomeoneElse(text, pending) ||
+    ANOTHER_LINE.test(words(text).join(' ')) ||
+    (isPlainNo(text) &&
+      !bareNo(text, pending) &&
+      !agreesAfterNo(text, targetWords(pending), pending.owner, call))
+  );
 }
 /** Where it stands now: the fast path's answer, else the judge's if it has finished. */
 export function windowState(

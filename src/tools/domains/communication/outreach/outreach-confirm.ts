@@ -43,6 +43,7 @@ import {
 import { isClearNo, words } from './consent-words.js';
 import {
   classifyFerniTurn,
+  foreclosesReopen,
   judgeWindow,
   windowState,
   type ConfirmState,
@@ -105,6 +106,9 @@ export interface PendingAction {
   createdSeq: number;
   /** Where the owner's words on this request begin, kept when an ask-once moves createdSeq on. */
   startSeq?: number;
+  /** Sticky: the owner deferred, redirected or moved to another line since the read-back. Set as
+   * it is said, so the event buffer evicting the turn can't undo it (consent-loop.ts). */
+  final?: boolean;
   expiresAt: number;
   /** OUTREACH_SERVER_CONFIRM: who it reaches and how to send it as read back (outreach-confirm-family.ts). */
   server?: Kin & { readBack: string; send: () => Promise<unknown> };
@@ -131,7 +135,7 @@ export interface SessionLog {
   /** Read-backs per action in this request, so none loops (consent-loop.ts). */
   asks?: Map<string, AskRecord>;
   /** The action last cancelled, and when: a fresh read-back of it may reopen it (consent-loop.ts). */
-  closed?: { action: PendingAction; seq: number; at: number };
+  closed?: { action: PendingAction; seq: number; at: number; final: boolean };
 }
 
 /** Keyed by the AgentSession object, so a pending action never crosses sessions. */
@@ -173,6 +177,7 @@ function record(session: object, event: SessionEvent): void {
   if (event.kind === 'agent' && action)
     void classifyFerniTurn(action, event.text, consentClassifierOn());
   if (event.kind !== 'caller' || !pending) return;
+  if (foreclosesReopen(event.text, pending)) pending.final = true;
   // A no, a redirect or a deferral ends it at once: nothing Ferni says afterwards revives it.
   if (confirmationState(pending, entry.events, Date.now()) === 'declined')
     cancel(entry, pending, 'declined', entry.seq - 1);
