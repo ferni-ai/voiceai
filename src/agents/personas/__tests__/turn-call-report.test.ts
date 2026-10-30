@@ -76,6 +76,44 @@ describe('turnRequestFor: the report waits on any safety signal', () => {
   });
 });
 
+describe('turnRequestFor: a safety tool in the request is a signal too (#3080 r8)', () => {
+  /** A request with the report pushed, then one tool call and its output. */
+  function withTool(name: string, output: string): llm.ChatContext {
+    const c = request();
+    c.insert(llm.FunctionCall.create({ callId: 'c1', name, args: '{}' }));
+    c.insert(llm.FunctionCallOutput.create({ callId: 'c1', name, output, isError: false }));
+    return c;
+  }
+
+  it.each([
+    ['a crisis tool, whatever it says', 'provideCrisisResources', 'I care about you.'],
+    ['a presence tool', 'breatheWithMe', 'Breathe in for four.'],
+    ['any tool naming crisis resources', 'jobLossSupport', 'You can call or text 988 any time.'],
+  ])('%s: stripped, and it waits', (_l, name, output) => {
+    const [ctx, waits] = turnRequestFor(withTool(name, output), 's-tool', false);
+    expect(waits).toBe(true);
+    expect(text(ctx)).not.toContain('ZEBRA-SECRET');
+  });
+
+  it('an ordinary tool: the report rides', () => {
+    const [ctx, waits] = turnRequestFor(withTool('getWeather', 'Sunny, 72.'), 's-weather', false);
+    expect(waits).toBe(false);
+    expect(text(ctx)).toContain('ZEBRA-SECRET');
+  });
+
+  it('a check that throws holds the report (fails safe)', () => {
+    const c = request();
+    Object.defineProperty(c.items[1]!, 'extra', {
+      get() {
+        throw new Error('unreadable');
+      },
+    });
+    const [ctx, waits] = turnRequestFor(c, 's-throw', false);
+    expect(waits).toBe(true);
+    expect(text(ctx)).not.toContain('ZEBRA-SECRET');
+  });
+});
+
 describe('noteCallReportReached', () => {
   it('a held report is never marked; any other turn marks it, with its words and hold', () => {
     const ctx = llm.ChatContext.empty();

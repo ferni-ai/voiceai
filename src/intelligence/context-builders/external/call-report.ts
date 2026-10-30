@@ -32,7 +32,7 @@ import type { PendingCallResult } from './pending-call-results.js';
 const log = createLogger({ module: 'CallReport' });
 
 const CATEGORY = 'pending_background_results';
-const REPORT_HEADER = '## While they were away (tell them on this call)';
+export const REPORT_HEADER = '## While they were away (tell them on this call)';
 const PRIORITY = 90;
 const FIRST_TURNS = 3; // caller turns 1 to 3, then left for the next call
 const MAX_RESULTS = 2;
