@@ -19,6 +19,9 @@
  *   (TOOL_ACK_CLIP reports it through turn-timing.ts); it counts as first audio.
  * - `timing.handoffSteps`: llm-handoff.ts's voiceSwitch event, lock and start
  *   messages, to split the handoff's wait between the tool and the goodbye.
+ * - `tools.outcomes[]`: per executed tool, in the order of `tools.called`, what it came to
+ *   (data, no_data, unconfigured, error, not_connected; tool-outcome.ts). The output is read
+ *   where it passes and only the enum is kept.
  *
  * These hooks run inside the SDK's tool start (SpeechHandle._itemAdded loops its
  * callbacks with no catch), llmNode and the session's events, so none of them
@@ -29,6 +32,7 @@
  * @module agents/shared/turn-receipt-tool-timing
  */
 import type { TurnTimingKind } from '../../speech/output-control/turn-timing.js';
+import { receiptToolOutcome, type ReceiptToolOutcome } from '../voice-agent/tool-outcome.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { EouMetric, LlmMetric } from './turn-metrics.js';
 
@@ -67,9 +71,21 @@ export interface ToolSteps {
   answerAt?: number;
   ackClipAt?: number;
   handoff: Partial<Record<HandoffStep, number>>;
+  outcomes: ReceiptToolOutcome[];
 }
 
-export const newToolSteps = (): ToolSteps => ({ requests: [], runs: new Map(), handoff: {} });
+export const newToolSteps = (): ToolSteps => ({
+  requests: [],
+  runs: new Map(),
+  handoff: {},
+  outcomes: [],
+});
+
+/** function_tools_executed, as turn-receipt.ts reads it. */
+export interface ToolsExecutedView {
+  functionCalls?: Array<{ name?: string; callId?: string }>;
+  functionCallOutputs?: Array<{ isError?: boolean; output?: unknown; callId?: string } | undefined>;
+}
 
 export const isStepKind = (kind: TurnTimingKind): kind is StepKind =>
   kind === 'ackClip' || kind.startsWith('handoff');
@@ -118,10 +134,18 @@ export function noteToolRun(
   });
 }
 
-/** function_tools_executed: every tool on the step has returned. */
-export function endToolRuns(s: ToolSteps, now: () => number): void {
+/** function_tools_executed: every tool on the step has returned, with what each came to. */
+export function endToolRuns(s: ToolSteps, now: () => number, ev?: ToolsExecutedView): void {
   safely(() => {
     for (const run of s.runs.values()) run.endAt ??= now();
+  });
+  safely(() => {
+    const outs = ev?.functionCallOutputs ?? [];
+    (ev?.functionCalls ?? []).forEach((call, i) => {
+      const out = (call.callId && outs.find((o) => o?.callId === call.callId)) || outs[i];
+      if (s.outcomes.length < MAX_ENTRIES)
+        s.outcomes.push(receiptToolOutcome(out?.output, out?.isError === true));
+    });
   });
 }
 
@@ -180,6 +204,7 @@ export interface ToolFields {
   execMs: Record<string, number>;
   answerAudioMs: number | null;
   ackClipMs: number | null;
+  outcomes: ReceiptToolOutcome[];
 }
 
 function toolFields(turn: { eou?: EouMetric; steps: ToolSteps }): ToolFields {
@@ -213,6 +238,7 @@ function toolFields(turn: { eou?: EouMetric; steps: ToolSteps }): ToolFields {
     execMs,
     answerAudioMs: at(s.answerAt),
     ackClipMs: at(s.ackClipAt),
+    outcomes: [...s.outcomes],
   };
 }
 
@@ -227,13 +253,14 @@ export function withToolTiming<
     execMs: {},
     answerAudioMs: null,
     ackClipMs: null,
+    outcomes: [],
   };
   safely(() => (f = toolFields(turn)));
   const firstAny = [r.audio.firstAnyAudioMs, f.ackClipMs].filter((n): n is number => n !== null);
   return {
     ...r,
     timing: { ...r.timing, requests: f.requests, handoffSteps: f.handoffSteps },
-    tools: { ...r.tools, runs: f.runs, execMs: f.execMs },
+    tools: { ...r.tools, runs: f.runs, execMs: f.execMs, outcomes: f.outcomes },
     audio: {
       ...r.audio,
       firstAnyAudioMs: firstAny.length ? Math.min(...firstAny) : null,

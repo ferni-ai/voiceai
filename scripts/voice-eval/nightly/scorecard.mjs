@@ -31,9 +31,10 @@ import {
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkRun, parseChecks } from '../recall-facts.mjs';
-import { claimedContact } from './false-done.mjs';
+import { claimedContact, falseMusicClaims } from './false-done.mjs';
 import { recallValue } from './recall-score.mjs';
 import { loadBar, prevBar, renderBar, scoreBar } from './superhuman.mjs';
+import { gradeRun } from './tool-grounding.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCENARIOS = join(HERE, '..', 'scenarios');
@@ -99,6 +100,17 @@ export function metric(check, runs, caps, extra = {}) {
         value: n ? t.filter((r) => r.score.replyTexts.some(claimedContact)).length : null,
         n,
       };
+    case 'claimedMusic': // false-done.mjs: "it's playing now" with no music_state playing (report only)
+      return { value: n ? t.filter((r) => falseMusicClaims(r.run).length).length : null, n };
+    case 'toolGrounding': {
+      // tool-grounding.mjs: calls that said a number or name their lookup tool's output doesn't
+      // back. Only calls with a lookup turn and analyze.py's tool_outputs measured anything.
+      const g = runs
+        .filter((r) => r.run && Array.isArray(r.summary?.tool_outputs))
+        .map((r) => gradeRun(r.run, r.summary.tool_outputs))
+        .filter((x) => x.turns);
+      return { value: g.length ? g.filter((x) => x.invented).length : null, n: g.length };
+    }
     case 'recall': // recall-eval.mjs's numbers (OUT/recall.json); a planted-regression run is no data
       return extra.recall?.plant ? { value: null, n: 0 } : recallValue(extra.recall, check.field);
     case 'callsNotMatching':

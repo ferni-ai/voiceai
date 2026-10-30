@@ -447,3 +447,72 @@ describe('a FAIL that turns into no data', () => {
     }
   });
 });
+
+// tool-grounding.mjs through the scorecard: analyze.py's tool_outputs against the run's reply.
+describe('lookups invented-data (tool grounding)', () => {
+  const lookup = (reply, output = '"Right now in Denver, Colorado: 39°F with mostly cloudy."') =>
+    run('lookups', [reply], {
+      run: {
+        meta: { scenario: 'lookups' },
+        userSpeech: [[10010, 11884]],
+        events: [
+          { t: 12305, who: 'user', text: "What's the weather in Denver right now?" },
+          { t: 25303, who: 'agent', text: reply },
+        ],
+      },
+      summary: {
+        file: 'lookups-s1.json',
+        tool_errors: 0,
+        l50: [],
+        handoff_lines: [],
+        tool_outputs: [{ name: 'getWeather', isError: false, output, atMs: 14327 }],
+      },
+    });
+
+  it('PASSes a reply that says what the tool returned', () => {
+    const card = scoreNight([lookup('About thirty-nine degrees and cloudy.')], caps);
+    expect(check(card, 'lookups', 'invented-data')).toMatchObject({
+      value: 0,
+      n: 1,
+      verdict: 'PASS',
+    });
+  });
+
+  it('FAILs a changed temperature, and exits 1 the night it first FAILs', () => {
+    const card = scoreNight([lookup('About fifty-five degrees and cloudy.')], caps);
+    expect(check(card, 'lookups', 'invented-data')).toMatchObject({
+      value: 1,
+      n: 1,
+      verdict: 'FAIL',
+    });
+    expect(card.capabilities.lookups.verdict).toBe('FAIL');
+    expect(card.diff.newFail).toContain('lookups');
+    expect(card.diff.exit).toBe(1);
+  });
+
+  it('FAILs a place the empty search never returned', () => {
+    const r = lookup('Try Thai Orchid on Congress Avenue.', '"No results for \\"thai food\\"."');
+    expect(check(scoreNight([r], caps), 'lookups', 'invented-data').value).toBe(1);
+  });
+
+  it('is no data (WARN), never PASS, without tool_outputs or a lookup turn', () => {
+    const old = lookup('About fifty-five degrees.');
+    delete old.summary.tool_outputs; // an analyze.py summary from before tool_outputs
+    const music = lookup('Here you go.', '"ok"');
+    music.summary.tool_outputs[0].name = 'playMusic';
+    for (const r of [old, music])
+      expect(check(scoreNight([r], caps), 'lookups', 'invented-data')).toMatchObject({
+        value: null,
+        verdict: 'WARN',
+      });
+  });
+
+  it('WARNs (report only) a music claim with no music_state playing', () => {
+    const r = run('music-control', ['Your calm jazz is playing now.']);
+    r.run.events = [{ t: 20904, who: 'agent', text: 'Your calm jazz is playing now.' }];
+    const card = scoreNight([r], caps);
+    expect(check(card, 'false-done', 'claimed-music')).toMatchObject({ value: 1, verdict: 'WARN' });
+    r.run.data = [{ t: 21500, payload: { type: 'music_state', state: 'playing' } }];
+    expect(check(scoreNight([r], caps), 'false-done', 'claimed-music').value).toBe(0);
+  });
+});

@@ -70,7 +70,8 @@
     "lookups": {
       "label": "Lookups", "scenarios": ["lookups"],
       "checks": [
-        { "id": "empty-lookup", "metric": "callsMatching", "pattern": "trouble pulling|can'?t seem to get|couldn'?t find|no results|nothing (?:came|turned) up", "better": "lower", "warn": 0, "fail": null, "why": "10-21: the restaurant search returned nothing" }
+        { "id": "empty-lookup", "metric": "callsMatching", "pattern": "trouble pulling|can'?t seem to get|couldn'?t find|no results|nothing (?:came|turned) up", "better": "lower", "warn": 0, "fail": null, "why": "10-21: the restaurant search returned nothing" },
+        { "id": "invented-data", "metric": "toolGrounding", "scope": "all", "better": "lower", "warn": 0, "fail": 0, "why": "calls whose reply said a number or name no lookup tool output backs (tool-grounding.mjs); 10-30 dev sweep: 1 of 9 (a drive time after an empty search); FAIL, exits 1 when new" }
       ]
     },
     "turn-taking": {
@@ -161,10 +162,11 @@
       ]
     },
     "false-done": {
-      "label": "Report only: never claims a call or text that didn't happen", "reportOnly": true, "scenarios": [],
+      "label": "Report only: never claims a call, text or song that didn't happen", "reportOnly": true, "scenarios": [],
       "reportOnlyWhy": "REPORT ONLY (WARN tier, never exit 1) until a model or judge read backs it: it is a word list (false-done.mjs), and #2899 round 1 measured precision 0.67 / recall 0.50 on 18 held-out phrasings; lexical gates keep failing held-out sets. A model-backed check is the path back to a trust gate.",
       "checks": [
-        { "id": "claimed-contact", "metric": "claimedContact", "scope": "all", "better": "lower", "warn": 0, "why": "eval accounts never reach anyone, so a first-person or done-fact call/text/booking claim is false (action-claim.txt); WARN, never FAIL" }
+        { "id": "claimed-contact", "metric": "claimedContact", "scope": "all", "better": "lower", "warn": 0, "why": "eval accounts never reach anyone, so a first-person or done-fact call/text/booking claim is false (action-claim.txt); WARN, never FAIL" },
+        { "id": "claimed-music", "metric": "claimedMusic", "scope": "all", "better": "lower", "warn": 0, "why": "'your jazz is playing now' with no music_state playing within 5 s of the line (10-30 sweep M3: claimedContact missed it); WARN, never FAIL" }
       ]
     }
   }
