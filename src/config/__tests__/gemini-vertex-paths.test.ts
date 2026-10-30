@@ -88,6 +88,20 @@ describe('shared helpers', () => {
 });
 
 describe('semantic-router LLM fallback', () => {
+  beforeEach(() => vi.stubEnv('ROUTER_LLM_VERTEX', 'on'));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('ROUTER_LLM_VERTEX off: both providers fail fast without calling the client', async () => {
+    vi.stubEnv('ROUTER_LLM_VERTEX', 'off');
+    await expect(createFallbackProvider().generate('pick a tool')).rejects.toMatchObject({
+      name: 'GeminiUnavailableError',
+    });
+    await expect(createUnifiedProvider().generate('plan')).rejects.toMatchObject({
+      name: 'GeminiUnavailableError',
+    });
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
   it('llm-fallback provider generates through the client', async () => {
     generateContent.mockResolvedValue({ text: '{"selectedToolId":null}' });
     expect(await createFallbackProvider().generate('pick a tool')).toBe('{"selectedToolId":null}');
@@ -115,6 +129,21 @@ describe('humanization', () => {
     subtype: 'deflection' as const,
     userTranscript: SENTINEL,
   };
+
+  beforeEach(() => vi.stubEnv('HUMANIZATION_LLM', 'on'));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('HUMANIZATION_LLM off: returns null without calling the client', async () => {
+    vi.stubEnv('HUMANIZATION_LLM', 'off');
+    vi.useFakeTimers({ now: Date.now() + 30_000, toFake: ['Date'] });
+    generateContent.mockResolvedValue({ text: 'Something feels off. What is going on?' });
+    try {
+      expect(await generateHumanizationLLM(context)).toBeNull();
+      expect(generateContent).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it('generates with the light model through the client', async () => {
     vi.useFakeTimers({ now: Date.now() + 60_000, toFake: ['Date'] });

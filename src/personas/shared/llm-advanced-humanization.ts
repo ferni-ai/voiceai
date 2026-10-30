@@ -19,6 +19,7 @@ import {
 } from '../../config/gemini-config.js';
 import { generateText } from '../../config/generative-model.js';
 import { errorFields } from '../../utils/error-class.js';
+import { flagOn } from '../../config/env-flag.js';
 
 const log = createLogger({ module: 'llm-humanization' });
 
@@ -236,6 +237,8 @@ export async function generateHumanizationLLM(
   context: HumanizationContext
 ): Promise<GeneratedHumanization | null> {
   const { personaId, type, subtype, userTranscript } = context;
+  // Off: no LLM call, as when the dead API key failed; callers use cache or static lines
+  if (!flagOn('HUMANIZATION_LLM')) return null;
 
   // Rate limiting
   const now = Date.now();

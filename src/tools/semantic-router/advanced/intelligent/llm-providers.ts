@@ -23,7 +23,8 @@ import {
   OPENAI_FALLBACK_MODEL,
   isGeminiConfigured,
 } from '../../../../config/gemini-config.js';
-import { generateText } from '../../../../config/generative-model.js';
+import { flagOn } from '../../../../config/env-flag.js';
+import { GeminiUnavailableError, generateText } from '../../../../config/generative-model.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { errorFields } from '../../../../utils/error-class.js';
 import type { GoalPlannerLLMProvider, ToolDefinition as PlannerTool } from './goal-planner.js';
@@ -187,6 +188,8 @@ export function createGeminiProvider(
   } = config; // All defaults from centralized gemini-config.ts
 
   async function callGemini(prompt: string): Promise<string> {
+    // Off: fail fast, as the dead API key did, so callers keep their non-LLM path
+    if (!flagOn('ROUTER_LLM_VERTEX')) throw new GeminiUnavailableError('ROUTER_LLM_VERTEX is off');
     const startTime = performance.now();
 
     try {

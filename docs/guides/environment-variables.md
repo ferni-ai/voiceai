@@ -31,9 +31,10 @@ cp .env.example .env
 
 Gemini calls go through the shared client (`getGeminiClient()` in
 `src/config/gemini-config.ts`), which uses Vertex when `USE_VERTEX_AI` is not
-`false`. The semantic router's LLM fallback, dynamic greetings (behind
-`DYNAMIC_GREETING`, off), humanization and the memory cross-encoder no longer
-read `GOOGLE_API_KEY` or `GEMINI_API_KEY`. Do not send user text through the
+`false`. The semantic router's LLM fallback (`ROUTER_LLM_VERTEX`), dynamic
+greetings (`DYNAMIC_GREETING`), humanization (`HUMANIZATION_LLM`) and the memory
+cross-encoder no longer read `GOOGLE_API_KEY` or `GEMINI_API_KEY`. The three
+flags default off: the turn waits on those calls. Do not send user text through the
 unpaid Gemini API tier: its terms bar sensitive data and users under 18.
 
 `GOOGLE_API_KEY` is still read by a few paths not yet moved (semantic-router

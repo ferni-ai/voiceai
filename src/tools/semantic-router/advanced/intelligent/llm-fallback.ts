@@ -23,7 +23,8 @@ import {
   getOpenAIFallbackModel,
   isGeminiConfigured,
 } from '../../../../config/gemini-config.js';
-import { generateText } from '../../../../config/generative-model.js';
+import { flagOn } from '../../../../config/env-flag.js';
+import { GeminiUnavailableError, generateText } from '../../../../config/generative-model.js';
 import type { ToolMatch, SemanticRouterResult } from '../../types.js';
 
 const log = createLogger({ module: 'llm-fallback-router' });
@@ -443,8 +444,12 @@ export interface LLMProvider {
 export function createGeminiProvider(): LLMProvider {
   return {
     model: GEMINI_MODEL,
-    generate: (prompt: string) =>
-      generateText({
+    generate: async (prompt: string) => {
+      // Off: fail fast, as the dead API key did, so the router keeps its non-LLM path
+      if (!flagOn('ROUTER_LLM_VERTEX')) {
+        throw new GeminiUnavailableError('ROUTER_LLM_VERTEX is off');
+      }
+      return generateText({
         model: GEMINI_MODEL,
         prompt,
         generationConfig: {
@@ -452,7 +457,8 @@ export function createGeminiProvider(): LLMProvider {
           maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS_SHORT,
         },
         timeoutMs: LLM_TIMEOUT_MS,
-      }),
+      });
+    },
   };
 }
 

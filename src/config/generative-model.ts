@@ -50,8 +50,8 @@ interface GenAIClient {
 
 /** No shared client: Vertex has no GOOGLE_CLOUD_PROJECT (or, off Vertex, no key). */
 export class GeminiUnavailableError extends Error {
-  constructor() {
-    super('Gemini client unavailable');
+  constructor(reason = 'Gemini client unavailable') {
+    super(reason);
     this.name = 'GeminiUnavailableError';
   }
 }
@@ -61,7 +61,7 @@ export class GeminiUnavailableError extends Error {
  * timeout, network) and the error's class, never its message: the SDK's
  * message can quote the prompt, which holds the caller's words.
  */
-export class GeminiCallError extends Error {
+class GeminiCallError extends Error {
   constructor(
     readonly status: number,
     readonly errorClass: string
@@ -72,7 +72,7 @@ export class GeminiCallError extends Error {
 }
 
 /** The shared client's models API, or GeminiUnavailableError. */
-export async function requireGeminiModels(): Promise<GenAIClient['models']> {
+async function requireGeminiModels(): Promise<GenAIClient['models']> {
   const client = (await getGeminiClient()) as GenAIClient | null;
   if (!client) throw new GeminiUnavailableError();
   return client.models;
