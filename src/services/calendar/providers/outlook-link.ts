@@ -8,7 +8,11 @@ import {
   refreshWithRevocation,
   TokenPermanentlyInvalidError,
 } from '../../identity/oauth-revocation.js';
-import { createUserOAuthStore, type UserOAuthStore } from '../../identity/user-oauth-store.js';
+import {
+  createUserOAuthStore,
+  removeStrict,
+  type UserOAuthStore,
+} from '../../identity/user-oauth-store.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { resolveTokenKey } from '../../../utils/token-encryption.js';
 import type { CalendarEvent } from '../types.js';
@@ -96,7 +100,7 @@ export async function outlookLinkState(
 
 /** Delete the sealed grant; throws when the delete failed, so a disconnect is never a false success. */
 export async function disconnectOutlook(userId: string): Promise<void> {
-  if (!(await tokenStore().removeStrict(userId)).ok) throw new Error('Outlook grant not deleted');
+  if (!(await removeStrict(tokenStore(), userId)).ok) throw new Error('Outlook grant not deleted');
 }
 
 async function getAccess(userId: string): Promise<Access> {

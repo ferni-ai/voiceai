@@ -61,6 +61,19 @@ async function finishOutlookConnect(
   return `${link.returnUrl}${link.returnUrl.includes('?') ? '&' : '?'}calendar=outlook&status=connected`;
 }
 
+/** Unlink: the sealed grant goes whatever OUTLOOK_CONNECT says; a failed delete answers 500. */
+async function deleteSealedGrant(res: ServerResponse, userId: string): Promise<boolean> {
+  try {
+    await ol.outlookDisconnect(userId);
+    return true;
+  } catch (err) {
+    log.error({ error: (err as Error).message }, 'Microsoft Calendar unlink failed');
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: "Couldn't disconnect Microsoft Calendar, try again" }));
+    return false;
+  }
+}
+
 /**
  * Handle Microsoft Calendar OAuth routes
  */
@@ -202,14 +215,7 @@ export async function handleMicrosoftCalendarRoutes(
       return true;
     }
 
-    try {
-      await ol.outlookDisconnect(userId); // the sealed grant, whatever OUTLOOK_CONNECT says
-    } catch (err) {
-      log.error({ error: (err as Error).message }, 'Microsoft Calendar unlink failed');
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: "Couldn't disconnect Microsoft Calendar, try again" }));
-      return true;
-    }
+    if (!(await deleteSealedGrant(res, userId))) return true;
     await outlookCalendarProvider.disconnect(userId);
     log.info({ userId }, 'Microsoft Calendar unlinked');
 
