@@ -19,6 +19,7 @@ import {
 } from '../communication/outreach/outreach-confirm.js';
 import { getConfirmThreadPort } from '../communication/outreach/confirm-thread.js';
 import { liveSessionFor } from '../../registry/live-session.js';
+import { flagOn } from '../../../config/env-flag.js';
 
 export interface CallQuery {
   /** Person words ("dad", "sam"), as call-status names them. */
@@ -35,13 +36,18 @@ export interface SeenCall {
 }
 export interface RecalledCall {
   readonly state: 'awaiting_yes' | 'set' | 'in_progress' | 'done' | 'failed' | 'which';
-  /** 'which': the people whose calls the purpose words fit ("A or B"). */
+  /** 'which': the places whose calls the purpose words fit, each with what it was about. */
   readonly name: string;
   readonly at: number;
   /** 'set': when it rings, their time. 'done': how it went. 'failed': why. */
   readonly detail?: string;
   /** Screened: what they said or a summary of it; reported speech only. */
   readonly said?: string;
+  /**
+   * Set only for a call found by its purpose, not by the person asked about
+   * (CALL_STATUS_BY_PURPOSE): what it was about. Its line is that person's "not yet" first.
+   */
+  readonly about?: string;
 }
 type Recalled = RecalledCall | undefined | 'unread';
 
@@ -93,20 +99,31 @@ async function awaitingFor(
   return out;
 }
 
-/** The person words and number for who they mean, resolved through their contacts when possible. */
-async function queryFor(p: CallRecallPort, userId: string, who: string): Promise<CallQuery> {
+/**
+ * The person words and number for who they mean, resolved through their contacts when possible;
+ * `contact`: the words name a saved contact (a person: with a number or not, or one of several).
+ */
+async function queryFor(
+  p: CallRecallPort,
+  userId: string,
+  who: string
+): Promise<{ q: CallQuery; contact: boolean }> {
   const words = p.queryWords(who);
   try {
     const { findContact } = await import('./call-on-behalf.js');
     const found = await findContact(who, userId);
     if (found && !('ask' in found)) {
       const more = p.queryWords(`${found.name ?? ''} ${found.relationship ?? ''}`);
-      return { words: [...new Set([...words, ...more])], phone: found.phone };
+      return { q: { words: [...new Set([...words, ...more])], phone: found.phone }, contact: true };
     }
+    if (found) return { q: { words }, contact: true };
+    if (!flagOn('CALL_STATUS_BY_PURPOSE')) return { q: { words }, contact: false }; // as before
+    const store = await import('../../../services/contacts/contact-relationship-service.js');
+    return { q: { words }, contact: (await store.searchContacts(userId, who)).length > 0 };
   } catch {
-    // Unresolved: the words alone.
+    // Unresolved: the words alone, and not known to be a contact.
   }
-  return { words };
+  return { q: { words }, contact: false };
 }
 
 /** The records side, when it may be read: installed, on, a verified uid, the owner proven on the call. */
@@ -136,9 +153,9 @@ export async function callStatusReply(
   if (!p || !userId) return NOT_THE_OWNER;
   const person = who.trim();
   if (!person) return 'Ask the caller who they mean.';
-  const found = await queryFor(p, userId, person);
+  const { q: found, contact } = await queryFor(p, userId, person);
   // A contact they named is a person, not a purpose: no call to them is "not yet".
-  const q = found.phone === undefined ? { ...found, topic: person } : found;
+  const q = contact ? found : { ...found, topic: person };
   const call = await p.recall(userId, q, await awaitingFor(p, userId, live, now), now);
   return p.line(call, person, now);
 }

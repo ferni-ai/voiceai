@@ -1,6 +1,8 @@
 /**
  * "How's the dentist thing?" finds the call Ferni placed about it
- * (CALL_STATUS_BY_PURPOSE, services/outreach/call-purpose.ts). Run through the
+ * (CALL_STATUS_BY_PURPOSE, services/outreach/call-purpose.ts), and never as a
+ * call to whoever the words name: "did you call Jessica?" is "not yet" first,
+ * then the clinic call that mentions her (verifier held-out set, #3159). Run through the
  * real tool path: the telephony domain in a ToolRegistry, the real callStatus,
  * the real records reader and recall adapter. Mocked only at the edges:
  * Firestore (per-uid documents) and the contact store. Synthetic fixtures only.
@@ -22,7 +24,10 @@ vi.mock('../../../../services/superhuman/firestore-utils.js', () => {
   };
   return { getFirestoreDb: () => db };
 });
-const CONTACTS = [{ id: 'c-kit', name: 'Kit', phone: '(555) 555-0109', relationship: 'friend' }];
+const CONTACTS = [
+  { id: 'c-kit', name: 'Kit', phone: '(555) 555-0109', relationship: 'friend' },
+  { id: 'c-jordan', name: 'Jordan', relationship: 'friend' }, // saved with no number
+];
 vi.mock('../../../../services/contacts/contact-relationship-service.js', () => ({
   searchContacts: vi.fn(async (_uid: string, q: string) =>
     CONTACTS.filter((c) => c.name.toLowerCase() === q.toLowerCase())
@@ -54,6 +59,14 @@ const result = (id: string, at: string, request: Doc, summary = 'All set.'): Doc
   request,
   outcome: { status: 'completed', transcriptSummary: summary },
 });
+/** A completed call to a place: who, why, and when ("2026-10-28T15"), synthetic 555 numbers. */
+const to = (place: string, purpose: string, hour: string, more: Doc = {}): Doc =>
+  result(`call_${place}_${hour}`, `${hour}:00:00.000Z`, {
+    contactQuery: place,
+    contactName: place,
+    purpose,
+    ...more,
+  });
 const cleaning = result(
   'call_cleaning',
   '2026-10-29T15:00:00.000Z',
@@ -66,13 +79,7 @@ const cleaning = result(
   },
   'They booked a cleaning for Tuesday at 10.'
 );
-const xrays = result('call_xrays', '2026-10-28T15:00:00.000Z', {
-  contactQuery: 'Oak Street Clinic',
-  contactName: 'Oak Street Clinic',
-  contactPhone: '+15555550103',
-  purpose: 'ask the old dentist to send my x-rays over',
-  objective: 'inquiry',
-});
+const xrays = to('Oak Street Clinic', 'ask the old dentist to send my x-rays over', '2026-10-28T15', { contactPhone: '+15555550103' }); // prettier-ignore
 const tableHeld: Doc = {
   callId: 'held_table',
   kind: 'on_behalf',
@@ -111,6 +118,15 @@ const ask = (contactQuery: string, owner?: (() => boolean) | null) =>
 const none = (who: string) =>
   `No call to ${who} in the last 30 days: Ferni hasn't called them. Say "not yet" plainly; offer to call only if the caller wants it.`;
 
+/** A call found by purpose: the person's own "not yet" verbatim, then the place, never "Ferni called". */
+function placeReply(out: string, who: string, place: string, about: string): string {
+  expect(out.startsWith(`${none(who)}\nSeparately, one call Ferni made mentions those words: `)).toBe(true); // prettier-ignore
+  expect(out).toContain(`the call to ${place}, about "${about}".`);
+  expect(out).toContain(`That call was to ${place}, not to ${who}.`);
+  expect(out).not.toContain('Ferni called');
+  return out;
+}
+
 describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -126,25 +142,23 @@ describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
     setCallRecallPort(undefined);
   });
 
-  it('1. a purpose word finds the on_behalf_calls result and the held deferred_calls request', async () => {
+  it('1. a purpose word finds the result or the held request, told as the place called', async () => {
     expect(await ask('the dentist thing')).toBe(none('the dentist thing'));
     vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
     const dentist = await ask('the dentist thing');
-    expect(dentist).toMatch(/^Ferni called Bright Smile about 3 hours ago, and they answered\./);
+    placeReply(dentist, 'the dentist thing', 'Bright Smile', 'book a cleaning at the dentist');
+    expect(dentist).toContain('It went through about 3 hours ago: they answered.');
     expect(dentist).toContain('They booked a cleaning for Tuesday at 10.');
     // Held for calling hours: found by purpose ("restaurant") and by objective ("reservation").
-    const held = /^Not called yet: the call to Luigi Trattoria is set for /;
-    expect(await ask('did the restaurant get back')).toMatch(held);
-    expect(await ask('what happened with the reservation')).toMatch(held);
+    const about = 'reserve a table for four at the restaurant on Friday';
+    for (const q of ['did the restaurant get back', 'what happened with the reservation'])
+      expect(placeReply(await ask(q), q, 'Luigi Trattoria', about)).toContain(
+        "It hasn't happened yet: it is set for "
+      );
   });
 
   it('2. person words are unchanged and win over purpose words', async () => {
-    const leeOlder = result('call_lee', '2026-10-27T15:00:00.000Z', {
-      contactQuery: 'my dentist',
-      contactName: 'Dr. Lee',
-      contactPhone: '+15555550104',
-      purpose: 'confirm the time',
-    });
+    const leeOlder = to('Dr. Lee', 'confirm the time', '2026-10-27T15', { contactQuery: 'my dentist', contactPhone: '+15555550104' }); // prettier-ignore
     fs.users[OWNER]!.on_behalf_calls = [cleaning, leeOlder];
     const off = await ask('dentist');
     expect(off).toMatch(/^Ferni called Dr\. Lee 2 days ago/);
@@ -154,18 +168,16 @@ describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
     expect(await ask('Bright Smile')).toMatch(/^Ferni called Bright Smile/);
   });
 
-  it('3. filler never matches alone, and only whole words match ("dent" is not "accident")', async () => {
-    const filler = result('call_filler', '2026-10-29T16:00:00.000Z', {
-      contactQuery: 'Ace',
-      contactName: 'Ace',
-      purpose:
-        'call the plumber and get an update on that thing, it is the stuff about the accident',
-    });
-    fs.users[OWNER] = { on_behalf_calls: [filler] };
+  it('3. filler never matches alone, whole words only, and "ring" is a purpose word', async () => {
+    const about = 'call the plumber about that thing, it is the stuff about the accident';
+    const filler = to('Ace', about, '2026-10-29T16');
+    const ring = to('Gold Jewelers', 'resize the ring', '2026-10-28T16');
+    fs.users[OWNER] = { on_behalf_calls: [filler, ring] };
     vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
     // The record is findable by its real words, so the misses below are the matcher's doing.
-    expect(await ask('the plumber')).toMatch(/^Ferni called Ace/);
-    expect(await ask('the accident')).toMatch(/^Ferni called Ace/);
+    placeReply(await ask('the plumber'), 'the plumber', 'Ace', about);
+    placeReply(await ask('the accident'), 'the accident', 'Ace', about);
+    placeReply(await ask('the ring'), 'the ring', 'Gold Jewelers', 'resize the ring');
     for (const word of ['thing', 'call', 'the', 'that', 'stuff', 'it', 'update', 'that thing'])
       expect(await ask(word)).toBe(none(word));
     expect(await ask('dent')).toBe(none('dent'));
@@ -173,22 +185,30 @@ describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
     expect(purposeWords('the call, that stuff, it, an update')).toEqual([]);
   });
 
-  it('4. calls to two people that fit the purpose: both named and the caller asked which', async () => {
+  it('4. calls to two places that fit: both named with what each was about, asked which', async () => {
     vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
     fs.users[OWNER] = { on_behalf_calls: [cleaning] };
-    expect(await ask('the dentist')).toMatch(/^Ferni called Bright Smile/);
+    placeReply(await ask('the dentist'), 'the dentist', 'Bright Smile', 'book a cleaning at the dentist'); // prettier-ignore
     fs.users[OWNER] = { on_behalf_calls: [cleaning, xrays] };
-    expect(await ask('the dentist')).toBe(
-      'More than one call Ferni made fits that: to Bright Smile or Oak Street Clinic. Ask the ' +
-        "caller which one they mean; don't guess, and don't offer a new call."
+    const which = await ask('the dentist');
+    expect(which).toBe(
+      `${none('the dentist')}\nSeparately, calls Ferni made to other places mention those words: ` +
+        'to Bright Smile (about "book a cleaning at the dentist") or Oak Street Clinic (about ' +
+        '"ask the old dentist to send my x-rays over"). None of them was a call to the dentist.\n' +
+        "If the caller asked whether you called, reached or heard from the dentist: you haven't, " +
+        "so say that first. If they meant one of those calls, ask which one; don't guess, and " +
+        "don't offer a new call."
     );
-    // Two calls to the same place are one errand: the newest answers.
+    // Two calls to the same place are one errand: the newest answers, both purposes told.
     const again = result('call_cleaning_2', '2026-10-29T17:00:00.000Z', {
       ...(cleaning.request as Doc),
       purpose: 'move the dentist cleaning to Wednesday',
     });
     fs.users[OWNER] = { on_behalf_calls: [cleaning, again] };
-    expect(await ask('the dentist')).toMatch(/^Ferni called Bright Smile about an hour ago/);
+    const both = 'book a cleaning at the dentist"; and "move the dentist cleaning to Wednesday';
+    expect(placeReply(await ask('the dentist'), 'the dentist', 'Bright Smile', both)).toContain(
+      'It went through about an hour ago'
+    );
   });
 
   it('5. flag off (unset or off): replies and the tool definition are as on main', async () => {
@@ -199,13 +219,14 @@ describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
       'asks "did you call my dad?", "how did the call go?" or "what did she say?". Read-only: ' +
       'it never calls anyone. Never use callOnBehalf to answer such a question.';
     const mainParam = 'Who: a name or relationship, e.g. "dad" or "Sam"';
+    fs.users[OWNER]!.on_behalf_calls = [cleaning, PEOPLE_CALLS[0]!];
     for (const value of [undefined, 'off']) {
       if (value) vi.stubEnv('CALL_STATUS_BY_PURPOSE', value);
       const tool = liveCall().tool();
       expect(tool.description).toBe(mainDescription);
       expect(tool.parameters.shape.contactQuery.description).toBe(mainParam);
-      expect(await ask('the dentist thing')).toBe(none('the dentist thing'));
-      expect(await ask('the reservation')).toBe(none('the reservation'));
+      for (const q of ['the dentist thing', 'the reservation', 'my girlfriend', 'Jordan'])
+        expect(await ask(q)).toBe(none(q));
       expect(await ask('Bright Smile')).toMatch(/^Ferni called Bright Smile/);
     }
     vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
@@ -217,7 +238,7 @@ describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
   it('6. the owner gate and the honesty note still apply', async () => {
     vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
     const deny = /^Nothing to report: only the account owner/;
-    expect(await ask('the dentist thing')).toMatch(/^Ferni called Bright Smile/);
+    expect(await ask('the dentist thing')).toContain('the call to Bright Smile');
     expect(await ask('the dentist thing', () => false)).toMatch(deny);
     expect(await ask('the dentist thing', null)).toMatch(deny);
     const note = getHonestyInjection('fresh-session', 'Did you call the dentist?') ?? '';
@@ -225,36 +246,46 @@ describe('callStatus by purpose (CALL_STATUS_BY_PURPOSE)', () => {
     expect(note).not.toMatch(/No, I haven't called/);
   });
 
-  it('a person with no call of their own is "not yet", never a call whose purpose names them', async () => {
-    const refill = result('call_refill', '2026-10-29T16:00:00.000Z', {
-      contactQuery: 'Corner Pharmacy',
-      contactName: 'Corner Pharmacy',
-      purpose: "ask about dad's prescription refill, and Kit's too",
-    });
-    const proactive: Doc = { ...tableHeld, callId: 'held_proactive', kind: 'proactive' };
-    const blueDoor = result('call_blue', '2026-10-28T16:00:00.000Z', {
-      contactQuery: 'Blue Door',
-      contactName: 'Blue Door',
-      contactPhone: '+15555550106',
-      purpose: 'ask the restaurant about a private room',
-    });
-    fs.users[OWNER] = { on_behalf_calls: [refill, blueDoor], deferred_calls: [proactive] };
+  // Verifier held-out failures (11 of 50 at 2d7bfe1d4) and fresh ones: a person only mentioned
+  // in a call to a place. [asked, place, purpose]; each purpose names who is asked about.
+  const PEOPLE: [string, string, string][] = [
+    ['my girlfriend', 'Spotless Cleaners', "pick up my girlfriend's dry cleaning"],
+    ['did you call my grandson', 'Sweet Bakery', "order a cake for my grandson's party"],
+    ['my fiancee', 'Gold Jewelers', "resize my fiancee's ring"],
+    ['my stepson', 'Lincoln Elementary', "ask about my stepson's bus pickup"],
+    ['did you call my doctor', 'Corner Pharmacy', 'pick up what my doctor prescribed'],
+    ['my parents', 'Party Palace', "rent tables for my parents' anniversary and Maria's shower"],
+    ['Maria', 'Party Palace', "rent tables for my parents' anniversary and Maria's shower"],
+    ['did you call Jessica', 'Sunrise Clinic', 'ask for a referral for Jessica'],
+    ['Jessica', 'Sunrise Clinic', 'ask for a referral for Jessica'],
+    ['Biscuit', 'City Vet', "reschedule Biscuit's checkup"],
+    ['did you reach my nephew', 'Riverside Pool', 'sign my nephew up for swim lessons'],
+    ['have you talked to Priya', 'Hilltop Florist', 'send flowers to Priya for her recital'],
+    ['did my boss hear from you', 'Copy Corner', "print my boss's slides for Monday"],
+  ];
+  const PEOPLE_CALLS = PEOPLE.map(([, place, about], i) =>
+    to(place, about, `2026-10-2${i % 9}T15`)
+  );
+
+  it('7. a person only mentioned in a call: "not yet" first, then that call as the place', async () => {
     vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
-    expect(await ask('the prescription')).toMatch(/^Ferni called Corner Pharmacy/);
-    expect(await ask('my dad')).toBe(none('my dad'));
-    // Kit is a saved contact: named, so a person, even though a purpose mentions Kit.
+    for (const [who, place, about] of PEOPLE) {
+      fs.users[OWNER] = { on_behalf_calls: PEOPLE_CALLS.filter((d) => (d.request as Doc).purpose === about) }; // prettier-ignore
+      placeReply(await ask(who), who, place, about);
+    }
+    // Saved contacts are people, with or without a number: plain "not yet", nothing else.
+    const party = 'rent tables for the restaurant party, Jordan and Kit helping';
+    const jordan = to('Party Palace', party, '2026-10-28T15');
+    fs.users[OWNER] = { on_behalf_calls: [jordan], deferred_calls: [{ ...tableHeld, kind: 'proactive' }] }; // prettier-ignore
+    expect(await ask('Jordan')).toBe(none('Jordan'));
     expect(await ask('Kit')).toBe(none('Kit'));
-    // A held proactive call (Ferni calling the owner) is not a second place to ask about.
-    expect(await ask('the restaurant')).toMatch(/^Ferni called Blue Door/);
+    // A held proactive call (Ferni calling the owner) is never a second place to ask about.
+    placeReply(await ask('the tables'), 'the tables', 'Party Palace', party);
+    placeReply(await ask('the restaurant'), 'the restaurant', 'Party Palace', party);
   });
 
   it('a new call is not held up by another call whose purpose names that person', async () => {
-    const aboutKit = result('call_mom', '2026-10-29T17:30:00.000Z', {
-      contactQuery: 'Mom',
-      contactName: 'Mom',
-      contactPhone: '+15555550105',
-      purpose: 'tell her Kit says happy birthday',
-    });
+    const aboutKit = to('Mom', 'tell her Kit says happy birthday', '2026-10-29T17', { contactPhone: '+15555550105' }); // prettier-ignore
     fs.users[OWNER] = { on_behalf_calls: [aboutKit] };
     vi.stubEnv('CALL_STATUS_BY_PURPOSE', 'on');
     const args = { contactQuery: 'Kit', purpose: 'check in', recordingConsent: true };

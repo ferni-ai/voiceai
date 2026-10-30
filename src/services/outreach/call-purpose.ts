@@ -10,6 +10,11 @@
  * ("reservation"). Whole words only ("dent" never matches "accident"), and
  * filler ("thing", "call", "the", "update") never matches on its own.
  *
+ * A match never answers as the person: the words may name someone ("did you
+ * call Jessica?") who was only mentioned in a call to a clinic. So the reply is
+ * the person's own "not yet" first, then the place called and what it was
+ * about (call-recall.ts purposeLine). No list of person words is needed.
+ *
  * @module services/outreach/call-purpose
  */
 
@@ -24,24 +29,12 @@ export function callStatusByPurposeOn(env: Env = process.env): boolean {
 /** Words that say nothing about what a call was for. */
 const FILLER = new Set(
   (
-    'thing things stuff call calls called calling phone ring rang update updates news status ' +
+    'thing things stuff call calls called calling phone rang update updates news status ' +
     'the that this those these them they their there then than it its about with what whats ' +
     'how hows did does done get got gets back going went any and for from you your yours our ' +
     'his her him she was were has have had just out over one ones still yet ever ask asked ' +
     'tell told say said see let know make made want need can could would should will deal ' +
     'matter whole happened happen happening ferni please again today yesterday week'
-  ).split(' ')
-);
-
-/**
- * Words that name a person, never a purpose: "did you call my dad?" with no call to dad
- * must say so, not answer with the pharmacy call "about dad's prescription".
- */
-const PEOPLE = new Set(
-  (
-    'mom mum mama mommy mother dad papa daddy father sis sister bro brother son daughter ' +
-    'wife husband partner grandma grandmother grandpa grandfather aunt uncle cousin niece ' +
-    'nephew friend boss kid kids baby'
   ).split(' ')
 );
 
@@ -56,10 +49,9 @@ const OBJECTIVE_WORDS: Readonly<Record<string, readonly string[]>> = {
 const tokens = (v: unknown): string[] =>
   typeof v === 'string' ? (v.toLowerCase().match(/[a-z]+/g) ?? []) : [];
 
-/** The words of a query that can name a purpose: whole words; filler, people and short words dropped. */
+/** The words of a query that can name a purpose: whole words, filler and short words dropped. */
 export function purposeWords(text: string | undefined): string[] {
-  const named = tokens(text).filter((w) => w.length >= 3 && !FILLER.has(w) && !PEOPLE.has(w));
-  return [...new Set(named)];
+  return [...new Set(tokens(text).filter((w) => w.length >= 3 && !FILLER.has(w)))];
 }
 
 /** Whether this call was about any of these purpose words (whole-word equality). */

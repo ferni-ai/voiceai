@@ -128,22 +128,36 @@ export function recallFrom(q: CallQuery, input: Records, now: number): RecalledC
   return latestCall(input, now, (d) => matches(d, q), awaitingAs(q)) ?? byPurpose(q, input, now);
 }
 
-/** Calls to two or more people match the purpose: name them, so the caller is asked which. */
+const aboutOf = (d: Doc): string =>
+  callerText(String(((d.request ?? {}) as Doc).purpose ?? ''), 80) || 'something for the caller';
+
+/**
+ * The calls whose purpose the words name, never as the person asked about: `about` says what
+ * each was for. Calls to two or more places: 'which', naming each place and what it was about.
+ */
 function byPurpose(q: CallQuery, input: Records, now: number): RecalledCall | undefined {
   const words = callStatusByPurposeOn() ? purposeWords(q.topic) : [];
   if (words.length === 0) return undefined;
   const hit = (d: Doc): boolean => aboutPurpose(d, words);
   const deferred = input.deferred.filter((d) => d.kind === 'on_behalf' && hit(d));
   const found = { deferred, results: input.results.filter(hit) };
-  const people = new Map<string, string>();
+  const places = new Map<string, { name: string; about: string[] }>();
   for (const d of [...found.deferred, ...found.results]) {
     const r = (d.request ?? {}) as Doc;
     const c = (r.resolvedContact ?? {}) as Doc;
     const [name, phone] = [nameOf(d), lastTen(c.phone ?? r.contactPhone)];
-    people.set(phone === '' ? name.toLowerCase() : phone, name);
+    const key = phone === '' ? name.toLowerCase() : phone;
+    const place = places.get(key) ?? { name, about: [] };
+    places.set(key, { name: place.name, about: [...new Set([...place.about, aboutOf(d)])] });
   }
-  if (people.size > 1) return { state: 'which', name: [...people.values()].join(' or '), at: now };
-  return latestCall(found, now, anyCall, noReadBacks);
+  const list = [...places.values()];
+  if (list.length > 1) {
+    const name = list.map((p) => `${p.name} (about "${p.about[0]}")`).join(' or ');
+    return { state: 'which', name, at: now, about: '' };
+  }
+  const call = latestCall(found, now, anyCall, noReadBacks);
+  const about = list[0]?.about.slice(0, 2).join('"; and "');
+  return call && about !== undefined ? { ...call, about } : call;
 }
 
 function latestCall(
@@ -229,10 +243,9 @@ export function recallLine(
     return "I couldn't read the call records just now. Say you can't check right now; don't guess, and don't read a new call back as if none happened.";
   if (!call)
     return `No call to ${person} in the last 30 days: Ferni hasn't called them. Say "not yet" plainly; offer to call only if the caller wants it.`;
+  if (call.about !== undefined) return purposeLine(call, person, now);
   const { name } = call;
   const when = ago(call.at, now);
-  if (call.state === 'which')
-    return `More than one call Ferni made fits that: to ${name}. Ask the caller which one they mean; don't guess, and don't offer a new call.`;
   if (call.state === 'awaiting_yes')
     return `Not called: Ferni read back a call to ${name} ${when} and never got the caller's yes, so nothing was dialed. Say that plainly; read a call back only if they want it now.`;
   if (call.state === 'set')
@@ -260,4 +273,37 @@ const callRecallAdapter: CallRecallPort = {
 /** Install the adapter; safe to call on every call. */
 export function installCallRecallPort(): void {
   setCallRecallPort(callRecallAdapter);
+}
+
+/** How a purpose-found call went, in words about the place, never "Ferni called <them>". */
+function placeStatus(call: RecalledCall, now: number): string {
+  const when = ago(call.at, now);
+  if (call.state === 'set') return `It hasn't happened yet: it is set for ${call.detail ?? 'later'} their time.`; // prettier-ignore
+  if (call.state === 'in_progress') return `It went out ${when}, with no word yet on how it went.`;
+  if (call.state === 'failed') return `It was tried ${when}, but ${call.detail ?? "it didn't go through"}.`; // prettier-ignore
+  return `It went through ${when}: ${call.detail ?? 'it was answered'}.`;
+}
+
+/**
+ * A call found by its purpose. Always the person's own "not yet" first, verbatim: the words
+ * may name someone only mentioned in that call ("a referral for Jessica"). Then the place
+ * called and what it was about, as a separate call, never as a call to the person.
+ */
+function purposeLine(call: RecalledCall, person: string, now: number): string {
+  const notYet = recallLine(undefined, person, now);
+  const first = `If the caller asked whether you called, reached or heard from ${person}: you haven't, so say that first.`; // prettier-ignore
+  if (call.state === 'which')
+    return [
+      notYet,
+      `Separately, calls Ferni made to other places mention those words: to ${call.name}. None of them was a call to ${person}.`,
+      `${first} If they meant one of those calls, ask which one; don't guess, and don't offer a new call.`,
+    ].join('\n');
+  const lines = [
+    notYet,
+    `Separately, one call Ferni made mentions those words: the call to ${call.name}, about "${call.about}". ${placeStatus(call, now)}`,
+    `That call was to ${call.name}, not to ${person}. ${first} Then, or if they meant this call, say it was the ${call.name} call and what it was about (e.g. "the ${call.name} call was about that: want to hear how it went?"). Never say you called ${person}.`,
+  ];
+  if (call.state === 'done' && call.said)
+    lines.push(CALLER_TEXT_GUARD, ...reportedFromCall(call.name, [call.said]));
+  return lines.join('\n');
 }
