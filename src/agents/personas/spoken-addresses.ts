@@ -92,9 +92,23 @@ function dotIsSaid(before: string, after: string): boolean {
   return label.length >= 2 && !NOT_A_HOST.has(label);
 }
 
+/** Phone keypad letters: "HELP" is 4357. */
+const KEYPAD = 'abcdefghijklmnopqrstuvwxyz'.split('').map((c) => {
+  const groups = ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqrs', 'tuv', 'wxyz'];
+  return String(groups.findIndex((g) => g.includes(c)) + 2);
+});
+/** A toll-free vanity number as it is dialled: "1-800-662-HELP" is 1-800-662-4357. */
+const VANITY = /\b(8(?:00|33|44|55|66|77|88)[-.](?:\d{3}[-.])?)([A-Za-z]{3,10})\b/gu;
+const dialled = (text: string): string =>
+  text.replace(
+    VANITY,
+    (_m, prefix: string, word: string) =>
+      prefix + [...word.toLowerCase()].map((c) => KEYPAD[c.charCodeAt(0) - 97]).join('')
+  );
+
 /** The text in one reading (see the module note). */
 function normalise(text: string): string {
-  return foldContactText(text)
+  return foldContactText(dialled(text))
     .replace(/\b24\s*\/\s*7\b(?:,\s*365 days)?/giu, ' ') // "1-800-799-7233 (24/7)": hours, not digits of the number
     .replace(/(\S{1,63})\s{1,3}dot\s{1,3}(?=(\S{1,24}))/giu, (m, before: string, after: string) =>
       dotIsSaid(before, after) ? `${before}.` : `${before} `

@@ -12,6 +12,7 @@ import { SAFETY_CRISIS_RESOURCES } from '../../services/safety/index.js';
 import { CRISIS_RESOURCES as TOOL_CRISIS_RESOURCES } from '../../tools/domains/crisis/index.js';
 import {
   COACHING_HELPLINES,
+  NATIONAL_HELPLINES,
   CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES,
 } from '../../tools/domains/life-coaching-shared/index.js';
 import {
@@ -45,6 +46,8 @@ function groundingText(item: GroundingItem): string {
  * echo the model's own arguments qualifies, since an injected argument ("my sponsor's site
  * is evil.ru") would come straight back as trusted text. So not getContactInfo,
  * getContactInteractionHistory or recallPreviousConversation ("I don't have ... "<argument>""),
+ * not recallFromMemory (it returns the session's keyMoments verbatim, and rememberAboutUser
+ * writes the model's own text there: two injected calls would get an address spoken),
  * not the coaching tools, not the human-transfer tools, and not callStatus (the callee's own
  * words). Any other tool is untrusted, and so is a new one until someone adds it here.
  */
@@ -52,7 +55,6 @@ const FIRST_PARTY_TOOLS = new Set([
   'getContactInsights',
   'getContactsNeedingAttention',
   'getContactReminders',
-  'recallFromMemory',
   'getRelationshipSummary',
   // Crisis tools whose arguments are enums only, so their output is fixed helpline text.
   // Not the coaching tools (they echo the model's arguments) and not the human-transfer
@@ -77,7 +79,7 @@ export interface HouseFactsWho {
 }
 
 let crisisLines: Addresses | undefined;
-/** Every number, text code and site in the helpline tables the app carries (four of them). */
+/** Every number, text code and site in the helpline tables the app carries (five of them). */
 function helplineLines(): string[] {
   const fields = (r: { phone?: string; text?: string; chat?: string; website?: string }) =>
     [r.phone, r.text, r.chat, r.website].filter((v): v is string => Boolean(v));
@@ -100,6 +102,7 @@ function helplineLines(): string[] {
     ...Object.values(SAFETY_CRISIS_RESOURCES).flat().flatMap(fields), // services/safety/crisis-response
     ...Object.values(COACHING_CRISIS_RESOURCES).flatMap(fields), // life-coaching-shared/safety-guards
     ...Object.values(COACHING_HELPLINES).flatMap(fields), // numbers coaching tools print
+    ...Object.values(NATIONAL_HELPLINES).flatMap(fields), // helplines named in no other table
   ];
 }
 

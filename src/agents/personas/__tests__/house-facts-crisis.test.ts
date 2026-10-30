@@ -16,7 +16,10 @@ import {
   definitions as crisisTools,
 } from '../../../tools/domains/crisis/index.js';
 import { definitions as transferTools } from '../../../tools/domains/human-transfer/index.js';
-import { CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES } from '../../../tools/domains/life-coaching-shared/index.js';
+import {
+  CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES,
+  NATIONAL_HELPLINES,
+} from '../../../tools/domains/life-coaching-shared/index.js';
 import type { ToolContext } from '../../../tools/registry/types.js';
 import { withHouseFactsGuard } from '../house-facts.js';
 
@@ -205,5 +208,26 @@ describe('coaching tools: helplines come from the static set, never from their o
     const dialled = new Set(sources.join('\n').match(/1-8\d\d-\d{3}-\d{4}/gu) ?? []);
     expect(dialled.size).toBeGreaterThanOrEqual(4);
     for (const number of dialled) expect(await spoken(`Call ${number}.`)).toBe(`Call ${number}.`);
+  });
+});
+
+describe('national helplines named in no other table (final verification)', () => {
+  const lines = Object.entries(NATIONAL_HELPLINES).flatMap(([key, h]) =>
+    reachLines(h as Helpline).map((line) => [key, line] as const)
+  );
+
+  it.each(lines)('%s', async (_key, line) => {
+    expect(await spoken(line)).toBe(line);
+  });
+
+  it.each([
+    'The LGBT National Help Center is 1-888-843-4564.',
+    'The old Lifeline number, 1-800-273-8255, still reaches 988.',
+    'Their site is 988lifeline.org.',
+    'The Disaster Distress Helpline is 1-800-985-5990.',
+    'SAMHSA is 1-800-662-HELP.',
+    'You can also try 1-800-273-TALK.',
+  ])('spoken: %s', async (line) => {
+    expect(await spoken(line)).toBe(line);
   });
 });

@@ -158,6 +158,33 @@ describe('ordinary speech is left alone (round 5 verification)', () => {
   });
 });
 
+describe('a toll-free vanity number is read as the digits it is dialled with', () => {
+  const trusted = collectAddresses(
+    'SAMHSA 1-800-662-4357. Lifeline 1-800-273-8255.',
+    noAddresses()
+  );
+
+  it.each([
+    'Call 1-800-662-HELP.',
+    'Call 800-662-help.',
+    'Call 1-800-273-TALK.',
+    'Call 1-800-662-4357.',
+  ])('is the helpline: %s', (line) => {
+    expect(judgeAddresses(line, trusted)).toBe('ok');
+  });
+
+  it.each(['Call 1-800-FLOWERS.', 'Call 1-800-662-HOPE.', 'Call 1-888-TAXHELP.'])(
+    'is not, when nothing vouches for it: %s',
+    (line) => {
+      expect(judgeAddresses(line, trusted)).toBe('nowhere');
+    }
+  );
+
+  it('ordinary words after a plain number are left alone', () => {
+    expect(judgeAddresses('It costs 800 dollars, then 400 more.', trusted)).toBe('ok');
+  });
+});
+
 describe('a held run is cut only outside an address', () => {
   it.each([
     ['beside " dot "', 'aaaa bbbb cccc evil dot com tail'],

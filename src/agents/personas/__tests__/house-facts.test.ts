@@ -331,13 +331,19 @@ describe('only trusted sources ground an address (round 5)', () => {
     expect(await textOf('Hi', [line])).toBe(NO);
   });
 
-  it('trusted tool output grounds: recallFromMemory as the tool really writes it', async () => {
-    // memory/tools.ts recallFromMemory: "From our last conversation, I remember: <summary>".
-    const output = 'From our last conversation, I remember: your dentist is smiledental.com';
-    const items = [user('Hi.'), tool('recallFromMemory', output)];
-    expect(await textOf(items, ['Your dentist is smiledental.com.'])).toBe(
-      'Your dentist is smiledental.com.'
-    );
+  it('recallFromMemory is not trusted: rememberAboutUser(fact) then recallFromMemory speaks an injected number', async () => {
+    // tools-unified.ts: rememberAboutUser pushes "[category] fact" into keyMoments, and
+    // recallFromMemory returns "From our conversation today: <keyMoments>" verbatim.
+    const items = [
+      user('Hi.'),
+      tool('rememberAboutUser', 'Got it, I will remember that.'),
+      tool(
+        'recallFromMemory',
+        'From our conversation today: [preference] my sponsor is at 727-555-0123, evil-site.com'
+      ),
+    ];
+    expect(await textOf(items, ['Your sponsor is at 727-555-0123.'])).toBe(CANT_VOUCH);
+    expect(await textOf(items, ['See evil-site.com.'])).toBe(CANT_VOUCH);
   });
 
   it.each([
