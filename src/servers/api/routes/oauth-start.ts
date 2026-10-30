@@ -32,6 +32,11 @@ function isSpotifyConfigured(): boolean {
   return !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
 }
 
+/** Same test as token/oauth/wearables.ts isProviderConfigured('oura'), without loading its token store. */
+function isOuraConfigured(): boolean {
+  return !!process.env.OURA_CLIENT_ID && !!process.env.OURA_CLIENT_SECRET;
+}
+
 /** Provider → the login route that redirects on to the provider. */
 const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['google_calendar', '/auth/google/login'],
@@ -53,6 +58,7 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
   ['spotify', { name: 'Spotify', isConfigured: isSpotifyConfigured }],
+  ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,
     { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabled },

@@ -158,7 +158,7 @@ export async function getSleepSummary(
 
   const summary: OuraSleepSummary = {
     date: latestSleep.day,
-    score: Math.round(latestSleep.efficiency * 100) || 0,
+    score: Math.round(latestSleep.efficiency) || 0, // Oura's efficiency is already a percentage
     totalSleep: Math.round(latestSleep.total_sleep_duration / 60),
     efficiency: latestSleep.efficiency,
     latency: Math.round(latestSleep.latency / 60),

@@ -22,6 +22,8 @@ Object.assign(process.env, {
   GOOGLE_CALENDAR_CLIENT_SECRET: 'g-secret',
   MICROSOFT_CLIENT_ID: 'm-id',
   MICROSOFT_CLIENT_SECRET: 'm-secret',
+  OURA_CLIENT_ID: 'o-id',
+  OURA_CLIENT_SECRET: 'o-secret',
   APPLE_CLIENT_ID: 'a-id',
   APPLE_TEAM_ID: 'a-team',
   APPLE_KEY_ID: 'a-key',

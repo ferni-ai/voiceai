@@ -4,15 +4,11 @@
  * OAuth 2.0 flow for Oura Ring wearable integration.
  * Provides access to sleep, readiness, and activity data.
  *
- * OAuth Flow:
- * 1. Generate authorization URL with state
- * 2. User authorizes at cloud.ouraring.com
- * 3. Oura redirects with code
- * 4. Exchange code for tokens
- * 5. Store tokens in Firestore
+ * The connect flow is the shared wearables flow (POST /auth/oauth/start, then
+ * /wearables/oura/login and /callback in servers/api/routes/wearables.ts), which hands
+ * the code exchange and the save to this file. Tokens are sealed in oura_tokens/{uid}.
  */
 
-import crypto from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
@@ -26,17 +22,11 @@ const log = createLogger({ module: 'oura-auth' });
 
 const OURA_CLIENT_ID = process.env.OURA_CLIENT_ID || '';
 const OURA_CLIENT_SECRET = process.env.OURA_CLIENT_SECRET || '';
-const OURA_REDIRECT_URI = process.env.OURA_REDIRECT_URI || '';
 
-const OURA_AUTH_URL = 'https://cloud.ouraring.com/oauth/authorize';
 const OURA_TOKEN_URL = 'https://api.ouraring.com/oauth/token';
 
 const FIRESTORE_COLLECTION = 'oura_tokens';
-const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000; // 5 minutes
-
-// State storage (in production, use Redis)
-const pendingStates = new Map<string, { userId: string; createdAt: number }>();
 
 // Track failed tokens to avoid repeated refresh attempts
 const failedTokens = new Map<string, number>();
@@ -50,7 +40,7 @@ const tokenCache = new Map<string, OuraTokens>();
 // ============================================================================
 
 export function isApiConfigured(): boolean {
-  return Boolean(OURA_CLIENT_ID && OURA_CLIENT_SECRET && OURA_REDIRECT_URI);
+  return Boolean(OURA_CLIENT_ID && OURA_CLIENT_SECRET);
 }
 
 export async function isOuraConfigured(userId: string): Promise<boolean> {
@@ -69,72 +59,20 @@ export async function isOuraConfigured(userId: string): Promise<boolean> {
 // ============================================================================
 
 /**
- * Generate authorization URL for user to connect Oura
+ * Trade the authorization code for tokens. `redirectUri` is the one the authorize URL
+ * carried (the wearables flow passes its own). Keeping the grant is saveOuraTokens.
  */
-export function getAuthorizationUrl(userId: string): OuraResult<{ url: string }> {
-  if (!isApiConfigured()) {
-    return { success: false, error: 'Oura integration not configured' };
-  }
-
-  // Generate state parameter for CSRF protection
-  const state = crypto.randomBytes(32).toString('hex');
-  pendingStates.set(cleanForFirestore(state), { userId, createdAt: Date.now() });
-
-  // Clean up old states
-  const now = Date.now();
-  for (const [key, value] of pendingStates.entries()) {
-    if (now - value.createdAt > STATE_TTL_MS) {
-      pendingStates.delete(key);
-    }
-  }
-
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: OURA_CLIENT_ID,
-    redirect_uri: OURA_REDIRECT_URI,
-    scope: 'daily personal heartrate workout tag session spo2',
-    state,
-  });
-
-  const url = `${OURA_AUTH_URL}?${params.toString()}`;
-
-  log.info({ userId }, 'Generated Oura authorization URL');
-  return { success: true, data: { url } };
-}
-
-/**
- * Validate OAuth state and return associated userId
- */
-export function validateOAuthState(state: string): string | null {
-  const pending = pendingStates.get(state);
-  if (!pending) return null;
-
-  const now = Date.now();
-  if (now - pending.createdAt > STATE_TTL_MS) {
-    pendingStates.delete(state);
-    return null;
-  }
-
-  pendingStates.delete(state);
-  return pending.userId;
-}
-
-/**
- * Exchange authorization code for tokens
- */
-export async function exchangeCodeForTokens(
+export async function exchangeAuthorizationCode(
   code: string,
-  userId: string
-): Promise<OuraResult<OuraTokens>> {
-  if (!isApiConfigured()) {
-    return { success: false, error: 'Oura integration not configured' };
-  }
+  redirectUri: string
+): Promise<OuraTokens | null> {
+  if (!isApiConfigured()) return null;
 
   try {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      redirect_uri: OURA_REDIRECT_URI,
+      redirect_uri: redirectUri,
       client_id: OURA_CLIENT_ID,
       client_secret: OURA_CLIENT_SECRET,
     });
@@ -148,32 +86,28 @@ export async function exchangeCodeForTokens(
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      log.error({ error, status: response.status }, 'Failed to exchange Oura code');
-      return { success: false, error: 'Failed to exchange authorization code' };
+      log.error({ status: response.status }, 'Failed to exchange Oura code');
+      return null;
     }
 
     const data = (await response.json()) as OuraTokenResponse;
-
-    const tokens: OuraTokens = {
+    return {
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       expires_at: Date.now() + data.expires_in * 1000,
       token_type: data.token_type,
     };
-
-    // Store tokens
-    await storeTokens(userId, tokens);
-
-    // Clear any failed token tracking
-    failedTokens.delete(userId);
-
-    log.info({ userId }, 'Oura tokens exchanged and stored');
-    return { success: true, data: tokens };
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Error exchanging Oura code');
-    return { success: false, error: 'Token exchange failed' };
+    log.error({ error: String(error) }, 'Error exchanging Oura code');
+    return null;
   }
+}
+
+/** Keep a person's grant (sealed), replacing any earlier one. */
+export async function saveOuraTokens(userId: string, tokens: OuraTokens): Promise<void> {
+  await storeTokens(userId, tokens);
+  failedTokens.delete(userId);
+  log.info({ userId }, 'Oura tokens stored');
 }
 
 /**
