@@ -46,9 +46,13 @@ starts with no rules: every read and write allowed).
 
 `scripts/devdb/copy-user.ts --uid <uid>` copies one person's records from prod into
 `ferni-dev` (dry run unless `--apply`). Under `bogle_users/{uid}` and `users/{uid}`
-it copies only the subcollections in its `COPIED_SUBCOLLECTIONS` allowlist, and it
-drops the profile's token fields: credentials, queues and other people's data stay
-in prod. A new subcollection fails `copy-user.test.ts` until it is classified there.
+it copies only the subcollections in its `COPIED_SUBCOLLECTIONS` allowlist, and every
+copied document goes through the export's secret filter (token fields, sealed token
+records and credential-looking values are dropped at any depth). Credentials, queues
+and other people's data stay in prod: contacts, calendar events and meetings with
+attendees and their commitments, email correspondents, guest lists, people Ferni was
+asked to reach and what they said, OCR of uploaded images. A new subcollection fails
+`copy-user.test.ts` until it is classified there.
 
 ## How work ships (one small chunk at a time)
 

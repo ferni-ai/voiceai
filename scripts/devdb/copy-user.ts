@@ -15,8 +15,10 @@
  * A store added to that catalog later is copied too; copy-user.test.ts pins the list,
  * so the addition shows up in review. Under the person's two records, bogle_users/{uid}
  * and users/{uid}, only the subcollections in COPIED_SUBCOLLECTIONS are copied: a
- * store nobody has reviewed (a new credential) stays behind, and the profile's token
- * fields (PROFILE_TOKEN_FIELDS) are dropped from every copied document.
+ * store nobody has reviewed (a new credential) stays behind. Every copied document goes
+ * through the export's secret filter (export-redaction.ts) at every depth: token fields
+ * (linkedInTokens, fcmTokens, pushToken, a workflow's secretKey, ...), sealed token
+ * records and credential-looking values are dropped.
  *
  * Each document is copied with its id, its subcollections at any depth and its field
  * types (Timestamps stay Timestamps), in batches of at most 500 writes. Documents dev
@@ -33,9 +35,13 @@ import {
   storeLabel,
   type OwnedStore,
 } from '../../src/services/platform/user-stores.js';
-import { isSecretField } from '../../src/services/platform/export-redaction.js';
+import {
+  isSecretDataMapKey,
+  isSecretField,
+  toPlain,
+} from '../../src/services/platform/export-redaction.js';
+import { DATA_MAPS, KEPT_FIELDS } from '../../src/services/platform/user-records-export.js';
 import { isSyntheticUserId, namesNoAccount } from '../../src/utils/synthetic-user.js';
-import { withoutProfileTokenFields } from '../../src/utils/token-at-rest.js';
 
 export const SOURCE_DATABASE = '(default)';
 export const DEST_DATABASE = 'ferni-dev';
@@ -83,6 +89,9 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'contact_relationships[userId]': `${OTHERS}: contacts' phones and emails`,
   'contact_interactions[userId]': `${OTHERS}: contacts`,
   'contact_groups[userId]': `${OTHERS}: contacts`,
+  'ferni_actions[userId]': `${OTHERS}: who Ferni was asked to reach (phone, email), tool args`,
+  'concierge_requests[userId]': `${OTHERS}: businesses called for the person, with transcripts`,
+  'local_calendar_events[userId]': `${OTHERS}: events with attendees' email addresses`,
   'households/{uid}': `${OTHERS}: household members`,
   'voice_households[ownerId]': `${OTHERS}: household members' phones`,
   'share_invites[ownerId]': `${OTHERS}: invitees' emails`,
@@ -140,6 +149,24 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   guest_intelligence: `${OTHERS}: event guests`,
   message_history: `${OTHERS}: messages sent on the person's behalf, with recipients`,
   group_sessions: `${OTHERS}: group calls, with every participant's words`,
+  // Other people's emails, phones and words found when the allowlist was re-read for them
+  // (2026-10-30, #3144 round 2). Some have no live writer today; the shape their readers
+  // expect holds other people's data, so documents already in prod would too. Dev has no
+  // Google tokens, so a fresh sync, not a copy, is its calendar source.
+  meeting_interactions: `${OTHERS}: meeting attendees' emails and their commitments`,
+  meeting_commitments: `${OTHERS}: attendees' emails and names`,
+  email_intelligence: `${OTHERS}: correspondent profiles keyed by email address`,
+  calendar_events: `${OTHERS}: synced events with attendees' emails`,
+  event_planning: `${OTHERS}: guest lists with emails, phones and dietary needs`,
+  calendar_conflicts: `${OTHERS}: provider events with attendees' emails`,
+  meeting_outcomes: `${OTHERS}: attendees' emails and their commitments`,
+  background_results: `${OTHERS}: on-behalf call results with the callee's number and transcript`,
+  custom_agents: `${OTHERS}: legacy and mentor agents model a real person's voice and sayings`,
+  conflict_records: `${OTHERS}: what the other person said in a conflict (otherSaid)`,
+  special_dates: `${OTHERS}: a contact's phone beside the date`,
+  unified_entities: `${OTHERS}: people with their phones (contact.phone)`,
+  visual_memories: `${OTHERS}: OCR of uploaded images (screenshots, cards, letters)`,
+  tool_executions: `${OTHERS}: tool arguments and results (recipients, messages)`,
 };
 
 /**
@@ -152,6 +179,7 @@ export const NOT_COPIED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   pending: `${QUEUE}: homekit/commands/pending, run on the real home`,
   history: `${DEVICE}: homekit/commands/history`,
   transcript: `${OTHERS}: group_sessions/{id}/transcript`,
+  action_items: `${OTHERS}: group_sessions/{id}/action_items, assigned and said by participants`,
 };
 
 /**
@@ -182,28 +210,28 @@ const USER_RECORDS: ReadonlySet<string> = new Set(['bogle_users', 'users']);
  */
 export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   `
-  action_items action_trust active_context active_predictions ai_notices alarms ambient
+  action_trust active_context active_predictions ai_notices alarms ambient
   analytics anomalies anticipatory_planning apology_records associative_memory audit_log
-  background_results behavioral_finance behavioral_intelligence behavioral_patterns
+  behavioral_finance behavioral_intelligence behavioral_patterns
   behavioral_triggers biometric_readings blind_spots blockers briefings bth_feedback
-  bth_signals burnout_patterns calendar calendar_conflicts calendar_data calendar_events
+  bth_signals burnout_patterns calendar calendar_data
   capacity career_data causal_timeseries celebration_balance celebration_momentum celebrations
   ceo_blockers ceo_decisions ceo_energy ceo_focus_sessions ceo_gratitude ceo_ideas ceo_journal
   ceo_priorities ceo_reflections ceo_weekly_reviews ceo_wins coach_media_picks
   coaching_intelligence cognitive_learning commitment_checkins commitment_devices commitments
   common_ground communication_debts communication_events communication_profiles
-  communication_style concierge_requests conflict_history conflict_records
+  communication_style conflict_history
   consolidated_memories contemplative_practices contradiction_comfort conversation_patterns
   conversation_plans conversation_scores conversation_summaries conversation_threads
   conversations corrections correlations counterfactual_patterns counterfactuals crisis_signals
-  cross_persona_insights custom_agents cyclical_patterns decision_points decision_scores
+  cross_persona_insights cyclical_patterns decision_points decision_scores
   decisions deep_understanding detected_milestones detected_patterns dreams dynamic_entities
-  dynamic_facts dynamic_relationships email_intelligence embedding_intelligence
+  dynamic_facts dynamic_relationships embedding_intelligence
   emotion_vocabulary emotional_arcs emotional_patterns emotional_threads energy energy_data
   energy_interactions energy_readings engagement_events enough_statements entities
-  event_history event_meanings event_pattern_memory event_patterns event_planning event_stories
+  event_history event_meanings event_pattern_memory event_patterns event_stories
   experimentation experiments external_data extracted_facts extraction_history facts
-  favorite_places feedback ferni_actions ferni_commitments financial_data financial_goals
+  favorite_places feedback ferni_commitments financial_data financial_goals
   financial_profile fire_progress focus_sessions follow_through follow_up_actions follow_ups
   friction_points future_letters future_self_letters gift_history goal_progress goals gratitude
   growth_activities growth_markers growth_milestones habit_autopsies habit_completions
@@ -215,7 +243,7 @@ export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   legacy_statements life_automation life_chapters life_coaching life_coaching_analytics
   life_events life_simulations life_synthesis life_theses life_trajectories
   lifestyle_preferences linguistic_profiles lists marketplace_installs maya_gamification
-  maya_notifications meeting_commitments meeting_interactions meeting_outcomes memories
+  maya_notifications memories
   memory_capsules memory_graph_edges memory_highlights memory_links memory_protection
   memory_state memory_systems meta milestone_detector milestones mind_model moments
   monetization_fund_contributions monetization_journey monetization_tips
@@ -235,13 +263,13 @@ export const COPIED_SUBCOLLECTIONS: ReadonlySet<string> = new Set(
   saved_rituals seasonal_observations seasonal_planning self_awareness self_perception_gaps
   semantic_correlations semantic_intelligence semantic_threads session_quality session_state
   session_summaries sessions setback_patterns settings shared_memories shared_moments
-  silence_patterns silence_records social_events social_graph special_dates spontaneous_sharing
+  silence_patterns silence_records social_events social_graph spontaneous_sharing
   style_profile summaries superhuman superhuman_alerts superhuman_cache superhuman_predictive
   superhuman_profiles surfaced_content surfacing_events system tasks team team_engagement
-  team_insights temporal_snapshots tendency_signals timers timing_intelligence tool_executions
+  team_insights temporal_snapshots tendency_signals timers timing_intelligence
   topic_patterns transition_signals trust trust_moments trust_profiles trust_signals turns
-  unified_entities unified_memories unsaid_topics unspoken_needs utility_preferences
-  value_conflicts values visual_memories voice_biomarkers voice_contexts voice_memos
+  unified_memories unsaid_topics unspoken_needs utility_preferences
+  value_conflicts values voice_biomarkers voice_contexts voice_memos
   voice_prosody voice_sessions vulnerability_deposits vulnerability_tracking wellbeing
   wellbeing_profile wellbeing_snapshots wins wisdom_incubation wisdom_patterns world_facts
 `
@@ -290,14 +318,52 @@ export interface StoreCount {
   skipped: number;
 }
 
-/** A DocumentReference field points into the source database; rebind it to dev. */
-function rebind(value: unknown, dest: Firestore): unknown {
+const DROP = Symbol('drop');
+
+/** Names a map's fields are judged by: see forDev() */
+interface FieldNames {
+  readonly keep: ReadonlySet<string>;
+  readonly maps: ReadonlySet<string>;
+  readonly dataMap?: boolean;
+}
+const NO_NAMES: FieldNames = { keep: new Set(), maps: new Set() };
+
+/** The export's per-store exceptions for a document, by its collection path ({uid} for the uid) */
+export function fieldNamesFor(path: string, uid: string): FieldNames {
+  const label = path
+    .split('/')
+    .slice(0, -1)
+    .map((seg) => (seg === uid ? '{uid}' : seg))
+    .join('/');
+  return { keep: new Set(KEPT_FIELDS[label]), maps: new Set(DATA_MAPS[label]) };
+}
+
+/**
+ * A stored value as it is written to dev, with the "Take your story" export's secret
+ * filter (export-redaction.ts) applied at every depth: a field whose name is a credential's
+ * (isSecretField; isSecretDataMapKey inside a data map) is dropped, a sealed token record
+ * ({ encrypted }) is dropped, and a string goes through toPlain, which drops a
+ * credential-looking value and filters JSON held in a string. The export's per-store
+ * exceptions (KEPT_FIELDS, DATA_MAPS) apply as they do there. Unlike the export, field
+ * types are kept (Timestamps, GeoPoints, Bytes, vectors), and a DocumentReference, which
+ * points into the source database, is rebound to dev.
+ */
+function forDev(value: unknown, dest: Firestore, names: FieldNames = NO_NAMES): unknown {
   if (value instanceof DocumentReference) return dest.doc(value.path);
-  if (Array.isArray(value)) return value.map((v) => rebind(v, dest));
+  if (typeof value === 'string') return toPlain(value) ?? DROP;
+  if (Array.isArray(value)) {
+    return value.map((v) => forDev(v, dest)).filter((v) => v !== DROP);
+  }
   if (value && Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, rebind(v, dest)])
-    );
+    if (typeof (value as { encrypted?: unknown }).encrypted === 'string') return DROP;
+    const isSecret = names.dataMap === true ? isSecretDataMapKey : isSecretField;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (isSecret(k) && !names.keep.has(k)) continue;
+      const kept = forDev(v, dest, names.maps.has(k) ? { ...NO_NAMES, dataMap: true } : NO_NAMES);
+      if (kept !== DROP) out[k] = kept;
+    }
+    return out;
   }
   return value; // Timestamp, GeoPoint, Bytes, VectorValue and scalars as they are
 }
@@ -343,8 +409,8 @@ export async function copyUser(opts: {
         }
         count.copied += 1;
         if (!apply) continue;
-        const data = withoutProfileTokenFields(snap.data() ?? {});
-        batch.set(dest.doc(snap.ref.path), rebind(data, dest) as Record<string, unknown>);
+        const data = forDev(snap.data() ?? {}, dest, fieldNamesFor(snap.ref.path, uid));
+        batch.set(dest.doc(snap.ref.path), data as Record<string, unknown>);
         if (++pending >= BATCH_LIMIT) await flush();
       }
       for (const ref of page) {
