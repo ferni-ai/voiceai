@@ -21,7 +21,9 @@ import {
   LLM_TIMEOUT_MS,
   getEvaluationModel,
   getOpenAIFallbackModel,
+  isGeminiConfigured,
 } from '../../../../config/gemini-config.js';
+import { generateText } from '../../../../config/generative-model.js';
 import type { ToolMatch, SemanticRouterResult } from '../../types.js';
 
 const log = createLogger({ module: 'llm-fallback-router' });
@@ -434,36 +436,23 @@ export interface LLMProvider {
 }
 
 /**
- * Create a simple Gemini provider
- * Config values from centralized gemini-config.ts
+ * Create a simple Gemini provider: Vertex through the shared client.
+ * Config values from centralized gemini-config.ts. generate() throws
+ * GeminiUnavailableError or GeminiCallError (status only).
  */
-export function createGeminiProvider(apiKey: string): LLMProvider {
+export function createGeminiProvider(): LLMProvider {
   return {
     model: GEMINI_MODEL,
-    async generate(prompt: string): Promise<string> {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: GEMINI_TEMPERATURE_LOW,
-              maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS_SHORT,
-            },
-          }),
-          signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    },
+    generate: (prompt: string) =>
+      generateText({
+        model: GEMINI_MODEL,
+        prompt,
+        generationConfig: {
+          temperature: GEMINI_TEMPERATURE_LOW,
+          maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS_SHORT,
+        },
+        timeoutMs: LLM_TIMEOUT_MS,
+      }),
   };
 }
 
@@ -522,10 +511,8 @@ export function initializeLLMFallback(
 
   if (provider) {
     llmFallbackInstance.setLLMProvider(provider);
-  } else if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
-    // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-    llmFallbackInstance.setLLMProvider(createGeminiProvider(geminiKey!));
+  } else if (isGeminiConfigured()) {
+    llmFallbackInstance.setLLMProvider(createGeminiProvider());
   } else if (process.env.OPENAI_API_KEY) {
     llmFallbackInstance.setLLMProvider(createOpenAIProvider(process.env.OPENAI_API_KEY));
   }

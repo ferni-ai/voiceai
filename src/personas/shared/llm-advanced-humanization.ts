@@ -11,7 +11,14 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getLightModel, TEMP_CONTENT, MAX_TOKENS_TINY } from '../../config/gemini-config.js';
+import {
+  getLightModel,
+  LLM_SHORT_TIMEOUT_MS,
+  MAX_TOKENS_TINY,
+  TEMP_CONTENT,
+} from '../../config/gemini-config.js';
+import { generateText } from '../../config/generative-model.js';
+import { errorFields } from '../../utils/error-class.js';
 
 const log = createLogger({ module: 'llm-humanization' });
 
@@ -253,17 +260,7 @@ export async function generateHumanizationLLM(
   }
 
   try {
-    // Dynamic import Gemini
-    const { GoogleGenAI: GenAI } = await import('@google/genai');
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
-      log.debug('No GOOGLE_API_KEY');
-      return null;
-    }
-
     lastGenTime = now;
-
-    const genai = new GenAI({ apiKey });
 
     const prompt = `${voiceDna}
 
@@ -286,17 +283,16 @@ CRITICAL:
 
 Return ONLY the response text with SSML. No JSON, no explanation.`;
 
-    const model = genai.models.generateContent({
-      model: getLightModel(),
-      contents: prompt,
-      config: {
-        temperature: TEMP_CONTENT,
-        maxOutputTokens: MAX_TOKENS_TINY,
-      },
-    });
-
-    const response = await model;
-    let content = response.text?.trim() || '';
+    // Vertex through the shared client; throws GeminiUnavailableError / GeminiCallError
+    let content = (
+      await generateText({
+        model: getLightModel(),
+        prompt,
+        generationConfig: { temperature: TEMP_CONTENT, maxOutputTokens: MAX_TOKENS_TINY },
+        // The turn waits on this: the old key path had no bound, it just failed fast
+        timeoutMs: LLM_SHORT_TIMEOUT_MS,
+      })
+    ).trim();
 
     // Clean up any markdown or quotes
     content = content.replace(/^["'`]+|["'`]+$/g, '').trim();
@@ -321,7 +317,8 @@ Return ONLY the response text with SSML. No JSON, no explanation.`;
     log.info({ personaId, type, subtype }, '🎭 LLM humanization generated');
     return result;
   } catch (error) {
-    log.warn({ error: String(error) }, 'LLM humanization failed');
+    // The prompt quotes the user, so log the error's class and status only
+    log.warn(errorFields(error), 'LLM humanization failed, using cache or static');
     return null;
   }
 }
