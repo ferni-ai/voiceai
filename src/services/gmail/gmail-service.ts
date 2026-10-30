@@ -345,7 +345,7 @@ export async function getInboxStats(userId: string): Promise<InboxStats | null> 
   } catch (error) {
     if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId }, 'Failed to get inbox stats');
-    return null;
+    return gmailFallback(null, 'failed');
   }
 }
 
@@ -392,7 +392,7 @@ export async function getEmailThread(
   } catch (error) {
     if (error instanceof GmailNotPermittedError) throw error;
     log.error({ error: String(error), userId, threadId }, 'Failed to get email thread');
-    return null;
+    return gmailFallback(null, 'failed', error);
   }
 }
 

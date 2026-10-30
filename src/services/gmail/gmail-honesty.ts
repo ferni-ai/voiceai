@@ -50,9 +50,11 @@ export interface GmailUnavailable {
 /**
  * What a Gmail read returns when it can't run: the old fallback ([] or null), or on the
  * honest path a typed error, so no caller reads a missing token or failed call as no mail.
+ * A Gmail 404 (pass the caught `error`) is a real answer, "not found", and keeps the fallback.
  */
-export function gmailFallback<T>(fallback: T, cause: 'no_token' | 'failed'): T {
+export function gmailFallback<T>(fallback: T, cause: 'no_token' | 'failed', error?: unknown): T {
   if (!gmailReadsHonest()) return fallback;
+  if (cause === 'failed' && /Gmail API error: 404\b/.test(String(error))) return fallback;
   throw cause === 'no_token' ? new GmailNotPermittedError() : new GmailUnreachableError();
 }
 

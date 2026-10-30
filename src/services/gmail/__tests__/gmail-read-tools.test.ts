@@ -138,14 +138,31 @@ describe('GMAIL_READ_TOOLS', () => {
     }
   });
 
-  it('on: a 500 is "couldn\'t reach", never an empty inbox', async () => {
-    process.env.GMAIL_READ_TOOLS = 'on';
-    gmailAnswers(500, { error: { code: 500 } });
-    for (const id of ['getUnreadEmails', 'searchInbox', 'checkEmailFrom', 'triageInbox']) {
-      const out = await run(id);
-      expect(out, id).toMatchObject({ unavailable: 'gmail_unreachable' });
-      expect(JSON.stringify(out), id).not.toMatch(EMPTY_CLAIM);
+  it.each([
+    ['a 500', () => gmailAnswers(500, { error: { code: 500 } })],
+    ['a 503', () => gmailAnswers(503, { error: { code: 503, status: 'UNAVAILABLE' } })],
+    [
+      'a network error',
+      () => vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed')),
+    ],
+  ])(
+    'on: %s is "couldn\'t reach" from every read tool, never empty or not found',
+    async (_, fail) => {
+      process.env.GMAIL_READ_TOOLS = 'on';
+      fail();
+      for (const id of READ_IDS) {
+        const out = await run(id);
+        expect(out, id).toEqual({ unavailable: 'gmail_unreachable', say: expect.any(String) });
+        expect(JSON.stringify(out), id).not.toMatch(EMPTY_CLAIM);
+        expect(JSON.stringify(out), id).not.toMatch(/could not find|couldn't find/i);
+      }
     }
+  );
+
+  it('on: a real Gmail 404 on a thread still says not found', async () => {
+    process.env.GMAIL_READ_TOOLS = 'on';
+    gmailAnswers(404, { error: { code: 404, message: 'Requested entity was not found.' } });
+    expect(await run('getEmailThread')).toBe('I could not find that email thread.');
   });
 
   it('on: a real empty inbox still says no emails', async () => {
