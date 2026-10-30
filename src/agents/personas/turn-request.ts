@@ -148,7 +148,7 @@ export function withTurnReminder(
     return buildTurnReminder(request, session, options);
   } catch (error) {
     log.warn({ error: String(error) }, "TURN_REMINDER_FAILED: replying without this turn's notes");
-    return request;
+    return withoutReportInCrisis(request, options.shape === false); // never throws
   }
 }
 
