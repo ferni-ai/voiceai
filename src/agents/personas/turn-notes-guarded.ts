@@ -18,7 +18,10 @@ import { roomGuestsNote as raw_roomGuestsNote } from './room-guests.js';
 import { nameCorrectionNote as raw_nameCorrectionNote } from './name-correction.js';
 import { callMeNote as raw_callMeNote } from './call-me-note.js';
 import { teammateIdentityNote as raw_teammateIdentityNote } from './teammate-identity.js';
-import { teamStatusNote as raw_teamStatusNote } from '../../tools/handoff/locked-teammates.js';
+import {
+  aliasNoteFor as raw_aliasNoteFor,
+  teamStatusNote as raw_teamStatusNote,
+} from '../../tools/handoff/locked-teammates.js';
 import { heardTeammateNote as raw_heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { correctionNotesFor as raw_correctionNotesFor } from './correction-repair.js';
 import { gameTurnNote as raw_gameTurnNote } from '../../services/games/call-game-state.js';
@@ -68,6 +71,7 @@ export const roomGuestsNote = guarded('roomGuests', raw_roomGuestsNote, '', true
 export const nameCorrectionNote = guarded('nameCorrection', raw_nameCorrectionNote, '', true);
 export const callMeNote = guarded('callMe', raw_callMeNote, '', true);
 export const teammateIdentityNote = guarded('teammateIdentity', raw_teammateIdentityNote, '');
+export const aliasNoteFor = guarded('aliasNote', raw_aliasNoteFor, false);
 export const teamStatusNote = guarded('teamStatus', raw_teamStatusNote, '');
 export const heardTeammateNote = guarded('heardTeammate', raw_heardTeammateNote, '');
 export const correctionNotesFor = guarded('corrections', raw_correctionNotesFor, '');

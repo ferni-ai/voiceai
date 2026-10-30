@@ -8,7 +8,11 @@
  * withNoteGuard and read by attempt/guarded (turn-notes-guarded.ts wraps the builders with them).
  */
 
+import type { llm } from '@livekit/agents';
+
 import type { createLogger } from '../../utils/safe-logger.js';
+import { withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
+import { withTurnStyleReminder } from './turn-style.js';
 
 /** Stands in for the identity, owner and privacy notes when one of them can't be built. */
 export const UNVERIFIED_SPEAKER_NOTE =
@@ -87,3 +91,29 @@ export function guarded<F extends (...args: never[]) => unknown>(
 
 /** The default for the turn so far: the unverified note if an identity note was dropped. */
 export const fallbackNote = (): string => (active?.identityDropped ? UNVERIFIED_SPEAKER_NOTE : '');
+
+/**
+ * `build()` with a guard for the turn. A failure outside every note still leaves the request
+ * without stale turn context and with the unverified default; if even that fails, the request as
+ * sent: a throwing builder never costs the turn its reply.
+ */
+export function guardedTurn(
+  log: ReturnType<typeof createLogger>,
+  sessionId: string | undefined,
+  request: llm.ChatContext,
+  build: () => llm.ChatContext
+): llm.ChatContext {
+  try {
+    return withNoteGuard(createNoteGuard(log, sessionId), build);
+  } catch (error) {
+    log.warn(
+      { sessionId, errorName: error instanceof Error ? error.name : typeof error },
+      'TURN_REMINDER_FAILED: unverified default only'
+    );
+    try {
+      return withTurnStyleReminder(withoutStaleTurnContext(request), UNVERIFIED_SPEAKER_NOTE);
+    } catch {
+      return request;
+    }
+  }
+}

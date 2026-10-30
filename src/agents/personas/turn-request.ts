@@ -58,13 +58,7 @@ import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js
 import { callSeed, signalsFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
 import * as safe from './turn-notes-guarded.js';
-import {
-  attempt,
-  fallbackNote,
-  UNVERIFIED_SPEAKER_NOTE,
-  createNoteGuard,
-  withNoteGuard,
-} from './turn-note-guard.js';
+import { attempt, fallbackNote, guardedTurn } from './turn-note-guard.js';
 
 /**
  * The verified owner is on the line: rememberName may rename the account (remember-name.ts).
@@ -114,21 +108,8 @@ export function withTurnReminder(
   session: object,
   options: TurnReminderOptions = {}
 ): llm.ChatContext {
-  const guard = createNoteGuard(log, sessionIdOf((session as { userData?: unknown }).userData));
-  try {
-    return withNoteGuard(guard, () => buildTurnReminder(request, session, options));
-  } catch (error) {
-    // Outside every note: the stale context still goes, and the default still rides.
-    log.warn(
-      { errorName: error instanceof Error ? error.name : typeof error },
-      'TURN_REMINDER_FAILED: unverified default only'
-    );
-    try {
-      return withTurnStyleReminder(withoutStaleTurnContext(request), UNVERIFIED_SPEAKER_NOTE);
-    } catch {
-      return request;
-    }
-  }
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  return guardedTurn(log, sessionId, request, () => buildTurnReminder(request, session, options));
 }
 
 type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean };
@@ -187,8 +168,11 @@ function buildTurnReminder(
     safe.worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
     attempt('director', () => director?.told(keep) ?? '', ''),
     safe.teamStatusNote(view, words),
-    // "Naya" in the transcript is Nayan (teammate-names.ts)
-    safe.heardTeammateNote(words),
+    // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
+    safe.heardTeammateNote(
+      words,
+      safe.aliasNoteFor(view, session, chatCtx, options.shape === false)
+    ),
     notes,
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.
