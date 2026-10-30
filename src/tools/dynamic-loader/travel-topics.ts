@@ -54,7 +54,8 @@ export const TRAVEL_TOPIC_PATTERNS: Array<[string, readonly ToolDomain[], RegExp
   [
     'how long does it take to get',
     ['information'],
-    /(?<![a-z])how\s+long\s+(?:does|will|would)\s+it\s+take\s+(?:me\s+|us\s+)?to\s+(?:get|drive)(?![a-z])/,
+    // "get" only to a place: not "how long does it take to get over a breakup"
+    /(?<![a-z])how\s+long\s+(?:does|will|would)\s+it\s+take\s+(?:me\s+|us\s+)?to\s+(?:drive|get\s+(?:to|there|here|home|from|downtown|back\s+(?:to|home)))(?![a-z])/,
   ],
   [
     'fly',

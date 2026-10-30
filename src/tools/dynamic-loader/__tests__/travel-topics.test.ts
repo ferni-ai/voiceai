@@ -21,6 +21,8 @@ describe('travel topic words', () => {
     'Can you get directions to the Pearl Street Mall?',
     'How far is it to Fort Collins?',
     'How long does it take to get to the airport?',
+    'How long will it take us to get there?',
+    'How long would it take me to drive to Zion?',
     'Is it a long drive to Vail?',
     'What is the drive time to Golden?',
   ])('asks for getCommuteTime from information for %j', (said) => {
@@ -56,6 +58,7 @@ describe('travel topic words', () => {
     'My fight or flight kicked in',
     'Read the directions on the bottle',
     'How far along are you in the book?',
+    'How long does it take to get over a breakup?',
   ])('asks for no travel tool for %j', (said) => {
     expect(detect(said).leadTools).toEqual([]);
     expect(domainsFor(said)).not.toContain('travel');

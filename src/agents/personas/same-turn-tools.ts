@@ -25,7 +25,7 @@ import {
   forbiddenToolsNow,
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
-import { TOPIC_PATTERNS } from '../../tools/dynamic-loader/topic-patterns.js';
+import { TOPIC_PATTERNS } from '../../tools/dynamic-loader/index.js';
 import { SAME_TURN_TOPIC_PATTERNS } from '../../tools/dynamic-loader/same-turn-topics.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
 import type { ToolDomain } from '../../tools/registry/types.js';

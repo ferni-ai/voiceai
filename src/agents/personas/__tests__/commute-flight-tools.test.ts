@@ -21,6 +21,10 @@ const TOPIC_HEADROOM = 24; // MID_SESSION_TOPIC_TOOLS default (initial-tools.ts)
 // two flight lookups only, not getTripSuggestions (travel-topics.ts TOPIC_ONLY_TOOLS)
 const NEVER_OFFERED = ['cancelRide', 'requestRide', 'scheduleRide', 'getRideStatus'];
 const NOT_FOR_FLIGHTS = [...NEVER_OFFERED, 'getTripSuggestions'];
+const TRIP_TOOLS = ['planTrip', 'searchHotels', 'getSavedTrips'];
+/** The names in `names` that `tools` holds. (expect.not.arrayContaining fails only if all are held.) */
+const among = (tools: readonly string[], names: readonly string[]): string[] =>
+  tools.filter((n) => names.includes(n));
 const log = { info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() };
 
 /** TOOLS_SAME_TURN off: the transcript handler's topic load and its deferred update. */
@@ -50,7 +54,7 @@ describe('TOOLS_SAME_TURN off', () => {
 
     const tools = Object.keys(call.agent.toolCtx.functionTools);
     expect(tools).toContain('getCommuteTime');
-    expect(tools).toEqual(expect.not.arrayContaining(NEVER_OFFERED));
+    expect(among(tools, NEVER_OFFERED)).toEqual([]);
     expect(tools.length).toBeLessThanOrEqual(DEFAULT_INITIAL_TOOL_LIMIT + TOPIC_HEADROOM);
     expect((await turn(call, 'And with traffic?')).request).toContain('getCommuteTime');
   }, 120_000);
@@ -72,9 +76,38 @@ describe('TOOLS_SAME_TURN off', () => {
 
     const tools = Object.keys(call.agent.toolCtx.functionTools);
     expect(tools).toContain('searchFlights');
-    expect(tools).toEqual(expect.not.arrayContaining(NOT_FOR_FLIGHTS));
+    expect(among(tools, NOT_FOR_FLIGHTS)).toEqual([]);
     // getCurrentTools (turn observers, handoffs) also brings travel's lookups only
     expect(Object.keys(call.loader.getCurrentTools())).not.toContain('getTripSuggestions');
+  }, 120_000);
+
+  // productivity also registers searchFlights, searchHotels, planTrip and getSavedTrips, and the
+  // registry lists searchFlights under it: re-offering all of productivity for a flight word put
+  // planTrip (writes a saved trip) on the agent (#3141 verify, 2026-10-30). origin/main: none.
+  for (const said of [
+    'Remind me to check in for my flight tomorrow',
+    'Can you schedule my flight to Boston',
+    'I have a deadline before my flight',
+  ]) {
+    it(`re-offers only the asked-for tools, not productivity's trip tools: "${said}"`, async () => {
+      const call = await startCall(`flight-productivity-off-${said.length}`);
+      expect(call.loader.isDomainLoaded('productivity')).toBe(true);
+      expect(among(call.initialNames, TRIP_TOOLS)).toEqual([]);
+
+      expect(await deferredUpdate(call, said)).toContain('productivity');
+
+      const tools = Object.keys(call.agent.toolCtx.functionTools);
+      expect(tools).toContain('searchFlights');
+      expect(among(tools, [...TRIP_TOOLS, ...NOT_FOR_FLIGHTS])).toEqual([]);
+    }, 120_000);
+  }
+
+  it("narrows only that update: a handoff's domain list still brings productivity whole", async () => {
+    const call = await startCall('flight-productivity-handoff-off');
+    await deferredUpdate(call, 'I have a deadline before my flight');
+    // giveLoadedDomainsToNewAgents (TOOLS_FOLLOW_AGENT) passes getLoadedDomains(), as on main
+    const handoff = Object.keys(call.loader.getToolsForDomains(call.loader.getLoadedDomains()));
+    expect(handoff).toContain('planTrip');
   }, 120_000);
 
   it('loads neither domain for the idioms', async () => {
@@ -97,7 +130,7 @@ describe('TOOLS_SAME_TURN on', () => {
 
     expect(t.request).toContain('getCommuteTime');
     expect(t.reply).toContain('getCommuteTime');
-    expect(t.request).toEqual(expect.not.arrayContaining(NEVER_OFFERED));
+    expect(among(t.request, NEVER_OFFERED)).toEqual([]);
   }, 120_000);
 
   it('puts searchFlights in the request of the turn that asks for a flight', async () => {
@@ -106,7 +139,7 @@ describe('TOOLS_SAME_TURN on', () => {
 
     const t = await turn(call, FLIGHT);
     expect(t.request).toContain('searchFlights');
-    expect(t.request).toEqual(expect.not.arrayContaining(NOT_FOR_FLIGHTS));
+    expect(among(t.request, NOT_FOR_FLIGHTS)).toEqual([]);
   }, 120_000);
 
   it('keeps getCommuteTime when a bigger topic domain loads with it', async () => {
