@@ -39,11 +39,18 @@ import {
   classifyCrisis,
   createGeminiCrisisGenerate,
   resolveCrisisClassifierTimeoutMs,
+  turnVerdicts,
   type CrisisClassifierInput,
   type CrisisGenerateFn,
   type CrisisVerdict,
+  type PatternOutcome,
 } from './crisis-classifier.js';
-import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
+import {
+  applyClassifierVerdict,
+  buildCrisisGuidance,
+  detectCrisis,
+  type CrisisDetectionResult,
+} from './crisis-guard.js';
 
 const log = createLogger({ module: 'CrisisConfirmedRisk' });
 
@@ -127,26 +134,32 @@ export function noteConfirmedRisk(call: string | undefined, env: Env = process.e
   if (call && resolveConfirmedCallRisk(env) !== 'off') entry(call, Date.now()).confirmed = true;
 }
 
-/** Only the classifier escalated this turn: later turns on this call may get the after-check read. */
-export function noteClassifierAlarm(
-  call: string | undefined,
-  latest: string,
-  env: Env = process.env
-): void {
-  if (call && resolveConfirmedCallRisk(env) !== 'off') {
-    entry(call, Date.now()).alarms.add(turnOf(latest));
-  }
+/**
+ * Only the classifier escalated this turn: an alarm, unless two separate reads of the turn
+ * agreed on risk (checked off the reply path once they are in), which confirms the call.
+ */
+function noteKept(lone: LoneRead, env: Env): void {
+  const { call, input } = lone;
+  if (!call) return;
+  entry(call, Date.now()).alarms.add(turnOf(input.latest));
+  void turnVerdicts(call, input)
+    .then((reads) => {
+      const risky = reads.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent');
+      if (risky.length >= 2) noteConfirmedRisk(call, env);
+    })
+    .catch(() => undefined);
 }
 
-export interface AfterCheckArgs {
+/** A classifier-escalated turn, as the reply gate and the turn pipeline see it. */
+export interface LoneRead {
   call: string | undefined;
   input: CrisisClassifierInput;
   /** This turn's classifier verdict, which escalated it. */
   verdict: CrisisVerdict | null;
   /** The patterns' reading of this turn. */
   detection: CrisisDetectionResult;
-  /** Whether the patterns (or a screen answer) decided anything this turn. */
-  patterned: boolean;
+  /** What the patterns (or a screen answer) decided this turn. */
+  pattern: PatternOutcome;
   source: 'gate' | 'pipeline';
   env?: Env;
   generate?: CrisisGenerateFn;
@@ -163,10 +176,10 @@ const mayBeMinor = (call: string, lines: readonly string[]): boolean =>
   likelyMinor(call) || derivedHold(call) || lines.some((line) => statesUnder18(line));
 
 /** Why this turn gets no after-check read, or null when it does. Fails closed. */
-function ineligible(args: AfterCheckArgs, call: string): string | null {
+function ineligible(args: LoneRead, call: string): string | null {
   const { verdict, input } = args;
   if (verdict?.risk !== 'crisis' && verdict?.risk !== 'imminent') return 'no_risk_read';
-  if (args.patterned || found(args.detection)) return 'pattern';
+  if (args.pattern !== 'none' || found(args.detection)) return 'pattern';
   const kept = ledger.get(call);
   if (!kept || Date.now() - kept.at > TTL_MS) return 'no_alarm';
   if (kept.confirmed) return 'confirmed';
@@ -183,7 +196,7 @@ function ineligible(args: AfterCheckArgs, call: string): string | null {
 }
 
 async function afterCheckRead(
-  args: AfterCheckArgs,
+  args: LoneRead,
   call: string,
   env: Env
 ): Promise<CrisisVerdict | null> {
@@ -199,7 +212,7 @@ async function afterCheckRead(
   return read;
 }
 
-async function decide(args: AfterCheckArgs, call: string, env: Env): Promise<AfterCheck> {
+async function decide(args: LoneRead, call: string, env: Env): Promise<AfterCheck> {
   const read = await afterCheckRead(args, call, env);
   const mode = resolveConfirmedCallRisk(env);
   const from = args.verdict?.risk;
@@ -227,7 +240,7 @@ async function decide(args: AfterCheckArgs, call: string, env: Env): Promise<Aft
  * Whether this classifier-escalated turn is eased. 'keep' (as before) for
  * anything ineligible, in shadow (which reads off the reply path), and on any error.
  */
-export async function afterCheck(args: AfterCheckArgs): Promise<AfterCheck> {
+async function afterCheck(args: LoneRead): Promise<AfterCheck> {
   try {
     const env = args.env ?? process.env;
     const mode = resolveConfirmedCallRisk(env);
@@ -248,6 +261,25 @@ export async function afterCheck(args: AfterCheckArgs): Promise<AfterCheck> {
   } catch {
     return 'keep';
   }
+}
+
+/**
+ * For a classifier-escalated turn: the guidance it gets instead of the decision it had, with
+ * the stepped-down detection when an imminent read becomes crisis guidance; null keeps the
+ * decision (and notes the turn as an alarm on the call).
+ */
+export async function afterCheckLoneRead(
+  lone: LoneRead
+): Promise<{ guidance: string; crisis?: CrisisDetectionResult } | null> {
+  const env = lone.env ?? process.env;
+  const after = await afterCheck(lone);
+  if (after === 'ease') return { guidance: AFTER_CHECK_GUIDANCE };
+  if (after === 'step_down' && lone.verdict) {
+    const crisis = applyClassifierVerdict(lone.detection, { ...lone.verdict, risk: 'crisis' });
+    return { guidance: buildCrisisGuidance(crisis), crisis };
+  }
+  if (resolveConfirmedCallRisk(env) !== 'off') noteKept(lone, env);
+  return null;
 }
 
 /** For tests. */
