@@ -579,7 +579,11 @@ describe('API Integration Health', () => {
     // Log health status for visibility
     console.log('API Integration Health Status:', healthStatus);
 
-    // Verify we checked all integrations
-    expect(Object.keys(healthStatus).length).toBeGreaterThanOrEqual(6);
+    // Exactly these integrations are checked: a check that silently disappears
+    // fails here. Yelp was removed on 2026-10-30 (API terms ban generative-model use).
+    expect(Object.keys(healthStatus).sort()).toEqual(
+      ['googleCalendar', 'openai', 'spotify', 'stripe', 'twilio'].sort()
+    );
+    expect(healthStatus).not.toHaveProperty('yelp');
   });
 });
