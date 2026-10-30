@@ -86,7 +86,7 @@ function spokenDigits(plain: string): string {
  * Whether 911 or 988 is anywhere in `text`, written or spoken, whole or split
  * by spaces and punctuation ("9. 1 1", "nine. eleven.", "nine eighty-eight").
  */
-export function emergencyNumberIn(text: string): boolean {
+function emergencyNumberIn(text: string): boolean {
   const runs = spokenDigits(text.toLowerCase()).match(/\d(?:[\s.,;:!?-]*\d)*/g) ?? [];
   return runs.some((run) => /911|988/.test(run.replace(/\D/g, '')));
 }
