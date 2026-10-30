@@ -281,6 +281,7 @@ export function startTurnCrisis(
               verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2
             ) {
               softTransfer = false;
+              noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK: before any after-check
             }
             // A classifier-only crisis gets a fuller second read (crisis-adjudicator.ts).
             const adjudicator = startCrisisAdjudicator(transcriptFrom(input), {

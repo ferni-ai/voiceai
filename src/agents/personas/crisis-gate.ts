@@ -238,6 +238,7 @@ export function startCrisisGate(
       // Reads of this turn that agree on risk are never eased.
       if (verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2) {
         softTransfer = false;
+        noteConfirmedRisk(call, env); // CRISIS_CONFIRMED_CALL_RISK: before any after-check
       }
       // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
       const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {

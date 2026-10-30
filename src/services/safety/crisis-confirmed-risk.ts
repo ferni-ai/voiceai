@@ -2,13 +2,9 @@
  * Call-level crisis risk counts only when confirmed (CRISIS_CONFIRMED_CALL_RISK =
  * off | shadow | on, off by default).
  *
- * Prod, the 7 days to 2026-10-30: crisis handling fired on about one caller turn
- * in six, on 10 of 23 calls, and 163 of 165 decisions came from the classifier
- * alone. Once one read flagged a call, later turns kept reading as risk: the
- * classifier reads each turn with the caller's earlier lines and Ferni's line
- * before it, and after an alarm that line is Ferni's own safety talk. A caller
- * pushing back on it ("I'm fine", "it's not a crisis") then reads as risk too, so
- * one read nothing confirmed becomes many turns of guidance or the script.
+ * Once one classifier read flags a call, later turns keep reading as risk: each
+ * turn is read with Ferni's line before it, which after an alarm is Ferni's own
+ * safety talk, so pushback ("I'm fine", "it's not a crisis") reads as risk too.
  *
  * With the flag on, each call keeps a ledger: the turns where only the classifier
  * escalated (an alarm), and whether anything confirmed risk. A LATER turn on an
@@ -105,10 +101,8 @@ interface CallRisk {
 }
 const ledger = new Map<string, CallRisk>();
 /**
- * One after-check read per call and turn, shared by the reply gate and the turn pipeline.
- * A turn is exactly what the read sees (the caller's line, the earlier lines, Ferni's line),
- * so a later line in another script, or the same words answering another question, is read
- * afresh and never reuses an earlier "no risk".
+ * One after-check read per call and turn (exactly what the read sees), shared by the gate and
+ * the pipeline: the same words on another turn never reuse an earlier "no risk".
  */
 const reads = new Map<string, { at: number; read: Promise<CrisisVerdict | null> }>();
 
@@ -148,12 +142,17 @@ function noteKept(lone: LoneRead, env: Env): void {
   const { call, input } = lone;
   if (!call) return;
   entry(call, Date.now()).alarms.add(turnOf(input.latest));
-  void turnVerdicts(call, input)
-    .then((reads) => {
-      const risky = reads.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent');
-      if (risky.length >= 2) noteConfirmedRisk(call, env);
+  void agreed(call, input)
+    .then((yes) => {
+      if (yes) noteConfirmedRisk(call, env);
     })
     .catch(() => undefined);
+}
+
+/** Two or more reads of this turn agree on risk. */
+async function agreed(call: string, input: CrisisClassifierInput): Promise<boolean> {
+  const verdicts = await turnVerdicts(call, input);
+  return verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2;
 }
 
 /** A classifier-escalated turn, as the reply gate and the turn pipeline see it. */
@@ -182,7 +181,7 @@ const mayBeMinor = (call: string, lines: readonly string[]): boolean =>
   likelyMinor(call) || derivedHold(call) || lines.some((line) => statesUnder18(line));
 
 /** Why this turn gets no after-check read, or null when it does. Fails closed. */
-function ineligible(args: LoneRead, call: string): string | null {
+async function ineligible(args: LoneRead, call: string): Promise<string | null> {
   const { verdict, input } = args;
   if (verdict?.risk !== 'crisis' && verdict?.risk !== 'imminent') return 'no_risk_read';
   if (args.pattern !== 'none' || found(args.detection)) return 'pattern';
@@ -197,6 +196,11 @@ function ineligible(args: LoneRead, call: string): string | null {
   if ((earlier as string[]).some((line) => found(detectCrisis(line)))) {
     kept.confirmed = true;
     return 'earlier_pattern';
+  }
+  // Reads of this turn that agree on risk confirm the call, whichever path noted them first.
+  if (await agreed(call, input)) {
+    kept.confirmed = true;
+    return 'confirmed';
   }
   return null;
 }
@@ -252,7 +256,7 @@ async function afterCheck(args: LoneRead): Promise<AfterCheck> {
     const mode = resolveConfirmedCallRisk(env);
     const { call } = args;
     if (mode === 'off' || !call) return 'keep';
-    const why = ineligible(args, call);
+    const why = await ineligible(args, call);
     if (why !== null) {
       if (why !== 'no_risk_read' && why !== 'no_alarm') {
         log.info({ outcome: 'keep', why, mode, source: args.source }, 'CRISIS_CONFIRMED');

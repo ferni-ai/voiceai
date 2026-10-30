@@ -9,12 +9,15 @@ import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
+  parseClassifierReply,
   resetCrisisClassifierCache,
+  startCrisisClassifier,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import {
   AFTER_CHECK_GUIDANCE,
   AFTER_CHECK_PROMPT,
+  afterCheckLoneRead,
   resetConfirmedCallRisk,
 } from '../../../services/safety/crisis-confirmed-risk.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
@@ -221,6 +224,83 @@ describe('CRISIS_CONFIRMED_CALL_RISK: real risk keeps main', () => {
     const generate = stub(reads, { [PROTEST]: NONE });
     const out = await call([...BENIGN, PROTEST], generate, ON, null);
     expect(guidance(out[3])).toContain('[CRITICAL - USER SAFETY]');
+    expect(generate.afterCalls).toEqual([]);
+  });
+});
+
+describe('CRISIS_CONFIRMED_CALL_RISK: reads of one turn that agree on risk', () => {
+  const AGREE = 'It has been a really rough week.';
+  const LATER = 'Anyway, what were we saying?';
+  const AGREED = { ...ON, CRISIS_AGREEMENT_GATE: 'on' };
+
+  it('confirm the call before any after-check: neither that turn nor a later one is eased', async () => {
+    const reads = { [ALARM]: IMMINENT, [AGREE]: CRISIS, [LATER]: CRISIS };
+    const generate = stub(reads, { [AGREE]: NONE, [LATER]: NONE });
+    const session = `call-${++calls}`;
+    const userData = { services: { sessionId: session } };
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+    const gateTurn = async (line: string): Promise<CrisisGateDecision> => {
+      ctx.addMessage({ role: 'user', content: line });
+      const gate = startCrisisGate(ctx.copy(), userData, { env: AGREED, generate });
+      const decision = (await gate?.escalation) ?? gate?.decision ?? { action: 'pass' };
+      ctx.addMessage({ role: 'assistant', content: FERNI[decision.action] });
+      return decision;
+    };
+    for (const line of BENIGN) await gateTurn(line); // a lone alarm: one read only
+    // The pipeline reads the turn against another Ferni line: a second, separate read.
+    const other = { recentTranscripts: [...BENIGN, AGREE], lastAgentResponse: 'Sounds lovely.' };
+    const pipeline = startTurnCrisis(AGREE, other, { sessionId: session, env: AGREED, generate });
+    const agreeTurn = await gateTurn(AGREE);
+    const summary = await pipeline.summary();
+    const later = await gateTurn(LATER);
+    expect(guidance(agreeTurn)).toContain('[CRITICAL - USER SAFETY]');
+    expect(summary.softCheck).not.toBe(true);
+    expect(summary.isCrisis).toBe(true);
+    expect(guidance(later)).toContain('[CRITICAL - USER SAFETY]');
+    expect(generate.afterCalls).toEqual([]);
+  });
+
+  it('the pipeline confirms the call on its own agreeing reads', async () => {
+    const generate = stub({ [ALARM]: IMMINENT, [AGREE]: CRISIS }, { [AGREE]: NONE });
+    const session = `call-${++calls}`;
+    await call(BENIGN, generate, AGREED, session); // a lone alarm
+    // Another read of the turn, then the pipeline's own: two reads agree, no gate on this turn.
+    const opts = { pattern: 'none', generate, env: LIVE, scope: session } as const;
+    const other = { latest: AGREE, earlier: BENIGN, companion: 'Sounds lovely.' };
+    await startCrisisClassifier(other, opts)?.verdict;
+    const turn = startTurnCrisis(
+      AGREE,
+      { recentTranscripts: [...BENIGN, AGREE], lastAgentResponse: FERNI.replace },
+      { sessionId: session, env: AGREED, generate }
+    );
+    const summary = await turn.summary();
+    expect(summary.softCheck).not.toBe(true);
+    expect(summary.isCrisis).toBe(true);
+    expect(generate.afterCalls).toEqual([]);
+  });
+
+  it('are seen by the after-check itself, whichever path noted them first', async () => {
+    const generate = stub({ [AGREE]: CRISIS }, { [AGREE]: NONE });
+    const call = `call-${++calls}`;
+    const lone = (latest: string, reply: string) =>
+      ({
+        call,
+        input: { latest, earlier: [], companion: 'Sounds lovely.' },
+        verdict: parseClassifierReply(reply),
+        detection: detectCrisis(latest),
+        pattern: 'none',
+        source: 'gate',
+        env: ON,
+        generate,
+      }) as const;
+    expect(await afterCheckLoneRead(lone(ALARM, IMMINENT))).toBeNull(); // the alarm
+    // Two separate reads of the turn, with no gate or pipeline to note their agreement.
+    const opts = { pattern: 'none', generate, env: LIVE, scope: call } as const;
+    for (const companion of ['Sounds lovely.', 'Oh, tell me more.']) {
+      await startCrisisClassifier({ latest: AGREE, earlier: [], companion }, opts)?.verdict;
+    }
+    expect(await afterCheckLoneRead(lone(AGREE, CRISIS))).toBeNull();
     expect(generate.afterCalls).toEqual([]);
   });
 });
