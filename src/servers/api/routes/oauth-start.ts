@@ -11,6 +11,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getVerifiedUserId } from '../request-identity.js';
+import { isSpotifyConnectConfigured } from '../../../config/spotify-connect.js';
 import { createOAuthLinkState } from '../../token/oauth-link-state.js';
 import { sanitizeReturnUrl } from '../../token/validation.js';
 import { parseBodySafe } from '../../../utils/ddos-protection.js';
@@ -27,14 +28,14 @@ import {
 
 export const OAUTH_START_PATH = '/auth/oauth/start';
 
-/** Same test as token/oauth/spotify.ts isConfigured, without loading its token store. */
-function isSpotifyConfigured(): boolean {
-  return !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
-}
-
-/** Same test as token/oauth/wearables.ts isProviderConfigured('oura'), without loading its token store. */
+/**
+ * Oura needs the app credentials, and in production a redirect URI registered on the Oura
+ * app: without OURA_REDIRECT_URI the flow falls back to localhost, which Oura rejects.
+ * Same credential test as token/oauth/wearables.ts, without loading its token store.
+ */
 function isOuraConfigured(): boolean {
-  return !!process.env.OURA_CLIENT_ID && !!process.env.OURA_CLIENT_SECRET;
+  if (!process.env.OURA_CLIENT_ID || !process.env.OURA_CLIENT_SECRET) return false;
+  return process.env.NODE_ENV !== 'production' || !!process.env.OURA_REDIRECT_URI;
 }
 
 /** Provider → the login route that redirects on to the provider. */
@@ -57,7 +58,7 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
  */
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
-  ['spotify', { name: 'Spotify', isConfigured: isSpotifyConfigured }],
+  ['spotify', { name: 'Spotify', isConfigured: () => isSpotifyConnectConfigured() }],
   ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,

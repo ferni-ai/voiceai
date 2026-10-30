@@ -170,7 +170,7 @@ data (`routes/oura.ts`). The grant is kept in `services/identity/oura-auth.ts` (
 | Env | Where | Meaning |
 |-----|-------|---------|
 | `OURA_CLIENT_ID`, `OURA_CLIENT_SECRET` | UI server (connect) and the voice agent (token refresh) | Secret Manager `oura-client-id`, `oura-client-secret` |
-| `OURA_REDIRECT_URI` | UI server | Must equal a redirect registered on the Oura app: `https://app.ferni.ai/wearables/oura/callback`. Unset, it falls back to `http://localhost:$PORT/wearables/oura/callback` |
+| `OURA_REDIRECT_URI` | UI server | Must equal a redirect registered on the Oura app: `https://app.ferni.ai/wearables/oura/callback`. Required in production (connect is refused as unavailable without it); elsewhere it falls back to `http://localhost:$PORT/wearables/oura/callback` |
 
 Without the id and secret the connect row is refused as unavailable (`oauth-start.ts`).
 

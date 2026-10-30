@@ -11,7 +11,9 @@
  * - When nothing is left to continue with, continueAmbientMusic says so, so
  *   the caller hears a short line instead of silence.
  * - The first ambient play of a call without Spotify tells the model these are
- *   short previews, once, so Ferni can offer to link Spotify.
+ *   short previews, once, so Ferni can offer to link Spotify. With
+ *   MUSIC_HONEST_WHEN_UNLINKED on it says Spotify isn't connected and offers a
+ *   link only when the connect route is configured (music-honesty.ts).
  *
  * State belongs to the music player's session: it starts over when the
  * player's session id changes (and on resetAmbientSession()).
@@ -22,6 +24,7 @@ import { getMusicPlayer, isMusicAvailable, type MusicTrack } from '../../../audi
 import { flagOn, type Env } from '../../../config/env-flag.js';
 import { searchItunes } from '../../../services/itunes.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { honestPreviewNotice, musicHonestOn } from './music-honesty.js';
 import { ambientStartLine, startWithin } from './music-start.js';
 
 type ItunesTrack = Awaited<ReturnType<typeof searchItunes>>['results'][number];
@@ -154,7 +157,7 @@ export async function playAmbientMusic(query: string, spotifyLinked = false): Pr
   }
   if (continueAsAskedOn() && !spotifyLinked && !previewNoticeGiven) {
     previewNoticeGiven = true;
-    return line + PREVIEW_NOTICE;
+    return line + (musicHonestOn() ? honestPreviewNotice() : PREVIEW_NOTICE);
   }
   return line;
 }
