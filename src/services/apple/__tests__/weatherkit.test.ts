@@ -310,6 +310,40 @@ describe('getWeatherKitWeather outcomes', () => {
     expect(res.outcome === 'ok' && res.weather.current).toBeNull();
   });
 
+  it('a missing precipitation chance or intensity stays undefined, not 0%', async () => {
+    const t = '2026-10-30T12:00:00Z';
+    const body = {
+      forecastHourly: { metadata: META, hours: [{ forecastStart: t, temperature: 10 }] },
+      forecastDaily: {
+        metadata: META,
+        days: [{ forecastStart: t, temperatureMax: 12, temperatureMin: 6 }],
+      },
+      forecastNextHour: { metadata: META, summary: [{ condition: 'rain', startTime: t }] },
+    };
+    replies = [
+      { status: 200, body: ALL_SETS },
+      { status: 200, body },
+    ];
+    const res = await run();
+    if (res.outcome !== 'ok') throw new Error(res.outcome);
+    expect(res.weather.hourly[0].precipitationChance).toBeUndefined();
+    expect(res.weather.daily[0].precipitationChance).toBeUndefined();
+    expect(res.weather.nextHour?.[0].precipitationChance).toBeUndefined();
+    expect(res.weather.nextHour?.[0].precipitationIntensity).toBeUndefined();
+  });
+
+  it('an alert without its own detailsUrl is kept, with the collection link', async () => {
+    const { detailsUrl: _omit, ...alert } = BODY.weatherAlerts.alerts[0];
+    const collectionUrl = 'https://weatherkit.apple.com/alertDetails/collection';
+    replies = [
+      { status: 200, body: ALL_SETS },
+      { status: 200, body: { weatherAlerts: { detailsUrl: collectionUrl, alerts: [alert] } } },
+    ];
+    const res = await run();
+    if (res.outcome !== 'ok') throw new Error(res.outcome);
+    expect(res.weather.alerts).toEqual([{ ...alert, detailsUrl: collectionUrl }]);
+  });
+
   it('never logs the token, the key or the coordinates', async () => {
     replies = [
       { status: 200, body: ALL_SETS },

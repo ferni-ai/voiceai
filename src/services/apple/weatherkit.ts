@@ -71,7 +71,7 @@ interface DailyForecast {
   temperatureMax: number;
   temperatureMin: number;
   conditionCode: string;
-  precipitationChance: number;
+  precipitationChance?: number;
   precipitationType: string;
 }
 
@@ -79,15 +79,15 @@ interface HourlyForecast {
   time: string;
   temperature: number;
   conditionCode: string;
-  precipitationChance: number;
+  precipitationChance?: number;
 }
 
 interface NextHourPeriod {
   condition: string;
   startTime: string;
   endTime?: string;
-  precipitationChance: number;
-  precipitationIntensity: number;
+  precipitationChance?: number;
+  precipitationIntensity?: number;
 }
 
 /** Apple's alert, unmodified: description is spoken as-is, with source (the issuing agency). */
@@ -302,9 +302,7 @@ function parseHour(h: Obj): HourlyForecast[] {
   const time = str(h.forecastStart);
   if (temperature === undefined || !time) return [];
   const conditionCode = str(h.conditionCode) ?? 'Unknown';
-  return [
-    { time, temperature, conditionCode, precipitationChance: num(h.precipitationChance) ?? 0 },
-  ];
+  return [{ time, temperature, conditionCode, precipitationChance: num(h.precipitationChance) }];
 }
 
 function parseDay(d: Obj): DailyForecast[] {
@@ -318,7 +316,7 @@ function parseDay(d: Obj): DailyForecast[] {
       temperatureMax,
       temperatureMin,
       conditionCode: str(d.conditionCode) ?? 'Unknown',
-      precipitationChance: num(d.precipitationChance) ?? 0,
+      precipitationChance: num(d.precipitationChance),
       precipitationType: str(d.precipitationType) ?? 'precipitation',
     },
   ];
@@ -333,20 +331,29 @@ function parsePeriod(p: Obj): NextHourPeriod[] {
       condition,
       startTime,
       endTime: str(p.endTime),
-      precipitationChance: num(p.precipitationChance) ?? 0,
-      precipitationIntensity: num(p.precipitationIntensity) ?? 0,
+      precipitationChance: num(p.precipitationChance),
+      precipitationIntensity: num(p.precipitationIntensity),
     },
   ];
 }
 
-function parseAlert(a: Obj): WeatherAlert[] {
+function parseAlert(a: Obj, collectionUrl: string | undefined): WeatherAlert[] {
   const id = str(a.id);
   const description = str(a.description);
   const source = str(a.source);
   if (!id || !description || !source) return [];
   const severity = str(a.severity) ?? 'unknown';
   const expireTime = str(a.expireTime) ?? '';
-  return [{ id, description, source, severity, detailsUrl: str(a.detailsUrl), expireTime }];
+  return [
+    {
+      id,
+      description,
+      source,
+      severity,
+      detailsUrl: str(a.detailsUrl) ?? collectionUrl,
+      expireTime,
+    },
+  ];
 }
 
 function parseWeather(
@@ -356,12 +363,13 @@ function parseWeather(
   if (!body) return null;
   const cw = dataSet(body, 'currentWeather');
   const nh = dataSet(body, 'forecastNextHour');
+  const wa = dataSet(body, 'weatherAlerts');
   const weather: WeatherData = {
     current: parseCurrent(cw),
     hourly: list(dataSet(body, 'forecastHourly')?.hours).flatMap(parseHour).slice(0, 24),
     daily: list(dataSet(body, 'forecastDaily')?.days).flatMap(parseDay),
     nextHour: nh ? list(nh.summary).flatMap(parsePeriod) : null,
-    alerts: list(dataSet(body, 'weatherAlerts')?.alerts).flatMap(parseAlert),
+    alerts: list(wa?.alerts).flatMap((a) => parseAlert(a, str(wa?.detailsUrl))),
   };
   const hasData =
     weather.current !== null ||
