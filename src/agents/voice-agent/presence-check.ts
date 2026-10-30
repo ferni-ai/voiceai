@@ -24,6 +24,7 @@ import { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { remarkTooSoon, silenceRemarkGuardOn } from './silence-remark-guard.js';
+import { contentOf, type ReplyChunk as Chunk } from '../personas/reply-chunks.js';
 
 /** Default minimum gap between two presence checks to a caller whose audio is fine. */
 export const PRESENCE_CHECK_MIN_GAP_MS = 180_000;
@@ -227,17 +228,6 @@ export function createPresenceCap(
     },
     stop: () => audio.stop(),
   };
-}
-
-type Chunk = llm.ChatChunk | string | object;
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const c = chunk as llm.ChatChunk;
-  if ('delta' in c && c.delta !== undefined && (c.delta.toolCalls?.length ?? 0) === 0) {
-    return c.delta.content ?? '';
-  }
-  return undefined; // tool calls, usage: not reply text
 }
 
 /**

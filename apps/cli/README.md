@@ -54,6 +54,11 @@ ferni quality cohesion     # Module cohesion (god modules)
 ferni quality naming       # Naming conventions
 ```
 
+## Nightly Integration Smoke
+
+`pnpm test:integrations:nightly`: read-only probes against `scripts/ops/integration-expected.json`;
+exit 0 only when all match, exit 1 names the anomalies (contract in `CLAUDE.md`).
+
 ## Development
 
 ```bash

@@ -30,7 +30,6 @@ state.failReads = failed;
 fake.db = createMergeFakeFirestore(state);
 
 const plaid = await import('../../../servers/api/services/plaid.js');
-const spotifyLink = await import('../../../servers/token/oauth/spotify.js');
 const spotifyApi = await import('../../../servers/api/services/spotify.js');
 const wearables = await import('../../../servers/token/oauth/wearables.js');
 const gmail = await import('../../identity/gmail-send-as-user.js');
@@ -61,13 +60,6 @@ describe('token saves after a failed token read', () => {
     expect(writesTo(path)).toHaveLength(1);
   });
 
-  it('Spotify link (per user): saveTokens saves the new grant', async () => {
-    const path = `bogle_users/u-spot/${spotifyLink.SPOTIFY_LINK_COLLECTION}/data`;
-    await afterAFailedRead(path, () => spotifyLink.getTokens('u-spot'));
-    await spotifyLink.saveTokens('u-spot', tokens as never);
-    expect(writesTo(path)).toHaveLength(1);
-  });
-
   it('Spotify app tokens (global): saveTokens saves the refreshed tokens', async () => {
     const path = 'spotify_tokens/global';
     await afterAFailedRead(path, () => spotifyApi.loadTokens());
@@ -76,9 +68,9 @@ describe('token saves after a failed token read', () => {
   });
 
   it('Wearables: saveTokens saves the new grant', async () => {
-    const path = 'bogle_users/u-wear/wearable_fitbit_tokens/data';
-    await afterAFailedRead(path, () => wearables.getTokens('fitbit', 'u-wear'));
-    await wearables.saveTokens('fitbit', 'u-wear', tokens as never);
+    const path = 'bogle_users/u-wear/wearable_whoop_tokens/data';
+    await afterAFailedRead(path, () => wearables.getTokens('whoop', 'u-wear'));
+    await wearables.saveTokens('whoop', 'u-wear', tokens as never);
     expect(writesTo(path)).toHaveLength(1);
   });
 

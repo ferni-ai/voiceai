@@ -2,7 +2,6 @@
 # REAL HOME INTEGRATION TEST CONFIGURATION
 # =============================================================================
 # Copy this file to .env.local and fill in your values
-# Direct integrations preferred - Home Assistant is optional!
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -33,14 +32,6 @@ HUE_USERNAME=
 # -----------------------------------------------------------------------------
 # Get your token at: https://cloud.lifx.com/settings
 LIFX_TOKEN=
-
-# -----------------------------------------------------------------------------
-# 🏠 HOME ASSISTANT (Optional - for power users only)
-# -----------------------------------------------------------------------------
-# Only set these if you already run Home Assistant.
-# It can aggregate ALL your devices into one API.
-# HOME_ASSISTANT_URL=http://homeassistant.local:8123
-# HOME_ASSISTANT_TOKEN=your_long_lived_access_token
 
 # -----------------------------------------------------------------------------
 # 🧪 TEST CONFIGURATION

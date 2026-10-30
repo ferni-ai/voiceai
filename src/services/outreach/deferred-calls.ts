@@ -29,6 +29,7 @@ import {
 import { bothClocks, clockAt, SAY_CLOCKS_AS_WRITTEN, spokenWhen } from './held-call-clocks.js';
 import { callNowVerdict, wantsCallNow } from './call-now-override.js';
 import { wasDialled } from './dial-marker.js';
+import { watchCallResult } from './call-result-watch.js';
 import {
   alreadyRingingReply,
   claimHeldCall,
@@ -333,6 +334,8 @@ export async function placeOrHold(
   }
   if (replaces) await markReplacedBy(request.userId, replaces.id, callId);
   const held = deferredCallReply(callId, name, request.purpose, now);
+  // CALL_RESULT_LIVE_REPORT: the owner's call hears the result, whichever worker captures it.
+  if (!held) watchCallResult(request, callId);
   const also = otherCallsLine(others, now, callId);
   return { callId, held: held && held + also, others: also };
 }

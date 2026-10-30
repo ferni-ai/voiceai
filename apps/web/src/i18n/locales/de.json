@@ -1213,7 +1213,6 @@
       "journaling": "Die Chronik",
       "language": "Sprache",
       "lifeContext": "Deine Welt",
-      "linkSpotify": "Spotify verbinden",
       "memoryBrowser": "Woran ich mich erinnere",
       "musicalYou": "Gemeinsam Musik hören",
       "notifications": "Wann ich mich melde",
@@ -1224,7 +1223,6 @@
       "predictionAccuracy": "Wie ich mich schlage",
       "progressAnalytics": "Wie es dir geht",
       "shareFerni": "Bring jemanden mit",
-      "spotifyConnected": "Spotify verbunden",
       "supportFerni": "Ferni unterstützen",
       "supportFerniExpanded": "Ferni unterstützen",
       "takeTour": "Zeig mir alles",
@@ -2419,10 +2417,6 @@
         "description": "Synchronisiere mit den Gesundheitsdaten deiner Apple Watch und deines iPhones",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Verbinde dein Fitbit-Gerät",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Synchronisiere mit Garmin-Wearables",
         "name": "Garmin"
@@ -2776,8 +2770,7 @@
       "askFerni": "Oder bitte Ferni, etwas abzuspielen",
       "play": "Abspielen",
       "pause": "Pause",
-      "skip": "Überspringen",
-      "linkSpotify": "Verknüpfe Spotify in den Einstellungen für ganze Songs"
+      "skip": "Überspringen"
     },
     "volume": "Lautstärke",
     "skipped": "Übersprungen",
@@ -8349,10 +8342,9 @@
     "appleHealthDesc": "Schlaf-, Aktivitäts- und Herzfrequenzdaten",
     "ouraDesc": "Schlafqualität und Tagesform-Werte",
     "eightSleepDesc": "Schlaftracking und Temperatur",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP und mehr",
+    "wearablesDesc": "Garmin, WHOOP und mehr",
     "calendarDesc": "Termine, Meetings und Verfügbarkeit",
     "linkedInDesc": "Beruflicher Kontext und Netzwerk",
-    "spotifyDesc": "Musik, Stimmungs-Playlists, Hörverlauf",
     "ecobeeDesc": "Zuhause-Temperatur und Komfort",
     "vibeControllerDesc": "Steuere Musik, Licht und mehr",
     "connected": "Verbunden"
@@ -8982,9 +8974,6 @@
     "trustJourneyExplore": "Erkunden",
     "customizeTitle": "Passe dein Erlebnis an",
     "customizeMessage": "Passe Designs, Töne und mehr an.",
-    "spotifyTitle": "Spotify verbinden",
-    "spotifyMessage": "Verknüpfe dein Spotify, um die Stimmung bei unseren Gesprächen zu untermalen.",
-    "spotifyConnect": "Verbinden",
     "maybeLater": "Vielleicht später"
   },
   "mentorTeachings": {
@@ -10509,7 +10498,6 @@
     "names": {
       "stockData": "Börsendaten",
       "marketData": "Marktdaten",
-      "weatherMaps": "Wetter & Karten",
       "historicalFacts": "Historische Fakten",
       "lighting": "Beleuchtung",
       "aiContext": "Gedächtnis & Kontext",

@@ -140,6 +140,11 @@ against:
 
 - **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
   Never swallow an error (`.catch(() => {})`); log it with context.
+  A linked account's token read calls `noteLinkedTokenUse(provider, uid, state)`
+  (`src/utils/linked-token-use.ts`; the shared `user-oauth-store` already does),
+  so the tool's "Tool execution tracked" line carries `link_provider`,
+  `link_uid_tag` (`bqHash('user', uid)`, never the uid) and `link_state`
+  (`agents/voice-agent/tool-outcome.ts`).
 - **Types**: no `any`, no `as any`. Use `unknown` and narrow.
 - **Layers** point inward: L5 entrypoints → L4 orchestration → L3 (ten capability
   contexts, via each other's index.ts) → L2 shared kernel; L1 adapters implement L2/L3 ports.
