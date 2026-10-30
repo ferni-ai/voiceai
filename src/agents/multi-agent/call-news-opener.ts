@@ -1,48 +1,49 @@
 /**
  * The hello leads with the news when Ferni made a call for the owner since they
- * last talked, the way a great assistant would: "Hey Sam. I talked to your mom.
- * She wants you to call her back tonight." (CALL_NEWS_OPENER, default off.)
+ * last talked, the way a great assistant would: "Hey Sam. I talked to Rosa.
+ * She'd like you to call her back." (CALL_NEWS_OPENER, default off.)
  *
  * Before this, the greeting never read call results: the While You Were Away
  * block reached the first turn, after the hello was spoken
  * (outreach-memory-audit 2026-10-29, B1 and E).
  *
- * - Only the account's proven owner, on a call Ferni didn't place, with no
- *   crisis risk on the call. greeting-direction.ts adds the rest of the order:
- *   it yields to an unknown caller and to their own reason for calling, and
- *   outranks a letter, a win, a check-in, a pondered ask and welcome-back.
+ * - Only the account's owner, alone on their own line, with no crisis risk on
+ *   the call. greeting-direction.ts adds the rest of the order: it yields to an
+ *   unknown caller and to their own reason for calling, and outranks a letter,
+ *   a win, a check-in, a pondered ask and welcome-back.
  * - One result, the newest undelivered one from the last 48 h. More waiting
  *   only adds "and a couple other things"; the turn context carries them.
- * - The callee's words are data: screened, quoted as reported speech under
- *   CALLER_TEXT_GUARD, and only ever in the facts, never in the direction.
- * - Hard news gets a gentle "got a sec?" without the news. A result holding
- *   crisis or risky words (a number, money, credentials) gets only "I need to
- *   tell you about your call", with none of their words. In both cases the
- *   result stays undelivered, so the turn context, with its guards, tells it.
- * - Marked delivered (voice) only when the spoken hello told it and named who.
+ * - NEVER the callee's words, in the facts or the direction: lexical crisis
+ *   screens miss most third-person crisis wording (#3084 verify: 17 of 18), so
+ *   a quoted line could put "she's tired of living" in a cheerful hello. Only
+ *   structured fields: who, how the call went, a callback ask (and a time, if it
+ *   is only time words), and whether they left a message (never what it says).
+ *   The message reaches the owner through the guarded call report (#3080).
+ * - Tone from the status, with the crisis, risky and hard-news screens of their
+ *   words as a backstop: a call that didn't get through is said plainly; hard
+ *   news gets "got a sec?"; any crisis or risky signal only "I need to tell you
+ *   about your call".
+ * - Never marked delivered here: the report still has to carry the message.
  *
  * @module agents/multi-agent/call-news-opener
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { markCallResultsDelivered } from '../../intelligence/context-builders/external/pending-call-results.js';
 import {
   getPendingResults,
-  markResultsDelivered,
   type BackgroundResult,
 } from '../../services/background-agents/index.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import {
-  CALLER_TEXT_GUARD,
   callerText,
   crisisRead,
-  reportedFromCall,
+  isRiskyCallerText,
   screenCallerParts,
-  screenedCallerText,
 } from '../../services/outreach/caller-text.js';
 import { crisisRiskThisCall } from '../../services/safety/index.js';
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { calendarDaysSince, daysAgoInWords } from '../../utils/calendar-days.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'call-news-opener' });
@@ -55,8 +56,14 @@ const READ_LIMIT = 5;
 const WORRY =
   /\b(?:sick|ill|unwell|upset|worried|worrying|scared|afraid|hospital|hospitali[sz]ed|accident|injured|bad news|not (?:doing |feeling )?(?:well|good|great))\b/i;
 
+/** A callback time made only of time words ("tonight", "after 6pm", "Sunday morning"). */
+const TIME_WORDS =
+  /^(?:(?:today|tonight|tomorrow|this|next|morning|afternoon|evening|night|weekend|after|before|around|by|at|on|in|the|noon|midnight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|later|soon|\d{1,2}(?::\d{2})?\s?(?:[ap]\.?m\.?)?)[\s,]*)+$/i;
+
 export const CALL_NEWS_DIRECTION =
-  ' You made a call for them since you last talked, and its news comes first: say hello, then tell it in a few plain words, naming who you called ("Hey Sam. I talked to your mom. She wants you to call her back tonight."). Only what the call facts say, in your own words; never read out a number, link or amount.';
+  ' You made a call for them since you last talked, and it comes first: say hello, then tell them in a few plain words how it went, from the call facts only. If they left a message, offer it; never guess or make up what was said ("Hey Sam. I talked to Rosa. She\'d like you to call her back." or "Hey Sam, I reached Rosa, she had a message for you. Want to hear it?").';
+export const CALL_NEWS_PLAIN_DIRECTION =
+  ' You tried a call for them and did not get through: say hello, then say so plainly, not cheerfully, naming who ("Hey Sam. I tried Rosa but it went to voicemail.").';
 export const CALL_NEWS_MORE_DIRECTION =
   ' Other news is waiting too: you may add "and a couple other things", nothing more.';
 export const CALL_NEWS_HEAVY_DIRECTION =
@@ -64,7 +71,8 @@ export const CALL_NEWS_HEAVY_DIRECTION =
 export const CALL_NEWS_GUARDED_DIRECTION =
   ' You made a call for them and something from it needs care: no cheerful hello. Say hello quietly, then only that you need to tell them about the call, naming who you called ("Hey Sam. I need to tell you about your call with your mom."). Nothing about what was said.';
 
-type CallNewsTone = 'news' | 'heavy' | 'guarded';
+type CallNewsTone = 'news' | 'plain' | 'heavy' | 'guarded';
+type LineStatus = 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
 
 export interface CallNews {
   tone: CallNewsTone;
@@ -72,8 +80,18 @@ export interface CallNews {
   careful: boolean;
   direction: string;
   facts: Record<string, string>;
-  /** Marks it delivered (voice) when `spoken` told the news and named who; never rejects. */
-  markIfSaid: (spoken: string) => boolean;
+}
+
+/** The structured outcome of one call, from its on_behalf_calls record. Their words stay out. */
+interface CallRecord {
+  status?: LineStatus;
+  relation?: string;
+  callbackRequired: boolean;
+  callbackTime?: string;
+  hasMessage: boolean;
+  voicemailLeft: boolean;
+  /** Their words, read only by the backstop screens, never passed on. */
+  said: string[];
 }
 
 function callNewsOpenerOn(env: Env = process.env): boolean {
@@ -90,83 +108,115 @@ async function ownerOnTheLine(sessionId: string): Promise<boolean> {
   return speakerIsAccountOwner(sessionId);
 }
 
-/** Their words about the call, screened: the summary, details and any callback ask. */
-function callWords(r: BackgroundResult): string[] {
-  const callback = r.requiresCallback
-    ? `They asked for a call back${r.callbackTime ? ` around ${r.callbackTime}` : ''}.`
-    : '';
-  return [r.summary, r.details, callback].filter((t): t is string => Boolean(t?.trim()));
+const text = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+/** One point read of the call's own record (call-result-capture.ts writes it); undefined if none. */
+async function callRecord(
+  userId: string,
+  callId: string | undefined
+): Promise<CallRecord | undefined> {
+  const db = getFirestoreDb();
+  if (!db || !callId) return undefined;
+  const doc = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('on_behalf_calls')
+    .doc(callId)
+    .get();
+  const data = doc.exists ? (doc.data() as Record<string, unknown> | undefined) : undefined;
+  if (!data) return undefined;
+  const request = (data.request ?? {}) as Record<string, unknown>;
+  const outcome = (data.outcome ?? {}) as Record<string, unknown>;
+  const status = text(outcome.status) as LineStatus;
+  const actions = Array.isArray(outcome.actionItems) ? outcome.actionItems.map(text) : [];
+  return {
+    status: ['completed', 'voicemail', 'no_answer', 'busy', 'failed'].includes(status)
+      ? status
+      : undefined,
+    relation: text(request.contactQuery),
+    callbackRequired: outcome.callbackRequired === true,
+    callbackTime: text(outcome.callbackTime),
+    hasMessage: text(outcome.message).trim() !== '',
+    voicemailLeft: outcome.voicemailLeft === true,
+    said: [outcome.outcome, outcome.message, outcome.transcriptSummary, ...actions].map(text),
+  };
 }
 
-/** The tone: guarded on any crisis or risky words, heavy on a failed call or hard news. */
-function callNewsTone(r: BackgroundResult, who: string): CallNewsTone {
-  const words = callWords(r);
+/** The tone: guarded on any crisis or risky signal, heavy on hard news, plain when not reached. */
+function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: string): CallNewsTone {
+  const words = [r.summary, r.details ?? '', ...(rec?.said ?? [])].filter((t) => t.trim());
   const all = words.join(' ');
   // screenCallerParts drops `safety` when their own words carry the crisis: read the raw text too.
   const screen = screenCallerParts(all, who, 10_000);
   if (crisisRead(all) || screen.safety || screen.risky) return 'guarded';
-  if (r.status === 'failed' || isHeavyMoment(words) || words.some((w) => WORRY.test(w)))
-    return 'heavy';
+  if (isHeavyMoment(words) || words.some((w) => WORRY.test(w))) return 'heavy';
+  const status = rec?.status ?? (r.status === 'failed' ? 'failed' : undefined);
+  if (status && status !== 'completed') return 'plain';
   return 'news';
 }
 
-/** Whole words of the name worth matching ("my mom" → mom, "Linda Park" → linda, park). */
-function nameWords(who: string): string[] {
-  const skip = new Set(['my', 'the', 'and', 'them', 'his', 'her', 'their', 'our']);
-  return who
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}']+/u)
-    .filter((w) => w.length >= 3 && !skip.has(w));
+/** A label for the facts: the owner's own words or the contact's name, never a number or link. */
+function label(value: string | undefined, max: number): string {
+  const clean = callerText(value, max);
+  return clean && !isRiskyCallerText(clean) && !/\d/.test(clean) ? clean : '';
 }
 
-/** The spoken hello names who Ferni called. */
-export function lineNamesContact(spoken: string, who: string): boolean {
-  const said = new Set(spoken.toLowerCase().split(/[^\p{L}\p{N}']+/u));
-  return nameWords(who).some((w) => said.has(w) || said.has(`${w}'s`));
+const HOW_IT_WENT: Record<LineStatus, string> = {
+  completed: 'you reached them and talked',
+  voicemail: 'it went to voicemail',
+  no_answer: 'nobody answered',
+  busy: 'the line was busy',
+  failed: 'the call did not go through',
+};
+
+function structuredFacts(rec: CallRecord | undefined, r: BackgroundResult): Record<string, string> {
+  const facts: Record<string, string> = {};
+  if (rec?.status) {
+    facts['how the call went'] =
+      rec.status === 'voicemail' && rec.voicemailLeft
+        ? 'it went to voicemail, and you left a message'
+        : HOW_IT_WENT[rec.status];
+  } else if (r.status === 'success') facts['how the call went'] = HOW_IT_WENT.completed;
+  if (rec?.callbackRequired || r.requiresCallback) {
+    const when = callerText(rec?.callbackTime ?? r.callbackTime, 40);
+    const timed = when && TIME_WORDS.test(when) && !isRiskyCallerText(when) ? ` (${when})` : '';
+    facts['they asked for a call back'] = `yes${timed}`;
+  }
+  if (rec?.hasMessage)
+    facts['they left a message for them'] = 'yes; offer it, never guess what it says';
+  return facts;
 }
 
 function callNewsOf(
-  userId: string,
   r: BackgroundResult,
+  rec: CallRecord | undefined,
   more: boolean,
-  now: Date = new Date(),
+  now: Date,
   zone?: string
 ): CallNews {
-  const who = callerText(r.contactName, 60) || 'them';
-  const tone = callNewsTone(r, who);
+  const who = label(r.contactName, 60) || 'the person you called';
+  const tone = callNewsTone(r, rec, who);
   const facts: Record<string, string> = { 'who you called for them': who };
+  const relation = label(rec?.relation, 40);
+  if (relation && relation.toLowerCase() !== who.toLowerCase())
+    facts['who they are to them'] = relation;
   const at = Date.parse(r.capturedAt);
   if (Number.isFinite(at))
     facts['when you called'] = daysAgoInWords(calendarDaysSince(at, now, zone));
-  if (tone === 'news') {
-    const lines = callWords(r).map((w) => screenedCallerText(w, who));
-    facts['what came of the call'] = [CALLER_TEXT_GUARD, ...reportedFromCall(who, lines)].join(' ');
-  }
+  if (tone === 'news' || tone === 'plain') Object.assign(facts, structuredFacts(rec, r));
   const direction = {
     news: CALL_NEWS_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
+    plain: CALL_NEWS_PLAIN_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
     heavy: CALL_NEWS_HEAVY_DIRECTION,
     guarded: CALL_NEWS_GUARDED_DIRECTION,
   }[tone];
-  return {
-    tone,
-    careful: tone !== 'news',
-    direction,
-    facts,
-    markIfSaid: (spoken) => {
-      if (tone !== 'news' || !lineNamesContact(spoken, who)) return false;
-      const failed = (error: unknown): void =>
-        log.warn({ error: String(error) }, 'Call news not marked delivered');
-      markResultsDelivered(userId, [r.id], 'voice').catch(failed);
-      if (r.relatedTaskId) markCallResultsDelivered(userId, [r.relatedTaskId]).catch(failed);
-      return true;
-    },
-  };
+  return { tone, careful: tone === 'heavy' || tone === 'guarded', direction, facts };
 }
 
 /**
  * The newest undelivered call Ferni made for the owner in the last 48 h, for
- * the hello, or undefined: flag off, not the owner on their own line, crisis
- * risk on this call, none waiting, or the read failed. Never rejects.
+ * the hello, or undefined: flag off, not the owner alone on their own line,
+ * crisis risk on this call, none waiting, or a read failed. Never rejects.
  */
 export async function callNewsFor(
   caller: { userId?: string; sessionId: string; zone?: string },
@@ -185,7 +235,9 @@ export async function callNewsFor(
     const newest = [...pending]
       .sort((a, b) => Date.parse(b.capturedAt) - Date.parse(a.capturedAt))
       .at(0);
-    return newest ? callNewsOf(userId, newest, pending.length > 1, now, zone) : undefined;
+    if (!newest) return undefined;
+    const rec = await callRecord(userId, newest.relatedTaskId);
+    return callNewsOf(newest, rec, pending.length > 1, now, zone);
   } catch (error) {
     log.warn({ error: String(error) }, 'Call news not read for the hello');
     return undefined;

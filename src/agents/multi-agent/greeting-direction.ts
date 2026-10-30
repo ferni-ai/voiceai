@@ -445,7 +445,6 @@ export async function directedGreeting(
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (party && directed.source === 'actor' && lineSaysAnniversary(spoken, party)) party.mark();
   if (letterNow && directed.source === 'actor' && lineOffersLetter(spoken)) letterNow.mark();
-  if (newsNow && directed.source === 'actor') newsNow.markIfSaid(spoken);
   // One follow-up per call opener: having asked, the greeting keeps the first
   // recall note from asking about a thread too (greeting-claim.ts).
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {
