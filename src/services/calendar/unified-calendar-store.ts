@@ -53,8 +53,8 @@ async function getFirestore(): Promise<FirestoreType | null> {
 
 async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({
+    const { sharedFirestore } = await import('../../utils/shared-firestore.js');
+    db = sharedFirestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
     });
