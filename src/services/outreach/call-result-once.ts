@@ -7,12 +7,18 @@
  * transaction on the call's own doc, bogle_users/{uid}/on_behalf_calls/{callId}
  * as told.{channel}. That holds across processes, so the agent's report, the
  * Twilio status webhook and the voicemail screen can each capture the same call
- * and only the first tells. A claim records how much the telling carried:
+ * and only the first tells. A send that fails or is held (quiet hours) gives its
+ * claim back, so a later capture can still tell. A claim records how much the
+ * telling carried:
  * - 0, status only (the Twilio webhook knows the line status, not the words);
  * - 1, the other person's words or a summary of them;
  * - 2, a crisis line.
  * A later capture that carries more claims again, so dedupe never costs the owner
- * their mom's words, and never a crisis line (caller-text.ts).
+ * their mom's words.
+ *
+ * A crisis line (caller-text.ts) anywhere in the result is pushed at once, led by
+ * Ferni's crisis line, flag on or off, live or not, texted or not. It has its own
+ * claim (told.crisis), so no dedupe or channel choice can drop it.
  *
  * With CALL_RESULT_ONE_CHANNEL on, one channel per result:
  * - the owner is live with Ferni: that's the channel, no push or text;
@@ -20,23 +26,19 @@
  *   a crisis line): one text (CALL_RESULT_TEXT on and the guarded sender sent
  *   it), otherwise one push;
  * - not live and FYI only (a voicemail left, nothing asked): one push;
- * - the email always goes once, as the written record;
- * - a crisis line is pushed even when live: the live report may not carry it.
+ * - the email always goes once, as the written record.
  * Off, each channel goes as before, once.
  *
  * @module services/outreach/call-result-once
  */
 
 import { flagOn } from '../../config/env-flag.js';
-import { createLogger } from '../../utils/safe-logger.js';
 import { carriesCrisis, crisisCallerLine } from './caller-text.js';
-import type { CallResultTold } from './call-result-text.js';
+import { callResultDetails, type CallResultTold } from './call-result-text.js';
 import type { StepOutcome } from './call-result-words.js';
 import type { CallOutcome } from '../../tools/domains/telephony/types.js';
+import { claimTold, releaseTold, type ToldChannel } from './call-result-claims.js';
 
-const log = createLogger({ module: 'call-result-once' });
-
-type ToldChannel = 'voice' | 'push' | 'text' | 'email' | 'calendar' | 'record';
 /** 0 status only, 1 their words, 2 a crisis line. */
 type ToldLevel = 0 | 1 | 2;
 
@@ -91,61 +93,52 @@ function needsOwner(outcome: CallOutcome): boolean {
 }
 
 // ============================================================================
-// CLAIMS
-// ============================================================================
-
-/** Used when Firestore is off or fails: holds within this process. */
-const claimedHere = new Map<string, Partial<Record<ToldChannel, ToldLevel>>>();
-
-function claimHere(key: string, channel: ToldChannel, level: ToldLevel): boolean {
-  const told = claimedHere.get(key) ?? {};
-  if ((told[channel] ?? -1) >= level) return false;
-  claimedHere.set(key, { ...told, [channel]: level });
-  return true;
-}
-
-/**
- * True when this capture may use `channel`: nobody has, or only with less to say.
- * The claim is set before the send, so a send is at most once per level.
- */
-async function claimTold(
-  userId: string,
-  callId: string,
-  channel: ToldChannel,
-  level: ToldLevel
-): Promise<boolean> {
-  const key = `${userId}/${callId}`;
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) return claimHere(key, channel, level);
-    const ref = db.collection('bogle_users').doc(userId).collection('on_behalf_calls').doc(callId);
-    const claimed = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      const told: unknown = snap.exists ? snap.data()?.told : undefined;
-      const before = typeof told === 'object' && told ? (told as Record<string, unknown>)[channel] : undefined; // prettier-ignore
-      if (typeof before === 'number' && before >= level) return false;
-      tx.set(ref, { told: { [channel]: level } }, { merge: true });
-      return true;
-    });
-    if (claimed) claimHere(key, channel, level);
-    return claimed;
-  } catch (error) {
-    log.warn({ callId, channel, error: String(error) }, 'Told claim not stored; held in process');
-    return claimHere(key, channel, level);
-  }
-}
-
-/** For tests: forget the in-process claims. */
-export function resetToldClaimsForTests(): void {
-  claimedHere.clear();
-}
-
-// ============================================================================
 // TELLING
 // ============================================================================
 
-type Claim = (channel: ToldChannel) => Promise<boolean>;
+/** One capture's claims: take a channel, or send through it and give it back if it didn't go. */
+interface Claims {
+  take: (channel: ToldChannel) => Promise<boolean>;
+  send: <T>(channel: ToldChannel, run: () => Promise<T>, went: (r: T) => boolean) => Promise<T | 'skipped'>; // prettier-ignore
+}
+
+function claimsFor(userId: string, callId: string, level: ToldLevel): Claims {
+  const before = new Map<ToldChannel, number>();
+  const levelOf = (channel: ToldChannel): number => (channel === 'crisis' ? 2 : level);
+  const take = async (channel: ToldChannel): Promise<boolean> => {
+    const was = await claimTold(userId, callId, channel, levelOf(channel));
+    if (was !== null) before.set(channel, was);
+    return was !== null;
+  };
+  return {
+    take,
+    send: async (channel, run, went) => {
+      if (!(await take(channel))) return 'skipped';
+      const result = await run();
+      if (!went(result)) await releaseTold(userId, callId, channel, levelOf(channel), before.get(channel) ?? -1); // prettier-ignore
+      return result;
+    },
+  };
+}
+
+const sent = (r: StepOutcome): boolean => r === 'sent';
+const toldBy = (r: CallResultTold | null): boolean => r === 'texted' || r === 'live';
+
+/** Ferni's crisis line, when the call carried one anywhere. */
+function crisisLead(outcome: CallOutcome, contactName: string): string | undefined {
+  return toldLevel(outcome) === 2 ? crisisCallerLine(contactName) : undefined;
+}
+
+/** The email's first line (Ferni's crisis line) and what they asked to pass on plus the summary. */
+export function ownerEmailWords(
+  contactName: string,
+  outcome: CallOutcome
+): { lead?: string; details?: string } {
+  const lead = crisisLead(outcome, contactName);
+  const details = callResultDetails(contactName, outcome);
+  const rest = lead ? details?.split(lead).join(' ').replace(/\s+/g, ' ').trim() : details;
+  return { lead, details: rest || undefined };
+}
 
 /** Tell the owner about one call: each channel once, and one of them with the flag on. */
 export async function tellOwnerOnce(
@@ -153,46 +146,67 @@ export async function tellOwnerOnce(
   ports: TellPorts
 ): Promise<Told> {
   const level = toldLevel(call.outcome);
-  const claim: Claim = async (channel) => claimTold(call.userId, call.callId, channel, level);
+  const claims = claimsFor(call.userId, call.callId, level);
   // The first capture of a call (or one with more to say) is the one that tells live.
-  const first = await claim('voice');
+  const first = await claims.take('voice');
   const live = first ? await ports.live() : false;
-  if (!oneChannelOn()) return asBefore(live, claim, ports);
-  const email = await keepRecords(claim, ports);
-  // A later capture with no more to say: the first one already chose the channel.
-  const nudge = first ? await oneChannel(call, live, level === 2, claim, ports) : undefined;
-  return { live, email, push: nudge?.push ?? 'skipped', text: nudge?.text ?? 'skipped' };
+  // A crisis line goes by push at once, whatever else happens (its own claim).
+  const lead = crisisLead(call.outcome, call.contactName);
+  const alarm = lead ? await claims.send('crisis', async () => ports.push(lead), sent) : 'skipped';
+  const pushed = alarm === 'sent';
+  if (pushed) await claims.take('push'); // that was this call's push
+  if (!oneChannelOn()) return asBefore(live, pushed, claims, ports);
+  const email = await keepRecords(claims, ports);
+  // A later capture with no more to say: the first one already chose the channel. A crisis
+  // goes on, so a text held for quiet hours (its claim given back) is sent by a later capture.
+  const nudge = first || lead ? await oneChannel(call, live, pushed, claims, ports) : undefined;
+  return { live, email, push: pushed ? 'sent' : (nudge?.push ?? 'skipped'), text: nudge?.text ?? 'skipped' }; // prettier-ignore
+}
+
+/** The push, once; none after a crisis push (that was the push). */
+async function pushOnce(
+  claims: Claims,
+  ports: TellPorts,
+  pushed: boolean,
+  lead?: string
+): Promise<StepOutcome> {
+  return pushed ? 'sent' : claims.send('push', async () => ports.push(lead), sent);
 }
 
 /** The written record (email), the callback event and While You Were Away; returns the email's. */
-async function keepRecords(claim: Claim, ports: TellPorts): Promise<StepOutcome> {
-  const email = (await claim('email')) ? await ports.email() : 'skipped';
-  if (await claim('calendar')) await ports.calendar();
-  if (await claim('record')) await ports.record();
+async function keepRecords(claims: Claims, ports: TellPorts): Promise<StepOutcome> {
+  const email = await claims.send('email', async () => ports.email(), sent);
+  if (await claims.take('calendar')) await ports.calendar();
+  if (await claims.take('record')) await ports.record();
   return email;
 }
 
 /** Flag off, as before: push unless CALL_RESULT_TEXT texts them, the records, then the text. */
-async function asBefore(live: boolean, claim: Claim, ports: TellPorts): Promise<Told> {
-  const push = !ports.textOn() && (await claim('push')) ? await ports.push() : 'skipped';
-  const email = await keepRecords(claim, ports);
-  const text = ports.textOn() && (await claim('text')) ? await ports.text(live) : 'skipped';
-  return { live, push, email, text };
+async function asBefore(
+  live: boolean,
+  pushed: boolean,
+  claims: Claims,
+  ports: TellPorts
+): Promise<Told> {
+  const push = ports.textOn() ? 'skipped' : await pushOnce(claims, ports, pushed);
+  const email = await keepRecords(claims, ports);
+  const text = ports.textOn() ? await claims.send('text', async () => ports.text(live), toldBy) : 'skipped'; // prettier-ignore
+  return { live, push: pushed ? 'sent' : push, email, text };
 }
 
 /** Flag on: live is the channel; else one text when it needs them, else one push. */
 async function oneChannel(
   call: { outcome: CallOutcome; contactName: string },
   live: boolean,
-  crisis: boolean,
-  claim: Claim,
+  pushed: boolean,
+  claims: Claims,
   ports: TellPorts
 ): Promise<Pick<Told, 'push' | 'text'>> {
-  if (live && !crisis) return { push: 'skipped', text: 'skipped' };
+  const lead = crisisLead(call.outcome, call.contactName);
+  if (live && !lead) return { push: 'skipped', text: 'skipped' };
   // Not live, or a crisis line the live report may not carry: told as if not live.
-  const wantsText = needsOwner(call.outcome) && ports.textOn() && (await claim('text'));
-  const text = wantsText ? await ports.text(false) : 'skipped';
-  if (text === 'texted' || !(await claim('push'))) return { push: 'skipped', text };
-  const lead = crisis && !carriesCrisis(call.outcome.outcome) ? crisisCallerLine(call.contactName) : undefined; // prettier-ignore
-  return { push: await ports.push(lead), text };
+  const wantsText = needsOwner(call.outcome) && ports.textOn();
+  const text = wantsText ? await claims.send('text', async () => ports.text(false), toldBy) : 'skipped'; // prettier-ignore
+  if (text === 'texted') return { push: 'skipped', text };
+  return { push: await pushOnce(claims, ports, pushed, lead), text };
 }

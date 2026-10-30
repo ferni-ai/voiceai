@@ -13,7 +13,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
 import { callResultDetails, callResultTextOn, tellOwnerAboutCall } from './call-result-text.js';
-import { tellOwnerOnce } from './call-result-once.js';
+import { ownerEmailWords, tellOwnerOnce } from './call-result-once.js';
 import { callResultLiveReportOn, reportCallResultLive } from './call-result-live.js';
 import { notePushOutcome } from './delivery/push-outcome.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
@@ -472,13 +472,9 @@ async function sendCallResultEmail(
     const contactName = request.resolvedContact?.name || contactForOwner(request.contactQuery);
     const completedAt = completedAtFor(request.userTimezone);
 
-    // Build warm, human email content
-    const { subject, body } = buildCallResultEmailContent(
-      contactName,
-      outcome,
-      request.purpose,
-      completedAt
-    );
+    // Warm, human, and what they said: Ferni's crisis line first when the call carried one
+    const words = ownerEmailWords(contactName, outcome);
+    const { subject, body } = buildCallResultEmailContent(contactName, outcome, request.purpose, completedAt, words); // prettier-ignore
 
     const sent = await sendEmail({
       to: email,
@@ -505,7 +501,8 @@ function buildCallResultEmailContent(
   contactName: string,
   outcome: CallOutcome,
   purpose: string,
-  completedAt: string
+  completedAt: string,
+  words: { lead?: string; details?: string } = {}
 ): { subject: string; body: string } {
   // Build subject based on outcome
   let subject: string;
@@ -521,6 +518,7 @@ function buildCallResultEmailContent(
 
   // Build warm body
   const lines: string[] = [];
+  if (words.lead) lines.push(`**${words.lead}**`, '');
   lines.push(`Hey! Just wanted to let you know about the call to ${contactName}.`);
   lines.push('');
 
@@ -538,8 +536,8 @@ function buildCallResultEmailContent(
   }
 
   lines.push('');
-  lines.push(`**What happened:** ${outcome.outcome}`);
-  lines.push('');
+  lines.push(`**What happened:** ${outcome.outcome}`, '');
+  if (words.details) lines.push(`**What they said:** ${words.details}`, '');
 
   // Action items
   if (outcome.actionItems && outcome.actionItems.length > 0) {
@@ -771,9 +769,7 @@ async function storeInUnifiedResults(
       type: 'on_behalf_call',
       status,
       summary,
-      // captureCallResult sends this call's push and email itself, once: here they went again,
-      // a second push on every call and a second email ('high' = callback) (audit 2026-10-29, C).
-      priority: 'normal',
+      priority: outcome.callbackRequired ? 'high' : 'normal',
       initiatedBy: 'ferni', // Calls are typically initiated by Ferni
       sessionId: request.originalSessionId,
       contactName,
@@ -788,7 +784,10 @@ async function storeInUnifiedResults(
         phoneNumber: request.resolvedContact?.phone,
         status: outcome.status,
       },
+      // captureCallResult sends this call's push and email itself, once: here they went again,
+      // a second push on every call and a second email for a callback (audit 2026-10-29, C).
       skipPush: true,
+      skipEmail: true,
     });
 
     log.debug({ callId }, 'Call result stored in unified background results');

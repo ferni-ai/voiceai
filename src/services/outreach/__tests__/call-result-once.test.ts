@@ -27,7 +27,10 @@ const store = vi.hoisted(() => {
     for (const [k, v] of Object.entries(b)) out[k] = isObj(v) && isObj(a[k]) ? deep(a[k] as Record<string, unknown>, v) : v; // prettier-ignore
     return out;
   };
-  type Opts = { merge?: boolean; mergeFields?: string[] };
+  interface Opts {
+    merge?: boolean;
+    mergeFields?: string[];
+  }
   const write = (path: string, data: Record<string, unknown>, opts?: Opts): void => {
     const before = docs.get(path) ?? {};
     if (opts?.merge) docs.set(path, deep(before, data));
@@ -90,8 +93,10 @@ const fakeGmail: EmailSender = { provider: 'gmail', isConfigured: () => true, se
 
 const { setEmailSenderForTests } = await import('../../email-transport/index.js');
 const { captureCallResult } = await import('../call-result-capture.js');
-const { resetToldClaimsForTests } = await import('../call-result-once.js');
-const { crisisCallerLine } = await import('../caller-text.js');
+const { resetToldClaimsForTests } = await import('../call-result-claims.js');
+const { crisisCallerLine, screenedCallerText } = await import('../caller-text.js');
+const { buildPendingResultsContext } =
+  await import('../../background-agents/unified-result-capture.js');
 const { buildCallOutcome, toOnBehalfCallRequest } =
   await import('../../../agents/outbound-call/on-behalf-call-lifecycle.js');
 const { buildOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
@@ -101,8 +106,8 @@ const { registerVoiceCallbackHandler } =
 
 const NAME = 'Aunt Rosa';
 let seq = 0;
-function call(edit: Partial<CallOutcome> = {}, userId = `u-${++seq}`) {
-  const callId = `call-${seq}`;
+function call(edit: Partial<CallOutcome> = {}, userId = `u-${++seq}`, timeZone = 'UTC') {
+  const callId = `call-${++seq}`;
   store.docs.set(`bogle_users/${userId}`, { email: 'sam.example@example.com' });
   const request: OnBehalfCallRequest = {
     contactQuery: 'my aunt',
@@ -112,7 +117,7 @@ function call(edit: Partial<CallOutcome> = {}, userId = `u-${++seq}`) {
     callType: 'personal',
     originalSessionId: `session-${seq}`,
     userId,
-    userTimezone: 'UTC',
+    userTimezone: timeZone,
     userName: 'Sam',
     recordingConsent: false,
   };
@@ -310,4 +315,135 @@ describe('CALL_RESULT_ONE_CHANNEL off: as main, only once', () => {
     expect(push).not.toHaveBeenCalled();
     expect(emails()).toHaveLength(1);
   });
+});
+
+/** Ferni's crisis line leads a push or an email: the owner hears it at once (verifier, round 1). */
+const crisisFirst = {
+  push: (): boolean => push.mock.calls.some(([p]) => p.body.startsWith(crisisCallerLine(NAME))),
+  // The transport adds its own 'Hey.'; the report's first words are the crisis line.
+  email: (): boolean =>
+    emails().some((e) => {
+      const at = e.text?.indexOf(`**${crisisCallerLine(NAME)}**`) ?? -1;
+      return at >= 0 && at < (e.text?.indexOf('Just wanted to let you know') ?? -1);
+    }),
+};
+const RAW = "Honestly I don't want to be alive anymore.";
+type Shape = 'messageOnlyCallback' | 'noAnalysis' | 'summaryOnlyCallback' | 'summaryOnly' | 'messageOnly' | 'messageAndItems'; // prettier-ignore
+/** The verifier's crisis shapes: the crisis words held in one field or another. */
+function crisisIn(shape: Shape, callId: string): CallOutcome {
+  if (shape === 'noAnalysis') {
+    const dispatch = buildOnBehalfDispatch({ callId, requester: { userId: 'u-x', name: 'Sam', timezone: 'UTC', originalSessionId: '' }, contact: { name: NAME, phone: '+15555550100' }, purpose: 'check in', objective: 'check_in', callType: 'personal' }); // prettier-ignore
+    return buildCallOutcome(dispatch, [{ role: 'agent', content: "Hi, it's Ferni." }, { role: 'recipient', content: RAW }], null, 'completed', 60); // prettier-ignore
+  }
+  const sum = screenedCallerText(`${NAME} asked Sam to call back tonight. She also said: ${RAW}`, NAME, 600); // prettier-ignore
+  const msg = screenedCallerText(RAW, NAME, 200);
+  const benign: CallOutcome = { callId, status: 'completed', objectiveAchieved: true, outcome: `I talked with ${NAME}; she'd love a call back tonight.` }; // prettier-ignore
+  if (shape === 'summaryOnlyCallback') return { ...benign, transcriptSummary: sum, callbackRequired: true, callbackTime: 'tonight', message: 'Please call me back tonight.' }; // prettier-ignore
+  if (shape === 'messageOnlyCallback') return { ...benign, message: msg, callbackRequired: true };
+  if (shape === 'summaryOnly') return { ...benign, transcriptSummary: sum };
+  if (shape === 'messageOnly') return { ...benign, message: msg };
+  return { ...benign, message: msg, actionItems: [`${NAME} said: ${msg}`] };
+}
+
+describe('every crisis line reaches the owner at once: a push and the email, led by it', () => {
+  const shapes: Shape[] = ['messageOnlyCallback', 'noAnalysis', 'summaryOnlyCallback', 'summaryOnly', 'messageOnly', 'messageAndItems']; // prettier-ignore
+  const orders = ['single', 'statusFirst', 'crisisTwice', 'crisisThenStatus'] as const;
+  const cases: string[] = [];
+  for (const shape of shapes) for (const order of orders) for (const flag of [0, 1]) for (const live of [0, 1]) // prettier-ignore
+    for (const text of ['off', 'sent', 'quiet', 'not-sent']) cases.push(`${shape} ${order} flag=${flag} live=${live} text=${text}`); // prettier-ignore
+  it.each(cases)('%s', async (name) => {
+    const [shape, order, flag, live, textAs] = name.split(' ') as [Shape, (typeof orders)[number], string, string, string]; // prettier-ignore
+    process.env.CALL_RESULT_LIVE_REPORT = 'on';
+    if (flag.endsWith('1')) process.env.CALL_RESULT_ONE_CHANNEL = 'on';
+    if (!textAs.endsWith('off')) process.env.CALL_RESULT_TEXT = 'on';
+    if (textAs.endsWith('not-sent')) text.mockResolvedValue({ sent: false });
+    const c = call({}, undefined, textAs.endsWith('quiet') ? 'Asia/Tokyo' : 'UTC'); // 00:00 in Tokyo
+    if (live.endsWith('1')) ownerLive(c.userId, c.request.originalSessionId);
+    const crisis = crisisIn(shape, c.callId);
+    const status: CallOutcome = { ...c.outcome, objectiveAchieved: false };
+    const steps = { single: [crisis], statusFirst: [status, crisis], crisisTwice: [crisis, crisis], crisisThenStatus: [crisis, status] }[order]; // prettier-ignore
+    // eslint-disable-next-line no-await-in-loop -- captures of one call land in order
+    for (const o of steps) await c.capture(o);
+    expect(crisisFirst.push()).toBe(true);
+    expect(crisisFirst.email()).toBe(true);
+    // Once, however many captures carried it.
+    expect(push.mock.calls.filter(([p]) => p.body.startsWith(crisisCallerLine(NAME)))).toHaveLength(1); // prettier-ignore
+  });
+
+  it('the crisis push has its own claim: a push already told (even at crisis level) never eats it', async () => {
+    const c = call();
+    store.docs.set(`bogle_users/${c.userId}/on_behalf_calls/${c.callId}`, { told: { push: 2, email: 2 } }); // prettier-ignore
+    await c.capture(crisisIn('messageOnly', c.callId));
+    expect(crisisFirst.push()).toBe(true);
+  });
+
+  it('flag on, a text sent for it: the crisis held in the summary still goes by push', async () => {
+    process.env.CALL_RESULT_ONE_CHANNEL = 'on';
+    process.env.CALL_RESULT_TEXT = 'on';
+    const c = call();
+    await c.capture(crisisIn('summaryOnlyCallback', c.callId));
+    expect(text).toHaveBeenCalledTimes(1);
+    expect(text.mock.calls[0][0].body).not.toContain('alive'); // the text carries the message only
+    expect(emails()[0].text).toContain(`${NAME} asked to pass on:`); // callResultDetails in the email
+    expect(crisisFirst.push()).toBe(true);
+  });
+
+  it.each(['off', 'on'])(
+    'flag %s: a crisis text held for quiet hours goes on a later capture',
+    async (flag) => {
+      // prettier-ignore
+      if (flag === 'on') process.env.CALL_RESULT_ONE_CHANNEL = 'on';
+      process.env.CALL_RESULT_TEXT = 'on';
+      const c = call({}, undefined, 'Asia/Tokyo');
+      const crisis = crisisIn('messageOnlyCallback', c.callId);
+      await c.capture(crisis); // 00:00 in Tokyo: held
+      expect(text).not.toHaveBeenCalled();
+      vi.setSystemTime(new Date('2026-10-30T03:00:00Z')); // noon in Tokyo
+      await c.capture(crisis);
+      await c.capture(crisis);
+      expect(text).toHaveBeenCalledTimes(1);
+      expect(text.mock.calls[0][0].body).toContain("don't want to be alive"); // their words, quoted
+      expect(push).toHaveBeenCalledTimes(1); // the crisis push, once
+    }
+  );
+});
+
+describe('While You Were Away keeps a callback important', () => {
+  it('the "Important" tag and the first place are back, with one email', async () => {
+    store.on.value = false; // the in-memory results, read back as the next call's opener does
+    const owner = `u-wywa-${++seq}`;
+    await call(VOICEMAIL, owner).capture();
+    await call({ ...CALLBACK, outcome: 'She wants a call back tonight.' }, owner).capture();
+    const block = (await buildPendingResultsContext(owner)) ?? '';
+    expect(block).toContain('⭐ Important');
+    expect(block.indexOf('She wants a call back tonight.')).toBeLessThan(block.indexOf('voicemail')); // prettier-ignore
+  });
+});
+
+describe('the in-process claims are bounded', () => {
+  it('held for a day: a capture a day later tells again', async () => {
+    store.on.value = false;
+    const c = call();
+    await c.capture();
+    await c.capture();
+    expect(push).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(new Date('2026-10-30T16:00:00Z'));
+    await c.capture();
+    expect(push).toHaveBeenCalledTimes(2);
+  });
+
+  it('at most 2000 calls: the oldest is let go first', async () => {
+    store.on.value = false;
+    const first = call();
+    await first.capture();
+    // eslint-disable-next-line no-await-in-loop -- one call after another, as the cap counts them
+    for (let i = 0; i < 2000; i++) await call().capture();
+    push.mockClear();
+    await first.capture();
+    expect(push).toHaveBeenCalledTimes(1);
+    const last = seq;
+    push.mockClear();
+    await captureCallResult(`call-${last}`, { callId: `call-${last}`, status: 'completed', objectiveAchieved: true, outcome: 'x' }, { ...first.request, userId: `u-${last - 1}` }); // prettier-ignore
+    expect(push).not.toHaveBeenCalled(); // a recent call is still held
+  }, 60_000);
 });
