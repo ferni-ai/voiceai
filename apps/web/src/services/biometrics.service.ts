@@ -3,7 +3,7 @@
  *
  * Connects Ferni to health/biometrics platforms:
  * - Apple Health: only the native iOS app (apps/ios-native) can read HealthKit
- * - Oura, WHOOP, Fitbit, Garmin (web OAuth via the UI server's /wearables routes)
+ * - Oura, WHOOP, Garmin (web OAuth via the UI server's /wearables routes)
  *
  * Every path here is one the UI server actually serves:
  * - /wearables/status, /wearables/<provider>/login, /wearables/<provider>/unlink
@@ -31,14 +31,13 @@ const log = createLogger('BiometricsService');
 // ============================================================================
 
 /** Web OAuth wearables the server has /wearables/<provider>/login routes for. */
-export type WearableProvider = 'oura' | 'whoop' | 'fitbit' | 'garmin';
+export type WearableProvider = 'oura' | 'whoop' | 'garmin';
 
 export type BiometricsPlatform = 'apple_health' | WearableProvider;
 
 export const WEARABLE_PROVIDERS: readonly WearableProvider[] = [
   'oura',
   'whoop',
-  'fitbit',
   'garmin',
 ];
 
@@ -65,7 +64,6 @@ const PLATFORM_CONFIGS: Record<BiometricsPlatform, PlatformConfig> = {
   apple_health: { name: 'Apple Health', supportsWeb: false },
   oura: { name: 'Oura Ring', supportsWeb: true },
   whoop: { name: 'WHOOP', supportsWeb: true },
-  fitbit: { name: 'Fitbit', supportsWeb: true },
   garmin: { name: 'Garmin', supportsWeb: true },
 };
 

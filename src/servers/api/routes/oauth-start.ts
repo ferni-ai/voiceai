@@ -34,7 +34,6 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   [GMAIL_SEND_OAUTH_PROVIDER, '/auth/google/gmail-send/login'],
   ['microsoft_calendar', '/auth/microsoft/login'],
   ['apple_calendar', '/auth/apple/login'],
-  ['fitbit', '/wearables/fitbit/login'],
   ['oura', '/wearables/oura/login'],
   ['garmin', '/wearables/garmin/login'],
   ['whoop', '/wearables/whoop/login'],

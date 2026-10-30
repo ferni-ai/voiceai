@@ -253,7 +253,6 @@ export async function handleIntegrationsRoutes(
         'googlefit',
         'oura',
         'whoop',
-        'fitbit',
         'terra',
       ];
       if (!validPlatforms.includes(platform)) {

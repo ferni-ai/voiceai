@@ -3,7 +3,7 @@
  *
  * Serves OAuth flows for wearable device integrations from the UI server.
  *
- * Providers: fitbit, oura, garmin, whoop (plus apple_health for unlink)
+ * Providers: oura, garmin, whoop (plus apple_health for unlink)
  *
  * Routes (the user is always the verified caller, never a query parameter):
  *   GET  /wearables/status                    → all provider statuses
@@ -29,8 +29,8 @@ function withParam(returnUrl: string, key: string, value: string): string {
   return `${returnUrl}${sep}${key}=${encodeURIComponent(value)}`;
 }
 
-const OAUTH_PROVIDERS_PATTERN = 'fitbit|oura|garmin|whoop';
-const UNLINK_PROVIDERS_PATTERN = 'fitbit|oura|garmin|whoop|apple_health';
+const OAUTH_PROVIDERS_PATTERN = 'oura|garmin|whoop';
+const UNLINK_PROVIDERS_PATTERN = 'oura|garmin|whoop|apple_health';
 
 /**
  * Handle wearables OAuth routes
