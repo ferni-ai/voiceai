@@ -134,18 +134,6 @@
     <!-- Google Identity Services - One-Tap Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- Spotify Web Playback SDK - Define callback BEFORE loading SDK -->
-    <script>
-      // Must be defined before SDK loads to avoid race condition
-      window.onSpotifyWebPlaybackSDKReady = function () {
-        console.log('🎵 Spotify SDK ready (early callback)');
-        window.spotifySDKReady = true;
-        // Dispatch event for our service to listen to
-        window.dispatchEvent(new Event('spotify-sdk-ready'));
-      };
-    </script>
-    <script src="https://sdk.scdn.co/spotify-player.js"></script>
-
     <link rel="stylesheet" href="/src/styles/inline-styles.css" />
     <link rel="stylesheet" href="/src/styles/call-controls.css" />
     <link rel="stylesheet" href="/src/styles/call-room.css" />
@@ -331,12 +319,6 @@
 
         <!-- Helper Text - Apple-style minimal -->
         <p id="helperText" class="entrance-helper" data-i18n="entrance.helper">Your personal guide</p>
-
-        <!-- Spotify Status - Apple-style minimal (hidden, used for status updates) -->
-        <div id="spotifyStatus" class="spotify-status hidden">
-          <span class="spotify-icon">♪</span>
-          <span id="spotifyStatusText" data-i18n="common.initializing">Initializing...</span>
-        </div>
       </main>
     </div>
 

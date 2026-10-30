@@ -29,7 +29,6 @@ export {
   setHelperText,
   showMessage,
 } from './message.ui.js';
-export { hideSpotifyStatus, initSpotifyUI, showSpotifyStatus, spotifyUI } from './spotify.ui.js';
 export {
   dispose as disposeTeamUI,
   initTeamUI,

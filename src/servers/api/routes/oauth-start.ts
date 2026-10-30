@@ -11,7 +11,6 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { getVerifiedUserId } from '../request-identity.js';
-import { isSpotifyConnectConfigured } from '../../../config/spotify-connect.js';
 import { createOAuthLinkState } from '../../token/oauth-link-state.js';
 import { sanitizeReturnUrl } from '../../token/validation.js';
 import { parseBodySafe } from '../../../utils/ddos-protection.js';
@@ -38,7 +37,11 @@ function isOuraConfigured(): boolean {
   return process.env.NODE_ENV !== 'production' || !!process.env.OURA_REDIRECT_URI;
 }
 
-/** Provider → the login route that redirects on to the provider. */
+/**
+ * Provider → the login route that redirects on to the provider. No Spotify: Ferni
+ * doesn't link a person's Spotify account (Developer Policy III.3), so it is an
+ * unknown provider here (token/oauth/spotify.ts).
+ */
 const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['google_calendar', '/auth/google/login'],
   [GMAIL_SEND_OAUTH_PROVIDER, '/auth/google/gmail-send/login'],
@@ -48,7 +51,6 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['garmin', '/wearables/garmin/login'],
   ['whoop', '/wearables/whoop/login'],
   [LINKEDIN_PROVIDER, LINKEDIN_CONNECT_PATH],
-  ['spotify', '/spotify/login'],
 ]);
 
 /**
@@ -57,7 +59,6 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
  */
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
-  ['spotify', { name: 'Spotify', isConfigured: () => isSpotifyConnectConfigured() }],
   ['oura', { name: 'Oura', isConfigured: isOuraConfigured }],
   [
     GMAIL_SEND_OAUTH_PROVIDER,
