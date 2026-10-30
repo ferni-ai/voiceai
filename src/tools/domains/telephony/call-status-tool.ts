@@ -118,7 +118,7 @@ async function queryFor(
     }
     if (found) return { q: { words }, contact: true };
     if (!flagOn('CALL_STATUS_BY_PURPOSE')) return { q: { words }, contact: false }; // as before
-    const store = await import('../../../services/contacts/contact-relationship-service.js');
+    const store = await import('../../../services/contacts/index.js');
     return { q: { words }, contact: (await store.searchContacts(userId, who)).length > 0 };
   } catch {
     // Unresolved: the words alone, and not known to be a contact.

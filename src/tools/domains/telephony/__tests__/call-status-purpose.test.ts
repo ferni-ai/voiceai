@@ -34,6 +34,7 @@ vi.mock('../../../../services/contacts/contact-relationship-service.js', () => (
   ),
   getContacts: vi.fn(async () => CONTACTS),
   upsertContact: vi.fn(async () => undefined),
+  default: {}, // the contacts index (callStatus's contact check) imports it
 }));
 vi.mock('../../../../memory/entity-store/integration.js', () => ({
   isEntityStoreReady: () => false,
