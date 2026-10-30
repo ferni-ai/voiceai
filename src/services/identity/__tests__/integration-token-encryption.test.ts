@@ -170,7 +170,8 @@ describe('integration token stores encrypt at rest', () => {
   it('oura: sealed write, both reads, disconnect deletes', async () => {
     const oura = await import('../oura-auth.js');
     tokenResponse();
-    expect((await oura.exchangeCodeForTokens('code', 'u-oura')).success).toBe(true);
+    const granted = await oura.exchangeAuthorizationCode('code', 'https://example.test/cb');
+    await oura.saveOuraTokens('u-oura', granted!);
     const stored = doc('oura_tokens/u-oura');
     expect(stored?.encrypted).toEqual(expect.any(String));
     noRawToken(stored);
@@ -192,7 +193,10 @@ describe('integration token stores encrypt at rest', () => {
   it('a key mismatch is logged with the store and reason, not read as "not connected" silently', async () => {
     const oura = await import('../oura-auth.js');
     tokenResponse();
-    await oura.exchangeCodeForTokens('code', 'u-kid-a');
+    await oura.saveOuraTokens(
+      'u-kid-a',
+      (await oura.exchangeAuthorizationCode('code', 'https://example.test/cb'))!
+    );
     const sealed = structuredClone(doc('oura_tokens/u-kid-a')!);
     process.env.OAUTH_ENCRYPTION_KEY = 'fixture-other-key';
     try {

@@ -1,17 +1,12 @@
 /**
  * Wearables OAuth Management
  *
- * Handles OAuth flows for wearable device integrations:
- * - Fitbit (Web OAuth 2.0)
- * - Oura (Web OAuth 2.0)
- * - Garmin (Web OAuth 2.0)
- * - Whoop (Web OAuth 2.0)
- *
- * Note: Apple HealthKit requires native iOS integration via deep links,
- * handled separately in the iOS app.
+ * Web OAuth 2.0 for Fitbit, Oura, Garmin and Whoop. Apple HealthKit is native iOS
+ * (deep links), handled in the iOS app.
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
  * Tokens are encrypted before storage for security.
+ * Oura's grant lives in services/identity/oura-auth.ts (sealed, also read by the agent).
  */
 
 import crypto from 'crypto';
@@ -20,7 +15,7 @@ import type { WearableProvider } from '../../../services/wearable-integration/ty
 import { encryptData, decryptData } from '../../shared/encryption.js';
 import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import * as ouraAuth from '../../../services/identity/oura-auth.js';
 
 const log = createLogger({ module: 'WearablesOAuth' });
 
@@ -85,7 +80,8 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     clientSecret: process.env.OURA_CLIENT_SECRET,
     authorizeUrl: 'https://cloud.ouraring.com/oauth/authorize',
     tokenUrl: 'https://api.ouraring.com/oauth/token',
-    scopes: ['daily', 'heartrate', 'session', 'sleep', 'workout', 'personal'],
+    // The scopes the Oura app registers ('sleep' is not an Oura v2 scope; 'daily' covers sleep)
+    scopes: ['personal', 'daily', 'heartrate', 'workout', 'tag', 'session', 'spo2'],
     redirectUri:
       process.env.OURA_REDIRECT_URI ||
       `http://localhost:${process.env.PORT || 3002}/wearables/oura/callback`,
@@ -199,17 +195,7 @@ export function getProviderConfig(
  * Get all configured providers
  */
 export function getConfiguredProviders(): WearableProvider[] {
-  const configured: WearableProvider[] = [];
-
-  for (const provider of Object.keys(PROVIDER_CONFIGS) as Array<
-    Exclude<WearableProvider, 'apple_health'>
-  >) {
-    if (isProviderConfigured(provider)) {
-      configured.push(provider);
-    }
-  }
-
-  return configured;
+  return (Object.keys(PROVIDER_CONFIGS) as WearableProvider[]).filter(isProviderConfigured);
 }
 
 // ============================================================================
@@ -268,6 +254,10 @@ export async function saveTokens(
   if (provider === 'apple_health') {
     return; // Apple HealthKit tokens managed natively
   }
+  if (provider === 'oura') {
+    await ouraAuth.saveOuraTokens(userId, { ...tokens, token_type: 'bearer' });
+    return;
+  }
 
   const key = cacheKey(provider, userId);
   const tokensWithTimestamp = {
@@ -300,6 +290,8 @@ export async function removeTokens(provider: WearableProvider, userId: string): 
   if (provider === 'apple_health') {
     return;
   }
+  // Oura deletes its own record; the generic delete below also clears the older per-user doc
+  if (provider === 'oura') await ouraAuth.deleteUserTokens(userId);
 
   const key = cacheKey(provider, userId);
   tokenCache.delete(key);
@@ -386,6 +378,7 @@ export async function getValidToken(
   provider: Exclude<WearableProvider, 'apple_health'>,
   userId: string
 ): Promise<string | null> {
+  if (provider === 'oura') return ouraAuth.getValidAccessToken(userId);
   const userTokens = await getTokens(provider, userId);
   if (!userTokens) {
     return null;
@@ -422,6 +415,7 @@ export async function exchangeCode(
   if (!config?.clientId || !config?.clientSecret) {
     return null;
   }
+  if (provider === 'oura') return ouraAuth.exchangeAuthorizationCode(code, config.redirectUri);
 
   try {
     // Build token request body
@@ -508,12 +502,6 @@ export function buildAuthUrl(
     // Store verifier for use during token exchange
     pkceVerifiers.set(state, codeVerifier);
 
-    // Cleanup old verifiers (> 10 minutes)
-    const maxAge = 10 * 60 * 1000;
-    for (const [key, _] of pkceVerifiers) {
-      // No timestamps stored, so the caller cleans up (in production, Redis with a TTL)
-    }
-
     url.searchParams.set('code_challenge', codeChallenge);
     url.searchParams.set('code_challenge_method', 'S256');
 
@@ -574,12 +562,14 @@ export async function getAllConnectionStatuses(
 
   for (const provider of providers) {
     const configured = isProviderConfigured(provider);
-    const tokens = configured ? await getTokens(provider, userId) : null;
+    const tokens = configured && provider !== 'oura' ? await getTokens(provider, userId) : null;
+    const linked =
+      provider === 'oura' ? configured && (await ouraAuth.isOuraConfigured(userId)) : !!tokens;
 
     statuses.push({
       provider,
       configured,
-      linked: !!tokens,
+      linked,
       expires_at: tokens?.expires_at || null,
       login_url: configured
         ? `/wearables/${provider}/login?user_id=${encodeURIComponent(userId)}`

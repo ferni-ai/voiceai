@@ -217,10 +217,16 @@ describe('Wearables OAuth', () => {
 
       const config = getProviderConfig('oura');
 
-      expect(config?.scopes).toContain('daily');
+      expect(config?.scopes).toContain('daily'); // covers sleep and readiness
       expect(config?.scopes).toContain('heartrate');
-      expect(config?.scopes).toContain('sleep');
       expect(config?.scopes).toContain('workout');
+      expect(config?.scopes).toContain('spo2');
+    });
+
+    it('does not ask for "sleep", which is not an Oura v2 scope', async () => {
+      const { getProviderConfig } = await import('../servers/token/oauth/wearables.js');
+
+      expect(getProviderConfig('oura')?.scopes).not.toContain('sleep');
     });
   });
 });
