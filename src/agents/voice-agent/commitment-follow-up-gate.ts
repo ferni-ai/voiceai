@@ -31,6 +31,7 @@ import {
   personToCall,
   type CallRecords,
 } from '../../services/outreach/call-status.js';
+import { markPatternSurfaced } from '../../services/superhuman/semantic-intelligence/behavioral-intelligence.js';
 import { wasInsightSurfaced } from '../../intelligence/index.js';
 import { commitmentKey, isAskableCommitment } from '../../utils/commitment-filters.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
@@ -73,6 +74,8 @@ export interface FollowUpGateDeps {
   /** When each key was last asked; throws when the record can't be read. */
   lastAsked(userId: string, keys: string[]): Promise<Map<string, number>>;
   callRecords: CallRecords;
+  /** Stores a pattern-mirror pattern as shared (PATTERN_MIRROR_ONCE). */
+  markPatternShared?: (userId: string, patternId: string) => Promise<void>;
 }
 
 export const liveFollowUpGateDeps: FollowUpGateDeps = {
@@ -193,12 +196,30 @@ export function arcInsightOnceEnabled(env: NodeJS.ProcessEnv = process.env): boo
   return env.ARC_INSIGHT_ONCE === 'on';
 }
 
-function arcAlreadyRaised(userId: string, insight: SurfacedInsight): boolean {
-  return (
-    insight.category === 'emotional_trajectory' &&
-    arcInsightOnceEnabled() &&
-    wasInsightSurfaced(userId, insight.id)
-  );
+/**
+ * PATTERN_MIRROR_ONCE: a pattern-mirror insight reaches the prompt once per call and
+ * is then stored as shared. Nothing called markPatternSurfaced, so the same
+ * self-sabotage pattern came back every third turn of every call (22 times in one, #3167).
+ */
+export function patternMirrorOnceEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.PATTERN_MIRROR_ONCE === 'on';
+}
+
+function alreadyRaised(userId: string, insight: SurfacedInsight): boolean {
+  const once =
+    insight.category === 'pattern_mirror'
+      ? patternMirrorOnceEnabled()
+      : insight.category === 'emotional_trajectory' && arcInsightOnceEnabled();
+  return once && wasInsightSurfaced(userId, insight.id);
+}
+
+/** Stores a pattern-mirror insight as shared once it is going into the prompt. */
+function notePatternShared(userId: string, insight: SurfacedInsight, deps: FollowUpGateDeps): void {
+  if (insight.category !== 'pattern_mirror' || !patternMirrorOnceEnabled()) return;
+  const mark = deps.markPatternShared ?? markPatternSurfaced;
+  mark(userId, insight.id).catch((error: unknown) => {
+    log.warn({ userId, error: String(error) }, 'Pattern mirror not stored as shared');
+  });
 }
 
 function logDecision(
@@ -242,8 +263,9 @@ export async function surfaceProactiveInsight(
   const due = !!insight && (start || (pause && insight.category !== 'late_night_support'));
   if (!insight || !due || insight.category !== 'commitment_reminder') {
     if (start) logDecision(input, { reason: insight ? 'other-insight' : 'none', topicHash: null });
-    if (due && arcAlreadyRaised(input.userId, insight)) return null;
-    return due ? (insight ?? null) : null;
+    if (!due || alreadyRaised(input.userId, insight)) return null;
+    notePatternShared(input.userId, insight, deps);
+    return insight;
   }
 
   let decision: Decision;
