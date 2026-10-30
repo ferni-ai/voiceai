@@ -27,8 +27,10 @@ import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js'
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
-const ON = { ...LIVE, CRISIS_CONFIRMED_CALL_RISK: 'on' };
-const SHADOW = { ...LIVE, CRISIS_CONFIRMED_CALL_RISK: 'shadow' };
+/** The flag needs the agreement gate: only then are a turn's reads kept per call. */
+const ON = { ...LIVE, CRISIS_AGREEMENT_GATE: 'on', CRISIS_CONFIRMED_CALL_RISK: 'on' };
+const SHADOW = { ...LIVE, CRISIS_AGREEMENT_GATE: 'on', CRISIS_CONFIRMED_CALL_RISK: 'shadow' };
+const NO_AGREEMENT_GATE = { ...LIVE, CRISIS_CONFIRMED_CALL_RISK: 'on' };
 const NONE = '{"risk":"none","subject":"self"}';
 const CRISIS = '{"risk":"crisis","subject":"self"}';
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
@@ -280,6 +282,36 @@ describe('CRISIS_CONFIRMED_CALL_RISK: reads of one turn that agree on risk', () 
     expect(generate.afterCalls).toEqual([]);
   });
 
+  it('agreement gate off: inert, main on every turn (reads cannot confirm the call)', async () => {
+    const reads = { [ALARM]: IMMINENT, [AGREE]: CRISIS, [LATER]: CRISIS };
+    const run = async (env: Record<string, string>) => {
+      const generate = stub(reads, { [AGREE]: NONE, [LATER]: NONE });
+      const session = `call-${++calls}`;
+      const before = await call(BENIGN, generate, env, session);
+      const other = { recentTranscripts: [...BENIGN, AGREE], lastAgentResponse: 'Sounds lovely.' };
+      const pipeline = startTurnCrisis(AGREE, other, { sessionId: session, env, generate });
+      const userData = { services: { sessionId: session } };
+      const ctx = llm.ChatContext.empty();
+      const decisions: CrisisGateDecision[] = [...before];
+      for (const line of [...BENIGN, AGREE, LATER]) {
+        ctx.addMessage({ role: 'user', content: line });
+        if (line === AGREE || line === LATER) {
+          const gate = startCrisisGate(ctx.copy(), userData, { env, generate });
+          decisions.push((await gate?.escalation) ?? gate?.decision ?? { action: 'pass' });
+        }
+        ctx.addMessage({ role: 'assistant', content: FERNI[decisions.at(-1)?.action ?? 'pass'] });
+      }
+      return { decisions, summary: await pipeline.summary(), after: generate.afterCalls };
+    };
+    const main = await run(LIVE);
+    const on = await run(NO_AGREEMENT_GATE);
+    expect(on.decisions).toEqual(main.decisions);
+    expect(guidance(on.decisions[3])).toContain('[CRITICAL - USER SAFETY]');
+    expect(guidance(on.decisions[4])).toContain('[CRITICAL - USER SAFETY]');
+    expect(on.summary).toEqual(main.summary);
+    expect(on.after).toEqual([]);
+  });
+
   it('are seen by the after-check itself, whichever path noted them first', async () => {
     const generate = stub({ [AGREE]: CRISIS }, { [AGREE]: NONE });
     const call = `call-${++calls}`;
@@ -339,7 +371,8 @@ describe('CRISIS_CONFIRMED_CALL_RISK: each after-check read is for its own turn'
     }
     expect(guidance(out[0])).toBe(AFTER_CHECK_GUIDANCE);
     expect(guidance(out[1])).toContain('[CRITICAL - USER SAFETY]');
-    expect(generate.afterCalls).toEqual([IDK, IDK]);
+    // The same words read as risk just before agree with it: confirmed, so no after-check.
+    expect(generate.afterCalls).toEqual([IDK]);
   });
 });
 

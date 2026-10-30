@@ -1,24 +1,21 @@
 /**
  * Call-level crisis risk counts only when confirmed (CRISIS_CONFIRMED_CALL_RISK =
- * off | shadow | on, off by default).
+ * off | shadow | on, off by default). Inert unless CRISIS_AGREEMENT_GATE=on (or a live
+ * adjudicator): only then are a turn's reads kept per call, so agreement can confirm it.
  *
  * Once one classifier read flags a call, later turns keep reading as risk: each
  * turn is read with Ferni's line before it, which after an alarm is Ferni's own
  * safety talk, so pushback ("I'm fine", "it's not a crisis") reads as risk too.
  *
- * With the flag on, each call keeps a ledger: the turns where only the classifier
- * escalated (an alarm), and whether anything confirmed risk. A LATER turn on an
- * alarmed, unconfirmed call that only the classifier flags gets one more read,
- * the after-check read: the classifier's model on the same input with its own
- * prompt (AFTER_CHECK_PROMPT), told that Ferni's safety talk came from a check
- * nothing confirmed and that pushback against it is not risk, while a yes or a
- * hedge to a safety question, an earlier line that carried risk in its own words,
- * and anything the caller adds are judged as before. Not a word list: the model
- * decides. It runs only on such turns, whose reply is already held for the read.
+ * Each call keeps a ledger: the turns only the classifier escalated (alarms), and
+ * whether anything confirmed risk. A LATER turn on an alarmed, unconfirmed call
+ * that only the classifier flags gets the after-check read: the same model with
+ * AFTER_CHECK_PROMPT, told Ferni's safety talk came from an unconfirmed check and
+ * pushback is not risk; a yes or hedge to a safety question, earlier risk in the
+ * caller's own words, and anything new are judged as before. The model decides.
  * - none: eased. A crisis read gets AFTER_CHECK_GUIDANCE (988 stays for any
  *   disclosure); an imminent read gets crisis guidance, never less.
- * - any risk: the decision stands, and the call is confirmed (two reads agree).
- * - no verdict (timeout, error): the decision stands.
+ * - any risk, or no verdict: the decision stands (risk also confirms the call).
  *
  * Never eases: an unknown call; the alarm turn itself; a call where anything
  * confirmed risk (a pattern on any turn or in any earlier caller line, two reads
@@ -31,6 +28,8 @@
 
 import { derivedHold, likelyMinor, statesUnder18 } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { resolveCrisisAdjudicatorMode } from './crisis-adjudicator.js';
+import { resolveCrisisAgreementGate } from './crisis-agreement.js';
 import {
   classifyCrisis,
   createGeminiCrisisGenerate,
@@ -143,9 +142,7 @@ function noteKept(lone: LoneRead, env: Env): void {
   if (!call) return;
   entry(call, Date.now()).alarms.add(turnOf(input.latest));
   void agreed(call, input)
-    .then((yes) => {
-      if (yes) noteConfirmedRisk(call, env);
-    })
+    .then((yes) => yes && noteConfirmedRisk(call, env))
     .catch(() => undefined);
 }
 
@@ -185,6 +182,9 @@ async function ineligible(args: LoneRead, call: string): Promise<string | null> 
   const { verdict, input } = args;
   if (verdict?.risk !== 'crisis' && verdict?.risk !== 'imminent') return 'no_risk_read';
   if (args.pattern !== 'none' || found(args.detection)) return 'pattern';
+  const env = args.env ?? process.env;
+  const held = resolveCrisisAgreementGate(env) || resolveCrisisAdjudicatorMode(env) === 'live';
+  if (!held) return 'needs_agreement_gate'; // reads not kept per call: agreement unseen
   const kept = ledger.get(call);
   if (!kept || Date.now() - kept.at > TTL_MS) return 'no_alarm';
   if (kept.confirmed) return 'confirmed';
