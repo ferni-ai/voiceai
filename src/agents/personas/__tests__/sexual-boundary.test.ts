@@ -15,7 +15,11 @@ import {
   userHeld,
   writeHeld,
 } from '../../../utils/minor-care.js';
-import { resetSexualTopicHold, sexualReadsSettled } from '../../../utils/sexual-topic-hold.js';
+import {
+  holdForSexualTopic,
+  resetSexualTopicHold,
+  sexualReadsSettled,
+} from '../../../utils/sexual-topic-hold.js';
 import {
   readCallerTurn,
   resetSexualBoundary,
@@ -161,8 +165,8 @@ describe('the read holds the call memory', () => {
     expect(userHeld('anonymous', ON)).toBe(false);
   });
 
-  it('call-end work can wait for a read still running', async () => {
-    const sessionId = fresh();
+  /** A read the test answers by hand: answer() settles it. */
+  function heldRead() {
     let answer: (v: string) => void = () => undefined;
     const understand = vi.fn(
       () =>
@@ -170,14 +174,42 @@ describe('the read holds the call memory', () => {
           answer = resolve;
         })
     );
-    void readCallerTurn({ sessionId, text: 'a turn' }, { understand, env: ON });
+    return { understand, answer: (v: string) => answer(v) };
+  }
+
+  it('holds while a read is running (fail closed), and call-end work can wait for it', async () => {
+    const sessionId = fresh();
+    const userId = 'phone:+15550102';
+    const { understand, answer } = heldRead();
+    void readCallerTurn({ sessionId, userId, text: 'a turn' }, { understand, env: ON });
     const settled = sexualReadsSettled(sessionId);
     expect(settled).not.toBeNull();
-    expect(memoryHeld(sessionId, ON)).toBe(false);
+    // A writer that runs before the read returns can't tell: it is refused.
+    expect(memoryHeld(sessionId, ON)).toBe(true);
+    expect(userHeld(userId, ON)).toBe(true);
+    expect(writeHeld(userId, sessionId, ON)).toBe(true);
     answer('{"sexual": true}');
     await settled;
     expect(memoryHeld(sessionId, ON)).toBe(true);
     expect(sexualReadsSettled(sessionId)).toBeNull();
+  });
+
+  it('a clean read lifts the running-read hold before the awaiting writer resumes', async () => {
+    const sessionId = fresh();
+    const { understand, answer } = heldRead();
+    const read = readCallerTurn({ sessionId, text: 'dinner plans' }, { understand, env: ON });
+    expect(memoryHeld(sessionId, ON)).toBe(true);
+    answer('{"sexual": false, "young": false}');
+    expect(await read).toBe(false);
+    expect(memoryHeld(sessionId, ON)).toBe(false); // the very next check, as transcript-handler does
+  });
+
+  it('never evicts a live hold, however many calls are held', async () => {
+    const yes = verdict('{"sexual": true}');
+    const first = fresh();
+    await readCallerTurn({ sessionId: first, text: 'a turn' }, { understand: yes, env: ON });
+    for (let i = 0; i < 520; i++) holdForSexualTopic(fresh());
+    expect(memoryHeld(first, ON)).toBe(true);
   });
 });
 

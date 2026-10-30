@@ -5,6 +5,9 @@
  * a lower layer, so every writer's existing check (minor-care.ts: memoryHeld, userHeld,
  * writeHeld, heldAfter) refuses the write, and the after-call tasks are skipped.
  *
+ * A session with a read still running is held too, until it settles: a writer that runs before
+ * the read can't tell, so it fails closed. A live hold is never evicted.
+ *
  * Not MINOR_CARE: nothing here says the caller is a minor. No minor note, no shared hold on the
  * caller's number, no purge of their earlier memory.
  *
@@ -29,55 +32,80 @@ export function sexualBoundaryOn(env: Env = process.env): boolean {
   return flagOn('SEXUAL_TOPIC_BOUNDARY', env);
 }
 
+/** Never a placeholder id ('anonymous', 'default'): one bucket for many callers. */
+const own = (userId: string | undefined): string | undefined =>
+  userId?.trim() && !PLACEHOLDER_IDS.has(userId.trim().toLowerCase()) ? userId : undefined;
+
 /** Hold this session's memory from now on. Once per session; never throws. */
 export function holdForSexualTopic(sessionId: string | undefined, userId?: string): void {
   if (!sessionId) return;
   const known = held.get(sessionId);
-  // Never a placeholder id ('anonymous', 'default'): one bucket for many callers.
-  const own =
-    userId?.trim() && !PLACEHOLDER_IDS.has(userId.trim().toLowerCase()) ? userId : undefined;
-  held.set(sessionId, { at: known?.at ?? Date.now(), userId: own ?? known?.userId });
+  held.set(sessionId, { at: known?.at ?? Date.now(), userId: own(userId) ?? known?.userId });
   if (known) return;
-  if (held.size > MAX_SESSIONS) held.delete(held.keys().next().value!);
+  // Over the cap, only expired holds go, oldest first. A live one never does: it stays held.
+  for (const [id, entry] of held) {
+    if (held.size <= MAX_SESSIONS) break;
+    if (!live(entry)) held.delete(id);
+  }
   log.info({ sessionId }, 'SEXUAL_TOPIC_BOUNDARY memory held');
 }
 
 const live = (entry: { at: number } | undefined): boolean =>
   !!entry && Date.now() - entry.at <= HOLD_MS;
 
-/** This session is held for a sexual topic (flag on). */
-export function sexualTopicHeld(sessionId: string | undefined, env: Env = process.env): boolean {
+/** A turn of this session was read as sexual (flag on): the note's check. */
+export function sexualTopicConfirmed(
+  sessionId: string | undefined,
+  env: Env = process.env
+): boolean {
   return !!sessionId && sexualBoundaryOn(env) && live(held.get(sessionId));
 }
 
-/** Any live session of this user is held (flag on): the per-user writers' timer check. */
+/** This session's memory is held (flag on): read as sexual, or a read still running. */
+export function sexualTopicHeld(sessionId: string | undefined, env: Env = process.env): boolean {
+  return sexualTopicConfirmed(sessionId, env) || (!!sessionId && !!reads.get(sessionId)?.size);
+}
+
+/** Any session of this user is held or being read (flag on): the per-user writers' check. */
 export function sexualTopicUserHeld(userId: string | undefined, env: Env = process.env): boolean {
   if (!userId || !sexualBoundaryOn(env)) return false;
   for (const entry of held.values()) if (entry.userId === userId && live(entry)) return true;
+  for (const running of reads.values())
+    for (const read of running) if (read.userId === userId) return true;
   return false;
 }
 
-/** sessionId -> its reads still running (sexual-boundary.ts), so call-end work can wait for them. */
-const reads = new Map<string, Set<Promise<unknown>>>();
+interface Read {
+  userId?: string;
+  done: Promise<void>;
+}
+/** sessionId -> its reads still running (sexual-boundary.ts): held until they settle. */
+const reads = new Map<string, Set<Read>>();
 
-/** A read of this session's turn is running: call-end writers wait for it (readsSettled). */
-export function trackSexualRead(sessionId: string, read: Promise<unknown>): void {
-  const running = reads.get(sessionId) ?? new Set();
+/** A read of this session's turn starts: held until `end()`, which the reader always calls. */
+export function beginSexualRead(sessionId: string, userId?: string): { end: () => void } {
+  let settle: () => void = () => undefined;
+  const done = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+  const read: Read = { userId: own(userId), done };
+  const running = reads.get(sessionId) ?? new Set<Read>();
   running.add(read);
   reads.set(sessionId, running);
-  void read
-    .catch(() => undefined)
-    .finally(() => {
+  return {
+    end: () => {
       running.delete(read);
       if (running.size === 0 && reads.get(sessionId) === running) reads.delete(sessionId);
-    });
+      settle();
+    },
+  };
 }
 
 /** Settles when this session's running reads have (each is bounded); null when none is running. */
 export function sexualReadsSettled(sessionId: string | undefined): Promise<void> | null {
   const running = sessionId ? reads.get(sessionId) : undefined;
   if (!running?.size) return null;
-  return Promise.allSettled([...running]).then(() => undefined);
+  return Promise.all([...running].map((read) => read.done)).then(() => undefined);
 }
 
 /** Tests only. */

@@ -228,10 +228,7 @@ function buildTurnReminder(
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
     // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
-    minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
-      careful: options.shape === false,
-      asked: lastFerniLine(chatCtx.items),
-    }),
+    minorCareNote(sessionId, words, { careful: crisis, asked: lastFerniLine(chatCtx.items) }),
     // SEXUAL_TOPIC_BOUNDARY=on: not a verified owner, or under-18 signs: no sexual detail, ever.
     sexualBoundaryNote(sessionId, words, lastFerniLine(chatCtx.items)),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.

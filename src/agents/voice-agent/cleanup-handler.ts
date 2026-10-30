@@ -15,8 +15,7 @@ import {
 } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
-import { memoryHeld, minorHeld } from '../../utils/minor-care.js';
-import { sexualReadsSettled } from '../../utils/sexual-topic-hold.js';
+import { memoryHeld, minorHeld, sexualReadsSettled } from '../../utils/minor-care.js';
 import { ownerWritesBlocked } from '../../services/identity/owner-write-gate.js';
 import { purgeHeldUser } from './minor-care-purge.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
@@ -393,10 +392,9 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     });
   }
 
-  // Every writer that PERSISTS gets memoryUserId: undefined when MINOR_CARE holds the caller (under
-  // 18, not a verified owner) or the id is an on-behalf call's (onbehalf:, ONBEHALF_WRITE_GATE).
-  // The raw userId: in-memory clears, trial time, A/B and cognitive tallies; seeds, presence: held.
-  await sexualReadsSettled(sessionId); // SEXUAL_TOPIC_BOUNDARY: the last turn's read (bounded)
+  // memoryUserId: undefined when held (MINOR_CARE, or a sexual topic once its read settles) or an
+  // on-behalf call's id. Raw userId: in-memory clears, trial time, A/B, tallies; seeds held.
+  await sexualReadsSettled(sessionId);
   const [held, unowned] = [memoryHeld(sessionId), ownerWritesBlocked(userId)];
   const memoryUserId = held || unowned ? undefined : userId;
   // Async event for background processing (the trust and predictions workers persist on it)
@@ -1454,9 +1452,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     }
   }
 
-  // MINOR_CARE only: a call held for a sexual topic is not a minor's, so no shared hold or purge.
-  if (held && userId && minorHeld(sessionId))
-    purgeHeldUser(userId, sessionId, services?.sessionStartTime);
+  if (userId && minorHeld(sessionId)) purgeHeldUser(userId, sessionId, services?.sessionStartTime);
   const totalDuration = Date.now() - cleanupStart;
   diag.session('✅ Session cleanup complete', { totalDurationMs: totalDuration });
 }

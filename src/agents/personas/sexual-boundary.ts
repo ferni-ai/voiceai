@@ -26,8 +26,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   holdForSexualTopic,
   sexualBoundaryOn,
-  sexualTopicHeld,
-  trackSexualRead,
+  sexualTopicConfirmed,
+  beginSexualRead,
 } from '../../utils/sexual-topic-hold.js';
 import { geminiUnderstand, type UnderstandFn } from './turn-understanding.js';
 
@@ -70,7 +70,7 @@ export function sexualBoundaryNote(
   env: Env = process.env
 ): string {
   if (!boundaryApplies(sessionId, said, asked, env)) return '';
-  return (sexualTopicHeld(sessionId, env) ? HELD_PREFIX : '') + SEXUAL_BOUNDARY_NOTE;
+  return (sexualTopicConfirmed(sessionId, env) ? HELD_PREFIX : '') + SEXUAL_BOUNDARY_NOTE;
 }
 
 export const SEXUAL_READ_PROMPT = `You read one caller turn from a phone call with a friendly voice companion. EARLIER holds the caller's previous turns; judge NOW in that context, in any language. Return JSON only: {"sexual": bool, "young": bool}
@@ -119,9 +119,8 @@ export function readCallerTurn(
   const { sessionId, text } = turn;
   if (!sessionId || !text.trim() || !boundaryApplies(sessionId, text, turn.asked, env))
     return Promise.resolve(false);
-  const read = readTurn(sessionId, turn, deps, env);
-  trackSexualRead(sessionId, read); // call-end writers wait for it
-  return read;
+  // Held until it settles: a writer that runs first fails closed; call-end work waits for it.
+  return readTurn(sessionId, turn, deps, env, beginSexualRead(sessionId, turn.userId));
 }
 
 interface Turn {
@@ -135,37 +134,50 @@ async function readTurn(
   sessionId: string,
   turn: Turn,
   deps: { understand?: UnderstandFn; timeoutMs?: number },
-  env: Env
+  env: Env,
+  pending: { end: () => void }
 ): Promise<boolean> {
-  const text = turn.text;
-  const context = earlier.get(sessionId) ?? [];
-  earlier.delete(sessionId);
-  earlier.set(sessionId, [...context, text.trim()].slice(-3));
-  if (earlier.size > MAX_SESSIONS) earlier.delete(earlier.keys().next().value!);
-  // Held and cued: nothing left to learn. Held only: still read, for cues of being under 18.
-  if (sexualTopicHeld(sessionId, env) && cued.has(sessionId)) return true;
+  try {
+    const context = earlier.get(sessionId) ?? [];
+    earlier.delete(sessionId);
+    earlier.set(sessionId, [...context, turn.text.trim()].slice(-3));
+    if (earlier.size > MAX_SESSIONS) earlier.delete(earlier.keys().next().value!);
+    // Held and cued: nothing left to learn. Held only: still read, for cues of being under 18.
+    if (sexualTopicConfirmed(sessionId, env) && cued.has(sessionId)) return true;
+    const read = await modelRead(context, turn.text.trim(), deps);
+    if (read?.young) noteYoung(sessionId);
+    if (read?.sexual === false) return sexualTopicConfirmed(sessionId, env);
+    if (!read) log.warn({ sessionId }, 'SEXUAL_TOPIC_BOUNDARY no read: held');
+    holdForSexualTopic(sessionId, turn.userId);
+    return true;
+  } finally {
+    pending.end(); // before this resolves: an awaiting writer sees the settled hold
+  }
+}
+
+/** The model's read of NOW, or null when it failed or timed out. Never throws. */
+async function modelRead(
+  context: string[],
+  now: string,
+  deps: { understand?: UnderstandFn; timeoutMs?: number }
+): Promise<{ sexual: boolean; young: boolean } | null> {
   const controller = new globalThis.AbortController();
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs ?? READ_TIMEOUT_MS);
-  let read: { sexual: boolean; young: boolean } | null = null;
   try {
     const understand = deps.understand ?? geminiUnderstand(undefined, { schema: SCHEMA });
-    const input = JSON.stringify({ EARLIER: context, NOW: text.trim() });
     const aborted = new Promise<string>((resolve) => {
       controller.signal.addEventListener('abort', () => resolve(''), { once: true });
     });
-    read = parseSexualRead(
+    const input = JSON.stringify({ EARLIER: context, NOW: now });
+    return parseSexualRead(
       await Promise.race([understand(SEXUAL_READ_PROMPT, input, controller.signal), aborted])
     );
   } catch (error) {
     log.warn({ error: String(error) }, 'SEXUAL_TOPIC_BOUNDARY read failed');
+    return null;
   } finally {
     clearTimeout(timer);
   }
-  if (read?.young) noteYoung(sessionId);
-  if (read?.sexual === false) return sexualTopicHeld(sessionId, env);
-  if (!read) log.warn({ sessionId }, 'SEXUAL_TOPIC_BOUNDARY no read: held');
-  holdForSexualTopic(sessionId, turn.userId);
-  return true;
 }
 
 /** Tests only. */

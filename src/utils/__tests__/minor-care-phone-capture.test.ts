@@ -124,6 +124,7 @@ import {
   writeHeld,
 } from '../minor-care.js';
 import { holdForSexualTopic, resetSexualTopicHold } from '../sexual-topic-hold.js';
+import { readCallerTurn } from '../../agents/personas/sexual-boundary.js';
 import { fastCapture } from '../../memory/dynamic/fast-capture.js';
 import {
   DeepExtractionWorker,
@@ -460,6 +461,29 @@ describe('SEXUAL_TOPIC_BOUNDARY: a call held for a sexual topic', () => {
     const entities = storedFor(userId).filter((p) => p.includes('/dynamic_entities/'));
     if (c === 'held') expect(storedFor(userId)).toEqual([]);
     else expect(entities.length).toBeGreaterThan(0);
+  });
+
+  it('the turn whose read is still running writes nothing: fastCapture and knowledge capture', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', 'on');
+    const sessionId = `session-AJ_pending${++n}-1792856630903`;
+    const userId = `anon:38818ea5-84db-455f-a625-${String(n).padStart(12, '0')}`;
+    bindSessionUser(sessionId, userId);
+    let answer: (v: string) => void = () => undefined;
+    const understand = async () =>
+      new Promise<string>((resolve) => {
+        answer = resolve;
+      });
+    const read = readCallerTurn({ sessionId, userId, text: RILEY }, { understand });
+    const result = await fastCapture({ transcript: RILEY, userId, sessionId, turnNumber: 6 });
+    await initializeKnowledgeCapture();
+    await captureTurn({ userId, sessionId, turnNumber: 6, transcript: RILEY });
+    expect(result.asyncJobId).toBeNull();
+    expect(storedFor(userId)).toEqual([]);
+    answer('{"sexual": true}');
+    await read;
+    await captureTurn({ userId, sessionId, turnNumber: 7, transcript: RILEY });
+    expect(storedFor(userId)).toEqual([]);
   });
 
   it.each(CASES)('knowledge capture stores no entity (%s)', async (c) => {

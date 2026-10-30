@@ -37,6 +37,7 @@ import { statesUnder18 } from './minor-care-detect.js';
 import { createLogger } from './safe-logger.js';
 import { PLACEHOLDER_IDS } from './synthetic-user.js';
 import { sexualTopicHeld, sexualTopicUserHeld } from './sexual-topic-hold.js';
+export { sexualReadsSettled } from './sexual-topic-hold.js';
 
 const log = createLogger({ module: 'minor-care' });
 
