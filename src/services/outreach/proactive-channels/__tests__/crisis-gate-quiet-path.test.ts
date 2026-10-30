@@ -58,10 +58,11 @@ const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
 const { CRISIS_QUIET_DAYS, crisisFromSignal, hadCrisisWithin } =
   await import('../../../human-transfer/crisis-signals.js');
-const { gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
+const { decisionFor, gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
 const { RETRY_MS, quietLevelOf, resetCrisisQuietWindow } =
   await import('../../../../agents/safety/crisis-quiet-window.js');
 const { holdSession, resetMinorCare } = await import('../../../../utils/minor-care.js');
+const { signalCrisisDecision } = await import('../../../../agents/safety/crisis-gate-signal.js');
 
 const UID = 'member-uid-1';
 const PHONE = '+15555550123';
@@ -184,6 +185,20 @@ describe('CRISIS_QUIET_FROM_GATE on', () => {
     expect(texts).toEqual([{ to: PHONE, body: CHECK_IN }]);
   });
 
+  it('full crisis guidance from the classifier holds it too; a soft check-in does not', async () => {
+    signalCrisisDecision(call(), 'guide', 'classifier', { action: 'guide' }); // soft
+    await settle();
+    expect(signalDocs()).toHaveLength(0);
+
+    signalCrisisDecision(call(), 'guide', 'classifier', { action: 'guide', crisis: true });
+    await settle();
+    const stored = signalDocs();
+    expect(stored).toHaveLength(1);
+    expect(crisisFromSignal(UID, stored[0]![1])?.escalationType).toBe('crisis_support');
+    await runCheckIns();
+    expect(texts).toEqual([]);
+  });
+
   it('one doc per call however many turns hear the script', async () => {
     const session = call();
     await speak(session);
@@ -241,6 +256,14 @@ describe('CRISIS_QUIET_FROM_GATE off or shadow', () => {
       expect(texts).toEqual([{ to: PHONE, body: CHECK_IN }]);
     });
   }
+});
+
+describe('decisionFor', () => {
+  it('marks its crisis guidance so the window counts it; a script is a script', () => {
+    const found = { isCrisis: true, severity: 0.1, indicators: ['hopeless'], subject: 'self' };
+    expect(quietLevelOf(decisionFor(found as never))).toBe('guidance');
+    expect(quietLevelOf(decisionFor({ ...found, isCrisis: false } as never))).toBeUndefined();
+  });
 });
 
 describe('quietLevelOf', () => {
