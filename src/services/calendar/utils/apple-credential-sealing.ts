@@ -13,7 +13,6 @@
 
 import type { DocumentReference, DocumentSnapshot } from '@google-cloud/firestore';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { openTokens, resealStale, type SealedTokens } from '../../../utils/token-at-rest.js';
 import { encryptData, resolveTokenKey } from '../../../utils/token-encryption.js';
 import {
@@ -97,7 +96,9 @@ export async function resealApplePasswordOnRead(args: {
   const swap = async (encrypted: string): Promise<'updated' | 'missing' | 'changed'> => {
     try {
       const credentials = { ...rest, sealedPassword: { encrypted } };
-      await ref.update(cleanForFirestore({ credentials }), { lastUpdateTime: readTime });
+      // JSON round-trip drops undefined fields (Firestore rejects them); the map is plain JSON.
+      const plain = JSON.parse(JSON.stringify({ credentials })) as Record<string, unknown>;
+      await ref.update(plain, { lastUpdateTime: readTime });
       return 'updated';
     } catch (err) {
       const code = (err as { code?: unknown }).code;
