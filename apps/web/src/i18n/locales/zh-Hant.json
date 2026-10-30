@@ -2419,10 +2419,6 @@
         "description": "同步 Apple Watch 和 iPhone 的健康數據",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "連結你的 Fitbit 裝置",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "同步你的 Garmin 穿戴式裝置",
         "name": "Garmin"
@@ -8349,7 +8345,7 @@
     "appleHealthDesc": "睡眠、活動與心率資料",
     "ouraDesc": "睡眠品質與準備度分數",
     "eightSleepDesc": "睡眠追蹤與溫度調節",
-    "wearablesDesc": "Fitbit、Garmin、WHOOP 等裝置",
+    "wearablesDesc": "Garmin、WHOOP 等裝置",
     "calendarDesc": "行事曆行程、會議與空檔時間",
     "linkedInDesc": "職涯背景與人脈網路",
     "spotifyDesc": "音樂、心情歌單與播放紀錄",

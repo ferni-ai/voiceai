@@ -252,7 +252,6 @@ export async function handleIntegrationsRoutes(
         'healthkit',
         'googlefit',
         'whoop',
-        'fitbit',
         'terra',
       ];
       if (!validPlatforms.includes(platform)) {

@@ -61,11 +61,10 @@ describe('Biometrics', () => {
         'googlefit',
         'oura',
         'whoop',
-        'fitbit',
         'terra',
       ];
 
-      expect(platforms).toHaveLength(6);
+      expect(platforms).toHaveLength(5);
     });
 
     it('should have valid StressLevel values', () => {
@@ -400,15 +399,6 @@ describe('Biometrics', () => {
   });
 
   describe('Platform-specific behavior', () => {
-    it('should handle Fitbit as terra aggregation', () => {
-      const platforms: BiometricPlatform[] = ['fitbit', 'terra'];
-
-      // Both should be valid platforms
-      platforms.forEach((platform) => {
-        expect(['healthkit', 'googlefit', 'oura', 'whoop', 'fitbit', 'terra']).toContain(platform);
-      });
-    });
-
     it('should have different URL formats for each platform (excluding Terra)', () => {
       // Terra excluded because it requires env vars - tested separately
       const urls = {
