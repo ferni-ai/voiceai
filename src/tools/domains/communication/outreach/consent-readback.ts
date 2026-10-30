@@ -123,7 +123,7 @@ export function vetoed(text: string, facts: ActionFacts): boolean {
 
 const READBACK_PROMPT = `Ferni, a voice assistant, has an action ready for its owner and needs the owner's go-ahead. Classify what Ferni ASKS in his latest turn. Return JSON only: {"kind":"readback"|"other_question"|"no_question"}
 readback: every question in the turn asks whether to go ahead with THIS action, to this person, now. Paraphrases count ("Should I go ahead and make that call now?", "Ready for me to call him?", "Do you want me to try dialing him again?", "Should I go ahead with that?", "...if you'd like me to go ahead?", a read-back followed by "Sound good?"). Statements around the question don't change it: sympathy, "I haven't dialed yet", the number, or the errand, even when the errand mentions other people or asks the person to do something ("to say hi and ask her to call you back").
-other_question: Ferni asks anything else, anywhere in the turn, even beside a read-back: waiting or another time ("Should I wait until six?"), another number or line, another person, a text instead of a call (or the reverse), a choice ("or would you rather...?"), a pronoun that doesn't fit the person ("her" for a man's name), how someone is, or any other question.
+other_question: Ferni asks anything else, anywhere in the turn, even beside a read-back: waiting or another time ("Should I wait until six?"), another number or line, another person, a text instead of a call (or the reverse), a choice ("or would you rather...?"), a pronoun that doesn't fit the person's name, how someone is, or any other question.
 no_question: the turn asks nothing (an answer or a statement, e.g. "It ends in 4417.").
 When unsure, answer other_question.`;
 
