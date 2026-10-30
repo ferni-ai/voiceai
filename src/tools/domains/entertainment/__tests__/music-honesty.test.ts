@@ -189,13 +189,25 @@ describe('flag on: no link is offered, whether or not the connect route is confi
 });
 
 describe('flag off: a preview plays as before, with no link offer', () => {
-  it('a Spotify request plays a preview, with no unavailable result and no promise to queue it', async () => {
+  it('a Spotify request plays a preview, with no unavailable result', async () => {
     const reply = await playMusicUnified(LISTEN);
 
     expect(reply).not.toContain('unavailable');
     expect(reply).toMatch(/Brown Eyed Girl|full thing|full track|full song/);
-    expect(reply).not.toMatch(/queue it up/i);
     expect(world.played).toEqual(['Brown Eyed Girl']);
+  });
+
+  it('no preview variant promises to queue the song on their Spotify', async () => {
+    const replies: string[] = [];
+    // One pick per third of [0, 1) reaches each of the three fallback lines.
+    for (const pick of [0, 0.4, 0.8]) {
+      const random = vi.spyOn(Math, 'random').mockReturnValue(pick);
+      replies.push(await playMusicUnified(LISTEN));
+      random.mockRestore();
+    }
+
+    expect(new Set(replies).size).toBe(3);
+    for (const reply of replies) expect(reply).not.toMatch(/queue it up/i);
   });
 
   it('an ambient preview never ends with a PS to link Spotify', async () => {

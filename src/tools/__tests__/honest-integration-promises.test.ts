@@ -6,6 +6,8 @@
  * - grocery_order only builds a cart; it said "Order placed".
  * - a reservation said "Booked!" on any 2xx, with or without a confirmation.
  * - a ride request said "on the way" before any driver accepted it.
+ * - music shortcuts asked "connect Spotify?" and rooms pointed at a
+ *   "Settings > Spotify Rooms" page that doesn't exist.
  * Each test fails if the old claim comes back.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,6 +16,7 @@ const world = vi.hoisted(() => ({
   addToCartOk: [] as boolean[],
   booking: { success: true, confirmationNumber: '' as string | undefined },
   appointments: 0,
+  musicTools: [] as Array<{ id: string; create: () => unknown }>,
 }));
 
 vi.mock('../../services/integrations/instacart/instacart-client.js', () => ({
@@ -33,6 +36,25 @@ vi.mock('../registry/outbound-gate.js', async (importOriginal) => ({
 vi.mock('../../services/integrations/uber/uber-client.js', () => ({
   getUberClient: () => ({
     requestRide: async () => ({ success: true, data: { requestId: 'req-1', eta: 4 } }),
+  }),
+}));
+
+vi.mock('../../services/integrations/lyft/lyft-client.js', () => ({
+  getLyftClient: () => ({
+    requestRide: async () => ({ success: true, data: { rideId: 'ride-1' } }),
+  }),
+}));
+
+vi.mock('../domains/entertainment/index.js', () => ({
+  getToolDefinitions: async () => world.musicTools,
+}));
+
+vi.mock('../../services/identity/spotify-room-service.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getRoomsForVoice: async () => ({ rooms: [], groups: [] }),
+  discoverDevices: async () => ({
+    success: true,
+    data: [{ id: 'd1', name: 'Kitchen', type: 'Speaker', is_active: false }],
   }),
 }));
 
@@ -63,6 +85,8 @@ import {
 } from '../domains/transportation/index.js';
 import { definitions as marketing } from '../domains/marketing/index.js';
 import { createAppointmentTools } from '../scheduling/appointments-tools.js';
+import { spotifyConnectTools } from '../domains/entertainment/spotify-connect.js';
+import { shortcutsToolDefinitions } from '../domains/simple-utilities/shortcuts-tools.js';
 import type { ToolContext } from '../registry/types.js';
 
 /** Offers a connect path that Instacart, Uber and Lyft don't have. */
@@ -80,6 +104,7 @@ beforeEach(() => {
   world.addToCartOk = [];
   world.booking = { success: true, confirmationNumber: '' };
   world.appointments = 0;
+  world.musicTools = [];
 });
 
 describe('no connect offers for accounts that cannot be connected', () => {
@@ -137,7 +162,22 @@ describe('ride requests are sent, not "on the way"', () => {
 
     const result = await getActionTypeConfig('uber_ride')!.executor(action, { userId: 'u1' });
 
-    expect(result).toMatchObject({ success: true, message: rideRequestedMessage('Uber') });
+    expect(result).toMatchObject({
+      success: true,
+      message: "Uber ride requested. It isn't confirmed until a driver accepts it.",
+    });
+    expect(result.message).not.toMatch(/on the way/i);
+  });
+
+  it('lyft_ride reports the request as sent and unconfirmed', async () => {
+    const action = { payload: { startLatitude: 1, startLongitude: 2 } } as unknown as Action;
+
+    const result = await getActionTypeConfig('lyft_ride')!.executor(action, { userId: 'u1' });
+
+    expect(result).toMatchObject({
+      success: true,
+      message: "Lyft ride requested. It isn't confirmed until a driver accepts it.",
+    });
     expect(result.message).not.toMatch(/on the way/i);
   });
 
@@ -207,5 +247,52 @@ describe('postToTwitter without house credentials', () => {
     );
     expect(reply).not.toMatch(/help you connect/i);
     vi.unstubAllEnvs();
+  });
+});
+
+/** Points at a Spotify link or a rooms page that doesn't exist. */
+const SPOTIFY_DEAD_END = /connect(ed)? spotify|spotify connected|spotify rooms|settings/i;
+
+describe('quickMusic offers no Spotify connect', () => {
+  it('no music tool: says music is unavailable', async () => {
+    const reply = await build(shortcutsToolDefinitions, 'quickMusic').execute({ query: 'jazz' });
+
+    expect(reply).toBe("Music isn't available right now, so I can't play anything.");
+    expect(reply).not.toMatch(SPOTIFY_DEAD_END);
+  });
+
+  it('playback throws: offers another song, not a Spotify check', async () => {
+    world.musicTools = [
+      {
+        id: 'playMusic',
+        create: () => ({
+          execute: async () => {
+            throw new Error('boom');
+          },
+        }),
+      },
+    ];
+
+    const reply = await build(shortcutsToolDefinitions, 'quickMusic').execute({ query: 'jazz' });
+
+    expect(reply).toBe("I couldn't play music just now. Want me to try a different song?");
+    expect(reply).not.toMatch(SPOTIFY_DEAD_END);
+  });
+});
+
+describe('music rooms never point at a Settings page', () => {
+  it('listMusicRooms with no rooms says they cannot be set up', async () => {
+    const reply = await build(spotifyConnectTools, 'listMusicRooms').execute({});
+
+    expect(reply).toBe("No music rooms are set up, and I can't set them up for you yet.");
+    expect(reply).not.toMatch(SPOTIFY_DEAD_END);
+  });
+
+  it('discoverSpotifyDevices lists devices without sending anyone to Settings', async () => {
+    const reply = await build(spotifyConnectTools, 'discoverSpotifyDevices').execute({});
+
+    expect(reply).toContain('Kitchen (Speaker)');
+    expect(reply).toContain("I can't add a device to a room for you yet.");
+    expect(reply).not.toMatch(SPOTIFY_DEAD_END);
   });
 });
