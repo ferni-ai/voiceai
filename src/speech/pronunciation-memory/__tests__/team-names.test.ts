@@ -63,7 +63,7 @@ describe('pronunciationDictItems', () => {
     // 2026-10-29); the two-word IPA opened a sentence as "Nah, Jan" (0 of 6).
     expect(TEAM_NAME_PRONUNCIATIONS.Nayan).toBe('nahyahn');
     expect(entryFor("Nayan's", items)?.pronunciation).toBe('nahyahnz');
-    expect(entryFor('Nayan’s', items)?.pronunciation).toBe('nahyahn');
+    expect(entryFor('Nayan’s', items)?.pronunciation).toBe('nahyahnz');
   });
 
   it('keeps sounds-like spellings free of capital runs, which Sonic spells out as letters', () => {
@@ -130,12 +130,16 @@ describe('pronunciationDictItems', () => {
         TEAM_NAME_PRONUNCIATIONS[`${name}'s`] ?? TEAM_NAME_PRONUNCIATIONS[name]
       );
       expect(entryFor(`${name}’s`, items)?.pronunciation, `${name}’s`).toBe(
-        TEAM_NAME_PRONUNCIATIONS[name]
+        TEAM_NAME_PRONUNCIATIONS[`${name}’s`] ?? TEAM_NAME_PRONUNCIATIONS[name]
       );
     }
     // Possessives come from the base word; an "X's" entry is dead weight unless a
-    // round trip measured it: "Nayan's" 1 of 6 → 3 of 6 heard right (2026-10-29).
-    expect(items.filter((i) => /['’]s$/.test(i.text)).map((i) => i.text)).toEqual(["Nayan's"]);
+    // round trip measured it: "Nayan's" 1 of 6 → 3 of 6 heard right (2026-10-29),
+    // with the same entry for the curly apostrophe the LLM sometimes writes.
+    expect(items.filter((i) => /['’]s$/.test(i.text)).map((i) => i.text)).toEqual([
+      "Nayan's",
+      'Nayan’s',
+    ]);
   });
 
   it('matches spoken words in any capitalisation, plurals by their own entry', () => {

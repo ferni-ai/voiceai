@@ -29,7 +29,7 @@
  *
  * - SPOKEN_CONTRACTIONS=on: "It is a lot" → "It's a lot" (utils/spoken-contractions.ts).
  * - SPEAK_PHONE_DIGITS=on: a phone number in a shape Sonic reads as an amount
- *   ("415, 555, 0147", "+14155550147") → "(415) 555-0147" (spoken-phone-numbers.ts).
+ *   ("call 415, 555, 0147", "+14155550147") → "(415) 555-0147" (spoken-phone-numbers.ts).
  *
  * Nothing inside [...] or <...> markup, or a <spell> element, is touched.
  *
@@ -105,8 +105,8 @@ function tidy(text: string, original: string): string {
 }
 
 const RULES: readonly Rule[] = [
-  // SPEAK_PHONE_DIGITS=on: "415, 555, 0147" → "(415) 555-0147" (read as amounts otherwise).
-  (t, hit) => (flagOn('SPEAK_PHONE_DIGITS') ? writePhoneNumbersAsDigits(t, hit) : t),
+  // SPEAK_PHONE_DIGITS=on: "call 415, 555, 0147" → "call (415) 555-0147" (read as amounts otherwise).
+  (t, hit, said) => (flagOn('SPEAK_PHONE_DIGITS') ? writePhoneNumbersAsDigits(t, hit, said) : t),
   // Time ranges: "7-9pm" → "7 to 9 PM" (a bare dash can read as "minus").
   (t, hit) =>
     t.replace(

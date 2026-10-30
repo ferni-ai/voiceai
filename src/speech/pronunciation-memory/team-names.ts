@@ -17,7 +17,7 @@
  * - whole words only ("Isla" did not touch "Island"), so plurals need their
  *   own entry;
  * - a possessive matches its base word ("Isla's", with ' or ’), so possessives
- *   need no entry of their own (Nayan's has one, measured below);
+ *   need no entry of their own (Nayan's has one, with ' and ’, measured below);
  * - case_sensitive with a capitalised key matches that spelling only.
  *
  * Beyond the team's own names, an entry is here only if it beat no entry (or
@@ -59,6 +59,8 @@ export const TEAM_NAME_PRONUNCIATIONS: Readonly<Record<string, string>> = {
   // ~/Documents/voiceai-evidence/speech-names-fix-2026-10-29/).
   Nayan: 'nahyahn',
   "Nayan's": 'nahyahnz',
+  // The same possessive with a curly apostrophe (not round-tripped; same entry).
+  'Nayan’s': 'nahyahnz',
   Patel: '<<p|ə|ˈ|t|ɛ|l>>',
   // The legends
   Henry: '<<ˈ|h|ɛ|n|ɹ|i>>',
