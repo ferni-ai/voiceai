@@ -6,9 +6,14 @@
  */
 
 import crypto from 'node:crypto';
-import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { FieldValue, type Firestore as FirestoreType } from '@google-cloud/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { openTokens, resealStale, sealTokens } from '../../utils/token-at-rest.js';
+import {
+  assertTokenSealingAvailable,
+  TokenSealingUnavailableError,
+} from '../../utils/token-encryption.js';
 import type {
   CreateSiriTokenInput,
   CreateSiriTokenResult,
@@ -30,9 +35,6 @@ const log = createLogger({ module: 'webhook-config-store' });
 const WEBHOOKS_COLLECTION = 'webhooks';
 const SIRI_TOKENS_COLLECTION = 'siri_tokens';
 const USERS_COLLECTION = 'bogle_users';
-
-// Encryption key for webhook URLs (32 bytes for AES-256)
-const ENCRYPTION_KEY = process.env.WEBHOOK_ENCRYPTION_KEY || '';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -67,53 +69,82 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 }
 
 // ============================================================================
-// ENCRYPTION HELPERS
+// SEALING
 // ============================================================================
 
-function getEncryptionKey(): Buffer | null {
-  if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length < 32) {
-    log.warn('WEBHOOK_ENCRYPTION_KEY not set or too short, URLs stored unencrypted');
-    return null;
-  }
-  return Buffer.from(ENCRYPTION_KEY.slice(0, 32), 'utf-8');
+/**
+ * A webhook's URL and headers can carry credentials (tokens in the query
+ * string, Authorization headers). They are stored only as one sealed envelope
+ * (utils/token-at-rest, the repo's token key chain). With no key configured,
+ * in any environment, a save is refused rather than written in plaintext.
+ */
+type WebhookSecrets = Pick<WebhookConfig, 'url' | 'headers'>;
+
+export const WEBHOOK_SEALING_REFUSED =
+  "Webhooks can't be saved right now: secure storage isn't set up on this server. Nothing was saved.";
+
+/** The Firestore record: everything but url/headers, plus the sealed envelope. */
+function sealedRecord(webhook: WebhookConfig): Record<string, unknown> {
+  assertTokenSealingAvailable();
+  const { url, headers, ...rest } = webhook;
+  return { ...removeUndefined(rest), ...sealTokens<WebhookSecrets>({ url, headers }) };
 }
 
-function encrypt(text: string): string {
-  const key = getEncryptionKey();
-  if (!key) return text;
+function refusal<T>(userId: string): WebhookServiceResult<T> {
+  log.error({ userId }, 'Webhook not saved: token sealing unavailable');
+  return { success: false, error: WEBHOOK_SEALING_REFUSED, code: 'sealing_unavailable' };
+}
 
+/** Legacy headers were written as a JSON string; current ones live in the envelope. */
+function legacyHeaders(raw: unknown): Record<string, string> | undefined {
+  if (typeof raw !== 'string') return (raw as Record<string, string> | undefined) ?? undefined;
   try {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return `enc:${iv.toString('hex')}:${encrypted}`;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Encryption failed');
-    return text;
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return undefined;
   }
 }
 
-function decrypt(text: string): string {
-  if (!text.startsWith('enc:')) return text;
-
-  const key = getEncryptionKey();
-  if (!key) return text;
-
-  try {
-    const parts = text.split(':');
-    if (parts.length !== 3) return text;
-
-    const iv = Buffer.from(parts[1], 'hex');
-    const encryptedText = parts[2];
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Decryption failed');
-    return text;
+/**
+ * A stored doc as a WebhookConfig. Sealed docs are opened (and moved to
+ * TOKEN_SEALING_KEY when sealed under an older key). Legacy docs, written in
+ * plaintext before sealing, are sealed in place on read when a key exists.
+ * Null when the doc cannot be opened.
+ */
+function openWebhookDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): WebhookConfig | null {
+  const data = doc.data() as WebhookConfig & { encrypted?: unknown };
+  const { encrypted, ...rest } = data;
+  if (typeof encrypted === 'string') {
+    const secrets = openTokens<WebhookSecrets>({ encrypted }, WEBHOOKS_COLLECTION);
+    if (!secrets?.url) return null;
+    void resealStale({
+      store: WEBHOOKS_COLLECTION,
+      stored: encrypted,
+      value: secrets,
+      swap: async (next) => {
+        await doc.ref.update({ encrypted: next }, { lastUpdateTime: doc.updateTime });
+        return 'updated';
+      },
+    });
+    return { ...rest, url: secrets.url, headers: secrets.headers };
   }
+  if (typeof data.url !== 'string' || data.url.startsWith('enc:')) return null;
+  const webhook: WebhookConfig = { ...rest, url: data.url, headers: legacyHeaders(data.headers) };
+  try {
+    assertTokenSealingAvailable();
+    const sealed = sealTokens<WebhookSecrets>({ url: webhook.url, headers: webhook.headers });
+    void doc.ref
+      .update(
+        { ...sealed, url: FieldValue.delete(), headers: FieldValue.delete() },
+        { lastUpdateTime: doc.updateTime }
+      )
+      .catch((err: unknown) => {
+        log.warn({ error: (err as Error).message }, 'Legacy webhook not re-sealed');
+      });
+  } catch {
+    // No key: the legacy doc stays as it was until one exists.
+  }
+  return webhook;
 }
 
 // ============================================================================
@@ -160,13 +191,12 @@ async function loadUserWebhooks(userId: string): Promise<void> {
 
     const cache = getUserWebhookCache(userId);
     for (const doc of snapshot.docs) {
-      const data = doc.data() as WebhookConfig;
-      // Decrypt URL when loading
-      data.url = decrypt(data.url);
-      if (data.headers) {
-        data.headers = JSON.parse(decrypt(JSON.stringify(data.headers)));
+      const webhook = openWebhookDoc(doc);
+      if (!webhook) {
+        log.warn({ userId, webhookId: doc.id }, 'Webhook record did not open; skipped');
+        continue;
       }
-      cache.set(data.id, data);
+      cache.set(webhook.id, webhook);
     }
 
     loadedUsers.add(userId);
@@ -205,25 +235,22 @@ export async function createWebhook(
     failureCount: 0,
   };
 
-  // Store in cache (unencrypted)
-  const cache = getUserWebhookCache(userId);
-  cache.set(id, webhook);
+  let record: Record<string, unknown>;
+  try {
+    record = sealedRecord(webhook);
+  } catch (error) {
+    if (error instanceof TokenSealingUnavailableError) return refusal(userId);
+    throw error;
+  }
 
-  // Persist to Firestore (encrypted)
   if (firestore) {
     try {
-      const encryptedWebhook = {
-        ...webhook,
-        url: encrypt(webhook.url),
-        headers: webhook.headers ? encrypt(JSON.stringify(webhook.headers)) : undefined,
-      };
-
       await firestore
         .collection(USERS_COLLECTION)
         .doc(userId)
         .collection(WEBHOOKS_COLLECTION)
         .doc(id)
-        .set(removeUndefined(encryptedWebhook));
+        .set(record);
 
       log.info({ userId, webhookId: id, name: webhook.name }, 'Webhook created');
     } catch (error) {
@@ -232,6 +259,7 @@ export async function createWebhook(
     }
   }
 
+  getUserWebhookCache(userId).set(id, webhook);
   return { success: true, data: webhook };
 }
 
@@ -306,24 +334,24 @@ export async function updateWebhook(
     updatedAt: new Date().toISOString(),
   };
 
-  cache.set(input.id, updated);
+  let record: Record<string, unknown>;
+  try {
+    record = sealedRecord(updated);
+  } catch (error) {
+    if (error instanceof TokenSealingUnavailableError) return refusal(userId);
+    throw error;
+  }
 
-  // Persist to Firestore
+  // Persist to Firestore, dropping any legacy plaintext url/headers fields.
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      const encryptedWebhook = {
-        ...updated,
-        url: encrypt(updated.url),
-        headers: updated.headers ? encrypt(JSON.stringify(updated.headers)) : undefined,
-      };
-
       await firestore
         .collection(USERS_COLLECTION)
         .doc(userId)
         .collection(WEBHOOKS_COLLECTION)
         .doc(input.id)
-        .update(removeUndefined(encryptedWebhook));
+        .update({ ...record, url: FieldValue.delete(), headers: FieldValue.delete() });
 
       log.info({ userId, webhookId: input.id }, 'Webhook updated');
     } catch (error) {
@@ -332,6 +360,7 @@ export async function updateWebhook(
     }
   }
 
+  cache.set(input.id, updated);
   return { success: true, data: updated };
 }
 

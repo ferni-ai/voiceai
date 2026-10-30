@@ -98,7 +98,7 @@ const OAUTH_CONFIGS: Record<string, Partial<OAuthConfig>> = {
 // ============================================================================
 
 export class OAuthManager {
-  private pendingStates: Map<string, OAuthState> = new Map();
+  private pendingStates = new Map<string, OAuthState>();
   private readonly stateExpiryMs = 10 * 60 * 1000; // 10 minutes
   private readonly tokenRefreshBufferMs = 5 * 60 * 1000; // 5 minutes before expiry
   private cleanupInterval: ManagedInterval;
@@ -211,6 +211,10 @@ export class OAuthManager {
 
       // Persist tokens to Firestore
       const saveResult = await saveOAuthTokens(userId, integrationId, tokens);
+      if (saveResult.code === 'sealing_unavailable') {
+        // Not stored (no key to seal with): the connection must not report success.
+        return { userId, integrationId, success: false, error: saveResult.error };
+      }
       if (!saveResult.success) {
         log.warn({ userId, integrationId }, 'Tokens obtained but failed to persist');
       }
