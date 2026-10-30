@@ -6,6 +6,11 @@
  * - "I'll check in about the move" (a check_in promise): the next day, if
  *   they haven't talked since. Ferni otherwise keeps it only by asking in a
  *   conversation, so a user who doesn't call back gets a broken promise.
+ *   With OPEN_PROMISE_TRIGGERS on it keys on the promise still being open
+ *   instead: asking about it in a call settles it as kept (follow-through.ts),
+ *   so one still open after a call is one Ferni didn't keep there. An active
+ *   user has always talked since, so the old rule stood almost every promise
+ *   down (specialist-beats plan, S12). It still waits JUST_TALKED_HOURS after a call.
  * - "Let me know how the interview goes" (a follow_up invitation): the
  *   evening after, "how did the interview go?".
  * - Either one that says she'd call ("I'll call you tomorrow") is a promised call.
@@ -17,6 +22,7 @@
  * @module services/outreach/proactive-channels/triggers
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import {
@@ -25,6 +31,7 @@ import {
   worldTriggers,
   type WorldDueItem,
 } from './more-triggers.js';
+import { justTalked } from '../outreach-cadence.js';
 import type { ProactiveTrigger } from './types.js';
 
 const log = createLogger({ module: 'ProactiveTriggers' });
@@ -75,6 +82,16 @@ export interface TriggerContext {
   worldDue?: WorldDueItem[];
 }
 
+/**
+ * Why a promise's check-in waits for now. Off: they've talked since it was made. On
+ * (OPEN_PROMISE_TRIGGERS): only that they just talked, since an open promise is unkept.
+ */
+function waitsOnTalk(madeAt: number, ctx: TriggerContext): boolean {
+  if (flagOn('OPEN_PROMISE_TRIGGERS')) return justTalked(ctx.lastTalkedAt, ctx.now.getTime());
+  // They've talked since: Ferni can ask in person (follow-through.ts).
+  return ctx.lastTalkedAt !== undefined && ctx.lastTalkedAt > madeAt + HOUR_MS;
+}
+
 function checkInTrigger(
   p: StoredPromise,
   now: number,
@@ -123,8 +140,7 @@ export function triggerFromPromise(p: StoredPromise, ctx: TriggerContext): Proac
   const madeAt = toMs(p.madeAt);
   if (p.outcome !== 'open' || madeAt === undefined) return null;
   if (now - madeAt < NEXT_DAY_MS || now - madeAt > MAX_AGE_MS) return null;
-  // They've talked since: Ferni can ask in person (follow-through.ts).
-  if (ctx.lastTalkedAt !== undefined && ctx.lastTalkedAt > madeAt + HOUR_MS) return null;
+  if (waitsOnTalk(madeAt, ctx)) return null;
 
   const topic = topicOf(p);
   const promisedCall = PROMISED_CALL.test(p.commitment ?? '');
