@@ -195,7 +195,11 @@ function buildTurnReminder(
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
-    ? styleFor(chatCtx, session, options.shape !== false, state, { answering, plain })
+    ? styleFor(chatCtx, session, options.shape !== false, state, {
+        answering,
+        plain,
+        speaker: view.currentAgentId,
+      })
     : undefined;
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).

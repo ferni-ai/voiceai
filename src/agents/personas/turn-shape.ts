@@ -41,7 +41,8 @@ import {
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 import {
   lengthLearned,
-  lengthLine,
+  lengthLineFor,
+  substanceWords,
   targetWords,
   textureLearned,
   textureLine,
@@ -330,10 +331,12 @@ function modelChosenShape(
   // next turns; a question or request still gets a real answer.
   const learn = { length: lengthLearned() && move !== 'request', texture: textureLearned() };
   // Off, nothing is drawn, so the rest of the reminder is the same as before.
-  const target =
+  const drawn =
     learn.length || learn.texture
       ? targetWords(userText, sig.recent, rng, sig.careful || move !== 'share')
       : 0;
+  // TURN_LENGTH=adaptive: a turn that needs substance gets room to answer, from the same draw.
+  const target = sig.substance ? substanceWords(userText, drawn) : drawn;
   const texture = learn.texture ? textureLine(target, rng) : null;
   if (texture) parts.push(texture.line);
   else if (rng() < scaled(0.5, style.filler))
@@ -343,12 +346,14 @@ function modelChosenShape(
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
   // No longer than what they just told: carried by the learned length line when that is on.
   const cap = sharing && telling(userText, move) ? lengthCap(userText) : 0;
-  if (learn.length) parts.push(lengthLine(cap ? Math.min(target, cap) : target));
+  if (learn.length)
+    parts.push(lengthLineFor(cap ? Math.min(target, cap) : target, !!sig.substance));
   else if (cap) parts.push(tellingLengthLine(cap));
   if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestionFor(sig)));
   const learned = [
     learn.length ? `length_${target}` : '',
+    learn.length && sig.substance ? `substance_${sig.substance}` : '',
     texture ? `texture_${texture.kind}` : '',
   ];
   return {

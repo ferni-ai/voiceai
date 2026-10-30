@@ -80,6 +80,17 @@ const canonical = (id: string): string => {
   return Object.hasOwn(ALIAS_TO_CANONICAL, key) ? ALIAS_TO_CANONICAL[key] : key;
 };
 
+/**
+ * The caller's words are about the speaker's own beat: Maya asked about a habit, Peter about
+ * their spending, a legend about investing (turn-substance.ts). False for Ferni, who has none.
+ */
+export function onOwnBeat(speaker: string, callerWords: string): boolean {
+  const self = canonical(speaker);
+  const words = callerWords.toLowerCase();
+  if (LEGENDS.some((m) => m.id === self)) return INVESTING.test(words);
+  return BY_NEED_TEAMMATES.find((m) => m.id === self)?.need?.test(words) ?? false;
+}
+
 /** Has the agent already named `name` on this call? Then it's been offered. */
 const alreadyOffered = (name: string, agentWords: string): boolean =>
   new RegExp(`\\b${name}\\b`, 'i').test(agentWords);

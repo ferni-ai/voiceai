@@ -16,7 +16,8 @@ import { withPlayful } from './ferni-playful-turn.js';
 import { withCallTrouble, withCrisisRisk, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
-import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
+import { lengthAdaptive, lengthLearned, recentTurns, textureLearned } from './turn-length.js';
+import { substanceOf } from './turn-substance.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import type { TurnShape } from './turn-shape.js';
 import {
@@ -42,7 +43,11 @@ export function styleFor(
   session: object,
   shape: boolean,
   state: { ownStory?: boolean; brief?: boolean } = {},
-  { answering = false, plain = false }: { answering?: boolean; plain?: boolean } = {}
+  {
+    answering = false,
+    plain = false,
+    speaker,
+  }: { answering?: boolean; plain?: boolean; speaker?: string } = {}
 ): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return { text: plain ? SCRIPT_FREE_BASE : TURN_STYLE_REMINDER };
@@ -57,7 +62,8 @@ export function styleFor(
   const marked = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
   const shaped = withLaughCap(session, said, marked); // LAUGH_CAP: no laugh line it would strip
   const troubled = withCrisisRisk(session, said, withCallTrouble(session, said, shaped, source));
-  const { turn, burst } = shapeFor(session, said, troubled, shaped, plain);
+  const sized = withSubstance(troubled, said, chatCtx, speaker);
+  const { turn, burst } = shapeFor(session, said, sized, shaped, plain);
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
@@ -110,6 +116,23 @@ function withRecent(
       : [];
   });
   return { ...(signals ?? regexSignals(said, callerMove(said))), recent: recentTurns(turns) };
+}
+
+/**
+ * TURN_LENGTH=adaptive: whether this turn needs a real answer (turn-substance.ts). Never on a call
+ * with crisis risk, whose length stays learned; a crisis turn itself is never shaped (styleFor).
+ */
+function withSubstance(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext,
+  speaker: string | undefined
+): TurnSignals | undefined {
+  if (!lengthAdaptive()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  if (sig.crisisRisk) return signals;
+  const substance = substanceOf(said, sig.move, { items: chatCtx.items, speaker });
+  return substance ? { ...sig, substance } : signals;
 }
 
 /**
