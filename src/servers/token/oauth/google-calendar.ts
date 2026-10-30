@@ -13,6 +13,8 @@ import {
   shutdownTokenStore,
 } from '../../../services/identity/google-calendar-token-store.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { GOOGLE_CALENDAR_SCOPES } from '../../../config/google-calendar-scopes.js';
+import { isInsufficientLink } from '../../../services/identity/google-link-scope.js';
 import {
   googleCalendarClientId,
   googleCalendarClientSecret,
@@ -40,12 +42,6 @@ interface GoogleTokenResponse {
   scope?: string;
 }
 
-// Required scopes for Google Calendar
-export const GOOGLE_CALENDAR_SCOPES = [
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/calendar.events',
-];
-
 /**
  * Check if Google Calendar OAuth is configured
  */
@@ -64,7 +60,7 @@ export function getConfig(): {
   return {
     clientId: GOOGLE_CLIENT_ID,
     redirectUri: GOOGLE_REDIRECT_URI,
-    scopes: GOOGLE_CALENDAR_SCOPES,
+    scopes: [...GOOGLE_CALENDAR_SCOPES],
   };
 }
 
@@ -73,7 +69,7 @@ export function getConfig(): {
  */
 export async function refreshToken(userId: string): Promise<OAuthTokens | null> {
   const userTokens = await getTokens(userId);
-  if (!userTokens?.refresh_token) {
+  if (!userTokens?.refresh_token || isInsufficientLink(userTokens)) {
     return null;
   }
 
@@ -122,7 +118,7 @@ export async function refreshToken(userId: string): Promise<OAuthTokens | null> 
  */
 export async function getValidToken(userId: string): Promise<string | null> {
   const userTokens = await getTokens(userId);
-  if (!userTokens) {
+  if (!userTokens || isInsufficientLink(userTokens)) {
     return null;
   }
 

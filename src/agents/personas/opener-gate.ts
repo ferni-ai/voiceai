@@ -24,6 +24,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { sessionIdIn, turnHoldTimer } from '../../speech/output-control/turn-timing.js';
 import { firstClauseFlushEnabled } from './first-clause-flush.js';
 import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
+import { contentOf, type ReplyChunk as Chunk } from './reply-chunks.js';
 
 export const OPENER_EVERY = 3;
 /** FERNI_PLAYFUL: a reaction word is kept on at most one reply in this many. */
@@ -104,17 +105,6 @@ export function capitalizeStart(text: string): string {
   const first = text.charAt(lead.length);
   if (first < 'a' || first > 'z') return text;
   return lead + first.toUpperCase() + text.slice(lead.length + 1);
-}
-
-type Chunk = llm.ChatChunk | string | object;
-
-function contentOf(chunk: Chunk): string | undefined {
-  if (typeof chunk === 'string') return chunk;
-  const c = chunk as llm.ChatChunk;
-  if (c && typeof c === 'object' && 'delta' in c && c.delta && !c.delta.toolCalls?.length) {
-    return c.delta.content ?? '';
-  }
-  return undefined; // tool calls, usage, flush sentinels: not reply text
 }
 
 /** Per-agent gate: keeps a reaction-word opener at most every `every` replies. */
