@@ -20,9 +20,10 @@
  *   is only time words), and whether they left a message (never what it says).
  *   The message reaches the owner through the guarded call report (#3080).
  * - Tone from the status, with the crisis, risky and hard-news screens of their
- *   words as a backstop: a call that didn't get through is said plainly; hard
- *   news gets "got a sec?"; any crisis or risky signal only "I need to tell you
- *   about your call".
+ *   words as a backstop: a call that didn't get through is said plainly; a
+ *   message is offered calmly, never playfully, since what it says is unknown;
+ *   hard news gets "got a sec?"; any crisis or risky signal only "I need to
+ *   tell you about your call".
  * - Never marked delivered here: the report still has to carry the message.
  *
  * @module agents/multi-agent/call-news-opener
@@ -56,12 +57,28 @@ const READ_LIMIT = 5;
 const WORRY =
   /\b(?:sick|ill|unwell|upset|worried|worrying|scared|afraid|hospital|hospitali[sz]ed|accident|injured|bad news|not (?:doing |feeling )?(?:well|good|great))\b/i;
 
-/** A callback time made only of time words ("tonight", "after 6pm", "Sunday morning"). */
-const TIME_WORDS =
-  /^(?:(?:today|tonight|tomorrow|this|next|morning|afternoon|evening|night|weekend|after|before|around|by|at|on|in|the|noon|midnight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|later|soon|\d{1,2}(?::\d{2})?\s?(?:[ap]\.?m\.?)?)[\s,]*)+$/i;
+/**
+ * A callback time is the callee's words (on-behalf-call-lifecycle.ts reads it off the call), so
+ * it is kept only when every token is a time word or one clock time: at most one number, and
+ * never 911 or 988, so "at 4471", "after 911" or "at 12 34 56" can't carry a code or a number.
+ */
+const TIME_WORD =
+  /^(?:today|tonight|tomorrow|this|next|morning|afternoon|evening|night|weekend|after|before|around|by|at|on|in|the|noon|midnight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|later|soon|am|pm|a\.m\.|p\.m\.)$/i;
+const CLOCK_TIME = /^(?:1[0-2]|0?[1-9])(?::[0-5]\d)?(?:am|pm|a\.m\.|p\.m\.)?$/i;
+const EMERGENCY_NUMBER = /9\D{0,3}1\D{0,3}1|9\D{0,3}8\D{0,3}8/;
+
+function callbackWhen(raw: string | undefined): string {
+  const when = callerText(raw, 40);
+  if (!when || EMERGENCY_NUMBER.test(when) || isRiskyCallerText(when)) return '';
+  const tokens = when.split(/[\s,]+/).filter(Boolean);
+  if (tokens.filter((t) => /\d/.test(t)).length > 1) return '';
+  return tokens.every((t) => TIME_WORD.test(t) || CLOCK_TIME.test(t)) ? when : '';
+}
 
 export const CALL_NEWS_DIRECTION =
-  ' You made a call for them since you last talked, and it comes first: say hello, then tell them in a few plain words how it went, from the call facts only. If they left a message, offer it; never guess or make up what was said ("Hey Sam. I talked to Rosa. She\'d like you to call her back." or "Hey Sam, I reached Rosa, she had a message for you. Want to hear it?").';
+  ' You made a call for them since you last talked, and it comes first: say hello, then tell them in a few plain words how it went, from the call facts only. Never guess or make up what was said ("Hey Sam. I talked to Rosa. She\'d like you to call her back.").';
+export const CALL_NEWS_MESSAGE_DIRECTION =
+  ' You made a call for them and they left a message: no playful hello, even and calm. Say hello, then that you talked to them and they left a message, and ask if they want to hear it, naming who ("Hey Sam. I talked to Rosa; she left you a message. Want to hear it?"). Never guess or hint at what it says.';
 export const CALL_NEWS_PLAIN_DIRECTION =
   ' You tried a call for them and did not get through: say hello, then say so plainly, not cheerfully, naming who ("Hey Sam. I tried Rosa but it went to voicemail.").';
 export const CALL_NEWS_MORE_DIRECTION =
@@ -71,12 +88,12 @@ export const CALL_NEWS_HEAVY_DIRECTION =
 export const CALL_NEWS_GUARDED_DIRECTION =
   ' You made a call for them and something from it needs care: no cheerful hello. Say hello quietly, then only that you need to tell them about the call, naming who you called ("Hey Sam. I need to tell you about your call with your mom."). Nothing about what was said.';
 
-type CallNewsTone = 'news' | 'plain' | 'heavy' | 'guarded';
+type CallNewsTone = 'news' | 'message' | 'plain' | 'heavy' | 'guarded';
 type LineStatus = 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
 
 export interface CallNews {
   tone: CallNewsTone;
-  /** Heavy or guarded: no playful hello, no celebration alongside it. */
+  /** Heavy, guarded or a message: no playful hello, no celebration alongside it. */
   careful: boolean;
   direction: string;
   facts: Record<string, string>;
@@ -142,7 +159,11 @@ async function callRecord(
   };
 }
 
-/** The tone: guarded on any crisis or risky signal, heavy on hard news, plain when not reached. */
+/**
+ * The tone: guarded on any crisis or risky signal, heavy on hard news, then careful whenever they
+ * left a message (screens miss most third-person crisis lines, so what it says is never assumed
+ * light), plain when not reached. With no call record, any details mean there may be a message.
+ */
 function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: string): CallNewsTone {
   const words = [r.summary, r.details ?? '', ...(rec?.said ?? [])].filter((t) => t.trim());
   const all = words.join(' ');
@@ -150,6 +171,7 @@ function callNewsTone(r: BackgroundResult, rec: CallRecord | undefined, who: str
   const screen = screenCallerParts(all, who, 10_000);
   if (crisisRead(all) || screen.safety || screen.risky) return 'guarded';
   if (isHeavyMoment(words) || words.some((w) => WORRY.test(w))) return 'heavy';
+  if (rec ? rec.hasMessage : Boolean(r.details?.trim())) return 'message';
   const status = rec?.status ?? (r.status === 'failed' ? 'failed' : undefined);
   if (status && status !== 'completed') return 'plain';
   return 'news';
@@ -178,11 +200,11 @@ function structuredFacts(rec: CallRecord | undefined, r: BackgroundResult): Reco
         : HOW_IT_WENT[rec.status];
   } else if (r.status === 'success') facts['how the call went'] = HOW_IT_WENT.completed;
   if (rec?.callbackRequired || r.requiresCallback) {
-    const when = callerText(rec?.callbackTime ?? r.callbackTime, 40);
-    const timed = when && TIME_WORDS.test(when) && !isRiskyCallerText(when) ? ` (${when})` : '';
+    const when = callbackWhen(rec?.callbackTime ?? r.callbackTime);
+    const timed = when ? ` (${when})` : '';
     facts['they asked for a call back'] = `yes${timed}`;
   }
-  if (rec?.hasMessage)
+  if (rec ? rec.hasMessage : Boolean(r.details?.trim()))
     facts['they left a message for them'] = 'yes; offer it, never guess what it says';
   return facts;
 }
@@ -203,14 +225,16 @@ function callNewsOf(
   const at = Date.parse(r.capturedAt);
   if (Number.isFinite(at))
     facts['when you called'] = daysAgoInWords(calendarDaysSince(at, now, zone));
-  if (tone === 'news' || tone === 'plain') Object.assign(facts, structuredFacts(rec, r));
+  if (tone !== 'heavy' && tone !== 'guarded') Object.assign(facts, structuredFacts(rec, r));
   const direction = {
     news: CALL_NEWS_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
+    message: CALL_NEWS_MESSAGE_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
     plain: CALL_NEWS_PLAIN_DIRECTION + (more ? CALL_NEWS_MORE_DIRECTION : ''),
     heavy: CALL_NEWS_HEAVY_DIRECTION,
     guarded: CALL_NEWS_GUARDED_DIRECTION,
   }[tone];
-  return { tone, careful: tone === 'heavy' || tone === 'guarded', direction, facts };
+  const careful = tone === 'heavy' || tone === 'guarded' || tone === 'message';
+  return { tone, careful, direction, facts };
 }
 
 /**
