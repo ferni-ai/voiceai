@@ -136,12 +136,10 @@ describe('the read holds the call memory', () => {
     expect(memoryHeld(sessionId, ON)).toBe(true);
   });
 
-  it('never reads a verified adult owner, or anyone with the flag off', async () => {
-    const understand = verdict('{"sexual": true}');
-    await readCallerTurn({ sessionId: fresh(), text: 'a turn' }, { understand, env: {} });
-    setVerifiedOwnerCheck(() => true);
+  it('never reads anyone with the flag off', async () => {
+    const understand = verdict('{"sexual": true, "young": true}');
     const sessionId = fresh();
-    await readCallerTurn({ sessionId, text: 'a turn' }, { understand, env: ON });
+    await readCallerTurn({ sessionId, text: 'a turn' }, { understand, env: {} });
     expect(understand).not.toHaveBeenCalled();
     expect(memoryHeld(sessionId, ON)).toBe(false);
   });
@@ -246,5 +244,62 @@ describe('cues of being under 18 without a stated age', () => {
     await readCallerTurn({ sessionId, text: 'four' }, { understand: young, env: ON });
     expect(young).toHaveBeenCalledTimes(1);
     expect(memoryHeld(sessionId, ON)).toBe(true);
+  });
+});
+
+describe('a verified owner (their own account) with no stated age', () => {
+  const owner = 'uid_owner_fixture';
+  const said = (sessionId: string, text: string, understand: ReturnType<typeof verdict>) =>
+    readCallerTurn({ sessionId, userId: owner, text }, { understand });
+  beforeEach(() => {
+    vi.stubEnv('SEXUAL_TOPIC_BOUNDARY', 'on');
+    setVerifiedOwnerCheck(() => true);
+  });
+
+  it('a school or teen cue turns the boundary on from the next reply', async () => {
+    const sessionId = fresh();
+    // pre: an owner with no sign of being under 18 gets no note
+    expect(replyRequest(sessionId, 'ugh, homework all weekend')).not.toContain(
+      SEXUAL_BOUNDARY_NOTE
+    );
+    const understand = verdict('{"sexual": false, "young": true}');
+    await said(sessionId, 'ugh, homework all weekend', understand);
+    expect(understand).toHaveBeenCalledTimes(1);
+    expect(replyRequest(sessionId, 'so anyway')).toContain(SEXUAL_BOUNDARY_NOTE);
+    expect(memoryHeld(sessionId)).toBe(false); // a cue alone holds nothing
+  });
+
+  it('a cue with a sexual turn holds, and so does an earlier sexual turn once a cue comes', async () => {
+    const same = fresh();
+    await said(same, 'a turn', verdict('{"sexual": true, "young": true}'));
+    expect(memoryHeld(same)).toBe(true);
+    const later = fresh();
+    await said(later, 'a turn', verdict('{"sexual": true, "young": false}'));
+    expect(memoryHeld(later)).toBe(false);
+    await said(later, 'another', verdict('{"sexual": false, "young": true}'));
+    expect(memoryHeld(later)).toBe(true);
+  });
+
+  it('an adult owner with no cues is unchanged: no note, and nothing held, ever', async () => {
+    const sessionId = fresh();
+    let answer: (v: string) => void = () => undefined;
+    const slow = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          answer = resolve;
+        })
+    );
+    const read = readCallerTurn({ sessionId, userId: owner, text: 'a turn' }, { understand: slow });
+    expect(memoryHeld(sessionId)).toBe(false); // no hold while the read runs
+    expect(writeHeld(owner, sessionId)).toBe(false);
+    answer('{"sexual": true, "young": false}');
+    expect(await read).toBe(false);
+    await said(sessionId, 'a turn', verdict('not json')); // a failed read
+    expect([memoryHeld(sessionId), userHeld(owner), writeHeld(owner, sessionId)]).toEqual([
+      false,
+      false,
+      false,
+    ]);
+    expect(replyRequest(sessionId, 'so anyway')).not.toContain(SEXUAL_BOUNDARY_NOTE);
   });
 });

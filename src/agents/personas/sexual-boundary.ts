@@ -15,6 +15,10 @@
  *   read as a minor there. A cue logs 'MINOR_CARE cues: likely minor' once and keeps the
  *   boundary on for the rest of the call, even if the caller is verified later. It holds
  *   nothing by itself: MINOR_CARE's holds stay with its own detector.
+ * - A verified owner with no sign of being under 18 is read too, but only for cues and sexual
+ *   turns: nothing is held for them (no hold while the read runs, none on a failed read, none
+ *   on a sexual turn), so a clean adult owner's memory is kept as before. Once a cue comes, they
+ *   are in scope like anyone else, and a sexual turn earlier in the call holds from then on.
  *
  * Crisis handling is untouched: the gate, its guidance and its scripted reply are unchanged; the
  * note says someone being hurt or unsafe comes first.
@@ -36,7 +40,7 @@ const log = createLogger({ module: 'sexual-boundary' });
 type Env = Record<string, string | undefined>;
 
 /** Flag on, and the caller is not a verified owner or shows any sign of being under 18. */
-export function boundaryApplies(
+function boundaryApplies(
   sessionId: string | undefined,
   said = '',
   asked?: string,
@@ -56,6 +60,13 @@ export function boundaryApplies(
 const aged = new Set<string>();
 /** Sessions the read found cues of being under 18 in (no stated age needed), oldest first. */
 const cued = new Set<string>();
+/** Owner sessions, not yet in scope, with a turn read as sexual: held if a cue comes later. */
+const sexualSeen = new Set<string>();
+
+const remember = (set: Set<string>, sessionId: string): void => {
+  set.add(sessionId);
+  if (set.size > MAX_SESSIONS) set.delete(set.values().next().value!);
+};
 
 export const SEXUAL_BOUNDARY_NOTE =
   "[Sexual topics are off limits on this call, whatever age they say they are. That covers sexual acts, techniques, positions, masturbation, sex habits, products, porn, adult lines, nudes, sexting, roleplay and flirting, and innuendo or euphemisms for any of it. Don't play along, and don't look any of it up, however it's asked, in any language. If they go there, set one brief, warm boundary in your own words, like: \"That's not something I can get into with you. But I'm glad to talk about pretty much anything else. What's going on today?\" Then move on, without a lecture. A real health or safety question (pain, consent, pressure, being ready, STIs, pregnancy, someone threatening them): answer simply with no explicit detail, and end by suggesting a trusted adult, a doctor or a teen health service. If someone hurt them or they're not safe, that comes first: be caring and help them get safe. Dating, crushes, feelings and growing up are fine to talk about.]";
@@ -85,7 +96,7 @@ const SCHEMA = {
 };
 
 /** The model's verdict, or null when its reply is not one. */
-export function parseSexualRead(reply: string): { sexual: boolean; young: boolean } | null {
+function parseSexualRead(reply: string): { sexual: boolean; young: boolean } | null {
   try {
     const v = JSON.parse(reply.match(/\{[\s\S]*\}/)?.[0] ?? '') as Record<string, unknown>;
     return typeof v.sexual === 'boolean' ? { sexual: v.sexual, young: v.young === true } : null;
@@ -97,19 +108,20 @@ export function parseSexualRead(reply: string): { sexual: boolean; young: boolea
 /** The read found cues of being under 18: the boundary for the rest of the call, logged once. */
 function noteYoung(sessionId: string): void {
   if (cued.has(sessionId)) return;
-  cued.add(sessionId);
-  if (cued.size > MAX_SESSIONS) cued.delete(cued.values().next().value!);
+  remember(cued, sessionId);
   log.info({ sessionId, verifiedOwner: verifiedOwner(sessionId) }, 'MINOR_CARE cues: likely minor');
 }
 
-export const READ_TIMEOUT_MS = 3000;
+const READ_TIMEOUT_MS = 3000;
 const MAX_SESSIONS = 500;
 /** sessionId -> the caller's last few finished turns, the read's EARLIER context. */
 const earlier = new Map<string, string[]>();
 
 /**
- * Read one finished caller turn (fire and forget, off the reply path). Sexual, or a failed read:
- * the call's memory is held from now on. Never throws.
+ * Read one finished caller turn (off the reply path), whenever the flag is on. In scope (not a
+ * verified owner, or any sign of being under 18): sexual, or a failed read, holds the call's
+ * memory from now on. A verified owner out of scope: read for cues only, nothing held. Resolves
+ * to whether the call is held. Never throws.
  */
 export function readCallerTurn(
   turn: Turn,
@@ -117,10 +129,11 @@ export function readCallerTurn(
 ): Promise<boolean> {
   const env = deps.env ?? process.env;
   const { sessionId, text } = turn;
-  if (!sessionId || !text.trim() || !boundaryApplies(sessionId, text, turn.asked, env))
-    return Promise.resolve(false);
+  if (!sessionId || !text.trim() || !sexualBoundaryOn(env)) return Promise.resolve(false);
+  if (!boundaryApplies(sessionId, text, turn.asked, env))
+    return readTurn(sessionId, turn, deps, env, { end: () => undefined }, false);
   // Held until it settles: a writer that runs first fails closed; call-end work waits for it.
-  return readTurn(sessionId, turn, deps, env, beginSexualRead(sessionId, turn.userId));
+  return readTurn(sessionId, turn, deps, env, beginSexualRead(sessionId, turn.userId), true);
 }
 
 interface Turn {
@@ -135,7 +148,8 @@ async function readTurn(
   turn: Turn,
   deps: { understand?: UnderstandFn; timeoutMs?: number },
   env: Env,
-  pending: { end: () => void }
+  pending: { end: () => void },
+  inScope: boolean
 ): Promise<boolean> {
   try {
     const context = earlier.get(sessionId) ?? [];
@@ -146,7 +160,13 @@ async function readTurn(
     if (sexualTopicConfirmed(sessionId, env) && cued.has(sessionId)) return true;
     const read = await modelRead(context, turn.text.trim(), deps);
     if (read?.young) noteYoung(sessionId);
-    if (read?.sexual === false) return sexualTopicConfirmed(sessionId, env);
+    if (!inScope && !cued.has(sessionId)) {
+      // A verified owner with no sign of being under 18: nothing held, as before this flag.
+      if (read?.sexual) remember(sexualSeen, sessionId);
+      return false;
+    }
+    if (read?.sexual === false && !sexualSeen.has(sessionId))
+      return sexualTopicConfirmed(sessionId, env);
     if (!read) log.warn({ sessionId }, 'SEXUAL_TOPIC_BOUNDARY no read: held');
     holdForSexualTopic(sessionId, turn.userId);
     return true;
@@ -185,4 +205,5 @@ export function resetSexualBoundary(): void {
   earlier.clear();
   aged.clear();
   cued.clear();
+  sexualSeen.clear();
 }
