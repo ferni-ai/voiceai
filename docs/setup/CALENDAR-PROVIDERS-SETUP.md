@@ -331,8 +331,10 @@ MICROSOFT_CLIENT_ID=your_azure_app_client_id
 MICROSOFT_CLIENT_SECRET=your_azure_client_secret
 MICROSOFT_REDIRECT_URI=https://app.ferni.ai/auth/microsoft/callback
 
-# Encryption (for storing credentials securely)
-CALENDAR_ENCRYPTION_KEY=64_char_hex_string_for_aes256
+# Encryption: Apple app-specific passwords are sealed with the shared token key
+# (utils/token-at-rest: TOKEN_SEALING_KEY, then OAUTH_ENCRYPTION_KEY, then
+# LOG_HASH_SECRET). With none set, Apple Calendar connects are refused.
+TOKEN_SEALING_KEY=base64_of_32_bytes
 
 # Webhooks (for real-time sync)
 PUBLIC_URL=https://app.ferni.ai
@@ -344,9 +346,12 @@ GOOGLE_CLOUD_PROJECT=your-project-id
 ### Generating an Encryption Key
 
 ```bash
-# Generate a secure 32-byte (64 hex char) key:
-openssl rand -hex 32
+# TOKEN_SEALING_KEY is base64 of exactly 32 bytes:
+openssl rand -base64 32
 ```
+
+`CALENDAR_ENCRYPTION_KEY` is no longer used to seal anything. It is only read,
+if set, to open passwords saved before 2026-10-30 (which are re-sealed on read).
 
 ## Real-Time Sync Architecture
 
