@@ -944,6 +944,11 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/transportation/index.js').then(async (m) => m.getToolDefinitions()),
     },
     {
+      name: 'ride-links' as ToolDomain,
+      loader: async () =>
+        import('../domains/ride-links/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
       name: 'vehicle' as ToolDomain,
       loader: async () =>
         import('../domains/vehicle/index.js').then(async (m) => m.getToolDefinitions()),
@@ -1342,29 +1347,3 @@ export function createDomainExport(
     definitions: gated,
   };
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  // Initialization
-  initializeToolRegistry,
-
-  // Domain loading
-  loadToolDomain,
-  loadToolDomainLazy,
-  loadToolDomainsLazy,
-  registerDomainLoader,
-
-  // Domain status
-  isDomainLoaded,
-  getLoadedDomains,
-  ESSENTIAL_DOMAINS,
-  HIGH_PRIORITY_DOMAINS,
-
-  // Legacy helpers
-  convertLegacyTools,
-  registerLegacyTools,
-  createDomainExport,
-};
