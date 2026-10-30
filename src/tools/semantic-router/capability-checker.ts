@@ -116,7 +116,7 @@ function isCalendarConfigured(): boolean {
 /**
  * Check if smart home is configured. With SMART_HOME_LIFX on, no process env
  * decides: each light tool checks its own caller's saved LIFX token
- * (hasLinkedLifxToken, domains/smart-home/index.ts).
+ * (getCredential, domains/smart-home/caller-lifx-tools.ts).
  */
 function isSmartHomeConfigured(): boolean {
   if (flagOn('SMART_HOME_LIFX')) return true;

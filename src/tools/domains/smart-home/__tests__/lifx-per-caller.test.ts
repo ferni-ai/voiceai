@@ -15,6 +15,9 @@ const h = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   credentialReads: [] as string[],
   lifxCalls: [] as Array<{ url: string; method: string; auth: string }>,
+  // Other platforms the multi-platform aggregator (getAllDevices) would gather for caller A.
+  ecobeeSet: vi.fn(async () => ({ success: true })),
+  sonosPlayback: vi.fn(async () => undefined),
 }));
 
 vi.mock('../../../../utils/firebase-admin-app.js', () => ({
@@ -35,7 +38,23 @@ vi.mock('../../../../utils/firebase-admin-app.js', () => ({
   }),
 }));
 vi.mock('../../../../services/identity/ecobee-auth.js', () => ({
-  isEcobeeConfigured: async () => false,
+  isEcobeeConfigured: async (uid: string) => uid === 'uid-a',
+}));
+vi.mock('../../../../services/identity/ecobee-api.js', () => ({
+  getThermostatStatus: async () => ({
+    success: true,
+    data: { name: 'Bedroom Thermostat', mode: 'heat', currentTemp: 68, targetHeat: 68 },
+  }),
+  setTemperature: h.ecobeeSet,
+}));
+vi.mock('../../../../services/smart-home/sonos.js', () => ({
+  getHouseholds: async () => [{ id: 'house-1' }],
+  getGroups: async () => [
+    { id: 'grp-1', name: 'Bedroom Speaker', playbackState: 'paused', volume: 20, muted: false },
+  ],
+  setPlaybackState: h.sonosPlayback,
+  setGroupVolume: h.sonosPlayback,
+  setGroupMute: h.sonosPlayback,
 }));
 
 const { getToolDefinitions } = await import('../index.js');
@@ -72,6 +91,9 @@ beforeEach(() => {
   h.credentialReads.length = 0;
   h.lifxCalls.length = 0;
   h.docs.set('uid-a/lifx', { token: TOKEN_A });
+  h.docs.set('uid-a/sonos', { accessToken: 'sonos-access-a', refreshToken: 'sonos-refresh-a' });
+  h.ecobeeSet.mockClear();
+  h.sonosPlayback.mockClear();
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input);
     const headers = (init?.headers ?? {}) as Record<string, string>;
@@ -116,10 +138,7 @@ describe('SMART_HOME_LIFX on', () => {
 
   it("lists the caller's own lights", async () => {
     const { list } = await lightTools();
-    const said = await list.execute(
-      { type: 'lights' },
-      callFrom({ userId: 'uid-a', verifiedCaller: true })
-    );
+    const said = await list.execute({}, callFrom({ userId: 'uid-a', verifiedCaller: true }));
     expect(said).toContain('Bedroom Lamp');
     expect(h.lifxCalls).toEqual([
       { url: 'https://api.lifx.com/v1/lights/all', method: 'GET', auth: `Bearer ${TOKEN_A}` },
@@ -145,6 +164,36 @@ describe('SMART_HOME_LIFX on', () => {
     );
     expect(h.lifxCalls.length).toBeGreaterThan(0);
     expect(new Set(h.lifxCalls.map((c) => c.auth))).toEqual(new Set([`Bearer ${TOKEN_B}`]));
+  });
+
+  it("lists only the caller's LIFX lights, never the thermostat or speaker the aggregator holds", async () => {
+    const { list } = await lightTools();
+    const said = await list.execute({}, callFrom({ userId: 'uid-a', verifiedCaller: true }));
+    expect(said).toContain('Bedroom Lamp');
+    expect(said).not.toContain('Bedroom Thermostat');
+    expect(said).not.toContain('Bedroom Speaker');
+  });
+
+  it('a light command never reaches a speaker the aggregator would match by name', async () => {
+    const { control } = await lightTools();
+    const said = await control.execute(
+      { room: 'bedroom speaker', action: 'on' },
+      callFrom({ userId: 'uid-a', verifiedCaller: true })
+    );
+    expect(said).toMatch(/couldn't find a LIFX light called "bedroom speaker"/);
+    expect(h.sonosPlayback).not.toHaveBeenCalled();
+    expect(h.lifxCalls.filter((c) => c.method === 'PUT')).toEqual([]);
+  });
+
+  it('a non-light (the thermostat) is refused and never set', async () => {
+    const { control } = await lightTools();
+    const said = await control.execute(
+      { room: 'thermostat', action: 'on', brightness: 72 },
+      callFrom({ userId: 'uid-a', verifiedCaller: true })
+    );
+    expect(said).toMatch(/couldn't find a LIFX light called "thermostat"/);
+    expect(h.ecobeeSet).not.toHaveBeenCalled();
+    expect(h.lifxCalls.filter((c) => c.method === 'PUT')).toEqual([]);
   });
 
   it.each([

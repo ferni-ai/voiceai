@@ -459,15 +459,6 @@ export async function isIntegrationConfigured(
 }
 
 /**
- * Whether this user saved a LIFX token. With SMART_HOME_LIFX on, the light tools
- * ask this per caller (a process env var cannot say whether this caller linked one).
- */
-export async function hasLinkedLifxToken(userId: string): Promise<boolean> {
-  const lifx = await getCredential(userId, 'lifx');
-  return typeof lifx?.token === 'string' && lifx.token.trim() !== '';
-}
-
-/**
  * Get a summary of configured integrations
  */
 export async function getConfiguredIntegrations(userId: string): Promise<string[]> {
