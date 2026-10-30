@@ -26,10 +26,11 @@ integrations/
 
 | Integration | Auth Type | Status |
 |------------|-----------|--------|
-| Gmail | OAuth2 | ✅ Enabled |
+| Gmail read | none | ⛔ Not granted: `gmail.readonly` is restricted (CASA). Read tools hidden unless `GMAIL_READ_TOOLS`; a 401/403 says "can't read your inbox", never an empty inbox (`services/gmail/gmail-honesty.ts`) |
+| Gmail send | OAuth2 (`gmail.send`) | ⏳ `GMAIL_SEND_AS_USER` off until Google verification (`services/identity/gmail-send-as-user.ts`) |
 | Google Calendar | OAuth2 | ✅ Enabled |
 | Plaid | API Key | ✅ Enabled |
-| Spotify | OAuth2 | ✅ Enabled |
+| Spotify (house account only; no per-user link) | OAuth2 | ✅ Enabled |
 | Twilio | Basic | ✅ Enabled |
 | Uber | OAuth2 | ✅ Enabled |
 | Lyft | OAuth2 | ✅ Enabled |

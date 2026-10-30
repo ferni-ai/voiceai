@@ -23,10 +23,25 @@ cp .env.example .env
 
 ### AI Services
 
-| Variable           | Description           | Example   |
-| ------------------ | --------------------- | --------- |
-| `GOOGLE_API_KEY`   | Google Gemini API key | `AIza...` |
-| `CARTESIA_API_KEY` | Cartesia TTS API key  | `sk-...`  |
+| Variable               | Description                                                      | Example           |
+| ---------------------- | ---------------------------------------------------------------- | ----------------- |
+| `GOOGLE_CLOUD_PROJECT` | Gemini runs on Vertex AI in this project (ADC credentials)       | `your-project-id` |
+| `GEMINI_LOCATION`      | Vertex location for Gemini (default `global`; keep it in the US) | `global`          |
+| `CARTESIA_API_KEY`     | Cartesia TTS API key                                             | `sk-...`          |
+
+Gemini calls go through the shared client (`getGeminiClient()` in
+`src/config/gemini-config.ts`), which uses Vertex when `USE_VERTEX_AI` is not
+`false`. The semantic router's LLM fallback (`ROUTER_LLM_VERTEX`), dynamic
+greetings (`DYNAMIC_GREETING`), humanization (`HUMANIZATION_LLM`) and the memory
+cross-encoder no longer read `GOOGLE_API_KEY` or `GEMINI_API_KEY`. The three
+flags default off: the turn waits on those calls. Do not send user text through the
+unpaid Gemini API tier: its terms bar sensitive data and users under 18.
+
+`GOOGLE_API_KEY` is still read by a few paths not yet moved (semantic-router
+embeddings, the embedding matcher, memory vector embeddings, call-transcript
+intelligence, chat routes, content generation, outbound calls, the self-healing
+health check) and as the off-Vertex fallback
+when `USE_VERTEX_AI=false`.
 
 ---
 
@@ -404,8 +419,8 @@ LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=APIxxxxxxxx
 LIVEKIT_API_SECRET=xxxxxxxxxxxx
 
-# AI Services
-GOOGLE_API_KEY=AIza...
+# AI Services (Gemini on Vertex AI through ADC; no API key)
+GOOGLE_CLOUD_PROJECT=your-project-id
 CARTESIA_API_KEY=sk-...
 
 # ============================================================================
@@ -521,7 +536,7 @@ npx vitest run src/tests/integration/scheduling-e2e.test.ts
 
 ```bash
 echo $LIVEKIT_URL
-echo $GOOGLE_API_KEY
+echo $GOOGLE_CLOUD_PROJECT
 echo $SENDGRID_API_KEY
 echo $TWILIO_ACCOUNT_SID
 ```
@@ -533,7 +548,7 @@ echo $TWILIO_ACCOUNT_SID
 ### ✅ Core (Required)
 
 - [ ] `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
-- [ ] `GOOGLE_API_KEY` (Gemini LLM)
+- [ ] `GOOGLE_CLOUD_PROJECT` + ADC (Gemini on Vertex AI)
 - [ ] `CARTESIA_API_KEY` (TTS)
 
 ### ✅ Communication (Required for full features)

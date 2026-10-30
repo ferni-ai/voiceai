@@ -6,7 +6,8 @@
  * - LIFX
  * - Ecobee
  *
- * DOMAIN: home
+ * DOMAIN: home; with SMART_HOME_LIFX on, lifx-lights (two caller-bound light tools, their
+ * own domain so light words never load the vibe tools that share 'smart-home')
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -15,6 +16,8 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { NO_TIMED_REMINDER } from '../../utils/honest-schedule.js';
+import { flagOn } from '../../../config/env-flag.js';
+import { controlCallerLight, listCallerLights } from './caller-lifx-tools.js';
 
 // Import existing smart home functionality
 import { createSmartHomeTools, getAllDevices, controlDevice, activateScene } from './smart-home.js';
@@ -362,12 +365,60 @@ const smartHomeTools: ToolDefinition[] = [
 ];
 
 // ============================================================================
+// SMART_HOME_LIFX: THE CALLER'S OWN LIGHTS
+// ============================================================================
+
+/*
+ * Off, the tools above are built with no user (createSmartHomeTools()), so no
+ * saved LIFX token is ever loaded, and their domain 'home' is not the
+ * 'smart-home' domain loader.ts loads this module as. On, two LIFX-only tools
+ * run as the call's verified caller (caller-lifx-tools.ts), in their own
+ * lifx-lights domain (loader.ts DOMAIN_ALIASES).
+ */
+
+const lifxTools: ToolDefinition[] = [
+  {
+    ...controlLightDef,
+    domain: 'lifx-lights',
+    create: (_ctx: ToolContext): Tool =>
+      llm.tool({
+        description:
+          "Turn one of the caller's own LIFX lights on or off, or set its brightness. Lights only.",
+        parameters: z.object({
+          room: z.string().describe('Light or room name (e.g., "bedroom lamp", "kitchen")'),
+          action: z.enum(['on', 'off', 'toggle']).describe('What to do with the light'),
+          brightness: z.number().min(0).max(100).optional().describe('Brightness level 0-100'),
+        }),
+        execute: async (args, opts: unknown) => controlCallerLight(args, opts),
+      }),
+  },
+  {
+    // Not 'listDevices': simple-utilities registers that id for phones and tablets.
+    id: 'listSmartDevices',
+    name: 'List Smart Devices',
+    description: 'List the lights linked to this account',
+    domain: 'lifx-lights',
+    tags: ['devices', 'lights', 'smart-home'],
+    create: (_ctx: ToolContext): Tool =>
+      llm.tool({
+        description:
+          "List the caller's own linked LIFX lights and their state. Use when they ask which lights they have.",
+        parameters: z.object({}),
+        execute: async (_args, opts: unknown) => listCallerLights(opts),
+      }),
+  },
+];
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'home',
-  smartHomeTools
-);
+const legacy = createDomainExport('home', smartHomeTools);
+const lifx = createDomainExport('lifx-lights', lifxTools);
+
+/** Read when the domain loads: SMART_HOME_LIFX on gives the two caller-bound light tools. */
+export const getToolDefinitions = async (): Promise<ToolDefinition[]> =>
+  flagOn('SMART_HOME_LIFX') ? lifx.definitions : legacy.definitions;
+export const { domain, definitions } = legacy;
 
 export default getToolDefinitions;

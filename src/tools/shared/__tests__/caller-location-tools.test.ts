@@ -40,16 +40,6 @@ vi.mock('../../../services/google-places.js', () => ({
   formatRestaurantListForSpeech: vi.fn(),
   isGooglePlacesConfigured: () => true,
 }));
-vi.mock('../../../services/yelp.js', () => ({
-  searchBusinesses: vi.fn(async () => []),
-  searchRestaurants: vi.fn(async () => []),
-  getBusinessDetails: vi.fn(),
-  getBusinessReviews: vi.fn(),
-  getBusinessByPhone: vi.fn(),
-  formatBusinessForSpeech: vi.fn(),
-  formatReviewForSpeech: vi.fn(),
-  isYelpConfigured: () => false,
-}));
 
 const traffic = vi.hoisted(() => ({
   getTrafficTime: vi.fn(
