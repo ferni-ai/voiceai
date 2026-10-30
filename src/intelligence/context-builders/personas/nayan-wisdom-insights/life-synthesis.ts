@@ -78,8 +78,7 @@ export async function synthesizeLifeContext(userId: string): Promise<LifeSynthes
         synthesis.lifeChapter = 'expansion';
         synthesis.dominantTheme = 'Growing into new possibilities';
       } else {
-        synthesis.lifeChapter = 'active-growth';
-        synthesis.dominantTheme = 'Becoming who they are meant to be';
+        synthesis.lifeChapter = 'active-growth'; // no theme: the goal names matched none (#3044)
       }
     }
 
@@ -100,6 +99,8 @@ export async function synthesizeLifeContext(userId: string): Promise<LifeSynthes
         synthesis.growthPattern = 'integrating';
       }
     }
+
+    synthesis.hasValuesEvidence = Boolean(budget) || activeHabits.length > 0;
 
     // Infer values from where money and time go
     if (budget) {

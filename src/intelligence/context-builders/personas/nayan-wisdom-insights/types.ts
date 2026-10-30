@@ -57,6 +57,8 @@ export interface LifeSynthesis {
   growthPattern: 'striving' | 'integrating' | 'resting' | 'transitioning' | 'unknown';
   compoundingAreas: string[];
   valuesRevealed: string[];
+  /** A budget or active habits were loaded, so an empty valuesRevealed means something. */
+  hasValuesEvidence?: boolean;
   timeHorizon: 'short' | 'medium' | 'long' | 'unknown';
 }
 

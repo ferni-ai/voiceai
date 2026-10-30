@@ -9,6 +9,8 @@ const data = vi.hoisted(() => ({
   goals: [] as Array<Record<string, unknown>>,
   loads: [] as string[],
   calendarConnected: false,
+  budget: undefined as { spent: number; monthlyLimit: number } | undefined,
+  jordanHandoff: null as Record<string, unknown> | null,
   coordination: vi.fn(async () => '**Current Capacity:** light'),
   calendarLoad: vi.fn(async () => ({
     weeklyMeetingHours: 0,
@@ -35,7 +37,7 @@ vi.mock('../../../../services/stores/financial-store.js', () => ({
     getUserSavingsGoals: () => (data.loads.includes('financial') ? data.goals : []),
     getUserSpendingTriggers: () => [],
     getRecentSpendingTriggers: () => [],
-    getMainBudget: () => undefined,
+    getMainBudget: () => (data.loads.includes('financial') ? data.budget : undefined),
   }),
 }));
 vi.mock('../../../../services/engagement/gamification-store.js', () => ({
@@ -63,6 +65,10 @@ vi.mock('../../../../tools/domains/ceo-coaching/storage.js', () => ({
   getRecentWins: async () => [],
 }));
 // Producers outside these builders; their own truthfulness is not under test here.
+// The handoff signal is tested in tools/handoff; here only what Jordan prints for one.
+vi.mock('../jordan-milestone-insights/handoff-analysis.js', () => ({
+  analyzeHandoffForJordan: () => data.jordanHandoff,
+}));
 vi.mock('../../superhuman/superhuman-integration.js', () => ({ getSuperhuman: async () => '' }));
 vi.mock('../../../../services/superhuman/index.js', () => ({
   buildLifeTrajectoryContext: async () => '',
@@ -93,6 +99,8 @@ const inDays = (days: number) => new Date(Date.now() + (days - 0.5) * 86_400_000
 
 beforeEach(() => {
   data.goals = [];
+  data.budget = undefined;
+  data.jordanHandoff = null;
   data.loads = [];
   data.calendarConnected = false;
   data.coordination.mockClear();
@@ -142,6 +150,30 @@ describe('Jordan briefing', () => {
   });
 });
 
+describe('Jordan handoff briefing', () => {
+  it("shows the handing-off persona's notes, not Peter's financial list", async () => {
+    data.budget = { spent: 1800, monthlyLimit: 3000 };
+    data.jordanHandoff = {
+      topic: 'trip planning',
+      planningContext: null,
+      excitementLevel: 'medium',
+      actionItems: [],
+      emotionalWeight: 0,
+      previousPersonaInsights: ['Maya noted: walks most mornings'],
+    };
+    const out = text(
+      await buildJordanMilestoneInsightsContext(input('jordan-taylor', 'member-0304'))
+    );
+
+    const start = out.indexOf('=== HANDOFF CONTEXT ===');
+    const handoff = out.slice(start, out.indexOf('\n=== ', start + 1));
+    expect(handoff).toContain('Maya noted: walks most mornings');
+    expect(handoff).not.toContain('Budget at 60%');
+    // Peter's budget line is real and belongs once, in his own section.
+    expect(out.split('Budget at 60%').length - 1).toBe(1);
+  });
+});
+
 describe('Nayan briefing', () => {
   it('a member with no data gets nothing (no fallow season, no calendar, no scores)', async () => {
     expect(await buildNayanWisdomInsightsContext(input('nayan-patel', 'member-0401'))).toEqual([]);
@@ -165,5 +197,37 @@ describe('Nayan briefing', () => {
     expect(out).not.toMatch(
       /resting|fallow|composting|Calendar intensity|WISDOM METRICS|Inner Peace|Mortality|Season:|Past chapter|unknown/i
     );
+  });
+
+  it('an unmatched goal and no budget or habits: no values gap, no catch-all theme', async () => {
+    data.goals = [
+      {
+        id: 'g-1',
+        name: 'Canoe fund',
+        targetAmount: 2400,
+        currentAmount: 900,
+        deadline: inDays(13),
+      },
+    ];
+    const out = text(await buildNayanWisdomInsightsContext(input('nayan-patel', 'member-0403')));
+    expect(out).toContain('Life chapter: active-growth');
+    expect(out).not.toMatch(
+      /values not yet clear|Becoming who they are meant to be|Dominant theme/
+    );
+  });
+
+  it('a budget that shows no values does give the values gap', async () => {
+    data.budget = { spent: 2400, monthlyLimit: 3000 }; // 80%: neither saving nor overspending
+    data.goals = [
+      {
+        id: 'g-1',
+        name: 'Canoe fund',
+        targetAmount: 2400,
+        currentAmount: 900,
+        deadline: inDays(13),
+      },
+    ];
+    const out = text(await buildNayanWisdomInsightsContext(input('nayan-patel', 'member-0404')));
+    expect(out).toContain('values not yet clear through action');
   });
 });
