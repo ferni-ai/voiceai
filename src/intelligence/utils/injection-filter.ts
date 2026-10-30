@@ -22,6 +22,7 @@
  * @module intelligence/utils/injection-filter
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import type { ContextInjection } from '../../types/context-injection-types.js';
 
 // ============================================================================
@@ -60,6 +61,14 @@ export const DEDUP_PROTECTED_CATEGORIES: ReadonlySet<string> = new Set([
   'scientific_early_warning',
   'emotional_guidance',
 ]);
+
+/**
+ * CALL_REPORT_REACHES_YOU=on: the While You Were Away block, which carries the
+ * report of a call Ferni made for the owner, is never dropped for the budget
+ * (but in crisis mode) nor as a near-duplicate (call-report.ts).
+ */
+const keptCallReport = (category: string): boolean =>
+  category === 'pending_background_results' && flagOn('CALL_REPORT_REACHES_YOU');
 
 /**
  * Categories that are NICE-TO-HAVE but can be dropped
@@ -303,7 +312,9 @@ export function filterInjections(
       continue;
     }
 
-    const isPriority = priorityCategories.has(injection.category);
+    const isPriority =
+      priorityCategories.has(injection.category) ||
+      (mode !== 'crisis' && keptCallReport(injection.category));
 
     if (filtered.length >= maxInjections && !isPriority) {
       continue;
@@ -390,9 +401,10 @@ export function deduplicateInjections(injections: ContextInjection[]): ContextIn
     for (let j = i + 1; j < sorted.length; j++) {
       if (skipped.has(j)) continue;
       const other = sorted[j];
-      const duplicate = DEDUP_PROTECTED_CATEGORIES.has(other.category)
-        ? other.content === current.content
-        : areSemanticallySimilar(current, other);
+      const duplicate =
+        DEDUP_PROTECTED_CATEGORIES.has(other.category) || keptCallReport(other.category)
+          ? other.content === current.content
+          : areSemanticallySimilar(current, other);
       if (duplicate) skipped.add(j);
     }
   }

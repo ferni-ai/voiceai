@@ -65,6 +65,7 @@ import {
 } from '../../integrations/better-than-human-integration.js';
 
 import { getHonestyInjection } from '../../../intelligence/context-builders/safety/honesty-guardrail.js';
+import { callReportInjection } from '../../../intelligence/context-builders/external/call-report.js';
 
 import { filterBuildersByTopic, skipBuilder, type BuilderName } from '../topic-builder-filter.js';
 
@@ -242,19 +243,15 @@ export async function buildContextInjections(
         ]).catch(() => null)
       : Promise.resolve(null),
 
-    // 2g. WHILE YOU WERE AWAY (first turn only)
-    userId && isFirstTurn
-      ? Promise.race([
-          import('../../../intelligence/context-builders/external/pending-call-results.js').then(async ({ buildAllPendingResultsContext }) => {
-            const pendingResultsContext = await buildAllPendingResultsContext(userId);
-            if (pendingResultsContext) {
-              return { category: 'pending_background_results' as const, content: pendingResultsContext, priority: 90 };
-            }
-            return null;
-          }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_TURN_TIMEOUT_MS)),
-        ]).catch(() => null)
-      : Promise.resolve(null),
+    // 2g. WHILE YOU WERE AWAY: first turn only; CALL_REPORT_REACHES_YOU=on, until a reply carries it
+    callReportInjection({
+      userId: userId ?? undefined,
+      sessionId: services.sessionId,
+      turnCount: userData.turnCount || 0,
+      callerTurn: callerTurnOf(userData),
+      crisis: safetyInjections.length > 0,
+      timeoutMs: FIRST_TURN_TIMEOUT_MS,
+    }),
   ]);
 
   // Process parallel results

@@ -58,6 +58,7 @@ import { callMeNote } from './call-me-note.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
+import { confirmCallReportReached } from '../../intelligence/context-builders/external/call-report.js';
 import {
   worldFactLinesFor,
   worldFactsNoteFor,
@@ -154,6 +155,8 @@ function buildTurnReminder(
   const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
+  // CALL_REPORT_REACHES_YOU: a call report this request carries is delivered now; never in a crisis.
+  if (!crisis) confirmCallReportReached(sessionId, chatCtx.items);
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''
