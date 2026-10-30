@@ -26,7 +26,13 @@ import type {
   CalendarProvider,
   EventReminder,
 } from '../types.js';
-import { encrypt, decrypt, isEncrypted, type EncryptedData } from '../utils/encryption.js';
+import {
+  isLegacyEncrypted,
+  openLegacyCalendarSecret,
+  type LegacyEncryptedData,
+} from '../utils/encryption.js';
+import { openTokens, resealStale, type SealedTokens } from '../../../utils/token-at-rest.js';
+import { encryptData, resolveTokenKey } from '../../../utils/token-encryption.js';
 
 const log = getLogger();
 
@@ -76,13 +82,56 @@ interface AppleCredentials {
   lastValidated?: string;
 }
 
-/** Stored format with encrypted password */
+/** Stored format: the password sealed, everything else as-is. */
 interface StoredAppleCredentials {
   appleId: string;
-  appSpecificPassword: string | EncryptedData; // Encrypted or legacy plaintext
+  /** Sealed { appSpecificPassword } (utils/token-at-rest). The only format written. */
+  sealedPassword?: SealedTokens;
+  /** Legacy, read-only: derived-key ciphertext (utils/encryption) or plaintext. */
+  appSpecificPassword?: string | LegacyEncryptedData;
   principalUrl?: string;
   calendars?: Array<{ url: string; displayName: string; ctag?: string }>;
   lastValidated?: string;
+}
+
+/**
+ * Why a connection was or was not saved. 'sealing_unavailable': no token key is
+ * configured, so nothing was stored (never plaintext, never a key from the repo).
+ */
+export type AppleStoreResult =
+  | { ok: true }
+  | { ok: false; reason: 'invalid_credentials' | 'sealing_unavailable' | 'storage_failed' };
+
+const STORE = 'calendar_providers/apple';
+const NOT_FOUND = 5;
+const FAILED_PRECONDITION = 9;
+
+/** True when a token key is configured. encryptData alone writes plain JSON without one outside prod. */
+function canSeal(): boolean {
+  return resolveTokenKey().source !== 'none';
+}
+
+/** Call only after canSeal(). */
+function sealPassword(appSpecificPassword: string): SealedTokens {
+  return { encrypted: encryptData({ appSpecificPassword }) };
+}
+
+/** The password from any stored format; `legacy` when it should be re-sealed. */
+function openStoredPassword(
+  stored: StoredAppleCredentials
+): { password: string; legacy: boolean } | null {
+  if (stored.sealedPassword) {
+    const opened = openTokens<{ appSpecificPassword?: unknown }>(stored.sealedPassword, STORE);
+    const password = opened?.appSpecificPassword;
+    return typeof password === 'string' && password ? { password, legacy: false } : null;
+  }
+  const legacy = stored.appSpecificPassword;
+  if (isLegacyEncrypted(legacy)) {
+    const password = openLegacyCalendarSecret(legacy);
+    if (password === null) log.warn({ store: STORE }, 'Legacy Apple password did not open');
+    return password ? { password, legacy: true } : null;
+  }
+  return typeof legacy === 'string' && legacy ? { password: legacy, legacy: true } : null;
 }
 
 interface ICalEvent {
@@ -775,32 +824,35 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
 
   /**
    * Store Apple credentials for a user
-   * Password is encrypted before storage using AES-256-GCM
+   * The password is sealed through utils/token-at-rest; with no token key nothing
+   * is stored and the result says 'sealing_unavailable'.
    */
   async storeCredentials(
     userId: string,
     appleId: string,
     appSpecificPassword: string
-  ): Promise<boolean> {
-    // Validate credentials first
-    const isValid = await this.validateCredentials(appleId, appSpecificPassword);
-    if (!isValid) {
-      return false;
+  ): Promise<AppleStoreResult> {
+    // Before asking Apple: with no key there is nowhere safe to put the password.
+    if (!canSeal()) {
+      log.error({ store: STORE }, 'Apple Calendar credentials not stored: no token sealing key');
+      return { ok: false, reason: 'sealing_unavailable' };
     }
 
-    // Encrypt the password before storage
-    const encryptedPassword = encrypt(appSpecificPassword);
+    const isValid = await this.validateCredentials(appleId, appSpecificPassword);
+    if (!isValid) {
+      return { ok: false, reason: 'invalid_credentials' };
+    }
 
     const storedCreds: StoredAppleCredentials = {
       appleId,
-      appSpecificPassword: encryptedPassword,
+      sealedPassword: sealPassword(appSpecificPassword),
       lastValidated: new Date().toISOString(),
     };
 
     const firestore = await getFirestore();
     if (!firestore) {
       log.error('Firestore not available');
-      return false;
+      return { ok: false, reason: 'storage_failed' };
     }
 
     try {
@@ -819,11 +871,11 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
           })
         );
 
-      log.info({ userId }, 'Stored Apple Calendar credentials (encrypted)');
-      return true;
+      log.info({ userId }, 'Stored Apple Calendar credentials (sealed)');
+      return { ok: true };
     } catch (error) {
       log.error({ error: String(error), userId }, 'Error storing Apple credentials');
-      return false;
+      return { ok: false, reason: 'storage_failed' };
     }
   }
 
@@ -850,10 +902,8 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
     if (!firestore) return null;
 
     try {
-      const doc = await firestore
-        .collection(`users/${userId}/calendar_providers`)
-        .doc('apple')
-        .get();
+      const ref = firestore.collection(`users/${userId}/calendar_providers`).doc('apple');
+      const doc = await ref.get();
 
       if (!doc.exists) return null;
 
@@ -861,38 +911,83 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
       const storedCreds = data?.credentials as StoredAppleCredentials | undefined;
       if (!storedCreds) return null;
 
-      // Decrypt password if encrypted
-      let plainPassword: string;
-      if (isEncrypted(storedCreds.appSpecificPassword)) {
-        plainPassword = decrypt(storedCreds.appSpecificPassword);
-      } else {
-        // Legacy plaintext password (migrate on next save)
-        plainPassword = storedCreds.appSpecificPassword as string;
-        log.warn({ userId }, 'Found unencrypted Apple credentials - will encrypt on next update');
-      }
+      const opened = openStoredPassword(storedCreds);
+      if (!opened) return null;
 
-      return {
+      const creds: AppleCredentials = {
         appleId: storedCreds.appleId,
-        appSpecificPassword: plainPassword,
+        appSpecificPassword: opened.password,
         principalUrl: storedCreds.principalUrl,
         calendars: storedCreds.calendars,
         lastValidated: storedCreds.lastValidated,
       };
+      await this.resealOnRead(ref, doc, storedCreds, creds, opened.legacy);
+      return creds;
     } catch (error) {
       log.error({ error: String(error), userId }, 'Error retrieving Apple credentials');
       return null;
     }
   }
 
+  /**
+   * Re-seal on read, best effort: a legacy record (derived key or plaintext) is
+   * moved to the token key when one is configured, and a sealed one to
+   * TOKEN_SEALING_KEY when it was sealed under an older key. The update carries
+   * the read's updateTime, so it cannot undo a disconnect or a newer save.
+   */
+  private async resealOnRead(
+    ref: FirebaseFirestore.DocumentReference,
+    doc: FirebaseFirestore.DocumentSnapshot,
+    stored: StoredAppleCredentials,
+    creds: AppleCredentials,
+    legacy: boolean
+  ): Promise<void> {
+    const readTime = doc.updateTime;
+    if (!readTime) return;
+    const { appSpecificPassword, ...rest } = creds;
+    const swap = async (encrypted: string): Promise<'updated' | 'missing' | 'changed'> => {
+      try {
+        const credentials = { ...rest, sealedPassword: { encrypted } };
+        await ref.update(cleanForFirestore({ credentials }), { lastUpdateTime: readTime });
+        return 'updated';
+      } catch (err) {
+        const code = (err as { code?: unknown }).code;
+        if (code === FAILED_PRECONDITION) return 'changed';
+        if (code === NOT_FOUND) return 'missing';
+        throw err;
+      }
+    };
+    if (!legacy) {
+      const sealed = stored.sealedPassword?.encrypted;
+      if (sealed)
+        await resealStale({ store: STORE, stored: sealed, value: { appSpecificPassword }, swap });
+      return;
+    }
+    if (!canSeal()) return; // stays readable; re-sealed once a key is configured
+    try {
+      const result = await swap(sealPassword(appSpecificPassword).encrypted);
+      log.info({ store: STORE, result }, 'Legacy Apple password re-seal');
+    } catch (err) {
+      log.warn(
+        { store: STORE, error: (err as Error).message },
+        'Legacy Apple password re-seal failed'
+      );
+    }
+  }
+
   private async updateCredentials(userId: string, creds: AppleCredentials): Promise<void> {
+    if (!canSeal()) {
+      log.warn({ store: STORE }, 'Apple credentials not updated: no token sealing key');
+      return;
+    }
     const firestore = await getFirestore();
     if (!firestore) return;
 
     try {
-      // Encrypt password before storing
+      const { appSpecificPassword, ...rest } = creds;
       const storedCreds: StoredAppleCredentials = {
-        ...creds,
-        appSpecificPassword: encrypt(creds.appSpecificPassword),
+        ...rest,
+        sealedPassword: sealPassword(appSpecificPassword),
       };
 
       await firestore
