@@ -130,9 +130,8 @@ PR is judged on its current head. A commit with no PR number blocks the group. K
 gaps: a PR whose head moves after queueing is judged on the new head, not the queued one,
 and the workflow file runs from the PR's own merge or queue commit (the evaluator comes
 from main). What stops a PR editing it is the main ruleset's required code-owner review
-on `.github/workflows/` (on, checked 2026-10-29), but stale approvals aren't dismissed on
-push, so an approval given before a later workflow edit still counts until the workflow
-moves to a main-pinned trigger. `issue_comment` runs log a
+on `.github/workflows/` (on, checked 2026-10-29), and stale approvals are dismissed on
+push (on 2026-10-30), so a later workflow edit needs a fresh approval. `issue_comment` runs log a
 verdict but do not update the PR check, so re-run the check after a new verdict.
 
 ### autonomy-lanes.yml (reports until it is a required check)
@@ -175,9 +174,9 @@ Lanes` is a required check. The policy's crisis and evaluator paths are also in
 `.github/CODEOWNERS` (`codeowners-covers-policy.test.ts` keeps them in step). Like Lead
 Verified, the workflow file runs from the PR's own merge or queue commit; what stops a
 PR editing it is the main ruleset's required code-owner review on `.github/workflows/`
-(on, checked 2026-10-29). Known gap: stale approvals aren't dismissed on push, so a
-code-owner approval given before a later edit to this workflow still satisfies that
-rule (the check itself only counts approvals on the exact head).
+(on, checked 2026-10-29). Stale approvals are dismissed on push (on 2026-10-30), so a
+later edit to this workflow needs a fresh code-owner approval, and the check itself only
+counts approvals on the exact head.
 
 ### design-system.yml
 

@@ -1,7 +1,7 @@
 # Changes to the CI that judges PRs need the owner's review, so a PR can't
 # rewrite its own checks (lead-verified gate, 2026-10-23). The main ruleset requires
 # code-owner review (require_code_owner_review, checked 2026-10-29), so this is enforced.
-# It does not dismiss stale approvals on push.
+# It also dismisses stale approvals on push (dismiss_stale_reviews_on_push, on 2026-10-30).
 /.github/CODEOWNERS   @sethdford
 /.github/workflows/   @sethdford
 /scripts/ci/          @sethdford
