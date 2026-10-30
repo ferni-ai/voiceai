@@ -48,6 +48,7 @@ export const ESSENTIAL_CATEGORIES = new Set([
   'safety_soft_check',
   'crisis_transfer',
   'crisis_follow_up',
+  'scientific_early_warning', // "provide crisis resources" (safety-coaching-builders.ts)
 ]);
 
 /**

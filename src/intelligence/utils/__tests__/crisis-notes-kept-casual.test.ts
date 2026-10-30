@@ -27,7 +27,7 @@ describe('crisis guidance survives the casual budget', () => {
     expect(kept.map((i) => i.category)).toContain('crisis_follow_up');
   });
 
-  it.each(['crisis_transfer', 'safety_soft_check'])(
+  it.each(['crisis_transfer', 'safety_soft_check', 'scientific_early_warning'])(
     'keeps %s past the casual count and char caps',
     (category) => {
       const filler = [1, 2, 3].map((n) => note(`filler_${n}`, 95, 190));
