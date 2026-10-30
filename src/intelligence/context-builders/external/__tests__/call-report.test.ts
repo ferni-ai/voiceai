@@ -7,6 +7,7 @@
  * filter in process-turn.ts's order, and the real injectTurnContext, over a
  * fake Firestore holding fictional call results.
  */
+import { ReadableStream } from 'node:stream/web';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 type Row = Record<string, unknown> & { id: string };
@@ -101,6 +102,9 @@ const { llm } = await import('@livekit/agents');
 const { withTurnReminder } = await import('../../../../agents/personas/turn-request.js');
 const { TURN_CONTEXT_HEADER } =
   await import('../../../../agents/multi-agent/turn-context-header.js');
+const { gatedReply } = await import('../../../../agents/personas/crisis-gate.js');
+const { pushedNotesText } = await import('../../../../agents/multi-agent/pushed-notes.js');
+const { noteCrisisRisk } = await import('../../../../services/safety/crisis-call-risk.js');
 
 const USER = 'uid-owner-fixture';
 const pause = (ms: number) =>
@@ -217,7 +221,7 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     expect(items.some((i) => i.textContent?.includes(block?.content ?? '?'))).toBe(true);
     expect(delivered()).toEqual([]); // built and kept is not delivered
 
-    confirmCallReportReached('s-hey', first.request.items);
+    await confirmCallReportReached('s-hey', first.request.items);
     await vi.waitFor(() =>
       expect(delivered().sort()).toEqual([
         'background_results/r-call-0',
@@ -245,7 +249,7 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     const offered = await callReportInjection({ ...base, callerTurn: 2 });
     expect(offered?.content).toContain('practice moved to Thursday');
     expect(delivered()).toEqual([]);
-    confirmCallReportReached('s-slow', [{ textContent: `note\n${offered?.content}\nmore` }]);
+    await confirmCallReportReached('s-slow', [{ textContent: `note\n${offered?.content}\nmore` }]);
     await vi.waitFor(() => expect(delivered()).toContain('on_behalf_calls/call-2'));
   });
 
@@ -263,7 +267,7 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     const first = await callReportInjection({ ...base, callerTurn: 1 });
     expect(first).not.toBeNull();
     // Filtered out, trimmed or stale-dropped: the request holds other notes only.
-    confirmCallReportReached('s-dropped', [{ textContent: 'other notes' }]);
+    await confirmCallReportReached('s-dropped', [{ textContent: 'other notes' }]);
     expect(await callReportInjection({ ...base, crisis: true, callerTurn: 2 })).toBeNull();
     expect((await callReportInjection({ ...base, callerTurn: 3 }))?.content).toBe(first?.content);
     expect(await callReportInjection({ ...base, callerTurn: 4 })).toBeNull();
@@ -309,7 +313,7 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
       expect(part.length).toBeLessThanOrEqual(360);
     }
 
-    confirmCallReportReached('s-both', [{ textContent: text }]);
+    await confirmCallReportReached('s-both', [{ textContent: text }]);
     await vi.waitFor(() =>
       expect(delivered().sort()).toEqual([
         'background_results/r-call-a',
@@ -375,6 +379,113 @@ describe('CALL_REPORT_REACHES_YOU on', () => {
     await vi.waitFor(() => expect(delivered()).toContain('on_behalf_calls/call-r'));
   }, 30_000);
 
+  it('once the call has had crisis risk, the report waits for the next call and nothing is marked', async () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    seedCall('call-k', 'Aunt Rosa', 'she says hi', 15);
+    const base = { userId: USER, turnCount: 0, callerTurn: 1, crisis: false, timeoutMs: 150 };
+    const offered = await callReportInjection({ ...base, sessionId: 's-risk-later' });
+    expect(offered).not.toBeNull();
+    noteCrisisRisk('s-risk-later');
+    await confirmCallReportReached('s-risk-later', [{ textContent: offered?.content }]);
+    expect(
+      await callReportInjection({ ...base, sessionId: 's-risk-later', callerTurn: 2 })
+    ).toBeNull();
+
+    noteCrisisRisk('s-risk-first');
+    expect(await callReportInjection({ ...base, sessionId: 's-risk-first' })).toBeNull();
+    await pause(20);
+    expect(delivered()).toEqual([]);
+  });
+
+  it('a reply the crisis classifier throws away marks nothing; a reply it releases marks it', async () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    vi.stubEnv('CRISIS_GUARD_MODE', 'live');
+    vi.stubEnv('CRISIS_CLASSIFIER_MODE', 'live');
+    seedCall('call-g', 'Aunt Rosa', 'she says hi', 15);
+    /** One reply through the real gate, its request carrying the offered report. */
+    const reply = async (sessionId: string, words: string, verdict: string) => {
+      const base = { userId: USER, sessionId, turnCount: 0, crisis: false, timeoutMs: 150 };
+      const offered = await callReportInjection({ ...base, callerTurn: 1 });
+      const request = llm.ChatContext.empty();
+      request.addMessage({ role: 'user', content: 'hey' });
+      request.addMessage({ role: 'user', content: `${TURN_CONTEXT_HEADER}\n${offered?.content}` });
+      request.addMessage({ role: 'assistant', content: 'Hey you.' });
+      request.addMessage({ role: 'user', content: words });
+      const model = async () =>
+        new ReadableStream<string>({
+          start: (c) => {
+            c.enqueue('ok');
+            c.close();
+          },
+        });
+      const session = { userData: { personaId: 'ferni', services: { sessionId } } };
+      const opener = { wrap: (stream: unknown) => stream };
+      const out = await gatedReply(request, session, model as never, opener as never, {
+        generate: async () => verdict,
+      });
+      for await (const _ of out as unknown as AsyncIterable<unknown>) void _;
+      await pause(20);
+    };
+
+    // Passed by the patterns, then the classifier finds a crisis: the first reply is thrown away.
+    await reply(
+      's-gate-replaced',
+      'long day at work, honestly',
+      '{"risk":"crisis","subject":"self"}'
+    );
+    expect(delivered()).toEqual([]);
+    await reply(
+      's-gate-released',
+      'what should I cook tonight?',
+      '{"risk":"none","subject":"none"}'
+    );
+    await vi.waitFor(() => expect(delivered()).toContain('on_behalf_calls/call-g'));
+  }, 30_000);
+
+  it('a released reply from a gated request marks it', async () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    seedCall('call-h', 'Aunt Rosa', 'she says hi', 15);
+    const sessionId = 's-held';
+    const base = { userId: USER, sessionId, turnCount: 0, crisis: false, timeoutMs: 150 };
+    const offered = await callReportInjection({ ...base, callerTurn: 1 });
+    const items = [{ textContent: offered?.content }];
+    await confirmCallReportReached(sessionId, items, {
+      held: Promise.resolve({ action: 'guide' }),
+    });
+    expect(delivered()).toEqual([]);
+    expect((await callReportInjection({ ...base, callerTurn: 2 }))?.content).toBe(offered?.content);
+    await confirmCallReportReached(sessionId, items, { held: Promise.resolve(null) });
+    expect(delivered()).toContain('on_behalf_calls/call-h');
+  });
+
+  it('a pushed note cut at its cap, cutting the report, is not delivery', async () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    seedCall('call-t', 'Aunt Rosa', 'she says hi and will bake on Sunday', 15);
+    const base = { userId: USER, sessionId: 's-cut', turnCount: 0, crisis: false, timeoutMs: 150 };
+    const offered = await callReportInjection({ ...base, callerTurn: 1 });
+    const note = pushedNotesText([{ text: 'x'.repeat(1900) }, { text: offered?.content ?? '' }]);
+    expect(note).toContain('While they were away'); // part of it is there
+    await confirmCallReportReached('s-cut', [{ textContent: `${TURN_CONTEXT_HEADER}\n${note}` }]);
+    expect(delivered()).toEqual([]);
+  });
+
+  it('the filter: safety guidance always wins over the report; crisis mode gives it no priority', () => {
+    vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
+    const callReport = {
+      category: 'pending_background_results',
+      content: 'r'.repeat(700),
+      priority: 90,
+    };
+    const followUp = { category: 'crisis_follow_up', content: 'f'.repeat(447), priority: 85 };
+    const casual = { mode: 'casual' as const, userText: 'okay' };
+    expect(filterInjections([callReport], casual)).toEqual([callReport]); // over budget, kept
+    const beside = filterInjections([callReport, followUp], casual).map((i) => i.category);
+    expect(beside).toEqual(['crisis_follow_up']);
+    const big = { ...callReport, content: 'r'.repeat(1600) };
+    expect(filterInjections([big], { mode: 'crisis' })).toEqual([]); // no priority in crisis mode
+    expect(filterInjections([big], { mode: 'unknown' })).toEqual([big]);
+  });
+
   it('the legacy builders (the web API reads one) no longer mark what they build', async () => {
     vi.stubEnv('CALL_REPORT_REACHES_YOU', 'on');
     seedCall('call-api', 'Aunt Rosa', 'she says hi', 15);
@@ -421,6 +532,9 @@ describe('CALL_REPORT_REACHES_YOU off: as on main', () => {
     const { built, kept } = await turn('s-off-hey', 'hey', { turnCount: 0 });
     expect(report(built)).toBeDefined();
     expect(report(kept)).toBeUndefined(); // B4
+    // ...and marked delivered anyway as it was built (B2). Awaited, so no write outlives the test.
+    const both = ['background_results/r-call-y', 'on_behalf_calls/call-y'];
+    await vi.waitFor(() => expect(delivered().sort()).toEqual(both));
 
     fake.state.updates = [];
     vi.stubEnv('LIVEKIT_URL', 'wss://example.invalid');

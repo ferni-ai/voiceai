@@ -10,14 +10,17 @@
  * On: one compact block (calls first, newest first, at most 2 results of about
  * 350 chars each) is offered on each of the call's first 3 caller turns until a
  * reply's request carries it. The injection filter keeps it in every mode but
- * crisis (injection-filter.ts), and it is never built on a turn with safety
- * guidance. Only the results it carries are marked delivered, and only once a
- * request holds it (confirmCallReportReached, called from turn-request.ts).
+ * crisis, and drops it beside any safety guidance (injection-filter.ts). Once
+ * the call has had any crisis risk (crisis-call-risk.ts), it waits for the next
+ * call. Only the results it carries are marked delivered, and only once a
+ * request holds all of it and the reply made from it is released, never on a
+ * crisis turn (confirmCallReportReached, called from turn-request.ts).
  *
  * @module intelligence/context-builders/external/call-report
  */
 
 import { flagOn } from '../../../config/env-flag.js';
+import { crisisRiskThisCall } from '../../../services/safety/index.js';
 import type { BackgroundResult } from '../../../services/background-agents/index.js';
 import {
   CALLER_TEXT_GUARD,
@@ -68,6 +71,8 @@ export interface CallReportTurn {
   turnCount: number;
   /** The caller turn, 1, 2, 3... (callerTurnOf), where the live hook names it. */
   callerTurn?: number;
+  /** The caller's words this turn: a crisis read in flight of them is this turn's own. */
+  latest?: string;
   /** The turn carries safety guidance. */
   crisis: boolean;
   timeoutMs: number;
@@ -79,6 +84,7 @@ export async function callReportInjection(turn: CallReportTurn): Promise<Context
   try {
     const { userId, sessionId } = turn;
     if (!userId || !sessionId || turn.crisis) return null;
+    if (crisisRiskThisCall(sessionId, turn.latest)) return null; // waits for the next call
     if ((turn.callerTurn ?? turn.turnCount + 1) > FIRST_TURNS) return null;
     const offer = offerFor(sessionId, userId);
     if (offer.reached) return null;
@@ -93,25 +99,32 @@ export async function callReportInjection(turn: CallReportTurn): Promise<Context
 }
 
 /**
- * A reply's request (its items) holds the offered block: mark the results it
- * carries delivered, once. Never throws. Call it on the request the model gets,
- * never on a crisis turn's.
+ * A reply's request (its items) holds the whole offered block (a note cut short
+ * doesn't count): mark the results it carries delivered, once, when the reply is
+ * released. `held` is the crisis classifier's verdict the reply waits on: a
+ * verdict replaces or guides the reply, so the block is offered again instead.
+ * Never throws. Call it on the request the model gets, never on a crisis turn's.
  */
-export function confirmCallReportReached(
+export async function confirmCallReportReached(
   sessionId: string | undefined,
-  items: readonly unknown[]
-): void {
+  items: readonly unknown[],
+  turn: { latest?: string; held?: PromiseLike<unknown> | null } = {}
+): Promise<void> {
   try {
     const offer = sessionId ? sessions.get(sessionId) : undefined;
     const report = offer?.offered;
-    if (!offer || !report || offer.reached) return;
+    if (!sessionId || !offer || !report || offer.reached) return;
+    if (crisisRiskThisCall(sessionId, turn.latest)) return;
     const holds = (item: unknown): boolean => {
       const text = (item as { textContent?: unknown } | null)?.textContent;
       return typeof text === 'string' && text.includes(report.content);
     };
     if (!items.some(holds)) return;
-    offer.reached = true;
-    void markCarried(offer.userId, report);
+    offer.reached = true; // before any await: a second request this turn marks nothing
+    // holdUntilCleared (crisis-gate.ts) releases the reply only when there is no verdict.
+    const verdict: unknown = await Promise.resolve(turn.held).catch(() => null);
+    if (verdict == null) await markCarried(offer.userId, report);
+    else offer.reached = false;
   } catch (error) {
     log.warn({ error: String(error) }, 'Call report delivery not checked');
   }

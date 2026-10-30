@@ -47,6 +47,19 @@ export const ESSENTIAL_CATEGORIES = new Set([
 ]);
 
 /**
+ * Injections that carry crisis or safety guidance for their reply, told apart by
+ * category (agents/processors/turn-processor/safety-note.ts reads this set).
+ */
+export const SAFETY_CATEGORIES: ReadonlySet<string> = new Set([
+  'safety', // escalation awareness (safety-coaching-builders.ts)
+  'crisis_response', // [CRISIS SUPPORT], crisis guidance (turn-handler.ts)
+  'safety_soft_check', // SOFT_CRISIS_CHECK (crisis-agreement.ts)
+  'scientific_early_warning', // early-warning.ts through scientific coaching
+  'crisis_transfer', // transfer awareness with crisis indicators (better-than-human-builders.ts)
+  'crisis_follow_up', // a caller with a recent crisis (better-than-human-builders.ts)
+]);
+
+/**
  * Categories the dedup never drops (deduplicateInjections): the filter's
  * essentials, plus the crisis and listening guidance that rides beside them.
  * Derived from ESSENTIAL_CATEGORIES so the two cannot drift. At the emergency
@@ -55,17 +68,15 @@ export const ESSENTIAL_CATEGORIES = new Set([
  */
 export const DEDUP_PROTECTED_CATEGORIES: ReadonlySet<string> = new Set([
   ...ESSENTIAL_CATEGORIES,
-  'safety_soft_check',
-  'crisis_transfer',
-  'crisis_follow_up',
-  'scientific_early_warning',
+  ...SAFETY_CATEGORIES,
   'emotional_guidance',
 ]);
 
 /**
  * CALL_REPORT_REACHES_YOU=on: the While You Were Away block, which carries the
  * report of a call Ferni made for the owner, is never dropped for the budget
- * (but in crisis mode) nor as a near-duplicate (call-report.ts).
+ * (but in crisis mode) nor as a near-duplicate (call-report.ts). Beside any
+ * safety guidance it is dropped: it waits for the next call.
  */
 const keptCallReport = (category: string): boolean =>
   category === 'pending_background_results' && flagOn('CALL_REPORT_REACHES_YOU');
@@ -297,8 +308,10 @@ export function filterInjections(
   let totalChars = 0;
 
   const sorted = [...injections].sort((a, b) => b.priority - a.priority);
+  const safetyTurn = injections.some((i) => SAFETY_CATEGORIES.has(i.category));
 
   for (const injection of sorted) {
+    if (safetyTurn && keptCallReport(injection.category)) continue;
     if (ESSENTIAL_CATEGORIES.has(injection.category)) {
       filtered.push(injection);
       totalChars += injection.content.length;

@@ -132,7 +132,8 @@ export function withTurnReminder(
   }
 }
 
-type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean };
+/** held: the crisis classifier's verdict this reply waits on (crisis-gate.ts holdUntilCleared). */
+type TurnReminderOptions = { shape?: boolean; closeLoop?: boolean; held?: Promise<unknown> | null };
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
@@ -155,8 +156,9 @@ function buildTurnReminder(
   const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
-  // CALL_REPORT_REACHES_YOU: a call report this request carries is delivered now; never in a crisis.
-  if (!crisis) confirmCallReportReached(sessionId, chatCtx.items);
+  // CALL_REPORT_REACHES_YOU: a call report this request carries is delivered once its reply is released.
+  const reached = { latest: words, held: options.held };
+  if (!crisis) void confirmCallReportReached(sessionId, chatCtx.items, reached);
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis
     ? ''

@@ -249,6 +249,7 @@ export async function buildContextInjections(
       sessionId: services.sessionId,
       turnCount: userData.turnCount || 0,
       callerTurn: callerTurnOf(userData),
+      latest: userText,
       crisis: safetyInjections.length > 0,
       timeoutMs: FIRST_TURN_TIMEOUT_MS,
     }),
