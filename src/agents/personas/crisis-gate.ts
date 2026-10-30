@@ -39,6 +39,12 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import {
+  AFTER_CHECK_GUIDANCE,
+  afterCheck,
+  noteClassifierAlarm,
+  noteConfirmedRisk,
+} from '../../services/safety/crisis-confirmed-risk.js'; // CRISIS_CONFIRMED_CALL_RISK
 import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
@@ -217,6 +223,7 @@ export function startCrisisGate(
   const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
   if (decision.action !== 'pass') {
     noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
+    noteConfirmedRisk(sessionScope(userData), env); // CRISIS_CONFIRMED_CALL_RISK
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -296,6 +303,7 @@ export function startCrisisGate(
       // Reads of this turn that agree on risk are never eased.
       if (verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2) {
         softTransfer = false;
+        noteConfirmedRisk(call, env);
       }
       // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
       const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {
@@ -316,6 +324,24 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
+    // CRISIS_CONFIRMED_CALL_RISK: a later lone read on a call nothing confirmed (crisis-confirmed-risk.ts).
+    const patterned = decision.action !== 'pass';
+    const after = await afterCheck({
+      call,
+      input,
+      verdict,
+      detection,
+      patterned,
+      source: 'gate',
+      env,
+      generate,
+    });
+    if (after !== 'keep' && verdict) {
+      log.info({ action: 'guide', source: 'after_check', step: after }, 'CRISIS_GATE');
+      if (after === 'ease') return guide(AFTER_CHECK_GUIDANCE);
+      return decisionFor(applyClassifierVerdict(detection, { ...verdict, risk: 'crisis' }));
+    }
+    noteClassifierAlarm(call, latest, env);
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
