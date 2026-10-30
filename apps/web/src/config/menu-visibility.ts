@@ -37,7 +37,6 @@ const HIDDEN_MENU_ACTIONS: ReadonlySet<string> = new Set([
   // Predictions: the tool behind it isn't in the prod tool set
   'predictions',
   // Integrations without prod credentials
-  'spotify',
   'oura-settings',
   'apple-health-settings',
   'wearable-settings',
@@ -81,7 +80,6 @@ const HIDDEN_INTEGRATIONS: ReadonlySet<string> = new Set([
   'apple-health',
   'oura',
   'wearables',
-  'spotify',
   'ecobee',
   'vibe-controller',
 ]);

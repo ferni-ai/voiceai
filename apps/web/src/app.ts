@@ -92,7 +92,6 @@ import {
   handoffService,
   moodService,
   relationshipStageService,
-  spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
 import { showSignInGate } from './ui/sign-in-gate.ui.js';
@@ -106,12 +105,6 @@ import { coachUI, initCoachUI } from './ui/coach.ui.js';
 import { controlsUI, initControlsUI } from './ui/controls.ui.js';
 import { expressiveEyes, initExpressiveEyes } from './ui/expressive-eyes.ui.js';
 import { initMessageUI, messageUI } from './ui/message.ui.js';
-import {
-  getSpotifyLinkStatus,
-  initSpotifyUI,
-  onSpotifyLinkStateChange,
-  triggerSpotifyLinkToggle,
-} from './ui/spotify.ui.js';
 import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initRosterPreferences } from './services/roster-preferences.service.js';
@@ -861,12 +854,11 @@ class VoiceAIApp {
     // This gates popups/celebrations until user has had 2+ conversations
     modalCoordinator.incrementConversationCount();
 
-    // 📝 Persist history, 💰 record usage, pause Spotify: network work, never awaited by hang-up
+    // 📝 Persist history, 💰 record usage: network work, never awaited by hang-up
     void conversationTracker
       .endSession()
       .catch((e) => log.warn('Conversation history not saved', e));
     void this.recordConversationUsage(sessionStart);
-    void spotifyService.pause().catch((e) => log.warn('Spotify pause failed', e));
 
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
@@ -1073,17 +1065,6 @@ class VoiceAIApp {
         log.debug('Location init skipped:', err);
       });
 
-    // Initialize Spotify silently in the background
-    // iTunes is the default for everyone, so no need to show Spotify status
-    void spotifyService
-      .initialize()
-      .then((_success) => {
-        // Spotify integration ready (or fell back to iTunes)
-      })
-      .catch((_err) => {
-        // No error shown - iTunes is the default anyway
-      });
-
     // 🎯 "Better than human" - Check for demo session to claim
     // If user came from landing page demo, claim their conversation
     if (hasPendingClaim()) {
@@ -1217,7 +1198,6 @@ class VoiceAIApp {
     this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
     this.safeInit('RosterPreferences', () => initRosterPreferences()); // saved teammates, before the bar renders
     this.safeInit('TeamUI', () => initTeamUI());
-    this.safeInit('SpotifyUI', () => initSpotifyUI());
     this.safeInit('ControlsUI', () =>
       initControlsUI({
         onConnect: () => {
@@ -1847,7 +1827,6 @@ class VoiceAIApp {
         onThemeToggle: () => showThemeLanguageSettings(),
         onNotificationSettingsClick: () => void openNotificationSettings(),
         onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then((m) => m.show()),
-        onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
         onTrustDashboardClick: () =>
@@ -1946,15 +1925,6 @@ class VoiceAIApp {
         onKnowledgeQuizClick: () => void openKnowledgeQuiz(),
         onGrowthJournalClick: () => void openGrowthJournal(),
       });
-
-      // Wire up Spotify state changes to menu
-      onSpotifyLinkStateChange((linked, configured) => {
-        getSettingsMenuUI().updateSpotifyState(linked, configured);
-      });
-
-      // Initialize menu with current Spotify state
-      const spotifyStatus = getSpotifyLinkStatus();
-      getSettingsMenuUI().updateSpotifyState(spotifyStatus.linked, spotifyStatus.configured);
     });
 
     // 🔔 Push Notifications
@@ -3043,13 +3013,6 @@ class VoiceAIApp {
       }
     });
 
-    // Spotify state changes
-    spotifyService.onStateChange((state, trackInfo) => {
-      if (state === 'playing' && trackInfo) {
-        messageUI.show(t('app.nowPlaying', { name: trackInfo.name }), 'info', 3000);
-      }
-    });
-
     // Engagement service callbacks
     engagementService.setCallbacks({
       onEngagementUpdate: (data) => {
@@ -3179,7 +3142,6 @@ class VoiceAIApp {
 
     // Dispose services
     audioService.dispose();
-    spotifyService.dispose();
 
     // 🎚️ Clean up music audio controller
     resetMusicAudioController();

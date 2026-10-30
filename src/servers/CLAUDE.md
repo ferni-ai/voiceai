@@ -61,7 +61,7 @@ Ferni runs **2 development servers** (plus the Voice Agent):
 
 | Server | Port | Purpose |
 |--------|------|---------|
-| **UI Server** | 3002 | LiveKit tokens, Spotify/Wearables OAuth, APIs, engagement routes |
+| **UI Server** | 3002 | LiveKit tokens, Wearables OAuth, APIs, engagement routes |
 | **Vite Dev** | 3004 | Frontend with HMR |
 
 **Vite proxies:**
@@ -77,10 +77,9 @@ Handles authentication and tokens:
 // LiveKit token generation
 GET /token?room=<roomId>&identity=<userId>
 
-// Spotify OAuth
-GET /spotify/login
-GET /spotify/callback
-GET /spotify/refresh
+// Spotify: the house account's Web Playback SDK routes, plus delete-only unlink
+GET /spotify/status
+GET /spotify/unlink
 
 // Subscriptions
 GET /subscription/status
@@ -142,22 +141,14 @@ export async function handleMyFeatureRoutes(
 
 ## OAuth Flows
 
-Spotify and Google Calendar OAuth:
-
-```typescript
-// src/servers/token/oauth/spotify.ts
-
-// 1. Initiate login
-GET /spotify/login
-// Redirects to Spotify with PKCE
-
-// 2. Handle callback
-GET /spotify/callback?code=<code>&state=<state>
-// Exchanges code for tokens
-
-// 3. Refresh tokens
-GET /spotify/refresh?refresh_token=<token>
-```
+No per-user Spotify (Seth, 2026-10-30): Spotify Developer Policy III.3 bars voice
+assistants that control Spotify, and Development Mode caps an app at 5 users. Music is
+Sonos favourites, Apple MusicKit on device, and links; the house account behind ambient
+playback (`services/identity/spotify-auth.ts`) is separate. `POST /auth/oauth/start`
+refuses `spotify` as an unknown provider, and there is no `/spotify/login` or
+`/spotify/callback`. Links made before then live in `bogle_users/{uid}/spotify_links`
+(`token/oauth/spotify.ts`), which nothing reads: `GET /spotify/unlink` removes the
+caller's, and account deletion erases them with the rest of `bogle_users/{uid}`.
 
 ### Oura (wearables)
 
