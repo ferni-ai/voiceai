@@ -38,6 +38,7 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'behavioral_intelligence',
     // legacy: no writer since memory v2 C5a; old docs are still exported
     'bth_signals',
+    'call_memories', // what people Ferni called for them said (CALLEE_MEMORY), 90 days
     'coaching_intelligence',
     'commitments',
     'communication_style',

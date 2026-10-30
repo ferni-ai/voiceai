@@ -99,6 +99,7 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   scheduled_calls: QUEUE,
   contacts: `${OTHERS}: contacts`,
   on_behalf_calls: `${OTHERS}: third parties' numbers and what they said`,
+  call_memories: `${OTHERS}: what people Ferni called said (CALLEE_MEMORY)`,
   reminders: SCHEDULING,
   outreach_attempts: SCHEDULING,
   outreach_history: SCHEDULING,

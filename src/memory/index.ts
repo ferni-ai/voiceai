@@ -1285,4 +1285,4 @@ export { isForgotten, undisputed, type RecallFact } from './recall/session-recal
 export { containsContactData, contactNumberRuns, foldContactText } from './domain/contact-data.js';
 export { peopleOf } from './recall/people.js';
 export { isSensitiveThread } from './recall/sensitive.js';
-export { keepLetters, nameTokens, OWNER_LEAD, relationWords } from './domain/person-key.js';
+export { keepLetters, nameTokens, OWNER_LEAD, personKey, relationWords } from './domain/person-key.js';

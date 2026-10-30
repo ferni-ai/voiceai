@@ -207,6 +207,15 @@ describe('eraseUserRecord', () => {
     ]);
   });
 
+  it('erases what people Ferni called for them said (call_memories, CALLEE_MEMORY)', async () => {
+    const { db, docs } = fakeFirestore({
+      'bogle_users/u-1/call_memories/call-1': { said: ['Rosa loved the photos.'] },
+      'bogle_users/u-2/call_memories/call-2': { said: ['Theo is busy this week.'] },
+    });
+    await eraseUserRecord('u-1', db, STORES, []);
+    expect([...docs.keys()]).toEqual(['bogle_users/u-2/call_memories/call-2']);
+  });
+
   it('erases the minor-care hold record (MINOR_CARE_SHARED_HOLD) with the account', async () => {
     const stores = ERASED_STORES.filter((s) => s.collection === 'minor_care_holds');
     const { db, docs } = fakeFirestore({

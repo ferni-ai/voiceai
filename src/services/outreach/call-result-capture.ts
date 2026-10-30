@@ -331,7 +331,7 @@ export async function captureCallResult(
     await injectToActiveSession(request.originalSessionId, outcome, request);
     return;
   }
-
+  void import('./callee-memory/writer.js').then(({ rememberCallee }) => rememberCallee(callId, outcome, request), () => false); // CALLEE_MEMORY, never throws
   try {
     // 1. Build the stored result
     const result: StoredCallResult = {

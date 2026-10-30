@@ -88,6 +88,7 @@ describe('what is copied', () => {
       'push_subscriptions',
       'google_calendar_tokens',
       'on_behalf_calls',
+      'call_memories', // what people Ferni called said (CALLEE_MEMORY)
       'deferred_calls',
       'voice_profile',
       // collections of EXCLUDED_STORES entries, wherever they appear
