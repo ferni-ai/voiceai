@@ -60,7 +60,10 @@ const time = (v: unknown): number => new Date(String(v ?? '')).getTime() || 0;
 
 /** "my Dad Sam" → ["dad", "sam"]. */
 export function queryWords(text: string): string[] {
-  const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
+  // "Lee's", "how's", "don't": the suffix goes, so a lone "s" or "t" never matches every name
+  // with one ("how's the dentist thing" answered with "Dr. Lee's office", #3159 verify r2)
+  const plain = text.toLowerCase().replace(/['’][a-z]{1,2}\b/g, '');
+  const words = (plain.match(/[a-z]+/g) ?? []).filter((w) => w.length > 1);
   return [...new Set(words.flatMap((w) => (STOP.has(w) ? [] : [personWord(w) ?? []].flat())))];
 }
 

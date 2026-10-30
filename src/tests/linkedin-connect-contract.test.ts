@@ -279,18 +279,18 @@ describe('GET /api/linkedin/callback', () => {
     nowSpy.mockRestore();
 
     // A state started for another provider.
-    const fitbit = await realFetch(`${base}/auth/oauth/start`, {
+    const whoop = await realFetch(`${base}/auth/oauth/start`, {
       method: 'POST',
       headers: {
         authorization: 'Bearer tok-A',
         'content-type': 'application/json',
         cookie: browser.cookie,
       },
-      body: JSON.stringify({ provider: 'fitbit' }),
+      body: JSON.stringify({ provider: 'whoop' }),
     });
-    expect(fitbit.status).toBe(200);
-    const fitbitState = stateOf(((await fitbit.json()) as { url: string }).url);
-    await refused(`code=c&state=${fitbitState}`);
+    expect(whoop.status).toBe(200);
+    const whoopState = stateOf(((await whoop.json()) as { url: string }).url);
+    await refused(`code=c&state=${whoopState}`);
 
     // Only the one legitimate first use ever linked anything.
     expect(linkedin.connectLinkedIn.mock.calls.map((c) => c[0])).toEqual(['uid-A']);

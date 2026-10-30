@@ -72,6 +72,7 @@ export interface Planned {
   contactId: string;
   to: string;
   channel: string;
+  from?: 'gmail' | 'ferni'; // an email's mailbox, as read back (outreach-email.ts)
 }
 
 /** On unless OUTBOUND_CONFIRM=off outside production (the escape hatch is for tests). */

@@ -13,7 +13,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const THEMES = ['zen', 'midnight'] as const;
 /** Rows that leave the page or start something rather than opening a panel */
-const NOT_PANELS = new Set(['sign-out', 'spotify', 'support-ferni']);
+const NOT_PANELS = new Set(['sign-out', 'support-ferni']);
 const BLOCKING = new Set(['serious', 'critical']);
 
 async function openApp(page: Page, theme: string): Promise<void> {

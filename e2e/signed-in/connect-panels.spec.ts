@@ -1,11 +1,10 @@
 /**
- * Everything Connected's setup panels (Apple Health, Oura, Eight Sleep, Wearables) are
+ * Everything Connected's setup panels (Apple Health, Oura, Wearables) are
  * dialogs, and one Escape closes only the one on top.
  *
- * Before: Apple Health, Oura and Eight Sleep each closed on any Escape through their own
+ * Before: Apple Health and Oura each closed on any Escape through their own
  * listener, so one press closed them and Everything Connected under them. Wearables had no
- * Escape at all, so the press closed Everything Connected and left Wearables on top. Eight
- * Sleep wasn't announced as a dialog.
+ * Escape at all, so the press closed Everything Connected and left Wearables on top.
  *
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
@@ -27,7 +26,7 @@ test.beforeEach(async ({ page }) => {
   await expectHome(page);
 });
 
-for (const id of ['apple-health', 'oura', 'eight-sleep', 'wearables']) {
+for (const id of ['apple-health', 'oura', 'wearables']) {
   test(`${id}: a named dialog, and one Escape closes only it`, async ({ page }) => {
     const problems = watchProblems(page);
     const { hub, id: hubId } = await openHub(page);
@@ -48,7 +47,7 @@ for (const id of ['apple-health', 'oura', 'eight-sleep', 'wearables']) {
     await expect.poll(() => isGone(page, hubId), { message: 'then Everything Connected closes' }).toBe(true);
     // Providers the local stack has no keys for answer 503, and Apple Health with no data yet
     // answers 404 (the browser echoes each as "Failed to load resource"): setup, not failures
-    const setup = /\/api\/(apple-health|oura|eight-sleep)\/(status|summary)|Failed to load resource/;
+    const setup = /\/api\/(apple-health|oura)\/(status|summary)|Failed to load resource/;
     expect(problems.take().filter((p) => !setup.test(p))).toEqual([]);
   });
 }

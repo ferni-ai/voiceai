@@ -89,6 +89,7 @@ import {
 
 import type { ConversationDynamicsResult } from '../conversation-dynamics.js';
 import { callerTurnOf } from '../../shared/caller-turn-count.js';
+import { firstTurnContextDue, logFirstTurnContext } from './first-turn-context.js';
 
 /**
  * Build all context injections for the LLM
@@ -182,10 +183,10 @@ export async function buildContextInjections(
     });
   }
 
-  // 2c–2g. PREDICTIVE + FIRST-TURN CONTEXT (all run in PARALLEL)
-  // Previously these ran sequentially, adding 300-600ms on first turn.
+  // 2c–2g. PREDICTIVE + FIRST-TURN CONTEXT (all run in PARALLEL); 2d–2f: first-turn-context.ts
   const FIRST_TURN_TIMEOUT_MS = 150;
   const isFirstTurn = (userData.turnCount || 0) === 0;
+  const firstTurnContext = firstTurnContextDue(isFirstTurn, userData, safetyInjections.length > 0);
   const userId = services.userId;
 
   const firstTurnResults = await Promise.allSettled([
@@ -198,7 +199,7 @@ export async function buildContextInjections(
       : Promise.resolve(null),
 
     // 2d. TEAM HUDDLE (first turn only)
-    userId && isFirstTurn
+    userId && firstTurnContext
       ? Promise.race([
           import('../../../services/cross-persona/team-huddle.js').then(async ({ generateTeamHuddle, formatTeamHuddleForLLM }) => {
             const huddle = await generateTeamHuddle(userId);
@@ -212,7 +213,7 @@ export async function buildContextInjections(
       : Promise.resolve(null),
 
     // 2e. OUTREACH BRIDGE (first turn only)
-    userId && isFirstTurn
+    userId && firstTurnContext
       ? Promise.race([
           import('../../../services/outreach/conversation-context-bridge.js').then(async ({ buildOutreachBridgeInjection }) => {
             const bridgeInjection = await buildOutreachBridgeInjection(userId);
@@ -226,7 +227,7 @@ export async function buildContextInjections(
       : Promise.resolve(null),
 
     // 2f. CROSS-CHANNEL CONTEXT (first turn only)
-    userId && isFirstTurn
+    userId && firstTurnContext
       ? Promise.race([
           import('../../../services/session/session-summary.js').then(async ({ getActiveUserContext, formatContextForVoiceCall }) => {
             const activeContext = await getActiveUserContext(userId);
@@ -274,11 +275,7 @@ export async function buildContextInjections(
     }
   }
 
-  if (isFirstTurn) {
-    const settled = firstTurnOnlyResults.filter((r) => r.status === 'fulfilled' && r.value).length;
-    const timedOut = firstTurnOnlyResults.filter((r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value)).length;
-    diag.debug('First-turn parallel context complete', { settled, timedOut });
-  }
+  if (firstTurnContext) logFirstTurnContext(firstTurnOnlyResults);
 
   // ============================================================================
   // TIERED CONTEXT BUILDERS (LATENCY OPTIMIZED)
