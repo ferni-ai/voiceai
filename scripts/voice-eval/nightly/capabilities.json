@@ -62,7 +62,7 @@
     "music": {
       "label": "Music", "scenarios": ["music-control", "music-call-ends"],
       "checks": [
-        { "id": "previews-only", "metric": "callsMatching", "pattern": "isn'?t linked|not linked yet", "better": "lower", "warn": 0, "fail": null, "why": "10-21: Spotify token revoked on dev, previews only" },
+        { "id": "previews-only", "metric": "callsMatching", "pattern": "isn'?t (?:linked|connected)|not linked yet|only play short previews", "better": "lower", "warn": 0, "fail": 0, "why": "10-21: Spotify token revoked on dev, previews only; WARN for eight nights and never red (integration audit 10-29). Any call that hears Spotify is not connected now FAILs; the pattern also matches the MUSIC_HONEST_WHEN_UNLINKED wording" },
         { "id": "l50", "metric": "unknownL50", "better": "lower", "warn": 0, "fail": null, "why": "10-21: turn processing hard timeout on music turns" }
       ]
     },
