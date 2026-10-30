@@ -6,6 +6,7 @@
  *
  * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
  * Tokens are encrypted before storage for security.
+ *
  * Oura's grant lives in services/identity/oura-auth.ts (sealed, also read by the agent).
  */
 
@@ -80,7 +81,7 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
     clientSecret: process.env.OURA_CLIENT_SECRET,
     authorizeUrl: 'https://cloud.ouraring.com/oauth/authorize',
     tokenUrl: 'https://api.ouraring.com/oauth/token',
-    // The scopes the Oura app registers ('sleep' is not an Oura v2 scope; 'daily' covers sleep)
+    // The scopes the Oura app registers; 'sleep' is not an Oura v2 scope ('daily' covers sleep)
     scopes: ['personal', 'daily', 'heartrate', 'workout', 'tag', 'session', 'spo2'],
     redirectUri:
       process.env.OURA_REDIRECT_URI ||
@@ -300,8 +301,8 @@ export async function removeTokens(provider: WearableProvider, userId: string): 
   if (provider === 'apple_health') {
     return;
   }
-  // Oura deletes its own record; the generic delete below also clears the older per-user doc
-  if (provider === 'oura') await ouraAuth.deleteUserTokens(userId);
+  // Oura revokes at Oura, then deletes; the generic delete below also clears the older per-user doc
+  if (provider === 'oura') await ouraAuth.disconnectOura(userId);
 
   const key = cacheKey(provider, userId);
   tokenCache.delete(key);
@@ -388,7 +389,10 @@ export async function getValidToken(
   provider: Exclude<WearableProvider, 'apple_health'>,
   userId: string
 ): Promise<string | null> {
-  if (provider === 'oura') return ouraAuth.getValidAccessToken(userId);
+  if (provider === 'oura') {
+    const access = await ouraAuth.getOuraAccessToken(userId);
+    return access.status === 'ok' ? access.token : null;
+  }
   const userTokens = await getTokens(provider, userId);
   if (!userTokens) {
     return null;
@@ -541,6 +545,8 @@ export interface WearableConnectionStatus {
   provider: WearableProvider;
   configured: boolean;
   linked: boolean;
+  /** The provider refused the saved grant: the person has to connect again (Oura). */
+  needs_reauth?: boolean;
   expires_at: number | null;
   login_url: string | null;
 }
@@ -572,14 +578,14 @@ export async function getAllConnectionStatuses(
 
   for (const provider of providers) {
     const configured = isProviderConfigured(provider);
+    const link = provider === 'oura' && configured ? await ouraAuth.getOuraLink(userId) : null;
     const tokens = configured && provider !== 'oura' ? await getTokens(provider, userId) : null;
-    const linked =
-      provider === 'oura' ? configured && (await ouraAuth.isOuraConfigured(userId)) : !!tokens;
 
     statuses.push({
       provider,
       configured,
-      linked,
+      linked: provider === 'oura' ? link === 'connected' : !!tokens,
+      ...(link === 'needs_reauth' ? { needs_reauth: true } : {}),
       expires_at: tokens?.expires_at || null,
       login_url: configured
         ? `/wearables/${provider}/login?user_id=${encodeURIComponent(userId)}`

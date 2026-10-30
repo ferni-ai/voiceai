@@ -181,12 +181,12 @@ describe('integration token stores encrypt at rest', () => {
       refresh_token: REFRESH,
       expires_at: Date.now() + 9e6,
     });
-    expect(await oura.getValidAccessToken('u-legacy')).toBe(ACCESS);
+    expect(await oura.getOuraAccessToken('u-legacy')).toEqual({ status: 'ok', token: ACCESS });
 
     state.docs.set('oura_tokens/u-sealed', structuredClone(stored!));
-    expect(await oura.getValidAccessToken('u-sealed')).toBe(ACCESS);
+    expect(await oura.getOuraAccessToken('u-sealed')).toEqual({ status: 'ok', token: ACCESS });
 
-    await oura.deleteUserTokens('u-oura');
+    await oura.disconnectOura('u-oura');
     expect(doc('oura_tokens/u-oura')).toBeUndefined();
   });
 
@@ -202,7 +202,7 @@ describe('integration token stores encrypt at rest', () => {
     try {
       state.docs.set('oura_tokens/u-kid-b', sealed);
       h.calls.length = 0;
-      expect(await oura.getValidAccessToken('u-kid-b')).toBeNull();
+      expect(await oura.getOuraAccessToken('u-kid-b')).toEqual({ status: 'unavailable' });
       const warning = h.calls.find(
         (args) => (args[0] as { reason?: string } | undefined)?.reason === 'kid-mismatch'
       );

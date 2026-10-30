@@ -163,9 +163,11 @@ GET /spotify/refresh?refresh_token=<token>
 
 One connect path: the web calls `POST /auth/oauth/start { provider: 'oura' }`, then the
 browser goes to `/wearables/oura/login`, Oura sends it back to `/wearables/oura/callback`
-(`routes/wearables.ts`). Unlink is `POST /wearables/oura/unlink`. `/api/oura/*` is read-only
-data (`routes/oura.ts`). The grant is kept in `services/identity/oura-auth.ts` (sealed
-`oura_tokens/{uid}`), the store the voice agent reads too.
+(`routes/wearables.ts`). Unlink is `POST /wearables/oura/unlink` (revokes at Oura, then
+deletes). `/api/oura/*` is read-only data (`routes/oura.ts`). The grant is kept, refreshed
+and revoked by `services/identity/oura-auth.ts` (sealed `oura_tokens/{uid}`); the voice
+agent reads the same store. A refresh Oura refuses with `invalid_grant` is kept on the
+record and answered as `needs_reauth` (status shows `needs_reauth: true`, `linked: false`).
 
 | Env | Where | Meaning |
 |-----|-------|---------|

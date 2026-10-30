@@ -62,6 +62,8 @@ interface OuraStatus {
   sleep?: OuraSleepSummary;
   readiness?: OuraReadinessSummary;
   activity?: OuraActivitySummary;
+  /** Oura refused the saved link: the person has to connect again. */
+  needsReauth?: boolean;
   error?: string;
 }
 
@@ -79,6 +81,7 @@ let container: HTMLElement | null = null;
 let releaseEscape: (() => void) | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: OuraSettingsCallbacks = {};
+let needsReauth = false;
 let isLoading = false;
 
 // ============================================================================
@@ -562,12 +565,16 @@ function renderConnectState(): void {
   connectDiv.appendChild(iconDiv);
 
   // Title
-  const title = createElement('h3', { textContent: 'Connect Your Oura Ring' });
+  const title = createElement('h3', {
+    textContent: needsReauth ? 'Reconnect Your Oura Ring' : 'Connect Your Oura Ring',
+  });
   connectDiv.appendChild(title);
 
   // Description
   const description = createElement('p', {
-    textContent: 'Link your Oura Ring to get personalized insights about your sleep, readiness, and activity.',
+    textContent: needsReauth
+      ? 'Oura needs you to sign in again before Ferni can see your sleep.'
+      : 'Link your Oura Ring to get personalized insights about your sleep, readiness, and activity.',
   });
   connectDiv.appendChild(description);
 
@@ -855,6 +862,7 @@ async function loadStatus(): Promise<void> {
     }
 
     const status = response.data;
+    needsReauth = Boolean(status?.needsReauth);
     if (status?.connected) {
       renderConnectedState(status);
     } else {
