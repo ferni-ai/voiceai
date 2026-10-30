@@ -67,6 +67,7 @@ beforeEach(async () => {
   state.writes.length = 0;
   state.versions.clear();
   state.beforeWrite = undefined;
+  state.beforeRead = undefined;
   logged.length = 0;
   await store.save(UID, OLD);
 });
@@ -157,6 +158,24 @@ describe('refreshWithRevocation', () => {
     expect(state.writes.filter((w) => w.op === 'set' && w.data?.encrypted)).toHaveLength(1); // the save in beforeEach only
     await store.shutdown();
     expect(await store.linkStatus(UID)).toEqual({ state: 'connected' });
+  });
+
+  it('a reconnect landing before the conditional update reads the doc is not flagged', async () => {
+    // The reconnect is already stored (and versioned) when the update's own snapshot is taken,
+    // so only the "doc unchanged" check can refuse it, not the lastUpdateTime precondition.
+    const reconnected = { encrypted: encryptData(NEW), updated_at: 777, needs_reauth: null };
+    let reads = 0;
+    state.beforeRead = (path) => {
+      if (path !== docPath || ++reads !== 2) return; // 1st: markNeedsReauth's load; 2nd: the update's
+      state.beforeRead = undefined;
+      state.docs.set(path, reconnected);
+      bump(path);
+    };
+    expect(await refreshWithRevocation(store, UID, 'rt-old', revoked)).toBeNull();
+
+    expect(reads).toBe(2);
+    expect(state.docs.get(docPath)).toEqual(reconnected);
+    expect(state.writes.filter((w) => w.op === 'update')).toEqual([]);
   });
 
   it('a disconnect landing between the read and the write is not undone', async () => {
