@@ -10213,7 +10213,6 @@
     "connectFirstToManage": "先连接，然后我们就可以管理它了。",
     "monthlyLimitReached": "我们已经达到了本月的上限。其实我还想继续和你聊聊的...",
     "enableMicPrompt": "我很想听听你的声音——可以开启麦克风权限吗？",
-    "agentJoined": "{name} 已加入",
     "seeYouNextTime": "下次见啦！",
     "handoffFailed": "现在联系不上他们。不过我还在呢！",
     "personaBack": "{name} 回来啦！",
@@ -10807,7 +10806,10 @@
     "endTalk": "挂断",
     "connectingCancel": "正在连接。点按即可取消",
     "connectingNow": "正在连接…",
-    "tapToCancel": "点按即可取消"
+    "tapToCancel": "点按即可取消",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

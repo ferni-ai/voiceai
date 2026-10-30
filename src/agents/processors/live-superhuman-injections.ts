@@ -42,6 +42,7 @@ import type {
   ProgressUpdateResult,
 } from '../../services/superhuman/commitment-keeper-e2e.js';
 import type { PersonaId } from '../../memory/cross-persona/index.js';
+import { activePersonaIdOn } from '../../services/session/active-persona.js';
 
 const log = createLogger({ module: 'LiveSuperhumanInjections' });
 
@@ -942,7 +943,7 @@ Your superpower: You know when to remind them of their light.
 
 /**
  * Save commitment asynchronously (fire-and-forget)
- * Uses the recordTrustMoment function for write-through persistence
+ * Uses recordTrustMoment, which indexes it to semantic memory
  */
 async function saveCommitmentAsync(
   userId: string,
@@ -952,7 +953,7 @@ async function saveCommitmentAsync(
 ): Promise<void> {
   try {
     const { recordTrustMoment } = await import('../../services/trust-systems/unified-recorder.js');
-    await recordTrustMoment(userId, {
+    recordTrustMoment(userId, {
       type: 'intention',
       content: `${type}: ${content}`,
       context: topic,
@@ -972,11 +973,11 @@ async function loadCommitmentE2EAsync(
     if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: it stores (minor-care.ts)
     const { detectCommitmentE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
 
-    const result = await detectCommitmentE2E({
+    return await detectCommitmentE2E({
       userId: ctx.userId,
       sessionId: ctx.sessionId,
       transcript: ctx.userText,
-      personaId: (ctx.services?.personaId || 'ferni') as PersonaId,
+      personaId: ((activePersonaIdOn() && ctx.services?.personaId) || 'ferni') as PersonaId, // off: Ferni's
       topic: ctx.currentTopic,
       emotionalContext: {
         primary: ctx.emotionalState.primary,
@@ -984,8 +985,6 @@ async function loadCommitmentE2EAsync(
       },
       mentionedEntities: ctx.mentionedEntities,
     });
-
-    return result;
   } catch {
     return null;
   }

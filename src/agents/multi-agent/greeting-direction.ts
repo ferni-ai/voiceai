@@ -16,7 +16,6 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { returningCallerGreeting } from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { firstCallFallback, firstMeeting, withFirstCallIntro } from './first-call-greeting.js';
 import { callerHour } from '../shared/time-context.js';
@@ -34,7 +33,15 @@ import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-ba
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { calendarDaysSince, daysAgoInWords } from '../../utils/calendar-days.js';
 import * as notYet from './greeting-not-yet.js';
+import {
+  MAX_TOPIC_CHARS,
+  PROACTIVE_GREETING_DIRECTION,
+  proactiveFallback,
+  proactiveReasonFacts,
+  proactiveReasonOpenerEnabled,
+} from './proactive-opener.js';
 import * as stranger from './first-call-stranger.js';
+import { greetsAsFriend, isUnplacedCaller } from './unknown-caller-honest.js';
 import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -60,22 +67,24 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
  * The hello's direction for this persona. Never the playful one after a heavy
  * last call (what they talked about reads as heavy-moment.ts does) or when
  * welcome-back held back a tender thread: a tease is no way to pick that up.
- * A first call (`last.firstCall`) gets the stranger's hello (first-call-stranger.ts);
- * `introAs` is set on a first call (FIRST_CALL_INTRO).
+ * A first call (`last.firstCall`) gets the stranger's hello (first-call-stranger.ts), a
+ * caller Ferni can't place (`last.unplaced`) its no-claim twin; `introAs` (FIRST_CALL_INTRO).
  */
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
-  last: { topic?: string; tender?: boolean; firstCall?: boolean } = {},
+  last: { topic?: string; tender?: boolean; firstCall?: boolean; unplaced?: boolean } = {},
   introAs?: string
 ): string {
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
   const base = last.firstCall
     ? stranger.STRANGER_GREETING_DIRECTION
-    : playful && !careful
-      ? PLAYFUL_GREETING_DIRECTION
-      : GREETING_DIRECTION;
+    : last.unplaced
+      ? stranger.UNPLACED_GREETING_DIRECTION
+      : playful && !careful
+        ? PLAYFUL_GREETING_DIRECTION
+        : GREETING_DIRECTION;
   return introAs ? withFirstCallIntro(base, introAs) : base;
 }
 
@@ -206,8 +215,6 @@ export interface CallerHistory {
   firstContact?: string;
 }
 
-const MAX_TOPIC_CHARS = 160;
-
 /** The caller's history from their profile, or undefined for a first call. */
 export function callerHistory(
   profile: {
@@ -287,59 +294,6 @@ export function takeCallerHistory(sessionId: string): CallerHistory | undefined 
   return history;
 }
 
-// A call Ferni placed to its own user opened "Hey Seth, how's your week been
-// treating you?" (prod 2026-10-10): GREETING_DIRECTION says "they just called
-// you", and why Ferni called ("Seth asked Ferni to give him a call...") reached
-// only the main model's prompt, never the greeting.
-export const PROACTIVE_GREETING_DIRECTION =
-  'You phoned them and they just picked up. Open the way a friend who called does: hi and their name, then in a few words why you called, in your own words, using only the reason you are given. If the reason is something hard, say it gently and never name how they feel. If no reason is given, just say you were calling to check in; never make one up. Relaxed and low-key, one or two short sentences, no exclamation marks, do not list what you can do.';
-
-/** Why Ferni placed a proactive call, from the outreach job's metadata. */
-export interface ProactiveReason {
-  triggerReason?: string;
-  relatedCommitment?: { summary?: string };
-  lastSessionSummary?: string;
-}
-
-/** The default the metadata parser fills in when the job gave no reason. */
-const PLACEHOLDER_REASONS = new Set(['proactive check-in']);
-
-/** PROACTIVE_REASON_OPENER=on: a proactive call's opener says why Ferni called. */
-export function proactiveReasonOpenerEnabled(env: Env = process.env): boolean {
-  return flagOn('PROACTIVE_REASON_OPENER', env);
-}
-
-/** The reasons the opener may give, as director facts. Empty when the job gave none. */
-export function proactiveReasonFacts(reason: ProactiveReason): Record<string, string> {
-  const facts: Record<string, string> = {};
-  const why = reason.triggerReason?.trim();
-  if (why && !PLACEHOLDER_REASONS.has(why.toLowerCase()))
-    facts['why you called them'] = why.slice(0, MAX_TOPIC_CHARS);
-  const commitment = reason.relatedCommitment?.summary?.trim();
-  if (commitment) facts['something they said they would do'] = commitment.slice(0, MAX_TOPIC_CHARS);
-  const last = reason.lastSessionSummary?.trim();
-  if (last) facts['what you talked about last time'] = last.slice(0, MAX_TOPIC_CHARS);
-  return facts;
-}
-
-/**
- * A call Ferni placed to its own user (PROACTIVE_REASON_OPENER on): its opener
- * waits for the phone to be picked up, like an on-behalf call's.
- */
-export async function isProactiveCall(sessionId: string): Promise<boolean> {
-  if (!proactiveReasonOpenerEnabled()) return false;
-  const { isProactiveSession } =
-    await import('../../intelligence/context-builders/external/proactive-session-context.js');
-  return isProactiveSession(sessionId);
-}
-
-/** The understudy for a proactive call: says Ferni called, never guesses why. */
-export function proactiveFallback(userName: string | undefined, personaId = 'ferni'): string {
-  // Whoever placed the call: "call me" can ring with Alex (live-agent-call.ts), not just Ferni.
-  const caller = isKnownId(personaId) ? getDisplayName(personaId) : 'Ferni';
-  return `Hey${userName ? ` ${userName}` : ''}, it's ${caller}, just calling to check in.`;
-}
-
 export interface GreetingUserData {
   callerTimezone?: string;
   userName?: string;
@@ -398,7 +352,9 @@ export async function directedGreeting(
     returningCallerGreeting(sessionId) ??
     unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
   const firstCall = isNew && !unknown; // never greeted as an old friend
-  const stage = firstCall ? ('stranger' as const) : ('friend' as const);
+  // No account, no past calls (UNKNOWN_CALLER_HONEST): met, never greeted as a friend.
+  const unplaced = isUnplacedCaller(userData?.userId, history !== undefined);
+  const stage = firstCall || unplaced ? ('stranger' as const) : ('friend' as const);
   const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });
   const introAs = unknown ? undefined : introName;
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
@@ -420,7 +376,7 @@ export async function directedGreeting(
     greetingDirection(
       personaId,
       process.env,
-      { topic: history?.lastTopic, tender: back?.heldBack, firstCall },
+      { topic: history?.lastTopic, tender: back?.heldBack, firstCall, unplaced },
       introAs
     ) +
     (win ? WIN_DIRECTION : '') +
@@ -451,7 +407,7 @@ export async function directedGreeting(
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
-    rejectIf: firstCall ? stranger.impliesSharedPast : undefined,
+    rejectIf: unplaced ? greetsAsFriend : firstCall ? stranger.impliesSharedPast : undefined,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (

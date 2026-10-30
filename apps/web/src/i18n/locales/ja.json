@@ -10214,7 +10214,6 @@
     "connectFirstToManage": "まずは接続してください。それから管理しましょう。",
     "monthlyLimitReached": "今月の制限に達してしまいました。もっとお話ししたいのですが...",
     "enableMicPrompt": "あなたの声が聴きたいです。マイクへのアクセスを許可していただけますか？",
-    "agentJoined": "{name}が参加しました",
     "seeYouNextTime": "また次回お会いしましょう！",
     "handoffFailed": "今は連絡がつきませんでした。でも、私はここにいますよ！",
     "personaBack": "{name}が戻ってきました！",
@@ -10807,7 +10806,10 @@
     "endTalk": "終了",
     "connectingCancel": "接続中です。タップしてキャンセル",
     "connectingNow": "接続中…",
-    "tapToCancel": "タップしてキャンセル"
+    "tapToCancel": "タップしてキャンセル",
+    "stillCalling": "[NEEDS_TRANSLATION] Still reaching {name}…",
+    "stillCallingCancel": "[NEEDS_TRANSLATION] Still reaching {name}. Tap to cancel.",
+    "reconnecting": "[NEEDS_TRANSLATION] Reconnecting…"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",

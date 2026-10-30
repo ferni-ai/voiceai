@@ -173,3 +173,61 @@ describe('warmCallPath', () => {
     }
   });
 });
+
+describe('warmRtcNative (LiveKit native audio, before a call)', () => {
+  const recorder = () => {
+    const did: string[] = [];
+    const rtc = {
+      AudioSource: class {
+        constructor(rate: number, channels: number) {
+          did.push(`source ${rate}/${channels}`);
+        }
+        close = async () => {
+          did.push('source closed');
+        };
+      },
+      LocalAudioTrack: {
+        createAudioTrack: (name: string) => {
+          did.push(`track ${name}`);
+          return {
+            close: async () => {
+              did.push('track closed');
+            },
+          };
+        },
+      },
+    };
+    return { did, load: async () => rtc };
+  };
+
+  it('makes one track on a source, then closes both', async () => {
+    const { warmRtcNative } = await import('../call-path-warmup.js');
+    const { did, load } = recorder();
+    expect(await warmRtcNative(load)).toBe(true);
+    expect(did).toEqual(['source 48000/1', 'track warmup', 'track closed', 'source closed']);
+  });
+
+  it('a module that fails to load is reported, never thrown', async () => {
+    const { warmRtcNative } = await import('../call-path-warmup.js');
+    expect(await warmRtcNative(() => Promise.reject(new Error('no binding')))).toBe(false);
+  });
+
+  it('warmCallPath warms it, before any call', async () => {
+    vi.resetModules();
+    const { did, load } = recorder();
+    vi.doMock('@livekit/rtc-node', load);
+    try {
+      const { warmCallPath } = await import('../call-path-warmup.js');
+      await warmCallPath(() => undefined, []);
+      expect(did).toContain('track warmup');
+    } finally {
+      vi.doUnmock('@livekit/rtc-node');
+      vi.resetModules();
+    }
+  });
+
+  it('warms the real module in this process', async () => {
+    const { warmRtcNative } = await import('../call-path-warmup.js');
+    expect(await warmRtcNative()).toBe(true);
+  });
+});

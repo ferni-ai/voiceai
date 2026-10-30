@@ -5,7 +5,7 @@
  *
  * @module understanding/compare
  */
-import type { TurnReading } from './schema.js';
+import { isoDateOrNull, type TurnReading } from './schema.js';
 
 export interface RulesRead {
   /** answer-turn.ts answersQuestion: the caller answered Ferni's question. */
@@ -74,12 +74,20 @@ export function disagreements(r: TurnReading, rules: RulesRead): Disagreements {
   return Object.fromEntries(keys.map((k) => [k, a[k] !== b[k]])) as Disagreements;
 }
 
-/** The reading with no caller words in it: time phrases and the name become flags. */
+/**
+ * The reading with no caller words in it: the name becomes a flag, time phrases
+ * lose their words, and their dates stay only as ISO dates (resolved dates are
+ * not re-validated after parsing, so this checks again).
+ */
 export function readingForLog(r: TurnReading): Record<string, unknown> {
   const { name_given: name, time_expressions: times, ...labels } = r;
   return {
     ...labels,
     name_given: name !== null,
-    time_expressions: times.map(({ text: _t, ...rest }) => rest),
+    time_expressions: times.map(({ text: _t, start_iso, end_iso, ...rest }) => ({
+      ...rest,
+      start_iso: isoDateOrNull(start_iso),
+      end_iso: isoDateOrNull(end_iso),
+    })),
   };
 }

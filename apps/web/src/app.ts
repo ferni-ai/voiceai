@@ -2708,7 +2708,7 @@ class VoiceAIApp {
 
       onAgentConnected: () => {
         const persona = appState.get('activePersona');
-        messageUI.show(t('app.agentJoined', { name: persona.name }), 'success', 2000);
+        // No "{name} joined" toast: the face and the End call button announce him.
 
         // Avatar reaction
         presenceUI.bounce();

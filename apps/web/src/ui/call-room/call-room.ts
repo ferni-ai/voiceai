@@ -6,7 +6,7 @@
  * - a polite live state line under the name says who is doing what. It follows
  *   the app's connection, mute and audio state; the audio state is the one the
  *   avatar's turn driver sets from `lk.agent.state` (avatar-motion/turn-driver);
- * - the end control reads "End";
+ * - the end control reads "End call";
  * - back keeps the call (call-back-guard.ts).
  *
  * @module ui/call-room/call-room
@@ -40,12 +40,13 @@ export interface CallMoment {
 /** The state line's i18n key, or null outside a call. */
 export function stateLineKey({ connection, muted, audio }: CallMoment): string | null {
   if (!IN_CALL.has(connection)) return null;
+  if (connection === 'reconnecting') return 'entrance.reconnecting';
   if (connection !== 'connected') return 'callRoom.connecting';
   if (muted) return 'callRoom.muted';
   return audio === 'speaking' ? 'callRoom.talking' : 'callRoom.listening';
 }
 
-/** The end control's label key: "End" in the call room, the old label otherwise. */
+/** The end control's label key: the call room's own, the entrance's otherwise (both "End call"). */
 export function endLabelKey(): string {
   return isCallRoomEnabled() ? END_KEY : 'entrance.endTalk';
 }
@@ -78,7 +79,7 @@ function render(): void {
   line.dataset.state = key?.split('.')[1] ?? '';
 }
 
-/** Relabel the end control so locale refreshes (data-i18n) keep "End". */
+/** Relabel the end control so locale refreshes (data-i18n) keep the call room's key. */
 function relabelEnd(): void {
   const label = document.querySelector<HTMLElement>('#disconnectBtn .btn-content');
   if (!label) return;
