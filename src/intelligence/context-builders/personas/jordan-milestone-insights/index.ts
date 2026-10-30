@@ -301,57 +301,6 @@ async function buildJordanMilestoneInsightsContext(
       briefingLines.push('\n' + lifeTrajectoryContext);
     }
 
-    // 🤝 TEAM HUDDLE: Record Jordan's observations for cross-persona intelligence
-    try {
-      const { jordan: jordanObserver, recordConcern } =
-        await import('../../../../services/cross-persona/observation-recorder.js');
-
-      // Record celebration readiness for the team
-      if (briefing.planningMetrics.celebrationReadinessScore >= 70) {
-        jordanObserver.opportunity(
-          userId,
-          `Celebration readiness at ${briefing.planningMetrics.celebrationReadinessScore}% - ready for milestone planning!`,
-          briefing.planningMetrics.celebrationReadinessScore / 100,
-          'celebrate milestone',
-          ['celebration', 'progress', 'achievement']
-        );
-      }
-
-      // Record at-risk goals as concerns (use generic recordConcern since Jordan focuses on positives)
-      if (briefing.goalsOverview.atRisk.length > 0) {
-        recordConcern(
-          userId,
-          'jordan',
-          `${briefing.goalsOverview.atRisk.length} goal(s) at risk: ${briefing.goalsOverview.atRisk.slice(0, 2).join(', ')}`,
-          0.7,
-          ['goals', 'at-risk', 'motivation']
-        );
-      }
-
-      // Record planning velocity patterns as a pattern, not concern (Jordan stays positive)
-      if (briefing.planningMetrics.planningVelocityIndex < 30) {
-        jordanObserver.pattern(
-          userId,
-          'Low planning velocity - opportunity for planning support',
-          0.65,
-          ['planning', 'momentum', 'support']
-        );
-      }
-
-      // Record recently achieved goals as milestones
-      if (briefing.goalsOverview.recentlyAchieved.length > 0) {
-        jordanObserver.milestone(
-          userId,
-          `Recently achieved: ${briefing.goalsOverview.recentlyAchieved.join(', ')}`,
-          0.9,
-          ['achievement', 'celebration', 'goals']
-        );
-      }
-    } catch (err) {
-      // Non-critical - don't block if observation recording fails
-      log.debug({ error: String(err) }, 'Failed to record Jordan observations (non-blocking)');
-    }
-
     const content = briefingLines.join('\n');
 
     if (isHandoff) {

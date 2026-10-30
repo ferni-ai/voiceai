@@ -17,6 +17,7 @@ import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js'
 import { createDomainExport } from '../../registry/loader.js';
 import { resolveCallerLocation } from '../../shared/caller-location.js';
 import { getTrafficTime } from '../information/traffic.js';
+import { NO_TIMED_REMINDER } from '../../utils/honest-schedule.js';
 import { getUberClient } from '../../../services/integrations/uber/uber-client.js';
 import { getLyftClient } from '../../../services/integrations/lyft/lyft-client.js';
 import { registerActionType } from '../../../services/actions/action-engine.js';
@@ -393,13 +394,14 @@ const getCommuteTimeDef: ToolDefinition = {
 const scheduleRideDef: ToolDefinition = {
   id: 'scheduleRide',
   name: 'Schedule Ride',
-  description: 'Schedule a ride for a future time.',
+  description: 'Schedule a ride for a future time: books nothing and sets no reminder yet.',
   domain: 'transportation',
   tags: ['uber', 'lyft', 'schedule', 'future'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Schedule a ride for a future time.',
+      description:
+        'Asked to schedule a ride for a future time. It books nothing and sets no reminder: tell the caller plainly.',
       parameters: z.object({
         destination: z.string().describe('Where you want to go'),
         pickupTime: z.string().describe('When to be picked up'),
@@ -411,13 +413,13 @@ const scheduleRideDef: ToolDefinition = {
           return 'I need to know who you are to schedule a ride.';
         }
 
-        // This would schedule via the APIs in production
+        // Nothing books a future ride or saves a reminder job (#1439): say so.
         return (
-          `📅 **Ride Scheduled**\n\n` +
+          `Not booked: I can't schedule a ride ahead of time here.\n\n` +
           `Destination: ${params.destination}\n` +
           `Pickup: ${params.pickupTime}\n` +
           `${params.from ? `From: ${params.from}\n` : ''}\n` +
-          `I'll remind you before your ride and help you request it at the right time.`
+          NO_TIMED_REMINDER
         );
       },
     });
