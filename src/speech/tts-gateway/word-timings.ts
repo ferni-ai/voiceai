@@ -43,7 +43,7 @@ export function parseWordTimestamps(raw: unknown): WordTiming[] {
 type FramesOf = (pcm: ArrayBuffer) => Iterable<AudioFrame>;
 
 /** A reply stream that can hand over the word timings that have arrived. */
-export interface WordSource {
+interface WordSource {
   takeWordTimings?(): WordTiming[];
 }
 
