@@ -8,7 +8,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { EmbeddingApiError } from '../../utils/embedding-api-error.js';
+import { EmbeddingApiError, EmbeddingUnavailableError } from '../../utils/embedding-api-error.js';
+import { flagOn } from '../../config/env-flag.js';
 import { isGeminiConfigured } from '../../config/gemini-config.js';
 import { embedTexts } from '../../config/gemini-embeddings.js';
 import { getCachedEmbedding, cacheEmbedding } from './registry.js';
@@ -163,8 +164,13 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 // GOOGLE EMBEDDING PROVIDER
 // ============================================================================
 
+/** A live query embedding may not hold a turn for a cold Vertex call (~12 s measured). */
+const QUERY_EMBED_TIMEOUT_MS = 1500;
+
 /**
  * Google gemini-embedding-001 provider, on Vertex through the shared client.
+ * Behind ROUTER_EMBEDDINGS_VERTEX (off): off, every call fails at once, as the
+ * dead GOOGLE_API_KEY did, and callers keep their non-embedding path.
  *
  * Same model memory/vectors uses. text-embedding-004 is retired.
  * Dimensions: 3072
@@ -180,11 +186,14 @@ export class GoogleEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embed(text: string): Promise<EmbeddingVector> {
-    const [embedding] = await this.embedBatch([text]);
+    const [embedding] = await this.embedBatch([text], QUERY_EMBED_TIMEOUT_MS);
     return embedding;
   }
 
-  async embedBatch(texts: string[]): Promise<EmbeddingVector[]> {
+  async embedBatch(texts: string[], timeoutMs?: number): Promise<EmbeddingVector[]> {
+    if (!flagOn('ROUTER_EMBEDDINGS_VERTEX')) {
+      throw new EmbeddingUnavailableError('ROUTER_EMBEDDINGS_VERTEX is off');
+    }
     const results: EmbeddingVector[] = new Array(texts.length);
     const uncachedIndices: number[] = [];
 
@@ -197,7 +206,8 @@ export class GoogleEmbeddingProvider implements EmbeddingProvider {
     if (uncachedIndices.length > 0) {
       const vectors = await embedTexts(
         this.modelName,
-        uncachedIndices.map((i) => texts[i])
+        uncachedIndices.map((i) => texts[i]),
+        timeoutMs
       );
       uncachedIndices.forEach((globalIndex, j) => {
         results[globalIndex] = vectors[j];

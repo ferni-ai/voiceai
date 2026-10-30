@@ -19,6 +19,7 @@ interface EmbedClient {
     embedContent(req: {
       model: string;
       contents: string[];
+      config?: { abortSignal?: AbortSignal };
     }): Promise<{ embeddings?: Array<{ values?: number[] }> }>;
   };
 }
@@ -27,11 +28,15 @@ interface EmbedClient {
 const BATCH_SIZE = 100;
 
 /**
- * One vector per text, in order. Throws EmbeddingUnavailableError when there is
+ * One vector per text, in order. `timeoutMs` bounds each request. Throws EmbeddingUnavailableError when there is
  * no client, and EmbeddingApiError (status only, 0 when none) when Vertex
  * refuses or answers with fewer or empty vectors.
  */
-export async function embedTexts(model: string, texts: string[]): Promise<number[][]> {
+export async function embedTexts(
+  model: string,
+  texts: string[],
+  timeoutMs?: number
+): Promise<number[][]> {
   const client = (await getGeminiClient()) as EmbedClient | null;
   if (!client) throw new EmbeddingUnavailableError();
   const out: number[][] = [];
@@ -40,7 +45,11 @@ export async function embedTexts(model: string, texts: string[]): Promise<number
     let response: Awaited<ReturnType<EmbedClient['models']['embedContent']>>;
     try {
       // eslint-disable-next-line no-await-in-loop -- batches go in order, one request at a time
-      response = await client.models.embedContent({ model, contents: batch });
+      response = await client.models.embedContent({
+        model,
+        contents: batch,
+        config: timeoutMs ? { abortSignal: AbortSignal.timeout(timeoutMs) } : undefined,
+      });
     } catch (error) {
       throw new EmbeddingApiError('Vertex AI', errorStatus(error) ?? 0);
     }

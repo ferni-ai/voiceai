@@ -81,6 +81,27 @@ describe('embedTexts', () => {
 });
 
 describe('semantic-router GoogleEmbeddingProvider', () => {
+  beforeEach(() => vi.stubEnv('ROUTER_EMBEDDINGS_VERTEX', 'on'));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('ROUTER_EMBEDDINGS_VERTEX off: fails at once without calling the client', async () => {
+    vi.stubEnv('ROUTER_EMBEDDINGS_VERTEX', 'off');
+    const provider = new GoogleEmbeddingProvider({ useCache: false });
+    await expect(provider.embed('set a timer')).rejects.toMatchObject({
+      name: 'EmbeddingUnavailableError',
+    });
+    await expect(provider.embedBatch(['a'])).rejects.toMatchObject({
+      name: 'EmbeddingUnavailableError',
+    });
+    expect(embedContent).not.toHaveBeenCalled();
+  });
+
+  it('a single query embedding carries a timeout so a cold call cannot hold a turn', async () => {
+    embedContent.mockResolvedValue(vectors(1));
+    await new GoogleEmbeddingProvider({ useCache: false }).embed('what is the weather');
+    expect(embedContent.mock.calls[0][0].config.abortSignal).toBeInstanceOf(AbortSignal);
+  });
+
   it('embed and embedBatch use gemini-embedding-001 on the client, 3072 dims', async () => {
     embedContent.mockImplementation(async ({ contents }: { contents: string[] }) =>
       vectors(contents.length)

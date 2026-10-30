@@ -65,7 +65,7 @@ describe('caller text outside the logs', () => {
   });
 
   it('voice routing records the emotional data point without a snippet of the words', async () => {
-    // router start-up embeds the tool set through the mocked client
+    vi.stubEnv('ROUTER_EMBEDDINGS_VERTEX', 'on'); // router start-up embeds the tool set
     await routeVoiceInput(SENTINEL, {
       userId: 'u1',
       sessionId: 's1',

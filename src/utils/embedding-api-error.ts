@@ -17,8 +17,8 @@ export class EmbeddingApiError extends Error {
 
 /** No embedding client: Vertex has no GOOGLE_CLOUD_PROJECT (or, off Vertex, no key). */
 export class EmbeddingUnavailableError extends Error {
-  constructor() {
-    super('Embedding client unavailable');
+  constructor(reason = 'Embedding client unavailable') {
+    super(reason);
     this.name = 'EmbeddingUnavailableError';
   }
 }

@@ -4,7 +4,7 @@
  * utterance, and callers log the error. The thrown message keeps the provider and
  * the numeric status; the log line carries the class and status only.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logged = vi.hoisted(() => [] as unknown[][]);
 const SENTINEL = 'my sister Dolores has stage-three lupus';
@@ -71,7 +71,12 @@ const calls: Array<[string, string, (t: string) => Promise<unknown>]> = [
 ];
 
 describe('semantic router embedding errors', () => {
+  beforeEach(() => {
+    vi.stubEnv('ROUTER_EMBEDDINGS_VERTEX', 'on'); // the Google cases reach the mocked client
+  });
+
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     logged.length = 0;
   });
