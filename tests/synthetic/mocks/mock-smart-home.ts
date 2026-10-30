@@ -2,7 +2,7 @@
  * Mock Smart Home Simulator
  *
  * Simulates smart home platforms for testing vibe/home automation flows.
- * Supports Home Assistant, Philips Hue, LIFX, and Ecobee thermostats.
+ * Supports Philips Hue, LIFX, and Ecobee thermostats.
  *
  * This enables comprehensive E2E testing without real smart home devices.
  */
@@ -11,7 +11,7 @@
 // TYPES
 // ============================================================================
 
-export type SmartHomePlatform = 'home_assistant' | 'hue' | 'lifx' | 'ecobee';
+export type SmartHomePlatform = 'hue' | 'lifx' | 'ecobee';
 
 export type DeviceType = 'light' | 'switch' | 'thermostat' | 'lock' | 'sensor' | 'fan' | 'cover';
 
@@ -123,8 +123,8 @@ export class MockSmartHome {
   async getAllDevices(): Promise<MockDevice[]> {
     await this.simulateLatency();
 
-    if (this.shouldFail('home_assistant')) {
-      throw new Error('Home Assistant unavailable');
+    if (this.shouldFail('lifx')) {
+      throw new Error('LIFX unavailable');
     }
 
     return Array.from(this.deviceStates.values()).filter((d) => d.online);
@@ -592,13 +592,13 @@ export interface VibePresetConfig {
 export function createConnectedHome(overrides?: Partial<MockSmartHomeConfig>): MockSmartHomeConfig {
   return {
     name: 'Connected Smart Home',
-    platforms: ['home_assistant', 'hue', 'ecobee'],
+    platforms: ['lifx', 'hue', 'ecobee'],
     devices: [
       {
         id: 'light.living_room',
         name: 'Living Room Light',
         type: 'light',
-        platform: 'home_assistant',
+        platform: 'lifx',
         state: 'on',
         attributes: { brightness: 80, colorTemp: 4000 },
         room: 'Living Room',
@@ -637,14 +637,14 @@ export function createConnectedHome(overrides?: Partial<MockSmartHomeConfig>): M
         id: 'lock.front',
         name: 'Front Door Lock',
         type: 'lock',
-        platform: 'home_assistant',
+        platform: 'lifx',
         state: 'on',
         attributes: { locked: true },
         online: true,
       },
     ],
     behaviors: {
-      home_assistant: 'success',
+      lifx: 'success',
       hue: 'success',
       ecobee: 'success',
     },
@@ -692,7 +692,7 @@ export function createCircuitOpenHome(overrides?: Partial<MockSmartHomeConfig>):
   const config = createConnectedHome(overrides);
   config.name = 'Circuit Open Home';
   config.behaviors = {
-    home_assistant: 'circuit_open',
+    lifx: 'circuit_open',
     hue: 'circuit_open',
     ecobee: 'circuit_open',
   };
