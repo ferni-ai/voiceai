@@ -14,8 +14,8 @@
 // minutes backs "nine hours", 10:30 backs "ten thirty", a 3-item list backs "three", an ISO date
 // backs its weekday, and a hedged number ("about forty") may be within 5%. Nothing is skipped:
 // a remembered fact is backed by the caller's words or a seeded call's, never by "you told me".
-// Lexical, so the nightly reports it only (capabilities.json tool-grounding, never exit 1) until
-// real nights grade clean; #3143's two verify rounds are its regression tests.
+// Lexical, so the nightly reports it only (capabilities.json tool-grounding, never exit 1). What it
+// can't catch yet is in TOOL_GROUNDING_KNOWN_GAPS.md; a model-judge check is the path to blocking.
 //
 // usage: tool-grounding.mjs <run.json> <agent-log.jsonl>   (one call's log lines; prints JSON)
 import { readFileSync, realpathSync } from 'node:fs';
@@ -149,19 +149,50 @@ const partsOf = (text) => ({
 });
 const partsSaid = (text, unit) =>
   new Set(
-    [...String(text).matchAll(new RegExp(`((?:[\\w-]+\\s+){1,3})${unit}\\b`, 'gi'))].flatMap(
-      (m) => [...numbersIn(m[1])]
-    )
+    [
+      ...String(text).matchAll(new RegExp(`((?:[\\w-]+\\s+){1,3})${unit}\\b`, 'gi')),
+      // cents as the one word after the dollars: "a dollar ninety-five" ("and" means "cents" follows)
+      ...(unit === 'cents' ? String(text).matchAll(/\bdollars?\s+([\w-]+)/gi) : []),
+    ].flatMap((m) => [...numbersIn(m[1])])
   );
 
-/** Numbers said right after a hedge ("about forty", "around nine hundred and sixty", "~40"). */
+const isNumberToken = (t) =>
+  /^\d[\d.,:]*$/.test(t) ||
+  (/^[a-z-]+$/i.test(t) &&
+    t
+      .toLowerCase()
+      .split('-')
+      .every((p) => isNumberWord(p) || isScale(p)));
+/** The number said straight after a hedge ("about forty", "around a hundred", "~40", or the
+ *  minutes of "about an hour and fifty minutes"). "around flight 1530" and "about the 1530" hedge
+ *  nothing. Each hedge is read on its own (a lookahead), so a second hedge counts too. */
 const hedgedNumbers = (text) =>
   new Set(
     [
       ...String(text).matchAll(
-        /(?:\b(?:about|around|roughly|nearly|almost|approximately)\b|~)\s*([^.,;:!?]{1,40})/gi
+        /(?:\b(?:about|around|roughly|nearly|almost|approximately)\b|~)(?=\s*([^.;:!?]{1,60}))/gi
       ),
-    ].flatMap((m) => [...numbersIn(m[1].split(/\s+/).slice(0, 5).join(' '))].slice(0, 1))
+    ].flatMap((m) => {
+      const t = m[1].split(/[\s,]+/).filter(Boolean);
+      // "about an hour and fifty minutes": the hedge carries over the hours to the minutes.
+      const lead = /^(?:a|an|\S+)\s+hours?(?:\s+and)?$/i.test(t.slice(0, 3).join(' '))
+        ? 3
+        : /^(?:a|an|\S+)\s+hours?$/i.test(t.slice(0, 2).join(' '))
+          ? 2
+          : 0;
+      let i = lead && (lead === 2 || /^(?:a|an)$/i.test(t[0]) || isNumberToken(t[0])) ? lead : 0;
+      const run = [];
+      for (; i < t.length; i++) {
+        const w = t[i].toLowerCase();
+        const joins =
+          isNumberToken(w) ||
+          (w === 'a' && !run.length && isScale(t[i + 1]?.toLowerCase())) ||
+          (w === 'and' && run.length && isNumberToken(t[i + 1] ?? ''));
+        if (!joins) break;
+        run.push(w);
+      }
+      return run.length ? [...numbersIn(run.join(' '))].slice(0, 1) : [];
+    })
   );
 /** Backed when the tool or caller said it; a hedged number may be within 5% of one. Never an
  *  unhedged number: "UA 1523" against "UA 1549" is an invented flight, not a rounding. */

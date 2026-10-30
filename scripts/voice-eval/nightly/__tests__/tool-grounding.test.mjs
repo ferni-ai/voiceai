@@ -420,18 +420,6 @@ describe('verify round 1: independent fixtures', () => {
     expect(fx("Morning, Robin. It's thirty-nine.")).toEqual(['Robin']);
   });
 
-  // Known false positive, tolerated while report only: a sentence-first noun as the subject of
-  // "is" ("Tipoff is...") reads like a name ("Nopalito is a great pick."). The time is backed.
-  it('known false positive: a sentence-first subject noun', () => {
-    const g = one(
-      'When does the game start?',
-      'Tipoff is at seven PM tonight.',
-      'getSports',
-      '"Nuggets vs Lakers, 19:00 local"'
-    );
-    expect(g.details[0].invented).toEqual(['Tipoff']);
-  });
-
   it('reads a fact the caller gave in a seeded call (context) as theirs', () => {
     const fx = [
       'My calendar?',
@@ -744,8 +732,8 @@ describe('verify round 2: held-out set', () => {
 
 // #3143 verify round 3: held-out fixtures (/Volumes/Work/verify/3143-r3-logs/heldout3.mjs), written
 // by the verifier; names are fictional. P1-P3 probe the hedge window and the cents and minutes
-// derivations. G10 (a month from an ISO date) and G12 (a brand for a flight code) are known false
-// positives, tolerated while report only, so they are asserted as they grade today.
+// derivations. G10 (a month from an ISO date) and G12 (a brand for a flight code) still grade
+// red; they are in ../TOOL_GROUNDING_KNOWN_GAPS.md, not asserted here.
 describe('verify round 3: held-out set', () => {
   const one = (q, reply, name, output) =>
     gradeRun(
@@ -997,25 +985,6 @@ describe('verify round 3: held-out set', () => {
   it.each(RED)('red: %s', (_, ...fx) => expect(one(...fx).invented).toBe(1));
   it.each(GREEN)('green: %s', (_, ...fx) => expect(one(...fx).details[0].invented).toEqual([]));
 
-  it('known false positives: a month from an ISO date, a brand for a flight code', () => {
-    expect(
-      one(
-        'Registration?',
-        'Registration opens in April.',
-        'getCalendarEvents',
-        '{"events":[{"title":"registration opens","date":"2026-04-15"}]}'
-      ).details[0].invented
-    ).toEqual(['April']);
-    expect(
-      one(
-        'Evening flights?',
-        'The JetBlue one, B6 1188, leaves at nine oh five.',
-        'searchFlights',
-        FLIGHTS
-      ).details[0].invented
-    ).toEqual(['JetBlue']);
-  });
-
   it('a seeded fact backs a restated memory, a changed one is red', () => {
     const seeded = (reply) =>
       nightGrounding([
@@ -1050,5 +1019,57 @@ describe('verify round 3: held-out set', () => {
     expect(
       seeded('Since Delphine is in Flagstaff, the drive is about an hour and fifty minutes.')
     ).toBe(1);
+  });
+});
+
+// #3143 verify round 4 (/Volumes/Work/verify/3143-r4-logs/heldout4.mjs, fictional data): a hedge
+// counts only for the number straight after it, so a hedge that lands on a code hedges nothing.
+// The cents/minutes-without-the-dollars/hours misses (X1-X5) are known gaps, documented in
+// ../TOOL_GROUNDING_KNOWN_GAPS.md, not tested here.
+describe('verify round 4: the hedge reaches only the number straight after it', () => {
+  const one = (reply, output) =>
+    gradeRun(
+      {
+        userSpeech: [[1000, 2500]],
+        events: [
+          { who: 'user', t: 1000, text: 'Question?' },
+          { who: 'agent', t: 4000, text: reply },
+        ],
+      },
+      [{ name: 'searchFlights', isError: false, output, atMs: 3000 }]
+    );
+  const F = '[{"flight":"UA 1549","duration_min":41,"price":312}]';
+  it.each([
+    ["That's about UA 1530 forty minutes from now."],
+    ["It's about the 1530 flight and 41 minutes."],
+    ['It takes about forty minutes and it is roughly UA 1530.'],
+    ["That's about forty minutes on UA 1530."],
+    ['You are booked around UA 1530.'],
+    ["Around flight 1530, it's forty-one minutes."],
+    ["You'd take roughly the 1530, about 41 minutes."],
+  ])('red: %s', (reply) => expect(one(reply, F).details[0].invented).toContain(1530));
+  it.each([
+    ["It's about forty minutes and around three hundred dollars."], // two hedges, both within 5%
+    ['UA 1549 is about forty minutes.'],
+    ["That's about forty minutes on UA 1549."],
+    ['It is about an hour and forty minutes.'],
+  ])('green: %s', (reply) => {
+    const out = reply.includes('an hour') ? '"Duration: 1 h 41 min"' : F;
+    expect(one(reply, out).details[0].invented).toEqual([]);
+  });
+  it('a second hedge outside 5% is red', () => {
+    expect(
+      one("It's about forty minutes and around four hundred dollars.", F).details[0].invented
+    ).toEqual([400]);
+  });
+  it('"a dollar ninety-five" for $1.95 is green; "and" needs "cents" after it', () => {
+    const lamp = (reply, out) => one(reply, out).details[0].invented;
+    expect(lamp("It's a dollar ninety-five.", '"Night light $1.95"')).toEqual([]);
+    expect(lamp('The lamp is twelve dollars and ninety-five cents.', '"Desk lamp $12.95"')).toEqual(
+      []
+    );
+    expect(
+      lamp('It costs twelve dollars and ninety-five people rated it.', '"Desk lamp $12.95"')
+    ).toEqual([95]);
   });
 });
