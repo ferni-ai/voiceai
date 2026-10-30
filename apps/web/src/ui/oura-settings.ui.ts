@@ -62,11 +62,11 @@ interface OuraStatus {
   sleep?: OuraSleepSummary;
   readiness?: OuraReadinessSummary;
   activity?: OuraActivitySummary;
+  needsReauth?: boolean; // Oura refused the saved link: connect again
   error?: string;
 }
 
 interface OuraSettingsCallbacks {
-  onConnected?: () => void;
   onDisconnected?: () => void;
   onClose?: () => void;
 }
@@ -79,6 +79,7 @@ let container: HTMLElement | null = null;
 let releaseEscape: (() => void) | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: OuraSettingsCallbacks = {};
+let needsReauth = false;
 let isLoading = false;
 
 // ============================================================================
@@ -548,26 +549,23 @@ function renderConnectState(): void {
   const content = container.querySelector('.oura-settings__content');
   if (!content) return;
 
-  // Clear existing content safely
   while (content.firstChild) {
     content.removeChild(content.firstChild);
   }
 
   const connectDiv = createElement('div', { className: 'oura-settings__connect' });
 
-  // Icon
   const iconDiv = createElement('div', { className: 'oura-settings__connect-icon' });
   const ringIcon = createIcon('ring');
   if (ringIcon) iconDiv.appendChild(ringIcon);
   connectDiv.appendChild(iconDiv);
 
-  // Title
-  const title = createElement('h3', { textContent: 'Connect Your Oura Ring' });
+  const title = createElement('h3', { textContent: needsReauth ? 'Reconnect Your Oura Ring' : 'Connect Your Oura Ring' });
   connectDiv.appendChild(title);
 
   // Description
   const description = createElement('p', {
-    textContent: 'Link your Oura Ring to get personalized insights about your sleep, readiness, and activity.',
+    textContent: needsReauth ? 'Oura needs you to sign in again before Ferni can see your sleep.' : 'Link your Oura Ring to get personalized insights about your sleep, readiness, and activity.',
   });
   connectDiv.appendChild(description);
 
@@ -855,6 +853,7 @@ async function loadStatus(): Promise<void> {
     }
 
     const status = response.data;
+    needsReauth = Boolean(status?.needsReauth);
     if (status?.connected) {
       renderConnectedState(status);
     } else {

@@ -11,9 +11,9 @@
  * - When nothing is left to continue with, continueAmbientMusic says so, so
  *   the caller hears a short line instead of silence.
  * - The first ambient play of a call without Spotify tells the model these are
- *   short previews, once, so Ferni can offer to link Spotify. With
- *   MUSIC_HONEST_WHEN_UNLINKED on it says Spotify isn't connected and offers a
- *   link only when the connect route is configured (music-honesty.ts).
+ *   short previews, once, and never to offer linking Spotify, which can't be
+ *   done (music-honesty.ts). With MUSIC_HONEST_WHEN_UNLINKED on it says
+ *   Spotify isn't connected right now.
  *
  * State belongs to the music player's session: it starts over when the
  * player's session id changes (and on resetAmbientSession()).
@@ -24,7 +24,7 @@ import { getMusicPlayer, isMusicAvailable, type MusicTrack } from '../../../audi
 import { flagOn, type Env } from '../../../config/env-flag.js';
 import { searchItunes } from '../../../services/itunes.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { honestPreviewNotice, musicHonestOn } from './music-honesty.js';
+import { honestPreviewNotice, musicHonestOn, NO_LINK_OFFER } from './music-honesty.js';
 import { ambientStartLine, startWithin } from './music-start.js';
 
 type ItunesTrack = Awaited<ReturnType<typeof searchItunes>>['results'][number];
@@ -35,8 +35,7 @@ const QUEUED = 4;
 const CONTINUE_SEARCH_LIMIT = 25;
 
 /** Told to the model with the first ambient play of a call when Spotify isn't linked. */
-export const PREVIEW_NOTICE =
-  " These are 30-second previews because Spotify isn't linked. Say so once, briefly, and offer to link Spotify for full songs.";
+export const PREVIEW_NOTICE = ` These are 30-second previews because Spotify isn't linked. Say so once, briefly. ${NO_LINK_OFFER}`;
 
 let request: string | undefined;
 const played = new Set<string>();
