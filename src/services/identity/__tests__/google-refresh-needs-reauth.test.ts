@@ -4,54 +4,68 @@
  * invalid_grant records needs_reauth where the status reader can find it.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createMergeFakeFirestore,
+  newMergeFakeState,
+  type MergeFakeState,
+} from '../../../tests/helpers/merge-fake-firestore.js';
 
-const firestore = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+const fake = vi.hoisted(() => ({ db: null as unknown }));
 
 vi.hoisted(() => {
   process.env.GOOGLE_CALENDAR_CLIENT_ID = 'client-id';
   process.env.GOOGLE_CALENDAR_CLIENT_SECRET = 'client-secret';
 });
-vi.mock('../../persistence/index.js', () => ({
-  createPersistenceStore: (config: { collection: string }) => {
-    const path = (uid: string) => `bogle_users/${uid}/${config.collection}/data`;
-    const read = async (uid: string) => firestore.get(path(uid)) ?? null;
-    return {
-      get: read,
-      load: read,
-      setImmediate: async (uid: string, data: Record<string, unknown>) => {
-        firestore.set(path(uid), { ...firestore.get(path(uid)), ...data });
-      },
-      delete: async (uid: string) => void firestore.delete(path(uid)),
-      shutdown: async () => {},
-    };
+// The real persistence layer on the Firestore fake: the doc path is pinned, not mocked away
+vi.mock('@google-cloud/firestore', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  Firestore: class {
+    constructor() {
+      return fake.db as object;
+    }
   },
 }));
 
+const state: MergeFakeState = newMergeFakeState();
+fake.db = createMergeFakeFirestore(state);
+
 const { googleTokenStore } = await import('../google-calendar-token-store.js');
-const { getValidAccessToken } = await import('../google-calendar-oauth.js');
+const { getValidAccessToken, refreshAccessTokenForUser } =
+  await import('../google-calendar-oauth.js');
 const { refreshToken } = await import('../../../servers/token/oauth/google-calendar.js');
 
 const UID = 'google-user-abcdefghijklmnopqrs';
+const DOC = `bogle_users/${UID}/google_calendar_tokens/data`;
 const EXPIRED = { access_token: 'at-old', refresh_token: 'rt-1', expires_at: 1 };
 const reply = (status: number, body: unknown) =>
   vi.fn(async () => new Response(JSON.stringify(body), { status }));
 
 beforeEach(async () => {
   await googleTokenStore.shutdown();
-  firestore.clear();
+  state.docs.clear();
+  state.writes.length = 0;
   vi.unstubAllGlobals();
   await googleTokenStore.save(UID, EXPIRED);
 });
 
+it('keeps the link at bogle_users/{uid}/google_calendar_tokens/data', () => {
+  expect([...state.docs.keys()]).toEqual([DOC]);
+});
+
 describe.each([
-  ['agent getValidAccessToken', () => getValidAccessToken(UID)],
-  ['UI server refreshToken', async () => (await refreshToken(UID))?.access_token ?? null],
-])('%s', (_name, refresh) => {
-  it('stores the new token and reports connected when the refresh works', async () => {
+  ['agent getValidAccessToken', () => getValidAccessToken(UID), true],
+  [
+    'direct readers (busy detection, location calendar)',
+    async () => (await refreshAccessTokenForUser(UID, 'rt-1'))?.access_token ?? null,
+    false, // for one call only: the result is not stored
+  ],
+  ['UI server refreshToken', async () => (await refreshToken(UID))?.access_token ?? null, true],
+])('%s', (_name, refresh, stores) => {
+  it('returns the new token and reports connected when the refresh works', async () => {
     vi.stubGlobal('fetch', reply(200, { access_token: 'at-new', expires_in: 3600 }));
     expect(await refresh()).toBe('at-new');
     expect(await googleTokenStore.get(UID)).toMatchObject({
-      access_token: 'at-new',
+      access_token: stores ? 'at-new' : 'at-old',
       refresh_token: 'rt-1',
     });
     expect(await googleTokenStore.linkStatus(UID)).toEqual({ state: 'connected' });

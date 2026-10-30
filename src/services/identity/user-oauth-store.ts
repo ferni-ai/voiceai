@@ -22,29 +22,17 @@
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { resealStale } from '../../utils/token-at-rest.js';
 import { createPersistenceStore } from '../persistence/index.js';
+import {
+  createExpiringSet,
+  createReauthState,
+  type LinkDoc,
+  type LinkStatus,
+  type ReauthOutcome,
+} from './oauth-link-state.js';
 
 const log = createLogger({ module: 'UserOAuthStore' });
-
-/** Recorded on the link doc when the provider says the grant is gone. No token material. */
-interface NeedsReauth {
-  /** Epoch ms of the refresh that failed */
-  at: number;
-  /** The provider's error class: invalid_grant, revoked, unauthorized_client */
-  errorClass: string;
-}
-
-interface LinkStatus {
-  state: 'connected' | 'needs_reauth' | 'not_connected';
-  needsReauth?: NeedsReauth;
-}
-
-interface LinkDoc {
-  encrypted: string;
-  updated_at: number;
-  /** null clears it: the persistence layer merges, so a reconnect must say so */
-  needs_reauth?: NeedsReauth | null;
-}
 
 export interface UserOAuthStore<T extends { refresh_token?: string }> {
   /** Cached tokens only (no I/O). Null until get has loaded them. */
@@ -64,7 +52,11 @@ export interface UserOAuthStore<T extends { refresh_token?: string }> {
   /** connected / needs_reauth / not_connected, read fresh (another process may have recorded it). */
   linkStatus: (userId: string) => Promise<LinkStatus>;
   /** Record needs_reauth on the link doc; false when there is no link or it is already recorded. */
-  markNeedsReauth: (userId: string, errorClass: string) => Promise<boolean>;
+  markNeedsReauth: (
+    userId: string,
+    errorClass: string,
+    failedRefreshToken: string
+  ) => Promise<ReauthOutcome>;
   /** Forget the cached tokens so the next get reads Firestore. */
   evict: (userId: string) => void;
   /** A permanently failed refresh is not retried for REFRESH_BLOCK_MS. */
@@ -80,71 +72,9 @@ export interface UserOAuthStore<T extends { refresh_token?: string }> {
  * up within a minute; save/remove in this process clear it at once.
  */
 const MISS_TTL_MS = 60_000;
-const MAX_MISS_ENTRIES = 10_000;
 const REFRESH_BLOCK_MS = 60 * 60 * 1000;
 
-/** Ids remembered for a while: a miss, or a refresh that failed for good. */
-function createExpiringSet(ttlMs: number, max = MAX_MISS_ENTRIES) {
-  const until = new Map<string, number>();
-  return {
-    add(id: string): void {
-      if (until.size >= max) {
-        const now = Date.now();
-        for (const [key, at] of until) if (at <= now) until.delete(key);
-        if (until.size >= max) until.clear();
-      }
-      until.set(id, Date.now() + ttlMs);
-    },
-    has(id: string): boolean {
-      const at = until.get(id);
-      if (at === undefined) return false;
-      if (at > Date.now()) return true;
-      until.delete(id);
-      return false;
-    },
-    delete: (id: string): void => void until.delete(id),
-    clear: (): void => until.clear(),
-  };
-}
-
 const idTag = (userId: string): string => userId.substring(0, 8);
-
-type DocStore = ReturnType<typeof createPersistenceStore<LinkDoc>>;
-
-/** The needs_reauth side of a link doc: read it, record it, and what this process has seen of it. */
-function createReauthState(docStore: DocStore) {
-  const seen = new Map<string, NeedsReauth>();
-  return {
-    forget: (userId: string): void => void seen.delete(userId),
-    forgetAll: (): void => seen.clear(),
-
-    async linkStatus(userId: string): Promise<LinkStatus> {
-      const known = seen.get(userId);
-      if (known) return { state: 'needs_reauth', needsReauth: known };
-      const doc = await docStore.load(userId, { fresh: true });
-      if (!doc?.encrypted) return { state: 'not_connected' };
-      if (doc.needs_reauth) {
-        seen.set(userId, doc.needs_reauth);
-        return { state: 'needs_reauth', needsReauth: doc.needs_reauth };
-      }
-      return { state: 'connected' };
-    },
-
-    async markNeedsReauth(userId: string, errorClass: string): Promise<boolean> {
-      if (seen.has(userId)) return false;
-      const doc = await docStore.load(userId, { fresh: true, strict: true });
-      if (!doc?.encrypted) return false; // disconnected meanwhile: nothing to flag
-      if (doc.needs_reauth) {
-        seen.set(userId, doc.needs_reauth);
-        return false;
-      }
-      const mark: NeedsReauth = { at: Date.now(), errorClass };
-      await docStore.setImmediate(userId, { ...doc, needs_reauth: mark });
-      seen.set(userId, mark);
-      return true;
-    },
-  };
-}
 
 export function createUserOAuthStore<T extends { refresh_token?: string }>(config: {
   provider: string;
@@ -164,8 +94,21 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
   const tokenCache = new Map<string, T>();
   const misses = createExpiringSet(MISS_TTL_MS);
   const pendingLoads = new Map<string, Promise<T | null>>();
-  const reauth = createReauthState(docStore);
+  const reauth = createReauthState<T>(docStore);
   const blocked = createExpiringSet(REFRESH_BLOCK_MS);
+
+  /** With TOKEN_SEALING_KEY set, move an envelope sealed under an older key to it (best effort). */
+  function resealToSealingKey(userId: string, data: LinkDoc, value: T): Promise<unknown> {
+    return resealStale({
+      store: collection,
+      stored: data.encrypted,
+      value,
+      swap: (encrypted) =>
+        docStore.updateIfUnchanged(userId, (cur) => cur.encrypted === data.encrypted, {
+          encrypted,
+        }),
+    });
+  }
 
   async function loadTokens(userId: string): Promise<T | null> {
     try {
@@ -174,6 +117,7 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
         const decrypted = decryptData<T>(data.encrypted);
         if (decrypted) {
           tokenCache.set(userId, decrypted);
+          void resealToSealingKey(userId, data, decrypted);
           return decrypted;
         }
       }

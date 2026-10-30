@@ -37,9 +37,9 @@ export function permanentGrantErrorClass(errorBody: string): string | null {
  * Run a refresh. `doRefresh` throws TokenPermanentlyInvalidError for a revoked
  * grant (see permanentGrantErrorClass); that is recorded as needs_reauth, the
  * refresh is blocked for an hour, and null comes back. Any other failure is
- * logged and returns null. Before recording, the link is re-read: if its
- * refresh token is no longer the one that failed, the person reconnected (or
- * another instance rotated it), so the failure is stale and nothing is recorded.
+ * logged and returns null. The store records only if the link still holds the
+ * refresh token that failed: a reconnect (or rotation) since makes the failure
+ * stale, and nothing is recorded.
  */
 export async function refreshWithRevocation<T extends { refresh_token?: string }, R>(
   store: UserOAuthStore<T>,
@@ -56,15 +56,14 @@ export async function refreshWithRevocation<T extends { refresh_token?: string }
       return null;
     }
     try {
-      const current = await store.readFresh(userId);
-      if (current?.refresh_token && current.refresh_token !== usedRefreshToken) {
+      const outcome = await store.markNeedsReauth(userId, error.errorClass, usedRefreshToken);
+      if (outcome === 'stale') {
         store.evict(userId);
         log.info({ ...ids, outcome: 'superseded' }, 'Refresh failed on a replaced grant; ignored');
         return null;
       }
-      const recorded = await store.markNeedsReauth(userId, error.errorClass);
       log.warn(
-        { ...ids, outcome: 'needs_reauth', errorClass: error.errorClass, recorded },
+        { ...ids, outcome: 'needs_reauth', errorClass: error.errorClass, recorded: outcome },
         'OAuth link revoked - user needs to reconnect'
       );
     } catch (writeError) {

@@ -29,6 +29,8 @@ import {
   refreshWithRevocation,
 } from './oauth-revocation.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { GOOGLE_CALENDAR_SCOPES } from '../../config/google-calendar-scopes.js';
+import { isInsufficientLink } from './google-link-scope.js';
 import { getRateLimiter } from '../../tools/rate-limiter.js';
 import type { GoogleAttendee, GoogleOrganizer } from './google-event-invite.js';
 
@@ -39,18 +41,7 @@ const GOOGLE_OAUTH_CLIENT_SECRET = (process.env.GOOGLE_CALENDAR_CLIENT_SECRET ??
 const GOOGLE_OAUTH_REDIRECT_URI =
   process.env.GOOGLE_CALENDAR_REDIRECT_URI?.trim() || 'http://localhost:3003/auth/google/callback';
 
-// Scopes needed for calendar and email operations
-// NOTE: Gmail scope is read-only for security
-const GOOGLE_API_SCOPES = [
-  // Calendar (full access for scheduling)
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/calendar.events',
-  // Gmail (read-only for inbox triage)
-  'https://www.googleapis.com/auth/gmail.readonly',
-];
-
-// Legacy alias for compatibility
-const CALENDAR_SCOPES = GOOGLE_API_SCOPES;
+const CALENDAR_SCOPES = GOOGLE_CALENDAR_SCOPES;
 
 // Circuit breaker for Google APIs - prevents hammering a failing service
 const googleCalendarCircuitBreaker = getCircuitBreaker('google-calendar', {
@@ -137,7 +128,7 @@ export async function storeUserTokens(userId: string, tokens: GoogleTokens): Pro
  */
 export async function getUserTokens(userId: string): Promise<GoogleTokens | undefined> {
   const stored = await getTokens(userId);
-  return stored ? toGoogleTokens(stored) : undefined;
+  return stored && !isInsufficientLink(stored) ? toGoogleTokens(stored) : undefined;
 }
 
 /**
@@ -146,7 +137,7 @@ export async function getUserTokens(userId: string): Promise<GoogleTokens | unde
 export function getUserTokensSync(userId: string): GoogleTokens | undefined {
   const cached = peekTokens(userId);
   if (!cached) void getUserTokens(userId);
-  return cached ? toGoogleTokens(cached) : undefined;
+  return cached && !isInsufficientLink(cached) ? toGoogleTokens(cached) : undefined;
 }
 
 /**
@@ -258,6 +249,19 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
   tokens.refresh_token = refreshToken;
 
   return tokens;
+}
+
+/**
+ * Refresh without storing the result, for readers that only need a token for this one call.
+ * A revoked grant is recorded as needs_reauth like every other refresh. Null on any failure.
+ */
+export async function refreshAccessTokenForUser(
+  userId: string,
+  refreshToken: string
+): Promise<GoogleTokens | null> {
+  return refreshWithRevocation(googleTokenStore, userId, refreshToken, () =>
+    refreshAccessToken(refreshToken)
+  );
 }
 
 /**
