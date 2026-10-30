@@ -29,6 +29,7 @@ import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/tur
 import { confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
+  aliasNoteFor,
   teamStatusNote,
   unlockViewFor,
   withoutLockedTeammateNotes,
@@ -205,8 +206,8 @@ function buildTurnReminder(
     worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
-    // "Naya" in the transcript is Nayan (teammate-names.ts)
-    heardTeammateNote(words),
+    // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
+    heardTeammateNote(words, aliasNoteFor(view, session, chatCtx, options.shape === false)),
     notes,
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.
