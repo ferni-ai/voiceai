@@ -30,7 +30,6 @@ state.failReads = failed;
 fake.db = createMergeFakeFirestore(state);
 
 const plaid = await import('../../../servers/api/services/plaid.js');
-const spotifyLink = await import('../../../servers/token/oauth/spotify.js');
 const spotifyApi = await import('../../../servers/api/services/spotify.js');
 const wearables = await import('../../../servers/token/oauth/wearables.js');
 const gmail = await import('../../identity/gmail-send-as-user.js');
@@ -58,13 +57,6 @@ describe('token saves after a failed token read', () => {
     const path = 'bogle_users/u-plaid/plaid_tokens/data';
     await afterAFailedRead(path, () => plaid.loadTokensForUser('u-plaid'));
     await plaid.storeToken('u-plaid', 'access-new', 'item-new');
-    expect(writesTo(path)).toHaveLength(1);
-  });
-
-  it('Spotify link (per user): saveTokens saves the new grant', async () => {
-    const path = `bogle_users/u-spot/${spotifyLink.SPOTIFY_LINK_COLLECTION}/data`;
-    await afterAFailedRead(path, () => spotifyLink.getTokens('u-spot'));
-    await spotifyLink.saveTokens('u-spot', tokens as never);
     expect(writesTo(path)).toHaveLength(1);
   });
 

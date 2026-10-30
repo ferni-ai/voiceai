@@ -1218,7 +1218,6 @@
       "journaling": "اليوميات",
       "language": "اللغة",
       "lifeContext": "عالمك",
-      "linkSpotify": "ربط Spotify",
       "memoryBrowser": "ما أتذكره",
       "musicalYou": "الموسيقى معاً",
       "notifications": "أوقات الاطمئنان",
@@ -1228,7 +1227,6 @@
       "predictionAccuracy": "كيف أبلي",
       "progressAnalytics": "كيف حالك",
       "shareFerni": "دعوة صديق",
-      "spotifyConnected": "تم ربط Spotify",
       "supportFerni": "دعم Ferni",
       "supportFerniExpanded": "دعم Ferni",
       "takeTour": "خذني في جولة",
@@ -2847,8 +2845,7 @@
       "askFerni": "أو اطلبوا من Ferni تشغيل شيء ما",
       "play": "تشغيل",
       "pause": "إيقاف مؤقت",
-      "skip": "تخطي",
-      "linkSpotify": "يرجى ربط Spotify في الإعدادات للاستماع إلى الأغاني كاملةً"
+      "skip": "تخطي"
     },
     "volume": "مستوى الصوت",
     "skipped": "تم التخطي",
@@ -8537,7 +8534,6 @@
     "wearablesDesc": "أجهزة Garmin وWHOOP وغيرها",
     "calendarDesc": "الفعاليات، والاجتماعات، والأوقات المتاحة",
     "linkedInDesc": "السياق المهني وشبكة العلاقات",
-    "spotifyDesc": "الموسيقى، وقوائم تشغيل المزاج، وسجل الاستماع",
     "ecobeeDesc": "درجة حرارة المنزل والراحة",
     "vibeControllerDesc": "التحكم في الموسيقى، والإضاءة، والمزيد",
     "connected": "متصل"
@@ -9251,9 +9247,6 @@
     "trustJourneyExplore": "استكشاف",
     "customizeTitle": "تخصيص تجربتك",
     "customizeMessage": "ضبط المظاهر، والأصوات، والمزيد.",
-    "spotifyTitle": "ربط Spotify",
-    "spotifyMessage": "اربط حسابك في Spotify لتهيئة المزاج أثناء محادثاتنا.",
-    "spotifyConnect": "ربط",
     "maybeLater": "ربما لاحقاً"
   },
   "mentorTeachings": {
