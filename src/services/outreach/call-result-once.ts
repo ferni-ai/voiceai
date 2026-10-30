@@ -37,7 +37,7 @@ import { carriesCrisis, crisisCallerLine } from './caller-text.js';
 import { callResultDetails, type CallResultTold } from './call-result-text.js';
 import type { StepOutcome } from './call-result-words.js';
 import type { CallOutcome } from '../../tools/domains/telephony/types.js';
-import { claimTold, releaseTold, type ToldChannel } from './call-result-claims.js';
+import { claimTold, releaseTold, type Claimed, type ToldChannel } from './call-result-claims.js';
 
 /** 0 status only, 1 their words, 2 a crisis line. */
 type ToldLevel = 0 | 1 | 2;
@@ -99,23 +99,20 @@ function needsOwner(outcome: CallOutcome): boolean {
 /** One capture's claims: take a channel, or send through it and give it back if it didn't go. */
 interface Claims {
   take: (channel: ToldChannel) => Promise<boolean>;
-  send: <T>(channel: ToldChannel, run: () => Promise<T>, went: (r: T) => boolean) => Promise<T | 'skipped'>; // prettier-ignore
+  /** Claim `channel` (and `also`, in one write) before `run`; give them back if it didn't go. */
+  send: <T>(channel: ToldChannel, run: () => Promise<T>, went: (r: T) => boolean, also?: ToldChannel[]) => Promise<T | 'skipped'>; // prettier-ignore
 }
 
 function claimsFor(userId: string, callId: string, level: ToldLevel): Claims {
-  const before = new Map<ToldChannel, number>();
-  const levelOf = (channel: ToldChannel): number => (channel === 'crisis' ? 2 : level);
-  const take = async (channel: ToldChannel): Promise<boolean> => {
-    const was = await claimTold(userId, callId, channel, levelOf(channel));
-    if (was !== null) before.set(channel, was);
-    return was !== null;
-  };
+  const claim = async (channel: ToldChannel, also: ToldChannel[] = []): Promise<Claimed | null> =>
+    claimTold(userId, callId, channel, channel === 'crisis' ? 2 : level, also);
   return {
-    take,
-    send: async (channel, run, went) => {
-      if (!(await take(channel))) return 'skipped';
+    take: async (channel) => (await claim(channel)) !== null,
+    send: async (channel, run, went, also) => {
+      const claimed = await claim(channel, also);
+      if (!claimed) return 'skipped';
       const result = await run();
-      if (!went(result)) await releaseTold(userId, callId, channel, levelOf(channel), before.get(channel) ?? -1); // prettier-ignore
+      if (!went(result)) await releaseTold(userId, callId, claimed);
       return result;
     },
   };
@@ -150,27 +147,27 @@ export async function tellOwnerOnce(
   // The first capture of a call (or one with more to say) is the one that tells live.
   const first = await claims.take('voice');
   const live = first ? await ports.live() : false;
-  // A crisis line goes by push at once, whatever else happens (its own claim).
+  // A crisis line goes by push at once, whatever else happens. That push is this call's push:
+  // its claim takes told.crisis and told.push together, before the send, so no capture
+  // sends a second one, and a failed send gives both back for a later capture to retry.
   const lead = crisisLead(call.outcome, call.contactName);
-  const alarm = lead ? await claims.send('crisis', async () => ports.push(lead), sent) : 'skipped';
-  const pushed = alarm === 'sent';
-  if (pushed) await claims.take('push'); // that was this call's push
-  if (!oneChannelOn()) return asBefore(live, pushed, claims, ports);
+  const alarm = lead ? await claims.send('crisis', async () => ports.push(lead), sent, ['push']) : null; // prettier-ignore
+  if (!oneChannelOn()) return asBefore(live, alarm, claims, ports);
   const email = await keepRecords(claims, ports);
   // A later capture with no more to say: the first one already chose the channel. A crisis
   // goes on, so a text held for quiet hours (its claim given back) is sent by a later capture.
-  const nudge = first || lead ? await oneChannel(call, live, pushed, claims, ports) : undefined;
-  return { live, email, push: pushed ? 'sent' : (nudge?.push ?? 'skipped'), text: nudge?.text ?? 'skipped' }; // prettier-ignore
+  const nudge = first || lead ? await oneChannel(call, live, alarm, claims, ports) : undefined;
+  return { live, email, push: alarm ?? nudge?.push ?? 'skipped', text: nudge?.text ?? 'skipped' }; // prettier-ignore
 }
 
-/** The push, once; none after a crisis push (that was the push). */
+/** The push, once. With a crisis line, the crisis push above was it: never a second one. */
 async function pushOnce(
   claims: Claims,
   ports: TellPorts,
-  pushed: boolean,
-  lead?: string
+  alarm: StepOutcome | null
 ): Promise<StepOutcome> {
-  return pushed ? 'sent' : claims.send('push', async () => ports.push(lead), sent);
+  // prettier-ignore
+  return alarm ?? claims.send('push', async () => ports.push(), sent);
 }
 
 /** The written record (email), the callback event and While You Were Away; returns the email's. */
@@ -184,21 +181,21 @@ async function keepRecords(claims: Claims, ports: TellPorts): Promise<StepOutcom
 /** Flag off, as before: push unless CALL_RESULT_TEXT texts them, the records, then the text. */
 async function asBefore(
   live: boolean,
-  pushed: boolean,
+  alarm: StepOutcome | null,
   claims: Claims,
   ports: TellPorts
 ): Promise<Told> {
-  const push = ports.textOn() ? 'skipped' : await pushOnce(claims, ports, pushed);
+  const push = ports.textOn() ? 'skipped' : await pushOnce(claims, ports, alarm);
   const email = await keepRecords(claims, ports);
   const text = ports.textOn() ? await claims.send('text', async () => ports.text(live), toldBy) : 'skipped'; // prettier-ignore
-  return { live, push: pushed ? 'sent' : push, email, text };
+  return { live, push: alarm ?? push, email, text };
 }
 
 /** Flag on: live is the channel; else one text when it needs them, else one push. */
 async function oneChannel(
   call: { outcome: CallOutcome; contactName: string },
   live: boolean,
-  pushed: boolean,
+  alarm: StepOutcome | null,
   claims: Claims,
   ports: TellPorts
 ): Promise<Pick<Told, 'push' | 'text'>> {
@@ -208,5 +205,5 @@ async function oneChannel(
   const wantsText = needsOwner(call.outcome) && ports.textOn();
   const text = wantsText ? await claims.send('text', async () => ports.text(false), toldBy) : 'skipped'; // prettier-ignore
   if (text === 'texted') return { push: 'skipped', text };
-  return { push: await pushOnce(claims, ports, pushed, lead), text };
+  return { push: await pushOnce(claims, ports, alarm), text };
 }
