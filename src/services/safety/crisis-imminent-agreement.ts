@@ -44,7 +44,7 @@ import { isPlainSignOff } from './crisis-lone-imminent.js';
 
 const log = createLogger({ module: 'CrisisImminentAgreement' });
 
-export function resolveImminentNeedsAgreement(
+function resolveImminentNeedsAgreement(
   env: Record<string, string | undefined> = process.env
 ): boolean {
   return env.CRISIS_IMMINENT_NEEDS_AGREEMENT?.trim().toLowerCase() === 'on';
