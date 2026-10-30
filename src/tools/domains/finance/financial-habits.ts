@@ -440,12 +440,12 @@ export function createFinancialHabitsTools() {
       }),
       execute: async ({ userId, period }) => {
         // Check if user has linked accounts
-        if (!hasLinkedAccounts(userId)) {
+        if (!(await hasLinkedAccounts(userId))) {
           getLogger().info({ userId }, 'No linked accounts - using sample data');
           return `I don't have access to your actual bank data yet. Want to link your accounts? It takes about 30 seconds and lets me give you real insights instead of guesses!\n\nFor now, I can help you track spending manually or set up a budget based on what you tell me.`;
         }
 
-        const accessToken = getStoredAccessToken(userId);
+        const accessToken = await getStoredAccessToken(userId);
         if (!accessToken) {
           return `Something went wrong accessing your accounts. Want to try reconnecting?`;
         }

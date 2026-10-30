@@ -29,8 +29,8 @@ describe('Banking Integration API', () => {
       const { hasLinkedAccounts, getTokenData } =
         await import('../../tools/domains/finance/plaid.js');
 
-      const connected = hasLinkedAccounts(testUserId);
-      const tokenData = connected ? getTokenData(testUserId) : null;
+      const connected = await hasLinkedAccounts(testUserId);
+      const tokenData = connected ? await getTokenData(testUserId) : null;
 
       expect(typeof connected).toBe('boolean');
       console.log(`✅ Banking status check works (connected: ${connected})`);
@@ -65,10 +65,10 @@ describe('Banking Integration API', () => {
         await import('../../tools/domains/finance/plaid.js');
 
       // First store a mock token
-      storeAccessToken(testUserId, 'mock-access-token');
+      await storeAccessToken(testUserId, 'mock-access-token');
 
       // Then remove it
-      const removed = removeAccessToken(testUserId);
+      const removed = await removeAccessToken(testUserId);
       expect(removed).toBe(true);
 
       console.log('✅ Banking disconnect works');
@@ -80,13 +80,13 @@ describe('Banking Integration API', () => {
       const { getAccountBalances, getTokenData, hasLinkedAccounts } =
         await import('../../tools/domains/finance/plaid.js');
 
-      if (!hasLinkedAccounts(testUserId)) {
+      if (!(await hasLinkedAccounts(testUserId))) {
         console.log('⚠️ Balance check skipped (no linked account)');
         expect(true).toBe(true);
         return;
       }
 
-      const tokenData = getTokenData(testUserId);
+      const tokenData = await getTokenData(testUserId);
       if (tokenData) {
         const accounts = await getAccountBalances(tokenData.access_token);
         expect(Array.isArray(accounts)).toBe(true);
@@ -98,13 +98,13 @@ describe('Banking Integration API', () => {
       const { getTransactions, getTokenData, hasLinkedAccounts } =
         await import('../../tools/domains/finance/plaid.js');
 
-      if (!hasLinkedAccounts(testUserId)) {
+      if (!(await hasLinkedAccounts(testUserId))) {
         console.log('⚠️ Transaction check skipped (no linked account)');
         expect(true).toBe(true);
         return;
       }
 
-      const tokenData = getTokenData(testUserId);
+      const tokenData = await getTokenData(testUserId);
       if (tokenData) {
         const endDate = new Date();
         const startDate = new Date();

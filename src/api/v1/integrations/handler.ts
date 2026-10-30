@@ -17,6 +17,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../../helpers.js';
 import { requireAuth, type AuthContext } from '../../auth-middleware.js';
 import { isCalendarLinked } from '../../../services/identity/link-state.js';
+import { flagOn } from '../../../config/env-flag.js';
 import {
   consumeOAuthLinkState,
   createOAuthLinkState,
@@ -197,7 +198,7 @@ export async function handleIntegrationsRoutes(
 
       const biometricsConnected = await hasBiometricsConnectedAsync(userId);
       const calendarConnected = await isCalendarLinked(userId);
-      const bankConnected = banking.hasLinkedAccounts(userId);
+      const bankConnected = await banking.hasLinkedAccounts(userId);
       const socialPeople = social.getImportantPeople(userId);
 
       sendJson(res, 200, {
@@ -364,8 +365,8 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      const connected = banking.hasLinkedAccounts(userId);
-      const tokenData = connected ? banking.getTokenData(userId) : null;
+      const connected = await banking.hasLinkedAccounts(userId);
+      const tokenData = connected ? await banking.getTokenData(userId) : null;
 
       sendJson(res, 200, {
         connected,
@@ -407,14 +408,21 @@ export async function handleIntegrationsRoutes(
       const { publicToken, institution } = validation.data;
 
       const banking = await getBankingServices();
-      const accessToken = await banking.exchangePublicToken(publicToken);
+      const exchanged = await banking.exchangePublicTokenForItem(publicToken);
 
-      if (!accessToken) {
+      if (!exchanged?.access_token) {
         sendJson(res, 400, { error: 'Failed to exchange token' });
         return true;
       }
+      const accessToken = exchanged.access_token;
 
-      banking.storeAccessToken(userId, accessToken, undefined, institution);
+      // The file store (flag off) never kept the Item id; the sealed store keys Items by it.
+      const itemId = flagOn('PLAID_UNIFIED_STORE') ? exchanged.item_id : undefined;
+      const saved = await banking.storeAccessToken(userId, accessToken, itemId, institution);
+      if (!saved.ok) {
+        sendJson(res, 503, { error: 'Bank account could not be saved', code: saved.code });
+        return true;
+      }
 
       // Background analysis
       void (async () => {
@@ -438,7 +446,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      const removed = banking.removeAccessToken(userId);
+      const removed = await banking.removeAccessToken(userId);
 
       if (removed) {
         log.info({ userId }, 'Bank account disconnected');
@@ -453,7 +461,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      const tokenData = banking.getTokenData(userId);
+      const tokenData = await banking.getTokenData(userId);
       if (!tokenData) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
@@ -480,7 +488,7 @@ export async function handleIntegrationsRoutes(
       const limit = parseInt(parsedUrl.searchParams.get('limit') || '100');
 
       const banking = await getBankingServices();
-      const tokenData = banking.getTokenData(userId);
+      const tokenData = await banking.getTokenData(userId);
       if (!tokenData) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
@@ -518,7 +526,7 @@ export async function handleIntegrationsRoutes(
       const period = parsedUrl.searchParams.get('period') || 'month';
 
       const banking = await getBankingServices();
-      const tokenData = banking.getTokenData(userId);
+      const tokenData = await banking.getTokenData(userId);
       if (!tokenData) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
@@ -548,7 +556,7 @@ export async function handleIntegrationsRoutes(
       const daysOut = parseInt(parsedUrl.searchParams.get('daysOut') || '14');
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -567,7 +575,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -581,7 +589,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -595,7 +603,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -609,7 +617,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
@@ -681,7 +689,7 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const banking = await getBankingServices();
-      if (!banking.hasLinkedAccounts(userId)) {
+      if (!(await banking.hasLinkedAccounts(userId))) {
         sendJson(res, 400, { error: 'No linked bank account' });
         return true;
       }
