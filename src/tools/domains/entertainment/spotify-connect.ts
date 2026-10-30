@@ -262,7 +262,7 @@ const syncRoomsDef: ToolDefinition = {
         if (!result.success) {
           const config = await getRoomConfig(ctx.userId);
           if (!config.success || !config.data?.rooms.length) {
-            return `You don't have any rooms configured yet. Set up rooms in Settings first.`;
+            return NO_ROOM_SETUP;
           }
           return result.error || "Couldn't sync to all rooms";
         }

@@ -52,6 +52,8 @@ vi.mock('../domains/entertainment/index.js', () => ({
 vi.mock('../../services/identity/spotify-room-service.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   getRoomsForVoice: async () => ({ rooms: [], groups: [] }),
+  getRoomConfig: async () => ({ success: true, data: { rooms: [] } }),
+  transferToRoom: async () => ({ success: false, error: 'not found' }),
   discoverDevices: async () => ({
     success: true,
     data: [{ id: 'd1', name: 'Kitchen', type: 'Speaker', is_active: false }],
@@ -283,6 +285,13 @@ describe('quickMusic offers no Spotify connect', () => {
 describe('music rooms never point at a Settings page', () => {
   it('listMusicRooms with no rooms says they cannot be set up', async () => {
     const reply = await build(spotifyConnectTools, 'listMusicRooms').execute({});
+
+    expect(reply).toBe("No music rooms are set up, and I can't set them up for you yet.");
+    expect(reply).not.toMatch(SPOTIFY_DEAD_END);
+  });
+
+  it('syncMusicRooms with no rooms says they cannot be set up', async () => {
+    const reply = await build(spotifyConnectTools, 'syncMusicRooms').execute({});
 
     expect(reply).toBe("No music rooms are set up, and I can't set them up for you yet.");
     expect(reply).not.toMatch(SPOTIFY_DEAD_END);
