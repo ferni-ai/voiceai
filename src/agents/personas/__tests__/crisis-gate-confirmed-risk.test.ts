@@ -30,17 +30,21 @@ const NONE = '{"risk":"none","subject":"self"}';
 const CRISIS = '{"risk":"crisis","subject":"self"}';
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
 
+/** An after-check reply that depends on the Ferni line the caller answered. */
+type ByFerni = (companion: string | undefined) => string;
+
 /** The classifier's read per caller line, and the after-check read's, counted. */
 function stub(
   reads: Record<string, string>,
-  after: Record<string, string | Error> = {}
+  after: Record<string, string | Error | ByFerni> = {}
 ): CrisisGenerateFn & { afterCalls: string[] } {
   const afterCalls: string[] = [];
   const fn = async (prompt: string, content: string): Promise<string> => {
-    const latest = (JSON.parse(content) as { latest: string }).latest;
+    const { latest, companion } = JSON.parse(content) as { latest: string; companion?: string };
     if (prompt === AFTER_CHECK_PROMPT) {
       afterCalls.push(latest);
-      const out = after[latest] ?? CRISIS;
+      const rule = after[latest] ?? CRISIS;
+      const out = typeof rule === 'function' ? rule(companion) : rule;
       if (out instanceof Error) throw out;
       return out;
     }
@@ -85,6 +89,10 @@ async function call(
 }
 
 const guidance = (d: CrisisGateDecision): string => (d.action === 'guide' ? d.guidance : d.action);
+const found = (line: string): boolean => {
+  const d = detectCrisis(line);
+  return d.isCrisis || d.severity !== 0 || d.indicators.length > 0;
+};
 
 const ALARM = 'Dinner is tonight at six.';
 const PROTEST = "What? I'm fine, it's not a crisis.";
@@ -217,13 +225,51 @@ describe('CRISIS_CONFIRMED_CALL_RISK: real risk keeps main', () => {
   });
 });
 
+describe('CRISIS_CONFIRMED_CALL_RISK: each after-check read is for its own turn', () => {
+  it('a non-Latin disclosure soon after a non-Latin "I\'m fine" is read afresh', async () => {
+    const FINE = 'Я в порядке, правда.';
+    const DISCLOSE = 'Я больше не хочу жить.';
+    expect(found(FINE) || found(DISCLOSE)).toBe(false);
+    const reads = { [ALARM]: IMMINENT, [FINE]: CRISIS, [DISCLOSE]: CRISIS };
+    const generate = stub(reads, { [FINE]: NONE, [DISCLOSE]: CRISIS });
+    const off = await call([...BENIGN, FINE, DISCLOSE], generate, LIVE);
+    const on = await call([...BENIGN, FINE, DISCLOSE], generate);
+    expect(guidance(on[3])).toBe(AFTER_CHECK_GUIDANCE);
+    expect(on[4]).toEqual(off[4]); // main's decision, not the cached easing
+    expect(guidance(on[4])).toContain('[CRITICAL - USER SAFETY]');
+    expect(generate.afterCalls).toEqual([FINE, DISCLOSE]);
+  });
+
+  it('"I don\'t know." answering a risk question is not served the read of an earlier one', async () => {
+    const IDK = "I don't know.";
+    const ASKED = 'Are you having thoughts of ending your life?';
+    const reads = { [ALARM]: IMMINENT, [IDK]: CRISIS };
+    const generate = stub(reads, { [IDK]: (ferni) => (ferni === ASKED ? CRISIS : NONE) });
+    const session = `call-${++calls}`;
+    await call(BENIGN, generate, ON, session);
+    const userData = { services: { sessionId: session } };
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'system', content: 'You are Ferni.' });
+    const out: CrisisGateDecision[] = [];
+    for (const ferni of ['What should we cook for her?', ASKED]) {
+      ctx.addMessage({ role: 'assistant', content: ferni });
+      ctx.addMessage({ role: 'user', content: IDK });
+      const gate = startCrisisGate(ctx.copy(), userData, { env: ON, generate });
+      out.push((await gate?.escalation) ?? gate?.decision ?? { action: 'pass' });
+    }
+    expect(guidance(out[0])).toBe(AFTER_CHECK_GUIDANCE);
+    expect(guidance(out[1])).toContain('[CRITICAL - USER SAFETY]');
+    expect(generate.afterCalls).toEqual([IDK, IDK]);
+  });
+});
+
 describe('CRISIS_CONFIRMED_CALL_RISK: the turn pipeline', () => {
   it('eases the same protest, sharing one after-check read with the gate', async () => {
     const reads = { [ALARM]: IMMINENT, [PROTEST]: CRISIS };
     const generate = stub(reads, { [PROTEST]: NONE });
     const session = `call-${++calls}`;
-    await call(BENIGN, generate, ON, session);
-    const gateOut = await call([PROTEST], generate, ON, session);
+    // The gate and the pipeline see the same turn: same lines, same Ferni line before it.
+    const gateOut = (await call([...BENIGN, PROTEST], generate, ON, session)).slice(3);
     const turn = startTurnCrisis(
       PROTEST,
       { recentTranscripts: [...BENIGN, PROTEST], lastAgentResponse: FERNI.replace },

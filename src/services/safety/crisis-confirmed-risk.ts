@@ -38,6 +38,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   classifyCrisis,
   createGeminiCrisisGenerate,
+  normalizeInput,
   resolveCrisisClassifierTimeoutMs,
   turnVerdicts,
   type CrisisClassifierInput,
@@ -55,9 +56,9 @@ import {
 const log = createLogger({ module: 'CrisisConfirmedRisk' });
 
 type Env = Record<string, string | undefined>;
-export type ConfirmedRiskMode = 'off' | 'shadow' | 'on';
+type ConfirmedRiskMode = 'off' | 'shadow' | 'on';
 
-export function resolveConfirmedCallRisk(env: Env = process.env): ConfirmedRiskMode {
+function resolveConfirmedCallRisk(env: Env = process.env): ConfirmedRiskMode {
   const raw = env.CRISIS_CONFIRMED_CALL_RISK?.trim().toLowerCase();
   return raw === 'on' || raw === 'shadow' ? raw : 'off';
 }
@@ -103,7 +104,12 @@ interface CallRisk {
   alarms: Set<string>;
 }
 const ledger = new Map<string, CallRisk>();
-/** One after-check read per call and turn, shared by the reply gate and the turn pipeline. */
+/**
+ * One after-check read per call and turn, shared by the reply gate and the turn pipeline.
+ * A turn is exactly what the read sees (the caller's line, the earlier lines, Ferni's line),
+ * so a later line in another script, or the same words answering another question, is read
+ * afresh and never reuses an earlier "no risk".
+ */
 const reads = new Map<string, { at: number; read: Promise<CrisisVerdict | null> }>();
 
 const turnOf = (latest: string): string =>
@@ -166,7 +172,7 @@ export interface LoneRead {
 }
 
 /** keep: the decision as before. ease: AFTER_CHECK_GUIDANCE. step_down: crisis guidance. */
-export type AfterCheck = 'keep' | 'ease' | 'step_down';
+type AfterCheck = 'keep' | 'ease' | 'step_down';
 
 const found = (d: CrisisDetectionResult): boolean =>
   d.isCrisis || d.severity !== 0 || d.indicators.length > 0;
@@ -202,7 +208,7 @@ async function afterCheckRead(
 ): Promise<CrisisVerdict | null> {
   const now = Date.now();
   for (const [k, v] of reads) if (now - v.at > READ_TTL_MS) reads.delete(k);
-  const key = JSON.stringify([call, turnOf(args.input.latest)]);
+  const key = JSON.stringify([call, normalizeInput(args.input)]);
   const shared = reads.get(key);
   if (shared) return shared.read;
   const generate = args.generate ?? createGeminiCrisisGenerate();
