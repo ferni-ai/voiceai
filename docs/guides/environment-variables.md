@@ -261,27 +261,6 @@ MIGTAgEAMBMGByq...
 - MusicKit: 25,000 API calls/month
 - WeatherKit: 500,000 API calls/month
 
-### Home Assistant (Smart Home)
-
-Control smart home devices via Home Assistant:
-
-| Variable               | Required | Description                              |
-| ---------------------- | -------- | ---------------------------------------- |
-| `HOME_ASSISTANT_URL`   | ✓        | Your Home Assistant URL                  |
-| `HOME_ASSISTANT_TOKEN` | ✓        | Long-lived access token                  |
-
-**Setup:**
-
-1. Set up [Home Assistant](https://www.home-assistant.io/)
-2. Go to your profile → **Long-Lived Access Tokens**
-3. Create a new token
-4. Add to `.env`:
-
-```bash
-HOME_ASSISTANT_URL=http://homeassistant.local:8123
-HOME_ASSISTANT_TOKEN=eyJhbGciOi...your-long-token...
-```
-
 ---
 
 ## Push Notifications (Web Push)

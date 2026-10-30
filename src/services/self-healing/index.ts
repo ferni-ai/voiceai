@@ -43,9 +43,7 @@ export {
   getAlphaVantageClient,
   getGoogleApisClient,
   getWikipediaClient,
-  getHomeAssistantClient,
   getLifxClient,
-  getSmartThingsClient,
 } from './resilient-http.js';
 export type {
   ResilientClient,

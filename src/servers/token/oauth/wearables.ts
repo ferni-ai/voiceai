@@ -111,16 +111,6 @@ const PROVIDER_CONFIGS: Record<Exclude<WearableProvider, 'apple_health'>, Provid
       process.env.WHOOP_REDIRECT_URI ||
       `http://localhost:${process.env.PORT || 3002}/wearables/whoop/callback`,
   },
-  eight_sleep: {
-    clientId: process.env.EIGHT_SLEEP_CLIENT_ID,
-    clientSecret: process.env.EIGHT_SLEEP_CLIENT_SECRET,
-    authorizeUrl: 'https://api.8slp.net/v1/oauth/authorize',
-    tokenUrl: 'https://api.8slp.net/v1/oauth/token',
-    scopes: ['user:read', 'sleep:read', 'bed:read'],
-    redirectUri:
-      process.env.EIGHT_SLEEP_REDIRECT_URI ||
-      `http://localhost:${process.env.PORT || 3002}/wearables/eight_sleep/callback`,
-  },
 };
 
 // ============================================================================

@@ -10,7 +10,6 @@ import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import {
   openCalendarSettings,
   showAppleHealthSettings,
-  showEightSleepSettings,
   showLinkedInSettings,
   showOuraSettings,
   showVibeController,
@@ -35,7 +34,6 @@ function openConnectedLife(): Promise<void> {
     return showConnectedLife({
       onConnectAppleHealth: () => void showAppleHealthSettings(),
       onConnectOura: () => void showOuraSettings(),
-      onConnectEightSleep: () => void showEightSleepSettings(),
       onConnectWearables: () => void showWearableSettings(),
       onConnectCalendar: () => void openCalendarSettings(),
       onConnectLinkedIn: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
