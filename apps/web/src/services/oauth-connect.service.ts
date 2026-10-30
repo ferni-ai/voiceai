@@ -23,7 +23,6 @@ export type OAuthConnectProvider =
   | 'google_calendar'
   | 'microsoft_calendar'
   | 'apple_calendar'
-  | 'fitbit'
   | 'oura'
   | 'garmin'
   | 'whoop'
@@ -33,7 +32,6 @@ const PROVIDER_NAMES: Record<OAuthConnectProvider, string> = {
   google_calendar: 'Google Calendar',
   microsoft_calendar: 'Outlook',
   apple_calendar: 'Apple Calendar',
-  fitbit: 'Fitbit',
   oura: 'Oura',
   garmin: 'Garmin',
   whoop: 'WHOOP',

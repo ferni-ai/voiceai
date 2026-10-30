@@ -29,7 +29,7 @@ import type {
 } from '../../services/wearable-integration/types.js';
 import { parseBody, requireUserId, sendError, sendJSON, sendJSONCached } from '../helpers.js';
 
-const VALID_PROVIDERS: WearableProvider[] = ['apple_health', 'fitbit', 'garmin', 'oura', 'whoop'];
+const VALID_PROVIDERS: WearableProvider[] = ['apple_health', 'garmin', 'oura', 'whoop'];
 
 /**
  * Handle wearable integration routes

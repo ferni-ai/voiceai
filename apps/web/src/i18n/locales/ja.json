@@ -2417,10 +2417,6 @@
         "description": "Apple WatchとiPhoneのヘルスケアデータと同期します",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbitデバイスを接続します",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garminのウェアラブルと同期します",
         "name": "Garmin"
@@ -8346,7 +8342,7 @@
     "appleHealthDesc": "睡眠、アクティビティ、心拍数のデータ",
     "ouraDesc": "睡眠の質とレディネス（コンディション）のスコア",
     "eightSleepDesc": "睡眠トラッキングと温度調整",
-    "wearablesDesc": "Fitbit、Garmin、WHOOPなど",
+    "wearablesDesc": "Garmin、WHOOPなど",
     "calendarDesc": "予定、会議、空き時間",
     "linkedInDesc": "仕事の状況やネットワーク",
     "ecobeeDesc": "自宅の温度と快適さ",

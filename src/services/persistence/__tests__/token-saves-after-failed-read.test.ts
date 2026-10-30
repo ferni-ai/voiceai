@@ -68,9 +68,9 @@ describe('token saves after a failed token read', () => {
   });
 
   it('Wearables: saveTokens saves the new grant', async () => {
-    const path = 'bogle_users/u-wear/wearable_fitbit_tokens/data';
-    await afterAFailedRead(path, () => wearables.getTokens('fitbit', 'u-wear'));
-    await wearables.saveTokens('fitbit', 'u-wear', tokens as never);
+    const path = 'bogle_users/u-wear/wearable_whoop_tokens/data';
+    await afterAFailedRead(path, () => wearables.getTokens('whoop', 'u-wear'));
+    await wearables.saveTokens('whoop', 'u-wear', tokens as never);
     expect(writesTo(path)).toHaveLength(1);
   });
 

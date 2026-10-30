@@ -2417,10 +2417,6 @@
         "description": "Apple Watch 및 iPhone 건강 데이터와 동기화해요",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Fitbit 기기를 연결해요",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Garmin 웨어러블과 동기화해요",
         "name": "Garmin"
@@ -8346,7 +8342,7 @@
     "appleHealthDesc": "수면, 활동 및 심박수 데이터",
     "ouraDesc": "수면의 질과 준비도 점수",
     "eightSleepDesc": "수면 분석과 온도 조절",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP 등",
+    "wearablesDesc": "Garmin, WHOOP 등",
     "calendarDesc": "일정, 회의, 비는 시간",
     "linkedInDesc": "커리어 맥락과 네트워크",
     "ecobeeDesc": "집안 온도와 쾌적함",

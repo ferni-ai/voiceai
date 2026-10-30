@@ -15,7 +15,6 @@
  */
 export type WearableProvider =
   | 'apple_health'
-  | 'fitbit'
   | 'garmin'
   | 'oura'
   | 'whoop';

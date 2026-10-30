@@ -3,7 +3,6 @@
  *
  * Foundation for integrating data from wearable devices:
  * - Apple Watch / HealthKit
- * - Fitbit
  * - Garmin
  * - Oura Ring
  * - Whoop
@@ -77,7 +76,6 @@ export class WearableIntegrationService {
       // Return OAuth URL for the provider
       const authUrls: Record<WearableProvider, string> = {
         apple_health: 'ferniapp://healthkit/authorize', // Deep link for iOS app
-        fitbit: `https://www.fitbit.com/oauth2/authorize?client_id=${process.env.FITBIT_CLIENT_ID}`,
         garmin: `https://connect.garmin.com/oauth2/authorize?client_id=${process.env.GARMIN_CLIENT_ID}`,
         oura: `https://cloud.ouraring.com/oauth/authorize?client_id=${process.env.OURA_CLIENT_ID}`,
         whoop: `https://api.prod.whoop.com/oauth/authorize?client_id=${process.env.WHOOP_CLIENT_ID}`,

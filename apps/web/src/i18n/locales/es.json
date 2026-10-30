@@ -2436,10 +2436,6 @@
         "description": "Sincroniza con los datos de salud de Apple Watch y iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "Conecta tu dispositivo Fitbit",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "Sincroniza con tus dispositivos corporales Garmin",
         "name": "Garmin"
@@ -8395,7 +8391,7 @@
     "appleHealthDesc": "Datos de sueño, actividad y frecuencia cardíaca",
     "ouraDesc": "Calidad del sueño y puntuaciones de preparación",
     "eightSleepDesc": "Seguimiento del sueño y temperatura",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP y más",
+    "wearablesDesc": "Garmin, WHOOP y más",
     "calendarDesc": "Eventos, reuniones y disponibilidad",
     "linkedInDesc": "Contexto profesional y red de contactos",
     "ecobeeDesc": "Temperatura y comodidad del hogar",

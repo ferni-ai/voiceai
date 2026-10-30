@@ -2435,10 +2435,6 @@
         "description": "סנכרון עם נתוני הבריאות של Apple Watch ו-iPhone",
         "name": "Apple Health"
       },
-      "fitbit": {
-        "description": "חיבור מכשיר ה-Fitbit שלך",
-        "name": "Fitbit"
-      },
       "garmin": {
         "description": "סנכרון עם מכשירים לבישים של Garmin",
         "name": "Garmin"
@@ -8392,7 +8388,7 @@
     "appleHealthDesc": "נתוני שינה, פעילות ודופק",
     "ouraDesc": "איכות שינה ומדדי מוכנות",
     "eightSleepDesc": "מעקב שינה וטמפרטורה",
-    "wearablesDesc": "Fitbit, Garmin, WHOOP ועוד",
+    "wearablesDesc": "Garmin, WHOOP ועוד",
     "calendarDesc": "אירועים, פגישות וזמינות",
     "linkedInDesc": "הקשר מקצועי ורשת קשרים",
     "ecobeeDesc": "טמפרטורה ונוחות בבית",
