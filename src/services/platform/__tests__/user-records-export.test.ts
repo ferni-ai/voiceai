@@ -605,7 +605,7 @@ describe('booking preferences (BOOKING_PREFS)', () => {
       kind: 'restaurant',
       partySize: 2,
       seating: 'window',
-      notes: 'Likes a quiet corner',
+      days: ['fri', 'sat'],
       updatedAt: '2026-10-30T14:00:00.000Z',
       provenance: { partySize: { by: 'said_by_owner', at: '2026-10-30T14:00:00.000Z' } },
     };
