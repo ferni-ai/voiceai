@@ -46,14 +46,18 @@ const EMAIL_G = new RegExp(
 );
 const HOST_G = new RegExp(`(?<![\\p{L}\\p{N}.@-])(?:https?://)?(${HOST})(?![\\p{L}\\p{N}-])`, 'gu');
 /**
- * "it at site.com" or "the app is at site.com" names a website, not a mailbox: before a
- * grounded host, these words are no mailbox. Any other word is ("help at site.com").
+ * "chat at 988lifeline.org", "sign in at ferni.ai", "verify your number at ferni.ai" name a
+ * place, not a mailbox. A spoken "at" builds word@host only when the word before it is a
+ * typical mailbox name (or has a digit, dot or underscore in it) and what comes before that
+ * word isn't "get", "find", "need", "for" ("get help at ferni.ai"). Everything else is the
+ * host alone, which must be allowed. A written "@" is always a mailbox.
  */
-const SITE_WORDS = new Set(
-  'it this that them you us me one there here home is are was were be live online up out find visit'.split(
-    ' '
-  )
-);
+const MAILBOX =
+  /^(?:hello|hi|hey|help|support|info|contact|admin|sales|billing|accounts?|noreply|no-reply|donotreply|notifications?|alerts?|team|care|service|feedback|press|jobs|hr|security|privacy|abuse|webmaster|postmaster|mail|email|office|reply)$|[\d._+%-]/u;
+const PROSE_BEFORE =
+  /\b(?:get|find|need|needs|ask|for|with|some|more|any|free|online|live|instant|want|seek)$/u;
+const mailboxAt = (local: string, before: string): boolean =>
+  MAILBOX.test(local) && !PROSE_BEFORE.test(before.trimEnd());
 /**
  * A 5 or 6 digit number counts only where a sender is claimed ("texts come from 55512",
  * "the short code is ..."). "Your zip code is 33701" or "the verification code is 482913" is
@@ -97,14 +101,37 @@ const KEYPAD = 'abcdefghijklmnopqrstuvwxyz'.split('').map((c) => {
   const groups = ['abc', 'def', 'ghi', 'jkl', 'mno', 'pqrs', 'tuv', 'wxyz'];
   return String(groups.findIndex((g) => g.includes(c)) + 2);
 });
-/** A toll-free vanity number as it is dialled: "1-800-662-HELP" is 1-800-662-4357. */
-const VANITY = /\b(8(?:00|33|44|55|66|77|88)[-.](?:\d{3}[-.])?)([A-Za-z]{3,10})\b/gu;
+/**
+ * A toll-free vanity number as it is dialled: "1-800-662-HELP" is 1-800-662-4357, and a
+ * repeat of the same digits in brackets ("1-800-662-HELP (4357)") is dropped. A bare "800 "
+ * needs a hyphen or dot ("800 dollars" is money); with a leading "1 " a space does too, but
+ * only for capital letters ("1 800 950 NAMI").
+ */
+const TOLL = '8(?:00|33|44|55|66|77|88)';
+const VANITY_PLAIN = new RegExp(
+  `\\b(${TOLL}[-.](?:\\d{3}[-.])?)([A-Za-z]{3,10})\\b(\\s*\\(\\d{3,10}\\))?`,
+  'gu'
+);
+const VANITY_SPACED = new RegExp(
+  `\\b(1[-\\s.]${TOLL}[-\\s.](?:\\d{3}[-\\s.])?)([A-Z]{3,10})\\b(\\s*\\(\\d{3,10}\\))?`,
+  'gu'
+);
+const dialWord = (word: string): string =>
+  [...word.toLowerCase()].map((c) => KEYPAD[c.charCodeAt(0) - 97]).join('');
+const vanity = (_m: string, prefix: string, word: string, repeat?: string): string => {
+  const digits = dialWord(word);
+  return prefix + digits + (repeat && repeat.replace(/\D/g, '') !== digits ? repeat : '');
+};
+/** "one eight hundred ..." is 1 800 ...: a digit word before "hundred". */
+const HUNDRED = /\b(one|two|three|four|five|six|seven|eight|nine)\s+hundred\b/giu;
+const DIGIT_WORD = 'zero one two three four five six seven eight nine'.split(' ');
 const dialled = (text: string): string =>
-  text.replace(
-    VANITY,
-    (_m, prefix: string, word: string) =>
-      prefix + [...word.toLowerCase()].map((c) => KEYPAD[c.charCodeAt(0) - 97]).join('')
-  );
+  text
+    .replace(HUNDRED, (_m, w: string) => `${DIGIT_WORD.indexOf(w.toLowerCase())}00`)
+    .replace(VANITY_SPACED, vanity)
+    .replace(VANITY_PLAIN, vanity);
+/** "nine eight eight lifeline dot org": digits said before a label are part of it (988lifeline). */
+const DIGITS_THEN_LABEL = /(?<![\p{L}\p{N}])((?:\d ){1,6}\d) ([a-z][a-z0-9-]*\.[a-z])/giu;
 
 /** The text in one reading (see the module note). */
 function normalise(text: string): string {
@@ -114,6 +141,10 @@ function normalise(text: string): string {
       dotIsSaid(before, after) ? `${before}.` : `${before} `
     )
     .replace(/-dot-/giu, '.')
+    .replace(
+      DIGITS_THEN_LABEL,
+      (_m, digits: string, label: string) => `${digits.replace(/ /g, '')}${label}`
+    )
     .replace(
       /\.((?:\p{L} )+\p{L})(?![\p{L}\p{N}])/gu,
       (_m, letters: string) => `.${letters.replace(/ /g, '')}`
@@ -224,12 +255,19 @@ function verdictIn(piece: string, trusted: Addresses, online: Addresses): Verdic
   const miss = (kind: keyof Addresses, key: string): void => {
     if (verdict !== 'nowhere') verdict = online[kind].has(key) ? 'online' : 'nowhere';
   };
-  let rest = normalise(piece).replace(EMAIL_G, (_m, local: string, at: string, host: string) => {
-    if (!at.includes('@') && !isSite(host)) return `${local} ${host}`; // "was at 98.6", "look at node.js"
-    const site = at.trim() === 'at' && SITE_WORDS.has(local) && trusted.hosts.has(hostKey(host));
-    if (!site && !trusted.emails.has(`${local}@${host}`)) miss('emails', `${local}@${host}`);
-    return ' ';
-  });
+  let rest = normalise(piece).replace(
+    EMAIL_G,
+    (_m, local: string, at: string, host: string, offset: number, whole: string) => {
+      const written = at.includes('@');
+      if (!written && !isSite(host)) return `${local} ${host}`; // "was at 98.6", "look at node.js"
+      if (!written && !mailboxAt(local, whole.slice(0, offset))) {
+        if (!trusted.hosts.has(hostKey(host))) miss('hosts', hostKey(host)); // "sign in at ferni.ai"
+        return ' ';
+      }
+      if (!trusted.emails.has(`${local}@${host}`)) miss('emails', `${local}@${host}`);
+      return ' ';
+    }
+  );
   rest = rest.replace(HOST_G, (m: string, host: string) => {
     if (!isSite(host)) return m;
     if (!trusted.hosts.has(hostKey(host))) miss('hosts', hostKey(host));

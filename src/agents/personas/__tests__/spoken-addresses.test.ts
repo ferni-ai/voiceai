@@ -185,6 +185,61 @@ describe('a toll-free vanity number is read as the digits it is dialled with', (
   });
 });
 
+describe('vanity and spoken forms of a helpline (final verification)', () => {
+  const trusted = collectAddresses(
+    'SAMHSA 1-800-662-4357. NAMI 1-800-950-6264. Lifeline 1-800-273-8255. https://988lifeline.org',
+    noAddresses()
+  );
+
+  it.each([
+    'Call 1-800-662-HELP (4357).',
+    'Call 1-800-662-HELP (4357) any time.',
+    'Call 1 800 950 NAMI.',
+    'Call 1-800-950-NAMI (6264).',
+    'Call one eight hundred two seven three eight two five five.',
+    'Call one, eight hundred, two seven three, eight two five five.',
+    'Go to nine eight eight lifeline dot org.',
+    'Go to nine eight eight lifeline dot o r g.',
+  ])('is the helpline: %s', (line) => {
+    expect(judgeAddresses(line, trusted)).toBe('ok');
+  });
+
+  it.each([
+    'Call 1-800-662-HELP (9999).',
+    'Call 1 800 950 FAKE.',
+    'Call one eight hundred two seven three eight two five six.',
+    'Go to nine eight nine lifeline dot org.',
+  ])('is not: %s', (line) => {
+    expect(judgeAddresses(line, trusted)).toBe('nowhere');
+  });
+
+  it('"1 800 dollars" and "eight hundred people" are only money and a crowd', () => {
+    expect(judgeAddresses('It cost 1 800 dollars, and eight hundred people came.', trusted)).toBe(
+      'ok'
+    );
+  });
+});
+
+describe('a spoken "at" before a website is that website, not a mailbox', () => {
+  const trusted = collectAddresses('ferni.ai hello@ferni.ai', noAddresses());
+
+  it.each([
+    'Sign in at ferni.ai.',
+    'You can verify your number at ferni.ai.',
+    'Reach us at ferni.ai.',
+    'Get help at ferni.ai.',
+  ])('passes: %s', (line) => expect(judgeAddresses(line, trusted)).toBe('ok'));
+
+  it.each(['Write to bob at evil.ru.', 'Sign in at evil.ru.', 'Write to help at ferni.ai.'])(
+    'is found: %s',
+    (line) => expect(judgeAddresses(line, trusted)).toBe('nowhere')
+  );
+
+  it('the house mailbox said aloud is still the house mailbox', () => {
+    expect(judgeAddresses('Write to hello at ferni dot ai.', trusted)).toBe('ok');
+  });
+});
+
 describe('a held run is cut only outside an address', () => {
   it.each([
     ['beside " dot "', 'aaaa bbbb cccc evil dot com tail'],

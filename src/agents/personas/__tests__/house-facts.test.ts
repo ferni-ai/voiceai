@@ -428,6 +428,59 @@ describe('only trusted sources ground an address (round 5)', () => {
   });
 });
 
+describe('"word at host" is a place, not a mailbox', () => {
+  const SITES = ['ferni.ai', 'app.ferni.ai', '988lifeline.org', 'crisistextline.org', 'nami.org'];
+  const TEMPLATES = [
+    'You can chat at HOST.',
+    'Sign in at HOST.',
+    'You can verify your number at HOST.',
+    'Reach us at HOST.',
+    'Visit us at HOST.',
+    'Find us at HOST.',
+    'Text us at HOST.',
+    'Go to your settings, or log in at HOST.',
+    'You can get help at HOST.',
+    'Find more help at HOST.',
+    'Everything is at HOST.',
+    'Read more at HOST, then come back.',
+    'Check it out at HOST.',
+    'Sign up at HOST today.',
+    'You can also look it up at HOST.',
+    'Talk to someone at HOST.',
+    'Learn more at HOST.',
+    'The details are at HOST.',
+    'Your account is managed at HOST.',
+    'Open it at HOST and tap verify.',
+  ];
+
+  it.each(SITES.flatMap((host) => TEMPLATES.map((t) => [host, t.replace('HOST', host)] as const)))(
+    '%s: %s',
+    async (_host, line) => {
+      expect(await textOf('Hi', [line])).toBe(line);
+    }
+  );
+
+  it.each([
+    ['the exact prod question', 'You can verify your number at ferni.ai.'],
+    ['spoken dots', 'Sign in at ferni dot ai.'],
+  ])('%s', async (_name, line) => {
+    expect(await textOf('Which website verifies my number?', [line])).toBe(line);
+  });
+
+  it.each([
+    'Write to bob at evil.ru.',
+    'Sign in at evil.ru.',
+    'You can get help at evil.ru.',
+    'Chat at evil dot ru.',
+    'Write to help at ferni.ai.',
+    'Email notifications at ferni.ai.',
+    'Reach us at support@ferni.ai.',
+    'Contact john.smith at ferni dot ai.',
+  ])('an invented place or mailbox is still replaced: %s', async (line) => {
+    expect(await textOf('Hi', [line])).toBe(NO);
+  });
+});
+
 describe('streaming', () => {
   it.each([
     [['Sure, go to mind', 'meadow.', 'com and tap verify.'], NO],

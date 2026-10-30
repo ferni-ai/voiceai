@@ -19,6 +19,7 @@ import { definitions as transferTools } from '../../../tools/domains/human-trans
 import {
   CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES,
   NATIONAL_HELPLINES,
+  RESOURCE_SITES,
 } from '../../../tools/domains/life-coaching-shared/index.js';
 import type { ToolContext } from '../../../tools/registry/types.js';
 import { withHouseFactsGuard } from '../house-facts.js';
@@ -230,4 +231,22 @@ describe('national helplines named in no other table (final verification)', () =
   ])('spoken: %s', async (line) => {
     expect(await spoken(line)).toBe(line);
   });
+});
+
+describe('every resource website the tools and prompts name passes', () => {
+  it.each(RESOURCE_SITES.map((site) => [site]))('%s', async (site) => {
+    const line = `A good place to start is ${site}.`;
+    expect(await spoken(line)).toBe(line);
+    const at = `You can find it at ${site}.`;
+    expect(await spoken(at)).toBe(at);
+  });
+
+  it.each([
+    'nami.org',
+    '211.org',
+    'childhelp.org',
+    'postpartum.net',
+    'findtreatment.gov',
+    'pflag.org',
+  ])('names the national resource %s explicitly', (site) => expect(RESOURCE_SITES).toContain(site));
 });

@@ -13,6 +13,7 @@ import { CRISIS_RESOURCES as TOOL_CRISIS_RESOURCES } from '../../tools/domains/c
 import {
   COACHING_HELPLINES,
   NATIONAL_HELPLINES,
+  RESOURCE_SITES,
   CRISIS_RESOURCES as COACHING_CRISIS_RESOURCES,
 } from '../../tools/domains/life-coaching-shared/index.js';
 import {
@@ -79,7 +80,7 @@ export interface HouseFactsWho {
 }
 
 let crisisLines: Addresses | undefined;
-/** Every number, text code and site in the helpline tables the app carries (five of them). */
+/** Every number, text code and site in the helpline tables the app carries (five of them, and the resource sites). */
 function helplineLines(): string[] {
   const fields = (r: { phone?: string; text?: string; chat?: string; website?: string }) =>
     [r.phone, r.text, r.chat, r.website].filter((v): v is string => Boolean(v));
@@ -103,6 +104,7 @@ function helplineLines(): string[] {
     ...Object.values(COACHING_CRISIS_RESOURCES).flatMap(fields), // life-coaching-shared/safety-guards
     ...Object.values(COACHING_HELPLINES).flatMap(fields), // numbers coaching tools print
     ...Object.values(NATIONAL_HELPLINES).flatMap(fields), // helplines named in no other table
+    ...RESOURCE_SITES.map((site) => `https://${site}`), // resource websites the tools name
   ];
 }
 

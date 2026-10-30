@@ -2,9 +2,10 @@
  * Structural guard: every hotline the app's tools and prompts name is a house fact, so with
  * HOUSE_FACTS on Ferni can say it (#3032 final verification). Scans every source file in the
  * hotline-bearing domains for toll-free numbers (digits or vanity letters), short codes
- * next to "text", and known helpline sites, and fails on any that the house facts don't
+ * next to "text", and ANY website literal, and fails on any that the house facts don't
  * cover. A new literal in a tool fails here until it joins a helpline table
- * (life-coaching-shared/helplines.ts is the place for one that is in none).
+ * (life-coaching-shared/helplines.ts is the place for one that is in none: NATIONAL_HELPLINES for
+ * a hotline, RESOURCE_SITES for a website).
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,15 +27,20 @@ const DIRS = [
   'tools/domains/job-loss',
   'tools/domains/sobriety',
   'tools/domains/life-coaching-shared',
+  'tools/domains/financial-assistance',
   'services/safety',
 ];
 /** Phone numbers that are not hotlines, with the reason. Everything else must be covered. */
 const NOT_A_HOTLINE: Record<string, string> = {
   '1-800-725-2769': 'Salvation Army (findFinancialAssistance): a charity line, not a hotline',
 };
-/** Sites that are helplines. A new helpline domain belongs here (resource sites do not). */
-const HELPLINE_SITE =
-  /\b(?:988lifeline|crisistextline|thehotline|rainn|samhsa|veteranscrisisline|thetrevorproject|nationaleatingdisorders|iasp|disasterdistress|lgbthotline|childhelp|loveisrespect|suicidepreventionlifeline)\.(?:org|gov|net|com|info)\b/gi;
+/**
+ * Any website literal: a URL, or a bare name ending in a common ending. A bare name is not
+ * preceded by a word character, dot, slash or @ (so `log.info` and `a.b.com/x` members are
+ * not read as sites) and not followed by a call bracket.
+ */
+const SITE =
+  /(?<![\w.\/@-])(?:https?:\/\/)?(?:www\.)?((?:[a-z0-9-]+\.)+(?:org|gov|net|com|edu|info))\b(?![(\w])/giu;
 
 const walk = (dir: string): string[] => {
   try {
@@ -67,8 +73,8 @@ export function helplineLiterals(root = SRC, dirs = DIRS): Literal[] {
     for (const m of text.matchAll(PHONE)) found.push({ file: name, kind: 'phone', value: m[0] });
     for (const m of text.matchAll(SHORT_CODE))
       found.push({ file: name, kind: 'short code', value: m[1] ?? '' });
-    for (const m of text.matchAll(HELPLINE_SITE))
-      found.push({ file: name, kind: 'site', value: m[0].toLowerCase() });
+    for (const m of text.matchAll(SITE))
+      found.push({ file: name, kind: 'site', value: (m[1] ?? '').toLowerCase() });
   }
   return found;
 }

@@ -27,3 +27,47 @@ export const NATIONAL_HELPLINES = {
   disasterDistress: { name: 'Disaster Distress Helpline', phone: '1-800-985-5990' },
   lifeline988: { name: '988 Suicide & Crisis Lifeline', website: 'https://988lifeline.org' },
 } as const;
+
+/**
+ * Resource websites the tools and prompts name (support groups, treatment and food locators,
+ * legal aid, caregiver and LGBTQ+ organisations) plus a few national resources a model names
+ * on its own (nami.org, 211.org, childhelp.org, postpartum.net). Not hotlines, but a reply
+ * that names one is helping, so they are house facts too. The scan test in
+ * personas/__tests__/helpline-literals.test.ts fails on any site literal in those domains
+ * that is not here or in a helpline table: add it here.
+ */
+export const RESOURCE_SITES: readonly string[] = [
+  'iasp.info',
+  'rainn.org',
+  'aa.org',
+  'na.org',
+  'smartrecovery.org',
+  'veteranscrisisline.net',
+  'findfood.gov',
+  'fns.usda.gov',
+  'findtreatment.gov',
+  'feedingamerica.org',
+  'needymeds.org',
+  'psychologytoday.com',
+  'openpathcollective.org',
+  'lawhelp.org',
+  'coachfederation.org',
+  'caregiving.org',
+  'caregiver.org',
+  'archrespite.org',
+  'thetrevorproject.org',
+  'pflag.org',
+  'glaad.org',
+  '988lifeline.org',
+  'crisistextline.org',
+  'thehotline.org',
+  'nationaleatingdisorders.org',
+  'samhsa.gov',
+  'twloha.com',
+  'ncadv.org',
+  'hotline.rainn.org',
+  'nami.org',
+  '211.org',
+  'childhelp.org',
+  'postpartum.net',
+];
