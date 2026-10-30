@@ -146,6 +146,13 @@ describe('TURN_LENGTH=adaptive', () => {
     expect(atRisk).toBe(reminder('learned', call(QUESTION), risky));
   });
 
+  it('lifts a turn that ends on its question, not one with a check in the middle', () => {
+    expect(substanceOf('so is it bad to just say no this time?', 'share')).toBe('question');
+    expect(
+      substanceOf('remember? we went there last summer and it rained', 'share')
+    ).toBeUndefined();
+  });
+
   it('keeps requests, look-ups and questions about him on their own rules', () => {
     for (const [said, move] of [
       ['can you help me plan the trip?', 'request'],

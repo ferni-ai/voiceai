@@ -5,8 +5,10 @@
  * few words as a passing remark. Three kinds of turn need a real answer instead, each read by a
  * classifier that already exists rather than a new word list:
  *
- *   question  something shared that asks a real question, not about him (the fast lane's
- *             asksAQuestion, fast-lane.ts): "should I just tell her?"
+ *   question  something shared that ends on a real question, not about him (the fast lane's
+ *             asksAQuestion, fast-lane.ts): "should I just tell her?". Ending the turn on it
+ *             hands him the floor; mid-turn ("remember? we went...") it is a check, and on
+ *             friends' talk lifting those cost Ferni 25 points against the real friend.
  *   tool      the reply after a tool that found something out (not an action: a timer is "done")
  *   beat      a specialist asked about their own beat (team-by-need-note.ts): Maya on a habit
  *
@@ -43,6 +45,8 @@ function toolsAnswered(items: readonly ItemView[]): string[] {
 }
 
 const isAction = (tool: string): boolean => ACTION_TOOLS.has(tool) || WIDE_ACTION_TOOLS.has(tool);
+const endsOnQuestion = (said: string): boolean =>
+  said.trimEnd().endsWith('?') && asksAQuestion(said);
 
 /** What makes this turn need a real answer, or undefined for a social moment. */
 export function substanceOf(
@@ -53,5 +57,5 @@ export function substanceOf(
   if (move !== 'share') return undefined;
   if (toolsAnswered(items).some((tool) => !isAction(tool))) return 'tool';
   if (onOwnBeat(speaker, said)) return 'beat';
-  return asksAQuestion(said) ? 'question' : undefined;
+  return endsOnQuestion(said) ? 'question' : undefined;
 }
