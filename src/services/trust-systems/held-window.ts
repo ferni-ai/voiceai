@@ -153,7 +153,9 @@ async function updateStored(
     const list = capped(next);
     const pending = list.filter((w) => !w.scrubbed).map((w) => w.end);
     const keepUntil = pending.length ? null : Math.max(...list.map((w) => w.end + KEEP_MS));
-    const expireAt = keepUntil === null ? null : new Date(keepUntil);
+    // Never before a crisis quietUntil (CRISIS_QUIET_FROM_GATE, minor-care-shared-hold.ts)
+    const quiet = typeof data?.quietUntil === 'number' ? data.quietUntil : 0;
+    const expireAt = keepUntil === null ? null : new Date(Math.max(keepUntil, quiet));
     const unscrubbedSince = pending.length ? Math.min(...pending) : null;
     tx.set(ref, { windows: list, keepUntil, expireAt, unscrubbedSince }, { merge: true });
   });

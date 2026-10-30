@@ -14,7 +14,8 @@ import { markCrisisTurn, unmarkCrisisTurn } from '../../services/safety/crisis-t
 
 export const CRISIS_GATE_SIGNAL = 'crisis_gate_decision';
 import type { CrisisReader } from '../../services/safety/index.js';
-import { recordCrisisOnCall, type CrisisEventKind } from './crisis-event-record.js';
+import { recordCrisisOnCall, replaceKind } from './crisis-event-record.js';
+import { quietAfterCrisis, type GateDecision } from './crisis-quiet-window.js';
 
 const crisisSessions = new WeakSet<object>();
 
@@ -23,12 +24,15 @@ export function crisisDecidedOn(session: unknown): boolean {
   return typeof session === 'object' && session !== null && crisisSessions.has(session);
 }
 
-/** Emits { action } on the session for any decision but 'pass', and marks the turn. */
+/**
+ * Emits { action } on the session for any decision but 'pass', and marks the turn. The
+ * decision itself (crisis-gate.ts) feeds CRISIS_EVENT_RECORD and CRISIS_QUIET_FROM_GATE.
+ */
 export function signalCrisisDecision(
   session: unknown,
   action: string | undefined,
   reader: CrisisReader = 'pattern',
-  kind?: CrisisEventKind
+  decision?: GateDecision
 ): void {
   // Every decision marks the turn, 'pass' included: only a pass clears it for transfer aliases
   // (crisis-turn-mark.ts). No pattern gate at all: unknown, so unmarked (fail closed).
@@ -39,7 +43,8 @@ export function signalCrisisDecision(
   if (typeof session === 'object' && session !== null) crisisSessions.add(session);
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
-  recordCrisisOnCall(session, action, reader, kind); // CRISIS_EVENT_RECORD: after the signal, never throws
+  recordCrisisOnCall(session, action, reader, replaceKind(decision)); // CRISIS_EVENT_RECORD: never throws
+  quietAfterCrisis(session, decision); // CRISIS_QUIET_FROM_GATE: a later tick, never throws
 }
 
 const pendingVerdicts = new WeakMap<object, Promise<unknown>>();

@@ -49,6 +49,9 @@ function firestore(): FirebaseFirestore.Firestore {
 }
 const holds = () => firestore().collection(HOLDS_COLLECTION);
 
+/** A stored time (ms), or 0 when there is none. */
+const timeOf = (v: unknown): number => (typeof v === 'number' ? v : 0);
+
 export const firestoreHoldStore: HoldStore = {
   async heldUntil(userId) {
     const until = (await holds().doc(userId).get()).data()?.heldUntil;
@@ -61,14 +64,45 @@ export const firestoreHoldStore: HoldStore = {
     const ref = holds().doc(userId);
     await firestore().runTransaction(async (tx) => {
       const data = (await tx.get(ref)).data();
-      const keep = data?.keepUntil;
-      const until = Math.max(record.heldUntil, typeof keep === 'number' ? keep : 0);
+      const until = Math.max(record.heldUntil, timeOf(data?.keepUntil), timeOf(data?.quietUntil));
       const list: unknown[] = Array.isArray(data?.windows) ? data.windows : [];
       const pending = list.some((w) => (w as { scrubbed?: unknown })?.scrubbed !== true);
       tx.set(ref, { ...record, expireAt: pending ? null : new Date(until) }, { merge: true });
     });
   },
 };
+
+/**
+ * CRISIS_QUIET_FROM_GATE: a held caller's crisis starts the proactive quiet window here, as a
+ * time with no words, no crisis type and no session (agents/safety/crisis-quiet-window.ts).
+ * Never moved earlier; the TTL never deletes the doc before it. Not gated on
+ * MINOR_CARE_SHARED_HOLD: no hold is set, only the quiet time. Throws on a failed write.
+ */
+export async function recordQuietHold(userId: string, quietUntil: number): Promise<void> {
+  if (!holdable(userId)) throw new Error('not a holdable id');
+  const ref = holds().doc(userId);
+  await firestore().runTransaction(async (tx) => {
+    const data = (await tx.get(ref)).data();
+    const until = Math.max(quietUntil, timeOf(data?.quietUntil));
+    const list: unknown[] = Array.isArray(data?.windows) ? data.windows : [];
+    const pending = list.some((w) => (w as { scrubbed?: unknown })?.scrubbed !== true);
+    const expireAt = Math.max(until, timeOf(data?.heldUntil), timeOf(data?.keepUntil));
+    tx.set(
+      ref,
+      { quietUntil: until, expireAt: pending ? null : new Date(expireAt) },
+      { merge: true }
+    );
+  });
+}
+
+/** A held caller's quietUntil (ms), 0 for none (human-transfer/crisis-signals.ts). Throws if unreadable. */
+export async function quietHoldUntil(
+  db: Pick<FirebaseFirestore.Firestore, 'collection'>,
+  userId: string
+): Promise<number> {
+  if (!holdable(userId)) return 0;
+  return timeOf((await db.collection(HOLDS_COLLECTION).doc(userId).get()).data()?.quietUntil);
+}
 
 let store: HoldStore = firestoreHoldStore;
 /** userId -> its heldUntil (0: none) and when that was read. */
