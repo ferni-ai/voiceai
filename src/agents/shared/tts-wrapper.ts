@@ -1128,9 +1128,7 @@ export async function wrappedTtsNode(
     // Use gateway for full TTS synthesis
     audioStream = await gatewayTTS(trackedTextStream);
   } else {
-    // Use cache-aware TTS that checks speculative cache before Cartesia
-    // BUG FIX: Convert personaId to actual Cartesia voice UUID
-    // Previously passed personaId directly, causing cache misses and wrong voice lookups
+    // Cache-aware TTS checks the speculative cache first; keyed by the real voice UUID, not personaId.
     const actualVoiceId = spokenVoiceId(personaId, sessionContext?.sessionVoice);
     const cacheAwareTTS = createCacheAwareTTSNode({
       voiceId: actualVoiceId,
@@ -1147,8 +1145,7 @@ export async function wrappedTtsNode(
     audioStream = await cacheAwareTTS(agent, trackedTextStream, modelSettings);
   }
 
-  // P1 UTO Fix (January 2026): ttsFirstByte / ttsFirstSpeech / ttsComplete checkpoints
-  // are added by wrapWithTTSCheckpoints (./performance/tts-checkpoints.ts).
+  // ttsFirstByte / ttsFirstSpeech / ttsComplete checkpoints: wrapWithTTSCheckpoints (./performance/).
 
   // 7. Apply "Better Than Human" post-TTS enhancement (Rust-accelerated audio processing)
   if (audioStream && enablePostTTSEnhancement) {

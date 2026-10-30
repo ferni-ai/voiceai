@@ -299,19 +299,7 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     async start(controller) {
       const feeding = feed();
       let heardAudio = false;
-      const timings =
-        (opts.wordTimings ?? flagOn('TTS_ALIGNED_TRANSCRIPT')) ? new ReplyWordTimings() : null;
-      const onTrimmed = timings
-        ? (ms: number) => {
-            timings.trimmed(ms);
-            onFirstAudio.trimmed?.(ms);
-          }
-        : onFirstAudio.trimmed;
-      const framesOf = (pcm: ArrayBuffer, from: ReplyStream): Iterable<AudioFrame> => {
-        if (!timings) return toFrames(pcm);
-        timings.add(from.takeWordTimings?.() ?? []);
-        return timings.place(toFrames(pcm), pcm.byteLength);
-      };
+      const timings = new ReplyWordTimings(opts.wordTimings ?? flagOn('TTS_ALIGNED_TRANSCRIPT'));
       try {
         for (let i = 0; !stopped; i++) {
           while (i >= replies.length && !feedDone) {
@@ -320,9 +308,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
             });
           }
           if (i >= replies.length) break;
-          timings?.startContext();
+          timings.startContext();
           for await (const pcm of i === 0 && trimLead
-            ? trimLeadingSilence(replies[i], 24000, onTrimmed)
+            ? trimLeadingSilence(replies[i], 24000, timings.onTrimmed(onFirstAudio.trimmed))
             : replies[i]) {
             if (stopped) break;
             if (pcm.byteLength === 0) continue;
@@ -332,17 +320,12 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
               if (stopped) break;
               onFirstAudio();
             }
-            for (const frame of framesOf(pcm, replies[i])) controller.enqueue(frame);
+            for (const frame of timings.frames(pcm, replies[i], toFrames))
+              controller.enqueue(frame);
           }
-          // Timings after a context's last audio ride the next frame.
-          timings?.add(replies[i].takeWordTimings?.() ?? []);
+          timings.addLate(replies[i]);
         }
-        // Or, after the reply's last audio, 10 ms of silence.
-        if (timings?.hasPending() && heardAudio && !stopped) {
-          for (const frame of timings.place(toFrames(new ArrayBuffer(480)), 480)) {
-            controller.enqueue(frame);
-          }
-        }
+        for (const f of timings.tail(heardAudio && !stopped, toFrames)) controller.enqueue(f);
       } catch (error) {
         onError(error, 'audio');
       }

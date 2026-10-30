@@ -40,8 +40,18 @@ export function parseWordTimestamps(raw: unknown): WordTiming[] {
   return out;
 }
 
+type FramesOf = (pcm: ArrayBuffer) => Iterable<AudioFrame>;
+
+/** A reply stream that can hand over the word timings that have arrived. */
+export interface WordSource {
+  takeWordTimings?(): WordTiming[];
+}
+
 /** One reply's word timings, placed on its frames in reply time. */
 export class ReplyWordTimings {
+  /** Disabled (TTS_ALIGNED_TRANSCRIPT off), it leaves the frames exactly as they were. */
+  constructor(private readonly enabled = true) {}
+
   private pending: voice.TimedString[] = [];
   private emittedS = 0;
   /** Reply seconds at which the current context's clock reads zero. */
@@ -51,6 +61,7 @@ export class ReplyWordTimings {
 
   /** The next context starts playing after all the audio emitted so far. */
   startContext(): void {
+    if (!this.enabled) return;
     this.base = this.emittedS;
     this.lastStart = 0;
     this.lastEnd = 0;
@@ -88,6 +99,34 @@ export class ReplyWordTimings {
       }
       yield frame;
     }
+  }
+
+  /** `next`, run after this context's lead trim is noted. */
+  onTrimmed(next?: (ms: number) => void): ((ms: number) => void) | undefined {
+    if (!this.enabled) return next;
+    return (ms) => {
+      this.trimmed(ms);
+      next?.(ms);
+    };
+  }
+
+  /** The frames of one chunk of `from`'s audio, carrying the words that have arrived. */
+  frames(pcm: ArrayBuffer, from: WordSource, toFrames: FramesOf): Iterable<AudioFrame> {
+    if (!this.enabled) return toFrames(pcm);
+    this.add(from.takeWordTimings?.() ?? []);
+    return this.place(toFrames(pcm), pcm.byteLength);
+  }
+
+  /** Words that arrive after a context's last audio ride the next frame. */
+  addLate(from: WordSource): void {
+    if (this.enabled) this.add(from.takeWordTimings?.() ?? []);
+  }
+
+  /** After the reply's last audio, 10 ms of silence to carry the words still waiting. */
+  tail(live: boolean, toFrames: FramesOf): Iterable<AudioFrame> {
+    return this.enabled && live && this.hasPending()
+      ? this.place(toFrames(new ArrayBuffer(480)), 480)
+      : [];
   }
 
   hasPending(): boolean {
