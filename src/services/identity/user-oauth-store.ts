@@ -23,7 +23,7 @@ import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { noteLinkedTokenUse } from '../../utils/linked-token-use.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { resealStale } from '../../utils/token-at-rest.js';
+import { resealStale, sealTokensForMerge } from '../../utils/token-at-rest.js';
 import { createPersistenceStore } from '../persistence/index.js';
 import {
   createExpiringSet,
@@ -99,8 +99,10 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
   provider: string;
   /** Firestore subcollection under bogle_users/{uid} */
   collection: string;
+  /** The doc may predate sealing: every save also deletes the plaintext token fields (merge write). */
+  dropLegacyPlaintext?: boolean;
 }): UserOAuthStore<T> {
-  const { provider, collection } = config;
+  const { provider, collection, dropLegacyPlaintext } = config;
 
   const docStore = createPersistenceStore<LinkDoc>({
     collection,
@@ -174,7 +176,9 @@ export function createUserOAuthStore<T extends { refresh_token?: string }>(confi
       blocked.delete(userId);
       try {
         const grant: LinkDoc = {
-          encrypted: encryptData(withTimestamp),
+          ...(dropLegacyPlaintext
+            ? (sealTokensForMerge(withTimestamp) as { encrypted: string })
+            : { encrypted: encryptData(withTimestamp) }),
           updated_at: Date.now(),
           needs_reauth: null,
         };
