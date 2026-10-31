@@ -16,6 +16,11 @@
  * The local ledger is never overwritten with server numbers, so an import that has to be
  * retried can only ever send what the browser really had.
  *
+ * Nothing a browser has goes out of sight: until the server has accepted this browser's
+ * import (or it has no ledger to bring), the browser ledger stays the one in use, exactly
+ * as with the switch off. A 503 (no SEEDS_IMPORT_BEFORE cutoff yet) or a network failure
+ * keeps it that way and the import is offered again on the next refresh.
+ *
  * Plan: docs/plans/2026-10-10-one-seed-ledger.md (part 4)
  */
 
@@ -98,11 +103,14 @@ function localLedger(): { balance: number; owned: string[] } | null {
   }
 }
 
-/** Offer this browser's ledger to the server, once. True when the server's numbers changed. */
-async function importLocalOnce(uid: string): Promise<boolean> {
-  if (localStorage.getItem(LOCAL_IMPORTED_KEY)) return false;
+/**
+ * Offer this browser's ledger to the server, once. 'changed': the server's numbers moved;
+ * 'settled': nothing (more) to bring; 'pending': not accepted yet, so keep the browser ledger.
+ */
+async function importLocalOnce(uid: string): Promise<'changed' | 'settled' | 'pending'> {
+  if (localStorage.getItem(LOCAL_IMPORTED_KEY)) return 'settled';
   const local = localLedger();
-  if (!local) return false;
+  if (!local) return 'settled';
   const res = await apiPost<{ imported?: number; alreadyImported?: boolean }>(
     '/api/seeds/import-local',
     local
@@ -110,11 +118,11 @@ async function importLocalOnce(uid: string): Promise<boolean> {
   if (!res.ok || !res.data) {
     // 503 (no cutoff configured) and network failures record nothing on the server: try again later
     log.warn({ status: res.status, error: res.error }, 'Seed import not accepted; will retry');
-    return false;
+    return 'pending';
   }
   localStorage.setItem(LOCAL_IMPORTED_KEY, uid);
   log.info({ imported: res.data.imported, already: res.data.alreadyImported }, 'Seeds imported');
-  return res.data.alreadyImported !== true;
+  return res.data.alreadyImported === true ? 'settled' : 'changed';
 }
 
 /** Read the server's seeds again (and send the one-time import first, if it's due). */
@@ -124,11 +132,11 @@ export function refreshServerSeeds(): Promise<void> {
     try {
       let data = await fetchSeeds();
       if (!data) return; // offline, signed out, or no such route: keep what's shown
-      if (data.serverLedger === true && uid && (await importLocalOnce(uid))) {
-        data = (await fetchSeeds()) ?? data;
-      }
-      // Another account signed in meanwhile: these numbers aren't theirs
-      if (uid === currentUid) publish(toSnapshot(data));
+      const imported = data.serverLedger === true && uid ? await importLocalOnce(uid) : 'settled';
+      if (imported === 'changed') data = (await fetchSeeds()) ?? data;
+      // Another account signed in meanwhile: these numbers aren't theirs. And until this
+      // browser's ledger is on the server, showing the server's would hide what it has.
+      if (uid === currentUid) publish(imported === 'pending' ? null : toSnapshot(data));
     } finally {
       inFlight = null;
     }

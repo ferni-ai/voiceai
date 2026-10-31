@@ -361,7 +361,6 @@ const LEGACY_FLAG_MANIFEST = {
   SCHEDULED_OUTREACH_THIRD_PARTY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the per-turn reminder drops the shared style lines and quoted examples (agents/personas/script-free.ts)
   SCRIPT_FREE_REMINDER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  SEEDS_SERVER_LEDGER: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on (with FERNI_STATE): his own day only when asked, never on his first reply (self-share-asked.ts)
   SELF_SHARE_WHEN_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   SEMANTIC_RECALL: { default: 'off', owner: 'memory', kind: 'experiment' },
