@@ -144,6 +144,9 @@ export const COHORT_FLAGS = [
   // Crisis lane, owner first (Seth signed off 2026-10-30): read per turn by the crisis classifier
   // after applyCallerFlags, so one person can try it before the agent's own flag goes on.
   'CRISIS_IMMINENT_NEEDS_AGREEMENT',
+  // Read each time a quiet stretch is decided mid-call, never at boot (quiet-presence.ts);
+  // needs the agent's LISTEN_FIRST=on.
+  'QUIET_AFTER_QUESTION',
   // Read on each reply's crisis gate and each classifier read, never at boot (crisis-classifier-check.ts).
   'CRISIS_CLASSIFIER_CHECK',
 ] as const;
