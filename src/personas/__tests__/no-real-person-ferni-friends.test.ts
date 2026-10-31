@@ -5,20 +5,30 @@
  *
  * The retired names are held only as SHA-256 hashes of the lower-case name, so
  * this public repo never spells them out. Every word in the corpus is hashed
- * and checked against that list.
+ * and checked against that list; a failure reports only file:line.
  *
- * Scanned: everything Ferni says about his own life (identity, behaviors, his
- * spontaneous shares), the code that speaks from it (day details, life threads,
- * help asks) and the universe pages that retell it. The scan is scoped to these
- * files on purpose: a caller's own contacts, and the legacy persona aliases
- * owned by the persona-rename work, live outside this corpus.
+ * Scanned: the whole Ferni persona bundle, the persona and voice evals, the
+ * universe pages that retell his life, and the spoken-share modules. Left out,
+ * by exact path only: the legacy persona alias (owned by the persona-rename
+ * work) and the evals' local, git-ignored run output. A caller's own contacts
+ * live outside this corpus and are not affected.
  */
 
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { HELP_ASKS } from '../../agents/personas/ferni-asks-help.js';
 import { LIFE_THREADS } from '../../agents/personas/ferni-life-threads.js';
 import { GROUNDED_DAY_DETAILS } from '../../agents/personas/ferni-self-share.js';
@@ -28,7 +38,7 @@ import {
 } from '../../intelligence/context-builders/personas/spontaneous-vulnerability.js';
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const BUNDLE_DIR = join(REPO_ROOT, 'src/personas/bundles/ferni');
+const BUNDLE = 'src/personas/bundles/ferni';
 
 const FRIENDS = ['Lyle', 'Owen', 'Boyd', 'Marty', 'Hollis'];
 
@@ -41,6 +51,19 @@ const RETIRED_NAME_HASHES: ReadonlySet<string> = new Set([
   '9aa1f9e22f8dcb06fed923951e8620c365e0bb13bb761fe9f01fbfbcfdf3a227',
 ]);
 
+/** Scanned whole, relative to the repo root. */
+const SCANNED_DIRS = [BUNDLE, 'scripts/persona-eval', 'scripts/voice-eval'];
+const SCANNED_FILES = [
+  'brand/universe-bible.html',
+  'apps/website/design-system-portal/src/pages/universe.njk',
+];
+/** Exact paths left out of the scan. Never a pattern. */
+const EXCLUDED: ReadonlySet<string> = new Set([
+  `${BUNDLE}/content/knowledge/team-orchestration.md`, // legacy persona alias
+  `${BUNDLE}/persona.manifest.json`, // legacy persona alias
+  'scripts/voice-eval/out', // git-ignored local run output
+]);
+
 const sha256 = (word: string): string => createHash('sha256').update(word).digest('hex');
 
 /** The words in `text` whose lower-case SHA-256 is in `hashes` ("Name's" counts, "Namesake" does not). */
@@ -48,19 +71,32 @@ function deniedWordsIn(text: string, hashes: ReadonlySet<string>): string[] {
   return (text.toLowerCase().match(/[a-z]+/g) ?? []).filter((w) => hashes.has(sha256(w)));
 }
 
-function listFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    return entry.isDirectory() ? listFiles(path) : [path];
-  });
+/** Every scanned file under `root`, as a root-relative path. */
+function corpusFiles(root: string): string[] {
+  const walk = (rel: string): string[] => {
+    if (EXCLUDED.has(rel) || !existsSync(join(root, rel))) return [];
+    const entries = readdirSync(join(root, rel), { withFileTypes: true });
+    return entries.flatMap((e) => {
+      const child = `${rel}/${e.name}`;
+      if (EXCLUDED.has(child)) return [];
+      return e.isDirectory() ? walk(child) : [child];
+    });
+  };
+  return [
+    ...SCANNED_DIRS.flatMap(walk),
+    ...SCANNED_FILES.filter((f) => existsSync(join(root, f))),
+  ];
 }
 
-const files = [
-  ...listFiles(join(BUNDLE_DIR, 'identity')),
-  ...listFiles(join(BUNDLE_DIR, 'content/behaviors')),
-  join(REPO_ROOT, 'brand/universe-bible.html'),
-  join(REPO_ROOT, 'apps/website/design-system-portal/src/pages/universe.njk'),
-];
+/** "path:line" for every line of a scanned file under `root` that holds a denied word. */
+function hitsUnder(root: string, hashes: ReadonlySet<string>): string[] {
+  return corpusFiles(root).flatMap((rel) =>
+    readFileSync(join(root, rel), 'utf8')
+      .split('\n')
+      .flatMap((line, i) => (deniedWordsIn(line, hashes).length ? [`${rel}:${i + 1}`] : []))
+  );
+}
+
 const spoken: { path: string; text: string }[] = [
   ...GROUNDED_DAY_DETAILS.map((d, i) => ({
     path: `<ferni-self-share #${i}>`,
@@ -82,34 +118,51 @@ const spoken: { path: string; text: string }[] = [
     text: [s.content, s.transition, s.ssmlEnhanced].join('\n'),
   })),
 ];
-const corpus = [...files.map((path) => ({ path, text: readFileSync(path, 'utf8') })), ...spoken];
 
 describe("Ferni's friends are invented", () => {
-  it('reads his own-life sheet, his people list and the code that speaks from them', () => {
-    expect(corpus.some(({ path }) => path.endsWith('identity/character-own-life.md'))).toBe(true);
-    expect(corpus.some(({ path }) => path.endsWith('identity/biography.md'))).toBe(true);
-    expect(corpus.some(({ path }) => path.endsWith('behaviors/backstory-dynamic.json'))).toBe(true);
+  it('scans the whole bundle, the evals and the universe pages', () => {
+    const files = corpusFiles(REPO_ROOT);
+    for (const rel of [
+      `${BUNDLE}/identity/character-own-life.md`,
+      `${BUNDLE}/identity/biography.md`,
+      `${BUNDLE}/content/behaviors/backstory-dynamic.json`,
+      `${BUNDLE}/content/stories/brazil-joy.json`,
+      `${BUNDLE}/content/identity/inner-world.json`,
+      `${BUNDLE}/content/prompts/_assembly.json`,
+      'scripts/persona-eval/canon-judge.ts',
+      'brand/universe-bible.html',
+    ]) {
+      expect(files).toContain(rel);
+    }
+    expect(files.some((f) => f.startsWith('scripts/voice-eval/'))).toBe(true);
     expect(spoken.length).toBeGreaterThan(10);
   });
 
+  it('every excluded path still exists, except the optional local eval output', () => {
+    for (const rel of EXCLUDED) {
+      if (rel === 'scripts/voice-eval/out') continue;
+      expect(existsSync(join(REPO_ROOT, rel))).toBe(true);
+    }
+  });
+
   it('names the invented friends in his people list and own-life sheet', () => {
-    const people = JSON.parse(readFileSync(join(BUNDLE_DIR, 'identity/people.json'), 'utf8')) as {
-      names: string[];
-    };
+    const people = JSON.parse(
+      readFileSync(join(REPO_ROOT, BUNDLE, 'identity/people.json'), 'utf8')
+    ) as { names: string[] };
     for (const name of FRIENDS) expect(people.names).toContain(name);
-    const ownLife = readFileSync(join(BUNDLE_DIR, 'identity/character-own-life.md'), 'utf8');
+    const ownLife = readFileSync(join(REPO_ROOT, BUNDLE, 'identity/character-own-life.md'), 'utf8');
     for (const name of FRIENDS) expect(ownLife).toMatch(new RegExp(`\\b${name}\\b`));
   });
 
   it('none of the retired names comes back', () => {
-    const hits = corpus.flatMap(({ path, text }) =>
-      text.split('\n').flatMap((line, i) =>
-        deniedWordsIn(line, RETIRED_NAME_HASHES).length
-          ? [`${path.replace(REPO_ROOT, '')}:${i + 1}`]
-          : []
-      )
+    const spokenHits = spoken.flatMap(({ path, text }) =>
+      text
+        .split('\n')
+        .flatMap((line, i) =>
+          deniedWordsIn(line, RETIRED_NAME_HASHES).length ? [`${path}:${i + 1}`] : []
+        )
     );
-    expect(hits).toEqual([]);
+    expect([...hitsUnder(REPO_ROOT, RETIRED_NAME_HASHES), ...spokenHits]).toEqual([]);
   });
 
   it('the denylist holds five SHA-256 hashes and none is an invented friend', () => {
@@ -127,5 +180,42 @@ describe("Ferni's friends are invented", () => {
     ]);
     expect(deniedWordsIn("ZORVIK's jade plant", denied)).toEqual(['zorvik']);
     expect(deniedWordsIn('a Zorvikson trip with Marty', denied)).toEqual([]);
+  });
+
+  // Mutation check on a temp copy of the repo layout. The retired names can't be
+  // written here, so a stand-in word is added to the denied hashes and planted in
+  // the copy: the same hash match the real names go through.
+  describe('a planted retired name turns the scan red', () => {
+    const tmp = mkdtempSync(join(tmpdir(), 'ferni-friends-'));
+    afterAll(() => rmSync(tmp, { recursive: true, force: true }));
+    const denied = new Set([...RETIRED_NAME_HASHES, sha256('zorvik')]);
+
+    const plant = (rel: string): string => {
+      const root = mkdtempSync(join(tmp, 'root-'));
+      mkdirSync(dirname(join(root, rel)), { recursive: true });
+      copyFileSync(join(REPO_ROOT, rel), join(root, rel));
+      expect(hitsUnder(root, denied)).toEqual([]);
+      writeFileSync(join(root, rel), `${readFileSync(join(root, rel), 'utf8')}\nZorvik's call\n`);
+      return root;
+    };
+
+    it.each([
+      `${BUNDLE}/content/stories/brazil-joy.json`,
+      `${BUNDLE}/content/identity/inner-world.json`,
+      `${BUNDLE}/content/prompts/_assembly.json`,
+      'scripts/persona-eval/canon-judge.ts',
+    ])('%s', (rel) => {
+      const root = plant(rel);
+      const lines = readFileSync(join(root, rel), 'utf8').split('\n').length;
+      expect(hitsUnder(root, denied)).toEqual([`${rel}:${lines - 1}`]);
+    });
+
+    it.each([...EXCLUDED].filter((rel) => rel !== 'scripts/voice-eval/out'))(
+      'the excluded %s stays out',
+      (rel) => {
+        const root = plant(rel);
+        expect(hitsUnder(root, denied)).toEqual([]);
+      }
+    );
   });
 });
