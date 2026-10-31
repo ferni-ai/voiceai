@@ -265,3 +265,35 @@ describe('the CLI reads the whole log backlog', () => {
     expect(out).toContain('Values differ (1): ARC_INSIGHT_ONCE (dev=on prod=off)');
   }, 30_000);
 });
+
+describe('round 2: fail closed on missing times and rolling restarts', () => {
+  it('cannot verify when the agent has secrets but lk gives no updatedAt', () => {
+    const prod = snap('prod', ['X_FLAG'], [line(T0, 'hA', { X_FLAG: 'on' }, {})], null);
+    expect(prod.problems.join()).toMatch(/no updatedAt/);
+    expect(exitCode([], prod, prod)).toBe(2);
+  });
+
+  it('cannot verify while two boots with different settings log at once', () => {
+    const prod = snap(
+      'prod',
+      ['X_FLAG'],
+      [
+        line(T0, 'hA', { X_FLAG: 'on' }, {}, 1, 2),
+        line(T0 + 200, 'hB', { X_FLAG: 'off' }, {}, 1, 2),
+        line(T0 + 300, 'hA', {}, {}, 2, 2),
+        line(T0 + 400, 'hB', {}, {}, 2, 2),
+      ]
+    );
+    expect(prod.problems.join()).toMatch(/two boots/);
+    expect(exitCode([], prod, prod)).toBe(2);
+  });
+
+  it('trusts a boot that came well after the one before it', () => {
+    const prod = snap(
+      'prod',
+      ['X_FLAG'],
+      [line(T0, 'hA', { X_FLAG: 'on' }, {}), line(T0 + 3_600_000, 'hB', { X_FLAG: 'off' }, {})]
+    );
+    expect(prod.problems).toEqual([]);
+  });
+});
