@@ -1,5 +1,6 @@
 /**
- * "I can't see" as a medical emergency (#3000, CRISIS_SIGHT_NEEDS_CUE, off by default).
+ * "I can't see" as a medical emergency (#3000, CRISIS_SIGHT_NEEDS_CUE, off by default;
+ * CRISIS_LEXICAL_V2 turns it on too).
  *
  * Prod, 2026-10-29: a caller said "I can't see." about text messages that hadn't
  * arrived. The medical check took any "i can't see" as an emergency (severity 10),

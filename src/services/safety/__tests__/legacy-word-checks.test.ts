@@ -98,6 +98,8 @@ describe('the human-transfer detector', () => {
     ["I can't stop thinking that I want to die", 'suicidalIdeation'],
     ["I don't want to go on like this", 'suicidalIdeation'],
     ["I don't want to be here in this world", 'suicidalIdeation'],
+    ["I don't want to be here at this point anymore", 'suicidalIdeation'],
+    ["I don't want to go on this way anymore", 'suicidalIdeation'],
     ['I want to end it with a bottle of pills', 'suicidalIdeation'],
     ["I'm going to end it tonight", 'suicidalIdeation'],
     ["I cut myself chopping wood, I'm bleeding everywhere", 'medicalEmergency'],
