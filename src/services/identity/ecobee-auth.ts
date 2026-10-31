@@ -14,6 +14,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
 import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
 import type {
   EcobeeTokens,
@@ -232,8 +233,7 @@ export async function requestPin(
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      log.error({ status: response.status, error }, 'Failed to request Ecobee PIN');
+      log.error({ status: response.status }, 'Failed to request Ecobee PIN');
       return { success: false, error: 'Failed to get authorization PIN' };
     }
 
@@ -269,7 +269,7 @@ export async function requestPin(
       },
     };
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Error requesting Ecobee PIN');
+    log.error({ error: errorClass(error), userId }, 'Error requesting Ecobee PIN');
     return { success: false, error: 'Failed to connect to Ecobee' };
   }
 }
@@ -346,7 +346,7 @@ export async function checkAuthorization(
       }
 
       // Other errors are failures
-      log.error({ status: response.status, error: errorData }, 'Ecobee token exchange failed');
+      log.error({ status: response.status }, 'Ecobee token exchange failed');
       return { success: false, error: 'Authorization failed. Please try again.' };
     }
 
@@ -375,7 +375,7 @@ export async function checkAuthorization(
 
     return { success: true, data: { authorized: true } };
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Error checking Ecobee authorization');
+    log.error({ error: errorClass(error), userId }, 'Error checking Ecobee authorization');
     return { success: false, error: 'Failed to check authorization status' };
   }
 }
@@ -441,9 +441,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<EcobeeTo
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    log.warn({ status: response.status, error }, 'Failed to refresh Ecobee token');
-    throw new Error(`Token refresh failed: ${error}`);
+    log.warn({ status: response.status }, 'Failed to refresh Ecobee token');
+    throw new Error(`Token refresh failed: HTTP ${response.status}`);
   }
 
   const tokenData = (await response.json()) as EcobeeTokenResponse;
@@ -486,7 +485,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
     } catch (error) {
       markTokenAsFailed(userId);
       log.warn(
-        { userId, error: String(error) },
+        { userId, error: errorClass(error) },
         'Failed to refresh Ecobee token - user needs to re-authenticate'
       );
       return null;
