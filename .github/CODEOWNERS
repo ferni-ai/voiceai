@@ -36,6 +36,18 @@
 /src/services/human-transfer/** @sethdford
 /src/agents/processors/turn-processor/turn-crisis.ts @sethdford
 /src/agents/processors/turn-processor/safety-note.ts @sethdford
+# Every crisis, minor-care and sexual-boundary file by name, so a new module or flag is covered
+# the day it lands (crisis-paths-complete.test.ts fails on one outside the lane).
+/src/**/*crisis* @sethdford
+/src/**/*CRISIS* @sethdford
+/src/**/*minor-care* @sethdford
+/src/**/*sexual* @sethdford
+/src/**/*SEXUAL* @sethdford
+/src/tools/domains/human-transfer/** @sethdford
+/src/intelligence/context-builders/safety/** @sethdford
+/scripts/crisis-eval/** @sethdford
+/apps/**/*crisis* @sethdford
+/apps/**/*Crisis* @sethdford
 /scripts/voice-eval/** @sethdford
 # Scenarios aren't evaluator code (no owner), except the crisis ones re-owned below.
 /scripts/voice-eval/scenarios/**

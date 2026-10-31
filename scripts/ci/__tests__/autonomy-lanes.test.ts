@@ -415,9 +415,10 @@ describe('crisis wiring outside crisis paths', () => {
     for (const spec of ['./turn-crisis', './turn-crisis.js', './safety-note']) {
       expect(importLanes(file, `import { a } from '${spec}';`)).toEqual([['crisis'], []]);
     }
-    // The same name somewhere it doesn't resolve to a crisis module is not crisis.
+    // The same name somewhere it doesn't resolve to a crisis module is not crisis. (A
+    // crisis-named file is crisis wherever it lives, src/**/*crisis*, so this uses safety-note.)
     const elsewhere = 'src/agents/other/x.ts';
-    expect(importLanes(elsewhere, "import { a } from './turn-crisis';")).toEqual([[], []]);
+    expect(importLanes(elsewhere, "import { a } from './safety-note';")).toEqual([[], []]);
   });
 
   it('relative parent import into services/safety is crisis for the loop', () => {
