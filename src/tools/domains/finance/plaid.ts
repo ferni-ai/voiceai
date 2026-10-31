@@ -15,12 +15,26 @@
  */
 
 import { llm, log } from '@livekit/agents';
-import { callerUserId } from '../local-search/caller-city.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { getRateLimiter } from '../../rate-limiter.js';
+import {
+  callerTokenData,
+  plaidCaller,
+  readCallerBank,
+  type PlaidRead,
+  type PlaidToolCtx,
+} from './plaid-caller.js';
+import type { PlaidAccount, PlaidTransaction } from './plaid-speech.js';
+import {
+  analyzeSpending,
+  formatBalancesForSpeech,
+  formatSpendingForSpeech,
+} from './plaid-speech.js';
+
+export { analyzeSpending, formatBalancesForSpeech, formatSpendingForSpeech };
 // Plaid API configuration
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID || '';
 const PLAID_SECRET = process.env.PLAID_SECRET || '';
@@ -36,37 +50,6 @@ const PLAID_BASE_URL =
 // ============================================================================
 // PLAID API TYPES
 // ============================================================================
-
-interface PlaidAccount {
-  account_id: string;
-  name: string;
-  official_name?: string;
-  type: 'depository' | 'credit' | 'loan' | 'investment' | 'other';
-  subtype?: string;
-  balances: {
-    available?: number;
-    current?: number;
-    limit?: number;
-    iso_currency_code?: string;
-  };
-  mask?: string; // Last 4 digits
-}
-
-interface PlaidTransaction {
-  transaction_id: string;
-  account_id: string;
-  amount: number;
-  date: string;
-  name: string;
-  merchant_name?: string;
-  category?: string[];
-  pending: boolean;
-  payment_channel: 'online' | 'in store' | 'other';
-  location?: {
-    city?: string;
-    region?: string;
-  };
-}
 
 interface PlaidInstitution {
   institution_id: string;
@@ -171,19 +154,24 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
 // ============================================================================
 
 /**
- * Make authenticated Plaid API request with retry logic
+ * Make authenticated Plaid API request with retry logic. Never null: the bank
+ * asking for a fresh login is needs_reauth; anything else that failed (5xx,
+ * timeout, network, missing credentials, rate limit) is unreachable.
  */
-async function plaidRequest<T>(endpoint: string, body: Record<string, unknown>): Promise<T | null> {
+async function plaidRequest<T>(
+  endpoint: string,
+  body: Record<string, unknown>
+): Promise<PlaidRead<T>> {
   if (!PLAID_CLIENT_ID || !PLAID_SECRET) {
     getLogger().warn('Plaid credentials not configured');
-    return null;
+    return { outcome: 'unreachable' };
   }
 
   // Rate limiting to prevent API abuse
   const rateLimiter = getRateLimiter('plaid');
   if (!rateLimiter.tryAcquire()) {
     getLogger().warn({ endpoint }, 'Plaid API rate limited');
-    return null;
+    return { outcome: 'unreachable' };
   }
 
   try {
@@ -203,7 +191,10 @@ async function plaidRequest<T>(endpoint: string, body: Record<string, unknown>):
         });
 
         if (!response.ok) {
-          const error = (await response.json()) as { error_message?: string; error_code?: string };
+          const error = (await response.json().catch(() => ({}))) as {
+            error_message?: string;
+            error_code?: string;
+          };
 
           // Check if this is a retryable error
           const retryableStatuses = [408, 429, 500, 502, 503, 504];
@@ -220,16 +211,17 @@ async function plaidRequest<T>(endpoint: string, body: Record<string, unknown>):
             },
             'Plaid API error (non-retryable)'
           );
-          return null;
+          const reauth = error.error_code === 'ITEM_LOGIN_REQUIRED';
+          return { outcome: reauth ? 'needs_reauth' : 'unreachable' } as const;
         }
 
-        return (await response.json()) as T;
+        return { outcome: 'data', data: (await response.json()) as T } as const;
       },
       { maxRetries: 3, baseDelayMs: 500 }
     );
   } catch (error) {
     getLogger().error({ endpoint, error }, 'Plaid request failed after retries');
-    return null;
+    return { outcome: 'unreachable' };
   }
 }
 
@@ -252,11 +244,11 @@ export async function createLinkToken(userId: string): Promise<string> {
     // webhook: 'https://your-webhook-url.com/plaid',
   });
 
-  if (!result) {
+  if (result.outcome !== 'data') {
     return "I'd love to help you link your bank account, but my connection service isn't set up yet. Ask the team to configure Plaid!";
   }
 
-  return result.link_token;
+  return result.data.link_token;
 }
 
 /**
@@ -266,31 +258,34 @@ export async function createLinkToken(userId: string): Promise<string> {
 export async function exchangePublicToken(
   publicToken: string
 ): Promise<{ access_token: string; item_id: string } | null> {
-  return plaidRequest<{ access_token: string; item_id: string }>('/item/public_token/exchange', {
-    public_token: publicToken,
-  });
+  const result = await plaidRequest<{ access_token: string; item_id: string }>(
+    '/item/public_token/exchange',
+    { public_token: publicToken }
+  );
+  return result.outcome === 'data' ? result.data : null;
 }
 
-/**
- * Get account balances
- */
-export async function getAccountBalances(accessToken: string): Promise<PlaidAccount[]> {
+/** Account balances as an outcome: an empty list is data, a failure is not. */
+async function fetchAccountBalances(accessToken: string): Promise<PlaidRead<PlaidAccount[]>> {
   const result = await plaidRequest<PlaidBalanceResponse>('/accounts/balance/get', {
     access_token: accessToken,
   });
-
-  return result?.accounts || [];
+  return result.outcome === 'data' ? { outcome: 'data', data: result.data.accounts ?? [] } : result;
 }
 
-/**
- * Get transactions for a date range
- */
-export async function getTransactions(
+/** Account balances; [] on failure too (context builders). Tools use fetchAccountBalances. */
+export async function getAccountBalances(accessToken: string): Promise<PlaidAccount[]> {
+  const result = await fetchAccountBalances(accessToken);
+  return result.outcome === 'data' ? result.data : [];
+}
+
+/** Transactions for a date range as an outcome: an empty list is data, a failure is not. */
+export async function fetchTransactions(
   accessToken: string,
   startDate: string,
   endDate: string,
   count = 100
-): Promise<PlaidTransaction[]> {
+): Promise<PlaidRead<PlaidTransaction[]>> {
   const result = await plaidRequest<PlaidTransactionsResponse>('/transactions/get', {
     access_token: accessToken,
     start_date: startDate,
@@ -300,188 +295,40 @@ export async function getTransactions(
       offset: 0,
     },
   });
-
-  return result?.transactions || [];
+  return result.outcome === 'data'
+    ? { outcome: 'data', data: result.data.transactions ?? [] }
+    : result;
 }
 
-/**
- * Analyze spending by category
- */
-export function analyzeSpending(transactions: PlaidTransaction[]): {
-  byCategory: Record<string, { total: number; count: number; transactions: string[] }>;
-  totalSpending: number;
-  largestExpenses: Array<{ name: string; amount: number; date: string }>;
-  averageTransactionSize: number;
-  recurringExpenses: Array<{ name: string; amount: number; frequency: string }>;
-} {
-  const byCategory: Record<string, { total: number; count: number; transactions: string[] }> = {};
-  let totalSpending = 0;
-
-  // Filter to spending only (positive amounts = money out in Plaid)
-  const spendingTxns = transactions.filter((t) => t.amount > 0 && !t.pending);
-
-  for (const txn of spendingTxns) {
-    const category = txn.category?.[0] || 'Uncategorized';
-    totalSpending += txn.amount;
-
-    if (!byCategory[category]) {
-      byCategory[category] = { total: 0, count: 0, transactions: [] };
-    }
-    byCategory[category].total += txn.amount;
-    byCategory[category].count++;
-    if (byCategory[category].transactions.length < 3) {
-      byCategory[category].transactions.push(txn.merchant_name || txn.name);
-    }
+/** Both reads a health check needs; half a picture is no checkup, so either failing fails it. */
+async function balancesAndTransactions(
+  accessToken: string,
+  startDate: string,
+  endDate: string
+): Promise<PlaidRead<{ accounts: PlaidAccount[]; transactions: PlaidTransaction[] }>> {
+  const [balances, txns] = await Promise.all([
+    fetchAccountBalances(accessToken),
+    fetchTransactions(accessToken, startDate, endDate, 250),
+  ]);
+  if (balances.outcome === 'data' && txns.outcome === 'data') {
+    return { outcome: 'data', data: { accounts: balances.data, transactions: txns.data } };
   }
-
-  // Find largest expenses
-  const largestExpenses = [...spendingTxns]
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5)
-    .map((t) => ({
-      name: t.merchant_name || t.name,
-      amount: t.amount,
-      date: t.date,
-    }));
-
-  // Detect recurring expenses (same merchant, similar amounts)
-  const merchantCounts: Record<string, { amounts: number[]; dates: string[] }> = {};
-  for (const txn of spendingTxns) {
-    const key = (txn.merchant_name || txn.name).toLowerCase();
-    if (!merchantCounts[key]) {
-      merchantCounts[key] = { amounts: [], dates: [] };
-    }
-    merchantCounts[key].amounts.push(txn.amount);
-    merchantCounts[key].dates.push(txn.date);
-  }
-
-  const recurringExpenses = Object.entries(merchantCounts)
-    .filter(([_, data]) => data.amounts.length >= 2)
-    .map(([name, data]) => {
-      const avgAmount = data.amounts.reduce((a, b) => a + b, 0) / data.amounts.length;
-      const frequency =
-        data.amounts.length >= 4 ? 'weekly' : data.amounts.length >= 2 ? 'monthly' : 'occasional';
-      return { name, amount: Math.round(avgAmount * 100) / 100, frequency };
-    })
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 10);
-
-  return {
-    byCategory,
-    totalSpending: Math.round(totalSpending * 100) / 100,
-    largestExpenses,
-    averageTransactionSize:
-      spendingTxns.length > 0 ? Math.round((totalSpending / spendingTxns.length) * 100) / 100 : 0,
-    recurringExpenses,
-  };
+  const reauth = balances.outcome === 'needs_reauth' || txns.outcome === 'needs_reauth';
+  return { outcome: reauth ? 'needs_reauth' : 'unreachable' };
 }
 
-/**
- * Format account balances for natural speech
- */
-export function formatBalancesForSpeech(accounts: PlaidAccount[]): string {
-  if (accounts.length === 0) {
-    return "I don't see any linked accounts yet.";
-  }
+/** YYYY-MM-DD, the form Plaid's date ranges take. */
+const day = (date: Date): string => date.toISOString().split('T')[0];
 
-  const lines: string[] = [];
-  let totalChecking = 0;
-  let totalSavings = 0;
-  let totalCredit = 0;
-  let totalCreditLimit = 0;
-
-  for (const account of accounts) {
-    const balance = account.balances.current || account.balances.available || 0;
-    const { name } = account;
-    const lastFour = account.mask ? ` (***${account.mask})` : '';
-
-    if (account.type === 'depository') {
-      if (account.subtype === 'checking') {
-        totalChecking += balance;
-        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} checking`);
-      } else if (account.subtype === 'savings') {
-        totalSavings += balance;
-        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} savings`);
-      } else {
-        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()}`);
-      }
-    } else if (account.type === 'credit') {
-      totalCredit += balance;
-      if (account.balances.limit) {
-        totalCreditLimit += account.balances.limit;
-        const utilization = Math.round((balance / account.balances.limit) * 100);
-        lines.push(
-          `• ${name}${lastFour}: $${balance.toLocaleString()} balance (${utilization}% of $${account.balances.limit.toLocaleString()} limit)`
-        );
-      } else {
-        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} balance`);
-      }
-    }
-  }
-
-  const summary: string[] = [];
-  if (totalChecking > 0 || totalSavings > 0) {
-    const totalCash = totalChecking + totalSavings;
-    summary.push(`Total cash: $${totalCash.toLocaleString()}`);
-  }
-  if (totalCredit > 0) {
-    const overallUtilization =
-      totalCreditLimit > 0
-        ? ` (${Math.round((totalCredit / totalCreditLimit) * 100)}% utilization)`
-        : '';
-    summary.push(`Credit card debt: $${totalCredit.toLocaleString()}${overallUtilization}`);
-  }
-
-  return `${lines.join('\n')}\n\n${summary.join(' | ')}`;
-}
-
-/**
- * Format spending analysis for natural speech
- */
-export function formatSpendingForSpeech(
-  analysis: ReturnType<typeof analyzeSpending>,
-  period: string
-): string {
-  const { byCategory, totalSpending, largestExpenses, recurringExpenses } = analysis;
-
-  const lines: string[] = [];
-  lines.push(`📊 Your spending for ${period}: $${totalSpending.toLocaleString()}`);
-  lines.push('');
-
-  // Top categories
-  const sortedCategories = Object.entries(byCategory)
-    .sort((a, b) => b[1].total - a[1].total)
-    .slice(0, 5);
-
-  if (sortedCategories.length > 0) {
-    lines.push('**By Category:**');
-    for (const [category, data] of sortedCategories) {
-      const pct = Math.round((data.total / totalSpending) * 100);
-      lines.push(
-        `• ${category}: $${data.total.toLocaleString()} (${pct}%) - ${data.count} transactions`
-      );
-    }
-    lines.push('');
-  }
-
-  // Largest expenses
-  if (largestExpenses.length > 0) {
-    lines.push('**Biggest Expenses:**');
-    for (const expense of largestExpenses.slice(0, 3)) {
-      lines.push(`• ${expense.name}: $${expense.amount.toLocaleString()} on ${expense.date}`);
-    }
-    lines.push('');
-  }
-
-  // Recurring
-  if (recurringExpenses.length > 0) {
-    lines.push('**Recurring Expenses I Noticed:**');
-    for (const recurring of recurringExpenses.slice(0, 5)) {
-      lines.push(`• ${recurring.name}: ~$${recurring.amount} ${recurring.frequency}`);
-    }
-  }
-
-  return lines.join('\n');
+/** Transactions; [] on failure too (context builders). Tools use fetchTransactions. */
+export async function getTransactions(
+  accessToken: string,
+  startDate: string,
+  endDate: string,
+  count = 100
+): Promise<PlaidTransaction[]> {
+  const result = await fetchTransactions(accessToken, startDate, endDate, count);
+  return result.outcome === 'data' ? result.data : [];
 }
 
 // ============================================================================
@@ -510,22 +357,31 @@ export {
 // TOOL DEFINITIONS
 // ============================================================================
 
-export function createPlaidTools() {
+const CANT_CHECK_LINK = "I couldn't check your bank link just now. Want me to try again in a bit?";
+
+/**
+ * The Plaid tools, run as the call's own caller (plaid-caller.ts): no tool takes
+ * a userId argument, and one sent anyway is ignored. `ctx` is the registry
+ * factory ctx (perCallerTool / the finance executor set its userId).
+ */
+export function createPlaidTools(ctx?: PlaidToolCtx) {
   return {
     checkBankLinkStatus: llm.tool({
       description: getToolDescription('checkBankLinkStatus'),
-      parameters: z.object({
-        userId: z.string().describe('Unique identifier for the user'),
-      }),
-      execute: async ({ userId }) => {
-        const hasAccounts = await hasLinkedAccounts(userId);
-        const tokenData = await getTokenData(userId);
+      parameters: z.object({}),
+      execute: async (_args, opts) => {
+        let tokenData: Awaited<ReturnType<typeof callerTokenData>>;
+        try {
+          tokenData = await callerTokenData(plaidCaller(ctx, opts));
+        } catch {
+          return CANT_CHECK_LINK;
+        }
         getLogger().info(
-          { userId, hasAccounts, institution: tokenData?.institution?.name },
+          { hasAccounts: !!tokenData, institution: tokenData?.institution?.name },
           'Checking bank link status'
         );
 
-        if (hasAccounts && tokenData) {
+        if (tokenData) {
           const institutionName = tokenData.institution?.name || 'your bank';
           return `Yes, you have ${institutionName} linked! I can show you balances, transactions, or analyze your spending.`;
         } else {
@@ -537,16 +393,21 @@ export function createPlaidTools() {
     unlinkBankAccount: llm.tool({
       description: getToolDescription('unlinkBankAccount'),
       parameters: z.object({
-        userId: z.string().describe('Unique identifier for the user'),
         confirm: z.boolean().describe('User has confirmed they want to unlink'),
       }),
-      execute: async ({ userId, confirm }) => {
+      execute: async ({ confirm }, opts) => {
         if (!confirm) {
           return 'Just to confirm - you want me to disconnect your bank account? This will remove my access to your balances and transactions. Say yes to confirm.';
         }
 
-        const tokenData = await getTokenData(userId);
-        if (!tokenData) {
+        const userId = plaidCaller(ctx, opts);
+        let tokenData: Awaited<ReturnType<typeof callerTokenData>>;
+        try {
+          tokenData = await callerTokenData(userId);
+        } catch {
+          return CANT_CHECK_LINK;
+        }
+        if (!userId || !tokenData) {
           return "You don't have a bank account linked, so there's nothing to disconnect.";
         }
 
@@ -565,12 +426,11 @@ export function createPlaidTools() {
     linkBankAccount: llm.tool({
       description: getToolDescription('linkBankAccount'),
       parameters: z.object({
-        userId: z.string().describe('Unique identifier for the user'),
         deliveryMethod: z.enum(['sms', 'email']).describe('How to send the secure link'),
         contact: z.string().describe('Phone number (for SMS) or email address'),
       }),
       execute: async ({ deliveryMethod, contact }, opts) => {
-        const userId = callerUserId(opts); // the session's verified identity, never the model's
+        const userId = plaidCaller(ctx, opts); // the session's caller, never the model's
         if (!userId) return "I can only send the link to the person I'm talking with.";
         const startTime = Date.now();
         getLogger().info({ userId, deliveryMethod }, '>>> TOOL: linkBankAccount STARTED');
@@ -679,22 +539,14 @@ export function createPlaidTools() {
 
     getAccountBalances: llm.tool({
       description: getToolDescription('getAccountBalances'),
-      parameters: z.object({
-        userId: z.string().describe('Unique identifier for the user'),
-      }),
-      execute: async ({ userId }) => {
+      parameters: z.object({}),
+      execute: async (_args, opts) => {
         const startTime = Date.now();
-        getLogger().info({ userId }, '>>> TOOL: getAccountBalances STARTED');
-
-        const accessToken = await getStoredAccessToken(userId);
-        if (!accessToken) {
-          return "You haven't linked a bank account yet. Would you like to connect one? It only takes a minute, and it'll let me give you much more personalized advice based on your actual financial picture.";
-        }
-
-        const accounts = await getAccountBalances(accessToken);
-
+        const got = await readCallerBank(ctx, opts, "You haven't linked a bank account yet. Would you like to connect one? It only takes a minute, and it'll let me give you much more personalized advice based on your actual financial picture.", fetchAccountBalances); // prettier-ignore
+        if ('line' in got) return got.line;
+        const { caller: userId, data: accounts } = got;
         if (accounts.length === 0) {
-          return "I couldn't retrieve your account balances right now. This sometimes happens if the connection needs to be refreshed. Want me to help you reconnect your account?";
+          return "Your bank is linked, but it didn't show me any accounts.";
         }
 
         const formatted = formatBalancesForSpeech(accounts);
@@ -712,21 +564,13 @@ export function createPlaidTools() {
     getSpendingAnalysis: llm.tool({
       description: getToolDescription('getSpendingAnalysis'),
       parameters: z.object({
-        userId: z.string().describe('Unique identifier for the user'),
         period: z
           .enum(['week', 'month', 'quarter'])
           .optional()
           .describe('Time period to analyze (default: month)'),
       }),
-      execute: async ({ userId, period = 'month' }) => {
+      execute: async ({ period = 'month' }, opts) => {
         const startTime = Date.now();
-        getLogger().info({ userId, period }, '>>> TOOL: getSpendingAnalysis STARTED');
-
-        const accessToken = await getStoredAccessToken(userId);
-        if (!accessToken) {
-          return "You haven't linked a bank account yet. Once you do, I can show you exactly where your money is going and help you find ways to save. Want to link an account?";
-        }
-
         const endDate = new Date();
         const startDate = new Date();
         if (period === 'week') {
@@ -737,12 +581,9 @@ export function createPlaidTools() {
           startDate.setMonth(startDate.getMonth() - 3);
         }
 
-        const transactions = await getTransactions(
-          accessToken,
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0],
-          250
-        );
+        const got = await readCallerBank(ctx, opts, "You haven't linked a bank account yet. Once you do, I can show you exactly where your money is going and help you find ways to save. Want to link an account?", (token) => fetchTransactions(token, day(startDate), day(endDate), 250)); // prettier-ignore
+        if ('line' in got) return got.line;
+        const { caller: userId, data: transactions } = got;
 
         if (transactions.length === 0) {
           return `I don't see any transactions for the past ${period}. This might mean the account was recently connected and is still syncing, or there genuinely haven't been any transactions.`;
@@ -783,33 +624,20 @@ export function createPlaidTools() {
     getRecentTransactions: llm.tool({
       description: getToolDescription('getRecentTransactions'),
       parameters: z.object({
-        userId: z.string().describe('Unique identifier for the user'),
         merchantFilter: z.string().optional().describe('Filter by merchant name'),
         categoryFilter: z.string().optional().describe('Filter by category'),
         limit: z.number().optional().describe('Number of transactions to show (default: 10)'),
       }),
-      execute: async ({ userId, merchantFilter, categoryFilter, limit = 10 }) => {
+      execute: async ({ merchantFilter, categoryFilter, limit = 10 }, opts) => {
         const startTime = Date.now();
-        getLogger().info(
-          { userId, merchantFilter, categoryFilter, limit },
-          '>>> TOOL: getRecentTransactions STARTED'
-        );
-
-        const accessToken = await getStoredAccessToken(userId);
-        if (!accessToken) {
-          return "You'll need to link a bank account first to see your transactions. Want to set that up?";
-        }
-
         const endDate = new Date();
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 1);
 
-        let transactions = await getTransactions(
-          accessToken,
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0],
-          100
-        );
+        const got = await readCallerBank(ctx, opts, "You'll need to link a bank account first to see your transactions. Want to set that up?", (token) => fetchTransactions(token, day(startDate), day(endDate), 100)); // prettier-ignore
+        if ('line' in got) return got.line;
+        const userId = got.caller;
+        let transactions = got.data;
 
         if (merchantFilter) {
           const filter = merchantFilter.toLowerCase();
@@ -865,31 +693,17 @@ export function createPlaidTools() {
 
     checkFinancialHealth: llm.tool({
       description: getToolDescription('checkFinancialHealth'),
-      parameters: z.object({
-        userId: z.string().describe('Unique identifier for the user'),
-      }),
-      execute: async ({ userId }) => {
+      parameters: z.object({}),
+      execute: async (_args, opts) => {
         const startTime = Date.now();
-        getLogger().info({ userId }, '>>> TOOL: checkFinancialHealth STARTED');
-
-        const accessToken = await getStoredAccessToken(userId);
-        if (!accessToken) {
-          return "To give you a real financial health checkup, I'd need to see your accounts. Want to link your bank? It's secure and takes just a minute.";
-        }
-
-        const accounts = await getAccountBalances(accessToken);
-
         // Get recent transactions for spending analysis
         const endDate = new Date();
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 1);
 
-        const transactions = await getTransactions(
-          accessToken,
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0],
-          250
-        );
+        const got = await readCallerBank(ctx, opts, "To give you a real financial health checkup, I'd need to see your accounts. Want to link your bank? It's secure and takes just a minute.", (token) => balancesAndTransactions(token, day(startDate), day(endDate))); // prettier-ignore
+        if ('line' in got) return got.line;
+        const { caller: userId, data: { accounts, transactions } } = got; // prettier-ignore
 
         // Calculate metrics
         let totalCash = 0;

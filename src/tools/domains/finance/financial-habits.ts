@@ -27,13 +27,11 @@ import { getLogger, getUserId } from '../../utils/tool-helpers.js';
 
 // Import Plaid tools for real financial data
 import {
-  hasLinkedAccounts,
-  getStoredAccessToken,
-  getAccountBalances,
-  getTransactions,
+  fetchTransactions,
   analyzeSpending as analyzeRealSpending,
   formatSpendingForSpeech,
 } from './plaid.js';
+import { readCallerBank } from './plaid-caller.js';
 
 // Import Firestore-backed financial store and types
 import {
@@ -435,34 +433,20 @@ export function createFinancialHabitsTools() {
     getActualSpending: llm.tool({
       description: getToolDescription('getActualSpending'),
       parameters: z.object({
-        userId: z.string().describe('User identifier'),
         period: z.enum(['week', 'month', 'quarter']).default('month'),
       }),
-      execute: async ({ userId, period }) => {
-        // Check if user has linked accounts
-        if (!(await hasLinkedAccounts(userId))) {
-          getLogger().info({ userId }, 'No linked accounts - using sample data');
-          return `I don't have access to your actual bank data yet. Want to link your accounts? It takes about 30 seconds and lets me give you real insights instead of guesses!\n\nFor now, I can help you track spending manually or set up a budget based on what you tell me.`;
-        }
-
-        const accessToken = await getStoredAccessToken(userId);
-        if (!accessToken) {
-          return `Something went wrong accessing your accounts. Want to try reconnecting?`;
-        }
-
-        // Get real transactions
+      execute: async ({ period }, opts) => {
+        // Get real transactions for the call's own caller (plaid-caller.ts), never a model-supplied id
         const endDate = new Date();
         const startDate = new Date();
         if (period === 'week') startDate.setDate(startDate.getDate() - 7);
         else if (period === 'month') startDate.setMonth(startDate.getMonth() - 1);
         else startDate.setMonth(startDate.getMonth() - 3);
 
-        const transactions = await getTransactions(
-          accessToken,
-          startDate.toISOString().split('T')[0],
-          endDate.toISOString().split('T')[0],
-          250
-        );
+        const day = (date: Date): string => date.toISOString().split('T')[0];
+        const got = await readCallerBank(undefined, opts, `I don't have access to your actual bank data yet. Want to link your accounts? It takes about 30 seconds and lets me give you real insights instead of guesses!\n\nFor now, I can help you track spending manually or set up a budget based on what you tell me.`, (token) => fetchTransactions(token, day(startDate), day(endDate), 250)); // prettier-ignore
+        if ('line' in got) return got.line;
+        const transactions = got.data;
 
         if (transactions.length === 0) {
           return `I don't see any transactions for the past ${period}. This might be a new connection that's still syncing.`;
