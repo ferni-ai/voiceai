@@ -378,6 +378,24 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
   }
 }
 
+/**
+ * Switch a Firebase user's sign-in off or on. no_user: Firebase has no such user, or the id is
+ * one it could never have issued. Never throws: any other failure answers 'failed'.
+ */
+export async function setFirebaseUserDisabled(
+  uid: string,
+  disabled: boolean
+): Promise<'done' | 'no_user' | 'failed'> {
+  if (!ensureInitialized()) return 'failed';
+  try {
+    await admin.auth().updateUser(uid, { disabled });
+    return 'done';
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code;
+    return typeof code === 'string' && NO_SUCH_USER.has(code) ? 'no_user' : 'failed';
+  }
+}
+
 export type AttachPhoneResult =
   { ok: true; e164: string } | { ok: false; reason: 'invalid-number' | 'in-use' | 'unavailable' };
 

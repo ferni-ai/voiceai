@@ -22,7 +22,7 @@ import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { sendUserFacingError } from './user-facing-error.js';
-import { assertErased, erasureErrorCode } from '../services/platform/erasure-step.js';
+import { erasureErrorCode } from '../services/platform/erasure-step.js';
 
 const log = createLogger({ module: 'GDPR-API' });
 
@@ -618,7 +618,6 @@ async function handleAccountDeletion(
 
   log.warn({ userId }, 'Account deletion requested');
 
-  // Record this critical event
   await recordSecurityEvent({
     type: 'profile_delete',
     actorId: userId,
@@ -629,17 +628,18 @@ async function handleAccountDeletion(
   });
 
   try {
-    // The same sweep as DELETE /api/account; the sign-in below is closed only once every step succeeded
+    // The sweep DELETE /api/account runs, sign-in off first; it's deleted once every step succeeded
     const { getDataExportService } = await import('../services/data-export.js');
-    const results = await getDataExportService().deleteAllData(userId);
-    assertErased(results);
+    const signIn = await import('../services/identity/erasure-sign-in.js');
+    const results = await signIn.eraseWithSignInOff(userId, () =>
+      getDataExportService().deleteAllData(userId)
+    );
 
     // Also delete the Firebase user if this is a Firebase UID (28 characters, not 'device:')
     let firebaseDeleted = false;
     if (!userId.startsWith('device:') && userId.length >= 20) {
       try {
-        const { deleteFirebaseUser } = await import('../services/identity/firebase-auth.js');
-        firebaseDeleted = await deleteFirebaseUser(userId);
+        firebaseDeleted = await signIn.deleteSignInAfterErasure(userId);
         if (firebaseDeleted) {
           log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
         }
