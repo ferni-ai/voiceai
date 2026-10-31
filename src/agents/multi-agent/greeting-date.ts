@@ -1,21 +1,11 @@
 /**
- * A date the caller told Ferni about can be the hello's one thread
- * (DATES_IN_HELLO, default off; docs/plans/2026-10-31-right-moment-memory.md §5.5).
- *
- * - The same date the first recall note would raise (dates/recall.ts): a one-time
- *   date from 10 days ago to 3 days ahead, or a yearly one within the week.
- * - Picking writes nothing. Only the arbiter's winner calls commit(line), and it
- *   claims the call's opener and marks the date raised only when the spoken line
- *   names the date's day or person ("Saturday", "Priya"), as a letter and an
- *   anniversary are marked. A date that loses, or that the line passed over, comes back later.
- * - A sensitive date (sensitive-date.ts, where unsure counts) is presence, never a
- *   question and never its topic word: "Thinking of your grandma, with Thursday
- *   coming up." The person comes from the label, else "you". Its hello has its own
- *   base direction (PRESENCE_GREETING_DIRECTION), with no question in it.
- * - Verified members only (never a phone:, device: or anon: id, which anyone can
- *   present), never with crisis risk on the call, and never within CRISIS_QUIET_DAYS
- *   of a crisis-level signal (hadRecentCrisis, as the pondered ask). greeting-direction.ts
- *   adds the rest of the order: an unknown caller, a stranger and a same-day return get none.
+ * A date the caller told Ferni about can be the hello's one thread (DATES_IN_HELLO, off;
+ * docs/plans/2026-10-31-right-moment-memory.md §5.5): the date the first recall note would
+ * raise (dates/recall.ts). Picking writes nothing; only the arbiter's winner calls commit(line),
+ * which claims the opener and marks it raised when the line names its day or person, so a date
+ * that loses or is passed over comes back later. A sensitive one (sensitive-date.ts) is
+ * presence, never a question or its topic word, on a base with no question. Verified members
+ * only, never with crisis risk on the call or a crisis-level signal in CRISIS_QUIET_DAYS.
  *
  * @module agents/multi-agent/greeting-date
  */
@@ -101,41 +91,31 @@ export async function dateFor(
   try {
     if (crisisRiskThisCall(sessionId)) return undefined;
     const zone = caller.zone ?? userTimeZone({ sessionId, userId }) ?? 'UTC';
-    const { createDatesRecall, namesIn, personFromLabel, sensitiveDate } =
-      await import('../../intelligence/index.js');
-    const dates = createDatesRecall({ ...load, userId, sessionId, timezone: zone });
+    const rules = await import('../../intelligence/index.js');
+    const dates = rules.createDatesRecall({ ...load, userId, sessionId, timezone: zone });
     const [crisis] = await Promise.all([recentCrisis(userId), dates.ready]);
     const due = crisis ? null : dates.due?.();
     if (!due) return undefined;
-    return candidate(
-      userId,
-      due,
-      dates.raised,
-      { namesIn, sensitiveDate, personFromLabel },
-      {
-        now: load.now?.() ?? new Date(),
-        zone,
-      }
-    );
+    const day = dayWord(due.days, load.now?.() ?? new Date(), zone);
+    return candidate(userId, due, dates.raised, rules, day);
   } catch (error) {
     log.warn({ error: String(error) }, 'No date for the hello');
     return undefined;
   }
 }
 
+/** The dates rules, loaded on first use through the intelligence index. */
+type Rules = typeof import('../../intelligence/index.js');
+
 /** The picked date as the director's candidate; commit() writes only when the line says it. */
 function candidate(
   userId: string,
   due: DueDate,
   raised: () => void,
-  rules: Pick<
-    typeof import('../../intelligence/index.js'),
-    'namesIn' | 'sensitiveDate' | 'personFromLabel'
-  >,
-  at: { now: Date; zone: string }
+  rules: Rules,
+  day: string
 ): DateCandidate {
   const careful = rules.sensitiveDate(due.what);
-  const day = dayWord(due.days, at.now, at.zone);
   // Said only when the line names its day or person: a shared "visit" or "week" is not enough.
   const marks = [day.replace(/^next /, ''), ...rules.namesIn(due.what)];
   const commit = (spoken: string): void => {
@@ -145,25 +125,13 @@ function candidate(
     raised();
   };
   log.info({ id: due.id, moment: due.moment, careful }, 'Date for the hello');
-  const person = careful ? rules.personFromLabel(due.what) : null;
-  return { ...wording(due, day, careful, person), careful, factId: due.id, commit };
-}
-
-/** What the director is told: presence for a sensitive date, the date in their words otherwise. */
-function wording(
-  due: DueDate,
-  day: string,
-  careful: boolean,
-  person: string | null
-): Pick<DateCandidate, 'direction' | 'facts' | 'base'> {
-  if (careful)
-    return {
-      direction: presenceDirection(due, person, day),
-      base: PRESENCE_GREETING_DIRECTION,
-      facts: {},
-    };
-  const facts = { 'something on their calendar': due.what, when: day };
-  return { direction: ORDINARY[due.moment], facts };
+  const common = { careful, factId: due.id, commit };
+  if (!careful) {
+    const facts = { 'something on their calendar': due.what, when: day };
+    return { ...common, direction: ORDINARY[due.moment], facts };
+  }
+  const direction = presenceDirection(due, rules.personFromLabel(due.what), day);
+  return { ...common, direction, base: PRESENCE_GREETING_DIRECTION, facts: {} };
 }
 
 /** A member's own account: never a phone:, device: or anon: id, which anyone can present. */

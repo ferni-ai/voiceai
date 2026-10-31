@@ -1,51 +1,34 @@
 /**
- * Which dates the hello may ask about, and who a date is about
- * (docs/plans/2026-10-31-right-moment-memory.md §5.5, ruling 1: when unsure, sensitive).
- *
- * An allowlist, so an unknown heavy word can never be outvoted: the label is split
- * into whole words (hyphens and possessives split: "re-hab" is "re" + "hab"), and
- * stopwords, day and time words, relation words and names are set aside. Names count
- * only in safe shapes: a capitalised word before a possessive ("Priya's"), right after
- * a relation ("sister Priya") or right after "with" ("dinner with Marcus"); any other
- * capitalised word ("Hospice visit") is a content word. The date is ordinary only when
- * at least one content word is left and every one is in LIGHT_WORDS. Anything else is
- * sensitive: an empty label, a label of only names and days, any word not on the list.
- * A false "sensitive" costs a plainer hello; a false "ordinary" asks a cheerful
- * question about someone's surgery.
+ * Which dates the hello may ask about, and who a date is about (spec §5.5, ruling 1: when
+ * unsure, sensitive). An allowlist, so an unknown heavy word is never outvoted: the label's
+ * whole words (hyphens and possessives split, "re-hab" is "re" + "hab"), less stopwords, day
+ * and time words, relations and names, must all be in LIGHT_WORDS. Names count only in safe
+ * shapes: before a possessive ("Priya's"), after a relation ("sister Priya") or after "with"
+ * ("dinner with Marcus"); any other capitalised word ("Hospice visit") is content. No content
+ * word left, or any word off the list, is sensitive.
  *
  * @module intelligence/world-model/dates/sensitive-date
  */
 import { isSensitiveThread } from '../../../memory/index.js';
 
-/** Clearly happy or neutral events. Nothing ambiguous: no "anniversary" alone, no "appointment". */
-export const LIGHT_WORDS: ReadonlySet<string> = new Set(
-  `birthday party dinner lunch brunch breakfast coffee trip vacation holiday getaway visit wedding
-  shower housewarming graduation recital concert show movie game match tournament practice race
-  marathon hike camping beach picnic barbecue bbq festival fair sleepover playdate date reunion
-  homecoming arrival flight move meeting interview class school launch opening christmas
-  thanksgiving easter halloween hanukkah diwali eid passover night big first family team job friends`.split(
-    /\s+/
-  )
-);
+const setOf = (words: string): ReadonlySet<string> => new Set(words.trim().split(/\s+/));
 
-const STOPWORDS = new Set(
-  'a an the of to for with at in on and my our their his her your'.split(' ')
-);
+/** Clearly happy or neutral events. Nothing ambiguous: no "anniversary" alone, no "appointment". */
+export const LIGHT_WORDS = setOf(`birthday party dinner lunch brunch breakfast coffee trip vacation
+  holiday getaway visit wedding shower housewarming graduation recital concert show movie game
+  match tournament practice race marathon hike camping beach picnic barbecue bbq festival fair
+  sleepover playdate date reunion homecoming arrival flight move meeting interview class school
+  launch opening christmas thanksgiving easter halloween hanukkah diwali eid passover night big
+  first family team job friends`);
+const STOPWORDS = setOf('a an the of to for with at in on and my our their his her your');
+const RELATIONS = setOf(`mom dad mother father sister brother wife husband partner son daughter
+  grandma grandpa friend`);
 const TIME_WORD =
   /^(?:(?:mon|tues|wednes|thurs|fri|satur|sun)days?|january|february|march|april|may|june|july|august|september|october|november|december|today|tomorrow|tonight|yesterday|next|this|morning|afternoon|evening|night|noon|midnight|weekend|am|pm|\d+(?:st|nd|rd|th|am|pm)?)$/;
-const RELATIONS = new Set(
-  'mom dad mother father sister brother wife husband partner son daughter grandma grandpa friend'.split(
-    ' '
-  )
-);
 /** A name is Capitalised then lower case: "IRS", "HR" and "ER" never are. */
 const NAME_SHAPE = /^\p{Lu}\p{Ll}{2,}$/u;
 
-interface Word {
-  word: string;
-  lower: string;
-  possessive: boolean;
-}
+type Word = { word: string; lower: string; possessive: boolean };
 
 function wordsOf(label: string): Word[] {
   const found = label.normalize('NFKC').matchAll(/([\p{L}\p{N}]+)(['’]s(?![\p{L}\p{N}]))?/gu);
