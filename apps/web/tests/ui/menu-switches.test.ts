@@ -17,6 +17,8 @@ const { relationshipStageService } =
 const { getSettingsMenuUI, initSettingsMenuUI } = await import('../../src/ui/settings-menu.ui.js');
 const { soundUI } = await import('../../src/ui/sound.ui.js');
 const { transcriptUI } = await import('../../src/ui/transcript.ui.js');
+const { PREFERENCE_KEYS } = await import('../../src/config/storage-keys.js');
+const { SOUND_SETTING_KEY } = await import('../../src/services/sound-director.js');
 
 const row = (action: string): HTMLElement =>
   document.querySelector<HTMLElement>(`.settings-menu [data-action="${action}"]`)!;
@@ -55,6 +57,39 @@ describe('menu on/off rows', () => {
       el.click();
       expect(isOn()).toBe(start);
       expect(el.getAttribute('aria-checked')).toBe(String(start));
+    });
+  }
+});
+
+// The app starts the sound and transcript modules ~100 ms after Home shows
+// (app.ts deferredInit). Before: See Our Words held its own copy of the setting,
+// "on" until its module started, so a menu opened in that gap showed a switch
+// someone had turned off as on (the menu walk's reload check, ~1 in 3 runs).
+// Nothing here starts either module: the menu must read the saved choice itself.
+describe('menu on/off rows before their modules start', () => {
+  const SAVED_OFF: Array<[string, () => void]> = [
+    ['toggle-sounds', () => localStorage.setItem(SOUND_SETTING_KEY, 'off')],
+    ['toggle-transcription', () => localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, 'false')],
+  ];
+
+  afterEach(() => {
+    getSettingsMenuUI().destroy();
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  for (const [action, saveOff] of SAVED_OFF) {
+    it(`${action} shows a saved "off" as off`, () => {
+      localStorage.clear();
+      vi.spyOn(relationshipStageService, 'getStage').mockReturnValue('established');
+      vi.spyOn(relationshipStageService, 'isFeatureUnlocked').mockReturnValue(true);
+      initSettingsMenuUI({});
+      getSettingsMenuUI().show();
+      expect(row(action).getAttribute('aria-checked')).toBe('true'); // nothing saved: on (desktop)
+
+      saveOff();
+      getSettingsMenuUI().show(); // opening the menu re-reads every row
+      expect(row(action).getAttribute('aria-checked')).toBe('false');
     });
   }
 });

@@ -4,6 +4,7 @@
  * off produces the same bytes as with the Stage 2 module stubbed out
  * (pre-Stage-2 behavior).
  */
+import { USERDATA_TIMED_TRANSCRIPT, voice } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
 import { createRequire } from 'node:module';
 import {
@@ -28,6 +29,8 @@ import {
   isReplyAudioLeadFrame,
   type ReplyAudioNative,
 } from '../reply-audio-stage.js';
+
+import { USERDATA_UNTIMED } from '../../frame-timings.js';
 
 const SID = 'stage2-test';
 
@@ -231,6 +234,55 @@ describe('reply-audio-stage', () => {
     expect(out.slice(0, -1).every((f) => f.samplesPerChannel === 480)).toBe(true);
     // The held-back tail came out at flush: the last real input sample survives.
     expect(samples(out).at(-1)).toBe(samples(input).at(-2));
+  });
+
+  describe('word timings (TTS_ALIGNED_TRANSCRIPT, #3200)', () => {
+    const timed = (frames: AudioFrame[], at: Record<number, number>) =>
+      frames.map((f, i) =>
+        at[i] === undefined
+          ? f
+          : new AudioFrame(f.data, f.sampleRate, 1, f.samplesPerChannel, {
+              [USERDATA_TIMED_TRANSCRIPT]: [
+                voice.createTimedString({ text: `w${i} `, startTime: at[i], endTime: at[i] + 0.1 }),
+              ],
+            })
+      );
+    const startsOf = (out: AudioFrame[]) =>
+      out.flatMap((f) =>
+        ((f.userdata[USERDATA_TIMED_TRANSCRIPT] as voice.TimedString[]) ?? []).map((t) => [
+          t.text,
+          t.startTime,
+          t.endTime,
+        ])
+      );
+
+    it('an opening moves the speech timings later by its length', async () => {
+      setReplyAudioPlan(SID, TURN, { opening: { kind: 'sigh', intensity: 1, durationMs: 500 } });
+      const input = timed(toneFrames(5), { 0: 0, 3: 0.06 });
+      const out = await runStage(input, fakeNative());
+      const leadS = (out.length - input.length) * 0.02;
+      expect(leadS).toBeCloseTo(0.5, 6);
+      expect(startsOf(out)).toEqual([
+        ['w0 ', expect.closeTo(0.5, 6), expect.closeTo(0.6, 6)],
+        ['w3 ', expect.closeTo(0.56, 6), expect.closeTo(0.66, 6)],
+      ]);
+      expect(out.at(-1)).toBe(input.at(-1)); // a frame without timings is still the same object
+    });
+
+    it('the stretcher marks its frames untimed once it drops timings', async () => {
+      setReplyAudioPlan(SID, TURN, { tempo: 1.1 });
+      const out = await runStage(timed(toneFrames(20), { 2: 0.04 }), fakeNative());
+      expect(startsOf(out)).toEqual([]); // the stretcher cannot keep them
+      const marked = out.map((f) => f.userdata[USERDATA_UNTIMED] === true);
+      expect(marked.indexOf(true)).toBeGreaterThan(0); // from the drop on, not before
+      expect(marked.slice(marked.indexOf(true)).every(Boolean)).toBe(true);
+    });
+
+    it('with no timings (flag off) the stretcher marks nothing', async () => {
+      setReplyAudioPlan(SID, TURN, { tempo: 1.1 });
+      const out = await runStage(toneFrames(20), fakeNative());
+      expect(out.every((f) => Object.keys(f.userdata).length === 0)).toBe(true);
+    });
   });
 
   it('tempo gate off or tempo 1: no stretcher', async () => {

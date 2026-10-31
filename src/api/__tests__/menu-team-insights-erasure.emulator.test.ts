@@ -33,6 +33,7 @@ vi.mock('../../services/superhuman/firestore-utils.js', () =>
 /** The Firebase record each test uid signs in with (a verified phone, for the auth-linked profile) */
 const firebaseUsers = vi.hoisted(() => new Map<string, { phoneNumber?: string }>());
 vi.mock('../../services/identity/firebase-auth.js', () => ({
+  setFirebaseUserDisabled: vi.fn(async () => 'done' as const),
   ensureFirebaseAdmin: () => true,
   deleteFirebaseUser: vi.fn(async () => true),
   getFirebaseUserOrThrow: vi.fn(async (uid: string) => ({

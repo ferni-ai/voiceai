@@ -30,15 +30,26 @@ const words: Array<[string, number, number]> = [
   ['great ', 0.6, 1.04],
 ];
 
-/** A Cartesia plugin stream that yields audio with word timings, as tts.js does. */
+/** A Cartesia plugin stream that yields audio with word timings, as tts.js does, for text it was sent. */
 function timedInnerStream() {
+  let sent: () => void = () => undefined;
+  const allSent = new Promise<void>((resolve) => {
+    sent = resolve;
+  });
   return {
     pushText() {},
     flush() {},
     endInput() {},
     close() {},
-    updateInputStream() {},
+    // The plugin reads the reply text (tts.js updateInputStream), then voices it.
+    updateInputStream(input: AsyncIterable<string>) {
+      void (async () => {
+        for await (const _ of input);
+        sent();
+      })();
+    },
     async *[Symbol.asyncIterator]() {
+      await allSent;
       for (const [text, startTime, endTime] of words) {
         yield {
           requestId: 'r',
@@ -97,7 +108,10 @@ describe('PersonaAwareTTS aligned transcript capability', () => {
       captions.push(c);
     }
     expect(captions.every((c) => voice.isTimedString(c))).toBe(true);
-    expect(captions.map((c) => [c.text, c.startTime, c.endTime])).toEqual(words);
+    // The caption is the reply text (the backfill, #3200), on Cartesia's times.
+    expect(captions.map((c) => [c.text, c.startTime, c.endTime])).toEqual(
+      words.map(([w, start, end], i) => [i === words.length - 1 ? w.trim() : w, start, end])
+    );
   });
 
   it('flag on and the gateway voices replies on its Cartesia reply stream: declared', () => {

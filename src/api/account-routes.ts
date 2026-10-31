@@ -23,7 +23,11 @@ import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-
 import { eraseMusicalSocialData } from '../services/musical-you/social.js';
 import { eraseSocialChallengesFor } from '../services/social/challenges.js';
 import { eraseSocialStatsFor } from '../services/social/leaderboards.js';
-import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
+import { getFirebaseUser } from '../services/identity/firebase-auth.js';
+import {
+  deleteSignInAfterErasure,
+  eraseWithSignInOff,
+} from '../services/identity/erasure-sign-in.js';
 import { eraseDevicesFor } from '../services/push-devices.js';
 import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
@@ -66,7 +70,7 @@ export async function handleAccountRoutes(
   }
 
   // All account routes require authentication
-  const auth = await requireAuth(req, res);
+  const auth = await requireAuth(req, res, { strict: true }); // deletion and consent
   if (!auth) return true;
 
   const { userId } = auth;
@@ -256,7 +260,10 @@ async function handleDeleteAccount(
 
   try {
     const { getDataExportService } = await import('../services/data-export.js');
-    assertErased(await getDataExportService().deleteAllData(userId));
+    const erase = async () => getDataExportService().deleteAllData(userId);
+    // The sign-in goes off before any data does, so no instance reads the account as live
+    if (firebaseUid) await eraseWithSignInOff(firebaseUid, erase);
+    else assertErased(await erase());
   } catch (error) {
     log.error(
       { error: erasureErrorCode(error), userId },
@@ -275,7 +282,7 @@ async function handleDeleteAccount(
   const appleSignIn = await revokeAppleSignIn(userId);
   const failures = await eraseLinkedRecords(userId);
 
-  const firebaseDeleted = firebaseUid ? await deleteFirebaseUser(firebaseUid) : false;
+  const firebaseDeleted = firebaseUid ? await deleteSignInAfterErasure(firebaseUid) : false;
   if (firebaseUid && !firebaseDeleted) {
     log.error({ userId }, 'Data erased but Firebase user deletion failed');
     sendError(res, "Your data was deleted, but we couldn't close your sign-in. Try again?", 500);
