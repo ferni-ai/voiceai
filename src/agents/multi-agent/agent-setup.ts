@@ -2003,7 +2003,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           // This prevents speaking to empty rooms when participant hasn't joined yet
           room,
         });
-        // Note: silenceContext is created by setupSessionStateHandlers
+        cleanupFunctions.push(stateResult.clearTimers); // its timers and per-call state end with it
         handlersStatus.sessionState = true;
         diag.entry(`🎭 [${persona.id}] Session state handlers wired`);
 
