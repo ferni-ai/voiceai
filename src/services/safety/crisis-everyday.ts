@@ -20,6 +20,7 @@
  */
 
 import { hasRiskContent } from './crisis-agreement.js';
+import { contextNarrows } from './crisis-context-v2.js';
 import type { CrisisVerdict } from './crisis-classifier.js';
 
 export const CRISIS_EVERYDAY_RULES = `
@@ -36,12 +37,17 @@ export function resolveCrisisEverydayRules(
   return env.CRISIS_CLASSIFIER_EVERYDAY_RULES?.trim().toLowerCase() === 'on';
 }
 
-/** With the rules on, whether this turn is also read without them. */
+/**
+ * With the rules on, whether this turn is also read without them. CRISIS_CONTEXT_V2: never on a
+ * narrowed turn (crisis-context-v2.ts), which has no strong risk in this turn or earlier.
+ */
 export function needsPlainRead(
   latest: string,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  earlier: readonly string[] = []
 ): boolean {
-  return resolveCrisisEverydayRules(env) && hasRiskContent(latest);
+  if (!resolveCrisisEverydayRules(env) || !hasRiskContent(latest)) return false;
+  return !contextNarrows(latest, env, earlier);
 }
 
 const SEVERITY = { none: 0, crisis: 1, imminent: 2 } as const;

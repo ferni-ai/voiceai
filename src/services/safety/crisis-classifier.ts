@@ -31,6 +31,7 @@ import {
 } from './crisis-everyday.js';
 import { agreementCacheScope, notePatternBlock, readTurn } from './crisis-imminent-agreement.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
+import { contextV2Read } from './crisis-context-v2.js';
 import { secondReadRun } from './crisis-classifier-v3.js';
 import { resetSecondReadTurns, type SecondReadPath } from './crisis-second-read-turn.js';
 import { stripSSML } from '../../utils/text-utils.js';
@@ -430,7 +431,8 @@ export function startCrisisClassifier(
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
-  const prompt = crisisClassifierPrompt(env);
+  const v2 = contextV2Read(normalized.latest, env, normalized.earlier); // CRISIS_CONTEXT_V2
+  const prompt = v2.prompt(crisisClassifierPrompt(env));
   // CRISIS_CLASSIFIER_SECOND_READ: v3 may fill a read that found nothing (crisis-classifier-v3.ts).
   const waitMs = resolveCrisisClassifierTimeoutMs(env);
   const { call, pattern, secondRead } = options;
@@ -456,10 +458,10 @@ export function startCrisisClassifier(
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const read = (p: string): Promise<CrisisVerdict | null> =>
-    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+    classifyCrisis(input, v2.generate(generate), resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
-  const plain = needsPlainRead(normalized.latest, env)
-    ? crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })
+  const plain = needsPlainRead(normalized.latest, env, normalized.earlier)
+    ? v2.prompt(crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' }))
     : null;
   const base = readTurn(read, [prompt, plain], { ...options, ...normalized, env });
   const reads = second.apply(base, read, prompt);
