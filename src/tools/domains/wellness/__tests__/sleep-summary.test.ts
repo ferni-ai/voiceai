@@ -19,6 +19,7 @@ const sleepSummaryFor = (...args: Parameters<typeof summaryFor>) =>
   summaryFor(...args) as Promise<Summary>;
 const { toolAvailable } = await import('../../../registry/tool-availability.js');
 const { TOPIC_PATTERNS } = await import('../../../dynamic-loader/topic-patterns.js');
+const { sleepTopicPatterns } = await import('../../../dynamic-loader/sleep-topics.js');
 
 const NOW = Date.parse('2026-10-28T14:00:00Z');
 const NIGHT = {
@@ -256,11 +257,10 @@ describe('registration', () => {
   });
 });
 
-describe('reachability', () => {
+describe('reachability (OURA_SLEEP_TOOL=on; off is in dynamic-loader sleep-topics.test.ts)', () => {
+  const patterns = [...TOPIC_PATTERNS, ...sleepTopicPatterns({ OURA_SLEEP_TOOL: 'on' })];
   const domainsFor = (utterance: string) =>
-    new Set(
-      TOPIC_PATTERNS.filter(([, , re]) => re.test(utterance.toLowerCase())).flatMap(([, d]) => d)
-    );
+    new Set(patterns.filter(([, , re]) => re.test(utterance.toLowerCase())).flatMap(([, d]) => d));
 
   it.each([
     'how did I sleep last night?',

@@ -81,7 +81,9 @@ async function collection(
       ? (body.data as unknown[]).map(record).filter((d): d is Doc => d !== null)
       : null;
   } catch (error) {
-    log.warn({ endpoint, error: String(error) }, 'Oura collection request failed');
+    // The name only: a JSON parse error's message quotes the body, which holds sleep numbers.
+    const kind = error instanceof Error ? error.name : 'non-error';
+    log.warn({ endpoint, error: kind }, 'Oura collection request failed');
     return null;
   }
 }
