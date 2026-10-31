@@ -74,15 +74,15 @@ describe('eraseCustomAgent', () => {
       clone: 'failed',
     });
   });
-});
 
-it('still reports the agent deleted when the audio cleanup throws', async () => {
-  const d = deps({ type: 'cloned', voiceId: OWN_CLONE });
-  d.deleteAgentAudioFiles.mockRejectedValueOnce(new Error('storage down'));
-  expect(await eraseCustomAgent('uid_1', 'agent_1', d)).toEqual({
-    found: true,
-    clone: 'deleted',
-    audioFilesDeleted: 0,
+  it('still reports the agent deleted when the audio cleanup throws', async () => {
+    const d = deps({ type: 'cloned', voiceId: OWN_CLONE });
+    d.deleteAgentAudioFiles.mockRejectedValueOnce(new Error('storage down'));
+    expect(await eraseCustomAgent('uid_1', 'agent_1', d)).toEqual({
+      found: true,
+      clone: 'deleted',
+      audioFilesDeleted: 0,
+    });
   });
 });
 
@@ -103,6 +103,7 @@ describe('deleteCartesiaVoice', () => {
     expect(url).toBe(`https://api.cartesia.ai/voices/${OWN_CLONE}`);
     expect(init.method).toBe('DELETE');
     expect((init.headers as Record<string, string>)['X-API-Key']).toBe('test-key');
+    expect(init.signal).toBeInstanceOf(AbortSignal);
     expect((init.headers as Record<string, string>)['Cartesia-Version']).toMatch(
       /^\d{4}-\d{2}-\d{2}$/
     );

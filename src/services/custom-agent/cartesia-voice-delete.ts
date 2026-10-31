@@ -16,6 +16,9 @@ const log = createLogger({ module: 'CartesiaVoiceDelete' });
 
 const CARTESIA_BASE_URL = 'https://api.cartesia.ai';
 
+/** The delete runs inside the owner's DELETE request, so a hung Cartesia can't hold it. */
+const DELETE_TIMEOUT_MS = 10_000;
+
 export type CartesiaVoiceDeleteResult = 'deleted' | 'already_gone' | 'skipped' | 'failed';
 
 export interface CartesiaVoiceDeleteDeps {
@@ -39,6 +42,7 @@ export async function deleteCartesiaVoice(
       {
         method: 'DELETE',
         headers: { 'X-API-Key': apiKey, 'Cartesia-Version': CARTESIA_API_VERSION },
+        signal: AbortSignal.timeout(DELETE_TIMEOUT_MS),
       }
     );
     if (response.ok) return 'deleted';
