@@ -1086,6 +1086,11 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking: ARCHITECTURE.md's layer table is generated from architecture-layers.ts and
+      # must match it (and the index.ts / CLAUDE.md files it links). Fix: `pnpm docs:map`. ~1 s.
+      - name: Architecture map is current
+        run: pnpm docs:map --check
+
       # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
       # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.
       - name: Firestore database ratchet
