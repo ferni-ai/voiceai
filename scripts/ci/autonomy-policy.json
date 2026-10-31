@@ -86,6 +86,7 @@
         "src/tools/semantic-router/tool-definitions/index.ts",
         "src/utils/safety-whole-word.ts",
         "src/agents/personas/exits-held.ts",
+        "src/tools/domains/proactive/outreach/owner-message-content.ts",
         "src/agents/multi-agent/caller-card/index.ts",
         "src/agents/multi-agent/caller-card/wiring.ts",
         "src/agents/multi-agent/greeting-date.ts",

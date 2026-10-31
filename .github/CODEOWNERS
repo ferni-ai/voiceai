@@ -115,6 +115,7 @@
 /src/tools/semantic-router/tool-definitions/index.ts @sethdford
 /src/utils/safety-whole-word.ts @sethdford
 /src/agents/personas/exits-held.ts @sethdford
+/src/tools/domains/proactive/outreach/owner-message-content.ts @sethdford
 /src/agents/multi-agent/caller-card/index.ts @sethdford
 /src/agents/multi-agent/caller-card/wiring.ts @sethdford
 /src/agents/multi-agent/greeting-date.ts @sethdford
