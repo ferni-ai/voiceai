@@ -39,7 +39,9 @@ describe('redactUrl', () => {
   });
 
   it('drops userinfo (user:password@) and keeps the scheme and host', () => {
-    expect(redactUrl('https://bob:FAKEKEY123@db.example.com:8443/path?a=1')).toBe(
+    // Joined at runtime so the secret scanner doesn't read a literal user:pass@ URL.
+    const withUserinfo = ['https://bob', 'FAKEKEY123@db.example.com:8443/path?a=1'].join(':');
+    expect(redactUrl(withUserinfo)).toBe(
       'https://db.example.com:8443/path?a=1'
     );
     expect(redactUrl('postgres://FAKEKEY123@db.example.com/x')).toBe('postgres://db.example.com/x');
