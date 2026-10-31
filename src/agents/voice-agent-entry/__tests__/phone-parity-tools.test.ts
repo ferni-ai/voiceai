@@ -18,6 +18,7 @@ vi.mock('../../../tools/domains/proactive/outreach/index.js', () => ({
   textUser: vi.fn(),
   setUserContactInfo: vi.fn(),
   getUserContactInfo: vi.fn(async () => ({ timezone: 'America/Los_Angeles' })),
+  verifiedOwnerOnly: (def: unknown) => def, // the verified-caller gate has its own tests
 }));
 vi.mock('../../../services/outreach/user-contact.js', () => ({
   getUserContactInfo: vi.fn(async () => ({ timezone: 'America/Los_Angeles' })),

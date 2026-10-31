@@ -54,7 +54,7 @@ const run = async (id: string, args: Record<string, unknown>) =>
     await getAgentToUserOutreachDefinitions()
       .find((d) => d.id === id)!
       .create(ctx)
-      .execute(args, {})
+      .execute(args, { ctx: { userData: { userId: ctx.userId, verifiedCaller: true } } })
   );
 const portCall = vi.fn(async (..._a: unknown[]) => ({ success: true, status: 'initiated' }));
 const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
