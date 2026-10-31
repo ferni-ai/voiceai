@@ -9,6 +9,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { getEngagementStore } from '../engagement/engagement-store.js';
+import { getStore } from '../../memory/store-factory.js';
 
 // ============================================================================
 // TYPES
@@ -59,7 +60,11 @@ class ConversationHistoryService {
   private firestoreEnabled = true;
 
   /**
-   * Record a new conversation session.
+   * Record a new conversation session (the web app's hang-up). A first web call can come
+   * before anything made the caller's user record, and engagement writes for a uid with
+   * neither a record nor an engagement profile are dropped as an erased account's
+   * (engagement-write-unless-erased.ts). So the record is made first, as user-migration
+   * does: the caller is then a real new user and the session lands.
    */
   async recordSession(
     userId: string,
@@ -74,6 +79,7 @@ class ConversationHistoryService {
 
     if (this.firestoreEnabled) {
       try {
+        await (await getStore()).getOrCreateProfile(userId);
         const store = await getEngagementStore();
         await store.addConversationSession(
           userId,
