@@ -19,8 +19,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'recent-texts-awareness' });
 
-export const RECENT_TEXTS_WINDOW_MS = 6 * 60 * 60 * 1000;
-export const READ_TIMEOUT_MS = 300;
+const RECENT_TEXTS_WINDOW_MS = 6 * 60 * 60 * 1000;
+const READ_TIMEOUT_MS = 300;
 const KEEP_MS = 10 * 60 * 1000;
 
 const KIND_LABEL: Record<TextKind, string> = {
@@ -72,7 +72,7 @@ export function sentWhen(sentAt: Date, now: Date, timeZone?: string): string {
 }
 
 /** One awareness fact for one text. */
-export function recentTextFact(text: RecentText, now: Date, timeZone?: string): string {
+function recentTextFact(text: RecentText, now: Date, timeZone?: string): string {
   const when = sentWhen(new Date(text.sentAt), now, timeZone);
   const reply = text.replied
     ? 'They replied. If it fits, you can bring it up'
