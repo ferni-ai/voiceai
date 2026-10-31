@@ -5,39 +5,41 @@
  * on their own, with no classifier and no agreement gate: performSafetyCheck
  * (crisis-detection.ts) and the human-transfer detector (human-transfer/
  * escalation-classifier.ts). Measured on main: "I got messages from my sister" read as
- * psychosis ("needs crisis support NOW"), "what's the point of this meeting" and "I'm
- * ending it with my boyfriend" as suicide (988), "I cut my finger, I'm bleeding" as 911.
+ * psychosis ("needs crisis support NOW"), "what's the point of this meeting" as suicide
+ * (988), "I cut my finger, I'm bleeding" as 911.
  *
- * With the flag on, a pattern hit stands unless
- * - it is negated in its clause: the guard's NEGATION_PREFIX, plus wasn't / haven't /
- *   "can't imagine". "Can't stop" is no negation, and neither is a bare "no": speech to
- *   text drops the comma in "no, I want to die";
- * - a suicide hit is an everyday idiom: ENDING_IDIOMS, or an everyday object right after
- *   an open-ended phrase ("the point of this meeting", "ending it with my boyfriend",
- *   "go on that trip") holding no ALWAYS_HOLD word (EVERYDAY_AFTER);
- * - an injury hit is an everyday injury (a cut finger while cooking) with no sign it is
- *   serious or deliberate: first aid, not 911 or 988;
- * - a distress or panic hit is talk about a game or an event (EVENTS), no ALWAYS_HOLD word.
- * Two of main's patterns are replaced (FIXED): "messages from" needs a voice source
- * (main's grouping made any "messages from" psychosis), "overdos" is a whole word, and
- * "took too many" is not about photos or classes.
+ * The rule: no exclusion ever silences a real risk phrase, and no line gets less than main
+ * gave it unless it is a known false-alarm shape. So, with the flag on:
+ * - STRONG_RISK runs first, on the whole turn. A turn holding any strong phrase ("want to
+ *   die", "end it", "kill myself", "can't go on"...) gets main's patterns, plus the fixed
+ *   ones, with no exclusion at all. Safety beats false alarms: "ending it with my
+ *   boyfriend" keeps main's alarm.
+ * - Otherwise a weak trigger is skipped when it is negated in its clause (the guard's
+ *   NEGATION_PREFIX, plus wasn't / haven't / "can't imagine"; never "can't stop" or a bare
+ *   "no"), when "the point" or "go on" is followed by an everyday object ("of this
+ *   meeting", "that trip"), when an injury hit's own clause is an everyday injury (a cut
+ *   finger while cooking) and nothing in the turn is serious or deliberate, or when
+ *   "losing it" is game or event talk. Event words never cancel panic, medical or self-harm.
+ * - Two of main's patterns are fixed (FIXED): "messages from" needs a voice source, and
+ *   "overdos" is a whole word ("took too many" is not about photos).
  *
- * With the gate live, suicide, self-harm and distress are the gate's: it reads the same
- * caller words with the same guard patterns and the classifier, so these checks stop
- * adding their own guidance for them. A hit is not fed into the gate: the gate takes no
- * outside input, and forcing its decision from a word hit is the false alarm itself.
- * Each skip and deferral is logged (CRISIS_LEXICAL, a reason code only). With the gate
- * off or in shadow the checks keep main's guidance. The human-transfer crisis_signals
- * write stays until the gate writes them (#3150).
+ * The human-transfer note for suicide or self-harm defers to the gate only when the gate is
+ * sure to act on the same line: the flag is on, the gate is live on the cascade path (the
+ * realtime models reply without it), and the gate's own pattern guard reads crisis in the
+ * line (gateSees). A classifier timeout can then never leave a real line with nothing.
+ * performSafetyCheck never defers: its suicide signal is the guard's own read, and its
+ * 'safety' note also steers turn 1 and the conversation mode. Each skip and deferral is
+ * logged (CRISIS_LEXICAL, a reason code only). The crisis_signals write is unchanged (#3150).
  *
  * @module services/safety/legacy-word-checks
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { getProviderIdSync } from '../../config/model-provider-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import type { CrisisSignal, CrisisType } from './crisis-detection.js';
+import { detectCrisis as guardRead } from './crisis-guard.js';
 import { resolveCrisisGuardMode } from './crisis-guard-mode.js';
 import { CLAUSE_BREAK, NEGATION_PREFIX } from './crisis-modifiers.js';
-import { ENDING_IDIOMS } from './crisis-patterns.js';
+import { FIRST_PERSON_ENDING } from './crisis-patterns.js';
 import { alwaysHold, EVENTS } from './crisis-release-words.js';
 
 const log = createLogger({ module: 'LegacyWordChecks' });
@@ -51,19 +53,34 @@ export interface WordPattern {
   test: (text: string) => boolean;
 }
 
-export function lexicalV2On(env: Env = process.env): boolean {
-  return flagOn('CRISIS_LEXICAL_V2', env);
-}
-
-/** The flag is on and the gate is live: the gate decides suicide, self-harm and distress. */
-export function gateDecides(env: Env = process.env): boolean {
-  return lexicalV2On(env) && resolveCrisisGuardMode(env) === 'live';
-}
+const lexicalV2On = (env: Env): boolean => flagOn('CRISIS_LEXICAL_V2', env);
 
 /** One counted event: the check, the reason and the pattern's kind. Never the caller's words. */
 export function noteWordCheck(check: WordCheck, reason: Skip, kind: string): void {
   log.info({ check, reason, kind }, 'CRISIS_LEXICAL');
 }
+
+/**
+ * Real risk, said outright. Any one in a turn turns every exclusion off for that turn,
+ * negated or not, whatever follows it. One list for both detectors; the guard's ending floor
+ * (kill myself, end my life, end it all, take my life, commit suicide) is reused as is.
+ */
+const STRONG_RISK: readonly RegExp[] = [
+  FIRST_PERSON_ENDING,
+  /\b(?:want(?:s|ed|ing)?|wanna) to die\b/,
+  /\bend(?:ing)? it\b/,
+  /\b(?:don'?t|do not|didn'?t) want to (?:be (?:here|alive|around)|live|exist|wake up)\b/,
+  /\b(?:kill|hurt|harm|burn)(?:s|ed|ing)? my ?self\b/,
+  /\bno reason (?:to|for me to) (?:live|be here|go on|keep going)\b/,
+  /\bbetter off without me\b/,
+  /\bno ?one (?:would|will) (?:care|miss me|notice)\b/,
+  /\bcan'?t (?:go on|keep going|cope anymore|do this anymore|take (?:it|this) anymore)\b/,
+  /\bbreaking point\b/,
+  /\bpoint (?:in|of) (?:living|life|being alive|existing|going on|my (?:life|existence)|(?:a|any|my) future)\b/,
+  /\bgo on (?:like this|another day|living|anymore)\b/,
+  /\bwon'?t be (?:here|around) (?:tomorrow|much longer|anymore|for long)\b/,
+  /\bsuicid\w*/,
+];
 
 const VOICE_SOURCE = String.raw`(?:god|the devil|satan|demons?|angels?|aliens?|spirits?|ghosts?|the dead|the (?:tv|television|radio|universe|other side))`;
 const NOT_A_DOSE = String.raw`(?:photos?|pictures?|pics|selfies|videos?|notes|classes|courses|credits|days off|breaks|naps|steps|questions|chances|risks|calls|meetings|shifts|hours|time|turns|bites)`;
@@ -96,68 +113,67 @@ function negated(lower: string, start: number): boolean {
   return NEGATION_PREFIX.test(prefix) || MORE_NEGATION.test(prefix);
 }
 
-const DET = String.raw`(?:a|an|the|this|that|these|those|our|your|his|her|their|my|another)`;
-const KIN = String.raw`(?:boyfriend|girlfriend|husband|wife|partner|ex|fianc\w*|roommate|friend|boss|landlord|lease|job|team|band)`;
-/**
- * The everyday object after an open-ended phrase, by its last words: "the point of this
- * meeting", "ending it with my boyfriend" or "there", "go on that trip", "be here at this
- * party", and "die" only as the guard's own idioms (laughing, of, from, for). "Kill
- * myself" is exempt only by ENDING_IDIOMS. A place or a means never exempts "end it".
- */
+const DET = String.raw`(?:a|an|the|this|that|these|those|our|your|his|her|their|my)`;
+const OUTING = String.raw`(?:trip|date|vacation|holiday|hike|cruise|tour|walk|ride|run|diet|break)`;
+/** The weak open-ended phrases and the everyday object that may follow them. */
 const EVERYDAY_AFTER: ReadonlyArray<[RegExp, RegExp]> = [
   [/\bpoint$/, new RegExp(String.raw`^ (?:of|in|about) ${DET} [a-z]`)],
-  [
-    /\bend(?:ing)? it$/,
-    new RegExp(
-      String.raw`^ with (?:him|her|them)\b|^ with (?:my|our|his|her|their) (?:\w+ )?${KIN}\b|^ (?:there|here)\b|^ for (?:today|now|the day|this week)\b`
-    ),
-  ],
-  [/\bgo on$/, new RegExp(String.raw`^ ${DET} [a-z]`)],
-  [/\bbe here$/, new RegExp(String.raw`^ (?:at|for|in|on) ${DET} [a-z]`)],
-  [/\bdie$/, /^ (?:laughing|of|from|for)\b/],
+  [/\bgo on$/, new RegExp(String.raw`^ ${DET} (?:\w+ )?(?:${OUTING}|${[...EVENTS].join('|')})\b`)],
 ];
-/** Life itself after the phrase keeps it ("be here in this world", "in this body"). */
-const EXISTENCE = /\b(?:world|earth|planet|body|skin|life|pain|head)\b/;
+/** Life itself after the phrase keeps it ("the point of this life", "in this body"). */
+const EXISTENCE = /\b(?:world|earth|planet|body|skin|life|pain|head|existence|future)\b/;
 
-function everydayIdiom(lower: string, start: number, matched: string): boolean {
-  const ending = matched.search(/\b(?:kill|end)/);
-  if (ending >= 0 && ENDING_IDIOMS.some((re) => re.test(lower.slice(start + ending)))) return true;
-  const rest = lower.slice(start + matched.length).split(/[.!?;,]|\bbut\b/)[0] ?? '';
+function everydayObject(lower: string, start: number, matched: string): boolean {
   const after = EVERYDAY_AFTER.find(([phrase]) => phrase.test(matched))?.[1];
+  const rest = lower.slice(start + matched.length).split(/[.!?;,]|\bbut\b/)[0] ?? '';
   return !!after && after.test(rest) && !alwaysHold(rest) && !EXISTENCE.test(rest);
 }
+
+/** Clauses: sentences, commas and the conjunctions a caller strings them with. */
+const CLAUSE = /[.!?;,]|\b(?:and|but|then|now|so)\b/;
+const clauseAt = (lower: string, start: number): string =>
+  `${lower.slice(0, start).split(CLAUSE).pop()}${lower.slice(start).split(CLAUSE)[0]}`;
 
 const EVERYDAY_INJURY =
   /\b(?:cut|sliced|nicked|scraped|scratched|burn(?:ed|t)?|pricked|stubbed|bumped|banged|jammed) (?:my|myself)\b[^.!?]{0,40}?\b(?:chopping|cutting|slicing|peeling|shaving|cooking|baking|gardening|opening|on (?:the|a) (?:stove|oven|pan|grill|iron|fence|nail|glass|corner|door|can))\b|\b(?:cut|sliced|nicked|scraped|burn(?:ed|t)?|stubbed) my (?:finger|thumb|hand|toe|knee|lip|chin)\b|\b(?:paper cut|nosebleed|nose bleed)\b/;
 const SERIOUS_INJURY =
   /\b(?:a lot|so much|won'?t stop|can'?t stop|everywhere|heavily|pouring|gushing|spurting|losing blood|deep|to the bone|stitches|stab\w*|shot|pass(?:ed|ing)? out|faint\w*|dizzy)\b/;
 const HARM_INTENT =
-  /\b(?:on purpose|deliberately|intentionally|meant to|wanted to|want to|to feel|deserve|punish\w*|again|relapse\w*|urges?)\b/;
+  /\b(?:on purpose|deliberately|intentionally|meant to|wanted to|want to|to feel|deserve|punish\w*|again|relapse\w*|urges?|at night|every night)\b/;
+/** "I'm bleeding" on its own, which an everyday injury clause elsewhere in the turn explains. */
+const BARE_BLEEDING = /^\s*(?:i'?m|i am) bleeding(?: a (?:little|bit|little bit))?\s*$/;
 
-const everydayInjury = (lower: string): boolean =>
-  EVERYDAY_INJURY.test(lower) && !SERIOUS_INJURY.test(lower) && !HARM_INTENT.test(lower);
+/** The hit's own clause is an everyday injury, and nothing in the turn is serious or deliberate. */
+function everydayInjury(lower: string, start: number): boolean {
+  if (SERIOUS_INJURY.test(lower) || HARM_INTENT.test(lower)) return false;
+  const clause = clauseAt(lower, start);
+  if (EVERYDAY_INJURY.test(clause)) return true;
+  return BARE_BLEEDING.test(clause) && lower.split(CLAUSE).some((c) => EVERYDAY_INJURY.test(c));
+}
 
+/** "Losing it" about a game or an event, with no risk word anywhere in its sentence. */
 function eventTalk(lower: string, start: number): boolean {
   const sentence = `${lower.slice(0, start).split(/[.!?]/).pop()}${lower.slice(start).split(/[.!?]/)[0]}`;
   const named = sentence.split(/[^a-z']+/).some((w) => EVENTS.has(w.replace(/'s$/, '')));
   return named && !alwaysHold(sentence);
 }
 
-const IDEATION_KINDS = new Set(['suicidal']);
 const INJURY_KINDS = new Set(['medical', 'self-harm']);
-const EVENT_KINDS = new Set(['severe_distress', 'panic_attack']);
 
 function skipOf(lower: string, start: number, matched: string, kind: string): Skip | null {
   if (negated(lower, start)) return 'negated';
-  if (IDEATION_KINDS.has(kind) && everydayIdiom(lower, start, matched)) return 'idiom';
-  if (INJURY_KINDS.has(kind) && everydayInjury(lower)) return 'injury';
-  if (EVENT_KINDS.has(kind) && eventTalk(lower, start)) return 'event_talk';
+  if (kind === 'suicidal' && everydayObject(lower, start, matched)) return 'idiom';
+  if (INJURY_KINDS.has(kind) && everydayInjury(lower, start)) return 'injury';
+  if (kind === 'severe_distress' && matched === 'losing it' && eventTalk(lower, start)) {
+    return 'event_talk';
+  }
   return null;
 }
 
 /**
  * Whether a legacy pattern hits `text`. Flag off: `pattern.test(text)`, exactly main.
- * Flag on: any one match that is not skipped (see the module comment).
+ * Flag on: with a strong phrase in the turn, main's hit or the fixed pattern's; without one,
+ * any match that is not skipped (see the module comment).
  */
 export function wordsMatch(
   pattern: WordPattern,
@@ -168,30 +184,31 @@ export function wordsMatch(
 ): boolean {
   if (!lexicalV2On(env) || !(pattern instanceof RegExp)) return pattern.test(text);
   const lower = text.toLowerCase().replace(/[‘’ʼ]/g, "'");
-  const fixed = FIXED.get(pattern.source) ?? pattern;
+  const fixed = FIXED.get(pattern.source);
+  if (STRONG_RISK.some((re) => re.test(lower))) return pattern.test(text) || !!fixed?.test(lower);
   let skip: Skip | null = null;
-  for (const m of lower.matchAll(new RegExp(fixed.source, `${fixed.flags.replace('g', '')}g`))) {
+  const re = fixed ?? pattern;
+  for (const m of lower.matchAll(new RegExp(re.source, `${re.flags.replace('g', '')}g`))) {
     skip = skipOf(lower, m.index, m[0], kind);
     if (!skip) return true;
   }
-  if (!skip && fixed !== pattern && pattern.test(lower)) skip = 'fixed_pattern';
+  if (!skip && fixed && pattern.test(lower)) skip = 'fixed_pattern';
   if (skip) noteWordCheck(check, skip, kind);
   return false;
 }
 
-/** What the gate reads itself: suicide and self-harm (the same guard patterns), and distress. */
-const GATE_TYPES: ReadonlySet<CrisisType> = new Set([
-  'suicidal_ideation',
-  'self_harm',
-  'severe_distress',
-]);
+/** The gate's own pattern guard reads crisis in these words, so the live gate acts on them. */
+const gateSees = (text: string): boolean => guardRead(text).isCrisis;
 
-/** performSafetyCheck's signals, in place, without the gate's kinds when the gate decides. */
-export function deferToGate(signals: CrisisSignal[], env: Env = process.env): void {
-  if (!gateDecides(env)) return;
-  for (let i = signals.length - 1; i >= 0; i -= 1) {
-    if (!GATE_TYPES.has(signals[i].type)) continue;
-    noteWordCheck('safety_check', 'deferred_to_gate', signals[i].type);
-    signals.splice(i, 1);
-  }
+/**
+ * The flag is on, the gate is live on the cascade path (the realtime models reply without
+ * it), and its pattern guard reads crisis in `text`: the gate is sure to act on this line.
+ */
+export function gateDecides(text: string, env: Env = process.env): boolean {
+  return (
+    lexicalV2On(env) &&
+    resolveCrisisGuardMode(env) === 'live' &&
+    getProviderIdSync(env) === 'cartesia-cascade' &&
+    gateSees(text)
+  );
 }

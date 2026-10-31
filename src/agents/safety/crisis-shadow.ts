@@ -25,10 +25,7 @@ import {
 
 import type { CrisisGuardMode } from '../../services/safety/index.js';
 
-export {
-  resolveCrisisGuardMode,
-  type CrisisGuardMode,
-} from '../../services/safety/index.js';
+export { resolveCrisisGuardMode, type CrisisGuardMode } from '../../services/safety/index.js';
 
 /** The subset of the prosody analyzer's result the guard can use. */
 export interface ProsodyEmotionLike {

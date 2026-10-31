@@ -1,10 +1,10 @@
 /**
  * What the human-transfer detector's signals ask Ferni to do on this turn.
  *
- * CRISIS_LEXICAL_V2 off: evaluateTransferNeed, exactly main. On, with the gate live
- * (legacy-word-checks.ts): a turn whose only risk is suicide or self-harm adds no
- * transfer note of its own. The gate reads those itself, from the same caller words,
- * and gives the crisis guidance or the script. Anything the gate does not read (a medical
+ * CRISIS_LEXICAL_V2 off: evaluateTransferNeed, exactly main. On, when the gate is sure to
+ * act on the line (gateDecides: live, on the cascade path, and its own pattern guard reads
+ * crisis in these words), a turn whose only risk is suicide or self-harm adds no transfer
+ * note of its own: the gate gives the crisis guidance or the script. Otherwise main's note. Anything the gate does not read (a medical
  * emergency, danger to others, domestic violence, a child, substances, psychosis) keeps
  * main's decision. The crisis_signals write is the caller's business and is unchanged
  * (better-than-human-builders.ts), so a real crisis still leaves its record.
@@ -38,7 +38,7 @@ function onlyGateRisk(s: CrisisSignals): boolean {
 
 /** The transfer decision for this turn's signals (detectCrisisSignals of `userText`). */
 export function transferNeed(signals: CrisisSignals, userText: string): EscalationDecision {
-  if (!gateDecides()) return evaluateTransferNeed(userText);
+  if (!gateDecides(userText)) return evaluateTransferNeed(userText);
   if (!onlyGateRisk(signals)) return classifyEscalation(signals);
   noteWordCheck(
     'human_transfer',

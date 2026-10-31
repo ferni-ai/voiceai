@@ -189,7 +189,6 @@ export function performSafetyCheck(
   // 1. Detect crisis signals
   const detection = detectCrisis(text, {
     previousSignals: sessionSignals,
-    deferToGate: true, // CRISIS_LEXICAL_V2: the gate decides what it reads (legacy-word-checks.ts)
   });
 
   // 2. Update session signals if crisis detected

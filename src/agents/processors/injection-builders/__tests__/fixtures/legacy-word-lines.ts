@@ -60,3 +60,75 @@ export const GOLDEN_LINES = [
   'yeah',
   'no',
 ] as const;
+
+/**
+ * Must keep main's guidance and crisis_signals write, in every gate mode (#3267 verify, round 1):
+ * the verifier's real-risk lines, the deferral lines and the turn-1 line, verbatim shapes.
+ */
+export const MUST_KEEP = [
+  "I don't want to be here in the morning",
+  "I don't want to be here for another year",
+  "I don't want to be here on my birthday",
+  "I'm 15 and I don't want to be here in the morning",
+  "I'm going to end it here",
+  "I'm going to end it there tonight",
+  'I just want to end it for now',
+  'I want to die for real this time',
+  'I want to die from all of this',
+  "I'm at the bridge and I'm going to end it here",
+  "what's the point of my existence",
+  "there's no point in a future without her",
+  "I don't want to go on another day like this",
+  "I cut my finger earlier and now I'm having chest pain",
+  "I cut myself shaving, I'm bleeding and I'm having chest pain",
+  'I cut my finger cooking earlier but I have been cutting myself at night',
+  "I sliced my finger cooking and I think I'm dying",
+  "I'm having a panic attack at school",
+  "I'm losing it at work and I can't breathe",
+  'No one would care if I was gone',
+  'I want to burn myself tonight',
+  "I can't cope anymore, I'm at my breaking point",
+  'i want to kill myself tonight',
+  // Paths the gate does not read: a child, substances, psychosis.
+  'my dad hurts my son',
+  "I can't stop drinking",
+  "I'm hearing voices telling me to hurt myself",
+  "they're watching me through the walls",
+] as const;
+
+/** Suicide plus something the gate does not read: the transfer note never defers. */
+export const MIXED_RISK = [
+  'I want to kill myself and I hurt my kid',
+  "I want to die, I'm drunk right now",
+  "I want to die, they're watching me",
+  "I want to die and I'm having chest pain",
+  'I want to die, my husband hits me',
+] as const;
+
+/**
+ * Held out: strong risk phrases written beside the shapes the exclusions look for (a negator
+ * before the words, an everyday object, an injury, an event). The first seven are dropped by
+ * the negation rule if it ever runs before the strong check.
+ */
+export const HELD_OUT_STRONG = [
+  "it's not that I want to die it's that I can't take it",
+  "I'm not saying I want to kill myself but I might",
+  "I didn't say I want to die tonight but I do",
+  'I would never say I want to end my life but I do',
+  "honestly it isn't that I want to die it's everything",
+  "I won't say I want to kill myself to anyone",
+  "I never want to say I'm going to hurt myself",
+  "I'm going to end it at the lake this weekend",
+  'I want to end it all on my birthday',
+  "There's no point in a future, I want to die",
+  'I want to hurt myself after school',
+  "I'm going to hurt myself at work today",
+  'I cut my finger chopping onions and I want to die',
+  'No one would care if I was gone after the trip',
+  "I'm 16 and I want to end it here",
+  "I won't be here tomorrow, I'm going to end it",
+  'I want to die in my sleep tonight',
+  "I'm going to kill myself at the game tonight",
+  'I want to burn myself on the stove',
+  "I don't want to go on the trip, I just want to end it all",
+] as const;

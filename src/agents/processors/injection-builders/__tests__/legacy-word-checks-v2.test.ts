@@ -4,10 +4,21 @@
  * performSafetyCheck, buildHumanTransferInjections -> the human-transfer detector and
  * its crisis_signals writer on a fake store) and the real gate (startCrisisGate,
  * patterns only, so no model call). Every line is fictional.
+ *
+ * The rule (#3267 verify, round 1): no line gets less than main gave it unless it is a
+ * known false-alarm shape. MUST_KEEP, MIXED_RISK and HELD_OUT_STRONG pin that in every
+ * gate mode.
  */
 import { llm } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FALSE_ALARMS, REAL_RISK, STILL_LOGGED } from './fixtures/legacy-word-lines.js';
+import {
+  FALSE_ALARMS,
+  HELD_OUT_STRONG,
+  MIXED_RISK,
+  MUST_KEEP,
+  REAL_RISK,
+  STILL_LOGGED,
+} from './fixtures/legacy-word-lines.js';
 
 const fake = vi.hoisted(() => {
   const writes = new Map<string, number[]>();
@@ -53,7 +64,10 @@ const { buildHumanTransferInjections } = await import('../better-than-human-buil
 const { startCrisisGate } = await import('../../../personas/crisis-gate.js');
 const { resetCrisisClassifierCache } =
   await import('../../../../services/safety/crisis-classifier.js');
+const { performSafetyCheck } = await import('../../../../services/safety/index.js');
 type SafetyContext = Parameters<typeof buildSafetyInjections>[0];
+type GateMode = 'live' | 'shadow' | 'off';
+const GATE_MODES: GateMode[] = ['live', 'shadow', 'off'];
 
 const PATTERNS_ONLY = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off' };
 const CRISIS_CATEGORIES = ['safety', 'crisis_response', 'crisis_transfer'];
@@ -75,8 +89,11 @@ async function turn(line: string) {
     setTimeout(resolve, 0); // the write is fire-and-forget
   });
   const injected = [...safety, ...(transfer ? [transfer] : [])];
+  const check = performSafetyCheck(line, { userId: uid, personaId: 'ferni' });
   return {
     crisisInjections: injected.filter((i) => CRISIS_CATEGORIES.includes(i.category)),
+    safety: safety.map((i) => i.category),
+    types: check.detection.signals.map((sig) => sig.type),
     transfer,
     writes: fake.writes.get(uid) ?? [],
   };
@@ -104,7 +121,7 @@ async function gateCatches(line: string, lexicalV2: 'on' | 'off') {
   return (await gate.escalation)?.action ?? 'pass';
 }
 
-const v2 = (on: boolean, gate: 'live' | 'shadow' = 'live') => {
+const v2 = (on: boolean, gate: GateMode = 'live') => {
   vi.stubEnv('CRISIS_LEXICAL_V2', on ? 'on' : 'off');
   vi.stubEnv('CRISIS_GUARD_MODE', gate);
 };
@@ -118,13 +135,52 @@ afterEach(() => {
   resetCrisisClassifierCache();
 });
 
+/**
+ * Flag on gives this line at least what main gave it in this gate mode: the same
+ * crisis_signals write, every performSafetyCheck note and signal, and the transfer note.
+ * The note may be left to the gate only with the gate live and its own patterns acting.
+ */
+async function keepsMain(line: string, mode: GateMode) {
+  v2(false, mode);
+  const main = await turn(line);
+  v2(true, mode);
+  const on = await turn(line);
+  expect(on.writes).toEqual(main.writes);
+  expect(on.safety).toEqual(expect.arrayContaining(main.safety));
+  expect(on.types).toEqual(expect.arrayContaining(main.types));
+  if (main.transfer && on.transfer?.content !== main.transfer.content) {
+    expect(mode).toBe('live');
+    expect(gateDecision(line, PATTERNS_ONLY)).toMatch(/^(guide|replace)$/);
+    expect(on.transfer).toBeNull();
+  }
+  return main;
+}
+const gaveSomething = (main: Awaited<ReturnType<typeof turn>>) =>
+  main.writes.length + main.safety.length + (main.transfer ? 1 : 0);
+
+describe('no line gets less than main gave it, in every gate mode', () => {
+  describe.each(GATE_MODES)('gate %s', (mode) => {
+    it.each([...MUST_KEEP, ...HELD_OUT_STRONG])('%s', async (line) => {
+      expect(gaveSomething(await keepsMain(line, mode))).toBeGreaterThan(0);
+    });
+
+    it.each(MIXED_RISK)(
+      'suicide plus what the gate does not read keeps its note: %s',
+      async (line) => {
+        v2(false, mode);
+        const main = await turn(line);
+        v2(true, mode);
+        expect(main.transfer?.category).toBe('crisis_transfer');
+        expect((await turn(line)).transfer).toEqual(main.transfer);
+      }
+    );
+  });
+});
+
 describe('a false alarm on main writes crisis_signals; with the flag on it writes nothing', () => {
   const written = [
     FALSE_ALARMS.meeting,
-    FALSE_ALARMS.boyfriend,
-    FALSE_ALARMS.endThere,
     FALSE_ALARMS.trip,
-    FALSE_ALARMS.dieLaughing,
     FALSE_ALARMS.fingerCut,
     FALSE_ALARMS.shavingCut,
     FALSE_ALARMS.cantSeeText, // CRISIS_LEXICAL_V2 implies CRISIS_SIGHT_NEEDS_CUE
@@ -135,8 +191,22 @@ describe('a false alarm on main writes crisis_signals; with the flag on it write
     v2(true);
     const on = await turn(line);
     expect(on.writes).toEqual([]);
-    expect(on.crisisInjections).toEqual([]);
+    expect(on.transfer).toBeNull();
+    // performSafetyCheck's suicide note is the guard's own read, so it stays where the guard
+    // reads one ("the point of this meeting", "go on that trip": the gate's lane, L1/L2).
+    expect(on.crisisInjections.map((i) => i.category)).not.toContain('crisis_transfer');
   });
+
+  // Safety beats false alarms: a strong phrase turns every exclusion off.
+  it.each([FALSE_ALARMS.boyfriend, FALSE_ALARMS.endThere, FALSE_ALARMS.dieLaughing])(
+    "a strong phrase keeps main's alarm, false or not: %s",
+    async (line) => {
+      v2(false);
+      const main = (await turn(line)).writes;
+      v2(true);
+      expect((await turn(line)).writes).toEqual(main);
+    }
+  );
 });
 
 describe('performSafetyCheck false alarms: main injects crisis guidance, the flag injects none', () => {
@@ -165,9 +235,8 @@ describe('real risk still reaches the gate and is caught end to end', () => {
     const caught = await gateCatches(line, 'on');
     expect(caught).toMatch(/^(guide|replace)$/);
     expect(await gateCatches(line, 'off')).toBe(caught);
-    v2(true);
-    // The word checks no longer add their own crisis guidance: the gate's is the one.
-    expect((await turn(line)).crisisInjections).toEqual([]);
+    // And the word checks give it at least main's guidance and write in every gate mode.
+    for (const mode of GATE_MODES) await keepsMain(line, mode); // eslint-disable-line no-await-in-loop
   });
 
   it('a negation trap ("can\'t stop thinking about killing myself") is caught by the gate', () => {

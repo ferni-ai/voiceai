@@ -57,33 +57,34 @@ describe('performSafetyCheck patterns (gate not live, so nothing is deferred)', 
   });
 });
 
-describe('performSafetyCheck with the gate live: suicide, self-harm and distress defer to it', () => {
+describe("performSafetyCheck never defers to the gate (its suicide signal is the guard's own read)", () => {
   it.each(['I want to kill myself', "I'm completely falling apart", 'I cut myself on purpose'])(
-    '%s',
+    "%s keeps main's guidance with the gate live",
     (line) => {
-      expect(performSafetyCheck(line, { userId: 'u', personaId: 'ferni' }).crisisDetected).toBe(
-        true
-      );
+      const main = performSafetyCheck(line, { userId: 'u', personaId: 'ferni' });
+      expect(main.crisisDetected).toBe(true);
       on('live');
       const check = performSafetyCheck(line, { userId: 'u', personaId: 'ferni' });
-      expect(check.crisisDetected).toBe(false);
-      expect(check.contextInjection).toBeNull();
+      expect(check.crisisDetected).toBe(true);
+      expect(check.contextInjection).toBe(main.contextInjection);
     }
   );
 
-  it('what the gate does not read stays: domestic violence', () => {
+  it.each([
+    ["I'm having a panic attack at school", 'panic_attack'],
+    ["I'm losing it at work and I can't breathe", 'panic_attack'],
+    ["I'm losing it at work and I can't breathe", 'severe_distress'],
+  ])('event words never cancel panic or distress beside it: "%s" keeps %s', (line, type) => {
+    expect(typesOf(line)).toContain(type);
     on('live');
-    expect(typesOf('my husband hits me')).toEqual(['domestic_abuse']);
+    expect(typesOf(line)).toContain(type);
   });
 });
 
 describe('the human-transfer detector', () => {
   it.each([
     ["What's the point of this meeting", 'suicidalIdeation'],
-    ["I'm ending it with my boyfriend", 'suicidalIdeation'],
-    ["let's end it there for today", 'suicidalIdeation'],
     ["I don't want to go on that trip", 'suicidalIdeation'],
-    ['I want to die laughing at that', 'suicidalIdeation'],
     ["I cut my finger chopping onions, I'm bleeding", 'medicalEmergency'],
     ["I cut myself shaving and I'm bleeding a little", 'selfHarmIndicators'],
     ["I can't see your text, it never came through", 'medicalEmergency'],

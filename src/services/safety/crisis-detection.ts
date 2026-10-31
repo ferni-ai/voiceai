@@ -17,7 +17,7 @@
  */
 
 import { detectCrisis as detectGuardCrisis } from './crisis-guard.js';
-import { deferToGate, wordsMatch } from './legacy-word-checks.js'; // CRISIS_LEXICAL_V2
+import { wordsMatch } from './legacy-word-checks.js'; // CRISIS_LEXICAL_V2
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CrisisDetection' });
@@ -84,7 +84,10 @@ type PatternCrisisType = Exclude<CrisisType, 'suicidal_ideation' | 'self_harm'>;
  * Pattern definitions for crisis detection.
  * Organized by crisis type with severity gradients.
  */
-const CRISIS_PATTERNS: Record<PatternCrisisType, { patterns: RegExp[]; severity: CrisisSeverity }[]> = {
+const CRISIS_PATTERNS: Record<
+  PatternCrisisType,
+  { patterns: RegExp[]; severity: CrisisSeverity }[]
+> = {
   domestic_abuse: [
     {
       patterns: [
@@ -312,8 +315,6 @@ export function detectCrisis(
     previousSignals?: CrisisSignal[];
     /** Relationship stage with user */
     relationshipStage?: string;
-    /** CRISIS_LEXICAL_V2, gate live: leave suicide, self-harm, distress to it (performSafetyCheck) */
-    deferToGate?: boolean;
   }
 ): CrisisDetectionResult {
   const signals: CrisisSignal[] = [];
@@ -394,7 +395,6 @@ export function detectCrisis(
     }
   }
 
-  if (context?.deferToGate) deferToGate(signals);
   // Sort by severity (critical > high > medium > low) and confidence
   const severityOrder: Record<CrisisSeverity, number> = {
     critical: 4,
